@@ -21,6 +21,11 @@ enum EquipType {
   EQUIP_TYPE_ONE_HANDED_SWORD = 1;
 }
 
+enum EquipSlot {
+  EQUIP_SLOT_UNSPECIFIED = 0;
+  EQUIP_SLOT_PRIMARY_WEAPON = 1;
+}
+
 enum EquipJobCategory {
   EQUIP_JOB_CATEGORY_UNSPECIFIED = 0;
   EQUIP_JOB_CATEGORY_WARRIOR = 1;
@@ -50,4 +55,5 @@ message Equip {
   EquipType equip_type = 5;
   int32 upgrade_slots = 6;
   EquipJobCategory equip_job_category = 7;
+  EquipSlot equip_slot = 8;
 }
