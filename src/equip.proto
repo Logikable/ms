@@ -47,13 +47,25 @@ message EquipStats {
   int32 def = 8;
 }
 
+// Prototype definition for a piece of equipment. Stored in data/ as text
+// protos; loaded read-only at runtime and referenced by EquipInstance.
 message Equip {
+  // -- Metadata ------------------------------------------
+  // Classification fields used for filtering, eligibility checks, and
+  // determining which scrolls/upgrades can be applied.
   string name = 1;
+  EquipSlot equip_slot = 8;
+  EquipJobCategory equip_job_category = 7;
+  EquipType equip_type = 5;
+
+  // -- Immutable characteristics -------------------------
+  // Fixed properties of this item type; never change after creation.
   int32 required_level = 2;
   EquipStats base_stats = 3;
   AttackSpeed attack_speed = 4;
-  EquipType equip_type = 5;
-  int32 upgrade_slots = 6;
-  EquipJobCategory equip_job_category = 7;
-  EquipSlot equip_slot = 8;
+  int32 upgrade_slots = 6;  // Starting slot count for a fresh drop.
+
+  // -- Mutable instance state ----------------------------
+  // Per-instance upgrade state. Empty on the prototype; populated when
+  // serializing a live EquipInstance to disk.
 }
