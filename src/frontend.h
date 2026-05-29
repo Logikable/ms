@@ -9,35 +9,22 @@ namespace ms {
 
 struct Command {
   std::string name;
-  std::string description;
-  // Receives tokenized args (args[0] is the command name).
-  // Returns text to print, or empty string for no output.
   std::function<std::string(std::vector<std::string>)> fn;
 };
 
-// Readline-backed command-line frontend.
-// Features:
-//   - Up/Down: history prefix search (zsh-style)
-//   - Tab: command name completion
-//   - Left arrow x2 on empty line: display recent history
-// Only one Frontend may be active at a time (readline uses global state).
+// Minimal readline-backed command loop.
+// Commands are registered with a leading slash (e.g. "scroll" matches
+// "/scroll"). Ctrl-D exits. No history, completion, or key bindings.
 class Frontend {
  public:
   explicit Frontend(std::string prompt);
   ~Frontend();
 
   void Register(Command command);
-
-  // Runs the input loop until "quit", "exit", or EOF.
   void Run();
-
-  // Called by readline C shims; not for external use.
-  char* CompleteEntry(const char* text, int state);
-  void ShowHistory() const;
 
  private:
   void Dispatch(const std::string& line);
-  std::string BuildHelp() const;
 
   std::string prompt_;
   std::vector<Command> commands_;

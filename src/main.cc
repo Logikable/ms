@@ -5,7 +5,6 @@
 
 #include "src/equip.pb.h"
 #include "src/equip_instance.h"
-#include "src/equip_stats.h"
 #include "src/frontend.h"
 #include "src/scroll.pb.h"
 
@@ -78,16 +77,7 @@ int main() {
   ms::Frontend frontend("> ");
 
   frontend.Register({
-      "inventory",
-      "Show equipped items and stats.",
-      [&state](std::vector<std::string>) -> std::string {
-        return ms::FormatEquip(state.sword);
-      },
-  });
-
-  frontend.Register({
       "scroll",
-      "Apply a 100% Weapon ATT scroll to your sword.",
       [&state](std::vector<std::string>) -> std::string {
         if (state.sword.remaining_upgrade_slots() == 0) {
           return "No upgrade slots remaining on " +
