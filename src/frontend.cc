@@ -41,6 +41,12 @@ int LeftArrowShim(int count, int key) {
   return rl_backward_char(count, key);
 }
 
+// Strips a leading '/' if present and returns the remainder.
+std::string StripSlash(const std::string& s) {
+  if (!s.empty() && s[0] == '/') return s.substr(1);
+  return s;
+}
+
 }  // namespace
 
 Frontend::Frontend(std::string prompt) : prompt_(std::move(prompt)) {
@@ -73,11 +79,12 @@ void Frontend::Run() {
     g_last_key = 0;  // Any accepted line resets double-press tracking.
     if (line.empty()) continue;
     add_history(line.c_str());
-    if (line == "quit" || line == "exit") {
+    const std::string stripped = StripSlash(line);
+    if (stripped == "quit" || stripped == "exit") {
       std::cout << "Goodbye!\n";
       break;
     }
-    Dispatch(line);
+    Dispatch(stripped);
   }
 }
 
@@ -86,11 +93,25 @@ char* Frontend::CompleteEntry(const char* text, int state) {
   // subsequent match. Static idx persists between calls within one completion.
   static size_t idx;
   if (state == 0) idx = 0;
-  const std::string prefix(text);
-  while (idx < commands_.size()) {
-    const std::string& name = commands_[idx++].name;
+
+  // Strip leading '/' from what the user has typed so far, but remember
+  // whether it was there so we can put it back on the completion.
+  std::string prefix(text);
+  const bool has_slash = !prefix.empty() && prefix[0] == '/';
+  if (has_slash) prefix = prefix.substr(1);
+
+  // Built-ins first, then registered commands.
+  static const char* kBuiltins[] = {"help", "quit"};
+  constexpr size_t kNumBuiltins = 2;
+  const size_t total = kNumBuiltins + commands_.size();
+
+  while (idx < total) {
+    const std::string name = idx < kNumBuiltins
+                                 ? std::string(kBuiltins[idx++])
+                                 : commands_[(idx++) - kNumBuiltins].name;
     if (name.rfind(prefix, 0) == 0) {
-      return strdup(name.c_str());
+      const std::string match = (has_slash ? "/" : "") + name;
+      return strdup(match.c_str());
     }
   }
   return nullptr;
@@ -128,17 +149,17 @@ void Frontend::Dispatch(const std::string& line) {
       return;
     }
   }
-  std::cout << "Unknown command '" << tokens[0] << "'. Type 'help' for help.\n";
+  std::cout << "Unknown command '/" << tokens[0]
+            << "'. Type /help for help.\n";
 }
 
 std::string Frontend::BuildHelp() const {
   std::ostringstream out;
-  out << "  help          Show this message\n";
-  out << "  quit / exit   Exit the game\n";
+  out << "  /help         Show this message\n";
+  out << "  /quit         Exit the game\n";
   for (const Command& cmd : commands_) {
-    out << "  " << cmd.name;
-    // Pad to 14 chars.
-    int pad = 14 - static_cast<int>(cmd.name.size());
+    out << "  /" << cmd.name;
+    int pad = 13 - static_cast<int>(cmd.name.size());
     if (pad > 0) out << std::string(pad, ' ');
     out << cmd.description << "\n";
   }
