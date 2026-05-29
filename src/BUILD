@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 
@@ -33,6 +33,25 @@ proto_library(
 cc_proto_library(
   name = "scroll_proto_cc",
   deps = [":scroll_proto"],
+)
+
+cc_library(
+  name = "frontend",
+  hdrs = ["frontend.h"],
+  srcs = ["frontend.cc"],
+  linkopts = ["-lreadline"],
+)
+
+cc_binary(
+  name = "ms",
+  srcs = ["main.cc"],
+  deps = [
+    ":equip_instance",
+    ":equip_proto_cc",
+    ":equip_stats",
+    ":frontend",
+    ":scroll_proto_cc",
+  ],
 )
 
 cc_library(
