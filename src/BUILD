@@ -49,5 +49,6 @@ cc_library(
   deps = [
     ":equip_stats",
     ":equip_proto_cc",
+    ":scroll_proto_cc",
   ],
 )
