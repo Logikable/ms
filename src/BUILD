@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 
@@ -40,6 +40,17 @@ cc_library(
   hdrs = ["equip_stats.h"],
   srcs = ["equip_stats.cc"],
   deps = [":equip_proto_cc"],
+)
+
+cc_test(
+  name = "equip_instance_test",
+  srcs = ["equip_instance_test.cc"],
+  deps = [
+    ":equip_instance",
+    ":equip_proto_cc",
+    ":scroll_proto_cc",
+    "@googletest//:gtest_main",
+  ],
 )
 
 cc_library(
