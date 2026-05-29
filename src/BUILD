@@ -24,6 +24,17 @@ cc_proto_library(
   deps = [":equip_proto"],
 )
 
+proto_library(
+  name = "scroll_proto",
+  srcs = ["scroll.proto"],
+  deps = [":equip_proto"],
+)
+
+cc_proto_library(
+  name = "scroll_proto_cc",
+  deps = [":scroll_proto"],
+)
+
 cc_library(
   name = "equip_stats",
   hdrs = ["equip_stats.h"],

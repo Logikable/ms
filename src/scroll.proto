@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package ms;
+
+import "src/equip.proto";
+
+// Stats granted by a scroll for equipment at or above min_level.
+message ScrollTierStats {
+  int32 min_level = 1;
+  EquipStats stats = 2;
+}
+
+// Definition of a scroll (e.g. "Spell Trace 100% STR").
+// Tiers are evaluated in descending min_level order; the highest tier
+// whose min_level <= the equipment's required_level is used.
+message ScrollDefinition {
+  string name = 1;
+  // Success probability in [0, 100].
+  int32 success_rate = 2;
+  repeated ScrollTierStats tiers = 3;
+}
