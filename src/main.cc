@@ -15,22 +15,13 @@
 namespace ms {
 namespace {
 
-Scroll MakeWattScroll() {
-  Scroll s;
-  s.set_name("100% Weapon ATT");
-  s.set_success_rate(100);
-  s.set_tier(SCROLL_TIER_1);
-  s.mutable_stats()->set_attack(1);
-  return s;
-}
-
 // Non-copyable/movable: EquipInstance holds a const Equip& reference.
 // sword_proto must be declared before sword.
 struct GameState {
-  explicit GameState(Equip sword_proto_arg)
+  explicit GameState(Equip sword_proto_arg, Scroll watt_scroll_arg)
       : sword_proto(std::move(sword_proto_arg)),
         sword(sword_proto),
-        watt_scroll(MakeWattScroll()),
+        watt_scroll(std::move(watt_scroll_arg)),
         rng(std::random_device{}()) {}
 
   GameState(const GameState&) = delete;
@@ -73,7 +64,12 @@ int main(int argc, char** argv) {
   ms::LoadTextProto(runfiles->Rlocation("ms/data/equip/sword.textproto"),
                     &sword_proto);
 
-  ms::GameState state(std::move(sword_proto));
+  ms::Scroll watt_scroll;
+  ms::LoadTextProto(
+      runfiles->Rlocation("ms/data/scrolls/weapon_att_100_t1.textproto"),
+      &watt_scroll);
+
+  ms::GameState state(std::move(sword_proto), std::move(watt_scroll));
   ms::Frontend frontend("> ");
 
   frontend.Register({

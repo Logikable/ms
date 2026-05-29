@@ -55,7 +55,10 @@ cc_library(
 cc_binary(
   name = "ms",
   srcs = ["main.cc"],
-  data = ["//data/equip:all"],
+  data = [
+    "//data/equip:all",
+    "//data/scrolls:all",
+  ],
   deps = [
     ":equip_instance",
     ":equip_proto_cc",
