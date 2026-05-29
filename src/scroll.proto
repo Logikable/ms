@@ -4,18 +4,22 @@ package ms;
 
 import "src/equip.proto";
 
-// Stats granted by a scroll for equipment at or above min_level.
-message ScrollTierStats {
-  int32 min_level = 1;
-  EquipStats stats = 2;
+// Tier is determined by the equipment's required_level:
+//   Tier 1: 0-74, Tier 2: 75-114, Tier 3: 115+
+enum ScrollTier {
+  SCROLL_TIER_UNSPECIFIED = 0;
+  SCROLL_TIER_1 = 1;
+  SCROLL_TIER_2 = 2;
+  SCROLL_TIER_3 = 3;
 }
 
-// Definition of a scroll (e.g. "Spell Trace 100% STR").
-// Tiers are evaluated in descending min_level order; the highest tier
-// whose min_level <= the equipment's required_level is used.
-message ScrollDefinition {
+// One Scroll represents a single, fully-specified scroll option,
+// e.g. "Spell Trace 100% STR, Warrior, Tier 1".
+message Scroll {
   string name = 1;
   // Success probability in [0, 100].
   int32 success_rate = 2;
-  repeated ScrollTierStats tiers = 3;
+  ScrollTier tier = 3;
+  EquipStats stats = 4;
+  repeated EquipJobCategory applicable_job_categories = 5;
 }
