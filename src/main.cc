@@ -1,28 +1,19 @@
+#include <memory>
 #include <random>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include "absl/log/log.h"
 #include "src/equip.pb.h"
 #include "src/equip_instance.h"
 #include "src/frontend.h"
+#include "src/proto_loader.h"
 #include "src/scroll.pb.h"
+#include "tools/cpp/runfiles/runfiles.h"
 
 namespace ms {
 namespace {
-
-Equip MakeSwordProto() {
-  Equip e;
-  e.set_name("Sword");
-  e.set_required_level(0);
-  e.set_upgrade_slots(9);
-  e.mutable_base_stats()->set_attack(15);
-  e.set_attack_speed(ATTACK_SPEED_FAST_2);
-  e.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  e.set_equip_job_category(EQUIP_JOB_CATEGORY_WARRIOR);
-  e.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
-  return e;
-}
 
 Scroll MakeWattScroll() {
   Scroll s;
@@ -33,13 +24,11 @@ Scroll MakeWattScroll() {
   return s;
 }
 
-// Hardcoded game state until textproto loading is implemented.
 // Non-copyable/movable: EquipInstance holds a const Equip& reference.
+// sword_proto must be declared before sword.
 struct GameState {
-  // sword_proto must be declared before sword so that sword_proto is fully
-  // constructed before sword's initializer runs.
-  GameState()
-      : sword_proto(MakeSwordProto()),
+  explicit GameState(Equip sword_proto_arg)
+      : sword_proto(std::move(sword_proto_arg)),
         sword(sword_proto),
         watt_scroll(MakeWattScroll()),
         rng(std::random_device{}()) {}
@@ -72,8 +61,19 @@ std::string FormatEquip(const EquipInstance& item) {
 }  // namespace
 }  // namespace ms
 
-int main() {
-  ms::GameState state;
+int main(int argc, char** argv) {
+  std::string err;
+  std::unique_ptr<bazel::tools::cpp::runfiles::Runfiles> runfiles(
+      bazel::tools::cpp::runfiles::Runfiles::Create(argv[0], &err));
+  if (!runfiles) {
+    LOG(FATAL) << "Could not create Runfiles: " << err;
+  }
+
+  ms::Equip sword_proto;
+  ms::LoadTextProto(runfiles->Rlocation("ms/data/equip/sword.textproto"),
+                    &sword_proto);
+
+  ms::GameState state(std::move(sword_proto));
   ms::Frontend frontend("> ");
 
   frontend.Register({

@@ -36,6 +36,16 @@ cc_proto_library(
 )
 
 cc_library(
+  name = "proto_loader",
+  hdrs = ["proto_loader.h"],
+  srcs = ["proto_loader.cc"],
+  deps = [
+    "@abseil-cpp//absl/log",
+    "@protobuf//:protobuf",
+  ],
+)
+
+cc_library(
   name = "frontend",
   hdrs = ["frontend.h"],
   srcs = ["frontend.cc"],
@@ -45,12 +55,14 @@ cc_library(
 cc_binary(
   name = "ms",
   srcs = ["main.cc"],
+  data = ["//data/equip:all"],
   deps = [
     ":equip_instance",
     ":equip_proto_cc",
-    ":equip_stats",
     ":frontend",
+    ":proto_loader",
     ":scroll_proto_cc",
+    "@bazel_tools//tools/cpp/runfiles",
   ],
 )
 
