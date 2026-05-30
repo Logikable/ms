@@ -29,6 +29,9 @@ class CharacterInstance {
   // slot was occupied, the displaced item is appended to the equip tab. Returns
   // false if `slot` is unspecified or `inventory_index` is out of range.
   bool Equip(EquipSlot slot, int inventory_index);
+  // Moves the item in `slot` to the equip tab. Returns false if `slot` is
+  // unspecified or unoccupied.
+  bool Unequip(EquipSlot slot);
 
   const Character& proto() const { return character_; }
 

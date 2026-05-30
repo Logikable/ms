@@ -175,5 +175,27 @@ TEST(EquipTest, ReturnsFalseForOutOfBoundsIndex) {
   EXPECT_FALSE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
 }
 
+TEST(UnequipTest, MovesItemToInventory) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  c.PickUp(proto);
+  c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
+  EXPECT_TRUE(c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(c.proto().equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0);
+  ASSERT_EQ(c.proto().inventory().equip_tab_size(), 1);
+  EXPECT_EQ(c.proto().inventory().equip_tab(0).equip_name(), "Sword");
+}
+
+TEST(UnequipTest, ReturnsFalseForUnspecifiedSlot) {
+  CharacterInstance c = MakeCharacter();
+  EXPECT_FALSE(c.Unequip(EQUIP_SLOT_UNSPECIFIED));
+}
+
+TEST(UnequipTest, ReturnsFalseForUnoccupiedSlot) {
+  CharacterInstance c = MakeCharacter();
+  EXPECT_FALSE(c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
+}
+
 }  // namespace
 }  // namespace ms

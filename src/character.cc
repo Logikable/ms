@@ -32,8 +32,8 @@ void CharacterInstance::AdvanceJob(Job next_job) {
 }
 
 bool CharacterInstance::AllocateStat(StatField field, int amount) {
-  if (field == STAT_FIELD_UNSPECIFIED) return false;
-  if (amount > character_.ap()) return false;
+  if (field == STAT_FIELD_UNSPECIFIED) { return false; }
+  if (amount > character_.ap()) { return false; }
   AllocatedStats* stats = character_.mutable_allocated_stats();
   switch (field) {
     case STAT_FIELD_STR: stats->set_str(stats->str() + amount); break;
@@ -49,7 +49,7 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
 }
 
 bool CharacterInstance::Equip(EquipSlot slot, int inventory_index) {
-  if (slot == EQUIP_SLOT_UNSPECIFIED) return false;
+  if (slot == EQUIP_SLOT_UNSPECIFIED) { return false; }
   Inventory* inv = character_.mutable_inventory();
   if (inventory_index < 0 || inventory_index >= inv->equip_tab_size()) {
     return false;
@@ -66,6 +66,16 @@ bool CharacterInstance::Equip(EquipSlot slot, int inventory_index) {
   }
 
   slots[static_cast<int>(slot)] = std::move(item);
+  return true;
+}
+
+bool CharacterInstance::Unequip(EquipSlot slot) {
+  if (slot == EQUIP_SLOT_UNSPECIFIED) { return false; }
+  Map<int32_t, ms::Equip>& slots = *character_.mutable_equipped();
+  Map<int32_t, ms::Equip>::iterator it = slots.find(static_cast<int>(slot));
+  if (it == slots.end()) { return false; }
+  *character_.mutable_inventory()->add_equip_tab() = it->second;
+  slots.erase(it);
   return true;
 }
 
