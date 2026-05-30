@@ -77,6 +77,26 @@ cc_library(
 )
 
 cc_test(
+  name = "proto_loader_test",
+  srcs = ["proto_loader_test.cc"],
+  deps = [
+    ":equip_proto_cc",
+    ":proto_loader",
+    "@googletest//:gtest_main",
+  ],
+)
+
+cc_test(
+  name = "equip_stats_test",
+  srcs = ["equip_stats_test.cc"],
+  deps = [
+    ":equip_stats",
+    ":equip_proto_cc",
+    "@googletest//:gtest_main",
+  ],
+)
+
+cc_test(
   name = "equip_instance_test",
   srcs = ["equip_instance_test.cc"],
   deps = [
