@@ -14,6 +14,16 @@ cc_proto_library(
   deps = [":character_proto"],
 )
 
+cc_test(
+  name = "character_test",
+  srcs = ["character_test.cc"],
+  deps = [
+    ":character",
+    ":character_proto_cc",
+    "@googletest//:gtest_main",
+  ],
+)
+
 cc_library(
   name = "character",
   hdrs = ["character.h"],

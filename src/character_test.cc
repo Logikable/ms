@@ -1,0 +1,107 @@
+#include "src/character.h"
+
+#include <gtest/gtest.h>
+
+namespace ms {
+namespace {
+
+CharacterInstance MakeCharacter(int level = 1, int ap = 0, int job_stage = 0) {
+  Character proto;
+  proto.set_level(level);
+  proto.set_ap(ap);
+  proto.set_job_stage(job_stage);
+  return CharacterInstance(std::move(proto));
+}
+
+TEST(LevelUpTest, GrantsFiveAp) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  c.LevelUp();
+  EXPECT_EQ(c.proto().ap(), 5);
+  EXPECT_EQ(c.proto().level(), 2);
+}
+
+TEST(LevelUpTest, AccumulatesAcrossMultipleLevels) {
+  CharacterInstance c = MakeCharacter();
+  c.LevelUp();
+  c.LevelUp();
+  c.LevelUp();
+  EXPECT_EQ(c.proto().ap(), 15);
+  EXPECT_EQ(c.proto().level(), 4);
+}
+
+TEST(AdvanceJobTest, IncrementsStageAndSetsJob) {
+  CharacterInstance c = MakeCharacter(/*level=*/10);
+  c.AdvanceJob(JOB_WARRIOR);
+  EXPECT_EQ(c.proto().job_stage(), 1);
+  EXPECT_EQ(c.proto().job(), JOB_WARRIOR);
+}
+
+TEST(AdvanceJobTest, NoApBonusAtStagesOneAndTwo) {
+  CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
+  c.AdvanceJob(JOB_WARRIOR);
+  EXPECT_EQ(c.proto().ap(), 0);
+  c.AdvanceJob(JOB_WARRIOR);
+  EXPECT_EQ(c.proto().ap(), 0);
+}
+
+TEST(AdvanceJobTest, ApBonusAtThirdJob) {
+  CharacterInstance c = MakeCharacter(/*level=*/60, /*ap=*/0, /*job_stage=*/2);
+  c.AdvanceJob(JOB_WARRIOR);
+  EXPECT_EQ(c.proto().job_stage(), 3);
+  EXPECT_EQ(c.proto().ap(), 5);
+}
+
+TEST(AdvanceJobTest, ApBonusAtFourthJob) {
+  CharacterInstance c = MakeCharacter(/*level=*/100, /*ap=*/0, /*job_stage=*/3);
+  c.AdvanceJob(JOB_WARRIOR);
+  EXPECT_EQ(c.proto().job_stage(), 4);
+  EXPECT_EQ(c.proto().ap(), 5);
+}
+
+TEST(AllocateStatTest, DeductsApAndAddsStat) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_STR));
+  EXPECT_EQ(c.proto().ap(), 4);
+  EXPECT_EQ(c.proto().allocated_stats().str(), 1);
+}
+
+TEST(AllocateStatTest, DefaultAmountIsOne) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/3);
+  c.AllocateStat(STAT_FIELD_DEX);
+  EXPECT_EQ(c.proto().allocated_stats().dex(), 1);
+  EXPECT_EQ(c.proto().ap(), 2);
+}
+
+TEST(AllocateStatTest, MultipleAmountWorks) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/10);
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_LUK, 7));
+  EXPECT_EQ(c.proto().allocated_stats().luk(), 7);
+  EXPECT_EQ(c.proto().ap(), 3);
+}
+
+TEST(AllocateStatTest, ReturnsFalseOnInsufficientAp) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/2);
+  EXPECT_FALSE(c.AllocateStat(STAT_FIELD_STR, 3));
+  EXPECT_EQ(c.proto().ap(), 2);
+  EXPECT_EQ(c.proto().allocated_stats().str(), 0);
+}
+
+TEST(AllocateStatTest, ReturnsFalseForUnspecifiedField) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  EXPECT_FALSE(c.AllocateStat(STAT_FIELD_UNSPECIFIED));
+  EXPECT_EQ(c.proto().ap(), 5);
+}
+
+TEST(AllocateStatTest, AllFieldsWork) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/10);
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_STR));
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_DEX));
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_INT));
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_LUK));
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_HP));
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_MP));
+  EXPECT_EQ(c.proto().ap(), 4);
+}
+
+}  // namespace
+}  // namespace ms
