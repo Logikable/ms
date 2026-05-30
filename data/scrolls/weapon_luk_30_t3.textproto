@@ -1,0 +1,10 @@
+name: "30% Weapon LUK"
+success_rate: 30
+tier: SCROLL_TIER_3
+stats {
+  attack: 7
+  luk: 3
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL

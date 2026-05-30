@@ -1,0 +1,11 @@
+name: "15% Weapon DEX"
+success_rate: 15
+tier: SCROLL_TIER_3
+stats {
+  attack: 9
+  dex: 4
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
