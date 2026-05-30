@@ -19,13 +19,14 @@ bool EquipInstance::Scroll(const ms::Scroll& scroll, std::mt19937& rng) {
   if (dist(rng) > scroll.success_rate()) {
     return false;
   }
-  *state_.mutable_scroll_stats() =
-      SumEquipStats({state_.scroll_stats(), scroll.stats()});
+  const EquipStats scroll_sources[] = {state_.scroll_stats(), scroll.stats()};
+  *state_.mutable_scroll_stats() = SumEquipStats(scroll_sources);
   return true;
 }
 
 EquipStats EquipInstance::stats() const {
-  return SumEquipStats({prototype_.base_stats(), state_.scroll_stats()});
+  const EquipStats stat_sources[] = {prototype_.base_stats(), state_.scroll_stats()};
+  return SumEquipStats(stat_sources);
 }
 
 }  // namespace ms

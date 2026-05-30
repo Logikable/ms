@@ -2,7 +2,7 @@
 
 namespace ms {
 
-EquipStats SumEquipStats(std::initializer_list<EquipStats> sources) {
+EquipStats SumEquipStats(absl::Span<const EquipStats> sources) {
   EquipStats result;
   for (const EquipStats& s : sources) {
     result.set_str(result.str() + s.str());

@@ -106,7 +106,10 @@ cc_library(
   name = "equip_stats",
   hdrs = ["equip_stats.h"],
   srcs = ["equip_stats.cc"],
-  deps = [":equip_proto_cc"],
+  deps = [
+    ":equip_proto_cc",
+    "@abseil-cpp//absl/types:span",
+  ],
 )
 
 cc_test(

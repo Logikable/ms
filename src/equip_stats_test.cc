@@ -1,5 +1,6 @@
 #include "src/equip_stats.h"
 
+#include "absl/types/span.h"
 #include "gtest/gtest.h"
 #include "src/equip.pb.h"
 
@@ -7,7 +8,7 @@ namespace ms {
 namespace {
 
 TEST(SumEquipStatsTest, EmptyListReturnsZero) {
-  EquipStats result = SumEquipStats({});
+  EquipStats result = SumEquipStats(absl::Span<const EquipStats>{});
   EXPECT_EQ(result.str(), 0);
   EXPECT_EQ(result.attack(), 0);
 }
@@ -16,7 +17,8 @@ TEST(SumEquipStatsTest, SingleElementIsIdentity) {
   EquipStats a;
   a.set_str(5);
   a.set_attack(10);
-  EquipStats result = SumEquipStats({a});
+  const EquipStats sources[] = {a};
+  EquipStats result = SumEquipStats(sources);
   EXPECT_EQ(result.str(), 5);
   EXPECT_EQ(result.attack(), 10);
 }
@@ -42,7 +44,8 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   b.set_max_hp(70);
   b.set_def(80);
 
-  EquipStats result = SumEquipStats({a, b});
+  const EquipStats sources[] = {a, b};
+  EquipStats result = SumEquipStats(sources);
   EXPECT_EQ(result.str(), 11);
   EXPECT_EQ(result.dex(), 22);
   EXPECT_EQ(result.int_(), 33);
@@ -56,7 +59,8 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
 TEST(SumEquipStatsTest, ThreeElementsAccumulate) {
   EquipStats a;
   a.set_attack(3);
-  EquipStats result = SumEquipStats({a, a, a});
+  const EquipStats sources[] = {a, a, a};
+  EquipStats result = SumEquipStats(sources);
   EXPECT_EQ(result.attack(), 9);
 }
 
