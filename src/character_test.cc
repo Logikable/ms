@@ -1,6 +1,7 @@
 #include "src/character.h"
 
 #include <gtest/gtest.h>
+#include "src/equip.pb.h"
 
 namespace ms {
 namespace {
@@ -101,6 +102,35 @@ TEST(AllocateStatTest, AllFieldsWork) {
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_HP));
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_MP));
   EXPECT_EQ(c.proto().ap(), 4);
+}
+
+TEST(PickUpTest, AddsItemToInventory) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  proto.set_upgrade_slots(7);
+  c.PickUp(proto);
+  ASSERT_EQ(c.proto().equip_inventory_size(), 1);
+  EXPECT_EQ(c.proto().equip_inventory(0).equip_name(), "Sword");
+  EXPECT_EQ(c.proto().equip_inventory(0).remaining_upgrade_slots(), 7);
+}
+
+TEST(PickUpTest, MultiplePickUpsAccumulate) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  proto.set_upgrade_slots(7);
+  c.PickUp(proto);
+  c.PickUp(proto);
+  EXPECT_EQ(c.proto().equip_inventory_size(), 2);
+}
+
+TEST(PickUpTest, FreshItemHasNoScrollStats) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  c.PickUp(proto);
+  EXPECT_EQ(c.proto().equip_inventory(0).scroll_stats().attack(), 0);
 }
 
 }  // namespace

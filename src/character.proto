@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ms;
 
+import "src/equip.proto";
+
 enum Job {
   JOB_UNSPECIFIED = 0;
   JOB_BEGINNER = 1;
@@ -34,4 +36,5 @@ message Character {
   int32 job_stage = 4;
   int32 ap = 5;
   AllocatedStats allocated_stats = 6;
+  repeated Equip equip_inventory = 7;
 }

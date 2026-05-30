@@ -7,6 +7,7 @@ package(default_visibility = ["//visibility:public"])
 proto_library(
   name = "character_proto",
   srcs = ["character.proto"],
+  deps = [":equip_proto"],
 )
 
 cc_proto_library(
@@ -20,6 +21,7 @@ cc_test(
   deps = [
     ":character",
     ":character_proto_cc",
+    ":equip_proto_cc",
     "@googletest//:gtest_main",
   ],
 )
@@ -30,6 +32,7 @@ cc_library(
   srcs = ["character.cc"],
   deps = [
     ":character_proto_cc",
+    ":equip_proto_cc",
     "@abseil-cpp//absl/log",
   ],
 )

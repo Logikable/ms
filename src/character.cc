@@ -45,4 +45,10 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
+void CharacterInstance::PickUp(const EquipPrototype& prototype) {
+  Equip* item = character_.add_equip_inventory();
+  item->set_equip_name(prototype.name());
+  item->set_remaining_upgrade_slots(prototype.upgrade_slots());
+}
+
 }  // namespace ms

@@ -7,6 +7,7 @@
 #define MS_CHARACTER_H_
 
 #include "src/character.pb.h"
+#include "src/equip.pb.h"
 
 namespace ms {
 
@@ -21,6 +22,9 @@ class CharacterInstance {
   void AdvanceJob(Job next_job);
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);
+  // Constructs a fresh Equip state from `prototype` and appends it to the
+  // equip inventory.
+  void PickUp(const EquipPrototype& prototype);
 
   const Character& proto() const { return character_; }
 
