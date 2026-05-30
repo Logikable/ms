@@ -16,6 +16,12 @@
 namespace ms {
 namespace {
 
+// Returns EQUIP_SLOT_UNSPECIFIED for unrecognised names.
+EquipSlot SlotFromName(const std::string& name) {
+  if (name == "primary_weapon") { return EQUIP_SLOT_PRIMARY_WEAPON; }
+  return EQUIP_SLOT_UNSPECIFIED;
+}
+
 struct GameState {
   explicit GameState(EquipPrototype sword_proto_arg, Scroll watt_scroll_arg)
       : sword_proto(std::move(sword_proto_arg)),
@@ -73,6 +79,29 @@ int main(int argc, char** argv) {
 
   ms::GameState state(std::move(sword_proto), std::move(watt_scroll));
   ms::Frontend frontend("> ");
+
+  frontend.Register({
+      "equip",
+      [&state](std::vector<std::string> args) -> std::string {
+        if (args.size() < 3) {
+          return "Usage: /equip <slot> <inventory_index>";
+        }
+        ms::EquipSlot slot = ms::SlotFromName(args[1]);
+        if (slot == ms::EQUIP_SLOT_UNSPECIFIED) {
+          return "Unknown slot '" + args[1] + "'.";
+        }
+        int index = 0;
+        try {
+          index = std::stoi(args[2]);
+        } catch (...) {
+          return "Invalid index '" + args[2] + "'.";
+        }
+        if (!state.character.Equip(slot, index)) {
+          return "Could not equip item at index " + args[2] + ".";
+        }
+        return "Equipped.";
+      },
+  });
 
   frontend.Register({
       "scroll",
