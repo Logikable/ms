@@ -104,6 +104,23 @@ int main(int argc, char** argv) {
   });
 
   frontend.Register({
+      "unequip",
+      [&state](std::vector<std::string> args) -> std::string {
+        if (args.size() < 2) {
+          return "Usage: /unequip <slot>";
+        }
+        ms::EquipSlot slot = ms::SlotFromName(args[1]);
+        if (slot == ms::EQUIP_SLOT_UNSPECIFIED) {
+          return "Unknown slot '" + args[1] + "'.";
+        }
+        if (!state.character.Unequip(slot)) {
+          return "Nothing equipped in slot '" + args[1] + "'.";
+        }
+        return "Unequipped.";
+      },
+  });
+
+  frontend.Register({
       "scroll",
       [&state](std::vector<std::string>) -> std::string {
         const auto& equipped = state.character.proto().equipped();
