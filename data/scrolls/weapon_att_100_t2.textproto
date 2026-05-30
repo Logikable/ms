@@ -1,0 +1,10 @@
+name: "100% Weapon ATT"
+success_rate: 100
+tier: SCROLL_TIER_2
+stats {
+  attack: 2
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE

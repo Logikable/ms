@@ -1,0 +1,9 @@
+name: "70% Weapon HP"
+success_rate: 70
+tier: SCROLL_TIER_2
+stats {
+  attack: 3
+  max_hp: 50
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
