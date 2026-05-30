@@ -1,0 +1,7 @@
+name: "100% Weapon M.ATT"
+success_rate: 100
+tier: SCROLL_TIER_2
+stats {
+  magic_attack: 2
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
