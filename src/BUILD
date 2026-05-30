@@ -14,6 +14,16 @@ cc_proto_library(
   deps = [":character_proto"],
 )
 
+cc_library(
+  name = "character",
+  hdrs = ["character.h"],
+  srcs = ["character.cc"],
+  deps = [
+    ":character_proto_cc",
+    "@abseil-cpp//absl/log",
+  ],
+)
+
 proto_library(
   name = "map_proto",
   srcs = ["map.proto"],

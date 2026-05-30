@@ -8,6 +8,16 @@ enum Job {
   JOB_WARRIOR = 2;
 }
 
+enum StatField {
+  STAT_FIELD_UNSPECIFIED = 0;
+  STAT_FIELD_STR = 1;
+  STAT_FIELD_DEX = 2;
+  STAT_FIELD_INT = 3;
+  STAT_FIELD_LUK = 4;
+  STAT_FIELD_HP = 5;
+  STAT_FIELD_MP = 6;
+}
+
 message AllocatedStats {
   int32 str = 1;
   int32 dex = 2;
