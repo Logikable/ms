@@ -4,25 +4,28 @@
 
 namespace ms {
 
-EquipInstance::EquipInstance(const Equip& prototype)
-    : prototype_(prototype),
-      remaining_upgrade_slots_(prototype.upgrade_slots()) {}
+EquipInstance::EquipInstance(const EquipPrototype& prototype)
+    : prototype_(prototype) {
+  state_.set_equip_name(prototype.name());
+  state_.set_remaining_upgrade_slots(prototype.upgrade_slots());
+}
 
 bool EquipInstance::Scroll(const ms::Scroll& scroll, std::mt19937& rng) {
-  if (remaining_upgrade_slots_ == 0) {
+  if (state_.remaining_upgrade_slots() == 0) {
     return false;
   }
-  --remaining_upgrade_slots_;
+  state_.set_remaining_upgrade_slots(state_.remaining_upgrade_slots() - 1);
   std::uniform_int_distribution<int> dist(1, 100);
   if (dist(rng) > scroll.success_rate()) {
     return false;
   }
-  scroll_stats_ = SumEquipStats({scroll_stats_, scroll.stats()});
+  *state_.mutable_scroll_stats() =
+      SumEquipStats({state_.scroll_stats(), scroll.stats()});
   return true;
 }
 
 EquipStats EquipInstance::stats() const {
-  return SumEquipStats({prototype_.base_stats(), scroll_stats_});
+  return SumEquipStats({prototype_.base_stats(), state_.scroll_stats()});
 }
 
 }  // namespace ms

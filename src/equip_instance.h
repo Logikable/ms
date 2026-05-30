@@ -11,21 +11,20 @@ namespace ms {
 
 class EquipInstance {
  public:
-  explicit EquipInstance(const Equip& prototype);
+  explicit EquipInstance(const EquipPrototype& prototype);
 
   // Consumes one upgrade slot and rolls against the scroll's success_rate.
   // Adds the scroll's stats on success. Returns true on success, false on
   // failure or if no slots remain.
   bool Scroll(const ms::Scroll& scroll, std::mt19937& rng);
 
-  const Equip& prototype() const { return prototype_; }
-  int remaining_upgrade_slots() const { return remaining_upgrade_slots_; }
+  const EquipPrototype& prototype() const { return prototype_; }
+  const Equip& proto() const { return state_; }
   EquipStats stats() const;
 
  private:
-  const Equip& prototype_;
-  int remaining_upgrade_slots_;
-  EquipStats scroll_stats_;
+  const EquipPrototype& prototype_;
+  Equip state_;
 };
 
 }  // namespace ms

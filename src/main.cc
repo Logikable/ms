@@ -18,7 +18,7 @@ namespace {
 // Non-copyable/movable: EquipInstance holds a const Equip& reference.
 // sword_proto must be declared before sword.
 struct GameState {
-  explicit GameState(Equip sword_proto_arg, Scroll watt_scroll_arg)
+  explicit GameState(EquipPrototype sword_proto_arg, Scroll watt_scroll_arg)
       : sword_proto(std::move(sword_proto_arg)),
         sword(sword_proto),
         watt_scroll(std::move(watt_scroll_arg)),
@@ -27,7 +27,7 @@ struct GameState {
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 
-  Equip sword_proto;
+  EquipPrototype sword_proto;
   EquipInstance sword;
   Scroll watt_scroll;
   std::mt19937 rng;
@@ -37,7 +37,7 @@ std::string FormatEquip(const EquipInstance& item) {
   std::ostringstream out;
   const EquipStats& s = item.stats();
   out << item.prototype().name()
-      << "  [" << item.remaining_upgrade_slots() << " upgrade slots]\n";
+      << "  [" << item.proto().remaining_upgrade_slots() << " upgrade slots]\n";
   if (s.attack())       out << "  ATT:  " << s.attack()       << "\n";
   if (s.magic_attack()) out << "  MATT: " << s.magic_attack() << "\n";
   if (s.str())          out << "  STR:  " << s.str()          << "\n";
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     LOG(FATAL) << "Could not create Runfiles: " << err;
   }
 
-  ms::Equip sword_proto;
+  ms::EquipPrototype sword_proto;
   ms::LoadTextProto(runfiles->Rlocation("ms/data/equip/sword.textproto"),
                     &sword_proto);
 
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
   frontend.Register({
       "scroll",
       [&state](std::vector<std::string>) -> std::string {
-        if (state.sword.remaining_upgrade_slots() == 0) {
+        if (state.sword.proto().remaining_upgrade_slots() == 0) {
           return "No upgrade slots remaining on " +
                  state.sword.prototype().name() + ".";
         }

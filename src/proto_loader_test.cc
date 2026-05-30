@@ -19,21 +19,21 @@ std::string WriteTempFile(const std::string& name, const std::string& content) {
 TEST(ProtoLoaderTest, LoadsValidTextProto) {
   std::string path = WriteTempFile("equip.textproto",
                                    "name: \"Sword\"\nupgrade_slots: 7\n");
-  Equip equip;
+  EquipPrototype equip;
   LoadTextProto(path, &equip);
   EXPECT_EQ(equip.name(), "Sword");
   EXPECT_EQ(equip.upgrade_slots(), 7);
 }
 
 TEST(ProtoLoaderTest, FatalOnMissingFile) {
-  Equip equip;
+  EquipPrototype equip;
   EXPECT_DEATH(LoadTextProto("/nonexistent/path.textproto", &equip),
                "Cannot open textproto");
 }
 
 TEST(ProtoLoaderTest, FatalOnInvalidTextProto) {
   std::string path = WriteTempFile("bad.textproto", "not valid proto {{{\n");
-  Equip equip;
+  EquipPrototype equip;
   EXPECT_DEATH(LoadTextProto(path, &equip), "Failed to parse textproto");
 }
 
