@@ -10,6 +10,9 @@ EquipInstance::EquipInstance(const EquipPrototype& prototype)
   state_.set_remaining_upgrade_slots(prototype.upgrade_slots());
 }
 
+EquipInstance::EquipInstance(const EquipPrototype& prototype, Equip state)
+    : prototype_(prototype), state_(std::move(state)) {}
+
 bool EquipInstance::Scroll(const ms::Scroll& scroll, std::mt19937& rng) {
   if (state_.remaining_upgrade_slots() == 0) {
     return false;

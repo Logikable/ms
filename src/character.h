@@ -6,8 +6,11 @@
 #ifndef MS_CHARACTER_H_
 #define MS_CHARACTER_H_
 
+#include <random>
+
 #include "src/character.pb.h"
 #include "src/equip.pb.h"
+#include "src/scroll.pb.h"
 
 namespace ms {
 
@@ -25,6 +28,10 @@ class CharacterInstance {
   // Constructs a fresh Equip state from `prototype` and appends it to the
   // equip inventory.
   void PickUp(const EquipPrototype& prototype);
+  // Applies `scroll` to the item in `slot`. Returns false if the slot is empty
+  // or the underlying Scroll() call fails (no slots remaining or RNG miss).
+  bool ScrollEquipped(EquipSlot slot, const EquipPrototype& prototype,
+                      const Scroll& scroll, std::mt19937& rng);
   // Moves the item at `inventory_index` from the equip tab into `slot`. If the
   // slot was occupied, the displaced item is appended to the equip tab. Returns
   // false if `slot` is unspecified or `inventory_index` is out of range.

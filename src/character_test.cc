@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include "src/equip.pb.h"
+#include "src/scroll.pb.h"
 
 namespace ms {
 namespace {
@@ -195,6 +196,38 @@ TEST(UnequipTest, ReturnsFalseForUnspecifiedSlot) {
 TEST(UnequipTest, ReturnsFalseForUnoccupiedSlot) {
   CharacterInstance c = MakeCharacter();
   EXPECT_FALSE(c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
+}
+
+TEST(ScrollEquippedTest, ReturnsFalseIfSlotEmpty) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  Scroll scroll;
+  scroll.set_success_rate(100);
+  std::mt19937 rng(0);
+  EXPECT_FALSE(c.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, proto, scroll, rng));
+}
+
+TEST(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  proto.set_upgrade_slots(3);
+  c.PickUp(proto);
+  c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
+
+  Scroll scroll;
+  scroll.set_success_rate(100);
+  scroll.mutable_stats()->set_attack(5);
+  std::mt19937 rng(0);
+
+  EXPECT_TRUE(c.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, proto, scroll, rng));
+  EXPECT_EQ(
+      c.proto().equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).scroll_stats().attack(),
+      5);
+  EXPECT_EQ(
+      c.proto().equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).remaining_upgrade_slots(),
+      2);
 }
 
 }  // namespace

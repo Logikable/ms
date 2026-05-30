@@ -2,6 +2,7 @@
 
 #include "absl/log/log.h"
 #include "google/protobuf/map.h"
+#include "src/equip_instance.h"
 
 namespace ms {
 
@@ -87,6 +88,21 @@ bool CharacterInstance::Unequip(EquipSlot slot) {
   *character_.mutable_inventory()->add_equip_tab() = it->second;
   slots.erase(it);
   return true;
+}
+
+bool CharacterInstance::ScrollEquipped(EquipSlot slot,
+                                       const EquipPrototype& prototype,
+                                       const Scroll& scroll,
+                                       std::mt19937& rng) {
+  Map<int32_t, ms::Equip>& slots = *character_.mutable_equipped();
+  Map<int32_t, ms::Equip>::iterator it = slots.find(static_cast<int>(slot));
+  if (it == slots.end()) {
+    return false;
+  }
+  EquipInstance item(prototype, it->second);
+  bool result = item.Scroll(scroll, rng);
+  it->second = item.proto();
+  return result;
 }
 
 void CharacterInstance::PickUp(const EquipPrototype& prototype) {

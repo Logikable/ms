@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "absl/log/log.h"
+#include "src/character.h"
 #include "src/equip.pb.h"
 #include "src/equip_instance.h"
 #include "src/frontend.h"
@@ -15,21 +16,22 @@
 namespace ms {
 namespace {
 
-// Non-copyable/movable: EquipInstance holds a const Equip& reference.
-// sword_proto must be declared before sword.
 struct GameState {
   explicit GameState(EquipPrototype sword_proto_arg, Scroll watt_scroll_arg)
       : sword_proto(std::move(sword_proto_arg)),
-        sword(sword_proto),
         watt_scroll(std::move(watt_scroll_arg)),
-        rng(std::random_device{}()) {}
+        character(Character{}),
+        rng(std::random_device{}()) {
+    character.PickUp(sword_proto);
+    character.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
+  }
 
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 
   EquipPrototype sword_proto;
-  EquipInstance sword;
   Scroll watt_scroll;
+  CharacterInstance character;
   std::mt19937 rng;
 };
 
@@ -38,14 +40,14 @@ std::string FormatEquip(const EquipInstance& item) {
   const EquipStats& s = item.stats();
   out << item.prototype().name()
       << "  [" << item.proto().remaining_upgrade_slots() << " upgrade slots]\n";
-  if (s.attack())       out << "  ATT:  " << s.attack()       << "\n";
-  if (s.magic_attack()) out << "  MATT: " << s.magic_attack() << "\n";
-  if (s.str())          out << "  STR:  " << s.str()          << "\n";
-  if (s.dex())          out << "  DEX:  " << s.dex()          << "\n";
-  if (s.int_())         out << "  INT:  " << s.int_()         << "\n";
-  if (s.luk())          out << "  LUK:  " << s.luk()          << "\n";
-  if (s.max_hp())       out << "  HP:   " << s.max_hp()       << "\n";
-  if (s.def())          out << "  DEF:  " << s.def()          << "\n";
+  if (s.attack())       { out << "  ATT:  " << s.attack()       << "\n"; }
+  if (s.magic_attack()) { out << "  MATT: " << s.magic_attack() << "\n"; }
+  if (s.str())          { out << "  STR:  " << s.str()          << "\n"; }
+  if (s.dex())          { out << "  DEX:  " << s.dex()          << "\n"; }
+  if (s.int_())         { out << "  INT:  " << s.int_()         << "\n"; }
+  if (s.luk())          { out << "  LUK:  " << s.luk()          << "\n"; }
+  if (s.max_hp())       { out << "  HP:   " << s.max_hp()       << "\n"; }
+  if (s.def())          { out << "  DEF:  " << s.def()          << "\n"; }
   return out.str();
 }
 
@@ -75,14 +77,25 @@ int main(int argc, char** argv) {
   frontend.Register({
       "scroll",
       [&state](std::vector<std::string>) -> std::string {
-        if (state.sword.proto().remaining_upgrade_slots() == 0) {
-          return "No upgrade slots remaining on " +
-                 state.sword.prototype().name() + ".";
+        const auto& equipped = state.character.proto().equipped();
+        if (!equipped.count(ms::EQUIP_SLOT_PRIMARY_WEAPON)) {
+          return "No weapon equipped.";
         }
-        bool success = state.sword.Scroll(state.watt_scroll, state.rng);
+        const ms::Equip& equip_state =
+            equipped.at(ms::EQUIP_SLOT_PRIMARY_WEAPON);
+        if (equip_state.remaining_upgrade_slots() == 0) {
+          return "No upgrade slots remaining on " +
+                 equip_state.equip_name() + ".";
+        }
+        bool success = state.character.ScrollEquipped(
+            ms::EQUIP_SLOT_PRIMARY_WEAPON, state.sword_proto,
+            state.watt_scroll, state.rng);
+        ms::EquipInstance item(
+            state.sword_proto,
+            state.character.proto().equipped().at(ms::EQUIP_SLOT_PRIMARY_WEAPON));
         std::ostringstream out;
         out << (success ? "Success! " : "Failed.  ");
-        out << ms::FormatEquip(state.sword);
+        out << ms::FormatEquip(item);
         return out.str();
       },
   });

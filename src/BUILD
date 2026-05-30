@@ -22,6 +22,7 @@ cc_test(
     ":character",
     ":character_proto_cc",
     ":equip_proto_cc",
+    ":scroll_proto_cc",
     "@googletest//:gtest_main",
   ],
 )
@@ -32,7 +33,9 @@ cc_library(
   srcs = ["character.cc"],
   deps = [
     ":character_proto_cc",
+    ":equip_instance",
     ":equip_proto_cc",
+    ":scroll_proto_cc",
     "@abseil-cpp//absl/log",
   ],
 )
@@ -93,6 +96,8 @@ cc_binary(
     "//data/scrolls:all",
   ],
   deps = [
+    ":character",
+    ":character_proto_cc",
     ":equip_instance",
     ":equip_proto_cc",
     ":frontend",
