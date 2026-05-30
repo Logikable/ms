@@ -16,16 +16,23 @@ enum AttackSpeed {
   ATTACK_SPEED_FASTEST_3 = 10;
 }
 
+// The specific item type (e.g. one-handed sword, bow). Used to determine
+// applicable scrolls, attack animations, and weapon-specific mechanics.
 enum EquipType {
   EQUIP_TYPE_UNSPECIFIED = 0;
   EQUIP_TYPE_ONE_HANDED_SWORD = 1;
 }
 
+// The equipment window slot this item occupies when worn. Determines where the
+// item appears on the character and enforces one-item-per-slot.
 enum EquipSlot {
   EQUIP_SLOT_UNSPECIFIED = 0;
   EQUIP_SLOT_PRIMARY_WEAPON = 1;
 }
 
+// Which job branches can equip this item. Each item belongs to one category;
+// UNIVERSAL means any job can equip it. Used to filter scrolls and enforce
+// equip requirements.
 enum EquipJobCategory {
   EQUIP_JOB_CATEGORY_UNSPECIFIED = 0;
   EQUIP_JOB_CATEGORY_WARRIOR = 1;

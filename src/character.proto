@@ -4,12 +4,16 @@ package ms;
 
 import "src/equip.proto";
 
+// The character's current job. Explorer classes use distinct values for each
+// advancement stage (e.g. Warrior -> Fighter -> Crusader -> Hero); all other
+// classes use a single value across all stages.
 enum Job {
   JOB_UNSPECIFIED = 0;
   JOB_BEGINNER = 1;
   JOB_WARRIOR = 2;
 }
 
+// Identifies a stat that a player can spend AP into via AllocateStat.
 enum StatField {
   STAT_FIELD_UNSPECIFIED = 0;
   STAT_FIELD_STR = 1;
@@ -20,6 +24,8 @@ enum StatField {
   STAT_FIELD_MP = 6;
 }
 
+// AP-allocated stat amounts. Does not include base class stats or equipment
+// bonuses; those are computed and summed separately.
 message AllocatedStats {
   int32 str = 1;
   int32 dex = 2;
@@ -29,6 +35,9 @@ message AllocatedStats {
   int32 mp = 6;
 }
 
+// Items sitting in the character's equip bag, unequipped. Indexed by position
+// (0-based integer) — order is preserved and multiple items of the same type
+// are allowed. CharacterInstance::PickUp appends here.
 message Inventory {
   repeated Equip equip_tab = 1;
 }
@@ -40,6 +49,14 @@ message Character {
   int32 job_stage = 4;
   int32 ap = 5;
   AllocatedStats allocated_stats = 6;
+
+  // Unequipped items in the equip bag. Indexed by list position; use
+  // CharacterInstance::Equip(slot, index) to move an item from here into a
+  // slot, or Unequip(slot) to move it back.
   Inventory inventory = 7;
-  map<int32, Equip> equipped = 8;  // key = EquipSlot enum value
+
+  // Currently worn items. Keyed by EquipSlot enum value (stored as int32,
+  // proto3 map limitation). At most one item per slot. Only items in this map
+  // contribute to the character's equipment stats.
+  map<int32, Equip> equipped = 8;
 }
