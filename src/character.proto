@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package ms;
+
+enum Job {
+  JOB_UNSPECIFIED = 0;
+  JOB_BEGINNER = 1;
+  JOB_WARRIOR = 2;
+}
+
+message AllocatedStats {
+  int32 str = 1;
+  int32 dex = 2;
+  int32 int = 3;
+  int32 luk = 4;
+  int32 hp = 5;
+  int32 mp = 6;
+}
+
+message Character {
+  string name = 1;
+  int32 level = 2;
+  Job job = 3;
+  int32 job_stage = 4;
+  int32 ap = 5;
+  AllocatedStats allocated_stats = 6;
+}

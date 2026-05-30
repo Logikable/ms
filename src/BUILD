@@ -5,6 +5,16 @@ load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 package(default_visibility = ["//visibility:public"])
 
 proto_library(
+  name = "character_proto",
+  srcs = ["character.proto"],
+)
+
+cc_proto_library(
+  name = "character_proto_cc",
+  deps = [":character_proto"],
+)
+
+proto_library(
   name = "map_proto",
   srcs = ["map.proto"],
 )
