@@ -9,7 +9,10 @@ class CharacterInstance {
  public:
   explicit CharacterInstance(Character character);
 
+  // Increments level and grants 5 AP.
   void LevelUp();
+  // Increments job_stage, sets job to `next_job`, and grants 5 bonus AP at
+  // stages 3 and 4 (3rd and 4th job advancement).
   void AdvanceJob(Job next_job);
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);

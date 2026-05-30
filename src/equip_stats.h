@@ -7,6 +7,7 @@
 
 namespace ms {
 
+// Returns the field-wise sum of all EquipStats in `sources`.
 EquipStats SumEquipStats(std::initializer_list<EquipStats> sources);
 
 }  // namespace ms

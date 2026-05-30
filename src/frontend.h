@@ -21,6 +21,7 @@ class Frontend {
   ~Frontend();
 
   void Register(Command command);
+  // Blocks, reading and dispatching commands until EOF (Ctrl-D).
   void Run();
 
  private:

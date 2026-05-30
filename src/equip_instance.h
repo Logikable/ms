@@ -20,6 +20,7 @@ class EquipInstance {
 
   const EquipPrototype& prototype() const { return prototype_; }
   const Equip& proto() const { return state_; }
+  // Returns prototype base stats plus all scroll stats accumulated so far.
   EquipStats stats() const;
 
  private:
