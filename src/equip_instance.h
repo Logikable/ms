@@ -1,3 +1,8 @@
+/* EquipInstance wraps a single in-game drop of equipment. It pairs an
+ * EquipPrototype (static item definition loaded from data/) with an Equip proto
+ * (per-instance mutable state: remaining upgrade slots and accumulated scroll
+ * stats). equip_instance.cc implements scrolling logic and stat aggregation.
+ */
 #ifndef MS_SRC_EQUIP_INSTANCE_H_
 #define MS_SRC_EQUIP_INSTANCE_H_
 

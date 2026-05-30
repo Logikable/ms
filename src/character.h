@@ -1,3 +1,8 @@
+/* CharacterInstance represents a player character. It wraps a Character proto
+ * (serializable state: level, job, job_stage, unspent AP, and allocated stats)
+ * and exposes methods for leveling up, job advancement, and AP allocation.
+ * character.cc implements those methods and the AP bonus rules.
+ */
 #ifndef MS_CHARACTER_H_
 #define MS_CHARACTER_H_
 

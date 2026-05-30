@@ -1,3 +1,8 @@
+/* Frontend is a minimal readline-backed command loop. Callers register named
+ * commands; the loop reads input, strips the leading slash, tokenizes, and
+ * dispatches to the matching handler. frontend.cc implements the read loop and
+ * dispatch logic.
+ */
 #ifndef MS_SRC_FRONTEND_H_
 #define MS_SRC_FRONTEND_H_
 
