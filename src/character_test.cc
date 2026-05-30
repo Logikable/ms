@@ -110,9 +110,9 @@ TEST(PickUpTest, AddsItemToInventory) {
   proto.set_name("Sword");
   proto.set_upgrade_slots(7);
   c.PickUp(proto);
-  ASSERT_EQ(c.proto().equip_inventory_size(), 1);
-  EXPECT_EQ(c.proto().equip_inventory(0).equip_name(), "Sword");
-  EXPECT_EQ(c.proto().equip_inventory(0).remaining_upgrade_slots(), 7);
+  ASSERT_EQ(c.proto().inventory().equip_tab_size(), 1);
+  EXPECT_EQ(c.proto().inventory().equip_tab(0).equip_name(), "Sword");
+  EXPECT_EQ(c.proto().inventory().equip_tab(0).remaining_upgrade_slots(), 7);
 }
 
 TEST(PickUpTest, MultiplePickUpsAccumulate) {
@@ -122,7 +122,7 @@ TEST(PickUpTest, MultiplePickUpsAccumulate) {
   proto.set_upgrade_slots(7);
   c.PickUp(proto);
   c.PickUp(proto);
-  EXPECT_EQ(c.proto().equip_inventory_size(), 2);
+  EXPECT_EQ(c.proto().inventory().equip_tab_size(), 2);
 }
 
 TEST(PickUpTest, FreshItemHasNoScrollStats) {
@@ -130,7 +130,49 @@ TEST(PickUpTest, FreshItemHasNoScrollStats) {
   EquipPrototype proto;
   proto.set_name("Sword");
   c.PickUp(proto);
-  EXPECT_EQ(c.proto().equip_inventory(0).scroll_stats().attack(), 0);
+  EXPECT_EQ(c.proto().inventory().equip_tab(0).scroll_stats().attack(), 0);
+}
+
+TEST(EquipTest, EquipsItemIntoEmptySlot) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  proto.set_upgrade_slots(7);
+  c.PickUp(proto);
+  EXPECT_TRUE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
+  EXPECT_EQ(c.proto().inventory().equip_tab_size(), 0);
+  ASSERT_TRUE(c.proto().equipped().contains(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(c.proto().equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_name(),
+            "Sword");
+}
+
+TEST(EquipTest, SwapsDisplacedItemToInventory) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  EquipPrototype axe;
+  axe.set_name("Axe");
+  c.PickUp(sword);
+  c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
+  c.PickUp(axe);
+  EXPECT_TRUE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
+  EXPECT_EQ(c.proto().equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_name(),
+            "Axe");
+  ASSERT_EQ(c.proto().inventory().equip_tab_size(), 1);
+  EXPECT_EQ(c.proto().inventory().equip_tab(0).equip_name(), "Sword");
+}
+
+TEST(EquipTest, ReturnsFalseForUnspecifiedSlot) {
+  CharacterInstance c = MakeCharacter();
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  c.PickUp(proto);
+  EXPECT_FALSE(c.Equip(EQUIP_SLOT_UNSPECIFIED, 0));
+}
+
+TEST(EquipTest, ReturnsFalseForOutOfBoundsIndex) {
+  CharacterInstance c = MakeCharacter();
+  EXPECT_FALSE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
 }
 
 }  // namespace

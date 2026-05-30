@@ -25,6 +25,10 @@ class CharacterInstance {
   // Constructs a fresh Equip state from `prototype` and appends it to the
   // equip inventory.
   void PickUp(const EquipPrototype& prototype);
+  // Moves the item at `inventory_index` from the equip tab into `slot`. If the
+  // slot was occupied, the displaced item is appended to the equip tab. Returns
+  // false if `slot` is unspecified or `inventory_index` is out of range.
+  bool Equip(EquipSlot slot, int inventory_index);
 
   const Character& proto() const { return character_; }
 

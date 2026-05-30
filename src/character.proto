@@ -29,6 +29,10 @@ message AllocatedStats {
   int32 mp = 6;
 }
 
+message Inventory {
+  repeated Equip equip_tab = 1;
+}
+
 message Character {
   string name = 1;
   int32 level = 2;
@@ -36,5 +40,6 @@ message Character {
   int32 job_stage = 4;
   int32 ap = 5;
   AllocatedStats allocated_stats = 6;
-  repeated Equip equip_inventory = 7;
+  Inventory inventory = 7;
+  map<int32, Equip> equipped = 8;  // key = EquipSlot enum value
 }
