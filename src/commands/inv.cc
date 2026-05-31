@@ -43,6 +43,7 @@ std::string InvCommand(const CharacterInstance& character) {
 void RegisterInvCommand(Frontend& frontend, CharacterInstance& character) {
   frontend.Register({
       "inv",
+      "Show equipped items and bag contents.",
       [&character](std::vector<std::string>) -> std::string {
         return InvCommand(character);
       },

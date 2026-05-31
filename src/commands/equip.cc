@@ -19,6 +19,7 @@ std::string EquipCommand(CharacterInstance& character, int inventory_index) {
 void RegisterEquipCommand(Frontend& frontend, CharacterInstance& character) {
   frontend.Register({
       "equip",
+      "Equip the bag item at <index>. Optional [slot] for rings/pendants.",
       [&character](std::vector<std::string> args) -> std::string {
         if (args.size() < 2) {
           return "Usage: /equip <index> [slot]";

@@ -36,6 +36,7 @@ void RegisterScrollCommand(Frontend& frontend, CharacterInstance& character,
                             const Scroll& scroll, std::mt19937& rng) {
   frontend.Register({
       "scroll",
+      "Apply a scroll to the equipped primary weapon.",
       [&character, &scroll, &rng](std::vector<std::string>) -> std::string {
         return ScrollCommand(character, scroll, rng);
       },

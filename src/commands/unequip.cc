@@ -20,6 +20,7 @@ std::string UnequipCommand(CharacterInstance& character, EquipSlot slot) {
 void RegisterUnequipCommand(Frontend& frontend, CharacterInstance& character) {
   frontend.Register({
       "unequip",
+      "Move the item in <slot> back to the bag.",
       [&character](std::vector<std::string> args) -> std::string {
         if (args.size() < 2) {
           return "Usage: /unequip <slot>";

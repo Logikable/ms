@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 namespace ms {
 
@@ -14,6 +15,22 @@ Frontend::~Frontend() = default;
 
 void Frontend::Register(Command command) {
   commands_.push_back(std::move(command));
+}
+
+std::string Frontend::HelpText() const {
+  size_t max_len = 0;
+  for (const Command& cmd : commands_) {
+    if (cmd.name.size() > max_len) {
+      max_len = cmd.name.size();
+    }
+  }
+  std::ostringstream out;
+  for (const Command& cmd : commands_) {
+    out << "/" << cmd.name
+        << std::string(max_len - cmd.name.size() + 2, ' ')
+        << cmd.description << "\n";
+  }
+  return out.str();
 }
 
 void Frontend::Run() {

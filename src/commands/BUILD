@@ -13,6 +13,23 @@ cc_library(
 )
 
 cc_library(
+  name = "help_command",
+  hdrs = ["help.h"],
+  srcs = ["help.cc"],
+  deps = ["//src:frontend"],
+)
+
+cc_test(
+  name = "help_command_test",
+  srcs = ["help_test.cc"],
+  deps = [
+    ":help_command",
+    "//src:frontend",
+    "@googletest//:gtest_main",
+  ],
+)
+
+cc_library(
   name = "equip_command",
   hdrs = ["equip.h"],
   srcs = ["equip.cc"],

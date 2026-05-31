@@ -14,6 +14,7 @@ namespace ms {
 
 struct Command {
   std::string name;
+  std::string description;
   std::function<std::string(std::vector<std::string>)> fn;
 };
 
@@ -26,6 +27,8 @@ class Frontend {
   ~Frontend();
 
   void Register(Command command);
+  // Returns a formatted listing of all registered commands and descriptions.
+  std::string HelpText() const;
   // Blocks, reading and dispatching commands until EOF (Ctrl-D).
   void Run();
 

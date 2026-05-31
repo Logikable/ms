@@ -100,6 +100,7 @@ cc_binary(
     ":frontend",
     ":proto_loader",
     "//src/commands:equip_command",
+    "//src/commands:help_command",
     "//src/commands:inv_command",
     "//src/commands:scroll_command",
     "//src/commands:unequip_command",

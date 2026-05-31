@@ -5,6 +5,7 @@
 #include "absl/log/log.h"
 #include "src/character.h"
 #include "src/commands/equip.h"
+#include "src/commands/help.h"
 #include "src/commands/inv.h"
 #include "src/commands/scroll.h"
 #include "src/commands/unequip.h"
@@ -59,6 +60,7 @@ int main(int argc, char** argv) {
   GameState state(std::move(sword_proto), std::move(watt_scroll));
   ms::Frontend frontend("> ");
 
+  ms::RegisterHelpCommand(frontend);
   ms::RegisterEquipCommand(frontend, state.character);
   ms::RegisterUnequipCommand(frontend, state.character);
   ms::RegisterInvCommand(frontend, state.character);
