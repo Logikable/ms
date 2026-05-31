@@ -23,3 +23,20 @@ cc_proto_library(
   name = "equip_proto_cc",
   deps = [":equip_proto"],
 )
+
+cc_library(
+  name = "equip_stats",
+  hdrs = ["equip_stats.h"],
+  srcs = ["equip_stats.cc"],
+  deps = [":equip_proto_cc"],
+)
+
+cc_library(
+  name = "equip_instance",
+  hdrs = ["equip_instance.h"],
+  srcs = ["equip_instance.cc"],
+  deps = [
+    ":equip_stats",
+    ":equip_proto_cc",
+  ],
+)
