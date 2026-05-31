@@ -1,36 +1,23 @@
 #include <memory>
 #include <random>
-#include <sstream>
 #include <string>
-#include <vector>
 
 #include "absl/log/log.h"
 #include "src/character.h"
-#include "src/equip.pb.h"
-#include "src/equip_instance.h"
+#include "src/commands/equip.h"
+#include "src/commands/inv.h"
+#include "src/commands/scroll.h"
+#include "src/commands/unequip.h"
 #include "src/frontend.h"
 #include "src/proto_loader.h"
-#include "src/scroll.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
-// Returns EQUIP_SLOT_UNSPECIFIED for unrecognised names.
-ms::EquipSlot SlotFromName(const std::string& name) {
-  if (name == "primary_weapon") { return ms::EQUIP_SLOT_PRIMARY_WEAPON; }
-  return ms::EQUIP_SLOT_UNSPECIFIED;
-}
-
-// Returns a display label for a slot, or "Unknown" for unrecognised values.
-std::string SlotToName(ms::EquipSlot slot) {
-  switch (slot) {
-    case ms::EQUIP_SLOT_PRIMARY_WEAPON: return "Primary Weapon";
-    default: return "Unknown";
-  }
-}
-
+// TODO: replace with a data-driven item registry once more items are added;
+// currently bootstraps with a hardcoded sword and watt scroll.
 struct GameState {
   explicit GameState(ms::EquipPrototype sword_proto_arg,
                      ms::Scroll watt_scroll_arg)
@@ -51,22 +38,6 @@ struct GameState {
   std::mt19937 rng;
 };
 
-std::string FormatEquip(const ms::EquipInstance& item) {
-  std::ostringstream out;
-  const ms::EquipStats& s = item.stats();
-  out << item.prototype().name()
-      << "  [" << item.proto().remaining_upgrade_slots() << " upgrade slots]\n";
-  if (s.attack())       { out << "  ATT:  " << s.attack()       << "\n"; }
-  if (s.magic_attack()) { out << "  MATT: " << s.magic_attack() << "\n"; }
-  if (s.str())          { out << "  STR:  " << s.str()          << "\n"; }
-  if (s.dex())          { out << "  DEX:  " << s.dex()          << "\n"; }
-  if (s.int_())         { out << "  INT:  " << s.int_()         << "\n"; }
-  if (s.luk())          { out << "  LUK:  " << s.luk()          << "\n"; }
-  if (s.max_hp())       { out << "  HP:   " << s.max_hp()       << "\n"; }
-  if (s.def())          { out << "  DEF:  " << s.def()          << "\n"; }
-  return out.str();
-}
-
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -77,8 +48,8 @@ int main(int argc, char** argv) {
   }
 
   ms::EquipPrototype sword_proto;
-  ms::LoadTextProto(runfiles->Rlocation("ms/data/equip/sword.textproto"),
-                    &sword_proto);
+  ms::LoadTextProto(
+      runfiles->Rlocation("ms/data/equip/sword.textproto"), &sword_proto);
 
   ms::Scroll watt_scroll;
   ms::LoadTextProto(
@@ -88,84 +59,11 @@ int main(int argc, char** argv) {
   GameState state(std::move(sword_proto), std::move(watt_scroll));
   ms::Frontend frontend("> ");
 
-  frontend.Register({
-      "equip",
-      [&state](std::vector<std::string> args) -> std::string {
-        if (args.size() < 2) {
-          return "Usage: /equip <index> [slot]";
-        }
-        int index = 0;
-        try {
-          index = std::stoi(args[1]);
-        } catch (...) {
-          return "Invalid index '" + args[1] + "'.";
-        }
-        // Optional slot arg reserved for multi-slot items (rings, pendants).
-        if (!state.character.Equip(index)) {
-          return "Could not equip item at index " + args[1] + ".";
-        }
-        return "Equipped.";
-      },
-  });
-
-  frontend.Register({
-      "unequip",
-      [&state](std::vector<std::string> args) -> std::string {
-        if (args.size() < 2) {
-          return "Usage: /unequip <slot>";
-        }
-        ms::EquipSlot slot = SlotFromName(args[1]);
-        if (slot == ms::EQUIP_SLOT_UNSPECIFIED) {
-          return "Unknown slot '" + args[1] + "'.";
-        }
-        if (!state.character.Unequip(slot)) {
-          return "Nothing equipped in slot '" + args[1] + "'.";
-        }
-        return "Unequipped.";
-      },
-  });
-
-  frontend.Register({
-      // TODO: replace full stat block with a one-line summary per slot;
-      // ncurses hover/expand for full details.
-      "inv",
-      [&state](std::vector<std::string>) -> std::string {
-        const std::map<ms::EquipSlot, ms::EquipInstance>& eq =
-            state.character.equipped();
-        if (eq.empty()) {
-          return "Nothing equipped.";
-        }
-        std::ostringstream out;
-        for (const std::pair<const ms::EquipSlot, ms::EquipInstance>& entry :
-             eq) {
-          out << SlotToName(entry.first) << ":\n";
-          out << FormatEquip(entry.second);
-        }
-        return out.str();
-      },
-  });
-
-  frontend.Register({
-      "scroll",
-      [&state](std::vector<std::string>) -> std::string {
-        if (!state.character.equipped().count(ms::EQUIP_SLOT_PRIMARY_WEAPON)) {
-          return "No weapon equipped.";
-        }
-        const ms::EquipInstance& item =
-            state.character.equipped().at(ms::EQUIP_SLOT_PRIMARY_WEAPON);
-        if (item.proto().remaining_upgrade_slots() == 0) {
-          return "No upgrade slots remaining on " +
-                 item.prototype().name() + ".";
-        }
-        bool success = state.character.ScrollEquipped(
-            ms::EQUIP_SLOT_PRIMARY_WEAPON, state.watt_scroll, state.rng);
-        std::ostringstream out;
-        out << (success ? "Success! " : "Failed.  ");
-        out << FormatEquip(
-            state.character.equipped().at(ms::EQUIP_SLOT_PRIMARY_WEAPON));
-        return out.str();
-      },
-  });
+  ms::RegisterEquipCommand(frontend, state.character);
+  ms::RegisterUnequipCommand(frontend, state.character);
+  ms::RegisterInvCommand(frontend, state.character);
+  ms::RegisterScrollCommand(frontend, state.character, state.watt_scroll,
+                             state.rng);
 
   frontend.Run();
   return 0;
