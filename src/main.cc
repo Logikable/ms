@@ -23,6 +23,14 @@ ms::EquipSlot SlotFromName(const std::string& name) {
   return ms::EQUIP_SLOT_UNSPECIFIED;
 }
 
+// Returns a display label for a slot, or "Unknown" for unrecognised values.
+std::string SlotToName(ms::EquipSlot slot) {
+  switch (slot) {
+    case ms::EQUIP_SLOT_PRIMARY_WEAPON: return "Primary Weapon";
+    default: return "Unknown";
+  }
+}
+
 struct GameState {
   explicit GameState(ms::EquipPrototype sword_proto_arg,
                      ms::Scroll watt_scroll_arg)
@@ -114,6 +122,26 @@ int main(int argc, char** argv) {
           return "Nothing equipped in slot '" + args[1] + "'.";
         }
         return "Unequipped.";
+      },
+  });
+
+  frontend.Register({
+      // TODO: replace full stat block with a one-line summary per slot;
+      // ncurses hover/expand for full details.
+      "inv",
+      [&state](std::vector<std::string>) -> std::string {
+        const std::map<ms::EquipSlot, ms::EquipInstance>& eq =
+            state.character.equipped();
+        if (eq.empty()) {
+          return "Nothing equipped.";
+        }
+        std::ostringstream out;
+        for (const std::pair<const ms::EquipSlot, ms::EquipInstance>& entry :
+             eq) {
+          out << SlotToName(entry.first) << ":\n";
+          out << FormatEquip(entry.second);
+        }
+        return out.str();
       },
   });
 
