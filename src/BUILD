@@ -117,6 +117,21 @@ cc_test(
 )
 
 cc_library(
+  name = "tui",
+  hdrs = ["tui.h"],
+  srcs = ["tui.cc"],
+  deps = [
+    ":character",
+    ":equip_instance",
+    "//src/protos:character_proto_cc",
+    "//src/protos:equip_proto_cc",
+    "//src/protos:scroll_proto_cc",
+    "@ftxui//:component",
+    "@ftxui//:dom",
+  ],
+)
+
+cc_library(
   name = "equip_instance",
   hdrs = ["equip_instance.h"],
   srcs = ["equip_instance.cc"],
