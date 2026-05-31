@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package ms;
+
+enum Map {
+  MAP_UNSPECIFIED = 0;
+  MAP_HENESYS = 1;
+}

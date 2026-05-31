@@ -1,0 +1,8 @@
+name: "Sword"
+base_stats {
+  attack: 15
+}
+attack_speed: ATTACK_SPEED_FAST_2
+equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+upgrade_slots: 9
+equip_job_category: EQUIP_JOB_CATEGORY_WARRIOR

@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package ms;
+
+enum AttackSpeed {
+  ATTACK_SPEED_UNSPECIFIED = 0;
+  ATTACK_SPEED_SLOWER = 1;
+  ATTACK_SPEED_SLOW_1 = 2;
+  ATTACK_SPEED_SLOW_2 = 3;
+  ATTACK_SPEED_AVERAGE = 4;
+  ATTACK_SPEED_FAST_1 = 5;
+  ATTACK_SPEED_FAST_2 = 6;
+  ATTACK_SPEED_FASTER = 7;
+  ATTACK_SPEED_FASTEST_1 = 8;
+  ATTACK_SPEED_FASTEST_2 = 9;
+  ATTACK_SPEED_FASTEST_3 = 10;
+}
+
+enum EquipType {
+  EQUIP_TYPE_UNSPECIFIED = 0;
+  EQUIP_TYPE_ONE_HANDED_SWORD = 1;
+}
+
+enum EquipJobCategory {
+  EQUIP_JOB_CATEGORY_UNSPECIFIED = 0;
+  EQUIP_JOB_CATEGORY_WARRIOR = 1;
+  EQUIP_JOB_CATEGORY_BOWMAN = 2;
+  EQUIP_JOB_CATEGORY_MAGICIAN = 3;
+  EQUIP_JOB_CATEGORY_THIEF = 4;
+  EQUIP_JOB_CATEGORY_PIRATE = 5;
+  EQUIP_JOB_CATEGORY_UNIVERSAL = 6;
+}
+
+message EquipStats {
+  int32 str = 1;
+  int32 dex = 2;
+  int32 int = 3;
+  int32 luk = 4;
+  int32 attack = 5;
+  int32 magic_attack = 6;
+  int32 max_hp = 7;
+  int32 def = 8;
+}
+
+message Equip {
+  string name = 1;
+  int32 required_level = 2;
+  EquipStats base_stats = 3;
+  AttackSpeed attack_speed = 4;
+  EquipType equip_type = 5;
+  int32 upgrade_slots = 6;
+  EquipJobCategory equip_job_category = 7;
+}
