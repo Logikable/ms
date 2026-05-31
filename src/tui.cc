@@ -17,6 +17,44 @@ using ftxui::Component;
 using ftxui::Element;
 using ftxui::Renderer;
 
+std::string PadRight(const std::string& s, int width) {
+  if ((int)s.size() >= width) { return s.substr(0, width); }
+  return s + std::string(width - (int)s.size(), ' ');
+}
+
+std::string PadLeft(const std::string& s, int width) {
+  if ((int)s.size() >= width) { return s.substr(0, width); }
+  return std::string(width - (int)s.size(), ' ') + s;
+}
+
+void AppendStat(std::string& out, int val, const std::string& name) {
+  if (val <= 0) return;
+  if (!out.empty()) out += "  ";
+  out += "+" + std::to_string(val) + " " + name;
+}
+
+std::string FormatJobCategories(const EquipPrototype& proto) {
+  for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
+    if (static_cast<EquipJobCategory>(proto.equip_job_categories(i)) ==
+        EQUIP_JOB_CATEGORY_UNIVERSAL) {
+      return "All";
+    }
+  }
+  std::string result;
+  for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
+    if (!result.empty()) { result += "/"; }
+    switch (static_cast<EquipJobCategory>(proto.equip_job_categories(i))) {
+      case EQUIP_JOB_CATEGORY_WARRIOR:  result += "Warrior";  break;
+      case EQUIP_JOB_CATEGORY_BOWMAN:   result += "Bowman";   break;
+      case EQUIP_JOB_CATEGORY_MAGICIAN: result += "Magician"; break;
+      case EQUIP_JOB_CATEGORY_THIEF:    result += "Thief";    break;
+      case EQUIP_JOB_CATEGORY_PIRATE:   result += "Pirate";   break;
+      default: break;
+    }
+  }
+  return result.empty() ? "All" : result;
+}
+
 std::string JobName(Job job) {
   switch (job) {
     case JOB_BEGINNER: return "Beginner";
@@ -41,7 +79,18 @@ Element CharacterElement(const CharacterInstance& c) {
 Element EquippedElement(const CharacterInstance& c) {
   std::vector<Element> rows;
   for (const std::pair<const EquipSlot, EquipInstance>& kv : c.equipped()) {
-    rows.push_back(ftxui::text(kv.second.prototype().name()));
+    const EquipInstance& item = kv.second;
+    const EquipStats stats = item.stats();
+    std::string line = PadRight(item.prototype().name(), 18) + "  ";
+    AppendStat(line, stats.attack(), "ATT");
+    AppendStat(line, stats.magic_attack(), "MATT");
+    AppendStat(line, stats.str(), "STR");
+    AppendStat(line, stats.dex(), "DEX");
+    AppendStat(line, stats.int_(), "INT");
+    AppendStat(line, stats.luk(), "LUK");
+    line += "  " + std::to_string(item.proto().remaining_upgrade_slots()) +
+            " slots";
+    rows.push_back(ftxui::text(line));
   }
   if (rows.empty()) { rows.push_back(ftxui::text("(empty)")); }
   return ftxui::window(ftxui::text(" Equipped "), ftxui::vbox(rows));
@@ -67,9 +116,13 @@ void RunTui(CharacterInstance& character,
   Component bag_panel = Renderer(bag_menu, [&]() -> Element {
     bag_entries.clear();
     for (const EquipInstance& item : character.inventory()) {
+      const EquipPrototype& proto = item.prototype();
+      int level = proto.required_level() > 0 ? proto.required_level() : 1;
       bag_entries.push_back(
-          "[" + std::to_string(bag_entries.size()) + "] " +
-          item.prototype().name());
+          "[" + PadLeft(std::to_string(bag_entries.size()), 2) + "] " +
+          PadRight(proto.name(), 18) +
+          "  Lv" + PadRight(std::to_string(level), 3) +
+          "  " + FormatJobCategories(proto));
     }
     if (bag_entries.empty()) {
       return ftxui::window(ftxui::text(" Bag "), ftxui::text("(empty)"));
