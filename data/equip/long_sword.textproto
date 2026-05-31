@@ -1,6 +1,7 @@
-name: "Sword"
+name: "Long Sword"
+required_level: 10
 base_stats {
-  attack: 15
+  attack: 27
 }
 attack_speed: ATTACK_SPEED_FAST_2
 equip_type: EQUIP_TYPE_ONE_HANDED_SWORD

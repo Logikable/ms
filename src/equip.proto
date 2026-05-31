@@ -62,7 +62,7 @@ message EquipPrototype {
   EquipStats base_stats = 3;
   AttackSpeed attack_speed = 4;
   EquipSlot equip_slot = 5;
-  EquipJobCategory equip_job_category = 6;
+  repeated EquipJobCategory equip_job_categories = 6;
   EquipType equip_type = 7;
   int32 upgrade_slots = 8;
 }

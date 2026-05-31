@@ -1,0 +1,11 @@
+name: "Eloon"
+required_level: 25
+base_stats {
+  attack: 42
+}
+attack_speed: ATTACK_SPEED_FAST_1
+equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
