@@ -16,13 +16,26 @@ namespace ms {
 
 std::string InvCommand(const CharacterInstance& character) {
   const std::map<EquipSlot, EquipInstance>& eq = character.equipped();
-  if (eq.empty()) {
-    return "Nothing equipped.";
+  const std::vector<EquipInstance>& bag = character.inventory();
+  if (eq.empty() && bag.empty()) {
+    return "Nothing to show.";
   }
   std::ostringstream out;
-  for (const std::pair<const EquipSlot, EquipInstance>& entry : eq) {
-    out << SlotToName(entry.first) << ":\n";
-    out << FormatEquip(entry.second);
+  if (!eq.empty()) {
+    out << "Equipped:\n";
+    for (const std::pair<const EquipSlot, EquipInstance>& entry : eq) {
+      out << SlotToName(entry.first) << ":\n";
+      out << FormatEquip(entry.second);
+    }
+  }
+  if (!bag.empty()) {
+    if (!eq.empty()) {
+      out << "\n";
+    }
+    out << "Bag:\n";
+    for (int i = 0; i < static_cast<int>(bag.size()); ++i) {
+      out << "[" << i << "] " << FormatEquip(bag[i]);
+    }
   }
   return out.str();
 }

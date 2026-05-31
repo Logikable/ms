@@ -13,7 +13,8 @@
 
 namespace ms {
 
-// Returns formatted equipped inventory, or "Nothing equipped." if empty.
+// Returns equipped items and bag contents. Returns "Nothing to show." if both
+// are empty.
 // TODO: replace full stat block with a one-line summary; ncurses hover to expand.
 std::string InvCommand(const CharacterInstance& character);
 void RegisterInvCommand(Frontend& frontend, CharacterInstance& character);

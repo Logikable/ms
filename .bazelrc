@@ -1,3 +1,6 @@
 # Inject cc rule autoloading into external repos (e.g. googletest) whose
 # MODULE.bazel predates Bazel 9's removal of native cc rules.
 build --incompatible_autoload_externally=cc_library,cc_binary,cc_test
+
+# Suppress warnings from external dependencies (e.g. protobuf internals).
+build --per_file_copt=external/.*@-w

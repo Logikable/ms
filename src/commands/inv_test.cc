@@ -8,9 +8,37 @@
 namespace ms {
 namespace {
 
-TEST(InvCommandTest, ReturnsNothingEquippedWhenEmpty) {
+TEST(InvCommandTest, ReturnsNothingToShowWhenEmpty) {
   CharacterInstance c = CharacterInstance(Character{});
-  EXPECT_EQ(InvCommand(c), "Nothing equipped.");
+  EXPECT_EQ(InvCommand(c), "Nothing to show.");
+}
+
+TEST(InvCommandTest, ShowsBagItemsWithIndices) {
+  CharacterInstance c = CharacterInstance(Character{});
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  c.PickUp(proto);
+  c.PickUp(proto);
+  std::string out = InvCommand(c);
+  EXPECT_NE(out.find("[0]"), std::string::npos);
+  EXPECT_NE(out.find("[1]"), std::string::npos);
+}
+
+TEST(InvCommandTest, ShowsBothSectionsWhenPopulated) {
+  CharacterInstance c = CharacterInstance(Character{});
+  EquipPrototype equipped_proto;
+  equipped_proto.set_name("Sword");
+  equipped_proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipPrototype bag_proto;
+  bag_proto.set_name("Axe");
+  c.PickUp(equipped_proto);
+  c.Equip(0);
+  c.PickUp(bag_proto);
+  std::string out = InvCommand(c);
+  EXPECT_NE(out.find("Equipped"), std::string::npos);
+  EXPECT_NE(out.find("Bag"), std::string::npos);
+  EXPECT_NE(out.find("Sword"), std::string::npos);
+  EXPECT_NE(out.find("Axe"), std::string::npos);
 }
 
 TEST(InvCommandTest, ShowsSlotNameAndItemName) {
