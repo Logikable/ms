@@ -2,6 +2,7 @@
 #include <memory>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "absl/log/log.h"
 #include "src/character.h"
@@ -20,7 +21,7 @@ using bazel::tools::cpp::runfiles::Runfiles;
 
 struct GameState {
   explicit GameState(std::map<std::string, ms::EquipPrototype> equips_arg,
-                     std::map<std::string, ms::Scroll> scrolls_arg)
+                     std::vector<ms::Scroll> scrolls_arg)
       : equips(std::move(equips_arg)),
         scrolls(std::move(scrolls_arg)),
         character(ms::Character{}),
@@ -33,7 +34,7 @@ struct GameState {
   GameState& operator=(const GameState&) = delete;
 
   std::map<std::string, ms::EquipPrototype> equips;
-  std::map<std::string, ms::Scroll> scrolls;
+  std::vector<ms::Scroll> scrolls;
   ms::CharacterInstance character;
   std::mt19937 rng;
 };
@@ -50,9 +51,15 @@ int main(int argc, char** argv) {
   std::map<std::string, ms::EquipPrototype> equips =
       ms::LoadTextProtoDir<ms::EquipPrototype>(
           runfiles->Rlocation("ms/data/equip"));
-  std::map<std::string, ms::Scroll> scrolls =
+  std::map<std::string, ms::Scroll> scroll_map =
       ms::LoadTextProtoDir<ms::Scroll>(
           runfiles->Rlocation("ms/data/scrolls"));
+  std::vector<ms::Scroll> scrolls;
+  scrolls.reserve(scroll_map.size());
+  for (const std::pair<const std::string, ms::Scroll>& entry : scroll_map) {
+    scrolls.push_back(entry.second);
+  }
+  ms::SortScrolls(scrolls);
 
   GameState state(std::move(equips), std::move(scrolls));
   ms::Frontend frontend("> ");

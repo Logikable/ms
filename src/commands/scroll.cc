@@ -1,6 +1,6 @@
 #include "src/commands/scroll.h"
 
-#include <map>
+#include <algorithm>
 #include <random>
 #include <set>
 #include <sstream>
@@ -17,16 +17,26 @@
 namespace ms {
 namespace {
 
+int PrimaryStatRank(const Scroll& scroll) {
+  const EquipStats& s = scroll.stats();
+  if (s.str())          { return 2; }
+  if (s.dex())          { return 3; }
+  if (s.int_())         { return 4; }
+  if (s.luk())          { return 5; }
+  if (s.max_hp())       { return 6; }
+  if (s.magic_attack()) { return 1; }
+  return 0;  // ATT only
+}
+
 // Returns scrolls applicable to proto: those whose applicable_job_categories
-// intersects proto's equip_job_categories. Preserves map iteration order.
+// intersects proto's equip_job_categories. Preserves input order.
 std::vector<Scroll> ApplicableScrolls(
     const EquipPrototype& proto,
-    const std::map<std::string, Scroll>& scrolls) {
+    const std::vector<Scroll>& scrolls) {
   std::set<int> weapon_cats(proto.equip_job_categories().begin(),
                              proto.equip_job_categories().end());
   std::vector<Scroll> result;
-  for (const std::pair<const std::string, Scroll>& entry : scrolls) {
-    const Scroll& scroll = entry.second;
+  for (const Scroll& scroll : scrolls) {
     for (int cat : scroll.applicable_job_categories()) {
       if (weapon_cats.count(cat)) {
         result.push_back(scroll);
@@ -53,8 +63,18 @@ std::string FormatScrollStats(const EquipStats& s) {
 
 }  // namespace
 
+void SortScrolls(std::vector<Scroll>& scrolls) {
+  std::sort(scrolls.begin(), scrolls.end(),
+            [](const Scroll& a, const Scroll& b) {
+              int ra = PrimaryStatRank(a);
+              int rb = PrimaryStatRank(b);
+              if (ra != rb) { return ra < rb; }
+              return a.success_rate() > b.success_rate();
+            });
+}
+
 std::string ScrollListCommand(const CharacterInstance& character,
-                               const std::map<std::string, Scroll>& scrolls) {
+                               const std::vector<Scroll>& scrolls) {
   if (!character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON)) {
     return "No weapon equipped.";
   }
@@ -82,7 +102,7 @@ std::string ScrollListCommand(const CharacterInstance& character,
 }
 
 std::string ScrollApplyCommand(CharacterInstance& character,
-                                const std::map<std::string, Scroll>& scrolls,
+                                const std::vector<Scroll>& scrolls,
                                 int index, std::mt19937& rng) {
   if (!character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON)) {
     return "No weapon equipped.";
@@ -105,7 +125,7 @@ std::string ScrollApplyCommand(CharacterInstance& character,
 }
 
 void RegisterScrollCommand(Frontend& frontend, CharacterInstance& character,
-                            const std::map<std::string, Scroll>& scrolls,
+                            const std::vector<Scroll>& scrolls,
                             std::mt19937& rng) {
   frontend.Register({
       "scroll",

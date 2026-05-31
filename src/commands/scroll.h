@@ -5,7 +5,6 @@
 #ifndef MS_COMMANDS_SCROLL_H_
 #define MS_COMMANDS_SCROLL_H_
 
-#include <map>
 #include <random>
 #include <string>
 #include <vector>
@@ -16,17 +15,21 @@
 
 namespace ms {
 
+// Sorts in place: primary stat (ATT < MATT < STR < DEX < INT < LUK < HP),
+// then descending success rate within each group.
+void SortScrolls(std::vector<Scroll>& scrolls);
+
 // Lists scrolls applicable to the equipped primary weapon.
 std::string ScrollListCommand(const CharacterInstance& character,
-                               const std::map<std::string, Scroll>& scrolls);
+                               const std::vector<Scroll>& scrolls);
 
 // Applies the scroll at the given index from the applicable list.
 std::string ScrollApplyCommand(CharacterInstance& character,
-                                const std::map<std::string, Scroll>& scrolls,
+                                const std::vector<Scroll>& scrolls,
                                 int index, std::mt19937& rng);
 
 void RegisterScrollCommand(Frontend& frontend, CharacterInstance& character,
-                           const std::map<std::string, Scroll>& scrolls,
+                           const std::vector<Scroll>& scrolls,
                            std::mt19937& rng);
 
 }  // namespace ms
