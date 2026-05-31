@@ -111,19 +111,18 @@ TEST(PickUpTest, AddsItemToInventory) {
   proto.set_name("Sword");
   proto.set_upgrade_slots(7);
   c.PickUp(proto);
-  ASSERT_EQ(c.proto().inventory().equip_tab_size(), 1);
-  EXPECT_EQ(c.proto().inventory().equip_tab(0).equip_name(), "Sword");
-  EXPECT_EQ(c.proto().inventory().equip_tab(0).remaining_upgrade_slots(), 7);
+  ASSERT_EQ(c.inventory().size(), 1u);
+  EXPECT_EQ(c.inventory()[0].prototype().name(), "Sword");
+  EXPECT_EQ(c.inventory()[0].proto().remaining_upgrade_slots(), 7);
 }
 
 TEST(PickUpTest, MultiplePickUpsAccumulate) {
   CharacterInstance c = MakeCharacter();
   EquipPrototype proto;
   proto.set_name("Sword");
-  proto.set_upgrade_slots(7);
   c.PickUp(proto);
   c.PickUp(proto);
-  EXPECT_EQ(c.proto().inventory().equip_tab_size(), 2);
+  EXPECT_EQ(c.inventory().size(), 2u);
 }
 
 TEST(PickUpTest, FreshItemHasNoScrollStats) {
@@ -131,7 +130,7 @@ TEST(PickUpTest, FreshItemHasNoScrollStats) {
   EquipPrototype proto;
   proto.set_name("Sword");
   c.PickUp(proto);
-  EXPECT_EQ(c.proto().inventory().equip_tab(0).scroll_stats().attack(), 0);
+  EXPECT_EQ(c.inventory()[0].proto().scroll_stats().attack(), 0);
 }
 
 TEST(EquipTest, EquipsItemIntoEmptySlot) {
@@ -141,9 +140,9 @@ TEST(EquipTest, EquipsItemIntoEmptySlot) {
   proto.set_upgrade_slots(7);
   c.PickUp(proto);
   EXPECT_TRUE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
-  EXPECT_EQ(c.proto().inventory().equip_tab_size(), 0);
-  ASSERT_TRUE(c.proto().equipped().contains(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(c.proto().equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_name(),
+  EXPECT_EQ(c.inventory().size(), 0u);
+  ASSERT_TRUE(c.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Sword");
 }
 
@@ -157,10 +156,10 @@ TEST(EquipTest, SwapsDisplacedItemToInventory) {
   c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
   c.PickUp(axe);
   EXPECT_TRUE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
-  EXPECT_EQ(c.proto().equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_name(),
+  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Axe");
-  ASSERT_EQ(c.proto().inventory().equip_tab_size(), 1);
-  EXPECT_EQ(c.proto().inventory().equip_tab(0).equip_name(), "Sword");
+  ASSERT_EQ(c.inventory().size(), 1u);
+  EXPECT_EQ(c.inventory()[0].prototype().name(), "Sword");
 }
 
 TEST(EquipTest, ReturnsFalseForUnspecifiedSlot) {
@@ -183,9 +182,9 @@ TEST(UnequipTest, MovesItemToInventory) {
   c.PickUp(proto);
   c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
   EXPECT_TRUE(c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(c.proto().equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0);
-  ASSERT_EQ(c.proto().inventory().equip_tab_size(), 1);
-  EXPECT_EQ(c.proto().inventory().equip_tab(0).equip_name(), "Sword");
+  EXPECT_EQ(c.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0u);
+  ASSERT_EQ(c.inventory().size(), 1u);
+  EXPECT_EQ(c.inventory()[0].prototype().name(), "Sword");
 }
 
 TEST(UnequipTest, ReturnsFalseForUnspecifiedSlot) {
@@ -200,12 +199,10 @@ TEST(UnequipTest, ReturnsFalseForUnoccupiedSlot) {
 
 TEST(ScrollEquippedTest, ReturnsFalseIfSlotEmpty) {
   CharacterInstance c = MakeCharacter();
-  EquipPrototype proto;
-  proto.set_name("Sword");
   Scroll scroll;
   scroll.set_success_rate(100);
   std::mt19937 rng(0);
-  EXPECT_FALSE(c.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, proto, scroll, rng));
+  EXPECT_FALSE(c.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, rng));
 }
 
 TEST(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
@@ -221,12 +218,12 @@ TEST(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
   scroll.mutable_stats()->set_attack(5);
   std::mt19937 rng(0);
 
-  EXPECT_TRUE(c.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, proto, scroll, rng));
+  EXPECT_TRUE(c.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, rng));
   EXPECT_EQ(
-      c.proto().equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).scroll_stats().attack(),
+      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).proto().scroll_stats().attack(),
       5);
   EXPECT_EQ(
-      c.proto().equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).remaining_upgrade_slots(),
+      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).proto().remaining_upgrade_slots(),
       2);
 }
 

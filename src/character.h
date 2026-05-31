@@ -1,15 +1,20 @@
 /* CharacterInstance represents a player character. It wraps a Character proto
  * (serializable state: level, job, job_stage, unspent AP, and allocated stats)
- * and exposes methods for leveling up, job advancement, and AP allocation.
- * character.cc implements those methods and the AP bonus rules.
+ * and exposes methods for leveling up, job advancement, AP allocation, and
+ * inventory management. Runtime inventory and equipped items are held as
+ * EquipInstance objects; the Character proto fields for those are reserved for
+ * serialization. character.cc implements all methods.
  */
 #ifndef MS_CHARACTER_H_
 #define MS_CHARACTER_H_
 
+#include <map>
 #include <random>
+#include <vector>
 
 #include "src/character.pb.h"
 #include "src/equip.pb.h"
+#include "src/equip_instance.h"
 #include "src/scroll.pb.h"
 
 namespace ms {
@@ -25,25 +30,30 @@ class CharacterInstance {
   void AdvanceJob(Job next_job);
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);
-  // Constructs a fresh Equip state from `prototype` and appends it to the
-  // equip inventory.
+  // Constructs a fresh EquipInstance from `prototype` and appends it to the
+  // inventory.
   void PickUp(const EquipPrototype& prototype);
-  // Applies `scroll` to the item in `slot`. Returns false if the slot is empty
-  // or the underlying Scroll() call fails (no slots remaining or RNG miss).
-  bool ScrollEquipped(EquipSlot slot, const EquipPrototype& prototype,
-                      const Scroll& scroll, std::mt19937& rng);
-  // Moves the item at `inventory_index` from the equip tab into `slot`. If the
-  // slot was occupied, the displaced item is appended to the equip tab. Returns
-  // false if `slot` is unspecified or `inventory_index` is out of range.
+  // Moves the item at `inventory_index` into `slot`. If the slot was occupied,
+  // the displaced item is appended to inventory. Returns false if `slot` is
+  // unspecified or `inventory_index` is out of range.
   bool Equip(EquipSlot slot, int inventory_index);
-  // Moves the item in `slot` to the equip tab. Returns false if `slot` is
+  // Moves the item in `slot` to inventory. Returns false if `slot` is
   // unspecified or unoccupied.
   bool Unequip(EquipSlot slot);
+  // Applies `scroll` to the item in `slot`. Returns false if the slot is empty
+  // or the underlying Scroll() call fails (no slots remaining or RNG miss).
+  bool ScrollEquipped(EquipSlot slot, const Scroll& scroll, std::mt19937& rng);
 
   const Character& proto() const { return character_; }
+  const std::vector<EquipInstance>& inventory() const { return inventory_; }
+  const std::map<EquipSlot, EquipInstance>& equipped() const {
+    return equipped_;
+  }
 
  private:
   Character character_;
+  std::vector<EquipInstance> inventory_;
+  std::map<EquipSlot, EquipInstance> equipped_;
 };
 
 }  // namespace ms

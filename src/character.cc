@@ -1,14 +1,10 @@
 #include "src/character.h"
 
-#include "absl/log/log.h"
-#include "google/protobuf/map.h"
 #include "src/equip_instance.h"
 
 namespace ms {
 
 namespace {
-
-using google::protobuf::Map;
 
 constexpr int kApPerLevel = 5;
 constexpr int kApJobAdvancementBonus = 5;
@@ -53,26 +49,26 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
+void CharacterInstance::PickUp(const EquipPrototype& prototype) {
+  inventory_.emplace_back(prototype);
+}
+
 bool CharacterInstance::Equip(EquipSlot slot, int inventory_index) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }
-  Inventory* inv = character_.mutable_inventory();
-  if (inventory_index < 0 || inventory_index >= inv->equip_tab_size()) {
+  if (inventory_index < 0 ||
+      inventory_index >= static_cast<int>(inventory_.size())) {
     return false;
   }
-
-  ms::Equip item = inv->equip_tab(inventory_index);
-  inv->mutable_equip_tab()->DeleteSubrange(inventory_index, 1);
-
-  Map<int32_t, ms::Equip>& slots = *character_.mutable_equipped();
-  Map<int32_t, ms::Equip>::iterator it = slots.find(static_cast<int>(slot));
-  if (it != slots.end()) {
-    *inv->add_equip_tab() = it->second;
-    slots.erase(it);
+  EquipInstance item = std::move(inventory_[inventory_index]);
+  inventory_.erase(inventory_.begin() + inventory_index);
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it != equipped_.end()) {
+    inventory_.push_back(std::move(it->second));
+    equipped_.erase(it);
   }
-
-  slots[static_cast<int>(slot)] = std::move(item);
+  equipped_.emplace(slot, std::move(item));
   return true;
 }
 
@@ -80,35 +76,22 @@ bool CharacterInstance::Unequip(EquipSlot slot) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }
-  Map<int32_t, ms::Equip>& slots = *character_.mutable_equipped();
-  Map<int32_t, ms::Equip>::iterator it = slots.find(static_cast<int>(slot));
-  if (it == slots.end()) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end()) {
     return false;
   }
-  *character_.mutable_inventory()->add_equip_tab() = it->second;
-  slots.erase(it);
+  inventory_.push_back(std::move(it->second));
+  equipped_.erase(it);
   return true;
 }
 
-bool CharacterInstance::ScrollEquipped(EquipSlot slot,
-                                       const EquipPrototype& prototype,
-                                       const Scroll& scroll,
+bool CharacterInstance::ScrollEquipped(EquipSlot slot, const Scroll& scroll,
                                        std::mt19937& rng) {
-  Map<int32_t, ms::Equip>& slots = *character_.mutable_equipped();
-  Map<int32_t, ms::Equip>::iterator it = slots.find(static_cast<int>(slot));
-  if (it == slots.end()) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end()) {
     return false;
   }
-  EquipInstance item(prototype, it->second);
-  bool result = item.Scroll(scroll, rng);
-  it->second = item.proto();
-  return result;
-}
-
-void CharacterInstance::PickUp(const EquipPrototype& prototype) {
-  ms::Equip* item = character_.mutable_inventory()->add_equip_tab();
-  item->set_equip_name(prototype.name());
-  item->set_remaining_upgrade_slots(prototype.upgrade_slots());
+  return it->second.Scroll(scroll, rng);
 }
 
 }  // namespace ms
