@@ -24,6 +24,8 @@ struct GameState {
         rng(std::random_device{}()) {
     character.PickUp(equips.at("sword"));
     character.Equip(0);
+    character.PickUp(equips.at("long_sword"));
+    character.PickUp(equips.at("sabre"));
   }
 
   GameState(const GameState&) = delete;

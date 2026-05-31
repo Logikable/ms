@@ -47,30 +47,44 @@ Element EquippedElement(const CharacterInstance& c) {
   return ftxui::window(ftxui::text(" Equipped "), ftxui::vbox(rows));
 }
 
-Element BagElement(const CharacterInstance& c) {
-  std::vector<Element> rows;
-  int i = 0;
-  for (const EquipInstance& item : c.inventory()) {
-    rows.push_back(ftxui::text(
-        "[" + std::to_string(i++) + "] " + item.prototype().name()));
-  }
-  if (rows.empty()) { rows.push_back(ftxui::text("(empty)")); }
-  return ftxui::window(ftxui::text(" Bag "), ftxui::vbox(rows));
-}
-
 }  // namespace
 
 void RunTui(CharacterInstance& character,
             const std::vector<Scroll>& /*scrolls*/,
             std::mt19937& /*rng*/) {
-  Component layout = Renderer([&character] {
+  int bag_selected = 0;
+  std::vector<std::string> bag_entries;
+
+  ftxui::MenuOption bag_opt;
+  bag_opt.on_enter = [&]() {
+    character.Equip(bag_selected);
+    bag_selected = std::min(bag_selected,
+        std::max(0, (int)character.inventory().size() - 1));
+  };
+
+  Component bag_menu = ftxui::Menu(&bag_entries, &bag_selected, bag_opt);
+
+  Component bag_panel = Renderer(bag_menu, [&]() -> Element {
+    bag_entries.clear();
+    for (const EquipInstance& item : character.inventory()) {
+      bag_entries.push_back(
+          "[" + std::to_string(bag_entries.size()) + "] " +
+          item.prototype().name());
+    }
+    if (bag_entries.empty()) {
+      return ftxui::window(ftxui::text(" Bag "), ftxui::text("(empty)"));
+    }
+    return ftxui::window(ftxui::text(" Bag "), bag_menu->Render());
+  });
+
+  Component layout = Renderer(bag_panel, [&]() -> Element {
     return ftxui::vbox({
       ftxui::hbox({
         CharacterElement(character) |
             ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
         ftxui::vbox({
           EquippedElement(character),
-          BagElement(character),
+          bag_panel->Render(),
         }) | ftxui::flex,
       }),
       ftxui::filler(),
