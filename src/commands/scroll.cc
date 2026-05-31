@@ -2,26 +2,88 @@
 
 #include <map>
 #include <random>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include "src/character.h"
 #include "src/commands/util.h"
-#include "src/protos/equip.pb.h"
 #include "src/equip_instance.h"
 #include "src/frontend.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
+namespace {
 
-std::string ScrollCommand(CharacterInstance& character,
-                          const std::map<std::string, Scroll>& scrolls,
-                          const std::string& scroll_name, std::mt19937& rng) {
-  std::map<std::string, Scroll>::const_iterator it = scrolls.find(scroll_name);
-  if (it == scrolls.end()) {
-    return "Unknown scroll '" + scroll_name + "'.";
+// Returns scrolls applicable to proto: those whose applicable_job_categories
+// intersects proto's equip_job_categories. Preserves map iteration order.
+std::vector<Scroll> ApplicableScrolls(
+    const EquipPrototype& proto,
+    const std::map<std::string, Scroll>& scrolls) {
+  std::set<int> weapon_cats(proto.equip_job_categories().begin(),
+                             proto.equip_job_categories().end());
+  std::vector<Scroll> result;
+  for (const std::pair<const std::string, Scroll>& entry : scrolls) {
+    const Scroll& scroll = entry.second;
+    for (int cat : scroll.applicable_job_categories()) {
+      if (weapon_cats.count(cat)) {
+        result.push_back(scroll);
+        break;
+      }
+    }
   }
+  return result;
+}
+
+std::string FormatScrollStats(const EquipStats& s) {
+  std::ostringstream out;
+  const char* sep = "";
+  if (s.attack())       { out << sep << s.attack()       << " ATT";  sep = ", "; }
+  if (s.magic_attack()) { out << sep << s.magic_attack() << " MATT"; sep = ", "; }
+  if (s.str())          { out << sep << s.str()          << " STR";  sep = ", "; }
+  if (s.dex())          { out << sep << s.dex()          << " DEX";  sep = ", "; }
+  if (s.int_())         { out << sep << s.int_()         << " INT";  sep = ", "; }
+  if (s.luk())          { out << sep << s.luk()          << " LUK";  sep = ", "; }
+  if (s.max_hp())       { out << sep << s.max_hp()       << " HP";   sep = ", "; }
+  if (s.def())          { out << sep << s.def()          << " DEF";  sep = ", "; }
+  return out.str();
+}
+
+}  // namespace
+
+std::string ScrollListCommand(const CharacterInstance& character,
+                               const std::map<std::string, Scroll>& scrolls) {
+  if (!character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON)) {
+    return "No weapon equipped.";
+  }
+  const EquipInstance& item =
+      character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+  std::vector<Scroll> applicable = ApplicableScrolls(item.prototype(), scrolls);
+  if (applicable.empty()) {
+    return "No applicable scrolls for " + item.prototype().name() + ".";
+  }
+  size_t max_name = 0;
+  for (const Scroll& s : applicable) {
+    if (s.name().size() > max_name) { max_name = s.name().size(); }
+  }
+  std::ostringstream out;
+  out << item.prototype().name()
+      << " [" << item.proto().remaining_upgrade_slots() << " upgrade slots]\n";
+  for (int i = 0; i < static_cast<int>(applicable.size()); ++i) {
+    const Scroll& s = applicable[i];
+    out << "[" << i << "] "
+        << s.name()
+        << std::string(max_name - s.name().size() + 2, ' ')
+        << FormatScrollStats(s.stats()) << "\n";
+  }
+  return out.str();
+}
+
+std::string ScrollApplyCommand(CharacterInstance& character,
+                                const std::map<std::string, Scroll>& scrolls,
+                                int index, std::mt19937& rng) {
   if (!character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON)) {
     return "No weapon equipped.";
   }
@@ -30,8 +92,12 @@ std::string ScrollCommand(CharacterInstance& character,
   if (item.proto().remaining_upgrade_slots() == 0) {
     return "No upgrade slots remaining on " + item.prototype().name() + ".";
   }
+  std::vector<Scroll> applicable = ApplicableScrolls(item.prototype(), scrolls);
+  if (index < 0 || index >= static_cast<int>(applicable.size())) {
+    return "Invalid scroll index.";
+  }
   bool success =
-      character.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, it->second, rng);
+      character.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, applicable[index], rng);
   std::ostringstream out;
   out << (success ? "Success! " : "Failed.  ");
   out << FormatEquip(character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
@@ -43,12 +109,17 @@ void RegisterScrollCommand(Frontend& frontend, CharacterInstance& character,
                             std::mt19937& rng) {
   frontend.Register({
       "scroll",
-      "Apply a scroll to the equipped primary weapon.",
+      "List or apply scrolls for the equipped primary weapon.",
       [&character, &scrolls, &rng](std::vector<std::string> tokens) -> std::string {
         if (tokens.size() < 2) {
-          return "Usage: /scroll <scroll_name>";
+          return ScrollListCommand(character, scrolls);
         }
-        return ScrollCommand(character, scrolls, tokens[1], rng);
+        for (char c : tokens[1]) {
+          if (!std::isdigit(static_cast<unsigned char>(c))) {
+            return "Usage: /scroll [index]";
+          }
+        }
+        return ScrollApplyCommand(character, scrolls, std::stoi(tokens[1]), rng);
       },
   });
 }

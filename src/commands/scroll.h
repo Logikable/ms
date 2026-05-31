@@ -1,6 +1,6 @@
-/* Scroll command: /scroll <scroll_name>
- * Applies a scroll to the equipped primary weapon. scroll.cc implements
- * ScrollCommand and RegisterScrollCommand.
+/* Scroll command: /scroll [index]
+ * With no args, lists scrolls applicable to the equipped primary weapon.
+ * With an index, applies that scroll from the list.
  */
 #ifndef MS_COMMANDS_SCROLL_H_
 #define MS_COMMANDS_SCROLL_H_
@@ -16,10 +16,15 @@
 
 namespace ms {
 
-// Applies the named scroll to the equipped primary weapon. Returns result string.
-std::string ScrollCommand(CharacterInstance& character,
-                          const std::map<std::string, Scroll>& scrolls,
-                          const std::string& scroll_name, std::mt19937& rng);
+// Lists scrolls applicable to the equipped primary weapon.
+std::string ScrollListCommand(const CharacterInstance& character,
+                               const std::map<std::string, Scroll>& scrolls);
+
+// Applies the scroll at the given index from the applicable list.
+std::string ScrollApplyCommand(CharacterInstance& character,
+                                const std::map<std::string, Scroll>& scrolls,
+                                int index, std::mt19937& rng);
+
 void RegisterScrollCommand(Frontend& frontend, CharacterInstance& character,
                            const std::map<std::string, Scroll>& scrolls,
                            std::mt19937& rng);
