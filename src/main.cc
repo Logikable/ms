@@ -6,13 +6,9 @@
 
 #include "absl/log/log.h"
 #include "src/character.h"
-#include "src/commands/equip.h"
-#include "src/commands/help.h"
-#include "src/commands/inv.h"
 #include "src/commands/scroll.h"
-#include "src/commands/unequip.h"
-#include "src/frontend.h"
 #include "src/proto_loader.h"
+#include "src/tui.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace {
@@ -62,15 +58,6 @@ int main(int argc, char** argv) {
   ms::SortScrolls(scrolls);
 
   GameState state(std::move(equips), std::move(scrolls));
-  ms::Frontend frontend("> ");
-
-  ms::RegisterHelpCommand(frontend);
-  ms::RegisterEquipCommand(frontend, state.character);
-  ms::RegisterUnequipCommand(frontend, state.character);
-  ms::RegisterInvCommand(frontend, state.character);
-  ms::RegisterScrollCommand(frontend, state.character, state.scrolls,
-                             state.rng);
-
-  frontend.Run();
+  ms::RunTui(state.character, state.scrolls, state.rng);
   return 0;
 }

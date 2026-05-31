@@ -43,28 +43,42 @@ def source_file(args):
     return None
 
 
-def absolutize_include_args(args):
-    """Rewrite relative external/ include paths to absolute execroot paths.
+def absolutize_path(path):
+    """Rewrite a relative include path to an absolute one."""
+    if os.path.isabs(path):
+        return path
+    if path.startswith("external/"):
+        return os.path.join(EXECROOT, path)
+    if path.startswith("bazel-out/"):
+        return os.path.join(WORKSPACE, path)
+    return path
 
+
+def absolutize_include_args(args):
+    """Rewrite relative external/ include paths to absolute paths.
+
+    Handles both separate (-I path) and combined (-Ipath) flag forms.
     bazel-out/ is reachable via the workspace symlink; external/ is not.
     """
     result = []
-    include_flags = {"-iquote", "-I", "-isystem", "-isysroot"}
+    separate_flags = {"-iquote", "-I", "-isystem", "-isysroot"}
+    combined_prefixes = ["-iquote", "-isystem", "-I"]
     i = 0
     while i < len(args):
         a = args[i]
-        if a in include_flags and i + 1 < len(args):
+        if a in separate_flags and i + 1 < len(args):
             result.append(a)
             i += 1
-            path = args[i]
-            if not os.path.isabs(path):
-                if path.startswith("external/"):
-                    path = os.path.join(EXECROOT, path)
-                elif path.startswith("bazel-out/"):
-                    path = os.path.join(WORKSPACE, path)
-            result.append(path)
+            result.append(absolutize_path(args[i]))
         else:
-            result.append(a)
+            rewritten = False
+            for prefix in combined_prefixes:
+                if a.startswith(prefix) and len(a) > len(prefix):
+                    result.append(prefix + absolutize_path(a[len(prefix):]))
+                    rewritten = True
+                    break
+            if not rewritten:
+                result.append(a)
         i += 1
     return result
 

@@ -64,13 +64,9 @@ cc_binary(
   ],
   deps = [
     ":character",
-    ":frontend",
     ":proto_loader",
-    "//src/commands:equip_command",
-    "//src/commands:help_command",
-    "//src/commands:inv_command",
+    ":tui",
     "//src/commands:scroll_command",
-    "//src/commands:unequip_command",
     "@bazel_tools//tools/cpp/runfiles",
   ],
 )

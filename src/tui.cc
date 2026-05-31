@@ -64,13 +64,16 @@ void RunTui(CharacterInstance& character,
             const std::vector<Scroll>& /*scrolls*/,
             std::mt19937& /*rng*/) {
   Component layout = Renderer([&character] {
-    return ftxui::hbox({
-      CharacterElement(character) |
-          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
-      ftxui::vbox({
-        EquippedElement(character),
-        BagElement(character),
-      }) | ftxui::flex,
+    return ftxui::vbox({
+      ftxui::hbox({
+        CharacterElement(character) |
+            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
+        ftxui::vbox({
+          EquippedElement(character),
+          BagElement(character),
+        }) | ftxui::flex,
+      }),
+      ftxui::filler(),
     });
   });
 
