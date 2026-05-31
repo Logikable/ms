@@ -1,3 +1,4 @@
+#include <map>
 #include <memory>
 #include <random>
 #include <string>
@@ -17,24 +18,22 @@ namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
-// TODO: replace with a data-driven item registry once more items are added;
-// currently bootstraps with a hardcoded sword and watt scroll.
 struct GameState {
-  explicit GameState(ms::EquipPrototype sword_proto_arg,
-                     ms::Scroll watt_scroll_arg)
-      : sword_proto(std::move(sword_proto_arg)),
-        watt_scroll(std::move(watt_scroll_arg)),
+  explicit GameState(std::map<std::string, ms::EquipPrototype> equips_arg,
+                     std::map<std::string, ms::Scroll> scrolls_arg)
+      : equips(std::move(equips_arg)),
+        scrolls(std::move(scrolls_arg)),
         character(ms::Character{}),
         rng(std::random_device{}()) {
-    character.PickUp(sword_proto);
+    character.PickUp(equips.at("sword"));
     character.Equip(0);
   }
 
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 
-  ms::EquipPrototype sword_proto;
-  ms::Scroll watt_scroll;
+  std::map<std::string, ms::EquipPrototype> equips;
+  std::map<std::string, ms::Scroll> scrolls;
   ms::CharacterInstance character;
   std::mt19937 rng;
 };
@@ -48,23 +47,21 @@ int main(int argc, char** argv) {
     LOG(FATAL) << "Could not create Runfiles: " << err;
   }
 
-  ms::EquipPrototype sword_proto;
-  ms::LoadTextProto(
-      runfiles->Rlocation("ms/data/equip/sword.textproto"), &sword_proto);
+  std::map<std::string, ms::EquipPrototype> equips =
+      ms::LoadTextProtoDir<ms::EquipPrototype>(
+          runfiles->Rlocation("ms/data/equip"));
+  std::map<std::string, ms::Scroll> scrolls =
+      ms::LoadTextProtoDir<ms::Scroll>(
+          runfiles->Rlocation("ms/data/scrolls"));
 
-  ms::Scroll watt_scroll;
-  ms::LoadTextProto(
-      runfiles->Rlocation("ms/data/scrolls/weapon_att_100_t1.textproto"),
-      &watt_scroll);
-
-  GameState state(std::move(sword_proto), std::move(watt_scroll));
+  GameState state(std::move(equips), std::move(scrolls));
   ms::Frontend frontend("> ");
 
   ms::RegisterHelpCommand(frontend);
   ms::RegisterEquipCommand(frontend, state.character);
   ms::RegisterUnequipCommand(frontend, state.character);
   ms::RegisterInvCommand(frontend, state.character);
-  ms::RegisterScrollCommand(frontend, state.character, state.watt_scroll,
+  ms::RegisterScrollCommand(frontend, state.character, state.scrolls,
                              state.rng);
 
   frontend.Run();

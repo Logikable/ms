@@ -76,6 +76,8 @@ cc_library(
   hdrs = ["proto_loader.h"],
   srcs = ["proto_loader.cc"],
   deps = [
+    ":equip_proto_cc",
+    ":scroll_proto_cc",
     "@abseil-cpp//absl/log",
     "@protobuf//:protobuf",
   ],

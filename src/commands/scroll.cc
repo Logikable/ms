@@ -1,5 +1,6 @@
 #include "src/commands/scroll.h"
 
+#include <map>
 #include <random>
 #include <sstream>
 #include <string>
@@ -14,8 +15,13 @@
 
 namespace ms {
 
-std::string ScrollCommand(CharacterInstance& character, const Scroll& scroll,
-                          std::mt19937& rng) {
+std::string ScrollCommand(CharacterInstance& character,
+                          const std::map<std::string, Scroll>& scrolls,
+                          const std::string& scroll_name, std::mt19937& rng) {
+  std::map<std::string, Scroll>::const_iterator it = scrolls.find(scroll_name);
+  if (it == scrolls.end()) {
+    return "Unknown scroll '" + scroll_name + "'.";
+  }
   if (!character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON)) {
     return "No weapon equipped.";
   }
@@ -25,7 +31,7 @@ std::string ScrollCommand(CharacterInstance& character, const Scroll& scroll,
     return "No upgrade slots remaining on " + item.prototype().name() + ".";
   }
   bool success =
-      character.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, rng);
+      character.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, it->second, rng);
   std::ostringstream out;
   out << (success ? "Success! " : "Failed.  ");
   out << FormatEquip(character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
@@ -33,12 +39,16 @@ std::string ScrollCommand(CharacterInstance& character, const Scroll& scroll,
 }
 
 void RegisterScrollCommand(Frontend& frontend, CharacterInstance& character,
-                            const Scroll& scroll, std::mt19937& rng) {
+                            const std::map<std::string, Scroll>& scrolls,
+                            std::mt19937& rng) {
   frontend.Register({
       "scroll",
       "Apply a scroll to the equipped primary weapon.",
-      [&character, &scroll, &rng](std::vector<std::string>) -> std::string {
-        return ScrollCommand(character, scroll, rng);
+      [&character, &scrolls, &rng](std::vector<std::string> tokens) -> std::string {
+        if (tokens.size() < 2) {
+          return "Usage: /scroll <scroll_name>";
+        }
+        return ScrollCommand(character, scrolls, tokens[1], rng);
       },
   });
 }
