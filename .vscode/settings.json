@@ -1,0 +1,11 @@
+{
+    "files.exclude": {
+        "bazel-*": true,
+    },
+    "search.exclude": {
+        "bazel-*": true,
+    },
+    "files.watcherExclude": {
+        "**/bazel-*/**": true,
+    },
+}
