@@ -33,6 +33,25 @@ std::string Frontend::HelpText() const {
   return out.str();
 }
 
+std::string Frontend::Process(const std::string& line) {
+  std::string stripped = (!line.empty() && line[0] == '/') ? line.substr(1) : line;
+  std::vector<std::string> tokens;
+  std::istringstream iss(stripped);
+  std::string tok;
+  while (iss >> tok) {
+    tokens.push_back(std::move(tok));
+  }
+  if (tokens.empty()) {
+    return "";
+  }
+  for (const Command& cmd : commands_) {
+    if (cmd.name == tokens[0]) {
+      return cmd.fn(tokens);
+    }
+  }
+  return "Unknown command '/" + tokens[0] + "'.";
+}
+
 void Frontend::Run() {
   while (true) {
     char* raw = readline(prompt_.c_str());
@@ -45,34 +64,11 @@ void Frontend::Run() {
     if (line.empty()) {
       continue;
     }
-    if (!line.empty() && line[0] == '/') {
-      line = line.substr(1);
-    }
-    Dispatch(line);
-  }
-}
-
-void Frontend::Dispatch(const std::string& line) {
-  std::vector<std::string> tokens;
-  std::istringstream iss(line);
-  std::string tok;
-  while (iss >> tok) {
-    tokens.push_back(std::move(tok));
-  }
-  if (tokens.empty()) {
-    return;
-  }
-
-  for (const Command& cmd : commands_) {
-    if (cmd.name == tokens[0]) {
-      std::string result = cmd.fn(tokens);
-      if (!result.empty()) {
-        std::cout << result << "\n";
-      }
-      return;
+    std::string result = Process(line);
+    if (!result.empty()) {
+      std::cout << result << "\n";
     }
   }
-  std::cout << "Unknown command '/" << tokens[0] << "'.\n";
 }
 
 }  // namespace ms

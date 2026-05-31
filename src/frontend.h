@@ -29,11 +29,11 @@ class Frontend {
   void Register(Command command);
   // Returns a formatted listing of all registered commands and descriptions.
   std::string HelpText() const;
+  // Dispatches a single line (leading slash optional). Returns the command's
+  // output, or an error string for unknown commands, or "" for empty input.
+  std::string Process(const std::string& line);
   // Blocks, reading and dispatching commands until EOF (Ctrl-D).
   void Run();
-
- private:
-  void Dispatch(const std::string& line);
 
   std::string prompt_;
   std::vector<Command> commands_;
