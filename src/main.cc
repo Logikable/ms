@@ -31,7 +31,7 @@ struct GameState {
         character(ms::Character{}),
         rng(std::random_device{}()) {
     character.PickUp(sword_proto);
-    character.Equip(ms::EQUIP_SLOT_PRIMARY_WEAPON, 0);
+    character.Equip(0);
   }
 
   GameState(const GameState&) = delete;
@@ -83,21 +83,18 @@ int main(int argc, char** argv) {
   frontend.Register({
       "equip",
       [&state](std::vector<std::string> args) -> std::string {
-        if (args.size() < 3) {
-          return "Usage: /equip <slot> <inventory_index>";
-        }
-        ms::EquipSlot slot = SlotFromName(args[1]);
-        if (slot == ms::EQUIP_SLOT_UNSPECIFIED) {
-          return "Unknown slot '" + args[1] + "'.";
+        if (args.size() < 2) {
+          return "Usage: /equip <index> [slot]";
         }
         int index = 0;
         try {
-          index = std::stoi(args[2]);
+          index = std::stoi(args[1]);
         } catch (...) {
-          return "Invalid index '" + args[2] + "'.";
+          return "Invalid index '" + args[1] + "'.";
         }
-        if (!state.character.Equip(slot, index)) {
-          return "Could not equip item at index " + args[2] + ".";
+        // Optional slot arg reserved for multi-slot items (rings, pendants).
+        if (!state.character.Equip(index)) {
+          return "Could not equip item at index " + args[1] + ".";
         }
         return "Equipped.";
       },

@@ -138,8 +138,9 @@ TEST(EquipTest, EquipsItemIntoEmptySlot) {
   EquipPrototype proto;
   proto.set_name("Sword");
   proto.set_upgrade_slots(7);
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   c.PickUp(proto);
-  EXPECT_TRUE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
+  EXPECT_TRUE(c.Equip(0));
   EXPECT_EQ(c.inventory().size(), 0u);
   ASSERT_TRUE(c.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
@@ -150,37 +151,41 @@ TEST(EquipTest, SwapsDisplacedItemToInventory) {
   CharacterInstance c = MakeCharacter();
   EquipPrototype sword;
   sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   EquipPrototype axe;
   axe.set_name("Axe");
+  axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   c.PickUp(sword);
-  c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
+  c.Equip(0);
   c.PickUp(axe);
-  EXPECT_TRUE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
+  EXPECT_TRUE(c.Equip(0));
   EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Axe");
   ASSERT_EQ(c.inventory().size(), 1u);
   EXPECT_EQ(c.inventory()[0].prototype().name(), "Sword");
 }
 
-TEST(EquipTest, ReturnsFalseForUnspecifiedSlot) {
+TEST(EquipTest, ReturnsFalseForUnspecifiedSlotOnPrototype) {
   CharacterInstance c = MakeCharacter();
   EquipPrototype proto;
-  proto.set_name("Sword");
+  proto.set_name("Unknown");
+  // equip_slot intentionally left unspecified
   c.PickUp(proto);
-  EXPECT_FALSE(c.Equip(EQUIP_SLOT_UNSPECIFIED, 0));
+  EXPECT_FALSE(c.Equip(0));
 }
 
 TEST(EquipTest, ReturnsFalseForOutOfBoundsIndex) {
   CharacterInstance c = MakeCharacter();
-  EXPECT_FALSE(c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0));
+  EXPECT_FALSE(c.Equip(0));
 }
 
 TEST(UnequipTest, MovesItemToInventory) {
   CharacterInstance c = MakeCharacter();
   EquipPrototype proto;
   proto.set_name("Sword");
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   c.PickUp(proto);
-  c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
+  c.Equip(0);
   EXPECT_TRUE(c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(c.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0u);
   ASSERT_EQ(c.inventory().size(), 1u);
@@ -210,8 +215,9 @@ TEST(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
   EquipPrototype proto;
   proto.set_name("Sword");
   proto.set_upgrade_slots(3);
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   c.PickUp(proto);
-  c.Equip(EQUIP_SLOT_PRIMARY_WEAPON, 0);
+  c.Equip(0);
 
   Scroll scroll;
   scroll.set_success_rate(100);

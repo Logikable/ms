@@ -53,12 +53,13 @@ void CharacterInstance::PickUp(const EquipPrototype& prototype) {
   inventory_.emplace_back(prototype);
 }
 
-bool CharacterInstance::Equip(EquipSlot slot, int inventory_index) {
-  if (slot == EQUIP_SLOT_UNSPECIFIED) {
-    return false;
-  }
+bool CharacterInstance::Equip(int inventory_index) {
   if (inventory_index < 0 ||
       inventory_index >= static_cast<int>(inventory_.size())) {
+    return false;
+  }
+  EquipSlot slot = inventory_[inventory_index].prototype().equip_slot();
+  if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }
   EquipInstance item = std::move(inventory_[inventory_index]);
