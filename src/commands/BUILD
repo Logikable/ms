@@ -8,7 +8,7 @@ cc_library(
   srcs = ["util.cc"],
   deps = [
     "//src:equip_instance",
-    "//src:equip_proto_cc",
+    "//src/protos:equip_proto_cc",
   ],
 )
 
@@ -46,7 +46,7 @@ cc_library(
   deps = [
     ":util",
     "//src:character",
-    "//src:equip_proto_cc",
+    "//src/protos:equip_proto_cc",
     "//src:frontend",
   ],
 )
@@ -59,7 +59,7 @@ cc_library(
     ":util",
     "//src:character",
     "//src:equip_instance",
-    "//src:equip_proto_cc",
+    "//src/protos:equip_proto_cc",
     "//src:frontend",
   ],
 )
@@ -72,9 +72,9 @@ cc_library(
     ":util",
     "//src:character",
     "//src:equip_instance",
-    "//src:equip_proto_cc",
+    "//src/protos:equip_proto_cc",
     "//src:frontend",
-    "//src:scroll_proto_cc",
+    "//src/protos:scroll_proto_cc",
   ],
 )
 
@@ -84,7 +84,7 @@ cc_test(
   deps = [
     ":util",
     "//src:equip_instance",
-    "//src:equip_proto_cc",
+    "//src/protos:equip_proto_cc",
     "@googletest//:gtest_main",
   ],
 )
@@ -95,8 +95,8 @@ cc_test(
   deps = [
     ":equip_command",
     "//src:character",
-    "//src:character_proto_cc",
-    "//src:equip_proto_cc",
+    "//src/protos:character_proto_cc",
+    "//src/protos:equip_proto_cc",
     "@googletest//:gtest_main",
   ],
 )
@@ -107,8 +107,8 @@ cc_test(
   deps = [
     ":unequip_command",
     "//src:character",
-    "//src:character_proto_cc",
-    "//src:equip_proto_cc",
+    "//src/protos:character_proto_cc",
+    "//src/protos:equip_proto_cc",
     "@googletest//:gtest_main",
   ],
 )
@@ -119,8 +119,8 @@ cc_test(
   deps = [
     ":inv_command",
     "//src:character",
-    "//src:character_proto_cc",
-    "//src:equip_proto_cc",
+    "//src/protos:character_proto_cc",
+    "//src/protos:equip_proto_cc",
     "@googletest//:gtest_main",
   ],
 )
@@ -131,9 +131,9 @@ cc_test(
   deps = [
     ":scroll_command",
     "//src:character",
-    "//src:character_proto_cc",
-    "//src:equip_proto_cc",
-    "//src:scroll_proto_cc",
+    "//src/protos:character_proto_cc",
+    "//src/protos:equip_proto_cc",
+    "//src/protos:scroll_proto_cc",
     "@googletest//:gtest_main",
   ],
 )

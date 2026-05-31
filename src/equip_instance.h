@@ -8,9 +8,9 @@
 
 #include <random>
 
-#include "src/equip.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/equip_stats.h"
-#include "src/scroll.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 

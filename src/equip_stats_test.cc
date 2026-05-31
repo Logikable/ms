@@ -2,7 +2,7 @@
 
 #include "absl/types/span.h"
 #include "gtest/gtest.h"
-#include "src/equip.pb.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 namespace {

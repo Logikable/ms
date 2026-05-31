@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 #include "src/character.h"
-#include "src/character.pb.h"
-#include "src/equip.pb.h"
+#include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 namespace {

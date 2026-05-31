@@ -3,7 +3,7 @@
 #include <sstream>
 #include <string>
 
-#include "src/equip.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/equip_instance.h"
 
 namespace ms {

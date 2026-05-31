@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ms;
 
-import "src/equip.proto";
+import "src/protos/equip.proto";
 
 // The character's current job. Explorer classes use distinct values for each
 // advancement stage (e.g. Warrior -> Fighter -> Crusader -> Hero); all other

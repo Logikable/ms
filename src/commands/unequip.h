@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "src/character.h"
-#include "src/equip.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/frontend.h"
 
 namespace ms {

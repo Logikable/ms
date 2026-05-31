@@ -8,7 +8,7 @@
 
 #include "src/character.h"
 #include "src/commands/util.h"
-#include "src/equip.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/equip_instance.h"
 #include "src/frontend.h"
 

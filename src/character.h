@@ -12,10 +12,10 @@
 #include <random>
 #include <vector>
 
-#include "src/character.pb.h"
-#include "src/equip.pb.h"
+#include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/equip_instance.h"
-#include "src/scroll.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 

@@ -2,7 +2,7 @@
 #define MS_SRC_EQUIP_STATS_H_
 
 #include "absl/types/span.h"
-#include "src/equip.pb.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 

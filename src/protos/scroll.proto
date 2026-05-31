@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ms;
 
-import "src/equip.proto";
+import "src/protos/equip.proto";
 
 // Tier is determined by the equipment's required_level:
 //   Tier 1: 0-74, Tier 2: 75-114, Tier 3: 115+

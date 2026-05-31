@@ -7,8 +7,8 @@
 
 #include "absl/log/log.h"
 #include "google/protobuf/text_format.h"
-#include "src/equip.pb.h"
-#include "src/scroll.pb.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 

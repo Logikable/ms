@@ -3,8 +3,8 @@
 #include <random>
 
 #include "gtest/gtest.h"
-#include "src/equip.pb.h"
-#include "src/scroll.pb.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 namespace {

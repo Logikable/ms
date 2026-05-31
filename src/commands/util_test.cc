@@ -1,7 +1,7 @@
 #include "src/commands/util.h"
 
 #include <gtest/gtest.h>
-#include "src/equip.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/equip_instance.h"
 
 namespace ms {

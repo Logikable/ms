@@ -12,7 +12,7 @@
 
 #include "src/character.h"
 #include "src/frontend.h"
-#include "src/scroll.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 
