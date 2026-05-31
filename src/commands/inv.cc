@@ -24,8 +24,9 @@ std::string InvCommand(const CharacterInstance& character) {
   if (!eq.empty()) {
     out << "Equipped:\n";
     for (const std::pair<const EquipSlot, EquipInstance>& entry : eq) {
-      out << SlotToName(entry.first) << ":\n";
-      out << FormatEquip(entry.second);
+      std::string prefix = SlotToName(entry.first) + ":  ";
+      out << prefix
+          << FormatEquip(entry.second, std::string(prefix.size(), ' '));
     }
   }
   if (!bag.empty()) {
@@ -34,7 +35,8 @@ std::string InvCommand(const CharacterInstance& character) {
     }
     out << "Bag:\n";
     for (int i = 0; i < static_cast<int>(bag.size()); ++i) {
-      out << "[" << i << "] " << FormatEquip(bag[i]);
+      std::string prefix = "[" + std::to_string(i) + "] ";
+      out << prefix << FormatEquip(bag[i], std::string(prefix.size(), ' '));
     }
   }
   return out.str();

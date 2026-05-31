@@ -13,7 +13,9 @@
 
 namespace ms {
 
-std::string FormatEquip(const EquipInstance& item);
+// indent is prepended to each stat line; defaults to two spaces.
+std::string FormatEquip(const EquipInstance& item,
+                        const std::string& indent = "  ");
 
 // Returns EQUIP_SLOT_UNSPECIFIED for unrecognised names.
 EquipSlot SlotFromName(const std::string& name);
