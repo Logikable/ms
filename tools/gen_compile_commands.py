@@ -57,9 +57,11 @@ def absolutize_include_args(args):
             result.append(a)
             i += 1
             path = args[i]
-            if not os.path.isabs(path) and (
-                path.startswith("external/") or path.startswith("bazel-out/")):
-                path = os.path.join(WORKSPACE, path)
+            if not os.path.isabs(path):
+                if path.startswith("external/"):
+                    path = os.path.join(EXECROOT, path)
+                elif path.startswith("bazel-out/"):
+                    path = os.path.join(WORKSPACE, path)
             result.append(path)
         else:
             result.append(a)
