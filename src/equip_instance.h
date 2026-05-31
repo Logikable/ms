@@ -16,9 +16,9 @@ namespace ms {
 
 class EquipInstance {
  public:
-  explicit EquipInstance(const EquipPrototype& prototype);
+  explicit EquipInstance(EquipPrototype prototype);
   // Constructs from an existing saved state rather than a fresh drop.
-  EquipInstance(const EquipPrototype& prototype, Equip state);
+  EquipInstance(EquipPrototype prototype, Equip state);
 
   // Consumes one upgrade slot and rolls against the scroll's success_rate.
   // Adds the scroll's stats on success. Returns true on success, false on
@@ -31,7 +31,7 @@ class EquipInstance {
   EquipStats stats() const;
 
  private:
-  const EquipPrototype& prototype_;
+  EquipPrototype prototype_;
   Equip state_;
 };
 

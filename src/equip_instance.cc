@@ -4,14 +4,14 @@
 
 namespace ms {
 
-EquipInstance::EquipInstance(const EquipPrototype& prototype)
-    : prototype_(prototype) {
-  state_.set_equip_name(prototype.name());
-  state_.set_remaining_upgrade_slots(prototype.upgrade_slots());
+EquipInstance::EquipInstance(EquipPrototype prototype)
+    : prototype_(std::move(prototype)) {
+  state_.set_equip_name(prototype_.name());
+  state_.set_remaining_upgrade_slots(prototype_.upgrade_slots());
 }
 
-EquipInstance::EquipInstance(const EquipPrototype& prototype, Equip state)
-    : prototype_(prototype), state_(std::move(state)) {}
+EquipInstance::EquipInstance(EquipPrototype prototype, Equip state)
+    : prototype_(std::move(prototype)), state_(std::move(state)) {}
 
 bool EquipInstance::Scroll(const ms::Scroll& scroll, std::mt19937& rng) {
   if (state_.remaining_upgrade_slots() == 0) {
