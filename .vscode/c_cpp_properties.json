@@ -3,6 +3,10 @@
         {
             "name": "Bazel",
             "compileCommands": "${workspaceFolder}/compile_commands.json",
+            "includePath": [
+                "${workspaceFolder}",
+                "${workspaceFolder}/bazel-out/k8-fastbuild/bin"
+            ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "c++17"
