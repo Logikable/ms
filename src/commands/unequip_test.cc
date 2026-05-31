@@ -8,26 +8,30 @@
 namespace ms {
 namespace {
 
-TEST(UnequipCommandTest, ReturnsUnequippedOnSuccess) {
-  CharacterInstance c = CharacterInstance(Character{});
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  c.PickUp(proto);
-  c.Equip(0);
-  EXPECT_EQ(UnequipCommand(c, EQUIP_SLOT_PRIMARY_WEAPON), "Unequipped.");
+class UnequipCommandTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    sword_.set_name("Sword");
+    sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  }
+  CharacterInstance c_{Character{}};
+  EquipPrototype sword_;
+};
+
+TEST_F(UnequipCommandTest, ReturnsUnequippedOnSuccess) {
+  c_.PickUp(sword_);
+  c_.Equip(0);
+  EXPECT_EQ(UnequipCommand(c_, EQUIP_SLOT_PRIMARY_WEAPON), "Unequipped.");
 }
 
-TEST(UnequipCommandTest, ReturnsErrorOnUnspecifiedSlot) {
-  CharacterInstance c = CharacterInstance(Character{});
-  EXPECT_NE(UnequipCommand(c, EQUIP_SLOT_UNSPECIFIED).find("Nothing equipped"),
+TEST_F(UnequipCommandTest, ReturnsErrorOnUnspecifiedSlot) {
+  EXPECT_NE(UnequipCommand(c_, EQUIP_SLOT_UNSPECIFIED).find("Nothing equipped"),
             std::string::npos);
 }
 
-TEST(UnequipCommandTest, ReturnsErrorOnUnoccupiedSlot) {
-  CharacterInstance c = CharacterInstance(Character{});
+TEST_F(UnequipCommandTest, ReturnsErrorOnUnoccupiedSlot) {
   EXPECT_NE(
-      UnequipCommand(c, EQUIP_SLOT_PRIMARY_WEAPON).find("Nothing equipped"),
+      UnequipCommand(c_, EQUIP_SLOT_PRIMARY_WEAPON).find("Nothing equipped"),
       std::string::npos);
 }
 

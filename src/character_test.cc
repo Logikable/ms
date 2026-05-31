@@ -15,6 +15,27 @@ CharacterInstance MakeCharacter(int level = 1, int ap = 0, int job_stage = 0) {
   return CharacterInstance(std::move(proto));
 }
 
+// Shared fixture for tests that operate on a character with a sword prototype.
+// Provides c_ (fresh level-1 character) and sword_ (named "Sword", primary
+// weapon slot, 7 upgrade slots). Tests pick up and equip as needed.
+class CharacterEquipFixture : public testing::Test {
+ protected:
+  void SetUp() override {
+    sword_.set_name("Sword");
+    sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    sword_.set_upgrade_slots(7);
+  }
+  CharacterInstance c_ = MakeCharacter();
+  EquipPrototype sword_;
+};
+
+class PickUpTest : public CharacterEquipFixture {};
+class EquipTest : public CharacterEquipFixture {};
+class UnequipTest : public CharacterEquipFixture {};
+class ScrollEquippedTest : public CharacterEquipFixture {};
+
+// --- LevelUp ---
+
 TEST(LevelUpTest, GrantsFiveAp) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   c.LevelUp();
@@ -30,6 +51,8 @@ TEST(LevelUpTest, AccumulatesAcrossMultipleLevels) {
   EXPECT_EQ(c.proto().ap(), 15);
   EXPECT_EQ(c.proto().level(), 4);
 }
+
+// --- AdvanceJob ---
 
 TEST(AdvanceJobTest, IncrementsStageAndSetsJob) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
@@ -59,6 +82,8 @@ TEST(AdvanceJobTest, ApBonusAtFourthJob) {
   EXPECT_EQ(c.proto().job_stage(), 4);
   EXPECT_EQ(c.proto().ap(), 5);
 }
+
+// --- AllocateStat ---
 
 TEST(AllocateStatTest, DeductsApAndAddsStat) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
@@ -105,131 +130,107 @@ TEST(AllocateStatTest, AllFieldsWork) {
   EXPECT_EQ(c.proto().ap(), 4);
 }
 
-TEST(PickUpTest, AddsItemToInventory) {
-  CharacterInstance c = MakeCharacter();
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  proto.set_upgrade_slots(7);
-  c.PickUp(proto);
-  ASSERT_EQ(c.inventory().size(), 1u);
-  EXPECT_EQ(c.inventory()[0].prototype().name(), "Sword");
-  EXPECT_EQ(c.inventory()[0].proto().remaining_upgrade_slots(), 7);
+// --- PickUp ---
+
+TEST_F(PickUpTest, AddsItemToInventory) {
+  c_.PickUp(sword_);
+  ASSERT_EQ(c_.inventory().size(), 1u);
+  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
+  EXPECT_EQ(c_.inventory()[0].proto().remaining_upgrade_slots(), 7);
 }
 
-TEST(PickUpTest, MultiplePickUpsAccumulate) {
-  CharacterInstance c = MakeCharacter();
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  c.PickUp(proto);
-  c.PickUp(proto);
-  EXPECT_EQ(c.inventory().size(), 2u);
+TEST_F(PickUpTest, MultiplePickUpsAccumulate) {
+  c_.PickUp(sword_);
+  c_.PickUp(sword_);
+  EXPECT_EQ(c_.inventory().size(), 2u);
 }
 
-TEST(PickUpTest, FreshItemHasNoScrollStats) {
-  CharacterInstance c = MakeCharacter();
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  c.PickUp(proto);
-  EXPECT_EQ(c.inventory()[0].proto().scroll_stats().attack(), 0);
+TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
+  c_.PickUp(sword_);
+  EXPECT_EQ(c_.inventory()[0].proto().scroll_stats().attack(), 0);
 }
 
-TEST(EquipTest, EquipsItemIntoEmptySlot) {
-  CharacterInstance c = MakeCharacter();
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  proto.set_upgrade_slots(7);
-  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  c.PickUp(proto);
-  EXPECT_TRUE(c.Equip(0));
-  EXPECT_EQ(c.inventory().size(), 0u);
-  ASSERT_TRUE(c.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
+// --- Equip ---
+
+TEST_F(EquipTest, EquipsItemIntoEmptySlot) {
+  c_.PickUp(sword_);
+  EXPECT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.inventory().size(), 0u);
+  ASSERT_TRUE(c_.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Sword");
 }
 
-TEST(EquipTest, SwapsDisplacedItemToInventory) {
-  CharacterInstance c = MakeCharacter();
-  EquipPrototype sword;
-  sword.set_name("Sword");
-  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+TEST_F(EquipTest, SwapsDisplacedItemToInventory) {
   EquipPrototype axe;
   axe.set_name("Axe");
   axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  c.PickUp(sword);
-  c.Equip(0);
-  c.PickUp(axe);
-  EXPECT_TRUE(c.Equip(0));
-  EXPECT_EQ(c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
+  c_.PickUp(sword_);
+  c_.Equip(0);
+  c_.PickUp(axe);
+  EXPECT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Axe");
-  ASSERT_EQ(c.inventory().size(), 1u);
-  EXPECT_EQ(c.inventory()[0].prototype().name(), "Sword");
+  ASSERT_EQ(c_.inventory().size(), 1u);
+  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
 }
 
-TEST(EquipTest, ReturnsFalseForUnspecifiedSlotOnPrototype) {
-  CharacterInstance c = MakeCharacter();
+TEST_F(EquipTest, ReturnsFalseForUnspecifiedSlotOnPrototype) {
   EquipPrototype proto;
   proto.set_name("Unknown");
   // equip_slot intentionally left unspecified
-  c.PickUp(proto);
-  EXPECT_FALSE(c.Equip(0));
+  c_.PickUp(proto);
+  EXPECT_FALSE(c_.Equip(0));
 }
 
-TEST(EquipTest, ReturnsFalseForOutOfBoundsIndex) {
-  CharacterInstance c = MakeCharacter();
-  EXPECT_FALSE(c.Equip(0));
+TEST_F(EquipTest, ReturnsFalseForOutOfBoundsIndex) {
+  EXPECT_FALSE(c_.Equip(0));
 }
 
-TEST(UnequipTest, MovesItemToInventory) {
-  CharacterInstance c = MakeCharacter();
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  c.PickUp(proto);
-  c.Equip(0);
-  EXPECT_TRUE(c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(c.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0u);
-  ASSERT_EQ(c.inventory().size(), 1u);
-  EXPECT_EQ(c.inventory()[0].prototype().name(), "Sword");
+// --- Unequip ---
+
+TEST_F(UnequipTest, MovesItemToInventory) {
+  c_.PickUp(sword_);
+  c_.Equip(0);
+  EXPECT_TRUE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0u);
+  ASSERT_EQ(c_.inventory().size(), 1u);
+  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
 }
 
-TEST(UnequipTest, ReturnsFalseForUnspecifiedSlot) {
-  CharacterInstance c = MakeCharacter();
-  EXPECT_FALSE(c.Unequip(EQUIP_SLOT_UNSPECIFIED));
+TEST_F(UnequipTest, ReturnsFalseForUnspecifiedSlot) {
+  EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_UNSPECIFIED));
 }
 
-TEST(UnequipTest, ReturnsFalseForUnoccupiedSlot) {
-  CharacterInstance c = MakeCharacter();
-  EXPECT_FALSE(c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
+TEST_F(UnequipTest, ReturnsFalseForUnoccupiedSlot) {
+  EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
 }
 
-TEST(ScrollEquippedTest, ReturnsFalseIfSlotEmpty) {
-  CharacterInstance c = MakeCharacter();
+// --- ScrollEquipped ---
+
+TEST_F(ScrollEquippedTest, ReturnsFalseIfSlotEmpty) {
   Scroll scroll;
   scroll.set_success_rate(100);
   std::mt19937 rng(0);
-  EXPECT_FALSE(c.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, rng));
+  EXPECT_FALSE(c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, rng));
 }
 
-TEST(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
-  CharacterInstance c = MakeCharacter();
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  proto.set_upgrade_slots(3);
-  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  c.PickUp(proto);
-  c.Equip(0);
+TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
+  sword_.set_upgrade_slots(3);
+  c_.PickUp(sword_);
+  c_.Equip(0);
 
   Scroll scroll;
   scroll.set_success_rate(100);
   scroll.mutable_stats()->set_attack(5);
   std::mt19937 rng(0);
 
-  EXPECT_TRUE(c.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, rng));
+  EXPECT_TRUE(c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, rng));
   EXPECT_EQ(
-      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).proto().scroll_stats().attack(),
+      c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).proto().scroll_stats().attack(),
       5);
   EXPECT_EQ(
-      c.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).proto().remaining_upgrade_slots(),
+      c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).proto().remaining_upgrade_slots(),
       2);
 }
 

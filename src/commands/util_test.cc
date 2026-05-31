@@ -7,27 +7,27 @@
 namespace ms {
 namespace {
 
-TEST(FormatEquipTest, IncludesNameAndUpgradeSlots) {
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  proto.set_upgrade_slots(7);
-  std::string out = FormatEquip(EquipInstance(proto));
+class FormatEquipTest : public testing::Test {
+ protected:
+  void SetUp() override { sword_.set_name("Sword"); }
+  EquipPrototype sword_;
+};
+
+TEST_F(FormatEquipTest, IncludesNameAndUpgradeSlots) {
+  sword_.set_upgrade_slots(7);
+  std::string out = FormatEquip(EquipInstance(sword_));
   EXPECT_NE(out.find("Sword"), std::string::npos);
   EXPECT_NE(out.find("7 upgrade slots"), std::string::npos);
 }
 
-TEST(FormatEquipTest, ShowsNonZeroStats) {
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  proto.mutable_base_stats()->set_attack(15);
-  std::string out = FormatEquip(EquipInstance(proto));
+TEST_F(FormatEquipTest, ShowsNonZeroStats) {
+  sword_.mutable_base_stats()->set_attack(15);
+  std::string out = FormatEquip(EquipInstance(sword_));
   EXPECT_NE(out.find("ATT"), std::string::npos);
 }
 
-TEST(FormatEquipTest, OmitsZeroStats) {
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  std::string out = FormatEquip(EquipInstance(proto));
+TEST_F(FormatEquipTest, OmitsZeroStats) {
+  std::string out = FormatEquip(EquipInstance(sword_));
   EXPECT_EQ(out.find("STR"), std::string::npos);
   EXPECT_EQ(out.find("DEF"), std::string::npos);
 }

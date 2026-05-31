@@ -8,35 +8,31 @@
 namespace ms {
 namespace {
 
-CharacterInstance FreshCharacter() {
-  return CharacterInstance(Character{});
+class EquipCommandTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    sword_.set_name("Sword");
+    sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    sword_.set_upgrade_slots(7);
+  }
+  CharacterInstance c_{Character{}};
+  EquipPrototype sword_;
+};
+
+TEST_F(EquipCommandTest, ReturnsEquippedOnSuccess) {
+  c_.PickUp(sword_);
+  EXPECT_EQ(EquipCommand(c_, 0), "Equipped.");
 }
 
-EquipPrototype MakeSword() {
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  proto.set_upgrade_slots(7);
-  return proto;
+TEST_F(EquipCommandTest, ReturnsErrorOnOutOfBoundsIndex) {
+  EXPECT_NE(EquipCommand(c_, 0).find("Could not equip"), std::string::npos);
 }
 
-TEST(EquipCommandTest, ReturnsEquippedOnSuccess) {
-  CharacterInstance c = FreshCharacter();
-  c.PickUp(MakeSword());
-  EXPECT_EQ(EquipCommand(c, 0), "Equipped.");
-}
-
-TEST(EquipCommandTest, ReturnsErrorOnOutOfBoundsIndex) {
-  CharacterInstance c = FreshCharacter();
-  EXPECT_NE(EquipCommand(c, 0).find("Could not equip"), std::string::npos);
-}
-
-TEST(EquipCommandTest, ReturnsErrorOnUnspecifiedSlot) {
-  CharacterInstance c = FreshCharacter();
+TEST_F(EquipCommandTest, ReturnsErrorOnUnspecifiedSlot) {
   EquipPrototype proto;
   proto.set_name("Unknown");
-  c.PickUp(proto);
-  EXPECT_NE(EquipCommand(c, 0).find("Could not equip"), std::string::npos);
+  c_.PickUp(proto);
+  EXPECT_NE(EquipCommand(c_, 0).find("Could not equip"), std::string::npos);
 }
 
 }  // namespace
