@@ -16,6 +16,10 @@ BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
     : character_(character), panel_focus_(panel_focus) {
 }
 
+void BagPanel::SetShowSelection(bool show) {
+  show_selection_ = show;
+}
+
 ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
@@ -39,6 +43,13 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
     }
     if (entries_.empty()) {
       return ftxui::window(ftxui::text(" Bag "), ftxui::text("(empty)"));
+    }
+    if (!show_selection_) {
+      std::vector<ftxui::Element> items;
+      for (const std::string& e : entries_) {
+        items.push_back(ftxui::text(e));
+      }
+      return ftxui::window(ftxui::text(" Bag "), ftxui::vbox(std::move(items)));
     }
     return ftxui::window(ftxui::text(" Bag "), menu->Render());
   });

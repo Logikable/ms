@@ -17,6 +17,10 @@ EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
     : character_(character), panel_focus_(panel_focus) {
 }
 
+void EquippedPanel::SetShowSelection(bool show) {
+  show_selection_ = show;
+}
+
 EquipSlot EquippedPanel::selected_slot() const {
   if (selected_ >= static_cast<int>(slots_.size())) {
     return EQUIP_SLOT_UNSPECIFIED;
@@ -55,6 +59,14 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
     }
     if (entries_.empty()) {
       return ftxui::window(ftxui::text(" Equipped "), ftxui::text("(empty)"));
+    }
+    if (!show_selection_) {
+      std::vector<ftxui::Element> items;
+      for (const std::string& e : entries_) {
+        items.push_back(ftxui::text(e));
+      }
+      return ftxui::window(ftxui::text(" Equipped "),
+                           ftxui::vbox(std::move(items)));
     }
     return ftxui::window(ftxui::text(" Equipped "), menu->Render());
   });

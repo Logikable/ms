@@ -22,6 +22,7 @@ class BagPanel {
  public:
   BagPanel(CharacterInstance& character, int& panel_focus);
   ftxui::Component MakeComponent(std::function<void()> on_enter);
+  void SetShowSelection(bool show);
   int selected() const {
     return selected_;
   }
@@ -33,6 +34,7 @@ class BagPanel {
 
   CharacterInstance& character_;
   int& panel_focus_;
+  bool show_selection_ = true;
   int selected_ = 0;
   std::vector<std::string> entries_;
 };

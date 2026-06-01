@@ -34,8 +34,9 @@ class CharacterInstance {
   // inventory.
   void PickUp(const EquipPrototype& prototype);
   // Moves the item at `inventory_index` into the slot indicated by its
-  // EquipPrototype. Returns false if `inventory_index` is out of range, the
-  // prototype's equip_slot is unspecified, or the slot is already occupied.
+  // EquipPrototype. If the slot was occupied, the displaced item is appended
+  // to inventory. Returns false if `inventory_index` is out of range or the
+  // prototype's equip_slot is unspecified.
   bool Equip(int inventory_index);
   // Moves the item in `slot` to inventory. Returns false if `slot` is
   // unspecified or unoccupied.

@@ -48,6 +48,8 @@ void Tui::Run() {
 }
 
 ftxui::Element Tui::RenderFrame() {
+  equip_panel_.SetShowSelection(mode_ == kMain);
+  bag_panel_.SetShowSelection(mode_ == kMain);
   ftxui::Element layout = ftxui::vbox({
       ftxui::hbox({
           char_panel_.Render() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),

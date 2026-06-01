@@ -81,11 +81,13 @@ bool CharacterInstance::Equip(int inventory_index) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }
-  if (equipped_.count(slot)) {
-    return false;
-  }
   EquipInstance item = std::move(inventory_[inventory_index]);
   inventory_.erase(inventory_.begin() + inventory_index);
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it != equipped_.end()) {
+    inventory_.push_back(std::move(it->second));
+    equipped_.erase(it);
+  }
   equipped_.emplace(slot, std::move(item));
   return true;
 }
