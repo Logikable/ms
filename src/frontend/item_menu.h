@@ -1,7 +1,9 @@
-/* ItemMenu is a positioned context menu overlay. It renders as a bordered
- * list of options anchored at a given (row, col) via dbox layering. The
- * caller is responsible for event dispatch — call Up(), Down(), and
- * selected() to drive navigation; Reset() when the menu is reopened.
+/* ItemMenu is the context menu that appears when the player presses Enter on
+ * an item in the equipped or bag panel. It shows actions relevant to that
+ * item (e.g. Unequip, Inspect, Scroll) as a bordered list anchored near the
+ * selected row via dbox layering. The caller drives navigation: call Up() and
+ * Down() on arrow-key events, selected() to read the chosen action, and
+ * Reset() each time the menu is opened.
  */
 #ifndef MS_SRC_FRONTEND_ITEM_MENU_H_
 #define MS_SRC_FRONTEND_ITEM_MENU_H_
