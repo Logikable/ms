@@ -25,7 +25,7 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
       ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, row),
       ftxui::hbox({
           ftxui::filler() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, col),
-          ftxui::vbox(std::move(items)) | ftxui::border,
+          ftxui::vbox(std::move(items)) | ftxui::border | ftxui::clear_under,
           ftxui::filler(),
       }),
       ftxui::filler(),
