@@ -8,7 +8,7 @@
 #include "src/character.h"
 #include "src/commands/scroll.h"
 #include "src/proto_loader.h"
-#include "src/tui.h"
+#include "src/frontend/tui.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace {
