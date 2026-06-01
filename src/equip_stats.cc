@@ -1,5 +1,8 @@
 #include "src/equip_stats.h"
 
+#include "absl/types/span.h"
+#include "src/protos/equip.pb.h"
+
 namespace ms {
 
 EquipStats SumEquipStats(absl::Span<const EquipStats> sources) {

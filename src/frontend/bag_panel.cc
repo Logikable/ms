@@ -1,5 +1,6 @@
 #include "src/frontend/bag_panel.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 

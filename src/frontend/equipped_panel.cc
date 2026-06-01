@@ -1,11 +1,13 @@
 #include "src/frontend/equipped_panel.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
+#include "src/equip_stats.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

@@ -6,6 +6,8 @@
 #include "src/character.h"
 #include "src/frontend/tui.h"
 #include "src/proto_loader.h"
+#include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace {

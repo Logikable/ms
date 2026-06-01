@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <random>
+
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 

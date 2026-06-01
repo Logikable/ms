@@ -1,6 +1,11 @@
 #include "src/character.h"
 
+#include <utility>
+
 #include "src/equip_instance.h"
+#include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 

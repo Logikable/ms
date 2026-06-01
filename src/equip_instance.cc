@@ -2,6 +2,10 @@
 
 #include <random>
 
+#include "src/equip_stats.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/scroll.pb.h"
+
 namespace ms {
 
 EquipInstance::EquipInstance(EquipPrototype prototype)
