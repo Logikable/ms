@@ -3,18 +3,20 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"
+#include "src/game_state.h"
 
 namespace ms {
 
-void RunTui(CharacterInstance& character) {
+void RunTui(GameState& state) {
   int panel_focus = 0;
 
-  CharacterPanel char_panel(character);
-  EquippedPanel equip_panel(character, panel_focus);
-  BagPanel bag_panel(character, panel_focus);
+  CharacterPanel char_panel(state.character);
+  EquippedPanel equip_panel(state.character, panel_focus);
+  BagPanel bag_panel(state.character, panel_focus);
 
   ftxui::Component equip_component = equip_panel.MakeComponent();
   ftxui::Component bag_component = bag_panel.MakeComponent();

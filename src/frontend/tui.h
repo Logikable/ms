@@ -4,11 +4,11 @@
 #ifndef MS_SRC_FRONTEND_TUI_H_
 #define MS_SRC_FRONTEND_TUI_H_
 
-#include "src/character.h"
+#include "src/game_state.h"
 
 namespace ms {
 
-void RunTui(CharacterInstance& character);
+void RunTui(GameState& state);
 
 }  // namespace ms
 

@@ -98,6 +98,7 @@ cc_library(
     ":character_panel",
     ":equipped_panel",
     "//src:character",
+    "//src:game_state",
     "@ftxui//:component",
     "@ftxui//:dom",
   ],

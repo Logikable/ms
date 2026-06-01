@@ -39,6 +39,18 @@ cc_library(
   ],
 )
 
+cc_library(
+  name = "game_state",
+  hdrs = ["game_state.h"],
+  srcs = ["game_state.cc"],
+  deps = [
+    ":character",
+    "//src/protos:character_proto_cc",
+    "//src/protos:equip_proto_cc",
+    "//src/protos:scroll_proto_cc",
+  ],
+)
+
 cc_binary(
   name = "ms",
   srcs = ["main.cc"],
@@ -47,9 +59,11 @@ cc_binary(
     "//data/scrolls:all",
   ],
   deps = [
-    ":character",
+    ":game_state",
     ":proto_loader",
     "//src/frontend:tui",
+    "//src/protos:equip_proto_cc",
+    "//src/protos:scroll_proto_cc",
     "@bazel_tools//tools/cpp/runfiles",
   ],
 )
