@@ -24,6 +24,26 @@ TEST_F(BagPanelTest, ShowsItemName) {
             std::string::npos);
 }
 
+TEST_F(BagPanelTest, ShowsSelectionCursorByDefault) {
+  c_.PickUp(sword_);
+  BagPanel panel(c_, panel_focus_);
+  // Bag entries are formatted as "[ 0] Name ..."; cursor appears before index.
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("> [ 0]"),
+            std::string::npos);
+}
+
+// SetShowSelection(false) hides the cursor and keeps the two-space indent so
+// text does not shift left when the item menu opens.
+TEST_F(BagPanelTest, SetShowSelectionFalseHidesCursorPreservesIndent) {
+  c_.PickUp(sword_);
+  BagPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  panel.SetShowSelection(false);
+  std::string rendered = RenderComponent(comp);
+  EXPECT_EQ(rendered.find("> [ 0]"), std::string::npos);
+  EXPECT_NE(rendered.find("  [ 0]"), std::string::npos);
+}
+
 TEST_F(BagPanelTest, ShowsItemLevel) {
   c_.PickUp(sword_);
   BagPanel panel(c_, panel_focus_);

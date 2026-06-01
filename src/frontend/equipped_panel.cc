@@ -63,7 +63,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
     if (!show_selection_) {
       std::vector<ftxui::Element> items;
       for (const std::string& e : entries_) {
-        items.push_back(ftxui::text(e));
+        items.push_back(ftxui::text("  " + e));
       }
       return ftxui::window(ftxui::text(" Equipped "),
                            ftxui::vbox(std::move(items)));
