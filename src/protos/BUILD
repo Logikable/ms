@@ -1,46 +1,46 @@
-load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 
 package(default_visibility = ["//visibility:public"])
 
 proto_library(
-  name = "equip_proto",
-  srcs = ["equip.proto"],
+    name = "equip_proto",
+    srcs = ["equip.proto"],
 )
 
 cc_proto_library(
-  name = "equip_proto_cc",
-  deps = [":equip_proto"],
+    name = "equip_proto_cc",
+    deps = [":equip_proto"],
 )
 
 proto_library(
-  name = "scroll_proto",
-  srcs = ["scroll.proto"],
-  deps = [":equip_proto"],
+    name = "scroll_proto",
+    srcs = ["scroll.proto"],
+    deps = [":equip_proto"],
 )
 
 cc_proto_library(
-  name = "scroll_proto_cc",
-  deps = [":scroll_proto"],
+    name = "scroll_proto_cc",
+    deps = [":scroll_proto"],
 )
 
 proto_library(
-  name = "character_proto",
-  srcs = ["character.proto"],
-  deps = [":equip_proto"],
+    name = "character_proto",
+    srcs = ["character.proto"],
+    deps = [":equip_proto"],
 )
 
 cc_proto_library(
-  name = "character_proto_cc",
-  deps = [":character_proto"],
+    name = "character_proto_cc",
+    deps = [":character_proto"],
 )
 
 proto_library(
-  name = "map_proto",
-  srcs = ["map.proto"],
+    name = "map_proto",
+    srcs = ["map.proto"],
 )
 
 cc_proto_library(
-  name = "map_proto_cc",
-  deps = [":map_proto"],
+    name = "map_proto_cc",
+    deps = [":map_proto"],
 )
