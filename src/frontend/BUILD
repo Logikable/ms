@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -36,6 +36,51 @@ cc_library(
     "//src/protos:equip_proto_cc",
     "@ftxui//:component",
     "@ftxui//:dom",
+  ],
+)
+
+cc_library(
+  name = "panel_test_base",
+  testonly = True,
+  hdrs = ["panel_test_base.h"],
+  deps = [
+    "//src:character",
+    "//src/protos:character_proto_cc",
+    "//src/protos:equip_proto_cc",
+    "@ftxui//:component",
+    "@ftxui//:dom",
+    "@ftxui//:screen",
+    "@googletest//:gtest",
+  ],
+)
+
+cc_test(
+  name = "character_panel_test",
+  srcs = ["character_panel_test.cc"],
+  deps = [
+    ":character_panel",
+    ":panel_test_base",
+    "@googletest//:gtest_main",
+  ],
+)
+
+cc_test(
+  name = "bag_panel_test",
+  srcs = ["bag_panel_test.cc"],
+  deps = [
+    ":bag_panel",
+    ":panel_test_base",
+    "@googletest//:gtest_main",
+  ],
+)
+
+cc_test(
+  name = "equipped_panel_test",
+  srcs = ["equipped_panel_test.cc"],
+  deps = [
+    ":equipped_panel",
+    ":panel_test_base",
+    "@googletest//:gtest_main",
   ],
 )
 
