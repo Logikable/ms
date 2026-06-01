@@ -85,6 +85,15 @@ cc_test(
 )
 
 cc_library(
+  name = "item_menu",
+  hdrs = ["item_menu.h"],
+  srcs = ["item_menu.cc"],
+  deps = [
+    "@ftxui//:dom",
+  ],
+)
+
+cc_library(
   name = "scroll_overlay",
   hdrs = ["scroll_overlay.h"],
 )
