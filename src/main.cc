@@ -14,9 +14,16 @@ namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
+ms::CharacterInstance MakeStartingCharacter() {
+  ms::Character proto;
+  proto.set_level(1);
+  proto.set_job(ms::JOB_BEGINNER);
+  return ms::CharacterInstance(std::move(proto));
+}
+
 struct GameState {
   explicit GameState(std::map<std::string, ms::EquipPrototype> equips_arg)
-      : equips(std::move(equips_arg)), character(ms::Character{}) {
+      : equips(std::move(equips_arg)), character(MakeStartingCharacter()) {
     character.PickUp(equips.at("sword"));
     character.Equip(0);
     character.PickUp(equips.at("long_sword"));
