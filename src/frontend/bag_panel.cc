@@ -61,6 +61,7 @@ std::string BagPanel::PadLeft(const std::string& s, int width) {
   return std::string(width - (int)s.size(), ' ') + s;
 }
 
+// Returns "All" for universal items or a slash-separated list of job names.
 std::string BagPanel::FormatJobCategories(const EquipPrototype& proto) {
   for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
     if (static_cast<EquipJobCategory>(proto.equip_job_categories(i)) ==

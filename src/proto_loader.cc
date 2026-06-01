@@ -39,6 +39,8 @@ std::map<std::string, T> LoadTextProtoDir(const std::string& dir_path) {
   return result;
 }
 
+// Explicit instantiations are required because the template body is defined
+// here in the .cc rather than in the header.
 template std::map<std::string, EquipPrototype> LoadTextProtoDir<EquipPrototype>(
     const std::string&);
 template std::map<std::string, Scroll> LoadTextProtoDir<Scroll>(

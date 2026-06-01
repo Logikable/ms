@@ -1,3 +1,7 @@
+/* CharacterPanel renders the character stats pane: level, job name, and the
+ * four base stats (STR/DEX/INT/LUK). Produces a new ftxui Element on each
+ * Render() call.
+ */
 #ifndef MS_SRC_FRONTEND_CHARACTER_PANEL_H_
 #define MS_SRC_FRONTEND_CHARACTER_PANEL_H_
 

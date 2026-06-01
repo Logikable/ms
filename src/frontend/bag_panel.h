@@ -1,3 +1,10 @@
+/* BagPanel shows the inventory as a navigable menu. Each entry displays the
+ * item index, name, required level, and applicable job categories. Enter equips
+ * the selected item and auto-switches panel focus if the bag becomes empty.
+ *
+ * Call MakeComponent() exactly once; the returned Component captures references
+ * to internal state, so the panel object must outlive the Component.
+ */
 #ifndef MS_SRC_FRONTEND_BAG_PANEL_H_
 #define MS_SRC_FRONTEND_BAG_PANEL_H_
 

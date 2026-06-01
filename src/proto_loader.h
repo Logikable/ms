@@ -1,3 +1,8 @@
+/* Utilities for loading textproto files from disk. LoadTextProtoDir is a
+ * template defined in proto_loader.cc; it is only explicitly instantiated for
+ * EquipPrototype and Scroll. To support additional types, add an explicit
+ * instantiation in proto_loader.cc.
+ */
 #ifndef MS_SRC_PROTO_LOADER_H_
 #define MS_SRC_PROTO_LOADER_H_
 

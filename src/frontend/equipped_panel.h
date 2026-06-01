@@ -1,3 +1,10 @@
+/* EquippedPanel shows currently equipped items as a navigable menu. Each entry
+ * displays name, stat bonuses, and remaining upgrade slots. Enter unequips the
+ * selected item and auto-switches panel focus if the list becomes empty.
+ *
+ * Call MakeComponent() exactly once; the returned Component captures references
+ * to internal state, so the panel object must outlive the Component.
+ */
 #ifndef MS_SRC_FRONTEND_EQUIPPED_PANEL_H_
 #define MS_SRC_FRONTEND_EQUIPPED_PANEL_H_
 

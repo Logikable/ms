@@ -15,6 +15,8 @@
 
 namespace ms {
 
+// Shared fixture for panel tests. Provides c_ (level-1 Beginner character)
+// and sword_ (primary weapon slot, required level 10, Warrior only).
 class PanelTest : public testing::Test {
  protected:
   static CharacterInstance MakeCharacter(int level = 1) {
