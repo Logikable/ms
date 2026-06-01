@@ -91,8 +91,7 @@ bool Tui::OnEvent(ftxui::Event event) {
         if (state_.character.equipped().empty()) {
           panel_focus_ = 1;
         }
-      }
-      if (panel_focus_ == 1 && active_menu_->selected() == 0) {
+      } else if (panel_focus_ == 1 && active_menu_->selected() == 0) {
         state_.character.Equip(bag_panel_.selected());
         if (state_.character.inventory().empty()) {
           panel_focus_ = 0;
