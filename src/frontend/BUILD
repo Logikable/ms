@@ -93,6 +93,15 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "item_menu_test",
+    srcs = ["item_menu_test.cc"],
+    deps = [
+        ":item_menu",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "scroll_overlay",
     hdrs = ["scroll_overlay.h"],
