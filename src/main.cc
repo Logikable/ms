@@ -30,6 +30,6 @@ int main(int argc, char** argv) {
       ms::LoadTextProtoDir<ms::Scroll>(runfiles->Rlocation("ms/data/scrolls"));
 
   ms::GameState state(std::move(equips), std::move(scrolls));
-  ms::RunTui(state);
+  ms::Tui(state).Run();
   return 0;
 }
