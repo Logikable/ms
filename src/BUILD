@@ -39,22 +39,6 @@ cc_library(
   ],
 )
 
-cc_library(
-  name = "frontend",
-  hdrs = ["frontend.h"],
-  srcs = ["frontend.cc"],
-  linkopts = ["-lreadline"],
-)
-
-cc_test(
-  name = "frontend_test",
-  srcs = ["frontend_test.cc"],
-  deps = [
-    ":frontend",
-    "@googletest//:gtest_main",
-  ],
-)
-
 cc_binary(
   name = "ms",
   srcs = ["main.cc"],
