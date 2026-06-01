@@ -1,8 +1,5 @@
 #include "src/frontend/tui.h"
 
-#include <random>
-#include <vector>
-
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -12,9 +9,7 @@
 
 namespace ms {
 
-void RunTui(CharacterInstance& character,
-            const std::vector<Scroll>& /*scrolls*/,
-            std::mt19937& /*rng*/) {
+void RunTui(CharacterInstance& character) {
   int panel_focus = 0;
 
   CharacterPanel char_panel(character);

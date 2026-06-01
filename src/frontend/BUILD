@@ -53,7 +53,6 @@ cc_library(
     ":character_panel",
     ":equipped_panel",
     "//src:character",
-    "//src/protos:scroll_proto_cc",
     "@ftxui//:component",
     "@ftxui//:dom",
   ],
