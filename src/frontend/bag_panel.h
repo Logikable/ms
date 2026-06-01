@@ -1,6 +1,6 @@
 /* BagPanel shows the inventory as a navigable menu. Each entry displays the
- * item index, name, required level, and applicable job categories. Enter equips
- * the selected item and auto-switches panel focus if the bag becomes empty.
+ * item index, name, required level, and applicable job categories. Enter opens
+ * the item context menu via the on_enter callback passed to MakeComponent().
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -8,6 +8,7 @@
 #ifndef MS_SRC_FRONTEND_BAG_PANEL_H_
 #define MS_SRC_FRONTEND_BAG_PANEL_H_
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -20,7 +21,10 @@ namespace ms {
 class BagPanel {
  public:
   BagPanel(CharacterInstance& character, int& panel_focus);
-  ftxui::Component MakeComponent();
+  ftxui::Component MakeComponent(std::function<void()> on_enter);
+  int selected() const {
+    return selected_;
+  }
 
  private:
   static std::string PadRight(const std::string& s, int width);

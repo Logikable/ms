@@ -106,6 +106,7 @@ cc_library(
         ":bag_panel",
         ":character_panel",
         ":equipped_panel",
+        ":item_menu",
         "//src:character",
         "//src:game_state",
         "@ftxui//:component",

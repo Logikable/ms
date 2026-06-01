@@ -1,6 +1,7 @@
 #include "src/frontend/bag_panel.h"
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -15,16 +16,9 @@ BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
     : character_(character), panel_focus_(panel_focus) {
 }
 
-ftxui::Component BagPanel::MakeComponent() {
+ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::MenuOption opt;
-  opt.on_enter = [this]() {
-    character_.Equip(selected_);
-    selected_ = std::min(selected_,
-                         std::max(0, (int)character_.inventory().size() - 1));
-    if (character_.inventory().empty()) {
-      panel_focus_ = 0;
-    }
-  };
+  opt.on_enter = [on_enter]() { on_enter(); };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
   return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
@@ -39,6 +33,9 @@ ftxui::Component BagPanel::MakeComponent() {
                          "] " + PadRight(proto.name(), 18) + "  Lv" +
                          PadRight(std::to_string(level), 3) + "  " +
                          FormatJobCategories(proto));
+    }
+    if (!entries_.empty()) {
+      selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
     }
     if (entries_.empty()) {
       return ftxui::window(ftxui::text(" Bag "), ftxui::text("(empty)"));

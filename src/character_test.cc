@@ -187,18 +187,18 @@ TEST_F(EquipTest, EquipsItemIntoEmptySlot) {
             "Sword");
 }
 
-TEST_F(EquipTest, SwapsDisplacedItemToInventory) {
+TEST_F(EquipTest, ReturnsFalseIfSlotAlreadyOccupied) {
   EquipPrototype axe;
   axe.set_name("Axe");
   axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   c_.PickUp(sword_);
   c_.Equip(0);
   c_.PickUp(axe);
-  EXPECT_TRUE(c_.Equip(0));
+  EXPECT_FALSE(c_.Equip(0));
   EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
-            "Axe");
+            "Sword");
   ASSERT_EQ(c_.inventory().size(), 1u);
-  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
+  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Axe");
 }
 
 TEST_F(EquipTest, ReturnsFalseForUnspecifiedSlotOnPrototype) {

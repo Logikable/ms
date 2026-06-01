@@ -1,6 +1,6 @@
 /* EquippedPanel shows currently equipped items as a navigable menu. Each entry
- * displays name, stat bonuses, and remaining upgrade slots. Enter unequips the
- * selected item and auto-switches panel focus if the list becomes empty.
+ * displays name, stat bonuses, and remaining upgrade slots. Enter opens the
+ * item context menu via the on_enter callback passed to MakeComponent().
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -8,6 +8,7 @@
 #ifndef MS_SRC_FRONTEND_EQUIPPED_PANEL_H_
 #define MS_SRC_FRONTEND_EQUIPPED_PANEL_H_
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -20,7 +21,13 @@ namespace ms {
 class EquippedPanel {
  public:
   EquippedPanel(CharacterInstance& character, int& panel_focus);
-  ftxui::Component MakeComponent();
+  ftxui::Component MakeComponent(std::function<void()> on_enter);
+  int selected() const {
+    return selected_;
+  }
+  // Returns the slot of the currently highlighted item, or
+  // EQUIP_SLOT_UNSPECIFIED if the list is empty.
+  EquipSlot selected_slot() const;
 
  private:
   static std::string PadRight(const std::string& s, int width);

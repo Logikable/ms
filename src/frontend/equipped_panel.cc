@@ -1,6 +1,7 @@
 #include "src/frontend/equipped_panel.h"
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -16,18 +17,16 @@ EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
     : character_(character), panel_focus_(panel_focus) {
 }
 
-ftxui::Component EquippedPanel::MakeComponent() {
+EquipSlot EquippedPanel::selected_slot() const {
+  if (selected_ >= static_cast<int>(slots_.size())) {
+    return EQUIP_SLOT_UNSPECIFIED;
+  }
+  return slots_[selected_];
+}
+
+ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::MenuOption opt;
-  opt.on_enter = [this]() {
-    if ((int)slots_.size() > selected_) {
-      character_.Unequip(slots_[selected_]);
-      selected_ = std::min(selected_,
-                           std::max(0, (int)character_.equipped().size() - 1));
-      if (character_.equipped().empty()) {
-        panel_focus_ = 1;
-      }
-    }
-  };
+  opt.on_enter = [on_enter]() { on_enter(); };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
   // entries_ and slots_ are rebuilt from equipped() on every render so the
@@ -50,6 +49,9 @@ ftxui::Component EquippedPanel::MakeComponent() {
       line += "  " + std::to_string(item.proto().remaining_upgrade_slots()) +
               " slots";
       entries_.push_back(line);
+    }
+    if (!entries_.empty()) {
+      selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
     }
     if (entries_.empty()) {
       return ftxui::window(ftxui::text(" Equipped "), ftxui::text("(empty)"));
