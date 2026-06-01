@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include <random>
 #include <string>
 
 #include "ftxui/component/component.hpp"
@@ -19,11 +20,11 @@ namespace ms {
 // and sword_ (primary weapon slot, required level 10, Warrior only).
 class PanelTest : public testing::Test {
  protected:
-  static CharacterInstance MakeCharacter(int level = 1) {
+  CharacterInstance MakeCharacter(int level = 1) {
     Character proto;
     proto.set_level(level);
     proto.set_job(JOB_BEGINNER);
-    return CharacterInstance(std::move(proto));
+    return CharacterInstance(rng_, std::move(proto));
   }
 
   static std::string RenderElement(ftxui::Element element) {
@@ -47,6 +48,7 @@ class PanelTest : public testing::Test {
     sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   }
 
+  std::mt19937 rng_{0};
   CharacterInstance c_ = MakeCharacter();
   EquipPrototype sword_;
   int panel_focus_ = 0;

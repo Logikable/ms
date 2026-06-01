@@ -1,5 +1,6 @@
 #include <map>
 #include <memory>
+#include <random>
 #include <string>
 
 #include "absl/log/log.h"
@@ -14,16 +15,18 @@ namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
-ms::CharacterInstance MakeStartingCharacter() {
+ms::Character MakeStartingCharacterProto() {
   ms::Character proto;
   proto.set_level(1);
   proto.set_job(ms::JOB_BEGINNER);
-  return ms::CharacterInstance(std::move(proto));
+  return proto;
 }
 
 struct GameState {
   explicit GameState(std::map<std::string, ms::EquipPrototype> equips_arg)
-      : equips(std::move(equips_arg)), character(MakeStartingCharacter()) {
+      : equips(std::move(equips_arg)),
+        rng(std::random_device{}()),
+        character(rng, MakeStartingCharacterProto()) {
     character.PickUp(equips.at("sword"));
     character.Equip(0);
     character.PickUp(equips.at("long_sword"));
@@ -34,6 +37,7 @@ struct GameState {
   GameState& operator=(const GameState&) = delete;
 
   std::map<std::string, ms::EquipPrototype> equips;
+  std::mt19937 rng;
   ms::CharacterInstance character;
 };
 

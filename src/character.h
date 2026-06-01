@@ -21,7 +21,7 @@ namespace ms {
 
 class CharacterInstance {
  public:
-  explicit CharacterInstance(Character character);
+  CharacterInstance(std::mt19937& rng, Character character);
 
   // Increments level and grants 5 AP.
   void LevelUp();
@@ -43,7 +43,7 @@ class CharacterInstance {
   bool Unequip(EquipSlot slot);
   // Applies `scroll` to the item in `slot`. Returns false if the slot is empty
   // or the underlying Scroll() call fails (no slots remaining or RNG miss).
-  bool ScrollEquipped(EquipSlot slot, const Scroll& scroll, std::mt19937& rng);
+  bool ScrollEquipped(EquipSlot slot, const Scroll& scroll);
 
   const Character& proto() const {
     return character_;
@@ -56,6 +56,7 @@ class CharacterInstance {
   }
 
  private:
+  std::mt19937& rng_;
   Character character_;
   std::vector<EquipInstance> inventory_;
   std::map<EquipSlot, EquipInstance> equipped_;

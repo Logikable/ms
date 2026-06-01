@@ -16,8 +16,8 @@ constexpr int kApJobAdvancementBonus = 5;
 
 }  // namespace
 
-CharacterInstance::CharacterInstance(Character character)
-    : character_(std::move(character)) {
+CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
+    : rng_(rng), character_(std::move(character)) {
 }
 
 void CharacterInstance::LevelUp() {
@@ -105,13 +105,12 @@ bool CharacterInstance::Unequip(EquipSlot slot) {
   return true;
 }
 
-bool CharacterInstance::ScrollEquipped(EquipSlot slot, const Scroll& scroll,
-                                       std::mt19937& rng) {
+bool CharacterInstance::ScrollEquipped(EquipSlot slot, const Scroll& scroll) {
   std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
   if (it == equipped_.end()) {
     return false;
   }
-  return it->second.Scroll(scroll, rng);
+  return it->second.Scroll(scroll, rng_);
 }
 
 }  // namespace ms
