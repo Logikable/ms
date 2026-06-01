@@ -9,7 +9,8 @@
 
 namespace ms {
 
-Frontend::Frontend(std::string prompt) : prompt_(std::move(prompt)) {}
+Frontend::Frontend(std::string prompt) : prompt_(std::move(prompt)) {
+}
 
 Frontend::~Frontend() = default;
 
@@ -26,15 +27,15 @@ std::string Frontend::HelpText() const {
   }
   std::ostringstream out;
   for (const Command& cmd : commands_) {
-    out << "/" << cmd.name
-        << std::string(max_len - cmd.name.size() + 2, ' ')
+    out << "/" << cmd.name << std::string(max_len - cmd.name.size() + 2, ' ')
         << cmd.description << "\n";
   }
   return out.str();
 }
 
 std::string Frontend::Process(const std::string& line) {
-  std::string stripped = (!line.empty() && line[0] == '/') ? line.substr(1) : line;
+  std::string stripped =
+      (!line.empty() && line[0] == '/') ? line.substr(1) : line;
   std::vector<std::string> tokens;
   std::istringstream iss(stripped);
   std::string tok;

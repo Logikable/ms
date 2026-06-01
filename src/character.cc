@@ -12,7 +12,8 @@ constexpr int kApJobAdvancementBonus = 5;
 }  // namespace
 
 CharacterInstance::CharacterInstance(Character character)
-    : character_(std::move(character)) {}
+    : character_(std::move(character)) {
+}
 
 void CharacterInstance::LevelUp() {
   character_.set_level(character_.level() + 1);
@@ -37,13 +38,26 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   }
   AllocatedStats* stats = character_.mutable_allocated_stats();
   switch (field) {
-    case STAT_FIELD_STR: stats->set_str(stats->str() + amount); break;
-    case STAT_FIELD_DEX: stats->set_dex(stats->dex() + amount); break;
-    case STAT_FIELD_INT: stats->set_int_(stats->int_() + amount); break;
-    case STAT_FIELD_LUK: stats->set_luk(stats->luk() + amount); break;
-    case STAT_FIELD_HP:  stats->set_hp(stats->hp() + amount); break;
-    case STAT_FIELD_MP:  stats->set_mp(stats->mp() + amount); break;
-    default: return false;
+    case STAT_FIELD_STR:
+      stats->set_str(stats->str() + amount);
+      break;
+    case STAT_FIELD_DEX:
+      stats->set_dex(stats->dex() + amount);
+      break;
+    case STAT_FIELD_INT:
+      stats->set_int_(stats->int_() + amount);
+      break;
+    case STAT_FIELD_LUK:
+      stats->set_luk(stats->luk() + amount);
+      break;
+    case STAT_FIELD_HP:
+      stats->set_hp(stats->hp() + amount);
+      break;
+    case STAT_FIELD_MP:
+      stats->set_mp(stats->mp() + amount);
+      break;
+    default:
+      return false;
   }
   character_.set_ap(character_.ap() - amount);
   return true;

@@ -4,8 +4,8 @@
 
 #include "absl/log/log.h"
 #include "src/character.h"
-#include "src/proto_loader.h"
 #include "src/frontend/tui.h"
+#include "src/proto_loader.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace {
@@ -14,8 +14,7 @@ using bazel::tools::cpp::runfiles::Runfiles;
 
 struct GameState {
   explicit GameState(std::map<std::string, ms::EquipPrototype> equips_arg)
-      : equips(std::move(equips_arg)),
-        character(ms::Character{}) {
+      : equips(std::move(equips_arg)), character(ms::Character{}) {
     character.PickUp(equips.at("sword"));
     character.Equip(0);
     character.PickUp(equips.at("long_sword"));

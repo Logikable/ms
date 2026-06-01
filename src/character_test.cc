@@ -1,6 +1,7 @@
 #include "src/character.h"
 
 #include <gtest/gtest.h>
+
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -226,12 +227,17 @@ TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
   std::mt19937 rng(0);
 
   EXPECT_TRUE(c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll, rng));
-  EXPECT_EQ(
-      c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).proto().scroll_stats().attack(),
-      5);
-  EXPECT_EQ(
-      c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).proto().remaining_upgrade_slots(),
-      2);
+  EXPECT_EQ(c_.equipped()
+                .at(EQUIP_SLOT_PRIMARY_WEAPON)
+                .proto()
+                .scroll_stats()
+                .attack(),
+            5);
+  EXPECT_EQ(c_.equipped()
+                .at(EQUIP_SLOT_PRIMARY_WEAPON)
+                .proto()
+                .remaining_upgrade_slots(),
+            2);
 }
 
 }  // namespace

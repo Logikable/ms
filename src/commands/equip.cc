@@ -10,8 +10,8 @@ namespace ms {
 
 std::string EquipCommand(CharacterInstance& character, int inventory_index) {
   if (!character.Equip(inventory_index)) {
-    return "Could not equip item at index " +
-           std::to_string(inventory_index) + ".";
+    return "Could not equip item at index " + std::to_string(inventory_index) +
+           ".";
   }
   return "Equipped.";
 }

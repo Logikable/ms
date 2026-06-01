@@ -11,7 +11,8 @@ EquipInstance::EquipInstance(EquipPrototype prototype)
 }
 
 EquipInstance::EquipInstance(EquipPrototype prototype, Equip state)
-    : prototype_(std::move(prototype)), state_(std::move(state)) {}
+    : prototype_(std::move(prototype)), state_(std::move(state)) {
+}
 
 bool EquipInstance::Scroll(const ms::Scroll& scroll, std::mt19937& rng) {
   if (state_.remaining_upgrade_slots() == 0) {
@@ -28,7 +29,8 @@ bool EquipInstance::Scroll(const ms::Scroll& scroll, std::mt19937& rng) {
 }
 
 EquipStats EquipInstance::stats() const {
-  const EquipStats stat_sources[] = {prototype_.base_stats(), state_.scroll_stats()};
+  const EquipStats stat_sources[] = {prototype_.base_stats(),
+                                     state_.scroll_stats()};
   return SumEquipStats(stat_sources);
 }
 

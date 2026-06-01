@@ -1,8 +1,9 @@
 #include "src/commands/scroll.h"
 
+#include <gtest/gtest.h>
+
 #include <random>
 
-#include <gtest/gtest.h>
 #include "src/character.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -131,9 +132,12 @@ TEST(SortScrollsTest, SortsStatGroupsInOrder) {
 TEST(SortScrollsTest, SortsDescendingSuccessRateWithinGroup) {
   std::vector<Scroll> scrolls;
   Scroll s30, s100, s70;
-  s30.mutable_stats()->set_attack(3);  s30.set_success_rate(30);
-  s100.mutable_stats()->set_attack(1); s100.set_success_rate(100);
-  s70.mutable_stats()->set_attack(2);  s70.set_success_rate(70);
+  s30.mutable_stats()->set_attack(3);
+  s30.set_success_rate(30);
+  s100.mutable_stats()->set_attack(1);
+  s100.set_success_rate(100);
+  s70.mutable_stats()->set_attack(2);
+  s70.set_success_rate(70);
   scrolls.push_back(s30);
   scrolls.push_back(s100);
   scrolls.push_back(s70);
@@ -146,8 +150,10 @@ TEST(SortScrollsTest, SortsDescendingSuccessRateWithinGroup) {
 TEST(SortScrollsTest, StatGroupBeforeRateAcrossGroups) {
   std::vector<Scroll> scrolls;
   Scroll str30, att70;
-  str30.mutable_stats()->set_str(2); str30.set_success_rate(30);
-  att70.mutable_stats()->set_attack(2); att70.set_success_rate(70);
+  str30.mutable_stats()->set_str(2);
+  str30.set_success_rate(30);
+  att70.mutable_stats()->set_attack(2);
+  att70.set_success_rate(70);
   scrolls.push_back(str30);
   scrolls.push_back(att70);
   SortScrolls(scrolls);

@@ -15,7 +15,8 @@ namespace ms {
 
 // Returns equipped items and bag contents. Returns "Nothing to show." if both
 // are empty.
-// TODO: replace full stat block with a one-line summary; ncurses hover to expand.
+// TODO: replace full stat block with a one-line summary; ncurses hover to
+// expand.
 std::string InvCommand(const CharacterInstance& character);
 void RegisterInvCommand(Frontend& frontend, CharacterInstance& character);
 

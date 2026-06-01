@@ -11,7 +11,8 @@
 namespace ms {
 
 EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
-    : character_(character), panel_focus_(panel_focus) {}
+    : character_(character), panel_focus_(panel_focus) {
+}
 
 ftxui::Component EquippedPanel::MakeComponent() {
   ftxui::MenuOption opt;
@@ -19,8 +20,10 @@ ftxui::Component EquippedPanel::MakeComponent() {
     if ((int)slots_.size() > selected_) {
       character_.Unequip(slots_[selected_]);
       selected_ = std::min(selected_,
-          std::max(0, (int)character_.equipped().size() - 1));
-      if (character_.equipped().empty()) { panel_focus_ = 1; }
+                           std::max(0, (int)character_.equipped().size() - 1));
+      if (character_.equipped().empty()) {
+        panel_focus_ = 1;
+      }
     }
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
@@ -28,7 +31,8 @@ ftxui::Component EquippedPanel::MakeComponent() {
   return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
     entries_.clear();
     slots_.clear();
-    for (const std::pair<const EquipSlot, EquipInstance>& kv : character_.equipped()) {
+    for (const std::pair<const EquipSlot, EquipInstance>& kv :
+         character_.equipped()) {
       slots_.push_back(kv.first);
       const EquipInstance& item = kv.second;
       const EquipStats stats = item.stats();
@@ -39,7 +43,8 @@ ftxui::Component EquippedPanel::MakeComponent() {
       AppendStat(line, stats.dex(), "DEX");
       AppendStat(line, stats.int_(), "INT");
       AppendStat(line, stats.luk(), "LUK");
-      line += "  " + std::to_string(item.proto().remaining_upgrade_slots()) + " slots";
+      line += "  " + std::to_string(item.proto().remaining_upgrade_slots()) +
+              " slots";
       entries_.push_back(line);
     }
     if (entries_.empty()) {
@@ -50,14 +55,20 @@ ftxui::Component EquippedPanel::MakeComponent() {
 }
 
 std::string EquippedPanel::PadRight(const std::string& s, int width) {
-  if ((int)s.size() >= width) { return s.substr(0, width); }
+  if ((int)s.size() >= width) {
+    return s.substr(0, width);
+  }
   return s + std::string(width - (int)s.size(), ' ');
 }
 
 void EquippedPanel::AppendStat(std::string& out, int val,
-                                const std::string& name) {
-  if (val <= 0) return;
-  if (!out.empty()) out += "  ";
+                               const std::string& name) {
+  if (val <= 0) {
+    return;
+  }
+  if (!out.empty()) {
+    out += "  ";
+  }
   out += "+" + std::to_string(val) + " " + name;
 }
 

@@ -19,23 +19,24 @@ void RunTui(CharacterInstance& character) {
   ftxui::Component equip_component = equip_panel.MakeComponent();
   ftxui::Component bag_component = bag_panel.MakeComponent();
 
-  ftxui::Component panels = ftxui::Container::Tab(
-      {equip_component, bag_component}, &panel_focus);
+  ftxui::Component panels =
+      ftxui::Container::Tab({equip_component, bag_component}, &panel_focus);
 
   ftxui::Component root = ftxui::CatchEvent(
-      ftxui::Renderer(panels, [&]() -> ftxui::Element {
-        return ftxui::vbox({
-          ftxui::hbox({
-            char_panel.Render() |
-                ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
-            ftxui::vbox({
-              equip_component->Render(),
-              bag_component->Render(),
-            }) | ftxui::flex,
-          }),
-          ftxui::filler(),
-        });
-      }),
+      ftxui::Renderer(panels,
+                      [&]() -> ftxui::Element {
+                        return ftxui::vbox({
+                            ftxui::hbox({
+                                char_panel.Render() |
+                                    ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
+                                ftxui::vbox({
+                                    equip_component->Render(),
+                                    bag_component->Render(),
+                                }) | ftxui::flex,
+                            }),
+                            ftxui::filler(),
+                        });
+                      }),
       [&](ftxui::Event event) -> bool {
         if (event == ftxui::Event::Tab) {
           panel_focus = (panel_focus + 1) % 2;

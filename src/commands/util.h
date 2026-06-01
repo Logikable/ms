@@ -8,8 +8,8 @@
 
 #include <string>
 
-#include "src/protos/equip.pb.h"
 #include "src/equip_instance.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 

@@ -8,8 +8,8 @@
 
 #include <random>
 
-#include "src/protos/equip.pb.h"
 #include "src/equip_stats.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
@@ -25,8 +25,12 @@ class EquipInstance {
   // failure or if no slots remain.
   bool Scroll(const ms::Scroll& scroll, std::mt19937& rng);
 
-  const EquipPrototype& prototype() const { return prototype_; }
-  const Equip& proto() const { return state_; }
+  const EquipPrototype& prototype() const {
+    return prototype_;
+  }
+  const Equip& proto() const {
+    return state_;
+  }
   // Returns prototype base stats plus all scroll stats accumulated so far.
   EquipStats stats() const;
 

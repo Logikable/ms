@@ -5,8 +5,8 @@
 
 #include "src/character.h"
 #include "src/commands/util.h"
-#include "src/protos/equip.pb.h"
 #include "src/frontend.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 

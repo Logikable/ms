@@ -21,12 +21,12 @@ void SortScrolls(std::vector<Scroll>& scrolls);
 
 // Lists scrolls applicable to the equipped primary weapon.
 std::string ScrollListCommand(const CharacterInstance& character,
-                               const std::vector<Scroll>& scrolls);
+                              const std::vector<Scroll>& scrolls);
 
 // Applies the scroll at the given index from the applicable list.
 std::string ScrollApplyCommand(CharacterInstance& character,
-                                const std::vector<Scroll>& scrolls,
-                                int index, std::mt19937& rng);
+                               const std::vector<Scroll>& scrolls, int index,
+                               std::mt19937& rng);
 
 void RegisterScrollCommand(Frontend& frontend, CharacterInstance& character,
                            const std::vector<Scroll>& scrolls,

@@ -19,8 +19,8 @@ std::string WriteTempFile(const std::string& name, const std::string& content) {
 }
 
 TEST(ProtoLoaderTest, LoadsValidTextProto) {
-  std::string path = WriteTempFile("equip.textproto",
-                                   "name: \"Sword\"\nupgrade_slots: 7\n");
+  std::string path =
+      WriteTempFile("equip.textproto", "name: \"Sword\"\nupgrade_slots: 7\n");
   EquipPrototype equip;
   LoadTextProto(path, &equip);
   EXPECT_EQ(equip.name(), "Sword");

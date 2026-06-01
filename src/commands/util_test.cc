@@ -1,15 +1,18 @@
 #include "src/commands/util.h"
 
 #include <gtest/gtest.h>
-#include "src/protos/equip.pb.h"
+
 #include "src/equip_instance.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 namespace {
 
 class FormatEquipTest : public testing::Test {
  protected:
-  void SetUp() override { sword_.set_name("Sword"); }
+  void SetUp() override {
+    sword_.set_name("Sword");
+  }
   EquipPrototype sword_;
 };
 

@@ -12,9 +12,9 @@
 #include <random>
 #include <vector>
 
+#include "src/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
-#include "src/equip_instance.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
@@ -45,8 +45,12 @@ class CharacterInstance {
   // or the underlying Scroll() call fails (no slots remaining or RNG miss).
   bool ScrollEquipped(EquipSlot slot, const Scroll& scroll, std::mt19937& rng);
 
-  const Character& proto() const { return character_; }
-  const std::vector<EquipInstance>& inventory() const { return inventory_; }
+  const Character& proto() const {
+    return character_;
+  }
+  const std::vector<EquipInstance>& inventory() const {
+    return inventory_;
+  }
   const std::map<EquipSlot, EquipInstance>& equipped() const {
     return equipped_;
   }

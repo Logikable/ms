@@ -1,6 +1,7 @@
 #include "src/commands/inv.h"
 
 #include <gtest/gtest.h>
+
 #include "src/character.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
