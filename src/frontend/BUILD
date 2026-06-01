@@ -3,13 +3,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-  name = "util",
-  hdrs = ["util.h"],
-  srcs = ["util.cc"],
-  deps = ["//src/protos:equip_proto_cc"],
-)
-
-cc_library(
   name = "character_panel",
   hdrs = ["character_panel.h"],
   srcs = ["character_panel.cc"],
@@ -25,7 +18,6 @@ cc_library(
   hdrs = ["equipped_panel.h"],
   srcs = ["equipped_panel.cc"],
   deps = [
-    ":util",
     "//src:character",
     "//src:equip_instance",
     "//src/protos:equip_proto_cc",
@@ -39,7 +31,6 @@ cc_library(
   hdrs = ["bag_panel.h"],
   srcs = ["bag_panel.cc"],
   deps = [
-    ":util",
     "//src:character",
     "//src:equip_instance",
     "//src/protos:equip_proto_cc",

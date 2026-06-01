@@ -16,24 +16,26 @@ void RunTui(CharacterInstance& character,
             const std::vector<Scroll>& /*scrolls*/,
             std::mt19937& /*rng*/) {
   int panel_focus = 0;
-  EquippedPanelState equip_state;
-  BagPanelState bag_state;
 
-  ftxui::Component equip_panel = MakeEquippedPanel(character, panel_focus, equip_state);
-  ftxui::Component bag_panel = MakeBagPanel(character, panel_focus, bag_state);
+  CharacterPanel char_panel(character);
+  EquippedPanel equip_panel(character, panel_focus);
+  BagPanel bag_panel(character, panel_focus);
+
+  ftxui::Component equip_component = equip_panel.MakeComponent();
+  ftxui::Component bag_component = bag_panel.MakeComponent();
 
   ftxui::Component panels = ftxui::Container::Tab(
-      {equip_panel, bag_panel}, &panel_focus);
+      {equip_component, bag_component}, &panel_focus);
 
   ftxui::Component root = ftxui::CatchEvent(
       ftxui::Renderer(panels, [&]() -> ftxui::Element {
         return ftxui::vbox({
           ftxui::hbox({
-            CharacterElement(character) |
+            char_panel.Render() |
                 ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
             ftxui::vbox({
-              equip_panel->Render(),
-              bag_panel->Render(),
+              equip_component->Render(),
+              bag_component->Render(),
             }) | ftxui::flex,
           }),
           ftxui::filler(),

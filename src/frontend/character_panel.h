@@ -1,12 +1,24 @@
 #ifndef MS_SRC_FRONTEND_CHARACTER_PANEL_H_
 #define MS_SRC_FRONTEND_CHARACTER_PANEL_H_
 
+#include <string>
+
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
+#include "src/protos/character.pb.h"
 
 namespace ms {
 
-ftxui::Element CharacterElement(const CharacterInstance& c);
+class CharacterPanel {
+ public:
+  explicit CharacterPanel(const CharacterInstance& character);
+  ftxui::Element Render() const;
+
+ private:
+  static std::string JobName(Job job);
+
+  const CharacterInstance& character_;
+};
 
 }  // namespace ms
 

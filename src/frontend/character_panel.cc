@@ -6,20 +6,12 @@
 #include "src/protos/character.pb.h"
 
 namespace ms {
-namespace {
 
-std::string JobName(Job job) {
-  switch (job) {
-    case JOB_BEGINNER: return "Beginner";
-    case JOB_WARRIOR:  return "Warrior";
-    default:           return "Unknown";
-  }
-}
+CharacterPanel::CharacterPanel(const CharacterInstance& character)
+    : character_(character) {}
 
-}  // namespace
-
-ftxui::Element CharacterElement(const CharacterInstance& c) {
-  const Character& p = c.proto();
+ftxui::Element CharacterPanel::Render() const {
+  const Character& p = character_.proto();
   const AllocatedStats& s = p.allocated_stats();
   return ftxui::window(ftxui::text(" Character "), ftxui::vbox({
     ftxui::text("Lv" + std::to_string(p.level()) + " " + JobName(p.job())),
@@ -29,6 +21,14 @@ ftxui::Element CharacterElement(const CharacterInstance& c) {
     ftxui::text("INT: " + std::to_string(s.int_())),
     ftxui::text("LUK: " + std::to_string(s.luk())),
   }));
+}
+
+std::string CharacterPanel::JobName(Job job) {
+  switch (job) {
+    case JOB_BEGINNER: return "Beginner";
+    case JOB_WARRIOR:  return "Warrior";
+    default:           return "Unknown";
+  }
 }
 
 }  // namespace ms

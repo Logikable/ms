@@ -6,16 +6,25 @@
 
 #include "ftxui/component/component.hpp"
 #include "src/character.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 
-struct BagPanelState {
-  int selected = 0;
-  std::vector<std::string> entries;
-};
+class BagPanel {
+ public:
+  BagPanel(CharacterInstance& character, int& panel_focus);
+  ftxui::Component MakeComponent();
 
-ftxui::Component MakeBagPanel(CharacterInstance& character, int& panel_focus,
-                               BagPanelState& state);
+ private:
+  static std::string PadRight(const std::string& s, int width);
+  static std::string PadLeft(const std::string& s, int width);
+  static std::string FormatJobCategories(const EquipPrototype& proto);
+
+  CharacterInstance& character_;
+  int& panel_focus_;
+  int selected_ = 0;
+  std::vector<std::string> entries_;
+};
 
 }  // namespace ms
 

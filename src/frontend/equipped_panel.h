@@ -10,15 +10,21 @@
 
 namespace ms {
 
-struct EquippedPanelState {
-  int selected = 0;
-  std::vector<std::string> entries;
-  std::vector<EquipSlot> slots;
-};
+class EquippedPanel {
+ public:
+  EquippedPanel(CharacterInstance& character, int& panel_focus);
+  ftxui::Component MakeComponent();
 
-ftxui::Component MakeEquippedPanel(CharacterInstance& character,
-                                    int& panel_focus,
-                                    EquippedPanelState& state);
+ private:
+  static std::string PadRight(const std::string& s, int width);
+  static void AppendStat(std::string& out, int val, const std::string& name);
+
+  CharacterInstance& character_;
+  int& panel_focus_;
+  int selected_ = 0;
+  std::vector<std::string> entries_;
+  std::vector<EquipSlot> slots_;
+};
 
 }  // namespace ms
 
