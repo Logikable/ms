@@ -38,6 +38,7 @@ class Tui {
   ItemMenu* active_menu_;
   ScrollPanel scroll_panel_;
   EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;
+  int scroll_index_ = 0;
   ftxui::Component equip_component_;
   ftxui::Component bag_component_;
   ftxui::Component scroll_component_;

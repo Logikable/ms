@@ -44,6 +44,9 @@ class CharacterInstance {
   // Applies `scroll` to the item in `slot`. Returns false if the slot is empty
   // or the underlying Scroll() call fails (no slots remaining or RNG miss).
   bool ScrollEquipped(EquipSlot slot, const Scroll& scroll);
+  // Applies `scroll` to the inventory item at `index`. Returns false if
+  // `index` is out of range or the Scroll() call fails.
+  bool ScrollInventory(int index, const Scroll& scroll);
 
   const Character& proto() const {
     return character_;

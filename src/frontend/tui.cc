@@ -110,6 +110,9 @@ bool Tui::OnEvent(ftxui::Event event) {
       } else if (panel_focus_ == 0 && active_menu_->selected() == 2) {
         scroll_slot_ = equip_panel_.selected_slot();
         mode_ = kScrollSelect;
+      } else if (panel_focus_ == 1 && active_menu_->selected() == 2) {
+        scroll_index_ = bag_panel_.selected();
+        mode_ = kScrollSelect;
       } else {
         mode_ = kMain;
       }
@@ -123,8 +126,13 @@ bool Tui::OnEvent(ftxui::Event event) {
       return true;
     }
     if (event == ftxui::Event::Return) {
-      state_.character.ScrollEquipped(scroll_slot_,
-                                      scroll_panel_.selected_scroll());
+      if (panel_focus_ == 0) {
+        state_.character.ScrollEquipped(scroll_slot_,
+                                        scroll_panel_.selected_scroll());
+      } else {
+        state_.character.ScrollInventory(scroll_index_,
+                                         scroll_panel_.selected_scroll());
+      }
       mode_ = kMain;
       return true;
     }

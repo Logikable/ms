@@ -113,4 +113,11 @@ bool CharacterInstance::ScrollEquipped(EquipSlot slot, const Scroll& scroll) {
   return it->second.Scroll(scroll, rng_);
 }
 
+bool CharacterInstance::ScrollInventory(int index, const Scroll& scroll) {
+  if (index < 0 || index >= static_cast<int>(inventory_.size())) {
+    return false;
+  }
+  return inventory_[index].Scroll(scroll, rng_);
+}
+
 }  // namespace ms

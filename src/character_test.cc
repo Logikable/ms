@@ -59,6 +59,7 @@ class PickUpTest : public CharacterEquipFixture {};
 class EquipTest : public CharacterEquipFixture {};
 class UnequipTest : public CharacterEquipFixture {};
 class ScrollEquippedTest : public CharacterEquipFixture {};
+class ScrollInventoryTest : public CharacterEquipFixture {};
 
 // --- LevelUp ---
 
@@ -261,6 +262,27 @@ TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
                 .proto()
                 .remaining_upgrade_slots(),
             2);
+}
+
+// --- ScrollInventory ---
+
+TEST_F(ScrollInventoryTest, ReturnsFalseIfIndexOutOfRange) {
+  Scroll scroll;
+  scroll.set_success_rate(100);
+  EXPECT_FALSE(c_.ScrollInventory(0, scroll));
+}
+
+TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
+  sword_.set_upgrade_slots(3);
+  c_.PickUp(sword_);
+
+  Scroll scroll;
+  scroll.set_success_rate(100);
+  scroll.mutable_stats()->set_attack(5);
+
+  EXPECT_TRUE(c_.ScrollInventory(0, scroll));
+  EXPECT_EQ(c_.inventory()[0].proto().scroll_stats().attack(), 5);
+  EXPECT_EQ(c_.inventory()[0].proto().remaining_upgrade_slots(), 2);
 }
 
 }  // namespace
