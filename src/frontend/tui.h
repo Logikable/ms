@@ -28,20 +28,32 @@ class Tui {
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
+  // Which panel has keyboard focus: 0 = equip, 1 = bag. Tab cycles between
+  // them in kMain mode and determines which panel's item menu opens on Enter.
   int panel_focus_ = 0;
+  // Current screen state. kMain: normal layout. kItemMenu: item context menu
+  // overlay. kScrollSelect: full-screen scroll list.
   Mode mode_ = kMain;
+
+  // Main view: always visible in kMain and kItemMenu modes.
   CharacterPanel char_panel_;
   EquippedPanel equip_panel_;
   BagPanel bag_panel_;
-  ItemMenu equip_menu_;
-  ItemMenu bag_menu_;
-  ItemMenu* active_menu_;
-  ScrollPanel scroll_panel_;
-  EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;
-  int scroll_index_ = 0;
+  // Built in Run(); held here so RenderFrame() can call ->Render().
   ftxui::Component equip_component_;
   ftxui::Component bag_component_;
+
+  // Item context menu (kItemMenu mode).
+  ItemMenu equip_menu_;
+  ItemMenu bag_menu_;
+  ItemMenu* active_menu_;  // points to whichever menu was opened last
+
+  // Scroll screen (kScrollSelect mode).
+  ScrollPanel scroll_panel_;
   ftxui::Component scroll_component_;
+  // Saved on entry to kScrollSelect; used on Enter to identify the target.
+  EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;  // equip panel path
+  int scroll_index_ = 0;                            // bag panel path
 };
 
 }  // namespace ms
