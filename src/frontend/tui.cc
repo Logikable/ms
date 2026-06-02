@@ -8,6 +8,7 @@
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/item_menu.h"
+#include "src/frontend/scroll_panel.h"
 #include "src/game_state.h"
 
 namespace ms {
@@ -19,7 +20,8 @@ Tui::Tui(GameState& state)
       bag_panel_(state.character, panel_focus_),
       equip_menu_({"Unequip", "Inspect", "Scroll"}),
       bag_menu_({"Equip", "Inspect", "Scroll"}),
-      active_menu_(&equip_menu_) {
+      active_menu_(&equip_menu_),
+      scroll_panel_(state.scrolls) {
 }
 
 void Tui::Run() {
@@ -33,6 +35,8 @@ void Tui::Run() {
     active_menu_ = &bag_menu_;
     bag_menu_.Reset();
   });
+
+  scroll_component_ = scroll_panel_.MakeComponent();
 
   ftxui::Component panels =
       ftxui::Container::Tab({equip_component_, bag_component_}, &panel_focus_);
@@ -48,6 +52,9 @@ void Tui::Run() {
 }
 
 ftxui::Element Tui::RenderFrame() {
+  if (mode_ == kScrollSelect) {
+    return scroll_component_->Render() | ftxui::flex;
+  }
   equip_panel_.SetShowSelection(mode_ == kMain);
   bag_panel_.SetShowSelection(mode_ == kMain);
   ftxui::Element layout = ftxui::vbox({
@@ -93,15 +100,35 @@ bool Tui::OnEvent(ftxui::Event event) {
         if (state_.character.equipped().empty()) {
           panel_focus_ = 1;
         }
+        mode_ = kMain;
       } else if (panel_focus_ == 1 && active_menu_->selected() == 0) {
         state_.character.Equip(bag_panel_.selected());
         if (state_.character.inventory().empty()) {
           panel_focus_ = 0;
         }
+        mode_ = kMain;
+      } else if (panel_focus_ == 0 && active_menu_->selected() == 2) {
+        scroll_slot_ = equip_panel_.selected_slot();
+        mode_ = kScrollSelect;
+      } else {
+        mode_ = kMain;
       }
+      return true;
+    }
+    return true;
+  }
+  if (mode_ == kScrollSelect) {
+    if (event == ftxui::Event::Escape) {
+      mode_ = kItemMenu;
+      return true;
+    }
+    if (event == ftxui::Event::Return) {
+      state_.character.ScrollEquipped(scroll_slot_,
+                                      scroll_panel_.selected_scroll());
       mode_ = kMain;
       return true;
     }
+    scroll_component_->OnEvent(event);
     return true;
   }
   if (event == ftxui::Event::Tab) {

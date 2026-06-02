@@ -10,7 +10,9 @@
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/item_menu.h"
+#include "src/frontend/scroll_panel.h"
 #include "src/game_state.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 
@@ -20,7 +22,7 @@ class Tui {
   void Run();
 
  private:
-  enum Mode { kMain, kItemMenu };
+  enum Mode { kMain, kItemMenu, kScrollSelect };
 
   ftxui::Element RenderFrame();
   bool OnEvent(ftxui::Event event);
@@ -34,8 +36,11 @@ class Tui {
   ItemMenu equip_menu_;
   ItemMenu bag_menu_;
   ItemMenu* active_menu_;
+  ScrollPanel scroll_panel_;
+  EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;
   ftxui::Component equip_component_;
   ftxui::Component bag_component_;
+  ftxui::Component scroll_component_;
 };
 
 }  // namespace ms

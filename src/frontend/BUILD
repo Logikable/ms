@@ -103,8 +103,15 @@ cc_test(
 )
 
 cc_library(
-    name = "scroll_overlay",
-    hdrs = ["scroll_overlay.h"],
+    name = "scroll_panel",
+    srcs = ["scroll_panel.cc"],
+    hdrs = ["scroll_panel.h"],
+    deps = [
+        "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
 )
 
 cc_library(
@@ -116,6 +123,7 @@ cc_library(
         ":character_panel",
         ":equipped_panel",
         ":item_menu",
+        ":scroll_panel",
         "//src:character",
         "//src:game_state",
         "@ftxui//:component",
