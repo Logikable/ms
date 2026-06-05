@@ -22,8 +22,9 @@ class Tui {
   void Run();
 
  private:
-  enum Screen { kMain, kItemMenu, kScrollSelect };
+  enum Screen : int { kMain, kItemMenu, kScrollSelect };
   enum Panel : int { kEquipPanel = 0, kBagPanel = 1 };
+  enum MenuItem : int { kMenuAction = 0, kMenuInspect = 1, kMenuScroll = 2 };
 
   ftxui::Element RenderFrame();
   bool OnEvent(ftxui::Event event);
