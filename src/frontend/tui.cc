@@ -1,5 +1,7 @@
 #include "src/frontend/tui.h"
 
+#include <string>
+
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/component/screen_interactive.hpp"
@@ -47,11 +49,11 @@ void Tui::Run() {
 }
 
 ftxui::Element Tui::RenderFrame() {
-  if (controller_.screen() == TuiController::kScrollSelect) {
+  if (controller_.screen() == kScrollSelect) {
     return scroll_component_->Render() | ftxui::flex;
   }
-  equip_panel_.SetShowSelection(controller_.screen() == TuiController::kMain);
-  bag_panel_.SetShowSelection(controller_.screen() == TuiController::kMain);
+  equip_panel_.SetShowSelection(controller_.screen() == kMain);
+  bag_panel_.SetShowSelection(controller_.screen() == kMain);
   ftxui::Element layout = ftxui::vbox({
       ftxui::hbox({
           char_panel_.Render() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
@@ -62,11 +64,26 @@ ftxui::Element Tui::RenderFrame() {
       }),
       ftxui::filler(),
   });
-  if (controller_.screen() != TuiController::kItemMenu) {
+  if (controller_.screen() == kScrollResult) {
+    const ScrollResult& r = controller_.scroll_result();
+    ftxui::Element dialog = ftxui::window(
+        ftxui::text(" Result "),
+        ftxui::vbox({
+            ftxui::text(r.equip_name + "  |  " + r.scroll_name),
+            ftxui::separator(),
+            ftxui::text(r.success ? "SUCCESS" : "FAILED") | ftxui::hcenter,
+            ftxui::text(std::to_string(r.slots_remaining) + " slots remaining") |
+                ftxui::hcenter,
+            ftxui::text(""),
+            ftxui::text("Press Enter to continue"),
+        }));
+    return ftxui::dbox({layout, ftxui::center(dialog) | ftxui::clear_under});
+  }
+  if (controller_.screen() != kItemMenu) {
     return layout;
   }
   int menu_row = 0;
-  if (panel_focus_ == TuiController::kEquipPanel) {
+  if (panel_focus_ == kEquipPanel) {
     menu_row = equip_panel_.selected();
   } else {
     menu_row = static_cast<int>(state_.character.equipped().size()) +
@@ -77,7 +94,7 @@ ftxui::Element Tui::RenderFrame() {
 
 bool Tui::OnEvent(ftxui::Event event) {
   if (!controller_.OnEvent(event)) {
-    if (controller_.screen() == TuiController::kScrollSelect) {
+    if (controller_.screen() == kScrollSelect) {
       scroll_component_->OnEvent(event);
       return true;
     }

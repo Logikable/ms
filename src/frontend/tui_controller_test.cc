@@ -61,7 +61,7 @@ class TuiControllerTest : public testing::Test {
     ftxui::Render(scr, equip_component_->Render());
   }
 
-  int panel_focus_ = TuiController::kEquipPanel;
+  int panel_focus_ = kEquipPanel;
   EquipPrototype sword_;
   std::unique_ptr<GameState> state_;
   std::unique_ptr<EquippedPanel> equip_panel_;
@@ -75,13 +75,13 @@ class TuiControllerTest : public testing::Test {
 
 TEST_F(TuiControllerTest, TabSwitchesToBagPanel) {
   controller_->OnEvent(ftxui::Event::Tab);
-  EXPECT_EQ(panel_focus_, TuiController::kBagPanel);
+  EXPECT_EQ(panel_focus_, kBagPanel);
 }
 
 TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
-  EXPECT_EQ(panel_focus_, TuiController::kEquipPanel);
+  EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
 // --- ItemMenu navigation ---
@@ -89,7 +89,7 @@ TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
 TEST_F(TuiControllerTest, EscapeInItemMenuGoesToMain) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::Escape);
-  EXPECT_EQ(controller_->screen(), TuiController::kMain);
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 TEST_F(TuiControllerTest, ArrowDownInItemMenuAdvancesMenuSelection) {
@@ -109,7 +109,7 @@ TEST_F(TuiControllerTest, ReturnActionUnequipsFromEquipPanel) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_TRUE(state_->character.equipped().empty());
-  EXPECT_EQ(controller_->screen(), TuiController::kMain);
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 TEST_F(TuiControllerTest, UnequipSwitchesFocusToBagWhenEquipEmpty) {
@@ -120,7 +120,7 @@ TEST_F(TuiControllerTest, UnequipSwitchesFocusToBagWhenEquipEmpty) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::Return);
 
-  EXPECT_EQ(panel_focus_, TuiController::kBagPanel);
+  EXPECT_EQ(panel_focus_, kBagPanel);
 }
 
 // --- Scroll via equip panel ---
@@ -135,7 +135,7 @@ TEST_F(TuiControllerTest, ReturnScrollFromEquipPanelGoesToScrollSelect) {
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);
 
-  EXPECT_EQ(controller_->screen(), TuiController::kScrollSelect);
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
 }
 
 TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
@@ -149,10 +149,10 @@ TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Escape);
 
-  EXPECT_EQ(controller_->screen(), TuiController::kItemMenu);
+  EXPECT_EQ(controller_->screen(), kItemMenu);
 }
 
-TEST_F(TuiControllerTest, ReturnInScrollSelectAppliesScrollAndGoesToMain) {
+TEST_F(TuiControllerTest, ReturnInScrollSelectAppliesScrollAndGoesToScrollResult) {
   state_->character.PickUp(sword_);
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -163,7 +163,7 @@ TEST_F(TuiControllerTest, ReturnInScrollSelectAppliesScrollAndGoesToMain) {
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
   controller_->OnEvent(ftxui::Event::Return);  // apply scroll
 
-  EXPECT_EQ(controller_->screen(), TuiController::kMain);
+  EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(state_->character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
                 .proto()
@@ -172,17 +172,47 @@ TEST_F(TuiControllerTest, ReturnInScrollSelectAppliesScrollAndGoesToMain) {
             5);
 }
 
+TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->scroll_result().equip_name, "Sword");
+  EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
+}
+
+TEST_F(TuiControllerTest, EnterInScrollResultGoesToMain) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // dismiss result
+
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
 // --- Equip via bag panel ---
 
 TEST_F(TuiControllerTest, ReturnActionEquipsFromBagPanel) {
   state_->character.PickUp(sword_);
-  panel_focus_ = TuiController::kBagPanel;
+  panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_FALSE(state_->character.equipped().empty());
-  EXPECT_EQ(controller_->screen(), TuiController::kMain);
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 }  // namespace

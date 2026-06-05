@@ -28,7 +28,7 @@ class Tui {
   GameState& state_;
   // Shared with equip_panel_, bag_panel_, and Container::Tab; mutated by
   // controller_ as panel focus changes.
-  int panel_focus_ = TuiController::kEquipPanel;
+  int panel_focus_ = kEquipPanel;
 
   // Main view panels (always constructed; rendered in kMain and kItemMenu).
   CharacterPanel char_panel_;

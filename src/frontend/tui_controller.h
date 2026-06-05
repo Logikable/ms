@@ -10,6 +10,8 @@
 #ifndef MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 #define MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 
+#include <string>
+
 #include "ftxui/component/event.hpp"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
@@ -20,12 +22,19 @@
 
 namespace ms {
 
+enum Screen : int { kMain, kItemMenu, kScrollSelect, kScrollResult };
+enum Panel : int { kEquipPanel = 0, kBagPanel = 1 };
+enum MenuItem : int { kMenuAction = 0, kMenuInspect = 1, kMenuScroll = 2 };
+
+struct ScrollResult {
+  bool success;
+  std::string equip_name;
+  std::string scroll_name;
+  int slots_remaining = 0;
+};
+
 class TuiController {
  public:
-  enum Screen : int { kMain, kItemMenu, kScrollSelect };
-  enum Panel : int { kEquipPanel = 0, kBagPanel = 1 };
-  enum MenuItem : int { kMenuAction = 0, kMenuInspect = 1, kMenuScroll = 2 };
-
   // panel_focus is a reference shared with panel components and
   // Container::Tab; the controller mutates it as focus changes.
   TuiController(GameState& state, EquippedPanel& equip_panel,
@@ -43,6 +52,9 @@ class TuiController {
 
   Screen screen() const {
     return screen_;
+  }
+  const ScrollResult& scroll_result() const {
+    return scroll_result_;
   }
   // Non-const: RenderFrame calls active_menu().Render().
   ItemMenu& active_menu() {
@@ -70,6 +82,7 @@ class TuiController {
   ItemMenu* active_menu_ = nullptr;
   EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;
   int scroll_index_ = 0;
+  ScrollResult scroll_result_;
 };
 
 }  // namespace ms
