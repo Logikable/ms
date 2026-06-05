@@ -22,18 +22,19 @@ class Tui {
   void Run();
 
  private:
-  enum Mode { kMain, kItemMenu, kScrollSelect };
+  enum Screen { kMain, kItemMenu, kScrollSelect };
+  enum Panel : int { kEquipPanel = 0, kBagPanel = 1 };
 
   ftxui::Element RenderFrame();
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
-  // Which panel has keyboard focus: 0 = equip, 1 = bag. Tab cycles between
-  // them in kMain mode and determines which panel's item menu opens on Enter.
-  int panel_focus_ = 0;
+  // Which panel has keyboard focus. Tab cycles between them in kMain and
+  // determines which panel's item menu opens on Enter.
+  int panel_focus_ = kEquipPanel;
   // Current screen state. kMain: normal layout. kItemMenu: item context menu
   // overlay. kScrollSelect: full-screen scroll list.
-  Mode mode_ = kMain;
+  Screen screen_ = kMain;
 
   // Main view: always visible in kMain and kItemMenu modes.
   CharacterPanel char_panel_;

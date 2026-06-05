@@ -26,12 +26,12 @@ Tui::Tui(GameState& state)
 
 void Tui::Run() {
   equip_component_ = equip_panel_.MakeComponent([this]() {
-    mode_ = kItemMenu;
+    screen_ = kItemMenu;
     active_menu_ = &equip_menu_;
     equip_menu_.Reset();
   });
   bag_component_ = bag_panel_.MakeComponent([this]() {
-    mode_ = kItemMenu;
+    screen_ = kItemMenu;
     active_menu_ = &bag_menu_;
     bag_menu_.Reset();
   });
@@ -52,11 +52,11 @@ void Tui::Run() {
 }
 
 ftxui::Element Tui::RenderFrame() {
-  if (mode_ == kScrollSelect) {
+  if (screen_ == kScrollSelect) {
     return scroll_component_->Render() | ftxui::flex;
   }
-  equip_panel_.SetShowSelection(mode_ == kMain);
-  bag_panel_.SetShowSelection(mode_ == kMain);
+  equip_panel_.SetShowSelection(screen_ == kMain);
+  bag_panel_.SetShowSelection(screen_ == kMain);
   ftxui::Element layout = ftxui::vbox({
       ftxui::hbox({
           char_panel_.Render() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
@@ -67,11 +67,11 @@ ftxui::Element Tui::RenderFrame() {
       }),
       ftxui::filler(),
   });
-  if (mode_ != kItemMenu) {
+  if (screen_ != kItemMenu) {
     return layout;
   }
   int menu_row = 0;
-  if (panel_focus_ == 0) {
+  if (panel_focus_ == kEquipPanel) {
     menu_row = equip_panel_.selected();
   } else {
     menu_row = static_cast<int>(state_.character.equipped().size()) +
@@ -81,9 +81,9 @@ ftxui::Element Tui::RenderFrame() {
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
-  if (mode_ == kItemMenu) {
+  if (screen_ == kItemMenu) {
     if (event == ftxui::Event::Escape) {
-      mode_ = kMain;
+      screen_ = kMain;
       return true;
     }
     if (event == ftxui::Event::ArrowUp) {
@@ -95,52 +95,56 @@ bool Tui::OnEvent(ftxui::Event event) {
       return true;
     }
     if (event == ftxui::Event::Return) {
-      if (panel_focus_ == 0 && active_menu_->selected() == 0) {
+      if (panel_focus_ == kEquipPanel && active_menu_->selected() == 0) {
         state_.character.Unequip(equip_panel_.selected_slot());
         if (state_.character.equipped().empty()) {
-          panel_focus_ = 1;
+          panel_focus_ = kBagPanel;
         }
-        mode_ = kMain;
-      } else if (panel_focus_ == 1 && active_menu_->selected() == 0) {
+        screen_ = kMain;
+      } else if (panel_focus_ == kBagPanel && active_menu_->selected() == 0) {
         state_.character.Equip(bag_panel_.selected());
         if (state_.character.inventory().empty()) {
-          panel_focus_ = 0;
+          panel_focus_ = kEquipPanel;
         }
-        mode_ = kMain;
-      } else if (panel_focus_ == 0 && active_menu_->selected() == 2) {
+        screen_ = kMain;
+      } else if (panel_focus_ == kEquipPanel && active_menu_->selected() == 2) {
         scroll_slot_ = equip_panel_.selected_slot();
-        mode_ = kScrollSelect;
-      } else if (panel_focus_ == 1 && active_menu_->selected() == 2) {
+        screen_ = kScrollSelect;
+      } else if (panel_focus_ == kBagPanel && active_menu_->selected() == 2) {
         scroll_index_ = bag_panel_.selected();
-        mode_ = kScrollSelect;
+        screen_ = kScrollSelect;
       } else {
-        mode_ = kMain;
+        screen_ = kMain;
       }
       return true;
     }
     return true;
   }
-  if (mode_ == kScrollSelect) {
+  if (screen_ == kScrollSelect) {
     if (event == ftxui::Event::Escape) {
-      mode_ = kItemMenu;
+      screen_ = kItemMenu;
       return true;
     }
     if (event == ftxui::Event::Return) {
-      if (panel_focus_ == 0) {
+      if (panel_focus_ == kEquipPanel) {
         state_.character.ScrollEquipped(scroll_slot_,
                                         scroll_panel_.selected_scroll());
       } else {
         state_.character.ScrollInventory(scroll_index_,
                                          scroll_panel_.selected_scroll());
       }
-      mode_ = kMain;
+      screen_ = kMain;
       return true;
     }
     scroll_component_->OnEvent(event);
     return true;
   }
   if (event == ftxui::Event::Tab) {
-    panel_focus_ = (panel_focus_ + 1) % 2;
+    if (panel_focus_ == kEquipPanel) {
+      panel_focus_ = kBagPanel;
+    } else {
+      panel_focus_ = kEquipPanel;
+    }
     return true;
   }
   return false;
