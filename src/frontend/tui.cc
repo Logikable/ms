@@ -93,12 +93,16 @@ ftxui::Element Tui::RenderFrame() {
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
+  Screen prev = controller_.screen();
   if (!controller_.OnEvent(event)) {
     if (controller_.screen() == kScrollSelect) {
       scroll_component_->OnEvent(event);
       return true;
     }
     return false;
+  }
+  if (controller_.screen() == kScrollSelect && prev != kScrollSelect) {
+    scroll_component_ = scroll_panel_.MakeComponent();
   }
   return true;
 }
