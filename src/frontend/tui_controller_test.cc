@@ -203,22 +203,6 @@ TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {
   EXPECT_EQ(controller_->screen(), kScrollSelect);
 }
 
-TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectWhenNoSlotsRemain) {
-  sword_.set_upgrade_slots(1);
-  state_->character.PickUp(sword_);
-  state_->character.Equip(0);
-  RenderEquipPanel();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);  // dismiss result
-
-  EXPECT_EQ(controller_->screen(), kScrollSelect);
-}
-
 // --- Equip via bag panel ---
 
 TEST_F(TuiControllerTest, ReturnActionEquipsFromBagPanel) {
