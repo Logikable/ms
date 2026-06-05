@@ -24,10 +24,6 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       scrolls(std::move(scrolls_arg)),
       rng(std::random_device{}()),
       character(rng, MakeStartingCharacterProto()) {
-  character.PickUp(equips.at("sword"));
-  character.Equip(0);
-  character.PickUp(equips.at("long_sword"));
-  character.PickUp(equips.at("sabre"));
 }
 
 }  // namespace ms

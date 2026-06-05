@@ -143,6 +143,24 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "tui_controller_test",
+    srcs = ["tui_controller_test.cc"],
+    deps = [
+        ":bag_panel",
+        ":equipped_panel",
+        ":scroll_panel",
+        ":tui_controller",
+        "//src:game_state",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "tui",
     srcs = ["tui.cc"],

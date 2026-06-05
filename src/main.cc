@@ -30,6 +30,10 @@ int main(int argc, char** argv) {
       ms::LoadTextProtoDir<ms::Scroll>(runfiles->Rlocation("ms/data/scrolls"));
 
   ms::GameState state(std::move(equips), std::move(scrolls));
+  state.character.PickUp(state.equips.at("sword"));
+  state.character.Equip(0);
+  state.character.PickUp(state.equips.at("long_sword"));
+  state.character.PickUp(state.equips.at("sabre"));
   ms::Tui(state).Run();
   return 0;
 }
