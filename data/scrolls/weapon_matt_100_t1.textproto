@@ -6,3 +6,4 @@ stats {
 }
 applicable_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
 applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_MATT

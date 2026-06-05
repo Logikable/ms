@@ -13,6 +13,21 @@ enum ScrollTier {
   SCROLL_TIER_3 = 3;
 }
 
+// Primary stat boosted by the scroll. Values are ordered for display: the
+// scroll list in the UI is sorted by ScrollType ascending, then by
+// success_rate descending within each type.
+enum ScrollType {
+  SCROLL_TYPE_UNSPECIFIED = 0;
+  SCROLL_TYPE_ATT = 1;
+  SCROLL_TYPE_MATT = 2;
+  SCROLL_TYPE_STR = 3;
+  SCROLL_TYPE_DEX = 4;
+  SCROLL_TYPE_INT = 5;
+  SCROLL_TYPE_LUK = 6;
+  SCROLL_TYPE_HP = 7;
+  SCROLL_TYPE_DEF = 8;
+}
+
 // One Scroll represents a single, fully-specified scroll option,
 // e.g. "Spell Trace 100% STR, Warrior, Tier 1".
 message Scroll {
@@ -22,4 +37,5 @@ message Scroll {
   ScrollTier tier = 3;
   EquipStats stats = 4;
   repeated EquipJobCategory applicable_job_categories = 5;
+  ScrollType scroll_type = 6;
 }

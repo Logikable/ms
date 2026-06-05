@@ -13,15 +13,28 @@
 
 namespace ms {
 
+namespace {
+
+bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
+  if (a->scroll_type() != b->scroll_type()) {
+    return a->scroll_type() < b->scroll_type();
+  }
+  return a->success_rate() > b->success_rate();
+}
+
+}  // namespace
+
 ScrollPanel::ScrollPanel(const std::map<std::string, Scroll>& scrolls)
     : scrolls_(scrolls) {
   for (const std::pair<const std::string, Scroll>& kv : scrolls_) {
     ordered_.push_back(&kv.second);
   }
+  std::sort(ordered_.begin(), ordered_.end(), ByTypeAndRate);
 }
 
 void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered) {
   ordered_ = std::move(filtered);
+  std::sort(ordered_.begin(), ordered_.end(), ByTypeAndRate);
   selected_ = 0;
 }
 
