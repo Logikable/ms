@@ -3,8 +3,8 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "tui_types",
-    hdrs = ["tui_types.h"],
+    name = "types",
+    hdrs = ["types.h"],
 )
 
 cc_library(
@@ -25,7 +25,7 @@ cc_library(
     deps = [
         ":item_menu",
         ":scroll_panel",
-        ":tui_types",
+        ":types",
         "//src:character",
         "//src:equip_instance",
         "//src/protos:equip_proto_cc",
@@ -41,7 +41,7 @@ cc_library(
     deps = [
         ":item_menu",
         ":scroll_panel",
-        ":tui_types",
+        ":types",
         "//src:character",
         "//src:equip_instance",
         "//src/protos:equip_proto_cc",
@@ -146,7 +146,7 @@ cc_library(
         ":bag_panel",
         ":equipped_panel",
         ":scroll_panel",
-        ":tui_types",
+        ":types",
         "//src:character",
         "//src:equip_instance",
         "//src:game_state",

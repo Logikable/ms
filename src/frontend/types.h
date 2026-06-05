@@ -1,5 +1,5 @@
-#ifndef MS_SRC_FRONTEND_TUI_TYPES_H_
-#define MS_SRC_FRONTEND_TUI_TYPES_H_
+#ifndef MS_SRC_FRONTEND_TYPES_H_
+#define MS_SRC_FRONTEND_TYPES_H_
 
 #include <string>
 
@@ -19,4 +19,4 @@ struct ScrollResult {
 
 }  // namespace ms
 
-#endif  // MS_SRC_FRONTEND_TUI_TYPES_H_
+#endif  // MS_SRC_FRONTEND_TYPES_H_

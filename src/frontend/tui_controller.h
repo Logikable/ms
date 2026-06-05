@@ -13,7 +13,7 @@
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
-#include "src/frontend/tui_types.h"
+#include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
 

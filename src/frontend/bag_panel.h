@@ -16,7 +16,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/character.h"
 #include "src/frontend/item_menu.h"
-#include "src/frontend/tui_types.h"
+#include "src/frontend/types.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
