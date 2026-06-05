@@ -114,6 +114,19 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "scroll_panel_test",
+    srcs = ["scroll_panel_test.cc"],
+    deps = [
+        ":scroll_panel",
+        "//src/protos:scroll_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "tui",
     srcs = ["tui.cc"],
