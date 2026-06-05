@@ -49,8 +49,26 @@ void Tui::Run() {
 }
 
 ftxui::Element Tui::RenderFrame() {
-  if (controller_.screen() == kScrollSelect) {
-    return scroll_component_->Render() | ftxui::flex;
+  if (controller_.screen() == kScrollSelect ||
+      controller_.screen() == kScrollResult) {
+    ftxui::Element base = scroll_component_->Render() | ftxui::flex;
+    if (controller_.screen() == kScrollResult) {
+      const ScrollResult& r = controller_.scroll_result();
+      ftxui::Element dialog = ftxui::window(
+          ftxui::text(" Result "),
+          ftxui::vbox({
+              ftxui::text(r.equip_name + "  |  " + r.scroll_name),
+              ftxui::separator(),
+              ftxui::text(r.success ? "SUCCESS" : "FAILED") | ftxui::hcenter,
+              ftxui::text(std::to_string(r.slots_remaining) +
+                          " slots remaining") |
+                  ftxui::hcenter,
+              ftxui::text(""),
+              ftxui::text("Press Enter to continue"),
+          }));
+      return ftxui::dbox({base, ftxui::center(dialog | ftxui::clear_under)});
+    }
+    return base;
   }
   equip_panel_.SetShowSelection(controller_.screen() == kMain);
   bag_panel_.SetShowSelection(controller_.screen() == kMain);
@@ -64,21 +82,6 @@ ftxui::Element Tui::RenderFrame() {
       }),
       ftxui::filler(),
   });
-  if (controller_.screen() == kScrollResult) {
-    const ScrollResult& r = controller_.scroll_result();
-    ftxui::Element dialog = ftxui::window(
-        ftxui::text(" Result "),
-        ftxui::vbox({
-            ftxui::text(r.equip_name + "  |  " + r.scroll_name),
-            ftxui::separator(),
-            ftxui::text(r.success ? "SUCCESS" : "FAILED") | ftxui::hcenter,
-            ftxui::text(std::to_string(r.slots_remaining) + " slots remaining") |
-                ftxui::hcenter,
-            ftxui::text(""),
-            ftxui::text("Press Enter to continue"),
-        }));
-    return ftxui::dbox({layout, ftxui::center(dialog) | ftxui::clear_under});
-  }
   if (controller_.screen() != kItemMenu) {
     return layout;
   }
