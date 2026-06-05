@@ -104,7 +104,9 @@ ftxui::Element Tui::RenderFrame() {
     menu_row = static_cast<int>(state_.character.equipped().size()) +
                bag_panel_.selected();
   }
-  return ftxui::dbox({layout, controller_.active_menu().Render(menu_row, 22)});
+  ItemMenu& menu =
+      panel_focus_ == kEquipPanel ? equip_panel_.menu() : bag_panel_.menu();
+  return ftxui::dbox({layout, menu.Render(menu_row, 22)});
 }
 
 bool Tui::OnEvent(ftxui::Event event) {

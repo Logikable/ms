@@ -8,16 +8,55 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/scroll_panel.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
 
 BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
-    : character_(character), panel_focus_(panel_focus) {
+    : character_(character),
+      panel_focus_(panel_focus),
+      menu_({"Equip", "Inspect", "Scroll"}) {
 }
 
 void BagPanel::SetShowSelection(bool show) {
   show_selection_ = show;
+}
+
+void BagPanel::OpenMenu() {
+  menu_.Reset();
+}
+
+Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
+                             ScrollPanel& scroll_panel) {
+  if (event == ftxui::Event::Escape) {
+    return kMain;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    menu_.Up();
+    return kItemMenu;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    menu_.Down();
+    return kItemMenu;
+  }
+  if (event == ftxui::Event::Return) {
+    if (menu_.selected() == kMenuAction) {
+      character_.Equip(selected_);
+      if (character_.inventory().empty()) {
+        panel_focus = kEquipPanel;
+      }
+      return kMain;
+    }
+    if (menu_.selected() == kMenuScroll) {
+      if (scroll_panel.SetFilterForPrototype(
+              character_.inventory()[selected_].prototype())) {
+        return kScrollSelect;
+      }
+    }
+    return kMain;
+  }
+  return kItemMenu;
 }
 
 ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {

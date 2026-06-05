@@ -13,16 +13,29 @@
 #include <vector>
 
 #include "ftxui/component/component.hpp"
+#include "ftxui/component/event.hpp"
 #include "src/character.h"
+#include "src/frontend/item_menu.h"
+#include "src/frontend/tui_types.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
+
+class ScrollPanel;
 
 class EquippedPanel {
  public:
   EquippedPanel(CharacterInstance& character, int& panel_focus);
   ftxui::Component MakeComponent(std::function<void()> on_enter);
   void SetShowSelection(bool show);
+  void OpenMenu();
+  ItemMenu& menu() {
+    return menu_;
+  }
+  // Handles Up/Down/Escape/Return for the item context menu and executes the
+  // selected action. Returns the next screen state.
+  Screen OnMenuEvent(ftxui::Event event, int& panel_focus,
+                     ScrollPanel& scroll_panel);
   int selected() const {
     return selected_;
   }
@@ -40,6 +53,7 @@ class EquippedPanel {
   int selected_ = 0;
   std::vector<std::string> entries_;
   std::vector<EquipSlot> slots_;
+  ItemMenu menu_;
 };
 
 }  // namespace ms

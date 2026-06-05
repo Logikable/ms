@@ -9,16 +9,55 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
 #include "src/equip_stats.h"
+#include "src/frontend/scroll_panel.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
 
 EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
-    : character_(character), panel_focus_(panel_focus) {
+    : character_(character),
+      panel_focus_(panel_focus),
+      menu_({"Unequip", "Inspect", "Scroll"}) {
 }
 
 void EquippedPanel::SetShowSelection(bool show) {
   show_selection_ = show;
+}
+
+void EquippedPanel::OpenMenu() {
+  menu_.Reset();
+}
+
+Screen EquippedPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
+                                  ScrollPanel& scroll_panel) {
+  if (event == ftxui::Event::Escape) {
+    return kMain;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    menu_.Up();
+    return kItemMenu;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    menu_.Down();
+    return kItemMenu;
+  }
+  if (event == ftxui::Event::Return) {
+    if (menu_.selected() == kMenuAction) {
+      character_.Unequip(selected_slot());
+      if (character_.equipped().empty()) {
+        panel_focus = kBagPanel;
+      }
+      return kMain;
+    }
+    if (menu_.selected() == kMenuScroll) {
+      if (scroll_panel.SetFilterForPrototype(
+              character_.equipped().at(selected_slot()).prototype())) {
+        return kScrollSelect;
+      }
+    }
+    return kMain;
+  }
+  return kItemMenu;
 }
 
 EquipSlot EquippedPanel::selected_slot() const {

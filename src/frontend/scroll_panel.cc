@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -22,6 +23,16 @@ bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
   return a->success_rate() > b->success_rate();
 }
 
+ScrollTier TierForLevel(int required_level) {
+  if (required_level >= 115) {
+    return SCROLL_TIER_3;
+  }
+  if (required_level >= 75) {
+    return SCROLL_TIER_2;
+  }
+  return SCROLL_TIER_1;
+}
+
 }  // namespace
 
 ScrollPanel::ScrollPanel(const std::map<std::string, Scroll>& scrolls)
@@ -31,6 +42,29 @@ ScrollPanel::ScrollPanel(const std::map<std::string, Scroll>& scrolls)
   }
   std::sort(ordered_.begin(), ordered_.end(), ByTypeAndRate);
   ResetComponent();
+}
+
+bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
+  ScrollTier item_tier = TierForLevel(proto.required_level());
+  std::set<int> item_cats(proto.equip_job_categories().begin(),
+                          proto.equip_job_categories().end());
+  std::vector<const Scroll*> filtered;
+  for (const std::pair<const std::string, Scroll>& kv : scrolls_) {
+    if (kv.second.tier() != item_tier) {
+      continue;
+    }
+    for (int scroll_cat : kv.second.applicable_job_categories()) {
+      if (item_cats.count(scroll_cat)) {
+        filtered.push_back(&kv.second);
+        break;
+      }
+    }
+  }
+  if (filtered.empty()) {
+    return false;
+  }
+  SetFilter(std::move(filtered));
+  return true;
 }
 
 void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered) {

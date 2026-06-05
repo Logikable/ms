@@ -95,7 +95,7 @@ TEST_F(TuiControllerTest, EscapeInItemMenuGoesToMain) {
 TEST_F(TuiControllerTest, ArrowDownInItemMenuAdvancesMenuSelection) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(controller_->active_menu().selected(), 1);
+  EXPECT_EQ(equip_panel_->menu().selected(), 1);
 }
 
 // --- Unequip ---
@@ -152,7 +152,8 @@ TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
   EXPECT_EQ(controller_->screen(), kItemMenu);
 }
 
-TEST_F(TuiControllerTest, ReturnInScrollSelectAppliesScrollAndGoesToScrollResult) {
+TEST_F(TuiControllerTest,
+       ReturnInScrollSelectAppliesScrollAndGoesToScrollResult) {
   state_->character.PickUp(sword_);
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -188,7 +189,8 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
 }
 
-TEST_F(TuiControllerTest, NoSlotsRemainingGoesToScrollResultWithNoSlotsOutcome) {
+TEST_F(TuiControllerTest,
+       NoSlotsRemainingGoesToScrollResultWithNoSlotsOutcome) {
   sword_.set_upgrade_slots(0);
   state_->character.PickUp(sword_);
   state_->character.Equip(0);

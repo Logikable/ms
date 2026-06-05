@@ -13,6 +13,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
+#include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
@@ -23,6 +24,10 @@ class ScrollPanel {
   // Replaces the displayed scroll list and resets selection to 0. Call before
   // entering kScrollSelect to show only scrolls applicable to the target item.
   void SetFilter(std::vector<const Scroll*> filtered);
+  // Filters to scrolls applicable to proto by tier and job category, then
+  // calls SetFilter. Returns false (and does not update the filter) if no
+  // scrolls match.
+  bool SetFilterForPrototype(const EquipPrototype& proto);
   ftxui::Element Render();
   bool OnEvent(ftxui::Event event);
   // Returns the scroll at the current selection.
