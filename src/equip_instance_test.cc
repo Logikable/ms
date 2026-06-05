@@ -68,8 +68,9 @@ TEST_F(EquipInstanceTest, SeededRngProducesBothOutcomes) {
   EquipInstance item(proto);
   int successes = 0;
   for (int i = 0; i < 20; ++i) {
-    if (item.Scroll(MakeScroll(50, 1), rng_))
+    if (item.Scroll(MakeScroll(50, 1), rng_)) {
       ++successes;
+    }
   }
   EXPECT_GT(successes, 0);
   EXPECT_LT(successes, 20);
