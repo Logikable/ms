@@ -1,5 +1,10 @@
 #include "src/frontend/tui_controller.h"
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
 #include "ftxui/component/event.hpp"
 #include "src/character.h"
 #include "src/frontend/bag_panel.h"
@@ -8,8 +13,23 @@
 #include "src/frontend/scroll_panel.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
+
+namespace {
+
+ScrollTier TierForLevel(int required_level) {
+  if (required_level >= 115) {
+    return SCROLL_TIER_3;
+  }
+  if (required_level >= 75) {
+    return SCROLL_TIER_2;
+  }
+  return SCROLL_TIER_1;
+}
+
+}  // namespace
 
 TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
                              BagPanel& bag_panel, ScrollPanel& scroll_panel,
@@ -28,6 +48,26 @@ void TuiController::OpenEquipMenu() {
   screen_ = kItemMenu;
   active_menu_ = &equip_menu_;
   equip_menu_.Reset();
+}
+
+std::vector<const Scroll*> TuiController::FilterScrolls(
+    const EquipPrototype& proto, const std::map<std::string, Scroll>& scrolls) {
+  ScrollTier item_tier = TierForLevel(proto.required_level());
+  std::set<int> item_cats(proto.equip_job_categories().begin(),
+                          proto.equip_job_categories().end());
+  std::vector<const Scroll*> result;
+  for (const std::pair<const std::string, Scroll>& kv : scrolls) {
+    if (kv.second.tier() != item_tier) {
+      continue;
+    }
+    for (int scroll_cat : kv.second.applicable_job_categories()) {
+      if (item_cats.count(scroll_cat)) {
+        result.push_back(&kv.second);
+        break;
+      }
+    }
+  }
+  return result;
 }
 
 void TuiController::OpenBagMenu() {
@@ -68,11 +108,23 @@ bool TuiController::OnEvent(ftxui::Event event) {
       } else if (panel_focus_ == kEquipPanel &&
                  active_menu_->selected() == kMenuScroll) {
         scroll_slot_ = equip_panel_.selected_slot();
-        screen_ = kScrollSelect;
+        std::vector<const Scroll*> filtered = FilterScrolls(
+            state_.character.equipped().at(scroll_slot_).prototype(),
+            state_.scrolls);
+        if (!filtered.empty()) {
+          scroll_panel_.SetFilter(std::move(filtered));
+          screen_ = kScrollSelect;
+        }
       } else if (panel_focus_ == kBagPanel &&
                  active_menu_->selected() == kMenuScroll) {
         scroll_index_ = bag_panel_.selected();
-        screen_ = kScrollSelect;
+        std::vector<const Scroll*> filtered = FilterScrolls(
+            state_.character.inventory()[scroll_index_].prototype(),
+            state_.scrolls);
+        if (!filtered.empty()) {
+          scroll_panel_.SetFilter(std::move(filtered));
+          screen_ = kScrollSelect;
+        }
       } else {
         screen_ = kMain;
       }

@@ -139,6 +139,7 @@ cc_library(
         "//src:character",
         "//src:game_state",
         "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
         "@ftxui//:component",
     ],
 )

@@ -22,6 +22,9 @@ class ScrollPanel {
  public:
   explicit ScrollPanel(const std::map<std::string, Scroll>& scrolls);
   ftxui::Component MakeComponent();
+  // Replaces the displayed scroll list and resets selection to 0. Call before
+  // entering kScrollSelect to show only scrolls applicable to the target item.
+  void SetFilter(std::vector<const Scroll*> filtered);
   // Returns the scroll at the current selection.
   const Scroll& selected_scroll() const;
   int selected() const {

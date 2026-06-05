@@ -20,6 +20,11 @@ ScrollPanel::ScrollPanel(const std::map<std::string, Scroll>& scrolls)
   }
 }
 
+void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered) {
+  ordered_ = std::move(filtered);
+  selected_ = 0;
+}
+
 const Scroll& ScrollPanel::selected_scroll() const {
   return *ordered_[selected_];
 }

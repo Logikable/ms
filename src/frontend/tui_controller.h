@@ -50,6 +50,13 @@ class TuiController {
   }
 
  private:
+  // Returns pointers into state.scrolls for scrolls applicable to proto.
+  // A scroll matches if its applicable_job_categories overlaps with the
+  // prototype's equip_job_categories.
+  static std::vector<const Scroll*> FilterScrolls(
+      const EquipPrototype& proto,
+      const std::map<std::string, Scroll>& scrolls);
+
   GameState& state_;
   EquippedPanel& equip_panel_;
   BagPanel& bag_panel_;

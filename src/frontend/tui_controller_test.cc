@@ -26,11 +26,14 @@ class TuiControllerTest : public testing::Test {
     sword_.set_name("Sword");
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     sword_.set_upgrade_slots(3);
+    sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
 
     Scroll scroll;
     scroll.set_name("Test Scroll");
     scroll.set_success_rate(100);
+    scroll.set_tier(SCROLL_TIER_1);
     scroll.mutable_stats()->set_attack(5);
+    scroll.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
 
     std::map<std::string, EquipPrototype> equips;
     equips["Sword"] = sword_;
