@@ -166,7 +166,7 @@ bool TuiController::OnEvent(ftxui::Event event) {
   }
   if (screen_ == kScrollResult) {
     if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
-      screen_ = kMain;
+      screen_ = kScrollSelect;
     }
     return true;
   }

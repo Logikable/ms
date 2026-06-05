@@ -187,7 +187,7 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
 }
 
-TEST_F(TuiControllerTest, EnterInScrollResultGoesToMain) {
+TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {
   state_->character.PickUp(sword_);
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -199,7 +199,24 @@ TEST_F(TuiControllerTest, EnterInScrollResultGoesToMain) {
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Return);  // dismiss result
 
-  EXPECT_EQ(controller_->screen(), kMain);
+  // Sword has 3 upgrade slots; one was used, 2 remain.
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
+}
+
+TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectWhenNoSlotsRemain) {
+  sword_.set_upgrade_slots(1);
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // dismiss result
+
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
 }
 
 // --- Equip via bag panel ---

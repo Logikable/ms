@@ -101,7 +101,8 @@ bool Tui::OnEvent(ftxui::Event event) {
     }
     return false;
   }
-  if (controller_.screen() == kScrollSelect && prev != kScrollSelect) {
+  if (controller_.screen() == kScrollSelect && prev != kScrollSelect &&
+      prev != kScrollResult) {
     scroll_component_ = scroll_panel_.MakeComponent();
   }
   return true;
