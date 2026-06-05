@@ -98,6 +98,18 @@ TEST_F(TuiControllerTest, ArrowDownInItemMenuAdvancesMenuSelection) {
   EXPECT_EQ(equip_panel_->menu().selected(), 1);
 }
 
+TEST_F(TuiControllerTest, InspectActionGoesToMain) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
 // --- Unequip ---
 
 TEST_F(TuiControllerTest, ReturnActionUnequipsFromEquipPanel) {
@@ -219,8 +231,129 @@ TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Return);  // dismiss result
 
-  // Sword has 3 upgrade slots; one was used, 2 remain.
   EXPECT_EQ(controller_->screen(), kScrollSelect);
+}
+
+TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);  // dismiss result
+
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
+}
+
+TEST_F(TuiControllerTest, ScrollResultSlotsRemainingIsDecrementedOnSuccess) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  // sword_ has 3 upgrade slots; one was consumed.
+  EXPECT_EQ(controller_->scroll_result().slots_remaining, 2);
+}
+
+TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
+  Scroll fail_scroll;
+  fail_scroll.set_name("Fail Scroll");
+  fail_scroll.set_success_rate(0);
+  fail_scroll.set_tier(SCROLL_TIER_1);
+  fail_scroll.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  fail_scroll.mutable_stats()->set_attack(5);
+  std::map<std::string, EquipPrototype> equips;
+  equips["Sword"] = sword_;
+  std::map<std::string, Scroll> scrolls;
+  scrolls["Fail Scroll"] = fail_scroll;
+  GameState s(std::move(equips), std::move(scrolls));
+  int focus = kEquipPanel;
+  EquippedPanel ep(s.character, focus);
+  BagPanel bp(s.character, focus);
+  ScrollPanel sp(s.scrolls);
+  TuiController ctrl(s, ep, bp, sp, focus);
+  ftxui::Component comp = ep.MakeComponent([]() {});
+
+  s.character.PickUp(sword_);
+  s.character.Equip(0);
+  ftxui::Screen scr =
+      ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                            ftxui::Dimension::Fixed(5));
+  ftxui::Render(scr, comp->Render());
+
+  ctrl.OpenEquipMenu();
+  ctrl.OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  ctrl.OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  ctrl.OnEvent(ftxui::Event::Return);     // enter kScrollSelect
+  ctrl.OnEvent(ftxui::Event::Return);     // apply scroll
+
+  EXPECT_EQ(ctrl.scroll_result().outcome, kScrollFail);
+}
+
+// --- Scroll via bag panel ---
+
+TEST_F(TuiControllerTest, BagScrollGoesToScrollSelect) {
+  state_->character.PickUp(sword_);
+  panel_focus_ = kBagPanel;
+
+  controller_->OpenBagMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
+}
+
+TEST_F(TuiControllerTest, BagScrollEscapeFromScrollSelectGoesToItemMenu) {
+  state_->character.PickUp(sword_);
+  panel_focus_ = kBagPanel;
+
+  controller_->OpenBagMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(controller_->screen(), kItemMenu);
+}
+
+TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
+  state_->character.PickUp(sword_);
+  panel_focus_ = kBagPanel;
+
+  controller_->OpenBagMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // apply scroll
+
+  EXPECT_EQ(controller_->screen(), kScrollResult);
+  EXPECT_EQ(state_->character.inventory()[0].proto().scroll_stats().attack(),
+            5);
+}
+
+TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
+  state_->character.PickUp(sword_);
+  panel_focus_ = kBagPanel;
+
+  controller_->OpenBagMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
+  EXPECT_EQ(controller_->scroll_result().equip_name, "Sword");
+  EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
 }
 
 // --- Equip via bag panel ---

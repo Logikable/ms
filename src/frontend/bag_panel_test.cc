@@ -51,5 +51,23 @@ TEST_F(BagPanelTest, ShowsItemLevel) {
             std::string::npos);
 }
 
+TEST_F(BagPanelTest, ShowsWarriorJobCategory) {
+  c_.PickUp(sword_);  // sword_ has EQUIP_JOB_CATEGORY_WARRIOR
+  BagPanel panel(c_, panel_focus_);
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Warrior"),
+            std::string::npos);
+}
+
+TEST_F(BagPanelTest, ShowsAllForUniversalItem) {
+  EquipPrototype axe;
+  axe.set_name("Axe");
+  axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  axe.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.PickUp(axe);
+  BagPanel panel(c_, panel_focus_);
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("All"),
+            std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

@@ -130,6 +130,7 @@ cc_test(
     srcs = ["scroll_panel_test.cc"],
     deps = [
         ":scroll_panel",
+        "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",

@@ -46,5 +46,18 @@ TEST_F(EquippedPanelTest, SetShowSelectionFalseHidesCursorPreservesIndent) {
   EXPECT_NE(rendered.find("  Sword"), std::string::npos);
 }
 
+TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {
+  c_.PickUp(sword_);
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_PRIMARY_WEAPON);
+}
+
+TEST_F(EquippedPanelTest, SelectedSlotReturnsUnspecifiedWhenEmpty) {
+  EquippedPanel panel(c_, panel_focus_);
+  EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
+}
+
 }  // namespace
 }  // namespace ms
