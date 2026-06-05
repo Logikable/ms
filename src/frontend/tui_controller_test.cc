@@ -183,8 +183,26 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Return);
 
+  EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
   EXPECT_EQ(controller_->scroll_result().equip_name, "Sword");
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
+}
+
+TEST_F(TuiControllerTest, NoSlotsRemainingGoesToScrollResultWithNoSlotsOutcome) {
+  sword_.set_upgrade_slots(0);
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kScrollResult);
+  EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
+  EXPECT_EQ(controller_->scroll_result().scroll_name, "");
 }
 
 TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {

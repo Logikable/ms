@@ -54,18 +54,32 @@ ftxui::Element Tui::RenderFrame() {
     ftxui::Element base = scroll_component_->Render() | ftxui::flex;
     if (controller_.screen() == kScrollResult) {
       const ScrollResult& r = controller_.scroll_result();
-      ftxui::Element dialog = ftxui::window(
-          ftxui::text(" Result "),
-          ftxui::vbox({
-              ftxui::text(r.equip_name + "  |  " + r.scroll_name),
-              ftxui::separator(),
-              ftxui::text(r.success ? "SUCCESS" : "FAILED") | ftxui::hcenter,
-              ftxui::text(std::to_string(r.slots_remaining) +
-                          " slots remaining") |
-                  ftxui::hcenter,
-              ftxui::text(""),
-              ftxui::text("Press Enter to continue"),
-          }));
+      ftxui::Element dialog;
+      if (r.outcome == kScrollNoSlots) {
+        dialog = ftxui::window(
+            ftxui::text(" Error "),
+            ftxui::vbox({
+                ftxui::text(r.equip_name) | ftxui::hcenter,
+                ftxui::separator(),
+                ftxui::text("No scroll slots remaining") | ftxui::hcenter,
+                ftxui::text(""),
+                ftxui::text("Press Enter to continue"),
+            }));
+      } else {
+        dialog = ftxui::window(
+            ftxui::text(" Result "),
+            ftxui::vbox({
+                ftxui::text(r.equip_name + "  |  " + r.scroll_name),
+                ftxui::separator(),
+                ftxui::text(r.outcome == kScrollSuccess ? "SUCCESS" : "FAILED") |
+                    ftxui::hcenter,
+                ftxui::text(std::to_string(r.slots_remaining) +
+                            " slots remaining") |
+                    ftxui::hcenter,
+                ftxui::text(""),
+                ftxui::text("Press Enter to continue"),
+            }));
+      }
       return ftxui::dbox({base, ftxui::center(dialog | ftxui::clear_under)});
     }
     return base;

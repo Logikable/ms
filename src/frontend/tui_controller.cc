@@ -138,27 +138,36 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return true;
     }
     if (event == ftxui::Event::Return) {
-      const Scroll& scroll = scroll_panel_.selected_scroll();
-      bool success;
       std::string equip_name;
       int slots_remaining;
+      const EquipInstance* item = nullptr;
       if (panel_focus_ == kEquipPanel) {
-        equip_name =
-            state_.character.equipped().at(scroll_slot_).prototype().name();
-        success = state_.character.ScrollEquipped(scroll_slot_, scroll);
-        slots_remaining = state_.character.equipped()
-                              .at(scroll_slot_)
-                              .proto()
-                              .remaining_upgrade_slots();
+        item = &state_.character.equipped().at(scroll_slot_);
       } else {
-        equip_name =
-            state_.character.inventory()[scroll_index_].prototype().name();
-        success = state_.character.ScrollInventory(scroll_index_, scroll);
-        slots_remaining = state_.character.inventory()[scroll_index_]
-                              .proto()
-                              .remaining_upgrade_slots();
+        item = &state_.character.inventory()[scroll_index_];
       }
-      scroll_result_ = {success, equip_name, scroll.name(), slots_remaining};
+      equip_name = item->prototype().name();
+      slots_remaining = item->proto().remaining_upgrade_slots();
+      if (slots_remaining == 0) {
+        scroll_result_ = {kScrollNoSlots, equip_name, "", 0};
+      } else {
+        const Scroll& scroll = scroll_panel_.selected_scroll();
+        bool success;
+        if (panel_focus_ == kEquipPanel) {
+          success = state_.character.ScrollEquipped(scroll_slot_, scroll);
+          slots_remaining = state_.character.equipped()
+                                .at(scroll_slot_)
+                                .proto()
+                                .remaining_upgrade_slots();
+        } else {
+          success = state_.character.ScrollInventory(scroll_index_, scroll);
+          slots_remaining = state_.character.inventory()[scroll_index_]
+                                .proto()
+                                .remaining_upgrade_slots();
+        }
+        scroll_result_ = {success ? kScrollSuccess : kScrollFail, equip_name,
+                          scroll.name(), slots_remaining};
+      }
       screen_ = kScrollResult;
       return true;
     }
