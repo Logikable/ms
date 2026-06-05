@@ -33,8 +33,6 @@ void Tui::Run() {
   bag_component_ =
       bag_panel_.MakeComponent([this]() { controller_.OpenBagMenu(); });
 
-  scroll_component_ = scroll_panel_.MakeComponent();
-
   ftxui::Component panels =
       ftxui::Container::Tab({equip_component_, bag_component_}, &panel_focus_);
 
@@ -48,38 +46,38 @@ void Tui::Run() {
   screen.Loop(root);
 }
 
+ftxui::Element Tui::ScrollResultDialog(const ScrollResult& r) {
+  if (r.outcome == kScrollNoSlots) {
+    return ftxui::window(
+        ftxui::text(" Error "),
+        ftxui::vbox({
+            ftxui::text(r.equip_name) | ftxui::hcenter,
+            ftxui::separator(),
+            ftxui::text("No scroll slots remaining") | ftxui::hcenter,
+            ftxui::text(""),
+            ftxui::text("Press Enter to continue"),
+        }));
+  }
+  return ftxui::window(
+      ftxui::text(" Result "),
+      ftxui::vbox({
+          ftxui::text(r.equip_name + "  |  " + r.scroll_name),
+          ftxui::separator(),
+          ftxui::text(r.outcome == kScrollSuccess ? "SUCCESS" : "FAILED") |
+              ftxui::hcenter,
+          ftxui::text(std::to_string(r.slots_remaining) + " slots remaining") |
+              ftxui::hcenter,
+          ftxui::text(""),
+          ftxui::text("Press Enter to continue"),
+      }));
+}
+
 ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kScrollSelect ||
       controller_.screen() == kScrollResult) {
-    ftxui::Element base = scroll_component_->Render() | ftxui::flex;
+    ftxui::Element base = scroll_panel_.Render() | ftxui::flex;
     if (controller_.screen() == kScrollResult) {
-      const ScrollResult& r = controller_.scroll_result();
-      ftxui::Element dialog;
-      if (r.outcome == kScrollNoSlots) {
-        dialog = ftxui::window(
-            ftxui::text(" Error "),
-            ftxui::vbox({
-                ftxui::text(r.equip_name) | ftxui::hcenter,
-                ftxui::separator(),
-                ftxui::text("No scroll slots remaining") | ftxui::hcenter,
-                ftxui::text(""),
-                ftxui::text("Press Enter to continue"),
-            }));
-      } else {
-        dialog = ftxui::window(
-            ftxui::text(" Result "),
-            ftxui::vbox({
-                ftxui::text(r.equip_name + "  |  " + r.scroll_name),
-                ftxui::separator(),
-                ftxui::text(r.outcome == kScrollSuccess ? "SUCCESS" : "FAILED") |
-                    ftxui::hcenter,
-                ftxui::text(std::to_string(r.slots_remaining) +
-                            " slots remaining") |
-                    ftxui::hcenter,
-                ftxui::text(""),
-                ftxui::text("Press Enter to continue"),
-            }));
-      }
+      ftxui::Element dialog = ScrollResultDialog(controller_.scroll_result());
       return ftxui::dbox({base, ftxui::center(dialog | ftxui::clear_under)});
     }
     return base;
@@ -110,17 +108,12 @@ ftxui::Element Tui::RenderFrame() {
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
-  Screen prev = controller_.screen();
   if (!controller_.OnEvent(event)) {
     if (controller_.screen() == kScrollSelect) {
-      scroll_component_->OnEvent(event);
+      scroll_panel_.OnEvent(event);
       return true;
     }
     return false;
-  }
-  if (controller_.screen() == kScrollSelect && prev != kScrollSelect &&
-      prev != kScrollResult) {
-    scroll_component_ = scroll_panel_.MakeComponent();
   }
   return true;
 }

@@ -5,7 +5,6 @@
 #include <map>
 #include <string>
 
-#include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
@@ -32,10 +31,10 @@ class ScrollPanelTest : public testing::Test {
     return scrolls;
   }
 
-  static std::string Render(ftxui::Component component) {
+  static std::string Render(ScrollPanel& panel) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(10));
-    ftxui::Render(screen, component->Render());
+    ftxui::Render(screen, panel.Render());
     return screen.ToString();
   }
 
@@ -54,36 +53,30 @@ TEST_F(ScrollPanelTest, SelectedScrollSortsByTypeThenRate) {
 }
 
 TEST_F(ScrollPanelTest, RenderShowsScrollName) {
-  ftxui::Component c = panel_.MakeComponent();
-  EXPECT_NE(Render(c).find("AAA Scroll"), std::string::npos);
+  EXPECT_NE(Render(panel_).find("AAA Scroll"), std::string::npos);
 }
 
 TEST_F(ScrollPanelTest, RenderShowsSuccessRate) {
-  ftxui::Component c = panel_.MakeComponent();
-  EXPECT_NE(Render(c).find("10%"), std::string::npos);
+  EXPECT_NE(Render(panel_).find("10%"), std::string::npos);
 }
 
 TEST_F(ScrollPanelTest, RenderShowsTier) {
-  ftxui::Component c = panel_.MakeComponent();
-  EXPECT_NE(Render(c).find("T1"), std::string::npos);
+  EXPECT_NE(Render(panel_).find("T1"), std::string::npos);
 }
 
 TEST_F(ScrollPanelTest, RenderShowsStat) {
-  ftxui::Component c = panel_.MakeComponent();
-  EXPECT_NE(Render(c).find("+5 ATT"), std::string::npos);
+  EXPECT_NE(Render(panel_).find("+5 ATT"), std::string::npos);
 }
 
 TEST_F(ScrollPanelTest, ArrowDownMovesSelection) {
-  ftxui::Component c = panel_.MakeComponent();
-  Render(c);  // populate entries_ so the menu knows its size
-  c->OnEvent(ftxui::Event::ArrowDown);
+  Render(panel_);  // populate entries_ so the menu knows its size
+  panel_.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel_.selected(), 1);
 }
 
 TEST_F(ScrollPanelTest, ArrowUpClampsAtFirst) {
-  ftxui::Component c = panel_.MakeComponent();
-  Render(c);
-  c->OnEvent(ftxui::Event::ArrowUp);
+  Render(panel_);
+  panel_.OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(panel_.selected(), 0);
 }
 

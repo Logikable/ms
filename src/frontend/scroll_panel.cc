@@ -30,21 +30,19 @@ ScrollPanel::ScrollPanel(const std::map<std::string, Scroll>& scrolls)
     ordered_.push_back(&kv.second);
   }
   std::sort(ordered_.begin(), ordered_.end(), ByTypeAndRate);
+  ResetComponent();
 }
 
 void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered) {
   ordered_ = std::move(filtered);
   std::sort(ordered_.begin(), ordered_.end(), ByTypeAndRate);
   selected_ = 0;
+  ResetComponent();
 }
 
-const Scroll& ScrollPanel::selected_scroll() const {
-  return *ordered_[selected_];
-}
-
-ftxui::Component ScrollPanel::MakeComponent() {
+void ScrollPanel::ResetComponent() {
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_);
-  return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
+  component_ = ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
     entries_.clear();
     for (const Scroll* scroll : ordered_) {
       entries_.push_back(FormatEntry(*scroll));
@@ -54,6 +52,18 @@ ftxui::Component ScrollPanel::MakeComponent() {
     }
     return ftxui::window(ftxui::text(" Scrolls "), menu->Render());
   });
+}
+
+ftxui::Element ScrollPanel::Render() {
+  return component_->Render();
+}
+
+bool ScrollPanel::OnEvent(ftxui::Event event) {
+  return component_->OnEvent(event);
+}
+
+const Scroll& ScrollPanel::selected_scroll() const {
+  return *ordered_[selected_];
 }
 
 void ScrollPanel::AppendStat(std::string& out, int val,

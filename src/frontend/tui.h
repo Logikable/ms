@@ -23,6 +23,7 @@ class Tui {
 
  private:
   ftxui::Element RenderFrame();
+  ftxui::Element ScrollResultDialog(const ScrollResult& r);
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
@@ -42,7 +43,6 @@ class Tui {
   // ftxui components built in Run().
   ftxui::Component equip_component_;
   ftxui::Component bag_component_;
-  ftxui::Component scroll_component_;
 };
 
 }  // namespace ms
