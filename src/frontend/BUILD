@@ -128,6 +128,22 @@ cc_test(
 )
 
 cc_library(
+    name = "tui_controller",
+    srcs = ["tui_controller.cc"],
+    hdrs = ["tui_controller.h"],
+    deps = [
+        ":bag_panel",
+        ":equipped_panel",
+        ":item_menu",
+        ":scroll_panel",
+        "//src:character",
+        "//src:game_state",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+    ],
+)
+
+cc_library(
     name = "tui",
     srcs = ["tui.cc"],
     hdrs = ["tui.h"],
@@ -137,6 +153,7 @@ cc_library(
         ":equipped_panel",
         ":item_menu",
         ":scroll_panel",
+        ":tui_controller",
         "//src:character",
         "//src:game_state",
         "@ftxui//:component",

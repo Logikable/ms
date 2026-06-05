@@ -1,6 +1,7 @@
 #include "src/frontend/tui.h"
 
 #include "ftxui/component/component.hpp"
+#include "ftxui/component/event.hpp"
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
@@ -9,6 +10,7 @@
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/item_menu.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
 
 namespace ms {
@@ -18,23 +20,16 @@ Tui::Tui(GameState& state)
       char_panel_(state.character),
       equip_panel_(state.character, panel_focus_),
       bag_panel_(state.character, panel_focus_),
-      equip_menu_({"Unequip", "Inspect", "Scroll"}),
-      bag_menu_({"Equip", "Inspect", "Scroll"}),
-      active_menu_(&equip_menu_),
-      scroll_panel_(state.scrolls) {
+      scroll_panel_(state.scrolls),
+      controller_(state, equip_panel_, bag_panel_, scroll_panel_,
+                  panel_focus_) {
 }
 
 void Tui::Run() {
-  equip_component_ = equip_panel_.MakeComponent([this]() {
-    screen_ = kItemMenu;
-    active_menu_ = &equip_menu_;
-    equip_menu_.Reset();
-  });
-  bag_component_ = bag_panel_.MakeComponent([this]() {
-    screen_ = kItemMenu;
-    active_menu_ = &bag_menu_;
-    bag_menu_.Reset();
-  });
+  equip_component_ =
+      equip_panel_.MakeComponent([this]() { controller_.OpenEquipMenu(); });
+  bag_component_ =
+      bag_panel_.MakeComponent([this]() { controller_.OpenBagMenu(); });
 
   scroll_component_ = scroll_panel_.MakeComponent();
 
@@ -52,11 +47,11 @@ void Tui::Run() {
 }
 
 ftxui::Element Tui::RenderFrame() {
-  if (screen_ == kScrollSelect) {
+  if (controller_.screen() == TuiController::kScrollSelect) {
     return scroll_component_->Render() | ftxui::flex;
   }
-  equip_panel_.SetShowSelection(screen_ == kMain);
-  bag_panel_.SetShowSelection(screen_ == kMain);
+  equip_panel_.SetShowSelection(controller_.screen() == TuiController::kMain);
+  bag_panel_.SetShowSelection(controller_.screen() == TuiController::kMain);
   ftxui::Element layout = ftxui::vbox({
       ftxui::hbox({
           char_panel_.Render() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
@@ -67,91 +62,28 @@ ftxui::Element Tui::RenderFrame() {
       }),
       ftxui::filler(),
   });
-  if (screen_ != kItemMenu) {
+  if (controller_.screen() != TuiController::kItemMenu) {
     return layout;
   }
   int menu_row = 0;
-  if (panel_focus_ == kEquipPanel) {
+  if (panel_focus_ == TuiController::kEquipPanel) {
     menu_row = equip_panel_.selected();
   } else {
     menu_row = static_cast<int>(state_.character.equipped().size()) +
                bag_panel_.selected();
   }
-  return ftxui::dbox({layout, active_menu_->Render(menu_row, 22)});
+  return ftxui::dbox({layout, controller_.active_menu().Render(menu_row, 22)});
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
-  if (screen_ == kItemMenu) {
-    if (event == ftxui::Event::Escape) {
-      screen_ = kMain;
+  if (!controller_.OnEvent(event)) {
+    if (controller_.screen() == TuiController::kScrollSelect) {
+      scroll_component_->OnEvent(event);
       return true;
     }
-    if (event == ftxui::Event::ArrowUp) {
-      active_menu_->Up();
-      return true;
-    }
-    if (event == ftxui::Event::ArrowDown) {
-      active_menu_->Down();
-      return true;
-    }
-    if (event == ftxui::Event::Return) {
-      if (panel_focus_ == kEquipPanel &&
-          active_menu_->selected() == kMenuAction) {
-        state_.character.Unequip(equip_panel_.selected_slot());
-        if (state_.character.equipped().empty()) {
-          panel_focus_ = kBagPanel;
-        }
-        screen_ = kMain;
-      } else if (panel_focus_ == kBagPanel &&
-                 active_menu_->selected() == kMenuAction) {
-        state_.character.Equip(bag_panel_.selected());
-        if (state_.character.inventory().empty()) {
-          panel_focus_ = kEquipPanel;
-        }
-        screen_ = kMain;
-      } else if (panel_focus_ == kEquipPanel &&
-                 active_menu_->selected() == kMenuScroll) {
-        scroll_slot_ = equip_panel_.selected_slot();
-        screen_ = kScrollSelect;
-      } else if (panel_focus_ == kBagPanel &&
-                 active_menu_->selected() == kMenuScroll) {
-        scroll_index_ = bag_panel_.selected();
-        screen_ = kScrollSelect;
-      } else {
-        screen_ = kMain;
-      }
-      return true;
-    }
-    return true;
+    return false;
   }
-  if (screen_ == kScrollSelect) {
-    if (event == ftxui::Event::Escape) {
-      screen_ = kItemMenu;
-      return true;
-    }
-    if (event == ftxui::Event::Return) {
-      if (panel_focus_ == kEquipPanel) {
-        state_.character.ScrollEquipped(scroll_slot_,
-                                        scroll_panel_.selected_scroll());
-      } else {
-        state_.character.ScrollInventory(scroll_index_,
-                                         scroll_panel_.selected_scroll());
-      }
-      screen_ = kMain;
-      return true;
-    }
-    scroll_component_->OnEvent(event);
-    return true;
-  }
-  if (event == ftxui::Event::Tab) {
-    if (panel_focus_ == kEquipPanel) {
-      panel_focus_ = kBagPanel;
-    } else {
-      panel_focus_ = kEquipPanel;
-    }
-    return true;
-  }
-  return false;
+  return true;
 }
 
 }  // namespace ms
