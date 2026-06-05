@@ -1,7 +1,6 @@
-/* ScrollPanel lists all available scrolls when the player selects "Scroll"
- * from an item's context menu. It replaces the main layout while
- * kScrollSelect mode is active. The caller reads selected_scroll() on Enter
- * to apply the scroll to the active equipped item.
+/* ScrollPanel lists available scrolls when the player selects "Scroll" from
+ * an item's context menu. It overlays the main layout while kScrollSelect is
+ * active. TuiController reads selected_scroll() on Enter to apply the scroll.
  */
 #ifndef MS_SRC_FRONTEND_SCROLL_PANEL_H_
 #define MS_SRC_FRONTEND_SCROLL_PANEL_H_

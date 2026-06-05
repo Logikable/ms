@@ -28,7 +28,7 @@ class Tui {
 
   GameState& state_;
   // Shared with equip_panel_, bag_panel_, and Container::Tab; mutated by
-  // controller_ as panel focus changes.
+  // controller_ (Tab) and panels (Equip/Unequip actions).
   int panel_focus_ = kEquipPanel;
 
   // Main view panels (always constructed; rendered in kMain and kItemMenu).
@@ -37,7 +37,7 @@ class Tui {
   BagPanel bag_panel_;
   ScrollPanel scroll_panel_;
 
-  // Screen-state machine: owns screen_, menus, and event-handling logic.
+  // Screen-state machine: owns screen_ and event-handling logic.
   TuiController controller_;
 
   // ftxui components built in Run().

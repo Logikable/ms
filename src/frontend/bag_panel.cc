@@ -64,6 +64,8 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   opt.on_enter = [on_enter]() { on_enter(); };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
+  // entries_ is rebuilt from inventory() on every render so the display stays
+  // in sync with changes made via on_enter.
   return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
     entries_.clear();
     for (const EquipInstance& item : character_.inventory()) {

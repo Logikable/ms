@@ -23,6 +23,7 @@ bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
   return a->success_rate() > b->success_rate();
 }
 
+// GMS tier cutoffs: T1 < 75, T2 75–114, T3 115+.
 ScrollTier TierForLevel(int required_level) {
   if (required_level >= 115) {
     return SCROLL_TIER_3;
@@ -76,6 +77,8 @@ void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered) {
 
 void ScrollPanel::ResetComponent() {
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_);
+  // entries_ is rebuilt from ordered_ on every render so the display stays
+  // in sync with SetFilter calls.
   component_ = ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
     entries_.clear();
     for (const Scroll* scroll : ordered_) {

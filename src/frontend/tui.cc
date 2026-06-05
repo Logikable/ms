@@ -101,6 +101,7 @@ ftxui::Element Tui::RenderFrame() {
   if (panel_focus_ == kEquipPanel) {
     menu_row = equip_panel_.selected();
   } else {
+    // Bag rows follow all equip rows in the vbox, so offset by equip count.
     menu_row = static_cast<int>(state_.character.equipped().size()) +
                bag_panel_.selected();
   }
