@@ -1,6 +1,7 @@
 /* BagPanel shows the inventory as a navigable menu. Each entry displays the
- * item index, name, required level, and applicable job categories. Enter opens
- * the item context menu via the on_enter callback passed to MakeComponent().
+ * item name, required level, applicable job categories, and remaining upgrade
+ * slots. Enter opens the item context menu via the on_enter callback passed to
+ * MakeComponent().
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -42,7 +43,6 @@ class BagPanel {
 
  private:
   static std::string PadRight(const std::string& s, int width);
-  static std::string PadLeft(const std::string& s, int width);
   static std::string FormatJobCategories(const EquipPrototype& proto);
 
   CharacterInstance& character_;

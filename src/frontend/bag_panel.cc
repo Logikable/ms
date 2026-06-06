@@ -12,6 +12,12 @@
 #include "src/protos/equip.pb.h"
 
 namespace ms {
+namespace {
+
+// Width of the level+job info column; slots column follows at a fixed offset.
+constexpr int kInfoWidth = 20;
+
+}  // namespace
 
 BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
@@ -74,10 +80,15 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
       if (proto.required_level() > 0) {
         level = proto.required_level();
       }
-      entries_.push_back("[" + PadLeft(std::to_string(entries_.size()), 2) +
-                         "] " + PadRight(proto.name(), 18) + "  Lv" +
-                         PadRight(std::to_string(level), 3) + "  " +
-                         FormatJobCategories(proto));
+      std::string info =
+          "Lv" + PadRight(std::to_string(level), 3) + "  " +
+          FormatJobCategories(proto);
+      while ((int)info.size() < kInfoWidth) {
+        info += ' ';
+      }
+      entries_.push_back(
+          PadRight(proto.name(), 18) + "  " + info + "  " +
+          std::to_string(item.proto().remaining_upgrade_slots()) + " slots");
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
@@ -101,13 +112,6 @@ std::string BagPanel::PadRight(const std::string& s, int width) {
     return s.substr(0, width);
   }
   return s + std::string(width - (int)s.size(), ' ');
-}
-
-std::string BagPanel::PadLeft(const std::string& s, int width) {
-  if ((int)s.size() >= width) {
-    return s.substr(0, width);
-  }
-  return std::string(width - (int)s.size(), ' ') + s;
 }
 
 // Returns "All" for universal items or a slash-separated list of job names.

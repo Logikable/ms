@@ -13,6 +13,12 @@
 #include "src/protos/equip.pb.h"
 
 namespace ms {
+namespace {
+
+// Width of the stats info column; slots column follows at a fixed offset.
+constexpr int kInfoWidth = 20;
+
+}  // namespace
 
 EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
@@ -82,16 +88,19 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
       slots_.push_back(kv.first);
       const EquipInstance& item = kv.second;
       const EquipStats stats = item.stats();
-      std::string line = PadRight(item.prototype().name(), 18) + "  ";
-      AppendStat(line, stats.attack(), "ATT");
-      AppendStat(line, stats.magic_attack(), "MATT");
-      AppendStat(line, stats.str(), "STR");
-      AppendStat(line, stats.dex(), "DEX");
-      AppendStat(line, stats.int_(), "INT");
-      AppendStat(line, stats.luk(), "LUK");
-      line += "  " + std::to_string(item.proto().remaining_upgrade_slots()) +
-              " slots";
-      entries_.push_back(line);
+      std::string info;
+      AppendStat(info, stats.attack(), "ATT");
+      AppendStat(info, stats.magic_attack(), "MATT");
+      AppendStat(info, stats.str(), "STR");
+      AppendStat(info, stats.dex(), "DEX");
+      AppendStat(info, stats.int_(), "INT");
+      AppendStat(info, stats.luk(), "LUK");
+      while ((int)info.size() < kInfoWidth) {
+        info += ' ';
+      }
+      entries_.push_back(
+          PadRight(item.prototype().name(), 18) + "  " + info + "  " +
+          std::to_string(item.proto().remaining_upgrade_slots()) + " slots");
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
