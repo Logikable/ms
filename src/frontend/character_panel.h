@@ -21,7 +21,7 @@ class CharacterPanel {
 
  private:
   static std::string JobName(Job job);
-  // Formats two label/value pairs on one line; left field is padded to 10
+  // Formats two label/value pairs on one line; left field is padded to 12
   // chars so the right label aligns regardless of left-side value width.
   static std::string StatLine(const std::string& l1, int v1,
                               const std::string& l2, int v2);

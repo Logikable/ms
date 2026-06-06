@@ -19,7 +19,7 @@ CharacterPanel::CharacterPanel(const CharacterInstance& character)
 std::string CharacterPanel::StatLine(const std::string& l1, int v1,
                                      const std::string& l2, int v2) {
   std::string left = l1 + ": " + std::to_string(v1);
-  while ((int)left.size() < 10) {
+  while ((int)left.size() < 12) {
     left += ' ';
   }
   return left + l2 + ": " + std::to_string(v2);
@@ -43,35 +43,35 @@ ftxui::Element CharacterPanel::Render() const {
   // Build all content strings padded to exact column widths so borders align.
   std::string title = "Lv" + lvl + " " + JobName(p.job());
   {
-    int pad = (20 - (int)title.size()) / 2;
+    int pad = (24 - (int)title.size()) / 2;
     if (pad > 0) {
       title = std::string(pad, ' ') + title;
     }
-    while ((int)title.size() < 20) {
+    while ((int)title.size() < 24) {
       title += ' ';
     }
   }
 
   std::string hp_mp = " " + StatLine("HP", a.hp() + e.max_hp(), "MP", a.mp());
-  while ((int)hp_mp.size() < 20) {
+  while ((int)hp_mp.size() < 24) {
     hp_mp += ' ';
   }
   std::string str_dex =
       " " + StatLine("STR", a.str() + e.str(), "DEX", a.dex() + e.dex());
-  while ((int)str_dex.size() < 20) {
+  while ((int)str_dex.size() < 24) {
     str_dex += ' ';
   }
   std::string int_luk =
       " " + StatLine("INT", a.int_() + e.int_(), "LUK", a.luk() + e.luk());
-  while ((int)int_luk.size() < 20) {
+  while ((int)int_luk.size() < 24) {
     int_luk += ' ';
   }
   std::string att = " ATT: " + std::to_string(e.attack());
-  while ((int)att.size() < 20) {
+  while ((int)att.size() < 24) {
     att += ' ';
   }
   std::string matt = " MATT: " + std::to_string(e.magic_attack());
-  while ((int)matt.size() < 20) {
+  while ((int)matt.size() < 24) {
     matt += ' ';
   }
 
@@ -82,18 +82,18 @@ ftxui::Element CharacterPanel::Render() const {
   }
 
   // Each row is a literal string; ┼ appears at the exact junction columns so
-  // no automerge is needed. Rows 2/6 are 28 wide (with AP balcony), rest 22.
+  // no automerge is needed. Rows 2/6 are 32 wide (with AP balcony), rest 26.
   return ftxui::vbox({
-      ftxui::text("╭ Character ─────────╮"),
+      ftxui::text("╭ Character ─────────────╮"),
       ftxui::text("│" + title + "│"),
-      ftxui::text("├────────────────────┼─────╮"),
+      ftxui::text("├────────────────────────┼─────╮"),
       ftxui::text("│" + hp_mp + "│ AP  │"),
       ftxui::text("│" + str_dex + "│" + ap_val + "│"),
       ftxui::text("│" + int_luk + "│     │"),
-      ftxui::text("├────────────────────┼─────╯"),
+      ftxui::text("├────────────────────────┼─────╯"),
       ftxui::text("│" + att + "│"),
       ftxui::text("│" + matt + "│"),
-      ftxui::text("╰────────────────────╯"),
+      ftxui::text("╰────────────────────────╯"),
   });
 }
 
