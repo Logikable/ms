@@ -86,7 +86,7 @@ ftxui::Element Tui::RenderFrame() {
   bag_panel_.SetShowSelection(controller_.screen() == kMain);
   ftxui::Element layout = ftxui::vbox({
       ftxui::hbox({
-          char_panel_.Render() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 22),
+          char_panel_.Render(),
           ftxui::vbox({
               equip_component_->Render(),
               bag_component_->Render(),
@@ -107,7 +107,7 @@ ftxui::Element Tui::RenderFrame() {
   }
   ItemMenu& menu =
       panel_focus_ == kEquipPanel ? equip_panel_.menu() : bag_panel_.menu();
-  return ftxui::dbox({layout, menu.Render(menu_row, 22)});
+  return ftxui::dbox({layout, menu.Render(menu_row, 28)});
 }
 
 bool Tui::OnEvent(ftxui::Event event) {

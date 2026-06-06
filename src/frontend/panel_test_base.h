@@ -29,14 +29,14 @@ class PanelTest : public testing::Test {
 
   static std::string RenderElement(ftxui::Element element) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                                 ftxui::Dimension::Fixed(10));
+                                                 ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, element);
     return screen.ToString();
   }
 
   static std::string RenderComponent(ftxui::Component component) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                                 ftxui::Dimension::Fixed(10));
+                                                 ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, component->Render());
     return screen.ToString();
   }
