@@ -16,6 +16,8 @@ namespace ms {
 
 namespace {
 
+constexpr int kNameWidth = 16;
+
 bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
   if (a->scroll_type() != b->scroll_type()) {
     return a->scroll_type() < b->scroll_type();
@@ -116,31 +118,15 @@ void ScrollPanel::AppendStat(std::string& out, int val,
 
 std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
   std::string name = scroll.name();
-  if ((int)name.size() < 28) {
-    name += std::string(28 - (int)name.size(), ' ');
+  if ((int)name.size() < kNameWidth) {
+    name += std::string(kNameWidth - (int)name.size(), ' ');
   } else {
-    name = name.substr(0, 28);
+    name = name.substr(0, kNameWidth);
   }
 
   std::string rate = std::to_string(scroll.success_rate()) + "%";
   while ((int)rate.size() < 4) {
     rate = " " + rate;
-  }
-
-  std::string tier;
-  switch (scroll.tier()) {
-    case SCROLL_TIER_1:
-      tier = "T1";
-      break;
-    case SCROLL_TIER_2:
-      tier = "T2";
-      break;
-    case SCROLL_TIER_3:
-      tier = "T3";
-      break;
-    default:
-      tier = "  ";
-      break;
   }
 
   std::string stats;
@@ -154,7 +140,7 @@ std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
   AppendStat(stats, s.max_hp(), "HP");
   AppendStat(stats, s.def(), "DEF");
 
-  return name + "  " + rate + "  " + tier + "  " + stats;
+  return name + "  " + rate + "  " + stats;
 }
 
 }  // namespace ms

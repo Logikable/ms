@@ -64,10 +64,6 @@ TEST_F(ScrollPanelTest, RenderShowsSuccessRate) {
   EXPECT_NE(Render(panel_).find("10%"), std::string::npos);
 }
 
-TEST_F(ScrollPanelTest, RenderShowsTier) {
-  EXPECT_NE(Render(panel_).find("T1"), std::string::npos);
-}
-
 TEST_F(ScrollPanelTest, RenderShowsStat) {
   EXPECT_NE(Render(panel_).find("+5 ATT"), std::string::npos);
 }
@@ -126,7 +122,8 @@ TEST_F(ScrollPanelTest, SetFilterForPrototypeReturnsTrueForMatch) {
 TEST_F(ScrollPanelTest, SetFilterForPrototypeReturnsFalseForNoMatch) {
   EquipPrototype proto;
   proto.set_required_level(1);  // tier 1
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_PIRATE);  // no pirate scrolls
+  proto.add_equip_job_categories(
+      EQUIP_JOB_CATEGORY_PIRATE);  // no pirate scrolls
   EXPECT_FALSE(panel_.SetFilterForPrototype(proto));
   // Filter unchanged; original first entry still selected.
   EXPECT_EQ(panel_.selected_scroll().name(), "AAA Scroll");

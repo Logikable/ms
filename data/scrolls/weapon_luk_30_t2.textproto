@@ -1,4 +1,4 @@
-name: "30% Weapon LUK"
+name: "30% LUK"
 success_rate: 30
 tier: SCROLL_TIER_2
 stats {
