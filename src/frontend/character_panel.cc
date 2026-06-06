@@ -13,9 +13,9 @@
 namespace ms {
 namespace {
 
-constexpr int kContentWidth = 24;    // chars between the │ borders
-constexpr int kStatLineLeft = 12;    // left field width in StatLine
-constexpr int kApWidth = 5;          // chars in the AP balcony column
+constexpr int kContentWidth = 24;  // chars between the │ borders
+constexpr int kStatLineLeft = 12;  // left field width in StatLine
+constexpr int kApWidth = 5;        // chars in the AP balcony column
 
 }  // namespace
 

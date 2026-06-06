@@ -80,9 +80,8 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
       if (proto.required_level() > 0) {
         level = proto.required_level();
       }
-      std::string info =
-          "Lv" + PadRight(std::to_string(level), 3) + "  " +
-          FormatJobCategories(proto);
+      std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
+                         FormatJobCategories(proto);
       while ((int)info.size() < kInfoWidth) {
         info += ' ';
       }

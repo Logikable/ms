@@ -17,6 +17,9 @@ namespace ms {
 namespace {
 
 constexpr int kNameWidth = 16;
+constexpr int kRateWidth = 9;  // matches "Success %" header label width
+// Two leading spaces match the "  " / "> " cursor the menu prepends to entries.
+constexpr char kColumnHeader[] = "  Name              Success %  Stats";
 
 bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
   if (a->scroll_type() != b->scroll_type()) {
@@ -89,7 +92,12 @@ void ScrollPanel::ResetComponent() {
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
     }
-    return ftxui::window(ftxui::text(" Scrolls "), menu->Render());
+    return ftxui::window(ftxui::text("  Scrolls "),
+                         ftxui::vbox({
+                             ftxui::text(kColumnHeader),
+                             ftxui::separator(),
+                             menu->Render(),
+                         }));
   });
 }
 
@@ -125,7 +133,7 @@ std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
   }
 
   std::string rate = std::to_string(scroll.success_rate()) + "%";
-  while ((int)rate.size() < 4) {
+  while ((int)rate.size() < kRateWidth) {
     rate = " " + rate;
   }
 

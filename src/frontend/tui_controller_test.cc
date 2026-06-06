@@ -285,9 +285,8 @@ TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
 
   s.character.PickUp(sword_);
   s.character.Equip(0);
-  ftxui::Screen scr =
-      ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                            ftxui::Dimension::Fixed(5));
+  ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                            ftxui::Dimension::Fixed(5));
   ftxui::Render(scr, comp->Render());
 
   ctrl.OpenEquipMenu();
