@@ -11,6 +11,13 @@
 #include "src/protos/equip.pb.h"
 
 namespace ms {
+namespace {
+
+constexpr int kContentWidth = 24;    // chars between the │ borders
+constexpr int kStatLineLeft = 12;    // left field width in StatLine
+constexpr int kApWidth = 5;          // chars in the AP balcony column
+
+}  // namespace
 
 CharacterPanel::CharacterPanel(const CharacterInstance& character)
     : character_(character) {
@@ -19,7 +26,7 @@ CharacterPanel::CharacterPanel(const CharacterInstance& character)
 std::string CharacterPanel::StatLine(const std::string& l1, int v1,
                                      const std::string& l2, int v2) {
   std::string left = l1 + ": " + std::to_string(v1);
-  while ((int)left.size() < 12) {
+  while ((int)left.size() < kStatLineLeft) {
     left += ' ';
   }
   return left + l2 + ": " + std::to_string(v2);
@@ -43,41 +50,41 @@ ftxui::Element CharacterPanel::Render() const {
   // Build all content strings padded to exact column widths so borders align.
   std::string title = "Lv" + lvl + " " + JobName(p.job());
   {
-    int pad = (24 - (int)title.size()) / 2;
+    int pad = (kContentWidth - (int)title.size()) / 2;
     if (pad > 0) {
       title = std::string(pad, ' ') + title;
     }
-    while ((int)title.size() < 24) {
+    while ((int)title.size() < kContentWidth) {
       title += ' ';
     }
   }
 
   std::string hp_mp = " " + StatLine("HP", a.hp() + e.max_hp(), "MP", a.mp());
-  while ((int)hp_mp.size() < 24) {
+  while ((int)hp_mp.size() < kContentWidth) {
     hp_mp += ' ';
   }
   std::string str_dex =
       " " + StatLine("STR", a.str() + e.str(), "DEX", a.dex() + e.dex());
-  while ((int)str_dex.size() < 24) {
+  while ((int)str_dex.size() < kContentWidth) {
     str_dex += ' ';
   }
   std::string int_luk =
       " " + StatLine("INT", a.int_() + e.int_(), "LUK", a.luk() + e.luk());
-  while ((int)int_luk.size() < 24) {
+  while ((int)int_luk.size() < kContentWidth) {
     int_luk += ' ';
   }
   std::string att = " ATT: " + std::to_string(e.attack());
-  while ((int)att.size() < 24) {
+  while ((int)att.size() < kContentWidth) {
     att += ' ';
   }
   std::string matt = " MATT: " + std::to_string(e.magic_attack());
-  while ((int)matt.size() < 24) {
+  while ((int)matt.size() < kContentWidth) {
     matt += ' ';
   }
 
-  // AP value left-aligned with 1 space prefix in the 5-wide AP column.
+  // AP value left-aligned with 1 space prefix in the AP column.
   std::string ap_val = " " + std::to_string(p.ap());
-  while ((int)ap_val.size() < 5) {
+  while ((int)ap_val.size() < kApWidth) {
     ap_val += ' ';
   }
 
