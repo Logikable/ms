@@ -70,6 +70,7 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
       stats->set_luk(stats->luk() + amount);
       break;
     case STAT_FIELD_HP:
+      // Demon Avenger gains 15 HP per AP instead of 1.
       stats->set_hp(stats->hp() + amount);
       break;
     case STAT_FIELD_MP:
