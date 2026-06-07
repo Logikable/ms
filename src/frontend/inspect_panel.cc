@@ -23,13 +23,23 @@ ftxui::Element InspectPanel::Render() const {
   const EquipStats& scroll = item_->proto().scroll_stats();
 
   int level = proto.required_level() > 0 ? proto.required_level() : 1;
-  std::string level_job =
-      " Lv " + std::to_string(level) + "  " + FormatJobCategories(proto);
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(" " + proto.name()));
-  rows.push_back(ftxui::text(level_job));
+  rows.push_back(ftxui::text(proto.name()) | ftxui::hcenter);
   rows.push_back(ftxui::separator());
+  // Trailing space on each text row keeps the right border one column clear.
+  rows.push_back(ftxui::text(" Req Lev: " + std::to_string(level) + " "));
+  rows.push_back(ftxui::text(" " + FormatJobCategories(proto) + " "));
+  rows.push_back(ftxui::separator());
+
+  if (proto.equip_type() != EQUIP_TYPE_UNSPECIFIED) {
+    rows.push_back(
+        ftxui::text(" Type: " + FormatEquipType(proto.equip_type()) + " "));
+  }
+  if (proto.attack_speed() != ATTACK_SPEED_UNSPECIFIED) {
+    rows.push_back(ftxui::text(
+        " Attack Speed: " + FormatAttackSpeed(proto.attack_speed()) + " "));
+  }
 
   bool any_stat = false;
   auto AddRow = [&](const std::string& label, int b, int s) {
@@ -50,13 +60,13 @@ ftxui::Element InspectPanel::Render() const {
   AddRow("DEF", base.def(), scroll.def());
 
   if (!any_stat) {
-    rows.push_back(ftxui::text(" (no stats)"));
+    rows.push_back(ftxui::text(" (no stats) "));
   }
 
   rows.push_back(ftxui::separator());
   int slots = item_->proto().remaining_upgrade_slots();
   rows.push_back(
-      ftxui::text(" " + std::to_string(slots) + " upgrade slots remaining"));
+      ftxui::text(" Remaining Enhancements: " + std::to_string(slots) + " "));
 
   return ftxui::window(ftxui::text(" Inspect "), ftxui::vbox(std::move(rows)));
 }
@@ -68,20 +78,70 @@ std::string InspectPanel::StatLine(const std::string& label, int base,
   }
   int total = base + scroll;
   return " " + label + "  +" + std::to_string(total) + " (" +
-         std::to_string(base) + " +" + std::to_string(scroll) + ")";
+         std::to_string(base) + " +" + std::to_string(scroll) + ") ";
+}
+
+std::string InspectPanel::FormatEquipType(EquipType type) {
+  switch (type) {
+    case EQUIP_TYPE_ONE_HANDED_SWORD:
+      return "One-Handed Sword";
+    default:
+      return "";
+  }
+}
+
+std::string InspectPanel::FormatAttackSpeed(AttackSpeed speed) {
+  // Stage number matches the proto enum value (SLOWER=1 … FASTEST_3=10).
+  int stage = static_cast<int>(speed);
+  std::string name;
+  switch (speed) {
+    case ATTACK_SPEED_SLOWER:
+      name = "Slower";
+      break;
+    case ATTACK_SPEED_SLOW_1:
+      name = "Slow 1";
+      break;
+    case ATTACK_SPEED_SLOW_2:
+      name = "Slow 2";
+      break;
+    case ATTACK_SPEED_AVERAGE:
+      name = "Average";
+      break;
+    case ATTACK_SPEED_FAST_1:
+      name = "Fast 1";
+      break;
+    case ATTACK_SPEED_FAST_2:
+      name = "Fast 2";
+      break;
+    case ATTACK_SPEED_FASTER:
+      name = "Faster";
+      break;
+    case ATTACK_SPEED_FASTEST_1:
+      name = "Fastest 1";
+      break;
+    case ATTACK_SPEED_FASTEST_2:
+      name = "Fastest 2";
+      break;
+    case ATTACK_SPEED_FASTEST_3:
+      name = "Fastest 3";
+      break;
+    default:
+      return "";
+  }
+  return "Stage " + std::to_string(stage) + " (" + name + ")";
 }
 
 std::string InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
   for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
     if (static_cast<EquipJobCategory>(proto.equip_job_categories(i)) ==
         EQUIP_JOB_CATEGORY_UNIVERSAL) {
-      return "All";
+      return "Warrior / Bowman / Magician / Thief / Pirate";
     }
   }
   std::string result;
   for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
     if (!result.empty()) {
-      result += "/";
+      result += " / ";
     }
     switch (static_cast<EquipJobCategory>(proto.equip_job_categories(i))) {
       case EQUIP_JOB_CATEGORY_WARRIOR:
@@ -103,7 +163,7 @@ std::string InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
         break;
     }
   }
-  return result.empty() ? "All" : result;
+  return result.empty() ? "Warrior/Bowman/Magician/Thief/Pirate" : result;
 }
 
 }  // namespace ms

@@ -38,7 +38,7 @@ TEST_F(InspectPanelTest, ShowsLevel) {
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("Lv 30"), std::string::npos);
+  EXPECT_NE(Render(panel).find("Req Lev: 30"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ShowsJobCategory) {
@@ -48,12 +48,42 @@ TEST_F(InspectPanelTest, ShowsJobCategory) {
   EXPECT_NE(Render(panel).find("Warrior"), std::string::npos);
 }
 
+TEST_F(InspectPanelTest, UniversalShowsAllJobGroups) {
+  sword_.clear_equip_job_categories();
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Warrior"), std::string::npos);
+  EXPECT_NE(rendered.find("Bowman"), std::string::npos);
+  EXPECT_NE(rendered.find("Magician"), std::string::npos);
+  EXPECT_NE(rendered.find("Thief"), std::string::npos);
+  EXPECT_NE(rendered.find("Pirate"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, ShowsEquipType) {
+  sword_.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  EXPECT_NE(Render(panel).find("Type: One-Handed Sword"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, ShowsAttackSpeedStage) {
+  sword_.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  EXPECT_NE(Render(panel).find("Attack Speed: Stage 4 (Average)"),
+            std::string::npos);
+}
+
 TEST_F(InspectPanelTest, ShowsBaseStat) {
   sword_.mutable_base_stats()->set_attack(7);
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);
-  // Total equals base when no scrolls applied: +7 (+7+0)
   EXPECT_NE(Render(panel).find("+7 (7 +0)"), std::string::npos);
 }
 
@@ -68,18 +98,17 @@ TEST_F(InspectPanelTest, ShowsScrollStatBreakdown) {
   EXPECT_NE(Render(panel).find("+8 (5 +3)"), std::string::npos);
 }
 
-TEST_F(InspectPanelTest, ShowsSlotsRemaining) {
+TEST_F(InspectPanelTest, ShowsRemainingEnhancements) {
   sword_.set_upgrade_slots(7);
   Equip state;
   state.set_remaining_upgrade_slots(4);
   EquipInstance item(sword_, state);
   InspectPanel panel;
   panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("4 upgrade slots remaining"), std::string::npos);
+  EXPECT_NE(Render(panel).find("Remaining Enhancements: 4"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ZeroStatRowNotShown) {
-  // DEF is 0 on sword_ — should not appear in output.
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);
@@ -87,7 +116,6 @@ TEST_F(InspectPanelTest, ZeroStatRowNotShown) {
 }
 
 TEST_F(InspectPanelTest, NoStatsShowsNoStatsText) {
-  // sword_ has no base_stats set; render should degrade gracefully.
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);

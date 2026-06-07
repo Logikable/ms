@@ -21,6 +21,9 @@ class InspectPanel {
 
  private:
   static std::string FormatJobCategories(const EquipPrototype& proto);
+  static std::string FormatEquipType(EquipType type);
+  // Returns "Stage N (name)" or empty string if unspecified.
+  static std::string FormatAttackSpeed(AttackSpeed speed);
   // Returns "+total (base +scroll)" or empty string if both are zero.
   static std::string StatLine(const std::string& label, int base, int scroll);
 
