@@ -102,13 +102,21 @@ TEST_F(TuiControllerTest, TabSwitchesToBagPanel) {
 }
 
 TEST_F(TuiControllerTest, TabSwitchesToCharPanel) {
+  state_->character.LevelUp();  // grants AP
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kCharPanel);
 }
 
 TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
+  state_->character.LevelUp();  // grants AP
   controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
+TEST_F(TuiControllerTest, TabSkipsCharPanelWhenNoAp) {
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kEquipPanel);

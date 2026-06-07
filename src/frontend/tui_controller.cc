@@ -78,6 +78,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
   }
   if (event == ftxui::Event::Tab) {
     panel_focus_ = (panel_focus_ + 1) % 3;
+    if (panel_focus_ == kCharPanel && state_.character.proto().ap() == 0) {
+      panel_focus_ = (panel_focus_ + 1) % 3;
+    }
     return true;
   }
   return false;
