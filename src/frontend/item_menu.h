@@ -24,10 +24,14 @@ class ItemMenu {
   void Up();
   void Down();
   void Reset();
+  // Marks the entry at `index` as disabled: rendered dim and skipped during
+  // Up/Down navigation. Must be called after Reset().
+  void Disable(int index);
   int selected() const;
 
  private:
   std::vector<std::string> options_;
+  std::vector<bool> disabled_;
   int selected_ = 0;
 };
 

@@ -38,5 +38,30 @@ TEST_F(ItemMenuTest, ResetReturnsToZero) {
   EXPECT_EQ(menu_.selected(), 0);
 }
 
+TEST_F(ItemMenuTest, DisableSkipsEntryOnDown) {
+  menu_.Disable(1);
+  menu_.Down();
+  EXPECT_EQ(menu_.selected(), 2);
+}
+
+TEST_F(ItemMenuTest, DisableSkipsEntryOnUp) {
+  menu_.Down();
+  menu_.Down();
+  menu_.Disable(1);
+  menu_.Up();
+  EXPECT_EQ(menu_.selected(), 0);
+}
+
+TEST_F(ItemMenuTest, DisableFirstEntryAdvancesSelectionToNext) {
+  menu_.Disable(0);
+  EXPECT_EQ(menu_.selected(), 1);
+}
+
+TEST_F(ItemMenuTest, ResetClearsDisabled) {
+  menu_.Disable(0);
+  menu_.Reset();
+  EXPECT_EQ(menu_.selected(), 0);
+}
+
 }  // namespace
 }  // namespace ms

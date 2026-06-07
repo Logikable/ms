@@ -9,7 +9,7 @@
 namespace ms {
 
 ItemMenu::ItemMenu(std::vector<std::string> options)
-    : options_(std::move(options)) {
+    : options_(std::move(options)), disabled_(options_.size(), false) {
 }
 
 ftxui::Element ItemMenu::Render(int row, int col) const {
@@ -18,6 +18,9 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
     ftxui::Element entry = ftxui::text(" " + options_[i] + " ");
     if (i == selected_) {
       entry = entry | ftxui::inverted;
+    }
+    if (disabled_[i]) {
+      entry = entry | ftxui::dim;
     }
     items.push_back(entry);
   }
@@ -33,19 +36,35 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
 }
 
 void ItemMenu::Up() {
-  if (selected_ > 0) {
-    selected_--;
+  int next = selected_ - 1;
+  while (next >= 0 && disabled_[next]) {
+    next--;
+  }
+  if (next >= 0) {
+    selected_ = next;
   }
 }
 
 void ItemMenu::Down() {
-  if (selected_ < static_cast<int>(options_.size()) - 1) {
-    selected_++;
+  int next = selected_ + 1;
+  while (next < static_cast<int>(options_.size()) && disabled_[next]) {
+    next++;
+  }
+  if (next < static_cast<int>(options_.size())) {
+    selected_ = next;
   }
 }
 
 void ItemMenu::Reset() {
+  std::fill(disabled_.begin(), disabled_.end(), false);
   selected_ = 0;
+}
+
+void ItemMenu::Disable(int index) {
+  disabled_[index] = true;
+  while (selected_ < static_cast<int>(options_.size()) && disabled_[selected_]) {
+    selected_++;
+  }
 }
 
 int ItemMenu::selected() const {
