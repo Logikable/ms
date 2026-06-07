@@ -20,9 +20,10 @@ namespace ms {
 // and sword_ (primary weapon slot, required level 10, Warrior only).
 class PanelTest : public testing::Test {
  protected:
-  CharacterInstance MakeCharacter(int level = 1) {
+  CharacterInstance MakeCharacter(int level = 1, int ap = 0) {
     Character proto;
     proto.set_level(level);
+    proto.set_ap(ap);
     proto.set_job(JOB_BEGINNER);
     return CharacterInstance(rng_, std::move(proto));
   }

@@ -30,9 +30,11 @@ cc_library(
     srcs = ["character_panel.cc"],
     hdrs = ["character_panel.h"],
     deps = [
+        ":types",
         "//src:character",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
         "@ftxui//:dom",
     ],
 )
@@ -217,6 +219,7 @@ cc_library(
     srcs = ["tui_controller.cc"],
     hdrs = ["tui_controller.h"],
     deps = [
+        ":ap_alloc_panel",
         ":bag_panel",
         ":equipped_panel",
         ":scroll_panel",
@@ -234,6 +237,7 @@ cc_test(
     name = "tui_controller_test",
     srcs = ["tui_controller_test.cc"],
     deps = [
+        ":ap_alloc_panel",
         ":bag_panel",
         ":equipped_panel",
         ":scroll_panel",
@@ -254,6 +258,7 @@ cc_library(
     srcs = ["tui.cc"],
     hdrs = ["tui.h"],
     deps = [
+        ":ap_alloc_panel",
         ":bag_panel",
         ":character_panel",
         ":equipped_panel",

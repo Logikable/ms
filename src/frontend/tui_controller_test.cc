@@ -10,6 +10,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
@@ -47,8 +48,10 @@ class TuiControllerTest : public testing::Test {
         std::make_unique<EquippedPanel>(state_->character, panel_focus_);
     bag_panel_ = std::make_unique<BagPanel>(state_->character, panel_focus_);
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
+    ap_alloc_panel_ = std::make_unique<ApAllocPanel>(state_->character);
     controller_ = std::make_unique<TuiController>(
-        *state_, *equip_panel_, *bag_panel_, *scroll_panel_, panel_focus_);
+        *state_, *equip_panel_, *bag_panel_, *scroll_panel_, *ap_alloc_panel_,
+        panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -76,7 +79,8 @@ class TuiControllerTest : public testing::Test {
     state_->scrolls["Fail Scroll"] = fail;
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     controller_ = std::make_unique<TuiController>(
-        *state_, *equip_panel_, *bag_panel_, *scroll_panel_, panel_focus_);
+        *state_, *equip_panel_, *bag_panel_, *scroll_panel_, *ap_alloc_panel_,
+        panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -85,6 +89,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<EquippedPanel> equip_panel_;
   std::unique_ptr<BagPanel> bag_panel_;
   std::unique_ptr<ScrollPanel> scroll_panel_;
+  std::unique_ptr<ApAllocPanel> ap_alloc_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
 };
@@ -96,10 +101,30 @@ TEST_F(TuiControllerTest, TabSwitchesToBagPanel) {
   EXPECT_EQ(panel_focus_, kBagPanel);
 }
 
+TEST_F(TuiControllerTest, TabSwitchesToCharPanel) {
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(panel_focus_, kCharPanel);
+}
+
 TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
+// --- AP allocation ---
+
+TEST_F(TuiControllerTest, OpenApAllocSetsScreenToApAlloc) {
+  controller_->OpenApAlloc();
+  EXPECT_EQ(controller_->screen(), kApAlloc);
+}
+
+TEST_F(TuiControllerTest, EscapeInApAllocGoesToMain) {
+  controller_->OpenApAlloc();
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 // --- ItemMenu navigation ---

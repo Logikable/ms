@@ -19,12 +19,13 @@ namespace ms {
 
 Tui::Tui(GameState& state)
     : state_(state),
-      char_panel_(state.character),
+      char_panel_(state.character, panel_focus_),
       equip_panel_(state.character, panel_focus_),
       bag_panel_(state.character, panel_focus_),
       scroll_panel_(state.scrolls),
+      ap_alloc_panel_(state.character),
       controller_(state, equip_panel_, bag_panel_, scroll_panel_,
-                  panel_focus_) {
+                  ap_alloc_panel_, panel_focus_) {
 }
 
 void Tui::Run() {
@@ -32,9 +33,11 @@ void Tui::Run() {
       equip_panel_.MakeComponent([this]() { controller_.OpenEquipMenu(); });
   bag_component_ =
       bag_panel_.MakeComponent([this]() { controller_.OpenBagMenu(); });
+  char_component_ =
+      char_panel_.MakeComponent([this]() { controller_.OpenApAlloc(); });
 
-  ftxui::Component panels =
-      ftxui::Container::Tab({equip_component_, bag_component_}, &panel_focus_);
+  ftxui::Component panels = ftxui::Container::Tab(
+      {equip_component_, bag_component_, char_component_}, &panel_focus_);
 
   ftxui::Component base = ftxui::Renderer(
       panels, [this]() -> ftxui::Element { return RenderFrame(); });
@@ -73,6 +76,13 @@ ftxui::Element Tui::ScrollResultDialog(const ScrollResult& r) {
 }
 
 ftxui::Element Tui::RenderFrame() {
+  if (controller_.screen() == kApAlloc) {
+    return ftxui::hbox({
+        ftxui::filler(),
+        ap_alloc_panel_.Render(),
+        ftxui::filler(),
+    });
+  }
   if (controller_.screen() == kInspect) {
     inspect_panel_.SetItem(controller_.inspect_item());
     return ftxui::hbox({

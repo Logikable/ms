@@ -11,6 +11,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
@@ -26,11 +27,12 @@ class TuiController {
   // Container::Tab; the controller mutates it as focus changes.
   TuiController(GameState& state, EquippedPanel& equip_panel,
                 BagPanel& bag_panel, ScrollPanel& scroll_panel,
-                int& panel_focus);
+                ApAllocPanel& ap_alloc_panel, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
   void OpenBagMenu();
+  void OpenApAlloc();
 
   // Returns true if the event was consumed. Returns false for navigation
   // events in kScrollSelect; the caller should forward those to the scroll
@@ -54,11 +56,13 @@ class TuiController {
   bool OnInspectEvent(ftxui::Event event);
   bool OnScrollSelectEvent(ftxui::Event event);
   bool OnScrollResultEvent(ftxui::Event event);
+  bool OnApAllocEvent(ftxui::Event event);
 
   GameState& state_;
   EquippedPanel& equip_panel_;
   BagPanel& bag_panel_;
   ScrollPanel& scroll_panel_;
+  ApAllocPanel& ap_alloc_panel_;
   int& panel_focus_;
   Screen screen_ = kMain;
   EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;

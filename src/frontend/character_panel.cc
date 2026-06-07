@@ -1,8 +1,12 @@
 #include "src/frontend/character_panel.h"
 
+#include <functional>
 #include <string>
 
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 
@@ -15,8 +19,9 @@ constexpr int kApWidth = 5;        // chars in the AP balcony column
 
 }  // namespace
 
-CharacterPanel::CharacterPanel(const CharacterInstance& character)
-    : character_(character) {
+CharacterPanel::CharacterPanel(const CharacterInstance& character,
+                               int& panel_focus)
+    : character_(character), panel_focus_(panel_focus) {
 }
 
 std::string CharacterPanel::StatLine(const std::string& l1, int v1,
@@ -78,6 +83,10 @@ ftxui::Element CharacterPanel::Render() const {
   while ((int)ap_val.size() < kApWidth) {
     ap_val += ' ';
   }
+  ftxui::Element ap_cell = ftxui::text(ap_val);
+  if (panel_focus_ == kCharPanel) {
+    ap_cell = ap_cell | ftxui::inverted | ftxui::focus;
+  }
 
   // Each row is a literal string; ┼ appears at the exact junction columns so
   // no automerge is needed. Rows 2/6 are 32 wide (with AP balcony), rest 26.
@@ -86,12 +95,31 @@ ftxui::Element CharacterPanel::Render() const {
       ftxui::text("│" + title + "│"),
       ftxui::text("├────────────────────────┼─────╮"),
       ftxui::text("│" + hp_mp + "│ AP  │"),
-      ftxui::text("│" + str_dex + "│" + ap_val + "│"),
+      ftxui::hbox({
+          ftxui::text("│" + str_dex + "│"),
+          ap_cell,
+          ftxui::text("│"),
+      }),
       ftxui::text("│" + int_luk + "│     │"),
       ftxui::text("├────────────────────────┼─────╯"),
       ftxui::text("│" + att + "│"),
       ftxui::text("│" + matt + "│"),
       ftxui::text("╰────────────────────────╯"),
+  });
+}
+
+ftxui::Component CharacterPanel::MakeComponent(std::function<void()> on_ap) {
+  // Renderer(bool) overload is Focusable(), unlike Renderer() — required so
+  // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
+  ftxui::Component renderer =
+      ftxui::Renderer([this](bool /*focused*/) { return Render(); });
+  return ftxui::CatchEvent(renderer, [this, on_ap](ftxui::Event event) {
+    if (panel_focus_ == kCharPanel && event == ftxui::Event::Return &&
+        character_.proto().ap() > 0) {
+      on_ap();
+      return true;
+    }
+    return false;
   });
 }
 

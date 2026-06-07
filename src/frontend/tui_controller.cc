@@ -3,6 +3,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/character.h"
 #include "src/equip_instance.h"
+#include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
@@ -15,11 +16,12 @@ namespace ms {
 
 TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
                              BagPanel& bag_panel, ScrollPanel& scroll_panel,
-                             int& panel_focus)
+                             ApAllocPanel& ap_alloc_panel, int& panel_focus)
     : state_(state),
       equip_panel_(equip_panel),
       bag_panel_(bag_panel),
       scroll_panel_(scroll_panel),
+      ap_alloc_panel_(ap_alloc_panel),
       panel_focus_(panel_focus) {
 }
 
@@ -31,6 +33,11 @@ void TuiController::OpenEquipMenu() {
 void TuiController::OpenBagMenu() {
   screen_ = kItemMenu;
   bag_panel_.OpenMenu();
+}
+
+void TuiController::OpenApAlloc() {
+  screen_ = kApAlloc;
+  ap_alloc_panel_.Reset();
 }
 
 const EquipInstance* TuiController::inspect_item() const {
@@ -66,8 +73,11 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kScrollResult) {
     return OnScrollResultEvent(event);
   }
+  if (screen_ == kApAlloc) {
+    return OnApAllocEvent(event);
+  }
   if (event == ftxui::Event::Tab) {
-    panel_focus_ = panel_focus_ == kEquipPanel ? kBagPanel : kEquipPanel;
+    panel_focus_ = (panel_focus_ + 1) % 3;
     return true;
   }
   return false;
@@ -145,6 +155,11 @@ bool TuiController::OnScrollResultEvent(ftxui::Event event) {
   if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
     screen_ = kScrollSelect;
   }
+  return true;
+}
+
+bool TuiController::OnApAllocEvent(ftxui::Event event) {
+  screen_ = ap_alloc_panel_.OnEvent(event);
   return true;
 }
 

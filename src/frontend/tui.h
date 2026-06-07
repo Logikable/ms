@@ -7,6 +7,7 @@
 #define MS_SRC_FRONTEND_TUI_H_
 
 #include "ftxui/component/component.hpp"
+#include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"
@@ -38,6 +39,7 @@ class Tui {
   BagPanel bag_panel_;
   ScrollPanel scroll_panel_;
   InspectPanel inspect_panel_;
+  ApAllocPanel ap_alloc_panel_;
 
   // Screen-state machine: owns screen_ and event-handling logic.
   TuiController controller_;
@@ -45,6 +47,7 @@ class Tui {
   // ftxui components built in Run().
   ftxui::Component equip_component_;
   ftxui::Component bag_component_;
+  ftxui::Component char_component_;
 };
 
 }  // namespace ms
