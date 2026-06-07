@@ -42,7 +42,6 @@ class BagPanel {
   }
 
  private:
-  static std::string PadRight(const std::string& s, int width);
   static std::string FormatJobCategories(const EquipPrototype& proto);
 
   CharacterInstance& character_;

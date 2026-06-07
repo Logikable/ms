@@ -8,6 +8,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/protos/equip.pb.h"
 
@@ -107,13 +108,6 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
     }
     return ftxui::window(ftxui::text(" Bag "), menu->Render());
   });
-}
-
-std::string BagPanel::PadRight(const std::string& s, int width) {
-  if ((int)s.size() >= width) {
-    return s.substr(0, width);
-  }
-  return s + std::string(width - (int)s.size(), ' ');
 }
 
 // Returns "All" for universal items or a slash-separated list of job names.

@@ -8,6 +8,12 @@ cc_library(
 )
 
 cc_library(
+    name = "panel_util",
+    srcs = ["panel_util.cc"],
+    hdrs = ["panel_util.h"],
+)
+
+cc_library(
     name = "character_panel",
     srcs = ["character_panel.cc"],
     hdrs = ["character_panel.h"],
@@ -28,6 +34,7 @@ cc_library(
     hdrs = ["equipped_panel.h"],
     deps = [
         ":item_menu",
+        ":panel_util",
         ":scroll_panel",
         ":types",
         "//src:character",
@@ -44,6 +51,7 @@ cc_library(
     hdrs = ["bag_panel.h"],
     deps = [
         ":item_menu",
+        ":panel_util",
         ":scroll_panel",
         ":types",
         "//src:character",
@@ -145,6 +153,7 @@ cc_library(
     srcs = ["scroll_panel.cc"],
     hdrs = ["scroll_panel.h"],
     deps = [
+        ":panel_util",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@ftxui//:component",

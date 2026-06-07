@@ -9,6 +9,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
 #include "src/equip_stats.h"
+#include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/protos/equip.pb.h"
 
@@ -123,22 +124,5 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   });
 }
 
-std::string EquippedPanel::PadRight(const std::string& s, int width) {
-  if ((int)s.size() >= width) {
-    return s.substr(0, width);
-  }
-  return s + std::string(width - (int)s.size(), ' ');
-}
-
-void EquippedPanel::AppendStat(std::string& out, int val,
-                               const std::string& name) {
-  if (val <= 0) {
-    return;
-  }
-  if (!out.empty()) {
-    out += "  ";
-  }
-  out += "+" + std::to_string(val) + " " + name;
-}
 
 }  // namespace ms

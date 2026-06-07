@@ -9,6 +9,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/panel_util.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -111,17 +112,6 @@ bool ScrollPanel::OnEvent(ftxui::Event event) {
 
 const Scroll& ScrollPanel::selected_scroll() const {
   return *ordered_[selected_];
-}
-
-void ScrollPanel::AppendStat(std::string& out, int val,
-                             const std::string& label) {
-  if (val <= 0) {
-    return;
-  }
-  if (!out.empty()) {
-    out += "  ";
-  }
-  out += "+" + std::to_string(val) + " " + label;
 }
 
 std::string ScrollPanel::FormatEntry(const Scroll& scroll) {

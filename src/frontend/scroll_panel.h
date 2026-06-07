@@ -37,7 +37,6 @@ class ScrollPanel {
 
  private:
   void ResetComponent();
-  static void AppendStat(std::string& out, int val, const std::string& label);
   static std::string FormatEntry(const Scroll& scroll);
 
   const std::map<std::string, Scroll>& scrolls_;

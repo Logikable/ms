@@ -44,8 +44,6 @@ class EquippedPanel {
   EquipSlot selected_slot() const;
 
  private:
-  static std::string PadRight(const std::string& s, int width);
-  static void AppendStat(std::string& out, int val, const std::string& name);
 
   CharacterInstance& character_;
   int& panel_focus_;
