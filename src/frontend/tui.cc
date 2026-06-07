@@ -90,13 +90,14 @@ ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kScrollSelect ||
       controller_.screen() == kScrollResult) {
     inspect_panel_.SetItem(controller_.scroll_item());
-    ftxui::Element scroll_view = scroll_panel_.Render() | ftxui::flex;
+    ftxui::Element scroll_view = scroll_panel_.Render();
     if (controller_.screen() == kScrollResult) {
       ftxui::Element dialog = ScrollResultDialog(controller_.scroll_result());
       scroll_view = ftxui::dbox(
           {scroll_view, ftxui::center(dialog | ftxui::clear_under)});
     }
-    return ftxui::hbox({scroll_view, inspect_panel_.Render() | ftxui::flex});
+    return ftxui::hbox(
+        {scroll_view | ftxui::flex, inspect_panel_.Render() | ftxui::flex});
   }
   ftxui::Element layout = ftxui::vbox({
       ftxui::hbox({
