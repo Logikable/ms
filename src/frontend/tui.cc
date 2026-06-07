@@ -76,15 +76,13 @@ ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kScrollSelect ||
       controller_.screen() == kScrollResult) {
     inspect_panel_.SetItem(controller_.scroll_item());
-    ftxui::Element base = ftxui::hbox({
-        scroll_panel_.Render(),
-        inspect_panel_.Render(),
-    });
+    ftxui::Element scroll_view = scroll_panel_.Render() | ftxui::flex;
     if (controller_.screen() == kScrollResult) {
       ftxui::Element dialog = ScrollResultDialog(controller_.scroll_result());
-      return ftxui::dbox({base, ftxui::center(dialog | ftxui::clear_under)});
+      scroll_view = ftxui::dbox({scroll_view,
+                                 ftxui::center(dialog | ftxui::clear_under)});
     }
-    return base;
+    return ftxui::hbox({scroll_view, inspect_panel_.Render() | ftxui::flex});
   }
   equip_panel_.SetShowSelection(controller_.screen() == kMain);
   bag_panel_.SetShowSelection(controller_.screen() == kMain);

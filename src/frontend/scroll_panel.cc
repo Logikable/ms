@@ -134,7 +134,7 @@ std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
 
   std::string rate = std::to_string(scroll.success_rate()) + "%";
   while ((int)rate.size() < kRateWidth) {
-    rate = " " + rate;
+    rate += ' ';
   }
 
   std::string stats;
