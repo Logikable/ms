@@ -214,6 +214,7 @@ cc_test(
         ":scroll_panel",
         ":tui_controller",
         "//src:game_state",
+        "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@ftxui//:component",

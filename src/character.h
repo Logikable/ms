@@ -30,6 +30,9 @@ class CharacterInstance {
   void AdvanceJob(Job next_job);
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);
+  // Returns true if the character meets the level and job requirements to
+  // equip the item described by `proto`.
+  bool CanEquip(const EquipPrototype& proto) const;
   // Constructs a fresh EquipInstance from `prototype` and appends it to the
   // inventory.
   void PickUp(const EquipPrototype& prototype);

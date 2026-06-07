@@ -60,6 +60,7 @@ class EquipTest : public CharacterEquipFixture {};
 class UnequipTest : public CharacterEquipFixture {};
 class ScrollEquippedTest : public CharacterEquipFixture {};
 class ScrollInventoryTest : public CharacterEquipFixture {};
+class CanEquipTest : public CharacterEquipFixture {};
 
 // --- LevelUp ---
 
@@ -283,6 +284,49 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   EXPECT_TRUE(c_.ScrollInventory(0, scroll));
   EXPECT_EQ(c_.inventory()[0].proto().scroll_stats().attack(), 5);
   EXPECT_EQ(c_.inventory()[0].proto().remaining_upgrade_slots(), 2);
+}
+
+// --- CanEquip ---
+
+TEST_F(CanEquipTest, ReturnsTrueWhenLevelAndJobMatch) {
+  sword_.set_required_level(1);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_TRUE(c_.CanEquip(sword_));
+}
+
+TEST_F(CanEquipTest, ReturnsFalseWhenLevelTooLow) {
+  sword_.set_required_level(10);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_FALSE(c_.CanEquip(sword_));
+}
+
+TEST_F(CanEquipTest, ReturnsFalseWhenWrongJob) {
+  sword_.set_required_level(1);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_BOWMAN);
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_FALSE(c_.CanEquip(sword_));
+}
+
+TEST_F(CanEquipTest, ReturnsTrueForUniversalItem) {
+  sword_.set_required_level(1);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_TRUE(c_.CanEquip(sword_));
+}
+
+TEST_F(CanEquipTest, ReturnsFalseWhenJobUnspecified) {
+  sword_.set_required_level(1);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  EXPECT_FALSE(c_.CanEquip(sword_));
+}
+
+TEST_F(CanEquipTest, ReturnsTrueWhenExactLevelMet) {
+  sword_.set_required_level(1);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_TRUE(c_.CanEquip(sword_));
 }
 
 }  // namespace

@@ -14,6 +14,15 @@ namespace {
 constexpr int kApPerLevel = 5;
 constexpr int kApJobAdvancementBonus = 5;
 
+EquipJobCategory JobToCategory(Job job) {
+  switch (job) {
+    case JOB_WARRIOR:
+      return EQUIP_JOB_CATEGORY_WARRIOR;
+    default:
+      return EQUIP_JOB_CATEGORY_UNSPECIFIED;
+  }
+}
+
 }  // namespace
 
 CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
@@ -118,6 +127,23 @@ bool CharacterInstance::ScrollInventory(int index, const Scroll& scroll) {
     return false;
   }
   return inventory_[index].Scroll(scroll, rng_);
+}
+
+bool CharacterInstance::CanEquip(const EquipPrototype& proto) const {
+  if (proto.required_level() > 0 &&
+      character_.level() < proto.required_level()) {
+    return false;
+  }
+  EquipJobCategory char_cat = JobToCategory(character_.job());
+  if (char_cat == EQUIP_JOB_CATEGORY_UNSPECIFIED) {
+    return false;
+  }
+  for (int cat : proto.equip_job_categories()) {
+    if (cat == EQUIP_JOB_CATEGORY_UNIVERSAL || cat == char_cat) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace ms

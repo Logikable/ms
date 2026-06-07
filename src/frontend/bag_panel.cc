@@ -35,6 +35,9 @@ BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
 
 void BagPanel::OpenMenu() {
   menu_.Reset();
+  if (!character_.CanEquip(character_.inventory()[selected_].prototype())) {
+    menu_.Disable(kMenuAction);
+  }
 }
 
 Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,

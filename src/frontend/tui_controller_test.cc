@@ -14,6 +14,7 @@
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/game_state.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -41,6 +42,7 @@ class TuiControllerTest : public testing::Test {
     scrolls["Test Scroll"] = scroll;
 
     state_ = std::make_unique<GameState>(std::move(equips), std::move(scrolls));
+    state_->character.AdvanceJob(JOB_WARRIOR);
     equip_panel_ =
         std::make_unique<EquippedPanel>(state_->character, panel_focus_);
     bag_panel_ = std::make_unique<BagPanel>(state_->character, panel_focus_);
