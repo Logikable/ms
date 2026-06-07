@@ -55,81 +55,97 @@ const EquipInstance* TuiController::scroll_item() const {
 
 bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kItemMenu) {
-    Screen next =
-        panel_focus_ == kEquipPanel
-            ? equip_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_)
-            : bag_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
-    if (next == kInspect) {
-      if (panel_focus_ == kEquipPanel) {
-        inspect_slot_ = equip_panel_.selected_slot();
-      } else {
-        inspect_index_ = bag_panel_.selected();
-      }
-    }
-    if (next == kScrollSelect) {
-      if (panel_focus_ == kEquipPanel) {
-        scroll_slot_ = equip_panel_.selected_slot();
-      } else {
-        scroll_index_ = bag_panel_.selected();
-      }
-    }
-    screen_ = next;
-    return true;
+    return OnItemMenuEvent(event);
   }
   if (screen_ == kInspect) {
-    if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
-      screen_ = kMain;
-    }
-    return true;
+    return OnInspectEvent(event);
   }
   if (screen_ == kScrollSelect) {
-    if (event == ftxui::Event::Escape) {
-      screen_ = kItemMenu;
-      return true;
-    }
-    if (event == ftxui::Event::Return) {
-      const EquipInstance* item =
-          panel_focus_ == kEquipPanel
-              ? &state_.character.equipped().at(scroll_slot_)
-              : &state_.character.inventory()[scroll_index_];
-      std::string equip_name = item->prototype().name();
-      int slots_remaining = item->proto().remaining_upgrade_slots();
-      if (slots_remaining == 0) {
-        scroll_result_ = {kScrollNoSlots, equip_name, "", 0};
-      } else {
-        const Scroll& scroll = scroll_panel_.selected_scroll();
-        bool success;
-        if (panel_focus_ == kEquipPanel) {
-          success = state_.character.ScrollEquipped(scroll_slot_, scroll);
-          slots_remaining = state_.character.equipped()
-                                .at(scroll_slot_)
-                                .proto()
-                                .remaining_upgrade_slots();
-        } else {
-          success = state_.character.ScrollInventory(scroll_index_, scroll);
-          slots_remaining = state_.character.inventory()[scroll_index_]
-                                .proto()
-                                .remaining_upgrade_slots();
-        }
-        scroll_result_ = {success ? kScrollSuccess : kScrollFail, equip_name,
-                          scroll.name(), slots_remaining};
-      }
-      screen_ = kScrollResult;
-      return true;
-    }
-    return false;  // caller forwards navigation events to scroll panel
+    return OnScrollSelectEvent(event);
   }
   if (screen_ == kScrollResult) {
-    if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
-      screen_ = kScrollSelect;
-    }
-    return true;
+    return OnScrollResultEvent(event);
   }
   if (event == ftxui::Event::Tab) {
     panel_focus_ = panel_focus_ == kEquipPanel ? kBagPanel : kEquipPanel;
     return true;
   }
   return false;
+}
+
+bool TuiController::OnItemMenuEvent(ftxui::Event event) {
+  Screen next =
+      panel_focus_ == kEquipPanel
+          ? equip_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_)
+          : bag_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
+  if (next == kInspect) {
+    if (panel_focus_ == kEquipPanel) {
+      inspect_slot_ = equip_panel_.selected_slot();
+    } else {
+      inspect_index_ = bag_panel_.selected();
+    }
+  }
+  if (next == kScrollSelect) {
+    if (panel_focus_ == kEquipPanel) {
+      scroll_slot_ = equip_panel_.selected_slot();
+    } else {
+      scroll_index_ = bag_panel_.selected();
+    }
+  }
+  screen_ = next;
+  return true;
+}
+
+bool TuiController::OnInspectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+    screen_ = kMain;
+  }
+  return true;
+}
+
+bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::Escape) {
+    screen_ = kItemMenu;
+    return true;
+  }
+  if (event == ftxui::Event::Return) {
+    const EquipInstance* item =
+        panel_focus_ == kEquipPanel
+            ? &state_.character.equipped().at(scroll_slot_)
+            : &state_.character.inventory()[scroll_index_];
+    std::string equip_name = item->prototype().name();
+    int slots_remaining = item->proto().remaining_upgrade_slots();
+    if (slots_remaining == 0) {
+      scroll_result_ = {kScrollNoSlots, equip_name, "", 0};
+    } else {
+      const Scroll& scroll = scroll_panel_.selected_scroll();
+      bool success;
+      if (panel_focus_ == kEquipPanel) {
+        success = state_.character.ScrollEquipped(scroll_slot_, scroll);
+        slots_remaining = state_.character.equipped()
+                              .at(scroll_slot_)
+                              .proto()
+                              .remaining_upgrade_slots();
+      } else {
+        success = state_.character.ScrollInventory(scroll_index_, scroll);
+        slots_remaining = state_.character.inventory()[scroll_index_]
+                              .proto()
+                              .remaining_upgrade_slots();
+      }
+      scroll_result_ = {success ? kScrollSuccess : kScrollFail, equip_name,
+                        scroll.name(), slots_remaining};
+    }
+    screen_ = kScrollResult;
+    return true;
+  }
+  return false;  // caller forwards navigation events to scroll panel
+}
+
+bool TuiController::OnScrollResultEvent(ftxui::Event event) {
+  if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+    screen_ = kScrollSelect;
+  }
+  return true;
 }
 
 }  // namespace ms

@@ -50,6 +50,11 @@ class TuiController {
   const EquipInstance* inspect_item() const;
 
  private:
+  bool OnItemMenuEvent(ftxui::Event event);
+  bool OnInspectEvent(ftxui::Event event);
+  bool OnScrollSelectEvent(ftxui::Event event);
+  bool OnScrollResultEvent(ftxui::Event event);
+
   GameState& state_;
   EquippedPanel& equip_panel_;
   BagPanel& bag_panel_;
