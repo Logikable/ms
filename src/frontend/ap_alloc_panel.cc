@@ -32,8 +32,6 @@ struct StatValues {
   int bonus;  // from gear
 };
 
-// Returns the allocated and gear-bonus components for `field`. Update the
-// bonus case for MP here when EquipStats gains a max_mp field.
 StatValues StatValuesFor(const AllocatedStats& a, const EquipStats& e,
                          StatField field) {
   switch (field) {
@@ -48,7 +46,7 @@ StatValues StatValuesFor(const AllocatedStats& a, const EquipStats& e,
     case STAT_FIELD_HP:
       return {a.hp(), e.max_hp()};
     case STAT_FIELD_MP:
-      return {a.mp(), 0};
+      return {a.mp(), e.max_mp()};
     default:
       return {0, 0};
   }
