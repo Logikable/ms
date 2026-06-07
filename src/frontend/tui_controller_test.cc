@@ -117,6 +117,7 @@ TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
 }
 
 TEST_F(TuiControllerTest, TabSkipsCharPanelWhenNoAp) {
+  state_->character.AllocateAllStat(STAT_FIELD_STR);  // drain AP
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kEquipPanel);

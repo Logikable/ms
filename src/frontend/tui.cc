@@ -77,11 +77,7 @@ ftxui::Element Tui::ScrollResultDialog(const ScrollResult& r) {
 
 ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kApAlloc) {
-    return ftxui::hbox({
-        ftxui::filler(),
-        ap_alloc_panel_.Render(),
-        ftxui::filler(),
-    });
+    return ftxui::center(ap_alloc_panel_.Render());
   }
   if (controller_.screen() == kInspect) {
     inspect_panel_.SetItem(controller_.inspect_item());

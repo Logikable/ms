@@ -123,11 +123,13 @@ ftxui::Element ApAllocPanel::Render() const {
     }));
   }
 
+  ftxui::Element main = ftxui::window(ftxui::text(" AP Allocation "),
+                                      ftxui::vbox(std::move(rows)));
+
+  ftxui::Element below;
   if (confirming_) {
-    rows.push_back(ftxui::separator());
     std::string msg = " Assign all " + std::to_string(ap) + " AP to " +
                       kStats[selected_].name + "? ";
-    rows.push_back(ftxui::text(msg));
     ftxui::Element confirm_btn = ftxui::text("[Confirm]");
     ftxui::Element cancel_btn = ftxui::text("[Cancel]");
     if (confirm_sel_ == 0) {
@@ -135,17 +137,23 @@ ftxui::Element ApAllocPanel::Render() const {
     } else {
       cancel_btn = cancel_btn | ftxui::inverted;
     }
-    rows.push_back(ftxui::hbox({
-        ftxui::text(" "),
-        confirm_btn,
-        ftxui::text("  "),
-        cancel_btn,
-        ftxui::text(" "),
-    }));
+    below = ftxui::window(
+        ftxui::text(""),
+        ftxui::vbox({
+            ftxui::text(msg),
+            ftxui::hbox({
+                ftxui::text(" "),
+                confirm_btn,
+                ftxui::text("  "),
+                cancel_btn,
+                ftxui::text(" "),
+            }),
+        }));
+  } else {
+    below = ftxui::text("") |
+            ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 4);
   }
-
-  return ftxui::window(ftxui::text(" AP Allocation "),
-                       ftxui::vbox(std::move(rows)));
+  return ftxui::vbox({main, below});
 }
 
 Screen ApAllocPanel::OnEvent(ftxui::Event event) {
