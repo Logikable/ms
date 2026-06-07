@@ -19,6 +19,12 @@ namespace {
 constexpr int kSlotWidth = 10;
 // Width of the stats info column; slots column follows at a fixed offset.
 constexpr int kInfoWidth = 20;
+// Two leading spaces match the "  " / "> " cursor the menu prepends to entries.
+constexpr char kColumnHeader[] =
+    "  Name              "   // 2 cursor + 18 name
+    "  Equip Slot"           // 2 sep + 10 slot
+    "  Stats               " // 2 sep + 20 info
+    "  Scrolls";        // 2 sep + label
 
 }  // namespace
 
@@ -116,13 +122,19 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
     }
     if (!show_selection_) {
       std::vector<ftxui::Element> items;
+      items.push_back(ftxui::text(kColumnHeader));
+      items.push_back(ftxui::separator());
       for (const std::string& e : entries_) {
         items.push_back(ftxui::text("  " + e));
       }
       return ftxui::window(ftxui::text(" Equipped "),
                            ftxui::vbox(std::move(items)));
     }
-    return ftxui::window(ftxui::text(" Equipped "), menu->Render());
+    return ftxui::window(ftxui::text(" Equipped "), ftxui::vbox({
+        ftxui::text(kColumnHeader),
+        ftxui::separator(),
+        menu->Render(),
+    }));
   });
 }
 
