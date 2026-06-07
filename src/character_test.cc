@@ -322,6 +322,27 @@ TEST_F(CanEquipTest, ReturnsFalseWhenJobUnspecified) {
   EXPECT_FALSE(c_.CanEquip(sword_));
 }
 
+TEST_F(CanEquipTest, ReturnsTrueForUniversalItemAsBeginner) {
+  sword_.set_required_level(1);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.AdvanceJob(JOB_BEGINNER);
+  EXPECT_TRUE(c_.CanEquip(sword_));
+}
+
+TEST_F(CanEquipTest, ReturnsTrueForBeginnerCategoryItem) {
+  sword_.set_required_level(1);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_BEGINNER);
+  c_.AdvanceJob(JOB_BEGINNER);
+  EXPECT_TRUE(c_.CanEquip(sword_));
+}
+
+TEST_F(CanEquipTest, ReturnsFalseWhenBeginnerTriesToEquipWarriorItem) {
+  sword_.set_required_level(1);
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  c_.AdvanceJob(JOB_BEGINNER);
+  EXPECT_FALSE(c_.CanEquip(sword_));
+}
+
 TEST_F(CanEquipTest, ReturnsTrueWhenExactLevelMet) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);

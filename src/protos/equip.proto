@@ -30,9 +30,9 @@ enum EquipSlot {
   EQUIP_SLOT_PRIMARY_WEAPON = 1;
 }
 
-// Which job branches can equip this item. Each item belongs to one category;
-// UNIVERSAL means any job can equip it. Used to filter scrolls and enforce
-// equip requirements.
+// Which job branches can equip this item. UNIVERSAL means any job can equip
+// it; BEGINNER includes pre-advancement characters (Noblesse, etc.). Used to
+// filter scrolls and enforce equip requirements.
 enum EquipJobCategory {
   EQUIP_JOB_CATEGORY_UNSPECIFIED = 0;
   EQUIP_JOB_CATEGORY_WARRIOR = 1;
@@ -41,6 +41,7 @@ enum EquipJobCategory {
   EQUIP_JOB_CATEGORY_THIEF = 4;
   EQUIP_JOB_CATEGORY_PIRATE = 5;
   EQUIP_JOB_CATEGORY_UNIVERSAL = 6;
+  EQUIP_JOB_CATEGORY_BEGINNER = 7;
 }
 
 message EquipStats {

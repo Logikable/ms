@@ -16,6 +16,8 @@ constexpr int kApJobAdvancementBonus = 5;
 
 EquipJobCategory JobToCategory(Job job) {
   switch (job) {
+    case JOB_BEGINNER:
+      return EQUIP_JOB_CATEGORY_BEGINNER;
     case JOB_WARRIOR:
       return EQUIP_JOB_CATEGORY_WARRIOR;
     default:

@@ -135,7 +135,7 @@ std::string InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
   for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
     if (static_cast<EquipJobCategory>(proto.equip_job_categories(i)) ==
         EQUIP_JOB_CATEGORY_UNIVERSAL) {
-      return "Warrior / Bowman / Magician / Thief / Pirate";
+      return "Beginner / Warrior / Bowman / Magician / Thief / Pirate";
     }
   }
   std::string result;
@@ -144,6 +144,9 @@ std::string InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
       result += " / ";
     }
     switch (static_cast<EquipJobCategory>(proto.equip_job_categories(i))) {
+      case EQUIP_JOB_CATEGORY_BEGINNER:
+        result += "Beginner";
+        break;
       case EQUIP_JOB_CATEGORY_WARRIOR:
         result += "Warrior";
         break;
@@ -163,7 +166,7 @@ std::string InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
         break;
     }
   }
-  return result.empty() ? "Warrior / Bowman / Magician / Thief / Pirate"
+  return result.empty() ? "Beginner / Warrior / Bowman / Magician / Thief / Pirate"
                         : result;
 }
 

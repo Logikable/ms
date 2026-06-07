@@ -134,6 +134,9 @@ std::string BagPanel::FormatJobCategories(const EquipPrototype& proto) {
       result += "/";
     }
     switch (static_cast<EquipJobCategory>(proto.equip_job_categories(i))) {
+      case EQUIP_JOB_CATEGORY_BEGINNER:
+        result += "Beginner";
+        break;
       case EQUIP_JOB_CATEGORY_WARRIOR:
         result += "Warrior";
         break;
