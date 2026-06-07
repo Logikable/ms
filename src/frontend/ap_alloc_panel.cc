@@ -19,10 +19,14 @@ struct StatEntry {
   StatField field;
 };
 
+// HP and MP AP allocation was removed from GMS in 2013. AllocateStat still
+// supports STAT_FIELD_HP for Demon Avenger (15 HP per AP); add an entry here
+// when that job is implemented.
 constexpr StatEntry kStats[] = {
-    {"STR", "STR", STAT_FIELD_STR}, {"DEX", "DEX", STAT_FIELD_DEX},
-    {"INT", "INT", STAT_FIELD_INT}, {"LUK", "LUK", STAT_FIELD_LUK},
-    {" HP", "HP", STAT_FIELD_HP},   {" MP", "MP", STAT_FIELD_MP},
+    {"STR", "STR", STAT_FIELD_STR},
+    {"DEX", "DEX", STAT_FIELD_DEX},
+    {"INT", "INT", STAT_FIELD_INT},
+    {"LUK", "LUK", STAT_FIELD_LUK},
 };
 
 constexpr int kNumStats = sizeof(kStats) / sizeof(kStats[0]);
