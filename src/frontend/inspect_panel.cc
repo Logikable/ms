@@ -163,7 +163,8 @@ std::string InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
         break;
     }
   }
-  return result.empty() ? "Warrior/Bowman/Magician/Thief/Pirate" : result;
+  return result.empty() ? "Warrior / Bowman / Magician / Thief / Pirate"
+                        : result;
 }
 
 }  // namespace ms
