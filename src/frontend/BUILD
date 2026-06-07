@@ -16,6 +16,15 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "panel_util_test",
+    srcs = ["panel_util_test.cc"],
+    deps = [
+        ":panel_util",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "character_panel",
     srcs = ["character_panel.cc"],
