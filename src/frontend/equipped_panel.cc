@@ -16,6 +16,7 @@
 namespace ms {
 namespace {
 
+constexpr int kSlotWidth = 10;
 // Width of the stats info column; slots column follows at a fixed offset.
 constexpr int kInfoWidth = 20;
 
@@ -103,7 +104,8 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
         info += ' ';
       }
       entries_.push_back(
-          PadRight(item.prototype().name(), 18) + "  " + info + "  " +
+          PadRight(item.prototype().name(), 18) + "  " +
+          PadRight(FormatSlot(kv.first), kSlotWidth) + "  " + info + "  " +
           std::to_string(item.proto().remaining_upgrade_slots()) + " slots");
     }
     if (!entries_.empty()) {

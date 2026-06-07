@@ -117,9 +117,9 @@ ftxui::Element Tui::RenderFrame() {
   }
   ItemMenu& menu =
       panel_focus_ == kEquipPanel ? equip_panel_.menu() : bag_panel_.menu();
-  // Offset past char panel border, menu cursor, name column, and separator
-  // so the menu covers stats rather than item names.
-  constexpr int kMenuCol = CharacterPanel::kTotalWidth + 1 + 2 + 18 + 2;
+  // Offset past char panel border, menu cursor, name column, slot column, and
+  // separators so the menu covers stats rather than item names.
+  constexpr int kMenuCol = CharacterPanel::kTotalWidth + 1 + 2 + 18 + 2 + 10 + 2;
   return ftxui::dbox({layout, menu.Render(menu_row, kMenuCol)});
 }
 

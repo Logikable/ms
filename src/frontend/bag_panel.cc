@@ -15,6 +15,7 @@
 namespace ms {
 namespace {
 
+constexpr int kSlotWidth = 10;
 // Width of the level+job info column; slots column follows at a fixed offset.
 constexpr int kInfoWidth = 20;
 
@@ -90,8 +91,10 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
         info += ' ';
       }
       entries_.push_back(
-          PadRight(proto.name(), 18) + "  " + info + "  " +
-          std::to_string(item.proto().remaining_upgrade_slots()) + " slots");
+          PadRight(proto.name(), 18) + "  " +
+          PadRight(FormatSlot(proto.equip_slot()), kSlotWidth) + "  " + info +
+          "  " + std::to_string(item.proto().remaining_upgrade_slots()) +
+          " slots");
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);

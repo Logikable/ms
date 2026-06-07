@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "src/protos/equip.pb.h"
+
 namespace ms {
 
 std::string PadRight(const std::string& s, int width) {
@@ -19,6 +21,15 @@ void AppendStat(std::string& out, int val, const std::string& label) {
     out += "  ";
   }
   out += "+" + std::to_string(val) + " " + label;
+}
+
+std::string FormatSlot(EquipSlot slot) {
+  switch (slot) {
+    case EQUIP_SLOT_PRIMARY_WEAPON:
+      return "Weapon";
+    default:
+      return "";
+  }
 }
 
 }  // namespace ms

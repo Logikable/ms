@@ -11,6 +11,9 @@ cc_library(
     name = "panel_util",
     srcs = ["panel_util.cc"],
     hdrs = ["panel_util.h"],
+    deps = [
+        "//src/protos:equip_proto_cc",
+    ],
 )
 
 cc_library(
