@@ -27,6 +27,10 @@ constexpr StatEntry kStats[] = {
 
 constexpr int kNumStats = 6;
 
+// Width of the button area "[+1] [All] " that follows the stat on the
+// selected row, used to pad non-selected rows to the same total width.
+constexpr int kButtonsWidth = 11;
+
 struct StatValues {
   int base;   // from allocated AP
   int bonus;  // from gear
@@ -82,12 +86,21 @@ ftxui::Element ApAllocPanel::Render() const {
   rows.push_back(ftxui::text(" AP: " + std::to_string(ap) + " "));
   rows.push_back(ftxui::separator());
 
+  std::vector<std::string> row_texts;
+  int max_row_width = 0;
   for (int i = 0; i < kNumStats; ++i) {
     StatValues sv = StatValuesFor(alloc, equip, kStats[i].field);
-    std::string text = StatRowText(kStats[i].label, sv.base, sv.bonus);
+    row_texts.push_back(StatRowText(kStats[i].label, sv.base, sv.bonus));
+    max_row_width = std::max(max_row_width, (int)row_texts.back().size());
+  }
+
+  for (int i = 0; i < kNumStats; ++i) {
+    std::string row_text = row_texts[i];
+    while ((int)row_text.size() < max_row_width) row_text += ' ';
 
     if (i != selected_) {
-      rows.push_back(ftxui::text("  " + text));
+      rows.push_back(
+          ftxui::text("  " + row_text + std::string(kButtonsWidth, ' ')));
       continue;
     }
 
@@ -102,7 +115,7 @@ ftxui::Element ApAllocPanel::Render() const {
       btn_all = btn_all | ftxui::inverted;
     }
     rows.push_back(ftxui::hbox({
-        ftxui::text("> " + text),
+        ftxui::text("> " + row_text),
         btn1,
         ftxui::text(" "),
         btn_all,
