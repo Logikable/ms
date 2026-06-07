@@ -109,11 +109,14 @@ ftxui::Element Tui::RenderFrame() {
   }
   int menu_row = 0;
   if (panel_focus_ == kEquipPanel) {
-    menu_row = equip_panel_.selected();
+    // +2 for equip column header + separator above items.
+    menu_row = 2 + equip_panel_.selected();
   } else {
-    // Empty equip panel still renders 1 content row ("(empty)"), so clamp to 1.
-    int equip_rows = std::max(1, static_cast<int>(state_.character.equipped().size()));
-    menu_row = equip_rows + 2 + bag_panel_.selected();
+    int equip_count = static_cast<int>(state_.character.equipped().size());
+    // Non-empty equip panel adds header + separator; empty panel has neither.
+    int equip_rows = std::max(1, equip_count) + (equip_count > 0 ? 2 : 0);
+    // +4: equip borders (2) + bag column header + separator (2).
+    menu_row = equip_rows + 4 + bag_panel_.selected();
   }
   ItemMenu& menu =
       panel_focus_ == kEquipPanel ? equip_panel_.menu() : bag_panel_.menu();
