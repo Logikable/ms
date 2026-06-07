@@ -54,24 +54,25 @@ ftxui::Element Tui::ScrollResultDialog(const ScrollResult& r) {
     return ftxui::window(
         ftxui::text(" Error "),
         ftxui::vbox({
-            ftxui::text(r.equip_name) | ftxui::hcenter,
+            ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
             ftxui::separator(),
-            ftxui::text("No scroll slots remaining") | ftxui::hcenter,
+            ftxui::text(" No scroll slots remaining ") | ftxui::hcenter,
             ftxui::text(""),
-            ftxui::text("Press Enter to continue"),
+            ftxui::text(" Press Enter to continue "),
         }));
   }
   return ftxui::window(
       ftxui::text(" Result "),
       ftxui::vbox({
-          ftxui::text(r.equip_name + "  |  " + r.scroll_name),
+          ftxui::text(" " + r.equip_name + "  |  " + r.scroll_name + " "),
           ftxui::separator(),
-          ftxui::text(r.outcome == kScrollSuccess ? "SUCCESS" : "FAILED") |
+          ftxui::text(r.outcome == kScrollSuccess ? " SUCCESS " : " FAILED ") |
               ftxui::hcenter,
-          ftxui::text(std::to_string(r.slots_remaining) + " slots remaining") |
+          ftxui::text(" " + std::to_string(r.slots_remaining) +
+                      " slots remaining ") |
               ftxui::hcenter,
           ftxui::text(""),
-          ftxui::text("Press Enter to continue"),
+          ftxui::text(" Press Enter to continue "),
       }));
 }
 
