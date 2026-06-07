@@ -27,39 +27,30 @@ constexpr StatEntry kStats[] = {
 
 constexpr int kNumStats = 6;
 
-int AllocatedFor(const AllocatedStats& a, StatField field) {
-  switch (field) {
-    case STAT_FIELD_STR:
-      return a.str();
-    case STAT_FIELD_DEX:
-      return a.dex();
-    case STAT_FIELD_INT:
-      return a.int_();
-    case STAT_FIELD_LUK:
-      return a.luk();
-    case STAT_FIELD_HP:
-      return a.hp();
-    case STAT_FIELD_MP:
-      return a.mp();
-    default:
-      return 0;
-  }
-}
+struct StatValues {
+  int base;   // from allocated AP
+  int bonus;  // from gear
+};
 
-int EquipBonusFor(const EquipStats& e, StatField field) {
+// Returns the allocated and gear-bonus components for `field`. Update the
+// bonus case for MP here when EquipStats gains a max_mp field.
+StatValues StatValuesFor(const AllocatedStats& a, const EquipStats& e,
+                         StatField field) {
   switch (field) {
     case STAT_FIELD_STR:
-      return e.str();
+      return {a.str(), e.str()};
     case STAT_FIELD_DEX:
-      return e.dex();
+      return {a.dex(), e.dex()};
     case STAT_FIELD_INT:
-      return e.int_();
+      return {a.int_(), e.int_()};
     case STAT_FIELD_LUK:
-      return e.luk();
+      return {a.luk(), e.luk()};
     case STAT_FIELD_HP:
-      return e.max_hp();
+      return {a.hp(), e.max_hp()};
+    case STAT_FIELD_MP:
+      return {a.mp(), 0};
     default:
-      return 0;
+      return {0, 0};
   }
 }
 
@@ -94,9 +85,8 @@ ftxui::Element ApAllocPanel::Render() const {
   rows.push_back(ftxui::separator());
 
   for (int i = 0; i < kNumStats; ++i) {
-    int base = AllocatedFor(alloc, kStats[i].field);
-    int bonus = EquipBonusFor(equip, kStats[i].field);
-    std::string text = StatRowText(kStats[i].label, base, bonus);
+    StatValues sv = StatValuesFor(alloc, equip, kStats[i].field);
+    std::string text = StatRowText(kStats[i].label, sv.base, sv.bonus);
 
     if (i != selected_) {
       rows.push_back(ftxui::text("  " + text));
