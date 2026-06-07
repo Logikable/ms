@@ -55,6 +55,7 @@ class CharacterEquipFixture : public CharacterTest {
   EquipPrototype sword_;
 };
 
+class AllocateAllStatTest : public CharacterTest {};
 class PickUpTest : public CharacterEquipFixture {};
 class EquipTest : public CharacterEquipFixture {};
 class UnequipTest : public CharacterEquipFixture {};
@@ -156,6 +157,27 @@ TEST_F(AllocateStatTest, AllFieldsWork) {
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_HP));
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_MP));
   EXPECT_EQ(c.proto().ap(), 4);
+}
+
+// --- AllocateAllStat ---
+
+TEST_F(AllocateAllStatTest, AllocatesAllAvailableAp) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/10);
+  EXPECT_TRUE(c.AllocateAllStat(STAT_FIELD_STR));
+  EXPECT_EQ(c.proto().allocated_stats().str(), 10);
+  EXPECT_EQ(c.proto().ap(), 0);
+}
+
+TEST_F(AllocateAllStatTest, ReturnsFalseWhenNoAp) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/0);
+  EXPECT_FALSE(c.AllocateAllStat(STAT_FIELD_STR));
+  EXPECT_EQ(c.proto().allocated_stats().str(), 0);
+}
+
+TEST_F(AllocateAllStatTest, ReturnsFalseForUnspecifiedField) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/5);
+  EXPECT_FALSE(c.AllocateAllStat(STAT_FIELD_UNSPECIFIED));
+  EXPECT_EQ(c.proto().ap(), 5);
 }
 
 // --- PickUp ---

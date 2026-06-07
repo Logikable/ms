@@ -87,8 +87,8 @@ ftxui::Element Tui::RenderFrame() {
     ftxui::Element scroll_view = scroll_panel_.Render() | ftxui::flex;
     if (controller_.screen() == kScrollResult) {
       ftxui::Element dialog = ScrollResultDialog(controller_.scroll_result());
-      scroll_view = ftxui::dbox({scroll_view,
-                                 ftxui::center(dialog | ftxui::clear_under)});
+      scroll_view = ftxui::dbox(
+          {scroll_view, ftxui::center(dialog | ftxui::clear_under)});
     }
     return ftxui::hbox({scroll_view, inspect_panel_.Render() | ftxui::flex});
   }
@@ -120,7 +120,8 @@ ftxui::Element Tui::RenderFrame() {
       panel_focus_ == kEquipPanel ? equip_panel_.menu() : bag_panel_.menu();
   // Offset past char panel border, menu cursor, name column, slot column, and
   // separators so the menu covers stats rather than item names.
-  constexpr int kMenuCol = CharacterPanel::kTotalWidth + 1 + 2 + 18 + 2 + 10 + 2;
+  constexpr int kMenuCol =
+      CharacterPanel::kTotalWidth + 1 + 2 + 18 + 2 + 10 + 2;
   return ftxui::dbox({layout, menu.Render(menu_row, kMenuCol)});
 }
 

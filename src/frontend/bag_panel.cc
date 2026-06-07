@@ -20,10 +20,10 @@ constexpr int kSlotWidth = 10;
 constexpr int kInfoWidth = 20;
 // Two leading spaces match the "  " / "> " cursor added by the entry transform.
 constexpr char kColumnHeader[] =
-    "  Name              "   // 2 cursor + 18 name
-    "  Equip Slot"           // 2 sep + 10 slot
-    "  Level  Job          " // 2 sep + 20 info
-    "  Scrolls";        // 2 sep + label
+    "  Name              "    // 2 cursor + 18 name
+    "  Equip Slot"            // 2 sep + 10 slot
+    "  Level  Job          "  // 2 sep + 20 info
+    "  Scrolls";              // 2 sep + label
 
 }  // namespace
 
@@ -113,10 +113,10 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
       return ftxui::window(ftxui::text(" Bag "), ftxui::text("(empty)"));
     }
     return ftxui::window(ftxui::text(" Bag "), ftxui::vbox({
-        ftxui::text(kColumnHeader),
-        ftxui::separator(),
-        menu->Render(),
-    }));
+                                                   ftxui::text(kColumnHeader),
+                                                   ftxui::separator(),
+                                                   menu->Render(),
+                                               }));
   });
 }
 

@@ -43,7 +43,6 @@ class EquippedPanel {
   EquipSlot selected_slot() const;
 
  private:
-
   CharacterInstance& character_;
   int& panel_focus_;
   int selected_ = 0;

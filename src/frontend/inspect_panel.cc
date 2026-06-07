@@ -139,14 +139,17 @@ ftxui::Element InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
   }
   bool universal = cats.empty() || cats.count(EQUIP_JOB_CATEGORY_UNIVERSAL);
 
-  struct Entry { const char* name; EquipJobCategory cat; };
+  struct Entry {
+    const char* name;
+    EquipJobCategory cat;
+  };
   const Entry kEntries[] = {
-    {"Beginner", EQUIP_JOB_CATEGORY_BEGINNER},
-    {"Warrior",  EQUIP_JOB_CATEGORY_WARRIOR},
-    {"Bowman",   EQUIP_JOB_CATEGORY_BOWMAN},
-    {"Magician", EQUIP_JOB_CATEGORY_MAGICIAN},
-    {"Thief",    EQUIP_JOB_CATEGORY_THIEF},
-    {"Pirate",   EQUIP_JOB_CATEGORY_PIRATE},
+      {"Beginner", EQUIP_JOB_CATEGORY_BEGINNER},
+      {"Warrior", EQUIP_JOB_CATEGORY_WARRIOR},
+      {"Bowman", EQUIP_JOB_CATEGORY_BOWMAN},
+      {"Magician", EQUIP_JOB_CATEGORY_MAGICIAN},
+      {"Thief", EQUIP_JOB_CATEGORY_THIEF},
+      {"Pirate", EQUIP_JOB_CATEGORY_PIRATE},
   };
 
   std::vector<ftxui::Element> elems;

@@ -62,7 +62,8 @@ void ItemMenu::Reset() {
 
 void ItemMenu::Disable(int index) {
   disabled_[index] = true;
-  while (selected_ < static_cast<int>(options_.size()) && disabled_[selected_]) {
+  while (selected_ < static_cast<int>(options_.size()) &&
+         disabled_[selected_]) {
     selected_++;
   }
 }
