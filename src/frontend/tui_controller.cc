@@ -77,9 +77,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
     return OnApAllocEvent(event);
   }
   if (event == ftxui::Event::Tab) {
-    panel_focus_ = (panel_focus_ + 1) % 3;
+    panel_focus_ = (panel_focus_ + 1) % kNumPanels;
     if (panel_focus_ == kCharPanel && state_.character.proto().ap() == 0) {
-      panel_focus_ = (panel_focus_ + 1) % 3;
+      panel_focus_ = (panel_focus_ + 1) % kNumPanels;
     }
     return true;
   }

@@ -13,7 +13,7 @@ enum Screen : int {
   kScrollResult,
   kApAlloc,
 };
-enum Panel : int { kEquipPanel = 0, kBagPanel = 1, kCharPanel = 2 };
+enum Panel : int { kEquipPanel = 0, kBagPanel = 1, kCharPanel = 2, kNumPanels };
 enum MenuItem : int { kMenuAction = 0, kMenuInspect = 1, kMenuScroll = 2 };
 enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };
 
