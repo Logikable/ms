@@ -5,7 +5,7 @@
 
 namespace ms {
 
-enum Screen : int { kMain, kItemMenu, kScrollSelect, kScrollResult };
+enum Screen : int { kMain, kItemMenu, kInspect, kScrollSelect, kScrollResult };
 enum Panel : int { kEquipPanel = 0, kBagPanel = 1 };
 enum MenuItem : int { kMenuAction = 0, kMenuInspect = 1, kMenuScroll = 2 };
 enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };

@@ -73,6 +73,14 @@ ftxui::Element Tui::ScrollResultDialog(const ScrollResult& r) {
 }
 
 ftxui::Element Tui::RenderFrame() {
+  if (controller_.screen() == kInspect) {
+    inspect_panel_.SetItem(controller_.inspect_item());
+    return ftxui::hbox({
+        ftxui::filler(),
+        inspect_panel_.Render(),
+        ftxui::filler(),
+    });
+  }
   if (controller_.screen() == kScrollSelect ||
       controller_.screen() == kScrollResult) {
     inspect_panel_.SetItem(controller_.scroll_item());

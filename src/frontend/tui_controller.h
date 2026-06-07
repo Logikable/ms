@@ -46,6 +46,8 @@ class TuiController {
   // Returns the item being scrolled while in kScrollSelect or kScrollResult,
   // or nullptr otherwise.
   const EquipInstance* scroll_item() const;
+  // Returns the item being inspected while in kInspect, or nullptr otherwise.
+  const EquipInstance* inspect_item() const;
 
  private:
   GameState& state_;
@@ -56,6 +58,8 @@ class TuiController {
   Screen screen_ = kMain;
   EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;
   int scroll_index_ = 0;
+  EquipSlot inspect_slot_ = EQUIP_SLOT_UNSPECIFIED;
+  int inspect_index_ = 0;
   ScrollResult scroll_result_;
 };
 

@@ -54,6 +54,9 @@ Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
       }
       return kMain;
     }
+    if (menu_.selected() == kMenuInspect) {
+      return kInspect;
+    }
     if (menu_.selected() == kMenuScroll) {
       if (scroll_panel.SetFilterForPrototype(
               character_.inventory()[selected_].prototype())) {

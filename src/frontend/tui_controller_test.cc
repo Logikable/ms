@@ -98,7 +98,7 @@ TEST_F(TuiControllerTest, ArrowDownInItemMenuAdvancesMenuSelection) {
   EXPECT_EQ(equip_panel_->menu().selected(), 1);
 }
 
-TEST_F(TuiControllerTest, InspectActionGoesToMain) {
+TEST_F(TuiControllerTest, InspectActionGoesToInspect) {
   state_->character.PickUp(sword_);
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -106,6 +106,19 @@ TEST_F(TuiControllerTest, InspectActionGoesToMain) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kInspect);
+}
+
+TEST_F(TuiControllerTest, EscapeInInspectGoesToMain) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
 
   EXPECT_EQ(controller_->screen(), kMain);
 }

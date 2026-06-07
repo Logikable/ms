@@ -33,6 +33,16 @@ void TuiController::OpenBagMenu() {
   bag_panel_.OpenMenu();
 }
 
+const EquipInstance* TuiController::inspect_item() const {
+  if (screen_ != kInspect) {
+    return nullptr;
+  }
+  if (panel_focus_ == kEquipPanel) {
+    return &state_.character.equipped().at(inspect_slot_);
+  }
+  return &state_.character.inventory()[inspect_index_];
+}
+
 const EquipInstance* TuiController::scroll_item() const {
   if (screen_ != kScrollSelect && screen_ != kScrollResult) {
     return nullptr;
@@ -49,6 +59,13 @@ bool TuiController::OnEvent(ftxui::Event event) {
         panel_focus_ == kEquipPanel
             ? equip_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_)
             : bag_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
+    if (next == kInspect) {
+      if (panel_focus_ == kEquipPanel) {
+        inspect_slot_ = equip_panel_.selected_slot();
+      } else {
+        inspect_index_ = bag_panel_.selected();
+      }
+    }
     if (next == kScrollSelect) {
       if (panel_focus_ == kEquipPanel) {
         scroll_slot_ = equip_panel_.selected_slot();
@@ -57,6 +74,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
       }
     }
     screen_ = next;
+    return true;
+  }
+  if (screen_ == kInspect) {
+    if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+      screen_ = kMain;
+    }
     return true;
   }
   if (screen_ == kScrollSelect) {
