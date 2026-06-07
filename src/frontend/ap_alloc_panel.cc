@@ -31,6 +31,10 @@ constexpr int kNumStats = 6;
 // selected row, used to pad non-selected rows to the same total width.
 constexpr int kButtonsWidth = 11;
 
+// Longest name field in kStats, used to size the panel against the confirm
+// dialog so the panel never widens when confirm appears.
+constexpr int kMaxStatNameLen = 3;  // STR/DEX/INT/LUK
+
 struct StatValues {
   int base;   // from allocated AP
   int bonus;  // from gear
@@ -96,6 +100,12 @@ ftxui::Element ApAllocPanel::Render() const {
     row_texts.push_back(StatRowText(kStats[i].label, sv.base, sv.bonus));
     max_row_width = std::max(max_row_width, (int)row_texts.back().size());
   }
+  // Ensure the panel is wide enough that the confirm dialog never causes a
+  // resize. Confirm inner: " Assign all <ap> AP to <name>? " = 21 + ap_digits
+  // + kMaxStatNameLen. Row region inner: 2 (prefix) + max_row_width +
+  // kButtonsWidth. Floor = confirm_inner - 2 - kButtonsWidth.
+  int confirm_inner = 21 + (int)std::to_string(ap).size() + kMaxStatNameLen;
+  max_row_width = std::max(max_row_width, confirm_inner - 2 - kButtonsWidth);
 
   for (int i = 0; i < kNumStats; ++i) {
     std::string row_text = row_texts[i];
