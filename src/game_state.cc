@@ -11,8 +11,9 @@ namespace {
 
 Character MakeStartingCharacterProto() {
   Character proto;
-  proto.set_level(1);
+  proto.set_level(2);
   proto.set_job(JOB_BEGINNER);
+  proto.set_ap(5);
   proto.mutable_allocated_stats()->set_str(13);
   proto.mutable_allocated_stats()->set_dex(4);
   proto.mutable_allocated_stats()->set_int_(4);
