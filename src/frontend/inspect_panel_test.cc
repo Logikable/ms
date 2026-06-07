@@ -48,6 +48,16 @@ TEST_F(InspectPanelTest, ShowsJobCategory) {
   EXPECT_NE(Render(panel).find("Warrior"), std::string::npos);
 }
 
+TEST_F(InspectPanelTest, IneligibleJobsStillRendered) {
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Bowman"), std::string::npos);
+  EXPECT_NE(rendered.find("Magician"), std::string::npos);
+  EXPECT_NE(rendered.find("Pirate"), std::string::npos);
+}
+
 TEST_F(InspectPanelTest, UniversalShowsAllJobGroups) {
   sword_.clear_equip_job_categories();
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
@@ -55,6 +65,7 @@ TEST_F(InspectPanelTest, UniversalShowsAllJobGroups) {
   InspectPanel panel;
   panel.SetItem(&item);
   std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Beginner"), std::string::npos);
   EXPECT_NE(rendered.find("Warrior"), std::string::npos);
   EXPECT_NE(rendered.find("Bowman"), std::string::npos);
   EXPECT_NE(rendered.find("Magician"), std::string::npos);

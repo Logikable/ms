@@ -1,5 +1,6 @@
 #include "src/frontend/inspect_panel.h"
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -29,7 +30,7 @@ ftxui::Element InspectPanel::Render() const {
   rows.push_back(ftxui::separator());
   // Trailing space on each text row keeps the right border one column clear.
   rows.push_back(ftxui::text(" Req Lev: " + std::to_string(level) + " "));
-  rows.push_back(ftxui::text(" " + FormatJobCategories(proto) + " "));
+  rows.push_back(FormatJobCategories(proto));
   rows.push_back(ftxui::separator());
 
   if (proto.equip_type() != EQUIP_TYPE_UNSPECIFIED) {
@@ -131,43 +132,39 @@ std::string InspectPanel::FormatAttackSpeed(AttackSpeed speed) {
   return "Stage " + std::to_string(stage) + " (" + name + ")";
 }
 
-std::string InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
+ftxui::Element InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
+  std::set<EquipJobCategory> cats;
   for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
-    if (static_cast<EquipJobCategory>(proto.equip_job_categories(i)) ==
-        EQUIP_JOB_CATEGORY_UNIVERSAL) {
-      return "Beginner / Warrior / Bowman / Magician / Thief / Pirate";
-    }
+    cats.insert(static_cast<EquipJobCategory>(proto.equip_job_categories(i)));
   }
-  std::string result;
-  for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
-    if (!result.empty()) {
-      result += " / ";
+  bool universal = cats.empty() || cats.count(EQUIP_JOB_CATEGORY_UNIVERSAL);
+
+  struct Entry { const char* name; EquipJobCategory cat; };
+  const Entry kEntries[] = {
+    {"Beginner", EQUIP_JOB_CATEGORY_BEGINNER},
+    {"Warrior",  EQUIP_JOB_CATEGORY_WARRIOR},
+    {"Bowman",   EQUIP_JOB_CATEGORY_BOWMAN},
+    {"Magician", EQUIP_JOB_CATEGORY_MAGICIAN},
+    {"Thief",    EQUIP_JOB_CATEGORY_THIEF},
+    {"Pirate",   EQUIP_JOB_CATEGORY_PIRATE},
+  };
+
+  std::vector<ftxui::Element> elems;
+  elems.push_back(ftxui::text(" "));
+  bool first = true;
+  for (const Entry& entry : kEntries) {
+    if (!first) {
+      elems.push_back(ftxui::text(" / "));
     }
-    switch (static_cast<EquipJobCategory>(proto.equip_job_categories(i))) {
-      case EQUIP_JOB_CATEGORY_BEGINNER:
-        result += "Beginner";
-        break;
-      case EQUIP_JOB_CATEGORY_WARRIOR:
-        result += "Warrior";
-        break;
-      case EQUIP_JOB_CATEGORY_BOWMAN:
-        result += "Bowman";
-        break;
-      case EQUIP_JOB_CATEGORY_MAGICIAN:
-        result += "Magician";
-        break;
-      case EQUIP_JOB_CATEGORY_THIEF:
-        result += "Thief";
-        break;
-      case EQUIP_JOB_CATEGORY_PIRATE:
-        result += "Pirate";
-        break;
-      default:
-        break;
+    first = false;
+    ftxui::Element e = ftxui::text(entry.name);
+    if (!universal && !cats.count(entry.cat)) {
+      e = e | ftxui::dim;
     }
+    elems.push_back(e);
   }
-  return result.empty() ? "Beginner / Warrior / Bowman / Magician / Thief / Pirate"
-                        : result;
+  elems.push_back(ftxui::text(" "));
+  return ftxui::hbox(std::move(elems));
 }
 
 }  // namespace ms
