@@ -27,6 +27,9 @@ class ApAllocPanel {
   void Reset();
 
  private:
+  ftxui::Element RenderBelowPanel(int ap) const;
+  Screen OnConfirmEvent(ftxui::Event event);
+
   CharacterInstance& character_;
   int selected_ = 0;  // stat row index (0-5)
   int button_ = 0;    // 0 = [+1], 1 = [All]

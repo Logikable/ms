@@ -25,7 +25,7 @@ constexpr StatEntry kStats[] = {
     {" HP", "HP", STAT_FIELD_HP},   {" MP", "MP", STAT_FIELD_MP},
 };
 
-constexpr int kNumStats = 6;
+constexpr int kNumStats = sizeof(kStats) / sizeof(kStats[0]);
 
 // Width of the button area "[+1] [All] " that follows the stat on the
 // selected row, used to pad non-selected rows to the same total width.
@@ -82,6 +82,31 @@ void ApAllocPanel::Reset() {
   confirm_sel_ = 0;
 }
 
+ftxui::Element ApAllocPanel::RenderBelowPanel(int ap) const {
+  if (!confirming_) {
+    return ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 4);
+  }
+  std::string msg = " Assign all " + std::to_string(ap) + " AP to " +
+                    kStats[selected_].name + "? ";
+  ftxui::Element confirm_btn = ftxui::text("[Confirm]");
+  ftxui::Element cancel_btn = ftxui::text("[Cancel]");
+  if (confirm_sel_ == 0) {
+    confirm_btn = confirm_btn | ftxui::inverted;
+  } else {
+    cancel_btn = cancel_btn | ftxui::inverted;
+  }
+  return ftxui::window(ftxui::text(""), ftxui::vbox({
+                                            ftxui::text(msg),
+                                            ftxui::hbox({
+                                                ftxui::text(" "),
+                                                confirm_btn,
+                                                ftxui::text("  "),
+                                                cancel_btn,
+                                                ftxui::text(" "),
+                                            }),
+                                        }));
+}
+
 ftxui::Element ApAllocPanel::Render() const {
   int ap = character_.proto().ap();
   bool has_ap = ap > 0;
@@ -109,9 +134,7 @@ ftxui::Element ApAllocPanel::Render() const {
 
   for (int i = 0; i < kNumStats; ++i) {
     std::string row_text = row_texts[i];
-    while ((int)row_text.size() < max_row_width) {
-      row_text += ' ';
-    }
+    row_text.resize(max_row_width, ' ');
 
     if (i != selected_) {
       rows.push_back(
@@ -140,57 +163,35 @@ ftxui::Element ApAllocPanel::Render() const {
 
   ftxui::Element main = ftxui::window(ftxui::text(" AP Allocation "),
                                       ftxui::vbox(std::move(rows)));
+  return ftxui::vbox({main, RenderBelowPanel(ap)});
+}
 
-  ftxui::Element below;
-  if (confirming_) {
-    std::string msg = " Assign all " + std::to_string(ap) + " AP to " +
-                      kStats[selected_].name + "? ";
-    ftxui::Element confirm_btn = ftxui::text("[Confirm]");
-    ftxui::Element cancel_btn = ftxui::text("[Cancel]");
-    if (confirm_sel_ == 0) {
-      confirm_btn = confirm_btn | ftxui::inverted;
-    } else {
-      cancel_btn = cancel_btn | ftxui::inverted;
-    }
-    below = ftxui::window(ftxui::text(""), ftxui::vbox({
-                                               ftxui::text(msg),
-                                               ftxui::hbox({
-                                                   ftxui::text(" "),
-                                                   confirm_btn,
-                                                   ftxui::text("  "),
-                                                   cancel_btn,
-                                                   ftxui::text(" "),
-                                               }),
-                                           }));
-  } else {
-    below = ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 4);
+Screen ApAllocPanel::OnConfirmEvent(ftxui::Event event) {
+  if (event == ftxui::Event::Escape) {
+    confirming_ = false;
+    return kApAlloc;
   }
-  return ftxui::vbox({main, below});
+  if (event == ftxui::Event::ArrowLeft) {
+    confirm_sel_ = 0;
+    return kApAlloc;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    confirm_sel_ = 1;
+    return kApAlloc;
+  }
+  if (event == ftxui::Event::Return) {
+    if (confirm_sel_ == 0) {
+      character_.AllocateAllStat(kStats[selected_].field);
+    }
+    confirming_ = false;
+  }
+  return kApAlloc;
 }
 
 Screen ApAllocPanel::OnEvent(ftxui::Event event) {
   if (confirming_) {
-    if (event == ftxui::Event::Escape) {
-      confirming_ = false;
-      return kApAlloc;
-    }
-    if (event == ftxui::Event::ArrowLeft) {
-      confirm_sel_ = 0;
-      return kApAlloc;
-    }
-    if (event == ftxui::Event::ArrowRight) {
-      confirm_sel_ = 1;
-      return kApAlloc;
-    }
-    if (event == ftxui::Event::Return) {
-      if (confirm_sel_ == 0) {
-        character_.AllocateAllStat(kStats[selected_].field);
-      }
-      confirming_ = false;
-    }
-    return kApAlloc;
+    return OnConfirmEvent(event);
   }
-
   if (event == ftxui::Event::Escape) {
     return kMain;
   }
