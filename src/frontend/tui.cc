@@ -111,9 +111,9 @@ ftxui::Element Tui::RenderFrame() {
   if (panel_focus_ == kEquipPanel) {
     menu_row = equip_panel_.selected();
   } else {
-    // Bag rows follow all equip rows in the vbox, so offset by equip count.
-    menu_row = static_cast<int>(state_.character.equipped().size()) +
-               bag_panel_.selected();
+    // Empty equip panel still renders 1 content row ("(empty)"), so clamp to 1.
+    int equip_rows = std::max(1, static_cast<int>(state_.character.equipped().size()));
+    menu_row = equip_rows + 2 + bag_panel_.selected();
   }
   ItemMenu& menu =
       panel_focus_ == kEquipPanel ? equip_panel_.menu() : bag_panel_.menu();
