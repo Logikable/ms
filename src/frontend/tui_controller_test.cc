@@ -61,6 +61,22 @@ class TuiControllerTest : public testing::Test {
     ftxui::Render(scr, equip_component_->Render());
   }
 
+  // Replaces the scroll map with a single 0%-rate scroll and rebuilds
+  // scroll_panel_ and controller_ to pick up the change.
+  void UseFailScroll() {
+    Scroll fail;
+    fail.set_name("Fail Scroll");
+    fail.set_success_rate(0);
+    fail.set_tier(SCROLL_TIER_1);
+    fail.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+    fail.mutable_stats()->set_attack(5);
+    state_->scrolls.clear();
+    state_->scrolls["Fail Scroll"] = fail;
+    scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
+    controller_ = std::make_unique<TuiController>(
+        *state_, *equip_panel_, *bag_panel_, *scroll_panel_, panel_focus_);
+  }
+
   int panel_focus_ = kEquipPanel;
   EquipPrototype sword_;
   std::unique_ptr<GameState> state_;
@@ -278,37 +294,18 @@ TEST_F(TuiControllerTest, ScrollResultSlotsRemainingIsDecrementedOnSuccess) {
 }
 
 TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
-  Scroll fail_scroll;
-  fail_scroll.set_name("Fail Scroll");
-  fail_scroll.set_success_rate(0);
-  fail_scroll.set_tier(SCROLL_TIER_1);
-  fail_scroll.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  fail_scroll.mutable_stats()->set_attack(5);
-  std::map<std::string, EquipPrototype> equips;
-  equips["Sword"] = sword_;
-  std::map<std::string, Scroll> scrolls;
-  scrolls["Fail Scroll"] = fail_scroll;
-  GameState s(std::move(equips), std::move(scrolls));
-  int focus = kEquipPanel;
-  EquippedPanel ep(s.character, focus);
-  BagPanel bp(s.character, focus);
-  ScrollPanel sp(s.scrolls);
-  TuiController ctrl(s, ep, bp, sp, focus);
-  ftxui::Component comp = ep.MakeComponent([]() {});
+  UseFailScroll();
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
 
-  s.character.PickUp(sword_);
-  s.character.Equip(0);
-  ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                            ftxui::Dimension::Fixed(5));
-  ftxui::Render(scr, comp->Render());
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);     // apply scroll
 
-  ctrl.OpenEquipMenu();
-  ctrl.OnEvent(ftxui::Event::ArrowDown);  // Inspect
-  ctrl.OnEvent(ftxui::Event::ArrowDown);  // Scroll
-  ctrl.OnEvent(ftxui::Event::Return);     // enter kScrollSelect
-  ctrl.OnEvent(ftxui::Event::Return);     // apply scroll
-
-  EXPECT_EQ(ctrl.scroll_result().outcome, kScrollFail);
+  EXPECT_EQ(controller_->scroll_result().outcome, kScrollFail);
 }
 
 // --- Scroll via bag panel ---
