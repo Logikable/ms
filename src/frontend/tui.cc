@@ -75,7 +75,11 @@ ftxui::Element Tui::ScrollResultDialog(const ScrollResult& r) {
 ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kScrollSelect ||
       controller_.screen() == kScrollResult) {
-    ftxui::Element base = scroll_panel_.Render() | ftxui::flex;
+    inspect_panel_.SetItem(controller_.scroll_item());
+    ftxui::Element base = ftxui::hbox({
+        scroll_panel_.Render(),
+        inspect_panel_.Render(),
+    });
     if (controller_.screen() == kScrollResult) {
       ftxui::Element dialog = ScrollResultDialog(controller_.scroll_result());
       return ftxui::dbox({base, ftxui::center(dialog | ftxui::clear_under)});

@@ -118,6 +118,29 @@ cc_test(
 )
 
 cc_library(
+    name = "inspect_panel",
+    srcs = ["inspect_panel.cc"],
+    hdrs = ["inspect_panel.h"],
+    deps = [
+        "//src:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "inspect_panel_test",
+    srcs = ["inspect_panel_test.cc"],
+    deps = [
+        ":inspect_panel",
+        ":panel_test_base",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "scroll_panel",
     srcs = ["scroll_panel.cc"],
     hdrs = ["scroll_panel.h"],
@@ -187,6 +210,7 @@ cc_library(
         ":bag_panel",
         ":character_panel",
         ":equipped_panel",
+        ":inspect_panel",
         ":item_menu",
         ":scroll_panel",
         ":tui_controller",

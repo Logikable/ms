@@ -33,6 +33,16 @@ void TuiController::OpenBagMenu() {
   bag_panel_.OpenMenu();
 }
 
+const EquipInstance* TuiController::scroll_item() const {
+  if (screen_ != kScrollSelect && screen_ != kScrollResult) {
+    return nullptr;
+  }
+  if (panel_focus_ == kEquipPanel) {
+    return &state_.character.equipped().at(scroll_slot_);
+  }
+  return &state_.character.inventory()[scroll_index_];
+}
+
 bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kItemMenu) {
     Screen next =

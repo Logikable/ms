@@ -10,6 +10,7 @@
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"
+#include "src/frontend/inspect_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
@@ -36,6 +37,7 @@ class Tui {
   EquippedPanel equip_panel_;
   BagPanel bag_panel_;
   ScrollPanel scroll_panel_;
+  InspectPanel inspect_panel_;
 
   // Screen-state machine: owns screen_ and event-handling logic.
   TuiController controller_;

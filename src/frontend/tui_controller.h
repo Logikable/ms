@@ -10,6 +10,7 @@
 #define MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 
 #include "ftxui/component/event.hpp"
+#include "src/equip_instance.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
@@ -42,6 +43,9 @@ class TuiController {
   const ScrollResult& scroll_result() const {
     return scroll_result_;
   }
+  // Returns the item being scrolled while in kScrollSelect or kScrollResult,
+  // or nullptr otherwise.
+  const EquipInstance* scroll_item() const;
 
  private:
   GameState& state_;
