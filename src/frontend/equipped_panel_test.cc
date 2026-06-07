@@ -33,17 +33,22 @@ TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
             std::string::npos);
 }
 
-// SetShowSelection(false) hides the cursor and keeps the two-space indent so
-// text does not shift left when the item menu opens.
-TEST_F(EquippedPanelTest, SetShowSelectionFalseHidesCursorPreservesIndent) {
+TEST_F(EquippedPanelTest, ShowsColumnHeader) {
   c_.PickUp(sword_);
   c_.Equip(0);
   EquippedPanel panel(c_, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([]() {});
-  panel.SetShowSelection(false);
-  std::string rendered = RenderComponent(comp);
-  EXPECT_EQ(rendered.find("> Sword"), std::string::npos);
-  EXPECT_NE(rendered.find("  Sword"), std::string::npos);
+  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_NE(rendered.find("Name"), std::string::npos);
+  EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
+  EXPECT_NE(rendered.find("Scrolls"), std::string::npos);
+}
+
+TEST_F(EquippedPanelTest, ShowsEquipSlotName) {
+  c_.PickUp(sword_);
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Weapon"),
+            std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {

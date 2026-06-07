@@ -19,7 +19,7 @@ namespace {
 constexpr int kSlotWidth = 10;
 // Width of the stats info column; slots column follows at a fixed offset.
 constexpr int kInfoWidth = 20;
-// Two leading spaces match the "  " / "> " cursor the menu prepends to entries.
+// Two leading spaces match the "  " / "> " cursor added by the entry transform.
 constexpr char kColumnHeader[] =
     "  Name              "   // 2 cursor + 18 name
     "  Equip Slot"           // 2 sep + 10 slot
@@ -32,10 +32,6 @@ EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
       menu_({"Unequip", "Inspect", "Scroll"}) {
-}
-
-void EquippedPanel::SetShowSelection(bool show) {
-  show_selection_ = show;
 }
 
 void EquippedPanel::OpenMenu() {
@@ -87,6 +83,11 @@ EquipSlot EquippedPanel::selected_slot() const {
 ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
+  // Suppress the default color inversion so the caret indicator looks the same
+  // whether or not the item menu is open.
+  opt.entries_option.transform = [](ftxui::EntryState state) -> ftxui::Element {
+    return ftxui::text((state.focused ? "> " : "  ") + state.label);
+  };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
   // entries_ and slots_ are rebuilt from equipped() on every render so the
@@ -119,16 +120,6 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
     }
     if (entries_.empty()) {
       return ftxui::window(ftxui::text(" Equipped "), ftxui::text("(empty)"));
-    }
-    if (!show_selection_) {
-      std::vector<ftxui::Element> items;
-      items.push_back(ftxui::text(kColumnHeader));
-      items.push_back(ftxui::separator());
-      for (const std::string& e : entries_) {
-        items.push_back(ftxui::text("  " + e));
-      }
-      return ftxui::window(ftxui::text(" Equipped "),
-                           ftxui::vbox(std::move(items)));
     }
     return ftxui::window(ftxui::text(" Equipped "), ftxui::vbox({
         ftxui::text(kColumnHeader),

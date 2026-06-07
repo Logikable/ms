@@ -92,8 +92,6 @@ ftxui::Element Tui::RenderFrame() {
     }
     return ftxui::hbox({scroll_view, inspect_panel_.Render() | ftxui::flex});
   }
-  equip_panel_.SetShowSelection(controller_.screen() == kMain);
-  bag_panel_.SetShowSelection(controller_.screen() == kMain);
   ftxui::Element layout = ftxui::vbox({
       ftxui::hbox({
           char_panel_.Render(),

@@ -18,7 +18,7 @@ namespace {
 constexpr int kSlotWidth = 10;
 // Width of the level+job info column; slots column follows at a fixed offset.
 constexpr int kInfoWidth = 20;
-// Two leading spaces match the "  " / "> " cursor the menu prepends to entries.
+// Two leading spaces match the "  " / "> " cursor added by the entry transform.
 constexpr char kColumnHeader[] =
     "  Name              "   // 2 cursor + 18 name
     "  Equip Slot"           // 2 sep + 10 slot
@@ -31,10 +31,6 @@ BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Scroll"}) {
-}
-
-void BagPanel::SetShowSelection(bool show) {
-  show_selection_ = show;
 }
 
 void BagPanel::OpenMenu() {
@@ -79,6 +75,11 @@ Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
 ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
+  // Suppress the default color inversion so the caret indicator looks the same
+  // whether or not the item menu is open.
+  opt.entries_option.transform = [](ftxui::EntryState state) -> ftxui::Element {
+    return ftxui::text((state.focused ? "> " : "  ") + state.label);
+  };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
   // entries_ is rebuilt from inventory() on every render so the display stays
@@ -107,15 +108,6 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
     }
     if (entries_.empty()) {
       return ftxui::window(ftxui::text(" Bag "), ftxui::text("(empty)"));
-    }
-    if (!show_selection_) {
-      std::vector<ftxui::Element> items;
-      items.push_back(ftxui::text(kColumnHeader));
-      items.push_back(ftxui::separator());
-      for (const std::string& e : entries_) {
-        items.push_back(ftxui::text("  " + e));
-      }
-      return ftxui::window(ftxui::text(" Bag "), ftxui::vbox(std::move(items)));
     }
     return ftxui::window(ftxui::text(" Bag "), ftxui::vbox({
         ftxui::text(kColumnHeader),
