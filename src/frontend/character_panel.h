@@ -19,8 +19,8 @@ namespace ms {
 
 class CharacterPanel {
  public:
-  // Total rendered width including the AP balcony (main 26 + balcony 6).
-  static constexpr int kTotalWidth = 32;
+  // Total rendered width including the AP balcony (main 26 + balcony 7).
+  static constexpr int kTotalWidth = 33;
 
   explicit CharacterPanel(const CharacterInstance& character, int& panel_focus);
   ftxui::Element Render() const;

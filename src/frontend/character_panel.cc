@@ -15,7 +15,7 @@ namespace {
 
 constexpr int kContentWidth = 24;  // chars between the │ borders
 constexpr int kStatLineLeft = 12;  // left field width in StatLine
-constexpr int kApWidth = 5;        // chars in the AP balcony column
+constexpr int kApWidth = 6;        // chars in the AP balcony column
 
 }  // namespace
 
@@ -78,14 +78,15 @@ ftxui::Element CharacterPanel::Render() const {
     matt += ' ';
   }
 
-  // AP value left-aligned with 1 space prefix in the AP column.
-  std::string ap_val = " " + std::to_string(p.ap());
+  // AP value with caret prefix when the char panel is focused.
+  bool ap_focused = panel_focus_ == kCharPanel;
+  std::string ap_val = (ap_focused ? "> " : "  ") + std::to_string(p.ap());
   while ((int)ap_val.size() < kApWidth) {
     ap_val += ' ';
   }
   ftxui::Element ap_cell = ftxui::text(ap_val);
-  if (panel_focus_ == kCharPanel) {
-    ap_cell = ap_cell | ftxui::inverted | ftxui::focus;
+  if (ap_focused) {
+    ap_cell = ap_cell | ftxui::focus;
   }
 
   // Each row is a literal string; ┼ appears at the exact junction columns so
@@ -93,15 +94,15 @@ ftxui::Element CharacterPanel::Render() const {
   return ftxui::vbox({
       ftxui::text("╭ Character ─────────────╮"),
       ftxui::text("│" + title + "│"),
-      ftxui::text("├────────────────────────┼─────╮"),
-      ftxui::text("│" + hp_mp + "│ AP  │"),
+      ftxui::text("├────────────────────────┼──────╮"),
+      ftxui::text("│" + hp_mp + "│  AP  │"),
       ftxui::hbox({
           ftxui::text("│" + str_dex + "│"),
           ap_cell,
           ftxui::text("│"),
       }),
-      ftxui::text("│" + int_luk + "│     │"),
-      ftxui::text("├────────────────────────┼─────╯"),
+      ftxui::text("│" + int_luk + "│      │"),
+      ftxui::text("├────────────────────────┼──────╯"),
       ftxui::text("│" + att + "│"),
       ftxui::text("│" + matt + "│"),
       ftxui::text("╰────────────────────────╯"),
