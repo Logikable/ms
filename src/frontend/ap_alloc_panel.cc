@@ -58,8 +58,11 @@ StatValues StatValuesFor(const AllocatedStats& a, const EquipStats& e,
 
 std::string StatRowText(const char* label, int base, int bonus) {
   int total = base + bonus;
-  return std::string(label) + "  " + std::to_string(total) + " (" +
-         std::to_string(base) + "+" + std::to_string(bonus) + ")  ";
+  std::string s = std::string(label) + "  " + std::to_string(total);
+  if (bonus > 0) {
+    s += " (" + std::to_string(base) + "+" + std::to_string(bonus) + ")";
+  }
+  return s + "  ";
 }
 
 }  // namespace
@@ -96,7 +99,9 @@ ftxui::Element ApAllocPanel::Render() const {
 
   for (int i = 0; i < kNumStats; ++i) {
     std::string row_text = row_texts[i];
-    while ((int)row_text.size() < max_row_width) row_text += ' ';
+    while ((int)row_text.size() < max_row_width) {
+      row_text += ' ';
+    }
 
     if (i != selected_) {
       rows.push_back(
@@ -137,21 +142,18 @@ ftxui::Element ApAllocPanel::Render() const {
     } else {
       cancel_btn = cancel_btn | ftxui::inverted;
     }
-    below = ftxui::window(
-        ftxui::text(""),
-        ftxui::vbox({
-            ftxui::text(msg),
-            ftxui::hbox({
-                ftxui::text(" "),
-                confirm_btn,
-                ftxui::text("  "),
-                cancel_btn,
-                ftxui::text(" "),
-            }),
-        }));
+    below = ftxui::window(ftxui::text(""), ftxui::vbox({
+                                               ftxui::text(msg),
+                                               ftxui::hbox({
+                                                   ftxui::text(" "),
+                                                   confirm_btn,
+                                                   ftxui::text("  "),
+                                                   cancel_btn,
+                                                   ftxui::text(" "),
+                                               }),
+                                           }));
   } else {
-    below = ftxui::text("") |
-            ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 4);
+    below = ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 4);
   }
   return ftxui::vbox({main, below});
 }
