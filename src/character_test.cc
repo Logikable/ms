@@ -308,6 +308,34 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   EXPECT_EQ(c_.inventory()[0].proto().remaining_upgrade_slots(), 2);
 }
 
+// --- equip_stats cache ---
+
+TEST_F(EquipTest, EquipStatsUpdatesOnEquip) {
+  sword_.mutable_base_stats()->set_attack(15);
+  c_.PickUp(sword_);
+  c_.Equip(0);
+  EXPECT_EQ(c_.equip_stats().attack(), 15);
+}
+
+TEST_F(UnequipTest, EquipStatsClearsOnUnequip) {
+  sword_.mutable_base_stats()->set_str(10);
+  c_.PickUp(sword_);
+  c_.Equip(0);
+  c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON);
+  EXPECT_EQ(c_.equip_stats().str(), 0);
+}
+
+TEST_F(ScrollEquippedTest, EquipStatsUpdatesOnScrollSuccess) {
+  sword_.set_upgrade_slots(3);
+  c_.PickUp(sword_);
+  c_.Equip(0);
+  Scroll scroll;
+  scroll.set_success_rate(100);
+  scroll.mutable_stats()->set_attack(7);
+  c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll);
+  EXPECT_EQ(c_.equip_stats().attack(), 7);
+}
+
 // --- CanEquip ---
 
 TEST_F(CanEquipTest, ReturnsTrueWhenLevelAndJobMatch) {

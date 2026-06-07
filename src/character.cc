@@ -1,8 +1,11 @@
 #include "src/character.h"
 
 #include <utility>
+#include <vector>
 
+#include "absl/types/span.h"
 #include "src/equip_instance.h"
+#include "src/equip_stats.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -93,6 +96,14 @@ bool CharacterInstance::AllocateAllStat(StatField field) {
   return AllocateStat(field, ap);
 }
 
+void CharacterInstance::RecomputeEquipStats() {
+  std::vector<EquipStats> list;
+  for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
+    list.push_back(kv.second.stats());
+  }
+  equip_stats_ = SumEquipStats(absl::MakeSpan(list));
+}
+
 void CharacterInstance::PickUp(const EquipPrototype& prototype) {
   inventory_.emplace_back(prototype);
 }
@@ -114,6 +125,7 @@ bool CharacterInstance::Equip(int inventory_index) {
     equipped_.erase(it);
   }
   equipped_.emplace(slot, std::move(item));
+  RecomputeEquipStats();
   return true;
 }
 
@@ -127,6 +139,7 @@ bool CharacterInstance::Unequip(EquipSlot slot) {
   }
   inventory_.push_back(std::move(it->second));
   equipped_.erase(it);
+  RecomputeEquipStats();
   return true;
 }
 
@@ -135,7 +148,11 @@ bool CharacterInstance::ScrollEquipped(EquipSlot slot, const Scroll& scroll) {
   if (it == equipped_.end()) {
     return false;
   }
-  return it->second.Scroll(scroll, rng_);
+  bool success = it->second.Scroll(scroll, rng_);
+  if (success) {
+    RecomputeEquipStats();
+  }
+  return success;
 }
 
 bool CharacterInstance::ScrollInventory(int index, const Scroll& scroll) {

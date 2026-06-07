@@ -63,12 +63,21 @@ class CharacterInstance {
   const std::map<EquipSlot, EquipInstance>& equipped() const {
     return equipped_;
   }
+  // Sum of stats from all currently equipped items. Updated automatically by
+  // Equip, Unequip, and ScrollEquipped.
+  const EquipStats& equip_stats() const {
+    return equip_stats_;
+  }
 
  private:
+  // Recomputes equip_stats_ from the current equipped map.
+  void RecomputeEquipStats();
+
   std::mt19937& rng_;
   Character character_;
   std::vector<EquipInstance> inventory_;
   std::map<EquipSlot, EquipInstance> equipped_;
+  EquipStats equip_stats_;
 };
 
 }  // namespace ms

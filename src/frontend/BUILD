@@ -31,11 +31,8 @@ cc_library(
     hdrs = ["character_panel.h"],
     deps = [
         "//src:character",
-        "//src:equip_instance",
-        "//src:equip_stats",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
-        "@abseil-cpp//absl/types:span",
         "@ftxui//:dom",
     ],
 )
@@ -115,6 +112,34 @@ cc_test(
     deps = [
         ":equipped_panel",
         ":panel_test_base",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "ap_alloc_panel",
+    srcs = ["ap_alloc_panel.cc"],
+    hdrs = ["ap_alloc_panel.h"],
+    deps = [
+        ":types",
+        "//src:character",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "ap_alloc_panel_test",
+    srcs = ["ap_alloc_panel_test.cc"],
+    deps = [
+        ":ap_alloc_panel",
+        ":panel_test_base",
+        ":types",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
         "@googletest//:gtest_main",
     ],
 )

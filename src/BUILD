@@ -20,10 +20,12 @@ cc_library(
     hdrs = ["character.h"],
     deps = [
         ":equip_instance",
+        ":equip_stats",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/types:span",
     ],
 )
 

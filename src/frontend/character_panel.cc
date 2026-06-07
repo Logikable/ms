@@ -1,12 +1,8 @@
 #include "src/frontend/character_panel.h"
 
 #include <string>
-#include <vector>
 
-#include "absl/types/span.h"
 #include "ftxui/dom/elements.hpp"
-#include "src/equip_instance.h"
-#include "src/equip_stats.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 
@@ -35,12 +31,7 @@ std::string CharacterPanel::StatLine(const std::string& l1, int v1,
 ftxui::Element CharacterPanel::Render() const {
   const Character& p = character_.proto();
   const AllocatedStats& a = p.allocated_stats();
-  std::vector<EquipStats> equip_list;
-  for (const std::pair<const EquipSlot, EquipInstance>& kv :
-       character_.equipped()) {
-    equip_list.push_back(kv.second.stats());
-  }
-  EquipStats e = SumEquipStats(absl::MakeSpan(equip_list));
+  const EquipStats& e = character_.equip_stats();
 
   std::string lvl = std::to_string(p.level());
   while ((int)lvl.size() < 3) {
