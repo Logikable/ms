@@ -35,6 +35,9 @@ constexpr int kButtonsWidth = 11;
 // dialog so the panel never widens when confirm appears.
 constexpr int kMaxStatNameLen = 3;  // STR/DEX/INT/LUK
 
+enum Button : int { kButtonPlus1 = 0, kButtonAll = 1 };
+enum ConfirmSel : int { kSelConfirm = 0, kSelCancel = 1 };
+
 struct StatValues {
   int base;   // from allocated AP
   int bonus;  // from gear
@@ -77,9 +80,9 @@ ApAllocPanel::ApAllocPanel(CharacterInstance& character)
 
 void ApAllocPanel::Reset() {
   selected_ = 0;
-  button_ = 0;
+  button_ = kButtonPlus1;
   confirming_ = false;
-  confirm_sel_ = 0;
+  confirm_sel_ = kSelConfirm;
 }
 
 ftxui::Element ApAllocPanel::RenderBelowPanel(int ap) const {
@@ -90,7 +93,7 @@ ftxui::Element ApAllocPanel::RenderBelowPanel(int ap) const {
                     kStats[selected_].name + "? ";
   ftxui::Element confirm_btn = ftxui::text("[Confirm]");
   ftxui::Element cancel_btn = ftxui::text("[Cancel]");
-  if (confirm_sel_ == 0) {
+  if (confirm_sel_ == kSelConfirm) {
     confirm_btn = confirm_btn | ftxui::inverted;
   } else {
     cancel_btn = cancel_btn | ftxui::inverted;
@@ -147,7 +150,7 @@ ftxui::Element ApAllocPanel::Render() const {
     if (!has_ap) {
       btn1 = btn1 | ftxui::dim;
       btn_all = btn_all | ftxui::dim;
-    } else if (button_ == 0) {
+    } else if (button_ == kButtonPlus1) {
       btn1 = btn1 | ftxui::inverted;
     } else {
       btn_all = btn_all | ftxui::inverted;
@@ -172,15 +175,15 @@ Screen ApAllocPanel::OnConfirmEvent(ftxui::Event event) {
     return kApAlloc;
   }
   if (event == ftxui::Event::ArrowLeft) {
-    confirm_sel_ = 0;
+    confirm_sel_ = kSelConfirm;
     return kApAlloc;
   }
   if (event == ftxui::Event::ArrowRight) {
-    confirm_sel_ = 1;
+    confirm_sel_ = kSelCancel;
     return kApAlloc;
   }
   if (event == ftxui::Event::Return) {
-    if (confirm_sel_ == 0) {
+    if (confirm_sel_ == kSelConfirm) {
       character_.AllocateAllStat(kStats[selected_].field);
     }
     confirming_ = false;
@@ -198,31 +201,31 @@ Screen ApAllocPanel::OnEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
     if (selected_ > 0) {
       selected_--;
-      button_ = 0;
+      button_ = kButtonPlus1;
     }
     return kApAlloc;
   }
   if (event == ftxui::Event::ArrowDown) {
     if (selected_ < kNumStats - 1) {
       selected_++;
-      button_ = 0;
+      button_ = kButtonPlus1;
     }
     return kApAlloc;
   }
   if (event == ftxui::Event::ArrowLeft) {
-    button_ = 0;
+    button_ = kButtonPlus1;
     return kApAlloc;
   }
   if (event == ftxui::Event::ArrowRight) {
-    button_ = 1;
+    button_ = kButtonAll;
     return kApAlloc;
   }
   if (event == ftxui::Event::Return && character_.proto().ap() > 0) {
-    if (button_ == 0) {
+    if (button_ == kButtonPlus1) {
       character_.AllocateStat(kStats[selected_].field);
     } else {
       confirming_ = true;
-      confirm_sel_ = 0;
+      confirm_sel_ = kSelConfirm;
     }
   }
   return kApAlloc;
