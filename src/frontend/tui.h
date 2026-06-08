@@ -13,6 +13,7 @@
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inspect_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/star_force_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
 
@@ -26,6 +27,7 @@ class Tui {
  private:
   ftxui::Element RenderFrame();
   ftxui::Element ScrollResultDialog(const ScrollResult& r);
+  ftxui::Element StarForceResultDialog(const StarForceResult& r);
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
@@ -40,6 +42,7 @@ class Tui {
   ScrollPanel scroll_panel_;
   InspectPanel inspect_panel_;
   ApAllocPanel ap_alloc_panel_;
+  StarForcePanel star_force_panel_;
 
   // Screen-state machine: owns screen_ and event-handling logic.
   TuiController controller_;

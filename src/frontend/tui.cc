@@ -76,9 +76,40 @@ ftxui::Element Tui::ScrollResultDialog(const ScrollResult& r) {
       }));
 }
 
+ftxui::Element Tui::StarForceResultDialog(const StarForceResult& r) {
+  std::string outcome_text;
+  if (r.outcome == kStarForceSuccess) {
+    outcome_text = " SUCCESS ";
+  } else if (r.outcome == kStarForceFail) {
+    outcome_text = " FAILED ";
+  } else {
+    outcome_text = " DESTROYED ";
+  }
+  return ftxui::window(
+      ftxui::text(" Result "),
+      ftxui::vbox({
+          ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
+          ftxui::separator(),
+          ftxui::text(outcome_text) | ftxui::hcenter,
+          ftxui::text(" " + std::to_string(r.stars_before) + "★ → " +
+                      std::to_string(r.stars_after) + "★ ") |
+              ftxui::hcenter,
+          ftxui::text(""),
+          ftxui::text(" Press Enter to continue "),
+      }));
+}
+
 ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kApAlloc) {
     return ftxui::center(ap_alloc_panel_.Render());
+  }
+  if (controller_.screen() == kStarForce) {
+    star_force_panel_.SetItem(controller_.star_force_item());
+    return ftxui::center(star_force_panel_.Render());
+  }
+  if (controller_.screen() == kStarForceResult) {
+    return ftxui::center(
+        StarForceResultDialog(controller_.star_force_result()));
   }
   if (controller_.screen() == kInspect) {
     inspect_panel_.SetItem(controller_.inspect_item());

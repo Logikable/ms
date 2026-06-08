@@ -30,13 +30,16 @@ constexpr char kColumnHeader[] =
 BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
-      menu_({"Equip", "Inspect", "Scroll"}) {
+      menu_({"Equip", "Inspect", "Scroll", "Star Force"}) {
 }
 
 void BagPanel::OpenMenu() {
   menu_.Reset();
   if (!character_.CanEquip(character_.inventory()[selected_].prototype())) {
     menu_.Disable(kMenuAction);
+  }
+  if (!character_.inventory()[selected_].CanStarForce()) {
+    menu_.Disable(kMenuStarForce);
   }
 }
 
@@ -69,6 +72,9 @@ Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
               character_.inventory()[selected_].prototype())) {
         return kScrollSelect;
       }
+    }
+    if (menu_.selected() == kMenuStarForce) {
+      return kStarForce;
     }
     return kMain;
   }

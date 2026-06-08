@@ -5,6 +5,9 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "types",
     hdrs = ["types.h"],
+    deps = [
+        "//src:equip_instance",
+    ],
 )
 
 cc_library(
@@ -215,6 +218,16 @@ cc_test(
 )
 
 cc_library(
+    name = "star_force_panel",
+    srcs = ["star_force_panel.cc"],
+    hdrs = ["star_force_panel.h"],
+    deps = [
+        "//src:equip_instance",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
     name = "tui_controller",
     srcs = ["tui_controller.cc"],
     hdrs = ["tui_controller.h"],
@@ -265,6 +278,7 @@ cc_library(
         ":inspect_panel",
         ":item_menu",
         ":scroll_panel",
+        ":star_force_panel",
         ":tui_controller",
         "//src:character",
         "//src:game_state",

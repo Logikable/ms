@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "src/equip_instance.h"
+
 namespace ms {
 
 enum Screen : int {
@@ -12,9 +14,16 @@ enum Screen : int {
   kScrollSelect,
   kScrollResult,
   kApAlloc,
+  kStarForce,
+  kStarForceResult,
 };
 enum Panel : int { kEquipPanel = 0, kBagPanel = 1, kCharPanel = 2, kNumPanels };
-enum MenuItem : int { kMenuAction = 0, kMenuInspect = 1, kMenuScroll = 2 };
+enum MenuItem : int {
+  kMenuAction = 0,
+  kMenuInspect = 1,
+  kMenuScroll = 2,
+  kMenuStarForce = 3,
+};
 enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };
 
 struct ScrollResult {
@@ -22,6 +31,13 @@ struct ScrollResult {
   std::string equip_name;
   std::string scroll_name;
   int slots_remaining = 0;
+};
+
+struct StarForceResult {
+  StarForceOutcome outcome = kStarForceFail;
+  std::string equip_name;
+  int stars_before = 0;
+  int stars_after = 0;
 };
 
 }  // namespace ms

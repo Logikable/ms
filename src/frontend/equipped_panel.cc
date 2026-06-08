@@ -31,11 +31,17 @@ constexpr char kColumnHeader[] =
 EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
-      menu_({"Unequip", "Inspect", "Scroll"}) {
+      menu_({"Unequip", "Inspect", "Scroll", "Star Force"}) {
 }
 
 void EquippedPanel::OpenMenu() {
   menu_.Reset();
+  EquipSlot slot = selected_slot();
+  if (slot != EQUIP_SLOT_UNSPECIFIED) {
+    if (!character_.equipped().at(slot).CanStarForce()) {
+      menu_.Disable(kMenuStarForce);
+    }
+  }
 }
 
 Screen EquippedPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
@@ -67,6 +73,9 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
               character_.equipped().at(selected_slot()).prototype())) {
         return kScrollSelect;
       }
+    }
+    if (menu_.selected() == kMenuStarForce) {
+      return kStarForce;
     }
     return kMain;
   }

@@ -45,11 +45,17 @@ class TuiController {
   const ScrollResult& scroll_result() const {
     return scroll_result_;
   }
+  const StarForceResult& star_force_result() const {
+    return star_force_result_;
+  }
   // Returns the item being scrolled while in kScrollSelect or kScrollResult,
   // or nullptr otherwise.
   const EquipInstance* scroll_item() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   const EquipInstance* inspect_item() const;
+  // Returns the item being star forced while in kStarForce, or nullptr
+  // otherwise. Do not call in kStarForceResult (item may be destroyed).
+  const EquipInstance* star_force_item() const;
 
  private:
   bool OnItemMenuEvent(ftxui::Event event);
@@ -57,6 +63,8 @@ class TuiController {
   bool OnScrollSelectEvent(ftxui::Event event);
   bool OnScrollResultEvent(ftxui::Event event);
   bool OnApAllocEvent(ftxui::Event event);
+  bool OnStarForceEvent(ftxui::Event event);
+  bool OnStarForceResultEvent(ftxui::Event event);
 
   GameState& state_;
   EquippedPanel& equip_panel_;
@@ -69,7 +77,10 @@ class TuiController {
   int scroll_index_ = 0;
   EquipSlot inspect_slot_ = EQUIP_SLOT_UNSPECIFIED;
   int inspect_index_ = 0;
+  EquipSlot star_force_slot_ = EQUIP_SLOT_UNSPECIFIED;
+  int star_force_index_ = 0;
   ScrollResult scroll_result_;
+  StarForceResult star_force_result_;
 };
 
 }  // namespace ms

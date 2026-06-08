@@ -76,6 +76,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kApAlloc) {
     return OnApAllocEvent(event);
   }
+  if (screen_ == kStarForce) {
+    return OnStarForceEvent(event);
+  }
+  if (screen_ == kStarForceResult) {
+    return OnStarForceResultEvent(event);
+  }
   if (event == ftxui::Event::Tab) {
     panel_focus_ = (panel_focus_ + 1) % kNumPanels;
     if (panel_focus_ == kCharPanel && state_.character.proto().ap() == 0) {
@@ -103,6 +109,13 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
       scroll_slot_ = equip_panel_.selected_slot();
     } else {
       scroll_index_ = bag_panel_.selected();
+    }
+  }
+  if (next == kStarForce) {
+    if (panel_focus_ == kEquipPanel) {
+      star_force_slot_ = equip_panel_.selected_slot();
+    } else {
+      star_force_index_ = bag_panel_.selected();
     }
   }
   screen_ = next;
@@ -163,6 +176,47 @@ bool TuiController::OnScrollResultEvent(ftxui::Event event) {
 
 bool TuiController::OnApAllocEvent(ftxui::Event event) {
   screen_ = ap_alloc_panel_.OnEvent(event);
+  return true;
+}
+
+const EquipInstance* TuiController::star_force_item() const {
+  if (screen_ != kStarForce) {
+    return nullptr;
+  }
+  if (panel_focus_ == kEquipPanel) {
+    return &state_.character.equipped().at(star_force_slot_);
+  }
+  return &state_.character.inventory()[star_force_index_];
+}
+
+bool TuiController::OnStarForceEvent(ftxui::Event event) {
+  if (event == ftxui::Event::Escape) {
+    screen_ = kMain;
+    return true;
+  }
+  if (event == ftxui::Event::Return) {
+    const EquipInstance* item = star_force_item();
+    std::string equip_name = item->prototype().name();
+    int stars_before = item->stars();
+    StarForceOutcome outcome;
+    if (panel_focus_ == kEquipPanel) {
+      outcome = state_.character.StarForceEquipped(star_force_slot_);
+    } else {
+      outcome = state_.character.StarForceInventory(star_force_index_);
+    }
+    int stars_after = stars_before + (outcome == kStarForceSuccess ? 1 : 0);
+    star_force_result_ = {outcome, equip_name, stars_before, stars_after};
+    screen_ = kStarForceResult;
+    return true;
+  }
+  return true;
+}
+
+bool TuiController::OnStarForceResultEvent(ftxui::Event event) {
+  if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+    screen_ =
+        star_force_result_.outcome == kStarForceDestroy ? kMain : kStarForce;
+  }
   return true;
 }
 
