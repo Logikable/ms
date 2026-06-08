@@ -17,10 +17,6 @@ std::string FormatPpt(int ppt) {
   return std::to_string(ppt / 10) + "." + std::to_string(ppt % 10) + "%";
 }
 
-std::string StarLabel(int stars) {
-  return std::to_string(stars) + "★ / " + std::to_string(kMaxStarForce) + "★";
-}
-
 }  // namespace
 
 void StarForcePanel::SetItem(const EquipInstance* item) {
@@ -41,7 +37,6 @@ ftxui::Element StarForcePanel::Render() const {
       ftxui::text(" Star Force "),
       ftxui::vbox({
           ftxui::text(" " + item_->prototype().name() + " "),
-          ftxui::text(" " + StarLabel(stars) + " "),
           ftxui::separator(),
           ftxui::text(" " + std::to_string(stars) + "★ → " +
                       std::to_string(stars + 1) + "★ "),
