@@ -75,4 +75,5 @@ message Equip {
   string equip_name = 1;
   int32 remaining_upgrade_slots = 2;
   EquipStats scroll_stats = 3;
+  int32 stars = 4;
 }

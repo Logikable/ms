@@ -53,6 +53,12 @@ class CharacterInstance {
   // Applies `scroll` to the inventory item at `index`. Returns false if
   // `index` is out of range or the Scroll() call fails.
   bool ScrollInventory(int index, const Scroll& scroll);
+  // Applies a star force attempt to the item in `slot`. On kStarForceDestroy,
+  // removes the item from equipped and recomputes equip stats.
+  StarForceOutcome StarForceEquipped(EquipSlot slot);
+  // Applies a star force attempt to the inventory item at `index`. On
+  // kStarForceDestroy, removes the item from inventory.
+  StarForceOutcome StarForceInventory(int index);
 
   const Character& proto() const {
     return character_;

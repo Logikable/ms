@@ -163,6 +163,30 @@ bool CharacterInstance::ScrollInventory(int index, const Scroll& scroll) {
   return inventory_[index].Scroll(scroll, rng_);
 }
 
+StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end()) {
+    return kStarForceFail;
+  }
+  StarForceOutcome outcome = it->second.StarForce(rng_);
+  if (outcome == kStarForceDestroy) {
+    equipped_.erase(it);
+  }
+  RecomputeEquipStats();
+  return outcome;
+}
+
+StarForceOutcome CharacterInstance::StarForceInventory(int index) {
+  if (index < 0 || index >= static_cast<int>(inventory_.size())) {
+    return kStarForceFail;
+  }
+  StarForceOutcome outcome = inventory_[index].StarForce(rng_);
+  if (outcome == kStarForceDestroy) {
+    inventory_.erase(inventory_.begin() + index);
+  }
+  return outcome;
+}
+
 bool CharacterInstance::CanEquip(const EquipPrototype& proto) const {
   if (proto.required_level() > 0 &&
       character_.level() < proto.required_level()) {
