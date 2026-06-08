@@ -227,6 +227,19 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "star_force_panel_test",
+    srcs = ["star_force_panel_test.cc"],
+    deps = [
+        ":star_force_panel",
+        "//src:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "tui_controller",
     srcs = ["tui_controller.cc"],
