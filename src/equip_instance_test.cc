@@ -76,5 +76,81 @@ TEST_F(EquipInstanceTest, SeededRngProducesBothOutcomes) {
   EXPECT_LT(successes, 20);
 }
 
+// --- Star Force ---
+
+TEST_F(EquipInstanceTest, StarForceSuccessIncrementsStars) {
+  EquipPrototype proto = MakeEquip(0);
+  EquipInstance item(proto);
+  // At 0★, success_ppt=950. Run until we get a success.
+  StarForceOutcome outcome = kStarForceFail;
+  for (int i = 0; i < 100 && outcome != kStarForceSuccess; ++i) {
+    outcome = item.StarForce(rng_);
+  }
+  EXPECT_EQ(outcome, kStarForceSuccess);
+  EXPECT_EQ(item.stars(), 1);
+}
+
+TEST_F(EquipInstanceTest, StarForceFailDoesNotChangeStars) {
+  EquipPrototype proto = MakeEquip(0);
+  std::mt19937 deterministic_rng(42);
+  EquipInstance item(proto);
+  bool saw_fail = false;
+  for (int i = 0; i < 200 && !saw_fail; ++i) {
+    int stars_before = item.stars();
+    StarForceOutcome o = item.StarForce(deterministic_rng);
+    if (o == kStarForceFail) {
+      EXPECT_EQ(item.stars(), stars_before);
+      saw_fail = true;
+    }
+  }
+  EXPECT_TRUE(saw_fail);
+}
+
+TEST_F(EquipInstanceTest, StarForceAtMaxReturnsFailWithoutChange) {
+  EquipPrototype proto = MakeEquip(0);
+  Equip state;
+  state.set_stars(kMaxStarForce);
+  EquipInstance item(proto, state);
+  EXPECT_EQ(item.StarForce(rng_), kStarForceFail);
+  EXPECT_EQ(item.stars(), kMaxStarForce);
+}
+
+TEST_F(EquipInstanceTest, CanStarForceReturnsFalseAtMax) {
+  EquipPrototype proto = MakeEquip(0);
+  Equip state;
+  state.set_stars(kMaxStarForce);
+  EquipInstance item(proto, state);
+  EXPECT_FALSE(item.CanStarForce());
+}
+
+TEST_F(EquipInstanceTest, CanStarForceTrueBeforeMax) {
+  EquipPrototype proto = MakeEquip(0);
+  EquipInstance item(proto);
+  EXPECT_TRUE(item.CanStarForce());
+}
+
+TEST_F(EquipInstanceTest, RateAtReturnsZeroOutOfRange) {
+  StarForceRate r = EquipInstance::RateAt(-1);
+  EXPECT_EQ(r.success_ppt, 0);
+  EXPECT_EQ(r.destroy_ppt, 0);
+  r = EquipInstance::RateAt(kMaxStarForce);
+  EXPECT_EQ(r.success_ppt, 0);
+}
+
+TEST_F(EquipInstanceTest, StarForceDestroyOccursAtHighStars) {
+  // At 19★, destroy_ppt=85. Run many attempts to observe destruction.
+  EquipPrototype proto = MakeEquip(0);
+  Equip state;
+  state.set_stars(19);
+  bool saw_destroy = false;
+  for (int trial = 0; trial < 50 && !saw_destroy; ++trial) {
+    EquipInstance item(proto, state);
+    if (item.StarForce(rng_) == kStarForceDestroy) {
+      saw_destroy = true;
+    }
+  }
+  EXPECT_TRUE(saw_destroy);
+}
+
 }  // namespace
 }  // namespace ms

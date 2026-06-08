@@ -401,6 +401,120 @@ TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
 }
 
+// --- Star Force via equip panel ---
+
+TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Star Force
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kStarForce);
+}
+
+TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
+  controller_->OnEvent(ftxui::Event::Return);  // attempt
+
+  EXPECT_EQ(controller_->screen(), kStarForceResult);
+}
+
+TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->star_force_result().equip_name, "Sword");
+  EXPECT_EQ(controller_->star_force_result().stars_before, 0);
+}
+
+TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
+  // At 0★ the success rate is 95%, so with a seeded rng the first attempt
+  // will succeed. We just verify the screen transition, not the outcome.
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // attempt
+
+  // If the item was not destroyed, dismissing the result goes back to
+  // kStarForce.
+  if (controller_->star_force_result().outcome != kStarForceDestroy) {
+    controller_->OnEvent(ftxui::Event::Return);
+    EXPECT_EQ(controller_->screen(), kStarForce);
+  }
+}
+
+// --- Star Force via bag panel ---
+
+TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
+  state_->character.PickUp(sword_);
+  panel_focus_ = kBagPanel;
+
+  controller_->OpenBagMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Star Force
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kStarForce);
+}
+
+TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
+  state_->character.PickUp(sword_);
+  panel_focus_ = kBagPanel;
+
+  controller_->OpenBagMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
+  controller_->OnEvent(ftxui::Event::Return);  // attempt
+
+  EXPECT_EQ(controller_->screen(), kStarForceResult);
+  EXPECT_EQ(controller_->star_force_result().equip_name, "Sword");
+}
+
 // --- Equip via bag panel ---
 
 TEST_F(TuiControllerTest, ReturnActionEquipsFromBagPanel) {
