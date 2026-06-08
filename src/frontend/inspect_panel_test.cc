@@ -133,5 +133,26 @@ TEST_F(InspectPanelTest, NoStatsShowsNoStatsText) {
   EXPECT_NE(Render(panel).find("(no stats)"), std::string::npos);
 }
 
+TEST_F(InspectPanelTest, StarBarShowsFilledAndEmptyStars) {
+  // Level 0 item (max 5★) at 3★: expect 3 filled and 2 empty.
+  Equip state;
+  state.set_stars(3);
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("★★★☆☆"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, StarBarLengthReflectsItemMaxStars) {
+  // Level 95 item has max 8★; bar is split into two groups of 5 and 3.
+  sword_.set_required_level(95);
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  // All-empty 8★ bar: "☆☆☆☆☆ ☆☆☆" (5 + space + 3).
+  EXPECT_NE(Render(panel).find("☆☆☆☆☆"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

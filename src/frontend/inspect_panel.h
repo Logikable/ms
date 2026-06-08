@@ -26,8 +26,8 @@ class InspectPanel {
   static std::string FormatAttackSpeed(AttackSpeed speed);
   // Returns "+total (base +scroll)" or empty string if both are zero.
   static std::string StatLine(const std::string& label, int base, int scroll);
-  // Returns filled (★) and empty (☆) stars in groups of 5.
-  static std::string StarBar(int stars);
+  // Returns filled (★) and empty (☆) stars in groups of 5 up to max_stars.
+  static std::string StarBar(int stars, int max_stars);
 
   const EquipInstance* item_ = nullptr;
 };

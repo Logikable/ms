@@ -8,13 +8,19 @@
 namespace ms {
 namespace {
 
-// Formats a parts-per-thousand value as "XX.X%" when fractional, "XX%" when
-// whole.
-std::string FormatPpt(int ppt) {
-  if (ppt % 10 == 0) {
-    return std::to_string(ppt / 10) + "%";
+// Formats a rate in hundredths of a percent (10000=100%) as "XX%", "XX.X%",
+// or "XX.XX%" depending on how many decimal places are needed.
+std::string FormatRate(int hundredths) {
+  int whole = hundredths / 100;
+  int frac = hundredths % 100;
+  if (frac == 0) {
+    return std::to_string(whole) + "%";
   }
-  return std::to_string(ppt / 10) + "." + std::to_string(ppt % 10) + "%";
+  if (frac % 10 == 0) {
+    return std::to_string(whole) + "." + std::to_string(frac / 10) + "%";
+  }
+  std::string frac_str = (frac < 10 ? "0" : "") + std::to_string(frac);
+  return std::to_string(whole) + "." + frac_str + "%";
 }
 
 }  // namespace
@@ -39,10 +45,10 @@ ftxui::Element StarForcePanel::Render() const {
   rows.push_back(ftxui::text(" " + std::to_string(stars) + "★ → " +
                              std::to_string(stars + 1) + "★ "));
   rows.push_back(ftxui::separator());
-  rows.push_back(ftxui::text(" Success  " + FormatPpt(rate.success) + " "));
-  rows.push_back(ftxui::text(" Fail     " + FormatPpt(fail) + " "));
+  rows.push_back(ftxui::text(" Success  " + FormatRate(rate.success) + " "));
+  rows.push_back(ftxui::text(" Fail     " + FormatRate(fail) + " "));
   if (rate.destroy > 0) {
-    rows.push_back(ftxui::text(" Destroy  " + FormatPpt(rate.destroy) + " "));
+    rows.push_back(ftxui::text(" Destroy  " + FormatRate(rate.destroy) + " "));
   }
   rows.push_back(ftxui::separator());
   rows.push_back(ftxui::text(" Press Enter to attempt "));

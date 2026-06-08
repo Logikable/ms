@@ -26,7 +26,8 @@ ftxui::Element InspectPanel::Render() const {
   int level = proto.required_level() > 0 ? proto.required_level() : 1;
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(StarBar(item_->stars())) | ftxui::hcenter);
+  rows.push_back(ftxui::text(StarBar(item_->stars(), item_->max_stars())) |
+                 ftxui::hcenter);
   rows.push_back(ftxui::text(proto.name()) | ftxui::hcenter);
   rows.push_back(ftxui::separator());
   // Trailing space on each text row keeps the right border one column clear.
@@ -73,9 +74,9 @@ ftxui::Element InspectPanel::Render() const {
   return ftxui::window(ftxui::text(" Inspect "), ftxui::vbox(std::move(rows)));
 }
 
-std::string InspectPanel::StarBar(int stars) {
+std::string InspectPanel::StarBar(int stars, int max_stars) {
   std::string bar;
-  for (int i = 0; i < kMaxStarForce; ++i) {
+  for (int i = 0; i < max_stars; ++i) {
     if (i > 0 && i % 5 == 0) {
       bar += ' ';
     }
