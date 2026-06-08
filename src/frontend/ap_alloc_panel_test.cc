@@ -19,11 +19,11 @@ TEST_F(ApAllocPanelTest, RenderShowsAp) {
   EXPECT_NE(RenderElement(panel.Render()).find("AP: 25"), std::string::npos);
 }
 
-TEST_F(ApAllocPanelTest, RenderShowsStatValueFormat) {
+TEST_F(ApAllocPanelTest, RenderOmitsBonusSuffixWhenZero) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   ApAllocPanel panel(c);
-  // No AP allocated, no equips: STR shows 0 (0+0).
-  EXPECT_NE(RenderElement(panel.Render()).find("0 (0+0)"), std::string::npos);
+  // With no equip bonuses, the "(base+bonus)" suffix is suppressed.
+  EXPECT_EQ(RenderElement(panel.Render()).find("(0+0)"), std::string::npos);
 }
 
 TEST_F(ApAllocPanelTest, RenderShowsAllStatNames) {
@@ -34,8 +34,7 @@ TEST_F(ApAllocPanelTest, RenderShowsAllStatNames) {
   EXPECT_NE(rendered.find("DEX"), std::string::npos);
   EXPECT_NE(rendered.find("INT"), std::string::npos);
   EXPECT_NE(rendered.find("LUK"), std::string::npos);
-  EXPECT_NE(rendered.find("HP"), std::string::npos);
-  EXPECT_NE(rendered.find("MP"), std::string::npos);
+  // HP and MP AP allocation was removed from GMS in 2013.
 }
 
 TEST_F(ApAllocPanelTest, RenderShowsButtonsOnSelectedRow) {
