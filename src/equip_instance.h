@@ -17,14 +17,14 @@ namespace ms {
 
 enum StarForceOutcome { kStarForceSuccess, kStarForceFail, kStarForceDestroy };
 
-// Maximum number of star force enhancements an item can hold.
-constexpr int kMaxStarForce = 20;
+// Absolute maximum star force level (for level 138+ equipment).
+constexpr int kMaxStarForce = 30;
 
-// Success and destruction rates for a single star force attempt, in parts per
-// thousand. Failure rate = 1000 - success_ppt - destroy_ppt.
+// Success and destruction rates for a single star force attempt, in hundredths
+// of a percent (10000 = 100%). Failure = 10000 - success - destroy.
 struct StarForceRate {
-  int success_ppt;
-  int destroy_ppt;
+  int success;
+  int destroy;
 };
 
 class EquipInstance {
@@ -41,14 +41,20 @@ class EquipInstance {
 
   // Attempts a star force upgrade. Increments stars on success; does not
   // modify state on fail or destroy (caller removes the item on destroy).
-  // Returns kStarForceFail if already at kMaxStarForce.
+  // Returns kStarForceFail if already at max_stars().
   StarForceOutcome StarForce(std::mt19937& rng);
 
   // Returns the star force attempt rates for the given star level.
   static StarForceRate RateAt(int stars);
+  // Returns the maximum star force level for the given required_level, per the
+  // GMS equipment-level scaling table.
+  static int MaxStarsForLevel(int required_level);
 
   bool CanStarForce() const {
-    return state_.stars() < kMaxStarForce;
+    return state_.stars() < max_stars();
+  }
+  int max_stars() const {
+    return MaxStarsForLevel(prototype_.required_level());
   }
   const EquipPrototype& prototype() const {
     return prototype_;

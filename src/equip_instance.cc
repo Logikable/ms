@@ -9,29 +9,39 @@
 namespace ms {
 namespace {
 
-// Success and destruction rates (parts per thousand) for each star level.
-// Index i = attempt from i★ to (i+1)★. Failure = 1000 - success - destroy.
+// Success and destruction rates in hundredths of a percent (10000 = 100%).
+// Index i = attempt from i★ to (i+1)★. Failure = 10000 - success - destroy.
 constexpr StarForceRate kRates[kMaxStarForce] = {
-    {950, 0},   // 0★
-    {900, 0},   // 1★
-    {850, 0},   // 2★
-    {850, 0},   // 3★
-    {800, 0},   // 4★
-    {750, 0},   // 5★
-    {700, 0},   // 6★
-    {650, 0},   // 7★
-    {600, 0},   // 8★
-    {550, 0},   // 9★
-    {500, 0},   // 10★
-    {450, 0},   // 11★
-    {400, 0},   // 12★
-    {350, 0},   // 13★
-    {300, 0},   // 14★
-    {300, 21},  // 15★
-    {300, 21},  // 16★
-    {150, 68},  // 17★
-    {150, 68},  // 18★
-    {150, 85},  // 19★
+    {9500, 0},     // 0★
+    {9000, 0},     // 1★
+    {8500, 0},     // 2★
+    {8500, 0},     // 3★
+    {8000, 0},     // 4★
+    {7500, 0},     // 5★
+    {7000, 0},     // 6★
+    {6500, 0},     // 7★
+    {6000, 0},     // 8★
+    {5500, 0},     // 9★
+    {5000, 0},     // 10★
+    {4500, 0},     // 11★
+    {4000, 0},     // 12★
+    {3500, 0},     // 13★
+    {3000, 0},     // 14★
+    {3000, 210},   // 15★
+    {3000, 210},   // 16★
+    {1500, 680},   // 17★
+    {1500, 680},   // 18★
+    {1500, 850},   // 19★
+    {3000, 1050},  // 20★
+    {1500, 1275},  // 21★
+    {1500, 1700},  // 22★
+    {1000, 1800},  // 23★
+    {1000, 1800},  // 24★
+    {1000, 1800},  // 25★
+    {700, 1860},   // 26★
+    {500, 1900},   // 27★
+    {300, 1940},   // 28★
+    {100, 1980},   // 29★
 };
 
 }  // namespace
@@ -68,20 +78,39 @@ EquipStats EquipInstance::stats() const {
 
 StarForceOutcome EquipInstance::StarForce(std::mt19937& rng) {
   int s = state_.stars();
-  if (s >= kMaxStarForce) {
+  if (s >= max_stars()) {
     return kStarForceFail;
   }
   const StarForceRate& rate = kRates[s];
-  std::uniform_int_distribution<int> dist(1, 1000);
+  std::uniform_int_distribution<int> dist(1, 10000);
   int roll = dist(rng);
-  if (roll <= rate.success_ppt) {
+  if (roll <= rate.success) {
     state_.set_stars(s + 1);
     return kStarForceSuccess;
   }
-  if (rate.destroy_ppt > 0 && roll > 1000 - rate.destroy_ppt) {
+  if (rate.destroy > 0 && roll > 10000 - rate.destroy) {
     return kStarForceDestroy;
   }
   return kStarForceFail;
+}
+
+int EquipInstance::MaxStarsForLevel(int required_level) {
+  if (required_level >= 138) {
+    return 30;
+  }
+  if (required_level >= 128) {
+    return 20;
+  }
+  if (required_level >= 118) {
+    return 15;
+  }
+  if (required_level >= 108) {
+    return 10;
+  }
+  if (required_level >= 95) {
+    return 8;
+  }
+  return 5;
 }
 
 StarForceRate EquipInstance::RateAt(int stars) {

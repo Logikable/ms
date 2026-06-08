@@ -11,10 +11,11 @@ namespace {
 
 class EquipInstanceTest : public ::testing::Test {
  protected:
-  EquipPrototype MakeEquip(int upgrade_slots) {
+  EquipPrototype MakeEquip(int upgrade_slots, int required_level = 0) {
     EquipPrototype e;
     e.set_name("Test");
     e.set_upgrade_slots(upgrade_slots);
+    e.set_required_level(required_level);
     return e;
   }
 
@@ -81,7 +82,7 @@ TEST_F(EquipInstanceTest, SeededRngProducesBothOutcomes) {
 TEST_F(EquipInstanceTest, StarForceSuccessIncrementsStars) {
   EquipPrototype proto = MakeEquip(0);
   EquipInstance item(proto);
-  // At 0★, success_ppt=950. Run until we get a success.
+  // At 0★, success=9500 (95%). Run until we get a success.
   StarForceOutcome outcome = kStarForceFail;
   for (int i = 0; i < 100 && outcome != kStarForceSuccess; ++i) {
     outcome = item.StarForce(rng_);
@@ -107,18 +108,19 @@ TEST_F(EquipInstanceTest, StarForceFailDoesNotChangeStars) {
 }
 
 TEST_F(EquipInstanceTest, StarForceAtMaxReturnsFailWithoutChange) {
+  // Level 0 item has max 5★.
   EquipPrototype proto = MakeEquip(0);
   Equip state;
-  state.set_stars(kMaxStarForce);
+  state.set_stars(5);
   EquipInstance item(proto, state);
   EXPECT_EQ(item.StarForce(rng_), kStarForceFail);
-  EXPECT_EQ(item.stars(), kMaxStarForce);
+  EXPECT_EQ(item.stars(), 5);
 }
 
 TEST_F(EquipInstanceTest, CanStarForceReturnsFalseAtMax) {
   EquipPrototype proto = MakeEquip(0);
   Equip state;
-  state.set_stars(kMaxStarForce);
+  state.set_stars(5);
   EquipInstance item(proto, state);
   EXPECT_FALSE(item.CanStarForce());
 }
@@ -131,15 +133,16 @@ TEST_F(EquipInstanceTest, CanStarForceTrueBeforeMax) {
 
 TEST_F(EquipInstanceTest, RateAtReturnsZeroOutOfRange) {
   StarForceRate r = EquipInstance::RateAt(-1);
-  EXPECT_EQ(r.success_ppt, 0);
-  EXPECT_EQ(r.destroy_ppt, 0);
+  EXPECT_EQ(r.success, 0);
+  EXPECT_EQ(r.destroy, 0);
   r = EquipInstance::RateAt(kMaxStarForce);
-  EXPECT_EQ(r.success_ppt, 0);
+  EXPECT_EQ(r.success, 0);
 }
 
 TEST_F(EquipInstanceTest, StarForceDestroyOccursAtHighStars) {
-  // At 19★, destroy_ppt=85. Run many attempts to observe destruction.
-  EquipPrototype proto = MakeEquip(0);
+  // At 19★, destroy=850 (8.5%). Use a level 138 item (max 30★) so 19★ is
+  // reachable. Run enough attempts to observe destruction.
+  EquipPrototype proto = MakeEquip(0, /*required_level=*/138);
   Equip state;
   state.set_stars(19);
   bool saw_destroy = false;
@@ -150,6 +153,23 @@ TEST_F(EquipInstanceTest, StarForceDestroyOccursAtHighStars) {
     }
   }
   EXPECT_TRUE(saw_destroy);
+}
+
+// --- MaxStarsForLevel ---
+
+TEST_F(EquipInstanceTest, MaxStarsForLevelBoundaries) {
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(0), 5);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(94), 5);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(95), 8);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(107), 8);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(108), 10);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(117), 10);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(118), 15);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(127), 15);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(128), 20);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(137), 20);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(138), 30);
+  EXPECT_EQ(EquipInstance::MaxStarsForLevel(200), 30);
 }
 
 }  // namespace
