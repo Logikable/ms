@@ -1,7 +1,7 @@
-/* InspectPanel renders full details for a single EquipInstance: name, level,
- * job categories, per-stat breakdown (total and base+scroll components), and
- * remaining upgrade slots. Used in the scroll screen (right side) and future
- * upgrade screens. SetItem(nullptr) renders a placeholder.
+/* InspectPanel renders full details for a single EquipInstance: star bar,
+ * name, level, job categories, per-stat breakdown (total and base+scroll
+ * components), and remaining upgrade slots. Used in the scroll screen (right
+ * side) and future upgrade screens. SetItem(nullptr) renders a placeholder.
  */
 #ifndef MS_SRC_FRONTEND_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_INSPECT_PANEL_H_
@@ -26,6 +26,8 @@ class InspectPanel {
   static std::string FormatAttackSpeed(AttackSpeed speed);
   // Returns "+total (base +scroll)" or empty string if both are zero.
   static std::string StatLine(const std::string& label, int base, int scroll);
+  // Returns filled (★) and empty (☆) stars in groups of 5.
+  static std::string StarBar(int stars);
 
   const EquipInstance* item_ = nullptr;
 };
