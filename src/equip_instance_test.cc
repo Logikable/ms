@@ -229,6 +229,20 @@ TEST_F(EquipInstanceTest, StarForceStatGainsWeaponAtkAccumulates) {
   EXPECT_EQ(item.StarForceStatGains().attack(), 9);
 }
 
+TEST_F(EquipInstanceTest, StarForceStatGainsMultiJobUnion) {
+  // Warrior+Thief weapon: STR+DEX (warrior) ∪ DEX+LUK (thief) = STR+DEX+LUK.
+  EquipPrototype proto = MakeWeapon();
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_THIEF);
+  Equip state;
+  state.set_stars(1);
+  EquipInstance item(proto, state);
+  EquipStats gains = item.StarForceStatGains();
+  EXPECT_EQ(gains.str(), 2);
+  EXPECT_EQ(gains.dex(), 2);
+  EXPECT_EQ(gains.luk(), 2);
+  EXPECT_EQ(gains.int_(), 0);
+}
+
 TEST_F(EquipInstanceTest, StarForceStatGainsHighStar) {
   // Level 160 weapon at 16★. base_att=0.
   // Low-star ATK: each gain = floor((0+sf_att)/50)+1 = 1 per star → sf_att=15.
