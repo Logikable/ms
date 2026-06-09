@@ -5,6 +5,12 @@
 #include "src/protos/equip.pb.h"
 
 namespace ms {
+namespace {
+
+constexpr int kSlotWidth = 10;
+constexpr int kInfoWidth = 20;
+
+}  // namespace
 
 std::string PadRight(const std::string& s, int width) {
   if ((int)s.size() >= width) {
@@ -71,6 +77,16 @@ std::string FormatJobCategories(const EquipPrototype& proto) {
     return "All";
   }
   return result;
+}
+
+std::string FormatItemEntry(const std::string& name, EquipSlot slot,
+                            const std::string& info, int slots_remaining) {
+  std::string padded_info = info;
+  while ((int)padded_info.size() < kInfoWidth) {
+    padded_info += ' ';
+  }
+  return PadRight(name, 18) + "  " + PadRight(FormatSlot(slot), kSlotWidth) +
+         "  " + padded_info + "  " + std::to_string(slots_remaining) + " slots";
 }
 
 }  // namespace ms

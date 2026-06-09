@@ -22,6 +22,12 @@ std::string FormatSlot(EquipSlot slot);
 // names (e.g. "Warrior/Thief"). Also returns "All" when the list is empty.
 std::string FormatJobCategories(const EquipPrototype& proto);
 
+// Formats a single item list entry: name (18 cols), slot (10 cols), info
+// (padded to 20 cols), and remaining upgrade slots. Used by both EquippedPanel
+// and BagPanel; the caller builds the info string for its column.
+std::string FormatItemEntry(const std::string& name, EquipSlot slot,
+                            const std::string& info, int slots_remaining);
+
 }  // namespace ms
 
 #endif  // MS_SRC_FRONTEND_PANEL_UTIL_H_

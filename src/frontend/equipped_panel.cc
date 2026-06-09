@@ -16,9 +16,6 @@
 namespace ms {
 namespace {
 
-constexpr int kSlotWidth = 10;
-// Width of the stats info column; slots column follows at a fixed offset.
-constexpr int kInfoWidth = 20;
 // Two leading spaces match the "  " / "> " cursor added by the entry transform.
 constexpr char kColumnHeader[] =
     "  Name              "    // 2 cursor + 18 name
@@ -116,13 +113,9 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
       AppendStat(info, stats.dex(), "DEX");
       AppendStat(info, stats.int_(), "INT");
       AppendStat(info, stats.luk(), "LUK");
-      while ((int)info.size() < kInfoWidth) {
-        info += ' ';
-      }
       entries_.push_back(
-          PadRight(item.prototype().name(), 18) + "  " +
-          PadRight(FormatSlot(kv.first), kSlotWidth) + "  " + info + "  " +
-          std::to_string(item.proto().remaining_upgrade_slots()) + " slots");
+          FormatItemEntry(item.prototype().name(), kv.first, info,
+                          item.proto().remaining_upgrade_slots()));
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);

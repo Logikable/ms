@@ -60,6 +60,26 @@ TEST(AppendStatTest, SkipsZeroInMiddle) {
   EXPECT_EQ(out, "+3 STR  +2 LUK");
 }
 
+// --- FormatItemEntry ---
+
+TEST(FormatItemEntryTest, ContainsNameSlotInfoAndSlotsCount) {
+  std::string entry =
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3);
+  EXPECT_NE(entry.find("Sword"), std::string::npos);
+  EXPECT_NE(entry.find("Weapon"), std::string::npos);
+  EXPECT_NE(entry.find("+7 ATT"), std::string::npos);
+  EXPECT_NE(entry.find("3 slots"), std::string::npos);
+}
+
+TEST(FormatItemEntryTest, InfoColumnPaddedForAlignment) {
+  // Short and long info strings should position "slots" at the same offset.
+  std::string short_entry =
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "A", 3);
+  std::string long_entry =
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "A longer info", 3);
+  EXPECT_EQ(short_entry.find("3 slots"), long_entry.find("3 slots"));
+}
+
 // --- FormatJobCategories ---
 
 TEST(FormatJobCategoriesTest, EmptyCategoriesReturnsAll) {

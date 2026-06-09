@@ -15,9 +15,6 @@
 namespace ms {
 namespace {
 
-constexpr int kSlotWidth = 10;
-// Width of the level+job info column; slots column follows at a fixed offset.
-constexpr int kInfoWidth = 20;
 // Two leading spaces match the "  " / "> " cursor added by the entry transform.
 constexpr char kColumnHeader[] =
     "  Name              "    // 2 cursor + 18 name
@@ -103,14 +100,9 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
       }
       std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
                          FormatJobCategories(proto);
-      while ((int)info.size() < kInfoWidth) {
-        info += ' ';
-      }
       entries_.push_back(
-          PadRight(proto.name(), 18) + "  " +
-          PadRight(FormatSlot(proto.equip_slot()), kSlotWidth) + "  " + info +
-          "  " + std::to_string(item.proto().remaining_upgrade_slots()) +
-          " slots");
+          FormatItemEntry(proto.name(), proto.equip_slot(), info,
+                          item.proto().remaining_upgrade_slots()));
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
