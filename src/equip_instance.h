@@ -68,7 +68,12 @@ class EquipInstance {
     return state_.stars();
   }
 
-  // Returns prototype base stats plus all scroll stats accumulated so far.
+  // Returns stat contributions from all applied star force levels. Weapon
+  // ATK/MATT gains at 1–15★ use the current base+scroll stats, so they
+  // recompute retroactively if scrolls change.
+  EquipStats StarForceStatGains() const;
+
+  // Returns prototype base stats plus scroll stats plus star force stat gains.
   EquipStats stats() const;
 
  private:

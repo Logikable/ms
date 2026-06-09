@@ -170,9 +170,55 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
   return kScrollSuccess;
 }
 
+EquipStats EquipInstance::StarForceStatGains() const {
+  int stars = state_.stars();
+  bool is_weapon = (prototype_.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
+  StatFlags flags = PrimaryStatFlags(prototype_);
+  int required_level = prototype_.required_level();
+  int base_att = prototype_.base_stats().attack() +
+                 state_.scroll_stats().attack();
+  int base_matt = prototype_.base_stats().magic_attack() +
+                  state_.scroll_stats().magic_attack();
+
+  EquipStats gains;
+  int sf_att = 0;
+  int sf_matt = 0;
+
+  for (int s = 0; s < stars; ++s) {
+    if (s < 15) {
+      int delta = kPrimaryStatDeltas[s];
+      if (flags.str)  gains.set_str(gains.str() + delta);
+      if (flags.dex)  gains.set_dex(gains.dex() + delta);
+      if (flags.int_) gains.set_int_(gains.int_() + delta);
+      if (flags.luk)  gains.set_luk(gains.luk() + delta);
+      if (is_weapon) {
+        gains.set_max_hp(gains.max_hp() + kHpMpDeltas[s]);
+        gains.set_max_mp(gains.max_mp() + kHpMpDeltas[s]);
+        sf_att += (base_att + sf_att) / 50 + 1;
+        sf_matt += (base_matt + sf_matt) / 50 + 1;
+      }
+    } else if (is_weapon) {
+      WeaponHighStarEntry entry = WeaponHighStarGainAt(required_level, s + 1);
+      if (flags.str)  gains.set_str(gains.str() + entry.stat);
+      if (flags.dex)  gains.set_dex(gains.dex() + entry.stat);
+      if (flags.int_) gains.set_int_(gains.int_() + entry.stat);
+      if (flags.luk)  gains.set_luk(gains.luk() + entry.stat);
+      sf_att += entry.att;
+      sf_matt += entry.att;
+    }
+  }
+
+  if (is_weapon) {
+    gains.set_attack(sf_att);
+    gains.set_magic_attack(sf_matt);
+  }
+  return gains;
+}
+
 EquipStats EquipInstance::stats() const {
   const EquipStats stat_sources[] = {prototype_.base_stats(),
-                                     state_.scroll_stats()};
+                                     state_.scroll_stats(),
+                                     StarForceStatGains()};
   return SumEquipStats(stat_sources);
 }
 

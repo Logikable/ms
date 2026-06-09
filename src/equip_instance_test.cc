@@ -19,6 +19,18 @@ class EquipInstanceTest : public ::testing::Test {
     return e;
   }
 
+  EquipPrototype MakeWeapon(int base_att = 0,
+                            EquipJobCategory cat = EQUIP_JOB_CATEGORY_WARRIOR,
+                            int required_level = 0) {
+    EquipPrototype e;
+    e.set_name("Sword");
+    e.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    e.mutable_base_stats()->set_attack(base_att);
+    e.add_equip_job_categories(cat);
+    e.set_required_level(required_level);
+    return e;
+  }
+
   ms::Scroll MakeScroll(int success_rate, int attack) {
     ms::Scroll s;
     s.set_success_rate(success_rate);
@@ -69,7 +81,7 @@ TEST_F(EquipInstanceTest, SeededRngProducesBothOutcomes) {
   EquipInstance item(proto);
   int successes = 0;
   for (int i = 0; i < 20; ++i) {
-    if (item.Scroll(MakeScroll(50, 1), rng_)) {
+    if (item.Scroll(MakeScroll(50, 1), rng_) == kScrollSuccess) {
       ++successes;
     }
   }
@@ -153,6 +165,91 @@ TEST_F(EquipInstanceTest, StarForceDestroyOccursAtHighStars) {
     }
   }
   EXPECT_TRUE(saw_destroy);
+}
+
+// --- StarForceStatGains ---
+
+TEST_F(EquipInstanceTest, StarForceStatGainsZeroStarsAllZero) {
+  EquipInstance item(MakeWeapon(100));
+  EquipStats gains = item.StarForceStatGains();
+  EXPECT_EQ(gains.str(), 0);
+  EXPECT_EQ(gains.attack(), 0);
+  EXPECT_EQ(gains.max_hp(), 0);
+}
+
+TEST_F(EquipInstanceTest, StarForceStatGainsWarriorWeaponPrimaryStats) {
+  // At 2★: kPrimaryStatDeltas[0]+[1] = 2+2 = 4 each for STR and DEX.
+  Equip state;
+  state.set_stars(2);
+  EquipInstance item(MakeWeapon(), state);
+  EquipStats gains = item.StarForceStatGains();
+  EXPECT_EQ(gains.str(), 4);
+  EXPECT_EQ(gains.dex(), 4);
+  EXPECT_EQ(gains.int_(), 0);
+  EXPECT_EQ(gains.luk(), 0);
+}
+
+TEST_F(EquipInstanceTest, StarForceStatGainsMagicianWeaponPrimaryStats) {
+  Equip state;
+  state.set_stars(1);
+  EquipInstance item(MakeWeapon(0, EQUIP_JOB_CATEGORY_MAGICIAN), state);
+  EquipStats gains = item.StarForceStatGains();
+  EXPECT_EQ(gains.int_(), 2);
+  EXPECT_EQ(gains.luk(), 2);
+  EXPECT_EQ(gains.str(), 0);
+  EXPECT_EQ(gains.dex(), 0);
+}
+
+TEST_F(EquipInstanceTest, StarForceStatGainsWeaponHpMp) {
+  // kHpMpDeltas: {5,5,5,10,...}. At 4★: 5+5+5+10 = 25.
+  Equip state;
+  state.set_stars(4);
+  EquipInstance item(MakeWeapon(), state);
+  EquipStats gains = item.StarForceStatGains();
+  EXPECT_EQ(gains.max_hp(), 25);
+  EXPECT_EQ(gains.max_mp(), 25);
+}
+
+TEST_F(EquipInstanceTest, StarForceStatGainsWeaponAtkFormula) {
+  // base_att=100: gain = floor(100/50)+1 = 3 at 1★.
+  Equip state;
+  state.set_stars(1);
+  EquipInstance item(MakeWeapon(100), state);
+  EXPECT_EQ(item.StarForceStatGains().attack(), 3);
+}
+
+TEST_F(EquipInstanceTest, StarForceStatGainsWeaponAtkAccumulates) {
+  // base_att=100.
+  // 0→1★: floor(100/50)+1=3. sf_att=3.
+  // 1→2★: floor(103/50)+1=3. sf_att=6.
+  // 2→3★: floor(106/50)+1=3. sf_att=9.
+  Equip state;
+  state.set_stars(3);
+  EquipInstance item(MakeWeapon(100), state);
+  EXPECT_EQ(item.StarForceStatGains().attack(), 9);
+}
+
+TEST_F(EquipInstanceTest, StarForceStatGainsHighStar) {
+  // Level 160 weapon at 16★. base_att=0.
+  // Low-star ATK: each gain = floor((0+sf_att)/50)+1 = 1 per star → sf_att=15.
+  // Low-star primary: sum(kPrimaryStatDeltas[0..14]) = 5*2+10*3 = 40 each.
+  // High-star entry at 16★: kHighStar160_199[0] = {13, 9}.
+  // Total: STR=DEX=53, ATK=24.
+  Equip state;
+  state.set_stars(16);
+  EquipInstance item(MakeWeapon(0, EQUIP_JOB_CATEGORY_WARRIOR, 160), state);
+  EquipStats gains = item.StarForceStatGains();
+  EXPECT_EQ(gains.str(), 53);
+  EXPECT_EQ(gains.dex(), 53);
+  EXPECT_EQ(gains.attack(), 24);
+}
+
+TEST_F(EquipInstanceTest, StatsIncludesStarForceGains) {
+  // stats() = base(100 ATK) + scroll(0) + star_force(3 ATK at 1★).
+  Equip state;
+  state.set_stars(1);
+  EquipInstance item(MakeWeapon(100), state);
+  EXPECT_EQ(item.stats().attack(), 103);
 }
 
 // --- MaxStarsForLevel ---
