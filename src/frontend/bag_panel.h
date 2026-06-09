@@ -41,8 +41,6 @@ class BagPanel {
   }
 
  private:
-  static std::string FormatJobCategories(const EquipPrototype& proto);
-
   CharacterInstance& character_;
   int& panel_focus_;
   int selected_ = 0;

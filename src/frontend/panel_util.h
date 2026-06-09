@@ -17,6 +17,10 @@ void AppendStat(std::string& out, int val, const std::string& label);
 // Returns the display name for an equip slot (e.g. "Weapon", "Hat").
 std::string FormatSlot(EquipSlot slot);
 
+// Returns "All" for universal items or a slash-separated list of job category
+// names (e.g. "Warrior/Thief"). Also returns "All" when the list is empty.
+std::string FormatJobCategories(const EquipPrototype& proto);
+
 }  // namespace ms
 
 #endif  // MS_SRC_FRONTEND_PANEL_UTIL_H_

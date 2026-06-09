@@ -126,46 +126,4 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   });
 }
 
-// Returns "All" for universal items or a slash-separated list of job names.
-std::string BagPanel::FormatJobCategories(const EquipPrototype& proto) {
-  for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
-    if (static_cast<EquipJobCategory>(proto.equip_job_categories(i)) ==
-        EQUIP_JOB_CATEGORY_UNIVERSAL) {
-      return "All";
-    }
-  }
-  std::string result;
-  for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
-    if (!result.empty()) {
-      result += "/";
-    }
-    switch (static_cast<EquipJobCategory>(proto.equip_job_categories(i))) {
-      case EQUIP_JOB_CATEGORY_BEGINNER:
-        result += "Beginner";
-        break;
-      case EQUIP_JOB_CATEGORY_WARRIOR:
-        result += "Warrior";
-        break;
-      case EQUIP_JOB_CATEGORY_BOWMAN:
-        result += "Bowman";
-        break;
-      case EQUIP_JOB_CATEGORY_MAGICIAN:
-        result += "Magician";
-        break;
-      case EQUIP_JOB_CATEGORY_THIEF:
-        result += "Thief";
-        break;
-      case EQUIP_JOB_CATEGORY_PIRATE:
-        result += "Pirate";
-        break;
-      default:
-        break;
-    }
-  }
-  if (result.empty()) {
-    return "All";
-  }
-  return result;
-}
-
 }  // namespace ms

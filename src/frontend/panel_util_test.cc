@@ -60,5 +60,31 @@ TEST(AppendStatTest, SkipsZeroInMiddle) {
   EXPECT_EQ(out, "+3 STR  +2 LUK");
 }
 
+// --- FormatJobCategories ---
+
+TEST(FormatJobCategoriesTest, EmptyCategoriesReturnsAll) {
+  EquipPrototype proto;
+  EXPECT_EQ(FormatJobCategories(proto), "All");
+}
+
+TEST(FormatJobCategoriesTest, UniversalReturnsAll) {
+  EquipPrototype proto;
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  EXPECT_EQ(FormatJobCategories(proto), "All");
+}
+
+TEST(FormatJobCategoriesTest, SingleCategory) {
+  EquipPrototype proto;
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  EXPECT_EQ(FormatJobCategories(proto), "Warrior");
+}
+
+TEST(FormatJobCategoriesTest, MultipleCategories) {
+  EquipPrototype proto;
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_THIEF);
+  EXPECT_EQ(FormatJobCategories(proto), "Warrior/Thief");
+}
+
 }  // namespace
 }  // namespace ms
