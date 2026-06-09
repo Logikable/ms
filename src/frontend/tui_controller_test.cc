@@ -400,6 +400,22 @@ TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
 }
 
+TEST_F(TuiControllerTest,
+       BagScrollNoSlotsGoesToScrollResultWithNoSlotsOutcome) {
+  sword_.set_upgrade_slots(0);
+  state_->character.PickUp(sword_);
+  panel_focus_ = kBagPanel;
+
+  controller_->OpenBagMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);     // attempt scroll
+
+  EXPECT_EQ(controller_->screen(), kScrollResult);
+  EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
+}
+
 // --- Star Force via equip panel ---
 
 TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {
