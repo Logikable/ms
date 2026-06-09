@@ -277,6 +277,29 @@ TEST_F(EquipInstanceTest, DestinyAxeFinalStats) {
   EXPECT_EQ(final_stats.attack(), 710);
 }
 
+TEST_F(EquipInstanceTest, GenesisGuardsFinalStats) {
+  EquipPrototype proto;
+  proto.set_name("Genesis Guards");
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  proto.set_required_level(200);
+  proto.mutable_base_stats()->set_attack(172);
+  proto.mutable_base_stats()->set_dex(150);
+  proto.mutable_base_stats()->set_luk(150);
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_THIEF);
+
+  Equip state;
+  state.set_stars(22);
+
+  EquipInstance item(proto, state);
+  EquipStats final_stats = item.stats();
+
+  EXPECT_EQ(final_stats.dex(), 295);
+  EXPECT_EQ(final_stats.luk(), 295);
+  EXPECT_EQ(final_stats.max_hp(), 255);
+  EXPECT_EQ(final_stats.max_mp(), 255);
+  EXPECT_EQ(final_stats.attack(), 342);
+}
+
 // --- MaxStarsForLevel ---
 
 TEST_F(EquipInstanceTest, MaxStarsForLevelBoundaries) {
