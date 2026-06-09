@@ -47,12 +47,12 @@ class CharacterInstance {
   // Moves the item in `slot` to inventory. Returns false if `slot` is
   // unspecified or unoccupied.
   bool Unequip(EquipSlot slot);
-  // Applies `scroll` to the item in `slot`. Returns false if the slot is empty
-  // or the underlying Scroll() call fails (no slots remaining or RNG miss).
-  bool ScrollEquipped(EquipSlot slot, const Scroll& scroll);
-  // Applies `scroll` to the inventory item at `index`. Returns false if
-  // `index` is out of range or the Scroll() call fails.
-  bool ScrollInventory(int index, const Scroll& scroll);
+  // Applies `scroll` to the item in `slot`. Returns kScrollFail if the slot
+  // is empty; otherwise returns the result of the underlying Scroll() call.
+  ScrollOutcome ScrollEquipped(EquipSlot slot, const Scroll& scroll);
+  // Applies `scroll` to the inventory item at `index`. Returns kScrollFail if
+  // `index` is out of range; otherwise returns the result of Scroll().
+  ScrollOutcome ScrollInventory(int index, const Scroll& scroll);
   // Applies a star force attempt to the item in `slot`. On kStarForceDestroy,
   // removes the item from equipped and recomputes equip stats.
   StarForceOutcome StarForceEquipped(EquipSlot slot);

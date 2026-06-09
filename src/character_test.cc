@@ -258,10 +258,10 @@ TEST_F(UnequipTest, ReturnsFalseForUnoccupiedSlot) {
 
 // --- ScrollEquipped ---
 
-TEST_F(ScrollEquippedTest, ReturnsFalseIfSlotEmpty) {
+TEST_F(ScrollEquippedTest, ReturnsFailIfSlotEmpty) {
   Scroll scroll;
   scroll.set_success_rate(100);
-  EXPECT_FALSE(c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll));
+  EXPECT_EQ(c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll), kScrollFail);
 }
 
 TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
@@ -273,7 +273,8 @@ TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
   scroll.set_success_rate(100);
   scroll.mutable_stats()->set_attack(5);
 
-  EXPECT_TRUE(c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll));
+  EXPECT_EQ(c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll),
+            kScrollSuccess);
   EXPECT_EQ(c_.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
                 .proto()
@@ -289,10 +290,10 @@ TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
 
 // --- ScrollInventory ---
 
-TEST_F(ScrollInventoryTest, ReturnsFalseIfIndexOutOfRange) {
+TEST_F(ScrollInventoryTest, ReturnsFailIfIndexOutOfRange) {
   Scroll scroll;
   scroll.set_success_rate(100);
-  EXPECT_FALSE(c_.ScrollInventory(0, scroll));
+  EXPECT_EQ(c_.ScrollInventory(0, scroll), kScrollFail);
 }
 
 TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
@@ -303,7 +304,7 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   scroll.set_success_rate(100);
   scroll.mutable_stats()->set_attack(5);
 
-  EXPECT_TRUE(c_.ScrollInventory(0, scroll));
+  EXPECT_EQ(c_.ScrollInventory(0, scroll), kScrollSuccess);
   EXPECT_EQ(c_.inventory()[0].proto().scroll_stats().attack(), 5);
   EXPECT_EQ(c_.inventory()[0].proto().remaining_upgrade_slots(), 2);
 }

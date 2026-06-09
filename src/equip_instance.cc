@@ -56,18 +56,19 @@ EquipInstance::EquipInstance(EquipPrototype prototype, Equip state)
     : prototype_(std::move(prototype)), state_(std::move(state)) {
 }
 
-bool EquipInstance::Scroll(const ms::Scroll& scroll, std::mt19937& rng) {
+ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
+                                    std::mt19937& rng) {
   if (state_.remaining_upgrade_slots() == 0) {
-    return false;
+    return kScrollNoSlots;
   }
   state_.set_remaining_upgrade_slots(state_.remaining_upgrade_slots() - 1);
   std::uniform_int_distribution<int> dist(1, 100);
   if (dist(rng) > scroll.success_rate()) {
-    return false;
+    return kScrollFail;
   }
   const EquipStats scroll_sources[] = {state_.scroll_stats(), scroll.stats()};
   *state_.mutable_scroll_stats() = SumEquipStats(scroll_sources);
-  return true;
+  return kScrollSuccess;
 }
 
 EquipStats EquipInstance::stats() const {

@@ -32,7 +32,7 @@ class EquipInstanceTest : public ::testing::Test {
 TEST_F(EquipInstanceTest, HundredPercentScrollSucceeds) {
   EquipPrototype proto = MakeEquip(1);
   EquipInstance item(proto);
-  EXPECT_TRUE(item.Scroll(MakeScroll(100, 2), rng_));
+  EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
   EXPECT_EQ(item.stats().attack(), 2);
   EXPECT_EQ(item.proto().remaining_upgrade_slots(), 0);
 }
@@ -40,15 +40,15 @@ TEST_F(EquipInstanceTest, HundredPercentScrollSucceeds) {
 TEST_F(EquipInstanceTest, ZeroPercentScrollFails) {
   EquipPrototype proto = MakeEquip(1);
   EquipInstance item(proto);
-  EXPECT_FALSE(item.Scroll(MakeScroll(0, 2), rng_));
+  EXPECT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
   EXPECT_EQ(item.stats().attack(), 0);
   EXPECT_EQ(item.proto().remaining_upgrade_slots(), 0);  // slot still consumed
 }
 
-TEST_F(EquipInstanceTest, NoSlotsReturnsFalse) {
+TEST_F(EquipInstanceTest, NoSlotsReturnsNoSlots) {
   EquipPrototype proto = MakeEquip(0);
   EquipInstance item(proto);
-  EXPECT_FALSE(item.Scroll(MakeScroll(100, 2), rng_));
+  EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollNoSlots);
   EXPECT_EQ(item.stats().attack(), 0);
 }
 

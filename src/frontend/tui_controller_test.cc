@@ -281,7 +281,6 @@ TEST_F(TuiControllerTest,
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
-  EXPECT_EQ(controller_->scroll_result().scroll_name, "");
 }
 
 TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {

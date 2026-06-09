@@ -15,6 +15,7 @@
 
 namespace ms {
 
+enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };
 enum StarForceOutcome { kStarForceSuccess, kStarForceFail, kStarForceDestroy };
 
 // Absolute maximum star force level (for level 138+ equipment).
@@ -35,9 +36,9 @@ class EquipInstance {
   EquipInstance(EquipPrototype prototype, Equip state);
 
   // Consumes one upgrade slot and rolls against the scroll's success_rate.
-  // Adds the scroll's stats on success. Returns true on success, false on
-  // failure or if no slots remain.
-  bool Scroll(const ms::Scroll& scroll, std::mt19937& rng);
+  // Adds the scroll's stats on success. Returns kScrollNoSlots if no slots
+  // remain, kScrollSuccess on success, or kScrollFail on failure.
+  ScrollOutcome Scroll(const ms::Scroll& scroll, std::mt19937& rng);
 
   // Attempts a star force upgrade. Increments stars on success; does not
   // modify state on fail or destroy (caller removes the item on destroy).

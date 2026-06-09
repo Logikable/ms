@@ -140,27 +140,22 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
             ? &state_.character.equipped().at(scroll_slot_)
             : &state_.character.inventory()[scroll_index_];
     std::string equip_name = item->prototype().name();
-    int slots_remaining = item->proto().remaining_upgrade_slots();
-    if (slots_remaining == 0) {
-      scroll_result_ = {kScrollNoSlots, equip_name, "", 0};
+    const Scroll& scroll = scroll_panel_.selected_scroll();
+    ScrollOutcome outcome;
+    int slots_remaining;
+    if (panel_focus_ == kEquipPanel) {
+      outcome = state_.character.ScrollEquipped(scroll_slot_, scroll);
+      slots_remaining = state_.character.equipped()
+                            .at(scroll_slot_)
+                            .proto()
+                            .remaining_upgrade_slots();
     } else {
-      const Scroll& scroll = scroll_panel_.selected_scroll();
-      bool success;
-      if (panel_focus_ == kEquipPanel) {
-        success = state_.character.ScrollEquipped(scroll_slot_, scroll);
-        slots_remaining = state_.character.equipped()
-                              .at(scroll_slot_)
-                              .proto()
-                              .remaining_upgrade_slots();
-      } else {
-        success = state_.character.ScrollInventory(scroll_index_, scroll);
-        slots_remaining = state_.character.inventory()[scroll_index_]
-                              .proto()
-                              .remaining_upgrade_slots();
-      }
-      scroll_result_ = {success ? kScrollSuccess : kScrollFail, equip_name,
-                        scroll.name(), slots_remaining};
+      outcome = state_.character.ScrollInventory(scroll_index_, scroll);
+      slots_remaining = state_.character.inventory()[scroll_index_]
+                            .proto()
+                            .remaining_upgrade_slots();
     }
+    scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining};
     screen_ = kScrollResult;
     return true;
   }

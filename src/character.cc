@@ -144,21 +144,23 @@ bool CharacterInstance::Unequip(EquipSlot slot) {
   return true;
 }
 
-bool CharacterInstance::ScrollEquipped(EquipSlot slot, const Scroll& scroll) {
+ScrollOutcome CharacterInstance::ScrollEquipped(EquipSlot slot,
+                                                const Scroll& scroll) {
   std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
   if (it == equipped_.end()) {
-    return false;
+    return kScrollFail;
   }
-  bool success = it->second.Scroll(scroll, rng_);
-  if (success) {
+  ScrollOutcome result = it->second.Scroll(scroll, rng_);
+  if (result == kScrollSuccess) {
     RecomputeEquipStats();
   }
-  return success;
+  return result;
 }
 
-bool CharacterInstance::ScrollInventory(int index, const Scroll& scroll) {
+ScrollOutcome CharacterInstance::ScrollInventory(int index,
+                                                 const Scroll& scroll) {
   if (index < 0 || index >= static_cast<int>(inventory_.size())) {
-    return false;
+    return kScrollFail;
   }
   return inventory_[index].Scroll(scroll, rng_);
 }

@@ -24,8 +24,6 @@ enum MenuItem : int {
   kMenuScroll = 2,
   kMenuStarForce = 3,
 };
-enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };
-
 struct ScrollResult {
   ScrollOutcome outcome;
   std::string equip_name;
