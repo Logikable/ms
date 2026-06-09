@@ -111,6 +111,17 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "game_state_test",
+    srcs = ["game_state_test.cc"],
+    deps = [
+        ":game_state",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "equip_instance",
     srcs = ["equip_instance.cc"],
