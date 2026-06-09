@@ -252,6 +252,31 @@ TEST_F(EquipInstanceTest, StatsIncludesStarForceGains) {
   EXPECT_EQ(item.stats().attack(), 103);
 }
 
+TEST_F(EquipInstanceTest, DestinyAxeFinalStats) {
+  EquipPrototype proto;
+  proto.set_name("Destiny Axe");
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  proto.set_required_level(250);
+  proto.mutable_base_stats()->set_attack(358);
+  proto.mutable_base_stats()->set_str(190);
+  proto.mutable_base_stats()->set_dex(190);
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+
+  Equip state;
+  state.set_stars(22);
+  state.mutable_scroll_stats()->set_attack(72);
+  state.mutable_scroll_stats()->set_str(32);
+
+  EquipInstance item(proto, state);
+  EquipStats final_stats = item.stats();
+
+  EXPECT_EQ(final_stats.str(), 381);
+  EXPECT_EQ(final_stats.dex(), 349);
+  EXPECT_EQ(final_stats.max_hp(), 255);
+  EXPECT_EQ(final_stats.max_mp(), 255);
+  EXPECT_EQ(final_stats.attack(), 710);
+}
+
 // --- MaxStarsForLevel ---
 
 TEST_F(EquipInstanceTest, MaxStarsForLevelBoundaries) {
