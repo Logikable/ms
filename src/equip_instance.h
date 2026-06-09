@@ -46,6 +46,7 @@ class EquipInstance {
   StarForceOutcome StarForce(std::mt19937& rng);
 
   // Returns the star force attempt rates for the given star level.
+  // Returns {0, 0} for out-of-range values.
   static StarForceRate RateAt(int stars);
   // Returns the maximum star force level for the given required_level, per the
   // GMS equipment-level scaling table.
