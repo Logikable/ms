@@ -14,7 +14,8 @@ std::string PadRight(const std::string& s, int width);
 // No-op if val <= 0.
 void AppendStat(std::string& out, int val, const std::string& label);
 
-// Returns the display name for an equip slot (e.g. "Weapon", "Hat").
+// Returns the display name for an equip slot (e.g. "Weapon"). Returns ""
+// for slot types not yet implemented.
 std::string FormatSlot(EquipSlot slot);
 
 // Returns "All" for universal items or a slash-separated list of job category
