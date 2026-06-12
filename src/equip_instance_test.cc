@@ -143,6 +143,19 @@ TEST_F(EquipInstanceTest, CanStarForceTrueBeforeMax) {
   EXPECT_TRUE(item.CanStarForce());
 }
 
+TEST_F(EquipInstanceTest, CanStarForceReturnsFalseWithSlotsRemaining) {
+  EquipPrototype proto = MakeEquip(/*upgrade_slots=*/7);
+  EquipInstance item(proto);
+  EXPECT_FALSE(item.CanStarForce());
+}
+
+TEST_F(EquipInstanceTest, StarForceFailsWithSlotsRemaining) {
+  EquipPrototype proto = MakeEquip(/*upgrade_slots=*/7);
+  EquipInstance item(proto);
+  EXPECT_EQ(item.StarForce(rng_), kStarForceFail);
+  EXPECT_EQ(item.stars(), 0);
+}
+
 TEST_F(EquipInstanceTest, RateAtReturnsZeroOutOfRange) {
   StarForceRate r = EquipInstance::RateAt(-1);
   EXPECT_EQ(r.success, 0);

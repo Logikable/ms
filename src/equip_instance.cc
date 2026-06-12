@@ -223,6 +223,9 @@ EquipStats EquipInstance::stats() const {
 }
 
 StarForceOutcome EquipInstance::StarForce(std::mt19937& rng) {
+  if (state_.remaining_upgrade_slots() > 0) {
+    return kStarForceFail;
+  }
   int s = state_.stars();
   if (s >= max_stars()) {
     return kStarForceFail;

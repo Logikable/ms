@@ -66,6 +66,12 @@ class TuiControllerTest : public testing::Test {
     ftxui::Render(scr, equip_component_->Render());
   }
 
+  // Picks up sword_ with all upgrade slots consumed (required for star force).
+  void PickUpScrolledSword() {
+    sword_.set_upgrade_slots(0);
+    state_->character.PickUp(sword_);
+  }
+
   // Replaces the scroll map with a single 0%-rate scroll and rebuilds
   // scroll_panel_ and controller_ to pick up the change.
   void UseFailScroll() {
@@ -419,7 +425,7 @@ TEST_F(TuiControllerTest,
 // --- Star Force via equip panel ---
 
 TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {
-  state_->character.PickUp(sword_);
+  PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -433,7 +439,7 @@ TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {
 }
 
 TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
-  state_->character.PickUp(sword_);
+  PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -448,7 +454,7 @@ TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
 }
 
 TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
-  state_->character.PickUp(sword_);
+  PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -463,7 +469,7 @@ TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
 }
 
 TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
-  state_->character.PickUp(sword_);
+  PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -481,7 +487,7 @@ TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
 TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
   // At 0★ the success rate is 95%, so with a seeded rng the first attempt
   // will succeed. We just verify the screen transition, not the outcome.
-  state_->character.PickUp(sword_);
+  PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -503,7 +509,7 @@ TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
 // --- Star Force via bag panel ---
 
 TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
-  state_->character.PickUp(sword_);
+  PickUpScrolledSword();
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();
@@ -516,7 +522,7 @@ TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
 }
 
 TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
-  state_->character.PickUp(sword_);
+  PickUpScrolledSword();
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();

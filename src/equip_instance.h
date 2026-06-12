@@ -52,8 +52,11 @@ class EquipInstance {
   // GMS equipment-level scaling table.
   static int MaxStarsForLevel(int required_level);
 
+  // Returns false if upgrade slots remain (scrolling must be completed first)
+  // or if already at max stars.
   bool CanStarForce() const {
-    return state_.stars() < max_stars();
+    return state_.remaining_upgrade_slots() == 0 &&
+           state_.stars() < max_stars();
   }
   int max_stars() const {
     return MaxStarsForLevel(prototype_.required_level());
