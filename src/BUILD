@@ -123,11 +123,18 @@ cc_test(
 )
 
 cc_library(
+    name = "item",
+    hdrs = ["item.h"],
+    deps = ["//src/protos:equip_proto_cc"],
+)
+
+cc_library(
     name = "equip_instance",
     srcs = ["equip_instance.cc"],
     hdrs = ["equip_instance.h"],
     deps = [
         ":equip_stats",
+        ":item",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
     ],

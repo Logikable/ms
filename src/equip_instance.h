@@ -10,10 +10,31 @@
 #include <random>
 
 #include "src/equip_stats.h"
+#include "src/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
+
+// A destroyed equipment item saved after a star force boom. Retains the full
+// prototype and the item's state at the moment of destruction. Can be restored
+// by combining with a fresh copy of the same base item.
+class EquipTrace : public EquipTabItem {
+ public:
+  EquipTrace(EquipPrototype prototype, Equip state)
+      : prototype_(std::move(prototype)), state_(std::move(state)) {
+  }
+  const EquipPrototype& prototype() const override {
+    return prototype_;
+  }
+  const Equip& state() const {
+    return state_;
+  }
+
+ private:
+  EquipPrototype prototype_;
+  Equip state_;
+};
 
 enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };
 enum StarForceOutcome { kStarForceSuccess, kStarForceFail, kStarForceDestroy };
@@ -28,7 +49,7 @@ struct StarForceRate {
   int destroy;
 };
 
-class EquipInstance {
+class EquipInstance : public EquipTabItem {
  public:
   explicit EquipInstance(EquipPrototype prototype);
 
@@ -61,7 +82,7 @@ class EquipInstance {
   int max_stars() const {
     return MaxStarsForLevel(prototype_.required_level());
   }
-  const EquipPrototype& prototype() const {
+  const EquipPrototype& prototype() const override {
     return prototype_;
   }
   const Equip& proto() const {

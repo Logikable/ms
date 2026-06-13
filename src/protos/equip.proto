@@ -70,10 +70,12 @@ message EquipPrototype {
 }
 
 // Per-instance mutable state for a single drop of equipment. Persisted in the
-// save file; references its prototype by name.
+// save file; references its prototype by name. If trace is true, the item was
+// destroyed by star force and lives in equip_tab as a non-equippable trace.
 message Equip {
   string equip_name = 1;
   int32 remaining_upgrade_slots = 2;
   EquipStats scroll_stats = 3;
   int32 stars = 4;
+  bool trace = 5;
 }
