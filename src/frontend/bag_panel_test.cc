@@ -5,6 +5,8 @@
 #include <string>
 
 #include "src/frontend/panel_test_base.h"
+#include "src/frontend/types.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 namespace {
@@ -78,6 +80,29 @@ TEST_F(BagPanelTest, ShowsAllForUniversalItem) {
   BagPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("All"),
             std::string::npos);
+}
+
+TEST_F(BagPanelTest, TraceMenuDisablesAllExceptInspect) {
+  // Trigger a star force destroy to place a trace in inventory.
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  proto.set_required_level(138);
+  Equip state;
+  state.set_stars(19);
+  c_.PickUp(proto, state);
+  bool saw_destroy = false;
+  for (int i = 0; i < 100 && !saw_destroy; ++i) {
+    if (c_.StarForceInventory(0) == kStarForceDestroy) {
+      saw_destroy = true;
+    }
+  }
+  ASSERT_TRUE(saw_destroy);
+
+  BagPanel panel(c_, panel_focus_);
+  panel.OpenMenu();
+  // Equip/Scroll/StarForce are disabled; only Inspect is selectable.
+  EXPECT_EQ(panel.menu().selected(), kMenuInspect);
 }
 
 }  // namespace

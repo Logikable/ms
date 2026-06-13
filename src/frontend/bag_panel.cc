@@ -33,11 +33,18 @@ BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
 void BagPanel::OpenMenu() {
   menu_.Reset();
   const EquipTabItem& item = *character_.inventory()[selected_];
+  const EquipInstance* eq = dynamic_cast<const EquipInstance*>(&item);
+  if (eq == nullptr) {
+    // Traces can only be inspected.
+    menu_.Disable(kMenuAction);
+    menu_.Disable(kMenuScroll);
+    menu_.Disable(kMenuStarForce);
+    return;
+  }
   if (!character_.CanEquip(item.prototype())) {
     menu_.Disable(kMenuAction);
   }
-  const EquipInstance* eq = dynamic_cast<const EquipInstance*>(&item);
-  if (eq == nullptr || !eq->CanStarForce()) {
+  if (!eq->CanStarForce()) {
     menu_.Disable(kMenuStarForce);
   }
 }
