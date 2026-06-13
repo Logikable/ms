@@ -1,3 +1,13 @@
+/* item.h defines the equip-tab item hierarchy shared across inventory
+ * management, stat queries, and the inspect panel.
+ *
+ *   Item          — abstract base for all inventory items.
+ *   EquipTabItem  — concrete base for equip-tab items (active and traces);
+ *                   holds prototype + per-instance state; read-only queries.
+ *                   Bodies live in item.cc.
+ *   EquipTrace    — destroyed item snapshot; appends " Trace" to the name.
+ *   EquipInstance — mutable subclass adding Scroll/StarForce; equip_instance.h.
+ */
 #ifndef MS_SRC_ITEM_H_
 #define MS_SRC_ITEM_H_
 
@@ -20,6 +30,8 @@ class Item {
 // defined in equip_instance.cc alongside the star force tables.
 class EquipTabItem : public Item {
  public:
+  // Returns stat gains contributed by star force levels alone (not
+  // base/scroll).
   EquipStats StarForceStatGains() const;
   // Sum of prototype base stats, scroll stats, and star force stat gains.
   EquipStats stats() const;

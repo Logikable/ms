@@ -128,6 +128,8 @@ EquipStats EquipTabItem::StarForceStatGains() const {
   bool is_weapon = (prototype_.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
   StatFlags flags = PrimaryStatFlags(prototype_);
   int required_level = prototype_.required_level();
+  // base_att includes scrolled attack: the GMS formula scales each star's
+  // gain against the item's pre-SF total attack, not just the prototype base.
   int base_att =
       prototype_.base_stats().attack() + state_.scroll_stats().attack();
   int base_matt = prototype_.base_stats().magic_attack() +
@@ -155,6 +157,7 @@ EquipStats EquipTabItem::StarForceStatGains() const {
       if (is_weapon) {
         gains.set_max_hp(gains.max_hp() + kHpMpDeltas[s]);
         gains.set_max_mp(gains.max_mp() + kHpMpDeltas[s]);
+        // sf_att feeds back into the next star's gain (cumulative).
         sf_att += (base_att + sf_att) / 50 + 1;
         sf_matt += (base_matt + sf_matt) / 50 + 1;
       }

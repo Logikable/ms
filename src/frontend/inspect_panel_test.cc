@@ -5,6 +5,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/panel_test_base.h"
+#include "src/item.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -170,6 +171,16 @@ TEST_F(InspectPanelTest, StarBarLengthReflectsItemMaxStars) {
   panel.SetItem(&item);
   // All-empty 8★ bar: "☆☆☆☆☆ ☆☆☆" (5 + space + 3).
   EXPECT_NE(Render(panel).find("☆☆☆☆☆"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, ShowsTraceNameWithSuffix) {
+  sword_.set_name("Iron Sword");
+  Equip state;
+  state.set_equip_name("Iron Sword");
+  EquipTrace trace(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&trace);
+  EXPECT_NE(Render(panel).find("Iron Sword Trace"), std::string::npos);
 }
 
 }  // namespace

@@ -132,6 +132,16 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "item_test",
+    srcs = ["item_test.cc"],
+    deps = [
+        ":item",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "equip_instance",
     srcs = ["equip_instance.cc"],

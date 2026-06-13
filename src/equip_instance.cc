@@ -49,6 +49,7 @@ constexpr StarForceRate kRates[kMaxStarForce] = {
 EquipInstance::EquipInstance(const EquipPrototype& prototype,
                              const Equip& state)
     : EquipTabItem(prototype, state) {
+  // Default Equip (fresh drop) has empty equip_name; initialize from prototype.
   if (state_.equip_name().empty()) {
     state_.set_equip_name(prototype_.name());
     state_.set_remaining_upgrade_slots(prototype_.upgrade_slots());

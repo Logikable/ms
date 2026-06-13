@@ -331,18 +331,18 @@ TEST_F(EquipInstanceTest, GenesisGuardsFinalStats) {
 // --- MaxStarsForLevel ---
 
 TEST_F(EquipInstanceTest, MaxStarsForLevelBoundaries) {
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(0), 5);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(94), 5);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(95), 8);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(107), 8);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(108), 10);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(117), 10);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(118), 15);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(127), 15);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(128), 20);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(137), 20);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(138), 30);
-  EXPECT_EQ(EquipInstance::MaxStarsForLevel(200), 30);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(0), 5);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(94), 5);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(95), 8);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(107), 8);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(108), 10);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(117), 10);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(118), 15);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(127), 15);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(128), 20);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(137), 20);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(138), 30);
+  EXPECT_EQ(EquipTabItem::MaxStarsForLevel(200), 30);
 }
 
 }  // namespace
