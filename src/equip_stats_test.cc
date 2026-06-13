@@ -32,6 +32,7 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   a.set_attack(5);
   a.set_magic_attack(6);
   a.set_max_hp(7);
+  a.set_max_mp(9);
   a.set_def(8);
 
   EquipStats b;
@@ -42,6 +43,7 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   b.set_attack(50);
   b.set_magic_attack(60);
   b.set_max_hp(70);
+  b.set_max_mp(90);
   b.set_def(80);
 
   const EquipStats sources[] = {a, b};
@@ -53,6 +55,7 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   EXPECT_EQ(result.attack(), 55);
   EXPECT_EQ(result.magic_attack(), 66);
   EXPECT_EQ(result.max_hp(), 77);
+  EXPECT_EQ(result.max_mp(), 99);
   EXPECT_EQ(result.def(), 88);
 }
 

@@ -62,6 +62,7 @@ void ItemMenu::Reset() {
 
 void ItemMenu::Disable(int index) {
   disabled_[index] = true;
+  // Advance past newly-disabled entry; caller must leave at least one enabled.
   while (selected_ < static_cast<int>(options_.size()) &&
          disabled_[selected_]) {
     selected_++;

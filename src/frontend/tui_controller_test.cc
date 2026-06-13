@@ -539,6 +539,24 @@ TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
   EXPECT_EQ(controller_->star_force_result().equip_name, "Sword");
 }
 
+// --- inspect_item accessor ---
+
+TEST_F(TuiControllerTest, InspectItemReturnsNullptrWhenNotInspecting) {
+  EXPECT_EQ(controller_->inspect_item(), nullptr);
+}
+
+TEST_F(TuiControllerTest, BagInspectGoesToInspect) {
+  state_->character.PickUp(sword_);
+  panel_focus_ = kBagPanel;
+
+  controller_->OpenBagMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kInspect);
+  EXPECT_NE(controller_->inspect_item(), nullptr);
+}
+
 // --- Equip via bag panel ---
 
 TEST_F(TuiControllerTest, ReturnActionEquipsFromBagPanel) {

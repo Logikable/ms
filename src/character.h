@@ -1,8 +1,9 @@
 /* CharacterInstance represents a player character. It wraps a Character proto
  * (serializable state: level, job, job_stage, unspent AP, and allocated stats)
  * and exposes methods for leveling up, job advancement, AP allocation, and
- * inventory management. Runtime inventory and equipped items are held as
- * EquipInstance objects; the Character proto fields for those are reserved for
+ * inventory management. Inventory holds EquipTabItem objects (EquipInstance for
+ * live items, EquipTrace for destroyed items); equipped items are always
+ * EquipInstance. Character proto fields for items are reserved for
  * serialization. character.cc implements all methods.
  */
 #ifndef MS_CHARACTER_H_

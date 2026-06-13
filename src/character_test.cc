@@ -475,5 +475,63 @@ TEST_F(CanEquipTest, ReturnsTrueWhenExactLevelMet) {
   EXPECT_TRUE(c_.CanEquip(sword_));
 }
 
+TEST_F(CanEquipTest, ReturnsFalseForEmptyJobCategories) {
+  sword_.set_required_level(1);
+  // No equip_job_categories set; no job can equip it.
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_FALSE(c_.CanEquip(sword_));
+}
+
+// --- Trace items in inventory ---
+
+TEST_F(StarForceTraceTest, EquipTraceInInventoryReturnsFalse) {
+  Equip state;
+  state.set_stars(19);
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(proto_, state);
+  bool saw_destroy = false;
+  for (int i = 0; i < 100 && !saw_destroy; ++i) {
+    if (c.StarForceInventory(0) == kStarForceDestroy) {
+      saw_destroy = true;
+    }
+  }
+  ASSERT_TRUE(saw_destroy);
+  ASSERT_EQ(c.inventory().size(), 1u);
+  // Dynamic cast to EquipInstance fails; Equip() must return false.
+  EXPECT_FALSE(c.Equip(0));
+}
+
+TEST_F(StarForceTraceTest, ScrollInventoryOnTraceReturnsFail) {
+  Equip state;
+  state.set_stars(19);
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(proto_, state);
+  bool saw_destroy = false;
+  for (int i = 0; i < 100 && !saw_destroy; ++i) {
+    if (c.StarForceInventory(0) == kStarForceDestroy) {
+      saw_destroy = true;
+    }
+  }
+  ASSERT_TRUE(saw_destroy);
+  Scroll scroll;
+  scroll.set_success_rate(100);
+  EXPECT_EQ(c.ScrollInventory(0, scroll), kScrollFail);
+}
+
+TEST_F(StarForceTraceTest, StarForceInventoryOnTraceReturnsFail) {
+  Equip state;
+  state.set_stars(19);
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(proto_, state);
+  bool saw_destroy = false;
+  for (int i = 0; i < 100 && !saw_destroy; ++i) {
+    if (c.StarForceInventory(0) == kStarForceDestroy) {
+      saw_destroy = true;
+    }
+  }
+  ASSERT_TRUE(saw_destroy);
+  EXPECT_EQ(c.StarForceInventory(0), kStarForceFail);
+}
+
 }  // namespace
 }  // namespace ms

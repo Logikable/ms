@@ -71,7 +71,7 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
       stats->set_luk(stats->luk() + amount);
       break;
     case STAT_FIELD_HP:
-      // Demon Avenger gains 15 HP per AP instead of 1.
+      // TODO: Demon Avenger gains 15 HP per AP instead of 1.
       stats->set_hp(stats->hp() + amount);
       break;
     case STAT_FIELD_MP:
@@ -112,6 +112,7 @@ void CharacterInstance::PickUp(const EquipPrototype& prototype,
 }
 
 std::vector<const EquipTrace*> CharacterInstance::traces() const {
+  // inventory_ stores EquipTabItem*; dynamic_cast selects only EquipTrace.
   std::vector<const EquipTrace*> result;
   for (const std::unique_ptr<EquipTabItem>& item : inventory_) {
     if (const EquipTrace* t = dynamic_cast<const EquipTrace*>(item.get())) {
@@ -199,6 +200,8 @@ StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot) {
   }
   StarForceOutcome outcome = it->second.StarForce(rng_);
   if (outcome == kStarForceDestroy) {
+    // equip_state() captures the item's state before the destroy attempt
+    // (stars at the doomed level, not stars+1).
     inventory_.push_back(std::make_unique<EquipTrace>(
         it->second.prototype(), it->second.equip_state()));
     equipped_.erase(it);
