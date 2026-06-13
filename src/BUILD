@@ -21,11 +21,32 @@ cc_library(
     deps = [
         ":equip_instance",
         ":equip_stats",
+        ":inventory",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "inventory",
+    srcs = ["inventory.cc"],
+    hdrs = ["inventory.h"],
+    deps = [
+        ":equip_instance",
+        ":item",
+    ],
+)
+
+cc_test(
+    name = "inventory_test",
+    srcs = ["inventory_test.cc"],
+    deps = [
+        ":inventory",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
     ],
 )
 

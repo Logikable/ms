@@ -10,11 +10,11 @@
 #define MS_CHARACTER_H_
 
 #include <map>
-#include <memory>
 #include <random>
 #include <vector>
 
 #include "src/equip_instance.h"
+#include "src/inventory.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -65,7 +65,7 @@ class CharacterInstance {
   const Character& proto() const {
     return character_;
   }
-  const std::vector<std::unique_ptr<EquipTabItem>>& inventory() const {
+  const InventoryInstance& inventory() const {
     return inventory_;
   }
   std::vector<const EquipTrace*> traces() const;
@@ -84,7 +84,7 @@ class CharacterInstance {
 
   std::mt19937& rng_;
   Character character_;
-  std::vector<std::unique_ptr<EquipTabItem>> inventory_;
+  InventoryInstance inventory_;
   std::map<EquipSlot, EquipInstance> equipped_;
   EquipStats equip_stats_;
 };

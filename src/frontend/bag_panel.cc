@@ -32,8 +32,7 @@ BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
 
 void BagPanel::OpenMenu() {
   menu_.Reset();
-  const EquipTabItem& item = *character_.inventory()[selected_];
-  const EquipInstance* eq = dynamic_cast<const EquipInstance*>(&item);
+  const EquipInstance* eq = character_.inventory().equip_instance(selected_);
   if (eq == nullptr) {
     // Traces can only be inspected.
     menu_.Disable(kMenuAction);
@@ -41,7 +40,7 @@ void BagPanel::OpenMenu() {
     menu_.Disable(kMenuStarForce);
     return;
   }
-  if (!character_.CanEquip(item.prototype())) {
+  if (!character_.CanEquip(eq->prototype())) {
     menu_.Disable(kMenuAction);
   }
   if (!eq->CanStarForce()) {
@@ -75,7 +74,7 @@ Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
     }
     if (menu_.selected() == kMenuScroll) {
       if (scroll_panel.SetFilterForPrototype(
-              character_.inventory()[selected_]->prototype())) {
+              character_.inventory()[selected_].prototype())) {
         return kScrollSelect;
       }
     }
@@ -101,9 +100,9 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   // in sync with changes made via on_enter.
   return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
     entries_.clear();
-    for (const std::unique_ptr<EquipTabItem>& item_ptr :
-         character_.inventory()) {
-      const EquipPrototype& proto = item_ptr->prototype();
+    for (int i = 0; i < character_.inventory().size(); ++i) {
+      const EquipTabItem& item = character_.inventory()[i];
+      const EquipPrototype& proto = item.prototype();
       int level = 1;
       if (proto.required_level() > 0) {
         level = proto.required_level();
@@ -111,15 +110,14 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
       std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
                          FormatJobCategories(proto);
       int slots = 0;
-      if (const EquipInstance* eq =
-              dynamic_cast<const EquipInstance*>(item_ptr.get())) {
+      if (const EquipInstance* eq = character_.inventory().equip_instance(i)) {
         slots = eq->equip_state().remaining_upgrade_slots();
       }
       entries_.push_back(
-          FormatItemEntry(item_ptr->name(), proto.equip_slot(), info, slots));
+          FormatItemEntry(item.name(), proto.equip_slot(), info, slots));
     }
     if (!entries_.empty()) {
-      selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
+      selected_ = std::min(selected_, character_.inventory().size() - 1);
     }
     if (entries_.empty()) {
       return ftxui::window(ftxui::text(" Bag "), ftxui::text("(empty)"));

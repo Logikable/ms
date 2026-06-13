@@ -47,7 +47,7 @@ const EquipTabItem* TuiController::inspect_item() const {
   if (panel_focus_ == kEquipPanel) {
     return &state_.character.equipped().at(inspect_slot_);
   }
-  return state_.character.inventory()[inspect_index_].get();
+  return &state_.character.inventory()[inspect_index_];
 }
 
 const EquipInstance* TuiController::scroll_item() const {
@@ -57,8 +57,7 @@ const EquipInstance* TuiController::scroll_item() const {
   if (panel_focus_ == kEquipPanel) {
     return &state_.character.equipped().at(scroll_slot_);
   }
-  return dynamic_cast<const EquipInstance*>(
-      state_.character.inventory()[scroll_index_].get());
+  return state_.character.inventory().equip_instance(scroll_index_);
 }
 
 bool TuiController::OnEvent(ftxui::Event event) {
@@ -139,8 +138,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     const EquipInstance* item =
         panel_focus_ == kEquipPanel
             ? &state_.character.equipped().at(scroll_slot_)
-            : dynamic_cast<const EquipInstance*>(
-                  state_.character.inventory()[scroll_index_].get());
+            : state_.character.inventory().equip_instance(scroll_index_);
     std::string equip_name = item->prototype().name();
     const Scroll& scroll = scroll_panel_.selected_scroll();
     ScrollOutcome outcome;
@@ -153,8 +151,8 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
                             .remaining_upgrade_slots();
     } else {
       outcome = state_.character.ScrollInventory(scroll_index_, scroll);
-      const EquipInstance* inv_item = dynamic_cast<const EquipInstance*>(
-          state_.character.inventory()[scroll_index_].get());
+      const EquipInstance* inv_item =
+          state_.character.inventory().equip_instance(scroll_index_);
       slots_remaining = inv_item != nullptr
                             ? inv_item->equip_state().remaining_upgrade_slots()
                             : 0;
@@ -185,8 +183,7 @@ const EquipInstance* TuiController::star_force_item() const {
   if (panel_focus_ == kEquipPanel) {
     return &state_.character.equipped().at(star_force_slot_);
   }
-  return dynamic_cast<const EquipInstance*>(
-      state_.character.inventory()[star_force_index_].get());
+  return state_.character.inventory().equip_instance(star_force_index_);
 }
 
 bool TuiController::OnStarForceEvent(ftxui::Event event) {

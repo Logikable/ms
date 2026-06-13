@@ -184,24 +184,24 @@ TEST_F(AllocateAllStatTest, ReturnsFalseForUnspecifiedField) {
 
 TEST_F(PickUpTest, AddsItemToInventory) {
   c_.PickUp(sword_);
-  ASSERT_EQ(c_.inventory().size(), 1u);
-  const EquipInstance& item =
-      static_cast<const EquipInstance&>(*c_.inventory()[0]);
-  EXPECT_EQ(item.prototype().name(), "Sword");
-  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 7);
+  ASSERT_EQ(c_.inventory().size(), 1);
+  const EquipInstance* item = c_.inventory().equip_instance(0);
+  ASSERT_NE(item, nullptr);
+  EXPECT_EQ(item->prototype().name(), "Sword");
+  EXPECT_EQ(item->equip_state().remaining_upgrade_slots(), 7);
 }
 
 TEST_F(PickUpTest, MultiplePickUpsAccumulate) {
   c_.PickUp(sword_);
   c_.PickUp(sword_);
-  EXPECT_EQ(c_.inventory().size(), 2u);
+  EXPECT_EQ(c_.inventory().size(), 2);
 }
 
 TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
   c_.PickUp(sword_);
-  const EquipInstance& item =
-      static_cast<const EquipInstance&>(*c_.inventory()[0]);
-  EXPECT_EQ(item.equip_state().scroll_stats().attack(), 0);
+  const EquipInstance* item = c_.inventory().equip_instance(0);
+  ASSERT_NE(item, nullptr);
+  EXPECT_EQ(item->equip_state().scroll_stats().attack(), 0);
 }
 
 // --- Equip ---
@@ -209,7 +209,7 @@ TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
 TEST_F(EquipTest, EquipsItemIntoEmptySlot) {
   c_.PickUp(sword_);
   EXPECT_TRUE(c_.Equip(0));
-  EXPECT_EQ(c_.inventory().size(), 0u);
+  EXPECT_EQ(c_.inventory().size(), 0);
   ASSERT_TRUE(c_.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Sword");
@@ -225,8 +225,8 @@ TEST_F(EquipTest, DisplacesExistingItemToInventory) {
   EXPECT_TRUE(c_.Equip(0));
   EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Axe");
-  ASSERT_EQ(c_.inventory().size(), 1u);
-  EXPECT_EQ(c_.inventory()[0]->prototype().name(), "Sword");
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
 }
 
 TEST_F(EquipTest, DisplacedItemTakesVacatedPosition) {
@@ -241,9 +241,9 @@ TEST_F(EquipTest, DisplacedItemTakesVacatedPosition) {
   c_.PickUp(bow);     // index 2
   c_.Equip(0);        // sword equipped; inventory = [axe(0), bow(1)]
   c_.Equip(0);        // axe equipped; sword displaced back to index 0
-  ASSERT_EQ(c_.inventory().size(), 2u);
-  EXPECT_EQ(c_.inventory()[0]->prototype().name(), "Sword");
-  EXPECT_EQ(c_.inventory()[1]->prototype().name(), "Bow");
+  ASSERT_EQ(c_.inventory().size(), 2);
+  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
+  EXPECT_EQ(c_.inventory()[1].prototype().name(), "Bow");
 }
 
 TEST_F(EquipTest, ReturnsFalseForUnspecifiedSlotOnPrototype) {
@@ -265,8 +265,8 @@ TEST_F(UnequipTest, MovesItemToInventory) {
   c_.Equip(0);
   EXPECT_TRUE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0u);
-  ASSERT_EQ(c_.inventory().size(), 1u);
-  EXPECT_EQ(c_.inventory()[0]->prototype().name(), "Sword");
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
 }
 
 TEST_F(UnequipTest, ReturnsFalseForUnspecifiedSlot) {
@@ -326,10 +326,10 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   scroll.mutable_stats()->set_attack(5);
 
   EXPECT_EQ(c_.ScrollInventory(0, scroll), kScrollSuccess);
-  const EquipInstance& item =
-      static_cast<const EquipInstance&>(*c_.inventory()[0]);
-  EXPECT_EQ(item.equip_state().scroll_stats().attack(), 5);
-  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 2);
+  const EquipInstance* item = c_.inventory().equip_instance(0);
+  ASSERT_NE(item, nullptr);
+  EXPECT_EQ(item->equip_state().scroll_stats().attack(), 5);
+  EXPECT_EQ(item->equip_state().remaining_upgrade_slots(), 2);
 }
 
 // --- equip_stats cache ---
@@ -496,7 +496,7 @@ TEST_F(StarForceTraceTest, EquipTraceInInventoryReturnsFalse) {
     }
   }
   ASSERT_TRUE(saw_destroy);
-  ASSERT_EQ(c.inventory().size(), 1u);
+  ASSERT_EQ(c.inventory().size(), 1);
   // Dynamic cast to EquipInstance fails; Equip() must return false.
   EXPECT_FALSE(c.Equip(0));
 }

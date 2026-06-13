@@ -7,6 +7,7 @@
 #include "absl/types/span.h"
 #include "src/equip_instance.h"
 #include "src/equip_stats.h"
+#include "src/inventory.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -108,27 +109,15 @@ void CharacterInstance::RecomputeEquipStats() {
 
 void CharacterInstance::PickUp(const EquipPrototype& prototype,
                                const ::ms::Equip& state) {
-  inventory_.push_back(std::make_unique<EquipInstance>(prototype, state));
+  inventory_.add(std::make_unique<EquipInstance>(prototype, state));
 }
 
 std::vector<const EquipTrace*> CharacterInstance::traces() const {
-  // inventory_ stores EquipTabItem*; dynamic_cast selects only EquipTrace.
-  std::vector<const EquipTrace*> result;
-  for (const std::unique_ptr<EquipTabItem>& item : inventory_) {
-    if (const EquipTrace* t = dynamic_cast<const EquipTrace*>(item.get())) {
-      result.push_back(t);
-    }
-  }
-  return result;
+  return inventory_.traces();
 }
 
 bool CharacterInstance::Equip(int inventory_index) {
-  if (inventory_index < 0 ||
-      inventory_index >= static_cast<int>(inventory_.size())) {
-    return false;
-  }
-  EquipInstance* raw =
-      dynamic_cast<EquipInstance*>(inventory_[inventory_index].get());
+  EquipInstance* raw = inventory_.equip_instance(inventory_index);
   if (raw == nullptr) {
     return false;
   }
@@ -136,15 +125,15 @@ bool CharacterInstance::Equip(int inventory_index) {
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }
-  // Remove the item from inventory.
-  EquipInstance item = std::move(*raw);
-  inventory_.erase(inventory_.begin() + inventory_index);
+  // Remove the item from inventory; move it out before the unique_ptr drops.
+  std::unique_ptr<EquipTabItem> ptr = inventory_.remove_equip(inventory_index);
+  EquipInstance item = std::move(static_cast<EquipInstance&>(*ptr));
 
   // If the slot was occupied, put the displaced item in the vacated position.
   std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
   if (it != equipped_.end()) {
-    inventory_.insert(inventory_.begin() + inventory_index,
-                      std::make_unique<EquipInstance>(std::move(it->second)));
+    inventory_.add(std::make_unique<EquipInstance>(std::move(it->second)),
+                   inventory_index);
     equipped_.erase(it);
   }
 
@@ -162,7 +151,7 @@ bool CharacterInstance::Unequip(EquipSlot slot) {
   if (it == equipped_.end()) {
     return false;
   }
-  inventory_.push_back(std::make_unique<EquipInstance>(std::move(it->second)));
+  inventory_.add(std::make_unique<EquipInstance>(std::move(it->second)));
   equipped_.erase(it);
   RecomputeEquipStats();
   return true;
@@ -183,10 +172,7 @@ ScrollOutcome CharacterInstance::ScrollEquipped(EquipSlot slot,
 
 ScrollOutcome CharacterInstance::ScrollInventory(int index,
                                                  const Scroll& scroll) {
-  if (index < 0 || index >= static_cast<int>(inventory_.size())) {
-    return kScrollFail;
-  }
-  EquipInstance* item = dynamic_cast<EquipInstance*>(inventory_[index].get());
+  EquipInstance* item = inventory_.equip_instance(index);
   if (item == nullptr) {
     return kScrollFail;
   }
@@ -202,8 +188,8 @@ StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot) {
   if (outcome == kStarForceDestroy) {
     // equip_state() captures the item's state before the destroy attempt
     // (stars at the doomed level, not stars+1).
-    inventory_.push_back(std::make_unique<EquipTrace>(
-        it->second.prototype(), it->second.equip_state()));
+    inventory_.add(std::make_unique<EquipTrace>(it->second.prototype(),
+                                                it->second.equip_state()));
     equipped_.erase(it);
   }
   RecomputeEquipStats();
@@ -211,17 +197,16 @@ StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot) {
 }
 
 StarForceOutcome CharacterInstance::StarForceInventory(int index) {
-  if (index < 0 || index >= static_cast<int>(inventory_.size())) {
-    return kStarForceFail;
-  }
-  EquipInstance* item = dynamic_cast<EquipInstance*>(inventory_[index].get());
+  EquipInstance* item = inventory_.equip_instance(index);
   if (item == nullptr) {
     return kStarForceFail;
   }
   StarForceOutcome outcome = item->StarForce(rng_);
   if (outcome == kStarForceDestroy) {
-    inventory_[index] =
-        std::make_unique<EquipTrace>(item->prototype(), item->equip_state());
+    // Arguments to make_unique are evaluated before set() destructs the old
+    // item, so item->prototype() and item->equip_state() are safe to call here.
+    inventory_.set(index, std::make_unique<EquipTrace>(item->prototype(),
+                                                       item->equip_state()));
   }
   return outcome;
 }
