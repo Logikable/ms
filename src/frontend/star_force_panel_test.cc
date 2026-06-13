@@ -79,5 +79,17 @@ TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
   EXPECT_NE(Render(panel).find("12.75%"), std::string::npos);
 }
 
+TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
+  // Level 10 item: MaxStarsForLevel(10) == 5; place it at 5★.
+  EquipInstance item = MakeItem(/*required_level=*/10, /*stars=*/5);
+  StarForcePanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("(max)"), std::string::npos);
+  EXPECT_NE(rendered.find("Maximum"), std::string::npos);
+  EXPECT_EQ(rendered.find("Success"), std::string::npos);
+  EXPECT_EQ(rendered.find("Enter"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

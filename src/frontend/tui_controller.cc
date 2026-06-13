@@ -193,6 +193,9 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
   }
   if (event == ftxui::Event::Return) {
     const EquipInstance* item = star_force_item();
+    if (item->stars() >= item->max_stars()) {
+      return true;
+    }
     std::string equip_name = item->prototype().name();
     int stars_before = item->stars();
     StarForceOutcome outcome;

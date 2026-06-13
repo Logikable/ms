@@ -36,11 +36,26 @@ ftxui::Element StarForcePanel::Render() const {
   }
 
   int stars = item_->stars();
+  std::string name_line = " " + item_->prototype().name() + " ";
+
+  if (stars >= item_->max_stars()) {
+    return ftxui::window(
+        ftxui::text(" Star Force "),
+        ftxui::vbox({
+            ftxui::text(name_line),
+            ftxui::separator(),
+            ftxui::text(" " + std::to_string(stars) + "★ (max) "),
+            ftxui::separator(),
+            ftxui::text(" Maximum stars reached. "),
+            ftxui::text(" Esc to close           "),
+        }));
+  }
+
   StarForceRate rate = EquipInstance::RateAt(stars);
   int fail = 10000 - rate.success - rate.destroy;
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(" " + item_->prototype().name() + " "));
+  rows.push_back(ftxui::text(name_line));
   rows.push_back(ftxui::separator());
   rows.push_back(ftxui::text(" " + std::to_string(stars) + "★ → " +
                              std::to_string(stars + 1) + "★ "));
