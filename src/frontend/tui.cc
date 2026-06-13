@@ -85,15 +85,22 @@ ftxui::Element Tui::StarForceResultDialog(const StarForceResult& r) {
   } else {
     outcome_text = " DESTROYED ";
   }
+  std::string stars_text;
+  if (r.outcome == kStarForceSuccess) {
+    stars_text = std::to_string(r.stars_before) + "★ → " +
+                 std::to_string(r.stars_after) + "★";
+  } else if (r.outcome == kStarForceFail) {
+    stars_text = std::to_string(r.stars_before) + "★";
+  } else {
+    stars_text = "lost at " + std::to_string(r.stars_before) + "★";
+  }
   return ftxui::window(
       ftxui::text(" Result "),
       ftxui::vbox({
           ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
           ftxui::separator(),
           ftxui::text(outcome_text) | ftxui::hcenter,
-          ftxui::text(" " + std::to_string(r.stars_before) + "★ → " +
-                      std::to_string(r.stars_after) + "★ ") |
-              ftxui::hcenter,
+          ftxui::text(stars_text) | ftxui::hcenter,
           ftxui::text(""),
           ftxui::text(" Press Enter to continue "),
       }));
