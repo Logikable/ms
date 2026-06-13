@@ -1,5 +1,6 @@
 #include "src/frontend/star_force_panel.h"
 
+#include <algorithm>
 #include <string>
 
 #include "ftxui/dom/elements.hpp"
@@ -23,6 +24,11 @@ std::string FormatRate(int hundredths) {
   return std::to_string(whole) + "." + frac_str + "%";
 }
 
+// Right-pads `s` with spaces to `width` characters.
+std::string PadTo(const std::string& s, int width) {
+  return s + std::string(width - static_cast<int>(s.size()), ' ');
+}
+
 }  // namespace
 
 void StarForcePanel::SetItem(const EquipInstance* item) {
@@ -36,17 +42,17 @@ ftxui::Element StarForcePanel::Render() const {
   }
 
   int stars = item_->stars();
-  std::string name_line = " " + item_->prototype().name() + " ";
+  std::string name = item_->prototype().name();
 
   if (stars >= item_->max_stars()) {
     return ftxui::window(
         ftxui::text(" Star Force "),
         ftxui::vbox({
-            ftxui::text(name_line),
+            ftxui::text(name) | ftxui::hcenter,
             ftxui::separator(),
-            ftxui::text(" " + std::to_string(stars) + "★ (max) "),
+            ftxui::text(std::to_string(stars) + "★ (max)") | ftxui::hcenter,
             ftxui::separator(),
-            ftxui::text(" Maximum stars reached. "),
+            ftxui::text("Maximum stars reached.") | ftxui::hcenter,
             ftxui::text(" Esc to close           "),
         }));
   }
@@ -54,16 +60,27 @@ ftxui::Element StarForcePanel::Render() const {
   StarForceRate rate = EquipInstance::RateAt(stars);
   int fail = 10000 - rate.success - rate.destroy;
 
+  // Pad all rate strings to the same width so hcenter aligns both columns.
+  std::string success_str = FormatRate(rate.success);
+  std::string fail_str = FormatRate(fail);
+  std::string destroy_str = rate.destroy > 0 ? FormatRate(rate.destroy) : "";
+  int rate_w = static_cast<int>(
+      std::max({success_str.size(), fail_str.size(), destroy_str.size()}));
+
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(name_line));
+  rows.push_back(ftxui::text(name) | ftxui::hcenter);
   rows.push_back(ftxui::separator());
-  rows.push_back(ftxui::text(" " + std::to_string(stars) + "★ → " +
-                             std::to_string(stars + 1) + "★ "));
+  rows.push_back(ftxui::text(std::to_string(stars) + "★ → " +
+                             std::to_string(stars + 1) + "★") |
+                 ftxui::hcenter);
   rows.push_back(ftxui::separator());
-  rows.push_back(ftxui::text(" Success  " + FormatRate(rate.success) + " "));
-  rows.push_back(ftxui::text(" Fail     " + FormatRate(fail) + " "));
+  rows.push_back(ftxui::text("Success  " + PadTo(success_str, rate_w)) |
+                 ftxui::hcenter);
+  rows.push_back(ftxui::text("Fail     " + PadTo(fail_str, rate_w)) |
+                 ftxui::hcenter);
   if (rate.destroy > 0) {
-    rows.push_back(ftxui::text(" Destroy  " + FormatRate(rate.destroy) + " "));
+    rows.push_back(ftxui::text("Destroy  " + PadTo(destroy_str, rate_w)) |
+                   ftxui::hcenter);
   }
   rows.push_back(ftxui::separator());
   rows.push_back(ftxui::text(" Press Enter to attempt "));

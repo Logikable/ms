@@ -79,6 +79,20 @@ TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
   EXPECT_NE(Render(panel).find("12.75%"), std::string::npos);
 }
 
+TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
+  // At 15★: success=30% (no decimals), fail=67.9%, destroy=2.1% (both with
+  // decimals). All three rate strings must be padded to the same rendered width
+  // so hcenter places them at identical x offsets.
+  EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
+  StarForcePanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  // All three rate lines appear; spot-check exact padded strings.
+  EXPECT_NE(rendered.find("Success  30%  "), std::string::npos);
+  EXPECT_NE(rendered.find("Fail     67.9%"), std::string::npos);
+  EXPECT_NE(rendered.find("Destroy  2.1% "), std::string::npos);
+}
+
 TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
   // Level 10 item: MaxStarsForLevel(10) == 5; place it at 5★.
   EquipInstance item = MakeItem(/*required_level=*/10, /*stars=*/5);
