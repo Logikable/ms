@@ -85,7 +85,7 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
   while ((int)padded_info.size() < kInfoWidth) {
     padded_info += ' ';
   }
-  return PadRight(name, 18) + "  " + PadRight(FormatSlot(slot), kSlotWidth) +
+  return PadRight(name, 26) + "  " + PadRight(FormatSlot(slot), kSlotWidth) +
          "  " + padded_info + "  " + std::to_string(slots_remaining) + " slots";
 }
 

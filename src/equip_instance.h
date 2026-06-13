@@ -22,10 +22,15 @@ namespace ms {
 class EquipTrace : public EquipTabItem {
  public:
   EquipTrace(EquipPrototype prototype, Equip state)
-      : prototype_(std::move(prototype)), state_(std::move(state)) {
+      : prototype_(std::move(prototype)),
+        state_(std::move(state)),
+        display_name_(prototype_.name() + " Trace") {
   }
   const EquipPrototype& prototype() const override {
     return prototype_;
+  }
+  const std::string& name() const override {
+    return display_name_;
   }
   const Equip& state() const {
     return state_;
@@ -34,6 +39,7 @@ class EquipTrace : public EquipTabItem {
  private:
   EquipPrototype prototype_;
   Equip state_;
+  std::string display_name_;
 };
 
 enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };

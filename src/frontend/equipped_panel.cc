@@ -18,10 +18,10 @@ namespace {
 
 // Two leading spaces match the "  " / "> " cursor added by the entry transform.
 constexpr char kColumnHeader[] =
-    "  Name              "    // 2 cursor + 18 name
-    "  Equip Slot"            // 2 sep + 10 slot
-    "  Stats               "  // 2 sep + 20 info
-    "  Scrolls";              // 2 sep + label
+    "  Name                      "  // 2 cursor + 26 name
+    "  Equip Slot"                  // 2 sep + 10 slot
+    "  Stats               "        // 2 sep + 20 info
+    "  Scrolls";                    // 2 sep + label
 
 }  // namespace
 

@@ -28,7 +28,7 @@ ftxui::Element InspectPanel::Render() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text(StarBar(item_->stars(), item_->max_stars())) |
                  ftxui::hcenter);
-  rows.push_back(ftxui::text(proto.name()) | ftxui::hcenter);
+  rows.push_back(ftxui::text(item_->name()) | ftxui::hcenter);
   rows.push_back(ftxui::separator());
   // Trailing space on each text row keeps the right border one column clear.
   rows.push_back(ftxui::text(" Req Lev: " + std::to_string(level) + " "));

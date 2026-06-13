@@ -17,10 +17,10 @@ namespace {
 
 // Two leading spaces match the "  " / "> " cursor added by the entry transform.
 constexpr char kColumnHeader[] =
-    "  Name              "    // 2 cursor + 18 name
-    "  Equip Slot"            // 2 sep + 10 slot
-    "  Level  Job          "  // 2 sep + 20 info
-    "  Scrolls";              // 2 sep + label
+    "  Name                      "  // 2 cursor + 26 name
+    "  Equip Slot"                  // 2 sep + 10 slot
+    "  Level  Job          "        // 2 sep + 20 info
+    "  Scrolls";                    // 2 sep + label
 
 }  // namespace
 
@@ -109,7 +109,7 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
         slots = eq->proto().remaining_upgrade_slots();
       }
       entries_.push_back(
-          FormatItemEntry(proto.name(), proto.equip_slot(), info, slots));
+          FormatItemEntry(item_ptr->name(), proto.equip_slot(), info, slots));
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
