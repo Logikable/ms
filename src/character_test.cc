@@ -188,7 +188,7 @@ TEST_F(PickUpTest, AddsItemToInventory) {
   const EquipInstance& item =
       static_cast<const EquipInstance&>(*c_.inventory()[0]);
   EXPECT_EQ(item.prototype().name(), "Sword");
-  EXPECT_EQ(item.proto().remaining_upgrade_slots(), 7);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 7);
 }
 
 TEST_F(PickUpTest, MultiplePickUpsAccumulate) {
@@ -201,7 +201,7 @@ TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
   c_.PickUp(sword_);
   const EquipInstance& item =
       static_cast<const EquipInstance&>(*c_.inventory()[0]);
-  EXPECT_EQ(item.proto().scroll_stats().attack(), 0);
+  EXPECT_EQ(item.equip_state().scroll_stats().attack(), 0);
 }
 
 // --- Equip ---
@@ -298,13 +298,13 @@ TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
             kScrollSuccess);
   EXPECT_EQ(c_.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .proto()
+                .equip_state()
                 .scroll_stats()
                 .attack(),
             5);
   EXPECT_EQ(c_.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .proto()
+                .equip_state()
                 .remaining_upgrade_slots(),
             2);
 }
@@ -328,8 +328,8 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   EXPECT_EQ(c_.ScrollInventory(0, scroll), kScrollSuccess);
   const EquipInstance& item =
       static_cast<const EquipInstance&>(*c_.inventory()[0]);
-  EXPECT_EQ(item.proto().scroll_stats().attack(), 5);
-  EXPECT_EQ(item.proto().remaining_upgrade_slots(), 2);
+  EXPECT_EQ(item.equip_state().scroll_stats().attack(), 5);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 2);
 }
 
 // --- equip_stats cache ---
@@ -392,7 +392,7 @@ TEST_F(StarForceTraceTest, DestroyedEquippedItemSavesTrace) {
   ASSERT_TRUE(saw_destroy);
   ASSERT_EQ(c.traces().size(), 1u);
   EXPECT_EQ(c.traces()[0]->prototype().name(), "Sword");
-  EXPECT_GE(c.traces()[0]->state().stars(), 19);
+  EXPECT_GE(c.traces()[0]->equip_state().stars(), 19);
 }
 
 TEST_F(StarForceTraceTest, DestroyedInventoryItemSavesTrace) {

@@ -149,14 +149,15 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
       outcome = state_.character.ScrollEquipped(scroll_slot_, scroll);
       slots_remaining = state_.character.equipped()
                             .at(scroll_slot_)
-                            .proto()
+                            .equip_state()
                             .remaining_upgrade_slots();
     } else {
       outcome = state_.character.ScrollInventory(scroll_index_, scroll);
       const EquipInstance* inv_item = dynamic_cast<const EquipInstance*>(
           state_.character.inventory()[scroll_index_].get());
-      slots_remaining =
-          inv_item != nullptr ? inv_item->proto().remaining_upgrade_slots() : 0;
+      slots_remaining = inv_item != nullptr
+                            ? inv_item->equip_state().remaining_upgrade_slots()
+                            : 0;
     }
     scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining};
     screen_ = kScrollResult;

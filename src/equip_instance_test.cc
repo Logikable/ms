@@ -46,7 +46,7 @@ TEST_F(EquipInstanceTest, HundredPercentScrollSucceeds) {
   EquipInstance item(proto);
   EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
   EXPECT_EQ(item.stats().attack(), 2);
-  EXPECT_EQ(item.proto().remaining_upgrade_slots(), 0);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 0);
 }
 
 TEST_F(EquipInstanceTest, ZeroPercentScrollFails) {
@@ -54,7 +54,8 @@ TEST_F(EquipInstanceTest, ZeroPercentScrollFails) {
   EquipInstance item(proto);
   EXPECT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
   EXPECT_EQ(item.stats().attack(), 0);
-  EXPECT_EQ(item.proto().remaining_upgrade_slots(), 0);  // slot still consumed
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(),
+            0);  // slot still consumed
 }
 
 TEST_F(EquipInstanceTest, NoSlotsReturnsNoSlots) {
@@ -71,7 +72,7 @@ TEST_F(EquipInstanceTest, StatsAccumulateAcrossScrolls) {
   item.Scroll(MakeScroll(100, 2), rng_);
   item.Scroll(MakeScroll(100, 2), rng_);
   EXPECT_EQ(item.stats().attack(), 6);
-  EXPECT_EQ(item.proto().remaining_upgrade_slots(), 0);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 0);
 }
 
 // Verify that a sub-100% scroll produces both successes and failures over

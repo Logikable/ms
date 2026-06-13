@@ -106,7 +106,7 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
       int slots = 0;
       if (const EquipInstance* eq =
               dynamic_cast<const EquipInstance*>(item_ptr.get())) {
-        slots = eq->proto().remaining_upgrade_slots();
+        slots = eq->equip_state().remaining_upgrade_slots();
       }
       entries_.push_back(
           FormatItemEntry(item_ptr->name(), proto.equip_slot(), info, slots));

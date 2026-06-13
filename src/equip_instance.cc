@@ -180,15 +180,16 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
   return kScrollSuccess;
 }
 
-EquipStats EquipInstance::StarForceStatGains() const {
-  int stars = state_.stars();
-  bool is_weapon = (prototype_.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
-  StatFlags flags = PrimaryStatFlags(prototype_);
-  int required_level = prototype_.required_level();
+EquipStats ComputeStarForceStatGains(const EquipPrototype& prototype,
+                                     const Equip& state) {
+  int stars = state.stars();
+  bool is_weapon = (prototype.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
+  StatFlags flags = PrimaryStatFlags(prototype);
+  int required_level = prototype.required_level();
   int base_att =
-      prototype_.base_stats().attack() + state_.scroll_stats().attack();
-  int base_matt = prototype_.base_stats().magic_attack() +
-                  state_.scroll_stats().magic_attack();
+      prototype.base_stats().attack() + state.scroll_stats().attack();
+  int base_matt = prototype.base_stats().magic_attack() +
+                  state.scroll_stats().magic_attack();
 
   EquipStats gains;
   int sf_att = 0;
@@ -239,6 +240,14 @@ EquipStats EquipInstance::StarForceStatGains() const {
     gains.set_magic_attack(sf_matt);
   }
   return gains;
+}
+
+EquipStats EquipTrace::StarForceStatGains() const {
+  return ComputeStarForceStatGains(prototype_, state_);
+}
+
+EquipStats EquipInstance::StarForceStatGains() const {
+  return ComputeStarForceStatGains(prototype_, state_);
 }
 
 EquipStats EquipInstance::stats() const {

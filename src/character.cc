@@ -199,8 +199,8 @@ StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot) {
   }
   StarForceOutcome outcome = it->second.StarForce(rng_);
   if (outcome == kStarForceDestroy) {
-    inventory_.push_back(std::make_unique<EquipTrace>(it->second.prototype(),
-                                                      it->second.proto()));
+    inventory_.push_back(std::make_unique<EquipTrace>(
+        it->second.prototype(), it->second.equip_state()));
     equipped_.erase(it);
   }
   RecomputeEquipStats();
@@ -218,7 +218,7 @@ StarForceOutcome CharacterInstance::StarForceInventory(int index) {
   StarForceOutcome outcome = item->StarForce(rng_);
   if (outcome == kStarForceDestroy) {
     inventory_[index] =
-        std::make_unique<EquipTrace>(item->prototype(), item->proto());
+        std::make_unique<EquipTrace>(item->prototype(), item->equip_state());
   }
   return outcome;
 }

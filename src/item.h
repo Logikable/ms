@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "src/equip_stats.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -19,6 +20,8 @@ class Item {
 class EquipTabItem : public Item {
  public:
   virtual const EquipPrototype& prototype() const = 0;
+  virtual const Equip& equip_state() const = 0;
+  virtual EquipStats StarForceStatGains() const = 0;
   const std::string& name() const override {
     return prototype().name();
   }

@@ -115,7 +115,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
       AppendStat(info, stats.luk(), "LUK");
       entries_.push_back(
           FormatItemEntry(item.prototype().name(), kv.first, info,
-                          item.proto().remaining_upgrade_slots()));
+                          item.equip_state().remaining_upgrade_slots()));
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);

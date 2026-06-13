@@ -250,7 +250,7 @@ TEST_F(TuiControllerTest,
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(state_->character.equipped()
                 .at(EQUIP_SLOT_PRIMARY_WEAPON)
-                .proto()
+                .equip_state()
                 .scroll_stats()
                 .attack(),
             5);
@@ -388,7 +388,7 @@ TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(static_cast<const EquipInstance&>(*state_->character.inventory()[0])
-                .proto()
+                .equip_state()
                 .scroll_stats()
                 .attack(),
             5);

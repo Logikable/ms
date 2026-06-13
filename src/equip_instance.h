@@ -32,9 +32,10 @@ class EquipTrace : public EquipTabItem {
   const std::string& name() const override {
     return display_name_;
   }
-  const Equip& state() const {
+  const Equip& equip_state() const override {
     return state_;
   }
+  EquipStats StarForceStatGains() const override;
 
  private:
   EquipPrototype prototype_;
@@ -92,7 +93,7 @@ class EquipInstance : public EquipTabItem {
   const EquipPrototype& prototype() const override {
     return prototype_;
   }
-  const Equip& proto() const {
+  const Equip& equip_state() const override {
     return state_;
   }
   int stars() const {
@@ -102,7 +103,7 @@ class EquipInstance : public EquipTabItem {
   // Returns stat contributions from all applied star force levels. Weapon
   // ATK/MATT gains at 1–15★ use the current base+scroll stats, so they
   // recompute retroactively if scrolls change.
-  EquipStats StarForceStatGains() const;
+  EquipStats StarForceStatGains() const override;
 
   // Returns prototype base stats plus scroll stats plus star force stat gains.
   EquipStats stats() const;

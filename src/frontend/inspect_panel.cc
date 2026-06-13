@@ -19,9 +19,7 @@ ftxui::Element InspectPanel::Render() const {
     return ftxui::window(ftxui::text(" Inspect "), ftxui::text(" (none)"));
   }
 
-  const EquipInstance* eq = dynamic_cast<const EquipInstance*>(item_);
-  const EquipTrace* trace = dynamic_cast<const EquipTrace*>(item_);
-  const Equip& item_state = eq ? eq->proto() : trace->state();
+  const Equip& item_state = item_->equip_state();
 
   const EquipPrototype& proto = item_->prototype();
   const EquipStats& base = proto.base_stats();
@@ -49,10 +47,7 @@ ftxui::Element InspectPanel::Render() const {
         " Attack Speed: " + FormatAttackSpeed(proto.attack_speed()) + " "));
   }
 
-  EquipStats sf;
-  if (eq != nullptr) {
-    sf = eq->StarForceStatGains();
-  }
+  EquipStats sf = item_->StarForceStatGains();
 
   bool any_stat = false;
   auto AddRow = [&](const std::string& label, int base, int scroll,
