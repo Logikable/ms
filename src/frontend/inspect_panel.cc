@@ -44,23 +44,26 @@ ftxui::Element InspectPanel::Render() const {
         " Attack Speed: " + FormatAttackSpeed(proto.attack_speed()) + " "));
   }
 
+  EquipStats sf = item_->StarForceStatGains();
+
   bool any_stat = false;
-  auto AddRow = [&](const std::string& label, int b, int s) {
-    std::string line = StatLine(label, b, s);
+  auto AddRow = [&](const std::string& label, int base, int scroll,
+                    int star_force) {
+    std::string line = StatLine(label, base, scroll, star_force);
     if (line.empty()) {
       return;
     }
     rows.push_back(ftxui::text(line));
     any_stat = true;
   };
-  AddRow("ATT", base.attack(), scroll.attack());
-  AddRow("MATT", base.magic_attack(), scroll.magic_attack());
-  AddRow("STR", base.str(), scroll.str());
-  AddRow("DEX", base.dex(), scroll.dex());
-  AddRow("INT", base.int_(), scroll.int_());
-  AddRow("LUK", base.luk(), scroll.luk());
-  AddRow("HP", base.max_hp(), scroll.max_hp());
-  AddRow("DEF", base.def(), scroll.def());
+  AddRow("ATT", base.attack(), scroll.attack(), sf.attack());
+  AddRow("MATT", base.magic_attack(), scroll.magic_attack(), sf.magic_attack());
+  AddRow("STR", base.str(), scroll.str(), sf.str());
+  AddRow("DEX", base.dex(), scroll.dex(), sf.dex());
+  AddRow("INT", base.int_(), scroll.int_(), sf.int_());
+  AddRow("LUK", base.luk(), scroll.luk(), sf.luk());
+  AddRow("HP", base.max_hp(), scroll.max_hp(), sf.max_hp());
+  AddRow("DEF", base.def(), scroll.def(), sf.def());
 
   if (!any_stat) {
     rows.push_back(ftxui::text(" (no stats) "));
@@ -86,13 +89,16 @@ std::string InspectPanel::StarBar(int stars, int max_stars) {
 }
 
 std::string InspectPanel::StatLine(const std::string& label, int base,
-                                   int scroll) {
-  if (base == 0 && scroll == 0) {
+                                   int scroll, int sf) {
+  if (base == 0 && scroll == 0 && sf == 0) {
     return "";
   }
-  int total = base + scroll;
-  return " " + label + "  +" + std::to_string(total) + " (" +
-         std::to_string(base) + " +" + std::to_string(scroll) + ") ";
+  int total = base + scroll + sf;
+  std::string breakdown = std::to_string(base) + " +" + std::to_string(scroll);
+  if (sf > 0) {
+    breakdown += " +" + std::to_string(sf);
+  }
+  return " " + label + "  +" + std::to_string(total) + " (" + breakdown + ") ";
 }
 
 std::string InspectPanel::FormatEquipType(EquipType type) {

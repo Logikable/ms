@@ -135,6 +135,22 @@ TEST_F(InspectPanelTest, NoStatsShowsNoStatsText) {
   EXPECT_NE(Render(panel).find("(no stats)"), std::string::npos);
 }
 
+TEST_F(InspectPanelTest, ShowsStarForceStatBreakdown) {
+  sword_.mutable_base_stats()->set_attack(7);
+  sword_.set_required_level(10);
+  Equip state;
+  state.set_equip_name("Sword");
+  state.set_stars(5);
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  // 5★ on a level-10 weapon (max 5★, warrior): SF gives STR+DEX but no ATK
+  // gains (non-weapon slot logic). ATT row shows only base: +7 (7 +0 +0) →
+  // sf=0 so format stays "+7 (7 +0)".
+  // STR gains: 2+2+2+2+2 = 10. Row shows "+10 (0 +0 +10)".
+  EXPECT_NE(Render(panel).find("+10 (0 +0 +10)"), std::string::npos);
+}
+
 TEST_F(InspectPanelTest, StarBarShowsFilledAndEmptyStars) {
   // Level 0 item (max 5★) at 3★: expect 3 filled and 2 empty.
   Equip state;
