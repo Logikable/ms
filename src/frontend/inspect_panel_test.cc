@@ -101,6 +101,7 @@ TEST_F(InspectPanelTest, ShowsBaseStat) {
 TEST_F(InspectPanelTest, ShowsScrollStatBreakdown) {
   sword_.mutable_base_stats()->set_attack(5);
   Equip state;
+  state.set_equip_name("Sword");
   state.set_remaining_upgrade_slots(3);
   state.mutable_scroll_stats()->set_attack(3);
   EquipInstance item(sword_, state);
@@ -112,6 +113,7 @@ TEST_F(InspectPanelTest, ShowsScrollStatBreakdown) {
 TEST_F(InspectPanelTest, ShowsRemainingEnhancements) {
   sword_.set_upgrade_slots(7);
   Equip state;
+  state.set_equip_name("Sword");
   state.set_remaining_upgrade_slots(4);
   EquipInstance item(sword_, state);
   InspectPanel panel;

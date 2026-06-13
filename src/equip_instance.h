@@ -51,10 +51,11 @@ struct StarForceRate {
 
 class EquipInstance : public EquipTabItem {
  public:
-  explicit EquipInstance(EquipPrototype prototype);
-
-  // Constructs from an existing saved state rather than a fresh drop.
-  EquipInstance(EquipPrototype prototype, Equip state);
+  // Constructs from a prototype and optional existing state. When state is
+  // omitted (fresh drop), equip_name and remaining_upgrade_slots are
+  // initialized from the prototype.
+  explicit EquipInstance(const EquipPrototype& prototype,
+                         const Equip& state = {});
 
   // Consumes one upgrade slot and rolls against the scroll's success_rate.
   // Adds the scroll's stats on success. Returns kScrollNoSlots if no slots

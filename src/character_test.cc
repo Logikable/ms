@@ -185,8 +185,10 @@ TEST_F(AllocateAllStatTest, ReturnsFalseForUnspecifiedField) {
 TEST_F(PickUpTest, AddsItemToInventory) {
   c_.PickUp(sword_);
   ASSERT_EQ(c_.inventory().size(), 1u);
-  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
-  EXPECT_EQ(c_.inventory()[0].proto().remaining_upgrade_slots(), 7);
+  const EquipInstance& item =
+      static_cast<const EquipInstance&>(*c_.inventory()[0]);
+  EXPECT_EQ(item.prototype().name(), "Sword");
+  EXPECT_EQ(item.proto().remaining_upgrade_slots(), 7);
 }
 
 TEST_F(PickUpTest, MultiplePickUpsAccumulate) {
@@ -197,7 +199,9 @@ TEST_F(PickUpTest, MultiplePickUpsAccumulate) {
 
 TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
   c_.PickUp(sword_);
-  EXPECT_EQ(c_.inventory()[0].proto().scroll_stats().attack(), 0);
+  const EquipInstance& item =
+      static_cast<const EquipInstance&>(*c_.inventory()[0]);
+  EXPECT_EQ(item.proto().scroll_stats().attack(), 0);
 }
 
 // --- Equip ---
@@ -222,7 +226,24 @@ TEST_F(EquipTest, DisplacesExistingItemToInventory) {
   EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Axe");
   ASSERT_EQ(c_.inventory().size(), 1u);
-  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
+  EXPECT_EQ(c_.inventory()[0]->prototype().name(), "Sword");
+}
+
+TEST_F(EquipTest, DisplacedItemTakesVacatedPosition) {
+  EquipPrototype axe;
+  axe.set_name("Axe");
+  axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  c_.PickUp(sword_);  // index 0
+  c_.PickUp(axe);     // index 1
+  c_.PickUp(bow);     // index 2
+  c_.Equip(0);        // sword equipped; inventory = [axe(0), bow(1)]
+  c_.Equip(0);        // axe equipped; sword displaced back to index 0
+  ASSERT_EQ(c_.inventory().size(), 2u);
+  EXPECT_EQ(c_.inventory()[0]->prototype().name(), "Sword");
+  EXPECT_EQ(c_.inventory()[1]->prototype().name(), "Bow");
 }
 
 TEST_F(EquipTest, ReturnsFalseForUnspecifiedSlotOnPrototype) {
@@ -245,7 +266,7 @@ TEST_F(UnequipTest, MovesItemToInventory) {
   EXPECT_TRUE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0u);
   ASSERT_EQ(c_.inventory().size(), 1u);
-  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
+  EXPECT_EQ(c_.inventory()[0]->prototype().name(), "Sword");
 }
 
 TEST_F(UnequipTest, ReturnsFalseForUnspecifiedSlot) {
@@ -305,8 +326,10 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   scroll.mutable_stats()->set_attack(5);
 
   EXPECT_EQ(c_.ScrollInventory(0, scroll), kScrollSuccess);
-  EXPECT_EQ(c_.inventory()[0].proto().scroll_stats().attack(), 5);
-  EXPECT_EQ(c_.inventory()[0].proto().remaining_upgrade_slots(), 2);
+  const EquipInstance& item =
+      static_cast<const EquipInstance&>(*c_.inventory()[0]);
+  EXPECT_EQ(item.proto().scroll_stats().attack(), 5);
+  EXPECT_EQ(item.proto().remaining_upgrade_slots(), 2);
 }
 
 // --- equip_stats cache ---
@@ -335,6 +358,57 @@ TEST_F(ScrollEquippedTest, EquipStatsUpdatesOnScrollSuccess) {
   scroll.mutable_stats()->set_attack(7);
   c_.ScrollEquipped(EQUIP_SLOT_PRIMARY_WEAPON, scroll);
   EXPECT_EQ(c_.equip_stats().attack(), 7);
+}
+
+// --- StarForce traces ---
+
+class StarForceTraceTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    proto_.set_name("Sword");
+    proto_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    proto_.set_required_level(138);
+  }
+  EquipPrototype proto_;
+};
+
+TEST_F(StarForceTraceTest, NoTracesInitially) {
+  CharacterInstance c = MakeCharacter(rng_);
+  EXPECT_TRUE(c.traces().empty());
+}
+
+TEST_F(StarForceTraceTest, DestroyedEquippedItemSavesTrace) {
+  Equip state;
+  state.set_stars(19);
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(proto_, state);
+  c.Equip(0);
+  bool saw_destroy = false;
+  for (int i = 0; i < 100 && !saw_destroy; ++i) {
+    if (c.StarForceEquipped(EQUIP_SLOT_PRIMARY_WEAPON) == kStarForceDestroy) {
+      saw_destroy = true;
+    }
+  }
+  ASSERT_TRUE(saw_destroy);
+  ASSERT_EQ(c.traces().size(), 1u);
+  EXPECT_EQ(c.traces()[0]->prototype().name(), "Sword");
+  EXPECT_GE(c.traces()[0]->state().stars(), 19);
+}
+
+TEST_F(StarForceTraceTest, DestroyedInventoryItemSavesTrace) {
+  Equip state;
+  state.set_stars(19);
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(proto_, state);
+  bool saw_destroy = false;
+  for (int i = 0; i < 100 && !saw_destroy; ++i) {
+    if (c.StarForceInventory(0) == kStarForceDestroy) {
+      saw_destroy = true;
+    }
+  }
+  ASSERT_TRUE(saw_destroy);
+  ASSERT_EQ(c.traces().size(), 1u);
+  EXPECT_EQ(c.traces()[0]->prototype().name(), "Sword");
 }
 
 // --- CanEquip ---

@@ -387,7 +387,10 @@ TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
   controller_->OnEvent(ftxui::Event::Return);  // apply scroll
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
-  EXPECT_EQ(state_->character.inventory()[0].proto().scroll_stats().attack(),
+  EXPECT_EQ(static_cast<const EquipInstance&>(*state_->character.inventory()[0])
+                .proto()
+                .scroll_stats()
+                .attack(),
             5);
 }
 

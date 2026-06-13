@@ -156,14 +156,13 @@ StatFlags PrimaryStatFlags(const EquipPrototype& proto) {
 
 }  // namespace
 
-EquipInstance::EquipInstance(EquipPrototype prototype)
-    : prototype_(std::move(prototype)) {
-  state_.set_equip_name(prototype_.name());
-  state_.set_remaining_upgrade_slots(prototype_.upgrade_slots());
-}
-
-EquipInstance::EquipInstance(EquipPrototype prototype, Equip state)
-    : prototype_(std::move(prototype)), state_(std::move(state)) {
+EquipInstance::EquipInstance(const EquipPrototype& prototype,
+                             const Equip& state)
+    : prototype_(prototype), state_(state) {
+  if (state_.equip_name().empty()) {
+    state_.set_equip_name(prototype_.name());
+    state_.set_remaining_upgrade_slots(prototype_.upgrade_slots());
+  }
 }
 
 ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,

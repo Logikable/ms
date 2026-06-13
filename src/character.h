@@ -9,6 +9,7 @@
 #define MS_CHARACTER_H_
 
 #include <map>
+#include <memory>
 #include <random>
 #include <vector>
 
@@ -36,9 +37,9 @@ class CharacterInstance {
   // Returns true if the character meets the level and job requirements to
   // equip the item described by `proto`.
   bool CanEquip(const EquipPrototype& proto) const;
-  // Constructs a fresh EquipInstance from `prototype` and appends it to the
-  // inventory.
-  void PickUp(const EquipPrototype& prototype);
+  // Appends an EquipInstance to inventory. When state is omitted, initializes a
+  // fresh drop from the prototype; otherwise restores the existing state.
+  void PickUp(const EquipPrototype& prototype, const Equip& state = {});
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the
@@ -63,9 +64,10 @@ class CharacterInstance {
   const Character& proto() const {
     return character_;
   }
-  const std::vector<EquipInstance>& inventory() const {
+  const std::vector<std::unique_ptr<EquipTabItem>>& inventory() const {
     return inventory_;
   }
+  std::vector<const EquipTrace*> traces() const;
   const std::map<EquipSlot, EquipInstance>& equipped() const {
     return equipped_;
   }
@@ -81,7 +83,7 @@ class CharacterInstance {
 
   std::mt19937& rng_;
   Character character_;
-  std::vector<EquipInstance> inventory_;
+  std::vector<std::unique_ptr<EquipTabItem>> inventory_;
   std::map<EquipSlot, EquipInstance> equipped_;
   EquipStats equip_stats_;
 };
