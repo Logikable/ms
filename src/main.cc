@@ -34,6 +34,13 @@ int main(int argc, char** argv) {
   state.character.Equip(0);
   state.character.PickUp(state.equips.at("long_sword"));
   state.character.PickUp(state.equips.at("sabre"));
+  ms::Equip fafnir_state;
+  fafnir_state.set_equip_name("Fafnir Mistilteinn");
+  fafnir_state.set_remaining_upgrade_slots(0);
+  fafnir_state.set_stars(20);
+  fafnir_state.mutable_scroll_stats()->set_attack(40);
+  fafnir_state.mutable_scroll_stats()->set_str(16);
+  state.character.PickUp(state.equips.at("fafnir_mistilteinn"), fafnir_state);
   ms::Tui(state).Run();
   return 0;
 }

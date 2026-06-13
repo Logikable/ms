@@ -31,16 +31,6 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       scrolls(std::move(scrolls_arg)),
       rng(std::random_device{}()),
       character(rng, MakeStartingCharacterProto()) {
-  auto it = equips.find("Fafnir Mistilteinn");
-  if (it != equips.end()) {
-    Equip fafnir_state;
-    fafnir_state.set_equip_name("Fafnir Mistilteinn");
-    fafnir_state.set_remaining_upgrade_slots(0);
-    fafnir_state.set_stars(20);
-    fafnir_state.mutable_scroll_stats()->set_attack(40);
-    fafnir_state.mutable_scroll_stats()->set_str(16);
-    character.PickUp(it->second, fafnir_state);
-  }
 }
 
 }  // namespace ms
