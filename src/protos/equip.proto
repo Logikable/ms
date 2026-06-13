@@ -54,6 +54,12 @@ message EquipStats {
   int32 max_hp = 7;
   int32 def = 8;
   int32 max_mp = 9;
+  // Percentage bonus to damage dealt to boss monsters (e.g. 30 = 30%).
+  // TODO: apply in damage calculations once boss damage is supported.
+  int32 boss_damage = 10;
+  // Percentage of enemy defense ignored (e.g. 10 = 10%).
+  // TODO: apply in damage calculations once IED is supported.
+  int32 ignore_enemy_defense = 11;
 }
 
 // Static definition of an item type. Loaded from data/ textprotos at startup;
