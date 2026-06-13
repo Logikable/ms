@@ -20,6 +20,13 @@ class Item {
 // defined in equip_instance.cc alongside the star force tables.
 class EquipTabItem : public Item {
  public:
+  EquipStats StarForceStatGains() const;
+  // Sum of prototype base stats, scroll stats, and star force stat gains.
+  EquipStats stats() const;
+  // Maximum star force level for the given required_level, per the GMS
+  // equipment-level scaling table.
+  static int MaxStarsForLevel(int required_level);
+
   // Default: returns the prototype name. EquipTrace overrides to append suffix.
   const std::string& name() const override {
     return prototype_.name();
@@ -30,18 +37,12 @@ class EquipTabItem : public Item {
   const Equip& equip_state() const {
     return state_;
   }
-  EquipStats StarForceStatGains() const;
-  // Sum of prototype base stats, scroll stats, and star force stat gains.
-  EquipStats stats() const;
   int stars() const {
     return state_.stars();
   }
   int max_stars() const {
     return MaxStarsForLevel(prototype_.required_level());
   }
-  // Maximum star force level for the given required_level, per the GMS
-  // equipment-level scaling table.
-  static int MaxStarsForLevel(int required_level);
 
  protected:
   EquipTabItem(EquipPrototype prototype, Equip state)

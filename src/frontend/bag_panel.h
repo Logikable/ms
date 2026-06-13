@@ -29,13 +29,14 @@ class BagPanel {
   BagPanel(CharacterInstance& character, int& panel_focus);
   ftxui::Component MakeComponent(std::function<void()> on_enter);
   void OpenMenu();
-  ItemMenu& menu() {
-    return menu_;
-  }
   // Handles Up/Down/Escape/Return for the item context menu and executes the
   // selected action. Returns the next screen state.
   Screen OnMenuEvent(ftxui::Event event, int& panel_focus,
                      ScrollPanel& scroll_panel);
+
+  ItemMenu& menu() {
+    return menu_;
+  }
   int selected() const {
     return selected_;
   }
