@@ -172,7 +172,7 @@ cc_library(
     srcs = ["inspect_panel.cc"],
     hdrs = ["inspect_panel.h"],
     deps = [
-        "//src:equip_instance",
+        "//src:item",
         "//src/protos:equip_proto_cc",
         "@ftxui//:dom",
     ],

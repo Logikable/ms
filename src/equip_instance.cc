@@ -158,7 +158,7 @@ StatFlags PrimaryStatFlags(const EquipPrototype& proto) {
 
 EquipInstance::EquipInstance(const EquipPrototype& prototype,
                              const Equip& state)
-    : prototype_(prototype), state_(state) {
+    : EquipTabItem(prototype, state) {
   if (state_.equip_name().empty()) {
     state_.set_equip_name(prototype_.name());
     state_.set_remaining_upgrade_slots(prototype_.upgrade_slots());
@@ -180,16 +180,15 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
   return kScrollSuccess;
 }
 
-EquipStats ComputeStarForceStatGains(const EquipPrototype& prototype,
-                                     const Equip& state) {
-  int stars = state.stars();
-  bool is_weapon = (prototype.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
-  StatFlags flags = PrimaryStatFlags(prototype);
-  int required_level = prototype.required_level();
+EquipStats EquipTabItem::StarForceStatGains() const {
+  int stars = state_.stars();
+  bool is_weapon = (prototype_.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
+  StatFlags flags = PrimaryStatFlags(prototype_);
+  int required_level = prototype_.required_level();
   int base_att =
-      prototype.base_stats().attack() + state.scroll_stats().attack();
-  int base_matt = prototype.base_stats().magic_attack() +
-                  state.scroll_stats().magic_attack();
+      prototype_.base_stats().attack() + state_.scroll_stats().attack();
+  int base_matt = prototype_.base_stats().magic_attack() +
+                  state_.scroll_stats().magic_attack();
 
   EquipStats gains;
   int sf_att = 0;
@@ -242,15 +241,7 @@ EquipStats ComputeStarForceStatGains(const EquipPrototype& prototype,
   return gains;
 }
 
-EquipStats EquipTrace::StarForceStatGains() const {
-  return ComputeStarForceStatGains(prototype_, state_);
-}
-
-EquipStats EquipInstance::StarForceStatGains() const {
-  return ComputeStarForceStatGains(prototype_, state_);
-}
-
-EquipStats EquipInstance::stats() const {
+EquipStats EquipTabItem::stats() const {
   const EquipStats stat_sources[] = {
       prototype_.base_stats(), state_.scroll_stats(), StarForceStatGains()};
   return SumEquipStats(stat_sources);
@@ -277,7 +268,7 @@ StarForceOutcome EquipInstance::StarForce(std::mt19937& rng) {
   return kStarForceFail;
 }
 
-int EquipInstance::MaxStarsForLevel(int required_level) {
+int EquipTabItem::MaxStarsForLevel(int required_level) {
   if (required_level >= 138) {
     return 30;
   }

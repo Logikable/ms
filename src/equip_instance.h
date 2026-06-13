@@ -22,24 +22,14 @@ namespace ms {
 class EquipTrace : public EquipTabItem {
  public:
   EquipTrace(EquipPrototype prototype, Equip state)
-      : prototype_(std::move(prototype)),
-        state_(std::move(state)),
+      : EquipTabItem(std::move(prototype), std::move(state)),
         display_name_(prototype_.name() + " Trace") {
-  }
-  const EquipPrototype& prototype() const override {
-    return prototype_;
   }
   const std::string& name() const override {
     return display_name_;
   }
-  const Equip& equip_state() const override {
-    return state_;
-  }
-  EquipStats StarForceStatGains() const override;
 
  private:
-  EquipPrototype prototype_;
-  Equip state_;
   std::string display_name_;
 };
 
@@ -77,9 +67,6 @@ class EquipInstance : public EquipTabItem {
   // Returns the star force attempt rates for the given star level.
   // Returns {0, 0} for out-of-range values.
   static StarForceRate RateAt(int stars);
-  // Returns the maximum star force level for the given required_level, per the
-  // GMS equipment-level scaling table.
-  static int MaxStarsForLevel(int required_level);
 
   // Returns false if upgrade slots remain (scrolling must be completed first)
   // or if already at max stars.
@@ -87,30 +74,6 @@ class EquipInstance : public EquipTabItem {
     return state_.remaining_upgrade_slots() == 0 &&
            state_.stars() < max_stars();
   }
-  int max_stars() const {
-    return MaxStarsForLevel(prototype_.required_level());
-  }
-  const EquipPrototype& prototype() const override {
-    return prototype_;
-  }
-  const Equip& equip_state() const override {
-    return state_;
-  }
-  int stars() const {
-    return state_.stars();
-  }
-
-  // Returns stat contributions from all applied star force levels. Weapon
-  // ATK/MATT gains at 1–15★ use the current base+scroll stats, so they
-  // recompute retroactively if scrolls change.
-  EquipStats StarForceStatGains() const override;
-
-  // Returns prototype base stats plus scroll stats plus star force stat gains.
-  EquipStats stats() const;
-
- private:
-  EquipPrototype prototype_;
-  Equip state_;
 };
 
 }  // namespace ms

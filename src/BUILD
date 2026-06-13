@@ -125,7 +125,10 @@ cc_test(
 cc_library(
     name = "item",
     hdrs = ["item.h"],
-    deps = ["//src/protos:equip_proto_cc"],
+    deps = [
+        ":equip_stats",
+        "//src/protos:equip_proto_cc",
+    ],
 )
 
 cc_library(

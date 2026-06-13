@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/equip_instance.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -24,8 +23,8 @@ ftxui::Element InspectPanel::Render() const {
   const EquipPrototype& proto = item_->prototype();
   const EquipStats& base = proto.base_stats();
   const EquipStats& scroll = item_state.scroll_stats();
-  int stars = item_state.stars();
-  int max_stars = EquipInstance::MaxStarsForLevel(proto.required_level());
+  int stars = item_->stars();
+  int max_stars = item_->max_stars();
 
   int level = proto.required_level() > 0 ? proto.required_level() : 1;
 
