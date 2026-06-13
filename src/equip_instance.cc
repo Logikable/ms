@@ -63,44 +63,55 @@ struct WeaponHighStarEntry {
 
 // Max stars for this range is 20★; entries 5–14 are padding.
 constexpr WeaponHighStarEntry kHighStar128_137[15] = {
-    {7, 6}, {7, 7}, {7, 7}, {7, 8}, {7, 9},
-    {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
-    {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
+    {7, 6}, {7, 7}, {7, 7}, {7, 8}, {7, 9}, {0, 0}, {0, 0}, {0, 0},
+    {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
 };
 constexpr WeaponHighStarEntry kHighStar138_149[15] = {
-    {9, 7},  {9, 8},  {9, 8},  {9, 9},  {9, 10}, {9, 11}, {9, 12},
-    {0, 30}, {0, 31}, {0, 32}, {0, 33}, {0, 34}, {0, 35}, {0, 36}, {0, 37},
+    {9, 7},  {9, 8},  {9, 8},  {9, 9},  {9, 10}, {9, 11}, {9, 12}, {0, 30},
+    {0, 31}, {0, 32}, {0, 33}, {0, 34}, {0, 35}, {0, 36}, {0, 37},
 };
 constexpr WeaponHighStarEntry kHighStar150_159[15] = {
-    {11, 8},  {11, 9},  {11, 9},  {11, 10}, {11, 11}, {11, 12}, {11, 13},
-    {0, 31}, {0, 32}, {0, 33}, {0, 34}, {0, 35}, {0, 36}, {0, 37}, {0, 38},
+    {11, 8}, {11, 9}, {11, 9}, {11, 10}, {11, 11}, {11, 12}, {11, 13}, {0, 31},
+    {0, 32}, {0, 33}, {0, 34}, {0, 35},  {0, 36},  {0, 37},  {0, 38},
 };
 constexpr WeaponHighStarEntry kHighStar160_199[15] = {
-    {13, 9},  {13, 9},  {13, 10}, {13, 11}, {13, 12}, {13, 13}, {13, 14},
-    {0, 32}, {0, 33}, {0, 34}, {0, 35}, {0, 36}, {0, 37}, {0, 38}, {0, 39},
+    {13, 9}, {13, 9}, {13, 10}, {13, 11}, {13, 12}, {13, 13}, {13, 14}, {0, 32},
+    {0, 33}, {0, 34}, {0, 35},  {0, 36},  {0, 37},  {0, 38},  {0, 39},
 };
 constexpr WeaponHighStarEntry kHighStar200_249[15] = {
-    {15, 13}, {15, 13}, {15, 14}, {15, 14}, {15, 15}, {15, 16}, {15, 17},
-    {0, 34},  {0, 35},  {0, 36},  {0, 37},  {0, 38},  {0, 39},  {0, 40},
-    {0, 41},
+    {15, 13}, {15, 13}, {15, 14}, {15, 14}, {15, 15},
+    {15, 16}, {15, 17}, {0, 34},  {0, 35},  {0, 36},
+    {0, 37},  {0, 38},  {0, 39},  {0, 40},  {0, 41},
 };
 // 23–30★ entries are {0,0}: no star-forceable Lv250+ weapon exists in GMS.
 // TODO: Superior equipment has a different stat table and a 15★ cap; handle
 // separately when Superior items are added.
 constexpr WeaponHighStarEntry kHighStar250Plus[15] = {
-    {17, 16}, {17, 16}, {17, 17}, {17, 17}, {17, 18}, {17, 19}, {17, 20},
-    {0, 0},   {0, 0},   {0, 0},   {0, 0},   {0, 0},   {0, 0},   {0, 0},
-    {0, 0},
+    {17, 16}, {17, 16}, {17, 17}, {17, 17}, {17, 18},
+    {17, 19}, {17, 20}, {0, 0},   {0, 0},   {0, 0},
+    {0, 0},   {0, 0},   {0, 0},   {0, 0},   {0, 0},
 };
 
 WeaponHighStarEntry WeaponHighStarGainAt(int required_level, int star_to) {
   int idx = star_to - 16;
-  if (required_level >= 250) return kHighStar250Plus[idx];
-  if (required_level >= 200) return kHighStar200_249[idx];
-  if (required_level >= 160) return kHighStar160_199[idx];
-  if (required_level >= 150) return kHighStar150_159[idx];
-  if (required_level >= 138) return kHighStar138_149[idx];
-  if (required_level >= 128) return kHighStar128_137[idx];
+  if (required_level >= 250) {
+    return kHighStar250Plus[idx];
+  }
+  if (required_level >= 200) {
+    return kHighStar200_249[idx];
+  }
+  if (required_level >= 160) {
+    return kHighStar160_199[idx];
+  }
+  if (required_level >= 150) {
+    return kHighStar150_159[idx];
+  }
+  if (required_level >= 138) {
+    return kHighStar138_149[idx];
+  }
+  if (required_level >= 128) {
+    return kHighStar128_137[idx];
+  }
   return {0, 0};
 }
 
@@ -175,8 +186,8 @@ EquipStats EquipInstance::StarForceStatGains() const {
   bool is_weapon = (prototype_.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
   StatFlags flags = PrimaryStatFlags(prototype_);
   int required_level = prototype_.required_level();
-  int base_att = prototype_.base_stats().attack() +
-                 state_.scroll_stats().attack();
+  int base_att =
+      prototype_.base_stats().attack() + state_.scroll_stats().attack();
   int base_matt = prototype_.base_stats().magic_attack() +
                   state_.scroll_stats().magic_attack();
 
@@ -187,10 +198,18 @@ EquipStats EquipInstance::StarForceStatGains() const {
   for (int s = 0; s < stars; ++s) {
     if (s < 15) {
       int delta = kPrimaryStatDeltas[s];
-      if (flags.str)  gains.set_str(gains.str() + delta);
-      if (flags.dex)  gains.set_dex(gains.dex() + delta);
-      if (flags.int_) gains.set_int_(gains.int_() + delta);
-      if (flags.luk)  gains.set_luk(gains.luk() + delta);
+      if (flags.str) {
+        gains.set_str(gains.str() + delta);
+      }
+      if (flags.dex) {
+        gains.set_dex(gains.dex() + delta);
+      }
+      if (flags.int_) {
+        gains.set_int_(gains.int_() + delta);
+      }
+      if (flags.luk) {
+        gains.set_luk(gains.luk() + delta);
+      }
       if (is_weapon) {
         gains.set_max_hp(gains.max_hp() + kHpMpDeltas[s]);
         gains.set_max_mp(gains.max_mp() + kHpMpDeltas[s]);
@@ -199,10 +218,18 @@ EquipStats EquipInstance::StarForceStatGains() const {
       }
     } else if (is_weapon) {
       WeaponHighStarEntry entry = WeaponHighStarGainAt(required_level, s + 1);
-      if (flags.str)  gains.set_str(gains.str() + entry.stat);
-      if (flags.dex)  gains.set_dex(gains.dex() + entry.stat);
-      if (flags.int_) gains.set_int_(gains.int_() + entry.stat);
-      if (flags.luk)  gains.set_luk(gains.luk() + entry.stat);
+      if (flags.str) {
+        gains.set_str(gains.str() + entry.stat);
+      }
+      if (flags.dex) {
+        gains.set_dex(gains.dex() + entry.stat);
+      }
+      if (flags.int_) {
+        gains.set_int_(gains.int_() + entry.stat);
+      }
+      if (flags.luk) {
+        gains.set_luk(gains.luk() + entry.stat);
+      }
       sf_att += entry.att;
       sf_matt += entry.att;
     }
@@ -216,9 +243,8 @@ EquipStats EquipInstance::StarForceStatGains() const {
 }
 
 EquipStats EquipInstance::stats() const {
-  const EquipStats stat_sources[] = {prototype_.base_stats(),
-                                     state_.scroll_stats(),
-                                     StarForceStatGains()};
+  const EquipStats stat_sources[] = {
+      prototype_.base_stats(), state_.scroll_stats(), StarForceStatGains()};
   return SumEquipStats(stat_sources);
 }
 
