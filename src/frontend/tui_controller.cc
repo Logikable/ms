@@ -40,15 +40,14 @@ void TuiController::OpenApAlloc() {
   ap_alloc_panel_.Reset();
 }
 
-const EquipInstance* TuiController::inspect_item() const {
+const EquipTabItem* TuiController::inspect_item() const {
   if (screen_ != kInspect) {
     return nullptr;
   }
   if (panel_focus_ == kEquipPanel) {
     return &state_.character.equipped().at(inspect_slot_);
   }
-  return dynamic_cast<const EquipInstance*>(
-      state_.character.inventory()[inspect_index_].get());
+  return state_.character.inventory()[inspect_index_].get();
 }
 
 const EquipInstance* TuiController::scroll_item() const {

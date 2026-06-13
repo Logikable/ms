@@ -1,7 +1,7 @@
-/* InspectPanel renders full details for a single EquipInstance: star bar,
- * name, level, job categories, per-stat breakdown (total and base+scroll
- * components), and remaining upgrade slots. Used in the scroll screen (right
- * side) and future upgrade screens. SetItem(nullptr) renders a placeholder.
+/* InspectPanel renders full details for a single equip item (EquipInstance or
+ * EquipTrace): star bar, name, level, job categories, per-stat breakdown, and
+ * remaining upgrade slots. Used in the scroll screen and inspect screens.
+ * SetItem(nullptr) renders a placeholder.
  */
 #ifndef MS_SRC_FRONTEND_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_INSPECT_PANEL_H_
@@ -16,7 +16,7 @@ namespace ms {
 
 class InspectPanel {
  public:
-  void SetItem(const EquipInstance* item);
+  void SetItem(const EquipTabItem* item);
   ftxui::Element Render() const;
 
  private:
@@ -31,7 +31,7 @@ class InspectPanel {
   // Returns filled (★) and empty (☆) stars in groups of 5 up to max_stars.
   static std::string StarBar(int stars, int max_stars);
 
-  const EquipInstance* item_ = nullptr;
+  const EquipTabItem* item_ = nullptr;
 };
 
 }  // namespace ms

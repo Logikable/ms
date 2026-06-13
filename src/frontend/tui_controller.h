@@ -52,7 +52,8 @@ class TuiController {
   // or nullptr otherwise.
   const EquipInstance* scroll_item() const;
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
-  const EquipInstance* inspect_item() const;
+  // May be an EquipTrace if the selected bag item was destroyed.
+  const EquipTabItem* inspect_item() const;
   // Returns the item being star forced while in kStarForce, or nullptr
   // otherwise. Do not call in kStarForceResult (item may be destroyed).
   const EquipInstance* star_force_item() const;

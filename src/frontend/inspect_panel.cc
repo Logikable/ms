@@ -10,7 +10,7 @@
 
 namespace ms {
 
-void InspectPanel::SetItem(const EquipInstance* item) {
+void InspectPanel::SetItem(const EquipTabItem* item) {
   item_ = item;
 }
 
@@ -19,15 +19,20 @@ ftxui::Element InspectPanel::Render() const {
     return ftxui::window(ftxui::text(" Inspect "), ftxui::text(" (none)"));
   }
 
+  const EquipInstance* eq = dynamic_cast<const EquipInstance*>(item_);
+  const EquipTrace* trace = dynamic_cast<const EquipTrace*>(item_);
+  const Equip& item_state = eq ? eq->proto() : trace->state();
+
   const EquipPrototype& proto = item_->prototype();
   const EquipStats& base = proto.base_stats();
-  const EquipStats& scroll = item_->proto().scroll_stats();
+  const EquipStats& scroll = item_state.scroll_stats();
+  int stars = item_state.stars();
+  int max_stars = EquipInstance::MaxStarsForLevel(proto.required_level());
 
   int level = proto.required_level() > 0 ? proto.required_level() : 1;
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(StarBar(item_->stars(), item_->max_stars())) |
-                 ftxui::hcenter);
+  rows.push_back(ftxui::text(StarBar(stars, max_stars)) | ftxui::hcenter);
   rows.push_back(ftxui::text(item_->name()) | ftxui::hcenter);
   rows.push_back(ftxui::separator());
   // Trailing space on each text row keeps the right border one column clear.
@@ -44,7 +49,10 @@ ftxui::Element InspectPanel::Render() const {
         " Attack Speed: " + FormatAttackSpeed(proto.attack_speed()) + " "));
   }
 
-  EquipStats sf = item_->StarForceStatGains();
+  EquipStats sf;
+  if (eq != nullptr) {
+    sf = eq->StarForceStatGains();
+  }
 
   bool any_stat = false;
   auto AddRow = [&](const std::string& label, int base, int scroll,
@@ -70,7 +78,7 @@ ftxui::Element InspectPanel::Render() const {
   }
 
   rows.push_back(ftxui::separator());
-  int slots = item_->proto().remaining_upgrade_slots();
+  int slots = item_state.remaining_upgrade_slots();
   rows.push_back(
       ftxui::text(" Remaining Enhancements: " + std::to_string(slots) + " "));
 
