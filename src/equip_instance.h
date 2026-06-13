@@ -1,37 +1,20 @@
 /* EquipInstance wraps a single in-game drop of equipment. It pairs an
  * EquipPrototype (static item definition loaded from data/) with an Equip proto
  * (per-instance mutable state: remaining upgrade slots, accumulated scroll
- * stats, and star force level). equip_instance.cc implements scrolling,
- * star forcing, and stat aggregation.
+ * stats, and star force level). It adds mutation methods (Scroll, StarForce)
+ * on top of the read-only base class EquipTabItem (see item.h).
+ * EquipTrace (also in item.h) is the companion type for destroyed items.
  */
 #ifndef MS_SRC_EQUIP_INSTANCE_H_
 #define MS_SRC_EQUIP_INSTANCE_H_
 
 #include <random>
 
-#include "src/equip_stats.h"
 #include "src/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
-
-// A destroyed equipment item saved after a star force boom. Retains the full
-// prototype and the item's state at the moment of destruction. Can be restored
-// by combining with a fresh copy of the same base item.
-class EquipTrace : public EquipTabItem {
- public:
-  EquipTrace(EquipPrototype prototype, Equip state)
-      : EquipTabItem(std::move(prototype), std::move(state)),
-        display_name_(prototype_.name() + " Trace") {
-  }
-  const std::string& name() const override {
-    return display_name_;
-  }
-
- private:
-  std::string display_name_;
-};
 
 enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };
 enum StarForceOutcome { kStarForceSuccess, kStarForceFail, kStarForceDestroy };

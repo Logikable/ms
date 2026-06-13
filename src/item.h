@@ -52,6 +52,20 @@ class EquipTabItem : public Item {
   Equip state_;
 };
 
+// A destroyed equipment item saved after a star force boom. Retains the full
+// prototype and the item's state at the moment of destruction. Can be restored
+// by combining with a fresh copy of the same base item.
+class EquipTrace : public EquipTabItem {
+ public:
+  EquipTrace(EquipPrototype prototype, Equip state);
+  const std::string& name() const override {
+    return display_name_;
+  }
+
+ private:
+  std::string display_name_;
+};
+
 }  // namespace ms
 
 #endif  // MS_SRC_ITEM_H_

@@ -124,6 +124,7 @@ cc_test(
 
 cc_library(
     name = "item",
+    srcs = ["item.cc"],
     hdrs = ["item.h"],
     deps = [
         ":equip_stats",
