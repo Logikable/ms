@@ -298,6 +298,31 @@ TEST_F(TuiControllerTest,
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
 }
 
+TEST_F(TuiControllerTest,
+       ReturnToItemMenuAfterScrollingEnablesStarForceWhenSlotsDepleted) {
+  sword_.set_upgrade_slots(1);
+  state_->character.PickUp(sword_);
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  // Open menu while item still has 1 slot — Star Force should be disabled.
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);     // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);     // confirm → kScrollResult (0 slots)
+  controller_->OnEvent(ftxui::Event::Escape);     // → kScrollSelect
+  controller_->OnEvent(ftxui::Event::Escape);     // → kItemMenu (re-opens menu)
+
+  EXPECT_EQ(controller_->screen(), kItemMenu);
+  // Navigate to Star Force position; it must be reachable (not skipped).
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Star Force
+  EXPECT_EQ(equip_panel_->menu().selected(), kMenuStarForce);
+}
+
 TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {
   state_->character.PickUp(sword_);
   state_->character.Equip(0);

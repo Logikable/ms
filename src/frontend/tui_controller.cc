@@ -149,6 +149,11 @@ bool TuiController::OnInspectEvent(ftxui::Event event) {
 
 bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
   if (event == ftxui::Event::Escape && !scroll_panel_.IsConfirming()) {
+    if (panel_focus_ == kEquipPanel) {
+      equip_panel_.OpenMenu();
+    } else {
+      bag_panel_.OpenMenu();
+    }
     screen_ = kItemMenu;
     return true;
   }
