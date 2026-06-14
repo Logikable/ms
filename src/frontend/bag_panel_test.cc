@@ -55,7 +55,8 @@ TEST_F(BagPanelTest, ShowsSlotsRemaining) {
   sword_.set_upgrade_slots(7);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   BagPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("7 slots"),
+  // Fresh item: 0 pass, 7 left, 0 restores.
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("0/7/0"),
             std::string::npos);
 }
 

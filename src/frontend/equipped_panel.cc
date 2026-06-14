@@ -22,6 +22,12 @@ constexpr char kColumnHeader[] =
     "  Equip Slot"                  // 2 sep + 10 slot
     "  Stats               "        // 2 sep + 20 info
     "  Scrolls";                    // 2 sep + label
+// Sub-header row: 64 spaces align "Pass/Left/Restore" under the scroll column.
+constexpr char kColumnHeader2[] =
+    "                              "  // 30
+    "                              "  // 30
+    "    "                            // 4 → 64 total
+    "Pass/Left/Restore";
 
 }  // namespace
 
@@ -113,9 +119,13 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
       AppendStat(info, stats.dex(), "DEX");
       AppendStat(info, stats.int_(), "INT");
       AppendStat(info, stats.luk(), "LUK");
-      entries_.push_back(
-          FormatItemEntry(item.prototype().name(), kv.first, info,
-                          item.equip_state().remaining_upgrade_slots()));
+      int scroll_pass = item.equip_state().scroll_successes();
+      int scroll_left = item.equip_state().remaining_upgrade_slots();
+      int scroll_restore =
+          item.prototype().upgrade_slots() - scroll_pass - scroll_left;
+      entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
+                                         info, scroll_pass, scroll_left,
+                                         scroll_restore));
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
@@ -126,6 +136,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
     return ftxui::window(ftxui::text(" Equipped "),
                          ftxui::vbox({
                              ftxui::text(kColumnHeader),
+                             ftxui::text(kColumnHeader2),
                              ftxui::separator(),
                              menu->Render(),
                          }));

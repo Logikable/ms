@@ -81,13 +81,21 @@ std::string FormatJobCategories(const EquipPrototype& proto) {
 }
 
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
-                            const std::string& info, int slots_remaining) {
+                            const std::string& info, int scroll_pass,
+                            int scroll_left, int scroll_restore) {
   std::string padded_info = info;
   while ((int)padded_info.size() < kInfoWidth) {
     padded_info += ' ';
   }
+  std::string scrolls;
+  if (scroll_pass < 0) {
+    scrolls = "-";
+  } else {
+    scrolls = std::to_string(scroll_pass) + "/" + std::to_string(scroll_left) +
+              "/" + std::to_string(scroll_restore);
+  }
   return PadRight(name, 26) + "  " + PadRight(FormatSlot(slot), kSlotWidth) +
-         "  " + padded_info + "  " + std::to_string(slots_remaining) + " slots";
+         "  " + padded_info + "  " + scrolls;
 }
 
 ftxui::Element ConfirmBar(bool cancel_selected) {

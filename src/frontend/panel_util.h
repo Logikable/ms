@@ -42,11 +42,12 @@ std::string FormatSlot(EquipSlot slot);
 // names (e.g. "Warrior/Thief"). Also returns "All" when the list is empty.
 std::string FormatJobCategories(const EquipPrototype& proto);
 
-// Formats a single item list entry: name (18 cols), slot (10 cols), info
-// (padded to 20 cols), and remaining upgrade slots. Used by both EquippedPanel
-// and BagPanel; the caller builds the info string for its column.
+// Formats a single item list entry: name (26 cols), slot (10 cols), info
+// (padded to 20 cols), and scroll pass/left/restore counts. Pass -1 for all
+// three scroll values to render "-" (use for non-upgradeable items).
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
-                            const std::string& info, int slots_remaining);
+                            const std::string& info, int scroll_pass,
+                            int scroll_left, int scroll_restore);
 
 // Renders a [Confirm] / [Cancel] button row. The selected button is inverted.
 // cancel_selected=false highlights Confirm; true highlights Cancel.

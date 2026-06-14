@@ -62,22 +62,30 @@ TEST(AppendStatTest, SkipsZeroInMiddle) {
 
 // --- FormatItemEntry ---
 
-TEST(FormatItemEntryTest, ContainsNameSlotInfoAndSlotsCount) {
+TEST(FormatItemEntryTest, ContainsNameSlotInfoAndScrollCounts) {
   std::string entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3);
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 2, 4);
   EXPECT_NE(entry.find("Sword"), std::string::npos);
   EXPECT_NE(entry.find("Weapon"), std::string::npos);
   EXPECT_NE(entry.find("+7 ATT"), std::string::npos);
-  EXPECT_NE(entry.find("3 slots"), std::string::npos);
+  EXPECT_NE(entry.find("3/2/4"), std::string::npos);
 }
 
 TEST(FormatItemEntryTest, InfoColumnPaddedForAlignment) {
-  // Short and long info strings should position "slots" at the same offset.
+  // Short and long info strings should position scroll counts at the same
+  // offset.
   std::string short_entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "A", 3);
-  std::string long_entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "A longer info", 3);
-  EXPECT_EQ(short_entry.find("3 slots"), long_entry.find("3 slots"));
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "A", 3, 2, 4);
+  std::string long_entry = FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON,
+                                           "A longer info", 3, 2, 4);
+  EXPECT_EQ(short_entry.find("3/2/4"), long_entry.find("3/2/4"));
+}
+
+TEST(FormatItemEntryTest, NonUpgradeableItemShowsDash) {
+  std::string entry =
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", -1, -1, -1);
+  EXPECT_NE(entry.find("-"), std::string::npos);
+  EXPECT_EQ(entry.find("/"), std::string::npos);
 }
 
 // --- FormatJobCategories ---

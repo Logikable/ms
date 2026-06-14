@@ -21,6 +21,12 @@ constexpr char kColumnHeader[] =
     "  Equip Slot"                  // 2 sep + 10 slot
     "  Level  Job          "        // 2 sep + 20 info
     "  Scrolls";                    // 2 sep + label
+// Sub-header row: 64 spaces align "Pass/Left/Restore" under the scroll column.
+constexpr char kColumnHeader2[] =
+    "                              "  // 30
+    "                              "  // 30
+    "    "                            // 4 → 64 total
+    "Pass/Left/Restore";
 
 }  // namespace
 
@@ -114,12 +120,15 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
       }
       std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
                          FormatJobCategories(proto);
-      int slots = 0;
-      if (const EquipInstance* eq = character_.inventory().equip_instance(i)) {
-        slots = eq->equip_state().remaining_upgrade_slots();
+      int scroll_pass = -1, scroll_left = -1, scroll_restore = -1;
+      if (proto.upgrade_slots() > 0) {
+        scroll_pass = item.equip_state().scroll_successes();
+        scroll_left = item.equip_state().remaining_upgrade_slots();
+        scroll_restore = proto.upgrade_slots() - scroll_pass - scroll_left;
       }
-      entries_.push_back(
-          FormatItemEntry(item.name(), proto.equip_slot(), info, slots));
+      entries_.push_back(FormatItemEntry(item.name(), proto.equip_slot(), info,
+                                         scroll_pass, scroll_left,
+                                         scroll_restore));
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, character_.inventory().size() - 1);
@@ -129,6 +138,7 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
     }
     return ftxui::window(ftxui::text(" Bag "), ftxui::vbox({
                                                    ftxui::text(kColumnHeader),
+                                                   ftxui::text(kColumnHeader2),
                                                    ftxui::separator(),
                                                    menu->Render(),
                                                }));

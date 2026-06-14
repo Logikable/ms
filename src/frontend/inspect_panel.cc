@@ -68,10 +68,18 @@ ftxui::Element InspectPanel::Render() const {
     rows.push_back(ftxui::text(" (no stats) "));
   }
 
-  rows.push_back(ftxui::separator());
-  int slots = item_state.remaining_upgrade_slots();
-  rows.push_back(
-      ftxui::text(" Remaining Enhancements: " + std::to_string(slots) + " "));
+  if (proto.upgrade_slots() > 0) {
+    int pass = item_state.scroll_successes();
+    int left = item_state.remaining_upgrade_slots();
+    int restore = proto.upgrade_slots() - pass - left;
+    rows.push_back(ftxui::separator());
+    std::string scroll_label =
+        pass == 1 ? " Successful Scroll " : " Successful Scrolls ";
+    std::string restore_label = restore == 1 ? " Restore) " : " Restores) ";
+    rows.push_back(ftxui::text(" " + std::to_string(pass) + scroll_label));
+    rows.push_back(ftxui::text(" (" + std::to_string(left) + " Left, " +
+                               std::to_string(restore) + restore_label));
+  }
 
   return ftxui::window(ftxui::text(" Inspect "), ftxui::vbox(std::move(rows)));
 }

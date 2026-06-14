@@ -112,7 +112,7 @@ TEST_F(InspectPanelTest, ShowsScrollStatBreakdown) {
   EXPECT_NE(Render(panel).find("+8 (5 +3)"), std::string::npos);
 }
 
-TEST_F(InspectPanelTest, ShowsRemainingEnhancements) {
+TEST_F(InspectPanelTest, ShowsScrollInfo) {
   sword_.set_upgrade_slots(7);
   Equip state;
   state.set_equip_name("Sword");
@@ -120,7 +120,9 @@ TEST_F(InspectPanelTest, ShowsRemainingEnhancements) {
   EquipInstance item(sword_, state);
   InspectPanel panel;
   panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("Remaining Enhancements: 4"), std::string::npos);
+  // 7 slots, 4 left, 0 successes → 3 restores.
+  EXPECT_NE(Render(panel).find("0 Successful Scrolls"), std::string::npos);
+  EXPECT_NE(Render(panel).find("4 Left, 3 Restores"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ZeroStatRowNotShown) {
