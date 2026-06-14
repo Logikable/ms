@@ -31,8 +31,9 @@ class Item {
 class EquipTabItem : public Item {
  public:
   // Returns stat gains contributed by star force levels alone (not
-  // base/scroll).
-  EquipStats StarForceStatGains() const;
+  // base/scroll). Pass stars >= 0 to query a specific level; -1 (default) uses
+  // the item's current star count.
+  EquipStats StarForceStatGains(int stars = -1) const;
   // Sum of prototype base stats, scroll stats, and star force stat gains.
   EquipStats stats() const;
   // Maximum star force level for the given required_level, per the GMS

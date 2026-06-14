@@ -67,12 +67,38 @@ ftxui::Element StarForcePanel::Render() const {
   int rate_w = static_cast<int>(
       std::max({success_str.size(), fail_str.size(), destroy_str.size()}));
 
+  EquipStats before = item_->StarForceStatGains(stars);
+  EquipStats after = item_->StarForceStatGains(stars + 1);
+  struct StatEntry {
+    const char* label;
+    int value;
+  };
+  const StatEntry kStats[] = {
+      {"STR", after.str() - before.str()},
+      {"DEX", after.dex() - before.dex()},
+      {"INT", after.int_() - before.int_()},
+      {"LUK", after.luk() - before.luk()},
+      {"HP", after.max_hp() - before.max_hp()},
+      {"MP", after.max_mp() - before.max_mp()},
+      {"ATT", after.attack() - before.attack()},
+      {"MATT", after.magic_attack() - before.magic_attack()},
+      {"DEF", after.def() - before.def()},
+  };
+
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text(name) | ftxui::hcenter);
   rows.push_back(ftxui::separator());
   rows.push_back(ftxui::text(std::to_string(stars) + "★ → " +
                              std::to_string(stars + 1) + "★") |
                  ftxui::hcenter);
+  rows.push_back(ftxui::separator());
+  for (const StatEntry& s : kStats) {
+    if (s.value > 0) {
+      rows.push_back(
+          ftxui::text(std::string(s.label) + " +" + std::to_string(s.value)) |
+          ftxui::hcenter);
+    }
+  }
   rows.push_back(ftxui::separator());
   rows.push_back(ftxui::text("Success  " + PadTo(success_str, rate_w)) |
                  ftxui::hcenter);

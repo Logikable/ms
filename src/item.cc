@@ -123,8 +123,10 @@ EquipTrace::EquipTrace(EquipPrototype prototype, Equip state)
       display_name_(prototype_.name() + " Trace") {
 }
 
-EquipStats EquipTabItem::StarForceStatGains() const {
-  int stars = state_.stars();
+EquipStats EquipTabItem::StarForceStatGains(int stars) const {
+  if (stars < 0) {
+    stars = state_.stars();
+  }
   bool is_weapon = (prototype_.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
   StatFlags flags = PrimaryStatFlags(prototype_);
   int required_level = prototype_.required_level();
