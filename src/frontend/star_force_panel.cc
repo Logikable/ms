@@ -1,6 +1,7 @@
 #include "src/frontend/star_force_panel.h"
 
 #include <algorithm>
+#include <cstring>
 #include <string>
 
 #include "ftxui/dom/elements.hpp"
@@ -78,12 +79,18 @@ ftxui::Element StarForcePanel::Render() const {
                              std::to_string(stars + 1) + "★") |
                  ftxui::hcenter);
   rows.push_back(ftxui::separator());
+  int label_w = 0;
+  for (const DisplayStat& stat : kDisplayStats) {
+    if (stat.GetFrom(after) - stat.GetFrom(before) > 0) {
+      label_w = std::max(label_w, static_cast<int>(strlen(stat.label)));
+    }
+  }
   for (const DisplayStat& stat : kDisplayStats) {
     int delta = stat.GetFrom(after) - stat.GetFrom(before);
     if (delta > 0) {
-      rows.push_back(
-          ftxui::text(std::string(stat.label) + " +" + std::to_string(delta)) |
-          ftxui::hcenter);
+      rows.push_back(ftxui::text(PadTo(stat.label, label_w) + "  +" +
+                                 std::to_string(delta)) |
+                     ftxui::hcenter);
     }
   }
   rows.push_back(ftxui::separator());
