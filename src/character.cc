@@ -1,5 +1,6 @@
 #include "src/character.h"
 
+#include <algorithm>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -112,6 +113,11 @@ void CharacterInstance::PickUp(const EquipPrototype& prototype,
   inventory_.add(std::make_unique<EquipInstance>(prototype, state));
 }
 
+void CharacterInstance::PickUpTrace(const EquipPrototype& prototype,
+                                    const ::ms::Equip& state) {
+  inventory_.add(std::make_unique<EquipTrace>(prototype, state));
+}
+
 std::vector<const EquipTrace*> CharacterInstance::traces() const {
   return inventory_.traces();
 }
@@ -209,6 +215,23 @@ StarForceOutcome CharacterInstance::StarForceInventory(int index) {
                                                        item->equip_state()));
   }
   return outcome;
+}
+
+int CharacterInstance::RecoverTrace(int trace_index, int base_item_index) {
+  int recovery_stars =
+      EquipInstance::RecoveryStars(inventory_[trace_index].stars());
+  EquipPrototype proto = inventory_[trace_index].prototype();
+  ::ms::Equip new_state = inventory_[trace_index].equip_state();
+  new_state.set_equip_name(proto.name());
+  new_state.set_stars(recovery_stars);
+
+  // Remove the higher index first to keep the lower index valid.
+  int lo = std::min(trace_index, base_item_index);
+  int hi = std::max(trace_index, base_item_index);
+  inventory_.remove_equip(hi);
+  inventory_.remove_equip(lo);
+  inventory_.add(std::make_unique<EquipInstance>(proto, new_state));
+  return recovery_stars;
 }
 
 bool CharacterInstance::CanEquip(const EquipPrototype& proto) const {

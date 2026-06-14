@@ -41,6 +41,8 @@ class CharacterInstance {
   // Appends an EquipInstance to inventory. When state is omitted, initializes a
   // fresh drop from the prototype; otherwise restores the existing state.
   void PickUp(const EquipPrototype& prototype, const Equip& state = {});
+  // Appends an EquipTrace to inventory. Used when restoring saved state.
+  void PickUpTrace(const EquipPrototype& prototype, const ::ms::Equip& state);
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the
@@ -61,6 +63,12 @@ class CharacterInstance {
   // Applies a star force attempt to the inventory item at `index`. On
   // kStarForceDestroy, removes the item from inventory.
   StarForceOutcome StarForceInventory(int index);
+  // Recovers the EquipTrace at `trace_index` using the EquipInstance at
+  // `base_item_index` as the replacement body. Both items are removed from
+  // inventory and replaced with a new EquipInstance carrying the trace's scroll
+  // stats and the star count from RecoveryStars(). The indices must refer to
+  // valid, compatible inventory slots. Returns the recovery star count.
+  int RecoverTrace(int trace_index, int base_item_index);
 
   const Character& proto() const {
     return character_;

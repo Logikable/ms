@@ -533,5 +533,69 @@ TEST_F(StarForceTraceTest, StarForceInventoryOnTraceReturnsFail) {
   EXPECT_EQ(c.StarForceInventory(0), kStarForceFail);
 }
 
+// --- RecoverTrace ---
+
+class RecoverTraceTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    proto_.set_name("Sword");
+    proto_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    proto_.set_required_level(138);
+  }
+  EquipPrototype proto_;
+};
+
+TEST_F(RecoverTraceTest, RecoveryYieldsCorrectStarCount) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip trace_state;
+  trace_state.set_stars(20);
+  c.PickUpTrace(proto_, trace_state);  // index 0
+  c.PickUp(proto_);                    // index 1: fresh base
+  int stars = c.RecoverTrace(/*trace_index=*/0, /*base_item_index=*/1);
+  EXPECT_EQ(stars, 15);
+  ASSERT_EQ(c.inventory().size(), 1);
+  const EquipInstance* recovered = c.inventory().equip_instance(0);
+  ASSERT_NE(recovered, nullptr);
+  EXPECT_EQ(recovered->stars(), 15);
+}
+
+TEST_F(RecoverTraceTest, RecoveryTransfersScrollStats) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip trace_state;
+  trace_state.set_stars(15);
+  trace_state.mutable_scroll_stats()->set_attack(7);
+  trace_state.set_remaining_upgrade_slots(2);
+  c.PickUpTrace(proto_, trace_state);  // index 0
+  c.PickUp(proto_);                    // index 1
+  c.RecoverTrace(0, 1);
+  const EquipInstance* recovered = c.inventory().equip_instance(0);
+  ASSERT_NE(recovered, nullptr);
+  EXPECT_EQ(recovered->equip_state().scroll_stats().attack(), 7);
+  EXPECT_EQ(recovered->equip_state().remaining_upgrade_slots(), 2);
+}
+
+TEST_F(RecoverTraceTest, BothItemsRemovedFromInventory) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip trace_state;
+  trace_state.set_stars(15);
+  c.PickUpTrace(proto_, trace_state);  // index 0
+  c.PickUp(proto_);                    // index 1
+  ASSERT_EQ(c.inventory().size(), 2);
+  c.RecoverTrace(0, 1);
+  EXPECT_EQ(c.inventory().size(), 1);
+}
+
+TEST_F(RecoverTraceTest, BaseBeforeTraceInInventoryStillWorks) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip trace_state;
+  trace_state.set_stars(21);
+  c.PickUp(proto_);                    // index 0: base
+  c.PickUpTrace(proto_, trace_state);  // index 1: trace
+  int stars = c.RecoverTrace(/*trace_index=*/1, /*base_item_index=*/0);
+  EXPECT_EQ(stars, 17);
+  EXPECT_EQ(c.inventory().size(), 1);
+  EXPECT_NE(c.inventory().equip_instance(0), nullptr);
+}
+
 }  // namespace
 }  // namespace ms

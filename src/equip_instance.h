@@ -51,6 +51,11 @@ class EquipInstance : public EquipTabItem {
   // Returns {0, 0} for out-of-range values.
   static StarForceRate RateAt(int stars);
 
+  // Returns the number of stars a trace recovery yields given the item's star
+  // count at the time of destruction. The table: 15–19→12, 20→15, 21–22→17,
+  // 23–25→19, 26–30→20. Returns 0 for stars below 15 (not destroyable).
+  static int RecoveryStars(int original_stars);
+
   // Returns false if upgrade slots remain (scrolling must be completed first)
   // or if already at max stars.
   bool CanStarForce() const {

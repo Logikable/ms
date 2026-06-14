@@ -99,4 +99,23 @@ StarForceRate EquipInstance::RateAt(int stars) {
   return kRates[stars];
 }
 
+int EquipInstance::RecoveryStars(int original_stars) {
+  if (original_stars >= 26) {
+    return 20;
+  }
+  if (original_stars >= 23) {
+    return 19;
+  }
+  if (original_stars >= 21) {
+    return 17;
+  }
+  if (original_stars == 20) {
+    return 15;
+  }
+  if (original_stars >= 15) {
+    return 12;
+  }
+  return 0;
+}
+
 }  // namespace ms

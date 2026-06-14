@@ -345,5 +345,24 @@ TEST_F(EquipInstanceTest, MaxStarsForLevelBoundaries) {
   EXPECT_EQ(EquipTabItem::MaxStarsForLevel(200), 30);
 }
 
+// --- RecoveryStars ---
+
+TEST_F(EquipInstanceTest, RecoveryStarsBoundaries) {
+  EXPECT_EQ(EquipInstance::RecoveryStars(15), 12);
+  EXPECT_EQ(EquipInstance::RecoveryStars(19), 12);
+  EXPECT_EQ(EquipInstance::RecoveryStars(20), 15);
+  EXPECT_EQ(EquipInstance::RecoveryStars(21), 17);
+  EXPECT_EQ(EquipInstance::RecoveryStars(22), 17);
+  EXPECT_EQ(EquipInstance::RecoveryStars(23), 19);
+  EXPECT_EQ(EquipInstance::RecoveryStars(25), 19);
+  EXPECT_EQ(EquipInstance::RecoveryStars(26), 20);
+  EXPECT_EQ(EquipInstance::RecoveryStars(30), 20);
+}
+
+TEST_F(EquipInstanceTest, RecoveryStarsBelowMinReturnsZero) {
+  EXPECT_EQ(EquipInstance::RecoveryStars(14), 0);
+  EXPECT_EQ(EquipInstance::RecoveryStars(0), 0);
+}
+
 }  // namespace
 }  // namespace ms
