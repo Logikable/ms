@@ -2,8 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <random>
 
+#include "src/equip_instance.h"
+#include "src/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -183,7 +186,7 @@ TEST_F(AllocateAllStatTest, ReturnsFalseForUnspecifiedField) {
 // --- PickUp ---
 
 TEST_F(PickUpTest, AddsItemToInventory) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   ASSERT_EQ(c_.inventory().size(), 1);
   const EquipInstance* item = c_.inventory().equip_instance(0);
   ASSERT_NE(item, nullptr);
@@ -192,13 +195,13 @@ TEST_F(PickUpTest, AddsItemToInventory) {
 }
 
 TEST_F(PickUpTest, MultiplePickUpsAccumulate) {
-  c_.PickUp(sword_);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   EXPECT_EQ(c_.inventory().size(), 2);
 }
 
 TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   const EquipInstance* item = c_.inventory().equip_instance(0);
   ASSERT_NE(item, nullptr);
   EXPECT_EQ(item->equip_state().scroll_stats().attack(), 0);
@@ -207,7 +210,7 @@ TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
 // --- Equip ---
 
 TEST_F(EquipTest, EquipsItemIntoEmptySlot) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   EXPECT_TRUE(c_.Equip(0));
   EXPECT_EQ(c_.inventory().size(), 0);
   ASSERT_TRUE(c_.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
@@ -219,9 +222,9 @@ TEST_F(EquipTest, DisplacesExistingItemToInventory) {
   EquipPrototype axe;
   axe.set_name("Axe");
   axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  c_.PickUp(axe);
+  c_.PickUp(std::make_unique<EquipInstance>(axe));
   EXPECT_TRUE(c_.Equip(0));
   EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
             "Axe");
@@ -236,11 +239,11 @@ TEST_F(EquipTest, DisplacedItemTakesVacatedPosition) {
   EquipPrototype bow;
   bow.set_name("Bow");
   bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  c_.PickUp(sword_);  // index 0
-  c_.PickUp(axe);     // index 1
-  c_.PickUp(bow);     // index 2
-  c_.Equip(0);        // sword equipped; inventory = [axe(0), bow(1)]
-  c_.Equip(0);        // axe equipped; sword displaced back to index 0
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));  // index 0
+  c_.PickUp(std::make_unique<EquipInstance>(axe));     // index 1
+  c_.PickUp(std::make_unique<EquipInstance>(bow));     // index 2
+  c_.Equip(0);  // sword equipped; inventory = [axe(0), bow(1)]
+  c_.Equip(0);  // axe equipped; sword displaced back to index 0
   ASSERT_EQ(c_.inventory().size(), 2);
   EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
   EXPECT_EQ(c_.inventory()[1].prototype().name(), "Bow");
@@ -250,7 +253,7 @@ TEST_F(EquipTest, ReturnsFalseForUnspecifiedSlotOnPrototype) {
   EquipPrototype proto;
   proto.set_name("Unknown");
   // equip_slot intentionally left unspecified
-  c_.PickUp(proto);
+  c_.PickUp(std::make_unique<EquipInstance>(proto));
   EXPECT_FALSE(c_.Equip(0));
 }
 
@@ -261,7 +264,7 @@ TEST_F(EquipTest, ReturnsFalseForOutOfBoundsIndex) {
 // --- Unequip ---
 
 TEST_F(UnequipTest, MovesItemToInventory) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EXPECT_TRUE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
   EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON), 0u);
@@ -287,7 +290,7 @@ TEST_F(ScrollEquippedTest, ReturnsFailIfSlotEmpty) {
 
 TEST_F(ScrollEquippedTest, UpdatesEquippedStateOnSuccess) {
   sword_.set_upgrade_slots(3);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
 
   Scroll scroll;
@@ -319,7 +322,7 @@ TEST_F(ScrollInventoryTest, ReturnsFailIfIndexOutOfRange) {
 
 TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
   sword_.set_upgrade_slots(3);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
 
   Scroll scroll;
   scroll.set_success_rate(100);
@@ -336,14 +339,14 @@ TEST_F(ScrollInventoryTest, UpdatesInventoryItemOnSuccess) {
 
 TEST_F(EquipTest, EquipStatsUpdatesOnEquip) {
   sword_.mutable_base_stats()->set_attack(15);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EXPECT_EQ(c_.equip_stats().attack(), 15);
 }
 
 TEST_F(UnequipTest, EquipStatsClearsOnUnequip) {
   sword_.mutable_base_stats()->set_str(10);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON);
   EXPECT_EQ(c_.equip_stats().str(), 0);
@@ -351,7 +354,7 @@ TEST_F(UnequipTest, EquipStatsClearsOnUnequip) {
 
 TEST_F(ScrollEquippedTest, EquipStatsUpdatesOnScrollSuccess) {
   sword_.set_upgrade_slots(3);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   Scroll scroll;
   scroll.set_success_rate(100);
@@ -381,7 +384,7 @@ TEST_F(StarForceTraceTest, DestroyedEquippedItemSavesTrace) {
   Equip state;
   state.set_stars(19);
   CharacterInstance c = MakeCharacter(rng_);
-  c.PickUp(proto_, state);
+  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   c.Equip(0);
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
@@ -399,7 +402,7 @@ TEST_F(StarForceTraceTest, DestroyedInventoryItemSavesTrace) {
   Equip state;
   state.set_stars(19);
   CharacterInstance c = MakeCharacter(rng_);
-  c.PickUp(proto_, state);
+  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
     if (c.StarForceInventory(0) == kStarForceDestroy) {
@@ -488,7 +491,7 @@ TEST_F(StarForceTraceTest, EquipTraceInInventoryReturnsFalse) {
   Equip state;
   state.set_stars(19);
   CharacterInstance c = MakeCharacter(rng_);
-  c.PickUp(proto_, state);
+  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
     if (c.StarForceInventory(0) == kStarForceDestroy) {
@@ -505,7 +508,7 @@ TEST_F(StarForceTraceTest, ScrollInventoryOnTraceReturnsFail) {
   Equip state;
   state.set_stars(19);
   CharacterInstance c = MakeCharacter(rng_);
-  c.PickUp(proto_, state);
+  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
     if (c.StarForceInventory(0) == kStarForceDestroy) {
@@ -522,7 +525,7 @@ TEST_F(StarForceTraceTest, StarForceInventoryOnTraceReturnsFail) {
   Equip state;
   state.set_stars(19);
   CharacterInstance c = MakeCharacter(rng_);
-  c.PickUp(proto_, state);
+  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
     if (c.StarForceInventory(0) == kStarForceDestroy) {
@@ -549,8 +552,8 @@ TEST_F(RecoverTraceTest, RecoveryYieldsCorrectStarCount) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip trace_state;
   trace_state.set_stars(20);
-  c.PickUpTrace(proto_, trace_state);  // index 0
-  c.PickUp(proto_);                    // index 1: fresh base
+  c.PickUp(std::make_unique<EquipTrace>(proto_, trace_state));  // index 0
+  c.PickUp(std::make_unique<EquipInstance>(proto_));  // index 1: fresh base
   int stars = c.RecoverTrace(/*trace_index=*/0, /*base_item_index=*/1);
   EXPECT_EQ(stars, 15);
   ASSERT_EQ(c.inventory().size(), 1);
@@ -565,8 +568,8 @@ TEST_F(RecoverTraceTest, RecoveryTransfersScrollStats) {
   trace_state.set_stars(15);
   trace_state.mutable_scroll_stats()->set_attack(7);
   trace_state.set_remaining_upgrade_slots(2);
-  c.PickUpTrace(proto_, trace_state);  // index 0
-  c.PickUp(proto_);                    // index 1
+  c.PickUp(std::make_unique<EquipTrace>(proto_, trace_state));  // index 0
+  c.PickUp(std::make_unique<EquipInstance>(proto_));            // index 1
   c.RecoverTrace(0, 1);
   const EquipInstance* recovered = c.inventory().equip_instance(0);
   ASSERT_NE(recovered, nullptr);
@@ -578,8 +581,8 @@ TEST_F(RecoverTraceTest, BothItemsRemovedFromInventory) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip trace_state;
   trace_state.set_stars(15);
-  c.PickUpTrace(proto_, trace_state);  // index 0
-  c.PickUp(proto_);                    // index 1
+  c.PickUp(std::make_unique<EquipTrace>(proto_, trace_state));  // index 0
+  c.PickUp(std::make_unique<EquipInstance>(proto_));            // index 1
   ASSERT_EQ(c.inventory().size(), 2);
   c.RecoverTrace(0, 1);
   EXPECT_EQ(c.inventory().size(), 1);
@@ -589,8 +592,9 @@ TEST_F(RecoverTraceTest, BaseBeforeTraceInInventoryStillWorks) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip trace_state;
   trace_state.set_stars(21);
-  c.PickUp(proto_);                    // index 0: base
-  c.PickUpTrace(proto_, trace_state);  // index 1: trace
+  c.PickUp(std::make_unique<EquipInstance>(proto_));  // index 0: base
+  c.PickUp(
+      std::make_unique<EquipTrace>(proto_, trace_state));  // index 1: trace
   int stars = c.RecoverTrace(/*trace_index=*/1, /*base_item_index=*/0);
   EXPECT_EQ(stars, 17);
   EXPECT_EQ(c.inventory().size(), 1);

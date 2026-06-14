@@ -10,6 +10,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/equip_instance.h"
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
@@ -74,7 +75,7 @@ class TuiControllerTest : public testing::Test {
   // Picks up sword_ with all upgrade slots consumed (required for star force).
   void PickUpScrolledSword() {
     sword_.set_upgrade_slots(0);
-    state_->character.PickUp(sword_);
+    state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   }
 
   // Replaces the scroll map with a single 0%-rate scroll and rebuilds
@@ -164,7 +165,7 @@ TEST_F(TuiControllerTest, ArrowDownInItemMenuAdvancesMenuSelection) {
 }
 
 TEST_F(TuiControllerTest, InspectActionGoesToInspect) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -176,7 +177,7 @@ TEST_F(TuiControllerTest, InspectActionGoesToInspect) {
 }
 
 TEST_F(TuiControllerTest, EscapeInInspectGoesToMain) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -191,7 +192,7 @@ TEST_F(TuiControllerTest, EscapeInInspectGoesToMain) {
 // --- Unequip ---
 
 TEST_F(TuiControllerTest, ReturnActionUnequipsFromEquipPanel) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -203,7 +204,7 @@ TEST_F(TuiControllerTest, ReturnActionUnequipsFromEquipPanel) {
 }
 
 TEST_F(TuiControllerTest, UnequipSwitchesFocusToBagWhenEquipEmpty) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -216,7 +217,7 @@ TEST_F(TuiControllerTest, UnequipSwitchesFocusToBagWhenEquipEmpty) {
 // --- Scroll via equip panel ---
 
 TEST_F(TuiControllerTest, ReturnScrollFromEquipPanelGoesToScrollSelect) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -229,7 +230,7 @@ TEST_F(TuiControllerTest, ReturnScrollFromEquipPanelGoesToScrollSelect) {
 }
 
 TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -244,7 +245,7 @@ TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
 
 TEST_F(TuiControllerTest,
        ReturnInScrollSelectAppliesScrollAndGoesToScrollResult) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -265,7 +266,7 @@ TEST_F(TuiControllerTest,
 }
 
 TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -284,7 +285,7 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
 TEST_F(TuiControllerTest,
        NoSlotsRemainingGoesToScrollResultWithNoSlotsOutcome) {
   sword_.set_upgrade_slots(0);
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -301,7 +302,7 @@ TEST_F(TuiControllerTest,
 TEST_F(TuiControllerTest,
        ReturnToItemMenuAfterScrollingEnablesStarForceWhenSlotsDepleted) {
   sword_.set_upgrade_slots(1);
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -325,7 +326,7 @@ TEST_F(TuiControllerTest,
 }
 
 TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -341,7 +342,7 @@ TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {
 }
 
 TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -357,7 +358,7 @@ TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
 }
 
 TEST_F(TuiControllerTest, ScrollResultSlotsRemainingIsDecrementedOnSuccess) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -374,7 +375,7 @@ TEST_F(TuiControllerTest, ScrollResultSlotsRemainingIsDecrementedOnSuccess) {
 
 TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
   UseFailScroll();
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
 
@@ -391,7 +392,7 @@ TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
 // --- Scroll via bag panel ---
 
 TEST_F(TuiControllerTest, BagScrollGoesToScrollSelect) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();
@@ -403,7 +404,7 @@ TEST_F(TuiControllerTest, BagScrollGoesToScrollSelect) {
 }
 
 TEST_F(TuiControllerTest, BagScrollEscapeFromScrollSelectGoesToItemMenu) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();
@@ -416,7 +417,7 @@ TEST_F(TuiControllerTest, BagScrollEscapeFromScrollSelectGoesToItemMenu) {
 }
 
 TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();
@@ -433,7 +434,7 @@ TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
 }
 
 TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();
@@ -451,7 +452,7 @@ TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
 TEST_F(TuiControllerTest,
        BagScrollNoSlotsGoesToScrollResultWithNoSlotsOutcome) {
   sword_.set_upgrade_slots(0);
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();
@@ -589,7 +590,7 @@ TEST_F(TuiControllerTest, InspectItemReturnsNullptrWhenNotInspecting) {
 }
 
 TEST_F(TuiControllerTest, BagInspectGoesToInspect) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();
@@ -603,7 +604,7 @@ TEST_F(TuiControllerTest, BagInspectGoesToInspect) {
 // --- Equip via bag panel ---
 
 TEST_F(TuiControllerTest, ReturnActionEquipsFromBagPanel) {
-  state_->character.PickUp(sword_);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kBagPanel;
 
   controller_->OpenBagMenu();

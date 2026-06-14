@@ -2,8 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <string>
 
+#include "src/equip_instance.h"
 #include "src/frontend/panel_test_base.h"
 
 namespace ms {
@@ -29,7 +31,7 @@ TEST_F(CharacterPanelTest, ShowsAp) {
 
 TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {
   sword_.mutable_base_stats()->set_attack(10);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   CharacterPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderElement(panel.Render()).find("ATT: 10"), std::string::npos);
@@ -37,7 +39,7 @@ TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {
 
 TEST_F(CharacterPanelTest, ShowsTotalStrIncludingEquipBonus) {
   sword_.mutable_base_stats()->set_str(5);
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   CharacterPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderElement(panel.Render()).find("STR: 5"), std::string::npos);

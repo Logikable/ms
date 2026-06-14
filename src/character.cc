@@ -108,14 +108,8 @@ void CharacterInstance::RecomputeEquipStats() {
   equip_stats_ = SumEquipStats(absl::MakeSpan(list));
 }
 
-void CharacterInstance::PickUp(const EquipPrototype& prototype,
-                               const ::ms::Equip& state) {
-  inventory_.add(std::make_unique<EquipInstance>(prototype, state));
-}
-
-void CharacterInstance::PickUpTrace(const EquipPrototype& prototype,
-                                    const ::ms::Equip& state) {
-  inventory_.add(std::make_unique<EquipTrace>(prototype, state));
+void CharacterInstance::PickUp(std::unique_ptr<EquipTabItem> item) {
+  inventory_.add(std::move(item));
 }
 
 std::vector<const EquipTrace*> CharacterInstance::traces() const {

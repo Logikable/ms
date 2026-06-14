@@ -10,11 +10,13 @@
 #define MS_CHARACTER_H_
 
 #include <map>
+#include <memory>
 #include <random>
 #include <vector>
 
 #include "src/equip_instance.h"
 #include "src/inventory.h"
+#include "src/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -38,11 +40,9 @@ class CharacterInstance {
   // Returns true if the character meets the level and job requirements to
   // equip the item described by `proto`.
   bool CanEquip(const EquipPrototype& proto) const;
-  // Appends an EquipInstance to inventory. When state is omitted, initializes a
-  // fresh drop from the prototype; otherwise restores the existing state.
-  void PickUp(const EquipPrototype& prototype, const Equip& state = {});
-  // Appends an EquipTrace to inventory. Used when restoring saved state.
-  void PickUpTrace(const EquipPrototype& prototype, const ::ms::Equip& state);
+  // Appends item to inventory. Accepts any EquipTabItem subclass (EquipInstance
+  // or EquipTrace); the caller is responsible for constructing the item.
+  void PickUp(std::unique_ptr<EquipTabItem> item);
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the

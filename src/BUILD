@@ -82,7 +82,9 @@ cc_binary(
         "//data/scrolls:all",
     ],
     deps = [
+        ":equip_instance",
         ":game_state",
+        ":item",
         ":proto_loader",
         "//src/frontend:tui",
         "//src/protos:equip_proto_cc",

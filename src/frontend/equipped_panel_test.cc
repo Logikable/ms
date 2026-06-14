@@ -2,8 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <string>
 
+#include "src/equip_instance.h"
 #include "src/frontend/panel_test_base.h"
 
 namespace ms {
@@ -18,7 +20,7 @@ TEST_F(EquippedPanelTest, ShowsEmptyWhenNothingEquipped) {
 }
 
 TEST_F(EquippedPanelTest, ShowsEquippedItemName) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EquippedPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Sword"),
@@ -26,7 +28,7 @@ TEST_F(EquippedPanelTest, ShowsEquippedItemName) {
 }
 
 TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EquippedPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("> Sword"),
@@ -34,7 +36,7 @@ TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
 }
 
 TEST_F(EquippedPanelTest, ShowsColumnHeader) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EquippedPanel panel(c_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
@@ -44,7 +46,7 @@ TEST_F(EquippedPanelTest, ShowsColumnHeader) {
 }
 
 TEST_F(EquippedPanelTest, ShowsEquipSlotName) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EquippedPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Weapon"),
@@ -52,7 +54,7 @@ TEST_F(EquippedPanelTest, ShowsEquipSlotName) {
 }
 
 TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {
-  c_.PickUp(sword_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   EquippedPanel panel(c_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));

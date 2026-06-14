@@ -3,8 +3,10 @@
 #include <string>
 
 #include "absl/log/log.h"
+#include "src/equip_instance.h"
 #include "src/frontend/tui.h"
 #include "src/game_state.h"
+#include "src/item.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -30,26 +32,31 @@ int main(int argc, char** argv) {
       ms::LoadTextProtoDir<ms::Scroll>(runfiles->Rlocation("ms/data/scrolls"));
 
   ms::GameState state(std::move(equips), std::move(scrolls));
-  state.character.PickUp(state.equips.at("sword"));
+  state.character.PickUp(
+      std::make_unique<ms::EquipInstance>(state.equips.at("sword")));
   state.character.Equip(0);
-  state.character.PickUp(state.equips.at("long_sword"));
-  state.character.PickUp(state.equips.at("sabre"));
+  state.character.PickUp(
+      std::make_unique<ms::EquipInstance>(state.equips.at("long_sword")));
+  state.character.PickUp(
+      std::make_unique<ms::EquipInstance>(state.equips.at("sabre")));
   ms::Equip fafnir_state;
   fafnir_state.set_equip_name("Fafnir Mistilteinn");
   fafnir_state.set_remaining_upgrade_slots(0);
   fafnir_state.set_stars(20);
   fafnir_state.mutable_scroll_stats()->set_attack(40);
   fafnir_state.mutable_scroll_stats()->set_str(16);
-  state.character.PickUp(state.equips.at("fafnir_mistilteinn"), fafnir_state);
+  state.character.PickUp(std::make_unique<ms::EquipInstance>(
+      state.equips.at("fafnir_mistilteinn"), fafnir_state));
   ms::Equip fafnir_trace_state;
   fafnir_trace_state.set_equip_name("Fafnir Mistilteinn");
   fafnir_trace_state.set_remaining_upgrade_slots(0);
   fafnir_trace_state.set_stars(22);
   fafnir_trace_state.mutable_scroll_stats()->set_attack(40);
   fafnir_trace_state.mutable_scroll_stats()->set_str(16);
-  state.character.PickUpTrace(state.equips.at("fafnir_mistilteinn"),
-                              fafnir_trace_state);
-  state.character.PickUp(state.equips.at("fafnir_mistilteinn"));
+  state.character.PickUp(std::make_unique<ms::EquipTrace>(
+      state.equips.at("fafnir_mistilteinn"), fafnir_trace_state));
+  state.character.PickUp(std::make_unique<ms::EquipInstance>(
+      state.equips.at("fafnir_mistilteinn")));
   ms::Tui(state).Run();
   return 0;
 }
