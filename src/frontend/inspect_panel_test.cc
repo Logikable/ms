@@ -96,7 +96,8 @@ TEST_F(InspectPanelTest, ShowsBaseStat) {
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("+7 (7 +0)"), std::string::npos);
+  EXPECT_NE(Render(panel).find("+7 "), std::string::npos);
+  EXPECT_EQ(Render(panel).find("(7"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ShowsScrollStatBreakdown) {
@@ -145,11 +146,10 @@ TEST_F(InspectPanelTest, ShowsStarForceStatBreakdown) {
   EquipInstance item(sword_, state);
   InspectPanel panel;
   panel.SetItem(&item);
-  // 5★ on a level-10 weapon (max 5★, warrior): SF gives STR+DEX but no ATK
-  // gains (non-weapon slot logic). ATT row shows only base: +7 (7 +0 +0) →
-  // sf=0 so format stays "+7 (7 +0)".
-  // STR gains: 2+2+2+2+2 = 10. Row shows "+10 (0 +0 +10)".
-  EXPECT_NE(Render(panel).find("+10 (0 +0 +10)"), std::string::npos);
+  // 5★ on a level-10 weapon (max 5★, warrior): SF gives STR but no ATK gains.
+  // STR: only star force contributes, so no breakdown. ATT: only base.
+  EXPECT_NE(Render(panel).find("+10 "), std::string::npos);
+  EXPECT_EQ(Render(panel).find("(0"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, StarBarShowsFilledAndEmptyStars) {

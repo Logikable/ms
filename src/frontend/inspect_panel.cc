@@ -93,9 +93,31 @@ std::string InspectPanel::StatLine(const std::string& label, int base,
     return "";
   }
   int total = base + scroll + sf;
-  std::string breakdown = std::to_string(base) + " +" + std::to_string(scroll);
+  // Only show the (base +scroll +sf) breakdown when at least two sources
+  // contribute; a single-source breakdown is redundant with the total.
+  int non_zero = 0;
+  if (base > 0) ++non_zero;
+  if (scroll > 0) ++non_zero;
+  if (sf > 0) ++non_zero;
+  if (non_zero <= 1) {
+    return " " + label + "  +" + std::to_string(total) + " ";
+  }
+  // Build breakdown string, omitting any zero-valued sources.
+  std::string breakdown;
+  if (base > 0) {
+    breakdown = std::to_string(base);
+  }
+  if (scroll > 0) {
+    if (!breakdown.empty()) {
+      breakdown += " +";
+    }
+    breakdown += std::to_string(scroll);
+  }
   if (sf > 0) {
-    breakdown += " +" + std::to_string(sf);
+    if (!breakdown.empty()) {
+      breakdown += " +";
+    }
+    breakdown += std::to_string(sf);
   }
   return " " + label + "  +" + std::to_string(total) + " (" + breakdown + ") ";
 }
