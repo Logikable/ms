@@ -172,6 +172,7 @@ cc_library(
     srcs = ["inspect_panel.cc"],
     hdrs = ["inspect_panel.h"],
     deps = [
+        ":panel_util",
         "//src:item",
         "//src/protos:equip_proto_cc",
         "@ftxui//:dom",
@@ -223,6 +224,7 @@ cc_library(
     srcs = ["star_force_panel.cc"],
     hdrs = ["star_force_panel.h"],
     deps = [
+        ":panel_util",
         ":types",
         "//src:equip_instance",
         "@ftxui//:dom",

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/panel_util.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -58,15 +59,10 @@ ftxui::Element InspectPanel::Render() const {
     rows.push_back(ftxui::text(line));
     any_stat = true;
   };
-  AddRow("STR", base.str(), scroll.str(), sf.str());
-  AddRow("DEX", base.dex(), scroll.dex(), sf.dex());
-  AddRow("INT", base.int_(), scroll.int_(), sf.int_());
-  AddRow("LUK", base.luk(), scroll.luk(), sf.luk());
-  AddRow("HP", base.max_hp(), scroll.max_hp(), sf.max_hp());
-  AddRow("MP", base.max_mp(), scroll.max_mp(), sf.max_mp());
-  AddRow("ATT", base.attack(), scroll.attack(), sf.attack());
-  AddRow("MATT", base.magic_attack(), scroll.magic_attack(), sf.magic_attack());
-  AddRow("DEF", base.def(), scroll.def(), sf.def());
+  for (const DisplayStat& stat : kDisplayStats) {
+    AddRow(stat.label, stat.GetFrom(base), stat.GetFrom(scroll),
+           stat.GetFrom(sf));
+  }
 
   if (!any_stat) {
     rows.push_back(ftxui::text(" (no stats) "));

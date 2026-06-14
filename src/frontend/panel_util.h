@@ -7,6 +7,25 @@
 
 namespace ms {
 
+// A single displayable stat: its label and how to read it from an EquipStats.
+struct DisplayStat {
+  const char* label;
+  int (EquipStats::*fn)() const;
+  int GetFrom(const EquipStats& s) const {
+    return (s.*fn)();
+  }
+};
+
+// Canonical display order for equip stats. Zero-value fields are typically
+// hidden by callers. Update this array to add or reorder stats site-wide.
+inline const DisplayStat kDisplayStats[] = {
+    {"STR", &EquipStats::str},    {"DEX", &EquipStats::dex},
+    {"INT", &EquipStats::int_},   {"LUK", &EquipStats::luk},
+    {"HP", &EquipStats::max_hp},  {"MP", &EquipStats::max_mp},
+    {"ATT", &EquipStats::attack}, {"MATT", &EquipStats::magic_attack},
+    {"DEF", &EquipStats::def},
+};
+
 // Pads s to width with trailing spaces, or truncates if longer.
 std::string PadRight(const std::string& s, int width);
 

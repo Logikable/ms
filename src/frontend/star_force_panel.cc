@@ -5,6 +5,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/panel_util.h"
 
 namespace ms {
 namespace {
@@ -69,21 +70,6 @@ ftxui::Element StarForcePanel::Render() const {
 
   EquipStats before = item_->StarForceStatGains(stars);
   EquipStats after = item_->StarForceStatGains(stars + 1);
-  struct StatEntry {
-    const char* label;
-    int value;
-  };
-  const StatEntry kStats[] = {
-      {"STR", after.str() - before.str()},
-      {"DEX", after.dex() - before.dex()},
-      {"INT", after.int_() - before.int_()},
-      {"LUK", after.luk() - before.luk()},
-      {"HP", after.max_hp() - before.max_hp()},
-      {"MP", after.max_mp() - before.max_mp()},
-      {"ATT", after.attack() - before.attack()},
-      {"MATT", after.magic_attack() - before.magic_attack()},
-      {"DEF", after.def() - before.def()},
-  };
 
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text(name) | ftxui::hcenter);
@@ -92,10 +78,11 @@ ftxui::Element StarForcePanel::Render() const {
                              std::to_string(stars + 1) + "★") |
                  ftxui::hcenter);
   rows.push_back(ftxui::separator());
-  for (const StatEntry& s : kStats) {
-    if (s.value > 0) {
+  for (const DisplayStat& stat : kDisplayStats) {
+    int delta = stat.GetFrom(after) - stat.GetFrom(before);
+    if (delta > 0) {
       rows.push_back(
-          ftxui::text(std::string(s.label) + " +" + std::to_string(s.value)) |
+          ftxui::text(std::string(stat.label) + " +" + std::to_string(delta)) |
           ftxui::hcenter);
     }
   }
