@@ -152,6 +152,15 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     screen_ = kItemMenu;
     return true;
   }
+  if (event == ftxui::Event::Return && !scroll_panel_.IsConfirming()) {
+    const EquipInstance* item = scroll_item();
+    if (item->equip_state().remaining_upgrade_slots() == 0) {
+      scroll_result_ = {kScrollNoSlots, item->prototype().name(),
+                        scroll_panel_.selected_scroll().name(), 0};
+      screen_ = kScrollResult;
+      return true;
+    }
+  }
   scroll_panel_.OnEvent(event);
   if (scroll_panel_.TakeConfirmed()) {
     const EquipInstance* item =

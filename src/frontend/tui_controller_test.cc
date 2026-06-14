@@ -292,8 +292,7 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
-  controller_->OnEvent(ftxui::Event::Return);  // confirm
+  controller_->OnEvent(ftxui::Event::Return);  // bypass confirm (0 slots)
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
@@ -433,8 +432,7 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);     // open confirm bar
-  controller_->OnEvent(ftxui::Event::Return);     // confirm
+  controller_->OnEvent(ftxui::Event::Return);     // bypass confirm (0 slots)
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
