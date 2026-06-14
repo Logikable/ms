@@ -148,10 +148,11 @@ TEST_F(InspectPanelTest, ShowsStarForceStatBreakdown) {
   EquipInstance item(sword_, state);
   InspectPanel panel;
   panel.SetItem(&item);
-  // 5★ on a level-10 weapon (max 5★, warrior): SF gives STR but no ATK gains.
-  // STR: only star force contributes, so no breakdown. ATT: only base.
-  EXPECT_NE(Render(panel).find("+10 "), std::string::npos);
-  EXPECT_EQ(Render(panel).find("(0"), std::string::npos);
+  // 5★ on a level-10 warrior weapon: SF gives STR=10, DEX=10, ATT=5.
+  // STR: base=0, sf=10 → "+10 (0 +10)".
+  // ATT: base=7, sf=5 → "+12 (7 +5)".
+  EXPECT_NE(Render(panel).find("+10 (0 +10)"), std::string::npos);
+  EXPECT_NE(Render(panel).find("+12 (7 +5)"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, StarBarShowsFilledAndEmptyStars) {
