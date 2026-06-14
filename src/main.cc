@@ -32,6 +32,8 @@ int main(int argc, char** argv) {
       ms::LoadTextProtoDir<ms::Scroll>(runfiles->Rlocation("ms/data/scrolls"));
 
   ms::GameState state(std::move(equips), std::move(scrolls));
+
+  // Generic low-level weapons for scrolling/star force experimentation.
   state.character.PickUp(
       std::make_unique<ms::EquipInstance>(state.equips.at("sword")));
   state.character.Equip(0);
@@ -39,22 +41,32 @@ int main(int argc, char** argv) {
       std::make_unique<ms::EquipInstance>(state.equips.at("long_sword")));
   state.character.PickUp(
       std::make_unique<ms::EquipInstance>(state.equips.at("sabre")));
+
+  // Fully scrolled Fafnir at 20★ — for testing high-star-force on a finished
+  // endgame weapon.
   ms::Equip fafnir_state;
   fafnir_state.set_equip_name("Fafnir Mistilteinn");
   fafnir_state.set_remaining_upgrade_slots(0);
+  fafnir_state.set_scroll_successes(8);
   fafnir_state.set_stars(20);
   fafnir_state.mutable_scroll_stats()->set_attack(40);
   fafnir_state.mutable_scroll_stats()->set_str(16);
   state.character.PickUp(std::make_unique<ms::EquipInstance>(
       state.equips.at("fafnir_mistilteinn"), fafnir_state));
+
+  // Fafnir trace at 22★ (destroyed during star force) — the source trace for
+  // testing trace recovery.
   ms::Equip fafnir_trace_state;
   fafnir_trace_state.set_equip_name("Fafnir Mistilteinn");
   fafnir_trace_state.set_remaining_upgrade_slots(0);
+  fafnir_trace_state.set_scroll_successes(8);
   fafnir_trace_state.set_stars(22);
   fafnir_trace_state.mutable_scroll_stats()->set_attack(40);
   fafnir_trace_state.mutable_scroll_stats()->set_str(16);
   state.character.PickUp(std::make_unique<ms::EquipTrace>(
       state.equips.at("fafnir_mistilteinn"), fafnir_trace_state));
+
+  // Fresh Fafnir — the base item consumed when recovering the trace above.
   state.character.PickUp(std::make_unique<ms::EquipInstance>(
       state.equips.at("fafnir_mistilteinn")));
   ms::Tui(state).Run();
