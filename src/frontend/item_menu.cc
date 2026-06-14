@@ -15,10 +15,8 @@ ItemMenu::ItemMenu(std::vector<std::string> options)
 ftxui::Element ItemMenu::Render(int row, int col) const {
   std::vector<ftxui::Element> items;
   for (int i = 0; i < static_cast<int>(options_.size()); ++i) {
-    ftxui::Element entry = ftxui::text(" " + options_[i] + " ");
-    if (i == selected_) {
-      entry = entry | ftxui::inverted;
-    }
+    std::string prefix = (i == selected_) ? "> " : "  ";
+    ftxui::Element entry = ftxui::text(prefix + options_[i] + " ");
     if (disabled_[i]) {
       entry = entry | ftxui::dim;
     }
