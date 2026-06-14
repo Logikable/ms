@@ -22,8 +22,9 @@ Tui::Tui(GameState& state)
       bag_panel_(state.character, panel_focus_),
       scroll_panel_(state.scrolls),
       ap_alloc_panel_(state.character),
+      trace_recover_panel_(state.character),
       controller_(state, equip_panel_, bag_panel_, scroll_panel_,
-                  ap_alloc_panel_, panel_focus_) {
+                  ap_alloc_panel_, trace_recover_panel_, panel_focus_) {
 }
 
 void Tui::Run() {
@@ -58,6 +59,17 @@ ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kStarForceResult) {
     return ftxui::center(
         star_force_panel_.RenderResult(controller_.star_force_result()));
+  }
+  if (controller_.screen() == kTraceRecover) {
+    int base_idx = trace_recover_panel_.selected_index();
+    inspect_panel_.SetItem(
+        base_idx >= 0 ? &state_.character.inventory()[base_idx] : nullptr);
+    return ftxui::hbox({trace_recover_panel_.Render() | ftxui::flex,
+                        inspect_panel_.Render() | ftxui::flex});
+  }
+  if (controller_.screen() == kTraceRecoverResult) {
+    return ftxui::center(
+        trace_recover_panel_.RenderResult(controller_.trace_recovery_result()));
   }
   if (controller_.screen() == kInspect) {
     inspect_panel_.SetItem(controller_.inspect_item());

@@ -245,6 +245,20 @@ cc_test(
 )
 
 cc_library(
+    name = "trace_recover_panel",
+    srcs = ["trace_recover_panel.cc"],
+    hdrs = ["trace_recover_panel.h"],
+    deps = [
+        ":types",
+        "//src:character",
+        "//src:equip_instance",
+        "//src:item",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
     name = "tui_controller",
     srcs = ["tui_controller.cc"],
     hdrs = ["tui_controller.h"],
@@ -253,6 +267,7 @@ cc_library(
         ":bag_panel",
         ":equipped_panel",
         ":scroll_panel",
+        ":trace_recover_panel",
         ":types",
         "//src:character",
         "//src:equip_instance",
@@ -271,6 +286,7 @@ cc_test(
         ":bag_panel",
         ":equipped_panel",
         ":scroll_panel",
+        ":trace_recover_panel",
         ":tui_controller",
         "//src:game_state",
         "//src/protos:character_proto_cc",
@@ -296,6 +312,7 @@ cc_library(
         ":item_menu",
         ":scroll_panel",
         ":star_force_panel",
+        ":trace_recover_panel",
         ":tui_controller",
         "//src:character",
         "//src:game_state",

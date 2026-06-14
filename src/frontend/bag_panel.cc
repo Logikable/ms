@@ -27,19 +27,21 @@ constexpr char kColumnHeader[] =
 BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
-      menu_({"Equip", "Inspect", "Scroll", "Star Force"}) {
+      menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover"}) {
 }
 
 void BagPanel::OpenMenu() {
   menu_.Reset();
   const EquipInstance* eq = character_.inventory().equip_instance(selected_);
   if (eq == nullptr) {
-    // Traces can only be inspected.
+    // Traces can only be inspected or recovered.
     menu_.Disable(kMenuAction);
     menu_.Disable(kMenuScroll);
     menu_.Disable(kMenuStarForce);
     return;
   }
+  // Live items cannot be recovered.
+  menu_.Disable(kMenuRecover);
   if (!character_.CanEquip(eq->prototype())) {
     menu_.Disable(kMenuAction);
   }
@@ -80,6 +82,9 @@ Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
     }
     if (menu_.selected() == kMenuStarForce) {
       return kStarForce;
+    }
+    if (menu_.selected() == kMenuRecover) {
+      return kTraceRecover;
     }
     return kMain;
   }

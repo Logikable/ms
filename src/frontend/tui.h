@@ -14,6 +14,7 @@
 #include "src/frontend/inspect_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/star_force_panel.h"
+#include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
 
@@ -41,6 +42,7 @@ class Tui {
   InspectPanel inspect_panel_;
   ApAllocPanel ap_alloc_panel_;
   StarForcePanel star_force_panel_;
+  TraceRecoverPanel trace_recover_panel_;
 
   // Screen-state machine: owns screen_ and event-handling logic.
   TuiController controller_;

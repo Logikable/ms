@@ -15,6 +15,7 @@
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
@@ -27,7 +28,8 @@ class TuiController {
   // Container::Tab; the controller mutates it as focus changes.
   TuiController(GameState& state, EquippedPanel& equip_panel,
                 BagPanel& bag_panel, ScrollPanel& scroll_panel,
-                ApAllocPanel& ap_alloc_panel, int& panel_focus);
+                ApAllocPanel& ap_alloc_panel,
+                TraceRecoverPanel& trace_recover_panel, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
@@ -48,6 +50,9 @@ class TuiController {
   const StarForceResult& star_force_result() const {
     return star_force_result_;
   }
+  const TraceRecoveryResult& trace_recovery_result() const {
+    return trace_recovery_result_;
+  }
   // Returns the item being scrolled while in kScrollSelect or kScrollResult,
   // or nullptr otherwise.
   const EquipInstance* scroll_item() const;
@@ -57,6 +62,8 @@ class TuiController {
   // Returns the item being star forced while in kStarForce, or nullptr
   // otherwise. Do not call in kStarForceResult (item may be destroyed).
   const EquipInstance* star_force_item() const;
+  // Returns the trace being recovered while in kTraceRecover, or nullptr.
+  const EquipTabItem* trace_recover_item() const;
 
  private:
   bool OnItemMenuEvent(ftxui::Event event);
@@ -66,12 +73,15 @@ class TuiController {
   bool OnApAllocEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
+  bool OnTraceRecoverEvent(ftxui::Event event);
+  bool OnTraceRecoverResultEvent(ftxui::Event event);
 
   GameState& state_;
   EquippedPanel& equip_panel_;
   BagPanel& bag_panel_;
   ScrollPanel& scroll_panel_;
   ApAllocPanel& ap_alloc_panel_;
+  TraceRecoverPanel& trace_recover_panel_;
   int& panel_focus_;
   Screen screen_ = kMain;
   EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;
@@ -80,8 +90,10 @@ class TuiController {
   int inspect_index_ = 0;
   EquipSlot star_force_slot_ = EQUIP_SLOT_UNSPECIFIED;
   int star_force_index_ = 0;
+  int trace_index_ = 0;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;
+  TraceRecoveryResult trace_recovery_result_;
 };
 
 }  // namespace ms

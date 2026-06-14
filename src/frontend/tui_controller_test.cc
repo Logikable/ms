@@ -14,6 +14,7 @@
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/trace_recover_panel.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -49,9 +50,11 @@ class TuiControllerTest : public testing::Test {
     bag_panel_ = std::make_unique<BagPanel>(state_->character, panel_focus_);
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     ap_alloc_panel_ = std::make_unique<ApAllocPanel>(state_->character);
+    trace_recover_panel_ =
+        std::make_unique<TraceRecoverPanel>(state_->character);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *bag_panel_, *scroll_panel_, *ap_alloc_panel_,
-        panel_focus_);
+        *trace_recover_panel_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -86,7 +89,7 @@ class TuiControllerTest : public testing::Test {
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *bag_panel_, *scroll_panel_, *ap_alloc_panel_,
-        panel_focus_);
+        *trace_recover_panel_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -96,6 +99,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<BagPanel> bag_panel_;
   std::unique_ptr<ScrollPanel> scroll_panel_;
   std::unique_ptr<ApAllocPanel> ap_alloc_panel_;
+  std::unique_ptr<TraceRecoverPanel> trace_recover_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
 };

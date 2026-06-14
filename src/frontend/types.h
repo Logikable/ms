@@ -16,6 +16,8 @@ enum Screen : int {
   kApAlloc,
   kStarForce,
   kStarForceResult,
+  kTraceRecover,
+  kTraceRecoverResult,
 };
 enum Panel : int { kEquipPanel = 0, kBagPanel = 1, kCharPanel = 2, kNumPanels };
 enum MenuItem : int {
@@ -23,6 +25,7 @@ enum MenuItem : int {
   kMenuInspect = 1,
   kMenuScroll = 2,
   kMenuStarForce = 3,
+  kMenuRecover = 4,
 };
 struct ScrollResult {
   ScrollOutcome outcome;
@@ -36,6 +39,11 @@ struct StarForceResult {
   std::string equip_name;
   int stars_before = 0;
   int stars_after = 0;
+};
+
+struct TraceRecoveryResult {
+  std::string equip_name;
+  int stars_recovered = 0;
 };
 
 }  // namespace ms

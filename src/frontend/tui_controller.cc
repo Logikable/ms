@@ -7,6 +7,7 @@
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
@@ -16,12 +17,15 @@ namespace ms {
 
 TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
                              BagPanel& bag_panel, ScrollPanel& scroll_panel,
-                             ApAllocPanel& ap_alloc_panel, int& panel_focus)
+                             ApAllocPanel& ap_alloc_panel,
+                             TraceRecoverPanel& trace_recover_panel,
+                             int& panel_focus)
     : state_(state),
       equip_panel_(equip_panel),
       bag_panel_(bag_panel),
       scroll_panel_(scroll_panel),
       ap_alloc_panel_(ap_alloc_panel),
+      trace_recover_panel_(trace_recover_panel),
       panel_focus_(panel_focus) {
 }
 
@@ -82,6 +86,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kStarForceResult) {
     return OnStarForceResultEvent(event);
   }
+  if (screen_ == kTraceRecover) {
+    return OnTraceRecoverEvent(event);
+  }
+  if (screen_ == kTraceRecoverResult) {
+    return OnTraceRecoverResultEvent(event);
+  }
   if (event == ftxui::Event::Tab) {
     panel_focus_ = (panel_focus_ + 1) % kNumPanels;
     if (panel_focus_ == kCharPanel && state_.character.proto().ap() == 0) {
@@ -117,6 +127,10 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     } else {
       star_force_index_ = bag_panel_.selected();
     }
+  }
+  if (next == kTraceRecover) {
+    trace_index_ = bag_panel_.selected();
+    trace_recover_panel_.SetTrace(&state_.character.inventory()[trace_index_]);
   }
   screen_ = next;
   return true;
@@ -216,6 +230,41 @@ bool TuiController::OnStarForceResultEvent(ftxui::Event event) {
   if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
     screen_ =
         star_force_result_.outcome == kStarForceDestroy ? kMain : kStarForce;
+  }
+  return true;
+}
+
+const EquipTabItem* TuiController::trace_recover_item() const {
+  if (screen_ != kTraceRecover) {
+    return nullptr;
+  }
+  return &state_.character.inventory()[trace_index_];
+}
+
+bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
+  if (event == ftxui::Event::Escape) {
+    screen_ = kItemMenu;
+    return true;
+  }
+  if (event == ftxui::Event::Return) {
+    int base_index = trace_recover_panel_.selected_index();
+    if (base_index == -1) {
+      return true;
+    }
+    std::string equip_name =
+        state_.character.inventory()[trace_index_].prototype().name();
+    int stars_recovered =
+        state_.character.RecoverTrace(trace_index_, base_index);
+    trace_recovery_result_ = {equip_name, stars_recovered};
+    screen_ = kTraceRecoverResult;
+    return true;
+  }
+  return trace_recover_panel_.OnEvent(event);
+}
+
+bool TuiController::OnTraceRecoverResultEvent(ftxui::Event event) {
+  if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+    screen_ = kMain;
   }
   return true;
 }
