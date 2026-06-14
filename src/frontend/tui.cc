@@ -108,14 +108,15 @@ ftxui::Element Tui::RenderFrame() {
   }
   int menu_row = 0;
   if (panel_focus_ == kEquipPanel) {
-    // +2 for equip column header + separator above items.
-    menu_row = 2 + equip_panel_.selected();
+    // +3 for equip column header + sub-header + separator above items.
+    menu_row = 3 + equip_panel_.selected();
   } else {
     int equip_count = static_cast<int>(state_.character.equipped().size());
-    // Non-empty equip panel adds header + separator; empty panel has neither.
-    int equip_rows = std::max(1, equip_count) + (equip_count > 0 ? 2 : 0);
-    // +4: equip borders (2) + bag column header + separator (2).
-    menu_row = equip_rows + 4 + bag_panel_.selected();
+    // Non-empty equip panel adds header + sub-header + separator; empty has
+    // neither.
+    int equip_rows = std::max(1, equip_count) + (equip_count > 0 ? 3 : 0);
+    // +5: equip borders (2) + bag column header + sub-header + separator (3).
+    menu_row = equip_rows + 5 + bag_panel_.selected();
   }
   ItemMenu& menu =
       panel_focus_ == kEquipPanel ? equip_panel_.menu() : bag_panel_.menu();
