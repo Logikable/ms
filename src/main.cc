@@ -41,6 +41,15 @@ int main(int argc, char** argv) {
   fafnir_state.mutable_scroll_stats()->set_attack(40);
   fafnir_state.mutable_scroll_stats()->set_str(16);
   state.character.PickUp(state.equips.at("fafnir_mistilteinn"), fafnir_state);
+  ms::Equip fafnir_trace_state;
+  fafnir_trace_state.set_equip_name("Fafnir Mistilteinn");
+  fafnir_trace_state.set_remaining_upgrade_slots(0);
+  fafnir_trace_state.set_stars(22);
+  fafnir_trace_state.mutable_scroll_stats()->set_attack(40);
+  fafnir_trace_state.mutable_scroll_stats()->set_str(16);
+  state.character.PickUpTrace(state.equips.at("fafnir_mistilteinn"),
+                              fafnir_trace_state);
+  state.character.PickUp(state.equips.at("fafnir_mistilteinn"));
   ms::Tui(state).Run();
   return 0;
 }
