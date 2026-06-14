@@ -96,9 +96,15 @@ std::string InspectPanel::StatLine(const std::string& label, int base,
   // Only show the (base +scroll +sf) breakdown when at least two sources
   // contribute; a single-source breakdown is redundant with the total.
   int non_zero = 0;
-  if (base > 0) ++non_zero;
-  if (scroll > 0) ++non_zero;
-  if (sf > 0) ++non_zero;
+  if (base > 0) {
+    ++non_zero;
+  }
+  if (scroll > 0) {
+    ++non_zero;
+  }
+  if (sf > 0) {
+    ++non_zero;
+  }
   if (non_zero <= 1) {
     return " " + label + "  +" + std::to_string(total) + " ";
   }

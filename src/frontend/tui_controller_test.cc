@@ -311,9 +311,10 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
   controller_->OnEvent(ftxui::Event::Return);     // open confirm bar
-  controller_->OnEvent(ftxui::Event::Return);     // confirm → kScrollResult (0 slots)
-  controller_->OnEvent(ftxui::Event::Escape);     // → kScrollSelect
-  controller_->OnEvent(ftxui::Event::Escape);     // → kItemMenu (re-opens menu)
+  controller_->OnEvent(
+      ftxui::Event::Return);  // confirm → kScrollResult (0 slots)
+  controller_->OnEvent(ftxui::Event::Escape);  // → kScrollSelect
+  controller_->OnEvent(ftxui::Event::Escape);  // → kItemMenu (re-opens menu)
 
   EXPECT_EQ(controller_->screen(), kItemMenu);
   // Navigate to Star Force position; it must be reachable (not skipped).
