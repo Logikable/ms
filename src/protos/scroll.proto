@@ -13,6 +13,11 @@ enum ScrollTier {
   SCROLL_TIER_3 = 3;
 }
 
+enum ScrollCategory {
+  SCROLL_CATEGORY_UNSPECIFIED = 0;
+  SCROLL_CATEGORY_CLEAN_SLATE = 1;
+}
+
 // Primary stat boosted by the scroll. Values are ordered for display: the
 // scroll list in the UI is sorted by ScrollType ascending, then by
 // success_rate descending within each type.
@@ -38,4 +43,5 @@ message Scroll {
   EquipStats stats = 4;
   repeated EquipJobCategory applicable_job_categories = 5;
   ScrollType scroll_type = 6;
+  ScrollCategory scroll_category = 7;
 }

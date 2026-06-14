@@ -58,6 +58,14 @@ EquipInstance::EquipInstance(const EquipPrototype& prototype,
 
 ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
                                     std::mt19937& rng) {
+  if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+    int cap = prototype_.upgrade_slots() - state_.scroll_successes();
+    if (state_.remaining_upgrade_slots() >= cap) {
+      return kScrollNoSlots;
+    }
+    state_.set_remaining_upgrade_slots(state_.remaining_upgrade_slots() + 1);
+    return kScrollSuccess;
+  }
   if (state_.remaining_upgrade_slots() == 0) {
     return kScrollNoSlots;
   }
@@ -66,6 +74,7 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
   if (dist(rng) > scroll.success_rate()) {
     return kScrollFail;
   }
+  state_.set_scroll_successes(state_.scroll_successes() + 1);
   const EquipStats scroll_sources[] = {state_.scroll_stats(), scroll.stats()};
   *state_.mutable_scroll_stats() = SumEquipStats(scroll_sources);
   return kScrollSuccess;

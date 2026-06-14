@@ -4,6 +4,7 @@
 #include <string>
 
 #include "src/equip_instance.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 
@@ -32,6 +33,7 @@ struct ScrollResult {
   std::string equip_name;
   std::string scroll_name;
   int slots_remaining = 0;
+  ScrollCategory scroll_category = SCROLL_CATEGORY_UNSPECIFIED;
 };
 
 struct StarForceResult {

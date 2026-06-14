@@ -84,4 +84,5 @@ message Equip {
   EquipStats scroll_stats = 3;
   int32 stars = 4;
   bool trace = 5;
+  int32 scroll_successes = 6;
 }

@@ -159,9 +159,19 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
   }
   if (event == ftxui::Event::Return && !scroll_panel_.IsConfirming()) {
     const EquipInstance* item = scroll_item();
-    if (item->equip_state().remaining_upgrade_slots() == 0) {
-      scroll_result_ = {kScrollNoSlots, item->prototype().name(),
-                        scroll_panel_.selected_scroll().name(), 0};
+    const Scroll& scroll = scroll_panel_.selected_scroll();
+    int remaining = item->equip_state().remaining_upgrade_slots();
+    bool no_slots;
+    if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+      int cap = item->prototype().upgrade_slots() -
+                item->equip_state().scroll_successes();
+      no_slots = remaining >= cap;
+    } else {
+      no_slots = remaining == 0;
+    }
+    if (no_slots) {
+      scroll_result_ = {kScrollNoSlots, item->prototype().name(), scroll.name(),
+                        remaining, scroll.scroll_category()};
       screen_ = kScrollResult;
       return true;
     }
@@ -190,7 +200,8 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
                             ? inv_item->equip_state().remaining_upgrade_slots()
                             : 0;
     }
-    scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining};
+    scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining,
+                      scroll.scroll_category()};
     screen_ = kScrollResult;
   }
   return true;

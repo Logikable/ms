@@ -57,12 +57,17 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
                           proto.equip_job_categories().end());
   std::vector<const Scroll*> filtered;
   for (const std::pair<const std::string, Scroll>& kv : scrolls_) {
-    if (kv.second.tier() != item_tier) {
+    const Scroll& s = kv.second;
+    if (s.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+      filtered.push_back(&s);
       continue;
     }
-    for (int scroll_cat : kv.second.applicable_job_categories()) {
+    if (s.tier() != item_tier) {
+      continue;
+    }
+    for (int scroll_cat : s.applicable_job_categories()) {
       if (item_cats.count(scroll_cat)) {
-        filtered.push_back(&kv.second);
+        filtered.push_back(&s);
         break;
       }
     }
@@ -163,23 +168,34 @@ const Scroll& ScrollPanel::selected_scroll() const {
 
 ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
   if (r.outcome == kScrollNoSlots) {
+    std::string msg = r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE
+                          ? " No lost slots to restore "
+                          : " No scroll slots remaining ";
     return ftxui::window(
         ftxui::text(" Error "),
         ftxui::vbox({
             ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
             ftxui::separator(),
-            ftxui::text(" No scroll slots remaining ") | ftxui::hcenter,
+            ftxui::text(msg) | ftxui::hcenter,
             ftxui::text(""),
             ftxui::text(" Press Enter to continue "),
         }));
+  }
+  std::string result_text;
+  if (r.outcome == kScrollSuccess &&
+      r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE) {
+    result_text = " Slot Restored ";
+  } else if (r.outcome == kScrollSuccess) {
+    result_text = " SUCCESS ";
+  } else {
+    result_text = " FAILED ";
   }
   return ftxui::window(
       ftxui::text(" Result "),
       ftxui::vbox({
           ftxui::text(" " + r.equip_name + "  |  " + r.scroll_name + " "),
           ftxui::separator(),
-          ftxui::text(r.outcome == kScrollSuccess ? " SUCCESS " : " FAILED ") |
-              ftxui::hcenter,
+          ftxui::text(result_text) | ftxui::hcenter,
           ftxui::text(" " + std::to_string(r.slots_remaining) +
                       " slots remaining ") |
               ftxui::hcenter,
@@ -202,15 +218,19 @@ std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
   }
 
   std::string stats;
-  const EquipStats& s = scroll.stats();
-  AppendStat(stats, s.attack(), "ATT");
-  AppendStat(stats, s.magic_attack(), "MATT");
-  AppendStat(stats, s.str(), "STR");
-  AppendStat(stats, s.dex(), "DEX");
-  AppendStat(stats, s.int_(), "INT");
-  AppendStat(stats, s.luk(), "LUK");
-  AppendStat(stats, s.max_hp(), "HP");
-  AppendStat(stats, s.def(), "DEF");
+  if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+    stats = "Restores slot";
+  } else {
+    const EquipStats& s = scroll.stats();
+    AppendStat(stats, s.attack(), "ATT");
+    AppendStat(stats, s.magic_attack(), "MATT");
+    AppendStat(stats, s.str(), "STR");
+    AppendStat(stats, s.dex(), "DEX");
+    AppendStat(stats, s.int_(), "INT");
+    AppendStat(stats, s.luk(), "LUK");
+    AppendStat(stats, s.max_hp(), "HP");
+    AppendStat(stats, s.def(), "DEF");
+  }
 
   return name + "  " + rate + "  " + stats;
 }
