@@ -16,6 +16,7 @@ cc_library(
     hdrs = ["panel_util.h"],
     deps = [
         "//src/protos:equip_proto_cc",
+        "@ftxui//:dom",
     ],
 )
 
@@ -227,6 +228,7 @@ cc_library(
         ":panel_util",
         ":types",
         "//src:equip_instance",
+        "@ftxui//:component",
         "@ftxui//:dom",
     ],
 )
@@ -249,6 +251,7 @@ cc_library(
     srcs = ["trace_recover_panel.cc"],
     hdrs = ["trace_recover_panel.h"],
     deps = [
+        ":panel_util",
         ":types",
         "//src:character",
         "//src:equip_instance",
@@ -267,6 +270,7 @@ cc_library(
         ":bag_panel",
         ":equipped_panel",
         ":scroll_panel",
+        ":star_force_panel",
         ":trace_recover_panel",
         ":types",
         "//src:character",
@@ -286,6 +290,7 @@ cc_test(
         ":bag_panel",
         ":equipped_panel",
         ":scroll_panel",
+        ":star_force_panel",
         ":trace_recover_panel",
         ":tui_controller",
         "//src:game_state",

@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "ftxui/dom/elements.hpp"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -46,6 +47,14 @@ std::string FormatJobCategories(const EquipPrototype& proto);
 // and BagPanel; the caller builds the info string for its column.
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int slots_remaining);
+
+// Renders a [Confirm] / [Cancel] button row. The selected button is inverted.
+// cancel_selected=false highlights Confirm; true highlights Cancel.
+ftxui::Element ConfirmBar(bool cancel_selected);
+
+// Renders the confirm bar in a titled window. Intended to appear below the
+// main action panel so height is reserved only when confirmation is pending.
+ftxui::Element ConfirmWindow(bool cancel_selected);
 
 }  // namespace ms
 

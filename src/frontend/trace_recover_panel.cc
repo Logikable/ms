@@ -7,6 +7,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
 #include "src/equip_instance.h"
+#include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
 #include "src/item.h"
 
@@ -51,8 +52,6 @@ ftxui::Element TraceRecoverPanel::Render() const {
   if (matching_indices_.empty()) {
     rows.push_back(ftxui::text(" No matching item in inventory ") |
                    ftxui::hcenter);
-    rows.push_back(ftxui::separator());
-    rows.push_back(ftxui::text(" Esc to cancel "));
     return ftxui::window(ftxui::text(" Trace Recovery "),
                          ftxui::vbox(std::move(rows)));
   }
@@ -63,13 +62,42 @@ ftxui::Element TraceRecoverPanel::Render() const {
     std::string label = (i == selected_ ? "> " : "  ") + item.name();
     rows.push_back(ftxui::text(label));
   }
-  rows.push_back(ftxui::separator());
-  rows.push_back(ftxui::text(" Enter: recover  Esc: cancel "));
-  return ftxui::window(ftxui::text(" Trace Recovery "),
-                       ftxui::vbox(std::move(rows)));
+  ftxui::Element content = ftxui::vbox(std::move(rows)) |
+                           ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 21);
+  ftxui::Element main =
+      ftxui::window(ftxui::text(" Trace Recovery "), std::move(content));
+  if (confirming_) {
+    return ftxui::vbox(
+        {std::move(main) | ftxui::yflex, ConfirmWindow(confirm_cancel_)});
+  }
+  return main;
 }
 
 bool TraceRecoverPanel::OnEvent(ftxui::Event event) {
+  if (confirming_) {
+    if (event == ftxui::Event::Escape) {
+      confirming_ = false;
+      confirm_cancel_ = false;
+      return true;
+    }
+    if (event == ftxui::Event::ArrowLeft) {
+      confirm_cancel_ = false;
+      return true;
+    }
+    if (event == ftxui::Event::ArrowRight) {
+      confirm_cancel_ = true;
+      return true;
+    }
+    if (event == ftxui::Event::Return) {
+      if (!confirm_cancel_) {
+        confirmed_ = true;
+      }
+      confirming_ = false;
+      confirm_cancel_ = false;
+      return true;
+    }
+    return true;
+  }
   if (matching_indices_.empty()) {
     return false;
   }
@@ -82,7 +110,18 @@ bool TraceRecoverPanel::OnEvent(ftxui::Event event) {
     ++selected_;
     return true;
   }
+  if (event == ftxui::Event::Return) {
+    confirming_ = true;
+    confirm_cancel_ = false;
+    return true;
+  }
   return false;
+}
+
+bool TraceRecoverPanel::TakeConfirmed() {
+  bool v = confirmed_;
+  confirmed_ = false;
+  return v;
 }
 
 int TraceRecoverPanel::selected_index() const {

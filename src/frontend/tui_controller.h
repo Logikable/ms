@@ -15,6 +15,7 @@
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
@@ -28,7 +29,7 @@ class TuiController {
   // Container::Tab; the controller mutates it as focus changes.
   TuiController(GameState& state, EquippedPanel& equip_panel,
                 BagPanel& bag_panel, ScrollPanel& scroll_panel,
-                ApAllocPanel& ap_alloc_panel,
+                ApAllocPanel& ap_alloc_panel, StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
@@ -36,9 +37,7 @@ class TuiController {
   void OpenBagMenu();
   void OpenApAlloc();
 
-  // Returns true if the event was consumed. Returns false for navigation
-  // events in kScrollSelect; the caller should forward those to the scroll
-  // panel.
+  // Returns true if the event was consumed.
   bool OnEvent(ftxui::Event event);
 
   Screen screen() const {
@@ -81,6 +80,7 @@ class TuiController {
   BagPanel& bag_panel_;
   ScrollPanel& scroll_panel_;
   ApAllocPanel& ap_alloc_panel_;
+  StarForcePanel& star_force_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   int& panel_focus_;
   Screen screen_ = kMain;

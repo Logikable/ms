@@ -14,6 +14,7 @@
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
@@ -50,11 +51,12 @@ class TuiControllerTest : public testing::Test {
     bag_panel_ = std::make_unique<BagPanel>(state_->character, panel_focus_);
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     ap_alloc_panel_ = std::make_unique<ApAllocPanel>(state_->character);
+    star_force_panel_ = std::make_unique<StarForcePanel>();
     trace_recover_panel_ =
         std::make_unique<TraceRecoverPanel>(state_->character);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *bag_panel_, *scroll_panel_, *ap_alloc_panel_,
-        *trace_recover_panel_, panel_focus_);
+        *star_force_panel_, *trace_recover_panel_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -89,7 +91,7 @@ class TuiControllerTest : public testing::Test {
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *bag_panel_, *scroll_panel_, *ap_alloc_panel_,
-        *trace_recover_panel_, panel_focus_);
+        *star_force_panel_, *trace_recover_panel_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -99,6 +101,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<BagPanel> bag_panel_;
   std::unique_ptr<ScrollPanel> scroll_panel_;
   std::unique_ptr<ApAllocPanel> ap_alloc_panel_;
+  std::unique_ptr<StarForcePanel> star_force_panel_;
   std::unique_ptr<TraceRecoverPanel> trace_recover_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
@@ -249,7 +252,8 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // apply scroll
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(state_->character.equipped()
@@ -268,8 +272,9 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
   EXPECT_EQ(controller_->scroll_result().equip_name, "Sword");
@@ -286,8 +291,9 @@ TEST_F(TuiControllerTest,
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
@@ -301,8 +307,9 @@ TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
   controller_->OnEvent(ftxui::Event::Return);  // dismiss result
 
   EXPECT_EQ(controller_->screen(), kScrollSelect);
@@ -316,8 +323,9 @@ TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
   controller_->OnEvent(ftxui::Event::Escape);  // dismiss result
 
   EXPECT_EQ(controller_->screen(), kScrollSelect);
@@ -331,8 +339,9 @@ TEST_F(TuiControllerTest, ScrollResultSlotsRemainingIsDecrementedOnSuccess) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   // sword_ has 3 upgrade slots; one was consumed.
   EXPECT_EQ(controller_->scroll_result().slots_remaining, 2);
@@ -348,7 +357,8 @@ TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);     // apply scroll
+  controller_->OnEvent(ftxui::Event::Return);     // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);     // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollFail);
 }
@@ -388,7 +398,8 @@ TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // apply scroll
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   const EquipInstance* item = state_->character.inventory().equip_instance(0);
@@ -403,8 +414,9 @@ TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
   controller_->OpenBagMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
   EXPECT_EQ(controller_->scroll_result().equip_name, "Sword");
@@ -421,7 +433,8 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);     // attempt scroll
+  controller_->OnEvent(ftxui::Event::Return);     // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);     // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
@@ -468,7 +481,8 @@ TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
-  controller_->OnEvent(ftxui::Event::Return);  // attempt
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kStarForceResult);
 }
@@ -482,8 +496,9 @@ TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->star_force_result().equip_name, "Sword");
   EXPECT_EQ(controller_->star_force_result().stars_before, 0);
@@ -500,8 +515,9 @@ TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);  // attempt
+  controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   // If the item was not destroyed, dismissing the result goes back to
   // kStarForce.
@@ -535,7 +551,8 @@ TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
-  controller_->OnEvent(ftxui::Event::Return);  // attempt
+  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kStarForceResult);
   EXPECT_EQ(controller_->star_force_result().equip_name, "Sword");

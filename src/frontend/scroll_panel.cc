@@ -82,7 +82,11 @@ void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered) {
 }
 
 void ScrollPanel::ResetComponent() {
-  ftxui::Component menu = ftxui::Menu(&entries_, &selected_);
+  ftxui::MenuOption opt;
+  opt.entries_option.transform = [](ftxui::EntryState state) -> ftxui::Element {
+    return ftxui::text((state.active ? "> " : "  ") + state.label);
+  };
+  ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
   // entries_ is rebuilt from ordered_ on every render so the display stays
   // in sync with SetFilter calls.
   component_ = ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
@@ -93,12 +97,20 @@ void ScrollPanel::ResetComponent() {
     if (!entries_.empty()) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
     }
-    return ftxui::window(ftxui::text("  Scrolls "),
-                         ftxui::vbox({
-                             ftxui::text(kColumnHeader),
-                             ftxui::separator(),
-                             menu->Render(),
-                         }));
+    std::vector<ftxui::Element> rows = {
+        ftxui::text(kColumnHeader),
+        ftxui::separator(),
+        menu->Render(),
+    };
+    ftxui::Element main =
+        ftxui::window(ftxui::text("  Scrolls "), ftxui::vbox(std::move(rows)));
+    if (confirming_) {
+      // yflex lets main fill the remaining height after the confirm window
+      // takes its 3 rows, matching the full-height behaviour without confirm.
+      return ftxui::vbox(
+          {std::move(main) | ftxui::yflex, ConfirmWindow(confirm_cancel_)});
+    }
+    return main;
   });
 }
 
@@ -107,7 +119,42 @@ ftxui::Element ScrollPanel::Render() {
 }
 
 bool ScrollPanel::OnEvent(ftxui::Event event) {
+  if (confirming_) {
+    if (event == ftxui::Event::Escape) {
+      confirming_ = false;
+      confirm_cancel_ = false;
+      return true;
+    }
+    if (event == ftxui::Event::ArrowLeft) {
+      confirm_cancel_ = false;
+      return true;
+    }
+    if (event == ftxui::Event::ArrowRight) {
+      confirm_cancel_ = true;
+      return true;
+    }
+    if (event == ftxui::Event::Return) {
+      if (!confirm_cancel_) {
+        confirmed_ = true;
+      }
+      confirming_ = false;
+      confirm_cancel_ = false;
+      return true;
+    }
+    return true;
+  }
+  if (event == ftxui::Event::Return) {
+    confirming_ = true;
+    confirm_cancel_ = false;
+    return true;
+  }
   return component_->OnEvent(event);
+}
+
+bool ScrollPanel::TakeConfirmed() {
+  bool v = confirmed_;
+  confirmed_ = false;
+  return v;
 }
 
 const Scroll& ScrollPanel::selected_scroll() const {

@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "ftxui/dom/elements.hpp"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -87,6 +88,23 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
   }
   return PadRight(name, 26) + "  " + PadRight(FormatSlot(slot), kSlotWidth) +
          "  " + padded_info + "  " + std::to_string(slots_remaining) + " slots";
+}
+
+ftxui::Element ConfirmBar(bool cancel_selected) {
+  ftxui::Element confirm = ftxui::text("[Confirm]");
+  ftxui::Element cancel = ftxui::text("[Cancel]");
+  if (!cancel_selected) {
+    confirm = confirm | ftxui::inverted;
+  } else {
+    cancel = cancel | ftxui::inverted;
+  }
+  return ftxui::hbox(
+      {ftxui::text(" "), confirm, ftxui::text("  "), cancel, ftxui::text(" ")});
+}
+
+ftxui::Element ConfirmWindow(bool cancel_selected) {
+  return ftxui::window(ftxui::text(""),
+                       ConfirmBar(cancel_selected) | ftxui::hcenter);
 }
 
 }  // namespace ms

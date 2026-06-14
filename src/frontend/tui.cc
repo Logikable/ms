@@ -24,7 +24,8 @@ Tui::Tui(GameState& state)
       ap_alloc_panel_(state.character),
       trace_recover_panel_(state.character),
       controller_(state, equip_panel_, bag_panel_, scroll_panel_,
-                  ap_alloc_panel_, trace_recover_panel_, panel_focus_) {
+                  ap_alloc_panel_, star_force_panel_, trace_recover_panel_,
+                  panel_focus_) {
 }
 
 void Tui::Run() {
@@ -126,14 +127,7 @@ ftxui::Element Tui::RenderFrame() {
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
-  if (!controller_.OnEvent(event)) {
-    if (controller_.screen() == kScrollSelect) {
-      scroll_panel_.OnEvent(event);
-      return true;
-    }
-    return false;
-  }
-  return true;
+  return controller_.OnEvent(event);
 }
 
 }  // namespace ms

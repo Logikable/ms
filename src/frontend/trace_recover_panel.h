@@ -1,7 +1,6 @@
 /* TraceRecoverPanel shows a list of inventory items that can serve as the base
- * for recovering an EquipTrace. The player selects one and presses Enter to
- * trigger recovery. Display only; navigation is driven via OnEvent(); the
- * controller reads selected_index() and calls RecoverTrace on Enter.
+ * for recovering an EquipTrace. Owns an inline confirm bar: Enter opens it,
+ * a second Enter confirms. TakeConfirmed() returns true once when confirmed.
  */
 #ifndef MS_SRC_FRONTEND_TRACE_RECOVER_PANEL_H_
 #define MS_SRC_FRONTEND_TRACE_RECOVER_PANEL_H_
@@ -23,9 +22,13 @@ class TraceRecoverPanel {
   // items.
   void SetTrace(const EquipTabItem* trace);
   ftxui::Element Render() const;
-  // Handles Up/Down navigation. Returns false so the caller can consume
-  // Escape/Enter without forwarding here.
+  // Handles Up/Down navigation and confirm-bar interaction. Esc when not
+  // confirming is not consumed (caller handles screen transition).
   bool OnEvent(ftxui::Event event);
+  bool TakeConfirmed();
+  bool IsConfirming() const {
+    return confirming_;
+  }
   // Returns the inventory index of the currently selected base item, or -1 if
   // there are no matching items.
   int selected_index() const;
@@ -36,6 +39,9 @@ class TraceRecoverPanel {
   const EquipTabItem* trace_ = nullptr;
   std::vector<int> matching_indices_;
   int selected_ = 0;
+  bool confirming_ = false;
+  bool confirm_cancel_ = false;
+  bool confirmed_ = false;
 };
 
 }  // namespace ms

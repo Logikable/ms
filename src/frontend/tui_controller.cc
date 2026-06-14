@@ -7,6 +7,7 @@
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
@@ -18,6 +19,7 @@ namespace ms {
 TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
                              BagPanel& bag_panel, ScrollPanel& scroll_panel,
                              ApAllocPanel& ap_alloc_panel,
+                             StarForcePanel& star_force_panel,
                              TraceRecoverPanel& trace_recover_panel,
                              int& panel_focus)
     : state_(state),
@@ -25,6 +27,7 @@ TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
       bag_panel_(bag_panel),
       scroll_panel_(scroll_panel),
       ap_alloc_panel_(ap_alloc_panel),
+      star_force_panel_(star_force_panel),
       trace_recover_panel_(trace_recover_panel),
       panel_focus_(panel_focus) {
 }
@@ -127,6 +130,7 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     } else {
       star_force_index_ = bag_panel_.selected();
     }
+    star_force_panel_.ResetConfirm();
   }
   if (next == kTraceRecover) {
     trace_index_ = bag_panel_.selected();
@@ -144,11 +148,12 @@ bool TuiController::OnInspectEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape) {
+  if (event == ftxui::Event::Escape && !scroll_panel_.IsConfirming()) {
     screen_ = kItemMenu;
     return true;
   }
-  if (event == ftxui::Event::Return) {
+  scroll_panel_.OnEvent(event);
+  if (scroll_panel_.TakeConfirmed()) {
     const EquipInstance* item =
         panel_focus_ == kEquipPanel
             ? &state_.character.equipped().at(scroll_slot_)
@@ -173,9 +178,8 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     }
     scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining};
     screen_ = kScrollResult;
-    return true;
   }
-  return false;  // caller forwards navigation events to scroll panel
+  return true;
 }
 
 bool TuiController::OnScrollResultEvent(ftxui::Event event) {
@@ -201,15 +205,16 @@ const EquipInstance* TuiController::star_force_item() const {
 }
 
 bool TuiController::OnStarForceEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape) {
+  if (event == ftxui::Event::Escape && !star_force_panel_.IsConfirming()) {
     screen_ = kMain;
     return true;
   }
-  if (event == ftxui::Event::Return) {
-    const EquipInstance* item = star_force_item();
-    if (item->stars() >= item->max_stars()) {
-      return true;
-    }
+  const EquipInstance* item = star_force_item();
+  if (item->stars() >= item->max_stars()) {
+    return true;
+  }
+  star_force_panel_.OnEvent(event);
+  if (star_force_panel_.TakeConfirmed()) {
     std::string equip_name = item->prototype().name();
     int stars_before = item->stars();
     StarForceOutcome outcome;
@@ -221,7 +226,6 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
     int stars_after = stars_before + (outcome == kStarForceSuccess ? 1 : 0);
     star_force_result_ = {outcome, equip_name, stars_before, stars_after};
     screen_ = kStarForceResult;
-    return true;
   }
   return true;
 }
@@ -242,24 +246,21 @@ const EquipTabItem* TuiController::trace_recover_item() const {
 }
 
 bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape) {
+  if (event == ftxui::Event::Escape && !trace_recover_panel_.IsConfirming()) {
     screen_ = kItemMenu;
     return true;
   }
-  if (event == ftxui::Event::Return) {
+  trace_recover_panel_.OnEvent(event);
+  if (trace_recover_panel_.TakeConfirmed()) {
     int base_index = trace_recover_panel_.selected_index();
-    if (base_index == -1) {
-      return true;
-    }
     std::string equip_name =
         state_.character.inventory()[trace_index_].prototype().name();
     int stars_recovered =
         state_.character.RecoverTrace(trace_index_, base_index);
     trace_recovery_result_ = {equip_name, stars_recovered};
     screen_ = kTraceRecoverResult;
-    return true;
   }
-  return trace_recover_panel_.OnEvent(event);
+  return true;
 }
 
 bool TuiController::OnTraceRecoverResultEvent(ftxui::Event event) {

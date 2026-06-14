@@ -4,6 +4,7 @@
 #include <cstring>
 #include <string>
 
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/panel_util.h"
@@ -55,7 +56,6 @@ ftxui::Element StarForcePanel::Render() const {
             ftxui::text(std::to_string(stars) + "★ (max)") | ftxui::hcenter,
             ftxui::separator(),
             ftxui::text("Maximum stars reached.") | ftxui::hcenter,
-            ftxui::text(" Esc to close           "),
         }));
   }
 
@@ -102,11 +102,64 @@ ftxui::Element StarForcePanel::Render() const {
     rows.push_back(ftxui::text("Destroy  " + PadTo(destroy_str, rate_w)) |
                    ftxui::hcenter);
   }
-  rows.push_back(ftxui::separator());
-  rows.push_back(ftxui::text(" Press Enter to attempt "));
-  rows.push_back(ftxui::text(" Esc to cancel          "));
-  return ftxui::window(ftxui::text(" Star Force "),
-                       ftxui::vbox(std::move(rows)));
+  // Constrain inner width to at least ConfirmWindow's inner width so the panel
+  // never widens when the confirm window appears below.
+  ftxui::Element content = ftxui::vbox(std::move(rows)) |
+                           ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 21);
+  ftxui::Element main =
+      ftxui::window(ftxui::text(" Star Force "), std::move(content));
+  // Always allocate the same height below so ftxui::center never shifts the
+  // panel when the confirm window appears.
+  ftxui::Element below =
+      confirming_
+          ? ConfirmWindow(confirm_cancel_)
+          : (ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 3));
+  return ftxui::vbox({std::move(main), std::move(below)});
+}
+
+bool StarForcePanel::OnEvent(ftxui::Event event) {
+  if (confirming_) {
+    if (event == ftxui::Event::Escape) {
+      confirming_ = false;
+      confirm_cancel_ = false;
+      return true;
+    }
+    if (event == ftxui::Event::ArrowLeft) {
+      confirm_cancel_ = false;
+      return true;
+    }
+    if (event == ftxui::Event::ArrowRight) {
+      confirm_cancel_ = true;
+      return true;
+    }
+    if (event == ftxui::Event::Return) {
+      if (!confirm_cancel_) {
+        confirmed_ = true;
+      }
+      confirming_ = false;
+      confirm_cancel_ = false;
+      return true;
+    }
+    return true;
+  }
+  if (event == ftxui::Event::Return) {
+    confirming_ = true;
+    confirm_cancel_ = false;
+    return true;
+  }
+  return false;  // Esc and other events pass through to caller
+}
+
+bool StarForcePanel::TakeConfirmed() {
+  bool v = confirmed_;
+  confirmed_ = false;
+  return v;
+}
+
+void StarForcePanel::ResetConfirm() {
+  confirming_ = false;
+  confirm_cancel_ = false;
+  confirmed_ = false;
 }
 
 ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {

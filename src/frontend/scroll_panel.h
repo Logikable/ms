@@ -1,6 +1,8 @@
 /* ScrollPanel lists available scrolls when the player selects "Scroll" from
  * an item's context menu. It overlays the main layout while kScrollSelect is
- * active. TuiController reads selected_scroll() on Enter to apply the scroll.
+ * active. TuiController forwards all events here; OnEvent returns false only
+ * for navigation so Tui can update scroll position. TakeConfirmed() returns
+ * true once when the player confirms the selection via the confirm bar.
  */
 #ifndef MS_SRC_FRONTEND_SCROLL_PANEL_H_
 #define MS_SRC_FRONTEND_SCROLL_PANEL_H_
@@ -31,7 +33,15 @@ class ScrollPanel {
   bool SetFilterForPrototype(const EquipPrototype& proto);
   ftxui::Element Render();
   ftxui::Element RenderResult(const ScrollResult& r) const;
+  // Handles navigation (Up/Down) and confirm-bar interaction. Returns false
+  // only for navigation events so the caller can update the scroll position.
   bool OnEvent(ftxui::Event event);
+  // Returns true once when the player has confirmed a scroll selection, then
+  // resets the flag.
+  bool TakeConfirmed();
+  bool IsConfirming() const {
+    return confirming_;
+  }
   // Returns the scroll at the current selection.
   const Scroll& selected_scroll() const;
   int selected() const {
@@ -47,6 +57,9 @@ class ScrollPanel {
   int selected_ = 0;
   std::vector<std::string> entries_;
   ftxui::Component component_;
+  bool confirming_ = false;
+  bool confirm_cancel_ = false;  // false = Confirm highlighted, true = Cancel
+  bool confirmed_ = false;
 };
 
 }  // namespace ms
