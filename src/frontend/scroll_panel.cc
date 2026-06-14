@@ -114,6 +114,33 @@ const Scroll& ScrollPanel::selected_scroll() const {
   return *ordered_[selected_];
 }
 
+ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
+  if (r.outcome == kScrollNoSlots) {
+    return ftxui::window(
+        ftxui::text(" Error "),
+        ftxui::vbox({
+            ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
+            ftxui::separator(),
+            ftxui::text(" No scroll slots remaining ") | ftxui::hcenter,
+            ftxui::text(""),
+            ftxui::text(" Press Enter to continue "),
+        }));
+  }
+  return ftxui::window(
+      ftxui::text(" Result "),
+      ftxui::vbox({
+          ftxui::text(" " + r.equip_name + "  |  " + r.scroll_name + " "),
+          ftxui::separator(),
+          ftxui::text(r.outcome == kScrollSuccess ? " SUCCESS " : " FAILED ") |
+              ftxui::hcenter,
+          ftxui::text(" " + std::to_string(r.slots_remaining) +
+                      " slots remaining ") |
+              ftxui::hcenter,
+          ftxui::text(""),
+          ftxui::text(" Press Enter to continue "),
+      }));
+}
+
 std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
   std::string name = scroll.name();
   if ((int)name.size() < kNameWidth) {

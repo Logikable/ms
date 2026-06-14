@@ -8,6 +8,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/types.h"
 
 namespace ms {
 
@@ -15,6 +16,7 @@ class StarForcePanel {
  public:
   void SetItem(const EquipInstance* item);
   ftxui::Element Render() const;
+  ftxui::Element RenderResult(const StarForceResult& r) const;
 
  private:
   const EquipInstance* item_ = nullptr;

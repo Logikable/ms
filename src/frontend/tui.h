@@ -26,8 +26,6 @@ class Tui {
 
  private:
   ftxui::Element RenderFrame();
-  ftxui::Element ScrollResultDialog(const ScrollResult& r);
-  ftxui::Element StarForceResultDialog(const StarForceResult& r);
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;

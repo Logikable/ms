@@ -1,7 +1,5 @@
 #include "src/frontend/tui.h"
 
-#include <string>
-
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/component/screen_interactive.hpp"
@@ -49,63 +47,6 @@ void Tui::Run() {
   screen.Loop(root);
 }
 
-ftxui::Element Tui::ScrollResultDialog(const ScrollResult& r) {
-  if (r.outcome == kScrollNoSlots) {
-    return ftxui::window(
-        ftxui::text(" Error "),
-        ftxui::vbox({
-            ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-            ftxui::separator(),
-            ftxui::text(" No scroll slots remaining ") | ftxui::hcenter,
-            ftxui::text(""),
-            ftxui::text(" Press Enter to continue "),
-        }));
-  }
-  return ftxui::window(
-      ftxui::text(" Result "),
-      ftxui::vbox({
-          ftxui::text(" " + r.equip_name + "  |  " + r.scroll_name + " "),
-          ftxui::separator(),
-          ftxui::text(r.outcome == kScrollSuccess ? " SUCCESS " : " FAILED ") |
-              ftxui::hcenter,
-          ftxui::text(" " + std::to_string(r.slots_remaining) +
-                      " slots remaining ") |
-              ftxui::hcenter,
-          ftxui::text(""),
-          ftxui::text(" Press Enter to continue "),
-      }));
-}
-
-ftxui::Element Tui::StarForceResultDialog(const StarForceResult& r) {
-  std::string outcome_text;
-  if (r.outcome == kStarForceSuccess) {
-    outcome_text = " SUCCESS ";
-  } else if (r.outcome == kStarForceFail) {
-    outcome_text = " FAILED ";
-  } else {
-    outcome_text = " DESTROYED ";
-  }
-  std::string stars_text;
-  if (r.outcome == kStarForceSuccess) {
-    stars_text = std::to_string(r.stars_before) + "★ → " +
-                 std::to_string(r.stars_after) + "★";
-  } else if (r.outcome == kStarForceFail) {
-    stars_text = std::to_string(r.stars_before) + "★";
-  } else {
-    stars_text = "lost at " + std::to_string(r.stars_before) + "★";
-  }
-  return ftxui::window(
-      ftxui::text(" Result "),
-      ftxui::vbox({
-          ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-          ftxui::separator(),
-          ftxui::text(outcome_text) | ftxui::hcenter,
-          ftxui::text(stars_text) | ftxui::hcenter,
-          ftxui::text(""),
-          ftxui::text(" Press Enter to continue "),
-      }));
-}
-
 ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kApAlloc) {
     return ftxui::center(ap_alloc_panel_.Render());
@@ -116,7 +57,7 @@ ftxui::Element Tui::RenderFrame() {
   }
   if (controller_.screen() == kStarForceResult) {
     return ftxui::center(
-        StarForceResultDialog(controller_.star_force_result()));
+        star_force_panel_.RenderResult(controller_.star_force_result()));
   }
   if (controller_.screen() == kInspect) {
     inspect_panel_.SetItem(controller_.inspect_item());
@@ -131,7 +72,8 @@ ftxui::Element Tui::RenderFrame() {
     inspect_panel_.SetItem(controller_.scroll_item());
     ftxui::Element scroll_view = scroll_panel_.Render();
     if (controller_.screen() == kScrollResult) {
-      ftxui::Element dialog = ScrollResultDialog(controller_.scroll_result());
+      ftxui::Element dialog =
+          scroll_panel_.RenderResult(controller_.scroll_result());
       scroll_view = ftxui::dbox(
           {scroll_view, ftxui::center(dialog | ftxui::clear_under)});
     }

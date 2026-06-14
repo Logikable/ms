@@ -11,7 +11,9 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
+#include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
+#include "src/frontend/types.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -28,6 +30,7 @@ class ScrollPanel {
   // scrolls match.
   bool SetFilterForPrototype(const EquipPrototype& proto);
   ftxui::Element Render();
+  ftxui::Element RenderResult(const ScrollResult& r) const;
   bool OnEvent(ftxui::Event event);
   // Returns the scroll at the current selection.
   const Scroll& selected_scroll() const;

@@ -196,6 +196,7 @@ cc_library(
     hdrs = ["scroll_panel.h"],
     deps = [
         ":panel_util",
+        ":types",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@ftxui//:component",
@@ -222,6 +223,7 @@ cc_library(
     srcs = ["star_force_panel.cc"],
     hdrs = ["star_force_panel.h"],
     deps = [
+        ":types",
         "//src:equip_instance",
         "@ftxui//:dom",
     ],

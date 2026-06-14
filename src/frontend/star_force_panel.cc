@@ -89,4 +89,34 @@ ftxui::Element StarForcePanel::Render() const {
                        ftxui::vbox(std::move(rows)));
 }
 
+ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
+  std::string outcome_text;
+  if (r.outcome == kStarForceSuccess) {
+    outcome_text = " SUCCESS ";
+  } else if (r.outcome == kStarForceFail) {
+    outcome_text = " FAILED ";
+  } else {
+    outcome_text = " DESTROYED ";
+  }
+  std::string stars_text;
+  if (r.outcome == kStarForceSuccess) {
+    stars_text = std::to_string(r.stars_before) + "★ → " +
+                 std::to_string(r.stars_after) + "★";
+  } else if (r.outcome == kStarForceFail) {
+    stars_text = std::to_string(r.stars_before) + "★";
+  } else {
+    stars_text = "lost at " + std::to_string(r.stars_before) + "★";
+  }
+  return ftxui::window(
+      ftxui::text(" Result "),
+      ftxui::vbox({
+          ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
+          ftxui::separator(),
+          ftxui::text(outcome_text) | ftxui::hcenter,
+          ftxui::text(stars_text) | ftxui::hcenter,
+          ftxui::text(""),
+          ftxui::text(" Press Enter to continue "),
+      }));
+}
+
 }  // namespace ms
