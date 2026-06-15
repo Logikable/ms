@@ -52,11 +52,11 @@ ftxui::Element InspectPanel::Render() const {
   bool any_stat = false;
   auto AddRow = [&](const std::string& label, int base, int scroll,
                     int star_force) {
-    std::string line = StatLine(label, base, scroll, star_force);
-    if (line.empty()) {
+    ftxui::Element elem = StatLine(label, base, scroll, star_force);
+    if (elem == nullptr) {
       return;
     }
-    rows.push_back(ftxui::text(line));
+    rows.push_back(elem);
     any_stat = true;
   };
   for (const DisplayStat& stat : kDisplayStats) {
@@ -95,26 +95,33 @@ std::string InspectPanel::StarBar(int stars, int max_stars) {
   return bar;
 }
 
-std::string InspectPanel::StatLine(const std::string& label, int base,
-                                   int scroll, int sf) {
+ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
+                                      int scroll, int sf) {
   if (base == 0 && scroll == 0 && sf == 0) {
-    return "";
+    return nullptr;
   }
   int total = base + scroll + sf;
-  // Show breakdown whenever scroll or SF contributes so the source of each
-  // stat point is clear. Base-only rows don't need a breakdown.
+  // Base-only: no breakdown needed, plain text.
   if (scroll == 0 && sf == 0) {
-    return " " + label + "  +" + std::to_string(total) + " ";
+    return ftxui::text(" " + label + "  +" + std::to_string(total) + " ");
   }
-  // Always include base in the breakdown (even if 0) so it's unambiguous.
-  std::string breakdown = std::to_string(base);
+  // Breakdown: base in default color, scroll in amber, SF in periwinkle.
+  const ftxui::Color kScrollColor = ftxui::Color::RGB(173, 163, 255);
+  const ftxui::Color kSfColor = ftxui::Color::RGB(255, 198, 50);
+  std::vector<ftxui::Element> parts;
+  parts.push_back(
+      ftxui::text(" " + label + "  +" + std::to_string(total) + " ("));
+  parts.push_back(ftxui::text(std::to_string(base)));
   if (scroll > 0) {
-    breakdown += " +" + std::to_string(scroll);
+    parts.push_back(ftxui::text(" +" + std::to_string(scroll)) |
+                    ftxui::color(kScrollColor));
   }
   if (sf > 0) {
-    breakdown += " +" + std::to_string(sf);
+    parts.push_back(ftxui::text(" +" + std::to_string(sf)) |
+                    ftxui::color(kSfColor));
   }
-  return " " + label + "  +" + std::to_string(total) + " (" + breakdown + ") ";
+  parts.push_back(ftxui::text(") "));
+  return ftxui::hbox(std::move(parts));
 }
 
 std::string InspectPanel::FormatEquipType(EquipType type) {

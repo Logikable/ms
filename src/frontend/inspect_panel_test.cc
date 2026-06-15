@@ -17,7 +17,28 @@ class InspectPanelTest : public PanelTest {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, panel.Render());
-    return screen.ToString();
+    return StripAnsi(screen.ToString());
+  }
+
+  // Strips ANSI escape sequences so substring searches work regardless of
+  // color.
+  static std::string StripAnsi(const std::string& s) {
+    std::string out;
+    bool in_esc = false;
+    for (char c : s) {
+      if (c == '\x1b') {
+        in_esc = true;
+        continue;
+      }
+      if (in_esc) {
+        if (c == 'm') {
+          in_esc = false;
+        }
+        continue;
+      }
+      out += c;
+    }
+    return out;
   }
 };
 

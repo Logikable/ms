@@ -24,10 +24,10 @@ class InspectPanel {
   static std::string FormatEquipType(EquipType type);
   // Returns "Stage N (name)" or empty string if unspecified.
   static std::string FormatAttackSpeed(AttackSpeed speed);
-  // Returns "+total (base +scroll)" or "+total (base +scroll +sf)" when sf is
-  // non-zero. Returns empty string if all three are zero.
-  static std::string StatLine(const std::string& label, int base, int scroll,
-                              int sf = 0);
+  // Returns a colored hbox with the stat line, or nullptr if all are zero.
+  // Total and base are default color; scroll is amber; SF is periwinkle.
+  static ftxui::Element StatLine(const std::string& label, int base, int scroll,
+                                 int sf = 0);
   // Returns filled (★) and empty (☆) stars in groups of 5 up to max_stars.
   static std::string StarBar(int stars, int max_stars);
 
