@@ -42,8 +42,13 @@ void Tui::Run() {
   ftxui::Component base = ftxui::Renderer(
       panels, [this]() -> ftxui::Element { return RenderFrame(); });
 
-  ftxui::Component root = ftxui::CatchEvent(
-      base, [this](ftxui::Event event) -> bool { return OnEvent(event); });
+  ftxui::Component root =
+      ftxui::CatchEvent(base, [this](ftxui::Event event) -> bool {
+        if (event.is_mouse()) {
+          return true;
+        }
+        return OnEvent(event);
+      });
 
   ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
   screen.Loop(root);
