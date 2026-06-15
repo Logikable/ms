@@ -30,7 +30,7 @@ ftxui::Element InspectPanel::Render() const {
   int level = proto.required_level() > 0 ? proto.required_level() : 1;
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(StarBar(stars, max_stars)) | ftxui::hcenter);
+  rows.push_back(StarBar(stars, max_stars) | ftxui::hcenter);
   rows.push_back(ftxui::text(item_->name()) | ftxui::hcenter);
   rows.push_back(ftxui::separator());
   // Trailing space on each text row keeps the right border one column clear.
@@ -84,15 +84,19 @@ ftxui::Element InspectPanel::Render() const {
   return ftxui::window(ftxui::text(" Inspect "), ftxui::vbox(std::move(rows)));
 }
 
-std::string InspectPanel::StarBar(int stars, int max_stars) {
-  std::string bar;
+ftxui::Element InspectPanel::StarBar(int stars, int max_stars) {
+  const ftxui::Color kFilled = ftxui::Color::RGB(255, 210, 50);
+  const ftxui::Color kEmpty = ftxui::Color::RGB(100, 100, 100);
+  std::vector<ftxui::Element> parts;
   for (int i = 0; i < max_stars; ++i) {
     if (i > 0 && i % 5 == 0) {
-      bar += ' ';
+      parts.push_back(ftxui::text(" "));
     }
-    bar += (i < stars) ? "★" : "☆";
+    bool filled = i < stars;
+    parts.push_back(ftxui::text(filled ? "★" : "☆") |
+                    ftxui::color(filled ? kFilled : kEmpty));
   }
-  return bar;
+  return ftxui::hbox(std::move(parts));
 }
 
 ftxui::Element InspectPanel::StatLine(const std::string& label, int base,

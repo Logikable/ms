@@ -29,7 +29,8 @@ class InspectPanel {
   static ftxui::Element StatLine(const std::string& label, int base, int scroll,
                                  int sf = 0);
   // Returns filled (★) and empty (☆) stars in groups of 5 up to max_stars.
-  static std::string StarBar(int stars, int max_stars);
+  // Filled stars are gold; empty stars are dark gray.
+  static ftxui::Element StarBar(int stars, int max_stars);
 
   const EquipTabItem* item_ = nullptr;
 };
