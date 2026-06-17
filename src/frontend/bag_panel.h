@@ -46,6 +46,7 @@ class BagPanel {
   int& panel_focus_;
   int selected_ = 0;
   std::vector<std::string> entries_;
+  std::vector<bool> is_trace_;
   std::vector<bool> level_ok_;
   std::vector<bool> job_ok_;
   ItemMenu menu_;
