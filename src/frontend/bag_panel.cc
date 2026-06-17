@@ -110,7 +110,7 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   //   info[7..19] = job string (13 chars, padded)
   opt.entries_option.transform =
       [this](ftxui::EntryState state) -> ftxui::Element {
-    const ftxui::Color kRed = ftxui::Color::RGB(255, 85, 85);
+    const ftxui::Color kRed = ftxui::Color::RGB(185, 70, 70);
     const std::string& lbl = state.label;
     std::string cursor = state.focused ? "> " : "  ";
     int idx = state.index;
