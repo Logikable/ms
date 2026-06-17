@@ -485,6 +485,62 @@ TEST_F(CanEquipTest, ReturnsFalseForEmptyJobCategories) {
   EXPECT_FALSE(c_.CanEquip(sword_));
 }
 
+class MeetsLevelTest : public CharacterEquipFixture {};
+class MeetsJobTest : public CharacterEquipFixture {};
+
+// --- MeetsLevel ---
+
+TEST_F(MeetsLevelTest, TrueWhenNoRequiredLevel) {
+  EXPECT_TRUE(c_.MeetsLevel(sword_));
+}
+
+TEST_F(MeetsLevelTest, TrueWhenLevelExactlyMet) {
+  sword_.set_required_level(1);
+  EXPECT_TRUE(c_.MeetsLevel(sword_));
+}
+
+TEST_F(MeetsLevelTest, TrueWhenLevelExceeded) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
+  sword_.set_required_level(5);
+  EXPECT_TRUE(c.MeetsLevel(sword_));
+}
+
+TEST_F(MeetsLevelTest, FalseWhenLevelTooLow) {
+  sword_.set_required_level(10);
+  EXPECT_FALSE(c_.MeetsLevel(sword_));
+}
+
+// --- MeetsJob ---
+
+TEST_F(MeetsJobTest, TrueWhenNoJobCategories) {
+  // Empty categories are treated as universal (unlike CanEquip).
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_TRUE(c_.MeetsJob(sword_));
+}
+
+TEST_F(MeetsJobTest, TrueForUniversalCategory) {
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_TRUE(c_.MeetsJob(sword_));
+}
+
+TEST_F(MeetsJobTest, TrueWhenJobMatches) {
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_TRUE(c_.MeetsJob(sword_));
+}
+
+TEST_F(MeetsJobTest, FalseWhenJobDoesNotMatch) {
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_BOWMAN);
+  c_.AdvanceJob(JOB_WARRIOR);
+  EXPECT_FALSE(c_.MeetsJob(sword_));
+}
+
+TEST_F(MeetsJobTest, FalseWhenJobUnspecified) {
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  EXPECT_FALSE(c_.MeetsJob(sword_));
+}
+
 // --- Trace items in inventory ---
 
 TEST_F(StarForceTraceTest, EquipTraceInInventoryReturnsFalse) {

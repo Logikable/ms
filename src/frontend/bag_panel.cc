@@ -102,8 +102,33 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   opt.on_enter = [on_enter]() { on_enter(); };
   // Suppress the default color inversion so the caret indicator looks the same
   // whether or not the item menu is open.
-  opt.entries_option.transform = [](ftxui::EntryState state) -> ftxui::Element {
-    return ftxui::text((state.focused ? "> " : "  ") + state.label);
+  // Color is applied here rather than at entry-generation time because
+  // ftxui::Menu only accepts std::string* entries; transform is the only hook
+  // that can produce a colored Element.
+  // label layout: name(26) + "  "(2) + slot(10) + "  "(2) + info(20) + rest
+  //   info[0..6]  = "LvXXX  "  (level, 7 chars)
+  //   info[7..19] = job string (13 chars, padded)
+  opt.entries_option.transform =
+      [this](ftxui::EntryState state) -> ftxui::Element {
+    const ftxui::Color kRed = ftxui::Color::RGB(255, 85, 85);
+    const std::string& lbl = state.label;
+    std::string cursor = state.focused ? "> " : "  ";
+    int idx = state.index;
+    bool lv_ok = idx < 0 || idx >= (int)level_ok_.size() || level_ok_[idx];
+    bool jb_ok = idx < 0 || idx >= (int)job_ok_.size() || job_ok_[idx];
+    if ((lv_ok && jb_ok) || (int)lbl.size() < 60) {
+      return ftxui::text(cursor + lbl);
+    }
+    ftxui::Element lv_elem = ftxui::text(lbl.substr(40, 7));
+    if (!lv_ok) {
+      lv_elem = lv_elem | ftxui::color(kRed);
+    }
+    ftxui::Element job_elem = ftxui::text(lbl.substr(47, 13));
+    if (!jb_ok) {
+      job_elem = job_elem | ftxui::color(kRed);
+    }
+    return ftxui::hbox({ftxui::text(cursor + lbl.substr(0, 40)), lv_elem,
+                        job_elem, ftxui::text(lbl.substr(60))});
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
@@ -111,6 +136,8 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   // in sync with changes made via on_enter.
   return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
     entries_.clear();
+    level_ok_.clear();
+    job_ok_.clear();
     for (int i = 0; i < character_.inventory().size(); ++i) {
       const EquipTabItem& item = character_.inventory()[i];
       const EquipPrototype& proto = item.prototype();
@@ -126,6 +153,8 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
         scroll_left = item.equip_state().remaining_upgrade_slots();
         scroll_restore = proto.upgrade_slots() - scroll_pass - scroll_left;
       }
+      level_ok_.push_back(character_.MeetsLevel(proto));
+      job_ok_.push_back(character_.MeetsJob(proto));
       entries_.push_back(FormatItemEntry(item.name(), proto.equip_slot(), info,
                                          scroll_pass, scroll_left,
                                          scroll_restore));

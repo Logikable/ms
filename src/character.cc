@@ -245,4 +245,25 @@ bool CharacterInstance::CanEquip(const EquipPrototype& proto) const {
   return false;
 }
 
+bool CharacterInstance::MeetsLevel(const EquipPrototype& proto) const {
+  return proto.required_level() == 0 ||
+         character_.level() >= proto.required_level();
+}
+
+bool CharacterInstance::MeetsJob(const EquipPrototype& proto) const {
+  if (proto.equip_job_categories_size() == 0) {
+    return true;
+  }
+  EquipJobCategory char_cat = JobToCategory(character_.job());
+  if (char_cat == EQUIP_JOB_CATEGORY_UNSPECIFIED) {
+    return false;
+  }
+  for (int cat : proto.equip_job_categories()) {
+    if (cat == EQUIP_JOB_CATEGORY_UNIVERSAL || cat == char_cat) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace ms

@@ -40,6 +40,10 @@ class CharacterInstance {
   // Returns true if the character meets the level and job requirements to
   // equip the item described by `proto`.
   bool CanEquip(const EquipPrototype& proto) const;
+  // Returns true if the character's level meets proto's required level.
+  bool MeetsLevel(const EquipPrototype& proto) const;
+  // Returns true if the character's job category matches proto's job filter.
+  bool MeetsJob(const EquipPrototype& proto) const;
   // Appends item to inventory. Accepts any EquipTabItem subclass (EquipInstance
   // or EquipTrace); the caller is responsible for constructing the item.
   void PickUp(std::unique_ptr<EquipTabItem> item);
