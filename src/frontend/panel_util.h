@@ -4,6 +4,7 @@
 #include <string>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/colors.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -56,9 +57,6 @@ ftxui::Element ConfirmBar(bool cancel_selected);
 // Renders the confirm bar in a titled window. Intended to appear below the
 // main action panel so height is reserved only when confirmation is pending.
 ftxui::Element ConfirmWindow(bool cancel_selected);
-
-// Returns the game's steel-blue theme color for borders and separators.
-ftxui::Color PanelBorderColor();
 
 // Wraps content in a bordered window with the game's steel-blue theme color on
 // the border and title. Content foreground is set to white; explicitly colored

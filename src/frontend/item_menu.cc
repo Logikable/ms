@@ -28,8 +28,7 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
       ftxui::hbox({
           ftxui::filler() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, col),
           ftxui::vbox(std::move(items)) | ftxui::color(ftxui::Color::White) |
-              ftxui::border | ftxui::color(PanelBorderColor()) |
-              ftxui::clear_under,
+              ftxui::border | ftxui::color(kTheme) | ftxui::clear_under,
           ftxui::filler(),
       }),
       ftxui::filler(),

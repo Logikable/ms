@@ -114,18 +114,14 @@ ftxui::Element ConfirmWindow(bool cancel_selected) {
   return ThemedWindow("", ConfirmBar(cancel_selected) | ftxui::hcenter);
 }
 
-ftxui::Color PanelBorderColor() {
-  return ftxui::Color::RGB(100, 150, 200);
-}
-
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content) {
-  return ftxui::window(ftxui::text(title) | ftxui::color(PanelBorderColor()),
+  return ftxui::window(ftxui::text(title) | ftxui::color(kTheme),
                        std::move(content) | ftxui::color(ftxui::Color::White)) |
-         ftxui::color(PanelBorderColor());
+         ftxui::color(kTheme);
 }
 
 ftxui::Element ThemedSeparator() {
-  return ftxui::separator() | ftxui::color(PanelBorderColor());
+  return ftxui::separator() | ftxui::color(kTheme);
 }
 
 }  // namespace ms

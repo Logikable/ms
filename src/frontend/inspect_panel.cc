@@ -85,8 +85,8 @@ ftxui::Element InspectPanel::Render() const {
 }
 
 ftxui::Element InspectPanel::StarBar(int stars, int max_stars) {
-  const ftxui::Color kFilled = ftxui::Color::RGB(255, 210, 50);
-  const ftxui::Color kEmpty = ftxui::Color::RGB(100, 100, 100);
+  const ftxui::Color kFilled = kYellow;
+  const ftxui::Color kEmpty = kGray;
   std::vector<ftxui::Element> parts;
   for (int i = 0; i < max_stars; ++i) {
     if (i > 0 && i % 5 == 0) {
@@ -110,8 +110,8 @@ ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
     return ftxui::text(" " + label + "  +" + std::to_string(total) + " ");
   }
   // Breakdown: base in default color, scroll in amber, SF in periwinkle.
-  const ftxui::Color kScrollColor = ftxui::Color::RGB(173, 163, 255);
-  const ftxui::Color kSfColor = ftxui::Color::RGB(255, 198, 50);
+  const ftxui::Color kScrollColor = kPurple;
+  const ftxui::Color kSfColor = kOrange;
   std::vector<ftxui::Element> parts;
   parts.push_back(
       ftxui::text(" " + label + "  +" + std::to_string(total) + " ("));

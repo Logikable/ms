@@ -11,10 +11,19 @@ cc_library(
 )
 
 cc_library(
+    name = "colors",
+    hdrs = ["colors.h"],
+    deps = [
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
     name = "panel_util",
     srcs = ["panel_util.cc"],
     hdrs = ["panel_util.h"],
     deps = [
+        ":colors",
         "//src/protos:equip_proto_cc",
         "@ftxui//:dom",
     ],
@@ -34,7 +43,7 @@ cc_library(
     srcs = ["character_panel.cc"],
     hdrs = ["character_panel.h"],
     deps = [
-        ":panel_util",
+        ":colors",
         ":types",
         "//src:character",
         "//src/protos:character_proto_cc",

@@ -6,7 +6,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/frontend/panel_util.h"
+#include "src/frontend/colors.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -93,7 +93,7 @@ ftxui::Element CharacterPanel::Render() const {
   // Each row is a literal string; ┼ appears at the exact junction columns so
   // no automerge is needed. Rows 2/6 are 32 wide (with AP balcony), rest 26.
   // Border chars are colored via PanelBorderColor(); content text is unstyled.
-  const ftxui::Color kB = PanelBorderColor();
+  const ftxui::Color kB = kTheme;
   auto B = [kB](const std::string& s) -> ftxui::Element {
     return ftxui::text(s) | ftxui::color(kB);
   };
