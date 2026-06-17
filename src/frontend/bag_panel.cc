@@ -114,23 +114,24 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
     const std::string& lbl = state.label;
     std::string cursor = state.focused ? "> " : "  ";
     int idx = state.index;
-    bool trace = idx >= 0 && idx < (int)is_trace_.size() && is_trace_[idx];
-    bool lv_ok = idx < 0 || idx >= (int)level_ok_.size() || level_ok_[idx];
-    bool jb_ok = idx < 0 || idx >= (int)job_ok_.size() || job_ok_[idx];
-    if ((lv_ok && jb_ok && !trace) || (int)lbl.size() < 60) {
+    if (idx < 0 || idx >= (int)rows_.size() || (int)lbl.size() < 60) {
+      return ftxui::text(cursor + lbl);
+    }
+    const BagRowState& row = rows_[idx];
+    if (row.level_ok && row.job_ok && !row.is_trace) {
       return ftxui::text(cursor + lbl);
     }
     // name(26) | "  "+slot(10)+"  "(14) | level(7) | job(13) | rest
     ftxui::Element name_elem = ftxui::text(lbl.substr(0, 26));
-    if (trace) {
+    if (row.is_trace) {
       name_elem = name_elem | ftxui::dim;
     }
     ftxui::Element lv_elem = ftxui::text(lbl.substr(40, 7));
-    if (!lv_ok) {
+    if (!row.level_ok) {
       lv_elem = lv_elem | ftxui::color(kRed);
     }
     ftxui::Element job_elem = ftxui::text(lbl.substr(47, 13));
-    if (!jb_ok) {
+    if (!row.job_ok) {
       job_elem = job_elem | ftxui::color(kRed);
     }
     return ftxui::hbox({ftxui::text(cursor), name_elem,
@@ -139,13 +140,11 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
-  // entries_ is rebuilt from inventory() on every render so the display stays
-  // in sync with changes made via on_enter.
+  // rows_ and entries_ are rebuilt from inventory() on every render so the
+  // display stays in sync with changes made via on_enter.
   return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
+    rows_.clear();
     entries_.clear();
-    is_trace_.clear();
-    level_ok_.clear();
-    job_ok_.clear();
     for (int i = 0; i < character_.inventory().size(); ++i) {
       const EquipTabItem& item = character_.inventory()[i];
       const EquipPrototype& proto = item.prototype();
@@ -161,12 +160,14 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
         scroll_left = item.equip_state().remaining_upgrade_slots();
         scroll_restore = proto.upgrade_slots() - scroll_pass - scroll_left;
       }
-      is_trace_.push_back(character_.inventory().equip_instance(i) == nullptr);
-      level_ok_.push_back(character_.MeetsLevel(proto));
-      job_ok_.push_back(character_.MeetsJob(proto));
-      entries_.push_back(FormatItemEntry(item.name(), proto.equip_slot(), info,
-                                         scroll_pass, scroll_left,
-                                         scroll_restore));
+      BagRowState row;
+      row.label = FormatItemEntry(item.name(), proto.equip_slot(), info,
+                                  scroll_pass, scroll_left, scroll_restore);
+      row.is_trace = character_.inventory().equip_instance(i) == nullptr;
+      row.level_ok = character_.MeetsLevel(proto);
+      row.job_ok = character_.MeetsJob(proto);
+      entries_.push_back(row.label);
+      rows_.push_back(std::move(row));
     }
     if (!entries_.empty()) {
       selected_ = std::min(selected_, character_.inventory().size() - 1);

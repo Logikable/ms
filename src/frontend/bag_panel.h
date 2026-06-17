@@ -24,6 +24,13 @@ namespace ms {
 
 class ScrollPanel;
 
+struct BagRowState {
+  std::string label;
+  bool is_trace;
+  bool level_ok;
+  bool job_ok;
+};
+
 class BagPanel {
  public:
   BagPanel(CharacterInstance& character, int& panel_focus);
@@ -45,10 +52,9 @@ class BagPanel {
   CharacterInstance& character_;
   int& panel_focus_;
   int selected_ = 0;
-  std::vector<std::string> entries_;
-  std::vector<bool> is_trace_;
-  std::vector<bool> level_ok_;
-  std::vector<bool> job_ok_;
+  std::vector<BagRowState> rows_;
+  std::vector<std::string>
+      entries_;  // labels derived from rows_ for ftxui::Menu
   ItemMenu menu_;
 };
 
