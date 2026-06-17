@@ -34,6 +34,7 @@ cc_library(
     srcs = ["character_panel.cc"],
     hdrs = ["character_panel.h"],
     deps = [
+        ":panel_util",
         ":types",
         "//src:character",
         "//src/protos:character_proto_cc",
@@ -127,6 +128,7 @@ cc_library(
     srcs = ["ap_alloc_panel.cc"],
     hdrs = ["ap_alloc_panel.h"],
     deps = [
+        ":panel_util",
         ":types",
         "//src:character",
         "//src/protos:character_proto_cc",
@@ -155,6 +157,7 @@ cc_library(
     srcs = ["item_menu.cc"],
     hdrs = ["item_menu.h"],
     deps = [
+        ":panel_util",
         "@ftxui//:dom",
     ],
 )

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/panel_util.h"
 
 namespace ms {
 
@@ -26,7 +27,9 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
       ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, row),
       ftxui::hbox({
           ftxui::filler() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, col),
-          ftxui::vbox(std::move(items)) | ftxui::border | ftxui::clear_under,
+          ftxui::vbox(std::move(items)) | ftxui::color(ftxui::Color::White) |
+              ftxui::border | ftxui::color(PanelBorderColor()) |
+              ftxui::clear_under,
           ftxui::filler(),
       }),
       ftxui::filler(),

@@ -111,8 +111,21 @@ ftxui::Element ConfirmBar(bool cancel_selected) {
 }
 
 ftxui::Element ConfirmWindow(bool cancel_selected) {
-  return ftxui::window(ftxui::text(""),
-                       ConfirmBar(cancel_selected) | ftxui::hcenter);
+  return ThemedWindow("", ConfirmBar(cancel_selected) | ftxui::hcenter);
+}
+
+ftxui::Color PanelBorderColor() {
+  return ftxui::Color::RGB(100, 150, 200);
+}
+
+ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content) {
+  return ftxui::window(ftxui::text(title) | ftxui::color(PanelBorderColor()),
+                       std::move(content) | ftxui::color(ftxui::Color::White)) |
+         ftxui::color(PanelBorderColor());
+}
+
+ftxui::Element ThemedSeparator() {
+  return ftxui::separator() | ftxui::color(PanelBorderColor());
 }
 
 }  // namespace ms

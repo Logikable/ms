@@ -6,6 +6,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
+#include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -102,16 +103,16 @@ ftxui::Element ApAllocPanel::RenderBelowPanel(int ap) const {
   } else {
     cancel_btn = cancel_btn | ftxui::inverted;
   }
-  return ftxui::window(ftxui::text(""), ftxui::vbox({
-                                            ftxui::text(msg),
-                                            ftxui::hbox({
-                                                ftxui::text(" "),
-                                                confirm_btn,
-                                                ftxui::text("  "),
-                                                cancel_btn,
-                                                ftxui::text(" "),
-                                            }),
-                                        }));
+  return ThemedWindow("", ftxui::vbox({
+                              ftxui::text(msg),
+                              ftxui::hbox({
+                                  ftxui::text(" "),
+                                  confirm_btn,
+                                  ftxui::text("  "),
+                                  cancel_btn,
+                                  ftxui::text(" "),
+                              }),
+                          }));
 }
 
 ftxui::Element ApAllocPanel::Render() const {
@@ -123,7 +124,7 @@ ftxui::Element ApAllocPanel::Render() const {
 
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text(" AP: " + std::to_string(ap) + " "));
-  rows.push_back(ftxui::separator());
+  rows.push_back(ThemedSeparator());
 
   std::vector<std::string> row_texts;
   int max_row_width = 0;
@@ -168,8 +169,8 @@ ftxui::Element ApAllocPanel::Render() const {
     }));
   }
 
-  ftxui::Element main = ftxui::window(ftxui::text(" AP Allocation "),
-                                      ftxui::vbox(std::move(rows)));
+  ftxui::Element main =
+      ThemedWindow(" AP Allocation ", ftxui::vbox(std::move(rows)));
   return ftxui::vbox({main, RenderBelowPanel(ap)});
 }
 

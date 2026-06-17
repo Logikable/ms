@@ -6,6 +6,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -91,21 +92,23 @@ ftxui::Element CharacterPanel::Render() const {
 
   // Each row is a literal string; ┼ appears at the exact junction columns so
   // no automerge is needed. Rows 2/6 are 32 wide (with AP balcony), rest 26.
+  // Border chars are colored via PanelBorderColor(); content text is unstyled.
+  const ftxui::Color kB = PanelBorderColor();
+  auto B = [kB](const std::string& s) -> ftxui::Element {
+    return ftxui::text(s) | ftxui::color(kB);
+  };
   return ftxui::vbox({
-      ftxui::text("╭ Character ─────────────╮"),
-      ftxui::text("│" + title + "│"),
-      ftxui::text("├────────────────────────┼──────╮"),
-      ftxui::text("│" + hp_mp + "│  AP  │"),
-      ftxui::hbox({
-          ftxui::text("│" + str_dex + "│"),
-          ap_cell,
-          ftxui::text("│"),
-      }),
-      ftxui::text("│" + int_luk + "│      │"),
-      ftxui::text("├────────────────────────┼──────╯"),
-      ftxui::text("│" + att + "│"),
-      ftxui::text("│" + matt + "│"),
-      ftxui::text("╰────────────────────────╯"),
+      B("╭ Character ─────────────╮"),
+      ftxui::hbox({B("│"), ftxui::text(title), B("│")}),
+      B("├────────────────────────┼──────╮"),
+      ftxui::hbox(
+          {B("│"), ftxui::text(hp_mp), B("│"), ftxui::text("  AP  "), B("│")}),
+      ftxui::hbox({B("│"), ftxui::text(str_dex), B("│"), ap_cell, B("│")}),
+      ftxui::hbox({B("│"), ftxui::text(int_luk), B("│      │")}),
+      B("├────────────────────────┼──────╯"),
+      ftxui::hbox({B("│"), ftxui::text(att), B("│")}),
+      ftxui::hbox({B("│"), ftxui::text(matt), B("│")}),
+      B("╰────────────────────────╯"),
   });
 }
 

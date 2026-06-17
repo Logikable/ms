@@ -173,14 +173,14 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
       selected_ = std::min(selected_, character_.inventory().size() - 1);
     }
     if (entries_.empty()) {
-      return ftxui::window(ftxui::text(" Bag "), ftxui::text("(empty)"));
+      return ThemedWindow(" Bag ", ftxui::text("(empty)"));
     }
-    return ftxui::window(ftxui::text(" Bag "), ftxui::vbox({
-                                                   ftxui::text(kColumnHeader),
-                                                   ftxui::text(kColumnHeader2),
-                                                   ftxui::separator(),
-                                                   menu->Render(),
-                                               }));
+    return ThemedWindow(" Bag ", ftxui::vbox({
+                                     ftxui::text(kColumnHeader),
+                                     ftxui::text(kColumnHeader2),
+                                     ThemedSeparator(),
+                                     menu->Render(),
+                                 }));
   });
 }
 

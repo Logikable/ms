@@ -16,7 +16,7 @@ void InspectPanel::SetItem(const EquipTabItem* item) {
 
 ftxui::Element InspectPanel::Render() const {
   if (item_ == nullptr) {
-    return ftxui::window(ftxui::text(" Inspect "), ftxui::text(" (none)"));
+    return ThemedWindow(" Inspect ", ftxui::text(" (none)"));
   }
 
   const Equip& item_state = item_->equip_state();
@@ -32,11 +32,11 @@ ftxui::Element InspectPanel::Render() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(StarBar(stars, max_stars) | ftxui::hcenter);
   rows.push_back(ftxui::text(item_->name()) | ftxui::hcenter);
-  rows.push_back(ftxui::separator());
+  rows.push_back(ThemedSeparator());
   // Trailing space on each text row keeps the right border one column clear.
   rows.push_back(ftxui::text(" Req Lev: " + std::to_string(level) + " "));
   rows.push_back(FormatJobCategories(proto));
-  rows.push_back(ftxui::separator());
+  rows.push_back(ThemedSeparator());
 
   if (proto.equip_type() != EQUIP_TYPE_UNSPECIFIED) {
     rows.push_back(
@@ -72,7 +72,7 @@ ftxui::Element InspectPanel::Render() const {
     int pass = item_state.scroll_successes();
     int left = item_state.remaining_upgrade_slots();
     int restore = proto.upgrade_slots() - pass - left;
-    rows.push_back(ftxui::separator());
+    rows.push_back(ThemedSeparator());
     std::string scroll_label =
         pass == 1 ? " Successful Scroll " : " Successful Scrolls ";
     std::string restore_label = restore == 1 ? " Restore) " : " Restores) ";
@@ -81,7 +81,7 @@ ftxui::Element InspectPanel::Render() const {
                                std::to_string(restore) + restore_label));
   }
 
-  return ftxui::window(ftxui::text(" Inspect "), ftxui::vbox(std::move(rows)));
+  return ThemedWindow(" Inspect ", ftxui::vbox(std::move(rows)));
 }
 
 ftxui::Element InspectPanel::StarBar(int stars, int max_stars) {

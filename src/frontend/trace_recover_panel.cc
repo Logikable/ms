@@ -35,25 +35,23 @@ void TraceRecoverPanel::SetTrace(const EquipTabItem* trace) {
 
 ftxui::Element TraceRecoverPanel::Render() const {
   if (trace_ == nullptr) {
-    return ftxui::window(ftxui::text(" Trace Recovery "),
-                         ftxui::text(" (no trace) "));
+    return ThemedWindow(" Trace Recovery ", ftxui::text(" (no trace) "));
   }
 
   int recovery_stars = EquipInstance::RecoveryStars(trace_->stars());
 
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text(trace_->name()) | ftxui::hcenter);
-  rows.push_back(ftxui::separator());
+  rows.push_back(ThemedSeparator());
   rows.push_back(
       ftxui::text("Recovers at " + std::to_string(recovery_stars) + "★") |
       ftxui::hcenter);
-  rows.push_back(ftxui::separator());
+  rows.push_back(ThemedSeparator());
 
   if (matching_indices_.empty()) {
     rows.push_back(ftxui::text(" No matching item in inventory ") |
                    ftxui::hcenter);
-    return ftxui::window(ftxui::text(" Trace Recovery "),
-                         ftxui::vbox(std::move(rows)));
+    return ThemedWindow(" Trace Recovery ", ftxui::vbox(std::move(rows)));
   }
 
   for (int i = 0; i < static_cast<int>(matching_indices_.size()); ++i) {
@@ -64,8 +62,7 @@ ftxui::Element TraceRecoverPanel::Render() const {
   }
   ftxui::Element content = ftxui::vbox(std::move(rows)) |
                            ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 21);
-  ftxui::Element main =
-      ftxui::window(ftxui::text(" Trace Recovery "), std::move(content));
+  ftxui::Element main = ThemedWindow(" Trace Recovery ", std::move(content));
   if (confirming_) {
     return ftxui::vbox(
         {std::move(main) | ftxui::yflex, ConfirmWindow(confirm_cancel_)});
@@ -133,11 +130,11 @@ int TraceRecoverPanel::selected_index() const {
 
 ftxui::Element TraceRecoverPanel::RenderResult(
     const TraceRecoveryResult& r) const {
-  return ftxui::window(
-      ftxui::text(" Recovery Complete "),
+  return ThemedWindow(
+      " Recovery Complete ",
       ftxui::vbox({
           ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-          ftxui::separator(),
+          ThemedSeparator(),
           ftxui::text("Recovered at " + std::to_string(r.stars_recovered) +
                       "★") |
               ftxui::hcenter,

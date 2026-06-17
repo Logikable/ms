@@ -104,11 +104,11 @@ void ScrollPanel::ResetComponent() {
     }
     std::vector<ftxui::Element> rows = {
         ftxui::text(kColumnHeader),
-        ftxui::separator(),
+        ThemedSeparator(),
         menu->Render(),
     };
     ftxui::Element main =
-        ftxui::window(ftxui::text("  Scrolls "), ftxui::vbox(std::move(rows)));
+        ThemedWindow("  Scrolls ", ftxui::vbox(std::move(rows)));
     if (confirming_) {
       // yflex lets main fill the remaining height after the confirm window
       // takes its 3 rows, matching the full-height behaviour without confirm.
@@ -171,15 +171,14 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
     std::string msg = r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE
                           ? " No lost slots to restore "
                           : " No scroll slots remaining ";
-    return ftxui::window(
-        ftxui::text(" Error "),
-        ftxui::vbox({
-            ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-            ftxui::separator(),
-            ftxui::text(msg) | ftxui::hcenter,
-            ftxui::text(""),
-            ftxui::text(" Press Enter to continue "),
-        }));
+    return ThemedWindow(
+        " Error ", ftxui::vbox({
+                       ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
+                       ThemedSeparator(),
+                       ftxui::text(msg) | ftxui::hcenter,
+                       ftxui::text(""),
+                       ftxui::text(" Press Enter to continue "),
+                   }));
   }
   std::string result_text;
   if (r.outcome == kScrollSuccess &&
@@ -190,11 +189,11 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
   } else {
     result_text = " FAILED ";
   }
-  return ftxui::window(
-      ftxui::text(" Result "),
+  return ThemedWindow(
+      " Result ",
       ftxui::vbox({
           ftxui::text(" " + r.equip_name + "  |  " + r.scroll_name + " "),
-          ftxui::separator(),
+          ThemedSeparator(),
           ftxui::text(result_text) | ftxui::hcenter,
           ftxui::text(" " + std::to_string(r.slots_remaining) +
                       " slots remaining ") |

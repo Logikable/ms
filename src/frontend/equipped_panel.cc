@@ -131,15 +131,14 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
       selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
     }
     if (entries_.empty()) {
-      return ftxui::window(ftxui::text(" Equipped "), ftxui::text("(empty)"));
+      return ThemedWindow(" Equipped ", ftxui::text("(empty)"));
     }
-    return ftxui::window(ftxui::text(" Equipped "),
-                         ftxui::vbox({
-                             ftxui::text(kColumnHeader),
-                             ftxui::text(kColumnHeader2),
-                             ftxui::separator(),
-                             menu->Render(),
-                         }));
+    return ThemedWindow(" Equipped ", ftxui::vbox({
+                                          ftxui::text(kColumnHeader),
+                                          ftxui::text(kColumnHeader2),
+                                          ThemedSeparator(),
+                                          menu->Render(),
+                                      }));
   });
 }
 

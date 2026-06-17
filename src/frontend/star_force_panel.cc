@@ -40,21 +40,20 @@ void StarForcePanel::SetItem(const EquipInstance* item) {
 
 ftxui::Element StarForcePanel::Render() const {
   if (item_ == nullptr) {
-    return ftxui::window(ftxui::text(" Star Force "),
-                         ftxui::text(" (no item) "));
+    return ThemedWindow(" Star Force ", ftxui::text(" (no item) "));
   }
 
   int stars = item_->stars();
   std::string name = item_->prototype().name();
 
   if (stars >= item_->max_stars()) {
-    return ftxui::window(
-        ftxui::text(" Star Force "),
+    return ThemedWindow(
+        " Star Force ",
         ftxui::vbox({
             ftxui::text(name) | ftxui::hcenter,
-            ftxui::separator(),
+            ThemedSeparator(),
             ftxui::text(std::to_string(stars) + "★ (max)") | ftxui::hcenter,
-            ftxui::separator(),
+            ThemedSeparator(),
             ftxui::text("Maximum stars reached.") | ftxui::hcenter,
         }));
   }
@@ -74,11 +73,11 @@ ftxui::Element StarForcePanel::Render() const {
 
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text(name) | ftxui::hcenter);
-  rows.push_back(ftxui::separator());
+  rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text(std::to_string(stars) + "★ → " +
                              std::to_string(stars + 1) + "★") |
                  ftxui::hcenter);
-  rows.push_back(ftxui::separator());
+  rows.push_back(ThemedSeparator());
   int label_w = 0;
   for (const DisplayStat& stat : kDisplayStats) {
     if (stat.GetFrom(after) - stat.GetFrom(before) > 0) {
@@ -93,7 +92,7 @@ ftxui::Element StarForcePanel::Render() const {
                      ftxui::hcenter);
     }
   }
-  rows.push_back(ftxui::separator());
+  rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text("Success  " + PadTo(success_str, rate_w)) |
                  ftxui::hcenter);
   rows.push_back(ftxui::text("Fail     " + PadTo(fail_str, rate_w)) |
@@ -106,8 +105,7 @@ ftxui::Element StarForcePanel::Render() const {
   // never widens when the confirm window appears below.
   ftxui::Element content = ftxui::vbox(std::move(rows)) |
                            ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 21);
-  ftxui::Element main =
-      ftxui::window(ftxui::text(" Star Force "), std::move(content));
+  ftxui::Element main = ThemedWindow(" Star Force ", std::move(content));
   // Always allocate the same height below so ftxui::center never shifts the
   // panel when the confirm window appears.
   ftxui::Element below =
@@ -180,16 +178,15 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
   } else {
     stars_text = "lost at " + std::to_string(r.stars_before) + "★";
   }
-  return ftxui::window(
-      ftxui::text(" Result "),
-      ftxui::vbox({
-          ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-          ftxui::separator(),
-          ftxui::text(outcome_text) | ftxui::hcenter,
-          ftxui::text(stars_text) | ftxui::hcenter,
-          ftxui::text(""),
-          ftxui::text(" Press Enter to continue "),
-      }));
+  return ThemedWindow(
+      " Result ", ftxui::vbox({
+                      ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
+                      ThemedSeparator(),
+                      ftxui::text(outcome_text) | ftxui::hcenter,
+                      ftxui::text(stars_text) | ftxui::hcenter,
+                      ftxui::text(""),
+                      ftxui::text(" Press Enter to continue "),
+                  }));
 }
 
 }  // namespace ms

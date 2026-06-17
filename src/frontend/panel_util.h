@@ -57,6 +57,17 @@ ftxui::Element ConfirmBar(bool cancel_selected);
 // main action panel so height is reserved only when confirmation is pending.
 ftxui::Element ConfirmWindow(bool cancel_selected);
 
+// Returns the game's steel-blue theme color for borders and separators.
+ftxui::Color PanelBorderColor();
+
+// Wraps content in a bordered window with the game's steel-blue theme color on
+// the border and title. Content foreground is set to white; explicitly colored
+// elements (gold stars, amber SF, etc.) and ThemedSeparator override it.
+ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content);
+
+// Returns a horizontal separator rule in the theme border color.
+ftxui::Element ThemedSeparator();
+
 }  // namespace ms
 
 #endif  // MS_SRC_FRONTEND_PANEL_UTIL_H_
