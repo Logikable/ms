@@ -94,12 +94,12 @@ ftxui::Element StarForcePanel::Render() const {
   }
   rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text("Success  " + PadTo(success_str, rate_w)) |
-                 ftxui::hcenter);
+                 ftxui::hcenter | ftxui::color(kGreen));
   rows.push_back(ftxui::text("Fail     " + PadTo(fail_str, rate_w)) |
-                 ftxui::hcenter);
+                 ftxui::hcenter | ftxui::color(kMutedYellow));
   if (rate.destroy > 0) {
     rows.push_back(ftxui::text("Destroy  " + PadTo(destroy_str, rate_w)) |
-                   ftxui::hcenter);
+                   ftxui::hcenter | ftxui::color(kRed));
   }
   // Constrain inner width to at least ConfirmWindow's inner width so the panel
   // never widens when the confirm window appears below.
