@@ -9,6 +9,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -181,20 +182,25 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
                    }));
   }
   std::string result_text;
+  ftxui::Color result_color;
   if (r.outcome == kScrollSuccess &&
       r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE) {
     result_text = " Slot Restored ";
+    result_color = kGreen;
   } else if (r.outcome == kScrollSuccess) {
     result_text = " SUCCESS ";
+    result_color = kGreen;
   } else {
     result_text = " FAILED ";
+    result_color = kMutedYellow;
   }
   return ThemedWindow(
       " Result ",
       ftxui::vbox({
           ftxui::text(" " + r.equip_name + "  |  " + r.scroll_name + " "),
           ThemedSeparator(),
-          ftxui::text(result_text) | ftxui::hcenter,
+          ftxui::text(result_text) | ftxui::hcenter |
+              ftxui::color(result_color),
           ftxui::text(" " + std::to_string(r.slots_remaining) +
                       " slots remaining ") |
               ftxui::hcenter,

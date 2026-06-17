@@ -7,6 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 
 namespace ms {
@@ -162,12 +163,16 @@ void StarForcePanel::ResetConfirm() {
 
 ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
   std::string outcome_text;
+  ftxui::Color outcome_color;
   if (r.outcome == kStarForceSuccess) {
     outcome_text = " SUCCESS ";
+    outcome_color = kGreen;
   } else if (r.outcome == kStarForceFail) {
     outcome_text = " FAILED ";
+    outcome_color = kMutedYellow;
   } else {
     outcome_text = " DESTROYED ";
+    outcome_color = kRed;
   }
   std::string stars_text;
   if (r.outcome == kStarForceSuccess) {
@@ -182,7 +187,8 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
       " Result ", ftxui::vbox({
                       ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
                       ThemedSeparator(),
-                      ftxui::text(outcome_text) | ftxui::hcenter,
+                      ftxui::text(outcome_text) | ftxui::hcenter |
+                          ftxui::color(outcome_color),
                       ftxui::text(stars_text) | ftxui::hcenter,
                       ftxui::text(""),
                       ftxui::text(" Press Enter to continue "),
