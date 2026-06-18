@@ -175,7 +175,7 @@ ftxui::Element ApAllocPanel::Render() const {
 }
 
 Screen ApAllocPanel::OnConfirmEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape) {
+  if (IsBack(event)) {
     confirming_ = false;
     return kApAlloc;
   }
@@ -187,7 +187,7 @@ Screen ApAllocPanel::OnConfirmEvent(ftxui::Event event) {
     confirm_sel_ = kSelCancel;
     return kApAlloc;
   }
-  if (event == ftxui::Event::Return) {
+  if (IsForward(event)) {
     if (confirm_sel_ == kSelConfirm) {
       character_.AllocateAllStat(kStats[selected_].field);
     }
@@ -200,7 +200,7 @@ Screen ApAllocPanel::OnEvent(ftxui::Event event) {
   if (confirming_) {
     return OnConfirmEvent(event);
   }
-  if (event == ftxui::Event::Escape) {
+  if (IsBack(event)) {
     return kMain;
   }
   if (event == ftxui::Event::ArrowUp) {
@@ -225,7 +225,7 @@ Screen ApAllocPanel::OnEvent(ftxui::Event event) {
     button_ = kButtonAll;
     return kApAlloc;
   }
-  if (event == ftxui::Event::Return && character_.proto().ap() > 0) {
+  if (IsForward(event) && character_.proto().ap() > 0) {
     if (button_ == kButtonPlus1) {
       character_.AllocateStat(kStats[selected_].field);
     } else {

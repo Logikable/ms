@@ -6,6 +6,7 @@
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
+#include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
@@ -141,14 +142,14 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnInspectEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+  if (IsBack(event) || IsForward(event)) {
     screen_ = kMain;
   }
   return true;
 }
 
 bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape && !scroll_panel_.IsConfirming()) {
+  if (IsBack(event) && !scroll_panel_.IsConfirming()) {
     if (panel_focus_ == kEquipPanel) {
       equip_panel_.OpenMenu();
     } else {
@@ -157,7 +158,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     screen_ = kItemMenu;
     return true;
   }
-  if (event == ftxui::Event::Return && !scroll_panel_.IsConfirming()) {
+  if (IsForward(event) && !scroll_panel_.IsConfirming()) {
     const EquipInstance* item = scroll_item();
     const Scroll& scroll = scroll_panel_.selected_scroll();
     int remaining = item->equip_state().remaining_upgrade_slots();
@@ -208,7 +209,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnScrollResultEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+  if (IsBack(event) || IsForward(event)) {
     screen_ = kScrollSelect;
   }
   return true;
@@ -230,7 +231,7 @@ const EquipInstance* TuiController::star_force_item() const {
 }
 
 bool TuiController::OnStarForceEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape && !star_force_panel_.IsConfirming()) {
+  if (IsBack(event) && !star_force_panel_.IsConfirming()) {
     screen_ = kMain;
     return true;
   }
@@ -256,7 +257,7 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnStarForceResultEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+  if (IsBack(event) || IsForward(event)) {
     screen_ =
         star_force_result_.outcome == kStarForceDestroy ? kMain : kStarForce;
   }
@@ -271,7 +272,7 @@ const EquipTabItem* TuiController::trace_recover_item() const {
 }
 
 bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape && !trace_recover_panel_.IsConfirming()) {
+  if (IsBack(event) && !trace_recover_panel_.IsConfirming()) {
     screen_ = kItemMenu;
     return true;
   }
@@ -289,7 +290,7 @@ bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnTraceRecoverResultEvent(ftxui::Event event) {
-  if (event == ftxui::Event::Escape || event == ftxui::Event::Return) {
+  if (IsBack(event) || IsForward(event)) {
     screen_ = kMain;
   }
   return true;

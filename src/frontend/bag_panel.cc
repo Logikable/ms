@@ -58,7 +58,7 @@ void BagPanel::OpenMenu() {
 
 Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
                              ScrollPanel& scroll_panel) {
-  if (event == ftxui::Event::Escape) {
+  if (IsBack(event)) {
     return kMain;
   }
   if (event == ftxui::Event::ArrowUp) {
@@ -69,7 +69,7 @@ Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
     menu_.Down();
     return kItemMenu;
   }
-  if (event == ftxui::Event::Return) {
+  if (IsForward(event)) {
     if (menu_.selected() == kMenuAction) {
       character_.Equip(selected_);
       if (character_.inventory().empty()) {
@@ -141,45 +141,53 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
 
   // rows_ and entries_ are rebuilt from inventory() on every render so the
   // display stays in sync with changes made via on_enter.
-  return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
-    rows_.clear();
-    entries_.clear();
-    for (int i = 0; i < character_.inventory().size(); ++i) {
-      const EquipTabItem& item = character_.inventory()[i];
-      const EquipPrototype& proto = item.prototype();
-      int level = 1;
-      if (proto.required_level() > 0) {
-        level = proto.required_level();
-      }
-      std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
-                         FormatJobCategories(proto);
-      int scroll_pass = -1, scroll_left = -1, scroll_restore = -1;
-      if (proto.upgrade_slots() > 0) {
-        scroll_pass = item.equip_state().scroll_successes();
-        scroll_left = item.equip_state().remaining_upgrade_slots();
-        scroll_restore = proto.upgrade_slots() - scroll_pass - scroll_left;
-      }
-      BagRowState row;
-      row.label = FormatItemEntry(item.name(), proto.equip_slot(), info,
-                                  scroll_pass, scroll_left, scroll_restore);
-      row.is_trace = character_.inventory().equip_instance(i) == nullptr;
-      row.level_ok = character_.MeetsLevel(proto);
-      row.job_ok = character_.MeetsJob(proto);
-      entries_.push_back(row.label);
-      rows_.push_back(std::move(row));
+  ftxui::Component renderer =
+      ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
+        rows_.clear();
+        entries_.clear();
+        for (int i = 0; i < character_.inventory().size(); ++i) {
+          const EquipTabItem& item = character_.inventory()[i];
+          const EquipPrototype& proto = item.prototype();
+          int level = 1;
+          if (proto.required_level() > 0) {
+            level = proto.required_level();
+          }
+          std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
+                             FormatJobCategories(proto);
+          int scroll_pass = -1, scroll_left = -1, scroll_restore = -1;
+          if (proto.upgrade_slots() > 0) {
+            scroll_pass = item.equip_state().scroll_successes();
+            scroll_left = item.equip_state().remaining_upgrade_slots();
+            scroll_restore = proto.upgrade_slots() - scroll_pass - scroll_left;
+          }
+          BagRowState row;
+          row.label = FormatItemEntry(item.name(), proto.equip_slot(), info,
+                                      scroll_pass, scroll_left, scroll_restore);
+          row.is_trace = character_.inventory().equip_instance(i) == nullptr;
+          row.level_ok = character_.MeetsLevel(proto);
+          row.job_ok = character_.MeetsJob(proto);
+          entries_.push_back(row.label);
+          rows_.push_back(std::move(row));
+        }
+        if (!entries_.empty()) {
+          selected_ = std::min(selected_, character_.inventory().size() - 1);
+        }
+        if (entries_.empty()) {
+          return ThemedWindow(" Bag ", ftxui::text("(empty)"));
+        }
+        return ThemedWindow(" Bag ", ftxui::vbox({
+                                         ftxui::text(kColumnHeader),
+                                         ftxui::text(kColumnHeader2),
+                                         ThemedSeparator(),
+                                         menu->Render(),
+                                     }));
+      });
+  return ftxui::CatchEvent(renderer, [on_enter](ftxui::Event event) {
+    if (event == ftxui::Event::Character(' ')) {
+      on_enter();
+      return true;
     }
-    if (!entries_.empty()) {
-      selected_ = std::min(selected_, character_.inventory().size() - 1);
-    }
-    if (entries_.empty()) {
-      return ThemedWindow(" Bag ", ftxui::text("(empty)"));
-    }
-    return ThemedWindow(" Bag ", ftxui::vbox({
-                                     ftxui::text(kColumnHeader),
-                                     ftxui::text(kColumnHeader2),
-                                     ThemedSeparator(),
-                                     menu->Render(),
-                                 }));
+    return false;
   });
 }
 

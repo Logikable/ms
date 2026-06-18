@@ -3,11 +3,22 @@
 
 #include <string>
 
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/colors.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
+
+// True for any "go back" key (Escape or Backspace).
+inline bool IsBack(const ftxui::Event& e) {
+  return e == ftxui::Event::Escape || e == ftxui::Event::Backspace;
+}
+
+// True for any "confirm / advance" key (Enter or Space).
+inline bool IsForward(const ftxui::Event& e) {
+  return e == ftxui::Event::Return || e == ftxui::Event::Character(' ');
+}
 
 // A single displayable stat: its label and how to read it from an EquipStats.
 struct DisplayStat {

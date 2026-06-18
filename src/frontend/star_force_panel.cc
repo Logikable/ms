@@ -118,7 +118,7 @@ ftxui::Element StarForcePanel::Render() const {
 
 bool StarForcePanel::OnEvent(ftxui::Event event) {
   if (confirming_) {
-    if (event == ftxui::Event::Escape) {
+    if (IsBack(event)) {
       confirming_ = false;
       confirm_cancel_ = false;
       return true;
@@ -131,7 +131,7 @@ bool StarForcePanel::OnEvent(ftxui::Event event) {
       confirm_cancel_ = true;
       return true;
     }
-    if (event == ftxui::Event::Return) {
+    if (IsForward(event)) {
       if (!confirm_cancel_) {
         confirmed_ = true;
       }
@@ -141,7 +141,7 @@ bool StarForcePanel::OnEvent(ftxui::Event event) {
     }
     return true;
   }
-  if (event == ftxui::Event::Return) {
+  if (IsForward(event)) {
     confirming_ = true;
     confirm_cancel_ = false;
     return true;

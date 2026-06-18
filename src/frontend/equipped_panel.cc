@@ -49,7 +49,7 @@ void EquippedPanel::OpenMenu() {
 
 Screen EquippedPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
                                   ScrollPanel& scroll_panel) {
-  if (event == ftxui::Event::Escape) {
+  if (IsBack(event)) {
     return kMain;
   }
   if (event == ftxui::Event::ArrowUp) {
@@ -60,7 +60,7 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
     menu_.Down();
     return kItemMenu;
   }
-  if (event == ftxui::Event::Return) {
+  if (IsForward(event)) {
     if (menu_.selected() == kMenuAction) {
       character_.Unequip(selected_slot());
       if (character_.equipped().empty()) {
@@ -104,41 +104,50 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
 
   // entries_ and slots_ are rebuilt from equipped() on every render so the
   // display stays in sync with changes made via on_enter.
-  return ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
-    entries_.clear();
-    slots_.clear();
-    for (const std::pair<const EquipSlot, EquipInstance>& kv :
-         character_.equipped()) {
-      slots_.push_back(kv.first);
-      const EquipInstance& item = kv.second;
-      const EquipStats stats = item.stats();
-      std::string info;
-      AppendStat(info, stats.attack(), "ATT");
-      AppendStat(info, stats.magic_attack(), "MATT");
-      AppendStat(info, stats.str(), "STR");
-      AppendStat(info, stats.dex(), "DEX");
-      AppendStat(info, stats.int_(), "INT");
-      AppendStat(info, stats.luk(), "LUK");
-      int scroll_pass = item.equip_state().scroll_successes();
-      int scroll_left = item.equip_state().remaining_upgrade_slots();
-      int scroll_restore =
-          item.prototype().upgrade_slots() - scroll_pass - scroll_left;
-      entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
-                                         info, scroll_pass, scroll_left,
-                                         scroll_restore));
+  ftxui::Component renderer =
+      ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
+        entries_.clear();
+        slots_.clear();
+        for (const std::pair<const EquipSlot, EquipInstance>& kv :
+             character_.equipped()) {
+          slots_.push_back(kv.first);
+          const EquipInstance& item = kv.second;
+          const EquipStats stats = item.stats();
+          std::string info;
+          AppendStat(info, stats.attack(), "ATT");
+          AppendStat(info, stats.magic_attack(), "MATT");
+          AppendStat(info, stats.str(), "STR");
+          AppendStat(info, stats.dex(), "DEX");
+          AppendStat(info, stats.int_(), "INT");
+          AppendStat(info, stats.luk(), "LUK");
+          int scroll_pass = item.equip_state().scroll_successes();
+          int scroll_left = item.equip_state().remaining_upgrade_slots();
+          int scroll_restore =
+              item.prototype().upgrade_slots() - scroll_pass - scroll_left;
+          entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
+                                             info, scroll_pass, scroll_left,
+                                             scroll_restore));
+        }
+        if (!entries_.empty()) {
+          selected_ =
+              std::min(selected_, static_cast<int>(entries_.size()) - 1);
+        }
+        if (entries_.empty()) {
+          return ThemedWindow(" Equipped ", ftxui::text("(empty)"));
+        }
+        return ThemedWindow(" Equipped ", ftxui::vbox({
+                                              ftxui::text(kColumnHeader),
+                                              ftxui::text(kColumnHeader2),
+                                              ThemedSeparator(),
+                                              menu->Render(),
+                                          }));
+      });
+  return ftxui::CatchEvent(renderer, [on_enter](ftxui::Event event) {
+    if (event == ftxui::Event::Character(' ')) {
+      on_enter();
+      return true;
     }
-    if (!entries_.empty()) {
-      selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
-    }
-    if (entries_.empty()) {
-      return ThemedWindow(" Equipped ", ftxui::text("(empty)"));
-    }
-    return ThemedWindow(" Equipped ", ftxui::vbox({
-                                          ftxui::text(kColumnHeader),
-                                          ftxui::text(kColumnHeader2),
-                                          ThemedSeparator(),
-                                          menu->Render(),
-                                      }));
+    return false;
   });
 }
 

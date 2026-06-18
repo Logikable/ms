@@ -25,6 +25,7 @@ cc_library(
     deps = [
         ":colors",
         "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
         "@ftxui//:dom",
     ],
 )
@@ -44,6 +45,7 @@ cc_library(
     hdrs = ["character_panel.h"],
     deps = [
         ":colors",
+        ":panel_util",
         ":types",
         "//src:character",
         "//src/protos:character_proto_cc",
@@ -281,6 +283,7 @@ cc_library(
         ":ap_alloc_panel",
         ":bag_panel",
         ":equipped_panel",
+        ":panel_util",
         ":scroll_panel",
         ":star_force_panel",
         ":trace_recover_panel",

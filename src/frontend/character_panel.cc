@@ -7,6 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/colors.h"
+#include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -123,7 +124,7 @@ ftxui::Component CharacterPanel::MakeComponent(std::function<void()> on_ap) {
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
   return ftxui::CatchEvent(renderer, [this, on_ap](ftxui::Event event) {
-    if (panel_focus_ == kCharPanel && event == ftxui::Event::Return &&
+    if (panel_focus_ == kCharPanel && IsForward(event) &&
         character_.proto().ap() > 0) {
       on_ap();
       return true;
