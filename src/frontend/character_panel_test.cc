@@ -37,12 +37,42 @@ TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {
   EXPECT_NE(RenderElement(panel.Render()).find("ATT: 10"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, ShowsTotalStrIncludingEquipBonus) {
+TEST_F(CharacterPanelTest, ShowsStrWithBreakdownWhenGearContributes) {
   sword_.mutable_base_stats()->set_str(5);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   CharacterPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find("STR: 5"), std::string::npos);
+  // base AP STR is 0 for the test character; gear adds 5; total = 5.
+  EXPECT_NE(RenderElement(panel.Render()).find("STR: 5 (0+5)"),
+            std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, StressTestStatRowWidth) {
+  // Exercises the widest realistic stat strings to verify kContentWidth holds.
+  // " LUK: 999999 (1300+998699)" is the longest at 26 chars.
+  Character proto;
+  proto.set_level(1);
+  proto.set_job(JOB_BEGINNER);
+  proto.mutable_allocated_stats()->set_str(4);
+  proto.mutable_allocated_stats()->set_dex(4);
+  proto.mutable_allocated_stats()->set_int_(4);
+  proto.mutable_allocated_stats()->set_luk(1300);
+  CharacterInstance c(rng_, std::move(proto));
+  EquipPrototype gear;
+  gear.set_name("StressTest");
+  gear.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  gear.mutable_base_stats()->set_str(995);
+  gear.mutable_base_stats()->set_dex(9995);
+  gear.mutable_base_stats()->set_int_(99995);
+  gear.mutable_base_stats()->set_luk(998699);
+  c.PickUp(std::make_unique<EquipInstance>(gear));
+  c.Equip(0);
+  CharacterPanel panel(c, panel_focus_);
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(rendered.find("STR: 999 (4+995)"), std::string::npos);
+  EXPECT_NE(rendered.find("DEX: 9999 (4+9995)"), std::string::npos);
+  EXPECT_NE(rendered.find("INT: 99999 (4+99995)"), std::string::npos);
+  EXPECT_NE(rendered.find("LUK: 999999 (1300+998699)"), std::string::npos);
 }
 
 }  // namespace

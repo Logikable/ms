@@ -14,8 +14,7 @@
 namespace ms {
 namespace {
 
-constexpr int kContentWidth = 24;  // chars between the │ borders
-constexpr int kStatLineLeft = 12;  // left field width in StatLine
+constexpr int kContentWidth = 26;  // chars between the │ borders
 constexpr int kApWidth = 6;        // chars in the AP balcony column
 
 }  // namespace
@@ -25,13 +24,16 @@ CharacterPanel::CharacterPanel(const CharacterInstance& character,
     : character_(character), panel_focus_(panel_focus) {
 }
 
-std::string CharacterPanel::StatLine(const std::string& l1, int v1,
-                                     const std::string& l2, int v2) {
-  std::string left = l1 + ": " + std::to_string(v1);
-  while ((int)left.size() < kStatLineLeft) {
-    left += ' ';
+std::string CharacterPanel::StatRow(const std::string& label, int base,
+                                    int bonus) {
+  std::string s = " " + label + ": " + std::to_string(base + bonus);
+  if (bonus > 0) {
+    s += " (" + std::to_string(base) + "+" + std::to_string(bonus) + ")";
   }
-  return left + l2 + ": " + std::to_string(v2);
+  while ((int)s.size() < kContentWidth) {
+    s += ' ';
+  }
+  return s;
 }
 
 ftxui::Element CharacterPanel::Render() const {
@@ -56,20 +58,18 @@ ftxui::Element CharacterPanel::Render() const {
     }
   }
 
-  std::string hp_mp = " " + StatLine("HP", a.hp() + e.max_hp(), "MP", a.mp());
-  while ((int)hp_mp.size() < kContentWidth) {
-    hp_mp += ' ';
+  std::string hp_str = " HP: " + std::to_string(a.hp() + e.max_hp());
+  while ((int)hp_str.size() < kContentWidth) {
+    hp_str += ' ';
   }
-  std::string str_dex =
-      " " + StatLine("STR", a.str() + e.str(), "DEX", a.dex() + e.dex());
-  while ((int)str_dex.size() < kContentWidth) {
-    str_dex += ' ';
+  std::string mp_str = " MP: " + std::to_string(a.mp());
+  while ((int)mp_str.size() < kContentWidth) {
+    mp_str += ' ';
   }
-  std::string int_luk =
-      " " + StatLine("INT", a.int_() + e.int_(), "LUK", a.luk() + e.luk());
-  while ((int)int_luk.size() < kContentWidth) {
-    int_luk += ' ';
-  }
+  std::string str_str = StatRow("STR", a.str(), e.str());
+  std::string dex_str = StatRow("DEX", a.dex(), e.dex());
+  std::string int_str = StatRow("INT", a.int_(), e.int_());
+  std::string luk_str = StatRow("LUK", a.luk(), e.luk());
   std::string att = " ATT: " + std::to_string(e.attack());
   while ((int)att.size() < kContentWidth) {
     att += ' ';
@@ -90,26 +90,29 @@ ftxui::Element CharacterPanel::Render() const {
     ap_cell = ap_cell | ftxui::focus;
   }
 
-  // Each row is a literal string; ┼ appears at the exact junction columns so
-  // no automerge is needed. Rows 2/6 are 32 wide (with AP balcony), rest 26.
   // Border chars colored kTheme via B(); content inherits color(White) on vbox.
+  // AP balcony covers the first two stat rows (HP header, MP value); remaining
+  // four stat rows extend the balcony column with empty space.
   const ftxui::Color kB = kTheme;
   auto B = [kB](const std::string& s) -> ftxui::Element {
     return ftxui::text(s) | ftxui::color(kB);
   };
   return ftxui::vbox({
-             B("╭ Character ─────────────╮"),
+             B("╭ Character ───────────────╮"),
              ftxui::hbox({B("│"), ftxui::text(title), B("│")}),
-             B("├────────────────────────┼──────╮"),
-             ftxui::hbox({B("│"), ftxui::text(hp_mp), B("│"),
+             B("├──────────────────────────┼──────╮"),
+             ftxui::hbox({B("│"), ftxui::text(hp_str), B("│"),
                           ftxui::text("  AP  "), B("│")}),
              ftxui::hbox(
-                 {B("│"), ftxui::text(str_dex), B("│"), ap_cell, B("│")}),
-             ftxui::hbox({B("│"), ftxui::text(int_luk), B("│      │")}),
-             B("├────────────────────────┼──────╯"),
+                 {B("│"), ftxui::text(mp_str), B("│"), ap_cell, B("│")}),
+             ftxui::hbox({B("│"), ftxui::text(str_str), B("│      │")}),
+             ftxui::hbox({B("│"), ftxui::text(dex_str), B("│      │")}),
+             ftxui::hbox({B("│"), ftxui::text(int_str), B("│      │")}),
+             ftxui::hbox({B("│"), ftxui::text(luk_str), B("│      │")}),
+             B("├──────────────────────────┼──────╯"),
              ftxui::hbox({B("│"), ftxui::text(att), B("│")}),
              ftxui::hbox({B("│"), ftxui::text(matt), B("│")}),
-             B("╰────────────────────────╯"),
+             B("╰──────────────────────────╯"),
          }) |
          ftxui::color(ftxui::Color::White);
 }

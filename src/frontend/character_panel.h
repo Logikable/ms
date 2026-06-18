@@ -19,8 +19,8 @@ namespace ms {
 
 class CharacterPanel {
  public:
-  // Total rendered width including the AP balcony (main 26 + balcony 7).
-  static constexpr int kTotalWidth = 33;
+  // Total rendered width including the AP balcony (main 28 + balcony 7).
+  static constexpr int kTotalWidth = 35;
 
   explicit CharacterPanel(const CharacterInstance& character, int& panel_focus);
   ftxui::Element Render() const;
@@ -28,10 +28,9 @@ class CharacterPanel {
 
  private:
   static std::string JobName(Job job);
-  // Formats two label/value pairs on one line; left field is padded to 12
-  // chars so the right label aligns regardless of left-side value width.
-  static std::string StatLine(const std::string& l1, int v1,
-                              const std::string& l2, int v2);
+  // Formats one stat row padded to kContentWidth. Shows "(base+bonus)" when
+  // bonus > 0; omits the breakdown when bonus is zero.
+  static std::string StatRow(const std::string& label, int base, int bonus);
 
   const CharacterInstance& character_;
   int& panel_focus_;
