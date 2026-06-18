@@ -27,6 +27,7 @@ class Tui {
 
  private:
   ftxui::Element RenderFrame();
+  ftxui::Element RenderMain();
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;

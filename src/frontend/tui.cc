@@ -98,6 +98,10 @@ ftxui::Element Tui::RenderFrame() {
     return ftxui::hbox(
         {scroll_view | ftxui::flex, inspect_panel_.Render() | ftxui::flex});
   }
+  return RenderMain();
+}
+
+ftxui::Element Tui::RenderMain() {
   ftxui::Element layout = ftxui::vbox({
       ftxui::hbox({
           char_panel_.Render(),

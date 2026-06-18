@@ -48,6 +48,8 @@ class BagPanel {
   }
 
  private:
+  ftxui::Element RenderContent(ftxui::Component menu);
+
   CharacterInstance& character_;
   int& panel_focus_;
   int selected_ = 0;

@@ -75,9 +75,9 @@ ftxui::Element StarForcePanel::Render() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text(name) | ftxui::hcenter);
   rows.push_back(ThemedSeparator());
-  rows.push_back(ftxui::text(std::to_string(stars) + "★ → " +
-                             std::to_string(stars + 1) + "★") |
-                 ftxui::hcenter);
+  std::string arrow =
+      std::to_string(stars) + "★ → " + std::to_string(stars + 1) + "★";
+  rows.push_back(ftxui::text(arrow) | ftxui::hcenter);
   rows.push_back(ThemedSeparator());
   int label_w = 0;
   for (const DisplayStat& stat : kDisplayStats) {
@@ -88,19 +88,21 @@ ftxui::Element StarForcePanel::Render() const {
   for (const DisplayStat& stat : kDisplayStats) {
     int delta = stat.GetFrom(after) - stat.GetFrom(before);
     if (delta > 0) {
-      rows.push_back(ftxui::text(PadTo(stat.label, label_w) + "  +" +
-                                 std::to_string(delta)) |
-                     ftxui::hcenter);
+      std::string line =
+          PadTo(stat.label, label_w) + "  +" + std::to_string(delta);
+      rows.push_back(ftxui::text(line) | ftxui::hcenter);
     }
   }
   rows.push_back(ThemedSeparator());
-  rows.push_back(ftxui::text("Success  " + PadTo(success_str, rate_w)) |
-                 ftxui::hcenter | ftxui::color(kGreen));
-  rows.push_back(ftxui::text("Fail     " + PadTo(fail_str, rate_w)) |
-                 ftxui::hcenter | ftxui::color(kMutedYellow));
+  auto RateRow = [&rows, &rate_w](const std::string& label,
+                                  const std::string& val, ftxui::Color c) {
+    rows.push_back(ftxui::text(label + PadTo(val, rate_w)) | ftxui::hcenter |
+                   ftxui::color(c));
+  };
+  RateRow("Success  ", success_str, kGreen);
+  RateRow("Fail     ", fail_str, kMutedYellow);
   if (rate.destroy > 0) {
-    rows.push_back(ftxui::text("Destroy  " + PadTo(destroy_str, rate_w)) |
-                   ftxui::hcenter | ftxui::color(kRed));
+    RateRow("Destroy  ", destroy_str, kRed);
   }
   // Constrain inner width to at least ConfirmWindow's inner width so the panel
   // never widens when the confirm window appears below.
@@ -183,16 +185,17 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
   } else {
     stars_text = "lost at " + std::to_string(r.stars_before) + "★";
   }
-  return ThemedWindow(
-      " Result ", ftxui::vbox({
-                      ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-                      ThemedSeparator(),
-                      ftxui::text(outcome_text) | ftxui::hcenter |
-                          ftxui::color(outcome_color),
-                      ftxui::text(stars_text) | ftxui::hcenter,
-                      ftxui::text(""),
-                      ftxui::text(" Press Enter to continue "),
-                  }));
+  ftxui::Element outcome_elem =
+      ftxui::text(outcome_text) | ftxui::hcenter | ftxui::color(outcome_color);
+  ftxui::Element content = ftxui::vbox({
+      ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
+      ThemedSeparator(),
+      std::move(outcome_elem),
+      ftxui::text(stars_text) | ftxui::hcenter,
+      ftxui::text(""),
+      ftxui::text(" Press Enter to continue "),
+  });
+  return ThemedWindow(" Result ", std::move(content));
 }
 
 }  // namespace ms

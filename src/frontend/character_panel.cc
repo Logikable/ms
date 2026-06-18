@@ -48,44 +48,28 @@ ftxui::Element CharacterPanel::Render() const {
   }
 
   // Build all content strings padded to exact column widths so borders align.
-  std::string title = "Lv" + lvl + " " + JobName(p.job());
-  {
-    int pad = (kContentWidth - (int)title.size()) / 2;
-    if (pad > 0) {
-      title = std::string(pad, ' ') + title;
-    }
-    while ((int)title.size() < kContentWidth) {
-      title += ' ';
-    }
-  }
+  std::string raw_title = "Lv" + lvl + " " + JobName(p.job());
+  int pad = (kContentWidth - (int)raw_title.size()) / 2;
+  std::string title =
+      PadRight(std::string(std::max(0, pad), ' ') + raw_title, kContentWidth);
 
-  std::string hp_str = " HP: " + std::to_string(a.hp() + e.max_hp());
-  while ((int)hp_str.size() < kContentWidth) {
-    hp_str += ' ';
-  }
-  std::string mp_str = " MP: " + std::to_string(a.mp());
-  while ((int)mp_str.size() < kContentWidth) {
-    mp_str += ' ';
-  }
+  std::string hp_str =
+      PadRight(" HP: " + std::to_string(a.hp() + e.max_hp()), kContentWidth);
+  std::string mp_str =
+      PadRight(" MP: " + std::to_string(a.mp()), kContentWidth);
   std::string str_str = StatRow("STR", a.str(), e.str());
   std::string dex_str = StatRow("DEX", a.dex(), e.dex());
   std::string int_str = StatRow("INT", a.int_(), e.int_());
   std::string luk_str = StatRow("LUK", a.luk(), e.luk());
-  std::string att = " ATT: " + std::to_string(e.attack());
-  while ((int)att.size() < kContentWidth) {
-    att += ' ';
-  }
-  std::string matt = " MATT: " + std::to_string(e.magic_attack());
-  while ((int)matt.size() < kContentWidth) {
-    matt += ' ';
-  }
+  std::string att =
+      PadRight(" ATT: " + std::to_string(e.attack()), kContentWidth);
+  std::string matt =
+      PadRight(" MATT: " + std::to_string(e.magic_attack()), kContentWidth);
 
   // AP value with caret prefix when the char panel is focused.
   bool ap_focused = panel_focus_ == kCharPanel;
-  std::string ap_val = (ap_focused ? "> " : "  ") + std::to_string(p.ap());
-  while ((int)ap_val.size() < kApWidth) {
-    ap_val += ' ';
-  }
+  std::string ap_val =
+      PadRight((ap_focused ? "> " : "  ") + std::to_string(p.ap()), kApWidth);
   ftxui::Element ap_cell = ftxui::text(ap_val);
   if (ap_focused) {
     ap_cell = ap_cell | ftxui::focus;
