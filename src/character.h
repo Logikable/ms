@@ -9,6 +9,7 @@
 #ifndef MS_CHARACTER_H_
 #define MS_CHARACTER_H_
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <random>
@@ -29,6 +30,9 @@ class CharacterInstance {
 
   // Increments level and grants 5 AP.
   void LevelUp();
+  // Adds amount to the character's accumulated EXP, leveling up as many times
+  // as the new total allows. No-op once kMaxLevel is reached.
+  void AddExp(int64_t amount);
   // Increments job_stage, sets job to `next_job`, and grants 5 bonus AP at
   // stages 3 and 4 (3rd and 4th job advancement).
   void AdvanceJob(Job next_job);

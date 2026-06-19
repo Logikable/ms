@@ -8,6 +8,7 @@
 #include "absl/types/span.h"
 #include "src/equip_instance.h"
 #include "src/equip_stats.h"
+#include "src/exp_table.h"
 #include "src/inventory.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -40,6 +41,21 @@ CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
 void CharacterInstance::LevelUp() {
   character_.set_level(character_.level() + 1);
   character_.set_ap(character_.ap() + kApPerLevel);
+}
+
+void CharacterInstance::AddExp(int64_t amount) {
+  character_.set_exp(character_.exp() + amount);
+  while (character_.level() < kMaxLevel) {
+    int64_t threshold = ExpToNextLevel(character_.level());
+    if (character_.exp() < threshold) {
+      break;
+    }
+    character_.set_exp(character_.exp() - threshold);
+    LevelUp();
+  }
+  if (character_.level() >= kMaxLevel) {
+    character_.set_exp(0);
+  }
 }
 
 void CharacterInstance::AdvanceJob(Job next_job) {

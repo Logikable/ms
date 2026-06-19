@@ -6,6 +6,7 @@
 #include <random>
 
 #include "src/equip_instance.h"
+#include "src/exp_table.h"
 #include "src/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -655,6 +656,60 @@ TEST_F(RecoverTraceTest, BaseBeforeTraceInInventoryStillWorks) {
   EXPECT_EQ(stars, 17);
   EXPECT_EQ(c.inventory().size(), 1);
   EXPECT_NE(c.inventory().equip_instance(0), nullptr);
+}
+
+// --- AddExp ---
+
+class AddExpTest : public CharacterTest {};
+
+TEST_F(AddExpTest, AccumulatesExpBelowThreshold) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
+  c.AddExp(10);  // level 1 threshold is 15
+  EXPECT_EQ(c.proto().level(), 1);
+  EXPECT_EQ(c.proto().exp(), 10);
+}
+
+TEST_F(AddExpTest, LevelsUpExactlyAtThreshold) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
+  c.AddExp(15);
+  EXPECT_EQ(c.proto().level(), 2);
+  EXPECT_EQ(c.proto().exp(), 0);
+}
+
+TEST_F(AddExpTest, CarriesOverExcessExp) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
+  c.AddExp(20);  // 20 - 15 = 5 remaining
+  EXPECT_EQ(c.proto().level(), 2);
+  EXPECT_EQ(c.proto().exp(), 5);
+}
+
+TEST_F(AddExpTest, LevelsUpMultipleTimes) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
+  // Level 1→2 costs 15, level 2→3 costs 34; total 49.
+  c.AddExp(49);
+  EXPECT_EQ(c.proto().level(), 3);
+  EXPECT_EQ(c.proto().exp(), 0);
+}
+
+TEST_F(AddExpTest, GrantsFiveApPerLevelUp) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/1);
+  c.AddExp(49);  // two level-ups
+  EXPECT_EQ(c.proto().ap(), 10);
+}
+
+TEST_F(AddExpTest, NoOpAtMaxLevel) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/kMaxLevel);
+  c.AddExp(1000000);
+  EXPECT_EQ(c.proto().level(), kMaxLevel);
+  EXPECT_EQ(c.proto().exp(), 0);
+}
+
+TEST_F(AddExpTest, CapsAtMaxLevelAndZeroesExp) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/299);
+  // Add far more than the 299→300 threshold.
+  c.AddExp(1737759854037637LL * 2);
+  EXPECT_EQ(c.proto().level(), kMaxLevel);
+  EXPECT_EQ(c.proto().exp(), 0);
 }
 
 }  // namespace

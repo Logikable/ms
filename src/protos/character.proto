@@ -59,4 +59,7 @@ message Character {
   // proto3 map limitation). At most one item per slot. Only items in this map
   // contribute to the character's equipment stats.
   map<int32, Equip> equipped = 8;
+
+  // EXP accumulated toward the next level. Always < ExpToNextLevel(level).
+  int64 exp = 9;
 }

@@ -7,11 +7,27 @@ cc_test(
     srcs = ["character_test.cc"],
     deps = [
         ":character",
+        ":exp_table",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@googletest//:gtest_main",
     ],
+)
+
+cc_test(
+    name = "exp_table_test",
+    srcs = ["exp_table_test.cc"],
+    deps = [
+        ":exp_table",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "exp_table",
+    srcs = ["exp_table.cc"],
+    hdrs = ["exp_table.h"],
 )
 
 cc_library(
@@ -21,6 +37,7 @@ cc_library(
     deps = [
         ":equip_instance",
         ":equip_stats",
+        ":exp_table",
         ":inventory",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
