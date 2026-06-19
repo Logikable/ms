@@ -33,7 +33,7 @@ constexpr char kColumnHeader2[] =
 BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
-      menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover"}) {
+      menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Close"}) {
 }
 
 void BagPanel::OpenMenu() {

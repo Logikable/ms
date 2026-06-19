@@ -34,7 +34,7 @@ constexpr char kColumnHeader2[] =
 EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
-      menu_({"Unequip", "Inspect", "Scroll", "Star Force"}) {
+      menu_({"Unequip", "Inspect", "Scroll", "Star Force", "Close"}) {
 }
 
 void EquippedPanel::OpenMenu() {
