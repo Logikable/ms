@@ -173,13 +173,14 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
                           ? " No lost slots to restore "
                           : " No scroll slots remaining ";
     return ThemedWindow(
-        " Error ", ftxui::vbox({
-                       ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-                       ThemedSeparator(),
-                       ftxui::text(msg) | ftxui::hcenter,
-                       ftxui::text(""),
-                       ftxui::text(" Press Enter to continue "),
-                   }));
+        " Error ",
+        ftxui::vbox({
+            ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
+            ThemedSeparator(),
+            ftxui::text(msg) | ftxui::hcenter,
+            ftxui::text(""),
+            ftxui::text("[Continue]") | ftxui::inverted | ftxui::hcenter,
+        }));
   }
   std::string result_text;
   ftxui::Color result_color;
@@ -205,7 +206,7 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
                       " slots remaining ") |
               ftxui::hcenter,
           ftxui::text(""),
-          ftxui::text(" Press Enter to continue "),
+          ftxui::text("[Continue]") | ftxui::inverted | ftxui::hcenter,
       }));
 }
 

@@ -139,7 +139,7 @@ ftxui::Element TraceRecoverPanel::RenderResult(
                       "★") |
               ftxui::hcenter,
           ftxui::text(""),
-          ftxui::text(" Press Enter to continue "),
+          ftxui::text("[Continue]") | ftxui::inverted | ftxui::hcenter,
       }));
 }
 

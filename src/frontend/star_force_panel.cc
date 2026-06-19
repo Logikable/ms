@@ -104,6 +104,8 @@ ftxui::Element StarForcePanel::Render() const {
   if (rate.destroy > 0) {
     RateRow("Destroy  ", destroy_str, kRed);
   }
+  rows.push_back(ThemedSeparator());
+  rows.push_back(ftxui::text("[Enhance]") | ftxui::inverted | ftxui::hcenter);
   // Constrain inner width to at least ConfirmWindow's inner width so the panel
   // never widens when the confirm window appears below.
   ftxui::Element content = ftxui::vbox(std::move(rows)) |
@@ -193,7 +195,7 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
       std::move(outcome_elem),
       ftxui::text(stars_text) | ftxui::hcenter,
       ftxui::text(""),
-      ftxui::text(" Press Enter to continue "),
+      ftxui::text("[Continue]") | ftxui::inverted | ftxui::hcenter,
   });
   return ThemedWindow(" Result ", std::move(content));
 }
