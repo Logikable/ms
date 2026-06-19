@@ -41,6 +41,7 @@ class Tui {
   BagPanel bag_panel_;
   ScrollPanel scroll_panel_;
   InspectPanel inspect_panel_;
+  InspectPanel trace_inspect_panel_;  // left panel on kTraceRecover (preview)
   ApAllocPanel ap_alloc_panel_;
   StarForcePanel star_force_panel_;
   TraceRecoverPanel trace_recover_panel_;

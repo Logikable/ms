@@ -1,6 +1,8 @@
-/* TraceRecoverPanel shows a list of inventory items that can serve as the base
- * for recovering an EquipTrace. Owns an inline confirm bar: Enter opens it,
- * a second Enter confirms. TakeConfirmed() returns true once when confirmed.
+/* TraceRecoverPanel manages selection and confirmation for trace recovery.
+ * RenderTabs() renders a row of star-count chips (one per matching item) with
+ * a separator below. RenderBelow() renders the confirm bar or a 3-row spacer.
+ * Left/Right navigate chips; Enter opens confirm; a second Enter confirms.
+ * TakeConfirmed() returns true once when confirmed.
  */
 #ifndef MS_SRC_FRONTEND_TRACE_RECOVER_PANEL_H_
 #define MS_SRC_FRONTEND_TRACE_RECOVER_PANEL_H_
@@ -10,6 +12,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
+#include "src/equip_instance.h"
 #include "src/frontend/types.h"
 #include "src/item.h"
 
@@ -21,10 +24,16 @@ class TraceRecoverPanel {
   // Sets the trace to recover and rebuilds the list of matching inventory
   // items.
   void SetTrace(const EquipTabItem* trace);
-  ftxui::Element Render() const;
-  // Handles Up/Down navigation and confirm-bar interaction. Esc when not
+  ftxui::Element RenderTabs() const;
+  ftxui::Element RenderBelow() const;
+  // Returns a synthetic EquipInstance representing the post-recovery state:
+  // trace's scroll stats with RecoveryStars() applied. Only valid when
+  // trace_ != nullptr.
+  EquipInstance PreviewResult() const;
+  // Handles Left/Right navigation and confirm-bar interaction. Esc when not
   // confirming is not consumed (caller handles screen transition).
   bool OnEvent(ftxui::Event event);
+  // Returns true once when the player confirms recovery, then resets the flag.
   bool TakeConfirmed();
   bool IsConfirming() const {
     return confirming_;

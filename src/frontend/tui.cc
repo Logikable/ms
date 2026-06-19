@@ -5,6 +5,7 @@
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
+#include "src/equip_instance.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"
@@ -67,11 +68,18 @@ ftxui::Element Tui::RenderFrame() {
         star_force_panel_.RenderResult(controller_.star_force_result()));
   }
   if (controller_.screen() == kTraceRecover) {
+    EquipInstance preview = trace_recover_panel_.PreviewResult();
+    trace_inspect_panel_.SetItem(&preview);
     int base_idx = trace_recover_panel_.selected_index();
     inspect_panel_.SetItem(
         base_idx >= 0 ? &state_.character.inventory()[base_idx] : nullptr);
-    return ftxui::hbox({trace_recover_panel_.Render() | ftxui::flex,
-                        inspect_panel_.Render() | ftxui::flex});
+    ftxui::Element right_col = ftxui::vbox({
+        trace_recover_panel_.RenderTabs(),
+        inspect_panel_.Render(),
+        trace_recover_panel_.RenderBelow(),
+    });
+    return ftxui::hbox({trace_inspect_panel_.Render() | ftxui::flex,
+                        std::move(right_col) | ftxui::flex});
   }
   if (controller_.screen() == kTraceRecoverResult) {
     return ftxui::center(

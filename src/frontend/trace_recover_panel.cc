@@ -10,6 +10,7 @@
 #include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
 #include "src/item.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 
@@ -26,6 +27,7 @@ void TraceRecoverPanel::SetTrace(const EquipTabItem* trace) {
   }
   const std::string& proto_name = trace_->prototype().name();
   for (int i = 0; i < character_.inventory().size(); ++i) {
+    // equip_instance is null for traces; skip them as recovery targets.
     if (character_.inventory().equip_instance(i) != nullptr &&
         character_.inventory()[i].prototype().name() == proto_name) {
       matching_indices_.push_back(i);
@@ -33,41 +35,41 @@ void TraceRecoverPanel::SetTrace(const EquipTabItem* trace) {
   }
 }
 
-ftxui::Element TraceRecoverPanel::Render() const {
-  if (trace_ == nullptr) {
-    return ThemedWindow(" Trace Recovery ", ftxui::text(" (no trace) "));
-  }
+EquipInstance TraceRecoverPanel::PreviewResult() const {
+  Equip state = trace_->equip_state();
+  state.set_stars(EquipInstance::RecoveryStars(trace_->stars()));
+  return EquipInstance(trace_->prototype(), state);
+}
 
-  int recovery_stars = EquipInstance::RecoveryStars(trace_->stars());
-
-  std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(trace_->name()) | ftxui::hcenter);
-  rows.push_back(ThemedSeparator());
-  rows.push_back(
-      ftxui::text("Recovers at " + std::to_string(recovery_stars) + "★") |
-      ftxui::hcenter);
-  rows.push_back(ThemedSeparator());
-
+ftxui::Element TraceRecoverPanel::RenderTabs() const {
   if (matching_indices_.empty()) {
-    rows.push_back(ftxui::text(" No matching item in inventory ") |
-                   ftxui::hcenter);
-    return ThemedWindow(" Trace Recovery ", ftxui::vbox(std::move(rows)));
+    return ftxui::vbox({
+        ftxui::text(" (no matching items) ") | ftxui::hcenter,
+        ThemedSeparator(),
+    });
   }
-
+  std::vector<ftxui::Element> chips;
   for (int i = 0; i < static_cast<int>(matching_indices_.size()); ++i) {
-    int inv_idx = matching_indices_[i];
-    const EquipTabItem& item = character_.inventory()[inv_idx];
-    std::string label = (i == selected_ ? "> " : "  ") + item.name();
-    rows.push_back(ftxui::text(label));
+    const EquipTabItem& item = character_.inventory()[matching_indices_[i]];
+    std::string label = " " + std::to_string(item.stars()) + "★ ";
+    ftxui::Element chip = ftxui::text(label) | ftxui::color(kTheme);
+    if (i == selected_) {
+      chip = chip | ftxui::inverted;
+    }
+    chips.push_back(std::move(chip));
   }
-  ftxui::Element content = ftxui::vbox(std::move(rows)) |
-                           ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 21);
-  ftxui::Element main = ThemedWindow(" Trace Recovery ", std::move(content));
+  return ftxui::vbox({
+      ftxui::hbox(std::move(chips)) | ftxui::hcenter,
+      ThemedSeparator(),
+  });
+}
+
+ftxui::Element TraceRecoverPanel::RenderBelow() const {
   if (confirming_) {
-    return ftxui::vbox(
-        {std::move(main) | ftxui::yflex, ConfirmWindow(confirm_cancel_)});
+    return ConfirmWindow(confirm_cancel_);
   }
-  return main;
+  // Reserve the same height as ConfirmWindow so the layout doesn't shift.
+  return ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 3);
 }
 
 bool TraceRecoverPanel::OnEvent(ftxui::Event event) {
@@ -93,16 +95,16 @@ bool TraceRecoverPanel::OnEvent(ftxui::Event event) {
       confirm_cancel_ = false;
       return true;
     }
-    return true;
+    return true;  // Swallow all other events while confirming.
   }
   if (matching_indices_.empty()) {
     return false;
   }
-  if (event == ftxui::Event::ArrowUp && selected_ > 0) {
+  if (event == ftxui::Event::ArrowLeft && selected_ > 0) {
     --selected_;
     return true;
   }
-  if (event == ftxui::Event::ArrowDown &&
+  if (event == ftxui::Event::ArrowRight &&
       selected_ < static_cast<int>(matching_indices_.size()) - 1) {
     ++selected_;
     return true;
