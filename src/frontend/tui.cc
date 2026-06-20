@@ -1,13 +1,21 @@
 #include "src/frontend/tui.h"
 
+#include <cstdint>
+#include <cstdio>
+#include <string>
+
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "ftxui/dom/node.hpp"
+#include "ftxui/screen/screen.hpp"
 #include "src/character.h"
 #include "src/equip_instance.h"
+#include "src/exp_table.h"
 #include "src/frontend/bag_panel.h"
 #include "src/frontend/character_panel.h"
+#include "src/frontend/colors.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/item_menu.h"
 #include "src/frontend/scroll_panel.h"
@@ -15,6 +23,81 @@
 #include "src/game_state.h"
 
 namespace ms {
+namespace {
+
+std::string FormatCommas(int64_t n) {
+  std::string s = std::to_string(n);
+  int pos = static_cast<int>(s.size()) - 3;
+  while (pos > 0) {
+    s.insert(pos, ",");
+    pos -= 3;
+  }
+  return s;
+}
+
+// Returns decimal places for EXP percentage display, scaled by job tier.
+int ExpPctDecimals(int level) {
+  if (level < 60) {
+    return 0;
+  }
+  if (level < 100) {
+    return 1;
+  }
+  if (level < 200) {
+    return 2;
+  }
+  if (level < 260) {
+    return 3;
+  }
+  return 4;
+}
+
+// Custom element: renders a progress bar by writing directly to screen pixels.
+// Fills with background colors (filled=kTheme, unfilled=dark) so the gauge and
+// label don't interfere with each other via dbox character overwriting.
+class ExpBarNode : public ftxui::Node {
+ public:
+  ExpBarNode(float frac, std::string label)
+      : frac_(frac), label_(std::move(label)) {
+  }
+
+  void ComputeRequirement() override {
+    requirement_.min_x = 1;
+    requirement_.min_y = 1;
+  }
+
+  void Render(ftxui::Screen& screen) override {
+    const int y = box_.y_min;
+    const int width = box_.x_max - box_.x_min + 1;
+    const int fill_end = box_.x_min + static_cast<int>(frac_ * width);
+
+    for (int x = box_.x_min; x <= box_.x_max; ++x) {
+      ftxui::Pixel& px = screen.PixelAt(x, y);
+      px.character = " ";
+      px.background_color =
+          x < fill_end ? kTheme : ftxui::Color::RGB(20, 35, 55);
+    }
+
+    const int label_len = static_cast<int>(label_.size());
+    const int label_x = box_.x_min + (width - label_len) / 2;
+    for (int i = 0; i < label_len; ++i) {
+      int x = label_x + i;
+      if (x < box_.x_min || x > box_.x_max) {
+        continue;
+      }
+      ftxui::Pixel& px = screen.PixelAt(x, y);
+      px.character = std::string(1, label_[i]);
+      px.foreground_color =
+          x < fill_end ? ftxui::Color::Black : ftxui::Color::White;
+    }
+  }
+
+ private:
+  float frac_;
+  std::string label_;
+};
+
+}  // namespace
 
 Tui::Tui(GameState& state)
     : state_(state),
@@ -119,6 +202,7 @@ ftxui::Element Tui::RenderMain() {
           }) | ftxui::flex,
       }),
       ftxui::filler(),
+      RenderExpBar(),
   });
   if (controller_.screen() != kItemMenu) {
     return layout;
@@ -142,6 +226,29 @@ ftxui::Element Tui::RenderMain() {
   constexpr int kMenuCol =
       CharacterPanel::kTotalWidth + 1 + 2 + 18 + 2 + 10 + 2;
   return ftxui::dbox({layout, menu.Render(menu_row, kMenuCol)});
+}
+
+ftxui::Element Tui::RenderExpBar() {
+  const Character& p = state_.character.proto();
+  std::string label;
+  float frac;
+  if (p.level() >= kMaxLevel) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%.*f%%", ExpPctDecimals(p.level()), 0.0);
+    label = std::string("0 (") + buf + ")";
+    frac = 0.0f;
+  } else {
+    int64_t exp = p.exp();
+    int64_t tnl = ExpToNextLevel(p.level());
+    frac = tnl > 0 ? static_cast<float>(exp) / static_cast<float>(tnl) : 0.0f;
+    double pct =
+        tnl > 0 ? static_cast<double>(exp) * 100.0 / static_cast<double>(tnl)
+                : 0.0;
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%.*f%%", ExpPctDecimals(p.level()), pct);
+    label = FormatCommas(exp) + " (" + buf + ")";
+  }
+  return std::make_shared<ExpBarNode>(frac, std::move(label));
 }
 
 bool Tui::OnEvent(ftxui::Event event) {

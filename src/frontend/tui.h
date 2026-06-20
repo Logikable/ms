@@ -28,6 +28,7 @@ class Tui {
  private:
   ftxui::Element RenderFrame();
   ftxui::Element RenderMain();
+  ftxui::Element RenderExpBar();
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
