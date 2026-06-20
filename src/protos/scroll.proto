@@ -37,11 +37,11 @@ enum ScrollType {
 // e.g. "Spell Trace 100% STR, Warrior, Tier 1".
 message Scroll {
   string name = 1;
+  ScrollType scroll_type = 2;
+  ScrollCategory scroll_category = 3;
+  ScrollTier tier = 4;
   // Success probability in [0, 100].
-  int32 success_rate = 2;
-  ScrollTier tier = 3;
-  EquipStats stats = 4;
-  repeated EquipJobCategory applicable_job_categories = 5;
-  ScrollType scroll_type = 6;
-  ScrollCategory scroll_category = 7;
+  int32 success_rate = 5;
+  EquipStats stats = 6;
+  repeated EquipJobCategory applicable_job_categories = 7;
 }

@@ -52,8 +52,8 @@ message EquipStats {
   int32 attack = 5;
   int32 magic_attack = 6;
   int32 max_hp = 7;
-  int32 def = 8;
-  int32 max_mp = 9;
+  int32 max_mp = 8;
+  int32 def = 9;
   // Percentage bonus to damage dealt to boss monsters (e.g. 30 = 30%).
   // TODO: apply in damage calculations once boss damage is supported.
   int32 boss_damage = 10;
@@ -66,12 +66,12 @@ message EquipStats {
 // shared read-only across all EquipInstances of the same item type.
 message EquipPrototype {
   string name = 1;
-  int32 required_level = 2;
-  EquipStats base_stats = 3;
+  EquipType equip_type = 2;
+  EquipSlot equip_slot = 3;
   AttackSpeed attack_speed = 4;
-  EquipSlot equip_slot = 5;
+  int32 required_level = 5;
   repeated EquipJobCategory equip_job_categories = 6;
-  EquipType equip_type = 7;
+  EquipStats base_stats = 7;
   int32 upgrade_slots = 8;
 }
 
@@ -81,8 +81,8 @@ message EquipPrototype {
 message Equip {
   string equip_name = 1;
   int32 remaining_upgrade_slots = 2;
-  EquipStats scroll_stats = 3;
-  int32 stars = 4;
-  bool trace = 5;
-  int32 scroll_successes = 6;
+  int32 scroll_successes = 3;
+  EquipStats scroll_stats = 4;
+  int32 stars = 5;
+  bool trace = 6;
 }
