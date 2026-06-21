@@ -132,6 +132,21 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "combat",
+    srcs = ["combat.cc"],
+    hdrs = ["combat.h"],
+)
+
+cc_test(
+    name = "combat_test",
+    srcs = ["combat_test.cc"],
+    deps = [
+        ":combat",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "proto_loader_test",
     srcs = ["proto_loader_test.cc"],
