@@ -73,6 +73,7 @@ cc_library(
     hdrs = ["proto_loader.h"],
     deps = [
         "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@abseil-cpp//absl/log",
@@ -127,6 +128,7 @@ cc_test(
     deps = [
         ":proto_loader",
         "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "@googletest//:gtest_main",
     ],

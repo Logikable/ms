@@ -8,6 +8,7 @@
 #include "absl/log/log.h"
 #include "google/protobuf/text_format.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -47,5 +48,7 @@ template std::map<std::string, EquipPrototype> LoadTextProtoDir<EquipPrototype>(
 template std::map<std::string, Scroll> LoadTextProtoDir<Scroll>(
     const std::string&);
 template std::map<std::string, Mob> LoadTextProtoDir<Mob>(const std::string&);
+template std::map<std::string, MapData> LoadTextProtoDir<MapData>(
+    const std::string&);
 
 }  // namespace ms
