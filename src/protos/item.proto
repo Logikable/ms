@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package ms;
+
+// Category of a stackable (non-equip) item. Equipment is defined separately by
+// EquipPrototype and never stacks.
+enum ItemCategory {
+  ITEM_CATEGORY_UNSPECIFIED = 0;
+  ITEM_CATEGORY_USE = 1;
+  ITEM_CATEGORY_ETC = 2;
+}
+
+// Static definition of a stackable item type. Loaded from data/items textprotos
+// at startup; shared read-only across all stacks of the same type.
+message ItemPrototype {
+  string name = 1;
+  ItemCategory category = 2;
+  // Maximum per-slot stack. 0 means the category default (see MaxStack):
+  // Use = 9999, Etc = 200.
+  int32 max_stack = 3;
+  // Meso received when sold to a shop. 0 = unsellable.
+  int32 sell_price = 4;
+}

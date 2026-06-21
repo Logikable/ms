@@ -54,3 +54,13 @@ cc_proto_library(
     name = "mob_proto_cc",
     deps = [":mob_proto"],
 )
+
+proto_library(
+    name = "item_proto",
+    srcs = ["item.proto"],
+)
+
+cc_proto_library(
+    name = "item_proto_cc",
+    deps = [":item_proto"],
+)
