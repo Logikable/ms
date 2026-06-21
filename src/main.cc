@@ -9,6 +9,8 @@
 #include "src/item.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/map.pb.h"
+#include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
@@ -30,8 +32,13 @@ int main(int argc, char** argv) {
           runfiles->Rlocation("ms/data/equip"));
   std::map<std::string, ms::Scroll> scrolls =
       ms::LoadTextProtoDir<ms::Scroll>(runfiles->Rlocation("ms/data/scrolls"));
+  std::map<std::string, ms::Mob> mobs =
+      ms::LoadTextProtoDir<ms::Mob>(runfiles->Rlocation("ms/data/mobs"));
+  std::map<std::string, ms::MapData> maps =
+      ms::LoadTextProtoDir<ms::MapData>(runfiles->Rlocation("ms/data/maps"));
 
-  ms::GameState state(std::move(equips), std::move(scrolls));
+  ms::GameState state(std::move(equips), std::move(scrolls), std::move(mobs),
+                      std::move(maps));
 
   // Generic low-level weapons for scrolling/star force experimentation.
   state.character.PickUp(

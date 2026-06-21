@@ -89,6 +89,8 @@ cc_library(
         ":character",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
     ],
 )
@@ -98,6 +100,8 @@ cc_binary(
     srcs = ["main.cc"],
     data = [
         "//data/equip:all",
+        "//data/maps:all",
+        "//data/mobs:all",
         "//data/scrolls:all",
     ],
     deps = [
@@ -107,6 +111,8 @@ cc_binary(
         ":proto_loader",
         "//src/frontend:tui",
         "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",
     ],
@@ -161,6 +167,8 @@ cc_test(
     deps = [
         ":game_state",
         "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@googletest//:gtest_main",
     ],
