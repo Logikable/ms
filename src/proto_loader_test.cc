@@ -7,6 +7,7 @@
 
 #include "gtest/gtest.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 
@@ -72,6 +73,23 @@ TEST(LoadTextProtoDirTest, LoadsMapKeyedByStem) {
   ASSERT_EQ(lith.mobs_size(), 2);
   EXPECT_EQ(lith.mobs(0), "snail");
   EXPECT_EQ(lith.mobs(1), "blue_snail");
+}
+
+TEST(LoadTextProtoDirTest, LoadsItemsKeyedByStem) {
+  std::string dir = std::string(testing::TempDir()) + "/item_dir_test";
+  std::filesystem::create_directory(dir);
+  WriteTempFile("item_dir_test/green_snail_shell.textproto",
+                "name: \"Green Snail Shell\"\ncategory: ITEM_CATEGORY_ETC\n"
+                "sell_price: 2\n");
+
+  std::map<std::string, ItemPrototype> result =
+      LoadTextProtoDir<ItemPrototype>(dir);
+  ASSERT_EQ(result.size(), 1);
+  const ItemPrototype& shell = result.at("green_snail_shell");
+  EXPECT_EQ(shell.name(), "Green Snail Shell");
+  EXPECT_EQ(shell.category(), ITEM_CATEGORY_ETC);
+  EXPECT_EQ(shell.sell_price(), 2);
+  EXPECT_EQ(shell.max_stack(), 0);  // blank in data; default resolved elsewhere
 }
 
 TEST(ProtoLoaderTest, FatalOnMissingFile) {
