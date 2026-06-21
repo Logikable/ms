@@ -12,6 +12,7 @@
 
 #include "src/character.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -21,6 +22,7 @@ namespace ms {
 struct GameState {
   GameState(std::map<std::string, EquipPrototype> equips,
             std::map<std::string, Scroll> scrolls,
+            std::map<std::string, ItemPrototype> items,
             std::map<std::string, Mob> mobs,
             std::map<std::string, MapData> maps);
   GameState(const GameState&) = delete;
@@ -28,6 +30,7 @@ struct GameState {
 
   std::map<std::string, EquipPrototype> equips;
   std::map<std::string, Scroll> scrolls;
+  std::map<std::string, ItemPrototype> items;
   std::map<std::string, Mob> mobs;
   std::map<std::string, MapData> maps;
   std::mt19937 rng;

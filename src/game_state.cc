@@ -27,10 +27,12 @@ Character MakeStartingCharacterProto() {
 
 GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
                      std::map<std::string, Scroll> scrolls_arg,
+                     std::map<std::string, ItemPrototype> items_arg,
                      std::map<std::string, Mob> mobs_arg,
                      std::map<std::string, MapData> maps_arg)
     : equips(std::move(equips_arg)),
       scrolls(std::move(scrolls_arg)),
+      items(std::move(items_arg)),
       mobs(std::move(mobs_arg)),
       maps(std::move(maps_arg)),
       rng(std::random_device{}()),

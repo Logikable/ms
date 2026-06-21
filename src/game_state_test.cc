@@ -6,6 +6,7 @@
 #include <string>
 
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -14,13 +15,13 @@ namespace ms {
 namespace {
 
 GameState MakeState() {
-  return GameState({}, {}, {}, {});
+  return GameState({}, {}, {}, {}, {});
 }
 
 TEST(GameStateTest, ConstructorStoresEquipsMap) {
   EquipPrototype proto;
   proto.set_name("Sword");
-  GameState state({{"sword", proto}}, {}, {}, {});
+  GameState state({{"sword", proto}}, {}, {}, {}, {});
   ASSERT_TRUE(state.equips.count("sword"));
   EXPECT_EQ(state.equips.at("sword").name(), "Sword");
 }
@@ -28,15 +29,23 @@ TEST(GameStateTest, ConstructorStoresEquipsMap) {
 TEST(GameStateTest, ConstructorStoresScrollsMap) {
   Scroll scroll;
   scroll.set_name("60% ATT");
-  GameState state({}, {{"att_60", scroll}}, {}, {});
+  GameState state({}, {{"att_60", scroll}}, {}, {}, {});
   ASSERT_TRUE(state.scrolls.count("att_60"));
   EXPECT_EQ(state.scrolls.at("att_60").name(), "60% ATT");
+}
+
+TEST(GameStateTest, ConstructorStoresItemsMap) {
+  ItemPrototype item;
+  item.set_name("Green Snail Shell");
+  GameState state({}, {}, {{"green_snail_shell", item}}, {}, {});
+  ASSERT_TRUE(state.items.count("green_snail_shell"));
+  EXPECT_EQ(state.items.at("green_snail_shell").name(), "Green Snail Shell");
 }
 
 TEST(GameStateTest, ConstructorStoresMobsMap) {
   Mob mob;
   mob.set_name("Snail");
-  GameState state({}, {}, {{"snail", mob}}, {});
+  GameState state({}, {}, {}, {{"snail", mob}}, {});
   ASSERT_TRUE(state.mobs.count("snail"));
   EXPECT_EQ(state.mobs.at("snail").name(), "Snail");
 }
@@ -44,7 +53,7 @@ TEST(GameStateTest, ConstructorStoresMobsMap) {
 TEST(GameStateTest, ConstructorStoresMapsMap) {
   MapData map;
   map.set_name("Right Around Lith Harbor");
-  GameState state({}, {}, {}, {{"lith", map}});
+  GameState state({}, {}, {}, {}, {{"lith", map}});
   ASSERT_TRUE(state.maps.count("lith"));
   EXPECT_EQ(state.maps.at("lith").name(), "Right Around Lith Harbor");
 }

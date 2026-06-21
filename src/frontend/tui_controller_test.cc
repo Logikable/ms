@@ -20,6 +20,7 @@
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -48,6 +49,7 @@ class TuiControllerTest : public testing::Test {
     scrolls["Test Scroll"] = scroll;
 
     state_ = std::make_unique<GameState>(std::move(equips), std::move(scrolls),
+                                         std::map<std::string, ItemPrototype>{},
                                          std::map<std::string, Mob>{},
                                          std::map<std::string, MapData>{});
     state_->character.AdvanceJob(JOB_WARRIOR);
