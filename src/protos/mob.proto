@@ -11,4 +11,7 @@ message Mob {
   int32 attack = 3;
   int32 max_hp = 4;
   int64 exp = 5;
+  // Items this mob can drop, referencing ItemPrototype data files by filename
+  // stem. Drop rates and quantities are added later.
+  repeated string drops = 6;
 }

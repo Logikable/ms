@@ -3,3 +3,4 @@ level: 2
 attack: 3
 max_hp: 20
 exp: 4
+drops: "blue_snail_shell"
