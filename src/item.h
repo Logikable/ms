@@ -15,6 +15,7 @@
 
 #include "src/equip_stats.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 
@@ -23,6 +24,32 @@ class Item {
  public:
   virtual ~Item() = default;
   virtual const std::string& name() const = 0;
+};
+
+// A stack of identical non-equip items (Use/Etc) in the inventory. Wraps a
+// shared ItemPrototype with a per-stack count.
+class StackableItem : public Item {
+ public:
+  StackableItem(ItemPrototype prototype, int count)
+      : prototype_(std::move(prototype)), count_(count) {
+  }
+
+  const std::string& name() const override {
+    return prototype_.name();
+  }
+  const ItemPrototype& prototype() const {
+    return prototype_;
+  }
+  int count() const {
+    return count_;
+  }
+  // Effective per-slot stack limit: prototype.max_stack() when set (> 0),
+  // otherwise the category default (Use 9999, Etc 200).
+  int max_stack() const;
+
+ private:
+  ItemPrototype prototype_;
+  int count_;
 };
 
 // Base for items on the equip tab: active equips and traces of destroyed items.

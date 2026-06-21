@@ -183,6 +183,7 @@ cc_library(
     deps = [
         ":equip_stats",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
     ],
 )
 
@@ -192,6 +193,7 @@ cc_test(
     deps = [
         ":item",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
         "@googletest//:gtest_main",
     ],
 )

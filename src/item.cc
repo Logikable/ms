@@ -2,9 +2,13 @@
 
 #include "src/equip_stats.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
+
+constexpr int kUseDefaultMaxStack = 9999;
+constexpr int kEtcDefaultMaxStack = 200;
 
 // Per-star primary stat deltas for 1–15★ (index i = gain for i★→(i+1)★).
 constexpr int kPrimaryStatDeltas[15] = {
@@ -117,6 +121,20 @@ StatFlags PrimaryStatFlags(const EquipPrototype& proto) {
 }
 
 }  // namespace
+
+int StackableItem::max_stack() const {
+  if (prototype_.max_stack() > 0) {
+    return prototype_.max_stack();
+  }
+  switch (prototype_.category()) {
+    case ITEM_CATEGORY_USE:
+      return kUseDefaultMaxStack;
+    case ITEM_CATEGORY_ETC:
+      return kEtcDefaultMaxStack;
+    default:
+      return 1;
+  }
+}
 
 EquipTrace::EquipTrace(EquipPrototype prototype, Equip state)
     : EquipTabItem(std::move(prototype), std::move(state)),
