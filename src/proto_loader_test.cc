@@ -7,6 +7,7 @@
 
 #include "gtest/gtest.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/mob.pb.h"
 
 namespace ms {
 namespace {
@@ -39,6 +40,22 @@ TEST(LoadTextProtoDirTest, LoadsAllTextprotosKeyedByStem) {
   ASSERT_EQ(result.size(), 2);
   EXPECT_EQ(result.at("a").name(), "A");
   EXPECT_EQ(result.at("b").name(), "B");
+}
+
+TEST(LoadTextProtoDirTest, LoadsMobsKeyedByStem) {
+  std::string dir = std::string(testing::TempDir()) + "/mob_dir_test";
+  std::filesystem::create_directory(dir);
+  WriteTempFile("mob_dir_test/snail.textproto",
+                "name: \"Snail\"\nlevel: 1\nattack: 2\nmax_hp: 15\nexp: 3\n");
+
+  std::map<std::string, Mob> result = LoadTextProtoDir<Mob>(dir);
+  ASSERT_EQ(result.size(), 1);
+  const Mob& snail = result.at("snail");
+  EXPECT_EQ(snail.name(), "Snail");
+  EXPECT_EQ(snail.level(), 1);
+  EXPECT_EQ(snail.attack(), 2);
+  EXPECT_EQ(snail.max_hp(), 15);
+  EXPECT_EQ(snail.exp(), 3);
 }
 
 TEST(ProtoLoaderTest, FatalOnMissingFile) {

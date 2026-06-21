@@ -8,6 +8,7 @@
 #include "absl/log/log.h"
 #include "google/protobuf/text_format.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
@@ -45,5 +46,6 @@ template std::map<std::string, EquipPrototype> LoadTextProtoDir<EquipPrototype>(
     const std::string&);
 template std::map<std::string, Scroll> LoadTextProtoDir<Scroll>(
     const std::string&);
+template std::map<std::string, Mob> LoadTextProtoDir<Mob>(const std::string&);
 
 }  // namespace ms
