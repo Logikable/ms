@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package ms;
+
+// Static definition of a monster type. Loaded from data/mobs textprotos at
+// startup; shared read-only across all spawns of the same type. Drops are
+// added later.
+message Mob {
+  string name = 1;
+  int32 level = 2;
+  int32 attack = 3;
+  int32 max_hp = 4;
+  int64 exp = 5;
+}

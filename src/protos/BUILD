@@ -44,3 +44,13 @@ cc_proto_library(
     name = "map_proto_cc",
     deps = [":map_proto"],
 )
+
+proto_library(
+    name = "mob_proto",
+    srcs = ["mob.proto"],
+)
+
+cc_proto_library(
+    name = "mob_proto_cc",
+    deps = [":mob_proto"],
+)

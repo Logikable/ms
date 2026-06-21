@@ -2,7 +2,9 @@ syntax = "proto3";
 
 package ms;
 
-enum Map {
-  MAP_UNSPECIFIED = 0;
-  MAP_HENESYS = 1;
+// A hunting area. Loaded from data/maps textprotos at startup. mobs reference
+// Mob data files by filename stem.
+message MapData {
+  string name = 1;
+  repeated string mobs = 2;
 }
