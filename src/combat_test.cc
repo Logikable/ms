@@ -87,5 +87,40 @@ TEST_F(OffenseTest, IerRestoresBossElemental) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, true), 25.875);
 }
 
+TEST(SwingIntervalTest, Stage4IsTheUnscaledBase) {
+  // stage 4 => (20-4)/16 == 1.0; 720 is already a 30ms multiple.
+  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(720, 4), 0.72);
+}
+
+TEST(SwingIntervalTest, WorkedExampleStage8) {
+  // 660 * (20-8)/16 = 495 -> ceil to 510ms.
+  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(660, 8), 0.51);
+}
+
+TEST(SwingIntervalTest, RoundsUpToNextTick) {
+  // 100 * 1.0 = 100 -> ceil(100/30)=4 ticks -> 120ms.
+  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(100, 4), 0.12);
+}
+
+TEST(SwingIntervalTest, ExactTickMultipleIsUnchanged) {
+  // 600 is exactly 20 ticks; ceil must not bump it.
+  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(600, 4), 0.60);
+}
+
+TEST(SwingIntervalTest, FastestStageIsQuickest) {
+  // stage 10 => (20-10)/16 = 0.625; 800*0.625 = 500 -> ceil to 510ms.
+  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 10), 0.51);
+}
+
+TEST(SwingIntervalTest, SlowestStageIsSlowerThanBase) {
+  // stage 1 => 19/16 = 1.1875; 800*1.1875 = 950 -> ceil to 960ms.
+  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 1), 0.96);
+}
+
+TEST_F(OffenseTest, DpsIsDamageOverSwingInterval) {
+  // Baseline expected damage 25.875 at base 720ms / stage 4 (0.72s).
+  EXPECT_DOUBLE_EQ(Dps(Baseline(), 0.0, false, 720, 4), 25.875 / 0.72);
+}
+
 }  // namespace
 }  // namespace ms

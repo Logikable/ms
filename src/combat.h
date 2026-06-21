@@ -27,6 +27,16 @@ struct OffenseStats {
 double ExpectedAttackDamage(const OffenseStats& offense, double mob_pdr,
                             bool is_boss);
 
+// Seconds between swings for an attack whose base animation is `base_delay_ms`,
+// at the given attack speed stage (1..10, 10 fastest, 4 == base). Modern
+// formula: base * (20 - stage) / 16, ceil'd up to 30ms tick boundaries.
+double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
+
+// Damage per second of non-stop swinging: expected damage per attack over the
+// swing interval.
+double Dps(const OffenseStats& offense, double mob_pdr, bool is_boss,
+           int base_delay_ms, int attack_speed_stage);
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_H_
