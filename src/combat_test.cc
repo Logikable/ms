@@ -122,5 +122,30 @@ TEST_F(OffenseTest, DpsIsDamageOverSwingInterval) {
   EXPECT_DOUBLE_EQ(Dps(Baseline(), 0.0, false, 720, 4), 25.875 / 0.72);
 }
 
+TEST(KillsPerSecondTest, DpsLimitedBelowSpawnCap) {
+  // dps_rate = 100*1/10 = 10 < spawn 50; 10 / kGameSpeedFactor(10) = 1.0.
+  EXPECT_DOUBLE_EQ(KillsPerSecond(100.0, 10, 1, 50.0), 1.0);
+}
+
+TEST(KillsPerSecondTest, SpawnCappedAboveCrossover) {
+  // dps_rate = 100000*1/10 = 10000, clamped to spawn 5; 5 / 10 = 0.5.
+  EXPECT_DOUBLE_EQ(KillsPerSecond(100000.0, 10, 1, 5.0), 0.5);
+}
+
+TEST(KillsPerSecondTest, MaxTargetsScalesDpsRate) {
+  // dps_rate = 100*3/10 = 30 < spawn 100; 30 / 10 = 3.0.
+  EXPECT_DOUBLE_EQ(KillsPerSecond(100.0, 10, 3, 100.0), 3.0);
+}
+
+TEST(KillsPerSecondTest, MoreDpsDoesNothingOnceSpawnCapped) {
+  // Both well past the spawn cap of 10 -> identical 10/10 = 1.0.
+  EXPECT_DOUBLE_EQ(KillsPerSecond(1000.0, 10, 1, 10.0),
+                   KillsPerSecond(100000.0, 10, 1, 10.0));
+}
+
+TEST(ExpPerSecondTest, ScalesKillsByMobExp) {
+  EXPECT_DOUBLE_EQ(ExpPerSecond(2.0, 3), 6.0);
+}
+
 }  // namespace
 }  // namespace ms

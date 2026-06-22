@@ -1,6 +1,8 @@
 #ifndef MS_SRC_COMBAT_H_
 #define MS_SRC_COMBAT_H_
 
+#include <cstdint>
+
 namespace ms {
 
 // Offensive parameters feeding the GMS damage formula. Modifier fields default
@@ -36,6 +38,16 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 // swing interval.
 double Dps(const OffenseStats& offense, double mob_pdr, bool is_boss,
            int base_delay_ms, int attack_speed_stage);
+
+// Mobs killed per second of non-stop farming: the lower of the DPS-limited
+// clear rate (raw_dps * max_targets / mob_hp, damage overflowing between mobs)
+// and the map's respawn cap (`spawn_per_second`), slowed by the global game
+// speed factor so both regimes stretch equally.
+double KillsPerSecond(double raw_dps, int mob_hp, int max_targets,
+                      double spawn_per_second);
+
+// EXP earned per second at the given kill rate.
+double ExpPerSecond(double kills_per_second, int64_t mob_exp);
 
 }  // namespace ms
 

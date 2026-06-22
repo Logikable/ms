@@ -1,5 +1,6 @@
 #include "src/combat.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace ms {
@@ -18,6 +19,9 @@ constexpr double kBossElementalBase = 0.5;
 constexpr int kSpeedBase = 20;
 constexpr int kSpeedDivisor = 16;
 constexpr int kTickMs = 30;
+
+// Our game runs this many times slower than GMS; the one global pacing knob.
+constexpr double kGameSpeedFactor = 10.0;
 
 }  // namespace
 
@@ -50,6 +54,16 @@ double Dps(const OffenseStats& offense, double mob_pdr, bool is_boss,
            int base_delay_ms, int attack_speed_stage) {
   return ExpectedAttackDamage(offense, mob_pdr, is_boss) /
          SwingIntervalSeconds(base_delay_ms, attack_speed_stage);
+}
+
+double KillsPerSecond(double raw_dps, int mob_hp, int max_targets,
+                      double spawn_per_second) {
+  double dps_rate = raw_dps * max_targets / mob_hp;
+  return std::min(dps_rate, spawn_per_second) / kGameSpeedFactor;
+}
+
+double ExpPerSecond(double kills_per_second, int64_t mob_exp) {
+  return kills_per_second * mob_exp;
 }
 
 }  // namespace ms
