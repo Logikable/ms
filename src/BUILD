@@ -136,6 +136,10 @@ cc_library(
     name = "combat",
     srcs = ["combat.cc"],
     hdrs = ["combat.h"],
+    deps = [
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+    ],
 )
 
 cc_test(
@@ -143,6 +147,8 @@ cc_test(
     srcs = ["combat_test.cc"],
     deps = [
         ":combat",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
         "@googletest//:gtest_main",
     ],
 )

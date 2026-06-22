@@ -147,5 +147,48 @@ TEST(ExpPerSecondTest, ScalesKillsByMobExp) {
   EXPECT_DOUBLE_EQ(ExpPerSecond(2.0, 3), 6.0);
 }
 
+TEST(OffenseStatsForTest, SumsAllocatedAndEquippedStats) {
+  AllocatedStats allocated;
+  allocated.set_str(13);
+  allocated.set_dex(4);
+  EquipStats equipped;
+  equipped.set_str(10);  // e.g. a stat-bearing piece
+  equipped.set_dex(2);
+  equipped.set_attack(15);  // the Sword
+
+  OffenseStats offense = OffenseStatsFor(JOB_BEGINNER, allocated, equipped);
+  EXPECT_EQ(offense.primary, 23);   // 13 + 10
+  EXPECT_EQ(offense.secondary, 6);  // 4 + 2
+  EXPECT_EQ(offense.attack, 15);
+}
+
+TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
+  AllocatedStats allocated;
+  allocated.set_str(100);
+  allocated.set_dex(20);
+  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, allocated, EquipStats());
+  EXPECT_EQ(offense.primary, 100);
+  EXPECT_EQ(offense.secondary, 20);
+}
+
+TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
+  EquipStats equipped;
+  equipped.set_boss_damage(30);           // 30%
+  equipped.set_ignore_enemy_defense(20);  // 20%
+  OffenseStats offense =
+      OffenseStatsFor(JOB_WARRIOR, AllocatedStats(), equipped);
+  EXPECT_DOUBLE_EQ(offense.boss_pct, 0.30);
+  EXPECT_DOUBLE_EQ(offense.ied, 0.20);
+}
+
+TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
+  OffenseStats offense =
+      OffenseStatsFor(JOB_BEGINNER, AllocatedStats(), EquipStats());
+  EXPECT_DOUBLE_EQ(offense.mastery, 0.15);
+  EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
+  EXPECT_DOUBLE_EQ(offense.boss_pct, 0.0);
+  EXPECT_DOUBLE_EQ(offense.ied, 0.0);
+}
+
 }  // namespace
 }  // namespace ms

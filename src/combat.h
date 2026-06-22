@@ -3,6 +3,9 @@
 
 #include <cstdint>
 
+#include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
+
 namespace ms {
 
 // Offensive parameters feeding the GMS damage formula. Modifier fields default
@@ -23,6 +26,13 @@ struct OffenseStats {
   double ied = 0.0;            // ignore enemy defense, 0..1
   double ier = 0.0;            // ignore elemental resistance, 0..1
 };
+
+// Builds OffenseStats from a character's job and summed (allocated + equipped)
+// stats. Job selects the primary/secondary stat; attack and the boss_pct/ied
+// modifiers come from equipped gear. Remaining modifiers keep their
+// placeholder/identity defaults until skills and more gear stats supply them.
+OffenseStats OffenseStatsFor(Job job, const AllocatedStats& allocated,
+                             const EquipStats& equipped);
 
 // Expected damage of one full attack against a single mob, averaging crit over
 // its rate (deterministic; no RNG). Implements the GMS damage chain.

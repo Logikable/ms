@@ -23,7 +23,32 @@ constexpr int kTickMs = 30;
 // Our game runs this many times slower than GMS; the one global pacing knob.
 constexpr double kGameSpeedFactor = 10.0;
 
+// EquipStats stores boss_damage / ignore_enemy_defense as whole percents.
+constexpr double kPercentToFraction = 100.0;
+
 }  // namespace
+
+OffenseStats OffenseStatsFor(Job job, const AllocatedStats& allocated,
+                             const EquipStats& equipped) {
+  OffenseStats offense;
+  // No default case: every job is listed explicitly. Adding a Job grows
+  // Job_ARRAYSIZE and trips this assert, forcing its stats to be chosen here.
+  static_assert(Job_ARRAYSIZE == 3,
+                "New Job added: handle its primary/secondary stats below.");
+  switch (job) {
+    case JOB_UNSPECIFIED:
+    case JOB_BEGINNER:
+    case JOB_WARRIOR:
+      // STR primary, DEX secondary.
+      offense.primary = allocated.str() + equipped.str();
+      offense.secondary = allocated.dex() + equipped.dex();
+      break;
+  }
+  offense.attack = equipped.attack();
+  offense.boss_pct = equipped.boss_damage() / kPercentToFraction;
+  offense.ied = equipped.ignore_enemy_defense() / kPercentToFraction;
+  return offense;
+}
 
 double ExpectedAttackDamage(const OffenseStats& offense, double mob_pdr,
                             bool is_boss) {
