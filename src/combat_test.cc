@@ -190,5 +190,15 @@ TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
   EXPECT_DOUBLE_EQ(offense.ied, 0.0);
 }
 
+TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {
+  AllocatedStats allocated;
+  allocated.set_str(50);
+  allocated.set_dex(30);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_UNSPECIFIED, allocated, EquipStats());
+  EXPECT_EQ(offense.primary, 0);  // fail safe: unknown job has no main stat
+  EXPECT_EQ(offense.secondary, 0);
+}
+
 }  // namespace
 }  // namespace ms

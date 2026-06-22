@@ -31,17 +31,16 @@ constexpr double kPercentToFraction = 100.0;
 OffenseStats OffenseStatsFor(Job job, const AllocatedStats& allocated,
                              const EquipStats& equipped) {
   OffenseStats offense;
-  // No default case: every job is listed explicitly. Adding a Job grows
-  // Job_ARRAYSIZE and trips this assert, forcing its stats to be chosen here.
-  static_assert(Job_ARRAYSIZE == 3,
-                "New Job added: handle its primary/secondary stats below.");
+  // Primary/secondary stat by job; unknown jobs fall through to 0, matching
+  // MainStatValue in equipped_panel.
   switch (job) {
-    case JOB_UNSPECIFIED:
-    case JOB_BEGINNER:
     case JOB_WARRIOR:
+    case JOB_BEGINNER:
       // STR primary, DEX secondary.
       offense.primary = allocated.str() + equipped.str();
       offense.secondary = allocated.dex() + equipped.dex();
+      break;
+    default:
       break;
   }
   offense.attack = equipped.attack();
