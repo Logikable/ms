@@ -5,6 +5,7 @@
 
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/mob.pb.h"
 
 namespace ms {
 
@@ -34,10 +35,10 @@ struct OffenseStats {
 OffenseStats OffenseStatsFor(Job job, const AllocatedStats& allocated,
                              const EquipStats& equipped);
 
-// Expected damage of one full attack against a single mob, averaging crit over
-// its rate (deterministic; no RNG). Implements the GMS damage chain.
-double ExpectedAttackDamage(const OffenseStats& offense, double mob_pdr,
-                            bool is_boss);
+// Expected damage of one full attack against the given mob, averaging crit over
+// its rate (deterministic; no RNG). Implements the GMS damage chain, drawing
+// the mob's PDR and boss flag from the Mob.
+double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob);
 
 // Seconds between swings for an attack whose base animation is `base_delay_ms`,
 // at the given attack speed stage (1..10, 10 fastest, 4 == base). Modern
@@ -46,8 +47,8 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 
 // Damage per second of non-stop swinging: expected damage per attack over the
 // swing interval.
-double Dps(const OffenseStats& offense, double mob_pdr, bool is_boss,
-           int base_delay_ms, int attack_speed_stage);
+double Dps(const OffenseStats& offense, const Mob& mob, int base_delay_ms,
+           int attack_speed_stage);
 
 // Mobs killed per second of non-stop farming: the lower of the DPS-limited
 // clear rate (raw_dps * max_targets / mob_hp, damage overflowing between mobs)

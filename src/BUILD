@@ -139,6 +139,7 @@ cc_library(
     deps = [
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:mob_proto_cc",
     ],
 )
 
@@ -149,6 +150,7 @@ cc_test(
         ":combat",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:mob_proto_cc",
         "@googletest//:gtest_main",
     ],
 )

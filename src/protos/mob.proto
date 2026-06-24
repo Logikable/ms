@@ -14,4 +14,9 @@ message Mob {
   // Items this mob can drop, referencing ItemPrototype data files by filename
   // stem. Drop rates and quantities are added later.
   repeated string drops = 6;
+  // Physical defense rate as a whole percent (PDR); reduces incoming damage
+  // unless the attacker ignores it. Snails are 0. Mirrors EquipStats percents.
+  int32 pdr = 7;
+  // True for bosses: they take 0.5x elemental base and are subject to boss%.
+  bool boss = 8;
 }

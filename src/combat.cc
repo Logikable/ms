@@ -49,8 +49,10 @@ OffenseStats OffenseStatsFor(Job job, const AllocatedStats& allocated,
   return offense;
 }
 
-double ExpectedAttackDamage(const OffenseStats& offense, double mob_pdr,
-                            bool is_boss) {
+double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
+  double mob_pdr = mob.pdr() / kPercentToFraction;
+  bool is_boss = mob.boss();
+
   double stat_value = 4.0 * offense.primary + offense.secondary;
   double max_base = stat_value * offense.attack / 100.0;
   double damage = max_base * (1.0 + offense.mastery) / 2.0;
@@ -74,9 +76,9 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage) {
   return ticks * kTickMs / 1000.0;
 }
 
-double Dps(const OffenseStats& offense, double mob_pdr, bool is_boss,
-           int base_delay_ms, int attack_speed_stage) {
-  return ExpectedAttackDamage(offense, mob_pdr, is_boss) /
+double Dps(const OffenseStats& offense, const Mob& mob, int base_delay_ms,
+           int attack_speed_stage) {
+  return ExpectedAttackDamage(offense, mob) /
          SwingIntervalSeconds(base_delay_ms, attack_speed_stage);
 }
 

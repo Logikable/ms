@@ -17,74 +17,84 @@ class OffenseTest : public ::testing::Test {
     s.attack = 100;
     return s;
   }
+
+  // A mob carrying just the combat-relevant fields: PDR (whole percent) and the
+  // boss flag.
+  Mob MakeMob(int pdr = 0, bool boss = false) {
+    Mob mob;
+    mob.set_pdr(pdr);
+    mob.set_boss(boss);
+    return mob;
+  }
 };
 
 TEST_F(OffenseTest, BaselineUsesStatAttackAndMastery) {
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), 0.0, false), 25.875);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob()), 25.875);
 }
 
 TEST_F(OffenseTest, FullMasteryRemovesMinFloor) {
   OffenseStats s = Baseline();
   s.mastery = 1.0;  // min == max, so expected == max base.
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, false), 45.0);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 45.0);
 }
 
 TEST_F(OffenseTest, SkillPctScalesLinearly) {
   OffenseStats s = Baseline();
   s.skill_pct = 2.0;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, false), 51.75);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 51.75);
 }
 
 TEST_F(OffenseTest, LinesMultiplyDamage) {
   OffenseStats s = Baseline();
   s.lines = 3;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, false), 77.625);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 77.625);
 }
 
 TEST_F(OffenseTest, DamagePctIsAdditive) {
   OffenseStats s = Baseline();
   s.damage_pct = 0.20;  // *1.2
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, false), 31.05);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 31.05);
 }
 
 TEST_F(OffenseTest, BossPctAppliesOnlyToBosses) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.50;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, false), 25.875);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875);
 }
 
 TEST_F(OffenseTest, CritIncludesHiddenBaseCritDamage) {
   OffenseStats s = Baseline();
   s.crit_rate = 1.0;  // always crit
   s.crit_dmg = 0.0;   // only the hidden 0.35 base applies
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, false), 25.875 * 1.35);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875 * 1.35);
 }
 
 TEST_F(OffenseTest, FinalDamageMultiplies) {
   OffenseStats s = Baseline();
   s.final_dmg_pct = 0.10;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, false), 25.875 * 1.10);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875 * 1.10);
 }
 
 TEST_F(OffenseTest, MobDefenseReducesDamage) {
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), 0.30, false),
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(30)),
                    25.875 * 0.70);
 }
 
 TEST_F(OffenseTest, IedNegatesMobDefense) {
   OffenseStats s = Baseline();
   s.ied = 1.0;  // fully ignore the 30% PDR
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.30, false), 25.875);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(30)), 25.875);
 }
 
 TEST_F(OffenseTest, BossesTakeHalfElementalByDefault) {
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), 0.0, true), 25.875 * 0.5);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, true)),
+                   25.875 * 0.5);
 }
 
 TEST_F(OffenseTest, IerRestoresBossElemental) {
   OffenseStats s = Baseline();
   s.ier = 1.0;  // 0.5*(1+1) == 1.0
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, 0.0, true), 25.875);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)), 25.875);
 }
 
 TEST(SwingIntervalTest, Stage4IsTheUnscaledBase) {
@@ -119,7 +129,7 @@ TEST(SwingIntervalTest, SlowestStageIsSlowerThanBase) {
 
 TEST_F(OffenseTest, DpsIsDamageOverSwingInterval) {
   // Baseline expected damage 25.875 at base 720ms / stage 4 (0.72s).
-  EXPECT_DOUBLE_EQ(Dps(Baseline(), 0.0, false, 720, 4), 25.875 / 0.72);
+  EXPECT_DOUBLE_EQ(Dps(Baseline(), MakeMob(), 720, 4), 25.875 / 0.72);
 }
 
 TEST(KillsPerSecondTest, DpsLimitedBelowSpawnCap) {
