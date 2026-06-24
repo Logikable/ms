@@ -50,10 +50,17 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob);
 // formula: base * (20 - stage) / 16, ceil'd up to 30ms tick boundaries.
 double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 
-// Damage per second of non-stop swinging: expected damage per attack over the
-// swing interval.
-double Dps(const OffenseStats& offense, const Mob& mob, int base_delay_ms,
-           int attack_speed_stage);
+// Base basic-attack swing animation, in milliseconds, for a weapon of the given
+// type (the stage-4 / x1.0 reference that SwingIntervalSeconds scales). Base
+// animation is a property of the weapon class, not the individual item;
+// per-item speed is the attack_speed stage instead.
+int BaseAttackDelayMs(EquipType equip_type);
+
+// Damage per second of non-stop swinging with `weapon`: expected damage per
+// attack over the swing interval, deriving the base animation from the weapon's
+// type and the speed stage from its attack_speed.
+double Dps(const OffenseStats& offense, const Mob& mob,
+           const EquipPrototype& weapon);
 
 // Mobs killed per second of non-stop farming on `map` against `mob`: the lower
 // of the DPS-limited clear rate (raw_dps * max_targets / mob.max_hp, damage

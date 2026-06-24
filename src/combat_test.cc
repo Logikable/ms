@@ -22,6 +22,14 @@ MapData MakeMap(int spawn_count) {
   return map;
 }
 
+// A weapon carrying just the fields Dps reads: its type and attack speed.
+EquipPrototype MakeWeapon(EquipType type, AttackSpeed speed) {
+  EquipPrototype weapon;
+  weapon.set_equip_type(type);
+  weapon.set_attack_speed(speed);
+  return weapon;
+}
+
 class OffenseTest : public ::testing::Test {
  protected:
   // Only primary/secondary/attack set; every modifier at identity (mastery at
@@ -135,9 +143,21 @@ TEST(SwingIntervalTest, SlowestStageIsSlowerThanBase) {
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 1), 0.96);
 }
 
+TEST(BaseAttackDelayMsTest, OneHandedSwordIs800) {
+  EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_ONE_HANDED_SWORD), 800);
+}
+
+TEST(BaseAttackDelayMsTest, UnknownTypeFallsBackToOneHanded) {
+  EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_UNSPECIFIED), 800);
+}
+
 TEST_F(OffenseTest, DpsIsDamageOverSwingInterval) {
-  // Baseline expected damage 25.875 at base 720ms / stage 4 (0.72s).
-  EXPECT_DOUBLE_EQ(Dps(Baseline(), MakeMob(), 720, 4), 25.875 / 0.72);
+  // One-handed sword (800ms base) at AVERAGE (stage 4, x1.0); 800 isn't a 30ms
+  // multiple, so it ceils to 810ms (0.81s). Baseline expected damage 25.875.
+  EXPECT_DOUBLE_EQ(
+      Dps(Baseline(), MakeMob(),
+          MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE)),
+      25.875 / 0.81);
 }
 
 // All kill-rate tests pass respawn_interval_seconds = 1.0 so the spawn cap is

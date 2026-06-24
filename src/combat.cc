@@ -26,6 +26,13 @@ constexpr double kGameSpeedFactor = 10.0;
 // EquipStats stores boss_damage / ignore_enemy_defense as whole percents.
 constexpr double kPercentToFraction = 100.0;
 
+// Basic-attack swing animation for a one-handed weapon at the stage-4 (x1.0)
+// reference. 800ms is the long-standing engine animation constant; modern GMS
+// doesn't republish basic-attack timing (basic attacks are vestigial vs
+// skills). Two-handed's swing/stab alternation is deferred until such a weapon
+// exists.
+constexpr int kOneHandedBaseAttackDelayMs = 800;
+
 }  // namespace
 
 OffenseStats OffenseStatsFor(Job job, const AllocatedStats& allocated,
@@ -76,10 +83,22 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage) {
   return ticks * kTickMs / 1000.0;
 }
 
-double Dps(const OffenseStats& offense, const Mob& mob, int base_delay_ms,
-           int attack_speed_stage) {
+int BaseAttackDelayMs(EquipType equip_type) {
+  switch (equip_type) {
+    case EQUIP_TYPE_ONE_HANDED_SWORD:
+      return kOneHandedBaseAttackDelayMs;
+    default:
+      // Fail safe: fall back to the one-handed swing until other weapon types
+      // are added, keeping the swing interval non-zero.
+      return kOneHandedBaseAttackDelayMs;
+  }
+}
+
+double Dps(const OffenseStats& offense, const Mob& mob,
+           const EquipPrototype& weapon) {
   return ExpectedAttackDamage(offense, mob) /
-         SwingIntervalSeconds(base_delay_ms, attack_speed_stage);
+         SwingIntervalSeconds(BaseAttackDelayMs(weapon.equip_type()),
+                              weapon.attack_speed());
 }
 
 double KillsPerSecond(double raw_dps, const Mob& mob, int max_targets,
