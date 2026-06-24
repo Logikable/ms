@@ -5,9 +5,14 @@
 
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 
 namespace ms {
+
+// GMS global respawn tick: every 7.56s the server refills up to one mob per
+// spawn point. A map's full-clear kill cap is spawn_count / this.
+constexpr double kRespawnIntervalSeconds = 7.56;
 
 // Offensive parameters feeding the GMS damage formula. Modifier fields default
 // to their identity (no-effect) value; real values graduate in one at a time as
@@ -50,12 +55,15 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 double Dps(const OffenseStats& offense, const Mob& mob, int base_delay_ms,
            int attack_speed_stage);
 
-// Mobs killed per second of non-stop farming: the lower of the DPS-limited
-// clear rate (raw_dps * max_targets / mob_hp, damage overflowing between mobs)
-// and the map's respawn cap (`spawn_per_second`), slowed by the global game
-// speed factor so both regimes stretch equally.
-double KillsPerSecond(double raw_dps, int mob_hp, int max_targets,
-                      double spawn_per_second);
+// Mobs killed per second of non-stop farming on `map` against `mob`: the lower
+// of the DPS-limited clear rate (raw_dps * max_targets / mob.max_hp, damage
+// overflowing between mobs) and the map's respawn cap (spawn_count over the
+// respawn tick), slowed by the global game speed factor so both regimes stretch
+// equally. respawn_interval_seconds defaults to the real GMS tick; override it
+// in tests to pick round spawn caps.
+double KillsPerSecond(
+    double raw_dps, const Mob& mob, int max_targets, const MapData& map,
+    double respawn_interval_seconds = kRespawnIntervalSeconds);
 
 // EXP earned per second at the given kill rate.
 double ExpPerSecond(double kills_per_second, int64_t mob_exp);

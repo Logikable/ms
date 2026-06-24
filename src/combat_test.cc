@@ -5,6 +5,23 @@
 namespace ms {
 namespace {
 
+// A mob carrying just the combat-relevant fields: PDR (whole percent), the boss
+// flag, and max HP (only the kill-rate tests need HP).
+Mob MakeMob(int pdr = 0, bool boss = false, int max_hp = 0) {
+  Mob mob;
+  mob.set_pdr(pdr);
+  mob.set_boss(boss);
+  mob.set_max_hp(max_hp);
+  return mob;
+}
+
+// A map carrying just its spawn-point count.
+MapData MakeMap(int spawn_count) {
+  MapData map;
+  map.set_spawn_count(spawn_count);
+  return map;
+}
+
 class OffenseTest : public ::testing::Test {
  protected:
   // Only primary/secondary/attack set; every modifier at identity (mastery at
@@ -16,15 +33,6 @@ class OffenseTest : public ::testing::Test {
     s.secondary = 5;
     s.attack = 100;
     return s;
-  }
-
-  // A mob carrying just the combat-relevant fields: PDR (whole percent) and the
-  // boss flag.
-  Mob MakeMob(int pdr = 0, bool boss = false) {
-    Mob mob;
-    mob.set_pdr(pdr);
-    mob.set_boss(boss);
-    return mob;
   }
 };
 
@@ -132,25 +140,37 @@ TEST_F(OffenseTest, DpsIsDamageOverSwingInterval) {
   EXPECT_DOUBLE_EQ(Dps(Baseline(), MakeMob(), 720, 4), 25.875 / 0.72);
 }
 
+// All kill-rate tests pass respawn_interval_seconds = 1.0 so the spawn cap is
+// just spawn_count, keeping the arithmetic round.
 TEST(KillsPerSecondTest, DpsLimitedBelowSpawnCap) {
   // dps_rate = 100*1/10 = 10 < spawn 50; 10 / kGameSpeedFactor(10) = 1.0.
-  EXPECT_DOUBLE_EQ(KillsPerSecond(100.0, 10, 1, 50.0), 1.0);
+  EXPECT_DOUBLE_EQ(
+      KillsPerSecond(100.0, MakeMob(0, false, 10), 1, MakeMap(50), 1.0), 1.0);
 }
 
 TEST(KillsPerSecondTest, SpawnCappedAboveCrossover) {
   // dps_rate = 100000*1/10 = 10000, clamped to spawn 5; 5 / 10 = 0.5.
-  EXPECT_DOUBLE_EQ(KillsPerSecond(100000.0, 10, 1, 5.0), 0.5);
+  EXPECT_DOUBLE_EQ(
+      KillsPerSecond(100000.0, MakeMob(0, false, 10), 1, MakeMap(5), 1.0), 0.5);
 }
 
 TEST(KillsPerSecondTest, MaxTargetsScalesDpsRate) {
   // dps_rate = 100*3/10 = 30 < spawn 100; 30 / 10 = 3.0.
-  EXPECT_DOUBLE_EQ(KillsPerSecond(100.0, 10, 3, 100.0), 3.0);
+  EXPECT_DOUBLE_EQ(
+      KillsPerSecond(100.0, MakeMob(0, false, 10), 3, MakeMap(100), 1.0), 3.0);
 }
 
 TEST(KillsPerSecondTest, MoreDpsDoesNothingOnceSpawnCapped) {
   // Both well past the spawn cap of 10 -> identical 10/10 = 1.0.
-  EXPECT_DOUBLE_EQ(KillsPerSecond(1000.0, 10, 1, 10.0),
-                   KillsPerSecond(100000.0, 10, 1, 10.0));
+  EXPECT_DOUBLE_EQ(
+      KillsPerSecond(1000.0, MakeMob(0, false, 10), 1, MakeMap(10), 1.0),
+      KillsPerSecond(100000.0, MakeMob(0, false, 10), 1, MakeMap(10), 1.0));
+}
+
+TEST(KillsPerSecondTest, DefaultRespawnUsesTheGmsTick) {
+  // spawn 756 over the default 7.56s tick = 100/s cap; dps_rate far higher.
+  EXPECT_DOUBLE_EQ(KillsPerSecond(1e9, MakeMob(0, false, 10), 1, MakeMap(756)),
+                   10.0);
 }
 
 TEST(ExpPerSecondTest, ScalesKillsByMobExp) {

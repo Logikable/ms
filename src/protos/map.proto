@@ -7,4 +7,8 @@ package ms;
 message MapData {
   string name = 1;
   repeated string mobs = 2;
+  // Number of spawn points, ~= the map's max concurrent mobs. Combined with the
+  // fixed 7.56s global respawn tick this sets the full-clear cap: a player who
+  // clears instantly tops out at spawn_count / 7.56 kills per second.
+  int32 spawn_count = 3;
 }

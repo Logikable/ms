@@ -82,9 +82,10 @@ double Dps(const OffenseStats& offense, const Mob& mob, int base_delay_ms,
          SwingIntervalSeconds(base_delay_ms, attack_speed_stage);
 }
 
-double KillsPerSecond(double raw_dps, int mob_hp, int max_targets,
-                      double spawn_per_second) {
-  double dps_rate = raw_dps * max_targets / mob_hp;
+double KillsPerSecond(double raw_dps, const Mob& mob, int max_targets,
+                      const MapData& map, double respawn_interval_seconds) {
+  double dps_rate = raw_dps * max_targets / mob.max_hp();
+  double spawn_per_second = map.spawn_count() / respawn_interval_seconds;
   return std::min(dps_rate, spawn_per_second) / kGameSpeedFactor;
 }
 
