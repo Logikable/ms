@@ -80,6 +80,14 @@ std::vector<double> MapKillPeriods(
     const std::vector<const Mob*>& mobs, int spawn_count,
     double respawn_interval_seconds = kRespawnIntervalSeconds);
 
+// Advances a fractional-kill accumulator by `elapsed_seconds` at the given kill
+// period and returns the whole kills completed, leaving the sub-kill remainder
+// in *accumulator. A non-finite or non-positive period (an unkillable mob or a
+// map with no spawns) yields no kills. This is what keeps rewards discrete:
+// callers grant a mob's full EXP and drops per whole kill, never a fraction.
+int64_t FlushKills(double period_seconds, double elapsed_seconds,
+                   double* accumulator);
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_H_

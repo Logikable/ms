@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace ms {
@@ -252,6 +253,33 @@ TEST(MapKillPeriodsTest, EmptyMapHasNoPeriods) {
                   MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE),
                   mobs, 4, 1.0)
                   .empty());
+}
+
+TEST(FlushKillsTest, AccumulatesAcrossCallsUntilWhole) {
+  double acc = 0.0;
+  EXPECT_EQ(FlushKills(10.0, 5.0, &acc), 0);  // 0.5 banked, no kill yet
+  EXPECT_EQ(FlushKills(10.0, 5.0, &acc), 1);  // 0.5 + 0.5 -> 1 kill
+  EXPECT_DOUBLE_EQ(acc, 0.0);
+}
+
+TEST(FlushKillsTest, FlushesMultipleKillsAndCarriesRemainder) {
+  double acc = 0.0;
+  EXPECT_EQ(FlushKills(2.0, 7.0, &acc), 3);  // 3.5 -> 3 kills
+  EXPECT_DOUBLE_EQ(acc, 0.5);
+}
+
+TEST(FlushKillsTest, RemainderCarriesIntoNextAdvance) {
+  double acc = 0.0;
+  EXPECT_EQ(FlushKills(4.0, 10.0, &acc), 2);  // 2.5 -> 2, 0.5 left
+  EXPECT_EQ(FlushKills(4.0, 10.0, &acc), 3);  // 0.5 + 2.5 = 3.0 -> 3
+  EXPECT_DOUBLE_EQ(acc, 0.0);
+}
+
+TEST(FlushKillsTest, InfinitePeriodYieldsNoKills) {
+  double acc = 0.25;
+  EXPECT_EQ(FlushKills(std::numeric_limits<double>::infinity(), 1000.0, &acc),
+            0);
+  EXPECT_DOUBLE_EQ(acc, 0.25);  // accumulator untouched
 }
 
 TEST(OffenseStatsForTest, SumsAllocatedAndEquippedStats) {

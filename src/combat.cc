@@ -135,4 +135,15 @@ std::vector<double> MapKillPeriods(const OffenseStats& offense,
   return periods;
 }
 
+int64_t FlushKills(double period_seconds, double elapsed_seconds,
+                   double* accumulator) {
+  if (!std::isfinite(period_seconds) || period_seconds <= 0.0) {
+    return 0;
+  }
+  *accumulator += elapsed_seconds / period_seconds;
+  double whole = std::floor(*accumulator);
+  *accumulator -= whole;
+  return static_cast<int64_t>(whole);
+}
+
 }  // namespace ms
