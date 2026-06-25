@@ -34,57 +34,44 @@ struct OffenseStats {
 };
 
 // Builds OffenseStats from a character's job and summed (allocated + equipped)
-// stats. Job selects the primary/secondary stat; attack and the boss_pct/ied
-// modifiers come from equipped gear. Remaining modifiers keep their
-// placeholder/identity defaults until skills and more gear stats supply them.
+// stats. Job picks primary/secondary; attack and boss_pct/ied come from gear;
+// the rest keep identity defaults until skills/gear supply them.
 OffenseStats OffenseStatsFor(Job job, const AllocatedStats& allocated,
                              const EquipStats& equipped);
 
-// Expected damage of one full attack against the given mob, averaging crit over
-// its rate (deterministic; no RNG). Implements the GMS damage chain, drawing
-// the mob's PDR and boss flag from the Mob.
+// Expected damage of one full attack against `mob` (crit averaged over its
+// rate, no RNG). The GMS damage chain; mob PDR and boss flag come from the Mob.
 double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob);
 
-// Seconds between swings for an attack whose base animation is `base_delay_ms`,
-// at the given attack speed stage (1..10, 10 fastest, 4 == base). Modern
-// formula: base * (20 - stage) / 16, ceil'd up to 30ms tick boundaries.
+// Seconds between swings: base_delay_ms * (20 - stage) / 16, rounded up to 30ms
+// ticks. Stage 1..10, 10 fastest, 4 == base.
 double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 
-// Base basic-attack swing animation, in milliseconds, for a weapon of the given
-// type (the stage-4 / x1.0 reference that SwingIntervalSeconds scales). Base
-// animation is a property of the weapon class, not the individual item;
-// per-item speed is the attack_speed stage instead.
+// Base swing animation (ms) for a weapon type — the stage-4 reference scaled by
+// SwingIntervalSeconds. A weapon-class property, not per-item.
 int BaseAttackDelayMs(EquipType equip_type);
 
-// Wall-clock seconds between successive kills at one spawn slot. The mob's kill
-// time is discrete — ceil(mob.max_hp / damage_per_hit) swings, so overkill on
-// the last hit is wasted — and the cycle rounds that time UP to a whole number
-// of respawn ticks (a kill that spills past a tick wastes the rest of it),
-// then stretches by the global game-speed factor. Returns +inf if the mob
-// can't be damaged (damage_per_hit <= 0). damage_per_hit and
-// swing_interval_seconds come from ExpectedAttackDamage and
-// SwingIntervalSeconds; respawn_interval_seconds defaults to the real GMS tick.
+// Wall-clock seconds between kills at one spawn slot: discrete hits
+// (ceil(max_hp / damage_per_hit), overkill wasted) give a kill time, rounded up
+// to whole respawn ticks, then stretched by the game-speed factor. +inf if the
+// mob can't be damaged.
 double KillCycleSeconds(
     double damage_per_hit, double swing_interval_seconds, const Mob& mob,
     double respawn_interval_seconds = kRespawnIntervalSeconds);
 
-// Effective wall-clock seconds between kills of each mob type while farming the
-// whole map, index-aligned with `mobs`. The map's `spawn_count` slots are split
-// evenly across the N mob types, so each gets spawn_count/N slots cycling in
-// parallel: period_m = KillCycleSeconds(...) * N / spawn_count. The swing
-// interval is taken once from `weapon`; per-mob damage from
-// ExpectedAttackDamage. An entry is +inf when its mob can't be killed or no
-// slots feed it.
+// Effective seconds between kills of each mob type when farming the whole map,
+// index-aligned with `mobs`. spawn_count slots split evenly across the N types
+// cycle in parallel: period_m = KillCycleSeconds(...) * N / spawn_count. +inf
+// when a mob can't be killed or no slots feed it.
 std::vector<double> MapKillPeriods(
     const OffenseStats& offense, const EquipPrototype& weapon,
     const std::vector<const Mob*>& mobs, int spawn_count,
     double respawn_interval_seconds = kRespawnIntervalSeconds);
 
-// Advances a fractional-kill accumulator by `elapsed_seconds` at the given kill
-// period and returns the whole kills completed, leaving the sub-kill remainder
-// in *accumulator. A non-finite or non-positive period (an unkillable mob or a
-// map with no spawns) yields no kills. This is what keeps rewards discrete:
-// callers grant a mob's full EXP and drops per whole kill, never a fraction.
+// Advances a fractional-kill accumulator by elapsed_seconds at
+// `period_seconds`, returning whole kills completed and carrying the remainder
+// in *accumulator. A non-finite or non-positive period yields no kills. Keeps
+// rewards discrete: callers grant a mob's full EXP/drops per whole kill.
 int64_t FlushKills(double period_seconds, double elapsed_seconds,
                    double* accumulator);
 
