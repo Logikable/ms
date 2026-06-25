@@ -94,18 +94,19 @@ int BaseAttackDelayMs(EquipType equip_type) {
   }
 }
 
-double Dps(const OffenseStats& offense, const Mob& mob,
-           const EquipPrototype& weapon) {
-  return ExpectedAttackDamage(offense, mob) /
-         SwingIntervalSeconds(BaseAttackDelayMs(weapon.equip_type()),
-                              weapon.attack_speed());
-}
-
-double KillsPerSecond(double raw_dps, const Mob& mob, int max_targets,
-                      const MapData& map, double respawn_interval_seconds) {
-  double dps_rate = raw_dps * max_targets / mob.max_hp();
+double KillsPerSecond(double damage_per_hit, double swing_interval_seconds,
+                      const Mob& mob, int max_targets, const MapData& map,
+                      double respawn_interval_seconds) {
+  if (damage_per_hit <= 0.0) {
+    return 0.0;  // Can't kill; avoid dividing by a zero hit count.
+  }
+  // Each mob takes a whole number of hits; overkill on the last hit is wasted,
+  // so damage never overflows into the next mob.
+  double hits_to_kill = std::ceil(mob.max_hp() / damage_per_hit);
+  double kill_time = hits_to_kill * swing_interval_seconds;
+  double dps_limited_rate = max_targets / kill_time;
   double spawn_per_second = map.spawn_count() / respawn_interval_seconds;
-  return std::min(dps_rate, spawn_per_second) / kGameSpeedFactor;
+  return std::min(dps_limited_rate, spawn_per_second) / kGameSpeedFactor;
 }
 
 double ExpPerSecond(double kills_per_second, int64_t mob_exp) {

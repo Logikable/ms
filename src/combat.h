@@ -56,20 +56,18 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 // per-item speed is the attack_speed stage instead.
 int BaseAttackDelayMs(EquipType equip_type);
 
-// Damage per second of non-stop swinging with `weapon`: expected damage per
-// attack over the swing interval, deriving the base animation from the weapon's
-// type and the speed stage from its attack_speed.
-double Dps(const OffenseStats& offense, const Mob& mob,
-           const EquipPrototype& weapon);
-
 // Mobs killed per second of non-stop farming on `map` against `mob`: the lower
-// of the DPS-limited clear rate (raw_dps * max_targets / mob.max_hp, damage
-// overflowing between mobs) and the map's respawn cap (spawn_count over the
+// of the DPS-limited clear rate and the map's respawn cap (spawn_count over the
 // respawn tick), slowed by the global game speed factor so both regimes stretch
-// equally. respawn_interval_seconds defaults to the real GMS tick; override it
-// in tests to pick round spawn caps.
+// equally. Damage is dealt in discrete swings, so each mob takes
+// ceil(mob.max_hp / damage_per_hit) hits and overkill on the last hit is
+// wasted — damage never carries over to the next mob. damage_per_hit and
+// swing_interval_seconds come from ExpectedAttackDamage and
+// SwingIntervalSeconds. respawn_interval_seconds defaults to the real GMS tick;
+// override it in tests to pick round spawn caps.
 double KillsPerSecond(
-    double raw_dps, const Mob& mob, int max_targets, const MapData& map,
+    double damage_per_hit, double swing_interval_seconds, const Mob& mob,
+    int max_targets, const MapData& map,
     double respawn_interval_seconds = kRespawnIntervalSeconds);
 
 // EXP earned per second at the given kill rate.

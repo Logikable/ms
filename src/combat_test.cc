@@ -22,14 +22,6 @@ MapData MakeMap(int spawn_count) {
   return map;
 }
 
-// A weapon carrying just the fields Dps reads: its type and attack speed.
-EquipPrototype MakeWeapon(EquipType type, AttackSpeed speed) {
-  EquipPrototype weapon;
-  weapon.set_equip_type(type);
-  weapon.set_attack_speed(speed);
-  return weapon;
-}
-
 class OffenseTest : public ::testing::Test {
  protected:
   // Only primary/secondary/attack set; every modifier at identity (mastery at
@@ -151,46 +143,50 @@ TEST(BaseAttackDelayMsTest, UnknownTypeFallsBackToOneHanded) {
   EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_UNSPECIFIED), 800);
 }
 
-TEST_F(OffenseTest, DpsIsDamageOverSwingInterval) {
-  // One-handed sword (800ms base) at AVERAGE (stage 4, x1.0); 800 isn't a 30ms
-  // multiple, so it ceils to 810ms (0.81s). Baseline expected damage 25.875.
-  EXPECT_DOUBLE_EQ(
-      Dps(Baseline(), MakeMob(),
-          MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE)),
-      25.875 / 0.81);
-}
-
 // All kill-rate tests pass respawn_interval_seconds = 1.0 so the spawn cap is
-// just spawn_count, keeping the arithmetic round.
+// just spawn_count, keeping the arithmetic round. damage_per_hit divides mob HP
+// evenly (1 hit/kill) unless a test is specifically exercising overkill.
 TEST(KillsPerSecondTest, DpsLimitedBelowSpawnCap) {
-  // dps_rate = 100*1/10 = 10 < spawn 50; 10 / kGameSpeedFactor(10) = 1.0.
+  // 10 dmg vs 10 HP = 1 hit; 1 / (1*0.1s) = 10/s < spawn 50; 10 / 10 = 1.0.
   EXPECT_DOUBLE_EQ(
-      KillsPerSecond(100.0, MakeMob(0, false, 10), 1, MakeMap(50), 1.0), 1.0);
+      KillsPerSecond(10.0, 0.1, MakeMob(0, false, 10), 1, MakeMap(50), 1.0),
+      1.0);
 }
 
 TEST(KillsPerSecondTest, SpawnCappedAboveCrossover) {
-  // dps_rate = 100000*1/10 = 10000, clamped to spawn 5; 5 / 10 = 0.5.
+  // 10/s clear rate clamped to spawn 5; 5 / 10 = 0.5.
   EXPECT_DOUBLE_EQ(
-      KillsPerSecond(100000.0, MakeMob(0, false, 10), 1, MakeMap(5), 1.0), 0.5);
+      KillsPerSecond(10.0, 0.1, MakeMob(0, false, 10), 1, MakeMap(5), 1.0),
+      0.5);
 }
 
-TEST(KillsPerSecondTest, MaxTargetsScalesDpsRate) {
-  // dps_rate = 100*3/10 = 30 < spawn 100; 30 / 10 = 3.0.
+TEST(KillsPerSecondTest, MaxTargetsScalesClearRate) {
+  // 3 targets * 10/s = 30/s < spawn 100; 30 / 10 = 3.0.
   EXPECT_DOUBLE_EQ(
-      KillsPerSecond(100.0, MakeMob(0, false, 10), 3, MakeMap(100), 1.0), 3.0);
+      KillsPerSecond(10.0, 0.1, MakeMob(0, false, 10), 3, MakeMap(100), 1.0),
+      3.0);
+}
+
+TEST(KillsPerSecondTest, OverkillWastesDamage) {
+  // 7 dmg vs 10 HP needs ceil(10/7) = 2 hits; 1 / (2*0.1s) = 5/s; 5 / 10 = 0.5.
+  // With overflow the same throughput would have cleared faster.
+  EXPECT_DOUBLE_EQ(
+      KillsPerSecond(7.0, 0.1, MakeMob(0, false, 10), 1, MakeMap(100), 1.0),
+      0.5);
 }
 
 TEST(KillsPerSecondTest, MoreDpsDoesNothingOnceSpawnCapped) {
-  // Both well past the spawn cap of 10 -> identical 10/10 = 1.0.
+  // Both clear rates (20/s and 200/s) exceed the spawn cap of 10 -> identical.
   EXPECT_DOUBLE_EQ(
-      KillsPerSecond(1000.0, MakeMob(0, false, 10), 1, MakeMap(10), 1.0),
-      KillsPerSecond(100000.0, MakeMob(0, false, 10), 1, MakeMap(10), 1.0));
+      KillsPerSecond(10.0, 0.05, MakeMob(0, false, 10), 1, MakeMap(10), 1.0),
+      KillsPerSecond(10.0, 0.005, MakeMob(0, false, 10), 1, MakeMap(10), 1.0));
 }
 
 TEST(KillsPerSecondTest, DefaultRespawnUsesTheGmsTick) {
-  // spawn 756 over the default 7.56s tick = 100/s cap; dps_rate far higher.
-  EXPECT_DOUBLE_EQ(KillsPerSecond(1e9, MakeMob(0, false, 10), 1, MakeMap(756)),
-                   10.0);
+  // spawn 756 over the default 7.56s tick = 100/s cap; 1000/s clear far higher.
+  EXPECT_DOUBLE_EQ(
+      KillsPerSecond(10.0, 0.001, MakeMob(0, false, 10), 1, MakeMap(756)),
+      10.0);
 }
 
 TEST(ExpPerSecondTest, ScalesKillsByMobExp) {
