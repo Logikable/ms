@@ -2,6 +2,7 @@
 #define MS_SRC_COMBAT_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -65,6 +66,18 @@ int BaseAttackDelayMs(EquipType equip_type);
 // SwingIntervalSeconds; respawn_interval_seconds defaults to the real GMS tick.
 double KillCycleSeconds(
     double damage_per_hit, double swing_interval_seconds, const Mob& mob,
+    double respawn_interval_seconds = kRespawnIntervalSeconds);
+
+// Effective wall-clock seconds between kills of each mob type while farming the
+// whole map, index-aligned with `mobs`. The map's `spawn_count` slots are split
+// evenly across the N mob types, so each gets spawn_count/N slots cycling in
+// parallel: period_m = KillCycleSeconds(...) * N / spawn_count. The swing
+// interval is taken once from `weapon`; per-mob damage from
+// ExpectedAttackDamage. An entry is +inf when its mob can't be killed or no
+// slots feed it.
+std::vector<double> MapKillPeriods(
+    const OffenseStats& offense, const EquipPrototype& weapon,
+    const std::vector<const Mob*>& mobs, int spawn_count,
     double respawn_interval_seconds = kRespawnIntervalSeconds);
 
 }  // namespace ms
