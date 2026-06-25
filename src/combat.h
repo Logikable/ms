@@ -5,7 +5,6 @@
 
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
-#include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 
 namespace ms {
@@ -56,22 +55,17 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 // per-item speed is the attack_speed stage instead.
 int BaseAttackDelayMs(EquipType equip_type);
 
-// Mobs killed per second of non-stop farming on `map` against `mob`: the lower
-// of the DPS-limited clear rate and the map's respawn cap (spawn_count over the
-// respawn tick), slowed by the global game speed factor so both regimes stretch
-// equally. Damage is dealt in discrete swings, so each mob takes
-// ceil(mob.max_hp / damage_per_hit) hits and overkill on the last hit is
-// wasted — damage never carries over to the next mob. damage_per_hit and
+// Wall-clock seconds between successive kills at one spawn slot. The mob's kill
+// time is discrete — ceil(mob.max_hp / damage_per_hit) swings, so overkill on
+// the last hit is wasted — and the cycle rounds that time UP to a whole number
+// of respawn ticks (a kill that spills past a tick wastes the rest of it),
+// then stretches by the global game-speed factor. Returns +inf if the mob
+// can't be damaged (damage_per_hit <= 0). damage_per_hit and
 // swing_interval_seconds come from ExpectedAttackDamage and
-// SwingIntervalSeconds. respawn_interval_seconds defaults to the real GMS tick;
-// override it in tests to pick round spawn caps.
-double KillsPerSecond(
+// SwingIntervalSeconds; respawn_interval_seconds defaults to the real GMS tick.
+double KillCycleSeconds(
     double damage_per_hit, double swing_interval_seconds, const Mob& mob,
-    int max_targets, const MapData& map,
     double respawn_interval_seconds = kRespawnIntervalSeconds);
-
-// EXP earned per second at the given kill rate.
-double ExpPerSecond(double kills_per_second, int64_t mob_exp);
 
 }  // namespace ms
 

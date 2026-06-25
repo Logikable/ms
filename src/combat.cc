@@ -1,7 +1,7 @@
 #include "src/combat.h"
 
-#include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace ms {
 namespace {
@@ -94,23 +94,19 @@ int BaseAttackDelayMs(EquipType equip_type) {
   }
 }
 
-double KillsPerSecond(double damage_per_hit, double swing_interval_seconds,
-                      const Mob& mob, int max_targets, const MapData& map,
-                      double respawn_interval_seconds) {
+double KillCycleSeconds(double damage_per_hit, double swing_interval_seconds,
+                        const Mob& mob, double respawn_interval_seconds) {
   if (damage_per_hit <= 0.0) {
-    return 0.0;  // Can't kill; avoid dividing by a zero hit count.
+    return std::numeric_limits<double>::infinity();  // Never killed.
   }
-  // Each mob takes a whole number of hits; overkill on the last hit is wasted,
-  // so damage never overflows into the next mob.
+  // Discrete hits: overkill on the last swing is wasted, no overflow to the
+  // next mob.
   double hits_to_kill = std::ceil(mob.max_hp() / damage_per_hit);
   double kill_time = hits_to_kill * swing_interval_seconds;
-  double dps_limited_rate = max_targets / kill_time;
-  double spawn_per_second = map.spawn_count() / respawn_interval_seconds;
-  return std::min(dps_limited_rate, spawn_per_second) / kGameSpeedFactor;
-}
-
-double ExpPerSecond(double kills_per_second, int64_t mob_exp) {
-  return kills_per_second * mob_exp;
+  // Respawns land only on tick boundaries, so a kill that spills past a tick
+  // wastes the rest of it: round up to a whole number of ticks.
+  double ticks = std::ceil(kill_time / respawn_interval_seconds);
+  return ticks * respawn_interval_seconds * kGameSpeedFactor;
 }
 
 }  // namespace ms
