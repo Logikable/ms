@@ -6,6 +6,7 @@
 #ifndef MS_SRC_GAME_STATE_H_
 #define MS_SRC_GAME_STATE_H_
 
+#include <cstdint>
 #include <map>
 #include <random>
 #include <string>
@@ -29,8 +30,8 @@ struct GameState {
   GameState& operator=(const GameState&) = delete;
 
   // Applies elapsed_seconds of farming on the current map: banks whole kills
-  // per mob type and grants their EXP. No-op without a current map or an
-  // equipped weapon.
+  // per mob type, grants their EXP, and accrues their drops. No-op without a
+  // current map or an equipped weapon.
   void AdvanceFarming(double elapsed_seconds);
 
   std::map<std::string, EquipPrototype> equips;
@@ -45,6 +46,11 @@ struct GameState {
   std::string current_map;
   // Fractional kills banked per mob name, carried across AdvanceFarming calls.
   std::map<std::string, double> kill_progress;
+  // Fractional drops banked per item name, carried across AdvanceFarming calls.
+  std::map<std::string, double> drop_progress;
+  // Whole items farmed so far, keyed by item name. Temporary home until the
+  // character has real stackable Use/Etc storage.
+  std::map<std::string, int64_t> drop_counts;
 };
 
 }  // namespace ms

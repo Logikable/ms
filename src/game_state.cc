@@ -83,6 +83,10 @@ void GameState::AdvanceFarming(double elapsed_seconds) {
     int64_t kills =
         FlushKills(periods[i], elapsed_seconds, &kill_progress[mob_keys[i]]);
     exp_gained += kills * map_mobs[i]->exp();
+    for (const MobDrop& drop : map_mobs[i]->drops()) {
+      drop_counts[drop.item()] +=
+          FlushDrops(drop.per_kill(), kills, &drop_progress[drop.item()]);
+    }
   }
   if (exp_gained > 0) {
     character.AddExp(exp_gained);

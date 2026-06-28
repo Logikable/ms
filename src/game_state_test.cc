@@ -20,12 +20,15 @@ GameState MakeState() {
   return GameState({}, {}, {}, {}, {});
 }
 
-// A weak mob: one sword hit kills it, worth 3 EXP.
+// A weak mob: one sword hit kills it, worth 3 EXP, always drops a shell.
 Mob SnailMob() {
   Mob mob;
   mob.set_name("Snail");
   mob.set_max_hp(10);
   mob.set_exp(3);
+  MobDrop* drop = mob.add_drops();
+  drop->set_item("green_snail_shell");
+  drop->set_per_kill(1.0);
   return mob;
 }
 
@@ -124,6 +127,16 @@ TEST(AdvanceFarmingTest, GrantsExpWhileFarming) {
 
   state.AdvanceFarming(100000.0);  // many kills -> several level-ups
   EXPECT_GT(state.character.proto().level(), 2);
+}
+
+TEST(AdvanceFarmingTest, AccruesDropsWhileFarming) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  state.AdvanceFarming(100000.0);
+  EXPECT_GT(state.drop_counts["green_snail_shell"], 0);
 }
 
 TEST(AdvanceFarmingTest, SkipsFarmingWithoutWeapon) {
