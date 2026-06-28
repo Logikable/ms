@@ -146,4 +146,14 @@ int64_t FlushKills(double period_seconds, double elapsed_seconds,
   return static_cast<int64_t>(whole);
 }
 
+int64_t FlushDrops(double per_kill, int64_t kills, double* accumulator) {
+  if (!std::isfinite(per_kill) || per_kill <= 0.0 || kills <= 0) {
+    return 0;
+  }
+  *accumulator += per_kill * static_cast<double>(kills);
+  double whole = std::floor(*accumulator);
+  *accumulator -= whole;
+  return static_cast<int64_t>(whole);
+}
+
 }  // namespace ms

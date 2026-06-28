@@ -75,6 +75,12 @@ std::vector<double> MapKillPeriods(
 int64_t FlushKills(double period_seconds, double elapsed_seconds,
                    double* accumulator);
 
+// Banks `kills` worth of a drop at `per_kill` expected items each into a
+// fractional accumulator, returning whole items dropped and carrying the
+// remainder in *accumulator. A non-finite or non-positive per_kill yields no
+// drops. The expected-value counterpart to RNG drop rolls.
+int64_t FlushDrops(double per_kill, int64_t kills, double* accumulator);
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_H_

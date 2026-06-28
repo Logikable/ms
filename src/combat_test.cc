@@ -282,6 +282,32 @@ TEST(FlushKillsTest, InfinitePeriodYieldsNoKills) {
   EXPECT_DOUBLE_EQ(acc, 0.25);  // accumulator untouched
 }
 
+TEST(FlushDropsTest, AccumulatesAcrossKillsUntilWhole) {
+  double acc = 0.0;
+  EXPECT_EQ(FlushDrops(0.5, 1, &acc), 0);  // 0.5 banked, no drop yet
+  EXPECT_EQ(FlushDrops(0.5, 1, &acc), 1);  // 0.5 + 0.5 -> 1 drop
+  EXPECT_DOUBLE_EQ(acc, 0.0);
+}
+
+TEST(FlushDropsTest, FlushesMultipleDropsAndCarriesRemainder) {
+  double acc = 0.0;
+  EXPECT_EQ(FlushDrops(0.5, 7, &acc), 3);  // 3.5 -> 3 drops
+  EXPECT_DOUBLE_EQ(acc, 0.5);
+}
+
+TEST(FlushDropsTest, RemainderCarriesIntoNextFlush) {
+  double acc = 0.0;
+  EXPECT_EQ(FlushDrops(0.25, 10, &acc), 2);  // 2.5 -> 2, 0.5 left
+  EXPECT_EQ(FlushDrops(0.25, 10, &acc), 3);  // 0.5 + 2.5 = 3.0 -> 3
+  EXPECT_DOUBLE_EQ(acc, 0.0);
+}
+
+TEST(FlushDropsTest, NonPositivePerKillYieldsNoDrops) {
+  double acc = 0.25;
+  EXPECT_EQ(FlushDrops(0.0, 1000, &acc), 0);
+  EXPECT_DOUBLE_EQ(acc, 0.25);  // accumulator untouched
+}
+
 TEST(OffenseStatsForTest, SumsAllocatedAndEquippedStats) {
   AllocatedStats allocated;
   allocated.set_str(13);
