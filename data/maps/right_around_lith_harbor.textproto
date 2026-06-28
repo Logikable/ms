@@ -1,3 +1,4 @@
 name: "Right Around Lith Harbor"
 mobs: "snail"
 mobs: "blue_snail"
+spawn_count: 6

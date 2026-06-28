@@ -79,6 +79,10 @@ int main(int argc, char** argv) {
   // Fresh Fafnir — the base item consumed when recovering the trace above.
   state.character.PickUp(std::make_unique<ms::EquipInstance>(
       state.equips.at("fafnir_mistilteinn")));
+
+  // No map-selection UI yet; default to the starter map so farming runs.
+  state.current_map = "right_around_lith_harbor";
+
   ms::Tui(state).Run();
   return 0;
 }
