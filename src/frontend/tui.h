@@ -6,6 +6,8 @@
 #ifndef MS_SRC_FRONTEND_TUI_H_
 #define MS_SRC_FRONTEND_TUI_H_
 
+#include <chrono>
+
 #include "ftxui/component/component.hpp"
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/bag_panel.h"
@@ -29,9 +31,12 @@ class Tui {
   ftxui::Element RenderFrame();
   ftxui::Element RenderMain();
   ftxui::Element RenderExpBar();
+  // Advances farming by the wall-clock time since the previous call.
+  void AdvanceFarmingTick();
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
+  std::chrono::steady_clock::time_point last_farming_update_;
   // Shared with equip_panel_, bag_panel_, and Container::Tab; mutated by
   // controller_ (Tab) and panels (Equip/Unequip actions).
   int panel_focus_ = kEquipPanel;
