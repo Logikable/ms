@@ -8,4 +8,11 @@
     "files.watcherExclude": {
         "**/bazel-*/**": true,
     },
+    "clangd.path": "${workspaceFolder}/bazel-external/toolchains_llvm++llvm+llvm_toolchain/bin/clangd",
+    "clangd.arguments": [
+        "--query-driver=${workspaceFolder}/bazel-external/**/cc_wrapper.sh",
+        "--background-index",
+        "--header-insertion=never"
+    ],
+    "C_Cpp.intelliSenseEngine": "disabled"
 }
