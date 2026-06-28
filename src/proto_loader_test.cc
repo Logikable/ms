@@ -49,7 +49,7 @@ TEST(LoadTextProtoDirTest, LoadsMobsKeyedByStem) {
   std::filesystem::create_directory(dir);
   WriteTempFile("mob_dir_test/snail.textproto",
                 "name: \"Snail\"\nlevel: 1\nattack: 2\nmax_hp: 15\nexp: 3\n"
-                "drops: \"green_snail_shell\"\n");
+                "drops { item: \"green_snail_shell\" per_kill: 0.4 }\n");
 
   std::map<std::string, Mob> result = LoadTextProtoDir<Mob>(dir);
   ASSERT_EQ(result.size(), 1);
@@ -60,7 +60,8 @@ TEST(LoadTextProtoDirTest, LoadsMobsKeyedByStem) {
   EXPECT_EQ(snail.max_hp(), 15);
   EXPECT_EQ(snail.exp(), 3);
   ASSERT_EQ(snail.drops_size(), 1);
-  EXPECT_EQ(snail.drops(0), "green_snail_shell");
+  EXPECT_EQ(snail.drops(0).item(), "green_snail_shell");
+  EXPECT_EQ(snail.drops(0).per_kill(), 0.4);
 }
 
 TEST(LoadTextProtoDirTest, LoadsMapKeyedByStem) {

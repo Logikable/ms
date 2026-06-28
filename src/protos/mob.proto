@@ -2,18 +2,25 @@ syntax = "proto3";
 
 package ms;
 
+// One item a mob can drop, with its expected yield per kill.
+message MobDrop {
+  // ItemPrototype data file referenced by filename stem.
+  string item = 1;
+  // Expected drops per kill (e.g. 0.4 for a 40% chance). Banked fractionally
+  // across kills, so no per-kill RNG; matches the expected-value combat model.
+  double per_kill = 2;
+}
+
 // Static definition of a monster type. Loaded from data/mobs textprotos at
-// startup; shared read-only across all spawns of the same type. Drops are
-// added later.
+// startup; shared read-only across all spawns of the same type.
 message Mob {
   string name = 1;
   int32 level = 2;
   int32 attack = 3;
   int32 max_hp = 4;
   int64 exp = 5;
-  // Items this mob can drop, referencing ItemPrototype data files by filename
-  // stem. Drop rates and quantities are added later.
-  repeated string drops = 6;
+  // Items this mob can drop.
+  repeated MobDrop drops = 6;
   // Physical defense rate as a whole percent (PDR); reduces incoming damage
   // unless the attacker ignores it. Snails are 0. Mirrors EquipStats percents.
   int32 pdr = 7;

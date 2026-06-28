@@ -3,4 +3,4 @@ level: 1
 attack: 2
 max_hp: 15
 exp: 3
-drops: "green_snail_shell"
+drops { item: "green_snail_shell" per_kill: 0.4 }
