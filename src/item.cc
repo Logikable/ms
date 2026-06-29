@@ -122,6 +122,10 @@ StatFlags PrimaryStatFlags(const EquipPrototype& proto) {
 
 }  // namespace
 
+void StackableItem::add_count(int delta) {
+  count_ += delta;
+}
+
 int StackableItem::max_stack() const {
   if (prototype_.max_stack() > 0) {
     return prototype_.max_stack();

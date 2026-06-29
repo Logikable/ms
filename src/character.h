@@ -51,6 +51,10 @@ class CharacterInstance {
   // Appends item to inventory. Accepts any EquipTabItem subclass (EquipInstance
   // or EquipTrace); the caller is responsible for constructing the item.
   void PickUp(std::unique_ptr<EquipTabItem> item);
+  // Adds `count` of the item described by `proto` to the Use/Etc stacks. Tops
+  // up existing stacks of the same item first, then opens new stacks for any
+  // overflow, each capped at the item's max_stack(). No-op if count <= 0.
+  void AddStackable(const ItemPrototype& proto, int count);
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the
@@ -88,6 +92,11 @@ class CharacterInstance {
   const std::map<EquipSlot, EquipInstance>& equipped() const {
     return equipped_;
   }
+  // Use/Etc item stacks, in pickup order. Filter by prototype().category() to
+  // separate the Use and Etc tabs.
+  const std::vector<StackableItem>& stackables() const {
+    return stackables_;
+  }
   // Sum of stats from all currently equipped items. Updated automatically by
   // Equip, Unequip, and ScrollEquipped.
   const EquipStats& equip_stats() const {
@@ -102,6 +111,7 @@ class CharacterInstance {
   Character character_;
   InventoryInstance inventory_;
   std::map<EquipSlot, EquipInstance> equipped_;
+  std::vector<StackableItem> stackables_;
   EquipStats equip_stats_;
 };
 

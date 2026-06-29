@@ -10,6 +10,7 @@
 #include "src/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {
@@ -387,6 +388,58 @@ TEST_F(PickUpTest, FreshItemHasNoScrollStats) {
   const EquipInstance* item = c_.inventory().equip_instance(0);
   ASSERT_NE(item, nullptr);
   EXPECT_EQ(item->equip_state().scroll_stats().attack(), 0);
+}
+
+// --- AddStackable ---
+
+// Fixture for AddStackable tests. Provides c_ and two Etc-category item
+// prototypes (default max_stack 200) to exercise stacking and splitting.
+class AddStackableTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    shell_.set_name("Green Snail Shell");
+    shell_.set_category(ITEM_CATEGORY_ETC);
+    other_.set_name("Blue Snail Shell");
+    other_.set_category(ITEM_CATEGORY_ETC);
+  }
+  CharacterInstance c_ = MakeCharacter(rng_);
+  ItemPrototype shell_;
+  ItemPrototype other_;
+};
+
+TEST_F(AddStackableTest, OpensNewStack) {
+  c_.AddStackable(shell_, 5);
+  ASSERT_EQ(c_.stackables().size(), 1);
+  EXPECT_EQ(c_.stackables()[0].name(), "Green Snail Shell");
+  EXPECT_EQ(c_.stackables()[0].count(), 5);
+}
+
+TEST_F(AddStackableTest, MergesIntoExistingStack) {
+  c_.AddStackable(shell_, 5);
+  c_.AddStackable(shell_, 3);
+  ASSERT_EQ(c_.stackables().size(), 1);
+  EXPECT_EQ(c_.stackables()[0].count(), 8);
+}
+
+TEST_F(AddStackableTest, SplitsOverflowAtMaxStack) {
+  c_.AddStackable(shell_, 250);
+  ASSERT_EQ(c_.stackables().size(), 2);
+  EXPECT_EQ(c_.stackables()[0].count(), 200);
+  EXPECT_EQ(c_.stackables()[1].count(), 50);
+}
+
+TEST_F(AddStackableTest, KeepsDistinctItemsSeparate) {
+  c_.AddStackable(shell_, 5);
+  c_.AddStackable(other_, 3);
+  ASSERT_EQ(c_.stackables().size(), 2);
+  EXPECT_EQ(c_.stackables()[0].name(), "Green Snail Shell");
+  EXPECT_EQ(c_.stackables()[1].name(), "Blue Snail Shell");
+}
+
+TEST_F(AddStackableTest, NonPositiveCountIsNoOp) {
+  c_.AddStackable(shell_, 0);
+  c_.AddStackable(shell_, -4);
+  EXPECT_TRUE(c_.stackables().empty());
 }
 
 // --- Equip ---

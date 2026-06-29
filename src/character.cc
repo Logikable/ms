@@ -128,6 +128,36 @@ void CharacterInstance::PickUp(std::unique_ptr<EquipTabItem> item) {
   inventory_.add(std::move(item));
 }
 
+void CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
+  if (count <= 0) {
+    return;
+  }
+  // Top up existing stacks of the same item before opening new ones.
+  for (StackableItem& stack : stackables_) {
+    if (count <= 0) {
+      break;
+    }
+    if (stack.name() != proto.name()) {
+      continue;
+    }
+    int room = stack.max_stack() - stack.count();
+    if (room <= 0) {
+      continue;
+    }
+    int added = std::min(room, count);
+    stack.add_count(added);
+    count -= added;
+  }
+  // Open new stacks for any remaining overflow.
+  while (count > 0) {
+    StackableItem stack(proto, 0);
+    int added = std::min(stack.max_stack(), count);
+    stack.add_count(added);
+    count -= added;
+    stackables_.push_back(std::move(stack));
+  }
+}
+
 std::vector<const EquipTrace*> CharacterInstance::traces() const {
   return inventory_.traces();
 }

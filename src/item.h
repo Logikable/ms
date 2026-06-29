@@ -46,6 +46,9 @@ class StackableItem : public Item {
   // Effective per-slot stack limit: prototype.max_stack() when set (> 0),
   // otherwise the category default (Use 9999, Etc 200).
   int max_stack() const;
+  // Adds delta to the stack count. Callers keep the result within
+  // [0, max_stack()]; the method does not clamp.
+  void add_count(int delta);
 
  private:
   ItemPrototype prototype_;
