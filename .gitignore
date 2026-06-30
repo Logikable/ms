@@ -6,3 +6,7 @@ compile_commands.json
 
 # clangd background index
 .cache/
+
+# Local AI-assistant workflow files (kept out of the public repo)
+AGENTS.md
+CLAUDE.md
