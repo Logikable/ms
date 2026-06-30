@@ -84,8 +84,17 @@ void GameState::AdvanceFarming(double elapsed_seconds) {
         FlushKills(periods[i], elapsed_seconds, &kill_progress[mob_keys[i]]);
     exp_gained += kills * map_mobs[i]->exp();
     for (const MobDrop& drop : map_mobs[i]->drops()) {
-      drop_counts[drop.item()] +=
+      int64_t dropped =
           FlushDrops(drop.per_kill(), kills, &drop_progress[drop.item()]);
+      if (dropped <= 0) {
+        continue;
+      }
+      std::map<std::string, ItemPrototype>::const_iterator item_it =
+          items.find(drop.item());
+      if (item_it == items.end()) {
+        continue;  // Drop references an unloaded item; skip it.
+      }
+      character.AddStackable(item_it->second, static_cast<int>(dropped));
     }
   }
   if (exp_gained > 0) {

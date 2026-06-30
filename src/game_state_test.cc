@@ -32,6 +32,14 @@ Mob SnailMob() {
   return mob;
 }
 
+// The snail's drop item, as loaded into GameState.items.
+ItemPrototype GreenSnailShell() {
+  ItemPrototype item;
+  item.set_name("Green Snail Shell");
+  item.set_category(ITEM_CATEGORY_ETC);
+  return item;
+}
+
 // A map of just snails with plenty of spawn slots.
 MapData OneSnailMap() {
   MapData map;
@@ -130,13 +138,14 @@ TEST(AdvanceFarmingTest, GrantsExpWhileFarming) {
 }
 
 TEST(AdvanceFarmingTest, AccruesDropsWhileFarming) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"field", OneSnailMap()}});
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
   state.current_map = "field";
   EquipSword(state);
 
   state.AdvanceFarming(100000.0);
-  EXPECT_GT(state.drop_counts["green_snail_shell"], 0);
+  ASSERT_FALSE(state.character.stackables().empty());
+  EXPECT_EQ(state.character.stackables()[0].name(), "Green Snail Shell");
 }
 
 TEST(AdvanceFarmingTest, SkipsFarmingWithoutWeapon) {
