@@ -1,7 +1,8 @@
-/* InventoryPanel shows the inventory as a navigable menu. Each entry displays
- * the item name, required level, applicable job categories, and remaining
- * upgrade slots. Enter opens the item context menu via the on_enter callback
- * passed to MakeComponent().
+/* InventoryPanel shows the character's inventory as three tabs: Equip (equip-
+ * tab items as a navigable menu), Use, and Etc (read-only stackable lists).
+ * Left/Right switch tabs. On the Equip tab, Enter opens the item context menu
+ * via the on_enter callback passed to MakeComponent(); the Use and Etc tabs
+ * have no actions yet.
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -48,11 +49,16 @@ class InventoryPanel {
   }
 
  private:
+  // Wraps the active tab's body in the titled window with the tab bar on top.
   ftxui::Element RenderContent(ftxui::Component menu);
+  // Rebuilds rows_/entries_ from the equip inventory and returns the Equip tab
+  // body (column headers + the navigable menu, or "(empty)").
+  ftxui::Element RenderEquipList(ftxui::Component menu);
 
   CharacterInstance& character_;
   int& panel_focus_;
   int selected_ = 0;
+  int active_tab_ = 0;  // 0 = Equip, 1 = Use, 2 = Etc
   std::vector<InventoryRowState> rows_;
   std::vector<std::string>
       entries_;  // labels derived from rows_ for ftxui::Menu

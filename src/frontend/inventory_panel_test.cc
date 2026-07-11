@@ -5,15 +5,26 @@
 #include <memory>
 #include <string>
 
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/event.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/panel_test_base.h"
 #include "src/frontend/types.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
 
-class InventoryPanelTest : public PanelTest {};
+class InventoryPanelTest : public PanelTest {
+ protected:
+  ItemPrototype MakeStackable(const std::string& name, ItemCategory category) {
+    ItemPrototype proto;
+    proto.set_name(name);
+    proto.set_category(category);
+    return proto;
+  }
+};
 
 TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
   InventoryPanel panel(c_, panel_focus_);
@@ -107,6 +118,43 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   panel.OpenMenu();
   // Equip/Scroll/StarForce are disabled; only Inspect is selectable.
   EXPECT_EQ(panel.menu().selected(), kMenuInspect);
+}
+
+TEST_F(InventoryPanelTest, ShowsTabBar) {
+  InventoryPanel panel(c_, panel_focus_);
+  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_NE(rendered.find("Equip"), std::string::npos);
+  EXPECT_NE(rendered.find("Use"), std::string::npos);
+  EXPECT_NE(rendered.find("Etc"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, UseTabListsUseStacksWithQuantity) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Quantity"), std::string::npos);
+  EXPECT_NE(rendered.find("Red Potion"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, EtcTabShowsOnlyEtcStacks) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  c_.AddStackable(MakeStackable("Snail Shell", ITEM_CATEGORY_ETC), 3);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Snail Shell"), std::string::npos);
+  EXPECT_EQ(rendered.find("Red Potion"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, EmptyUseTabShowsPlaceholder) {
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  EXPECT_NE(RenderComponent(comp).find("(empty)"), std::string::npos);
 }
 
 }  // namespace

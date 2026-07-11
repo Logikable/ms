@@ -15,7 +15,6 @@
 #include "src/frontend/inspect_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/scroll_panel.h"
-#include "src/frontend/stack_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/tui_controller.h"
@@ -46,7 +45,6 @@ class Tui {
   CharacterPanel char_panel_;
   EquippedPanel equip_panel_;
   InventoryPanel inventory_panel_;
-  StackPanel stack_panel_;
   ScrollPanel scroll_panel_;
   InspectPanel inspect_panel_;
   InspectPanel trace_inspect_panel_;  // left panel on kTraceRecover (preview)

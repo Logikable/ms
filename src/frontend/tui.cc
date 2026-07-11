@@ -22,7 +22,6 @@
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/item_menu.h"
 #include "src/frontend/scroll_panel.h"
-#include "src/frontend/stack_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
 
@@ -109,7 +108,6 @@ Tui::Tui(GameState& state)
       char_panel_(state.character, panel_focus_),
       equip_panel_(state.character, panel_focus_),
       inventory_panel_(state.character, panel_focus_),
-      stack_panel_(state.character),
       scroll_panel_(state.scrolls),
       ap_alloc_panel_(state.character),
       trace_recover_panel_(state.character),
@@ -219,7 +217,6 @@ ftxui::Element Tui::RenderMain() {
           ftxui::vbox({
               equip_component_->Render(),
               inventory_component_->Render(),
-              stack_panel_.Render(),
           }) | ftxui::flex,
       }),
       ftxui::filler(),
@@ -237,8 +234,9 @@ ftxui::Element Tui::RenderMain() {
     // Non-empty equip panel adds header + sub-header + separator; empty has
     // neither.
     int equip_rows = std::max(1, equip_count) + (equip_count > 0 ? 3 : 0);
-    // +5: equip borders (2) + bag column header + sub-header + separator (3).
-    menu_row = equip_rows + 5 + inventory_panel_.selected();
+    // +7: equip borders (2) + inventory tab bar + tab separator (2) + column
+    // header + sub-header + separator (3).
+    menu_row = equip_rows + 7 + inventory_panel_.selected();
   }
   ItemMenu& menu = panel_focus_ == kEquipPanel ? equip_panel_.menu()
                                                : inventory_panel_.menu();

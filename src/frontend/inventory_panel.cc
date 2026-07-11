@@ -8,12 +8,22 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/item.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
+
+enum InventoryTab : int {
+  kEquipTab = 0,
+  kUseTab = 1,
+  kEtcTab = 2,
+  kNumInventoryTabs = 3,
+};
 
 // Two leading spaces match the "  " / "> " cursor added by the entry transform.
 constexpr char kColumnHeader[] =
@@ -27,6 +37,47 @@ constexpr char kColumnHeader2[] =
     "                              "  // 30
     "    "                            // 4 → 64 total
     "Pass/Left/Restore";
+
+// Renders the Equip/Use/Etc chip row with the active tab inverted, over a
+// separator. Mirrors TraceRecoverPanel::RenderTabs.
+ftxui::Element RenderTabBar(int active_tab) {
+  const char* labels[kNumInventoryTabs] = {"Equip", "Use", "Etc"};
+  std::vector<ftxui::Element> chips;
+  for (int i = 0; i < kNumInventoryTabs; ++i) {
+    ftxui::Element chip =
+        ftxui::text(std::string(" ") + labels[i] + " ") | ftxui::color(kTheme);
+    if (i == active_tab) {
+      chip = chip | ftxui::inverted;
+    }
+    chips.push_back(std::move(chip));
+  }
+  return ftxui::vbox({
+      ftxui::hbox(std::move(chips)),
+      ThemedSeparator(),
+  });
+}
+
+// Renders a read-only Name/Quantity list of the stacks in `category`, one row
+// per stack. Shows "(empty)" when the category holds no stacks.
+ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
+                               ItemCategory category) {
+  std::vector<ftxui::Element> rows;
+  rows.push_back(ftxui::text("  " + PadRight("Name", 26) + "Quantity"));
+  rows.push_back(ThemedSeparator());
+  bool any = false;
+  for (const StackableItem& stack : stacks) {
+    if (stack.prototype().category() != category) {
+      continue;
+    }
+    any = true;
+    rows.push_back(ftxui::text("  " + PadRight(stack.name(), 26) +
+                               std::to_string(stack.count())));
+  }
+  if (!any) {
+    rows.push_back(ftxui::text("  (empty)"));
+  }
+  return ftxui::vbox(std::move(rows));
+}
 
 }  // namespace
 
@@ -97,7 +148,7 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
   return kItemMenu;
 }
 
-ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
+ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
   rows_.clear();
   entries_.clear();
   for (int i = 0; i < character_.inventory().size(); ++i) {
@@ -125,14 +176,27 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     selected_ = std::min(selected_, character_.inventory().size() - 1);
   }
   if (entries_.empty()) {
-    return ThemedWindow(" Bag ", ftxui::text("(empty)"));
+    return ftxui::text("  (empty)");
   }
-  return ThemedWindow(" Bag ", ftxui::vbox({
-                                   ftxui::text(kColumnHeader),
-                                   ftxui::text(kColumnHeader2),
-                                   ThemedSeparator(),
-                                   menu->Render(),
-                               }));
+  return ftxui::vbox({
+      ftxui::text(kColumnHeader),
+      ftxui::text(kColumnHeader2),
+      ThemedSeparator(),
+      menu->Render(),
+  });
+}
+
+ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
+  ftxui::Element body;
+  if (active_tab_ == kUseTab) {
+    body = RenderStackList(character_.stackables(), ITEM_CATEGORY_USE);
+  } else if (active_tab_ == kEtcTab) {
+    body = RenderStackList(character_.stackables(), ITEM_CATEGORY_ETC);
+  } else {
+    body = RenderEquipList(menu);
+  }
+  return ThemedWindow(
+      " Inventory ", ftxui::vbox({RenderTabBar(active_tab_), std::move(body)}));
 }
 
 ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
@@ -180,7 +244,28 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
   // display stays in sync with inventory changes made via on_enter.
   ftxui::Component renderer = ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); });
-  return ftxui::CatchEvent(renderer, [on_enter](ftxui::Event event) {
+  return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
+    if (event == ftxui::Event::ArrowLeft) {
+      if (active_tab_ > 0) {
+        --active_tab_;
+      }
+      return true;
+    }
+    if (event == ftxui::Event::ArrowRight) {
+      if (active_tab_ < kEtcTab) {
+        ++active_tab_;
+      }
+      return true;
+    }
+    if (active_tab_ != kEquipTab) {
+      // Use/Etc are read-only: swallow list navigation and activation so the
+      // hidden Equip menu stays put and no context menu opens.
+      if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown ||
+          IsForward(event)) {
+        return true;
+      }
+      return false;
+    }
     if (event == ftxui::Event::Character(' ')) {
       on_enter();
       return true;

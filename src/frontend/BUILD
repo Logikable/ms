@@ -77,38 +77,18 @@ cc_library(
     srcs = ["inventory_panel.cc"],
     hdrs = ["inventory_panel.h"],
     deps = [
+        ":colors",
         ":item_menu",
         ":panel_util",
         ":scroll_panel",
         ":types",
         "//src:character",
         "//src:equip_instance",
+        "//src:item",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
-    ],
-)
-
-cc_library(
-    name = "stack_panel",
-    srcs = ["stack_panel.cc"],
-    hdrs = ["stack_panel.h"],
-    deps = [
-        ":panel_util",
-        "//src:character",
-        "//src:item",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "stack_panel_test",
-    srcs = ["stack_panel_test.cc"],
-    deps = [
-        ":panel_test_base",
-        ":stack_panel",
-        "//src/protos:item_proto_cc",
-        "@googletest//:gtest_main",
     ],
 )
 
@@ -359,7 +339,6 @@ cc_library(
         ":inventory_panel",
         ":item_menu",
         ":scroll_panel",
-        ":stack_panel",
         ":star_force_panel",
         ":trace_recover_panel",
         ":tui_controller",
