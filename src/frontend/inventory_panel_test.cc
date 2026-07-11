@@ -1,4 +1,4 @@
-#include "src/frontend/bag_panel.h"
+#include "src/frontend/inventory_panel.h"
 
 #include <gtest/gtest.h>
 
@@ -13,80 +13,80 @@
 namespace ms {
 namespace {
 
-class BagPanelTest : public PanelTest {};
+class InventoryPanelTest : public PanelTest {};
 
-TEST_F(BagPanelTest, ShowsEmptyWhenBagIsEmpty) {
-  BagPanel panel(c_, panel_focus_);
+TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
+  InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("(empty)"),
             std::string::npos);
 }
 
-TEST_F(BagPanelTest, ShowsItemName) {
+TEST_F(InventoryPanelTest, ShowsItemName) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Sword"),
             std::string::npos);
 }
 
-TEST_F(BagPanelTest, ShowsSelectionCursorByDefault) {
+TEST_F(InventoryPanelTest, ShowsSelectionCursorByDefault) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("> Sword"),
             std::string::npos);
 }
 
-TEST_F(BagPanelTest, ShowsColumnHeader) {
+TEST_F(InventoryPanelTest, ShowsColumnHeader) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Name"), std::string::npos);
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
   EXPECT_NE(rendered.find("Scrolls"), std::string::npos);
 }
 
-TEST_F(BagPanelTest, ShowsEquipSlotName) {
+TEST_F(InventoryPanelTest, ShowsEquipSlotName) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Weapon"),
             std::string::npos);
 }
 
-TEST_F(BagPanelTest, ShowsSlotsRemaining) {
+TEST_F(InventoryPanelTest, ShowsSlotsRemaining) {
   sword_.set_upgrade_slots(7);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   // Fresh item: 0 pass, 7 left, 0 restores.
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("0/7/0"),
             std::string::npos);
 }
 
-TEST_F(BagPanelTest, ShowsItemLevel) {
+TEST_F(InventoryPanelTest, ShowsItemLevel) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Lv10"),
             std::string::npos);
 }
 
-TEST_F(BagPanelTest, ShowsWarriorJobCategory) {
+TEST_F(InventoryPanelTest, ShowsWarriorJobCategory) {
   c_.PickUp(std::make_unique<EquipInstance>(
       sword_));  // sword_ has EQUIP_JOB_CATEGORY_WARRIOR
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Warrior"),
             std::string::npos);
 }
 
-TEST_F(BagPanelTest, ShowsAllForUniversalItem) {
+TEST_F(InventoryPanelTest, ShowsAllForUniversalItem) {
   EquipPrototype axe;
   axe.set_name("Axe");
   axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   axe.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
   c_.PickUp(std::make_unique<EquipInstance>(axe));
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("All"),
             std::string::npos);
 }
 
-TEST_F(BagPanelTest, TraceMenuDisablesAllExceptInspect) {
+TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   // Trigger a star force destroy to place a trace in inventory.
   EquipPrototype proto;
   proto.set_name("Sword");
@@ -103,7 +103,7 @@ TEST_F(BagPanelTest, TraceMenuDisablesAllExceptInspect) {
   }
   ASSERT_TRUE(saw_destroy);
 
-  BagPanel panel(c_, panel_focus_);
+  InventoryPanel panel(c_, panel_focus_);
   panel.OpenMenu();
   // Equip/Scroll/StarForce are disabled; only Inspect is selectable.
   EXPECT_EQ(panel.menu().selected(), kMenuInspect);

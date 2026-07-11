@@ -12,8 +12,8 @@
 #include "ftxui/component/event.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/ap_alloc_panel.h"
-#include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
+#include "src/frontend/inventory_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
@@ -28,13 +28,13 @@ class TuiController {
   // panel_focus is a reference shared with panel components and
   // Container::Tab; the controller mutates it as focus changes.
   TuiController(GameState& state, EquippedPanel& equip_panel,
-                BagPanel& bag_panel, ScrollPanel& scroll_panel,
+                InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
                 ApAllocPanel& ap_alloc_panel, StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
-  void OpenBagMenu();
+  void OpenInventoryMenu();
   void OpenApAlloc();
 
   // Returns true if the event was consumed.
@@ -77,7 +77,7 @@ class TuiController {
 
   GameState& state_;
   EquippedPanel& equip_panel_;
-  BagPanel& bag_panel_;
+  InventoryPanel& inventory_panel_;
   ScrollPanel& scroll_panel_;
   ApAllocPanel& ap_alloc_panel_;
   StarForcePanel& star_force_panel_;

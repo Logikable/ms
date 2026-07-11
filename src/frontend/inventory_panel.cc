@@ -1,4 +1,4 @@
-#include "src/frontend/bag_panel.h"
+#include "src/frontend/inventory_panel.h"
 
 #include <algorithm>
 #include <functional>
@@ -30,13 +30,13 @@ constexpr char kColumnHeader2[] =
 
 }  // namespace
 
-BagPanel::BagPanel(CharacterInstance& character, int& panel_focus)
+InventoryPanel::InventoryPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Close"}) {
 }
 
-void BagPanel::OpenMenu() {
+void InventoryPanel::OpenMenu() {
   menu_.Reset();
   const EquipInstance* eq = character_.inventory().equip_instance(selected_);
   if (eq == nullptr) {
@@ -56,8 +56,8 @@ void BagPanel::OpenMenu() {
   }
 }
 
-Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
-                             ScrollPanel& scroll_panel) {
+Screen InventoryPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
+                                   ScrollPanel& scroll_panel) {
   if (IsBack(event)) {
     return kMain;
   }
@@ -97,7 +97,7 @@ Screen BagPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
   return kItemMenu;
 }
 
-ftxui::Element BagPanel::RenderContent(ftxui::Component menu) {
+ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   rows_.clear();
   entries_.clear();
   for (int i = 0; i < character_.inventory().size(); ++i) {
@@ -112,7 +112,7 @@ ftxui::Element BagPanel::RenderContent(ftxui::Component menu) {
       scroll_left = item.equip_state().remaining_upgrade_slots();
       scroll_restore = proto.upgrade_slots() - scroll_pass - scroll_left;
     }
-    BagRowState row;
+    InventoryRowState row;
     row.label = FormatItemEntry(item.name(), proto.equip_slot(), info,
                                 scroll_pass, scroll_left, scroll_restore);
     row.is_trace = character_.inventory().equip_instance(i) == nullptr;
@@ -135,7 +135,7 @@ ftxui::Element BagPanel::RenderContent(ftxui::Component menu) {
                                }));
 }
 
-ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
+ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
   // Suppress the default color inversion so the caret indicator looks the same
@@ -154,7 +154,7 @@ ftxui::Component BagPanel::MakeComponent(std::function<void()> on_enter) {
     if (idx < 0 || idx >= (int)rows_.size() || (int)lbl.size() < 60) {
       return ftxui::text(cursor + lbl);
     }
-    const BagRowState& row = rows_[idx];
+    const InventoryRowState& row = rows_[idx];
     if (row.level_ok && row.job_ok && !row.is_trace) {
       return ftxui::text(cursor + lbl);
     }

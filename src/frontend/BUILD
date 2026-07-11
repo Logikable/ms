@@ -73,9 +73,9 @@ cc_library(
 )
 
 cc_library(
-    name = "bag_panel",
-    srcs = ["bag_panel.cc"],
-    hdrs = ["bag_panel.h"],
+    name = "inventory_panel",
+    srcs = ["inventory_panel.cc"],
+    hdrs = ["inventory_panel.h"],
     deps = [
         ":item_menu",
         ":panel_util",
@@ -138,10 +138,10 @@ cc_test(
 )
 
 cc_test(
-    name = "bag_panel_test",
-    srcs = ["bag_panel_test.cc"],
+    name = "inventory_panel_test",
+    srcs = ["inventory_panel_test.cc"],
     deps = [
-        ":bag_panel",
+        ":inventory_panel",
         ":panel_test_base",
         "@googletest//:gtest_main",
     ],
@@ -305,8 +305,8 @@ cc_library(
     hdrs = ["tui_controller.h"],
     deps = [
         ":ap_alloc_panel",
-        ":bag_panel",
         ":equipped_panel",
+        ":inventory_panel",
         ":panel_util",
         ":scroll_panel",
         ":star_force_panel",
@@ -326,8 +326,8 @@ cc_test(
     srcs = ["tui_controller_test.cc"],
     deps = [
         ":ap_alloc_panel",
-        ":bag_panel",
         ":equipped_panel",
+        ":inventory_panel",
         ":scroll_panel",
         ":star_force_panel",
         ":trace_recover_panel",
@@ -352,11 +352,11 @@ cc_library(
     hdrs = ["tui.h"],
     deps = [
         ":ap_alloc_panel",
-        ":bag_panel",
         ":character_panel",
         ":colors",
         ":equipped_panel",
         ":inspect_panel",
+        ":inventory_panel",
         ":item_menu",
         ":scroll_panel",
         ":stack_panel",

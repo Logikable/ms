@@ -89,7 +89,7 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
     if (menu_.selected() == kMenuAction) {
       character_.Unequip(selected_slot());
       if (character_.equipped().empty()) {
-        panel_focus = kBagPanel;
+        panel_focus = kInventoryPanel;
       }
       return kMain;
     }

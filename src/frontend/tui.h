@@ -10,10 +10,10 @@
 
 #include "ftxui/component/component.hpp"
 #include "src/frontend/ap_alloc_panel.h"
-#include "src/frontend/bag_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inspect_panel.h"
+#include "src/frontend/inventory_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/stack_panel.h"
 #include "src/frontend/star_force_panel.h"
@@ -38,14 +38,14 @@ class Tui {
 
   GameState& state_;
   std::chrono::steady_clock::time_point last_farming_update_;
-  // Shared with equip_panel_, bag_panel_, and Container::Tab; mutated by
+  // Shared with equip_panel_, inventory_panel_, and Container::Tab; mutated by
   // controller_ (Tab) and panels (Equip/Unequip actions).
   int panel_focus_ = kEquipPanel;
 
   // Main view panels (always constructed; rendered in kMain and kItemMenu).
   CharacterPanel char_panel_;
   EquippedPanel equip_panel_;
-  BagPanel bag_panel_;
+  InventoryPanel inventory_panel_;
   StackPanel stack_panel_;
   ScrollPanel scroll_panel_;
   InspectPanel inspect_panel_;
@@ -59,7 +59,7 @@ class Tui {
 
   // ftxui components built in Run().
   ftxui::Component equip_component_;
-  ftxui::Component bag_component_;
+  ftxui::Component inventory_component_;
   ftxui::Component char_component_;
 };
 

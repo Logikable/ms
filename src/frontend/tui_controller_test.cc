@@ -12,8 +12,8 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/ap_alloc_panel.h"
-#include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
+#include "src/frontend/inventory_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
@@ -55,15 +55,17 @@ class TuiControllerTest : public testing::Test {
     state_->character.AdvanceJob(JOB_WARRIOR);
     equip_panel_ =
         std::make_unique<EquippedPanel>(state_->character, panel_focus_);
-    bag_panel_ = std::make_unique<BagPanel>(state_->character, panel_focus_);
+    inventory_panel_ =
+        std::make_unique<InventoryPanel>(state_->character, panel_focus_);
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     ap_alloc_panel_ = std::make_unique<ApAllocPanel>(state_->character);
     star_force_panel_ = std::make_unique<StarForcePanel>();
     trace_recover_panel_ =
         std::make_unique<TraceRecoverPanel>(state_->character);
     controller_ = std::make_unique<TuiController>(
-        *state_, *equip_panel_, *bag_panel_, *scroll_panel_, *ap_alloc_panel_,
-        *star_force_panel_, *trace_recover_panel_, panel_focus_);
+        *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
+        *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
+        panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -97,15 +99,16 @@ class TuiControllerTest : public testing::Test {
     state_->scrolls["Fail Scroll"] = fail;
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     controller_ = std::make_unique<TuiController>(
-        *state_, *equip_panel_, *bag_panel_, *scroll_panel_, *ap_alloc_panel_,
-        *star_force_panel_, *trace_recover_panel_, panel_focus_);
+        *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
+        *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
+        panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
   EquipPrototype sword_;
   std::unique_ptr<GameState> state_;
   std::unique_ptr<EquippedPanel> equip_panel_;
-  std::unique_ptr<BagPanel> bag_panel_;
+  std::unique_ptr<InventoryPanel> inventory_panel_;
   std::unique_ptr<ScrollPanel> scroll_panel_;
   std::unique_ptr<ApAllocPanel> ap_alloc_panel_;
   std::unique_ptr<StarForcePanel> star_force_panel_;
@@ -116,9 +119,9 @@ class TuiControllerTest : public testing::Test {
 
 // --- Tab ---
 
-TEST_F(TuiControllerTest, TabSwitchesToBagPanel) {
+TEST_F(TuiControllerTest, TabSwitchesToInventoryPanel) {
   controller_->OnEvent(ftxui::Event::Tab);
-  EXPECT_EQ(panel_focus_, kBagPanel);
+  EXPECT_EQ(panel_focus_, kInventoryPanel);
 }
 
 TEST_F(TuiControllerTest, TabSwitchesToCharPanel) {
@@ -217,7 +220,7 @@ TEST_F(TuiControllerTest, UnequipSwitchesFocusToBagWhenEquipEmpty) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::Return);
 
-  EXPECT_EQ(panel_focus_, kBagPanel);
+  EXPECT_EQ(panel_focus_, kInventoryPanel);
 }
 
 // --- Scroll via equip panel ---
@@ -399,9 +402,9 @@ TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
 
 TEST_F(TuiControllerTest, BagScrollGoesToScrollSelect) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);
@@ -411,9 +414,9 @@ TEST_F(TuiControllerTest, BagScrollGoesToScrollSelect) {
 
 TEST_F(TuiControllerTest, BagScrollEscapeFromScrollSelectGoesToItemMenu) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);
@@ -424,9 +427,9 @@ TEST_F(TuiControllerTest, BagScrollEscapeFromScrollSelectGoesToItemMenu) {
 
 TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
@@ -441,9 +444,9 @@ TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
 
 TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
@@ -459,9 +462,9 @@ TEST_F(TuiControllerTest,
        BagScrollNoSlotsGoesToScrollResultWithNoSlotsOutcome) {
   sword_.set_upgrade_slots(0);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
@@ -562,9 +565,9 @@ TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
 
 TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
   PickUpScrolledSword();
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Star Force
@@ -575,9 +578,9 @@ TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
 
 TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
   PickUpScrolledSword();
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -597,9 +600,9 @@ TEST_F(TuiControllerTest, InspectItemReturnsNullptrWhenNotInspecting) {
 
 TEST_F(TuiControllerTest, BagInspectGoesToInspect) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::Return);
 
@@ -609,11 +612,11 @@ TEST_F(TuiControllerTest, BagInspectGoesToInspect) {
 
 // --- Equip via bag panel ---
 
-TEST_F(TuiControllerTest, ReturnActionEquipsFromBagPanel) {
+TEST_F(TuiControllerTest, ReturnActionEquipsFromInventoryPanel) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
-  panel_focus_ = kBagPanel;
+  panel_focus_ = kInventoryPanel;
 
-  controller_->OpenBagMenu();
+  controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_FALSE(state_->character.equipped().empty());

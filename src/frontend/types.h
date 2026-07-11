@@ -20,7 +20,12 @@ enum Screen : int {
   kTraceRecover,
   kTraceRecoverResult,
 };
-enum Panel : int { kEquipPanel = 0, kBagPanel = 1, kCharPanel = 2, kNumPanels };
+enum Panel : int {
+  kEquipPanel = 0,
+  kInventoryPanel = 1,
+  kCharPanel = 2,
+  kNumPanels
+};
 enum MenuItem : int {
   kMenuAction = 0,
   kMenuInspect = 1,

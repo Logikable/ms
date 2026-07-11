@@ -1,13 +1,13 @@
-/* BagPanel shows the inventory as a navigable menu. Each entry displays the
- * item name, required level, applicable job categories, and remaining upgrade
- * slots. Enter opens the item context menu via the on_enter callback passed to
- * MakeComponent().
+/* InventoryPanel shows the inventory as a navigable menu. Each entry displays
+ * the item name, required level, applicable job categories, and remaining
+ * upgrade slots. Enter opens the item context menu via the on_enter callback
+ * passed to MakeComponent().
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
  */
-#ifndef MS_SRC_FRONTEND_BAG_PANEL_H_
-#define MS_SRC_FRONTEND_BAG_PANEL_H_
+#ifndef MS_SRC_FRONTEND_INVENTORY_PANEL_H_
+#define MS_SRC_FRONTEND_INVENTORY_PANEL_H_
 
 #include <functional>
 #include <string>
@@ -23,16 +23,16 @@
 
 namespace ms {
 
-struct BagRowState {
+struct InventoryRowState {
   std::string label;
   bool is_trace;
   bool level_ok;
   bool job_ok;
 };
 
-class BagPanel {
+class InventoryPanel {
  public:
-  BagPanel(CharacterInstance& character, int& panel_focus);
+  InventoryPanel(CharacterInstance& character, int& panel_focus);
   ftxui::Component MakeComponent(std::function<void()> on_enter);
   void OpenMenu();
   // Handles Up/Down/Escape/Return for the item context menu and executes the
@@ -53,7 +53,7 @@ class BagPanel {
   CharacterInstance& character_;
   int& panel_focus_;
   int selected_ = 0;
-  std::vector<BagRowState> rows_;
+  std::vector<InventoryRowState> rows_;
   std::vector<std::string>
       entries_;  // labels derived from rows_ for ftxui::Menu
   ItemMenu menu_;
@@ -61,4 +61,4 @@ class BagPanel {
 
 }  // namespace ms
 
-#endif  // MS_SRC_FRONTEND_BAG_PANEL_H_
+#endif  // MS_SRC_FRONTEND_INVENTORY_PANEL_H_

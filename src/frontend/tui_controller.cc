@@ -4,8 +4,8 @@
 #include "src/character.h"
 #include "src/equip_instance.h"
 #include "src/frontend/ap_alloc_panel.h"
-#include "src/frontend/bag_panel.h"
 #include "src/frontend/equipped_panel.h"
+#include "src/frontend/inventory_panel.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/star_force_panel.h"
@@ -18,14 +18,15 @@
 namespace ms {
 
 TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
-                             BagPanel& bag_panel, ScrollPanel& scroll_panel,
+                             InventoryPanel& inventory_panel,
+                             ScrollPanel& scroll_panel,
                              ApAllocPanel& ap_alloc_panel,
                              StarForcePanel& star_force_panel,
                              TraceRecoverPanel& trace_recover_panel,
                              int& panel_focus)
     : state_(state),
       equip_panel_(equip_panel),
-      bag_panel_(bag_panel),
+      inventory_panel_(inventory_panel),
       scroll_panel_(scroll_panel),
       ap_alloc_panel_(ap_alloc_panel),
       star_force_panel_(star_force_panel),
@@ -38,9 +39,9 @@ void TuiController::OpenEquipMenu() {
   equip_panel_.OpenMenu();
 }
 
-void TuiController::OpenBagMenu() {
+void TuiController::OpenInventoryMenu() {
   screen_ = kItemMenu;
-  bag_panel_.OpenMenu();
+  inventory_panel_.OpenMenu();
 }
 
 void TuiController::OpenApAlloc() {
@@ -110,31 +111,31 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   Screen next =
       panel_focus_ == kEquipPanel
           ? equip_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_)
-          : bag_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
+          : inventory_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
   if (next == kInspect) {
     if (panel_focus_ == kEquipPanel) {
       inspect_slot_ = equip_panel_.selected_slot();
     } else {
-      inspect_index_ = bag_panel_.selected();
+      inspect_index_ = inventory_panel_.selected();
     }
   }
   if (next == kScrollSelect) {
     if (panel_focus_ == kEquipPanel) {
       scroll_slot_ = equip_panel_.selected_slot();
     } else {
-      scroll_index_ = bag_panel_.selected();
+      scroll_index_ = inventory_panel_.selected();
     }
   }
   if (next == kStarForce) {
     if (panel_focus_ == kEquipPanel) {
       star_force_slot_ = equip_panel_.selected_slot();
     } else {
-      star_force_index_ = bag_panel_.selected();
+      star_force_index_ = inventory_panel_.selected();
     }
     star_force_panel_.ResetConfirm();
   }
   if (next == kTraceRecover) {
-    trace_index_ = bag_panel_.selected();
+    trace_index_ = inventory_panel_.selected();
     trace_recover_panel_.SetTrace(&state_.character.inventory()[trace_index_]);
   }
   screen_ = next;
@@ -153,7 +154,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     if (panel_focus_ == kEquipPanel) {
       equip_panel_.OpenMenu();
     } else {
-      bag_panel_.OpenMenu();
+      inventory_panel_.OpenMenu();
     }
     screen_ = kItemMenu;
     return true;

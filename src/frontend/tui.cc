@@ -16,10 +16,10 @@
 #include "src/character.h"
 #include "src/equip_instance.h"
 #include "src/exp_table.h"
-#include "src/frontend/bag_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/colors.h"
 #include "src/frontend/equipped_panel.h"
+#include "src/frontend/inventory_panel.h"
 #include "src/frontend/item_menu.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/stack_panel.h"
@@ -108,12 +108,12 @@ Tui::Tui(GameState& state)
       last_farming_update_(std::chrono::steady_clock::now()),
       char_panel_(state.character, panel_focus_),
       equip_panel_(state.character, panel_focus_),
-      bag_panel_(state.character, panel_focus_),
+      inventory_panel_(state.character, panel_focus_),
       stack_panel_(state.character),
       scroll_panel_(state.scrolls),
       ap_alloc_panel_(state.character),
       trace_recover_panel_(state.character),
-      controller_(state, equip_panel_, bag_panel_, scroll_panel_,
+      controller_(state, equip_panel_, inventory_panel_, scroll_panel_,
                   ap_alloc_panel_, star_force_panel_, trace_recover_panel_,
                   panel_focus_) {
 }
@@ -121,13 +121,13 @@ Tui::Tui(GameState& state)
 void Tui::Run() {
   equip_component_ =
       equip_panel_.MakeComponent([this]() { controller_.OpenEquipMenu(); });
-  bag_component_ =
-      bag_panel_.MakeComponent([this]() { controller_.OpenBagMenu(); });
+  inventory_component_ = inventory_panel_.MakeComponent(
+      [this]() { controller_.OpenInventoryMenu(); });
   char_component_ =
       char_panel_.MakeComponent([this]() { controller_.OpenApAlloc(); });
 
   ftxui::Component panels = ftxui::Container::Tab(
-      {equip_component_, bag_component_, char_component_}, &panel_focus_);
+      {equip_component_, inventory_component_, char_component_}, &panel_focus_);
 
   ftxui::Component base = ftxui::Renderer(
       panels, [this]() -> ftxui::Element { return RenderFrame(); });
@@ -218,7 +218,7 @@ ftxui::Element Tui::RenderMain() {
           char_panel_.Render(),
           ftxui::vbox({
               equip_component_->Render(),
-              bag_component_->Render(),
+              inventory_component_->Render(),
               stack_panel_.Render(),
           }) | ftxui::flex,
       }),
@@ -238,10 +238,10 @@ ftxui::Element Tui::RenderMain() {
     // neither.
     int equip_rows = std::max(1, equip_count) + (equip_count > 0 ? 3 : 0);
     // +5: equip borders (2) + bag column header + sub-header + separator (3).
-    menu_row = equip_rows + 5 + bag_panel_.selected();
+    menu_row = equip_rows + 5 + inventory_panel_.selected();
   }
-  ItemMenu& menu =
-      panel_focus_ == kEquipPanel ? equip_panel_.menu() : bag_panel_.menu();
+  ItemMenu& menu = panel_focus_ == kEquipPanel ? equip_panel_.menu()
+                                               : inventory_panel_.menu();
   // Offset past char panel border, menu cursor, name column, slot column, and
   // separators so the menu covers stats rather than item names.
   constexpr int kMenuCol =
