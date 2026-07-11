@@ -165,6 +165,25 @@ void CharacterInstance::AddMeso(int64_t amount) {
   character_.set_meso(character_.meso() + amount);
 }
 
+int64_t CharacterInstance::SellStackable(int stack_index, int count) {
+  if (stack_index < 0 || stack_index >= static_cast<int>(stackables_.size())) {
+    return 0;
+  }
+  StackableItem& stack = stackables_[stack_index];
+  count = std::clamp(count, 0, stack.count());
+  int price = stack.prototype().sell_price();
+  if (count <= 0 || price <= 0) {
+    return 0;  // Nothing to sell, or the item cannot be sold.
+  }
+  int64_t earned = static_cast<int64_t>(count) * price;
+  stack.add_count(-count);
+  if (stack.count() <= 0) {
+    stackables_.erase(stackables_.begin() + stack_index);
+  }
+  AddMeso(earned);
+  return earned;
+}
+
 std::vector<const EquipTrace*> CharacterInstance::traces() const {
   return inventory_.traces();
 }

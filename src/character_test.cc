@@ -462,6 +462,67 @@ TEST_F(AddMesoTest, NonPositiveAmountIsNoOp) {
   EXPECT_EQ(c_.meso(), 500);
 }
 
+// --- SellStackable ---
+
+// Fixture providing a sellable Etc item (7 meso each) and an unsellable one.
+class SellStackableTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    shell_.set_name("Green Snail Shell");
+    shell_.set_category(ITEM_CATEGORY_ETC);
+    shell_.set_sell_price(7);
+    junk_.set_name("Worthless Junk");
+    junk_.set_category(ITEM_CATEGORY_ETC);  // sell_price 0: unsellable
+  }
+  CharacterInstance c_ = MakeCharacter(rng_);
+  ItemPrototype shell_;
+  ItemPrototype junk_;
+};
+
+TEST_F(SellStackableTest, SellsCopiesAndCreditsMeso) {
+  c_.AddStackable(shell_, 10);
+  EXPECT_EQ(c_.SellStackable(0, 4), 28);  // 4 * 7
+  ASSERT_EQ(c_.stackables().size(), 1);
+  EXPECT_EQ(c_.stackables()[0].count(), 6);
+  EXPECT_EQ(c_.meso(), 28);
+}
+
+TEST_F(SellStackableTest, SellingWholeStackRemovesIt) {
+  c_.AddStackable(shell_, 5);
+  EXPECT_EQ(c_.SellStackable(0, 5), 35);
+  EXPECT_TRUE(c_.stackables().empty());
+  EXPECT_EQ(c_.meso(), 35);
+}
+
+TEST_F(SellStackableTest, ClampsCountToStackSize) {
+  c_.AddStackable(shell_, 3);
+  EXPECT_EQ(c_.SellStackable(0, 10), 21);  // only 3 exist
+  EXPECT_TRUE(c_.stackables().empty());
+  EXPECT_EQ(c_.meso(), 21);
+}
+
+TEST_F(SellStackableTest, NonPositiveCountIsNoOp) {
+  c_.AddStackable(shell_, 5);
+  EXPECT_EQ(c_.SellStackable(0, 0), 0);
+  EXPECT_EQ(c_.SellStackable(0, -2), 0);
+  EXPECT_EQ(c_.stackables()[0].count(), 5);
+  EXPECT_EQ(c_.meso(), 0);
+}
+
+TEST_F(SellStackableTest, UnsellableItemIsNoOp) {
+  c_.AddStackable(junk_, 5);
+  EXPECT_EQ(c_.SellStackable(0, 3), 0);
+  EXPECT_EQ(c_.stackables()[0].count(), 5);
+  EXPECT_EQ(c_.meso(), 0);
+}
+
+TEST_F(SellStackableTest, OutOfRangeIndexIsNoOp) {
+  c_.AddStackable(shell_, 5);
+  EXPECT_EQ(c_.SellStackable(3, 1), 0);
+  EXPECT_EQ(c_.SellStackable(-1, 1), 0);
+  EXPECT_EQ(c_.meso(), 0);
+}
+
 // --- Equip ---
 
 TEST_F(EquipTest, EquipsItemIntoEmptySlot) {

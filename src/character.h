@@ -57,6 +57,12 @@ class CharacterInstance {
   void AddStackable(const ItemPrototype& proto, int count);
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
+  // Sells up to `count` copies from the stack at `stack_index` (an index into
+  // stackables()), crediting count * sell_price meso and removing the sold
+  // copies; erases the stack entirely once it empties. No-op returning 0 if the
+  // index is out of range, count <= 0, or the item is unsellable (sell_price
+  // 0). Returns the meso earned.
+  int64_t SellStackable(int stack_index, int count);
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the
