@@ -24,6 +24,7 @@ GameState MakeState() {
 Mob SnailMob() {
   Mob mob;
   mob.set_name("Snail");
+  mob.set_level(1);
   mob.set_max_hp(10);
   mob.set_exp(3);
   MobDrop* drop = mob.add_drops();
@@ -146,6 +147,16 @@ TEST(AdvanceFarmingTest, AccruesDropsWhileFarming) {
   state.AdvanceFarming(100000.0);
   ASSERT_FALSE(state.character.stackables().empty());
   EXPECT_EQ(state.character.stackables()[0].name(), "Green Snail Shell");
+}
+
+TEST(AdvanceFarmingTest, AccruesMesoWhileFarming) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  state.AdvanceFarming(100000.0);
+  EXPECT_GT(state.character.meso(), 0);
 }
 
 TEST(AdvanceFarmingTest, SkipsFarmingWithoutWeapon) {

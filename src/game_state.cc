@@ -78,11 +78,19 @@ void GameState::AdvanceFarming(double elapsed_seconds) {
   std::vector<double> periods =
       MapKillPeriods(offense, weapon, map_mobs, map.spawn_count());
 
+  int player_level = proto.level();
   int64_t exp_gained = 0;
   for (std::size_t i = 0; i < map_mobs.size(); ++i) {
     int64_t kills =
         FlushKills(periods[i], elapsed_seconds, &kill_progress[mob_keys[i]]);
     exp_gained += kills * map_mobs[i]->exp();
+    // Meso pools across every mob type into one balance, so all kills bank into
+    // the shared meso_progress accumulator.
+    int64_t meso = FlushDrops(ExpectedMesoPerKill(*map_mobs[i], player_level),
+                              kills, &meso_progress);
+    if (meso > 0) {
+      character.AddMeso(meso);
+    }
     for (const MobDrop& drop : map_mobs[i]->drops()) {
       int64_t dropped =
           FlushDrops(drop.per_kill(), kills, &drop_progress[drop.item()]);

@@ -49,6 +49,9 @@ struct GameState {
   // Fractional drops banked per item name, carried across AdvanceFarming calls.
   // Whole drops are deposited into the character's stackable storage.
   std::map<std::string, double> drop_progress;
+  // Fractional meso banked across AdvanceFarming calls; whole meso is added to
+  // the character's balance.
+  double meso_progress = 0.0;
 };
 
 }  // namespace ms
