@@ -409,37 +409,37 @@ class AddStackableTest : public CharacterTest {
 
 TEST_F(AddStackableTest, OpensNewStack) {
   c_.AddStackable(shell_, 5);
-  ASSERT_EQ(c_.stackables().size(), 1);
-  EXPECT_EQ(c_.stackables()[0].name(), "Green Snail Shell");
-  EXPECT_EQ(c_.stackables()[0].count(), 5);
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 1);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Green Snail Shell");
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 5);
 }
 
 TEST_F(AddStackableTest, MergesIntoExistingStack) {
   c_.AddStackable(shell_, 5);
   c_.AddStackable(shell_, 3);
-  ASSERT_EQ(c_.stackables().size(), 1);
-  EXPECT_EQ(c_.stackables()[0].count(), 8);
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 1);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 8);
 }
 
 TEST_F(AddStackableTest, SplitsOverflowAtMaxStack) {
   c_.AddStackable(shell_, 250);
-  ASSERT_EQ(c_.stackables().size(), 2);
-  EXPECT_EQ(c_.stackables()[0].count(), 200);
-  EXPECT_EQ(c_.stackables()[1].count(), 50);
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 2);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 200);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[1].count(), 50);
 }
 
 TEST_F(AddStackableTest, KeepsDistinctItemsSeparate) {
   c_.AddStackable(shell_, 5);
   c_.AddStackable(other_, 3);
-  ASSERT_EQ(c_.stackables().size(), 2);
-  EXPECT_EQ(c_.stackables()[0].name(), "Green Snail Shell");
-  EXPECT_EQ(c_.stackables()[1].name(), "Blue Snail Shell");
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 2);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Green Snail Shell");
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[1].name(), "Blue Snail Shell");
 }
 
 TEST_F(AddStackableTest, NonPositiveCountIsNoOp) {
   c_.AddStackable(shell_, 0);
   c_.AddStackable(shell_, -4);
-  EXPECT_TRUE(c_.stackables().empty());
+  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
 }
 
 // --- AddMeso ---
@@ -481,45 +481,45 @@ class SellStackableTest : public CharacterTest {
 
 TEST_F(SellStackableTest, SellsCopiesAndCreditsMeso) {
   c_.AddStackable(shell_, 10);
-  EXPECT_EQ(c_.SellStackable(0, 4), 28);  // 4 * 7
-  ASSERT_EQ(c_.stackables().size(), 1);
-  EXPECT_EQ(c_.stackables()[0].count(), 6);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 4), 28);  // 4 * 7
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 1);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 6);
   EXPECT_EQ(c_.meso(), 28);
 }
 
 TEST_F(SellStackableTest, SellingWholeStackRemovesIt) {
   c_.AddStackable(shell_, 5);
-  EXPECT_EQ(c_.SellStackable(0, 5), 35);
-  EXPECT_TRUE(c_.stackables().empty());
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 5), 35);
+  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
   EXPECT_EQ(c_.meso(), 35);
 }
 
 TEST_F(SellStackableTest, ClampsCountToStackSize) {
   c_.AddStackable(shell_, 3);
-  EXPECT_EQ(c_.SellStackable(0, 10), 21);  // only 3 exist
-  EXPECT_TRUE(c_.stackables().empty());
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 10), 21);  // only 3 exist
+  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
   EXPECT_EQ(c_.meso(), 21);
 }
 
 TEST_F(SellStackableTest, NonPositiveCountIsNoOp) {
   c_.AddStackable(shell_, 5);
-  EXPECT_EQ(c_.SellStackable(0, 0), 0);
-  EXPECT_EQ(c_.SellStackable(0, -2), 0);
-  EXPECT_EQ(c_.stackables()[0].count(), 5);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 0), 0);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, -2), 0);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 5);
   EXPECT_EQ(c_.meso(), 0);
 }
 
 TEST_F(SellStackableTest, UnsellableItemIsNoOp) {
   c_.AddStackable(junk_, 5);
-  EXPECT_EQ(c_.SellStackable(0, 3), 0);
-  EXPECT_EQ(c_.stackables()[0].count(), 5);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 0, 3), 0);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 5);
   EXPECT_EQ(c_.meso(), 0);
 }
 
 TEST_F(SellStackableTest, OutOfRangeIndexIsNoOp) {
   c_.AddStackable(shell_, 5);
-  EXPECT_EQ(c_.SellStackable(3, 1), 0);
-  EXPECT_EQ(c_.SellStackable(-1, 1), 0);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, 3, 1), 0);
+  EXPECT_EQ(c_.SellStackable(ITEM_CATEGORY_ETC, -1, 1), 0);
   EXPECT_EQ(c_.meso(), 0);
 }
 

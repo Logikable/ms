@@ -128,12 +128,34 @@ void CharacterInstance::PickUp(std::unique_ptr<EquipTabItem> item) {
   inventory_.add(std::move(item));
 }
 
+std::vector<StackableItem>& CharacterInstance::StacksFor(
+    ItemCategory category) {
+  switch (category) {
+    case ITEM_CATEGORY_USE:
+      return use_items_;
+    default:
+      // Etc stacks double as the fail-safe destination for unspecified items.
+      return etc_items_;
+  }
+}
+
+const std::vector<StackableItem>& CharacterInstance::StacksFor(
+    ItemCategory category) const {
+  switch (category) {
+    case ITEM_CATEGORY_USE:
+      return use_items_;
+    default:
+      return etc_items_;
+  }
+}
+
 void CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
   if (count <= 0) {
     return;
   }
+  std::vector<StackableItem>& stacks = StacksFor(proto.category());
   // Top up existing stacks of the same item before opening new ones.
-  for (StackableItem& stack : stackables_) {
+  for (StackableItem& stack : stacks) {
     if (count <= 0) {
       break;
     }
@@ -154,7 +176,7 @@ void CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
     int added = std::min(stack.max_stack(), count);
     stack.add_count(added);
     count -= added;
-    stackables_.push_back(std::move(stack));
+    stacks.push_back(std::move(stack));
   }
 }
 
@@ -165,11 +187,13 @@ void CharacterInstance::AddMeso(int64_t amount) {
   character_.set_meso(character_.meso() + amount);
 }
 
-int64_t CharacterInstance::SellStackable(int stack_index, int count) {
-  if (stack_index < 0 || stack_index >= static_cast<int>(stackables_.size())) {
+int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
+                                         int count) {
+  std::vector<StackableItem>& stacks = StacksFor(category);
+  if (index < 0 || index >= static_cast<int>(stacks.size())) {
     return 0;
   }
-  StackableItem& stack = stackables_[stack_index];
+  StackableItem& stack = stacks[index];
   count = std::clamp(count, 0, stack.count());
   int price = stack.prototype().sell_price();
   if (count <= 0 || price <= 0) {
@@ -178,7 +202,7 @@ int64_t CharacterInstance::SellStackable(int stack_index, int count) {
   int64_t earned = static_cast<int64_t>(count) * price;
   stack.add_count(-count);
   if (stack.count() <= 0) {
-    stackables_.erase(stackables_.begin() + stack_index);
+    stacks.erase(stacks.begin() + index);
   }
   AddMeso(earned);
   return earned;

@@ -57,12 +57,12 @@ class CharacterInstance {
   void AddStackable(const ItemPrototype& proto, int count);
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
-  // Sells up to `count` copies from the stack at `stack_index` (an index into
-  // stackables()), crediting count * sell_price meso and removing the sold
-  // copies; erases the stack entirely once it empties. No-op returning 0 if the
-  // index is out of range, count <= 0, or the item is unsellable (sell_price
-  // 0). Returns the meso earned.
-  int64_t SellStackable(int stack_index, int count);
+  // Sells up to `count` copies from the `index`-th stack in `category`,
+  // crediting count * sell_price meso and removing the sold copies; erases the
+  // stack entirely once it empties. No-op returning 0 if the index is out of
+  // range, count <= 0, or the item is unsellable (sell_price 0). Returns the
+  // meso earned.
+  int64_t SellStackable(ItemCategory category, int index, int count);
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the
@@ -100,10 +100,10 @@ class CharacterInstance {
   const std::map<EquipSlot, EquipInstance>& equipped() const {
     return equipped_;
   }
-  // Use/Etc item stacks, in pickup order. Filter by prototype().category() to
-  // separate the Use and Etc tabs.
-  const std::vector<StackableItem>& stackables() const {
-    return stackables_;
+  // The `category`'s item stacks (ITEM_CATEGORY_USE or ITEM_CATEGORY_ETC), in
+  // pickup order.
+  const std::vector<StackableItem>& stackables(ItemCategory category) const {
+    return StacksFor(category);
   }
   int64_t meso() const {
     return character_.meso();
@@ -117,12 +117,17 @@ class CharacterInstance {
  private:
   // Recomputes equip_stats_ from the current equipped map.
   void RecomputeEquipStats();
+  // The stack vector backing `category`. USE and ETC each have their own;
+  // anything else falls back to the Etc stacks (fail safe).
+  std::vector<StackableItem>& StacksFor(ItemCategory category);
+  const std::vector<StackableItem>& StacksFor(ItemCategory category) const;
 
   std::mt19937& rng_;
   Character character_;
   InventoryInstance inventory_;
   std::map<EquipSlot, EquipInstance> equipped_;
-  std::vector<StackableItem> stackables_;
+  std::vector<StackableItem> use_items_;
+  std::vector<StackableItem> etc_items_;
   EquipStats equip_stats_;
 };
 

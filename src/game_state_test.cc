@@ -145,8 +145,9 @@ TEST(AdvanceFarmingTest, AccruesDropsWhileFarming) {
   EquipSword(state);
 
   state.AdvanceFarming(100000.0);
-  ASSERT_FALSE(state.character.stackables().empty());
-  EXPECT_EQ(state.character.stackables()[0].name(), "Green Snail Shell");
+  ASSERT_FALSE(state.character.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_EQ(state.character.stackables(ITEM_CATEGORY_ETC)[0].name(),
+            "Green Snail Shell");
 }
 
 TEST(AdvanceFarmingTest, AccruesMesoWhileFarming) {

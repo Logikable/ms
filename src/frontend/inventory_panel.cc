@@ -63,37 +63,19 @@ ftxui::Element RenderTabBar(int active_tab, int64_t meso) {
   });
 }
 
-// Number of stacks belonging to `category`.
-int CountStacks(const std::vector<StackableItem>& stacks,
-                ItemCategory category) {
-  int count = 0;
-  for (const StackableItem& stack : stacks) {
-    if (stack.prototype().category() == category) {
-      ++count;
-    }
-  }
-  return count;
-}
-
-// Renders a Name/Quantity list of the stacks in `category`, one row per stack,
-// with a "> " cursor on the `selected`-th matching stack. Shows "(empty)" when
-// the category holds no stacks.
+// Renders a Name/Quantity list of `stacks`, one row per stack, with a "> "
+// cursor on the `selected`-th row. Shows "(empty)" when there are no stacks.
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
-                               ItemCategory category, int selected) {
+                               int selected) {
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text("  " + PadRight("Name", 26) + "Quantity"));
   rows.push_back(ThemedSeparator());
-  int row = 0;
-  for (const StackableItem& stack : stacks) {
-    if (stack.prototype().category() != category) {
-      continue;
-    }
-    std::string cursor = row == selected ? "> " : "  ";
-    rows.push_back(ftxui::text(cursor + PadRight(stack.name(), 26) +
-                               std::to_string(stack.count())));
-    ++row;
+  for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
+    std::string cursor = i == selected ? "> " : "  ";
+    rows.push_back(ftxui::text(cursor + PadRight(stacks[i].name(), 26) +
+                               std::to_string(stacks[i].count())));
   }
-  if (row == 0) {
+  if (stacks.empty()) {
     rows.push_back(ftxui::text("  (empty)"));
   }
   return ftxui::vbox(std::move(rows));
@@ -211,10 +193,11 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   if (active_tab_ == kUseTab || active_tab_ == kEtcTab) {
     ItemCategory category =
         active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
-    // Keep the cursor in range as stacks are sold off or filtered out.
-    int count = CountStacks(character_.stackables(), category);
-    selected_stack_ = std::min(selected_stack_, std::max(0, count - 1));
-    body = RenderStackList(character_.stackables(), category, selected_stack_);
+    const std::vector<StackableItem>& stacks = character_.stackables(category);
+    // Keep the cursor in range as stacks are sold off.
+    selected_stack_ = std::min(
+        selected_stack_, std::max(0, static_cast<int>(stacks.size()) - 1));
+    body = RenderStackList(stacks, selected_stack_);
   } else {
     body = RenderEquipList(menu);
   }
@@ -288,7 +271,7 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
       // and activation regardless so the hidden Equip menu stays put.
       ItemCategory category =
           active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
-      int count = CountStacks(character_.stackables(), category);
+      int count = static_cast<int>(character_.stackables(category).size());
       if (event == ftxui::Event::ArrowUp) {
         if (selected_stack_ > 0) {
           --selected_stack_;
