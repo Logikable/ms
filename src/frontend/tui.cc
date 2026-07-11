@@ -22,6 +22,7 @@
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/item_menu.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/stack_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
 
@@ -108,6 +109,7 @@ Tui::Tui(GameState& state)
       char_panel_(state.character, panel_focus_),
       equip_panel_(state.character, panel_focus_),
       bag_panel_(state.character, panel_focus_),
+      stack_panel_(state.character),
       scroll_panel_(state.scrolls),
       ap_alloc_panel_(state.character),
       trace_recover_panel_(state.character),
@@ -217,6 +219,7 @@ ftxui::Element Tui::RenderMain() {
           ftxui::vbox({
               equip_component_->Render(),
               bag_component_->Render(),
+              stack_panel_.Render(),
           }) | ftxui::flex,
       }),
       ftxui::filler(),

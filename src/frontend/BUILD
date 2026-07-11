@@ -90,6 +90,29 @@ cc_library(
 )
 
 cc_library(
+    name = "stack_panel",
+    srcs = ["stack_panel.cc"],
+    hdrs = ["stack_panel.h"],
+    deps = [
+        ":panel_util",
+        "//src:character",
+        "//src:item",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "stack_panel_test",
+    srcs = ["stack_panel_test.cc"],
+    deps = [
+        ":panel_test_base",
+        ":stack_panel",
+        "//src/protos:item_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "panel_test_base",
     testonly = True,
     hdrs = ["panel_test_base.h"],
@@ -336,6 +359,7 @@ cc_library(
         ":inspect_panel",
         ":item_menu",
         ":scroll_panel",
+        ":stack_panel",
         ":star_force_panel",
         ":trace_recover_panel",
         ":tui_controller",
