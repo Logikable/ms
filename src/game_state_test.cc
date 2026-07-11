@@ -102,9 +102,9 @@ TEST(GameStateTest, ConstructorStoresMapsMap) {
   EXPECT_EQ(state.maps.at("lith").name(), "Right Around Lith Harbor");
 }
 
-TEST(GameStateTest, StartingCharacterIsLevel2) {
+TEST(GameStateTest, StartingCharacterIsLevel1) {
   GameState state = MakeState();
-  EXPECT_EQ(state.character.proto().level(), 2);
+  EXPECT_EQ(state.character.proto().level(), 1);
 }
 
 TEST(GameStateTest, StartingCharacterJobIsBeginner) {
@@ -112,9 +112,9 @@ TEST(GameStateTest, StartingCharacterJobIsBeginner) {
   EXPECT_EQ(state.character.proto().job(), JOB_BEGINNER);
 }
 
-TEST(GameStateTest, StartingCharacterHasFiveAp) {
+TEST(GameStateTest, StartingCharacterHasNoAp) {
   GameState state = MakeState();
-  EXPECT_EQ(state.character.proto().ap(), 5);
+  EXPECT_EQ(state.character.proto().ap(), 0);
 }
 
 TEST(GameStateTest, StartingCharacterStats) {
@@ -165,7 +165,7 @@ TEST(AdvanceFarmingTest, SkipsFarmingWithoutWeapon) {
   state.current_map = "field";
 
   state.AdvanceFarming(100000.0);
-  EXPECT_EQ(state.character.proto().level(), 2);
+  EXPECT_EQ(state.character.proto().level(), 1);
   EXPECT_EQ(state.character.proto().exp(), 0);
 }
 
@@ -175,7 +175,7 @@ TEST(AdvanceFarmingTest, NoOpWithoutCurrentMap) {
   EquipSword(state);  // current_map left empty
 
   state.AdvanceFarming(100000.0);
-  EXPECT_EQ(state.character.proto().level(), 2);
+  EXPECT_EQ(state.character.proto().level(), 1);
   EXPECT_EQ(state.character.proto().exp(), 0);
 }
 
