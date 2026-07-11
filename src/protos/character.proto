@@ -61,4 +61,8 @@ message Character {
   // proto3 map limitation). At most one item per slot. Only items in this map
   // contribute to the character's equipment stats.
   map<int32, Equip> equipped = 9;
+
+  // Meso, the character's spendable currency. Earned from farming, spent on
+  // upgrades. Non-negative.
+  int64 meso = 10;
 }

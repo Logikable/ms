@@ -55,6 +55,8 @@ class CharacterInstance {
   // up existing stacks of the same item first, then opens new stacks for any
   // overflow, each capped at the item's max_stack(). No-op if count <= 0.
   void AddStackable(const ItemPrototype& proto, int count);
+  // Adds `amount` meso to the character's balance. No-op if amount <= 0.
+  void AddMeso(int64_t amount);
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the
@@ -96,6 +98,9 @@ class CharacterInstance {
   // separate the Use and Etc tabs.
   const std::vector<StackableItem>& stackables() const {
     return stackables_;
+  }
+  int64_t meso() const {
+    return character_.meso();
   }
   // Sum of stats from all currently equipped items. Updated automatically by
   // Equip, Unequip, and ScrollEquipped.

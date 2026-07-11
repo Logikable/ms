@@ -442,6 +442,26 @@ TEST_F(AddStackableTest, NonPositiveCountIsNoOp) {
   EXPECT_TRUE(c_.stackables().empty());
 }
 
+// --- AddMeso ---
+
+class AddMesoTest : public CharacterTest {
+ protected:
+  CharacterInstance c_ = MakeCharacter(rng_);
+};
+
+TEST_F(AddMesoTest, AccumulatesAcrossCalls) {
+  c_.AddMeso(1000);
+  c_.AddMeso(234);
+  EXPECT_EQ(c_.meso(), 1234);
+}
+
+TEST_F(AddMesoTest, NonPositiveAmountIsNoOp) {
+  c_.AddMeso(500);
+  c_.AddMeso(0);
+  c_.AddMeso(-100);
+  EXPECT_EQ(c_.meso(), 500);
+}
+
 // --- Equip ---
 
 TEST_F(EquipTest, EquipsItemIntoEmptySlot) {

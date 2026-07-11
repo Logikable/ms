@@ -21,22 +21,13 @@
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/item_menu.h"
+#include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
 
 namespace ms {
 namespace {
-
-std::string FormatCommas(int64_t n) {
-  std::string s = std::to_string(n);
-  int pos = static_cast<int>(s.size()) - 3;
-  while (pos > 0) {
-    s.insert(pos, ",");
-    pos -= 3;
-  }
-  return s;
-}
 
 // Returns decimal places for EXP percentage display, scaled by job tier.
 int ExpPctDecimals(int level) {
@@ -265,7 +256,7 @@ ftxui::Element Tui::RenderExpBar() {
                 : 0.0;
     char buf[16];
     snprintf(buf, sizeof(buf), "%.*f%%", ExpPctDecimals(p.level()), pct);
-    label = FormatCommas(exp) + " (" + buf + ")";
+    label = FormatWithCommas(exp) + " (" + buf + ")";
   }
   return std::make_shared<ExpBarNode>(frac, std::move(label));
 }

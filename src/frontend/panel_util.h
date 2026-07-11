@@ -1,6 +1,7 @@
 #ifndef MS_SRC_FRONTEND_PANEL_UTIL_H_
 #define MS_SRC_FRONTEND_PANEL_UTIL_H_
 
+#include <cstdint>
 #include <string>
 
 #include "ftxui/component/event.hpp"
@@ -41,6 +42,14 @@ inline const DisplayStat kDisplayStats[] = {
 
 // Pads s to width with trailing spaces, or truncates if longer.
 std::string PadRight(const std::string& s, int width);
+
+// Formats an integer with thousands-separator commas (e.g. 1234567 ->
+// "1,234,567"). Handles negatives.
+std::string FormatWithCommas(int64_t n);
+
+// Formats a meso amount as the coin indicator followed by the comma-separated
+// value (e.g. "🪙 1,234,567"). Use everywhere meso is shown.
+std::string FormatMeso(int64_t meso);
 
 // Appends "+val label" to out (with "  " separator if non-empty).
 // No-op if val <= 0.

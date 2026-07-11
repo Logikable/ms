@@ -1,6 +1,7 @@
 #include "src/frontend/inventory_panel.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -38,9 +39,10 @@ constexpr char kColumnHeader2[] =
     "    "                            // 4 → 64 total
     "Pass/Left/Restore";
 
-// Renders the Equip/Use/Etc chip row with the active tab inverted, over a
-// separator. Mirrors TraceRecoverPanel::RenderTabs.
-ftxui::Element RenderTabBar(int active_tab) {
+// Renders the left-aligned Equip/Use/Etc chip row (active tab inverted) with a
+// centered meso counter overlaid in the empty space, over a separator. Mirrors
+// TraceRecoverPanel::RenderTabs.
+ftxui::Element RenderTabBar(int active_tab, int64_t meso) {
   const char* labels[kNumInventoryTabs] = {"Equip", "Use", "Etc"};
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < kNumInventoryTabs; ++i) {
@@ -51,8 +53,12 @@ ftxui::Element RenderTabBar(int active_tab) {
     }
     chips.push_back(std::move(chip));
   }
-  return ftxui::vbox({
+  ftxui::Element tab_row = ftxui::dbox({
       ftxui::hbox(std::move(chips)),
+      ftxui::text(FormatMeso(meso)) | ftxui::color(kTheme) | ftxui::hcenter,
+  });
+  return ftxui::vbox({
+      std::move(tab_row),
       ThemedSeparator(),
   });
 }
@@ -195,8 +201,9 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   } else {
     body = RenderEquipList(menu);
   }
-  return ThemedWindow(
-      " Inventory ", ftxui::vbox({RenderTabBar(active_tab_), std::move(body)}));
+  return ThemedWindow(" Inventory ",
+                      ftxui::vbox({RenderTabBar(active_tab_, character_.meso()),
+                                   std::move(body)}));
 }
 
 ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {

@@ -1,5 +1,6 @@
 #include "src/frontend/panel_util.h"
 
+#include <cstdint>
 #include <string>
 
 #include "ftxui/dom/elements.hpp"
@@ -18,6 +19,20 @@ std::string PadRight(const std::string& s, int width) {
     return s.substr(0, width);
   }
   return s + std::string(width - (int)s.size(), ' ');
+}
+
+std::string FormatWithCommas(int64_t n) {
+  std::string digits = std::to_string(n < 0 ? -n : n);
+  int pos = (int)digits.size() - 3;
+  while (pos > 0) {
+    digits.insert(pos, ",");
+    pos -= 3;
+  }
+  return n < 0 ? "-" + digits : digits;
+}
+
+std::string FormatMeso(int64_t meso) {
+  return "🪙 " + FormatWithCommas(meso);
 }
 
 void AppendStat(std::string& out, int val, const std::string& label) {

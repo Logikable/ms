@@ -25,6 +25,28 @@ TEST(PadRightTest, EmptyStringProducesAllSpaces) {
   EXPECT_EQ(PadRight("", 3), "   ");
 }
 
+// --- FormatWithCommas ---
+
+TEST(FormatWithCommasTest, NoCommasBelowThousand) {
+  EXPECT_EQ(FormatWithCommas(0), "0");
+  EXPECT_EQ(FormatWithCommas(999), "999");
+}
+
+TEST(FormatWithCommasTest, InsertsThousandsSeparators) {
+  EXPECT_EQ(FormatWithCommas(1000), "1,000");
+  EXPECT_EQ(FormatWithCommas(1234567), "1,234,567");
+}
+
+TEST(FormatWithCommasTest, HandlesNegative) {
+  EXPECT_EQ(FormatWithCommas(-12345), "-12,345");
+}
+
+// --- FormatMeso ---
+
+TEST(FormatMesoTest, PrefixesIndicatorAndFormatsValue) {
+  EXPECT_NE(FormatMeso(1234567).find("1,234,567"), std::string::npos);
+}
+
 // --- AppendStat ---
 
 TEST(AppendStatTest, ZeroValueIsNoOp) {

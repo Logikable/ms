@@ -338,6 +338,7 @@ cc_library(
         ":inspect_panel",
         ":inventory_panel",
         ":item_menu",
+        ":panel_util",
         ":scroll_panel",
         ":star_force_panel",
         ":trace_recover_panel",

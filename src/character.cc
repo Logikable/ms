@@ -158,6 +158,13 @@ void CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
   }
 }
 
+void CharacterInstance::AddMeso(int64_t amount) {
+  if (amount <= 0) {
+    return;
+  }
+  character_.set_meso(character_.meso() + amount);
+}
+
 std::vector<const EquipTrace*> CharacterInstance::traces() const {
   return inventory_.traces();
 }

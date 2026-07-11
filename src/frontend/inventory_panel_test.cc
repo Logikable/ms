@@ -128,6 +128,13 @@ TEST_F(InventoryPanelTest, ShowsTabBar) {
   EXPECT_NE(rendered.find("Etc"), std::string::npos);
 }
 
+TEST_F(InventoryPanelTest, ShowsMesoCounterWithCommas) {
+  c_.AddMeso(1234567);
+  InventoryPanel panel(c_, panel_focus_);
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("1,234,567"),
+            std::string::npos);
+}
+
 TEST_F(InventoryPanelTest, UseTabListsUseStacksWithQuantity) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
   InventoryPanel panel(c_, panel_focus_);
