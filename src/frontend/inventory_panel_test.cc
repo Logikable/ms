@@ -164,5 +164,37 @@ TEST_F(InventoryPanelTest, EmptyUseTabShowsPlaceholder) {
   EXPECT_NE(RenderComponent(comp).find("(empty)"), std::string::npos);
 }
 
+TEST_F(InventoryPanelTest, UseTabCursorStartsOnFirstStack) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  EXPECT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, UseTabCursorMovesWithArrowDown) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  c_.AddStackable(MakeStackable("Blue Potion", ITEM_CATEGORY_USE), 3);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowDown);   // cursor -> second stack
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("> Blue Potion"), std::string::npos);
+  EXPECT_NE(rendered.find("  Red Potion"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  c_.AddStackable(MakeStackable("Blue Potion", ITEM_CATEGORY_USE), 3);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowDown);   // cursor -> second stack
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // Etc -> Use, cursor reset
+  EXPECT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

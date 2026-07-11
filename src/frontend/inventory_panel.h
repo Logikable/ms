@@ -57,8 +57,9 @@ class InventoryPanel {
 
   CharacterInstance& character_;
   int& panel_focus_;
-  int selected_ = 0;
-  int active_tab_ = 0;  // 0 = Equip, 1 = Use, 2 = Etc
+  int selected_ = 0;        // selected row on the Equip tab (ftxui::Menu index)
+  int selected_stack_ = 0;  // selected row on the active Use/Etc tab
+  int active_tab_ = 0;      // 0 = Equip, 1 = Use, 2 = Etc
   std::vector<InventoryRowState> rows_;
   std::vector<std::string>
       entries_;  // labels derived from rows_ for ftxui::Menu
