@@ -15,11 +15,13 @@
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/sell_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 
@@ -30,7 +32,8 @@ class TuiController {
   TuiController(GameState& state, EquippedPanel& equip_panel,
                 InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
                 ApAllocPanel& ap_alloc_panel, StarForcePanel& star_force_panel,
-                TraceRecoverPanel& trace_recover_panel, int& panel_focus);
+                TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
+                int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
@@ -74,6 +77,7 @@ class TuiController {
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
   bool OnTraceRecoverResultEvent(ftxui::Event event);
+  bool OnSellEvent(ftxui::Event event);
 
   GameState& state_;
   EquippedPanel& equip_panel_;
@@ -82,6 +86,7 @@ class TuiController {
   ApAllocPanel& ap_alloc_panel_;
   StarForcePanel& star_force_panel_;
   TraceRecoverPanel& trace_recover_panel_;
+  SellPanel& sell_panel_;
   int& panel_focus_;
   Screen screen_ = kMain;
   EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;
@@ -91,6 +96,8 @@ class TuiController {
   EquipSlot star_force_slot_ = EQUIP_SLOT_UNSPECIFIED;
   int star_force_index_ = 0;
   int trace_index_ = 0;
+  ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
+  int sell_index_ = 0;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;
   TraceRecoveryResult trace_recovery_result_;

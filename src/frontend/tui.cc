@@ -104,7 +104,7 @@ Tui::Tui(GameState& state)
       trace_recover_panel_(state.character),
       controller_(state, equip_panel_, inventory_panel_, scroll_panel_,
                   ap_alloc_panel_, star_force_panel_, trace_recover_panel_,
-                  panel_focus_) {
+                  sell_panel_, panel_focus_) {
 }
 
 void Tui::Run() {
@@ -150,6 +150,13 @@ void Tui::Run() {
 ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kApAlloc) {
     return ftxui::center(ap_alloc_panel_.Render());
+  }
+  if (controller_.screen() == kSell) {
+    // Float the sell dialog over the main view for context.
+    return ftxui::dbox({
+        RenderMain(),
+        ftxui::center(sell_panel_.Render() | ftxui::clear_under),
+    });
   }
   if (controller_.screen() == kStarForce) {
     star_force_panel_.SetItem(controller_.star_force_item());
@@ -225,9 +232,15 @@ ftxui::Element Tui::RenderMain() {
     // Non-empty equip panel adds header + sub-header + separator; empty has
     // neither.
     int equip_rows = std::max(1, equip_count) + (equip_count > 0 ? 3 : 0);
-    // +7: equip borders (2) + inventory tab bar + tab separator (2) + column
-    // header + sub-header + separator (3).
-    menu_row = equip_rows + 7 + inventory_panel_.selected();
+    if (inventory_panel_.on_stackable_tab()) {
+      // +6: equip borders (2) + inventory tab bar + tab separator (2) + stack
+      // Name/Quantity header + separator (2).
+      menu_row = equip_rows + 6 + inventory_panel_.selected_stack();
+    } else {
+      // +7: equip borders (2) + inventory tab bar + tab separator (2) + column
+      // header + sub-header + separator (3).
+      menu_row = equip_rows + 7 + inventory_panel_.selected();
+    }
   }
   ItemMenu& menu = panel_focus_ == kEquipPanel ? equip_panel_.menu()
                                                : inventory_panel_.menu();

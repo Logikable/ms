@@ -23,7 +23,7 @@ TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
                              ApAllocPanel& ap_alloc_panel,
                              StarForcePanel& star_force_panel,
                              TraceRecoverPanel& trace_recover_panel,
-                             int& panel_focus)
+                             SellPanel& sell_panel, int& panel_focus)
     : state_(state),
       equip_panel_(equip_panel),
       inventory_panel_(inventory_panel),
@@ -31,6 +31,7 @@ TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
       ap_alloc_panel_(ap_alloc_panel),
       star_force_panel_(star_force_panel),
       trace_recover_panel_(trace_recover_panel),
+      sell_panel_(sell_panel),
       panel_focus_(panel_focus) {
 }
 
@@ -97,6 +98,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kTraceRecoverResult) {
     return OnTraceRecoverResultEvent(event);
   }
+  if (screen_ == kSell) {
+    return OnSellEvent(event);
+  }
   if (event == ftxui::Event::Tab) {
     panel_focus_ = (panel_focus_ + 1) % kNumPanels;
     if (panel_focus_ == kCharPanel && state_.character.proto().ap() == 0) {
@@ -137,6 +141,14 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   if (next == kTraceRecover) {
     trace_index_ = inventory_panel_.selected();
     trace_recover_panel_.SetTrace(&state_.character.inventory()[trace_index_]);
+  }
+  if (next == kSell) {
+    sell_category_ = inventory_panel_.active_category();
+    sell_index_ = inventory_panel_.selected_stack();
+    const StackableItem& stack =
+        state_.character.stackables(sell_category_)[sell_index_];
+    sell_panel_.Reset(stack.name(), stack.prototype().sell_price(),
+                      stack.count());
   }
   screen_ = next;
   return true;
@@ -284,6 +296,18 @@ bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
 
 bool TuiController::OnTraceRecoverResultEvent(ftxui::Event event) {
   if (IsBack(event) || IsForward(event)) {
+    screen_ = kMain;
+  }
+  return true;
+}
+
+bool TuiController::OnSellEvent(ftxui::Event event) {
+  sell_panel_.OnEvent(event);
+  if (sell_panel_.TakeConfirmed()) {
+    state_.character.SellStackable(sell_category_, sell_index_,
+                                   sell_panel_.quantity());
+    screen_ = kMain;
+  } else if (sell_panel_.TakeCancelled()) {
     screen_ = kMain;
   }
   return true;

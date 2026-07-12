@@ -15,6 +15,7 @@
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/sell_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/game_state.h"
@@ -62,13 +63,29 @@ class TuiControllerTest : public testing::Test {
     star_force_panel_ = std::make_unique<StarForcePanel>();
     trace_recover_panel_ =
         std::make_unique<TraceRecoverPanel>(state_->character);
+    sell_panel_ = std::make_unique<SellPanel>();
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
-        panel_focus_);
+        *sell_panel_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
+    // The inventory component drives tab switching and opens the context menu.
+    inventory_component_ = inventory_panel_->MakeComponent(
+        [this]() { controller_->OpenInventoryMenu(); });
+  }
+
+  // Adds a sellable Etc stack and navigates the inventory to the Etc tab.
+  void EnterEtcTabWithStack(int count, int sell_price) {
+    ItemPrototype shell;
+    shell.set_name("Green Snail Shell");
+    shell.set_category(ITEM_CATEGORY_ETC);
+    shell.set_sell_price(sell_price);
+    state_->character.AddStackable(shell, count);
+    panel_focus_ = kInventoryPanel;
+    inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+    inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
   }
 
   // Renders equip_panel_ to sync its slots_ vector with character.equipped().
@@ -101,7 +118,7 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
-        panel_focus_);
+        *sell_panel_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -113,8 +130,10 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<ApAllocPanel> ap_alloc_panel_;
   std::unique_ptr<StarForcePanel> star_force_panel_;
   std::unique_ptr<TraceRecoverPanel> trace_recover_panel_;
+  std::unique_ptr<SellPanel> sell_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
+  ftxui::Component inventory_component_;
 };
 
 // --- Tab ---
@@ -608,6 +627,53 @@ TEST_F(TuiControllerTest, BagInspectGoesToInspect) {
 
   EXPECT_EQ(controller_->screen(), kInspect);
   EXPECT_NE(controller_->inspect_item(), nullptr);
+}
+
+// --- Sell via Etc tab ---
+
+TEST_F(TuiControllerTest, SellMenuSellGoesToSellScreen) {
+  EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
+  inventory_component_->OnEvent(ftxui::Event::Return);  // open {Sell, Close}
+  controller_->OnEvent(ftxui::Event::Return);           // Sell
+  EXPECT_EQ(controller_->screen(), kSell);
+}
+
+TEST_F(TuiControllerTest, SellConfirmSellsWholeStackAndCreditsMeso) {
+  EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
+  inventory_component_->OnEvent(ftxui::Event::Return);  // open menu
+  controller_->OnEvent(ftxui::Event::Return);           // Sell -> kSell
+  controller_->OnEvent(ftxui::Event::ArrowDown);        // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);           // Confirm (qty = 10)
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_TRUE(state_->character.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_EQ(state_->character.meso(), 20);  // 10 * 2
+}
+
+TEST_F(TuiControllerTest, SellEscapeCancelsWithoutSelling) {
+  EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
+  inventory_component_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // Sell -> kSell
+  controller_->OnEvent(ftxui::Event::Escape);  // cancel
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.stackables(ITEM_CATEGORY_ETC)[0].count(), 10);
+  EXPECT_EQ(state_->character.meso(), 0);
+}
+
+TEST_F(TuiControllerTest, SellConfirmSellsTypedQuantity) {
+  EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
+  inventory_component_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);          // Sell -> kSell
+  controller_->OnEvent(ftxui::Event::ArrowLeft);       // textbox -> [0]
+  controller_->OnEvent(ftxui::Event::Return);          // quantity 0
+  controller_->OnEvent(ftxui::Event::ArrowRight);      // [0] -> textbox
+  controller_->OnEvent(ftxui::Event::Character('3'));  // quantity 3
+  controller_->OnEvent(ftxui::Event::ArrowDown);       // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);          // Confirm
+
+  EXPECT_EQ(state_->character.stackables(ITEM_CATEGORY_ETC)[0].count(), 7);
+  EXPECT_EQ(state_->character.meso(), 6);  // 3 * 2
 }
 
 // --- Equip via bag panel ---

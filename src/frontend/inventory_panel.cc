@@ -94,6 +94,20 @@ ItemMenu& InventoryPanel::menu() {
   return active_tab_ == kEquipTab ? menu_ : sell_menu_;
 }
 
+bool InventoryPanel::on_stackable_tab() const {
+  return active_tab_ != kEquipTab;
+}
+
+ItemCategory InventoryPanel::active_category() const {
+  if (active_tab_ == kUseTab) {
+    return ITEM_CATEGORY_USE;
+  }
+  if (active_tab_ == kEtcTab) {
+    return ITEM_CATEGORY_ETC;
+  }
+  return ITEM_CATEGORY_UNSPECIFIED;
+}
+
 void InventoryPanel::OpenMenu() {
   if (active_tab_ != kEquipTab) {
     sell_menu_.Reset();

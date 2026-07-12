@@ -21,6 +21,7 @@
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 
@@ -47,6 +48,15 @@ class InventoryPanel {
   ItemMenu& menu();
   int selected() const {
     return selected_;
+  }
+  // True when a Use or Etc tab is active (as opposed to the Equip tab).
+  bool on_stackable_tab() const;
+  // The active Use/Etc tab's item category, or ITEM_CATEGORY_UNSPECIFIED on the
+  // Equip tab.
+  ItemCategory active_category() const;
+  // The selected stack row on the active Use/Etc tab.
+  int selected_stack() const {
+    return selected_stack_;
   }
 
  private:
