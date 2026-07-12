@@ -68,7 +68,6 @@ cc_library(
         ":colors",
         ":panel_util",
         "//src:game_state",
-        "//src/combat:constants",
         "//src/combat:fight",
         "//src/protos:map_proto_cc",
         "@ftxui//:dom",
