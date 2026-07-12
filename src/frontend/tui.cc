@@ -11,8 +11,6 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "ftxui/dom/node.hpp"
-#include "ftxui/screen/screen.hpp"
 #include "src/character.h"
 #include "src/combat/combat.h"
 #include "src/equip_instance.h"
@@ -46,51 +44,6 @@ int ExpPctDecimals(int level) {
   }
   return 4;
 }
-
-// Custom element: renders a progress bar by writing directly to screen pixels.
-// Fills with background colors (filled=kTheme, unfilled=dark) so the gauge and
-// label don't interfere with each other via dbox character overwriting.
-class ExpBarNode : public ftxui::Node {
- public:
-  ExpBarNode(float frac, std::string label)
-      : frac_(frac), label_(std::move(label)) {
-  }
-
-  void ComputeRequirement() override {
-    requirement_.min_x = 1;
-    requirement_.min_y = 1;
-  }
-
-  void Render(ftxui::Screen& screen) override {
-    const int y = box_.y_min;
-    const int width = box_.x_max - box_.x_min + 1;
-    const int fill_end = box_.x_min + static_cast<int>(frac_ * width);
-
-    for (int x = box_.x_min; x <= box_.x_max; ++x) {
-      ftxui::Pixel& px = screen.PixelAt(x, y);
-      px.character = " ";
-      px.background_color =
-          x < fill_end ? kTheme : ftxui::Color::RGB(20, 35, 55);
-    }
-
-    const int label_len = static_cast<int>(label_.size());
-    const int label_x = box_.x_min + (width - label_len) / 2;
-    for (int i = 0; i < label_len; ++i) {
-      int x = label_x + i;
-      if (x < box_.x_min || x > box_.x_max) {
-        continue;
-      }
-      ftxui::Pixel& px = screen.PixelAt(x, y);
-      px.character = std::string(1, label_[i]);
-      px.foreground_color =
-          x < fill_end ? ftxui::Color::Black : ftxui::Color::White;
-    }
-  }
-
- private:
-  float frac_;
-  std::string label_;
-};
 
 }  // namespace
 
@@ -272,7 +225,7 @@ ftxui::Element Tui::RenderExpBar() {
     snprintf(buf, sizeof(buf), "%.*f%%", ExpPctDecimals(p.level()), pct);
     label = FormatWithCommas(exp) + " (" + buf + ")";
   }
-  return std::make_shared<ExpBarNode>(frac, std::move(label));
+  return ProgressBar(frac, kTheme, label);
 }
 
 void Tui::AdvanceCombatTick() {

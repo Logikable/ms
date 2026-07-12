@@ -23,6 +23,9 @@ inline const ftxui::Color kMutedYellow = ftxui::Color::RGB(185, 155, 70);
 // Error / bad outcome: item requirements not met, SF destroy.
 inline const ftxui::Color kRed = ftxui::Color::RGB(185, 70, 70);
 
+// Unfilled remainder of any progress bar (EXP, attack charge, mob HP).
+inline const ftxui::Color kBarEmpty = ftxui::Color::RGB(20, 35, 55);
+
 }  // namespace ms
 
 #endif  // MS_SRC_FRONTEND_COLORS_H_

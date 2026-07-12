@@ -27,6 +27,7 @@ cc_library(
         "//src/protos:equip_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
+        "@ftxui//:screen",
     ],
 )
 
@@ -34,7 +35,10 @@ cc_test(
     name = "panel_util_test",
     srcs = ["panel_util_test.cc"],
     deps = [
+        ":colors",
         ":panel_util",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
         "@googletest//:gtest_main",
     ],
 )

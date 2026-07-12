@@ -78,6 +78,16 @@ ftxui::Element ConfirmBar(bool cancel_selected);
 // main action panel so height is reserved only when confirmation is pending.
 ftxui::Element ConfirmWindow(bool cancel_selected);
 
+// A one-row progress bar filled to frac (clamped to [0, 1]) in `fill`, with the
+// remainder in kBarEmpty. `label` is centered over the bar, dark on the filled
+// side and light on the unfilled side; pass "" for an unlabelled bar.
+//
+// Writes pixels directly rather than using ftxui::gauge, which ignores color
+// decorators and cannot carry a label without a dbox overwriting one or the
+// other.
+ftxui::Element ProgressBar(float frac, ftxui::Color fill,
+                           const std::string& label);
+
 // Wraps content in a bordered window with the game's steel-blue theme color on
 // the border and title. Content foreground is set to white; explicitly colored
 // elements (gold stars, amber SF, etc.) and ThemedSeparator override it.

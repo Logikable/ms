@@ -1,9 +1,15 @@
 #include "src/frontend/panel_util.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "ftxui/dom/elements.hpp"
+#include "ftxui/dom/node.hpp"
+#include "ftxui/screen/screen.hpp"
+#include "src/frontend/colors.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -11,6 +17,52 @@ namespace {
 
 constexpr int kSlotWidth = 10;
 constexpr int kInfoWidth = 20;
+
+// Fills a row with background color rather than block glyphs, so the label can
+// sit on top of it without the two fighting over the same characters.
+class ProgressBarNode : public ftxui::Node {
+ public:
+  ProgressBarNode(float frac, ftxui::Color fill, std::string label)
+      : frac_(std::clamp(frac, 0.0f, 1.0f)),
+        fill_(fill),
+        label_(std::move(label)) {
+  }
+
+  void ComputeRequirement() override {
+    requirement_.min_x = 1;
+    requirement_.min_y = 1;
+  }
+
+  void Render(ftxui::Screen& screen) override {
+    const int y = box_.y_min;
+    const int width = box_.x_max - box_.x_min + 1;
+    const int fill_end = box_.x_min + static_cast<int>(frac_ * width);
+
+    for (int x = box_.x_min; x <= box_.x_max; ++x) {
+      ftxui::Pixel& px = screen.PixelAt(x, y);
+      px.character = " ";
+      px.background_color = x < fill_end ? fill_ : kBarEmpty;
+    }
+
+    const int label_len = static_cast<int>(label_.size());
+    const int label_x = box_.x_min + (width - label_len) / 2;
+    for (int i = 0; i < label_len; ++i) {
+      int x = label_x + i;
+      if (x < box_.x_min || x > box_.x_max) {
+        continue;
+      }
+      ftxui::Pixel& px = screen.PixelAt(x, y);
+      px.character = std::string(1, label_[i]);
+      px.foreground_color =
+          x < fill_end ? ftxui::Color::Black : ftxui::Color::White;
+    }
+  }
+
+ private:
+  float frac_;
+  ftxui::Color fill_;
+  std::string label_;
+};
 
 }  // namespace
 
@@ -111,6 +163,11 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
   }
   return PadRight(name, 26) + "  " + PadRight(FormatSlot(slot), kSlotWidth) +
          "  " + padded_info + "  " + scrolls;
+}
+
+ftxui::Element ProgressBar(float frac, ftxui::Color fill,
+                           const std::string& label) {
+  return std::make_shared<ProgressBarNode>(frac, fill, label);
 }
 
 ftxui::Element ConfirmBar(bool cancel_selected) {

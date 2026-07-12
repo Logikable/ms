@@ -4,6 +4,10 @@
 
 #include <string>
 
+#include "ftxui/dom/node.hpp"
+#include "ftxui/screen/screen.hpp"
+#include "src/frontend/colors.h"
+
 namespace ms {
 namespace {
 
@@ -134,6 +138,39 @@ TEST(FormatJobCategoriesTest, MultipleCategories) {
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_THIEF);
   EXPECT_EQ(FormatJobCategories(proto), "Warrior/Thief");
+}
+
+// --- ProgressBar ---
+
+// Renders a bar 10 cells wide onto its own screen so pixels can be inspected.
+ftxui::Screen RenderBar(float frac, const std::string& label) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(10),
+                                               ftxui::Dimension::Fixed(1));
+  ftxui::Element bar = ProgressBar(frac, kGreen, label);
+  ftxui::Render(screen, bar);
+  return screen;
+}
+
+TEST(ProgressBarTest, FillsUpToTheFraction) {
+  ftxui::Screen screen = RenderBar(0.5f, "");
+  EXPECT_EQ(screen.PixelAt(4, 0).background_color, kGreen);
+  EXPECT_EQ(screen.PixelAt(5, 0).background_color, kBarEmpty);
+}
+
+TEST(ProgressBarTest, ClampsOutOfRangeFractions) {
+  EXPECT_EQ(RenderBar(5.0f, "").PixelAt(9, 0).background_color, kGreen);
+  EXPECT_EQ(RenderBar(-1.0f, "").PixelAt(0, 0).background_color, kBarEmpty);
+}
+
+TEST(ProgressBarTest, CentersTheLabelOverTheBar) {
+  ftxui::Screen screen = RenderBar(0.0f, "AB");
+  EXPECT_EQ(screen.PixelAt(4, 0).character, "A");
+  EXPECT_EQ(screen.PixelAt(5, 0).character, "B");
+}
+
+TEST(ProgressBarTest, EmptyLabelLeavesTheBarBlank) {
+  ftxui::Screen screen = RenderBar(1.0f, "");
+  EXPECT_EQ(screen.PixelAt(5, 0).character, " ");
 }
 
 }  // namespace
