@@ -374,6 +374,7 @@ cc_library(
         "//src:character",
         "//src:equip_instance",
         "//src:exp_table",
+        "//src:farming",
         "//src:game_state",
         "@ftxui//:component",
         "@ftxui//:dom",

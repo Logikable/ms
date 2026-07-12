@@ -29,11 +29,6 @@ struct GameState {
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 
-  // Applies elapsed_seconds of farming on the current map: banks whole kills
-  // per mob type, grants their EXP, and accrues their drops. No-op without a
-  // current map or an equipped weapon.
-  void AdvanceFarming(double elapsed_seconds);
-
   std::map<std::string, EquipPrototype> equips;
   std::map<std::string, Scroll> scrolls;
   std::map<std::string, ItemPrototype> items;

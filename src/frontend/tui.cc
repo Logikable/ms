@@ -16,6 +16,7 @@
 #include "src/character.h"
 #include "src/equip_instance.h"
 #include "src/exp_table.h"
+#include "src/farming.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/colors.h"
 #include "src/frontend/equipped_panel.h"
@@ -278,7 +279,7 @@ void Tui::AdvanceFarmingTick() {
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed = now - last_farming_update_;
   last_farming_update_ = now;
-  state_.AdvanceFarming(elapsed.count());
+  AdvanceFarming(state_, elapsed.count());
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
