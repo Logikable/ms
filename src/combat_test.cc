@@ -194,6 +194,21 @@ TEST(KillCycleTest, DefaultRespawnUsesTheGmsTick) {
                    kRespawnIntervalSeconds * 10.0);
 }
 
+TEST(KillCycleTest, OverkillOnTheKillingHitIsWasted) {
+  // 10 dmg/hit, 1s swing, 1s respawn -> cycle = hits_to_kill * 10. Each mob
+  // needs a whole hit from full HP; overkill on the last hit never carries
+  // forward to spare the next mob a hit. HP 11..20 all take 2 hits (the
+  // second overkills by up to 9) and share one cycle; HP 21 needs a third.
+  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 10), 1.0),
+                   10.0);  // exactly 1 hit, no overkill
+  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 11), 1.0),
+                   20.0);  // 1 HP over -> a full 2nd hit
+  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 20), 1.0),
+                   20.0);  // 2nd hit overkills by 0; still 2 hits
+  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 21), 1.0),
+                   30.0);  // spills into a 3rd hit
+}
+
 // Map-farming tests override respawn = 1.0 and farm the one-handed sword at
 // AVERAGE (swing interval 0.81s).
 TEST(MapKillPeriodsTest, SplitsSpawnCountEvenly) {
