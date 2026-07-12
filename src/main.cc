@@ -80,6 +80,11 @@ int main(int argc, char** argv) {
   state.character.PickUp(std::make_unique<ms::EquipInstance>(
       state.equips.at("fafnir_mistilteinn")));
 
+  // Seed Etc stacks so the sell flow can be exercised without farming first.
+  // (250 green splits into a 200 + 50 stack at the Etc max_stack.)
+  state.character.AddStackable(state.items.at("green_snail_shell"), 250);
+  state.character.AddStackable(state.items.at("blue_snail_shell"), 30);
+
   // No map-selection UI yet; default to the starter map so farming runs.
   state.current_map = "right_around_lith_harbor";
 
