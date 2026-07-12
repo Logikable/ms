@@ -168,15 +168,28 @@ TEST_F(InventoryPanelTest, EmptyUseTabShowsPlaceholder) {
 
 TEST_F(InventoryPanelTest, UseTabCursorStartsOnFirstStack) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   EXPECT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
 }
 
+TEST_F(InventoryPanelTest, UseTabCursorHiddenWhenPanelNotFocused) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  panel_focus_ = kEquipPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("  Red Potion"), std::string::npos);
+  EXPECT_EQ(rendered.find("> Red Potion"), std::string::npos);
+}
+
 TEST_F(InventoryPanelTest, UseTabCursorMovesWithArrowDown) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
   c_.AddStackable(MakeStackable("Blue Potion", ITEM_CATEGORY_USE), 3);
+  panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
@@ -189,6 +202,7 @@ TEST_F(InventoryPanelTest, UseTabCursorMovesWithArrowDown) {
 TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
   c_.AddStackable(MakeStackable("Blue Potion", ITEM_CATEGORY_USE), 3);
+  panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use

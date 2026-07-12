@@ -12,6 +12,7 @@
 #include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/frontend/types.h"
 #include "src/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -65,13 +66,15 @@ ftxui::Element RenderTabBar(int active_tab, int64_t meso) {
 
 // Renders a Name/Quantity list of `stacks`, one row per stack, with a "> "
 // cursor on the `selected`-th row. Shows "(empty)" when there are no stacks.
+// The cursor is drawn only when `focused`, matching the Equip tab, whose menu
+// takes its cursor from ftxui's own focus state.
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
-                               int selected) {
+                               int selected, bool focused) {
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text("  " + PadRight("Name", 26) + "Quantity"));
   rows.push_back(ThemedSeparator());
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
-    std::string cursor = i == selected ? "> " : "  ";
+    std::string cursor = focused && i == selected ? "> " : "  ";
     rows.push_back(ftxui::text(cursor + PadRight(stacks[i].name(), 26) +
                                std::to_string(stacks[i].count())));
   }
@@ -246,7 +249,8 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     // Keep the cursor in range as stacks are sold off.
     selected_stack_ = std::min(
         selected_stack_, std::max(0, static_cast<int>(stacks.size()) - 1));
-    body = RenderStackList(stacks, selected_stack_);
+    body = RenderStackList(stacks, selected_stack_,
+                           panel_focus_ == kInventoryPanel);
   } else {
     body = RenderEquipList(menu);
   }
