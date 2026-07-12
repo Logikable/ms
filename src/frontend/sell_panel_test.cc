@@ -37,10 +37,17 @@ TEST_F(SellPanelTest, RenderShowsNameUnitPriceAndTotal) {
   EXPECT_NE(rendered.find("70"), std::string::npos);
 }
 
+TEST_F(SellPanelTest, TextboxSelectedByDefaultSoDigitsEdit) {
+  SellPanel panel;
+  panel.Reset("Shell", 7, 100);            // qty starts at 100
+  panel.OnEvent(ftxui::Event::Backspace);  // only edits if the textbox is on
+  EXPECT_EQ(panel.quantity(), 10);         // 100 -> 10
+}
+
 TEST_F(SellPanelTest, ZeroButtonZeroesQuantity) {
   SellPanel panel;
   panel.Reset("Shell", 7, 10);
-  panel.OnEvent(ftxui::Event::ArrowUp);  // Confirm -> "0" button
+  panel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [0]
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_EQ(panel.quantity(), 0);
 }
@@ -48,9 +55,10 @@ TEST_F(SellPanelTest, ZeroButtonZeroesQuantity) {
 TEST_F(SellPanelTest, MaxButtonRestoresWholeStack) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowUp);     // -> "0" button
+  panel.OnEvent(ftxui::Event::ArrowLeft);   // textbox -> [0]
   panel.OnEvent(ftxui::Event::Return);      // quantity 0
-  panel.OnEvent(ftxui::Event::ArrowRight);  // "0" -> "MAX"
+  panel.OnEvent(ftxui::Event::ArrowRight);  // [0] -> textbox
+  panel.OnEvent(ftxui::Event::ArrowRight);  // textbox -> [MAX]
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_EQ(panel.quantity(), 100);
 }
@@ -58,8 +66,9 @@ TEST_F(SellPanelTest, MaxButtonRestoresWholeStack) {
 TEST_F(SellPanelTest, DigitsEditQuantity) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowUp);  // -> "0" button
-  panel.OnEvent(ftxui::Event::Return);   // quantity 0
+  panel.OnEvent(ftxui::Event::ArrowLeft);   // textbox -> [0]
+  panel.OnEvent(ftxui::Event::Return);      // quantity 0
+  panel.OnEvent(ftxui::Event::ArrowRight);  // back to textbox
   panel.OnEvent(ftxui::Event::Character('2'));
   panel.OnEvent(ftxui::Event::Character('5'));
   EXPECT_EQ(panel.quantity(), 25);
@@ -68,8 +77,9 @@ TEST_F(SellPanelTest, DigitsEditQuantity) {
 TEST_F(SellPanelTest, DigitsClampToMax) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowUp);
-  panel.OnEvent(ftxui::Event::Return);  // quantity 0
+  panel.OnEvent(ftxui::Event::ArrowLeft);
+  panel.OnEvent(ftxui::Event::Return);      // quantity 0
+  panel.OnEvent(ftxui::Event::ArrowRight);  // back to textbox
   panel.OnEvent(ftxui::Event::Character('9'));
   panel.OnEvent(ftxui::Event::Character('9'));
   panel.OnEvent(ftxui::Event::Character('9'));  // 999 -> clamp 100
@@ -79,18 +89,28 @@ TEST_F(SellPanelTest, DigitsClampToMax) {
 TEST_F(SellPanelTest, BackspaceDeletesLastDigit) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowUp);
-  panel.OnEvent(ftxui::Event::Return);  // quantity 0
+  panel.OnEvent(ftxui::Event::ArrowLeft);
+  panel.OnEvent(ftxui::Event::Return);      // quantity 0
+  panel.OnEvent(ftxui::Event::ArrowRight);  // back to textbox
   panel.OnEvent(ftxui::Event::Character('2'));
   panel.OnEvent(ftxui::Event::Character('5'));  // 25
   panel.OnEvent(ftxui::Event::Backspace);
   EXPECT_EQ(panel.quantity(), 2);
 }
 
-TEST_F(SellPanelTest, ConfirmIsFocusedByDefault) {
+TEST_F(SellPanelTest, DigitsIgnoredWhenAButtonIsSelected) {
+  SellPanel panel;
+  panel.Reset("Shell", 7, 100);                 // qty 100, textbox selected
+  panel.OnEvent(ftxui::Event::ArrowLeft);       // textbox -> [0] button
+  panel.OnEvent(ftxui::Event::Character('5'));  // ignored off the textbox
+  EXPECT_EQ(panel.quantity(), 100);
+}
+
+TEST_F(SellPanelTest, DownFromTextboxActivatesConfirm) {
   SellPanel panel;
   panel.Reset("Shell", 7, 10);
-  panel.OnEvent(ftxui::Event::Return);  // activate default button
+  panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  panel.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(panel.TakeConfirmed());
   EXPECT_FALSE(panel.TakeConfirmed());  // resets after read
 }
@@ -98,10 +118,20 @@ TEST_F(SellPanelTest, ConfirmIsFocusedByDefault) {
 TEST_F(SellPanelTest, RightFromConfirmActivatesCancel) {
   SellPanel panel;
   panel.Reset("Shell", 7, 10);
-  panel.OnEvent(ftxui::Event::ArrowRight);  // Confirm -> Cancel
+  panel.OnEvent(ftxui::Event::ArrowDown);   // textbox -> [Confirm]
+  panel.OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(panel.TakeCancelled());
   EXPECT_FALSE(panel.TakeConfirmed());
+}
+
+TEST_F(SellPanelTest, UpFromButtonReturnsToTextbox) {
+  SellPanel panel;
+  panel.Reset("Shell", 7, 100);            // qty 100
+  panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  panel.OnEvent(ftxui::Event::ArrowUp);    // [Confirm] -> textbox
+  panel.OnEvent(ftxui::Event::Backspace);  // edits only if textbox is on
+  EXPECT_EQ(panel.quantity(), 10);
 }
 
 TEST_F(SellPanelTest, EscapeCancels) {
@@ -109,18 +139,6 @@ TEST_F(SellPanelTest, EscapeCancels) {
   panel.Reset("Shell", 7, 10);
   panel.OnEvent(ftxui::Event::Escape);
   EXPECT_TRUE(panel.TakeCancelled());
-}
-
-TEST_F(SellPanelTest, UpFromCancelReachesMax) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowUp);
-  panel.OnEvent(ftxui::Event::Return);      // quantity 0
-  panel.OnEvent(ftxui::Event::ArrowDown);   // back to Confirm row
-  panel.OnEvent(ftxui::Event::ArrowRight);  // Confirm -> Cancel
-  panel.OnEvent(ftxui::Event::ArrowUp);     // Cancel -> MAX
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(panel.quantity(), 100);
 }
 
 }  // namespace
