@@ -14,6 +14,10 @@ namespace ms {
 // spawn point. A map's full-clear kill cap is spawn_count / this.
 constexpr double kRespawnIntervalSeconds = 7.56;
 
+// Our game runs this many times slower than GMS; the one global pacing knob.
+// Kill cycles and the cosmetic combat view are both stretched by it.
+constexpr double kGameSpeedFactor = 10.0;
+
 // Offensive parameters feeding the GMS damage formula. Modifier fields default
 // to their identity (no-effect) value; real values graduate in one at a time as
 // gear, skills, etc. produce them.

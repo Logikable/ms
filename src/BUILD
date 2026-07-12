@@ -236,6 +236,37 @@ cc_test(
 )
 
 cc_library(
+    name = "combat_sim",
+    srcs = ["combat_sim.cc"],
+    hdrs = ["combat_sim.h"],
+    deps = [
+        ":character",
+        ":combat",
+        ":equip_instance",
+        ":game_state",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "combat_sim_test",
+    srcs = ["combat_sim_test.cc"],
+    deps = [
+        ":combat",
+        ":combat_sim",
+        ":equip_instance",
+        ":game_state",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "item",
     srcs = ["item.cc"],
     hdrs = ["item.h"],

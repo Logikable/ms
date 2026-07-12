@@ -21,9 +21,6 @@ constexpr int kSpeedBase = 20;
 constexpr int kSpeedDivisor = 16;
 constexpr int kTickMs = 30;
 
-// Our game runs this many times slower than GMS; the one global pacing knob.
-constexpr double kGameSpeedFactor = 10.0;
-
 // EquipStats stores boss_damage / ignore_enemy_defense as whole percents.
 constexpr double kPercentToFraction = 100.0;
 
