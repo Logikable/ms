@@ -49,6 +49,59 @@ cc_test(
 )
 
 cc_library(
+    name = "encounter",
+    srcs = ["encounter.cc"],
+    hdrs = ["encounter.h"],
+    deps = [
+        ":constants",
+        ":damage",
+        "//src:character",
+        "//src:equip_instance",
+        "//src:game_state",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "encounter_test",
+    srcs = ["encounter_test.cc"],
+    deps = [
+        ":constants",
+        ":encounter",
+        "//src:equip_instance",
+        "//src:game_state",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "fight",
+    srcs = ["fight.cc"],
+    hdrs = ["fight.h"],
+    deps = [
+        ":encounter",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "fight_test",
+    srcs = ["fight_test.cc"],
+    deps = [
+        ":encounter",
+        ":fight",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "idle_rate",
     srcs = ["idle_rate.cc"],
     hdrs = ["idle_rate.h"],

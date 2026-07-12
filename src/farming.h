@@ -1,12 +1,12 @@
-/* AdvanceCombat drives the idle loop: it steps the combat sim over the current
- * map and banks the EXP, drops, and meso earned by the kills that step
- * produced. It sits above GameState (data), combat (pure math), and combat_sim
- * (the engine), so none of those carry reward behavior.
+/* AdvanceCombat drives the idle loop: it steps the fight over the current map
+ * and banks the EXP, drops, and meso earned by the kills that step produced. It
+ * sits above GameState (data), the encounter, and the fight itself, so none of
+ * those carry reward behavior.
  */
 #ifndef MS_SRC_FARMING_H_
 #define MS_SRC_FARMING_H_
 
-#include "src/combat_sim.h"
+#include "src/combat/fight.h"
 #include "src/game_state.h"
 
 namespace ms {

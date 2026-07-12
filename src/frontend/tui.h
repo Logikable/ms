@@ -9,7 +9,7 @@
 #include <chrono>
 
 #include "ftxui/component/component.hpp"
-#include "src/combat_sim.h"
+#include "src/combat/fight.h"
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"

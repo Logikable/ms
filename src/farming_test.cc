@@ -4,7 +4,7 @@
 
 #include <memory>
 
-#include "src/combat_sim.h"
+#include "src/combat/fight.h"
 #include "src/equip_instance.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"

@@ -186,8 +186,9 @@ cc_library(
     hdrs = ["farming.h"],
     deps = [
         ":character",
-        ":combat_sim",
         ":game_state",
+        "//src/combat:encounter",
+        "//src/combat:fight",
         "//src/combat:loot",
         "//src/protos:item_proto_cc",
         "//src/protos:mob_proto_cc",
@@ -198,44 +199,12 @@ cc_test(
     name = "farming_test",
     srcs = ["farming_test.cc"],
     deps = [
-        ":combat_sim",
         ":equip_instance",
         ":farming",
         ":game_state",
+        "//src/combat:fight",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
-        "//src/protos:map_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "combat_sim",
-    srcs = ["combat_sim.cc"],
-    hdrs = ["combat_sim.h"],
-    deps = [
-        ":character",
-        ":equip_instance",
-        ":game_state",
-        "//src/combat:constants",
-        "//src/combat:damage",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:map_proto_cc",
-        "//src/protos:mob_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "combat_sim_test",
-    srcs = ["combat_sim_test.cc"],
-    deps = [
-        ":combat_sim",
-        ":equip_instance",
-        ":game_state",
-        "//src/combat:constants",
-        "//src/protos:equip_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "@googletest//:gtest_main",
