@@ -12,6 +12,7 @@
 #include "src/combat/fight.h"
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/character_panel.h"
+#include "src/frontend/combat_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inspect_panel.h"
 #include "src/frontend/inventory_panel.h"
@@ -47,6 +48,7 @@ class Tui {
 
   // Main view panels (always constructed; rendered in kMain and kItemMenu).
   CharacterPanel char_panel_;
+  CombatPanel combat_panel_;
   EquippedPanel equip_panel_;
   InventoryPanel inventory_panel_;
   ScrollPanel scroll_panel_;

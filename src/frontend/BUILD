@@ -60,6 +60,40 @@ cc_library(
 )
 
 cc_library(
+    name = "combat_panel",
+    srcs = ["combat_panel.cc"],
+    hdrs = ["combat_panel.h"],
+    deps = [
+        ":character_panel",
+        ":colors",
+        ":panel_util",
+        "//src:game_state",
+        "//src/combat:constants",
+        "//src/combat:fight",
+        "//src/protos:map_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "combat_panel_test",
+    srcs = ["combat_panel_test.cc"],
+    deps = [
+        ":combat_panel",
+        "//src:equip_instance",
+        "//src:game_state",
+        "//src/combat:encounter",
+        "//src/combat:fight",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "equipped_panel",
     srcs = ["equipped_panel.cc"],
     hdrs = ["equipped_panel.h"],
@@ -365,6 +399,7 @@ cc_library(
         ":ap_alloc_panel",
         ":character_panel",
         ":colors",
+        ":combat_panel",
         ":equipped_panel",
         ":inspect_panel",
         ":inventory_panel",

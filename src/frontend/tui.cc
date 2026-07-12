@@ -17,6 +17,7 @@
 #include "src/exp_table.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/colors.h"
+#include "src/frontend/combat_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/item_menu.h"
@@ -51,6 +52,7 @@ Tui::Tui(GameState& state)
     : state_(state),
       last_combat_update_(std::chrono::steady_clock::now()),
       char_panel_(state.character, panel_focus_),
+      combat_panel_(state, combat_sim_),
       equip_panel_(state.character, panel_focus_),
       inventory_panel_(state.character, panel_focus_),
       scroll_panel_(state.scrolls),
@@ -172,6 +174,9 @@ ftxui::Element Tui::RenderMain() {
           }) | ftxui::flex,
       }),
       ftxui::filler(),
+      // Beside a filler so the panel keeps its own width; a vbox child would
+      // otherwise be stretched to the full terminal.
+      ftxui::hbox({combat_panel_.Render(), ftxui::filler()}),
       RenderExpBar(),
   });
   if (controller_.screen() != kItemMenu) {
