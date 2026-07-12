@@ -1,0 +1,4 @@
+name: "Test Field"
+mobs: "snail"
+mobs: "blue_snail"
+spawn_count: 2

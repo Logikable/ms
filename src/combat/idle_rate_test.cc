@@ -43,28 +43,29 @@ OffenseStats FarmOffense() {
 }
 
 // Kill-cycle tests override respawn_interval_seconds = 1.0 so the cycle is just
-// (tick count) * kGameSpeedFactor(10), keeping the arithmetic round. mob HP is
-// 10 throughout; damage_per_hit sets the hit count.
+// (tick count) * kGameSpeedFactor. Expectations are written against that
+// constant rather than its value, so the pacing knob can be retuned freely. mob
+// HP is 10 throughout; damage_per_hit sets the hit count.
 TEST(KillCycleTest, BelowTickRoundsUpToOneTick) {
-  // 10 dmg vs 10 HP = 1 hit; kill_time 0.5 < 1 tick -> 1 tick * 10 = 10.
+  // 10 dmg vs 10 HP = 1 hit; kill_time 0.5 < 1 tick -> 1 tick.
   EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 0.5, MakeMob(0, false, 10), 1.0),
-                   10.0);
+                   kGameSpeedFactor);
 }
 
 TEST(KillCycleTest, CliffAtRespawnTick) {
   // One fewer point of damage adds a hit that spills past the tick boundary,
-  // jumping the cycle by a whole tick: 10 dmg = 1 hit (0.6 < 1 tick -> 10),
-  // 6 dmg = ceil(10/6) = 2 hits (1.2 > 1 tick -> 2 ticks -> 20). Exactly
-  // double.
+  // jumping the cycle by a whole tick: 10 dmg = 1 hit (0.6 < 1 tick),
+  // 6 dmg = ceil(10/6) = 2 hits (1.2 > 1 tick -> 2 ticks). Exactly double.
   Mob mob = MakeMob(0, false, 10);
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 0.6, mob, 1.0), 10.0);
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(6.0, 0.6, mob, 1.0), 20.0);
+  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 0.6, mob, 1.0), kGameSpeedFactor);
+  EXPECT_DOUBLE_EQ(KillCycleSeconds(6.0, 0.6, mob, 1.0),
+                   2.0 * kGameSpeedFactor);
 }
 
 TEST(KillCycleTest, MultiTickKill) {
-  // 1 hit but kill_time 2.1 spans into the third tick -> 3 ticks * 10 = 30.
+  // 1 hit but kill_time 2.1 spans into the third tick -> 3 ticks.
   EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 2.1, MakeMob(0, false, 10), 1.0),
-                   30.0);
+                   3.0 * kGameSpeedFactor);
 }
 
 TEST(KillCycleTest, ZeroDamageNeverKills) {
@@ -73,24 +74,24 @@ TEST(KillCycleTest, ZeroDamageNeverKills) {
 }
 
 TEST(KillCycleTest, DefaultRespawnUsesTheGmsTick) {
-  // 1 hit, kill_time 1 < one 7.56s tick -> 1 tick * 10 = 75.6.
+  // 1 hit, kill_time 1 < one 7.56s tick -> 1 tick.
   EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 10)),
-                   kRespawnIntervalSeconds * 10.0);
+                   kRespawnIntervalSeconds * kGameSpeedFactor);
 }
 
 TEST(KillCycleTest, OverkillOnTheKillingHitIsWasted) {
-  // 10 dmg/hit, 1s swing, 1s respawn -> cycle = hits_to_kill * 10. Each mob
+  // 10 dmg/hit, 1s swing, 1s respawn -> cycle = one tick per hit. Each mob
   // needs a whole hit from full HP; overkill on the last hit never carries
   // forward to spare the next mob a hit. HP 11..20 all take 2 hits (the
   // second overkills by up to 9) and share one cycle; HP 21 needs a third.
   EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 10), 1.0),
-                   10.0);  // exactly 1 hit, no overkill
+                   kGameSpeedFactor);  // exactly 1 hit, no overkill
   EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 11), 1.0),
-                   20.0);  // 1 HP over -> a full 2nd hit
+                   2.0 * kGameSpeedFactor);  // 1 HP over -> a full 2nd hit
   EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 20), 1.0),
-                   20.0);  // 2nd hit overkills by 0; still 2 hits
+                   2.0 * kGameSpeedFactor);  // overkills by 0; still 2 hits
   EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 21), 1.0),
-                   30.0);  // spills into a 3rd hit
+                   3.0 * kGameSpeedFactor);  // spills into a 3rd hit
 }
 
 // Map-farming tests override respawn = 1.0 and farm the one-handed sword at
