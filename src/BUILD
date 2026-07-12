@@ -181,37 +181,6 @@ cc_test(
 )
 
 cc_library(
-    name = "farming",
-    srcs = ["farming.cc"],
-    hdrs = ["farming.h"],
-    deps = [
-        ":character",
-        ":game_state",
-        "//src/combat:encounter",
-        "//src/combat:fight",
-        "//src/combat:loot",
-        "//src/protos:item_proto_cc",
-        "//src/protos:mob_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "farming_test",
-    srcs = ["farming_test.cc"],
-    deps = [
-        ":equip_instance",
-        ":farming",
-        ":game_state",
-        "//src/combat:fight",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "//src/protos:map_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "item",
     srcs = ["item.cc"],
     hdrs = ["item.h"],
