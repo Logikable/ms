@@ -37,13 +37,14 @@ class InventoryPanel {
   ftxui::Component MakeComponent(std::function<void()> on_enter);
   void OpenMenu();
   // Handles Up/Down/Escape/Return for the item context menu and executes the
-  // selected action. Returns the next screen state.
+  // selected action. Returns the next screen state. On the Equip tab this
+  // drives the equip menu; on Use/Etc it drives the {Sell, Close} menu.
   Screen OnMenuEvent(ftxui::Event event, int& panel_focus,
                      ScrollPanel& scroll_panel);
 
-  ItemMenu& menu() {
-    return menu_;
-  }
+  // The context menu for the active tab: the equip menu on Equip, the sell menu
+  // on Use/Etc.
+  ItemMenu& menu();
   int selected() const {
     return selected_;
   }
@@ -62,8 +63,9 @@ class InventoryPanel {
   int active_tab_ = 0;      // 0 = Equip, 1 = Use, 2 = Etc
   std::vector<InventoryRowState> rows_;
   std::vector<std::string>
-      entries_;  // labels derived from rows_ for ftxui::Menu
-  ItemMenu menu_;
+      entries_;         // labels derived from rows_ for ftxui::Menu
+  ItemMenu menu_;       // Equip tab context menu.
+  ItemMenu sell_menu_;  // Use/Etc tab context menu.
 };
 
 }  // namespace ms

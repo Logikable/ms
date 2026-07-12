@@ -19,6 +19,7 @@ enum Screen : int {
   kStarForceResult,
   kTraceRecover,
   kTraceRecoverResult,
+  kSell,
 };
 enum Panel : int {
   kEquipPanel = 0,
@@ -32,6 +33,11 @@ enum MenuItem : int {
   kMenuScroll = 2,
   kMenuStarForce = 3,
   kMenuRecover = 4,
+};
+// Entries of the Use/Etc stackable context menu.
+enum SellMenuItem : int {
+  kSellSell = 0,
+  kSellClose = 1,
 };
 struct ScrollResult {
   ScrollOutcome outcome;

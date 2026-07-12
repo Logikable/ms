@@ -86,10 +86,27 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
 InventoryPanel::InventoryPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
-      menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Close"}) {
+      menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Close"}),
+      sell_menu_({"Sell", "Close"}) {
+}
+
+ItemMenu& InventoryPanel::menu() {
+  return active_tab_ == kEquipTab ? menu_ : sell_menu_;
 }
 
 void InventoryPanel::OpenMenu() {
+  if (active_tab_ != kEquipTab) {
+    sell_menu_.Reset();
+    // Sell is unavailable on an empty tab or an unsellable selected stack.
+    ItemCategory category =
+        active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
+    const std::vector<StackableItem>& stacks = character_.stackables(category);
+    if (selected_stack_ >= static_cast<int>(stacks.size()) ||
+        stacks[selected_stack_].prototype().sell_price() <= 0) {
+      sell_menu_.Disable(kSellSell);
+    }
+    return;
+  }
   menu_.Reset();
   const EquipInstance* eq = character_.inventory().equip_instance(selected_);
   if (eq == nullptr) {
@@ -111,6 +128,24 @@ void InventoryPanel::OpenMenu() {
 
 Screen InventoryPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
                                    ScrollPanel& scroll_panel) {
+  if (active_tab_ != kEquipTab) {
+    // Use/Etc {Sell, Close} menu.
+    if (IsBack(event)) {
+      return kMain;
+    }
+    if (event == ftxui::Event::ArrowUp) {
+      sell_menu_.Up();
+      return kItemMenu;
+    }
+    if (event == ftxui::Event::ArrowDown) {
+      sell_menu_.Down();
+      return kItemMenu;
+    }
+    if (IsForward(event)) {
+      return sell_menu_.selected() == kSellSell ? kSell : kMain;
+    }
+    return kItemMenu;
+  }
   if (IsBack(event)) {
     return kMain;
   }
@@ -285,7 +320,10 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
         return true;
       }
       if (IsForward(event)) {
-        // Sell menu wiring arrives in a later slice.
+        // Open the {Sell, Close} menu on a non-empty stack.
+        if (count > 0) {
+          on_enter();
+        }
         return true;
       }
       return false;

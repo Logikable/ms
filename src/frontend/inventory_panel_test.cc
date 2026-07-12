@@ -18,10 +18,12 @@ namespace {
 
 class InventoryPanelTest : public PanelTest {
  protected:
-  ItemPrototype MakeStackable(const std::string& name, ItemCategory category) {
+  ItemPrototype MakeStackable(const std::string& name, ItemCategory category,
+                              int sell_price = 0) {
     ItemPrototype proto;
     proto.set_name(name);
     proto.set_category(category);
+    proto.set_sell_price(sell_price);
     return proto;
   }
 };
@@ -194,6 +196,58 @@ TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
   comp->OnEvent(ftxui::Event::ArrowLeft);   // Etc -> Use, cursor reset
   EXPECT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, UseTabEnterOpensMenuOnNonEmptyStack) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  bool opened = false;
+  ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(opened);
+}
+
+TEST_F(InventoryPanelTest, EmptyTabEnterDoesNotOpenMenu) {
+  InventoryPanel panel(c_, panel_focus_);
+  bool opened = false;
+  ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use (empty)
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(opened);
+}
+
+TEST_F(InventoryPanelTest, SellMenuSellReturnsSellScreen) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  panel.OpenMenu();
+  ScrollPanel sp({});
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, panel_focus_, sp), kSell);
+}
+
+TEST_F(InventoryPanelTest, SellMenuCloseReturnsMain) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  panel.OpenMenu();
+  ScrollPanel sp({});
+  panel.OnMenuEvent(ftxui::Event::ArrowDown, panel_focus_,
+                    sp);  // Sell -> Close
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, panel_focus_, sp), kMain);
+}
+
+TEST_F(InventoryPanelTest, UnsellableStackDisablesSellOption) {
+  c_.AddStackable(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Etc
+  panel.OpenMenu();
+  // Sell is disabled, so the cursor lands on Close.
+  EXPECT_EQ(panel.menu().selected(), kSellClose);
 }
 
 }  // namespace
