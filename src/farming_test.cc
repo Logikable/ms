@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "src/combat_sim.h"
 #include "src/equip_instance.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
@@ -56,54 +57,64 @@ void EquipSword(GameState& state) {
   state.character.Equip(0);
 }
 
-TEST(AdvanceFarmingTest, GrantsExpWhileFarming) {
+// Farms for `seconds` of game time. A single call can advance at most one
+// swing, so rewards only accrue over a loop -- as they do under the TUI's
+// ticker.
+void Farm(GameState& state, double seconds) {
+  CombatSim sim;
+  for (double elapsed = 0.0; elapsed < seconds; elapsed += 1.0) {
+    AdvanceCombat(state, sim, 1.0);
+  }
+}
+
+TEST(AdvanceCombatTest, GrantsExpWhileFarming) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", OneSnailMap()}});
   state.current_map = "field";
   EquipSword(state);
 
-  AdvanceFarming(state, 100000.0);  // many kills -> several level-ups
+  Farm(state, 20000.0);  // many kills -> several level-ups
   EXPECT_GT(state.character.proto().level(), 2);
 }
 
-TEST(AdvanceFarmingTest, AccruesDropsWhileFarming) {
+TEST(AdvanceCombatTest, AccruesDropsWhileFarming) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
   state.current_map = "field";
   EquipSword(state);
 
-  AdvanceFarming(state, 100000.0);
+  Farm(state, 20000.0);
   ASSERT_FALSE(state.character.stackables(ITEM_CATEGORY_ETC).empty());
   EXPECT_EQ(state.character.stackables(ITEM_CATEGORY_ETC)[0].name(),
             "Green Snail Shell");
 }
 
-TEST(AdvanceFarmingTest, AccruesMesoWhileFarming) {
+TEST(AdvanceCombatTest, AccruesMesoWhileFarming) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", OneSnailMap()}});
   state.current_map = "field";
   EquipSword(state);
 
-  AdvanceFarming(state, 100000.0);
+  Farm(state, 20000.0);
   EXPECT_GT(state.character.meso(), 0);
 }
 
-TEST(AdvanceFarmingTest, SkipsFarmingWithoutWeapon) {
+TEST(AdvanceCombatTest, SkipsFarmingWithoutWeapon) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", OneSnailMap()}});
   state.current_map = "field";
 
-  AdvanceFarming(state, 100000.0);
+  Farm(state, 20000.0);
   EXPECT_EQ(state.character.proto().level(), 1);
   EXPECT_EQ(state.character.proto().exp(), 0);
 }
 
-TEST(AdvanceFarmingTest, NoOpWithoutCurrentMap) {
+TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", OneSnailMap()}});
   EquipSword(state);  // current_map left empty
 
-  AdvanceFarming(state, 100000.0);
+  Farm(state, 20000.0);
   EXPECT_EQ(state.character.proto().level(), 1);
   EXPECT_EQ(state.character.proto().exp(), 0);
 }

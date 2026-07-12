@@ -55,6 +55,11 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 // SwingIntervalSeconds. A weapon-class property, not per-item.
 int BaseAttackDelayMs(EquipType equip_type);
 
+// The next three functions are the closed-form kill-rate model: they compute
+// kills from elapsed time without stepping the fight. Live combat does not use
+// them -- CombatSim steps that in real time -- but offline catch-up will, since
+// it has to settle hours of absence in one call. Kept and tested for that.
+
 // Wall-clock seconds between kills at one spawn slot: discrete hits
 // (ceil(max_hp / damage_per_hit), overkill wasted) give a kill time, rounded up
 // to whole respawn ticks, then stretched by the game-speed factor. +inf if the

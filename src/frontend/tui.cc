@@ -96,7 +96,7 @@ class ExpBarNode : public ftxui::Node {
 
 Tui::Tui(GameState& state)
     : state_(state),
-      last_farming_update_(std::chrono::steady_clock::now()),
+      last_combat_update_(std::chrono::steady_clock::now()),
       char_panel_(state.character, panel_focus_),
       equip_panel_(state.character, panel_focus_),
       inventory_panel_(state.character, panel_focus_),
@@ -132,13 +132,13 @@ void Tui::Run() {
 
   ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
 
-  // Drive the idle game: wake periodically, advance farming on the loop thread
+  // Drive the idle game: wake periodically, advance combat on the loop thread
   // (so state mutation stays single-threaded), and redraw.
   std::atomic<bool> running = true;
   std::thread ticker([this, &screen, &running]() {
     while (running) {
       std::this_thread::sleep_for(std::chrono::milliseconds(300));
-      screen.Post([this]() { AdvanceFarmingTick(); });
+      screen.Post([this]() { AdvanceCombatTick(); });
       screen.PostEvent(ftxui::Event::Custom);
     }
   });
@@ -275,11 +275,11 @@ ftxui::Element Tui::RenderExpBar() {
   return std::make_shared<ExpBarNode>(frac, std::move(label));
 }
 
-void Tui::AdvanceFarmingTick() {
+void Tui::AdvanceCombatTick() {
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-  std::chrono::duration<double> elapsed = now - last_farming_update_;
-  last_farming_update_ = now;
-  AdvanceFarming(state_, elapsed.count());
+  std::chrono::duration<double> elapsed = now - last_combat_update_;
+  last_combat_update_ = now;
+  AdvanceCombat(state_, combat_sim_, elapsed.count());
 }
 
 bool Tui::OnEvent(ftxui::Event event) {

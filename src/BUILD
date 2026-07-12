@@ -210,12 +210,9 @@ cc_library(
     deps = [
         ":character",
         ":combat",
-        ":equip_instance",
+        ":combat_sim",
         ":game_state",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
-        "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
     ],
 )
@@ -224,6 +221,7 @@ cc_test(
     name = "farming_test",
     srcs = ["farming_test.cc"],
     deps = [
+        ":combat_sim",
         ":equip_instance",
         ":farming",
         ":game_state",

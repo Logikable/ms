@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include "ftxui/component/component.hpp"
+#include "src/combat_sim.h"
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/equipped_panel.h"
@@ -32,12 +33,14 @@ class Tui {
   ftxui::Element RenderFrame();
   ftxui::Element RenderMain();
   ftxui::Element RenderExpBar();
-  // Advances farming by the wall-clock time since the previous call.
-  void AdvanceFarmingTick();
+  // Advances combat by the wall-clock time since the previous call.
+  void AdvanceCombatTick();
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
-  std::chrono::steady_clock::time_point last_farming_update_;
+  // The live fight: stepped by the ticker, read by the combat panel.
+  CombatSim combat_sim_;
+  std::chrono::steady_clock::time_point last_combat_update_;
   // Shared with equip_panel_, inventory_panel_, and Container::Tab; mutated by
   // controller_ (Tab) and panels (Equip/Unequip actions).
   int panel_focus_ = kEquipPanel;

@@ -8,68 +8,37 @@
 
 #include "src/character.h"
 #include "src/combat.h"
-#include "src/equip_instance.h"
+#include "src/combat_sim.h"
 #include "src/game_state.h"
-#include "src/protos/character.pb.h"
-#include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
-#include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 
 namespace ms {
 
-void AdvanceFarming(GameState& state, double elapsed_seconds) {
-  std::map<std::string, MapData>::const_iterator map_it =
-      state.maps.find(state.current_map);
-  if (map_it == state.maps.end()) {
-    return;  // No map selected, or it isn't loaded.
-  }
-  const MapData& map = map_it->second;
+void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds) {
+  CombatParams params = ComputeCombatParams(state);
+  sim.Advance(params, elapsed_seconds);
+  const std::vector<int64_t>& kills = sim.kills_this_step();
+
   CharacterInstance& character = state.character;
-
-  // Farming needs a weapon; skip when none is equipped.
-  const std::map<EquipSlot, EquipInstance>& equipped = character.equipped();
-  std::map<EquipSlot, EquipInstance>::const_iterator weapon_it =
-      equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
-  if (weapon_it == equipped.end()) {
-    return;
-  }
-  const EquipPrototype& weapon = weapon_it->second.prototype();
-
-  // Resolve the map's mob names to loaded protos, keeping the names as keys.
-  std::vector<const Mob*> map_mobs;
-  std::vector<std::string> mob_keys;
-  for (const std::string& mob_name : map.mobs()) {
-    std::map<std::string, Mob>::const_iterator mob_it =
-        state.mobs.find(mob_name);
-    if (mob_it != state.mobs.end()) {
-      map_mobs.push_back(&mob_it->second);
-      mob_keys.push_back(mob_name);
-    }
-  }
-
-  const Character& proto = character.proto();
-  OffenseStats offense = OffenseStatsFor(proto.job(), proto.allocated_stats(),
-                                         character.equip_stats());
-  std::vector<double> periods =
-      MapKillPeriods(offense, weapon, map_mobs, map.spawn_count());
-
-  int player_level = proto.level();
+  int player_level = character.proto().level();
   int64_t exp_gained = 0;
-  for (std::size_t i = 0; i < map_mobs.size(); ++i) {
-    int64_t kills = FlushKills(periods[i], elapsed_seconds,
-                               &state.kill_progress[mob_keys[i]]);
-    exp_gained += kills * map_mobs[i]->exp();
+  for (std::size_t i = 0; i < params.types.size(); ++i) {
+    if (kills[i] <= 0) {
+      continue;
+    }
+    const Mob& mob = *params.types[i].mob;
+    exp_gained += kills[i] * mob.exp();
     // Meso pools across every mob type into one balance, so all kills bank into
     // the shared meso_progress accumulator.
-    int64_t meso = FlushDrops(ExpectedMesoPerKill(*map_mobs[i], player_level),
-                              kills, &state.meso_progress);
+    int64_t meso = FlushDrops(ExpectedMesoPerKill(mob, player_level), kills[i],
+                              &state.meso_progress);
     if (meso > 0) {
       character.AddMeso(meso);
     }
-    for (const MobDrop& drop : map_mobs[i]->drops()) {
-      int64_t dropped =
-          FlushDrops(drop.per_kill(), kills, &state.drop_progress[drop.item()]);
+    for (const MobDrop& drop : mob.drops()) {
+      int64_t dropped = FlushDrops(drop.per_kill(), kills[i],
+                                   &state.drop_progress[drop.item()]);
       if (dropped <= 0) {
         continue;
       }

@@ -372,6 +372,7 @@ cc_library(
         ":trace_recover_panel",
         ":tui_controller",
         "//src:character",
+        "//src:combat_sim",
         "//src:equip_instance",
         "//src:exp_table",
         "//src:farming",
