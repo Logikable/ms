@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "src/character.h"
-#include "src/combat.h"
+#include "src/combat/loot.h"
 #include "src/combat_sim.h"
 #include "src/game_state.h"
 #include "src/protos/item.pb.h"

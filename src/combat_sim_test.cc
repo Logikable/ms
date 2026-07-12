@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "src/combat.h"
+#include "src/combat/constants.h"
 #include "src/equip_instance.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"

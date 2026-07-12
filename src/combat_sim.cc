@@ -8,7 +8,8 @@
 #include <vector>
 
 #include "src/character.h"
-#include "src/combat.h"
+#include "src/combat/constants.h"
+#include "src/combat/damage.h"
 #include "src/equip_instance.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
