@@ -59,10 +59,12 @@ class CombatSim {
   bool active_ = false;
   bool initialized_ = false;
   bool respawning_ = false;
-  int type_count_ = 0;         // roster type indices are valid while this holds
-  std::vector<int> roster_;    // remaining mobs this cycle, as type indices
-  double target_hp_ = 0.0;     // current target's remaining HP (absolute)
-  double attack_phase_ = 0.0;  // seconds into the current swing
+  // Map the roster was filled from. Its type indices only mean anything for
+  // that map, so a change here invalidates them.
+  std::string map_;
+  std::vector<int> roster_;       // remaining mobs this cycle, as type indices
+  double target_hp_ = 0.0;        // current target's remaining HP (absolute)
+  double attack_phase_ = 0.0;     // seconds into the current swing
   double delay_remaining_ = 0.0;  // inter-kill pause countdown
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
 

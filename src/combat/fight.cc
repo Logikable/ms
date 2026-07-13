@@ -44,9 +44,11 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // animation resumes gracefully rather than jumping.
   double dt = std::min(elapsed_seconds, swing);
 
-  // (Re)initialize on first activation or when the encounter shape changes.
-  if (!initialized_ || type_count_ != static_cast<int>(params.types.size())) {
-    type_count_ = static_cast<int>(params.types.size());
+  // (Re)initialize on first activation, or on a move to a different map: the
+  // roster holds indices into that map's types, and the target's HP is that
+  // map's mob's. Carried over, both would describe the wrong monsters.
+  if (!initialized_ || map_ != params.map) {
+    map_ = params.map;
     respawn_phase_ = 0.0;
     Refill(params);
     initialized_ = true;

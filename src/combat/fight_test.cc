@@ -28,9 +28,11 @@ CombatType MakeType(const Mob* mob, double damage, int simultaneous) {
 }
 
 CombatParams MakeParams(double swing, double respawn,
-                        std::vector<CombatType> types) {
+                        std::vector<CombatType> types,
+                        const std::string& map = "field") {
   CombatParams params;
   params.active = true;
+  params.map = map;
   params.swing_seconds = swing;
   params.respawn_seconds = respawn;
   params.types = std::move(types);
@@ -118,6 +120,35 @@ TEST(CombatSimTest, RefillsAtTheRespawnBeat) {
   sim.Advance(params, 1.0);  // respawn_phase = 5 -> refill, then one hit
   EXPECT_FALSE(sim.respawning());
   EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
+}
+
+TEST(CombatSimTest, MovingToAnotherMapRestartsTheFightThere) {
+  Mob snail = MakeMob("Snail", 30);
+  Mob slug = MakeMob("Slug", 30);
+  CombatSim sim;
+  // Both maps hold both mobs, but in opposite order, so a roster carried across
+  // the move would name -- and credit the kill to -- the wrong monster.
+  CombatParams here = MakeParams(
+      1.0, 100.0, {MakeType(&snail, 10.0, 1), MakeType(&slug, 10.0, 1)},
+      "field");
+  CombatParams there = MakeParams(
+      1.0, 100.0, {MakeType(&slug, 10.0, 1), MakeType(&snail, 10.0, 1)},
+      "other_field");
+
+  sim.Advance(here, 1.0);  // engage the Snail: hp 20
+  EXPECT_EQ(sim.target_name(), "Snail");
+  EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
+
+  // The move re-engages from the top of the new map: a fresh Slug, whose 30 HP
+  // takes this step's hit rather than carrying the Snail's damage over.
+  sim.Advance(there, 1.0);
+  EXPECT_EQ(sim.target_name(), "Slug");
+  EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
+
+  sim.Advance(there, 1.0);
+  sim.Advance(there, 1.0);                 // hp 0 -> the Slug dies
+  EXPECT_EQ(sim.kills_this_step()[0], 1);  // the new map's Slug, not its Snail
+  EXPECT_EQ(sim.kills_this_step()[1], 0);
 }
 
 TEST(CombatSimTest, ClampsLargeGapsToOneSwing) {

@@ -10,6 +10,7 @@
 #ifndef MS_SRC_COMBAT_ENCOUNTER_H_
 #define MS_SRC_COMBAT_ENCOUNTER_H_
 
+#include <string>
 #include <vector>
 
 #include "src/game_state.h"
@@ -28,7 +29,10 @@ struct CombatType {
 
 // A snapshot of the current encounter's combat parameters.
 struct CombatParams {
-  bool active = false;            // false when not farming (no map/weapon/mobs)
+  bool active = false;  // false when not farming (no map/weapon/mobs)
+  // The map these params describe. The fight watches this to know when it is
+  // playing out a different encounter than the one it holds a roster for.
+  std::string map;
   double swing_seconds = 0.0;     // time between auto-attacks (game-scaled)
   double respawn_seconds = 0.0;   // time between full-roster respawn beats
   std::vector<CombatType> types;  // in map order
