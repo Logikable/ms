@@ -93,6 +93,35 @@ cc_test(
 )
 
 cc_library(
+    name = "map_select_panel",
+    srcs = ["map_select_panel.cc"],
+    hdrs = ["map_select_panel.h"],
+    deps = [
+        ":panel_util",
+        "//src:game_state",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "map_select_panel_test",
+    srcs = ["map_select_panel_test.cc"],
+    deps = [
+        ":map_select_panel",
+        "//src:game_state",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "equipped_panel",
     srcs = ["equipped_panel.cc"],
     hdrs = ["equipped_panel.h"],
