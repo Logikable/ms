@@ -1,11 +1,14 @@
 #include "src/frontend/tui_controller.h"
 
+#include <string>
+
 #include "ftxui/component/event.hpp"
 #include "src/character.h"
 #include "src/equip_instance.h"
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
+#include "src/frontend/map_select_panel.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/star_force_panel.h"
@@ -23,7 +26,8 @@ TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
                              ApAllocPanel& ap_alloc_panel,
                              StarForcePanel& star_force_panel,
                              TraceRecoverPanel& trace_recover_panel,
-                             SellPanel& sell_panel, int& panel_focus)
+                             SellPanel& sell_panel,
+                             MapSelectPanel& map_select_panel, int& panel_focus)
     : state_(state),
       equip_panel_(equip_panel),
       inventory_panel_(inventory_panel),
@@ -32,6 +36,7 @@ TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
       star_force_panel_(star_force_panel),
       trace_recover_panel_(trace_recover_panel),
       sell_panel_(sell_panel),
+      map_select_panel_(map_select_panel),
       panel_focus_(panel_focus) {
 }
 
@@ -48,6 +53,11 @@ void TuiController::OpenInventoryMenu() {
 void TuiController::OpenApAlloc() {
   screen_ = kApAlloc;
   ap_alloc_panel_.Reset();
+}
+
+void TuiController::OpenMapSelect() {
+  screen_ = kMapSelect;
+  map_select_panel_.Reset();
 }
 
 const EquipTabItem* TuiController::inspect_item() const {
@@ -100,6 +110,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
   }
   if (screen_ == kSell) {
     return OnSellEvent(event);
+  }
+  if (screen_ == kMapSelect) {
+    return OnMapSelectEvent(event);
   }
   if (event == ftxui::Event::Tab) {
     panel_focus_ = (panel_focus_ + 1) % kNumPanels;
@@ -298,6 +311,33 @@ bool TuiController::OnTraceRecoverResultEvent(ftxui::Event event) {
   if (IsBack(event) || IsForward(event)) {
     screen_ = kMain;
   }
+  return true;
+}
+
+bool TuiController::OnMapSelectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    map_select_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    map_select_panel_.MoveCursor(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    // Travel is free, so the highlighted map is always a legal destination.
+    // The fight restarts on its own once it sees the new map.
+    std::string map = map_select_panel_.selected_map();
+    if (!map.empty()) {
+      state_.current_map = map;
+    }
+    screen_ = kMain;
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  // Swallow everything else: this is a modal screen.
   return true;
 }
 

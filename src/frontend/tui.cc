@@ -21,6 +21,7 @@
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/item_menu.h"
+#include "src/frontend/map_select_panel.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/tui_controller.h"
@@ -52,15 +53,16 @@ Tui::Tui(GameState& state)
     : state_(state),
       last_combat_update_(std::chrono::steady_clock::now()),
       char_panel_(state.character, panel_focus_),
-      combat_panel_(state, combat_sim_),
+      combat_panel_(state, combat_sim_, panel_focus_),
       equip_panel_(state.character, panel_focus_),
       inventory_panel_(state.character, panel_focus_),
       scroll_panel_(state.scrolls),
       ap_alloc_panel_(state.character),
       trace_recover_panel_(state.character),
+      map_select_panel_(state),
       controller_(state, equip_panel_, inventory_panel_, scroll_panel_,
                   ap_alloc_panel_, star_force_panel_, trace_recover_panel_,
-                  sell_panel_, panel_focus_) {
+                  sell_panel_, map_select_panel_, panel_focus_) {
 }
 
 void Tui::Run() {
@@ -70,9 +72,14 @@ void Tui::Run() {
       [this]() { controller_.OpenInventoryMenu(); });
   char_component_ =
       char_panel_.MakeComponent([this]() { controller_.OpenApAlloc(); });
+  combat_component_ =
+      combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
 
-  ftxui::Component panels = ftxui::Container::Tab(
-      {equip_component_, inventory_component_, char_component_}, &panel_focus_);
+  // Order must match the Panel enum: panel_focus_ indexes this list.
+  ftxui::Component panels =
+      ftxui::Container::Tab({char_component_, equip_component_,
+                             inventory_component_, combat_component_},
+                            &panel_focus_);
 
   ftxui::Component base = ftxui::Renderer(
       panels, [this]() -> ftxui::Element { return RenderFrame(); });
@@ -113,6 +120,9 @@ ftxui::Element Tui::RenderFrame() {
         RenderMain(),
         ftxui::center(sell_panel_.Render() | ftxui::clear_under),
     });
+  }
+  if (controller_.screen() == kMapSelect) {
+    return ftxui::center(map_select_panel_.Render());
   }
   if (controller_.screen() == kStarForce) {
     star_force_panel_.SetItem(controller_.star_force_item());
@@ -176,7 +186,7 @@ ftxui::Element Tui::RenderMain() {
       ftxui::filler(),
       // Beside a filler so the panel keeps its own width; a vbox child would
       // otherwise be stretched to the full terminal.
-      ftxui::hbox({combat_panel_.Render(), ftxui::filler()}),
+      ftxui::hbox({combat_component_->Render(), ftxui::filler()}),
       RenderExpBar(),
   });
   if (controller_.screen() != kItemMenu) {

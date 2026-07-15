@@ -10,6 +10,7 @@
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/equip_instance.h"
+#include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
@@ -48,8 +49,9 @@ void EquipSword(GameState& state) {
 
 // Lays the panel out the way the Tui does -- beside a filler, so it keeps its
 // own width instead of stretching to the screen.
-ftxui::Screen RenderScreen(const GameState& state, const CombatSim& sim) {
-  CombatPanel panel(state, sim);
+ftxui::Screen RenderScreen(const GameState& state, const CombatSim& sim,
+                           int panel_focus = kEquipPanel) {
+  CombatPanel panel(state, sim, panel_focus);
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
                                                ftxui::Dimension::Fixed(6));
@@ -57,8 +59,9 @@ ftxui::Screen RenderScreen(const GameState& state, const CombatSim& sim) {
   return screen;
 }
 
-std::string RenderPanel(const GameState& state, const CombatSim& sim) {
-  return RenderScreen(state, sim).ToString();
+std::string RenderPanel(const GameState& state, const CombatSim& sim,
+                        int panel_focus = kEquipPanel) {
+  return RenderScreen(state, sim, panel_focus).ToString();
 }
 
 TEST(CombatPanelTest, RendersExactlyKTotalWidthColumns) {
@@ -83,6 +86,21 @@ TEST(CombatPanelTest, NamesTheMapBeingFarmed) {
   CombatSim sim;
 
   EXPECT_NE(RenderPanel(state, sim).find("Snail Field"), std::string::npos);
+}
+
+TEST(CombatPanelTest, ShowsTheMapCursorOnlyWhenFocused) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailField()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatSim sim;
+
+  std::string focused = RenderPanel(state, sim, kCombatPanel);
+  EXPECT_NE(focused.find("> Snail Field"), std::string::npos);
+
+  std::string unfocused = RenderPanel(state, sim, kEquipPanel);
+  EXPECT_EQ(unfocused.find("> Snail Field"), std::string::npos);
+  EXPECT_NE(unfocused.find("  Snail Field"), std::string::npos);
 }
 
 TEST(CombatPanelTest, ReportsNotFightingWithoutAWeapon) {

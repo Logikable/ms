@@ -17,8 +17,9 @@
 namespace ms {
 namespace {
 
-// Column widths of the map list.
-constexpr int kMapNameWidth = 24;
+// Column widths of the map list. Names run long ("Right Around Lith Harbor"),
+// so leave room for one to sit beside the level rather than against it.
+constexpr int kMapNameWidth = 28;
 constexpr int kLevelWidth = 4;
 constexpr int kSpawnWidth = 6;
 

@@ -14,6 +14,7 @@
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
+#include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
 #include "src/frontend/star_force_panel.h"
@@ -64,10 +65,11 @@ class TuiControllerTest : public testing::Test {
     trace_recover_panel_ =
         std::make_unique<TraceRecoverPanel>(state_->character);
     sell_panel_ = std::make_unique<SellPanel>();
+    map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
-        *sell_panel_, panel_focus_);
+        *sell_panel_, *map_select_panel_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -86,6 +88,36 @@ class TuiControllerTest : public testing::Test {
     panel_focus_ = kInventoryPanel;
     inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
     inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  }
+
+  // Loads two maps and rebuilds the panel and controller. MapSelectPanel fixes
+  // its display order at construction, so the maps must exist before it does.
+  // Field, holding the level 1 snail, sorts ahead of Cave, holding the level 8
+  // mushroom.
+  void LoadTwoMaps() {
+    Mob snail;
+    snail.set_name("Snail");
+    snail.set_level(1);
+    Mob mushroom;
+    mushroom.set_name("Horny Mushroom");
+    mushroom.set_level(8);
+    state_->mobs["snail"] = snail;
+    state_->mobs["mushroom"] = mushroom;
+
+    MapData field;
+    field.set_name("Field");
+    field.add_mobs("snail");
+    MapData cave;
+    cave.set_name("Cave");
+    cave.add_mobs("mushroom");
+    state_->maps["field"] = field;
+    state_->maps["cave"] = cave;
+
+    map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
+    controller_ = std::make_unique<TuiController>(
+        *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
+        *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
+        *sell_panel_, *map_select_panel_, panel_focus_);
   }
 
   // Renders equip_panel_ to sync its slots_ vector with character.equipped().
@@ -118,7 +150,7 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
-        *sell_panel_, panel_focus_);
+        *sell_panel_, *map_select_panel_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -131,6 +163,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<StarForcePanel> star_force_panel_;
   std::unique_ptr<TraceRecoverPanel> trace_recover_panel_;
   std::unique_ptr<SellPanel> sell_panel_;
+  std::unique_ptr<MapSelectPanel> map_select_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
   ftxui::Component inventory_component_;
@@ -138,13 +171,23 @@ class TuiControllerTest : public testing::Test {
 
 // --- Tab ---
 
+// Focus starts on the equipped panel and Tab runs clockwise from there:
+// equipped -> inventory -> combat -> character -> back to equipped.
+
 TEST_F(TuiControllerTest, TabSwitchesToInventoryPanel) {
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kInventoryPanel);
 }
 
+TEST_F(TuiControllerTest, TabSwitchesToCombatPanel) {
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(panel_focus_, kCombatPanel);
+}
+
 TEST_F(TuiControllerTest, TabSwitchesToCharPanel) {
   state_->character.LevelUp();  // grants AP
+  controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kCharPanel);
@@ -155,6 +198,7 @@ TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
@@ -162,6 +206,7 @@ TEST_F(TuiControllerTest, TabSkipsCharPanelWhenNoAp) {
   state_->character.AllocateAllStat(STAT_FIELD_STR);  // drain AP
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::Tab);  // combat -> equipped, past char
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
@@ -687,6 +732,52 @@ TEST_F(TuiControllerTest, ReturnActionEquipsFromInventoryPanel) {
 
   EXPECT_FALSE(state_->character.equipped().empty());
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// --- Map select ---
+
+TEST_F(TuiControllerTest, OpenMapSelectStartsOnTheMapBeingFarmed) {
+  LoadTwoMaps();
+  state_->current_map = "cave";
+
+  controller_->OpenMapSelect();
+
+  EXPECT_EQ(controller_->screen(), kMapSelect);
+  EXPECT_EQ(map_select_panel_->selected_map(), "cave");
+}
+
+TEST_F(TuiControllerTest, EnterInMapSelectTravelsToTheHighlightedMap) {
+  LoadTwoMaps();
+  state_->current_map = "cave";
+
+  controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::ArrowUp);  // Cave -> Field
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(state_->current_map, "field");
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, EscapeInMapSelectLeavesTheMapAlone) {
+  LoadTwoMaps();
+  state_->current_map = "cave";
+
+  controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::ArrowUp);  // Cave -> Field
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(state_->current_map, "cave");
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, MapSelectSwallowsKeysThatWouldActOnTheMainScreen) {
+  LoadTwoMaps();
+
+  controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::Tab);  // would cycle panel focus in kMain
+
+  EXPECT_EQ(controller_->screen(), kMapSelect);
+  EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
 }  // namespace

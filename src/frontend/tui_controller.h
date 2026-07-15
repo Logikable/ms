@@ -14,6 +14,7 @@
 #include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
+#include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
 #include "src/frontend/star_force_panel.h"
@@ -33,12 +34,14 @@ class TuiController {
                 InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
                 ApAllocPanel& ap_alloc_panel, StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
-                int& panel_focus);
+                MapSelectPanel& map_select_panel, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
   void OpenInventoryMenu();
   void OpenApAlloc();
+  // Open the map selection screen, on the map being farmed.
+  void OpenMapSelect();
 
   // Returns true if the event was consumed.
   bool OnEvent(ftxui::Event event);
@@ -78,6 +81,7 @@ class TuiController {
   bool OnTraceRecoverEvent(ftxui::Event event);
   bool OnTraceRecoverResultEvent(ftxui::Event event);
   bool OnSellEvent(ftxui::Event event);
+  bool OnMapSelectEvent(ftxui::Event event);
 
   GameState& state_;
   EquippedPanel& equip_panel_;
@@ -87,6 +91,7 @@ class TuiController {
   StarForcePanel& star_force_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
+  MapSelectPanel& map_select_panel_;
   int& panel_focus_;
   Screen screen_ = kMain;
   EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;

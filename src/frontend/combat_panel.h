@@ -1,5 +1,7 @@
 /* CombatPanel shows the fight the character is currently in: which map, how
  * close the next swing is, and how much life the mob being hit has left.
+ * Focusing it and pressing Enter opens the map selection screen, which is how
+ * the player travels.
  *
  * Read-only, like the fight it watches. It renders whatever CombatSim last
  * stepped to, so the bars move only because combat moved -- there is no
@@ -9,8 +11,10 @@
 #ifndef MS_SRC_FRONTEND_COMBAT_PANEL_H_
 #define MS_SRC_FRONTEND_COMBAT_PANEL_H_
 
+#include <functional>
 #include <string>
 
+#include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/fight.h"
 #include "src/frontend/character_panel.h"
@@ -23,8 +27,10 @@ class CombatPanel {
   // Lines up with the character panel it sits under.
   static constexpr int kTotalWidth = CharacterPanel::kTotalWidth;
 
-  CombatPanel(const GameState& state, const CombatSim& sim);
+  CombatPanel(const GameState& state, const CombatSim& sim, int& panel_focus);
   ftxui::Element Render() const;
+  // on_travel fires when the player presses Enter with the panel focused.
+  ftxui::Component MakeComponent(std::function<void()> on_travel);
 
  private:
   // Width inside the window's border. Rows are padded to it, which is what
@@ -37,6 +43,7 @@ class CombatPanel {
 
   const GameState& state_;
   const CombatSim& sim_;
+  int& panel_focus_;
 };
 
 }  // namespace ms

@@ -20,11 +20,17 @@ enum Screen : int {
   kTraceRecover,
   kTraceRecoverResult,
   kSell,
+  kMapSelect,
 };
+// Focusable panels of the main screen, in Tab order: clockwise from the
+// top-left corner of the layout (Character, Equipped, Inventory, Combat). The
+// values index Container::Tab's component list, so the two must stay in the
+// same order.
 enum Panel : int {
-  kEquipPanel = 0,
-  kInventoryPanel = 1,
-  kCharPanel = 2,
+  kCharPanel = 0,
+  kEquipPanel = 1,
+  kInventoryPanel = 2,
+  kCombatPanel = 3,
   kNumPanels
 };
 enum MenuItem : int {
