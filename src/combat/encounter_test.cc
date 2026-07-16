@@ -25,9 +25,12 @@ Mob MakeMob(const std::string& name, int max_hp) {
 MapData TwoSnailMap() {
   MapData map;
   map.set_name("Snail Field");
-  map.add_mobs("snail");
-  map.add_mobs("blue_snail");
-  map.set_spawn_count(6);
+  MapData::Spawn* snail = map.add_spawns();
+  snail->set_mob("snail");
+  snail->set_count(2);
+  MapData::Spawn* blue = map.add_spawns();
+  blue->set_mob("blue_snail");
+  blue->set_count(4);
   return map;
 }
 
@@ -69,7 +72,7 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
   ASSERT_NE(params.types[0].mob, nullptr);
   EXPECT_EQ(params.types[0].mob->name(), "Snail");
   EXPECT_EQ(params.types[0].mob->max_hp(), 15);
-  EXPECT_EQ(params.types[0].simultaneous, 3);  // 6 slots / 2 types
+  EXPECT_EQ(params.types[0].simultaneous, 2);  // the snail's own spawn count
   EXPECT_GT(params.types[0].damage_per_hit, 0.0);
   EXPECT_GT(params.swing_seconds, 0.0);
   EXPECT_DOUBLE_EQ(params.respawn_seconds,

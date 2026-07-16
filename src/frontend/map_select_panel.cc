@@ -10,7 +10,6 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/panel_util.h"
 #include "src/game_state.h"
-#include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 
@@ -21,18 +20,17 @@ namespace {
 // so leave room for one to sit beside the level rather than against it.
 constexpr int kMapNameWidth = 28;
 constexpr int kLevelWidth = 4;
-constexpr int kSpawnWidth = 6;
 
 // Column widths of the mob table.
 constexpr int kMobNameWidth = 18;
-constexpr int kHpWidth = 6;
-constexpr int kExpWidth = 5;
+constexpr int kCountWidth = 6;
 
-// The map's mobs, in map order. Names no mob file defines are skipped.
+// The map's mobs, in spawn order. Names no mob file defines are skipped.
 std::vector<const Mob*> MapMobs(const GameState& state, const MapData& map) {
   std::vector<const Mob*> mobs;
-  for (const std::string& name : map.mobs()) {
-    std::map<std::string, Mob>::const_iterator it = state.mobs.find(name);
+  for (const MapData::Spawn& spawn : map.spawns()) {
+    std::map<std::string, Mob>::const_iterator it =
+        state.mobs.find(spawn.mob());
     if (it != state.mobs.end()) {
       mobs.push_back(&it->second);
     }
@@ -63,23 +61,6 @@ int LowestLevel(const std::vector<const Mob*>& mobs) {
     }
   }
   return lowest;
-}
-
-// The mob's drops, by display name. Items no data file defines are skipped.
-std::string DropNames(const GameState& state, const Mob& mob) {
-  std::string names;
-  for (const MobDrop& drop : mob.drops()) {
-    std::map<std::string, ItemPrototype>::const_iterator it =
-        state.items.find(drop.item());
-    if (it == state.items.end()) {
-      continue;
-    }
-    if (!names.empty()) {
-      names += ", ";
-    }
-    names += it->second.name();
-  }
-  return names.empty() ? "-" : names;
 }
 
 }  // namespace
@@ -126,8 +107,7 @@ std::string MapSelectPanel::selected_map() const {
 ftxui::Element MapSelectPanel::RenderMapList() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text("  " + PadRight("Name", kMapNameWidth) +
-                             PadRight("Lv", kLevelWidth) +
-                             PadRight("Mobs", kSpawnWidth)));
+                             PadRight("Lv", kLevelWidth)));
   rows.push_back(ThemedSeparator());
   if (order_.empty()) {
     rows.push_back(ftxui::text("(none)"));
@@ -138,7 +118,6 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
     row += PadRight(map.name(), kMapNameWidth);
     row += PadRight(std::to_string(AverageLevel(MapMobs(state_, map))),
                     kLevelWidth);
-    row += PadRight(std::to_string(map.spawn_count()), kSpawnWidth);
     rows.push_back(ftxui::text(row));
   }
   return ThemedWindow(" Maps ", ftxui::vbox(rows));
@@ -146,25 +125,30 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
 
 ftxui::Element MapSelectPanel::RenderMobTable() const {
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(
-      " " + PadRight("Name", kMobNameWidth) + PadRight("Lv", kLevelWidth) +
-      PadRight("HP", kHpWidth) + PadRight("EXP", kExpWidth) + "Drops"));
+  rows.push_back(ftxui::text(" " + PadRight("Name", kMobNameWidth) +
+                             PadRight("Lv", kLevelWidth) +
+                             PadRight("Count", kCountWidth)));
   rows.push_back(ThemedSeparator());
 
-  std::vector<const Mob*> mobs;
+  int shown = 0;
   if (!order_.empty()) {
-    mobs = MapMobs(state_, state_.maps.at(order_[selected_]));
+    const MapData& map = state_.maps.at(order_[selected_]);
+    for (const MapData::Spawn& spawn : map.spawns()) {
+      std::map<std::string, Mob>::const_iterator it =
+          state_.mobs.find(spawn.mob());
+      if (it == state_.mobs.end()) {
+        continue;
+      }
+      const Mob& mob = it->second;
+      std::string row = " " + PadRight(mob.name(), kMobNameWidth);
+      row += PadRight(std::to_string(mob.level()), kLevelWidth);
+      row += PadRight(std::to_string(spawn.count()), kCountWidth);
+      rows.push_back(ftxui::text(row));
+      ++shown;
+    }
   }
-  if (mobs.empty()) {
+  if (shown == 0) {
     rows.push_back(ftxui::text(" (none)"));
-  }
-  for (const Mob* mob : mobs) {
-    std::string row = " " + PadRight(mob->name(), kMobNameWidth);
-    row += PadRight(std::to_string(mob->level()), kLevelWidth);
-    row += PadRight(std::to_string(mob->max_hp()), kHpWidth);
-    row += PadRight(std::to_string(mob->exp()), kExpWidth);
-    row += DropNames(state_, *mob);
-    rows.push_back(ftxui::text(row));
   }
   return ThemedWindow(" Mobs ", ftxui::vbox(rows));
 }

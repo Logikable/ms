@@ -31,8 +31,9 @@ Mob SnailMob() {
 MapData SnailField() {
   MapData map;
   map.set_name("Snail Field");
-  map.add_mobs("snail");
-  map.set_spawn_count(1);
+  MapData::Spawn* snail = map.add_spawns();
+  snail->set_mob("snail");
+  snail->set_count(1);
   return map;
 }
 

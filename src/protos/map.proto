@@ -2,13 +2,16 @@ syntax = "proto3";
 
 package ms;
 
-// A hunting area. Loaded from data/maps textprotos at startup. mobs reference
-// Mob data files by filename stem.
+// A hunting area. Loaded from data/maps textprotos at startup.
 message MapData {
   string name = 1;
-  repeated string mobs = 2;
-  // Number of spawn points, ~= the map's max concurrent mobs. Combined with the
-  // fixed 7.56s global respawn tick this sets the full-clear cap: a player who
-  // clears instantly tops out at spawn_count / 7.56 kills per second.
-  int32 spawn_count = 3;
+  // A mob type on the map and how many of it spawn at once. The counts sum to
+  // the map's spawn points, which -- combined with the fixed 7.56s global
+  // respawn tick -- set the full-clear cap: a player who clears instantly tops
+  // out at (total count) / 7.56 kills per second.
+  message Spawn {
+    string mob = 1;  // Mob data file, by filename stem.
+    int32 count = 2;
+  }
+  repeated Spawn spawns = 4;
 }

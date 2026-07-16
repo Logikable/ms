@@ -36,18 +36,6 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
   const EquipPrototype& weapon = weapon_it->second.prototype();
 
-  std::vector<const Mob*> mobs;
-  for (const std::string& mob_name : map.mobs()) {
-    std::map<std::string, Mob>::const_iterator mob_it =
-        state.mobs.find(mob_name);
-    if (mob_it != state.mobs.end()) {
-      mobs.push_back(&mob_it->second);
-    }
-  }
-  if (mobs.empty()) {
-    return params;
-  }
-
   const Character& proto = state.character.proto();
   OffenseStats offense = OffenseStatsFor(proto.job(), proto.allocated_stats(),
                                          state.character.equip_stats());
@@ -56,13 +44,20 @@ CombatParams ComputeCombatParams(const GameState& state) {
                            weapon.attack_speed()) *
       kGameSpeedFactor;
   params.respawn_seconds = kRespawnIntervalSeconds * kGameSpeedFactor;
-  int per_type = map.spawn_count() / static_cast<int>(mobs.size());
-  for (const Mob* mob : mobs) {
+  for (const MapData::Spawn& spawn : map.spawns()) {
+    std::map<std::string, Mob>::const_iterator mob_it =
+        state.mobs.find(spawn.mob());
+    if (mob_it == state.mobs.end()) {
+      continue;
+    }
     CombatType type;
-    type.mob = mob;
-    type.damage_per_hit = ExpectedAttackDamage(offense, *mob);
-    type.simultaneous = per_type;
+    type.mob = &mob_it->second;
+    type.damage_per_hit = ExpectedAttackDamage(offense, mob_it->second);
+    type.simultaneous = spawn.count();
     params.types.push_back(std::move(type));
+  }
+  if (params.types.empty()) {
+    return params;
   }
   params.active = true;
   return params;

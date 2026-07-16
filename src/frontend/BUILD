@@ -102,7 +102,6 @@ cc_library(
     deps = [
         ":panel_util",
         "//src:game_state",
-        "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "@ftxui//:dom",
@@ -115,7 +114,6 @@ cc_test(
     deps = [
         ":map_select_panel",
         "//src:game_state",
-        "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "@ftxui//:dom",

@@ -1,9 +1,9 @@
 /* MapSelectPanel is the modal for choosing where to farm. The left half lists
- * every map -- its name, the rounded average level of its mobs, and how many
- * spawn at once -- weakest first. The right half shows the mobs of whichever
- * map the cursor is on, so the player can see what they would be fighting
- * before they commit. Opening the panel puts the cursor on the map being
- * farmed, which is how the player sees where they are.
+ * every map -- its name and the rounded average level of its mobs -- weakest
+ * first. The right half shows the mobs of whichever map the cursor is on --
+ * each mob's name, level, and how many spawn at once -- so the player can see
+ * what they would be fighting before they commit. Opening the panel puts the
+ * cursor on the map being farmed, which is how the player sees where they are.
  *
  * Travel is free: every map is always selectable, with no adjacency or unlock
  * gating. The panel is a view -- it moves its own cursor but never writes to

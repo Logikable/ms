@@ -9,7 +9,6 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/game_state.h"
-#include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 
@@ -20,11 +19,6 @@ Mob SnailMob() {
   Mob mob;
   mob.set_name("Snail");
   mob.set_level(1);
-  mob.set_max_hp(15);
-  mob.set_exp(3);
-  MobDrop* drop = mob.add_drops();
-  drop->set_item("green_snail_shell");
-  drop->set_per_kill(0.4);
   return mob;
 }
 
@@ -32,22 +26,13 @@ Mob MushroomMob() {
   Mob mob;
   mob.set_name("Horny Mushroom");
   mob.set_level(8);
-  mob.set_max_hp(100);
-  mob.set_exp(20);
   return mob;
 }
 
-ItemPrototype GreenSnailShell() {
-  ItemPrototype item;
-  item.set_name("Green Snail Shell");
-  return item;
-}
-
-MapData MakeMap(const std::string& name, int spawn_count) {
-  MapData map;
-  map.set_name(name);
-  map.set_spawn_count(spawn_count);
-  return map;
+void AddSpawn(MapData* map, const std::string& mob, int count) {
+  MapData::Spawn* spawn = map->add_spawns();
+  spawn->set_mob(mob);
+  spawn->set_count(count);
 }
 
 // Three maps whose display order is not their alphabetical order: Green and
@@ -55,16 +40,18 @@ MapData MakeMap(const std::string& name, int spawn_count) {
 // alphabetically in the middle -- sorts last because its weakest mob is
 // level 8.
 GameState ThreeMaps() {
-  MapData green = MakeMap("Green Field", 4);
-  green.add_mobs("snail");
-  MapData mixed = MakeMap("Mixed Field", 2);
-  mixed.add_mobs("snail");
-  mixed.add_mobs("mushroom");
-  MapData horny = MakeMap("Horny Field", 6);
-  horny.add_mobs("mushroom");
+  MapData green;
+  green.set_name("Green Field");
+  AddSpawn(&green, "snail", 4);
+  MapData mixed;
+  mixed.set_name("Mixed Field");
+  AddSpawn(&mixed, "snail", 1);
+  AddSpawn(&mixed, "mushroom", 1);
+  MapData horny;
+  horny.set_name("Horny Field");
+  AddSpawn(&horny, "mushroom", 6);
   return GameState(
-      {}, {}, {{"green_snail_shell", GreenSnailShell()}},
-      {{"snail", SnailMob()}, {"mushroom", MushroomMob()}},
+      {}, {}, {}, {{"snail", SnailMob()}, {"mushroom", MushroomMob()}},
       {{"green_field", green}, {"mixed_field", mixed}, {"horny_field", horny}});
 }
 
@@ -117,15 +104,15 @@ TEST(MapSelectPanelTest, ListsMapsByLowestMobLevelThenName) {
   EXPECT_LT(mixed, horny);
 }
 
-TEST(MapSelectPanelTest, ShowsAverageLevelAndSpawnCount) {
+TEST(MapSelectPanelTest, ShowsAverageLevel) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
   std::string rendered = Render(panel);
 
-  EXPECT_NE(LineWith(rendered, "Green Field").find("Green Field 1 4"),
+  EXPECT_NE(LineWith(rendered, "Green Field").find("Green Field 1"),
             std::string::npos);
   // Mixed Field holds a level 1 and a level 8 mob: 4.5, rounded to 5.
-  EXPECT_NE(LineWith(rendered, "Mixed Field").find("Mixed Field 5 2"),
+  EXPECT_NE(LineWith(rendered, "Mixed Field").find("Mixed Field 5"),
             std::string::npos);
 }
 
@@ -157,13 +144,13 @@ TEST(MapSelectPanelTest, MobTableFollowsTheCursor) {
   EXPECT_NE(rendered.find("Horny Mushroom"), std::string::npos);
 }
 
-TEST(MapSelectPanelTest, MobTableShowsLevelHpExpAndDrops) {
+TEST(MapSelectPanelTest, MobTableShowsLevelAndCount) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
   std::string rendered = Render(panel);
 
-  EXPECT_NE(LineWith(rendered, "Snail").find("Snail 1 15 3 Green Snail Shell"),
-            std::string::npos);
+  // Green Field, the first row, spawns four snails.
+  EXPECT_NE(LineWith(rendered, "Snail").find("Snail 1 4"), std::string::npos);
 }
 
 TEST(MapSelectPanelTest, CursorStopsAtBothEndsOfTheList) {

@@ -68,15 +68,18 @@ TEST(LoadTextProtoDirTest, LoadsMapKeyedByStem) {
   std::string dir = std::string(testing::TempDir()) + "/map_dir_test";
   std::filesystem::create_directory(dir);
   WriteTempFile("map_dir_test/lith.textproto",
-                "name: \"Lith\"\nmobs: \"snail\"\nmobs: \"blue_snail\"\n");
+                "name: \"Lith\"\nspawns { mob: \"snail\" count: 2 }\n"
+                "spawns { mob: \"blue_snail\" count: 4 }\n");
 
   std::map<std::string, MapData> result = LoadTextProtoDir<MapData>(dir);
   ASSERT_EQ(result.size(), 1);
   const MapData& lith = result.at("lith");
   EXPECT_EQ(lith.name(), "Lith");
-  ASSERT_EQ(lith.mobs_size(), 2);
-  EXPECT_EQ(lith.mobs(0), "snail");
-  EXPECT_EQ(lith.mobs(1), "blue_snail");
+  ASSERT_EQ(lith.spawns_size(), 2);
+  EXPECT_EQ(lith.spawns(0).mob(), "snail");
+  EXPECT_EQ(lith.spawns(0).count(), 2);
+  EXPECT_EQ(lith.spawns(1).mob(), "blue_snail");
+  EXPECT_EQ(lith.spawns(1).count(), 4);
 }
 
 TEST(LoadTextProtoDirTest, LoadsItemsKeyedByStem) {

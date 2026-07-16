@@ -106,10 +106,10 @@ class TuiControllerTest : public testing::Test {
 
     MapData field;
     field.set_name("Field");
-    field.add_mobs("snail");
+    field.add_spawns()->set_mob("snail");
     MapData cave;
     cave.set_name("Cave");
-    cave.add_mobs("mushroom");
+    cave.add_spawns()->set_mob("mushroom");
     state_->maps["field"] = field;
     state_->maps["cave"] = cave;
 
