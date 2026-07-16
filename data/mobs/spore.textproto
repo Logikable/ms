@@ -1,0 +1,6 @@
+name: "Spore"
+level: 3
+attack: 6
+max_hp: 25
+exp: 5
+drops { item: "mushroom_spore" per_kill: 0.4 }

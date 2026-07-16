@@ -1,0 +1,6 @@
+name: "Stump"
+level: 20
+attack: 87
+max_hp: 375
+exp: 35
+drops { item: "tree_branch" per_kill: 0.4 }

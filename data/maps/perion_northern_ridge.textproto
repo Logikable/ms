@@ -1,0 +1,2 @@
+name: "Perion Northern Ridge"
+spawns { mob: "stump" count: 12 }

@@ -1,0 +1,3 @@
+name: "Shining Forest Path"
+spawns { mob: "slime" count: 10 }
+spawns { mob: "orange_mushroom" count: 3 }

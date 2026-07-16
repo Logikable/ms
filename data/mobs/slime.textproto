@@ -1,0 +1,6 @@
+name: "Slime"
+level: 7
+attack: 25
+max_hp: 80
+exp: 12
+drops { item: "squishy_liquid" per_kill: 0.4 }
