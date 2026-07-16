@@ -1,5 +1,6 @@
 #include "src/combat/damage.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include "src/combat/constants.h"
@@ -33,11 +34,52 @@ constexpr double kPercentToFraction = 100.0;
 // exists.
 constexpr int kOneHandedBaseAttackDelayMs = 800;
 
+// Level multiplier: 1.1 at equal level, +0.02 per level above, capped at +5.
+constexpr double kEqualLevelMultiplier = 1.1;
+constexpr double kAboveLevelStep = 0.02;
+constexpr int kAboveLevelCap = 5;
+
+// Level multiplier when the monster out-levels the player, indexed by the gap
+// (mob level - player level), 1..39; a gap of 40+ is 0 (output floored to 1
+// damage). The -37..-39 rows read 0.8/0.5/0.3 on the wiki, which breaks the
+// otherwise monotone decline -- taken here as 0.08/0.05/0.03, a dropped leading
+// zero. That tail is unreachable with current content (worst gap is -19).
+constexpr double kUnderLevelMultiplier[] = {
+    0.0,                           // gap 0 unused (see LevelMultiplier)
+    1.0584, 1.007, 0.9672, 0.918,  // -1..-4
+    0.88,   0.85,  0.83,   0.8,    // -5..-8
+    0.78,   0.75,  0.73,   0.7,    // -9..-12
+    0.68,   0.65,  0.63,   0.6,    // -13..-16
+    0.58,   0.55,  0.53,   0.5,    // -17..-20
+    0.48,   0.45,  0.43,   0.4,    // -21..-24
+    0.38,   0.35,  0.33,   0.3,    // -25..-28
+    0.28,   0.25,  0.23,   0.2,    // -29..-32
+    0.18,   0.15,  0.13,   0.1,    // -33..-36
+    0.08,   0.05,  0.03,           // -37..-39
+};
+constexpr int kMaxUnderLevelGap = 39;
+
 }  // namespace
 
-OffenseStats OffenseStatsFor(Job job, const AllocatedStats& allocated,
+double LevelMultiplier(int player_level, int mob_level) {
+  int diff = player_level - mob_level;
+  if (diff >= 0) {
+    // At or above the monster's level: a bonus that stops growing past +5.
+    return kEqualLevelMultiplier +
+           kAboveLevelStep * std::min(diff, kAboveLevelCap);
+  }
+  int gap = -diff;
+  if (gap > kMaxUnderLevelGap) {
+    return 0.0;  // Caller floors output to 1 damage.
+  }
+  return kUnderLevelMultiplier[gap];
+}
+
+OffenseStats OffenseStatsFor(Job job, int level,
+                             const AllocatedStats& allocated,
                              const EquipStats& equipped) {
   OffenseStats offense;
+  offense.level = level;
   // Primary/secondary stat by job; unknown jobs fall through to 0, matching
   // MainStatValue in equipped_panel.
   switch (job) {
@@ -72,8 +114,11 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   if (is_boss) {
     damage *= kBossElementalBase * (1.0 + offense.ier);
   }
-  // Level penalty (final step) deferred; multiplier is 1.0 for now.
-  return damage;
+  double level_mult = LevelMultiplier(offense.level, mob.level());
+  if (level_mult <= 0.0) {
+    return 1.0;  // 40+ levels under the mob: output is floored to 1 damage.
+  }
+  return damage * level_mult;
 }
 
 double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage) {

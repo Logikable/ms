@@ -9,14 +9,19 @@
 namespace ms {
 namespace {
 
-// A mob carrying just the damage-relevant fields: PDR (whole percent) and the
-// boss flag.
-Mob MakeMob(int pdr = 0, bool boss = false) {
+// A mob carrying just the damage-relevant fields: PDR (whole percent), the boss
+// flag, and level (for the level multiplier).
+Mob MakeMob(int pdr = 0, bool boss = false, int level = 0) {
   Mob mob;
   mob.set_pdr(pdr);
   mob.set_boss(boss);
+  mob.set_level(level);
   return mob;
 }
+
+// The level multiplier at equal attacker/mob level. Baseline() and MakeMob()
+// both sit at level 0, so every ExpectedAttackDamage below carries this factor.
+constexpr double kEqualLevel = 1.1;
 
 class OffenseTest : public ::testing::Test {
  protected:
@@ -33,72 +38,88 @@ class OffenseTest : public ::testing::Test {
 };
 
 TEST_F(OffenseTest, BaselineUsesStatAttackAndMastery) {
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob()), 25.875);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob()),
+                   25.875 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, FullMasteryRemovesMinFloor) {
   OffenseStats s = Baseline();
   s.mastery = 1.0;  // min == max, so expected == max base.
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 45.0);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 45.0 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, SkillPctScalesLinearly) {
   OffenseStats s = Baseline();
   s.skill_pct = 2.0;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 51.75);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 51.75 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, LinesMultiplyDamage) {
   OffenseStats s = Baseline();
   s.lines = 3;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 77.625);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 77.625 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, DamagePctIsAdditive) {
   OffenseStats s = Baseline();
   s.damage_pct = 0.20;  // *1.2
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 31.05);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 31.05 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, BossPctAppliesOnlyToBosses) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.50;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, CritIncludesHiddenBaseCritDamage) {
   OffenseStats s = Baseline();
   s.crit_rate = 1.0;  // always crit
   s.crit_dmg = 0.0;   // only the hidden 0.35 base applies
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875 * 1.35);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   25.875 * 1.35 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, FinalDamageMultiplies) {
   OffenseStats s = Baseline();
   s.final_dmg_pct = 0.10;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875 * 1.10);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   25.875 * 1.10 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, MobDefenseReducesDamage) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(30)),
-                   25.875 * 0.70);
+                   25.875 * 0.70 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, IedNegatesMobDefense) {
   OffenseStats s = Baseline();
   s.ied = 1.0;  // fully ignore the 30% PDR
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(30)), 25.875);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(30)), 25.875 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, BossesTakeHalfElementalByDefault) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, true)),
-                   25.875 * 0.5);
+                   25.875 * 0.5 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, IerRestoresBossElemental) {
   OffenseStats s = Baseline();
   s.ier = 1.0;  // 0.5*(1+1) == 1.0
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)), 25.875);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
+                   25.875 * kEqualLevel);
+}
+
+TEST_F(OffenseTest, LevelMultiplierAppliesToOutput) {
+  // Attacker at level 0 against a level-5 mob: 5 levels under -> 0.88 penalty.
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, false, 5)),
+                   25.875 * 0.88);
+}
+
+TEST_F(OffenseTest, FortyLevelsUnderFloorsToOneDamage) {
+  // The level multiplier hits 0 at a 40-level gap; output floors to 1 damage.
+  OffenseStats s = Baseline();  // level 0
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, false, 40)), 1.0);
 }
 
 TEST(SwingIntervalTest, Stage4IsTheUnscaledBase) {
@@ -131,6 +152,32 @@ TEST(SwingIntervalTest, SlowestStageIsSlowerThanBase) {
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 1), 0.96);
 }
 
+TEST(LevelMultiplierTest, EqualLevelGivesTenPercentBonus) {
+  EXPECT_DOUBLE_EQ(LevelMultiplier(10, 10), 1.1);
+}
+
+TEST(LevelMultiplierTest, BonusRisesToTwentyPercentAndCapsAtFiveAbove) {
+  EXPECT_DOUBLE_EQ(LevelMultiplier(12, 10), 1.14);  // +2
+  EXPECT_DOUBLE_EQ(LevelMultiplier(15, 10), 1.2);   // +5
+  EXPECT_DOUBLE_EQ(LevelMultiplier(100, 10), 1.2);  // capped past +5
+}
+
+TEST(LevelMultiplierTest, StaysAboveOneUntilThreeLevelsUnder) {
+  EXPECT_DOUBLE_EQ(LevelMultiplier(9, 10), 1.0584);  // -1
+  EXPECT_DOUBLE_EQ(LevelMultiplier(8, 10), 1.007);   // -2, still a bonus
+  EXPECT_DOUBLE_EQ(LevelMultiplier(7, 10), 0.9672);  // -3, first penalty
+}
+
+TEST(LevelMultiplierTest, DeepUnderLevelIsHeavilyPenalized) {
+  EXPECT_DOUBLE_EQ(LevelMultiplier(1, 21), 0.5);   // -20
+  EXPECT_DOUBLE_EQ(LevelMultiplier(1, 40), 0.03);  // -39, last nonzero row
+}
+
+TEST(LevelMultiplierTest, FortyOrMoreLevelsUnderIsZero) {
+  EXPECT_DOUBLE_EQ(LevelMultiplier(1, 41), 0.0);   // -40
+  EXPECT_DOUBLE_EQ(LevelMultiplier(1, 100), 0.0);  // far under
+}
+
 TEST(BaseAttackDelayMsTest, OneHandedSwordIs800) {
   EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_ONE_HANDED_SWORD), 800);
 }
@@ -148,17 +195,19 @@ TEST(OffenseStatsForTest, SumsAllocatedAndEquippedStats) {
   equipped.set_dex(2);
   equipped.set_attack(15);  // the Sword
 
-  OffenseStats offense = OffenseStatsFor(JOB_BEGINNER, allocated, equipped);
+  OffenseStats offense = OffenseStatsFor(JOB_BEGINNER, 7, allocated, equipped);
   EXPECT_EQ(offense.primary, 23);   // 13 + 10
   EXPECT_EQ(offense.secondary, 6);  // 4 + 2
   EXPECT_EQ(offense.attack, 15);
+  EXPECT_EQ(offense.level, 7);
 }
 
 TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
   AllocatedStats allocated;
   allocated.set_str(100);
   allocated.set_dex(20);
-  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, allocated, EquipStats());
+  OffenseStats offense =
+      OffenseStatsFor(JOB_WARRIOR, 1, allocated, EquipStats());
   EXPECT_EQ(offense.primary, 100);
   EXPECT_EQ(offense.secondary, 20);
 }
@@ -168,14 +217,14 @@ TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
   equipped.set_boss_damage(30);           // 30%
   equipped.set_ignore_enemy_defense(20);  // 20%
   OffenseStats offense =
-      OffenseStatsFor(JOB_WARRIOR, AllocatedStats(), equipped);
+      OffenseStatsFor(JOB_WARRIOR, 1, AllocatedStats(), equipped);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.30);
   EXPECT_DOUBLE_EQ(offense.ied, 0.20);
 }
 
 TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
   OffenseStats offense =
-      OffenseStatsFor(JOB_BEGINNER, AllocatedStats(), EquipStats());
+      OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(), EquipStats());
   EXPECT_DOUBLE_EQ(offense.mastery, 0.15);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.0);
@@ -187,7 +236,7 @@ TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {
   allocated.set_str(50);
   allocated.set_dex(30);
   OffenseStats offense =
-      OffenseStatsFor(JOB_UNSPECIFIED, allocated, EquipStats());
+      OffenseStatsFor(JOB_UNSPECIFIED, 1, allocated, EquipStats());
   EXPECT_EQ(offense.primary, 0);  // fail safe: unknown job has no main stat
   EXPECT_EQ(offense.secondary, 0);
 }

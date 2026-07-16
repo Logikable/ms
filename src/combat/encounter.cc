@@ -37,8 +37,9 @@ CombatParams ComputeCombatParams(const GameState& state) {
   const EquipPrototype& weapon = weapon_it->second.prototype();
 
   const Character& proto = state.character.proto();
-  OffenseStats offense = OffenseStatsFor(proto.job(), proto.allocated_stats(),
-                                         state.character.equip_stats());
+  OffenseStats offense =
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      state.character.equip_stats());
   params.swing_seconds =
       SwingIntervalSeconds(BaseAttackDelayMs(weapon.equip_type()),
                            weapon.attack_speed()) *
