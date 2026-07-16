@@ -11,6 +11,7 @@
 #define MS_SRC_COMBAT_FIGHT_H_
 
 #include <cstdint>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -67,6 +68,11 @@ class CombatSim {
   double attack_phase_ = 0.0;     // seconds into the current swing
   double delay_remaining_ = 0.0;  // inter-kill pause countdown
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
+
+  // Shuffles the roster on each refill so the mobs are fought in mixed order
+  // rather than one whole type at a time (see Refill). Default-seeded, so a sim
+  // plays out the same way every run -- which keeps tests reproducible.
+  std::mt19937 rng_;
 
   // Cached render values, refreshed each Advance so accessors need no params.
   std::string target_name_;

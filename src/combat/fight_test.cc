@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -126,29 +127,47 @@ TEST(CombatSimTest, MovingToAnotherMapRestartsTheFightThere) {
   Mob snail = MakeMob("Snail", 30);
   Mob slug = MakeMob("Slug", 30);
   CombatSim sim;
-  // Both maps hold both mobs, but in opposite order, so a roster carried across
-  // the move would name -- and credit the kill to -- the wrong monster.
-  CombatParams here = MakeParams(
-      1.0, 100.0, {MakeType(&snail, 10.0, 1), MakeType(&slug, 10.0, 1)},
-      "field");
-  CombatParams there = MakeParams(
-      1.0, 100.0, {MakeType(&slug, 10.0, 1), MakeType(&snail, 10.0, 1)},
-      "other_field");
+  CombatParams here =
+      MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)}, "field");
+  CombatParams there =
+      MakeParams(1.0, 100.0, {MakeType(&slug, 10.0, 1)}, "other_field");
 
   sim.Advance(here, 1.0);  // engage the Snail: hp 20
   EXPECT_EQ(sim.target_name(), "Snail");
   EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
 
-  // The move re-engages from the top of the new map: a fresh Slug, whose 30 HP
-  // takes this step's hit rather than carrying the Snail's damage over.
+  // The move re-engages from the new map: a fresh Slug, whose 30 HP takes this
+  // step's hit rather than carrying the Snail's damage -- and the kill credited
+  // to the new map's lone type, not a stale index from the old roster.
   sim.Advance(there, 1.0);
   EXPECT_EQ(sim.target_name(), "Slug");
   EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
 
   sim.Advance(there, 1.0);
-  sim.Advance(there, 1.0);                 // hp 0 -> the Slug dies
-  EXPECT_EQ(sim.kills_this_step()[0], 1);  // the new map's Slug, not its Snail
-  EXPECT_EQ(sim.kills_this_step()[1], 0);
+  sim.Advance(there, 1.0);  // hp 0 -> the Slug dies
+  EXPECT_EQ(sim.kills_this_step()[0], 1);
+}
+
+TEST(CombatSimTest, ShufflingTheRosterSpreadsKillsAcrossTypes) {
+  Mob snail = MakeMob("Snail", 10);
+  Mob blue = MakeMob("Blue Snail", 10);
+  CombatSim sim;
+  // Six mobs but only a couple die before the 5s beat refills the whole roster,
+  // so the player never clears it. Were the fight order fixed, only the front
+  // type would ever be reached; the shuffle must let both types die over beats.
+  CombatParams params = MakeParams(
+      1.0, 5.0, {MakeType(&snail, 10.0, 3), MakeType(&blue, 10.0, 3)});
+
+  int64_t snail_kills = 0;
+  int64_t blue_kills = 0;
+  for (int step = 0; step < 200; ++step) {
+    sim.Advance(params, 1.0);
+    snail_kills += sim.kills_this_step()[0];
+    blue_kills += sim.kills_this_step()[1];
+  }
+
+  EXPECT_GT(snail_kills, 0);
+  EXPECT_GT(blue_kills, 0);
 }
 
 TEST(CombatSimTest, ClampsLargeGapsToOneSwing) {

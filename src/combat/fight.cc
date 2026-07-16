@@ -20,6 +20,11 @@ void CombatSim::Refill(const CombatParams& params) {
       roster_.push_back(i);
     }
   }
+  // Fight the roster in a random order, interleaving the types. Beyond feeling
+  // less mechanical, this keeps kills fair when clears lag the respawn beat:
+  // the beat refills the whole roster on a fixed timer, and the sim always
+  // attacks the front, so a fixed order would let only the front type ever die.
+  std::shuffle(roster_.begin(), roster_.end(), rng_);
   attack_phase_ = 0.0;
   delay_remaining_ = 0.0;
   if (!roster_.empty()) {
