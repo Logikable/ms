@@ -89,6 +89,31 @@ TEST_F(LevelUpTest, AccumulatesAcrossMultipleLevels) {
   EXPECT_EQ(c_.proto().level(), 4);
 }
 
+TEST_F(LevelUpTest, GrantsNoSpBelowTheFirstJobBand) {
+  c_.LevelUp();  // level 1 -> 2, below the level-11 start of 1st-job SP
+  EXPECT_EQ(c_.sp(1), 0);
+}
+
+TEST_F(LevelUpTest, GrantsFirstJobSpAcrossTheEarlyBand) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/11);
+  c.LevelUp();  // lands on level 12, in the 1st-job band
+  EXPECT_EQ(c.sp(1), 3);
+}
+
+TEST_F(LevelUpTest, FirstJobSpTotalsSixtyOneAndStopsAtTheBandEnd) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
+  c.AdvanceJob(JOB_WARRIOR);  // +1 into stage 1 at the advancement
+  EXPECT_EQ(c.sp(1), 1);
+  for (int i = 0; i < 20; ++i) {
+    c.LevelUp();  // levels 11..30, each +3 into stage 1
+  }
+  EXPECT_EQ(c.proto().level(), 30);
+  EXPECT_EQ(c.sp(1), 61);  // 1 + 20 * 3
+  c.LevelUp();             // level 31 crosses into the 2nd-job band
+  EXPECT_EQ(c.sp(1), 61);  // no more 1st-job SP
+  EXPECT_EQ(c.sp(2), 3);   // 2nd-job SP begins
+}
+
 // --- AddExp ---
 
 TEST_F(AddExpTest, AccumulatesExpBelowThreshold) {
@@ -172,6 +197,30 @@ TEST_F(AdvanceJobTest, ApBonusAtFourthJob) {
   c.AdvanceJob(JOB_WARRIOR);
   EXPECT_EQ(c.proto().job_stage(), 4);
   EXPECT_EQ(c.proto().ap(), 5);
+}
+
+TEST_F(AdvanceJobTest, GrantsFirstJobStartingSp) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
+  c.AdvanceJob(JOB_WARRIOR);
+  EXPECT_EQ(c.sp(1), 1);
+}
+
+// --- PendingJobAdvancement ---
+
+TEST_F(AdvanceJobTest, EligibleForWarriorAtLevelTen) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
+  EXPECT_EQ(c.PendingJobAdvancement(), JOB_WARRIOR);
+}
+
+TEST_F(AdvanceJobTest, NotEligibleBelowLevelTen) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/9);
+  EXPECT_EQ(c.PendingJobAdvancement(), JOB_UNSPECIFIED);
+}
+
+TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
+  c.AdvanceJob(JOB_WARRIOR);
+  EXPECT_EQ(c.PendingJobAdvancement(), JOB_UNSPECIFIED);
 }
 
 // --- AllocateStat ---

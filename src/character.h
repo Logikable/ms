@@ -1,10 +1,10 @@
 /* CharacterInstance represents a player character. It wraps a Character proto
- * (serializable state: level, job, job_stage, unspent AP, and allocated stats)
- * and exposes methods for leveling up, job advancement, AP allocation, and
- * inventory management. Inventory holds EquipTabItem objects (EquipInstance for
- * live items, EquipTrace for destroyed items); equipped items are always
- * EquipInstance. Character proto fields for items are reserved for
- * serialization. character.cc implements all methods.
+ * (serializable state: level, job, job_stage, unspent AP and SP, allocated
+ * stats, and learned skill levels) and exposes methods for leveling up, job
+ * advancement, AP allocation, and inventory management. Inventory holds
+ * EquipTabItem objects (EquipInstance for live items, EquipTrace for destroyed
+ * items); equipped items are always EquipInstance. Character proto fields for
+ * items are reserved for serialization. character.cc implements all methods.
  */
 #ifndef MS_CHARACTER_H_
 #define MS_CHARACTER_H_
@@ -28,14 +28,20 @@ class CharacterInstance {
  public:
   CharacterInstance(std::mt19937& rng, Character character);
 
-  // Increments level and grants 5 AP.
+  // Increments level and grants 5 AP, plus 3 SP into the job stage whose level
+  // band the new level falls in (levels 11-30 -> 1st job, 31-60 -> 2nd, ...).
   void LevelUp();
   // Adds amount to the character's accumulated EXP, leveling up as many times
   // as the new total allows. No-op once kMaxLevel is reached.
   void AddExp(int64_t amount);
-  // Increments job_stage, sets job to `next_job`, and grants 5 bonus AP at
-  // stages 3 and 4 (3rd and 4th job advancement).
+  // Increments job_stage, sets job to `next_job`, grants 5 bonus AP at stages
+  // 3 and 4 (3rd and 4th job advancement), and grants a batch of SP for the
+  // newly opened skill set.
   void AdvanceJob(Job next_job);
+  // The job the character is eligible to advance into now, or JOB_UNSPECIFIED
+  // if no advancement is currently available. The UI offers the advancement
+  // when this is set; passing the result to AdvanceJob performs it.
+  Job PendingJobAdvancement() const;
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);
   // Assigns all available AP to `field`. Respects per-job stat caps (not yet
@@ -107,6 +113,13 @@ class CharacterInstance {
   }
   int64_t meso() const {
     return character_.meso();
+  }
+  // Available skill points for the given job stage (1 = 1st job, ...), or 0 if
+  // none have been earned for it.
+  int sp(int stage) const {
+    return character_.sp_by_stage().contains(stage)
+               ? character_.sp_by_stage().at(stage)
+               : 0;
   }
   // Sum of stats from all currently equipped items. Updated automatically by
   // Equip, Unequip, and ScrollEquipped.

@@ -20,6 +20,35 @@ namespace {
 
 constexpr int kApPerLevel = 5;
 constexpr int kApJobAdvancementBonus = 5;
+constexpr int kSpPerLevel = 3;
+
+// Character levels at which each job advancement (1st..6th) unlocks. A level's
+// SP goes to the highest stage whose threshold it has passed: levels 11-30
+// feed stage 1, 31-60 feed stage 2, and so on.
+constexpr int kAdvancementLevels[] = {10, 30, 60, 100, 200, 260};
+
+// The job stage a level-up's SP feeds -- the count of advancement thresholds
+// the level has passed. 0 at level 10 and below, before 1st-job SP starts.
+int SpStageForLevel(int level) {
+  int stage = 0;
+  for (int threshold : kAdvancementLevels) {
+    if (level > threshold) {
+      ++stage;
+    }
+  }
+  return stage;
+}
+
+// SP granted for completing an advancement into `job`. Most jobs give 1; a few
+// give more. Warrior's 1st job gives 1 -- revisit if it can't max its skills.
+int JobAdvancementSpBonus(Job job) {
+  switch (job) {
+    case JOB_WARRIOR:
+      return 1;
+    default:
+      return 1;
+  }
+}
 
 EquipJobCategory JobToCategory(Job job) {
   switch (job) {
@@ -41,6 +70,11 @@ CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
 void CharacterInstance::LevelUp() {
   character_.set_level(character_.level() + 1);
   character_.set_ap(character_.ap() + kApPerLevel);
+  // The new level's band decides which stage's SP this grants (none below 11).
+  int stage = SpStageForLevel(character_.level());
+  if (stage >= 1) {
+    (*character_.mutable_sp_by_stage())[stage] += kSpPerLevel;
+  }
 }
 
 void CharacterInstance::AddExp(int64_t amount) {
@@ -65,6 +99,18 @@ void CharacterInstance::AdvanceJob(Job next_job) {
   if (stage == 3 || stage == 4) {
     character_.set_ap(character_.ap() + kApJobAdvancementBonus);
   }
+  // Each advancement opens a new skill set, so it comes with SP for that stage.
+  (*character_.mutable_sp_by_stage())[stage] += JobAdvancementSpBonus(next_job);
+}
+
+Job CharacterInstance::PendingJobAdvancement() const {
+  // Only the 1st job advancement (Beginner -> Warrior) exists so far. Returns
+  // JOB_UNSPECIFIED when none is available yet.
+  if (character_.job_stage() == 0 &&
+      character_.level() >= kAdvancementLevels[0]) {
+    return JOB_WARRIOR;
+  }
+  return JOB_UNSPECIFIED;
 }
 
 bool CharacterInstance::AllocateStat(StatField field, int amount) {

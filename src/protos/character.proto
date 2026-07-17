@@ -65,4 +65,15 @@ message Character {
   // Meso, the character's spendable currency. Earned from farming, spent on
   // upgrades. Non-negative.
   int64 meso = 10;
+
+  // Available skill points, keyed by job stage (1 = 1st job, 2 = 2nd job, ...).
+  // A stage's SP is earned only while leveling through that stage's band --
+  // 3 per level, e.g. 1st job over levels 11-30 -- plus a bonus at the
+  // advancement into it, and is spent only on that stage's skills. Passing a
+  // band's top level stops its SP whether or not the advancement was taken.
+  map<int32, int32> sp_by_stage = 11;
+
+  // Learned skill levels, keyed by skill name (the data/skills textproto
+  // stem). Absent or zero means unlearned. Raised by spending that stage's SP.
+  map<string, int32> skill_levels = 12;
 }
