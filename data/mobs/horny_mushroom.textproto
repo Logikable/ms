@@ -1,0 +1,6 @@
+name: "Horny Mushroom"
+level: 12
+attack: 51
+max_hp: 175
+exp: 21
+drops { item: "horny_mushroom_cap" per_kill: 0.4 }

@@ -1,0 +1,3 @@
+name: "Humming Forest Trail"
+spawns { mob: "green_mushroom" count: 8 }
+spawns { mob: "horny_mushroom" count: 5 }

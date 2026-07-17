@@ -1,0 +1,6 @@
+name: "Green Mushroom"
+level: 10
+attack: 47
+max_hp: 125
+exp: 17
+drops { item: "green_mushroom_cap" per_kill: 0.4 }

@@ -1,0 +1,3 @@
+name: "Rugged Rocky Zone"
+spawns { mob: "axe_stump" count: 6 }
+spawns { mob: "dark_axe_stump" count: 5 }

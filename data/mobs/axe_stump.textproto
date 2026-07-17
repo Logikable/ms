@@ -1,0 +1,6 @@
+name: "Axe Stump"
+level: 21
+attack: 94
+max_hp: 405
+exp: 44
+drops { item: "firewood" per_kill: 0.4 }

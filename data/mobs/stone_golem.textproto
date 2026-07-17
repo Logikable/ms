@@ -1,0 +1,6 @@
+name: "Stone Golem"
+level: 15
+attack: 64
+max_hp: 250
+exp: 26
+drops { item: "stone_golem_rubble" per_kill: 0.4 }

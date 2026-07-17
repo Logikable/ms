@@ -1,0 +1,2 @@
+name: "Golem's Temple 4"
+spawns { mob: "mixed_golem" count: 14 }

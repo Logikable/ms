@@ -1,0 +1,6 @@
+name: "Red Snail"
+level: 5
+attack: 15
+max_hp: 50
+exp: 8
+drops { item: "red_snail_shell" per_kill: 0.4 }
