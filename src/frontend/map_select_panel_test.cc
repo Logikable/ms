@@ -36,16 +36,16 @@ void AddSpawn(MapData* map, const std::string& mob, int count) {
 }
 
 // Three maps whose display order is not their alphabetical order: Green and
-// Mixed both start at level 1 (Green first by name), and Horny --
-// alphabetically in the middle -- sorts last because its weakest mob is
-// level 8.
+// Mixed both weigh in at level 1 (Green first by name), and Horny --
+// alphabetically in the middle -- sorts last at level 8. Mixed is mostly
+// snails, so the count is what holds it down next to Green.
 GameState ThreeMaps() {
   MapData green;
   green.set_name("Green Field");
   AddSpawn(&green, "snail", 4);
   MapData mixed;
   mixed.set_name("Mixed Field");
-  AddSpawn(&mixed, "snail", 1);
+  AddSpawn(&mixed, "snail", 9);
   AddSpawn(&mixed, "mushroom", 1);
   MapData horny;
   horny.set_name("Horny Field");
@@ -91,7 +91,7 @@ std::string LineWith(const std::string& rendered, const std::string& needle) {
   return "";
 }
 
-TEST(MapSelectPanelTest, ListsMapsByLowestMobLevelThenName) {
+TEST(MapSelectPanelTest, ListsMapsByWeightedLevelThenName) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
   std::string rendered = Render(panel);
@@ -104,15 +104,16 @@ TEST(MapSelectPanelTest, ListsMapsByLowestMobLevelThenName) {
   EXPECT_LT(mixed, horny);
 }
 
-TEST(MapSelectPanelTest, ShowsAverageLevel) {
+TEST(MapSelectPanelTest, ShowsWeightedLevelRoundedDown) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
   std::string rendered = Render(panel);
 
   EXPECT_NE(LineWith(rendered, "Green Field").find("Green Field 1"),
             std::string::npos);
-  // Mixed Field holds a level 1 and a level 8 mob: 4.5, rounded to 5.
-  EXPECT_NE(LineWith(rendered, "Mixed Field").find("Mixed Field 5"),
+  // Mixed Field spawns nine level 1 mobs and one level 8: 1.7, down to 1.
+  // Ignoring the counts would say 4.5, and rounding to nearest would say 2.
+  EXPECT_NE(LineWith(rendered, "Mixed Field").find("Mixed Field 1"),
             std::string::npos);
 }
 

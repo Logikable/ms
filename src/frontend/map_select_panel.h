@@ -1,6 +1,7 @@
 /* MapSelectPanel is the modal for choosing where to farm. The left half lists
- * every map -- its name and the rounded average level of its mobs -- weakest
- * first. The right half shows the mobs of whichever map the cursor is on --
+ * every map -- its name and its mobs' mean level weighted by how many of each
+ * spawn -- lowest first. The right half shows the mobs of whichever map the
+ * cursor is on --
  * each mob's name, level, and how many spawn at once -- so the player can see
  * what they would be fighting before they commit. Opening the panel puts the
  * cursor on the map being farmed, which is how the player sees where they are.
@@ -37,8 +38,8 @@ class MapSelectPanel {
   ftxui::Element RenderMobTable() const;
 
   const GameState& state_;
-  // Map keys in display order: lowest-level map first, ties broken by name.
-  // Fixed at construction, since maps are static data.
+  // Map keys in display order: lowest weighted level first, ties broken by
+  // name. Fixed at construction, since maps are static data.
   std::vector<std::string> order_;
   int selected_ = 0;
 };
