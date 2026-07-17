@@ -19,13 +19,18 @@ constexpr int kSlotWidth = 10;
 constexpr int kInfoWidth = 20;
 
 // Fills a row with background color rather than block glyphs, so the label can
-// sit on top of it without the two fighting over the same characters.
+// sit on top of it without the two fighting over the same characters. The
+// label takes one color over the fill and another past it; pass the same color
+// twice to hold it steady as the bar moves.
 class ProgressBarNode : public ftxui::Node {
  public:
-  ProgressBarNode(float frac, ftxui::Color fill, std::string label)
+  ProgressBarNode(float frac, ftxui::Color fill, std::string label,
+                  ftxui::Color label_on_fill, ftxui::Color label_off_fill)
       : frac_(std::clamp(frac, 0.0f, 1.0f)),
         fill_(fill),
-        label_(std::move(label)) {
+        label_(std::move(label)),
+        label_on_fill_(label_on_fill),
+        label_off_fill_(label_off_fill) {
   }
 
   void ComputeRequirement() override {
@@ -53,8 +58,7 @@ class ProgressBarNode : public ftxui::Node {
       }
       ftxui::Pixel& px = screen.PixelAt(x, y);
       px.character = std::string(1, label_[i]);
-      px.foreground_color =
-          x < fill_end ? ftxui::Color::Black : ftxui::Color::White;
+      px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
     }
   }
 
@@ -62,6 +66,8 @@ class ProgressBarNode : public ftxui::Node {
   float frac_;
   ftxui::Color fill_;
   std::string label_;
+  ftxui::Color label_on_fill_;
+  ftxui::Color label_off_fill_;
 };
 
 }  // namespace
@@ -167,7 +173,14 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label) {
-  return std::make_shared<ProgressBarNode>(frac, fill, label);
+  return std::make_shared<ProgressBarNode>(
+      frac, fill, label, ftxui::Color::Black, ftxui::Color::White);
+}
+
+ftxui::Element ProgressBar(float frac, ftxui::Color fill,
+                           const std::string& label, ftxui::Color label_color) {
+  return std::make_shared<ProgressBarNode>(frac, fill, label, label_color,
+                                           label_color);
 }
 
 ftxui::Element ConfirmBar(bool cancel_selected) {

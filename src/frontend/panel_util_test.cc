@@ -168,6 +168,28 @@ TEST(ProgressBarTest, CentersTheLabelOverTheBar) {
   EXPECT_EQ(screen.PixelAt(5, 0).character, "B");
 }
 
+TEST(ProgressBarTest, LabelReadsDarkOnTheFillAndLightPastIt) {
+  // Half full, so "ABCD" straddles the boundary: B sits on the fill, C past it.
+  ftxui::Screen screen = RenderBar(0.5f, "ABCD");
+  EXPECT_EQ(screen.PixelAt(4, 0).character, "B");
+  EXPECT_EQ(screen.PixelAt(4, 0).background_color, kGreen);
+  EXPECT_EQ(screen.PixelAt(4, 0).foreground_color, ftxui::Color::Black);
+  EXPECT_EQ(screen.PixelAt(5, 0).character, "C");
+  EXPECT_EQ(screen.PixelAt(5, 0).background_color, kBarEmpty);
+  EXPECT_EQ(screen.PixelAt(5, 0).foreground_color, ftxui::Color::White);
+}
+
+TEST(ProgressBarTest, PinnedLabelColorHoldsAcrossTheWholeBar) {
+  // Same straddle, but the label color is pinned: it survives the boundary.
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(10),
+                                               ftxui::Dimension::Fixed(1));
+  ftxui::Render(screen, ProgressBar(0.5f, kGreen, "ABCD", ftxui::Color::White));
+  EXPECT_EQ(screen.PixelAt(4, 0).background_color, kGreen);
+  EXPECT_EQ(screen.PixelAt(4, 0).foreground_color, ftxui::Color::White);
+  EXPECT_EQ(screen.PixelAt(5, 0).background_color, kBarEmpty);
+  EXPECT_EQ(screen.PixelAt(5, 0).foreground_color, ftxui::Color::White);
+}
+
 TEST(ProgressBarTest, EmptyLabelLeavesTheBarBlank) {
   ftxui::Screen screen = RenderBar(1.0f, "");
   EXPECT_EQ(screen.PixelAt(5, 0).character, " ");

@@ -53,8 +53,11 @@ ftxui::Element CombatPanel::Render() const {
   ftxui::Element target =
       sim_.respawning()
           ? ftxui::text("Respawning...")
+          // White the whole way across, rather than the default dark-on-fill:
+          // kRed takes white well, and the mob's name shouldn't turn over a
+          // letter at a time as its health drains.
           : ProgressBar(static_cast<float>(sim_.target_hp_fraction()), kRed,
-                        sim_.target_name());
+                        sim_.target_name(), ftxui::Color::White);
 
   return ThemedWindow(" Combat ", ftxui::vbox({
                                       header,

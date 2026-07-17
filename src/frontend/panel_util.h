@@ -87,6 +87,12 @@ ftxui::Element ConfirmWindow(bool cancel_selected);
 // other.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label);
+// Overload holding the label to one color the whole way across, for a fill
+// dark enough to read that color against. The label then keeps its color as
+// the bar moves, rather than turning over a character at a time. Don't reach
+// for this on a light fill -- that's what the two-tone default is for.
+ftxui::Element ProgressBar(float frac, ftxui::Color fill,
+                           const std::string& label, ftxui::Color label_color);
 
 // Wraps content in a bordered window with the game's steel-blue theme color on
 // the border and title. Content foreground is set to white; explicitly colored
