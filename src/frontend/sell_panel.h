@@ -1,11 +1,14 @@
 /* SellPanel is the modal for selling copies of a single stackable item. It
  * shows the item name, the per-item and total meso value, a quantity textbox
- * flanked by `0` and `MAX` buttons, and Confirm/Cancel buttons. Focus moves
- * between five controls: the top row is [0] · textbox · [MAX], the bottom row
+ * flanked by `1` and `MAX` buttons, and Confirm/Cancel buttons. Focus moves
+ * between five controls: the top row is [1] · textbox · [MAX], the bottom row
  * is [Confirm] [Cancel]. The textbox is selected on open; it is the only place
  * digits and Backspace edit the quantity, and it shows a blinking cursor while
- * selected. Left/Right move within a row, Down from the textbox (or the 0/MAX
+ * selected. Left/Right move within a row, Down from the textbox (or the 1/MAX
  * buttons) drops to the buttons, and Up from a button returns to the textbox.
+ *
+ * A quantity of zero is allowed -- Backspace the textbox to empty and Confirm
+ * sells nothing -- but no button spends a slot on it.
  *
  * The panel owns no game state: Reset() seeds it with the item's price and
  * stack size, quantity() reports the chosen amount, and TakeConfirmed() /

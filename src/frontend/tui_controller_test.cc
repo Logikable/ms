@@ -735,10 +735,10 @@ TEST_F(TuiControllerTest, SellEscapeCancelsWithoutSelling) {
 TEST_F(TuiControllerTest, SellConfirmSellsTypedQuantity) {
   EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
   inventory_component_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);          // Sell -> kSell
-  controller_->OnEvent(ftxui::Event::ArrowLeft);       // textbox -> [0]
-  controller_->OnEvent(ftxui::Event::Return);          // quantity 0
-  controller_->OnEvent(ftxui::Event::ArrowRight);      // [0] -> textbox
+  controller_->OnEvent(ftxui::Event::Return);  // Sell -> kSell
+  // Digits append, so empty the field before typing the quantity to sell.
+  controller_->OnEvent(ftxui::Event::Backspace);       // 10 -> 1
+  controller_->OnEvent(ftxui::Event::Backspace);       // 1 -> 0
   controller_->OnEvent(ftxui::Event::Character('3'));  // quantity 3
   controller_->OnEvent(ftxui::Event::ArrowDown);       // textbox -> [Confirm]
   controller_->OnEvent(ftxui::Event::Return);          // Confirm

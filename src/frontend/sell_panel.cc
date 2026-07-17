@@ -14,7 +14,7 @@ namespace ms {
 namespace {
 
 // Focusable controls, in the order the layout presents them.
-enum SellFocus { kQty = 0, kZero, kMax, kConfirm, kCancel };
+enum SellFocus { kQty = 0, kOne, kMax, kConfirm, kCancel };
 
 // Fills behind the quantity when the textbox is not selected.
 const ftxui::Color kFieldBg = ftxui::Color::RGB(45, 55, 75);
@@ -86,7 +86,7 @@ ftxui::Element SellPanel::Render() const {
 
   ftxui::Element qty_row = ftxui::hbox({
                                ftxui::text(" "),
-                               Button("0", focus_ == kZero),
+                               Button("1", focus_ == kOne),
                                ftxui::text("  "),
                                QuantityField(quantity_, focus_ == kQty),
                                ftxui::text("  "),
@@ -117,8 +117,8 @@ ftxui::Element SellPanel::Render() const {
 }
 
 void SellPanel::Activate() {
-  if (focus_ == kZero) {
-    quantity_ = 0;
+  if (focus_ == kOne) {
+    quantity_ = 1;
   } else if (focus_ == kMax) {
     quantity_ = max_;
   } else if (focus_ == kConfirm) {
@@ -138,14 +138,14 @@ bool SellPanel::OnEvent(ftxui::Event event) {
     if (focus_ == kMax) {
       focus_ = kQty;
     } else if (focus_ == kQty) {
-      focus_ = kZero;
+      focus_ = kOne;
     } else if (focus_ == kCancel) {
       focus_ = kConfirm;
     }
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
-    if (focus_ == kZero) {
+    if (focus_ == kOne) {
       focus_ = kQty;
     } else if (focus_ == kQty) {
       focus_ = kMax;
@@ -161,7 +161,7 @@ bool SellPanel::OnEvent(ftxui::Event event) {
     return true;
   }
   if (event == ftxui::Event::ArrowDown) {
-    if (focus_ == kQty || focus_ == kZero) {
+    if (focus_ == kQty || focus_ == kOne) {
       focus_ = kConfirm;
     } else if (focus_ == kMax) {
       focus_ = kCancel;

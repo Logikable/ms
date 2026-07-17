@@ -19,6 +19,14 @@ class SellPanelTest : public testing::Test {
     ftxui::Render(screen, panel.Render());
     return screen.ToString();
   }
+
+  // Empties the quantity field, leaving focus on the textbox. Digits append
+  // rather than replace, so typing a fresh number means clearing first.
+  static void ClearQuantity(SellPanel* panel) {
+    while (panel->quantity() > 0) {
+      panel->OnEvent(ftxui::Event::Backspace);
+    }
+  }
 };
 
 TEST_F(SellPanelTest, DefaultsToWholeStack) {
@@ -44,20 +52,26 @@ TEST_F(SellPanelTest, TextboxSelectedByDefaultSoDigitsEdit) {
   EXPECT_EQ(panel.quantity(), 10);         // 100 -> 10
 }
 
-TEST_F(SellPanelTest, ZeroButtonZeroesQuantity) {
+TEST_F(SellPanelTest, OneButtonSellsASingleCopy) {
   SellPanel panel;
   panel.Reset("Shell", 7, 10);
-  panel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [0]
+  panel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
   panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.quantity(), 1);
+}
+
+TEST_F(SellPanelTest, ZeroIsStillReachableByHand) {
+  SellPanel panel;
+  panel.Reset("Shell", 7, 10);  // quantity opens at the whole stack
+  panel.OnEvent(ftxui::Event::Backspace);
+  panel.OnEvent(ftxui::Event::Backspace);
   EXPECT_EQ(panel.quantity(), 0);
 }
 
 TEST_F(SellPanelTest, MaxButtonRestoresWholeStack) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowLeft);   // textbox -> [0]
-  panel.OnEvent(ftxui::Event::Return);      // quantity 0
-  panel.OnEvent(ftxui::Event::ArrowRight);  // [0] -> textbox
+  ClearQuantity(&panel);
   panel.OnEvent(ftxui::Event::ArrowRight);  // textbox -> [MAX]
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_EQ(panel.quantity(), 100);
@@ -66,9 +80,7 @@ TEST_F(SellPanelTest, MaxButtonRestoresWholeStack) {
 TEST_F(SellPanelTest, DigitsEditQuantity) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowLeft);   // textbox -> [0]
-  panel.OnEvent(ftxui::Event::Return);      // quantity 0
-  panel.OnEvent(ftxui::Event::ArrowRight);  // back to textbox
+  ClearQuantity(&panel);
   panel.OnEvent(ftxui::Event::Character('2'));
   panel.OnEvent(ftxui::Event::Character('5'));
   EXPECT_EQ(panel.quantity(), 25);
@@ -77,9 +89,7 @@ TEST_F(SellPanelTest, DigitsEditQuantity) {
 TEST_F(SellPanelTest, DigitsClampToMax) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowLeft);
-  panel.OnEvent(ftxui::Event::Return);      // quantity 0
-  panel.OnEvent(ftxui::Event::ArrowRight);  // back to textbox
+  ClearQuantity(&panel);
   panel.OnEvent(ftxui::Event::Character('9'));
   panel.OnEvent(ftxui::Event::Character('9'));
   panel.OnEvent(ftxui::Event::Character('9'));  // 999 -> clamp 100
@@ -89,9 +99,7 @@ TEST_F(SellPanelTest, DigitsClampToMax) {
 TEST_F(SellPanelTest, BackspaceDeletesLastDigit) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);
-  panel.OnEvent(ftxui::Event::ArrowLeft);
-  panel.OnEvent(ftxui::Event::Return);      // quantity 0
-  panel.OnEvent(ftxui::Event::ArrowRight);  // back to textbox
+  ClearQuantity(&panel);
   panel.OnEvent(ftxui::Event::Character('2'));
   panel.OnEvent(ftxui::Event::Character('5'));  // 25
   panel.OnEvent(ftxui::Event::Backspace);
@@ -101,7 +109,7 @@ TEST_F(SellPanelTest, BackspaceDeletesLastDigit) {
 TEST_F(SellPanelTest, DigitsIgnoredWhenAButtonIsSelected) {
   SellPanel panel;
   panel.Reset("Shell", 7, 100);                 // qty 100, textbox selected
-  panel.OnEvent(ftxui::Event::ArrowLeft);       // textbox -> [0] button
+  panel.OnEvent(ftxui::Event::ArrowLeft);       // textbox -> [1] button
   panel.OnEvent(ftxui::Event::Character('5'));  // ignored off the textbox
   EXPECT_EQ(panel.quantity(), 100);
 }
