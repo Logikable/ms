@@ -90,10 +90,36 @@ class TuiControllerTest : public testing::Test {
     inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
   }
 
-  // Loads two maps and rebuilds the panel and controller. MapSelectPanel fixes
-  // its display order at construction, so the maps must exist before it does.
-  // Field, holding the level 1 snail, sorts ahead of Cave, holding the level 8
-  // mushroom.
+  // MapSelectPanel fixes its display order at construction, so the maps must
+  // exist before it does -- rebuild both after touching state_->maps.
+  void RebuildMapSelect() {
+    map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
+    controller_ = std::make_unique<TuiController>(
+        *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
+        *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
+        *sell_panel_, *map_select_panel_, panel_focus_);
+  }
+
+  // Adds a map on the second level band, so paging has somewhere to go. The
+  // two from LoadTwoMaps both sit on the first.
+  void AddMapOnTheSecondBand() {
+    Mob golem;
+    golem.set_name("Stone Golem");
+    golem.set_level(15);
+    state_->mobs["golem"] = golem;
+
+    MapData temple;
+    temple.set_name("Temple");
+    MapData::Spawn* golems = temple.add_spawns();
+    golems->set_mob("golem");
+    golems->set_count(3);
+    state_->maps["temple"] = temple;
+
+    RebuildMapSelect();
+  }
+
+  // Loads two maps, both on the first level band. Field, holding the level 1
+  // snail, sorts ahead of Cave, holding the level 8 mushroom.
   void LoadTwoMaps() {
     Mob snail;
     snail.set_name("Snail");
@@ -117,11 +143,7 @@ class TuiControllerTest : public testing::Test {
     state_->maps["field"] = field;
     state_->maps["cave"] = cave;
 
-    map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
-    controller_ = std::make_unique<TuiController>(
-        *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
-        *sell_panel_, *map_select_panel_, panel_focus_);
+    RebuildMapSelect();
   }
 
   // Renders equip_panel_ to sync its slots_ vector with character.equipped().
@@ -759,6 +781,32 @@ TEST_F(TuiControllerTest, EnterInMapSelectTravelsToTheHighlightedMap) {
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(state_->current_map, "field");
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, LeftAndRightInMapSelectChangeTheLevelBand) {
+  LoadTwoMaps();
+  AddMapOnTheSecondBand();
+  state_->current_map = "field";
+
+  controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // 1-10 -> 11-30
+  EXPECT_EQ(map_select_panel_->selected_map(), "temple");
+
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // back down
+  EXPECT_EQ(map_select_panel_->selected_map(), "field");
+}
+
+TEST_F(TuiControllerTest, EnterTravelsToAMapOnAnotherBand) {
+  LoadTwoMaps();
+  AddMapOnTheSecondBand();
+  state_->current_map = "field";
+
+  controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(state_->current_map, "temple");
   EXPECT_EQ(controller_->screen(), kMain);
 }
 

@@ -55,6 +55,33 @@ GameState ThreeMaps() {
       {{"green_field", green}, {"mixed_field", mixed}, {"horny_field", horny}});
 }
 
+Mob GolemMob() {
+  Mob mob;
+  mob.set_name("Stone Golem");
+  mob.set_level(15);
+  return mob;
+}
+
+// Green (level 1) and Horny (level 8) sit on the 1-10 band; Temple (level 15)
+// sits alone on the 11-30 one.
+GameState TwoBands() {
+  MapData green;
+  green.set_name("Green Field");
+  AddSpawn(&green, "snail", 4);
+  MapData horny;
+  horny.set_name("Horny Field");
+  AddSpawn(&horny, "mushroom", 6);
+  MapData temple;
+  temple.set_name("Temple");
+  AddSpawn(&temple, "golem", 3);
+  return GameState(
+      {}, {}, {},
+      {{"snail", SnailMob()},
+       {"mushroom", MushroomMob()},
+       {"golem", GolemMob()}},
+      {{"green_field", green}, {"horny_field", horny}, {"temple", temple}});
+}
+
 std::string Render(const MapSelectPanel& panel) {
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
@@ -163,6 +190,70 @@ TEST(MapSelectPanelTest, CursorStopsAtBothEndsOfTheList) {
 
   panel.MoveCursor(5);
   EXPECT_EQ(panel.selected_map(), "horny_field");
+}
+
+TEST(MapSelectPanelTest, OpensOnTheLowestBandWithNothingBeingFarmed) {
+  GameState state = TwoBands();
+  MapSelectPanel panel(state);
+  panel.Reset();
+  std::string rendered = Render(panel);
+
+  EXPECT_NE(rendered.find("Lv 1-10"), std::string::npos);
+  EXPECT_NE(rendered.find("Green Field"), std::string::npos);
+  EXPECT_EQ(rendered.find("Temple"), std::string::npos);
+}
+
+TEST(MapSelectPanelTest, ChangingPageShowsTheNextBandFromItsTop) {
+  GameState state = TwoBands();
+  MapSelectPanel panel(state);
+  panel.Reset();
+  panel.MoveCursor(1);  // Horny Field, so the cursor has somewhere to fall from
+
+  panel.ChangePage(1);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Lv 11-30"), std::string::npos);
+  EXPECT_NE(rendered.find("Temple"), std::string::npos);
+  EXPECT_EQ(rendered.find("Green Field"), std::string::npos);
+  EXPECT_EQ(panel.selected_map(), "temple");
+}
+
+TEST(MapSelectPanelTest, ResetOpensOnTheBandHoldingTheMapBeingFarmed) {
+  GameState state = TwoBands();
+  state.current_map = "temple";
+  MapSelectPanel panel(state);
+  panel.Reset();
+
+  EXPECT_EQ(panel.selected_map(), "temple");
+  EXPECT_NE(Render(panel).find("Lv 11-30"), std::string::npos);
+}
+
+TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
+  GameState state = TwoBands();
+  MapSelectPanel panel(state);
+  panel.Reset();
+
+  panel.ChangePage(-1);
+  EXPECT_EQ(panel.selected_map(), "green_field");
+
+  panel.ChangePage(5);
+  EXPECT_EQ(panel.selected_map(), "temple");
+}
+
+TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
+  // Nothing holds level 35 yet; it must not fall out of the list for that.
+  Mob drake;
+  drake.set_name("Drake");
+  drake.set_level(35);
+  MapData cave;
+  cave.set_name("Deep Cave");
+  AddSpawn(&cave, "drake", 5);
+  GameState state({}, {}, {}, {{"drake", drake}}, {{"deep_cave", cave}});
+  MapSelectPanel panel(state);
+  panel.Reset();
+  panel.ChangePage(1);
+
+  EXPECT_EQ(panel.selected_map(), "deep_cave");
+  EXPECT_NE(Render(panel).find("Deep Cave"), std::string::npos);
 }
 
 TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {

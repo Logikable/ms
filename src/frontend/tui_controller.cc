@@ -323,6 +323,14 @@ bool TuiController::OnMapSelectEvent(ftxui::Event event) {
     map_select_panel_.MoveCursor(1);
     return true;
   }
+  if (event == ftxui::Event::ArrowLeft) {
+    map_select_panel_.ChangePage(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    map_select_panel_.ChangePage(1);
+    return true;
+  }
   if (IsForward(event)) {
     // Travel is free, so the highlighted map is always a legal destination.
     // The fight restarts on its own once it sees the new map.
