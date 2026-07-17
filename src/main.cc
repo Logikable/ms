@@ -80,8 +80,9 @@ int main(int argc, char** argv) {
   state.character.PickUp(std::make_unique<ms::EquipInstance>(
       state.equips.at("fafnir_mistilteinn")));
 
-  // No map-selection UI yet; default to a map so combat runs.
-  state.current_map = "test_field";
+  // Where a new character starts. The weakest map there is; the player picks
+  // anywhere else from the map select.
+  state.current_map = "right_around_lith_harbor";
 
   ms::Tui(state).Run();
   return 0;

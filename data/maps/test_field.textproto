@@ -1,3 +1,0 @@
-name: "Test Field"
-spawns { mob: "snail" count: 1 }
-spawns { mob: "blue_snail" count: 1 }
