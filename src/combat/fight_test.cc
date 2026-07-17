@@ -13,10 +13,11 @@
 namespace ms {
 namespace {
 
-Mob MakeMob(const std::string& name, int max_hp) {
+Mob MakeMob(const std::string& name, int max_hp, int level = 0) {
   Mob mob;
   mob.set_name(name);
   mob.set_max_hp(max_hp);
+  mob.set_level(level);
   return mob;
 }
 
@@ -72,6 +73,19 @@ TEST(CombatSimTest, KillingTheLastMobEntersRespawning) {
   sim.Advance(params, 1.0);  // one-shot the only mob
   EXPECT_TRUE(sim.respawning());
   EXPECT_TRUE(sim.target_name().empty());
+}
+
+TEST(CombatSimTest, ReportsTheTargetLevelWhileFightingAndZeroWhileRespawning) {
+  Mob snail = MakeMob("Snail", 10, 5);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
+
+  sim.Advance(params, 0.5);  // mid-swing, mob still up
+  EXPECT_EQ(sim.target_level(), 5);
+
+  sim.Advance(params, 0.5);  // swing lands, one-shots the only mob
+  EXPECT_TRUE(sim.respawning());
+  EXPECT_EQ(sim.target_level(), 0);
 }
 
 TEST(CombatSimTest, RecordsKillsForTheStepTheyHappen) {

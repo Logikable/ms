@@ -39,6 +39,10 @@ class CombatSim {
   const std::string& target_name() const {
     return target_name_;
   }
+  // The current target's level (0 while respawning or inactive).
+  int target_level() const {
+    return target_level_;
+  }
   // The current target's remaining HP as a fraction in [0, 1].
   double target_hp_fraction() const {
     return target_hp_fraction_;
@@ -76,6 +80,7 @@ class CombatSim {
 
   // Cached render values, refreshed each Advance so accessors need no params.
   std::string target_name_;
+  int target_level_ = 0;
   double target_hp_fraction_ = 0.0;
   double attack_fraction_ = 0.0;
   std::vector<int64_t> kills_this_step_;

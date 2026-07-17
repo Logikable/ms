@@ -55,9 +55,13 @@ ftxui::Element CombatPanel::Render() const {
           ? ftxui::text("Respawning...")
           // White the whole way across, rather than the default dark-on-fill:
           // kRed takes white well, and the mob's name shouldn't turn over a
-          // letter at a time as its health drains.
+          // letter at a time as its health drains. The level leads the name so
+          // mixed-level maps read at a glance -- the map row only has room for
+          // the map's weighted average.
           : ProgressBar(static_cast<float>(sim_.target_hp_fraction()), kRed,
-                        sim_.target_name(), ftxui::Color::White);
+                        "Lv." + std::to_string(sim_.target_level()) + " " +
+                            sim_.target_name(),
+                        ftxui::Color::White);
 
   return ThemedWindow(" Combat ", ftxui::vbox({
                                       header,

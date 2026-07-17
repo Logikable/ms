@@ -114,7 +114,7 @@ TEST(CombatPanelTest, ReportsNotFightingWithoutAWeapon) {
   EXPECT_NE(RenderPanel(state, sim).find("Not fighting"), std::string::npos);
 }
 
-TEST(CombatPanelTest, LabelsTheHpBarWithTheTarget) {
+TEST(CombatPanelTest, LabelsTheHpBarWithTheTargetLevelAndName) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", SnailField()}});
   state.current_map = "field";
@@ -122,7 +122,7 @@ TEST(CombatPanelTest, LabelsTheHpBarWithTheTarget) {
   CombatSim sim;
   sim.Advance(ComputeCombatParams(state), 0.1);  // engaged, no hit yet
 
-  EXPECT_NE(RenderPanel(state, sim).find("Snail"), std::string::npos);
+  EXPECT_NE(RenderPanel(state, sim).find("Lv.1 Snail"), std::string::npos);
 }
 
 TEST(CombatPanelTest, ShowsRespawningOnceTheRosterIsClear) {

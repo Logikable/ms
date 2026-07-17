@@ -39,6 +39,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     initialized_ = false;
     respawning_ = false;
     target_name_.clear();
+    target_level_ = 0;
     target_hp_fraction_ = 0.0;
     attack_fraction_ = 0.0;
     return;
@@ -88,11 +89,13 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   respawning_ = roster_.empty();
   if (roster_.empty()) {
     target_name_.clear();
+    target_level_ = 0;
     target_hp_fraction_ = 0.0;
     attack_fraction_ = 0.0;
   } else {
     const Mob& target = *params.types[roster_.front()].mob;
     target_name_ = target.name();
+    target_level_ = target.level();
     target_hp_fraction_ =
         target.max_hp() > 0 ? std::clamp(target_hp_ / target.max_hp(), 0.0, 1.0)
                             : 0.0;
