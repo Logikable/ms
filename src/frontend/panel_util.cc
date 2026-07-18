@@ -153,6 +153,17 @@ std::string FormatJobCategories(const EquipPrototype& proto) {
   return result;
 }
 
+std::string JobName(Job job) {
+  switch (job) {
+    case JOB_BEGINNER:
+      return "Beginner";
+    case JOB_WARRIOR:
+      return "Warrior";
+    default:
+      return "Unknown";
+  }
+}
+
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
                             int scroll_left, int scroll_restore) {

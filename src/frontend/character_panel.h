@@ -27,7 +27,6 @@ class CharacterPanel {
   ftxui::Component MakeComponent(std::function<void()> on_ap);
 
  private:
-  static std::string JobName(Job job);
   // Formats one stat row padded to kContentWidth. Shows "(base+bonus)" when
   // bonus > 0; omits the breakdown when bonus is zero.
   static std::string StatRow(const std::string& label, int base, int bonus);

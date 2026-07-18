@@ -58,11 +58,13 @@ Tui::Tui(GameState& state)
       inventory_panel_(state.character, panel_focus_),
       scroll_panel_(state.scrolls),
       ap_alloc_panel_(state.character),
+      sp_alloc_panel_(state.character),
       trace_recover_panel_(state.character),
       map_select_panel_(state),
       controller_(state, equip_panel_, inventory_panel_, scroll_panel_,
-                  ap_alloc_panel_, star_force_panel_, trace_recover_panel_,
-                  sell_panel_, map_select_panel_, panel_focus_) {
+                  ap_alloc_panel_, sp_alloc_panel_, star_force_panel_,
+                  trace_recover_panel_, sell_panel_, map_select_panel_,
+                  panel_focus_) {
 }
 
 void Tui::Run() {
@@ -113,6 +115,9 @@ void Tui::Run() {
 ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kApAlloc) {
     return ftxui::center(ap_alloc_panel_.Render());
+  }
+  if (controller_.screen() == kSpAlloc) {
+    return ftxui::center(sp_alloc_panel_.Render());
   }
   if (controller_.screen() == kSell) {
     // Float the sell dialog over the main view for context.

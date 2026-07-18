@@ -7,6 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/colors.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -62,6 +63,10 @@ std::string FormatSlot(EquipSlot slot);
 // Returns "All" for universal items or a slash-separated list of job category
 // names (e.g. "Warrior/Thief"). Also returns "All" when the list is empty.
 std::string FormatJobCategories(const EquipPrototype& proto);
+
+// Returns the display name for a job (e.g. "Warrior"), or "Unknown" for a job
+// not yet given a name.
+std::string JobName(Job job);
 
 // Formats a single item list entry: name (26 cols), slot (10 cols), info
 // (padded to 20 cols), and scroll pass/left/restore counts. Pass -1 for all

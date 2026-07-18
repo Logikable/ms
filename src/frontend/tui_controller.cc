@@ -20,19 +20,18 @@
 
 namespace ms {
 
-TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
-                             InventoryPanel& inventory_panel,
-                             ScrollPanel& scroll_panel,
-                             ApAllocPanel& ap_alloc_panel,
-                             StarForcePanel& star_force_panel,
-                             TraceRecoverPanel& trace_recover_panel,
-                             SellPanel& sell_panel,
-                             MapSelectPanel& map_select_panel, int& panel_focus)
+TuiController::TuiController(
+    GameState& state, EquippedPanel& equip_panel,
+    InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
+    ApAllocPanel& ap_alloc_panel, SpAllocPanel& sp_alloc_panel,
+    StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
+    SellPanel& sell_panel, MapSelectPanel& map_select_panel, int& panel_focus)
     : state_(state),
       equip_panel_(equip_panel),
       inventory_panel_(inventory_panel),
       scroll_panel_(scroll_panel),
       ap_alloc_panel_(ap_alloc_panel),
+      sp_alloc_panel_(sp_alloc_panel),
       star_force_panel_(star_force_panel),
       trace_recover_panel_(trace_recover_panel),
       sell_panel_(sell_panel),
@@ -53,6 +52,11 @@ void TuiController::OpenInventoryMenu() {
 void TuiController::OpenApAlloc() {
   screen_ = kApAlloc;
   ap_alloc_panel_.Reset();
+}
+
+void TuiController::OpenSpAlloc() {
+  screen_ = kSpAlloc;
+  sp_alloc_panel_.Reset();
 }
 
 void TuiController::OpenMapSelect() {
@@ -95,6 +99,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
   }
   if (screen_ == kApAlloc) {
     return OnApAllocEvent(event);
+  }
+  if (screen_ == kSpAlloc) {
+    return OnSpAllocEvent(event);
   }
   if (screen_ == kStarForce) {
     return OnStarForceEvent(event);
@@ -235,6 +242,11 @@ bool TuiController::OnScrollResultEvent(ftxui::Event event) {
 
 bool TuiController::OnApAllocEvent(ftxui::Event event) {
   screen_ = ap_alloc_panel_.OnEvent(event);
+  return true;
+}
+
+bool TuiController::OnSpAllocEvent(ftxui::Event event) {
+  screen_ = sp_alloc_panel_.OnEvent(event);
   return true;
 }
 

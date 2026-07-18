@@ -17,6 +17,7 @@
 #include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
+#include "src/frontend/sp_alloc_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
@@ -32,7 +33,8 @@ class TuiController {
   // Container::Tab; the controller mutates it as focus changes.
   TuiController(GameState& state, EquippedPanel& equip_panel,
                 InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
-                ApAllocPanel& ap_alloc_panel, StarForcePanel& star_force_panel,
+                ApAllocPanel& ap_alloc_panel, SpAllocPanel& sp_alloc_panel,
+                StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
                 MapSelectPanel& map_select_panel, int& panel_focus);
 
@@ -40,6 +42,7 @@ class TuiController {
   void OpenEquipMenu();
   void OpenInventoryMenu();
   void OpenApAlloc();
+  void OpenSpAlloc();
   // Open the map selection screen, on the map being farmed.
   void OpenMapSelect();
 
@@ -76,6 +79,7 @@ class TuiController {
   bool OnScrollSelectEvent(ftxui::Event event);
   bool OnScrollResultEvent(ftxui::Event event);
   bool OnApAllocEvent(ftxui::Event event);
+  bool OnSpAllocEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
@@ -88,6 +92,7 @@ class TuiController {
   InventoryPanel& inventory_panel_;
   ScrollPanel& scroll_panel_;
   ApAllocPanel& ap_alloc_panel_;
+  SpAllocPanel& sp_alloc_panel_;
   StarForcePanel& star_force_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;

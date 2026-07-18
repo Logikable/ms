@@ -117,15 +117,4 @@ ftxui::Component CharacterPanel::MakeComponent(std::function<void()> on_ap) {
   });
 }
 
-std::string CharacterPanel::JobName(Job job) {
-  switch (job) {
-    case JOB_BEGINNER:
-      return "Beginner";
-    case JOB_WARRIOR:
-      return "Warrior";
-    default:
-      return "Unknown";
-  }
-}
-
 }  // namespace ms

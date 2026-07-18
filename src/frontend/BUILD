@@ -24,6 +24,7 @@ cc_library(
     hdrs = ["panel_util.h"],
     deps = [
         ":colors",
+        "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
@@ -234,6 +235,34 @@ cc_test(
 )
 
 cc_library(
+    name = "sp_alloc_panel",
+    srcs = ["sp_alloc_panel.cc"],
+    hdrs = ["sp_alloc_panel.h"],
+    deps = [
+        ":panel_util",
+        ":types",
+        "//src:character",
+        "//src/protos:character_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "sp_alloc_panel_test",
+    srcs = ["sp_alloc_panel_test.cc"],
+    deps = [
+        ":panel_test_base",
+        ":sp_alloc_panel",
+        ":types",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "item_menu",
     srcs = ["item_menu.cc"],
     hdrs = ["item_menu.h"],
@@ -381,6 +410,7 @@ cc_library(
         ":panel_util",
         ":scroll_panel",
         ":sell_panel",
+        ":sp_alloc_panel",
         ":star_force_panel",
         ":trace_recover_panel",
         ":types",
@@ -405,6 +435,7 @@ cc_test(
         ":map_select_panel",
         ":scroll_panel",
         ":sell_panel",
+        ":sp_alloc_panel",
         ":star_force_panel",
         ":trace_recover_panel",
         ":tui_controller",
@@ -439,6 +470,7 @@ cc_library(
         ":panel_util",
         ":scroll_panel",
         ":sell_panel",
+        ":sp_alloc_panel",
         ":star_force_panel",
         ":trace_recover_panel",
         ":tui_controller",
