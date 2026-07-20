@@ -48,8 +48,6 @@ class AdvanceJobTest : public CharacterTest {};
 // c_ is created locally per test using rng_.
 class AllocateStatTest : public CharacterTest {};
 
-class AllocateAllStatTest : public CharacterTest {};
-
 // Shared fixture for tests that operate on a character with a sword prototype.
 // Provides c_ (fresh level-1 character) and sword_ (named "Sword", primary
 // weapon slot, 7 upgrade slots). Tests pick up and equip as needed.
@@ -268,27 +266,6 @@ TEST_F(AllocateStatTest, AllFieldsWork) {
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_HP));
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_MP));
   EXPECT_EQ(c.proto().ap(), 4);
-}
-
-// --- AllocateAllStat ---
-
-TEST_F(AllocateAllStatTest, AllocatesAllAvailableAp) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/10);
-  EXPECT_TRUE(c.AllocateAllStat(STAT_FIELD_STR));
-  EXPECT_EQ(c.proto().allocated_stats().str(), 10);
-  EXPECT_EQ(c.proto().ap(), 0);
-}
-
-TEST_F(AllocateAllStatTest, ReturnsFalseWhenNoAp) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/0);
-  EXPECT_FALSE(c.AllocateAllStat(STAT_FIELD_STR));
-  EXPECT_EQ(c.proto().allocated_stats().str(), 0);
-}
-
-TEST_F(AllocateAllStatTest, ReturnsFalseForUnspecifiedField) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/5);
-  EXPECT_FALSE(c.AllocateAllStat(STAT_FIELD_UNSPECIFIED));
-  EXPECT_EQ(c.proto().ap(), 5);
 }
 
 // --- CanEquip ---

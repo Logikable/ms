@@ -148,20 +148,6 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
-bool CharacterInstance::AllocateAllStat(StatField field) {
-  if (field == STAT_FIELD_UNSPECIFIED) {
-    return false;
-  }
-  int ap = character_.ap();
-  if (ap == 0) {
-    return false;
-  }
-  // TODO: clamp `ap` to the per-stat cap for classes like Xenon, where each
-  // job advancement defines a maximum allocation per stat and the surplus AP
-  // must be assigned to a different stat.
-  return AllocateStat(field, ap);
-}
-
 void CharacterInstance::RecomputeEquipStats() {
   std::vector<EquipStats> list;
   for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
