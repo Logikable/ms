@@ -4,13 +4,15 @@
 #include <string>
 #include <utility>
 
+#include "src/character.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
 
 namespace {
 
-Character MakeStartingCharacterProto() {
+// The level-1 Beginner every character starts from, before any leveling.
+Character MakeBaseBeginnerProto() {
   Character proto;
   proto.set_level(1);
   proto.set_job(JOB_BEGINNER);
@@ -22,6 +24,22 @@ Character MakeStartingCharacterProto() {
   proto.mutable_allocated_stats()->set_hp(50);
   proto.mutable_allocated_stats()->set_mp(15);
   return proto;
+}
+
+// A level-15 Warrior to start with, so there is 1st-job SP (and AP) on hand to
+// test skills. Built by running the real leveling and advancement mechanics
+// rather than hardcoding totals, so AP and SP stay consistent with the level
+// and job if either is changed here.
+Character MakeStartingCharacterProto() {
+  // LevelUp and AdvanceJob don't consume randomness; a local rng keeps this
+  // independent of GameState's member rng and its construction order.
+  std::mt19937 rng(0);
+  CharacterInstance character(rng, MakeBaseBeginnerProto());
+  while (character.proto().level() < 15) {
+    character.LevelUp();
+  }
+  character.AdvanceJob(JOB_WARRIOR);
+  return character.proto();
 }
 
 }  // namespace
