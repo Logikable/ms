@@ -44,10 +44,10 @@ std::string StatText(const std::string& label, int base, int bonus) {
   return s;
 }
 
-// A non-allocatable display row: two-space cursor gutter, then "label: value".
+// A non-allocatable display row: one-space border gutter, then "label: value".
 ftxui::Element DisplayRow(const std::string& label, int value) {
   return ftxui::text(
-      PadRight("  " + label + ": " + std::to_string(value), kContentWidth));
+      PadRight(" " + label + ": " + std::to_string(value), kContentWidth));
 }
 
 // The base (AP-allocated) and gear-bonus values for one allocatable stat.
@@ -78,7 +78,7 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
                                         int bonus, int index,
                                         bool content_focused) const {
   bool selected = content_focused && stat_sel_ == index;
-  std::string text = "  " + StatText(label, base, bonus);
+  std::string text = " " + StatText(label, base, bonus);
   ftxui::Element plus = ftxui::text("[+]");
   if (character_.proto().ap() == 0) {
     plus = plus | ftxui::dim;
@@ -119,7 +119,7 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
 // player can see how much there is to spend on the [+] rows below.
 ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
   return ftxui::hbox({
-      ftxui::text("  MP: " + std::to_string(mp)),
+      ftxui::text(" MP: " + std::to_string(mp)),
       ftxui::filler(),
       ftxui::text(std::to_string(ap) + " AP "),
   });
