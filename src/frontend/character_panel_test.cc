@@ -115,6 +115,32 @@ TEST_F(CharacterPanelTest, EnterWithoutApDoesNotAllocate) {
   EXPECT_FALSE(fired);
 }
 
+TEST_F(CharacterPanelTest, NoApDownDoesNotEnterTheStatRows) {
+  // At 0 AP the stat rows are inert, so Down must not leave the tab bar. Prove
+  // it stayed on the tab bar: Right still switches Stats -> Skills.
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowDown);   // no AP: stays on the tab bar
+  comp->OnEvent(ftxui::Event::ArrowRight);  // tab bar: Stats -> Skills
+  EXPECT_NE(RenderComponent(comp).find("No advancements yet."),
+            std::string::npos);  // c is a Beginner
+}
+
+TEST_F(CharacterPanelTest, SpendingLastApReturnsTheCursorToTheTabBar) {
+  // Enter the stat rows with AP, then drain it: the cursor must not stay on the
+  // now-inert rows. The next key finds it back on the tab bar, where Right
+  // switches to Skills.
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/1);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> STR row
+  c.AllocateStat(STAT_FIELD_STR, 1);        // drains AP to 0
+  comp->OnEvent(ftxui::Event::ArrowRight);  // bounces to tab bar, then switches
+  EXPECT_NE(RenderComponent(comp).find("No advancements yet."),
+            std::string::npos);  // c is a Beginner
+}
+
 TEST_F(CharacterPanelTest, BeginnerSkillsTabShowsNoAdvancements) {
   CharacterPanel panel(c_, panel_focus_);  // c_ is a stage-0 Beginner
   ftxui::Component comp = panel.MakeComponent([](StatField) {});

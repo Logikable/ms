@@ -223,6 +223,12 @@ ftxui::Component CharacterPanel::MakeComponent(
     if (panel_focus_ != kCharPanel) {
       return false;
     }
+    // With no AP the stat rows are inert -- their [+] are dimmed, so a cursor
+    // resting there would be invisible. Keep it on the tab bar instead; this
+    // also recovers focus after the player spends their last point.
+    if (zone_ == kZoneStatRows && character_.proto().ap() == 0) {
+      zone_ = kZoneTabs;
+    }
     if (zone_ == kZoneTabs) {
       // Top zone: Left/Right switch tabs, Down enters the active tab's content.
       if (event == ftxui::Event::ArrowLeft) {
@@ -235,8 +241,12 @@ ftxui::Component CharacterPanel::MakeComponent(
       }
       if (event == ftxui::Event::ArrowDown) {
         if (active_tab_ == kTabStats) {
-          zone_ = kZoneStatRows;
-          stat_sel_ = 0;
+          // Only descend into the stat rows when there is AP to spend there;
+          // otherwise they are inert and Down does nothing.
+          if (character_.proto().ap() > 0) {
+            zone_ = kZoneStatRows;
+            stat_sel_ = 0;
+          }
         } else if (character_.proto().job_stage() > 0) {
           // Skills content starts at the advancement bar, on the current stage.
           zone_ = kZoneAdvTabs;
