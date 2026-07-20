@@ -76,8 +76,8 @@ CharacterPanel::CharacterPanel(const CharacterInstance& character,
 
 ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
                                         int bonus, int index,
-                                        bool focused) const {
-  bool selected = focused && stat_sel_ == index;
+                                        bool content_focused) const {
+  bool selected = content_focused && stat_sel_ == index;
   std::string text = "  " + StatText(label, base, bonus);
   ftxui::Element plus = ftxui::text("[+]");
   if (character_.proto().ap() == 0) {
@@ -93,15 +93,20 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
   });
 }
 
-ftxui::Element CharacterPanel::RenderTabBar() const {
+ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
   // Left-aligned chip row in the shared tab style: theme-colored labels, the
-  // active one inverted for a blue highlight. Matches the inventory tabs.
+  // active one highlighted. When the tab bar holds focus the active chip goes
+  // white to mark the selected row; otherwise it keeps the theme-blue invert.
   const char* labels[2] = {"Stats", "Skills"};
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < 2; ++i) {
     ftxui::Element chip =
         ftxui::text(std::string(" ") + labels[i] + " ") | ftxui::color(kTheme);
-    if (i == active_tab_) {
+    if (i == active_tab_ && row_selected) {
+      chip = ftxui::text(std::string(" ") + labels[i] + " ") |
+             ftxui::color(ftxui::Color::Black) |
+             ftxui::bgcolor(ftxui::Color::White);
+    } else if (i == active_tab_) {
       chip = chip | ftxui::inverted;
     }
     chips.push_back(std::move(chip));
@@ -120,7 +125,7 @@ ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
   });
 }
 
-ftxui::Element CharacterPanel::RenderStatsTab(bool focused) const {
+ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const Character& p = character_.proto();
   const AllocatedStats& a = p.allocated_stats();
   const EquipStats& e = character_.equip_stats();
@@ -131,7 +136,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool focused) const {
   for (int i = 0; i < kNumAllocStats; ++i) {
     std::pair<int, int> v = AllocStatValues(kAllocStats[i].field, a, e);
     rows.push_back(
-        AllocRow(kAllocStats[i].label, v.first, v.second, i, focused));
+        AllocRow(kAllocStats[i].label, v.first, v.second, i, content_focused));
   }
   rows.push_back(ThemedSeparator());
   rows.push_back(DisplayRow("ATT", e.attack()));
@@ -162,14 +167,17 @@ ftxui::Element CharacterPanel::Render() const {
       PadRight(std::string(pad, ' ') + raw_title, kContentWidth);
 
   bool focused = panel_focus_ == kCharPanel;
-  ftxui::Element content =
-      active_tab_ == kTabSkills ? RenderSkillsTab() : RenderStatsTab(focused);
+  bool tab_row_selected = focused && on_tab_bar_;
+  bool content_focused = focused && !on_tab_bar_;
+  ftxui::Element content = active_tab_ == kTabSkills
+                               ? RenderSkillsTab()
+                               : RenderStatsTab(content_focused);
 
   return ThemedWindow(" Character ",
                       ftxui::vbox({
                           ftxui::text(title),
                           ThemedSeparator(),
-                          RenderTabBar(),
+                          RenderTabBar(tab_row_selected),
                           ThemedSeparator(),
                           content,
                       }),
@@ -186,23 +194,30 @@ ftxui::Component CharacterPanel::MakeComponent(
     if (panel_focus_ != kCharPanel) {
       return false;
     }
-    // Left/Right always switch tabs, from either tab.
-    if (event == ftxui::Event::ArrowLeft) {
-      active_tab_ = kTabStats;
-      return true;
-    }
-    if (event == ftxui::Event::ArrowRight) {
-      active_tab_ = kTabSkills;
-      return true;
-    }
-    // The Skills tab has no content cursor yet; only the Stats rows respond to
-    // Up/Down and Enter.
-    if (active_tab_ != kTabStats) {
+    if (on_tab_bar_) {
+      // Top zone: Left/Right switch tabs, Down enters the active tab's content.
+      if (event == ftxui::Event::ArrowLeft) {
+        active_tab_ = kTabStats;
+        return true;
+      }
+      if (event == ftxui::Event::ArrowRight) {
+        active_tab_ = kTabSkills;
+        return true;
+      }
+      // The Skills tab has no content zone yet, so only Stats accepts Down.
+      if (event == ftxui::Event::ArrowDown && active_tab_ == kTabStats) {
+        on_tab_bar_ = false;
+        stat_sel_ = 0;
+        return true;
+      }
       return false;
     }
-    // The cursor never leaves the stat rows: Up off STR (row 0) is a no-op.
+    // Stats content zone: Up/Down walk the rows; Up off STR returns to the tab
+    // bar. Left/Right do nothing here -- they belong to the tab bar.
     if (event == ftxui::Event::ArrowUp) {
-      if (stat_sel_ > 0) {
+      if (stat_sel_ == 0) {
+        on_tab_bar_ = true;
+      } else {
         stat_sel_--;
       }
       return true;
