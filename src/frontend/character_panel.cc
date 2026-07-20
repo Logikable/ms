@@ -76,29 +76,19 @@ CharacterPanel::CharacterPanel(const CharacterInstance& character,
 
 ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
                                         int bonus, int index,
-                                        bool content_active) const {
-  bool selected = content_active && stat_sel_ == index;
-  std::string text = (selected ? "> " : "  ") + StatText(label, base, bonus);
-  if (!selected) {
-    return ftxui::text(PadRight(text, kContentWidth));
-  }
-  bool has_ap = character_.proto().ap() > 0;
+                                        bool focused) const {
+  bool selected = focused && stat_sel_ == index;
+  std::string text = "  " + StatText(label, base, bonus);
   ftxui::Element plus = ftxui::text("[+]");
-  ftxui::Element max = ftxui::text("[Max]");
-  if (!has_ap) {
+  if (character_.proto().ap() == 0) {
     plus = plus | ftxui::dim;
-    max = max | ftxui::dim;
-  } else if (button_sel_ == 0) {
+  } else if (selected) {
     plus = plus | ftxui::inverted;
-  } else {
-    max = max | ftxui::inverted;
   }
   return ftxui::hbox({
       ftxui::text(text),
       ftxui::filler(),
       plus,
-      ftxui::text("  "),
-      max,
       ftxui::text(" "),
   });
 }
@@ -120,21 +110,28 @@ ftxui::Element CharacterPanel::RenderTabBar() const {
   return ftxui::hbox(std::move(chips));
 }
 
+// The MP display row with the character's unspent AP right-aligned, so the
+// player can see how much there is to spend on the [+] rows below.
+ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
+  return ftxui::hbox({
+      ftxui::text("  MP: " + std::to_string(mp)),
+      ftxui::filler(),
+      ftxui::text(std::to_string(ap) + " AP "),
+  });
+}
+
 ftxui::Element CharacterPanel::RenderStatsTab(bool focused) const {
   const Character& p = character_.proto();
   const AllocatedStats& a = p.allocated_stats();
   const EquipStats& e = character_.equip_stats();
-  // The cursor is in the content (rather than on the tab bar) only when the
-  // panel is focused and Down was pressed off the tab bar.
-  bool content_active = focused && !on_tab_bar_;
 
   std::vector<ftxui::Element> rows;
   rows.push_back(DisplayRow("HP", a.hp() + e.max_hp()));
-  rows.push_back(DisplayRow("MP", a.mp()));
+  rows.push_back(MpRow(a.mp(), p.ap()));
   for (int i = 0; i < kNumAllocStats; ++i) {
     std::pair<int, int> v = AllocStatValues(kAllocStats[i].field, a, e);
     rows.push_back(
-        AllocRow(kAllocStats[i].label, v.first, v.second, i, content_active));
+        AllocRow(kAllocStats[i].label, v.first, v.second, i, focused));
   }
   rows.push_back(ThemedSeparator());
   rows.push_back(DisplayRow("ATT", e.attack()));
@@ -180,7 +177,7 @@ ftxui::Element CharacterPanel::Render() const {
 }
 
 ftxui::Component CharacterPanel::MakeComponent(
-    std::function<void(StatField, bool)> on_allocate) {
+    std::function<void(StatField)> on_allocate) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
@@ -189,51 +186,35 @@ ftxui::Component CharacterPanel::MakeComponent(
     if (panel_focus_ != kCharPanel) {
       return false;
     }
-    if (on_tab_bar_) {
-      if (event == ftxui::Event::ArrowLeft) {
-        active_tab_ = kTabStats;
-        return true;
-      }
-      if (event == ftxui::Event::ArrowRight) {
-        active_tab_ = kTabSkills;
-        return true;
-      }
-      // The Skills tab has no content cursor yet, so Down only enters Stats.
-      if (event == ftxui::Event::ArrowDown && active_tab_ == kTabStats) {
-        on_tab_bar_ = false;
-        stat_sel_ = 0;
-        button_sel_ = 0;
-        return true;
-      }
+    // Left/Right always switch tabs, from either tab.
+    if (event == ftxui::Event::ArrowLeft) {
+      active_tab_ = kTabStats;
+      return true;
+    }
+    if (event == ftxui::Event::ArrowRight) {
+      active_tab_ = kTabSkills;
+      return true;
+    }
+    // The Skills tab has no content cursor yet; only the Stats rows respond to
+    // Up/Down and Enter.
+    if (active_tab_ != kTabStats) {
       return false;
     }
-    // Cursor is in the Stats content, on one of the allocatable rows.
+    // The cursor never leaves the stat rows: Up off STR (row 0) is a no-op.
     if (event == ftxui::Event::ArrowUp) {
-      if (stat_sel_ == 0) {
-        on_tab_bar_ = true;
-      } else {
+      if (stat_sel_ > 0) {
         stat_sel_--;
-        button_sel_ = 0;
       }
       return true;
     }
     if (event == ftxui::Event::ArrowDown) {
       if (stat_sel_ < kNumAllocStats - 1) {
         stat_sel_++;
-        button_sel_ = 0;
       }
       return true;
     }
-    if (event == ftxui::Event::ArrowLeft) {
-      button_sel_ = 0;
-      return true;
-    }
-    if (event == ftxui::Event::ArrowRight) {
-      button_sel_ = 1;
-      return true;
-    }
     if (IsForward(event) && character_.proto().ap() > 0) {
-      on_allocate(kAllocStats[stat_sel_].field, button_sel_ == 1);
+      on_allocate(kAllocStats[stat_sel_].field);
       return true;
     }
     return false;

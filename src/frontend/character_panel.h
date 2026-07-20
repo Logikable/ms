@@ -4,12 +4,12 @@
  * equipment-derived combat stats (ATT/MATT); the Skills tab is a placeholder
  * until skills land.
  *
- * Focus navigation follows a vertical cursor. The tab bar is the top stop:
- * there Left/Right switch tabs and Down enters the content. In the Stats
- * content the cursor walks the four AP-allocatable rows (STR/DEX/INT/LUK);
- * Left/Right pick the [+] / [Max] button on the current row and Enter fires it
- * (via the on_allocate callback), while Up off the top row returns to the tab
- * bar. Produces a new ftxui Element on each Render() call.
+ * Focus navigation: Left/Right always switch tabs. On the Stats tab a cursor
+ * sits on one of the four AP-allocatable rows (STR/DEX/INT/LUK), STR topmost;
+ * Up/Down move it (Up off STR is a no-op -- the cursor never leaves the rows).
+ * Each row shows a [+] button; Enter on the current row fires on_allocate for
+ * that stat while there is unspent AP. Produces a new ftxui Element on each
+ * Render() call.
  */
 #ifndef MS_SRC_FRONTEND_CHARACTER_PANEL_H_
 #define MS_SRC_FRONTEND_CHARACTER_PANEL_H_
@@ -33,27 +33,26 @@ class CharacterPanel {
 
   explicit CharacterPanel(const CharacterInstance& character, int& panel_focus);
   ftxui::Element Render() const;
-  // on_allocate(field, max) fires when Enter is pressed on a Stats-tab stat's
-  // [+] (max=false) or [Max] (max=true) button while there is unspent AP.
-  ftxui::Component MakeComponent(
-      std::function<void(StatField, bool)> on_allocate);
+  // on_allocate(field) fires when Enter is pressed on a Stats-tab stat's [+]
+  // button while there is unspent AP; the caller pops the amount entry.
+  ftxui::Component MakeComponent(std::function<void(StatField)> on_allocate);
 
  private:
   ftxui::Element RenderTabBar() const;
   ftxui::Element RenderStatsTab(bool focused) const;
   ftxui::Element RenderSkillsTab() const;
-  // Renders one allocatable stat row. When it is the selected row and the Stats
-  // content holds the cursor (content_active), it shows the "> " caret and the
-  // [+]/[Max] buttons, dimmed when there is no AP to spend.
+  // The MP row with unspent AP right-aligned as "N AP".
+  ftxui::Element MpRow(int mp, int ap) const;
+  // Renders one allocatable stat row: label/value on the left, a [+] button on
+  // the right. The [+] is dimmed when there is no AP to spend, and inverted on
+  // the selected row while the panel is focused (that row's Enter target).
   ftxui::Element AllocRow(const std::string& label, int base, int bonus,
-                          int index, bool content_active) const;
+                          int index, bool focused) const;
 
   const CharacterInstance& character_;
   int& panel_focus_;
-  int active_tab_ = 0;      // which tab is shown: Stats (0) or Skills (1)
-  bool on_tab_bar_ = true;  // cursor on the tab bar (true) or in the content
+  int active_tab_ = 0;  // which tab is shown: Stats (0) or Skills (1)
   int stat_sel_ = 0;    // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
-  int button_sel_ = 0;  // selected button on that row: [+] (0) or [Max] (1)
 };
 
 }  // namespace ms

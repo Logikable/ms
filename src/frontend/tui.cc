@@ -15,6 +15,7 @@
 #include "src/combat/combat.h"
 #include "src/equip_instance.h"
 #include "src/exp_table.h"
+#include "src/frontend/amount_selector.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/colors.h"
 #include "src/frontend/combat_panel.h"
@@ -70,10 +71,8 @@ void Tui::Run() {
       equip_panel_.MakeComponent([this]() { controller_.OpenEquipMenu(); });
   inventory_component_ = inventory_panel_.MakeComponent(
       [this]() { controller_.OpenInventoryMenu(); });
-  char_component_ =
-      char_panel_.MakeComponent([this](StatField field, bool max) {
-        controller_.OpenApConfirm(field, max);
-      });
+  char_component_ = char_panel_.MakeComponent(
+      [this](StatField field) { controller_.OpenApAllocate(field); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
 
@@ -113,12 +112,17 @@ void Tui::Run() {
 }
 
 ftxui::Element Tui::RenderFrame() {
-  if (controller_.screen() == kApConfirm) {
-    // Float the confirm dialog over the main view so the stat being raised
+  if (controller_.screen() == kApAlloc) {
+    // Float the AP amount entry over the main view so the stat being raised
     // stays visible behind it.
-    ftxui::Element dialog =
-        ConfirmDialog(controller_.ap_confirm_message(),
-                      controller_.ap_confirm_cancel_selected());
+    ftxui::Element dialog = ThemedWindow(
+        " Allocate AP ",
+        ftxui::vbox({
+            ftxui::text(StatFieldName(controller_.ap_alloc_field())) |
+                ftxui::hcenter,
+            ThemedSeparator(),
+            controller_.ap_selector().Render(),
+        }));
     return ftxui::dbox({
         RenderMain(),
         ftxui::center(dialog | ftxui::clear_under),

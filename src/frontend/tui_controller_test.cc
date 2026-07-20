@@ -226,45 +226,53 @@ TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
 
 // --- AP allocation ---
 
-TEST_F(TuiControllerTest, OpenApConfirmSetsScreenToApConfirm) {
-  controller_->OpenApConfirm(STAT_FIELD_STR, /*max=*/false);
-  EXPECT_EQ(controller_->screen(), kApConfirm);
+TEST_F(TuiControllerTest, OpenApAllocateSetsScreenToApAlloc) {
+  controller_->OpenApAllocate(STAT_FIELD_STR);
+  EXPECT_EQ(controller_->screen(), kApAlloc);
 }
 
-TEST_F(TuiControllerTest, ConfirmAllocatesOneAp) {
+TEST_F(TuiControllerTest, ConfirmAllocatesAllAvailableApByDefault) {
   state_->character.LevelUp();  // grants AP to spend
-  int str_before = state_->character.proto().allocated_stats().str();
-  controller_->OpenApConfirm(STAT_FIELD_STR, /*max=*/false);
-  controller_->OnEvent(ftxui::Event::Return);  // caret defaults to [Confirm]
-  EXPECT_EQ(state_->character.proto().allocated_stats().str(), str_before + 1);
-  EXPECT_EQ(controller_->screen(), kMain);
-}
-
-TEST_F(TuiControllerTest, ConfirmMaxAllocatesAllAp) {
-  state_->character.LevelUp();
   int ap = state_->character.proto().ap();
   ASSERT_GT(ap, 0);
   int str_before = state_->character.proto().allocated_stats().str();
-  controller_->OpenApConfirm(STAT_FIELD_STR, /*max=*/true);
+  controller_->OpenApAllocate(STAT_FIELD_STR);    // amount defaults to max
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.proto().allocated_stats().str(), str_before + ap);
   EXPECT_EQ(state_->character.proto().ap(), 0);
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, CancelInApConfirmDoesNotAllocate) {
+TEST_F(TuiControllerTest, ConfirmAllocatesTheChosenAmount) {
+  state_->character.LevelUp();
+  int ap = state_->character.proto().ap();
+  ASSERT_GT(ap, 1);
+  int str_before = state_->character.proto().allocated_stats().str();
+  controller_->OpenApAllocate(STAT_FIELD_STR);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
+  controller_->OnEvent(ftxui::Event::Return);     // amount 1
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // [1] -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.proto().allocated_stats().str(), str_before + 1);
+  EXPECT_EQ(state_->character.proto().ap(), ap - 1);
+}
+
+TEST_F(TuiControllerTest, CancelInApAllocDoesNotAllocate) {
   state_->character.LevelUp();
   int str_before = state_->character.proto().allocated_stats().str();
-  controller_->OpenApConfirm(STAT_FIELD_STR, /*max=*/false);
-  controller_->OnEvent(ftxui::Event::ArrowRight);  // move caret to [Cancel]
+  controller_->OpenApAllocate(STAT_FIELD_STR);
+  controller_->OnEvent(ftxui::Event::ArrowDown);   // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.proto().allocated_stats().str(), str_before);
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, EscapeInApConfirmGoesToMainWithoutAllocating) {
+TEST_F(TuiControllerTest, EscapeInApAllocGoesToMainWithoutAllocating) {
   state_->character.LevelUp();
   int str_before = state_->character.proto().allocated_stats().str();
-  controller_->OpenApConfirm(STAT_FIELD_STR, /*max=*/false);
+  controller_->OpenApAllocate(STAT_FIELD_STR);
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(state_->character.proto().allocated_stats().str(), str_before);
   EXPECT_EQ(controller_->screen(), kMain);

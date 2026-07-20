@@ -13,6 +13,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/amount_selector.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/map_select_panel.h"
@@ -41,16 +42,19 @@ class TuiController {
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
   void OpenInventoryMenu();
-  // Float the AP-allocation confirm dialog over the main view: assign one AP to
-  // `field` (max=false) or all available AP (max=true), pending confirmation.
-  void OpenApConfirm(StatField field, bool max);
+  // Float the AP-allocation amount entry over the main view, seeded to spend up
+  // to all available AP on `field` (defaulting to the max).
+  void OpenApAllocate(StatField field);
   // Open the map selection screen, on the map being farmed.
   void OpenMapSelect();
 
-  // Message for the pending AP-allocation confirm, e.g. "Assign 5 AP to STR?".
-  std::string ap_confirm_message() const;
-  bool ap_confirm_cancel_selected() const {
-    return ap_confirm_cancel_;
+  // The stat the pending AP allocation targets, and its amount selector, for
+  // the dialog Tui floats over the main view.
+  StatField ap_alloc_field() const {
+    return ap_field_;
+  }
+  const AmountSelector& ap_selector() const {
+    return ap_selector_;
   }
 
   // Returns true if the event was consumed.
@@ -85,7 +89,7 @@ class TuiController {
   bool OnInspectEvent(ftxui::Event event);
   bool OnScrollSelectEvent(ftxui::Event event);
   bool OnScrollResultEvent(ftxui::Event event);
-  bool OnApConfirmEvent(ftxui::Event event);
+  bool OnApAllocEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
@@ -112,9 +116,8 @@ class TuiController {
   int trace_index_ = 0;
   ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
   int sell_index_ = 0;
-  StatField ap_confirm_field_ = STAT_FIELD_UNSPECIFIED;
-  bool ap_confirm_max_ = false;
-  bool ap_confirm_cancel_ = false;  // which button is highlighted in the dialog
+  StatField ap_field_ = STAT_FIELD_UNSPECIFIED;
+  AmountSelector ap_selector_;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;
   TraceRecoveryResult trace_recovery_result_;

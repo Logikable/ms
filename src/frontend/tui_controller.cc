@@ -47,17 +47,10 @@ void TuiController::OpenInventoryMenu() {
   inventory_panel_.OpenMenu();
 }
 
-void TuiController::OpenApConfirm(StatField field, bool max) {
-  ap_confirm_field_ = field;
-  ap_confirm_max_ = max;
-  ap_confirm_cancel_ = false;  // default the caret to [Confirm]
-  screen_ = kApConfirm;
-}
-
-std::string TuiController::ap_confirm_message() const {
-  int amount = ap_confirm_max_ ? state_.character.proto().ap() : 1;
-  return " Assign " + std::to_string(amount) + " AP to " +
-         StatFieldName(ap_confirm_field_) + "? ";
+void TuiController::OpenApAllocate(StatField field) {
+  ap_field_ = field;
+  ap_selector_.Reset(state_.character.proto().ap());
+  screen_ = kApAlloc;
 }
 
 void TuiController::OpenMapSelect() {
@@ -98,8 +91,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kScrollResult) {
     return OnScrollResultEvent(event);
   }
-  if (screen_ == kApConfirm) {
-    return OnApConfirmEvent(event);
+  if (screen_ == kApAlloc) {
+    return OnApAllocEvent(event);
   }
   if (screen_ == kStarForce) {
     return OnStarForceEvent(event);
@@ -235,27 +228,12 @@ bool TuiController::OnScrollResultEvent(ftxui::Event event) {
   return true;
 }
 
-bool TuiController::OnApConfirmEvent(ftxui::Event event) {
-  if (IsBack(event)) {
+bool TuiController::OnApAllocEvent(ftxui::Event event) {
+  ap_selector_.OnEvent(event);
+  if (ap_selector_.TakeConfirmed()) {
+    state_.character.AllocateStat(ap_field_, ap_selector_.value());
     screen_ = kMain;
-    return true;
-  }
-  if (event == ftxui::Event::ArrowLeft) {
-    ap_confirm_cancel_ = false;
-    return true;
-  }
-  if (event == ftxui::Event::ArrowRight) {
-    ap_confirm_cancel_ = true;
-    return true;
-  }
-  if (IsForward(event)) {
-    if (!ap_confirm_cancel_) {
-      if (ap_confirm_max_) {
-        state_.character.AllocateAllStat(ap_confirm_field_);
-      } else {
-        state_.character.AllocateStat(ap_confirm_field_);
-      }
-    }
+  } else if (ap_selector_.TakeCancelled()) {
     screen_ = kMain;
   }
   return true;

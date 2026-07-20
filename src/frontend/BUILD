@@ -370,6 +370,7 @@ cc_library(
     srcs = ["tui_controller.cc"],
     hdrs = ["tui_controller.h"],
     deps = [
+        ":amount_selector",
         ":equipped_panel",
         ":inventory_panel",
         ":map_select_panel",
@@ -422,6 +423,7 @@ cc_library(
     srcs = ["tui.cc"],
     hdrs = ["tui.h"],
     deps = [
+        ":amount_selector",
         ":character_panel",
         ":colors",
         ":combat_panel",

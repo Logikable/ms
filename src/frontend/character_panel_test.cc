@@ -39,9 +39,9 @@ TEST_F(CharacterPanelTest, StatsTabIsShownByDefault) {
   EXPECT_NE(RenderElement(panel.Render()).find("HP:"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, ArrowKeysSwitchTabsFromTheTabBar) {
+TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
   CharacterPanel panel(c_, panel_focus_);  // panel_focus_ == kCharPanel
-  ftxui::Component comp = panel.MakeComponent([](StatField, bool) {});
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
@@ -53,68 +53,55 @@ TEST_F(CharacterPanelTest, ArrowKeysSwitchTabsFromTheTabBar) {
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, DownEntersStatsContentAndShowsButtons) {
+TEST_F(CharacterPanelTest, StatsTabShowsPlusButtons) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([](StatField, bool) {});
-  EXPECT_EQ(RenderComponent(comp).find("[+]"),
-            std::string::npos);  // on tab bar
-
-  comp->OnEvent(ftxui::Event::ArrowDown);  // enter Stats content, cursor on STR
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
   std::string rendered = RenderComponent(comp);
-  EXPECT_NE(rendered.find("> STR"), std::string::npos);
   EXPECT_NE(rendered.find("[+]"), std::string::npos);
-  EXPECT_NE(rendered.find("[Max]"), std::string::npos);
+  EXPECT_EQ(rendered.find("[Max]"), std::string::npos);  // [Max] is gone
 }
 
-TEST_F(CharacterPanelTest, UpFromTheFirstRowReturnsToTheTabBar) {
+TEST_F(CharacterPanelTest, ShowsAvailableApInTheMpRow) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([](StatField, bool) {});
-  comp->OnEvent(ftxui::Event::ArrowDown);  // into content
-  comp->OnEvent(ftxui::Event::ArrowUp);    // back to the tab bar
-  EXPECT_EQ(RenderComponent(comp).find("[+]"), std::string::npos);
+  EXPECT_NE(RenderElement(panel.Render()).find("5 AP"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, EnterOnPlusAllocatesTheSelectedStat) {
+TEST_F(CharacterPanelTest, EnterOnTheSelectedRowAllocatesThatStat) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
-  bool max = true;
-  ftxui::Component comp = panel.MakeComponent([&](StatField f, bool m) {
-    field = f;
-    max = m;
-  });
-  comp->OnEvent(ftxui::Event::ArrowDown);  // STR row, [+] selected
-  comp->OnEvent(ftxui::Event::Return);
+  ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
+  comp->OnEvent(ftxui::Event::Return);  // STR is topmost, already selected
   EXPECT_EQ(field, STAT_FIELD_STR);
-  EXPECT_FALSE(max);
 }
 
-TEST_F(CharacterPanelTest, RightThenEnterAllocatesViaMax) {
+TEST_F(CharacterPanelTest, DownMovesTheCursorToTheNextStat) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
-  bool max = false;
-  ftxui::Component comp = panel.MakeComponent([&](StatField f, bool m) {
-    field = f;
-    max = m;
-  });
-  comp->OnEvent(ftxui::Event::ArrowDown);   // STR row
-  comp->OnEvent(ftxui::Event::ArrowDown);   // DEX row
-  comp->OnEvent(ftxui::Event::ArrowRight);  // select [Max]
+  ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
+  comp->OnEvent(ftxui::Event::ArrowDown);  // STR -> DEX
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(field, STAT_FIELD_DEX);
-  EXPECT_TRUE(max);
+}
+
+TEST_F(CharacterPanelTest, UpFromStrKeepsTheCursorOnStr) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
+  comp->OnEvent(ftxui::Event::ArrowUp);  // no-op: cursor never leaves the rows
+  comp->OnEvent(ftxui::Event::Return);   // still fires STR
+  EXPECT_EQ(field, STAT_FIELD_STR);
 }
 
 TEST_F(CharacterPanelTest, EnterWithoutApDoesNotAllocate) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   CharacterPanel panel(c, panel_focus_);
   bool fired = false;
-  ftxui::Component comp =
-      panel.MakeComponent([&](StatField, bool) { fired = true; });
-  comp->OnEvent(ftxui::Event::ArrowDown);
+  ftxui::Component comp = panel.MakeComponent([&](StatField) { fired = true; });
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(fired);
 }
