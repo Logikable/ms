@@ -87,10 +87,6 @@ ftxui::Element ConfirmBar(bool cancel_selected);
 // main action panel so height is reserved only when confirmation is pending.
 ftxui::Element ConfirmWindow(bool cancel_selected);
 
-// Renders a message line above a [Confirm]/[Cancel] bar in a themed window,
-// for a yes/no prompt floated over the main view.
-ftxui::Element ConfirmDialog(const std::string& message, bool cancel_selected);
-
 // A one-row progress bar filled to frac (clamped to [0, 1]) in `fill`, with the
 // remainder in kBarEmpty. `label` is centered over the bar, dark on the filled
 // side and light on the unfilled side; pass "" for an unlabelled bar.

@@ -229,13 +229,6 @@ ftxui::Element ConfirmWindow(bool cancel_selected) {
   return ThemedWindow("", ConfirmBar(cancel_selected) | ftxui::hcenter);
 }
 
-ftxui::Element ConfirmDialog(const std::string& message, bool cancel_selected) {
-  return ThemedWindow("", ftxui::vbox({
-                              ftxui::text(message),
-                              ConfirmBar(cancel_selected) | ftxui::hcenter,
-                          }));
-}
-
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused) {
   ftxui::Element title_el = ftxui::text(title) | ftxui::color(kTheme);
