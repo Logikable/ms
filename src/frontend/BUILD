@@ -206,35 +206,6 @@ cc_test(
 )
 
 cc_library(
-    name = "ap_alloc_panel",
-    srcs = ["ap_alloc_panel.cc"],
-    hdrs = ["ap_alloc_panel.h"],
-    deps = [
-        ":panel_util",
-        ":types",
-        "//src:character",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-    ],
-)
-
-cc_test(
-    name = "ap_alloc_panel_test",
-    srcs = ["ap_alloc_panel_test.cc"],
-    deps = [
-        ":ap_alloc_panel",
-        ":panel_test_base",
-        ":types",
-        "@ftxui//:component",
-        "@ftxui//:dom",
-        "@ftxui//:screen",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "item_menu",
     srcs = ["item_menu.cc"],
     hdrs = ["item_menu.h"],
@@ -375,7 +346,6 @@ cc_library(
     srcs = ["tui_controller.cc"],
     hdrs = ["tui_controller.h"],
     deps = [
-        ":ap_alloc_panel",
         ":equipped_panel",
         ":inventory_panel",
         ":map_select_panel",
@@ -389,6 +359,7 @@ cc_library(
         "//src:equip_instance",
         "//src:game_state",
         "//src:item",
+        "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:scroll_proto_cc",
@@ -400,7 +371,6 @@ cc_test(
     name = "tui_controller_test",
     srcs = ["tui_controller_test.cc"],
     deps = [
-        ":ap_alloc_panel",
         ":equipped_panel",
         ":inventory_panel",
         ":map_select_panel",
@@ -428,7 +398,6 @@ cc_library(
     srcs = ["tui.cc"],
     hdrs = ["tui.h"],
     deps = [
-        ":ap_alloc_panel",
         ":character_panel",
         ":colors",
         ":combat_panel",
@@ -449,6 +418,7 @@ cc_library(
         "//src:game_state",
         "//src/combat",
         "//src/combat:fight",
+        "//src/protos:character_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],

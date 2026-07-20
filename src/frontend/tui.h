@@ -10,7 +10,6 @@
 
 #include "ftxui/component/component.hpp"
 #include "src/combat/fight.h"
-#include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/combat_panel.h"
 #include "src/frontend/equipped_panel.h"
@@ -55,7 +54,6 @@ class Tui {
   ScrollPanel scroll_panel_;
   InspectPanel inspect_panel_;
   InspectPanel trace_inspect_panel_;  // left panel on kTraceRecover (preview)
-  ApAllocPanel ap_alloc_panel_;
   StarForcePanel star_force_panel_;
   TraceRecoverPanel trace_recover_panel_;
   SellPanel sell_panel_;

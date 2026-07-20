@@ -68,6 +68,10 @@ std::string FormatJobCategories(const EquipPrototype& proto);
 // not yet given a name.
 std::string JobName(Job job);
 
+// Returns the short display label for an AP stat field (e.g. "STR"), or "" for
+// STAT_FIELD_UNSPECIFIED.
+std::string StatFieldName(StatField field);
+
 // Formats a single item list entry: name (26 cols), slot (10 cols), info
 // (padded to 20 cols), and scroll pass/left/restore counts. Pass -1 for all
 // three scroll values to render "-" (use for non-upgradeable items).
@@ -82,6 +86,10 @@ ftxui::Element ConfirmBar(bool cancel_selected);
 // Renders the confirm bar in a titled window. Intended to appear below the
 // main action panel so height is reserved only when confirmation is pending.
 ftxui::Element ConfirmWindow(bool cancel_selected);
+
+// Renders a message line above a [Confirm]/[Cancel] bar in a themed window,
+// for a yes/no prompt floated over the main view.
+ftxui::Element ConfirmDialog(const std::string& message, bool cancel_selected);
 
 // A one-row progress bar filled to frac (clamped to [0, 1]) in `fill`, with the
 // remainder in kBarEmpty. `label` is centered over the bar, dark on the filled

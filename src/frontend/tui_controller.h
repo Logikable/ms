@@ -9,9 +9,10 @@
 #ifndef MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 #define MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 
+#include <string>
+
 #include "ftxui/component/event.hpp"
 #include "src/equip_instance.h"
-#include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/map_select_panel.h"
@@ -21,6 +22,7 @@
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -32,16 +34,24 @@ class TuiController {
   // Container::Tab; the controller mutates it as focus changes.
   TuiController(GameState& state, EquippedPanel& equip_panel,
                 InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
-                ApAllocPanel& ap_alloc_panel, StarForcePanel& star_force_panel,
+                StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
                 MapSelectPanel& map_select_panel, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
   void OpenInventoryMenu();
-  void OpenApAlloc();
+  // Float the AP-allocation confirm dialog over the main view: assign one AP to
+  // `field` (max=false) or all available AP (max=true), pending confirmation.
+  void OpenApConfirm(StatField field, bool max);
   // Open the map selection screen, on the map being farmed.
   void OpenMapSelect();
+
+  // Message for the pending AP-allocation confirm, e.g. "Assign 5 AP to STR?".
+  std::string ap_confirm_message() const;
+  bool ap_confirm_cancel_selected() const {
+    return ap_confirm_cancel_;
+  }
 
   // Returns true if the event was consumed.
   bool OnEvent(ftxui::Event event);
@@ -75,7 +85,7 @@ class TuiController {
   bool OnInspectEvent(ftxui::Event event);
   bool OnScrollSelectEvent(ftxui::Event event);
   bool OnScrollResultEvent(ftxui::Event event);
-  bool OnApAllocEvent(ftxui::Event event);
+  bool OnApConfirmEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
@@ -87,7 +97,6 @@ class TuiController {
   EquippedPanel& equip_panel_;
   InventoryPanel& inventory_panel_;
   ScrollPanel& scroll_panel_;
-  ApAllocPanel& ap_alloc_panel_;
   StarForcePanel& star_force_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
@@ -103,6 +112,9 @@ class TuiController {
   int trace_index_ = 0;
   ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
   int sell_index_ = 0;
+  StatField ap_confirm_field_ = STAT_FIELD_UNSPECIFIED;
+  bool ap_confirm_max_ = false;
+  bool ap_confirm_cancel_ = false;  // which button is highlighted in the dialog
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;
   TraceRecoveryResult trace_recovery_result_;

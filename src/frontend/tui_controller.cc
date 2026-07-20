@@ -5,7 +5,6 @@
 #include "ftxui/component/event.hpp"
 #include "src/character.h"
 #include "src/equip_instance.h"
-#include "src/frontend/ap_alloc_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/map_select_panel.h"
@@ -23,7 +22,6 @@ namespace ms {
 TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
                              InventoryPanel& inventory_panel,
                              ScrollPanel& scroll_panel,
-                             ApAllocPanel& ap_alloc_panel,
                              StarForcePanel& star_force_panel,
                              TraceRecoverPanel& trace_recover_panel,
                              SellPanel& sell_panel,
@@ -32,7 +30,6 @@ TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
       equip_panel_(equip_panel),
       inventory_panel_(inventory_panel),
       scroll_panel_(scroll_panel),
-      ap_alloc_panel_(ap_alloc_panel),
       star_force_panel_(star_force_panel),
       trace_recover_panel_(trace_recover_panel),
       sell_panel_(sell_panel),
@@ -50,9 +47,17 @@ void TuiController::OpenInventoryMenu() {
   inventory_panel_.OpenMenu();
 }
 
-void TuiController::OpenApAlloc() {
-  screen_ = kApAlloc;
-  ap_alloc_panel_.Reset();
+void TuiController::OpenApConfirm(StatField field, bool max) {
+  ap_confirm_field_ = field;
+  ap_confirm_max_ = max;
+  ap_confirm_cancel_ = false;  // default the caret to [Confirm]
+  screen_ = kApConfirm;
+}
+
+std::string TuiController::ap_confirm_message() const {
+  int amount = ap_confirm_max_ ? state_.character.proto().ap() : 1;
+  return " Assign " + std::to_string(amount) + " AP to " +
+         StatFieldName(ap_confirm_field_) + "? ";
 }
 
 void TuiController::OpenMapSelect() {
@@ -93,8 +98,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kScrollResult) {
     return OnScrollResultEvent(event);
   }
-  if (screen_ == kApAlloc) {
-    return OnApAllocEvent(event);
+  if (screen_ == kApConfirm) {
+    return OnApConfirmEvent(event);
   }
   if (screen_ == kStarForce) {
     return OnStarForceEvent(event);
@@ -230,8 +235,29 @@ bool TuiController::OnScrollResultEvent(ftxui::Event event) {
   return true;
 }
 
-bool TuiController::OnApAllocEvent(ftxui::Event event) {
-  screen_ = ap_alloc_panel_.OnEvent(event);
+bool TuiController::OnApConfirmEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    ap_confirm_cancel_ = false;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    ap_confirm_cancel_ = true;
+    return true;
+  }
+  if (IsForward(event)) {
+    if (!ap_confirm_cancel_) {
+      if (ap_confirm_max_) {
+        state_.character.AllocateAllStat(ap_confirm_field_);
+      } else {
+        state_.character.AllocateStat(ap_confirm_field_);
+      }
+    }
+    screen_ = kMain;
+  }
   return true;
 }
 

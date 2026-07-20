@@ -26,6 +26,7 @@
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
+#include "src/protos/character.pb.h"
 
 namespace ms {
 namespace {
@@ -57,12 +58,11 @@ Tui::Tui(GameState& state)
       equip_panel_(state.character, panel_focus_),
       inventory_panel_(state.character, panel_focus_),
       scroll_panel_(state.scrolls),
-      ap_alloc_panel_(state.character),
       trace_recover_panel_(state.character),
       map_select_panel_(state),
       controller_(state, equip_panel_, inventory_panel_, scroll_panel_,
-                  ap_alloc_panel_, star_force_panel_, trace_recover_panel_,
-                  sell_panel_, map_select_panel_, panel_focus_) {
+                  star_force_panel_, trace_recover_panel_, sell_panel_,
+                  map_select_panel_, panel_focus_) {
 }
 
 void Tui::Run() {
@@ -71,7 +71,9 @@ void Tui::Run() {
   inventory_component_ = inventory_panel_.MakeComponent(
       [this]() { controller_.OpenInventoryMenu(); });
   char_component_ =
-      char_panel_.MakeComponent([this]() { controller_.OpenApAlloc(); });
+      char_panel_.MakeComponent([this](StatField field, bool max) {
+        controller_.OpenApConfirm(field, max);
+      });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
 
@@ -111,8 +113,16 @@ void Tui::Run() {
 }
 
 ftxui::Element Tui::RenderFrame() {
-  if (controller_.screen() == kApAlloc) {
-    return ftxui::center(ap_alloc_panel_.Render());
+  if (controller_.screen() == kApConfirm) {
+    // Float the confirm dialog over the main view so the stat being raised
+    // stays visible behind it.
+    ftxui::Element dialog =
+        ConfirmDialog(controller_.ap_confirm_message(),
+                      controller_.ap_confirm_cancel_selected());
+    return ftxui::dbox({
+        RenderMain(),
+        ftxui::center(dialog | ftxui::clear_under),
+    });
   }
   if (controller_.screen() == kSell) {
     // Float the sell dialog over the main view for context.

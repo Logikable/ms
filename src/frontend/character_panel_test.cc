@@ -10,6 +10,7 @@
 #include "src/equip_instance.h"
 #include "src/frontend/panel_test_base.h"
 #include "src/frontend/types.h"
+#include "src/protos/character.pb.h"
 
 namespace ms {
 namespace {
@@ -38,9 +39,9 @@ TEST_F(CharacterPanelTest, StatsTabIsShownByDefault) {
   EXPECT_NE(RenderElement(panel.Render()).find("HP:"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
+TEST_F(CharacterPanelTest, ArrowKeysSwitchTabsFromTheTabBar) {
   CharacterPanel panel(c_, panel_focus_);  // panel_focus_ == kCharPanel
-  ftxui::Component comp = panel.MakeComponent([] {});
+  ftxui::Component comp = panel.MakeComponent([](StatField, bool) {});
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
@@ -52,22 +53,70 @@ TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, EnterOnStatsTabOpensApWhenThereIsAp) {
+TEST_F(CharacterPanelTest, DownEntersStatsContentAndShowsButtons) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
-  bool ap = false;
-  ftxui::Component comp = panel.MakeComponent([&] { ap = true; });
-  comp->OnEvent(ftxui::Event::Return);  // Stats tab is the default
-  EXPECT_TRUE(ap);
+  ftxui::Component comp = panel.MakeComponent([](StatField, bool) {});
+  EXPECT_EQ(RenderComponent(comp).find("[+]"),
+            std::string::npos);  // on tab bar
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // enter Stats content, cursor on STR
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("> STR"), std::string::npos);
+  EXPECT_NE(rendered.find("[+]"), std::string::npos);
+  EXPECT_NE(rendered.find("[Max]"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, EnterOnStatsTabDoesNothingWithoutAp) {
+TEST_F(CharacterPanelTest, UpFromTheFirstRowReturnsToTheTabBar) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField, bool) {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // into content
+  comp->OnEvent(ftxui::Event::ArrowUp);    // back to the tab bar
+  EXPECT_EQ(RenderComponent(comp).find("[+]"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, EnterOnPlusAllocatesTheSelectedStat) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  bool max = true;
+  ftxui::Component comp = panel.MakeComponent([&](StatField f, bool m) {
+    field = f;
+    max = m;
+  });
+  comp->OnEvent(ftxui::Event::ArrowDown);  // STR row, [+] selected
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(field, STAT_FIELD_STR);
+  EXPECT_FALSE(max);
+}
+
+TEST_F(CharacterPanelTest, RightThenEnterAllocatesViaMax) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  bool max = false;
+  ftxui::Component comp = panel.MakeComponent([&](StatField f, bool m) {
+    field = f;
+    max = m;
+  });
+  comp->OnEvent(ftxui::Event::ArrowDown);   // STR row
+  comp->OnEvent(ftxui::Event::ArrowDown);   // DEX row
+  comp->OnEvent(ftxui::Event::ArrowRight);  // select [Max]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(field, STAT_FIELD_DEX);
+  EXPECT_TRUE(max);
+}
+
+TEST_F(CharacterPanelTest, EnterWithoutApDoesNotAllocate) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   CharacterPanel panel(c, panel_focus_);
-  bool ap = false;
-  ftxui::Component comp = panel.MakeComponent([&] { ap = true; });
+  bool fired = false;
+  ftxui::Component comp =
+      panel.MakeComponent([&](StatField, bool) { fired = true; });
+  comp->OnEvent(ftxui::Event::ArrowDown);
   comp->OnEvent(ftxui::Event::Return);
-  EXPECT_FALSE(ap);
+  EXPECT_FALSE(fired);
 }
 
 TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {

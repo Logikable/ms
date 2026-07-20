@@ -164,6 +164,25 @@ std::string JobName(Job job) {
   }
 }
 
+std::string StatFieldName(StatField field) {
+  switch (field) {
+    case STAT_FIELD_STR:
+      return "STR";
+    case STAT_FIELD_DEX:
+      return "DEX";
+    case STAT_FIELD_INT:
+      return "INT";
+    case STAT_FIELD_LUK:
+      return "LUK";
+    case STAT_FIELD_HP:
+      return "HP";
+    case STAT_FIELD_MP:
+      return "MP";
+    default:
+      return "";
+  }
+}
+
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
                             int scroll_left, int scroll_restore) {
@@ -208,6 +227,13 @@ ftxui::Element ConfirmBar(bool cancel_selected) {
 
 ftxui::Element ConfirmWindow(bool cancel_selected) {
   return ThemedWindow("", ConfirmBar(cancel_selected) | ftxui::hcenter);
+}
+
+ftxui::Element ConfirmDialog(const std::string& message, bool cancel_selected) {
+  return ThemedWindow("", ftxui::vbox({
+                              ftxui::text(message),
+                              ConfirmBar(cancel_selected) | ftxui::hcenter,
+                          }));
 }
 
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
