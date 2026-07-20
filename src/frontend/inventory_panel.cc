@@ -256,7 +256,8 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   }
   return ThemedWindow(" Inventory ",
                       ftxui::vbox({RenderTabBar(active_tab_, character_.meso()),
-                                   std::move(body)}));
+                                   std::move(body)}),
+                      panel_focus_ == kInventoryPanel);
 }
 
 ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {

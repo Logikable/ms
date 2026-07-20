@@ -131,6 +131,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   // display stays in sync with changes made via on_enter.
   ftxui::Component renderer =
       ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
+        bool focused = panel_focus_ == kEquipPanel;
         entries_.clear();
         slots_.clear();
         for (const std::pair<const EquipSlot, EquipInstance>& kv :
@@ -172,14 +173,16 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
               std::min(selected_, static_cast<int>(entries_.size()) - 1);
         }
         if (entries_.empty()) {
-          return ThemedWindow(" Equipped ", ftxui::text("(empty)"));
+          return ThemedWindow(" Equipped ", ftxui::text("(empty)"), focused);
         }
-        return ThemedWindow(" Equipped ", ftxui::vbox({
-                                              ftxui::text(kColumnHeader),
-                                              ftxui::text(kColumnHeader2),
-                                              ThemedSeparator(),
-                                              menu->Render(),
-                                          }));
+        return ThemedWindow(" Equipped ",
+                            ftxui::vbox({
+                                ftxui::text(kColumnHeader),
+                                ftxui::text(kColumnHeader2),
+                                ThemedSeparator(),
+                                menu->Render(),
+                            }),
+                            focused);
       });
   return ftxui::CatchEvent(renderer, [on_enter](ftxui::Event event) {
     if (event == ftxui::Event::Character(' ')) {

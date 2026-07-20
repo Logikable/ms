@@ -40,11 +40,13 @@ ftxui::Element CombatPanel::Render() const {
   }
 
   if (!sim_.active()) {
-    return ThemedWindow(" Combat ", ftxui::vbox({
-                                        header,
-                                        ThemedSeparator(),
-                                        ftxui::text("Not fighting"),
-                                    }));
+    return ThemedWindow(" Combat ",
+                        ftxui::vbox({
+                            header,
+                            ThemedSeparator(),
+                            ftxui::text("Not fighting"),
+                        }),
+                        focused);
   }
 
   // Charges over one swing; a full bar is the moment a hit lands.
@@ -63,12 +65,14 @@ ftxui::Element CombatPanel::Render() const {
                             sim_.target_name(),
                         ftxui::Color::White);
 
-  return ThemedWindow(" Combat ", ftxui::vbox({
-                                      header,
-                                      ThemedSeparator(),
-                                      attack,
-                                      target,
-                                  }));
+  return ThemedWindow(" Combat ",
+                      ftxui::vbox({
+                          header,
+                          ThemedSeparator(),
+                          attack,
+                          target,
+                      }),
+                      focused);
 }
 
 ftxui::Component CombatPanel::MakeComponent(std::function<void()> on_travel) {
