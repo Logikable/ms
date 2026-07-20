@@ -5,8 +5,11 @@
 #include <memory>
 #include <string>
 
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/event.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/panel_test_base.h"
+#include "src/frontend/types.h"
 
 namespace ms {
 namespace {
@@ -23,10 +26,48 @@ TEST_F(CharacterPanelTest, ShowsJobName) {
   EXPECT_NE(RenderElement(panel.Render()).find("Beginner"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, ShowsAp) {
-  c_.LevelUp();  // grants 5 AP; value appears on its own line below "AP"
+TEST_F(CharacterPanelTest, ShowsBothTabs) {
   CharacterPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find("AP"), std::string::npos);
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(rendered.find("Stats"), std::string::npos);
+  EXPECT_NE(rendered.find("Skills"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, StatsTabIsShownByDefault) {
+  CharacterPanel panel(c_, panel_focus_);
+  EXPECT_NE(RenderElement(panel.Render()).find("HP:"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
+  CharacterPanel panel(c_, panel_focus_);  // panel_focus_ == kCharPanel
+  ftxui::Component comp = panel.MakeComponent([] {});
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  std::string skills = RenderComponent(comp);
+  EXPECT_NE(skills.find("No skills yet."), std::string::npos);
+  EXPECT_EQ(skills.find("HP:"), std::string::npos);
+
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // Skills -> Stats
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, EnterOnStatsTabOpensApWhenThereIsAp) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  bool ap = false;
+  ftxui::Component comp = panel.MakeComponent([&] { ap = true; });
+  comp->OnEvent(ftxui::Event::Return);  // Stats tab is the default
+  EXPECT_TRUE(ap);
+}
+
+TEST_F(CharacterPanelTest, EnterOnStatsTabDoesNothingWithoutAp) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterPanel panel(c, panel_focus_);
+  bool ap = false;
+  ftxui::Component comp = panel.MakeComponent([&] { ap = true; });
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(ap);
 }
 
 TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {

@@ -210,8 +210,13 @@ ftxui::Element ConfirmWindow(bool cancel_selected) {
   return ThemedWindow("", ConfirmBar(cancel_selected) | ftxui::hcenter);
 }
 
-ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content) {
-  return ftxui::window(ftxui::text(title) | ftxui::color(kTheme),
+ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
+                            bool focused) {
+  ftxui::Element title_el = ftxui::text(title) | ftxui::color(kTheme);
+  if (focused) {
+    title_el = title_el | ftxui::inverted;
+  }
+  return ftxui::window(std::move(title_el),
                        std::move(content) | ftxui::color(ftxui::Color::White)) |
          ftxui::color(kTheme);
 }

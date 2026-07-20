@@ -101,8 +101,11 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 
 // Wraps content in a bordered window with the game's steel-blue theme color on
 // the border and title. Content foreground is set to white; explicitly colored
-// elements (gold stars, amber SF, etc.) and ThemedSeparator override it.
-ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content);
+// elements (gold stars, amber SF, etc.) and ThemedSeparator override it. Pass
+// focused=true to invert the title into a solid chip, marking the panel that
+// currently holds focus.
+ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
+                            bool focused = false);
 
 // Returns a horizontal separator rule in the theme border color.
 ftxui::Element ThemedSeparator();

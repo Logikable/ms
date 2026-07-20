@@ -1,7 +1,9 @@
 #include "src/frontend/character_panel.h"
 
+#include <algorithm>
 #include <functional>
 #include <string>
+#include <vector>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
@@ -15,8 +17,9 @@
 namespace ms {
 namespace {
 
-constexpr int kContentWidth = 26;  // chars between the │ borders
-constexpr int kApWidth = 6;        // chars in the AP balcony column
+constexpr int kContentWidth = 33;  // chars inside the window border
+
+enum Tab : int { kTabStats = 0, kTabSkills = 1 };
 
 }  // namespace
 
@@ -31,84 +34,100 @@ std::string CharacterPanel::StatRow(const std::string& label, int base,
   if (bonus > 0) {
     s += " (" + std::to_string(base) + "+" + std::to_string(bonus) + ")";
   }
-  while ((int)s.size() < kContentWidth) {
-    s += ' ';
+  return PadRight(s, kContentWidth);
+}
+
+ftxui::Element CharacterPanel::RenderTabBar() const {
+  // Left-aligned chip row in the shared tab style: theme-colored labels, the
+  // active one inverted for a blue highlight. Matches the inventory tabs.
+  const char* labels[2] = {"Stats", "Skills"};
+  std::vector<ftxui::Element> chips;
+  for (int i = 0; i < 2; ++i) {
+    ftxui::Element chip =
+        ftxui::text(std::string(" ") + labels[i] + " ") | ftxui::color(kTheme);
+    if (i == active_tab_) {
+      chip = chip | ftxui::inverted;
+    }
+    chips.push_back(std::move(chip));
   }
-  return s;
+  chips.push_back(ftxui::filler());
+  return ftxui::hbox(std::move(chips));
+}
+
+ftxui::Element CharacterPanel::RenderStatsTab() const {
+  const Character& p = character_.proto();
+  const AllocatedStats& a = p.allocated_stats();
+  const EquipStats& e = character_.equip_stats();
+  return ftxui::vbox({
+      ftxui::text(PadRight(" HP: " + std::to_string(a.hp() + e.max_hp()),
+                           kContentWidth)),
+      ftxui::text(PadRight(" MP: " + std::to_string(a.mp()), kContentWidth)),
+      ftxui::text(StatRow("STR", a.str(), e.str())),
+      ftxui::text(StatRow("DEX", a.dex(), e.dex())),
+      ftxui::text(StatRow("INT", a.int_(), e.int_())),
+      ftxui::text(StatRow("LUK", a.luk(), e.luk())),
+      ThemedSeparator(),
+      ftxui::text(
+          PadRight(" ATT: " + std::to_string(e.attack()), kContentWidth)),
+      ftxui::text(PadRight(" MATT: " + std::to_string(e.magic_attack()),
+                           kContentWidth)),
+  });
+}
+
+ftxui::Element CharacterPanel::RenderSkillsTab() const {
+  const Character& p = character_.proto();
+  std::string sp = "SP: " + std::to_string(character_.sp(p.job_stage())) + " ";
+  return ftxui::vbox({
+      ftxui::hbox({ftxui::filler(), ftxui::text(sp)}),
+      ThemedSeparator(),
+      ftxui::text(PadRight(" No skills yet.", kContentWidth)),
+  });
 }
 
 ftxui::Element CharacterPanel::Render() const {
   const Character& p = character_.proto();
-  const AllocatedStats& a = p.allocated_stats();
-  const EquipStats& e = character_.equip_stats();
 
   std::string lvl = std::to_string(p.level());
   while ((int)lvl.size() < 3) {
     lvl = " " + lvl;
   }
-
-  // Build all content strings padded to exact column widths so borders align.
   std::string raw_title = "Lv" + lvl + " " + JobName(p.job());
-  int pad = (kContentWidth - (int)raw_title.size()) / 2;
+  int pad = std::max(0, (kContentWidth - (int)raw_title.size()) / 2);
   std::string title =
-      PadRight(std::string(std::max(0, pad), ' ') + raw_title, kContentWidth);
+      PadRight(std::string(pad, ' ') + raw_title, kContentWidth);
 
-  std::string hp_str =
-      PadRight(" HP: " + std::to_string(a.hp() + e.max_hp()), kContentWidth);
-  std::string mp_str =
-      PadRight(" MP: " + std::to_string(a.mp()), kContentWidth);
-  std::string str_str = StatRow("STR", a.str(), e.str());
-  std::string dex_str = StatRow("DEX", a.dex(), e.dex());
-  std::string int_str = StatRow("INT", a.int_(), e.int_());
-  std::string luk_str = StatRow("LUK", a.luk(), e.luk());
-  std::string att =
-      PadRight(" ATT: " + std::to_string(e.attack()), kContentWidth);
-  std::string matt =
-      PadRight(" MATT: " + std::to_string(e.magic_attack()), kContentWidth);
+  ftxui::Element content =
+      active_tab_ == kTabSkills ? RenderSkillsTab() : RenderStatsTab();
 
-  // AP value with caret prefix when the char panel is focused.
-  bool ap_focused = panel_focus_ == kCharPanel;
-  std::string ap_val =
-      PadRight((ap_focused ? "> " : "  ") + std::to_string(p.ap()), kApWidth);
-  ftxui::Element ap_cell = ftxui::text(ap_val);
-  if (ap_focused) {
-    ap_cell = ap_cell | ftxui::focus;
-  }
-
-  // Border chars colored kTheme via B(); content inherits color(White) on vbox.
-  // AP balcony covers the first two stat rows (HP header, MP value); remaining
-  // four stat rows extend the balcony column with empty space.
-  const ftxui::Color kB = kTheme;
-  auto B = [kB](const std::string& s) -> ftxui::Element {
-    return ftxui::text(s) | ftxui::color(kB);
-  };
-  return ftxui::vbox({
-             B("╭ Character ───────────────╮"),
-             ftxui::hbox({B("│"), ftxui::text(title), B("│")}),
-             B("├──────────────────────────┼──────╮"),
-             ftxui::hbox({B("│"), ftxui::text(hp_str), B("│"),
-                          ftxui::text("  AP  "), B("│")}),
-             ftxui::hbox(
-                 {B("│"), ftxui::text(mp_str), B("│"), ap_cell, B("│")}),
-             ftxui::hbox({B("│"), ftxui::text(str_str), B("│      │")}),
-             ftxui::hbox({B("│"), ftxui::text(dex_str), B("│      │")}),
-             ftxui::hbox({B("│"), ftxui::text(int_str), B("│      │")}),
-             ftxui::hbox({B("│"), ftxui::text(luk_str), B("│      │")}),
-             B("├──────────────────────────┼──────╯"),
-             ftxui::hbox({B("│"), ftxui::text(att), B("│")}),
-             ftxui::hbox({B("│"), ftxui::text(matt), B("│")}),
-             B("╰──────────────────────────╯"),
-         }) |
-         ftxui::color(ftxui::Color::White);
+  return ThemedWindow(" Character ",
+                      ftxui::vbox({
+                          ftxui::text(title),
+                          ThemedSeparator(),
+                          RenderTabBar(),
+                          ThemedSeparator(),
+                          content,
+                      }),
+                      /*focused=*/panel_focus_ == kCharPanel);
 }
 
 ftxui::Component CharacterPanel::MakeComponent(std::function<void()> on_ap) {
-  // Renderer(bool) overload is Focusable(), unlike Renderer() — required so
+  // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
   return ftxui::CatchEvent(renderer, [this, on_ap](ftxui::Event event) {
-    if (panel_focus_ == kCharPanel && IsForward(event) &&
+    if (panel_focus_ != kCharPanel) {
+      return false;
+    }
+    if (event == ftxui::Event::ArrowLeft) {
+      active_tab_ = kTabStats;
+      return true;
+    }
+    if (event == ftxui::Event::ArrowRight) {
+      active_tab_ = kTabSkills;
+      return true;
+    }
+    if (IsForward(event) && active_tab_ == kTabStats &&
         character_.proto().ap() > 0) {
       on_ap();
       return true;

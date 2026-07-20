@@ -19,7 +19,6 @@
 #include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
-#include "src/frontend/sp_alloc_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/tui_controller.h"
@@ -57,7 +56,6 @@ class Tui {
   InspectPanel inspect_panel_;
   InspectPanel trace_inspect_panel_;  // left panel on kTraceRecover (preview)
   ApAllocPanel ap_alloc_panel_;
-  SpAllocPanel sp_alloc_panel_;
   StarForcePanel star_force_panel_;
   TraceRecoverPanel trace_recover_panel_;
   SellPanel sell_panel_;

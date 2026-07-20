@@ -17,7 +17,6 @@
 #include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
-#include "src/frontend/sp_alloc_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/game_state.h"
@@ -62,7 +61,6 @@ class TuiControllerTest : public testing::Test {
         std::make_unique<InventoryPanel>(state_->character, panel_focus_);
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     ap_alloc_panel_ = std::make_unique<ApAllocPanel>(state_->character);
-    sp_alloc_panel_ = std::make_unique<SpAllocPanel>(state_->character);
     star_force_panel_ = std::make_unique<StarForcePanel>();
     trace_recover_panel_ =
         std::make_unique<TraceRecoverPanel>(state_->character);
@@ -70,8 +68,8 @@ class TuiControllerTest : public testing::Test {
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        *ap_alloc_panel_, *sp_alloc_panel_, *star_force_panel_,
-        *trace_recover_panel_, *sell_panel_, *map_select_panel_, panel_focus_);
+        *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
+        *sell_panel_, *map_select_panel_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -98,8 +96,8 @@ class TuiControllerTest : public testing::Test {
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        *ap_alloc_panel_, *sp_alloc_panel_, *star_force_panel_,
-        *trace_recover_panel_, *sell_panel_, *map_select_panel_, panel_focus_);
+        *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
+        *sell_panel_, *map_select_panel_, panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -177,8 +175,8 @@ class TuiControllerTest : public testing::Test {
     scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        *ap_alloc_panel_, *sp_alloc_panel_, *star_force_panel_,
-        *trace_recover_panel_, *sell_panel_, *map_select_panel_, panel_focus_);
+        *ap_alloc_panel_, *star_force_panel_, *trace_recover_panel_,
+        *sell_panel_, *map_select_panel_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -188,7 +186,6 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<InventoryPanel> inventory_panel_;
   std::unique_ptr<ScrollPanel> scroll_panel_;
   std::unique_ptr<ApAllocPanel> ap_alloc_panel_;
-  std::unique_ptr<SpAllocPanel> sp_alloc_panel_;
   std::unique_ptr<StarForcePanel> star_force_panel_;
   std::unique_ptr<TraceRecoverPanel> trace_recover_panel_;
   std::unique_ptr<SellPanel> sell_panel_;
@@ -200,8 +197,9 @@ class TuiControllerTest : public testing::Test {
 
 // --- Tab ---
 
-// Focus starts on the equipped panel and Tab runs clockwise from there:
-// equipped -> inventory -> combat -> character -> back to equipped.
+// Focus starts on the equipped panel and Tab runs clockwise through every
+// panel: equipped -> inventory -> combat -> character -> back to equipped. The
+// character panel is always focusable, so no panel is ever skipped.
 
 TEST_F(TuiControllerTest, TabSwitchesToInventoryPanel) {
   controller_->OnEvent(ftxui::Event::Tab);
@@ -215,7 +213,6 @@ TEST_F(TuiControllerTest, TabSwitchesToCombatPanel) {
 }
 
 TEST_F(TuiControllerTest, TabSwitchesToCharPanel) {
-  state_->character.LevelUp();  // grants AP
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
@@ -223,19 +220,10 @@ TEST_F(TuiControllerTest, TabSwitchesToCharPanel) {
 }
 
 TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
-  state_->character.LevelUp();  // grants AP
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
-  EXPECT_EQ(panel_focus_, kEquipPanel);
-}
-
-TEST_F(TuiControllerTest, TabSkipsCharPanelWhenNoAp) {
-  state_->character.AllocateAllStat(STAT_FIELD_STR);  // drain AP
-  controller_->OnEvent(ftxui::Event::Tab);
-  controller_->OnEvent(ftxui::Event::Tab);
-  controller_->OnEvent(ftxui::Event::Tab);  // combat -> equipped, past char
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
@@ -248,19 +236,6 @@ TEST_F(TuiControllerTest, OpenApAllocSetsScreenToApAlloc) {
 
 TEST_F(TuiControllerTest, EscapeInApAllocGoesToMain) {
   controller_->OpenApAlloc();
-  controller_->OnEvent(ftxui::Event::Escape);
-  EXPECT_EQ(controller_->screen(), kMain);
-}
-
-// --- SP allocation ---
-
-TEST_F(TuiControllerTest, OpenSpAllocSetsScreenToSpAlloc) {
-  controller_->OpenSpAlloc();
-  EXPECT_EQ(controller_->screen(), kSpAlloc);
-}
-
-TEST_F(TuiControllerTest, EscapeInSpAllocGoesToMain) {
-  controller_->OpenSpAlloc();
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
 }
