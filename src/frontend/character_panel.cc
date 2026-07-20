@@ -22,6 +22,9 @@ constexpr int kContentWidth = 33;  // chars inside the window border
 
 enum Tab : int { kTabStats = 0, kTabSkills = 1 };
 
+// Roman numerals for the job-advancement tabs, indexed by stage (1..6).
+const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
+
 // The four AP-allocatable stats, in display order; the index is stat_sel_.
 struct AllocStat {
   const char* label;
@@ -144,11 +147,37 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   return ftxui::vbox(std::move(rows));
 }
 
-ftxui::Element CharacterPanel::RenderSkillsTab() const {
-  const Character& p = character_.proto();
-  std::string sp = "SP: " + std::to_string(character_.sp(p.job_stage())) + " ";
+ftxui::Element CharacterPanel::RenderAdvTabBar(int stages,
+                                               bool bar_focused) const {
+  // One chip per unlocked stage, in the shared tab style; the selected chip is
+  // white while the bar holds focus, else the theme-blue invert. "SP: N" for
+  // the selected stage is right-aligned on the same row.
+  std::vector<ftxui::Element> row;
+  for (int stage = 1; stage <= stages; ++stage) {
+    std::string label = std::string(" ") + kStageNumerals[stage] + " ";
+    ftxui::Element chip = ftxui::text(label) | ftxui::color(kTheme);
+    if (stage - 1 == skill_tab_ && bar_focused) {
+      chip = ftxui::text(label) | ftxui::color(ftxui::Color::Black) |
+             ftxui::bgcolor(ftxui::Color::White);
+    } else if (stage - 1 == skill_tab_) {
+      chip = chip | ftxui::inverted;
+    }
+    row.push_back(std::move(chip));
+  }
+  row.push_back(ftxui::filler());
+  row.push_back(ftxui::text(
+      "SP: " + std::to_string(character_.sp(skill_tab_ + 1)) + " "));
+  return ftxui::hbox(std::move(row));
+}
+
+ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused) const {
+  int stages = character_.proto().job_stage();
+  if (stages == 0) {
+    return ftxui::text(PadRight(" No advancements yet.", kContentWidth)) |
+           ftxui::dim;
+  }
   return ftxui::vbox({
-      ftxui::hbox({ftxui::filler(), ftxui::text(sp)}),
+      RenderAdvTabBar(stages, bar_focused),
       ThemedSeparator(),
       ftxui::text(PadRight(" No skills yet.", kContentWidth)),
   });
@@ -167,11 +196,11 @@ ftxui::Element CharacterPanel::Render() const {
       PadRight(std::string(pad, ' ') + raw_title, kContentWidth);
 
   bool focused = panel_focus_ == kCharPanel;
-  bool tab_row_selected = focused && on_tab_bar_;
-  bool content_focused = focused && !on_tab_bar_;
-  ftxui::Element content = active_tab_ == kTabSkills
-                               ? RenderSkillsTab()
-                               : RenderStatsTab(content_focused);
+  bool tab_row_selected = focused && zone_ == kZoneTabs;
+  ftxui::Element content =
+      active_tab_ == kTabSkills
+          ? RenderSkillsTab(focused && zone_ == kZoneAdvTabs)
+          : RenderStatsTab(focused && zone_ == kZoneStatRows);
 
   return ThemedWindow(" Character ",
                       ftxui::vbox({
@@ -194,7 +223,7 @@ ftxui::Component CharacterPanel::MakeComponent(
     if (panel_focus_ != kCharPanel) {
       return false;
     }
-    if (on_tab_bar_) {
+    if (zone_ == kZoneTabs) {
       // Top zone: Left/Right switch tabs, Down enters the active tab's content.
       if (event == ftxui::Event::ArrowLeft) {
         active_tab_ = kTabStats;
@@ -204,10 +233,35 @@ ftxui::Component CharacterPanel::MakeComponent(
         active_tab_ = kTabSkills;
         return true;
       }
-      // The Skills tab has no content zone yet, so only Stats accepts Down.
-      if (event == ftxui::Event::ArrowDown && active_tab_ == kTabStats) {
-        on_tab_bar_ = false;
-        stat_sel_ = 0;
+      if (event == ftxui::Event::ArrowDown) {
+        if (active_tab_ == kTabStats) {
+          zone_ = kZoneStatRows;
+          stat_sel_ = 0;
+        } else if (character_.proto().job_stage() > 0) {
+          // Skills content starts at the advancement bar, on the current stage.
+          zone_ = kZoneAdvTabs;
+          skill_tab_ = character_.proto().job_stage() - 1;
+        }
+        return true;
+      }
+      return false;
+    }
+    if (zone_ == kZoneAdvTabs) {
+      // Advancement bar: Left/Right switch tabs, Up returns to the outer tabs.
+      if (event == ftxui::Event::ArrowUp) {
+        zone_ = kZoneTabs;
+        return true;
+      }
+      if (event == ftxui::Event::ArrowLeft) {
+        if (skill_tab_ > 0) {
+          skill_tab_--;
+        }
+        return true;
+      }
+      if (event == ftxui::Event::ArrowRight) {
+        if (skill_tab_ < character_.proto().job_stage() - 1) {
+          skill_tab_++;
+        }
         return true;
       }
       return false;
@@ -216,7 +270,7 @@ ftxui::Component CharacterPanel::MakeComponent(
     // bar. Left/Right do nothing here -- they belong to the tab bar.
     if (event == ftxui::Event::ArrowUp) {
       if (stat_sel_ == 0) {
-        on_tab_bar_ = true;
+        zone_ = kZoneTabs;
       } else {
         stat_sel_--;
       }

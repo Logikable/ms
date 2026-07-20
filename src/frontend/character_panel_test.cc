@@ -46,7 +46,8 @@ TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
 
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string skills = RenderComponent(comp);
-  EXPECT_NE(skills.find("No skills yet."), std::string::npos);
+  EXPECT_NE(skills.find("No advancements yet."),
+            std::string::npos);  // c_ is a Beginner
   EXPECT_EQ(skills.find("HP:"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowLeft);  // Skills -> Stats
@@ -98,7 +99,8 @@ TEST_F(CharacterPanelTest, UpFromStrReturnsToTheTabBar) {
   comp->OnEvent(ftxui::Event::ArrowUp);    // STR -> tab bar
   // Back on the tab bar, Right switches to Skills and Enter no longer fires.
   comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_NE(RenderComponent(comp).find("No skills yet."), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("No advancements yet."),
+            std::string::npos);  // c is a Beginner
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(fired);
 }
@@ -111,6 +113,38 @@ TEST_F(CharacterPanelTest, EnterWithoutApDoesNotAllocate) {
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(fired);
+}
+
+TEST_F(CharacterPanelTest, BeginnerSkillsTabShowsNoAdvancements) {
+  CharacterPanel panel(c_, panel_focus_);  // c_ is a stage-0 Beginner
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("No advancements yet."), std::string::npos);
+  EXPECT_EQ(rendered.find("SP:"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
+  CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
+  c.AdvanceJob(JOB_WARRIOR);  // job_stage 1
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find(" I "), std::string::npos);  // stage-1 tab
+  EXPECT_NE(rendered.find("SP:"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, SkillsAdvBarUpReturnsToOuterTabs) {
+  CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
+  c.AdvanceJob(JOB_WARRIOR);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // outer tabs: Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // enter the advancement bar
+  comp->OnEvent(ftxui::Event::ArrowUp);     // back to the outer tabs
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {
