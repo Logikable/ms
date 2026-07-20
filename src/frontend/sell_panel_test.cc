@@ -11,6 +11,8 @@
 namespace ms {
 namespace {
 
+// The quantity textbox + [1]/[MAX] + Confirm/Cancel mechanics are covered by
+// amount_selector_test; these cover the sell-specific header and wiring.
 class SellPanelTest : public testing::Test {
  protected:
   static std::string Render(const SellPanel& panel) {
@@ -18,14 +20,6 @@ class SellPanelTest : public testing::Test {
                                                  ftxui::Dimension::Fixed(15));
     ftxui::Render(screen, panel.Render());
     return screen.ToString();
-  }
-
-  // Empties the quantity field, leaving focus on the textbox. Digits append
-  // rather than replace, so typing a fresh number means clearing first.
-  static void ClearQuantity(SellPanel* panel) {
-    while (panel->quantity() > 0) {
-      panel->OnEvent(ftxui::Event::Backspace);
-    }
   }
 };
 
@@ -45,105 +39,22 @@ TEST_F(SellPanelTest, RenderShowsNameUnitPriceAndTotal) {
   EXPECT_NE(rendered.find("70"), std::string::npos);
 }
 
-TEST_F(SellPanelTest, TextboxSelectedByDefaultSoDigitsEdit) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 100);            // qty starts at 100
-  panel.OnEvent(ftxui::Event::Backspace);  // only edits if the textbox is on
-  EXPECT_EQ(panel.quantity(), 10);         // 100 -> 10
-}
-
-TEST_F(SellPanelTest, OneButtonSellsASingleCopy) {
+TEST_F(SellPanelTest, TotalTracksTheChosenQuantity) {
   SellPanel panel;
   panel.Reset("Shell", 7, 10);
   panel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
-  panel.OnEvent(ftxui::Event::Return);
+  panel.OnEvent(ftxui::Event::Return);     // quantity 1 -> total 7
   EXPECT_EQ(panel.quantity(), 1);
+  EXPECT_EQ(Render(panel).find("70"), std::string::npos);  // total 70 -> 7
 }
 
-TEST_F(SellPanelTest, ZeroIsStillReachableByHand) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 10);  // quantity opens at the whole stack
-  panel.OnEvent(ftxui::Event::Backspace);
-  panel.OnEvent(ftxui::Event::Backspace);
-  EXPECT_EQ(panel.quantity(), 0);
-}
-
-TEST_F(SellPanelTest, MaxButtonRestoresWholeStack) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 100);
-  ClearQuantity(&panel);
-  panel.OnEvent(ftxui::Event::ArrowRight);  // textbox -> [MAX]
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(panel.quantity(), 100);
-}
-
-TEST_F(SellPanelTest, DigitsEditQuantity) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 100);
-  ClearQuantity(&panel);
-  panel.OnEvent(ftxui::Event::Character('2'));
-  panel.OnEvent(ftxui::Event::Character('5'));
-  EXPECT_EQ(panel.quantity(), 25);
-}
-
-TEST_F(SellPanelTest, DigitsClampToMax) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 100);
-  ClearQuantity(&panel);
-  panel.OnEvent(ftxui::Event::Character('9'));
-  panel.OnEvent(ftxui::Event::Character('9'));
-  panel.OnEvent(ftxui::Event::Character('9'));  // 999 -> clamp 100
-  EXPECT_EQ(panel.quantity(), 100);
-}
-
-TEST_F(SellPanelTest, BackspaceDeletesLastDigit) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 100);
-  ClearQuantity(&panel);
-  panel.OnEvent(ftxui::Event::Character('2'));
-  panel.OnEvent(ftxui::Event::Character('5'));  // 25
-  panel.OnEvent(ftxui::Event::Backspace);
-  EXPECT_EQ(panel.quantity(), 2);
-}
-
-TEST_F(SellPanelTest, DigitsIgnoredWhenAButtonIsSelected) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 100);                 // qty 100, textbox selected
-  panel.OnEvent(ftxui::Event::ArrowLeft);       // textbox -> [1] button
-  panel.OnEvent(ftxui::Event::Character('5'));  // ignored off the textbox
-  EXPECT_EQ(panel.quantity(), 100);
-}
-
-TEST_F(SellPanelTest, DownFromTextboxActivatesConfirm) {
+TEST_F(SellPanelTest, ConfirmAndCancelPassThrough) {
   SellPanel panel;
   panel.Reset("Shell", 7, 10);
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(panel.TakeConfirmed());
-  EXPECT_FALSE(panel.TakeConfirmed());  // resets after read
-}
 
-TEST_F(SellPanelTest, RightFromConfirmActivatesCancel) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 10);
-  panel.OnEvent(ftxui::Event::ArrowDown);   // textbox -> [Confirm]
-  panel.OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
-  panel.OnEvent(ftxui::Event::Return);
-  EXPECT_TRUE(panel.TakeCancelled());
-  EXPECT_FALSE(panel.TakeConfirmed());
-}
-
-TEST_F(SellPanelTest, UpFromButtonReturnsToTextbox) {
-  SellPanel panel;
-  panel.Reset("Shell", 7, 100);            // qty 100
-  panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
-  panel.OnEvent(ftxui::Event::ArrowUp);    // [Confirm] -> textbox
-  panel.OnEvent(ftxui::Event::Backspace);  // edits only if textbox is on
-  EXPECT_EQ(panel.quantity(), 10);
-}
-
-TEST_F(SellPanelTest, EscapeCancels) {
-  SellPanel panel;
   panel.Reset("Shell", 7, 10);
   panel.OnEvent(ftxui::Event::Escape);
   EXPECT_TRUE(panel.TakeCancelled());

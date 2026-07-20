@@ -303,10 +303,34 @@ cc_test(
 )
 
 cc_library(
+    name = "amount_selector",
+    srcs = ["amount_selector.cc"],
+    hdrs = ["amount_selector.h"],
+    deps = [
+        ":panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "amount_selector_test",
+    srcs = ["amount_selector_test.cc"],
+    deps = [
+        ":amount_selector",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "sell_panel",
     srcs = ["sell_panel.cc"],
     hdrs = ["sell_panel.h"],
     deps = [
+        ":amount_selector",
         ":panel_util",
         "@ftxui//:component",
         "@ftxui//:dom",

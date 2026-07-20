@@ -1,14 +1,7 @@
 /* SellPanel is the modal for selling copies of a single stackable item. It
- * shows the item name, the per-item and total meso value, a quantity textbox
- * flanked by `1` and `MAX` buttons, and Confirm/Cancel buttons. Focus moves
- * between five controls: the top row is [1] · textbox · [MAX], the bottom row
- * is [Confirm] [Cancel]. The textbox is selected on open; it is the only place
- * digits and Backspace edit the quantity, and it shows a blinking cursor while
- * selected. Left/Right move within a row, Down from the textbox (or the 1/MAX
- * buttons) drops to the buttons, and Up from a button returns to the textbox.
- *
- * A quantity of zero is allowed -- Backspace the textbox to empty and Confirm
- * sells nothing -- but no button spends a slot on it.
+ * shows the item name and the per-item and total meso value above a shared
+ * AmountSelector (a quantity textbox flanked by [1]/[MAX], over
+ * [Confirm]/[Cancel]). The quantity opens at the whole stack.
  *
  * The panel owns no game state: Reset() seeds it with the item's price and
  * stack size, quantity() reports the chosen amount, and TakeConfirmed() /
@@ -21,37 +14,27 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/amount_selector.h"
 
 namespace ms {
 
 class SellPanel {
  public:
   // Seeds the panel for selling from a stack of `max` copies at `unit_price`
-  // meso each. Quantity defaults to the whole stack and focus to Confirm.
+  // meso each. Quantity defaults to the whole stack.
   void Reset(const std::string& item_name, int unit_price, int max);
   ftxui::Element Render() const;
-  // Handles arrow navigation, Enter/Space activation of the focused button,
-  // digit entry and Backspace on the quantity, and Escape (cancel). Returns
-  // true when the event was consumed.
   bool OnEvent(ftxui::Event event);
   int quantity() const {
-    return quantity_;
+    return selector_.value();
   }
-  // Each returns true exactly once, after the player activates Confirm / Cancel
-  // (or presses Escape), then resets.
   bool TakeConfirmed();
   bool TakeCancelled();
 
  private:
-  void Activate();
-
   std::string item_name_;
   int unit_price_ = 0;
-  int max_ = 0;
-  int quantity_ = 0;
-  int focus_ = 0;  // a SellFocus value (see sell_panel.cc); textbox on Reset
-  bool confirmed_ = false;
-  bool cancelled_ = false;
+  AmountSelector selector_;
 };
 
 }  // namespace ms
