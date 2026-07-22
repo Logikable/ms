@@ -12,6 +12,7 @@
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace {
@@ -39,9 +40,11 @@ int main(int argc, char** argv) {
       ms::LoadTextProtoDir<ms::Mob>(runfiles->Rlocation("ms/data/mobs"));
   std::map<std::string, ms::MapData> maps =
       ms::LoadTextProtoDir<ms::MapData>(runfiles->Rlocation("ms/data/maps"));
+  std::map<std::string, ms::Skill> skills =
+      ms::LoadTextProtoDir<ms::Skill>(runfiles->Rlocation("ms/data/skills"));
 
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
-                      std::move(mobs), std::move(maps));
+                      std::move(mobs), std::move(maps), std::move(skills));
 
   // Generic low-level weapons for scrolling/star force experimentation.
   state.character.PickUp(

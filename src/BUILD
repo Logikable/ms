@@ -77,6 +77,7 @@ cc_library(
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/log",
         "@protobuf",
     ],
@@ -94,6 +95,7 @@ cc_library(
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
     ],
 )
 
@@ -106,6 +108,7 @@ cc_binary(
         "//data/maps:all",
         "//data/mobs:all",
         "//data/scrolls:all",
+        "//data/skills:all",
     ],
     deps = [
         ":equip_instance",
@@ -118,6 +121,7 @@ cc_binary(
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",
     ],
 )

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package ms;
+
+// How a skill folds into the game. Combat is a single expected-damage
+// auto-attack, so skills are passive modifiers in one of two roles.
+enum SkillKind {
+  SKILL_KIND_UNSPECIFIED = 0;
+  SKILL_KIND_ATTACK = 1;   // the swing's identity: supplies skill_pct
+  SKILL_KIND_PASSIVE = 2;  // folds its levers into the character's stats
+}
+
+// A skill's per-level contribution to the character's stats. Only the levers we
+// currently model are here; a skill whose real effect is something we don't
+// track (speed, jump, ...) simply carries no levers and does nothing. Percents
+// are fractions (0.10 == +10%).
+message SkillEffect {
+  double skill_pct = 1;    // damage multiplier (attack skills)
+  double max_hp_pct = 2;   // bonus to max HP
+}
+
+// Static definition of a skill. Loaded from data/skills textprotos at startup,
+// keyed by filename stem; the Character's skill_levels map references that stem.
+// The effect at learned level L is base + per_level * (L - 1), so `base` is the
+// level-1 value and `per_level` the increment per level beyond it.
+message Skill {
+  string name = 1;
+  SkillKind kind = 2;
+  int32 max_level = 3;
+  SkillEffect base = 4;
+  SkillEffect per_level = 5;
+}

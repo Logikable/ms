@@ -12,6 +12,7 @@
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -52,6 +53,8 @@ template std::map<std::string, Mob> LoadTextProtoDir<Mob>(const std::string&);
 template std::map<std::string, MapData> LoadTextProtoDir<MapData>(
     const std::string&);
 template std::map<std::string, ItemPrototype> LoadTextProtoDir<ItemPrototype>(
+    const std::string&);
+template std::map<std::string, Skill> LoadTextProtoDir<Skill>(
     const std::string&);
 
 }  // namespace ms

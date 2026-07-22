@@ -64,3 +64,13 @@ cc_proto_library(
     name = "item_proto_cc",
     deps = [":item_proto"],
 )
+
+proto_library(
+    name = "skill_proto",
+    srcs = ["skill.proto"],
+)
+
+cc_proto_library(
+    name = "skill_proto_cc",
+    deps = [":skill_proto"],
+)

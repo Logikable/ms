@@ -17,6 +17,7 @@
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -25,7 +26,8 @@ struct GameState {
             std::map<std::string, Scroll> scrolls,
             std::map<std::string, ItemPrototype> items,
             std::map<std::string, Mob> mobs,
-            std::map<std::string, MapData> maps);
+            std::map<std::string, MapData> maps,
+            std::map<std::string, Skill> skills = {});
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 
@@ -34,6 +36,7 @@ struct GameState {
   std::map<std::string, ItemPrototype> items;
   std::map<std::string, Mob> mobs;
   std::map<std::string, MapData> maps;
+  std::map<std::string, Skill> skills;
   std::mt19937 rng;
   CharacterInstance character;
 

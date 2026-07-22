@@ -1,0 +1,5 @@
+name: "Slash Blast"
+kind: SKILL_KIND_ATTACK
+max_level: 20
+base { skill_pct: 1.83 }
+per_level { skill_pct: 0.08 }
