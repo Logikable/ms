@@ -58,19 +58,23 @@ TEST(GameStateTest, ConstructorStoresMapsMap) {
   EXPECT_EQ(state.maps.at("lith").name(), "Right Around Lith Harbor");
 }
 
-TEST(GameStateTest, StartingCharacterIsLevel1) {
+TEST(GameStateTest, StartingCharacterIsLevel15) {
   GameState state = MakeState();
-  EXPECT_EQ(state.character.proto().level(), 1);
+  EXPECT_EQ(state.character.proto().level(), 15);
 }
 
-TEST(GameStateTest, StartingCharacterJobIsBeginner) {
+TEST(GameStateTest, StartingCharacterJobIsWarrior) {
   GameState state = MakeState();
-  EXPECT_EQ(state.character.proto().job(), JOB_BEGINNER);
+  EXPECT_EQ(state.character.proto().job(), JOB_WARRIOR);
+  EXPECT_EQ(state.character.proto().job_stage(), 1);
 }
 
-TEST(GameStateTest, StartingCharacterHasNoAp) {
+TEST(GameStateTest, StartingCharacterHasLeveledApAndSp) {
+  // Leveling 1->15 grants 5 AP each; the 1st-job SP is 3/level over 11-15 plus
+  // the advancement bonus.
   GameState state = MakeState();
-  EXPECT_EQ(state.character.proto().ap(), 0);
+  EXPECT_EQ(state.character.proto().ap(), 70);
+  EXPECT_EQ(state.character.sp(1), 16);
 }
 
 TEST(GameStateTest, StartingCharacterStats) {

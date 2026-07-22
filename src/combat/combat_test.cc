@@ -105,8 +105,9 @@ TEST(AdvanceCombatTest, SkipsFarmingWithoutWeapon) {
                   {{"field", OneSnailMap()}});
   state.current_map = "field";
 
+  int start_level = state.character.proto().level();
   Farm(state, 20000.0);
-  EXPECT_EQ(state.character.proto().level(), 1);
+  EXPECT_EQ(state.character.proto().level(), start_level);
   EXPECT_EQ(state.character.proto().exp(), 0);
 }
 
@@ -115,8 +116,9 @@ TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
                   {{"field", OneSnailMap()}});
   EquipSword(state);  // current_map left empty
 
+  int start_level = state.character.proto().level();
   Farm(state, 20000.0);
-  EXPECT_EQ(state.character.proto().level(), 1);
+  EXPECT_EQ(state.character.proto().level(), start_level);
   EXPECT_EQ(state.character.proto().exp(), 0);
 }
 
