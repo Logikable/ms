@@ -13,6 +13,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -145,6 +146,22 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
       return false;
   }
   character_.set_ap(character_.ap() - amount);
+  return true;
+}
+
+bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
+  if (amount <= 0) {
+    return false;
+  }
+  int stage = skill.stage();
+  if (amount > sp(stage)) {
+    return false;
+  }
+  if (skill_level(skill) + amount > skill.max_level()) {
+    return false;
+  }
+  (*character_.mutable_skill_levels())[skill.name()] += amount;
+  (*character_.mutable_sp_by_stage())[stage] -= amount;
   return true;
 }
 

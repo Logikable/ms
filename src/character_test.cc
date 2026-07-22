@@ -12,6 +12,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -43,6 +44,26 @@ class AddExpTest : public CharacterTest {};
 // Fixture for AdvanceJob tests. Each test needs a different starting level /
 // job_stage, so c_ is created locally per test using rng_.
 class AdvanceJobTest : public CharacterTest {};
+
+// Fixture for LearnSkill tests. Each test seeds its own stage SP, so no shared
+// character.
+class LearnSkillTest : public CharacterTest {};
+
+// A character carrying `sp` skill points in `stage` and nothing else.
+CharacterInstance MakeCharacterWithSp(std::mt19937& rng, int stage, int sp) {
+  Character proto;
+  (*proto.mutable_sp_by_stage())[stage] = sp;
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// A minimal skill: only the fields LearnSkill reads.
+Skill MakeSkill(const std::string& name, int stage, int max_level) {
+  Skill skill;
+  skill.set_name(name);
+  skill.set_stage(stage);
+  skill.set_max_level(max_level);
+  return skill;
+}
 
 // Fixture for AllocateStat tests. Each test needs a different ap value, so
 // c_ is created locally per test using rng_.
@@ -266,6 +287,76 @@ TEST_F(AllocateStatTest, AllFieldsWork) {
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_HP));
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_MP));
   EXPECT_EQ(c.proto().ap(), 4);
+}
+
+// --- LearnSkill ---
+
+TEST_F(LearnSkillTest, SpendsSpAndRaisesLevel) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
+  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  EXPECT_TRUE(c.LearnSkill(skill));
+  EXPECT_EQ(c.skill_level(skill), 1);
+  EXPECT_EQ(c.sp(1), 4);
+}
+
+TEST_F(LearnSkillTest, DefaultAmountIsOne) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
+  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  c.LearnSkill(skill);
+  c.LearnSkill(skill);
+  EXPECT_EQ(c.skill_level(skill), 2);
+  EXPECT_EQ(c.sp(1), 3);
+}
+
+TEST_F(LearnSkillTest, MultiPointSpendWorks) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/10);
+  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  EXPECT_TRUE(c.LearnSkill(skill, 7));
+  EXPECT_EQ(c.skill_level(skill), 7);
+  EXPECT_EQ(c.sp(1), 3);
+}
+
+TEST_F(LearnSkillTest, RejectsWhenStageLacksSp) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/2);
+  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  EXPECT_FALSE(c.LearnSkill(skill, 3));
+  EXPECT_EQ(c.skill_level(skill), 0);
+  EXPECT_EQ(c.sp(1), 2);
+}
+
+TEST_F(LearnSkillTest, RejectsRaisingPastMaxLevel) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/10);
+  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/3);
+  EXPECT_TRUE(c.LearnSkill(skill, 3));   // to the cap
+  EXPECT_FALSE(c.LearnSkill(skill, 1));  // one past
+  EXPECT_EQ(c.skill_level(skill), 3);
+  EXPECT_EQ(c.sp(1), 7);
+}
+
+TEST_F(LearnSkillTest, RejectsNonPositiveAmount) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
+  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  EXPECT_FALSE(c.LearnSkill(skill, 0));
+  EXPECT_FALSE(c.LearnSkill(skill, -2));
+  EXPECT_EQ(c.skill_level(skill), 0);
+  EXPECT_EQ(c.sp(1), 5);
+}
+
+TEST_F(LearnSkillTest, SpendsFromTheSkillsOwnStage) {
+  // SP lives in stage 2; a stage-1 skill can't touch it.
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/2, /*sp=*/5);
+  Skill stage1 = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  EXPECT_FALSE(c.LearnSkill(stage1));
+  Skill stage2 = MakeSkill("Brandish", /*stage=*/2, /*max_level=*/20);
+  EXPECT_TRUE(c.LearnSkill(stage2));
+  EXPECT_EQ(c.sp(1), 0);
+  EXPECT_EQ(c.sp(2), 4);
+}
+
+TEST_F(LearnSkillTest, UnlearnedSkillIsLevelZero) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
+  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  EXPECT_EQ(c.skill_level(skill), 0);
 }
 
 // --- CanEquip ---

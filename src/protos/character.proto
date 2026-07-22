@@ -73,7 +73,7 @@ message Character {
   // band's top level stops its SP whether or not the advancement was taken.
   map<int32, int32> sp_by_stage = 11;
 
-  // Learned skill levels, keyed by skill name (the data/skills textproto
-  // stem). Absent or zero means unlearned. Raised by spending that stage's SP.
+  // Learned skill levels, keyed by the skill's display name (Skill.name).
+  // Absent or zero means unlearned. Raised by spending that stage's SP.
   map<string, int32> skill_levels = 12;
 }

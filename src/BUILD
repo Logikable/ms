@@ -11,6 +11,7 @@ cc_test(
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -42,6 +43,7 @@ cc_library(
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/types:span",
     ],

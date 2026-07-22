@@ -21,6 +21,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -44,6 +45,10 @@ class CharacterInstance {
   Job PendingJobAdvancement() const;
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);
+  // Spends `amount` of the skill's job-stage SP to raise its learned level by
+  // that much. Returns false if `amount` <= 0, that stage has less SP than
+  // `amount`, or it would raise the level past skill.max_level().
+  bool LearnSkill(const Skill& skill, int amount = 1);
   // Returns true if the character meets the level and job requirements to
   // equip the item described by `proto`.
   bool CanEquip(const EquipPrototype& proto) const;
@@ -116,6 +121,12 @@ class CharacterInstance {
   int sp(int stage) const {
     return character_.sp_by_stage().contains(stage)
                ? character_.sp_by_stage().at(stage)
+               : 0;
+  }
+  // The character's learned level in `skill` (0 = unlearned).
+  int skill_level(const Skill& skill) const {
+    return character_.skill_levels().contains(skill.name())
+               ? character_.skill_levels().at(skill.name())
                : 0;
   }
   // Sum of stats from all currently equipped items. Updated automatically by

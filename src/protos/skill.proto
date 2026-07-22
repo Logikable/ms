@@ -29,4 +29,6 @@ message Skill {
   int32 max_level = 3;
   SkillEffect base = 4;
   SkillEffect per_level = 5;
+  // The job stage (1 = 1st job, ...) whose SP pool buys this skill.
+  int32 stage = 6;
 }
