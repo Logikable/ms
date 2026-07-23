@@ -125,6 +125,31 @@ TEST(CombatPanelTest, LabelsTheHpBarWithTheTargetLevelAndName) {
   EXPECT_NE(RenderPanel(state, sim).find("Lv.1 Snail"), std::string::npos);
 }
 
+TEST(CombatPanelTest, MergesSeveralEngagedMobsIntoOneBarWithACount) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailField()}});
+  state.current_map = "field";
+  EquipSword(state);
+  // Drive the sim directly with a 2-wide reach over two snails so both land in
+  // the engaged window and merge into one "x2" bar.
+  Mob snail = SnailMob();
+  CombatType type;
+  type.mob = &snail;
+  type.damage_per_hit = 4.0;
+  type.simultaneous = 2;
+  CombatParams params;
+  params.active = true;
+  params.map = "field";
+  params.swing_seconds = 1.0;
+  params.respawn_seconds = 100.0;
+  params.attack_targets = 2;
+  params.types = {type};
+  CombatSim sim;
+  sim.Advance(params, 0.1);  // both engaged, no hit yet
+
+  EXPECT_NE(RenderPanel(state, sim).find("Snail x2"), std::string::npos);
+}
+
 TEST(CombatPanelTest, ShowsRespawningOnceTheRosterIsClear) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", SnailField()}});

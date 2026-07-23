@@ -24,6 +24,17 @@
 
 namespace ms {
 
+// One HP bar for the combat panel: a mob type in the current engaged window
+// (the front mobs the next swing will hit), with its members merged.
+// hp_fraction is the average of that type's engaged mobs' HP fractions; count
+// is how many of them are in the window.
+struct EngagedGroup {
+  std::string name;
+  int level = 0;
+  int count = 0;
+  double hp_fraction = 0.0;
+};
+
 class CombatSim {
  public:
   // Advances the fight by elapsed_seconds of real time under `params`. Larger
@@ -61,6 +72,12 @@ class CombatSim {
   const std::vector<int64_t>& kills_this_step() const {
     return kills_this_step_;
   }
+  // The engaged window as HP bars, one per distinct type the next swing will
+  // hit, in the order they appear in the queue. Empty while
+  // respawning/inactive.
+  const std::vector<EngagedGroup>& engaged_groups() const {
+    return engaged_groups_;
+  }
 
  private:
   // A mob waiting in or being fought in the queue: its type (an index into
@@ -94,6 +111,7 @@ class CombatSim {
   double target_hp_fraction_ = 0.0;
   double attack_fraction_ = 0.0;
   std::vector<int64_t> kills_this_step_;
+  std::vector<EngagedGroup> engaged_groups_;
 };
 
 }  // namespace ms

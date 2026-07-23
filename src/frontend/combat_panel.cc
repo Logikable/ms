@@ -3,6 +3,8 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
@@ -50,29 +52,31 @@ ftxui::Element CombatPanel::Render() const {
   }
 
   // Charges over one swing; a full bar is the moment a hit lands.
-  ftxui::Element attack =
-      ProgressBar(static_cast<float>(sim_.attack_fraction()), kTheme, "");
-  ftxui::Element target =
-      sim_.respawning()
-          ? ftxui::text("Respawning...")
-          // White the whole way across, rather than the default dark-on-fill:
-          // kRed takes white well, and the mob's name shouldn't turn over a
-          // letter at a time as its health drains. The level leads the name so
-          // mixed-level maps read at a glance -- the map row only has room for
-          // the map's weighted average.
-          : ProgressBar(static_cast<float>(sim_.target_hp_fraction()), kRed,
-                        "Lv." + std::to_string(sim_.target_level()) + " " +
-                            sim_.target_name(),
-                        ftxui::Color::White);
+  std::vector<ftxui::Element> rows = {
+      header,
+      ThemedSeparator(),
+      ProgressBar(static_cast<float>(sim_.attack_fraction()), kTheme, ""),
+  };
+  if (sim_.respawning()) {
+    rows.push_back(ftxui::text("Respawning..."));
+  } else {
+    // One HP bar per engaged type. White the whole way across, rather than the
+    // default dark-on-fill: kRed takes white well, and the name shouldn't turn
+    // over a letter at a time as health drains. The level leads the name so
+    // mixed-level maps read at a glance; a "xN" trails when several of the type
+    // are in the window, their HP merged into this one bar's average.
+    for (const EngagedGroup& group : sim_.engaged_groups()) {
+      std::string label =
+          "Lv." + std::to_string(group.level) + " " + group.name;
+      if (group.count > 1) {
+        label += " x" + std::to_string(group.count);
+      }
+      rows.push_back(ProgressBar(static_cast<float>(group.hp_fraction), kRed,
+                                 label, ftxui::Color::White));
+    }
+  }
 
-  return ThemedWindow(" Combat ",
-                      ftxui::vbox({
-                          header,
-                          ThemedSeparator(),
-                          attack,
-                          target,
-                      }),
-                      focused);
+  return ThemedWindow(" Combat ", ftxui::vbox(std::move(rows)), focused);
 }
 
 ftxui::Component CombatPanel::MakeComponent(std::function<void()> on_travel) {

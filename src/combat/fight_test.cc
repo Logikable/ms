@@ -41,6 +41,16 @@ CombatParams MakeParams(double swing, double respawn,
   return params;
 }
 
+const EngagedGroup* FindGroup(const std::vector<EngagedGroup>& groups,
+                              const std::string& name) {
+  for (const EngagedGroup& g : groups) {
+    if (g.name == name) {
+      return &g;
+    }
+  }
+  return nullptr;
+}
+
 TEST(CombatSimTest, InactiveParamsLeaveSimIdle) {
   CombatSim sim;
   sim.Advance(CombatParams{}, 1.0);
@@ -171,6 +181,45 @@ TEST(CombatSimTest, MultiTargetDrainsTheWindowInParallel) {
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.kills_this_step()[0], 2);  // both die together
   EXPECT_TRUE(sim.respawning());
+}
+
+TEST(CombatSimTest, EngagedGroupsAverageASingleTypesWindow) {
+  Mob snail = MakeMob("Snail", 20, 3);
+  CombatSim sim;
+  // Five mobs, reach 3: only the front three are engaged, so the bar merges
+  // three of them -- not all five.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 4.0, 5)});
+  params.attack_targets = 3;
+
+  sim.Advance(params, 1.0);  // front three to 16/20 = 0.8
+  ASSERT_EQ(sim.engaged_groups().size(), 1u);
+  EXPECT_EQ(sim.engaged_groups()[0].name, "Snail");
+  EXPECT_EQ(sim.engaged_groups()[0].level, 3);
+  EXPECT_EQ(sim.engaged_groups()[0].count, 3);
+  EXPECT_NEAR(sim.engaged_groups()[0].hp_fraction, 0.8, 1e-9);
+}
+
+TEST(CombatSimTest, EngagedGroupsMergeTheWindowByType) {
+  Mob snail = MakeMob("Snail", 100, 1);
+  Mob slug = MakeMob("Slug", 100, 2);
+  CombatSim sim;
+  // Two of each, reach 4 hits the whole queue. Same-type mobs entered together
+  // and take the same damage, so each type merges to one bar at a shared HP.
+  CombatParams params = MakeParams(
+      1.0, 100.0, {MakeType(&snail, 50.0, 2), MakeType(&slug, 20.0, 2)});
+  params.attack_targets = 4;
+
+  sim.Advance(params, 1.0);  // Snails -> 0.5, Slugs -> 0.8
+  const std::vector<EngagedGroup>& groups = sim.engaged_groups();
+  ASSERT_EQ(groups.size(), 2u);
+  const EngagedGroup* snails = FindGroup(groups, "Snail");
+  const EngagedGroup* slugs = FindGroup(groups, "Slug");
+  ASSERT_NE(snails, nullptr);
+  ASSERT_NE(slugs, nullptr);
+  EXPECT_EQ(snails->count, 2);
+  EXPECT_NEAR(snails->hp_fraction, 0.5, 1e-9);
+  EXPECT_EQ(slugs->count, 2);
+  EXPECT_NEAR(slugs->hp_fraction, 0.8, 1e-9);
 }
 
 TEST(CombatSimTest, RefillsAtTheRespawnBeat) {

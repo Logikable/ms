@@ -83,6 +83,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   }
 
   respawning_ = queue_.empty();
+  engaged_groups_.clear();
   if (queue_.empty()) {
     target_name_.clear();
     target_level_ = 0;
@@ -97,6 +98,29 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
                               ? std::clamp(front.hp / target.max_hp(), 0.0, 1.0)
                               : 0.0;
     attack_fraction_ = std::clamp(attack_phase_ / swing, 0.0, 1.0);
+
+    // Merge the front window (the mobs the next swing hits) into one HP bar per
+    // type: its member count and their average HP fraction, in queue order.
+    int reach = std::max(1, params.attack_targets);
+    int window = std::min(reach, static_cast<int>(queue_.size()));
+    for (int j = 0; j < window; ++j) {
+      int type = queue_[j].type;
+      const Mob& mob = *params.types[type].mob;
+      double frac = mob.max_hp() > 0
+                        ? std::clamp(queue_[j].hp / mob.max_hp(), 0.0, 1.0)
+                        : 0.0;
+      std::vector<EngagedGroup>::iterator it = std::find_if(
+          engaged_groups_.begin(), engaged_groups_.end(),
+          [&mob](const EngagedGroup& g) { return g.name == mob.name(); });
+      if (it == engaged_groups_.end()) {
+        engaged_groups_.push_back({mob.name(), mob.level(), 1, frac});
+      } else {
+        // Running average of the fractions seen so far for this type.
+        it->hp_fraction =
+            (it->hp_fraction * it->count + frac) / (it->count + 1);
+        ++it->count;
+      }
+    }
   }
 }
 
