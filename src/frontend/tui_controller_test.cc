@@ -298,11 +298,23 @@ TEST_F(TuiControllerTest, ConfirmLearnsTheChosenPoints) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, ConfirmLearnsAllSpendablePointsByDefault) {
+TEST_F(TuiControllerTest, ConfirmStopsAtTheSkillsMaxLevelByDefault) {
   Skill skill = SlashBlast();
-  int sp_before = state_->character.sp(1);  // 16, below the max level of 20
+  int sp_before = state_->character.sp(1);
+  ASSERT_GT(sp_before, skill.max_level());  // the skill's cap is what binds
+  controller_->OpenSkillLearn(skill);       // amount defaults to max
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.skill_level(skill), skill.max_level());
+  EXPECT_EQ(state_->character.sp(1), sp_before - skill.max_level());
+}
+
+TEST_F(TuiControllerTest, ConfirmSpendsEveryPointWhenSpIsWhatBinds) {
+  Skill skill = SlashBlast();
+  skill.set_max_level(1000);  // out of reach, so the SP pool is the limit
+  int sp_before = state_->character.sp(1);
   ASSERT_GT(sp_before, 0);
-  controller_->OpenSkillLearn(skill);             // amount defaults to max
+  controller_->OpenSkillLearn(skill);
   controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.skill_level(skill), sp_before);

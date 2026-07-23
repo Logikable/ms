@@ -26,16 +26,21 @@ Character MakeBaseBeginnerProto() {
   return proto;
 }
 
-// A level-15 Warrior to start with, so there is 1st-job SP (and AP) on hand to
-// test skills. Built by running the real leveling and advancement mechanics
-// rather than hardcoding totals, so AP and SP stay consistent with the level
-// and job if either is changed here.
+// The level a fresh character starts at, for testing. Level 30 is the top of
+// the 1st-job band, so the whole 61-point SP pool is on hand -- enough to max
+// every 1st-job skill and see what they do.
+constexpr int kStartingLevel = 30;
+
+// A Warrior to start with, so there is 1st-job SP (and AP) on hand to test
+// skills. Built by running the real leveling and advancement mechanics rather
+// than hardcoding totals, so AP and SP stay consistent with the level and job
+// if either is changed here.
 Character MakeStartingCharacterProto() {
   // LevelUp and AdvanceJob don't consume randomness; a local rng keeps this
   // independent of GameState's member rng and its construction order.
   std::mt19937 rng(0);
   CharacterInstance character(rng, MakeBaseBeginnerProto());
-  while (character.proto().level() < 15) {
+  while (character.proto().level() < kStartingLevel) {
     character.LevelUp();
   }
   character.AdvanceJob(JOB_WARRIOR);
