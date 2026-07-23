@@ -33,8 +33,11 @@ struct CombatParams {
   // The map these params describe. The fight watches this to know when it is
   // playing out a different encounter than the one it holds a roster for.
   std::string map;
-  double swing_seconds = 0.0;     // time between auto-attacks (game-scaled)
-  double respawn_seconds = 0.0;   // time between full-roster respawn beats
+  double swing_seconds = 0.0;    // time between auto-attacks (game-scaled)
+  double respawn_seconds = 0.0;  // time between full-roster respawn beats
+  // How many front-of-queue mobs one swing hits -- the chosen attack's reach.
+  // 1 for the bare poke or a single-target skill.
+  int attack_targets = 1;
   std::vector<CombatType> types;  // in map order
 };
 

@@ -100,11 +100,11 @@ TEST(CombatSimTest, RecordsKillsForTheStepTheyHappen) {
   sim.Advance(params, 0.5);  // swing completes -> one kill
   EXPECT_EQ(sim.kills_this_step()[0], 1);
 
-  sim.Advance(params, 0.5);  // next step: inter-kill delay, no new kill
+  sim.Advance(params, 0.5);  // still charging the next swing, no new kill
   EXPECT_EQ(sim.kills_this_step()[0], 0);
 }
 
-TEST(CombatSimTest, AdvancesToNextMobAfterKillWithDelay) {
+TEST(CombatSimTest, AdvancesToTheNextMobAfterAKill) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)});
@@ -113,10 +113,63 @@ TEST(CombatSimTest, AdvancesToNextMobAfterKillWithDelay) {
   EXPECT_FALSE(sim.respawning());
   EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);  // next mob, full HP
 
-  sim.Advance(params, 0.9);  // inter-kill delay elapses, no attack yet
+  sim.Advance(params, 0.9);  // charging, no swing yet
   EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);
 
-  sim.Advance(params, 1.0);  // kill the second -> roster empty
+  sim.Advance(params, 1.0);  // kill the second -> queue empty
+  EXPECT_TRUE(sim.respawning());
+}
+
+TEST(CombatSimTest, SingleTargetReachLeavesTheSecondMobUntouched) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // Reach 1 (the default): a swing hits only the front mob, so the second is
+  // still at full HP after the first dies.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)});
+
+  sim.Advance(params, 1.0);  // one-shot the front mob
+  EXPECT_EQ(sim.kills_this_step()[0], 1);
+  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);  // the next is full, unhit
+}
+
+TEST(CombatSimTest, MultiTargetSwingHitsAndKillsSeveralAtOnce) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // A 3-way attack over three mobs: one swing hits and one-shots all three.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 3)});
+  params.attack_targets = 3;
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 3);  // three kills on one swing
+  EXPECT_TRUE(sim.respawning());           // queue cleared
+}
+
+TEST(CombatSimTest, MultiTargetReachIsCappedByRemainingMobs) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // Reach 6 but only two mobs are up, so the swing hits (and clears) just two.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)});
+  params.attack_targets = 6;
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 2);
+  EXPECT_TRUE(sim.respawning());
+}
+
+TEST(CombatSimTest, MultiTargetDrainsTheWindowInParallel) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // Two mobs, a 2-way attack, 6 damage: each needs two hits. The first swing
+  // leaves both alive at partial HP; the second kills both on the same swing.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 6.0, 2)});
+  params.attack_targets = 2;
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 0);           // both at 4 HP, alive
+  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 0.4);  // 10 - 6
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 2);  // both die together
   EXPECT_TRUE(sim.respawning());
 }
 

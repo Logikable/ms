@@ -1,5 +1,6 @@
 #include "src/combat/encounter.h"
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <utility>
@@ -53,6 +54,11 @@ CombatParams ComputeCombatParams(const GameState& state) {
       break;
     }
   }
+
+  // The attack's reach: how many mobs a swing hits. A single-target skill (or
+  // one that forgot to set max_enemies) and the bare poke all hit one.
+  params.attack_targets =
+      attack_skill != nullptr ? std::max(1, attack_skill->max_enemies()) : 1;
 
   const Character& proto = state.character.proto();
   OffenseStats offense = OffenseStatsFor(

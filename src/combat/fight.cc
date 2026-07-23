@@ -6,30 +6,20 @@
 #include "src/protos/mob.pb.h"
 
 namespace ms {
-namespace {
-
-// Pause between clearing one mob and engaging the next: 3 game ticks (900ms).
-constexpr double kInterKillDelaySeconds = 0.9;
-
-}  // namespace
 
 void CombatSim::Refill(const CombatParams& params) {
-  roster_.clear();
+  queue_.clear();
   for (int i = 0; i < static_cast<int>(params.types.size()); ++i) {
     for (int k = 0; k < params.types[i].simultaneous; ++k) {
-      roster_.push_back(i);
+      queue_.push_back({i, static_cast<double>(params.types[i].mob->max_hp())});
     }
   }
-  // Fight the roster in a random order, interleaving the types. Beyond feeling
+  // Fight the queue in a random order, interleaving the types. Beyond feeling
   // less mechanical, this keeps kills fair when clears lag the respawn beat:
-  // the beat refills the whole roster on a fixed timer, and the sim always
-  // attacks the front, so a fixed order would let only the front type ever die.
-  std::shuffle(roster_.begin(), roster_.end(), rng_);
+  // the beat refills the whole queue on a fixed timer, and the sim always
+  // attacks the front, so a fixed order would let only the front types die.
+  std::shuffle(queue_.begin(), queue_.end(), rng_);
   attack_phase_ = 0.0;
-  delay_remaining_ = 0.0;
-  if (!roster_.empty()) {
-    target_hp_ = params.types[roster_.front()].mob->max_hp();
-  }
 }
 
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
@@ -51,8 +41,8 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   double dt = std::min(elapsed_seconds, swing);
 
   // (Re)initialize on first activation, or on a move to a different map: the
-  // roster holds indices into that map's types, and the target's HP is that
-  // map's mob's. Carried over, both would describe the wrong monsters.
+  // queue holds indices into that map's types, and its HP values are that map's
+  // mobs'. Carried over, both would describe the wrong monsters.
   if (!initialized_ || map_ != params.map) {
     map_ = params.map;
     respawn_phase_ = 0.0;
@@ -60,45 +50,52 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     initialized_ = true;
   }
 
-  // The respawn beat refills the whole roster.
+  // The respawn beat refills the whole queue.
   respawn_phase_ += dt;
   if (respawn_phase_ >= params.respawn_seconds) {
     respawn_phase_ -= params.respawn_seconds;
     Refill(params);
   }
 
-  if (delay_remaining_ > 0.0) {
-    delay_remaining_ = std::max(0.0, delay_remaining_ - dt);
-  } else if (!roster_.empty()) {
+  if (!queue_.empty()) {
     attack_phase_ += dt;
     if (attack_phase_ >= swing) {
       attack_phase_ -= swing;
-      target_hp_ -= params.types[roster_.front()].damage_per_hit;
-      if (target_hp_ <= 0.0) {  // overkill wasted; the next mob is full HP
-        ++kills_this_step_[roster_.front()];
-        roster_.erase(roster_.begin());
-        attack_phase_ = 0.0;
-        if (!roster_.empty()) {
-          delay_remaining_ = kInterKillDelaySeconds;
-          target_hp_ = params.types[roster_.front()].mob->max_hp();
+      // One swing hits the front `attack_targets` mobs at once; each takes its
+      // own type's damage. Overkill on any of them is wasted. Dead mobs leave
+      // the queue and the ones behind slide into the window next swing.
+      int reach = std::max(1, params.attack_targets);
+      int hit = std::min(reach, static_cast<int>(queue_.size()));
+      for (int j = 0; j < hit; ++j) {
+        queue_[j].hp -= params.types[queue_[j].type].damage_per_hit;
+      }
+      std::vector<QueuedMob> survivors;
+      survivors.reserve(queue_.size());
+      for (int j = 0; j < static_cast<int>(queue_.size()); ++j) {
+        if (j < hit && queue_[j].hp <= 0.0) {
+          ++kills_this_step_[queue_[j].type];
+        } else {
+          survivors.push_back(queue_[j]);
         }
       }
+      queue_ = std::move(survivors);
     }
   }
 
-  respawning_ = roster_.empty();
-  if (roster_.empty()) {
+  respawning_ = queue_.empty();
+  if (queue_.empty()) {
     target_name_.clear();
     target_level_ = 0;
     target_hp_fraction_ = 0.0;
     attack_fraction_ = 0.0;
   } else {
-    const Mob& target = *params.types[roster_.front()].mob;
+    const QueuedMob& front = queue_.front();
+    const Mob& target = *params.types[front.type].mob;
     target_name_ = target.name();
     target_level_ = target.level();
-    target_hp_fraction_ =
-        target.max_hp() > 0 ? std::clamp(target_hp_ / target.max_hp(), 0.0, 1.0)
-                            : 0.0;
+    target_hp_fraction_ = target.max_hp() > 0
+                              ? std::clamp(front.hp / target.max_hp(), 0.0, 1.0)
+                              : 0.0;
     attack_fraction_ = std::clamp(attack_phase_ / swing, 0.0, 1.0);
   }
 }

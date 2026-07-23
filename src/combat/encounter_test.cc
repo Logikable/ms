@@ -11,6 +11,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -77,6 +78,25 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
   EXPECT_GT(params.swing_seconds, 0.0);
   EXPECT_DOUBLE_EQ(params.respawn_seconds,
                    kRespawnIntervalSeconds * kGameSpeedFactor);
+  EXPECT_EQ(params.attack_targets, 1);  // no attack skill -> bare 1-target poke
+}
+
+TEST(ComputeCombatParamsTest, AttackTargetsComeFromTheLearnedAttackSkill) {
+  Skill slash;
+  slash.set_name("Slash Blast");
+  slash.set_kind(SKILL_KIND_ATTACK);
+  slash.set_stage(1);
+  slash.set_max_level(20);
+  slash.set_max_enemies(6);
+  slash.mutable_base()->set_skill_pct(1.83);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"slash_blast", slash}});
+  state.current_map = "field";
+  EquipSword(state);
+  // The starting level-15 Warrior has stage-1 SP to spend.
+  ASSERT_TRUE(state.character.LearnSkill(slash, 1));
+
+  EXPECT_EQ(ComputeCombatParams(state).attack_targets, 6);
 }
 
 }  // namespace

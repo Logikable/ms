@@ -110,6 +110,7 @@ cc_test(
         "//src/protos:equip_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],
 )

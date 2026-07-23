@@ -31,4 +31,7 @@ message Skill {
   SkillEffect per_level = 5;
   // The job stage (1 = 1st job, ...) whose SP pool buys this skill.
   int32 stage = 6;
+  // How many enemies one swing of this attack hits (attack skills). Unset/0 is
+  // treated as 1 (single target); the bare poke is likewise 1.
+  int32 max_enemies = 7;
 }

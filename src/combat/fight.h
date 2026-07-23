@@ -1,6 +1,11 @@
-/* The live fight: the player auto-attacking a map's mobs one at a time,
- * draining each one's HP, clearing the roster, then idling until the next
- * respawn beat refills it.
+/* The live fight: the player auto-attacking a map's mobs, draining HP, clearing
+ * the queue, then idling until the next respawn beat refills it.
+ *
+ * The mobs form a queue (spawns appended in random order on each refill). One
+ * swing hits the first params.attack_targets of them at once -- the chosen
+ * attack's reach -- each taking its own type's damage; a mob at 0 HP leaves the
+ * queue and the ones behind slide forward. A single-target attack (reach 1) is
+ * the one-at-a-time special case.
  *
  * This is the single engine behind both halves of combat. The kills it reports
  * each step (kills_this_step) are what the reward layer pays out for, and the
@@ -58,22 +63,27 @@ class CombatSim {
   }
 
  private:
-  // Repopulates the roster to a full map clear and targets the first mob.
+  // A mob waiting in or being fought in the queue: its type (an index into
+  // params.types) and its remaining HP.
+  struct QueuedMob {
+    int type = 0;
+    double hp = 0.0;
+  };
+
+  // Repopulates the queue to a full map clear, in random order.
   void Refill(const CombatParams& params);
 
   bool active_ = false;
   bool initialized_ = false;
   bool respawning_ = false;
-  // Map the roster was filled from. Its type indices only mean anything for
-  // that map, so a change here invalidates them.
+  // Map the queue was filled from. Its type indices only mean anything for that
+  // map, so a change here invalidates them.
   std::string map_;
-  std::vector<int> roster_;       // remaining mobs this cycle, as type indices
-  double target_hp_ = 0.0;        // current target's remaining HP (absolute)
+  std::vector<QueuedMob> queue_;  // remaining mobs this cycle, front = engaged
   double attack_phase_ = 0.0;     // seconds into the current swing
-  double delay_remaining_ = 0.0;  // inter-kill pause countdown
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
 
-  // Shuffles the roster on each refill so the mobs are fought in mixed order
+  // Shuffles the queue on each refill so the mobs are fought in mixed order
   // rather than one whole type at a time (see Refill). Default-seeded, so a sim
   // plays out the same way every run -- which keeps tests reproducible.
   std::mt19937 rng_;
