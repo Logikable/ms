@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
@@ -64,6 +65,35 @@ TEST_F(CharacterPanelTest, ShowsBothTabs) {
 TEST_F(CharacterPanelTest, StatsTabIsShownByDefault) {
   CharacterPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderElement(panel.Render()).find("HP:"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
+  // Iron Body at level 3: DEF +30, Max HP +3%.
+  Skill iron_body;
+  iron_body.set_name("Iron Body");
+  iron_body.set_kind(SKILL_KIND_PASSIVE);
+  iron_body.set_stage(1);
+  iron_body.set_max_level(20);
+  iron_body.mutable_base()->set_def(10);
+  iron_body.mutable_base()->set_max_hp_pct(0.01);
+  iron_body.mutable_per_level()->set_def(10);
+  iron_body.mutable_per_level()->set_max_hp_pct(0.01);
+  std::map<std::string, Skill> catalog;
+  catalog["iron_body"] = iron_body;
+
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_WARRIOR);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_hp(100);
+  (*proto.mutable_sp_by_stage())[1] = 3;
+  CharacterInstance c(rng_, std::move(proto));
+  ASSERT_TRUE(c.LearnSkill(iron_body, 3));
+
+  CharacterPanel panel(c, panel_focus_, catalog);
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(rendered.find("HP: 103"), std::string::npos);
+  EXPECT_NE(rendered.find("DEF: 30"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {

@@ -1,9 +1,9 @@
 /* CharacterPanel renders the character pane as a tabbed panel: a "Lv X <job>"
  * title, a Stats/Skills tab bar, and the selected tab's content. The Stats tab
  * shows base stats (HP/MP/STR/DEX/INT/LUK) including equipment bonuses and the
- * equipment-derived combat stats (ATT/MATT); the Skills tab shows the unlocked
- * job-advancement tabs (I/II/...) and their SP, with the skill list still to
- * come.
+ * combat stats (ATT/MATT/DEF); HP and DEF also carry learned passive skills.
+ * The Skills tab shows the unlocked job-advancement tabs (I/II/...) and their
+ * SP, with the skill list still to come.
  *
  * Focus moves top-to-bottom through zones, Down descending and Up ascending.
  * The top zone is the Stats/Skills tab bar: there Left/Right switch tabs (they

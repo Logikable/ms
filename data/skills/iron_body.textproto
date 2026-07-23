@@ -1,0 +1,17 @@
+# GMS reduces damage taken by ceil(level/2)%, which base + per_level*(L-1)
+# cannot express. The plain level/2 below is exact at every even level,
+# including the max, and half a point low at odd ones.
+name: "Iron Body"
+kind: SKILL_KIND_PASSIVE
+stage: 1
+max_level: 20
+base {
+  def: 10
+  max_hp_pct: 0.01
+  damage_taken_pct: 0.005
+}
+per_level {
+  def: 10
+  max_hp_pct: 0.01
+  damage_taken_pct: 0.005
+}

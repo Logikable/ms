@@ -1,0 +1,12 @@
+# The HP is the whole skill for us: its other effects (speed, jump, max speed,
+# knockback resistance) are things this game doesn't model.
+name: "Warrior Mastery"
+kind: SKILL_KIND_PASSIVE
+stage: 1
+max_level: 15
+base {
+  max_hp_per_level: 6
+}
+per_level {
+  max_hp_per_level: 1
+}

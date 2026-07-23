@@ -10,6 +10,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character_stats.h"
 #include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
@@ -138,8 +139,12 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const AllocatedStats& a = p.allocated_stats();
   const EquipStats& e = character_.equip_stats();
 
+  // HP and DEF carry passive-skill bonuses on top of the allocated and worn
+  // values, so they come from the derived totals rather than a bare sum.
+  DerivedStats derived = DerivedStatsFor(character_, skills_);
+
   std::vector<ftxui::Element> rows;
-  rows.push_back(DisplayRow("HP", a.hp() + e.max_hp()));
+  rows.push_back(DisplayRow("HP", derived.max_hp));
   rows.push_back(MpRow(a.mp(), p.ap()));
   for (int i = 0; i < kNumAllocStats; ++i) {
     std::pair<int, int> v = AllocStatValues(kAllocStats[i].field, a, e);
@@ -149,6 +154,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   rows.push_back(ThemedSeparator());
   rows.push_back(DisplayRow("ATT", e.attack()));
   rows.push_back(DisplayRow("MATT", e.magic_attack()));
+  rows.push_back(DisplayRow("DEF", derived.def));
   return ftxui::vbox(std::move(rows));
 }
 

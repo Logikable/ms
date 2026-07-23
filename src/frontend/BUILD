@@ -53,6 +53,7 @@ cc_library(
         ":panel_util",
         ":types",
         "//src:character",
+        "//src:character_stats",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",

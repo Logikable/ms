@@ -131,6 +131,18 @@ TEST_F(DerivedStatsTest, PercentHpAppliesAfterEveryFlatSource) {
   EXPECT_EQ(stats.max_hp, 264);
 }
 
+TEST_F(DerivedStatsTest, PercentHpSurvivesItsOwnAccumulation) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50);
+  Skill iron_body = IronBody();
+  std::map<std::string, Skill> skills = {{"iron_body", iron_body}};
+  ASSERT_TRUE(c.LearnSkill(iron_body, 16));
+
+  // 16 levels of +1% sums to a shade under 0.16 in floating point; flooring
+  // that raw would report 57 for what is plainly 50 * 1.16.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.max_hp, 58);
+}
+
 TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill slash;

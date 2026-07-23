@@ -1,5 +1,6 @@
 #include "src/character_stats.h"
 
+#include <cmath>
 #include <map>
 #include <string>
 #include <utility>
@@ -9,6 +10,12 @@
 #include "src/protos/skill.pb.h"
 
 namespace ms {
+namespace {
+
+// Slack for the floor below, far smaller than any percentage a skill grants.
+constexpr double kPercentEpsilon = 1e-9;
+
+}  // namespace
 
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills) {
@@ -44,10 +51,15 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
 
   DerivedStats stats;
   // Per-level HP is flat HP like any other, just scaled by how far the
-  // character has levelled; the percentage applies to the whole pile.
+  // character has levelled; the percentage applies to the whole pile, and a
+  // fractional point of HP is dropped. The nudge before the floor is for the
+  // percentage itself: summing a skill's per-level steps lands a hair under
+  // the round figure (16 levels of +1% is 0.15999...), which would otherwise
+  // cost a whole point of HP.
   int flat_hp =
       allocated.hp() + equipped.max_hp() + hp_per_level * proto.level();
-  stats.max_hp = static_cast<int>(flat_hp * (1.0 + max_hp_pct));
+  stats.max_hp = static_cast<int>(
+      std::floor(flat_hp * (1.0 + max_hp_pct) + kPercentEpsilon));
   stats.def = equipped.def() + skill_def;
   stats.damage_taken_pct = damage_taken_pct;
   return stats;
