@@ -5,6 +5,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -195,7 +196,8 @@ TEST(OffenseStatsForTest, SumsAllocatedAndEquippedStats) {
   equipped.set_dex(2);
   equipped.set_attack(15);  // the Sword
 
-  OffenseStats offense = OffenseStatsFor(JOB_BEGINNER, 7, allocated, equipped);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_BEGINNER, 7, allocated, equipped, nullptr, 0);
   EXPECT_EQ(offense.primary, 23);   // 13 + 10
   EXPECT_EQ(offense.secondary, 6);  // 4 + 2
   EXPECT_EQ(offense.attack, 15);
@@ -207,7 +209,7 @@ TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
   allocated.set_str(100);
   allocated.set_dex(20);
   OffenseStats offense =
-      OffenseStatsFor(JOB_WARRIOR, 1, allocated, EquipStats());
+      OffenseStatsFor(JOB_WARRIOR, 1, allocated, EquipStats(), nullptr, 0);
   EXPECT_EQ(offense.primary, 100);
   EXPECT_EQ(offense.secondary, 20);
 }
@@ -217,14 +219,14 @@ TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
   equipped.set_boss_damage(30);           // 30%
   equipped.set_ignore_enemy_defense(20);  // 20%
   OffenseStats offense =
-      OffenseStatsFor(JOB_WARRIOR, 1, AllocatedStats(), equipped);
+      OffenseStatsFor(JOB_WARRIOR, 1, AllocatedStats(), equipped, nullptr, 0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.30);
   EXPECT_DOUBLE_EQ(offense.ied, 0.20);
 }
 
 TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
-  OffenseStats offense =
-      OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(), EquipStats());
+  OffenseStats offense = OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(),
+                                         EquipStats(), nullptr, 0);
   EXPECT_DOUBLE_EQ(offense.mastery, 0.15);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.0);
@@ -236,9 +238,72 @@ TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {
   allocated.set_str(50);
   allocated.set_dex(30);
   OffenseStats offense =
-      OffenseStatsFor(JOB_UNSPECIFIED, 1, allocated, EquipStats());
+      OffenseStatsFor(JOB_UNSPECIFIED, 1, allocated, EquipStats(), nullptr, 0);
   EXPECT_EQ(offense.primary, 0);  // fail safe: unknown job has no main stat
   EXPECT_EQ(offense.secondary, 0);
+}
+
+// Slash Blast: 183% at level 1, +8% per level.
+Skill SlashBlast() {
+  Skill skill;
+  skill.set_name("Slash Blast");
+  skill.set_kind(SKILL_KIND_ATTACK);
+  skill.set_max_level(20);
+  skill.mutable_base()->set_skill_pct(1.83);
+  skill.mutable_per_level()->set_skill_pct(0.08);
+  return skill;
+}
+
+TEST(OffenseStatsForTest, AttackSkillSetsSkillPctAtLevelOne) {
+  Skill slash_blast = SlashBlast();
+  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+                                         EquipStats(), &slash_blast, 1);
+  EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83);  // base, no per-level yet
+}
+
+TEST(OffenseStatsForTest, AttackSkillAddsPerLevelBeyondLevelOne) {
+  Skill slash_blast = SlashBlast();
+  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+                                         EquipStats(), &slash_blast, 10);
+  EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83 + 0.08 * 9);  // 2.55 at level 10
+}
+
+TEST(OffenseStatsForTest, NoAttackSkillKeepsTheBarePoke) {
+  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+                                         EquipStats(), nullptr, 0);
+  EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
+}
+
+TEST(OffenseStatsForTest, PassiveSkillDoesNotChangeSkillPct) {
+  Skill passive;
+  passive.set_name("Iron Body");
+  passive.set_kind(SKILL_KIND_PASSIVE);
+  passive.set_max_level(10);
+  passive.mutable_base()->set_max_hp_pct(0.10);
+  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+                                         EquipStats(), &passive, 5);
+  EXPECT_DOUBLE_EQ(offense.skill_pct,
+                   1.0);  // passives fold into HP, not damage
+}
+
+TEST(OffenseStatsForTest, LevelOneSlashBlastKillsRoughly83PercentFaster) {
+  // A learned attack skill scales expected damage by exactly its skill_pct
+  // versus the bare poke -- 1.83x here. At equal swing speed (Slash Blast is
+  // assumed to swing as fast as the poke for now) that is 1.83x the kills per
+  // unit time, i.e. "83% faster".
+  AllocatedStats allocated;
+  allocated.set_str(40);
+  EquipStats equipped;
+  equipped.set_attack(15);
+  Mob mob = MakeMob(/*pdr=*/0, /*boss=*/false, /*level=*/15);
+
+  OffenseStats poke =
+      OffenseStatsFor(JOB_WARRIOR, 15, allocated, equipped, nullptr, 0);
+  Skill slash_blast = SlashBlast();
+  OffenseStats slash =
+      OffenseStatsFor(JOB_WARRIOR, 15, allocated, equipped, &slash_blast, 1);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(slash, mob),
+                   1.83 * ExpectedAttackDamage(poke, mob));
 }
 
 }  // namespace

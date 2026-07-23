@@ -8,6 +8,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -35,9 +36,17 @@ struct OffenseStats {
 // equipped) stats. Job picks primary/secondary; attack and boss_pct/ied come
 // from gear; level feeds the level multiplier; the rest keep identity defaults
 // until skills/gear supply them.
+//
+// `attack_skill` is the attack the character swings with -- an attack-kind
+// Skill they have learned, at `attack_level` -- or nullptr to fall back to the
+// bare 100% poke. Its skill_pct (base + per_level*(attack_level-1)) becomes the
+// swing's multiplier. Choosing WHICH attack (when several are learned, or when
+// a weaker multi-target skill beats the poke on a crowded map) is the caller's
+// job, not this pure per-mob math; today there is at most one attack skill.
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
-                             const EquipStats& equipped);
+                             const EquipStats& equipped,
+                             const Skill* attack_skill, int attack_level);
 
 // Expected damage of one full attack against `mob` (crit averaged over its
 // rate, no RNG). The GMS damage chain; mob PDR and boss flag come from the Mob.

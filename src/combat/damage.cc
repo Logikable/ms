@@ -7,6 +7,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -77,7 +78,8 @@ double LevelMultiplier(int player_level, int mob_level) {
 
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
-                             const EquipStats& equipped) {
+                             const EquipStats& equipped,
+                             const Skill* attack_skill, int attack_level) {
   OffenseStats offense;
   offense.level = level;
   // Primary/secondary stat by job; unknown jobs fall through to 0, matching
@@ -95,6 +97,14 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.attack = equipped.attack();
   offense.boss_pct = equipped.boss_damage() / kPercentToFraction;
   offense.ied = equipped.ignore_enemy_defense() / kPercentToFraction;
+  // The learned attack skill's multiplier replaces the bare 100% poke. Effect
+  // at level L is base + per_level*(L-1). Passive skills fold elsewhere (their
+  // only lever, max_hp_pct, feeds HP, not damage), so they are ignored here.
+  if (attack_skill != nullptr && attack_skill->kind() == SKILL_KIND_ATTACK) {
+    offense.skill_pct =
+        attack_skill->base().skill_pct() +
+        attack_skill->per_level().skill_pct() * (attack_level - 1);
+  }
   return offense;
 }
 

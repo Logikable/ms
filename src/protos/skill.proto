@@ -20,9 +20,9 @@ message SkillEffect {
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,
-// keyed by filename stem; the Character's skill_levels map references that stem.
-// The effect at learned level L is base + per_level * (L - 1), so `base` is the
-// level-1 value and `per_level` the increment per level beyond it.
+// keyed by filename stem; the Character's skill_levels map references the skill
+// by its display `name`. The effect at learned level L is base + per_level *
+// (L - 1), so `base` is the level-1 value and `per_level` the increment beyond.
 message Skill {
   string name = 1;
   SkillKind kind = 2;

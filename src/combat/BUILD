@@ -16,6 +16,7 @@ cc_library(
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
     ],
 )
 
@@ -27,6 +28,7 @@ cc_test(
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -93,6 +95,7 @@ cc_library(
         "//src/protos:equip_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
+        "//src/protos:skill_proto_cc",
     ],
 )
 
