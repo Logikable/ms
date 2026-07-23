@@ -50,6 +50,32 @@ cc_library(
 )
 
 cc_library(
+    name = "character_stats",
+    srcs = ["character_stats.cc"],
+    hdrs = ["character_stats.h"],
+    deps = [
+        ":character",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "character_stats_test",
+    srcs = ["character_stats_test.cc"],
+    deps = [
+        ":character",
+        ":character_stats",
+        ":equip_instance",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "inventory",
     srcs = ["inventory.cc"],
     hdrs = ["inventory.h"],

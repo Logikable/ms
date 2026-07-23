@@ -15,8 +15,11 @@ enum SkillKind {
 // track (speed, jump, ...) simply carries no levers and does nothing. Percents
 // are fractions (0.10 == +10%).
 message SkillEffect {
-  double skill_pct = 1;    // damage multiplier (attack skills)
-  double max_hp_pct = 2;   // bonus to max HP
+  double skill_pct = 1;         // damage multiplier (attack skills)
+  double max_hp_pct = 2;        // bonus to max HP, applied after the flat HP
+  int32 def = 3;                // flat weapon DEF
+  int32 max_hp_per_level = 4;   // flat max HP for each character level
+  double damage_taken_pct = 5;  // share of incoming damage cancelled
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,

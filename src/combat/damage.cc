@@ -99,7 +99,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.ied = equipped.ignore_enemy_defense() / kPercentToFraction;
   // The learned attack skill's multiplier replaces the bare 100% poke. Effect
   // at level L is base + per_level*(L-1). Passive skills fold elsewhere (their
-  // only lever, max_hp_pct, feeds HP, not damage), so they are ignored here.
+  // levers are all defensive -- see DerivedStatsFor), so they are ignored here.
   if (attack_skill != nullptr && attack_skill->kind() == SKILL_KIND_ATTACK) {
     offense.skill_pct =
         attack_skill->base().skill_pct() +
