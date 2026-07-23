@@ -28,6 +28,7 @@
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -54,7 +55,7 @@ int ExpPctDecimals(int level) {
 Tui::Tui(GameState& state)
     : state_(state),
       last_combat_update_(std::chrono::steady_clock::now()),
-      char_panel_(state.character, panel_focus_),
+      char_panel_(state.character, panel_focus_, state.skills),
       combat_panel_(state, combat_sim_, panel_focus_),
       equip_panel_(state.character, panel_focus_),
       inventory_panel_(state.character, panel_focus_),
@@ -72,7 +73,8 @@ void Tui::Run() {
   inventory_component_ = inventory_panel_.MakeComponent(
       [this]() { controller_.OpenInventoryMenu(); });
   char_component_ = char_panel_.MakeComponent(
-      [this](StatField field) { controller_.OpenApAllocate(field); });
+      [this](StatField field) { controller_.OpenApAllocate(field); },
+      [this](const Skill& skill) { controller_.OpenSkillLearn(skill); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
 
@@ -123,6 +125,22 @@ ftxui::Element Tui::RenderFrame() {
             ThemedSeparator(),
             controller_.ap_selector().Render(),
         }));
+    return ftxui::dbox({
+        RenderMain(),
+        ftxui::center(dialog | ftxui::clear_under),
+    });
+  }
+  if (controller_.screen() == kSkillLearn) {
+    // Float the skill-learning amount entry over the main view so the skill
+    // being raised stays visible behind it.
+    ftxui::Element dialog =
+        ThemedWindow(" Learn Skill ",
+                     ftxui::vbox({
+                         ftxui::text(controller_.skill_learn_skill().name()) |
+                             ftxui::hcenter,
+                         ThemedSeparator(),
+                         controller_.sp_selector().Render(),
+                     }));
     return ftxui::dbox({
         RenderMain(),
         ftxui::center(dialog | ftxui::clear_under),

@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <map>
 #include <memory>
 #include <string>
 
@@ -11,11 +12,37 @@
 #include "src/frontend/panel_test_base.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
 
 class CharacterPanelTest : public PanelTest {};
+
+// A stage-1 Warrior carrying `sp` first-job skill points.
+CharacterInstance MakeWarrior(std::mt19937& rng, int sp) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_WARRIOR);
+  proto.set_job_stage(1);
+  (*proto.mutable_sp_by_stage())[1] = sp;
+  return CharacterInstance(rng, std::move(proto));
+}
+
+Skill MakeSlashBlast() {
+  Skill skill;
+  skill.set_name("Slash Blast");
+  skill.set_stage(1);
+  skill.set_max_level(20);
+  return skill;
+}
+
+// A one-skill catalog holding the stage-1 Slash Blast.
+std::map<std::string, Skill> SkillCatalog() {
+  std::map<std::string, Skill> catalog;
+  catalog["slash_blast"] = MakeSlashBlast();
+  return catalog;
+}
 
 TEST_F(CharacterPanelTest, ShowsLevel) {
   CharacterPanel panel(c_, panel_focus_);
@@ -171,6 +198,89 @@ TEST_F(CharacterPanelTest, SkillsAdvBarUpReturnsToOuterTabs) {
   comp->OnEvent(ftxui::Event::ArrowUp);     // back to the outer tabs
   comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
+  EXPECT_NE(rendered.find("0/20"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, DownIntoSkillRowsThenEnterFiresLearn) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  std::string learned;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&](const Skill& s) { learned = s.name(); });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(learned, "Slash Blast");
+}
+
+TEST_F(CharacterPanelTest, NoSpDownDoesNotEnterSkillRows) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  bool fired = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&](const Skill&) { fired = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // no SP: stays on the bar
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(fired);
+}
+
+TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_WARRIOR);
+  proto.set_job_stage(1);
+  (*proto.mutable_sp_by_stage())[1] = 5;
+  (*proto.mutable_skill_levels())["Slash Blast"] = 20;  // already maxed
+  CharacterInstance c(rng_, std::move(proto));
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  bool fired = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&](const Skill&) { fired = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows (has SP, so entered)
+  EXPECT_NE(RenderComponent(comp).find("20/20"), std::string::npos);
+  comp->OnEvent(ftxui::Event::Return);  // maxed: nothing to learn
+  EXPECT_FALSE(fired);
+}
+
+TEST_F(CharacterPanelTest, UpFromSkillRowsReturnsToTheAdvancementBar) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows
+  comp->OnEvent(ftxui::Event::ArrowUp);     // back to the advancement bar
+  comp->OnEvent(ftxui::Event::ArrowUp);     // advancement bar -> outer tabs
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheSkillRows) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/1);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  bool fired = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&](const Skill&) { fired = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows (SP == 1)
+  c.LearnSkill(MakeSlashBlast(), 1);        // drains stage-1 SP to 0
+  comp->OnEvent(ftxui::Event::Return);      // bounced off the rows: no learn
+  EXPECT_FALSE(fired);
 }
 
 TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {

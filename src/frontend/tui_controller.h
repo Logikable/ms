@@ -26,6 +26,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -45,6 +46,10 @@ class TuiController {
   // Float the AP-allocation amount entry over the main view, seeded to spend up
   // to all available AP on `field` (defaulting to the max).
   void OpenApAllocate(StatField field);
+  // Float the skill-learning amount entry over the main view, seeded to spend
+  // up to the most points `skill` can still take (its stage SP, capped at how
+  // far it is below max level).
+  void OpenSkillLearn(const Skill& skill);
   // Open the map selection screen, on the map being farmed.
   void OpenMapSelect();
 
@@ -55,6 +60,14 @@ class TuiController {
   }
   const AmountSelector& ap_selector() const {
     return ap_selector_;
+  }
+  // The skill the pending learn targets, and its amount selector, for the
+  // dialog Tui floats over the main view.
+  const Skill& skill_learn_skill() const {
+    return skill_learn_;
+  }
+  const AmountSelector& sp_selector() const {
+    return sp_selector_;
   }
 
   // Returns true if the event was consumed.
@@ -90,6 +103,7 @@ class TuiController {
   bool OnScrollSelectEvent(ftxui::Event event);
   bool OnScrollResultEvent(ftxui::Event event);
   bool OnApAllocEvent(ftxui::Event event);
+  bool OnSkillLearnEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
@@ -118,6 +132,8 @@ class TuiController {
   int sell_index_ = 0;
   StatField ap_field_ = STAT_FIELD_UNSPECIFIED;
   AmountSelector ap_selector_;
+  Skill skill_learn_;
+  AmountSelector sp_selector_;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;
   TraceRecoveryResult trace_recovery_result_;

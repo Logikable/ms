@@ -25,6 +25,7 @@
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -266,6 +267,52 @@ TEST_F(TuiControllerTest, CancelInApAllocDoesNotAllocate) {
   controller_->OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.proto().allocated_stats().str(), str_before);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+Skill SlashBlast() {
+  Skill skill;
+  skill.set_name("Slash Blast");
+  skill.set_stage(1);
+  skill.set_max_level(20);
+  return skill;
+}
+
+TEST_F(TuiControllerTest, OpenSkillLearnSetsScreenToSkillLearn) {
+  controller_->OpenSkillLearn(SlashBlast());
+  EXPECT_EQ(controller_->screen(), kSkillLearn);
+}
+
+TEST_F(TuiControllerTest, ConfirmLearnsTheChosenPoints) {
+  Skill skill = SlashBlast();
+  int sp_before = state_->character.sp(1);
+  ASSERT_GT(sp_before, 1);
+  controller_->OpenSkillLearn(skill);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
+  controller_->OnEvent(ftxui::Event::Return);     // amount 1
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // [1] -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.skill_level(skill), 1);
+  EXPECT_EQ(state_->character.sp(1), sp_before - 1);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, ConfirmLearnsAllSpendablePointsByDefault) {
+  Skill skill = SlashBlast();
+  int sp_before = state_->character.sp(1);  // 16, below the max level of 20
+  ASSERT_GT(sp_before, 0);
+  controller_->OpenSkillLearn(skill);             // amount defaults to max
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.skill_level(skill), sp_before);
+  EXPECT_EQ(state_->character.sp(1), 0);
+}
+
+TEST_F(TuiControllerTest, EscapeInSkillLearnGoesToMainWithoutLearning) {
+  Skill skill = SlashBlast();
+  controller_->OpenSkillLearn(skill);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(state_->character.skill_level(skill), 0);
   EXPECT_EQ(controller_->screen(), kMain);
 }
 

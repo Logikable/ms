@@ -55,6 +55,7 @@ cc_library(
         "//src:character",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
@@ -181,6 +182,7 @@ cc_test(
     deps = [
         ":character_panel",
         ":panel_test_base",
+        "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
@@ -388,6 +390,7 @@ cc_library(
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@ftxui//:component",
     ],
 )
@@ -411,6 +414,7 @@ cc_test(
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -445,6 +449,7 @@ cc_library(
         "//src/combat",
         "//src/combat:fight",
         "//src/protos:character_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],

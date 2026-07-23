@@ -20,13 +20,17 @@
 #define MS_SRC_FRONTEND_CHARACTER_PANEL_H_
 
 #include <functional>
+#include <map>
 #include <string>
+#include <vector>
 
 #include "ftxui/component/component.hpp"
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -36,29 +40,54 @@ class CharacterPanel {
   // width CombatPanel derives from, so keep it roomy for its map row.
   static constexpr int kTotalWidth = 35;
 
-  explicit CharacterPanel(const CharacterInstance& character, int& panel_focus);
+  // `skills` is the loaded skill catalog (keyed by file stem); the Skills tab
+  // lists the entries whose stage matches the selected advancement tab. It is
+  // copied because the catalog is fixed after load.
+  explicit CharacterPanel(const CharacterInstance& character, int& panel_focus,
+                          std::map<std::string, Skill> skills = {});
   ftxui::Element Render() const;
   // on_allocate(field) fires when Enter is pressed on a Stats-tab stat's [+]
-  // button while there is unspent AP; the caller pops the amount entry.
-  ftxui::Component MakeComponent(std::function<void(StatField)> on_allocate);
+  // button while there is unspent AP. on_learn(skill) fires on a Skills-tab
+  // skill's [+] when it can still take a point. Either pops an amount entry.
+  ftxui::Component MakeComponent(
+      std::function<void(StatField)> on_allocate,
+      std::function<void(const Skill&)> on_learn = {});
 
  private:
   // Vertical focus zones, top to bottom. From the shared outer tab bar, Down
   // enters the active tab's first content zone: the stat rows on Stats, the
-  // advancement tab bar on Skills.
-  enum Zone { kZoneTabs, kZoneStatRows, kZoneAdvTabs };
+  // advancement tab bar on Skills, from which Down descends to the skill rows.
+  enum Zone { kZoneTabs, kZoneStatRows, kZoneAdvTabs, kZoneSkillRows };
+
+  // Per-focus-area event handlers, dispatched from MakeComponent by zone. Each
+  // returns whether it consumed the event. OnTabsEvent drives the shared outer
+  // tab bar (kZoneTabs); the other two own their tab's content zones -- the
+  // stat rows for Stats, the advancement bar and skill rows for Skills.
+  bool OnTabsEvent(const ftxui::Event& event);
+  bool OnStatsTabEvent(const ftxui::Event& event,
+                       const std::function<void(StatField)>& on_allocate);
+  bool OnSkillsTabEvent(const ftxui::Event& event,
+                        const std::function<void(const Skill&)>& on_learn);
 
   // Renders the Stats/Skills tab bar. When row_selected the active tab is drawn
   // white (the tab bar holds focus); otherwise it keeps the theme highlight.
   ftxui::Element RenderTabBar(bool row_selected) const;
   ftxui::Element RenderStatsTab(bool content_focused) const;
   // Renders the Skills tab: the advancement tab bar (I/II/... for unlocked
-  // stages) with SP right-aligned, then the skill-list placeholder. bar_focused
-  // draws the active advancement tab white. A stage-0 Beginner has none.
-  ftxui::Element RenderSkillsTab(bool bar_focused) const;
+  // stages) with SP right-aligned, then the selected stage's skill rows.
+  // bar_focused draws the active advancement tab white; rows_focused highlights
+  // the selected skill's [+]. A stage-0 Beginner has neither.
+  ftxui::Element RenderSkillsTab(bool bar_focused, bool rows_focused) const;
   // The advancement tab bar: one chip per unlocked stage (1..stages), the
   // selected one highlighted, with "SP: N" for that stage right-aligned.
   ftxui::Element RenderAdvTabBar(int stages, bool bar_focused) const;
+  // The skills of the given job stage, in catalog order. Empty if none.
+  std::vector<const Skill*> SkillsForStage(int stage) const;
+  // Renders one skill row: "name  level/max" on the left, a [+] button on the
+  // right. The [+] is dimmed when the skill is maxed or its stage has no SP,
+  // and inverted on the selected row while the skill rows hold focus.
+  ftxui::Element RenderSkillRow(const Skill& skill, int index,
+                                bool rows_focused) const;
   // The MP row with unspent AP right-aligned as "N AP".
   ftxui::Element MpRow(int mp, int ap) const;
   // Renders one allocatable stat row: label/value on the left, a [+] button on
@@ -68,11 +97,13 @@ class CharacterPanel {
                           int index, bool content_focused) const;
 
   const CharacterInstance& character_;
+  std::map<std::string, Skill> skills_;
   int& panel_focus_;
   int active_tab_ = 0;     // which tab is shown: Stats (0) or Skills (1)
   Zone zone_ = kZoneTabs;  // which focus zone holds the cursor
   int stat_sel_ = 0;       // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
   int skill_tab_ = 0;      // selected advancement tab (0-based stage index)
+  int skill_sel_ = 0;      // selected skill row within the current stage
 };
 
 }  // namespace ms

@@ -1,5 +1,6 @@
 #include "src/frontend/tui_controller.h"
 
+#include <algorithm>
 #include <string>
 
 #include "ftxui/component/event.hpp"
@@ -16,6 +17,7 @@
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -51,6 +53,13 @@ void TuiController::OpenApAllocate(StatField field) {
   ap_field_ = field;
   ap_selector_.Reset(state_.character.proto().ap());
   screen_ = kApAlloc;
+}
+
+void TuiController::OpenSkillLearn(const Skill& skill) {
+  skill_learn_ = skill;
+  int room = skill.max_level() - state_.character.skill_level(skill);
+  sp_selector_.Reset(std::min(state_.character.sp(skill.stage()), room));
+  screen_ = kSkillLearn;
 }
 
 void TuiController::OpenMapSelect() {
@@ -93,6 +102,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
   }
   if (screen_ == kApAlloc) {
     return OnApAllocEvent(event);
+  }
+  if (screen_ == kSkillLearn) {
+    return OnSkillLearnEvent(event);
   }
   if (screen_ == kStarForce) {
     return OnStarForceEvent(event);
@@ -234,6 +246,17 @@ bool TuiController::OnApAllocEvent(ftxui::Event event) {
     state_.character.AllocateStat(ap_field_, ap_selector_.value());
     screen_ = kMain;
   } else if (ap_selector_.TakeCancelled()) {
+    screen_ = kMain;
+  }
+  return true;
+}
+
+bool TuiController::OnSkillLearnEvent(ftxui::Event event) {
+  sp_selector_.OnEvent(event);
+  if (sp_selector_.TakeConfirmed()) {
+    state_.character.LearnSkill(skill_learn_, sp_selector_.value());
+    screen_ = kMain;
+  } else if (sp_selector_.TakeCancelled()) {
     screen_ = kMain;
   }
   return true;

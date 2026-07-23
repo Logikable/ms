@@ -15,6 +15,7 @@ enum Screen : int {
   kScrollSelect,
   kScrollResult,
   kApAlloc,
+  kSkillLearn,
   kStarForce,
   kStarForceResult,
   kTraceRecover,
