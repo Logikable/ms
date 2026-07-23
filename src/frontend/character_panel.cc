@@ -88,11 +88,14 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
                                         bool content_focused) const {
   bool selected = content_focused && stat_sel_ == index;
   std::string text = " " + StatText(label, base, bonus);
+  // The cursor outranks the unavailable cue, as on the skill rows: a selected
+  // [+] inverts even with no AP to spend, so the cursor stays visible while
+  // the player reads down the stats.
   ftxui::Element plus = ftxui::text("[+]");
-  if (character_.proto().ap() == 0) {
-    plus = plus | ftxui::dim;
-  } else if (selected) {
+  if (selected) {
     plus = plus | ftxui::inverted;
+  } else if (character_.proto().ap() == 0) {
+    plus = plus | ftxui::dim;
   }
   return ftxui::hbox({
       ftxui::text(text),
@@ -278,12 +281,8 @@ bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
   }
   if (event == ftxui::Event::ArrowDown) {
     if (active_tab_ == kTabStats) {
-      // Only descend into the stat rows when there is AP to spend there;
-      // otherwise they are inert and Down does nothing.
-      if (character_.proto().ap() > 0) {
-        zone_ = kZoneStatRows;
-        stat_sel_ = 0;
-      }
+      zone_ = kZoneStatRows;
+      stat_sel_ = 0;
     } else if (character_.proto().job_stage() > 0) {
       // Skills content starts at the advancement bar, on the current stage.
       zone_ = kZoneAdvTabs;
@@ -342,11 +341,11 @@ bool CharacterPanel::OnSkillsTabEvent(
       return true;
     }
     if (event == ftxui::Event::ArrowDown) {
-      // Descend into the skill rows only when this stage has something to spend
-      // on: at least one skill and SP left. Otherwise they are display-only and
-      // Down does nothing.
+      // Descend only when this stage has a skill to put the cursor on. Whether
+      // there is SP to spend doesn't matter -- the rows are worth reading
+      // either way.
       int stage = skill_tab_ + 1;
-      if (!SkillsForStage(stage).empty() && character_.sp(stage) > 0) {
+      if (!SkillsForStage(stage).empty()) {
         zone_ = kZoneSkillRows;
         skill_sel_ = 0;
       }
@@ -389,32 +388,22 @@ ftxui::Component CharacterPanel::MakeComponent(
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
-  return ftxui::CatchEvent(
-      renderer, [this, on_allocate, on_learn](ftxui::Event event) {
-        if (panel_focus_ != kCharPanel) {
-          return false;
-        }
-        // With no AP the stat rows are inert -- their [+] are dimmed, so a
-        // cursor resting there would be invisible. Keep it on the tab bar
-        // instead; this also recovers focus after the player spends their last
-        // point. Likewise leave the skill rows once the stage runs out of SP.
-        // These run before dispatch because they can change zone_.
-        if (zone_ == kZoneStatRows && character_.proto().ap() == 0) {
-          zone_ = kZoneTabs;
-        }
-        if (zone_ == kZoneSkillRows && character_.sp(skill_tab_ + 1) == 0) {
-          zone_ = kZoneAdvTabs;
-        }
-        // Route by zone: the shared tab bar, else the active tab's content
-        // (only Stats reaches kZoneStatRows, only Skills the skill zones).
-        if (zone_ == kZoneTabs) {
-          return OnTabsEvent(event);
-        }
-        if (active_tab_ == kTabStats) {
-          return OnStatsTabEvent(event, on_allocate);
-        }
-        return OnSkillsTabEvent(event, on_learn);
-      });
+  return ftxui::CatchEvent(renderer,
+                           [this, on_allocate, on_learn](ftxui::Event event) {
+                             if (panel_focus_ != kCharPanel) {
+                               return false;
+                             }
+                             // Route by zone: the shared tab bar, else the
+                             // active tab's content (only Stats reaches
+                             // kZoneStatRows, only Skills the skill zones).
+                             if (zone_ == kZoneTabs) {
+                               return OnTabsEvent(event);
+                             }
+                             if (active_tab_ == kTabStats) {
+                               return OnStatsTabEvent(event, on_allocate);
+                             }
+                             return OnSkillsTabEvent(event, on_learn);
+                           });
 }
 
 }  // namespace ms

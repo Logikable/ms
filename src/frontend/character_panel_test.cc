@@ -172,30 +172,16 @@ TEST_F(CharacterPanelTest, EnterWithoutApDoesNotAllocate) {
   EXPECT_FALSE(fired);
 }
 
-TEST_F(CharacterPanelTest, NoApDownDoesNotEnterTheStatRows) {
-  // At 0 AP the stat rows are inert, so Down must not leave the tab bar. Prove
-  // it stayed on the tab bar: Right still switches Stats -> Skills.
+TEST_F(CharacterPanelTest, NoApStillEntersTheStatRows) {
+  // The rows are worth reading whether or not there is AP to spend, so Down
+  // descends regardless. Prove the cursor left the tab bar: Right no longer
+  // switches tabs, because Left/Right belong to the bar alone.
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   CharacterPanel panel(c, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
-  comp->OnEvent(ftxui::Event::ArrowDown);   // no AP: stays on the tab bar
-  comp->OnEvent(ftxui::Event::ArrowRight);  // tab bar: Stats -> Skills
-  EXPECT_NE(RenderComponent(comp).find("No advancements yet."),
-            std::string::npos);  // c is a Beginner
-}
-
-TEST_F(CharacterPanelTest, SpendingLastApReturnsTheCursorToTheTabBar) {
-  // Enter the stat rows with AP, then drain it: the cursor must not stay on the
-  // now-inert rows. The next key finds it back on the tab bar, where Right
-  // switches to Skills.
-  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/1);
-  CharacterPanel panel(c, panel_focus_);
-  ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> STR row
-  c.AllocateStat(STAT_FIELD_STR, 1);        // drains AP to 0
-  comp->OnEvent(ftxui::Event::ArrowRight);  // bounces to tab bar, then switches
-  EXPECT_NE(RenderComponent(comp).find("No advancements yet."),
-            std::string::npos);  // c is a Beginner
+  comp->OnEvent(ftxui::Event::ArrowRight);  // on the rows: does nothing
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, BeginnerSkillsTabShowsNoAdvancements) {
@@ -253,7 +239,7 @@ TEST_F(CharacterPanelTest, DownIntoSkillRowsThenEnterFiresLearn) {
   EXPECT_EQ(learned, "Slash Blast");
 }
 
-TEST_F(CharacterPanelTest, NoSpDownDoesNotEnterSkillRows) {
+TEST_F(CharacterPanelTest, NoSpEntersTheSkillRowsButEnterDoesNothing) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
   CharacterPanel panel(c, panel_focus_, SkillCatalog());
   bool fired = false;
@@ -261,9 +247,15 @@ TEST_F(CharacterPanelTest, NoSpDownDoesNotEnterSkillRows) {
       [](StatField) {}, [&](const Skill&) { fired = true; });
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
-  comp->OnEvent(ftxui::Event::ArrowDown);   // no SP: stays on the bar
-  comp->OnEvent(ftxui::Event::Return);
+  comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows, SP or not
+  comp->OnEvent(ftxui::Event::Return);      // nothing to spend
   EXPECT_FALSE(fired);
+  // The cursor is on the rows, not the bar: Left/Right belong to the bar, so
+  // an Up is what it takes to get back and switch tabs.
+  comp->OnEvent(ftxui::Event::ArrowUp);    // rows -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowUp);    // advancement bar -> outer tabs
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // outer tabs: Skills -> Stats
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
@@ -299,7 +291,7 @@ TEST_F(CharacterPanelTest, UpFromSkillRowsReturnsToTheAdvancementBar) {
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheSkillRows) {
+TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheCursorOnTheRows) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/1);
   CharacterPanel panel(c, panel_focus_, SkillCatalog());
   bool fired = false;
@@ -309,8 +301,12 @@ TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheSkillRows) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows (SP == 1)
   c.LearnSkill(MakeSlashBlast(), 1);        // drains stage-1 SP to 0
-  comp->OnEvent(ftxui::Event::Return);      // bounced off the rows: no learn
+  comp->OnEvent(ftxui::Event::Return);      // no SP left: nothing to learn
   EXPECT_FALSE(fired);
+  // The cursor stayed put -- one Up reaches the bar, not the outer tabs.
+  comp->OnEvent(ftxui::Event::ArrowUp);    // rows -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // on the bar: only one stage
+  EXPECT_NE(RenderComponent(comp).find(" I "), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {

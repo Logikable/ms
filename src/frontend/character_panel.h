@@ -12,7 +12,9 @@
  * the content zone is the four AP-allocatable rows (STR/DEX/INT/LUK): Up/Down
  * move between them, Up off STR returns to the tab bar, the selected row's [+]
  * is highlighted, and Enter fires on_allocate for that stat while there is
- * unspent AP. On the Skills tab the content zone is the advancement tab bar,
+ * unspent AP. Running out of AP (or SP, on the Skills tab) gates only the
+ * spend -- every row stays reachable, since they are worth reading either way.
+ * On the Skills tab the content zone is the advancement tab bar,
  * where Left/Right switch advancement tabs and Up returns to the outer tab bar.
  * Produces a new ftxui Element on each Render() call.
  */
