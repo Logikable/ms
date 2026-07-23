@@ -1,8 +1,13 @@
 /* InventoryPanel shows the character's inventory as three tabs: Equip (equip-
  * tab items as a navigable menu), Use, and Etc (read-only stackable lists).
- * Left/Right switch tabs. On the Equip tab, Enter opens the item context menu
- * via the on_enter callback passed to MakeComponent(); the Use and Etc tabs
- * have no actions yet.
+ *
+ * Focus moves top-to-bottom through two zones, Down descending and Up
+ * ascending, matching the character panel. The top zone is the Equip/Use/Etc
+ * tab bar: there Left/Right switch tabs and the active tab is drawn white to
+ * show the row is selected. Down descends into the tab's item list (only when
+ * it is non-empty); there Up off the top row returns to the tab bar and Enter
+ * opens the item context menu via the on_enter callback passed to
+ * MakeComponent(). The Use and Etc tabs have no menu actions beyond Sell.
  *
  * Call MakeComponent() exactly once; the returned Component captures references
  * to internal state, so the panel object must outlive the Component.
@@ -60,14 +65,21 @@ class InventoryPanel {
   }
 
  private:
+  // The two vertical focus zones: the Equip/Use/Etc tab bar on top, the active
+  // tab's item list below. Down descends into the list, Up ascends back.
+  enum Zone { kZoneTabs, kZoneList };
+
   // Wraps the active tab's body in the titled window with the tab bar on top.
   ftxui::Element RenderContent(ftxui::Component menu);
   // Rebuilds rows_/entries_ from the equip inventory and returns the Equip tab
   // body (column headers + the navigable menu, or "(empty)").
   ftxui::Element RenderEquipList(ftxui::Component menu);
+  // Whether the active tab's item list has no rows to descend into.
+  bool ActiveTabEmpty() const;
 
   CharacterInstance& character_;
   int& panel_focus_;
+  Zone zone_ = kZoneTabs;   // which focus zone holds the cursor
   int selected_ = 0;        // selected row on the Equip tab (ftxui::Menu index)
   int selected_stack_ = 0;  // selected row on the active Use/Etc tab
   int active_tab_ = 0;      // 0 = Equip, 1 = Use, 2 = Etc

@@ -40,16 +40,21 @@ constexpr char kColumnHeader2[] =
     "    "                            // 4 → 64 total
     "Pass/Left/Restore";
 
-// Renders the left-aligned Equip/Use/Etc chip row (active tab inverted) with a
-// centered meso counter overlaid in the empty space, over a separator. Mirrors
-// TraceRecoverPanel::RenderTabs.
-ftxui::Element RenderTabBar(int active_tab, int64_t meso) {
+// Renders the left-aligned Equip/Use/Etc chip row with a centered meso counter
+// overlaid in the empty space, over a separator. When row_selected the active
+// tab is drawn white (the tab bar holds focus); otherwise it keeps the theme-
+// blue invert. Mirrors CharacterPanel::RenderTabBar.
+ftxui::Element RenderTabBar(int active_tab, int64_t meso, bool row_selected) {
   const char* labels[kNumInventoryTabs] = {"Equip", "Use", "Etc"};
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < kNumInventoryTabs; ++i) {
     ftxui::Element chip =
         ftxui::text(std::string(" ") + labels[i] + " ") | ftxui::color(kTheme);
-    if (i == active_tab) {
+    if (i == active_tab && row_selected) {
+      chip = ftxui::text(std::string(" ") + labels[i] + " ") |
+             ftxui::color(ftxui::Color::Black) |
+             ftxui::bgcolor(ftxui::Color::White);
+    } else if (i == active_tab) {
       chip = chip | ftxui::inverted;
     }
     chips.push_back(std::move(chip));
@@ -109,6 +114,15 @@ ItemCategory InventoryPanel::active_category() const {
     return ITEM_CATEGORY_ETC;
   }
   return ITEM_CATEGORY_UNSPECIFIED;
+}
+
+bool InventoryPanel::ActiveTabEmpty() const {
+  if (active_tab_ == kEquipTab) {
+    return character_.inventory().size() == 0;
+  }
+  ItemCategory category =
+      active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
+  return character_.stackables(category).empty();
 }
 
 void InventoryPanel::OpenMenu() {
@@ -241,6 +255,7 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
 }
 
 ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
+  bool focused = panel_focus_ == kInventoryPanel;
   ftxui::Element body;
   if (active_tab_ == kUseTab || active_tab_ == kEtcTab) {
     ItemCategory category =
@@ -249,15 +264,18 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     // Keep the cursor in range as stacks are sold off.
     selected_stack_ = std::min(
         selected_stack_, std::max(0, static_cast<int>(stacks.size()) - 1));
-    body = RenderStackList(stacks, selected_stack_,
-                           panel_focus_ == kInventoryPanel);
+    // The stack cursor shows only while the list zone holds focus, so it never
+    // competes with the white tab-bar highlight.
+    body =
+        RenderStackList(stacks, selected_stack_, focused && zone_ == kZoneList);
   } else {
     body = RenderEquipList(menu);
   }
   return ThemedWindow(" Inventory ",
-                      ftxui::vbox({RenderTabBar(active_tab_, character_.meso()),
+                      ftxui::vbox({RenderTabBar(active_tab_, character_.meso(),
+                                                focused && zone_ == kZoneTabs),
                                    std::move(body)}),
-                      panel_focus_ == kInventoryPanel);
+                      focused);
 }
 
 ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
@@ -274,7 +292,9 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
   opt.entries_option.transform =
       [this](ftxui::EntryState state) -> ftxui::Element {
     const std::string& lbl = state.label;
-    std::string cursor = state.focused ? "> " : "  ";
+    // Show the cursor only while the list zone holds focus, so it never
+    // competes with the white tab-bar highlight above.
+    std::string cursor = state.focused && zone_ == kZoneList ? "> " : "  ";
     int idx = state.index;
     if (idx < 0 || idx >= (int)rows_.size() || (int)lbl.size() < 60) {
       return ftxui::text(cursor + lbl);
@@ -306,28 +326,45 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::Component renderer = ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); });
   return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
-    if (event == ftxui::Event::ArrowLeft) {
-      if (active_tab_ > 0) {
-        --active_tab_;
-        selected_stack_ = 0;
+    if (zone_ == kZoneTabs) {
+      // Tab bar: Left/Right switch tabs, Down descends into the item list.
+      if (event == ftxui::Event::ArrowLeft) {
+        if (active_tab_ > 0) {
+          --active_tab_;
+          selected_stack_ = 0;
+        }
+        return true;
       }
+      if (event == ftxui::Event::ArrowRight) {
+        if (active_tab_ < kEtcTab) {
+          ++active_tab_;
+          selected_stack_ = 0;
+        }
+        return true;
+      }
+      if (event == ftxui::Event::ArrowDown) {
+        // Descend only into a non-empty tab; an empty list is inert and would
+        // leave the cursor nowhere visible.
+        if (!ActiveTabEmpty()) {
+          zone_ = kZoneList;
+        }
+        return true;
+      }
+      // Swallow the rest (notably Up) so nothing leaks to the hidden Equip menu
+      // and silently moves its selection while the tab bar holds focus.
       return true;
     }
-    if (event == ftxui::Event::ArrowRight) {
-      if (active_tab_ < kEtcTab) {
-        ++active_tab_;
-        selected_stack_ = 0;
-      }
-      return true;
-    }
+    // List zone: Up off the top row returns to the tab bar.
     if (active_tab_ != kEquipTab) {
-      // Use/Etc: move the stack cursor with Up/Down. Swallow list navigation
+      // Use/Etc: walk the stack cursor with Up/Down. Swallow list navigation
       // and activation regardless so the hidden Equip menu stays put.
       ItemCategory category =
           active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
       int count = static_cast<int>(character_.stackables(category).size());
       if (event == ftxui::Event::ArrowUp) {
-        if (selected_stack_ > 0) {
+        if (selected_stack_ == 0) {
+          zone_ = kZoneTabs;
+        } else {
           --selected_stack_;
         }
         return true;
@@ -346,6 +383,12 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
         return true;
       }
       return false;
+    }
+    // Equip tab: intercept Up off the top row to return to the tab bar;
+    // otherwise let the ftxui Menu move its own selection.
+    if (event == ftxui::Event::ArrowUp && selected_ == 0) {
+      zone_ = kZoneTabs;
+      return true;
     }
     if (event == ftxui::Event::Character(' ')) {
       on_enter();

@@ -41,10 +41,19 @@ TEST_F(InventoryPanelTest, ShowsItemName) {
             std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, ShowsSelectionCursorByDefault) {
+TEST_F(InventoryPanelTest, ShowsSelectionCursorInListZone) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("> Sword"),
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
+  EXPECT_NE(RenderComponent(comp).find("> Sword"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, NoSelectionCursorOnTheTabRow) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  // The panel opens on the tab row, so the list cursor is hidden until Down.
+  EXPECT_EQ(RenderComponent(panel.MakeComponent([]() {})).find("> Sword"),
             std::string::npos);
 }
 
@@ -172,6 +181,7 @@ TEST_F(InventoryPanelTest, UseTabCursorStartsOnFirstStack) {
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
   EXPECT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
 }
 
@@ -193,6 +203,7 @@ TEST_F(InventoryPanelTest, UseTabCursorMovesWithArrowDown) {
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
   comp->OnEvent(ftxui::Event::ArrowDown);   // cursor -> second stack
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("> Blue Potion"), std::string::npos);
@@ -206,9 +217,13 @@ TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
   comp->OnEvent(ftxui::Event::ArrowDown);   // cursor -> second stack
+  comp->OnEvent(ftxui::Event::ArrowUp);     // -> first stack
+  comp->OnEvent(ftxui::Event::ArrowUp);     // -> tab bar
   comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
   comp->OnEvent(ftxui::Event::ArrowLeft);   // Etc -> Use, cursor reset
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
   EXPECT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
 }
 
@@ -218,6 +233,7 @@ TEST_F(InventoryPanelTest, UseTabEnterOpensMenuOnNonEmptyStack) {
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(opened);
 }

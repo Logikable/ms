@@ -87,6 +87,7 @@ class TuiControllerTest : public testing::Test {
     panel_focus_ = kInventoryPanel;
     inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
     inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+    inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
   }
 
   // MapSelectPanel fixes its display order at construction, so the maps must
