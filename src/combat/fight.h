@@ -67,6 +67,11 @@ class CombatSim {
   double attack_fraction() const {
     return attack_fraction_;
   }
+  // The name of the swing being charged (the attack skill's, or "Attack" for
+  // the bare poke). Empty while inactive.
+  const std::string& attack_name() const {
+    return attack_name_;
+  }
   // Kills recorded during the most recent Advance, indexed to match the
   // params.types passed to that call.
   const std::vector<int64_t>& kills_this_step() const {
@@ -110,6 +115,7 @@ class CombatSim {
   int target_level_ = 0;
   double target_hp_fraction_ = 0.0;
   double attack_fraction_ = 0.0;
+  std::string attack_name_;
   std::vector<int64_t> kills_this_step_;
   std::vector<EngagedGroup> engaged_groups_;
 };

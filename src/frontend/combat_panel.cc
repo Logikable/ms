@@ -51,11 +51,13 @@ ftxui::Element CombatPanel::Render() const {
                         focused);
   }
 
-  // Charges over one swing; a full bar is the moment a hit lands.
+  // Charges over one swing; a full bar is the moment a hit lands. Labelled with
+  // the attack being charged ("Attack" for the bare poke, else the skill).
   std::vector<ftxui::Element> rows = {
       header,
       ThemedSeparator(),
-      ProgressBar(static_cast<float>(sim_.attack_fraction()), kTheme, ""),
+      ProgressBar(static_cast<float>(sim_.attack_fraction()), kTheme,
+                  sim_.attack_name(), ftxui::Color::White),
   };
   if (sim_.respawning()) {
     rows.push_back(ftxui::text("Respawning..."));

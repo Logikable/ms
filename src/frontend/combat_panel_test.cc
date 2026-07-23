@@ -125,6 +125,17 @@ TEST(CombatPanelTest, LabelsTheHpBarWithTheTargetLevelAndName) {
   EXPECT_NE(RenderPanel(state, sim).find("Lv.1 Snail"), std::string::npos);
 }
 
+TEST(CombatPanelTest, LabelsTheAttackBarWithTheAttackName) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailField()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatSim sim;
+  sim.Advance(ComputeCombatParams(state), 0.1);  // no skill -> the bare poke
+
+  EXPECT_NE(RenderPanel(state, sim).find("Attack"), std::string::npos);
+}
+
 TEST(CombatPanelTest, MergesSeveralEngagedMobsIntoOneBarWithACount) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", SnailField()}});

@@ -38,6 +38,9 @@ struct CombatParams {
   // How many front-of-queue mobs one swing hits -- the chosen attack's reach.
   // 1 for the bare poke or a single-target skill.
   int attack_targets = 1;
+  // Display name of the swing: the attack skill's name, or "Attack" for the
+  // bare poke.
+  std::string attack_name = "Attack";
   std::vector<CombatType> types;  // in map order
 };
 

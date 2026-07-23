@@ -32,8 +32,10 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     target_level_ = 0;
     target_hp_fraction_ = 0.0;
     attack_fraction_ = 0.0;
+    attack_name_.clear();
     return;
   }
+  attack_name_ = params.attack_name;
 
   double swing = params.swing_seconds;
   // Clamp large real-time gaps (e.g. after a pause) to one swing so the

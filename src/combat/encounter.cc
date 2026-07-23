@@ -59,6 +59,9 @@ CombatParams ComputeCombatParams(const GameState& state) {
   // one that forgot to set max_enemies) and the bare poke all hit one.
   params.attack_targets =
       attack_skill != nullptr ? std::max(1, attack_skill->max_enemies()) : 1;
+  if (attack_skill != nullptr) {
+    params.attack_name = attack_skill->name();
+  }
 
   const Character& proto = state.character.proto();
   OffenseStats offense = OffenseStatsFor(

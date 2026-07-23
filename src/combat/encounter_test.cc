@@ -79,6 +79,7 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
   EXPECT_DOUBLE_EQ(params.respawn_seconds,
                    kRespawnIntervalSeconds * kGameSpeedFactor);
   EXPECT_EQ(params.attack_targets, 1);  // no attack skill -> bare 1-target poke
+  EXPECT_EQ(params.attack_name, "Attack");  // the bare poke's name
 }
 
 TEST(ComputeCombatParamsTest, AttackTargetsComeFromTheLearnedAttackSkill) {
@@ -96,7 +97,10 @@ TEST(ComputeCombatParamsTest, AttackTargetsComeFromTheLearnedAttackSkill) {
   // The starting level-15 Warrior has stage-1 SP to spend.
   ASSERT_TRUE(state.character.LearnSkill(slash, 1));
 
-  EXPECT_EQ(ComputeCombatParams(state).attack_targets, 6);
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_EQ(params.attack_targets, 6);
+  EXPECT_EQ(params.attack_name,
+            "Slash Blast");  // the skill's name, not "Attack"
 }
 
 }  // namespace
