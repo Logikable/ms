@@ -274,7 +274,7 @@ TEST_F(TuiControllerTest, CancelInApAllocDoesNotAllocate) {
 Skill SlashBlast() {
   Skill skill;
   skill.set_name("Slash Blast");
-  skill.set_stage(1);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   return skill;
 }

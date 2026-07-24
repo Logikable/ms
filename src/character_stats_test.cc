@@ -44,7 +44,7 @@ Skill IronBody() {
   Skill skill;
   skill.set_name("Iron Body");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_stage(1);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_def(10);
   skill.mutable_base()->set_max_hp_pct(0.01);
@@ -60,7 +60,7 @@ Skill CriticalShot() {
   Skill skill;
   skill.set_name("Critical Shot");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_stage(1);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_crit_rate(0.02);
   skill.mutable_per_level()->set_crit_rate(0.02);
@@ -72,7 +72,7 @@ Skill WarriorMastery() {
   Skill skill;
   skill.set_name("Warrior Mastery");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_stage(1);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(15);
   skill.mutable_base()->set_max_hp_per_level(6);
   skill.mutable_per_level()->set_max_hp_per_level(1);
@@ -170,7 +170,7 @@ TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_stage(1);
+  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   slash.set_max_level(20);
   // An attack skill with defensive levers set still contributes none of them.
   slash.mutable_base()->set_def(999);

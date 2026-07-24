@@ -2,5 +2,5 @@
 # game models.
 name: "Double Jump"
 kind: SKILL_KIND_ACTIVE
-stage: 1
+job_advancement: JOB_ADVANCEMENT_ARCHER
 max_level: 20

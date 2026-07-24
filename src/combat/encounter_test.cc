@@ -89,7 +89,7 @@ TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_stage(1);
+  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   slash.set_max_level(20);
   slash.set_max_enemies(6);
   slash.mutable_base()->set_skill_pct(1.83);

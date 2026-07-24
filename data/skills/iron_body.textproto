@@ -3,7 +3,7 @@
 # including the max, and half a point low at odd ones.
 name: "Iron Body"
 kind: SKILL_KIND_PASSIVE
-stage: 1
+job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20
 base {
   def: 10

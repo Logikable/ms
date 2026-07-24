@@ -3,5 +3,5 @@
 # bonus into the swing interval. Inert until that is wired up.
 name: "Archery Mastery"
 kind: SKILL_KIND_PASSIVE
-stage: 1
+job_advancement: JOB_ADVANCEMENT_ARCHER
 max_level: 15

@@ -15,6 +15,16 @@ enum Job {
   JOB_ARCHER = 3;
 }
 
+// A single advancement tier -- finer than Job. One Job spans a sequence of
+// these as the character advances (Swordman, then Fighter, ...), one per job
+// stage. Each skill belongs to exactly one; the skills tab shows a page per
+// advancement the character has reached.
+enum JobAdvancement {
+  JOB_ADVANCEMENT_UNSPECIFIED = 0;
+  JOB_ADVANCEMENT_SWORDMAN = 1;
+  JOB_ADVANCEMENT_ARCHER = 2;
+}
+
 // Identifies a stat that a player can spend AP into via AllocateStat.
 enum StatField {
   STAT_FIELD_UNSPECIFIED = 0;

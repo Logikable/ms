@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ms;
 
+import "src/protos/character.proto";
+
 // How a skill folds into the game. Combat is a single expected-damage
 // auto-attack, so skills are passive modifiers in one of two roles.
 enum SkillKind {
@@ -36,8 +38,10 @@ message Skill {
   int32 max_level = 3;
   SkillEffect base = 4;
   SkillEffect per_level = 5;
-  // The job stage (1 = 1st job, ...) whose SP pool buys this skill.
-  int32 stage = 6;
+  // The advancement this skill belongs to. Its SP pool buys the skill, and the
+  // skills tab groups one page per advancement. Determines the SP stage (see
+  // StageForAdvancement).
+  JobAdvancement job_advancement = 6;
   // How many enemies one swing of this attack hits (attack skills). Unset/0 is
   // treated as 1 (single target); the bare poke is likewise 1.
   int32 max_enemies = 7;

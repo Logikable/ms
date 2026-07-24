@@ -68,6 +68,7 @@ cc_proto_library(
 proto_library(
     name = "skill_proto",
     srcs = ["skill.proto"],
+    deps = [":character_proto"],
 )
 
 cc_proto_library(

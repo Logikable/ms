@@ -1,6 +1,6 @@
 name: "Slash Blast"
 kind: SKILL_KIND_ATTACK
-stage: 1
+job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20
 max_enemies: 6
 base { skill_pct: 1.83 }

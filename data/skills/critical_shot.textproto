@@ -2,7 +2,7 @@
 # the crit half of the damage chain, which until now sat at zero.
 name: "Critical Shot"
 kind: SKILL_KIND_PASSIVE
-stage: 1
+job_advancement: JOB_ADVANCEMENT_ARCHER
 max_level: 20
 base { crit_rate: 0.02 }
 per_level { crit_rate: 0.02 }

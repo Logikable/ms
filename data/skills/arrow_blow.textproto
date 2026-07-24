@@ -3,7 +3,7 @@
 # Blast, which is the point -- an archer's whole damage comes from one skill.
 name: "Arrow Blow"
 kind: SKILL_KIND_ATTACK
-stage: 1
+job_advancement: JOB_ADVANCEMENT_ARCHER
 max_level: 20
 max_enemies: 5
 lines: 3

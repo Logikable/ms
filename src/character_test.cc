@@ -56,11 +56,13 @@ CharacterInstance MakeCharacterWithSp(std::mt19937& rng, int stage, int sp) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-// A minimal skill: only the fields LearnSkill reads.
-Skill MakeSkill(const std::string& name, int stage, int max_level) {
+// A minimal skill: only the fields LearnSkill reads. The advancement fixes the
+// SP stage; JOB_ADVANCEMENT_SWORDMAN is a 1st-job (stage 1) advancement.
+Skill MakeSkill(const std::string& name, JobAdvancement advancement,
+                int max_level) {
   Skill skill;
   skill.set_name(name);
-  skill.set_stage(stage);
+  skill.set_job_advancement(advancement);
   skill.set_max_level(max_level);
   return skill;
 }
@@ -322,7 +324,9 @@ TEST_F(AllocateStatTest, AllFieldsWork) {
 
 TEST_F(LearnSkillTest, SpendsSpAndRaisesLevel) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  Skill skill =
+      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
+                /*max_level=*/20);
   EXPECT_TRUE(c.LearnSkill(skill));
   EXPECT_EQ(c.skill_level(skill), 1);
   EXPECT_EQ(c.sp(1), 4);
@@ -330,7 +334,9 @@ TEST_F(LearnSkillTest, SpendsSpAndRaisesLevel) {
 
 TEST_F(LearnSkillTest, DefaultAmountIsOne) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  Skill skill =
+      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
+                /*max_level=*/20);
   c.LearnSkill(skill);
   c.LearnSkill(skill);
   EXPECT_EQ(c.skill_level(skill), 2);
@@ -339,7 +345,9 @@ TEST_F(LearnSkillTest, DefaultAmountIsOne) {
 
 TEST_F(LearnSkillTest, MultiPointSpendWorks) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/10);
-  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  Skill skill =
+      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
+                /*max_level=*/20);
   EXPECT_TRUE(c.LearnSkill(skill, 7));
   EXPECT_EQ(c.skill_level(skill), 7);
   EXPECT_EQ(c.sp(1), 3);
@@ -347,7 +355,9 @@ TEST_F(LearnSkillTest, MultiPointSpendWorks) {
 
 TEST_F(LearnSkillTest, RejectsWhenStageLacksSp) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/2);
-  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  Skill skill =
+      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
+                /*max_level=*/20);
   EXPECT_FALSE(c.LearnSkill(skill, 3));
   EXPECT_EQ(c.skill_level(skill), 0);
   EXPECT_EQ(c.sp(1), 2);
@@ -355,7 +365,8 @@ TEST_F(LearnSkillTest, RejectsWhenStageLacksSp) {
 
 TEST_F(LearnSkillTest, RejectsRaisingPastMaxLevel) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/10);
-  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/3);
+  Skill skill = MakeSkill(
+      "Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN, /*max_level=*/3);
   EXPECT_TRUE(c.LearnSkill(skill, 3));   // to the cap
   EXPECT_FALSE(c.LearnSkill(skill, 1));  // one past
   EXPECT_EQ(c.skill_level(skill), 3);
@@ -364,27 +375,63 @@ TEST_F(LearnSkillTest, RejectsRaisingPastMaxLevel) {
 
 TEST_F(LearnSkillTest, RejectsNonPositiveAmount) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  Skill skill =
+      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
+                /*max_level=*/20);
   EXPECT_FALSE(c.LearnSkill(skill, 0));
   EXPECT_FALSE(c.LearnSkill(skill, -2));
   EXPECT_EQ(c.skill_level(skill), 0);
   EXPECT_EQ(c.sp(1), 5);
 }
 
-TEST_F(LearnSkillTest, SpendsFromTheSkillsOwnStage) {
-  // SP lives in stage 2; a stage-1 skill can't touch it.
-  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/2, /*sp=*/5);
-  Skill stage1 = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
-  EXPECT_FALSE(c.LearnSkill(stage1));
-  Skill stage2 = MakeSkill("Brandish", /*stage=*/2, /*max_level=*/20);
-  EXPECT_TRUE(c.LearnSkill(stage2));
+TEST_F(LearnSkillTest, SpendsFromTheAdvancementsStage) {
+  // A 1st-job skill draws from stage-1 SP; SP parked in another stage is
+  // untouchable to it. (A skill on a stage-2 advancement can't be exercised
+  // until such an advancement exists -- see AdvancementForJobStage.)
+  Character proto;
+  (*proto.mutable_sp_by_stage())[1] = 5;
+  (*proto.mutable_sp_by_stage())[2] = 5;
+  CharacterInstance c(rng_, std::move(proto));
+  Skill skill =
+      MakeSkill("Slash Blast", JOB_ADVANCEMENT_SWORDMAN, /*max_level=*/20);
+  EXPECT_TRUE(c.LearnSkill(skill, 5));
   EXPECT_EQ(c.sp(1), 0);
-  EXPECT_EQ(c.sp(2), 4);
+  EXPECT_EQ(c.sp(2), 5);  // stage 2 untouched
+}
+
+TEST_F(LearnSkillTest, RejectsASkillWithNoAdvancement) {
+  // No advancement means stage 0, which holds no SP -- nothing to spend.
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
+  Skill skill = MakeSkill("Nameless", JOB_ADVANCEMENT_UNSPECIFIED, 20);
+  EXPECT_FALSE(c.LearnSkill(skill));
+}
+
+// --- Advancement mapping ---
+
+TEST(AdvancementMappingTest, FirstStageMapsToEachJobsFirstAdvancement) {
+  EXPECT_EQ(AdvancementForJobStage(JOB_SWORDMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
+  EXPECT_EQ(AdvancementForJobStage(JOB_ARCHER, 1), JOB_ADVANCEMENT_ARCHER);
+}
+
+TEST(AdvancementMappingTest, UnreachedStageHasNoAdvancement) {
+  // Stage 2 is not defined for any job yet.
+  EXPECT_EQ(AdvancementForJobStage(JOB_SWORDMAN, 2),
+            JOB_ADVANCEMENT_UNSPECIFIED);
+  EXPECT_EQ(AdvancementForJobStage(JOB_BEGINNER, 1),
+            JOB_ADVANCEMENT_UNSPECIFIED);
+}
+
+TEST(AdvancementMappingTest, FirstAdvancementsBuyFromStageOne) {
+  EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_SWORDMAN), 1);
+  EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_ARCHER), 1);
+  EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_UNSPECIFIED), 0);
 }
 
 TEST_F(LearnSkillTest, UnlearnedSkillIsLevelZero) {
   CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
-  Skill skill = MakeSkill("Slash Blast", /*stage=*/1, /*max_level=*/20);
+  Skill skill =
+      MakeSkill("Slash Blast", /*advancement=*/JOB_ADVANCEMENT_SWORDMAN,
+                /*max_level=*/20);
   EXPECT_EQ(c.skill_level(skill), 0);
 }
 

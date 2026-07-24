@@ -86,6 +86,32 @@ EquipJobCategory JobToCategory(Job job) {
 
 }  // namespace
 
+JobAdvancement AdvancementForJobStage(Job job, int stage) {
+  // Only the 1st advancement of each job exists so far; 2nd job and beyond map
+  // additional stages onto Fighter/Hunter/... as those are added.
+  if (stage == 1) {
+    switch (job) {
+      case JOB_SWORDMAN:
+        return JOB_ADVANCEMENT_SWORDMAN;
+      case JOB_ARCHER:
+        return JOB_ADVANCEMENT_ARCHER;
+      default:
+        break;
+    }
+  }
+  return JOB_ADVANCEMENT_UNSPECIFIED;
+}
+
+int StageForAdvancement(JobAdvancement advancement) {
+  switch (advancement) {
+    case JOB_ADVANCEMENT_SWORDMAN:
+    case JOB_ADVANCEMENT_ARCHER:
+      return 1;  // both are 1st-job advancements
+    default:
+      return 0;
+  }
+}
+
 CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
     : rng_(rng), character_(std::move(character)) {
 }
@@ -181,7 +207,7 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (amount <= 0) {
     return false;
   }
-  int stage = skill.stage();
+  int stage = StageForAdvancement(skill.job_advancement());
   if (amount > sp(stage)) {
     return false;
   }

@@ -2,7 +2,7 @@
 # knockback resistance) are things this game doesn't model.
 name: "Warrior Mastery"
 kind: SKILL_KIND_PASSIVE
-stage: 1
+job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 15
 base {
   max_hp_per_level: 6

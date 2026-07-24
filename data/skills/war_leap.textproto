@@ -2,5 +2,5 @@
 # levers at all -- it is here because the job has it.
 name: "War Leap"
 kind: SKILL_KIND_ACTIVE
-stage: 1
+job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 5

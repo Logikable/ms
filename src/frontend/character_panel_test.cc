@@ -33,7 +33,7 @@ CharacterInstance MakeWarrior(std::mt19937& rng, int sp) {
 Skill MakeSlashBlast() {
   Skill skill;
   skill.set_name("Slash Blast");
-  skill.set_stage(1);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   return skill;
 }
@@ -72,7 +72,7 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
   Skill iron_body;
   iron_body.set_name("Iron Body");
   iron_body.set_kind(SKILL_KIND_PASSIVE);
-  iron_body.set_stage(1);
+  iron_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   iron_body.set_max_level(20);
   iron_body.mutable_base()->set_def(10);
   iron_body.mutable_base()->set_max_hp_pct(0.01);
@@ -232,12 +232,12 @@ TEST_F(CharacterPanelTest, SkillsTabListsActivesBeforePassives) {
   Skill iron_body;
   iron_body.set_name("Iron Body");
   iron_body.set_kind(SKILL_KIND_PASSIVE);
-  iron_body.set_stage(1);
+  iron_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   iron_body.set_max_level(20);
   Skill war_leap;
   war_leap.set_name("War Leap");
   war_leap.set_kind(SKILL_KIND_ACTIVE);
-  war_leap.set_stage(1);
+  war_leap.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   war_leap.set_max_level(5);
   std::map<std::string, Skill> catalog = SkillCatalog();  // slash_blast
   catalog["slash_blast"].set_kind(SKILL_KIND_ATTACK);

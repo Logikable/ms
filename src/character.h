@@ -25,6 +25,14 @@
 
 namespace ms {
 
+// The advancement a job is at once it reaches `stage` (1 = 1st job). Returns
+// JOB_ADVANCEMENT_UNSPECIFIED for a stage the job hasn't defined yet.
+JobAdvancement AdvancementForJobStage(Job job, int stage);
+
+// The job stage whose SP pool buys skills of `advancement` (1 = 1st job).
+// Returns 0 for JOB_ADVANCEMENT_UNSPECIFIED.
+int StageForAdvancement(JobAdvancement advancement);
+
 class CharacterInstance {
  public:
   CharacterInstance(std::mt19937& rng, Character character);

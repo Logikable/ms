@@ -4,7 +4,7 @@
 # here because the job has it, and the combat loop will simply never pick it.
 name: "Leap Attack"
 kind: SKILL_KIND_ATTACK
-stage: 1
+job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 1
 max_enemies: 4
 lines: 2

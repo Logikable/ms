@@ -191,9 +191,17 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(int stages,
 }
 
 std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
+  // A stage's page shows exactly the skills of the advancement this character's
+  // job is at there -- so a Swordman never sees an Archer's skills, and vice
+  // versa. An unreached or undefined advancement has no skills.
+  JobAdvancement advancement =
+      AdvancementForJobStage(character_.proto().job(), stage);
   std::vector<const Skill*> result;
+  if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+    return result;
+  }
   for (const std::pair<const std::string, Skill>& entry : skills_) {
-    if (entry.second.stage() == stage) {
+    if (entry.second.job_advancement() == advancement) {
       result.push_back(&entry.second);
     }
   }
@@ -213,7 +221,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
                       std::to_string(skill.max_level());
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = level >= skill.max_level();
-  bool has_sp = character_.sp(skill.stage()) > 0;
+  bool has_sp = character_.sp(StageForAdvancement(skill.job_advancement())) > 0;
   ftxui::Element plus = ftxui::text("[+]");
   if (selected) {
     plus = plus | ftxui::inverted;
@@ -385,7 +393,8 @@ bool CharacterPanel::OnSkillsTabEvent(
   if (IsForward(event)) {
     const Skill& skill = *skills[skill_sel_];
     bool maxed = character_.skill_level(skill) >= skill.max_level();
-    if (on_learn && !maxed && character_.sp(skill.stage()) > 0) {
+    int stage = StageForAdvancement(skill.job_advancement());
+    if (on_learn && !maxed && character_.sp(stage) > 0) {
       on_learn(skill);
     }
     return true;
