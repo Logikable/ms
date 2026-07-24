@@ -31,22 +31,29 @@ Character MakeBaseBeginnerProto() {
 // every 1st-job skill and see what they do.
 constexpr int kStartingLevel = 30;
 
-// A Warrior to start with, so there is 1st-job SP (and AP) on hand to test
-// skills. Built by running the real leveling and advancement mechanics rather
-// than hardcoding totals, so AP and SP stay consistent with the level and job
-// if either is changed here.
+// The job the starting character advances into at level 10. Archer for now, to
+// exercise the new job -- there is no advancement UI, so this is the only way
+// to reach anything but a Beginner. Swap it to test a different job.
+constexpr Job kStartingJob = JOB_ARCHER;
+
+// A first-job character to start with, so there is 1st-job SP (and AP) on hand
+// to test skills. Built by running the real leveling and advancement mechanics
+// rather than hardcoding totals, so AP and SP stay consistent with the level
+// and job if either is changed here.
 Character MakeStartingCharacterProto() {
   // LevelUp and AdvanceJob don't consume randomness; a local rng keeps this
   // independent of GameState's member rng and its construction order.
   std::mt19937 rng(0);
   CharacterInstance character(rng, MakeBaseBeginnerProto());
   while (character.proto().level() < kStartingLevel) {
-    // Advance as soon as it is offered, the way a real character would: a
-    // level-up grants HP and MP at the job held at the time, so leaving the
+    // Advance at the first level it is allowed, the way a real character would:
+    // a level-up grants HP and MP at the job held at the time, so leaving the
     // advancement to the end would bank every level at the Beginner rate.
-    Job pending = character.PendingJobAdvancement();
-    if (pending != JOB_UNSPECIFIED) {
-      character.AdvanceJob(pending);
+    // PendingJobAdvancement gates the WHEN (level 10); the job itself is
+    // forced, since that path only offers Warrior and no UI chooses otherwise
+    // yet.
+    if (character.PendingJobAdvancement() != JOB_UNSPECIFIED) {
+      character.AdvanceJob(kStartingJob);
     }
     character.LevelUp();
   }

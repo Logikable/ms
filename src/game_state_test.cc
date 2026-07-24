@@ -63,9 +63,11 @@ TEST(GameStateTest, StartingCharacterIsLevel30) {
   EXPECT_EQ(state.character.proto().level(), 30);
 }
 
-TEST(GameStateTest, StartingCharacterJobIsWarrior) {
+TEST(GameStateTest, StartingCharacterIsAFirstJobExplorer) {
+  // Which explorer is a testing convenience (kStartingJob); what matters is
+  // that it advanced once, at level 10, into some first job.
   GameState state = MakeState();
-  EXPECT_EQ(state.character.proto().job(), JOB_WARRIOR);
+  EXPECT_NE(state.character.proto().job(), JOB_BEGINNER);
   EXPECT_EQ(state.character.proto().job_stage(), 1);
 }
 
@@ -84,10 +86,10 @@ TEST(GameStateTest, StartingCharacterStats) {
   EXPECT_EQ(s.dex(), 4);
   EXPECT_EQ(s.int_(), 4);
   EXPECT_EQ(s.luk(), 4);
-  // 50 base, then nine Beginner level-ups (2->10) at 36 HP each and twenty
-  // Warrior ones (11->30) at 48, the advancement landing at level 10.
-  EXPECT_EQ(s.hp(), 50 + 9 * 36 + 20 * 48);
-  EXPECT_EQ(s.mp(), 15 + 9 * 24 + 20 * 12);
+  // 50 base, then 29 level-ups at the default 36 HP each -- the starting
+  // Archer takes the same rate as a Beginner, so every level counts alike.
+  EXPECT_EQ(s.hp(), 50 + 29 * 36);
+  EXPECT_EQ(s.mp(), 15 + 29 * 24);
 }
 
 }  // namespace
