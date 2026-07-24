@@ -22,10 +22,32 @@ void CombatSim::Refill(const CombatParams& params) {
   attack_phase_ = 0.0;
 }
 
+const AttackOption* CombatSim::BestAttack(const CombatParams& params) const {
+  const AttackOption* best = nullptr;
+  double best_total = -1.0;
+  for (const AttackOption& attack : params.attacks) {
+    int reach = std::max(1, attack.max_enemies);
+    int hit = std::min(reach, static_cast<int>(queue_.size()));
+    double total = 0.0;
+    for (int j = 0; j < hit; ++j) {
+      int type = queue_[j].type;
+      if (type < static_cast<int>(attack.damage_per_hit.size())) {
+        total += attack.damage_per_hit[type];
+      }
+    }
+    if (total > best_total) {
+      best_total = total;
+      best = &attack;
+    }
+  }
+  return best;
+}
+
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   active_ = params.active;
   kills_this_step_.assign(params.types.size(), 0);
-  if (!params.active || params.types.empty() || params.swing_seconds <= 0.0) {
+  if (!params.active || params.types.empty() || params.attacks.empty() ||
+      params.swing_seconds <= 0.0) {
     initialized_ = false;
     respawning_ = false;
     target_name_.clear();
@@ -33,9 +55,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     target_hp_fraction_ = 0.0;
     attack_fraction_ = 0.0;
     attack_name_.clear();
+    reach_ = 1;
     return;
   }
-  attack_name_ = params.attack_name;
 
   double swing = params.swing_seconds;
   // Clamp large real-time gaps (e.g. after a pause) to one swing so the
@@ -59,17 +81,25 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     Refill(params);
   }
 
-  if (!queue_.empty()) {
+  // The attack is chosen against the queue as it stands, so the charge bar
+  // names the swing that is actually coming and the pick can change as mobs
+  // die out from under it.
+  const AttackOption* attack = BestAttack(params);
+  if (attack != nullptr) {
+    attack_name_ = attack->name;
+    reach_ = std::max(1, attack->max_enemies);
+  }
+
+  if (!queue_.empty() && attack != nullptr) {
     attack_phase_ += dt;
     if (attack_phase_ >= swing) {
       attack_phase_ -= swing;
-      // One swing hits the front `attack_targets` mobs at once; each takes its
-      // own type's damage. Overkill on any of them is wasted. Dead mobs leave
-      // the queue and the ones behind slide into the window next swing.
-      int reach = std::max(1, params.attack_targets);
-      int hit = std::min(reach, static_cast<int>(queue_.size()));
+      // One swing hits the front `reach_` mobs at once; each takes its own
+      // type's damage. Overkill on any of them is wasted. Dead mobs leave the
+      // queue and the ones behind slide into the window next swing.
+      int hit = std::min(reach_, static_cast<int>(queue_.size()));
       for (int j = 0; j < hit; ++j) {
-        queue_[j].hp -= params.types[queue_[j].type].damage_per_hit;
+        queue_[j].hp -= attack->damage_per_hit[queue_[j].type];
       }
       std::vector<QueuedMob> survivors;
       survivors.reserve(queue_.size());
@@ -81,6 +111,12 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
         }
       }
       queue_ = std::move(survivors);
+      // The queue moved, so the next swing's pick may differ from this one's.
+      const AttackOption* next = BestAttack(params);
+      if (next != nullptr) {
+        attack_name_ = next->name;
+        reach_ = std::max(1, next->max_enemies);
+      }
     }
   }
 
@@ -103,8 +139,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
 
     // Merge the front window (the mobs the next swing hits) into one HP bar per
     // type: its member count and their average HP fraction, in queue order.
-    int reach = std::max(1, params.attack_targets);
-    int window = std::min(reach, static_cast<int>(queue_.size()));
+    int window = std::min(reach_, static_cast<int>(queue_.size()));
     for (int j = 0; j < window; ++j) {
       int type = queue_[j].type;
       const Mob& mob = *params.types[type].mob;

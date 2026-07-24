@@ -74,15 +74,18 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
   EXPECT_EQ(params.types[0].mob->name(), "Snail");
   EXPECT_EQ(params.types[0].mob->max_hp(), 15);
   EXPECT_EQ(params.types[0].simultaneous, 2);  // the snail's own spawn count
-  EXPECT_GT(params.types[0].damage_per_hit, 0.0);
   EXPECT_GT(params.swing_seconds, 0.0);
   EXPECT_DOUBLE_EQ(params.respawn_seconds,
                    kRespawnIntervalSeconds * kGameSpeedFactor);
-  EXPECT_EQ(params.attack_targets, 1);  // no attack skill -> bare 1-target poke
-  EXPECT_EQ(params.attack_name, "Attack");  // the bare poke's name
+  // With no attack skill learned the bare poke is the only option.
+  ASSERT_EQ(params.attacks.size(), 1u);
+  EXPECT_EQ(params.attacks[0].name, "Attack");
+  EXPECT_EQ(params.attacks[0].max_enemies, 1);
+  ASSERT_EQ(params.attacks[0].damage_per_hit.size(), params.types.size());
+  EXPECT_GT(params.attacks[0].damage_per_hit[0], 0.0);
 }
 
-TEST(ComputeCombatParamsTest, AttackTargetsComeFromTheLearnedAttackSkill) {
+TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
@@ -97,10 +100,15 @@ TEST(ComputeCombatParamsTest, AttackTargetsComeFromTheLearnedAttackSkill) {
   // The starting level-15 Warrior has stage-1 SP to spend.
   ASSERT_TRUE(state.character.LearnSkill(slash, 1));
 
+  // The poke stays on the list; the skill joins it, and the fight chooses.
   CombatParams params = ComputeCombatParams(state);
-  EXPECT_EQ(params.attack_targets, 6);
-  EXPECT_EQ(params.attack_name,
-            "Slash Blast");  // the skill's name, not "Attack"
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.attacks[0].name, "Attack");
+  EXPECT_EQ(params.attacks[1].name, "Slash Blast");
+  EXPECT_EQ(params.attacks[1].max_enemies, 6);
+  // 183% against the poke's 100%, on the same mob.
+  EXPECT_GT(params.attacks[1].damage_per_hit[0],
+            params.attacks[0].damage_per_hit[0]);
 }
 
 }  // namespace

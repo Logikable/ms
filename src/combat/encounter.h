@@ -23,8 +23,19 @@ namespace ms {
 // step it is used in.
 struct CombatType {
   const Mob* mob = nullptr;
-  double damage_per_hit = 0.0;  // expected damage the player deals to it
   int simultaneous = 0;  // how many spawn at once (spawn_count / type count)
+};
+
+// One attack the character could swing with: the bare poke, or a learned
+// attack skill. Which one is best depends on how many mobs are actually in
+// front of the player, so the choice is made per swing by the fight rather
+// than fixed here -- a wide skill that does less per target wins on a crowd
+// and loses on the last mob standing.
+struct AttackOption {
+  std::string name = "Attack";  // shown on the charge bar
+  int max_enemies = 1;          // front-of-queue mobs one swing reaches
+  // Expected damage per target, parallel to CombatParams::types.
+  std::vector<double> damage_per_hit;
 };
 
 // A snapshot of the current encounter's combat parameters.
@@ -33,15 +44,11 @@ struct CombatParams {
   // The map these params describe. The fight watches this to know when it is
   // playing out a different encounter than the one it holds a roster for.
   std::string map;
-  double swing_seconds = 0.0;    // time between auto-attacks (game-scaled)
-  double respawn_seconds = 0.0;  // time between full-roster respawn beats
-  // How many front-of-queue mobs one swing hits -- the chosen attack's reach.
-  // 1 for the bare poke or a single-target skill.
-  int attack_targets = 1;
-  // Display name of the swing: the attack skill's name, or "Attack" for the
-  // bare poke.
-  std::string attack_name = "Attack";
+  double swing_seconds = 0.0;     // time between auto-attacks (game-scaled)
+  double respawn_seconds = 0.0;   // time between full-roster respawn beats
   std::vector<CombatType> types;  // in map order
+  // Every attack available, the bare poke first. Never empty while active.
+  std::vector<AttackOption> attacks;
 };
 
 // Reads `state`'s current map/character into a CombatParams. active is false

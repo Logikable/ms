@@ -18,6 +18,28 @@
 #include "src/protos/skill.pb.h"
 
 namespace ms {
+namespace {
+
+// One attack's damage against every mob type on the map. `skill` is null for
+// the bare poke, which hits one target for the character's plain 100% swing.
+AttackOption AttackFor(const GameState& state, const Character& proto,
+                       const Skill* skill, int level,
+                       const std::vector<CombatType>& types) {
+  AttackOption attack;
+  if (skill != nullptr) {
+    attack.name = skill->name();
+    attack.max_enemies = std::max(1, skill->max_enemies());
+  }
+  OffenseStats offense =
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      state.character.equip_stats(), skill, level);
+  for (const CombatType& type : types) {
+    attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
+  }
+  return attack;
+}
+
+}  // namespace
 
 CombatParams ComputeCombatParams(const GameState& state) {
   CombatParams params;
@@ -38,35 +60,6 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
   const EquipPrototype& weapon = weapon_it->second.prototype();
 
-  // The character's attack is the (single, for now) attack-kind skill they have
-  // learned, else the bare poke. Picking among several -- or preferring a
-  // multi-target skill on a crowded map -- is a future combat-loop decision.
-  const Skill* attack_skill = nullptr;
-  int attack_level = 0;
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    if (entry.second.kind() != SKILL_KIND_ATTACK) {
-      continue;
-    }
-    int learned = state.character.skill_level(entry.second);
-    if (learned > 0) {
-      attack_skill = &entry.second;
-      attack_level = learned;
-      break;
-    }
-  }
-
-  // The attack's reach: how many mobs a swing hits. A single-target skill (or
-  // one that forgot to set max_enemies) and the bare poke all hit one.
-  params.attack_targets =
-      attack_skill != nullptr ? std::max(1, attack_skill->max_enemies()) : 1;
-  if (attack_skill != nullptr) {
-    params.attack_name = attack_skill->name();
-  }
-
-  const Character& proto = state.character.proto();
-  OffenseStats offense = OffenseStatsFor(
-      proto.job(), proto.level(), proto.allocated_stats(),
-      state.character.equip_stats(), attack_skill, attack_level);
   params.swing_seconds =
       SwingIntervalSeconds(BaseAttackDelayMs(weapon.equip_type()),
                            weapon.attack_speed()) *
@@ -80,12 +73,26 @@ CombatParams ComputeCombatParams(const GameState& state) {
     }
     CombatType type;
     type.mob = &mob_it->second;
-    type.damage_per_hit = ExpectedAttackDamage(offense, mob_it->second);
     type.simultaneous = spawn.count();
     params.types.push_back(std::move(type));
   }
   if (params.types.empty()) {
     return params;
+  }
+
+  // Every attack the character could swing with: the bare poke first, then one
+  // per learned attack skill. The fight picks between them each swing.
+  const Character& proto = state.character.proto();
+  params.attacks.push_back(AttackFor(state, proto, nullptr, 0, params.types));
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (entry.second.kind() != SKILL_KIND_ATTACK) {
+      continue;
+    }
+    int learned = state.character.skill_level(entry.second);
+    if (learned > 0) {
+      params.attacks.push_back(
+          AttackFor(state, proto, &entry.second, learned, params.types));
+    }
   }
   params.active = true;
   return params;

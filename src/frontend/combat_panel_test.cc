@@ -146,15 +146,17 @@ TEST(CombatPanelTest, MergesSeveralEngagedMobsIntoOneBarWithACount) {
   Mob snail = SnailMob();
   CombatType type;
   type.mob = &snail;
-  type.damage_per_hit = 4.0;
   type.simultaneous = 2;
+  AttackOption attack;
+  attack.max_enemies = 2;
+  attack.damage_per_hit = {4.0};
   CombatParams params;
   params.active = true;
   params.map = "field";
   params.swing_seconds = 1.0;
   params.respawn_seconds = 100.0;
-  params.attack_targets = 2;
   params.types = {type};
+  params.attacks = {attack};
   CombatSim sim;
   sim.Advance(params, 0.1);  // both engaged, no hit yet
 

@@ -21,23 +21,39 @@ Mob MakeMob(const std::string& name, int max_hp, int level = 0) {
   return mob;
 }
 
-CombatType MakeType(const Mob* mob, double damage, int simultaneous) {
-  CombatType type;
-  type.mob = mob;
-  type.damage_per_hit = damage;
-  type.simultaneous = simultaneous;
-  return type;
+// A mob type together with the damage one swing does to it. Damage lives on
+// the attack rather than the type now, but a test reads better stating the two
+// side by side.
+struct TypeSpec {
+  const Mob* mob = nullptr;
+  double damage = 0.0;
+  int simultaneous = 0;
+};
+
+TypeSpec MakeType(const Mob* mob, double damage, int simultaneous) {
+  return TypeSpec{mob, damage, simultaneous};
 }
 
+// Params with a single attack of the given reach -- the common case. Tests
+// that need a choice between attacks push more onto params.attacks.
 CombatParams MakeParams(double swing, double respawn,
-                        std::vector<CombatType> types,
+                        std::vector<TypeSpec> specs, int reach = 1,
                         const std::string& map = "field") {
   CombatParams params;
   params.active = true;
   params.map = map;
   params.swing_seconds = swing;
   params.respawn_seconds = respawn;
-  params.types = std::move(types);
+  AttackOption attack;
+  attack.max_enemies = reach;
+  for (const TypeSpec& spec : specs) {
+    CombatType type;
+    type.mob = spec.mob;
+    type.simultaneous = spec.simultaneous;
+    params.types.push_back(type);
+    attack.damage_per_hit.push_back(spec.damage);
+  }
+  params.attacks.push_back(std::move(attack));
   return params;
 }
 
@@ -146,8 +162,8 @@ TEST(CombatSimTest, MultiTargetSwingHitsAndKillsSeveralAtOnce) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
   // A 3-way attack over three mobs: one swing hits and one-shots all three.
-  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 3)});
-  params.attack_targets = 3;
+  CombatParams params =
+      MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 3)}, /*reach=*/3);
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.kills_this_step()[0], 3);  // three kills on one swing
@@ -158,8 +174,8 @@ TEST(CombatSimTest, MultiTargetReachIsCappedByRemainingMobs) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
   // Reach 6 but only two mobs are up, so the swing hits (and clears) just two.
-  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)});
-  params.attack_targets = 6;
+  CombatParams params =
+      MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 2)}, /*reach=*/6);
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.kills_this_step()[0], 2);
@@ -171,8 +187,8 @@ TEST(CombatSimTest, MultiTargetDrainsTheWindowInParallel) {
   CombatSim sim;
   // Two mobs, a 2-way attack, 6 damage: each needs two hits. The first swing
   // leaves both alive at partial HP; the second kills both on the same swing.
-  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 6.0, 2)});
-  params.attack_targets = 2;
+  CombatParams params =
+      MakeParams(1.0, 100.0, {MakeType(&snail, 6.0, 2)}, /*reach=*/2);
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.kills_this_step()[0], 0);           // both at 4 HP, alive
@@ -183,13 +199,73 @@ TEST(CombatSimTest, MultiTargetDrainsTheWindowInParallel) {
   EXPECT_TRUE(sim.respawning());
 }
 
+TEST(CombatSimTest, PicksTheAttackThatLandsTheMostOnTheQueue) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  // A wide, weak swing against a narrow, strong one, over four mobs: 4 x 5 = 20
+  // beats 1 x 12, so the wide one takes it.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 12.0, 4)});
+  params.attacks[0].name = "Attack";
+  AttackOption wide;
+  wide.name = "Sweep";
+  wide.max_enemies = 4;
+  wide.damage_per_hit = {5.0};
+  params.attacks.push_back(wide);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.attack_name(), "Sweep");
+  // All four took the 5, rather than one taking 12.
+  ASSERT_EQ(sim.engaged_groups().size(), 1u);
+  EXPECT_EQ(sim.engaged_groups()[0].count, 4);
+  EXPECT_NEAR(sim.engaged_groups()[0].hp_fraction, 0.95, 1e-9);
+}
+
+TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  // The same pair of attacks, but only one mob is up: the wide swing's reach is
+  // worth nothing, so 5 loses to 12 and the narrow one takes over.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 12.0, 1)});
+  params.attacks[0].name = "Attack";
+  AttackOption wide;
+  wide.name = "Sweep";
+  wide.max_enemies = 4;
+  wide.damage_per_hit = {5.0};
+  params.attacks.push_back(wide);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.attack_name(), "Attack");
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.88, 1e-9);  // took the 12
+}
+
+TEST(CombatSimTest, TheChoiceChangesAsTheQueueThins) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // Two mobs, both one-shot by the wide swing. It clears them on the first
+  // swing, and with the queue empty the narrow swing is what is charging next.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 12.0, 2)});
+  params.attacks[0].name = "Attack";
+  AttackOption wide;
+  wide.name = "Sweep";
+  wide.max_enemies = 4;
+  wide.damage_per_hit = {10.0};
+  params.attacks.push_back(wide);
+
+  sim.Advance(params, 0.5);  // charging, two mobs up: the sweep wins
+  EXPECT_EQ(sim.attack_name(), "Sweep");
+
+  sim.Advance(params, 0.5);  // it lands and clears both
+  EXPECT_EQ(sim.kills_this_step()[0], 2);
+  EXPECT_TRUE(sim.respawning());
+}
+
 TEST(CombatSimTest, EngagedGroupsAverageASingleTypesWindow) {
   Mob snail = MakeMob("Snail", 20, 3);
   CombatSim sim;
   // Five mobs, reach 3: only the front three are engaged, so the bar merges
   // three of them -- not all five.
-  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 4.0, 5)});
-  params.attack_targets = 3;
+  CombatParams params =
+      MakeParams(1.0, 100.0, {MakeType(&snail, 4.0, 5)}, /*reach=*/3);
 
   sim.Advance(params, 1.0);  // front three to 16/20 = 0.8
   ASSERT_EQ(sim.engaged_groups().size(), 1u);
@@ -206,8 +282,8 @@ TEST(CombatSimTest, EngagedGroupsMergeTheWindowByType) {
   // Two of each, reach 4 hits the whole queue. Same-type mobs entered together
   // and take the same damage, so each type merges to one bar at a shared HP.
   CombatParams params = MakeParams(
-      1.0, 100.0, {MakeType(&snail, 50.0, 2), MakeType(&slug, 20.0, 2)});
-  params.attack_targets = 4;
+      1.0, 100.0, {MakeType(&snail, 50.0, 2), MakeType(&slug, 20.0, 2)},
+      /*reach=*/4);
 
   sim.Advance(params, 1.0);  // Snails -> 0.5, Slugs -> 0.8
   const std::vector<EngagedGroup>& groups = sim.engaged_groups();
@@ -244,9 +320,9 @@ TEST(CombatSimTest, MovingToAnotherMapRestartsTheFightThere) {
   Mob slug = MakeMob("Slug", 30);
   CombatSim sim;
   CombatParams here =
-      MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)}, "field");
-  CombatParams there =
-      MakeParams(1.0, 100.0, {MakeType(&slug, 10.0, 1)}, "other_field");
+      MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)}, /*reach=*/1, "field");
+  CombatParams there = MakeParams(1.0, 100.0, {MakeType(&slug, 10.0, 1)},
+                                  /*reach=*/1, "other_field");
 
   sim.Advance(here, 1.0);  // engage the Snail: hp 20
   EXPECT_EQ(sim.target_name(), "Snail");

@@ -94,6 +94,11 @@ class CombatSim {
 
   // Repopulates the queue to a full map clear, in random order.
   void Refill(const CombatParams& params);
+  // The attack that would land the most damage on the queue as it stands, or
+  // null when there is nothing to hit. Reach is worth nothing past the number
+  // of mobs actually queued, so a wide, weak-per-target skill loses to the
+  // plain swing once the map thins out.
+  const AttackOption* BestAttack(const CombatParams& params) const;
 
   bool active_ = false;
   bool initialized_ = false;
@@ -116,6 +121,9 @@ class CombatSim {
   double target_hp_fraction_ = 0.0;
   double attack_fraction_ = 0.0;
   std::string attack_name_;
+  // Reach of the attack the next swing will use -- also the width of the
+  // engaged window the UI draws.
+  int reach_ = 1;
   std::vector<int64_t> kills_this_step_;
   std::vector<EngagedGroup> engaged_groups_;
 };
