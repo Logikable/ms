@@ -31,6 +31,8 @@ int MainStatValue(const EquipStats& stats, Job job) {
     case JOB_WARRIOR:
     case JOB_BEGINNER:
       return stats.str();
+    case JOB_ARCHER:
+      return stats.dex();
     default:
       return 0;
   }
@@ -43,6 +45,8 @@ const char* MainStatLabel(Job job) {
     case JOB_WARRIOR:
     case JOB_BEGINNER:
       return "STR";
+    case JOB_ARCHER:
+      return "DEX";
     default:
       return nullptr;
   }

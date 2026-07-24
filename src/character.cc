@@ -55,7 +55,7 @@ int JobAdvancementSpBonus(Job job) {
 // with no published table (the wiki doesn't state it, and level-up screenshots
 // put Mercedes at 24 HP/level against Pathfinder's 36), so these are round
 // numbers picked to give each branch its character: warriors bulky, mages
-// frail with a deep pool, everyone else in between.
+// frail with a deep pool, everyone else -- archers included -- in between.
 struct LevelUpGain {
   int hp;
   int mp;
@@ -77,6 +77,8 @@ EquipJobCategory JobToCategory(Job job) {
       return EQUIP_JOB_CATEGORY_BEGINNER;
     case JOB_WARRIOR:
       return EQUIP_JOB_CATEGORY_WARRIOR;
+    case JOB_ARCHER:
+      return EQUIP_JOB_CATEGORY_BOWMAN;
     default:
       return EQUIP_JOB_CATEGORY_UNSPECIFIED;
   }

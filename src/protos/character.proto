@@ -11,6 +11,7 @@ enum Job {
   JOB_UNSPECIFIED = 0;
   JOB_BEGINNER = 1;
   JOB_WARRIOR = 2;
+  JOB_ARCHER = 3;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

@@ -91,6 +91,11 @@ OffenseStats OffenseStatsFor(Job job, int level,
       offense.primary = allocated.str() + equipped.str();
       offense.secondary = allocated.dex() + equipped.dex();
       break;
+    case JOB_ARCHER:
+      // The mirror image: DEX primary, STR secondary.
+      offense.primary = allocated.dex() + equipped.dex();
+      offense.secondary = allocated.str() + equipped.str();
+      break;
     default:
       break;
   }

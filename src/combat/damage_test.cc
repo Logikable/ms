@@ -233,6 +233,19 @@ TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
   EXPECT_DOUBLE_EQ(offense.ied, 0.0);
 }
 
+TEST(OffenseStatsForTest, ArcherReadsDexAsTheMainStat) {
+  AllocatedStats allocated;
+  allocated.set_str(30);
+  allocated.set_dex(50);
+  EquipStats equipped;
+  equipped.set_str(3);
+  equipped.set_dex(5);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_ARCHER, 1, allocated, equipped, nullptr, 0);
+  EXPECT_EQ(offense.primary, 55);    // DEX leads for an archer
+  EXPECT_EQ(offense.secondary, 33);  // and STR backs it up
+}
+
 TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {
   AllocatedStats allocated;
   allocated.set_str(50);
