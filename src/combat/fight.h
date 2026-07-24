@@ -68,7 +68,8 @@ class CombatSim {
     return attack_fraction_;
   }
   // The name of the swing being charged (the attack skill's, or "Attack" for
-  // the bare poke). Empty while inactive.
+  // the bare poke). Empty while inactive or respawning -- with nothing up,
+  // there is no swing coming to name.
   const std::string& attack_name() const {
     return attack_name_;
   }

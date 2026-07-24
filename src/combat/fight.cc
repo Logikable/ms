@@ -23,6 +23,9 @@ void CombatSim::Refill(const CombatParams& params) {
 }
 
 const AttackOption* CombatSim::BestAttack(const CombatParams& params) const {
+  if (queue_.empty()) {
+    return nullptr;  // nothing to hit, so nothing to choose between
+  }
   const AttackOption* best = nullptr;
   double best_total = -1.0;
   for (const AttackOption& attack : params.attacks) {
@@ -83,14 +86,15 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
 
   // The attack is chosen against the queue as it stands, so the charge bar
   // names the swing that is actually coming and the pick can change as mobs
-  // die out from under it.
+  // die out from under it. With the queue empty there is no swing coming and
+  // the name goes blank.
   const AttackOption* attack = BestAttack(params);
+  attack_name_ = attack != nullptr ? attack->name : "";
   if (attack != nullptr) {
-    attack_name_ = attack->name;
     reach_ = std::max(1, attack->max_enemies);
   }
 
-  if (!queue_.empty() && attack != nullptr) {
+  if (attack != nullptr) {
     attack_phase_ += dt;
     if (attack_phase_ >= swing) {
       attack_phase_ -= swing;
@@ -113,8 +117,8 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
       queue_ = std::move(survivors);
       // The queue moved, so the next swing's pick may differ from this one's.
       const AttackOption* next = BestAttack(params);
+      attack_name_ = next != nullptr ? next->name : "";
       if (next != nullptr) {
-        attack_name_ = next->name;
         reach_ = std::max(1, next->max_enemies);
       }
     }

@@ -199,6 +199,19 @@ TEST(CombatSimTest, MultiTargetDrainsTheWindowInParallel) {
   EXPECT_TRUE(sim.respawning());
 }
 
+TEST(CombatSimTest, NamesNoSwingWhileRespawning) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
+
+  sim.Advance(params, 0.5);  // mob up, a swing is coming
+  EXPECT_EQ(sim.attack_name(), "Attack");
+
+  sim.Advance(params, 0.5);  // one-shots the only mob
+  ASSERT_TRUE(sim.respawning());
+  EXPECT_TRUE(sim.attack_name().empty());
+}
+
 TEST(CombatSimTest, PicksTheAttackThatLandsTheMostOnTheQueue) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
