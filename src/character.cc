@@ -51,6 +51,26 @@ int JobAdvancementSpBonus(Job job) {
   }
 }
 
+// What a level-up grants a job in HP and MP. Real GMS varies this per class
+// with no published table (the wiki doesn't state it, and level-up screenshots
+// put Mercedes at 24 HP/level against Pathfinder's 36), so these are round
+// numbers picked to give each branch its character: warriors bulky, mages
+// frail with a deep pool, everyone else in between.
+struct LevelUpGain {
+  int hp;
+  int mp;
+};
+
+LevelUpGain LevelUpGainFor(Job job) {
+  switch (job) {
+    case JOB_WARRIOR:
+      return {48, 12};
+    // Magicians invert it, at {12, 48}, once a magician job exists.
+    default:
+      return {36, 24};
+  }
+}
+
 EquipJobCategory JobToCategory(Job job) {
   switch (job) {
     case JOB_BEGINNER:
@@ -71,6 +91,12 @@ CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
 void CharacterInstance::LevelUp() {
   character_.set_level(character_.level() + 1);
   character_.set_ap(character_.ap() + kApPerLevel);
+  // HP and MP are granted at the job held right now, so levels earned as a
+  // Beginner keep the Beginner rate -- advancing later does not backdate them.
+  LevelUpGain gain = LevelUpGainFor(character_.job());
+  AllocatedStats* stats = character_.mutable_allocated_stats();
+  stats->set_hp(stats->hp() + gain.hp);
+  stats->set_mp(stats->mp() + gain.mp);
   // The new level's band decides which stage's SP this grants (none below 11).
   int stage = SpStageForLevel(character_.level());
   if (stage >= 1) {

@@ -24,8 +24,10 @@ enum StatField {
   STAT_FIELD_MP = 6;
 }
 
-// AP-allocated stat amounts. Does not include base class stats or equipment
-// bonuses; those are computed and summed separately.
+// A character's own stat amounts, before equipment or skills. STR/DEX/INT/LUK
+// come from AP alone; hp and mp also collect what each level-up grants for the
+// job held at the time. Equipment and skill bonuses are summed separately --
+// see DerivedStatsFor in character_stats.h.
 message AllocatedStats {
   int32 str = 1;
   int32 dex = 2;

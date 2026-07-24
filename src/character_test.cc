@@ -108,6 +108,35 @@ TEST_F(LevelUpTest, AccumulatesAcrossMultipleLevels) {
   EXPECT_EQ(c_.proto().level(), 4);
 }
 
+TEST_F(LevelUpTest, GrantsHpAndMpAtTheDefaultRate) {
+  c_.LevelUp();
+  c_.LevelUp();
+  // A Beginner is neither warrior nor mage, so it takes the middle rate.
+  EXPECT_EQ(c_.proto().allocated_stats().hp(), 2 * 36);
+  EXPECT_EQ(c_.proto().allocated_stats().mp(), 2 * 24);
+}
+
+TEST_F(LevelUpTest, WarriorsGainMoreHpAndLessMp) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_WARRIOR);
+  CharacterInstance c(rng_, std::move(proto));
+  c.LevelUp();
+  EXPECT_EQ(c.proto().allocated_stats().hp(), 48);
+  EXPECT_EQ(c.proto().allocated_stats().mp(), 12);
+}
+
+TEST_F(LevelUpTest, AdvancingDoesNotBackdateEarlierLevels) {
+  // The rate is the one held at the time, so the two Beginner levels below
+  // keep the Beginner grant even after the character becomes a Warrior.
+  c_.LevelUp();
+  c_.LevelUp();
+  c_.AdvanceJob(JOB_WARRIOR);
+  c_.LevelUp();
+  EXPECT_EQ(c_.proto().allocated_stats().hp(), 2 * 36 + 48);
+  EXPECT_EQ(c_.proto().allocated_stats().mp(), 2 * 24 + 12);
+}
+
 TEST_F(LevelUpTest, GrantsNoSpBelowTheFirstJobBand) {
   c_.LevelUp();  // level 1 -> 2, below the level-11 start of 1st-job SP
   EXPECT_EQ(c_.sp(1), 0);

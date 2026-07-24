@@ -84,8 +84,10 @@ TEST(GameStateTest, StartingCharacterStats) {
   EXPECT_EQ(s.dex(), 4);
   EXPECT_EQ(s.int_(), 4);
   EXPECT_EQ(s.luk(), 4);
-  EXPECT_EQ(s.hp(), 50);
-  EXPECT_EQ(s.mp(), 15);
+  // 50 base, then nine Beginner level-ups (2->10) at 36 HP each and twenty
+  // Warrior ones (11->30) at 48, the advancement landing at level 10.
+  EXPECT_EQ(s.hp(), 50 + 9 * 36 + 20 * 48);
+  EXPECT_EQ(s.mp(), 15 + 9 * 24 + 20 * 12);
 }
 
 }  // namespace

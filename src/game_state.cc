@@ -41,9 +41,15 @@ Character MakeStartingCharacterProto() {
   std::mt19937 rng(0);
   CharacterInstance character(rng, MakeBaseBeginnerProto());
   while (character.proto().level() < kStartingLevel) {
+    // Advance as soon as it is offered, the way a real character would: a
+    // level-up grants HP and MP at the job held at the time, so leaving the
+    // advancement to the end would bank every level at the Beginner rate.
+    Job pending = character.PendingJobAdvancement();
+    if (pending != JOB_UNSPECIFIED) {
+      character.AdvanceJob(pending);
+    }
     character.LevelUp();
   }
-  character.AdvanceJob(JOB_WARRIOR);
   return character.proto();
 }
 
