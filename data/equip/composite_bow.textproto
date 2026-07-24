@@ -1,0 +1,10 @@
+name: "Composite Bow"
+required_level: 15
+base_stats {
+  attack: 30
+}
+attack_speed: ATTACK_SPEED_AVERAGE
+equip_type: EQUIP_TYPE_BOW
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON

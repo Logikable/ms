@@ -183,6 +183,12 @@ TEST(BaseAttackDelayMsTest, OneHandedSwordIs800) {
   EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_ONE_HANDED_SWORD), 800);
 }
 
+TEST(BaseAttackDelayMsTest, BowShootsOnTheSameReferenceAsASword) {
+  // Nothing published separates the two animations; the attack speed stage on
+  // the item is what makes a bow feel different.
+  EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_BOW), 800);
+}
+
 TEST(BaseAttackDelayMsTest, UnknownTypeFallsBackToOneHanded) {
   EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_UNSPECIFIED), 800);
 }

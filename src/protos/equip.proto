@@ -21,6 +21,7 @@ enum AttackSpeed {
 enum EquipType {
   EQUIP_TYPE_UNSPECIFIED = 0;
   EQUIP_TYPE_ONE_HANDED_SWORD = 1;
+  EQUIP_TYPE_BOW = 2;
 }
 
 // The equipment window slot this item occupies when worn. Determines where the

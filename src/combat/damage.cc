@@ -35,6 +35,12 @@ constexpr double kPercentToFraction = 100.0;
 // exists.
 constexpr int kOneHandedBaseAttackDelayMs = 800;
 
+// Bows shoot on the same 800ms reference. Nothing published distinguishes a
+// bow's basic-attack animation from a one-handed sword's, and inventing a
+// difference would be worse than treating them alike -- what actually
+// separates the two weapons is the attack speed stage on the item itself.
+constexpr int kBowBaseAttackDelayMs = 800;
+
 // Level multiplier: 1.1 at equal level, +0.02 per level above, capped at +5.
 constexpr double kEqualLevelMultiplier = 1.1;
 constexpr double kAboveLevelStep = 0.02;
@@ -150,6 +156,8 @@ int BaseAttackDelayMs(EquipType equip_type) {
   switch (equip_type) {
     case EQUIP_TYPE_ONE_HANDED_SWORD:
       return kOneHandedBaseAttackDelayMs;
+    case EQUIP_TYPE_BOW:
+      return kBowBaseAttackDelayMs;
     default:
       // Fail safe: fall back to the one-handed swing until other weapon types
       // are added, keeping the swing interval non-zero.
