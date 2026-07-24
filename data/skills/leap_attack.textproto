@@ -1,0 +1,11 @@
+# A dive from mid-air onto the enemies below. Two hits of 90% each, so 180% a
+# target -- which is less than Slash Blast's 183%, over fewer enemies, for a
+# skill that costs a point either way. There is no real reason to use it; it is
+# here because the job has it, and the combat loop will simply never pick it.
+name: "Leap Attack"
+kind: SKILL_KIND_ATTACK
+stage: 1
+max_level: 1
+max_enemies: 4
+lines: 2
+base { skill_pct: 0.90 }

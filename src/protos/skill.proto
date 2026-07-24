@@ -40,4 +40,8 @@ message Skill {
   // How many enemies one swing of this attack hits (attack skills). Unset/0 is
   // treated as 1 (single target); the bare poke is likewise 1.
   int32 max_enemies = 7;
+  // How many times one swing strikes each enemy it reaches. Damage is
+  // skill_pct per line, so a 90% 2-line skill deals 180% to every target.
+  // Unset/0 is treated as 1.
+  int32 lines = 8;
 }

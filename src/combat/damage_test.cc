@@ -268,6 +268,26 @@ TEST(OffenseStatsForTest, AttackSkillAddsPerLevelBeyondLevelOne) {
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83 + 0.08 * 9);  // 2.55 at level 10
 }
 
+TEST(OffenseStatsForTest, MultiHitSkillSetsLines) {
+  Skill leap_attack;
+  leap_attack.set_name("Leap Attack");
+  leap_attack.set_kind(SKILL_KIND_ATTACK);
+  leap_attack.set_max_level(1);
+  leap_attack.set_lines(2);
+  leap_attack.mutable_base()->set_skill_pct(0.90);
+  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+                                         EquipStats(), &leap_attack, 1);
+  EXPECT_DOUBLE_EQ(offense.skill_pct, 0.90);
+  EXPECT_EQ(offense.lines, 2);  // 90% twice = 180% a target
+}
+
+TEST(OffenseStatsForTest, SingleHitSkillKeepsOneLine) {
+  Skill slash_blast = SlashBlast();  // no lines set
+  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+                                         EquipStats(), &slash_blast, 1);
+  EXPECT_EQ(offense.lines, 1);
+}
+
 TEST(OffenseStatsForTest, NoAttackSkillKeepsTheBarePoke) {
   OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
                                          EquipStats(), nullptr, 0);

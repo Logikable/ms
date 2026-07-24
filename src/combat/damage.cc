@@ -104,6 +104,9 @@ OffenseStats OffenseStatsFor(Job job, int level,
     offense.skill_pct =
         attack_skill->base().skill_pct() +
         attack_skill->per_level().skill_pct() * (attack_level - 1);
+    // A multi-hit skill strikes each target this many times per swing, so its
+    // per-target damage is skill_pct once per line.
+    offense.lines = std::max(1, attack_skill->lines());
   }
   return offense;
 }
