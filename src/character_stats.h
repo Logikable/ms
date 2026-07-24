@@ -21,6 +21,9 @@ struct DerivedStats {
   // The share of incoming damage cancelled (0.10 == 10% less taken). Nothing
   // damages the character yet, so this is carried but never read.
   double damage_taken_pct = 0.0;
+  // Added chance for a swing to crit (0.40 == 40%). Feeds OffenseStatsFor,
+  // since what it modifies is damage rather than the character's own bulk.
+  double crit_rate = 0.0;
 };
 
 // `skills` is the loaded skill catalog; every passive in it the character has

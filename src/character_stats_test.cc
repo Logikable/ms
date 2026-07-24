@@ -55,6 +55,18 @@ Skill IronBody() {
   return skill;
 }
 
+// Critical Shot: +2% crit rate a level.
+Skill CriticalShot() {
+  Skill skill;
+  skill.set_name("Critical Shot");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_stage(1);
+  skill.set_max_level(20);
+  skill.mutable_base()->set_crit_rate(0.02);
+  skill.mutable_per_level()->set_crit_rate(0.02);
+  return skill;
+}
+
 // Warrior Mastery, trimmed to the one lever we model: +(5 + L) HP per level.
 Skill WarriorMastery() {
   Skill skill;
@@ -141,6 +153,16 @@ TEST_F(DerivedStatsTest, PercentHpSurvivesItsOwnAccumulation) {
   // that raw would report 57 for what is plainly 50 * 1.16.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.max_hp, 58);
+}
+
+TEST_F(DerivedStatsTest, CritRateAccumulatesAcrossLearnedLevels) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50);
+  Skill critical_shot = CriticalShot();
+  std::map<std::string, Skill> skills = {{"critical_shot", critical_shot}};
+  ASSERT_TRUE(c.LearnSkill(critical_shot, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.crit_rate, 0.40, 1e-9);  // 2% * 20
 }
 
 TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {

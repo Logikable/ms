@@ -1,0 +1,6 @@
+# A second jump in mid-air, the archer's equivalent of War Leap. Nothing this
+# game models.
+name: "Double Jump"
+kind: SKILL_KIND_ACTIVE
+stage: 1
+max_level: 20

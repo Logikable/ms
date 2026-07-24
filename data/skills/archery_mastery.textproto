@@ -1,0 +1,7 @@
+# Range, movement speed and max movement speed, none of which this game has a
+# notion of -- and attack speed, which it does, but nothing yet carries a skill
+# bonus into the swing interval. Inert until that is wired up.
+name: "Archery Mastery"
+kind: SKILL_KIND_PASSIVE
+stage: 1
+max_level: 15

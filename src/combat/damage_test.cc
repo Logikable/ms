@@ -252,6 +252,13 @@ TEST(OffenseStatsForTest, ArcherReadsDexAsTheMainStat) {
   EXPECT_EQ(offense.secondary, 33);  // and STR backs it up
 }
 
+TEST(OffenseStatsForTest, PassiveCritRateReachesTheOffense) {
+  OffenseStats offense = OffenseStatsFor(JOB_ARCHER, 15, AllocatedStats(),
+                                         EquipStats(), nullptr, 0,
+                                         /*passive_crit_rate=*/0.40);
+  EXPECT_DOUBLE_EQ(offense.crit_rate, 0.40);
+}
+
 TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {
   AllocatedStats allocated;
   allocated.set_str(50);

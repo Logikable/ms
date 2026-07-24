@@ -29,6 +29,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   double max_hp_pct = 0.0;
   int skill_def = 0;
   double damage_taken_pct = 0.0;
+  double crit_rate = 0.0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     if (skill.kind() != SKILL_KIND_PASSIVE) {
@@ -47,6 +48,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     skill_def += base.def() + per.def() * (level - 1);
     damage_taken_pct +=
         base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
+    crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
   }
 
   DerivedStats stats;
@@ -62,6 +64,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
       std::floor(flat_hp * (1.0 + max_hp_pct) + kPercentEpsilon));
   stats.def = equipped.def() + skill_def;
   stats.damage_taken_pct = damage_taken_pct;
+  stats.crit_rate = crit_rate;
   return stats;
 }
 

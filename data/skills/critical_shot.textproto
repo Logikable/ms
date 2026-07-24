@@ -1,0 +1,8 @@
+# +2% critical rate a level, to 40% at max. The first skill in the game to feed
+# the crit half of the damage chain, which until now sat at zero.
+name: "Critical Shot"
+kind: SKILL_KIND_PASSIVE
+stage: 1
+max_level: 20
+base { crit_rate: 0.02 }
+per_level { crit_rate: 0.02 }

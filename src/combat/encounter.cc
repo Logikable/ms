@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "src/character.h"
+#include "src/character_stats.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/equip_instance.h"
@@ -24,15 +25,16 @@ namespace {
 // the bare poke, which hits one target for the character's plain 100% swing.
 AttackOption AttackFor(const GameState& state, const Character& proto,
                        const Skill* skill, int level,
-                       const std::vector<CombatType>& types) {
+                       const std::vector<CombatType>& types,
+                       const DerivedStats& derived) {
   AttackOption attack;
   if (skill != nullptr) {
     attack.name = skill->name();
     attack.max_enemies = std::max(1, skill->max_enemies());
   }
-  OffenseStats offense =
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      state.character.equip_stats(), skill, level);
+  OffenseStats offense = OffenseStatsFor(
+      proto.job(), proto.level(), proto.allocated_stats(),
+      state.character.equip_stats(), skill, level, derived.crit_rate);
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
@@ -81,17 +83,21 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
 
   // Every attack the character could swing with: the bare poke first, then one
-  // per learned attack skill. The fight picks between them each swing.
+  // per learned attack skill. The fight picks between them each swing. Learned
+  // passives (crit rate and the like) apply to whichever attack is chosen, so
+  // they are resolved once and handed to each option.
   const Character& proto = state.character.proto();
-  params.attacks.push_back(AttackFor(state, proto, nullptr, 0, params.types));
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  params.attacks.push_back(
+      AttackFor(state, proto, nullptr, 0, params.types, derived));
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (entry.second.kind() != SKILL_KIND_ATTACK) {
       continue;
     }
     int learned = state.character.skill_level(entry.second);
     if (learned > 0) {
-      params.attacks.push_back(
-          AttackFor(state, proto, &entry.second, learned, params.types));
+      params.attacks.push_back(AttackFor(state, proto, &entry.second, learned,
+                                         params.types, derived));
     }
   }
   params.active = true;

@@ -89,6 +89,7 @@ cc_library(
         ":constants",
         ":damage",
         "//src:character",
+        "//src:character_stats",
         "//src:equip_instance",
         "//src:game_state",
         "//src/protos:character_proto_cc",

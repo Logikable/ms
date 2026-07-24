@@ -85,9 +85,11 @@ double LevelMultiplier(int player_level, int mob_level) {
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
                              const EquipStats& equipped,
-                             const Skill* attack_skill, int attack_level) {
+                             const Skill* attack_skill, int attack_level,
+                             double passive_crit_rate) {
   OffenseStats offense;
   offense.level = level;
+  offense.crit_rate = passive_crit_rate;
   // Primary/secondary stat by job; unknown jobs fall through to 0, matching
   // MainStatValue in equipped_panel.
   switch (job) {

@@ -42,11 +42,17 @@ struct OffenseStats {
 // bare 100% poke. Its skill_pct (base + per_level*(attack_level-1)) becomes the
 // swing's multiplier. Choosing WHICH attack (when several are learned, or when
 // a weaker multi-target skill beats the poke on a crowded map) is the caller's
-// job, not this pure per-mob math; today there is at most one attack skill.
+// job, not this pure per-mob math.
+//
+// `passive_crit_rate` is what the character's learned passives add to the
+// chance of a crit -- see DerivedStatsFor, which walks them. It arrives as a
+// plain number rather than a skill list because it applies to every swing,
+// whichever attack was chosen.
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
                              const EquipStats& equipped,
-                             const Skill* attack_skill, int attack_level);
+                             const Skill* attack_skill, int attack_level,
+                             double passive_crit_rate = 0.0);
 
 // Expected damage of one full attack against `mob` (crit averaged over its
 // rate, no RNG). The GMS damage chain; mob PDR and boss flag come from the Mob.
