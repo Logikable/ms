@@ -41,6 +41,12 @@ constexpr AllocStat kAllocStats[] = {
 };
 constexpr int kNumAllocStats = sizeof(kAllocStats) / sizeof(kAllocStats[0]);
 
+// True for a skill the player casts, attack or otherwise -- everything that
+// isn't a passive.
+bool IsActive(const Skill& skill) {
+  return skill.kind() == SKILL_KIND_ATTACK || skill.kind() == SKILL_KIND_ACTIVE;
+}
+
 // "STR: 13" with an optional " (base+bonus)" suffix when gear contributes.
 std::string StatText(const std::string& label, int base, int bonus) {
   std::string s = label + ": " + std::to_string(base + bonus);
@@ -191,6 +197,12 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
       result.push_back(&entry.second);
     }
   }
+  // Everything the player casts comes first, then the passives. Within each
+  // group the catalog's own order stands, which keeps the list stable.
+  std::stable_sort(result.begin(), result.end(),
+                   [](const Skill* a, const Skill* b) {
+                     return IsActive(*a) && !IsActive(*b);
+                   });
   return result;
 }
 

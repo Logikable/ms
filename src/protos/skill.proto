@@ -8,6 +8,9 @@ enum SkillKind {
   SKILL_KIND_UNSPECIFIED = 0;
   SKILL_KIND_ATTACK = 1;   // the swing's identity: supplies skill_pct
   SKILL_KIND_PASSIVE = 2;  // folds its levers into the character's stats
+  // Cast, but not an attack -- mobility and the like. Nothing it does is
+  // modelled; it exists so the skill list matches the real job.
+  SKILL_KIND_ACTIVE = 3;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we

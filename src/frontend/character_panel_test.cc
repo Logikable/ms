@@ -226,6 +226,39 @@ TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
   EXPECT_NE(rendered.find("0/20"), std::string::npos);
 }
 
+TEST_F(CharacterPanelTest, SkillsTabListsActivesBeforePassives) {
+  // The catalog is keyed by file stem, so "iron_body" would sort ahead of
+  // "slash_blast" on its own; the list must put the castable skill first.
+  Skill iron_body;
+  iron_body.set_name("Iron Body");
+  iron_body.set_kind(SKILL_KIND_PASSIVE);
+  iron_body.set_stage(1);
+  iron_body.set_max_level(20);
+  Skill war_leap;
+  war_leap.set_name("War Leap");
+  war_leap.set_kind(SKILL_KIND_ACTIVE);
+  war_leap.set_stage(1);
+  war_leap.set_max_level(5);
+  std::map<std::string, Skill> catalog = SkillCatalog();  // slash_blast
+  catalog["slash_blast"].set_kind(SKILL_KIND_ATTACK);
+  catalog["iron_body"] = iron_body;
+  catalog["war_leap"] = war_leap;
+
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  std::string rendered = RenderComponent(comp);
+  size_t slash = rendered.find("Slash Blast");
+  size_t leap = rendered.find("War Leap");
+  size_t iron = rendered.find("Iron Body");
+  ASSERT_NE(slash, std::string::npos);
+  ASSERT_NE(leap, std::string::npos);
+  ASSERT_NE(iron, std::string::npos);
+  EXPECT_LT(slash, iron);
+  EXPECT_LT(leap, iron);
+}
+
 TEST_F(CharacterPanelTest, DownIntoSkillRowsThenEnterFiresLearn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, panel_focus_, SkillCatalog());
