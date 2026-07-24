@@ -157,8 +157,8 @@ std::string JobName(Job job) {
   switch (job) {
     case JOB_BEGINNER:
       return "Beginner";
-    case JOB_WARRIOR:
-      return "Warrior";
+    case JOB_SWORDMAN:
+      return "Swordman";
     case JOB_ARCHER:
       return "Archer";
     default:

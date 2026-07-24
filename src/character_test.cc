@@ -119,7 +119,7 @@ TEST_F(LevelUpTest, GrantsHpAndMpAtTheDefaultRate) {
 TEST_F(LevelUpTest, WarriorsGainMoreHpAndLessMp) {
   Character proto;
   proto.set_level(15);
-  proto.set_job(JOB_WARRIOR);
+  proto.set_job(JOB_SWORDMAN);
   CharacterInstance c(rng_, std::move(proto));
   c.LevelUp();
   EXPECT_EQ(c.proto().allocated_stats().hp(), 48);
@@ -131,7 +131,7 @@ TEST_F(LevelUpTest, AdvancingDoesNotBackdateEarlierLevels) {
   // keep the Beginner grant even after the character becomes a Warrior.
   c_.LevelUp();
   c_.LevelUp();
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   c_.LevelUp();
   EXPECT_EQ(c_.proto().allocated_stats().hp(), 2 * 36 + 48);
   EXPECT_EQ(c_.proto().allocated_stats().mp(), 2 * 24 + 12);
@@ -150,7 +150,7 @@ TEST_F(LevelUpTest, GrantsFirstJobSpAcrossTheEarlyBand) {
 
 TEST_F(LevelUpTest, FirstJobSpTotalsSixtyOneAndStopsAtTheBandEnd) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  c.AdvanceJob(JOB_WARRIOR);  // +1 into stage 1 at the advancement
+  c.AdvanceJob(JOB_SWORDMAN);  // +1 into stage 1 at the advancement
   EXPECT_EQ(c.sp(1), 1);
   for (int i = 0; i < 20; ++i) {
     c.LevelUp();  // levels 11..30, each +3 into stage 1
@@ -218,23 +218,23 @@ TEST_F(AddExpTest, CapsAtMaxLevelAndZeroesExp) {
 
 TEST_F(AdvanceJobTest, IncrementsStageAndSetsJob) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  c.AdvanceJob(JOB_WARRIOR);
+  c.AdvanceJob(JOB_SWORDMAN);
   EXPECT_EQ(c.proto().job_stage(), 1);
-  EXPECT_EQ(c.proto().job(), JOB_WARRIOR);
+  EXPECT_EQ(c.proto().job(), JOB_SWORDMAN);
 }
 
 TEST_F(AdvanceJobTest, NoApBonusAtStagesOneAndTwo) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10, /*ap=*/0);
-  c.AdvanceJob(JOB_WARRIOR);
+  c.AdvanceJob(JOB_SWORDMAN);
   EXPECT_EQ(c.proto().ap(), 0);
-  c.AdvanceJob(JOB_WARRIOR);
+  c.AdvanceJob(JOB_SWORDMAN);
   EXPECT_EQ(c.proto().ap(), 0);
 }
 
 TEST_F(AdvanceJobTest, ApBonusAtThirdJob) {
   CharacterInstance c =
       MakeCharacter(rng_, /*level=*/60, /*ap=*/0, /*job_stage=*/2);
-  c.AdvanceJob(JOB_WARRIOR);
+  c.AdvanceJob(JOB_SWORDMAN);
   EXPECT_EQ(c.proto().job_stage(), 3);
   EXPECT_EQ(c.proto().ap(), 5);
 }
@@ -242,14 +242,14 @@ TEST_F(AdvanceJobTest, ApBonusAtThirdJob) {
 TEST_F(AdvanceJobTest, ApBonusAtFourthJob) {
   CharacterInstance c =
       MakeCharacter(rng_, /*level=*/100, /*ap=*/0, /*job_stage=*/3);
-  c.AdvanceJob(JOB_WARRIOR);
+  c.AdvanceJob(JOB_SWORDMAN);
   EXPECT_EQ(c.proto().job_stage(), 4);
   EXPECT_EQ(c.proto().ap(), 5);
 }
 
 TEST_F(AdvanceJobTest, GrantsFirstJobStartingSp) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  c.AdvanceJob(JOB_WARRIOR);
+  c.AdvanceJob(JOB_SWORDMAN);
   EXPECT_EQ(c.sp(1), 1);
 }
 
@@ -257,7 +257,7 @@ TEST_F(AdvanceJobTest, GrantsFirstJobStartingSp) {
 
 TEST_F(AdvanceJobTest, EligibleForWarriorAtLevelTen) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  EXPECT_EQ(c.PendingJobAdvancement(), JOB_WARRIOR);
+  EXPECT_EQ(c.PendingJobAdvancement(), JOB_SWORDMAN);
 }
 
 TEST_F(AdvanceJobTest, NotEligibleBelowLevelTen) {
@@ -267,7 +267,7 @@ TEST_F(AdvanceJobTest, NotEligibleBelowLevelTen) {
 
 TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  c.AdvanceJob(JOB_WARRIOR);
+  c.AdvanceJob(JOB_SWORDMAN);
   EXPECT_EQ(c.PendingJobAdvancement(), JOB_UNSPECIFIED);
 }
 
@@ -393,28 +393,28 @@ TEST_F(LearnSkillTest, UnlearnedSkillIsLevelZero) {
 TEST_F(CanEquipTest, ReturnsTrueWhenLevelAndJobMatch) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.CanEquip(sword_));
 }
 
 TEST_F(CanEquipTest, ReturnsFalseWhenLevelTooLow) {
   sword_.set_required_level(10);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_FALSE(c_.CanEquip(sword_));
 }
 
 TEST_F(CanEquipTest, ReturnsFalseWhenWrongJob) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_BOWMAN);
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_FALSE(c_.CanEquip(sword_));
 }
 
 TEST_F(CanEquipTest, ReturnsTrueForUniversalItem) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.CanEquip(sword_));
 }
 
@@ -448,14 +448,14 @@ TEST_F(CanEquipTest, ReturnsFalseWhenBeginnerTriesToEquipWarriorItem) {
 TEST_F(CanEquipTest, ReturnsTrueWhenExactLevelMet) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.CanEquip(sword_));
 }
 
 TEST_F(CanEquipTest, ReturnsFalseForEmptyJobCategories) {
   sword_.set_required_level(1);
   // No equip_job_categories set; no job can equip it.
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_FALSE(c_.CanEquip(sword_));
 }
 
@@ -485,25 +485,25 @@ TEST_F(MeetsLevelTest, FalseWhenLevelTooLow) {
 
 TEST_F(MeetsJobTest, TrueWhenNoJobCategories) {
   // Empty categories are treated as universal (unlike CanEquip).
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.MeetsJob(sword_));
 }
 
 TEST_F(MeetsJobTest, TrueForUniversalCategory) {
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.MeetsJob(sword_));
 }
 
 TEST_F(MeetsJobTest, TrueWhenJobMatches) {
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.MeetsJob(sword_));
 }
 
 TEST_F(MeetsJobTest, FalseWhenJobDoesNotMatch) {
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_BOWMAN);
-  c_.AdvanceJob(JOB_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_FALSE(c_.MeetsJob(sword_));
 }
 

@@ -44,7 +44,7 @@ int SpStageForLevel(int level) {
 // give more. Warrior's 1st job gives 1 -- revisit if it can't max its skills.
 int JobAdvancementSpBonus(Job job) {
   switch (job) {
-    case JOB_WARRIOR:
+    case JOB_SWORDMAN:
       return 1;
     default:
       return 1;
@@ -63,7 +63,7 @@ struct LevelUpGain {
 
 LevelUpGain LevelUpGainFor(Job job) {
   switch (job) {
-    case JOB_WARRIOR:
+    case JOB_SWORDMAN:
       return {48, 12};
     // Magicians invert it, at {12, 48}, once a magician job exists.
     default:
@@ -75,7 +75,7 @@ EquipJobCategory JobToCategory(Job job) {
   switch (job) {
     case JOB_BEGINNER:
       return EQUIP_JOB_CATEGORY_BEGINNER;
-    case JOB_WARRIOR:
+    case JOB_SWORDMAN:
       return EQUIP_JOB_CATEGORY_WARRIOR;
     case JOB_ARCHER:
       return EQUIP_JOB_CATEGORY_BOWMAN;
@@ -137,7 +137,7 @@ Job CharacterInstance::PendingJobAdvancement() const {
   // JOB_UNSPECIFIED when none is available yet.
   if (character_.job_stage() == 0 &&
       character_.level() >= kAdvancementLevels[0]) {
-    return JOB_WARRIOR;
+    return JOB_SWORDMAN;
   }
   return JOB_UNSPECIFIED;
 }

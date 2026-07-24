@@ -54,7 +54,7 @@ class TuiControllerTest : public testing::Test {
                                          std::map<std::string, ItemPrototype>{},
                                          std::map<std::string, Mob>{},
                                          std::map<std::string, MapData>{});
-    state_->character.AdvanceJob(JOB_WARRIOR);
+    state_->character.AdvanceJob(JOB_SWORDMAN);
     equip_panel_ =
         std::make_unique<EquippedPanel>(state_->character, panel_focus_);
     inventory_panel_ =

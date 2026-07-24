@@ -215,7 +215,7 @@ TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
   allocated.set_str(100);
   allocated.set_dex(20);
   OffenseStats offense =
-      OffenseStatsFor(JOB_WARRIOR, 1, allocated, EquipStats(), nullptr, 0);
+      OffenseStatsFor(JOB_SWORDMAN, 1, allocated, EquipStats(), nullptr, 0);
   EXPECT_EQ(offense.primary, 100);
   EXPECT_EQ(offense.secondary, 20);
 }
@@ -225,7 +225,7 @@ TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
   equipped.set_boss_damage(30);           // 30%
   equipped.set_ignore_enemy_defense(20);  // 20%
   OffenseStats offense =
-      OffenseStatsFor(JOB_WARRIOR, 1, AllocatedStats(), equipped, nullptr, 0);
+      OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), equipped, nullptr, 0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.30);
   EXPECT_DOUBLE_EQ(offense.ied, 0.20);
 }
@@ -282,14 +282,14 @@ Skill SlashBlast() {
 
 TEST(OffenseStatsForTest, AttackSkillSetsSkillPctAtLevelOne) {
   Skill slash_blast = SlashBlast();
-  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
                                          EquipStats(), &slash_blast, 1);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83);  // base, no per-level yet
 }
 
 TEST(OffenseStatsForTest, AttackSkillAddsPerLevelBeyondLevelOne) {
   Skill slash_blast = SlashBlast();
-  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
                                          EquipStats(), &slash_blast, 10);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83 + 0.08 * 9);  // 2.55 at level 10
 }
@@ -301,7 +301,7 @@ TEST(OffenseStatsForTest, MultiHitSkillSetsLines) {
   leap_attack.set_max_level(1);
   leap_attack.set_lines(2);
   leap_attack.mutable_base()->set_skill_pct(0.90);
-  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
                                          EquipStats(), &leap_attack, 1);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 0.90);
   EXPECT_EQ(offense.lines, 2);  // 90% twice = 180% a target
@@ -309,13 +309,13 @@ TEST(OffenseStatsForTest, MultiHitSkillSetsLines) {
 
 TEST(OffenseStatsForTest, SingleHitSkillKeepsOneLine) {
   Skill slash_blast = SlashBlast();  // no lines set
-  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
                                          EquipStats(), &slash_blast, 1);
   EXPECT_EQ(offense.lines, 1);
 }
 
 TEST(OffenseStatsForTest, NoAttackSkillKeepsTheBarePoke) {
-  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
                                          EquipStats(), nullptr, 0);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
 }
@@ -326,7 +326,7 @@ TEST(OffenseStatsForTest, PassiveSkillDoesNotChangeSkillPct) {
   passive.set_kind(SKILL_KIND_PASSIVE);
   passive.set_max_level(10);
   passive.mutable_base()->set_max_hp_pct(0.10);
-  OffenseStats offense = OffenseStatsFor(JOB_WARRIOR, 15, AllocatedStats(),
+  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
                                          EquipStats(), &passive, 5);
   EXPECT_DOUBLE_EQ(offense.skill_pct,
                    1.0);  // passives fold into HP, not damage
@@ -344,10 +344,10 @@ TEST(OffenseStatsForTest, LevelOneSlashBlastKillsRoughly83PercentFaster) {
   Mob mob = MakeMob(/*pdr=*/0, /*boss=*/false, /*level=*/15);
 
   OffenseStats poke =
-      OffenseStatsFor(JOB_WARRIOR, 15, allocated, equipped, nullptr, 0);
+      OffenseStatsFor(JOB_SWORDMAN, 15, allocated, equipped, nullptr, 0);
   Skill slash_blast = SlashBlast();
   OffenseStats slash =
-      OffenseStatsFor(JOB_WARRIOR, 15, allocated, equipped, &slash_blast, 1);
+      OffenseStatsFor(JOB_SWORDMAN, 15, allocated, equipped, &slash_blast, 1);
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(slash, mob),
                    1.83 * ExpectedAttackDamage(poke, mob));
 }

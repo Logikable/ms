@@ -24,7 +24,7 @@ class CharacterPanelTest : public PanelTest {};
 CharacterInstance MakeWarrior(std::mt19937& rng, int sp) {
   Character proto;
   proto.set_level(15);
-  proto.set_job(JOB_WARRIOR);
+  proto.set_job(JOB_SWORDMAN);
   proto.set_job_stage(1);
   (*proto.mutable_sp_by_stage())[1] = sp;
   return CharacterInstance(rng, std::move(proto));
@@ -83,7 +83,7 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
 
   Character proto;
   proto.set_level(15);
-  proto.set_job(JOB_WARRIOR);
+  proto.set_job(JOB_SWORDMAN);
   proto.set_job_stage(1);
   proto.mutable_allocated_stats()->set_hp(100);
   (*proto.mutable_sp_by_stage())[1] = 3;
@@ -195,7 +195,7 @@ TEST_F(CharacterPanelTest, BeginnerSkillsTabShowsNoAdvancements) {
 
 TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
-  c.AdvanceJob(JOB_WARRIOR);  // job_stage 1
+  c.AdvanceJob(JOB_SWORDMAN);  // job_stage 1
   CharacterPanel panel(c, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
@@ -206,7 +206,7 @@ TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
 
 TEST_F(CharacterPanelTest, SkillsAdvBarUpReturnsToOuterTabs) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
-  c.AdvanceJob(JOB_WARRIOR);
+  c.AdvanceJob(JOB_SWORDMAN);
   CharacterPanel panel(c, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // outer tabs: Stats -> Skills
@@ -294,7 +294,7 @@ TEST_F(CharacterPanelTest, NoSpEntersTheSkillRowsButEnterDoesNothing) {
 TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
   Character proto;
   proto.set_level(15);
-  proto.set_job(JOB_WARRIOR);
+  proto.set_job(JOB_SWORDMAN);
   proto.set_job_stage(1);
   (*proto.mutable_sp_by_stage())[1] = 5;
   (*proto.mutable_skill_levels())["Slash Blast"] = 20;  // already maxed

@@ -28,7 +28,7 @@ constexpr char kColumnHeader[] =
 // TODO: Demon Avenger's main stat is HP; Xenon's is STR+DEX+LUK combined.
 int MainStatValue(const EquipStats& stats, Job job) {
   switch (job) {
-    case JOB_WARRIOR:
+    case JOB_SWORDMAN:
     case JOB_BEGINNER:
       return stats.str();
     case JOB_ARCHER:
@@ -42,7 +42,7 @@ int MainStatValue(const EquipStats& stats, Job job) {
 // TODO: Demon Avenger's main stat is HP; Xenon's is STR+DEX+LUK combined.
 const char* MainStatLabel(Job job) {
   switch (job) {
-    case JOB_WARRIOR:
+    case JOB_SWORDMAN:
     case JOB_BEGINNER:
       return "STR";
     case JOB_ARCHER:

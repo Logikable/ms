@@ -4,13 +4,14 @@ package ms;
 
 import "src/protos/equip.proto";
 
-// The character's current job. Explorer classes use distinct values for each
-// advancement stage (e.g. Warrior -> Fighter -> Crusader -> Hero); all other
-// classes use a single value across all stages.
+// The character's current job, named for the first advancement (Swordman,
+// Archer, ...). One Job spans every advancement stage of its line; which tier
+// the character is actually at comes from job_stage. See JobAdvancement for the
+// finer-grained tiers that skills belong to.
 enum Job {
   JOB_UNSPECIFIED = 0;
   JOB_BEGINNER = 1;
-  JOB_WARRIOR = 2;
+  JOB_SWORDMAN = 2;
   JOB_ARCHER = 3;
 }
 

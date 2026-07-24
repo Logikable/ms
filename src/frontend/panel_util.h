@@ -64,7 +64,7 @@ std::string FormatSlot(EquipSlot slot);
 // names (e.g. "Warrior/Thief"). Also returns "All" when the list is empty.
 std::string FormatJobCategories(const EquipPrototype& proto);
 
-// Returns the display name for a job (e.g. "Warrior"), or "Unknown" for a job
+// Returns the display name for a job (e.g. "Swordman"), or "Unknown" for a job
 // not yet given a name.
 std::string JobName(Job job);
 
