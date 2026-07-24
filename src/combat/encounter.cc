@@ -62,9 +62,16 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
   const EquipPrototype& weapon = weapon_it->second.prototype();
 
+  // Passive skills that speed the swing add stages on top of the weapon's own
+  // attack speed, capped at the fastest tier we model. Faster swings are a
+  // flat DPS gain, so this is resolved once and folded into the swing clock.
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  int attack_speed =
+      std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
+               weapon.attack_speed() + derived.attack_speed_bonus);
   params.swing_seconds =
       SwingIntervalSeconds(BaseAttackDelayMs(weapon.equip_type()),
-                           weapon.attack_speed()) *
+                           attack_speed) *
       kGameSpeedFactor;
   params.respawn_seconds = kRespawnIntervalSeconds * kGameSpeedFactor;
   for (const MapData::Spawn& spawn : map.spawns()) {
@@ -85,9 +92,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
   // Every attack the character could swing with: the bare poke first, then one
   // per learned attack skill. The fight picks between them each swing. Learned
   // passives (crit rate and the like) apply to whichever attack is chosen, so
-  // they are resolved once and handed to each option.
+  // the already-resolved `derived` is handed to each option.
   const Character& proto = state.character.proto();
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
   params.attacks.push_back(
       AttackFor(state, proto, nullptr, 0, params.types, derived));
   for (const std::pair<const std::string, Skill>& entry : state.skills) {

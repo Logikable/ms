@@ -24,6 +24,9 @@ struct DerivedStats {
   // Added chance for a swing to crit (0.40 == 40%). Feeds OffenseStatsFor,
   // since what it modifies is damage rather than the character's own bulk.
   double crit_rate = 0.0;
+  // Faster-swing stages added on top of the weapon's own attack speed. Feeds
+  // the swing interval, not the per-hit damage -- see ComputeCombatParams.
+  int attack_speed_bonus = 0;
 };
 
 // `skills` is the loaded skill catalog; every passive in it the character has

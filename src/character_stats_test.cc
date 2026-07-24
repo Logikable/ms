@@ -67,6 +67,17 @@ Skill CriticalShot() {
   return skill;
 }
 
+// Archery Mastery: +1 attack speed stage, flat at every level.
+Skill ArcheryMastery() {
+  Skill skill;
+  skill.set_name("Archery Mastery");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_ARCHER);
+  skill.set_max_level(15);
+  skill.mutable_base()->set_attack_speed(1);
+  return skill;
+}
+
 // Warrior Mastery, trimmed to the one lever we model: +(5 + L) HP per level.
 Skill WarriorMastery() {
   Skill skill;
@@ -163,6 +174,17 @@ TEST_F(DerivedStatsTest, CritRateAccumulatesAcrossLearnedLevels) {
 
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_NEAR(stats.crit_rate, 0.40, 1e-9);  // 2% * 20
+}
+
+TEST_F(DerivedStatsTest, AttackSpeedBonusIsFlatRegardlessOfLevel) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50);
+  Skill mastery = ArcheryMastery();
+  std::map<std::string, Skill> skills = {{"archery_mastery", mastery}};
+  ASSERT_TRUE(c.LearnSkill(mastery, 15));  // maxed
+
+  // The bonus is +1 at every level, so even a maxed skill adds a single stage.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.attack_speed_bonus, 1);
 }
 
 TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {

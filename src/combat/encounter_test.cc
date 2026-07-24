@@ -35,15 +35,30 @@ MapData TwoSnailMap() {
   return map;
 }
 
-void EquipSword(GameState& state) {
+void EquipSwordAt(GameState& state, AttackSpeed speed) {
   EquipPrototype sword;
   sword.set_name("Sword");
   sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  sword.set_attack_speed(speed);
   sword.mutable_base_stats()->set_attack(100);
   state.character.PickUp(std::make_unique<EquipInstance>(sword));
   state.character.Equip(0);
+}
+
+void EquipSword(GameState& state) {
+  EquipSwordAt(state, ATTACK_SPEED_AVERAGE);
+}
+
+// A passive that adds `stages` of attack speed, flat at every level.
+Skill SpeedPassive(int stages) {
+  Skill skill;
+  skill.set_name("Haste");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_ARCHER);
+  skill.set_max_level(1);
+  skill.mutable_base()->set_attack_speed(stages);
+  return skill;
 }
 
 TEST(ComputeCombatParamsTest, InactiveWithoutCurrentMap) {
@@ -109,6 +124,37 @@ TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
   // 183% against the poke's 100%, on the same mob.
   EXPECT_GT(params.attacks[1].damage_per_hit[0],
             params.attacks[0].damage_per_hit[0]);
+}
+
+TEST(ComputeCombatParamsTest, AttackSpeedPassiveShortensTheSwing) {
+  Skill haste = SpeedPassive(1);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"haste", haste}});
+  state.current_map = "field";
+  EquipSword(state);  // AVERAGE (stage 4)
+  double slow = ComputeCombatParams(state).swing_seconds;
+  ASSERT_TRUE(state.character.LearnSkill(haste, 1));
+  double fast = ComputeCombatParams(state).swing_seconds;
+  EXPECT_LT(fast, slow);  // +1 stage swings sooner
+}
+
+TEST(ComputeCombatParamsTest, AttackSpeedIsCappedAtTheFastestTier) {
+  // A wildly oversized bonus can't push the swing past the top tier: the same
+  // character with a plain FASTEST_3 weapon swings just as fast.
+  Skill haste = SpeedPassive(100);
+  GameState fast_state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                       {{"field", TwoSnailMap()}}, {{"haste", haste}});
+  fast_state.current_map = "field";
+  EquipSwordAt(fast_state, ATTACK_SPEED_AVERAGE);
+  ASSERT_TRUE(fast_state.character.LearnSkill(haste, 1));
+
+  GameState cap_state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                      {{"field", TwoSnailMap()}});
+  cap_state.current_map = "field";
+  EquipSwordAt(cap_state, ATTACK_SPEED_FASTEST_3);
+
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(fast_state).swing_seconds,
+                   ComputeCombatParams(cap_state).swing_seconds);
 }
 
 }  // namespace

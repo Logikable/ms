@@ -1,7 +1,10 @@
-# Range, movement speed and max movement speed, none of which this game has a
-# notion of -- and attack speed, which it does, but nothing yet carries a skill
-# bonus into the swing interval. Inert until that is wired up.
+# Its range and movement speed are things this game has no notion of, but its
+# attack speed is real: +1 stage, flat at every level, so a single point buys
+# the whole ~8% DPS. Learned at all is enough.
 name: "Archery Mastery"
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ARCHER
 max_level: 15
+base {
+  attack_speed: 1
+}

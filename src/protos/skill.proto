@@ -26,6 +26,7 @@ message SkillEffect {
   int32 max_hp_per_level = 4;   // flat max HP for each character level
   double damage_taken_pct = 5;  // share of incoming damage cancelled
   double crit_rate = 6;         // added chance for a swing to crit
+  int32 attack_speed = 7;       // faster-swing stages added to the weapon's
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,
