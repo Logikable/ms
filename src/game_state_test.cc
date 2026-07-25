@@ -86,10 +86,10 @@ TEST(GameStateTest, StartingCharacterStats) {
   EXPECT_EQ(s.dex(), 4);
   EXPECT_EQ(s.int_(), 4);
   EXPECT_EQ(s.luk(), 4);
-  // 50 base, then 29 level-ups at the default 36 HP each -- the starting
-  // Archer takes the same rate as a Beginner, so every level counts alike.
-  EXPECT_EQ(s.hp(), 50 + 29 * 36);
-  EXPECT_EQ(s.mp(), 15 + 29 * 24);
+  // The rate changes at the advancement: nine Beginner levels at 36/24, then
+  // twenty Magician levels at 12/48. A frail character with a deep pool.
+  EXPECT_EQ(s.hp(), 50 + 9 * 36 + 20 * 12);
+  EXPECT_EQ(s.mp(), 15 + 9 * 24 + 20 * 48);
 }
 
 }  // namespace

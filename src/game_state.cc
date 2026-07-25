@@ -27,14 +27,14 @@ Character MakeBaseBeginnerProto() {
 }
 
 // The level a fresh character starts at, for testing. Level 30 is the top of
-// the 1st-job band, so the whole 61-point SP pool is on hand -- enough to max
-// every 1st-job skill and see what they do.
+// the 1st-job band, so the whole 60-point SP pool is on hand -- exactly enough
+// to max every 1st-job skill and see what they do.
 constexpr int kStartingLevel = 30;
 
-// The job the starting character advances into at level 10. Archer for now, to
-// exercise the new job -- there is no advancement UI, so this is the only way
-// to reach anything but a Beginner. Swap it to test a different job.
-constexpr Job kStartingJob = JOB_ARCHER;
+// The job the starting character advances into at level 10. Magician for now,
+// to exercise the newest job -- there is no advancement UI, so this is the only
+// way to reach anything but a Beginner. Swap it to test a different job.
+constexpr Job kStartingJob = JOB_MAGICIAN;
 
 // A first-job character to start with, so there is 1st-job SP (and AP) on hand
 // to test skills. Built by running the real leveling and advancement mechanics

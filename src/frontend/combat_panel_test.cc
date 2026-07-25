@@ -43,7 +43,11 @@ void EquipSword(GameState& state) {
   sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  // Both halves, so the swing lands whatever job the starting character
+  // happens to be -- kStartingJob is a testing knob, not something the
+  // encounter math should depend on.
   sword.mutable_base_stats()->set_attack(100);
+  sword.mutable_base_stats()->set_magic_attack(100);
   state.character.PickUp(std::make_unique<EquipInstance>(sword));
   state.character.Equip(0);
 }

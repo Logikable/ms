@@ -46,9 +46,10 @@ int main(int argc, char** argv) {
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
                       std::move(mobs), std::move(maps), std::move(skills));
 
-  // The starting Archer's weapon, equipped so there is something to farm with.
+  // The starting Magician's weapon, equipped so there is something to farm
+  // with.
   state.character.PickUp(
-      std::make_unique<ms::EquipInstance>(state.equips.at("hunters_bow")));
+      std::make_unique<ms::EquipInstance>(state.equips.at("metal_wand")));
   state.character.Equip(0);
   // Generic low-level weapons for scrolling/star force experimentation.
   state.character.PickUp(
