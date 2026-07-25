@@ -281,7 +281,7 @@ ftxui::Element CharacterPanel::Render() const {
       OffenseStatsFor(p.job(), p.level(), p.allocated_stats(),
                       character_.equip_stats(), /*attack_skill=*/nullptr,
                       /*attack_level=*/0, derived.crit_rate);
-  std::string power = Centered("CP " + std::to_string(CombatPower(offense)));
+  std::string power = Centered("CP " + FormatWithCommas(CombatPower(offense)));
 
   bool focused = panel_focus_ == kCharPanel;
   bool tab_row_selected = focused && zone_ == kZoneTabs;

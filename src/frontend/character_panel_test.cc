@@ -13,6 +13,7 @@
 #include "src/frontend/panel_test_base.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -94,6 +95,26 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("HP: 103"), std::string::npos);
   EXPECT_NE(rendered.find("DEF: 30"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(1000);
+  CharacterInstance c(rng_, std::move(proto));
+
+  EquipPrototype weapon;
+  weapon.set_name("Sword");
+  weapon.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  weapon.mutable_base_stats()->set_attack(500);
+  c.PickUp(std::make_unique<EquipInstance>(weapon));
+  c.Equip(0);
+
+  // 4 * 1000 STR * 500 ATT / 100 = 20000, halved toward the mastery floor.
+  CharacterPanel panel(c, panel_focus_);
+  EXPECT_NE(RenderElement(panel.Render()).find("CP 11,500"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
