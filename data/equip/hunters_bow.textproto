@@ -1,7 +1,6 @@
 name: "Hunter's Bow"
 required_level: 20
 base_stats {
-  dex: 1
   attack: 35
 }
 attack_speed: ATTACK_SPEED_AVERAGE

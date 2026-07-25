@@ -1,7 +1,6 @@
 name: "Ryden"
 required_level: 30
 base_stats {
-  dex: 2
   attack: 45
 }
 attack_speed: ATTACK_SPEED_AVERAGE
