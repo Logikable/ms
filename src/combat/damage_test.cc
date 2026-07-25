@@ -123,6 +123,46 @@ TEST_F(OffenseTest, FortyLevelsUnderFloorsToOneDamage) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, false, 40)), 1.0);
 }
 
+TEST_F(OffenseTest, CombatPowerIsTheDamageChainWithoutATarget) {
+  // The same 25.875 the baseline swing produces, floored -- no mob, so no
+  // level multiplier and no defense.
+  EXPECT_EQ(CombatPower(Baseline()), 25);
+}
+
+TEST_F(OffenseTest, CombatPowerCountsBossDamageAgainstEveryone) {
+  OffenseStats s = Baseline();
+  s.boss_pct = 0.6;
+  // A swing at an ordinary mob ignores this entirely; combat power does not.
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875 * kEqualLevel);
+  EXPECT_EQ(CombatPower(s), 41);  // 25.875 * 1.6
+}
+
+TEST_F(OffenseTest, CombatPowerWeightsCritDamageByItsRate) {
+  OffenseStats s = Baseline();
+  s.crit_rate = 0.5;
+  s.crit_dmg = 0.25;
+  // 25.875 * (1 + 0.5 * (0.25 + 0.35)) = 33.6375. GMS's flat 1.35 + 0.25 would
+  // read 41 here, pricing the crit damage as though every swing crit.
+  EXPECT_EQ(CombatPower(s), 33);
+}
+
+TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
+  OffenseStats s = Baseline();
+  s.mastery = 1.0;  // no min-damage floor at all
+  EXPECT_EQ(CombatPower(s), 45);
+}
+
+TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {
+  // Everything that depends on which attack is thrown, or at what, drops out.
+  OffenseStats s = Baseline();
+  s.skill_pct = 3.0;
+  s.lines = 4;
+  s.ied = 0.8;
+  s.ier = 0.5;
+  s.level = 60;
+  EXPECT_EQ(CombatPower(s), CombatPower(Baseline()));
+}
+
 TEST(SwingIntervalTest, Stage4IsTheUnscaledBase) {
   // stage 4 => (20-4)/16 == 1.0; 720 is already a 30ms multiple.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(720, 4), 0.72);

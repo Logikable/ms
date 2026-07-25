@@ -58,6 +58,20 @@ OffenseStats OffenseStatsFor(Job job, int level,
 // rate, no RNG). The GMS damage chain; mob PDR and boss flag come from the Mob.
 double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob);
 
+// A single number for "how hard this character hits", for comparing characters
+// rather than predicting a swing: the damage chain with everything that depends
+// on the target, the job, or the moment stripped out. Only `primary`,
+// `secondary`, `attack`, `mastery`, `damage_pct`, `boss_pct`, `crit_rate`,
+// `crit_dmg` and `final_dmg_pct` are read -- skill_pct, lines, ied, ier and
+// level are ignored, so build the stats with a null attack skill.
+//
+// Two deliberate departures from GMS, which computes this off a maximum,
+// boss-facing hit. Boss damage counts unconditionally, as it does there. But
+// crit is weighted by its rate -- GMS's flat `1.35 + crit damage` prices a
+// point of critical damage the same whether it lands every swing or never,
+// which our own damage chain does not.
+int CombatPower(const OffenseStats& offense);
+
 // Damage multiplier from the level gap between attacker and monster (the GMS
 // "level multiplier", always applied): a small bonus at or above the monster's
 // level -- 1.1 at equal, rising to 1.2 at +5 and beyond -- and a growing

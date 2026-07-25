@@ -54,6 +54,7 @@ cc_library(
         ":types",
         "//src:character",
         "//src:character_stats",
+        "//src/combat:damage",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",

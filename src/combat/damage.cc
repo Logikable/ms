@@ -147,6 +147,18 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   return damage * level_mult;
 }
 
+int CombatPower(const OffenseStats& offense) {
+  // The same opening as ExpectedAttackDamage: the /100 here is GMS's leading
+  // 0.01, which turns out to be the very same constant.
+  double stat_value = 4.0 * offense.primary + offense.secondary;
+  double power = stat_value * offense.attack / 100.0;
+  power *= (1.0 + offense.mastery) / 2.0;
+  power *= 1.0 + offense.damage_pct + offense.boss_pct;
+  power *= 1.0 + offense.crit_rate * (offense.crit_dmg + kBaseCritDamage);
+  power *= 1.0 + offense.final_dmg_pct;
+  return static_cast<int>(std::floor(power));
+}
+
 double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage) {
   double raw_ms = base_delay_ms * (kSpeedBase - attack_speed_stage) /
                   static_cast<double>(kSpeedDivisor);

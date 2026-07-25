@@ -11,6 +11,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character_stats.h"
+#include "src/combat/damage.h"
 #include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
@@ -24,6 +25,12 @@ namespace {
 constexpr int kContentWidth = 33;  // chars inside the window border
 
 enum Tab : int { kTabStats = 0, kTabSkills = 1 };
+
+// One line of the panel's heading block, centred over the content width.
+std::string Centered(const std::string& s) {
+  int pad = std::max(0, (kContentWidth - (int)s.size()) / 2);
+  return PadRight(std::string(pad, ' ') + s, kContentWidth);
+}
 
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
@@ -265,10 +272,16 @@ ftxui::Element CharacterPanel::Render() const {
   while ((int)lvl.size() < 3) {
     lvl = " " + lvl;
   }
-  std::string raw_title = "Lv" + lvl + " " + JobName(p.job());
-  int pad = std::max(0, (kContentWidth - (int)raw_title.size()) / 2);
-  std::string title =
-      PadRight(std::string(pad, ' ') + raw_title, kContentWidth);
+  std::string title = Centered("Lv" + lvl + " " + JobName(p.job()));
+
+  // Combat power stands for the character as a whole, so it is built from a
+  // bare stat line -- no attack skill, no target.
+  DerivedStats derived = DerivedStatsFor(character_, skills_);
+  OffenseStats offense =
+      OffenseStatsFor(p.job(), p.level(), p.allocated_stats(),
+                      character_.equip_stats(), /*attack_skill=*/nullptr,
+                      /*attack_level=*/0, derived.crit_rate);
+  std::string power = Centered("CP " + std::to_string(CombatPower(offense)));
 
   bool focused = panel_focus_ == kCharPanel;
   bool tab_row_selected = focused && zone_ == kZoneTabs;
@@ -281,6 +294,7 @@ ftxui::Element CharacterPanel::Render() const {
   return ThemedWindow(" Character ",
                       ftxui::vbox({
                           ftxui::text(title),
+                          ftxui::text(power),
                           ThemedSeparator(),
                           RenderTabBar(tab_row_selected),
                           ThemedSeparator(),
