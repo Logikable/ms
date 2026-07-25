@@ -1,0 +1,12 @@
+# Pure defense, 10 a point. GMS stops it at 9; one more point rounds the
+# magician's book to the same 60 every other job pays.
+name: "Magic Armor"
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MAGICIAN
+max_level: 10
+base {
+  def: 10
+}
+per_level {
+  def: 10
+}

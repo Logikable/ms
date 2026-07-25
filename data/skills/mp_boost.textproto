@@ -1,0 +1,17 @@
+# The magician's counterpart to Archery Mastery: +1 attack speed stage flat, so
+# the first point buys the swing, and a deepening MP pool for the rest. Its
+# "+5% critical rate while holding a wand" is a weapon-type condition, which
+# nothing here models.
+name: "MP Boost"
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MAGICIAN
+max_level: 20
+base {
+  attack_speed: 1
+  max_mp_pct: 0.01
+  max_mp_per_level: 25
+}
+per_level {
+  max_mp_pct: 0.01
+  max_mp_per_level: 5
+}

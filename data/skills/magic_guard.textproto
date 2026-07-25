@@ -1,0 +1,13 @@
+# Sends 15+7x% of a hit to the MP pool instead of the HP pool. Nothing attacks
+# the character yet, so the lever is carried and never read -- the skill is here
+# because Magic Armor is built on it and a magician without it reads wrong.
+name: "Magic Guard"
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MAGICIAN
+max_level: 10
+base {
+  damage_to_mp_pct: 0.22
+}
+per_level {
+  damage_to_mp_pct: 0.07
+}

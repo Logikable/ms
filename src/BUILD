@@ -165,6 +165,18 @@ cc_library(
 )
 
 cc_test(
+    name = "skill_data_test",
+    srcs = ["skill_data_test.cc"],
+    data = ["//data/skills:all"],
+    deps = [
+        ":proto_loader",
+        "//src/protos:skill_proto_cc",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "proto_loader_test",
     srcs = ["proto_loader_test.cc"],
     deps = [

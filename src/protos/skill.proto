@@ -30,6 +30,9 @@ message SkillEffect {
                                 // own stage
   double max_mp_pct = 8;        // bonus to max MP, applied after the flat MP
   int32 max_mp_per_level = 9;   // flat max MP for each character level
+  // Share of incoming damage that comes out of MP rather than HP. Like
+  // damage_taken_pct, it waits on a model of the character being hit.
+  double damage_to_mp_pct = 10;
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,

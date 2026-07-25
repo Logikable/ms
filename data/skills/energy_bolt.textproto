@@ -1,0 +1,16 @@
+# The magician's opening attack, and a weak one: four bolts of 18+3x% land at
+# 84% a swing to begin with -- under the bare 100% poke, so the fight ignores it
+# for the first few points -- and reach 312% at max. Faithful to GMS, where a
+# magician's damage arrives with the second job.
+name: "Energy Bolt"
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_MAGICIAN
+max_level: 20
+lines: 4
+max_enemies: 4
+base {
+  skill_pct: 0.21
+}
+per_level {
+  skill_pct: 0.03
+}
