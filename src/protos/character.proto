@@ -13,6 +13,7 @@ enum Job {
   JOB_BEGINNER = 1;
   JOB_SWORDMAN = 2;
   JOB_ARCHER = 3;
+  JOB_MAGICIAN = 4;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -23,6 +24,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_UNSPECIFIED = 0;
   JOB_ADVANCEMENT_SWORDMAN = 1;
   JOB_ADVANCEMENT_ARCHER = 2;
+  JOB_ADVANCEMENT_MAGICIAN = 3;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

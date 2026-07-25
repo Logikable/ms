@@ -128,6 +128,16 @@ TEST_F(LevelUpTest, WarriorsGainMoreHpAndLessMp) {
   EXPECT_EQ(c.proto().allocated_stats().mp(), 12);
 }
 
+TEST_F(LevelUpTest, MagesInvertTheWarriorsGrant) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_MAGICIAN);
+  CharacterInstance c(rng_, std::move(proto));
+  c.LevelUp();
+  EXPECT_EQ(c.proto().allocated_stats().hp(), 12);
+  EXPECT_EQ(c.proto().allocated_stats().mp(), 48);
+}
+
 TEST_F(LevelUpTest, AdvancingDoesNotBackdateEarlierLevels) {
   // The rate is the one held at the time, so the two Beginner levels below
   // keep the Beginner grant even after the character becomes a Warrior.
@@ -421,6 +431,7 @@ TEST_F(LearnSkillTest, RejectsASkillWithNoAdvancement) {
 TEST(AdvancementMappingTest, FirstStageMapsToEachJobsFirstAdvancement) {
   EXPECT_EQ(AdvancementForJobStage(JOB_SWORDMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
   EXPECT_EQ(AdvancementForJobStage(JOB_ARCHER, 1), JOB_ADVANCEMENT_ARCHER);
+  EXPECT_EQ(AdvancementForJobStage(JOB_MAGICIAN, 1), JOB_ADVANCEMENT_MAGICIAN);
 }
 
 TEST(AdvancementMappingTest, UnreachedStageHasNoAdvancement) {
@@ -434,6 +445,7 @@ TEST(AdvancementMappingTest, UnreachedStageHasNoAdvancement) {
 TEST(AdvancementMappingTest, FirstAdvancementsBuyFromStageOne) {
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_SWORDMAN), 1);
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_ARCHER), 1);
+  EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_MAGICIAN), 1);
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_UNSPECIFIED), 0);
 }
 

@@ -104,10 +104,18 @@ OffenseStats OffenseStatsFor(Job job, int level,
       offense.primary = allocated.dex() + equipped.dex();
       offense.secondary = allocated.str() + equipped.str();
       break;
+    case JOB_MAGICIAN:
+      // INT primary, LUK secondary.
+      offense.primary = allocated.int_() + equipped.int_();
+      offense.secondary = allocated.luk() + equipped.luk();
+      break;
     default:
       break;
   }
-  offense.attack = equipped.attack();
+  // Magicians swing on magic attack; the rest of the chain treats it exactly
+  // as weapon attack, so it rides the same field.
+  offense.attack =
+      job == JOB_MAGICIAN ? equipped.magic_attack() : equipped.attack();
   offense.boss_pct = equipped.boss_damage() / kPercentToFraction;
   offense.ied = equipped.ignore_enemy_defense() / kPercentToFraction;
   // The learned attack skill's multiplier replaces the bare 100% poke. Effect

@@ -292,6 +292,31 @@ TEST(OffenseStatsForTest, ArcherReadsDexAsTheMainStat) {
   EXPECT_EQ(offense.secondary, 33);  // and STR backs it up
 }
 
+TEST(OffenseStatsForTest, MagicianReadsIntAndSwingsOnMagicAttack) {
+  AllocatedStats allocated;
+  allocated.set_int_(50);
+  allocated.set_luk(30);
+  EquipStats equipped;
+  equipped.set_int_(5);
+  equipped.set_luk(3);
+  equipped.set_attack(999);  // a wand carries no weapon attack
+  equipped.set_magic_attack(70);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_MAGICIAN, 1, allocated, equipped, nullptr, 0);
+  EXPECT_EQ(offense.primary, 55);
+  EXPECT_EQ(offense.secondary, 33);
+  EXPECT_EQ(offense.attack, 70);  // magic attack, not the 999
+}
+
+TEST(OffenseStatsForTest, NonMagiciansIgnoreMagicAttack) {
+  EquipStats equipped;
+  equipped.set_attack(40);
+  equipped.set_magic_attack(999);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_ARCHER, 1, AllocatedStats(), equipped, nullptr, 0);
+  EXPECT_EQ(offense.attack, 40);
+}
+
 TEST(OffenseStatsForTest, PassiveCritRateReachesTheOffense) {
   OffenseStats offense = OffenseStatsFor(JOB_ARCHER, 15, AllocatedStats(),
                                          EquipStats(), nullptr, 0,

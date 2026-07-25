@@ -66,7 +66,8 @@ LevelUpGain LevelUpGainFor(Job job) {
   switch (job) {
     case JOB_SWORDMAN:
       return {48, 12};
-    // Magicians invert it, at {12, 48}, once a magician job exists.
+    case JOB_MAGICIAN:
+      return {12, 48};
     default:
       return {36, 24};
   }
@@ -80,6 +81,8 @@ EquipJobCategory JobToCategory(Job job) {
       return EQUIP_JOB_CATEGORY_WARRIOR;
     case JOB_ARCHER:
       return EQUIP_JOB_CATEGORY_BOWMAN;
+    case JOB_MAGICIAN:
+      return EQUIP_JOB_CATEGORY_MAGICIAN;
     default:
       return EQUIP_JOB_CATEGORY_UNSPECIFIED;
   }
@@ -96,6 +99,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_SWORDMAN;
       case JOB_ARCHER:
         return JOB_ADVANCEMENT_ARCHER;
+      case JOB_MAGICIAN:
+        return JOB_ADVANCEMENT_MAGICIAN;
       default:
         break;
     }
@@ -107,7 +112,8 @@ int StageForAdvancement(JobAdvancement advancement) {
   switch (advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
     case JOB_ADVANCEMENT_ARCHER:
-      return 1;  // both are 1st-job advancements
+    case JOB_ADVANCEMENT_MAGICIAN:
+      return 1;  // all are 1st-job advancements
     default:
       return 0;
   }
