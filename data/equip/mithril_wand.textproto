@@ -1,0 +1,11 @@
+name: "Mithril Wand"
+required_level: 30
+base_stats {
+  attack: 27
+  magic_attack: 43
+}
+attack_speed: ATTACK_SPEED_AVERAGE
+equip_type: EQUIP_TYPE_WAND
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON

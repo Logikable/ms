@@ -229,6 +229,10 @@ TEST(BaseAttackDelayMsTest, BowShootsOnTheSameReferenceAsASword) {
   EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_BOW), 800);
 }
 
+TEST(BaseAttackDelayMsTest, WandCastsOnTheSameReference) {
+  EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_WAND), 800);
+}
+
 TEST(BaseAttackDelayMsTest, UnknownTypeFallsBackToOneHanded) {
   EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_UNSPECIFIED), 800);
 }

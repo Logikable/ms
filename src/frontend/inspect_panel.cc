@@ -134,6 +134,8 @@ std::string InspectPanel::FormatEquipType(EquipType type) {
       return "One-Handed Sword";
     case EQUIP_TYPE_BOW:
       return "Bow";
+    case EQUIP_TYPE_WAND:
+      return "Wand";
     default:
       return "";  // not yet implemented for other types
   }

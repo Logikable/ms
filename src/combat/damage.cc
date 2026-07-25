@@ -41,6 +41,10 @@ constexpr int kOneHandedBaseAttackDelayMs = 800;
 // separates the two weapons is the attack speed stage on the item itself.
 constexpr int kBowBaseAttackDelayMs = 800;
 
+// A wand's cast lands on the same reference for the same reason. Wands are
+// stage 4 like bows, so a magician swings at a bow's pace until MP Boost.
+constexpr int kWandBaseAttackDelayMs = 800;
+
 // Level multiplier: 1.1 at equal level, +0.02 per level above, capped at +5.
 constexpr double kEqualLevelMultiplier = 1.1;
 constexpr double kAboveLevelStep = 0.02;
@@ -180,6 +184,8 @@ int BaseAttackDelayMs(EquipType equip_type) {
       return kOneHandedBaseAttackDelayMs;
     case EQUIP_TYPE_BOW:
       return kBowBaseAttackDelayMs;
+    case EQUIP_TYPE_WAND:
+      return kWandBaseAttackDelayMs;
     default:
       // Fail safe: fall back to the one-handed swing until other weapon types
       // are added, keeping the swing interval non-zero.
