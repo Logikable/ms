@@ -1,11 +1,13 @@
 # The HP is the whole skill for us: its other effects (speed, jump, max speed,
-# knockback resistance) are things this game doesn't model.
+# knockback resistance) are things this game doesn't model. It ends where GMS
+# ends it, at 20 HP a character level, but climbs there a point at a time rather
+# than handing over most of the value with the first point.
 name: "Warrior Mastery"
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SWORDMAN
-max_level: 15
+max_level: 20
 base {
-  max_hp_per_level: 6
+  max_hp_per_level: 1
 }
 per_level {
   max_hp_per_level: 1

@@ -1,10 +1,15 @@
-# Its range and movement speed are things this game has no notion of, but its
-# attack speed is real: +1 stage, flat at every level, so a single point buys
-# the whole ~8% DPS. Learned at all is enough.
+# Its range and movement speed are things this game has no notion of. The
+# attack speed is real -- +1 stage, flat at every level, so the first point buys
+# the whole ~8% DPS. The defense is ours: without it the other 19 points bought
+# nothing, and a mastery worth only its first point is not worth showing.
 name: "Archery Mastery"
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ARCHER
-max_level: 15
+max_level: 20
 base {
   attack_speed: 1
+  def: 5
+}
+per_level {
+  def: 5
 }

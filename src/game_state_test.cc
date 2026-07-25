@@ -72,11 +72,11 @@ TEST(GameStateTest, StartingCharacterIsAFirstJobExplorer) {
 }
 
 TEST(GameStateTest, StartingCharacterHasLeveledApAndSp) {
-  // Leveling 1->30 grants 5 AP each; the 1st-job SP is 3/level over 11-30 plus
-  // the advancement bonus -- the band's whole pool.
+  // Leveling 1->30 grants 5 AP each; the 1st-job SP is 3/level over 11-30 --
+  // the band's whole pool, the advancement adding nothing.
   GameState state = MakeState();
   EXPECT_EQ(state.character.proto().ap(), 145);
-  EXPECT_EQ(state.character.sp(1), 65);  // the Archer's bonus is 5, not 1
+  EXPECT_EQ(state.character.sp(1), 60);  // exactly what the 1st-job book costs
 }
 
 TEST(GameStateTest, StartingCharacterStats) {

@@ -40,18 +40,15 @@ int SpStageForLevel(int level) {
   return stage;
 }
 
-// SP granted for completing an advancement into `job`. The bonus is whatever
-// tops the band's level-up SP off to exactly the job's skill total, so a
-// character who spends nothing early can max its 1st-job book on schedule:
-// levels 11-30 give 60, Swordman's skills cost 61 and the Archer's 65.
+// SP granted for completing an advancement into `job`. Every first-job book is
+// built to cost exactly the 60 that levels 11-30 pay out, so the advancement
+// itself hands over nothing: reaching level 11 is no more of an event than
+// reaching level 10 was. A job whose skills can't be made to total 60 sets a
+// bonus here to cover the difference.
 int JobAdvancementSpBonus(Job job) {
   switch (job) {
-    case JOB_ARCHER:
-      return 5;
-    case JOB_SWORDMAN:
-      return 1;
     default:
-      return 1;
+      return 0;
   }
 }
 

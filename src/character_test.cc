@@ -150,30 +150,28 @@ TEST_F(LevelUpTest, GrantsFirstJobSpAcrossTheEarlyBand) {
   EXPECT_EQ(c.sp(1), 3);
 }
 
-TEST_F(LevelUpTest, FirstJobSpTotalsSixtyOneAndStopsAtTheBandEnd) {
+TEST_F(LevelUpTest, FirstJobSpTotalsSixtyAndStopsAtTheBandEnd) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  c.AdvanceJob(JOB_SWORDMAN);  // +1 into stage 1 at the advancement
-  EXPECT_EQ(c.sp(1), 1);
+  c.AdvanceJob(JOB_SWORDMAN);  // the advancement itself grants nothing
+  EXPECT_EQ(c.sp(1), 0);
   for (int i = 0; i < 20; ++i) {
     c.LevelUp();  // levels 11..30, each +3 into stage 1
   }
   EXPECT_EQ(c.proto().level(), 30);
-  EXPECT_EQ(c.sp(1), 61);  // 1 + 20 * 3
+  EXPECT_EQ(c.sp(1), 60);  // 20 * 3, exactly what a 1st-job book costs
   c.LevelUp();             // level 31 crosses into the 2nd-job band
-  EXPECT_EQ(c.sp(1), 61);  // no more 1st-job SP
+  EXPECT_EQ(c.sp(1), 60);  // no more 1st-job SP
   EXPECT_EQ(c.sp(2), 3);   // 2nd-job SP begins
 }
 
-TEST_F(LevelUpTest, ArchersFirstJobSpTotalsSixtyFive) {
-  // The Archer's book costs four more than the Swordman's, so its advancement
-  // hands out a bigger lump to land on the same "maxed at 30" schedule.
+TEST_F(LevelUpTest, EveryFirstJobReachesTheSameSixty) {
+  // No job is handed a head start; the pools are identical.
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
   c.AdvanceJob(JOB_ARCHER);
-  EXPECT_EQ(c.sp(1), 5);
   for (int i = 0; i < 20; ++i) {
     c.LevelUp();
   }
-  EXPECT_EQ(c.sp(1), 65);  // 5 + 20 * 3
+  EXPECT_EQ(c.sp(1), 60);
 }
 
 // --- AddExp ---
@@ -261,10 +259,10 @@ TEST_F(AdvanceJobTest, ApBonusAtFourthJob) {
   EXPECT_EQ(c.proto().ap(), 5);
 }
 
-TEST_F(AdvanceJobTest, GrantsFirstJobStartingSp) {
+TEST_F(AdvanceJobTest, GrantsNoStartingSp) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
   c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_EQ(c.sp(1), 1);
+  EXPECT_EQ(c.sp(1), 0);
 }
 
 // --- PendingJobAdvancement ---
