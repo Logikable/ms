@@ -3,4 +3,4 @@
 name: "Double Jump"
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_ARCHER
-max_level: 20
+max_level: 10

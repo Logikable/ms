@@ -76,7 +76,7 @@ TEST(GameStateTest, StartingCharacterHasLeveledApAndSp) {
   // the advancement bonus -- the band's whole pool.
   GameState state = MakeState();
   EXPECT_EQ(state.character.proto().ap(), 145);
-  EXPECT_EQ(state.character.sp(1), 61);
+  EXPECT_EQ(state.character.sp(1), 65);  // the Archer's bonus is 5, not 1
 }
 
 TEST(GameStateTest, StartingCharacterStats) {

@@ -164,6 +164,18 @@ TEST_F(LevelUpTest, FirstJobSpTotalsSixtyOneAndStopsAtTheBandEnd) {
   EXPECT_EQ(c.sp(2), 3);   // 2nd-job SP begins
 }
 
+TEST_F(LevelUpTest, ArchersFirstJobSpTotalsSixtyFive) {
+  // The Archer's book costs four more than the Swordman's, so its advancement
+  // hands out a bigger lump to land on the same "maxed at 30" schedule.
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
+  c.AdvanceJob(JOB_ARCHER);
+  EXPECT_EQ(c.sp(1), 5);
+  for (int i = 0; i < 20; ++i) {
+    c.LevelUp();
+  }
+  EXPECT_EQ(c.sp(1), 65);  // 5 + 20 * 3
+}
+
 // --- AddExp ---
 
 TEST_F(AddExpTest, AccumulatesExpBelowThreshold) {
