@@ -17,6 +17,7 @@ namespace ms {
 
 struct DerivedStats {
   int max_hp = 0;
+  int max_mp = 0;
   int def = 0;
   // The share of incoming damage cancelled (0.10 == 10% less taken). Nothing
   // damages the character yet, so this is carried but never read.

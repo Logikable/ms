@@ -27,6 +27,8 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   // before any percentage lands on it.
   int hp_per_level = 0;
   double max_hp_pct = 0.0;
+  int mp_per_level = 0;
+  double max_mp_pct = 0.0;
   int skill_def = 0;
   double damage_taken_pct = 0.0;
   double crit_rate = 0.0;
@@ -46,6 +48,9 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     hp_per_level +=
         base.max_hp_per_level() + per.max_hp_per_level() * (level - 1);
     max_hp_pct += base.max_hp_pct() + per.max_hp_pct() * (level - 1);
+    mp_per_level +=
+        base.max_mp_per_level() + per.max_mp_per_level() * (level - 1);
+    max_mp_pct += base.max_mp_pct() + per.max_mp_pct() * (level - 1);
     skill_def += base.def() + per.def() * (level - 1);
     damage_taken_pct +=
         base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
@@ -65,6 +70,11 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
       allocated.hp() + equipped.max_hp() + hp_per_level * proto.level();
   stats.max_hp = static_cast<int>(
       std::floor(flat_hp * (1.0 + max_hp_pct) + kPercentEpsilon));
+  // MP folds the same way, from the same three kinds of source.
+  int flat_mp =
+      allocated.mp() + equipped.max_mp() + mp_per_level * proto.level();
+  stats.max_mp = static_cast<int>(
+      std::floor(flat_mp * (1.0 + max_mp_pct) + kPercentEpsilon));
   stats.def = equipped.def() + skill_def;
   stats.damage_taken_pct = damage_taken_pct;
   stats.crit_rate = crit_rate;

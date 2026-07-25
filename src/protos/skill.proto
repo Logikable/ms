@@ -27,6 +27,9 @@ message SkillEffect {
   double damage_taken_pct = 5;  // share of incoming damage cancelled
   double crit_rate = 6;         // added chance for a swing to crit
   int32 attack_speed = 7;       // faster-swing stages added to the weapon's
+                                // own stage
+  double max_mp_pct = 8;        // bonus to max MP, applied after the flat MP
+  int32 max_mp_per_level = 9;   // flat max MP for each character level
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,

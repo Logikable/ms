@@ -18,22 +18,26 @@ namespace {
 
 // A level-`level` character with `hp` AP-allocated HP and enough 1st-job SP to
 // max anything the tests learn.
-CharacterInstance MakeCharacter(std::mt19937& rng, int level, int hp) {
+CharacterInstance MakeCharacter(std::mt19937& rng, int level, int hp,
+                                int mp = 0) {
   Character proto;
   proto.set_level(level);
   proto.set_job_stage(1);
   proto.mutable_allocated_stats()->set_hp(hp);
+  proto.mutable_allocated_stats()->set_mp(mp);
   (*proto.mutable_sp_by_stage())[1] = 100;
   return CharacterInstance(rng, std::move(proto));
 }
 
 // Equips a hat-shaped item (no slot conflicts here -- the weapon slot is the
 // only one implemented) carrying `max_hp` and `def`.
-void EquipArmor(CharacterInstance& character, int max_hp, int def) {
+void EquipArmor(CharacterInstance& character, int max_hp, int def,
+                int max_mp = 0) {
   EquipPrototype armor;
   armor.set_name("Armor");
   armor.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   armor.mutable_base_stats()->set_max_hp(max_hp);
+  armor.mutable_base_stats()->set_max_mp(max_mp);
   armor.mutable_base_stats()->set_def(def);
   character.PickUp(std::make_unique<EquipInstance>(armor));
   character.Equip(0);
@@ -67,6 +71,20 @@ Skill CriticalShot() {
   return skill;
 }
 
+// MP Boost as the wiki states it: Max MP +x%, MP +(20+5x) per character level.
+Skill MpBoost() {
+  Skill skill;
+  skill.set_name("MP Boost");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(20);
+  skill.mutable_base()->set_max_mp_pct(0.01);
+  skill.mutable_base()->set_max_mp_per_level(25);
+  skill.mutable_per_level()->set_max_mp_pct(0.01);
+  skill.mutable_per_level()->set_max_mp_per_level(5);
+  return skill;
+}
+
 // Archery Mastery: +1 attack speed stage, flat at every level.
 Skill ArcheryMastery() {
   Skill skill;
@@ -96,13 +114,35 @@ class DerivedStatsTest : public testing::Test {
 };
 
 TEST_F(DerivedStatsTest, SumsAllocatedAndEquippedWithoutSkills) {
-  CharacterInstance c = MakeCharacter(rng_, 15, 50);
-  EquipArmor(c, 100, 30);
+  CharacterInstance c = MakeCharacter(rng_, 15, 50, /*mp=*/20);
+  EquipArmor(c, 100, 30, /*max_mp=*/40);
 
   DerivedStats stats = DerivedStatsFor(c, {});
   EXPECT_EQ(stats.max_hp, 150);
+  EXPECT_EQ(stats.max_mp, 60);
   EXPECT_EQ(stats.def, 30);
   EXPECT_DOUBLE_EQ(stats.damage_taken_pct, 0.0);
+}
+
+TEST_F(DerivedStatsTest, PercentMpAppliesAfterEveryFlatSource) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 0, /*mp=*/50);
+  Skill boost = MpBoost();
+  std::map<std::string, Skill> skills = {{"mp_boost", boost}};
+  ASSERT_TRUE(c.LearnSkill(boost, 20));
+
+  // Flat first: 50 allocated + (25 + 5*19) * 15 levels = 1850, then the
+  // skill's own +20% on the whole pile.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.max_mp, 2220);
+}
+
+TEST_F(DerivedStatsTest, MpSkillsLeaveHpAlone) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100, /*mp=*/50);
+  Skill boost = MpBoost();
+  std::map<std::string, Skill> skills = {{"mp_boost", boost}};
+  ASSERT_TRUE(c.LearnSkill(boost, 20));
+
+  EXPECT_EQ(DerivedStatsFor(c, skills).max_hp, 100);
 }
 
 TEST_F(DerivedStatsTest, UnlearnedPassivesContributeNothing) {

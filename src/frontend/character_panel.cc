@@ -155,13 +155,13 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const AllocatedStats& a = p.allocated_stats();
   const EquipStats& e = character_.equip_stats();
 
-  // HP and DEF carry passive-skill bonuses on top of the allocated and worn
+  // HP, MP and DEF carry passive-skill bonuses on top of the allocated and worn
   // values, so they come from the derived totals rather than a bare sum.
   DerivedStats derived = DerivedStatsFor(character_, skills_);
 
   std::vector<ftxui::Element> rows;
   rows.push_back(DisplayRow("HP", derived.max_hp));
-  rows.push_back(MpRow(a.mp(), p.ap()));
+  rows.push_back(MpRow(derived.max_mp, p.ap()));
   for (int i = 0; i < kNumAllocStats; ++i) {
     std::pair<int, int> v = AllocStatValues(kAllocStats[i].field, a, e);
     rows.push_back(
