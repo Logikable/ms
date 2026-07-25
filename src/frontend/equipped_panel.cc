@@ -150,14 +150,21 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
           Job job = character_.proto().job();
           int main_val = MainStatValue(stats, job);
           const char* main_label = MainStatLabel(job);
+          // There is room for one attack figure, so show the one this job
+          // swings with. A wand carries both, and a magician's weapon attack
+          // is the half that never reaches the damage chain.
+          bool magic = job == JOB_MAGICIAN;
           int atk_val = 0;
           const char* atk_label = nullptr;
-          if (stats.attack() > 0) {
+          if (!magic && stats.attack() > 0) {
             atk_val = stats.attack();
             atk_label = "ATT";
           } else if (stats.magic_attack() > 0) {
             atk_val = stats.magic_attack();
             atk_label = "MATT";
+          } else if (stats.attack() > 0) {
+            atk_val = stats.attack();
+            atk_label = "ATT";
           }
           std::string main_str;
           if (main_val > 0 && main_label != nullptr) {

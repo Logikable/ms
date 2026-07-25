@@ -207,6 +207,8 @@ cc_test(
     deps = [
         ":equipped_panel",
         ":panel_test_base",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
