@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 
   // The starting Archer's weapon, equipped so there is something to farm with.
   state.character.PickUp(
-      std::make_unique<ms::EquipInstance>(state.equips.at("composite_bow")));
+      std::make_unique<ms::EquipInstance>(state.equips.at("hunters_bow")));
   state.character.Equip(0);
   // Generic low-level weapons for scrolling/star force experimentation.
   state.character.PickUp(
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   state.character.PickUp(
       std::make_unique<ms::EquipInstance>(state.equips.at("long_sword")));
   state.character.PickUp(
-      std::make_unique<ms::EquipInstance>(state.equips.at("sabre")));
+      std::make_unique<ms::EquipInstance>(state.equips.at("machete")));
 
   // Fully scrolled Fafnir at 20★ — for testing high-star-force on a finished
   // endgame weapon.
