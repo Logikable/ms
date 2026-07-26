@@ -1073,5 +1073,61 @@ TEST_F(RecoverTraceTest, BaseBeforeTraceInInventoryStillWorks) {
   EXPECT_NE(c.inventory().equip_instance(0), nullptr);
 }
 
+// --- Throwing stars ---
+
+// A weapon of `type` carrying `attack`, and a stack of stars for the off hand.
+class ThrowingStarTest : public CharacterTest {
+ protected:
+  EquipPrototype Weapon(EquipType type, int attack) {
+    EquipPrototype proto;
+    proto.set_name("Weapon");
+    proto.set_equip_type(type);
+    proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    proto.mutable_base_stats()->set_attack(attack);
+    return proto;
+  }
+  EquipPrototype Stars(int attack) {
+    EquipPrototype proto;
+    proto.set_name("Subi Throwing-Stars");
+    proto.set_equip_type(EQUIP_TYPE_THROWING_STAR);
+    proto.set_equip_slot(EQUIP_SLOT_SECONDARY_WEAPON);
+    proto.mutable_base_stats()->set_attack(attack);
+    return proto;
+  }
+  CharacterInstance c_ = MakeCharacter(rng_);
+};
+
+TEST_F(ThrowingStarTest, ArmsAClaw) {
+  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_CLAW, 10)));
+  c_.PickUp(std::make_unique<EquipInstance>(Stars(15)));
+  ASSERT_TRUE(c_.Equip(0));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.equip_stats().attack(), 25);
+}
+
+TEST_F(ThrowingStarTest, ArmsNothingElse) {
+  // Worn all the same -- a thief may carry stars while holding a dagger -- but
+  // there is no claw to throw them, so their attack does not count.
+  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_DAGGER, 25)));
+  c_.PickUp(std::make_unique<EquipInstance>(Stars(15)));
+  ASSERT_TRUE(c_.Equip(0));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.equip_stats().attack(), 25);
+}
+
+TEST_F(ThrowingStarTest, StopsCountingWhenTheClawComesOff) {
+  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_CLAW, 10)));
+  c_.PickUp(std::make_unique<EquipInstance>(Stars(15)));
+  ASSERT_TRUE(c_.Equip(0));
+  ASSERT_TRUE(c_.Equip(0));
+  ASSERT_EQ(c_.equip_stats().attack(), 25);
+
+  // Swapping the claw for a dagger has to re-evaluate the stars, not just
+  // subtract the claw.
+  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_DAGGER, 25)));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.equip_stats().attack(), 25);
+}
+
 }  // namespace
 }  // namespace ms

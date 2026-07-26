@@ -25,6 +25,7 @@ enum EquipType {
   EQUIP_TYPE_WAND = 3;
   EQUIP_TYPE_DAGGER = 4;
   EQUIP_TYPE_CLAW = 5;
+  EQUIP_TYPE_THROWING_STAR = 6;
 }
 
 // The equipment window slot this item occupies when worn. Determines where the
@@ -32,6 +33,9 @@ enum EquipType {
 enum EquipSlot {
   EQUIP_SLOT_UNSPECIFIED = 0;
   EQUIP_SLOT_PRIMARY_WEAPON = 1;
+  // What the off hand holds. Throwing stars for now; shields and the other
+  // secondaries belong here too, which is why it isn't named for the stars.
+  EQUIP_SLOT_SECONDARY_WEAPON = 2;
 }
 
 // Which job branches can equip this item. UNIVERSAL means any job can equip

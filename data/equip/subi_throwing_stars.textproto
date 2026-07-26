@@ -1,0 +1,8 @@
+name: "Subi Throwing-Stars"
+required_level: 10
+base_stats {
+  attack: 15
+}
+equip_type: EQUIP_TYPE_THROWING_STAR
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_SECONDARY_WEAPON

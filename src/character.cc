@@ -233,9 +233,25 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
 }
 
 void CharacterInstance::RecomputeEquipStats() {
+  // Throwing stars arm a claw and nothing else. Their attack is the whole
+  // reason to wear them, and a thief holding a dagger throws none, so that
+  // half is dropped here -- once, at the one place equipment becomes stats, so
+  // that the damage chain, combat power and the stat panel cannot come to
+  // different conclusions about whether the stars count.
+  std::map<EquipSlot, EquipInstance>::const_iterator weapon =
+      equipped_.find(EQUIP_SLOT_PRIMARY_WEAPON);
+  bool holding_claw =
+      weapon != equipped_.end() &&
+      weapon->second.prototype().equip_type() == EQUIP_TYPE_CLAW;
+
   std::vector<EquipStats> list;
   for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
-    list.push_back(kv.second.stats());
+    EquipStats stats = kv.second.stats();
+    if (!holding_claw &&
+        kv.second.prototype().equip_type() == EQUIP_TYPE_THROWING_STAR) {
+      stats.set_attack(0);
+    }
+    list.push_back(std::move(stats));
   }
   equip_stats_ = SumEquipStats(absl::MakeSpan(list));
 }
