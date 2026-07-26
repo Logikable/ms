@@ -56,6 +56,87 @@ TEST_F(CharacterPanelTest, ShowsJobName) {
   EXPECT_NE(RenderElement(panel.Render()).find("Beginner"), std::string::npos);
 }
 
+// A level-10 Beginner, standing at the advancement it has not taken.
+CharacterInstance MakePendingBeginner(std::mt19937& rng) {
+  Character proto;
+  proto.set_level(10);
+  proto.set_job(JOB_BEGINNER);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+TEST_F(CharacterPanelTest, HidesTheAdvanceTabWithNothingPending) {
+  CharacterPanel panel(c_, panel_focus_);  // c_ is level 1
+  EXPECT_EQ(RenderElement(panel.Render()).find("Advance"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, ShowsTheAdvanceTabWhenOneIsPending) {
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, panel_focus_);
+  EXPECT_NE(RenderElement(panel.Render()).find("Advance"), std::string::npos);
+}
+
+// The tab is gone the moment the choice is made, and the cursor cannot be
+// left standing on it.
+TEST_F(CharacterPanelTest, DropsTheAdvanceTabOnceTheJobIsPicked) {
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
+  ASSERT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
+
+  c.AdvanceJob(JOB_ROGUE);
+  std::string rendered = RenderComponent(comp);
+  EXPECT_EQ(rendered.find("Advance"), std::string::npos);
+  EXPECT_EQ(rendered.find("Swordman"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, AdvanceTabListsTheFourJobs) {
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Swordman"), std::string::npos);
+  EXPECT_NE(rendered.find("Magician"), std::string::npos);
+  EXPECT_NE(rendered.find("Archer"), std::string::npos);
+  EXPECT_NE(rendered.find("Rogue"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, EnterOnAJobAsksToAdvanceIntoIt) {
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, panel_focus_);
+  Job chosen = JOB_UNSPECIFIED;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, [](const Skill&) {},
+                          [&chosen](Job job) { chosen = job; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
+  comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
+  comp->OnEvent(ftxui::Event::ArrowDown);   // Swordman -> Magician
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(chosen, JOB_MAGICIAN);
+  // Asking is all the panel does; performing it belongs to the confirmation.
+  EXPECT_EQ(c.proto().job(), JOB_BEGINNER);
+}
+
+TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, panel_focus_);
+  Job chosen = JOB_UNSPECIFIED;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, [](const Skill&) {},
+                          [&chosen](Job job) { chosen = job; });
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // into the job list
+  comp->OnEvent(ftxui::Event::ArrowUp);    // back to the tab bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // which is where Left/Right act
+  EXPECT_NE(RenderComponent(comp).find("No advancements yet."),
+            std::string::npos);  // the Skills tab
+}
+
 TEST_F(CharacterPanelTest, ShowsBothTabs) {
   CharacterPanel panel(c_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());

@@ -24,13 +24,14 @@ namespace {
 
 constexpr int kContentWidth = 33;  // chars inside the window border
 
-enum Tab : int { kTabStats = 0, kTabSkills = 1 };
-
 // One line of the panel's heading block, centred over the content width.
 std::string Centered(const std::string& s) {
   int pad = std::max(0, (kContentWidth - (int)s.size()) / 2);
   return PadRight(std::string(pad, ' ') + s, kContentWidth);
 }
+
+// The outer tab labels, indexed by CharacterPanel::Tab.
+const char* kTabLabels[] = {"Stats", "Skills", "Advance"};
 
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
@@ -118,20 +119,37 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
   });
 }
 
+std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
+  std::vector<Tab> tabs = {kTabStats, kTabSkills};
+  // The Advance tab exists only while there is an advancement to take, so it
+  // arrives at level 10 and is gone the moment the player picks a job.
+  if (character_.CanAdvanceJob()) {
+    tabs.push_back(kTabAdvance);
+  }
+  return tabs;
+}
+
+CharacterPanel::Tab CharacterPanel::ActiveTab() const {
+  std::vector<Tab> tabs = VisibleTabs();
+  if (active_tab_ < 0 || active_tab_ >= static_cast<int>(tabs.size())) {
+    return kTabStats;
+  }
+  return tabs[active_tab_];
+}
+
 ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
   // Left-aligned chip row in the shared tab style: theme-colored labels, the
   // active one highlighted. When the tab bar holds focus the active chip goes
   // white to mark the selected row; otherwise it keeps the theme-blue invert.
-  const char* labels[2] = {"Stats", "Skills"};
+  std::vector<Tab> tabs = VisibleTabs();
   std::vector<ftxui::Element> chips;
-  for (int i = 0; i < 2; ++i) {
-    ftxui::Element chip =
-        ftxui::text(std::string(" ") + labels[i] + " ") | ftxui::color(kTheme);
-    if (i == active_tab_ && row_selected) {
-      chip = ftxui::text(std::string(" ") + labels[i] + " ") |
-             ftxui::color(ftxui::Color::Black) |
+  for (int i = 0; i < static_cast<int>(tabs.size()); ++i) {
+    std::string label = std::string(" ") + kTabLabels[tabs[i]] + " ";
+    ftxui::Element chip = ftxui::text(label) | ftxui::color(kTheme);
+    if (tabs[i] == ActiveTab() && row_selected) {
+      chip = ftxui::text(label) | ftxui::color(ftxui::Color::Black) |
              ftxui::bgcolor(ftxui::Color::White);
-    } else if (i == active_tab_) {
+    } else if (tabs[i] == ActiveTab()) {
       chip = chip | ftxui::inverted;
     }
     chips.push_back(std::move(chip));
@@ -266,6 +284,20 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   return ftxui::vbox(std::move(rows));
 }
 
+ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
+  std::vector<Job> jobs =
+      JobChoicesForStage(character_.proto().job_stage() + 1);
+  std::vector<ftxui::Element> rows;
+  for (int i = 0; i < static_cast<int>(jobs.size()); ++i) {
+    // A caret rather than the [+] the other tabs use: there is nothing to
+    // spend here, only one of four things to become.
+    std::string cursor = content_focused && job_sel_ == i ? " > " : "   ";
+    rows.push_back(
+        ftxui::text(PadRight(cursor + JobName(jobs[i]), kContentWidth)));
+  }
+  return ftxui::vbox(std::move(rows));
+}
+
 ftxui::Element CharacterPanel::Render() const {
   const Character& p = character_.proto();
 
@@ -286,11 +318,15 @@ ftxui::Element CharacterPanel::Render() const {
 
   bool focused = panel_focus_ == kCharPanel;
   bool tab_row_selected = focused && zone_ == kZoneTabs;
-  ftxui::Element content =
-      active_tab_ == kTabSkills
-          ? RenderSkillsTab(focused && zone_ == kZoneAdvTabs,
-                            focused && zone_ == kZoneSkillRows)
-          : RenderStatsTab(focused && zone_ == kZoneStatRows);
+  ftxui::Element content;
+  if (ActiveTab() == kTabSkills) {
+    content = RenderSkillsTab(focused && zone_ == kZoneAdvTabs,
+                              focused && zone_ == kZoneSkillRows);
+  } else if (ActiveTab() == kTabAdvance) {
+    content = RenderAdvanceTab(focused && zone_ == kZoneJobRows);
+  } else {
+    content = RenderStatsTab(focused && zone_ == kZoneStatRows);
+  }
 
   return ThemedWindow(" Character ",
                       ftxui::vbox({
@@ -305,23 +341,55 @@ ftxui::Element CharacterPanel::Render() const {
 }
 
 bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
-  // Top zone: Left/Right switch tabs, Down enters the active tab's content.
+  // Top zone: Left/Right walk the tabs, Down enters the active tab's content.
   if (event == ftxui::Event::ArrowLeft) {
-    active_tab_ = kTabStats;
+    active_tab_ = std::max(0, active_tab_ - 1);
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
-    active_tab_ = kTabSkills;
+    active_tab_ =
+        std::min(static_cast<int>(VisibleTabs().size()) - 1, active_tab_ + 1);
     return true;
   }
   if (event == ftxui::Event::ArrowDown) {
-    if (active_tab_ == kTabStats) {
+    if (ActiveTab() == kTabStats) {
       zone_ = kZoneStatRows;
       stat_sel_ = 0;
+    } else if (ActiveTab() == kTabAdvance) {
+      zone_ = kZoneJobRows;
+      job_sel_ = 0;
     } else if (character_.proto().job_stage() > 0) {
       // Skills content starts at the advancement bar, on the current stage.
       zone_ = kZoneAdvTabs;
       skill_tab_ = character_.proto().job_stage() - 1;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool CharacterPanel::OnAdvanceTabEvent(
+    const ftxui::Event& event, const std::function<void(Job)>& on_advance) {
+  // Job rows: Up/Down walk them, Up off the top returns to the tab bar.
+  std::vector<Job> jobs =
+      JobChoicesForStage(character_.proto().job_stage() + 1);
+  if (event == ftxui::Event::ArrowUp) {
+    if (job_sel_ == 0) {
+      zone_ = kZoneTabs;
+    } else {
+      job_sel_--;
+    }
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    if (job_sel_ < static_cast<int>(jobs.size()) - 1) {
+      job_sel_++;
+    }
+    return true;
+  }
+  if (IsForward(event)) {
+    if (on_advance && job_sel_ < static_cast<int>(jobs.size())) {
+      on_advance(jobs[job_sel_]);
     }
     return true;
   }
@@ -419,27 +487,36 @@ bool CharacterPanel::OnSkillsTabEvent(
 
 ftxui::Component CharacterPanel::MakeComponent(
     std::function<void(StatField)> on_allocate,
-    std::function<void(const Skill&)> on_learn) {
+    std::function<void(const Skill&)> on_learn,
+    std::function<void(Job)> on_advance) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
-  return ftxui::CatchEvent(renderer,
-                           [this, on_allocate, on_learn](ftxui::Event event) {
-                             if (panel_focus_ != kCharPanel) {
-                               return false;
-                             }
-                             // Route by zone: the shared tab bar, else the
-                             // active tab's content (only Stats reaches
-                             // kZoneStatRows, only Skills the skill zones).
-                             if (zone_ == kZoneTabs) {
-                               return OnTabsEvent(event);
-                             }
-                             if (active_tab_ == kTabStats) {
-                               return OnStatsTabEvent(event, on_allocate);
-                             }
-                             return OnSkillsTabEvent(event, on_learn);
-                           });
+  return ftxui::CatchEvent(
+      renderer, [this, on_allocate, on_learn, on_advance](ftxui::Event event) {
+        if (panel_focus_ != kCharPanel) {
+          return false;
+        }
+        // Taking the advancement closes the tab the cursor was standing on, so
+        // put it somewhere real before reading the event.
+        if (active_tab_ >= static_cast<int>(VisibleTabs().size())) {
+          active_tab_ = kTabStats;
+          zone_ = kZoneTabs;
+        }
+        // Route by zone: the shared tab bar, else the active tab's content
+        // (only Stats reaches kZoneStatRows, only Skills the skill zones).
+        if (zone_ == kZoneTabs) {
+          return OnTabsEvent(event);
+        }
+        if (ActiveTab() == kTabStats) {
+          return OnStatsTabEvent(event, on_allocate);
+        }
+        if (ActiveTab() == kTabAdvance) {
+          return OnAdvanceTabEvent(event, on_advance);
+        }
+        return OnSkillsTabEvent(event, on_learn);
+      });
 }
 
 }  // namespace ms
