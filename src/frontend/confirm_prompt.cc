@@ -40,16 +40,19 @@ ConfirmChoice ConfirmPrompt::OnEvent(ftxui::Event event) {
   return ConfirmChoice::kPending;
 }
 
+ftxui::Element ConfirmButtons(ConfirmFocus focus) {
+  return ftxui::hbox({
+      ftxui::text(" "),
+      ActionButton("Confirm", focus == ConfirmFocus::kConfirm),
+      ftxui::text("   "),
+      ActionButton("Cancel", focus == ConfirmFocus::kCancel),
+      ftxui::text(" "),
+  });
+}
+
 ftxui::Element ConfirmPrompt::Render() const {
-  ftxui::Element confirm = ftxui::text("[Confirm]");
-  ftxui::Element cancel = ftxui::text("[Cancel]");
-  if (cancel_selected_) {
-    cancel = cancel | ftxui::inverted;
-  } else {
-    confirm = confirm | ftxui::inverted;
-  }
-  return ftxui::hbox(
-      {ftxui::text(" "), confirm, ftxui::text("  "), cancel, ftxui::text(" ")});
+  return ConfirmButtons(cancel_selected_ ? ConfirmFocus::kCancel
+                                         : ConfirmFocus::kConfirm);
 }
 
 ftxui::Element ConfirmPrompt::RenderWindow() const {

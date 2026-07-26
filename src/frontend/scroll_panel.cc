@@ -161,7 +161,7 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
             ThemedSeparator(),
             ftxui::text(msg) | ftxui::hcenter,
             ftxui::text(""),
-            ftxui::text("[Continue]") | ftxui::inverted | ftxui::hcenter,
+            ActionButton("Continue", /*focused=*/true) | ftxui::hcenter,
         }));
   }
   std::string result_text;
@@ -188,7 +188,7 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
                       " slots remaining ") |
               ftxui::hcenter,
           ftxui::text(""),
-          ftxui::text("[Continue]") | ftxui::inverted | ftxui::hcenter,
+          ActionButton("Continue", /*focused=*/true) | ftxui::hcenter,
       }));
 }
 

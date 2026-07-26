@@ -106,11 +106,12 @@ ftxui::Element StarForcePanel::Render() const {
     RateRow("Destroy  ", destroy_str, kRed);
   }
   rows.push_back(ThemedSeparator());
-  rows.push_back(ftxui::text("[Enhance]") | ftxui::inverted | ftxui::hcenter);
+  rows.push_back(ActionButton("Enhance", /*focused=*/true) | ftxui::hcenter);
   // Constrain inner width to at least the confirm prompt's, so the panel
   // never widens when the prompt appears below.
-  ftxui::Element content = ftxui::vbox(std::move(rows)) |
-                           ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 21);
+  ftxui::Element content =
+      ftxui::vbox(std::move(rows)) |
+      ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, kConfirmButtonsWidth);
   ftxui::Element main = ThemedWindow(" Star Force ", std::move(content));
   // Always allocate the same height below so ftxui::center never shifts the
   // panel when the prompt appears.
@@ -177,7 +178,7 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
       std::move(outcome_elem),
       ftxui::text(stars_text) | ftxui::hcenter,
       ftxui::text(""),
-      ftxui::text("[Continue]") | ftxui::inverted | ftxui::hcenter,
+      ActionButton("Continue", /*focused=*/true) | ftxui::hcenter,
   });
   return ThemedWindow(" Result ", std::move(content));
 }

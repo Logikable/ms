@@ -124,7 +124,7 @@ ftxui::Element TraceRecoverPanel::RenderResult(
                       "★") |
               ftxui::hcenter,
           ftxui::text(""),
-          ftxui::text("[Continue]") | ftxui::inverted | ftxui::hcenter,
+          ActionButton("Continue", /*focused=*/true) | ftxui::hcenter,
       }));
 }
 

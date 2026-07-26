@@ -340,6 +340,7 @@ cc_library(
     srcs = ["amount_selector.cc"],
     hdrs = ["amount_selector.h"],
     deps = [
+        ":confirm_prompt",
         ":panel_util",
         "@ftxui//:component",
         "@ftxui//:dom",

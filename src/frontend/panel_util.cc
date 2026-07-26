@@ -221,6 +221,14 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                                            label_color);
 }
 
+ftxui::Element ActionButton(const std::string& label, bool focused) {
+  ftxui::Element button = ftxui::text("[ " + label + " ]");
+  if (focused) {
+    button = button | ftxui::inverted;
+  }
+  return button;
+}
+
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused) {
   ftxui::Element title_el = ftxui::text(title) | ftxui::color(kTheme);

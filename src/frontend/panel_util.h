@@ -100,6 +100,12 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 // elements (gold stars, amber SF, etc.) and ThemedSeparator override it. Pass
 // focused=true to invert the title into a solid chip, marking the panel that
 // currently holds focus.
+// Renders a bracketed button in the game's one button style, inverted when
+// focused. Every button the player can land on is drawn with this -- the
+// confirm bar, the amount selector's [ 1 ]/[ MAX ], and the always-selected
+// [ Continue ] on the result screens.
+ftxui::Element ActionButton(const std::string& label, bool focused);
+
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused = false);
 

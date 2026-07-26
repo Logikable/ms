@@ -7,6 +7,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/confirm_prompt.h"
 #include "src/frontend/panel_util.h"
 
 namespace ms {
@@ -31,15 +32,6 @@ bool CaretVisible() {
                    std::chrono::steady_clock::now().time_since_epoch())
                    .count();
   return (ms / kBlinkMs) % 2 == 0;
-}
-
-// Renders a bracketed button, inverted when focused.
-ftxui::Element Button(const std::string& label, bool focused) {
-  ftxui::Element e = ftxui::text("[ " + label + " ]");
-  if (focused) {
-    e = e | ftxui::inverted;
-  }
-  return e;
 }
 
 // Renders the value textbox. When selected it turns white and carries a
@@ -81,22 +73,21 @@ void AmountSelector::Reset(int max) {
 ftxui::Element AmountSelector::Render() const {
   ftxui::Element value_row = ftxui::hbox({
                                  ftxui::text(" "),
-                                 Button("1", focus_ == kOne),
+                                 ActionButton("1", focus_ == kOne),
                                  ftxui::text("  "),
                                  ValueField(value_, focus_ == kQty),
                                  ftxui::text("  "),
-                                 Button("MAX", focus_ == kMax),
+                                 ActionButton("MAX", focus_ == kMax),
                                  ftxui::text(" "),
                              }) |
                              ftxui::hcenter;
-  ftxui::Element button_row = ftxui::hbox({
-                                  ftxui::text(" "),
-                                  Button("Confirm", focus_ == kConfirm),
-                                  ftxui::text("   "),
-                                  Button("Cancel", focus_ == kCancel),
-                                  ftxui::text(" "),
-                              }) |
-                              ftxui::hcenter;
+  ConfirmFocus button_focus = ConfirmFocus::kNone;
+  if (focus_ == kConfirm) {
+    button_focus = ConfirmFocus::kConfirm;
+  } else if (focus_ == kCancel) {
+    button_focus = ConfirmFocus::kCancel;
+  }
+  ftxui::Element button_row = ConfirmButtons(button_focus) | ftxui::hcenter;
   return ftxui::vbox({
       value_row,
       ThemedSeparator(),

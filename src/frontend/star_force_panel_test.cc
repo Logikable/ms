@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/equip_instance.h"
@@ -23,7 +26,7 @@ class StarForcePanelTest : public testing::Test {
 
   static std::string Render(StarForcePanel& panel) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
-                                                 ftxui::Dimension::Fixed(15));
+                                                 ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, panel.Render());
     return screen.ToString();
   }
@@ -32,6 +35,19 @@ class StarForcePanelTest : public testing::Test {
 TEST_F(StarForcePanelTest, NullItemShowsPlaceholder) {
   StarForcePanel panel;
   EXPECT_NE(Render(panel).find("(no item)"), std::string::npos);
+}
+
+// Every button the game draws is the one style, so the enhance button and the
+// confirm row below it read alike.
+TEST_F(StarForcePanelTest, DrawsButtonsInTheSharedStyle) {
+  EquipInstance item = MakeItem(0, 0);
+  StarForcePanel panel;
+  panel.SetItem(&item);
+  EXPECT_NE(Render(panel).find("[ Enhance ]"), std::string::npos);
+  panel.OnEvent(ftxui::Event::Return);  // opens the confirm prompt
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("[ Confirm ]"), std::string::npos);
+  EXPECT_NE(rendered.find("[ Cancel ]"), std::string::npos);
 }
 
 TEST_F(StarForcePanelTest, RenderShowsNameAndUpgradeArrow) {

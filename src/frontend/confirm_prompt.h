@@ -18,6 +18,18 @@ namespace ms {
 // event was swallowed) and the prompt is still up.
 enum class ConfirmChoice { kPending, kConfirmed, kCancelled };
 
+// Which button of the confirm row is highlighted. kNone is for a caller whose
+// cursor is elsewhere on the dialog, like the amount selector's textbox.
+enum class ConfirmFocus { kNone, kConfirm, kCancel };
+
+// The [ Confirm ] / [ Cancel ] row, which is the same row wherever the game
+// asks a yes/no question -- a bare prompt, or the foot of a larger dialog.
+ftxui::Element ConfirmButtons(ConfirmFocus focus);
+
+// The width ConfirmButtons occupies, for a panel sizing itself so it does not
+// jump when the row appears below it.
+constexpr int kConfirmButtonsWidth = 26;
+
 class ConfirmPrompt {
  public:
   // Height RenderWindow() occupies, so a layout can reserve the same rows while

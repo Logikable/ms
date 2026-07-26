@@ -2,7 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 #include "ftxui/component/event.hpp"
+#include "ftxui/dom/elements.hpp"
+#include "ftxui/screen/screen.hpp"
 
 namespace ms {
 namespace {
@@ -13,6 +17,21 @@ void Clear(AmountSelector* sel) {
   while (sel->value() > 0) {
     sel->OnEvent(ftxui::Event::Backspace);
   }
+}
+
+// The selector's foot is the game's one confirm row, not a lookalike.
+TEST(AmountSelectorTest, DrawsTheSharedConfirmRow) {
+  AmountSelector sel;
+  sel.Reset(10);
+  ftxui::Element element = sel.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                                               ftxui::Dimension::Fixed(3));
+  ftxui::Render(screen, element);
+  std::string rendered = screen.ToString();
+  EXPECT_NE(rendered.find("[ Confirm ]"), std::string::npos);
+  EXPECT_NE(rendered.find("[ Cancel ]"), std::string::npos);
+  EXPECT_NE(rendered.find("[ 1 ]"), std::string::npos);
+  EXPECT_NE(rendered.find("[ MAX ]"), std::string::npos);
 }
 
 TEST(AmountSelectorTest, DefaultsToMax) {
