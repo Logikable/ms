@@ -48,6 +48,9 @@ class EquippedPanel {
   int selected_ = 0;
   std::vector<std::string> entries_;
   std::vector<EquipSlot> slots_;
+  // Parallel to entries_: whether that row's attack is currently doing
+  // nothing, which the entry transform draws dimmed.
+  std::vector<bool> attack_inactive_;
   ItemMenu menu_;
 };
 

@@ -142,6 +142,12 @@ class CharacterInstance {
   const EquipStats& equip_stats() const {
     return equip_stats_;
   }
+  // Whether an item of this type contributes its attack, given what is
+  // equipped right now. Throwing stars arm a claw and nothing else; every
+  // other item always counts. equip_stats() applies this itself -- it is
+  // public so the display can show an inert attack as inert rather than
+  // quietly disagreeing with the total.
+  bool AttackCounts(const EquipPrototype& proto) const;
 
  private:
   // Recomputes equip_stats_ from the current equipped map.

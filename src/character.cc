@@ -232,23 +232,24 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   return true;
 }
 
-void CharacterInstance::RecomputeEquipStats() {
-  // Throwing stars arm a claw and nothing else. Their attack is the whole
-  // reason to wear them, and a thief holding a dagger throws none, so that
-  // half is dropped here -- once, at the one place equipment becomes stats, so
-  // that the damage chain, combat power and the stat panel cannot come to
-  // different conclusions about whether the stars count.
+bool CharacterInstance::AttackCounts(const EquipPrototype& proto) const {
+  if (proto.equip_type() != EQUIP_TYPE_THROWING_STAR) {
+    return true;
+  }
   std::map<EquipSlot, EquipInstance>::const_iterator weapon =
       equipped_.find(EQUIP_SLOT_PRIMARY_WEAPON);
-  bool holding_claw =
-      weapon != equipped_.end() &&
-      weapon->second.prototype().equip_type() == EQUIP_TYPE_CLAW;
+  return weapon != equipped_.end() &&
+         weapon->second.prototype().equip_type() == EQUIP_TYPE_CLAW;
+}
 
+void CharacterInstance::RecomputeEquipStats() {
+  // An attack that doesn't count is dropped here -- once, at the one place
+  // equipment becomes stats, so that the damage chain, combat power and the
+  // stat panel cannot come to different conclusions about the same stars.
   std::vector<EquipStats> list;
   for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
     EquipStats stats = kv.second.stats();
-    if (!holding_claw &&
-        kv.second.prototype().equip_type() == EQUIP_TYPE_THROWING_STAR) {
+    if (!AttackCounts(kv.second.prototype())) {
       stats.set_attack(0);
     }
     list.push_back(std::move(stats));
