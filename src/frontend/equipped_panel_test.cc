@@ -16,6 +16,18 @@ namespace {
 
 class EquippedPanelTest : public PanelTest {};
 
+// The single rendered line holding `needle`, escape codes and all.
+std::string LineWith(const std::string& rendered, const std::string& needle) {
+  size_t at = rendered.find(needle);
+  if (at == std::string::npos) {
+    return "";
+  }
+  size_t begin = rendered.rfind('\n', at);
+  begin = begin == std::string::npos ? 0 : begin + 1;
+  size_t end = rendered.find('\n', at);
+  return rendered.substr(begin, end - begin);
+}
+
 TEST_F(EquippedPanelTest, ShowsEmptyWhenNothingEquipped) {
   EquippedPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("(empty)"),
@@ -89,9 +101,9 @@ TEST_F(EquippedPanelTest, ShowsAttackAheadOfTheMainStat) {
   EXPECT_LT(rendered.find("+18 ATT"), rendered.find("+3 LUK"));
 }
 
-// Stars worn without a claw keep their number on screen but are drawn dim,
-// because the character's totals are not counting them.
-TEST_F(EquippedPanelTest, DimsAnAttackThatIsNotCounting) {
+// Stars worn without a claw keep their number on screen but their whole row is
+// drawn dim, because the character's totals are not counting them.
+TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {
   EquipPrototype dagger;
   dagger.set_name("Reef Claw");
   dagger.set_equip_type(EQUIP_TYPE_DAGGER);
@@ -100,7 +112,7 @@ TEST_F(EquippedPanelTest, DimsAnAttackThatIsNotCounting) {
   EquipPrototype stars;
   stars.set_name("Steely Throwing-Knives");
   stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-  stars.set_equip_slot(EQUIP_SLOT_SECONDARY_WEAPON);
+  stars.set_equip_slot(EQUIP_SLOT_STARS);
   stars.mutable_base_stats()->set_attack(25);
 
   Character proto;
@@ -114,10 +126,13 @@ TEST_F(EquippedPanelTest, DimsAnAttackThatIsNotCounting) {
 
   EquippedPanel panel(rogue, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_NE(rendered.find("+25 ATT"), std::string::npos);  // still shown
-  EXPECT_NE(rendered.find("\033[2m+25 ATT"), std::string::npos);
-  // The claw's own attack is counting, so it is drawn plainly.
-  EXPECT_EQ(rendered.find("\033[2m+45 ATT"), std::string::npos);
+  // Color codes sit between the dim marker and the text, so the row is checked
+  // as a whole rather than for an exact prefix.
+  std::string stars_row = LineWith(rendered, "Steely");
+  EXPECT_NE(stars_row.find("+25 ATT"), std::string::npos);  // still shown
+  EXPECT_NE(stars_row.find("\033[2m"), std::string::npos);
+  // The dagger is counting, so its row is drawn plainly.
+  EXPECT_EQ(LineWith(rendered, "Reef Claw").find("\033[2m"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {

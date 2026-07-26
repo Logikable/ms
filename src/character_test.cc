@@ -1075,7 +1075,7 @@ TEST_F(RecoverTraceTest, BaseBeforeTraceInInventoryStillWorks) {
 
 // --- Throwing stars ---
 
-// A weapon of `type` carrying `attack`, and a stack of stars for the off hand.
+// A weapon of `type` carrying `attack`, and a stack of stars for the star slot.
 class ThrowingStarTest : public CharacterTest {
  protected:
   EquipPrototype Weapon(EquipType type, int attack) {
@@ -1090,7 +1090,7 @@ class ThrowingStarTest : public CharacterTest {
     EquipPrototype proto;
     proto.set_name("Subi Throwing-Stars");
     proto.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-    proto.set_equip_slot(EQUIP_SLOT_SECONDARY_WEAPON);
+    proto.set_equip_slot(EQUIP_SLOT_STARS);
     proto.mutable_base_stats()->set_attack(attack);
     return proto;
   }

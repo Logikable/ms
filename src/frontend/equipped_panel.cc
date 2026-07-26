@@ -24,13 +24,6 @@ constexpr char kColumnHeader[] =
     "  Stats               "        // 2 sep + 20 info (10 atk + 10 main)
     "  Scrolls";                    // 2 sep + label
 
-// Where the attack figure sits in a formatted entry, so the transform below
-// can style it alone: 26 name + 2 separator + 10 slot + 2 separator, then the
-// first half of the 20-wide stats column. Matches FormatItemEntry.
-constexpr int kAttackColumnStart = 40;
-constexpr int kAttackColumnWidth = 10;
-constexpr int kAttackColumnEnd = kAttackColumnStart + kAttackColumnWidth;
-
 // Returns the item's main stat value for the given job.
 // TODO: Demon Avenger's main stat is HP; Xenon's is STR+DEX+LUK combined.
 int MainStatValue(const EquipStats& stats, Job job) {
@@ -144,21 +137,15 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   opt.entries_option.transform =
       [this](ftxui::EntryState state) -> ftxui::Element {
     std::string cursor = state.focused ? "> " : "  ";
+    ftxui::Element row = ftxui::text(cursor + state.label);
     int idx = state.index;
-    if (idx < 0 || idx >= static_cast<int>(attack_inactive_.size()) ||
-        !attack_inactive_[idx] ||
-        static_cast<int>(state.label.size()) < kAttackColumnEnd) {
-      return ftxui::text(cursor + state.label);
+    if (idx >= 0 && idx < static_cast<int>(inactive_.size()) &&
+        inactive_[idx]) {
+      // The item is worn but contributing nothing, so the whole row is dimmed
+      // rather than hidden -- it says so without taking the numbers away.
+      row |= ftxui::dim;
     }
-    // The item carries the attack but nothing is using it, so it is shown
-    // rather than hidden -- dimmed, to say so without taking the number away.
-    return ftxui::hbox({
-        ftxui::text(cursor + state.label.substr(0, kAttackColumnStart)),
-        ftxui::text(
-            state.label.substr(kAttackColumnStart, kAttackColumnWidth)) |
-            ftxui::dim,
-        ftxui::text(state.label.substr(kAttackColumnEnd)),
-    });
+    return row;
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
@@ -169,7 +156,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
         bool focused = panel_focus_ == kEquipPanel;
         entries_.clear();
         slots_.clear();
-        attack_inactive_.clear();
+        inactive_.clear();
         for (const std::pair<const EquipSlot, EquipInstance>& kv :
              character_.equipped()) {
           slots_.push_back(kv.first);
@@ -205,8 +192,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
           // Attack leads: it is the number that decides a weapon, and the main
           // stat qualifies it.
           std::string info = PadRight(atk_str, 10) + PadRight(main_str, 10);
-          attack_inactive_.push_back(
-              !character_.AttackCounts(item.prototype()));
+          inactive_.push_back(!character_.AttackCounts(item.prototype()));
           int scroll_pass = item.equip_state().scroll_successes();
           int scroll_left = item.equip_state().remaining_upgrade_slots();
           int scroll_restore =

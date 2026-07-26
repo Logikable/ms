@@ -107,8 +107,8 @@ std::string FormatSlot(EquipSlot slot) {
   switch (slot) {
     case EQUIP_SLOT_PRIMARY_WEAPON:
       return "Weapon";
-    case EQUIP_SLOT_SECONDARY_WEAPON:
-      return "Secondary";
+    case EQUIP_SLOT_STARS:
+      return "Stars";
     default:
       return "";
   }

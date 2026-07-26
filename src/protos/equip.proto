@@ -33,9 +33,10 @@ enum EquipType {
 enum EquipSlot {
   EQUIP_SLOT_UNSPECIFIED = 0;
   EQUIP_SLOT_PRIMARY_WEAPON = 1;
-  // What the off hand holds. Throwing stars for now; shields and the other
-  // secondaries belong here too, which is why it isn't named for the stars.
-  EQUIP_SLOT_SECONDARY_WEAPON = 2;
+  // Throwing stars, and only throwing stars. A shield goes in the off hand
+  // beside a sword; stars are ammunition a claw draws from, so they get a slot
+  // of their own that a shield will never compete for.
+  EQUIP_SLOT_STARS = 2;
 }
 
 // Which job branches can equip this item. UNIVERSAL means any job can equip
