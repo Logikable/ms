@@ -114,6 +114,33 @@ cc_library(
 )
 
 cc_library(
+    name = "job_advancement",
+    srcs = ["job_advancement.cc"],
+    hdrs = ["job_advancement.h"],
+    deps = [
+        ":character",
+        ":equip_instance",
+        ":game_state",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "job_advancement_test",
+    srcs = ["job_advancement_test.cc"],
+    data = ["//data/equip:all"],
+    deps = [
+        ":job_advancement",
+        ":proto_loader",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "game_state",
     srcs = ["game_state.cc"],
     hdrs = ["game_state.h"],
