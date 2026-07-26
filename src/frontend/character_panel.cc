@@ -178,8 +178,8 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
 ftxui::Element CharacterPanel::RenderAdvTabBar(int stages,
                                                bool bar_focused) const {
   // One chip per unlocked stage, in the shared tab style; the selected chip is
-  // white while the bar holds focus, else the theme-blue invert. "SP: N" for
-  // the selected stage is right-aligned on the same row.
+  // white while the bar holds focus, else the theme-blue invert. The selected
+  // stage's SP is right-aligned on the same row, reading like the AP counter.
   std::vector<ftxui::Element> row;
   for (int stage = 1; stage <= stages; ++stage) {
     std::string label = std::string(" ") + kStageNumerals[stage] + " ";
@@ -193,8 +193,8 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(int stages,
     row.push_back(std::move(chip));
   }
   row.push_back(ftxui::filler());
-  row.push_back(ftxui::text(
-      "SP: " + std::to_string(character_.sp(skill_tab_ + 1)) + " "));
+  row.push_back(
+      ftxui::text(std::to_string(character_.sp(skill_tab_ + 1)) + " SP "));
   return ftxui::hbox(std::move(row));
 }
 

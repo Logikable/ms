@@ -81,7 +81,7 @@ class CharacterPanel {
   // the selected skill's [+]. A stage-0 Beginner has neither.
   ftxui::Element RenderSkillsTab(bool bar_focused, bool rows_focused) const;
   // The advancement tab bar: one chip per unlocked stage (1..stages), the
-  // selected one highlighted, with "SP: N" for that stage right-aligned.
+  // selected one highlighted, with that stage's "N SP" right-aligned.
   ftxui::Element RenderAdvTabBar(int stages, bool bar_focused) const;
   // The skills of the given job stage, in catalog order. Empty if none.
   std::vector<const Skill*> SkillsForStage(int stage) const;

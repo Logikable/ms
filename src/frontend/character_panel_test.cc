@@ -211,7 +211,7 @@ TEST_F(CharacterPanelTest, BeginnerSkillsTabShowsNoAdvancements) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("No advancements yet."), std::string::npos);
-  EXPECT_EQ(rendered.find("SP:"), std::string::npos);
+  EXPECT_EQ(rendered.find(" SP"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
@@ -222,7 +222,7 @@ TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find(" I "), std::string::npos);  // stage-1 tab
-  EXPECT_NE(rendered.find("SP:"), std::string::npos);
+  EXPECT_NE(rendered.find(" SP"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, SkillsAdvBarUpReturnsToOuterTabs) {
