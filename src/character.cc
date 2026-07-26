@@ -113,6 +113,16 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
   return JOB_ADVANCEMENT_UNSPECIFIED;
 }
 
+std::vector<Job> JobChoicesForStage(int stage) {
+  // The four explorer branches, in the order the class list names them. Only
+  // the 1st advancement has choices so far; 2nd job and beyond are a function
+  // of the job already held, not a flat list, so they will not extend this.
+  if (stage == 1) {
+    return {JOB_SWORDMAN, JOB_MAGICIAN, JOB_ARCHER, JOB_ROGUE};
+  }
+  return {};
+}
+
 int StageForAdvancement(JobAdvancement advancement) {
   switch (advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
@@ -171,14 +181,17 @@ void CharacterInstance::AdvanceJob(Job next_job) {
   (*character_.mutable_sp_by_stage())[stage] += JobAdvancementSpBonus(next_job);
 }
 
-Job CharacterInstance::PendingJobAdvancement() const {
-  // Only the 1st job advancement (Beginner -> Warrior) exists so far. Returns
-  // JOB_UNSPECIFIED when none is available yet.
-  if (character_.job_stage() == 0 &&
-      character_.level() >= kAdvancementLevels[0]) {
-    return JOB_SWORDMAN;
+bool CharacterInstance::CanAdvanceJob() const {
+  // The stage the character would move into, and the level it opens at. An
+  // advancement with no choices defined is not offered -- that is what stops
+  // this from claiming a 2nd job exists before the jobs behind it do.
+  int stage = character_.job_stage();
+  if (stage >= static_cast<int>(sizeof(kAdvancementLevels) /
+                                sizeof(kAdvancementLevels[0]))) {
+    return false;
   }
-  return JOB_UNSPECIFIED;
+  return character_.level() >= kAdvancementLevels[stage] &&
+         !JobChoicesForStage(stage + 1).empty();
 }
 
 bool CharacterInstance::AllocateStat(StatField field, int amount) {

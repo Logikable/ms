@@ -49,10 +49,9 @@ Character MakeStartingCharacterProto() {
     // Advance at the first level it is allowed, the way a real character would:
     // a level-up grants HP and MP at the job held at the time, so leaving the
     // advancement to the end would bank every level at the Beginner rate.
-    // PendingJobAdvancement gates the WHEN (level 10); the job itself is
-    // forced, since that path only offers Warrior and no UI chooses otherwise
-    // yet.
-    if (character.PendingJobAdvancement() != JOB_UNSPECIFIED) {
+    // CanAdvanceJob gates the WHEN (level 10); the job itself is forced,
+    // since this builder is not the UI and has one job in mind.
+    if (character.CanAdvanceJob()) {
       character.AdvanceJob(kStartingJob);
     }
     character.LevelUp();

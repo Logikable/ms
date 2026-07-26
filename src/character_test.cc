@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <random>
+#include <vector>
 
 #include "src/equip_instance.h"
 #include "src/exp_table.h"
@@ -287,22 +288,40 @@ TEST_F(AdvanceJobTest, GrantsNoStartingSp) {
   EXPECT_EQ(c.sp(1), 0);
 }
 
-// --- PendingJobAdvancement ---
+// --- CanAdvanceJob / JobChoicesForStage ---
 
-TEST_F(AdvanceJobTest, EligibleForWarriorAtLevelTen) {
+TEST_F(AdvanceJobTest, EligibleAtLevelTen) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  EXPECT_EQ(c.PendingJobAdvancement(), JOB_SWORDMAN);
+  EXPECT_TRUE(c.CanAdvanceJob());
 }
 
 TEST_F(AdvanceJobTest, NotEligibleBelowLevelTen) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/9);
-  EXPECT_EQ(c.PendingJobAdvancement(), JOB_UNSPECIFIED);
+  EXPECT_FALSE(c.CanAdvanceJob());
 }
 
 TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
   c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_EQ(c.PendingJobAdvancement(), JOB_UNSPECIFIED);
+  EXPECT_FALSE(c.CanAdvanceJob());
+}
+
+// Level 30 opens the 2nd advancement, but no job defines one yet, so there is
+// nothing to offer and the character must not be told otherwise.
+TEST_F(AdvanceJobTest, NotEligibleForAnAdvancementWithNoJobsBehindIt) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/30);
+  c.AdvanceJob(JOB_SWORDMAN);
+  EXPECT_FALSE(c.CanAdvanceJob());
+}
+
+TEST(JobChoicesTest, FirstAdvancementOffersTheFourExplorers) {
+  EXPECT_EQ(JobChoicesForStage(1), (std::vector<Job>{JOB_SWORDMAN, JOB_MAGICIAN,
+                                                     JOB_ARCHER, JOB_ROGUE}));
+}
+
+TEST(JobChoicesTest, LaterAdvancementsHaveNoChoicesYet) {
+  EXPECT_TRUE(JobChoicesForStage(2).empty());
+  EXPECT_TRUE(JobChoicesForStage(0).empty());
 }
 
 // --- AllocateStat ---

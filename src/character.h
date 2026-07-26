@@ -33,6 +33,12 @@ JobAdvancement AdvancementForJobStage(Job job, int stage);
 // Returns 0 for JOB_ADVANCEMENT_UNSPECIFIED.
 int StageForAdvancement(JobAdvancement advancement);
 
+// The jobs a character may advance into on reaching `stage` (1 = 1st job), in
+// the order they should be offered. Empty for a stage whose choices don't
+// exist yet, which is what keeps the UI from offering an advancement it has
+// nothing to fill.
+std::vector<Job> JobChoicesForStage(int stage);
+
 class CharacterInstance {
  public:
   CharacterInstance(std::mt19937& rng, Character character);
@@ -47,10 +53,10 @@ class CharacterInstance {
   // 3 and 4 (3rd and 4th job advancement), and grants a batch of SP for the
   // newly opened skill set.
   void AdvanceJob(Job next_job);
-  // The job the character is eligible to advance into now, or JOB_UNSPECIFIED
-  // if no advancement is currently available. The UI offers the advancement
-  // when this is set; passing the result to AdvanceJob performs it.
-  Job PendingJobAdvancement() const;
+  // Whether the character has reached an advancement it hasn't taken yet. The
+  // UI offers the choice while this holds; JobChoicesForStage says what to
+  // offer and AdvanceJob takes the answer.
+  bool CanAdvanceJob() const;
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);
   // Spends `amount` of the skill's job-stage SP to raise its learned level by
