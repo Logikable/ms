@@ -33,6 +33,11 @@ JobAdvancement AdvancementForJobStage(Job job, int stage);
 // Returns 0 for JOB_ADVANCEMENT_UNSPECIFIED.
 int StageForAdvancement(JobAdvancement advancement);
 
+// The stat a job's damage is built on. STAT_FIELD_UNSPECIFIED for a job with
+// no primary stat defined.
+// TODO: Demon Avenger's primary stat is HP; Xenon's is STR+DEX+LUK combined.
+StatField PrimaryStatField(Job job);
+
 // The jobs a character may advance into on reaching `stage` (1 = 1st job), in
 // the order they should be offered. Empty for a stage whose choices don't
 // exist yet, which is what keeps the UI from offering an advancement it has
@@ -53,6 +58,13 @@ class CharacterInstance {
   // 3 and 4 (3rd and 4th job advancement), and grants a batch of SP for the
   // newly opened skill set.
   void AdvanceJob(Job next_job);
+  // Puts every AP-allocated stat back in the pool and re-spends it for `job`:
+  // the four stats drop to their base, the job's primary rises to the value a
+  // fresh character of that job would carry, and what is left over becomes
+  // unspent AP for the player to place. Allocated HP and MP are untouched --
+  // those are level-up grants, not AP. Called on a job advancement, so a
+  // Beginner's STR does not strand a Magician.
+  void ResetStatsForJob(Job job);
   // Whether the character has reached an advancement it hasn't taken yet. The
   // UI offers the choice while this holds; JobChoicesForStage says what to
   // offer and AdvanceJob takes the answer.

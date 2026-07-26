@@ -324,6 +324,57 @@ TEST(JobChoicesTest, LaterAdvancementsHaveNoChoicesYet) {
   EXPECT_TRUE(JobChoicesForStage(0).empty());
 }
 
+// --- ResetStatsForJob ---
+
+// The stats a level-10 Beginner carries, straight from the starting proto.
+CharacterInstance MakeBeginnerAtTen(std::mt19937& rng) {
+  Character proto;
+  proto.set_level(10);
+  proto.set_job(JOB_BEGINNER);
+  proto.set_ap(45);  // 5 per level over levels 2-10
+  proto.mutable_allocated_stats()->set_str(13);
+  proto.mutable_allocated_stats()->set_dex(4);
+  proto.mutable_allocated_stats()->set_int_(4);
+  proto.mutable_allocated_stats()->set_luk(4);
+  proto.mutable_allocated_stats()->set_hp(50);
+  proto.mutable_allocated_stats()->set_mp(15);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+TEST_F(AdvanceJobTest, ResetSeatsThePrimaryStatAndRefundsTheRest) {
+  CharacterInstance c = MakeBeginnerAtTen(rng_);
+  c.ResetStatsForJob(JOB_ROGUE);
+  const AllocatedStats& s = c.proto().allocated_stats();
+  EXPECT_EQ(s.luk(), 25);  // the Rogue's primary
+  EXPECT_EQ(s.str(), 4);   // the Beginner's 13 does not strand here
+  EXPECT_EQ(s.dex(), 4);
+  EXPECT_EQ(s.int_(), 4);
+  // 45 unspent + 9 refunded from STR, less the 21 that seats LUK.
+  EXPECT_EQ(c.proto().ap(), 33);
+}
+
+// The refund is computed from the stats on hand, so a player who had already
+// spent AP lands in exactly the same place as one who had not.
+TEST_F(AdvanceJobTest, ResetIgnoresWhatWasAlreadySpent) {
+  CharacterInstance c = MakeBeginnerAtTen(rng_);
+  ASSERT_TRUE(c.AllocateStat(STAT_FIELD_STR, 30));
+  ASSERT_TRUE(c.AllocateStat(STAT_FIELD_INT, 15));
+  ASSERT_EQ(c.proto().ap(), 0);
+  c.ResetStatsForJob(JOB_MAGICIAN);
+  EXPECT_EQ(c.proto().allocated_stats().int_(), 25);
+  EXPECT_EQ(c.proto().allocated_stats().str(), 4);
+  EXPECT_EQ(c.proto().ap(), 33);
+}
+
+// HP and MP sit in the same message but are granted by leveling, so the reset
+// must leave them alone.
+TEST_F(AdvanceJobTest, ResetLeavesLeveledHpAndMpAlone) {
+  CharacterInstance c = MakeBeginnerAtTen(rng_);
+  c.ResetStatsForJob(JOB_SWORDMAN);
+  EXPECT_EQ(c.proto().allocated_stats().hp(), 50);
+  EXPECT_EQ(c.proto().allocated_stats().mp(), 15);
+}
+
 // --- AllocateStat ---
 
 TEST_F(AllocateStatTest, DeductsApAndAddsStat) {

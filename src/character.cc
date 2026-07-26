@@ -23,6 +23,48 @@ constexpr int kApPerLevel = 5;
 constexpr int kApJobAdvancementBonus = 5;
 constexpr int kSpPerLevel = 3;
 
+// What a stat reads with nothing spent on it, and what a job's primary stat is
+// worth on advancing into it. A fresh Beginner carries 13 in STR against 4
+// elsewhere; the primary climbs to 25 at the advancement, and the AP that pays
+// for the difference comes out of the pool. See ResetStatsForJob.
+constexpr int kBaseStat = 4;
+constexpr int kAdvancementPrimaryStat = 25;
+
+// The four stats AP buys, which are the ones an advancement redistributes.
+// HP and MP live in the same message but are granted by leveling.
+constexpr StatField kApStatFields[] = {STAT_FIELD_STR, STAT_FIELD_DEX,
+                                       STAT_FIELD_INT, STAT_FIELD_LUK};
+
+int ApStatValue(const AllocatedStats& stats, StatField field) {
+  switch (field) {
+    case STAT_FIELD_DEX:
+      return stats.dex();
+    case STAT_FIELD_INT:
+      return stats.int_();
+    case STAT_FIELD_LUK:
+      return stats.luk();
+    default:
+      return stats.str();
+  }
+}
+
+void SetApStat(AllocatedStats* stats, StatField field, int value) {
+  switch (field) {
+    case STAT_FIELD_DEX:
+      stats->set_dex(value);
+      break;
+    case STAT_FIELD_INT:
+      stats->set_int_(value);
+      break;
+    case STAT_FIELD_LUK:
+      stats->set_luk(value);
+      break;
+    default:
+      stats->set_str(value);
+      break;
+  }
+}
+
 // Character levels at which each job advancement (1st..6th) unlocks. A level's
 // SP goes to the highest stage whose threshold it has passed: levels 11-30
 // feed stage 1, 31-60 feed stage 2, and so on.
@@ -113,6 +155,22 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
   return JOB_ADVANCEMENT_UNSPECIFIED;
 }
 
+StatField PrimaryStatField(Job job) {
+  switch (job) {
+    case JOB_BEGINNER:
+    case JOB_SWORDMAN:
+      return STAT_FIELD_STR;
+    case JOB_ARCHER:
+      return STAT_FIELD_DEX;
+    case JOB_MAGICIAN:
+      return STAT_FIELD_INT;
+    case JOB_ROGUE:
+      return STAT_FIELD_LUK;
+    default:
+      return STAT_FIELD_UNSPECIFIED;
+  }
+}
+
 std::vector<Job> JobChoicesForStage(int stage) {
   // The four explorer branches, in the order the class list names them. Only
   // the 1st advancement has choices so far; 2nd job and beyond are a function
@@ -179,6 +237,26 @@ void CharacterInstance::AdvanceJob(Job next_job) {
   }
   // Each advancement opens a new skill set, so it comes with SP for that stage.
   (*character_.mutable_sp_by_stage())[stage] += JobAdvancementSpBonus(next_job);
+}
+
+void CharacterInstance::ResetStatsForJob(Job job) {
+  // Everything above the base was bought with AP -- including the Beginner's
+  // free 13 in STR, which is refunded here rather than stranded, so a character
+  // ends up exactly where a fresh one of the new job would be. Working from the
+  // stats on hand rather than from the level keeps this right whether or not
+  // the player had already spent anything.
+  AllocatedStats* stats = character_.mutable_allocated_stats();
+  int pool = character_.ap();
+  for (StatField field : kApStatFields) {
+    pool += ApStatValue(*stats, field) - kBaseStat;
+    SetApStat(stats, field, kBaseStat);
+  }
+  StatField primary = PrimaryStatField(job);
+  if (primary != STAT_FIELD_UNSPECIFIED) {
+    SetApStat(stats, primary, kAdvancementPrimaryStat);
+    pool -= kAdvancementPrimaryStat - kBaseStat;
+  }
+  character_.set_ap(std::max(0, pool));
 }
 
 bool CharacterInstance::CanAdvanceJob() const {
