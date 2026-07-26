@@ -86,10 +86,11 @@ TEST(GameStateTest, StartingCharacterStats) {
   EXPECT_EQ(s.dex(), 4);
   EXPECT_EQ(s.int_(), 4);
   EXPECT_EQ(s.luk(), 4);
-  // The rate changes at the advancement: nine Beginner levels at 36/24, then
-  // twenty Magician levels at 12/48. A frail character with a deep pool.
-  EXPECT_EQ(s.hp(), 50 + 9 * 36 + 20 * 12);
-  EXPECT_EQ(s.mp(), 15 + 9 * 24 + 20 * 48);
+  // A rogue levels at the same 36/24 a beginner does, so the advancement at
+  // level 10 leaves the rate alone and all 29 levels pay alike. Only a
+  // swordman or a magician would split this in two.
+  EXPECT_EQ(s.hp(), 50 + 29 * 36);
+  EXPECT_EQ(s.mp(), 15 + 29 * 24);
 }
 
 }  // namespace

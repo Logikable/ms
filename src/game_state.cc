@@ -34,7 +34,7 @@ constexpr int kStartingLevel = 30;
 // The job the starting character advances into at level 10. Magician for now,
 // to exercise the newest job -- there is no advancement UI, so this is the only
 // way to reach anything but a Beginner. Swap it to test a different job.
-constexpr Job kStartingJob = JOB_MAGICIAN;
+constexpr Job kStartingJob = JOB_ROGUE;
 
 // A first-job character to start with, so there is 1st-job SP (and AP) on hand
 // to test skills. Built by running the real leveling and advancement mechanics

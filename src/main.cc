@@ -46,11 +46,18 @@ int main(int argc, char** argv) {
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
                       std::move(mobs), std::move(maps), std::move(skills));
 
-  // The starting Magician's weapon, equipped so there is something to farm
-  // with.
+  // The starting Rogue's weapon, equipped so there is something to farm with,
+  // and the stars that arm it.
   state.character.PickUp(
-      std::make_unique<ms::EquipInstance>(state.equips.at("metal_wand")));
+      std::make_unique<ms::EquipInstance>(state.equips.at("steel_guards")));
   state.character.Equip(0);
+  state.character.PickUp(std::make_unique<ms::EquipInstance>(
+      state.equips.at("steely_throwing_knives")));
+  state.character.Equip(0);
+  // The dagger of the same level, to swap to: it swings Double Stab instead of
+  // Lucky Seven, and leaves the stars contributing nothing.
+  state.character.PickUp(
+      std::make_unique<ms::EquipInstance>(state.equips.at("reef_claw")));
   // Generic low-level weapons for scrolling/star force experimentation.
   state.character.PickUp(
       std::make_unique<ms::EquipInstance>(state.equips.at("sword")));
