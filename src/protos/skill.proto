@@ -33,6 +33,7 @@ message SkillEffect {
   // Share of incoming damage that comes out of MP rather than HP. Like
   // damage_taken_pct, it waits on a model of the character being hit.
   double damage_to_mp_pct = 10;
+  int32 luk = 11;  // flat LUK, exactly as a worn item grants it
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,

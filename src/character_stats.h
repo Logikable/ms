@@ -11,6 +11,7 @@
 #include <string>
 
 #include "src/character.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -28,6 +29,12 @@ struct DerivedStats {
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;
+  // What the character's passives grant in the shape of a worn item, because
+  // that is how they behave: sum this with CharacterInstance::equip_stats()
+  // and hand the total wherever equipment stats go, OffenseStatsFor above all.
+  // Skills that grant a primary stat reach the damage chain no other way.
+  // DEF is in here too, and is the same total `def` above already carries.
+  EquipStats skill_stats;
 };
 
 // `skills` is the loaded skill catalog; every passive in it the character has
@@ -35,6 +42,14 @@ struct DerivedStats {
 // lever is damage, which OffenseStatsFor handles.
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills);
+
+// Everything the character wears plus everything their passives grant, summed.
+// This is what the rest of the game should read wherever it wants "the
+// character's equipment stats": a skill that grants LUK is worth exactly as
+// much as a ring that grants LUK, and nothing downstream should have to know
+// which one it came from. `derived` is the result of DerivedStatsFor above.
+EquipStats TotalEquipStats(const CharacterInstance& character,
+                           const DerivedStats& derived);
 
 }  // namespace ms
 

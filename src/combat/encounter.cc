@@ -23,7 +23,9 @@ namespace {
 
 // One attack's damage against every mob type on the map. `skill` is null for
 // the bare poke, which hits one target for the character's plain 100% swing.
-AttackOption AttackFor(const GameState& state, const Character& proto,
+// `equipped` is everything the character wears plus everything their passives
+// grant, already summed -- the two are indistinguishable to the damage chain.
+AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
                        const Skill* skill, int level,
                        const std::vector<CombatType>& types,
                        const DerivedStats& derived) {
@@ -32,9 +34,9 @@ AttackOption AttackFor(const GameState& state, const Character& proto,
     attack.name = skill->name();
     attack.max_enemies = std::max(1, skill->max_enemies());
   }
-  OffenseStats offense = OffenseStatsFor(
-      proto.job(), proto.level(), proto.allocated_stats(),
-      state.character.equip_stats(), skill, level, derived.crit_rate);
+  OffenseStats offense =
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      equipped, skill, level, derived.crit_rate);
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
@@ -94,16 +96,17 @@ CombatParams ComputeCombatParams(const GameState& state) {
   // passives (crit rate and the like) apply to whichever attack is chosen, so
   // the already-resolved `derived` is handed to each option.
   const Character& proto = state.character.proto();
+  const EquipStats total_stats = TotalEquipStats(state.character, derived);
   params.attacks.push_back(
-      AttackFor(state, proto, nullptr, 0, params.types, derived));
+      AttackFor(proto, total_stats, nullptr, 0, params.types, derived));
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (entry.second.kind() != SKILL_KIND_ATTACK) {
       continue;
     }
     int learned = state.character.skill_level(entry.second);
     if (learned > 0) {
-      params.attacks.push_back(AttackFor(state, proto, &entry.second, learned,
-                                         params.types, derived));
+      params.attacks.push_back(AttackFor(proto, total_stats, &entry.second,
+                                         learned, params.types, derived));
     }
   }
   params.active = true;

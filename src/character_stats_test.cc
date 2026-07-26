@@ -85,6 +85,18 @@ Skill MpBoost() {
   return skill;
 }
 
+// Nimble Body: +1 LUK a level, the rogue's whole passive.
+Skill NimbleBody() {
+  Skill skill;
+  skill.set_name("Nimble Body");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  skill.set_max_level(20);
+  skill.mutable_base()->set_luk(1);
+  skill.mutable_per_level()->set_luk(1);
+  return skill;
+}
+
 // Archery Mastery: +1 attack speed stage, flat at every level.
 Skill ArcheryMastery() {
   Skill skill;
@@ -225,6 +237,36 @@ TEST_F(DerivedStatsTest, AttackSpeedBonusIsFlatRegardlessOfLevel) {
   // The bonus is +1 at every level, so even a maxed skill adds a single stage.
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.attack_speed_bonus, 1);
+}
+
+TEST_F(DerivedStatsTest, SkillGrantedLukLandsInTheStatLine) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50);
+  Skill nimble = NimbleBody();
+  std::map<std::string, Skill> skills = {{"nimble_body", nimble}};
+  ASSERT_TRUE(c.LearnSkill(nimble, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.luk(), 20);  // 1 a level, maxed
+}
+
+TEST_F(DerivedStatsTest, SkillStatsJoinWornStatsInTheTotal) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50);
+  EquipArmor(c, /*max_hp=*/0, /*def=*/7);
+  Skill nimble = NimbleBody();
+  Skill iron_body = IronBody();
+  std::map<std::string, Skill> skills = {{"nimble_body", nimble},
+                                         {"iron_body", iron_body}};
+  ASSERT_TRUE(c.LearnSkill(nimble, 5));
+  ASSERT_TRUE(c.LearnSkill(iron_body, 1));
+
+  // The total is what the rest of the game reads: the skill's LUK and the
+  // armor's DEF arrive in the same stat line, indistinguishable by then.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EquipStats total = TotalEquipStats(c, stats);
+  EXPECT_EQ(total.luk(), 5);
+  // DEF is carried in both places and must agree -- 7 worn, 10 from Iron Body.
+  EXPECT_EQ(total.def(), 17);
+  EXPECT_EQ(total.def(), stats.def);
 }
 
 TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {

@@ -5,6 +5,8 @@
 #include <string>
 #include <utility>
 
+#include "absl/types/span.h"
+#include "src/equip_stats.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -30,6 +32,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   int mp_per_level = 0;
   double max_mp_pct = 0.0;
   int skill_def = 0;
+  int skill_luk = 0;
   double damage_taken_pct = 0.0;
   double crit_rate = 0.0;
   int attack_speed_bonus = 0;
@@ -52,6 +55,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
         base.max_mp_per_level() + per.max_mp_per_level() * (level - 1);
     max_mp_pct += base.max_mp_pct() + per.max_mp_pct() * (level - 1);
     skill_def += base.def() + per.def() * (level - 1);
+    skill_luk += base.luk() + per.luk() * (level - 1);
     damage_taken_pct +=
         base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
     crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
@@ -76,10 +80,18 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.max_mp = static_cast<int>(
       std::floor(flat_mp * (1.0 + max_mp_pct) + kPercentEpsilon));
   stats.def = equipped.def() + skill_def;
+  stats.skill_stats.set_def(skill_def);
+  stats.skill_stats.set_luk(skill_luk);
   stats.damage_taken_pct = damage_taken_pct;
   stats.crit_rate = crit_rate;
   stats.attack_speed_bonus = attack_speed_bonus;
   return stats;
+}
+
+EquipStats TotalEquipStats(const CharacterInstance& character,
+                           const DerivedStats& derived) {
+  const EquipStats sources[] = {character.equip_stats(), derived.skill_stats};
+  return SumEquipStats(absl::MakeConstSpan(sources));
 }
 
 }  // namespace ms

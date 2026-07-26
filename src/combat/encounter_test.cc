@@ -130,6 +130,31 @@ TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
             params.attacks[0].damage_per_hit[0]);
 }
 
+// A passive that grants a primary stat has no lever of its own in the damage
+// chain -- it reaches the swing only by being summed into the character's
+// equipment stats, which is what TotalEquipStats exists to do.
+TEST(ComputeCombatParamsTest, StatGrantingPassivesReachTheSwing) {
+  Skill nimble;
+  nimble.set_name("Nimble Body");
+  nimble.set_kind(SKILL_KIND_PASSIVE);
+  nimble.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  nimble.set_max_level(20);
+  nimble.mutable_base()->set_luk(1);
+  nimble.mutable_per_level()->set_luk(1);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"nimble_body", nimble}});
+  state.current_map = "field";
+  EquipSword(state);
+  // LUK has to be a stat this job actually swings on, so the character becomes
+  // a rogue rather than whatever kStartingJob happens to be.
+  state.character.AdvanceJob(JOB_ROGUE);
+
+  double before = ComputeCombatParams(state).attacks[0].damage_per_hit[0];
+  ASSERT_TRUE(state.character.LearnSkill(nimble, 20));
+  double after = ComputeCombatParams(state).attacks[0].damage_per_hit[0];
+  EXPECT_GT(after, before);  // 20 LUK on a rogue's main stat
+}
+
 TEST(ComputeCombatParamsTest, AttackSpeedPassiveShortensTheSwing) {
   Skill haste = SpeedPassive(1);
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},

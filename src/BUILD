@@ -55,9 +55,11 @@ cc_library(
     hdrs = ["character_stats.h"],
     deps = [
         ":character",
+        ":equip_stats",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/types:span",
     ],
 )
 

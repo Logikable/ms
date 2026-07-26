@@ -153,11 +153,12 @@ ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
 ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const Character& p = character_.proto();
   const AllocatedStats& a = p.allocated_stats();
-  const EquipStats& e = character_.equip_stats();
 
   // HP, MP and DEF carry passive-skill bonuses on top of the allocated and worn
-  // values, so they come from the derived totals rather than a bare sum.
+  // values, so they come from the derived totals rather than a bare sum. The
+  // stat rows do too: a skill's LUK belongs in the same column as a ring's.
   DerivedStats derived = DerivedStatsFor(character_, skills_);
+  const EquipStats e = TotalEquipStats(character_, derived);
 
   std::vector<ftxui::Element> rows;
   rows.push_back(DisplayRow("HP", derived.max_hp));
@@ -277,10 +278,10 @@ ftxui::Element CharacterPanel::Render() const {
   // Combat power stands for the character as a whole, so it is built from a
   // bare stat line -- no attack skill, no target.
   DerivedStats derived = DerivedStatsFor(character_, skills_);
-  OffenseStats offense =
-      OffenseStatsFor(p.job(), p.level(), p.allocated_stats(),
-                      character_.equip_stats(), /*attack_skill=*/nullptr,
-                      /*attack_level=*/0, derived.crit_rate);
+  OffenseStats offense = OffenseStatsFor(
+      p.job(), p.level(), p.allocated_stats(),
+      TotalEquipStats(character_, derived), /*attack_skill=*/nullptr,
+      /*attack_level=*/0, derived.crit_rate);
   std::string power = Centered("CP " + FormatWithCommas(CombatPower(offense)));
 
   bool focused = panel_focus_ == kCharPanel;
