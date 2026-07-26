@@ -257,10 +257,34 @@ cc_test(
 )
 
 cc_library(
+    name = "confirm_prompt",
+    srcs = ["confirm_prompt.cc"],
+    hdrs = ["confirm_prompt.h"],
+    deps = [
+        ":panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "confirm_prompt_test",
+    srcs = ["confirm_prompt_test.cc"],
+    deps = [
+        ":confirm_prompt",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "scroll_panel",
     srcs = ["scroll_panel.cc"],
     hdrs = ["scroll_panel.h"],
     deps = [
+        ":confirm_prompt",
         ":panel_util",
         ":types",
         "//src/protos:equip_proto_cc",
@@ -289,6 +313,7 @@ cc_library(
     srcs = ["star_force_panel.cc"],
     hdrs = ["star_force_panel.h"],
     deps = [
+        ":confirm_prompt",
         ":panel_util",
         ":types",
         "//src:equip_instance",
@@ -362,6 +387,7 @@ cc_library(
     srcs = ["trace_recover_panel.cc"],
     hdrs = ["trace_recover_panel.h"],
     deps = [
+        ":confirm_prompt",
         ":panel_util",
         ":types",
         "//src:character",

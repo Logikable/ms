@@ -79,14 +79,6 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
                             int scroll_left, int scroll_restore);
 
-// Renders a [Confirm] / [Cancel] button row. The selected button is inverted.
-// cancel_selected=false highlights Confirm; true highlights Cancel.
-ftxui::Element ConfirmBar(bool cancel_selected);
-
-// Renders the confirm bar in a titled window. Intended to appear below the
-// main action panel so height is reserved only when confirmation is pending.
-ftxui::Element ConfirmWindow(bool cancel_selected);
-
 // A one-row progress bar filled to frac (clamped to [0, 1]) in `fill`, with the
 // remainder in kBarEmpty. `label` is centered over the bar, dark on the filled
 // side and light on the unfilled side; pass "" for an unlabelled bar.

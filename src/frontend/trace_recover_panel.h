@@ -13,6 +13,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
 #include "src/equip_instance.h"
+#include "src/frontend/confirm_prompt.h"
 #include "src/frontend/types.h"
 #include "src/item.h"
 
@@ -36,7 +37,7 @@ class TraceRecoverPanel {
   // Returns true once when the player confirms recovery, then resets the flag.
   bool TakeConfirmed();
   bool IsConfirming() const {
-    return confirming_;
+    return confirm_.open();
   }
   // Returns the inventory index of the currently selected base item, or -1 if
   // there are no matching items.
@@ -48,8 +49,7 @@ class TraceRecoverPanel {
   const EquipTabItem* trace_ = nullptr;
   std::vector<int> matching_indices_;
   int selected_ = 0;
-  bool confirming_ = false;
-  bool confirm_cancel_ = false;
+  ConfirmPrompt confirm_;
   bool confirmed_ = false;
 };
 

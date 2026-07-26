@@ -15,6 +15,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
+#include "src/frontend/confirm_prompt.h"
 #include "src/frontend/types.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -40,7 +41,7 @@ class ScrollPanel {
   // resets the flag.
   bool TakeConfirmed();
   bool IsConfirming() const {
-    return confirming_;
+    return confirm_.open();
   }
   // Returns the scroll at the current selection.
   const Scroll& selected_scroll() const;
@@ -57,8 +58,7 @@ class ScrollPanel {
   int selected_ = 0;
   std::vector<std::string> entries_;
   ftxui::Component component_;
-  bool confirming_ = false;
-  bool confirm_cancel_ = false;  // false = Confirm highlighted, true = Cancel
+  ConfirmPrompt confirm_;
   bool confirmed_ = false;
 };
 

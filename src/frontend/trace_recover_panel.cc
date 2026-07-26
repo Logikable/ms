@@ -7,6 +7,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character.h"
 #include "src/equip_instance.h"
+#include "src/frontend/confirm_prompt.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
 #include "src/item.h"
@@ -65,35 +66,18 @@ ftxui::Element TraceRecoverPanel::RenderTabs() const {
 }
 
 ftxui::Element TraceRecoverPanel::RenderBelow() const {
-  if (confirming_) {
-    return ConfirmWindow(confirm_cancel_);
+  if (confirm_.open()) {
+    return confirm_.RenderWindow();
   }
-  // Reserve the same height as ConfirmWindow so the layout doesn't shift.
-  return ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 3);
+  // Reserve the prompt's height so the layout doesn't shift when it opens.
+  return ftxui::text("") |
+         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, ConfirmPrompt::kWindowHeight);
 }
 
 bool TraceRecoverPanel::OnEvent(ftxui::Event event) {
-  if (confirming_) {
-    if (IsBack(event)) {
-      confirming_ = false;
-      confirm_cancel_ = false;
-      return true;
-    }
-    if (event == ftxui::Event::ArrowLeft) {
-      confirm_cancel_ = false;
-      return true;
-    }
-    if (event == ftxui::Event::ArrowRight) {
-      confirm_cancel_ = true;
-      return true;
-    }
-    if (IsForward(event)) {
-      if (!confirm_cancel_) {
-        confirmed_ = true;
-      }
-      confirming_ = false;
-      confirm_cancel_ = false;
-      return true;
+  if (confirm_.open()) {
+    if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed) {
+      confirmed_ = true;
     }
     return true;  // Swallow all other events while confirming.
   }
@@ -110,8 +94,7 @@ bool TraceRecoverPanel::OnEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
-    confirming_ = true;
-    confirm_cancel_ = false;
+    confirm_.Open();
     return true;
   }
   return false;

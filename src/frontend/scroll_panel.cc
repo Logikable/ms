@@ -10,6 +10,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/colors.h"
+#include "src/frontend/confirm_prompt.h"
 #include "src/frontend/panel_util.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -110,11 +111,11 @@ void ScrollPanel::ResetComponent() {
     };
     ftxui::Element main =
         ThemedWindow("  Scrolls ", ftxui::vbox(std::move(rows)));
-    if (confirming_) {
+    if (confirm_.open()) {
       // yflex lets main fill the remaining height after the confirm window
       // takes its 3 rows, matching the full-height behaviour without confirm.
       return ftxui::vbox(
-          {std::move(main) | ftxui::yflex, ConfirmWindow(confirm_cancel_)});
+          {std::move(main) | ftxui::yflex, confirm_.RenderWindow()});
     }
     return main;
   });
@@ -125,33 +126,14 @@ ftxui::Element ScrollPanel::Render() {
 }
 
 bool ScrollPanel::OnEvent(ftxui::Event event) {
-  if (confirming_) {
-    if (IsBack(event)) {
-      confirming_ = false;
-      confirm_cancel_ = false;
-      return true;
-    }
-    if (event == ftxui::Event::ArrowLeft) {
-      confirm_cancel_ = false;
-      return true;
-    }
-    if (event == ftxui::Event::ArrowRight) {
-      confirm_cancel_ = true;
-      return true;
-    }
-    if (IsForward(event)) {
-      if (!confirm_cancel_) {
-        confirmed_ = true;
-      }
-      confirming_ = false;
-      confirm_cancel_ = false;
-      return true;
+  if (confirm_.open()) {
+    if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed) {
+      confirmed_ = true;
     }
     return true;
   }
   if (IsForward(event)) {
-    confirming_ = true;
-    confirm_cancel_ = false;
+    confirm_.Open();
     return true;
   }
   return component_->OnEvent(event);

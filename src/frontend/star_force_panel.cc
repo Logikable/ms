@@ -8,6 +8,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/colors.h"
+#include "src/frontend/confirm_prompt.h"
 #include "src/frontend/panel_util.h"
 
 namespace ms {
@@ -106,48 +107,30 @@ ftxui::Element StarForcePanel::Render() const {
   }
   rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text("[Enhance]") | ftxui::inverted | ftxui::hcenter);
-  // Constrain inner width to at least ConfirmWindow's inner width so the panel
-  // never widens when the confirm window appears below.
+  // Constrain inner width to at least the confirm prompt's, so the panel
+  // never widens when the prompt appears below.
   ftxui::Element content = ftxui::vbox(std::move(rows)) |
                            ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 21);
   ftxui::Element main = ThemedWindow(" Star Force ", std::move(content));
   // Always allocate the same height below so ftxui::center never shifts the
-  // panel when the confirm window appears.
+  // panel when the prompt appears.
   ftxui::Element below =
-      confirming_
-          ? ConfirmWindow(confirm_cancel_)
-          : (ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 3));
+      confirm_.open()
+          ? confirm_.RenderWindow()
+          : (ftxui::text("") | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,
+                                           ConfirmPrompt::kWindowHeight));
   return ftxui::vbox({std::move(main), std::move(below)});
 }
 
 bool StarForcePanel::OnEvent(ftxui::Event event) {
-  if (confirming_) {
-    if (IsBack(event)) {
-      confirming_ = false;
-      confirm_cancel_ = false;
-      return true;
-    }
-    if (event == ftxui::Event::ArrowLeft) {
-      confirm_cancel_ = false;
-      return true;
-    }
-    if (event == ftxui::Event::ArrowRight) {
-      confirm_cancel_ = true;
-      return true;
-    }
-    if (IsForward(event)) {
-      if (!confirm_cancel_) {
-        confirmed_ = true;
-      }
-      confirming_ = false;
-      confirm_cancel_ = false;
-      return true;
+  if (confirm_.open()) {
+    if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed) {
+      confirmed_ = true;
     }
     return true;
   }
   if (IsForward(event)) {
-    confirming_ = true;
-    confirm_cancel_ = false;
+    confirm_.Open();
     return true;
   }
   return false;  // Esc and other events pass through to caller
@@ -160,8 +143,7 @@ bool StarForcePanel::TakeConfirmed() {
 }
 
 void StarForcePanel::ResetConfirm() {
-  confirming_ = false;
-  confirm_cancel_ = false;
+  confirm_.Close();
   confirmed_ = false;
 }
 

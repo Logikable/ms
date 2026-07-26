@@ -221,22 +221,6 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                                            label_color);
 }
 
-ftxui::Element ConfirmBar(bool cancel_selected) {
-  ftxui::Element confirm = ftxui::text("[Confirm]");
-  ftxui::Element cancel = ftxui::text("[Cancel]");
-  if (!cancel_selected) {
-    confirm = confirm | ftxui::inverted;
-  } else {
-    cancel = cancel | ftxui::inverted;
-  }
-  return ftxui::hbox(
-      {ftxui::text(" "), confirm, ftxui::text("  "), cancel, ftxui::text(" ")});
-}
-
-ftxui::Element ConfirmWindow(bool cancel_selected) {
-  return ThemedWindow("", ConfirmBar(cancel_selected) | ftxui::hcenter);
-}
-
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused) {
   ftxui::Element title_el = ftxui::text(title) | ftxui::color(kTheme);
