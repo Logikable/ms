@@ -56,7 +56,8 @@ int JobAdvancementSpBonus(Job job) {
 // with no published table (the wiki doesn't state it, and level-up screenshots
 // put Mercedes at 24 HP/level against Pathfinder's 36), so these are round
 // numbers picked to give each branch its character: warriors bulky, mages
-// frail with a deep pool, everyone else -- archers included -- in between.
+// frail with a deep pool, everyone else -- archers, thieves and eventually
+// pirates -- in between.
 struct LevelUpGain {
   int hp;
   int mp;
@@ -83,6 +84,8 @@ EquipJobCategory JobToCategory(Job job) {
       return EQUIP_JOB_CATEGORY_BOWMAN;
     case JOB_MAGICIAN:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
+    case JOB_ROGUE:
+      return EQUIP_JOB_CATEGORY_THIEF;
     default:
       return EQUIP_JOB_CATEGORY_UNSPECIFIED;
   }
@@ -101,6 +104,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_ARCHER;
       case JOB_MAGICIAN:
         return JOB_ADVANCEMENT_MAGICIAN;
+      case JOB_ROGUE:
+        return JOB_ADVANCEMENT_ROGUE;
       default:
         break;
     }
@@ -113,6 +118,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
     case JOB_ADVANCEMENT_ARCHER:
     case JOB_ADVANCEMENT_MAGICIAN:
+    case JOB_ADVANCEMENT_ROGUE:
       return 1;  // all are 1st-job advancements
     default:
       return 0;

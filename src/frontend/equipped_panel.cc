@@ -35,6 +35,8 @@ int MainStatValue(const EquipStats& stats, Job job) {
       return stats.dex();
     case JOB_MAGICIAN:
       return stats.int_();
+    case JOB_ROGUE:
+      return stats.luk();
     default:
       return 0;
   }
@@ -51,6 +53,8 @@ const char* MainStatLabel(Job job) {
       return "DEX";
     case JOB_MAGICIAN:
       return "INT";
+    case JOB_ROGUE:
+      return "LUK";
     default:
       return nullptr;
   }

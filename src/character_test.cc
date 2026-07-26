@@ -138,6 +138,18 @@ TEST_F(LevelUpTest, MagesInvertTheWarriorsGrant) {
   EXPECT_EQ(c.proto().allocated_stats().mp(), 48);
 }
 
+// Only the two extremes have a rate of their own; everyone else shares the
+// middle one, so a rogue levels exactly as an archer does.
+TEST_F(LevelUpTest, RoguesLevelAtTheMiddlingRate) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_ROGUE);
+  CharacterInstance c(rng_, std::move(proto));
+  c.LevelUp();
+  EXPECT_EQ(c.proto().allocated_stats().hp(), 36);
+  EXPECT_EQ(c.proto().allocated_stats().mp(), 24);
+}
+
 TEST_F(LevelUpTest, AdvancingDoesNotBackdateEarlierLevels) {
   // The rate is the one held at the time, so the two Beginner levels below
   // keep the Beginner grant even after the character becomes a Warrior.
@@ -432,6 +444,7 @@ TEST(AdvancementMappingTest, FirstStageMapsToEachJobsFirstAdvancement) {
   EXPECT_EQ(AdvancementForJobStage(JOB_SWORDMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
   EXPECT_EQ(AdvancementForJobStage(JOB_ARCHER, 1), JOB_ADVANCEMENT_ARCHER);
   EXPECT_EQ(AdvancementForJobStage(JOB_MAGICIAN, 1), JOB_ADVANCEMENT_MAGICIAN);
+  EXPECT_EQ(AdvancementForJobStage(JOB_ROGUE, 1), JOB_ADVANCEMENT_ROGUE);
 }
 
 TEST(AdvancementMappingTest, UnreachedStageHasNoAdvancement) {
@@ -446,6 +459,7 @@ TEST(AdvancementMappingTest, FirstAdvancementsBuyFromStageOne) {
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_SWORDMAN), 1);
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_ARCHER), 1);
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_MAGICIAN), 1);
+  EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_ROGUE), 1);
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_UNSPECIFIED), 0);
 }
 

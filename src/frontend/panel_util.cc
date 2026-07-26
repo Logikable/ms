@@ -163,6 +163,8 @@ std::string JobName(Job job) {
       return "Archer";
     case JOB_MAGICIAN:
       return "Magician";
+    case JOB_ROGUE:
+      return "Rogue";
     default:
       return "Unknown";
   }

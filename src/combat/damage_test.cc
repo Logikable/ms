@@ -312,6 +312,19 @@ TEST(OffenseStatsForTest, MagicianReadsIntAndSwingsOnMagicAttack) {
   EXPECT_EQ(offense.attack, 70);  // magic attack, not the 999
 }
 
+TEST(OffenseStatsForTest, RogueReadsLukAsTheMainStat) {
+  AllocatedStats allocated;
+  allocated.set_luk(50);
+  allocated.set_dex(30);
+  EquipStats equipped;
+  equipped.set_luk(5);
+  equipped.set_dex(3);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_ROGUE, 1, allocated, equipped, nullptr, 0);
+  EXPECT_EQ(offense.primary, 55);
+  EXPECT_EQ(offense.secondary, 33);  // and DEX backs it up
+}
+
 TEST(OffenseStatsForTest, NonMagiciansIgnoreMagicAttack) {
   EquipStats equipped;
   equipped.set_attack(40);

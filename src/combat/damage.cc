@@ -113,6 +113,11 @@ OffenseStats OffenseStatsFor(Job job, int level,
       offense.primary = allocated.int_() + equipped.int_();
       offense.secondary = allocated.luk() + equipped.luk();
       break;
+    case JOB_ROGUE:
+      // LUK primary, DEX secondary -- the magician's pair, swapped.
+      offense.primary = allocated.luk() + equipped.luk();
+      offense.secondary = allocated.dex() + equipped.dex();
+      break;
     default:
       break;
   }
