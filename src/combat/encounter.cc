@@ -43,6 +43,20 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   return attack;
 }
 
+// Whether `skill` can be swung with `weapon`. A skill that names no weapon
+// type is swingable with anything, which is the usual case.
+bool SwingableWith(const Skill& skill, EquipType weapon) {
+  if (skill.required_equip_type_size() == 0) {
+    return true;
+  }
+  for (int i = 0; i < skill.required_equip_type_size(); ++i) {
+    if (skill.required_equip_type(i) == weapon) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 CombatParams ComputeCombatParams(const GameState& state) {
@@ -101,6 +115,12 @@ CombatParams ComputeCombatParams(const GameState& state) {
       AttackFor(proto, total_stats, nullptr, 0, params.types, derived));
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     if (entry.second.kind() != SKILL_KIND_ATTACK) {
+      continue;
+    }
+    // A skill the weapon in hand cannot swing is not an option, however well
+    // learned. The bare poke always is, so the character is never left with
+    // nothing to attack with.
+    if (!SwingableWith(entry.second, weapon.equip_type())) {
       continue;
     }
     int learned = state.character.skill_level(entry.second);

@@ -3,6 +3,7 @@ syntax = "proto3";
 package ms;
 
 import "src/protos/character.proto";
+import "src/protos/equip.proto";
 
 // How a skill folds into the game. Combat is a single expected-damage
 // auto-attack, so skills are passive modifiers in one of two roles.
@@ -57,4 +58,10 @@ message Skill {
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.
   // Unset/0 is treated as 1.
   int32 lines = 8;
+  // Weapon types this skill can be swung with (attack skills). Empty means any
+  // weapon, which is what most skills want -- a swordman's job is decided by
+  // the job, not the sword. It exists for the thief, whose two first-job
+  // attacks are otherwise interchangeable: Double Stab needs a dagger and
+  // Lucky Seven a claw, so which one is learned is a real choice.
+  repeated EquipType required_equip_type = 9;
 }

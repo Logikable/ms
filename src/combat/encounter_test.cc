@@ -54,6 +54,17 @@ void EquipSword(GameState& state) {
   EquipSwordAt(state, ATTACK_SPEED_AVERAGE);
 }
 
+void EquipClaw(GameState& state) {
+  EquipPrototype claw;
+  claw.set_name("Garnier");
+  claw.set_equip_type(EQUIP_TYPE_CLAW);
+  claw.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  claw.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  claw.mutable_base_stats()->set_attack(100);
+  state.character.PickUp(std::make_unique<EquipInstance>(claw));
+  state.character.Equip(0);
+}
+
 // A passive that adds `stages` of attack speed, flat at every level.
 Skill SpeedPassive(int stages) {
   Skill skill;
@@ -128,6 +139,49 @@ TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
   // 183% against the poke's 100%, on the same mob.
   EXPECT_GT(params.attacks[1].damage_per_hit[0],
             params.attacks[0].damage_per_hit[0]);
+}
+
+// Double Stab and Lucky Seven are the same damage over the same reach; the
+// weapon in hand is the only thing that tells them apart, so an attack the
+// weapon cannot swing must not reach the fight as an option.
+TEST(ComputeCombatParamsTest, AttacksTheWeaponCannotSwingAreNotOptions) {
+  Skill lucky_seven;
+  lucky_seven.set_name("Lucky Seven");
+  lucky_seven.set_kind(SKILL_KIND_ATTACK);
+  lucky_seven.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  lucky_seven.set_max_level(20);
+  lucky_seven.add_required_equip_type(EQUIP_TYPE_CLAW);
+  lucky_seven.mutable_base()->set_skill_pct(0.72);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"lucky_seven", lucky_seven}});
+  state.current_map = "field";
+  EquipSword(state);  // a one-handed sword, not a claw
+  ASSERT_TRUE(state.character.LearnSkill(lucky_seven, 1));
+
+  // Learned, and still not on the list -- but the poke always is, so the
+  // character is never left with nothing to swing.
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 1u);
+  EXPECT_EQ(params.attacks[0].name, "Attack");
+}
+
+TEST(ComputeCombatParamsTest, AttacksTheWeaponCanSwingAreOptions) {
+  Skill lucky_seven;
+  lucky_seven.set_name("Lucky Seven");
+  lucky_seven.set_kind(SKILL_KIND_ATTACK);
+  lucky_seven.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  lucky_seven.set_max_level(20);
+  lucky_seven.add_required_equip_type(EQUIP_TYPE_CLAW);
+  lucky_seven.mutable_base()->set_skill_pct(0.72);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"lucky_seven", lucky_seven}});
+  state.current_map = "field";
+  EquipClaw(state);
+  ASSERT_TRUE(state.character.LearnSkill(lucky_seven, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.attacks[1].name, "Lucky Seven");
 }
 
 // A passive that grants a primary stat has no lever of its own in the damage

@@ -9,6 +9,7 @@ job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20
 lines: 3
 max_enemies: 5
+required_equip_type: EQUIP_TYPE_CLAW
 base {
   skill_pct: 0.72
 }
