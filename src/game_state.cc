@@ -26,34 +26,20 @@ Character MakeBaseBeginnerProto() {
   return proto;
 }
 
-// The level a fresh character starts at, for testing. Level 30 is the top of
-// the 1st-job band, so the whole 60-point SP pool is on hand -- exactly enough
-// to max every 1st-job skill and see what they do.
-constexpr int kStartingLevel = 30;
+// The level a fresh character starts at, for testing. Level 10 is where the
+// first job advancement opens, so the game begins at the choice -- which job
+// the character becomes is now the player's to make, not this file's.
+constexpr int kStartingLevel = 10;
 
-// The job the starting character advances into at level 10. Magician for now,
-// to exercise the newest job -- there is no advancement UI, so this is the only
-// way to reach anything but a Beginner. Swap it to test a different job.
-constexpr Job kStartingJob = JOB_ROGUE;
-
-// A first-job character to start with, so there is 1st-job SP (and AP) on hand
-// to test skills. Built by running the real leveling and advancement mechanics
-// rather than hardcoding totals, so AP and SP stay consistent with the level
-// and job if either is changed here.
+// A Beginner standing at its first advancement. Built by running the real
+// leveling mechanics rather than hardcoding totals, so AP and HP stay
+// consistent with the level if it is changed here.
 Character MakeStartingCharacterProto() {
-  // LevelUp and AdvanceJob don't consume randomness; a local rng keeps this
-  // independent of GameState's member rng and its construction order.
+  // LevelUp doesn't consume randomness; a local rng keeps this independent of
+  // GameState's member rng and its construction order.
   std::mt19937 rng(0);
   CharacterInstance character(rng, MakeBaseBeginnerProto());
   while (character.proto().level() < kStartingLevel) {
-    // Advance at the first level it is allowed, the way a real character would:
-    // a level-up grants HP and MP at the job held at the time, so leaving the
-    // advancement to the end would bank every level at the Beginner rate.
-    // CanAdvanceJob gates the WHEN (level 10); the job itself is forced,
-    // since this builder is not the UI and has one job in mind.
-    if (character.CanAdvanceJob()) {
-      character.AdvanceJob(kStartingJob);
-    }
     character.LevelUp();
   }
   return character.proto();

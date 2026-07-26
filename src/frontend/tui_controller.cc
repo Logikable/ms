@@ -15,6 +15,7 @@
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
+#include "src/job_advancement.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
@@ -63,6 +64,14 @@ void TuiController::OpenSkillLearn(const Skill& skill) {
   screen_ = kSkillLearn;
 }
 
+void TuiController::OpenJobAdvance(Job job) {
+  job_advance_ = job;
+  // Opens on Cancel: an advancement cannot be undone, so Enter alone must not
+  // be able to pick a job the player was only reading.
+  job_advance_prompt_.Open(/*cancel_selected=*/true);
+  screen_ = kJobAdvance;
+}
+
 void TuiController::OpenMapSelect() {
   screen_ = kMapSelect;
   map_select_panel_.Reset();
@@ -106,6 +115,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
   }
   if (screen_ == kSkillLearn) {
     return OnSkillLearnEvent(event);
+  }
+  if (screen_ == kJobAdvance) {
+    return OnJobAdvanceEvent(event);
   }
   if (screen_ == kStarForce) {
     return OnStarForceEvent(event);
@@ -258,6 +270,17 @@ bool TuiController::OnSkillLearnEvent(ftxui::Event event) {
     state_.character.LearnSkill(skill_learn_, sp_selector_.value());
     screen_ = kMain;
   } else if (sp_selector_.TakeCancelled()) {
+    screen_ = kMain;
+  }
+  return true;
+}
+
+bool TuiController::OnJobAdvanceEvent(ftxui::Event event) {
+  ConfirmChoice choice = job_advance_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kConfirmed) {
+    PerformJobAdvancement(state_, job_advance_);
+    screen_ = kMain;
+  } else if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
   }
   return true;

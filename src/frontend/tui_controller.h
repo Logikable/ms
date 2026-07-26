@@ -14,6 +14,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/amount_selector.h"
+#include "src/frontend/confirm_prompt.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/map_select_panel.h"
@@ -50,6 +51,9 @@ class TuiController {
   // up to the most points `skill` can still take (its stage SP, capped at how
   // far it is below max level).
   void OpenSkillLearn(const Skill& skill);
+  // Float the job-advancement confirmation over the main view. The prompt opens
+  // on Cancel: the choice cannot be taken back.
+  void OpenJobAdvance(Job job);
   // Open the map selection screen, on the map being farmed.
   void OpenMapSelect();
 
@@ -68,6 +72,15 @@ class TuiController {
   }
   const AmountSelector& sp_selector() const {
     return sp_selector_;
+  }
+
+  // The job the pending advancement would take, and its prompt, for the dialog
+  // Tui floats over the main view.
+  Job job_advance_job() const {
+    return job_advance_;
+  }
+  const ConfirmPrompt& job_advance_prompt() const {
+    return job_advance_prompt_;
   }
 
   // Returns true if the event was consumed.
@@ -104,6 +117,7 @@ class TuiController {
   bool OnScrollResultEvent(ftxui::Event event);
   bool OnApAllocEvent(ftxui::Event event);
   bool OnSkillLearnEvent(ftxui::Event event);
+  bool OnJobAdvanceEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
@@ -134,6 +148,8 @@ class TuiController {
   AmountSelector ap_selector_;
   Skill skill_learn_;
   AmountSelector sp_selector_;
+  Job job_advance_ = JOB_UNSPECIFIED;
+  ConfirmPrompt job_advance_prompt_;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;
   TraceRecoveryResult trace_recovery_result_;

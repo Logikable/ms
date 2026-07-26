@@ -74,7 +74,8 @@ void Tui::Run() {
       [this]() { controller_.OpenInventoryMenu(); });
   char_component_ = char_panel_.MakeComponent(
       [this](StatField field) { controller_.OpenApAllocate(field); },
-      [this](const Skill& skill) { controller_.OpenSkillLearn(skill); });
+      [this](const Skill& skill) { controller_.OpenSkillLearn(skill); },
+      [this](Job job) { controller_.OpenJobAdvance(job); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
 
@@ -141,6 +142,25 @@ ftxui::Element Tui::RenderFrame() {
                          ThemedSeparator(),
                          controller_.sp_selector().Render(),
                      }));
+    return ftxui::dbox({
+        RenderMain(),
+        ftxui::center(dialog | ftxui::clear_under),
+    });
+  }
+  if (controller_.screen() == kJobAdvance) {
+    // Float the confirmation over the main view, so the job list the choice
+    // came from stays behind it. A blank row separates the warning from the
+    // buttons, as on every other confirmation.
+    ftxui::Element dialog = ThemedWindow(
+        " Job Advancement ",
+        ftxui::vbox({
+            ftxui::text("Advance to " + JobName(controller_.job_advance_job()) +
+                        "?") |
+                ftxui::hcenter,
+            ftxui::text("This action is irreversible.") | ftxui::hcenter,
+            ftxui::text(""),
+            controller_.job_advance_prompt().Render() | ftxui::hcenter,
+        }));
     return ftxui::dbox({
         RenderMain(),
         ftxui::center(dialog | ftxui::clear_under),

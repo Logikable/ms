@@ -47,6 +47,12 @@ class TuiControllerTest : public testing::Test {
 
     std::map<std::string, EquipPrototype> equips;
     equips["Sword"] = sword_;
+    // A stand-in under the catalog key a Magician's advancement asks for, so
+    // the advancement tests see gear arrive without loading data/equip.
+    EquipPrototype wand;
+    wand.set_name("Wooden Wand");
+    wand.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    equips["wooden_wand"] = wand;
     std::map<std::string, Scroll> scrolls;
     scrolls["Test Scroll"] = scroll;
 
@@ -55,6 +61,11 @@ class TuiControllerTest : public testing::Test {
                                          std::map<std::string, Mob>{},
                                          std::map<std::string, MapData>{});
     state_->character.AdvanceJob(JOB_SWORDMAN);
+    // The starting character stands at its advancement with no SP yet; these
+    // tests spend SP, so they level far enough to have some of their own.
+    while (state_->character.sp(1) < 60) {
+      state_->character.LevelUp();
+    }
     equip_panel_ =
         std::make_unique<EquippedPanel>(state_->character, panel_focus_);
     inventory_panel_ =
@@ -295,6 +306,43 @@ TEST_F(TuiControllerTest, ConfirmLearnsTheChosenPoints) {
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.skill_level(skill), 1);
   EXPECT_EQ(state_->character.sp(1), sp_before - 1);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// --- Job advancement ---
+
+TEST_F(TuiControllerTest, OpenJobAdvanceFloatsTheConfirmation) {
+  controller_->OpenJobAdvance(JOB_ROGUE);
+  EXPECT_EQ(controller_->screen(), kJobAdvance);
+  EXPECT_EQ(controller_->job_advance_job(), JOB_ROGUE);
+}
+
+// The prompt opens on Cancel, so a stray Enter backs out rather than picking a
+// job the player cannot un-pick.
+TEST_F(TuiControllerTest, EnterAloneDoesNotAdvance) {
+  Job before = state_->character.proto().job();
+  controller_->OpenJobAdvance(JOB_ROGUE);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.proto().job(), before);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, ConfirmingAdvancesAndHandsOverTheGear) {
+  int bag_before = state_->character.inventory().size();
+  controller_->OpenJobAdvance(JOB_MAGICIAN);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // [Cancel] -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.proto().job(), JOB_MAGICIAN);
+  EXPECT_EQ(state_->character.proto().allocated_stats().int_(), 25);
+  EXPECT_GT(state_->character.inventory().size(), bag_before);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, EscapeLeavesTheJobAlone) {
+  Job before = state_->character.proto().job();
+  controller_->OpenJobAdvance(JOB_ARCHER);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(state_->character.proto().job(), before);
   EXPECT_EQ(controller_->screen(), kMain);
 }
 

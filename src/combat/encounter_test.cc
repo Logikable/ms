@@ -115,6 +115,15 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
   EXPECT_GT(params.attacks[0].damage_per_hit[0], 0.0);
 }
 
+// Levels the character up until its first-job SP pool can pay for `points`.
+// These tests are about combat, not about whatever job or level the starting
+// character happens to carry, so they buy their own SP.
+void GrantFirstJobSp(GameState& state, int points) {
+  while (state.character.sp(1) < points) {
+    state.character.LevelUp();
+  }
+}
+
 TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
   Skill slash;
   slash.set_name("Slash Blast");
@@ -127,7 +136,7 @@ TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
                   {{"field", TwoSnailMap()}}, {{"slash_blast", slash}});
   state.current_map = "field";
   EquipSword(state);
-  // The starting level-15 Warrior has stage-1 SP to spend.
+  GrantFirstJobSp(state, 1);
   ASSERT_TRUE(state.character.LearnSkill(slash, 1));
 
   // The poke stays on the list; the skill joins it, and the fight chooses.
@@ -156,6 +165,7 @@ TEST(ComputeCombatParamsTest, AttacksTheWeaponCannotSwingAreNotOptions) {
                   {{"field", TwoSnailMap()}}, {{"lucky_seven", lucky_seven}});
   state.current_map = "field";
   EquipSword(state);  // a one-handed sword, not a claw
+  GrantFirstJobSp(state, 1);
   ASSERT_TRUE(state.character.LearnSkill(lucky_seven, 1));
 
   // Learned, and still not on the list -- but the poke always is, so the
@@ -177,6 +187,7 @@ TEST(ComputeCombatParamsTest, AttacksTheWeaponCanSwingAreOptions) {
                   {{"field", TwoSnailMap()}}, {{"lucky_seven", lucky_seven}});
   state.current_map = "field";
   EquipClaw(state);
+  GrantFirstJobSp(state, 1);
   ASSERT_TRUE(state.character.LearnSkill(lucky_seven, 1));
 
   CombatParams params = ComputeCombatParams(state);
@@ -204,6 +215,7 @@ TEST(ComputeCombatParamsTest, StatGrantingPassivesReachTheSwing) {
   state.character.AdvanceJob(JOB_ROGUE);
 
   double before = ComputeCombatParams(state).attacks[0].damage_per_hit[0];
+  GrantFirstJobSp(state, 20);
   ASSERT_TRUE(state.character.LearnSkill(nimble, 20));
   double after = ComputeCombatParams(state).attacks[0].damage_per_hit[0];
   EXPECT_GT(after, before);  // 20 LUK on a rogue's main stat
@@ -216,6 +228,7 @@ TEST(ComputeCombatParamsTest, AttackSpeedPassiveShortensTheSwing) {
   state.current_map = "field";
   EquipSword(state);  // AVERAGE (stage 4)
   double slow = ComputeCombatParams(state).swing_seconds;
+  GrantFirstJobSp(state, 1);
   ASSERT_TRUE(state.character.LearnSkill(haste, 1));
   double fast = ComputeCombatParams(state).swing_seconds;
   EXPECT_LT(fast, slow);  // +1 stage swings sooner
@@ -229,6 +242,7 @@ TEST(ComputeCombatParamsTest, AttackSpeedIsCappedAtTheFastestTier) {
                        {{"field", TwoSnailMap()}}, {{"haste", haste}});
   fast_state.current_map = "field";
   EquipSwordAt(fast_state, ATTACK_SPEED_AVERAGE);
+  GrantFirstJobSp(fast_state, 1);
   ASSERT_TRUE(fast_state.character.LearnSkill(haste, 1));
 
   GameState cap_state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
