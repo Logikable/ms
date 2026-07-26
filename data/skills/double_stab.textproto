@@ -1,0 +1,17 @@
+# Two stabs of 85+4x%, so 178% a target at level 1 and 330% at max. GMS runs
+# 90+5x over 15 levels; stretching it to 20 keeps the same 165% a stab at the
+# top, which is the rule every skill here follows. Dagger-only in GMS -- the
+# weapon gate arrives with the daggers, and until then this and Lucky Seven are
+# interchangeable, being the same 330% over the same 5 targets at max.
+name: "Double Stab"
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_ROGUE
+max_level: 20
+lines: 2
+max_enemies: 5
+base {
+  skill_pct: 0.89
+}
+per_level {
+  skill_pct: 0.04
+}

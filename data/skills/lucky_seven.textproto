@@ -1,0 +1,17 @@
+# Three stars of 70+2x%, so 216% a target at level 1 and 330% at max -- level
+# with Double Stab there, and ahead of it every step before. GMS runs 65+3x
+# over 15 levels; the max is preserved at 110% a star. Claw-only, and the claw
+# is what makes the two skills differ: equipped throwing stars add their attack
+# to a claw's swing and to nothing else.
+name: "Lucky Seven"
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_ROGUE
+max_level: 20
+lines: 3
+max_enemies: 5
+base {
+  skill_pct: 0.72
+}
+per_level {
+  skill_pct: 0.02
+}
