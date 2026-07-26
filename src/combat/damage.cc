@@ -45,6 +45,12 @@ constexpr int kBowBaseAttackDelayMs = 800;
 // stage 4 like bows, so a magician swings at a bow's pace until MP Boost.
 constexpr int kWandBaseAttackDelayMs = 800;
 
+// Daggers and claws share it too. A thief's weapons are quick, but that speed
+// is already in the stage on the item -- stage 6 against a sword's 5 -- and
+// counting it twice would make the whole class swing wrong.
+constexpr int kDaggerBaseAttackDelayMs = 800;
+constexpr int kClawBaseAttackDelayMs = 800;
+
 // Level multiplier: 1.1 at equal level, +0.02 per level above, capped at +5.
 constexpr double kEqualLevelMultiplier = 1.1;
 constexpr double kAboveLevelStep = 0.02;
@@ -191,6 +197,10 @@ int BaseAttackDelayMs(EquipType equip_type) {
       return kBowBaseAttackDelayMs;
     case EQUIP_TYPE_WAND:
       return kWandBaseAttackDelayMs;
+    case EQUIP_TYPE_DAGGER:
+      return kDaggerBaseAttackDelayMs;
+    case EQUIP_TYPE_CLAW:
+      return kClawBaseAttackDelayMs;
     default:
       // Fail safe: fall back to the one-handed swing until other weapon types
       // are added, keeping the swing interval non-zero.

@@ -1,0 +1,10 @@
+name: "Fruit Knife"
+required_level: 10
+base_stats {
+  attack: 25
+}
+attack_speed: ATTACK_SPEED_FAST_2
+equip_type: EQUIP_TYPE_DAGGER
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
