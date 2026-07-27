@@ -42,7 +42,7 @@ void StarForcePanel::SetItem(const EquipInstance* item) {
 
 ftxui::Element StarForcePanel::Render() const {
   if (item_ == nullptr) {
-    return ThemedWindow(" Star Force ", ftxui::text(" (no item) "));
+    return ThemedWindow(" Star Force ", EmptyState("no item"));
   }
 
   int stars = item_->stars();

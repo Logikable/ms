@@ -158,7 +158,7 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
   rows.push_back(ThemedSeparator());
   const std::vector<std::string>& page = pages_[page_];
   if (page.empty()) {
-    rows.push_back(ftxui::text("(none)"));
+    rows.push_back(EmptyState("empty"));
   }
   for (int i = 0; i < static_cast<int>(page.size()); ++i) {
     const MapData& map = state_.maps.at(page[i]);
@@ -207,7 +207,7 @@ ftxui::Element MapSelectPanel::RenderMobTable() const {
     }
   }
   if (shown == 0) {
-    rows.push_back(ftxui::text(" (none)"));
+    rows.push_back(EmptyState("empty"));
   }
   return ThemedWindow(" Mobs ", ftxui::vbox(rows));
 }

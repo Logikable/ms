@@ -221,6 +221,10 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                                            label_color);
 }
 
+ftxui::Element EmptyState(const std::string& what, int gutter) {
+  return ftxui::text(std::string(gutter, ' ') + "(" + what + ")");
+}
+
 ftxui::Element TabChip(const std::string& label, bool active,
                        bool row_focused) {
   ftxui::Element chip = ftxui::text(" " + label + " ");

@@ -73,7 +73,7 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
                                std::to_string(stacks[i].count())));
   }
   if (stacks.empty()) {
-    rows.push_back(ftxui::text("  (empty)"));
+    rows.push_back(EmptyState("empty", /*gutter=*/2));
   }
   return ftxui::vbox(std::move(rows));
 }
@@ -233,7 +233,7 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
     selected_ = std::min(selected_, character_.inventory().size() - 1);
   }
   if (entries_.empty()) {
-    return ftxui::text("  (empty)");
+    return EmptyState("empty", /*gutter=*/2);
   }
   return ftxui::vbox({
       ftxui::text(kColumnHeader),

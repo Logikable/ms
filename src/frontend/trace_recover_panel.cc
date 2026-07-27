@@ -45,7 +45,7 @@ EquipInstance TraceRecoverPanel::PreviewResult() const {
 ftxui::Element TraceRecoverPanel::RenderTabs() const {
   if (matching_indices_.empty()) {
     return ftxui::vbox({
-        ftxui::text(" (no matching items) ") | ftxui::hcenter,
+        EmptyState("no matching items") | ftxui::hcenter,
         ThemedSeparator(),
     });
   }

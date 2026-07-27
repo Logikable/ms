@@ -206,7 +206,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
               std::min(selected_, static_cast<int>(entries_.size()) - 1);
         }
         if (entries_.empty()) {
-          return ThemedWindow(" Equipped ", ftxui::text("(empty)"), focused);
+          return ThemedWindow(" Equipped ", EmptyState("empty"), focused);
         }
         return ThemedWindow(" Equipped ",
                             ftxui::vbox({

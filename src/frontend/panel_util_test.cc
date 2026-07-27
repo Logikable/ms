@@ -195,6 +195,24 @@ TEST(ProgressBarTest, EmptyLabelLeavesTheBarBlank) {
   EXPECT_EQ(screen.PixelAt(5, 0).character, " ");
 }
 
+// --- EmptyState ---
+
+TEST(EmptyStateTest, WrapsTheReasonInParenthesesAfterOneSpace) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(8),
+                                               ftxui::Dimension::Fixed(1));
+  ftxui::Render(screen, EmptyState("empty"));
+  EXPECT_EQ(screen.ToString(), " (empty)");
+}
+
+// The gutter exists so the row lines up with the "  " / "> " cursor column of
+// the list it stands in for.
+TEST(EmptyStateTest, IndentsByTheRequestedGutter) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(9),
+                                               ftxui::Dimension::Fixed(1));
+  ftxui::Render(screen, EmptyState("empty", /*gutter=*/2));
+  EXPECT_EQ(screen.ToString(), "  (empty)");
+}
+
 // --- TabChip ---
 
 // Renders one chip onto its own screen so its pixels can be inspected. The

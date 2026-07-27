@@ -262,7 +262,7 @@ TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {
   panel.Reset();
 
   EXPECT_EQ(panel.selected_map(), "");
-  EXPECT_NE(Render(panel).find("(none)"), std::string::npos);
+  EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
 }
 
 }  // namespace

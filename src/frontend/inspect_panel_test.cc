@@ -44,7 +44,7 @@ class InspectPanelTest : public PanelTest {
 
 TEST_F(InspectPanelTest, NullItemShowsPlaceholder) {
   InspectPanel panel;
-  EXPECT_NE(Render(panel).find("(none)"), std::string::npos);
+  EXPECT_NE(Render(panel).find("(no item)"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ShowsItemName) {

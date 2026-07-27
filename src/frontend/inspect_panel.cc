@@ -16,7 +16,7 @@ void InspectPanel::SetItem(const EquipTabItem* item) {
 
 ftxui::Element InspectPanel::Render() const {
   if (item_ == nullptr) {
-    return ThemedWindow(" Inspect ", ftxui::text(" (none)"));
+    return ThemedWindow(" Inspect ", EmptyState("no item"));
   }
 
   const Equip& item_state = item_->equip_state();
@@ -65,7 +65,7 @@ ftxui::Element InspectPanel::Render() const {
   }
 
   if (!any_stat) {
-    rows.push_back(ftxui::text(" (no stats) "));
+    rows.push_back(EmptyState("no stats"));
   }
 
   if (proto.upgrade_slots() > 0) {
