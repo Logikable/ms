@@ -256,6 +256,29 @@ cc_test(
 )
 
 cc_library(
+    name = "item_ref",
+    srcs = ["item_ref.cc"],
+    hdrs = ["item_ref.h"],
+    deps = [
+        "//src:character",
+        "//src:equip_instance",
+        "//src:item",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "item_ref_test",
+    srcs = ["item_ref_test.cc"],
+    deps = [
+        ":item_ref",
+        ":panel_test_base",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "confirm_prompt",
     srcs = ["confirm_prompt.cc"],
     hdrs = ["confirm_prompt.h"],
@@ -420,6 +443,7 @@ cc_library(
         ":confirm_prompt",
         ":equipped_panel",
         ":inventory_panel",
+        ":item_ref",
         ":map_select_panel",
         ":panel_util",
         ":scroll_panel",

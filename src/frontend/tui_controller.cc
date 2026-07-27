@@ -77,24 +77,25 @@ void TuiController::OpenMapSelect() {
   map_select_panel_.Reset();
 }
 
+ItemRef TuiController::SelectedItem() const {
+  if (panel_focus_ == kEquipPanel) {
+    return ItemRef::Equipped(equip_panel_.selected_slot());
+  }
+  return ItemRef::InBag(inventory_panel_.selected());
+}
+
 const EquipTabItem* TuiController::inspect_item() const {
   if (screen_ != kInspect) {
     return nullptr;
   }
-  if (panel_focus_ == kEquipPanel) {
-    return &state_.character.equipped().at(inspect_slot_);
-  }
-  return &state_.character.inventory()[inspect_index_];
+  return inspect_ref_.Get(state_.character);
 }
 
 const EquipInstance* TuiController::scroll_item() const {
   if (screen_ != kScrollSelect && screen_ != kScrollResult) {
     return nullptr;
   }
-  if (panel_focus_ == kEquipPanel) {
-    return &state_.character.equipped().at(scroll_slot_);
-  }
-  return state_.character.inventory().equip_instance(scroll_index_);
+  return scroll_ref_.GetInstance(state_.character);
 }
 
 bool TuiController::OnEvent(ftxui::Event event) {
@@ -145,30 +146,20 @@ bool TuiController::OnEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnItemMenuEvent(ftxui::Event event) {
-  Screen next =
-      panel_focus_ == kEquipPanel
-          ? equip_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_)
-          : inventory_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
+  Screen next;
+  if (panel_focus_ == kEquipPanel) {
+    next = equip_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
+  } else {
+    next = inventory_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
+  }
   if (next == kInspect) {
-    if (panel_focus_ == kEquipPanel) {
-      inspect_slot_ = equip_panel_.selected_slot();
-    } else {
-      inspect_index_ = inventory_panel_.selected();
-    }
+    inspect_ref_ = SelectedItem();
   }
   if (next == kScrollSelect) {
-    if (panel_focus_ == kEquipPanel) {
-      scroll_slot_ = equip_panel_.selected_slot();
-    } else {
-      scroll_index_ = inventory_panel_.selected();
-    }
+    scroll_ref_ = SelectedItem();
   }
   if (next == kStarForce) {
-    if (panel_focus_ == kEquipPanel) {
-      star_force_slot_ = equip_panel_.selected_slot();
-    } else {
-      star_force_index_ = inventory_panel_.selected();
-    }
+    star_force_ref_ = SelectedItem();
     star_force_panel_.ResetConfirm();
   }
   if (next == kTraceRecover) {
@@ -225,18 +216,10 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
   }
   scroll_panel_.OnEvent(event);
   if (scroll_panel_.TakeConfirmed()) {
-    const EquipInstance* item =
-        panel_focus_ == kEquipPanel
-            ? &state_.character.equipped().at(scroll_slot_)
-            : state_.character.inventory().equip_instance(scroll_index_);
+    const EquipInstance* item = scroll_ref_.GetInstance(state_.character);
     std::string equip_name = item->prototype().name();
     const Scroll& scroll = scroll_panel_.selected_scroll();
-    ScrollOutcome outcome;
-    if (panel_focus_ == kEquipPanel) {
-      outcome = state_.character.ScrollEquipped(scroll_slot_, scroll);
-    } else {
-      outcome = state_.character.ScrollInventory(scroll_index_, scroll);
-    }
+    ScrollOutcome outcome = ScrollItem(state_.character, scroll_ref_, scroll);
     int slots_remaining =
         item ? item->equip_state().remaining_upgrade_slots() : 0;
     scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining,
@@ -290,10 +273,7 @@ const EquipInstance* TuiController::star_force_item() const {
   if (screen_ != kStarForce) {
     return nullptr;
   }
-  if (panel_focus_ == kEquipPanel) {
-    return &state_.character.equipped().at(star_force_slot_);
-  }
-  return state_.character.inventory().equip_instance(star_force_index_);
+  return star_force_ref_.GetInstance(state_.character);
 }
 
 bool TuiController::OnStarForceEvent(ftxui::Event event) {
@@ -309,12 +289,7 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
   if (star_force_panel_.TakeConfirmed()) {
     std::string equip_name = item->prototype().name();
     int stars_before = item->stars();
-    StarForceOutcome outcome;
-    if (panel_focus_ == kEquipPanel) {
-      outcome = state_.character.StarForceEquipped(star_force_slot_);
-    } else {
-      outcome = state_.character.StarForceInventory(star_force_index_);
-    }
+    StarForceOutcome outcome = StarForceItem(state_.character, star_force_ref_);
     int stars_after = stars_before + (outcome == kStarForceSuccess ? 1 : 0);
     star_force_result_ = {outcome, equip_name, stars_before, stars_after};
     screen_ = kStarForceResult;

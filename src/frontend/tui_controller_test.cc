@@ -837,6 +837,67 @@ TEST_F(TuiControllerTest, BagInspectGoesToInspect) {
   EXPECT_NE(controller_->inspect_item(), nullptr);
 }
 
+// The accessors resolve whichever half the player opened the modal from. The
+// controller settles that when the item is picked, so these cover both halves
+// of that decision reaching the right item back.
+
+TEST_F(TuiControllerTest, EquipInspectResolvesTheWornItem) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+
+  ASSERT_NE(controller_->inspect_item(), nullptr);
+  EXPECT_EQ(controller_->inspect_item(),
+            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
+}
+
+TEST_F(TuiControllerTest, BagInspectResolvesTheBagItem) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+
+  ASSERT_NE(controller_->inspect_item(), nullptr);
+  EXPECT_EQ(controller_->inspect_item(), &state_->character.inventory()[0]);
+}
+
+TEST_F(TuiControllerTest, EquipScrollResolvesTheWornItem) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->scroll_item(),
+            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
+}
+
+// Taking focus elsewhere after opening the modal must not change which item it
+// is about -- the old code re-read panel_focus_ every time and would have
+// followed it.
+TEST_F(TuiControllerTest, MovingFocusDoesNotRepointAnOpenModal) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  panel_focus_ = kInventoryPanel;
+
+  EXPECT_EQ(controller_->inspect_item(),
+            &state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON));
+}
+
 // --- Sell via Etc tab ---
 
 TEST_F(TuiControllerTest, SellMenuSellGoesToSellScreen) {

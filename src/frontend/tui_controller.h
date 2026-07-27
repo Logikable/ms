@@ -17,6 +17,7 @@
 #include "src/frontend/confirm_prompt.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
+#include "src/frontend/item_ref.h"
 #include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
@@ -111,6 +112,10 @@ class TuiController {
   const EquipTabItem* trace_recover_item() const;
 
  private:
+  // Where the item under the cursor of the focused panel lives. The one place
+  // that reads panel_focus_ to answer that question.
+  ItemRef SelectedItem() const;
+
   bool OnItemMenuEvent(ftxui::Event event);
   bool OnInspectEvent(ftxui::Event event);
   bool OnScrollSelectEvent(ftxui::Event event);
@@ -135,12 +140,13 @@ class TuiController {
   MapSelectPanel& map_select_panel_;
   int& panel_focus_;
   Screen screen_ = kMain;
-  EquipSlot scroll_slot_ = EQUIP_SLOT_UNSPECIFIED;
-  int scroll_index_ = 0;
-  EquipSlot inspect_slot_ = EQUIP_SLOT_UNSPECIFIED;
-  int inspect_index_ = 0;
-  EquipSlot star_force_slot_ = EQUIP_SLOT_UNSPECIFIED;
-  int star_force_index_ = 0;
+  // Each modal remembers the item it was opened on. Where that item lives is
+  // settled once, when the player picks it, so nothing downstream has to ask
+  // which panel had focus at the time.
+  ItemRef scroll_ref_;
+  ItemRef inspect_ref_;
+  ItemRef star_force_ref_;
+  // Recovery is a bag-only affair: a trace cannot be worn.
   int trace_index_ = 0;
   ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
   int sell_index_ = 0;
