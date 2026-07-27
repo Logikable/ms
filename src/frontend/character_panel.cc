@@ -25,7 +25,7 @@ constexpr int kContentWidth = 33;  // chars inside the window border
 
 // One line of the panel's heading block, centred over the content width.
 std::string Centered(const std::string& s) {
-  int pad = std::max(0, (kContentWidth - (int)s.size()) / 2);
+  int pad = std::max(0, (kContentWidth - static_cast<int>(s.size())) / 2);
   return PadRight(std::string(pad, ' ') + s, kContentWidth);
 }
 
@@ -259,7 +259,7 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
     rows.push_back(ftxui::text(PadRight(" No skills yet.", kContentWidth)) |
                    ftxui::dim);
   } else {
-    for (int i = 0; i < (int)skills.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(skills.size()); ++i) {
       rows.push_back(RenderSkillRow(*skills[i], i, rows_focused));
     }
   }
@@ -449,7 +449,7 @@ bool CharacterPanel::OnSkillsTabEvent(
     return true;
   }
   if (event == ftxui::Event::ArrowDown) {
-    if (skill_sel_ < (int)skills.size() - 1) {
+    if (skill_sel_ < static_cast<int>(skills.size()) - 1) {
       skill_sel_++;
     }
     return true;

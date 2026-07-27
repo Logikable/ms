@@ -89,10 +89,10 @@ const DisplayStat* DisplayStatFor(StatField field) {
 }
 
 std::string PadRight(const std::string& s, int width) {
-  if ((int)s.size() >= width) {
+  if (static_cast<int>(s.size()) >= width) {
     return s.substr(0, width);
   }
-  return s + std::string(width - (int)s.size(), ' ');
+  return s + std::string(width - static_cast<int>(s.size()), ' ');
 }
 
 std::string PadLeft(const std::string& s, int width) {
@@ -104,7 +104,7 @@ std::string PadLeft(const std::string& s, int width) {
 
 std::string FormatWithCommas(int64_t n) {
   std::string digits = std::to_string(n < 0 ? -n : n);
-  int pos = (int)digits.size() - 3;
+  int pos = static_cast<int>(digits.size()) - 3;
   while (pos > 0) {
     digits.insert(pos, ",");
     pos -= 3;

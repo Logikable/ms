@@ -285,7 +285,8 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
     // competes with the white tab-bar highlight above.
     std::string cursor = state.focused && zone_ == kZoneList ? "> " : "  ";
     int idx = state.index;
-    if (idx < 0 || idx >= (int)rows_.size() || (int)lbl.size() < 60) {
+    if (idx < 0 || idx >= static_cast<int>(rows_.size()) ||
+        static_cast<int>(lbl.size()) < 60) {
       return ftxui::text(cursor + lbl);
     }
     const InventoryRowState& row = rows_[idx];
