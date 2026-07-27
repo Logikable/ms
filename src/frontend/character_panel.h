@@ -17,8 +17,10 @@
  * spend -- every row stays reachable, since they are worth reading either way.
  * On the Skills tab the content zone is the advancement tab bar,
  * where Left/Right switch advancement tabs and Up returns to the outer tab bar.
- * On the Advance tab it is the job list, where Up/Down move the caret and
- * Enter fires on_advance.
+ * Down from there reaches the skill rows, which carry two columns: Left/Right
+ * move between the name and the [+], Enter on the name fires on_inspect and
+ * Enter on the [+] fires on_learn. On the Advance tab the content zone is the
+ * job list, where Up/Down move the caret and Enter fires on_advance.
  * Produces a new ftxui Element on each Render() call.
  */
 #ifndef MS_SRC_FRONTEND_CHARACTER_PANEL_H_
@@ -56,10 +58,14 @@ class CharacterPanel {
   // skill's [+] when it can still take a point. Either pops an amount entry.
   // on_advance(job) fires on Enter over an Advance-tab job, and should open a
   // confirmation -- the panel does not perform the advancement itself.
+  // on_inspect(skill) fires on Enter over a Skills-tab skill's name, and should
+  // open the skill's inspect screen. Unlike on_learn it is never gated: a
+  // maxed skill with no SP behind it is still worth reading about.
   ftxui::Component MakeComponent(
       std::function<void(StatField)> on_allocate,
       std::function<void(const Skill&)> on_learn = {},
-      std::function<void(Job)> on_advance = {});
+      std::function<void(Job)> on_advance = {},
+      std::function<void(const Skill&)> on_inspect = {});
 
  private:
   // The panel's tabs, in bar order. Advance is only on the bar while an
@@ -77,6 +83,10 @@ class CharacterPanel {
     kZoneJobRows
   };
 
+  // The two things a skill row offers, left to right. Left/Right move between
+  // them; each answers a different Enter.
+  enum SkillCol { kColName, kColPlus };
+
   // Per-focus-area event handlers, dispatched from MakeComponent by zone. Each
   // returns whether it consumed the event. OnTabsEvent drives the shared outer
   // tab bar (kZoneTabs); the other two own their tab's content zones -- the
@@ -85,7 +95,8 @@ class CharacterPanel {
   bool OnStatsTabEvent(const ftxui::Event& event,
                        const std::function<void(StatField)>& on_allocate);
   bool OnSkillsTabEvent(const ftxui::Event& event,
-                        const std::function<void(const Skill&)>& on_learn);
+                        const std::function<void(const Skill&)>& on_learn,
+                        const std::function<void(const Skill&)>& on_inspect);
   bool OnAdvanceTabEvent(const ftxui::Event& event,
                          const std::function<void(Job)>& on_advance);
 
@@ -114,8 +125,9 @@ class CharacterPanel {
   // The skills of the given job stage, in catalog order. Empty if none.
   std::vector<const Skill*> SkillsForStage(int stage) const;
   // Renders one skill row: "name  level/max" on the left, a [+] button on the
-  // right. The [+] is dimmed when the skill is maxed or its stage has no SP,
-  // and inverted on the selected row while the skill rows hold focus.
+  // right. Whichever column the cursor is on inverts, on the selected row while
+  // the skill rows hold focus. The [+] is dimmed when the skill is maxed or its
+  // stage has no SP; the name never dims, since it can always be read.
   ftxui::Element RenderSkillRow(const Skill& skill, int index,
                                 bool rows_focused) const;
   // The MP row with unspent AP right-aligned as "N AP".
@@ -134,7 +146,8 @@ class CharacterPanel {
   int stat_sel_ = 0;       // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
   int skill_tab_ = 0;      // selected advancement tab (0-based stage index)
   int skill_sel_ = 0;      // selected skill row within the current stage
-  int job_sel_ = 0;        // selected Advance-tab job row
+  SkillCol skill_col_ = kColName;  // selected column of that row
+  int job_sel_ = 0;                // selected Advance-tab job row
 };
 
 }  // namespace ms

@@ -225,19 +225,29 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
 ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
                                               bool rows_focused) const {
   int level = character_.skill_level(skill);
-  std::string label = " " + skill.name() + "  " + std::to_string(level) + "/" +
+  std::string label = skill.name() + "  " + std::to_string(level) + "/" +
                       std::to_string(skill.max_level());
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = level >= skill.max_level();
   bool has_sp = character_.sp(StageForAdvancement(skill.job_advancement())) > 0;
+
+  // The name inverts as its own cell, leaving the border gutter plain -- an
+  // inverted block running into the frame reads as a rendering fault.
+  ftxui::Element name = ftxui::text(label);
+  if (selected && skill_col_ == kColName) {
+    name = name | ftxui::inverted;
+  }
   ftxui::Element plus = ftxui::text("[+]");
-  if (selected) {
+  if (selected && skill_col_ == kColPlus) {
     plus = plus | ftxui::inverted;
   } else if (maxed || !has_sp) {
+    // Only the [+] dims: there is nothing to spend, but the row is still worth
+    // reading, and the name opens a screen that says why.
     plus = plus | ftxui::dim;
   }
   return ftxui::hbox({
-      ftxui::text(label),
+      ftxui::text(" "),
+      name,
       ftxui::filler(),
       plus,
       ftxui::text(" "),
@@ -405,7 +415,8 @@ bool CharacterPanel::OnStatsTabEvent(
 
 bool CharacterPanel::OnSkillsTabEvent(
     const ftxui::Event& event,
-    const std::function<void(const Skill&)>& on_learn) {
+    const std::function<void(const Skill&)>& on_learn,
+    const std::function<void(const Skill&)>& on_inspect) {
   if (zone_ == kZoneAdvTabs) {
     // Advancement bar: Left/Right switch tabs, Up returns to the outer tabs.
     if (event == ftxui::Event::ArrowUp) {
@@ -432,13 +443,16 @@ bool CharacterPanel::OnSkillsTabEvent(
       if (!SkillsForStage(stage).empty()) {
         zone_ = kZoneSkillRows;
         skill_sel_ = 0;
+        // Land on the name, the leftmost column, the way the eye reads the row.
+        skill_col_ = kColName;
       }
       return true;
     }
     return false;
   }
   // Skill rows: Up/Down walk them, Up off the top returns to the advancement
-  // bar. Left/Right do nothing -- they belong to that bar.
+  // bar. Left/Right pick the column, which is what the Enter below acts on --
+  // switching advancement tabs belongs to the bar above.
   std::vector<const Skill*> skills = SkillsForStage(skill_tab_ + 1);
   if (event == ftxui::Event::ArrowUp) {
     if (skill_sel_ == 0) {
@@ -454,8 +468,24 @@ bool CharacterPanel::OnSkillsTabEvent(
     }
     return true;
   }
+  if (event == ftxui::Event::ArrowLeft) {
+    skill_col_ = kColName;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    skill_col_ = kColPlus;
+    return true;
+  }
   if (IsForward(event)) {
     const Skill& skill = *skills[skill_sel_];
+    if (skill_col_ == kColName) {
+      // Never gated: a maxed skill with no SP behind it still has a
+      // description and a level table worth reading.
+      if (on_inspect) {
+        on_inspect(skill);
+      }
+      return true;
+    }
     bool maxed = character_.skill_level(skill) >= skill.max_level();
     int stage = StageForAdvancement(skill.job_advancement());
     if (on_learn && !maxed && character_.sp(stage) > 0) {
@@ -469,35 +499,36 @@ bool CharacterPanel::OnSkillsTabEvent(
 ftxui::Component CharacterPanel::MakeComponent(
     std::function<void(StatField)> on_allocate,
     std::function<void(const Skill&)> on_learn,
-    std::function<void(Job)> on_advance) {
+    std::function<void(Job)> on_advance,
+    std::function<void(const Skill&)> on_inspect) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
-  return ftxui::CatchEvent(
-      renderer, [this, on_allocate, on_learn, on_advance](ftxui::Event event) {
-        if (panel_focus_ != kCharPanel) {
-          return false;
-        }
-        // Taking the advancement closes the tab the cursor was standing on, so
-        // put it somewhere real before reading the event.
-        if (active_tab_ >= static_cast<int>(VisibleTabs().size())) {
-          active_tab_ = kTabStats;
-          zone_ = kZoneTabs;
-        }
-        // Route by zone: the shared tab bar, else the active tab's content
-        // (only Stats reaches kZoneStatRows, only Skills the skill zones).
-        if (zone_ == kZoneTabs) {
-          return OnTabsEvent(event);
-        }
-        if (ActiveTab() == kTabStats) {
-          return OnStatsTabEvent(event, on_allocate);
-        }
-        if (ActiveTab() == kTabAdvance) {
-          return OnAdvanceTabEvent(event, on_advance);
-        }
-        return OnSkillsTabEvent(event, on_learn);
-      });
+  return ftxui::CatchEvent(renderer, [this, on_allocate, on_learn, on_advance,
+                                      on_inspect](ftxui::Event event) {
+    if (panel_focus_ != kCharPanel) {
+      return false;
+    }
+    // Taking the advancement closes the tab the cursor was standing on, so
+    // put it somewhere real before reading the event.
+    if (active_tab_ >= static_cast<int>(VisibleTabs().size())) {
+      active_tab_ = kTabStats;
+      zone_ = kZoneTabs;
+    }
+    // Route by zone: the shared tab bar, else the active tab's content
+    // (only Stats reaches kZoneStatRows, only Skills the skill zones).
+    if (zone_ == kZoneTabs) {
+      return OnTabsEvent(event);
+    }
+    if (ActiveTab() == kTabStats) {
+      return OnStatsTabEvent(event, on_allocate);
+    }
+    if (ActiveTab() == kTabAdvance) {
+      return OnAdvanceTabEvent(event, on_advance);
+    }
+    return OnSkillsTabEvent(event, on_learn, on_inspect);
+  });
 }
 
 }  // namespace ms

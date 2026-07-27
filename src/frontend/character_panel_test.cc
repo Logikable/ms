@@ -9,6 +9,8 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
+#include "ftxui/dom/node.hpp"
+#include "ftxui/screen/screen.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/panel_test_base.h"
 #include "src/frontend/types.h"
@@ -44,6 +46,29 @@ std::map<std::string, Skill> SkillCatalog() {
   std::map<std::string, Skill> catalog;
   catalog["slash_blast"] = MakeSlashBlast();
   return catalog;
+}
+
+// Whether the cell under the first character of `needle` is inverted, which is
+// how the cursor shows itself. Walks pixels rather than the rendered string
+// because the window border is multibyte, so a byte offset is not a column.
+// `needle` must be ASCII: one character, one cell.
+bool IsInverted(ftxui::Component comp, const std::string& needle) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, comp->Render());
+  int len = static_cast<int>(needle.size());
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x + len <= screen.dimx(); ++x) {
+      std::string got;
+      for (int i = 0; i < len; ++i) {
+        got += screen.PixelAt(x + i, y).character;
+      }
+      if (got == needle) {
+        return screen.PixelAt(x, y).inverted;
+      }
+    }
+  }
+  return false;
 }
 
 TEST_F(CharacterPanelTest, ShowsLevel) {
@@ -370,8 +395,84 @@ TEST_F(CharacterPanelTest, DownIntoSkillRowsThenEnterFiresLearn) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(learned, "Slash Blast");
+}
+
+TEST_F(CharacterPanelTest, DownIntoSkillRowsLandsOnTheNameNotThePlus) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  bool learned = false;
+  std::string inspected;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&](const Skill&) { learned = true; }, [](Job) {},
+      [&](const Skill& s) { inspected = s.name(); });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(inspected, "Slash Blast");
+  EXPECT_FALSE(learned);
+}
+
+// The two columns are one Left/Right apart, and the cursor stays where it was
+// put -- walking to the [+] and back must not strand the row on the wrong one.
+TEST_F(CharacterPanelTest, LeftAndRightWalkBetweenTheTwoColumns) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  bool learned = false;
+  bool inspected = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&](const Skill&) { learned = true; }, [](Job) {},
+      [&](const Skill&) { inspected = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // [+] -> name
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(inspected);
+  EXPECT_FALSE(learned);
+}
+
+// The cursor has to be visible on whichever column it is on, and on only that
+// one -- two highlights at once would read as two cursors.
+TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
+
+  EXPECT_TRUE(IsInverted(comp, "Slash Blast"));
+  EXPECT_FALSE(IsInverted(comp, "[+]"));
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
+  EXPECT_FALSE(IsInverted(comp, "Slash Blast"));
+  EXPECT_TRUE(IsInverted(comp, "[+]"));
+}
+
+// A maxed skill with no SP behind it dims its [+], but the name is still a
+// live target -- the description is the whole reason to look at it.
+TEST_F(CharacterPanelTest, InspectIsNotGatedBySpOrMaxLevel) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  (*proto.mutable_skill_levels())["Slash Blast"] = 20;  // maxed, and 0 SP
+  CharacterInstance c(rng_, std::move(proto));
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  std::string inspected;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, [](const Skill&) {}, [](Job) {},
+                          [&](const Skill& s) { inspected = s.name(); });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(inspected, "Slash Blast");
 }
 
 TEST_F(CharacterPanelTest, NoSpEntersTheSkillRowsButEnterDoesNothing) {
@@ -383,10 +484,11 @@ TEST_F(CharacterPanelTest, NoSpEntersTheSkillRowsButEnterDoesNothing) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows, SP or not
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   comp->OnEvent(ftxui::Event::Return);      // nothing to spend
   EXPECT_FALSE(fired);
-  // The cursor is on the rows, not the bar: Left/Right belong to the bar, so
-  // an Up is what it takes to get back and switch tabs.
+  // The cursor is on the rows, not the bar: Left/Right pick the column here,
+  // so an Up is what it takes to get back and switch tabs.
   comp->OnEvent(ftxui::Event::ArrowUp);    // rows -> advancement bar
   comp->OnEvent(ftxui::Event::ArrowUp);    // advancement bar -> outer tabs
   comp->OnEvent(ftxui::Event::ArrowLeft);  // outer tabs: Skills -> Stats
@@ -408,6 +510,7 @@ TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows (has SP, so entered)
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   EXPECT_NE(RenderComponent(comp).find("20/20"), std::string::npos);
   comp->OnEvent(ftxui::Event::Return);  // maxed: nothing to learn
   EXPECT_FALSE(fired);
@@ -435,6 +538,7 @@ TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheCursorOnTheRows) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows (SP == 1)
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   c.LearnSkill(MakeSlashBlast(), 1);        // drains stage-1 SP to 0
   comp->OnEvent(ftxui::Event::Return);      // no SP left: nothing to learn
   EXPECT_FALSE(fired);
