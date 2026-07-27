@@ -382,6 +382,18 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "trace_recover_panel_test",
+    srcs = ["trace_recover_panel_test.cc"],
+    deps = [
+        ":panel_test_base",
+        ":trace_recover_panel",
+        "@ftxui//:component",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "trace_recover_panel",
     srcs = ["trace_recover_panel.cc"],
