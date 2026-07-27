@@ -31,6 +31,30 @@ TEST(PadRightTest, EmptyStringProducesAllSpaces) {
   EXPECT_EQ(PadRight("", 3), "   ");
 }
 
+// --- DisplayStatFor ---
+
+TEST(DisplayStatForTest, FindsTheEntryTheFieldNames) {
+  EquipStats stats;
+  stats.set_luk(7);
+  const DisplayStat* stat = DisplayStatFor(STAT_FIELD_LUK);
+  ASSERT_NE(stat, nullptr);
+  EXPECT_STREQ(stat->label, "LUK");
+  EXPECT_EQ(stat->GetFrom(stats), 7);
+}
+
+// HP is spelled max_hp on EquipStats; the join is by label, so it still lands.
+TEST(DisplayStatForTest, FindsAFieldWhoseAccessorIsNamedDifferently) {
+  EquipStats stats;
+  stats.set_max_hp(150);
+  const DisplayStat* stat = DisplayStatFor(STAT_FIELD_HP);
+  ASSERT_NE(stat, nullptr);
+  EXPECT_EQ(stat->GetFrom(stats), 150);
+}
+
+TEST(DisplayStatForTest, UnspecifiedFieldHasNoEntry) {
+  EXPECT_EQ(DisplayStatFor(STAT_FIELD_UNSPECIFIED), nullptr);
+}
+
 // --- FormatWithCommas ---
 
 TEST(FormatWithCommasTest, NoCommasBelowThousand) {

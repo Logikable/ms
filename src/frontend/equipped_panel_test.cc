@@ -101,6 +101,40 @@ TEST_F(EquippedPanelTest, ShowsAttackAheadOfTheMainStat) {
   EXPECT_LT(rendered.find("+18 ATT"), rendered.find("+3 LUK"));
 }
 
+// The main-stat column follows the wearer's job, not the item: the same gear
+// reads STR to a Swordman and DEX to an Archer. The panel gets that from
+// PrimaryStatField rather than its own switch, so this is what would break if
+// the two ever disagreed.
+TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
+  EquipPrototype hat;
+  hat.set_name("Bandana");
+  hat.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  hat.mutable_base_stats()->set_str(4);
+  hat.mutable_base_stats()->set_dex(6);
+
+  Character warrior_proto;
+  warrior_proto.set_job(JOB_SWORDMAN);
+  CharacterInstance warrior(rng_, std::move(warrior_proto));
+  warrior.PickUp(std::make_unique<EquipInstance>(hat));
+  warrior.Equip(0);
+  EquippedPanel warrior_panel(warrior, panel_focus_);
+  std::string worn_by_warrior =
+      RenderComponent(warrior_panel.MakeComponent([]() {}));
+  EXPECT_NE(worn_by_warrior.find("+4 STR"), std::string::npos);
+  EXPECT_EQ(worn_by_warrior.find("+6 DEX"), std::string::npos);
+
+  Character archer_proto;
+  archer_proto.set_job(JOB_ARCHER);
+  CharacterInstance archer(rng_, std::move(archer_proto));
+  archer.PickUp(std::make_unique<EquipInstance>(hat));
+  archer.Equip(0);
+  EquippedPanel archer_panel(archer, panel_focus_);
+  std::string worn_by_archer =
+      RenderComponent(archer_panel.MakeComponent([]() {}));
+  EXPECT_NE(worn_by_archer.find("+6 DEX"), std::string::npos);
+  EXPECT_EQ(worn_by_archer.find("+4 STR"), std::string::npos);
+}
+
 // Stars worn without a claw keep their number on screen but their whole row is
 // drawn dim, because the character's totals are not counting them.
 TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {

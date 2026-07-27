@@ -24,41 +24,6 @@ constexpr char kColumnHeader[] =
     "  Stats               "        // 2 sep + 20 info (10 atk + 10 main)
     "  Scrolls";                    // 2 sep + label
 
-// Returns the item's main stat value for the given job.
-// TODO: Demon Avenger's main stat is HP; Xenon's is STR+DEX+LUK combined.
-int MainStatValue(const EquipStats& stats, Job job) {
-  switch (job) {
-    case JOB_SWORDMAN:
-    case JOB_BEGINNER:
-      return stats.str();
-    case JOB_ARCHER:
-      return stats.dex();
-    case JOB_MAGICIAN:
-      return stats.int_();
-    case JOB_ROGUE:
-      return stats.luk();
-    default:
-      return 0;
-  }
-}
-
-// Returns the main stat label for the given job, or nullptr for unknown jobs.
-// TODO: Demon Avenger's main stat is HP; Xenon's is STR+DEX+LUK combined.
-const char* MainStatLabel(Job job) {
-  switch (job) {
-    case JOB_SWORDMAN:
-    case JOB_BEGINNER:
-      return "STR";
-    case JOB_ARCHER:
-      return "DEX";
-    case JOB_MAGICIAN:
-      return "INT";
-    case JOB_ROGUE:
-      return "LUK";
-    default:
-      return nullptr;
-  }
-}
 // Sub-header row: 64 spaces align "Pass/Left/Restore" under the scroll column.
 constexpr char kColumnHeader2[] =
     "                              "  // 30
@@ -163,8 +128,12 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
           const EquipInstance& item = kv.second;
           const EquipStats stats = item.stats();
           Job job = character_.proto().job();
-          int main_val = MainStatValue(stats, job);
-          const char* main_label = MainStatLabel(job);
+          // One column for the stat this job's damage is built on, which is
+          // the same question the character panel and the AP reset ask -- so
+          // ask it in the same place rather than switching over jobs here.
+          const DisplayStat* main = DisplayStatFor(PrimaryStatField(job));
+          int main_val = main != nullptr ? main->GetFrom(stats) : 0;
+          const char* main_label = main != nullptr ? main->label : nullptr;
           // There is room for one attack figure, so show the one this job
           // swings with. A wand carries both, and a magician's weapon attack
           // is the half that never reaches the damage chain.

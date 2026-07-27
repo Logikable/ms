@@ -73,6 +73,21 @@ class ProgressBarNode : public ftxui::Node {
 
 }  // namespace
 
+const DisplayStat* DisplayStatFor(StatField field) {
+  // Both tables spell a stat the same way, so the label is the join between
+  // them and neither needs to know the other's order.
+  std::string name = StatFieldName(field);
+  if (name.empty()) {
+    return nullptr;
+  }
+  for (const DisplayStat& stat : kDisplayStats) {
+    if (name == stat.label) {
+      return &stat;
+    }
+  }
+  return nullptr;
+}
+
 std::string PadRight(const std::string& s, int width) {
   if ((int)s.size() >= width) {
     return s.substr(0, width);

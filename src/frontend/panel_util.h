@@ -42,6 +42,12 @@ inline const DisplayStat kDisplayStats[] = {
     {"DEF", &EquipStats::def},
 };
 
+// The kDisplayStats entry a StatField names, or nullptr for a field with no
+// equip stat behind it. Lets a caller that knows a stat by its proto field --
+// a job's primary stat, say -- read it off an EquipStats without writing its
+// own switch over the four stats.
+const DisplayStat* DisplayStatFor(StatField field);
+
 // Pads s to width with trailing spaces, or truncates if longer.
 std::string PadRight(const std::string& s, int width);
 
