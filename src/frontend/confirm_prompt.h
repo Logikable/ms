@@ -22,13 +22,13 @@ enum class ConfirmChoice { kPending, kConfirmed, kCancelled };
 // cursor is elsewhere on the dialog, like the amount selector's textbox.
 enum class ConfirmFocus { kNone, kConfirm, kCancel };
 
-// The [ Confirm ] / [ Cancel ] row, which is the same row wherever the game
-// asks a yes/no question -- a bare prompt, or the foot of a larger dialog.
+// The [Confirm] / [Cancel] row, which is the same row wherever the game asks a
+// yes/no question -- a bare prompt, or the foot of a larger dialog.
 ftxui::Element ConfirmButtons(ConfirmFocus focus);
 
 // The width ConfirmButtons occupies, for a panel sizing itself so it does not
 // jump when the row appears below it.
-constexpr int kConfirmButtonsWidth = 26;
+constexpr int kConfirmButtonsWidth = 22;
 
 class ConfirmPrompt {
  public:

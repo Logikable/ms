@@ -28,10 +28,10 @@ TEST(AmountSelectorTest, DrawsTheSharedConfirmRow) {
                                                ftxui::Dimension::Fixed(3));
   ftxui::Render(screen, element);
   std::string rendered = screen.ToString();
-  EXPECT_NE(rendered.find("[ Confirm ]"), std::string::npos);
-  EXPECT_NE(rendered.find("[ Cancel ]"), std::string::npos);
-  EXPECT_NE(rendered.find("[ 1 ]"), std::string::npos);
-  EXPECT_NE(rendered.find("[ MAX ]"), std::string::npos);
+  EXPECT_NE(rendered.find("[Confirm]"), std::string::npos);
+  EXPECT_NE(rendered.find("[Cancel]"), std::string::npos);
+  EXPECT_NE(rendered.find("[1]"), std::string::npos);
+  EXPECT_NE(rendered.find("[MAX]"), std::string::npos);
 }
 
 TEST(AmountSelectorTest, DefaultsToMax) {

@@ -83,8 +83,8 @@ TEST(ConfirmPromptTest, ButtonRowCanHighlightNeither) {
                                                ftxui::Dimension::Fixed(1));
   ftxui::Render(screen, row);
   std::string rendered = screen.ToString();
-  EXPECT_NE(rendered.find("[ Confirm ]"), std::string::npos);
-  EXPECT_NE(rendered.find("[ Cancel ]"), std::string::npos);
+  EXPECT_NE(rendered.find("[Confirm]"), std::string::npos);
+  EXPECT_NE(rendered.find("[Cancel]"), std::string::npos);
   EXPECT_EQ(rendered.find("\033[7m"), std::string::npos);
 }
 
@@ -92,11 +92,11 @@ TEST(ConfirmPromptTest, HighlightsTheSelectedButton) {
   ConfirmPrompt prompt;
   prompt.Open();
   std::string rendered = Render(prompt);
-  EXPECT_NE(rendered.find("\033[7m[ Confirm ]"), std::string::npos);
+  EXPECT_NE(rendered.find("\033[7m[Confirm]"), std::string::npos);
 
   prompt.Open(/*cancel_selected=*/true);
   rendered = Render(prompt);
-  EXPECT_NE(rendered.find("\033[7m[ Cancel ]"), std::string::npos);
+  EXPECT_NE(rendered.find("\033[7m[Cancel]"), std::string::npos);
 }
 
 }  // namespace

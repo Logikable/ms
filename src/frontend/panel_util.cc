@@ -222,7 +222,7 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 }
 
 ftxui::Element ActionButton(const std::string& label, bool focused) {
-  ftxui::Element button = ftxui::text("[ " + label + " ]");
+  ftxui::Element button = ftxui::text("[" + label + "]");
   if (focused) {
     button = button | ftxui::inverted;
   }

@@ -102,8 +102,8 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 // currently holds focus.
 // Renders a bracketed button in the game's one button style, inverted when
 // focused. Every button the player can land on is drawn with this -- the
-// confirm bar, the amount selector's [ 1 ]/[ MAX ], and the always-selected
-// [ Continue ] on the result screens.
+// confirm bar, the amount selector's [1]/[MAX], the [+] beside a stat, and the
+// always-selected [Continue] on the result screens.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
