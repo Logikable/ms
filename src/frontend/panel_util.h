@@ -10,6 +10,7 @@
 #include "src/frontend/colors.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -72,6 +73,15 @@ void AppendStat(std::string& out, int val, const std::string& label);
 // for slot types not yet implemented.
 std::string FormatSlot(EquipSlot slot);
 
+// Returns the display name for a weapon type (e.g. "Claw"). Returns "" for
+// types not yet implemented.
+std::string FormatEquipType(EquipType type);
+
+// True for a skill the player casts, attack or otherwise -- everything that
+// isn't a passive. It is what the skill list sorts on and what the inspect
+// screen titles itself with, so both must answer it the same way.
+bool IsActive(const Skill& skill);
+
 // Returns "All" for universal items or a slash-separated list of job category
 // names (e.g. "Warrior/Thief"). Also returns "All" when the list is empty.
 std::string FormatJobCategories(const EquipPrototype& proto);
@@ -107,11 +117,6 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label, ftxui::Color label_color);
 
-// Wraps content in a bordered window with the game's steel-blue theme color on
-// the border and title. Content foreground is set to white; explicitly colored
-// elements (gold stars, amber SF, etc.) and ThemedSeparator override it. Pass
-// focused=true to invert the title into a solid chip, marking the panel that
-// currently holds focus.
 // A modal result screen, shown once an action has resolved: the subject
 // centered over a rule, `body` below it, then a rule and a [Continue]. Every
 // screen the game shows after scrolling, star forcing or recovering is built
@@ -141,6 +146,11 @@ ftxui::Element TabChip(const std::string& label, bool active, bool row_focused);
 // always-selected [Continue] on the result screens.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
+// Wraps content in a bordered window with the game's steel-blue theme color on
+// the border and title. Content foreground is set to white; explicitly colored
+// elements (gold stars, amber SF, etc.) and ThemedSeparator override it. Pass
+// focused=true to invert the title into a solid chip, marking the panel that
+// currently holds focus.
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused = false);
 

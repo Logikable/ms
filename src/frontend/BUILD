@@ -26,6 +26,7 @@ cc_library(
         ":colors",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
@@ -227,6 +228,30 @@ cc_test(
     srcs = ["item_menu_test.cc"],
     deps = [
         ":item_menu",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "skill_inspect_panel",
+    srcs = ["skill_inspect_panel.cc"],
+    hdrs = ["skill_inspect_panel.h"],
+    deps = [
+        ":panel_util",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "skill_inspect_panel_test",
+    srcs = ["skill_inspect_panel_test.cc"],
+    deps = [
+        ":panel_test_base",
+        ":skill_inspect_panel",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
         "@googletest//:gtest_main",
     ],
 )

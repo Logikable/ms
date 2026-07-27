@@ -21,7 +21,6 @@ class InspectPanel {
 
  private:
   static ftxui::Element FormatJobCategories(const EquipPrototype& proto);
-  static std::string FormatEquipType(EquipType type);
   // Returns "Stage N (name)" or empty string if unspecified.
   static std::string FormatAttackSpeed(AttackSpeed speed);
   // Returns a colored hbox with the stat line, or nullptr if all are zero.

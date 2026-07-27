@@ -137,6 +137,29 @@ std::string FormatSlot(EquipSlot slot) {
   }
 }
 
+std::string FormatEquipType(EquipType type) {
+  switch (type) {
+    case EQUIP_TYPE_ONE_HANDED_SWORD:
+      return "One-Handed Sword";
+    case EQUIP_TYPE_BOW:
+      return "Bow";
+    case EQUIP_TYPE_WAND:
+      return "Wand";
+    case EQUIP_TYPE_DAGGER:
+      return "Dagger";
+    case EQUIP_TYPE_CLAW:
+      return "Claw";
+    case EQUIP_TYPE_THROWING_STAR:
+      return "Throwing Star";
+    default:
+      return "";  // not yet implemented for other types
+  }
+}
+
+bool IsActive(const Skill& skill) {
+  return skill.kind() == SKILL_KIND_ATTACK || skill.kind() == SKILL_KIND_ACTIVE;
+}
+
 std::string FormatJobCategories(const EquipPrototype& proto) {
   for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
     if (static_cast<EquipJobCategory>(proto.equip_job_categories(i)) ==

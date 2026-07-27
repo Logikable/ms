@@ -128,25 +128,6 @@ ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
   return ftxui::hbox(std::move(parts));
 }
 
-std::string InspectPanel::FormatEquipType(EquipType type) {
-  switch (type) {
-    case EQUIP_TYPE_ONE_HANDED_SWORD:
-      return "One-Handed Sword";
-    case EQUIP_TYPE_BOW:
-      return "Bow";
-    case EQUIP_TYPE_WAND:
-      return "Wand";
-    case EQUIP_TYPE_DAGGER:
-      return "Dagger";
-    case EQUIP_TYPE_CLAW:
-      return "Claw";
-    case EQUIP_TYPE_THROWING_STAR:
-      return "Throwing Star";
-    default:
-      return "";  // not yet implemented for other types
-  }
-}
-
 std::string InspectPanel::FormatAttackSpeed(AttackSpeed speed) {
   // Stage number matches the proto enum value (SLOWER=1 … FASTEST_3=10).
   int stage = static_cast<int>(speed);
