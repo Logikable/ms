@@ -314,9 +314,10 @@ TEST_F(AdvanceJobTest, NotEligibleForAnAdvancementWithNoJobsBehindIt) {
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
-TEST(JobChoicesTest, FirstAdvancementOffersTheFourExplorers) {
-  EXPECT_EQ(JobChoicesForStage(1), (std::vector<Job>{JOB_SWORDMAN, JOB_MAGICIAN,
-                                                     JOB_ARCHER, JOB_ROGUE}));
+// The order is the stat order, not any order the protos happen to be in.
+TEST(JobChoicesTest, FirstAdvancementOffersTheFourExplorersInStatOrder) {
+  EXPECT_EQ(JobChoicesForStage(1), (std::vector<Job>{JOB_SWORDMAN, JOB_ARCHER,
+                                                     JOB_MAGICIAN, JOB_ROGUE}));
 }
 
 TEST(JobChoicesTest, LaterAdvancementsHaveNoChoicesYet) {

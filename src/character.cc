@@ -172,11 +172,12 @@ StatField PrimaryStatField(Job job) {
 }
 
 std::vector<Job> JobChoicesForStage(int stage) {
-  // The four explorer branches, in the order the class list names them. Only
-  // the 1st advancement has choices so far; 2nd job and beyond are a function
-  // of the job already held, not a flat list, so they will not extend this.
+  // The four explorer branches, ordered by the stat each one lives on, so the
+  // list reads down STR/DEX/INT/LUK the same way the stat panel does. Only the
+  // 1st advancement has choices so far; 2nd job and beyond are a function of
+  // the job already held, not a flat list, so they will not extend this.
   if (stage == 1) {
-    return {JOB_SWORDMAN, JOB_MAGICIAN, JOB_ARCHER, JOB_ROGUE};
+    return {JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE};
   }
   return {};
 }

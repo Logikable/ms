@@ -114,9 +114,9 @@ TEST_F(CharacterPanelTest, EnterOnAJobAsksToAdvanceIntoIt) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
   comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
-  comp->OnEvent(ftxui::Event::ArrowDown);   // Swordman -> Magician
+  comp->OnEvent(ftxui::Event::ArrowDown);   // Swordman -> Archer
   comp->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(chosen, JOB_MAGICIAN);
+  EXPECT_EQ(chosen, JOB_ARCHER);
   // Asking is all the panel does; performing it belongs to the confirmation.
   EXPECT_EQ(c.proto().job(), JOB_BEGINNER);
 }
