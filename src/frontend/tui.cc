@@ -158,7 +158,7 @@ ftxui::Element Tui::RenderFrame() {
                         "?") |
                 ftxui::hcenter,
             ftxui::text("This action is irreversible.") | ftxui::hcenter,
-            ftxui::text(""),
+            ThemedSeparator(),
             controller_.job_advance_prompt().Render() | ftxui::hcenter,
         }));
     return ftxui::dbox({
