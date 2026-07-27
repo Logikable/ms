@@ -219,18 +219,19 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
 ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
                                               bool rows_focused) const {
   int level = character_.skill_level(skill);
-  std::string label = skill.name() + "  " + std::to_string(level) + "/" +
-                      std::to_string(skill.max_level());
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = level >= skill.max_level();
   bool has_sp = character_.sp(StageForAdvancement(skill.job_advancement())) > 0;
 
-  // The name inverts as its own cell, leaving the border gutter plain -- an
-  // inverted block running into the frame reads as a rendering fault.
-  ftxui::Element name = ftxui::text(label);
+  // Only the name inverts. Enter opens the skill, so the highlight covers the
+  // skill and nothing else; the level beside it is a fact about the row, not a
+  // second thing to press.
+  ftxui::Element name = ftxui::text(skill.name());
   if (selected && skill_col_ == kColName) {
     name = name | ftxui::inverted;
   }
+  ftxui::Element level_text = ftxui::text("  " + std::to_string(level) + "/" +
+                                          std::to_string(skill.max_level()));
   ftxui::Element plus = ftxui::text("[+]");
   if (selected && skill_col_ == kColPlus) {
     plus = plus | ftxui::inverted;
@@ -242,6 +243,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   return ftxui::hbox({
       ftxui::text(" "),
       name,
+      level_text,
       ftxui::filler(),
       plus,
       ftxui::text(" "),

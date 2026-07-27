@@ -48,11 +48,12 @@ std::map<std::string, Skill> SkillCatalog() {
   return catalog;
 }
 
-// Whether the cell under the first character of `needle` is inverted, which is
-// how the cursor shows itself. Walks pixels rather than the rendered string
-// because the window border is multibyte, so a byte offset is not a column.
-// `needle` must be ASCII: one character, one cell.
-bool IsInverted(ftxui::Component comp, const std::string& needle) {
+// The inverted flag of every cell under `needle`, as a string of '1' and '0' --
+// inversion is how the cursor shows itself, and a mask says exactly how far it
+// reaches. Walks pixels rather than the rendered string because the window
+// border is multibyte, so a byte offset is not a column. `needle` must be
+// ASCII: one character, one cell. Returns "" when `needle` is not on screen.
+std::string InversionMask(ftxui::Component comp, const std::string& needle) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                ftxui::Dimension::Fixed(20));
   ftxui::Render(screen, comp->Render());
@@ -64,11 +65,25 @@ bool IsInverted(ftxui::Component comp, const std::string& needle) {
         got += screen.PixelAt(x + i, y).character;
       }
       if (got == needle) {
-        return screen.PixelAt(x, y).inverted;
+        std::string mask;
+        for (int i = 0; i < len; ++i) {
+          if (screen.PixelAt(x + i, y).inverted) {
+            mask += '1';
+          } else {
+            mask += '0';
+          }
+        }
+        return mask;
       }
     }
   }
-  return false;
+  return "";
+}
+
+// Whether the cell under the first character of `needle` is inverted.
+bool IsInverted(ftxui::Component comp, const std::string& needle) {
+  std::string mask = InversionMask(comp, needle);
+  return !mask.empty() && mask[0] == '1';
 }
 
 TEST_F(CharacterPanelTest, ShowsLevel) {
@@ -452,6 +467,19 @@ TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   EXPECT_FALSE(IsInverted(comp, "Slash Blast"));
   EXPECT_TRUE(IsInverted(comp, "[+]"));
+}
+
+// Enter on the name opens the skill, so the highlight stops at the skill. The
+// level beside it is a fact about the row, not a second thing to press.
+TEST_F(CharacterPanelTest, TheHighlightStopsAtTheEndOfTheName) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
+
+  EXPECT_EQ(InversionMask(comp, "Slash Blast  0/20"), "11111111111000000");
 }
 
 // A maxed skill with no SP behind it dims its [+], but the name is still a
