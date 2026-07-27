@@ -154,6 +154,13 @@ ftxui::Element ActionButton(const std::string& label, bool focused);
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused = false);
 
+// Centres a row in its window with a column of clearance on each side. Every
+// centred row in the game goes through this rather than bare hcenter, so that
+// the longest line on a screen -- whichever it turns out to be -- keeps its
+// distance from the border.
+ftxui::Element CenteredRow(ftxui::Element row);
+ftxui::Element CenteredRow(const std::string& text);
+
 // Returns a horizontal separator rule in the theme border color.
 ftxui::Element ThemedSeparator();
 

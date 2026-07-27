@@ -45,7 +45,7 @@ EquipInstance TraceRecoverPanel::PreviewResult() const {
 ftxui::Element TraceRecoverPanel::RenderTabs() const {
   if (matching_indices_.empty()) {
     return ftxui::vbox({
-        EmptyState("no matching items") | ftxui::hcenter,
+        CenteredRow(EmptyState("no matching items", /*gutter=*/0)),
         ThemedSeparator(),
     });
   }
@@ -58,7 +58,7 @@ ftxui::Element TraceRecoverPanel::RenderTabs() const {
                             /*row_focused=*/true));
   }
   return ftxui::vbox({
-      ftxui::hbox(std::move(chips)) | ftxui::hcenter,
+      CenteredRow(ftxui::hbox(std::move(chips))),
       ThemedSeparator(),
   });
 }
@@ -115,8 +115,7 @@ ftxui::Element TraceRecoverPanel::RenderResult(
     const TraceRecoveryResult& r) const {
   return ResultWindow(
       " Recovery Complete ", r.equip_name,
-      {ftxui::text("Recovered at " + std::to_string(r.stars_recovered) + "★") |
-       ftxui::hcenter});
+      {CenteredRow("Recovered at " + std::to_string(r.stars_recovered) + "★")});
 }
 
 }  // namespace ms

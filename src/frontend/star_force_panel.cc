@@ -49,21 +49,20 @@ ftxui::Element StarForcePanel::Render() const {
   std::string name = item_->prototype().name();
 
   if (stars >= item_->max_stars()) {
-    return ThemedWindow(
-        " Star Force ",
-        ftxui::vbox({
-            ftxui::text(name) | ftxui::hcenter,
-            ThemedSeparator(),
-            ftxui::text(std::to_string(stars) + "★ (max)") | ftxui::hcenter,
-            ThemedSeparator(),
-            ftxui::text("Maximum stars reached.") | ftxui::hcenter,
-        }));
+    return ThemedWindow(" Star Force ",
+                        ftxui::vbox({
+                            CenteredRow(name),
+                            ThemedSeparator(),
+                            CenteredRow(std::to_string(stars) + "★ (max)"),
+                            ThemedSeparator(),
+                            CenteredRow("Maximum stars reached."),
+                        }));
   }
 
   StarForceRate rate = EquipInstance::RateAt(stars);
   int fail = 10000 - rate.success - rate.destroy;
 
-  // Pad all rate strings to the same width so hcenter aligns both columns.
+  // Pad all rate strings to the same width so centring aligns both columns.
   std::string success_str = FormatRate(rate.success);
   std::string fail_str = FormatRate(fail);
   std::string destroy_str = rate.destroy > 0 ? FormatRate(rate.destroy) : "";
@@ -74,11 +73,11 @@ ftxui::Element StarForcePanel::Render() const {
   EquipStats after = item_->StarForceStatGains(stars + 1);
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(name) | ftxui::hcenter);
+  rows.push_back(CenteredRow(name));
   rows.push_back(ThemedSeparator());
   std::string arrow =
       std::to_string(stars) + "★ → " + std::to_string(stars + 1) + "★";
-  rows.push_back(ftxui::text(arrow) | ftxui::hcenter);
+  rows.push_back(CenteredRow(arrow));
   rows.push_back(ThemedSeparator());
   int label_w = 0;
   for (const DisplayStat& stat : kDisplayStats) {
@@ -91,14 +90,13 @@ ftxui::Element StarForcePanel::Render() const {
     if (delta > 0) {
       std::string line =
           PadTo(stat.label, label_w) + "  +" + std::to_string(delta);
-      rows.push_back(ftxui::text(line) | ftxui::hcenter);
+      rows.push_back(CenteredRow(line));
     }
   }
   rows.push_back(ThemedSeparator());
   auto RateRow = [&rows, &rate_w](const std::string& label,
                                   const std::string& val, ftxui::Color c) {
-    rows.push_back(ftxui::text(label + PadTo(val, rate_w)) | ftxui::hcenter |
-                   ftxui::color(c));
+    rows.push_back(CenteredRow(label + PadTo(val, rate_w)) | ftxui::color(c));
   };
   RateRow("Success  ", success_str, kGreen);
   RateRow("Fail     ", fail_str, kMutedYellow);
@@ -106,7 +104,7 @@ ftxui::Element StarForcePanel::Render() const {
     RateRow("Destroy  ", destroy_str, kRed);
   }
   rows.push_back(ThemedSeparator());
-  rows.push_back(ActionButton("Enhance", /*focused=*/true) | ftxui::hcenter);
+  rows.push_back(CenteredRow(ActionButton("Enhance", /*focused=*/true)));
   // Constrain inner width to at least the confirm prompt's, so the panel
   // never widens when the prompt appears below.
   ftxui::Element content =
@@ -170,12 +168,12 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
   } else {
     stars_text = "lost at " + std::to_string(r.stars_before) + "★";
   }
-  return ResultWindow(" Result ", r.equip_name,
-                      {
-                          ftxui::text(outcome_text) | ftxui::hcenter |
-                              ftxui::color(outcome_color),
-                          ftxui::text(stars_text) | ftxui::hcenter,
-                      });
+  return ResultWindow(
+      " Result ", r.equip_name,
+      {
+          CenteredRow(outcome_text) | ftxui::color(outcome_color),
+          CenteredRow(stars_text),
+      });
 }
 
 }  // namespace ms

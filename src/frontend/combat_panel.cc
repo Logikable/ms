@@ -46,7 +46,7 @@ ftxui::Element CombatPanel::Render() const {
                         ftxui::vbox({
                             header,
                             ThemedSeparator(),
-                            ftxui::text("Not fighting"),
+                            ftxui::text(" Not fighting"),
                         }),
                         focused);
   }
@@ -60,7 +60,7 @@ ftxui::Element CombatPanel::Render() const {
                   sim_.attack_name(), ftxui::Color::White),
   };
   if (sim_.respawning()) {
-    rows.push_back(ftxui::text("Respawning..."));
+    rows.push_back(ftxui::text(" Respawning..."));
   } else {
     // One HP bar per engaged type. White the whole way across, rather than the
     // default dark-on-fill: kRed takes white well, and the name shouldn't turn

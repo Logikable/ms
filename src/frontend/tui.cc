@@ -122,8 +122,7 @@ ftxui::Element Tui::RenderFrame() {
     ftxui::Element dialog = ThemedWindow(
         " Allocate AP ",
         ftxui::vbox({
-            ftxui::text(StatFieldName(controller_.ap_alloc_field())) |
-                ftxui::hcenter,
+            CenteredRow(StatFieldName(controller_.ap_alloc_field())),
             ThemedSeparator(),
             controller_.ap_selector().Render(),
         }));
@@ -138,8 +137,7 @@ ftxui::Element Tui::RenderFrame() {
     ftxui::Element dialog =
         ThemedWindow(" Learn Skill ",
                      ftxui::vbox({
-                         ftxui::text(controller_.skill_learn_skill().name()) |
-                             ftxui::hcenter,
+                         CenteredRow(controller_.skill_learn_skill().name()),
                          ThemedSeparator(),
                          controller_.sp_selector().Render(),
                      }));
@@ -155,12 +153,11 @@ ftxui::Element Tui::RenderFrame() {
     ftxui::Element dialog = ThemedWindow(
         " Job Advancement ",
         ftxui::vbox({
-            ftxui::text("Advance to " + JobName(controller_.job_advance_job()) +
-                        "?") |
-                ftxui::hcenter,
-            ftxui::text("This action is irreversible.") | ftxui::hcenter,
+            CenteredRow("Advance to " + JobName(controller_.job_advance_job()) +
+                        "?"),
+            CenteredRow("This action is irreversible."),
             ThemedSeparator(),
-            controller_.job_advance_prompt().Render() | ftxui::hcenter,
+            CenteredRow(controller_.job_advance_prompt().Render()),
         }));
     return ftxui::dbox({
         RenderMain(),

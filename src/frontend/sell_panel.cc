@@ -19,10 +19,10 @@ void SellPanel::Reset(const std::string& item_name, int unit_price, int max) {
 ftxui::Element SellPanel::Render() const {
   int64_t total = static_cast<int64_t>(selector_.value()) * unit_price_;
   ftxui::Element content = ftxui::vbox({
-      ftxui::text(item_name_) | ftxui::hcenter,
+      CenteredRow(item_name_),
       ThemedSeparator(),
-      ftxui::text(FormatMeso(unit_price_) + " each") | ftxui::hcenter,
-      ftxui::text("Total: " + FormatMeso(total)) | ftxui::hcenter,
+      CenteredRow(FormatMeso(unit_price_) + " each"),
+      CenteredRow("Total: " + FormatMeso(total)),
       ThemedSeparator(),
       selector_.Render(),
   });

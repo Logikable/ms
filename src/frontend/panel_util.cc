@@ -268,13 +268,13 @@ ftxui::Element ResultWindow(const std::string& title,
                             const std::string& subject,
                             std::vector<ftxui::Element> body) {
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(" " + subject + " ") | ftxui::hcenter);
+  rows.push_back(CenteredRow(subject));
   rows.push_back(ThemedSeparator());
   for (ftxui::Element& row : body) {
     rows.push_back(std::move(row));
   }
   rows.push_back(ThemedSeparator());
-  rows.push_back(ActionButton("Continue", /*focused=*/true) | ftxui::hcenter);
+  rows.push_back(CenteredRow(ActionButton("Continue", /*focused=*/true)));
   return ThemedWindow(title, ftxui::vbox(std::move(rows)));
 }
 
@@ -313,6 +313,22 @@ ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
   return ftxui::window(std::move(title_el),
                        std::move(content) | ftxui::color(ftxui::Color::White)) |
          ftxui::color(kTheme);
+}
+
+ftxui::Element CenteredRow(ftxui::Element row) {
+  // hcenter on its own does not do this. It centres within the width the widest
+  // row of the window sets -- and the row that sets that width is, by
+  // definition, the one flush against both borders.
+  return ftxui::hbox({
+             ftxui::text(" "),
+             std::move(row),
+             ftxui::text(" "),
+         }) |
+         ftxui::hcenter;
+}
+
+ftxui::Element CenteredRow(const std::string& text) {
+  return CenteredRow(ftxui::text(text));
 }
 
 ftxui::Element ThemedSeparator() {

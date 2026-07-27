@@ -30,8 +30,8 @@ ftxui::Element InspectPanel::Render() const {
   int level = proto.required_level() > 0 ? proto.required_level() : 1;
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(StarBar(stars, max_stars) | ftxui::hcenter);
-  rows.push_back(ftxui::text(item_->name()) | ftxui::hcenter);
+  rows.push_back(CenteredRow(StarBar(stars, max_stars)));
+  rows.push_back(CenteredRow(item_->name()));
   rows.push_back(ThemedSeparator());
   // Trailing space on each text row keeps the right border one column clear.
   rows.push_back(ftxui::text(" Req Lev: " + std::to_string(level) + " "));

@@ -152,32 +152,29 @@ const Scroll& ScrollPanel::selected_scroll() const {
 ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
   if (r.outcome == kScrollNoSlots) {
     std::string msg = r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE
-                          ? " No lost slots to restore "
-                          : " No scroll slots remaining ";
-    return ResultWindow(" Error ", r.equip_name,
-                        {ftxui::text(msg) | ftxui::hcenter});
+                          ? "No lost slots to restore"
+                          : "No scroll slots remaining";
+    return ResultWindow(" Error ", r.equip_name, {CenteredRow(msg)});
   }
   std::string result_text;
   ftxui::Color result_color;
   if (r.outcome == kScrollSuccess &&
       r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE) {
-    result_text = " Slot Restored ";
+    result_text = "Slot Restored";
     result_color = kGreen;
   } else if (r.outcome == kScrollSuccess) {
-    result_text = " SUCCESS ";
+    result_text = "SUCCESS";
     result_color = kGreen;
   } else {
-    result_text = " FAILED ";
+    result_text = "FAILED";
     result_color = kMutedYellow;
   }
-  return ResultWindow(" Result ", r.equip_name + "  |  " + r.scroll_name,
-                      {
-                          ftxui::text(result_text) | ftxui::hcenter |
-                              ftxui::color(result_color),
-                          ftxui::text(" " + std::to_string(r.slots_remaining) +
-                                      " slots remaining ") |
-                              ftxui::hcenter,
-                      });
+  return ResultWindow(
+      " Result ", r.equip_name + "  |  " + r.scroll_name,
+      {
+          CenteredRow(result_text) | ftxui::color(result_color),
+          CenteredRow(std::to_string(r.slots_remaining) + " slots remaining"),
+      });
 }
 
 std::string ScrollPanel::FormatEntry(const Scroll& scroll) {

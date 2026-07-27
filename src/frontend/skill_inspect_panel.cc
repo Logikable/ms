@@ -234,10 +234,9 @@ ftxui::Element SkillInspectPanel::Render() const {
   }
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(skill_->name()) | ftxui::hcenter);
+  rows.push_back(CenteredRow(skill_->name()));
   rows.push_back(
-      ftxui::text("Max Level: " + std::to_string(skill_->max_level())) |
-      ftxui::hcenter);
+      CenteredRow("Max Level: " + std::to_string(skill_->max_level())));
 
   rows.push_back(ThemedSeparator());
   for (const std::string& line :
