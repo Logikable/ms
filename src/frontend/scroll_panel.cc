@@ -110,7 +110,7 @@ void ScrollPanel::ResetComponent() {
         menu->Render(),
     };
     ftxui::Element main =
-        ThemedWindow("  Scrolls ", ftxui::vbox(std::move(rows)));
+        ThemedWindow(" Scrolls ", ftxui::vbox(std::move(rows)));
     if (confirm_.open()) {
       // yflex lets main fill the remaining height after the confirm window
       // takes its 3 rows, matching the full-height behaviour without confirm.
@@ -154,15 +154,8 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
     std::string msg = r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE
                           ? " No lost slots to restore "
                           : " No scroll slots remaining ";
-    return ThemedWindow(
-        " Error ",
-        ftxui::vbox({
-            ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-            ThemedSeparator(),
-            ftxui::text(msg) | ftxui::hcenter,
-            ftxui::text(""),
-            ActionButton("Continue", /*focused=*/true) | ftxui::hcenter,
-        }));
+    return ResultWindow(" Error ", r.equip_name,
+                        {ftxui::text(msg) | ftxui::hcenter});
   }
   std::string result_text;
   ftxui::Color result_color;
@@ -177,19 +170,14 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
     result_text = " FAILED ";
     result_color = kMutedYellow;
   }
-  return ThemedWindow(
-      " Result ",
-      ftxui::vbox({
-          ftxui::text(" " + r.equip_name + "  |  " + r.scroll_name + " "),
-          ThemedSeparator(),
-          ftxui::text(result_text) | ftxui::hcenter |
-              ftxui::color(result_color),
-          ftxui::text(" " + std::to_string(r.slots_remaining) +
-                      " slots remaining ") |
-              ftxui::hcenter,
-          ftxui::text(""),
-          ActionButton("Continue", /*focused=*/true) | ftxui::hcenter,
-      }));
+  return ResultWindow(" Result ", r.equip_name + "  |  " + r.scroll_name,
+                      {
+                          ftxui::text(result_text) | ftxui::hcenter |
+                              ftxui::color(result_color),
+                          ftxui::text(" " + std::to_string(r.slots_remaining) +
+                                      " slots remaining ") |
+                              ftxui::hcenter,
+                      });
 }
 
 std::string ScrollPanel::FormatEntry(const Scroll& scroll) {

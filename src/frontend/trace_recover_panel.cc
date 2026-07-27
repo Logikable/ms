@@ -113,17 +113,10 @@ int TraceRecoverPanel::selected_index() const {
 
 ftxui::Element TraceRecoverPanel::RenderResult(
     const TraceRecoveryResult& r) const {
-  return ThemedWindow(
-      " Recovery Complete ",
-      ftxui::vbox({
-          ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-          ThemedSeparator(),
-          ftxui::text("Recovered at " + std::to_string(r.stars_recovered) +
-                      "★") |
-              ftxui::hcenter,
-          ftxui::text(""),
-          ActionButton("Continue", /*focused=*/true) | ftxui::hcenter,
-      }));
+  return ResultWindow(
+      " Recovery Complete ", r.equip_name,
+      {ftxui::text("Recovered at " + std::to_string(r.stars_recovered) + "★") |
+       ftxui::hcenter});
 }
 
 }  // namespace ms

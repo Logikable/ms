@@ -170,17 +170,12 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
   } else {
     stars_text = "lost at " + std::to_string(r.stars_before) + "★";
   }
-  ftxui::Element outcome_elem =
-      ftxui::text(outcome_text) | ftxui::hcenter | ftxui::color(outcome_color);
-  ftxui::Element content = ftxui::vbox({
-      ftxui::text(" " + r.equip_name + " ") | ftxui::hcenter,
-      ThemedSeparator(),
-      std::move(outcome_elem),
-      ftxui::text(stars_text) | ftxui::hcenter,
-      ftxui::text(""),
-      ActionButton("Continue", /*focused=*/true) | ftxui::hcenter,
-  });
-  return ThemedWindow(" Result ", std::move(content));
+  return ResultWindow(" Result ", r.equip_name,
+                      {
+                          ftxui::text(outcome_text) | ftxui::hcenter |
+                              ftxui::color(outcome_color),
+                          ftxui::text(stars_text) | ftxui::hcenter,
+                      });
 }
 
 }  // namespace ms

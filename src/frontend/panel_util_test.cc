@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
@@ -193,6 +195,45 @@ TEST(ProgressBarTest, PinnedLabelColorHoldsAcrossTheWholeBar) {
 TEST(ProgressBarTest, EmptyLabelLeavesTheBarBlank) {
   ftxui::Screen screen = RenderBar(1.0f, "");
   EXPECT_EQ(screen.PixelAt(5, 0).character, " ");
+}
+
+// --- ResultWindow ---
+
+// Renders a result window wide enough not to wrap and returns its rows, so the
+// order of subject / rule / body / rule / button can be asserted.
+std::vector<std::string> ResultRows(std::vector<ftxui::Element> body) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
+                                               ftxui::Dimension::Fixed(7));
+  ftxui::Render(screen, ResultWindow(" T ", "Sword", std::move(body)));
+  std::vector<std::string> rows;
+  for (int y = 0; y < 7; ++y) {
+    std::string row;
+    for (int x = 0; x < 20; ++x) {
+      row += screen.PixelAt(x, y).character;
+    }
+    rows.push_back(row);
+  }
+  return rows;
+}
+
+TEST(ResultWindowTest, RulesOffTheSubjectAndTheButton) {
+  std::vector<std::string> rows =
+      ResultRows({ftxui::text("body") | ftxui::hcenter});
+  EXPECT_NE(rows[1].find("Sword"), std::string::npos);
+  EXPECT_NE(rows[2].find("─"), std::string::npos);
+  EXPECT_NE(rows[3].find("body"), std::string::npos);
+  // The rule below the body is the point: a blank row used to sit here, which
+  // made these the only dialogs whose button floated.
+  EXPECT_NE(rows[4].find("─"), std::string::npos);
+  EXPECT_NE(rows[5].find("[Continue]"), std::string::npos);
+}
+
+// The subject is centered by the helper, so no caller can forget to.
+TEST(ResultWindowTest, CentersTheSubject) {
+  std::vector<std::string> rows =
+      ResultRows({ftxui::text("body") | ftxui::hcenter});
+  EXPECT_EQ(rows[1].find("Sword"), rows[1].rfind("Sword"));
+  EXPECT_GT(rows[1].find("Sword"), 1u);
 }
 
 // --- EmptyState ---

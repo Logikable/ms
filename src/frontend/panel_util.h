@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -100,6 +101,14 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 // elements (gold stars, amber SF, etc.) and ThemedSeparator override it. Pass
 // focused=true to invert the title into a solid chip, marking the panel that
 // currently holds focus.
+// A modal result screen, shown once an action has resolved: the subject
+// centered over a rule, `body` below it, then a rule and a [Continue]. Every
+// screen the game shows after scrolling, star forcing or recovering is built
+// from this, so the rules and the button land in the same place on each.
+ftxui::Element ResultWindow(const std::string& title,
+                            const std::string& subject,
+                            std::vector<ftxui::Element> body);
+
 // The one way a panel says it has nothing to show: the reason in parentheses,
 // e.g. " (empty)". Use "empty" for a list with no contents and a specific
 // reason ("no item", "no matching items") only where it tells the player

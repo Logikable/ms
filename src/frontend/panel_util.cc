@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
@@ -219,6 +220,20 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label, ftxui::Color label_color) {
   return std::make_shared<ProgressBarNode>(frac, fill, label, label_color,
                                            label_color);
+}
+
+ftxui::Element ResultWindow(const std::string& title,
+                            const std::string& subject,
+                            std::vector<ftxui::Element> body) {
+  std::vector<ftxui::Element> rows;
+  rows.push_back(ftxui::text(" " + subject + " ") | ftxui::hcenter);
+  rows.push_back(ThemedSeparator());
+  for (ftxui::Element& row : body) {
+    rows.push_back(std::move(row));
+  }
+  rows.push_back(ThemedSeparator());
+  rows.push_back(ActionButton("Continue", /*focused=*/true) | ftxui::hcenter);
+  return ThemedWindow(title, ftxui::vbox(std::move(rows)));
 }
 
 ftxui::Element EmptyState(const std::string& what, int gutter) {
