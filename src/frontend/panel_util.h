@@ -51,6 +51,11 @@ const DisplayStat* DisplayStatFor(StatField field);
 // Pads s to width with trailing spaces, or truncates if longer.
 std::string PadRight(const std::string& s, int width);
 
+// Pads s to width with LEADING spaces, right-aligning it in the column.
+// Unlike PadRight this never truncates: it is for numbers, and dropping digits
+// off a number that outgrew its column would quietly show the wrong one.
+std::string PadLeft(const std::string& s, int width);
+
 // Formats an integer with thousands-separator commas (e.g. 1234567 ->
 // "1,234,567"). Handles negatives.
 std::string FormatWithCommas(int64_t n);

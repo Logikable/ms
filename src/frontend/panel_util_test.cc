@@ -55,6 +55,19 @@ TEST(DisplayStatForTest, UnspecifiedFieldHasNoEntry) {
   EXPECT_EQ(DisplayStatFor(STAT_FIELD_UNSPECIFIED), nullptr);
 }
 
+// --- PadLeft ---
+
+TEST(PadLeftTest, RightAlignsWithinTheWidth) {
+  EXPECT_EQ(PadLeft("7", 3), "  7");
+  EXPECT_EQ(PadLeft("123", 3), "123");
+}
+
+// The one place it differs from PadRight, and the reason it exists: a level
+// that outgrew its column must read 1000, not 100.
+TEST(PadLeftTest, NeverTruncates) {
+  EXPECT_EQ(PadLeft("1000", 3), "1000");
+}
+
 // --- FormatWithCommas ---
 
 TEST(FormatWithCommasTest, NoCommasBelowThousand) {

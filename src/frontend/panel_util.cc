@@ -95,6 +95,13 @@ std::string PadRight(const std::string& s, int width) {
   return s + std::string(width - (int)s.size(), ' ');
 }
 
+std::string PadLeft(const std::string& s, int width) {
+  if (static_cast<int>(s.size()) >= width) {
+    return s;
+  }
+  return std::string(width - s.size(), ' ') + s;
+}
+
 std::string FormatWithCommas(int64_t n) {
   std::string digits = std::to_string(n < 0 ? -n : n);
   int pos = (int)digits.size() - 3;
@@ -210,10 +217,7 @@ std::string StatFieldName(StatField field) {
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
                             int scroll_left, int scroll_restore) {
-  std::string padded_info = info;
-  while ((int)padded_info.size() < kInfoWidth) {
-    padded_info += ' ';
-  }
+  std::string padded_info = PadRight(info, kInfoWidth);
   std::string scrolls;
   if (scroll_pass < 0) {
     scrolls = "-";

@@ -181,18 +181,9 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
 }
 
 std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
-  std::string name = scroll.name();
-  if ((int)name.size() < kNameWidth) {
-    name += std::string(kNameWidth - (int)name.size(), ' ');
-  } else {
-    name = name.substr(0, kNameWidth);
-  }
-
-  std::string rate = std::to_string(scroll.success_rate()) + "%";
-  while ((int)rate.size() < kRateWidth) {
-    rate += ' ';
-  }
-
+  std::string name = PadRight(scroll.name(), kNameWidth);
+  std::string rate =
+      PadRight(std::to_string(scroll.success_rate()) + "%", kRateWidth);
   std::string stats;
   if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
     stats = "Restores slot";

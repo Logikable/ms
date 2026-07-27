@@ -283,10 +283,9 @@ ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
 ftxui::Element CharacterPanel::Render() const {
   const Character& p = character_.proto();
 
-  std::string lvl = std::to_string(p.level());
-  while ((int)lvl.size() < 3) {
-    lvl = " " + lvl;
-  }
+  // Right-aligned in three columns so the job name doesn't shuffle sideways
+  // as the character levels past 9 and 99.
+  std::string lvl = PadLeft(std::to_string(p.level()), 3);
   std::string title = Centered("Lv" + lvl + " " + JobName(p.job()));
 
   // Combat power stands for the character as a whole, so it is built from a
