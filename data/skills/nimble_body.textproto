@@ -3,7 +3,9 @@
 # same +20. Halving it is what keeps the skill in line with its peers -- 20 LUK
 # is worth about 13% more damage at level 30, near enough to Critical Shot's
 # 14%, where the full 40 would have made it the best passive in the game.
+# The wiki says "Luck"; every stat this game shows the player says LUK.
 name: "Nimble Body"
+description: "Permanently increases LUK."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20

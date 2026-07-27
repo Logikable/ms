@@ -4,6 +4,9 @@
 # Seven, which is why the dagger it demands matters: the two are the same 330%
 # over the same 5 targets, and only the weapon tells them apart.
 name: "Double Stab"
+description:
+  "Quickly stab a nearby enemy twice. Can only be used when equipped with a "
+  "dagger."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20

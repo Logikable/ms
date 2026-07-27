@@ -37,6 +37,15 @@ TEST(SkillDataTest, EverySkillBelongsToAnAdvancement) {
   }
 }
 
+// The inspect screen has nothing else to say about a skill: its levers are
+// numbers, and only this tells the player what the numbers are for.
+TEST(SkillDataTest, EverySkillDescribesItself) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    EXPECT_FALSE(entry.second.description().empty())
+        << entry.first << " would inspect to a blank panel";
+  }
+}
+
 TEST(SkillDataTest, EveryFirstJobBookCostsExactlySixty) {
   std::map<int, int> cost_by_advancement;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {

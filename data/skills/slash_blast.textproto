@@ -1,4 +1,7 @@
+# The wiki leads with the MP the swing costs. Nothing here spends MP, so the
+# attack is all that is left to say.
 name: "Slash Blast"
+description: "Attack nearby enemies all at once."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20

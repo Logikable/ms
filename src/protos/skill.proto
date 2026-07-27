@@ -64,4 +64,9 @@ message Skill {
   // attacks are otherwise interchangeable: Double Stab needs a dagger and
   // Lucky Seven a claw, so which one is learned is a real choice.
   repeated EquipType required_equip_type = 9;
+  // Flavour text for the inspect screen, taken from the GMS skill and pruned to
+  // the effects this game actually has. A skill whose wiki entry boasts of
+  // movement speed or an MP cost says neither here, because neither is real to
+  // the player reading it.
+  string description = 10;
 }

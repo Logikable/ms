@@ -3,7 +3,13 @@
 # over 15 levels; the max is preserved at 110% a star. Claw-only, and the claw
 # is what makes the two skills differ: equipped throwing stars add their attack
 # to a claw's swing and to nothing else.
+# "7 lucky throwing stars" is the skill's own boast, not a count of anything:
+# GMS throws three and always has. Kept as the wiki words it, because the name
+# is built on the seven.
 name: "Lucky Seven"
+description:
+  "Throw 7 lucky throwing stars to attack enemies in front. Can only be used "
+  "when equipped with a claw."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20

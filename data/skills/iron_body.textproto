@@ -2,6 +2,9 @@
 # cannot express. The plain level/2 below is exact at every even level,
 # including the max, and half a point low at odd ones.
 name: "Iron Body"
+description:
+  "Boosts DEF and Max HP by a set percentage, and decreases damage taken "
+  "when hit by enemies."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20

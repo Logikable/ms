@@ -2,7 +2,14 @@
 # attack speed is real -- +1 stage, flat at every level, so the first point buys
 # the whole ~8% DPS. The defense is ours: without it the other 19 points bought
 # nothing, and a mastery worth only its first point is not worth showing.
+# The only description here that adds rather than prunes: the wiki sells the
+# skill on range and movement speed, and names no defense at all. Ours grants
+# defense, so the text has to say so or the levels below read as coming from
+# nowhere.
 name: "Archery Mastery"
+description:
+  "Gain proficiency in the fundamentals of Archery. Increases Attack Speed "
+  "and DEF."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ARCHER
 max_level: 20
