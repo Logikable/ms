@@ -64,6 +64,17 @@ void TuiController::OpenSkillLearn(const Skill& skill) {
   screen_ = kSkillLearn;
 }
 
+void TuiController::OpenSkillInspect(const Skill& skill) {
+  skill_inspect_ = skill;
+  screen_ = kSkillInspect;
+}
+
+// Read live rather than captured, so a point spent on the skill and then
+// inspected again shows the level it is actually at.
+int TuiController::skill_inspect_level() const {
+  return state_.character.skill_level(skill_inspect_);
+}
+
 void TuiController::OpenJobAdvance(Job job) {
   job_advance_ = job;
   // Opens on Cancel: an advancement cannot be undone, so Enter alone must not
@@ -116,6 +127,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
   }
   if (screen_ == kSkillLearn) {
     return OnSkillLearnEvent(event);
+  }
+  if (screen_ == kSkillInspect) {
+    return OnSkillInspectEvent(event);
   }
   if (screen_ == kJobAdvance) {
     return OnJobAdvanceEvent(event);
@@ -253,6 +267,15 @@ bool TuiController::OnSkillLearnEvent(ftxui::Event event) {
     state_.character.LearnSkill(skill_learn_, sp_selector_.value());
     screen_ = kMain;
   } else if (sp_selector_.TakeCancelled()) {
+    screen_ = kMain;
+  }
+  return true;
+}
+
+// Reading is all there is to do here, so either key leaves -- the same way the
+// item inspect screen closes.
+bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
+  if (IsBack(event) || IsForward(event)) {
     screen_ = kMain;
   }
   return true;

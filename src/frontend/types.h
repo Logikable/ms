@@ -16,6 +16,7 @@ enum Screen : int {
   kScrollResult,
   kApAlloc,
   kSkillLearn,
+  kSkillInspect,
   kJobAdvance,
   kStarForce,
   kStarForceResult,

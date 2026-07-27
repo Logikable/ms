@@ -309,6 +309,50 @@ TEST_F(TuiControllerTest, ConfirmLearnsTheChosenPoints) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
+// --- Skill inspect ---
+
+TEST_F(TuiControllerTest, OpenSkillInspectSetsScreenToSkillInspect) {
+  controller_->OpenSkillInspect(SlashBlast());
+  EXPECT_EQ(controller_->screen(), kSkillInspect);
+  EXPECT_EQ(controller_->skill_inspect_skill().name(), "Slash Blast");
+}
+
+TEST_F(TuiControllerTest, SkillInspectReportsTheLearnedLevel) {
+  Skill skill = SlashBlast();
+  ASSERT_TRUE(state_->character.LearnSkill(skill, 3));
+  controller_->OpenSkillInspect(skill);
+  EXPECT_EQ(controller_->skill_inspect_level(), 3);
+}
+
+TEST_F(TuiControllerTest, SkillInspectReportsZeroForAnUnlearnedSkill) {
+  controller_->OpenSkillInspect(SlashBlast());
+  EXPECT_EQ(controller_->skill_inspect_level(), 0);
+}
+
+// The level is read live, not captured when the screen opened, so a point
+// spent between two looks shows up on the second.
+TEST_F(TuiControllerTest, SkillInspectFollowsAPointSpentWhileItIsOpen) {
+  Skill skill = SlashBlast();
+  controller_->OpenSkillInspect(skill);
+  ASSERT_EQ(controller_->skill_inspect_level(), 0);
+  ASSERT_TRUE(state_->character.LearnSkill(skill, 2));
+  EXPECT_EQ(controller_->skill_inspect_level(), 2);
+}
+
+TEST_F(TuiControllerTest, EscapeLeavesTheSkillInspectScreen) {
+  controller_->OpenSkillInspect(SlashBlast());
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// Reading is all there is to do, so Enter leaves too rather than sitting there
+// doing nothing.
+TEST_F(TuiControllerTest, EnterAlsoLeavesTheSkillInspectScreen) {
+  controller_->OpenSkillInspect(SlashBlast());
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
 // --- Job advancement ---
 
 TEST_F(TuiControllerTest, OpenJobAdvanceFloatsTheConfirmation) {

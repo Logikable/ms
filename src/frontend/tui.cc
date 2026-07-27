@@ -75,7 +75,8 @@ void Tui::Run() {
   char_component_ = char_panel_.MakeComponent(
       [this](StatField field) { controller_.OpenApAllocate(field); },
       [this](const Skill& skill) { controller_.OpenSkillLearn(skill); },
-      [this](Job job) { controller_.OpenJobAdvance(job); });
+      [this](Job job) { controller_.OpenJobAdvance(job); },
+      [this](const Skill& skill) { controller_.OpenSkillInspect(skill); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
 
@@ -201,6 +202,18 @@ ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kTraceRecoverResult) {
     return ftxui::center(
         trace_recover_panel_.RenderResult(controller_.trace_recovery_result()));
+  }
+  if (controller_.screen() == kSkillInspect) {
+    skill_inspect_panel_.SetSkill(&controller_.skill_inspect_skill(),
+                                  controller_.skill_inspect_level());
+    // Over a filler so the window keeps its own height; an hbox stretches a
+    // bare child to the row height, and this screen is shorter than the
+    // terminal by a long way.
+    return ftxui::hbox({
+        ftxui::filler(),
+        ftxui::vbox({skill_inspect_panel_.Render(), ftxui::filler()}),
+        ftxui::filler(),
+    });
   }
   if (controller_.screen() == kInspect) {
     inspect_panel_.SetItem(controller_.inspect_item());

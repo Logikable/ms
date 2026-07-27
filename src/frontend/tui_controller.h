@@ -52,6 +52,9 @@ class TuiController {
   // up to the most points `skill` can still take (its stage SP, capped at how
   // far it is below max level).
   void OpenSkillLearn(const Skill& skill);
+  // Open the skill's inspect screen. Copies the skill, as the learn dialog
+  // does, so nothing downstream depends on the catalog outliving the screen.
+  void OpenSkillInspect(const Skill& skill);
   // Float the job-advancement confirmation over the main view. The prompt opens
   // on Cancel: the choice cannot be taken back.
   void OpenJobAdvance(Job job);
@@ -74,6 +77,13 @@ class TuiController {
   const AmountSelector& sp_selector() const {
     return sp_selector_;
   }
+
+  // The skill being inspected while in kSkillInspect, and the level the
+  // character has it at, for the screen Tui draws.
+  const Skill& skill_inspect_skill() const {
+    return skill_inspect_;
+  }
+  int skill_inspect_level() const;
 
   // The job the pending advancement would take, and its prompt, for the dialog
   // Tui floats over the main view.
@@ -122,6 +132,7 @@ class TuiController {
   bool OnScrollResultEvent(ftxui::Event event);
   bool OnApAllocEvent(ftxui::Event event);
   bool OnSkillLearnEvent(ftxui::Event event);
+  bool OnSkillInspectEvent(ftxui::Event event);
   bool OnJobAdvanceEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
@@ -154,6 +165,7 @@ class TuiController {
   AmountSelector ap_selector_;
   Skill skill_learn_;
   AmountSelector sp_selector_;
+  Skill skill_inspect_;
   Job job_advance_ = JOB_UNSPECIFIED;
   ConfirmPrompt job_advance_prompt_;
   ScrollResult scroll_result_;

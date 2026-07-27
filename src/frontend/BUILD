@@ -537,6 +537,7 @@ cc_library(
         ":panel_util",
         ":scroll_panel",
         ":sell_panel",
+        ":skill_inspect_panel",
         ":star_force_panel",
         ":trace_recover_panel",
         ":tui_controller",
