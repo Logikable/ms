@@ -49,7 +49,6 @@ cc_library(
     srcs = ["character_panel.cc"],
     hdrs = ["character_panel.h"],
     deps = [
-        ":colors",
         ":panel_util",
         ":types",
         "//src:character",

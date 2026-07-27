@@ -49,15 +49,13 @@ ftxui::Element TraceRecoverPanel::RenderTabs() const {
         ThemedSeparator(),
     });
   }
+  // The chip row is the only thing on this screen the keys reach, so it is
+  // always the focused bar.
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < static_cast<int>(matching_indices_.size()); ++i) {
     const EquipTabItem& item = character_.inventory()[matching_indices_[i]];
-    std::string label = " " + std::to_string(item.stars()) + "★ ";
-    ftxui::Element chip = ftxui::text(label) | ftxui::color(kTheme);
-    if (i == selected_) {
-      chip = chip | ftxui::inverted;
-    }
-    chips.push_back(std::move(chip));
+    chips.push_back(TabChip(std::to_string(item.stars()) + "★", i == selected_,
+                            /*row_focused=*/true));
   }
   return ftxui::vbox({
       ftxui::hbox(std::move(chips)) | ftxui::hcenter,

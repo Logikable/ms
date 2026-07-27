@@ -100,6 +100,14 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 // elements (gold stars, amber SF, etc.) and ThemedSeparator override it. Pass
 // focused=true to invert the title into a solid chip, marking the panel that
 // currently holds focus.
+// One chip of a tab bar in the game's one tab style: the label padded by a
+// space either side, theme-colored, and highlighted when it is the active tab.
+// An active chip goes white while its row holds focus and keeps the theme-blue
+// invert otherwise, which is how the player tells which bar the arrow keys are
+// reaching. Pass row_focused=true unconditionally for a bar that is the only
+// thing on its screen.
+ftxui::Element TabChip(const std::string& label, bool active, bool row_focused);
+
 // Renders a bracketed button in the game's one button style, inverted when
 // focused. Every button the player can land on is drawn with this -- the
 // confirm bar, the amount selector's [1]/[MAX], the [+] beside a stat, and the

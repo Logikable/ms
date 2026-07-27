@@ -40,24 +40,13 @@ constexpr char kColumnHeader2[] =
     "    "                            // 4 → 64 total
     "Pass/Left/Restore";
 
-// Renders the left-aligned Equip/Use/Etc chip row with a centered meso counter
-// overlaid in the empty space, over a separator. When row_selected the active
-// tab is drawn white (the tab bar holds focus); otherwise it keeps the theme-
-// blue invert. Mirrors CharacterPanel::RenderTabBar.
+// Renders the left-aligned Equip/Use/Etc chip row in the shared tab style,
+// with a centered meso counter overlaid in the empty space, over a separator.
 ftxui::Element RenderTabBar(int active_tab, int64_t meso, bool row_selected) {
   const char* labels[kNumInventoryTabs] = {"Equip", "Use", "Etc"};
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < kNumInventoryTabs; ++i) {
-    ftxui::Element chip =
-        ftxui::text(std::string(" ") + labels[i] + " ") | ftxui::color(kTheme);
-    if (i == active_tab && row_selected) {
-      chip = ftxui::text(std::string(" ") + labels[i] + " ") |
-             ftxui::color(ftxui::Color::Black) |
-             ftxui::bgcolor(ftxui::Color::White);
-    } else if (i == active_tab) {
-      chip = chip | ftxui::inverted;
-    }
-    chips.push_back(std::move(chip));
+    chips.push_back(TabChip(labels[i], i == active_tab, row_selected));
   }
   ftxui::Element tab_row = ftxui::dbox({
       ftxui::hbox(std::move(chips)),

@@ -195,5 +195,44 @@ TEST(ProgressBarTest, EmptyLabelLeavesTheBarBlank) {
   EXPECT_EQ(screen.PixelAt(5, 0).character, " ");
 }
 
+// --- TabChip ---
+
+// Renders one chip onto its own screen so its pixels can be inspected. The
+// label is padded either side, so column 1 holds its first character.
+ftxui::Screen RenderChip(bool active, bool row_focused) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(4),
+                                               ftxui::Dimension::Fixed(1));
+  ftxui::Render(screen, TabChip("AB", active, row_focused));
+  return screen;
+}
+
+TEST(TabChipTest, PadsTheLabelWithASpaceEitherSide) {
+  ftxui::Screen screen = RenderChip(/*active=*/false, /*row_focused=*/false);
+  EXPECT_EQ(screen.PixelAt(0, 0).character, " ");
+  EXPECT_EQ(screen.PixelAt(1, 0).character, "A");
+  EXPECT_EQ(screen.PixelAt(2, 0).character, "B");
+  EXPECT_EQ(screen.PixelAt(3, 0).character, " ");
+}
+
+TEST(TabChipTest, InactiveChipIsPlainTheme) {
+  ftxui::Screen screen = RenderChip(/*active=*/false, /*row_focused=*/true);
+  EXPECT_EQ(screen.PixelAt(1, 0).foreground_color, kTheme);
+  EXPECT_FALSE(screen.PixelAt(1, 0).inverted);
+}
+
+// Off-focus the active chip stays theme-blue, so two visible bars don't both
+// look like the one the keys are reaching.
+TEST(TabChipTest, ActiveChipOffFocusKeepsTheThemeInvert) {
+  ftxui::Screen screen = RenderChip(/*active=*/true, /*row_focused=*/false);
+  EXPECT_EQ(screen.PixelAt(1, 0).foreground_color, kTheme);
+  EXPECT_TRUE(screen.PixelAt(1, 0).inverted);
+}
+
+TEST(TabChipTest, ActiveChipOnTheFocusedRowGoesWhite) {
+  ftxui::Screen screen = RenderChip(/*active=*/true, /*row_focused=*/true);
+  EXPECT_EQ(screen.PixelAt(1, 0).background_color, ftxui::Color::White);
+  EXPECT_EQ(screen.PixelAt(1, 0).foreground_color, ftxui::Color::Black);
+}
+
 }  // namespace
 }  // namespace ms

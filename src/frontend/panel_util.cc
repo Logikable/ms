@@ -221,6 +221,20 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                                            label_color);
 }
 
+ftxui::Element TabChip(const std::string& label, bool active,
+                       bool row_focused) {
+  ftxui::Element chip = ftxui::text(" " + label + " ");
+  if (active && row_focused) {
+    return chip | ftxui::color(ftxui::Color::Black) |
+           ftxui::bgcolor(ftxui::Color::White);
+  }
+  chip = chip | ftxui::color(kTheme);
+  if (active) {
+    chip = chip | ftxui::inverted;
+  }
+  return chip;
+}
+
 ftxui::Element ActionButton(const std::string& label, bool focused) {
   ftxui::Element button = ftxui::text("[" + label + "]");
   if (focused) {

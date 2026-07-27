@@ -12,7 +12,6 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character_stats.h"
 #include "src/combat/damage.h"
-#include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
@@ -138,21 +137,12 @@ CharacterPanel::Tab CharacterPanel::ActiveTab() const {
 }
 
 ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
-  // Left-aligned chip row in the shared tab style: theme-colored labels, the
-  // active one highlighted. When the tab bar holds focus the active chip goes
-  // white to mark the selected row; otherwise it keeps the theme-blue invert.
+  // Left-aligned chip row in the shared tab style.
   std::vector<Tab> tabs = VisibleTabs();
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < static_cast<int>(tabs.size()); ++i) {
-    std::string label = std::string(" ") + kTabLabels[tabs[i]] + " ";
-    ftxui::Element chip = ftxui::text(label) | ftxui::color(kTheme);
-    if (tabs[i] == ActiveTab() && row_selected) {
-      chip = ftxui::text(label) | ftxui::color(ftxui::Color::Black) |
-             ftxui::bgcolor(ftxui::Color::White);
-    } else if (tabs[i] == ActiveTab()) {
-      chip = chip | ftxui::inverted;
-    }
-    chips.push_back(std::move(chip));
+    chips.push_back(
+        TabChip(kTabLabels[tabs[i]], tabs[i] == ActiveTab(), row_selected));
   }
   chips.push_back(ftxui::filler());
   return ftxui::hbox(std::move(chips));
@@ -195,20 +185,12 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
 
 ftxui::Element CharacterPanel::RenderAdvTabBar(int stages,
                                                bool bar_focused) const {
-  // One chip per unlocked stage, in the shared tab style; the selected chip is
-  // white while the bar holds focus, else the theme-blue invert. The selected
-  // stage's SP is right-aligned on the same row, reading like the AP counter.
+  // One chip per unlocked stage, in the shared tab style. The selected stage's
+  // SP is right-aligned on the same row, reading like the AP counter.
   std::vector<ftxui::Element> row;
   for (int stage = 1; stage <= stages; ++stage) {
-    std::string label = std::string(" ") + kStageNumerals[stage] + " ";
-    ftxui::Element chip = ftxui::text(label) | ftxui::color(kTheme);
-    if (stage - 1 == skill_tab_ && bar_focused) {
-      chip = ftxui::text(label) | ftxui::color(ftxui::Color::Black) |
-             ftxui::bgcolor(ftxui::Color::White);
-    } else if (stage - 1 == skill_tab_) {
-      chip = chip | ftxui::inverted;
-    }
-    row.push_back(std::move(chip));
+    row.push_back(
+        TabChip(kStageNumerals[stage], stage - 1 == skill_tab_, bar_focused));
   }
   row.push_back(ftxui::filler());
   row.push_back(
