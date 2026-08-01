@@ -11,6 +11,7 @@
 #include "src/equip_stats.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
+#include "src/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 
@@ -43,7 +44,14 @@ void EquippedPanel::OpenMenu() {
   menu_.Reset();
   EquipSlot slot = selected_slot();
   if (slot != EQUIP_SLOT_UNSPECIFIED) {
-    if (!character_.equipped().at(slot).CanStarForce()) {
+    const EquipInstance& item = character_.equipped().at(slot);
+    // Scrolling asks the prototype, not the slot count: a weapon with every
+    // slot spent still takes a Clean Slate, so only an item that refuses
+    // scrolls outright loses the entry.
+    if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
+      menu_.Disable(kMenuScroll);
+    }
+    if (!item.CanStarForce()) {
       menu_.Disable(kMenuStarForce);
     }
   }

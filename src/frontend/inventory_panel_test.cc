@@ -2,8 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
@@ -18,6 +20,31 @@ namespace {
 
 class InventoryPanelTest : public PanelTest {
  protected:
+  // Every entry the player can actually land on, in the order Down walks them.
+  // Disabled entries are skipped rather than merely dimmed, so what this does
+  // not contain is what the menu does not offer.
+  std::vector<int> ReachableMenuEntries(ItemMenu& menu) {
+    std::vector<int> seen{menu.selected()};
+    for (;;) {
+      menu.Down();
+      if (menu.selected() == seen.back()) {
+        return seen;
+      }
+      seen.push_back(menu.selected());
+    }
+  }
+
+  EquipPrototype MakeThrowingStars() {
+    EquipPrototype stars;
+    stars.set_name("Subi Throwing-Stars");
+    stars.set_equip_slot(EQUIP_SLOT_STARS);
+    stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
+    stars.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+    stars.add_unsupported_upgrades(UPGRADE_SCROLL);
+    stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+    return stars;
+  }
+
   ItemPrototype MakeStackable(const std::string& name, ItemCategory category,
                               int sell_price = 0) {
     ItemPrototype proto;
@@ -129,6 +156,37 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   panel.OpenMenu();
   // Equip/Scroll/StarForce are disabled; only Inspect is selectable.
   EXPECT_EQ(panel.menu().selected(), kMenuInspect);
+}
+
+// Neither action can do anything to a throwing star, so the menu should not
+// offer them. Scroll is the one that used to slip through: the picker always
+// includes Clean Slate scrolls, so it opened on a list of scrolls that would
+// have been refused.
+TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
+  c_.PickUp(std::make_unique<EquipInstance>(MakeThrowingStars()));
+  InventoryPanel panel(c_, panel_focus_);
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
+  // Still a usable menu, or the assertions above would pass on a dead one.
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
+}
+
+// An ordinary weapon keeps both, including one with no slots left: a spent
+// weapon is what star force is for, and a Clean Slate still applies to it.
+TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
+  EquipPrototype proto = sword_;
+  proto.set_upgrade_slots(1);
+  Equip state;
+  state.set_equip_name(proto.name());
+  state.set_remaining_upgrade_slots(0);
+  c_.PickUp(std::make_unique<EquipInstance>(proto, state));
+  InventoryPanel panel(c_, panel_focus_);
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
 }
 
 TEST_F(InventoryPanelTest, ShowsTabBar) {

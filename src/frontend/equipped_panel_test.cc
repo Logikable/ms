@@ -2,19 +2,37 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "src/equip_instance.h"
 #include "src/frontend/panel_test_base.h"
+#include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
 namespace {
 
-class EquippedPanelTest : public PanelTest {};
+class EquippedPanelTest : public PanelTest {
+ protected:
+  // Every entry the player can actually land on, in the order Down walks them.
+  // Disabled entries are skipped rather than merely dimmed, so what this does
+  // not contain is what the menu does not offer.
+  std::vector<int> ReachableMenuEntries(ItemMenu& menu) {
+    std::vector<int> seen{menu.selected()};
+    for (;;) {
+      menu.Down();
+      if (menu.selected() == seen.back()) {
+        return seen;
+      }
+      seen.push_back(menu.selected());
+    }
+  }
+};
 
 // The single rendered line holding `needle`, escape codes and all.
 std::string LineWith(const std::string& rendered, const std::string& needle) {
@@ -137,6 +155,29 @@ TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
 
 // Stars worn without a claw keep their number on screen but their whole row is
 // drawn dim, because the character's totals are not counting them.
+// The same refusal the bag menu honours, on the panel the stars are worn in.
+TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
+  EquipPrototype stars;
+  stars.set_name("Subi Throwing-Stars");
+  stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
+  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  stars.add_unsupported_upgrades(UPGRADE_SCROLL);
+  stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  c_.PickUp(std::make_unique<EquipInstance>(stars));
+  c_.Equip(0);
+
+  EquippedPanel panel(c_, panel_focus_);
+  // The slot list is built during render, which is the order the app runs in:
+  // the menu opens on a row the player is already looking at.
+  RenderComponent(panel.MakeComponent([]() {}));
+  panel.OpenMenu();
+  ASSERT_EQ(panel.selected_slot(), EQUIP_SLOT_STARS);
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
+}
+
 TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {
   EquipPrototype dagger;
   dagger.set_name("Reef Claw");

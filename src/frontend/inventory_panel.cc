@@ -141,6 +141,12 @@ void InventoryPanel::OpenMenu() {
   if (!character_.CanEquip(eq->prototype())) {
     menu_.Disable(kMenuAction);
   }
+  // Scrolling asks the prototype, not the slot count: a weapon with every slot
+  // spent still takes a Clean Slate, so only an item that refuses scrolls
+  // outright loses the entry.
+  if (!Supports(eq->prototype(), UPGRADE_SCROLL)) {
+    menu_.Disable(kMenuScroll);
+  }
   if (!eq->CanStarForce()) {
     menu_.Disable(kMenuStarForce);
   }
