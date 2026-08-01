@@ -762,6 +762,66 @@ TEST_F(AddMesoTest, NonPositiveAmountIsNoOp) {
   EXPECT_EQ(c_.meso(), 500);
 }
 
+// --- Buy ---
+
+// Fixture providing a 5000-meso weapon and a character who can afford two.
+class BuyTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    sword_.set_name("Long Sword");
+    sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    sword_.set_shop_price(5000);
+    c_.AddMeso(11000);
+  }
+
+  EquipPrototype sword_;
+  CharacterInstance c_ = MakeCharacter(rng_);
+};
+
+TEST_F(BuyTest, TakesTheMesoAndGivesTheItem) {
+  EXPECT_TRUE(c_.Buy(sword_, 1));
+  EXPECT_EQ(c_.meso(), 6000);
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory()[0].name(), "Long Sword");
+}
+
+// Equips do not stack, so two bought at once are two rows, not one row of two.
+TEST_F(BuyTest, EachCopyIsItsOwnItem) {
+  EXPECT_TRUE(c_.Buy(sword_, 2));
+  EXPECT_EQ(c_.meso(), 1000);
+  EXPECT_EQ(c_.inventory().size(), 2);
+}
+
+// The part it could afford must not go through: a purchase that half-happens
+// would take meso for an order the player never placed.
+TEST_F(BuyTest, BuysNothingWhenItCannotBuyEverything) {
+  EXPECT_FALSE(c_.Buy(sword_, 3));
+  EXPECT_EQ(c_.meso(), 11000);
+  EXPECT_EQ(c_.inventory().size(), 0);
+}
+
+TEST_F(BuyTest, SpendingEverythingIsAllowed) {
+  c_.AddMeso(4000);  // exactly 15000
+  EXPECT_TRUE(c_.Buy(sword_, 3));
+  EXPECT_EQ(c_.meso(), 0);
+  EXPECT_EQ(c_.inventory().size(), 3);
+}
+
+TEST_F(BuyTest, WillNotSellWhatTheShopDoesNotStock) {
+  EquipPrototype unpriced;
+  unpriced.set_name("Heirloom");
+  EXPECT_FALSE(c_.Buy(unpriced, 1));
+  EXPECT_EQ(c_.meso(), 11000);
+  EXPECT_EQ(c_.inventory().size(), 0);
+}
+
+TEST_F(BuyTest, NonPositiveCountIsNoOp) {
+  EXPECT_FALSE(c_.Buy(sword_, 0));
+  EXPECT_FALSE(c_.Buy(sword_, -2));
+  EXPECT_EQ(c_.meso(), 11000);
+  EXPECT_EQ(c_.inventory().size(), 0);
+}
+
 // --- SellStackable ---
 
 // Fixture providing a sellable Etc item (7 meso each) and an unsellable one.

@@ -97,6 +97,12 @@ class CharacterInstance {
   // range, count <= 0, or the item is unsellable (sell_price 0). Returns the
   // meso earned.
   int64_t SellStackable(ItemCategory category, int index, int count);
+  // Buys `count` copies of `proto` at its shop_price each, deducting the meso
+  // and putting the copies in the bag. All or nothing: returns false and
+  // changes nothing if `count` is not positive, the item is not for sale, or
+  // the character cannot pay for every copy. Each copy is a fresh item, so
+  // buying two puts two separate rows in the bag.
+  bool Buy(const EquipPrototype& proto, int count);
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the

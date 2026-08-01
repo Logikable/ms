@@ -433,6 +433,23 @@ int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
   return earned;
 }
 
+bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
+  if (count <= 0 || proto.shop_price() <= 0) {
+    return false;
+  }
+  // Priced in one go rather than a copy at a time, so a purchase the character
+  // cannot finish never takes the meso for the part it could.
+  int64_t cost = static_cast<int64_t>(count) * proto.shop_price();
+  if (cost > character_.meso()) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - cost);
+  for (int i = 0; i < count; ++i) {
+    PickUp(std::make_unique<EquipInstance>(proto));
+  }
+  return true;
+}
+
 std::vector<const EquipTrace*> CharacterInstance::traces() const {
   return inventory_.traces();
 }
