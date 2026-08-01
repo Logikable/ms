@@ -58,6 +58,12 @@ EquipInstance::EquipInstance(const EquipPrototype& prototype,
 
 ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
                                     std::mt19937& rng) {
+  // An item with no slots already refuses every scroll below, but saying it
+  // once up here covers the item that declares itself unscrollable while still
+  // carrying slots.
+  if (!Supports(prototype_, UPGRADE_SCROLL)) {
+    return kScrollNoSlots;
+  }
   if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
     int cap = prototype_.upgrade_slots() - state_.scroll_successes();
     if (state_.remaining_upgrade_slots() >= cap) {
@@ -81,6 +87,11 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
 }
 
 StarForceOutcome EquipInstance::StarForce(std::mt19937& rng) {
+  // Checked here as well as in CanStarForce so an item that refuses stars
+  // refuses them whatever the caller believed.
+  if (!Supports(prototype_, UPGRADE_STAR_FORCE)) {
+    return kStarForceFail;
+  }
   if (state_.remaining_upgrade_slots() > 0) {
     return kStarForceFail;
   }

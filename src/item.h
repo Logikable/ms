@@ -19,6 +19,12 @@
 
 namespace ms {
 
+// Whether `proto` accepts `upgrade` at all. This is the item's own answer,
+// asked before any question about the state of a particular drop: a weapon
+// that supports scrolling may still have no slots left, and one that supports
+// star force may already be at max stars.
+bool Supports(const EquipPrototype& proto, Upgrade upgrade);
+
 // Abstract base for all inventory items across all tabs.
 class Item {
  public:

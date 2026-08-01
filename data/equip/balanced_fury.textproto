@@ -6,3 +6,5 @@ base_stats {
 equip_type: EQUIP_TYPE_THROWING_STAR
 equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
 equip_slot: EQUIP_SLOT_STARS
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE

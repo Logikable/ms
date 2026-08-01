@@ -56,10 +56,14 @@ class EquipInstance : public EquipTabItem {
   // 23–25→19, 26–30→20. Returns 0 for stars below 15 (not destroyable).
   static int RecoveryStars(int original_stars);
 
-  // Returns false if upgrade slots remain (scrolling must be completed first)
-  // or if already at max stars.
+  // Returns false if the item does not take star force at all, if upgrade
+  // slots remain (scrolling must be completed first), or if already at max
+  // stars. The first of those is why this is not just a slot count: an item
+  // with no slots has nothing left to scroll, which would otherwise read as
+  // ready for stars.
   bool CanStarForce() const {
-    return state_.remaining_upgrade_slots() == 0 &&
+    return Supports(prototype_, UPGRADE_STAR_FORCE) &&
+           state_.remaining_upgrade_slots() == 0 &&
            state_.stars() < max_stars();
   }
 };

@@ -39,6 +39,14 @@ enum EquipSlot {
   EQUIP_SLOT_STARS = 2;
 }
 
+// A way an item can be made stronger after it drops. Listed on a prototype
+// only to say the item refuses it.
+enum Upgrade {
+  UPGRADE_UNSPECIFIED = 0;
+  UPGRADE_SCROLL = 1;
+  UPGRADE_STAR_FORCE = 2;
+}
+
 // Which job branches can equip this item. UNIVERSAL means any job can equip
 // it; BEGINNER includes pre-advancement characters (Noblesse, etc.). Used to
 // filter scrolls and enforce equip requirements.
@@ -82,6 +90,11 @@ message EquipPrototype {
   repeated EquipJobCategory equip_job_categories = 6;
   EquipStats base_stats = 7;
   int32 upgrade_slots = 8;
+  // Upgrade paths this item refuses. Ordinary equipment accepts every path, so
+  // a data file carries the exception and the common case needs no line at
+  // all. Read it per item, never per equip_type: two throwing stars are not
+  // obliged to agree with each other.
+  repeated Upgrade unsupported_upgrades = 9;
 }
 
 // Per-instance mutable state for a single drop of equipment. Persisted in the

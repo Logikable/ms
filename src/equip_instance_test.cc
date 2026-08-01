@@ -157,6 +157,38 @@ TEST_F(EquipInstanceTest, StarForceFailsWithSlotsRemaining) {
   EXPECT_EQ(item.stars(), 0);
 }
 
+// An item that takes no upgrade slots has nothing left to scroll, which the
+// slot check alone reads as ready for stars. Throwing stars are exactly that
+// shape, so without the declaration they star force like any other weapon.
+TEST_F(EquipInstanceTest, AnItemThatRefusesStarForceCannotStarForce) {
+  EquipPrototype proto = MakeEquip(/*upgrade_slots=*/0);
+  proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  EquipInstance item(proto);
+  EXPECT_FALSE(item.CanStarForce());
+  EXPECT_EQ(item.StarForce(rng_), kStarForceFail);
+  EXPECT_EQ(item.stars(), 0);
+}
+
+// Refusing one path says nothing about the other.
+TEST_F(EquipInstanceTest, RefusingScrollsLeavesStarForceAlone) {
+  EquipPrototype proto = MakeEquip(/*upgrade_slots=*/0);
+  proto.add_unsupported_upgrades(UPGRADE_SCROLL);
+  EquipInstance item(proto);
+  EXPECT_TRUE(item.CanStarForce());
+  EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollNoSlots);
+}
+
+// The slots are the trap: a data file could carry both, and the declaration
+// has to win over them.
+TEST_F(EquipInstanceTest, RefusingScrollsBeatsRemainingSlots) {
+  EquipPrototype proto = MakeEquip(/*upgrade_slots=*/7);
+  proto.add_unsupported_upgrades(UPGRADE_SCROLL);
+  EquipInstance item(proto);
+  EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollNoSlots);
+  EXPECT_EQ(item.stats().attack(), 0);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 7);
+}
+
 TEST_F(EquipInstanceTest, RateAtReturnsZeroOutOfRange) {
   StarForceRate r = EquipInstance::RateAt(-1);
   EXPECT_EQ(r.success, 0);

@@ -122,6 +122,15 @@ StatFlags PrimaryStatFlags(const EquipPrototype& proto) {
 
 }  // namespace
 
+bool Supports(const EquipPrototype& proto, Upgrade upgrade) {
+  for (int i = 0; i < proto.unsupported_upgrades_size(); ++i) {
+    if (proto.unsupported_upgrades(i) == upgrade) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void StackableItem::add_count(int delta) {
   count_ += delta;
 }
