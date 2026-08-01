@@ -430,6 +430,61 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "buy_panel",
+    srcs = ["buy_panel.cc"],
+    hdrs = ["buy_panel.h"],
+    deps = [
+        ":amount_selector",
+        ":colors",
+        ":panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "buy_panel_test",
+    srcs = ["buy_panel_test.cc"],
+    deps = [
+        ":buy_panel",
+        ":colors",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "shop_panel",
+    srcs = ["shop_panel.cc"],
+    hdrs = ["shop_panel.h"],
+    deps = [
+        ":colors",
+        ":panel_util",
+        "//src:character",
+        "//src:shop",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "shop_panel_test",
+    srcs = ["shop_panel_test.cc"],
+    deps = [
+        ":colors",
+        ":shop_panel",
+        "//src:character",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "trace_recover_panel_test",
     srcs = ["trace_recover_panel_test.cc"],
