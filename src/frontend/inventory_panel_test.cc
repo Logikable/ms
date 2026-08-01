@@ -189,6 +189,58 @@ TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
 }
 
+// The Shop tab lists nothing the player owns, so where the other tabs show a
+// list it shows the way in.
+TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  panel_focus_ = kInventoryPanel;
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  EXPECT_TRUE(panel.on_shop_tab());
+  EXPECT_NE(RenderComponent(comp).find("Hit Enter to open Shop"),
+            std::string::npos);
+}
+
+// It is the last tab, so Right must stop there rather than walking off the bar.
+TEST_F(InventoryPanelTest, ShopIsTheRightmostTab) {
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  for (int i = 0; i < 6; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  EXPECT_TRUE(panel.on_shop_tab());
+  EXPECT_NE(RenderComponent(comp).find("Shop"), std::string::npos);
+}
+
+// Down would leave the cursor nowhere: there is no list under this tab. The
+// Etc stack matters -- without one, a Shop tab that fell through to the Etc
+// emptiness check would look inert for the wrong reason.
+TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
+  c_.AddStackable(MakeStackable("Shell", ITEM_CATEGORY_ETC, 7), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  panel_focus_ = kInventoryPanel;
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  // Still on the tab bar, so Left still switches tabs rather than moving a row.
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_FALSE(panel.on_shop_tab());
+}
+
+// The shop is not a stackable tab, or the sell menu would open over it.
+TEST_F(InventoryPanelTest, TheShopTabIsNotAStackableTab) {
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  EXPECT_FALSE(panel.on_stackable_tab());
+}
+
 TEST_F(InventoryPanelTest, ShowsTabBar) {
   InventoryPanel panel(c_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));

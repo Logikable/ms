@@ -24,7 +24,10 @@ enum InventoryTab : int {
   kEquipTab = 0,
   kUseTab = 1,
   kEtcTab = 2,
-  kNumInventoryTabs = 3,
+  // Not a list of anything the player owns -- it is the door to the shop, and
+  // sits last because it is the only tab that leaves this panel.
+  kShopTab = 3,
+  kNumInventoryTabs = 4,
 };
 
 // Two leading spaces match the "  " / "> " cursor added by the entry transform.
@@ -43,7 +46,7 @@ constexpr char kColumnHeader2[] =
 // Renders the left-aligned Equip/Use/Etc chip row in the shared tab style,
 // with a centered meso counter overlaid in the empty space, over a separator.
 ftxui::Element RenderTabBar(int active_tab, int64_t meso, bool row_selected) {
-  const char* labels[kNumInventoryTabs] = {"Equip", "Use", "Etc"};
+  const char* labels[kNumInventoryTabs] = {"Equip", "Use", "Etc", "Shop"};
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < kNumInventoryTabs; ++i) {
     chips.push_back(TabChip(labels[i], i == active_tab, row_selected));
@@ -88,11 +91,14 @@ InventoryPanel::InventoryPanel(CharacterInstance& character, int& panel_focus)
 }
 
 ItemMenu& InventoryPanel::menu() {
-  return active_tab_ == kEquipTab ? menu_ : sell_menu_;
+  if (active_tab_ == kEquipTab) {
+    return menu_;
+  }
+  return sell_menu_;
 }
 
 bool InventoryPanel::on_stackable_tab() const {
-  return active_tab_ != kEquipTab;
+  return active_tab_ == kUseTab || active_tab_ == kEtcTab;
 }
 
 ItemCategory InventoryPanel::active_category() const {
@@ -105,9 +111,17 @@ ItemCategory InventoryPanel::active_category() const {
   return ITEM_CATEGORY_UNSPECIFIED;
 }
 
+bool InventoryPanel::on_shop_tab() const {
+  return active_tab_ == kShopTab;
+}
+
 bool InventoryPanel::ActiveTabEmpty() const {
   if (active_tab_ == kEquipTab) {
     return character_.inventory().size() == 0;
+  }
+  if (active_tab_ == kShopTab) {
+    // Nothing of the player's to descend into; Enter leaves for the shop.
+    return true;
   }
   ItemCategory category =
       active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
@@ -252,7 +266,11 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
 ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   bool focused = panel_focus_ == kInventoryPanel;
   ftxui::Element body;
-  if (active_tab_ == kUseTab || active_tab_ == kEtcTab) {
+  if (active_tab_ == kShopTab) {
+    // The shop is a screen of its own, so where the other tabs list what the
+    // player has, this one says how to get there.
+    body = CenteredRow("Hit Enter to open Shop");
+  } else if (active_tab_ == kUseTab || active_tab_ == kEtcTab) {
     ItemCategory category =
         active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
     const std::vector<StackableItem>& stacks = character_.stackables(category);
@@ -332,7 +350,7 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
         return true;
       }
       if (event == ftxui::Event::ArrowRight) {
-        if (active_tab_ < kEtcTab) {
+        if (active_tab_ < kShopTab) {
           ++active_tab_;
           selected_stack_ = 0;
         }
@@ -344,6 +362,12 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
         if (!ActiveTabEmpty()) {
           zone_ = kZoneList;
         }
+        return true;
+      }
+      if (IsForward(event) && active_tab_ == kShopTab) {
+        // The one tab the player enters from the bar itself: there is no list
+        // below it to walk down into first.
+        on_enter();
         return true;
       }
       // Swallow the rest (notably Up) so nothing leaks to the hidden Equip menu

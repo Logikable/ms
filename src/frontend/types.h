@@ -24,6 +24,8 @@ enum Screen : int {
   kTraceRecoverResult,
   kSell,
   kMapSelect,
+  kShop,
+  kShopBuy,
 };
 // Focusable panels of the main screen, in Tab order: clockwise from the
 // top-left corner of the layout (Character, Equipped, Inventory, Combat). The

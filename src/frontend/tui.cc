@@ -62,9 +62,10 @@ Tui::Tui(GameState& state)
       scroll_panel_(state.scrolls),
       trace_recover_panel_(state.character),
       map_select_panel_(state),
+      shop_panel_(state.character, state.equips),
       controller_(state, equip_panel_, inventory_panel_, scroll_panel_,
                   star_force_panel_, trace_recover_panel_, sell_panel_,
-                  map_select_panel_, panel_focus_) {
+                  map_select_panel_, shop_panel_, buy_panel_, panel_focus_) {
 }
 
 void Tui::Run() {
@@ -173,6 +174,17 @@ ftxui::Element Tui::RenderFrame() {
   }
   if (controller_.screen() == kMapSelect) {
     return ftxui::center(map_select_panel_.Render());
+  }
+  if (controller_.screen() == kShop) {
+    return ftxui::center(shop_panel_.Render());
+  }
+  if (controller_.screen() == kShopBuy) {
+    // Float the buy dialog over the shop, so the list it came from stays
+    // behind it -- the same way selling floats over the bag.
+    return ftxui::dbox({
+        ftxui::center(shop_panel_.Render()),
+        ftxui::center(buy_panel_.Render() | ftxui::clear_under),
+    });
   }
   if (controller_.screen() == kStarForce) {
     star_force_panel_.SetItem(controller_.star_force_item());

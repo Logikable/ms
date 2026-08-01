@@ -10,6 +10,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "src/combat/fight.h"
+#include "src/frontend/buy_panel.h"
 #include "src/frontend/character_panel.h"
 #include "src/frontend/combat_panel.h"
 #include "src/frontend/equipped_panel.h"
@@ -18,6 +19,7 @@
 #include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
+#include "src/frontend/shop_panel.h"
 #include "src/frontend/skill_inspect_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
@@ -60,6 +62,8 @@ class Tui {
   TraceRecoverPanel trace_recover_panel_;
   SellPanel sell_panel_;
   MapSelectPanel map_select_panel_;
+  ShopPanel shop_panel_;
+  BuyPanel buy_panel_;
 
   // Screen-state machine: owns screen_ and event-handling logic.
   TuiController controller_;

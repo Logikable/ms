@@ -22,13 +22,12 @@
 
 namespace ms {
 
-TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
-                             InventoryPanel& inventory_panel,
-                             ScrollPanel& scroll_panel,
-                             StarForcePanel& star_force_panel,
-                             TraceRecoverPanel& trace_recover_panel,
-                             SellPanel& sell_panel,
-                             MapSelectPanel& map_select_panel, int& panel_focus)
+TuiController::TuiController(
+    GameState& state, EquippedPanel& equip_panel,
+    InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
+    StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
+    SellPanel& sell_panel, MapSelectPanel& map_select_panel,
+    ShopPanel& shop_panel, BuyPanel& buy_panel, int& panel_focus)
     : state_(state),
       equip_panel_(equip_panel),
       inventory_panel_(inventory_panel),
@@ -37,6 +36,8 @@ TuiController::TuiController(GameState& state, EquippedPanel& equip_panel,
       trace_recover_panel_(trace_recover_panel),
       sell_panel_(sell_panel),
       map_select_panel_(map_select_panel),
+      shop_panel_(shop_panel),
+      buy_panel_(buy_panel),
       panel_focus_(panel_focus) {
 }
 
@@ -46,6 +47,11 @@ void TuiController::OpenEquipMenu() {
 }
 
 void TuiController::OpenInventoryMenu() {
+  if (inventory_panel_.on_shop_tab()) {
+    shop_panel_.Reset();
+    screen_ = kShop;
+    return;
+  }
   screen_ = kItemMenu;
   inventory_panel_.OpenMenu();
 }
@@ -151,6 +157,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
   }
   if (screen_ == kMapSelect) {
     return OnMapSelectEvent(event);
+  }
+  if (screen_ == kShop) {
+    return OnShopEvent(event);
+  }
+  if (screen_ == kShopBuy) {
+    return OnShopBuyEvent(event);
   }
   if (event == ftxui::Event::Tab) {
     panel_focus_ = (panel_focus_ + 1) % kNumPanels;
@@ -392,6 +404,42 @@ bool TuiController::OnMapSelectEvent(ftxui::Event event) {
     return true;
   }
   // Swallow everything else: this is a modal screen.
+  return true;
+}
+
+bool TuiController::OnShopEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (IsForward(event)) {
+    const EquipPrototype* item = shop_panel_.selected_item();
+    if (item != nullptr) {
+      buy_item_ = item->name();
+      buy_panel_.Reset(item->name(), item->shop_price(),
+                       state_.character.meso());
+      screen_ = kShopBuy;
+    }
+    return true;
+  }
+  shop_panel_.OnEvent(event);
+  // Swallow everything else: this is a modal screen.
+  return true;
+}
+
+bool TuiController::OnShopBuyEvent(ftxui::Event event) {
+  buy_panel_.OnEvent(event);
+  if (buy_panel_.TakeConfirmed()) {
+    const EquipPrototype* item = shop_panel_.selected_item();
+    if (item != nullptr && item->name() == buy_item_) {
+      state_.character.Buy(*item, buy_panel_.quantity());
+    }
+    // Back to the shop rather than the bag: a player buying one thing is
+    // usually buying two.
+    screen_ = kShop;
+  } else if (buy_panel_.TakeCancelled()) {
+    screen_ = kShop;
+  }
   return true;
 }
 

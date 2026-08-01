@@ -11,11 +11,13 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/equip_instance.h"
+#include "src/frontend/buy_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
+#include "src/frontend/shop_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/game_state.h"
@@ -53,6 +55,14 @@ class TuiControllerTest : public testing::Test {
     wand.set_name("Wooden Wand");
     wand.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     equips["wooden_wand"] = wand;
+    // Something for the shop to stock. ShopPanel fixes its list at
+    // construction, so this has to exist before the panel does.
+    EquipPrototype machete;
+    machete.set_name("Machete");
+    machete.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    machete.set_required_level(20);
+    machete.set_shop_price(10000);
+    equips["machete"] = machete;
     std::map<std::string, Scroll> scrolls;
     scrolls["Test Scroll"] = scroll;
 
@@ -76,10 +86,13 @@ class TuiControllerTest : public testing::Test {
         std::make_unique<TraceRecoverPanel>(state_->character);
     sell_panel_ = std::make_unique<SellPanel>();
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
+    shop_panel_ =
+        std::make_unique<ShopPanel>(state_->character, state_->equips);
+    buy_panel_ = std::make_unique<BuyPanel>();
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *map_select_panel_, panel_focus_);
+        *map_select_panel_, *shop_panel_, *buy_panel_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -101,6 +114,16 @@ class TuiControllerTest : public testing::Test {
     inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
   }
 
+  // Walks the tab bar to the Shop tab and opens it, leaving the shop screen up
+  // with the cursor on the first item.
+  void OpenShop() {
+    panel_focus_ = kInventoryPanel;
+    for (int i = 0; i < 3; ++i) {
+      inventory_component_->OnEvent(ftxui::Event::ArrowRight);
+    }
+    inventory_component_->OnEvent(ftxui::Event::Return);
+  }
+
   // MapSelectPanel fixes its display order at construction, so the maps must
   // exist before it does -- rebuild both after touching state_->maps.
   void RebuildMapSelect() {
@@ -108,7 +131,7 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *map_select_panel_, panel_focus_);
+        *map_select_panel_, *shop_panel_, *buy_panel_, panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -187,7 +210,7 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *map_select_panel_, panel_focus_);
+        *map_select_panel_, *shop_panel_, *buy_panel_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -200,6 +223,8 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<TraceRecoverPanel> trace_recover_panel_;
   std::unique_ptr<SellPanel> sell_panel_;
   std::unique_ptr<MapSelectPanel> map_select_panel_;
+  std::unique_ptr<ShopPanel> shop_panel_;
+  std::unique_ptr<BuyPanel> buy_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
   ftxui::Component inventory_component_;
@@ -943,6 +968,90 @@ TEST_F(TuiControllerTest, MovingFocusDoesNotRepointAnOpenModal) {
 }
 
 // --- Sell via Etc tab ---
+
+// --- shop ---
+
+// The Shop tab has no list to walk down into, so Enter opens it straight from
+// the tab bar.
+TEST_F(TuiControllerTest, EnterOnTheShopTabOpensTheShop) {
+  panel_focus_ = kInventoryPanel;
+  for (int i = 0; i < 3; ++i) {
+    inventory_component_->OnEvent(ftxui::Event::ArrowRight);
+  }
+  inventory_component_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kShop);
+}
+
+// Enter on the other tabs still opens the item menu, not the shop.
+TEST_F(TuiControllerTest, EnterOnTheEtcTabStillOpensTheItemMenu) {
+  EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
+  inventory_component_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kItemMenu);
+}
+
+TEST_F(TuiControllerTest, ShopEscapeReturnsToTheBag) {
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, EnterOnAShopItemOpensTheBuyDialog) {
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kShopBuy);
+}
+
+TEST_F(TuiControllerTest, BuyingTakesTheMesoAndFillsTheBag) {
+  state_->character.AddMeso(25000);
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy, quantity 1
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);     // Confirm
+
+  EXPECT_EQ(state_->character.meso(), 15000);
+  EXPECT_EQ(state_->character.inventory().size(), 1);
+  // Back to the shop rather than the bag: buying one thing usually means two.
+  EXPECT_EQ(controller_->screen(), kShop);
+}
+
+TEST_F(TuiControllerTest, BuyingTheTypedQuantity) {
+  state_->character.AddMeso(25000);
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Backspace);       // clear the 1
+  controller_->OnEvent(ftxui::Event::Character('2'));  // two of them
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(state_->character.meso(), 5000);
+  EXPECT_EQ(state_->character.inventory().size(), 2);
+}
+
+TEST_F(TuiControllerTest, CancellingABuyReturnsToTheShopUnchanged) {
+  state_->character.AddMeso(25000);
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(controller_->screen(), kShop);
+  EXPECT_EQ(state_->character.meso(), 25000);
+  EXPECT_EQ(state_->character.inventory().size(), 0);
+}
+
+// The dialog opens on an unaffordable item rather than refusing to, and says
+// so by leaving Confirm inert.
+TEST_F(TuiControllerTest, ConfirmingWhatCannotBeAffordedBuysNothing) {
+  state_->character.AddMeso(500);
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kShopBuy);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kShopBuy) << "Confirm should be inert";
+  EXPECT_EQ(state_->character.meso(), 500);
+  EXPECT_EQ(state_->character.inventory().size(), 0);
+}
 
 TEST_F(TuiControllerTest, SellMenuSellGoesToSellScreen) {
   EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);

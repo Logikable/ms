@@ -56,6 +56,10 @@ class InventoryPanel {
   }
   // True when a Use or Etc tab is active (as opposed to the Equip tab).
   bool on_stackable_tab() const;
+  // Whether the Shop tab is the active one. The shop is a screen rather than a
+  // list, so the controller asks this to tell Enter on the tab bar apart from
+  // Enter on an item.
+  bool on_shop_tab() const;
   // The active Use/Etc tab's item category, or ITEM_CATEGORY_UNSPECIFIED on the
   // Equip tab.
   ItemCategory active_category() const;

@@ -14,6 +14,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/equip_instance.h"
 #include "src/frontend/amount_selector.h"
+#include "src/frontend/buy_panel.h"
 #include "src/frontend/confirm_prompt.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
@@ -21,6 +22,7 @@
 #include "src/frontend/map_select_panel.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/sell_panel.h"
+#include "src/frontend/shop_panel.h"
 #include "src/frontend/star_force_panel.h"
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
@@ -40,10 +42,13 @@ class TuiController {
                 InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
                 StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
-                MapSelectPanel& map_select_panel, int& panel_focus);
+                MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
+                BuyPanel& buy_panel, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
+  // Enter in the bag: the context menu on an item, or the shop when the Shop
+  // tab is the one showing.
   void OpenInventoryMenu();
   // Float the AP-allocation amount entry over the main view, seeded to spend up
   // to all available AP on `field` (defaulting to the max).
@@ -140,6 +145,8 @@ class TuiController {
   bool OnTraceRecoverResultEvent(ftxui::Event event);
   bool OnSellEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
+  bool OnShopEvent(ftxui::Event event);
+  bool OnShopBuyEvent(ftxui::Event event);
 
   GameState& state_;
   EquippedPanel& equip_panel_;
@@ -149,6 +156,11 @@ class TuiController {
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
   MapSelectPanel& map_select_panel_;
+  ShopPanel& shop_panel_;
+  BuyPanel& buy_panel_;
+  // Catalog key of the item the buy dialog is open on, so the purchase reads
+  // the prototype rather than trusting a pointer to outlive the screen.
+  std::string buy_item_;
   int& panel_focus_;
   Screen screen_ = kMain;
   // Each modal remembers the item it was opened on. Where that item lives is
