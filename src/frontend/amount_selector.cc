@@ -4,6 +4,8 @@
 #include <chrono>
 #include <cstdint>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -63,31 +65,46 @@ ftxui::Element ValueField(int value, bool selected) {
 }  // namespace
 
 void AmountSelector::Reset(int max) {
+  Reset(max, /*initial=*/max, QuickPicks::kShown);
+}
+
+void AmountSelector::Reset(int max, int initial, QuickPicks quick_picks) {
   max_ = max;
-  value_ = max;   // Default to the whole amount.
+  value_ = std::clamp(initial, 0, max);
   focus_ = kQty;  // Start in the textbox.
   confirmed_ = false;
   cancelled_ = false;
+  quick_picks_ = quick_picks;
+  confirm_enabled_ = true;
+}
+
+void AmountSelector::set_confirm_enabled(bool enabled) {
+  confirm_enabled_ = enabled;
 }
 
 ftxui::Element AmountSelector::Render() const {
-  ftxui::Element value_row = ftxui::hbox({
-                                 ftxui::text(" "),
-                                 ActionButton("1", focus_ == kOne),
-                                 ftxui::text("  "),
-                                 ValueField(value_, focus_ == kQty),
-                                 ftxui::text("  "),
-                                 ActionButton("MAX", focus_ == kMax),
-                                 ftxui::text(" "),
-                             }) |
-                             ftxui::hcenter;
+  std::vector<ftxui::Element> value_cells;
+  value_cells.push_back(ftxui::text(" "));
+  if (quick_picks_ == QuickPicks::kShown) {
+    value_cells.push_back(ActionButton("1", focus_ == kOne));
+    value_cells.push_back(ftxui::text("  "));
+  }
+  value_cells.push_back(ValueField(value_, focus_ == kQty));
+  if (quick_picks_ == QuickPicks::kShown) {
+    value_cells.push_back(ftxui::text("  "));
+    value_cells.push_back(ActionButton("MAX", focus_ == kMax));
+  }
+  value_cells.push_back(ftxui::text(" "));
+  ftxui::Element value_row =
+      ftxui::hbox(std::move(value_cells)) | ftxui::hcenter;
   ConfirmFocus button_focus = ConfirmFocus::kNone;
   if (focus_ == kConfirm) {
     button_focus = ConfirmFocus::kConfirm;
   } else if (focus_ == kCancel) {
     button_focus = ConfirmFocus::kCancel;
   }
-  ftxui::Element button_row = ConfirmButtons(button_focus) | ftxui::hcenter;
+  ftxui::Element button_row =
+      ConfirmButtons(button_focus, confirm_enabled_) | ftxui::hcenter;
   return ftxui::vbox({
       value_row,
       ThemedSeparator(),
@@ -101,7 +118,9 @@ void AmountSelector::Activate() {
   } else if (focus_ == kMax) {
     value_ = max_;
   } else if (focus_ == kConfirm) {
-    confirmed_ = true;
+    // A dimmed Confirm is inert rather than merely unhelpful: the caller has
+    // said it cannot honour this amount, so pressing it must not report one.
+    confirmed_ = confirm_enabled_;
   } else if (focus_ == kCancel) {
     cancelled_ = true;
   }
@@ -113,10 +132,13 @@ bool AmountSelector::OnEvent(ftxui::Event event) {
     cancelled_ = true;
     return true;
   }
+  // With the shortcuts hidden the value field is the whole top row, so Left and
+  // Right have nowhere to go from it.
+  bool has_quick_picks = quick_picks_ == QuickPicks::kShown;
   if (event == ftxui::Event::ArrowLeft) {
     if (focus_ == kMax) {
       focus_ = kQty;
-    } else if (focus_ == kQty) {
+    } else if (focus_ == kQty && has_quick_picks) {
       focus_ = kOne;
     } else if (focus_ == kCancel) {
       focus_ = kConfirm;
@@ -126,7 +148,7 @@ bool AmountSelector::OnEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowRight) {
     if (focus_ == kOne) {
       focus_ = kQty;
-    } else if (focus_ == kQty) {
+    } else if (focus_ == kQty && has_quick_picks) {
       focus_ = kMax;
     } else if (focus_ == kConfirm) {
       focus_ = kCancel;

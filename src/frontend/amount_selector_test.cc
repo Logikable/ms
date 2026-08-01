@@ -144,5 +144,100 @@ TEST(AmountSelectorTest, EscapeCancels) {
   EXPECT_TRUE(sel.TakeCancelled());
 }
 
+// --- opening amount and hidden shortcuts ---
+
+std::string RenderSelector(const AmountSelector& sel) {
+  ftxui::Element element = sel.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                                               ftxui::Dimension::Fixed(3));
+  ftxui::Render(screen, element);
+  return screen.ToString();
+}
+
+TEST(AmountSelectorTest, OpensOnTheAmountItIsGiven) {
+  AmountSelector sel;
+  sel.Reset(9, /*initial=*/1, QuickPicks::kShown);
+  EXPECT_EQ(sel.value(), 1);
+}
+
+// A shop can offer one of something the player cannot afford, so the opening
+// amount has to survive a max of zero rather than sit above it.
+TEST(AmountSelectorTest, ClampsTheOpeningAmountToMax) {
+  AmountSelector sel;
+  sel.Reset(0, /*initial=*/1, QuickPicks::kShown);
+  EXPECT_EQ(sel.value(), 0);
+}
+
+TEST(AmountSelectorTest, HidesTheShortcutsWhenAsked) {
+  AmountSelector sel;
+  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  std::string rendered = RenderSelector(sel);
+  EXPECT_EQ(rendered.find("[1]"), std::string::npos);
+  EXPECT_EQ(rendered.find("[MAX]"), std::string::npos);
+  EXPECT_NE(rendered.find("[Confirm]"), std::string::npos);
+}
+
+// Hidden is not merely invisible. Left and Right used to walk onto the
+// shortcuts, which would strand the cursor on a control nobody can see.
+TEST(AmountSelectorTest, HiddenShortcutsCannotBeReached) {
+  AmountSelector sel;
+  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.OnEvent(ftxui::Event::ArrowLeft);
+  sel.OnEvent(ftxui::Event::Backspace);
+  EXPECT_EQ(sel.value(), 0) << "Left moved off the textbox";
+  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.OnEvent(ftxui::Event::ArrowRight);
+  sel.OnEvent(ftxui::Event::Backspace);
+  EXPECT_EQ(sel.value(), 0) << "Right moved off the textbox";
+}
+
+// The single line holding `needle`, escape codes and all.
+std::string LineWith(const std::string& rendered, const std::string& needle) {
+  size_t at = rendered.find(needle);
+  if (at == std::string::npos) {
+    return "";
+  }
+  size_t begin = rendered.rfind('\n', at);
+  begin = begin == std::string::npos ? 0 : begin + 1;
+  return rendered.substr(begin, rendered.find('\n', at) - begin);
+}
+
+TEST(AmountSelectorTest, DimsAConfirmItCannotHonour) {
+  AmountSelector sel;
+  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.set_confirm_enabled(false);
+  std::string row = LineWith(RenderSelector(sel), "[Confirm]");
+  EXPECT_NE(row.find("\033[2m"), std::string::npos);
+
+  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  EXPECT_EQ(LineWith(RenderSelector(sel), "[Confirm]").find("\033[2m"),
+            std::string::npos);
+}
+
+// The dimming has to be inert, not just grey: a caller that cannot honour the
+// amount must never be told the player confirmed it.
+TEST(AmountSelectorTest, ADisabledConfirmDoesNotConfirm) {
+  AmountSelector sel;
+  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.set_confirm_enabled(false);
+  sel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  sel.OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(sel.TakeConfirmed());
+  // Leaving is still available.
+  sel.OnEvent(ftxui::Event::ArrowRight);  // [Confirm] -> [Cancel]
+  sel.OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(sel.TakeCancelled());
+}
+
+TEST(AmountSelectorTest, ResetClearsTheDisabledConfirm) {
+  AmountSelector sel;
+  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.set_confirm_enabled(false);
+  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.OnEvent(ftxui::Event::ArrowDown);
+  sel.OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(sel.TakeConfirmed());
+}
+
 }  // namespace
 }  // namespace ms

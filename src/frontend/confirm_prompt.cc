@@ -1,5 +1,7 @@
 #include "src/frontend/confirm_prompt.h"
 
+#include <utility>
+
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/panel_util.h"
@@ -41,9 +43,18 @@ ConfirmChoice ConfirmPrompt::OnEvent(ftxui::Event event) {
 }
 
 ftxui::Element ConfirmButtons(ConfirmFocus focus) {
+  return ConfirmButtons(focus, /*confirm_enabled=*/true);
+}
+
+ftxui::Element ConfirmButtons(ConfirmFocus focus, bool confirm_enabled) {
+  ftxui::Element confirm =
+      ActionButton("Confirm", focus == ConfirmFocus::kConfirm);
+  if (!confirm_enabled) {
+    confirm = confirm | ftxui::dim;
+  }
   return ftxui::hbox({
       ftxui::text(" "),
-      ActionButton("Confirm", focus == ConfirmFocus::kConfirm),
+      std::move(confirm),
       ftxui::text("   "),
       ActionButton("Cancel", focus == ConfirmFocus::kCancel),
       ftxui::text(" "),
