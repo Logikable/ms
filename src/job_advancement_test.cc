@@ -4,6 +4,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -47,12 +48,52 @@ TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
   }
 }
 
+// The weapons each job is supposed to walk away with. Spelled out as types
+// rather than catalog keys so that swapping which sword a Swordman starts with
+// stays a data decision, while handing one a bow does not.
+const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
+  static const std::map<Job, std::multiset<EquipType>>* kTypes =
+      new std::map<Job, std::multiset<EquipType>>{
+          {JOB_SWORDMAN, {EQUIP_TYPE_ONE_HANDED_SWORD}},
+          {JOB_MAGICIAN, {EQUIP_TYPE_WAND}},
+          {JOB_ARCHER, {EQUIP_TYPE_BOW}},
+          {JOB_ROGUE,
+           {EQUIP_TYPE_DAGGER, EQUIP_TYPE_THROWING_STAR, EQUIP_TYPE_CLAW}},
+      };
+  return *kTypes;
+}
+
 // A level-10 weapon or the character cannot hold what it is handed.
 TEST_F(JobAdvancementTest, StarterEquipsAreWearableAtTen) {
   for (Job job : JobChoicesForStage(1)) {
     for (const std::string& name : StarterEquipsFor(job)) {
       EXPECT_LE(state_.equips.at(name).required_level(), 10)
           << name << " cannot be worn by the character it is given to";
+    }
+  }
+}
+
+// Existence and a wearable level say nothing about what the weapon IS -- a job
+// could advance into a full set of the wrong class's gear and every other test
+// here would pass.
+TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnWeapons) {
+  for (Job job : JobChoicesForStage(1)) {
+    std::multiset<EquipType> actual;
+    for (const std::string& name : StarterEquipsFor(job)) {
+      actual.insert(state_.equips.at(name).equip_type());
+    }
+    EXPECT_EQ(actual, ExpectedStarterTypes().at(job))
+        << Job_Name(job) << " does not advance with its own weapons";
+  }
+}
+
+// "The level 10 weapon", not "a weapon a level 10 can wear": starting gear that
+// drifted below the advancement level would quietly hand out a weaker weapon.
+TEST_F(JobAdvancementTest, StarterEquipsAreTheLevelTenWeapons) {
+  for (Job job : JobChoicesForStage(1)) {
+    for (const std::string& name : StarterEquipsFor(job)) {
+      EXPECT_EQ(state_.equips.at(name).required_level(), 10)
+          << name << " is not a level 10 weapon";
     }
   }
 }
