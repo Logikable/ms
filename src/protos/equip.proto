@@ -95,6 +95,10 @@ message EquipPrototype {
   // all. Read it per item, never per equip_type: two throwing stars are not
   // obliged to agree with each other.
   repeated Upgrade unsupported_upgrades = 9;
+  // What the shop charges for one of these, in meso. Zero means the shop does
+  // not stock it, so an item joins the shop by naming its price and nothing
+  // keeps a second list in step with this one.
+  int32 shop_price = 10;
 }
 
 // Per-instance mutable state for a single drop of equipment. Persisted in the

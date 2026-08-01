@@ -277,6 +277,27 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "shop",
+    srcs = ["shop.cc"],
+    hdrs = ["shop.h"],
+    visibility = ["//visibility:public"],
+    deps = ["//src/protos:equip_proto_cc"],
+)
+
+cc_test(
+    name = "shop_test",
+    srcs = ["shop_test.cc"],
+    data = ["//data/equip:all"],
+    deps = [
+        ":proto_loader",
+        ":shop",
+        "//src/protos:equip_proto_cc",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "item_test",
     srcs = ["item_test.cc"],
