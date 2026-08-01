@@ -1,5 +1,5 @@
 name: "Steely Throwing-Knives"
-required_level: 30
+required_level: 50
 base_stats {
   attack: 25
 }

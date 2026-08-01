@@ -1,5 +1,5 @@
 name: "Kumbi Throwing-Stars"
-required_level: 20
+required_level: 30
 base_stats {
   attack: 21
 }

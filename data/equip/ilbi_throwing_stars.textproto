@@ -1,5 +1,5 @@
 name: "Ilbi Throwing-Stars"
-required_level: 50
+required_level: 70
 base_stats {
   attack: 27
 }

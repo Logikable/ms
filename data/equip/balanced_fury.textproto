@@ -1,5 +1,5 @@
 name: "Balanced Fury"
-required_level: 70
+required_level: 100
 base_stats {
   attack: 30
 }
