@@ -11,6 +11,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character_stats.h"
+#include "src/character/progression.h"
 #include "src/combat/damage.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/panel_util.h"
@@ -113,7 +114,12 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
 }
 
 std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
-  std::vector<Tab> tabs = {kTabStats, kTabSkills};
+  std::vector<Tab> tabs = {kTabStats};
+  // Skills belong to a job, so the tab waits for one: a Beginner standing at
+  // level 10 is being offered an advancement, not a skill list.
+  if (Unlocked(Feature::kSkills, character_)) {
+    tabs.push_back(kTabSkills);
+  }
   // The Advance tab exists only while there is an advancement to take, so it
   // arrives at level 10 and is gone the moment the player picks a job.
   if (character_.CanAdvanceJob()) {

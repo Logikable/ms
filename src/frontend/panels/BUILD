@@ -9,6 +9,7 @@ cc_library(
     deps = [
         "//src/character",
         "//src/character:character_stats",
+        "//src/character:progression",
         "//src/combat:damage",
         "//src/frontend:types",
         "//src/frontend/widgets:panel_util",

@@ -168,20 +168,35 @@ TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, [](const Skill&) {},
                           [&chosen](Job job) { chosen = job; });
-  comp->OnEvent(ftxui::Event::ArrowRight);
-  comp->OnEvent(ftxui::Event::ArrowRight);
-  comp->OnEvent(ftxui::Event::ArrowDown);  // into the job list
-  comp->OnEvent(ftxui::Event::ArrowUp);    // back to the tab bar
-  comp->OnEvent(ftxui::Event::ArrowLeft);  // which is where Left/Right act
-  EXPECT_NE(RenderComponent(comp).find("No advancements yet."),
-            std::string::npos);  // the Skills tab
+  // A pending Beginner's bar is Stats and Advance: no Skills until they pick.
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
+  comp->OnEvent(ftxui::Event::ArrowUp);     // back to the tab bar
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // which is where Left/Right act
+  EXPECT_NE(RenderComponent(comp).find("HP:"),
+            std::string::npos);  // the Stats tab
 }
 
-TEST_F(CharacterPanelTest, ShowsBothTabs) {
+// Skills belong to a job. A Beginner has no skill list to look at, so the bar
+// is Stats alone until they pick one.
+TEST_F(CharacterPanelTest, ABeginnerHasNoSkillsTab) {
   CharacterPanel panel(c_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("Stats"), std::string::npos);
-  EXPECT_NE(rendered.find("Skills"), std::string::npos);
+  EXPECT_EQ(rendered.find("Skills"), std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, TheSkillsTabArrivesWithTheAdvancement) {
+  CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
+  ASSERT_EQ(
+      RenderElement(CharacterPanel(c, panel_focus_).Render()).find("Skills"),
+      std::string::npos)
+      << "level 10 is not enough on its own";
+
+  c.AdvanceJob(JOB_SWORDMAN);
+  EXPECT_NE(
+      RenderElement(CharacterPanel(c, panel_focus_).Render()).find("Skills"),
+      std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, StatsTabIsShownByDefault) {
@@ -239,15 +254,14 @@ TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
 }
 
 TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
-  CharacterPanel panel(c_, panel_focus_);  // panel_focus_ == kCharPanel
+  // A Warrior, because a Beginner has only the one tab to sit on.
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
+  CharacterPanel panel(c, panel_focus_);  // panel_focus_ == kCharPanel
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
-  std::string skills = RenderComponent(comp);
-  EXPECT_NE(skills.find("No advancements yet."),
-            std::string::npos);  // c_ is a Beginner
-  EXPECT_EQ(skills.find("HP:"), std::string::npos);
+  EXPECT_EQ(RenderComponent(comp).find("HP:"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowLeft);  // Skills -> Stats
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
@@ -296,10 +310,8 @@ TEST_F(CharacterPanelTest, UpFromStrReturnsToTheTabBar) {
   ftxui::Component comp = panel.MakeComponent([&](StatField) { fired = true; });
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
   comp->OnEvent(ftxui::Event::ArrowUp);    // STR -> tab bar
-  // Back on the tab bar, Right switches to Skills and Enter no longer fires.
-  comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_NE(RenderComponent(comp).find("No advancements yet."),
-            std::string::npos);  // c is a Beginner
+  // Enter allocates only from a stat row, so its silence is what says the
+  // cursor left one.
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(fired);
 }
@@ -326,13 +338,13 @@ TEST_F(CharacterPanelTest, NoApStillEntersTheStatRows) {
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, BeginnerSkillsTabShowsNoAdvancements) {
+// Right has nowhere to go on a Beginner's one-tab bar, so the stats stay put
+// rather than the cursor landing on a tab that is not drawn.
+TEST_F(CharacterPanelTest, RightStaysOnStatsForABeginner) {
   CharacterPanel panel(c_, panel_focus_);  // c_ is a stage-0 Beginner
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
-  std::string rendered = RenderComponent(comp);
-  EXPECT_NE(rendered.find("No advancements yet."), std::string::npos);
-  EXPECT_EQ(rendered.find(" SP"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
