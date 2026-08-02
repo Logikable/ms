@@ -361,6 +361,53 @@ TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderAlone) {
       << "the menu is drawing over the window's bottom border";
 }
 
+// Near the foot of the list the menu flips rather than slides: it ends on the
+// item's row instead of starting there, so it still touches the item it
+// belongs to rather than floating somewhere above it.
+TEST_F(ShopPanelTest, TheMenuOpensUpwardAtTheFootOfTheList) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many;
+  for (int i = 0; i < 12; ++i) {
+    std::string name = "Item " + std::string(1, 'A' + i);
+    many["k" + std::to_string(i)] = MakeItem(name, 10 + i, 100);
+  }
+  ShopPanel panel(c, many);
+  // Item J, not the last item: the last one is where merely sliding the menu
+  // up as far as it will go happens to give the same answer as flipping it, so
+  // testing there would not tell the two apart. J is past the point where the
+  // menu stops fitting below but short of the foot of the list.
+  for (int i = 0; i < 9; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_EQ(panel.selected_item()->name(), "Item J");
+  panel.OpenMenu();
+  // The menu's bottom border lands on the selected item's row, so its last
+  // entry sits on the row above -- beside the item before it.
+  int item_row = RowIndexWith(panel, "> Item J");
+  int last_entry = RowIndexWith(panel, "Close");
+  ASSERT_GE(item_row, 0);
+  ASSERT_GE(last_entry, 0);
+  EXPECT_EQ(last_entry + 1, item_row)
+      << "the menu should still touch the item it belongs to";
+}
+
+// The item at the very foot of the list, where flipping and sliding agree --
+// worth pinning anyway, since it is the one the player hits most often.
+TEST_F(ShopPanelTest, TheMenuTouchesTheLastItemInTheList) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  for (int i = 0; i < 3; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
+  panel.OpenMenu();
+  int item_row = RowIndexWith(panel, "> Subi Throwing-Stars");
+  int last_entry = RowIndexWith(panel, "Close");
+  ASSERT_GE(item_row, 0);
+  ASSERT_GE(last_entry, 0);
+  EXPECT_EQ(last_entry + 1, item_row);
+}
+
 // Held back only as far as it has to be: away from the foot of the list the
 // menu still starts on the row of the item it belongs to.
 TEST_F(ShopPanelTest, TheMenuStartsOnItsOwnItemWhenThereIsRoom) {

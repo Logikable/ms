@@ -191,20 +191,25 @@ ftxui::Element ShopPanel::Render() const {
 }
 
 int ShopPanel::MenuRow() const {
-  // The menu asks for every row above it as well as its own, so an anchor near
-  // the foot of the list would make the overlay taller than the window and
-  // stretch the whole panel to fit. Held back to the last row it can start on
-  // and still end inside: near the bottom it opens upward from the item, which
-  // is what a menu does at an edge anyway.
-  //
   // +5 rows: the window's top border, the tab row, its separator, the column
   // header, its separator. The last row is that plus the stock, and the menu
   // needs its own borders as well as an entry each.
   int first_item_row = 5;
   int last_row = first_item_row + static_cast<int>(stock_.size());
   int menu_height = kNumShopMenuItems + 2;
-  return std::max(0,
-                  std::min(first_item_row + selected_, last_row - menu_height));
+  int item_row = first_item_row + selected_;
+  // Hangs below the item, opening on its row, whenever the list has that much
+  // left under it.
+  if (item_row + menu_height <= last_row) {
+    return item_row;
+  }
+  // Otherwise it opens upward and *ends* on the item's row rather than
+  // starting there. The menu asks for every row above it as well as its own,
+  // so letting it start low would make the overlay taller than the window and
+  // stretch the whole panel; sliding it up while still hanging downward would
+  // leave it floating clear of the item it belongs to. Flipping keeps it
+  // against the item, which is what a menu does at an edge.
+  return std::max(0, item_row - menu_height + 1);
 }
 
 }  // namespace ms
