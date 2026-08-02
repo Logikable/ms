@@ -35,6 +35,28 @@ cc_library(
 )
 
 cc_library(
+    name = "progression",
+    srcs = ["progression.cc"],
+    hdrs = ["progression.h"],
+    deps = [
+        ":character",
+        "//src/protos:character_proto_cc",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+cc_test(
+    name = "progression_test",
+    srcs = ["progression_test.cc"],
+    deps = [
+        ":character",
+        ":progression",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "exp_table",
     srcs = ["exp_table.cc"],
     hdrs = ["exp_table.h"],
