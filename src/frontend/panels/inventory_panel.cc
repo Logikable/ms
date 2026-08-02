@@ -112,7 +112,7 @@ InventoryPanel::InventoryPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Close"}),
-      sell_menu_({"Inspect", "Sell", "Close"}) {
+      sell_menu_({"Inspect", "Use", "Sell", "Close"}) {
 }
 
 ItemMenu& InventoryPanel::menu() {
@@ -189,9 +189,25 @@ void InventoryPanel::OpenMenu() {
     // Sell is unavailable on an empty tab or an unsellable selected stack.
     ItemCategory category =
         active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
+    // Nothing on the Etc tab is usable, so the entry is not there at all --
+    // Etc is where drops and quest pieces sit, not where anything is drunk.
+    if (category == ITEM_CATEGORY_ETC) {
+      sell_menu_.Hide(kStackUse);
+    }
     const std::vector<StackableItem>& stacks = character_.stackables(category);
-    if (selected_stack_ >= static_cast<int>(stacks.size()) ||
-        stacks[selected_stack_].prototype().sell_price() <= 0) {
+    if (selected_stack_ >= static_cast<int>(stacks.size())) {
+      sell_menu_.Disable(kStackUse);
+      sell_menu_.Disable(kStackSell);
+      return;
+    }
+    const ItemPrototype& proto = stacks[selected_stack_].prototype();
+    // Disabled rather than hidden, on the tab where using things is what the
+    // player came to do: a Use item that does nothing yet is a fact about
+    // that item, and the greyed row is the answer to "can I drink this?".
+    if (proto.effect() == ITEM_EFFECT_UNSPECIFIED) {
+      sell_menu_.Disable(kStackUse);
+    }
+    if (proto.sell_price() <= 0) {
       sell_menu_.Disable(kStackSell);
     }
     return;
@@ -252,6 +268,10 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
     if (IsForward(event)) {
       if (sell_menu_.selected() == kStackInspect) {
         return kItemInspect;
+      }
+      if (sell_menu_.selected() == kStackUse) {
+        character_.UseStackable(active_category(), selected_stack_);
+        return kMain;
       }
       if (sell_menu_.selected() == kStackSell) {
         return kSell;

@@ -52,8 +52,9 @@ enum MenuItem : int {
 // Entries of the Use/Etc stackable context menu.
 enum StackMenuItem : int {
   kStackInspect = 0,
-  kStackSell = 1,
-  kStackClose = 2,
+  kStackUse = 1,
+  kStackSell = 2,
+  kStackClose = 3,
 };
 struct ScrollResult {
   ScrollOutcome outcome;

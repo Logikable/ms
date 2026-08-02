@@ -1410,5 +1410,64 @@ TEST_F(CapacityTest, BuyRefusesWhatTheBagCannotHold) {
   EXPECT_EQ(c_.inventory().size(), kTabCapacity);
 }
 
+// --- UseStackable ---
+
+ItemPrototype LevelUpItem() {
+  ItemPrototype item;
+  item.set_name("Level-Up");
+  item.set_category(ITEM_CATEGORY_USE);
+  item.set_effect(ITEM_EFFECT_LEVEL_UP);
+  return item;
+}
+
+TEST_F(CharacterTest, UsingALevelUpItemLevelsAndSpendsOne) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.AddStackable(LevelUpItem(), 3);
+  int before = c.proto().level();
+
+  EXPECT_TRUE(c.UseStackable(ITEM_CATEGORY_USE, 0));
+  EXPECT_EQ(c.proto().level(), before + 1);
+  EXPECT_EQ(c.stackables(ITEM_CATEGORY_USE)[0].count(), 2);
+}
+
+// The whole point of the item: it is the level itself, not the EXP for one.
+TEST_F(CharacterTest, ALevelUpItemGrantsTheLevelWhateverTheExp) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.AddStackable(LevelUpItem(), 1);
+  ASSERT_EQ(c.proto().exp(), 0);
+  EXPECT_TRUE(c.UseStackable(ITEM_CATEGORY_USE, 0));
+  EXPECT_EQ(c.proto().level(), 2);
+}
+
+TEST_F(CharacterTest, TheLastCopyTakesTheStackWithIt) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.AddStackable(LevelUpItem(), 1);
+  EXPECT_TRUE(c.UseStackable(ITEM_CATEGORY_USE, 0));
+  EXPECT_TRUE(c.stackables(ITEM_CATEGORY_USE).empty());
+}
+
+// An item that does nothing is not spent doing it.
+TEST_F(CharacterTest, UsingAnItemWithNoEffectConsumesNothing) {
+  ItemPrototype inert;
+  inert.set_name("Odd Pebble");
+  inert.set_category(ITEM_CATEGORY_USE);
+  CharacterInstance c = MakeCharacter(rng_);
+  c.AddStackable(inert, 5);
+  int before = c.proto().level();
+
+  EXPECT_FALSE(c.UseStackable(ITEM_CATEGORY_USE, 0));
+  EXPECT_EQ(c.stackables(ITEM_CATEGORY_USE)[0].count(), 5);
+  EXPECT_EQ(c.proto().level(), before);
+}
+
+TEST_F(CharacterTest, UsingAStackThatIsNotThereIsANoOp) {
+  CharacterInstance c = MakeCharacter(rng_);
+  EXPECT_FALSE(c.UseStackable(ITEM_CATEGORY_USE, 0));
+  c.AddStackable(LevelUpItem(), 1);
+  EXPECT_FALSE(c.UseStackable(ITEM_CATEGORY_USE, 7));
+  EXPECT_FALSE(c.UseStackable(ITEM_CATEGORY_USE, -1));
+  EXPECT_EQ(c.stackables(ITEM_CATEGORY_USE)[0].count(), 1);
+}
+
 }  // namespace
 }  // namespace ms

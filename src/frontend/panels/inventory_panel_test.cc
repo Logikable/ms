@@ -555,6 +555,54 @@ TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kItemInspect);
 }
 
+// --- Use ---
+
+// Etc is where drops and quest pieces sit; nothing there is drunk, so the
+// entry is absent rather than permanently grey.
+TEST_F(InventoryPanelTest, UseIsNotOfferedOnTheEtcTab) {
+  c_.AddStackable(MakeStackable("Shell", ITEM_CATEGORY_ETC, 2), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kStackUse), 0);
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Use"),
+            std::string::npos);
+}
+
+// On the Use tab it is there but grey, which is the answer to "can I drink
+// this?" -- unlike Etc, where the question does not arise.
+TEST_F(InventoryPanelTest, UseIsGreyedForAUseItemThatDoesNothing) {
+  c_.AddStackable(MakeStackable("Odd Pebble", ITEM_CATEGORY_USE, 2), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kStackUse), 0);
+  EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Use"),
+            std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, UsingAnItemAppliesItsEffectAndSpendsOne) {
+  ItemPrototype potion = MakeStackable("Level-Up", ITEM_CATEGORY_USE);
+  potion.set_effect(ITEM_EFFECT_LEVEL_UP);
+  c_.AddStackable(potion, 3);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  panel.OpenMenu();
+  ScrollPanel sp({});
+  panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Use
+  EXPECT_EQ(panel.menu().selected(), kStackUse);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMain);
+
+  EXPECT_EQ(c_.proto().level(), 2);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_USE)[0].count(), 2);
+}
+
 TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
   InventoryPanel panel(c_, panel_focus_);

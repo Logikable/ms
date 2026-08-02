@@ -10,6 +10,15 @@ enum ItemCategory {
   ITEM_CATEGORY_ETC = 2;
 }
 
+// What using an item does. Most items do nothing yet and leave this unset,
+// which is what makes their Use entry inert.
+enum ItemEffect {
+  ITEM_EFFECT_UNSPECIFIED = 0;
+  // Advances the character one level, whatever their EXP. A debugging tool
+  // rather than something the game hands out.
+  ITEM_EFFECT_LEVEL_UP = 1;
+}
+
 // Static definition of a stackable item type. Loaded from data/items textprotos
 // at startup; shared read-only across all stacks of the same type.
 message ItemPrototype {
@@ -23,4 +32,7 @@ message ItemPrototype {
   // What the item is, in a sentence, for the inspect screen. A stack has no
   // stats to show, so this is the whole of what inspecting one tells you.
   string description = 5;
+  // What one copy does when used. Unset means nothing happens, and the Use
+  // entry is offered but inert.
+  ItemEffect effect = 6;
 }
