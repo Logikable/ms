@@ -62,12 +62,17 @@ ftxui::Element RenderTabBar(int active_tab, int64_t meso, bool row_selected) {
 }
 
 // Renders a Name/Quantity list of `stacks`, one row per stack, with a "> "
-// cursor on the `selected`-th row. Shows "(empty)" when there are no stacks.
-// The cursor is drawn only when `focused`, matching the Equip tab, whose menu
-// takes its cursor from ftxui's own focus state.
+// cursor on the `selected`-th row. An empty tab is just "(empty)", with no
+// column header over it. The cursor is drawn only when `focused`, matching the
+// Equip tab, whose menu takes its cursor from ftxui's own focus state.
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
                                int selected, bool focused,
                                ftxui::Box& cursor_box) {
+  if (stacks.empty()) {
+    // No header over nothing, as on an empty Equip tab. Column names are there
+    // to tell rows apart, and there are no rows to tell apart.
+    return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
+  }
   std::vector<ftxui::Element> rows;
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
     std::string cursor = "  ";
@@ -86,9 +91,6 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
       row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
     }
     rows.push_back(std::move(row));
-  }
-  if (stacks.empty()) {
-    rows.push_back(EmptyState("empty", /*gutter=*/2));
   }
   return ftxui::vbox({
       ftxui::text("  " + PadRight("Name", 26) + "Quantity"),

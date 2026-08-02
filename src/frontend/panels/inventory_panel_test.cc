@@ -360,6 +360,28 @@ TEST_F(InventoryPanelTest, EmptyUseTabShowsPlaceholder) {
   EXPECT_NE(RenderComponent(comp).find("(empty)"), std::string::npos);
 }
 
+// The Equip tab has never drawn its column names over an empty bag, and the
+// stack tabs now match it: names label rows, so with no rows there is nothing
+// for them to label.
+TEST_F(InventoryPanelTest, EmptyUseTabShowsNoColumnHeader) {
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  EXPECT_EQ(RenderComponent(comp).find("Quantity"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, EmptyEtcTabShowsNoColumnHeader) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("(empty)"), std::string::npos);
+  EXPECT_EQ(rendered.find("Quantity"), std::string::npos)
+      << "the Use tab's stack must not leak its header onto the Etc tab";
+}
+
 TEST_F(InventoryPanelTest, UseTabCursorStartsOnFirstStack) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
   panel_focus_ = kInventoryPanel;
