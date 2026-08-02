@@ -52,7 +52,14 @@ TEST(SkillDataTest, EveryFirstJobBookCostsExactlySixty) {
     cost_by_advancement[entry.second.job_advancement()] +=
         entry.second.max_level();
   }
-  ASSERT_FALSE(cost_by_advancement.empty());
+  // Named one by one rather than counted: the skills sit in a folder per job,
+  // and a folder that stopped being read would take a whole advancement out of
+  // the map, leaving the rest to sum to sixty and the check to pass on three
+  // jobs while the fourth had no book at all.
+  EXPECT_TRUE(cost_by_advancement.count(JOB_ADVANCEMENT_SWORDMAN));
+  EXPECT_TRUE(cost_by_advancement.count(JOB_ADVANCEMENT_ARCHER));
+  EXPECT_TRUE(cost_by_advancement.count(JOB_ADVANCEMENT_MAGICIAN));
+  EXPECT_TRUE(cost_by_advancement.count(JOB_ADVANCEMENT_ROGUE));
   for (const std::pair<const int, int>& entry : cost_by_advancement) {
     EXPECT_EQ(entry.second, kFirstJobSp)
         << "advancement " << entry.first << " costs " << entry.second
