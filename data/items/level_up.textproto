@@ -1,0 +1,7 @@
+# A debugging tool rather than something the game hands out: nothing drops it,
+# nothing stocks it, and only test mode's seeding puts any in a bag. It is a
+# normal item file so it loads, stacks and inspects like any other.
+name: "Level-Up"
+category: ITEM_CATEGORY_USE
+description: "DEBUG ONLY. Advances the player to the next level."
+effect: ITEM_EFFECT_LEVEL_UP

@@ -4,7 +4,9 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -18,13 +20,17 @@ GameState MakeState() {
   return GameState({}, {}, {}, {}, {});
 }
 
-// A catalog holding the one equip both modes hand out, so the seeding has
-// something to find.
+// A catalog holding the equip both modes hand out, plus one more that only
+// the workbench asks for -- so the seeding has something to find, and test
+// mode has something left in the bag once it is wearing the first.
 std::map<std::string, EquipPrototype> SwordCatalog() {
   EquipPrototype sword;
   sword.set_name("Sword");
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  return {{"sword", sword}};
+  EquipPrototype long_sword;
+  long_sword.set_name("Long Sword");
+  long_sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  return {{"sword", sword}, {"long_sword", long_sword}};
 }
 
 GameState MakeTestModeState() {
@@ -33,6 +39,25 @@ GameState MakeTestModeState() {
 
 GameState MakePlayModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kPlay);
+}
+
+// The item catalog under the key test mode's seeding asks for.
+std::map<std::string, ItemPrototype> LevelUpCatalog() {
+  ItemPrototype item;
+  item.set_name("Level-Up");
+  item.set_category(ITEM_CATEGORY_USE);
+  item.set_effect(ITEM_EFFECT_LEVEL_UP);
+  return {{"level_up", item}};
+}
+
+GameState MakeTestModeStateWithItems() {
+  return GameState(SwordCatalog(), {}, LevelUpCatalog(), {}, {}, {},
+                   GameMode::kTest);
+}
+
+GameState MakePlayModeStateWithItems() {
+  return GameState(SwordCatalog(), {}, LevelUpCatalog(), {}, {}, {},
+                   GameMode::kPlay);
 }
 
 TEST(GameStateTest, ConstructorStoresEquipsMap) {
@@ -75,39 +100,33 @@ TEST(GameStateTest, ConstructorStoresMapsMap) {
   EXPECT_EQ(state.maps.at("lith").name(), "Right Around Lith Harbor");
 }
 
-TEST(GameStateTest, TestModeCharacterIsLevel10) {
-  GameState state = MakeTestModeState();
-  EXPECT_EQ(state.character.proto().level(), 10);
+// The workbench starts where the game does. It used to open at level 10
+// standing at its first advancement, but the game reveals itself a level at a
+// time now and starting part way up would skip the half worth watching.
+TEST(GameStateTest, BothModesStartTheSameCharacter) {
+  GameState play = MakePlayModeState();
+  GameState test = MakeTestModeState();
+  EXPECT_EQ(test.character.proto().level(), 1);
+  EXPECT_EQ(test.character.proto().level(), play.character.proto().level());
+  EXPECT_EQ(test.character.proto().ap(), 0);
+  EXPECT_EQ(test.character.proto().job(), JOB_BEGINNER);
+  EXPECT_FALSE(test.character.CanAdvanceJob());
 }
 
-TEST(GameStateTest, TestModeCharacterStandsAtItsFirstAdvancement) {
-  // The workbench opens on the choice: a Beginner that has reached level 10
-  // and taken nothing yet.
-  GameState state = MakeTestModeState();
-  EXPECT_EQ(state.character.proto().job(), JOB_BEGINNER);
-  EXPECT_EQ(state.character.proto().job_stage(), 0);
-  EXPECT_TRUE(state.character.CanAdvanceJob());
+// How the workbench climbs instead: a bag of levels, spent on demand.
+TEST(GameStateTest, TestModeStartsWithLevelUpItems) {
+  GameState state = MakeTestModeStateWithItems();
+  const std::vector<StackableItem>& use =
+      state.character.stackables(ITEM_CATEGORY_USE);
+  ASSERT_EQ(use.size(), 1u);
+  EXPECT_EQ(use[0].name(), "Level-Up");
+  EXPECT_EQ(use[0].count(), 30);
+  EXPECT_EQ(use[0].prototype().effect(), ITEM_EFFECT_LEVEL_UP);
 }
 
-TEST(GameStateTest, TestModeCharacterHasLeveledAp) {
-  // Leveling 1->10 grants 5 AP each. No SP yet: the 1st-job pool starts at
-  // level 11, once there is a job to spend it on.
-  GameState state = MakeTestModeState();
-  EXPECT_EQ(state.character.proto().ap(), 45);
-  EXPECT_EQ(state.character.sp(1), 0);
-}
-
-TEST(GameStateTest, TestModeCharacterStats) {
-  GameState state = MakeTestModeState();
-  const AllocatedStats& s = state.character.proto().allocated_stats();
-  EXPECT_EQ(s.str(), 13);
-  EXPECT_EQ(s.dex(), 4);
-  EXPECT_EQ(s.int_(), 4);
-  EXPECT_EQ(s.luk(), 4);
-  // Nine level-ups at the Beginner's rate, all of them before any job could
-  // change it.
-  EXPECT_EQ(s.hp(), 50 + 9 * 36);
-  EXPECT_EQ(s.mp(), 15 + 9 * 24);
+TEST(GameStateTest, PlayModeGetsNoLevelUpItems) {
+  GameState state = MakePlayModeStateWithItems();
+  EXPECT_TRUE(state.character.stackables(ITEM_CATEGORY_USE).empty());
 }
 
 // --- play mode ---
@@ -152,6 +171,14 @@ TEST(GameStateTest, TestModeStartsWithMesoAndAFullBag) {
   GameState state = MakeTestModeState();
   EXPECT_EQ(state.character.meso(), 1000000);
   EXPECT_FALSE(state.character.inventory().empty());
+}
+
+// Both modes start wearing a weapon. A level 1 character has no equipped
+// panel and no bag, so one that only carried a weapon could never swing it,
+// and without a swing there is no EXP and no way off level 1.
+TEST(GameStateTest, BothModesStartWearingAWeapon) {
+  EXPECT_FALSE(MakeTestModeState().character.equipped().empty());
+  EXPECT_FALSE(MakePlayModeState().character.equipped().empty());
 }
 
 TEST(GameStateTest, TestModeStartsOnAHuntingGround) {

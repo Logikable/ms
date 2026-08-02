@@ -11,6 +11,7 @@
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 
@@ -34,28 +35,10 @@ Character MakeBaseBeginnerProto() {
 // The level kTest starts at. Level 10 is where the first job advancement
 // opens, so the workbench begins at the choice -- which job the character
 // becomes is the tester's to make, not this file's.
-constexpr int kTestLevel = 10;
-
-// A Beginner standing at its first advancement. Built by running the real
-// leveling mechanics rather than hardcoding totals, so AP and HP stay
-// consistent with the level if it is changed here.
-Character MakeTestCharacterProto() {
-  // LevelUp doesn't consume randomness; a local rng keeps this independent of
-  // GameState's member rng and its construction order.
-  std::mt19937 rng(0);
-  CharacterInstance character(rng, MakeBaseBeginnerProto());
-  while (character.proto().level() < kTestLevel) {
-    character.LevelUp();
-  }
-  return character.proto();
-}
-
-Character MakeCharacterProtoFor(GameMode mode) {
-  if (mode == GameMode::kTest) {
-    return MakeTestCharacterProto();
-  }
-  return MakeBaseBeginnerProto();
-}
+// How many Level-Up items the workbench opens with: enough to walk the whole
+// unlock ladder from the bottom and still have some left to spend on the
+// screens further up it.
+constexpr int kTestLevelUpItems = 30;
 
 // Puts a copy of the named equip in the bag, or does nothing if the catalog
 // has no such entry. Lets a GameState be built for a test without the game's
@@ -94,7 +77,23 @@ void SeedTest(GameState& state) {
   // screens can be exercised without grinding for the meso first.
   state.character.AddMeso(1000000);
 
+  // The ladder in a bag. Skipped when the catalog has no such item, as every
+  // other piece of seeding is.
+  std::map<std::string, ItemPrototype>::const_iterator level_up =
+      state.items.find("level_up");
+  if (level_up != state.items.end()) {
+    state.character.AddStackable(level_up->second, kTestLevelUpItems);
+  }
+
+  // Worn, not carried, and before anything else goes in the bag. A level 1
+  // character has neither the equipped panel nor the bag yet, so a workbench
+  // that only put a weapon in the bag could never swing one -- and without a
+  // weapon there is no combat, no EXP, and no way off level 1 at all.
   GiveEquip(state, "sword");
+  if (!state.character.inventory().empty()) {
+    state.character.Equip(0);
+  }
+
   GiveEquip(state, "long_sword");
   GiveEquip(state, "machete");
 
@@ -142,7 +141,12 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       maps(std::move(maps_arg)),
       skills(std::move(skills_arg)),
       rng(std::random_device{}()),
-      character(rng, MakeCharacterProtoFor(mode)) {
+      // Both modes start at level 1. The workbench used to start at 10,
+      // standing at its first advancement, but the game reveals itself a
+      // level at a time now and starting part way up would skip the half of
+      // it worth watching. SeedTest hands it Level-Up items instead, so a
+      // tester climbs the ladder on demand rather than beginning above it.
+      character(rng, MakeBaseBeginnerProto()) {
   if (mode == GameMode::kTest) {
     SeedTest(*this);
   } else {
