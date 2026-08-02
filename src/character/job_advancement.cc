@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
-#include "src/item/equip_instance.h"
 #include "src/game_state.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 

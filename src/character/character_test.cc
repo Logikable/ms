@@ -6,8 +6,8 @@
 #include <random>
 #include <vector>
 
-#include "src/item/equip_instance.h"
 #include "src/character/exp_table.h"
+#include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"

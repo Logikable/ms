@@ -6,8 +6,8 @@
 #include <string>
 
 #include "src/combat/constants.h"
-#include "src/item/equip_instance.h"
 #include "src/game_state.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"

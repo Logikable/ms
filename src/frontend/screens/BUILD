@@ -1,0 +1,242 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "inspect_panel",
+    srcs = ["inspect_panel.cc"],
+    hdrs = ["inspect_panel.h"],
+    deps = [
+        "//src/frontend/widgets:panel_util",
+        "//src/item",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "inspect_panel_test",
+    srcs = ["inspect_panel_test.cc"],
+    deps = [
+        ":inspect_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "skill_inspect_panel",
+    srcs = ["skill_inspect_panel.cc"],
+    hdrs = ["skill_inspect_panel.h"],
+    deps = [
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "skill_inspect_panel_test",
+    srcs = ["skill_inspect_panel_test.cc"],
+    deps = [
+        ":skill_inspect_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "scroll_panel",
+    srcs = ["scroll_panel.cc"],
+    hdrs = ["scroll_panel.h"],
+    deps = [
+        "//src/frontend:types",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "scroll_panel_test",
+    srcs = ["scroll_panel_test.cc"],
+    deps = [
+        ":scroll_panel",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "star_force_panel",
+    srcs = ["star_force_panel.cc"],
+    hdrs = ["star_force_panel.h"],
+    deps = [
+        "//src/frontend:types",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:panel_util",
+        "//src/item:equip_instance",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "star_force_panel_test",
+    srcs = ["star_force_panel_test.cc"],
+    deps = [
+        ":star_force_panel",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "trace_recover_panel",
+    srcs = ["trace_recover_panel.cc"],
+    hdrs = ["trace_recover_panel.h"],
+    deps = [
+        "//src/character",
+        "//src/frontend:types",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:panel_util",
+        "//src/item",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "trace_recover_panel_test",
+    srcs = ["trace_recover_panel_test.cc"],
+    deps = [
+        ":trace_recover_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:component",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "sell_panel",
+    srcs = ["sell_panel.cc"],
+    hdrs = ["sell_panel.h"],
+    deps = [
+        "//src/frontend/widgets:amount_selector",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "sell_panel_test",
+    srcs = ["sell_panel_test.cc"],
+    deps = [
+        ":sell_panel",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "buy_panel",
+    srcs = ["buy_panel.cc"],
+    hdrs = ["buy_panel.h"],
+    deps = [
+        "//src/frontend/widgets:amount_selector",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "buy_panel_test",
+    srcs = ["buy_panel_test.cc"],
+    deps = [
+        ":buy_panel",
+        "//src/frontend/widgets:colors",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "shop_panel",
+    srcs = ["shop_panel.cc"],
+    hdrs = ["shop_panel.h"],
+    deps = [
+        "//src/character",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_util",
+        "//src/item:shop",
+        "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "shop_panel_test",
+    srcs = ["shop_panel_test.cc"],
+    deps = [
+        ":shop_panel",
+        "//src/character",
+        "//src/frontend/widgets:colors",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "map_select_panel",
+    srcs = ["map_select_panel.cc"],
+    hdrs = ["map_select_panel.h"],
+    deps = [
+        "//src:game_state",
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "map_select_panel_test",
+    srcs = ["map_select_panel_test.cc"],
+    deps = [
+        ":map_select_panel",
+        "//src:game_state",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
