@@ -542,23 +542,38 @@ TEST_F(InventoryPanelTest, EmptyTabEnterDoesNotOpenMenu) {
   EXPECT_FALSE(opened);
 }
 
-TEST_F(InventoryPanelTest, SellMenuSellReturnsSellScreen) {
+// Inspect leads, because looking at a thing is what you do before deciding
+// what to do with it.
+TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   panel.OpenMenu();
   ScrollPanel sp({});
+  EXPECT_EQ(panel.menu().selected(), kStackInspect);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kItemInspect);
+}
+
+TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  panel.OpenMenu();
+  ScrollPanel sp({});
+  panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kSell);
 }
 
-TEST_F(InventoryPanelTest, SellMenuCloseReturnsMain) {
+TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   panel.OpenMenu();
   ScrollPanel sp({});
+  panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Sell -> Close
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMain);
 }
@@ -570,8 +585,12 @@ TEST_F(InventoryPanelTest, UnsellableStackDisablesSellOption) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // -> Use
   comp->OnEvent(ftxui::Event::ArrowRight);  // -> Etc
   panel.OpenMenu();
-  // Sell is disabled, so the cursor lands on Close.
-  EXPECT_EQ(panel.menu().selected(), kSellClose);
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kStackSell), 0);
+  // Disabled rather than hidden: an item with no sale value is a fact about
+  // the item, and the row saying so is the answer to "can I sell this?".
+  EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Sell"),
+            std::string::npos);
 }
 
 // The test screen is 20 rows, so a bag of 40 cannot fit and the list has to

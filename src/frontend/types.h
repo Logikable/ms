@@ -12,6 +12,8 @@ enum Screen : int {
   kMain,
   kItemMenu,
   kInspect,
+  // The stackable counterpart of kInspect: see ItemInspectPanel.
+  kItemInspect,
   kScrollSelect,
   kScrollResult,
   kApAlloc,
@@ -48,9 +50,10 @@ enum MenuItem : int {
   kMenuRecover = 4,
 };
 // Entries of the Use/Etc stackable context menu.
-enum SellMenuItem : int {
-  kSellSell = 0,
-  kSellClose = 1,
+enum StackMenuItem : int {
+  kStackInspect = 0,
+  kStackSell = 1,
+  kStackClose = 2,
 };
 struct ScrollResult {
   ScrollOutcome outcome;

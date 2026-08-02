@@ -112,7 +112,7 @@ InventoryPanel::InventoryPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Close"}),
-      sell_menu_({"Sell", "Close"}) {
+      sell_menu_({"Inspect", "Sell", "Close"}) {
 }
 
 ItemMenu& InventoryPanel::menu() {
@@ -192,7 +192,7 @@ void InventoryPanel::OpenMenu() {
     const std::vector<StackableItem>& stacks = character_.stackables(category);
     if (selected_stack_ >= static_cast<int>(stacks.size()) ||
         stacks[selected_stack_].prototype().sell_price() <= 0) {
-      sell_menu_.Disable(kSellSell);
+      sell_menu_.Disable(kStackSell);
     }
     return;
   }
@@ -250,7 +250,13 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
       return kItemMenu;
     }
     if (IsForward(event)) {
-      return sell_menu_.selected() == kSellSell ? kSell : kMain;
+      if (sell_menu_.selected() == kStackInspect) {
+        return kItemInspect;
+      }
+      if (sell_menu_.selected() == kStackSell) {
+        return kSell;
+      }
+      return kMain;
     }
     return kItemMenu;
   }

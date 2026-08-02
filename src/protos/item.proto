@@ -20,4 +20,7 @@ message ItemPrototype {
   int32 max_stack = 3;
   // Meso received when sold to a shop. 0 = unsellable.
   int32 sell_price = 4;
+  // What the item is, in a sentence, for the inspect screen. A stack has no
+  // stats to show, so this is the whole of what inspecting one tells you.
+  string description = 5;
 }

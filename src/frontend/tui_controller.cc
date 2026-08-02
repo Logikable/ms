@@ -109,6 +109,19 @@ const EquipTabItem* TuiController::inspect_item() const {
   return inspect_ref_.Get(state_.character);
 }
 
+const ItemPrototype* TuiController::item_inspect_item() const {
+  if (screen_ != kItemInspect) {
+    return nullptr;
+  }
+  const std::vector<StackableItem>& stacks =
+      state_.character.stackables(inventory_panel_.active_category());
+  int index = inventory_panel_.selected_stack();
+  if (index < 0 || index >= static_cast<int>(stacks.size())) {
+    return nullptr;
+  }
+  return &stacks[index].prototype();
+}
+
 const EquipInstance* TuiController::scroll_item() const {
   if (screen_ != kScrollSelect && screen_ != kScrollResult) {
     return nullptr;
@@ -124,7 +137,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kItemMenu) {
     return OnItemMenuEvent(event);
   }
-  if (screen_ == kInspect) {
+  if (screen_ == kInspect || screen_ == kItemInspect) {
+    // Both are the same screen to the player: anything at all closes it.
     return OnInspectEvent(event);
   }
   if (screen_ == kScrollSelect) {

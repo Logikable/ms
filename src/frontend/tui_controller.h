@@ -120,6 +120,10 @@ class TuiController {
   // Returns the item being inspected while in kInspect, or nullptr otherwise.
   // May be an EquipTrace if the selected bag item was destroyed.
   const EquipTabItem* inspect_item() const;
+  // Returns the stack being inspected while in kItemInspect, or nullptr. The
+  // prototype rather than the stack, because what is on screen is what the
+  // item is, not how many of it the player is holding.
+  const ItemPrototype* item_inspect_item() const;
   // Returns the item being star forced while in kStarForce, or nullptr
   // otherwise. Do not call in kStarForceResult (item may be destroyed).
   const EquipInstance* star_force_item() const;

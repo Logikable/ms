@@ -7,18 +7,59 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
+namespace {
+
+// The width of the stackable body. Fixed rather than fitted, so every
+// description reads at the same width and the window does not resize as the
+// cursor moves from one item to the next. The equip body sets its own width
+// from its columns.
+constexpr int kStackableWidth = 44;
+
+}  // namespace
 
 void InspectPanel::SetItem(const EquipTabItem* item) {
   item_ = item;
+  stackable_ = nullptr;
+}
+
+void InspectPanel::SetItem(const ItemPrototype* item) {
+  stackable_ = item;
+  item_ = nullptr;
 }
 
 ftxui::Element InspectPanel::Render() const {
+  if (stackable_ != nullptr) {
+    return ThemedWindow(" Inspect ", RenderStackable()) |
+           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStackableWidth);
+  }
   if (item_ == nullptr) {
     return ThemedWindow(" Inspect ", EmptyState("no item"));
   }
+  return ThemedWindow(" Inspect ", RenderEquip());
+}
 
+// A stack has no stats, no stars and no slots. Its name and what it is for is
+// the whole of what there is to say about it.
+ftxui::Element InspectPanel::RenderStackable() const {
+  ftxui::Element description;
+  if (stackable_->description().empty()) {
+    description = CenteredRow(EmptyState("no description", /*gutter=*/0));
+  } else {
+    // paragraph wraps on spaces, so a description longer than the window
+    // spills onto another line rather than off the edge.
+    description = ftxui::paragraph(stackable_->description());
+  }
+  return ftxui::vbox({
+      CenteredRow(stackable_->name()),
+      ThemedSeparator(),
+      std::move(description),
+  });
+}
+
+ftxui::Element InspectPanel::RenderEquip() const {
   const Equip& item_state = item_->equip_state();
 
   const EquipPrototype& proto = item_->prototype();
@@ -81,7 +122,7 @@ ftxui::Element InspectPanel::Render() const {
                                std::to_string(restore) + restore_label));
   }
 
-  return ThemedWindow(" Inspect ", ftxui::vbox(std::move(rows)));
+  return ftxui::vbox(std::move(rows));
 }
 
 ftxui::Element InspectPanel::StarBar(int stars, int max_stars) {

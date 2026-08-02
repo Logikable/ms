@@ -10,6 +10,7 @@ cc_library(
         "//src/frontend/widgets:panel_util",
         "//src/item",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
         "@ftxui//:dom",
     ],
 )
@@ -20,6 +21,7 @@ cc_test(
     deps = [
         ":inspect_panel",
         "//src/frontend/widgets:panel_test_base",
+        "//src/protos:item_proto_cc",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

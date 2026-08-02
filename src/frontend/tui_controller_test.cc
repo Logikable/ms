@@ -123,6 +123,15 @@ class TuiControllerTest : public testing::Test {
     inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> stack
   }
 
+  // Opens the stack context menu and walks to Sell, leaving the sell dialog
+  // up. Inspect leads that menu, so Return alone lands on the wrong screen --
+  // and quietly enough that a test asserting nothing was sold would pass.
+  void OpenStackSell() {
+    inventory_component_->OnEvent(ftxui::Event::Return);  // the stack menu
+    controller_->OnEvent(ftxui::Event::ArrowDown);        // Inspect -> Sell
+    controller_->OnEvent(ftxui::Event::Return);
+  }
+
   // Walks the tab bar to the Shop tab and opens it, leaving the shop screen up
   // with the cursor on the first item.
   void OpenShop() {
@@ -1134,17 +1143,15 @@ TEST_F(TuiControllerTest, ConfirmingWhatCannotBeAffordedBuysNothing) {
 
 TEST_F(TuiControllerTest, SellMenuSellGoesToSellScreen) {
   EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
-  inventory_component_->OnEvent(ftxui::Event::Return);  // open {Sell, Close}
-  controller_->OnEvent(ftxui::Event::Return);           // Sell
+  OpenStackSell();
   EXPECT_EQ(controller_->screen(), kSell);
 }
 
 TEST_F(TuiControllerTest, SellConfirmSellsWholeStackAndCreditsMeso) {
   EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
-  inventory_component_->OnEvent(ftxui::Event::Return);  // open menu
-  controller_->OnEvent(ftxui::Event::Return);           // Sell -> kSell
-  controller_->OnEvent(ftxui::Event::ArrowDown);        // textbox -> [Confirm]
-  controller_->OnEvent(ftxui::Event::Return);           // Confirm (qty = 10)
+  OpenStackSell();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);     // Confirm (qty = 10)
 
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_TRUE(state_->character.stackables(ITEM_CATEGORY_ETC).empty());
@@ -1153,8 +1160,7 @@ TEST_F(TuiControllerTest, SellConfirmSellsWholeStackAndCreditsMeso) {
 
 TEST_F(TuiControllerTest, SellEscapeCancelsWithoutSelling) {
   EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
-  inventory_component_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);  // Sell -> kSell
+  OpenStackSell();
   controller_->OnEvent(ftxui::Event::Escape);  // cancel
 
   EXPECT_EQ(controller_->screen(), kMain);
@@ -1164,8 +1170,7 @@ TEST_F(TuiControllerTest, SellEscapeCancelsWithoutSelling) {
 
 TEST_F(TuiControllerTest, SellConfirmSellsTypedQuantity) {
   EnterEtcTabWithStack(/*count=*/10, /*sell_price=*/2);
-  inventory_component_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);  // Sell -> kSell
+  OpenStackSell();
   // Digits append, so empty the field before typing the quantity to sell.
   controller_->OnEvent(ftxui::Event::Backspace);       // 10 -> 1
   controller_->OnEvent(ftxui::Event::Backspace);       // 1 -> 0
@@ -1352,6 +1357,31 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));
+}
+
+// Inspect leads the stack menu and opens the same screen the equip lists use,
+// showing what the item is rather than what it is worth.
+TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
+  ItemPrototype shell;
+  shell.set_name("Green Snail Shell");
+  shell.set_category(ITEM_CATEGORY_ETC);
+  shell.set_description("A shell shed by a snail.");
+  state_->character.AddStackable(shell, 3);
+  panel_focus_ = kInventoryPanel;
+  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);   // into the list
+  inventory_component_->OnEvent(ftxui::Event::Return);      // the stack menu
+  controller_->OnEvent(ftxui::Event::Return);               // Inspect
+
+  EXPECT_EQ(controller_->screen(), kItemInspect);
+  ASSERT_NE(controller_->item_inspect_item(), nullptr);
+  EXPECT_EQ(controller_->item_inspect_item()->description(),
+            "A shell shed by a snail.");
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(controller_->item_inspect_item(), nullptr);
 }
 
 }  // namespace

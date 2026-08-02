@@ -7,6 +7,7 @@
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
@@ -205,6 +206,89 @@ TEST_F(InspectPanelTest, ShowsTraceNameWithSuffix) {
   InspectPanel panel;
   panel.SetItem(&trace);
   EXPECT_NE(Render(panel).find("Iron Sword Trace"), std::string::npos);
+}
+
+// --- stackable items ---
+
+// The same screen, reached the same way, for an item that has a sentence
+// instead of statistics.
+ItemPrototype MakeStackable(const std::string& name,
+                            const std::string& description) {
+  ItemPrototype item;
+  item.set_name(name);
+  item.set_category(ITEM_CATEGORY_USE);
+  item.set_description(description);
+  return item;
+}
+
+TEST_F(InspectPanelTest, ShowsAStackablesNameAndDescription) {
+  ItemPrototype item = MakeStackable("Red Potion", "Recovers 50 HP.");
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Red Potion"), std::string::npos);
+  EXPECT_NE(rendered.find("Recovers 50 HP."), std::string::npos);
+}
+
+// A description longer than the window wraps rather than running off the edge
+// or stretching the window to fit it.
+TEST_F(InspectPanelTest, WrapsALongDescription) {
+  ItemPrototype item = MakeStackable(
+      "Elixir",
+      "A thick green draught that restores every point of health and magic "
+      "the drinker has spent, and tastes of pine needles besides.");
+  InspectPanel panel;
+  panel.SetItem(&item);
+  ftxui::Element element = panel.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                                               ftxui::Dimension::Fit(element));
+  ftxui::Render(screen, element);
+  EXPECT_LE(screen.dimx(), 44);
+  EXPECT_GT(screen.dimy(), 5) << "the description took more than one row";
+}
+
+// Every description reads at the same width, so the window does not resize as
+// the cursor moves between one item and the next.
+TEST_F(InspectPanelTest, EveryStackableIsTheSameWidth) {
+  ItemPrototype terse = MakeStackable("Pill", "Small.");
+  ItemPrototype wordy = MakeStackable(
+      "Elixir", "A thick green draught that restores every point of health.");
+  InspectPanel panel;
+  panel.SetItem(&terse);
+  ftxui::Element narrow = panel.Render();
+  panel.SetItem(&wordy);
+  ftxui::Element wide = panel.Render();
+  EXPECT_EQ(ftxui::Screen::Create(ftxui::Dimension::Fit(narrow)).dimx(),
+            ftxui::Screen::Create(ftxui::Dimension::Fit(wide)).dimx());
+}
+
+TEST_F(InspectPanelTest, SaysSoWhenAStackableHasNoDescription) {
+  ItemPrototype item = MakeStackable("Green Snail Shell", "");
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Green Snail Shell"), std::string::npos);
+  EXPECT_NE(rendered.find("(no description)"), std::string::npos);
+}
+
+// The two kinds are exclusive: the panel describes the item the cursor was
+// last on, not both at once.
+TEST_F(InspectPanelTest, AStackableReplacesAnEquipAndTheOtherWayRound) {
+  EquipPrototype proto;
+  proto.set_name("Sword");
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipInstance equip(proto);
+  ItemPrototype potion = MakeStackable("Red Potion", "Recovers 50 HP.");
+
+  InspectPanel panel;
+  panel.SetItem(&equip);
+  panel.SetItem(&potion);
+  EXPECT_EQ(Render(panel).find("Sword"), std::string::npos);
+
+  panel.SetItem(&equip);
+  std::string back = Render(panel);
+  EXPECT_NE(back.find("Sword"), std::string::npos);
+  EXPECT_EQ(back.find("Recovers 50 HP."), std::string::npos);
 }
 
 }  // namespace

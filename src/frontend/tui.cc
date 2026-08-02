@@ -195,9 +195,12 @@ ftxui::Element Tui::RenderFrame() {
     inspect_panel_.SetItem(&preview);
     // A screen of its own, like inspecting something already in the bag. The
     // details are what the player came to read, so nothing sits behind them.
+    // Over a filler, not bare: an hbox hands its child the full height of the
+    // row, so the window would stretch to the terminal rather than fit what
+    // it holds.
     return ftxui::hbox({
         ftxui::filler(),
-        inspect_panel_.Render(),
+        ftxui::vbox({inspect_panel_.Render(), ftxui::filler()}),
         ftxui::filler(),
     });
   }
@@ -247,11 +250,20 @@ ftxui::Element Tui::RenderFrame() {
         ftxui::filler(),
     });
   }
-  if (controller_.screen() == kInspect) {
-    inspect_panel_.SetItem(controller_.inspect_item());
+  if (controller_.screen() == kInspect ||
+      controller_.screen() == kItemInspect) {
+    // One screen, two kinds of item: the panel takes whichever the cursor was
+    // on and frames both the same way.
+    if (controller_.screen() == kItemInspect) {
+      inspect_panel_.SetItem(controller_.item_inspect_item());
+    } else {
+      inspect_panel_.SetItem(controller_.inspect_item());
+    }
+    // Over a filler, not bare: an hbox hands its child the full height of the
+    // row, which for a stackable's three rows is a window of mostly nothing.
     return ftxui::hbox({
         ftxui::filler(),
-        inspect_panel_.Render(),
+        ftxui::vbox({inspect_panel_.Render(), ftxui::filler()}),
         ftxui::filler(),
     });
   }
