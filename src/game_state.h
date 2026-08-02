@@ -21,13 +21,29 @@
 
 namespace ms {
 
+// The two states the game can be started in.
+//
+// kPlay is the game as a player meets it: a level 1 Beginner on Maple Island
+// with a Sword and nothing else. kTest is the workbench -- a level 10 Beginner
+// standing at their first advancement, with the meso and the spread of items
+// the upgrade and shop screens need to be exercised without playing up to
+// them.
+enum class GameMode {
+  kPlay,
+  kTest,
+};
+
 struct GameState {
+  // Constructs the catalogs and puts the character, bag and map into the
+  // state `mode` begins from. Anything the catalogs do not name is skipped, so
+  // a state built for a test need not carry the game's data files.
   GameState(std::map<std::string, EquipPrototype> equips,
             std::map<std::string, Scroll> scrolls,
             std::map<std::string, ItemPrototype> items,
             std::map<std::string, Mob> mobs,
             std::map<std::string, MapData> maps,
-            std::map<std::string, Skill> skills = {});
+            std::map<std::string, Skill> skills = {},
+            GameMode mode = GameMode::kPlay);
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 

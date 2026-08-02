@@ -24,6 +24,8 @@ cc_library(
     hdrs = ["game_state.h"],
     deps = [
         "//src/character",
+        "//src/item",
+        "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
@@ -57,6 +59,8 @@ cc_binary(
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
         "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
         "@bazel_tools//tools/cpp/runfiles",
     ],
 )

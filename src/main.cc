@@ -2,6 +2,8 @@
 #include <memory>
 #include <string>
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "src/frontend/tui.h"
 #include "src/game_state.h"
@@ -15,13 +17,31 @@
 #include "src/protos/skill.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
+ABSL_FLAG(std::string, mode, "play",
+          "Which state to start in: 'play' for a new character on Maple "
+          "Island, or 'test' for the workbench -- a level 10 Beginner with "
+          "meso and a spread of items to exercise the screens with.");
+
 namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
+ms::GameMode ParseMode(const std::string& mode) {
+  if (mode == "play") {
+    return ms::GameMode::kPlay;
+  }
+  if (mode == "test") {
+    return ms::GameMode::kTest;
+  }
+  LOG(FATAL) << "Unknown --mode '" << mode << "'; expected 'play' or 'test'";
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
+  absl::ParseCommandLine(argc, argv);
+  ms::GameMode mode = ParseMode(absl::GetFlag(FLAGS_mode));
+
   std::string err;
   std::unique_ptr<Runfiles> runfiles(Runfiles::Create(argv[0], &err));
   if (!runfiles) {
@@ -44,53 +64,8 @@ int main(int argc, char** argv) {
       ms::LoadTextProtoDir<ms::Skill>(runfiles->Rlocation("ms/data/skills"));
 
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
-                      std::move(mobs), std::move(maps), std::move(skills));
-
-  // Enough to buy anything the shop stocks, several times over, so the buying
-  // screens can be exercised without grinding for the meso first.
-  state.character.AddMeso(1000000);
-
-  // Nothing is equipped: the character starts at its first job advancement,
-  // and taking it is what hands over a weapon. These are for scrolling and
-  // star force experimentation.
-  state.character.PickUp(
-      std::make_unique<ms::EquipInstance>(state.equips.at("sword")));
-  state.character.PickUp(
-      std::make_unique<ms::EquipInstance>(state.equips.at("long_sword")));
-  state.character.PickUp(
-      std::make_unique<ms::EquipInstance>(state.equips.at("machete")));
-
-  // Fully scrolled Fafnir at 20★ — for testing high-star-force on a finished
-  // endgame weapon.
-  ms::Equip fafnir_state;
-  fafnir_state.set_equip_name("Fafnir Mistilteinn");
-  fafnir_state.set_remaining_upgrade_slots(0);
-  fafnir_state.set_scroll_successes(8);
-  fafnir_state.set_stars(20);
-  fafnir_state.mutable_scroll_stats()->set_attack(40);
-  fafnir_state.mutable_scroll_stats()->set_str(16);
-  state.character.PickUp(std::make_unique<ms::EquipInstance>(
-      state.equips.at("fafnir_mistilteinn"), fafnir_state));
-
-  // Fafnir trace at 22★ (destroyed during star force) — the source trace for
-  // testing trace recovery.
-  ms::Equip fafnir_trace_state;
-  fafnir_trace_state.set_equip_name("Fafnir Mistilteinn");
-  fafnir_trace_state.set_remaining_upgrade_slots(0);
-  fafnir_trace_state.set_scroll_successes(8);
-  fafnir_trace_state.set_stars(22);
-  fafnir_trace_state.mutable_scroll_stats()->set_attack(40);
-  fafnir_trace_state.mutable_scroll_stats()->set_str(16);
-  state.character.PickUp(std::make_unique<ms::EquipTrace>(
-      state.equips.at("fafnir_mistilteinn"), fafnir_trace_state));
-
-  // Fresh Fafnir — the base item consumed when recovering the trace above.
-  state.character.PickUp(std::make_unique<ms::EquipInstance>(
-      state.equips.at("fafnir_mistilteinn")));
-
-  // Where a new character starts. The weakest map there is; the player picks
-  // anywhere else from the map select.
-  state.current_map = "right_around_lith_harbor";
+                      std::move(mobs), std::move(maps), std::move(skills),
+                      mode);
 
   ms::Tui(state).Run();
   return 0;

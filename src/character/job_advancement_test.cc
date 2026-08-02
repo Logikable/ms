@@ -120,7 +120,14 @@ TEST_F(JobAdvancementTest, StarterGearLandsInTheBag) {
   ASSERT_EQ(state_.character.inventory().size(), 1);
   EXPECT_EQ(state_.character.inventory().equip_instance(0)->prototype().name(),
             state_.equips.at("long_sword").name());
-  EXPECT_TRUE(state_.character.equipped().empty());
+  // Still wearing what they started the game in: advancing hands the gear
+  // over, it does not put it on.
+  ASSERT_TRUE(state_.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(state_.character.equipped()
+                .at(EQUIP_SLOT_PRIMARY_WEAPON)
+                .prototype()
+                .name(),
+            state_.equips.at("sword").name());
 }
 
 TEST_F(JobAdvancementTest, ARogueIsHandedBothWeaponsAndTheStars) {
