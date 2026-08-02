@@ -31,6 +31,7 @@ cc_test(
     deps = [
         ":colors",
         ":panel_util",
+        "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/component_base.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
@@ -18,6 +20,19 @@ namespace {
 
 constexpr int kSlotWidth = 10;
 constexpr int kInfoWidth = 20;
+
+// Overrides nothing but Focusable(). ComponentBase's own OnRender and OnEvent
+// already forward to a lone child, so everything else passes straight through.
+class AlwaysFocusableComponent : public ftxui::ComponentBase {
+ public:
+  explicit AlwaysFocusableComponent(ftxui::Component child) {
+    Add(std::move(child));
+  }
+
+  bool Focusable() const override {
+    return true;
+  }
+};
 
 // Fills a row with background color rather than block glyphs, so the label can
 // sit on top of it without the two fighting over the same characters. The
@@ -396,6 +411,10 @@ ftxui::Element CenteredRow(const std::string& text) {
 
 ftxui::Element ThemedSeparator() {
   return ftxui::separator() | ftxui::color(kTheme);
+}
+
+ftxui::Component AlwaysFocusable(ftxui::Component child) {
+  return ftxui::Make<AlwaysFocusableComponent>(std::move(child));
 }
 
 }  // namespace ms

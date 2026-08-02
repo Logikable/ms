@@ -6,6 +6,9 @@
 #include <utility>
 #include <vector>
 
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/component_base.hpp"
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/colors.h"
@@ -552,6 +555,69 @@ TEST(FloatingTest, GivesUpItsTopRatherThanItsBottomWhenItCannotFit) {
   ftxui::Screen screen = RenderSized(
       At(0, 1, ftxui::dbox({Base(), Floating(std::move(tall))})), 20, 8);
   EXPECT_EQ(ScreenCells(screen, 7, 0, 3), "BOT");
+}
+
+// --- AlwaysFocusable ---
+
+namespace {
+
+// A component that reports itself unfocusable, as ftxui::Menu does when it has
+// no entries. Renderer() without a child is the shortest one to hand.
+ftxui::Component UnfocusableComponent() {
+  return ftxui::Renderer([]() { return ftxui::text("PANEL"); });
+}
+
+}  // namespace
+
+TEST(AlwaysFocusableTest, ReportsFocusableWhereTheChildDoesNot) {
+  ftxui::Component child = UnfocusableComponent();
+  ASSERT_FALSE(child->Focusable());
+  EXPECT_TRUE(AlwaysFocusable(child)->Focusable());
+}
+
+TEST(AlwaysFocusableTest, DrawsWhatTheChildDraws) {
+  ftxui::Component wrapped = AlwaysFocusable(UnfocusableComponent());
+  EXPECT_EQ(ScreenCells(RenderSized(wrapped->Render(), 10, 1), 0, 0, 5),
+            "PANEL");
+}
+
+TEST(AlwaysFocusableTest, PassesEventsToTheChild) {
+  bool seen = false;
+  ftxui::Component wrapped = AlwaysFocusable(
+      ftxui::CatchEvent(UnfocusableComponent(), [&seen](ftxui::Event) {
+        seen = true;
+        return true;
+      }));
+  EXPECT_TRUE(wrapped->OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_TRUE(seen);
+}
+
+// The reason the wrapper exists. Container::Tab asks only its active child
+// whether it is focusable and drops every key when the answer is no, so an
+// unwrapped panel never sees the event at all.
+TEST(AlwaysFocusableTest, ATabContainerDeliversKeysToTheWrappedChild) {
+  bool seen_bare = false;
+  int selector = 0;
+  ftxui::Component bare =
+      ftxui::Container::Tab({ftxui::CatchEvent(UnfocusableComponent(),
+                                               [&seen_bare](ftxui::Event) {
+                                                 seen_bare = true;
+                                                 return true;
+                                               })},
+                            &selector);
+  ASSERT_FALSE(bare->OnEvent(ftxui::Event::ArrowRight));
+  ASSERT_FALSE(seen_bare) << "the container is expected to drop this one";
+
+  bool seen_wrapped = false;
+  ftxui::Component wrapped = ftxui::Container::Tab(
+      {AlwaysFocusable(ftxui::CatchEvent(UnfocusableComponent(),
+                                         [&seen_wrapped](ftxui::Event) {
+                                           seen_wrapped = true;
+                                           return true;
+                                         }))},
+      &selector);
+  EXPECT_TRUE(wrapped->OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_TRUE(seen_wrapped);
 }
 
 }  // namespace

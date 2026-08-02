@@ -86,7 +86,32 @@ class InventoryPanelTest : public PanelTest {
       c_.PickUp(std::make_unique<EquipInstance>(sword_));
     }
   }
+
+  // The panel wired the way the main screen wires it: as one tab of a
+  // Container::Tab, which is what routes keys to it in the running game.
+  // Every other test here calls OnEvent on the panel component directly, so
+  // none of them can see a key that never gets dispatched.
+  ftxui::Component InTabContainer(ftxui::Component panel) {
+    return ftxui::Container::Tab({std::move(panel)}, &tab_selector_);
+  }
+
+  int tab_selector_ = 0;
 };
+
+// Container::Tab drops keys aimed at a child that reports itself unfocusable,
+// and the equip Menu says exactly that when the bag is empty -- which used to
+// take the tab bar down with it, leaving a new character unable to reach the
+// Use, Etc or Shop tabs at all.
+TEST_F(InventoryPanelTest, TheTabBarStillSwitchesTabsOnAnEmptyBag) {
+  InventoryPanel panel(c_, panel_focus_);
+  panel_focus_ = kInventoryPanel;
+  ftxui::Component root = InTabContainer(panel.MakeComponent([]() {}));
+  ASSERT_EQ(c_.inventory().size(), 0);
+  root->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(panel.on_stackable_tab()) << "Equip -> Use";
+  root->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_FALSE(panel.on_stackable_tab()) << "Use -> Equip";
+}
 
 TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
   InventoryPanel panel(c_, panel_focus_);

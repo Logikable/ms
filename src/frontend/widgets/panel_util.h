@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "ftxui/component/component_base.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/colors.h"
@@ -23,6 +24,17 @@ inline bool IsBack(const ftxui::Event& e) {
 inline bool IsForward(const ftxui::Event& e) {
   return e == ftxui::Event::Return || e == ftxui::Event::Character(' ');
 }
+
+// Wraps `child` so it always reports itself focusable, whatever the child says.
+// Forwards rendering and events to it untouched.
+//
+// Container::Tab asks only its active child whether it is focusable, and drops
+// every key before dispatch when the answer is no. A panel built around an
+// ftxui::Menu therefore goes deaf whenever its list is empty -- including the
+// parts of it, like a tab bar, that have nothing to do with the list. A panel
+// drawn with the Renderer(bool) overload gets this for free; one that wraps a
+// real child in order to forward events to it does not.
+ftxui::Component AlwaysFocusable(ftxui::Component child);
 
 // A single displayable stat: its label and how to read it from an EquipStats.
 struct DisplayStat {

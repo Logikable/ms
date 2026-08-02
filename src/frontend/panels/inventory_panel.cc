@@ -368,8 +368,12 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
   // rows_ and entries_ are rebuilt on every render via RenderContent so the
   // display stays in sync with inventory changes made via on_enter.
-  ftxui::Component renderer = ftxui::Renderer(
-      menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); });
+  // Focusable whether or not the equip list has rows in it. Container::Tab
+  // asks its active panel whether it is focusable and drops every key when the
+  // answer is no, and an ftxui::Menu says no on an empty list -- which would
+  // take the tab bar down with the list it has nothing to do with.
+  ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
+      menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
   return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
     if (zone_ == kZoneTabs) {
       // Tab bar: Left/Right switch tabs, Down descends into the item list.
