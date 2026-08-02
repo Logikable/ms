@@ -56,6 +56,11 @@ struct GameState {
   std::mt19937 rng;
   CharacterInstance character;
 
+  // What every EXP award from combat is multiplied by. kTest gets a standing
+  // bonus so the workbench can climb the level ladder in a sitting rather than
+  // farming the early levels at play speed; kPlay earns what it earns.
+  int exp_multiplier = 1;
+
   // Name of the map being farmed (key into `maps`); empty means none.
   std::string current_map;
   // Fractional drops banked per item name, carried across AdvanceCombat calls.

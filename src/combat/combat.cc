@@ -52,7 +52,7 @@ void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds) {
     }
   }
   if (exp_gained > 0) {
-    character.AddExp(exp_gained);
+    character.AddExp(exp_gained * state.exp_multiplier);
   }
 }
 

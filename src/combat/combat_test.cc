@@ -63,6 +63,15 @@ void EquipSword(GameState& state) {
   state.character.Equip(0);
 }
 
+// Levels the character to `level`. Combat is paced by level (see
+// GameSpeedFactor), so a test that means to hold the pace still has to say
+// which level it is holding it at.
+void LevelTo(GameState& state, int level) {
+  while (state.character.proto().level() < level) {
+    state.character.LevelUp();
+  }
+}
+
 // Farms for `seconds` of game time. A single call can advance at most one
 // swing, so rewards only accrue over a loop -- as they do under the TUI's
 // ticker.
@@ -135,9 +144,7 @@ int64_t ExpFarmedAt(int level, double seconds) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", OneSnailMap()}});
   state.current_map = "field";
-  for (int i = 1; i < level; ++i) {
-    state.character.LevelUp();
-  }
+  LevelTo(state, level);
   EquipSword(state);
   int64_t before = state.character.proto().exp();
   Farm(state, seconds);
@@ -154,6 +161,41 @@ TEST(AdvanceCombatTest, TheSameFightPaysLessAsTheGameSlowsDown) {
   ASSERT_GT(at_140, 0) << "the slowest band still has to pay something";
   EXPECT_GT(at_9, at_10) << "1x band vs 2x band";
   EXPECT_GT(at_10, at_140) << "2x band vs 10x band";
+}
+
+// The workbench's standing EXP bonus, which is what makes the level-gated
+// features reachable in a sitting. It pays only EXP: the same corpses, the
+// same drops, the same meso as the same fight without it.
+//
+// Both characters are pinned at the top level first. Otherwise the bonus
+// changes what it is measuring: EXP levels the character, levelling slows the
+// game down, and the boosted character ends up killing FEWER mobs over the
+// same wall time. At 140 the pacing band is already the last one and a farm
+// this short cannot level them, so the multiplier is all that differs.
+TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
+  GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+  plain.current_map = "field";
+  LevelTo(plain, 140);
+  EquipSword(plain);
+  Farm(plain, 600.0);
+
+  GameState boosted({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                    {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+  boosted.current_map = "field";
+  LevelTo(boosted, 140);
+  boosted.exp_multiplier = 5;
+  EquipSword(boosted);
+  Farm(boosted, 600.0);
+
+  ASSERT_EQ(boosted.character.proto().level(), 140) << "no band change";
+  ASSERT_GT(plain.character.proto().exp(), 0);
+  EXPECT_EQ(boosted.character.proto().exp(), 5 * plain.character.proto().exp());
+  ASSERT_FALSE(plain.character.stackables(ITEM_CATEGORY_ETC).empty());
+  ASSERT_FALSE(boosted.character.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_EQ(boosted.character.stackables(ITEM_CATEGORY_ETC)[0].count(),
+            plain.character.stackables(ITEM_CATEGORY_ETC)[0].count());
+  EXPECT_EQ(boosted.character.meso(), plain.character.meso());
 }
 
 }  // namespace

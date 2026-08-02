@@ -178,5 +178,15 @@ TEST(GameStateTest, PlayIsTheDefaultMode) {
   EXPECT_EQ(state.current_map, "maple_island");
 }
 
+// The workbench climbs the level ladder on a bonus rather than by farming the
+// early levels at play speed. Play mode earns what it earns.
+TEST(GameStateTest, TestModeFarmsOnAnExpBonus) {
+  EXPECT_EQ(MakeTestModeState().exp_multiplier, 5);
+}
+
+TEST(GameStateTest, PlayModeEarnsPlainExp) {
+  EXPECT_EQ(MakePlayModeState().exp_multiplier, 1);
+}
+
 }  // namespace
 }  // namespace ms

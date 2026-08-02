@@ -82,7 +82,14 @@ void SeedPlay(GameState& state) {
 // The workbench. Everything here exists to reach a screen without playing up
 // to it, so the items are the awkward ones: a fully scrolled weapon at high
 // star force, a trace to recover, and the base item recovering it consumes.
+// What the workbench multiplies combat EXP by. High enough that the early
+// levels go by while the tester watches, which is what makes the level-gated
+// features reachable without farming for them.
+constexpr int kTestExpMultiplier = 5;
+
 void SeedTest(GameState& state) {
+  state.exp_multiplier = kTestExpMultiplier;
+
   // Enough to buy anything the shop stocks, several times over, so the buying
   // screens can be exercised without grinding for the meso first.
   state.character.AddMeso(1000000);
