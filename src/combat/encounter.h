@@ -5,7 +5,8 @@
  * CombatParams. The fight then steps purely from those params (see fight.h), so
  * it needs no game state of its own and cannot quietly disagree with the
  * encounter it is meant to be playing out. All durations are in game-scaled
- * seconds (x kGameSpeedFactor).
+ * seconds: real ones stretched by the character's GameSpeedFactor, which grows
+ * with their level.
  */
 #ifndef MS_SRC_COMBAT_ENCOUNTER_H_
 #define MS_SRC_COMBAT_ENCOUNTER_H_

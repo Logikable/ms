@@ -11,10 +11,9 @@ namespace ms {
 // spawn point. A map's full-clear kill cap is spawn_count / this.
 constexpr double kRespawnIntervalSeconds = 7.56;
 
-// Our game runs this many times slower than GMS; the one global pacing knob.
-// Everything with a duration -- swings, respawns, kill cycles -- is stretched
-// by it.
-constexpr double kGameSpeedFactor = 2.0;
+// The pacing knob that used to live here -- how many times slower than GMS the
+// game runs -- is now GameSpeedFactor(level) in src/character/progression.h. It
+// stopped being a constant when it started stretching with the player's level.
 
 // The action-delay quantization grain: GMS rounds attack delays up to whole
 // units of this. Not a simulation tick -- nothing here is stepped by it.

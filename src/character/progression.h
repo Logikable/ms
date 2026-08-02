@@ -41,14 +41,15 @@ bool Unlocked(Feature feature, const CharacterInstance& character);
 // this one, so ask Unlocked rather than comparing against this yourself.
 int UnlockLevel(Feature feature);
 
-// How many seconds of fighting one real second buys at `level`. The idle game
-// gets faster as it goes: a level 1 character fights in real time, a level 140
-// one gets ten seconds of it per second.
+// How many times slower than GMS the game runs at `level`. The one global
+// pacing knob, and the reason it lives here: it is not a constant. The early
+// game runs at GMS speed and stretches out as the player climbs, so a level
+// 140 character's swings and respawns take ten times as long as the ones they
+// started with.
 //
-// Applied to the elapsed time handed to the combat sim, so kills, EXP, meso
-// and drops all scale together and the fight visibly speeds up rather than
-// merely paying better.
-int TickMultiplier(int level);
+// Everything with a duration is multiplied by it -- swing intervals, the
+// respawn beat, and so the kill rate and everything paid out per kill.
+double GameSpeedFactor(int level);
 
 }  // namespace ms
 

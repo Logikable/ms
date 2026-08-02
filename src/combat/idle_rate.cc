@@ -13,7 +13,8 @@
 namespace ms {
 
 double KillCycleSeconds(double damage_per_hit, double swing_interval_seconds,
-                        const Mob& mob, double respawn_interval_seconds) {
+                        const Mob& mob, double game_speed_factor,
+                        double respawn_interval_seconds) {
   if (damage_per_hit <= 0.0) {
     return std::numeric_limits<double>::infinity();  // Never killed.
   }
@@ -24,13 +25,13 @@ double KillCycleSeconds(double damage_per_hit, double swing_interval_seconds,
   // Respawns land only on tick boundaries, so a kill that spills past a tick
   // wastes the rest of it: round up to a whole number of ticks.
   double ticks = std::ceil(kill_time / respawn_interval_seconds);
-  return ticks * respawn_interval_seconds * kGameSpeedFactor;
+  return ticks * respawn_interval_seconds * game_speed_factor;
 }
 
 std::vector<double> MapKillPeriods(const OffenseStats& offense,
                                    const EquipPrototype& weapon,
                                    const std::vector<const Mob*>& mobs,
-                                   int spawn_count,
+                                   int spawn_count, double game_speed_factor,
                                    double respawn_interval_seconds) {
   double swing_interval = SwingIntervalSeconds(
       BaseAttackDelayMs(weapon.equip_type()), weapon.attack_speed());
@@ -42,7 +43,7 @@ std::vector<double> MapKillPeriods(const OffenseStats& offense,
   for (const Mob* mob : mobs) {
     double cycle =
         KillCycleSeconds(ExpectedAttackDamage(offense, *mob), swing_interval,
-                         *mob, respawn_interval_seconds);
+                         *mob, game_speed_factor, respawn_interval_seconds);
     // The type's slots cycle in parallel, so the map-level period shrinks by
     // the slot share; zero slots (or an unkillable mob) leave it at +inf.
     periods.push_back(slots_per_type > 0.0

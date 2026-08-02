@@ -28,15 +28,16 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kRecovery, 140},
 };
 
-// The lowest level of each speed band and what it multiplies by. Read from
-// the bottom up: the last band the level clears is the one that applies.
+// The lowest level of each pacing band and how far it stretches a duration.
+// Read from the bottom up: the last band the level clears is the one that
+// applies.
 struct Speed {
   int level;
-  int multiplier;
+  double factor;
 };
 
 constexpr Speed kSpeeds[] = {
-    {1, 1}, {10, 2}, {30, 3}, {60, 5}, {100, 7}, {140, 10},
+    {1, 1.0}, {10, 2.0}, {30, 3.0}, {60, 5.0}, {100, 7.0}, {140, 10.0},
 };
 
 }  // namespace
@@ -64,14 +65,14 @@ bool Unlocked(Feature feature, const CharacterInstance& character) {
   return true;
 }
 
-int TickMultiplier(int level) {
-  int multiplier = kSpeeds[0].multiplier;
+double GameSpeedFactor(int level) {
+  double factor = kSpeeds[0].factor;
   for (const Speed& speed : kSpeeds) {
     if (level >= speed.level) {
-      multiplier = speed.multiplier;
+      factor = speed.factor;
     }
   }
-  return multiplier;
+  return factor;
 }
 
 }  // namespace ms

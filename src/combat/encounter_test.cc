@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include "src/character/progression.h"
 #include "src/combat/constants.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -106,7 +107,8 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
   EXPECT_EQ(params.types[0].simultaneous, 2);  // the snail's own spawn count
   EXPECT_GT(params.swing_seconds, 0.0);
   EXPECT_DOUBLE_EQ(params.respawn_seconds,
-                   kRespawnIntervalSeconds * kGameSpeedFactor);
+                   kRespawnIntervalSeconds *
+                       GameSpeedFactor(state.character.proto().level()));
   // With no attack skill learned the bare poke is the only option.
   ASSERT_EQ(params.attacks.size(), 1u);
   EXPECT_EQ(params.attacks[0].name, "Attack");
@@ -118,6 +120,11 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
 // Levels the character up until its first-job SP pool can pay for `points`.
 // These tests are about combat, not about whatever job or level the starting
 // character happens to carry, so they buy their own SP.
+//
+// Levelling is not free of side effects: the pace of the whole game stretches
+// with the character's level (see GameSpeedFactor). Any test comparing two
+// swing intervals has to buy its SP before measuring either of them, or it
+// measures the pacing band rather than the thing it meant to.
 void GrantFirstJobSp(GameState& state, int points) {
   while (state.character.sp(1) < points) {
     state.character.LevelUp();
@@ -227,8 +234,10 @@ TEST(ComputeCombatParamsTest, AttackSpeedPassiveShortensTheSwing) {
                   {{"field", TwoSnailMap()}}, {{"haste", haste}});
   state.current_map = "field";
   EquipSword(state);  // AVERAGE (stage 4)
-  double slow = ComputeCombatParams(state).swing_seconds;
+  // Bought up front so both readings are taken at the same level, and so at
+  // the same pace: what is under test is the skill, not the band.
   GrantFirstJobSp(state, 1);
+  double slow = ComputeCombatParams(state).swing_seconds;
   ASSERT_TRUE(state.character.LearnSkill(haste, 1));
   double fast = ComputeCombatParams(state).swing_seconds;
   EXPECT_LT(fast, slow);  // +1 stage swings sooner
@@ -249,9 +258,33 @@ TEST(ComputeCombatParamsTest, AttackSpeedIsCappedAtTheFastestTier) {
                       {{"field", TwoSnailMap()}});
   cap_state.current_map = "field";
   EquipSwordAt(cap_state, ATTACK_SPEED_FASTEST_3);
+  // Levelled to match the other character, whose SP was bought with levels.
+  // Two characters at different levels run at different paces, and the
+  // comparison is about the attack-speed cap.
+  GrantFirstJobSp(cap_state, 1);
 
   EXPECT_DOUBLE_EQ(ComputeCombatParams(fast_state).swing_seconds,
                    ComputeCombatParams(cap_state).swing_seconds);
+}
+
+// The pacing band, read straight off the params. The same character with the
+// same weapon on the same map swings and respawns slower once they cross into
+// a slower band -- that is the whole of the level-driven pacing.
+TEST(ComputeCombatParamsTest, TheEncounterStretchesAsTheCharacterLevels) {
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  ASSERT_EQ(state.character.proto().level(), 1);
+
+  CombatParams early = ComputeCombatParams(state);
+  while (state.character.proto().level() < 10) {
+    state.character.LevelUp();
+  }
+  CombatParams later = ComputeCombatParams(state);
+
+  EXPECT_DOUBLE_EQ(later.swing_seconds, 2.0 * early.swing_seconds);
+  EXPECT_DOUBLE_EQ(later.respawn_seconds, 2.0 * early.respawn_seconds);
 }
 
 }  // namespace

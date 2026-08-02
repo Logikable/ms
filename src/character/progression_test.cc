@@ -70,40 +70,40 @@ TEST_F(ProgressionTest, NoOtherFeatureCaresAboutTheJob) {
   EXPECT_TRUE(Unlocked(Feature::kShop, MakeCharacter(20, JOB_BEGINNER)));
 }
 
-// --- TickMultiplier ---
+// --- GameSpeedFactor ---
 
-TEST_F(ProgressionTest, TheFirstBandRunsInRealTime) {
-  EXPECT_EQ(TickMultiplier(1), 1);
-  EXPECT_EQ(TickMultiplier(9), 1);
+TEST_F(ProgressionTest, TheFirstBandRunsAtFullSpeed) {
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(1), 1.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(9), 1.0);
 }
 
 TEST_F(ProgressionTest, EachBandStartsOnTheLevelItNames) {
-  EXPECT_EQ(TickMultiplier(10), 2);
-  EXPECT_EQ(TickMultiplier(29), 2);
-  EXPECT_EQ(TickMultiplier(30), 3);
-  EXPECT_EQ(TickMultiplier(59), 3);
-  EXPECT_EQ(TickMultiplier(60), 5);
-  EXPECT_EQ(TickMultiplier(99), 5);
-  EXPECT_EQ(TickMultiplier(100), 7);
-  EXPECT_EQ(TickMultiplier(139), 7);
-  EXPECT_EQ(TickMultiplier(140), 10);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(10), 2.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(29), 2.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(30), 3.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(59), 3.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(60), 5.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(99), 5.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(100), 7.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(139), 7.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(140), 10.0);
 }
 
 // Nothing beyond the last band, and nothing below the first: the table has to
 // answer for a level either side of the range it lists.
 TEST_F(ProgressionTest, TheLastBandRunsToTheTop) {
-  EXPECT_EQ(TickMultiplier(300), 10);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(300), 10.0);
 }
 
-TEST_F(ProgressionTest, ALevelBelowTheTableStillGetsRealTime) {
-  EXPECT_EQ(TickMultiplier(0), 1);
+TEST_F(ProgressionTest, ALevelBelowTheTableStillRunsAtFullSpeed) {
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(0), 1.0);
 }
 
-// The clock only ever speeds up. A band that dipped would make a level-up a
-// punishment.
-TEST_F(ProgressionTest, TheClockNeverSlowsDown) {
+// The game only ever slows down. A band that dipped would make a level-up
+// speed the game up, which is the opposite of what the ladder is for.
+TEST_F(ProgressionTest, ThePaceNeverQuickens) {
   for (int level = 2; level <= 300; ++level) {
-    EXPECT_GE(TickMultiplier(level), TickMultiplier(level - 1))
+    EXPECT_GE(GameSpeedFactor(level), GameSpeedFactor(level - 1))
         << "at level " << level;
   }
 }

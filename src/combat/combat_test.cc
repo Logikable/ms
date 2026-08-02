@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <memory>
 
 #include "src/combat/fight.h"
@@ -124,6 +125,35 @@ TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
   Farm(state, 20000.0);
   EXPECT_EQ(state.character.proto().level(), start_level);
   EXPECT_EQ(state.character.proto().exp(), 0);
+}
+
+// --- the level-banded pace ---
+
+// Farms `seconds` at `level` and returns the EXP it paid. The character is
+// levelled by hand first so the band under test is the one in force.
+int64_t ExpFarmedAt(int level, double seconds) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  for (int i = 1; i < level; ++i) {
+    state.character.LevelUp();
+  }
+  EquipSword(state);
+  int64_t before = state.character.proto().exp();
+  Farm(state, seconds);
+  return state.character.proto().exp() - before;
+}
+
+// The same fight pays less per second the higher the band, because the fight
+// itself runs slower: these snails die in one hit at either level, so nothing
+// but the pace has changed between the two.
+TEST(AdvanceCombatTest, TheSameFightPaysLessAsTheGameSlowsDown) {
+  int64_t at_9 = ExpFarmedAt(9, 600.0);
+  int64_t at_10 = ExpFarmedAt(10, 600.0);
+  int64_t at_140 = ExpFarmedAt(140, 600.0);
+  ASSERT_GT(at_140, 0) << "the slowest band still has to pay something";
+  EXPECT_GT(at_9, at_10) << "1x band vs 2x band";
+  EXPECT_GT(at_10, at_140) << "2x band vs 10x band";
 }
 
 }  // namespace

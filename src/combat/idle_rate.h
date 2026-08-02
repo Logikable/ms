@@ -21,10 +21,14 @@ namespace ms {
 
 // Wall-clock seconds between kills at one spawn slot: discrete hits
 // (ceil(max_hp / damage_per_hit), overkill wasted) give a kill time, rounded up
-// to whole respawn ticks, then stretched by the game-speed factor. +inf if the
+// to whole respawn ticks, then stretched by `game_speed_factor`. +inf if the
 // mob can't be damaged.
+//
+// The speed factor is passed rather than read: it depends on the character's
+// level (see GameSpeedFactor), and nothing in this file has a character.
 double KillCycleSeconds(
     double damage_per_hit, double swing_interval_seconds, const Mob& mob,
+    double game_speed_factor,
     double respawn_interval_seconds = kRespawnIntervalSeconds);
 
 // Effective seconds between kills of each mob type when farming the whole map,
@@ -34,6 +38,7 @@ double KillCycleSeconds(
 std::vector<double> MapKillPeriods(
     const OffenseStats& offense, const EquipPrototype& weapon,
     const std::vector<const Mob*>& mobs, int spawn_count,
+    double game_speed_factor,
     double respawn_interval_seconds = kRespawnIntervalSeconds);
 
 // Advances a fractional-kill accumulator by elapsed_seconds at

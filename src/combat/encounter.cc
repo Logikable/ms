@@ -8,6 +8,7 @@
 
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
+#include "src/character/progression.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
@@ -85,11 +86,14 @@ CombatParams ComputeCombatParams(const GameState& state) {
   int attack_speed =
       std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
                weapon.attack_speed() + derived.attack_speed_bonus);
+  // The pace the whole encounter runs at, and the only thing here that asks
+  // the character's level directly: the game stretches out as they climb.
+  double speed_factor = GameSpeedFactor(state.character.proto().level());
   params.swing_seconds =
       SwingIntervalSeconds(BaseAttackDelayMs(weapon.equip_type()),
                            attack_speed) *
-      kGameSpeedFactor;
-  params.respawn_seconds = kRespawnIntervalSeconds * kGameSpeedFactor;
+      speed_factor;
+  params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
   for (const MapData::Spawn& spawn : map.spawns()) {
     std::map<std::string, Mob>::const_iterator mob_it =
         state.mobs.find(spawn.mob());

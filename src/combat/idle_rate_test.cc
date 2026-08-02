@@ -42,14 +42,19 @@ OffenseStats FarmOffense() {
   return offense;
 }
 
+// The pace these tests farm at. Written into the expectations by name rather
+// than by value, so what they pin is the shape of the formula and not the
+// number the character's level happens to hand it.
+constexpr double kTestSpeed = 2.0;
+
 // Kill-cycle tests override respawn_interval_seconds = 1.0 so the cycle is just
-// (tick count) * kGameSpeedFactor. Expectations are written against that
-// constant rather than its value, so the pacing knob can be retuned freely. mob
-// HP is 10 throughout; damage_per_hit sets the hit count.
+// (tick count) * kTestSpeed. mob HP is 10 throughout; damage_per_hit sets the
+// hit count.
 TEST(KillCycleTest, BelowTickRoundsUpToOneTick) {
   // 10 dmg vs 10 HP = 1 hit; kill_time 0.5 < 1 tick -> 1 tick.
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 0.5, MakeMob(0, false, 10), 1.0),
-                   kGameSpeedFactor);
+  EXPECT_DOUBLE_EQ(
+      KillCycleSeconds(10.0, 0.5, MakeMob(0, false, 10), kTestSpeed, 1.0),
+      kTestSpeed);
 }
 
 TEST(KillCycleTest, CliffAtRespawnTick) {
@@ -57,26 +62,29 @@ TEST(KillCycleTest, CliffAtRespawnTick) {
   // jumping the cycle by a whole tick: 10 dmg = 1 hit (0.6 < 1 tick),
   // 6 dmg = ceil(10/6) = 2 hits (1.2 > 1 tick -> 2 ticks). Exactly double.
   Mob mob = MakeMob(0, false, 10);
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 0.6, mob, 1.0), kGameSpeedFactor);
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(6.0, 0.6, mob, 1.0),
-                   2.0 * kGameSpeedFactor);
+  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 0.6, mob, kTestSpeed, 1.0),
+                   kTestSpeed);
+  EXPECT_DOUBLE_EQ(KillCycleSeconds(6.0, 0.6, mob, kTestSpeed, 1.0),
+                   2.0 * kTestSpeed);
 }
 
 TEST(KillCycleTest, MultiTickKill) {
   // 1 hit but kill_time 2.1 spans into the third tick -> 3 ticks.
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 2.1, MakeMob(0, false, 10), 1.0),
-                   3.0 * kGameSpeedFactor);
+  EXPECT_DOUBLE_EQ(
+      KillCycleSeconds(10.0, 2.1, MakeMob(0, false, 10), kTestSpeed, 1.0),
+      3.0 * kTestSpeed);
 }
 
 TEST(KillCycleTest, ZeroDamageNeverKills) {
-  EXPECT_TRUE(
-      std::isinf(KillCycleSeconds(0.0, 0.5, MakeMob(0, false, 10), 1.0)));
+  EXPECT_TRUE(std::isinf(
+      KillCycleSeconds(0.0, 0.5, MakeMob(0, false, 10), kTestSpeed, 1.0)));
 }
 
 TEST(KillCycleTest, DefaultRespawnUsesTheGmsTick) {
   // 1 hit, kill_time 1 < one 7.56s tick -> 1 tick.
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 10)),
-                   kRespawnIntervalSeconds * kGameSpeedFactor);
+  EXPECT_DOUBLE_EQ(
+      KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 10), kTestSpeed),
+      kRespawnIntervalSeconds * kTestSpeed);
 }
 
 TEST(KillCycleTest, OverkillOnTheKillingHitIsWasted) {
@@ -84,14 +92,18 @@ TEST(KillCycleTest, OverkillOnTheKillingHitIsWasted) {
   // needs a whole hit from full HP; overkill on the last hit never carries
   // forward to spare the next mob a hit. HP 11..20 all take 2 hits (the
   // second overkills by up to 9) and share one cycle; HP 21 needs a third.
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 10), 1.0),
-                   kGameSpeedFactor);  // exactly 1 hit, no overkill
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 11), 1.0),
-                   2.0 * kGameSpeedFactor);  // 1 HP over -> a full 2nd hit
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 20), 1.0),
-                   2.0 * kGameSpeedFactor);  // overkills by 0; still 2 hits
-  EXPECT_DOUBLE_EQ(KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 21), 1.0),
-                   3.0 * kGameSpeedFactor);  // spills into a 3rd hit
+  EXPECT_DOUBLE_EQ(
+      KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 10), kTestSpeed, 1.0),
+      kTestSpeed);  // exactly 1 hit, no overkill
+  EXPECT_DOUBLE_EQ(
+      KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 11), kTestSpeed, 1.0),
+      2.0 * kTestSpeed);  // 1 HP over -> a full 2nd hit
+  EXPECT_DOUBLE_EQ(
+      KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 20), kTestSpeed, 1.0),
+      2.0 * kTestSpeed);  // overkills by 0; still 2 hits
+  EXPECT_DOUBLE_EQ(
+      KillCycleSeconds(10.0, 1.0, MakeMob(0, false, 21), kTestSpeed, 1.0),
+      3.0 * kTestSpeed);  // spills into a 3rd hit
 }
 
 // Map-farming tests override respawn = 1.0 and farm the one-handed sword at
@@ -105,9 +117,10 @@ TEST(MapKillPeriodsTest, SplitsSpawnCountEvenly) {
   EquipPrototype weapon =
       MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE);
 
-  std::vector<double> two = MapKillPeriods(FarmOffense(), weapon, mobs, 2, 1.0);
+  std::vector<double> two =
+      MapKillPeriods(FarmOffense(), weapon, mobs, 2, kTestSpeed, 1.0);
   std::vector<double> four =
-      MapKillPeriods(FarmOffense(), weapon, mobs, 4, 1.0);
+      MapKillPeriods(FarmOffense(), weapon, mobs, 4, kTestSpeed, 1.0);
   EXPECT_DOUBLE_EQ(two[0], two[1]);
   EXPECT_DOUBLE_EQ(four[0], two[0] / 2.0);
 }
@@ -151,7 +164,7 @@ TEST(MapKillPeriodsTest, EmptyMapHasNoPeriods) {
   EXPECT_TRUE(MapKillPeriods(
                   FarmOffense(),
                   MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE),
-                  mobs, 4, 1.0)
+                  mobs, 4, kTestSpeed, 1.0)
                   .empty());
 }
 
