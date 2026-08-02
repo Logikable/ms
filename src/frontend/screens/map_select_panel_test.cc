@@ -144,6 +144,37 @@ TEST(MapSelectPanelTest, ShowsWeightedLevelRoundedDown) {
             std::string::npos);
 }
 
+// A town rather than a hunting ground. There is no mob to average, so the
+// level column has to say 0 rather than divide by nothing.
+TEST(MapSelectPanelTest, AMapWithNoMobsShowsLevelZero) {
+  MapData green;
+  green.set_name("Green Field");
+  AddSpawn(&green, "snail", 4);
+  MapData town;
+  town.set_name("Maple Island");
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"green_field", green}, {"maple_island", town}});
+  MapSelectPanel panel(state);
+  std::string rendered = Render(panel);
+  EXPECT_NE(LineWith(rendered, "Maple Island").find("Maple Island 0"),
+            std::string::npos);
+}
+
+// Level 0 puts it below every hunting ground, so the list still runs low to
+// high with a town on it.
+TEST(MapSelectPanelTest, AMapWithNoMobsSortsFirst) {
+  MapData green;
+  green.set_name("Green Field");
+  AddSpawn(&green, "snail", 4);
+  MapData town;
+  town.set_name("Maple Island");
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"green_field", green}, {"maple_island", town}});
+  MapSelectPanel panel(state);
+  std::string rendered = Render(panel);
+  EXPECT_LT(rendered.find("Maple Island"), rendered.find("Green Field"));
+}
+
 TEST(MapSelectPanelTest, ResetPutsTheCursorOnTheMapBeingFarmed) {
   GameState state = ThreeMaps();
   state.current_map = "horny_field";
