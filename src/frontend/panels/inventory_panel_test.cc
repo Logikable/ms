@@ -315,9 +315,40 @@ TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
 }
 
+// --- the level-gated Shop tab ---
+
+// The bar simply ends at Etc rather than showing a greyed fourth chip: a shop
+// a character cannot walk into is not a tab they should be able to land on.
+TEST_F(InventoryPanelTest, TheShopTabIsAbsentBeforeItsLevel) {
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(RenderComponent(comp).find("Shop"), std::string::npos);
+  for (int i = 0; i < 5; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  EXPECT_FALSE(panel.on_shop_tab()) << "Right cannot walk past Etc";
+}
+
+TEST_F(InventoryPanelTest, TheShopTabArrivesAtItsLevel) {
+  LevelTo(19);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  panel_focus_ = kInventoryPanel;
+  ASSERT_EQ(RenderComponent(comp).find("Shop"), std::string::npos);
+
+  LevelTo(20);
+  EXPECT_NE(RenderComponent(comp).find("Shop"), std::string::npos);
+  for (int i = 0; i < 5; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);
+  }
+  EXPECT_TRUE(panel.on_shop_tab());
+}
+
 // The Shop tab lists nothing the player owns, so where the other tabs show a
 // list it shows the way in.
 TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
+  LevelTo(20);  // the Shop tab is gated there
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
@@ -331,6 +362,7 @@ TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
 
 // It is the last tab, so Right must stop there rather than walking off the bar.
 TEST_F(InventoryPanelTest, ShopIsTheRightmostTab) {
+  LevelTo(20);  // the Shop tab is gated there
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   for (int i = 0; i < 6; ++i) {
@@ -344,6 +376,7 @@ TEST_F(InventoryPanelTest, ShopIsTheRightmostTab) {
 // Etc stack matters -- without one, a Shop tab that fell through to the Etc
 // emptiness check would look inert for the wrong reason.
 TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
+  LevelTo(20);  // the Shop tab is gated there
   c_.AddStackable(MakeStackable("Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -359,6 +392,7 @@ TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
 
 // The shop is not a stackable tab, or the sell menu would open over it.
 TEST_F(InventoryPanelTest, TheShopTabIsNotAStackableTab) {
+  LevelTo(20);  // the Shop tab is gated there
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   for (int i = 0; i < 3; ++i) {

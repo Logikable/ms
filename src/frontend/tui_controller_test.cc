@@ -126,6 +126,10 @@ class TuiControllerTest : public testing::Test {
   // Walks the tab bar to the Shop tab and opens it, leaving the shop screen up
   // with the cursor on the first item.
   void OpenShop() {
+    // The Shop tab is gated at 20. The fixture already levels past that
+    // buying SP, but that is a coincidence of the SP arithmetic and not
+    // something the shop tests should be resting on.
+    LevelTo(20);
     panel_focus_ = kInventoryPanel;
     for (int i = 0; i < 3; ++i) {
       inventory_component_->OnEvent(ftxui::Event::ArrowRight);

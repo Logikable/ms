@@ -44,13 +44,17 @@ constexpr char kColumnHeader2[] =
     "    "                            // 4 → 64 total
     "Pass/Left/Restore";
 
-// Renders the left-aligned Equip/Use/Etc chip row in the shared tab style,
-// with a centered meso counter overlaid in the empty space, over a separator.
-ftxui::Element RenderTabBar(int active_tab, int64_t meso, bool row_selected) {
-  const char* labels[kNumInventoryTabs] = {"Equip", "Use", "Etc", "Shop"};
+constexpr const char* kTabLabels[kNumInventoryTabs] = {"Equip", "Use", "Etc",
+                                                       "Shop"};
+
+// Renders the left-aligned chip row in the shared tab style, with a centered
+// meso counter overlaid in the empty space, over a separator. `tabs` is what
+// the character has unlocked, so a locked tab leaves no gap behind it.
+ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
+                            int64_t meso, bool row_selected) {
   std::vector<ftxui::Element> chips;
-  for (int i = 0; i < kNumInventoryTabs; ++i) {
-    chips.push_back(TabChip(labels[i], i == active_tab, row_selected));
+  for (int tab : tabs) {
+    chips.push_back(TabChip(kTabLabels[tab], tab == active_tab, row_selected));
   }
   ftxui::Element tab_row = ftxui::dbox({
       ftxui::hbox(std::move(chips)),
@@ -116,6 +120,36 @@ ItemMenu& InventoryPanel::menu() {
     return menu_;
   }
   return sell_menu_;
+}
+
+std::vector<int> InventoryPanel::VisibleTabs() const {
+  std::vector<int> tabs = {kEquipTab, kUseTab, kEtcTab};
+  // The shop is a place in the world rather than a page of the bag, and it is
+  // not open to a character who has nothing to spend and nothing to spend it
+  // on. Until then the bar simply ends at Etc.
+  if (Unlocked(Feature::kShop, character_)) {
+    tabs.push_back(kShopTab);
+  }
+  return tabs;
+}
+
+void InventoryPanel::StepTab(int direction) {
+  std::vector<int> tabs = VisibleTabs();
+  std::vector<int>::iterator at =
+      std::find(tabs.begin(), tabs.end(), active_tab_);
+  if (at == tabs.end()) {
+    // The tab the cursor was on has been locked away under it. Nothing does
+    // that today -- levels only go up -- but landing on Equip beats landing
+    // on a tab that is no longer in the bar.
+    active_tab_ = kEquipTab;
+    return;
+  }
+  int next = static_cast<int>(at - tabs.begin()) + direction;
+  if (next < 0 || next >= static_cast<int>(tabs.size())) {
+    return;  // the ends of the bar are walls, not wrapping points
+  }
+  active_tab_ = tabs[next];
+  selected_stack_ = 0;
 }
 
 bool InventoryPanel::on_stackable_tab() const {
@@ -327,11 +361,12 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   } else {
     body = RenderEquipList(menu);
   }
-  return ThemedWindow(" Inventory ",
-                      ftxui::vbox({RenderTabBar(active_tab_, character_.meso(),
-                                                focused && zone_ == kZoneTabs),
-                                   std::move(body) | ftxui::flex}),
-                      focused);
+  return ThemedWindow(
+      " Inventory ",
+      ftxui::vbox({RenderTabBar(VisibleTabs(), active_tab_, character_.meso(),
+                                focused && zone_ == kZoneTabs),
+                   std::move(body) | ftxui::flex}),
+      focused);
 }
 
 ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
@@ -398,17 +433,11 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
     if (zone_ == kZoneTabs) {
       // Tab bar: Left/Right switch tabs, Down descends into the item list.
       if (event == ftxui::Event::ArrowLeft) {
-        if (active_tab_ > 0) {
-          --active_tab_;
-          selected_stack_ = 0;
-        }
+        StepTab(-1);
         return true;
       }
       if (event == ftxui::Event::ArrowRight) {
-        if (active_tab_ < kShopTab) {
-          ++active_tab_;
-          selected_stack_ = 0;
-        }
+        StepTab(+1);
         return true;
       }
       if (event == ftxui::Event::ArrowDown) {

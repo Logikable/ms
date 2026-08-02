@@ -91,6 +91,12 @@ class InventoryPanel {
   ftxui::Element RenderEquipList(ftxui::Component menu);
   // Whether the active tab's item list has no rows to descend into.
   bool ActiveTabEmpty() const;
+  // The tabs this character has unlocked, left to right. Locked tabs are
+  // absent rather than greyed, so the bar simply ends early.
+  std::vector<int> VisibleTabs() const;
+  // Moves the active tab one step along the visible bar. The ends are walls:
+  // Left on the first tab and Right on the last do nothing.
+  void StepTab(int direction);
 
   CharacterInstance& character_;
   int& panel_focus_;
