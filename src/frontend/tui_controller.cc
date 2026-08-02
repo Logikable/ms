@@ -439,7 +439,8 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
       return true;
     }
     buy_item_ = item->name();
-    buy_panel_.Reset(item->name(), item->shop_price(), state_.character.meso());
+    buy_panel_.Reset(item->name(), item->shop_price(), state_.character.meso(),
+                     state_.character.RoomFor(*item));
   }
   screen_ = next;
   return true;

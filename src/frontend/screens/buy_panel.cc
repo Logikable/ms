@@ -1,5 +1,6 @@
 #include "src/frontend/screens/buy_panel.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -11,17 +12,23 @@
 
 namespace ms {
 
-void BuyPanel::Reset(const std::string& item_name, int unit_price,
-                     int64_t meso) {
+void BuyPanel::Reset(const std::string& item_name, int unit_price, int64_t meso,
+                     int room) {
   item_name_ = item_name;
   unit_price_ = unit_price;
   meso_ = meso;
-  // Capped at what the balance covers, so the field cannot be typed up to an
-  // amount the shop would only refuse. A player who cannot afford one gets a
-  // cap of zero and a field that will not leave it.
-  int64_t affordable = unit_price > 0 ? meso / unit_price : 0;
-  selector_.Reset(static_cast<int>(affordable), /*initial=*/1,
-                  QuickPicks::kHidden);
+  // Capped so the field cannot be typed up to an amount the shop would only
+  // refuse: at what the balance covers, at what the bag has left, and at the
+  // four digits the field is meant to take. A player who cannot afford one, or
+  // has nowhere to put it, gets a cap of zero and a field that will not leave
+  // it.
+  int64_t affordable = 0;
+  if (unit_price > 0) {
+    affordable = meso / unit_price;
+  }
+  int64_t max = std::min({affordable, static_cast<int64_t>(std::max(0, room)),
+                          static_cast<int64_t>(kMaxQuantity)});
+  selector_.Reset(static_cast<int>(max), /*initial=*/1, QuickPicks::kHidden);
   selector_.set_confirm_enabled(Affordable());
 }
 

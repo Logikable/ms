@@ -51,17 +51,21 @@ bool RowIsColored(const BuyPanel& panel, const std::string& needle,
   return false;
 }
 
+// A bag with more room than any of these tests is about, so the cap under
+// test is the one that bites.
+constexpr int kRoomy = 100000;
+
 // A shopper picks a number; the sell dialog's "all of it" default would be an
 // odd thing to open a purchase on.
 TEST(BuyPanelTest, OpensAtOne) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
   EXPECT_EQ(panel.quantity(), 1);
 }
 
 TEST(BuyPanelTest, HasNoQuickPickShortcuts) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
   std::string rendered = Render(panel);
   EXPECT_EQ(rendered.find("[1]"), std::string::npos);
   EXPECT_EQ(rendered.find("[MAX]"), std::string::npos);
@@ -69,7 +73,7 @@ TEST(BuyPanelTest, HasNoQuickPickShortcuts) {
 
 TEST(BuyPanelTest, ShowsUnitPriceAndTotal) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
   panel.OnEvent(ftxui::Event::Backspace);       // clear the 1
   panel.OnEvent(ftxui::Event::Character('3'));  // 3 of them
   std::string rendered = Render(panel);
@@ -80,7 +84,7 @@ TEST(BuyPanelTest, ShowsUnitPriceAndTotal) {
 // The cap is what stops the player building a total the shop would refuse.
 TEST(BuyPanelTest, CannotTypePastWhatTheBalanceCovers) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/25000);
+  panel.Reset("Machete", 10000, /*meso=*/25000, /*room=*/kRoomy);
   panel.OnEvent(ftxui::Event::Backspace);
   panel.OnEvent(ftxui::Event::Character('9'));
   EXPECT_EQ(panel.quantity(), 2) << "25,000 buys two at 10,000";
@@ -90,7 +94,7 @@ TEST(BuyPanelTest, CannotTypePastWhatTheBalanceCovers) {
 // rather than refusing to open.
 TEST(BuyPanelTest, AnUnaffordableItemOpensAtZeroAndCannotConfirm) {
   BuyPanel panel;
-  panel.Reset("Gladius", 20000, /*meso=*/500);
+  panel.Reset("Gladius", 20000, /*meso=*/500, /*room=*/kRoomy);
   EXPECT_EQ(panel.quantity(), 0);
   EXPECT_TRUE(RowIsColored(panel, "Total", kRed))
       << "the zero total should not read as a live purchase";
@@ -101,7 +105,7 @@ TEST(BuyPanelTest, AnUnaffordableItemOpensAtZeroAndCannotConfirm) {
 
 TEST(BuyPanelTest, ConfirmWorksOnAnAffordableAmount) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(panel.TakeConfirmed());
@@ -110,7 +114,7 @@ TEST(BuyPanelTest, ConfirmWorksOnAnAffordableAmount) {
 
 TEST(BuyPanelTest, EscapeCancels) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
   panel.OnEvent(ftxui::Event::Escape);
   EXPECT_TRUE(panel.TakeCancelled());
 }
@@ -119,12 +123,60 @@ TEST(BuyPanelTest, EscapeCancels) {
 // zero is not a purchase.
 TEST(BuyPanelTest, ZeroIsNotSomethingToConfirm) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
   panel.OnEvent(ftxui::Event::Backspace);
   ASSERT_EQ(panel.quantity(), 0);
   panel.OnEvent(ftxui::Event::ArrowDown);
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(panel.TakeConfirmed());
+}
+
+// --- the three caps ---
+
+// Room caps the quantity even when the balance would cover far more.
+TEST(BuyPanelTest, CannotTypePastWhatTheBagHasRoomFor) {
+  BuyPanel panel;
+  panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/3);
+  panel.OnEvent(ftxui::Event::Backspace);
+  panel.OnEvent(ftxui::Event::Character('9'));
+  EXPECT_EQ(panel.quantity(), 3);
+}
+
+// A full bag reads like an unaffordable item: the dialog opens and says no,
+// rather than offering a number that would be refused.
+TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
+  BuyPanel panel;
+  panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0);
+  EXPECT_EQ(panel.quantity(), 0);
+  panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(panel.TakeConfirmed());
+}
+
+// Neither the balance nor the bag is the only ceiling: the field itself stops
+// at four digits.
+TEST(BuyPanelTest, CannotTypePastTheQuantityLimit) {
+  BuyPanel panel;
+  panel.Reset("Machete", 1, /*meso=*/100000000, /*room=*/kRoomy);
+  panel.OnEvent(ftxui::Event::Backspace);
+  for (int i = 0; i < 6; ++i) {
+    panel.OnEvent(ftxui::Event::Character('9'));
+  }
+  // The literal rather than the constant: a test that reads the limit off the
+  // thing under test cannot notice the limit changing.
+  EXPECT_EQ(panel.quantity(), 9999);
+}
+
+// The limit is a ceiling, not a floor: it does not raise a cap the balance or
+// the bag has already set lower.
+TEST(BuyPanelTest, TheQuantityLimitDoesNotOverrideATighterCap) {
+  BuyPanel panel;
+  panel.Reset("Machete", 1, /*meso=*/50, /*room=*/kRoomy);
+  panel.OnEvent(ftxui::Event::Backspace);
+  for (int i = 0; i < 6; ++i) {
+    panel.OnEvent(ftxui::Event::Character('9'));
+  }
+  EXPECT_EQ(panel.quantity(), 50);
 }
 
 }  // namespace

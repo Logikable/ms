@@ -26,10 +26,18 @@ namespace ms {
 
 class BuyPanel {
  public:
+  // The most that can be bought in one go, whatever the balance and the bag
+  // allow. Four digits is as much as the field is meant to take.
+  static constexpr int kMaxQuantity = 9999;
+
   // Seeds the panel for buying `item_name` at `unit_price` meso each, against
-  // a balance of `meso`. Quantity opens at one and is capped at what that
-  // balance covers.
-  void Reset(const std::string& item_name, int unit_price, int64_t meso);
+  // a balance of `meso`, with `room` copies' worth of space left in the bag.
+  //
+  // Quantity opens at one and is capped by whichever of the three ceilings
+  // bites first: the balance, the room, and kMaxQuantity. The field will not
+  // go past the cap, so the shop is never offered a number it would refuse.
+  void Reset(const std::string& item_name, int unit_price, int64_t meso,
+             int room);
   ftxui::Element Render() const;
   bool OnEvent(ftxui::Event event);
   int quantity() const {
