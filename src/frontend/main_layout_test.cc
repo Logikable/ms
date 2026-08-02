@@ -43,12 +43,18 @@ class MainLayoutTest : public testing::Test {
   // is 10 rows of character over 5 of combat, and the right column 3 rows of
   // equipped over a bag of whatever height the test asks for.
   void Render(int bag_rows) {
+    RenderWith(Panel("EQUIP", kRightWidth, 1),
+               Panel("BAG", kRightWidth, bag_rows));
+  }
+
+  // The same layout with whichever right-column panels the test wants, so it
+  // can pass null for one a character has not unlocked.
+  void RenderWith(ftxui::Element equipped, ftxui::Element inventory) {
     screen_ = ftxui::Screen::Create(ftxui::Dimension::Fixed(kScreenWidth),
                                     ftxui::Dimension::Fixed(kScreenHeight));
-    ftxui::Element layout =
-        MainLayout(Panel("CHAR", kLeftWidth, 8), Panel("COMBAT", kLeftWidth, 3),
-                   Panel("EQUIP", kRightWidth, 1),
-                   Panel("BAG", kRightWidth, bag_rows), ftxui::text("EXPBAR"));
+    ftxui::Element layout = MainLayout(
+        Panel("CHAR", kLeftWidth, 8), Panel("COMBAT", kLeftWidth, 3),
+        std::move(equipped), std::move(inventory), ftxui::text("EXPBAR"));
     ftxui::Render(screen_, layout);
   }
 
@@ -214,6 +220,41 @@ TEST_F(MainLayoutTest, TheRightColumnFillsTheRemainingWidth) {
   int bag_row = LastRowWith("BAG");
   ASSERT_GE(bag_row, 0);
   EXPECT_EQ(Cell(kScreenWidth - 1, bag_row), "│");
+}
+
+// --- panels a character has not unlocked ---
+
+// Nothing to the right of the character panel at level 1, and the two panels
+// that do exist keep the places they will have for the rest of the game.
+TEST_F(MainLayoutTest, BothRightPanelsAbsentLeavesOnlyTheLeftColumn) {
+  RenderWith(nullptr, nullptr);
+  EXPECT_EQ(FirstRowWith("EQUIP"), -1);
+  EXPECT_EQ(FirstRowWith("BAG"), -1);
+  EXPECT_NE(FirstRowWith("CHAR"), -1);
+  EXPECT_EQ(FirstRowWith("CHAR"), 1) << "character still at the top";
+  EXPECT_NE(FirstRowWith("EXPBAR"), -1);
+  EXPECT_EQ(LastRowWith("COMBAT"), kScreenHeight - 3)
+      << "combat still pinned above the exp bar";
+}
+
+// The bag arrives a level after the equipped panel, so for one level the
+// right column is the equipped panel alone -- and it must sit at the top of
+// the column rather than floating where the bag would have put it.
+TEST_F(MainLayoutTest, TheEquippedPanelStandsAloneWithoutTheBag) {
+  RenderWith(Panel("EQUIP", kRightWidth, 1), nullptr);
+  EXPECT_EQ(FirstRowWith("BAG"), -1);
+  EXPECT_EQ(FirstRowWith("EQUIP"), 1);
+  EXPECT_EQ(FirstRowWith("CHAR"), 1) << "both columns start at the top";
+}
+
+// The right column is what flexes to fill the width. With nothing in it the
+// left column must not stretch to take its place.
+TEST_F(MainLayoutTest, TheLeftColumnKeepsItsWidthWithNoRightColumn) {
+  RenderWith(nullptr, nullptr);
+  int row = FirstRowWith("CHAR");
+  ASSERT_NE(row, -1);
+  EXPECT_EQ(Cell(kLeftWidth - 1, row), "\u2502") << "right border of the panel";
+  EXPECT_EQ(Cell(kLeftWidth, row), " ") << "and nothing past it";
 }
 
 }  // namespace

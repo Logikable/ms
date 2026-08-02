@@ -272,10 +272,20 @@ ftxui::Element Tui::RenderFrame() {
 }
 
 ftxui::Element Tui::RenderMain() {
+  // A panel the character has not unlocked is not drawn at all, and the layout
+  // closes up around it. Rendering is skipped rather than hidden afterwards:
+  // an undrawn panel has nothing to say about a game it is not part of yet.
+  ftxui::Element equipped = nullptr;
+  if (controller_.PanelVisible(kEquipPanel)) {
+    equipped = equip_component_->Render();
+  }
+  ftxui::Element inventory = nullptr;
+  if (controller_.PanelVisible(kInventoryPanel)) {
+    inventory = inventory_component_->Render();
+  }
   ftxui::Element layout =
       MainLayout(char_panel_.Render(), combat_component_->Render(),
-                 equip_component_->Render(), inventory_component_->Render(),
-                 RenderExpBar());
+                 std::move(equipped), std::move(inventory), RenderExpBar());
   if (controller_.screen() != kItemMenu) {
     return layout;
   }

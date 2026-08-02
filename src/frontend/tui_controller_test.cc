@@ -1273,5 +1273,86 @@ TEST_F(TuiControllerTest, MapSelectSwallowsKeysThatWouldActOnTheMainScreen) {
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
+// --- panels a character has not unlocked ---
+
+// The two panels down the right are handed over as the player levels. Until
+// then they are not drawn and Tab does not stop on them.
+TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
+  // The fixture levels past both buying SP, so this walks back down by
+  // building a character at each level rather than levelling up to it.
+  GameState fresh({}, {}, {}, {}, {});
+  ASSERT_EQ(fresh.character.proto().level(), 1);
+
+  EquippedPanel equip(fresh.character, panel_focus_);
+  InventoryPanel bag(fresh.character, panel_focus_);
+  ScrollPanel scroll({});
+  StarForcePanel star;
+  TraceRecoverPanel trace(fresh.character);
+  SellPanel sell;
+  MapSelectPanel maps(fresh);
+  ShopPanel shop(fresh.character, fresh.equips);
+  BuyPanel buy;
+  int focus = kCharPanel;
+  TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
+                           shop, buy, focus);
+
+  EXPECT_TRUE(controller.PanelVisible(kCharPanel));
+  EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
+  EXPECT_FALSE(controller.PanelVisible(kEquipPanel));
+  EXPECT_FALSE(controller.PanelVisible(kInventoryPanel));
+
+  fresh.character.LevelUp();  // 2
+  EXPECT_TRUE(controller.PanelVisible(kEquipPanel));
+  EXPECT_FALSE(controller.PanelVisible(kInventoryPanel));
+
+  fresh.character.LevelUp();  // 3
+  EXPECT_TRUE(controller.PanelVisible(kInventoryPanel));
+}
+
+// Tab rounds the panels that exist. At level 1 that is two of them, so it
+// cannot leave the player pressing Tab at a panel that is not on screen.
+TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
+  GameState fresh({}, {}, {}, {}, {});
+  EquippedPanel equip(fresh.character, panel_focus_);
+  InventoryPanel bag(fresh.character, panel_focus_);
+  ScrollPanel scroll({});
+  StarForcePanel star;
+  TraceRecoverPanel trace(fresh.character);
+  SellPanel sell;
+  MapSelectPanel maps(fresh);
+  ShopPanel shop(fresh.character, fresh.equips);
+  BuyPanel buy;
+  int focus = kCharPanel;
+  TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
+                           shop, buy, focus);
+
+  controller.OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
+  controller.OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(focus, kCharPanel) << "and back round";
+}
+
+// The game opens focused on the equipped panel, which a level 1 character
+// does not have. Focus has to leave before a key is dispatched, or it lands
+// on a panel the player cannot see.
+TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
+  GameState fresh({}, {}, {}, {}, {});
+  EquippedPanel equip(fresh.character, panel_focus_);
+  InventoryPanel bag(fresh.character, panel_focus_);
+  ScrollPanel scroll({});
+  StarForcePanel star;
+  TraceRecoverPanel trace(fresh.character);
+  SellPanel sell;
+  MapSelectPanel maps(fresh);
+  ShopPanel shop(fresh.character, fresh.equips);
+  BuyPanel buy;
+  int focus = kEquipPanel;  // where the game starts
+  TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
+                           shop, buy, focus);
+
+  controller.OnEvent(ftxui::Event::Custom);  // any key at all
+  EXPECT_TRUE(controller.PanelVisible(focus));
+}
+
 }  // namespace
 }  // namespace ms

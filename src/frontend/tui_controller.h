@@ -126,7 +126,19 @@ class TuiController {
   // Returns the trace being recovered while in kTraceRecover, or nullptr.
   const EquipTabItem* trace_recover_item() const;
 
+  // Whether `panel` is on screen for this character. The equipped panel and
+  // the bag are handed over as the player levels; the character and combat
+  // panels are there from the first frame.
+  //
+  // Asked by the layout to decide what to draw and by Tab to decide what to
+  // skip, so the two cannot disagree about which panels exist.
+  bool PanelVisible(int panel) const;
+
  private:
+  // Moves focus off a panel that is not on screen. The game opens focused on
+  // the equipped panel, which a level 1 character does not have yet.
+  void EnsureFocusIsVisible();
+
   // Where the item under the cursor of the focused panel lives. The one place
   // that reads panel_focus_ to answer that question.
   ItemRef SelectedItem() const;

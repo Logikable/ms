@@ -25,6 +25,10 @@ namespace ms {
 //     a full bag would cost the equipped panel a row.
 //   - Each column is a vbox because the hbox holding them stretches a bare
 //     child to the full height of the row.
+//
+// `equipped` and `inventory` may be null, for a character who has not unlocked
+// them yet. A null panel leaves no gap: the right column closes up around it,
+// and with both null there is no right column at all.
 ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
                           ftxui::Element equipped, ftxui::Element inventory,
                           ftxui::Element exp_bar);

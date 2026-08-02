@@ -6,6 +6,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/character/character.h"
 #include "src/character/job_advancement.h"
+#include "src/character/progression.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -116,6 +117,10 @@ const EquipInstance* TuiController::scroll_item() const {
 }
 
 bool TuiController::OnEvent(ftxui::Event event) {
+  // A panel can go out from under the cursor: the game starts focused on the
+  // equipped panel, which a level 1 character has not unlocked. Settled before
+  // the event is dispatched so a key never reaches a panel that is not drawn.
+  EnsureFocusIsVisible();
   if (screen_ == kItemMenu) {
     return OnItemMenuEvent(event);
   }
@@ -171,10 +176,32 @@ bool TuiController::OnEvent(ftxui::Event event) {
     return OnShopBuyEvent(event);
   }
   if (event == ftxui::Event::Tab) {
-    panel_focus_ = (panel_focus_ + 1) % kNumPanels;
+    // Round the panels until the next one that is actually on screen. The
+    // character panel is always visible, so this always lands somewhere.
+    do {
+      panel_focus_ = (panel_focus_ + 1) % kNumPanels;
+    } while (!PanelVisible(panel_focus_));
     return true;
   }
   return false;
+}
+
+bool TuiController::PanelVisible(int panel) const {
+  if (panel == kEquipPanel) {
+    return Unlocked(Feature::kEquipped, state_.character);
+  }
+  if (panel == kInventoryPanel) {
+    return Unlocked(Feature::kBag, state_.character);
+  }
+  return true;
+}
+
+void TuiController::EnsureFocusIsVisible() {
+  int guard = 0;
+  while (!PanelVisible(panel_focus_) && guard < kNumPanels) {
+    panel_focus_ = (panel_focus_ + 1) % kNumPanels;
+    ++guard;
+  }
 }
 
 bool TuiController::OnItemMenuEvent(ftxui::Event event) {
