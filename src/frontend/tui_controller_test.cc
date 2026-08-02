@@ -517,7 +517,10 @@ TEST_F(TuiControllerTest, ReturnActionUnequipsFromEquipPanel) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, UnequipSwitchesFocusToBagWhenEquipEmpty) {
+// Both panels used to shove focus at the other one when their own list ran
+// out, because an empty list left the panel unable to receive a key. Neither
+// does now, and the player keeps the cursor they were holding.
+TEST_F(TuiControllerTest, UnequippingTheLastItemLeavesFocusWhereItWas) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -525,7 +528,8 @@ TEST_F(TuiControllerTest, UnequipSwitchesFocusToBagWhenEquipEmpty) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::Return);
 
-  EXPECT_EQ(panel_focus_, kInventoryPanel);
+  ASSERT_TRUE(state_->character.equipped().empty());
+  EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
 // --- Scroll via equip panel ---
@@ -1164,6 +1168,17 @@ TEST_F(TuiControllerTest, ReturnActionEquipsFromInventoryPanel) {
 
   EXPECT_FALSE(state_->character.equipped().empty());
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, EquippingTheLastItemLeavesFocusWhereItWas) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::Return);
+
+  ASSERT_TRUE(state_->character.inventory().empty());
+  EXPECT_EQ(panel_focus_, kInventoryPanel);
 }
 
 // --- Map select ---

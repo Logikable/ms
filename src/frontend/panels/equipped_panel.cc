@@ -57,7 +57,7 @@ void EquippedPanel::OpenMenu() {
   }
 }
 
-Screen EquippedPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
+Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
                                   ScrollPanel& scroll_panel) {
   if (IsBack(event)) {
     return kMain;
@@ -73,9 +73,6 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
   if (IsForward(event)) {
     if (menu_.selected() == kMenuAction) {
       character_.Unequip(selected_slot());
-      if (character_.equipped().empty()) {
-        panel_focus = kInventoryPanel;
-      }
       return kMain;
     }
     if (menu_.selected() == kMenuInspect) {

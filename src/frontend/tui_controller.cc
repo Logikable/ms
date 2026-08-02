@@ -180,9 +180,9 @@ bool TuiController::OnEvent(ftxui::Event event) {
 bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   Screen next;
   if (panel_focus_ == kEquipPanel) {
-    next = equip_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
+    next = equip_panel_.OnMenuEvent(event, scroll_panel_);
   } else {
-    next = inventory_panel_.OnMenuEvent(event, panel_focus_, scroll_panel_);
+    next = inventory_panel_.OnMenuEvent(event, scroll_panel_);
   }
   if (next == kInspect) {
     inspect_ref_ = SelectedItem();

@@ -113,6 +113,23 @@ TEST_F(InventoryPanelTest, TheTabBarStillSwitchesTabsOnAnEmptyBag) {
   EXPECT_FALSE(panel.on_stackable_tab()) << "Use -> Equip";
 }
 
+// Equipping the last item in the bag takes the row the cursor was standing on
+// with it. The panel used to hand focus to the equipped panel at that point;
+// now it keeps it, so the cursor has to go somewhere it can be seen.
+TEST_F(InventoryPanelTest, TheCursorLeavesAListThatEmptiedUnderIt) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  panel_focus_ = kInventoryPanel;
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the one item
+  RenderComponent(comp);
+  c_.Equip(0);
+  RenderComponent(comp);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(panel.on_stackable_tab())
+      << "Right switched tabs, so the cursor is back on the tab bar";
+}
+
 TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
   InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("(empty)"),
@@ -425,7 +442,7 @@ TEST_F(InventoryPanelTest, SellMenuSellReturnsSellScreen) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   panel.OpenMenu();
   ScrollPanel sp({});
-  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, panel_focus_, sp), kSell);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kSell);
 }
 
 TEST_F(InventoryPanelTest, SellMenuCloseReturnsMain) {
@@ -435,9 +452,8 @@ TEST_F(InventoryPanelTest, SellMenuCloseReturnsMain) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   panel.OpenMenu();
   ScrollPanel sp({});
-  panel.OnMenuEvent(ftxui::Event::ArrowDown, panel_focus_,
-                    sp);  // Sell -> Close
-  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, panel_focus_, sp), kMain);
+  panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Sell -> Close
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMain);
 }
 
 TEST_F(InventoryPanelTest, UnsellableStackDisablesSellOption) {

@@ -184,7 +184,7 @@ void InventoryPanel::OpenMenu() {
   }
 }
 
-Screen InventoryPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
+Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
                                    ScrollPanel& scroll_panel) {
   if (active_tab_ != kEquipTab) {
     // Use/Etc {Sell, Close} menu.
@@ -218,9 +218,6 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event, int& panel_focus,
   if (IsForward(event)) {
     if (menu_.selected() == kMenuAction) {
       character_.Equip(selected_);
-      if (character_.inventory().empty()) {
-        panel_focus = kEquipPanel;
-      }
       return kMain;
     }
     if (menu_.selected() == kMenuInspect) {
@@ -285,6 +282,13 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
 }
 
 ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
+  // A list that emptied under the cursor -- the last equip worn, the last
+  // stack sold -- has no row left to stand on, so the cursor comes back up to
+  // the tab bar. Left where it was it would be in a zone that cannot draw it,
+  // with no highlight anywhere on the panel to say which keys go where.
+  if (zone_ == kZoneList && ActiveTabEmpty()) {
+    zone_ = kZoneTabs;
+  }
   bool focused = panel_focus_ == kInventoryPanel;
   ftxui::Element body;
   if (active_tab_ == kShopTab) {

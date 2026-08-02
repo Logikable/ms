@@ -30,8 +30,7 @@ class EquippedPanel {
   void OpenMenu();
   // Handles Up/Down/Escape/Return for the item context menu and executes the
   // selected action. Returns the next screen state.
-  Screen OnMenuEvent(ftxui::Event event, int& panel_focus,
-                     ScrollPanel& scroll_panel);
+  Screen OnMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel);
 
   ItemMenu& menu() {
     return menu_;

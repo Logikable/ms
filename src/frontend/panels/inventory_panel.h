@@ -46,8 +46,7 @@ class InventoryPanel {
   // Handles Up/Down/Escape/Return for the item context menu and executes the
   // selected action. Returns the next screen state. On the Equip tab this
   // drives the equip menu; on Use/Etc it drives the {Sell, Close} menu.
-  Screen OnMenuEvent(ftxui::Event event, int& panel_focus,
-                     ScrollPanel& scroll_panel);
+  Screen OnMenuEvent(ftxui::Event event, ScrollPanel& scroll_panel);
 
   // The context menu for the active tab: the equip menu on Equip, the sell menu
   // on Use/Etc.
