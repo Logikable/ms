@@ -349,5 +349,52 @@ TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
   EXPECT_EQ(panel.cursor_row(), first + 1);
 }
 
+// --- level-gated menu entries ---
+
+// Taking something off needs somewhere to put it, and the bag is not open
+// yet. A greyed Unequip would be an invitation to a screen that is not there.
+TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+
+  LevelTo(2);
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kMenuAction), 0);
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Unequip"),
+            std::string::npos);
+
+  LevelTo(3);
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kMenuAction), 0);
+}
+
+TEST_F(EquippedPanelTest, ScrollingAndStarForceArriveAtTheirOwnLevels) {
+  // A spent weapon: star force refuses an item with upgrade slots still on
+  // it, and this test is about the level gate rather than that refusal.
+  sword_.set_upgrade_slots(1);
+  Equip spent;
+  spent.set_equip_name(sword_.name());
+  spent.set_remaining_upgrade_slots(0);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_, spent));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+
+  LevelTo(10);
+  panel.OpenMenu();
+  std::vector<int> at_10 = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(at_10.begin(), at_10.end(), kMenuScroll), 0);
+  EXPECT_EQ(std::count(at_10.begin(), at_10.end(), kMenuStarForce), 0);
+
+  LevelTo(60);
+  panel.OpenMenu();
+  std::vector<int> at_60 = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(at_60.begin(), at_60.end(), kMenuStarForce), 0);
+}
+
 }  // namespace
 }  // namespace ms

@@ -250,7 +250,58 @@ TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
 
 // An ordinary weapon keeps both, including one with no slots left: a spent
 // weapon is what star force is for, and a Clean Slate still applies to it.
+// --- level-gated menu entries ---
+
+// A gated entry is not drawn at all, rather than drawn grey: greying it would
+// advertise an upgrade the player cannot ask about yet.
+TEST_F(InventoryPanelTest, ANewCharacterIsOfferedNoUpgrades) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuRecover), 0);
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Scroll"),
+            std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, ScrollingArrivesAtItsLevel) {
+  sword_.set_upgrade_slots(7);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  LevelTo(9);
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kMenuScroll), 0);
+
+  LevelTo(10);
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kMenuScroll), 0);
+}
+
+// Star force and recovery are the two late ones, and they arrive separately.
+TEST_F(InventoryPanelTest, StarForceAndRecoveryArriveAtTheirOwnLevels) {
+  Equip destroyed;
+  destroyed.set_equip_name(sword_.name());
+  c_.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
+  InventoryPanel panel(c_, panel_focus_);
+
+  LevelTo(60);
+  panel.OpenMenu();
+  std::vector<int> at_60 = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(at_60.begin(), at_60.end(), kMenuRecover), 0)
+      << "recovery waits for 140";
+
+  LevelTo(140);
+  panel.OpenMenu();
+  std::vector<int> at_140 = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(at_140.begin(), at_140.end(), kMenuRecover), 0);
+}
+
 TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
+  LevelTo(60);  // scrolling and star force are gated at 10 and 60
   EquipPrototype proto = sword_;
   proto.set_upgrade_slots(1);
   Equip state;

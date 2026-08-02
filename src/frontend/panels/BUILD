@@ -39,6 +39,7 @@ cc_library(
     hdrs = ["equipped_panel.h"],
     deps = [
         "//src/character",
+        "//src/character:progression",
         "//src/frontend:types",
         "//src/frontend/screens:scroll_panel",
         "//src/frontend/widgets:item_menu",
@@ -71,6 +72,7 @@ cc_library(
     hdrs = ["inventory_panel.h"],
     deps = [
         "//src/character",
+        "//src/character:progression",
         "//src/frontend:types",
         "//src/frontend/screens:scroll_panel",
         "//src/frontend/widgets:colors",

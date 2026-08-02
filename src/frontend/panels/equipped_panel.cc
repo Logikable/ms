@@ -7,6 +7,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/progression.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
@@ -42,6 +43,18 @@ EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
 
 void EquippedPanel::OpenMenu() {
   menu_.Reset();
+  // Entries the player has not reached yet are not drawn at all, ahead of any
+  // question about this particular item: a level 2 character has no bag to
+  // unequip into, and asking about scrolls means nothing to them yet.
+  if (!Unlocked(Feature::kUnequip, character_)) {
+    menu_.Hide(kMenuAction);
+  }
+  if (!Unlocked(Feature::kScrolling, character_)) {
+    menu_.Hide(kMenuScroll);
+  }
+  if (!Unlocked(Feature::kStarForce, character_)) {
+    menu_.Hide(kMenuStarForce);
+  }
   EquipSlot slot = selected_slot();
   if (slot != EQUIP_SLOT_UNSPECIFIED) {
     const EquipInstance& item = character_.equipped().at(slot);

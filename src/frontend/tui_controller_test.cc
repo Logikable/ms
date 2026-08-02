@@ -101,6 +101,15 @@ class TuiControllerTest : public testing::Test {
         [this]() { controller_->OpenInventoryMenu(); });
   }
 
+  // Levels the character to `level`. The item menu's entries are level-gated
+  // (see progression.h), so a test that means to exercise one has to have
+  // reached it -- star force is the late one, at 60.
+  void LevelTo(int level) {
+    while (state_->character.proto().level() < level) {
+      state_->character.LevelUp();
+    }
+  }
+
   // Adds a sellable Etc stack and navigates the inventory to the Etc tab.
   void EnterEtcTabWithStack(int count, int sell_price) {
     ItemPrototype shell;
@@ -619,6 +628,7 @@ TEST_F(TuiControllerTest,
 
 TEST_F(TuiControllerTest,
        ReturnToItemMenuAfterScrollingEnablesStarForceWhenSlotsDepleted) {
+  LevelTo(60);  // star force is gated there
   sword_.set_upgrade_slots(1);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
@@ -786,6 +796,7 @@ TEST_F(TuiControllerTest,
 // --- Star Force via equip panel ---
 
 TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {
+  LevelTo(60);  // star force is gated there
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -815,6 +826,7 @@ TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
 }
 
 TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
+  LevelTo(60);  // star force is gated there
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -831,6 +843,7 @@ TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
 }
 
 TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
+  LevelTo(60);  // star force is gated there
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -848,6 +861,7 @@ TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
 }
 
 TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
+  LevelTo(60);  // star force is gated there
   // At 0★ the success rate is 95%, so with a seeded rng the first attempt
   // will succeed. We just verify the screen transition, not the outcome.
   PickUpScrolledSword();
@@ -873,6 +887,7 @@ TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
 // --- Star Force via bag panel ---
 
 TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
+  LevelTo(60);  // star force is gated there
   PickUpScrolledSword();
   panel_focus_ = kInventoryPanel;
 
@@ -886,6 +901,7 @@ TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
 }
 
 TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
+  LevelTo(60);  // star force is gated there
   PickUpScrolledSword();
   panel_focus_ = kInventoryPanel;
 

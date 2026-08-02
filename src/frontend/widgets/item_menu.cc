@@ -10,12 +10,17 @@
 namespace ms {
 
 ItemMenu::ItemMenu(std::vector<std::string> options)
-    : options_(std::move(options)), disabled_(options_.size(), false) {
+    : options_(std::move(options)),
+      disabled_(options_.size(), false),
+      hidden_(options_.size(), false) {
 }
 
 ftxui::Element ItemMenu::Render(int row, int col) const {
   std::vector<ftxui::Element> items;
   for (int i = 0; i < static_cast<int>(options_.size()); ++i) {
+    if (hidden_[i]) {
+      continue;
+    }
     std::string prefix = (i == selected_) ? "> " : "  ";
     ftxui::Element entry = ftxui::text(prefix + options_[i] + " ");
     if (disabled_[i]) {
@@ -57,7 +62,15 @@ void ItemMenu::Down() {
 
 void ItemMenu::Reset() {
   std::fill(disabled_.begin(), disabled_.end(), false);
+  std::fill(hidden_.begin(), hidden_.end(), false);
   selected_ = 0;
+}
+
+void ItemMenu::Hide(int index) {
+  hidden_[index] = true;
+  // A row that is not drawn must not be walked onto either, so hiding
+  // subsumes disabling.
+  Disable(index);
 }
 
 void ItemMenu::Disable(int index) {

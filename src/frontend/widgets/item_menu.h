@@ -26,12 +26,24 @@ class ItemMenu {
   void Reset();
   // Marks the entry at `index` as disabled: rendered dim and skipped during
   // Up/Down navigation. Must be called after Reset().
+  //
+  // For an action this item cannot take right now -- a trace that cannot be
+  // worn, a weapon with no slots left. The entry stays visible because its
+  // absence would be the surprise.
   void Disable(int index);
+  // Marks the entry at `index` as hidden: not rendered at all, and skipped
+  // like a disabled one. Must be called after Reset().
+  //
+  // For an action the player has not unlocked yet, where a greyed row would
+  // advertise something they cannot ask about. Callers must leave at least
+  // one entry standing; Close is never hidden.
+  void Hide(int index);
   int selected() const;
 
  private:
   std::vector<std::string> options_;
   std::vector<bool> disabled_;
+  std::vector<bool> hidden_;
   int selected_ = 0;
 };
 

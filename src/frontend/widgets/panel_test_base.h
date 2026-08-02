@@ -42,6 +42,15 @@ class PanelTest : public testing::Test {
     return screen.ToString();
   }
 
+  // Levels `c_` to `level`. The item menu's entries are level-gated (see
+  // progression.h), so a test that means to exercise one has to have reached
+  // it: scrolling at 10, star force at 60, recovery at 140.
+  void LevelTo(int level) {
+    while (c_.proto().level() < level) {
+      c_.LevelUp();
+    }
+  }
+
   void SetUp() override {
     sword_.set_name("Sword");
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);

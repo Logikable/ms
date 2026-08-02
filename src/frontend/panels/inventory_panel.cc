@@ -8,6 +8,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/progression.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
@@ -162,6 +163,19 @@ void InventoryPanel::OpenMenu() {
     return;
   }
   menu_.Reset();
+  // Entries the player has not reached yet are not drawn at all. This comes
+  // before the questions about the item itself: what is disabled below is
+  // what this item cannot do, and what is hidden here is what the player
+  // cannot do to any item.
+  if (!Unlocked(Feature::kScrolling, character_)) {
+    menu_.Hide(kMenuScroll);
+  }
+  if (!Unlocked(Feature::kStarForce, character_)) {
+    menu_.Hide(kMenuStarForce);
+  }
+  if (!Unlocked(Feature::kRecovery, character_)) {
+    menu_.Hide(kMenuRecover);
+  }
   const EquipInstance* eq = character_.inventory().equip_instance(selected_);
   if (eq == nullptr) {
     // Traces can only be inspected or recovered.
