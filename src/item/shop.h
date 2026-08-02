@@ -14,9 +14,10 @@
 
 namespace ms {
 
-// Catalog keys of everything the shop sells, cheapest tier first: by required
-// level, then by name so each price tier reads as a block and the order never
-// depends on how the catalog happens to be keyed.
+// Catalog keys of everything the shop sells, in the order the columns of the
+// shop list read: by equip slot, then required level, then job category, then
+// name. Job order is the enum's -- warrior, bowman, magician, thief, then the
+// universal items -- which is class order, not alphabetical.
 std::vector<std::string> ShopStock(
     const std::map<std::string, EquipPrototype>& equips);
 
