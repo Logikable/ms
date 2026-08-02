@@ -283,8 +283,12 @@ TEST(ComputeCombatParamsTest, TheEncounterStretchesAsTheCharacterLevels) {
   }
   CombatParams later = ComputeCombatParams(state);
 
-  EXPECT_DOUBLE_EQ(later.swing_seconds, 2.0 * early.swing_seconds);
-  EXPECT_DOUBLE_EQ(later.respawn_seconds, 2.0 * early.respawn_seconds);
+  // Whatever the two bands are tuned to, crossing one has to stretch both
+  // durations by the same amount -- they are the same clock.
+  double stretch = GameSpeedFactor(10) / GameSpeedFactor(1);
+  ASSERT_GT(stretch, 1.0) << "the bands either side of 10 must differ";
+  EXPECT_DOUBLE_EQ(later.swing_seconds, stretch * early.swing_seconds);
+  EXPECT_DOUBLE_EQ(later.respawn_seconds, stretch * early.respawn_seconds);
 }
 
 }  // namespace

@@ -16,11 +16,13 @@ struct Unlock {
 
 // The early game in one place, in the order the player meets it.
 constexpr Unlock kUnlocks[] = {
-    {Feature::kEquipped, 2},
-    {Feature::kBag, 3},
+    // Level 2 is left to itself: the first level-up hands over AP, and that
+    // is the whole lesson of it. The panels start arriving at 3.
+    {Feature::kEquipped, 3},
+    {Feature::kBag, 4},
     // Deliberately the same level as the bag: it is the bag that makes taking
     // something off possible, so move the two together if either changes.
-    {Feature::kUnequip, 3},
+    {Feature::kUnequip, 4},
     {Feature::kScrolling, 10},
     {Feature::kSkills, 10},
     {Feature::kShop, 20},
@@ -37,7 +39,7 @@ struct Speed {
 };
 
 constexpr Speed kSpeeds[] = {
-    {1, 1.0}, {10, 2.0}, {30, 3.0}, {60, 5.0}, {100, 7.0}, {140, 10.0},
+    {1, 2.0}, {10, 3.0}, {30, 5.0}, {60, 8.0}, {100, 10.0},
 };
 
 }  // namespace

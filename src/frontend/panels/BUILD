@@ -57,6 +57,7 @@ cc_test(
     srcs = ["equipped_panel_test.cc"],
     deps = [
         ":equipped_panel",
+        "//src/character:progression",
         "//src/frontend/widgets:panel_test_base",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

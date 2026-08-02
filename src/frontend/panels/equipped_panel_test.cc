@@ -13,6 +13,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/progression.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
@@ -359,14 +360,14 @@ TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
   EquippedPanel panel(c_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
 
-  LevelTo(2);
+  LevelTo(UnlockLevel(Feature::kBag) - 1);
   panel.OpenMenu();
   std::vector<int> before = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(before.begin(), before.end(), kMenuAction), 0);
   EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Unequip"),
             std::string::npos);
 
-  LevelTo(3);
+  LevelTo(UnlockLevel(Feature::kBag));
   panel.OpenMenu();
   std::vector<int> after = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(after.begin(), after.end(), kMenuAction), 0);

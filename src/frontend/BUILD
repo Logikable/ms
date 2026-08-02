@@ -73,6 +73,7 @@ cc_test(
         ":tui_controller",
         "//src:game_state",
         "//src/character:job_advancement",
+        "//src/character:progression",
         "//src/frontend/panels:equipped_panel",
         "//src/frontend/panels:inventory_panel",
         "//src/frontend/screens:buy_panel",

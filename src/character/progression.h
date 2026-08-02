@@ -42,10 +42,9 @@ bool Unlocked(Feature feature, const CharacterInstance& character);
 int UnlockLevel(Feature feature);
 
 // How many times slower than GMS the game runs at `level`. The one global
-// pacing knob, and the reason it lives here: it is not a constant. The early
-// game runs at GMS speed and stretches out as the player climbs, so a level
-// 140 character's swings and respawns take ten times as long as the ones they
-// started with.
+// pacing knob, and the reason it lives here: it is not a constant. The game
+// stretches out as the player climbs, from twice GMS's clock at the start to
+// five times that by level 100.
 //
 // Everything with a duration is multiplied by it -- swing intervals, the
 // respawn beat, and so the kill rate and everything paid out per kill.

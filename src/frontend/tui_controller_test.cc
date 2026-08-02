@@ -10,6 +10,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/progression.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -1306,11 +1307,14 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   EXPECT_FALSE(controller.PanelVisible(kEquipPanel));
   EXPECT_FALSE(controller.PanelVisible(kInventoryPanel));
 
-  fresh.character.LevelUp();  // 2
+  while (fresh.character.proto().level() < UnlockLevel(Feature::kEquipped)) {
+    fresh.character.LevelUp();
+  }
   EXPECT_TRUE(controller.PanelVisible(kEquipPanel));
-  EXPECT_FALSE(controller.PanelVisible(kInventoryPanel));
+  EXPECT_FALSE(controller.PanelVisible(kInventoryPanel))
+      << "the bag comes a level later";
 
-  fresh.character.LevelUp();  // 3
+  fresh.character.LevelUp();
   EXPECT_TRUE(controller.PanelVisible(kInventoryPanel));
 }
 

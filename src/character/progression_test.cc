@@ -38,10 +38,10 @@ TEST_F(ProgressionTest, ANewCharacterHasNothingButTheCharacterPanel) {
 
 // The level named is the level it opens on, not the one after.
 TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
-  EXPECT_FALSE(Unlocked(Feature::kEquipped, MakeCharacter(1)));
-  EXPECT_TRUE(Unlocked(Feature::kEquipped, MakeCharacter(2)));
-  EXPECT_FALSE(Unlocked(Feature::kBag, MakeCharacter(2)));
-  EXPECT_TRUE(Unlocked(Feature::kBag, MakeCharacter(3)));
+  EXPECT_FALSE(Unlocked(Feature::kEquipped, MakeCharacter(2)));
+  EXPECT_TRUE(Unlocked(Feature::kEquipped, MakeCharacter(3)));
+  EXPECT_FALSE(Unlocked(Feature::kBag, MakeCharacter(3)));
+  EXPECT_TRUE(Unlocked(Feature::kBag, MakeCharacter(4)));
   EXPECT_FALSE(Unlocked(Feature::kShop, MakeCharacter(19)));
   EXPECT_TRUE(Unlocked(Feature::kShop, MakeCharacter(20)));
   EXPECT_FALSE(Unlocked(Feature::kStarForce, MakeCharacter(59)));
@@ -72,20 +72,19 @@ TEST_F(ProgressionTest, NoOtherFeatureCaresAboutTheJob) {
 
 // --- GameSpeedFactor ---
 
-TEST_F(ProgressionTest, TheFirstBandRunsAtFullSpeed) {
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(1), 1.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(9), 1.0);
+TEST_F(ProgressionTest, TheFirstBandIsTheFastestTheGameEverRuns) {
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(1), 2.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(9), 2.0);
 }
 
 TEST_F(ProgressionTest, EachBandStartsOnTheLevelItNames) {
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(10), 2.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(29), 2.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(30), 3.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(59), 3.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(60), 5.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(99), 5.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(100), 7.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(139), 7.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(10), 3.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(29), 3.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(30), 5.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(59), 5.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(60), 8.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(99), 8.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(100), 10.0);
   EXPECT_DOUBLE_EQ(GameSpeedFactor(140), 10.0);
 }
 
@@ -95,8 +94,8 @@ TEST_F(ProgressionTest, TheLastBandRunsToTheTop) {
   EXPECT_DOUBLE_EQ(GameSpeedFactor(300), 10.0);
 }
 
-TEST_F(ProgressionTest, ALevelBelowTheTableStillRunsAtFullSpeed) {
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(0), 1.0);
+TEST_F(ProgressionTest, ALevelBelowTheTableGetsTheFirstBand) {
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(0), 2.0);
 }
 
 // The game only ever slows down. A band that dipped would make a level-up
