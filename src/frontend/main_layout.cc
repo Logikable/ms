@@ -19,6 +19,10 @@ ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
           // leaves slack at the end of the column unused instead.
           ftxui::vbox({
               std::move(character),
+              // Combat is pinned to the foot of the column, so it sits in the
+              // bottom-left corner of the screen however tall the terminal is
+              // rather than trailing the character panel down from the top.
+              ftxui::filler(),
               std::move(combat),
           }),
           ftxui::vbox({

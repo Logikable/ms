@@ -144,21 +144,38 @@ TEST_F(MainLayoutTest, AShortBagKeepsItsOwnHeight) {
   EXPECT_EQ(LowestPanelFoot(kLeftWidth), 10);
 }
 
-// Combat stacks directly under the character panel. As a row of its own
-// beneath both columns it capped the bag at its own top edge.
-TEST_F(MainLayoutTest, CombatSitsDirectlyUnderTheCharacterPanel) {
+// Combat is pinned to the bottom-left corner, so its foot lands on the row
+// above the exp bar rather than following the character panel down from the
+// top of the column.
+TEST_F(MainLayoutTest, CombatSitsInTheBottomLeftCorner) {
   Render(/*bag_rows=*/40);
-  int character_foot = FirstRowWith("CHAR") + 8;
-  EXPECT_EQ(Cell(0, character_foot), "╰");
-  EXPECT_EQ(PanelTopBelow(0, character_foot), character_foot + 1);
+  EXPECT_EQ(LowestPanelFoot(0), kScreenHeight - 2);
   EXPECT_NE(FirstRowWith("COMBAT"), -1);
 }
 
-// Neither left-column panel stretches to the height of the row: their bottom
-// borders stay against their contents.
-TEST_F(MainLayoutTest, TheLeftColumnPanelsKeepTheirOwnHeight) {
+// ...and it is pinned rather than stretched: the gap opens above it, and it
+// keeps the height of its own contents.
+TEST_F(MainLayoutTest, CombatKeepsItsOwnHeightAtTheBottom) {
   Render(/*bag_rows=*/40);
-  EXPECT_EQ(LowestPanelFoot(0), FirstRowWith("COMBAT") + 3);
+  int combat_top = FirstRowWith("COMBAT") - 1;
+  EXPECT_EQ(Cell(0, combat_top), "╭");
+  EXPECT_EQ(LowestPanelFoot(0), combat_top + 4);
+}
+
+// The character panel stays at the top of the column, keeping its own height.
+TEST_F(MainLayoutTest, TheCharacterPanelKeepsItsOwnHeightAtTheTop) {
+  Render(/*bag_rows=*/40);
+  EXPECT_EQ(FirstRowWith("CHAR"), 1);
+  EXPECT_EQ(Cell(0, 9), "╰");
+}
+
+// The gap the pinning opens is empty, not a stretched panel.
+TEST_F(MainLayoutTest, NothingFillsTheGapBetweenCharacterAndCombat) {
+  Render(/*bag_rows=*/40);
+  int combat_top = FirstRowWith("COMBAT") - 1;
+  for (int y = 10; y < combat_top; ++y) {
+    EXPECT_EQ(Cell(0, y), " ") << "the left column is painted on row " << y;
+  }
 }
 
 // What the combat panel used to take up the whole width of. Beside it is the
