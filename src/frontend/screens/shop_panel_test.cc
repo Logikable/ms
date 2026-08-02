@@ -6,6 +6,7 @@
 #include <random>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -65,6 +66,58 @@ class ShopPanelTest : public testing::Test {
     ftxui::Screen screen = ftxui::Screen::Create(
         ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
     return screen.dimy();
+  }
+
+  // The panel drawn the way the game shows it -- centred on a terminal of the
+  // given size -- with every row of that terminal returned, not just the ones
+  // the panel covers.
+  //
+  // `Render` fits the screen to the panel, which makes it the harness for the
+  // panel's own size and the wrong one for the menu: anything drawn outside
+  // the window is clipped away before it can be read back.
+  std::vector<std::string> ScreenRows(const ShopPanel& panel, int width = 100,
+                                      int height = 40) {
+    ftxui::Screen screen = ftxui::Screen::Create(
+        ftxui::Dimension::Fixed(width), ftxui::Dimension::Fixed(height));
+    ftxui::Render(screen, ftxui::center(panel.Render()));
+    std::vector<std::string> rows;
+    for (int y = 0; y < height; ++y) {
+      std::string row;
+      for (int x = 0; x < width; ++x) {
+        // Unpainted cells hold an empty string rather than a space.
+        const std::string& cell = screen.PixelAt(x, y).character;
+        if (cell.empty()) {
+          row += " ";
+        } else {
+          row += cell;
+        }
+      }
+      rows.push_back(std::move(row));
+    }
+    return rows;
+  }
+
+  // The index of the first row holding `needle`, or -1.
+  static int IndexWith(const std::vector<std::string>& rows,
+                       const std::string& needle) {
+    for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+      if (rows[i].find(needle) != std::string::npos) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  // The index of the LAST row holding `needle`, for finding a window's bottom
+  // border once a menu has drawn a border of its own.
+  static int LastIndexWith(const std::vector<std::string>& rows,
+                           const std::string& needle) {
+    for (int i = static_cast<int>(rows.size()) - 1; i >= 0; --i) {
+      if (rows[i].find(needle) != std::string::npos) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   // The colour of the cell holding `cell`, on the row holding `row_needle`.
@@ -326,9 +379,9 @@ TEST_F(ShopPanelTest, TheMenuReopensOnItsFirstEntry) {
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kShopInspect);
 }
 
-// The menu asks for every row above it as well as its own, so anchoring it low
-// in the list would make the overlay taller than the window and stretch the
-// panel. Opening it must never change how tall the shop is.
+// The menu is drawn floating, so no matter how far down the list it opens it
+// asks the panel for no room and cannot stretch it. Walks every item,
+// including the last, where the overlay reaches furthest past the window.
 TEST_F(ShopPanelTest, TheMenuDoesNotGrowThePanel) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
@@ -342,9 +395,10 @@ TEST_F(ShopPanelTest, TheMenuDoesNotGrowThePanel) {
   }
 }
 
-// Fitting inside the window is not enough: the menu has to stop above the
-// window's own bottom border rather than draw over it.
-TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderAlone) {
+// The point of floating it: on the last item the menu hangs out below the shop
+// rather than being held back inside it, so it still opens on the row of the
+// item it belongs to.
+TEST_F(ShopPanelTest, TheMenuDrawsPastTheBottomBorder) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
   for (int i = 0; i < 3; ++i) {
@@ -352,65 +406,34 @@ TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderAlone) {
   }
   ASSERT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
   panel.OpenMenu();
-  int height = RenderHeight(panel);
-  // One row below the last entry is the menu's own bottom border, and that has
-  // to land above the panel's, which is the last row.
-  int last_entry = RowIndexWith(panel, "Close");
+  std::vector<std::string> rows = ScreenRows(panel);
+  // The first bottom-left corner down the screen is the window's: the menu
+  // opens inside it and only its own bottom corner lands lower.
+  int border = IndexWith(rows, "\u2570");
+  int last_entry = IndexWith(rows, "Close");
+  ASSERT_GE(border, 0);
   ASSERT_GE(last_entry, 0);
-  EXPECT_LT(last_entry + 1, height - 1)
-      << "the menu is drawing over the window's bottom border";
+  EXPECT_GT(last_entry, border) << "the menu is being held inside the window "
+                                   "instead of hanging out of it";
 }
 
-// Near the foot of the list the menu flips rather than slides: it ends on the
-// item's row instead of starting there, so it still touches the item it
-// belongs to rather than floating somewhere above it.
-TEST_F(ShopPanelTest, TheMenuOpensUpwardAtTheFootOfTheList) {
-  CharacterInstance c = MakeCharacter(100000);
-  std::map<std::string, EquipPrototype> many;
-  for (int i = 0; i < 12; ++i) {
-    std::string name = "Item " + std::string(1, 'A' + i);
-    many["k" + std::to_string(i)] = MakeItem(name, 10 + i, 100);
-  }
-  ShopPanel panel(c, many);
-  // Item J, not the last item: the last one is where merely sliding the menu
-  // up as far as it will go happens to give the same answer as flipping it, so
-  // testing there would not tell the two apart. J is past the point where the
-  // menu stops fitting below but short of the foot of the list.
-  for (int i = 0; i < 9; ++i) {
-    panel.OnEvent(ftxui::Event::ArrowDown);
-  }
-  ASSERT_EQ(panel.selected_item()->name(), "Item J");
-  panel.OpenMenu();
-  // The menu's bottom border lands on the selected item's row, so its last
-  // entry sits on the row above -- beside the item before it.
-  int item_row = RowIndexWith(panel, "> Item J");
-  int last_entry = RowIndexWith(panel, "Close");
-  ASSERT_GE(item_row, 0);
-  ASSERT_GE(last_entry, 0);
-  EXPECT_EQ(last_entry + 1, item_row)
-      << "the menu should still touch the item it belongs to";
-}
-
-// The item at the very foot of the list, where flipping and sliding agree --
-// worth pinning anyway, since it is the one the player hits most often.
-TEST_F(ShopPanelTest, TheMenuTouchesTheLastItemInTheList) {
+// Floating it must not move the window it floats over, in either direction.
+TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderWhereItWas) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
   for (int i = 0; i < 3; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
-  ASSERT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
+  int closed = IndexWith(ScreenRows(panel), "\u2570");
   panel.OpenMenu();
-  int item_row = RowIndexWith(panel, "> Subi Throwing-Stars");
-  int last_entry = RowIndexWith(panel, "Close");
-  ASSERT_GE(item_row, 0);
-  ASSERT_GE(last_entry, 0);
-  EXPECT_EQ(last_entry + 1, item_row);
+  ASSERT_GE(closed, 0);
+  EXPECT_EQ(IndexWith(ScreenRows(panel), "\u2570"), closed);
 }
 
-// Held back only as far as it has to be: away from the foot of the list the
-// menu still starts on the row of the item it belongs to.
-TEST_F(ShopPanelTest, TheMenuStartsOnItsOwnItemWhenThereIsRoom) {
+// The whole point of the anchor: wherever the cursor is, the menu opens on
+// that row. Checked at the foot of a list long enough that there is no room
+// below -- the case that used to hold it back.
+TEST_F(ShopPanelTest, TheMenuStartsOnItsOwnItemAtTheFootOfTheList) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many;
   for (int i = 0; i < 12; ++i) {
@@ -418,15 +441,73 @@ TEST_F(ShopPanelTest, TheMenuStartsOnItsOwnItemWhenThereIsRoom) {
     many["k" + std::to_string(i)] = MakeItem(name, 10 + i, 100);
   }
   ShopPanel panel(c, many);
+  for (int i = 0; i < 11; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_EQ(panel.selected_item()->name(), "Item L");
   panel.OpenMenu();
+  std::vector<std::string> rows = ScreenRows(panel);
   // The menu's top border lands on the selected item's row, so its first entry
-  // sits on the row below -- beside the next item down.
-  int item_row = RowIndexWith(panel, "> Item A");
-  int entry_row = RowIndexWith(panel, "Inspect");
+  // sits on the row below.
+  int item_row = IndexWith(rows, "> Item L");
+  int entry_row = IndexWith(rows, "Inspect");
   ASSERT_GE(item_row, 0);
   ASSERT_GE(entry_row, 0);
-  EXPECT_EQ(entry_row, item_row + 1)
-      << "the menu should hang off the item it belongs to";
+  EXPECT_EQ(entry_row, item_row + 1);
+}
+
+// And the same on an item with plenty of room below it, so the anchor is not
+// merely right at the one end of the list.
+TEST_F(ShopPanelTest, TheMenuStartsOnItsOwnItemAtTheTopOfTheList) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many;
+  for (int i = 0; i < 12; ++i) {
+    std::string name = "Item " + std::string(1, 'A' + i);
+    many["k" + std::to_string(i)] = MakeItem(name, 10 + i, 100);
+  }
+  ShopPanel panel(c, many);
+  panel.OpenMenu();
+  std::vector<std::string> rows = ScreenRows(panel);
+  int item_row = IndexWith(rows, "> Item A");
+  int entry_row = IndexWith(rows, "Inspect");
+  ASSERT_GE(item_row, 0);
+  ASSERT_GE(entry_row, 0);
+  EXPECT_EQ(entry_row, item_row + 1);
+}
+
+// Hanging out of the window is fine; hanging off the terminal is not, since
+// none of it would be drawn. On a screen with only one row to spare the menu
+// gives up its anchor and comes back up to sit on the last one.
+TEST_F(ShopPanelTest, TheMenuSlidesBackOntoAShortScreen) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  for (int i = 0; i < 3; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  panel.OpenMenu();
+  constexpr int kHeight = 13;
+  std::vector<std::string> rows = ScreenRows(panel, /*width=*/100, kHeight);
+  // The lowest bottom-left corner on the screen is the menu's own, and it has
+  // to be on the screen at all.
+  EXPECT_EQ(LastIndexWith(rows, "\u2570"), kHeight - 1);
+  EXPECT_NE(IndexWith(rows, "Close"), -1);
+}
+
+// Shorter still, and the menu and the rows above it no longer fit together at
+// all. It keeps itself whole and lets the empty space that positions it run
+// off the top, rather than staying anchored and losing its own last entry.
+TEST_F(ShopPanelTest, TheMenuStaysWholeOnATerminalTooShortForBoth) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  for (int i = 0; i < 3; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  panel.OpenMenu();
+  constexpr int kHeight = 12;
+  std::vector<std::string> rows = ScreenRows(panel, /*width=*/100, kHeight);
+  EXPECT_EQ(LastIndexWith(rows, "\u2570"), kHeight - 1);
+  EXPECT_NE(IndexWith(rows, "Inspect"), -1);
+  EXPECT_NE(IndexWith(rows, "Close"), -1);
 }
 
 TEST_F(ShopPanelTest, ResetTakesDownAnOpenMenu) {

@@ -539,18 +539,19 @@ TEST(FloatingTest, SlidesLeftOffTheRightEdgeOfTheScreen) {
   EXPECT_EQ(ScreenCells(screen, 0, 16, 4), "MENU");
 }
 
-// A float too tall for the screen has to lose rows somewhere. It gives up the
-// bottom ones rather than sliding off the top, so what it is anchored to stays
-// the part that shows: anchored on row 1 and twenty-one rows tall on an
-// eight-row screen, it moves the one row it has and no more.
-TEST(FloatingTest, StopsSlidingAtTheTopOfTheScreen) {
+// A float too tall for the screen has to lose rows somewhere, and it gives up
+// the top ones: an overlay is put where it belongs by empty space above it, so
+// that is the end that can be spared. Twenty-one rows on an eight-row screen,
+// and the last of them still lands on the last row.
+TEST(FloatingTest, GivesUpItsTopRatherThanItsBottomWhenItCannotFit) {
   ftxui::Element tall = ftxui::vbox({
       ftxui::text("TOP"),
-      ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 20),
+      ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 19),
+      ftxui::text("BOT"),
   });
   ftxui::Screen screen = RenderSized(
       At(0, 1, ftxui::dbox({Base(), Floating(std::move(tall))})), 20, 8);
-  EXPECT_EQ(ScreenCells(screen, 0, 0, 3), "TOP");
+  EXPECT_EQ(ScreenCells(screen, 7, 0, 3), "BOT");
 }
 
 }  // namespace

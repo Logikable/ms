@@ -175,8 +175,9 @@ ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kMapSelect) {
     return ftxui::center(map_select_panel_.Render());
   }
-  // kShopMenu draws the same thing: the menu is anchored inside the panel, so
-  // the panel puts it up itself.
+  // kShopMenu draws the same thing: the menu is anchored to a row of the list,
+  // so the panel puts it up itself. It floats, so it may hang below the shop's
+  // bottom border without the centring here moving.
   if (controller_.screen() == kShop || controller_.screen() == kShopMenu) {
     return ftxui::center(shop_panel_.Render());
   }

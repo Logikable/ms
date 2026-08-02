@@ -111,18 +111,19 @@ class FloatingNode : public ftxui::Node {
     return box;
   }
 
-  // Slides a box back onto the screen by however far it hangs off the bottom
-  // or the right, and no further -- a float that leaves the terminal is not
-  // drawn at all, which is worse than one that sits a little higher than it
-  // asked to. Never pushes past the top or left corner: a child too big for
-  // the screen has to be clipped somewhere.
+  // Slides a box back until its bottom-right corner is on the screen -- a
+  // float that leaves the terminal is not drawn at all, which is worse than
+  // one sitting a little higher than it asked to.
+  //
+  // A float that fits then sits on the screen whole, since it can never hang
+  // off both ends at once. One too big to fit has to be clipped somewhere, and
+  // this gives up its top-left: an overlay is positioned by empty space above
+  // and to the left of what it draws, so that is the end with nothing on it.
   static ftxui::Box FitToScreen(ftxui::Box box, const ftxui::Screen& screen) {
-    int over_x = std::min(std::max(0, box.x_max - (screen.dimx() - 1)),
-                          std::max(0, box.x_min));
+    int over_x = std::max(0, box.x_max - (screen.dimx() - 1));
     box.x_min -= over_x;
     box.x_max -= over_x;
-    int over_y = std::min(std::max(0, box.y_max - (screen.dimy() - 1)),
-                          std::max(0, box.y_min));
+    int over_y = std::max(0, box.y_max - (screen.dimy() - 1));
     box.y_min -= over_y;
     box.y_max -= over_y;
     return box;

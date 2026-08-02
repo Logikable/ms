@@ -127,7 +127,9 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 // and the overlay spills outside it instead.
 //
 // The screen is then the only bound. An overlay that would run off the bottom
-// or right edge slides back just far enough to stay on it.
+// or right edge slides back just far enough to put that corner on it. One too
+// big for the screen gives up its top-left instead, which for an overlay is
+// the empty space positioning it rather than anything it draws.
 ftxui::Element Floating(ftxui::Element element);
 
 // A modal result screen, shown once an action has resolved: the subject
