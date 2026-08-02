@@ -68,17 +68,32 @@ ftxui::Element RenderTabBar(int active_tab, int64_t meso, bool row_selected) {
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
                                int selected, bool focused) {
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text("  " + PadRight("Name", 26) + "Quantity"));
-  rows.push_back(ThemedSeparator());
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
-    std::string cursor = focused && i == selected ? "> " : "  ";
-    rows.push_back(ftxui::text(cursor + PadRight(stacks[i].name(), 26) +
-                               std::to_string(stacks[i].count())));
+    std::string cursor = "  ";
+    if (focused && i == selected) {
+      cursor = "> ";
+    }
+    ftxui::Element row = ftxui::text(cursor + PadRight(stacks[i].name(), 26) +
+                                     std::to_string(stacks[i].count()));
+    if (i == selected) {
+      // What the frame scrolls to. These rows are plain text rather than an
+      // ftxui::Menu, so nothing else marks the cursor and the list would
+      // happily scroll away from it. Marked whether or not the panel holds
+      // focus, so the view does not jump when focus comes back.
+      row = std::move(row) | ftxui::focus;
+    }
+    rows.push_back(std::move(row));
   }
   if (stacks.empty()) {
     rows.push_back(EmptyState("empty", /*gutter=*/2));
   }
-  return ftxui::vbox(std::move(rows));
+  return ftxui::vbox({
+      ftxui::text("  " + PadRight("Name", 26) + "Quantity"),
+      ThemedSeparator(),
+      // Only the rows scroll; the header and its rule stay put.
+      ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator | ftxui::yframe |
+          ftxui::flex,
+  });
 }
 
 }  // namespace
@@ -253,13 +268,16 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
     selected_ = std::min(selected_, character_.inventory().size() - 1);
   }
   if (entries_.empty()) {
-    return EmptyState("empty", /*gutter=*/2);
+    return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
   }
   return ftxui::vbox({
       ftxui::text(kColumnHeader),
       ftxui::text(kColumnHeader2),
       ThemedSeparator(),
-      menu->Render(),
+      // Only the items scroll; the two header rows and the rule stay put.
+      // ftxui::Menu marks its selected entry, which is what the frame scrolls
+      // to, so the cursor cannot walk out of view.
+      menu->Render() | ftxui::vscroll_indicator | ftxui::yframe | ftxui::flex,
   });
 }
 
@@ -268,8 +286,10 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   ftxui::Element body;
   if (active_tab_ == kShopTab) {
     // The shop is a screen of its own, so where the other tabs list what the
-    // player has, this one says how to get there.
-    body = CenteredRow("Hit Enter to open Shop");
+    // player has, this one says how to get there. Over a filler because the
+    // window is taller than this one line and the line belongs at the top.
+    body =
+        ftxui::vbox({CenteredRow("Hit Enter to open Shop"), ftxui::filler()});
   } else if (active_tab_ == kUseTab || active_tab_ == kEtcTab) {
     ItemCategory category =
         active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
@@ -287,7 +307,7 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   return ThemedWindow(" Inventory ",
                       ftxui::vbox({RenderTabBar(active_tab_, character_.meso(),
                                                 focused && zone_ == kZoneTabs),
-                                   std::move(body)}),
+                                   std::move(body) | ftxui::flex}),
                       focused);
 }
 

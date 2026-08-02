@@ -390,5 +390,62 @@ TEST_F(InventoryPanelTest, UnsellableStackDisablesSellOption) {
   EXPECT_EQ(panel.menu().selected(), kSellClose);
 }
 
+// The test screen is 20 rows, so a bag of 40 cannot fit and the list has to
+// scroll rather than run off the bottom of the window.
+TEST_F(InventoryPanelTest, KeepsTheCursorInViewWhenTheBagOverflows) {
+  for (int i = 0; i < 40; ++i) {
+    c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  }
+  InventoryPanel panel(c_, panel_focus_);
+  panel_focus_ = kInventoryPanel;
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
+  RenderComponent(comp);
+  for (int i = 0; i < 39; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+    // Rendered every step, because the frame scrolls at render time: walking
+    // the whole way and only then looking would not say whether the view kept
+    // up or merely caught up at the end.
+    EXPECT_NE(RenderComponent(comp).find("> "), std::string::npos)
+        << "the cursor left the window after " << i + 1 << " steps down";
+  }
+}
+
+TEST_F(InventoryPanelTest, ShowsAScrollIndicatorOnlyWhenTheBagOverflows) {
+  InventoryPanel small(c_, panel_focus_);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  EXPECT_EQ(RenderComponent(small.MakeComponent([]() {})).find("┃"),
+            std::string::npos)
+      << "one item fits, so there is nothing to indicate";
+
+  for (int i = 0; i < 40; ++i) {
+    c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  }
+  InventoryPanel big(c_, panel_focus_);
+  EXPECT_NE(RenderComponent(big.MakeComponent([]() {})).find("┃"),
+            std::string::npos)
+      << "41 items do not fit, so how far down the list is should show";
+}
+
+// Use/Etc rows are plain text rather than an ftxui::Menu, so nothing marks the
+// cursor for the frame unless the panel does it itself.
+TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
+  for (int i = 0; i < 40; ++i) {
+    c_.AddStackable(
+        MakeStackable("Etc " + std::to_string(i), ITEM_CATEGORY_ETC, 1), 1);
+  }
+  InventoryPanel panel(c_, panel_focus_);
+  panel_focus_ = kInventoryPanel;
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Use
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Etc
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
+  for (int i = 0; i < 39; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+    EXPECT_NE(RenderComponent(comp).find("> "), std::string::npos)
+        << "the cursor left the window after " << i + 1 << " steps down";
+  }
+}
+
 }  // namespace
 }  // namespace ms
