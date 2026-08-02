@@ -254,6 +254,40 @@ TEST_F(EquippedPanelTest, SelectedSlotReturnsUnspecifiedWhenEmpty) {
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
 }
 
+// --- an empty list ---
+
+// Container::Tab asks its active panel whether it is focusable and drops every
+// key when the answer is no, and the ftxui::Menu behind this panel says no as
+// soon as the list is empty. Nothing here reads a key today, but a panel that
+// silently stops being dispatched to is a trap for whatever does next.
+TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  ASSERT_TRUE(c_.equipped().empty());
+  EXPECT_TRUE(comp->Focusable());
+}
+
+// The menu opens on whatever selected_slot() names, and on an empty list that
+// is EQUIP_SLOT_UNSPECIFIED -- a slot equipped() has no entry for, which the
+// Scroll action would look up with std::map::at and throw on.
+TEST_F(EquippedPanelTest, SpaceOpensNoMenuWithNothingEquipped) {
+  bool opened = false;
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
+  comp->OnEvent(ftxui::Event::Character(' '));
+  EXPECT_FALSE(opened);
+}
+
+TEST_F(EquippedPanelTest, SpaceOpensTheMenuOnAWornItem) {
+  bool opened = false;
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
+  comp->OnEvent(ftxui::Event::Character(' '));
+  EXPECT_TRUE(opened);
+}
+
 // --- cursor_row ---
 
 // A rogue with both slots filled, so the list has two rows to tell apart.

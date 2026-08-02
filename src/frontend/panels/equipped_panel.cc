@@ -126,10 +126,15 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
 
+  // Focusable whether or not anything is worn. Container::Tab asks its active
+  // panel whether it is focusable and drops every key when the answer is no,
+  // and an ftxui::Menu says no on an empty list -- which would leave this
+  // panel unable to handle a key at all the moment the player strips down.
+  //
   // entries_ and slots_ are rebuilt from equipped() on every render so the
   // display stays in sync with changes made via on_enter.
   ftxui::Component renderer =
-      ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
+      AlwaysFocusable(ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
         bool focused = panel_focus_ == kEquipPanel;
         entries_.clear();
         slots_.clear();
@@ -197,10 +202,16 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
                                 menu->Render(),
                             }),
                             focused);
-      });
-  return ftxui::CatchEvent(renderer, [on_enter](ftxui::Event event) {
+      }));
+  return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
     if (event == ftxui::Event::Character(' ')) {
-      on_enter();
+      // There is no item to act on with nothing worn, and the menu opens on
+      // whatever selected_slot() names -- which is EQUIP_SLOT_UNSPECIFIED, a
+      // slot the map has no entry for. Swallowed rather than passed on, as on
+      // an empty tab of the bag.
+      if (!character_.equipped().empty()) {
+        on_enter();
+      }
       return true;
     }
     return false;
