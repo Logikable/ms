@@ -291,9 +291,12 @@ ftxui::Element Tui::RenderMain() {
           }),
           ftxui::vbox({
               equip_component_->Render(),
-              // The one panel that grows: what is equipped is a fixed handful
-              // of slots, while the bag is as long as the player has made it.
-              inventory_component_->Render() | ftxui::flex,
+              // Shrink but do not grow, over a filler that takes what is left.
+              // The bag is then as tall as what the open tab holds -- a couple
+              // of rows on an empty one -- until that outgrows the screen, at
+              // which point it gives way and its list scrolls instead.
+              inventory_component_->Render() | ftxui::yflex_shrink,
+              ftxui::filler(),
           }) | ftxui::flex,
       }) | ftxui::flex,
       RenderExpBar(),
