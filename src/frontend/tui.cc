@@ -270,16 +270,20 @@ ftxui::Element Tui::RenderFrame() {
 
 ftxui::Element Tui::RenderMain() {
   ftxui::Element layout = ftxui::vbox({
+      // Flexed, and with no filler under it, so the row reaches down to the
+      // combat panel instead of stopping at the height of whatever it holds.
+      // The bag takes that room (see below); everything else keeps its size.
       ftxui::hbox({
           // Above a filler so the panel keeps its own height; an hbox stretches
           // a bare child to the row height, gapping the window's bottom border.
           ftxui::vbox({char_panel_.Render(), ftxui::filler()}),
           ftxui::vbox({
               equip_component_->Render(),
-              inventory_component_->Render(),
+              // The one panel that grows: what is equipped is a fixed handful
+              // of slots, while the bag is as long as the player has made it.
+              inventory_component_->Render() | ftxui::flex,
           }) | ftxui::flex,
-      }),
-      ftxui::filler(),
+      }) | ftxui::flex,
       // Beside a filler so the panel keeps its own width; a vbox child would
       // otherwise be stretched to the full terminal.
       ftxui::hbox({combat_component_->Render(), ftxui::filler()}),
