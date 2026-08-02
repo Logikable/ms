@@ -409,5 +409,149 @@ TEST(TabChipTest, ActiveChipOnTheFocusedRowGoesWhite) {
   EXPECT_EQ(screen.PixelAt(1, 0).foreground_color, ftxui::Color::Black);
 }
 
+// --- Floating ---
+
+// A three-row bordered box, standing in for the panel a float is drawn over.
+ftxui::Element Base() {
+  return ftxui::border(ftxui::text("base"));
+}
+
+// "MENU" `row` rows down and `col` columns across, in an element sized to end
+// exactly on it. The trailing fillers a real overlay carries are left off so
+// the element's own extent is the marker's position, which is what the screen
+// fit and the edge slides are measured against.
+ftxui::Element Marker(int row, int col) {
+  return ftxui::vbox({
+      ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, row),
+      ftxui::hbox({
+          ftxui::filler() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, col),
+          ftxui::text("MENU"),
+      }),
+  });
+}
+
+// Holds `element` to its own size with its corner at (col, row), leaving the
+// rest of the terminal empty for a float to spill onto. Without the trailing
+// fillers the boxes would stretch it to the whole screen and there would be
+// nothing to spill on.
+//
+// The offset is what makes an edge slide observable: a float already against
+// the top or left of the screen has nowhere to come back to, so it clips
+// there instead.
+ftxui::Element At(int col, int row, ftxui::Element element) {
+  std::vector<ftxui::Element> rows;
+  for (int i = 0; i < row; ++i) {
+    rows.push_back(ftxui::text(""));
+  }
+  rows.push_back(ftxui::hbox({
+      ftxui::text(std::string(col, ' ')),
+      std::move(element),
+      ftxui::filler(),
+  }));
+  rows.push_back(ftxui::filler());
+  return ftxui::vbox(std::move(rows));
+}
+
+ftxui::Screen RenderSized(ftxui::Element element, int width, int height) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
+                                               ftxui::Dimension::Fixed(height));
+  ftxui::Render(screen, std::move(element));
+  return screen;
+}
+
+// Row `y` of the screen, with the cells no element painted read as spaces.
+std::string ScreenRow(const ftxui::Screen& screen, int y) {
+  std::string row;
+  for (int x = 0; x < screen.dimx(); ++x) {
+    const std::string& cell = screen.PixelAt(x, y).character;
+    if (cell.empty()) {
+      row += " ";
+    } else {
+      row += cell;
+    }
+  }
+  return row;
+}
+
+// `count` cells of row `y` from column `x`. Border glyphs are multibyte, so an
+// offset into the joined row is not a column -- read the cells instead.
+std::string ScreenCells(const ftxui::Screen& screen, int y, int x, int count) {
+  std::string cells;
+  for (int i = x; i < x + count; ++i) {
+    const std::string& cell = screen.PixelAt(i, y).character;
+    if (cell.empty()) {
+      cells += " ";
+    } else {
+      cells += cell;
+    }
+  }
+  return cells;
+}
+
+// The height an element takes when the screen is fitted to it.
+int FitHeight(ftxui::Element element) {
+  return ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                               ftxui::Dimension::Fit(element))
+      .dimy();
+}
+
+// The behaviour Floating exists to avoid, pinned here so the test above it is
+// known to be testing something: a bare overlay drags the dbox taller.
+TEST(FloatingTest, AnUnfloatedOverlayGrowsWhatItIsDrawnOver) {
+  EXPECT_GT(FitHeight(ftxui::dbox({Base(), Marker(5, 0)})), FitHeight(Base()));
+}
+
+TEST(FloatingTest, AsksItsParentForNoRoom) {
+  EXPECT_EQ(FitHeight(ftxui::dbox({Base(), Floating(Marker(5, 0))})),
+            FitHeight(Base()));
+}
+
+TEST(FloatingTest, DrawsPastTheElementItIsOver) {
+  ftxui::Screen screen = RenderSized(
+      At(0, 0, ftxui::dbox({Base(), Floating(Marker(5, 0))})), 20, 10);
+  // Row 2 is the box's bottom border, so row 5 is outside it.
+  EXPECT_NE(ScreenRow(screen, 2).find("╰"), std::string::npos);
+  EXPECT_EQ(ScreenCells(screen, 5, 0, 4), "MENU");
+}
+
+TEST(FloatingTest, LeavesTheBordersOfWhatItIsOverWhereTheyWere) {
+  ftxui::Screen plain = RenderSized(At(0, 0, Base()), 20, 10);
+  ftxui::Screen floated = RenderSized(
+      At(0, 0, ftxui::dbox({Base(), Floating(Marker(5, 0))})), 20, 10);
+  for (int y = 0; y <= 2; ++y) {
+    EXPECT_EQ(ScreenRow(floated, y), ScreenRow(plain, y)) << "row " << y;
+  }
+}
+
+// Anchored on row 3, Marker(8, 0) wants rows 3..11 of a ten-row screen, so it
+// comes back up the two that hang off and ends on the last one.
+TEST(FloatingTest, SlidesUpOffTheBottomEdgeOfTheScreen) {
+  ftxui::Screen screen = RenderSized(
+      At(0, 3, ftxui::dbox({Base(), Floating(Marker(8, 0))})), 20, 10);
+  EXPECT_EQ(ScreenCells(screen, 9, 0, 4), "MENU");
+}
+
+// Anchored on column 6, Marker(0, 16) wants columns 6..25 of a twenty-column
+// screen, so it comes back the six that hang off and ends on the last one.
+TEST(FloatingTest, SlidesLeftOffTheRightEdgeOfTheScreen) {
+  ftxui::Screen screen = RenderSized(
+      At(6, 0, ftxui::dbox({Base(), Floating(Marker(0, 16))})), 20, 10);
+  EXPECT_EQ(ScreenCells(screen, 0, 16, 4), "MENU");
+}
+
+// A float too tall for the screen has to lose rows somewhere. It gives up the
+// bottom ones rather than sliding off the top, so what it is anchored to stays
+// the part that shows: anchored on row 1 and twenty-one rows tall on an
+// eight-row screen, it moves the one row it has and no more.
+TEST(FloatingTest, StopsSlidingAtTheTopOfTheScreen) {
+  ftxui::Element tall = ftxui::vbox({
+      ftxui::text("TOP"),
+      ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 20),
+  });
+  ftxui::Screen screen = RenderSized(
+      At(0, 1, ftxui::dbox({Base(), Floating(std::move(tall))})), 20, 8);
+  EXPECT_EQ(ScreenCells(screen, 0, 0, 3), "TOP");
+}
+
 }  // namespace
 }  // namespace ms

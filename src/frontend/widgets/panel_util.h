@@ -117,6 +117,19 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label, ftxui::Color label_color);
 
+// Takes `element` out of the layout: it asks its parent for no room at all,
+// then draws itself at its own size from the parent box's top-left corner.
+//
+// Put it last in a `dbox` to overlay something. Without this, a dbox grows to
+// hold its tallest child and stretches every other child to match, so an
+// overlay reaching past the panel it covers pushes that panel's borders out.
+// Floating it leaves the panel exactly the size and place it had on its own,
+// and the overlay spills outside it instead.
+//
+// The screen is then the only bound. An overlay that would run off the bottom
+// or right edge slides back just far enough to stay on it.
+ftxui::Element Floating(ftxui::Element element);
+
 // A modal result screen, shown once an action has resolved: the subject
 // centered over a rule, `body` below it, then a rule and a [Continue]. Every
 // screen the game shows after scrolling, star forcing or recovering is built

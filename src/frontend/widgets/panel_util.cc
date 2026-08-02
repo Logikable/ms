@@ -71,6 +71,64 @@ class ProgressBarNode : public ftxui::Node {
   ftxui::Color label_off_fill_;
 };
 
+// Lays its child out at the child's own size, from the corner of whatever box
+// the parent hands over, and tells the parent it needs nothing in return.
+class FloatingNode : public ftxui::Node {
+ public:
+  explicit FloatingNode(ftxui::Element child)
+      : ftxui::Node(ftxui::Elements{std::move(child)}) {
+  }
+
+  void ComputeRequirement() override {
+    ftxui::Node::ComputeRequirement();
+    // The child still measured itself above; this drops that on the floor so
+    // the parent sizes as though the child were not there.
+    requirement_ = ftxui::Requirement();
+  }
+
+  void SetBox(ftxui::Box box) override {
+    ftxui::Node::SetBox(box);
+    children_[0]->SetBox(NaturalBox());
+  }
+
+  void Render(ftxui::Screen& screen) override {
+    // Laid out a second time, because how much room there is to run off is not
+    // known until the screen is in hand, and SetBox runs before that.
+    children_[0]->SetBox(FitToScreen(NaturalBox(), screen));
+    children_[0]->Render(screen);
+  }
+
+ private:
+  // The child at its full size in the parent box's top-left corner, reaching
+  // past the parent wherever it is the larger of the two.
+  ftxui::Box NaturalBox() const {
+    const ftxui::Requirement& req = children_[0]->requirement();
+    ftxui::Box box;
+    box.x_min = box_.x_min;
+    box.x_max = box_.x_min + req.min_x - 1;
+    box.y_min = box_.y_min;
+    box.y_max = box_.y_min + req.min_y - 1;
+    return box;
+  }
+
+  // Slides a box back onto the screen by however far it hangs off the bottom
+  // or the right, and no further -- a float that leaves the terminal is not
+  // drawn at all, which is worse than one that sits a little higher than it
+  // asked to. Never pushes past the top or left corner: a child too big for
+  // the screen has to be clipped somewhere.
+  static ftxui::Box FitToScreen(ftxui::Box box, const ftxui::Screen& screen) {
+    int over_x = std::min(std::max(0, box.x_max - (screen.dimx() - 1)),
+                          std::max(0, box.x_min));
+    box.x_min -= over_x;
+    box.x_max -= over_x;
+    int over_y = std::min(std::max(0, box.y_max - (screen.dimy() - 1)),
+                          std::max(0, box.y_min));
+    box.y_min -= over_y;
+    box.y_max -= over_y;
+    return box;
+  }
+};
+
 }  // namespace
 
 const DisplayStat* DisplayStatFor(StatField field) {
@@ -262,6 +320,10 @@ ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label, ftxui::Color label_color) {
   return std::make_shared<ProgressBarNode>(frac, fill, label, label_color,
                                            label_color);
+}
+
+ftxui::Element Floating(ftxui::Element element) {
+  return std::make_shared<FloatingNode>(std::move(element));
 }
 
 ftxui::Element ResultWindow(const std::string& title,
