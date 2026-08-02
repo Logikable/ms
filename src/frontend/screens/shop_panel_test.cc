@@ -18,12 +18,15 @@
 namespace ms {
 namespace {
 
-EquipPrototype MakeItem(const std::string& name, int level, int price) {
+EquipPrototype MakeItem(const std::string& name, int level, int price,
+                        EquipJobCategory job = EQUIP_JOB_CATEGORY_UNIVERSAL,
+                        EquipSlot slot = EQUIP_SLOT_PRIMARY_WEAPON) {
   EquipPrototype e;
   e.set_name(name);
-  e.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  e.set_equip_slot(slot);
   e.set_required_level(level);
   e.set_shop_price(price);
+  e.add_equip_job_categories(job);
   return e;
 }
 
@@ -37,12 +40,18 @@ class ShopPanelTest : public testing::Test {
     return screen.ToString();
   }
 
-  // Whether any cell on the row holding `needle` is painted `color`. Reads the
-  // screen's pixels rather than its escape codes: ftxui collapses colours into
-  // whatever palette it believes the terminal has, and a test process has no
-  // terminal, so the escape codes describe the fallback rather than the colour.
-  bool RowIsColored(const ShopPanel& panel, const std::string& needle,
-                    ftxui::Color color) {
+  // The colour of the cell holding `cell`, on the row holding `row_needle`.
+  //
+  // Reads the screen's pixels rather than its escape codes: ftxui collapses
+  // colours into whatever palette it believes the terminal has, and a test
+  // process has no terminal, so the escape codes describe the fallback rather
+  // than the colour.
+  //
+  // Per cell rather than per row, because a row now carries three things that
+  // redden for three different reasons -- asking whether anything on the row
+  // is red could not tell an unaffordable price from a level too high.
+  ftxui::Color CellColor(const ShopPanel& panel, const std::string& row_needle,
+                         const std::string& cell) {
     ftxui::Element element = panel.Render();
     ftxui::Screen screen = ftxui::Screen::Create(
         ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
@@ -53,24 +62,34 @@ class ShopPanelTest : public testing::Test {
         // Unpainted cells hold an empty string, not a space; dropping them
         // would join text that is not actually adjacent.
         const std::string& ch = screen.PixelAt(x, y).character;
-        row += ch.empty() ? " " : ch;
-      }
-      if (row.find(needle) == std::string::npos) {
-        continue;
-      }
-      for (int x = 0; x < screen.dimx(); ++x) {
-        if (screen.PixelAt(x, y).foreground_color == color) {
-          return true;
+        if (ch.empty()) {
+          row += " ";
+        } else {
+          row += ch;
         }
       }
-      return false;
+      if (row.find(row_needle) == std::string::npos) {
+        continue;
+      }
+      size_t at = row.find(cell);
+      EXPECT_NE(at, std::string::npos)
+          << "'" << cell << "' is not on the '" << row_needle << "' row";
+      if (at == std::string::npos) {
+        return ftxui::Color::Default;
+      }
+      // `at` counts glyphs, and every glyph before a cell on these rows is one
+      // column wide, so it is also the column.
+      return screen.PixelAt(static_cast<int>(at), y).foreground_color;
     }
-    return false;
+    ADD_FAILURE() << "no row holding '" << row_needle << "'";
+    return ftxui::Color::Default;
   }
 
-  CharacterInstance MakeCharacter(int64_t meso) {
+  CharacterInstance MakeCharacter(int64_t meso, int level = 1,
+                                  Job job = JOB_SWORDMAN) {
     Character proto;
-    proto.set_level(1);
+    proto.set_level(level);
+    proto.set_job(job);
     CharacterInstance c(rng_, std::move(proto));
     c.AddMeso(meso);
     return c;
@@ -79,8 +98,10 @@ class ShopPanelTest : public testing::Test {
   std::mt19937 rng_{0};
   std::map<std::string, EquipPrototype> equips_{
       {"long_sword", MakeItem("Long Sword", 10, 5000)},
-      {"machete", MakeItem("Machete", 20, 10000)},
-      {"gladius", MakeItem("Gladius", 30, 20000)},
+      {"machete", MakeItem("Machete", 20, 10000, EQUIP_JOB_CATEGORY_WARRIOR)},
+      {"gladius", MakeItem("Gladius", 30, 20000, EQUIP_JOB_CATEGORY_WARRIOR)},
+      {"subi", MakeItem("Subi Throwing-Stars", 10, 1000,
+                        EQUIP_JOB_CATEGORY_THIEF, EQUIP_SLOT_STARS)},
       {"heirloom", MakeItem("Heirloom", 10, 0)},
   };
 };
@@ -130,8 +151,9 @@ TEST_F(ShopPanelTest, WalksTheListAndStopsAtTheEnds) {
   panel.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel.selected_item()->name(), "Machete");
   panel.OnEvent(ftxui::Event::ArrowDown);
+  panel.OnEvent(ftxui::Event::ArrowDown);
   panel.OnEvent(ftxui::Event::ArrowDown);  // already at the bottom
-  EXPECT_EQ(panel.selected_item()->name(), "Gladius");
+  EXPECT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
 }
 
 TEST_F(ShopPanelTest, ResetReturnsToTheTop) {
@@ -145,11 +167,57 @@ TEST_F(ShopPanelTest, ResetReturnsToTheTop) {
 // The list answers "what can I buy" without the player doing arithmetic on
 // every row.
 TEST_F(ShopPanelTest, RedsOutPricesBeyondTheBalance) {
-  CharacterInstance c = MakeCharacter(7000);
+  CharacterInstance c = MakeCharacter(7000, /*level=*/99);
   ShopPanel panel(c, equips_);
-  EXPECT_FALSE(RowIsColored(panel, "Long Sword", kRed))
+  EXPECT_NE(CellColor(panel, "Long Sword", "5,000"), kRed)
       << "5,000 is affordable on 7,000";
-  EXPECT_TRUE(RowIsColored(panel, "Gladius", kRed)) << "20,000 is not";
+  EXPECT_EQ(CellColor(panel, "Gladius", "20,000"), kRed) << "20,000 is not";
+}
+
+// The three columns the bag's equip tab shows, in the same order and the same
+// widths, so an item reads the same way in both lists.
+TEST_F(ShopPanelTest, ShowsSlotLevelAndJob) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/99);
+  ShopPanel panel(c, equips_);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
+  EXPECT_NE(rendered.find("Level"), std::string::npos);
+  EXPECT_NE(rendered.find("Job"), std::string::npos);
+  EXPECT_NE(rendered.find("Weapon"), std::string::npos);
+  EXPECT_NE(rendered.find("Stars"), std::string::npos);
+  EXPECT_NE(rendered.find("Lv20"), std::string::npos);
+  EXPECT_NE(rendered.find("Warrior"), std::string::npos);
+  EXPECT_NE(rendered.find("All"), std::string::npos);
+}
+
+// Red says which requirement is in the way, so the two colour independently:
+// a level too high does not also accuse the class, and vice versa.
+TEST_F(ShopPanelTest, RedsOutALevelTheCharacterHasNotReached) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/20, JOB_SWORDMAN);
+  ShopPanel panel(c, equips_);
+  EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed) << "level 20 reaches it";
+  EXPECT_EQ(CellColor(panel, "Gladius", "Lv30"), kRed) << "level 30 does not";
+  EXPECT_NE(CellColor(panel, "Gladius", "Warrior"), kRed)
+      << "a swordman is the right class for it; only the level is wrong";
+}
+
+TEST_F(ShopPanelTest, RedsOutAJobTheCharacterCannotBe) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_MAGICIAN);
+  ShopPanel panel(c, equips_);
+  EXPECT_EQ(CellColor(panel, "Machete", "Warrior"), kRed)
+      << "a magician cannot hold a warrior weapon";
+  EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed)
+      << "level 99 clears it; only the class is wrong";
+  EXPECT_NE(CellColor(panel, "Long Sword", "All"), kRed)
+      << "anyone can hold a universal item";
+}
+
+TEST_F(ShopPanelTest, LeavesAnEquippableItemUncolored) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_SWORDMAN);
+  ShopPanel panel(c, equips_);
+  EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed);
+  EXPECT_NE(CellColor(panel, "Machete", "Warrior"), kRed);
+  EXPECT_NE(CellColor(panel, "Machete", "10,000"), kRed);
 }
 
 TEST_F(ShopPanelTest, AnEmptyShopSaysSo) {
