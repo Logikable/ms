@@ -44,6 +44,38 @@ TEST(LoadTextProtoDirTest, LoadsAllTextprotosKeyedByStem) {
   EXPECT_EQ(result.at("b").name(), "B");
 }
 
+TEST(LoadTextProtoDirTest, LoadsFromSubfoldersUnderTheSameKeys) {
+  std::string dir = std::string(testing::TempDir()) + "/nested_dir_test";
+  std::filesystem::create_directory(dir);
+  std::filesystem::create_directory(dir + "/warrior");
+  std::filesystem::create_directory(dir + "/thief");
+  WriteTempFile("nested_dir_test/shared.textproto", "name: \"Shared\"\n");
+  WriteTempFile("nested_dir_test/warrior/gladius.textproto",
+                "name: \"Gladius\"\n");
+  WriteTempFile("nested_dir_test/thief/garnier.textproto",
+                "name: \"Garnier\"\n");
+
+  std::map<std::string, EquipPrototype> result =
+      LoadTextProtoDir<EquipPrototype>(dir);
+  ASSERT_EQ(result.size(), 3);
+  EXPECT_EQ(result.at("shared").name(), "Shared");
+  EXPECT_EQ(result.at("gladius").name(), "Gladius");
+  EXPECT_EQ(result.at("garnier").name(), "Garnier");
+}
+
+TEST(LoadTextProtoDirTest, FatalOnSameStemInTwoSubfolders) {
+  std::string dir = std::string(testing::TempDir()) + "/dupe_dir_test";
+  std::filesystem::create_directory(dir);
+  std::filesystem::create_directory(dir + "/warrior");
+  std::filesystem::create_directory(dir + "/thief");
+  WriteTempFile("dupe_dir_test/warrior/machete.textproto",
+                "name: \"Machete\"\n");
+  WriteTempFile("dupe_dir_test/thief/machete.textproto", "name: \"Machete\"\n");
+
+  EXPECT_DEATH(LoadTextProtoDir<EquipPrototype>(dir),
+               "Duplicate textproto name 'machete'");
+}
+
 TEST(LoadTextProtoDirTest, LoadsMobsKeyedByStem) {
   std::string dir = std::string(testing::TempDir()) + "/mob_dir_test";
   std::filesystem::create_directory(dir);

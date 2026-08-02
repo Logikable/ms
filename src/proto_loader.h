@@ -17,8 +17,11 @@ namespace ms {
 // LOG(FATAL) on any I/O or parse error.
 void LoadTextProto(const std::string& path, google::protobuf::Message* msg);
 
-// Loads all *.textproto files in `dir_path` into a map keyed by filename stem.
-// LOG(FATAL) on any I/O or parse error.
+// Loads every *.textproto under `dir_path`, subfolders included, into a map
+// keyed by filename stem. Folders are for the reader's benefit only: they do
+// not enter the key, so an item can be filed differently without anything that
+// names it having to change. LOG(FATAL) on any I/O or parse error, or if two
+// files anywhere under `dir_path` share a stem.
 template <typename T>
 std::map<std::string, T> LoadTextProtoDir(const std::string& dir_path);
 

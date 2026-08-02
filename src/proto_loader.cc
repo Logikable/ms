@@ -32,13 +32,21 @@ template <typename T>
 std::map<std::string, T> LoadTextProtoDir(const std::string& dir_path) {
   std::map<std::string, T> result;
   for (const std::filesystem::directory_entry& entry :
-       std::filesystem::directory_iterator(dir_path)) {
+       std::filesystem::recursive_directory_iterator(dir_path)) {
     if (entry.path().extension() != ".textproto") {
       continue;
     }
+    const std::string stem = entry.path().stem().string();
+    // The key is the stem alone, so two subfolders naming the same file are
+    // one item as far as every caller is concerned. Better to stop than to
+    // keep whichever the directory walk reached first.
+    if (result.count(stem) > 0) {
+      LOG(FATAL) << "Duplicate textproto name '" << stem << "' under "
+                 << dir_path;
+    }
     T proto;
     LoadTextProto(entry.path().string(), &proto);
-    result.emplace(entry.path().stem().string(), std::move(proto));
+    result.emplace(stem, std::move(proto));
   }
   return result;
 }
