@@ -181,14 +181,30 @@ ftxui::Element ShopPanel::Render() const {
   // Anchored inside the panel rather than on the terminal, because the shop is
   // centred and so has no fixed place on screen to measure from.
   //
-  // +5 rows: the window's top border, the tab row, its separator, the column
-  // header, its separator. kMenuCol clears the border and the name column, so
-  // the menu covers what the item asks for rather than what it is called.
+  // kMenuCol clears the border and the name column, so the menu covers what the
+  // item asks for rather than what it is called.
   constexpr int kMenuCol = 1 + 2 + kNameWidth;
   return ftxui::dbox({
       std::move(window),
-      menu_.Render(5 + selected_, kMenuCol),
+      menu_.Render(MenuRow(), kMenuCol),
   });
+}
+
+int ShopPanel::MenuRow() const {
+  // The menu asks for every row above it as well as its own, so an anchor near
+  // the foot of the list would make the overlay taller than the window and
+  // stretch the whole panel to fit. Held back to the last row it can start on
+  // and still end inside: near the bottom it opens upward from the item, which
+  // is what a menu does at an edge anyway.
+  //
+  // +5 rows: the window's top border, the tab row, its separator, the column
+  // header, its separator. The last row is that plus the stock, and the menu
+  // needs its own borders as well as an entry each.
+  int first_item_row = 5;
+  int last_row = first_item_row + static_cast<int>(stock_.size());
+  int menu_height = kNumShopMenuItems + 2;
+  return std::max(0,
+                  std::min(first_item_row + selected_, last_row - menu_height));
 }
 
 }  // namespace ms

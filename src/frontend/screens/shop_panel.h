@@ -37,6 +37,7 @@ enum ShopMenuItem : int {
   kShopMenuInspect = 0,
   kShopMenuBuy = 1,
   kShopMenuClose = 2,
+  kNumShopMenuItems = 3,
 };
 
 class ShopPanel {
@@ -73,6 +74,10 @@ class ShopPanel {
   int selected_ = 0;
   ItemMenu menu_;
   bool menu_open_ = false;
+
+  // The row the context menu starts on, held back far enough that the menu
+  // ends inside the window rather than stretching it.
+  int MenuRow() const;
 };
 
 }  // namespace ms
