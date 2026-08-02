@@ -275,9 +275,20 @@ ftxui::Element Tui::RenderMain() {
       // combat panel instead of stopping at the height of whatever it holds.
       // The bag takes that room (see below); everything else keeps its size.
       ftxui::hbox({
-          // Above a filler so the panel keeps its own height; an hbox stretches
-          // a bare child to the row height, gapping the window's bottom border.
-          ftxui::vbox({char_panel_.Render(), ftxui::filler()}),
+          // Combat sits under the character panel rather than across the foot
+          // of the screen. It lands in the same place either way --
+          // CombatPanel::kTotalWidth is CharacterPanel::kTotalWidth -- but as a
+          // row of its own it capped everything beside it at its own top edge,
+          // leaving the width of the bag blank below that.
+          //
+          // Above a filler so both panels keep their own height; an hbox
+          // stretches a bare child to the row height, gapping its bottom
+          // border.
+          ftxui::vbox({
+              char_panel_.Render(),
+              combat_component_->Render(),
+              ftxui::filler(),
+          }),
           ftxui::vbox({
               equip_component_->Render(),
               // The one panel that grows: what is equipped is a fixed handful
@@ -285,9 +296,6 @@ ftxui::Element Tui::RenderMain() {
               inventory_component_->Render() | ftxui::flex,
           }) | ftxui::flex,
       }) | ftxui::flex,
-      // Beside a filler so the panel keeps its own width; a vbox child would
-      // otherwise be stretched to the full terminal.
-      ftxui::hbox({combat_component_->Render(), ftxui::filler()}),
       RenderExpBar(),
   });
   if (controller_.screen() != kItemMenu) {
