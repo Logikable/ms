@@ -14,6 +14,11 @@
 
 namespace ms {
 
+// Slots on each of the bag's tabs: Equip, Use and Etc hold this many rows
+// apiece. An equip takes a slot per copy; a stackable takes one per stack, so
+// a tab holds this many stacks rather than this many items.
+inline constexpr int kTabCapacity = 128;
+
 class InventoryInstance {
  public:
   // Returns nullptr if index is out of range or the item is an EquipTrace.
@@ -29,8 +34,14 @@ class InventoryInstance {
   // All EquipTrace items in the bag.
   std::vector<const EquipTrace*> traces() const;
 
+  // Slots left on the equip tab.
+  int room() const;
+  bool full() const;
+
   // Mutation primitives.
-  // Appends if index is -1; inserts before index otherwise.
+  // Appends if index is -1; inserts before index otherwise. The caller checks
+  // room() first: this is a primitive and does not refuse a full bag, so that
+  // moving an item about internally cannot fail on a bag that is merely full.
   void add(std::unique_ptr<EquipTabItem> item, int index = -1);
   // Removes and returns the equip-tab item at index. Index must be in range.
   std::unique_ptr<EquipTabItem> remove_equip(int index);

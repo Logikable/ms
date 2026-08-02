@@ -349,8 +349,37 @@ void CharacterInstance::RecomputeEquipStats() {
   equip_stats_ = SumEquipStats(absl::MakeSpan(list));
 }
 
-void CharacterInstance::PickUp(std::unique_ptr<EquipTabItem> item) {
+bool CharacterInstance::PickUp(std::unique_ptr<EquipTabItem> item) {
+  if (inventory_.full()) {
+    return false;
+  }
   inventory_.add(std::move(item));
+  return true;
+}
+
+int CharacterInstance::RoomFor(const EquipPrototype& proto) const {
+  // Nothing about the item matters: every copy takes one slot, whatever it is.
+  (void)proto;
+  return inventory_.room();
+}
+
+int CharacterInstance::RoomFor(const ItemPrototype& proto) const {
+  const std::vector<StackableItem>& stacks = StacksFor(proto.category());
+  int free_slots = kTabCapacity - static_cast<int>(stacks.size());
+  // A stack that is open but not full takes more without costing a slot.
+  int room = 0;
+  for (const StackableItem& stack : stacks) {
+    if (stack.name() == proto.name()) {
+      room += stack.max_stack() - stack.count();
+    }
+  }
+  if (free_slots <= 0) {
+    return room;
+  }
+  // Sized from the prototype rather than an existing stack, so an item the
+  // character has none of still reports what a fresh stack would hold.
+  StackableItem fresh(proto, 0);
+  return room + free_slots * fresh.max_stack();
 }
 
 std::vector<StackableItem>& CharacterInstance::StacksFor(
@@ -374,10 +403,12 @@ const std::vector<StackableItem>& CharacterInstance::StacksFor(
   }
 }
 
-void CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
+int CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
   if (count <= 0) {
-    return;
+    return 0;
   }
+  count = std::min(count, RoomFor(proto));
+  int added = count;
   std::vector<StackableItem>& stacks = StacksFor(proto.category());
   // Top up existing stacks of the same item before opening new ones.
   for (StackableItem& stack : stacks) {
@@ -403,6 +434,7 @@ void CharacterInstance::AddStackable(const ItemPrototype& proto, int count) {
     count -= added;
     stacks.push_back(std::move(stack));
   }
+  return added;
 }
 
 void CharacterInstance::AddMeso(int64_t amount) {
@@ -441,6 +473,11 @@ bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
   // cannot finish never takes the meso for the part it could.
   int64_t cost = static_cast<int64_t>(count) * proto.shop_price();
   if (cost > character_.meso()) {
+    return false;
+  }
+  // Room is checked up front for the same reason the price is: a purchase the
+  // bag cannot hold must not take the meso for the part of it that would fit.
+  if (count > RoomFor(proto)) {
     return false;
   }
   character_.set_meso(character_.meso() - cost);

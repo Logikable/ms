@@ -41,6 +41,14 @@ std::vector<const EquipTrace*> InventoryInstance::traces() const {
   return result;
 }
 
+int InventoryInstance::room() const {
+  return kTabCapacity - static_cast<int>(equip_items_.size());
+}
+
+bool InventoryInstance::full() const {
+  return room() <= 0;
+}
+
 void InventoryInstance::add(std::unique_ptr<EquipTabItem> item, int index) {
   if (index == -1) {
     equip_items_.push_back(std::move(item));

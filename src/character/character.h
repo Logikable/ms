@@ -84,11 +84,25 @@ class CharacterInstance {
   bool MeetsJob(const EquipPrototype& proto) const;
   // Appends item to inventory. Accepts any EquipTabItem subclass (EquipInstance
   // or EquipTrace); the caller is responsible for constructing the item.
-  void PickUp(std::unique_ptr<EquipTabItem> item);
+  // Returns false and drops the item on the floor when the equip tab is full.
+  bool PickUp(std::unique_ptr<EquipTabItem> item);
   // Adds `count` of the item described by `proto` to the Use/Etc stacks. Tops
   // up existing stacks of the same item first, then opens new stacks for any
   // overflow, each capped at the item's max_stack(). No-op if count <= 0.
-  void AddStackable(const ItemPrototype& proto, int count);
+  //
+  // Takes what fits and loses the rest: topping up an existing stack costs no
+  // slot, so a tab with none left can still absorb some of a drop. Returns the
+  // number actually added.
+  int AddStackable(const ItemPrototype& proto, int count);
+
+  // How many more copies of `proto` the bag could take.
+  //
+  // For an equip that is simply the free slots, one copy apiece. For a
+  // stackable it is the room in every stack of that item already open plus a
+  // full stack for each free slot -- ten free slots, stacks of 200 and a stack
+  // of 100 already open comes to 2100.
+  int RoomFor(const EquipPrototype& proto) const;
+  int RoomFor(const ItemPrototype& proto) const;
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
   // Sells up to `count` copies from the `index`-th stack in `category`,

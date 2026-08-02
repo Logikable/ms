@@ -4,10 +4,12 @@
 
 #include <memory>
 #include <random>
+#include <string>
 #include <vector>
 
 #include "src/character/exp_table.h"
 #include "src/item/equip_instance.h"
+#include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -1258,6 +1260,154 @@ TEST_F(ThrowingStarTest, StopsCountingWhenTheClawComesOff) {
   c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_DAGGER, 25)));
   ASSERT_TRUE(c_.Equip(0));
   EXPECT_EQ(c_.equip_stats().attack(), 25);
+}
+
+// --- capacity ---
+
+// A fixture for the 128-slot tab limit, with an Etc item (default max_stack
+// 200) and a plain equip to fill tabs with.
+class CapacityTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    shell_.set_name("Green Snail Shell");
+    shell_.set_category(ITEM_CATEGORY_ETC);
+    other_.set_name("Blue Snail Shell");
+    other_.set_category(ITEM_CATEGORY_ETC);
+    sword_.set_name("Sword");
+    sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    sword_.set_shop_price(10);
+  }
+  // Opens `count` distinct Etc stacks, so the tab fills by slots rather than
+  // by one item stacking up.
+  void OpenDistinctStacks(int count) {
+    for (int i = 0; i < count; ++i) {
+      ItemPrototype proto;
+      proto.set_name("Junk " + std::to_string(i));
+      proto.set_category(ITEM_CATEGORY_ETC);
+      c_.AddStackable(proto, 1);
+    }
+  }
+  CharacterInstance c_ = MakeCharacter(rng_);
+  ItemPrototype shell_;
+  ItemPrototype other_;
+  EquipPrototype sword_;
+};
+
+TEST_F(CapacityTest, TheEquipTabHoldsExactlyTheCapacity) {
+  for (int i = 0; i < kTabCapacity; ++i) {
+    EXPECT_TRUE(c_.PickUp(std::make_unique<EquipInstance>(sword_)))
+        << "refused item " << i;
+  }
+  EXPECT_EQ(c_.inventory().size(), kTabCapacity);
+  EXPECT_FALSE(c_.PickUp(std::make_unique<EquipInstance>(sword_)));
+  EXPECT_EQ(c_.inventory().size(), kTabCapacity);
+}
+
+TEST_F(CapacityTest, RoomForAnEquipCountsFreeSlots) {
+  EXPECT_EQ(c_.RoomFor(sword_), kTabCapacity);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  EXPECT_EQ(c_.RoomFor(sword_), kTabCapacity - 2);
+}
+
+// Traces sit on the equip tab too, so they take slots like anything else.
+TEST_F(CapacityTest, RoomForAnEquipCountsTracesAsWell) {
+  c_.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
+  EXPECT_EQ(c_.RoomFor(sword_), kTabCapacity - 1);
+}
+
+// --- RoomFor(ItemPrototype) ---
+
+TEST_F(CapacityTest, RoomForAStackableOnAnEmptyTabIsEveryStack) {
+  // 128 slots of 200 apiece, the Etc default.
+  EXPECT_EQ(c_.RoomFor(shell_), kTabCapacity * 200);
+}
+
+// The case that motivated the rule: part-full stacks count for what is left in
+// them, on top of a whole stack for every slot still free.
+TEST_F(CapacityTest, RoomForAStackableAddsPartStacksToFreeSlots) {
+  OpenDistinctStacks(kTabCapacity - 11);
+  c_.AddStackable(shell_, 100);
+  // 118 stacks open, so 10 slots free, and the shell stack has 100 spare.
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity - 10);
+  EXPECT_EQ(c_.RoomFor(shell_), 10 * 200 + 100);
+}
+
+// Room in someone else's stack is no use.
+TEST_F(CapacityTest, RoomForAStackableIgnoresPartStacksOfOtherItems) {
+  OpenDistinctStacks(kTabCapacity - 11);
+  c_.AddStackable(other_, 100);
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity - 10);
+  EXPECT_EQ(c_.RoomFor(shell_), 10 * 200);
+}
+
+// With no slot left the only room is what the open stacks of that item can
+// still take.
+TEST_F(CapacityTest, RoomForAStackableOnAFullTabIsOnlyTheOpenStacks) {
+  OpenDistinctStacks(kTabCapacity - 1);
+  c_.AddStackable(shell_, 150);
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity);
+  EXPECT_EQ(c_.RoomFor(shell_), 50);
+}
+
+TEST_F(CapacityTest, RoomForAStackableOnAFullTabOfOtherItemsIsNone) {
+  OpenDistinctStacks(kTabCapacity);
+  EXPECT_EQ(c_.RoomFor(shell_), 0);
+}
+
+// Use items stack far deeper than Etc ones, and the room follows the item
+// rather than a fixed number.
+TEST_F(CapacityTest, RoomForAStackableFollowsTheItemsOwnStackSize) {
+  ItemPrototype potion;
+  potion.set_name("Red Potion");
+  potion.set_category(ITEM_CATEGORY_USE);
+  EXPECT_EQ(c_.RoomFor(potion), kTabCapacity * 9999);
+  ItemPrototype tiny;
+  tiny.set_name("Odd Thing");
+  tiny.set_category(ITEM_CATEGORY_ETC);
+  tiny.set_max_stack(5);
+  EXPECT_EQ(c_.RoomFor(tiny), kTabCapacity * 5);
+}
+
+// --- AddStackable against the limit ---
+
+TEST_F(CapacityTest, AddStackableReportsWhatItTook) {
+  EXPECT_EQ(c_.AddStackable(shell_, 250), 250);
+}
+
+// A drop that does not fit is taken as far as it goes and the rest is lost.
+TEST_F(CapacityTest, AddStackableTakesWhatFitsAndLosesTheRest) {
+  OpenDistinctStacks(kTabCapacity - 1);
+  c_.AddStackable(shell_, 150);
+  ASSERT_EQ(c_.RoomFor(shell_), 50);
+  EXPECT_EQ(c_.AddStackable(shell_, 500), 50);
+  EXPECT_EQ(c_.RoomFor(shell_), 0);
+  // The tab did not grow past its limit to hold the overflow.
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity);
+}
+
+// Topping up an open stack costs no slot, so a full tab still takes some.
+TEST_F(CapacityTest, AddStackableStillTopsUpOnAFullTab) {
+  OpenDistinctStacks(kTabCapacity - 1);
+  c_.AddStackable(shell_, 10);
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity);
+  EXPECT_EQ(c_.AddStackable(shell_, 30), 30);
+}
+
+// --- Buy against the limit ---
+
+TEST_F(CapacityTest, BuyRefusesWhatTheBagCannotHold) {
+  c_.AddMeso(1000000);
+  for (int i = 0; i < kTabCapacity - 2; ++i) {
+    c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  }
+  int64_t before = c_.meso();
+  EXPECT_FALSE(c_.Buy(sword_, 3));
+  EXPECT_EQ(c_.meso(), before) << "a refused purchase still took the meso";
+  EXPECT_EQ(c_.inventory().size(), kTabCapacity - 2);
+  // Exactly filling it is fine.
+  EXPECT_TRUE(c_.Buy(sword_, 2));
+  EXPECT_EQ(c_.inventory().size(), kTabCapacity);
 }
 
 }  // namespace
