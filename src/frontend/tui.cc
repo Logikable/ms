@@ -14,6 +14,7 @@
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/combat/combat.h"
+#include "src/frontend/main_layout.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/combat_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
@@ -270,37 +271,10 @@ ftxui::Element Tui::RenderFrame() {
 }
 
 ftxui::Element Tui::RenderMain() {
-  ftxui::Element layout = ftxui::vbox({
-      // Flexed, and with no filler under it, so the row reaches down to the
-      // combat panel instead of stopping at the height of whatever it holds.
-      // The bag takes that room (see below); everything else keeps its size.
-      ftxui::hbox({
-          // Combat sits under the character panel rather than across the foot
-          // of the screen. It lands in the same place either way --
-          // CombatPanel::kTotalWidth is CharacterPanel::kTotalWidth -- but as a
-          // row of its own it capped everything beside it at its own top edge,
-          // leaving the width of the bag blank below that.
-          //
-          // Above a filler so both panels keep their own height; an hbox
-          // stretches a bare child to the row height, gapping its bottom
-          // border.
-          ftxui::vbox({
-              char_panel_.Render(),
-              combat_component_->Render(),
-              ftxui::filler(),
-          }),
-          ftxui::vbox({
-              equip_component_->Render(),
-              // Shrink but do not grow, over a filler that takes what is left.
-              // The bag is then as tall as what the open tab holds -- a couple
-              // of rows on an empty one -- until that outgrows the screen, at
-              // which point it gives way and its list scrolls instead.
-              inventory_component_->Render() | ftxui::yflex_shrink,
-              ftxui::filler(),
-          }) | ftxui::flex,
-      }) | ftxui::flex,
-      RenderExpBar(),
-  });
+  ftxui::Element layout =
+      MainLayout(char_panel_.Render(), combat_component_->Render(),
+                 equip_component_->Render(), inventory_component_->Render(),
+                 RenderExpBar());
   if (controller_.screen() != kItemMenu) {
     return layout;
   }

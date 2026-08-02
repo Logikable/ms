@@ -98,10 +98,31 @@ cc_test(
 )
 
 cc_library(
+    name = "main_layout",
+    srcs = ["main_layout.cc"],
+    hdrs = ["main_layout.h"],
+    deps = [
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "main_layout_test",
+    srcs = ["main_layout_test.cc"],
+    deps = [
+        ":main_layout",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "tui",
     srcs = ["tui.cc"],
     hdrs = ["tui.h"],
     deps = [
+        ":main_layout",
         ":tui_controller",
         "//src:game_state",
         "//src/character",
