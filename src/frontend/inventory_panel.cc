@@ -8,12 +8,12 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/types.h"
-#include "src/item.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 

@@ -12,11 +12,11 @@ cc_binary(
         "//data/skills:all",
     ],
     deps = [
-        "//src:character",
-        "//src:equip_instance",
         "//src:game_state",
         "//src:proto_loader",
+        "//src/character",
         "//src/combat",
+        "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

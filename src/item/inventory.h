@@ -3,14 +3,14 @@
  * dynamic_cast manually. Mutation primitives are called by CharacterInstance;
  * high-level game logic stays there.
  */
-#ifndef MS_SRC_INVENTORY_H_
-#define MS_SRC_INVENTORY_H_
+#ifndef MS_SRC_ITEM_INVENTORY_H_
+#define MS_SRC_ITEM_INVENTORY_H_
 
 #include <memory>
 #include <vector>
 
-#include "src/equip_instance.h"
-#include "src/item.h"
+#include "src/item/equip_instance.h"
+#include "src/item/item.h"
 
 namespace ms {
 
@@ -43,4 +43,4 @@ class InventoryInstance {
 
 }  // namespace ms
 
-#endif  // MS_SRC_INVENTORY_H_
+#endif  // MS_SRC_ITEM_INVENTORY_H_

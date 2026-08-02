@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {

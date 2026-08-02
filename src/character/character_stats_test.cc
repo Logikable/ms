@@ -1,4 +1,4 @@
-#include "src/character_stats.h"
+#include "src/character/character_stats.h"
 
 #include <gtest/gtest.h>
 
@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"

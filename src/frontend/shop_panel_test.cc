@@ -10,7 +10,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/frontend/colors.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"

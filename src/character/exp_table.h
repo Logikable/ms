@@ -1,5 +1,5 @@
-#ifndef MS_SRC_EXP_TABLE_H_
-#define MS_SRC_EXP_TABLE_H_
+#ifndef MS_SRC_CHARACTER_EXP_TABLE_H_
+#define MS_SRC_CHARACTER_EXP_TABLE_H_
 
 #include <cstdint>
 
@@ -13,4 +13,4 @@ int64_t ExpToNextLevel(int level);
 
 }  // namespace ms
 
-#endif  // MS_SRC_EXP_TABLE_H_
+#endif  // MS_SRC_CHARACTER_EXP_TABLE_H_

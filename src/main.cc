@@ -3,10 +3,10 @@
 #include <string>
 
 #include "absl/log/log.h"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/tui.h"
 #include "src/game_state.h"
-#include "src/item.h"
+#include "src/item/item.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"

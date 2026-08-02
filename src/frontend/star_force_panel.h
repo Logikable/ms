@@ -8,7 +8,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/confirm_prompt.h"
 #include "src/frontend/types.h"
 

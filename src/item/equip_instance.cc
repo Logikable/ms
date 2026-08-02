@@ -1,8 +1,8 @@
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 
 #include <random>
 
-#include "src/equip_stats.h"
+#include "src/item/equip_stats.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 

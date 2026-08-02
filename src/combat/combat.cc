@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"

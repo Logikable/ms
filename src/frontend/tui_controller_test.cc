@@ -10,7 +10,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/buy_panel.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"

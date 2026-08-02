@@ -2,8 +2,8 @@
  * everything that follows from it. Kept out of CharacterInstance because the
  * starting gear comes from the equip catalog, which the character cannot see.
  */
-#ifndef MS_SRC_JOB_ADVANCEMENT_H_
-#define MS_SRC_JOB_ADVANCEMENT_H_
+#ifndef MS_SRC_CHARACTER_JOB_ADVANCEMENT_H_
+#define MS_SRC_CHARACTER_JOB_ADVANCEMENT_H_
 
 #include <string>
 #include <vector>
@@ -25,4 +25,4 @@ void PerformJobAdvancement(GameState& state, Job job);
 
 }  // namespace ms
 
-#endif  // MS_SRC_JOB_ADVANCEMENT_H_
+#endif  // MS_SRC_CHARACTER_JOB_ADVANCEMENT_H_

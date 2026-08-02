@@ -1,4 +1,4 @@
-#include "src/character_stats.h"
+#include "src/character/character_stats.h"
 
 #include <cmath>
 #include <map>
@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "absl/types/span.h"
-#include "src/equip_stats.h"
+#include "src/item/equip_stats.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"

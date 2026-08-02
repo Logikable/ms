@@ -11,11 +11,11 @@
 #include <vector>
 
 #include "absl/log/log.h"
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/combat/combat.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/game_state.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"

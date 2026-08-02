@@ -10,9 +10,9 @@
 #ifndef MS_SRC_FRONTEND_ITEM_REF_H_
 #define MS_SRC_FRONTEND_ITEM_REF_H_
 
-#include "src/character.h"
-#include "src/equip_instance.h"
-#include "src/item.h"
+#include "src/character/character.h"
+#include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 

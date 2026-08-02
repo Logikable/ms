@@ -4,8 +4,8 @@
 #include <string>
 
 #include "ftxui/component/event.hpp"
-#include "src/character.h"
-#include "src/equip_instance.h"
+#include "src/character/character.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/equipped_panel.h"
 #include "src/frontend/inventory_panel.h"
 #include "src/frontend/map_select_panel.h"
@@ -15,7 +15,7 @@
 #include "src/frontend/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
-#include "src/job_advancement.h"
+#include "src/character/job_advancement.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"

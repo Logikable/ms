@@ -19,7 +19,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

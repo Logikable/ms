@@ -1,4 +1,4 @@
-#include "src/job_advancement.h"
+#include "src/character/job_advancement.h"
 
 #include <gtest/gtest.h>
 

@@ -9,7 +9,7 @@
 #include <string>
 #include <utility>
 
-#include "src/item.h"
+#include "src/item/item.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"

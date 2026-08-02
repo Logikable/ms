@@ -9,7 +9,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/panel_test_base.h"
 #include "src/frontend/types.h"
 #include "src/protos/equip.pb.h"

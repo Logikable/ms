@@ -7,7 +7,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

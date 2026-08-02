@@ -5,12 +5,12 @@
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/character.h"
-#include "src/equip_instance.h"
+#include "src/character/character.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/confirm_prompt.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"
-#include "src/item.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

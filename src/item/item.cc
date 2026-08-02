@@ -1,6 +1,6 @@
-#include "src/item.h"
+#include "src/item/item.h"
 
-#include "src/equip_stats.h"
+#include "src/item/equip_stats.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 

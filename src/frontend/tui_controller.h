@@ -12,7 +12,7 @@
 #include <string>
 
 #include "ftxui/component/event.hpp"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/amount_selector.h"
 #include "src/frontend/buy_panel.h"
 #include "src/frontend/confirm_prompt.h"

@@ -11,7 +11,7 @@
 #include "src/frontend/colors.h"
 #include "src/frontend/panel_util.h"
 #include "src/protos/equip.pb.h"
-#include "src/shop.h"
+#include "src/item/shop.h"
 
 namespace ms {
 namespace {

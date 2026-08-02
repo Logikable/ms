@@ -2,101 +2,6 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
-cc_test(
-    name = "character_test",
-    srcs = ["character_test.cc"],
-    deps = [
-        ":character",
-        ":exp_table",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:scroll_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "exp_table_test",
-    srcs = ["exp_table_test.cc"],
-    deps = [
-        ":exp_table",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "exp_table",
-    srcs = ["exp_table.cc"],
-    hdrs = ["exp_table.h"],
-)
-
-cc_library(
-    name = "character",
-    srcs = ["character.cc"],
-    hdrs = ["character.h"],
-    deps = [
-        ":equip_instance",
-        ":equip_stats",
-        ":exp_table",
-        ":inventory",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:scroll_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@abseil-cpp//absl/log",
-        "@abseil-cpp//absl/types:span",
-    ],
-)
-
-cc_library(
-    name = "character_stats",
-    srcs = ["character_stats.cc"],
-    hdrs = ["character_stats.h"],
-    deps = [
-        ":character",
-        ":equip_stats",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@abseil-cpp//absl/types:span",
-    ],
-)
-
-cc_test(
-    name = "character_stats_test",
-    srcs = ["character_stats_test.cc"],
-    deps = [
-        ":character",
-        ":character_stats",
-        ":equip_instance",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "inventory",
-    srcs = ["inventory.cc"],
-    hdrs = ["inventory.h"],
-    deps = [
-        ":equip_instance",
-        ":item",
-    ],
-)
-
-cc_test(
-    name = "inventory_test",
-    srcs = ["inventory_test.cc"],
-    deps = [
-        ":inventory",
-        "//src/protos:equip_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
 cc_library(
     name = "proto_loader",
     srcs = ["proto_loader.cc"],
@@ -114,38 +19,11 @@ cc_library(
 )
 
 cc_library(
-    name = "job_advancement",
-    srcs = ["job_advancement.cc"],
-    hdrs = ["job_advancement.h"],
-    deps = [
-        ":character",
-        ":equip_instance",
-        ":game_state",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "job_advancement_test",
-    srcs = ["job_advancement_test.cc"],
-    data = ["//data/equip:all"],
-    deps = [
-        ":job_advancement",
-        ":proto_loader",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "@bazel_tools//tools/cpp/runfiles",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "game_state",
     srcs = ["game_state.cc"],
     hdrs = ["game_state.h"],
     deps = [
-        ":character",
+        "//src/character",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
@@ -168,11 +46,11 @@ cc_binary(
         "//data/skills:all",
     ],
     deps = [
-        ":equip_instance",
         ":game_state",
-        ":item",
         ":proto_loader",
         "//src/frontend:tui",
+        "//src/item",
+        "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
@@ -180,29 +58,6 @@ cc_binary(
         "//src/protos:scroll_proto_cc",
         "//src/protos:skill_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",
-    ],
-)
-
-cc_library(
-    name = "equip_stats",
-    srcs = ["equip_stats.cc"],
-    hdrs = ["equip_stats.h"],
-    deps = [
-        "//src/protos:equip_proto_cc",
-        "@abseil-cpp//absl/types:span",
-    ],
-)
-
-cc_test(
-    name = "equip_data_test",
-    srcs = ["equip_data_test.cc"],
-    data = ["//data/equip:all"],
-    deps = [
-        ":item",
-        ":proto_loader",
-        "//src/protos:equip_proto_cc",
-        "@bazel_tools//tools/cpp/runfiles",
-        "@googletest//:gtest_main",
     ],
 )
 
@@ -232,27 +87,6 @@ cc_test(
 )
 
 cc_test(
-    name = "equip_stats_test",
-    srcs = ["equip_stats_test.cc"],
-    deps = [
-        ":equip_stats",
-        "//src/protos:equip_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "equip_instance_test",
-    srcs = ["equip_instance_test.cc"],
-    deps = [
-        ":equip_instance",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:scroll_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "game_state_test",
     srcs = ["game_state_test.cc"],
     deps = [
@@ -263,60 +97,5 @@ cc_test(
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "item",
-    srcs = ["item.cc"],
-    hdrs = ["item.h"],
-    deps = [
-        ":equip_stats",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-    ],
-)
-
-cc_library(
-    name = "shop",
-    srcs = ["shop.cc"],
-    hdrs = ["shop.h"],
-    visibility = ["//visibility:public"],
-    deps = ["//src/protos:equip_proto_cc"],
-)
-
-cc_test(
-    name = "shop_test",
-    srcs = ["shop_test.cc"],
-    data = ["//data/equip:all"],
-    deps = [
-        ":proto_loader",
-        ":shop",
-        "//src/protos:equip_proto_cc",
-        "@bazel_tools//tools/cpp/runfiles",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "item_test",
-    srcs = ["item_test.cc"],
-    deps = [
-        ":item",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "equip_instance",
-    srcs = ["equip_instance.cc"],
-    hdrs = ["equip_instance.h"],
-    deps = [
-        ":equip_stats",
-        ":item",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:scroll_proto_cc",
     ],
 )

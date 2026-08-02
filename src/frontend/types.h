@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/scroll.pb.h"
 
 namespace ms {

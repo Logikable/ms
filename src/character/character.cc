@@ -1,4 +1,4 @@
-#include "src/character.h"
+#include "src/character/character.h"
 
 #include <algorithm>
 #include <memory>
@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "absl/types/span.h"
-#include "src/equip_instance.h"
-#include "src/equip_stats.h"
-#include "src/exp_table.h"
-#include "src/inventory.h"
+#include "src/item/equip_instance.h"
+#include "src/item/equip_stats.h"
+#include "src/character/exp_table.h"
+#include "src/item/inventory.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"

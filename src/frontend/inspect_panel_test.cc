@@ -5,7 +5,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/panel_test_base.h"
-#include "src/item.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

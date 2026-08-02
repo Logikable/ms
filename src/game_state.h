@@ -11,7 +11,7 @@
 #include <random>
 #include <string>
 
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"

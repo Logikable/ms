@@ -5,12 +5,12 @@
  * on top of the read-only base class EquipTabItem (see item.h).
  * EquipTrace (also in item.h) is the companion type for destroyed items.
  */
-#ifndef MS_SRC_EQUIP_INSTANCE_H_
-#define MS_SRC_EQUIP_INSTANCE_H_
+#ifndef MS_SRC_ITEM_EQUIP_INSTANCE_H_
+#define MS_SRC_ITEM_EQUIP_INSTANCE_H_
 
 #include <random>
 
-#include "src/item.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -70,4 +70,4 @@ class EquipInstance : public EquipTabItem {
 
 }  // namespace ms
 
-#endif  // MS_SRC_EQUIP_INSTANCE_H_
+#endif  // MS_SRC_ITEM_EQUIP_INSTANCE_H_

@@ -1,4 +1,4 @@
-#include "src/inventory.h"
+#include "src/item/inventory.h"
 
 #include <memory>
 #include <vector>

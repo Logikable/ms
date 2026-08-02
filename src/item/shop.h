@@ -3,8 +3,8 @@
  * out of the catalog. So there is no second list to fall out of step with the
  * first, and no way to stock an item without saying what it costs.
  */
-#ifndef MS_SRC_SHOP_H_
-#define MS_SRC_SHOP_H_
+#ifndef MS_SRC_ITEM_SHOP_H_
+#define MS_SRC_ITEM_SHOP_H_
 
 #include <map>
 #include <string>
@@ -22,4 +22,4 @@ std::vector<std::string> ShopStock(
 
 }  // namespace ms
 
-#endif  // MS_SRC_SHOP_H_
+#endif  // MS_SRC_ITEM_SHOP_H_

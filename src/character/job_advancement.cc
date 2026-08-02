@@ -1,11 +1,11 @@
-#include "src/job_advancement.h"
+#include "src/character/job_advancement.h"
 
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"

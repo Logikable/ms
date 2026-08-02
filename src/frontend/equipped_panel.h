@@ -14,7 +14,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/frontend/item_menu.h"
 #include "src/frontend/scroll_panel.h"
 #include "src/frontend/types.h"

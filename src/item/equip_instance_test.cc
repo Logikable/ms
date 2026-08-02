@@ -1,4 +1,4 @@
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 
 #include <random>
 

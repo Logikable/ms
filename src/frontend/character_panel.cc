@@ -10,7 +10,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/character_stats.h"
+#include "src/character/character_stats.h"
 #include "src/combat/damage.h"
 #include "src/frontend/panel_util.h"
 #include "src/frontend/types.h"

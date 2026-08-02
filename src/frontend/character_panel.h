@@ -34,7 +34,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"

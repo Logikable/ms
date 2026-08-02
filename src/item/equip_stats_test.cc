@@ -1,4 +1,4 @@
-#include "src/equip_stats.h"
+#include "src/item/equip_stats.h"
 
 #include "absl/types/span.h"
 #include "gtest/gtest.h"

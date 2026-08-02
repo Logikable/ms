@@ -1,4 +1,4 @@
-#include "src/character.h"
+#include "src/character/character.h"
 
 #include <gtest/gtest.h>
 
@@ -6,9 +6,9 @@
 #include <random>
 #include <vector>
 
-#include "src/equip_instance.h"
-#include "src/exp_table.h"
-#include "src/item.h"
+#include "src/item/equip_instance.h"
+#include "src/character/exp_table.h"
+#include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"

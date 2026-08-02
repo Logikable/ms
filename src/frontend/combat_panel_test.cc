@@ -9,7 +9,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/protos/equip.pb.h"

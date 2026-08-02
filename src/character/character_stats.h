@@ -4,13 +4,13 @@
  * character deals, this one what the character has. character_stats.cc
  * implements it.
  */
-#ifndef MS_SRC_CHARACTER_STATS_H_
-#define MS_SRC_CHARACTER_STATS_H_
+#ifndef MS_SRC_CHARACTER_CHARACTER_STATS_H_
+#define MS_SRC_CHARACTER_CHARACTER_STATS_H_
 
 #include <map>
 #include <string>
 
-#include "src/character.h"
+#include "src/character/character.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -53,4 +53,4 @@ EquipStats TotalEquipStats(const CharacterInstance& character,
 
 }  // namespace ms
 
-#endif  // MS_SRC_CHARACTER_STATS_H_
+#endif  // MS_SRC_CHARACTER_CHARACTER_STATS_H_

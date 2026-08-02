@@ -6,11 +6,11 @@
 #include <utility>
 #include <vector>
 
-#include "src/character.h"
-#include "src/character_stats.h"
+#include "src/character/character.h"
+#include "src/character/character_stats.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
-#include "src/equip_instance.h"
+#include "src/item/equip_instance.h"
 #include "src/game_state.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"

@@ -9,7 +9,7 @@
 #include <string>
 
 #include "ftxui/dom/elements.hpp"
-#include "src/item.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {

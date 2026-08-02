@@ -1,4 +1,4 @@
-#include "src/item.h"
+#include "src/item/item.h"
 
 #include "gtest/gtest.h"
 #include "src/protos/equip.pb.h"

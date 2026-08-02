@@ -8,12 +8,12 @@
  *   EquipTrace    — destroyed item snapshot; appends " Trace" to the name.
  *   EquipInstance — mutable subclass adding Scroll/StarForce; equip_instance.h.
  */
-#ifndef MS_SRC_ITEM_H_
-#define MS_SRC_ITEM_H_
+#ifndef MS_SRC_ITEM_ITEM_H_
+#define MS_SRC_ITEM_ITEM_H_
 
 #include <string>
 
-#include "src/equip_stats.h"
+#include "src/item/equip_stats.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -117,4 +117,4 @@ class EquipTrace : public EquipTabItem {
 
 }  // namespace ms
 
-#endif  // MS_SRC_ITEM_H_
+#endif  // MS_SRC_ITEM_ITEM_H_

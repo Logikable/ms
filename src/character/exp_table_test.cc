@@ -1,4 +1,4 @@
-#include "src/exp_table.h"
+#include "src/character/exp_table.h"
 
 #include <gtest/gtest.h>
 
