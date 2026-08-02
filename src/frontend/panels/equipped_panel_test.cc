@@ -4,10 +4,15 @@
 
 #include <algorithm>
 #include <memory>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/event.hpp"
+#include "ftxui/dom/node.hpp"
+#include "ftxui/screen/screen.hpp"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
@@ -247,6 +252,67 @@ TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {
 TEST_F(EquippedPanelTest, SelectedSlotReturnsUnspecifiedWhenEmpty) {
   EquippedPanel panel(c_, panel_focus_);
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
+}
+
+// --- cursor_row ---
+
+// A rogue with both slots filled, so the list has two rows to tell apart.
+CharacterInstance MakeRogueWithTwoItems(std::mt19937& rng) {
+  EquipPrototype dagger;
+  dagger.set_name("Reef Claw");
+  dagger.set_equip_type(EQUIP_TYPE_DAGGER);
+  dagger.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipPrototype stars;
+  stars.set_name("Steely Throwing-Knives");
+  stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
+  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  Character proto;
+  proto.set_job(JOB_ROGUE);
+  CharacterInstance rogue(rng, std::move(proto));
+  rogue.PickUp(std::make_unique<EquipInstance>(dagger));
+  rogue.Equip(0);
+  rogue.PickUp(std::make_unique<EquipInstance>(stars));
+  rogue.Equip(0);
+  return rogue;
+}
+
+// The screen row a list cursor was drawn on, or -1.
+int RowWithCursor(const ftxui::Screen& screen) {
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x + 1 < screen.dimx(); ++x) {
+      if (screen.PixelAt(x, y).character == ">" &&
+          screen.PixelAt(x + 1, y).character == " ") {
+        return y;
+      }
+    }
+  }
+  return -1;
+}
+
+// What the item menu anchors to. Read from the render rather than counted up
+// from the header rows above the list, which is what the caller used to do.
+TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
+  CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
+  EquippedPanel panel(rogue, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, comp->Render());
+  int drawn = RowWithCursor(screen);
+  ASSERT_GE(drawn, 0) << "no cursor was drawn";
+  EXPECT_EQ(panel.cursor_row(), drawn);
+}
+
+// It follows the cursor rather than sitting at the top of the list.
+TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
+  CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
+  EquippedPanel panel(rogue, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderComponent(comp);
+  int first = panel.cursor_row();
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  RenderComponent(comp);
+  EXPECT_EQ(panel.cursor_row(), first + 1);
 }
 
 }  // namespace

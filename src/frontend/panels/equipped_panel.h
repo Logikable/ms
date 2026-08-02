@@ -14,6 +14,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
+#include "ftxui/screen/box.hpp"
 #include "src/character/character.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
@@ -38,6 +39,16 @@ class EquippedPanel {
   int selected() const {
     return selected_;
   }
+  // The screen row the highlighted item was last drawn on, for anchoring the
+  // item menu beside it. Read from the render rather than worked out from
+  // selected(), which is a position in the data and not on the screen.
+  //
+  // Filled during the previous render, so it is one frame behind. That is what
+  // is wanted: the menu opens on a keypress, which does not move the list, so
+  // the row it was drawn on last frame is the row it is on now.
+  int cursor_row() const {
+    return cursor_box_.y_min;
+  }
   // Returns the slot of the currently highlighted item, or
   // EQUIP_SLOT_UNSPECIFIED if the list is empty.
   EquipSlot selected_slot() const;
@@ -51,6 +62,8 @@ class EquippedPanel {
   // Parallel to entries_: whether that item is currently doing nothing, which
   // the entry transform draws as a dimmed row.
   std::vector<bool> inactive_;
+  // Written by ftxui::reflect on the highlighted row each render.
+  ftxui::Box cursor_box_;
   ItemMenu menu_;
 };
 

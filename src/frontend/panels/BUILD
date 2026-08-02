@@ -58,6 +58,9 @@ cc_test(
         "//src/frontend/widgets:panel_test_base",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
         "@googletest//:gtest_main",
     ],
 )
@@ -88,6 +91,8 @@ cc_test(
     deps = [
         ":inventory_panel",
         "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
         "@googletest//:gtest_main",
     ],
 )

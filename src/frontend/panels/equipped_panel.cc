@@ -112,6 +112,10 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
     std::string cursor = state.focused ? "> " : "  ";
     ftxui::Element row = ftxui::text(cursor + state.label);
     int idx = state.index;
+    if (idx == selected_) {
+      // Records where this row lands so the item menu can open beside it.
+      row = std::move(row) | ftxui::reflect(cursor_box_);
+    }
     if (idx >= 0 && idx < static_cast<int>(inactive_.size()) &&
         inactive_[idx]) {
       // The item is worn but contributing nothing, so the whole row is dimmed

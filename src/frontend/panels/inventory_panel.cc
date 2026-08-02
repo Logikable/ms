@@ -66,7 +66,8 @@ ftxui::Element RenderTabBar(int active_tab, int64_t meso, bool row_selected) {
 // The cursor is drawn only when `focused`, matching the Equip tab, whose menu
 // takes its cursor from ftxui's own focus state.
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
-                               int selected, bool focused) {
+                               int selected, bool focused,
+                               ftxui::Box& cursor_box) {
   std::vector<ftxui::Element> rows;
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
     std::string cursor = "  ";
@@ -80,7 +81,9 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
       // ftxui::Menu, so nothing else marks the cursor and the list would
       // happily scroll away from it. Marked whether or not the panel holds
       // focus, so the view does not jump when focus comes back.
-      row = std::move(row) | ftxui::focus;
+      //
+      // Reflected as well, so the item menu knows the row to open beside.
+      row = std::move(row) | ftxui::focus | ftxui::reflect(cursor_box);
     }
     rows.push_back(std::move(row));
   }
@@ -299,8 +302,8 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
         selected_stack_, std::max(0, static_cast<int>(stacks.size()) - 1));
     // The stack cursor shows only while the list zone holds focus, so it never
     // competes with the white tab-bar highlight.
-    body =
-        RenderStackList(stacks, selected_stack_, focused && zone_ == kZoneList);
+    body = RenderStackList(stacks, selected_stack_,
+                           focused && zone_ == kZoneList, cursor_box_);
   } else {
     body = RenderEquipList(menu);
   }
@@ -329,13 +332,20 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
     // competes with the white tab-bar highlight above.
     std::string cursor = state.focused && zone_ == kZoneList ? "> " : "  ";
     int idx = state.index;
+    // Records where the highlighted row lands so the item menu can open beside
+    // it. Applied to whichever of the rows below is built, so it follows the
+    // row rather than one particular way of drawing it.
+    ftxui::Decorator mark = [](ftxui::Element e) { return e; };
+    if (idx == selected_) {
+      mark = ftxui::reflect(cursor_box_);
+    }
     if (idx < 0 || idx >= static_cast<int>(rows_.size()) ||
         static_cast<int>(lbl.size()) < 60) {
-      return ftxui::text(cursor + lbl);
+      return ftxui::text(cursor + lbl) | mark;
     }
     const InventoryRowState& row = rows_[idx];
     if (row.level_ok && row.job_ok && !row.is_trace) {
-      return ftxui::text(cursor + lbl);
+      return ftxui::text(cursor + lbl) | mark;
     }
     // name(26) | "  "+slot(10)+"  "(14) | level(7) | job(13) | rest
     ftxui::Element name_elem = ftxui::text(lbl.substr(0, 26));
@@ -352,7 +362,8 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
     }
     return ftxui::hbox({ftxui::text(cursor), name_elem,
                         ftxui::text(lbl.substr(26, 14)), lv_elem, job_elem,
-                        ftxui::text(lbl.substr(60))});
+                        ftxui::text(lbl.substr(60))}) |
+           mark;
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
   // rows_ and entries_ are rebuilt on every render via RenderContent so the

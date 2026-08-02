@@ -1,5 +1,6 @@
 #include "src/frontend/tui.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -278,32 +279,28 @@ ftxui::Element Tui::RenderMain() {
   if (controller_.screen() != kItemMenu) {
     return layout;
   }
-  int menu_row = 0;
+  // Asked of the panel rather than counted up from the header rows above it.
+  // The old arithmetic added a fixed offset to the selected index, which stops
+  // being the row on screen the moment the bag is long enough to scroll -- and
+  // it had to be told the shape of both panels to do it.
+  int cursor_row = 0;
   if (panel_focus_ == kEquipPanel) {
-    // +3 for equip column header + sub-header + separator above items.
-    menu_row = 3 + equip_panel_.selected();
+    cursor_row = equip_panel_.cursor_row();
   } else {
-    int equip_count = static_cast<int>(state_.character.equipped().size());
-    // Non-empty equip panel adds header + sub-header + separator; empty has
-    // neither.
-    int equip_rows = std::max(1, equip_count) + (equip_count > 0 ? 3 : 0);
-    if (inventory_panel_.on_stackable_tab()) {
-      // +6: equip borders (2) + inventory tab bar + tab separator (2) + stack
-      // Name/Quantity header + separator (2).
-      menu_row = equip_rows + 6 + inventory_panel_.selected_stack();
-    } else {
-      // +7: equip borders (2) + inventory tab bar + tab separator (2) + column
-      // header + sub-header + separator (3).
-      menu_row = equip_rows + 7 + inventory_panel_.selected();
-    }
+    cursor_row = inventory_panel_.cursor_row();
   }
+  // Opened a row above the item, so the entry standing highlighted lands
+  // beside the item it would act on rather than below it.
+  int menu_row = std::max(0, cursor_row - 1);
   ItemMenu& menu = panel_focus_ == kEquipPanel ? equip_panel_.menu()
                                                : inventory_panel_.menu();
   // Offset past char panel border, menu cursor, name column, slot column, and
   // separators so the menu covers stats rather than item names.
   constexpr int kMenuCol =
       CharacterPanel::kTotalWidth + 1 + 2 + 18 + 2 + 10 + 2;
-  return ftxui::dbox({layout, menu.Render(menu_row, kMenuCol)});
+  // Floated so a menu opened near the foot of the bag hangs off the panel
+  // rather than being cut off at the edge of the terminal.
+  return ftxui::dbox({layout, Floating(menu.Render(menu_row, kMenuCol))});
 }
 
 ftxui::Element Tui::RenderExpBar() {

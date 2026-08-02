@@ -21,6 +21,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
+#include "ftxui/screen/box.hpp"
 #include "src/character/character.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
@@ -51,6 +52,17 @@ class InventoryPanel {
   // The context menu for the active tab: the equip menu on Equip, the sell menu
   // on Use/Etc.
   ItemMenu& menu();
+  // The screen row the highlighted item was last drawn on, whichever tab is
+  // open, for anchoring the item menu beside it. Read from the render rather
+  // than worked out from selected(), which is a position in the data: once the
+  // list is long enough to scroll the two stop agreeing.
+  //
+  // Filled during the previous render, so it is one frame behind. That is what
+  // is wanted: the menu opens on a keypress, which does not scroll the list, so
+  // the row it was drawn on last frame is the row it is on now.
+  int cursor_row() const {
+    return cursor_box_.y_min;
+  }
   int selected() const {
     return selected_;
   }
@@ -83,7 +95,9 @@ class InventoryPanel {
 
   CharacterInstance& character_;
   int& panel_focus_;
-  Zone zone_ = kZoneTabs;   // which focus zone holds the cursor
+  Zone zone_ = kZoneTabs;  // which focus zone holds the cursor
+  // Written by ftxui::reflect on the highlighted row each render.
+  ftxui::Box cursor_box_;
   int selected_ = 0;        // selected row on the Equip tab (ftxui::Menu index)
   int selected_stack_ = 0;  // selected row on the active Use/Etc tab
   int active_tab_ = 0;      // 0 = Equip, 1 = Use, 2 = Etc

@@ -9,6 +9,8 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
+#include "ftxui/dom/node.hpp"
+#include "ftxui/screen/screen.hpp"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
@@ -52,6 +54,37 @@ class InventoryPanelTest : public PanelTest {
     proto.set_category(category);
     proto.set_sell_price(sell_price);
     return proto;
+  }
+
+  // The same bounded screen RenderComponent uses, kept so a test can read
+  // pixels rather than the joined string. The bound is the point: the list
+  // really does overflow and scroll at this size.
+  ftxui::Screen RenderToScreen(ftxui::Component component) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Render(screen, component->Render());
+    return screen;
+  }
+
+  // The screen row the list cursor was drawn on, or -1. Found by cell rather
+  // than by searching the joined row, whose border glyphs are multibyte.
+  int RowWithCursor(const ftxui::Screen& screen) {
+    for (int y = 0; y < screen.dimy(); ++y) {
+      for (int x = 0; x + 1 < screen.dimx(); ++x) {
+        if (screen.PixelAt(x, y).character == ">" &&
+            screen.PixelAt(x + 1, y).character == " ") {
+          return y;
+        }
+      }
+    }
+    return -1;
+  }
+
+  // Fills the bag past what the test screen can show.
+  void FillBag(int count) {
+    for (int i = 0; i < count; ++i) {
+      c_.PickUp(std::make_unique<EquipInstance>(sword_));
+    }
   }
 };
 
@@ -289,6 +322,9 @@ TEST_F(InventoryPanelTest, UseTabCursorStartsOnFirstStack) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, panel_focus_);
+  // The stack list draws its cursor only while the panel holds focus, and this
+  // test compares cursor_row() against where that cursor landed.
+  panel_focus_ = kInventoryPanel;
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
@@ -445,6 +481,112 @@ TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
     EXPECT_NE(RenderComponent(comp).find("> "), std::string::npos)
         << "the cursor left the window after " << i + 1 << " steps down";
   }
+}
+
+// --- cursor_row ---
+
+// What the item menu anchors to. It has to be where the cursor was actually
+// drawn, not where the selected index says it should be.
+TEST_F(InventoryPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> second item
+  ftxui::Screen screen = RenderToScreen(comp);
+  EXPECT_EQ(panel.cursor_row(), RowWithCursor(screen));
+}
+
+// The bug this replaced: past the point where the list scrolls, the selected
+// index and the row on screen stop agreeing, and the old arithmetic followed
+// the index. Walked one item at a time because the frame scrolls at render
+// time -- stepping to the end and looking once cannot tell a cursor that kept
+// up from one that merely caught up.
+TEST_F(InventoryPanelTest, CursorRowFollowsAListThatHasScrolled) {
+  FillBag(40);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
+  for (int i = 0; i < 39; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+    ftxui::Screen screen = RenderToScreen(comp);
+    ASSERT_EQ(panel.cursor_row(), RowWithCursor(screen))
+        << "cursor row wrong on item " << i + 1;
+  }
+  // And the two really did come apart, which is the whole point: the index is
+  // well past the bottom of a twenty-row screen while the row it is drawn on
+  // is still inside the window.
+  EXPECT_GT(panel.selected(), panel.cursor_row());
+  EXPECT_LT(panel.cursor_row(), 20);
+}
+
+// The equip tab draws a row two ways -- plain, or split into coloured cells
+// when the character cannot equip it -- and the mark has to ride along with
+// whichever is built. sword_ is level 10 and Warrior-only, so every test above
+// takes the coloured path; this one is something a level-1 Beginner can wear.
+TEST_F(InventoryPanelTest, CursorRowIsFoundOnAnItemTheCharacterCanEquip) {
+  EquipPrototype plain;
+  plain.set_name("Plain Sword");
+  plain.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  plain.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.PickUp(std::make_unique<EquipInstance>(plain));
+  c_.PickUp(std::make_unique<EquipInstance>(plain));
+  ASSERT_TRUE(c_.MeetsLevel(plain));
+  ASSERT_TRUE(c_.MeetsJob(plain));
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
+  comp->OnEvent(ftxui::Event::ArrowDown);  // -> second item
+  ftxui::Screen screen = RenderToScreen(comp);
+  EXPECT_EQ(panel.cursor_row(), RowWithCursor(screen));
+}
+
+// In the game the bag is not at the top of the screen -- the equipped panel
+// sits above it. The row reported has to be the row on the SCREEN, so it has
+// to carry that offset.
+TEST_F(InventoryPanelTest, CursorRowIsAScreenRowNotARowWithinThePanel) {
+  FillBag(40);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
+  for (int i = 0; i < 39; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                                 ftxui::Dimension::Fixed(20));
+    // Three rows of something else above it, as the equipped panel is.
+    ftxui::Render(screen, ftxui::vbox({
+                              ftxui::text("above"),
+                              ftxui::text("above"),
+                              ftxui::text("above"),
+                              comp->Render(),
+                          }));
+    ASSERT_EQ(panel.cursor_row(), RowWithCursor(screen))
+        << "cursor row wrong on item " << i + 1;
+  }
+}
+
+// The Use and Etc tabs hand-roll their rows rather than using ftxui::Menu, so
+// they need marking of their own.
+TEST_F(InventoryPanelTest, CursorRowFollowsTheStackListToo) {
+  for (int i = 0; i < 30; ++i) {
+    c_.AddStackable(
+        MakeStackable("Potion " + std::to_string(i), ITEM_CATEGORY_USE), 1);
+  }
+  InventoryPanel panel(c_, panel_focus_);
+  // The stack list draws its cursor only while the panel holds focus, and this
+  // test compares cursor_row() against where that cursor landed.
+  panel_focus_ = kInventoryPanel;
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
+  for (int i = 0; i < 29; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+    ftxui::Screen screen = RenderToScreen(comp);
+    ASSERT_EQ(panel.cursor_row(), RowWithCursor(screen))
+        << "cursor row wrong on stack " << i + 1;
+  }
+  EXPECT_GT(panel.selected_stack(), panel.cursor_row());
 }
 
 }  // namespace
