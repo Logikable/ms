@@ -190,9 +190,12 @@ ftxui::Element Tui::RenderFrame() {
     // item until someone buys it.
     EquipInstance preview(*proto);
     inspect_panel_.SetItem(&preview);
-    return ftxui::dbox({
-        ftxui::center(shop_panel_.Render()),
-        ftxui::center(inspect_panel_.Render() | ftxui::clear_under),
+    // A screen of its own, like inspecting something already in the bag. The
+    // details are what the player came to read, so nothing sits behind them.
+    return ftxui::hbox({
+        ftxui::filler(),
+        inspect_panel_.Render(),
+        ftxui::filler(),
     });
   }
   if (controller_.screen() == kShopBuy) {
