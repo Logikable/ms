@@ -220,6 +220,102 @@ TEST_F(ShopPanelTest, LeavesAnEquippableItemUncolored) {
   EXPECT_NE(CellColor(panel, "Machete", "10,000"), kRed);
 }
 
+TEST_F(ShopPanelTest, OpensAMenuOverTheSelectedItem) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  EXPECT_FALSE(panel.menu_open());
+  panel.OpenMenu();
+  EXPECT_TRUE(panel.menu_open());
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Inspect"), std::string::npos);
+  EXPECT_NE(rendered.find("Buy"), std::string::npos);
+  EXPECT_NE(rendered.find("Close"), std::string::npos);
+}
+
+TEST_F(ShopPanelTest, DoesNotDrawTheMenuUntilItIsOpened) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  std::string rendered = Render(panel);
+  EXPECT_EQ(rendered.find("Inspect"), std::string::npos);
+  EXPECT_EQ(rendered.find("Close"), std::string::npos);
+}
+
+TEST_F(ShopPanelTest, MenuEntriesGoToTheirScreens) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+
+  panel.OpenMenu();
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kShopInspect)
+      << "the menu opens on Inspect";
+
+  panel.OpenMenu();
+  panel.OnMenuEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kShopBuy);
+
+  panel.OpenMenu();
+  panel.OnMenuEvent(ftxui::Event::ArrowDown);
+  panel.OnMenuEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kShop);
+}
+
+// Whatever the entry, the menu comes down on the way out -- otherwise it would
+// still be standing over the list behind the screen it opened.
+TEST_F(ShopPanelTest, ChoosingAnEntryClosesTheMenu) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OpenMenu();
+  panel.OnMenuEvent(ftxui::Event::Return);
+  EXPECT_FALSE(panel.menu_open());
+  EXPECT_EQ(Render(panel).find("Inspect"), std::string::npos);
+}
+
+TEST_F(ShopPanelTest, EscapeClosesTheMenuAndStaysInTheShop) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OpenMenu();
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Escape), kShop);
+  EXPECT_FALSE(panel.menu_open());
+}
+
+TEST_F(ShopPanelTest, TheMenuStaysUpWhileWalkingIt) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OpenMenu();
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::ArrowDown), kShopMenu);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::ArrowUp), kShopMenu);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Character('x')), kShopMenu)
+      << "the menu is modal over the list";
+  EXPECT_TRUE(panel.menu_open());
+}
+
+// The menu opens on Inspect every time, rather than wherever it was left.
+TEST_F(ShopPanelTest, TheMenuReopensOnItsFirstEntry) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OpenMenu();
+  panel.OnMenuEvent(ftxui::Event::ArrowDown);
+  panel.OnMenuEvent(ftxui::Event::Escape);
+  panel.OpenMenu();
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kShopInspect);
+}
+
+TEST_F(ShopPanelTest, ResetTakesDownAnOpenMenu) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OpenMenu();
+  panel.Reset();
+  EXPECT_FALSE(panel.menu_open());
+}
+
+// Nothing to act on, so nothing to open a menu of.
+TEST_F(ShopPanelTest, AnEmptyShopOpensNoMenu) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> nothing;
+  ShopPanel panel(c, nothing);
+  panel.OpenMenu();
+  EXPECT_FALSE(panel.menu_open());
+}
+
 TEST_F(ShopPanelTest, AnEmptyShopSaysSo) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> nothing;

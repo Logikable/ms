@@ -146,6 +146,8 @@ class TuiController {
   bool OnSellEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnShopEvent(ftxui::Event event);
+  bool OnShopMenuEvent(ftxui::Event event);
+  bool OnShopInspectEvent(ftxui::Event event);
   bool OnShopBuyEvent(ftxui::Event event);
 
   GameState& state_;

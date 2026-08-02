@@ -20,6 +20,8 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/frontend/types.h"
+#include "src/frontend/widgets/item_menu.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -28,6 +30,13 @@ namespace ms {
 enum ShopTab : int {
   kShopEquipsTab = 0,
   kNumShopTabs = 1,
+};
+
+// Entries of the context menu an item opens, in display order.
+enum ShopMenuItem : int {
+  kShopMenuInspect = 0,
+  kShopMenuBuy = 1,
+  kShopMenuClose = 2,
 };
 
 class ShopPanel {
@@ -45,6 +54,16 @@ class ShopPanel {
   // The prototype under the cursor, or nullptr when the shop is empty.
   const EquipPrototype* selected_item() const;
 
+  // Opens the context menu over the selected item. Does nothing when the shop
+  // has nothing to open it on.
+  void OpenMenu();
+  bool menu_open() const;
+  // Drives the context menu and says what should be on screen afterwards:
+  // kShopMenu while it stays up, kShopInspect or kShopBuy for the entry the
+  // player chose, kShop once it closes. The menu closes itself on the way out,
+  // so a caller that returns to kShop finds the list as it left it.
+  Screen OnMenuEvent(ftxui::Event event);
+
  private:
   const CharacterInstance& character_;
   const std::map<std::string, EquipPrototype>& equips_;
@@ -52,6 +71,8 @@ class ShopPanel {
   // the shop sells does not change as the player buys.
   std::vector<std::string> stock_;
   int selected_ = 0;
+  ItemMenu menu_;
+  bool menu_open_ = false;
 };
 
 }  // namespace ms

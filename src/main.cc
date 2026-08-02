@@ -46,6 +46,10 @@ int main(int argc, char** argv) {
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
                       std::move(mobs), std::move(maps), std::move(skills));
 
+  // Enough to buy anything the shop stocks, several times over, so the buying
+  // screens can be exercised without grinding for the meso first.
+  state.character.AddMeso(1000000);
+
   // Nothing is equipped: the character starts at its first job advancement,
   // and taking it is what hands over a weapon. These are for scrolling and
   // star force experimentation.

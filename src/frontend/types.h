@@ -25,6 +25,8 @@ enum Screen : int {
   kSell,
   kMapSelect,
   kShop,
+  kShopMenu,
+  kShopInspect,
   kShopBuy,
 };
 // Focusable panels of the main screen, in Tab order: clockwise from the

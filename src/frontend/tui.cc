@@ -175,8 +175,25 @@ ftxui::Element Tui::RenderFrame() {
   if (controller_.screen() == kMapSelect) {
     return ftxui::center(map_select_panel_.Render());
   }
-  if (controller_.screen() == kShop) {
+  // kShopMenu draws the same thing: the menu is anchored inside the panel, so
+  // the panel puts it up itself.
+  if (controller_.screen() == kShop || controller_.screen() == kShopMenu) {
     return ftxui::center(shop_panel_.Render());
+  }
+  if (controller_.screen() == kShopInspect) {
+    const EquipPrototype* proto = shop_panel_.selected_item();
+    if (proto == nullptr) {
+      return ftxui::center(shop_panel_.Render());
+    }
+    // A pristine copy of what the shop would hand over -- no scrolls spent, no
+    // stars. Built here rather than held anywhere, because nothing owns a shop
+    // item until someone buys it.
+    EquipInstance preview(*proto);
+    inspect_panel_.SetItem(&preview);
+    return ftxui::dbox({
+        ftxui::center(shop_panel_.Render()),
+        ftxui::center(inspect_panel_.Render() | ftxui::clear_under),
+    });
   }
   if (controller_.screen() == kShopBuy) {
     // Float the buy dialog over the shop, so the list it came from stays

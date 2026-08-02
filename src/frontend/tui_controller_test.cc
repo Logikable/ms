@@ -124,6 +124,15 @@ class TuiControllerTest : public testing::Test {
     inventory_component_->OnEvent(ftxui::Event::Return);
   }
 
+  // Opens the shop, then the menu on the first item, then its Buy entry,
+  // leaving the buy dialog up with the quantity field focused.
+  void OpenBuyDialog() {
+    OpenShop();
+    controller_->OnEvent(ftxui::Event::Return);     // -> kShopMenu, on Inspect
+    controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Buy
+    controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy
+  }
+
   // MapSelectPanel fixes its display order at construction, so the maps must
   // exist before it does -- rebuild both after touching state_->maps.
   void RebuildMapSelect() {
@@ -995,16 +1004,65 @@ TEST_F(TuiControllerTest, ShopEscapeReturnsToTheBag) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, EnterOnAShopItemOpensTheBuyDialog) {
+TEST_F(TuiControllerTest, EnterOnAShopItemOpensTheMenu) {
   OpenShop();
   controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kShopMenu);
+}
+
+TEST_F(TuiControllerTest, ShopMenuInspectOpensTheInspectScreen) {
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);  // -> kShopMenu, on Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kShopInspect);
+}
+
+// Inspecting is how a player decides whether to buy, so leaving the inspect
+// screen puts them back at the list rather than out in the bag.
+TEST_F(TuiControllerTest, LeavingShopInspectReturnsToTheShop) {
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // Inspect
+  ASSERT_EQ(controller_->screen(), kShopInspect);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kShop);
+}
+
+TEST_F(TuiControllerTest, ShopMenuBuyOpensTheBuyDialog) {
+  OpenBuyDialog();
   EXPECT_EQ(controller_->screen(), kShopBuy);
+}
+
+TEST_F(TuiControllerTest, ShopMenuCloseReturnsToTheList) {
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);     // -> kShopMenu
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Buy
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Close
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kShop);
+}
+
+TEST_F(TuiControllerTest, EscapeFromTheShopMenuReturnsToTheList) {
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kShop);
+}
+
+// Escape out of the menu leaves the list where it was, so the next Escape is
+// the one that leaves the shop.
+TEST_F(TuiControllerTest, EscapeFromTheShopMenuDoesNotLeaveTheShop) {
+  OpenShop();
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(controller_->screen(), kShop);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 TEST_F(TuiControllerTest, BuyingTakesTheMesoAndFillsTheBag) {
   state_->character.AddMeso(25000);
-  OpenShop();
-  controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy, quantity 1
+  OpenBuyDialog();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   controller_->OnEvent(ftxui::Event::Return);     // Confirm
 
@@ -1016,8 +1074,7 @@ TEST_F(TuiControllerTest, BuyingTakesTheMesoAndFillsTheBag) {
 
 TEST_F(TuiControllerTest, BuyingTheTypedQuantity) {
   state_->character.AddMeso(25000);
-  OpenShop();
-  controller_->OnEvent(ftxui::Event::Return);
+  OpenBuyDialog();
   controller_->OnEvent(ftxui::Event::Backspace);       // clear the 1
   controller_->OnEvent(ftxui::Event::Character('2'));  // two of them
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -1029,8 +1086,7 @@ TEST_F(TuiControllerTest, BuyingTheTypedQuantity) {
 
 TEST_F(TuiControllerTest, CancellingABuyReturnsToTheShopUnchanged) {
   state_->character.AddMeso(25000);
-  OpenShop();
-  controller_->OnEvent(ftxui::Event::Return);
+  OpenBuyDialog();
   controller_->OnEvent(ftxui::Event::Escape);
 
   EXPECT_EQ(controller_->screen(), kShop);
@@ -1042,8 +1098,7 @@ TEST_F(TuiControllerTest, CancellingABuyReturnsToTheShopUnchanged) {
 // so by leaving Confirm inert.
 TEST_F(TuiControllerTest, ConfirmingWhatCannotBeAffordedBuysNothing) {
   state_->character.AddMeso(500);
-  OpenShop();
-  controller_->OnEvent(ftxui::Event::Return);
+  OpenBuyDialog();
   EXPECT_EQ(controller_->screen(), kShopBuy);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);

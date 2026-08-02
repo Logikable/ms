@@ -48,11 +48,56 @@ std::string LevelCell(const EquipPrototype& proto) {
 
 ShopPanel::ShopPanel(const CharacterInstance& character,
                      const std::map<std::string, EquipPrototype>& equips)
-    : character_(character), equips_(equips), stock_(ShopStock(equips)) {
+    : character_(character),
+      equips_(equips),
+      stock_(ShopStock(equips)),
+      menu_({"Inspect", "Buy", "Close"}) {
 }
 
 void ShopPanel::Reset() {
   selected_ = 0;
+  menu_open_ = false;
+}
+
+void ShopPanel::OpenMenu() {
+  if (selected_item() == nullptr) {
+    return;
+  }
+  menu_.Reset();
+  menu_open_ = true;
+}
+
+bool ShopPanel::menu_open() const {
+  return menu_open_;
+}
+
+Screen ShopPanel::OnMenuEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    menu_open_ = false;
+    return kShop;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    menu_.Up();
+    return kShopMenu;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    menu_.Down();
+    return kShopMenu;
+  }
+  if (IsForward(event)) {
+    // Closed on the way out whichever entry was chosen, so the screen it opens
+    // is not drawn with the menu still standing over the list behind it.
+    menu_open_ = false;
+    if (menu_.selected() == kShopMenuInspect) {
+      return kShopInspect;
+    }
+    if (menu_.selected() == kShopMenuBuy) {
+      return kShopBuy;
+    }
+    return kShop;
+  }
+  // Swallow everything else: the menu is modal over the list.
+  return kShopMenu;
 }
 
 const EquipPrototype* ShopPanel::selected_item() const {
@@ -129,7 +174,21 @@ ftxui::Element ShopPanel::Render() const {
         ftxui::text(" "),
     }));
   }
-  return ThemedWindow(" Shop ", ftxui::vbox(std::move(rows)));
+  ftxui::Element window = ThemedWindow(" Shop ", ftxui::vbox(std::move(rows)));
+  if (!menu_open_) {
+    return window;
+  }
+  // Anchored inside the panel rather than on the terminal, because the shop is
+  // centred and so has no fixed place on screen to measure from.
+  //
+  // +5 rows: the window's top border, the tab row, its separator, the column
+  // header, its separator. kMenuCol clears the border and the name column, so
+  // the menu covers what the item asks for rather than what it is called.
+  constexpr int kMenuCol = 1 + 2 + kNameWidth;
+  return ftxui::dbox({
+      std::move(window),
+      menu_.Render(5 + selected_, kMenuCol),
+  });
 }
 
 }  // namespace ms

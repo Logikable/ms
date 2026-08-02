@@ -161,6 +161,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kShop) {
     return OnShopEvent(event);
   }
+  if (screen_ == kShopMenu) {
+    return OnShopMenuEvent(event);
+  }
+  if (screen_ == kShopInspect) {
+    return OnShopInspectEvent(event);
+  }
   if (screen_ == kShopBuy) {
     return OnShopBuyEvent(event);
   }
@@ -413,16 +419,38 @@ bool TuiController::OnShopEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
-    const EquipPrototype* item = shop_panel_.selected_item();
-    if (item != nullptr) {
-      buy_item_ = item->name();
-      buy_panel_.Reset(item->name(), item->shop_price(),
-                       state_.character.meso());
-      screen_ = kShopBuy;
+    shop_panel_.OpenMenu();
+    if (shop_panel_.menu_open()) {
+      screen_ = kShopMenu;
     }
     return true;
   }
   shop_panel_.OnEvent(event);
+  // Swallow everything else: this is a modal screen.
+  return true;
+}
+
+bool TuiController::OnShopMenuEvent(ftxui::Event event) {
+  Screen next = shop_panel_.OnMenuEvent(event);
+  if (next == kShopBuy) {
+    const EquipPrototype* item = shop_panel_.selected_item();
+    if (item == nullptr) {
+      screen_ = kShop;
+      return true;
+    }
+    buy_item_ = item->name();
+    buy_panel_.Reset(item->name(), item->shop_price(), state_.character.meso());
+  }
+  screen_ = next;
+  return true;
+}
+
+bool TuiController::OnShopInspectEvent(ftxui::Event event) {
+  if (IsBack(event) || IsForward(event)) {
+    // Back to the shop rather than the bag: inspecting is how a player decides
+    // whether to buy, so the list is where they were going next either way.
+    screen_ = kShop;
+  }
   // Swallow everything else: this is a modal screen.
   return true;
 }

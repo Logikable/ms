@@ -191,7 +191,9 @@ cc_library(
     hdrs = ["shop_panel.h"],
     deps = [
         "//src/character",
+        "//src/frontend:types",
         "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:panel_util",
         "//src/item:shop",
         "//src/protos:equip_proto_cc",
