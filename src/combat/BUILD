@@ -72,6 +72,8 @@ cc_test(
         ":combat",
         ":fight",
         "//src:game_state",
+        "//src/character:exp_table",
+        "//src/item",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

@@ -215,8 +215,13 @@ void CharacterInstance::LevelUp() {
 }
 
 void CharacterInstance::AddExp(int64_t amount) {
+  // At the cap the EXP is dropped rather than banked, so a character who kept
+  // fighting there is not sitting on a windfall the day the cap is lifted.
+  if (character_.level() >= kTrialLevelCap) {
+    return;
+  }
   character_.set_exp(character_.exp() + amount);
-  while (character_.level() < kMaxLevel) {
+  while (character_.level() < kTrialLevelCap) {
     int64_t threshold = ExpToNextLevel(character_.level());
     if (character_.exp() < threshold) {
       break;
@@ -224,7 +229,7 @@ void CharacterInstance::AddExp(int64_t amount) {
     character_.set_exp(character_.exp() - threshold);
     LevelUp();
   }
-  if (character_.level() >= kMaxLevel) {
+  if (character_.level() >= kTrialLevelCap) {
     character_.set_exp(0);
   }
 }

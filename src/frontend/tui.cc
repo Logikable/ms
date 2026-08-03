@@ -329,11 +329,11 @@ ftxui::Element Tui::RenderExpBar() {
   const Character& p = state_.character.proto();
   std::string label;
   float frac;
-  if (p.level() >= kMaxLevel) {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%.*f%%", ExpPctDecimals(p.level()), 0.0);
-    label = std::string("0 (") + buf + ")";
-    frac = 0.0f;
+  if (p.level() >= kTrialLevelCap) {
+    // Full rather than empty. There is no next level to fill towards, and a
+    // bar sitting at 0% reads like the EXP was taken away.
+    label = "MAX";
+    frac = 1.0f;
   } else {
     int64_t exp = p.exp();
     int64_t tnl = ExpToNextLevel(p.level());

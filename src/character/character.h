@@ -50,9 +50,11 @@ class CharacterInstance {
 
   // Increments level and grants 5 AP, plus 3 SP into the job stage whose level
   // band the new level falls in (levels 11-30 -> 1st job, 31-60 -> 2nd, ...).
+  // Not bounded by kTrialLevelCap: the cap is on what can be earned, and this
+  // is how a level is granted outright.
   void LevelUp();
   // Adds amount to the character's accumulated EXP, leveling up as many times
-  // as the new total allows. No-op once kMaxLevel is reached.
+  // as the new total allows. No-op once kTrialLevelCap is reached.
   void AddExp(int64_t amount);
   // Increments job_stage, sets job to `next_job`, grants 5 bonus AP at stages
   // 3 and 4 (3rd and 4th job advancement), and grants a batch of SP for the

@@ -4,10 +4,13 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
+#include "src/character/exp_table.h"
 #include "src/combat/fight.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -114,6 +117,20 @@ TEST(AdvanceCombatTest, AccruesMesoWhileFarming) {
   EXPECT_GT(state.character.meso(), 0);
 }
 
+// The trial's ceiling seen from the fight: no amount of farming carries a
+// character past it. The multiplier is only here to get there quickly.
+TEST(AdvanceCombatTest, FarmingStopsAtTheLevelCap) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  state.exp_multiplier = 1000;
+  EquipSword(state);
+
+  Farm(state, 20000.0);
+  EXPECT_EQ(state.character.proto().level(), kTrialLevelCap);
+  EXPECT_EQ(state.character.proto().exp(), 0);
+}
+
 TEST(AdvanceCombatTest, SkipsFarmingWithoutWeapon) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", OneSnailMap()}});
@@ -138,57 +155,65 @@ TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
 
 // --- the level-banded pace ---
 
-// Farms `seconds` at `level` and returns the EXP it paid. The character is
+// Farms `seconds` at `level` and returns how many mobs died. The character is
 // levelled by hand first so the band under test is the one in force.
-int64_t ExpFarmedAt(int level, double seconds) {
-  GameState state({}, {}, {}, {{"snail", SnailMob()}},
-                  {{"field", OneSnailMap()}});
+//
+// Corpses rather than EXP: EXP stops at kTrialLevelCap and most of the bands
+// sit above it, so counting kills is the only way to see the whole table. The
+// snail drops a shell every time, which makes the Etc stack the body count.
+int64_t KillsFarmedAt(int level, double seconds) {
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
   state.current_map = "field";
   LevelTo(state, level);
   EquipSword(state);
-  int64_t before = state.character.proto().exp();
   Farm(state, seconds);
-  return state.character.proto().exp() - before;
+  const std::vector<StackableItem>& etc =
+      state.character.stackables(ITEM_CATEGORY_ETC);
+  return etc.empty() ? 0 : etc[0].count();
 }
 
-// The same fight pays less per second the higher the band, because the fight
-// itself runs slower: these snails die in one hit at either level, so nothing
-// but the pace has changed between the two.
+// The same fight kills less per second the higher the band, because the fight
+// itself runs slower: these snails die in one hit at any of these levels, so
+// nothing but the pace has changed between them.
 TEST(AdvanceCombatTest, TheSameFightPaysLessAsTheGameSlowsDown) {
-  int64_t at_9 = ExpFarmedAt(9, 600.0);
-  int64_t at_10 = ExpFarmedAt(10, 600.0);
-  int64_t at_140 = ExpFarmedAt(140, 600.0);
-  ASSERT_GT(at_140, 0) << "the slowest band still has to pay something";
-  EXPECT_GT(at_9, at_10) << "1x band vs 2x band";
-  EXPECT_GT(at_10, at_140) << "2x band vs 10x band";
+  int64_t at_9 = KillsFarmedAt(9, 600.0);
+  int64_t at_10 = KillsFarmedAt(10, 600.0);
+  int64_t at_140 = KillsFarmedAt(140, 600.0);
+  ASSERT_GT(at_140, 0) << "the slowest band still has to kill something";
+  EXPECT_GT(at_9, at_10) << "2x band vs 3x band";
+  EXPECT_GT(at_10, at_140) << "3x band vs 10x band";
 }
 
 // The workbench's standing EXP bonus, which is what makes the level-gated
 // features reachable in a sitting. It pays only EXP: the same corpses, the
 // same drops, the same meso as the same fight without it.
 //
-// Both characters are pinned at the top level first. Otherwise the bonus
+// Both characters are pinned just under the cap first. Otherwise the bonus
 // changes what it is measuring: EXP levels the character, levelling slows the
 // game down, and the boosted character ends up killing FEWER mobs over the
-// same wall time. At 140 the pacing band is already the last one and a farm
-// this short cannot level them, so the multiplier is all that differs.
+// same wall time. One level under the cap is the highest level that still
+// earns anything, and the last threshold below it is far out of reach of a
+// farm this short, so neither character moves and the multiplier is all that
+// differs.
 TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
   plain.current_map = "field";
-  LevelTo(plain, 140);
+  LevelTo(plain, kTrialLevelCap - 1);
   EquipSword(plain);
   Farm(plain, 600.0);
 
   GameState boosted({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                     {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
   boosted.current_map = "field";
-  LevelTo(boosted, 140);
+  LevelTo(boosted, kTrialLevelCap - 1);
   boosted.exp_multiplier = 5;
   EquipSword(boosted);
   Farm(boosted, 600.0);
 
-  ASSERT_EQ(boosted.character.proto().level(), 140) << "no band change";
+  ASSERT_EQ(boosted.character.proto().level(), kTrialLevelCap - 1)
+      << "no band change";
   ASSERT_GT(plain.character.proto().exp(), 0);
   EXPECT_EQ(boosted.character.proto().exp(), 5 * plain.character.proto().exp());
   ASSERT_FALSE(plain.character.stackables(ITEM_CATEGORY_ETC).empty());

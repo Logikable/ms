@@ -32,13 +32,10 @@ Character MakeBaseBeginnerProto() {
   return proto;
 }
 
-// The level kTest starts at. Level 10 is where the first job advancement
-// opens, so the workbench begins at the choice -- which job the character
-// becomes is the tester's to make, not this file's.
-// How many Level-Up items the workbench opens with: enough to walk the whole
-// unlock ladder from the bottom and still have some left to spend on the
-// screens further up it.
-constexpr int kTestLevelUpItems = 30;
+// How many Level-Up items the workbench opens with. 199 carries a level 1
+// character to 200: past every gate in the unlock table, including the ones
+// above kTrialLevelCap that combat can no longer climb to.
+constexpr int kTestLevelUpItems = 199;
 
 // Puts a copy of the named equip in the bag, or does nothing if the catalog
 // has no such entry. Lets a GameState be built for a test without the game's

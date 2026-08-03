@@ -236,19 +236,28 @@ TEST_F(AddExpTest, GrantsFiveApPerLevelUp) {
   EXPECT_EQ(c.proto().ap(), 10);
 }
 
-TEST_F(AddExpTest, NoOpAtMaxLevel) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/kMaxLevel);
+TEST_F(AddExpTest, NoOpAtTheLevelCap) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap);
   c.AddExp(1000000);
-  EXPECT_EQ(c.proto().level(), kMaxLevel);
+  EXPECT_EQ(c.proto().level(), kTrialLevelCap);
   EXPECT_EQ(c.proto().exp(), 0);
 }
 
-TEST_F(AddExpTest, CapsAtMaxLevelAndZeroesExp) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/299);
-  // Add far more than the 299→300 threshold.
-  c.AddExp(1737759854037637LL * 2);
-  EXPECT_EQ(c.proto().level(), kMaxLevel);
+TEST_F(AddExpTest, StopsAtTheLevelCapAndZeroesExp) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap - 1);
+  // Far more than the last threshold below the cap, and far more than the
+  // several after it: none of them are reachable.
+  c.AddExp(1000000000LL);
+  EXPECT_EQ(c.proto().level(), kTrialLevelCap);
   EXPECT_EQ(c.proto().exp(), 0);
+}
+
+// The cap is on what combat pays out, not on what a level is. LevelUp is how
+// the debug item grants one, and it still climbs past the cap.
+TEST_F(AddExpTest, LevelUpItselfIsNotCapped) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/kTrialLevelCap);
+  c.LevelUp();
+  EXPECT_EQ(c.proto().level(), kTrialLevelCap + 1);
 }
 
 // --- AdvanceJob ---
