@@ -131,6 +131,40 @@ TEST_F(CharacterPanelTest, DropsTheAdvanceTabOnceTheJobIsPicked) {
   EXPECT_EQ(rendered.find("Swordman"), std::string::npos);
 }
 
+// Taking the advancement rewrites the bar under the cursor: Advance leaves,
+// Skills arrives, and the position the cursor was standing on comes to mean
+// Skills. The zone it was in belonged to the Advance tab, which left the
+// cursor nowhere -- nothing drawn as selected, and arrow keys landing in the
+// skill rows rather than on the bar the player was looking at.
+TEST_F(CharacterPanelTest, AdvancingLeavesTheCursorOnTheTabBar) {
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  // A pending Beginner's bar is Stats and Advance: no Skills until they pick.
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
+  ASSERT_NE(RenderComponent(comp).find("Swordman"), std::string::npos);
+
+  c.AdvanceJob(JOB_SWORDMAN);
+  // The bar holds the cursor, so Left walks it back to Stats.
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_NE(RenderComponent(comp).find("STR"), std::string::npos);
+}
+
+// And Down from there enters the Skills content, which is what the bar
+// holding the cursor means.
+TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsContentOneKeyAway) {
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
+
+  c.AdvanceJob(JOB_SWORDMAN);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> advancement bar
+  EXPECT_NE(RenderComponent(comp).find("SP"), std::string::npos);
+}
+
 TEST_F(CharacterPanelTest, AdvanceTabListsTheFourJobs) {
   CharacterInstance c = MakePendingBeginner(rng_);
   CharacterPanel panel(c, panel_focus_);

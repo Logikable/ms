@@ -136,6 +136,21 @@ CharacterPanel::Tab CharacterPanel::ActiveTab() const {
   return tabs[active_tab_];
 }
 
+CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
+  switch (zone_) {
+    case kZoneTabs:
+      return kZoneTabs;
+    case kZoneStatRows:
+      return ActiveTab() == kTabStats ? zone_ : kZoneTabs;
+    case kZoneAdvTabs:
+    case kZoneSkillRows:
+      return ActiveTab() == kTabSkills ? zone_ : kZoneTabs;
+    case kZoneJobRows:
+      return ActiveTab() == kTabAdvance ? zone_ : kZoneTabs;
+  }
+  return kZoneTabs;
+}
+
 ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
   // Left-aligned chip row in the shared tab style.
   std::vector<Tab> tabs = VisibleTabs();
@@ -310,15 +325,16 @@ ftxui::Element CharacterPanel::Render() const {
   std::string power = Centered("CP " + FormatWithCommas(CombatPower(offense)));
 
   bool focused = panel_focus_ == kCharPanel;
-  bool tab_row_selected = focused && zone_ == kZoneTabs;
+  Zone zone = EffectiveZone();
+  bool tab_row_selected = focused && zone == kZoneTabs;
   ftxui::Element content;
   if (ActiveTab() == kTabSkills) {
-    content = RenderSkillsTab(focused && zone_ == kZoneAdvTabs,
-                              focused && zone_ == kZoneSkillRows);
+    content = RenderSkillsTab(focused && zone == kZoneAdvTabs,
+                              focused && zone == kZoneSkillRows);
   } else if (ActiveTab() == kTabAdvance) {
-    content = RenderAdvanceTab(focused && zone_ == kZoneJobRows);
+    content = RenderAdvanceTab(focused && zone == kZoneJobRows);
   } else {
-    content = RenderStatsTab(focused && zone_ == kZoneStatRows);
+    content = RenderStatsTab(focused && zone == kZoneStatRows);
   }
 
   return ThemedWindow(" Character ",
@@ -479,6 +495,11 @@ bool CharacterPanel::OnSkillsTabEvent(
     return true;
   }
   if (IsForward(event)) {
+    // The stage can have fewer skills than the row the cursor last sat on --
+    // switching advancement tabs does not reset it.
+    if (skill_sel_ >= static_cast<int>(skills.size())) {
+      return true;
+    }
     const Skill& skill = *skills[skill_sel_];
     if (skill_col_ == kColName) {
       // Never gated: a maxed skill with no SP behind it still has a
@@ -512,12 +533,13 @@ ftxui::Component CharacterPanel::MakeComponent(
     if (panel_focus_ != kCharPanel) {
       return false;
     }
-    // Taking the advancement closes the tab the cursor was standing on, so
-    // put it somewhere real before reading the event.
+    // The tab bar can have been rewritten since the last key -- taking the
+    // advancement does exactly that -- so settle where the cursor is standing
+    // before reading the event.
     if (active_tab_ >= static_cast<int>(VisibleTabs().size())) {
       active_tab_ = kTabStats;
-      zone_ = kZoneTabs;
     }
+    zone_ = EffectiveZone();
     // Route by zone: the shared tab bar, else the active tab's content
     // (only Stats reaches kZoneStatRows, only Skills the skill zones).
     if (zone_ == kZoneTabs) {

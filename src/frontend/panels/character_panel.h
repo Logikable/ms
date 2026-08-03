@@ -107,6 +107,17 @@ class CharacterPanel {
   // since disappeared -- taking the advancement closes the tab the player was
   // standing on.
   Tab ActiveTab() const;
+  // zone_, corrected for a tab bar that has changed under it. Taking the
+  // advancement drops the Advance tab and adds Skills, so the position the
+  // cursor was standing on comes to mean a different tab -- and the zone it
+  // was in belongs to a tab that is no longer there. Every zone but the shared
+  // tab bar belongs to exactly one tab; a zone stranded off its own tab
+  // resolves back to the tab bar, which every tab has.
+  //
+  // Render reads it so the cursor is somewhere visible on the very first frame
+  // after the advancement, before any key is pressed; the event handler writes
+  // it back before dispatching.
+  Zone EffectiveZone() const;
   // Renders the Stats/Skills tab bar. When row_selected the active tab is drawn
   // white (the tab bar holds focus); otherwise it keeps the theme highlight.
   ftxui::Element RenderTabBar(bool row_selected) const;
