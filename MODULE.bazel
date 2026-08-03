@@ -4,6 +4,10 @@ bazel_dep(name = "abseil-cpp", version = "20250814.1")
 bazel_dep(name = "protobuf", version = "33.4")
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_cc", version = "0.0.9")
+
+# Named so //tools:llvm_mingw.bzl can resolve the OS and CPU constraints it
+# writes into the generated toolchain.
+bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_shell", version = "0.6.1")
 
 # For //tools:embed_data, which compiles the game's data files into the binary.
@@ -20,3 +24,10 @@ llvm.toolchain(llvm_version = "19.1.0")
 use_repo(llvm, "llvm_toolchain")
 
 register_toolchains("@llvm_toolchain//:all")
+
+# Cross-compiles the Windows release from here. Only ever selected by a build
+# that asks for the Windows platform; the toolchain above still owns Linux.
+llvm_mingw = use_extension("//tools:llvm_mingw.bzl", "llvm_mingw")
+use_repo(llvm_mingw, "llvm_mingw")
+
+register_toolchains("@llvm_mingw//:toolchain")

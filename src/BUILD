@@ -51,25 +51,37 @@ cc_library(
     ],
 )
 
+_MAIN_DEPS = [
+    ":embedded_data",
+    ":game_state",
+    ":proto_loader",
+    "//src/frontend:tui",
+    "//src/item",
+    "//src/item:equip_instance",
+    "//src/protos:equip_proto_cc",
+    "//src/protos:item_proto_cc",
+    "//src/protos:map_proto_cc",
+    "//src/protos:mob_proto_cc",
+    "//src/protos:scroll_proto_cc",
+    "//src/protos:skill_proto_cc",
+    "@abseil-cpp//absl/flags:flag",
+    "@abseil-cpp//absl/flags:parse",
+]
+
 cc_binary(
     name = "ms",
     srcs = ["main.cc"],
-    deps = [
-        ":embedded_data",
-        ":game_state",
-        ":proto_loader",
-        "//src/frontend:tui",
-        "//src/item",
-        "//src/item:equip_instance",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "//src/protos:map_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "//src/protos:scroll_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@abseil-cpp//absl/flags:flag",
-        "@abseil-cpp//absl/flags:parse",
-    ],
+    deps = _MAIN_DEPS,
+)
+
+# The same game, named for Windows. It needs its own target because the name
+# has to carry .exe: the mingw driver appends that to any output without an
+# extension, and Bazel would then go looking for a file nothing wrote.
+cc_binary(
+    name = "ms.exe",
+    srcs = ["main.cc"],
+    target_compatible_with = ["@platforms//os:windows"],
+    deps = _MAIN_DEPS,
 )
 
 cc_test(
