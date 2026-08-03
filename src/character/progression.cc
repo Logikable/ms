@@ -4,6 +4,7 @@
 
 #include "absl/log/log.h"
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -23,9 +24,12 @@ constexpr Unlock kUnlocks[] = {
     // Deliberately the same level as the bag: it is the bag that makes taking
     // something off possible, so move the two together if either changes.
     {Feature::kUnequip, 4},
-    {Feature::kScrolling, 10},
     {Feature::kSkills, 10},
     {Feature::kShop, 20},
+    // Sat on the level cap, so only a player who has finished the trial ever
+    // meets it. Scrolling itself works; spell traces -- the half of it a
+    // player would actually reach for -- are not written yet.
+    {Feature::kScrolling, kTrialLevelCap},
     {Feature::kStarForce, 60},
     {Feature::kRecovery, 140},
 };

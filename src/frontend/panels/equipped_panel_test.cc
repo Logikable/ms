@@ -385,16 +385,17 @@ TEST_F(EquippedPanelTest, ScrollingAndStarForceArriveAtTheirOwnLevels) {
   EquippedPanel panel(c_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
 
-  LevelTo(10);
+  LevelTo(UnlockLevel(Feature::kScrolling));
   panel.OpenMenu();
-  std::vector<int> at_10 = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(at_10.begin(), at_10.end(), kMenuScroll), 0);
-  EXPECT_EQ(std::count(at_10.begin(), at_10.end(), kMenuStarForce), 0);
+  std::vector<int> scrolling = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(scrolling.begin(), scrolling.end(), kMenuScroll), 0);
+  EXPECT_EQ(std::count(scrolling.begin(), scrolling.end(), kMenuStarForce), 0);
 
-  LevelTo(60);
+  LevelTo(UnlockLevel(Feature::kStarForce));
   panel.OpenMenu();
-  std::vector<int> at_60 = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(at_60.begin(), at_60.end(), kMenuStarForce), 0);
+  std::vector<int> star_force = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(star_force.begin(), star_force.end(), kMenuStarForce),
+            0);
 }
 
 }  // namespace

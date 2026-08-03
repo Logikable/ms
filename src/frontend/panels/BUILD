@@ -94,6 +94,7 @@ cc_test(
     srcs = ["inventory_panel_test.cc"],
     deps = [
         ":inventory_panel",
+        "//src/character:progression",
         "//src/frontend/widgets:panel_test_base",
         "@ftxui//:dom",
         "@ftxui//:screen",

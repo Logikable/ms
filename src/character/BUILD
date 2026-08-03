@@ -40,6 +40,7 @@ cc_library(
     hdrs = ["progression.h"],
     deps = [
         ":character",
+        ":exp_table",
         "//src/protos:character_proto_cc",
         "@abseil-cpp//absl/log",
     ],

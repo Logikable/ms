@@ -11,6 +11,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/progression.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
@@ -270,12 +271,12 @@ TEST_F(InventoryPanelTest, ScrollingArrivesAtItsLevel) {
   sword_.set_upgrade_slots(7);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, panel_focus_);
-  LevelTo(9);
+  LevelTo(UnlockLevel(Feature::kScrolling) - 1);
   panel.OpenMenu();
   std::vector<int> before = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(before.begin(), before.end(), kMenuScroll), 0);
 
-  LevelTo(10);
+  LevelTo(UnlockLevel(Feature::kScrolling));
   panel.OpenMenu();
   std::vector<int> after = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(after.begin(), after.end(), kMenuScroll), 0);

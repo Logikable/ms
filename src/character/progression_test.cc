@@ -66,8 +66,12 @@ TEST_F(ProgressionTest, SkillsWaitForAnAdvancementAsWellAsTheLevel) {
 
 // The job condition is the skills tab's alone; nothing else asks about it.
 TEST_F(ProgressionTest, NoOtherFeatureCaresAboutTheJob) {
-  EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(10, JOB_BEGINNER)));
-  EXPECT_TRUE(Unlocked(Feature::kShop, MakeCharacter(20, JOB_BEGINNER)));
+  EXPECT_TRUE(
+      Unlocked(Feature::kScrolling,
+               MakeCharacter(UnlockLevel(Feature::kScrolling), JOB_BEGINNER)));
+  EXPECT_TRUE(
+      Unlocked(Feature::kShop,
+               MakeCharacter(UnlockLevel(Feature::kShop), JOB_BEGINNER)));
 }
 
 // --- GameSpeedFactor ---
