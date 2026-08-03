@@ -1,6 +1,21 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("//tools:embed_data.bzl", "embedded_data")
 
 package(default_visibility = ["//visibility:public"])
+
+# The game's data files, compiled in. A shipped build has no data directory
+# beside it: the executable is the whole game.
+embedded_data(
+    name = "embedded_data",
+    groups = {
+        "//data/equip:all": "EmbeddedEquips",
+        "//data/items:all": "EmbeddedItems",
+        "//data/maps:all": "EmbeddedMaps",
+        "//data/mobs:all": "EmbeddedMobs",
+        "//data/scrolls:all": "EmbeddedScrolls",
+        "//data/skills:all": "EmbeddedSkills",
+    },
+)
 
 cc_library(
     name = "proto_loader",
@@ -39,15 +54,8 @@ cc_library(
 cc_binary(
     name = "ms",
     srcs = ["main.cc"],
-    data = [
-        "//data/equip:all",
-        "//data/items:all",
-        "//data/maps:all",
-        "//data/mobs:all",
-        "//data/scrolls:all",
-        "//data/skills:all",
-    ],
     deps = [
+        ":embedded_data",
         ":game_state",
         ":proto_loader",
         "//src/frontend:tui",
@@ -61,7 +69,22 @@ cc_binary(
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
-        "@bazel_tools//tools/cpp/runfiles",
+    ],
+)
+
+cc_test(
+    name = "embedded_data_test",
+    srcs = ["embedded_data_test.cc"],
+    deps = [
+        ":embedded_data",
+        ":proto_loader",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@googletest//:gtest_main",
     ],
 )
 

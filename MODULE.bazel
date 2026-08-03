@@ -5,6 +5,10 @@ bazel_dep(name = "protobuf", version = "33.4")
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_cc", version = "0.0.9")
 bazel_dep(name = "rules_shell", version = "0.6.1")
+
+# For //tools:embed_data, which compiles the game's data files into the binary.
+# Already in the graph under protobuf; named here so it can be depended on.
+bazel_dep(name = "rules_python", version = "1.7.0")
 bazel_dep(name = "googletest", version = "1.15.2")
 bazel_dep(name = "ftxui", version = "6.1.9")
 

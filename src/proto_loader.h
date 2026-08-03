@@ -25,6 +25,14 @@ void LoadTextProto(const std::string& path, google::protobuf::Message* msg);
 template <typename T>
 std::map<std::string, T> LoadTextProtoDir(const std::string& dir_path);
 
+// Parses an already-read set of textprotos, keyed by name, into a map on the
+// same keys -- the shape //src:embedded_data hands back. The game proper reads
+// its data this way; LoadTextProtoDir is for tests, which have the files.
+// LOG(FATAL) on any parse error.
+template <typename T>
+std::map<std::string, T> LoadTextProtoMap(
+    const std::map<std::string, std::string>& sources);
+
 }  // namespace ms
 
 #endif  // MS_SRC_PROTO_LOADER_H_

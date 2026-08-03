@@ -51,6 +51,20 @@ std::map<std::string, T> LoadTextProtoDir(const std::string& dir_path) {
   return result;
 }
 
+template <typename T>
+std::map<std::string, T> LoadTextProtoMap(
+    const std::map<std::string, std::string>& sources) {
+  std::map<std::string, T> result;
+  for (const std::pair<const std::string, std::string>& entry : sources) {
+    T proto;
+    if (!google::protobuf::TextFormat::ParseFromString(entry.second, &proto)) {
+      LOG(FATAL) << "Failed to parse embedded textproto: " << entry.first;
+    }
+    result.emplace(entry.first, std::move(proto));
+  }
+  return result;
+}
+
 // Explicit instantiations are required because the template body is defined
 // here in the .cc rather than in the header.
 template std::map<std::string, EquipPrototype> LoadTextProtoDir<EquipPrototype>(
@@ -64,5 +78,18 @@ template std::map<std::string, ItemPrototype> LoadTextProtoDir<ItemPrototype>(
     const std::string&);
 template std::map<std::string, Skill> LoadTextProtoDir<Skill>(
     const std::string&);
+
+template std::map<std::string, EquipPrototype> LoadTextProtoMap<EquipPrototype>(
+    const std::map<std::string, std::string>&);
+template std::map<std::string, Scroll> LoadTextProtoMap<Scroll>(
+    const std::map<std::string, std::string>&);
+template std::map<std::string, Mob> LoadTextProtoMap<Mob>(
+    const std::map<std::string, std::string>&);
+template std::map<std::string, MapData> LoadTextProtoMap<MapData>(
+    const std::map<std::string, std::string>&);
+template std::map<std::string, ItemPrototype> LoadTextProtoMap<ItemPrototype>(
+    const std::map<std::string, std::string>&);
+template std::map<std::string, Skill> LoadTextProtoMap<Skill>(
+    const std::map<std::string, std::string>&);
 
 }  // namespace ms

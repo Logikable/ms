@@ -1,10 +1,10 @@
 #include <map>
-#include <memory>
 #include <string>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
+#include "src/embedded_data.h"
 #include "src/frontend/tui.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -15,7 +15,6 @@
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
-#include "tools/cpp/runfiles/runfiles.h"
 
 ABSL_FLAG(std::string, mode, "play",
           "Which state to start in: 'play' for a new character on Maple "
@@ -23,8 +22,6 @@ ABSL_FLAG(std::string, mode, "play",
           "meso and a spread of items to exercise the screens with.");
 
 namespace {
-
-using bazel::tools::cpp::runfiles::Runfiles;
 
 ms::GameMode ParseMode(const std::string& mode) {
   if (mode == "play") {
@@ -42,26 +39,20 @@ int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   ms::GameMode mode = ParseMode(absl::GetFlag(FLAGS_mode));
 
-  std::string err;
-  std::unique_ptr<Runfiles> runfiles(Runfiles::Create(argv[0], &err));
-  if (!runfiles) {
-    LOG(FATAL) << "Could not create Runfiles: " << err;
-  }
-
+  // The data is compiled in, so there is nothing to find on disk and nothing
+  // beside the executable to lose.
   std::map<std::string, ms::EquipPrototype> equips =
-      ms::LoadTextProtoDir<ms::EquipPrototype>(
-          runfiles->Rlocation("ms/data/equip"));
+      ms::LoadTextProtoMap<ms::EquipPrototype>(ms::EmbeddedEquips());
   std::map<std::string, ms::Scroll> scrolls =
-      ms::LoadTextProtoDir<ms::Scroll>(runfiles->Rlocation("ms/data/scrolls"));
+      ms::LoadTextProtoMap<ms::Scroll>(ms::EmbeddedScrolls());
   std::map<std::string, ms::ItemPrototype> items =
-      ms::LoadTextProtoDir<ms::ItemPrototype>(
-          runfiles->Rlocation("ms/data/items"));
+      ms::LoadTextProtoMap<ms::ItemPrototype>(ms::EmbeddedItems());
   std::map<std::string, ms::Mob> mobs =
-      ms::LoadTextProtoDir<ms::Mob>(runfiles->Rlocation("ms/data/mobs"));
+      ms::LoadTextProtoMap<ms::Mob>(ms::EmbeddedMobs());
   std::map<std::string, ms::MapData> maps =
-      ms::LoadTextProtoDir<ms::MapData>(runfiles->Rlocation("ms/data/maps"));
+      ms::LoadTextProtoMap<ms::MapData>(ms::EmbeddedMaps());
   std::map<std::string, ms::Skill> skills =
-      ms::LoadTextProtoDir<ms::Skill>(runfiles->Rlocation("ms/data/skills"));
+      ms::LoadTextProtoMap<ms::Skill>(ms::EmbeddedSkills());
 
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
                       std::move(mobs), std::move(maps), std::move(skills),
