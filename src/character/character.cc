@@ -151,20 +151,36 @@ void AppendStacks(const std::vector<StackableItem>& stacks,
   }
 }
 
+// The catalogs are keyed by the stem of the data file an entry came from
+// ("sword"), but a saved item names itself the way the player sees it
+// ("Sword") -- that is what Equip.equip_name and a stack's name hold. This
+// index is what bridges the two, and is why a save cannot simply look an item
+// up in the catalog it was loaded from.
+template <typename Proto>
+std::map<std::string, const Proto*> IndexByDisplayName(
+    const std::map<std::string, Proto>& catalog) {
+  std::map<std::string, const Proto*> by_name;
+  for (const std::pair<const std::string, Proto>& entry : catalog) {
+    by_name[entry.second.name()] = &entry.second;
+  }
+  return by_name;
+}
+
 // One equip-tab entry rebuilt from its saved state, or null if the catalogs no
 // longer describe it. A trace and a live item are the same fields apart from
 // the flag, which is what decides the type.
 std::unique_ptr<EquipTabItem> RestoreEquipItem(
-    const Equip& state, const std::map<std::string, EquipPrototype>& equips) {
-  std::map<std::string, EquipPrototype>::const_iterator proto =
-      equips.find(state.equip_name());
-  if (proto == equips.end()) {
+    const Equip& state,
+    const std::map<std::string, const EquipPrototype*>& by_name) {
+  std::map<std::string, const EquipPrototype*>::const_iterator proto =
+      by_name.find(state.equip_name());
+  if (proto == by_name.end()) {
     return nullptr;
   }
   if (state.trace()) {
-    return std::make_unique<EquipTrace>(proto->second, state);
+    return std::make_unique<EquipTrace>(*proto->second, state);
   }
-  return std::make_unique<EquipInstance>(proto->second, state);
+  return std::make_unique<EquipInstance>(*proto->second, state);
 }
 
 }  // namespace
@@ -732,9 +748,15 @@ void CharacterInstance::RestoreFrom(
   character_.clear_equipped();
   character_.clear_stacks();
 
+  std::map<std::string, const EquipPrototype*> equips_by_name =
+      IndexByDisplayName(equips);
+  std::map<std::string, const ItemPrototype*> items_by_name =
+      IndexByDisplayName(items);
+
   inventory_ = InventoryInstance();
   for (const ms::Equip& state : saved.inventory().equip_tab()) {
-    std::unique_ptr<EquipTabItem> item = RestoreEquipItem(state, equips);
+    std::unique_ptr<EquipTabItem> item =
+        RestoreEquipItem(state, equips_by_name);
     if (item != nullptr) {
       inventory_.add(std::move(item));
     }
@@ -742,25 +764,25 @@ void CharacterInstance::RestoreFrom(
 
   equipped_.clear();
   for (const std::pair<const int, ms::Equip>& worn : saved.equipped()) {
-    std::map<std::string, EquipPrototype>::const_iterator proto =
-        equips.find(worn.second.equip_name());
-    if (proto == equips.end()) {
+    std::map<std::string, const EquipPrototype*>::const_iterator proto =
+        equips_by_name.find(worn.second.equip_name());
+    if (proto == equips_by_name.end()) {
       continue;
     }
     equipped_.emplace(static_cast<EquipSlot>(worn.first),
-                      EquipInstance(proto->second, worn.second));
+                      EquipInstance(*proto->second, worn.second));
   }
 
   use_items_.clear();
   etc_items_.clear();
   for (const StackableStack& stack : saved.stacks()) {
-    std::map<std::string, ItemPrototype>::const_iterator proto =
-        items.find(stack.name());
-    if (proto == items.end()) {
+    std::map<std::string, const ItemPrototype*>::const_iterator proto =
+        items_by_name.find(stack.name());
+    if (proto == items_by_name.end()) {
       continue;
     }
     StacksFor(stack.category())
-        .push_back(StackableItem(proto->second, stack.count()));
+        .push_back(StackableItem(*proto->second, stack.count()));
   }
 
   RecomputeEquipStats();

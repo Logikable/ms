@@ -79,6 +79,7 @@ cc_library(
 
 _MAIN_DEPS = [
     ":embedded_data",
+    ":save",
     ":game_state",
     ":proto_loader",
     "//src/frontend:tui",

@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <map>
 #include <string>
 
@@ -15,6 +16,7 @@
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/save.h"
 
 ABSL_FLAG(std::string, mode, "play",
           "Which state to start in: 'play' for a new character on Maple "
@@ -58,6 +60,27 @@ int main(int argc, char** argv) {
                       std::move(mobs), std::move(maps), std::move(skills),
                       mode);
 
-  ms::Tui(state).Run();
+  // The workbench neither reads nor writes a save: it starts from its known
+  // state every run, and must never be able to overwrite a real character.
+  std::string save_path;
+  if (mode == ms::GameMode::kPlay) {
+    save_path = ms::SavePathFor(argv[0]);
+    ms::LoadResult load = ms::LoadGameFromFile(state, save_path);
+    if (load.status == ms::LoadStatus::kUnreadable ||
+        load.status == ms::LoadStatus::kFromTheFuture) {
+      // Refused rather than started over. A save that cannot be read might
+      // still be recoverable, and beginning a new game here would write over
+      // it within thirty seconds. Naming the file and the way out is what
+      // keeps that from being a dead end.
+      std::fprintf(stderr,
+                   "%s\n\nThe game will not start until that file is dealt "
+                   "with. Move it somewhere safe to begin a new character, or "
+                   "put back a copy that works.\n",
+                   load.message.c_str());
+      return 1;
+    }
+  }
+
+  ms::Tui(state, save_path).Run();
   return 0;
 }

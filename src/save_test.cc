@@ -43,8 +43,11 @@ class SaveTest : public testing::Test {
   // A state carrying the catalogs a save refers to by name. Built for tests,
   // so it does not need the game's data files.
   std::unique_ptr<GameState> MakeState() {
-    std::map<std::string, EquipPrototype> equips{{"Sword", sword_}};
-    std::map<std::string, ItemPrototype> items{{"Green Snail Shell", shell_}};
+    // Keyed by data-file stem like the real catalogs, not by display name --
+    // a save refers to items by the name the player sees, and a fixture that
+    // conflated the two would hide a lookup against the wrong key.
+    std::map<std::string, EquipPrototype> equips{{"sword", sword_}};
+    std::map<std::string, ItemPrototype> items{{"green_snail_shell", shell_}};
     return std::make_unique<GameState>(equips, std::map<std::string, Scroll>{},
                                        items, std::map<std::string, Mob>{},
                                        std::map<std::string, MapData>{});

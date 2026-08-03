@@ -3,11 +3,14 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <string>
 #include <thread>
+#include <utility>
 
+#include "absl/log/log.h"
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/component/screen_interactive.hpp"
@@ -33,6 +36,7 @@
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/save.h"
 
 namespace ms {
 namespace {
@@ -54,10 +58,31 @@ int ExpPctDecimals(int level) {
   return 4;
 }
 
+// Raised by a signal asking the game to close: Ctrl+C, a killed process, or a
+// terminal that went away. A handler may do almost nothing safely, so it does
+// exactly one thing -- sets this -- and the loop notices on its next tick and
+// leaves through the ordinary path, saving on the way like any other exit.
+volatile std::sig_atomic_t g_leaving = 0;
+
+extern "C" void NoteLeaving(int) {
+  g_leaving = 1;
+}
+
+void HandleClosingSignals() {
+  std::signal(SIGINT, NoteLeaving);
+  std::signal(SIGTERM, NoteLeaving);
+#ifdef SIGHUP
+  // The terminal window's X, on the platforms that have it.
+  std::signal(SIGHUP, NoteLeaving);
+#endif
+}
+
 }  // namespace
 
-Tui::Tui(GameState& state)
+Tui::Tui(GameState& state, std::string save_path)
     : state_(state),
+      save_path_(std::move(save_path)),
+      last_save_(std::chrono::steady_clock::now()),
       last_combat_update_(std::chrono::steady_clock::now()),
       char_panel_(state.character, panel_focus_, state.skills),
       combat_panel_(state, combat_sim_, panel_focus_),
@@ -95,10 +120,18 @@ void Tui::Run() {
       panels, [this]() -> ftxui::Element { return RenderFrame(); });
 
   ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
+  HandleClosingSignals();
 
   ftxui::Component root =
       ftxui::CatchEvent(base, [this, &screen](ftxui::Event event) -> bool {
         if (event.is_mouse()) {
+          return true;
+        }
+        // Ctrl+C leaves by the same door as the quit dialog, so it saves the
+        // same way. Taken as an event rather than left to the signal handler
+        // because ftxui installs its own for SIGINT once the loop is running.
+        if (event == ftxui::Event::CtrlC) {
+          screen.Exit();
           return true;
         }
         bool handled = OnEvent(event);
@@ -117,7 +150,16 @@ void Tui::Run() {
   std::thread ticker([this, &screen, &running]() {
     while (running) {
       std::this_thread::sleep_for(std::chrono::milliseconds(300));
-      screen.Post([this]() { AdvanceCombatTick(); });
+      screen.Post([this, &screen]() {
+        AdvanceCombatTick();
+        AutosaveIfDue();
+        // Posted here rather than acted on in the handler: this runs on the
+        // loop thread, where ending the loop and writing a file are both
+        // things it is safe to do.
+        if (g_leaving != 0) {
+          screen.Exit();
+        }
+      });
       screen.PostEvent(ftxui::Event::Custom);
     }
   });
@@ -125,6 +167,29 @@ void Tui::Run() {
   screen.Loop(root);
   running = false;
   ticker.join();
+  // Every way out of the loop ends here -- the quit dialog, Ctrl+C, a closed
+  // window -- so this is the one place the last save has to be written.
+  Save();
+}
+
+void Tui::Save() {
+  if (save_path_.empty()) {
+    return;
+  }
+  last_save_ = std::chrono::steady_clock::now();
+  if (!SaveGameToFile(state_, save_path_)) {
+    LOG(ERROR) << "Could not save the game to " << save_path_;
+  }
+}
+
+void Tui::AutosaveIfDue() {
+  if (save_path_.empty()) {
+    return;
+  }
+  if (std::chrono::steady_clock::now() - last_save_ < kAutosaveInterval) {
+    return;
+  }
+  Save();
 }
 
 ftxui::Element Tui::RenderFrame() {

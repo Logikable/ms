@@ -126,6 +126,7 @@ cc_library(
         ":main_layout",
         ":tui_controller",
         "//src:game_state",
+        "//src:save",
         "//src/character",
         "//src/character:exp_table",
         "//src/character:job_advancement",

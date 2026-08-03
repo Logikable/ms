@@ -37,10 +37,23 @@ to put your points at 2, the equipment panel at 3, your bag at 4, an
 advancement and your skills at 10, a shop at 20.
 
 
+Your progress
+-------------
+
+The game saves itself. It writes to ms.save, in this folder, every thirty
+seconds and again when you leave -- whether you quit from the menu, press
+Ctrl+C, or close the window. Starting the game picks that save back up, so
+there is nothing to load and nothing to remember to do.
+
+There is one save. To start over, close the game and delete ms.save.
+
+If that file is ever damaged, the game will say so and refuse to start
+rather than quietly write over it. Moving it out of this folder begins a
+new character.
+
+
 Known limits
 ------------
-
-Nothing is saved. Closing the game starts you over.
 
 Scrolling appears at level 30, and star force and item recovery sit above
 the level cap, so this release does not reach them.

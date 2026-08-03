@@ -1490,16 +1490,20 @@ class SaveRoundTripTest : public CharacterTest {
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     sword_.set_upgrade_slots(7);
     sword_.set_required_level(138);
-    equips_["Sword"] = sword_;
+    // Keyed by data-file stem, the way the real catalogs are loaded, and
+    // deliberately NOT the item's display name: a save names items the way the
+    // player sees them, so a fixture whose key matches the name would hide a
+    // lookup done against the wrong one of the two.
+    equips_["sword"] = sword_;
 
     ItemPrototype shell;
     shell.set_name("Green Snail Shell");
     shell.set_category(ITEM_CATEGORY_ETC);
-    items_["Green Snail Shell"] = shell;
+    items_["green_snail_shell"] = shell;
     ItemPrototype potion;
     potion.set_name("Red Potion");
     potion.set_category(ITEM_CATEGORY_USE);
-    items_["Red Potion"] = potion;
+    items_["red_potion"] = potion;
   }
 
   // A character rebuilt from `saved`, as a fresh launch would do it.
@@ -1596,8 +1600,8 @@ TEST_F(SaveRoundTripTest, CarriesWornItemsInTheirOwnSlots) {
 
 TEST_F(SaveRoundTripTest, CarriesBothStackableTabsAcross) {
   CharacterInstance c = MakeCharacter(rng_);
-  c.AddStackable(items_["Green Snail Shell"], 47);
-  c.AddStackable(items_["Red Potion"], 3);
+  c.AddStackable(items_["green_snail_shell"], 47);
+  c.AddStackable(items_["red_potion"], 3);
 
   CharacterInstance loaded = Reload(c.ToProto());
   ASSERT_EQ(loaded.stackables(ITEM_CATEGORY_ETC).size(), 1u);
@@ -1629,7 +1633,7 @@ TEST_F(SaveRoundTripTest, CarriesLearnedSkillsAndSp) {
 TEST_F(SaveRoundTripTest, DropsItemsTheCatalogsNoLongerName) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
-  c.AddStackable(items_["Green Snail Shell"], 5);
+  c.AddStackable(items_["green_snail_shell"], 5);
   c.AddMeso(99);
   Character saved = c.ToProto();
 
@@ -1646,7 +1650,7 @@ TEST_F(SaveRoundTripTest, DropsItemsTheCatalogsNoLongerName) {
 TEST_F(SaveRoundTripTest, ReplacesWhateverWasThereBefore) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
-  c.AddStackable(items_["Red Potion"], 9);
+  c.AddStackable(items_["red_potion"], 9);
 
   c.RestoreFrom(Character{}, equips_, items_);
   EXPECT_TRUE(c.inventory().empty());
@@ -1677,8 +1681,8 @@ TEST_F(SaveRoundTripTest, ReSavingALoadedCharacterGivesTheSameSave) {
   c.PickUp(std::make_unique<EquipInstance>(sword_));
   c.PickUp(std::make_unique<EquipInstance>(sword_));
   c.Equip(0);
-  c.AddStackable(items_["Green Snail Shell"], 12);
-  c.AddStackable(items_["Red Potion"], 2);
+  c.AddStackable(items_["green_snail_shell"], 12);
+  c.AddStackable(items_["red_potion"], 2);
   c.AddMeso(500);
 
   Character first = c.ToProto();
