@@ -44,8 +44,9 @@ EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
 void EquippedPanel::OpenMenu() {
   menu_.Reset();
   // Entries the player has not reached yet are not drawn at all, ahead of any
-  // question about this particular item: a level 2 character has no bag to
-  // unequip into, and asking about scrolls means nothing to them yet.
+  // question about this particular item: a character who has just been handed
+  // this panel has no bag to unequip into yet, and asking about scrolls means
+  // nothing to them for a long while after that.
   if (!Unlocked(Feature::kUnequip, character_)) {
     menu_.Hide(kMenuAction);
   }

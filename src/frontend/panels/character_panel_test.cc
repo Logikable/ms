@@ -213,7 +213,11 @@ TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
 
 // Skills belong to a job. A Beginner has no skill list to look at, so the bar
 // is Stats alone until they pick one.
-TEST_F(CharacterPanelTest, ABeginnerHasNoSkillsTab) {
+// Named for the level, not the job: at level 1 the tab is held back by the
+// level gate whatever the job is, so this says nothing about being a Beginner.
+// TheSkillsTabArrivesWithTheAdvancement below is what tests the job condition,
+// by standing a Beginner at the gate's level.
+TEST_F(CharacterPanelTest, ANewCharacterHasOnlyTheStatsTab) {
   CharacterPanel panel(c_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("Stats"), std::string::npos);

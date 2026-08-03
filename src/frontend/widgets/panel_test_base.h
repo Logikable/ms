@@ -42,9 +42,11 @@ class PanelTest : public testing::Test {
     return screen.ToString();
   }
 
-  // Levels `c_` to `level`. The item menu's entries are level-gated (see
-  // progression.h), so a test that means to exercise one has to have reached
-  // it: scrolling at 10, star force at 60, recovery at 140.
+  // Levels `c_` to `level`. The item menu's entries are level-gated, so a test
+  // that means to exercise one has to have reached it -- and, just as easily
+  // missed, a test asserting an entry is ABSENT proves nothing at level 1,
+  // where every gated entry is absent anyway. Ask UnlockLevel(Feature::...)
+  // for the level rather than writing a number: they have moved before.
   void LevelTo(int level) {
     while (c_.proto().level() < level) {
       c_.LevelUp();

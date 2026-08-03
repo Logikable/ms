@@ -5,6 +5,7 @@
 #include <random>
 
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
 #include "src/protos/character.pb.h"
 
 namespace ms {
@@ -48,6 +49,14 @@ TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   EXPECT_TRUE(Unlocked(Feature::kStarForce, MakeCharacter(60)));
   EXPECT_FALSE(Unlocked(Feature::kRecovery, MakeCharacter(139)));
   EXPECT_TRUE(Unlocked(Feature::kRecovery, MakeCharacter(140)));
+}
+
+// Scrolling is pinned to the trial's ceiling rather than given a level of its
+// own: it works, but spell traces -- the half a player would reach for -- are
+// not written yet, so only someone who has finished the trial meets it. The
+// two are meant to move together, and nothing else records that.
+TEST_F(ProgressionTest, ScrollingSitsOnTheTrialLevelCap) {
+  EXPECT_EQ(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
 }
 
 // Taking something off needs somewhere to put it, so the two move together.
@@ -109,6 +118,31 @@ TEST_F(ProgressionTest, ThePaceNeverQuickens) {
     EXPECT_GE(GameSpeedFactor(level), GameSpeedFactor(level - 1))
         << "at level " << level;
   }
+}
+
+// --- the hotkeys tip ---
+
+// The one thing that expires rather than opens, so it is checked in both
+// directions: every level it should be up for, and the level it goes away on.
+TEST_F(ProgressionTest, TheHotkeysTipStandsUntilItsRetirementLevel) {
+  for (int level = 1; level < HotkeysTipRetireLevel(); ++level) {
+    CharacterInstance c = MakeCharacter(level);
+    EXPECT_TRUE(HotkeysTipVisible(c)) << "still up at level " << level;
+  }
+}
+
+TEST_F(ProgressionTest, TheHotkeysTipIsGoneFromItsRetirementLevelOn) {
+  CharacterInstance retired = MakeCharacter(HotkeysTipRetireLevel());
+  EXPECT_FALSE(HotkeysTipVisible(retired));
+  CharacterInstance later = MakeCharacter(HotkeysTipRetireLevel() + 20);
+  EXPECT_FALSE(HotkeysTipVisible(later));
+}
+
+// It exists to explain the panels arriving around it, so it has to outlast the
+// last of them rather than leaving while one is still new.
+TEST_F(ProgressionTest, TheHotkeysTipOutlastsEveryPanelItExplains) {
+  EXPECT_GT(HotkeysTipRetireLevel(), UnlockLevel(Feature::kEquipped));
+  EXPECT_GT(HotkeysTipRetireLevel(), UnlockLevel(Feature::kBag));
 }
 
 }  // namespace

@@ -228,10 +228,22 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   }
   ASSERT_TRUE(saw_destroy);
 
+  // High enough that every upgrade entry would be on the menu for an ordinary
+  // item. What disables them here has to be the trace, not the level.
+  LevelTo(UnlockLevel(Feature::kRecovery));
   InventoryPanel panel(c_, panel_focus_);
   panel.OpenMenu();
-  // Equip/Scroll/StarForce are disabled; only Inspect is selectable.
+  // Recover is offered on a trace -- it is the one thing a trace is for -- so
+  // Inspect and Recover are what remain. Equip, Scroll and Star Force all need
+  // an item that still exists.
+  // Read before walking the menu: ReachableMenuEntries moves the selection,
+  // so where the menu opens has to be captured first.
   EXPECT_EQ(panel.menu().selected(), kMenuInspect);
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
 }
 
 // Neither action can do anything to a throwing star, so the menu should not
@@ -239,6 +251,11 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
 // includes Clean Slate scrolls, so it opened on a list of scrolls that would
 // have been refused.
 TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
+  // Levelled past both gates first. At level 1 neither entry is offered on
+  // anything at all, so the assertions below would hold for an ordinary sword
+  // and this would be a test of the gates, not of the throwing stars.
+  // ASpentWeaponKeepsScrollAndStarForce is the control at the same level.
+  LevelTo(UnlockLevel(Feature::kStarForce));
   c_.PickUp(std::make_unique<EquipInstance>(MakeThrowingStars()));
   InventoryPanel panel(c_, panel_focus_);
   panel.OpenMenu();
@@ -289,20 +306,20 @@ TEST_F(InventoryPanelTest, StarForceAndRecoveryArriveAtTheirOwnLevels) {
   c_.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
   InventoryPanel panel(c_, panel_focus_);
 
-  LevelTo(60);
+  LevelTo(UnlockLevel(Feature::kStarForce));
   panel.OpenMenu();
   std::vector<int> at_60 = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(at_60.begin(), at_60.end(), kMenuRecover), 0)
       << "recovery waits for 140";
 
-  LevelTo(140);
+  LevelTo(UnlockLevel(Feature::kRecovery));
   panel.OpenMenu();
   std::vector<int> at_140 = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(at_140.begin(), at_140.end(), kMenuRecover), 0);
 }
 
 TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
-  LevelTo(60);  // scrolling and star force are gated at 10 and 60
+  LevelTo(UnlockLevel(Feature::kStarForce));
   EquipPrototype proto = sword_;
   proto.set_upgrade_slots(1);
   Equip state;
@@ -332,13 +349,13 @@ TEST_F(InventoryPanelTest, TheShopTabIsAbsentBeforeItsLevel) {
 }
 
 TEST_F(InventoryPanelTest, TheShopTabArrivesAtItsLevel) {
-  LevelTo(19);
+  LevelTo(UnlockLevel(Feature::kShop) - 1);
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
   ASSERT_EQ(RenderComponent(comp).find("Shop"), std::string::npos);
 
-  LevelTo(20);
+  LevelTo(UnlockLevel(Feature::kShop));
   EXPECT_NE(RenderComponent(comp).find("Shop"), std::string::npos);
   for (int i = 0; i < 5; ++i) {
     comp->OnEvent(ftxui::Event::ArrowRight);
@@ -349,7 +366,7 @@ TEST_F(InventoryPanelTest, TheShopTabArrivesAtItsLevel) {
 // The Shop tab lists nothing the player owns, so where the other tabs show a
 // list it shows the way in.
 TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
-  LevelTo(20);  // the Shop tab is gated there
+  LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   panel_focus_ = kInventoryPanel;
@@ -363,7 +380,7 @@ TEST_F(InventoryPanelTest, ShopTabSaysHowToOpenTheShop) {
 
 // It is the last tab, so Right must stop there rather than walking off the bar.
 TEST_F(InventoryPanelTest, ShopIsTheRightmostTab) {
-  LevelTo(20);  // the Shop tab is gated there
+  LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   for (int i = 0; i < 6; ++i) {
@@ -377,7 +394,7 @@ TEST_F(InventoryPanelTest, ShopIsTheRightmostTab) {
 // Etc stack matters -- without one, a Shop tab that fell through to the Etc
 // emptiness check would look inert for the wrong reason.
 TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
-  LevelTo(20);  // the Shop tab is gated there
+  LevelTo(UnlockLevel(Feature::kShop));
   c_.AddStackable(MakeStackable("Shell", ITEM_CATEGORY_ETC, 7), 5);
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -393,7 +410,7 @@ TEST_F(InventoryPanelTest, DownDoesNotDescendIntoTheShopTab) {
 
 // The shop is not a stackable tab, or the sell menu would open over it.
 TEST_F(InventoryPanelTest, TheShopTabIsNotAStackableTab) {
-  LevelTo(20);  // the Shop tab is gated there
+  LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   for (int i = 0; i < 3; ++i) {

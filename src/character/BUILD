@@ -51,6 +51,7 @@ cc_test(
     srcs = ["progression_test.cc"],
     deps = [
         ":character",
+        ":exp_table",
         ":progression",
         "//src/protos:character_proto_cc",
         "@googletest//:gtest_main",

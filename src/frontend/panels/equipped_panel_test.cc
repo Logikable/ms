@@ -169,6 +169,10 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   stars.set_equip_slot(EQUIP_SLOT_STARS);
   stars.add_unsupported_upgrades(UPGRADE_SCROLL);
   stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  // Past both gates, or neither entry would be offered on any item and the
+  // assertions below would say nothing about throwing stars in particular.
+  // ScrollingAndStarForceArriveAtTheirOwnLevels is the control.
+  LevelTo(UnlockLevel(Feature::kStarForce));
   c_.PickUp(std::make_unique<EquipInstance>(stars));
   c_.Equip(0);
 

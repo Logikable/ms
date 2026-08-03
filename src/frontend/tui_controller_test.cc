@@ -77,6 +77,13 @@ class TuiControllerTest : public testing::Test {
     while (state_->character.sp(1) < 60) {
       state_->character.LevelUp();
     }
+    // Many tests below reach the Scroll entry by counting rows down the item
+    // menu, and a gated entry is not drawn at all -- so the character has to
+    // stand at scrolling's gate or the count lands somewhere else. The SP loop
+    // above happens to end there today (stage-1 SP starts at 11 and pays 3 a
+    // level, so 60 of it is exactly level 30). Stated rather than relied on:
+    // either number can move without the other.
+    LevelTo(UnlockLevel(Feature::kScrolling));
     equip_panel_ =
         std::make_unique<EquippedPanel>(state_->character, panel_focus_);
     inventory_panel_ =
@@ -139,7 +146,7 @@ class TuiControllerTest : public testing::Test {
     // The Shop tab is gated at 20. The fixture already levels past that
     // buying SP, but that is a coincidence of the SP arithmetic and not
     // something the shop tests should be resting on.
-    LevelTo(20);
+    LevelTo(UnlockLevel(Feature::kShop));
     panel_focus_ = kInventoryPanel;
     for (int i = 0; i < 3; ++i) {
       inventory_component_->OnEvent(ftxui::Event::ArrowRight);
@@ -642,7 +649,7 @@ TEST_F(TuiControllerTest,
 
 TEST_F(TuiControllerTest,
        ReturnToItemMenuAfterScrollingEnablesStarForceWhenSlotsDepleted) {
-  LevelTo(60);  // star force is gated there
+  LevelTo(UnlockLevel(Feature::kStarForce));
   sword_.set_upgrade_slots(1);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
@@ -810,7 +817,7 @@ TEST_F(TuiControllerTest,
 // --- Star Force via equip panel ---
 
 TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {
-  LevelTo(60);  // star force is gated there
+  LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -825,7 +832,7 @@ TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {
 }
 
 TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
-  LevelTo(60);  // star force is gated there
+  LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -841,7 +848,7 @@ TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
 }
 
 TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
-  LevelTo(60);  // star force is gated there
+  LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -858,7 +865,7 @@ TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
 }
 
 TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
-  LevelTo(60);  // star force is gated there
+  LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -876,7 +883,7 @@ TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
 }
 
 TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
-  LevelTo(60);  // star force is gated there
+  LevelTo(UnlockLevel(Feature::kStarForce));
   // At 0★ the success rate is 95%, so with a seeded rng the first attempt
   // will succeed. We just verify the screen transition, not the outcome.
   PickUpScrolledSword();
@@ -902,7 +909,7 @@ TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
 // --- Star Force via bag panel ---
 
 TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
-  LevelTo(60);  // star force is gated there
+  LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
   panel_focus_ = kInventoryPanel;
 
@@ -916,7 +923,7 @@ TEST_F(TuiControllerTest, BagStarForceGoesToStarForce) {
 }
 
 TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
-  LevelTo(60);  // star force is gated there
+  LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
   panel_focus_ = kInventoryPanel;
 
