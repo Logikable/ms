@@ -19,7 +19,6 @@ void CombatSim::Refill(const CombatParams& params) {
   // the beat refills the whole queue on a fixed timer, and the sim always
   // attacks the front, so a fixed order would let only the front types die.
   std::shuffle(queue_.begin(), queue_.end(), rng_);
-  attack_phase_ = 0.0;
 }
 
 const AttackOption* CombatSim::BestAttack(const CombatParams& params) const {
@@ -73,6 +72,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   if (!initialized_ || map_ != params.map) {
     map_ = params.map;
     respawn_phase_ = 0.0;
+    attack_phase_ = 0.0;
     Refill(params);
     initialized_ = true;
   }
@@ -81,7 +81,16 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   respawn_phase_ += dt;
   if (respawn_phase_ >= params.respawn_seconds) {
     respawn_phase_ -= params.respawn_seconds;
+    // A beat that ends an idle stretch starts a fresh swing: the clock stopped
+    // when the last mob died, so the new one is met from zero. A beat that
+    // lands mid-fight is just more monsters arriving, and the swing already
+    // being wound up keeps its charge -- restarting it there would throw away
+    // real progress, not only the bar the player is watching.
+    bool was_idle = queue_.empty();
     Refill(params);
+    if (was_idle) {
+      attack_phase_ = 0.0;
+    }
   }
 
   // The attack is chosen against the queue as it stands, so the charge bar

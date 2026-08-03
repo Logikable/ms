@@ -93,7 +93,9 @@ class CombatSim {
     double hp = 0.0;
   };
 
-  // Repopulates the queue to a full map clear, in random order.
+  // Repopulates the queue to a full map clear, in random order. Leaves the
+  // swing clock alone -- whether a refill interrupts the swing in progress
+  // depends on why it happened, so the callers decide.
   void Refill(const CombatParams& params);
   // The attack that would land the most damage on the queue as it stands, or
   // null when there is nothing to hit. Reach is worth nothing past the number

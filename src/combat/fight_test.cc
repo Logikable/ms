@@ -328,6 +328,47 @@ TEST(CombatSimTest, RefillsAtTheRespawnBeat) {
   EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
 }
 
+TEST(CombatSimTest, ARespawnBeatMidFightLeavesTheSwingCharging) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  // 10 dmg against 100 HP, so the mob is still up when the beat lands. Swing
+  // 2s, beat 3s, stepped 0.5s at a time -- the beat at t=3 catches a swing
+  // half charged.
+  CombatParams params = MakeParams(2.0, 3.0, {MakeType(&snail, 10.0, 1)});
+
+  for (int i = 0; i < 5; ++i) {
+    sim.Advance(params, 0.5);  // t=2.5: swing landed at 2, phase back to 0.5
+  }
+  ASSERT_NEAR(sim.attack_fraction(), 0.25, 1e-9);
+
+  sim.Advance(params, 0.5);  // t=3: the beat, then another half second
+  EXPECT_FALSE(sim.respawning());
+  // 0.5s of charge survived the beat and 0.5s was added on top. A beat that
+  // restarted the swing would read 0.25 here.
+  EXPECT_NEAR(sim.attack_fraction(), 0.5, 1e-9);
+}
+
+TEST(CombatSimTest, ARespawnBeatAfterAClearStartsAFreshSwing) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // One swing clears the map. Stepping 0.75s against a 1s swing leaves 0.25s
+  // of overshoot behind, which the idle stretch must not bank.
+  CombatParams params = MakeParams(1.0, 3.0, {MakeType(&snail, 10.0, 1)});
+
+  sim.Advance(params, 0.75);
+  sim.Advance(params, 0.75);  // t=1.5: the swing lands and clears the map
+  ASSERT_TRUE(sim.respawning());
+  sim.Advance(params, 0.75);  // t=2.25: still idle, nothing charging
+  ASSERT_TRUE(sim.respawning());
+
+  sim.Advance(params, 0.75);  // t=3: the beat, then a fresh swing begins
+  EXPECT_FALSE(sim.respawning());
+  // Exactly the 0.75s since the beat. Carrying the overshoot would have put
+  // the swing over the line and landed a hit already.
+  EXPECT_NEAR(sim.attack_fraction(), 0.75, 1e-9);
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9);
+}
+
 TEST(CombatSimTest, MovingToAnotherMapRestartsTheFightThere) {
   Mob snail = MakeMob("Snail", 30);
   Mob slug = MakeMob("Slug", 30);
