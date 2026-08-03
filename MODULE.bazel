@@ -10,6 +10,9 @@ bazel_dep(name = "rules_cc", version = "0.0.9")
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_shell", version = "0.6.1")
 
+# Builds the two release zips under //release.
+bazel_dep(name = "rules_pkg", version = "1.1.0")
+
 # For //tools:embed_data, which compiles the game's data files into the binary.
 # Already in the graph under protobuf; named here so it can be depended on.
 bazel_dep(name = "rules_python", version = "1.7.0")
