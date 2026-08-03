@@ -12,6 +12,17 @@ load("//tools:release.bzl", "release_binary")
 
 package(default_visibility = ["//visibility:public"])
 
+# What the files in the zips are dated. A fixed instant rather than the build
+# clock, so two builds of the same commit still produce identical archives --
+# but a real one, because pkg_zip otherwise stamps everything 1980-01-01, which
+# reads as a corrupt download rather than a deliberate default.
+#
+# 2026-08-03 12:00 UTC, when the first build went out. Noon on purpose: a zip's
+# timestamp carries no timezone, so whatever a viewer does with it, midday
+# cannot slide onto the day before or after. Move it when the date shown to a
+# player would otherwise be misleading.
+_RELEASE_TIMESTAMP = 1785758400
+
 platform(
     name = "linux_x86_64",
     constraint_values = [
@@ -47,6 +58,7 @@ pkg_files(
 pkg_zip(
     name = "ms-linux-x86_64",
     srcs = [":linux_payload"],
+    timestamp = _RELEASE_TIMESTAMP,
 )
 
 pkg_files(
@@ -60,4 +72,5 @@ pkg_files(
 pkg_zip(
     name = "ms-windows-x86_64",
     srcs = [":windows_payload"],
+    timestamp = _RELEASE_TIMESTAMP,
 )
