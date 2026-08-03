@@ -328,6 +328,49 @@ TEST(CombatSimTest, RefillsAtTheRespawnBeat) {
   EXPECT_NEAR(sim.target_hp_fraction(), 20.0 / 30.0, 1e-9);
 }
 
+TEST(CombatSimTest, ARespawnBeatAddsOnlyTheMissingMobs) {
+  Mob snail = MakeMob("Snail", 10);
+  Mob slug = MakeMob("Slug", 100);
+  CombatSim sim;
+  // One swing hits both: the Snail dies outright, the Slug drops to 90%. The
+  // beat at t=1.5 then falls between swings, with only the Snail to replace.
+  CombatParams params = MakeParams(
+      1.0, 1.5, {MakeType(&snail, 10.0, 1), MakeType(&slug, 10.0, 1)},
+      /*reach=*/2);
+
+  sim.Advance(params, 0.5);
+  sim.Advance(params, 0.5);  // t=1: the swing lands, leaving the Slug alone
+  ASSERT_EQ(sim.engaged_groups().size(), 1u);
+
+  sim.Advance(params, 0.5);  // t=1.5: the beat
+  const std::vector<EngagedGroup>& groups = sim.engaged_groups();
+  ASSERT_EQ(groups.size(), 2u);
+  const EngagedGroup* snails = FindGroup(groups, "Snail");
+  const EngagedGroup* slugs = FindGroup(groups, "Slug");
+  ASSERT_NE(snails, nullptr);
+  ASSERT_NE(slugs, nullptr);
+  // The Snail is a new spawn, so it arrives whole.
+  EXPECT_NEAR(snails->hp_fraction, 1.0, 1e-9);
+  // The Slug was never dead. A beat that rebuilt the roster would have healed
+  // it back to full.
+  EXPECT_NEAR(slugs->hp_fraction, 0.9, 1e-9);
+}
+
+TEST(CombatSimTest, AMobSlowerToKillThanTheRespawnBeatStillDies) {
+  Mob slug = MakeMob("Slug", 100);
+  CombatSim sim;
+  // Ten swings to kill, with a beat every five. The damage has to survive the
+  // beats or the mob can never be killed at all.
+  CombatParams params = MakeParams(1.0, 5.0, {MakeType(&slug, 10.0, 1)});
+
+  int64_t kills = 0;
+  for (int i = 0; i < 10; ++i) {
+    sim.Advance(params, 1.0);
+    kills += sim.kills_this_step()[0];
+  }
+  EXPECT_EQ(kills, 1);
+}
+
 TEST(CombatSimTest, ARespawnBeatMidFightLeavesTheSwingCharging) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;

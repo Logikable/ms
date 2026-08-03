@@ -1,7 +1,9 @@
 /* The live fight: the player auto-attacking a map's mobs, draining HP, clearing
  * the queue, then idling until the next respawn beat refills it.
  *
- * The mobs form a queue (spawns appended in random order on each refill). One
+ * The mobs form a queue. A respawn beat tops it back up to a full roster,
+ * appending the missing spawns in random order and leaving whatever is still
+ * standing alone -- so a fight that outlasts a beat keeps its progress. One
  * swing hits the first params.attack_targets of them at once -- the chosen
  * attack's reach -- each taking its own type's damage; a mob at 0 HP leaves the
  * queue and the ones behind slide forward. A single-target attack (reach 1) is
@@ -93,10 +95,14 @@ class CombatSim {
     double hp = 0.0;
   };
 
-  // Repopulates the queue to a full map clear, in random order. Leaves the
-  // swing clock alone -- whether a refill interrupts the swing in progress
-  // depends on why it happened, so the callers decide.
-  void Refill(const CombatParams& params);
+  // Brings the queue back up to a full roster, adding only the mobs missing
+  // from each type. What is already queued keeps its remaining HP and its
+  // place: a respawn puts new monsters on the map, it does not heal the one
+  // being fought. Clear the queue first to repopulate from scratch.
+  //
+  // Leaves the swing clock alone -- whether a top-up interrupts the swing in
+  // progress depends on why it happened, so the callers decide.
+  void TopUp(const CombatParams& params);
   // The attack that would land the most damage on the queue as it stands, or
   // null when there is nothing to hit. Reach is worth nothing past the number
   // of mobs actually queued, so a wide, weak-per-target skill loses to the
@@ -113,8 +119,8 @@ class CombatSim {
   double attack_phase_ = 0.0;     // seconds into the current swing
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
 
-  // Shuffles the queue on each refill so the mobs are fought in mixed order
-  // rather than one whole type at a time (see Refill). Default-seeded, so a sim
+  // Shuffles each batch of arriving mobs so they are fought in mixed order
+  // rather than one whole type at a time (see TopUp). Default-seeded, so a sim
   // plays out the same way every run -- which keeps tests reproducible.
   std::mt19937 rng_;
 

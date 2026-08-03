@@ -7,18 +7,22 @@
 
 namespace ms {
 
-void CombatSim::Refill(const CombatParams& params) {
-  queue_.clear();
+void CombatSim::TopUp(const CombatParams& params) {
+  std::vector<int> standing(params.types.size(), 0);
+  for (const QueuedMob& mob : queue_) {
+    ++standing[mob.type];
+  }
+  int first_new = static_cast<int>(queue_.size());
   for (int i = 0; i < static_cast<int>(params.types.size()); ++i) {
-    for (int k = 0; k < params.types[i].simultaneous; ++k) {
+    for (int k = standing[i]; k < params.types[i].simultaneous; ++k) {
       queue_.push_back({i, static_cast<double>(params.types[i].mob->max_hp())});
     }
   }
-  // Fight the queue in a random order, interleaving the types. Beyond feeling
-  // less mechanical, this keeps kills fair when clears lag the respawn beat:
-  // the beat refills the whole queue on a fixed timer, and the sim always
-  // attacks the front, so a fixed order would let only the front types die.
-  std::shuffle(queue_.begin(), queue_.end(), rng_);
+  // Interleave the newcomers so a swing does not face one whole type at a
+  // time. Only they are shuffled: the mobs already in the queue are being
+  // fought, and moving a wounded one out of the front window would hand back
+  // the damage done to it.
+  std::shuffle(queue_.begin() + first_new, queue_.end(), rng_);
 }
 
 const AttackOption* CombatSim::BestAttack(const CombatParams& params) const {
@@ -73,11 +77,12 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     map_ = params.map;
     respawn_phase_ = 0.0;
     attack_phase_ = 0.0;
-    Refill(params);
+    queue_.clear();
+    TopUp(params);
     initialized_ = true;
   }
 
-  // The respawn beat refills the whole queue.
+  // The respawn beat brings the map back to a full roster.
   respawn_phase_ += dt;
   if (respawn_phase_ >= params.respawn_seconds) {
     respawn_phase_ -= params.respawn_seconds;
@@ -87,7 +92,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     // being wound up keeps its charge -- restarting it there would throw away
     // real progress, not only the bar the player is watching.
     bool was_idle = queue_.empty();
-    Refill(params);
+    TopUp(params);
     if (was_idle) {
       attack_phase_ = 0.0;
     }
