@@ -71,6 +71,17 @@ bool Unlocked(Feature feature, const CharacterInstance& character) {
   return true;
 }
 
+int HotkeysTipRetireLevel() {
+  // One level past the bag, which is the last panel the tip has to account
+  // for. Derived rather than written out, so retuning the early game moves the
+  // tip along with the panels it describes.
+  return UnlockLevel(Feature::kBag) + 1;
+}
+
+bool HotkeysTipVisible(const CharacterInstance& character) {
+  return character.proto().level() < HotkeysTipRetireLevel();
+}
+
 double GameSpeedFactor(int level) {
   double factor = kSpeeds[0].factor;
   for (const Speed& speed : kSpeeds) {

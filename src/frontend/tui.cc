@@ -14,11 +14,13 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/character/progression.h"
 #include "src/combat/combat.h"
 #include "src/frontend/main_layout.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/combat_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
+#include "src/frontend/panels/hotkeys_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
@@ -295,9 +297,13 @@ ftxui::Element Tui::RenderMain() {
   if (controller_.PanelVisible(kInventoryPanel)) {
     inventory = inventory_component_->Render();
   }
-  ftxui::Element layout =
-      MainLayout(char_panel_.Render(), combat_component_->Render(),
-                 std::move(equipped), std::move(inventory), RenderExpBar());
+  ftxui::Element hotkeys = nullptr;
+  if (HotkeysTipVisible(state_.character)) {
+    hotkeys = HotkeysPanel();
+  }
+  ftxui::Element layout = MainLayout(
+      char_panel_.Render(), combat_component_->Render(), std::move(equipped),
+      std::move(inventory), std::move(hotkeys), RenderExpBar());
   if (controller_.screen() != kItemMenu) {
     return layout;
   }

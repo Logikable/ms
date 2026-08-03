@@ -41,6 +41,15 @@ bool Unlocked(Feature feature, const CharacterInstance& character);
 // this one, so ask Unlocked rather than comparing against this yourself.
 int UnlockLevel(Feature feature);
 
+// The level the hotkeys tip stops being drawn at. Not a Feature: the enum
+// above is for things that open and stay open, and this is the one thing that
+// expires, so folding it in would make Unlocked read backwards.
+int HotkeysTipRetireLevel();
+
+// Whether the hotkeys tip still has a place on screen. It teaches the controls
+// while the game is small enough that there is nothing else to learn.
+bool HotkeysTipVisible(const CharacterInstance& character);
+
 // How many times slower than GMS the game runs at `level`. The one global
 // pacing knob, and the reason it lives here: it is not a constant. The game
 // stretches out as the player climbs, from twice GMS's clock at the start to

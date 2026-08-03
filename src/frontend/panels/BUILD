@@ -137,3 +137,26 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "hotkeys_panel",
+    srcs = ["hotkeys_panel.cc"],
+    hdrs = ["hotkeys_panel.h"],
+    deps = [
+        "//src/character:progression",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "hotkeys_panel_test",
+    srcs = ["hotkeys_panel_test.cc"],
+    deps = [
+        ":hotkeys_panel",
+        "//src/character:progression",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)

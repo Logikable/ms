@@ -5,9 +5,9 @@
 
 namespace ms {
 
-// Arranges the five pieces of the main view: a left column of the character
-// panel over the combat panel, a right column of the equipped panel over the
-// bag, and the exp bar across the foot.
+// Arranges the pieces of the main view: a left column of the character panel
+// over the combat panel, a right column of the equipped panel over the bag
+// over the hotkeys tip, and the exp bar across the foot.
 //
 // Split out of Tui::RenderMain so it can be measured in a test. Every rule
 // below was a bug on screen first:
@@ -26,12 +26,18 @@ namespace ms {
 //   - Each column is a vbox because the hbox holding them stretches a bare
 //     child to the full height of the row.
 //
-// `equipped` and `inventory` may be null, for a character who has not unlocked
-// them yet. A null panel leaves no gap: the right column closes up around it,
-// and with both null there is no right column at all.
+//   - The hotkeys tip is pinned to the foot of the right column, so it sits in
+//     the bottom-right corner the way combat sits in the bottom-left. It is
+//     the one panel that goes away rather than arrives, and for the first two
+//     levels it is the only thing in the right column.
+//
+// `equipped`, `inventory` and `hotkeys` may each be null, for a character who
+// has not unlocked them yet -- or, for the tip, has outgrown it. A null panel
+// leaves no gap: the right column closes up around it, and with all three null
+// there is no right column at all.
 ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
                           ftxui::Element equipped, ftxui::Element inventory,
-                          ftxui::Element exp_bar);
+                          ftxui::Element hotkeys, ftxui::Element exp_bar);
 
 }  // namespace ms
 

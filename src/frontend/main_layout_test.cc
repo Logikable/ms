@@ -44,17 +44,19 @@ class MainLayoutTest : public testing::Test {
   // equipped over a bag of whatever height the test asks for.
   void Render(int bag_rows) {
     RenderWith(Panel("EQUIP", kRightWidth, 1),
-               Panel("BAG", kRightWidth, bag_rows));
+               Panel("BAG", kRightWidth, bag_rows), nullptr);
   }
 
   // The same layout with whichever right-column panels the test wants, so it
   // can pass null for one a character has not unlocked.
-  void RenderWith(ftxui::Element equipped, ftxui::Element inventory) {
+  void RenderWith(ftxui::Element equipped, ftxui::Element inventory,
+                  ftxui::Element hotkeys) {
     screen_ = ftxui::Screen::Create(ftxui::Dimension::Fixed(kScreenWidth),
                                     ftxui::Dimension::Fixed(kScreenHeight));
-    ftxui::Element layout = MainLayout(
-        Panel("CHAR", kLeftWidth, 8), Panel("COMBAT", kLeftWidth, 3),
-        std::move(equipped), std::move(inventory), ftxui::text("EXPBAR"));
+    ftxui::Element layout =
+        MainLayout(Panel("CHAR", kLeftWidth, 8), Panel("COMBAT", kLeftWidth, 3),
+                   std::move(equipped), std::move(inventory),
+                   std::move(hotkeys), ftxui::text("EXPBAR"));
     ftxui::Render(screen_, layout);
   }
 
@@ -227,7 +229,7 @@ TEST_F(MainLayoutTest, TheRightColumnFillsTheRemainingWidth) {
 // Nothing to the right of the character panel at level 1, and the two panels
 // that do exist keep the places they will have for the rest of the game.
 TEST_F(MainLayoutTest, BothRightPanelsAbsentLeavesOnlyTheLeftColumn) {
-  RenderWith(nullptr, nullptr);
+  RenderWith(nullptr, nullptr, nullptr);
   EXPECT_EQ(FirstRowWith("EQUIP"), -1);
   EXPECT_EQ(FirstRowWith("BAG"), -1);
   EXPECT_NE(FirstRowWith("CHAR"), -1);
@@ -241,7 +243,7 @@ TEST_F(MainLayoutTest, BothRightPanelsAbsentLeavesOnlyTheLeftColumn) {
 // right column is the equipped panel alone -- and it must sit at the top of
 // the column rather than floating where the bag would have put it.
 TEST_F(MainLayoutTest, TheEquippedPanelStandsAloneWithoutTheBag) {
-  RenderWith(Panel("EQUIP", kRightWidth, 1), nullptr);
+  RenderWith(Panel("EQUIP", kRightWidth, 1), nullptr, nullptr);
   EXPECT_EQ(FirstRowWith("BAG"), -1);
   EXPECT_EQ(FirstRowWith("EQUIP"), 1);
   EXPECT_EQ(FirstRowWith("CHAR"), 1) << "both columns start at the top";
@@ -250,11 +252,55 @@ TEST_F(MainLayoutTest, TheEquippedPanelStandsAloneWithoutTheBag) {
 // The right column is what flexes to fill the width. With nothing in it the
 // left column must not stretch to take its place.
 TEST_F(MainLayoutTest, TheLeftColumnKeepsItsWidthWithNoRightColumn) {
-  RenderWith(nullptr, nullptr);
+  RenderWith(nullptr, nullptr, nullptr);
   int row = FirstRowWith("CHAR");
   ASSERT_NE(row, -1);
   EXPECT_EQ(Cell(kLeftWidth - 1, row), "\u2502") << "right border of the panel";
   EXPECT_EQ(Cell(kLeftWidth, row), " ") << "and nothing past it";
+}
+
+// --- the hotkeys tip ---
+
+// It mirrors combat: pinned to the foot of its column so it lands in the
+// bottom-right corner however tall the terminal is.
+TEST_F(MainLayoutTest, TheHotkeysTipSitsInTheBottomRightCorner) {
+  RenderWith(Panel("EQUIP", kRightWidth, 1), Panel("BAG", kRightWidth, 3),
+             Panel("KEYS", kRightWidth, 5));
+  EXPECT_EQ(LastRowWith("KEYS"), kScreenHeight - 3)
+      << "pinned just above the exp bar";
+  EXPECT_LT(FirstRowWith("BAG"), FirstRowWith("KEYS")) << "and below the bag";
+}
+
+// For the first two levels there is no equipped panel and no bag, so the tip
+// is the whole right column -- and must still be at the bottom of it rather
+// than at the top where the only other child would have put it.
+TEST_F(MainLayoutTest, TheHotkeysTipAloneStillSitsAtTheBottom) {
+  RenderWith(nullptr, nullptr, Panel("KEYS", kRightWidth, 5));
+  EXPECT_EQ(FirstRowWith("EQUIP"), -1);
+  EXPECT_EQ(FirstRowWith("BAG"), -1);
+  EXPECT_EQ(LastRowWith("KEYS"), kScreenHeight - 3);
+  EXPECT_EQ(FirstRowWith("CHAR"), 1) << "the left column is unaffected";
+}
+
+// A bag long enough to fill the column must not squeeze the tip: the bag is
+// the one panel marked shrinkable, and everything else keeps its own height.
+TEST_F(MainLayoutTest, AFullBagDoesNotSquashTheHotkeysTip) {
+  RenderWith(Panel("EQUIP", kRightWidth, 1), Panel("BAG", kRightWidth, 40),
+             Panel("KEYS", kRightWidth, 5));
+  int keys_top = FirstRowWith("KEYS") - 1;
+  EXPECT_EQ(LastRowWith("KEYS"), kScreenHeight - 3);
+  EXPECT_EQ(LastRowWith("KEYS") + 1, keys_top + 6)
+      << "five content rows and two borders";
+}
+
+// Once the tip retires the right column goes back to exactly what it was, so
+// nothing below level 5 leaves a gap behind it.
+TEST_F(MainLayoutTest, TheRetiredTipLeavesNoGap) {
+  RenderWith(Panel("EQUIP", kRightWidth, 1), Panel("BAG", kRightWidth, 3),
+             nullptr);
+  EXPECT_EQ(FirstRowWith("KEYS"), -1);
+  EXPECT_EQ(FirstRowWith("EQUIP"), 1) << "equipped still at the top";
+  EXPECT_EQ(FirstRowWith("BAG"), 4) << "and the bag directly under it";
 }
 
 }  // namespace
