@@ -34,6 +34,32 @@ cc_library(
 )
 
 cc_library(
+    name = "save",
+    srcs = ["save.cc"],
+    hdrs = ["save.h"],
+    deps = [
+        ":game_state",
+        "//src/protos:save_proto_cc",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+cc_test(
+    name = "save_test",
+    srcs = ["save_test.cc"],
+    deps = [
+        ":game_state",
+        ":save",
+        "//src/item:equip_instance",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:save_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "game_state",
     srcs = ["game_state.cc"],
     hdrs = ["game_state.h"],

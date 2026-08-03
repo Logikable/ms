@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package ms;
+
+import "src/protos/character.proto";
+
+// A player's saved game: everything a launch needs to put them back where they
+// left off. Written as binary proto rather than text -- not as protection, but
+// so the file is not an invitation to edit.
+//
+// Item and skill catalogs are NOT in here. They are loaded from data/, and the
+// save refers to their entries by name, so what a Sword is stays the data
+// files' business and a save stays a few kilobytes.
+message SaveGame {
+  // Bumped when a change to the fields below cannot be read by an older build,
+  // so a save from the future is refused rather than misread. Every message
+  // reachable from here has load-bearing field numbers now: renumbering one
+  // silently misreads every save already written.
+  int32 format_version = 1;
+
+  Character character = 2;
+
+  // The map being farmed, as a key into the map catalog. Empty means the
+  // player was not fighting anywhere.
+  string current_map = 3;
+}

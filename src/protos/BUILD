@@ -81,3 +81,14 @@ cc_proto_library(
     name = "skill_proto_cc",
     deps = [":skill_proto"],
 )
+
+proto_library(
+    name = "save_proto",
+    srcs = ["save.proto"],
+    deps = [":character_proto"],
+)
+
+cc_proto_library(
+    name = "save_proto_cc",
+    deps = [":save_proto"],
+)
