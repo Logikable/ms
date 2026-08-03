@@ -825,6 +825,7 @@ TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {
 }
 
 TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
+  LevelTo(60);  // star force is gated there
   PickUpScrolledSword();
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -1386,6 +1387,52 @@ TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(controller_->item_inspect_item(), nullptr);
+}
+
+// --- quitting ---
+
+TEST_F(TuiControllerTest, EscapeOnTheMainScreenAsksBeforeQuitting) {
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(controller_->screen(), kQuit);
+  EXPECT_FALSE(controller_->quit_requested()) << "asked, not acted on";
+}
+
+// The one keystroke that must not be able to end the game on its own. Nothing
+// is saved, so the prompt opens on Cancel and a second Enter answers "no".
+TEST_F(TuiControllerTest, TheQuitPromptOpensOnCancel) {
+  controller_->OnEvent(ftxui::Event::Escape);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(controller_->quit_requested());
+}
+
+TEST_F(TuiControllerTest, ConfirmingTheQuitPromptRequestsTheQuit) {
+  controller_->OnEvent(ftxui::Event::Escape);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // Cancel -> Confirm
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_TRUE(controller_->quit_requested());
+}
+
+TEST_F(TuiControllerTest, EscapeBacksOutOfTheQuitPrompt) {
+  controller_->OnEvent(ftxui::Event::Escape);
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(controller_->quit_requested());
+}
+
+// Escape means "leave what is open" everywhere else, and only means "leave the
+// game" once there is nothing else open. The quit branch sits below every
+// screen branch in OnEvent to get this, so it is worth pinning.
+TEST_F(TuiControllerTest, EscapeInAScreenLeavesThatScreenRatherThanTheGame) {
+  controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(controller_->quit_requested());
 }
 
 }  // namespace

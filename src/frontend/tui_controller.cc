@@ -189,6 +189,19 @@ bool TuiController::OnEvent(ftxui::Event event) {
   if (screen_ == kShopBuy) {
     return OnShopBuyEvent(event);
   }
+  if (screen_ == kQuit) {
+    return OnQuitEvent(event);
+  }
+  // Below every screen_ branch above, so a back key inside one of them still
+  // means "leave this screen" and only reaches here from the main view, where
+  // there is nothing left to back out of but the game.
+  if (IsBack(event)) {
+    // On Cancel: nothing in this game is saved, so a stray Enter behind an
+    // accidental Escape would cost the whole session.
+    quit_prompt_.Open(/*cancel_selected=*/true);
+    screen_ = kQuit;
+    return true;
+  }
   if (event == ftxui::Event::Tab) {
     // Round the panels until the next one that is actually on screen. The
     // character panel is always visible, so this always lands somewhere.
@@ -335,6 +348,19 @@ bool TuiController::OnSkillLearnEvent(ftxui::Event event) {
 // item inspect screen closes.
 bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
   if (IsBack(event) || IsForward(event)) {
+    screen_ = kMain;
+  }
+  return true;
+}
+
+bool TuiController::OnQuitEvent(ftxui::Event event) {
+  ConfirmChoice choice = quit_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kConfirmed) {
+    // Only raised, never acted on here. Tui owns the ftxui screen and is the
+    // only thing that can end its loop.
+    quit_requested_ = true;
+    screen_ = kMain;
+  } else if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
   }
   return true;

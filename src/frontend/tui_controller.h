@@ -99,6 +99,18 @@ class TuiController {
     return job_advance_prompt_;
   }
 
+  // The prompt on the quit dialog, for the same reason.
+  const ConfirmPrompt& quit_prompt() const {
+    return quit_prompt_;
+  }
+
+  // True once the player has confirmed the quit dialog. The controller cannot
+  // close the terminal itself -- it does not own the ftxui screen -- so it
+  // raises this and leaves the leaving to Tui.
+  bool quit_requested() const {
+    return quit_requested_;
+  }
+
   // Returns true if the event was consumed.
   bool OnEvent(ftxui::Event event);
 
@@ -155,6 +167,7 @@ class TuiController {
   bool OnSkillLearnEvent(ftxui::Event event);
   bool OnSkillInspectEvent(ftxui::Event event);
   bool OnJobAdvanceEvent(ftxui::Event event);
+  bool OnQuitEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
@@ -198,6 +211,8 @@ class TuiController {
   Skill skill_inspect_;
   Job job_advance_ = JOB_UNSPECIFIED;
   ConfirmPrompt job_advance_prompt_;
+  ConfirmPrompt quit_prompt_;
+  bool quit_requested_ = false;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;
   TraceRecoveryResult trace_recovery_result_;

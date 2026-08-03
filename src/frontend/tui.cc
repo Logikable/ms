@@ -94,15 +94,22 @@ void Tui::Run() {
   ftxui::Component base = ftxui::Renderer(
       panels, [this]() -> ftxui::Element { return RenderFrame(); });
 
+  ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
+
   ftxui::Component root =
-      ftxui::CatchEvent(base, [this](ftxui::Event event) -> bool {
+      ftxui::CatchEvent(base, [this, &screen](ftxui::Event event) -> bool {
         if (event.is_mouse()) {
           return true;
         }
-        return OnEvent(event);
+        bool handled = OnEvent(event);
+        // The controller can decide the game is over but not end it: the loop
+        // is here. Checked after every event rather than only the ones it
+        // consumed, so there is no key that can set the flag and not be seen.
+        if (controller_.quit_requested()) {
+          screen.Exit();
+        }
+        return handled;
       });
-
-  ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
 
   // Drive the idle game: wake periodically, advance combat on the loop thread
   // (so state mutation stays single-threaded), and redraw.
@@ -164,6 +171,22 @@ ftxui::Element Tui::RenderFrame() {
             ThemedSeparator(),
             CenteredRow(controller_.job_advance_prompt().Render()),
         }));
+    return ftxui::dbox({
+        RenderMain(),
+        ftxui::center(dialog | ftxui::clear_under),
+    });
+  }
+  if (controller_.screen() == kQuit) {
+    // Titleless, like the bare confirm prompt: the question is the whole
+    // dialog, and a " Quit Game " chip above a "Quit Game?" row would ask it
+    // twice. Floated over the main view so the game the player is leaving is
+    // still behind the question.
+    ftxui::Element dialog =
+        ThemedWindow("", ftxui::vbox({
+                             CenteredRow("Quit Game?"),
+                             ThemedSeparator(),
+                             CenteredRow(controller_.quit_prompt().Render()),
+                         }));
     return ftxui::dbox({
         RenderMain(),
         ftxui::center(dialog | ftxui::clear_under),

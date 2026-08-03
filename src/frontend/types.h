@@ -30,6 +30,9 @@ enum Screen : int {
   kShopMenu,
   kShopInspect,
   kShopBuy,
+  // Escape on the main screen. Last because it is the one screen reachable
+  // from the main view rather than from something on it.
+  kQuit,
 };
 // Focusable panels of the main screen, in Tab order: clockwise from the
 // top-left corner of the layout (Character, Equipped, Inventory, Combat). The
