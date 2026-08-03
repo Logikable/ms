@@ -3,7 +3,7 @@ load("@rules_pkg//pkg:zip.bzl", "pkg_zip")
 load("//tools:release.bzl", "release_binary")
 
 # What a player downloads. Two zips, each holding one self-contained
-# executable, a launcher to click, and a README:
+# executable and a launcher to click:
 #
 #   bazelisk build //release:all
 #
@@ -35,7 +35,6 @@ release_binary(
 pkg_files(
     name = "linux_payload",
     srcs = [
-        "README.txt",
         "play.sh",
         ":ms_linux",
     ],
@@ -53,7 +52,6 @@ pkg_zip(
 pkg_files(
     name = "windows_payload",
     srcs = [
-        "README.txt",
         "play.bat",
         ":ms_windows",
     ],
