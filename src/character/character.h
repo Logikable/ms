@@ -182,6 +182,23 @@ class CharacterInstance {
                ? character_.skill_levels().at(skill.name())
                : 0;
   }
+  // The whole character as one proto, with the live containers -- the equip
+  // tab, the worn items and the Use/Etc stacks -- folded back into the fields
+  // held for them. proto() alone does not carry those: they live in C++
+  // containers and are only written here when someone asks for the lot.
+  Character ToProto() const;
+
+  // The inverse: replaces everything with what `saved` describes, resolving
+  // each item's prototype by name against the catalogs.
+  //
+  // An item whose name is no longer in the catalogs is dropped rather than
+  // guessed at, so removing something from data/ costs the player that item
+  // and not their character. Bypasses the equip rules on purpose -- what was
+  // worn stays worn, even if a later change to the data would refuse it now.
+  void RestoreFrom(const Character& saved,
+                   const std::map<std::string, EquipPrototype>& equips,
+                   const std::map<std::string, ItemPrototype>& items);
+
   // Sum of stats from all currently equipped items. Updated automatically by
   // Equip, Unequip, and ScrollEquipped.
   const EquipStats& equip_stats() const {

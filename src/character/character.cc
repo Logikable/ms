@@ -1,7 +1,9 @@
 #include "src/character/character.h"
 
 #include <algorithm>
+#include <map>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -12,6 +14,7 @@
 #include "src/item/inventory.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -131,6 +134,37 @@ EquipJobCategory JobToCategory(Job job) {
     default:
       return EQUIP_JOB_CATEGORY_UNSPECIFIED;
   }
+}
+
+// Appends `stacks` to the saved character under `category`. The tab an item
+// belongs to is a property of the item, but it is stored alongside the count
+// so a load does not have to consult the catalog to know where to put it --
+// and so a stack whose prototype has since vanished lands nowhere rather than
+// on the wrong tab.
+void AppendStacks(const std::vector<StackableItem>& stacks,
+                  ItemCategory category, Character* out) {
+  for (const StackableItem& stack : stacks) {
+    StackableStack* saved = out->add_stacks();
+    saved->set_name(stack.name());
+    saved->set_count(stack.count());
+    saved->set_category(category);
+  }
+}
+
+// One equip-tab entry rebuilt from its saved state, or null if the catalogs no
+// longer describe it. A trace and a live item are the same fields apart from
+// the flag, which is what decides the type.
+std::unique_ptr<EquipTabItem> RestoreEquipItem(
+    const Equip& state, const std::map<std::string, EquipPrototype>& equips) {
+  std::map<std::string, EquipPrototype>::const_iterator proto =
+      equips.find(state.equip_name());
+  if (proto == equips.end()) {
+    return nullptr;
+  }
+  if (state.trace()) {
+    return std::make_unique<EquipTrace>(proto->second, state);
+  }
+  return std::make_unique<EquipInstance>(proto->second, state);
 }
 
 }  // namespace
@@ -666,6 +700,70 @@ bool CharacterInstance::MeetsJob(const EquipPrototype& proto) const {
     }
   }
   return false;
+}
+
+Character CharacterInstance::ToProto() const {
+  Character saved = character_;
+  // Rebuilt from scratch rather than kept in step as items move: these fields
+  // are written here and nowhere else, so there is one place for them to be
+  // wrong rather than a dozen.
+  saved.clear_inventory();
+  saved.clear_equipped();
+  saved.clear_stacks();
+  for (int i = 0; i < inventory_.size(); ++i) {
+    *saved.mutable_inventory()->add_equip_tab() = inventory_[i].equip_state();
+  }
+  for (const std::pair<const EquipSlot, EquipInstance>& worn : equipped_) {
+    (*saved.mutable_equipped())[static_cast<int>(worn.first)] =
+        worn.second.equip_state();
+  }
+  AppendStacks(use_items_, ITEM_CATEGORY_USE, &saved);
+  AppendStacks(etc_items_, ITEM_CATEGORY_ETC, &saved);
+  return saved;
+}
+
+void CharacterInstance::RestoreFrom(
+    const Character& saved, const std::map<std::string, EquipPrototype>& equips,
+    const std::map<std::string, ItemPrototype>& items) {
+  character_ = saved;
+  // The item fields are the live containers' business from here; leaving
+  // copies behind would let the two drift and ToProto pick the stale one.
+  character_.clear_inventory();
+  character_.clear_equipped();
+  character_.clear_stacks();
+
+  inventory_ = InventoryInstance();
+  for (const ms::Equip& state : saved.inventory().equip_tab()) {
+    std::unique_ptr<EquipTabItem> item = RestoreEquipItem(state, equips);
+    if (item != nullptr) {
+      inventory_.add(std::move(item));
+    }
+  }
+
+  equipped_.clear();
+  for (const std::pair<const int, ms::Equip>& worn : saved.equipped()) {
+    std::map<std::string, EquipPrototype>::const_iterator proto =
+        equips.find(worn.second.equip_name());
+    if (proto == equips.end()) {
+      continue;
+    }
+    equipped_.emplace(static_cast<EquipSlot>(worn.first),
+                      EquipInstance(proto->second, worn.second));
+  }
+
+  use_items_.clear();
+  etc_items_.clear();
+  for (const StackableStack& stack : saved.stacks()) {
+    std::map<std::string, ItemPrototype>::const_iterator proto =
+        items.find(stack.name());
+    if (proto == items.end()) {
+      continue;
+    }
+    StacksFor(stack.category())
+        .push_back(StackableItem(proto->second, stack.count()));
+  }
+
+  RecomputeEquipStats();
 }
 
 }  // namespace ms

@@ -3,6 +3,7 @@ syntax = "proto3";
 package ms;
 
 import "src/protos/equip.proto";
+import "src/protos/item.proto";
 
 // The character's current job, named for the first advancement (Swordman,
 // Archer, ...). One Job spans every advancement stage of its line; which tier
@@ -94,4 +95,18 @@ message Character {
   // Learned skill levels, keyed by the skill's display name (Skill.name).
   // Absent or zero means unlearned. Raised by spending that stage's SP.
   map<string, int32> skill_levels = 12;
+
+  // The Use and Etc tabs, one entry per stack. Held as a flat list rather than
+  // a tab apiece because a tab is only ever a filter over it, and the order
+  // within a tab is the order the player sees.
+  repeated StackableStack stacks = 13;
+}
+
+// One stack on the Use or Etc tab. Carries the catalog key and a count, not
+// the item itself: prototypes are loaded from data/ and resolved by name, so a
+// save stays small and the data files stay authoritative over what an item is.
+message StackableStack {
+  string name = 1;
+  int32 count = 2;
+  ItemCategory category = 3;
 }

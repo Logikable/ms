@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <map>
 #include <memory>
 #include <random>
 #include <string>
@@ -1476,6 +1477,218 @@ TEST_F(CharacterTest, UsingAStackThatIsNotThereIsANoOp) {
   EXPECT_FALSE(c.UseStackable(ITEM_CATEGORY_USE, 7));
   EXPECT_FALSE(c.UseStackable(ITEM_CATEGORY_USE, -1));
   EXPECT_EQ(c.stackables(ITEM_CATEGORY_USE)[0].count(), 1);
+}
+
+// --- ToProto / RestoreFrom ---
+
+// A save carries catalog keys, not item definitions, so a round trip needs the
+// catalogs back. These stand in for what the game loads from data/.
+class SaveRoundTripTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    sword_.set_name("Sword");
+    sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    sword_.set_upgrade_slots(7);
+    sword_.set_required_level(138);
+    equips_["Sword"] = sword_;
+
+    ItemPrototype shell;
+    shell.set_name("Green Snail Shell");
+    shell.set_category(ITEM_CATEGORY_ETC);
+    items_["Green Snail Shell"] = shell;
+    ItemPrototype potion;
+    potion.set_name("Red Potion");
+    potion.set_category(ITEM_CATEGORY_USE);
+    items_["Red Potion"] = potion;
+  }
+
+  // A character rebuilt from `saved`, as a fresh launch would do it.
+  CharacterInstance Reload(const Character& saved) {
+    CharacterInstance loaded(rng_, Character{});
+    loaded.RestoreFrom(saved, equips_, items_);
+    return loaded;
+  }
+
+  EquipPrototype sword_;
+  std::map<std::string, EquipPrototype> equips_;
+  std::map<std::string, ItemPrototype> items_;
+};
+
+TEST_F(SaveRoundTripTest, CarriesTheCharacterSheetAcross) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.LevelUp();
+  c.LevelUp();
+  c.AdvanceJob(JOB_SWORDMAN);
+  c.AllocateStat(STAT_FIELD_STR, 3);
+  c.AddMeso(4321);
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  EXPECT_EQ(loaded.proto().level(), c.proto().level());
+  EXPECT_EQ(loaded.proto().exp(), c.proto().exp());
+  EXPECT_EQ(loaded.proto().job(), JOB_SWORDMAN);
+  EXPECT_EQ(loaded.proto().job_stage(), c.proto().job_stage());
+  EXPECT_EQ(loaded.proto().ap(), c.proto().ap());
+  EXPECT_EQ(loaded.proto().allocated_stats().str(),
+            c.proto().allocated_stats().str());
+  EXPECT_EQ(loaded.meso(), 4321);
+}
+
+// The equip tab is a vector of C++ objects that the proto never mirrors until
+// ToProto is asked, so this is the half a save would most easily lose.
+TEST_F(SaveRoundTripTest, CarriesTheEquipTabAcross) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip scrolled;
+  scrolled.set_equip_name("Sword");
+  scrolled.set_remaining_upgrade_slots(4);
+  scrolled.set_scroll_successes(3);
+  scrolled.mutable_scroll_stats()->set_attack(15);
+  scrolled.set_stars(6);
+  c.PickUp(std::make_unique<EquipInstance>(sword_, scrolled));
+  int attack_before = c.inventory().equip_instance(0)->stats().attack();
+  ASSERT_GT(attack_before, 0) << "the scroll and stars have to add something";
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  ASSERT_EQ(loaded.inventory().size(), 1);
+  const EquipInstance* item = loaded.inventory().equip_instance(0);
+  ASSERT_NE(item, nullptr);
+  EXPECT_EQ(item->prototype().name(), "Sword");
+  EXPECT_EQ(item->equip_state().remaining_upgrade_slots(), 4);
+  EXPECT_EQ(item->equip_state().scroll_successes(), 3);
+  EXPECT_EQ(item->stars(), 6);
+  // The stats have to be rebuilt from the prototype plus the saved state, not
+  // just the state: the base attack lives in the catalog.
+  EXPECT_EQ(item->stats().attack(), attack_before);
+}
+
+// A trace and a live item differ by one flag, and only the flag decides which
+// type comes back. Getting this wrong turns a destroyed item into a wearable
+// one on the next launch.
+TEST_F(SaveRoundTripTest, ATraceComesBackATrace) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip destroyed;
+  destroyed.set_equip_name("Sword");
+  destroyed.set_stars(19);
+  destroyed.set_trace(true);
+  c.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  ASSERT_EQ(loaded.inventory().size(), 1);
+  EXPECT_EQ(loaded.inventory().equip_instance(0), nullptr)
+      << "a trace is not an EquipInstance";
+  EXPECT_EQ(loaded.traces().size(), 1u);
+}
+
+TEST_F(SaveRoundTripTest, CarriesWornItemsInTheirOwnSlots) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.Equip(0);
+  ASSERT_TRUE(c.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  ASSERT_TRUE(loaded.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(loaded.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).prototype().name(),
+            "Sword");
+  EXPECT_TRUE(loaded.inventory().empty()) << "worn, not in the bag";
+  // Rebuilt from what came back, not carried over: a loaded character has to
+  // hit as hard as the one that was saved.
+  EXPECT_EQ(loaded.equip_stats().attack(), c.equip_stats().attack());
+}
+
+TEST_F(SaveRoundTripTest, CarriesBothStackableTabsAcross) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.AddStackable(items_["Green Snail Shell"], 47);
+  c.AddStackable(items_["Red Potion"], 3);
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  ASSERT_EQ(loaded.stackables(ITEM_CATEGORY_ETC).size(), 1u);
+  EXPECT_EQ(loaded.stackables(ITEM_CATEGORY_ETC)[0].name(),
+            "Green Snail Shell");
+  EXPECT_EQ(loaded.stackables(ITEM_CATEGORY_ETC)[0].count(), 47);
+  ASSERT_EQ(loaded.stackables(ITEM_CATEGORY_USE).size(), 1u);
+  EXPECT_EQ(loaded.stackables(ITEM_CATEGORY_USE)[0].name(), "Red Potion");
+  EXPECT_EQ(loaded.stackables(ITEM_CATEGORY_USE)[0].count(), 3);
+}
+
+// Skills are keyed by name, so they survive without the skill catalog.
+TEST_F(SaveRoundTripTest, CarriesLearnedSkillsAndSp) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Skill slash = MakeSkill("Slash Blast", JOB_ADVANCEMENT_SWORDMAN, 20);
+  c.AdvanceJob(JOB_SWORDMAN);
+  for (int i = 0; i < 15; ++i) {
+    c.LevelUp();
+  }
+  ASSERT_TRUE(c.LearnSkill(slash, 2));
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  EXPECT_EQ(loaded.skill_level(slash), 2);
+  EXPECT_EQ(loaded.sp(1), c.sp(1));
+}
+
+// Data files outlive saves. An item deleted from data/ costs the player that
+// item, and must not take the character down with it.
+TEST_F(SaveRoundTripTest, DropsItemsTheCatalogsNoLongerName) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.AddStackable(items_["Green Snail Shell"], 5);
+  c.AddMeso(99);
+  Character saved = c.ToProto();
+
+  equips_.clear();
+  items_.clear();
+  CharacterInstance loaded = Reload(saved);
+  EXPECT_TRUE(loaded.inventory().empty());
+  EXPECT_TRUE(loaded.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_EQ(loaded.meso(), 99) << "the character survives its lost items";
+}
+
+// Restoring replaces rather than merges: loading over a character mid-session
+// must not leave that character's items behind in the bag.
+TEST_F(SaveRoundTripTest, ReplacesWhateverWasThereBefore) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.AddStackable(items_["Red Potion"], 9);
+
+  c.RestoreFrom(Character{}, equips_, items_);
+  EXPECT_TRUE(c.inventory().empty());
+  EXPECT_TRUE(c.stackables(ITEM_CATEGORY_USE).empty());
+}
+
+// Taking something off has to empty the slot in the NEXT save too. A proto map
+// overwrites by key, so a stale worn item can never be a duplicate -- it can
+// only be one that was never cleared, which is the harder bug to see.
+TEST_F(SaveRoundTripTest, AnEmptiedSlotDoesNotSurviveIntoTheNextSave) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.Equip(0);
+  CharacterInstance loaded = Reload(c.ToProto());
+  ASSERT_EQ(loaded.ToProto().equipped_size(), 1);
+
+  ASSERT_TRUE(loaded.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(loaded.ToProto().equipped_size(), 0);
+  EXPECT_EQ(loaded.ToProto().inventory().equip_tab_size(), 1)
+      << "back in the bag";
+}
+
+// The round trip has to be idempotent: what a loaded character saves must be
+// what it was loaded from. Catches an entry duplicated, dropped or left stale
+// on either side, which comparing one direction alone would not.
+TEST_F(SaveRoundTripTest, ReSavingALoadedCharacterGivesTheSameSave) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.Equip(0);
+  c.AddStackable(items_["Green Snail Shell"], 12);
+  c.AddStackable(items_["Red Potion"], 2);
+  c.AddMeso(500);
+
+  Character first = c.ToProto();
+  Character second = Reload(first).ToProto();
+  EXPECT_EQ(second.inventory().equip_tab_size(),
+            first.inventory().equip_tab_size());
+  EXPECT_EQ(second.equipped_size(), first.equipped_size());
+  EXPECT_EQ(second.stacks_size(), first.stacks_size());
+  EXPECT_EQ(second.meso(), first.meso());
+  EXPECT_EQ(second.level(), first.level());
 }
 
 }  // namespace
