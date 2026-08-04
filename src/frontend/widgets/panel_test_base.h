@@ -45,6 +45,29 @@ class PanelTest : public testing::Test {
     return screen.PixelAt(0, 0).foreground_color;
   }
 
+  // The foreground color of the first cell of `label` in a rendered element,
+  // for asking what color a tab chip came out. Returns Color::Default when the
+  // label is not on screen, which no expected color equals.
+  static ftxui::Color LabelColor(ftxui::Element element,
+                                 const std::string& label) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Render(screen, element);
+    for (int y = 0; y < screen.dimy(); ++y) {
+      std::string row;
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const std::string& cell = screen.PixelAt(x, y).character;
+        // One cell per character here, so the index into `row` is the column.
+        row += cell.empty() ? " " : cell;
+      }
+      size_t at = row.find(label);
+      if (at != std::string::npos) {
+        return screen.PixelAt(static_cast<int>(at), y).foreground_color;
+      }
+    }
+    return ftxui::Color::Default;
+  }
+
   static std::string RenderComponent(ftxui::Component component) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));

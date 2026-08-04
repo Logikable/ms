@@ -279,6 +279,19 @@ void CharacterInstance::LevelUp() {
   }
 }
 
+bool CharacterInstance::TabSeen(const std::string& key) const {
+  const google::protobuf::RepeatedPtrField<std::string>& seen =
+      character_.seen_tabs();
+  return std::find(seen.begin(), seen.end(), key) != seen.end();
+}
+
+void CharacterInstance::MarkTabSeen(const std::string& key) {
+  if (TabSeen(key)) {
+    return;
+  }
+  character_.add_seen_tabs(key);
+}
+
 void CharacterInstance::AddExp(int64_t amount) {
   // At the cap the EXP is dropped rather than banked, so a character who kept
   // fighting there is not sitting on a windfall the day the cap is lifted.

@@ -100,6 +100,12 @@ message Character {
   // a tab apiece because a tab is only ever a filter over it, and the order
   // within a tab is the order the player sees.
   repeated StackableStack stacks = 13;
+
+  // Tabs the player has opened at least once, by the keys in panel_util.h. A
+  // tab that has appeared but never been opened is drawn gold to say it is
+  // new, and this is what stops it saying so forever -- and what stops it
+  // starting over every time the game is launched.
+  repeated string seen_tabs = 14;
 }
 
 // One stack on the Use or Etc tab. Carries the catalog key and a count, not

@@ -15,6 +15,7 @@
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -835,6 +836,49 @@ TEST_F(InventoryPanelTest, LightsItsBorderGoldWhenHighlighted) {
   EXPECT_EQ(BorderColor(component->Render()), kYellow);
   panel.SetHighlighted(false);
   EXPECT_EQ(BorderColor(component->Render()), kTheme);
+}
+
+// --- a newly unlocked tab announces itself ---
+
+// The gold outlives the four-second card: a player who was away when the shop
+// opened still finds the tab saying it is new.
+TEST_F(InventoryPanelTest, ANewShopTabIsWrittenInGold) {
+  LevelTo(UnlockLevel(Feature::kShop));
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  EXPECT_EQ(LabelColor(component->Render(), "Shop"), kYellow);
+  EXPECT_EQ(LabelColor(component->Render(), "Use"), kTheme)
+      << "the tabs that were always there say nothing";
+}
+
+// Walking onto it is what puts it out -- the tab is "seen" when opened, not
+// when it appears.
+TEST_F(InventoryPanelTest, OpeningTheShopTabStopsItAnnouncingItself) {
+  LevelTo(UnlockLevel(Feature::kShop));
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  panel_focus_ = kInventoryPanel;
+  ASSERT_EQ(LabelColor(component->Render(), "Shop"), kYellow);
+
+  // Equip -> Use -> Etc -> Shop.
+  for (int i = 0; i < 3; ++i) {
+    component->OnEvent(ftxui::Event::ArrowRight);
+  }
+  ASSERT_TRUE(panel.on_shop_tab()) << "the walk has to actually arrive";
+  // Read unfocused: a focused active chip is black on white whatever its
+  // history, which would hide the thing under test.
+  panel_focus_ = kCharPanel;
+  EXPECT_EQ(LabelColor(component->Render(), "Shop"), kTheme);
+}
+
+// And it stays put: the record is on the character, so it survives the panel
+// being rebuilt -- which is what a relaunch amounts to.
+TEST_F(InventoryPanelTest, AnOpenedShopTabStaysQuietForANewPanel) {
+  LevelTo(UnlockLevel(Feature::kShop));
+  c_.MarkTabSeen(kShopTabKey);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  EXPECT_EQ(LabelColor(component->Render(), "Shop"), kTheme);
 }
 
 }  // namespace

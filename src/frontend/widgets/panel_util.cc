@@ -360,14 +360,18 @@ ftxui::Element EmptyState(const std::string& what, int gutter) {
   return ftxui::text(std::string(gutter, ' ') + "(" + what + ")");
 }
 
-ftxui::Element TabChip(const std::string& label, bool active,
-                       bool row_focused) {
+std::string AdvanceTabKey(int stage) {
+  return "advance:" + std::to_string(stage);
+}
+
+ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
+                       bool unseen) {
   ftxui::Element chip = ftxui::text(" " + label + " ");
   if (active && row_focused) {
     return chip | ftxui::color(ftxui::Color::Black) |
            ftxui::bgcolor(ftxui::Color::White);
   }
-  chip = chip | ftxui::color(kTheme);
+  chip = chip | ftxui::color(unseen ? kYellow : kTheme);
   if (active) {
     chip = chip | ftxui::inverted;
   }

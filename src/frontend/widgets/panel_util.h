@@ -159,13 +159,30 @@ ftxui::Element ResultWindow(const std::string& title,
 // row can line up with the cursor column of the list it stands in for.
 ftxui::Element EmptyState(const std::string& what, int gutter = 1);
 
+// The keys a tab is recorded under once the player has opened it, kept
+// together because they are written into the save: changing one forgets that
+// anybody ever opened that tab, and it would go gold again for every player.
+inline constexpr char kSkillsTabKey[] = "skills";
+inline constexpr char kShopTabKey[] = "shop";
+
+// The advancement tab's key for `stage` (1 = 1st job). One key per stage
+// rather than one for the tab: the tab arrives again at every advancement
+// threshold, and having seen the first is not having seen the second.
+std::string AdvanceTabKey(int stage);
+
 // One chip of a tab bar in the game's one tab style: the label padded by a
 // space either side, theme-colored, and highlighted when it is the active tab.
 // An active chip goes white while its row holds focus and keeps the theme-blue
 // invert otherwise, which is how the player tells which bar the arrow keys are
 // reaching. Pass row_focused=true unconditionally for a bar that is the only
 // thing on its screen.
-ftxui::Element TabChip(const std::string& label, bool active, bool row_focused);
+//
+// `unseen` draws the label gold instead of theme blue: a tab the player has
+// been given but never opened. It is the quiet half of the level-up
+// celebration -- the gold outlives the four seconds of the card and waits on
+// the bar until the tab is opened.
+ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
+                       bool unseen = false);
 
 // Renders a bracketed button in the game's one button style, inverted when
 // focused. Every button the player can land on is drawn with this -- the

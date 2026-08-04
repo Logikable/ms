@@ -51,10 +51,15 @@ constexpr const char* kTabLabels[kNumInventoryTabs] = {"Equip", "Use", "Etc",
 // meso counter overlaid in the empty space, over a separator. `tabs` is what
 // the character has unlocked, so a locked tab leaves no gap behind it.
 ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
-                            int64_t meso, bool row_selected) {
+                            int64_t meso, bool row_selected,
+                            const CharacterInstance& character) {
   std::vector<ftxui::Element> chips;
   for (int tab : tabs) {
-    chips.push_back(TabChip(kTabLabels[tab], tab == active_tab, row_selected));
+    // Only the shop is ever new: the three bag tabs have been there since the
+    // first frame of the game.
+    bool unseen = tab == kShopTab && !character.TabSeen(kShopTabKey);
+    chips.push_back(
+        TabChip(kTabLabels[tab], tab == active_tab, row_selected, unseen));
   }
   ftxui::Element tab_row = ftxui::dbox({
       ftxui::hbox(std::move(chips)),
@@ -150,6 +155,11 @@ void InventoryPanel::StepTab(int direction) {
   }
   active_tab_ = tabs[next];
   selected_stack_ = 0;
+  // Opened it, so it stops announcing itself. The shop is the only tab here
+  // that ever does.
+  if (active_tab_ == kShopTab) {
+    character_.MarkTabSeen(kShopTabKey);
+  }
 }
 
 bool InventoryPanel::on_stackable_tab() const {
@@ -390,7 +400,7 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   return AccentWindow(
       " Inventory ",
       ftxui::vbox({RenderTabBar(VisibleTabs(), active_tab_, character_.meso(),
-                                focused && zone_ == kZoneTabs),
+                                focused && zone_ == kZoneTabs, character_),
                    std::move(body) | ftxui::flex}),
       PanelAccent(highlighted_), focused);
 }

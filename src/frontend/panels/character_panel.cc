@@ -83,8 +83,7 @@ std::pair<int, int> AllocStatValues(StatField field, const AllocatedStats& a,
 
 }  // namespace
 
-CharacterPanel::CharacterPanel(const CharacterInstance& character,
-                               int& panel_focus,
+CharacterPanel::CharacterPanel(CharacterInstance& character, int& panel_focus,
                                std::map<std::string, Skill> skills)
     : character_(character),
       skills_(std::move(skills)),
@@ -151,13 +150,39 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
   return kZoneTabs;
 }
 
+std::string CharacterPanel::TabKey(Tab tab) const {
+  if (tab == kTabSkills) {
+    return kSkillsTabKey;
+  }
+  if (tab == kTabAdvance) {
+    // The stage being advanced INTO, so the tab that comes back at level 30 is
+    // news again rather than riding on the one taken at 10.
+    return AdvanceTabKey(character_.proto().job_stage() + 1);
+  }
+  // Stats has been there since the first frame of the game; there is nothing
+  // to announce, and no key wasted in the save on saying so.
+  return "";
+}
+
+void CharacterPanel::MarkActiveTabSeen() {
+  std::string key = TabKey(ActiveTab());
+  if (!key.empty()) {
+    character_.MarkTabSeen(key);
+  }
+}
+
 ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
   // Left-aligned chip row in the shared tab style.
   std::vector<Tab> tabs = VisibleTabs();
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < static_cast<int>(tabs.size()); ++i) {
-    chips.push_back(
-        TabChip(kTabLabels[tabs[i]], tabs[i] == ActiveTab(), row_selected));
+    // A tab with no key has always been there and never announces itself.
+    // Asking TabSeen("") instead would answer no and leave Stats permanently
+    // gold.
+    std::string key = TabKey(tabs[i]);
+    bool unseen = !key.empty() && !character_.TabSeen(key);
+    chips.push_back(TabChip(kTabLabels[tabs[i]], tabs[i] == ActiveTab(),
+                            row_selected, unseen));
   }
   chips.push_back(ftxui::filler());
   return ftxui::hbox(std::move(chips));
@@ -353,11 +378,13 @@ bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
   // Top zone: Left/Right walk the tabs, Down enters the active tab's content.
   if (event == ftxui::Event::ArrowLeft) {
     active_tab_ = std::max(0, active_tab_ - 1);
+    MarkActiveTabSeen();
     return true;
   }
   if (event == ftxui::Event::ArrowRight) {
     active_tab_ =
         std::min(static_cast<int>(VisibleTabs().size()) - 1, active_tab_ + 1);
+    MarkActiveTabSeen();
     return true;
   }
   if (event == ftxui::Event::ArrowDown) {

@@ -71,6 +71,12 @@ class CharacterInstance {
   // Not bounded by kTrialLevelCap: the cap is on what can be earned, and this
   // is how a level is granted outright.
   void LevelUp();
+  // Whether the player has ever opened the tab recorded under `key`. The keys
+  // themselves are the frontend's (panel_util.h); the character only keeps the
+  // record, because it is the character's progress and rides the save.
+  bool TabSeen(const std::string& key) const;
+  // Records that they have. Marking a tab already marked does nothing.
+  void MarkTabSeen(const std::string& key);
   // Adds amount to the character's accumulated EXP, leveling up as many times
   // as the new total allows. No-op once kTrialLevelCap is reached.
   void AddExp(int64_t amount);

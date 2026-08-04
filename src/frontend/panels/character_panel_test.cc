@@ -14,6 +14,7 @@
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -692,6 +693,57 @@ TEST_F(CharacterPanelTest, GoesBackToTheThemeColorWhenTheHighlightIsCleared) {
   panel.SetHighlighted(true);
   panel.SetHighlighted(false);
   EXPECT_EQ(BorderColor(panel.Render()), kTheme);
+}
+
+// --- a newly unlocked tab announces itself ---
+//
+// These read the chip colour with the panel unfocused. A focused, active chip
+// is drawn black on white -- correct, and nothing to do with whether the tab
+// is new -- so leaving focus here would test the wrong thing.
+
+TEST_F(CharacterPanelTest, ANewSkillsTabIsWrittenInGold) {
+  CharacterInstance warrior = MakeWarrior(rng_, 0);
+  CharacterPanel panel(warrior, panel_focus_);
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Skills"), kYellow);
+  EXPECT_EQ(LabelColor(panel.Render(), "Stats"), kTheme)
+      << "Stats has been there since the first frame";
+}
+
+TEST_F(CharacterPanelTest, OpeningTheSkillsTabStopsItAnnouncingItself) {
+  CharacterInstance warrior = MakeWarrior(rng_, 0);
+  CharacterPanel panel(warrior, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([](StatField) {});
+  panel_focus_ = kCharPanel;
+  component->OnEvent(ftxui::Event::ArrowRight);
+
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Skills"), kTheme);
+}
+
+// The Advance tab is not a Feature and not permanent -- it appears at the
+// threshold and is gone once a job is picked -- so it gets the same treatment
+// from its own path through TabKey.
+TEST_F(CharacterPanelTest, ANewAdvanceTabIsWrittenInGold) {
+  CharacterInstance c = MakeCharacter(/*level=*/10);
+  ASSERT_TRUE(c.CanAdvanceJob()) << "the tab has to be on the bar at all";
+  CharacterPanel panel(c, panel_focus_);
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Advance"), kYellow);
+}
+
+TEST_F(CharacterPanelTest, OpeningTheAdvanceTabStopsItAnnouncingItself) {
+  CharacterInstance c = MakeCharacter(/*level=*/10);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([](StatField) {});
+  panel_focus_ = kCharPanel;
+  component->OnEvent(ftxui::Event::ArrowRight);
+
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Advance"), kTheme);
+  EXPECT_TRUE(c.TabSeen(AdvanceTabKey(1)))
+      << "recorded against the stage being advanced into, so the next "
+         "advancement is news again";
 }
 
 }  // namespace

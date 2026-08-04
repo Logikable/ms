@@ -50,7 +50,7 @@ class CharacterPanel {
   // `skills` is the loaded skill catalog (keyed by file stem); the Skills tab
   // lists the entries whose stage matches the selected advancement tab. It is
   // copied because the catalog is fixed after load.
-  explicit CharacterPanel(const CharacterInstance& character, int& panel_focus,
+  explicit CharacterPanel(CharacterInstance& character, int& panel_focus,
                           std::map<std::string, Skill> skills = {});
   ftxui::Element Render() const;
   // on_allocate(field) fires when Enter is pressed on a Stats-tab stat's [+]
@@ -115,6 +115,12 @@ class CharacterPanel {
   // The tabs on offer, in bar order. The Advance tab is only among them while
   // an advancement is pending, so the count is not a constant.
   std::vector<Tab> VisibleTabs() const;
+  // The save key `tab` records being opened under, or "" for a tab that has
+  // always been there and has nothing to announce.
+  std::string TabKey(Tab tab) const;
+  // Records the active tab as opened. Called wherever the tab bar moves, which
+  // is the moment a gold "this is new" chip has done its job.
+  void MarkActiveTabSeen();
   // The tab actually being shown, which is the selected one unless it has
   // since disappeared -- taking the advancement closes the tab the player was
   // standing on.
@@ -161,7 +167,9 @@ class CharacterPanel {
   ftxui::Element AllocRow(const std::string& label, int base, int bonus,
                           int index, bool content_focused) const;
 
-  const CharacterInstance& character_;
+  // Not const: opening a tab is recorded on the character, so the panel
+  // writes as well as reads.
+  CharacterInstance& character_;
   std::map<std::string, Skill> skills_;
   int& panel_focus_;
   int active_tab_ = 0;     // index into VisibleTabs(): the selected tab
