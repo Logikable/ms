@@ -44,6 +44,24 @@ StatField PrimaryStatField(Job job);
 // nothing to fill.
 std::vector<Job> JobChoicesForStage(int stage);
 
+// What a run of levels hands over, totalled.
+struct LevelGains {
+  int ap = 0;
+  int sp = 0;
+};
+
+// The AP and SP granted by climbing from `from_level` to `to_level`, counting
+// every level in between. Levelling several times before anything looks at the
+// result is ordinary here -- one combat tick can carry a character past more
+// than one threshold -- so this totals a span rather than answering for a
+// single level.
+//
+// SP is totalled across job stages rather than kept in the per-stage pools
+// LevelUp deposits it into: this answers "what did that just earn", which is a
+// count, not a place to spend from. Returns nothing for a span that goes
+// nowhere or backwards.
+LevelGains GainsForLevels(int from_level, int to_level);
+
 class CharacterInstance {
  public:
   CharacterInstance(std::mt19937& rng, Character character);

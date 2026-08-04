@@ -244,6 +244,21 @@ int StageForAdvancement(JobAdvancement advancement) {
   }
 }
 
+LevelGains GainsForLevels(int from_level, int to_level) {
+  LevelGains gains;
+  // Walks the levels arrived at, which is what LevelUp grants against: it
+  // raises the level first and reads the new one to decide the SP. Keep the
+  // two reading the same way -- a test levels a character up and holds the
+  // real gains against this, so a change to one that misses the other fails.
+  for (int level = from_level + 1; level <= to_level; ++level) {
+    gains.ap += kApPerLevel;
+    if (SpStageForLevel(level) >= 1) {
+      gains.sp += kSpPerLevel;
+    }
+  }
+  return gains;
+}
+
 CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
     : rng_(rng), character_(std::move(character)) {
 }

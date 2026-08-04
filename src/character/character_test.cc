@@ -200,6 +200,83 @@ TEST_F(LevelUpTest, EveryFirstJobReachesTheSameSixty) {
   EXPECT_EQ(c.sp(1), 60);
 }
 
+// --- GainsForLevels ---
+
+class GainsForLevelsTest : public CharacterTest {
+ protected:
+  // What levelling from `from` to `to` really hands over, read off a character
+  // that actually climbed it. Sums SP across every stage, since a span can
+  // cross a band and the totals are what the caller is after.
+  LevelGains Actual(int from, int to) {
+    CharacterInstance c = MakeCharacter(rng_, from);
+    int ap_before = c.proto().ap();
+    int sp_before = 0;
+    for (const std::pair<const int32_t, int32_t>& pool :
+         c.proto().sp_by_stage()) {
+      sp_before += pool.second;
+    }
+    for (int level = from; level < to; ++level) {
+      c.LevelUp();
+    }
+    int sp_after = 0;
+    for (const std::pair<const int32_t, int32_t>& pool :
+         c.proto().sp_by_stage()) {
+      sp_after += pool.second;
+    }
+    return {c.proto().ap() - ap_before, sp_after - sp_before};
+  }
+};
+
+TEST_F(GainsForLevelsTest, ASingleLevelGrantsFiveAp) {
+  LevelGains gains = GainsForLevels(1, 2);
+  EXPECT_EQ(gains.ap, 5);
+  EXPECT_EQ(gains.sp, 0) << "below the level-11 start of 1st-job SP";
+}
+
+TEST_F(GainsForLevelsTest, TotalsEveryLevelInTheSpan) {
+  LevelGains gains = GainsForLevels(1, 5);
+  EXPECT_EQ(gains.ap, 20) << "four levels at five AP each";
+}
+
+TEST_F(GainsForLevelsTest, CountsSpOnlyForTheLevelsThatGrantIt) {
+  // 10 -> 12 arrives at 11 and 12; SP starts at 11, so both pay.
+  EXPECT_EQ(GainsForLevels(10, 12).sp, 6);
+  // 8 -> 10 arrives at 9 and 10, both below the band.
+  EXPECT_EQ(GainsForLevels(8, 10).sp, 0);
+}
+
+// A span crossing a job band still totals what was earned, even though
+// LevelUp put the two halves in different stage pools.
+TEST_F(GainsForLevelsTest, TotalsSpAcrossAJobBandBoundary) {
+  LevelGains gains = GainsForLevels(29, 32);
+  EXPECT_EQ(gains.sp, 9) << "levels 30, 31 and 32, three SP each";
+}
+
+TEST_F(GainsForLevelsTest, ASpanThatGoesNowhereGrantsNothing) {
+  EXPECT_EQ(GainsForLevels(7, 7).ap, 0);
+  EXPECT_EQ(GainsForLevels(7, 7).sp, 0);
+  EXPECT_EQ(GainsForLevels(9, 4).ap, 0) << "backwards is not a windfall";
+  EXPECT_EQ(GainsForLevels(9, 4).sp, 0);
+}
+
+// The point of the helper is to answer for a span what LevelUp answers for one
+// level at a time. These hold it against a character that really climbed, so a
+// change to either that misses the other fails here rather than showing a
+// player the wrong number.
+TEST_F(GainsForLevelsTest, AgreesWithLevellingUpForReal) {
+  const std::pair<int, int> spans[] = {
+      {1, 2}, {1, 10}, {10, 11}, {10, 30}, {29, 32}, {1, 40},
+  };
+  for (const std::pair<int, int>& span : spans) {
+    LevelGains predicted = GainsForLevels(span.first, span.second);
+    LevelGains actual = Actual(span.first, span.second);
+    EXPECT_EQ(predicted.ap, actual.ap)
+        << "AP for levels " << span.first << " -> " << span.second;
+    EXPECT_EQ(predicted.sp, actual.sp)
+        << "SP for levels " << span.first << " -> " << span.second;
+  }
+}
+
 // --- AddExp ---
 
 TEST_F(AddExpTest, AccumulatesExpBelowThreshold) {
