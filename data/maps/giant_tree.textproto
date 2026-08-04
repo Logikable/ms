@@ -1,2 +1,2 @@
 name: "Giant Tree"
-spawns { mob: "evil_eye" count: 11 }
+spawns { mob: "evil_eye" count: 16 }

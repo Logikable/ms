@@ -1,2 +1,3 @@
 name: "Six Path Crossway"
-spawns { mob: "spore" count: 4 }
+spawns { mob: "spore" count: 6 }
+spawns { mob: "red_snail" count: 3 }

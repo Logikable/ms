@@ -1,2 +1,2 @@
 name: "Golem's Temple Entrance"
-spawns { mob: "stone_golem" count: 16 }
+spawns { mob: "stone_golem" count: 14 }

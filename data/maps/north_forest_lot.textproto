@@ -1,2 +1,2 @@
 name: "North Forest Lot"
-spawns { mob: "cold_eye" count: 9 }
+spawns { mob: "cold_eye" count: 16 }
