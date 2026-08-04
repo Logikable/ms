@@ -84,6 +84,8 @@ Tui::Tui(GameState& state, std::string save_path)
       save_path_(std::move(save_path)),
       last_save_(std::chrono::steady_clock::now()),
       last_combat_update_(std::chrono::steady_clock::now()),
+      last_level_seen_(state.character.proto().level()),
+      last_job_seen_(state.character.proto().job()),
       char_panel_(state.character, panel_focus_, state.skills),
       combat_panel_(state, combat_sim_, panel_focus_),
       equip_panel_(state.character, panel_focus_),
@@ -193,6 +195,27 @@ void Tui::AutosaveIfDue() {
 }
 
 ftxui::Element Tui::RenderFrame() {
+  // Set from the celebration every frame rather than when one starts, so the
+  // panels go out on their own when it expires and nothing has to remember to
+  // put them back. Lights() is false for everything once it is over.
+  char_panel_.SetHighlighted(celebration_.Lights(kCharPanel));
+  equip_panel_.SetHighlighted(celebration_.Lights(kEquipPanel));
+  inventory_panel_.SetHighlighted(celebration_.Lights(kInventoryPanel));
+
+  ftxui::Element frame = RenderScreen();
+  if (!celebration_.active()) {
+    return frame;
+  }
+  // Over whatever the player is looking at, shop and map select included: a
+  // card that only showed on the main screen would miss the player who
+  // wandered off to spend their meso.
+  return ftxui::dbox({
+      std::move(frame),
+      ftxui::center(celebration_.Render() | ftxui::clear_under),
+  });
+}
+
+ftxui::Element Tui::RenderScreen() {
   if (controller_.screen() == kApAlloc) {
     // Float the AP amount entry over the main view so the stat being raised
     // stays visible behind it.
@@ -450,10 +473,49 @@ void Tui::Tick() {
   // between saves, which is what anything wanting to show it will read.
   state_.playtime_seconds += elapsed.count();
   AdvanceCombat(state_, combat_sim_, elapsed.count());
+  // Ticked down before the new level is noticed, so a level-up landing on this
+  // tick gets its full four seconds rather than one tick's worth less.
+  celebration_.Advance(elapsed.count());
+  NoticeProgress();
+}
+
+void Tui::NoticeProgress() {
+  const Character& character = state_.character.proto();
+  // The advancement is checked first and wins: it is the larger news, and
+  // reaching the level that offers one does not itself take it, so the two
+  // cannot be describing the same moment.
+  if (character.job() != last_job_seen_) {
+    celebration_.BeginAdvancement(last_job_seen_, character.job());
+    last_job_seen_ = character.job();
+    last_level_seen_ = character.level();
+    return;
+  }
+  if (character.level() > last_level_seen_) {
+    LevelGains gains = GainsForLevels(last_level_seen_, character.level());
+    // A Beginner's SP is real but unreachable -- the skills tab belongs to a
+    // job -- so the card does not mention what they cannot go and spend.
+    int sp = character.job() == JOB_BEGINNER ? 0 : gains.sp;
+    celebration_.BeginLevelUp(last_level_seen_, character.level(), gains.ap,
+                              sp);
+  }
+  // Assigned rather than only raised, so a level that somehow went down does
+  // not leave the next real level-up reporting a climb it did not make.
+  last_level_seen_ = character.level();
 }
 
 bool Tui::OnEvent(ftxui::Event event) {
-  return controller_.OnEvent(event);
+  // A player who has looked is done with it. The key still does whatever it
+  // normally does -- getting rid of the card is a side effect, not a key the
+  // celebration swallows, so nothing the player meant to do is lost. Custom is
+  // the ticker's own redraw and is not somebody looking.
+  if (celebration_.active() && event != ftxui::Event::Custom) {
+    celebration_.Dismiss();
+  }
+  bool handled = controller_.OnEvent(event);
+  // Advancement happens here rather than in the tick, and so does the debug
+  // Level-Up item.
+  NoticeProgress();
+  return handled;
 }
 
 }  // namespace ms

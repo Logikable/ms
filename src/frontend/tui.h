@@ -16,6 +16,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "src/combat/fight.h"
+#include "src/frontend/celebration.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/combat_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
@@ -47,7 +48,11 @@ class Tui {
   void Run();
 
  private:
+  // The whole frame: the screen the player is on, with a celebration card
+  // floated over it when one is up.
   ftxui::Element RenderFrame();
+  // Whichever screen the controller is showing, celebration aside.
+  ftxui::Element RenderScreen();
   ftxui::Element RenderMain();
   ftxui::Element RenderExpBar();
   // Advances the world by the time since the previous call: combat, and the
@@ -60,11 +65,27 @@ class Tui {
   void Save();
   // Save(), but only once kAutosaveInterval has passed since the last one.
   void AutosaveIfDue();
+  // Notices a level or a job that has changed since the last look and starts
+  // the matching celebration. Polled rather than pushed: the character has no
+  // way to call back, and polling catches every route to a new level -- combat
+  // EXP, the debug Level-Up item, an advancement -- with one piece of code.
+  //
+  // Called after events as well as after ticks, because combat levels a
+  // character during a tick while advancement and the Level-Up item happen
+  // during an event.
+  void NoticeProgress();
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
   // Where the game is written, or empty when saving is off.
   std::string save_path_;
+  // The card and the lit panels, or nothing most of the time.
+  Celebration celebration_;
+  // What the character was at the last look, for spotting a change. Seeded
+  // from the loaded save, so launching into a level 13 character is not itself
+  // a level-up.
+  int last_level_seen_;
+  Job last_job_seen_;
   std::chrono::steady_clock::time_point last_save_;
   // The live fight: stepped by the ticker, read by the combat panel.
   CombatSim combat_sim_;

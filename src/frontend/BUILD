@@ -119,10 +119,38 @@ cc_test(
 )
 
 cc_library(
+    name = "celebration",
+    srcs = ["celebration.cc"],
+    hdrs = ["celebration.h"],
+    deps = [
+        ":types",
+        "//src/character:progression",
+        "//src/frontend/panels:advancement_popup_panel",
+        "//src/frontend/panels:level_up_popup_panel",
+        "//src/protos:character_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "celebration_test",
+    srcs = ["celebration_test.cc"],
+    deps = [
+        ":celebration",
+        ":types",
+        "//src/character:progression",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "tui",
     srcs = ["tui.cc"],
     hdrs = ["tui.h"],
     deps = [
+        ":celebration",
         ":main_layout",
         ":tui_controller",
         "//src:game_state",
