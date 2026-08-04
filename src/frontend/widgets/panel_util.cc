@@ -382,15 +382,20 @@ ftxui::Element ActionButton(const std::string& label, bool focused) {
   return button;
 }
 
-ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
-                            bool focused) {
-  ftxui::Element title_el = ftxui::text(title) | ftxui::color(kTheme);
+ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
+                            ftxui::Color accent, bool focused) {
+  ftxui::Element title_el = ftxui::text(title) | ftxui::color(accent);
   if (focused) {
     title_el = title_el | ftxui::inverted;
   }
   return ftxui::window(std::move(title_el),
                        std::move(content) | ftxui::color(ftxui::Color::White)) |
-         ftxui::color(kTheme);
+         ftxui::color(accent);
+}
+
+ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
+                            bool focused) {
+  return AccentWindow(title, std::move(content), kTheme, focused);
 }
 
 ftxui::Element CenteredRow(ftxui::Element row) {
@@ -409,8 +414,12 @@ ftxui::Element CenteredRow(const std::string& text) {
   return CenteredRow(ftxui::text(text));
 }
 
+ftxui::Element AccentSeparator(ftxui::Color accent) {
+  return ftxui::separator() | ftxui::color(accent);
+}
+
 ftxui::Element ThemedSeparator() {
-  return ftxui::separator() | ftxui::color(kTheme);
+  return AccentSeparator(kTheme);
 }
 
 ftxui::Component AlwaysFocusable(ftxui::Component child) {

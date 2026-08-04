@@ -149,6 +149,52 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "level_up_popup_panel",
+    srcs = ["level_up_popup_panel.cc"],
+    hdrs = ["level_up_popup_panel.h"],
+    deps = [
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "level_up_popup_panel_test",
+    srcs = ["level_up_popup_panel_test.cc"],
+    deps = [
+        ":level_up_popup_panel",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "advancement_popup_panel",
+    srcs = ["advancement_popup_panel.cc"],
+    hdrs = ["advancement_popup_panel.h"],
+    deps = [
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:character_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "advancement_popup_panel_test",
+    srcs = ["advancement_popup_panel_test.cc"],
+    deps = [
+        ":advancement_popup_panel",
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:character_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hotkeys_panel_test",
     srcs = ["hotkeys_panel_test.cc"],

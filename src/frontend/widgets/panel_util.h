@@ -173,6 +173,14 @@ ftxui::Element TabChip(const std::string& label, bool active, bool row_focused);
 // always-selected [Continue] on the result screens.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
+// ThemedWindow in a color of your choosing, for the few things that step out
+// of the steel blue to be noticed -- the level-up and advancement cards, and
+// the panels lit up behind them. Every window in the game is built from this,
+// so a highlighted one differs from an ordinary one in its color and nothing
+// else.
+ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
+                            ftxui::Color accent, bool focused = false);
+
 // Wraps content in a bordered window with the game's steel-blue theme color on
 // the border and title. Content foreground is set to white; explicitly colored
 // elements (gold stars, amber SF, etc.) and ThemedSeparator override it. Pass
@@ -187,6 +195,10 @@ ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
 // distance from the border.
 ftxui::Element CenteredRow(ftxui::Element row);
 ftxui::Element CenteredRow(const std::string& text);
+
+// Returns a horizontal separator rule in `accent`, for a rule inside an
+// AccentWindow: a steel-blue rule across a gold card reads as a seam.
+ftxui::Element AccentSeparator(ftxui::Color accent);
 
 // Returns a horizontal separator rule in the theme border color.
 ftxui::Element ThemedSeparator();
