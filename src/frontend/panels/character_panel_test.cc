@@ -12,6 +12,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -670,6 +671,27 @@ TEST_F(CharacterPanelTest, StressTestStatRowWidth) {
   EXPECT_NE(rendered.find("DEX: 9999 (4+9995)"), std::string::npos);
   EXPECT_NE(rendered.find("INT: 99999 (4+99995)"), std::string::npos);
   EXPECT_NE(rendered.find("LUK: 999999 (1300+998699)"), std::string::npos);
+}
+
+// --- highlighting ---
+
+// The card in the middle of the screen says what happened; the gold border is
+// what says where to look for it. This panel is where the AP a level paid out
+// is spent, so it is the one lit on every level-up.
+TEST_F(CharacterPanelTest, LightsItsBorderGoldWhenHighlighted) {
+  CharacterPanel panel(c_, panel_focus_);
+  ASSERT_EQ(BorderColor(panel.Render()), kTheme);
+  panel.SetHighlighted(true);
+  EXPECT_EQ(BorderColor(panel.Render()), kYellow);
+}
+
+// The panel keeps no clock: whoever lit it is the one that puts it out, and
+// the border has to actually go back.
+TEST_F(CharacterPanelTest, GoesBackToTheThemeColorWhenTheHighlightIsCleared) {
+  CharacterPanel panel(c_, panel_focus_);
+  panel.SetHighlighted(true);
+  panel.SetHighlighted(false);
+  EXPECT_EQ(BorderColor(panel.Render()), kTheme);
 }
 
 }  // namespace

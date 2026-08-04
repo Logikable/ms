@@ -337,7 +337,7 @@ ftxui::Element CharacterPanel::Render() const {
     content = RenderStatsTab(focused && zone == kZoneStatRows);
   }
 
-  return ThemedWindow(" Character ",
+  return AccentWindow(" Character ",
                       ftxui::vbox({
                           ftxui::text(title),
                           ftxui::text(power),
@@ -346,7 +346,7 @@ ftxui::Element CharacterPanel::Render() const {
                           ThemedSeparator(),
                           content,
                       }),
-                      focused);
+                      PanelAccent(highlighted_), focused);
 }
 
 bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {

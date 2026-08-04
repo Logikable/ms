@@ -79,7 +79,19 @@ class InventoryPanel {
     return selected_stack_;
   }
 
+  // Lights the panel's border gold, to send the player's eye to it while a
+  // level-up is being celebrated -- the bag arrives at level 4, and a card in
+  // the middle of the screen does not say where to look. The panel keeps no
+  // clock of its own: whoever lit it turns it off again.
+  void SetHighlighted(bool highlighted) {
+    highlighted_ = highlighted;
+  }
+
  private:
+  // Whether the border is currently lit gold. Set from outside, read by the
+  // render; no part of the panel's own state machine.
+  bool highlighted_ = false;
+
   // The two vertical focus zones: the Equip/Use/Etc tab bar on top, the active
   // tab's item list below. Down descends into the list, Up ascends back.
   enum Zone { kZoneTabs, kZoneList };

@@ -67,7 +67,19 @@ class CharacterPanel {
       std::function<void(Job)> on_advance = {},
       std::function<void(const Skill&)> on_inspect = {});
 
+  // Lights the panel's border gold, to send the player's eye here while a
+  // level-up or advancement is being celebrated -- this is where the AP, SP
+  // and job the moment handed over are spent. The panel keeps no clock of its
+  // own: whoever lit it turns it off again.
+  void SetHighlighted(bool highlighted) {
+    highlighted_ = highlighted;
+  }
+
  private:
+  // Whether the border is currently lit gold. Not part of the panel's own
+  // state machine -- it is set from outside and read by Render.
+  bool highlighted_ = false;
+
   // The panel's tabs, in bar order. Advance is only on the bar while an
   // advancement is pending, so these are not indices into it -- VisibleTabs().
   enum Tab : int { kTabStats = 0, kTabSkills = 1, kTabAdvance = 2 };

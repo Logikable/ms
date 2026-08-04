@@ -26,6 +26,7 @@ cc_test(
     srcs = ["character_panel_test.cc"],
     deps = [
         ":character_panel",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
@@ -58,6 +59,7 @@ cc_test(
     deps = [
         ":equipped_panel",
         "//src/character:progression",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -95,6 +97,7 @@ cc_test(
     deps = [
         ":inventory_panel",
         "//src/character:progression",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "@ftxui//:dom",
         "@ftxui//:screen",

@@ -387,12 +387,12 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   } else {
     body = RenderEquipList(menu);
   }
-  return ThemedWindow(
+  return AccentWindow(
       " Inventory ",
       ftxui::vbox({RenderTabBar(VisibleTabs(), active_tab_, character_.meso(),
                                 focused && zone_ == kZoneTabs),
                    std::move(body) | ftxui::flex}),
-      focused);
+      PanelAccent(highlighted_), focused);
 }
 
 ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {

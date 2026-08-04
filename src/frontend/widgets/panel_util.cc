@@ -382,6 +382,10 @@ ftxui::Element ActionButton(const std::string& label, bool focused) {
   return button;
 }
 
+ftxui::Color PanelAccent(bool highlighted) {
+  return highlighted ? kYellow : kTheme;
+}
+
 ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
                             ftxui::Color accent, bool focused) {
   ftxui::Element title_el = ftxui::text(title) | ftxui::color(accent);

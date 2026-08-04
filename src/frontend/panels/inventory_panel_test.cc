@@ -13,6 +13,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
@@ -820,6 +821,20 @@ TEST_F(InventoryPanelTest, CursorRowFollowsTheStackListToo) {
         << "cursor row wrong on stack " << i + 1;
   }
   EXPECT_GT(panel.selected_stack(), panel.cursor_row());
+}
+
+// --- highlighting ---
+
+// The bag arrives at level 4, and the gold border is what sends the player to
+// it rather than leaving them to find the new panel themselves.
+TEST_F(InventoryPanelTest, LightsItsBorderGoldWhenHighlighted) {
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  ASSERT_EQ(BorderColor(component->Render()), kTheme);
+  panel.SetHighlighted(true);
+  EXPECT_EQ(BorderColor(component->Render()), kYellow);
+  panel.SetHighlighted(false);
+  EXPECT_EQ(BorderColor(component->Render()), kTheme);
 }
 
 }  // namespace

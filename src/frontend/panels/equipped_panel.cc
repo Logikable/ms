@@ -203,16 +203,17 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
               std::min(selected_, static_cast<int>(entries_.size()) - 1);
         }
         if (entries_.empty()) {
-          return ThemedWindow(" Equipped ", EmptyState("empty"), focused);
+          return AccentWindow(" Equipped ", EmptyState("empty"),
+                              PanelAccent(highlighted_), focused);
         }
-        return ThemedWindow(" Equipped ",
+        return AccentWindow(" Equipped ",
                             ftxui::vbox({
                                 ftxui::text(kColumnHeader),
                                 ftxui::text(kColumnHeader2),
                                 ThemedSeparator(),
                                 menu->Render(),
                             }),
-                            focused);
+                            PanelAccent(highlighted_), focused);
       }));
   return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
     if (event == ftxui::Event::Character(' ')) {

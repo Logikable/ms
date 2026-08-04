@@ -173,6 +173,12 @@ ftxui::Element TabChip(const std::string& label, bool active, bool row_focused);
 // always-selected [Continue] on the result screens.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
+// The border color a main-screen panel draws itself in: gold while it is lit
+// to be noticed -- a level-up handing over a panel the player has not seen
+// before -- and the theme blue every other moment. One answer rather than a
+// conditional repeated in each panel, so lit means the same thing everywhere.
+ftxui::Color PanelAccent(bool highlighted);
+
 // ThemedWindow in a color of your choosing, for the few things that step out
 // of the steel blue to be noticed -- the level-up and advancement cards, and
 // the panels lit up behind them. Every window in the game is built from this,

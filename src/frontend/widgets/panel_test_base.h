@@ -35,6 +35,16 @@ class PanelTest : public testing::Test {
     return screen.ToString();
   }
 
+  // The color of a panel's top-left border cell. Read off the pixel because
+  // RenderElement goes through Screen::ToString, which is where color goes to
+  // die: a gold border and a steel-blue one produce the same string.
+  static ftxui::Color BorderColor(ftxui::Element element) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Render(screen, element);
+    return screen.PixelAt(0, 0).foreground_color;
+  }
+
   static std::string RenderComponent(ftxui::Component component) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));

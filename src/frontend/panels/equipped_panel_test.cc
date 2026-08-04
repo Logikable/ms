@@ -15,6 +15,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -400,6 +401,30 @@ TEST_F(EquippedPanelTest, ScrollingAndStarForceArriveAtTheirOwnLevels) {
   std::vector<int> star_force = ReachableMenuEntries(panel.menu());
   EXPECT_NE(std::count(star_force.begin(), star_force.end(), kMenuStarForce),
             0);
+}
+
+// --- highlighting ---
+
+// This panel arrives at level 3, and a card in the middle of the screen does
+// not say where to look. The gold border is what points at it.
+TEST_F(EquippedPanelTest, LightsItsBorderGoldWhenHighlighted) {
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  ASSERT_EQ(BorderColor(component->Render()), kTheme);
+  panel.SetHighlighted(true);
+  EXPECT_EQ(BorderColor(component->Render()), kYellow);
+  panel.SetHighlighted(false);
+  EXPECT_EQ(BorderColor(component->Render()), kTheme);
+}
+
+// An empty panel takes a different path through Render, and level 3 is exactly
+// when this one is most likely to be empty.
+TEST_F(EquippedPanelTest, LightsUpEvenWithNothingEquipped) {
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  ASSERT_NE(RenderComponent(component).find("(empty)"), std::string::npos);
+  panel.SetHighlighted(true);
+  EXPECT_EQ(BorderColor(component->Render()), kYellow);
 }
 
 }  // namespace

@@ -52,10 +52,19 @@ class EquippedPanel {
   // EQUIP_SLOT_UNSPECIFIED if the list is empty.
   EquipSlot selected_slot() const;
 
+  // Lights the panel's border gold, to send the player's eye to it while a
+  // level-up is being celebrated -- this panel arrives at level 3, and a card
+  // in the middle of the screen does not say where to look. The panel keeps no
+  // clock of its own: whoever lit it turns it off again.
+  void SetHighlighted(bool highlighted) {
+    highlighted_ = highlighted;
+  }
+
  private:
   CharacterInstance& character_;
   int& panel_focus_;
   int selected_ = 0;
+  bool highlighted_ = false;
   std::vector<std::string> entries_;
   std::vector<EquipSlot> slots_;
   // Parallel to entries_: whether that item is currently doing nothing, which
