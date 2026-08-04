@@ -50,8 +50,10 @@ class Tui {
   ftxui::Element RenderFrame();
   ftxui::Element RenderMain();
   ftxui::Element RenderExpBar();
-  // Advances combat by the wall-clock time since the previous call.
-  void AdvanceCombatTick();
+  // Advances the world by the time since the previous call: combat, and the
+  // playtime the session is accruing. Both come off one reading of a
+  // monotonic clock, so they cannot disagree about how long a tick was.
+  void Tick();
   // Writes the game to save_path_. No-op when saving is off. Failures are
   // logged and swallowed: a save that cannot be written is not a reason to
   // take the game down, and the previous save is still there.

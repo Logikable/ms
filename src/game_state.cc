@@ -1,5 +1,7 @@
 #include "src/game_state.h"
 
+#include <cstdint>
+#include <ctime>
 #include <map>
 #include <memory>
 #include <random>
@@ -143,7 +145,8 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       // level at a time now and starting part way up would skip the half of
       // it worth watching. SeedTest hands it Level-Up items instead, so a
       // tester climbs the ladder on demand rather than beginning above it.
-      character(rng, MakeBaseBeginnerProto()) {
+      character(rng, MakeBaseBeginnerProto()),
+      created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   if (mode == GameMode::kTest) {
     SeedTest(*this);
   } else {

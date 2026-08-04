@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -125,6 +127,97 @@ TEST_F(SaveTest, TheSaveIsNotPlainText) {
   ASSERT_TRUE(SaveGameToFile(*state, path_));
 
   EXPECT_EQ(ReadRaw(path_).find("1234567"), std::string::npos);
+}
+
+// --- playtime and creation time ---
+
+TEST_F(SaveTest, WritesAndReadsBackPlaytimeAndCreationTime) {
+  std::unique_ptr<GameState> saved = MakeState();
+  saved->playtime_seconds = 3725.5;
+  saved->created_unix_seconds = 1700000000;
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->created_unix_seconds, 1700000000);
+  // Whole seconds on disk, so the half second is the one thing not kept.
+  EXPECT_EQ(loaded->playtime_seconds, 3725.0);
+}
+
+// A fresh character is created now, not at the epoch -- the state stamps
+// itself, so there is a real date to show before the first save is written.
+TEST_F(SaveTest, ANewStateIsStampedWithTheCurrentTime) {
+  std::int64_t before = static_cast<std::int64_t>(std::time(nullptr));
+  std::unique_ptr<GameState> state = MakeState();
+  std::int64_t after = static_cast<std::int64_t>(std::time(nullptr));
+
+  EXPECT_GE(state->created_unix_seconds, before);
+  EXPECT_LE(state->created_unix_seconds, after);
+  EXPECT_EQ(state->playtime_seconds, 0.0);
+}
+
+// The shape of a save written before either field existed: neither is set, so
+// playtime starts from nothing and the creation time falls back to now.
+TEST_F(SaveTest, ASaveWithoutTheFieldsLoadsAsZeroPlaytimeAndCreatedNow) {
+  SaveGame old;
+  old.set_format_version(kSaveFormatVersion);
+  std::string bytes;
+  ASSERT_TRUE(old.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::int64_t before = static_cast<std::int64_t>(std::time(nullptr));
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+
+  EXPECT_EQ(loaded->playtime_seconds, 0.0);
+  EXPECT_GE(loaded->created_unix_seconds, before)
+      << "an absent creation time reads as now, not as the epoch";
+}
+
+// The creation time is the character's, not the file's: re-saving must carry
+// the original date rather than stamp the moment of the write.
+TEST_F(SaveTest, TheCreationTimeSurvivesResavingALoadedGame) {
+  std::unique_ptr<GameState> first = MakeState();
+  first->created_unix_seconds = 1500000000;
+  ASSERT_TRUE(SaveGameToFile(*first, path_));
+
+  std::unique_ptr<GameState> second = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*second, path_).status, LoadStatus::kLoaded);
+  ASSERT_TRUE(SaveGameToFile(*second, path_));
+
+  std::unique_ptr<GameState> third = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*third, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(third->created_unix_seconds, 1500000000);
+}
+
+// Playtime is a running total across sessions, so a session that loads a save
+// and plays on has to add to what was there rather than replace it.
+TEST_F(SaveTest, PlaytimeAccumulatesAcrossSessions) {
+  std::unique_ptr<GameState> first = MakeState();
+  first->playtime_seconds = 600.0;
+  ASSERT_TRUE(SaveGameToFile(*first, path_));
+
+  std::unique_ptr<GameState> second = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*second, path_).status, LoadStatus::kLoaded);
+  ASSERT_EQ(second->playtime_seconds, 600.0) << "the previous total, restored";
+  second->playtime_seconds += 90.0;  // what this session played
+  ASSERT_TRUE(SaveGameToFile(*second, path_));
+
+  std::unique_ptr<GameState> third = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*third, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(third->playtime_seconds, 690.0);
+}
+
+// A refused load must not leave a half-applied playtime behind it either.
+TEST_F(SaveTest, ARefusedLoadLeavesPlaytimeAlone) {
+  WriteRaw(path_, "not a save");
+  std::unique_ptr<GameState> state = MakeState();
+  state->playtime_seconds = 1234.0;
+  state->created_unix_seconds = 1600000000;
+
+  ASSERT_EQ(LoadGameFromFile(*state, path_).status, LoadStatus::kUnreadable);
+  EXPECT_EQ(state->playtime_seconds, 1234.0);
+  EXPECT_EQ(state->created_unix_seconds, 1600000000);
 }
 
 // --- the file layer's failure modes ---

@@ -7,6 +7,7 @@
 #define MS_SRC_GAME_STATE_H_
 
 #include <cstdint>
+#include <ctime>
 #include <map>
 #include <random>
 #include <string>
@@ -69,6 +70,18 @@ struct GameState {
   // Fractional meso banked across AdvanceCombat calls; whole meso is added to
   // the character's balance.
   double meso_progress = 0.0;
+
+  // When this character was started, as seconds since the Unix epoch. Stamped
+  // here rather than at save time so that both of the ways it can go
+  // unanswered settle themselves: a new game gets the moment it began, and a
+  // save written before the field existed keeps this value instead of loading
+  // a zero. A load overwrites it only when the save carries one.
+  int64_t created_unix_seconds;
+
+  // Total seconds with the game open, across every session. Accumulated by the
+  // frontend's tick from a monotonic clock, so changing the system time or
+  // crossing a daylight-saving boundary neither grants nor takes playtime.
+  double playtime_seconds = 0.0;
 };
 
 }  // namespace ms

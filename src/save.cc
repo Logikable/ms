@@ -1,5 +1,6 @@
 #include "src/save.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -57,6 +58,8 @@ bool SaveGameToFile(const GameState& state, const std::string& path) {
   save.set_format_version(kSaveFormatVersion);
   *save.mutable_character() = state.character.ToProto();
   save.set_current_map(state.current_map);
+  save.set_created_unix_seconds(state.created_unix_seconds);
+  save.set_playtime_seconds(static_cast<int64_t>(state.playtime_seconds));
 
   std::string bytes;
   if (!save.SerializeToString(&bytes)) {
@@ -123,6 +126,13 @@ LoadResult LoadGameFromFile(GameState& state, const std::string& path) {
 
   state.character.RestoreFrom(save.character(), state.equips, state.items);
   state.current_map = save.current_map();
+  state.playtime_seconds = static_cast<double>(save.playtime_seconds());
+  // Left alone when the save has no creation time to give -- one written
+  // before the field existed. The state was stamped when it was built, so
+  // holding on to that reads as "created now" rather than as the epoch.
+  if (save.created_unix_seconds() != 0) {
+    state.created_unix_seconds = save.created_unix_seconds();
+  }
   return {LoadStatus::kLoaded, ""};
 }
 

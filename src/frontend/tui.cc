@@ -151,7 +151,7 @@ void Tui::Run() {
     while (running) {
       std::this_thread::sleep_for(std::chrono::milliseconds(300));
       screen.Post([this, &screen]() {
-        AdvanceCombatTick();
+        Tick();
         AutosaveIfDue();
         // Posted here rather than acted on in the handler: this runs on the
         // loop thread, where ending the loop and writing a file are both
@@ -442,10 +442,13 @@ ftxui::Element Tui::RenderExpBar() {
   return ProgressBar(frac, kTheme, label);
 }
 
-void Tui::AdvanceCombatTick() {
+void Tui::Tick() {
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed = now - last_combat_update_;
   last_combat_update_ = now;
+  // Every tick, rather than only at save time: the total then stays true
+  // between saves, which is what anything wanting to show it will read.
+  state_.playtime_seconds += elapsed.count();
   AdvanceCombat(state_, combat_sim_, elapsed.count());
 }
 

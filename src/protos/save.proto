@@ -23,4 +23,15 @@ message SaveGame {
   // The map being farmed, as a key into the map catalog. Empty means the
   // player was not fighting anywhere.
   string current_map = 3;
+
+  // When this character was started, as seconds since the Unix epoch. Wall
+  // clock rather than the monotonic one used for playtime: this is a date to
+  // show, not a duration to measure. Zero means a save written before the
+  // field existed, which loads as "created now".
+  int64 created_unix_seconds = 4;
+
+  // Total seconds with the game open, across every session. Whole seconds on
+  // disk; the running total is kept as a double so that accumulating it a
+  // fraction of a second at a time does not truncate away most of it.
+  int64 playtime_seconds = 5;
 }
