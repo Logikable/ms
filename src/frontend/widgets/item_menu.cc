@@ -1,5 +1,6 @@
 #include "src/frontend/widgets/item_menu.h"
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -41,22 +42,30 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
 }
 
 void ItemMenu::Up() {
-  int next = selected_ - 1;
-  while (next >= 0 && disabled_[next]) {
-    next--;
-  }
-  if (next >= 0) {
-    selected_ = next;
-  }
+  Step(-1);
 }
 
 void ItemMenu::Down() {
-  int next = selected_ + 1;
-  while (next < static_cast<int>(options_.size()) && disabled_[next]) {
-    next++;
-  }
-  if (next < static_cast<int>(options_.size())) {
-    selected_ = next;
+  Step(1);
+}
+
+void ItemMenu::Step(int delta) {
+  int stops = static_cast<int>(options_.size());
+  // Rounds the ring at most once, so a menu with nothing enabled stops instead
+  // of walking forever. It cannot happen while Close is neither hidden nor
+  // disabled, which is the rule Hide states -- but a loop that only terminates
+  // because of a rule kept somewhere else is not one to leave lying around.
+  //
+  // The last step of a full round lands back on where it started, so a menu
+  // whose only enabled entry is the current one assigns it to itself and stays
+  // put. Same answer, without a case for it.
+  int next = selected_;
+  for (int i = 0; i < stops; ++i) {
+    next = StepCursor(next, delta, stops);
+    if (!disabled_[next]) {
+      selected_ = next;
+      return;
+    }
   }
 }
 

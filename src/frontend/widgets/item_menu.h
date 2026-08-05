@@ -21,6 +21,8 @@ class ItemMenu {
   // Returns a positioned element for dbox layering. The element includes
   // top/left padding so the menu box appears at (row, col).
   ftxui::Element Render(int row, int col) const;
+  // Walk the entries, skipping disabled ones. The list is a ring: Up off the
+  // first entry lands on the last, and Down off the last lands on the first.
   void Up();
   void Down();
   void Reset();
@@ -41,6 +43,10 @@ class ItemMenu {
   int selected() const;
 
  private:
+  // One step of `delta` places, past any disabled entries in the way. Stays put
+  // when there is nowhere enabled to go.
+  void Step(int delta);
+
   std::vector<std::string> options_;
   std::vector<bool> disabled_;
   std::vector<bool> hidden_;

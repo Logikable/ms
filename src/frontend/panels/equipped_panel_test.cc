@@ -33,7 +33,10 @@ class EquippedPanelTest : public PanelTest {
     std::vector<int> seen{menu.selected()};
     for (;;) {
       menu.Down();
-      if (menu.selected() == seen.back()) {
+      // The walk ends where it started, the list being a ring. Watching for a
+      // cursor that stopped moving instead would never end -- except on a menu
+      // with one reachable entry, where the two are the same thing.
+      if (menu.selected() == seen.front()) {
         return seen;
       }
       seen.push_back(menu.selected());
