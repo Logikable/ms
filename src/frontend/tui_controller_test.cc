@@ -301,6 +301,26 @@ TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
+// Shift+Tab runs the same ring anticlockwise, and rounds the same way.
+TEST_F(TuiControllerTest, ShiftTabWalksThePanelsBackwards) {
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(panel_focus_, kCharPanel);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(panel_focus_, kCombatPanel);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(panel_focus_, kInventoryPanel);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
+// Which is what it is for: undoing a Tab that went one panel too far.
+TEST_F(TuiControllerTest, ShiftTabUndoesATab) {
+  controller_->OnEvent(ftxui::Event::Tab);
+  ASSERT_EQ(panel_focus_, kInventoryPanel);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
 // --- AP allocation ---
 
 TEST_F(TuiControllerTest, OpenApAllocateSetsScreenToApAlloc) {
@@ -1346,6 +1366,30 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
   controller.OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(focus, kCharPanel) << "and back round";
+}
+
+// And backwards over the same gap. Going the other way walks into the two
+// locked panels from the far side, which is where a step of -1 would have run
+// the modulo negative.
+TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
+  GameState fresh({}, {}, {}, {}, {});
+  EquippedPanel equip(fresh.character, panel_focus_);
+  InventoryPanel bag(fresh.character, panel_focus_);
+  ScrollPanel scroll({});
+  StarForcePanel star;
+  TraceRecoverPanel trace(fresh.character);
+  SellPanel sell;
+  MapSelectPanel maps(fresh);
+  ShopPanel shop(fresh.character, fresh.equips);
+  BuyPanel buy;
+  int focus = kCharPanel;
+  TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
+                           shop, buy, focus);
+
+  controller.OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
+  controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCharPanel) << "and back round";
 }
 

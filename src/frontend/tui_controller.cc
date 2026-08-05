@@ -202,11 +202,15 @@ bool TuiController::OnEvent(ftxui::Event event) {
     screen_ = kQuit;
     return true;
   }
-  if (event == ftxui::Event::Tab) {
+  if (event == ftxui::Event::Tab || event == ftxui::Event::TabReverse) {
     // Round the panels until the next one that is actually on screen. The
     // character panel is always visible, so this always lands somewhere.
+    //
+    // Backwards is a step of kNumPanels - 1 rather than -1, so the modulo is
+    // never handed a negative and the two directions are one piece of code.
+    int step = event == ftxui::Event::Tab ? 1 : kNumPanels - 1;
     do {
-      panel_focus_ = (panel_focus_ + 1) % kNumPanels;
+      panel_focus_ = (panel_focus_ + step) % kNumPanels;
     } while (!PanelVisible(panel_focus_));
     return true;
   }
