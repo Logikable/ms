@@ -52,7 +52,8 @@ constexpr const char* kTabLabels[kNumInventoryTabs] = {"Equip", "Use", "Etc",
 // the character has unlocked, so a locked tab leaves no gap behind it.
 ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
                             int64_t meso, bool row_selected,
-                            const CharacterInstance& character) {
+                            const CharacterInstance& character,
+                            bool highlighted) {
   std::vector<ftxui::Element> chips;
   for (int tab : tabs) {
     // Only the shop is ever new: the three bag tabs have been there since the
@@ -67,7 +68,7 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
   });
   return ftxui::vbox({
       std::move(tab_row),
-      ThemedSeparator(),
+      PanelSeparator(highlighted),
   });
 }
 
@@ -77,7 +78,7 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
 // Equip tab, whose menu takes its cursor from ftxui's own focus state.
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
                                int selected, bool focused,
-                               ftxui::Box& cursor_box) {
+                               ftxui::Box& cursor_box, bool highlighted) {
   if (stacks.empty()) {
     // No header over nothing, as on an empty Equip tab. Column names are there
     // to tell rows apart, and there are no rows to tell apart.
@@ -104,7 +105,7 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
   }
   return ftxui::vbox({
       ftxui::text("  " + PadRight("Name", 26) + "Quantity"),
-      ThemedSeparator(),
+      PanelSeparator(highlighted),
       // Only the rows scroll; the header and its rule stay put.
       ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::flex,
@@ -359,7 +360,7 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
   return ftxui::vbox({
       ftxui::text(kColumnHeader),
       ftxui::text(kColumnHeader2),
-      ThemedSeparator(),
+      PanelSeparator(highlighted_),
       // Only the items scroll; the two header rows and the rule stay put.
       // ftxui::Menu marks its selected entry, which is what the frame scrolls
       // to, so the cursor cannot walk out of view.
@@ -392,15 +393,17 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
         selected_stack_, std::max(0, static_cast<int>(stacks.size()) - 1));
     // The stack cursor shows only while the list zone holds focus, so it never
     // competes with the white tab-bar highlight.
-    body = RenderStackList(stacks, selected_stack_,
-                           focused && zone_ == kZoneList, cursor_box_);
+    body =
+        RenderStackList(stacks, selected_stack_, focused && zone_ == kZoneList,
+                        cursor_box_, highlighted_);
   } else {
     body = RenderEquipList(menu);
   }
   return AccentWindow(
       " Inventory ",
       ftxui::vbox({RenderTabBar(VisibleTabs(), active_tab_, character_.meso(),
-                                focused && zone_ == kZoneTabs, character_),
+                                focused && zone_ == kZoneTabs, character_,
+                                highlighted_),
                    std::move(body) | ftxui::flex}),
       PanelAccent(highlighted_), focused);
 }

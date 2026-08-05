@@ -695,6 +695,18 @@ TEST_F(CharacterPanelTest, GoesBackToTheThemeColorWhenTheHighlightIsCleared) {
   EXPECT_EQ(BorderColor(panel.Render()), kTheme);
 }
 
+// This panel is the one with rules through the middle of it -- under the
+// title, under the tab bar, and between the allocated stats and the derived
+// ones. A gold box around steel-blue seams is not a lit panel.
+TEST_F(CharacterPanelTest, LightsItsInnerRulesGoldToo) {
+  CharacterPanel panel(c_, panel_focus_);
+  ASSERT_EQ(InnerRuleColor(panel.Render()), kTheme);
+  panel.SetHighlighted(true);
+  EXPECT_EQ(InnerRuleColor(panel.Render()), kYellow);
+  panel.SetHighlighted(false);
+  EXPECT_EQ(InnerRuleColor(panel.Render()), kTheme);
+}
+
 // --- a newly unlocked tab announces itself ---
 //
 // These read the chip colour with the panel unfocused. A focused, active chip

@@ -5,6 +5,8 @@
 
 #include <random>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -43,6 +45,35 @@ class PanelTest : public testing::Test {
                                                  ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, element);
     return screen.PixelAt(0, 0).foreground_color;
+  }
+
+  // The colors of every divider rule inside a panel, top to bottom: the rows
+  // drawn as a box-drawing horizontal line, minus the window's own top and
+  // bottom borders. A lit panel has to go gold all the way through, and a rule
+  // left steel-blue across the middle of a gold window reads as a seam, which
+  // BorderColor cannot see.
+  static std::vector<ftxui::Color> InnerRuleColors(ftxui::Element element) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Render(screen, element);
+    std::vector<ftxui::Color> colors;
+    // Sampled at x=1 rather than x=0, which is the window's left border: a
+    // vertical line on every row, including the ones a rule crosses. The first
+    // and last rows are the window's own borders, which BorderColor covers.
+    for (int y = 1; y + 1 < screen.dimy(); ++y) {
+      if (screen.PixelAt(1, y).character == "─") {
+        colors.push_back(screen.PixelAt(1, y).foreground_color);
+      }
+    }
+    return colors;
+  }
+
+  // The topmost inner rule's color, for a panel that only has one worth
+  // asking about. Color::Default when the panel has no inner rule at all,
+  // which no expected color equals.
+  static ftxui::Color InnerRuleColor(ftxui::Element element) {
+    std::vector<ftxui::Color> colors = InnerRuleColors(std::move(element));
+    return colors.empty() ? ftxui::Color::Default : colors.front();
   }
 
   // The foreground color of the first cell of `label` in a rendered element,

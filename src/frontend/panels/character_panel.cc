@@ -216,7 +216,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
     rows.push_back(
         AllocRow(kAllocStats[i].label, v.first, v.second, i, content_focused));
   }
-  rows.push_back(ThemedSeparator());
+  rows.push_back(PanelSeparator(highlighted_));
   rows.push_back(DisplayRow("ATT", e.attack()));
   rows.push_back(DisplayRow("MATT", e.magic_attack()));
   rows.push_back(DisplayRow("DEF", derived.def));
@@ -305,7 +305,7 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   }
   std::vector<ftxui::Element> rows;
   rows.push_back(RenderAdvTabBar(stages, bar_focused));
-  rows.push_back(ThemedSeparator());
+  rows.push_back(PanelSeparator(highlighted_));
   std::vector<const Skill*> skills = SkillsForStage(skill_tab_ + 1);
   if (skills.empty()) {
     rows.push_back(ftxui::text(PadRight(" No skills yet.", kContentWidth)) |
@@ -366,9 +366,9 @@ ftxui::Element CharacterPanel::Render() const {
                       ftxui::vbox({
                           ftxui::text(title),
                           ftxui::text(power),
-                          ThemedSeparator(),
+                          PanelSeparator(highlighted_),
                           RenderTabBar(tab_row_selected),
-                          ThemedSeparator(),
+                          PanelSeparator(highlighted_),
                           content,
                       }),
                       PanelAccent(highlighted_), focused);

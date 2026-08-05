@@ -210,7 +210,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
                             ftxui::vbox({
                                 ftxui::text(kColumnHeader),
                                 ftxui::text(kColumnHeader2),
-                                ThemedSeparator(),
+                                PanelSeparator(highlighted_),
                                 menu->Render(),
                             }),
                             PanelAccent(highlighted_), focused);

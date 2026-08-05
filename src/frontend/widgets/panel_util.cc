@@ -426,6 +426,10 @@ ftxui::Element AccentSeparator(ftxui::Color accent) {
   return ftxui::separator() | ftxui::color(accent);
 }
 
+ftxui::Element PanelSeparator(bool highlighted) {
+  return AccentSeparator(PanelAccent(highlighted));
+}
+
 ftxui::Element ThemedSeparator() {
   return AccentSeparator(kTheme);
 }

@@ -838,6 +838,28 @@ TEST_F(InventoryPanelTest, LightsItsBorderGoldWhenHighlighted) {
   EXPECT_EQ(BorderColor(component->Render()), kTheme);
 }
 
+// Two rules here, from two different renderers: the one under the tab bar and
+// the one under the stack list's column headers. Both have to come up gold, so
+// this asks about every rule the panel drew rather than just the first.
+TEST_F(InventoryPanelTest, LightsEveryInnerRuleGoldToo) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  panel_focus_ = kInventoryPanel;
+  component->OnEvent(ftxui::Event::ArrowRight);  // onto the Use tab
+
+  std::vector<ftxui::Color> rules = InnerRuleColors(component->Render());
+  ASSERT_EQ(rules.size(), 2u) << "expected the tab rule and the list rule";
+  EXPECT_EQ(rules[0], kTheme);
+  EXPECT_EQ(rules[1], kTheme);
+
+  panel.SetHighlighted(true);
+  rules = InnerRuleColors(component->Render());
+  ASSERT_EQ(rules.size(), 2u);
+  EXPECT_EQ(rules[0], kYellow);
+  EXPECT_EQ(rules[1], kYellow);
+}
+
 // --- a newly unlocked tab announces itself ---
 
 // The gold outlives the four-second card: a player who was away when the shop

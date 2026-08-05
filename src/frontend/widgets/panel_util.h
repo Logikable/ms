@@ -223,6 +223,11 @@ ftxui::Element CenteredRow(const std::string& text);
 // AccentWindow: a steel-blue rule across a gold card reads as a seam.
 ftxui::Element AccentSeparator(ftxui::Color accent);
 
+// The rule to draw inside a main-screen panel: the counterpart of
+// PanelAccent(), so that a lit panel goes gold all the way through rather than
+// gold around the edge with steel-blue seams across the middle of it.
+ftxui::Element PanelSeparator(bool highlighted);
+
 // Returns a horizontal separator rule in the theme border color.
 ftxui::Element ThemedSeparator();
 

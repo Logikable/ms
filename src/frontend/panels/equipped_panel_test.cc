@@ -417,6 +417,20 @@ TEST_F(EquippedPanelTest, LightsItsBorderGoldWhenHighlighted) {
   EXPECT_EQ(BorderColor(component->Render()), kTheme);
 }
 
+// The rule under the column headers is the only one this panel has, and it is
+// there only once something is worn.
+TEST_F(EquippedPanelTest, LightsItsInnerRuleGoldToo) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  ASSERT_EQ(InnerRuleColor(component->Render()), kTheme);
+  panel.SetHighlighted(true);
+  EXPECT_EQ(InnerRuleColor(component->Render()), kYellow);
+  panel.SetHighlighted(false);
+  EXPECT_EQ(InnerRuleColor(component->Render()), kTheme);
+}
+
 // An empty panel takes a different path through Render, and level 3 is exactly
 // when this one is most likely to be empty.
 TEST_F(EquippedPanelTest, LightsUpEvenWithNothingEquipped) {
