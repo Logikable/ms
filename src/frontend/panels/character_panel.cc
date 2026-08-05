@@ -150,6 +150,81 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
   return kZoneTabs;
 }
 
+int CharacterPanel::RingStops() const {
+  if (ActiveTab() == kTabStats) {
+    return 1 + kNumAllocStats;
+  }
+  if (ActiveTab() == kTabAdvance) {
+    return 1 +
+           static_cast<int>(
+               JobChoicesForStage(character_.proto().job_stage() + 1).size());
+  }
+  if (character_.proto().job_stage() == 0) {
+    // A Beginner's Skills tab has no advancement bar to stand on, let alone
+    // skills under it. One stop, and the arrows have nowhere to take anybody.
+    return 1;
+  }
+  return 2 + static_cast<int>(SkillsForStage(skill_tab_ + 1).size());
+}
+
+int CharacterPanel::CursorStop() const {
+  switch (EffectiveZone()) {
+    case kZoneTabs:
+      return 0;
+    case kZoneStatRows:
+      return stat_sel_ + 1;
+    case kZoneJobRows:
+      return job_sel_ + 1;
+    case kZoneAdvTabs:
+      return 1;
+    case kZoneSkillRows:
+      return skill_sel_ + 2;
+  }
+  return 0;
+}
+
+void CharacterPanel::SetCursorStop(int stop) {
+  if (stop == 0) {
+    zone_ = kZoneTabs;
+    return;
+  }
+  if (ActiveTab() == kTabStats) {
+    zone_ = kZoneStatRows;
+    stat_sel_ = stop - 1;
+    return;
+  }
+  if (ActiveTab() == kTabAdvance) {
+    zone_ = kZoneJobRows;
+    job_sel_ = stop - 1;
+    return;
+  }
+  if (stop == 1) {
+    zone_ = kZoneAdvTabs;
+    return;
+  }
+  if (zone_ != kZoneSkillRows) {
+    // Arriving from outside the rows, so land on the name -- the leftmost
+    // column, the way the eye reads the row. Walking from one row to the next
+    // keeps whichever column the cursor was already in.
+    skill_col_ = kColName;
+  }
+  zone_ = kZoneSkillRows;
+  skill_sel_ = stop - 2;
+}
+
+void CharacterPanel::MoveCursor(int delta) {
+  // Leaving the tab bar for the Skills tab puts the advancement bar on the
+  // stage the character has reached, which is what Down has always done. It
+  // happens before the ring is measured because the stage decides how many
+  // skills are in it, and a bar left on an older one would size the ring for
+  // the wrong stage.
+  if (zone_ == kZoneTabs && ActiveTab() == kTabSkills &&
+      character_.proto().job_stage() > 0) {
+    skill_tab_ = character_.proto().job_stage() - 1;
+  }
+  SetCursorStop(StepCursor(CursorStop(), delta, RingStops()));
+}
+
 std::string CharacterPanel::TabKey(Tab tab) const {
   if (tab == kTabAdvance) {
     // The stage being advanced INTO, so the tab that comes back at level 30 is
@@ -377,7 +452,8 @@ ftxui::Element CharacterPanel::Render() const {
 }
 
 bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
-  // Top zone: Left/Right walk the tabs, Down enters the active tab's content.
+  // Top zone: Left/Right walk the tabs, Up and Down enter the active tab's
+  // content.
   if (event == ftxui::Event::ArrowLeft) {
     active_tab_ = std::max(0, active_tab_ - 1);
     MarkActiveTabSeen();
@@ -389,18 +465,12 @@ bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
     MarkActiveTabSeen();
     return true;
   }
-  if (event == ftxui::Event::ArrowDown) {
-    if (ActiveTab() == kTabStats) {
-      zone_ = kZoneStatRows;
-      stat_sel_ = 0;
-    } else if (ActiveTab() == kTabAdvance) {
-      zone_ = kZoneJobRows;
-      job_sel_ = 0;
-    } else if (character_.proto().job_stage() > 0) {
-      // Skills content starts at the advancement bar, on the current stage.
-      zone_ = kZoneAdvTabs;
-      skill_tab_ = character_.proto().job_stage() - 1;
-    }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    // Down enters the tab's content at its first row; Up enters it at its
+    // last, the bar being a stop in the same ring. Where "first row" is
+    // depends on the tab -- the Skills tab's content starts at the
+    // advancement bar rather than at a skill.
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
   return false;
@@ -408,21 +478,11 @@ bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
 
 bool CharacterPanel::OnAdvanceTabEvent(
     const ftxui::Event& event, const std::function<void(Job)>& on_advance) {
-  // Job rows: Up/Down walk them, Up off the top returns to the tab bar.
+  // Job rows: Up/Down walk them, and off either end is the tab bar.
   std::vector<Job> jobs =
       JobChoicesForStage(character_.proto().job_stage() + 1);
-  if (event == ftxui::Event::ArrowUp) {
-    if (job_sel_ == 0) {
-      zone_ = kZoneTabs;
-    } else {
-      job_sel_--;
-    }
-    return true;
-  }
-  if (event == ftxui::Event::ArrowDown) {
-    if (job_sel_ < static_cast<int>(jobs.size()) - 1) {
-      job_sel_++;
-    }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
   if (IsForward(event)) {
@@ -437,20 +497,10 @@ bool CharacterPanel::OnAdvanceTabEvent(
 bool CharacterPanel::OnStatsTabEvent(
     const ftxui::Event& event,
     const std::function<void(StatField)>& on_allocate) {
-  // Stat rows: Up/Down walk them; Up off STR returns to the tab bar. Left/Right
+  // Stat rows: Up/Down walk them, and off either end is the tab bar. Left/Right
   // do nothing here -- they belong to the tab bar.
-  if (event == ftxui::Event::ArrowUp) {
-    if (stat_sel_ == 0) {
-      zone_ = kZoneTabs;
-    } else {
-      stat_sel_--;
-    }
-    return true;
-  }
-  if (event == ftxui::Event::ArrowDown) {
-    if (stat_sel_ < kNumAllocStats - 1) {
-      stat_sel_++;
-    }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
   if (IsForward(event) && character_.proto().ap() > 0) {
@@ -465,9 +515,11 @@ bool CharacterPanel::OnSkillsTabEvent(
     const std::function<void(const Skill&)>& on_learn,
     const std::function<void(const Skill&)>& on_inspect) {
   if (zone_ == kZoneAdvTabs) {
-    // Advancement bar: Left/Right switch tabs, Up returns to the outer tabs.
-    if (event == ftxui::Event::ArrowUp) {
-      zone_ = kZoneTabs;
+    // Advancement bar: Left/Right switch stages; Up returns to the outer tabs
+    // and Down descends to the skills, or back to the outer tabs when this
+    // stage has none to put the cursor on.
+    if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+      MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
       return true;
     }
     if (event == ftxui::Event::ArrowLeft) {
@@ -482,37 +534,15 @@ bool CharacterPanel::OnSkillsTabEvent(
       }
       return true;
     }
-    if (event == ftxui::Event::ArrowDown) {
-      // Descend only when this stage has a skill to put the cursor on. Whether
-      // there is SP to spend doesn't matter -- the rows are worth reading
-      // either way.
-      int stage = skill_tab_ + 1;
-      if (!SkillsForStage(stage).empty()) {
-        zone_ = kZoneSkillRows;
-        skill_sel_ = 0;
-        // Land on the name, the leftmost column, the way the eye reads the row.
-        skill_col_ = kColName;
-      }
-      return true;
-    }
     return false;
   }
   // Skill rows: Up/Down walk them, Up off the top returns to the advancement
-  // bar. Left/Right pick the column, which is what the Enter below acts on --
+  // bar and Down off the bottom carries on round to the outer tab bar.
+  // Left/Right pick the column, which is what the Enter below acts on --
   // switching advancement tabs belongs to the bar above.
   std::vector<const Skill*> skills = SkillsForStage(skill_tab_ + 1);
-  if (event == ftxui::Event::ArrowUp) {
-    if (skill_sel_ == 0) {
-      zone_ = kZoneAdvTabs;
-    } else {
-      skill_sel_--;
-    }
-    return true;
-  }
-  if (event == ftxui::Event::ArrowDown) {
-    if (skill_sel_ < static_cast<int>(skills.size()) - 1) {
-      skill_sel_++;
-    }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
   if (event == ftxui::Event::ArrowLeft) {

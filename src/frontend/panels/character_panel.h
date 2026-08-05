@@ -136,6 +136,19 @@ class CharacterPanel {
   // after the advancement, before any key is pressed; the event handler writes
   // it back before dispatching.
   Zone EffectiveZone() const;
+  // How many places there are to stand in the active tab's vertical ring. The
+  // outer tab bar is stop 0 in every tab; what follows depends on the tab --
+  // the four stat rows, the job rows, or the advancement bar and then the
+  // skills of whichever stage it is on.
+  int RingStops() const;
+  // Where the cursor stands in that ring.
+  int CursorStop() const;
+  // Puts the cursor on stop `stop`, setting the zone that stop belongs to.
+  void SetCursorStop(int stop);
+  // Moves the cursor `delta` stops around the ring, wrapping at both ends. So
+  // Down off the last row returns to the tab bar and Up off the tab bar goes
+  // to the last row, and neither is a rule of its own.
+  void MoveCursor(int delta);
   // Renders the Stats/Skills tab bar. When row_selected the active tab is drawn
   // white (the tab bar holds focus); otherwise it keeps the theme highlight.
   ftxui::Element RenderTabBar(bool row_selected) const;

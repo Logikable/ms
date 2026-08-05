@@ -43,10 +43,25 @@ Skill MakeSlashBlast() {
   return skill;
 }
 
+Skill MakePowerStrike() {
+  Skill skill;
+  skill.set_name("Power Strike");
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(20);
+  return skill;
+}
+
 // A one-skill catalog holding the stage-1 Slash Blast.
 std::map<std::string, Skill> SkillCatalog() {
   std::map<std::string, Skill> catalog;
   catalog["slash_blast"] = MakeSlashBlast();
+  return catalog;
+}
+
+// Two stage-1 skills, for a list long enough to walk down.
+std::map<std::string, Skill> TwoSkillCatalog() {
+  std::map<std::string, Skill> catalog = SkillCatalog();
+  catalog["power_strike"] = MakePowerStrike();
   return catalog;
 }
 
@@ -195,6 +210,21 @@ TEST_F(CharacterPanelTest, EnterOnAJobAsksToAdvanceIntoIt) {
   EXPECT_EQ(chosen, JOB_ARCHER);
   // Asking is all the panel does; performing it belongs to the confirmation.
   EXPECT_EQ(c.proto().job(), JOB_BEGINNER);
+}
+
+// The Advance tab's ring, from the other end: Up off the bar lands on the last
+// job on offer rather than doing nothing.
+TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastJob) {
+  CharacterInstance c = MakePendingBeginner(rng_);
+  CharacterPanel panel(c, panel_focus_);
+  Job chosen = JOB_UNSPECIFIED;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, [](const Skill&) {},
+                          [&chosen](Job job) { chosen = job; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
+  comp->OnEvent(ftxui::Event::ArrowUp);     // tab bar -> the last job
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(chosen, JOB_ROGUE) << "the last of the four on offer";
 }
 
 TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
@@ -350,6 +380,33 @@ TEST_F(CharacterPanelTest, UpFromStrReturnsToTheTabBar) {
   ftxui::Component comp = panel.MakeComponent([&](StatField) { fired = true; });
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
   comp->OnEvent(ftxui::Event::ArrowUp);    // STR -> tab bar
+  // Enter allocates only from a stat row, so its silence is what says the
+  // cursor left one.
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(fired);
+}
+
+// --- the tab bar is the top of every tab's ring ---
+
+// Up off the bar lands on the last row of the tab's content, which for Stats is
+// LUK. Enter names the row, which is how the test says where the cursor is.
+TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastStat) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(field, STAT_FIELD_LUK);
+}
+
+TEST_F(CharacterPanelTest, DownFromTheLastStatReturnsToTheTabBar) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  bool fired = false;
+  ftxui::Component comp = panel.MakeComponent([&](StatField) { fired = true; });
+  comp->OnEvent(ftxui::Event::ArrowUp);    // tab bar -> LUK
+  comp->OnEvent(ftxui::Event::ArrowDown);  // LUK -> tab bar
   // Enter allocates only from a stat row, so its silence is what says the
   // cursor left one.
   comp->OnEvent(ftxui::Event::Return);
@@ -607,6 +664,68 @@ TEST_F(CharacterPanelTest, UpFromSkillRowsReturnsToTheAdvancementBar) {
   comp->OnEvent(ftxui::Event::ArrowUp);     // advancement bar -> outer tabs
   comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
+}
+
+// The Skills tab's ring is three deep: the outer tab bar, the advancement bar
+// under it, then the skills. Up off the top of it arrives at the bottom.
+TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastSkill) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  bool fired = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&fired](const Skill&) { fired = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowUp);     // tab bar -> the last skill row
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(fired) << "Enter learns only from a skill row";
+}
+
+TEST_F(CharacterPanelTest, DownFromTheLastSkillReturnsToTheOuterTabBar) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // the one skill row
+  comp->OnEvent(ftxui::Event::ArrowDown);   // off the bottom -> outer tab bar
+  // Left switches outer tabs only from the bar, so Stats coming back is where
+  // the cursor went.
+  comp->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
+}
+
+// A stage with no skills is a ring of two: the outer bar and the advancement
+// bar. Down from the advancement bar carries on round rather than descending
+// into a list that is not there.
+TEST_F(CharacterPanelTest, DownFromTheAdvBarSkipsAnEmptySkillList) {
+  CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
+  c.AdvanceJob(JOB_SWORDMAN);
+  CharacterPanel panel(c, panel_focus_);  // no catalog: no skills at all
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> outer tab bar, not a row
+  comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
+}
+
+// Walking from one skill row to the next keeps whichever column the cursor was
+// in. Only arriving from outside the rows puts it back on the name, so a player
+// spending SP down a list does not have to re-cross to the [+] on every row.
+TEST_F(CharacterPanelTest, WalkingBetweenSkillRowsKeepsTheColumn) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, TwoSkillCatalog());
+  bool learned = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&learned](const Skill&) { learned = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // first skill row, on the name
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
+  comp->OnEvent(ftxui::Event::ArrowDown);   // second row, still on the [+]
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(learned) << "Enter over the name would inspect, not learn";
 }
 
 TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheCursorOnTheRows) {
