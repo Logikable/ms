@@ -19,6 +19,13 @@ namespace ms {
 struct DerivedStats {
   int max_hp = 0;
   int max_mp = 0;
+  // Everything worn and granted, plus the base every character carries for
+  // their primary stats alone -- 1.5 per STR and 0.4 per point of DEX and LUK.
+  // A character in rags has DEF, and a warrior who spends AP on STR gains it
+  // without touching their armour.
+  //
+  // Nothing in combat reads this yet: the character panel shows it, and the
+  // damage-taken formula wants it when mobs can hurt the player.
   int def = 0;
   // The share of incoming damage cancelled (0.10 == 10% less taken). Nothing
   // damages the character yet, so this is carried but never read.
@@ -33,7 +40,9 @@ struct DerivedStats {
   // that is how they behave: sum this with CharacterInstance::equip_stats()
   // and hand the total wherever equipment stats go, OffenseStatsFor above all.
   // Skills that grant a primary stat reach the damage chain no other way.
-  // DEF is in here too, and is the same total `def` above already carries.
+  // DEF is in here too, but it is only the part the passives grant -- `def`
+  // above is a larger number, carrying the worn DEF and the primary-stat base
+  // as well. Neither is a substitute for the other.
   EquipStats skill_stats;
 };
 

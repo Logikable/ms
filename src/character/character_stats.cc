@@ -17,6 +17,12 @@ namespace {
 // Slack for the floor below, far smaller than any percentage a skill grants.
 constexpr double kPercentEpsilon = 1e-9;
 
+// DEF every character carries for their primary stats, before anything is
+// worn: 1.5 for each point of STR and 0.4 for each point of DEX and of LUK.
+// INT buys none -- a magician's bulk comes from elsewhere.
+constexpr double kDefPerStr = 1.5;
+constexpr double kDefPerDexLuk = 0.4;
+
 }  // namespace
 
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
@@ -79,9 +85,22 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
       allocated.mp() + equipped.max_mp() + mp_per_level * proto.level();
   stats.max_mp = static_cast<int>(
       std::floor(flat_mp * (1.0 + max_mp_pct) + kPercentEpsilon));
-  stats.def = equipped.def() + skill_def;
   stats.skill_stats.set_def(skill_def);
   stats.skill_stats.set_luk(skill_luk);
+  // Base DEF is a function of the primary stats the character actually holds,
+  // so it reads the totals rather than the allocation: a ring's LUK and a
+  // passive's LUK are worth the same DEF, and neither is worth less than an AP
+  // spent on it. That is why it waits until skill_stats above is filled --
+  // reading it back is what keeps a future skill_str from being missed here.
+  //
+  // Floored once at the end, as GMS shows it. Only the base needs it; the worn
+  // and granted DEF are whole numbers already.
+  int str = allocated.str() + equipped.str() + stats.skill_stats.str();
+  int dex = allocated.dex() + equipped.dex() + stats.skill_stats.dex();
+  int luk = allocated.luk() + equipped.luk() + stats.skill_stats.luk();
+  int base_def = static_cast<int>(
+      std::floor(kDefPerStr * str + kDefPerDexLuk * (dex + luk)));
+  stats.def = base_def + equipped.def() + skill_def;
   stats.damage_taken_pct = damage_taken_pct;
   stats.crit_rate = crit_rate;
   stats.attack_speed_bonus = attack_speed_bonus;

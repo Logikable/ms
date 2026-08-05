@@ -43,6 +43,31 @@ void EquipArmor(CharacterInstance& character, int max_hp, int def,
   character.Equip(0);
 }
 
+// A character holding the four primary stats outright. These tests care what
+// the character holds, not how many AP it took to get there.
+CharacterInstance MakeStatCharacter(std::mt19937& rng, int str, int dex,
+                                    int int_, int luk) {
+  Character proto;
+  proto.set_level(1);
+  proto.set_job_stage(1);
+  AllocatedStats* stats = proto.mutable_allocated_stats();
+  stats->set_str(str);
+  stats->set_dex(dex);
+  stats->set_int_(int_);
+  stats->set_luk(luk);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// A ring-shaped item carrying STR, for asking whether worn stats count.
+void EquipStrRing(CharacterInstance& character, int str) {
+  EquipPrototype ring;
+  ring.set_name("Ring");
+  ring.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  ring.mutable_base_stats()->set_str(str);
+  character.PickUp(std::make_unique<EquipInstance>(ring));
+  character.Equip(0);
+}
+
 // Iron Body as the wiki states it: DEF +10*L, Max HP +L%, damage taken -L/2%.
 Skill IronBody() {
   Skill skill;
@@ -264,9 +289,71 @@ TEST_F(DerivedStatsTest, SkillStatsJoinWornStatsInTheTotal) {
   DerivedStats stats = DerivedStatsFor(c, skills);
   EquipStats total = TotalEquipStats(c, stats);
   EXPECT_EQ(total.luk(), 5);
-  // DEF is carried in both places and must agree -- 7 worn, 10 from Iron Body.
+  // 7 worn, 10 from Iron Body. This is DEF as a stat line carries it, which is
+  // not the DEF the character has -- stats.def adds the primary-stat base on
+  // top, and here that is the 2 the skill's own 5 LUK is worth.
   EXPECT_EQ(total.def(), 17);
-  EXPECT_EQ(total.def(), stats.def);
+  EXPECT_EQ(stats.def, 19);
+}
+
+// --- base DEF from the primary stats ---
+
+// Every character carries DEF before they wear anything: 1.5 a point of STR,
+// 0.4 a point of DEX and of LUK. A level-1 character in rags is not at zero.
+TEST_F(DerivedStatsTest, PrimaryStatsCarryDefWithNothingWorn) {
+  CharacterInstance c = MakeStatCharacter(rng_, 13, 4, 4, 4);
+
+  // 1.5*13 + 0.4*(4+4) = 19.5 + 3.2 = 22.7, floored.
+  EXPECT_EQ(DerivedStatsFor(c, {}).def, 22);
+}
+
+// INT buys no DEF at all, which is what separates it from the other three.
+TEST_F(DerivedStatsTest, IntBuysNoDef) {
+  CharacterInstance c = MakeStatCharacter(rng_, 0, 0, 500, 0);
+
+  EXPECT_EQ(DerivedStatsFor(c, {}).def, 0);
+}
+
+// STR is worth nearly four times what DEX and LUK are, so the same AP spent
+// three ways does not buy the same bulk.
+TEST_F(DerivedStatsTest, StrIsWorthMoreDefThanDexOrLuk) {
+  CharacterInstance strong = MakeStatCharacter(rng_, 100, 0, 0, 0);
+  CharacterInstance quick = MakeStatCharacter(rng_, 0, 100, 0, 0);
+  CharacterInstance lucky = MakeStatCharacter(rng_, 0, 0, 0, 100);
+
+  EXPECT_EQ(DerivedStatsFor(strong, {}).def, 150);
+  EXPECT_EQ(DerivedStatsFor(quick, {}).def, 40);
+  EXPECT_EQ(DerivedStatsFor(lucky, {}).def, 40);
+}
+
+// The base stacks with armour rather than replacing it or being replaced.
+TEST_F(DerivedStatsTest, BaseDefAddsToWornDef) {
+  CharacterInstance c = MakeStatCharacter(rng_, 100, 0, 0, 0);
+  EquipArmor(c, /*max_hp=*/0, /*def=*/30);
+
+  EXPECT_EQ(DerivedStatsFor(c, {}).def, 180);
+}
+
+// A stat granted by gear is worth exactly what an allocated one is, so the
+// formula has to read the total rather than the AP spend.
+TEST_F(DerivedStatsTest, StatsFromGearBuyDefToo) {
+  CharacterInstance allocated = MakeStatCharacter(rng_, 100, 0, 0, 0);
+  CharacterInstance worn = MakeStatCharacter(rng_, 0, 0, 0, 0);
+  EquipStrRing(worn, /*str=*/100);
+
+  EXPECT_EQ(DerivedStatsFor(worn, {}).def, DerivedStatsFor(allocated, {}).def);
+}
+
+// And so is one granted by a passive. Nimble Body's LUK reaches DEF the same
+// way a ring's would, which is what reading skill_stats back buys.
+TEST_F(DerivedStatsTest, StatsFromPassivesBuyDefToo) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 50);
+  Skill nimble = NimbleBody();
+  std::map<std::string, Skill> skills = {{"nimble_body", nimble}};
+  ASSERT_TRUE(c.LearnSkill(nimble, 20));
+
+  // 20 LUK from the skill, at 0.4 DEF a point.
+  EXPECT_EQ(DerivedStatsFor(c, skills).def, 8);
 }
 
 TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {
