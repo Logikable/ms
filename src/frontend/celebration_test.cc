@@ -13,12 +13,12 @@
 namespace ms {
 namespace {
 
-// The banner's text, read off the screen cell by cell. Not Screen::ToString,
+// The card's text, read off the screen cell by cell. Not Screen::ToString,
 // which threads colour escapes through every row.
-std::string BannerText(const Celebration& celebration) {
-  ftxui::Element banner = celebration.Render();
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(banner));
-  ftxui::Render(screen, banner);
+std::string CardText(const Celebration& celebration) {
+  ftxui::Element card = celebration.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
+  ftxui::Render(screen, card);
   std::string text;
   for (int y = 0; y < screen.dimy(); ++y) {
     for (int x = 0; x < screen.dimx(); ++x) {
@@ -42,53 +42,53 @@ class CelebrationTest : public testing::Test {
   Celebration celebration_;
 };
 
-// --- the banner's clock ---
+// --- the card's clock ---
 
-TEST_F(CelebrationTest, StartsWithNoBannerUp) {
-  EXPECT_FALSE(celebration_.banner_visible());
+TEST_F(CelebrationTest, StartsWithNoCardUp) {
+  EXPECT_FALSE(celebration_.card_visible());
   EXPECT_EQ(celebration_.kind(), Celebration::Kind::kNone);
 }
 
-TEST_F(CelebrationTest, TheBannerStaysUpForTheWholeDuration) {
+TEST_F(CelebrationTest, TheCardStaysUpForTheWholeDuration) {
   BeginAway(12, 13);
-  ASSERT_TRUE(celebration_.banner_visible());
+  ASSERT_TRUE(celebration_.card_visible());
   // A tick short of the full four seconds, in the 300ms steps the game
   // actually advances in.
   celebration_.Advance(kCelebrationSeconds - 0.3);
-  EXPECT_TRUE(celebration_.banner_visible());
+  EXPECT_TRUE(celebration_.card_visible());
   celebration_.Advance(0.3);
-  EXPECT_FALSE(celebration_.banner_visible());
+  EXPECT_FALSE(celebration_.card_visible());
 }
 
 // The game advances in ticks, so the moment the clock runs out almost never
-// lands on a tick boundary. Overshooting it must take the banner down, not
+// lands on a tick boundary. Overshooting it must take the card down, not
 // leave it up on a negative countdown.
-TEST_F(CelebrationTest, TheBannerGoesWhenTheClockIsOvershot) {
+TEST_F(CelebrationTest, TheCardGoesWhenTheClockIsOvershot) {
   BeginAway(12, 13);
   celebration_.Advance(kCelebrationSeconds * 10);
-  EXPECT_FALSE(celebration_.banner_visible());
+  EXPECT_FALSE(celebration_.card_visible());
 }
 
 TEST_F(CelebrationTest, AdvancingWithNothingUpIsHarmless) {
   celebration_.Advance(1.0);
-  EXPECT_FALSE(celebration_.banner_visible());
+  EXPECT_FALSE(celebration_.card_visible());
 }
 
-TEST_F(CelebrationTest, DismissTakesTheBannerDownEarly) {
+TEST_F(CelebrationTest, DismissTakesTheCardDownEarly) {
   BeginAway(12, 13);
   celebration_.Dismiss();
-  EXPECT_FALSE(celebration_.banner_visible());
+  EXPECT_FALSE(celebration_.card_visible());
 }
 
 // A second level-up while the first is still up restarts the clock rather than
 // inheriting what was left of it -- otherwise a level landing a moment before
-// the banner expired would flash by.
+// the card expired would flash by.
 TEST_F(CelebrationTest, ASecondLevelUpGetsAFullFourSecondsOfItsOwn) {
   BeginAway(12, 13);
   celebration_.Advance(kCelebrationSeconds - 0.3);
   BeginAway(13, 14);
   celebration_.Advance(kCelebrationSeconds - 0.3);
-  EXPECT_TRUE(celebration_.banner_visible());
+  EXPECT_TRUE(celebration_.card_visible());
 }
 
 // --- which panels are lit ---
@@ -101,7 +101,7 @@ TEST_F(CelebrationTest, AnOrdinaryLevelUpLightsOnlyTheCharacterPanel) {
   EXPECT_FALSE(celebration_.Lights(kCombatPanel));
 }
 
-// The level that hands over the equipped panel points at it: a banner in the
+// The level that hands over the equipped panel points at it: a card in the
 // middle of the screen does not say where the new thing is.
 TEST_F(CelebrationTest, TheLevelThatOpensTheEquippedPanelLightsIt) {
   int level = UnlockLevel(Feature::kEquipped);
@@ -162,16 +162,16 @@ TEST_F(CelebrationTest, LightsIsSafeForAPanelOutsideTheRange) {
 
 // The whole reason the gold is there: the player was not looking, so it waits
 // for them however long that takes.
-TEST_F(CelebrationTest, GoldOnAPanelYouWereNotOnOutlivesTheBanner) {
+TEST_F(CelebrationTest, GoldOnAPanelYouWereNotOnOutlivesTheCard) {
   BeginAway(12, 13);
   celebration_.Advance(kCelebrationSeconds * 10);
-  ASSERT_FALSE(celebration_.banner_visible());
+  ASSERT_FALSE(celebration_.card_visible());
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
 }
 
 // And the other half: a panel already in front of them has been seen by the
-// time the banner names it, so it fades on the clock like the banner does.
-TEST_F(CelebrationTest, GoldOnThePanelYouAreOnFadesWithTheBanner) {
+// time the card names it, so it fades on the clock like the card does.
+TEST_F(CelebrationTest, GoldOnThePanelYouAreOnFadesWithTheCard) {
   celebration_.BeginLevelUp(12, 13, 5, 3, kCharPanel);
   celebration_.Advance(kCelebrationSeconds - 0.3);
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
@@ -222,18 +222,18 @@ TEST_F(CelebrationTest, VisitingNoPanelPutsNothingOut) {
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
 }
 
-// Getting the banner out of the way is not the same as having gone to look at
+// Getting the card out of the way is not the same as having gone to look at
 // what it was pointing at.
-TEST_F(CelebrationTest, DismissingTheBannerLeavesTheGoldAlone) {
+TEST_F(CelebrationTest, DismissingTheCardLeavesTheGoldAlone) {
   BeginAway(12, 13);
   celebration_.Dismiss();
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
 }
 
-// Even the timed half, which the banner's own clock would otherwise have taken
-// with it: four seconds of gold is four seconds whether or not the banner is
+// Even the timed half, which the card's own clock would otherwise have taken
+// with it: four seconds of gold is four seconds whether or not the card is
 // still sitting on top of it.
-TEST_F(CelebrationTest, DismissingTheBannerDoesNotCutATimedGlowShort) {
+TEST_F(CelebrationTest, DismissingTheCardDoesNotCutATimedGlowShort) {
   celebration_.BeginLevelUp(12, 13, 5, 3, kCharPanel);
   celebration_.Dismiss();
   celebration_.Advance(kCelebrationSeconds - 0.3);
@@ -242,21 +242,21 @@ TEST_F(CelebrationTest, DismissingTheBannerDoesNotCutATimedGlowShort) {
   EXPECT_FALSE(celebration_.Lights(kCharPanel));
 }
 
-// --- which banner ---
+// --- which card ---
 
-TEST_F(CelebrationTest, ALevelUpRendersTheLevelUpBanner) {
+TEST_F(CelebrationTest, ALevelUpRendersTheLevelUpCard) {
   celebration_.BeginLevelUp(12, 15, 15, 9, kCombatPanel);
   celebration_.Advance(0.3);
-  std::string text = BannerText(celebration_);
+  std::string text = CardText(celebration_);
   EXPECT_NE(text.find("Level Up"), std::string::npos);
   EXPECT_NE(text.find("12  →  15"), std::string::npos);
   EXPECT_NE(text.find("+15 AP"), std::string::npos);
   EXPECT_NE(text.find("+9 SP"), std::string::npos);
 }
 
-TEST_F(CelebrationTest, AnAdvancementRendersTheAdvancementBanner) {
+TEST_F(CelebrationTest, AnAdvancementRendersTheAdvancementCard) {
   celebration_.BeginAdvancement(JOB_BEGINNER, JOB_MAGICIAN, kCombatPanel);
-  std::string text = BannerText(celebration_);
+  std::string text = CardText(celebration_);
   EXPECT_NE(text.find("Advancement"), std::string::npos);
   EXPECT_NE(text.find("Beginner"), std::string::npos);
   EXPECT_NE(text.find("Magician"), std::string::npos);
@@ -264,13 +264,13 @@ TEST_F(CelebrationTest, AnAdvancementRendersTheAdvancementBanner) {
 }
 
 // An advancement replaces a level-up rather than queueing behind it: taking
-// one is the larger news, and the player did not ask to be shown the old banner
+// one is the larger news, and the player did not ask to be shown the old card
 // again first.
 TEST_F(CelebrationTest, AnAdvancementReplacesALevelUpStillOnScreen) {
   BeginAway(29, 30);
   celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, kCombatPanel);
   EXPECT_EQ(celebration_.kind(), Celebration::Kind::kAdvancement);
-  EXPECT_NE(BannerText(celebration_).find("Advancement"), std::string::npos);
+  EXPECT_NE(CardText(celebration_).find("Advancement"), std::string::npos);
 }
 
 }  // namespace

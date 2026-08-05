@@ -8,17 +8,21 @@
 namespace ms {
 
 ftxui::Element AdvancementPopupPanel(Job from_job, Job to_job) {
-  // No width pinned here either, for the reason the level-up banner gives --
-  // and taking the caller's width rather than naming one is also what keeps
-  // the two the same size. They land in the same place, in the same gold,
-  // seconds apart at level 10, and a pair that differed would read as two
-  // unrelated things rather than one moment.
+  // Five rows inside the border, the same as the level-up card, with the three
+  // that say anything held in the middle of them. No rule across it: the
+  // level-up card has one because it has two things to say, and this has one.
+  //
+  // Same width floor as the level-up card too, and for both the reasons
+  // kCelebrationContentWidth gives.
   return AccentWindow(" Advancement ",
                       ftxui::vbox({
+                          ftxui::text(""),
                           CenteredRow(JobName(from_job)),
                           CenteredRow("↓"),
                           CenteredRow(JobName(to_job)),
-                      }),
+                          ftxui::text(""),
+                      }) | ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN,
+                                       kCelebrationContentWidth),
                       kYellow);
 }
 

@@ -80,7 +80,7 @@ class InventoryPanel {
   }
 
   // Lights the panel's border gold, to send the player's eye to it while a
-  // level-up is being celebrated -- the bag arrives at level 4, and a banner in
+  // level-up is being celebrated -- the bag arrives at level 4, and a card in
   // the middle of the screen does not say where to look. The panel keeps no
   // clock of its own: whoever lit it turns it off again.
   void SetHighlighted(bool highlighted) {

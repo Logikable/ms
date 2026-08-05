@@ -178,7 +178,7 @@ std::string AdvanceTabKey(int stage);
 //
 // `unseen` draws the label gold instead of theme blue: a tab the player has
 // been given but never opened. It is the quiet half of the level-up
-// celebration -- the gold outlives the four seconds of the banner and waits on
+// celebration -- the gold outlives the four seconds of the card and waits on
 // the bar until the tab is opened.
 ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
                        bool unseen = false);
@@ -195,8 +195,19 @@ ftxui::Element ActionButton(const std::string& label, bool focused);
 // conditional repeated in each panel, so lit means the same thing everywhere.
 ftxui::Color PanelAccent(bool highlighted);
 
+// The content width both celebration cards are held to -- what the border
+// wraps, so a card comes out two columns wider than this. One constant rather
+// than one per card: the two land in the same place, in the same gold, seconds
+// apart at level 10, and a pair that differed in size would read as two
+// unrelated things rather than one moment.
+//
+// A minimum rather than padding either side of the content, so a card holds
+// one width as a level count grows a digit instead of breathing in and out
+// between two that land back to back.
+inline constexpr int kCelebrationContentWidth = 21;
+
 // ThemedWindow in a color of your choosing, for the few things that step out
-// of the steel blue to be noticed -- the level-up and advancement banners, and
+// of the steel blue to be noticed -- the level-up and advancement cards, and
 // the panels lit up behind them. Every window in the game is built from this,
 // so a highlighted one differs from an ordinary one in its color and nothing
 // else.
@@ -219,7 +230,7 @@ ftxui::Element CenteredRow(ftxui::Element row);
 ftxui::Element CenteredRow(const std::string& text);
 
 // Returns a horizontal separator rule in `accent`, for a rule inside an
-// AccentWindow: a steel-blue rule across a gold banner reads as a seam.
+// AccentWindow: a steel-blue rule across a gold card reads as a seam.
 ftxui::Element AccentSeparator(ftxui::Color accent);
 
 // The rule to draw inside a main-screen panel: the counterpart of

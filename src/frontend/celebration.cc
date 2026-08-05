@@ -28,7 +28,7 @@ void Celebration::Light(Panel panel, Panel focused) {
 void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
                                Panel focused) {
   kind_ = Kind::kLevelUp;
-  banner_seconds_ = kCelebrationSeconds;
+  card_seconds_ = kCelebrationSeconds;
   glow_seconds_ = kCelebrationSeconds;
   from_level_ = from_level;
   to_level_ = to_level;
@@ -52,7 +52,7 @@ void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
 
 void Celebration::BeginAdvancement(Job from_job, Job to_job, Panel focused) {
   kind_ = Kind::kAdvancement;
-  banner_seconds_ = kCelebrationSeconds;
+  card_seconds_ = kCelebrationSeconds;
   glow_seconds_ = kCelebrationSeconds;
   from_job_ = from_job;
   to_job_ = to_job;
@@ -64,7 +64,7 @@ void Celebration::BeginAdvancement(Job from_job, Job to_job, Panel focused) {
 }
 
 void Celebration::Advance(double elapsed_seconds) {
-  banner_seconds_ = std::max(0.0, banner_seconds_ - elapsed_seconds);
+  card_seconds_ = std::max(0.0, card_seconds_ - elapsed_seconds);
   glow_seconds_ = std::max(0.0, glow_seconds_ - elapsed_seconds);
   if (glow_seconds_ > 0.0) {
     return;
@@ -88,7 +88,7 @@ void Celebration::Visit(Panel focused) {
 }
 
 void Celebration::Dismiss() {
-  banner_seconds_ = 0.0;
+  card_seconds_ = 0.0;
 }
 
 bool Celebration::Lights(Panel panel) const {

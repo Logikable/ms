@@ -192,6 +192,7 @@ cc_test(
     srcs = ["advancement_popup_panel_test.cc"],
     deps = [
         ":advancement_popup_panel",
+        ":level_up_popup_panel",
         "//src/frontend/widgets:panel_util",
         "//src/protos:character_proto_cc",
         "@ftxui//:dom",
