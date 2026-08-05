@@ -100,10 +100,46 @@ TEST(LevelUpPopupPanelTest, IsTitledAndBorderedInGold) {
 // joined, which is exactly what it would be.
 TEST(LevelUpPopupPanelTest, TheRuleInsideItIsGoldToo) {
   ftxui::Screen screen = RenderCard(12, 13, 5, 3);
-  int rule_row = RowIndexOf(screen, "─────");
+  // Found by its left tee rather than by a run of line: the title row is
+  // padded out with the same line character now that the card is wider than
+  // its title, so a run of it no longer picks out the rule alone.
+  int rule_row = RowIndexOf(screen, "├");
   ASSERT_GE(rule_row, 1) << "a rule between the level and what it paid";
   EXPECT_EQ(screen.PixelAt(screen.dimx() / 2, rule_row).foreground_color,
             kYellow);
+}
+
+// --- the room around it ---
+
+// This card is the one thing on screen asking to be noticed from across a
+// room, and space around what it says is most of what makes it carry.
+TEST(LevelUpPopupPanelTest, LeavesABlankRowAtEachEndOfItsContent) {
+  ftxui::Screen screen = RenderCard(12, 13, 5, 3);
+  ASSERT_GE(screen.dimy(), 4);
+  // Cell by cell rather than off a joined row: the borders are multi-byte, so
+  // a byte offset into the row is not the column it looks like.
+  for (int y : {1, screen.dimy() - 2}) {
+    for (int x = 1; x + 1 < screen.dimx(); ++x) {
+      const std::string& cell = screen.PixelAt(x, y).character;
+      EXPECT_TRUE(cell.empty() || cell == " ")
+          << "row " << y << " column " << x << " holds " << cell;
+    }
+  }
+}
+
+// A terminal cell is about twice as tall as it is wide, so a card that reads
+// as square on screen is about twice as wide as it is high.
+TEST(LevelUpPopupPanelTest, IsRoughlySquareOnScreen) {
+  ftxui::Screen screen = RenderCard(12, 13, 5, 3);
+  EXPECT_GE(screen.dimx(), screen.dimy() * 2 - 2);
+  EXPECT_LE(screen.dimx(), screen.dimy() * 2 + 2);
+}
+
+// The width comes from a minimum rather than from padding either side of the
+// numbers, so the card does not breathe in and out as a level count grows a
+// digit. Two of these land back to back on a good run.
+TEST(LevelUpPopupPanelTest, KeepsOneWidthAsTheNumbersGrow) {
+  EXPECT_EQ(RenderCard(4, 5, 5, 3).dimx(), RenderCard(129, 135, 30, 18).dimx());
 }
 
 }  // namespace
