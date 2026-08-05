@@ -31,13 +31,14 @@ class BuyPanel {
   static constexpr int kMaxQuantity = 9999;
 
   // Seeds the panel for buying `item_name` at `unit_price` meso each, against
-  // a balance of `meso`, with `room` copies' worth of space left in the bag.
+  // a balance of `meso`, with `room` copies' worth of space left in the bag
+  // and `owned` copies already to the player's name.
   //
   // Quantity opens at one and is capped by whichever of the three ceilings
   // bites first: the balance, the room, and kMaxQuantity. The field will not
   // go past the cap, so the shop is never offered a number it would refuse.
   void Reset(const std::string& item_name, int unit_price, int64_t meso,
-             int room);
+             int room, int owned);
   ftxui::Element Render() const;
   bool OnEvent(ftxui::Event event);
   int quantity() const {
@@ -55,6 +56,7 @@ class BuyPanel {
 
   std::string item_name_;
   int unit_price_ = 0;
+  int owned_ = 0;
   int64_t meso_ = 0;
   AmountSelector selector_;
 };

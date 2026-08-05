@@ -446,6 +446,29 @@ int CharacterInstance::RoomFor(const EquipPrototype& proto) const {
   return inventory_.room();
 }
 
+int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
+  // Matched on name, which is what identifies an equip everywhere else it
+  // crosses a boundary -- the save writes items by display name, and the shop
+  // looks its own selection back up the same way.
+  int owned = 0;
+  for (const std::pair<const EquipSlot, EquipInstance>& worn : equipped_) {
+    if (worn.second.name() == proto.name()) {
+      ++owned;
+    }
+  }
+  for (int i = 0; i < inventory_.size(); ++i) {
+    // Traces are excluded twice over: equip_instance() answers nullptr for
+    // one, and EquipTrace::name() carries a suffix that would not match
+    // anyway. Kept explicit rather than resting on the suffix, which is a
+    // display decision and could reasonably change.
+    const EquipInstance* item = inventory_.equip_instance(i);
+    if (item != nullptr && item->name() == proto.name()) {
+      ++owned;
+    }
+  }
+  return owned;
+}
+
 int CharacterInstance::RoomFor(const ItemPrototype& proto) const {
   const std::vector<StackableItem>& stacks = StacksFor(proto.category());
   int free_slots = kTabCapacity - static_cast<int>(stacks.size());

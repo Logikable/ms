@@ -1403,6 +1403,47 @@ TEST_F(CapacityTest, RoomForAnEquipCountsTracesAsWell) {
   EXPECT_EQ(c_.RoomFor(sword_), kTabCapacity - 1);
 }
 
+// --- CountOwned ---
+
+TEST_F(CapacityTest, CountOwnedIsZeroForSomethingNeverPickedUp) {
+  EXPECT_EQ(c_.CountOwned(sword_), 0);
+}
+
+TEST_F(CapacityTest, CountOwnedCountsEveryCopyInTheBag) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  EXPECT_EQ(c_.CountOwned(sword_), 2);
+}
+
+// Worn is still owned. A player looking at the shop's second Sword has one
+// already, whether it is in the bag or on their back.
+TEST_F(CapacityTest, CountOwnedCountsWhatIsWorn) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  ASSERT_EQ(c_.inventory().size(), 0) << "moved out of the bag, not copied";
+  EXPECT_EQ(c_.CountOwned(sword_), 1);
+}
+
+TEST_F(CapacityTest, CountOwnedIgnoresOtherItems) {
+  EquipPrototype axe;
+  axe.set_name("Axe");
+  axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  c_.PickUp(std::make_unique<EquipInstance>(axe));
+  EXPECT_EQ(c_.CountOwned(sword_), 0);
+}
+
+// A trace is the record of an item that was destroyed, not a copy of it.
+// Somebody deciding whether to buy another has none of the thing itself.
+//
+// This passes whichever of the two guards is doing the work -- the nullptr
+// filter, or the suffix on EquipTrace's display name -- so it pins the
+// behaviour rather than the implementation. Removing both is what breaks it.
+TEST_F(CapacityTest, CountOwnedDoesNotCountTraces) {
+  c_.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
+  ASSERT_EQ(c_.inventory().size(), 1) << "it is in the bag, taking a slot";
+  EXPECT_EQ(c_.CountOwned(sword_), 0);
+}
+
 // --- RoomFor(ItemPrototype) ---
 
 TEST_F(CapacityTest, RoomForAStackableOnAnEmptyTabIsEveryStack) {

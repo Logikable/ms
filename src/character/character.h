@@ -129,6 +129,13 @@ class CharacterInstance {
   // of 100 already open comes to 2100.
   int RoomFor(const EquipPrototype& proto) const;
   int RoomFor(const ItemPrototype& proto) const;
+
+  // How many copies of `proto` the character has: worn plus carried.
+  //
+  // Traces do not count. A trace is the record of an item that was destroyed,
+  // not a copy of it -- somebody deciding whether to buy another has none of
+  // the thing itself.
+  int CountOwned(const EquipPrototype& proto) const;
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
   // Sells up to `count` copies from the `index`-th stack in `category`,

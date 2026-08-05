@@ -163,6 +163,23 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy
   }
 
+  // The buy dialog's text, read off the screen cell by cell rather than from
+  // Screen::ToString, which threads colour escapes through the rows.
+  std::string RenderBuyDialog() {
+    ftxui::Element dialog = buy_panel_->Render();
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(dialog));
+    ftxui::Render(screen, dialog);
+    std::string text;
+    for (int y = 0; y < screen.dimy(); ++y) {
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const std::string& cell = screen.PixelAt(x, y).character;
+        text += cell.empty() ? " " : cell;
+      }
+      text += "\n";
+    }
+    return text;
+  }
+
   // MapSelectPanel fixes its display order at construction, so the maps must
   // exist before it does -- rebuild both after touching state_->maps.
   void RebuildMapSelect() {
@@ -1132,6 +1149,23 @@ TEST_F(TuiControllerTest, BuyingTakesTheMesoAndFillsTheBag) {
   EXPECT_EQ(state_->character.inventory().size(), 1);
   // Back to the shop rather than the bag: buying one thing usually means two.
   EXPECT_EQ(controller_->screen(), kShop);
+}
+
+// The dialog is seeded from the character when it opens, so buying one and
+// coming back has to say two. A panel test cannot see this: BuyPanel is told a
+// number, and would look right either way if the controller kept passing zero.
+TEST_F(TuiControllerTest, TheBuyDialogCountsWhatTheShopperAlreadyHas) {
+  state_->character.AddMeso(25000);
+  OpenBuyDialog();
+  ASSERT_NE(RenderBuyDialog().find("Owned: 0"), std::string::npos);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);     // bought one
+  ASSERT_EQ(state_->character.inventory().size(), 1);
+
+  controller_->OnEvent(ftxui::Event::Return);     // -> kShopMenu, on Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Buy
+  controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy again
+  EXPECT_NE(RenderBuyDialog().find("Owned: 1"), std::string::npos);
 }
 
 TEST_F(TuiControllerTest, BuyingTheTypedQuantity) {

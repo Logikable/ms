@@ -13,10 +13,11 @@
 namespace ms {
 
 void BuyPanel::Reset(const std::string& item_name, int unit_price, int64_t meso,
-                     int room) {
+                     int room, int owned) {
   item_name_ = item_name;
   unit_price_ = unit_price;
   meso_ = meso;
+  owned_ = owned;
   // Capped so the field cannot be typed up to an amount the shop would only
   // refuse: at what the balance covers, at what the bag has left, and at the
   // four digits the field is meant to take. A player who cannot afford one, or
@@ -50,6 +51,11 @@ ftxui::Element BuyPanel::Render() const {
   ftxui::Element content = ftxui::vbox({
       CenteredRow(item_name_),
       ThemedSeparator(),
+      // Above the price, because it is the question asked first: a player
+      // deciding whether to buy another wants to know how many they have
+      // before working out what it costs. Shown at zero as well -- "none yet"
+      // is an answer, and a row that came and went would be read as a glitch.
+      CenteredRow("Owned: " + std::to_string(owned_)),
       CenteredRow(FormatMeso(unit_price_) + " each"),
       CenteredRow(std::move(total_row)),
       ThemedSeparator(),

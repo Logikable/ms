@@ -59,13 +59,13 @@ constexpr int kRoomy = 100000;
 // odd thing to open a purchase on.
 TEST(BuyPanelTest, OpensAtOne) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   EXPECT_EQ(panel.quantity(), 1);
 }
 
 TEST(BuyPanelTest, HasNoQuickPickShortcuts) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   std::string rendered = Render(panel);
   EXPECT_EQ(rendered.find("[1]"), std::string::npos);
   EXPECT_EQ(rendered.find("[MAX]"), std::string::npos);
@@ -73,7 +73,7 @@ TEST(BuyPanelTest, HasNoQuickPickShortcuts) {
 
 TEST(BuyPanelTest, ShowsUnitPriceAndTotal) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::Backspace);       // clear the 1
   panel.OnEvent(ftxui::Event::Character('3'));  // 3 of them
   std::string rendered = Render(panel);
@@ -84,7 +84,7 @@ TEST(BuyPanelTest, ShowsUnitPriceAndTotal) {
 // The cap is what stops the player building a total the shop would refuse.
 TEST(BuyPanelTest, CannotTypePastWhatTheBalanceCovers) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/25000, /*room=*/kRoomy);
+  panel.Reset("Machete", 10000, /*meso=*/25000, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::Backspace);
   panel.OnEvent(ftxui::Event::Character('9'));
   EXPECT_EQ(panel.quantity(), 2) << "25,000 buys two at 10,000";
@@ -94,7 +94,7 @@ TEST(BuyPanelTest, CannotTypePastWhatTheBalanceCovers) {
 // rather than refusing to open.
 TEST(BuyPanelTest, AnUnaffordableItemOpensAtZeroAndCannotConfirm) {
   BuyPanel panel;
-  panel.Reset("Gladius", 20000, /*meso=*/500, /*room=*/kRoomy);
+  panel.Reset("Gladius", 20000, /*meso=*/500, /*room=*/kRoomy, /*owned=*/0);
   EXPECT_EQ(panel.quantity(), 0);
   EXPECT_TRUE(RowIsColored(panel, "Total", kRed))
       << "the zero total should not read as a live purchase";
@@ -105,7 +105,7 @@ TEST(BuyPanelTest, AnUnaffordableItemOpensAtZeroAndCannotConfirm) {
 
 TEST(BuyPanelTest, ConfirmWorksOnAnAffordableAmount) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(panel.TakeConfirmed());
@@ -114,7 +114,7 @@ TEST(BuyPanelTest, ConfirmWorksOnAnAffordableAmount) {
 
 TEST(BuyPanelTest, EscapeCancels) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::Escape);
   EXPECT_TRUE(panel.TakeCancelled());
 }
@@ -123,7 +123,7 @@ TEST(BuyPanelTest, EscapeCancels) {
 // zero is not a purchase.
 TEST(BuyPanelTest, ZeroIsNotSomethingToConfirm) {
   BuyPanel panel;
-  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy);
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::Backspace);
   ASSERT_EQ(panel.quantity(), 0);
   panel.OnEvent(ftxui::Event::ArrowDown);
@@ -136,7 +136,7 @@ TEST(BuyPanelTest, ZeroIsNotSomethingToConfirm) {
 // Room caps the quantity even when the balance would cover far more.
 TEST(BuyPanelTest, CannotTypePastWhatTheBagHasRoomFor) {
   BuyPanel panel;
-  panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/3);
+  panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/3, /*owned=*/0);
   panel.OnEvent(ftxui::Event::Backspace);
   panel.OnEvent(ftxui::Event::Character('9'));
   EXPECT_EQ(panel.quantity(), 3);
@@ -146,7 +146,7 @@ TEST(BuyPanelTest, CannotTypePastWhatTheBagHasRoomFor) {
 // rather than offering a number that would be refused.
 TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
   BuyPanel panel;
-  panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0);
+  panel.Reset("Machete", 10, /*meso=*/1000000, /*room=*/0, /*owned=*/0);
   EXPECT_EQ(panel.quantity(), 0);
   panel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   panel.OnEvent(ftxui::Event::Return);
@@ -157,7 +157,7 @@ TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
 // at four digits.
 TEST(BuyPanelTest, CannotTypePastTheQuantityLimit) {
   BuyPanel panel;
-  panel.Reset("Machete", 1, /*meso=*/100000000, /*room=*/kRoomy);
+  panel.Reset("Machete", 1, /*meso=*/100000000, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::Backspace);
   for (int i = 0; i < 6; ++i) {
     panel.OnEvent(ftxui::Event::Character('9'));
@@ -171,12 +171,35 @@ TEST(BuyPanelTest, CannotTypePastTheQuantityLimit) {
 // the bag has already set lower.
 TEST(BuyPanelTest, TheQuantityLimitDoesNotOverrideATighterCap) {
   BuyPanel panel;
-  panel.Reset("Machete", 1, /*meso=*/50, /*room=*/kRoomy);
+  panel.Reset("Machete", 1, /*meso=*/50, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::Backspace);
   for (int i = 0; i < 6; ++i) {
     panel.OnEvent(ftxui::Event::Character('9'));
   }
   EXPECT_EQ(panel.quantity(), 50);
+}
+
+// --- what the player already has ---
+
+// The question a shopper asks before the price: buying a second of something
+// is a different decision from buying a first.
+TEST(BuyPanelTest, ShowsHowManyAreAlreadyOwned) {
+  BuyPanel panel;
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/3);
+  std::string rendered = Render(panel);
+  size_t owned = rendered.find("Owned: 3");
+  size_t price = rendered.find("10,000 each");
+  ASSERT_NE(owned, std::string::npos);
+  ASSERT_NE(price, std::string::npos);
+  EXPECT_LT(owned, price) << "above the price, which is the later question";
+}
+
+// Zero is an answer. A row that appeared only sometimes would be read as the
+// dialog having glitched rather than as "none yet".
+TEST(BuyPanelTest, SaysOwnedZeroRatherThanDroppingTheRow) {
+  BuyPanel panel;
+  panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
+  EXPECT_NE(Render(panel).find("Owned: 0"), std::string::npos);
 }
 
 }  // namespace
