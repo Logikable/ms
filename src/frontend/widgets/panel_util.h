@@ -159,10 +159,9 @@ ftxui::Element ResultWindow(const std::string& title,
 // row can line up with the cursor column of the list it stands in for.
 ftxui::Element EmptyState(const std::string& what, int gutter = 1);
 
-// The keys a tab is recorded under once the player has opened it, kept
-// together because they are written into the save: changing one forgets that
-// anybody ever opened that tab, and it would go gold again for every player.
-inline constexpr char kSkillsTabKey[] = "skills";
+// The key a tab is recorded under once the player has opened it. Written into
+// the save: changing it forgets that anybody ever opened that tab, and it
+// would go gold again for every player.
 inline constexpr char kShopTabKey[] = "shop";
 
 // The advancement tab's key for `stage` (1 = 1st job). One key per stage

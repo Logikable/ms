@@ -713,24 +713,30 @@ TEST_F(CharacterPanelTest, LightsItsInnerRulesGoldToo) {
 // is drawn black on white -- correct, and nothing to do with whether the tab
 // is new -- so leaving focus here would test the wrong thing.
 
-TEST_F(CharacterPanelTest, ANewSkillsTabIsWrittenInGold) {
-  CharacterInstance warrior = MakeWarrior(rng_, 0);
-  CharacterPanel panel(warrior, panel_focus_);
-  panel_focus_ = kInventoryPanel;
-  EXPECT_EQ(LabelColor(panel.Render(), "Skills"), kYellow);
-  EXPECT_EQ(LabelColor(panel.Render(), "Stats"), kTheme)
-      << "Stats has been there since the first frame";
-}
-
-TEST_F(CharacterPanelTest, OpeningTheSkillsTabStopsItAnnouncingItself) {
-  CharacterInstance warrior = MakeWarrior(rng_, 0);
-  CharacterPanel panel(warrior, panel_focus_);
+// The Skills tab is new, and still says nothing. Advancing swaps it in at the
+// exact index the Advance tab vacates, so the player is left standing on it --
+// gold on a tab they are already reading announces nothing, and having never
+// been arrowed onto, nothing would clear it either.
+TEST_F(CharacterPanelTest, AdvancingLeavesThePlayerOnTheSkillsTabNotOnGold) {
+  CharacterInstance c = MakeCharacter(/*level=*/10);
+  ASSERT_TRUE(c.CanAdvanceJob());
+  CharacterPanel panel(c, panel_focus_);
   ftxui::Component component = panel.MakeComponent([](StatField) {});
   panel_focus_ = kCharPanel;
-  component->OnEvent(ftxui::Event::ArrowRight);
+  component->OnEvent(ftxui::Event::ArrowRight);  // onto Advance
+  ASSERT_NE(RenderComponent(component).find("Advance"), std::string::npos);
 
+  c.AdvanceJob(JOB_SWORDMAN);
+  ASSERT_EQ(RenderComponent(component).find("Advance"), std::string::npos)
+      << "the tab is spent, so Skills has taken its place on the bar";
+
+  // Read unfocused from here: a focused active chip is drawn black on white
+  // rather than inverted, and gold on white rather than gold.
   panel_focus_ = kInventoryPanel;
-  EXPECT_EQ(LabelColor(panel.Render(), "Skills"), kTheme);
+  EXPECT_TRUE(IsInverted(component, "Skills"))
+      << "the cursor did not move, so Skills is the tab now under it";
+  EXPECT_EQ(LabelColor(panel.Render(), "Skills"), kTheme)
+      << "so there is nothing for gold to tell them";
 }
 
 // The Advance tab is not a Feature and not permanent -- it appears at the

@@ -151,16 +151,14 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
 }
 
 std::string CharacterPanel::TabKey(Tab tab) const {
-  if (tab == kTabSkills) {
-    return kSkillsTabKey;
-  }
   if (tab == kTabAdvance) {
     // The stage being advanced INTO, so the tab that comes back at level 30 is
     // news again rather than riding on the one taken at 10.
     return AdvanceTabKey(character_.proto().job_stage() + 1);
   }
-  // Stats has been there since the first frame of the game; there is nothing
-  // to announce, and no key wasted in the save on saying so.
+  // Stats has been there since the first frame of the game, and Skills arrives
+  // with the player already standing on it -- see RenderTabBar. Neither has
+  // anything to announce, and neither wastes a key in the save on saying so.
   return "";
 }
 
@@ -176,9 +174,13 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
   std::vector<Tab> tabs = VisibleTabs();
   std::vector<ftxui::Element> chips;
   for (int i = 0; i < static_cast<int>(tabs.size()); ++i) {
-    // A tab with no key has always been there and never announces itself.
-    // Asking TabSeen("") instead would answer no and leave Stats permanently
-    // gold.
+    // A tab with no key never announces itself. Asking TabSeen("") instead
+    // would answer no and leave those tabs permanently gold.
+    //
+    // Skills is one of them, and not for want of being new. It takes the exact
+    // index the Advance tab vacates, so an advancement leaves the player
+    // standing on it -- gold on a tab they are already reading says nothing,
+    // and would sit there until they arrowed away and back to clear it.
     std::string key = TabKey(tabs[i]);
     bool unseen = !key.empty() && !character_.TabSeen(key);
     chips.push_back(TabChip(kTabLabels[tabs[i]], tabs[i] == ActiveTab(),
