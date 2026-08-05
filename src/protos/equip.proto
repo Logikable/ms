@@ -71,11 +71,13 @@ message EquipStats {
   int32 max_hp = 7;
   int32 max_mp = 8;
   int32 def = 9;
-  // Percentage bonus to damage dealt to boss monsters (e.g. 30 = 30%).
-  // TODO: apply in damage calculations once boss damage is supported.
+  // Percentage bonus to damage dealt to boss monsters (e.g. 30 = 30%). Read by
+  // OffenseStatsFor and applied by ExpectedAttackDamage, against a mob whose
+  // `boss` flag is set. No mob in the game sets it yet, so the field is live
+  // but nothing it applies to has been written.
   int32 boss_damage = 10;
-  // Percentage of enemy defense ignored (e.g. 10 = 10%).
-  // TODO: apply in damage calculations once IED is supported.
+  // Percentage of enemy defense ignored (e.g. 10 = 10%). Read by
+  // OffenseStatsFor and applied by ExpectedAttackDamage against the mob's PDR.
   int32 ignore_enemy_defense = 11;
 }
 

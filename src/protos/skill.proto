@@ -63,6 +63,10 @@ message Skill {
   // the job, not the sword. It exists for the thief, whose two first-job
   // attacks are otherwise interchangeable: Double Stab needs a dagger and
   // Lucky Seven a claw, so which one is learned is a real choice.
+  //
+  // Nothing reads it yet: the data says which weapon each attack wants, but
+  // whoever picks the swing does not consult it, so a claw still swings Double
+  // Stab. Set on the two thief skills in wait for that.
   repeated EquipType required_equip_type = 9;
   // Flavour text for the inspect screen, taken from the GMS skill and pruned to
   // the effects this game actually has. A skill whose wiki entry boasts of
