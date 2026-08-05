@@ -613,6 +613,100 @@ TEST(StepCursorTest, TakesMoreThanOneStopAtATime) {
   EXPECT_EQ(StepCursor(0, -5, 4), 3);
 }
 
+// --- WrappingList ---
+
+namespace {
+
+// A three-row ftxui::Menu wrapped for cycling, sharing `selected` and
+// `entries` with the caller so a test can move one and read the other.
+ftxui::Component WrappedMenu(std::vector<std::string>& entries, int& selected) {
+  return WrappingList(ftxui::Menu(&entries, &selected), selected, [&entries]() {
+    return static_cast<int>(entries.size());
+  });
+}
+
+}  // namespace
+
+TEST(WrappingListTest, LeavesTheStepsThroughTheMiddleToTheMenu) {
+  std::vector<std::string> entries = {"a", "b", "c"};
+  int selected = 0;
+  ftxui::Component list = WrappedMenu(entries, selected);
+  EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowDown));
+  EXPECT_EQ(selected, 1);
+  EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowUp));
+  EXPECT_EQ(selected, 0);
+}
+
+TEST(WrappingListTest, UpOffTheFirstRowLandsOnTheLast) {
+  std::vector<std::string> entries = {"a", "b", "c"};
+  int selected = 0;
+  ftxui::Component list = WrappedMenu(entries, selected);
+  EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowUp));
+  EXPECT_EQ(selected, 2);
+}
+
+TEST(WrappingListTest, DownOffTheLastRowLandsOnTheFirst) {
+  std::vector<std::string> entries = {"a", "b", "c"};
+  int selected = 2;
+  ftxui::Component list = WrappedMenu(entries, selected);
+  EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowDown));
+  EXPECT_EQ(selected, 0);
+}
+
+// The count is asked at the keypress, not taken once. These lists lose rows
+// under the cursor -- an item sold, a filter narrowed -- and a wrap that
+// remembered the old length would send the cursor off the end of the new one.
+TEST(WrappingListTest, AsksHowLongTheListIsEveryTime) {
+  std::vector<std::string> entries = {"a", "b", "c", "d", "e"};
+  int selected = 0;
+  ftxui::Component list = WrappedMenu(entries, selected);
+  entries = {"a", "b"};
+  EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowUp));
+  EXPECT_EQ(selected, 1) << "the last row of the list as it is now";
+}
+
+// Nothing to be at either end of, so the key is swallowed. Handing it down
+// instead is not harmless: an ftxui::Menu with no entries still moves its
+// index, and the cursor ends up at row -1 of a list that has no rows.
+TEST(WrappingListTest, SwallowsTheKeyOnAnEmptyList) {
+  std::vector<std::string> entries;
+  int selected = 0;
+  ftxui::Component list = WrappedMenu(entries, selected);
+  EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowUp));
+  EXPECT_EQ(selected, 0);
+  EXPECT_TRUE(list->OnEvent(ftxui::Event::ArrowDown));
+  EXPECT_EQ(selected, 0);
+}
+
+// A list of one is a ring of one: the cursor is at both ends at once, and
+// either key leaves it where it is rather than appearing to move.
+TEST(WrappingListTest, ASingleRowGoesNowhere) {
+  std::vector<std::string> entries = {"only"};
+  int selected = 0;
+  ftxui::Component list = WrappedMenu(entries, selected);
+  list->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(selected, 0);
+  list->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(selected, 0);
+}
+
+// Everything that is not an edge step passes through untouched, so wrapping a
+// list does not cost it any other key.
+TEST(WrappingListTest, PassesEveryOtherKeyThrough) {
+  std::vector<std::string> entries = {"a", "b", "c"};
+  int selected = 0;
+  bool seen = false;
+  ftxui::Component list = WrappingList(
+      ftxui::CatchEvent(ftxui::Menu(&entries, &selected),
+                        [&seen](ftxui::Event) {
+                          seen = true;
+                          return false;
+                        }),
+      selected, [&entries]() { return static_cast<int>(entries.size()); });
+  list->OnEvent(ftxui::Event::Character('x'));
+  EXPECT_TRUE(seen);
+}
+
 // --- AlwaysFocusable ---
 
 namespace {

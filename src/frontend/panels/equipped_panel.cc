@@ -135,7 +135,11 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
     }
     return row;
   };
-  ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
+  // Wrapped so the list is a ring: there is no tab bar over this panel, so Up
+  // off the top row has nowhere to go but the bottom one.
+  ftxui::Component menu =
+      WrappingList(ftxui::Menu(&entries_, &selected_, opt), selected_,
+                   [this]() { return static_cast<int>(entries_.size()); });
 
   // Focusable whether or not anything is worn. Container::Tab asks its active
   // panel whether it is focusable and drops every key when the answer is no,

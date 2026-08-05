@@ -263,6 +263,66 @@ TEST_F(EquippedPanelTest, SelectedSlotReturnsUnspecifiedWhenEmpty) {
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
 }
 
+// --- the list is a ring ---
+
+namespace {
+
+// Throwing stars, so a test can wear two things at once and have a list worth
+// walking. The other slot the game has today; equipped() is keyed by slot, so
+// this lands below the weapon.
+EquipPrototype MakeStars() {
+  EquipPrototype stars;
+  stars.set_name("Subi Throwing-Stars");
+  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  stars.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  return stars;
+}
+
+}  // namespace
+
+class EquippedPanelRingTest : public EquippedPanelTest {
+ protected:
+  void SetUp() override {
+    EquippedPanelTest::SetUp();
+    c_.PickUp(std::make_unique<EquipInstance>(sword_));
+    c_.Equip(0);
+    c_.PickUp(std::make_unique<EquipInstance>(MakeStars()));
+    c_.Equip(0);
+    panel_ = std::make_unique<EquippedPanel>(c_, panel_focus_);
+    comp_ = panel_->MakeComponent([]() {});
+    // Fills the entry list the menu walks and the wrap measures itself
+    // against; nothing has drawn this panel yet.
+    RenderComponent(comp_);
+  }
+
+  std::unique_ptr<EquippedPanel> panel_;
+  ftxui::Component comp_;
+};
+
+// Nothing stands above this list -- it has no tab bar over it -- so Up off the
+// top row has nowhere to go but the bottom one.
+TEST_F(EquippedPanelRingTest, ArrowUpFromTheTopRowWrapsToTheBottom) {
+  ASSERT_EQ(c_.equipped().size(), 2u);
+  ASSERT_EQ(panel_->selected(), 0);
+  comp_->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(panel_->selected(), 1);
+}
+
+TEST_F(EquippedPanelRingTest, ArrowDownFromTheBottomRowWrapsToTheTop) {
+  comp_->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(panel_->selected(), 1) << "the bottom row";
+  comp_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel_->selected(), 0);
+}
+
+// The steps that are not at an edge still belong to the menu underneath.
+TEST_F(EquippedPanelRingTest, WalksTheListNormallyInTheMiddle) {
+  comp_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel_->selected(), 1);
+  comp_->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(panel_->selected(), 0);
+}
+
 // --- an empty list ---
 
 // Container::Tab asks its active panel whether it is focusable and drops every
@@ -274,6 +334,22 @@ TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   ASSERT_TRUE(c_.equipped().empty());
   EXPECT_TRUE(comp->Focusable());
+}
+
+// Arrows on an empty list leave the cursor alone. The ftxui::Menu underneath
+// would move its index anyway, putting selected() at -1, which selected_slot()
+// would then read past the front of an empty slot list.
+TEST_F(EquippedPanelTest, ArrowsDoNotMoveTheCursorWithNothingEquipped) {
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderComponent(comp);
+  ASSERT_TRUE(c_.equipped().empty());
+
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(panel.selected(), 0);
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.selected(), 0);
+  EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
 }
 
 // The menu opens on whatever selected_slot() names, and on an empty list that

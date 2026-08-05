@@ -93,7 +93,11 @@ void ScrollPanel::ResetComponent() {
   opt.entries_option.transform = [](ftxui::EntryState state) -> ftxui::Element {
     return ftxui::text((state.active ? "> " : "  ") + state.label);
   };
-  ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
+  // Wrapped so the list is a ring: this screen is the list and nothing else,
+  // so Up off the top row has nowhere to go but the bottom one.
+  ftxui::Component menu =
+      WrappingList(ftxui::Menu(&entries_, &selected_, opt), selected_,
+                   [this]() { return static_cast<int>(entries_.size()); });
   // entries_ is rebuilt from ordered_ on every render so the display stays
   // in sync with SetFilter calls.
   component_ = ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {

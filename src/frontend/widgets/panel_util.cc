@@ -449,4 +449,39 @@ ftxui::Component AlwaysFocusable(ftxui::Component child) {
   return ftxui::Make<AlwaysFocusableComponent>(std::move(child));
 }
 
+ftxui::Component WrappingList(ftxui::Component list, int& selected,
+                              std::function<int()> count) {
+  // Held as a pointer rather than a captured reference: the lambda outlives
+  // this call by the life of the component, and a reference captured into it
+  // would be one more thing to reason about than an address that cannot itself
+  // be rebound.
+  int* cursor = &selected;
+  return ftxui::CatchEvent(
+      std::move(list), [cursor, count = std::move(count)](ftxui::Event event) {
+        bool up = event == ftxui::Event::ArrowUp;
+        bool down = event == ftxui::Event::ArrowDown;
+        if (!up && !down) {
+          return false;
+        }
+        int stops = count();
+        if (stops <= 0) {
+          // Swallowed rather than passed down. An ftxui::Menu with no entries
+          // still moves its index on an arrow, which leaves the cursor
+          // pointing at row -1 of a list that has no rows -- and the panels
+          // above read that index to decide what the player is looking at.
+          return true;
+        }
+        if (up && *cursor <= 0) {
+          *cursor = StepCursor(0, -1, stops);
+          return true;
+        }
+        if (down && *cursor >= stops - 1) {
+          *cursor = StepCursor(stops - 1, 1, stops);
+          return true;
+        }
+        // A step through the middle, which is the menu's own business.
+        return false;
+      });
+}
+
 }  // namespace ms

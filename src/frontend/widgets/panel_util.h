@@ -2,6 +2,7 @@
 #define MS_SRC_FRONTEND_WIDGETS_PANEL_UTIL_H_
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,25 @@ inline bool IsForward(const ftxui::Event& e) {
 // drawn with the Renderer(bool) overload gets this for free; one that wraps a
 // real child in order to forward events to it does not.
 ftxui::Component AlwaysFocusable(ftxui::Component child);
+
+// Wraps a list component so its cursor comes out the other end instead of
+// stopping: Up on the first row lands on the last, Down on the last lands on
+// the first. `selected` is the index the list moves -- the same one handed to
+// ftxui::Menu -- and must outlive the returned component.
+//
+// Only the two edges are taken. ftxui::Menu already walks its own list and
+// only ever gets one thing wrong, which is what it does at the ends, so the
+// steps through the middle are left to it rather than reimplemented around it.
+//
+// `count` is asked at each keypress rather than taken once, because these
+// lists gain and lose rows under the cursor -- an item sold, a filter changed.
+// A count of zero declines the key: there is no row to be at either end of.
+//
+// For a list with a tab bar above it, this is the wrong tool: the bar is a
+// stop in the same ring, so Up off the top row belongs to it rather than to
+// the last row. Those panels count the bar as stop 0 and call StepCursor.
+ftxui::Component WrappingList(ftxui::Component list, int& selected,
+                              std::function<int()> count);
 
 // A single displayable stat: its label and how to read it from an EquipStats.
 struct DisplayStat {

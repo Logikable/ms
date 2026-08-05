@@ -74,17 +74,18 @@ TEST_F(ScrollPanelTest, ArrowDownMovesSelection) {
   EXPECT_EQ(panel_.selected(), 1);
 }
 
-TEST_F(ScrollPanelTest, ArrowUpClampsAtFirst) {
+// The list is the whole screen, with no tab bar over it, so the ends meet.
+TEST_F(ScrollPanelTest, ArrowUpFromTheFirstScrollWrapsToTheLast) {
   Render(panel_);
   panel_.OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_EQ(panel_.selected(), 0);
+  EXPECT_EQ(panel_.selected(), 1);
 }
 
-TEST_F(ScrollPanelTest, ArrowDownClampsAtLast) {
+TEST_F(ScrollPanelTest, ArrowDownFromTheLastScrollWrapsToTheFirst) {
   Render(panel_);
   panel_.OnEvent(ftxui::Event::ArrowDown);
   panel_.OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel_.selected(), 1);
+  EXPECT_EQ(panel_.selected(), 0);
 }
 
 TEST_F(ScrollPanelTest, SelectedScrollAfterArrowDownReturnsSecondScroll) {
