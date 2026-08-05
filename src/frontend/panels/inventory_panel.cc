@@ -194,6 +194,37 @@ bool InventoryPanel::ActiveTabEmpty() const {
   return character_.stackables(category).empty();
 }
 
+int InventoryPanel::ListCount() const {
+  if (active_tab_ == kEquipTab) {
+    return character_.inventory().size();
+  }
+  if (active_tab_ == kShopTab) {
+    return 0;
+  }
+  return static_cast<int>(character_.stackables(active_category()).size());
+}
+
+int InventoryPanel::CursorStop() const {
+  if (zone_ == kZoneTabs) {
+    return 0;
+  }
+  return (active_tab_ == kEquipTab ? selected_ : selected_stack_) + 1;
+}
+
+void InventoryPanel::MoveCursor(int delta) {
+  int next = StepCursor(CursorStop(), delta, 1 + ListCount());
+  if (next == 0) {
+    zone_ = kZoneTabs;
+    return;
+  }
+  zone_ = kZoneList;
+  if (active_tab_ == kEquipTab) {
+    selected_ = next - 1;
+  } else {
+    selected_stack_ = next - 1;
+  }
+}
+
 void InventoryPanel::OpenMenu() {
   if (active_tab_ != kEquipTab) {
     sell_menu_.Reset();
@@ -469,8 +500,14 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
   return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
+    bool up = event == ftxui::Event::ArrowUp;
+    bool down = event == ftxui::Event::ArrowDown;
     if (zone_ == kZoneTabs) {
-      // Tab bar: Left/Right switch tabs, Down descends into the item list.
+      // Tab bar: Left/Right switch tabs, Up and Down step into the list -- Down
+      // onto its first row, Up onto its last, the bar being a stop in the same
+      // ring as the rows. A tab with nothing under it is a ring of one, so
+      // both keys leave the cursor where it is rather than somewhere it cannot
+      // be seen.
       if (event == ftxui::Event::ArrowLeft) {
         StepTab(-1);
         return true;
@@ -479,12 +516,8 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
         StepTab(+1);
         return true;
       }
-      if (event == ftxui::Event::ArrowDown) {
-        // Descend only into a non-empty tab; an empty list is inert and would
-        // leave the cursor nowhere visible.
-        if (!ActiveTabEmpty()) {
-          zone_ = kZoneList;
-        }
+      if (up || down) {
+        MoveCursor(up ? -1 : 1);
         return true;
       }
       if (IsForward(event) && active_tab_ == kShopTab) {
@@ -493,44 +526,32 @@ ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
         on_enter();
         return true;
       }
-      // Swallow the rest (notably Up) so nothing leaks to the hidden Equip menu
-      // and silently moves its selection while the tab bar holds focus.
+      // Swallow the rest so nothing leaks to the hidden Equip menu and
+      // silently moves its selection while the tab bar holds focus.
       return true;
     }
-    // List zone: Up off the top row returns to the tab bar.
     if (active_tab_ != kEquipTab) {
-      // Use/Etc: walk the stack cursor with Up/Down. Swallow list navigation
-      // and activation regardless so the hidden Equip menu stays put.
-      ItemCategory category =
-          active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
-      int count = static_cast<int>(character_.stackables(category).size());
-      if (event == ftxui::Event::ArrowUp) {
-        if (selected_stack_ == 0) {
-          zone_ = kZoneTabs;
-        } else {
-          --selected_stack_;
-        }
-        return true;
-      }
-      if (event == ftxui::Event::ArrowDown) {
-        if (selected_stack_ + 1 < count) {
-          ++selected_stack_;
-        }
+      // Use/Etc: the whole ring is ours to walk, there being no ftxui::Menu
+      // under these tabs. Swallow list navigation and activation regardless so
+      // the hidden Equip menu stays put.
+      if (up || down) {
+        MoveCursor(up ? -1 : 1);
         return true;
       }
       if (IsForward(event)) {
         // Open the {Sell, Close} menu on a non-empty stack.
-        if (count > 0) {
+        if (ListCount() > 0) {
           on_enter();
         }
         return true;
       }
       return false;
     }
-    // Equip tab: intercept Up off the top row to return to the tab bar;
-    // otherwise let the ftxui Menu move its own selection.
-    if (event == ftxui::Event::ArrowUp && selected_ == 0) {
-      zone_ = kZoneTabs;
+    // Equip tab: take the two ends of the list and leave everything between
+    // them to the ftxui::Menu, which scrolls the view to follow its own cursor
+    // and would stop doing so if its keys were taken away.
+    if ((up && selected_ == 0) || (down && selected_ >= ListCount() - 1)) {
+      MoveCursor(up ? -1 : 1);
       return true;
     }
     if (event == ftxui::Event::Character(' ')) {

@@ -103,6 +103,16 @@ class InventoryPanel {
   ftxui::Element RenderEquipList(ftxui::Component menu);
   // Whether the active tab's item list has no rows to descend into.
   bool ActiveTabEmpty() const;
+  // Rows in the list below the tab bar, for whichever tab is active. The bar
+  // is not one of them, and the shop tab has no list of its own at all.
+  int ListCount() const;
+  // Where the cursor stands in the panel's one vertical ring: the tab bar is
+  // stop 0 and the list rows are the stops after it.
+  int CursorStop() const;
+  // Moves the cursor `delta` stops around that ring, the tab bar included. So
+  // Down off the last row returns to the bar, and Up off the bar goes to the
+  // last row -- one rule rather than a pair of edge cases.
+  void MoveCursor(int delta);
   // The tabs this character has unlocked, left to right. Locked tabs are
   // absent rather than greyed, so the bar simply ends early.
   std::vector<int> VisibleTabs() const;

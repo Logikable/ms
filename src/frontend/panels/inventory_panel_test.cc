@@ -136,6 +136,74 @@ TEST_F(InventoryPanelTest, TheCursorLeavesAListThatEmptiedUnderIt) {
       << "Right switched tabs, so the cursor is back on the tab bar";
 }
 
+// --- the tab bar and the list are one ring ---
+
+// The bar is a stop in the same ring as the rows, so Up off it arrives at the
+// bottom of the list rather than doing nothing.
+TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderComponent(comp);
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(panel.selected(), 1) << "the second and last row";
+}
+
+TEST_F(InventoryPanelTest, ArrowDownFromTheLastItemReturnsToTheTabBar) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the one item
+  ASSERT_NE(RenderComponent(comp).find("> Sword"), std::string::npos);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
+  // The cursor is drawn only in the list zone, so its absence is where the
+  // cursor went. Left still switching tabs is the other half of the answer.
+  EXPECT_EQ(RenderComponent(comp).find("> Sword"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(panel.on_stackable_tab());
+}
+
+TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  c_.AddStackable(MakeStackable("Blue Potion", ITEM_CATEGORY_USE), 3);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_NE(RenderComponent(comp).find("> Blue Potion"), std::string::npos);
+}
+
+TEST_F(InventoryPanelTest, ArrowDownFromTheLastStackReturnsToTheTabBar) {
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the one stack
+  ASSERT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+}
+
+// A tab with nothing under it is a ring of one stop, so neither key moves the
+// cursor off the bar and onto a row that is not drawn.
+TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarStaysThereOnAnEmptyTab) {
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  ASSERT_EQ(c_.inventory().size(), 0);
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  // Still on the bar, so Right still switches tabs rather than moving a row.
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(panel.on_stackable_tab());
+}
+
 TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
   InventoryPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("(empty)"),
