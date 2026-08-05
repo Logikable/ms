@@ -189,6 +189,22 @@ ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
 // always-selected [Continue] on the result screens.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
+// Where a cursor lands after stepping `delta` places in a ring of `stops`
+// places, coming out the other end rather than stopping at either. Every list
+// in the game walks with this, so wrapping is not something each panel decides
+// for itself -- if you are writing `std::max(0, sel - 1)` or `std::min(count -
+// 1, sel + 1)`, write this instead.
+//
+// A panel whose list sits under a tab bar counts the bar as stop 0 and its
+// rows as stops 1 and up. Then "Up off the top row goes to the tab bar" and
+// "Up off the tab bar goes to the last row" are the same rule rather than two,
+// and neither has to be written out.
+//
+// `stops` of zero or less answers 0: there is nowhere to stand, and the caller
+// has nothing to draw a cursor on either way. `current` outside the ring is
+// folded back into it rather than rejected.
+int StepCursor(int current, int delta, int stops);
+
 // The border color a main-screen panel draws itself in: gold while it is lit
 // to be noticed -- a level-up handing over a panel the player has not seen
 // before -- and the theme blue every other moment. One answer rather than a

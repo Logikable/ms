@@ -386,6 +386,17 @@ ftxui::Element ActionButton(const std::string& label, bool focused) {
   return button;
 }
 
+int StepCursor(int current, int delta, int stops) {
+  if (stops <= 0) {
+    return 0;
+  }
+  // Modulo twice, because C++ gives a negative remainder a negative sign: the
+  // first % may land below zero, and adding stops before the second brings it
+  // back into the ring. Written for any delta rather than just the one step
+  // every caller passes, so a caller that ever wants two is not a special case.
+  return ((current + delta) % stops + stops) % stops;
+}
+
 ftxui::Color PanelAccent(bool highlighted) {
   return highlighted ? kYellow : kTheme;
 }

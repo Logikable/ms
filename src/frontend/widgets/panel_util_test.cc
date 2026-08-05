@@ -557,6 +557,62 @@ TEST(FloatingTest, GivesUpItsTopRatherThanItsBottomWhenItCannotFit) {
   EXPECT_EQ(ScreenCells(screen, 7, 0, 3), "BOT");
 }
 
+// --- StepCursor ---
+
+TEST(StepCursorTest, WalksTheRingOneStopAtATime) {
+  EXPECT_EQ(StepCursor(0, 1, 4), 1);
+  EXPECT_EQ(StepCursor(2, 1, 4), 3);
+  EXPECT_EQ(StepCursor(3, -1, 4), 2);
+}
+
+// The whole point of it. Down off the last stop lands on the first, and Up off
+// the first lands on the last.
+TEST(StepCursorTest, ComesOutTheOtherEndAtEitherEdge) {
+  EXPECT_EQ(StepCursor(3, 1, 4), 0);
+  EXPECT_EQ(StepCursor(0, -1, 4), 3);
+}
+
+// A ring with one place to stand is every step a no-op -- a panel whose list is
+// empty, where the tab bar is the only stop there is.
+TEST(StepCursorTest, AOneStopRingGoesNowhere) {
+  EXPECT_EQ(StepCursor(0, 1, 1), 0);
+  EXPECT_EQ(StepCursor(0, -1, 1), 0);
+}
+
+// Nowhere to stand at all: answered rather than left to the caller, because
+// every list here can be empty and none of them wants its own check.
+TEST(StepCursorTest, AnEmptyRingAnswersZero) {
+  EXPECT_EQ(StepCursor(0, -1, 0), 0);
+  EXPECT_EQ(StepCursor(3, 1, -1), 0);
+}
+
+// C++ hands a negative dividend a negative remainder, so a single modulo would
+// answer -1 here and put the cursor off the list.
+TEST(StepCursorTest, NeverAnswersBelowZero) {
+  for (int stops = 1; stops <= 8; ++stops) {
+    for (int current = 0; current < stops; ++current) {
+      EXPECT_GE(StepCursor(current, -1, stops), 0)
+          << "stops=" << stops << " current=" << current;
+      EXPECT_LT(StepCursor(current, -1, stops), stops)
+          << "stops=" << stops << " current=" << current;
+    }
+  }
+}
+
+// A cursor left pointing past the end of a list that shrank under it -- a tab
+// switched, an item sold -- is folded back in rather than walked further off.
+TEST(StepCursorTest, FoldsACurrentFromOutsideTheRingBackIn) {
+  EXPECT_EQ(StepCursor(9, 1, 4), 2);
+  EXPECT_EQ(StepCursor(-3, 0, 4), 1);
+}
+
+// Any delta, not just the one step every caller passes today.
+TEST(StepCursorTest, TakesMoreThanOneStopAtATime) {
+  EXPECT_EQ(StepCursor(0, 3, 4), 3);
+  EXPECT_EQ(StepCursor(0, 5, 4), 1);
+  EXPECT_EQ(StepCursor(0, -5, 4), 3);
+}
+
 // --- AlwaysFocusable ---
 
 namespace {
