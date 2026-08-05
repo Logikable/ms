@@ -27,7 +27,9 @@ class MapSelectPanel {
 
   // Puts the cursor back on the map being farmed. Call when the screen opens.
   void Reset();
-  // Moves the cursor `delta` rows, clamped to the ends of the band.
+  // Moves the cursor `delta` rows. The band is a ring: Up off the first map
+  // lands on the last. It does not roll over into the neighbouring band --
+  // bands are Left and Right, and one key should move one thing.
   void MoveCursor(int delta);
   // Moves `delta` level bands, clamped to the ends. The cursor goes to the top
   // of the band it lands on.

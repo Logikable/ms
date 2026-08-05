@@ -5,7 +5,8 @@
  *
  * Only the Equips tab exists so far. The tab row is here rather than waiting
  * for the second tab because the stock is already split by what it goes in --
- * a Use tab is a different list, not more rows of this one.
+ * a Use tab is a different list, not more rows of this one. The bar is already
+ * a stop the cursor can stand on, so a second tab is a tab and nothing else.
  *
  * The panel is a view: it moves its own cursor but never spends anything. The
  * controller reads selected_item() when the player presses Enter.
@@ -45,7 +46,9 @@ class ShopPanel {
   ShopPanel(const CharacterInstance& character,
             const std::map<std::string, EquipPrototype>& equips);
 
-  // Puts the cursor back on the first item. Call when the screen opens.
+  // Puts the cursor back on the first item. Call when the screen opens. The
+  // list rather than the tab bar: the shop is a screen the player came to in
+  // order to buy something, and the bar is one key away.
   void Reset();
   ftxui::Element Render() const;
   // Handles Up/Down along the list. Enter and Escape are left to the caller,
@@ -55,8 +58,8 @@ class ShopPanel {
   // The prototype under the cursor, or nullptr when the shop is empty.
   const EquipPrototype* selected_item() const;
 
-  // Opens the context menu over the selected item. Does nothing when the shop
-  // has nothing to open it on.
+  // Opens the context menu over the selected item. Does nothing while the tab
+  // bar holds the cursor, or when the shop has nothing to open it on.
   void OpenMenu();
   bool menu_open() const;
   // Drives the context menu and says what should be on screen afterwards:
@@ -66,11 +69,23 @@ class ShopPanel {
   Screen OnMenuEvent(ftxui::Event event);
 
  private:
+  // The two vertical focus zones, as in the bag: the tab row on top, the stock
+  // list below. They are one ring -- Up off the first item reaches the bar, and
+  // Up off the bar reaches the last item.
+  enum Zone { kZoneTabs, kZoneList };
+
+  // Where the cursor stands in that ring: the tab bar is stop 0 and the stock
+  // rows are the stops after it.
+  int CursorStop() const;
+  // Moves the cursor `delta` stops around the ring, tab bar included.
+  void MoveCursor(int delta);
+
   const CharacterInstance& character_;
   const std::map<std::string, EquipPrototype>& equips_;
   // Catalog keys of the stock, in display order. Fixed at construction: what
   // the shop sells does not change as the player buys.
   std::vector<std::string> stock_;
+  Zone zone_ = kZoneList;
   int selected_ = 0;
   ItemMenu menu_;
   bool menu_open_ = false;

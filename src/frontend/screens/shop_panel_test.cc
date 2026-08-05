@@ -223,17 +223,62 @@ TEST_F(ShopPanelTest, OpensOnTheFirstItem) {
   EXPECT_NE(Render(panel).find("> Long Sword"), std::string::npos);
 }
 
-TEST_F(ShopPanelTest, WalksTheListAndStopsAtTheEnds) {
+TEST_F(ShopPanelTest, WalksTheList) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
-  panel.OnEvent(ftxui::Event::ArrowUp);  // already at the top
-  EXPECT_EQ(panel.selected_item()->name(), "Long Sword");
   panel.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel.selected_item()->name(), "Machete");
-  panel.OnEvent(ftxui::Event::ArrowDown);
-  panel.OnEvent(ftxui::Event::ArrowDown);
-  panel.OnEvent(ftxui::Event::ArrowDown);  // already at the bottom
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(panel.selected_item()->name(), "Long Sword");
+}
+
+// --- the tab bar is a stop in the same ring ---
+
+// The caret and the white chip are never both on screen, so where the caret is
+// says which of the two has the keys.
+TEST_F(ShopPanelTest, ArrowUpFromTheFirstItemLandsOnTheTabBar) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  ASSERT_NE(Render(panel).find("> Long Sword"), std::string::npos);
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(Render(panel).find("> Long Sword"), std::string::npos);
+}
+
+TEST_F(ShopPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
+  panel.OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the last item
   EXPECT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
+  EXPECT_NE(Render(panel).find("> Subi Throwing-Stars"), std::string::npos);
+}
+
+TEST_F(ShopPanelTest, ArrowDownFromTheLastItemReturnsToTheTabBar) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OnEvent(ftxui::Event::ArrowUp);  // straight to the last item
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  ASSERT_NE(Render(panel).find("> Subi"), std::string::npos);
+  panel.OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
+  EXPECT_EQ(Render(panel).find("> Subi"), std::string::npos);
+}
+
+// Enter on the bar is not Enter on an item. Opening the menu there would put a
+// context menu over a row the cursor is not on.
+TEST_F(ShopPanelTest, NoContextMenuOpensFromTheTabBar) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
+  panel.OpenMenu();
+  EXPECT_FALSE(panel.menu_open());
+}
+
+TEST_F(ShopPanelTest, ResetPutsTheCursorBackInTheList) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_);
+  panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
+  panel.Reset();
+  EXPECT_NE(Render(panel).find("> Long Sword"), std::string::npos);
 }
 
 TEST_F(ShopPanelTest, ResetReturnsToTheTop) {

@@ -212,15 +212,31 @@ TEST(MapSelectPanelTest, MobTableShowsLevelAndCount) {
   EXPECT_NE(LineWith(rendered, "Snail").find("Snail 1 4"), std::string::npos);
 }
 
-TEST(MapSelectPanelTest, CursorStopsAtBothEndsOfTheList) {
+// The band is a ring, so Up off the first map lands on the last and Down off
+// the last comes back to the first.
+TEST(MapSelectPanelTest, TheCursorWrapsAtBothEndsOfTheBand) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
+  ASSERT_EQ(panel.selected_map(), "green_field") << "the first row";
 
   panel.MoveCursor(-1);
-  EXPECT_EQ(panel.selected_map(), "green_field");
+  EXPECT_EQ(panel.selected_map(), "horny_field") << "the last row";
 
-  panel.MoveCursor(5);
-  EXPECT_EQ(panel.selected_map(), "horny_field");
+  panel.MoveCursor(1);
+  EXPECT_EQ(panel.selected_map(), "green_field");
+}
+
+// Wrapping stays inside the band. Bands are Left and Right, and rolling into
+// the next one on Up would move two things on one key.
+TEST(MapSelectPanelTest, WrappingDoesNotCarryIntoTheNextBand) {
+  GameState state = TwoBands();
+  MapSelectPanel panel(state);
+  panel.Reset();
+  std::string before = Render(panel);
+  ASSERT_NE(before.find("Lv 1-10"), std::string::npos);
+
+  panel.MoveCursor(-1);
+  EXPECT_NE(Render(panel).find("Lv 1-10"), std::string::npos);
 }
 
 TEST(MapSelectPanelTest, OpensOnTheLowestBandWithNothingBeingFarmed) {

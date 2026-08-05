@@ -127,11 +127,8 @@ void MapSelectPanel::Reset() {
 }
 
 void MapSelectPanel::MoveCursor(int delta) {
-  if (pages_[page_].empty()) {
-    return;
-  }
-  int last = static_cast<int>(pages_[page_].size()) - 1;
-  selected_ = std::clamp(selected_ + delta, 0, last);
+  selected_ =
+      StepCursor(selected_, delta, static_cast<int>(pages_[page_].size()));
 }
 
 void MapSelectPanel::ChangePage(int delta) {

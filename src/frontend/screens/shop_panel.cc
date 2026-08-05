@@ -55,11 +55,31 @@ ShopPanel::ShopPanel(const CharacterInstance& character,
 }
 
 void ShopPanel::Reset() {
+  zone_ = kZoneList;
   selected_ = 0;
   menu_open_ = false;
 }
 
+int ShopPanel::CursorStop() const {
+  return zone_ == kZoneTabs ? 0 : selected_ + 1;
+}
+
+void ShopPanel::MoveCursor(int delta) {
+  int next =
+      StepCursor(CursorStop(), delta, 1 + static_cast<int>(stock_.size()));
+  if (next == 0) {
+    zone_ = kZoneTabs;
+    return;
+  }
+  zone_ = kZoneList;
+  selected_ = next - 1;
+}
+
 void ShopPanel::OpenMenu() {
+  if (zone_ == kZoneTabs) {
+    // Nothing to open a menu on: the cursor is on the bar, not on an item.
+    return;
+  }
   if (selected_item() == nullptr) {
     return;
   }
@@ -108,13 +128,8 @@ const EquipPrototype* ShopPanel::selected_item() const {
 }
 
 bool ShopPanel::OnEvent(ftxui::Event event) {
-  int count = static_cast<int>(stock_.size());
-  if (event == ftxui::Event::ArrowUp) {
-    selected_ = std::max(0, selected_ - 1);
-    return true;
-  }
-  if (event == ftxui::Event::ArrowDown) {
-    selected_ = std::min(count - 1, selected_ + 1);
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
   return false;
@@ -122,9 +137,10 @@ bool ShopPanel::OnEvent(ftxui::Event event) {
 
 ftxui::Element ShopPanel::Render() const {
   std::vector<ftxui::Element> chips;
-  // One tab, and it is always the focused bar: the list below takes the keys
-  // but there is nowhere else for the highlight to be.
-  chips.push_back(TabChip("Equips", /*active=*/true, /*row_focused=*/true));
+  // White while the bar holds the cursor and theme-blue otherwise, which is how
+  // the player tells whether the arrow keys are on the bar or in the list.
+  chips.push_back(TabChip("Equips", /*active=*/true,
+                          /*row_focused=*/zone_ == kZoneTabs));
   ftxui::Element tab_row = ftxui::dbox({
       ftxui::hbox(std::move(chips)),
       ftxui::text(FormatMeso(character_.meso())) | ftxui::color(kTheme) |
@@ -141,8 +157,10 @@ ftxui::Element ShopPanel::Render() const {
   }
   for (int i = 0; i < static_cast<int>(stock_.size()); ++i) {
     const EquipPrototype& proto = equips_.at(stock_[i]);
+    // Drawn only while the list holds the cursor, as in the bag: the caret and
+    // the white chip are never both on screen.
     std::string cursor = "  ";
-    if (i == selected_) {
+    if (zone_ == kZoneList && i == selected_) {
       cursor = "> ";
     }
     // Each of the three requirements is coloured by whether this character
