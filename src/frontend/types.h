@@ -39,6 +39,11 @@ enum Screen : int {
 // values index Container::Tab's component list, so the two must stay in the
 // same order.
 enum Panel : int {
+  // Not one of them: nobody is looking at a panel at all, because the screen
+  // in front of the player is the shop, or map select, or a dialog over the
+  // top of everything. Sorts before the real panels so a range check on them
+  // rejects it.
+  kNoPanel = -1,
   kCharPanel = 0,
   kEquipPanel = 1,
   kInventoryPanel = 2,

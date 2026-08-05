@@ -74,6 +74,11 @@ class Tui {
   // character during a tick while advancement and the Level-Up item happen
   // during an event.
   void NoticeProgress();
+  // The panel the player is looking at, or kNoPanel when the main screen is
+  // not what is in front of them. panel_focus_ still names a panel while the
+  // shop is open, but it is not one they can see, so nothing there counts as
+  // visited.
+  Panel FocusedPanel() const;
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;

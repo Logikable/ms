@@ -10,6 +10,13 @@
  * something they have to dismiss: the game is idle and may be running
  * unattended, and a card that waited for a keypress would stall it and stack
  * up behind itself. It expires on its own, and any key gets rid of it early.
+ *
+ * The card and the gold have separate lives. The card is an announcement and
+ * four seconds is plenty of one. The gold is a signpost, and a signpost that
+ * takes itself down before anybody walked past it has not done its job -- so a
+ * panel the player was not already looking at holds its gold until they go and
+ * look. Only a panel that was in front of them the whole time fades on the
+ * clock, having been seen by definition.
  */
 #ifndef MS_SRC_FRONTEND_CELEBRATION_H_
 #define MS_SRC_FRONTEND_CELEBRATION_H_
@@ -29,48 +36,81 @@ class Celebration {
   enum class Kind { kNone, kLevelUp, kAdvancement };
 
   // Starts the level-up card for a climb from `from_level` to `to_level`,
-  // paying `ap` and `sp` in total.
+  // paying `ap` and `sp` in total. `focused` is the panel the player is on at
+  // that moment, or kNoPanel when they are somewhere other than the main
+  // screen.
   //
   // Takes the whole span rather than one level because a single combat tick
   // can carry a character past more than one threshold, and because the span
   // is what decides which panels are lit: a jump from 2 to 5 opened both the
   // equipped panel and the bag, and both should be pointed at.
-  void BeginLevelUp(int from_level, int to_level, int ap, int sp);
+  void BeginLevelUp(int from_level, int to_level, int ap, int sp,
+                    Panel focused);
 
   // Starts the advancement card. Replaces a level-up still on screen -- taking
   // an advancement is the larger news, and stacking the two would leave the
   // second waiting behind the first for something the player never asked for.
-  void BeginAdvancement(Job from_job, Job to_job);
+  void BeginAdvancement(Job from_job, Job to_job, Panel focused);
 
-  // Runs the clock down by `elapsed_seconds`, ending the celebration when it
-  // runs out. Safe to call when nothing is up.
+  // Runs both clocks down by `elapsed_seconds`: the card's, and the one the
+  // panels already in front of the player fade on. Safe to call when nothing
+  // is up.
   void Advance(double elapsed_seconds);
 
-  // Ends it now, for a player who has already looked.
+  // Records that the player is now looking at `focused`, putting out its gold
+  // if it was waiting to be visited. kNoPanel for a screen with no panel on
+  // it, which visits nothing.
+  //
+  // Latches: leaving again does not bring the gold back, because the point of
+  // it was to be seen once and it has been.
+  void Visit(Panel focused);
+
+  // Takes the card down, for a player who has already read it. Leaves the gold
+  // alone -- getting a card out of the way is not the same as having gone to
+  // look at what it was pointing at.
   void Dismiss();
 
-  bool active() const {
-    return kind_ != Kind::kNone;
+  // Whether the card is on screen. The gold outlives it, so this is not the
+  // question of whether a celebration is still doing anything.
+  bool card_visible() const {
+    return card_seconds_ > 0.0;
   }
   Kind kind() const {
     return kind_;
   }
 
-  // Whether `panel` should be drawn lit. False for everything once the
-  // celebration is over, so the caller can set every panel from this every
-  // frame rather than remembering to put them out.
+  // Whether `panel` should be drawn lit. False for everything once its gold is
+  // spent, so the caller can set every panel from this every frame rather than
+  // remembering to put them out.
   bool Lights(Panel panel) const;
 
-  // The card. Only call while active().
+  // The card. Only call while card_visible().
   ftxui::Element Render() const;
 
  private:
+  // What is keeping a panel gold, if anything.
+  enum class Glow {
+    kOff,
+    // The player was already on it, so they have seen it: it fades on the
+    // clock like the card does.
+    kTimed,
+    // They were not, so it waits however long it takes.
+    kUntilVisited,
+  };
+
+  // Lights `panel` in whichever way suits where the player is standing.
+  void Light(Panel panel, Panel focused);
+
   Kind kind_ = Kind::kNone;
-  double remaining_seconds_ = 0.0;
-  // Which panels are lit, indexed by Panel. Worked out when the celebration
-  // begins rather than on every frame: it depends on the levels climbed
-  // through, which is not something the character still knows afterwards.
-  bool lit_[kNumPanels] = {};
+  double card_seconds_ = 0.0;
+  // Kept apart from card_seconds_ so that dismissing the card does not cut a
+  // timed glow short with it.
+  double glow_seconds_ = 0.0;
+  // What is lighting each panel, indexed by Panel. Worked out when the
+  // celebration begins rather than on every frame: it depends on the levels
+  // climbed through, which is not something the character still knows
+  // afterwards.
+  Glow glow_[kNumPanels] = {};
 
   int from_level_ = 0;
   int to_level_ = 0;

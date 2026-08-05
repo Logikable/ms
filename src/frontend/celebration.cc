@@ -21,62 +21,81 @@ bool CrossedInto(int level, int from, int to) {
 
 }  // namespace
 
-void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp) {
+void Celebration::Light(Panel panel, Panel focused) {
+  glow_[panel] = panel == focused ? Glow::kTimed : Glow::kUntilVisited;
+}
+
+void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
+                               Panel focused) {
   kind_ = Kind::kLevelUp;
-  remaining_seconds_ = kCelebrationSeconds;
+  card_seconds_ = kCelebrationSeconds;
+  glow_seconds_ = kCelebrationSeconds;
   from_level_ = from_level;
   to_level_ = to_level;
   ap_ = ap;
   sp_ = sp;
 
-  std::fill(std::begin(lit_), std::end(lit_), false);
+  std::fill(std::begin(glow_), std::end(glow_), Glow::kOff);
   // Always the character panel: it is where the AP a level pays out is spent,
   // so it is where the player is being sent every time.
-  lit_[kCharPanel] = true;
+  Light(kCharPanel, focused);
   // And whichever panels this climb opened. Asked of the unlock table rather
   // than written as levels 3 and 4, because those have moved before and the
   // celebration should follow them.
   if (CrossedInto(UnlockLevel(Feature::kEquipped), from_level, to_level)) {
-    lit_[kEquipPanel] = true;
+    Light(kEquipPanel, focused);
   }
   if (CrossedInto(UnlockLevel(Feature::kBag), from_level, to_level)) {
-    lit_[kInventoryPanel] = true;
+    Light(kInventoryPanel, focused);
   }
 }
 
-void Celebration::BeginAdvancement(Job from_job, Job to_job) {
+void Celebration::BeginAdvancement(Job from_job, Job to_job, Panel focused) {
   kind_ = Kind::kAdvancement;
-  remaining_seconds_ = kCelebrationSeconds;
+  card_seconds_ = kCelebrationSeconds;
+  glow_seconds_ = kCelebrationSeconds;
   from_job_ = from_job;
   to_job_ = to_job;
 
-  std::fill(std::begin(lit_), std::end(lit_), false);
-  // The character panel alone: an advancement opens the skills tab, which
-  // lives on it, and hands over a job whose stats are read there.
-  lit_[kCharPanel] = true;
+  std::fill(std::begin(glow_), std::end(glow_), Glow::kOff);
+  // The character panel alone: an advancement hands over a job whose stats and
+  // skills are both read there.
+  Light(kCharPanel, focused);
 }
 
 void Celebration::Advance(double elapsed_seconds) {
-  if (!active()) {
+  card_seconds_ = std::max(0.0, card_seconds_ - elapsed_seconds);
+  glow_seconds_ = std::max(0.0, glow_seconds_ - elapsed_seconds);
+  if (glow_seconds_ > 0.0) {
     return;
   }
-  remaining_seconds_ -= elapsed_seconds;
-  if (remaining_seconds_ <= 0.0) {
-    Dismiss();
+  // Only the timed ones. A panel still waiting to be visited has not been, and
+  // no amount of time passing changes that.
+  for (Glow& glow : glow_) {
+    if (glow == Glow::kTimed) {
+      glow = Glow::kOff;
+    }
+  }
+}
+
+void Celebration::Visit(Panel focused) {
+  if (focused < 0 || focused >= kNumPanels) {
+    return;
+  }
+  if (glow_[focused] == Glow::kUntilVisited) {
+    glow_[focused] = Glow::kOff;
   }
 }
 
 void Celebration::Dismiss() {
-  kind_ = Kind::kNone;
-  remaining_seconds_ = 0.0;
-  std::fill(std::begin(lit_), std::end(lit_), false);
+  card_seconds_ = 0.0;
 }
 
 bool Celebration::Lights(Panel panel) const {
   if (panel < 0 || panel >= kNumPanels) {
     return false;
   }
-  return lit_[panel];
+  return glow_[panel] != Glow::kOff;
 }
 
 ftxui::Element Celebration::Render() const {

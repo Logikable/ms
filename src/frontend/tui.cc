@@ -196,14 +196,14 @@ void Tui::AutosaveIfDue() {
 
 ftxui::Element Tui::RenderFrame() {
   // Set from the celebration every frame rather than when one starts, so the
-  // panels go out on their own when it expires and nothing has to remember to
-  // put them back. Lights() is false for everything once it is over.
+  // panels go out on their own -- on the clock or on being visited, whichever
+  // one is holding them -- and nothing has to remember to put them back.
   char_panel_.SetHighlighted(celebration_.Lights(kCharPanel));
   equip_panel_.SetHighlighted(celebration_.Lights(kEquipPanel));
   inventory_panel_.SetHighlighted(celebration_.Lights(kInventoryPanel));
 
   ftxui::Element frame = RenderScreen();
-  if (!celebration_.active()) {
+  if (!celebration_.card_visible()) {
     return frame;
   }
   // Over whatever the player is looking at, shop and map select included: a
@@ -476,7 +476,15 @@ void Tui::Tick() {
   // Ticked down before the new level is noticed, so a level-up landing on this
   // tick gets its full four seconds rather than one tick's worth less.
   celebration_.Advance(elapsed.count());
+  celebration_.Visit(FocusedPanel());
   NoticeProgress();
+}
+
+Panel Tui::FocusedPanel() const {
+  if (controller_.screen() != kMain) {
+    return kNoPanel;
+  }
+  return static_cast<Panel>(panel_focus_);
 }
 
 void Tui::NoticeProgress() {
@@ -485,7 +493,8 @@ void Tui::NoticeProgress() {
   // reaching the level that offers one does not itself take it, so the two
   // cannot be describing the same moment.
   if (character.job() != last_job_seen_) {
-    celebration_.BeginAdvancement(last_job_seen_, character.job());
+    celebration_.BeginAdvancement(last_job_seen_, character.job(),
+                                  FocusedPanel());
     last_job_seen_ = character.job();
     last_level_seen_ = character.level();
     return;
@@ -495,8 +504,8 @@ void Tui::NoticeProgress() {
     // A Beginner's SP is real but unreachable -- the skills tab belongs to a
     // job -- so the card does not mention what they cannot go and spend.
     int sp = character.job() == JOB_BEGINNER ? 0 : gains.sp;
-    celebration_.BeginLevelUp(last_level_seen_, character.level(), gains.ap,
-                              sp);
+    celebration_.BeginLevelUp(last_level_seen_, character.level(), gains.ap, sp,
+                              FocusedPanel());
   }
   // Assigned rather than only raised, so a level that somehow went down does
   // not leave the next real level-up reporting a climb it did not make.
@@ -508,10 +517,14 @@ bool Tui::OnEvent(ftxui::Event event) {
   // normally does -- getting rid of the card is a side effect, not a key the
   // celebration swallows, so nothing the player meant to do is lost. Custom is
   // the ticker's own redraw and is not somebody looking.
-  if (celebration_.active() && event != ftxui::Event::Custom) {
+  if (celebration_.card_visible() && event != ftxui::Event::Custom) {
     celebration_.Dismiss();
   }
   bool handled = controller_.OnEvent(event);
+  // After the event rather than before it: the key that just landed may be the
+  // Tab that walked the player onto a panel waiting to be visited, and its gold
+  // should be gone in the frame this event draws rather than the one after.
+  celebration_.Visit(FocusedPanel());
   // Advancement happens here rather than in the tick, and so does the debug
   // Level-Up item.
   NoticeProgress();
