@@ -405,7 +405,7 @@ TEST_F(EquippedPanelTest, ScrollingAndStarForceArriveAtTheirOwnLevels) {
 
 // --- highlighting ---
 
-// This panel arrives at level 3, and a card in the middle of the screen does
+// This panel arrives at level 3, and a banner across the screen does
 // not say where to look. The gold border is what points at it.
 TEST_F(EquippedPanelTest, LightsItsBorderGoldWhenHighlighted) {
   EquippedPanel panel(c_, panel_focus_);

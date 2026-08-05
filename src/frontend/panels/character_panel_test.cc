@@ -676,7 +676,7 @@ TEST_F(CharacterPanelTest, StressTestStatRowWidth) {
 
 // --- highlighting ---
 
-// The card in the middle of the screen says what happened; the gold border is
+// The banner across the screen says what happened; the gold border is
 // what says where to look for it. This panel is where the AP a level paid out
 // is spent, so it is the one lit on every level-up.
 TEST_F(CharacterPanelTest, LightsItsBorderGoldWhenHighlighted) {

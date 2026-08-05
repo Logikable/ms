@@ -53,7 +53,7 @@ class EquippedPanel {
   EquipSlot selected_slot() const;
 
   // Lights the panel's border gold, to send the player's eye to it while a
-  // level-up is being celebrated -- this panel arrives at level 3, and a card
+  // level-up is being celebrated -- this panel arrives at level 3, and a banner
   // in the middle of the screen does not say where to look. The panel keeps no
   // clock of its own: whoever lit it turns it off again.
   void SetHighlighted(bool highlighted) {

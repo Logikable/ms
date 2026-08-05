@@ -862,7 +862,7 @@ TEST_F(InventoryPanelTest, LightsEveryInnerRuleGoldToo) {
 
 // --- a newly unlocked tab announces itself ---
 
-// The gold outlives the four-second card: a player who was away when the shop
+// The gold outlives the four-second banner: a player who was away when the shop
 // opened still finds the tab saying it is new.
 TEST_F(InventoryPanelTest, ANewShopTabIsWrittenInGold) {
   LevelTo(UnlockLevel(Feature::kShop));

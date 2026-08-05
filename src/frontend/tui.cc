@@ -203,15 +203,24 @@ ftxui::Element Tui::RenderFrame() {
   inventory_panel_.SetHighlighted(celebration_.Lights(kInventoryPanel));
 
   ftxui::Element frame = RenderScreen();
-  if (!celebration_.card_visible()) {
+  if (!celebration_.banner_visible()) {
     return frame;
   }
   // Over whatever the player is looking at, shop and map select included: a
-  // card that only showed on the main screen would miss the player who
+  // banner that only showed on the main screen would miss the player who
   // wandered off to spend their meso.
+  //
+  // Fillers rather than ftxui::center: centred both ways would shrink it to
+  // the width of its longest line, and this is meant to reach both edges of
+  // the terminal. The fillers hold it in the middle vertically; the vbox hands
+  // it the full width, which its own xflex then takes.
   return ftxui::dbox({
       std::move(frame),
-      ftxui::center(celebration_.Render() | ftxui::clear_under),
+      ftxui::vbox({
+          ftxui::filler(),
+          celebration_.Render() | ftxui::clear_under,
+          ftxui::filler(),
+      }),
   });
 }
 
@@ -502,7 +511,7 @@ void Tui::NoticeProgress() {
   if (character.level() > last_level_seen_) {
     LevelGains gains = GainsForLevels(last_level_seen_, character.level());
     // A Beginner's SP is real but unreachable -- the skills tab belongs to a
-    // job -- so the card does not mention what they cannot go and spend.
+    // job -- so the banner does not mention what they cannot go and spend.
     int sp = character.job() == JOB_BEGINNER ? 0 : gains.sp;
     celebration_.BeginLevelUp(last_level_seen_, character.level(), gains.ap, sp,
                               FocusedPanel());
@@ -514,10 +523,10 @@ void Tui::NoticeProgress() {
 
 bool Tui::OnEvent(ftxui::Event event) {
   // A player who has looked is done with it. The key still does whatever it
-  // normally does -- getting rid of the card is a side effect, not a key the
+  // normally does -- getting rid of the banner is a side effect, not a key the
   // celebration swallows, so nothing the player meant to do is lost. Custom is
   // the ticker's own redraw and is not somebody looking.
-  if (celebration_.card_visible() && event != ftxui::Event::Custom) {
+  if (celebration_.banner_visible() && event != ftxui::Event::Custom) {
     celebration_.Dismiss();
   }
   bool handled = controller_.OnEvent(event);

@@ -48,7 +48,7 @@ class Tui {
   void Run();
 
  private:
-  // The whole frame: the screen the player is on, with a celebration card
+  // The whole frame: the screen the player is on, with a celebration banner
   // floated over it when one is up.
   ftxui::Element RenderFrame();
   // Whichever screen the controller is showing, celebration aside.
@@ -84,7 +84,7 @@ class Tui {
   GameState& state_;
   // Where the game is written, or empty when saving is off.
   std::string save_path_;
-  // The card and the lit panels, or nothing most of the time.
+  // The banner and the lit panels, or nothing most of the time.
   Celebration celebration_;
   // What the character was at the last look, for spotting a change. Seeded
   // from the loaded save, so launching into a level 13 character is not itself
