@@ -93,8 +93,13 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     TopUp(params);
     initialized_ = true;
   }
-  // A level-up widens the pool; nothing ever narrows it below what is in it.
-  player_hp_ = std::min(player_hp_, static_cast<double>(params.max_player_hp));
+  // A level-up widens the pool and fills it, as GMS does -- player_max_hp_ is
+  // still last step's, so this catches the moment it moves. Without the fill,
+  // a character who levelled at full health would watch their bar drop to a
+  // fraction it never lost anything to get to.
+  if (params.max_player_hp != player_max_hp_) {
+    player_hp_ = params.max_player_hp;
+  }
 
   // The respawn beat brings the map back to a full roster.
   respawn_phase_ += dt;

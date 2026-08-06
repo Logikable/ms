@@ -639,6 +639,23 @@ TEST(CombatSimTest, ASliverOfHpStillReadsAsOne) {
   EXPECT_EQ(sim.player_hp(), 1);  // 0.5 left, which is not death
 }
 
+TEST(CombatSimTest, LevellingUpFillsTheWiderPool) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 90);
+
+  // The level lands and the pool grows. Left alone, the bar would read 90 of
+  // 200 -- less than half full, having lost one hit.
+  params.max_player_hp = 200;
+  sim.Advance(params, 0.5);
+  EXPECT_EQ(sim.player_hp(), 200);
+  EXPECT_EQ(sim.player_max_hp(), 200);
+}
+
 TEST(CombatSimTest, InactiveParamsLeaveThePlayerWithNoHpToShow) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;

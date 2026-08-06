@@ -12,9 +12,9 @@
  *
  * The player has HP here and nowhere else, because it never outlives a fight:
  * there is no regeneration, and instead a full heal every time the map is
- * cleared or changed. Clearing a map is the breather, so a map the player
- * cannot clear is one their HP only ever falls on -- which is the whole reason
- * a map far above their level is dangerous.
+ * cleared or changed, or the character levels. Clearing a map is the breather,
+ * so a map the player cannot clear is one their HP only ever falls on -- which
+ * is the whole reason a map far above their level is dangerous.
  *
  * This is the single engine behind both halves of combat. The kills it reports
  * each step (kills_this_step) are what the reward layer pays out for, and the
