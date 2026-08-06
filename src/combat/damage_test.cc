@@ -335,10 +335,31 @@ TEST(OffenseStatsForTest, NonMagiciansIgnoreMagicAttack) {
 }
 
 TEST(OffenseStatsForTest, PassiveCritRateReachesTheOffense) {
+  PassiveOffense passives;
+  passives.crit_rate = 0.40;
   OffenseStats offense = OffenseStatsFor(JOB_ARCHER, 15, AllocatedStats(),
-                                         EquipStats(), nullptr, 0,
-                                         /*passive_crit_rate=*/0.40);
+                                         EquipStats(), nullptr, 0, passives);
   EXPECT_DOUBLE_EQ(offense.crit_rate, 0.40);
+}
+
+TEST(OffenseStatsForTest, PassiveMasteryReplacesTheBaseline) {
+  PassiveOffense passives;
+  passives.mastery = 0.50;
+  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(),
+                                         EquipStats(), nullptr, 0, passives);
+  EXPECT_DOUBLE_EQ(offense.mastery, 0.50);
+}
+
+// The first level of a mastery skill is worth less than what every character
+// swings at already, and learning a skill must never make a swing worse.
+TEST(OffenseStatsForTest, MasteryBelowTheBaselineIsIgnored) {
+  OffenseStats bare = OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(),
+                                      EquipStats(), nullptr, 0);
+  PassiveOffense passives;
+  passives.mastery = 0.14;
+  OffenseStats learned = OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(),
+                                         EquipStats(), nullptr, 0, passives);
+  EXPECT_DOUBLE_EQ(learned.mastery, bare.mastery);
 }
 
 TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {

@@ -122,6 +122,32 @@ Skill NimbleBody() {
   return skill;
 }
 
+// Physical Training as the wiki states it: +6 STR and +6 DEX a level.
+Skill PhysicalTraining() {
+  Skill skill;
+  skill.set_name("Physical Training");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(5);
+  skill.mutable_base()->set_str(6);
+  skill.mutable_base()->set_dex(6);
+  skill.mutable_per_level()->set_str(6);
+  skill.mutable_per_level()->set_dex(6);
+  return skill;
+}
+
+// Weapon Mastery as the wiki states it: mastery 10 + 4*L percent.
+Skill WeaponMastery() {
+  Skill skill;
+  skill.set_name("Weapon Mastery");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(10);
+  skill.mutable_base()->set_mastery(0.14);
+  skill.mutable_per_level()->set_mastery(0.04);
+  return skill;
+}
+
 // Archery Mastery: +1 attack speed stage, flat at every level.
 Skill ArcheryMastery() {
   Skill skill;
@@ -272,6 +298,61 @@ TEST_F(DerivedStatsTest, SkillGrantedLukLandsInTheStatLine) {
 
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.skill_stats.luk(), 20);  // 1 a level, maxed
+}
+
+TEST_F(DerivedStatsTest, SkillGrantedStrAndDexLandInTheStatLine) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  Skill training = PhysicalTraining();
+  std::map<std::string, Skill> skills = {{"physical_training", training}};
+  ASSERT_TRUE(c.LearnSkill(training, 5));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.str(), 30);  // 6 a level, maxed
+  EXPECT_EQ(stats.skill_stats.dex(), 30);
+}
+
+// A skill's STR is worth exactly as much base DEF as an AP-spent point, which
+// is the whole reason the base is computed off the totals rather than the
+// allocation.
+TEST_F(DerivedStatsTest, SkillGrantedStrBuysBaseDefLikeAnyOtherStr) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  Skill training = PhysicalTraining();
+  std::map<std::string, Skill> skills = {{"physical_training", training}};
+  int bare = DerivedStatsFor(c, skills).def;
+  ASSERT_TRUE(c.LearnSkill(training, 5));
+
+  // 30 STR at 1.5 DEF apiece and 30 DEX at 0.4.
+  EXPECT_EQ(DerivedStatsFor(c, skills).def, bare + 45 + 12);
+}
+
+TEST_F(DerivedStatsTest, WeaponMasteryReachesTheDerivedStats) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  Skill mastery = WeaponMastery();
+  std::map<std::string, Skill> skills = {{"weapon_mastery", mastery}};
+  ASSERT_TRUE(c.LearnSkill(mastery, 10));
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.50);  // 10 + 4*10 %
+}
+
+// Two masteries are not twice as steady a swing -- they are the better of the
+// two. Every other lever here sums.
+TEST_F(DerivedStatsTest, MasteriesTakeTheBestRatherThanTheSum) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  Skill mastery = WeaponMastery();
+  Skill other = WeaponMastery();
+  other.set_name("Other Mastery");
+  std::map<std::string, Skill> skills = {{"weapon_mastery", mastery},
+                                         {"other_mastery", other}};
+  ASSERT_TRUE(c.LearnSkill(mastery, 10));
+  ASSERT_TRUE(c.LearnSkill(other, 4));
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.50);
+}
+
+TEST_F(DerivedStatsTest, NoMasterySkillLeavesTheBaselineToTheDamageChain) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.0);
 }
 
 TEST_F(DerivedStatsTest, SkillStatsJoinWornStatsInTheTotal) {

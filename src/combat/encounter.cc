@@ -52,9 +52,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     attack.name = skill->name();
     attack.max_enemies = std::max(1, skill->max_enemies());
   }
-  OffenseStats offense =
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      equipped, skill, level, derived.crit_rate);
+  OffenseStats offense = OffenseStatsFor(
+      proto.job(), proto.level(), proto.allocated_stats(), equipped, skill,
+      level, PassiveOffense{derived.crit_rate, derived.mastery});
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }

@@ -35,6 +35,12 @@ message SkillEffect {
   // damage_taken_pct, it waits on a model of the character being hit.
   double damage_to_mp_pct = 10;
   int32 luk = 11;  // flat LUK, exactly as a worn item grants it
+  int32 str = 12;  // flat STR, likewise
+  int32 dex = 13;  // flat DEX, likewise
+  // Weapon mastery, 0..1: how close the swing's minimum roll comes to its
+  // maximum. Unlike everything else here, masteries do not stack -- a
+  // character holding two takes the better one, not the sum.
+  double mastery = 14;
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,

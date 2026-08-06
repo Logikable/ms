@@ -38,9 +38,12 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   int mp_per_level = 0;
   double max_mp_pct = 0.0;
   int skill_def = 0;
+  int skill_str = 0;
+  int skill_dex = 0;
   int skill_luk = 0;
   double damage_taken_pct = 0.0;
   double crit_rate = 0.0;
+  double mastery = 0.0;
   int attack_speed_bonus = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
@@ -61,10 +64,16 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
         base.max_mp_per_level() + per.max_mp_per_level() * (level - 1);
     max_mp_pct += base.max_mp_pct() + per.max_mp_pct() * (level - 1);
     skill_def += base.def() + per.def() * (level - 1);
+    skill_str += base.str() + per.str() * (level - 1);
+    skill_dex += base.dex() + per.dex() * (level - 1);
     skill_luk += base.luk() + per.luk() * (level - 1);
     damage_taken_pct +=
         base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
     crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
+    // The one lever here that takes the best rather than the sum: two weapon
+    // masteries are not twice as steady a swing, they are the better of the
+    // two. See SkillEffect::mastery.
+    mastery = std::max(mastery, base.mastery() + per.mastery() * (level - 1));
     attack_speed_bonus +=
         base.attack_speed() + per.attack_speed() * (level - 1);
   }
@@ -86,6 +95,8 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.max_mp = static_cast<int>(
       std::floor(flat_mp * (1.0 + max_mp_pct) + kPercentEpsilon));
   stats.skill_stats.set_def(skill_def);
+  stats.skill_stats.set_str(skill_str);
+  stats.skill_stats.set_dex(skill_dex);
   stats.skill_stats.set_luk(skill_luk);
   // Base DEF is a function of the primary stats the character actually holds,
   // so it reads the totals rather than the allocation: a ring's LUK and a
@@ -103,6 +114,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.def = base_def + equipped.def() + skill_def;
   stats.damage_taken_pct = damage_taken_pct;
   stats.crit_rate = crit_rate;
+  stats.mastery = mastery;
   stats.attack_speed_bonus = attack_speed_bonus;
   return stats;
 }

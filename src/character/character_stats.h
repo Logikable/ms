@@ -33,6 +33,11 @@ struct DerivedStats {
   // Added chance for a swing to crit (0.40 == 40%). Feeds OffenseStatsFor,
   // since what it modifies is damage rather than the character's own bulk.
   double crit_rate = 0.0;
+  // The best weapon mastery the character's passives grant, 0..1, or 0 for a
+  // character with none -- which leaves the beginner's baseline in place
+  // rather than making their swing wilder. Feeds OffenseStatsFor beside the
+  // crit rate, and for the same reason.
+  double mastery = 0.0;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;

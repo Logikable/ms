@@ -33,6 +33,18 @@ struct OffenseStats {
   double ier = 0.0;            // ignore elemental resistance, 0..1
 };
 
+// What a character's learned passives add to every swing, whichever attack
+// they end up choosing. Kept together rather than passed one at a time: the
+// list grows with each job book, and none of it depends on the target.
+// DerivedStatsFor produces the values; see character_stats.h.
+struct PassiveOffense {
+  double crit_rate = 0.0;  // added chance for a swing to crit (0.40 == 40%)
+  // Weapon mastery, 0..1. 0 means the character has no mastery skill and
+  // keeps the beginner's baseline: a mastery skill's first level is worth
+  // less than that, and learning a skill must never make a swing worse.
+  double mastery = 0.0;
+};
+
 // Builds OffenseStats from a character's job, level, and summed (allocated +
 // equipped) stats. Job picks primary/secondary; attack and boss_pct/ied come
 // from gear; level feeds the level multiplier; the rest keep identity defaults
@@ -45,15 +57,15 @@ struct OffenseStats {
 // a weaker multi-target skill beats the poke on a crowded map) is the caller's
 // job, not this pure per-mob math.
 //
-// `passive_crit_rate` is what the character's learned passives add to the
-// chance of a crit -- see DerivedStatsFor, which walks them. It arrives as a
-// plain number rather than a skill list because it applies to every swing,
-// whichever attack was chosen.
+// `passives` is what the character's learned passives add on top -- see
+// DerivedStatsFor, which walks them. It arrives already resolved rather than
+// as a skill list because it applies to every swing, whichever attack was
+// chosen.
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
                              const EquipStats& equipped,
                              const Skill* attack_skill, int attack_level,
-                             double passive_crit_rate = 0.0);
+                             const PassiveOffense& passives = {});
 
 // Expected damage of one full attack against `mob` (crit averaged over its
 // rate, no RNG). The GMS damage chain; mob PDR and boss flag come from the Mob.

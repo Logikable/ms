@@ -173,10 +173,13 @@ OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
                              const EquipStats& equipped,
                              const Skill* attack_skill, int attack_level,
-                             double passive_crit_rate) {
+                             const PassiveOffense& passives) {
   OffenseStats offense;
   offense.level = level;
-  offense.crit_rate = passive_crit_rate;
+  offense.crit_rate = passives.crit_rate;
+  // A mastery skill's first level sits below the baseline every character
+  // swings at, so the better of the two wins rather than the learned one.
+  offense.mastery = std::max(offense.mastery, passives.mastery);
   // Primary/secondary stat by job; unknown jobs fall through to 0, matching
   // MainStatValue in equipped_panel.
   switch (job) {
