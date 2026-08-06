@@ -45,6 +45,16 @@ message SkillEffect {
   // maximum. Unlike everything else here, masteries do not stack -- a
   // character holding two takes the better one, not the sum.
   double mastery = 14;
+  // Final Attack: a chance for the character's swing to be followed by one
+  // extra hit on whatever is in front of them, worth final_attack_pct of a
+  // plain swing. A multi-line final attack folds its lines into the percent --
+  // two hits of 80% is stated here as 1.60.
+  //
+  // Only the character's own swings carry it. A skill firing on its own clock
+  // does not, which is why the two are separate fields rather than one
+  // expected value: the chance and the damage are what the player is shown.
+  double final_attack_chance = 15;
+  double final_attack_pct = 16;
 }
 
 // Static definition of a skill. Loaded from data/skills textprotos at startup,

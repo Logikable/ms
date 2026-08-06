@@ -211,6 +211,53 @@ TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
                    12.0 * GameSpeedFactor(state.character.proto().level()));
 }
 
+// Final Attack follows the character's swing. A summon firing on its own clock
+// is not that, so the option the fight gets for it carries none.
+TEST(ComputeCombatParamsTest, OnlyTheCharactersOwnSwingsCarryFinalAttack) {
+  Skill evil_eye;
+  evil_eye.set_name("Evil Eye Shock");
+  evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
+  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  evil_eye.set_max_level(10);
+  evil_eye.set_cast_interval_seconds(12.0);
+  evil_eye.mutable_base()->set_skill_pct(1.23);
+  Skill final_attack;
+  final_attack.set_name("Final Attack");
+  final_attack.set_kind(SKILL_KIND_PASSIVE);
+  final_attack.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  final_attack.set_max_level(20);
+  final_attack.mutable_base()->set_final_attack_chance(0.40);
+  final_attack.mutable_base()->set_final_attack_pct(1.60);
+  GameState state(
+      {}, {}, {}, {{"snail", MakeMob("Snail", 15)}}, {{"field", TwoSnailMap()}},
+      {{"evil_eye_shock", evil_eye}, {"final_attack", final_attack}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(evil_eye, 1));
+  ASSERT_TRUE(state.character.LearnSkill(final_attack, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 1u);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  ASSERT_EQ(params.attacks[0].final_attack_damage.size(), params.types.size());
+  EXPECT_GT(params.attacks[0].final_attack_damage[0], 0.0);
+  EXPECT_TRUE(params.auto_attacks[0].final_attack_damage.empty());
+}
+
+// Without the skill there is nothing to follow the swing, and the fight is
+// told so rather than being handed a column of zeroes to add.
+TEST(ComputeCombatParamsTest, NoFinalAttackLeavesTheSwingCarryingNone) {
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 1u);
+  EXPECT_TRUE(params.attacks[0].final_attack_damage.empty());
+}
+
 // The interval is what makes the skill fire at all, so a skill without one is
 // taken as not firing rather than as firing every step.
 TEST(ComputeCombatParamsTest, AnAutoAttackWithoutAnIntervalIsNotAnOption) {

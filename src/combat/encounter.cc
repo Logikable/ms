@@ -52,11 +52,27 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     attack.name = skill->name();
     attack.max_enemies = std::max(1, skill->max_enemies());
   }
-  OffenseStats offense = OffenseStatsFor(
-      proto.job(), proto.level(), proto.allocated_stats(), equipped, skill,
-      level, PassiveOffense{derived.crit_rate, derived.mastery});
+  PassiveOffense passives{derived.crit_rate, derived.mastery};
+  OffenseStats offense =
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      equipped, skill, level, passives);
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
+  }
+  // Final Attack rides the character's own swing, not the skill's identity:
+  // it is a plain hit worth its own percent, so it starts from the bare stat
+  // line rather than from `offense` and takes neither its multiplier nor its
+  // lines. Callers building an attack that fires on its own clock strip this
+  // back off -- see ComputeCombatParams.
+  if (derived.final_attack_pct > 0.0) {
+    OffenseStats final_attack =
+        OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                        equipped, nullptr, 0, passives);
+    final_attack.skill_pct = derived.final_attack_pct;
+    for (const CombatType& type : types) {
+      attack.final_attack_damage.push_back(
+          ExpectedAttackDamage(final_attack, *type.mob));
+    }
   }
   return attack;
 }
@@ -168,6 +184,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
         continue;
       }
       attack.interval_seconds = skill.cast_interval_seconds() * speed_factor;
+      // Final Attack follows a swing, and this is not one.
+      attack.final_attack_damage.clear();
       params.auto_attacks.push_back(std::move(attack));
     } else {
       params.attacks.push_back(std::move(attack));

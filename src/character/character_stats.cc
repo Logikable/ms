@@ -44,6 +44,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   double damage_taken_pct = 0.0;
   double crit_rate = 0.0;
   double mastery = 0.0;
+  double final_attack_pct = 0.0;
   int attack_speed_bonus = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
@@ -76,6 +77,11 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     mastery = std::max(mastery, base.mastery() + per.mastery() * (level - 1));
     attack_speed_bonus +=
         base.attack_speed() + per.attack_speed() * (level - 1);
+    // Chance times damage: what the proc is worth on an average swing, which
+    // is all an expected-value damage chain can use. See DerivedStats.
+    final_attack_pct +=
+        (base.final_attack_chance() + per.final_attack_chance() * (level - 1)) *
+        (base.final_attack_pct() + per.final_attack_pct() * (level - 1));
   }
 
   DerivedStats stats;
@@ -115,6 +121,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.damage_taken_pct = damage_taken_pct;
   stats.crit_rate = crit_rate;
   stats.mastery = mastery;
+  stats.final_attack_pct = final_attack_pct;
   stats.attack_speed_bonus = attack_speed_bonus;
   return stats;
 }

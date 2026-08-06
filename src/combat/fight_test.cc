@@ -798,5 +798,72 @@ TEST(CombatSimTest, AnAutoAttackIsNeverChosenAsTheSwing) {
   EXPECT_EQ(sim.attack_name(), "Attack");
 }
 
+// --- Final Attack ---
+
+// Gives the swing a Final Attack worth `damage` on the front mob.
+void AddFinalAttack(CombatParams& params, double damage) {
+  params.attacks[0].final_attack_damage.assign(params.types.size(), damage);
+}
+
+TEST(CombatSimTest, FinalAttackAddsToTheSwing) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  AddFinalAttack(params, /*damage=*/15.0);
+
+  sim.Advance(params, 1.0);
+  // 10 from the swing and 15 following it, on the one mob in front.
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.75, 1e-9);
+}
+
+// GMS's Final Attack hits one enemy. Spreading it over a wide swing's whole
+// window would make it as many times the skill as the swing has reach.
+TEST(CombatSimTest, FinalAttackLandsOnTheFrontMobAlone) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 3)}, /*reach=*/3);
+  AddFinalAttack(params, /*damage=*/40.0);
+
+  sim.Advance(params, 1.0);
+  // The front mob took 50 of its 100; the two behind it took the swing's 10.
+  const std::vector<EngagedGroup>& groups = sim.engaged_groups();
+  ASSERT_EQ(groups.size(), 1u);
+  EXPECT_EQ(groups[0].count, 3);
+  // One at 0.5 and two at 0.9, averaged.
+  EXPECT_NEAR(groups[0].hp_fraction, (0.5 + 0.9 + 0.9) / 3.0, 1e-9);
+}
+
+TEST(CombatSimTest, FinalAttackCanBeWhatKillsTheFrontMob) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 2)});
+  AddFinalAttack(params, /*damage=*/95.0);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 1);
+}
+
+// A summon is not the character swinging, so nothing follows it.
+TEST(CombatSimTest, ACastOnItsOwnClockSetsOffNoFinalAttack) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  AddFinalAttack(params, /*damage=*/50.0);
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);  // the cast's 10, alone
+}
+
+TEST(CombatSimTest, NoFinalAttackLeavesTheSwingAsItIs) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
+}
+
 }  // namespace
 }  // namespace ms

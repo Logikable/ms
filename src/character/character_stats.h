@@ -38,6 +38,12 @@ struct DerivedStats {
   // rather than making their swing wilder. Feeds OffenseStatsFor beside the
   // crit rate, and for the same reason.
   double mastery = 0.0;
+  // What Final Attack is worth on an average swing: its chance times its
+  // damage, so a 40% chance of an extra 160% hit reads 0.64. Collapsed to the
+  // one number because that is all the expected-value damage chain can use,
+  // and summed over skills because two independent procs do add in
+  // expectation. 0 for a character with no Final Attack.
+  double final_attack_pct = 0.0;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;

@@ -59,6 +59,11 @@ void CombatSim::Strike(const AttackOption& attack) {
   for (int j = 0; j < hit; ++j) {
     queue_[j].hp -= attack.damage_per_hit[queue_[j].type];
   }
+  // Final Attack follows the swing onto whatever the character is standing in
+  // front of -- one mob, however many the swing itself reached.
+  if (hit > 0 && !attack.final_attack_damage.empty()) {
+    queue_.front().hp -= attack.final_attack_damage[queue_.front().type];
+  }
   std::vector<QueuedMob> survivors;
   survivors.reserve(queue_.size());
   for (int j = 0; j < static_cast<int>(queue_.size()); ++j) {

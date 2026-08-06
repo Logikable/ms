@@ -148,6 +148,21 @@ Skill WeaponMastery() {
   return skill;
 }
 
+// Final Attack as the wiki states it for a Spearman: a 2*L% chance of an
+// extra hit worth 2 lines of (60+L)%.
+Skill FinalAttack() {
+  Skill skill;
+  skill.set_name("Final Attack");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(20);
+  skill.mutable_base()->set_final_attack_chance(0.02);
+  skill.mutable_base()->set_final_attack_pct(1.22);
+  skill.mutable_per_level()->set_final_attack_chance(0.02);
+  skill.mutable_per_level()->set_final_attack_pct(0.02);
+  return skill;
+}
+
 // Archery Mastery: +1 attack speed stage, flat at every level.
 Skill ArcheryMastery() {
   Skill skill;
@@ -353,6 +368,25 @@ TEST_F(DerivedStatsTest, NoMasterySkillLeavesTheBaselineToTheDamageChain) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.0);
+}
+
+// The chance and the damage are separate on the skill because that is what
+// the player is shown, but only their product can reach an expected-value
+// damage chain.
+TEST_F(DerivedStatsTest, FinalAttackCollapsesToWhatASwingIsWorth) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  Skill final_attack = FinalAttack();
+  std::map<std::string, Skill> skills = {{"final_attack", final_attack}};
+  ASSERT_TRUE(c.LearnSkill(final_attack, 20));
+
+  // 40% of an extra hit worth 160%.
+  EXPECT_NEAR(DerivedStatsFor(c, skills).final_attack_pct, 0.64, 1e-9);
+}
+
+TEST_F(DerivedStatsTest, NoFinalAttackIsWorthNothing) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).final_attack_pct, 0.0);
 }
 
 TEST_F(DerivedStatsTest, SkillStatsJoinWornStatsInTheTotal) {

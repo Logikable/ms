@@ -45,6 +45,11 @@ struct AttackOption {
   // than on the character's swing. 0 for the swings themselves, which are
   // paced by swing_seconds.
   double interval_seconds = 0.0;
+  // Expected Final Attack damage per target type, landing on the front mob
+  // alone however many the swing itself reached. Empty for a character with
+  // no Final Attack, and for the skills that fire on their own clock -- those
+  // are not the character's swing and do not set it off.
+  std::vector<double> final_attack_damage;
 };
 
 // A snapshot of the current encounter's combat parameters.
