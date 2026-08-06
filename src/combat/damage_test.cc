@@ -434,5 +434,122 @@ TEST(OffenseStatsForTest, LevelOneSlashBlastKillsRoughly83PercentFaster) {
                    1.83 * ExpectedAttackDamage(poke, mob));
 }
 
+// A mob that only swings: attack and level, which is all ExpectedDamageTaken
+// reads.
+Mob Attacker(int attack, int level) {
+  Mob mob;
+  mob.set_attack(attack);
+  mob.set_level(level);
+  return mob;
+}
+
+class DamageTakenTest : public ::testing::Test {
+ protected:
+  // A character of the same level as Attacker() below, with no DEF at all.
+  // Both rolls land in full: (85 + 100) / 2 * 0.85 == 78.625.
+  DefenseStats Naked() {
+    DefenseStats defense;
+    defense.level = 10;
+    return defense;
+  }
+};
+
+TEST_F(DamageTakenTest, WithoutDefenseTheWholeAttackLands) {
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(Naked(), Attacker(100, 10)), 78.625);
+}
+
+TEST_F(DamageTakenTest, DefenseSubtractsFromBothRolls) {
+  DefenseStats defense = Naked();
+  defense.def = 40;
+  // Under both caps (68 and 80), so all 40 counts: (45 + 60) / 2 * 0.85.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)), 44.625);
+}
+
+TEST_F(DamageTakenTest, DefenseStopsCountingAtTheCap) {
+  DefenseStats defense = Naked();
+  defense.def = 80;
+  // The caps bind on both rolls: (85 - 68 + 100 - 80) / 2 * 0.85.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)), 15.725);
+}
+
+TEST_F(DamageTakenTest, ArmourPastTheCapIsWorthNothing) {
+  DefenseStats capped = Naked();
+  capped.def = 80;
+  DefenseStats absurd = Naked();
+  absurd.def = 10000;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(absurd, Attacker(100, 10)),
+                   ExpectedDamageTaken(capped, Attacker(100, 10)));
+}
+
+TEST_F(DamageTakenTest, UnderLevellingShrinksDefense) {
+  DefenseStats defense = Naked();
+  defense.def = 50;
+  // Ten levels under, so only 90% of the DEF counts: 45 rather than 50, and
+  // both caps stay clear. (40 + 55) / 2 * 0.85.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 20)), 40.375);
+}
+
+TEST_F(DamageTakenTest, DefenseEffectivenessFloorsAtHalf) {
+  DefenseStats thirty = Naked();
+  thirty.def = 50;
+  DefenseStats fifty = thirty;
+  // Thirty levels under is the floor; twenty further down changes nothing
+  // about the DEF, so the two differ only by the level multiplier.
+  double at_floor = ExpectedDamageTaken(thirty, Attacker(200, 40));
+  double past_floor = ExpectedDamageTaken(fifty, Attacker(200, 60));
+  // 0.5 * 50 == 25 cancelled on both rolls: (145 + 175) / 2 == 160, times A.
+  EXPECT_DOUBLE_EQ(at_floor, 160.0 * 0.8725);
+  EXPECT_DOUBLE_EQ(past_floor, 160.0 * 0.88);
+}
+
+TEST_F(DamageTakenTest, CappedArmourWaivesTheUnderLevellingPenalty) {
+  DefenseStats defense = Naked();
+  defense.def = 80;
+  // Thirty levels under, where only half the DEF would normally count -- but
+  // 80 already clears the 80-point cap, so the character takes the minimum as
+  // though the penalty did not exist. Same 15.725 as at parity, scaled by the
+  // deeper level multiplier.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 40)),
+                   18.5 * 0.8725);
+}
+
+TEST_F(DamageTakenTest, LevelMultiplierEasesOffAboveTheMob) {
+  DefenseStats defense = Naked();
+  defense.level = 20;
+  // Ten or more levels above the mob is the 0.775 floor for A.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)),
+                   92.5 * 0.775);
+  DefenseStats further = defense;
+  further.level = 40;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(further, Attacker(100, 10)),
+                   92.5 * 0.775);
+}
+
+TEST_F(DamageTakenTest, LevelMultiplierClimbsInBandsBelowTheMob) {
+  DefenseStats defense = Naked();
+  // Fifteen under is still the parity multiplier; sixteen crosses into the
+  // first band.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 25)),
+                   92.5 * 0.85);
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 26)),
+                   92.5 * 0.8575);
+}
+
+TEST_F(DamageTakenTest, ReductionAppliesAfterTheFormula) {
+  DefenseStats defense = Naked();
+  defense.damage_taken_pct = 0.5;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)),
+                   78.625 / 2.0);
+}
+
+TEST_F(DamageTakenTest, AHitNeverLandsForLessThanOne) {
+  DefenseStats defense = Naked();
+  defense.level = 30;
+  defense.def = 200;
+  // A snail against a level-30 character: the caps put the hit under a point,
+  // and GMS floors it at one rather than at zero.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 1.0);
+}
+
 }  // namespace
 }  // namespace ms

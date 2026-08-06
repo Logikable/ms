@@ -76,6 +76,80 @@ constexpr double kUnderLevelMultiplier[] = {
 };
 constexpr int kMaxUnderLevelGap = 39;
 
+// The damage the player TAKES has its own pair of level factors, unrelated to
+// the one above.
+//
+// A, the multiplier on the whole hit: 0.85 at parity, falling 0.0075 per level
+// the character is ABOVE the mob down to 0.775 at +10, and rising 0.0075 per
+// five-level band BELOW it up to 0.88 at -31 and lower. A narrow band either
+// way -- being under-levelled is punished through B, not here.
+constexpr double kTakenParityMultiplier = 0.85;
+constexpr double kTakenLevelStep = 0.0075;
+constexpr int kTakenAboveCap = 10;
+// The under-level bands are five levels wide and the first one that is worth
+// anything starts at -16, so a gap lands in band (gap - 11) / 5.
+constexpr int kTakenBandStart = 11;
+constexpr int kTakenBandWidth = 5;
+constexpr int kTakenBandCap = 4;
+
+// B, how much of the character's DEF counts: all of it at or above the mob's
+// level, then 1% less per level under down to -10, then 2% less per level down
+// to the floor of 0.50 at -30 and beyond.
+constexpr double kDefEffectivenessNearStep = 0.01;
+constexpr int kDefEffectivenessNearGap = 10;
+constexpr double kDefEffectivenessFarStep = 0.02;
+constexpr double kDefEffectivenessFloor = 0.50;
+
+// The mob's two rolls: the minimum swings for 85% of its attack, and DEF may
+// cancel at most 68% of the attack against it; the maximum swings for all of
+// it, against a cap of 80%.
+constexpr double kMinRollAttack = 0.85;
+constexpr double kMinRollDefCap = 0.68;
+constexpr double kMaxRollDefCap = 0.80;
+
+// GMS never lets a hit land for nothing.
+constexpr double kMinimumDamage = 1.0;
+
+// The multiplier on a whole incoming hit for the level gap (GMS's A).
+double TakenLevelMultiplier(int player_level, int mob_level) {
+  int diff = player_level - mob_level;
+  if (diff >= 0) {
+    return kTakenParityMultiplier -
+           kTakenLevelStep * std::min(diff, kTakenAboveCap);
+  }
+  int band =
+      std::clamp((-diff - kTakenBandStart) / kTakenBandWidth, 0, kTakenBandCap);
+  return kTakenParityMultiplier + kTakenLevelStep * band;
+}
+
+// The share of the character's DEF that counts against a mob of this level
+// (GMS's B).
+double DefEffectiveness(int player_level, int mob_level) {
+  int gap = mob_level - player_level;
+  if (gap <= 0) {
+    return 1.0;
+  }
+  if (gap <= kDefEffectivenessNearGap) {
+    return 1.0 - kDefEffectivenessNearStep * gap;
+  }
+  double near = 1.0 - kDefEffectivenessNearStep * kDefEffectivenessNearGap;
+  return std::max(
+      kDefEffectivenessFloor,
+      near - kDefEffectivenessFarStep * (gap - kDefEffectivenessNearGap));
+}
+
+// What DEF cancels from one roll. `cap` is the most this roll allows it to,
+// `effectiveness` GMS's B.
+double DefenseReduction(double def, double effectiveness, double cap) {
+  if (def >= cap) {
+    // Enough armour to be sitting on the cap even before the under-levelling
+    // penalty: GMS waives the penalty rather than charge it to a character it
+    // could not have helped anyway.
+    return cap;
+  }
+  return effectiveness * def;
+}
+
 }  // namespace
 
 double LevelMultiplier(int player_level, int mob_level) {
@@ -168,6 +242,23 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
     return 1.0;  // 40+ levels under the mob: output is floored to 1 damage.
   }
   return damage * level_mult;
+}
+
+double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
+  double attack = mob.attack();
+  double def = defense.def;
+  double effectiveness = DefEffectiveness(defense.level, mob.level());
+  double max_hit =
+      attack - DefenseReduction(def, effectiveness, kMaxRollDefCap * attack);
+  double min_hit =
+      kMinRollAttack * attack -
+      DefenseReduction(def, effectiveness, kMinRollDefCap * attack);
+  double damage = TakenLevelMultiplier(defense.level, mob.level()) *
+                  ((min_hit + max_hit) / 2.0);
+  // Reduction from skills and gear lands after the whole defense formula, and
+  // multiplies rather than adds -- see DerivedStats::damage_taken_pct.
+  damage *= 1.0 - defense.damage_taken_pct;
+  return std::max(kMinimumDamage, damage);
 }
 
 int CombatPower(const OffenseStats& offense) {

@@ -1,6 +1,7 @@
-/* How hard, and how often, the player hits: the GMS damage formula and the
- * attack-speed timing that feeds it. Pure math over a character's stats and a
- * mob -- no game state, no notion of a fight in progress.
+/* How hard, and how often, the player hits, and how hard a mob hits back: the
+ * GMS damage formulas and the attack-speed timing that feeds them. Pure math
+ * over a character's stats and a mob -- no game state, no notion of a fight in
+ * progress.
  */
 #ifndef MS_SRC_COMBAT_DAMAGE_H_
 #define MS_SRC_COMBAT_DAMAGE_H_
@@ -71,6 +72,29 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob);
 // point of critical damage the same whether it lands every swing or never,
 // which our own damage chain does not.
 int CombatPower(const OffenseStats& offense);
+
+// What a character brings to being hit. The defensive mirror of OffenseStats:
+// DerivedStatsFor produces both fields, and the character's own level decides
+// how much of the DEF actually counts.
+struct DefenseStats {
+  int level = 0;
+  int def = 0;
+  // The share of incoming damage cancelled after the formula below has run
+  // (0.10 == 10% less taken).
+  double damage_taken_pct = 0.0;
+};
+
+// Expected damage of one hit from `mob` -- its minimum and maximum rolls
+// averaged, no RNG -- floored at 1 the way GMS floors it.
+//
+// DEF subtracts flatly from the mob's attack, but only up to a cap: it can
+// never cancel more than 80% of the attack on a maximum roll, so even an
+// absurdly armoured character still takes about a fifth of what the mob swings
+// for. That cap is the whole shape of the thing. On a map near the character's
+// own level their DEF clears it easily and more armour buys nothing; on a map
+// far above it DEF is the small number, the cap never binds, and the mob's
+// attack lands close to full.
+double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob);
 
 // Damage multiplier from the level gap between attacker and monster (the GMS
 // "level multiplier", always applied): a small bonus at or above the monster's
