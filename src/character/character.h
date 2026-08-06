@@ -216,6 +216,11 @@ class CharacterInstance {
                ? character_.skill_levels().at(skill.name())
                : 0;
   }
+  // Whether `advancement` is one this character has actually taken. Every
+  // first job's skills draw on the same stage-1 SP pool, so the stage alone
+  // does not say whose book a skill is from -- without this a Swordman could
+  // spend their points on an Archer's.
+  bool HasAdvancement(JobAdvancement advancement) const;
   // Whether the character has learned whatever `skill` demands be learned
   // first. True for a skill that demands nothing, which is most of them.
   // LearnSkill refuses when this is false; the skills tab asks it directly so

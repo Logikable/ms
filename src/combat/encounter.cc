@@ -165,6 +165,12 @@ CombatParams ComputeCombatParams(const GameState& state) {
     if (!DealsDamage(skill.kind())) {
       continue;
     }
+    // Another branch's book can share a skill's display name, and learned
+    // levels are keyed by that name -- so ask whose book this is before
+    // reading a level off it. See CharacterInstance::HasAdvancement.
+    if (!state.character.HasAdvancement(skill.job_advancement())) {
+      continue;
+    }
     // A skill the weapon in hand cannot swing is not an option, however well
     // learned. The bare poke always is, so the character is never left with
     // nothing to attack with.

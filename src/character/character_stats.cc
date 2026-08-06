@@ -51,6 +51,14 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     if (skill.kind() != SKILL_KIND_PASSIVE) {
       continue;
     }
+    // Learned levels are keyed by display name, and the warrior branches share
+    // several names between them -- a Spearman's Weapon Mastery and a Page's
+    // are two entries in this catalog answering to one learned level. Only the
+    // character's own book counts, or the other branch's copy would fold in
+    // beside it.
+    if (!character.HasAdvancement(skill.job_advancement())) {
+      continue;
+    }
     int level = character.skill_level(skill);
     if (level <= 0) {
       continue;

@@ -22,6 +22,7 @@ CharacterInstance MakeCharacter(std::mt19937& rng, int level, int hp,
                                 int mp = 0) {
   Character proto;
   proto.set_level(level);
+  proto.set_job(JOB_SWORDMAN);
   proto.set_job_stage(1);
   proto.mutable_allocated_stats()->set_hp(hp);
   proto.mutable_allocated_stats()->set_mp(mp);
@@ -49,6 +50,7 @@ CharacterInstance MakeStatCharacter(std::mt19937& rng, int str, int dex,
                                     int int_, int luk) {
   Character proto;
   proto.set_level(1);
+  proto.set_job(JOB_SWORDMAN);
   proto.set_job_stage(1);
   AllocatedStats* stats = proto.mutable_allocated_stats();
   stats->set_str(str);
@@ -110,12 +112,14 @@ Skill MpBoost() {
   return skill;
 }
 
-// Nimble Body: +1 LUK a level, the rogue's whole passive.
+// Nimble Body's shape -- +1 LUK a level -- filed under the warrior's book.
+// These tests are about how a lever folds, not about whose book it came from,
+// and a skill of another job is one this character cannot learn at all.
 Skill NimbleBody() {
   Skill skill;
   skill.set_name("Nimble Body");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_ROGUE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
   skill.mutable_base()->set_luk(1);
   skill.mutable_per_level()->set_luk(1);
@@ -163,12 +167,13 @@ Skill FinalAttack() {
   return skill;
 }
 
-// Archery Mastery: +1 attack speed stage, flat at every level.
+// Archery Mastery's shape: +1 attack speed stage, flat at every level. Filed
+// under the warrior's book for the reason Nimble Body is.
 Skill ArcheryMastery() {
   Skill skill;
   skill.set_name("Archery Mastery");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_ARCHER);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(15);
   skill.mutable_base()->set_attack_speed(1);
   return skill;
@@ -487,6 +492,45 @@ TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_EQ(stats.max_hp, 50);
   EXPECT_EQ(stats.def, 0);
+}
+
+// Fighter, Page and Spearman share four skill names between them, and learned
+// levels are keyed by display name -- so one catalog holds several entries
+// answering to a single learned level. Only the character's own book may fold
+// in, or the other branch's copy doubles it.
+TEST_F(DerivedStatsTest, AnotherBranchsCopyOfASharedNameIsIgnored) {
+  Character proto;
+  proto.set_level(60);
+  proto.set_job(JOB_SPEARMAN);
+  proto.set_job_stage(2);
+  (*proto.mutable_skill_levels())["Physical Training"] = 5;
+  CharacterInstance c(rng_, std::move(proto));
+
+  Skill mine = PhysicalTraining();
+  mine.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  Skill theirs = mine;
+  theirs.set_job_advancement(JOB_ADVANCEMENT_FIGHTER);
+  std::map<std::string, Skill> skills = {{"spearman_physical_training", mine},
+                                         {"fighter_physical_training", theirs}};
+
+  // 30 STR, not 60: the Fighter's entry is a different job's book.
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
+}
+
+// And the character's own book still folds in, which is the other half of the
+// same check.
+TEST_F(DerivedStatsTest, TheCharactersOwnBookStillCounts) {
+  Character proto;
+  proto.set_level(60);
+  proto.set_job(JOB_SPEARMAN);
+  proto.set_job_stage(2);
+  (*proto.mutable_skill_levels())["Physical Training"] = 5;
+  CharacterInstance c(rng_, std::move(proto));
+
+  Skill mine = PhysicalTraining();
+  mine.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  std::map<std::string, Skill> skills = {{"spearman_physical_training", mine}};
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 
 }  // namespace

@@ -53,9 +53,14 @@ class AdvanceJobTest : public CharacterTest {};
 // character.
 class LearnSkillTest : public CharacterTest {};
 
-// A character carrying `sp` skill points in `stage` and nothing else.
-CharacterInstance MakeCharacterWithSp(std::mt19937& rng, int stage, int sp) {
+// A character carrying `sp` skill points in `stage` and nothing else -- a
+// Swordman, because the points are only spendable on a book the character's
+// own job has, and the stage alone does not say whose book that is.
+CharacterInstance MakeCharacterWithSp(std::mt19937& rng, int stage, int sp,
+                                      Job job = JOB_SWORDMAN) {
   Character proto;
+  proto.set_job(job);
+  proto.set_job_stage(stage);
   (*proto.mutable_sp_by_stage())[stage] = sp;
   return CharacterInstance(rng, std::move(proto));
 }
@@ -677,18 +682,58 @@ TEST_F(LearnSkillTest, RejectsNonPositiveAmount) {
 }
 
 TEST_F(LearnSkillTest, SpendsFromTheAdvancementsStage) {
-  // A 1st-job skill draws from stage-1 SP; SP parked in another stage is
-  // untouchable to it. (A skill on a stage-2 advancement can't be exercised
-  // until such an advancement exists -- see AdvancementForJobStage.)
+  // Each book draws on its own stage's points, and a Spearman holds two.
   Character proto;
+  proto.set_job(JOB_SPEARMAN);
+  proto.set_job_stage(2);
   (*proto.mutable_sp_by_stage())[1] = 5;
   (*proto.mutable_sp_by_stage())[2] = 5;
   CharacterInstance c(rng_, std::move(proto));
-  Skill skill =
+
+  Skill first =
       MakeSkill("Slash Blast", JOB_ADVANCEMENT_SWORDMAN, /*max_level=*/20);
-  EXPECT_TRUE(c.LearnSkill(skill, 5));
+  EXPECT_TRUE(c.LearnSkill(first, 5));
   EXPECT_EQ(c.sp(1), 0);
   EXPECT_EQ(c.sp(2), 5);  // stage 2 untouched
+
+  Skill second =
+      MakeSkill("Spear Sweep", JOB_ADVANCEMENT_SPEARMAN, /*max_level=*/20);
+  EXPECT_TRUE(c.LearnSkill(second, 5));
+  EXPECT_EQ(c.sp(2), 0);
+}
+
+// Every first job's skills sit at stage 1, so the stage alone does not say
+// whose book a skill is from. Without the check, a Swordman's points would
+// buy an Archer's skills.
+TEST_F(LearnSkillTest, RejectsAnotherJobsBook) {
+  CharacterInstance c = MakeCharacterWithSp(rng_, /*stage=*/1, /*sp=*/5);
+  Skill skill =
+      MakeSkill("Arrow Blow", JOB_ADVANCEMENT_ARCHER, /*max_level=*/20);
+  EXPECT_FALSE(c.HasAdvancement(JOB_ADVANCEMENT_ARCHER));
+  EXPECT_FALSE(c.LearnSkill(skill));
+  EXPECT_EQ(c.sp(1), 5);
+}
+
+// The second book is not open to a character who has not taken the second
+// advancement, however many points they are holding.
+TEST_F(LearnSkillTest, RejectsABookFromAnAdvancementNotYetTaken) {
+  Character proto;
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  (*proto.mutable_sp_by_stage())[2] = 5;  // points they cannot have earned yet
+  CharacterInstance c(rng_, std::move(proto));
+  Skill skill =
+      MakeSkill("Spear Sweep", JOB_ADVANCEMENT_SPEARMAN, /*max_level=*/20);
+  EXPECT_FALSE(c.HasAdvancement(JOB_ADVANCEMENT_SPEARMAN));
+  EXPECT_FALSE(c.LearnSkill(skill));
+}
+
+TEST_F(LearnSkillTest, ASpearmanStillHoldsTheirSwordmanBook) {
+  CharacterInstance c =
+      MakeCharacterWithSp(rng_, /*stage=*/2, /*sp=*/5, JOB_SPEARMAN);
+  EXPECT_TRUE(c.HasAdvancement(JOB_ADVANCEMENT_SWORDMAN));
+  EXPECT_TRUE(c.HasAdvancement(JOB_ADVANCEMENT_SPEARMAN));
+  EXPECT_FALSE(c.HasAdvancement(JOB_ADVANCEMENT_ROGUE));
 }
 
 TEST_F(LearnSkillTest, RejectsASkillWithNoAdvancement) {

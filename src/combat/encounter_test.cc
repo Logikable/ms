@@ -91,12 +91,15 @@ void EquipClaw(GameState& state) {
   state.character.Equip(0);
 }
 
-// A passive that adds `stages` of attack speed, flat at every level.
+// A passive that adds `stages` of attack speed, flat at every level. Filed
+// under the warrior's book because these tests are about the swing clock, not
+// about whose book the passive came out of -- and a character can only spend
+// on their own.
 Skill SpeedPassive(int stages) {
   Skill skill;
   skill.set_name("Haste");
   skill.set_kind(SKILL_KIND_PASSIVE);
-  skill.set_job_advancement(JOB_ADVANCEMENT_ARCHER);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(1);
   skill.mutable_base()->set_attack_speed(stages);
   return skill;
@@ -150,7 +153,17 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
 // with the character's level (see GameSpeedFactor). Any test comparing two
 // swing intervals has to buy its SP before measuring either of them, or it
 // measures the pacing band rather than the thing it meant to.
-void GrantFirstJobSp(GameState& state, int points) {
+void GrantFirstJobSp(GameState& state, int points, Job job = JOB_SWORDMAN) {
+  // A skill belongs to one job's book and only that job can spend on it, so
+  // the character takes the advancement the skill under test belongs to before
+  // buying any of it. A character already advanced is left where they are.
+  while (state.character.proto().job_stage() < 1) {
+    if (state.character.CanAdvanceJob()) {
+      state.character.AdvanceJob(job);
+    } else {
+      state.character.LevelUp();
+    }
+  }
   while (state.character.sp(1) < points) {
     state.character.LevelUp();
   }
@@ -292,7 +305,7 @@ TEST(ComputeCombatParamsTest, AttacksTheWeaponCannotSwingAreNotOptions) {
                   {{"field", TwoSnailMap()}}, {{"lucky_seven", lucky_seven}});
   state.current_map = "field";
   EquipSword(state);  // a one-handed sword, not a claw
-  GrantFirstJobSp(state, 1);
+  GrantFirstJobSp(state, 1, JOB_ROGUE);
   ASSERT_TRUE(state.character.LearnSkill(lucky_seven, 1));
 
   // Learned, and still not on the list -- but the poke always is, so the
@@ -314,7 +327,7 @@ TEST(ComputeCombatParamsTest, AttacksTheWeaponCanSwingAreOptions) {
                   {{"field", TwoSnailMap()}}, {{"lucky_seven", lucky_seven}});
   state.current_map = "field";
   EquipClaw(state);
-  GrantFirstJobSp(state, 1);
+  GrantFirstJobSp(state, 1, JOB_ROGUE);
   ASSERT_TRUE(state.character.LearnSkill(lucky_seven, 1));
 
   CombatParams params = ComputeCombatParams(state);

@@ -427,6 +427,19 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
+bool CharacterInstance::HasAdvancement(JobAdvancement advancement) const {
+  if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+    return false;
+  }
+  int stage = StageForAdvancement(advancement);
+  if (stage <= 0 || stage > character_.job_stage()) {
+    return false;
+  }
+  // The stage is one the character has reached; the question left is whether
+  // it is their own branch of it.
+  return AdvancementForJobStage(character_.job(), stage) == advancement;
+}
+
 bool CharacterInstance::MeetsSkillRequirement(const Skill& skill) const {
   if (!skill.has_required_skill()) {
     return true;
@@ -442,6 +455,9 @@ bool CharacterInstance::MeetsSkillRequirement(const Skill& skill) const {
 
 bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (amount <= 0) {
+    return false;
+  }
+  if (!HasAdvancement(skill.job_advancement())) {
     return false;
   }
   if (!MeetsSkillRequirement(skill)) {
