@@ -201,6 +201,29 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "death_popup_panel",
+    srcs = ["death_popup_panel.cc"],
+    hdrs = ["death_popup_panel.h"],
+    deps = [
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "death_popup_panel_test",
+    srcs = ["death_popup_panel_test.cc"],
+    deps = [
+        ":death_popup_panel",
+        ":level_up_popup_panel",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "hotkeys_panel_test",
     srcs = ["hotkeys_panel_test.cc"],

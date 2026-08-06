@@ -482,6 +482,13 @@ void Tui::Tick() {
   celebration_.Advance(elapsed.count());
   celebration_.Visit(FocusedPanel());
   NoticeProgress();
+  // Last, so that dying wins the card over anything else this tick turned up.
+  // A level earned on the way down is still a level, and its gold is still
+  // lit -- but what the player needs told is that they are no longer where
+  // they thought they were.
+  if (combat_sim_.died_this_step()) {
+    celebration_.BeginDeath();
+  }
 }
 
 Panel Tui::FocusedPanel() const {

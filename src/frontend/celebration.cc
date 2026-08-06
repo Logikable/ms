@@ -5,6 +5,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/progression.h"
 #include "src/frontend/panels/advancement_popup_panel.h"
+#include "src/frontend/panels/death_popup_panel.h"
 #include "src/frontend/panels/level_up_popup_panel.h"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
@@ -63,6 +64,14 @@ void Celebration::BeginAdvancement(Job from_job, Job to_job, Panel focused) {
   Light(kCharPanel, focused);
 }
 
+void Celebration::BeginDeath() {
+  kind_ = Kind::kDeath;
+  card_seconds_ = kCelebrationSeconds;
+  // glow_ and glow_seconds_ are deliberately left where they are -- see the
+  // header. This is the one card that points nowhere, so it takes no panel
+  // and gives none back.
+}
+
 void Celebration::Advance(double elapsed_seconds) {
   card_seconds_ = std::max(0.0, card_seconds_ - elapsed_seconds);
   glow_seconds_ = std::max(0.0, glow_seconds_ - elapsed_seconds);
@@ -99,6 +108,9 @@ bool Celebration::Lights(Panel panel) const {
 }
 
 ftxui::Element Celebration::Render() const {
+  if (kind_ == Kind::kDeath) {
+    return DeathPopupPanel();
+  }
   if (kind_ == Kind::kAdvancement) {
     return AdvancementPopupPanel(from_job_, to_job_);
   }

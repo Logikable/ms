@@ -126,6 +126,7 @@ cc_library(
         ":types",
         "//src/character:progression",
         "//src/frontend/panels:advancement_popup_panel",
+        "//src/frontend/panels:death_popup_panel",
         "//src/frontend/panels:level_up_popup_panel",
         "//src/protos:character_proto_cc",
         "@ftxui//:dom",

@@ -1,5 +1,11 @@
-/* The few seconds after something good happens: the card across the middle of
- * the screen, and the panels lit gold behind it.
+/* The few seconds after something worth stopping for happens: the card across
+ * the middle of the screen, and the panels lit gold behind it.
+ *
+ * Mostly that is good news, and the name says so. Death rides the same
+ * mechanism -- one card at a time, four seconds, dismissed by any key -- so it
+ * lives here rather than in a second copy of all of it that could put a second
+ * card on screen beside this one. It lights no panels: there is nowhere it is
+ * sending the player.
  *
  * Kept apart from Tui so the decisions in it can be tested -- how long the
  * moment lasts, which panels it points at, what the card says -- while Tui is
@@ -33,7 +39,7 @@ constexpr double kCelebrationSeconds = 4.0;
 
 class Celebration {
  public:
-  enum class Kind { kNone, kLevelUp, kAdvancement };
+  enum class Kind { kNone, kLevelUp, kAdvancement, kDeath };
 
   // Starts the level-up card for a climb from `from_level` to `to_level`,
   // paying `ap` and `sp` in total. `focused` is the panel the player is on at
@@ -52,6 +58,15 @@ class Celebration {
   // the second waiting behind the first for something the player never asked
   // for.
   void BeginAdvancement(Job from_job, Job to_job, Panel focused);
+
+  // Starts the death card. Replaces whatever card is up: the player has just
+  // been picked up and put somewhere else, which outranks any news they were
+  // still reading.
+  //
+  // Lights nothing, and puts nothing out either. A panel still waiting to be
+  // visited is a signpost the player has not walked past yet, and dying is no
+  // reason to take it down.
+  void BeginDeath();
 
   // Runs both clocks down by `elapsed_seconds`: the card's, and the one the
   // panels already in front of the player fade on. Safe to call when nothing

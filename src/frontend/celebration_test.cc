@@ -273,5 +273,44 @@ TEST_F(CelebrationTest, AnAdvancementReplacesALevelUpStillOnScreen) {
   EXPECT_NE(CardText(celebration_).find("Advancement"), std::string::npos);
 }
 
+// --- dying ---
+
+TEST_F(CelebrationTest, ADeathRendersTheDeathCard) {
+  celebration_.BeginDeath();
+  ASSERT_TRUE(celebration_.card_visible());
+  EXPECT_EQ(celebration_.kind(), Celebration::Kind::kDeath);
+  std::string text = CardText(celebration_);
+  EXPECT_NE(text.find("Death"), std::string::npos);
+  EXPECT_NE(text.find("You died!"), std::string::npos);
+}
+
+TEST_F(CelebrationTest, TheDeathCardGetsTheSameFourSeconds) {
+  celebration_.BeginDeath();
+  celebration_.Advance(kCelebrationSeconds - 0.3);
+  EXPECT_TRUE(celebration_.card_visible());
+  celebration_.Advance(0.3);
+  EXPECT_FALSE(celebration_.card_visible());
+}
+
+TEST_F(CelebrationTest, ADeathReplacesALevelUpStillOnScreen) {
+  BeginAway(12, 13);
+  celebration_.BeginDeath();
+  EXPECT_EQ(celebration_.kind(), Celebration::Kind::kDeath);
+  EXPECT_EQ(CardText(celebration_).find("Level Up"), std::string::npos);
+}
+
+// Dying lights no panel of its own -- there is nowhere it is sending the
+// player -- and takes down none of the gold a level-up on the way there put
+// up. That signpost has still not been walked past.
+TEST_F(CelebrationTest, ADeathNeitherLightsNorUnlightsAnything) {
+  celebration_.BeginDeath();
+  EXPECT_FALSE(celebration_.Lights(kCharPanel));
+
+  BeginAway(12, 13);
+  ASSERT_TRUE(celebration_.Lights(kCharPanel));
+  celebration_.BeginDeath();
+  EXPECT_TRUE(celebration_.Lights(kCharPanel));
+}
+
 }  // namespace
 }  // namespace ms
