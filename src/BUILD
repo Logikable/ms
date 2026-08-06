@@ -158,6 +158,7 @@ cc_test(
     srcs = ["game_state_test.cc"],
     deps = [
         ":game_state",
+        "//src/character:exp_table",
         "//src/character:progression",
         "//src/item",
         "//src/protos:equip_proto_cc",

@@ -115,5 +115,35 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
   }
 }
 
+// A requirement naming a skill that is not in the catalog locks its skill
+// forever and says so in words the player cannot act on. Learned levels are
+// keyed by display name, so that is what has to match.
+TEST(SkillDataTest, EveryRequirementNamesASkillThatExists) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::map<std::string, const Skill*> by_name;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    by_name[entry.second.name()] = &entry.second;
+  }
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    if (!entry.second.has_required_skill()) {
+      continue;
+    }
+    const SkillRequirement& required = entry.second.required_skill();
+    std::map<std::string, const Skill*>::const_iterator it =
+        by_name.find(required.skill_name());
+    ASSERT_NE(it, by_name.end())
+        << entry.first << " waits on \"" << required.skill_name()
+        << "\", which no skill is called";
+    EXPECT_GT(required.level(), 0) << entry.first;
+    EXPECT_LE(required.level(), it->second->max_level())
+        << entry.first << " waits on a level of " << required.skill_name()
+        << " that cannot be reached";
+    // The two have to share a book, or the requirement is unbuyable until an
+    // advancement the player may never take.
+    EXPECT_EQ(it->second->job_advancement(), entry.second.job_advancement())
+        << entry.first << " waits on a skill from another advancement";
+  }
+}
+
 }  // namespace
 }  // namespace ms

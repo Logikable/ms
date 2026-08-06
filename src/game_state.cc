@@ -14,6 +14,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 
@@ -34,10 +35,16 @@ Character MakeBaseBeginnerProto() {
   return proto;
 }
 
-// How many Level-Up items the workbench opens with. 199 carries a level 1
-// character to 200: past every gate in the unlock table, including the ones
-// above kTrialLevelCap that combat can no longer climb to.
+// How many Level-Up items the workbench opens with. Enough to carry the
+// character it starts as past every gate in the unlock table, including the
+// ones above kTrialLevelCap that combat can no longer climb to -- and to keep
+// earning AP and SP past the cap, since LevelUp is not bounded by it.
 constexpr int kTestLevelUpItems = 199;
+
+// Where the workbench's character stands: the end of 2nd job, holding the
+// whole of what this game has to hand out.
+constexpr int kTestLevel = 60;
+constexpr Job kTestJobPath[] = {JOB_SWORDMAN, JOB_SPEARMAN};
 
 // Puts a copy of the named equip in the bag, or does nothing if the catalog
 // has no such entry. Lets a GameState be built for a test without the game's
@@ -49,6 +56,37 @@ void GiveEquip(GameState& state, const std::string& name) {
     return;
   }
   state.character.PickUp(std::make_unique<EquipInstance>(it->second));
+}
+
+// Climbs the workbench's character to the end of 2nd job the way a player
+// gets there, so nothing it holds is out of a player's reach -- it is thirty
+// hours of grinding, handed over.
+//
+// Everything earned on the way is spent: AP into the job's primary stat, SP
+// into whatever it will buy. A workbench hands over finished states, and a
+// level 60 with an unspent pool would still need a hundred and fifty
+// keypresses before any of 2nd job was on screen. The Level-Up items are what
+// is left for exercising the two allocation screens -- LevelUp is not bounded
+// by the trial cap, so there is always more AP and SP to be had.
+void GrowToSecondJob(GameState& state) {
+  CharacterInstance& character = state.character;
+  int taken = 0;
+  while (character.proto().level() < kTestLevel) {
+    character.LevelUp();
+    if (character.CanAdvanceJob() &&
+        taken <
+            static_cast<int>(sizeof(kTestJobPath) / sizeof(kTestJobPath[0]))) {
+      character.AdvanceJob(kTestJobPath[taken++]);
+    }
+    // After the advancement, not before: it puts every allocated point back in
+    // the pool and re-spends it for the new job.
+    while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
+    }
+    for (const std::pair<const std::string, Skill>& entry : state.skills) {
+      while (character.LearnSkill(entry.second)) {
+      }
+    }
+  }
 }
 
 // A player starts armed and with nothing else: the Sword is worn rather than
@@ -119,6 +157,10 @@ void SeedTest(GameState& state) {
     // Fresh Fafnir -- the base item that recovering the trace consumes.
     state.character.PickUp(std::make_unique<EquipInstance>(fafnir->second));
   }
+
+  // Last, so the advancement's stat reset lands on a character already
+  // holding their gear rather than tearing through it afterwards.
+  GrowToSecondJob(state);
 
   // The weakest hunting ground there is; the tester picks anywhere else from
   // the map select.

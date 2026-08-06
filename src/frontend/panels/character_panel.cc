@@ -346,22 +346,31 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = level >= skill.max_level();
   bool has_sp = character_.sp(StageForAdvancement(skill.job_advancement())) > 0;
+  // A skill still waiting on another one is not a skill this character has
+  // yet, so the whole row dims -- name included. Running out of SP dims the
+  // [+] alone, because that is a thing about the moment rather than about the
+  // skill.
+  bool locked = !character_.MeetsSkillRequirement(skill);
 
   // Only the name inverts. Enter opens the skill, so the highlight covers the
   // skill and nothing else; the level beside it is a fact about the row, not a
-  // second thing to press.
+  // second thing to press. A locked skill still opens -- the screen behind it
+  // is where the player finds out what is holding it up.
   ftxui::Element name = ftxui::text(skill.name());
   if (selected && skill_col_ == kColName) {
     name = name | ftxui::inverted;
+  } else if (locked) {
+    name = name | ftxui::dim;
   }
   ftxui::Element level_text = ftxui::text("  " + std::to_string(level) + "/" +
                                           std::to_string(skill.max_level()));
+  if (locked) {
+    level_text = level_text | ftxui::dim;
+  }
   ftxui::Element plus = ftxui::text("[+]");
   if (selected && skill_col_ == kColPlus) {
     plus = plus | ftxui::inverted;
-  } else if (maxed || !has_sp) {
-    // Only the [+] dims: there is nothing to spend, but the row is still worth
-    // reading, and the name opens a screen that says why.
+  } else if (maxed || !has_sp || locked) {
     plus = plus | ftxui::dim;
   }
   return ftxui::hbox({

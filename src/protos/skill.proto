@@ -57,6 +57,17 @@ message SkillEffect {
   double final_attack_pct = 16;
 }
 
+// A skill that has to be learned to a level before another can be bought at
+// all. GMS states this in the description; here it is structured, because the
+// skills tab has to enforce it as well as say it.
+//
+// `skill_name` is the required skill's display name -- the same key a
+// character's learned levels are held under, so the check needs no catalog.
+message SkillRequirement {
+  string skill_name = 1;
+  int32 level = 2;
+}
+
 // Static definition of a skill. Loaded from data/skills textprotos at startup,
 // keyed by filename stem; the Character's skill_levels map references the skill
 // by its display `name`. The effect at learned level L is base + per_level *
@@ -98,4 +109,7 @@ message Skill {
   // cooldown skill is one the player would fire the moment it came back.
   // Ignored for every other kind. A skill with no interval never fires.
   double cast_interval_seconds = 11;
+  // What must be learned first, if anything. Named `required_skill` rather
+  // than `requires`, which C++20 has taken for itself.
+  SkillRequirement required_skill = 12;
 }

@@ -283,5 +283,23 @@ TEST_F(SkillInspectPanelTest, ReadsTheNewStatLevers) {
   EXPECT_NE(out.find("Mastery        14%"), std::string::npos);
 }
 
+// GMS writes what must come first into the description, and so does this --
+// but from the requirement, not from a sentence typed beside it, so the
+// wording and the rule cannot drift apart.
+TEST_F(SkillInspectPanelTest, SpellsOutWhatMustBeLearnedFirst) {
+  Skill skill = MakeIronBody();
+  skill.set_name("Hyper Body");
+  skill.mutable_required_skill()->set_skill_name("Iron Wall");
+  skill.mutable_required_skill()->set_level(3);
+
+  EXPECT_NE(RenderAt(skill, 1).find("Required Skill: Iron Wall Lv. 3+"),
+            std::string::npos);
+}
+
+TEST_F(SkillInspectPanelTest, SaysNothingAboutRequirementsWhenThereAreNone) {
+  EXPECT_EQ(RenderAt(MakeIronBody(), 1).find("Required Skill"),
+            std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

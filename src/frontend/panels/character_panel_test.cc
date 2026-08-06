@@ -97,6 +97,28 @@ std::string InversionMask(ftxui::Component comp, const std::string& needle) {
   return "";
 }
 
+// The dim flag of the cell under the first character of `needle`. Dimming is
+// how a row says it cannot be spent on, and the byte-offset caveat above
+// applies here too.
+bool IsDim(ftxui::Component comp, const std::string& needle) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, comp->Render());
+  int len = static_cast<int>(needle.size());
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x + len <= screen.dimx(); ++x) {
+      std::string got;
+      for (int i = 0; i < len; ++i) {
+        got += screen.PixelAt(x + i, y).character;
+      }
+      if (got == needle) {
+        return screen.PixelAt(x, y).dim;
+      }
+    }
+  }
+  return false;
+}
+
 // Whether the cell under the first character of `needle` is inverted.
 bool IsInverted(ftxui::Component comp, const std::string& needle) {
   std::string mask = InversionMask(comp, needle);
@@ -881,6 +903,64 @@ TEST_F(CharacterPanelTest, OpeningTheAdvanceTabStopsItAnnouncingItself) {
   EXPECT_TRUE(c.TabSeen(AdvanceTabKey(1)))
       << "recorded against the stage being advanced into, so the next "
          "advancement is news again";
+}
+
+// --- skills waiting on another skill ---
+
+// Hyper Body's shape: three points in Iron Wall come first.
+Skill MakeGatedSkill() {
+  Skill skill;
+  skill.set_name("Hyper Body");
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(10);
+  skill.mutable_required_skill()->set_skill_name("Slash Blast");
+  skill.mutable_required_skill()->set_level(3);
+  return skill;
+}
+
+std::map<std::string, Skill> GatedCatalog() {
+  std::map<std::string, Skill> catalog;
+  catalog["hyper_body"] = MakeGatedSkill();
+  return catalog;
+}
+
+// A skill the character cannot buy yet is not a skill they have. The whole row
+// goes dim, not only the [+], because what is missing is the skill rather than
+// the points.
+TEST_F(CharacterPanelTest, ASkillWaitingOnAnotherDimsItsWholeRow) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/20);
+  CharacterPanel panel(c, panel_focus_, GatedCatalog());
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, [](const Skill&) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
+  EXPECT_TRUE(IsDim(comp, "Hyper Body"));
+  EXPECT_TRUE(IsDim(comp, "[+]"));
+}
+
+TEST_F(CharacterPanelTest, MeetingTheRequirementUndimsTheRow) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  (*proto.mutable_sp_by_stage())[1] = 20;
+  (*proto.mutable_skill_levels())["Slash Blast"] = 3;
+  CharacterInstance c(rng_, std::move(proto));
+  CharacterPanel panel(c, panel_focus_, GatedCatalog());
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, [](const Skill&) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
+  EXPECT_FALSE(IsDim(comp, "Hyper Body"));
+  EXPECT_FALSE(IsDim(comp, "[+]"));
+}
+
+// An ordinary skill with SP behind it must not be dimmed by the check.
+TEST_F(CharacterPanelTest, ASkillDemandingNothingIsNotDimmed) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/20);
+  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, [](const Skill&) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
+  EXPECT_FALSE(IsDim(comp, "Slash Blast"));
 }
 
 }  // namespace

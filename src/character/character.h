@@ -216,6 +216,11 @@ class CharacterInstance {
                ? character_.skill_levels().at(skill.name())
                : 0;
   }
+  // Whether the character has learned whatever `skill` demands be learned
+  // first. True for a skill that demands nothing, which is most of them.
+  // LearnSkill refuses when this is false; the skills tab asks it directly so
+  // it can dim a row rather than let the player press an unspendable [+].
+  bool MeetsSkillRequirement(const Skill& skill) const;
   // The whole character as one proto, with the live containers -- the equip
   // tab, the worn items and the Use/Etc stacks -- folded back into the fields
   // held for them. proto() alone does not carry those: they live in C++

@@ -427,8 +427,24 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
+bool CharacterInstance::MeetsSkillRequirement(const Skill& skill) const {
+  if (!skill.has_required_skill()) {
+    return true;
+  }
+  const SkillRequirement& required = skill.required_skill();
+  // Learned levels are keyed by display name, which is exactly what the
+  // requirement names -- so this needs no catalog to resolve.
+  google::protobuf::Map<std::string, int32_t>::const_iterator it =
+      character_.skill_levels().find(required.skill_name());
+  int level = it == character_.skill_levels().end() ? 0 : it->second;
+  return level >= required.level();
+}
+
 bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (amount <= 0) {
+    return false;
+  }
+  if (!MeetsSkillRequirement(skill)) {
     return false;
   }
   int stage = StageForAdvancement(skill.job_advancement());

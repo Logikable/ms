@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "src/character/exp_table.h"
 #include "src/character/progression.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
@@ -40,6 +41,28 @@ GameState MakeTestModeState() {
 
 GameState MakePlayModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kPlay);
+}
+
+// One skill of each advancement the workbench's character passes through, so
+// the seeding has a book to spend its SP on. The levels are the real ones, so
+// what a stage's pool buys is the real question too.
+std::map<std::string, Skill> TwoStageBook() {
+  Skill first;
+  first.set_name("Slash Blast");
+  first.set_kind(SKILL_KIND_ATTACK);
+  first.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  first.set_max_level(60);
+  Skill second;
+  second.set_name("Spear Sweep");
+  second.set_kind(SKILL_KIND_ATTACK);
+  second.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  second.set_max_level(90);
+  return {{"slash_blast", first}, {"spear_sweep", second}};
+}
+
+GameState MakeTestModeStateWithSkills() {
+  return GameState(SwordCatalog(), {}, {}, {}, {}, TwoStageBook(),
+                   GameMode::kTest);
 }
 
 // The item catalog under the key test mode's seeding asks for.
@@ -101,20 +124,34 @@ TEST(GameStateTest, ConstructorStoresMapsMap) {
   EXPECT_EQ(state.maps.at("lith").name(), "Right Around Lith Harbor");
 }
 
-// The workbench starts where the game does. It used to open at level 10
-// standing at its first advancement, but the game reveals itself a level at a
-// time now and starting part way up would skip the half worth watching.
-TEST(GameStateTest, BothModesStartTheSameCharacter) {
-  GameState play = MakePlayModeState();
+// The workbench opens on a finished character, because everything past level
+// thirty is otherwise thirty hours away and there is no other way to look at
+// it. Play mode is where the climb is worth watching a level at a time.
+TEST(GameStateTest, TestModeStartsAtTheEndOfSecondJob) {
   GameState test = MakeTestModeState();
-  EXPECT_EQ(test.character.proto().level(), 1);
-  EXPECT_EQ(test.character.proto().level(), play.character.proto().level());
-  EXPECT_EQ(test.character.proto().ap(), 0);
-  EXPECT_EQ(test.character.proto().job(), JOB_BEGINNER);
+  EXPECT_EQ(test.character.proto().level(), kTrialLevelCap);
+  EXPECT_EQ(test.character.proto().job(), JOB_SPEARMAN);
+  EXPECT_EQ(test.character.proto().job_stage(), 2);
+  // Nothing left standing between the tester and the screens: no advancement
+  // waiting to be taken, and no pool waiting to be spent.
   EXPECT_FALSE(test.character.CanAdvanceJob());
+  EXPECT_EQ(test.character.proto().ap(), 0);
 }
 
-// How the workbench climbs instead: a bag of levels, spent on demand.
+TEST(GameStateTest, TestModeStartsWithBothBooksBought) {
+  GameState state = MakeTestModeStateWithSkills();
+  EXPECT_EQ(state.character.sp(1), 0);
+  EXPECT_EQ(state.character.sp(2), 0);
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    EXPECT_EQ(state.character.skill_level(entry.second),
+              entry.second.max_level())
+        << entry.first << " is left part-bought";
+  }
+}
+
+// Levels past the workbench's starting sixty, spent on demand. LevelUp is not
+// bounded by the trial cap, so this is also where more AP and SP come from
+// once the seeding has spent what the climb to sixty earned.
 TEST(GameStateTest, TestModeStartsWithLevelUpItems) {
   GameState state = MakeTestModeStateWithItems();
   const std::vector<StackableItem>& use =

@@ -452,6 +452,68 @@ TEST(JobChoicesTest, ASecondJobWarriorStillCarriesTheirSwordmanSkills) {
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_SPEARMAN), 2);
 }
 
+// --- skill requirements ---
+
+// Hyper Body's shape: it wants three points in Iron Wall first.
+Skill MakeGatedSkill() {
+  Skill skill;
+  skill.set_name("Hyper Body");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  skill.set_max_level(10);
+  skill.mutable_required_skill()->set_skill_name("Iron Wall");
+  skill.mutable_required_skill()->set_level(3);
+  return skill;
+}
+
+Skill MakeGateSkill() {
+  Skill skill;
+  skill.set_name("Iron Wall");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  skill.set_max_level(10);
+  return skill;
+}
+
+// A Spearman with SP to spend in their second-job pool.
+CharacterInstance MakeSpearman(std::mt19937& rng, int sp) {
+  Character proto;
+  proto.set_level(60);
+  proto.set_job(JOB_SPEARMAN);
+  proto.set_job_stage(2);
+  (*proto.mutable_sp_by_stage())[2] = sp;
+  return CharacterInstance(rng, std::move(proto));
+}
+
+TEST_F(CharacterTest, ASkillWaitingOnAnotherCannotBeLearned) {
+  CharacterInstance c = MakeSpearman(rng_, 20);
+  EXPECT_FALSE(c.MeetsSkillRequirement(MakeGatedSkill()));
+  EXPECT_FALSE(c.LearnSkill(MakeGatedSkill()));
+  EXPECT_EQ(c.skill_level(MakeGatedSkill()), 0);
+  EXPECT_EQ(c.sp(2), 20);  // and the point is not taken either
+}
+
+TEST_F(CharacterTest, PartOfTheRequirementIsStillNotEnough) {
+  CharacterInstance c = MakeSpearman(rng_, 20);
+  ASSERT_TRUE(c.LearnSkill(MakeGateSkill(), 2));
+  EXPECT_FALSE(c.MeetsSkillRequirement(MakeGatedSkill()));
+  EXPECT_FALSE(c.LearnSkill(MakeGatedSkill()));
+}
+
+TEST_F(CharacterTest, MeetingTheRequirementOpensTheSkill) {
+  CharacterInstance c = MakeSpearman(rng_, 20);
+  ASSERT_TRUE(c.LearnSkill(MakeGateSkill(), 3));
+  EXPECT_TRUE(c.MeetsSkillRequirement(MakeGatedSkill()));
+  EXPECT_TRUE(c.LearnSkill(MakeGatedSkill()));
+  EXPECT_EQ(c.skill_level(MakeGatedSkill()), 1);
+}
+
+// Most skills demand nothing, and must not be held up by the check.
+TEST_F(CharacterTest, ASkillDemandingNothingIsAlwaysOpen) {
+  CharacterInstance c = MakeSpearman(rng_, 20);
+  EXPECT_TRUE(c.MeetsSkillRequirement(MakeGateSkill()));
+}
+
 // --- ResetStatsForJob ---
 
 // The stats a level-10 Beginner carries, straight from the starting proto.

@@ -5,6 +5,10 @@ description: "Steels your body, raising your Max HP and Max MP alike."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10
+required_skill {
+  skill_name: "Iron Wall"
+  level: 3
+}
 base {
   max_hp_pct: 0.06
   max_mp_pct: 0.06
