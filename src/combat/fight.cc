@@ -57,6 +57,7 @@ int CombatSim::player_hp() const {
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   active_ = params.active;
   kills_this_step_.assign(params.types.size(), 0);
+  died_this_step_ = false;
   if (!params.active || params.types.empty() || params.attacks.empty() ||
       params.swing_seconds <= 0.0) {
     initialized_ = false;
@@ -131,6 +132,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
       hit_phase_ -= params.hit_seconds;
       player_hp_ = std::max(
           0.0, player_hp_ - params.types[queue_.front().type].damage_to_player);
+      died_this_step_ = player_hp_ <= 0.0;
     }
   }
 

@@ -22,6 +22,11 @@
 
 namespace ms {
 
+// The town a character begins in and is returned to when they die. A key into
+// GameState::maps, and the one map name the code names for itself -- every
+// other one is the player's choice.
+inline constexpr char kHomeMap[] = "maple_island";
+
 // The two states the game can be started in.
 //
 // kPlay is the game as a player meets it: a level 1 Beginner on Maple Island

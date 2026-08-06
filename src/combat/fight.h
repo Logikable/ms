@@ -89,6 +89,12 @@ class CombatSim {
   double player_hp_fraction() const {
     return player_hp_fraction_;
   }
+  // True on the one step a hit took the player to 0. Reported rather than
+  // acted on, exactly as kills are: what dying costs is the reward layer's
+  // business, not the fight's.
+  bool died_this_step() const {
+    return died_this_step_;
+  }
   // Kills recorded during the most recent Advance, indexed to match the
   // params.types passed to that call.
   const std::vector<int64_t>& kills_this_step() const {
@@ -151,6 +157,7 @@ class CombatSim {
   // engaged window the UI draws.
   int reach_ = 1;
   std::vector<int64_t> kills_this_step_;
+  bool died_this_step_ = false;
   std::vector<EngagedGroup> engaged_groups_;
 };
 

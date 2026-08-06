@@ -54,6 +54,13 @@ void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds) {
   if (exp_gained > 0) {
     character.AddExp(exp_gained * state.exp_multiplier);
   }
+  if (sim.died_this_step()) {
+    // Dying costs the trip home and nothing else -- no EXP, no meso. The
+    // kills already banked above stand: they happened. Moving the map is all
+    // it takes to be whole again, since the fight heals whoever arrives
+    // somewhere new (see fight.h).
+    state.current_map = kHomeMap;
+  }
 }
 
 }  // namespace ms

@@ -50,6 +50,34 @@ MapData OneSnailMap() {
   return map;
 }
 
+// A mob no starting character can kill or survive: far too much HP to chew
+// through, and an attack far past what their bare DEF can cancel.
+Mob OgreMob() {
+  Mob mob;
+  mob.set_name("Ogre");
+  mob.set_level(1);
+  mob.set_max_hp(1000000);
+  mob.set_attack(200);
+  mob.set_exp(3);
+  return mob;
+}
+
+MapData OgreMap() {
+  MapData map;
+  map.set_name("Ogre Field");
+  MapData::Spawn* ogre = map.add_spawns();
+  ogre->set_mob("ogre");
+  ogre->set_count(1);
+  return map;
+}
+
+// Town: somewhere to be sent back to, with nothing on it to fight.
+MapData HomeMap() {
+  MapData map;
+  map.set_name("Maple Island");
+  return map;
+}
+
 // Equips a one-handed sword (100 weapon and magic attack) on the character.
 void EquipSword(GameState& state) {
   EquipPrototype sword;
@@ -221,6 +249,61 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   EXPECT_EQ(boosted.character.stackables(ITEM_CATEGORY_ETC)[0].count(),
             plain.character.stackables(ITEM_CATEGORY_ETC)[0].count());
   EXPECT_EQ(boosted.character.meso(), plain.character.meso());
+}
+
+// Farms `state` until the ogre kills the character, or gives up after a
+// generous stretch. Returns whether they died.
+bool FarmUntilDeath(GameState& state) {
+  CombatSim sim;
+  for (int step = 0; step < 1000; ++step) {
+    AdvanceCombat(state, sim, 1.0);
+    if (state.current_map != "field") {
+      return true;
+    }
+  }
+  return false;
+}
+
+TEST(AdvanceCombatTest, DyingSendsThePlayerHome) {
+  GameState state({}, {}, {}, {{"ogre", OgreMob()}},
+                  {{"field", OgreMap()}, {kHomeMap, HomeMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  ASSERT_TRUE(FarmUntilDeath(state));
+  EXPECT_EQ(state.current_map, kHomeMap);
+}
+
+TEST(AdvanceCombatTest, DyingCostsNothingButTheTrip) {
+  GameState state(
+      {}, {}, {{"green_snail_shell", GreenSnailShell()}},
+      {{"snail", SnailMob()}, {"ogre", OgreMob()}},
+      {{"safe", OneSnailMap()}, {"field", OgreMap()}, {kHomeMap, HomeMap()}});
+  state.current_map = "safe";
+  EquipSword(state);
+  Farm(state, 600.0);
+  int64_t exp = state.character.proto().exp();
+  int64_t meso = state.character.meso();
+  ASSERT_GT(exp, 0);
+  ASSERT_GT(meso, 0);
+
+  state.current_map = "field";
+  ASSERT_TRUE(FarmUntilDeath(state));
+  EXPECT_EQ(state.character.proto().exp(), exp);
+  EXPECT_EQ(state.character.meso(), meso);
+}
+
+TEST(AdvanceCombatTest, SurvivableMapsDoNotSendThePlayerHome) {
+  // The same 600 seconds that funded the test above, on a map the character
+  // can clear: what keeps them alive is the heal that clearing it grants.
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}},
+                  {{"field", OneSnailMap()}, {kHomeMap, HomeMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  Farm(state, 600.0);
+  EXPECT_EQ(state.current_map, "field");
 }
 
 }  // namespace

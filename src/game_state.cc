@@ -58,7 +58,7 @@ void SeedPlay(GameState& state) {
   if (!state.character.inventory().empty()) {
     state.character.Equip(0);
   }
-  state.current_map = "maple_island";
+  state.current_map = kHomeMap;
 }
 
 // The workbench. Everything here exists to reach a screen without playing up
