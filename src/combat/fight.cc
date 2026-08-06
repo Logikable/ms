@@ -70,6 +70,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     reach_ = 1;
     player_hp_ = 0.0;
     player_hp_fraction_ = 0.0;
+    player_max_hp_ = 0;
     hit_phase_ = 0.0;
     return;
   }
@@ -176,6 +177,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     }
   }
 
+  player_max_hp_ = params.max_player_hp;
   player_hp_fraction_ =
       params.max_player_hp > 0
           ? std::clamp(player_hp_ / params.max_player_hp, 0.0, 1.0)

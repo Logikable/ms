@@ -59,7 +59,7 @@ ftxui::Screen RenderScreen(const GameState& state, const CombatSim& sim,
   CombatPanel panel(state, sim, panel_focus);
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
-                                               ftxui::Dimension::Fixed(6));
+                                               ftxui::Dimension::Fixed(7));
   ftxui::Render(screen, element);
   return screen;
 }
@@ -127,6 +127,51 @@ TEST(CombatPanelTest, LabelsTheHpBarWithTheTargetLevelAndName) {
   sim.Advance(ComputeCombatParams(state), 0.1);  // engaged, no hit yet
 
   EXPECT_NE(RenderPanel(state, sim).find("Lv.1 Snail"), std::string::npos);
+}
+
+TEST(CombatPanelTest, ShowsThePlayersOwnHpAgainstTheirPool) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailField()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatSim sim;
+  sim.Advance(ComputeCombatParams(state), 0.1);
+
+  ASSERT_GT(sim.player_max_hp(), 0);
+  std::string full = "HP " + std::to_string(sim.player_max_hp()) + " / " +
+                     std::to_string(sim.player_max_hp());
+  EXPECT_NE(RenderPanel(state, sim).find(full), std::string::npos);
+}
+
+TEST(CombatPanelTest, ThePlayersHpBarFallsAsTheyAreHit) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailField()}});
+  state.current_map = "field";
+  EquipSword(state);
+  // A mob that survives long enough to land hits, swinging hard enough to be
+  // felt through the starting character's DEF.
+  Mob ogre = SnailMob();
+  ogre.set_name("Ogre");
+  ogre.set_max_hp(1000000);
+  CombatType type;
+  type.mob = &ogre;
+  type.simultaneous = 1;
+  type.damage_to_player = 10.0;
+  AttackOption attack;
+  attack.damage_per_hit = {4.0};
+  CombatParams params;
+  params.active = true;
+  params.map = "field";
+  params.swing_seconds = 10.0;
+  params.respawn_seconds = 1000.0;
+  params.hit_seconds = 1.0;
+  params.max_player_hp = 50;
+  params.types = {type};
+  params.attacks = {attack};
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+
+  EXPECT_NE(RenderPanel(state, sim).find("HP 40 / 50"), std::string::npos);
 }
 
 TEST(CombatPanelTest, LabelsTheAttackBarWithTheAttackName) {

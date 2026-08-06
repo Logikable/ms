@@ -51,11 +51,19 @@ ftxui::Element CombatPanel::Render() const {
                         focused);
   }
 
+  // The player's own bar leads, above the swing they are charging and the
+  // mobs they are charging it at -- read down the panel and it is them, their
+  // attack, then what is hitting back. Green so it cannot be mistaken for one
+  // of the red mob bars beneath it.
+  std::string hp_label = "HP " + std::to_string(sim_.player_hp()) + " / " +
+                         std::to_string(sim_.player_max_hp());
   // Charges over one swing; a full bar is the moment a hit lands. Labelled with
   // the attack being charged ("Attack" for the bare poke, else the skill).
   std::vector<ftxui::Element> rows = {
       header,
       ThemedSeparator(),
+      ProgressBar(static_cast<float>(sim_.player_hp_fraction()), kGreen,
+                  hp_label, ftxui::Color::White),
       ProgressBar(static_cast<float>(sim_.attack_fraction()), kTheme,
                   sim_.attack_name(), ftxui::Color::White),
   };

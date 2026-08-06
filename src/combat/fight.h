@@ -85,6 +85,11 @@ class CombatSim {
   // The player's remaining HP, rounded up so a sliver still reads as 1 rather
   // than as death. 0 while inactive.
   int player_hp() const;
+  // What that HP tops out at, carried through from the params so a caller
+  // drawing the pair need not resolve the character's stats again.
+  int player_max_hp() const {
+    return player_max_hp_;
+  }
   // That HP as a fraction in [0, 1] of what the params say it tops out at.
   double player_hp_fraction() const {
     return player_hp_fraction_;
@@ -152,6 +157,7 @@ class CombatSim {
   double target_hp_fraction_ = 0.0;
   double attack_fraction_ = 0.0;
   double player_hp_fraction_ = 0.0;
+  int player_max_hp_ = 0;
   std::string attack_name_;
   // Reach of the attack the next swing will use -- also the width of the
   // engaged window the UI draws.
