@@ -542,18 +542,17 @@ TEST_F(DamageTakenTest, ReductionAppliesAfterTheFormula) {
                    78.625 / 2.0);
 }
 
-// The one deliberate departure from GMS in this formula. GMS would land this
-// for 1; without regeneration to answer it, 1 a hit is a slow certainty rather
-// than a scratch, and it was killing level 1s on the starter map.
-TEST_F(DamageTakenTest, AHitWorthLessThanAPointDoesNothing) {
+TEST_F(DamageTakenTest, EveryHitCostsAtLeastAPoint) {
   DefenseStats defense = Naked();
   defense.level = 30;
   defense.def = 200;
-  // A snail against a level-30 character: the caps put the hit under a point.
-  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 0.0);
+  // A snail against a level-30 character: the caps put the hit well under a
+  // point, and it still costs one. Armour cancels an attack, it does not make
+  // the character untouchable.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 1.0);
 }
 
-TEST_F(DamageTakenTest, AHitWorthAPointStillLands) {
+TEST_F(DamageTakenTest, AHitWorthMoreThanAPointIsNotRaisedToOne) {
   DefenseStats defense = Naked();
   defense.level = 30;
   defense.def = 200;

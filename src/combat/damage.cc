@@ -107,13 +107,10 @@ constexpr double kMinRollAttack = 0.85;
 constexpr double kMinRollDefCap = 0.68;
 constexpr double kMaxRollDefCap = 0.80;
 
-// Below a point of HP, a hit is no hit at all.
-//
-// GMS floors here at 1 instead. It can afford to: a GMS character regenerates,
-// and ours does not -- their only way back is clearing the map. A floor of 1
-// makes a mob whose attack the character's DEF has entirely cancelled into a
-// slow certainty, which is how a level 1 was dying on the starter map to
-// snails that swing for 2.
+// A hit always costs at least a point of HP, however thoroughly the
+// character's DEF has cancelled the attack behind it, exactly as GMS does. The
+// chip that leaves is real but tiny, and the tenth of the pool a respawn beat
+// hands back covers it many times over -- see fight.h.
 constexpr double kMinimumDamage = 1.0;
 
 // The multiplier on a whole incoming hit for the level gap (GMS's A).
@@ -264,7 +261,7 @@ double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
   // Reduction from skills and gear lands after the whole defense formula, and
   // multiplies rather than adds -- see DerivedStats::damage_taken_pct.
   damage *= 1.0 - defense.damage_taken_pct;
-  return damage < kMinimumDamage ? 0.0 : damage;
+  return std::max(kMinimumDamage, damage);
 }
 
 int CombatPower(const OffenseStats& offense) {

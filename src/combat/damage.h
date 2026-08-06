@@ -85,9 +85,8 @@ struct DefenseStats {
 };
 
 // Expected damage of one hit from `mob` -- its minimum and maximum rolls
-// averaged, no RNG. A hit worth less than a point of HP does nothing at all:
-// GMS floors it at 1 instead, but a GMS character regenerates and ours does
-// not, so see the note in damage.cc before restoring that.
+// averaged, no RNG. Never less than 1, as in GMS: a mob whose whole attack the
+// character's DEF has cancelled still takes a point off them per hit.
 //
 // DEF subtracts flatly from the mob's attack, but only up to a cap: it can
 // never cancel more than 80% of the attack on a maximum roll, so even an
