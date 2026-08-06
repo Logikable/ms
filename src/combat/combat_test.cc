@@ -50,6 +50,14 @@ MapData OneSnailMap() {
   return map;
 }
 
+// The same snail, swinging hard enough to be felt through a starting
+// character's DEF -- so a run that survives it survived something.
+Mob BitingSnailMob() {
+  Mob mob = SnailMob();
+  mob.set_attack(20);
+  return mob;
+}
+
 // A mob no starting character can kill or survive: far too much HP to chew
 // through, and an attack far past what their bare DEF can cancel.
 Mob OgreMob() {
@@ -294,15 +302,22 @@ TEST(AdvanceCombatTest, DyingCostsNothingButTheTrip) {
 }
 
 TEST(AdvanceCombatTest, SurvivableMapsDoNotSendThePlayerHome) {
-  // The same 600 seconds that funded the test above, on a map the character
-  // can clear: what keeps them alive is the heal that clearing it grants.
+  // Ten minutes on a map whose mobs do land real damage, but that the
+  // character clears -- and clearing it is the only thing that heals them, so
+  // this is the whole no-regeneration design standing up over time.
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}},
+                  {{"snail", BitingSnailMob()}},
                   {{"field", OneSnailMap()}, {kHomeMap, HomeMap()}});
   state.current_map = "field";
   EquipSword(state);
 
-  Farm(state, 600.0);
+  CombatSim sim;
+  bool took_a_hit = false;
+  for (double elapsed = 0.0; elapsed < 600.0; elapsed += 1.0) {
+    AdvanceCombat(state, sim, 1.0);
+    took_a_hit = took_a_hit || sim.player_hp() < sim.player_max_hp();
+  }
+  EXPECT_TRUE(took_a_hit) << "the mobs have to be hurting them at all";
   EXPECT_EQ(state.current_map, "field");
 }
 

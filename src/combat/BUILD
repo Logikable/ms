@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -164,5 +164,31 @@ cc_test(
         "//src/protos:equip_proto_cc",
         "//src/protos:mob_proto_cc",
         "@googletest//:gtest_main",
+    ],
+)
+
+# Not a test: a table to read while tuning the mob-hit cadence. See the file.
+cc_binary(
+    name = "balance_sim",
+    srcs = ["balance_sim.cc"],
+    deps = [
+        ":combat",
+        ":encounter",
+        ":fight",
+        "//src:embedded_data",
+        "//src:game_state",
+        "//src:proto_loader",
+        "//src/character",
+        "//src/character:progression",
+        "//src/item:equip_instance",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
     ],
 )

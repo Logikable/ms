@@ -542,13 +542,26 @@ TEST_F(DamageTakenTest, ReductionAppliesAfterTheFormula) {
                    78.625 / 2.0);
 }
 
-TEST_F(DamageTakenTest, AHitNeverLandsForLessThanOne) {
+// The one deliberate departure from GMS in this formula. GMS would land this
+// for 1; without regeneration to answer it, 1 a hit is a slow certainty rather
+// than a scratch, and it was killing level 1s on the starter map.
+TEST_F(DamageTakenTest, AHitWorthLessThanAPointDoesNothing) {
   DefenseStats defense = Naked();
   defense.level = 30;
   defense.def = 200;
-  // A snail against a level-30 character: the caps put the hit under a point,
-  // and GMS floors it at one rather than at zero.
-  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 1.0);
+  // A snail against a level-30 character: the caps put the hit under a point.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 0.0);
+}
+
+TEST_F(DamageTakenTest, AHitWorthAPointStillLands) {
+  DefenseStats defense = Naked();
+  defense.level = 30;
+  defense.def = 200;
+  // Seven attack against the same character: the caps leave 0.185 * 7 * 0.775,
+  // just over a point, and just over is enough.
+  double landed = ExpectedDamageTaken(defense, Attacker(7, 1));
+  EXPECT_GT(landed, 1.0);
+  EXPECT_LT(landed, 2.0);
 }
 
 }  // namespace
