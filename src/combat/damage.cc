@@ -184,6 +184,9 @@ OffenseStats OffenseStatsFor(Job job, int level,
   // MainStatValue in equipped_panel.
   switch (job) {
     case JOB_SWORDMAN:
+    case JOB_FIGHTER:
+    case JOB_PAGE:
+    case JOB_SPEARMAN:
     case JOB_BEGINNER:
       // STR primary, DEX secondary.
       offense.primary = allocated.str() + equipped.str();

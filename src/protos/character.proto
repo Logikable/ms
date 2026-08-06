@@ -16,6 +16,13 @@ enum Job {
   JOB_ARCHER = 3;
   JOB_MAGICIAN = 4;
   JOB_ROGUE = 5;
+  // The warrior's 2nd advancement. These are Jobs of their own rather than
+  // stages of JOB_SWORDMAN because they are a branch: a Swordman becomes one
+  // of the three and the other two are closed off, which a job_stage on a
+  // single Job cannot say.
+  JOB_FIGHTER = 6;
+  JOB_PAGE = 7;
+  JOB_SPEARMAN = 8;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -28,6 +35,9 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_ARCHER = 2;
   JOB_ADVANCEMENT_MAGICIAN = 3;
   JOB_ADVANCEMENT_ROGUE = 4;
+  JOB_ADVANCEMENT_FIGHTER = 5;
+  JOB_ADVANCEMENT_PAGE = 6;
+  JOB_ADVANCEMENT_SPEARMAN = 7;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

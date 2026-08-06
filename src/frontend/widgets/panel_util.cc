@@ -287,6 +287,12 @@ std::string JobName(Job job) {
       return "Magician";
     case JOB_ROGUE:
       return "Rogue";
+    case JOB_FIGHTER:
+      return "Fighter";
+    case JOB_PAGE:
+      return "Page";
+    case JOB_SPEARMAN:
+      return "Spearman";
     default:
       return "Unknown";
   }

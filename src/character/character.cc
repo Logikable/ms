@@ -111,6 +111,9 @@ struct LevelUpGain {
 LevelUpGain LevelUpGainFor(Job job) {
   switch (job) {
     case JOB_SWORDMAN:
+    case JOB_FIGHTER:
+    case JOB_PAGE:
+    case JOB_SPEARMAN:
       return {48, 12};
     case JOB_MAGICIAN:
       return {12, 48};
@@ -124,6 +127,9 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_BEGINNER:
       return EQUIP_JOB_CATEGORY_BEGINNER;
     case JOB_SWORDMAN:
+    case JOB_FIGHTER:
+    case JOB_PAGE:
+    case JOB_SPEARMAN:
       return EQUIP_JOB_CATEGORY_WARRIOR;
     case JOB_ARCHER:
       return EQUIP_JOB_CATEGORY_BOWMAN;
@@ -186,11 +192,15 @@ std::unique_ptr<EquipTabItem> RestoreEquipItem(
 }  // namespace
 
 JobAdvancement AdvancementForJobStage(Job job, int stage) {
-  // Only the 1st advancement of each job exists so far; 2nd job and beyond map
-  // additional stages onto Fighter/Hunter/... as those are added.
+  // A 2nd-job warrior still carries their Swordman skills, so stage 1 answers
+  // the same for all four. Only the warrior branch has a 2nd advancement so
+  // far; the other three end at stage 1 until their books are written.
   if (stage == 1) {
     switch (job) {
       case JOB_SWORDMAN:
+      case JOB_FIGHTER:
+      case JOB_PAGE:
+      case JOB_SPEARMAN:
         return JOB_ADVANCEMENT_SWORDMAN;
       case JOB_ARCHER:
         return JOB_ADVANCEMENT_ARCHER;
@@ -202,6 +212,18 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         break;
     }
   }
+  if (stage == 2) {
+    switch (job) {
+      case JOB_FIGHTER:
+        return JOB_ADVANCEMENT_FIGHTER;
+      case JOB_PAGE:
+        return JOB_ADVANCEMENT_PAGE;
+      case JOB_SPEARMAN:
+        return JOB_ADVANCEMENT_SPEARMAN;
+      default:
+        break;
+    }
+  }
   return JOB_ADVANCEMENT_UNSPECIFIED;
 }
 
@@ -209,6 +231,9 @@ StatField PrimaryStatField(Job job) {
   switch (job) {
     case JOB_BEGINNER:
     case JOB_SWORDMAN:
+    case JOB_FIGHTER:
+    case JOB_PAGE:
+    case JOB_SPEARMAN:
       return STAT_FIELD_STR;
     case JOB_ARCHER:
       return STAT_FIELD_DEX;
@@ -221,13 +246,20 @@ StatField PrimaryStatField(Job job) {
   }
 }
 
-std::vector<Job> JobChoicesForStage(int stage) {
+std::vector<Job> JobChoicesForStage(Job job, int stage) {
   // The four explorer branches, ordered by the stat each one lives on, so the
-  // list reads down STR/DEX/INT/LUK the same way the stat panel does. Only the
-  // 1st advancement has choices so far; 2nd job and beyond are a function of
-  // the job already held, not a flat list, so they will not extend this.
+  // list reads down STR/DEX/INT/LUK the same way the stat panel does. A
+  // Beginner is the only thing that reaches stage 1, so what they hold does
+  // not come into it.
   if (stage == 1) {
     return {JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE};
+  }
+  // From here on the choice is a function of the job already held. Fighter and
+  // Page exist as jobs but are not offered: their skill books are not written,
+  // and picking one would strand thirty levels of SP with nothing to spend it
+  // on. Add them here when they have something to buy.
+  if (stage == 2 && job == JOB_SWORDMAN) {
+    return {JOB_SPEARMAN};
   }
   return {};
 }
@@ -238,7 +270,11 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_ARCHER:
     case JOB_ADVANCEMENT_MAGICIAN:
     case JOB_ADVANCEMENT_ROGUE:
-      return 1;  // all are 1st-job advancements
+      return 1;
+    case JOB_ADVANCEMENT_FIGHTER:
+    case JOB_ADVANCEMENT_PAGE:
+    case JOB_ADVANCEMENT_SPEARMAN:
+      return 2;
     default:
       return 0;
   }
@@ -353,7 +389,7 @@ bool CharacterInstance::CanAdvanceJob() const {
     return false;
   }
   return character_.level() >= kAdvancementLevels[stage] &&
-         !JobChoicesForStage(stage + 1).empty();
+         !JobChoicesForStage(character_.job(), stage + 1).empty();
 }
 
 bool CharacterInstance::AllocateStat(StatField field, int amount) {

@@ -38,11 +38,14 @@ int StageForAdvancement(JobAdvancement advancement);
 // TODO: Demon Avenger's primary stat is HP; Xenon's is STR+DEX+LUK combined.
 StatField PrimaryStatField(Job job);
 
-// The jobs a character may advance into on reaching `stage` (1 = 1st job), in
-// the order they should be offered. Empty for a stage whose choices don't
-// exist yet, which is what keeps the UI from offering an advancement it has
-// nothing to fill.
-std::vector<Job> JobChoicesForStage(int stage);
+// The jobs a character holding `job` may advance into on reaching `stage`
+// (1 = 1st job), in the order they should be offered. Empty for a stage whose
+// choices don't exist yet, which is what keeps the UI from offering an
+// advancement it has nothing to fill.
+//
+// `job` is ignored at stage 1, where the only thing that arrives is a
+// Beginner. Past that the choice is a branch off the job already held.
+std::vector<Job> JobChoicesForStage(Job job, int stage);
 
 // What a run of levels hands over, totalled.
 struct LevelGains {

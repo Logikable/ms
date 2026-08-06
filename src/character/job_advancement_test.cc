@@ -38,7 +38,7 @@ class JobAdvancementTest : public testing::Test {
 // system ties them to the files on disk -- renaming a textproto would leave a
 // job silently advancing empty-handed.
 TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
-  for (Job job : JobChoicesForStage(1)) {
+  for (Job job : JobChoicesForStage(JOB_BEGINNER, 1)) {
     std::vector<std::string> names = StarterEquipsFor(job);
     EXPECT_FALSE(names.empty()) << Job_Name(job) << " advances with no weapon";
     for (const std::string& name : names) {
@@ -65,7 +65,7 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
 
 // A level-10 weapon or the character cannot hold what it is handed.
 TEST_F(JobAdvancementTest, StarterEquipsAreWearableAtTen) {
-  for (Job job : JobChoicesForStage(1)) {
+  for (Job job : JobChoicesForStage(JOB_BEGINNER, 1)) {
     for (const std::string& name : StarterEquipsFor(job)) {
       EXPECT_LE(state_.equips.at(name).required_level(), 10)
           << name << " cannot be worn by the character it is given to";
@@ -77,7 +77,7 @@ TEST_F(JobAdvancementTest, StarterEquipsAreWearableAtTen) {
 // could advance into a full set of the wrong class's gear and every other test
 // here would pass.
 TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnWeapons) {
-  for (Job job : JobChoicesForStage(1)) {
+  for (Job job : JobChoicesForStage(JOB_BEGINNER, 1)) {
     std::multiset<EquipType> actual;
     for (const std::string& name : StarterEquipsFor(job)) {
       actual.insert(state_.equips.at(name).equip_type());
@@ -90,7 +90,7 @@ TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnWeapons) {
 // "The level 10 weapon", not "a weapon a level 10 can wear": starting gear that
 // drifted below the advancement level would quietly hand out a weaker weapon.
 TEST_F(JobAdvancementTest, StarterEquipsAreTheLevelTenWeapons) {
-  for (Job job : JobChoicesForStage(1)) {
+  for (Job job : JobChoicesForStage(JOB_BEGINNER, 1)) {
     for (const std::string& name : StarterEquipsFor(job)) {
       EXPECT_EQ(state_.equips.at(name).required_level(), 10)
           << name << " is not a level 10 weapon";

@@ -155,9 +155,10 @@ int CharacterPanel::RingStops() const {
     return 1 + kNumAllocStats;
   }
   if (ActiveTab() == kTabAdvance) {
-    return 1 +
-           static_cast<int>(
-               JobChoicesForStage(character_.proto().job_stage() + 1).size());
+    return 1 + static_cast<int>(
+                   JobChoicesForStage(character_.proto().job(),
+                                      character_.proto().job_stage() + 1)
+                       .size());
   }
   if (character_.proto().job_stage() == 0) {
     // A Beginner's Skills tab has no advancement bar to stand on, let alone
@@ -396,8 +397,8 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
 }
 
 ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
-  std::vector<Job> jobs =
-      JobChoicesForStage(character_.proto().job_stage() + 1);
+  std::vector<Job> jobs = JobChoicesForStage(
+      character_.proto().job(), character_.proto().job_stage() + 1);
   std::vector<ftxui::Element> rows;
   for (int i = 0; i < static_cast<int>(jobs.size()); ++i) {
     // A caret rather than the [+] the other tabs use: there is nothing to
@@ -479,8 +480,8 @@ bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
 bool CharacterPanel::OnAdvanceTabEvent(
     const ftxui::Event& event, const std::function<void(Job)>& on_advance) {
   // Job rows: Up/Down walk them, and off either end is the tab bar.
-  std::vector<Job> jobs =
-      JobChoicesForStage(character_.proto().job_stage() + 1);
+  std::vector<Job> jobs = JobChoicesForStage(
+      character_.proto().job(), character_.proto().job_stage() + 1);
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;

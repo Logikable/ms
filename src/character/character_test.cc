@@ -399,19 +399,57 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
 // nothing to offer and the character must not be told otherwise.
 TEST_F(AdvanceJobTest, NotEligibleForAnAdvancementWithNoJobsBehindIt) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/30);
-  c.AdvanceJob(JOB_SWORDMAN);
+  c.AdvanceJob(JOB_ARCHER);  // the archer's 2nd job is not written yet
   EXPECT_FALSE(c.CanAdvanceJob());
+}
+
+TEST_F(AdvanceJobTest, ASwordmanAtThirtyIsOfferedTheirSecondJob) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/29);
+  c.AdvanceJob(JOB_SWORDMAN);
+  EXPECT_FALSE(c.CanAdvanceJob());  // the level, not the job, is what is short
+  c.LevelUp();
+  EXPECT_TRUE(c.CanAdvanceJob());
+}
+
+TEST_F(AdvanceJobTest, SecondJobPutsTheCharacterAtStageTwo) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/30);
+  c.AdvanceJob(JOB_SWORDMAN);
+  c.AdvanceJob(JOB_SPEARMAN);
+  EXPECT_EQ(c.proto().job(), JOB_SPEARMAN);
+  EXPECT_EQ(c.proto().job_stage(), 2);
 }
 
 // The order is the stat order, not any order the protos happen to be in.
 TEST(JobChoicesTest, FirstAdvancementOffersTheFourExplorersInStatOrder) {
-  EXPECT_EQ(JobChoicesForStage(1), (std::vector<Job>{JOB_SWORDMAN, JOB_ARCHER,
-                                                     JOB_MAGICIAN, JOB_ROGUE}));
+  EXPECT_EQ(
+      JobChoicesForStage(JOB_BEGINNER, 1),
+      (std::vector<Job>{JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE}));
 }
 
-TEST(JobChoicesTest, LaterAdvancementsHaveNoChoicesYet) {
-  EXPECT_TRUE(JobChoicesForStage(2).empty());
-  EXPECT_TRUE(JobChoicesForStage(0).empty());
+// Fighter and Page exist as jobs but are deliberately not offered: their skill
+// books are empty, and picking one would strand thirty levels of SP.
+TEST(JobChoicesTest, ASwordmanIsOfferedSpearmanAlone) {
+  EXPECT_EQ(JobChoicesForStage(JOB_SWORDMAN, 2),
+            (std::vector<Job>{JOB_SPEARMAN}));
+}
+
+TEST(JobChoicesTest, TheOtherFirstJobsHaveNoSecondJobYet) {
+  EXPECT_TRUE(JobChoicesForStage(JOB_ARCHER, 2).empty());
+  EXPECT_TRUE(JobChoicesForStage(JOB_MAGICIAN, 2).empty());
+  EXPECT_TRUE(JobChoicesForStage(JOB_ROGUE, 2).empty());
+}
+
+TEST(JobChoicesTest, ThereIsNoThirdJobYet) {
+  EXPECT_TRUE(JobChoicesForStage(JOB_SPEARMAN, 3).empty());
+  EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
+}
+
+// A 2nd-job warrior keeps the Swordman book they bought on the way up: its
+// page has to stay on the skills tab, and its SP pool has to stay spendable.
+TEST(JobChoicesTest, ASecondJobWarriorStillCarriesTheirSwordmanSkills) {
+  EXPECT_EQ(AdvancementForJobStage(JOB_SPEARMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
+  EXPECT_EQ(AdvancementForJobStage(JOB_SPEARMAN, 2), JOB_ADVANCEMENT_SPEARMAN);
+  EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_SPEARMAN), 2);
 }
 
 // --- ResetStatsForJob ---
