@@ -231,7 +231,7 @@ std::string FormatEquipType(EquipType type) {
 }
 
 bool IsActive(const Skill& skill) {
-  return skill.kind() == SKILL_KIND_ATTACK || skill.kind() == SKILL_KIND_ACTIVE;
+  return skill.kind() != SKILL_KIND_PASSIVE;
 }
 
 std::string FormatJobCategories(const EquipPrototype& proto) {

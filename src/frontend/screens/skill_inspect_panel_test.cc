@@ -208,5 +208,80 @@ TEST_F(SkillInspectPanelTest, RendersAPlaceholderWithNoSkill) {
             std::string::npos);
 }
 
+// Evil Eye Shock: fights on its own clock every 12 seconds.
+Skill MakeEvilEyeShock() {
+  Skill skill;
+  skill.set_name("Evil Eye Shock");
+  skill.set_kind(SKILL_KIND_AUTO_ATTACK);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  skill.set_max_level(10);
+  skill.set_max_enemies(10);
+  skill.set_lines(6);
+  skill.set_cast_interval_seconds(12.0);
+  skill.set_description("Your Evil Eye shouts.");
+  skill.mutable_base()->set_skill_pct(1.23);
+  skill.mutable_per_level()->set_skill_pct(0.03);
+  return skill;
+}
+
+// A skill that fights on its own is something the character casts, not a
+// lever bolted to their stat line, and the panel has to say so.
+TEST_F(SkillInspectPanelTest, TitlesASkillOnItsOwnClockActive) {
+  EXPECT_NE(RenderAt(MakeEvilEyeShock(), 1).find("Active"), std::string::npos);
+}
+
+// It is a swing like any other, whatever sets it off, so its damage reads the
+// same way -- not as a skill with no effect worth naming.
+TEST_F(SkillInspectPanelTest, ShowsTheDamageOfASkillOnItsOwnClock) {
+  std::string out = RenderAt(MakeEvilEyeShock(), 1);
+  EXPECT_NE(out.find("123% x6 = 738%"), std::string::npos);
+  EXPECT_EQ(out.find("no effect"), std::string::npos);
+}
+
+// How often it goes off is most of what the skill is worth.
+TEST_F(SkillInspectPanelTest, SaysHowOftenASkillOnItsOwnClockFires) {
+  EXPECT_NE(RenderAt(MakeEvilEyeShock(), 1).find("Fires Every    12s"),
+            std::string::npos);
+}
+
+TEST_F(SkillInspectPanelTest, SaysNothingAboutFiringForASwing) {
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Fires Every"),
+            std::string::npos);
+}
+
+// Neither half of Final Attack says anything alone, so they share a line.
+TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
+  Skill skill;
+  skill.set_name("Final Attack");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  skill.set_max_level(20);
+  skill.set_description("A chance at a second blow.");
+  skill.mutable_base()->set_final_attack_chance(0.02);
+  skill.mutable_base()->set_final_attack_pct(1.22);
+  skill.mutable_per_level()->set_final_attack_chance(0.02);
+  skill.mutable_per_level()->set_final_attack_pct(0.02);
+
+  EXPECT_NE(RenderAt(skill, 20).find("Final Attack   40% for 160%"),
+            std::string::npos);
+}
+
+TEST_F(SkillInspectPanelTest, ReadsTheNewStatLevers) {
+  Skill skill;
+  skill.set_name("Physical Training");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  skill.set_max_level(5);
+  skill.set_description("Raises STR and DEX.");
+  skill.mutable_base()->set_str(6);
+  skill.mutable_base()->set_dex(6);
+  skill.mutable_base()->set_mastery(0.14);
+
+  std::string out = RenderAt(skill, 1);
+  EXPECT_NE(out.find("STR            +6"), std::string::npos);
+  EXPECT_NE(out.find("DEX            +6"), std::string::npos);
+  EXPECT_NE(out.find("Mastery        14%"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

@@ -37,6 +37,7 @@ const PercentLever kPercentLevers[] = {
     {"Max HP", &SkillEffect::max_hp_pct, kPlus},
     {"Max MP", &SkillEffect::max_mp_pct, kPlus},
     {"Critical Rate", &SkillEffect::crit_rate, kPlus},
+    {"Mastery", &SkillEffect::mastery, kBare},
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare},
 };
@@ -54,6 +55,8 @@ struct FlatLever {
 
 const FlatLever kFlatLevers[] = {
     {"DEF", &SkillEffect::def, "", false},
+    {"STR", &SkillEffect::str, "", false},
+    {"DEX", &SkillEffect::dex, "", false},
     {"LUK", &SkillEffect::luk, "", false},
     {"Max HP", &SkillEffect::max_hp_per_level, " per level", false},
     {"Max MP", &SkillEffect::max_mp_per_level, " per level", false},
@@ -83,6 +86,17 @@ std::string FormatPercent(double frac) {
     s.resize(s.size() - 2);
   }
   return s + "%";
+}
+
+// A count of seconds, without a trailing ".0" on the whole ones.
+std::string FormatSeconds(double seconds) {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%.1f", seconds);
+  std::string s = buf;
+  if (s.size() > 2 && s.compare(s.size() - 2, 2, ".0") == 0) {
+    s.resize(s.size() - 2);
+  }
+  return s;
 }
 
 // One "  label      value" row of an effect block.
@@ -147,6 +161,14 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     rows.push_back(
         EffectRow("Enemies Hit", std::to_string(skill.max_enemies())));
   }
+  // How often a skill that fights on its own goes off, which is most of what
+  // it is worth. Stated in GMS seconds, as the data holds it -- the pacing
+  // band stretches this and every other duration alike, so a figure the
+  // player could hold a stopwatch to would say less than the ratio does.
+  if (skill.cast_interval_seconds() > 0.0) {
+    rows.push_back(EffectRow(
+        "Fires Every", FormatSeconds(skill.cast_interval_seconds()) + "s"));
+  }
   std::string weapons = RequiredWeapons(skill);
   if (!weapons.empty()) {
     rows.push_back(EffectRow("Requires", weapons));
@@ -177,6 +199,16 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
   if (IsActive(skill) && PercentAt(skill, &SkillEffect::skill_pct, level) > 0) {
     rows.push_back(EffectRow("Damage", DamageText(skill, level)));
+  }
+  // Final Attack's chance and its damage are one fact, not two levers: neither
+  // half says anything on its own, so they share a line.
+  double proc = PercentAt(skill, &SkillEffect::final_attack_chance, level);
+  if (proc > 0.0) {
+    rows.push_back(
+        EffectRow("Final Attack",
+                  FormatPercent(proc) + " for " +
+                      FormatPercent(PercentAt(
+                          skill, &SkillEffect::final_attack_pct, level))));
   }
   for (const FlatLever& lever : kFlatLevers) {
     int value = FlatAt(skill, lever.fn, level);
