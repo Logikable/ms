@@ -51,12 +51,20 @@ TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   EXPECT_TRUE(Unlocked(Feature::kRecovery, MakeCharacter(140)));
 }
 
-// Scrolling is pinned to the trial's ceiling rather than given a level of its
-// own: it works, but spell traces -- the half a player would reach for -- are
-// not written yet, so only someone who has finished the trial meets it. The
-// two are meant to move together, and nothing else records that.
-TEST_F(ProgressionTest, ScrollingSitsOnTheTrialLevelCap) {
-  EXPECT_EQ(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
+// Scrolling works, but spell traces -- the half a player would reach for --
+// are not written yet, so it is held back until the early game is behind them.
+TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
+  EXPECT_FALSE(Unlocked(Feature::kScrolling, MakeCharacter(29)));
+  EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(30)));
+}
+
+// Star force opens on the trial's last level and not past it. Recovery is
+// deliberately out of reach -- the star force levels that destroy an item in
+// the first place need equipment this game does not have -- so it is not held
+// to this.
+TEST_F(ProgressionTest, StarForceIsReachableWithinTheTrial) {
+  EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
+  EXPECT_GT(UnlockLevel(Feature::kRecovery), kTrialLevelCap);
 }
 
 // Taking something off needs somewhere to put it, so the two move together.

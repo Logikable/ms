@@ -26,10 +26,10 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kUnequip, 4},
     {Feature::kSkills, 10},
     {Feature::kShop, 20},
-    // Sat on the level cap, so only a player who has finished the trial ever
-    // meets it. Scrolling itself works; spell traces -- the half of it a
-    // player would actually reach for -- are not written yet.
-    {Feature::kScrolling, kTrialLevelCap},
+    // Far enough out that a player meets it once the early game is behind
+    // them. Scrolling itself works; spell traces -- the half of it a player
+    // would actually reach for -- are not written yet, so there is no hurry.
+    {Feature::kScrolling, 30},
     {Feature::kStarForce, 60},
     {Feature::kRecovery, 140},
 };
