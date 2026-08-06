@@ -47,7 +47,7 @@ constexpr double kStepSeconds = 0.05;
 
 // Levels to sweep. Every band boundary the game has in its first thirty
 // levels, plus the ends.
-constexpr int kLevels[] = {1, 5, 10, 15, 20, 25, 30};
+constexpr int kLevels[] = {1, 10, 20, 30, 40, 50, 60};
 
 struct Catalogs {
   std::map<std::string, EquipPrototype> equips;
@@ -85,21 +85,24 @@ StatField PrimaryStatFor(Job job) {
 }
 
 // Brings `state`'s character up to `level` the way a player gets there: taking
-// the advancement when it is offered, spending every AP on the primary stat,
-// and putting every SP into the job's attack skill.
-void GrowTo(GameState& state, int level, Job job) {
+// each advancement of `path` as it is offered, spending every AP on the
+// primary stat, and every SP on whatever it will buy.
+//
+// Which skill the SP goes into first is the order of the catalog, which is
+// arbitrary -- but a book costs exactly what its levels pay out, so a
+// character standing at the end of a stage has bought the whole of it either
+// way. Only the levels in between differ.
+void GrowTo(GameState& state, int level, const std::vector<Job>& path) {
   CharacterInstance& character = state.character;
+  int taken = 0;
   while (character.proto().level() < level) {
     character.LevelUp();
-    if (character.CanAdvanceJob()) {
-      character.AdvanceJob(job);
+    if (character.CanAdvanceJob() && taken < static_cast<int>(path.size())) {
+      character.AdvanceJob(path[taken++]);
     }
     while (character.AllocateStat(PrimaryStatFor(character.proto().job()))) {
     }
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      if (entry.second.kind() != SKILL_KIND_ATTACK) {
-        continue;
-      }
       while (character.LearnSkill(entry.second)) {
       }
     }
@@ -117,12 +120,12 @@ struct Outcome {
   double low_water = 1.0;
 };
 
-Outcome Farm(const Catalogs& catalogs, int level, Job job,
+Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
              const std::string& map, double seconds) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
                   GameMode::kPlay);
-  GrowTo(state, level, job);
+  GrowTo(state, level, path);
   state.current_map = map;
 
   Outcome outcome;
@@ -185,8 +188,8 @@ void Run(double seconds) {
     std::printf("%-28s %5.1f", catalogs.maps.at(map.second).name().c_str(),
                 map.first);
     for (int level : kLevels) {
-      Outcome outcome =
-          Farm(catalogs, level, JOB_SWORDMAN, map.second, seconds);
+      Outcome outcome = Farm(catalogs, level, {JOB_SWORDMAN, JOB_SPEARMAN},
+                             map.second, seconds);
       char cell[32];
       if (outcome.death_seconds >= 0.0) {
         // Died: how long it took, and what they took with them.

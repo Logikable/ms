@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 
+#include "src/character/character.h"
 #include "src/proto_loader.h"
 #include "src/protos/skill.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
@@ -18,9 +19,10 @@ namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
-// What levels 11-30 pay out: 3 SP a level over 20 levels, with the advancement
-// itself granting nothing.
-constexpr int kFirstJobSp = 60;
+// What a job stage's levels pay out, indexed by stage: 3 SP a level over the
+// span that feeds it, with the advancement itself granting nothing. Levels
+// 11-30 feed stage 1 and 31-60 feed stage 2, so 60 and then 90.
+constexpr int kSpByStage[] = {0, 60, 90};
 
 std::map<std::string, Skill> LoadSkills() {
   std::string err;
@@ -46,7 +48,10 @@ TEST(SkillDataTest, EverySkillDescribesItself) {
   }
 }
 
-TEST(SkillDataTest, EveryFirstJobBookCostsExactlySixty) {
+// Every book costs exactly what its own levels pay out, so reaching the end of
+// a stage means having bought the whole of it -- neither short nor with points
+// left over.
+TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   std::map<int, int> cost_by_advancement;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     cost_by_advancement[entry.second.job_advancement()] +=
@@ -54,17 +59,59 @@ TEST(SkillDataTest, EveryFirstJobBookCostsExactlySixty) {
   }
   // Named one by one rather than counted: the skills sit in a folder per job,
   // and a folder that stopped being read would take a whole advancement out of
-  // the map, leaving the rest to sum to sixty and the check to pass on three
-  // jobs while the fourth had no book at all.
-  EXPECT_TRUE(cost_by_advancement.count(JOB_ADVANCEMENT_SWORDMAN));
-  EXPECT_TRUE(cost_by_advancement.count(JOB_ADVANCEMENT_ARCHER));
-  EXPECT_TRUE(cost_by_advancement.count(JOB_ADVANCEMENT_MAGICIAN));
-  EXPECT_TRUE(cost_by_advancement.count(JOB_ADVANCEMENT_ROGUE));
+  // the map, leaving the rest to sum correctly and the check to pass on the
+  // others while one job had no book at all.
+  const JobAdvancement kWritten[] = {
+      JOB_ADVANCEMENT_SWORDMAN, JOB_ADVANCEMENT_ARCHER,
+      JOB_ADVANCEMENT_MAGICIAN, JOB_ADVANCEMENT_ROGUE,
+      JOB_ADVANCEMENT_SPEARMAN};
+  for (JobAdvancement advancement : kWritten) {
+    EXPECT_TRUE(cost_by_advancement.count(advancement))
+        << "advancement " << advancement << " has no skills at all";
+  }
   for (const std::pair<const int, int>& entry : cost_by_advancement) {
-    EXPECT_EQ(entry.second, kFirstJobSp)
+    int stage = StageForAdvancement(static_cast<JobAdvancement>(entry.first));
+    ASSERT_GT(stage, 0) << "advancement " << entry.first << " has no stage";
+    ASSERT_LT(stage,
+              static_cast<int>(sizeof(kSpByStage) / sizeof(kSpByStage[0])))
+        << "stage " << stage << " has no SP figure to be held to";
+    EXPECT_EQ(entry.second, kSpByStage[stage])
         << "advancement " << entry.first << " costs " << entry.second
-        << "; a character reaching level 30 can neither max it nor is left "
-        << "with points to spare";
+        << " against the " << kSpByStage[stage] << " its levels pay out";
+  }
+}
+
+// An auto-attack with no interval never fires, so a skill that means to be one
+// and forgets to say how often is a skill that silently does nothing.
+TEST(SkillDataTest, EveryAutoAttackSaysHowOftenItFires) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (entry.second.kind() != SKILL_KIND_AUTO_ATTACK) {
+      EXPECT_EQ(entry.second.cast_interval_seconds(), 0.0)
+          << entry.first << " sets an interval it will never be asked for";
+      continue;
+    }
+    EXPECT_GT(entry.second.cast_interval_seconds(), 0.0)
+        << entry.first << " would never fire";
+    EXPECT_GT(entry.second.base().skill_pct(), 0.0)
+        << entry.first << " would fire for nothing";
+  }
+}
+
+// Damage belongs to the things that swing, and the levers belong to the
+// passives. A skill filed on the wrong side of that carries data nothing will
+// ever read.
+TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.kind() == SKILL_KIND_PASSIVE) {
+      EXPECT_EQ(skill.base().skill_pct(), 0.0)
+          << entry.first << " is a passive carrying a swing's damage";
+    } else {
+      EXPECT_EQ(skill.base().final_attack_chance(), 0.0)
+          << entry.first << " is not a passive, so its levers go unread";
+      EXPECT_EQ(skill.base().mastery(), 0.0) << entry.first;
+      EXPECT_EQ(skill.base().str(), 0) << entry.first;
+    }
   }
 }
 

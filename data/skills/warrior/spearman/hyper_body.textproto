@@ -1,0 +1,15 @@
+# GMS runs this for 80 + 12*L seconds off an MP cost. There is nothing here to
+# spend MP on and nothing to watch a buff timer with, so it is simply always on.
+name: "Hyper Body"
+description: "Steels your body, raising your Max HP and Max MP alike."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SPEARMAN
+max_level: 10
+base {
+  max_hp_pct: 0.06
+  max_mp_pct: 0.06
+}
+per_level {
+  max_hp_pct: 0.06
+  max_mp_pct: 0.06
+}

@@ -1,0 +1,12 @@
+# GMS gives 2 STR a level over 10 levels. Spread over 5 at 4 apiece, which ends
+# in the same place -- 20 -- for half the points.
+name: "Agile Arms"
+description: "Loosens your arms, speeding up your swings and building STR."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SPEARMAN
+max_level: 5
+base {
+  str: 4
+  attack_speed: 2
+}
+per_level { str: 4 }

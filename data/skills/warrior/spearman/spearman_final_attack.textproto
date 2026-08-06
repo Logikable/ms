@@ -1,0 +1,17 @@
+# Chance is 2*L%; damage is two hits of (60+L)%, which is stated here as the
+# one number the pair is worth -- see SkillEffect::final_attack_pct.
+name: "Final Attack"
+description:
+  "A chance for every swing to be followed by a second blow at whatever is "
+  "in front of you."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SPEARMAN
+max_level: 20
+base {
+  final_attack_chance: 0.02
+  final_attack_pct: 1.22
+}
+per_level {
+  final_attack_chance: 0.02
+  final_attack_pct: 0.02
+}

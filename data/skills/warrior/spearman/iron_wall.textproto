@@ -1,0 +1,9 @@
+# GMS gives 30 DEF a level over 9 levels. Spread over 10 at 27 apiece, which
+# ends in the same place -- 270 -- with a level's worth of finer grain.
+name: "Iron Wall"
+description: "Steel your resolve to bolster your defenses."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SPEARMAN
+max_level: 10
+base { def: 27 }
+per_level { def: 27 }

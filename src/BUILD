@@ -133,6 +133,7 @@ cc_test(
     data = ["//data/skills:all"],
     deps = [
         ":proto_loader",
+        "//src/character",
         "//src/protos:skill_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",
