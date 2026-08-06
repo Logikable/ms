@@ -57,6 +57,18 @@ CombatParams MakeParams(double swing, double respawn,
   return params;
 }
 
+// Adds a skill that fires on its own clock, hitting `reach` mobs for `damage`
+// apiece every `interval` seconds.
+void AddAutoAttack(CombatParams& params, double interval, double damage,
+                   int reach = 1) {
+  AttackOption cast;
+  cast.name = "Evil Eye Shock";
+  cast.max_enemies = reach;
+  cast.interval_seconds = interval;
+  cast.damage_per_hit.assign(params.types.size(), damage);
+  params.auto_attacks.push_back(std::move(cast));
+}
+
 const EngagedGroup* FindGroup(const std::vector<EngagedGroup>& groups,
                               const std::string& name) {
   for (const EngagedGroup& g : groups) {
@@ -685,6 +697,105 @@ TEST(CombatSimTest, InactiveParamsLeaveThePlayerWithNoHpToShow) {
   sim.Advance(CombatParams{}, 1.0);
   EXPECT_EQ(sim.player_hp(), 0);
   EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 0.0);
+}
+
+// --- skills that fire on their own clock ---
+
+TEST(CombatSimTest, AnAutoAttackFiresOnItsOwnClock) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  // A swing far too slow to interfere, so what lands is the cast alone.
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  AddAutoAttack(params, /*interval=*/2.0, /*damage=*/25.0);
+
+  sim.Advance(params, 1.0);  // mid-interval
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9);
+  sim.Advance(params, 1.0);  // the interval closes
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.75, 1e-9);
+  sim.Advance(params, 2.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.50, 1e-9);
+}
+
+TEST(CombatSimTest, AnAutoAttackKillsAreRewardedLikeAnySwing) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/50.0);
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.kills_this_step().size(), 1u);
+  EXPECT_EQ(sim.kills_this_step()[0], 1);
+}
+
+TEST(CombatSimTest, AnAutoAttackReachesAsManyMobsAsItsSkillSays) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 5)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0, /*reach=*/3);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 3);  // three of the five, not one
+}
+
+// The swing is chosen after the casts land, so a skill that thins the map out
+// changes what the character reaches for next.
+TEST(CombatSimTest, TheSwingIsPickedAgainstWhatTheCastsLeaveStanding) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 2)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0, /*reach=*/2);
+
+  sim.Advance(params, 1.0);
+  EXPECT_TRUE(sim.respawning());  // the cast emptied the map
+  EXPECT_TRUE(sim.attack_name().empty());
+}
+
+TEST(CombatSimTest, AnAutoAttackClockWaitsWhileTheMapIsEmpty) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  // A swing slow enough never to land, so the casts are the only thing that
+  // kills and the timing is entirely theirs.
+  CombatParams params = MakeParams(1000.0, 5.0, {MakeType(&snail, 0.0, 1)});
+  AddAutoAttack(params, /*interval=*/3.0, /*damage=*/50.0);
+
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_EQ(sim.kills_this_step()[0], 1);  // t=3: the cast lands
+  ASSERT_TRUE(sim.respawning());
+
+  // t=4 is idle and buys the summon nothing. The beat at t=5 refills the map
+  // and the clock runs again from there, so the next cast is due at t=7. Had
+  // the idle second counted toward it, it would have come at t=6.
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.kills_this_step()[0], 0);  // t=6
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 1);  // t=7
+}
+
+TEST(CombatSimTest, AnAutoAttackWithNoIntervalNeverFires) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  AddAutoAttack(params, /*interval=*/0.0, /*damage=*/100.0);
+
+  sim.Advance(params, 100.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9);
+}
+
+TEST(CombatSimTest, AnAutoAttackIsNeverChosenAsTheSwing) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  // A cast that hits vastly harder than the swing still does not become it:
+  // the charge bar names what the character is swinging, not what a summon
+  // is about to do.
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/500.0);
+
+  sim.Advance(params, 0.5);
+  EXPECT_EQ(sim.attack_name(), "Attack");
 }
 
 }  // namespace

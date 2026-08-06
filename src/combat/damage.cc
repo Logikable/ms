@@ -169,6 +169,10 @@ double LevelMultiplier(int player_level, int mob_level) {
   return kUnderLevelMultiplier[gap];
 }
 
+bool DealsDamage(SkillKind kind) {
+  return kind == SKILL_KIND_ATTACK || kind == SKILL_KIND_AUTO_ATTACK;
+}
+
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
                              const EquipStats& equipped,
@@ -219,7 +223,9 @@ OffenseStats OffenseStatsFor(Job job, int level,
   // The learned attack skill's multiplier replaces the bare 100% poke. Effect
   // at level L is base + per_level*(L-1). Passive skills fold elsewhere (their
   // levers are all defensive -- see DerivedStatsFor), so they are ignored here.
-  if (attack_skill != nullptr && attack_skill->kind() == SKILL_KIND_ATTACK) {
+  // A skill that fires on its own clock still deals its damage the same way;
+  // what differs is when it goes off, which is the fight's business.
+  if (attack_skill != nullptr && DealsDamage(attack_skill->kind())) {
     offense.skill_pct =
         attack_skill->base().skill_pct() +
         attack_skill->per_level().skill_pct() * (attack_level - 1);

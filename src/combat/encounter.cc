@@ -145,19 +145,32 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.attacks.push_back(
       AttackFor(proto, total_stats, nullptr, 0, params.types, derived));
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    if (entry.second.kind() != SKILL_KIND_ATTACK) {
+    const Skill& skill = entry.second;
+    if (!DealsDamage(skill.kind())) {
       continue;
     }
     // A skill the weapon in hand cannot swing is not an option, however well
     // learned. The bare poke always is, so the character is never left with
     // nothing to attack with.
-    if (!SwingableWith(entry.second, weapon.equip_type())) {
+    if (!SwingableWith(skill, weapon.equip_type())) {
       continue;
     }
-    int learned = state.character.skill_level(entry.second);
-    if (learned > 0) {
-      params.attacks.push_back(AttackFor(proto, total_stats, &entry.second,
-                                         learned, params.types, derived));
+    int learned = state.character.skill_level(skill);
+    if (learned <= 0) {
+      continue;
+    }
+    AttackOption attack =
+        AttackFor(proto, total_stats, &skill, learned, params.types, derived);
+    if (skill.kind() == SKILL_KIND_AUTO_ATTACK) {
+      // A skill with no interval would fire every step, so an unset one is
+      // taken as "does not fire" rather than "fires constantly".
+      if (skill.cast_interval_seconds() <= 0.0) {
+        continue;
+      }
+      attack.interval_seconds = skill.cast_interval_seconds() * speed_factor;
+      params.auto_attacks.push_back(std::move(attack));
+    } else {
+      params.attacks.push_back(std::move(attack));
     }
   }
   params.active = true;

@@ -41,6 +41,10 @@ struct AttackOption {
   int max_enemies = 1;          // front-of-queue mobs one swing reaches
   // Expected damage per target, parallel to CombatParams::types.
   std::vector<double> damage_per_hit;
+  // Seconds between casts, for an attack that fires on its own clock rather
+  // than on the character's swing. 0 for the swings themselves, which are
+  // paced by swing_seconds.
+  double interval_seconds = 0.0;
 };
 
 // A snapshot of the current encounter's combat parameters.
@@ -60,6 +64,10 @@ struct CombatParams {
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;
+  // Attacks that fire on their own clock beside whatever is being swung --
+  // summons and cooldown skills. Not candidates for the swing, so a wide one
+  // never crowds out the character's own attack; they simply also happen.
+  std::vector<AttackOption> auto_attacks;
 };
 
 // Reads `state`'s current map/character into a CombatParams. active is false

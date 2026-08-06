@@ -33,6 +33,11 @@ struct OffenseStats {
   double ier = 0.0;            // ignore elemental resistance, 0..1
 };
 
+// Whether a skill of this kind carries a damage multiplier of its own -- the
+// swings and the things that fire on their own clock. The rest either fold
+// into the character's stats or do nothing we model.
+bool DealsDamage(SkillKind kind);
+
 // What a character's learned passives add to every swing, whichever attack
 // they end up choosing. Kept together rather than passed one at a time: the
 // list grows with each job book, and none of it depends on the target.

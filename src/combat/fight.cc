@@ -50,6 +50,27 @@ const AttackOption* CombatSim::BestAttack(const CombatParams& params) const {
   return best;
 }
 
+void CombatSim::Strike(const AttackOption& attack) {
+  // One strike hits the front mobs at once; each takes its own type's damage.
+  // Overkill on any of them is wasted. Dead mobs leave the queue and the ones
+  // behind slide into the window next time.
+  int hit = std::min(std::max(1, attack.max_enemies),
+                     static_cast<int>(queue_.size()));
+  for (int j = 0; j < hit; ++j) {
+    queue_[j].hp -= attack.damage_per_hit[queue_[j].type];
+  }
+  std::vector<QueuedMob> survivors;
+  survivors.reserve(queue_.size());
+  for (int j = 0; j < static_cast<int>(queue_.size()); ++j) {
+    if (j < hit && queue_[j].hp <= 0.0) {
+      ++kills_this_step_[queue_[j].type];
+    } else {
+      survivors.push_back(queue_[j]);
+    }
+  }
+  queue_ = std::move(survivors);
+}
+
 int CombatSim::player_hp() const {
   return static_cast<int>(std::ceil(player_hp_));
 }
@@ -72,6 +93,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     player_hp_fraction_ = 0.0;
     player_max_hp_ = 0;
     hit_phase_ = 0.0;
+    auto_phase_.clear();
     return;
   }
 
@@ -88,6 +110,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     respawn_phase_ = 0.0;
     attack_phase_ = 0.0;
     hit_phase_ = 0.0;
+    auto_phase_.assign(params.auto_attacks.size(), 0.0);
     player_hp_ = params.max_player_hp;
     queue_.clear();
     TopUp(params);
@@ -147,6 +170,23 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     }
   }
 
+  // Skills that fire on their own clock, before the swing is chosen so the
+  // choice is made against what they leave standing. Their clocks only run
+  // while there is something to hit: a summon has nothing to do on an empty
+  // map, and waiting there does not earn it a free cast when the mobs arrive.
+  auto_phase_.resize(params.auto_attacks.size(), 0.0);
+  for (int i = 0; i < static_cast<int>(params.auto_attacks.size()); ++i) {
+    const AttackOption& cast = params.auto_attacks[i];
+    if (queue_.empty() || cast.interval_seconds <= 0.0) {
+      continue;
+    }
+    auto_phase_[i] += dt;
+    if (auto_phase_[i] >= cast.interval_seconds) {
+      auto_phase_[i] -= cast.interval_seconds;
+      Strike(cast);
+    }
+  }
+
   // The attack is chosen against the queue as it stands, so the charge bar
   // names the swing that is actually coming and the pick can change as mobs
   // die out from under it. With the queue empty there is no swing coming and
@@ -161,23 +201,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     attack_phase_ += dt;
     if (attack_phase_ >= swing) {
       attack_phase_ -= swing;
-      // One swing hits the front `reach_` mobs at once; each takes its own
-      // type's damage. Overkill on any of them is wasted. Dead mobs leave the
-      // queue and the ones behind slide into the window next swing.
-      int hit = std::min(reach_, static_cast<int>(queue_.size()));
-      for (int j = 0; j < hit; ++j) {
-        queue_[j].hp -= attack->damage_per_hit[queue_[j].type];
-      }
-      std::vector<QueuedMob> survivors;
-      survivors.reserve(queue_.size());
-      for (int j = 0; j < static_cast<int>(queue_.size()); ++j) {
-        if (j < hit && queue_[j].hp <= 0.0) {
-          ++kills_this_step_[queue_[j].type];
-        } else {
-          survivors.push_back(queue_[j]);
-        }
-      }
-      queue_ = std::move(survivors);
+      Strike(*attack);
       // The queue moved, so the next swing's pick may differ from this one's.
       const AttackOption* next = BestAttack(params);
       attack_name_ = next != nullptr ? next->name : "";

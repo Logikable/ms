@@ -182,6 +182,54 @@ TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
             params.attacks[0].damage_per_hit[0]);
 }
 
+// A skill that fires on its own clock is not one of the swings the fight
+// chooses between -- it is a thing that also happens.
+TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
+  Skill evil_eye;
+  evil_eye.set_name("Evil Eye Shock");
+  evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
+  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  evil_eye.set_max_level(10);
+  evil_eye.set_max_enemies(10);
+  evil_eye.set_cast_interval_seconds(12.0);
+  evil_eye.mutable_base()->set_skill_pct(1.23);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"evil_eye_shock", evil_eye}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(evil_eye, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_EQ(params.attacks.size(), 1u);  // the bare poke, and nothing else
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  EXPECT_EQ(params.auto_attacks[0].name, "Evil Eye Shock");
+  EXPECT_EQ(params.auto_attacks[0].max_enemies, 10);
+  EXPECT_GT(params.auto_attacks[0].damage_per_hit[0], 0.0);
+  // Stretched by the pacing band, like every other duration here.
+  EXPECT_DOUBLE_EQ(params.auto_attacks[0].interval_seconds,
+                   12.0 * GameSpeedFactor(state.character.proto().level()));
+}
+
+// The interval is what makes the skill fire at all, so a skill without one is
+// taken as not firing rather than as firing every step.
+TEST(ComputeCombatParamsTest, AnAutoAttackWithoutAnIntervalIsNotAnOption) {
+  Skill evil_eye;
+  evil_eye.set_name("Evil Eye Shock");
+  evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
+  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  evil_eye.set_max_level(10);
+  evil_eye.mutable_base()->set_skill_pct(1.23);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"evil_eye_shock", evil_eye}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(evil_eye, 1));
+
+  EXPECT_TRUE(ComputeCombatParams(state).auto_attacks.empty());
+}
+
 // Double Stab and Lucky Seven are the same damage over the same reach; the
 // weapon in hand is the only thing that tells them apart, so an attack the
 // weapon cannot swing must not reach the fight as an option.

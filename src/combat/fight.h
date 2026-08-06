@@ -129,6 +129,11 @@ class CombatSim {
   // Leaves the swing clock alone -- whether a top-up interrupts the swing in
   // progress depends on why it happened, so the callers decide.
   void TopUp(const CombatParams& params);
+  // Lands one attack on the front of the queue: the first max_enemies mobs
+  // each take their own type's damage, the dead are counted into
+  // kills_this_step_ and leave. The swing and a skill firing on its own clock
+  // are the same thing here -- what differs is only what starts them.
+  void Strike(const AttackOption& attack);
   // The attack that would land the most damage on the queue as it stands, or
   // null when there is nothing to hit. Reach is worth nothing past the number
   // of mobs actually queued, so a wide, weak-per-target skill loses to the
@@ -146,6 +151,9 @@ class CombatSim {
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
   double player_hp_ = 0.0;        // remaining player HP, topped up on a beat
   double hit_phase_ = 0.0;        // seconds into the engaged mob's next hit
+  // Seconds into each auto-attack's next cast, parallel to
+  // params.auto_attacks. Runs only while there is something to hit.
+  std::vector<double> auto_phase_;
 
   // Shuffles each batch of arriving mobs so they are fought in mixed order
   // rather than one whole type at a time (see TopUp). Default-seeded, so a sim

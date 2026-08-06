@@ -14,6 +14,10 @@ enum SkillKind {
   // Cast, but not an attack -- mobility and the like. Nothing it does is
   // modelled; it exists so the skill list matches the real job.
   SKILL_KIND_ACTIVE = 3;
+  // Attacks on its own clock, alongside whatever the character is swinging,
+  // rather than being the swing. A summon or a cooldown skill the player would
+  // be holding down anyway; see cast_interval_seconds.
+  SKILL_KIND_AUTO_ATTACK = 4;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we
@@ -79,4 +83,9 @@ message Skill {
   // movement speed or an MP cost says neither here, because neither is real to
   // the player reading it.
   string description = 10;
+  // Seconds between casts of a SKILL_KIND_AUTO_ATTACK, in GMS scale before the
+  // game's own pacing stretches it -- usually the skill's cooldown, since a
+  // cooldown skill is one the player would fire the moment it came back.
+  // Ignored for every other kind. A skill with no interval never fires.
+  double cast_interval_seconds = 11;
 }
