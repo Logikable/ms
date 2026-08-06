@@ -11,10 +11,11 @@
  * the one-at-a-time special case.
  *
  * The player has HP here and nowhere else, because it never outlives a fight:
- * there is no regeneration, and instead a full heal every time the map is
- * cleared or changed, or the character levels. Clearing a map is the breather,
- * so a map the player cannot clear is one their HP only ever falls on -- which
- * is the whole reason a map far above their level is dangerous.
+ * there is no regeneration between fights, and instead a slice of the pool back
+ * on every respawn beat, the whole of it whenever the map is cleared or changed
+ * or the character levels. So a map far above the player's level is dangerous
+ * when its mobs take more out of them between beats than a beat gives back --
+ * and one at their level can be held all day.
  *
  * This is the single engine behind both halves of combat. The kills it reports
  * each step (kills_this_step) are what the reward layer pays out for, and the
@@ -143,7 +144,7 @@ class CombatSim {
   std::vector<QueuedMob> queue_;  // remaining mobs this cycle, front = engaged
   double attack_phase_ = 0.0;     // seconds into the current swing
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
-  double player_hp_ = 0.0;        // remaining player HP, refilled on a clear
+  double player_hp_ = 0.0;        // remaining player HP, topped up on a beat
   double hit_phase_ = 0.0;        // seconds into the engaged mob's next hit
 
   // Shuffles each batch of arriving mobs so they are fought in mixed order

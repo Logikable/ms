@@ -32,6 +32,13 @@ namespace {
 // backwards.
 constexpr double kMobHitIntervalSeconds = 1.5;
 
+// How much of the player's HP pool a respawn beat gives back. The other half
+// of the knob above: together they set how far above their level a map stays
+// survivable. A map whose mobs take less than this out of the player between
+// beats can be held indefinitely, so a character can get through it by
+// enduring it rather than only by killing fast enough to keep clearing it.
+constexpr double kBeatHealFraction = 0.10;
+
 // One attack's damage against every mob type on the map. `skill` is null for
 // the bare poke, which hits one target for the character's plain 100% swing.
 // `equipped` is everything the character wears plus everything their passives
@@ -106,6 +113,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
   params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
   params.max_player_hp = derived.max_hp;
+  params.beat_heal_fraction = kBeatHealFraction;
   // What the character brings to being hit is the same whichever mob is
   // hitting them, so it is resolved once and asked per type below.
   DefenseStats defense;

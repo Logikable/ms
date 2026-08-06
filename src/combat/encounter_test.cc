@@ -328,6 +328,10 @@ TEST(ComputeCombatParamsTest, ReportsThePlayersPoolAndHowOftenItIsHit) {
   EXPECT_EQ(params.max_player_hp,
             DerivedStatsFor(state.character, state.skills).max_hp);
   EXPECT_GT(params.hit_seconds, 0.0);
+  // The only healing there is, so a real encounter has to carry it or a map
+  // becomes survivable only by clearing it.
+  EXPECT_GT(params.beat_heal_fraction, 0.0);
+  EXPECT_LE(params.beat_heal_fraction, 1.0);
 }
 
 TEST(ComputeCombatParamsTest, EachTypeCarriesWhatItsHitsDoToThePlayer) {

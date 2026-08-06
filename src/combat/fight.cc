@@ -112,12 +112,17 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     // real progress, not only the bar the player is watching.
     bool was_idle = queue_.empty();
     TopUp(params);
+    // Every beat hands back a slice of the pool, cleared map or not. It is the
+    // only healing there is, and it is what makes a map survivable by
+    // outlasting it: hold out for a beat taking less than the slice and the
+    // player never falls behind, however long the fight runs.
+    player_hp_ =
+        std::min(static_cast<double>(params.max_player_hp),
+                 player_hp_ + params.beat_heal_fraction * params.max_player_hp);
     if (was_idle) {
       attack_phase_ = 0.0;
-      // Clearing the map is the player's breather, and the only one they get:
-      // a beat that lands mid-fight is more monsters arriving, which is no
-      // reason to heal. So a map they can empty costs them nothing over time,
-      // and a map they cannot only ever takes HP off them.
+      // Emptying the map is the bigger breather, and it is worth the whole
+      // pool: a player killing that fast has earned the map outright.
       player_hp_ = params.max_player_hp;
       hit_phase_ = 0.0;
     }

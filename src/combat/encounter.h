@@ -49,10 +49,14 @@ struct CombatParams {
   // The map these params describe. The fight watches this to know when it is
   // playing out a different encounter than the one it holds a roster for.
   std::string map;
-  double swing_seconds = 0.0;     // time between auto-attacks (game-scaled)
-  double respawn_seconds = 0.0;   // time between full-roster respawn beats
-  double hit_seconds = 0.0;       // time between mob hits on the player
-  int max_player_hp = 0;          // what a full heal fills the player back to
+  double swing_seconds = 0.0;    // time between auto-attacks (game-scaled)
+  double respawn_seconds = 0.0;  // time between full-roster respawn beats
+  double hit_seconds = 0.0;      // time between mob hits on the player
+  int max_player_hp = 0;         // what a full heal fills the player back to
+  // Share of that pool the player gets back on every respawn beat, whether or
+  // not they cleared the map (0.10 == a tenth of it). What lets a map be
+  // survived by outlasting it rather than only by emptying it.
+  double beat_heal_fraction = 0.0;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

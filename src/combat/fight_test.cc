@@ -584,18 +584,36 @@ TEST(CombatSimTest, TheHitClockDoesNotBankTimeWhileTheMapIsEmpty) {
   EXPECT_EQ(sim.player_hp(), 100);
 }
 
-TEST(CombatSimTest, ARespawnBeatMidFightDoesNotHeal) {
+TEST(CombatSimTest, ARespawnBeatMidFightHealsASlice) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
-  // The mob outlasts the beat, so the top-up is more monsters arriving rather
-  // than the player's breather.
+  // The mobs outlast the beat, so the top-up is more monsters arriving rather
+  // than the player's breather -- and the slice comes back regardless, which
+  // is what lets a map be held rather than only cleared.
   CombatParams params = MakeParams(10.0, 2.0, {MakeType(&snail, 1.0, 2)});
-  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/30.0);
+  params.beat_heal_fraction = 0.1;
 
   sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 70);
   sim.Advance(params, 1.0);  // the beat lands here, with both mobs still up
   ASSERT_FALSE(sim.respawning());
-  EXPECT_EQ(sim.player_hp(), 80);
+  EXPECT_EQ(sim.player_hp(), 50);  // 70, +10 from the beat, -30 from the hit
+}
+
+TEST(CombatSimTest, ABeatCannotHealPastFull) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 2.0, {MakeType(&snail, 1.0, 2)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/5.0);
+  params.beat_heal_fraction = 0.1;
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 95);
+  // The beat's tenth is more than the one hit took, and the surplus goes
+  // nowhere: the player is left one hit down, not banking healing for later.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 95);
 }
 
 TEST(CombatSimTest, ChangingMapHealsThePlayer) {
