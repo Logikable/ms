@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include "src/character/character_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/constants.h"
 #include "src/game_state.h"
@@ -21,6 +22,15 @@ Mob MakeMob(const std::string& name, int max_hp) {
   Mob mob;
   mob.set_name(name);
   mob.set_max_hp(max_hp);
+  return mob;
+}
+
+// A mob that swings back: attack and level are what the damage-taken formula
+// reads off it.
+Mob MakeAttacker(const std::string& name, int max_hp, int attack, int level) {
+  Mob mob = MakeMob(name, max_hp);
+  mob.set_attack(attack);
+  mob.set_level(level);
   return mob;
 }
 
@@ -53,6 +63,21 @@ void EquipSwordAt(GameState& state, AttackSpeed speed) {
 
 void EquipSword(GameState& state) {
   EquipSwordAt(state, ATTACK_SPEED_AVERAGE);
+}
+
+// The same sword with armour bolted onto it, so a test can raise the
+// character's DEF without a second slot to fill.
+void EquipArmouredSword(GameState& state, int def) {
+  EquipPrototype sword;
+  sword.set_name("Padded Sword");
+  sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  sword.mutable_base_stats()->set_attack(100);
+  sword.mutable_base_stats()->set_magic_attack(100);
+  sword.mutable_base_stats()->set_def(def);
+  state.character.PickUp(std::make_unique<EquipInstance>(sword));
+  state.character.Equip(0);
 }
 
 void EquipClaw(GameState& state) {
@@ -289,6 +314,53 @@ TEST(ComputeCombatParamsTest, TheEncounterStretchesAsTheCharacterLevels) {
   ASSERT_GT(stretch, 1.0) << "the bands either side of 10 must differ";
   EXPECT_DOUBLE_EQ(later.swing_seconds, stretch * early.swing_seconds);
   EXPECT_DOUBLE_EQ(later.respawn_seconds, stretch * early.respawn_seconds);
+  EXPECT_DOUBLE_EQ(later.hit_seconds, stretch * early.hit_seconds);
+}
+
+TEST(ComputeCombatParamsTest, ReportsThePlayersPoolAndHowOftenItIsHit) {
+  GameState state({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 20, 1)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_TRUE(params.active);
+  EXPECT_EQ(params.max_player_hp,
+            DerivedStatsFor(state.character, state.skills).max_hp);
+  EXPECT_GT(params.hit_seconds, 0.0);
+}
+
+TEST(ComputeCombatParamsTest, EachTypeCarriesWhatItsHitsDoToThePlayer) {
+  GameState state({}, {}, {},
+                  {{"snail", MakeAttacker("Snail", 15, 20, 1)},
+                   {"blue_snail", MakeAttacker("Blue Snail", 20, 200, 1)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.types.size(), 2u);
+  EXPECT_GT(params.types[0].damage_to_player, 0.0);
+  // The one that swings ten times harder hurts more, which is the only
+  // relation between the two that the map's order does not decide.
+  EXPECT_GT(params.types[1].damage_to_player, params.types[0].damage_to_player);
+}
+
+TEST(ComputeCombatParamsTest, TheCharactersDefenseReducesWhatMobsDo) {
+  // A mob swinging hard enough that the character's bare DEF is nowhere near
+  // the cap, so armour still has room to be worth something.
+  GameState bare({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                 {{"field", TwoSnailMap()}});
+  bare.current_map = "field";
+  EquipSword(bare);
+
+  GameState armoured({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                     {{"field", TwoSnailMap()}});
+  armoured.current_map = "field";
+  EquipArmouredSword(armoured, /*def=*/40);
+
+  EXPECT_LT(ComputeCombatParams(armoured).types[0].damage_to_player,
+            ComputeCombatParams(bare).types[0].damage_to_player);
 }
 
 }  // namespace

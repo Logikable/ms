@@ -22,6 +22,16 @@
 namespace ms {
 namespace {
 
+// How often the mob the player is engaged with hits back, in GMS-scale
+// seconds, before the game's own pacing stretches it. The tuning knob for how
+// dangerous an over-levelled map is: everything else about damage taken is the
+// GMS formula, and this is the one number we chose.
+//
+// Only the one mob swings, however many are on the map. A hit per mob would
+// make a crowded beginner map deadlier than a sparse high-level one, which is
+// backwards.
+constexpr double kMobHitIntervalSeconds = 1.5;
+
 // One attack's damage against every mob type on the map. `skill` is null for
 // the bare poke, which hits one target for the character's plain 100% swing.
 // `equipped` is everything the character wears plus everything their passives
@@ -94,6 +104,14 @@ CombatParams ComputeCombatParams(const GameState& state) {
                            attack_speed) *
       speed_factor;
   params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
+  params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
+  params.max_player_hp = derived.max_hp;
+  // What the character brings to being hit is the same whichever mob is
+  // hitting them, so it is resolved once and asked per type below.
+  DefenseStats defense;
+  defense.level = state.character.proto().level();
+  defense.def = derived.def;
+  defense.damage_taken_pct = derived.damage_taken_pct;
   for (const MapData::Spawn& spawn : map.spawns()) {
     std::map<std::string, Mob>::const_iterator mob_it =
         state.mobs.find(spawn.mob());
@@ -103,6 +121,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
     CombatType type;
     type.mob = &mob_it->second;
     type.simultaneous = spawn.count();
+    type.damage_to_player = ExpectedDamageTaken(defense, *type.mob);
     params.types.push_back(std::move(type));
   }
   if (params.types.empty()) {

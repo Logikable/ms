@@ -110,6 +110,7 @@ cc_test(
         ":constants",
         ":encounter",
         "//src:game_state",
+        "//src/character:character_stats",
         "//src/character:progression",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",

@@ -1,6 +1,7 @@
 #include "src/combat/fight.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "src/combat/encounter.h"
 #include "src/protos/mob.pb.h"
@@ -49,6 +50,10 @@ const AttackOption* CombatSim::BestAttack(const CombatParams& params) const {
   return best;
 }
 
+int CombatSim::player_hp() const {
+  return static_cast<int>(std::ceil(player_hp_));
+}
+
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   active_ = params.active;
   kills_this_step_.assign(params.types.size(), 0);
@@ -62,6 +67,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     attack_fraction_ = 0.0;
     attack_name_.clear();
     reach_ = 1;
+    player_hp_ = 0.0;
+    player_hp_fraction_ = 0.0;
+    hit_phase_ = 0.0;
     return;
   }
 
@@ -77,10 +85,14 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     map_ = params.map;
     respawn_phase_ = 0.0;
     attack_phase_ = 0.0;
+    hit_phase_ = 0.0;
+    player_hp_ = params.max_player_hp;
     queue_.clear();
     TopUp(params);
     initialized_ = true;
   }
+  // A level-up widens the pool; nothing ever narrows it below what is in it.
+  player_hp_ = std::min(player_hp_, static_cast<double>(params.max_player_hp));
 
   // The respawn beat brings the map back to a full roster.
   respawn_phase_ += dt;
@@ -95,6 +107,30 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     TopUp(params);
     if (was_idle) {
       attack_phase_ = 0.0;
+      // Clearing the map is the player's breather, and the only one they get:
+      // a beat that lands mid-fight is more monsters arriving, which is no
+      // reason to heal. So a map they can empty costs them nothing over time,
+      // and a map they cannot only ever takes HP off them.
+      player_hp_ = params.max_player_hp;
+      hit_phase_ = 0.0;
+    }
+  }
+
+  // The mob at the front of the queue is the one the player is in melee with,
+  // and the only one that hits back, however many are on the map -- see
+  // fight.h. It swings before the player does, so the last mob standing still
+  // gets its hit in on the way out.
+  //
+  // An empty map has nothing to be hit by, and its clock waits where it is
+  // rather than banking a free hit for whatever arrives next.
+  if (queue_.empty() || params.hit_seconds <= 0.0) {
+    hit_phase_ = 0.0;
+  } else {
+    hit_phase_ += dt;
+    if (hit_phase_ >= params.hit_seconds) {
+      hit_phase_ -= params.hit_seconds;
+      player_hp_ = std::max(
+          0.0, player_hp_ - params.types[queue_.front().type].damage_to_player);
     }
   }
 
@@ -137,6 +173,11 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
       }
     }
   }
+
+  player_hp_fraction_ =
+      params.max_player_hp > 0
+          ? std::clamp(player_hp_ / params.max_player_hp, 0.0, 1.0)
+          : 0.0;
 
   respawning_ = queue_.empty();
   engaged_groups_.clear();

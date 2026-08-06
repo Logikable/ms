@@ -1,5 +1,6 @@
 /* The live fight: the player auto-attacking a map's mobs, draining HP, clearing
- * the queue, then idling until the next respawn beat refills it.
+ * the queue, then idling until the next respawn beat refills it -- while the
+ * mob at the front of that queue hits back.
  *
  * The mobs form a queue. A respawn beat tops it back up to a full roster,
  * appending the missing spawns in random order and leaving whatever is still
@@ -8,6 +9,12 @@
  * attack's reach -- each taking its own type's damage; a mob at 0 HP leaves the
  * queue and the ones behind slide forward. A single-target attack (reach 1) is
  * the one-at-a-time special case.
+ *
+ * The player has HP here and nowhere else, because it never outlives a fight:
+ * there is no regeneration, and instead a full heal every time the map is
+ * cleared or changed. Clearing a map is the breather, so a map the player
+ * cannot clear is one their HP only ever falls on -- which is the whole reason
+ * a map far above their level is dangerous.
  *
  * This is the single engine behind both halves of combat. The kills it reports
  * each step (kills_this_step) are what the reward layer pays out for, and the
@@ -75,6 +82,13 @@ class CombatSim {
   const std::string& attack_name() const {
     return attack_name_;
   }
+  // The player's remaining HP, rounded up so a sliver still reads as 1 rather
+  // than as death. 0 while inactive.
+  int player_hp() const;
+  // That HP as a fraction in [0, 1] of what the params say it tops out at.
+  double player_hp_fraction() const {
+    return player_hp_fraction_;
+  }
   // Kills recorded during the most recent Advance, indexed to match the
   // params.types passed to that call.
   const std::vector<int64_t>& kills_this_step() const {
@@ -118,6 +132,8 @@ class CombatSim {
   std::vector<QueuedMob> queue_;  // remaining mobs this cycle, front = engaged
   double attack_phase_ = 0.0;     // seconds into the current swing
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
+  double player_hp_ = 0.0;        // remaining player HP, refilled on a clear
+  double hit_phase_ = 0.0;        // seconds into the engaged mob's next hit
 
   // Shuffles each batch of arriving mobs so they are fought in mixed order
   // rather than one whole type at a time (see TopUp). Default-seeded, so a sim
@@ -129,6 +145,7 @@ class CombatSim {
   int target_level_ = 0;
   double target_hp_fraction_ = 0.0;
   double attack_fraction_ = 0.0;
+  double player_hp_fraction_ = 0.0;
   std::string attack_name_;
   // Reach of the attack the next swing will use -- also the width of the
   // engaged window the UI draws.

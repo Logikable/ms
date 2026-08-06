@@ -25,6 +25,10 @@ namespace ms {
 struct CombatType {
   const Mob* mob = nullptr;
   int simultaneous = 0;  // how many spawn at once (spawn_count / type count)
+  // Expected damage one hit from this mob does to the player, already through
+  // their DEF. Held per type rather than per mob because every member of a
+  // type hits alike.
+  double damage_to_player = 0.0;
 };
 
 // One attack the character could swing with: the bare poke, or a learned
@@ -47,6 +51,8 @@ struct CombatParams {
   std::string map;
   double swing_seconds = 0.0;     // time between auto-attacks (game-scaled)
   double respawn_seconds = 0.0;   // time between full-roster respawn beats
+  double hit_seconds = 0.0;       // time between mob hits on the player
+  int max_player_hp = 0;          // what a full heal fills the player back to
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

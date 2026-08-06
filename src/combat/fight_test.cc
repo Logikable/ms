@@ -467,5 +467,190 @@ TEST(CombatSimTest, ClampsLargeGapsToOneSwing) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.96, 1e-9);  // 100 - 4 = 96
 }
 
+// Gives `params` a player with a pool to lose, hit every `interval` seconds
+// for `damage` by whichever mob is at the front. Every type hits alike unless
+// a test says otherwise.
+void GivePlayerHp(CombatParams& params, int max_hp, double interval,
+                  double damage) {
+  params.max_player_hp = max_hp;
+  params.hit_seconds = interval;
+  for (CombatType& type : params.types) {
+    type.damage_to_player = damage;
+  }
+}
+
+TEST(CombatSimTest, TheEngagedMobHitsBackOnItsOwnClock) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  // A mob far too tough to kill, so nothing interrupts the incoming hits.
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 0.5);  // mid-interval, nothing has landed
+  EXPECT_EQ(sim.player_hp(), 100);
+  EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 1.0);
+
+  sim.Advance(params, 0.5);  // the interval closes
+  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 0.9);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 80);
+}
+
+TEST(CombatSimTest, OnlyOneMobHitsBackHoweverManyAreOnTheMap) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  // Five of them standing there, and the player takes one hit, not five. A
+  // crowd is a crowd, not five attackers.
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 5)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 90);
+}
+
+TEST(CombatSimTest, DamageTakenFollowsTheMobInFront) {
+  Mob snail = MakeMob("Snail", 1000);
+  Mob ogre = MakeMob("Ogre", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(
+      10.0, 1000.0, {MakeType(&snail, 1.0, 1), MakeType(&ogre, 1.0, 1)});
+  params.max_player_hp = 100;
+  params.hit_seconds = 1.0;
+  params.types[0].damage_to_player = 5.0;
+  params.types[1].damage_to_player = 50.0;
+
+  // Which of the two the queue puts in front is its own business -- it
+  // shuffles the arrivals -- but the hit the player takes has to be that
+  // one's, and not the other's.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), sim.target_name() == "Snail" ? 95 : 50);
+}
+
+TEST(CombatSimTest, AnEmptyMapHasNothingToHitThePlayerWith) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);  // the snail hits, then the swing clears the map
+  ASSERT_TRUE(sim.respawning());
+  EXPECT_EQ(sim.player_hp(), 90);
+
+  for (int i = 0; i < 5; ++i) {  // idling well past several intervals
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.player_hp(), 90);
+}
+
+TEST(CombatSimTest, ClearingTheMapHealsThePlayer) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 3.0, {MakeType(&snail, 10.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 0.5);
+  sim.Advance(params, 0.5);  // a hit lands, then the swing clears the map
+  ASSERT_TRUE(sim.respawning());
+  ASSERT_EQ(sim.player_hp(), 90);
+
+  for (int i = 0; i < 4; ++i) {  // idle until the beat at 3.0s refills the map
+    sim.Advance(params, 0.5);
+  }
+  EXPECT_FALSE(sim.respawning());
+  EXPECT_EQ(sim.player_hp(), 100);
+}
+
+TEST(CombatSimTest, TheHitClockDoesNotBankTimeWhileTheMapIsEmpty) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 3.0, {MakeType(&snail, 10.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 0.5);
+  sim.Advance(params, 0.5);  // hit, then the map is cleared
+  ASSERT_EQ(sim.player_hp(), 90);
+  for (int i = 0; i < 4; ++i) {  // two idle seconds, then the refill
+    sim.Advance(params, 0.5);
+  }
+  ASSERT_FALSE(sim.respawning());
+  ASSERT_EQ(sim.player_hp(), 100);
+
+  // Nine tenths of a second of fighting since the map refilled. Had the two
+  // idle seconds counted toward the mob's clock, a hit would have landed by
+  // now -- several, in fact.
+  sim.Advance(params, 0.4);
+  EXPECT_EQ(sim.player_hp(), 100);
+}
+
+TEST(CombatSimTest, ARespawnBeatMidFightDoesNotHeal) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  // The mob outlasts the beat, so the top-up is more monsters arriving rather
+  // than the player's breather.
+  CombatParams params = MakeParams(10.0, 2.0, {MakeType(&snail, 1.0, 2)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);  // the beat lands here, with both mobs still up
+  ASSERT_FALSE(sim.respawning());
+  EXPECT_EQ(sim.player_hp(), 80);
+}
+
+TEST(CombatSimTest, ChangingMapHealsThePlayer) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 80);
+
+  CombatParams elsewhere = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)},
+                                      /*reach=*/1, /*map=*/"elsewhere");
+  GivePlayerHp(elsewhere, 100, /*interval=*/1.0, /*damage=*/10.0);
+  sim.Advance(elsewhere, 0.5);
+  EXPECT_EQ(sim.player_hp(), 100);
+}
+
+TEST(CombatSimTest, PlayerHpStopsAtZero) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/60.0);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 40);
+
+  sim.Advance(params, 1.0);  // more than the 40 that is left
+  EXPECT_EQ(sim.player_hp(), 0);
+  EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 0.0);
+}
+
+TEST(CombatSimTest, ASliverOfHpStillReadsAsOne) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/99.5);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 1);  // 0.5 left, which is not death
+}
+
+TEST(CombatSimTest, InactiveParamsLeaveThePlayerWithNoHpToShow) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 90);
+
+  sim.Advance(CombatParams{}, 1.0);
+  EXPECT_EQ(sim.player_hp(), 0);
+  EXPECT_DOUBLE_EQ(sim.player_hp_fraction(), 0.0);
+}
+
 }  // namespace
 }  // namespace ms
