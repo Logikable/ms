@@ -175,7 +175,7 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   // Past both gates, or neither entry would be offered on any item and the
   // assertions below would say nothing about throwing stars in particular.
-  // ScrollingAndStarForceArriveAtTheirOwnLevels is the control.
+  // ScrollAndStarForceArriveOnTime is the control.
   LevelTo(UnlockLevel(Feature::kStarForce));
   c_.PickUp(std::make_unique<EquipInstance>(stars));
   c_.Equip(0);
@@ -339,7 +339,7 @@ TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
 // Arrows on an empty list leave the cursor alone. The ftxui::Menu underneath
 // would move its index anyway, putting selected() at -1, which selected_slot()
 // would then read past the front of an empty slot list.
-TEST_F(EquippedPanelTest, ArrowsDoNotMoveTheCursorWithNothingEquipped) {
+TEST_F(EquippedPanelTest, ArrowsDoNothingWithNothingEquipped) {
   EquippedPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
@@ -457,7 +457,7 @@ TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
   EXPECT_NE(std::count(after.begin(), after.end(), kMenuAction), 0);
 }
 
-TEST_F(EquippedPanelTest, ScrollingAndStarForceArriveAtTheirOwnLevels) {
+TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
   // A spent weapon: star force refuses an item with upgrade slots still on
   // it, and this test is about the level gate rather than that refusal.
   sword_.set_upgrade_slots(1);

@@ -185,7 +185,7 @@ TEST(CombatPanelTest, LabelsTheAttackBarWithTheAttackName) {
   EXPECT_NE(RenderPanel(state, sim).find("Attack"), std::string::npos);
 }
 
-TEST(CombatPanelTest, MergesSeveralEngagedMobsIntoOneBarWithACount) {
+TEST(CombatPanelTest, MergesEngagedMobsIntoOneBar) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", SnailField()}});
   state.current_map = "field";

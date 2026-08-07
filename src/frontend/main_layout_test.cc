@@ -171,14 +171,14 @@ TEST_F(MainLayoutTest, CombatKeepsItsOwnHeightAtTheBottom) {
 }
 
 // The character panel stays at the top of the column, keeping its own height.
-TEST_F(MainLayoutTest, TheCharacterPanelKeepsItsOwnHeightAtTheTop) {
+TEST_F(MainLayoutTest, TheCharacterPanelKeepsItsHeight) {
   Render(/*bag_rows=*/40);
   EXPECT_EQ(FirstRowWith("CHAR"), 1);
   EXPECT_EQ(Cell(0, 9), "╰");
 }
 
 // The gap the pinning opens is empty, not a stretched panel.
-TEST_F(MainLayoutTest, NothingFillsTheGapBetweenCharacterAndCombat) {
+TEST_F(MainLayoutTest, TheGapBetweenPanelsStaysBlank) {
   Render(/*bag_rows=*/40);
   int combat_top = FirstRowWith("COMBAT") - 1;
   for (int y = 10; y < combat_top; ++y) {
@@ -228,7 +228,7 @@ TEST_F(MainLayoutTest, TheRightColumnFillsTheRemainingWidth) {
 
 // Nothing to the right of the character panel at level 1, and the two panels
 // that do exist keep the places they will have for the rest of the game.
-TEST_F(MainLayoutTest, BothRightPanelsAbsentLeavesOnlyTheLeftColumn) {
+TEST_F(MainLayoutTest, NoRightPanelsLeavesOneColumn) {
   RenderWith(nullptr, nullptr, nullptr);
   EXPECT_EQ(FirstRowWith("EQUIP"), -1);
   EXPECT_EQ(FirstRowWith("BAG"), -1);
@@ -251,7 +251,7 @@ TEST_F(MainLayoutTest, TheEquippedPanelStandsAloneWithoutTheBag) {
 
 // The right column is what flexes to fill the width. With nothing in it the
 // left column must not stretch to take its place.
-TEST_F(MainLayoutTest, TheLeftColumnKeepsItsWidthWithNoRightColumn) {
+TEST_F(MainLayoutTest, TheLeftColumnKeepsItsWidthAlone) {
   RenderWith(nullptr, nullptr, nullptr);
   int row = FirstRowWith("CHAR");
   ASSERT_NE(row, -1);

@@ -83,7 +83,7 @@ TEST_F(CelebrationTest, DismissTakesTheCardDownEarly) {
 // A second level-up while the first is still up restarts the clock rather than
 // inheriting what was left of it -- otherwise a level landing a moment before
 // the card expired would flash by.
-TEST_F(CelebrationTest, ASecondLevelUpGetsAFullFourSecondsOfItsOwn) {
+TEST_F(CelebrationTest, ASecondLevelUpGetsItsOwnFourSeconds) {
   BeginAway(12, 13);
   celebration_.Advance(kCelebrationSeconds - 0.3);
   BeginAway(13, 14);
@@ -93,7 +93,7 @@ TEST_F(CelebrationTest, ASecondLevelUpGetsAFullFourSecondsOfItsOwn) {
 
 // --- which panels are lit ---
 
-TEST_F(CelebrationTest, AnOrdinaryLevelUpLightsOnlyTheCharacterPanel) {
+TEST_F(CelebrationTest, AnOrdinaryLevelUpLightsOnePanel) {
   BeginAway(12, 13);
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
   EXPECT_FALSE(celebration_.Lights(kEquipPanel));
@@ -144,7 +144,7 @@ TEST_F(CelebrationTest, AnAdvancementLightsTheCharacterPanelOnly) {
   EXPECT_FALSE(celebration_.Lights(kInventoryPanel));
 }
 
-TEST_F(CelebrationTest, AnAdvancementDoesNotInheritALevelUpsLitPanels) {
+TEST_F(CelebrationTest, AnAdvancementInheritsNoLitPanels) {
   int level = UnlockLevel(Feature::kBag);
   BeginAway(level - 1, level);
   ASSERT_TRUE(celebration_.Lights(kInventoryPanel));
@@ -181,7 +181,7 @@ TEST_F(CelebrationTest, GoldOnThePanelYouAreOnFadesWithTheCard) {
 
 // Walking away before the four seconds are up does not turn a panel that was
 // seen back into one that is waiting to be.
-TEST_F(CelebrationTest, LeavingThePanelYouWereOnDoesNotRearmItsGold) {
+TEST_F(CelebrationTest, LeavingAPanelDoesNotRearmItsGold) {
   celebration_.BeginLevelUp(12, 13, 5, 3, kCharPanel);
   celebration_.Visit(kCombatPanel);
   celebration_.Advance(kCelebrationSeconds);
@@ -233,7 +233,7 @@ TEST_F(CelebrationTest, DismissingTheCardLeavesTheGoldAlone) {
 // Even the timed half, which the card's own clock would otherwise have taken
 // with it: four seconds of gold is four seconds whether or not the card is
 // still sitting on top of it.
-TEST_F(CelebrationTest, DismissingTheCardDoesNotCutATimedGlowShort) {
+TEST_F(CelebrationTest, DismissingTheCardKeepsTheGlow) {
   celebration_.BeginLevelUp(12, 13, 5, 3, kCharPanel);
   celebration_.Dismiss();
   celebration_.Advance(kCelebrationSeconds - 0.3);
@@ -266,7 +266,7 @@ TEST_F(CelebrationTest, AnAdvancementRendersTheAdvancementCard) {
 // An advancement replaces a level-up rather than queueing behind it: taking
 // one is the larger news, and the player did not ask to be shown the old card
 // again first.
-TEST_F(CelebrationTest, AnAdvancementReplacesALevelUpStillOnScreen) {
+TEST_F(CelebrationTest, AnAdvancementReplacesALevelUpCard) {
   BeginAway(29, 30);
   celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, kCombatPanel);
   EXPECT_EQ(celebration_.kind(), Celebration::Kind::kAdvancement);

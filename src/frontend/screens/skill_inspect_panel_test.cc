@@ -156,7 +156,7 @@ TEST_F(SkillInspectPanelTest, ShowsTheFactsThatHoldAtEveryLevel) {
   EXPECT_NE(rendered.find("Claw"), std::string::npos);
 }
 
-TEST_F(SkillInspectPanelTest, SaysNothingAboutReachForASingleTargetSkill) {
+TEST_F(SkillInspectPanelTest, NoReachRowForASingleTargetSkill) {
   Skill skill = MakeIronBody();
   std::string rendered = RenderAt(skill, 5);
   EXPECT_EQ(rendered.find("Enemies Hit"), std::string::npos);
@@ -338,7 +338,7 @@ TEST_F(SkillInspectPanelTest, RulesTheRequirementOffFromTheDescription) {
       << "the description does not close where it should";
 }
 
-TEST_F(SkillInspectPanelTest, SaysNothingAboutRequirementsWhenThereAreNone) {
+TEST_F(SkillInspectPanelTest, NoRequirementRowWhenThereIsNone) {
   EXPECT_EQ(RenderAt(MakeIronBody(), 1).find("Required Skill"),
             std::string::npos);
 }

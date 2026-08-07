@@ -591,7 +591,7 @@ TEST_F(CharacterPanelTest, SkillsTabListsActivesBeforePassives) {
 
 // Between the two: a skill that fights on its own clock is not one of the
 // swings to pick between, but it is not background either.
-TEST_F(CharacterPanelTest, AutoAttacksSitBetweenTheSwingsAndThePassives) {
+TEST_F(CharacterPanelTest, AutoAttacksSitBetweenTheTwo) {
   // Stems chosen so the catalog's own order is the reverse of the wanted one.
   Skill evil_eye;
   evil_eye.set_name("Evil Eye Shock");
@@ -857,7 +857,7 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastSkill) {
   EXPECT_TRUE(fired) << "Enter learns only from a skill row";
 }
 
-TEST_F(CharacterPanelTest, DownFromTheLastSkillReturnsToTheOuterTabBar) {
+TEST_F(CharacterPanelTest, DownFromTheLastSkillReturnsToTheBar) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
@@ -983,7 +983,7 @@ TEST_F(CharacterPanelTest, LightsItsBorderGoldWhenHighlighted) {
 
 // The panel keeps no clock: whoever lit it is the one that puts it out, and
 // the border has to actually go back.
-TEST_F(CharacterPanelTest, GoesBackToTheThemeColorWhenTheHighlightIsCleared) {
+TEST_F(CharacterPanelTest, ClearingTheHighlightRestoresTheTheme) {
   CharacterPanel panel(c_, panel_focus_);
   panel.SetHighlighted(true);
   panel.SetHighlighted(false);
@@ -1012,7 +1012,7 @@ TEST_F(CharacterPanelTest, LightsItsInnerRulesGoldToo) {
 // exact index the Advance tab vacates, so the player is left standing on it --
 // gold on a tab they are already reading announces nothing, and having never
 // been arrowed onto, nothing would clear it either.
-TEST_F(CharacterPanelTest, AdvancingLeavesThePlayerOnTheSkillsTabNotOnGold) {
+TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsTabUngilded) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
   ASSERT_TRUE(c.CanAdvanceJob());
   CharacterPanel panel(c, panel_focus_);
@@ -1045,7 +1045,7 @@ TEST_F(CharacterPanelTest, ANewAdvanceTabIsWrittenInGold) {
   EXPECT_EQ(LabelColor(panel.Render(), "Advance"), kYellow);
 }
 
-TEST_F(CharacterPanelTest, OpeningTheAdvanceTabStopsItAnnouncingItself) {
+TEST_F(CharacterPanelTest, OpeningTheAdvanceTabClearsItsGold) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
   CharacterPanel panel(c, panel_focus_);
   ftxui::Component component = panel.MakeComponent([](StatField) {});

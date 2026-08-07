@@ -253,7 +253,7 @@ TEST_F(ShopPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
   EXPECT_NE(Render(panel).find("> Subi Throwing-Stars"), std::string::npos);
 }
 
-TEST_F(ShopPanelTest, ArrowDownFromTheLastItemReturnsToTheTabBar) {
+TEST_F(ShopPanelTest, DownFromTheLastItemReturnsToTheBar) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // straight to the last item
@@ -478,7 +478,7 @@ TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderWhereItWas) {
 // The whole point of the anchor: wherever the cursor is, the menu opens on
 // that row. Checked at the foot of a list long enough that there is no room
 // below -- the case that used to hold it back.
-TEST_F(ShopPanelTest, TheMenuStartsOnItsOwnItemAtTheFootOfTheList) {
+TEST_F(ShopPanelTest, TheMenuOpensBesideTheLastItem) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many;
   for (int i = 0; i < 12; ++i) {
@@ -503,7 +503,7 @@ TEST_F(ShopPanelTest, TheMenuStartsOnItsOwnItemAtTheFootOfTheList) {
 
 // And the same on an item with plenty of room below it, so the anchor is not
 // merely right at the one end of the list.
-TEST_F(ShopPanelTest, TheMenuStartsOnItsOwnItemAtTheTopOfTheList) {
+TEST_F(ShopPanelTest, TheMenuOpensBesideTheFirstItem) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many;
   for (int i = 0; i < 12; ++i) {
@@ -541,7 +541,7 @@ TEST_F(ShopPanelTest, TheMenuSlidesBackOntoAShortScreen) {
 // Shorter still, and the menu and the rows above it no longer fit together at
 // all. It keeps itself whole and lets the empty space that positions it run
 // off the top, rather than staying anchored and losing its own last entry.
-TEST_F(ShopPanelTest, TheMenuStaysWholeOnATerminalTooShortForBoth) {
+TEST_F(ShopPanelTest, TheMenuStaysWholeOnAShortTerminal) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
   for (int i = 0; i < 3; ++i) {

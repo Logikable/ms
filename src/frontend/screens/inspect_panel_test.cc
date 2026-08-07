@@ -273,7 +273,7 @@ TEST_F(InspectPanelTest, SaysSoWhenAStackableHasNoDescription) {
 
 // The two kinds are exclusive: the panel describes the item the cursor was
 // last on, not both at once.
-TEST_F(InspectPanelTest, AStackableReplacesAnEquipAndTheOtherWayRound) {
+TEST_F(InspectPanelTest, EitherKindOfItemReplacesTheOther) {
   EquipPrototype proto;
   proto.set_name("Sword");
   proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);

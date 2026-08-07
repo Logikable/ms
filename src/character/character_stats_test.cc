@@ -369,7 +369,7 @@ TEST_F(DerivedStatsTest, MasteriesTakeTheBestRatherThanTheSum) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.50);
 }
 
-TEST_F(DerivedStatsTest, NoMasterySkillLeavesTheBaselineToTheDamageChain) {
+TEST_F(DerivedStatsTest, NoMasterySkillKeepsTheBaseline) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.0);

@@ -239,7 +239,7 @@ TEST(MapSelectPanelTest, WrappingDoesNotCarryIntoTheNextBand) {
   EXPECT_NE(Render(panel).find("Lv 1-10"), std::string::npos);
 }
 
-TEST(MapSelectPanelTest, OpensOnTheLowestBandWithNothingBeingFarmed) {
+TEST(MapSelectPanelTest, OpensOnTheLowestBandByDefault) {
   GameState state = TwoBands();
   MapSelectPanel panel(state);
   panel.Reset();
@@ -264,7 +264,7 @@ TEST(MapSelectPanelTest, ChangingPageShowsTheNextBandFromItsTop) {
   EXPECT_EQ(panel.selected_map(), "temple");
 }
 
-TEST(MapSelectPanelTest, ResetOpensOnTheBandHoldingTheMapBeingFarmed) {
+TEST(MapSelectPanelTest, ResetOpensOnTheFarmedMapsBand) {
   GameState state = TwoBands();
   state.current_map = "temple";
   MapSelectPanel panel(state);

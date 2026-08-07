@@ -151,7 +151,7 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
   EXPECT_EQ(panel.selected(), 1) << "the second and last row";
 }
 
-TEST_F(InventoryPanelTest, ArrowDownFromTheLastItemReturnsToTheTabBar) {
+TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, panel_focus_);
@@ -178,7 +178,7 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
   EXPECT_NE(RenderComponent(comp).find("> Blue Potion"), std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, ArrowDownFromTheLastStackReturnsToTheTabBar) {
+TEST_F(InventoryPanelTest, DownFromTheLastStackReturnsToTheBar) {
   c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE), 5);
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, panel_focus_);
@@ -193,7 +193,7 @@ TEST_F(InventoryPanelTest, ArrowDownFromTheLastStackReturnsToTheTabBar) {
 
 // A tab with nothing under it is a ring of one stop, so neither key moves the
 // cursor off the bar and onto a row that is not drawn.
-TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarStaysThereOnAnEmptyTab) {
+TEST_F(InventoryPanelTest, UpFromTheBarStaysOnAnEmptyTab) {
   panel_focus_ = kInventoryPanel;
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -373,7 +373,7 @@ TEST_F(InventoryPanelTest, ScrollingArrivesAtItsLevel) {
 }
 
 // Star force and recovery are the two late ones, and they arrive separately.
-TEST_F(InventoryPanelTest, StarForceAndRecoveryArriveAtTheirOwnLevels) {
+TEST_F(InventoryPanelTest, StarForceAndRecoveryArriveOnTime) {
   Equip destroyed;
   destroyed.set_equip_name(sword_.name());
   c_.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
@@ -753,7 +753,7 @@ TEST_F(InventoryPanelTest, KeepsTheCursorInViewWhenTheBagOverflows) {
   }
 }
 
-TEST_F(InventoryPanelTest, ShowsAScrollIndicatorOnlyWhenTheBagOverflows) {
+TEST_F(InventoryPanelTest, ScrollIndicatorOnlyOnOverflow) {
   InventoryPanel small(c_, panel_focus_);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   EXPECT_EQ(RenderComponent(small.MakeComponent([]() {})).find("┃"),
@@ -831,7 +831,7 @@ TEST_F(InventoryPanelTest, CursorRowFollowsAListThatHasScrolled) {
 // when the character cannot equip it -- and the mark has to ride along with
 // whichever is built. sword_ is level 10 and Warrior-only, so every test above
 // takes the coloured path; this one is something a level-1 Beginner can wear.
-TEST_F(InventoryPanelTest, CursorRowIsFoundOnAnItemTheCharacterCanEquip) {
+TEST_F(InventoryPanelTest, CursorRowFindsAnEquippableItem) {
   EquipPrototype plain;
   plain.set_name("Plain Sword");
   plain.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -851,7 +851,7 @@ TEST_F(InventoryPanelTest, CursorRowIsFoundOnAnItemTheCharacterCanEquip) {
 // In the game the bag is not at the top of the screen -- the equipped panel
 // sits above it. The row reported has to be the row on the SCREEN, so it has
 // to carry that offset.
-TEST_F(InventoryPanelTest, CursorRowIsAScreenRowNotARowWithinThePanel) {
+TEST_F(InventoryPanelTest, CursorRowIsAScreenRow) {
   FillBag(40);
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});

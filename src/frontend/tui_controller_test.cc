@@ -425,14 +425,14 @@ TEST_F(TuiControllerTest, SkillInspectReportsTheLearnedLevel) {
   EXPECT_EQ(controller_->skill_inspect_level(), 3);
 }
 
-TEST_F(TuiControllerTest, SkillInspectReportsZeroForAnUnlearnedSkill) {
+TEST_F(TuiControllerTest, ReportsZeroForAnUnlearnedSkill) {
   controller_->OpenSkillInspect(SlashBlast());
   EXPECT_EQ(controller_->skill_inspect_level(), 0);
 }
 
 // The level is read live, not captured when the screen opened, so a point
 // spent between two looks shows up on the second.
-TEST_F(TuiControllerTest, SkillInspectFollowsAPointSpentWhileItIsOpen) {
+TEST_F(TuiControllerTest, SkillInspectFollowsAPointSpent) {
   Skill skill = SlashBlast();
   controller_->OpenSkillInspect(skill);
   ASSERT_EQ(controller_->skill_inspect_level(), 0);
@@ -514,7 +514,7 @@ TEST_F(TuiControllerTest, ConfirmSpendsEveryPointWhenSpIsWhatBinds) {
   EXPECT_EQ(state_->character.sp(1), 0);
 }
 
-TEST_F(TuiControllerTest, EscapeInSkillLearnGoesToMainWithoutLearning) {
+TEST_F(TuiControllerTest, EscapeInSkillLearnLearnsNothing) {
   Skill skill = SlashBlast();
   controller_->OpenSkillLearn(skill);
   controller_->OnEvent(ftxui::Event::Escape);
@@ -522,7 +522,7 @@ TEST_F(TuiControllerTest, EscapeInSkillLearnGoesToMainWithoutLearning) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, EscapeInApAllocGoesToMainWithoutAllocating) {
+TEST_F(TuiControllerTest, EscapeInApAllocAllocatesNothing) {
   state_->character.LevelUp();
   int str_before = state_->character.proto().allocated_stats().str();
   controller_->OpenApAllocate(STAT_FIELD_STR);
@@ -587,7 +587,7 @@ TEST_F(TuiControllerTest, ReturnActionUnequipsFromEquipPanel) {
 // Both panels used to shove focus at the other one when their own list ran
 // out, because an empty list left the panel unable to receive a key. Neither
 // does now, and the player keeps the cursor they were holding.
-TEST_F(TuiControllerTest, UnequippingTheLastItemLeavesFocusWhereItWas) {
+TEST_F(TuiControllerTest, UnequippingTheLastItemKeepsFocus) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -601,7 +601,7 @@ TEST_F(TuiControllerTest, UnequippingTheLastItemLeavesFocusWhereItWas) {
 
 // --- Scroll via equip panel ---
 
-TEST_F(TuiControllerTest, ReturnScrollFromEquipPanelGoesToScrollSelect) {
+TEST_F(TuiControllerTest, ScrollFromTheEquipPanelOpensSelect) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -711,7 +711,7 @@ TEST_F(TuiControllerTest,
   EXPECT_EQ(equip_panel_->menu().selected(), kMenuStarForce);
 }
 
-TEST_F(TuiControllerTest, EnterInScrollResultGoesToScrollSelectIfSlotsRemain) {
+TEST_F(TuiControllerTest, EnterOnAResultReturnsToSelect) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -743,7 +743,7 @@ TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
   EXPECT_EQ(controller_->screen(), kScrollSelect);
 }
 
-TEST_F(TuiControllerTest, ScrollResultSlotsRemainingIsDecrementedOnSuccess) {
+TEST_F(TuiControllerTest, ASuccessSpendsAnUpgradeSlot) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -789,7 +789,7 @@ TEST_F(TuiControllerTest, BagScrollGoesToScrollSelect) {
   EXPECT_EQ(controller_->screen(), kScrollSelect);
 }
 
-TEST_F(TuiControllerTest, BagScrollEscapeFromScrollSelectGoesToItemMenu) {
+TEST_F(TuiControllerTest, BagScrollEscapeReturnsToTheMenu) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
 
@@ -901,7 +901,7 @@ TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
   EXPECT_EQ(controller_->screen(), kStarForceResult);
 }
 
-TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
+TEST_F(TuiControllerTest, TheResultKeepsTheNameAndStars) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
   state_->character.Equip(0);
@@ -919,7 +919,7 @@ TEST_F(TuiControllerTest, StarForceResultStoresEquipNameAndStarsBefore) {
   EXPECT_EQ(controller_->star_force_result().stars_before, 0);
 }
 
-TEST_F(TuiControllerTest, EnterInStarForceResultSuccessGoesToStarForce) {
+TEST_F(TuiControllerTest, EnterOnASuccessReturnsToStarForce) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   // At 0★ the success rate is 95%, so with a seeded rng the first attempt
   // will succeed. We just verify the screen transition, not the outcome.
@@ -978,7 +978,7 @@ TEST_F(TuiControllerTest, BagStarForceAttemptGoesToStarForceResult) {
 
 // --- inspect_item accessor ---
 
-TEST_F(TuiControllerTest, InspectItemReturnsNullptrWhenNotInspecting) {
+TEST_F(TuiControllerTest, NoInspectItemWhenNotInspecting) {
   EXPECT_EQ(controller_->inspect_item(), nullptr);
 }
 
@@ -1154,7 +1154,7 @@ TEST_F(TuiControllerTest, BuyingTakesTheMesoAndFillsTheBag) {
 // The dialog is seeded from the character when it opens, so buying one and
 // coming back has to say two. A panel test cannot see this: BuyPanel is told a
 // number, and would look right either way if the controller kept passing zero.
-TEST_F(TuiControllerTest, TheBuyDialogCountsWhatTheShopperAlreadyHas) {
+TEST_F(TuiControllerTest, TheBuyDialogCountsWhatIsOwned) {
   state_->character.AddMeso(25000);
   OpenBuyDialog();
   ASSERT_NE(RenderBuyDialog().find("Owned: 0"), std::string::npos);
@@ -1281,7 +1281,7 @@ TEST_F(TuiControllerTest, OpenMapSelectStartsOnTheMapBeingFarmed) {
   EXPECT_EQ(map_select_panel_->selected_map(), "cave");
 }
 
-TEST_F(TuiControllerTest, EnterInMapSelectTravelsToTheHighlightedMap) {
+TEST_F(TuiControllerTest, EnterInMapSelectTravelsThere) {
   LoadTwoMaps();
   state_->current_map = "cave";
 
@@ -1331,7 +1331,7 @@ TEST_F(TuiControllerTest, EscapeInMapSelectLeavesTheMapAlone) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, MapSelectSwallowsKeysThatWouldActOnTheMainScreen) {
+TEST_F(TuiControllerTest, MapSelectSwallowsMainScreenKeys) {
   LoadTwoMaps();
 
   controller_->OpenMapSelect();
@@ -1512,7 +1512,7 @@ TEST_F(TuiControllerTest, EscapeBacksOutOfTheQuitPrompt) {
 // Escape means "leave what is open" everywhere else, and only means "leave the
 // game" once there is nothing else open. The quit branch sits below every
 // screen branch in OnEvent to get this, so it is worth pinning.
-TEST_F(TuiControllerTest, EscapeInAScreenLeavesThatScreenRatherThanTheGame) {
+TEST_F(TuiControllerTest, EscapeLeavesTheScreenNotTheGame) {
   controller_->OpenMapSelect();
   controller_->OnEvent(ftxui::Event::Escape);
 

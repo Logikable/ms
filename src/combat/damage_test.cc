@@ -129,7 +129,7 @@ TEST_F(OffenseTest, CombatPowerIsTheDamageChainWithoutATarget) {
   EXPECT_EQ(CombatPower(Baseline()), 25);
 }
 
-TEST_F(OffenseTest, CombatPowerCountsBossDamageAgainstEveryone) {
+TEST_F(OffenseTest, CombatPowerAlwaysCountsBossDamage) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.6;
   // A swing at an ordinary mob ignores this entirely; combat power does not.
@@ -197,7 +197,7 @@ TEST(LevelMultiplierTest, EqualLevelGivesTenPercentBonus) {
   EXPECT_DOUBLE_EQ(LevelMultiplier(10, 10), 1.1);
 }
 
-TEST(LevelMultiplierTest, BonusRisesToTwentyPercentAndCapsAtFiveAbove) {
+TEST(LevelMultiplierTest, TheBonusCapsAtFiveLevelsAbove) {
   EXPECT_DOUBLE_EQ(LevelMultiplier(12, 10), 1.14);  // +2
   EXPECT_DOUBLE_EQ(LevelMultiplier(15, 10), 1.2);   // +5
   EXPECT_DOUBLE_EQ(LevelMultiplier(100, 10), 1.2);  // capped past +5
@@ -435,7 +435,7 @@ TEST(OffenseStatsForTest, PassiveSkillDoesNotChangeSkillPct) {
                    1.0);  // passives fold into HP, not damage
 }
 
-TEST(OffenseStatsForTest, LevelOneSlashBlastKillsRoughly83PercentFaster) {
+TEST(OffenseStatsForTest, SlashBlastKills83PercentFaster) {
   // A learned attack skill scales expected damage by exactly its skill_pct
   // versus the bare poke -- 1.83x here. At equal swing speed (Slash Blast is
   // assumed to swing as fast as the poke for now) that is 1.83x the kills per
@@ -523,7 +523,7 @@ TEST_F(DamageTakenTest, DefenseEffectivenessFloorsAtHalf) {
   EXPECT_DOUBLE_EQ(past_floor, 160.0 * 0.88);
 }
 
-TEST_F(DamageTakenTest, CappedArmourWaivesTheUnderLevellingPenalty) {
+TEST_F(DamageTakenTest, CappedArmourWaivesThePenalty) {
   DefenseStats defense = Naked();
   defense.def = 80;
   // Thirty levels under, where only half the DEF would normally count -- but

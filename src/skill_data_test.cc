@@ -126,7 +126,7 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
 // character's. This is the check that the data stays that way -- the trap is a
 // later stage repeating a name from an earlier one, where both books belong to
 // the same character.
-TEST(SkillDataTest, NoOneCharacterCanReachTwoSkillsOfTheSameName) {
+TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
   std::map<std::string, Skill> skills = LoadSkills();
   const Job kJobs[] = {JOB_SWORDMAN, JOB_FIGHTER,  JOB_PAGE, JOB_SPEARMAN,
                        JOB_ARCHER,   JOB_MAGICIAN, JOB_ROGUE};

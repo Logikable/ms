@@ -81,7 +81,7 @@ TEST_F(SaveTest, TheSaveSitsBesideTheExecutable) {
 
 // Run by bare name off the PATH there is no directory to work from, so the
 // working directory is all that is left.
-TEST_F(SaveTest, ABareProgramNameFallsBackToTheWorkingDirectory) {
+TEST_F(SaveTest, ABareProgramNameUsesTheWorkingDir) {
   EXPECT_EQ(SavePathFor("ms"), "ms.save");
 }
 
@@ -158,7 +158,7 @@ TEST_F(SaveTest, ANewStateIsStampedWithTheCurrentTime) {
 
 // The shape of a save written before either field existed: neither is set, so
 // playtime starts from nothing and the creation time falls back to now.
-TEST_F(SaveTest, ASaveWithoutTheFieldsLoadsAsZeroPlaytimeAndCreatedNow) {
+TEST_F(SaveTest, AnOldSaveLoadsWithZeroPlaytime) {
   SaveGame old;
   old.set_format_version(kSaveFormatVersion);
   std::string bytes;
@@ -176,7 +176,7 @@ TEST_F(SaveTest, ASaveWithoutTheFieldsLoadsAsZeroPlaytimeAndCreatedNow) {
 
 // The creation time is the character's, not the file's: re-saving must carry
 // the original date rather than stamp the moment of the write.
-TEST_F(SaveTest, TheCreationTimeSurvivesResavingALoadedGame) {
+TEST_F(SaveTest, ResavingKeepsTheCreationTime) {
   std::unique_ptr<GameState> first = MakeState();
   first->created_unix_seconds = 1500000000;
   ASSERT_TRUE(SaveGameToFile(*first, path_));

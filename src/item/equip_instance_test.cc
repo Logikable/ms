@@ -144,7 +144,7 @@ TEST_F(EquipInstanceTest, CanStarForceTrueBeforeMax) {
   EXPECT_TRUE(item.CanStarForce());
 }
 
-TEST_F(EquipInstanceTest, CanStarForceReturnsFalseWithSlotsRemaining) {
+TEST_F(EquipInstanceTest, CannotStarForceWithSlotsRemaining) {
   EquipPrototype proto = MakeEquip(/*upgrade_slots=*/7);
   EquipInstance item(proto);
   EXPECT_FALSE(item.CanStarForce());
@@ -223,7 +223,7 @@ TEST_F(EquipInstanceTest, StarForceStatGainsZeroStarsAllZero) {
   EXPECT_EQ(gains.max_hp(), 0);
 }
 
-TEST_F(EquipInstanceTest, StarForceStatGainsWarriorWeaponPrimaryStats) {
+TEST_F(EquipInstanceTest, AWarriorWeaponGainsItsPrimaryStats) {
   // At 2★: kPrimaryStatDeltas[0]+[1] = 2+2 = 4 each for STR and DEX.
   Equip state;
   state.set_stars(2);
@@ -235,7 +235,7 @@ TEST_F(EquipInstanceTest, StarForceStatGainsWarriorWeaponPrimaryStats) {
   EXPECT_EQ(gains.luk(), 0);
 }
 
-TEST_F(EquipInstanceTest, StarForceStatGainsMagicianWeaponPrimaryStats) {
+TEST_F(EquipInstanceTest, AMagicianWeaponGainsItsPrimaryStats) {
   Equip state;
   state.set_stars(1);
   EquipInstance item(MakeWeapon(0, EQUIP_JOB_CATEGORY_MAGICIAN), state);

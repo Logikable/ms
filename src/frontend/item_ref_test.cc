@@ -93,7 +93,7 @@ Scroll SureThingScroll() {
 
 // The routing tests: with one item worn and another in the bag, the ref alone
 // decides which one the action lands on.
-TEST_F(ItemRefTest, ScrollItemAppliesToTheWornItemAndLeavesTheBagAlone) {
+TEST_F(ItemRefTest, ScrollResolvesTheWornItem) {
   EquipPrototype upgradeable = sword_;
   upgradeable.set_upgrade_slots(1);
 
@@ -113,7 +113,7 @@ TEST_F(ItemRefTest, ScrollItemAppliesToTheWornItemAndLeavesTheBagAlone) {
   EXPECT_EQ(warrior.inventory()[0].equip_state().scroll_successes(), 0);
 }
 
-TEST_F(ItemRefTest, ScrollItemAppliesToTheBagItemAndLeavesTheWornAlone) {
+TEST_F(ItemRefTest, ScrollResolvesTheBagItem) {
   EquipPrototype upgradeable = sword_;
   upgradeable.set_upgrade_slots(1);
 

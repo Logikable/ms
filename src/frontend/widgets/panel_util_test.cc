@@ -46,7 +46,7 @@ TEST(DisplayStatForTest, FindsTheEntryTheFieldNames) {
 }
 
 // HP is spelled max_hp on EquipStats; the join is by label, so it still lands.
-TEST(DisplayStatForTest, FindsAFieldWhoseAccessorIsNamedDifferently) {
+TEST(DisplayStatForTest, FindsAFieldWithARenamedAccessor) {
   EquipStats stats;
   stats.set_max_hp(150);
   const DisplayStat* stat = DisplayStatFor(STAT_FIELD_HP);
@@ -517,7 +517,7 @@ TEST(FloatingTest, DrawsPastTheElementItIsOver) {
   EXPECT_EQ(ScreenCells(screen, 5, 0, 4), "MENU");
 }
 
-TEST(FloatingTest, LeavesTheBordersOfWhatItIsOverWhereTheyWere) {
+TEST(FloatingTest, LeavesTheBordersBelowItAlone) {
   ftxui::Screen plain = RenderSized(At(0, 0, Base()), 20, 10);
   ftxui::Screen floated = RenderSized(
       At(0, 0, ftxui::dbox({Base(), Floating(Marker(5, 0))})), 20, 10);
@@ -546,7 +546,7 @@ TEST(FloatingTest, SlidesLeftOffTheRightEdgeOfTheScreen) {
 // the top ones: an overlay is put where it belongs by empty space above it, so
 // that is the end that can be spared. Twenty-one rows on an eight-row screen,
 // and the last of them still lands on the last row.
-TEST(FloatingTest, GivesUpItsTopRatherThanItsBottomWhenItCannotFit) {
+TEST(FloatingTest, GivesUpItsTopWhenItCannotFit) {
   ftxui::Element tall = ftxui::vbox({
       ftxui::text("TOP"),
       ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 19),
@@ -745,7 +745,7 @@ TEST(AlwaysFocusableTest, PassesEventsToTheChild) {
 // The reason the wrapper exists. Container::Tab asks only its active child
 // whether it is focusable and drops every key when the answer is no, so an
 // unwrapped panel never sees the event at all.
-TEST(AlwaysFocusableTest, ATabContainerDeliversKeysToTheWrappedChild) {
+TEST(AlwaysFocusableTest, ATabContainerReachesTheChild) {
   bool seen_bare = false;
   int selector = 0;
   ftxui::Component bare =

@@ -113,7 +113,7 @@ TEST(CombatSimTest, KillingTheLastMobEntersRespawning) {
   EXPECT_TRUE(sim.target_name().empty());
 }
 
-TEST(CombatSimTest, ReportsTheTargetLevelWhileFightingAndZeroWhileRespawning) {
+TEST(CombatSimTest, ReportsTheTargetLevelOnlyWhileFighting) {
   Mob snail = MakeMob("Snail", 10, 5);
   CombatSim sim;
   CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
@@ -158,7 +158,7 @@ TEST(CombatSimTest, AdvancesToTheNextMobAfterAKill) {
   EXPECT_TRUE(sim.respawning());
 }
 
-TEST(CombatSimTest, SingleTargetReachLeavesTheSecondMobUntouched) {
+TEST(CombatSimTest, ASingleTargetSwingSparesTheSecond) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
   // Reach 1 (the default): a swing hits only the front mob, so the second is
@@ -368,7 +368,7 @@ TEST(CombatSimTest, ARespawnBeatAddsOnlyTheMissingMobs) {
   EXPECT_NEAR(slugs->hp_fraction, 0.9, 1e-9);
 }
 
-TEST(CombatSimTest, AMobSlowerToKillThanTheRespawnBeatStillDies) {
+TEST(CombatSimTest, AMobSlowerThanTheBeatStillDies) {
   Mob slug = MakeMob("Slug", 100);
   CombatSim sim;
   // Ten swings to kill, with a beat every five. The damage has to survive the
@@ -383,7 +383,7 @@ TEST(CombatSimTest, AMobSlowerToKillThanTheRespawnBeatStillDies) {
   EXPECT_EQ(kills, 1);
 }
 
-TEST(CombatSimTest, ARespawnBeatMidFightLeavesTheSwingCharging) {
+TEST(CombatSimTest, ABeatMidFightKeepsTheSwingCharging) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
   // 10 dmg against 100 HP, so the mob is still up when the beat lands. Swing
@@ -574,7 +574,7 @@ TEST(CombatSimTest, ClearingTheMapHealsThePlayer) {
   EXPECT_EQ(sim.player_hp(), 100);
 }
 
-TEST(CombatSimTest, TheHitClockDoesNotBankTimeWhileTheMapIsEmpty) {
+TEST(CombatSimTest, TheHitClockWaitsOnAnEmptyMap) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
   CombatParams params = MakeParams(1.0, 3.0, {MakeType(&snail, 10.0, 1)});
@@ -686,7 +686,7 @@ TEST(CombatSimTest, LevellingUpFillsTheWiderPool) {
   EXPECT_EQ(sim.player_max_hp(), 200);
 }
 
-TEST(CombatSimTest, InactiveParamsLeaveThePlayerWithNoHpToShow) {
+TEST(CombatSimTest, InactiveParamsShowNoPlayerHp) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
@@ -727,7 +727,7 @@ TEST(CombatSimTest, AnAutoAttackKillsAreRewardedLikeAnySwing) {
   EXPECT_EQ(sim.kills_this_step()[0], 1);
 }
 
-TEST(CombatSimTest, AnAutoAttackReachesAsManyMobsAsItsSkillSays) {
+TEST(CombatSimTest, AnAutoAttackReachesWhatItsSkillSays) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
   CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 5)});
@@ -739,7 +739,7 @@ TEST(CombatSimTest, AnAutoAttackReachesAsManyMobsAsItsSkillSays) {
 
 // The swing is chosen after the casts land, so a skill that thins the map out
 // changes what the character reaches for next.
-TEST(CombatSimTest, TheSwingIsPickedAgainstWhatTheCastsLeaveStanding) {
+TEST(CombatSimTest, TheSwingIsPickedAfterTheCasts) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
   CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 0.0, 2)});

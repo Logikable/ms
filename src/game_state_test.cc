@@ -193,7 +193,7 @@ TEST(GameStateTest, PlayModeStartsWithNoMeso) {
 }
 
 // Armed but carrying nothing: the Sword is worn, so the bag really is empty.
-TEST(GameStateTest, PlayModeStartsWearingASwordAndHoldingNothing) {
+TEST(GameStateTest, PlayModeStartsWearingASword) {
   GameState state = MakePlayModeState();
   EXPECT_TRUE(state.character.inventory().empty());
   ASSERT_TRUE(state.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));

@@ -88,7 +88,7 @@ TEST_F(ScrollPanelTest, ArrowDownFromTheLastScrollWrapsToTheFirst) {
   EXPECT_EQ(panel_.selected(), 0);
 }
 
-TEST_F(ScrollPanelTest, SelectedScrollAfterArrowDownReturnsSecondScroll) {
+TEST_F(ScrollPanelTest, ArrowDownSelectsTheSecondScroll) {
   Render(panel_);
   panel_.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
@@ -120,7 +120,7 @@ TEST_F(ScrollPanelTest, SetFilterForPrototypeReturnsTrueForMatch) {
   EXPECT_EQ(panel_.selected_scroll().name(), "AAA Scroll");
 }
 
-TEST_F(ScrollPanelTest, SetFilterForPrototypeReturnsFalseForNoMatch) {
+TEST_F(ScrollPanelTest, SetFilterRejectsAnItemWithNoScrolls) {
   EquipPrototype proto;
   proto.set_required_level(1);  // tier 1
   proto.add_equip_job_categories(
@@ -130,14 +130,14 @@ TEST_F(ScrollPanelTest, SetFilterForPrototypeReturnsFalseForNoMatch) {
   EXPECT_EQ(panel_.selected_scroll().name(), "AAA Scroll");
 }
 
-TEST_F(ScrollPanelTest, SetFilterForPrototypeTierMismatchReturnsFalse) {
+TEST_F(ScrollPanelTest, SetFilterRejectsATierMismatch) {
   EquipPrototype proto;
   proto.set_required_level(75);  // tier 2; only ZZZ is tier 2 but it's bowman
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   EXPECT_FALSE(panel_.SetFilterForPrototype(proto));
 }
 
-TEST_F(ScrollPanelTest, SetFilterForPrototypeResetsSelectionToZero) {
+TEST_F(ScrollPanelTest, SetFilterResetsTheSelection) {
   Render(panel_);
   panel_.OnEvent(ftxui::Event::ArrowDown);
 

@@ -402,7 +402,7 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
 
 // Level 30 opens the 2nd advancement, but no job defines one yet, so there is
 // nothing to offer and the character must not be told otherwise.
-TEST_F(AdvanceJobTest, NotEligibleForAnAdvancementWithNoJobsBehindIt) {
+TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/30);
   c.AdvanceJob(JOB_ARCHER);  // the archer's 2nd job is not written yet
   EXPECT_FALSE(c.CanAdvanceJob());
@@ -425,7 +425,7 @@ TEST_F(AdvanceJobTest, SecondJobPutsTheCharacterAtStageTwo) {
 }
 
 // The order is the stat order, not any order the protos happen to be in.
-TEST(JobChoicesTest, FirstAdvancementOffersTheFourExplorersInStatOrder) {
+TEST(JobChoicesTest, OffersTheFourExplorersInStatOrder) {
   EXPECT_EQ(
       JobChoicesForStage(JOB_BEGINNER, 1),
       (std::vector<Job>{JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE}));
@@ -451,7 +451,7 @@ TEST(JobChoicesTest, ThereIsNoThirdJobYet) {
 
 // A 2nd-job warrior keeps the Swordman book they bought on the way up: its
 // page has to stay on the skills tab, and its SP pool has to stay spendable.
-TEST(JobChoicesTest, ASecondJobWarriorStillCarriesTheirSwordmanSkills) {
+TEST(JobChoicesTest, ASpearmanKeepsTheirSwordmanSkills) {
   EXPECT_EQ(AdvancementForJobStage(JOB_SPEARMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
   EXPECT_EQ(AdvancementForJobStage(JOB_SPEARMAN, 2), JOB_ADVANCEMENT_SPEARMAN);
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_SPEARMAN), 2);
@@ -826,7 +826,7 @@ TEST_F(CanEquipTest, ReturnsTrueForBeginnerCategoryItem) {
   EXPECT_TRUE(c_.CanEquip(sword_));
 }
 
-TEST_F(CanEquipTest, ReturnsFalseWhenBeginnerTriesToEquipWarriorItem) {
+TEST_F(CanEquipTest, ABeginnerCannotEquipAWarriorItem) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   c_.AdvanceJob(JOB_BEGINNER);
@@ -1598,7 +1598,7 @@ TEST_F(CapacityTest, RoomForAStackableOnAnEmptyTabIsEveryStack) {
 
 // The case that motivated the rule: part-full stacks count for what is left in
 // them, on top of a whole stack for every slot still free.
-TEST_F(CapacityTest, RoomForAStackableAddsPartStacksToFreeSlots) {
+TEST_F(CapacityTest, RoomCountsPartStacksAndFreeSlots) {
   OpenDistinctStacks(kTabCapacity - 11);
   c_.AddStackable(shell_, 100);
   // 118 stacks open, so 10 slots free, and the shell stack has 100 spare.
@@ -1607,7 +1607,7 @@ TEST_F(CapacityTest, RoomForAStackableAddsPartStacksToFreeSlots) {
 }
 
 // Room in someone else's stack is no use.
-TEST_F(CapacityTest, RoomForAStackableIgnoresPartStacksOfOtherItems) {
+TEST_F(CapacityTest, RoomIgnoresOtherItemsPartStacks) {
   OpenDistinctStacks(kTabCapacity - 11);
   c_.AddStackable(other_, 100);
   ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity - 10);
@@ -1616,21 +1616,21 @@ TEST_F(CapacityTest, RoomForAStackableIgnoresPartStacksOfOtherItems) {
 
 // With no slot left the only room is what the open stacks of that item can
 // still take.
-TEST_F(CapacityTest, RoomForAStackableOnAFullTabIsOnlyTheOpenStacks) {
+TEST_F(CapacityTest, RoomOnAFullTabIsTheOpenStacks) {
   OpenDistinctStacks(kTabCapacity - 1);
   c_.AddStackable(shell_, 150);
   ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), kTabCapacity);
   EXPECT_EQ(c_.RoomFor(shell_), 50);
 }
 
-TEST_F(CapacityTest, RoomForAStackableOnAFullTabOfOtherItemsIsNone) {
+TEST_F(CapacityTest, RoomOnAFullTabOfOtherItemsIsNone) {
   OpenDistinctStacks(kTabCapacity);
   EXPECT_EQ(c_.RoomFor(shell_), 0);
 }
 
 // Use items stack far deeper than Etc ones, and the room follows the item
 // rather than a fixed number.
-TEST_F(CapacityTest, RoomForAStackableFollowsTheItemsOwnStackSize) {
+TEST_F(CapacityTest, RoomFollowsTheItemsStackSize) {
   ItemPrototype potion;
   potion.set_name("Red Potion");
   potion.set_category(ITEM_CATEGORY_USE);
@@ -1923,7 +1923,7 @@ TEST_F(SaveRoundTripTest, ReplacesWhateverWasThereBefore) {
 // Taking something off has to empty the slot in the NEXT save too. A proto map
 // overwrites by key, so a stale worn item can never be a duplicate -- it can
 // only be one that was never cleared, which is the harder bug to see.
-TEST_F(SaveRoundTripTest, AnEmptiedSlotDoesNotSurviveIntoTheNextSave) {
+TEST_F(SaveRoundTripTest, AnEmptiedSlotIsNotSaved) {
   CharacterInstance c = MakeCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
   c.Equip(0);

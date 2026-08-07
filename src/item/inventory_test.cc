@@ -48,7 +48,7 @@ TEST(InventoryInstanceTest, EquipInstanceReturnsNullptrForTrace) {
   EXPECT_EQ(inv.equip_instance(0), nullptr);
 }
 
-TEST(InventoryInstanceTest, EquipInstanceReturnsNullptrForNegativeIndex) {
+TEST(InventoryInstanceTest, NoEquipInstanceForANegativeIndex) {
   InventoryInstance inv;
   inv.add(std::make_unique<EquipInstance>(MakeProto("Sword")));
   EXPECT_EQ(inv.equip_instance(-1), nullptr);

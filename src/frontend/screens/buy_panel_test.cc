@@ -92,7 +92,7 @@ TEST(BuyPanelTest, CannotTypePastWhatTheBalanceCovers) {
 
 // A player who cannot afford one still gets the dialog, and it says why
 // rather than refusing to open.
-TEST(BuyPanelTest, AnUnaffordableItemOpensAtZeroAndCannotConfirm) {
+TEST(BuyPanelTest, AnUnaffordableItemOpensAtZero) {
   BuyPanel panel;
   panel.Reset("Gladius", 20000, /*meso=*/500, /*room=*/kRoomy, /*owned=*/0);
   EXPECT_EQ(panel.quantity(), 0);
@@ -169,7 +169,7 @@ TEST(BuyPanelTest, CannotTypePastTheQuantityLimit) {
 
 // The limit is a ceiling, not a floor: it does not raise a cap the balance or
 // the bag has already set lower.
-TEST(BuyPanelTest, TheQuantityLimitDoesNotOverrideATighterCap) {
+TEST(BuyPanelTest, TheQuantityLimitYieldsToATighterCap) {
   BuyPanel panel;
   panel.Reset("Machete", 1, /*meso=*/50, /*room=*/kRoomy, /*owned=*/0);
   panel.OnEvent(ftxui::Event::Backspace);

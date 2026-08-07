@@ -25,7 +25,7 @@ class ProgressionTest : public testing::Test {
 
 // --- Unlocked ---
 
-TEST_F(ProgressionTest, ANewCharacterHasNothingButTheCharacterPanel) {
+TEST_F(ProgressionTest, ANewCharacterHasOnePanel) {
   CharacterInstance c = MakeCharacter(1);
   EXPECT_FALSE(Unlocked(Feature::kEquipped, c));
   EXPECT_FALSE(Unlocked(Feature::kBag, c));
@@ -74,7 +74,7 @@ TEST_F(ProgressionTest, UnequipOpensWithTheBag) {
 
 // The one gate that is not level alone. A Beginner at 10 is being offered an
 // advancement; the skills belong to the job they pick.
-TEST_F(ProgressionTest, SkillsWaitForAnAdvancementAsWellAsTheLevel) {
+TEST_F(ProgressionTest, SkillsWaitForAnAdvancementToo) {
   EXPECT_FALSE(Unlocked(Feature::kSkills, MakeCharacter(9, JOB_SWORDMAN)));
   EXPECT_FALSE(Unlocked(Feature::kSkills, MakeCharacter(10, JOB_BEGINNER)));
   EXPECT_FALSE(Unlocked(Feature::kSkills, MakeCharacter(50, JOB_BEGINNER)));
@@ -132,14 +132,14 @@ TEST_F(ProgressionTest, ThePaceNeverQuickens) {
 
 // The one thing that expires rather than opens, so it is checked in both
 // directions: every level it should be up for, and the level it goes away on.
-TEST_F(ProgressionTest, TheHotkeysTipStandsUntilItsRetirementLevel) {
+TEST_F(ProgressionTest, TheTipStandsUntilItRetires) {
   for (int level = 1; level < HotkeysTipRetireLevel(); ++level) {
     CharacterInstance c = MakeCharacter(level);
     EXPECT_TRUE(HotkeysTipVisible(c)) << "still up at level " << level;
   }
 }
 
-TEST_F(ProgressionTest, TheHotkeysTipIsGoneFromItsRetirementLevelOn) {
+TEST_F(ProgressionTest, TheTipIsGoneOnceItRetires) {
   CharacterInstance retired = MakeCharacter(HotkeysTipRetireLevel());
   EXPECT_FALSE(HotkeysTipVisible(retired));
   CharacterInstance later = MakeCharacter(HotkeysTipRetireLevel() + 20);

@@ -169,7 +169,7 @@ void GrantFirstJobSp(GameState& state, int points, Job job = JOB_SWORDMAN) {
   }
 }
 
-TEST(ComputeCombatParamsTest, LearnedAttackSkillsJoinTheBarePokeAsOptions) {
+TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
   Skill slash;
   slash.set_name("Slash Blast");
   slash.set_kind(SKILL_KIND_ATTACK);
@@ -226,7 +226,7 @@ TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
 
 // Final Attack follows the character's swing. A summon firing on its own clock
 // is not that, so the option the fight gets for it carries none.
-TEST(ComputeCombatParamsTest, OnlyTheCharactersOwnSwingsCarryFinalAttack) {
+TEST(ComputeCombatParamsTest, OnlyOwnSwingsCarryFinalAttack) {
   Skill evil_eye;
   evil_eye.set_name("Evil Eye Shock");
   evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
@@ -273,7 +273,7 @@ TEST(ComputeCombatParamsTest, NoFinalAttackLeavesTheSwingCarryingNone) {
 
 // The interval is what makes the skill fire at all, so a skill without one is
 // taken as not firing rather than as firing every step.
-TEST(ComputeCombatParamsTest, AnAutoAttackWithoutAnIntervalIsNotAnOption) {
+TEST(ComputeCombatParamsTest, AnAutoAttackNeedsAnInterval) {
   Skill evil_eye;
   evil_eye.set_name("Evil Eye Shock");
   evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
