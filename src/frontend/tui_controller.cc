@@ -129,92 +129,80 @@ const EquipInstance* TuiController::scroll_item() const {
   return scroll_ref_.GetInstance(state_.character);
 }
 
-bool TuiController::OnEvent(ftxui::Event event) {
-  // A panel can go out from under the cursor: the game starts focused on the
-  // equipped panel, which a level 1 character has not unlocked. Settled before
-  // the event is dispatched so a key never reaches a panel that is not drawn.
-  EnsureFocusIsVisible();
-  if (screen_ == kItemMenu) {
-    return OnItemMenuEvent(event);
-  }
-  if (screen_ == kInspect || screen_ == kItemInspect) {
-    // Both are the same screen to the player: anything at all closes it.
-    return OnInspectEvent(event);
-  }
-  if (screen_ == kScrollSelect) {
-    return OnScrollSelectEvent(event);
-  }
-  if (screen_ == kScrollResult) {
-    return OnScrollResultEvent(event);
-  }
-  if (screen_ == kApAlloc) {
-    return OnApAllocEvent(event);
-  }
-  if (screen_ == kSkillLearn) {
-    return OnSkillLearnEvent(event);
-  }
-  if (screen_ == kSkillInspect) {
-    return OnSkillInspectEvent(event);
-  }
-  if (screen_ == kJobAdvance) {
-    return OnJobAdvanceEvent(event);
-  }
-  if (screen_ == kStarForce) {
-    return OnStarForceEvent(event);
-  }
-  if (screen_ == kStarForceResult) {
-    return OnStarForceResultEvent(event);
-  }
-  if (screen_ == kTraceRecover) {
-    return OnTraceRecoverEvent(event);
-  }
-  if (screen_ == kTraceRecoverResult) {
-    return OnTraceRecoverResultEvent(event);
-  }
-  if (screen_ == kSell) {
-    return OnSellEvent(event);
-  }
-  if (screen_ == kMapSelect) {
-    return OnMapSelectEvent(event);
-  }
-  if (screen_ == kShop) {
-    return OnShopEvent(event);
-  }
-  if (screen_ == kShopMenu) {
-    return OnShopMenuEvent(event);
-  }
-  if (screen_ == kShopInspect) {
-    return OnShopInspectEvent(event);
-  }
-  if (screen_ == kShopBuy) {
-    return OnShopBuyEvent(event);
-  }
-  if (screen_ == kQuit) {
-    return OnQuitEvent(event);
-  }
-  // Below every screen_ branch above, so a back key inside one of them still
-  // means "leave this screen" and only reaches here from the main view, where
-  // there is nothing left to back out of but the game.
+// Keys on the main view, once every screen above it has had its say. A back
+// key here means leaving the game, there being nothing left to back out of.
+bool TuiController::OnMainViewEvent(ftxui::Event event) {
   if (IsBack(event)) {
-    // On Cancel: nothing in this game is saved, so a stray Enter behind an
-    // accidental Escape would cost the whole session.
+    // Opened on Cancel: nothing in this game is saved, so a stray Enter behind
+    // an accidental Escape would cost the whole session.
     quit_prompt_.Open(/*cancel_selected=*/true);
     screen_ = kQuit;
     return true;
   }
-  if (event == ftxui::Event::Tab || event == ftxui::Event::TabReverse) {
-    // Round the panels until the next one that is actually on screen. The
-    // character panel is always visible, so this always lands somewhere.
-    //
-    // Backwards is a step of kNumPanels - 1 rather than -1, so the modulo is
-    // never handed a negative and the two directions are one piece of code.
-    int step = event == ftxui::Event::Tab ? 1 : kNumPanels - 1;
-    do {
-      panel_focus_ = (panel_focus_ + step) % kNumPanels;
-    } while (!PanelVisible(panel_focus_));
-    return true;
+  if (event != ftxui::Event::Tab && event != ftxui::Event::TabReverse) {
+    return false;
   }
-  return false;
+  // Round the panels until the next one actually on screen. The character
+  // panel always is, so this always lands somewhere. Backwards is a step of
+  // kNumPanels - 1 rather than -1, so the modulo is never handed a negative
+  // and the two directions are one piece of code.
+  int step = event == ftxui::Event::Tab ? 1 : kNumPanels - 1;
+  do {
+    panel_focus_ = (panel_focus_ + step) % kNumPanels;
+  } while (!PanelVisible(panel_focus_));
+  return true;
+}
+
+bool TuiController::OnEvent(ftxui::Event event) {
+  // A panel can go out from under the cursor: the game starts focused on the
+  // equipped panel, which a level 1 character has not unlocked. Settled before
+  // dispatch so a key never reaches a panel that is not drawn.
+  EnsureFocusIsVisible();
+  switch (screen_) {
+    case kItemMenu:
+      return OnItemMenuEvent(event);
+    // Both are one screen to the player: anything at all closes it.
+    case kInspect:
+    case kItemInspect:
+      return OnInspectEvent(event);
+    case kScrollSelect:
+      return OnScrollSelectEvent(event);
+    case kScrollResult:
+      return OnScrollResultEvent(event);
+    case kApAlloc:
+      return OnApAllocEvent(event);
+    case kSkillLearn:
+      return OnSkillLearnEvent(event);
+    case kSkillInspect:
+      return OnSkillInspectEvent(event);
+    case kJobAdvance:
+      return OnJobAdvanceEvent(event);
+    case kStarForce:
+      return OnStarForceEvent(event);
+    case kStarForceResult:
+      return OnStarForceResultEvent(event);
+    case kTraceRecover:
+      return OnTraceRecoverEvent(event);
+    case kTraceRecoverResult:
+      return OnTraceRecoverResultEvent(event);
+    case kSell:
+      return OnSellEvent(event);
+    case kMapSelect:
+      return OnMapSelectEvent(event);
+    case kShop:
+      return OnShopEvent(event);
+    case kShopMenu:
+      return OnShopMenuEvent(event);
+    case kShopInspect:
+      return OnShopInspectEvent(event);
+    case kShopBuy:
+      return OnShopBuyEvent(event);
+    case kQuit:
+      return OnQuitEvent(event);
+    case kMain:
+      break;
+  }
+  return OnMainViewEvent(event);
 }
 
 bool TuiController::PanelVisible(int panel) const {

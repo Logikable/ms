@@ -159,6 +159,7 @@ class TuiController {
   // that reads panel_focus_ to answer that question.
   ItemRef SelectedItem() const;
 
+  bool OnMainViewEvent(ftxui::Event event);
   bool OnItemMenuEvent(ftxui::Event event);
   bool OnInspectEvent(ftxui::Event event);
   bool OnScrollSelectEvent(ftxui::Event event);
