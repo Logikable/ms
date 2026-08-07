@@ -616,6 +616,61 @@ TEST_F(DerivedStatsTest, TheDamageLeversReachTheOffenseStats) {
   EXPECT_DOUBLE_EQ(passives.final_dmg_pct, 0.25);
 }
 
+// Weapon Mastery masters a spear and a polearm alike, but only a spear swings
+// faster for it. The skill keeps working with either; only the bonus lapses.
+TEST_F(DerivedStatsTest, AWeaponBonusLandsOnlyForItsOwnWeapons) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill mastery;
+  mastery.set_name("Weapon Mastery");
+  mastery.set_kind(SKILL_KIND_PASSIVE);
+  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mastery.set_max_level(10);
+  mastery.mutable_base()->set_mastery(0.5);
+  mastery.add_required_equip_type(EQUIP_TYPE_SPEAR);
+  mastery.add_required_equip_type(EQUIP_TYPE_POLEARM);
+  WeaponBonus* bonus = mastery.add_weapon_bonus();
+  bonus->add_required_equip_type(EQUIP_TYPE_SPEAR);
+  bonus->mutable_effect()->set_attack_speed(1);
+  bonus->mutable_effect()->set_damage_pct(0.05);
+  std::map<std::string, Skill> skills = {{"weapon_mastery", mastery}};
+  ASSERT_TRUE(c.LearnSkill(mastery, 1));
+
+  EquipWeapon(c, EQUIP_TYPE_POLEARM);
+  DerivedStats polearm = DerivedStatsFor(c, skills);
+  EXPECT_DOUBLE_EQ(polearm.mastery, 0.5);
+  EXPECT_EQ(polearm.attack_speed_bonus, 0);
+  EXPECT_DOUBLE_EQ(polearm.damage_pct, 0.0);
+
+  c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipWeapon(c, EQUIP_TYPE_SPEAR);
+  DerivedStats spear = DerivedStatsFor(c, skills);
+  EXPECT_DOUBLE_EQ(spear.mastery, 0.5);
+  EXPECT_EQ(spear.attack_speed_bonus, 1);
+  EXPECT_DOUBLE_EQ(spear.damage_pct, 0.05);
+}
+
+// A bonus is flat: it says the same thing at level 1 as at max, so a skill
+// levelled up must not multiply it up with everything else.
+TEST_F(DerivedStatsTest, AWeaponBonusDoesNotGrowWithTheSkill) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill mastery;
+  mastery.set_name("Weapon Mastery");
+  mastery.set_kind(SKILL_KIND_PASSIVE);
+  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mastery.set_max_level(10);
+  mastery.mutable_per_level()->set_str(1);
+  WeaponBonus* bonus = mastery.add_weapon_bonus();
+  bonus->add_required_equip_type(EQUIP_TYPE_SPEAR);
+  bonus->mutable_effect()->set_damage_pct(0.05);
+  std::map<std::string, Skill> skills = {{"weapon_mastery", mastery}};
+  ASSERT_TRUE(c.LearnSkill(mastery, 10));
+  EquipWeapon(c, EQUIP_TYPE_SPEAR);
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.skill_stats.str(), 9);  // the skill really is at level 10
+  EXPECT_DOUBLE_EQ(stats.damage_pct, 0.05);
+}
+
 // Final Attack demands a sword or an axe. A learned skill whose weapon is not
 // in hand grants nothing, and grants it all again once it is.
 TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {

@@ -194,6 +194,36 @@ TEST_F(SkillInspectPanelTest, OneHandOfAPairKeepsItsFullName) {
   EXPECT_NE(RenderAt(skill, 5).find("Two-Handed Sword"), std::string::npos);
 }
 
+// A grant that only lands with some of the skill's weapons says which in
+// brackets, or it reads as unconditional beside the rows that are.
+TEST_F(SkillInspectPanelTest, AWeaponBonusNamesTheWeaponItNeeds) {
+  Skill skill = MakeIronBody();
+  skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_AXE);
+  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_AXE);
+  skill.add_required_equip_type(EQUIP_TYPE_SPEAR);
+  WeaponBonus* bonus = skill.add_weapon_bonus();
+  bonus->add_required_equip_type(EQUIP_TYPE_ONE_HANDED_AXE);
+  bonus->add_required_equip_type(EQUIP_TYPE_TWO_HANDED_AXE);
+  bonus->mutable_effect()->set_damage_pct(0.05);
+  std::string rendered = RenderAt(skill, 5);
+  EXPECT_NE(rendered.find("+5% (Axe)"), std::string::npos);
+}
+
+// The bonus is flat, so it reads the same in the level-5 block as in the
+// level-6 one below it -- unlike every other row there.
+TEST_F(SkillInspectPanelTest, AWeaponBonusReadsTheSameAtEveryLevel) {
+  Skill skill = MakeIronBody();
+  skill.add_required_equip_type(EQUIP_TYPE_SPEAR);
+  WeaponBonus* bonus = skill.add_weapon_bonus();
+  bonus->add_required_equip_type(EQUIP_TYPE_SPEAR);
+  bonus->mutable_effect()->set_damage_pct(0.05);
+  int matches = 0;
+  for (const std::string& line : Lines(RenderAt(skill, 5))) {
+    matches += line.find("+5% (Spear)") != std::string::npos ? 1 : 0;
+  }
+  EXPECT_EQ(matches, 2);
+}
+
 TEST_F(SkillInspectPanelTest, NoReachRowForASingleTargetSkill) {
   Skill skill = MakeIronBody();
   std::string rendered = RenderAt(skill, 5);

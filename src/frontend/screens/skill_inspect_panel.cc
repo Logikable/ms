@@ -78,10 +78,6 @@ double PercentAt(const Skill& skill, double (SkillEffect::*fn)() const,
   return (skill.base().*fn)() + (skill.per_level().*fn)() * (level - 1);
 }
 
-int FlatAt(const Skill& skill, int (SkillEffect::*fn)() const, int level) {
-  return (skill.base().*fn)() + (skill.per_level().*fn)() * (level - 1);
-}
-
 // A fraction as a percentage, to one decimal, with a whole number left whole.
 // Rounds rather than truncates: summing a lever's per-level steps lands a hair
 // under the round figure (16 levels of +1% is 0.15999...), and a skill that
@@ -173,18 +169,18 @@ const WeaponPair* WholePairFor(const std::set<EquipType>& demanded,
 
 // The weapons a skill demands, as "Dagger" or "Sword / Axe". Empty when it can
 // be swung with anything, which is what most skills want.
-std::string RequiredWeapons(const Skill& skill) {
+std::string RequiredWeapons(const google::protobuf::RepeatedField<int>& types) {
   std::set<EquipType> demanded;
-  for (int i = 0; i < skill.required_equip_type_size(); ++i) {
-    demanded.insert(static_cast<EquipType>(skill.required_equip_type(i)));
+  for (int type : types) {
+    demanded.insert(static_cast<EquipType>(type));
   }
 
-  // Walked in the order the skill lists them, so a collapsed pair lands where
-  // its first half was named.
+  // Walked in the order they are listed, so a collapsed pair lands where its
+  // first half was named.
   std::string result;
   std::set<EquipType> written;
-  for (int i = 0; i < skill.required_equip_type_size(); ++i) {
-    EquipType type = static_cast<EquipType>(skill.required_equip_type(i));
+  for (int listed : types) {
+    EquipType type = static_cast<EquipType>(listed);
     if (written.count(type) > 0) {
       continue;
     }
@@ -232,7 +228,7 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   // the label left blank rather than being cut off mid-weapon.
   std::string label = "Requires";
   for (const std::string& line :
-       WrapText(RequiredWeapons(skill), kValueWidth)) {
+       WrapText(RequiredWeapons(skill.required_equip_type()), kValueWidth)) {
     rows.push_back(EffectRow(label, line));
     label.clear();
   }
@@ -256,6 +252,41 @@ std::string DamageText(const Skill& skill, int level) {
          FormatPercent(per_hit * lines);
 }
 
+// The plain lever rows of one effect, at `level`. `suffix` goes after every
+// value: a weapon bonus uses it to name what has to be in hand, and the
+// skill's own levers pass "" because the Requires row above says it once.
+std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
+                                      const SkillEffect& per, int level,
+                                      const std::string& suffix) {
+  std::vector<ftxui::Element> rows;
+  for (const FlatLever& lever : kFlatLevers) {
+    int value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);
+    if (value == 0) {
+      continue;
+    }
+    std::string text = "+" + std::to_string(value) + lever.unit;
+    if (lever.countable && value != 1) {
+      text += "s";
+    }
+    rows.push_back(EffectRow(lever.label, text + suffix));
+  }
+  for (const PercentLever& lever : kPercentLevers) {
+    double value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);
+    if (value <= 0.0) {
+      continue;
+    }
+    std::string sign = "";
+    if (lever.sign == kPlus) {
+      sign = "+";
+    } else if (lever.sign == kMinus) {
+      sign = "-";
+    }
+    rows.push_back(
+        EffectRow(lever.label, sign + FormatPercent(value) + suffix));
+  }
+  return rows;
+}
+
 // Everything the skill grants at `level`. Empty for a skill whose real effect
 // is something this game has no notion of.
 std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
@@ -273,29 +304,19 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
                       FormatPercent(PercentAt(
                           skill, &SkillEffect::final_attack_pct, level))));
   }
-  for (const FlatLever& lever : kFlatLevers) {
-    int value = FlatAt(skill, lever.fn, level);
-    if (value == 0) {
-      continue;
-    }
-    std::string text = "+" + std::to_string(value) + lever.unit;
-    if (lever.countable && value != 1) {
-      text += "s";
-    }
-    rows.push_back(EffectRow(lever.label, text));
+  for (ftxui::Element& row :
+       LeverRows(skill.base(), skill.per_level(), level, "")) {
+    rows.push_back(std::move(row));
   }
-  for (const PercentLever& lever : kPercentLevers) {
-    double value = PercentAt(skill, lever.fn, level);
-    if (value <= 0.0) {
-      continue;
+  // A weapon bonus reads as the lever it grants with the weapons it needs in
+  // brackets: "Damage  +5% (Axe)". Flat, so it is read at level 1.
+  for (const WeaponBonus& bonus : skill.weapon_bonus()) {
+    std::string suffix =
+        " (" + RequiredWeapons(bonus.required_equip_type()) + ")";
+    for (ftxui::Element& row : LeverRows(
+             bonus.effect(), SkillEffect::default_instance(), 1, suffix)) {
+      rows.push_back(std::move(row));
     }
-    std::string sign = "";
-    if (lever.sign == kPlus) {
-      sign = "+";
-    } else if (lever.sign == kMinus) {
-      sign = "-";
-    }
-    rows.push_back(EffectRow(lever.label, sign + FormatPercent(value)));
   }
   return rows;
 }

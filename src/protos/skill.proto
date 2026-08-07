@@ -74,6 +74,20 @@ message SkillEffect {
   double final_dmg_pct = 21;
 }
 
+// An extra grant that lands only with certain weapons in hand, on top of what
+// the skill gives with any weapon it accepts. Weapon Mastery is the case it
+// exists for: a Spearman masters a spear and a polearm equally, but only a
+// spear swings faster and hits harder for it.
+//
+// The weapons named here must be ones the skill itself accepts -- a bonus for
+// a weapon that lapses the whole skill would never be read.
+message WeaponBonus {
+  repeated EquipType required_equip_type = 1;
+  // Flat, with no per-level counterpart: every GMS bonus of this shape is the
+  // same at level 1 as at max. Give it one when one needs it.
+  SkillEffect effect = 2;
+}
+
 // A skill that has to be learned to a level before another can be bought at
 // all. GMS states this in the description; here it is structured, because the
 // skills tab has to enforce it as well as say it.
@@ -128,4 +142,6 @@ message Skill {
   // How many Combo Orbs this skill surrounds the character with. Read with
   // SkillEffect::attack_per_combo_orb, and meaningless without it.
   int32 combo_orbs = 13;
+  // What the skill grants on top of `base` with particular weapons in hand.
+  repeated WeaponBonus weapon_bonus = 14;
 }

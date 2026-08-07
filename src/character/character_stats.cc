@@ -24,6 +24,21 @@ constexpr double kPercentEpsilon = 1e-9;
 constexpr double kDefPerStr = 1.5;
 constexpr double kDefPerDexLuk = 0.4;
 
+// Whether a list of weapon types admits `weapon`. An empty list admits every
+// weapon, which is what a skill naming none means.
+bool ListAllowsWeapon(const google::protobuf::RepeatedField<int>& types,
+                      EquipType weapon) {
+  if (types.empty()) {
+    return true;
+  }
+  for (int type : types) {
+    if (type == weapon) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // What one learned passive is worth at `level`, in the shape they are summed
 // in. Every lever is base + per_level * (L - 1).
 struct PassiveTotals {
@@ -85,13 +100,22 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
       (base.final_attack_pct() + per.final_attack_pct() * (level - 1));
 }
 
-void AddPassive(const Skill& skill, int level, PassiveTotals& totals) {
+void AddPassive(const Skill& skill, int level, EquipType weapon,
+                PassiveTotals& totals) {
   AddEffect(skill.base(), skill.per_level(), level, totals);
   // The orbs are taken as full, so what a per-orb grant is worth is the whole
   // ring of them. See SkillEffect::attack_per_combo_orb.
   totals.attack += (skill.base().attack_per_combo_orb() +
                     skill.per_level().attack_per_combo_orb() * (level - 1)) *
                    skill.combo_orbs();
+  // A weapon bonus is a second helping of the same levers for a subset of the
+  // weapons the skill accepts. Read at level 1: it is flat by construction.
+  for (const WeaponBonus& bonus : skill.weapon_bonus()) {
+    if (bonus.required_equip_type_size() > 0 &&
+        ListAllowsWeapon(bonus.required_equip_type(), weapon)) {
+      AddEffect(bonus.effect(), SkillEffect::default_instance(), 1, totals);
+    }
+  }
 }
 
 // Sums every passive the character has learned. HP has to know its whole flat
@@ -117,7 +141,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
     }
     int level = character.skill_level(skill);
     if (level > 0) {
-      AddPassive(skill, level, totals);
+      AddPassive(skill, level, weapon, totals);
     }
   }
   return totals;
@@ -134,15 +158,7 @@ int FoldPool(int flat, double pct) {
 }  // namespace
 
 bool SkillAllowsWeapon(const Skill& skill, EquipType weapon) {
-  if (skill.required_equip_type_size() == 0) {
-    return true;
-  }
-  for (int i = 0; i < skill.required_equip_type_size(); ++i) {
-    if (skill.required_equip_type(i) == weapon) {
-      return true;
-    }
-  }
-  return false;
+  return ListAllowsWeapon(skill.required_equip_type(), weapon);
 }
 
 DerivedStats DerivedStatsFor(const CharacterInstance& character,

@@ -9,6 +9,7 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "src/character/character.h"
 #include "src/frontend/widgets/panel_util.h"
@@ -100,17 +101,55 @@ TEST(SkillDataTest, EveryAutoAttackSaysHowOftenItFires) {
   }
 }
 
+// Every weapon list a skill carries: the one gating the whole skill, then one
+// per weapon bonus. The rules below hold of each list on its own.
+std::vector<std::set<EquipType>> WeaponLists(const Skill& skill) {
+  std::vector<std::set<EquipType>> lists(1);
+  for (int i = 0; i < skill.required_equip_type_size(); ++i) {
+    lists.back().insert(static_cast<EquipType>(skill.required_equip_type(i)));
+  }
+  for (const WeaponBonus& bonus : skill.weapon_bonus()) {
+    lists.push_back({});
+    for (int i = 0; i < bonus.required_equip_type_size(); ++i) {
+      lists.back().insert(static_cast<EquipType>(bonus.required_equip_type(i)));
+    }
+  }
+  return lists;
+}
+
 // A skill demanding a weapon says so on the inspect screen, and an unnamed
 // weapon type leaves that line saying "Requires" and nothing else -- or, with
 // only the one demand, drops it entirely. The type may well have no item yet;
 // it still has to have a name.
 TEST(SkillDataTest, EveryWeaponASkillDemandsHasAName) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    for (const std::set<EquipType>& list : WeaponLists(entry.second)) {
+      for (EquipType type : list) {
+        EXPECT_FALSE(FormatEquipType(type).empty())
+            << entry.first << " demands a weapon with no name to print";
+      }
+    }
+  }
+}
+
+// A bonus for a weapon the skill itself will not work with can never be read:
+// the skill lapses whole before the bonus is ever reached.
+TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
+    std::set<EquipType> accepted;
     for (int i = 0; i < skill.required_equip_type_size(); ++i) {
-      EquipType type = static_cast<EquipType>(skill.required_equip_type(i));
-      EXPECT_FALSE(FormatEquipType(type).empty())
-          << entry.first << " demands a weapon with no name to print";
+      accepted.insert(static_cast<EquipType>(skill.required_equip_type(i)));
+    }
+    for (const WeaponBonus& bonus : skill.weapon_bonus()) {
+      EXPECT_GT(bonus.required_equip_type_size(), 0)
+          << entry.first << " has a bonus for no weapon at all";
+      for (int i = 0; i < bonus.required_equip_type_size(); ++i) {
+        EquipType type = static_cast<EquipType>(bonus.required_equip_type(i));
+        EXPECT_TRUE(accepted.empty() || accepted.count(type) > 0)
+            << entry.first << " bonuses a " << FormatEquipType(type)
+            << " it will not work with";
+      }
     }
   }
 }
@@ -124,15 +163,12 @@ TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
       {EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE},
   };
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    std::set<EquipType> demanded;
-    for (int i = 0; i < entry.second.required_equip_type_size(); ++i) {
-      demanded.insert(
-          static_cast<EquipType>(entry.second.required_equip_type(i)));
-    }
-    for (const std::pair<EquipType, EquipType>& pair : kPairs) {
-      EXPECT_EQ(demanded.count(pair.first), demanded.count(pair.second))
-          << entry.first << " takes one hand's " << FormatEquipType(pair.second)
-          << " and not the other's";
+    for (const std::set<EquipType>& demanded : WeaponLists(entry.second)) {
+      for (const std::pair<EquipType, EquipType>& pair : kPairs) {
+        EXPECT_EQ(demanded.count(pair.first), demanded.count(pair.second))
+            << entry.first << " takes one hand's "
+            << FormatEquipType(pair.second) << " and not the other's";
+      }
     }
   }
 }
