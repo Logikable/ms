@@ -153,4 +153,14 @@ message Skill {
   // Vessel of Light, the skill GMS gates on having used one, is permanent
   // here. Recorded so the group survives until something needs it.
   bool holy_power = 15;
+  // How long one swing of this attack takes at average attack speed, in
+  // milliseconds: the sum of its animation's frames. GMS keys the delay on the
+  // skill, not on the weapon -- a spear and a sword swing the same skill at the
+  // same speed, and the weapon has its say through its attack-speed stage
+  // instead. See SwingIntervalSeconds for how the stage scales this.
+  //
+  // Unset takes kDefaultSwingDelayMs, which is what the bare poke swings at.
+  // Meaningless for a SKILL_KIND_AUTO_ATTACK, which fires on
+  // cast_interval_seconds rather than on the character's swing.
+  int32 base_delay_ms = 16;
 }

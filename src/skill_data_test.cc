@@ -102,6 +102,25 @@ TEST(SkillDataTest, EveryAutoAttackSaysHowOftenItFires) {
   }
 }
 
+// A swing takes as long as its own animation, so every swing has to say how
+// long that is. Nothing else does: the delay of a skill on its own clock is
+// its cast interval, and a passive is never swung at all.
+TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (entry.second.kind() != SKILL_KIND_ATTACK) {
+      EXPECT_EQ(entry.second.base_delay_ms(), 0)
+          << entry.first << " sets a swing delay it will never be asked for";
+      continue;
+    }
+    EXPECT_GT(entry.second.base_delay_ms(), 0)
+        << entry.first << " would swing at the bare poke's speed";
+    // Loose bounds either side of every animation GMS has for a 1st or 2nd job
+    // attack, to catch a figure entered in seconds or in frames.
+    EXPECT_GE(entry.second.base_delay_ms(), 300) << entry.first;
+    EXPECT_LE(entry.second.base_delay_ms(), 2000) << entry.first;
+  }
+}
+
 // Every weapon list a skill carries: the one gating the whole skill, then one
 // per weapon bonus. The rules below hold of each list on its own.
 std::vector<std::set<EquipType>> WeaponLists(const Skill& skill) {

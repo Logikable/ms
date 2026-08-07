@@ -9,6 +9,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_MAGICIAN
 max_level: 20
+base_delay_ms: 660
 lines: 4
 max_enemies: 4
 base {

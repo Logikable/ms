@@ -7,6 +7,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 20
+base_delay_ms: 840
 max_enemies: 6
 lines: 4
 holy_power: true
