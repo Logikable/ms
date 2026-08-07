@@ -44,7 +44,7 @@ constexpr int kTestLevelUpItems = 199;
 // Where the workbench's character stands: the end of 2nd job, holding the
 // whole of what this game has to hand out.
 constexpr int kTestLevel = 60;
-constexpr Job kTestJobPath[] = {JOB_SWORDMAN, JOB_SPEARMAN};
+constexpr Job kTestJobPath[] = {JOB_SWORDMAN, JOB_PAGE};
 
 // Puts a copy of the named equip in the bag, or does nothing if the catalog
 // has no such entry. Lets a GameState be built for a test without the game's
@@ -132,9 +132,9 @@ void SeedTest(GameState& state) {
   GiveEquip(state, "machete");
   // The weapon the workbench's job is built around. It climbs the levels
   // itself rather than advancing properly, so it never collects the starter
-  // gear -- and a Spearman holding a sword has a Final Attack that quietly
-  // does nothing.
-  GiveEquip(state, "forked_spear");
+  // gear -- and a Page holding a sword loses their mastery, their swing speed
+  // and their Final Attack with nothing on screen to say why.
+  GiveEquip(state, "mithril_maul");
 
   std::map<std::string, EquipPrototype>::const_iterator fafnir =
       state.equips.find("fafnir_mistilteinn");

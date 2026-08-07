@@ -2,10 +2,12 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
 
+#include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/progression.h"
 #include "src/item/item.h"
@@ -43,6 +45,13 @@ GameState MakePlayModeState() {
   return GameState(SwordCatalog(), {}, {}, {}, {}, {}, GameMode::kPlay);
 }
 
+// Which branch the workbench's character takes -- a knob in game_state.cc,
+// meant to be flipped to look at another job's screens. Read rather than
+// named, so flipping it does not fail the tests below.
+Job WorkbenchSecondJob() {
+  return MakeTestModeState().character.proto().job();
+}
+
 // One skill of each advancement the workbench's character passes through, so
 // the seeding has a book to spend its SP on. The levels are the real ones, so
 // what a stage's pool buys is the real question too.
@@ -53,11 +62,11 @@ std::map<std::string, Skill> TwoStageBook() {
   first.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   first.set_max_level(60);
   Skill second;
-  second.set_name("Spear Sweep");
+  second.set_name("Second Swing");
   second.set_kind(SKILL_KIND_ATTACK);
-  second.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  second.set_job_advancement(AdvancementForJobStage(WorkbenchSecondJob(), 2));
   second.set_max_level(90);
-  return {{"slash_blast", first}, {"spear_sweep", second}};
+  return {{"slash_blast", first}, {"second_swing", second}};
 }
 
 GameState MakeTestModeStateWithSkills() {
@@ -120,8 +129,12 @@ TEST(GameStateTest, ConstructorStoresEveryCatalog) {
 TEST(GameStateTest, TestModeStartsAtTheEndOfSecondJob) {
   GameState test = MakeTestModeState();
   EXPECT_EQ(test.character.proto().level(), kTrialLevelCap);
-  EXPECT_EQ(test.character.proto().job(), JOB_SPEARMAN);
   EXPECT_EQ(test.character.proto().job_stage(), 2);
+  // Some warrior branch, not a particular one -- see WorkbenchSecondJob.
+  std::vector<Job> branches = JobChoicesForStage(JOB_SWORDMAN, 2);
+  EXPECT_NE(
+      std::find(branches.begin(), branches.end(), test.character.proto().job()),
+      branches.end());
   // Nothing left standing between the tester and the screens: no advancement
   // waiting to be taken, and no pool waiting to be spent.
   EXPECT_FALSE(test.character.CanAdvanceJob());
