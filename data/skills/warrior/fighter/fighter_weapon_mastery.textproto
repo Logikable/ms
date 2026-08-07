@@ -1,11 +1,8 @@
-# GMS adds 5% damage on top of this for an axe specifically. The mastery and
-# the swing speed are the whole skill for us; which of the two weapons is in
-# hand only decides whether it applies at all.
 name: "Weapon Mastery"
 description:
   "Trains your grip until your sword lands where you mean it to, narrowing "
-  "your weakest swings toward your best. Also speeds them up. Needs a sword "
-  "or an axe in hand."
+  "your weakest swings toward your best. Sharpens and speeds them up too, "
+  "and rewards an axe over a sword. Needs a sword or an axe in hand."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 10
@@ -16,5 +13,16 @@ required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
 base {
   mastery: 0.14
   attack_speed: 1
+  final_dmg_pct: 0.01
+  crit_rate: 0.06
 }
-per_level { mastery: 0.04 }
+per_level {
+  mastery: 0.04
+  final_dmg_pct: 0.01
+  crit_rate: 0.01
+}
+weapon_bonus {
+  required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+  required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+  effect { damage_pct: 0.05 }
+}
