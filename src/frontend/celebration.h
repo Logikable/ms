@@ -1,28 +1,18 @@
 /* The few seconds after something worth stopping for happens: the card across
- * the middle of the screen, and the panels lit gold behind it.
+ * the middle of the screen, and the panels lit gold behind it. Death rides the
+ * same mechanism -- one card at a time, four seconds, any key dismisses it --
+ * so it lives here rather than in a second copy that could put a card on
+ * screen beside this one.
  *
- * Mostly that is good news, and the name says so. Death rides the same
- * mechanism -- one card at a time, four seconds, dismissed by any key -- so it
- * lives here rather than in a second copy of all of it that could put a second
- * card on screen beside this one. It lights no panels: there is nowhere it is
- * sending the player.
+ * Kept apart from Tui so the decisions can be tested: how long the moment
+ * lasts, which panels it points at, what the card says. Nothing here blocks --
+ * the game may be running unattended, and a card that waited for a keypress
+ * would stall it.
  *
- * Kept apart from Tui so the decisions in it can be tested -- how long the
- * moment lasts, which panels it points at, what the card says -- while Tui is
- * left with the wiring: noticing the change, ticking the clock, and drawing
- * the result.
- *
- * Nothing here blocks. A celebration is something the player is shown, never
- * something they have to dismiss: the game is idle and may be running
- * unattended, and a card that waited for a keypress would stall it and stack
- * up behind itself. It expires on its own, and any key gets rid of it early.
- *
- * The card and the gold have separate lives. The card is an announcement
- * and four seconds is plenty of one. The gold is a signpost, and a signpost
- * that takes itself down before anybody walked past it has not done its job --
- * so a panel the player was not already looking at holds its gold until they go
- * and look. Only a panel that was in front of them the whole time fades on the
- * clock, having been seen by definition.
+ * The card and the gold have separate lives. Four seconds is plenty of an
+ * announcement; a signpost that took itself down before anybody walked past it
+ * has not done its job. So a panel the player was not already looking at holds
+ * its gold until they go and look.
  */
 #ifndef MS_SRC_FRONTEND_CELEBRATION_H_
 #define MS_SRC_FRONTEND_CELEBRATION_H_
@@ -42,30 +32,21 @@ class Celebration {
   enum class Kind { kNone, kLevelUp, kAdvancement, kDeath };
 
   // Starts the level-up card for a climb from `from_level` to `to_level`,
-  // paying `ap` and `sp` in total. `focused` is the panel the player is on at
-  // that moment, or kNoPanel when they are somewhere other than the main
-  // screen.
+  // paying `ap` and `sp` in total. `focused` is the panel the player is on, or
+  // kNoPanel if they are off the main screen.
   //
-  // Takes the whole span rather than one level because a single combat tick
-  // can carry a character past more than one threshold, and because the span
-  // is what decides which panels are lit: a jump from 2 to 5 opened both the
-  // equipped panel and the bag, and both should be pointed at.
+  // A span rather than one level: a single tick can carry a character past
+  // several thresholds, and the span is what decides which panels are lit.
   void BeginLevelUp(int from_level, int to_level, int ap, int sp,
                     Panel focused);
 
-  // Starts the advancement card. Replaces a level-up still on screen --
-  // taking an advancement is the larger news, and stacking the two would leave
-  // the second waiting behind the first for something the player never asked
-  // for.
+  // Starts the advancement card, replacing a level-up still on screen: it is
+  // the larger news, and stacking the two would make the player wait.
   void BeginAdvancement(Job from_job, Job to_job, Panel focused);
 
-  // Starts the death card. Replaces whatever card is up: the player has just
-  // been picked up and put somewhere else, which outranks any news they were
-  // still reading.
-  //
-  // Lights nothing, and puts nothing out either. A panel still waiting to be
-  // visited is a signpost the player has not walked past yet, and dying is no
-  // reason to take it down.
+  // Starts the death card, replacing whatever is up: being picked up and put
+  // somewhere else outranks any news still being read. Lights nothing, and
+  // puts nothing out -- dying is no reason to take a signpost down.
   void BeginDeath();
 
   // Runs both clocks down by `elapsed_seconds`: the card's, and the one the

@@ -39,12 +39,9 @@ class EquippedPanel {
     return selected_;
   }
   // The screen row the highlighted item was last drawn on, for anchoring the
-  // item menu beside it. Read from the render rather than worked out from
-  // selected(), which is a position in the data and not on the screen.
-  //
-  // Filled during the previous render, so it is one frame behind. That is what
-  // is wanted: the menu opens on a keypress, which does not move the list, so
-  // the row it was drawn on last frame is the row it is on now.
+  // item menu beside it. Read from the render, not from selected(), which is a
+  // position in the data and not on the screen. One frame behind, which is
+  // right: opening the menu does not move the list.
   int cursor_row() const {
     return cursor_box_.y_min;
   }

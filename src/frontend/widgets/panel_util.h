@@ -26,33 +26,22 @@ inline bool IsForward(const ftxui::Event& e) {
   return e == ftxui::Event::Return || e == ftxui::Event::Character(' ');
 }
 
-// Wraps `child` so it always reports itself focusable, whatever the child says.
-// Forwards rendering and events to it untouched.
+// Wraps `child` so it always reports itself focusable, forwarding rendering
+// and events untouched.
 //
-// Container::Tab asks only its active child whether it is focusable, and drops
-// every key before dispatch when the answer is no. A panel built around an
-// ftxui::Menu therefore goes deaf whenever its list is empty -- including the
-// parts of it, like a tab bar, that have nothing to do with the list. A panel
-// drawn with the Renderer(bool) overload gets this for free; one that wraps a
-// real child in order to forward events to it does not.
+// Container::Tab drops every key when its active child says it is not
+// focusable, and an ftxui::Menu says that whenever its list is empty -- taking
+// the tab bar above the list deaf with it.
 ftxui::Component AlwaysFocusable(ftxui::Component child);
 
-// Wraps a list component so its cursor comes out the other end instead of
-// stopping: Up on the first row lands on the last, Down on the last lands on
-// the first. `selected` is the index the list moves -- the same one handed to
-// ftxui::Menu -- and must outlive the returned component.
+// Wraps a list so its cursor comes out the other end: Up on the first row
+// lands on the last, and back. Only the two edges are taken -- the steps
+// between them are the one thing ftxui::Menu gets right. `selected` must
+// outlive the component, and `count` is asked per keypress because these lists
+// gain and lose rows under the cursor.
 //
-// Only the two edges are taken. ftxui::Menu already walks its own list and
-// only ever gets one thing wrong, which is what it does at the ends, so the
-// steps through the middle are left to it rather than reimplemented around it.
-//
-// `count` is asked at each keypress rather than taken once, because these
-// lists gain and lose rows under the cursor -- an item sold, a filter changed.
-// A count of zero declines the key: there is no row to be at either end of.
-//
-// For a list with a tab bar above it, this is the wrong tool: the bar is a
-// stop in the same ring, so Up off the top row belongs to it rather than to
-// the last row. Those panels count the bar as stop 0 and call StepCursor.
+// Wrong tool for a list under a tab bar: there the bar is a stop in the same
+// ring, so those panels count it as stop 0 and call StepCursor.
 ftxui::Component WrappingList(ftxui::Component list, int& selected,
                               std::function<int()> count);
 
@@ -133,50 +122,38 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
                             int scroll_left, int scroll_restore);
 
-// A one-row progress bar filled to frac (clamped to [0, 1]) in `fill`, with the
-// remainder in kBarEmpty. `label` is centered over the bar, dark on the filled
-// side and light on the unfilled side; pass "" for an unlabelled bar.
+// A one-row bar filled to frac (clamped to [0, 1]) in `fill`, `label` centred
+// over it dark-on-filled and light-on-empty. Pass "" for no label.
 //
-// Writes pixels directly rather than using ftxui::gauge, which ignores color
-// decorators and cannot carry a label without a dbox overwriting one or the
-// other.
+// Draws pixels rather than using ftxui::gauge, which ignores colour decorators
+// and cannot carry a label.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label);
-// Overload holding the label to one color the whole way across, for a fill
-// dark enough to read that color against. The label then keeps its color as
-// the bar moves, rather than turning over a character at a time. Don't reach
-// for this on a light fill -- that's what the two-tone default is for.
+// One label colour the whole way across, so it does not turn over a character
+// at a time as the bar moves. Only for a fill dark enough to read against.
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label, ftxui::Color label_color);
 
-// Takes `element` out of the layout: it asks its parent for no room at all,
-// then draws itself at its own size from the parent box's top-left corner.
+// Takes `element` out of the layout: it asks for no room, then draws itself at
+// its own size from the parent box's top-left corner. Put it last in a dbox to
+// overlay something -- otherwise the dbox stretches to hold the overlay and
+// pushes the covered panel's borders out.
 //
-// Put it last in a `dbox` to overlay something. Without this, a dbox grows to
-// hold its tallest child and stretches every other child to match, so an
-// overlay reaching past the panel it covers pushes that panel's borders out.
-// Floating it leaves the panel exactly the size and place it had on its own,
-// and the overlay spills outside it instead.
-//
-// The screen is then the only bound. An overlay that would run off the bottom
-// or right edge slides back just far enough to put that corner on it. One too
-// big for the screen gives up its top-left instead, which for an overlay is
-// the empty space positioning it rather than anything it draws.
+// The screen is the only bound: an overlay running off the bottom or right
+// slides back onto it, and one too big for the screen loses its top-left.
 ftxui::Element Floating(ftxui::Element element);
 
-// A modal result screen, shown once an action has resolved: the subject
-// centered over a rule, `body` below it, then a rule and a [Continue]. Every
-// screen the game shows after scrolling, star forcing or recovering is built
-// from this, so the rules and the button land in the same place on each.
+// A modal result screen: the subject over a rule, `body`, a rule, [Continue].
+// Scrolling, star forcing and recovering all end on one of these, so the rules
+// and the button land in the same place on each.
 ftxui::Element ResultWindow(const std::string& title,
                             const std::string& subject,
                             std::vector<ftxui::Element> body);
 
-// The one way a panel says it has nothing to show: the reason in parentheses,
-// e.g. " (empty)". Use "empty" for a list with no contents and a specific
-// reason ("no item", "no matching items") only where it tells the player
-// something they couldn't already see. `gutter` is the leading indent, so the
-// row can line up with the cursor column of the list it stands in for.
+// The one way a panel says it has nothing to show: " (empty)". Use a specific
+// reason ("no matching items") only where it tells the player something they
+// could not already see. `gutter` lines the row up with the list's cursor
+// column.
 ftxui::Element EmptyState(const std::string& what, int gutter = 1);
 
 // The key a tab is recorded under once the player has opened it. Written into
@@ -189,64 +166,42 @@ inline constexpr char kShopTabKey[] = "shop";
 // threshold, and having seen the first is not having seen the second.
 std::string AdvanceTabKey(int stage);
 
-// One chip of a tab bar in the game's one tab style: the label padded by a
-// space either side, theme-colored, and highlighted when it is the active tab.
-// An active chip goes white while its row holds focus and keeps the theme-blue
-// invert otherwise, which is how the player tells which bar the arrow keys are
-// reaching. Pass row_focused=true unconditionally for a bar that is the only
-// thing on its screen.
+// One chip of a tab bar in the game's one tab style. The active chip goes
+// white while its row holds focus and keeps the theme-blue invert otherwise,
+// which is how the player tells which bar the arrows are reaching; pass
+// row_focused=true for a bar that is the only thing on its screen.
 //
-// `unseen` draws the label gold instead of theme blue: a tab the player has
-// been given but never opened. It is the quiet half of the level-up
-// celebration -- the gold outlives the four seconds of the card and waits on
-// the bar until the tab is opened.
+// `unseen` draws the label gold: a tab handed over but never opened. It is the
+// quiet half of the level-up celebration, and it waits there until it is.
 ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
                        bool unseen = false);
 
-// Renders a bracketed button in the game's one button style, inverted when
-// focused. Every button the player can land on is drawn with this -- the
-// confirm bar, the amount selector's [1]/[MAX], the [+] beside a stat, and the
-// always-selected [Continue] on the result screens.
+// A bracketed button in the game's one button style, inverted when focused.
+// Every button the player can land on is drawn with this.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
-// Where a cursor lands after stepping `delta` places in a ring of `stops`
-// places, coming out the other end rather than stopping at either. Every list
-// in the game walks with this, so wrapping is not something each panel decides
-// for itself -- if you are writing `std::max(0, sel - 1)` or `std::min(count -
-// 1, sel + 1)`, write this instead.
+// Where a cursor lands after stepping `delta` places in a ring of `stops`,
+// coming out the other end rather than stopping. Every list walks with this --
+// if you are writing `std::max(0, sel - 1)`, write this instead.
 //
-// A panel whose list sits under a tab bar counts the bar as stop 0 and its
-// rows as stops 1 and up. Then "Up off the top row goes to the tab bar" and
-// "Up off the tab bar goes to the last row" are the same rule rather than two,
-// and neither has to be written out.
-//
-// `stops` of zero or less answers 0: there is nowhere to stand, and the caller
-// has nothing to draw a cursor on either way. `current` outside the ring is
-// folded back into it rather than rejected.
+// A list under a tab bar counts the bar as stop 0, which makes "Up off the top
+// row goes to the bar" and "Up off the bar goes to the last row" one rule. No
+// stops answers 0; a `current` outside the ring is folded back into it.
 int StepCursor(int current, int delta, int stops);
 
-// The border color a main-screen panel draws itself in: gold while it is lit
-// to be noticed -- a level-up handing over a panel the player has not seen
-// before -- and the theme blue every other moment. One answer rather than a
-// conditional repeated in each panel, so lit means the same thing everywhere.
+// The border colour of a main-screen panel: gold while it is lit to be
+// noticed, theme blue every other moment.
 ftxui::Color PanelAccent(bool highlighted);
 
-// The content width both celebration cards are held to -- what the border
-// wraps, so a card comes out two columns wider than this. One constant rather
-// than one per card: the two land in the same place, in the same gold, seconds
-// apart at level 10, and a pair that differed in size would read as two
-// unrelated things rather than one moment.
-//
-// A minimum rather than padding either side of the content, so a card holds
-// one width as a level count grows a digit instead of breathing in and out
-// between two that land back to back.
+// The content width both celebration cards are held to (the border adds two).
+// One constant for both: they land seconds apart at level 10, and a pair that
+// differed in size would read as two things rather than one moment. A minimum
+// rather than padding, so a card does not breathe as a level gains a digit.
 inline constexpr int kCelebrationContentWidth = 21;
 
-// ThemedWindow in a color of your choosing, for the few things that step out
-// of the steel blue to be noticed -- the level-up and advancement cards, and
-// the panels lit up behind them. Every window in the game is built from this,
-// so a highlighted one differs from an ordinary one in its color and nothing
-// else.
+// ThemedWindow in a colour of your choosing, for the few things that step out
+// of the steel blue to be noticed. Every window is built from this, so a lit
+// one differs from an ordinary one in colour and nothing else.
 ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
                             ftxui::Color accent, bool focused = false);
 

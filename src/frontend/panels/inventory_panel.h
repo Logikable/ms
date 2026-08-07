@@ -51,14 +51,10 @@ class InventoryPanel {
   // The context menu for the active tab: the equip menu on Equip, the sell menu
   // on Use/Etc.
   ItemMenu& menu();
-  // The screen row the highlighted item was last drawn on, whichever tab is
-  // open, for anchoring the item menu beside it. Read from the render rather
-  // than worked out from selected(), which is a position in the data: once the
-  // list is long enough to scroll the two stop agreeing.
-  //
-  // Filled during the previous render, so it is one frame behind. That is what
-  // is wanted: the menu opens on a keypress, which does not scroll the list, so
-  // the row it was drawn on last frame is the row it is on now.
+  // The screen row the highlighted item was last drawn on, for anchoring the
+  // item menu beside it. Read from the render, not from selected(), which is a
+  // position in the data and stops agreeing once the list scrolls. One frame
+  // behind, which is right: opening the menu does not move the list.
   int cursor_row() const {
     return cursor_box_.y_min;
   }

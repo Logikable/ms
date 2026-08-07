@@ -1,27 +1,14 @@
-/* CharacterPanel renders the character pane as a tabbed panel: a "Lv X <job>"
- * title, a Stats/Skills tab bar, and the selected tab's content. The Stats tab
- * shows base stats (HP/MP/STR/DEX/INT/LUK) including equipment bonuses and the
- * combat stats (ATT/MATT/DEF); HP and DEF also carry learned passive skills.
- * The Skills tab shows the unlocked job-advancement tabs (I/II/...), their SP
- * and their skills. A third Advance tab appears only while a job advancement
- * is pending, listing the jobs on offer.
+/* The character pane: a "Lv X <job>" title, a Stats/Skills tab bar, and the
+ * selected tab's content. Stats shows the base stats and the combat stats,
+ * equipment and learned passives included. Skills shows one page per job
+ * advancement, its SP and its skills. A third Advance tab appears only while
+ * an advancement is pending.
  *
- * Focus moves top-to-bottom through zones, Down descending and Up ascending.
- * The top zone is the Stats/Skills tab bar: there Left/Right switch tabs (they
- * act only on the focused tab bar) and the active tab is drawn white to show
- * the row is selected. Down enters the active tab's content. On the Stats tab
- * the content zone is the four AP-allocatable rows (STR/DEX/INT/LUK): Up/Down
- * move between them, Up off STR returns to the tab bar, the selected row's [+]
- * is highlighted, and Enter fires on_allocate for that stat while there is
- * unspent AP. Running out of AP (or SP, on the Skills tab) gates only the
- * spend -- every row stays reachable, since they are worth reading either way.
- * On the Skills tab the content zone is the advancement tab bar,
- * where Left/Right switch advancement tabs and Up returns to the outer tab bar.
- * Down from there reaches the skill rows, which carry two columns: Left/Right
- * move between the name and the [+], Enter on the name fires on_inspect and
- * Enter on the [+] fires on_learn. On the Advance tab the content zone is the
- * job list, where Up/Down move the caret and Enter fires on_advance.
- * Produces a new ftxui Element on each Render() call.
+ * Focus moves top to bottom through zones, Down descending and Up ascending,
+ * with the outer tab bar as the top zone -- the only place Left/Right switch
+ * tabs. What each zone does with a key is in the OnXEvent handlers below.
+ * Running out of AP or SP gates the spend alone: every row stays reachable,
+ * since they are worth reading either way.
  */
 #ifndef MS_SRC_FRONTEND_PANELS_CHARACTER_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_CHARACTER_PANEL_H_
@@ -53,14 +40,11 @@ class CharacterPanel {
   explicit CharacterPanel(CharacterInstance& character, int& panel_focus,
                           std::map<std::string, Skill> skills = {});
   ftxui::Element Render() const;
-  // on_allocate(field) fires when Enter is pressed on a Stats-tab stat's [+]
-  // button while there is unspent AP. on_learn(skill) fires on a Skills-tab
-  // skill's [+] when it can still take a point. Either pops an amount entry.
-  // on_advance(job) fires on Enter over an Advance-tab job, and should open a
-  // confirmation -- the panel does not perform the advancement itself.
-  // on_inspect(skill) fires on Enter over a Skills-tab skill's name, and should
-  // open the skill's inspect screen. Unlike on_learn it is never gated: a
-  // maxed skill with no SP behind it is still worth reading about.
+  // What Enter does, by where it lands: on_allocate on a stat's [+] with AP to
+  // spend, on_learn on a skill's [+] with SP, on_advance on a job (which
+  // should confirm first -- the panel does not advance anything itself), and
+  // on_inspect on a skill's name. Only on_inspect is never gated: a maxed
+  // skill with no SP behind it is still worth reading about.
   ftxui::Component MakeComponent(
       std::function<void(StatField)> on_allocate,
       std::function<void(const Skill&)> on_learn = {},
@@ -125,16 +109,12 @@ class CharacterPanel {
   // since disappeared -- taking the advancement closes the tab the player was
   // standing on.
   Tab ActiveTab() const;
-  // zone_, corrected for a tab bar that has changed under it. Taking the
-  // advancement drops the Advance tab and adds Skills, so the position the
-  // cursor was standing on comes to mean a different tab -- and the zone it
-  // was in belongs to a tab that is no longer there. Every zone but the shared
-  // tab bar belongs to exactly one tab; a zone stranded off its own tab
-  // resolves back to the tab bar, which every tab has.
+  // zone_, corrected for a tab bar that changed under it: taking the
+  // advancement drops the Advance tab, stranding a cursor that was in it. A
+  // stranded zone resolves back to the tab bar, which every tab has.
   //
-  // Render reads it so the cursor is somewhere visible on the very first frame
-  // after the advancement, before any key is pressed; the event handler writes
-  // it back before dispatching.
+  // Render reads it, so the cursor is visible on the first frame after the
+  // advancement; the event handler writes it back before dispatching.
   Zone EffectiveZone() const;
   // How many places there are to stand in the active tab's vertical ring. The
   // outer tab bar is stop 0 in every tab; what follows depends on the tab --

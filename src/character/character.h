@@ -38,13 +38,10 @@ int StageForAdvancement(JobAdvancement advancement);
 // TODO: Demon Avenger's primary stat is HP; Xenon's is STR+DEX+LUK combined.
 StatField PrimaryStatField(Job job);
 
-// The jobs a character holding `job` may advance into on reaching `stage`
-// (1 = 1st job), in the order they should be offered. Empty for a stage whose
-// choices don't exist yet, which is what keeps the UI from offering an
-// advancement it has nothing to fill.
-//
-// `job` is ignored at stage 1, where the only thing that arrives is a
-// Beginner. Past that the choice is a branch off the job already held.
+// The jobs a character holding `job` may advance into at `stage` (1 = 1st
+// job), in the order to offer them. Empty for a stage whose choices do not
+// exist yet, which keeps the UI from offering an advancement with nothing
+// behind it. `job` is ignored at stage 1, where every character is a Beginner.
 std::vector<Job> JobChoicesForStage(Job job, int stage);
 
 // What a run of levels hands over, totalled.
@@ -53,16 +50,10 @@ struct LevelGains {
   int sp = 0;
 };
 
-// The AP and SP granted by climbing from `from_level` to `to_level`, counting
-// every level in between. Levelling several times before anything looks at the
-// result is ordinary here -- one combat tick can carry a character past more
-// than one threshold -- so this totals a span rather than answering for a
-// single level.
-//
-// SP is totalled across job stages rather than kept in the per-stage pools
-// LevelUp deposits it into: this answers "what did that just earn", which is a
-// count, not a place to spend from. Returns nothing for a span that goes
-// nowhere or backwards.
+// What climbing from `from_level` to `to_level` hands over. A span rather than
+// one level, because a single combat tick can carry a character past several
+// thresholds. SP is totalled across job stages: this answers "what did that
+// just earn", which is a count, not a place to spend from.
 LevelGains GainsForLevels(int from_level, int to_level);
 
 class CharacterInstance {

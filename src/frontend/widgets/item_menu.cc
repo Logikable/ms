@@ -51,14 +51,10 @@ void ItemMenu::Down() {
 
 void ItemMenu::Step(int delta) {
   int stops = static_cast<int>(options_.size());
-  // Rounds the ring at most once, so a menu with nothing enabled stops instead
-  // of walking forever. It cannot happen while Close is neither hidden nor
-  // disabled, which is the rule Hide states -- but a loop that only terminates
-  // because of a rule kept somewhere else is not one to leave lying around.
-  //
-  // The last step of a full round lands back on where it started, so a menu
-  // whose only enabled entry is the current one assigns it to itself and stays
-  // put. Same answer, without a case for it.
+  // Rounds the ring at most once, so a menu with nothing enabled stops rather
+  // than walking forever -- a loop that terminates only because of a rule kept
+  // elsewhere is not one to leave lying around. A full round lands back where
+  // it started, which is also the right answer for a menu of one.
   int next = selected_;
   for (int i = 0; i < stops; ++i) {
     next = StepCursor(next, delta, stops);
