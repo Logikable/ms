@@ -182,6 +182,45 @@ TEST(FormatJobCategoriesTest, MultipleCategories) {
   EXPECT_EQ(FormatJobCategories(proto), "Warrior/Thief");
 }
 
+// --- ScrollBar ---
+
+// The bar's glyphs, one per row, with the thumb's rows marked. A half-height
+// cap counts as part of the thumb.
+std::string RenderScrollBar(int total, int first_visible, int visible) {
+  ftxui::Element bar = ScrollBar(total, first_visible, visible);
+  ftxui::Screen screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(1), ftxui::Dimension::Fixed(visible));
+  ftxui::Render(screen, bar);
+  std::string out;
+  for (int y = 0; y < visible; ++y) {
+    const std::string& cell = screen.PixelAt(0, y).character;
+    out += cell == " " || cell.empty() ? '.' : '#';
+  }
+  return out;
+}
+
+TEST(ScrollBarTest, DrawsNothingWhenTheWholeListFits) {
+  EXPECT_EQ(RenderScrollBar(10, 0, 10), "..........");
+  EXPECT_EQ(RenderScrollBar(4, 0, 10), "..........");
+}
+
+// The thumb is as much of the bar as the window is of the list, plus whatever
+// row its half-height caps land in.
+TEST(ScrollBarTest, SizesTheThumbByTheShareOnScreen) {
+  EXPECT_EQ(RenderScrollBar(20, 0, 10), "######....") << "half on screen";
+  EXPECT_EQ(RenderScrollBar(40, 0, 10), "###.......") << "a quarter";
+}
+
+TEST(ScrollBarTest, SlidesTheThumbDownWithTheWindow) {
+  EXPECT_EQ(RenderScrollBar(20, 5, 10), "..######..");
+  EXPECT_EQ(RenderScrollBar(20, 10, 10), ".....#####") << "at the foot";
+}
+
+// However long the list, the thumb is still something to see.
+TEST(ScrollBarTest, KeepsAThumbOnAVeryLongList) {
+  EXPECT_NE(RenderScrollBar(10000, 0, 10).find('#'), std::string::npos);
+}
+
 // --- ProgressBar ---
 
 // Renders a bar 10 cells wide onto its own screen so pixels can be inspected.

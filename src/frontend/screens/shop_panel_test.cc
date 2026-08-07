@@ -177,6 +177,16 @@ class ShopPanelTest : public testing::Test {
     return c;
   }
 
+  // `count` universal weapons, one per level so they list in name order.
+  static std::map<std::string, EquipPrototype> ManyItems(int count) {
+    std::map<std::string, EquipPrototype> many;
+    for (int i = 0; i < count; ++i) {
+      std::string suffix = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
+      many["k" + suffix] = MakeItem("Item " + suffix, 10 + i, 100);
+    }
+    return many;
+  }
+
   std::mt19937 rng_{0};
   std::map<std::string, EquipPrototype> equips_{
       {"long_sword", MakeItem("Long Sword", 10, 5000)},
@@ -516,21 +526,17 @@ TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderWhereItWas) {
 // below -- the case that used to hold it back.
 TEST_F(ShopPanelTest, TheMenuOpensBesideTheLastItem) {
   CharacterInstance c = MakeCharacter(100000);
-  std::map<std::string, EquipPrototype> many;
-  for (int i = 0; i < 12; ++i) {
-    std::string name = "Item " + std::string(1, 'A' + i);
-    many["k" + std::to_string(i)] = MakeItem(name, 10 + i, 100);
-  }
+  std::map<std::string, EquipPrototype> many = ManyItems(12);
   ShopPanel panel(c, many);
   for (int i = 0; i < 11; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
-  ASSERT_EQ(panel.selected_item()->name(), "Item L");
+  ASSERT_EQ(panel.selected_item()->name(), "Item 11");
   panel.OpenMenu();
   std::vector<std::string> rows = ScreenRows(panel);
   // The menu's top border lands on the selected item's row, so its first entry
   // sits on the row below.
-  int item_row = IndexWith(rows, "> Item L");
+  int item_row = IndexWith(rows, "> Item 11");
   int entry_row = IndexWith(rows, "Inspect");
   ASSERT_GE(item_row, 0);
   ASSERT_GE(entry_row, 0);
@@ -541,15 +547,11 @@ TEST_F(ShopPanelTest, TheMenuOpensBesideTheLastItem) {
 // merely right at the one end of the list.
 TEST_F(ShopPanelTest, TheMenuOpensBesideTheFirstItem) {
   CharacterInstance c = MakeCharacter(100000);
-  std::map<std::string, EquipPrototype> many;
-  for (int i = 0; i < 12; ++i) {
-    std::string name = "Item " + std::string(1, 'A' + i);
-    many["k" + std::to_string(i)] = MakeItem(name, 10 + i, 100);
-  }
+  std::map<std::string, EquipPrototype> many = ManyItems(12);
   ShopPanel panel(c, many);
   panel.OpenMenu();
   std::vector<std::string> rows = ScreenRows(panel);
-  int item_row = IndexWith(rows, "> Item A");
+  int item_row = IndexWith(rows, "> Item 00");
   int entry_row = IndexWith(rows, "Inspect");
   ASSERT_GE(item_row, 0);
   ASSERT_GE(entry_row, 0);
@@ -589,6 +591,134 @@ TEST_F(ShopPanelTest, TheMenuStaysWholeOnAShortTerminal) {
   EXPECT_EQ(LastIndexWith(rows, "\u2570"), kHeight - 1);
   EXPECT_NE(IndexWith(rows, "Inspect"), -1);
   EXPECT_NE(IndexWith(rows, "Close"), -1);
+}
+
+// --- a list longer than the window ---
+
+// Fifteen rows on screen at once, so a warrior's list -- the longest any class
+// has -- is nearly all of it, and the window still clears a modest terminal.
+constexpr int kVisibleRows = 15;
+
+TEST_F(ShopPanelTest, ShowsOnlyAWindowOfALongList) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many = ManyItems(30);
+  ShopPanel panel(c, many);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Item 00"), std::string::npos);
+  EXPECT_NE(rendered.find("Item 14"), std::string::npos) << "the 15th row";
+  EXPECT_EQ(rendered.find("Item 15"), std::string::npos) << "the 16th";
+}
+
+// The window moves by as little as it takes, so walking down one row does not
+// throw the list about under the cursor.
+TEST_F(ShopPanelTest, ScrollsOneRowAtATimeOffTheBottom) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many = ManyItems(30);
+  ShopPanel panel(c, many);
+  for (int i = 0; i < kVisibleRows - 1; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_NE(Render(panel).find("> Item 14"), std::string::npos)
+      << "the last row of the window is reached without scrolling";
+  ASSERT_NE(Render(panel).find("Item 00"), std::string::npos);
+
+  panel.OnEvent(ftxui::Event::ArrowDown);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("> Item 15"), std::string::npos);
+  EXPECT_EQ(rendered.find("Item 00"), std::string::npos) << "scrolled by one";
+  EXPECT_NE(rendered.find("Item 01"), std::string::npos);
+}
+
+TEST_F(ShopPanelTest, ScrollsBackUpOffTheTop) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many = ManyItems(30);
+  ShopPanel panel(c, many);
+  for (int i = 0; i < 20; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_EQ(Render(panel).find("Item 00"), std::string::npos);
+  for (int i = 0; i < 20; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowUp);
+  }
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("> Item 00"), std::string::npos);
+  EXPECT_NE(rendered.find("Item 14"), std::string::npos);
+}
+
+// Wrapping round the ring is the one move that goes a long way at once.
+TEST_F(ShopPanelTest, WrappingToTheLastItemScrollsToTheFoot) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many = ManyItems(30);
+  ShopPanel panel(c, many);
+  panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
+  panel.OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the last item
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("> Item 29"), std::string::npos);
+  EXPECT_EQ(rendered.find("Item 14"), std::string::npos);
+}
+
+TEST_F(ShopPanelTest, ResetScrollsBackToTheTop) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many = ManyItems(30);
+  ShopPanel panel(c, many);
+  for (int i = 0; i < 20; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  panel.Reset();
+  EXPECT_NE(Render(panel).find("> Item 00"), std::string::npos);
+}
+
+// However long the list, the panel is the same height -- that is what the
+// window is for.
+TEST_F(ShopPanelTest, ALongListDoesNotGrowThePanel) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> full = ManyItems(kVisibleRows);
+  std::map<std::string, EquipPrototype> over = ManyItems(60);
+  ShopPanel small(c, full);
+  ShopPanel big(c, over);
+  EXPECT_EQ(RenderHeight(big), RenderHeight(small));
+}
+
+TEST_F(ShopPanelTest, DrawsAScrollBarOnlyWhenThereIsMoreToSee) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> fits = ManyItems(kVisibleRows);
+  std::map<std::string, EquipPrototype> over = ManyItems(30);
+  ShopPanel small(c, fits);
+  ShopPanel big(c, over);
+  EXPECT_EQ(Render(small).find("\u2503"), std::string::npos)
+      << "nothing is off screen, so there is nothing to indicate";
+  EXPECT_NE(Render(big).find("\u2503"), std::string::npos);
+}
+
+// The bar says where in the list the window is, so it has to move with it.
+TEST_F(ShopPanelTest, TheScrollBarFollowsTheWindow) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many = ManyItems(60);
+  ShopPanel panel(c, many);
+  int at_top = RowIndexWith(panel, "\u2503");
+  ASSERT_GE(at_top, 0);
+  panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
+  panel.OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the last item
+  EXPECT_GT(RowIndexWith(panel, "\u2503"), at_top);
+}
+
+// The menu anchors on the cursor's row of the WINDOW, not its place in the
+// stock -- the reason the panel keeps the scroll offset itself.
+TEST_F(ShopPanelTest, TheMenuOpensBesideAScrolledRow) {
+  CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> many = ManyItems(30);
+  ShopPanel panel(c, many);
+  for (int i = 0; i < 25; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_EQ(panel.selected_item()->name(), "Item 25");
+  panel.OpenMenu();
+  std::vector<std::string> rows = ScreenRows(panel);
+  int item_row = IndexWith(rows, "> Item 25");
+  int entry_row = IndexWith(rows, "Inspect");
+  ASSERT_GE(item_row, 0);
+  ASSERT_GE(entry_row, 0);
+  EXPECT_EQ(entry_row, item_row + 1);
 }
 
 TEST_F(ShopPanelTest, ResetTakesDownAnOpenMenu) {

@@ -180,6 +180,16 @@ ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
 // Every button the player can land on is drawn with this.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
+// A one-column scroll bar for a list showing `visible` of its `total` rows,
+// starting at row `first_visible`. Drawn with the same half-height glyphs as
+// ftxui's own vscroll_indicator, which the bag scrolls with, so the two bars
+// look alike. Empty when the whole list fits: there is nothing to indicate.
+//
+// For a list that keeps its own scroll offset rather than handing one to
+// ftxui's yframe. Reach for vscroll_indicator first; this is for the case
+// where something else has to know which row is on screen.
+ftxui::Element ScrollBar(int total, int first_visible, int visible);
+
 // Where a cursor lands after stepping `delta` places in a ring of `stops`,
 // coming out the other end rather than stopping. Every list walks with this --
 // if you are writing `std::max(0, sel - 1)`, write this instead.

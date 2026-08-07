@@ -85,6 +85,10 @@ class ShopPanel {
   int CursorStop() const;
   // Moves the cursor `delta` stops around the ring, tab bar included.
   void MoveCursor(int delta);
+  // Scrolls the window by as little as it takes to put the cursor back inside
+  // it. Does nothing while the cursor is already on screen, which is most
+  // moves.
+  void ScrollToCursor();
 
   const CharacterInstance& character_;
   const std::map<std::string, EquipPrototype>& equips_;
@@ -93,6 +97,11 @@ class ShopPanel {
   std::vector<std::string> stock_;
   Zone zone_ = kZoneList;
   int selected_ = 0;
+  // The stock row drawn at the top of the window. The list is longer than the
+  // screen, so the panel keeps its own offset rather than handing the cursor to
+  // ftxui's yframe -- the context menu is anchored at a row number, and only an
+  // offset the panel owns can be turned into one.
+  int first_visible_ = 0;
   ItemMenu menu_;
   bool menu_open_ = false;
 
