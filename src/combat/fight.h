@@ -140,6 +140,31 @@ class CombatSim {
   // plain swing once the map thins out.
   const AttackOption* BestAttack(const CombatParams& params) const;
 
+  // The steps of one Advance, in the order it runs them.
+  //
+  // Clears every display value and stops the fight, for a step with no
+  // encounter to advance.
+  void GoIdle();
+  // Fills the queue and starts the clocks, on the first step and on a move to
+  // another map.
+  void BeginMapIfChanged(const CombatParams& params);
+  // Tops the roster back up on the beat, and hands back the HP a beat is
+  // worth.
+  void RespawnBeat(const CombatParams& params, double dt);
+  // Lets the engaged mob hit the player, on its own clock.
+  void TakeMobHit(const CombatParams& params, double dt);
+  // Fires the skills that attack on their own clock, before the swing is
+  // aimed, so it is aimed at what they leave standing.
+  void RunAutoCasts(const CombatParams& params, double dt);
+  // Points the next swing at the queue as it stands, naming it for the charge
+  // bar. Returns what it picked, or null with nothing to hit.
+  const AttackOption* AimSwing(const CombatParams& params);
+  // Charges the swing and lands it when it comes round.
+  void RunSwing(const CombatParams& params, double dt);
+  // Refreshes the target and the engaged window for the panel to draw.
+  void PublishTarget(const CombatParams& params);
+  void MergeEngagedWindow(const CombatParams& params);
+
   bool active_ = false;
   bool initialized_ = false;
   bool respawning_ = false;
