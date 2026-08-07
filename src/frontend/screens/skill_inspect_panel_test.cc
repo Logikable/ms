@@ -186,6 +186,14 @@ TEST_F(SkillInspectPanelTest, BothHandsOfAWeaponReadAsTheWeapon) {
   EXPECT_EQ(rendered.find("Two-Handed"), std::string::npos);
 }
 
+TEST_F(SkillInspectPanelTest, BothHandsOfABluntReadAsABlunt) {
+  Skill skill = MakeIronBody();
+  skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_BLUNT);
+  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_BLUNT);
+  EXPECT_NE(RenderAt(skill, 5).find("Blunt"), std::string::npos);
+  EXPECT_EQ(RenderAt(skill, 5).find("Handed"), std::string::npos);
+}
+
 // Half a pair is still that weapon: a Spearman's sword-only skill would read
 // as taking every sword if the collapse did not check both halves.
 TEST_F(SkillInspectPanelTest, OneHandOfAPairKeepsItsFullName) {

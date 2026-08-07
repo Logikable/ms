@@ -39,6 +39,7 @@ struct WeaponConstantRow {
 const WeaponConstantRow kWeaponConstants[] = {
     {EQUIP_TYPE_ONE_HANDED_SWORD, 1.24},
     {EQUIP_TYPE_TWO_HANDED_SWORD, 1.34},
+    {EQUIP_TYPE_ONE_HANDED_BLUNT, 1.24},
     {EQUIP_TYPE_TWO_HANDED_BLUNT, 1.34},
     {EQUIP_TYPE_ONE_HANDED_AXE, 1.34},
     {EQUIP_TYPE_TWO_HANDED_AXE, 1.44},

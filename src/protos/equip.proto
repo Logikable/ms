@@ -34,9 +34,11 @@ enum EquipType {
   EQUIP_TYPE_POLEARM = 9;
   EQUIP_TYPE_TWO_HANDED_BLUNT = 10;
   EQUIP_TYPE_TWO_HANDED_SWORD = 11;
-  // No item is one of these yet. It exists so a skill that takes a weapon in
-  // either hand can say so, rather than naming the half of it that has items.
+  // No item is either of these yet. They exist so a skill that takes a weapon
+  // in either hand can say so, rather than naming the half of it that has
+  // items -- a Fighter's mastery is of axes, not of two-handed axes.
   EQUIP_TYPE_ONE_HANDED_AXE = 12;
+  EQUIP_TYPE_ONE_HANDED_BLUNT = 13;
 }
 
 // The equipment window slot this item occupies when worn. Determines where the

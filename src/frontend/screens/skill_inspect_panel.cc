@@ -151,6 +151,7 @@ struct WeaponPair {
 const WeaponPair kWeaponPairs[] = {
     {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD, "Sword"},
     {EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE, "Axe"},
+    {EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_TWO_HANDED_BLUNT, "Blunt"},
 };
 
 // The pair `type` belongs to, if the skill demands the whole of it. Null when

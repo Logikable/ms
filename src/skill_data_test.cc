@@ -161,6 +161,7 @@ TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   const std::pair<EquipType, EquipType> kPairs[] = {
       {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD},
       {EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE},
+      {EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_TWO_HANDED_BLUNT},
   };
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     for (const std::set<EquipType>& demanded : WeaponLists(entry.second)) {

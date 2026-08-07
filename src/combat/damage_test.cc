@@ -218,6 +218,8 @@ TEST(WeaponConstantTest, AnAxeIsTheSameInAnyWarriorsHands) {
 TEST(WeaponConstantTest, AnOffClassWeaponKeepsItsOwnConstant) {
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_BLUNT),
                    1.34);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_ONE_HANDED_BLUNT),
+                   1.24);
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_UNSPECIFIED), 1.0);
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_THROWING_STAR), 1.0);
 }
