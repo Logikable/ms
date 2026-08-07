@@ -50,22 +50,12 @@ struct PassiveOffense {
   double mastery = 0.0;
 };
 
-// Builds OffenseStats from a character's job, level, and summed (allocated +
-// equipped) stats. Job picks primary/secondary; attack and boss_pct/ied come
-// from gear; level feeds the level multiplier; the rest keep identity defaults
-// until skills/gear supply them.
+// Builds OffenseStats from a character's job, level and summed stats. The job
+// picks primary/secondary; attack, boss_pct and ied come from gear.
 //
-// `attack_skill` is the attack the character swings with -- an attack-kind
-// Skill they have learned, at `attack_level` -- or nullptr to fall back to the
-// bare 100% poke. Its skill_pct (base + per_level*(attack_level-1)) becomes the
-// swing's multiplier. Choosing WHICH attack (when several are learned, or when
-// a weaker multi-target skill beats the poke on a crowded map) is the caller's
-// job, not this pure per-mob math.
-//
-// `passives` is what the character's learned passives add on top -- see
-// DerivedStatsFor, which walks them. It arrives already resolved rather than
-// as a skill list because it applies to every swing, whichever attack was
-// chosen.
+// `attack_skill` is the learned attack being swung, at `attack_level`, or null
+// for the bare 100% poke. Choosing WHICH attack is the caller's job -- it
+// depends on how many mobs are up, which this pure per-mob math cannot see.
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
                              const EquipStats& equipped,
@@ -76,18 +66,14 @@ OffenseStats OffenseStatsFor(Job job, int level,
 // rate, no RNG). The GMS damage chain; mob PDR and boss flag come from the Mob.
 double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob);
 
-// A single number for "how hard this character hits", for comparing characters
-// rather than predicting a swing: the damage chain with everything that depends
-// on the target, the job, or the moment stripped out. Only `primary`,
-// `secondary`, `attack`, `mastery`, `damage_pct`, `boss_pct`, `crit_rate`,
-// `crit_dmg` and `final_dmg_pct` are read -- skill_pct, lines, ied, ier and
-// level are ignored, so build the stats with a null attack skill.
+// One number for "how hard this character hits", for comparing characters
+// rather than predicting a swing: the damage chain with everything that
+// depends on the target, the skill or the moment stripped out. Build the stats
+// with a null attack skill, since skill_pct, lines, ied, ier and level are all
+// ignored here.
 //
-// Two deliberate departures from GMS, which computes this off a maximum,
-// boss-facing hit. Boss damage counts unconditionally, as it does there. But
-// crit is weighted by its rate -- GMS's flat `1.35 + crit damage` prices a
-// point of critical damage the same whether it lands every swing or never,
-// which our own damage chain does not.
+// Unlike GMS, crit is weighted by its rate: a flat `1.35 + crit damage` would
+// price critical damage the same whether it lands every swing or never.
 int CombatPower(const OffenseStats& offense);
 
 // What a character brings to being hit. The defensive mirror of OffenseStats:
@@ -101,24 +87,17 @@ struct DefenseStats {
   double damage_taken_pct = 0.0;
 };
 
-// Expected damage of one hit from `mob` -- its minimum and maximum rolls
-// averaged, no RNG. Never less than 1, as in GMS: a mob whose whole attack the
-// character's DEF has cancelled still takes a point off them per hit.
+// Expected damage of one hit from `mob` -- min and max rolls averaged, no RNG.
+// Never less than 1, as in GMS.
 //
-// DEF subtracts flatly from the mob's attack, but only up to a cap: it can
-// never cancel more than 80% of the attack on a maximum roll, so even an
-// absurdly armoured character still takes about a fifth of what the mob swings
-// for. That cap is the whole shape of the thing. On a map near the character's
-// own level their DEF clears it easily and more armour buys nothing; on a map
-// far above it DEF is the small number, the cap never binds, and the mob's
-// attack lands close to full.
+// DEF subtracts flatly from the mob's attack, but can never cancel more than
+// 80% of it. That cap is the shape of the whole thing: on a map near the
+// character's level their DEF clears it and more armour buys nothing, and on
+// one far above it the cap never binds and the hit lands close to full.
 double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob);
 
-// Damage multiplier from the level gap between attacker and monster (the GMS
-// "level multiplier", always applied): a small bonus at or above the monster's
-// level -- 1.1 at equal, rising to 1.2 at +5 and beyond -- and a growing
-// penalty below it, reaching 0 at 40 levels under, where the game floors output
-// to 1 damage.
+// The GMS level multiplier: 1.1 at the monster's level, rising to 1.2 at +5
+// and beyond, and falling to 0 at 40 levels under it.
 double LevelMultiplier(int player_level, int mob_level);
 
 // Seconds between swings: base_delay_ms * (20 - stage) / 16, rounded up to

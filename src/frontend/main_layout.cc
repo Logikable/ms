@@ -9,16 +9,14 @@ namespace ms {
 ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
                           ftxui::Element equipped, ftxui::Element inventory,
                           ftxui::Element hotkeys, ftxui::Element exp_bar) {
-  // Columns, not bare panels. An hbox hands every child the full height of the
-  // row, so a panel placed here directly would stretch and its bottom border
-  // would drift away from its contents. A vbox leaves slack at the end of the
-  // column unused instead.
+  // Columns, not bare panels: an hbox hands every child the full height of the
+  // row, which would drag a panel's bottom border away from its contents.
   ftxui::Elements columns;
   columns.push_back(ftxui::vbox({
       std::move(character),
-      // Combat is pinned to the foot of the column, so it sits in the
-      // bottom-left corner of the screen however tall the terminal is rather
-      // than trailing the character panel down from the top.
+      // Pinned to the foot, so combat holds the bottom-left corner however
+      // tall the terminal is. It belongs in this column and not in a row of
+      // its own: as a row it capped the column beside it at its own top edge.
       ftxui::filler(),
       std::move(combat),
   }));
@@ -28,20 +26,19 @@ ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
     right.push_back(std::move(equipped));
   }
   if (inventory != nullptr) {
+    // The bag shrinks but does not grow, so an empty tab is a few rows rather
+    // than a screen of blank. It is also the one shrinkable thing in the
+    // column, which is what stops ftxui squashing every panel here a share of
+    // the overflow instead.
     right.push_back(std::move(inventory) | ftxui::yflex_shrink);
   }
   if (hotkeys != nullptr) {
-    // Pinned to the foot of the column, the mirror of combat on the left. The
-    // filler goes in whether or not anything is above it: for the first two
-    // levels the tip is the whole right column, and without it the tip would
-    // sit at the top of the screen and then jump to the bottom the moment the
-    // equipped panel appeared over it.
+    // Pinned to the foot, the mirror of combat. The filler goes in whether or
+    // not anything is above it, or the tip would sit at the top of the screen
+    // until the equipped panel arrived and then jump to the bottom.
     right.push_back(ftxui::filler());
-    // Against a filler rather than straight into the column. The column is
-    // what flexes to fill the width, and a vbox hands that width to every
-    // child -- so on its own, at the levels before the equipped panel arrives,
-    // the tip would stretch most of the way across the screen. The filler
-    // takes the slack and leaves it its own width, in the corner.
+    // Against a filler, or the tip takes the column's whole flexed width and
+    // stretches across the screen.
     right.push_back(ftxui::hbox({ftxui::filler(), std::move(hotkeys)}));
   }
   if (!right.empty()) {
@@ -49,8 +46,8 @@ ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
   }
 
   return ftxui::vbox({
-      // Flexed, and with no filler under it, so the row reaches down to the
-      // exp bar instead of stopping at the height of whatever it holds.
+      // Flexed, with no filler under it, so the row reaches down to the exp
+      // bar rather than stopping at the height of what it holds.
       ftxui::hbox(std::move(columns)) | ftxui::flex,
       std::move(exp_bar),
   });

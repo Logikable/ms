@@ -1,26 +1,21 @@
-/* The live fight: the player auto-attacking a map's mobs, draining HP, clearing
- * the queue, then idling until the next respawn beat refills it -- while the
- * mob at the front of that queue hits back.
+/* The live fight: the player auto-attacking a map's mobs, clearing the queue,
+ * then idling until the next respawn beat refills it -- while the mob at the
+ * front of that queue hits back.
  *
- * The mobs form a queue. A respawn beat tops it back up to a full roster,
- * appending the missing spawns in random order and leaving whatever is still
- * standing alone -- so a fight that outlasts a beat keeps its progress. One
- * swing hits the first params.attack_targets of them at once -- the chosen
- * attack's reach -- each taking its own type's damage; a mob at 0 HP leaves the
- * queue and the ones behind slide forward. A single-target attack (reach 1) is
- * the one-at-a-time special case.
+ * A beat tops the queue back up to a full roster, leaving whatever is still
+ * standing alone, so a fight that outlasts a beat keeps its progress. One
+ * swing hits the front mobs at once, as many as the chosen attack reaches.
  *
- * The player has HP here and nowhere else, because it never outlives a fight:
- * there is no regeneration between fights, and instead a slice of the pool back
- * on every respawn beat, the whole of it whenever the map is cleared or changed
- * or the character levels. So a map far above the player's level is dangerous
- * when its mobs take more out of them between beats than a beat gives back --
- * and one at their level can be held all day.
+ * The player's HP lives here and nowhere else, because it never outlives a
+ * fight: a slice of the pool comes back on every beat, and the whole of it
+ * whenever the map is cleared or changed or the character levels. So a map far
+ * above the player is dangerous when its mobs take more between beats than a
+ * beat gives back, and one at their level can be held all day.
  *
- * This is the single engine behind both halves of combat. The kills it reports
- * each step (kills_this_step) are what the reward layer pays out for, and the
- * same step drives the combat panel's animation -- so what the player watches
- * and what they are paid for cannot drift apart.
+ * This is the single engine behind both halves of combat: the kills it reports
+ * each step are what the reward layer pays out for, and the same step drives
+ * the panel's animation -- so what the player watches and what they are paid
+ * for cannot drift apart.
  */
 #ifndef MS_SRC_COMBAT_FIGHT_H_
 #define MS_SRC_COMBAT_FIGHT_H_
@@ -34,10 +29,9 @@
 
 namespace ms {
 
-// One HP bar for the combat panel: a mob type in the current engaged window
-// (the front mobs the next swing will hit), with its members merged.
-// hp_fraction is the average of that type's engaged mobs' HP fractions; count
-// is how many of them are in the window.
+// One HP bar for the combat panel: a mob type in the engaged window (the front
+// mobs the next swing hits), with its members merged into an average HP
+// fraction and a count.
 struct EngagedGroup {
   std::string name;
   int level = 0;
@@ -121,18 +115,14 @@ class CombatSim {
     double hp = 0.0;
   };
 
-  // Brings the queue back up to a full roster, adding only the mobs missing
-  // from each type. What is already queued keeps its remaining HP and its
-  // place: a respawn puts new monsters on the map, it does not heal the one
-  // being fought. Clear the queue first to repopulate from scratch.
-  //
-  // Leaves the swing clock alone -- whether a top-up interrupts the swing in
-  // progress depends on why it happened, so the callers decide.
+  // Brings the queue back up to a full roster, adding only what each type is
+  // missing: a respawn puts new monsters on the map, it does not heal the one
+  // being fought. Leaves the swing clock alone, since whether a top-up should
+  // interrupt the swing depends on why it happened.
   void TopUp(const CombatParams& params);
   // Lands one attack on the front of the queue: the first max_enemies mobs
-  // each take their own type's damage, the dead are counted into
-  // kills_this_step_ and leave. The swing and a skill firing on its own clock
-  // are the same thing here -- what differs is only what starts them.
+  // each take their own type's damage, and the dead are counted and leave. A
+  // swing and a skill on its own clock are the same thing here.
   void Strike(const AttackOption& attack);
   // The attack that would land the most damage on the queue as it stands, or
   // null when there is nothing to hit. Reach is worth nothing past the number

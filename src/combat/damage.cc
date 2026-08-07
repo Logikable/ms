@@ -28,26 +28,16 @@ constexpr int kSpeedDivisor = 16;
 // EquipStats stores boss_damage / ignore_enemy_defense as whole percents.
 constexpr double kPercentToFraction = 100.0;
 
-// Basic-attack swing animation for a one-handed weapon at the stage-4 (x1.0)
-// reference. 800ms is the long-standing engine animation constant; modern GMS
-// doesn't republish basic-attack timing (basic attacks are vestigial vs
-// skills). Two-handed's swing/stab alternation is deferred until such a weapon
-// exists.
+// Basic-attack animation at the stage-4 (x1.0) reference. Every weapon we have
+// shares it: 800ms is the long-standing engine constant, and nothing published
+// distinguishes a bow's or a wand's basic attack from a sword's. What really
+// separates the classes is the attack speed stage on the item, and counting
+// their quickness twice would make them all swing wrong.
+//
+// Two-handed's swing/stab alternation waits until such a weapon exists.
 constexpr int kOneHandedBaseAttackDelayMs = 800;
-
-// Bows shoot on the same 800ms reference. Nothing published distinguishes a
-// bow's basic-attack animation from a one-handed sword's, and inventing a
-// difference would be worse than treating them alike -- what actually
-// separates the two weapons is the attack speed stage on the item itself.
 constexpr int kBowBaseAttackDelayMs = 800;
-
-// A wand's cast lands on the same reference for the same reason. Wands are
-// stage 4 like bows, so a magician swings at a bow's pace until MP Boost.
 constexpr int kWandBaseAttackDelayMs = 800;
-
-// Daggers and claws share it too. A thief's weapons are quick, but that speed
-// is already in the stage on the item -- stage 6 against a sword's 5 -- and
-// counting it twice would make the whole class swing wrong.
 constexpr int kDaggerBaseAttackDelayMs = 800;
 constexpr int kClawBaseAttackDelayMs = 800;
 
@@ -107,10 +97,9 @@ constexpr double kMinRollAttack = 0.85;
 constexpr double kMinRollDefCap = 0.68;
 constexpr double kMaxRollDefCap = 0.80;
 
-// A hit always costs at least a point of HP, however thoroughly the
-// character's DEF has cancelled the attack behind it, exactly as GMS does. The
-// chip that leaves is real but tiny, and the tenth of the pool a respawn beat
-// hands back covers it many times over -- see fight.h.
+// A hit always costs at least a point of HP, however thoroughly DEF cancelled
+// the attack behind it, exactly as GMS does. The tenth of the pool a respawn
+// beat hands back covers that chip many times over -- see fight.h.
 constexpr double kMinimumDamage = 1.0;
 
 // The multiplier on a whole incoming hit for the level gap (GMS's A).
