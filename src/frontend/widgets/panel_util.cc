@@ -225,6 +225,12 @@ std::string FormatEquipType(EquipType type) {
       return "Claw";
     case EQUIP_TYPE_THROWING_STAR:
       return "Throwing Star";
+    case EQUIP_TYPE_AXE:
+      return "Axe";
+    case EQUIP_TYPE_SPEAR:
+      return "Spear";
+    case EQUIP_TYPE_POLEARM:
+      return "Polearm";
     default:
       return "";  // not yet implemented for other types
   }

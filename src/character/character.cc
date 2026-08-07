@@ -475,14 +475,18 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   return true;
 }
 
+EquipType CharacterInstance::weapon_type() const {
+  std::map<EquipSlot, EquipInstance>::const_iterator weapon =
+      equipped_.find(EQUIP_SLOT_PRIMARY_WEAPON);
+  return weapon != equipped_.end() ? weapon->second.prototype().equip_type()
+                                   : EQUIP_TYPE_UNSPECIFIED;
+}
+
 bool CharacterInstance::AttackCounts(const EquipPrototype& proto) const {
   if (proto.equip_type() != EQUIP_TYPE_THROWING_STAR) {
     return true;
   }
-  std::map<EquipSlot, EquipInstance>::const_iterator weapon =
-      equipped_.find(EQUIP_SLOT_PRIMARY_WEAPON);
-  return weapon != equipped_.end() &&
-         weapon->second.prototype().equip_type() == EQUIP_TYPE_CLAW;
+  return weapon_type() == EQUIP_TYPE_CLAW;
 }
 
 void CharacterInstance::RecomputeEquipStats() {

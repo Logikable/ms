@@ -245,6 +245,9 @@ class CharacterInstance {
   // public so the display can show an inert attack as inert rather than
   // quietly disagreeing with the total.
   bool AttackCounts(const EquipPrototype& proto) const;
+  // The type of weapon in hand, or EQUIP_TYPE_UNSPECIFIED with the slot empty.
+  // What the skills that demand a particular weapon are asked against.
+  EquipType weapon_type() const;
 
  private:
   // Recomputes equip_stats_ from the current equipped map.

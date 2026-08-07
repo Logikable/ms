@@ -77,20 +77,6 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   return attack;
 }
 
-// Whether `skill` can be swung with `weapon`. A skill that names no weapon
-// type is swingable with anything, which is the usual case.
-bool SwingableWith(const Skill& skill, EquipType weapon) {
-  if (skill.required_equip_type_size() == 0) {
-    return true;
-  }
-  for (int i = 0; i < skill.required_equip_type_size(); ++i) {
-    if (skill.required_equip_type(i) == weapon) {
-      return true;
-    }
-  }
-  return false;
-}
-
 // The mob types this map spawns, each with what one of its hits costs the
 // player. Types the mob catalog does not know are skipped.
 void AddTypes(const GameState& state, const MapData& map,
@@ -124,7 +110,7 @@ bool Swingable(const GameState& state, const Skill& skill,
   // A skill the weapon in hand cannot swing is no option, however well
   // learned. The bare poke always is, so the character is never left with
   // nothing to attack with.
-  return SwingableWith(skill, weapon_type);
+  return SkillAllowsWeapon(skill, weapon_type);
 }
 
 // Every attack the character could swing: the bare poke first, then one per
@@ -196,6 +182,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
   params.max_player_hp = derived.max_hp;
   params.beat_heal_fraction = kBeatHealFraction;
+  params.damage_reflect_pct = derived.damage_reflect_pct;
 
   // What the character brings to being hit is the same whichever mob is
   // hitting them, so it is resolved once and asked per type.

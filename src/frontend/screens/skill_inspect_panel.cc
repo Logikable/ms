@@ -40,6 +40,7 @@ const PercentLever kPercentLevers[] = {
     {"Mastery", &SkillEffect::mastery, kBare},
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare},
+    {"Reflected", &SkillEffect::damage_reflect_pct, kBare},
 };
 
 struct FlatLever {
@@ -55,6 +56,8 @@ struct FlatLever {
 
 const FlatLever kFlatLevers[] = {
     {"DEF", &SkillEffect::def, "", false},
+    {"ATT", &SkillEffect::attack, "", false},
+    {"ATT", &SkillEffect::attack_per_combo_orb, " per Combo Orb", false},
     {"STR", &SkillEffect::str, "", false},
     {"DEX", &SkillEffect::dex, "", false},
     {"LUK", &SkillEffect::luk, "", false},
@@ -153,13 +156,17 @@ std::string RequiredWeapons(const Skill& skill) {
   return result;
 }
 
-// The rows that hold at every level: how far a swing reaches and what it must
-// be held with. A passive has none of these and gets no block at all.
+// The rows that hold at every level: how far a swing reaches, how often it
+// goes off on its own, and what it must be held with. A skill with none of
+// them gets no block at all.
 std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   std::vector<ftxui::Element> rows;
   if (skill.max_enemies() > 1) {
     rows.push_back(
         EffectRow("Enemies Hit", std::to_string(skill.max_enemies())));
+  }
+  if (skill.combo_orbs() > 0) {
+    rows.push_back(EffectRow("Combo Orbs", std::to_string(skill.combo_orbs())));
   }
   // How often a skill that fights on its own goes off, which is most of what
   // it is worth. Stated in GMS seconds, as the data holds it -- the pacing

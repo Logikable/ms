@@ -35,7 +35,9 @@ struct PassiveTotals {
   int str = 0;
   int dex = 0;
   int luk = 0;
+  int attack = 0;
   double damage_taken_pct = 0.0;
+  double damage_reflect_pct = 0.0;
   double crit_rate = 0.0;
   double mastery = 0.0;
   double final_attack_pct = 0.0;
@@ -55,8 +57,16 @@ void AddPassive(const Skill& skill, int level, PassiveTotals& totals) {
   totals.str += base.str() + per.str() * (level - 1);
   totals.dex += base.dex() + per.dex() * (level - 1);
   totals.luk += base.luk() + per.luk() * (level - 1);
+  totals.attack += base.attack() + per.attack() * (level - 1);
+  // The orbs are taken as full, so what a per-orb grant is worth is the whole
+  // ring of them. See SkillEffect::attack_per_combo_orb.
+  totals.attack +=
+      (base.attack_per_combo_orb() + per.attack_per_combo_orb() * (level - 1)) *
+      skill.combo_orbs();
   totals.damage_taken_pct +=
       base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
+  totals.damage_reflect_pct +=
+      base.damage_reflect_pct() + per.damage_reflect_pct() * (level - 1);
   totals.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
   // The one lever taken at its best rather than summed: two masteries are not
@@ -75,6 +85,7 @@ void AddPassive(const Skill& skill, int level, PassiveTotals& totals) {
 PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills) {
   PassiveTotals totals;
+  EquipType weapon = character.weapon_type();
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // Learned levels are keyed by display name, and the warrior branches share
@@ -82,6 +93,12 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
     // branch's copy would fold in beside it.
     if (skill.kind() != SKILL_KIND_PASSIVE ||
         !character.HasAdvancement(skill.job_advancement())) {
+      continue;
+    }
+    // A passive that demands a weapon grants nothing while another is held --
+    // Final Attack does not fire off a wand. The skill stays learned; it is
+    // the effect that lapses, and comes back with the right weapon in hand.
+    if (!SkillAllowsWeapon(skill, weapon)) {
       continue;
     }
     int level = character.skill_level(skill);
@@ -102,6 +119,18 @@ int FoldPool(int flat, double pct) {
 
 }  // namespace
 
+bool SkillAllowsWeapon(const Skill& skill, EquipType weapon) {
+  if (skill.required_equip_type_size() == 0) {
+    return true;
+  }
+  for (int i = 0; i < skill.required_equip_type_size(); ++i) {
+    if (skill.required_equip_type(i) == weapon) {
+      return true;
+    }
+  }
+  return false;
+}
+
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills) {
   const Character& proto = character.proto();
@@ -120,6 +149,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.skill_stats.set_str(passives.str);
   stats.skill_stats.set_dex(passives.dex);
   stats.skill_stats.set_luk(passives.luk);
+  stats.skill_stats.set_attack(passives.attack);
   // Base DEF reads the totals rather than the allocation: a ring's LUK and a
   // passive's LUK are worth the same DEF. Floored once at the end, as GMS
   // shows it -- the worn and granted DEF are whole numbers already.
@@ -130,6 +160,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
       std::floor(kDefPerStr * str + kDefPerDexLuk * (dex + luk)));
   stats.def = base_def + equipped.def() + passives.def;
   stats.damage_taken_pct = passives.damage_taken_pct;
+  stats.damage_reflect_pct = passives.damage_reflect_pct;
   stats.crit_rate = passives.crit_rate;
   stats.mastery = passives.mastery;
   stats.final_attack_pct = passives.final_attack_pct;

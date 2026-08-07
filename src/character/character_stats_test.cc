@@ -44,6 +44,17 @@ void EquipArmor(CharacterInstance& character, int max_hp, int def,
   character.Equip(0);
 }
 
+// Puts a weapon of `type` in the character's hand, for the skills that ask
+// what they are being swung with.
+void EquipWeapon(CharacterInstance& character, EquipType type) {
+  EquipPrototype weapon;
+  weapon.set_name("Weapon");
+  weapon.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  weapon.set_equip_type(type);
+  character.PickUp(std::make_unique<EquipInstance>(weapon));
+  character.Equip(character.inventory().size() - 1);
+}
+
 // A character holding the four primary stats outright. These tests care what
 // the character holds, not how many AP it took to get there.
 CharacterInstance MakeStatCharacter(std::mt19937& rng, int str, int dex,
@@ -530,6 +541,61 @@ TEST_F(DerivedStatsTest, TheCharactersOwnBookStillCounts) {
   Skill mine = PhysicalTraining();
   mine.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
   std::map<std::string, Skill> skills = {{"spearman_physical_training", mine}};
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
+}
+
+// Spirit Blade's two new levers: attack in the same shape a weapon grants it,
+// and the share of a hit that goes back into whatever landed it.
+TEST_F(DerivedStatsTest, AttackAndReflectionFoldIn) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill blade;
+  blade.set_name("Spirit Blade");
+  blade.set_kind(SKILL_KIND_PASSIVE);
+  blade.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  blade.set_max_level(20);
+  blade.mutable_base()->set_attack(11);
+  blade.mutable_base()->set_damage_reflect_pct(1.2);
+  blade.mutable_per_level()->set_attack(1);
+  blade.mutable_per_level()->set_damage_reflect_pct(0.2);
+  std::map<std::string, Skill> skills = {{"spirit_blade", blade}};
+  ASSERT_TRUE(c.LearnSkill(blade, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.attack(), 30);
+  EXPECT_DOUBLE_EQ(stats.damage_reflect_pct, 5.0);
+}
+
+// Combo Attack states its attack per orb and how many orbs it hands out. The
+// orbs are taken as full, so what the character carries is the product.
+TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill combo;
+  combo.set_name("Combo Attack");
+  combo.set_kind(SKILL_KIND_PASSIVE);
+  combo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  combo.set_max_level(1);
+  combo.set_combo_orbs(5);
+  combo.mutable_base()->set_attack_per_combo_orb(2);
+  std::map<std::string, Skill> skills = {{"combo_attack", combo}};
+  ASSERT_TRUE(c.LearnSkill(combo, 1));
+
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 10);
+}
+
+// Final Attack demands a sword or an axe. A learned skill whose weapon is not
+// in hand grants nothing, and grants it all again once it is.
+TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill training = PhysicalTraining();
+  training.add_required_equip_type(EQUIP_TYPE_AXE);
+  std::map<std::string, Skill> skills = {{"physical_training", training}};
+  ASSERT_TRUE(c.LearnSkill(training, 5));
+  EquipWeapon(c, EQUIP_TYPE_ONE_HANDED_SWORD);
+
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 0);
+
+  c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipWeapon(c, EQUIP_TYPE_AXE);
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 

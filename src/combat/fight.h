@@ -143,6 +143,9 @@ class CombatSim {
   void RespawnBeat(const CombatParams& params, double dt);
   // Lets the engaged mob hit the player, on its own clock.
   void TakeMobHit(const CombatParams& params, double dt);
+  // Puts the reflected share of a hit back into the mob that landed it, and
+  // counts it dead if that finishes it. Nothing without a reflection skill.
+  void Reflect(const CombatParams& params, double damage_taken);
   // Fires the skills that attack on their own clock, before the swing is
   // aimed, so it is aimed at what they leave standing.
   void RunAutoCasts(const CombatParams& params, double dt);

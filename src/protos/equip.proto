@@ -26,6 +26,12 @@ enum EquipType {
   EQUIP_TYPE_DAGGER = 4;
   EQUIP_TYPE_CLAW = 5;
   EQUIP_TYPE_THROWING_STAR = 6;
+  // The 2nd-job warrior weapons. No item is one yet: they exist so the skills
+  // that demand them can say so, and so the ladder that arms a Fighter or a
+  // Spearman has a type to be written against.
+  EQUIP_TYPE_AXE = 7;
+  EQUIP_TYPE_SPEAR = 8;
+  EQUIP_TYPE_POLEARM = 9;
 }
 
 // The equipment window slot this item occupies when worn. Determines where the

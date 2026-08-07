@@ -162,9 +162,25 @@ void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
     return;
   }
   hit_phase_ -= params.hit_seconds;
-  player_hp_ = std::max(
-      0.0, player_hp_ - params.types[queue_.front().type].damage_to_player);
+  double taken = params.types[queue_.front().type].damage_to_player;
+  player_hp_ = std::max(0.0, player_hp_ - taken);
   died_this_step_ = player_hp_ <= 0.0;
+  Reflect(params, taken);
+}
+
+void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
+  // Off the whole hit, not the sliver of it a dying player had left to lose:
+  // what comes back is a share of what was thrown, not of what it emptied.
+  if (params.damage_reflect_pct <= 0.0 || queue_.empty()) {
+    return;
+  }
+  QueuedMob& front = queue_.front();
+  front.hp -= params.damage_reflect_pct * damage_taken;
+  if (front.hp > 0.0) {
+    return;
+  }
+  ++kills_this_step_[front.type];
+  queue_.erase(queue_.begin());
 }
 
 void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {

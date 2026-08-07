@@ -55,6 +55,16 @@ message SkillEffect {
   // expected value: the chance and the damage are what the player is shown.
   double final_attack_chance = 15;
   double final_attack_pct = 16;
+  int32 attack = 17;  // flat weapon attack, exactly as a worn weapon grants it
+  // Attack per Combo Orb the character is carrying, for a skill that surrounds
+  // them with orbs. The orbs are assumed full, so what this is worth is this
+  // times Skill.combo_orbs -- stated as the pair rather than the product
+  // because a later skill raises the count and only the count.
+  int32 attack_per_combo_orb = 18;
+  // Share of a hit taken that is dealt straight back to whatever landed it
+  // (1.20 == 120% of the damage received). Measured against what the character
+  // actually loses, so their own defences cut the reflection with it.
+  double damage_reflect_pct = 19;
 }
 
 // A skill that has to be learned to a level before another can be bought at
@@ -89,15 +99,11 @@ message Skill {
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.
   // Unset/0 is treated as 1.
   int32 lines = 8;
-  // Weapon types this skill can be swung with (attack skills). Empty means any
-  // weapon, which is what most skills want -- a swordman's job is decided by
-  // the job, not the sword. It exists for the thief, whose two first-job
-  // attacks are otherwise interchangeable: Double Stab needs a dagger and
-  // Lucky Seven a claw, so which one is learned is a real choice.
-  //
-  // Nothing reads it yet: the data says which weapon each attack wants, but
-  // whoever picks the swing does not consult it, so a claw still swings Double
-  // Stab. Set on the two thief skills in wait for that.
+  // Weapon types this skill needs in hand. Empty means any weapon, which is
+  // what most skills want -- a swordman's job is decided by the job, not the
+  // sword. An attack that names weapons cannot be swung without one; a passive
+  // that names them stops granting anything without one, which is how Final
+  // Attack demands a sword or an axe.
   repeated EquipType required_equip_type = 9;
   // Flavour text for the inspect screen, taken from the GMS skill and pruned to
   // the effects this game actually has. A skill whose wiki entry boasts of
@@ -112,4 +118,7 @@ message Skill {
   // What must be learned first, if anything. Named `required_skill` rather
   // than `requires`, which C++20 has taken for itself.
   SkillRequirement required_skill = 12;
+  // How many Combo Orbs this skill surrounds the character with. Read with
+  // SkillEffect::attack_per_combo_orb, and meaningless without it.
+  int32 combo_orbs = 13;
 }

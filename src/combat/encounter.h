@@ -66,6 +66,10 @@ struct CombatParams {
   // not they cleared the map (0.10 == a tenth of it). What lets a map be
   // survived by outlasting it rather than only by emptying it.
   double beat_heal_fraction = 0.0;
+  // Share of every hit the player takes that goes back into the mob that
+  // landed it (1.20 == 120% of the damage taken). 0 for a character with no
+  // reflection, which is all of them until Spirit Blade is learned.
+  double damage_reflect_pct = 0.0;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

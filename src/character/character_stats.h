@@ -23,9 +23,12 @@ struct DerivedStats {
   // their stats alone: 1.5 per STR and 0.4 per DEX and LUK. So a character in
   // rags has DEF, and AP spent on STR buys some.
   int def = 0;
-  // The share of incoming damage cancelled (0.10 == 10% less taken). Nothing
-  // damages the character yet, so this is carried but never read.
+  // The share of incoming damage cancelled (0.10 == 10% less taken).
   double damage_taken_pct = 0.0;
+  // Share of a hit taken that goes straight back into whatever landed it
+  // (1.20 == 120% of what the character actually lost). Summed, since two
+  // reflections both fire.
+  double damage_reflect_pct = 0.0;
   // Added chance for a swing to crit (0.40 == 40%). Feeds OffenseStatsFor,
   // since what it modifies is damage rather than the character's own bulk.
   double crit_rate = 0.0;
@@ -46,6 +49,10 @@ struct DerivedStats {
   // damage chain. Its DEF is only the passives' share, unlike `def` above.
   EquipStats skill_stats;
 };
+
+// Whether the weapon in hand is one `skill` will work with. True for a skill
+// that names no weapon type, which is most of them.
+bool SkillAllowsWeapon(const Skill& skill, EquipType weapon);
 
 // `skills` is the loaded skill catalog; every passive in it the character has
 // learned contributes its level's effect. Attack skills are ignored -- their

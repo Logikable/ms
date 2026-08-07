@@ -540,6 +540,45 @@ TEST(CombatSimTest, DamageTakenFollowsTheMobInFront) {
   EXPECT_EQ(sim.player_hp(), sim.target_name() == "Snail" ? 95 : 50);
 }
 
+// Spirit Blade: a share of every hit comes straight back out of whoever
+// landed it. Off the mob in front, since that is the one that swung.
+TEST(CombatSimTest, ReflectionHurtsTheMobThatHits) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(100.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  params.damage_reflect_pct = 5.0;
+
+  // The swing is 100 seconds off, so every point the snail loses is reflected.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 0.95);
+}
+
+TEST(CombatSimTest, ReflectionCanFinishAMob) {
+  Mob snail = MakeMob("Snail", 40);
+  CombatSim sim;
+  CombatParams params = MakeParams(100.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  params.damage_reflect_pct = 5.0;
+
+  // A kill is a kill however it happened: the reward layer pays for this one
+  // exactly as it pays for a swing's.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 1);
+  EXPECT_TRUE(sim.respawning());
+}
+
+TEST(CombatSimTest, NoReflectionWithoutTheSkill) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(100.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);
+}
+
 TEST(CombatSimTest, AnEmptyMapHasNothingToHitThePlayerWith) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
