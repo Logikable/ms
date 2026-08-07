@@ -6,6 +6,7 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -110,6 +111,28 @@ TEST(SkillDataTest, EveryWeaponASkillDemandsHasAName) {
       EquipType type = static_cast<EquipType>(skill.required_equip_type(i));
       EXPECT_FALSE(FormatEquipType(type).empty())
           << entry.first << " demands a weapon with no name to print";
+    }
+  }
+}
+
+// A skill that wants a sword wants a sword in either hand, and the same goes
+// for an axe -- naming only the half with items today is a skill that quietly
+// stops working the day the other half gets one.
+TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
+  const std::pair<EquipType, EquipType> kPairs[] = {
+      {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD},
+      {EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE},
+  };
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    std::set<EquipType> demanded;
+    for (int i = 0; i < entry.second.required_equip_type_size(); ++i) {
+      demanded.insert(
+          static_cast<EquipType>(entry.second.required_equip_type(i)));
+    }
+    for (const std::pair<EquipType, EquipType>& pair : kPairs) {
+      EXPECT_EQ(demanded.count(pair.first), demanded.count(pair.second))
+          << entry.first << " takes one hand's " << FormatEquipType(pair.second)
+          << " and not the other's";
     }
   }
 }
