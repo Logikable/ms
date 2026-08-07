@@ -130,6 +130,11 @@ void SeedTest(GameState& state) {
 
   GiveEquip(state, "long_sword");
   GiveEquip(state, "machete");
+  // The weapon the workbench's job is built around. It climbs the levels
+  // itself rather than advancing properly, so it never collects the starter
+  // gear -- and a Spearman holding a sword has a Final Attack that quietly
+  // does nothing.
+  GiveEquip(state, "forked_spear");
 
   std::map<std::string, EquipPrototype>::const_iterator fafnir =
       state.equips.find("fafnir_mistilteinn");
