@@ -21,10 +21,12 @@ namespace {
 
 EquipPrototype MakeItem(const std::string& name, int level, int price,
                         EquipJobCategory job = EQUIP_JOB_CATEGORY_UNIVERSAL,
+                        EquipType type = EQUIP_TYPE_ONE_HANDED_SWORD,
                         EquipSlot slot = EQUIP_SLOT_PRIMARY_WEAPON) {
   EquipPrototype e;
   e.set_name(name);
   e.set_equip_slot(slot);
+  e.set_equip_type(type);
   e.set_required_level(level);
   e.set_shop_price(price);
   e.add_equip_job_categories(job);
@@ -180,8 +182,9 @@ class ShopPanelTest : public testing::Test {
       {"long_sword", MakeItem("Long Sword", 10, 5000)},
       {"machete", MakeItem("Machete", 20, 10000, EQUIP_JOB_CATEGORY_WARRIOR)},
       {"gladius", MakeItem("Gladius", 30, 20000, EQUIP_JOB_CATEGORY_WARRIOR)},
-      {"subi", MakeItem("Subi Throwing-Stars", 10, 1000,
-                        EQUIP_JOB_CATEGORY_THIEF, EQUIP_SLOT_STARS)},
+      {"subi",
+       MakeItem("Subi Throwing-Stars", 10, 1000, EQUIP_JOB_CATEGORY_THIEF,
+                EQUIP_TYPE_THROWING_STAR, EQUIP_SLOT_STARS)},
       {"heirloom", MakeItem("Heirloom", 10, 0)},
   };
 };
@@ -227,7 +230,7 @@ TEST_F(ShopPanelTest, WalksTheList) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
   panel.OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel.selected_item()->name(), "Machete");
+  EXPECT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
   panel.OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(panel.selected_item()->name(), "Long Sword");
 }
@@ -249,8 +252,8 @@ TEST_F(ShopPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
   ShopPanel panel(c, equips_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
   panel.OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the last item
-  EXPECT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
-  EXPECT_NE(Render(panel).find("> Subi Throwing-Stars"), std::string::npos);
+  EXPECT_EQ(panel.selected_item()->name(), "Gladius");
+  EXPECT_NE(Render(panel).find("> Gladius"), std::string::npos);
 }
 
 TEST_F(ShopPanelTest, DownFromTheLastItemReturnsToTheBar) {
@@ -258,9 +261,9 @@ TEST_F(ShopPanelTest, DownFromTheLastItemReturnsToTheBar) {
   ShopPanel panel(c, equips_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // straight to the last item
   panel.OnEvent(ftxui::Event::ArrowUp);
-  ASSERT_NE(Render(panel).find("> Subi"), std::string::npos);
+  ASSERT_NE(Render(panel).find("> Gladius"), std::string::npos);
   panel.OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
-  EXPECT_EQ(Render(panel).find("> Subi"), std::string::npos);
+  EXPECT_EQ(Render(panel).find("> Gladius"), std::string::npos);
 }
 
 // Enter on the bar is not Enter on an item. Opening the menu there would put a
@@ -449,7 +452,7 @@ TEST_F(ShopPanelTest, TheMenuDrawsPastTheBottomBorder) {
   for (int i = 0; i < 3; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
-  ASSERT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
+  ASSERT_EQ(panel.selected_item()->name(), "Gladius");
   panel.OpenMenu();
   std::vector<std::string> rows = ScreenRows(panel);
   // The first bottom-left corner down the screen is the window's: the menu

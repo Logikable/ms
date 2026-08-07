@@ -15,9 +15,9 @@
 namespace ms {
 
 // Catalog keys of everything the shop sells, in the order the columns of the
-// shop list read: by equip slot, then required level, then job category, then
-// name. Job order is the enum's -- warrior, bowman, magician, thief, then the
-// universal items -- which is class order, not alphabetical.
+// shop list read: by required level, then weapon type, then price, then name.
+// Weapon order is the enum's, which keeps one kind of weapon together within a
+// tier without claiming an order the player is meant to read anything into.
 std::vector<std::string> ShopStock(
     const std::map<std::string, EquipPrototype>& equips);
 
