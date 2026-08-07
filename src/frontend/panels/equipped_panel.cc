@@ -113,124 +113,120 @@ EquipSlot EquippedPanel::selected_slot() const {
   return slots_[selected_];
 }
 
+ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
+  std::string cursor = state.focused ? "> " : "  ";
+  ftxui::Element row = ftxui::text(cursor + state.label);
+  int idx = state.index;
+  if (idx == selected_) {
+    // Records where this row lands so the item menu can open beside it.
+    row = std::move(row) | ftxui::reflect(cursor_box_);
+  }
+  if (idx >= 0 && idx < static_cast<int>(inactive_.size()) && inactive_[idx]) {
+    // Worn but contributing nothing. Dimmed rather than hidden, so it says so
+    // without taking the numbers away.
+    row |= ftxui::dim;
+  }
+  return row;
+}
+
+std::string EquippedPanel::RowInfo(const EquipStats& stats) const {
+  // One column for the stat this job's damage is built on -- the same question
+  // the character panel and the AP reset ask, so asked in the same place
+  // rather than switched over jobs here.
+  Job job = character_.proto().job();
+  const DisplayStat* main = DisplayStatFor(PrimaryStatField(job));
+  std::string main_str;
+  if (main != nullptr && main->GetFrom(stats) > 0) {
+    main_str = "+" + std::to_string(main->GetFrom(stats)) + " " + main->label;
+  }
+  // Room for one attack figure, so show the one this job swings with. A wand
+  // carries both, and a magician's weapon attack never reaches the damage
+  // chain.
+  std::string atk_str;
+  bool magic = job == JOB_MAGICIAN;
+  if (!magic && stats.attack() > 0) {
+    atk_str = "+" + std::to_string(stats.attack()) + " ATT";
+  } else if (stats.magic_attack() > 0) {
+    atk_str = "+" + std::to_string(stats.magic_attack()) + " MATT";
+  } else if (stats.attack() > 0) {
+    atk_str = "+" + std::to_string(stats.attack()) + " ATT";
+  }
+  // Attack leads: it is the number that decides a weapon, and the main stat
+  // qualifies it.
+  return PadRight(atk_str, 10) + PadRight(main_str, 10);
+}
+
+void EquippedPanel::RebuildRows() {
+  entries_.clear();
+  slots_.clear();
+  inactive_.clear();
+  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+       character_.equipped()) {
+    const EquipInstance& item = kv.second;
+    slots_.push_back(kv.first);
+    inactive_.push_back(!character_.AttackCounts(item.prototype()));
+    int scroll_pass = item.equip_state().scroll_successes();
+    int scroll_left = item.equip_state().remaining_upgrade_slots();
+    int scroll_restore =
+        item.prototype().upgrade_slots() - scroll_pass - scroll_left;
+    entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
+                                       RowInfo(item.stats()), scroll_pass,
+                                       scroll_left, scroll_restore));
+  }
+  if (!entries_.empty()) {
+    selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
+  }
+}
+
+ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
+  // Rebuilt from equipped() on every render, so the display stays in step with
+  // whatever the item menu did.
+  RebuildRows();
+  bool focused = panel_focus_ == kEquipPanel;
+  if (entries_.empty()) {
+    return AccentWindow(" Equipped ", EmptyState("empty"),
+                        PanelAccent(highlighted_), focused);
+  }
+  return AccentWindow(" Equipped ",
+                      ftxui::vbox({
+                          ftxui::text(kColumnHeader),
+                          ftxui::text(kColumnHeader2),
+                          PanelSeparator(highlighted_),
+                          menu->Render(),
+                      }),
+                      PanelAccent(highlighted_), focused);
+}
+
 ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
-  // Suppress the default color inversion so the caret indicator looks the same
-  // whether or not the item menu is open.
-  opt.entries_option.transform =
-      [this](ftxui::EntryState state) -> ftxui::Element {
-    std::string cursor = state.focused ? "> " : "  ";
-    ftxui::Element row = ftxui::text(cursor + state.label);
-    int idx = state.index;
-    if (idx == selected_) {
-      // Records where this row lands so the item menu can open beside it.
-      row = std::move(row) | ftxui::reflect(cursor_box_);
-    }
-    if (idx >= 0 && idx < static_cast<int>(inactive_.size()) &&
-        inactive_[idx]) {
-      // The item is worn but contributing nothing, so the whole row is dimmed
-      // rather than hidden -- it says so without taking the numbers away.
-      row |= ftxui::dim;
-    }
-    return row;
+  // Also suppresses the default inversion, so the caret looks the same whether
+  // or not the item menu is open.
+  opt.entries_option.transform = [this](ftxui::EntryState state) {
+    return RenderRow(state);
   };
   // Wrapped so the list is a ring: there is no tab bar over this panel, so Up
   // off the top row has nowhere to go but the bottom one.
   ftxui::Component menu =
       WrappingList(ftxui::Menu(&entries_, &selected_, opt), selected_,
                    [this]() { return static_cast<int>(entries_.size()); });
-
   // Focusable whether or not anything is worn. Container::Tab asks its active
   // panel whether it is focusable and drops every key when the answer is no,
   // and an ftxui::Menu says no on an empty list -- which would leave this
-  // panel unable to handle a key at all the moment the player strips down.
-  //
-  // entries_ and slots_ are rebuilt from equipped() on every render so the
-  // display stays in sync with changes made via on_enter.
-  ftxui::Component renderer =
-      AlwaysFocusable(ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
-        bool focused = panel_focus_ == kEquipPanel;
-        entries_.clear();
-        slots_.clear();
-        inactive_.clear();
-        for (const std::pair<const EquipSlot, EquipInstance>& kv :
-             character_.equipped()) {
-          slots_.push_back(kv.first);
-          const EquipInstance& item = kv.second;
-          const EquipStats stats = item.stats();
-          Job job = character_.proto().job();
-          // One column for the stat this job's damage is built on, which is
-          // the same question the character panel and the AP reset ask -- so
-          // ask it in the same place rather than switching over jobs here.
-          const DisplayStat* main = DisplayStatFor(PrimaryStatField(job));
-          int main_val = main != nullptr ? main->GetFrom(stats) : 0;
-          const char* main_label = main != nullptr ? main->label : nullptr;
-          // There is room for one attack figure, so show the one this job
-          // swings with. A wand carries both, and a magician's weapon attack
-          // is the half that never reaches the damage chain.
-          bool magic = job == JOB_MAGICIAN;
-          int atk_val = 0;
-          const char* atk_label = nullptr;
-          if (!magic && stats.attack() > 0) {
-            atk_val = stats.attack();
-            atk_label = "ATT";
-          } else if (stats.magic_attack() > 0) {
-            atk_val = stats.magic_attack();
-            atk_label = "MATT";
-          } else if (stats.attack() > 0) {
-            atk_val = stats.attack();
-            atk_label = "ATT";
-          }
-          std::string main_str;
-          if (main_val > 0 && main_label != nullptr) {
-            main_str = "+" + std::to_string(main_val) + " " + main_label;
-          }
-          std::string atk_str;
-          if (atk_val > 0 && atk_label != nullptr) {
-            atk_str = "+" + std::to_string(atk_val) + " " + atk_label;
-          }
-          // Attack leads: it is the number that decides a weapon, and the main
-          // stat qualifies it.
-          std::string info = PadRight(atk_str, 10) + PadRight(main_str, 10);
-          inactive_.push_back(!character_.AttackCounts(item.prototype()));
-          int scroll_pass = item.equip_state().scroll_successes();
-          int scroll_left = item.equip_state().remaining_upgrade_slots();
-          int scroll_restore =
-              item.prototype().upgrade_slots() - scroll_pass - scroll_left;
-          entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
-                                             info, scroll_pass, scroll_left,
-                                             scroll_restore));
-        }
-        if (!entries_.empty()) {
-          selected_ =
-              std::min(selected_, static_cast<int>(entries_.size()) - 1);
-        }
-        if (entries_.empty()) {
-          return AccentWindow(" Equipped ", EmptyState("empty"),
-                              PanelAccent(highlighted_), focused);
-        }
-        return AccentWindow(" Equipped ",
-                            ftxui::vbox({
-                                ftxui::text(kColumnHeader),
-                                ftxui::text(kColumnHeader2),
-                                PanelSeparator(highlighted_),
-                                menu->Render(),
-                            }),
-                            PanelAccent(highlighted_), focused);
-      }));
+  // panel deaf the moment the player strips down.
+  ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
+      menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
   return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
-    if (event == ftxui::Event::Character(' ')) {
-      // There is no item to act on with nothing worn, and the menu opens on
-      // whatever selected_slot() names -- which is EQUIP_SLOT_UNSPECIFIED, a
-      // slot the map has no entry for. Swallowed rather than passed on, as on
-      // an empty tab of the bag.
-      if (!character_.equipped().empty()) {
-        on_enter();
-      }
-      return true;
+    if (event != ftxui::Event::Character(' ')) {
+      return false;
     }
-    return false;
+    // With nothing worn there is no item to act on, and the menu would open on
+    // EQUIP_SLOT_UNSPECIFIED -- a slot the map has no entry for. Swallowed
+    // rather than passed on, as on an empty tab of the bag.
+    if (!character_.equipped().empty()) {
+      on_enter();
+    }
+    return true;
   });
 }
 

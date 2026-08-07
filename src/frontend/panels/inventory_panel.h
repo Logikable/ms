@@ -98,6 +98,17 @@ class InventoryPanel {
 
   // Wraps the active tab's body in the titled window with the tab bar on top.
   ftxui::Element RenderContent(ftxui::Component menu);
+  // One row of the Equip list, with the cursor and whatever the row has to say
+  // in red or dim. The ftxui::Menu's row transform.
+  ftxui::Element RenderRow(const ftxui::EntryState& state);
+  // The key handlers, one per place the cursor can be: the tab bar, a Use/Etc
+  // list, the Equip list.
+  bool OnTabBarEvent(const ftxui::Event& event,
+                     const std::function<void()>& on_enter);
+  bool OnStackListEvent(const ftxui::Event& event,
+                        const std::function<void()>& on_enter);
+  bool OnEquipListEvent(const ftxui::Event& event,
+                        const std::function<void()>& on_enter);
   // Rebuilds rows_/entries_ from the equip inventory and returns the Equip tab
   // body (column headers + the navigable menu, or "(empty)").
   ftxui::Element RenderEquipList(ftxui::Component menu);

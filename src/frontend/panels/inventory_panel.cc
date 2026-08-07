@@ -439,126 +439,136 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
       PanelAccent(highlighted_), focused);
 }
 
+ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
+  const std::string& lbl = state.label;
+  // The cursor shows only while the list holds focus, so it never competes
+  // with the tab-bar highlight above.
+  std::string cursor = state.focused && zone_ == kZoneList ? "> " : "  ";
+  int idx = state.index;
+  // Records where the highlighted row landed, so the item menu can open beside
+  // it. Applied to whichever row is built below, so it follows the row rather
+  // than one way of drawing it.
+  ftxui::Decorator mark = [](ftxui::Element e) { return e; };
+  if (idx == selected_) {
+    mark = ftxui::reflect(cursor_box_);
+  }
+  if (idx < 0 || idx >= static_cast<int>(rows_.size()) ||
+      static_cast<int>(lbl.size()) < 60) {
+    return ftxui::text(cursor + lbl) | mark;
+  }
+  const InventoryRowState& row = rows_[idx];
+  if (row.level_ok && row.job_ok && !row.is_trace) {
+    return ftxui::text(cursor + lbl) | mark;
+  }
+  // Byte offsets into the label built by RenderEquipList:
+  // name(26) | slot and padding(14) | level(7) | job(13) | rest
+  ftxui::Element name_elem = ftxui::text(lbl.substr(0, 26));
+  if (row.is_trace) {
+    name_elem = name_elem | ftxui::dim;
+  }
+  ftxui::Element lv_elem = ftxui::text(lbl.substr(40, 7));
+  if (!row.level_ok) {
+    lv_elem = lv_elem | ftxui::color(kRed);
+  }
+  ftxui::Element job_elem = ftxui::text(lbl.substr(47, 13));
+  if (!row.job_ok) {
+    job_elem = job_elem | ftxui::color(kRed);
+  }
+  return ftxui::hbox({ftxui::text(cursor), name_elem,
+                      ftxui::text(lbl.substr(26, 14)), lv_elem, job_elem,
+                      ftxui::text(lbl.substr(60))}) |
+         mark;
+}
+
+bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,
+                                   const std::function<void()>& on_enter) {
+  // Left/Right switch tabs; Up and Down step into the list, the bar being a
+  // stop in the same ring as the rows. A tab with nothing under it is a ring
+  // of one, so both keys leave the cursor where it is.
+  if (event == ftxui::Event::ArrowLeft) {
+    StepTab(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    StepTab(+1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (IsForward(event) && active_tab_ == kShopTab) {
+    // The one tab entered from the bar itself: there is no list below it to
+    // walk down into first.
+    on_enter();
+    return true;
+  }
+  // Swallow the rest, or it leaks to the hidden Equip menu and silently moves
+  // its selection while the tab bar holds focus.
+  return true;
+}
+
+bool InventoryPanel::OnStackListEvent(const ftxui::Event& event,
+                                      const std::function<void()>& on_enter) {
+  // Use/Etc: the whole ring is ours to walk, there being no ftxui::Menu under
+  // these tabs. Navigation is swallowed either way, so the hidden Equip menu
+  // stays put.
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (IsForward(event)) {
+    if (ListCount() > 0) {
+      on_enter();  // the {Sell, Close} menu
+    }
+    return true;
+  }
+  return false;
+}
+
+bool InventoryPanel::OnEquipListEvent(const ftxui::Event& event,
+                                      const std::function<void()>& on_enter) {
+  // Take the two ends of the list and leave everything between them to the
+  // ftxui::Menu, which scrolls the view to follow its own cursor and would
+  // stop doing so if its keys were taken away.
+  bool up = event == ftxui::Event::ArrowUp;
+  bool down = event == ftxui::Event::ArrowDown;
+  if ((up && selected_ == 0) || (down && selected_ >= ListCount() - 1)) {
+    MoveCursor(up ? -1 : 1);
+    return true;
+  }
+  if (event == ftxui::Event::Character(' ')) {
+    on_enter();
+    return true;
+  }
+  return false;
+}
+
 ftxui::Component InventoryPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::MenuOption opt;
   opt.on_enter = [on_enter]() { on_enter(); };
-  // Suppress the default color inversion so the caret indicator looks the same
-  // whether or not the item menu is open.
-  // Color is applied here rather than at entry-generation time because
-  // ftxui::Menu only accepts std::string* entries; transform is the only hook
-  // that can produce a colored Element.
-  // label layout: name(26) + "  "(2) + slot(10) + "  "(2) + info(20) + rest
-  //   info[0..6]  = "LvXXX  "  (level, 7 chars)
-  //   info[7..19] = job string (13 chars, padded)
-  opt.entries_option.transform =
-      [this](ftxui::EntryState state) -> ftxui::Element {
-    const std::string& lbl = state.label;
-    // Show the cursor only while the list zone holds focus, so it never
-    // competes with the white tab-bar highlight above.
-    std::string cursor = state.focused && zone_ == kZoneList ? "> " : "  ";
-    int idx = state.index;
-    // Records where the highlighted row lands so the item menu can open beside
-    // it. Applied to whichever of the rows below is built, so it follows the
-    // row rather than one particular way of drawing it.
-    ftxui::Decorator mark = [](ftxui::Element e) { return e; };
-    if (idx == selected_) {
-      mark = ftxui::reflect(cursor_box_);
-    }
-    if (idx < 0 || idx >= static_cast<int>(rows_.size()) ||
-        static_cast<int>(lbl.size()) < 60) {
-      return ftxui::text(cursor + lbl) | mark;
-    }
-    const InventoryRowState& row = rows_[idx];
-    if (row.level_ok && row.job_ok && !row.is_trace) {
-      return ftxui::text(cursor + lbl) | mark;
-    }
-    // name(26) | "  "+slot(10)+"  "(14) | level(7) | job(13) | rest
-    ftxui::Element name_elem = ftxui::text(lbl.substr(0, 26));
-    if (row.is_trace) {
-      name_elem = name_elem | ftxui::dim;
-    }
-    ftxui::Element lv_elem = ftxui::text(lbl.substr(40, 7));
-    if (!row.level_ok) {
-      lv_elem = lv_elem | ftxui::color(kRed);
-    }
-    ftxui::Element job_elem = ftxui::text(lbl.substr(47, 13));
-    if (!row.job_ok) {
-      job_elem = job_elem | ftxui::color(kRed);
-    }
-    return ftxui::hbox({ftxui::text(cursor), name_elem,
-                        ftxui::text(lbl.substr(26, 14)), lv_elem, job_elem,
-                        ftxui::text(lbl.substr(60))}) |
-           mark;
+  // Drawn here rather than at entry-generation time because ftxui::Menu only
+  // accepts std::string* entries, and this is the only hook that can produce a
+  // coloured Element. It also suppresses the default inversion, so the caret
+  // looks the same whether or not the item menu is open.
+  opt.entries_option.transform = [this](ftxui::EntryState state) {
+    return RenderRow(state);
   };
   ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
-  // rows_ and entries_ are rebuilt on every render via RenderContent so the
-  // display stays in sync with inventory changes made via on_enter.
-  // Focusable whether or not the equip list has rows in it. Container::Tab
-  // asks its active panel whether it is focusable and drops every key when the
-  // answer is no, and an ftxui::Menu says no on an empty list -- which would
-  // take the tab bar down with the list it has nothing to do with.
+  // Focusable whether or not the equip list has rows. Container::Tab asks its
+  // active panel whether it is focusable and drops every key when the answer
+  // is no, and an ftxui::Menu says no on an empty list -- which would take the
+  // tab bar down with a list it has nothing to do with.
   ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
   return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
-    bool up = event == ftxui::Event::ArrowUp;
-    bool down = event == ftxui::Event::ArrowDown;
     if (zone_ == kZoneTabs) {
-      // Tab bar: Left/Right switch tabs, Up and Down step into the list -- Down
-      // onto its first row, Up onto its last, the bar being a stop in the same
-      // ring as the rows. A tab with nothing under it is a ring of one, so
-      // both keys leave the cursor where it is rather than somewhere it cannot
-      // be seen.
-      if (event == ftxui::Event::ArrowLeft) {
-        StepTab(-1);
-        return true;
-      }
-      if (event == ftxui::Event::ArrowRight) {
-        StepTab(+1);
-        return true;
-      }
-      if (up || down) {
-        MoveCursor(up ? -1 : 1);
-        return true;
-      }
-      if (IsForward(event) && active_tab_ == kShopTab) {
-        // The one tab the player enters from the bar itself: there is no list
-        // below it to walk down into first.
-        on_enter();
-        return true;
-      }
-      // Swallow the rest so nothing leaks to the hidden Equip menu and
-      // silently moves its selection while the tab bar holds focus.
-      return true;
+      return OnTabBarEvent(event, on_enter);
     }
     if (active_tab_ != kEquipTab) {
-      // Use/Etc: the whole ring is ours to walk, there being no ftxui::Menu
-      // under these tabs. Swallow list navigation and activation regardless so
-      // the hidden Equip menu stays put.
-      if (up || down) {
-        MoveCursor(up ? -1 : 1);
-        return true;
-      }
-      if (IsForward(event)) {
-        // Open the {Sell, Close} menu on a non-empty stack.
-        if (ListCount() > 0) {
-          on_enter();
-        }
-        return true;
-      }
-      return false;
+      return OnStackListEvent(event, on_enter);
     }
-    // Equip tab: take the two ends of the list and leave everything between
-    // them to the ftxui::Menu, which scrolls the view to follow its own cursor
-    // and would stop doing so if its keys were taken away.
-    if ((up && selected_ == 0) || (down && selected_ >= ListCount() - 1)) {
-      MoveCursor(up ? -1 : 1);
-      return true;
-    }
-    if (event == ftxui::Event::Character(' ')) {
-      on_enter();
-      return true;
-    }
-    return false;
+    return OnEquipListEvent(event, on_enter);
   });
 }
 
