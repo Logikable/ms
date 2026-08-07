@@ -225,40 +225,39 @@ void InventoryPanel::MoveCursor(int delta) {
   }
 }
 
-void InventoryPanel::OpenMenu() {
-  if (active_tab_ != kEquipTab) {
-    sell_menu_.Reset();
-    // Sell is unavailable on an empty tab or an unsellable selected stack.
-    ItemCategory category =
-        active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
-    // Nothing on the Etc tab is usable, so the entry is not there at all --
-    // Etc is where drops and quest pieces sit, not where anything is drunk.
-    if (category == ITEM_CATEGORY_ETC) {
-      sell_menu_.Hide(kStackUse);
-    }
-    const std::vector<StackableItem>& stacks = character_.stackables(category);
-    if (selected_stack_ >= static_cast<int>(stacks.size())) {
-      sell_menu_.Disable(kStackUse);
-      sell_menu_.Disable(kStackSell);
-      return;
-    }
-    const ItemPrototype& proto = stacks[selected_stack_].prototype();
-    // Disabled rather than hidden, on the tab where using things is what the
-    // player came to do: a Use item that does nothing yet is a fact about
-    // that item, and the greyed row is the answer to "can I drink this?".
-    if (proto.effect() == ITEM_EFFECT_UNSPECIFIED) {
-      sell_menu_.Disable(kStackUse);
-    }
-    if (proto.sell_price() <= 0) {
-      sell_menu_.Disable(kStackSell);
-    }
+// The Use/Etc {Sell, Close} menu, for whatever stack the cursor is on.
+void InventoryPanel::OpenStackMenu() {
+  sell_menu_.Reset();
+  ItemCategory category =
+      active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
+  // Nothing on the Etc tab is usable, so the entry is not there at all -- Etc
+  // is where drops and quest pieces sit, not where anything is drunk.
+  if (category == ITEM_CATEGORY_ETC) {
+    sell_menu_.Hide(kStackUse);
+  }
+  const std::vector<StackableItem>& stacks = character_.stackables(category);
+  if (selected_stack_ >= static_cast<int>(stacks.size())) {
+    sell_menu_.Disable(kStackUse);
+    sell_menu_.Disable(kStackSell);
     return;
   }
+  const ItemPrototype& proto = stacks[selected_stack_].prototype();
+  // Disabled rather than hidden, on the tab where using things is what the
+  // player came to do: a greyed row is the answer to "can I drink this?".
+  if (proto.effect() == ITEM_EFFECT_UNSPECIFIED) {
+    sell_menu_.Disable(kStackUse);
+  }
+  if (proto.sell_price() <= 0) {
+    sell_menu_.Disable(kStackSell);
+  }
+}
+
+// The Equip tab's menu, for the item or trace the cursor is on.
+void InventoryPanel::OpenEquipMenu() {
   menu_.Reset();
-  // Entries the player has not reached yet are not drawn at all. This comes
-  // before the questions about the item itself: what is disabled below is
-  // what this item cannot do, and what is hidden here is what the player
-  // cannot do to any item.
+  // What the player has not reached yet is not drawn at all. This comes first:
+  // what is hidden here is what they cannot do to any item, and what is
+  // disabled below is what this item cannot do.
   if (!Unlocked(Feature::kScrolling, character_)) {
     menu_.Hide(kMenuScroll);
   }
@@ -276,8 +275,7 @@ void InventoryPanel::OpenMenu() {
     menu_.Disable(kMenuStarForce);
     return;
   }
-  // Live items cannot be recovered.
-  menu_.Disable(kMenuRecover);
+  menu_.Disable(kMenuRecover);  // live items cannot be recovered
   if (!character_.CanEquip(eq->prototype())) {
     menu_.Disable(kMenuAction);
   }
@@ -289,6 +287,14 @@ void InventoryPanel::OpenMenu() {
   }
   if (!eq->CanStarForce()) {
     menu_.Disable(kMenuStarForce);
+  }
+}
+
+void InventoryPanel::OpenMenu() {
+  if (active_tab_ == kEquipTab) {
+    OpenEquipMenu();
+  } else {
+    OpenStackMenu();
   }
 }
 

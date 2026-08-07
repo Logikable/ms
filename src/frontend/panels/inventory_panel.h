@@ -92,6 +92,9 @@ class InventoryPanel {
   // tab's item list below. Down descends into the list, Up ascends back.
   enum Zone { kZoneTabs, kZoneList };
 
+  // What OpenMenu opens, by tab.
+  void OpenStackMenu();
+  void OpenEquipMenu();
   // Wraps the active tab's body in the titled window with the tab bar on top.
   ftxui::Element RenderContent(ftxui::Component menu);
   // One row of the Equip list, with the cursor and whatever the row has to say

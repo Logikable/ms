@@ -82,10 +82,10 @@ void HandleClosingSignals() {
 Tui::Tui(GameState& state, std::string save_path)
     : state_(state),
       save_path_(std::move(save_path)),
-      last_save_(std::chrono::steady_clock::now()),
-      last_combat_update_(std::chrono::steady_clock::now()),
       last_level_seen_(state.character.proto().level()),
       last_job_seen_(state.character.proto().job()),
+      last_save_(std::chrono::steady_clock::now()),
+      last_combat_update_(std::chrono::steady_clock::now()),
       char_panel_(state.character, panel_focus_, state.skills),
       combat_panel_(state, combat_sim_, panel_focus_),
       equip_panel_(state.character, panel_focus_),
