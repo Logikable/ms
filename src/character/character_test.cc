@@ -431,11 +431,11 @@ TEST(JobChoicesTest, OffersTheFourExplorersInStatOrder) {
       (std::vector<Job>{JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE}));
 }
 
-// Fighter and Page exist as jobs but are deliberately not offered: their skill
-// books are empty, and picking one would strand thirty levels of SP.
-TEST(JobChoicesTest, ASwordmanIsOfferedSpearmanAlone) {
+// The Page exists as a job but is deliberately not offered: its skill book is
+// empty, and picking it would strand thirty levels of SP.
+TEST(JobChoicesTest, ASwordmanIsOfferedTheTwoWrittenBranches) {
   EXPECT_EQ(JobChoicesForStage(JOB_SWORDMAN, 2),
-            (std::vector<Job>{JOB_SPEARMAN}));
+            (std::vector<Job>{JOB_FIGHTER, JOB_SPEARMAN}));
 }
 
 TEST(JobChoicesTest, TheOtherFirstJobsHaveNoSecondJobYet) {

@@ -10,7 +10,9 @@
 #include <utility>
 
 #include "src/character/character.h"
+#include "src/frontend/widgets/panel_util.h"
 #include "src/proto_loader.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
@@ -64,7 +66,7 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   const JobAdvancement kWritten[] = {
       JOB_ADVANCEMENT_SWORDMAN, JOB_ADVANCEMENT_ARCHER,
       JOB_ADVANCEMENT_MAGICIAN, JOB_ADVANCEMENT_ROGUE,
-      JOB_ADVANCEMENT_SPEARMAN};
+      JOB_ADVANCEMENT_SPEARMAN, JOB_ADVANCEMENT_FIGHTER};
   for (JobAdvancement advancement : kWritten) {
     EXPECT_TRUE(cost_by_advancement.count(advancement))
         << "advancement " << advancement << " has no skills at all";
@@ -94,6 +96,31 @@ TEST(SkillDataTest, EveryAutoAttackSaysHowOftenItFires) {
         << entry.first << " would never fire";
     EXPECT_GT(entry.second.base().skill_pct(), 0.0)
         << entry.first << " would fire for nothing";
+  }
+}
+
+// A skill demanding a weapon says so on the inspect screen, and an unnamed
+// weapon type leaves that line saying "Requires" and nothing else -- or, with
+// only the one demand, drops it entirely. The type may well have no item yet;
+// it still has to have a name.
+TEST(SkillDataTest, EveryWeaponASkillDemandsHasAName) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    for (int i = 0; i < skill.required_equip_type_size(); ++i) {
+      EquipType type = static_cast<EquipType>(skill.required_equip_type(i));
+      EXPECT_FALSE(FormatEquipType(type).empty())
+          << entry.first << " demands a weapon with no name to print";
+    }
+  }
+}
+
+// Attack per orb is worth the orbs times the attack, so either half alone is
+// a skill that says something and grants nothing.
+TEST(SkillDataTest, ComboOrbsAndTheirAttackComeTogether) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    EXPECT_EQ(skill.combo_orbs() > 0, skill.base().attack_per_combo_orb() > 0)
+        << entry.first << " has one half of a Combo Orb grant";
   }
 }
 
@@ -156,31 +183,31 @@ TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
 
 // A requirement naming a skill that is not in the catalog locks its skill
 // forever and says so in words the player cannot act on. Learned levels are
-// keyed by display name, so that is what has to match.
-TEST(SkillDataTest, EveryRequirementNamesASkillThatExists) {
+// keyed by display name, so that is what has to match -- but within the book,
+// since each 2nd-job warrior has a Weapon Mastery of their own and a skill
+// must wait on its own. Waiting on another book's is waiting forever.
+TEST(SkillDataTest, EveryRequirementNamesASkillInTheSameBook) {
   std::map<std::string, Skill> skills = LoadSkills();
-  std::map<std::string, const Skill*> by_name;
+  std::map<std::pair<int, std::string>, const Skill*> by_book_and_name;
   for (const std::pair<const std::string, Skill>& entry : skills) {
-    by_name[entry.second.name()] = &entry.second;
+    by_book_and_name[{entry.second.job_advancement(), entry.second.name()}] =
+        &entry.second;
   }
   for (const std::pair<const std::string, Skill>& entry : skills) {
     if (!entry.second.has_required_skill()) {
       continue;
     }
     const SkillRequirement& required = entry.second.required_skill();
-    std::map<std::string, const Skill*>::const_iterator it =
-        by_name.find(required.skill_name());
-    ASSERT_NE(it, by_name.end())
+    std::map<std::pair<int, std::string>, const Skill*>::const_iterator it =
+        by_book_and_name.find(
+            {entry.second.job_advancement(), required.skill_name()});
+    ASSERT_NE(it, by_book_and_name.end())
         << entry.first << " waits on \"" << required.skill_name()
-        << "\", which no skill is called";
+        << "\", which nothing in its own book is called";
     EXPECT_GT(required.level(), 0) << entry.first;
     EXPECT_LE(required.level(), it->second->max_level())
         << entry.first << " waits on a level of " << required.skill_name()
         << " that cannot be reached";
-    // The two have to share a book, or the requirement is unbuyable until an
-    // advancement the player may never take.
-    EXPECT_EQ(it->second->job_advancement(), entry.second.job_advancement())
-        << entry.first << " waits on a skill from another advancement";
   }
 }
 

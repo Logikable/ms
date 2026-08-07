@@ -134,6 +134,8 @@ cc_test(
     deps = [
         ":proto_loader",
         "//src/character",
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",

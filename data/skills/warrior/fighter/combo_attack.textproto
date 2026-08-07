@@ -1,0 +1,11 @@
+# The orbs are taken as full: GMS builds them up over 40% of your swings, and
+# a fight paid out in expected damage has nowhere to put a counter. Stated per
+# orb rather than as the +10 it comes to, because a later skill raises the
+# count and nothing else.
+name: "Combo Attack"
+description: "Surround yourself with 5 Combo Orbs."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIGHTER
+max_level: 1
+combo_orbs: 5
+base { attack_per_combo_orb: 2 }

@@ -1,0 +1,20 @@
+# GMS runs this for 80 + 6*L seconds off an MP cost, and buffs the party with
+# it. There is no MP to spend and no party to buff, so what is left is a
+# permanent buff on the one character.
+name: "Spirit Blade"
+description:
+  "Unites sword and spirit, sharpening your attacks, blunting theirs, and "
+  "throwing a multiple of every blow you take back at whoever landed it."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIGHTER
+max_level: 20
+base {
+  attack: 11
+  damage_taken_pct: 0.11
+  damage_reflect_pct: 1.2
+}
+per_level {
+  attack: 1
+  damage_taken_pct: 0.01
+  damage_reflect_pct: 0.2
+}

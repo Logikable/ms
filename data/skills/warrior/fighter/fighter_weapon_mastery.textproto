@@ -1,0 +1,15 @@
+# GMS adds 5% damage on top of this for an axe specifically. Nothing here asks
+# what the weapon is, so that part is left out; the mastery and the swing speed
+# are the whole skill for us.
+name: "Weapon Mastery"
+description:
+  "Trains your grip until your sword lands where you mean it to, narrowing "
+  "your weakest swings toward your best. Also speeds them up."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIGHTER
+max_level: 10
+base {
+  mastery: 0.14
+  attack_speed: 1
+}
+per_level { mastery: 0.04 }

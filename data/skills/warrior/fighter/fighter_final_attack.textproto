@@ -1,0 +1,24 @@
+# Chance is 2*L%; damage is a single hit of (100 + 5*floor(L/2))%, a staircase
+# base + per_level*(L-1) cannot climb. The even step below ends a hair under
+# the top of it and is never more than 2.5% out on the way.
+name: "Final Attack"
+description:
+  "A chance for every swing to be followed by a second blow at whatever is "
+  "in front of you. Needs a sword or an axe in hand."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIGHTER
+max_level: 20
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_AXE
+required_skill {
+  skill_name: "Weapon Mastery"
+  level: 3
+}
+base {
+  final_attack_chance: 0.02
+  final_attack_pct: 1.0
+}
+per_level {
+  final_attack_chance: 0.02
+  final_attack_pct: 0.025
+}

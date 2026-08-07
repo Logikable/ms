@@ -1,0 +1,9 @@
+name: "Brandish"
+description: "Cuts everything in front of you twice over."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_FIGHTER
+max_level: 20
+max_enemies: 6
+lines: 2
+base { skill_pct: 2.23 }
+per_level { skill_pct: 0.03 }

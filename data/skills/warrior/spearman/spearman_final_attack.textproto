@@ -3,10 +3,12 @@
 name: "Final Attack"
 description:
   "A chance for every swing to be followed by a second blow at whatever is "
-  "in front of you."
+  "in front of you. Needs a spear or a polearm in hand."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 20
+required_equip_type: EQUIP_TYPE_SPEAR
+required_equip_type: EQUIP_TYPE_POLEARM
 required_skill {
   skill_name: "Weapon Mastery"
   level: 3
