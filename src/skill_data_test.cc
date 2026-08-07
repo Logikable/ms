@@ -115,6 +115,45 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
   }
 }
 
+// The catalog is keyed by file stem, so two skills can share a display name --
+// the three 2nd-job warriors each get their own Weapon Mastery. A character's
+// learned levels are keyed by that display name, though, so two skills one
+// character can reach under the same name are one level between them: buying
+// either buys both, and each folds the other's levers into the stats.
+//
+// Nothing in the model stops that; what keeps it from happening is that the
+// branches are exclusive, so only one book of any pair is ever the
+// character's. This is the check that the data stays that way -- the trap is a
+// later stage repeating a name from an earlier one, where both books belong to
+// the same character.
+TEST(SkillDataTest, NoOneCharacterCanReachTwoSkillsOfTheSameName) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  const Job kJobs[] = {JOB_SWORDMAN, JOB_FIGHTER,  JOB_PAGE, JOB_SPEARMAN,
+                       JOB_ARCHER,   JOB_MAGICIAN, JOB_ROGUE};
+  for (Job job : kJobs) {
+    std::map<std::string, std::string> stem_by_name;
+    // Every stage the job has a book at. Two is what exists; a stage past the
+    // last one simply answers with no advancement.
+    for (int stage = 1; stage <= 2; ++stage) {
+      JobAdvancement advancement = AdvancementForJobStage(job, stage);
+      if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+        continue;
+      }
+      for (const std::pair<const std::string, Skill>& entry : skills) {
+        if (entry.second.job_advancement() != advancement) {
+          continue;
+        }
+        std::pair<std::map<std::string, std::string>::iterator, bool> added =
+            stem_by_name.insert({entry.second.name(), entry.first});
+        EXPECT_TRUE(added.second)
+            << Job_Name(job) << " reaches both " << entry.first << " and "
+            << added.first->second << ", which are both called \""
+            << entry.second.name() << "\" and so share one learned level";
+      }
+    }
+  }
+}
+
 // A requirement naming a skill that is not in the catalog locks its skill
 // forever and says so in words the player cannot act on. Learned levels are
 // keyed by display name, so that is what has to match.
