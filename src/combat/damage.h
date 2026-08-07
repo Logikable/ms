@@ -31,7 +31,21 @@ struct OffenseStats {
   double final_dmg_pct = 0.0;  // final damage, as fraction
   double ied = 0.0;            // ignore enemy defense, 0..1
   double ier = 0.0;            // ignore elemental resistance, 0..1
+  // GMS's leading weapon constant; see WeaponConstant. 1.0 is the identity a
+  // bare stat line carries, not a value any real weapon has.
+  double weapon_constant = 1.0;
 };
+
+// The first factor of the GMS damage chain, and the game's whole notion of one
+// weapon class hitting harder than another. It belongs to the job and the
+// weapon together rather than to either alone: a one-handed sword is 1.24 in a
+// Paladin's hands and 1.34 in a Hero's.
+//
+// The published table is keyed by 4th job, which this game does not reach, so
+// what is written here is per weapon -- each carrying the constant of the job
+// line that owns it -- with an override wherever a line we do have disagrees.
+// A weapon no line lists at all is 1.0.
+double WeaponConstant(Job job, EquipType weapon);
 
 // Whether a skill of this kind carries a damage multiplier of its own -- the
 // swings and the things that fire on their own clock. The rest either fold
@@ -61,9 +75,12 @@ struct PassiveOffense {
 // `attack_skill` is the learned attack being swung, at `attack_level`, or null
 // for the bare 100% poke. Choosing WHICH attack is the caller's job -- it
 // depends on how many mobs are up, which this pure per-mob math cannot see.
+//
+// `weapon` is what is in hand, which the summed EquipStats no longer says: it
+// decides the weapon constant, and nothing else here.
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
-                             const EquipStats& equipped,
+                             const EquipStats& equipped, EquipType weapon,
                              const Skill* attack_skill, int attack_level,
                              const PassiveOffense& passives = {});
 

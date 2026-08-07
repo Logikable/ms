@@ -88,6 +88,13 @@ TEST_F(OffenseTest, FinalDamageMultiplies) {
                    25.875 * 1.10 * kEqualLevel);
 }
 
+TEST_F(OffenseTest, TheWeaponConstantScalesTheWholeHit) {
+  OffenseStats s = Baseline();
+  s.weapon_constant = 1.44;
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   25.875 * 1.44 * kEqualLevel);
+}
+
 TEST_F(OffenseTest, MobDefenseReducesDamage) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(30)),
                    25.875 * 0.70 * kEqualLevel);
@@ -152,6 +159,15 @@ TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
   EXPECT_EQ(CombatPower(s), 45);
 }
 
+// Unlike GMS, which leaves the weapon constant out of the figure it shows.
+// Two characters holding different weapon classes really do hit differently
+// hard, and a combat power that says otherwise is not worth reading.
+TEST_F(OffenseTest, CombatPowerCountsTheWeaponConstant) {
+  OffenseStats s = Baseline();
+  s.weapon_constant = 1.49;
+  EXPECT_EQ(CombatPower(s), 38);  // 25.875 * 1.49
+}
+
 TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {
   // Everything that depends on which attack is thrown, or at what, drops out.
   OffenseStats s = Baseline();
@@ -161,6 +177,58 @@ TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {
   s.ier = 0.5;
   s.level = 60;
   EXPECT_EQ(CombatPower(s), CombatPower(Baseline()));
+}
+
+// The published table is by 4th job, so ours is by weapon with the line that
+// owns it. Spot-checked against the figures on the Damage Formula page.
+TEST(WeaponConstantTest, EachWeaponCarriesItsOwnLinesConstant) {
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_SWORDMAN, EQUIP_TYPE_ONE_HANDED_SWORD),
+                   1.24);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_SPEARMAN, EQUIP_TYPE_SPEAR), 1.49);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_SPEARMAN, EQUIP_TYPE_POLEARM), 1.49);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_ARCHER, EQUIP_TYPE_BOW), 1.30);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_MAGICIAN, EQUIP_TYPE_WAND), 1.20);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_ROGUE, EQUIP_TYPE_DAGGER), 1.30);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_ROGUE, EQUIP_TYPE_CLAW), 1.75);
+}
+
+// The whole reason the constant takes a job at all: the same sword is worth
+// more to the Hero line than to the Paladin line the default comes from.
+TEST(WeaponConstantTest, AFighterSwingsASwordHarderThanAnyoneElse) {
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_ONE_HANDED_SWORD),
+                   1.34);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_SWORD),
+                   1.44);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_PAGE, EQUIP_TYPE_ONE_HANDED_SWORD), 1.24);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_PAGE, EQUIP_TYPE_TWO_HANDED_SWORD), 1.34);
+}
+
+// An axe is the Hero line's own weapon, so the default already is theirs and
+// no override is needed. A Page holding one is not a case GMS has.
+TEST(WeaponConstantTest, AnAxeIsTheSameInAnyWarriorsHands) {
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_AXE),
+                   1.44);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_SWORDMAN, EQUIP_TYPE_TWO_HANDED_AXE),
+                   1.44);
+}
+
+// A weapon its holder's line has no figure for falls back to the line that
+// does own it, rather than to nothing: a Fighter with a blunt is off-class,
+// not unarmed. Only a character holding nothing at all gets the identity.
+TEST(WeaponConstantTest, AnOffClassWeaponKeepsItsOwnConstant) {
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_BLUNT),
+                   1.34);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_UNSPECIFIED), 1.0);
+  EXPECT_DOUBLE_EQ(WeaponConstant(JOB_FIGHTER, EQUIP_TYPE_THROWING_STAR), 1.0);
+}
+
+// The constant has to come off the weapon in hand rather than off the summed
+// stats, which no longer say what is being held.
+TEST(OffenseStatsForTest, TheWeaponInHandDecidesTheConstant) {
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SPEARMAN, 30, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_POLEARM, nullptr, 0);
+  EXPECT_DOUBLE_EQ(offense.weapon_constant, 1.49);
 }
 
 TEST(SwingIntervalTest, Stage4IsTheUnscaledBase) {
@@ -246,8 +314,8 @@ TEST(OffenseStatsForTest, SumsAllocatedAndEquippedStats) {
   equipped.set_dex(2);
   equipped.set_attack(15);  // the Sword
 
-  OffenseStats offense =
-      OffenseStatsFor(JOB_BEGINNER, 7, allocated, equipped, nullptr, 0);
+  OffenseStats offense = OffenseStatsFor(JOB_BEGINNER, 7, allocated, equipped,
+                                         EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_EQ(offense.primary, 23);   // 13 + 10
   EXPECT_EQ(offense.secondary, 6);  // 4 + 2
   EXPECT_EQ(offense.attack, 15);
@@ -259,7 +327,8 @@ TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
   allocated.set_str(100);
   allocated.set_dex(20);
   OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 1, allocated, EquipStats(), nullptr, 0);
+      OffenseStatsFor(JOB_SWORDMAN, 1, allocated, EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_EQ(offense.primary, 100);
   EXPECT_EQ(offense.secondary, 20);
 }
@@ -269,14 +338,16 @@ TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
   equipped.set_boss_damage(30);           // 30%
   equipped.set_ignore_enemy_defense(20);  // 20%
   OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), equipped, nullptr, 0);
+      OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), equipped,
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.30);
   EXPECT_DOUBLE_EQ(offense.ied, 0.20);
 }
 
 TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
-  OffenseStats offense = OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(),
-                                         EquipStats(), nullptr, 0);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_DOUBLE_EQ(offense.mastery, 0.15);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.0);
@@ -290,8 +361,8 @@ TEST(OffenseStatsForTest, ArcherReadsDexAsTheMainStat) {
   EquipStats equipped;
   equipped.set_str(3);
   equipped.set_dex(5);
-  OffenseStats offense =
-      OffenseStatsFor(JOB_ARCHER, 1, allocated, equipped, nullptr, 0);
+  OffenseStats offense = OffenseStatsFor(JOB_ARCHER, 1, allocated, equipped,
+                                         EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_EQ(offense.primary, 55);    // DEX leads for an archer
   EXPECT_EQ(offense.secondary, 33);  // and STR backs it up
 }
@@ -305,8 +376,8 @@ TEST(OffenseStatsForTest, MagicianReadsIntAndSwingsOnMagicAttack) {
   equipped.set_luk(3);
   equipped.set_attack(999);  // a wand carries no weapon attack
   equipped.set_magic_attack(70);
-  OffenseStats offense =
-      OffenseStatsFor(JOB_MAGICIAN, 1, allocated, equipped, nullptr, 0);
+  OffenseStats offense = OffenseStatsFor(JOB_MAGICIAN, 1, allocated, equipped,
+                                         EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_EQ(offense.primary, 55);
   EXPECT_EQ(offense.secondary, 33);
   EXPECT_EQ(offense.attack, 70);  // magic attack, not the 999
@@ -319,8 +390,8 @@ TEST(OffenseStatsForTest, RogueReadsLukAsTheMainStat) {
   EquipStats equipped;
   equipped.set_luk(5);
   equipped.set_dex(3);
-  OffenseStats offense =
-      OffenseStatsFor(JOB_ROGUE, 1, allocated, equipped, nullptr, 0);
+  OffenseStats offense = OffenseStatsFor(JOB_ROGUE, 1, allocated, equipped,
+                                         EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_EQ(offense.primary, 55);
   EXPECT_EQ(offense.secondary, 33);  // and DEX backs it up
 }
@@ -330,35 +401,40 @@ TEST(OffenseStatsForTest, NonMagiciansIgnoreMagicAttack) {
   equipped.set_attack(40);
   equipped.set_magic_attack(999);
   OffenseStats offense =
-      OffenseStatsFor(JOB_ARCHER, 1, AllocatedStats(), equipped, nullptr, 0);
+      OffenseStatsFor(JOB_ARCHER, 1, AllocatedStats(), equipped,
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_EQ(offense.attack, 40);
 }
 
 TEST(OffenseStatsForTest, PassiveCritRateReachesTheOffense) {
   PassiveOffense passives;
   passives.crit_rate = 0.40;
-  OffenseStats offense = OffenseStatsFor(JOB_ARCHER, 15, AllocatedStats(),
-                                         EquipStats(), nullptr, 0, passives);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_ARCHER, 15, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
   EXPECT_DOUBLE_EQ(offense.crit_rate, 0.40);
 }
 
 TEST(OffenseStatsForTest, PassiveMasteryReplacesTheBaseline) {
   PassiveOffense passives;
   passives.mastery = 0.50;
-  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(),
-                                         EquipStats(), nullptr, 0, passives);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
   EXPECT_DOUBLE_EQ(offense.mastery, 0.50);
 }
 
 // The first level of a mastery skill is worth less than what every character
 // swings at already, and learning a skill must never make a swing worse.
 TEST(OffenseStatsForTest, MasteryBelowTheBaselineIsIgnored) {
-  OffenseStats bare = OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(),
-                                      EquipStats(), nullptr, 0);
+  OffenseStats bare =
+      OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   PassiveOffense passives;
   passives.mastery = 0.14;
-  OffenseStats learned = OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(),
-                                         EquipStats(), nullptr, 0, passives);
+  OffenseStats learned =
+      OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
   EXPECT_DOUBLE_EQ(learned.mastery, bare.mastery);
 }
 
@@ -367,7 +443,8 @@ TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {
   allocated.set_str(50);
   allocated.set_dex(30);
   OffenseStats offense =
-      OffenseStatsFor(JOB_UNSPECIFIED, 1, allocated, EquipStats(), nullptr, 0);
+      OffenseStatsFor(JOB_UNSPECIFIED, 1, allocated, EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_EQ(offense.primary, 0);  // fail safe: unknown job has no main stat
   EXPECT_EQ(offense.secondary, 0);
 }
@@ -385,15 +462,17 @@ Skill SlashBlast() {
 
 TEST(OffenseStatsForTest, AttackSkillSetsSkillPctAtLevelOne) {
   Skill slash_blast = SlashBlast();
-  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
-                                         EquipStats(), &slash_blast, 1);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, &slash_blast, 1);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83);  // base, no per-level yet
 }
 
 TEST(OffenseStatsForTest, AttackSkillAddsPerLevelBeyondLevelOne) {
   Skill slash_blast = SlashBlast();
-  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
-                                         EquipStats(), &slash_blast, 10);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, &slash_blast, 10);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.83 + 0.08 * 9);  // 2.55 at level 10
 }
 
@@ -404,22 +483,25 @@ TEST(OffenseStatsForTest, MultiHitSkillSetsLines) {
   leap_attack.set_max_level(1);
   leap_attack.set_lines(2);
   leap_attack.mutable_base()->set_skill_pct(0.90);
-  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
-                                         EquipStats(), &leap_attack, 1);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, &leap_attack, 1);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 0.90);
   EXPECT_EQ(offense.lines, 2);  // 90% twice = 180% a target
 }
 
 TEST(OffenseStatsForTest, SingleHitSkillKeepsOneLine) {
   Skill slash_blast = SlashBlast();  // no lines set
-  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
-                                         EquipStats(), &slash_blast, 1);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, &slash_blast, 1);
   EXPECT_EQ(offense.lines, 1);
 }
 
 TEST(OffenseStatsForTest, NoAttackSkillKeepsTheBarePoke) {
-  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
-                                         EquipStats(), nullptr, 0);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
 }
 
@@ -429,8 +511,9 @@ TEST(OffenseStatsForTest, PassiveSkillDoesNotChangeSkillPct) {
   passive.set_kind(SKILL_KIND_PASSIVE);
   passive.set_max_level(10);
   passive.mutable_base()->set_max_hp_pct(0.10);
-  OffenseStats offense = OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(),
-                                         EquipStats(), &passive, 5);
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 15, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, &passive, 5);
   EXPECT_DOUBLE_EQ(offense.skill_pct,
                    1.0);  // passives fold into HP, not damage
 }
@@ -446,11 +529,11 @@ TEST(OffenseStatsForTest, SlashBlastKills83PercentFaster) {
   equipped.set_attack(15);
   Mob mob = MakeMob(/*pdr=*/0, /*boss=*/false, /*level=*/15);
 
-  OffenseStats poke =
-      OffenseStatsFor(JOB_SWORDMAN, 15, allocated, equipped, nullptr, 0);
+  OffenseStats poke = OffenseStatsFor(JOB_SWORDMAN, 15, allocated, equipped,
+                                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   Skill slash_blast = SlashBlast();
-  OffenseStats slash =
-      OffenseStatsFor(JOB_SWORDMAN, 15, allocated, equipped, &slash_blast, 1);
+  OffenseStats slash = OffenseStatsFor(JOB_SWORDMAN, 15, allocated, equipped,
+                                       EQUIP_TYPE_UNSPECIFIED, &slash_blast, 1);
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(slash, mob),
                    1.83 * ExpectedAttackDamage(poke, mob));
 }

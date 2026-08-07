@@ -486,7 +486,8 @@ ftxui::Element CharacterPanel::Render() const {
   DerivedStats derived = DerivedStatsFor(character_, skills_);
   OffenseStats offense = OffenseStatsFor(
       p.job(), p.level(), p.allocated_stats(),
-      TotalEquipStats(character_, derived), /*attack_skill=*/nullptr,
+      TotalEquipStats(character_, derived), character_.weapon_type(),
+      /*attack_skill=*/nullptr,
       /*attack_level=*/0, PassiveOffenseFor(derived));
   std::string power = Centered("CP " + FormatWithCommas(CombatPower(offense)));
 

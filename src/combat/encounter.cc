@@ -44,7 +44,7 @@ constexpr double kBeatHealFraction = 0.10;
 // `equipped` is everything the character wears plus everything their passives
 // grant, already summed -- the two are indistinguishable to the damage chain.
 AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
-                       const Skill* skill, int level,
+                       EquipType weapon, const Skill* skill, int level,
                        const std::vector<CombatType>& types,
                        const DerivedStats& derived) {
   AttackOption attack;
@@ -52,9 +52,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     attack.name = skill->name();
     attack.max_enemies = std::max(1, skill->max_enemies());
   }
-  OffenseStats offense =
-      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      equipped, skill, level, PassiveOffenseFor(derived));
+  OffenseStats offense = OffenseStatsFor(
+      proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
+      skill, level, PassiveOffenseFor(derived));
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
@@ -64,9 +64,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // lines. Callers building an attack that fires on its own clock strip this
   // back off -- see ComputeCombatParams.
   if (derived.final_attack_pct > 0.0) {
-    OffenseStats final_attack =
-        OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                        equipped, nullptr, 0, PassiveOffenseFor(derived));
+    OffenseStats final_attack = OffenseStatsFor(
+        proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
+        nullptr, 0, PassiveOffenseFor(derived));
     final_attack.skill_pct = derived.final_attack_pct;
     for (const CombatType& type : types) {
       attack.final_attack_damage.push_back(
@@ -123,16 +123,16 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
                 CombatParams& params) {
   const Character& proto = state.character.proto();
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
-  params.attacks.push_back(
-      AttackFor(proto, total_stats, nullptr, 0, params.types, derived));
+  params.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr,
+                                     0, params.types, derived));
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = state.character.skill_level(skill);
     if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
       continue;
     }
-    AttackOption attack =
-        AttackFor(proto, total_stats, &skill, learned, params.types, derived);
+    AttackOption attack = AttackFor(proto, total_stats, weapon_type, &skill,
+                                    learned, params.types, derived);
     if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {
       params.attacks.push_back(std::move(attack));
       continue;

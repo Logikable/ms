@@ -28,6 +28,43 @@ constexpr int kSpeedDivisor = 16;
 // EquipStats stores boss_damage / ignore_enemy_defense as whole percents.
 constexpr double kPercentToFraction = 100.0;
 
+struct WeaponConstantRow {
+  EquipType weapon;
+  double constant;
+};
+
+// Each weapon carrying the constant of the job line that owns it. The two
+// sword entries are the Paladin line's; the axes are the Hero line's, which
+// has no one-handed items yet but names the type in its skills.
+const WeaponConstantRow kWeaponConstants[] = {
+    {EQUIP_TYPE_ONE_HANDED_SWORD, 1.24},
+    {EQUIP_TYPE_TWO_HANDED_SWORD, 1.34},
+    {EQUIP_TYPE_TWO_HANDED_BLUNT, 1.34},
+    {EQUIP_TYPE_ONE_HANDED_AXE, 1.34},
+    {EQUIP_TYPE_TWO_HANDED_AXE, 1.44},
+    {EQUIP_TYPE_SPEAR, 1.49},
+    {EQUIP_TYPE_POLEARM, 1.49},
+    {EQUIP_TYPE_BOW, 1.30},
+    {EQUIP_TYPE_WAND, 1.20},
+    {EQUIP_TYPE_DAGGER, 1.30},
+    {EQUIP_TYPE_CLAW, 1.75},
+};
+
+struct JobWeaponConstantRow {
+  Job job;
+  EquipType weapon;
+  double constant;
+};
+
+// Where a job's line disagrees with the weapon's own. Only the Hero line does:
+// it swings a sword harder than the Paladin line the sword's default comes
+// from. A first-job character is on no line yet and takes the default, so
+// advancing to a Fighter is worth a tenth of a multiplier on its own.
+const JobWeaponConstantRow kJobWeaponConstants[] = {
+    {JOB_FIGHTER, EQUIP_TYPE_ONE_HANDED_SWORD, 1.34},
+    {JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
+};
+
 // Basic-attack animation at the stage-4 (x1.0) reference. Every weapon we have
 // shares it: 800ms is the long-standing engine constant, and nothing published
 // distinguishes a bow's or a wand's basic attack from a sword's. What really
@@ -162,13 +199,28 @@ bool DealsDamage(SkillKind kind) {
   return kind == SKILL_KIND_ATTACK || kind == SKILL_KIND_AUTO_ATTACK;
 }
 
+double WeaponConstant(Job job, EquipType weapon) {
+  for (const JobWeaponConstantRow& row : kJobWeaponConstants) {
+    if (row.job == job && row.weapon == weapon) {
+      return row.constant;
+    }
+  }
+  for (const WeaponConstantRow& row : kWeaponConstants) {
+    if (row.weapon == weapon) {
+      return row.constant;
+    }
+  }
+  return 1.0;
+}
+
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
-                             const EquipStats& equipped,
+                             const EquipStats& equipped, EquipType weapon,
                              const Skill* attack_skill, int attack_level,
                              const PassiveOffense& passives) {
   OffenseStats offense;
   offense.level = level;
+  offense.weapon_constant = WeaponConstant(job, weapon);
   offense.crit_rate = passives.crit_rate;
   offense.damage_pct = passives.damage_pct;
   offense.final_dmg_pct = passives.final_dmg_pct;
@@ -232,7 +284,10 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   bool is_boss = mob.boss();
 
   double stat_value = 4.0 * offense.primary + offense.secondary;
-  double max_base = stat_value * offense.attack / 100.0;
+  // The weapon constant is GMS's second factor, right behind the leading 0.01
+  // that the /100 is.
+  double max_base =
+      stat_value * offense.attack / 100.0 * offense.weapon_constant;
   double damage = max_base * (1.0 + offense.mastery) / 2.0;
 
   damage *= offense.lines * offense.skill_pct;
@@ -271,7 +326,7 @@ int CombatPower(const OffenseStats& offense) {
   // The same opening as ExpectedAttackDamage: the /100 here is GMS's leading
   // 0.01, which turns out to be the very same constant.
   double stat_value = 4.0 * offense.primary + offense.secondary;
-  double power = stat_value * offense.attack / 100.0;
+  double power = stat_value * offense.attack / 100.0 * offense.weapon_constant;
   power *= (1.0 + offense.mastery) / 2.0;
   power *= 1.0 + offense.damage_pct + offense.boss_pct;
   power *= 1.0 + offense.crit_rate * (offense.crit_dmg + kBaseCritDamage);
