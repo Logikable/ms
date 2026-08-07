@@ -91,6 +91,78 @@ bool SwingableWith(const Skill& skill, EquipType weapon) {
   return false;
 }
 
+// The mob types this map spawns, each with what one of its hits costs the
+// player. Types the mob catalog does not know are skipped.
+void AddTypes(const GameState& state, const MapData& map,
+              const DefenseStats& defense, CombatParams& params) {
+  for (const MapData::Spawn& spawn : map.spawns()) {
+    std::map<std::string, Mob>::const_iterator mob_it =
+        state.mobs.find(spawn.mob());
+    if (mob_it == state.mobs.end()) {
+      continue;
+    }
+    CombatType type;
+    type.mob = &mob_it->second;
+    type.simultaneous = spawn.count();
+    type.damage_to_player = ExpectedDamageTaken(defense, *type.mob);
+    params.types.push_back(std::move(type));
+  }
+}
+
+// Whether a learned attack skill is one this character can swing right now.
+bool Swingable(const GameState& state, const Skill& skill,
+               EquipType weapon_type) {
+  if (!DealsDamage(skill.kind())) {
+    return false;
+  }
+  // Another branch's book can share a skill's display name, and learned levels
+  // are keyed by that name -- so ask whose book this is before reading a level
+  // off it. See CharacterInstance::HasAdvancement.
+  if (!state.character.HasAdvancement(skill.job_advancement())) {
+    return false;
+  }
+  // A skill the weapon in hand cannot swing is no option, however well
+  // learned. The bare poke always is, so the character is never left with
+  // nothing to attack with.
+  return SwingableWith(skill, weapon_type);
+}
+
+// Every attack the character could swing: the bare poke first, then one per
+// learned attack skill, for the fight to pick between each swing. Skills that
+// fire on their own clock go to auto_attacks instead.
+//
+// Learned passives apply to whichever attack is chosen, so the already
+// resolved `derived` is handed to each option.
+void AddAttacks(const GameState& state, const DerivedStats& derived,
+                EquipType weapon_type, double speed_factor,
+                CombatParams& params) {
+  const Character& proto = state.character.proto();
+  const EquipStats total_stats = TotalEquipStats(state.character, derived);
+  params.attacks.push_back(
+      AttackFor(proto, total_stats, nullptr, 0, params.types, derived));
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const Skill& skill = entry.second;
+    int learned = state.character.skill_level(skill);
+    if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
+      continue;
+    }
+    AttackOption attack =
+        AttackFor(proto, total_stats, &skill, learned, params.types, derived);
+    if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {
+      params.attacks.push_back(std::move(attack));
+      continue;
+    }
+    // A skill with no interval would fire every step, so an unset one is taken
+    // as "does not fire" rather than "fires constantly".
+    if (skill.cast_interval_seconds() <= 0.0) {
+      continue;
+    }
+    attack.interval_seconds = skill.cast_interval_seconds() * speed_factor;
+    attack.final_attack_damage.clear();  // Final Attack follows a swing
+    params.auto_attacks.push_back(std::move(attack));
+  }
+}
+
 }  // namespace
 
 CombatParams ComputeCombatParams(const GameState& state) {
@@ -98,23 +170,17 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.map = state.current_map;
   std::map<std::string, MapData>::const_iterator map_it =
       state.maps.find(state.current_map);
-  if (map_it == state.maps.end()) {
-    return params;
-  }
-  const MapData& map = map_it->second;
-
   const std::map<EquipSlot, EquipInstance>& equipped =
       state.character.equipped();
   std::map<EquipSlot, EquipInstance>::const_iterator weapon_it =
       equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
-  if (weapon_it == equipped.end()) {
+  if (map_it == state.maps.end() || weapon_it == equipped.end()) {
     return params;
   }
   const EquipPrototype& weapon = weapon_it->second.prototype();
 
-  // Passive skills that speed the swing add stages on top of the weapon's own
-  // attack speed, capped at the fastest tier we model. Faster swings are a
-  // flat DPS gain, so this is resolved once and folded into the swing clock.
+  // Passives that speed the swing add stages on top of the weapon's own, up to
+  // the fastest tier we model.
   DerivedStats derived = DerivedStatsFor(state.character, state.skills);
   int attack_speed =
       std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
@@ -130,73 +196,18 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
   params.max_player_hp = derived.max_hp;
   params.beat_heal_fraction = kBeatHealFraction;
+
   // What the character brings to being hit is the same whichever mob is
-  // hitting them, so it is resolved once and asked per type below.
+  // hitting them, so it is resolved once and asked per type.
   DefenseStats defense;
   defense.level = state.character.proto().level();
   defense.def = derived.def;
   defense.damage_taken_pct = derived.damage_taken_pct;
-  for (const MapData::Spawn& spawn : map.spawns()) {
-    std::map<std::string, Mob>::const_iterator mob_it =
-        state.mobs.find(spawn.mob());
-    if (mob_it == state.mobs.end()) {
-      continue;
-    }
-    CombatType type;
-    type.mob = &mob_it->second;
-    type.simultaneous = spawn.count();
-    type.damage_to_player = ExpectedDamageTaken(defense, *type.mob);
-    params.types.push_back(std::move(type));
-  }
+  AddTypes(state, map_it->second, defense, params);
   if (params.types.empty()) {
     return params;
   }
-
-  // Every attack the character could swing with: the bare poke first, then one
-  // per learned attack skill. The fight picks between them each swing. Learned
-  // passives (crit rate and the like) apply to whichever attack is chosen, so
-  // the already-resolved `derived` is handed to each option.
-  const Character& proto = state.character.proto();
-  const EquipStats total_stats = TotalEquipStats(state.character, derived);
-  params.attacks.push_back(
-      AttackFor(proto, total_stats, nullptr, 0, params.types, derived));
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    const Skill& skill = entry.second;
-    if (!DealsDamage(skill.kind())) {
-      continue;
-    }
-    // Another branch's book can share a skill's display name, and learned
-    // levels are keyed by that name -- so ask whose book this is before
-    // reading a level off it. See CharacterInstance::HasAdvancement.
-    if (!state.character.HasAdvancement(skill.job_advancement())) {
-      continue;
-    }
-    // A skill the weapon in hand cannot swing is not an option, however well
-    // learned. The bare poke always is, so the character is never left with
-    // nothing to attack with.
-    if (!SwingableWith(skill, weapon.equip_type())) {
-      continue;
-    }
-    int learned = state.character.skill_level(skill);
-    if (learned <= 0) {
-      continue;
-    }
-    AttackOption attack =
-        AttackFor(proto, total_stats, &skill, learned, params.types, derived);
-    if (skill.kind() == SKILL_KIND_AUTO_ATTACK) {
-      // A skill with no interval would fire every step, so an unset one is
-      // taken as "does not fire" rather than "fires constantly".
-      if (skill.cast_interval_seconds() <= 0.0) {
-        continue;
-      }
-      attack.interval_seconds = skill.cast_interval_seconds() * speed_factor;
-      // Final Attack follows a swing, and this is not one.
-      attack.final_attack_damage.clear();
-      params.auto_attacks.push_back(std::move(attack));
-    } else {
-      params.attacks.push_back(std::move(attack));
-    }
-  }
+  AddAttacks(state, derived, weapon.equip_type(), speed_factor, params);
   params.active = true;
   return params;
 }
