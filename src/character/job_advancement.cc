@@ -13,10 +13,15 @@
 namespace ms {
 
 std::vector<std::string> StarterEquipsFor(Job job) {
-  // One level-10 weapon per job, so an advancement is immediately playable.
-  // The Rogue gets three: the stars are a slot of their own, and which of the
-  // dagger or the claw is held decides which of the two attack skills can be
-  // swung, so handing over only one would quietly pick the job's build.
+  // One weapon per job at the level the advancement happens, so an advancement
+  // is immediately playable. The Rogue gets three: the stars are a slot of
+  // their own, and which of the dagger or the claw is held decides which of
+  // the two attack skills can be swung, so handing over only one would quietly
+  // pick the job's build.
+  //
+  // A 2nd job is handed the weapon its Final Attack demands. Without it the
+  // skill is learnable and silently worthless, and nothing on the screen says
+  // the weapon they climbed to 30 with is the reason.
   switch (job) {
     case JOB_SWORDMAN:
       return {"long_sword"};
@@ -26,6 +31,10 @@ std::vector<std::string> StarterEquipsFor(Job job) {
       return {"war_bow"};
     case JOB_ROGUE:
       return {"subi_throwing_stars", "fruit_knife", "garnier"};
+    case JOB_FIGHTER:
+      return {"blue_axe"};
+    case JOB_SPEARMAN:
+      return {"forked_spear"};
     default:
       return {};
   }

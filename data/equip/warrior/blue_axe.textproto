@@ -1,0 +1,11 @@
+name: "Blue Axe"
+required_level: 30
+base_stats {
+  attack: 52
+}
+attack_speed: ATTACK_SPEED_AVERAGE
+equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+shop_price: 20000

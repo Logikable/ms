@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/exp_table.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
@@ -136,12 +137,36 @@ TEST(ShopTest, ShippedStockIsTheSeventeenWeapons) {
       {"Metal Wand", 10000},
       {"Coconut Knife", 10000},
       {"Steel Igor", 10000},
-      // Weapons, level 30.
+      // Weapons, level 30 -- where the 2nd-job warrior weapons start, so the
+      // warriors outnumber everyone else from here down.
+      {"Blue Axe", 20000},
+      {"Forked Spear", 20000},
       {"Gladius", 20000},
+      {"Mithril Maul", 20000},
+      {"Mithril Polearm", 20000},
+      {"Scimitar", 20000},
       {"Ryden", 20000},
       {"Mithril Wand", 20000},
       {"Reef Claw", 20000},
       {"Steel Guards", 20000},
+      // Weapons, level 40.
+      {"Crescent Polearm", 30000},
+      {"Sabretooth", 30000},
+      {"Titan", 30000},
+      {"Zard", 30000},
+      {"Zeco", 30000},
+      // Weapons, level 50.
+      {"Golden Mole", 50000},
+      {"Lion's Fang", 50000},
+      {"Serpent's Tongue", 50000},
+      {"The Nine Dragons", 50000},
+      {"The Rising", 50000},
+      // Weapons, level 60 -- the last tier the trial cap can reach.
+      {"Holy Spear", 75000},
+      {"Skylar", 75000},
+      {"Sparta", 75000},
+      {"The Blessing", 75000},
+      {"The Shining", 75000},
       // The stars, last because of the slot they go in. They undercut the
       // weapons of their level: they are ammunition, not the weapon a
       // character is built around.
@@ -151,12 +176,15 @@ TEST(ShopTest, ShippedStockIsTheSeventeenWeapons) {
   EXPECT_EQ(listing, expected);
 }
 
-// Everything on sale is early-game gear. A shop that quietly picked up an
-// endgame weapon would be a balance change nobody asked for.
-TEST(ShopTest, NothingAboveLevelThirtyIsForSale) {
+// Nothing on sale is out of reach. The trial stops handing out EXP at 60, so
+// a weapon above it is one the shop takes meso for and the player can never
+// hold -- and an endgame weapon appearing here would be a balance change
+// nobody asked for.
+TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::string& key : ShopStock(equips)) {
-    EXPECT_LE(equips.at(key).required_level(), 30) << key << " is for sale";
+    EXPECT_LE(equips.at(key).required_level(), kTrialLevelCap)
+        << key << " is for sale";
   }
 }
 

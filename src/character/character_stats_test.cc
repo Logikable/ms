@@ -587,7 +587,7 @@ TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
 TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill training = PhysicalTraining();
-  training.add_required_equip_type(EQUIP_TYPE_AXE);
+  training.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_AXE);
   std::map<std::string, Skill> skills = {{"physical_training", training}};
   ASSERT_TRUE(c.LearnSkill(training, 5));
   EquipWeapon(c, EQUIP_TYPE_ONE_HANDED_SWORD);
@@ -595,7 +595,7 @@ TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 0);
 
   c.Unequip(EQUIP_SLOT_PRIMARY_WEAPON);
-  EquipWeapon(c, EQUIP_TYPE_AXE);
+  EquipWeapon(c, EQUIP_TYPE_TWO_HANDED_AXE);
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 

@@ -161,13 +161,14 @@ TEST_F(SkillInspectPanelTest, ShowsTheFactsThatHoldAtEveryLevel) {
 TEST_F(SkillInspectPanelTest, ALongWeaponListWrapsRatherThanClipping) {
   Skill skill = MakeIronBody();
   skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
-  skill.add_required_equip_type(EQUIP_TYPE_AXE);
+  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_AXE);
   std::string rendered = RenderAt(skill, 5);
   EXPECT_NE(rendered.find("One-Handed Sword"), std::string::npos);
-  EXPECT_NE(rendered.find("Axe"), std::string::npos);
+  EXPECT_NE(rendered.find("Two-Handed Axe"), std::string::npos);
   // Wrapped, so the whole list survives across two rows rather than one.
   for (const std::string& line : Lines(rendered)) {
-    EXPECT_EQ(line.find("One-Handed Sword / Axe"), std::string::npos);
+    EXPECT_EQ(line.find("One-Handed Sword / Two-Handed Axe"),
+              std::string::npos);
   }
 }
 

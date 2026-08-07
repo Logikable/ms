@@ -9,7 +9,8 @@ kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
-required_equip_type: EQUIP_TYPE_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
 required_skill {
   skill_name: "Weapon Mastery"
   level: 3
