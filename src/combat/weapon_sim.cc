@@ -184,15 +184,23 @@ struct Result {
   std::vector<std::pair<std::string, int>> skills;
 };
 
-// The attack the fight would swing at a single mob: the hardest hitting one,
-// reach being worth nothing when there is only one thing to reach.
+// The attack the fight would swing at a single mob: the one landing the most
+// per second, reach being worth nothing when there is only one thing to reach.
+// The same rule CombatSim::BestAttack uses, Final Attack included.
 const AttackOption* BestSingleTarget(const CombatParams& params) {
   const AttackOption* best = nullptr;
+  double best_rate = -1.0;
   for (const AttackOption& attack : params.attacks) {
-    if (attack.damage_per_hit.empty()) {
+    if (attack.damage_per_hit.empty() || attack.swing_seconds <= 0.0) {
       continue;
     }
-    if (best == nullptr || attack.damage_per_hit[0] > best->damage_per_hit[0]) {
+    double damage = attack.damage_per_hit[0];
+    if (!attack.final_attack_damage.empty()) {
+      damage += attack.final_attack_damage[0];
+    }
+    double rate = damage / attack.swing_seconds;
+    if (rate > best_rate) {
+      best_rate = rate;
       best = &attack;
     }
   }

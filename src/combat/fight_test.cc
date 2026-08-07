@@ -246,6 +246,66 @@ TEST(CombatSimTest, PicksTheAttackThatLandsTheMostOnTheQueue) {
   EXPECT_NEAR(sim.engaged_groups()[0].hp_fraction, 0.95, 1e-9);
 }
 
+// A swing is worth what it lands per second, not per swing: a skill hitting
+// half again as hard but taking twice as long is the worse choice.
+TEST(CombatSimTest, PrefersTheFasterSwingWhenItLandsMorePerSecond) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Attack";
+  AttackOption heavy;
+  heavy.name = "Heavy";
+  heavy.max_enemies = 1;
+  heavy.damage_per_hit = {15.0};  // 50% harder
+  heavy.swing_seconds = 2.0;      // but twice as slow: 7.5/s against 10/s
+  params.attacks.push_back(heavy);
+
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.attack_name(), "Attack");
+}
+
+// And the same skill wins once its animation is quick enough to pay for
+// itself, which is the whole reason the delay is per skill.
+TEST(CombatSimTest, TheSlowerSwingWinsWhenItHitsHardEnough) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Attack";
+  AttackOption heavy;
+  heavy.name = "Heavy";
+  heavy.max_enemies = 1;
+  heavy.damage_per_hit = {25.0};  // 25/s against 10/s
+  heavy.swing_seconds = 2.0;
+  params.attacks.push_back(heavy);
+
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.attack_name(), "Heavy");
+}
+
+// Final Attack rides the swing, so it is part of what the swing is worth. It
+// does not depend on which skill set it off, which means a slower swing
+// spreads the same extra hit over more seconds -- and that alone can decide
+// the choice.
+TEST(CombatSimTest, TheChoiceCountsTheFinalAttackThatFollowsIt) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  // Counting it: the poke is 30/s against the heavy swing's 25/s. Ignoring it:
+  // 10/s against 15/s, and the heavy swing would win instead.
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Attack";
+  params.attacks[0].final_attack_damage = {20.0};
+  AttackOption heavy;
+  heavy.name = "Heavy";
+  heavy.max_enemies = 1;
+  heavy.damage_per_hit = {30.0};
+  heavy.swing_seconds = 2.0;
+  heavy.final_attack_damage = {20.0};
+  params.attacks.push_back(heavy);
+
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.attack_name(), "Attack");
+}
+
 TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;

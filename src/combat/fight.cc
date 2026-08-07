@@ -37,24 +37,41 @@ void CombatSim::TopUp(const CombatParams& params) {
   std::shuffle(queue_.begin() + first_new, queue_.end(), rng_);
 }
 
+// What one swing of `attack` would land on the queue as it stands: its own
+// damage to each mob it reaches, plus the Final Attack that follows it onto the
+// front one.
+double CombatSim::SwingDamage(const AttackOption& attack) const {
+  int reach = std::max(1, attack.max_enemies);
+  int hit = std::min(reach, static_cast<int>(queue_.size()));
+  double total = 0.0;
+  for (int j = 0; j < hit; ++j) {
+    int type = queue_[j].type;
+    if (type < static_cast<int>(attack.damage_per_hit.size())) {
+      total += attack.damage_per_hit[type];
+    }
+  }
+  int front = queue_.empty() ? -1 : queue_.front().type;
+  if (hit > 0 && front < static_cast<int>(attack.final_attack_damage.size())) {
+    total += attack.final_attack_damage[front];
+  }
+  return total;
+}
+
 const AttackOption* CombatSim::BestAttack(const CombatParams& params) const {
   if (queue_.empty()) {
     return nullptr;  // nothing to hit, so nothing to choose between
   }
   const AttackOption* best = nullptr;
-  double best_total = -1.0;
+  double best_rate = -1.0;
   for (const AttackOption& attack : params.attacks) {
-    int reach = std::max(1, attack.max_enemies);
-    int hit = std::min(reach, static_cast<int>(queue_.size()));
-    double total = 0.0;
-    for (int j = 0; j < hit; ++j) {
-      int type = queue_[j].type;
-      if (type < static_cast<int>(attack.damage_per_hit.size())) {
-        total += attack.damage_per_hit[type];
-      }
+    if (attack.swing_seconds <= 0.0) {
+      continue;  // not a swing; a skill on its own clock is not chosen between
     }
-    if (total > best_total) {
-      best_total = total;
+    // Per second, not per swing: a skill that hits half again as hard but takes
+    // twice as long is worse, and only the rate says so.
+    double rate = SwingDamage(attack) / attack.swing_seconds;
+    if (rate > best_rate) {
+      best_rate = rate;
       best = &attack;
     }
   }

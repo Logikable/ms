@@ -124,10 +124,15 @@ class CombatSim {
   // each take their own type's damage, and the dead are counted and leave. A
   // swing and a skill on its own clock are the same thing here.
   void Strike(const AttackOption& attack);
-  // The attack that would land the most damage on the queue as it stands, or
-  // null when there is nothing to hit. Reach is worth nothing past the number
-  // of mobs actually queued, so a wide, weak-per-target skill loses to the
-  // plain swing once the map thins out.
+  // What one swing of `attack` would land on the queue as it stands, Final
+  // Attack included.
+  double SwingDamage(const AttackOption& attack) const;
+  // The attack that would land the most damage per SECOND on the queue as it
+  // stands, or null when there is nothing to hit. Two things can make one
+  // swing beat another: reach is worth nothing past the number of mobs
+  // actually queued, so a wide, weak-per-target skill loses to the plain swing
+  // once the map thins out; and a slower animation has to hit proportionally
+  // harder to be worth choosing.
   const AttackOption* BestAttack(const CombatParams& params) const;
 
   // The steps of one Advance, in the order it runs them.
