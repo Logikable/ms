@@ -16,18 +16,19 @@
 namespace ms {
 namespace {
 
-// Column widths. Name, slot and level match the bag's equip tab, so the two
-// lists line up and the same item reads the same way in both. The cost column
-// fits a five-figure price and its coin.
+// Column widths. Name and level match the bag's equip tab, so the two lists
+// line up and the same item reads the same way in both. The type column takes
+// the longest name a weapon has ("Two-Handed Sword"), and the cost column a
+// five-figure price and its coin.
 constexpr int kNameWidth = 26;
-constexpr int kSlotWidth = 10;
+constexpr int kTypeWidth = 16;
 constexpr int kLevelWidth = 7;
 constexpr int kCostWidth = 12;
 
 // Two leading spaces match the "  " / "> " cursor on the rows below.
 ftxui::Element ColumnHeader() {
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
-                     PadRight("Equip Slot", kSlotWidth) + "  " +
+                     PadRight("Weapon Type", kTypeWidth) + "  " +
                      PadRight("Level", kLevelWidth) +
                      PadLeft("🪙 Cost", kCostWidth));
 }
@@ -146,7 +147,7 @@ ftxui::Element ShopPanel::Render() const {
   std::vector<ftxui::Element> chips;
   // White while the bar holds the cursor and theme-blue otherwise, which is how
   // the player tells whether the arrow keys are on the bar or in the list.
-  chips.push_back(TabChip("Equips", /*active=*/true,
+  chips.push_back(TabChip("Weapons", /*active=*/true,
                           /*row_focused=*/zone_ == kZoneTabs));
   ftxui::Element tab_row = ftxui::dbox({
       ftxui::hbox(std::move(chips)),
@@ -186,7 +187,7 @@ ftxui::Element ShopPanel::Render() const {
     }
     rows.push_back(ftxui::hbox({
         ftxui::text(cursor + PadRight(proto.name(), kNameWidth) + "  " +
-                    PadRight(FormatSlot(proto.equip_slot()), kSlotWidth) +
+                    PadRight(FormatEquipType(proto.equip_type()), kTypeWidth) +
                     "  "),
         std::move(level),
         std::move(cost),

@@ -203,12 +203,12 @@ TEST_F(ShopPanelTest, ListsTheStockWithNamesAndCosts) {
   EXPECT_EQ(rendered.find("Heirloom"), std::string::npos);
 }
 
-TEST_F(ShopPanelTest, ShowsTheEquipsTabAndTheTitle) {
+TEST_F(ShopPanelTest, ShowsTheWeaponsTabAndTheTitle) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Shop"), std::string::npos);
-  EXPECT_NE(rendered.find("Equips"), std::string::npos);
+  EXPECT_NE(rendered.find("Weapons"), std::string::npos);
   EXPECT_NE(rendered.find("Name"), std::string::npos);
   EXPECT_NE(rendered.find("Cost"), std::string::npos);
 }
@@ -305,17 +305,18 @@ TEST_F(ShopPanelTest, RedsOutPricesBeyondTheBalance) {
   EXPECT_EQ(CellColor(panel, "Gladius", "20,000"), kRed) << "20,000 is not";
 }
 
-// The columns the bag's equip tab shows, in the same order and the same
-// widths, so an item reads the same way in both lists. Class is not among them:
-// the list holds nothing this character is the wrong class for.
-TEST_F(ShopPanelTest, ShowsSlotAndLevel) {
+// What every weapon in the shop shares is the slot it goes in, so the column
+// names the kind of weapon instead. Class is not a column either: the list
+// holds nothing this character is the wrong class for.
+TEST_F(ShopPanelTest, ShowsWeaponTypeAndLevel) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99);
   ShopPanel panel(c, equips_);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
-  EXPECT_NE(rendered.find("Level"), std::string::npos);
-  EXPECT_NE(rendered.find("Weapon"), std::string::npos);
+  EXPECT_NE(rendered.find("Weapon Type"), std::string::npos);
+  EXPECT_NE(rendered.find("One-Handed Sword"), std::string::npos);
+  EXPECT_NE(rendered.find("Two-Handed Sword"), std::string::npos);
   EXPECT_NE(rendered.find("Lv20"), std::string::npos);
+  EXPECT_EQ(rendered.find("Equip Slot"), std::string::npos);
   EXPECT_EQ(rendered.find("Job"), std::string::npos);
 }
 

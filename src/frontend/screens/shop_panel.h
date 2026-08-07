@@ -7,10 +7,10 @@
  * left out because they could never use it, not because they cannot use it yet
  * -- a level too high still shows, in red, as something to save toward.
  *
- * Only the Equips tab exists so far. The tab row is here rather than waiting
- * for the second tab because the stock is already split by what it goes in --
- * a Use tab is a different list, not more rows of this one. The bar is already
- * a stop the cursor can stand on, so a second tab is a tab and nothing else.
+ * Only the Weapons tab exists so far, weapons being all the shop sells. The tab
+ * row is here rather than waiting for the second tab because armour or potions
+ * would be a different list, not more rows of this one. The bar is already a
+ * stop the cursor can stand on, so a second tab is a tab and nothing else.
  *
  * The panel is a view: it moves its own cursor but never spends anything. The
  * controller reads selected_item() when the player presses Enter.
@@ -33,7 +33,7 @@ namespace ms {
 
 // Tabs of the shop, in display order.
 enum ShopTab : int {
-  kShopEquipsTab = 0,
+  kShopWeaponsTab = 0,
   kNumShopTabs = 1,
 };
 
