@@ -108,13 +108,12 @@ ftxui::Element EffectRow(const std::string& label, const std::string& value) {
 // Breaks `text` into lines that fit `width`, splitting only between words. A
 // word longer than the column is left whole and allowed to overhang rather
 // than being cut in half, which no description here comes close to needing.
-// A newline in the text is a break the caller asked for and is always kept.
 std::vector<std::string> WrapText(const std::string& text, int width) {
   std::vector<std::string> lines;
   std::string line;
   size_t i = 0;
   while (i < text.size()) {
-    size_t end = text.find_first_of(" \n", i);
+    size_t end = text.find(' ', i);
     if (end == std::string::npos) {
       end = text.size();
     }
@@ -128,10 +127,6 @@ std::vector<std::string> WrapText(const std::string& text, int width) {
       line += " ";
     }
     line += word;
-    if (end < text.size() && text[end] == '\n') {
-      lines.push_back(line);
-      line.clear();
-    }
     i = end + 1;
   }
   if (!line.empty()) {
@@ -276,18 +271,23 @@ ftxui::Element SkillInspectPanel::Render() const {
       CenteredRow("Max Level: " + std::to_string(skill_->max_level())));
 
   rows.push_back(ThemedSeparator());
-  std::string description = skill_->description();
-  // What must be learned first closes the description, the way GMS writes it,
-  // but starting its own line: it is a condition on the skill rather than part
-  // of what the skill does. Built from the requirement rather than typed
+  for (const std::string& line :
+       WrapText(skill_->description(), kContentWidth - 2)) {
+    rows.push_back(ftxui::text(" " + line));
+  }
+
+  // What must be learned first follows the description, the way GMS writes it,
+  // but behind a rule of its own: it is a condition on the skill rather than
+  // part of what the skill does. Built from the requirement rather than typed
   // beside it, so the sentence and the rule cannot drift apart.
   if (skill_->has_required_skill()) {
-    description +=
-        "\nRequired Skill: " + skill_->required_skill().skill_name() + " Lv. " +
+    rows.push_back(ThemedSeparator());
+    std::string required =
+        "Required Skill: " + skill_->required_skill().skill_name() + " Lv. " +
         std::to_string(skill_->required_skill().level()) + "+";
-  }
-  for (const std::string& line : WrapText(description, kContentWidth - 2)) {
-    rows.push_back(ftxui::text(" " + line));
+    for (const std::string& line : WrapText(required, kContentWidth - 2)) {
+      rows.push_back(ftxui::text(" " + line));
+    }
   }
 
   std::vector<ftxui::Element> invariant = InvariantRows(*skill_);

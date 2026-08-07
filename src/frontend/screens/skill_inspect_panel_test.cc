@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <vector>
 
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/equip.pb.h"
@@ -17,6 +18,22 @@ class SkillInspectPanelTest : public PanelTest {
     SkillInspectPanel panel;
     panel.SetSkill(&skill, level);
     return RenderElement(panel.Render());
+  }
+
+  // A rendered panel split into its rows, so a test can say what sits above
+  // what rather than only what is somewhere on screen.
+  static std::vector<std::string> Lines(const std::string& rendered) {
+    std::vector<std::string> lines;
+    size_t start = 0;
+    while (start <= rendered.size()) {
+      size_t end = rendered.find('\n', start);
+      if (end == std::string::npos) {
+        end = rendered.size();
+      }
+      lines.push_back(rendered.substr(start, end - start));
+      start = end + 1;
+    }
+    return lines;
   }
 };
 
@@ -294,6 +311,31 @@ TEST_F(SkillInspectPanelTest, SpellsOutWhatMustBeLearnedFirst) {
 
   EXPECT_NE(RenderAt(skill, 1).find("Required Skill: Iron Wall Lv. 3+"),
             std::string::npos);
+}
+
+// And it is ruled off from the description. What the skill does and what the
+// player must do first are two different claims, and a sentence that reads on
+// from the flavour text is easy to take for more of it.
+TEST_F(SkillInspectPanelTest, RulesTheRequirementOffFromTheDescription) {
+  Skill skill = MakeIronBody();
+  skill.set_name("Hyper Body");
+  skill.mutable_required_skill()->set_skill_name("Iron Wall");
+  skill.mutable_required_skill()->set_level(3);
+
+  std::vector<std::string> lines = Lines(RenderAt(skill, 1));
+  int row = -1;
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (lines[i].find("Required Skill") != std::string::npos) {
+      row = i;
+    }
+  }
+  ASSERT_GT(row, 0) << "the requirement is not on screen at all";
+  // A rule is drawn as a run of box-drawing horizontals, and the description
+  // above it is not.
+  EXPECT_NE(lines[row - 1].find("──"), std::string::npos)
+      << "no rule above: [" << lines[row - 1] << "]";
+  EXPECT_NE(lines[row - 2].find("Boosts DEF"), std::string::npos)
+      << "the description does not close where it should";
 }
 
 TEST_F(SkillInspectPanelTest, SaysNothingAboutRequirementsWhenThereAreNone) {
