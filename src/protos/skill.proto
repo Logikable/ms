@@ -72,6 +72,11 @@ message SkillEffect {
   // sources of 10% are worth 21%, not 20%. The distinction is invisible until
   // a second source of either exists, and expensive to unpick afterwards.
   double final_dmg_pct = 21;
+  // Resistance to abnormal statuses, on GMS's own scale rather than as a
+  // fraction. Nothing in this game inflicts a status, so nothing folds this in
+  // and no screen shows it -- it is here to keep the wiki's figure with the
+  // skill it belongs to, against the day statuses exist.
+  double status_resistance = 22;
 }
 
 // An extra grant that lands only with certain weapons in hand, on top of what
@@ -144,4 +149,8 @@ message Skill {
   int32 combo_orbs = 13;
   // What the skill grants on top of `base` with particular weapons in hand.
   repeated WeaponBonus weapon_bonus = 14;
+  // Whether this is one of the Page's Holy Power skills. Nothing reads it:
+  // Vessel of Light, the skill GMS gates on having used one, is permanent
+  // here. Recorded so the group survives until something needs it.
+  bool holy_power = 15;
 }
