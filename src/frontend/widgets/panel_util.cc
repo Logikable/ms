@@ -227,6 +227,8 @@ std::string FormatEquipType(EquipType type) {
       return "Throwing Star";
     case EQUIP_TYPE_TWO_HANDED_SWORD:
       return "Two-Handed Sword";
+    case EQUIP_TYPE_ONE_HANDED_AXE:
+      return "One-Handed Axe";
     case EQUIP_TYPE_TWO_HANDED_AXE:
       return "Two-Handed Axe";
     case EQUIP_TYPE_TWO_HANDED_BLUNT:

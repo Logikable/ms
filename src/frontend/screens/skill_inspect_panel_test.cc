@@ -172,6 +172,28 @@ TEST_F(SkillInspectPanelTest, ALongWeaponListWrapsRatherThanClipping) {
   }
 }
 
+// A skill taking either hand's sword names the sword, not the two of them --
+// four spelled-out weapons would run the Requires row down four lines.
+TEST_F(SkillInspectPanelTest, BothHandsOfAWeaponReadAsTheWeapon) {
+  Skill skill = MakeIronBody();
+  skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_SWORD);
+  skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_AXE);
+  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_AXE);
+  std::string rendered = RenderAt(skill, 5);
+  EXPECT_NE(rendered.find("Sword / Axe"), std::string::npos);
+  EXPECT_EQ(rendered.find("One-Handed"), std::string::npos);
+  EXPECT_EQ(rendered.find("Two-Handed"), std::string::npos);
+}
+
+// Half a pair is still that weapon: a Spearman's sword-only skill would read
+// as taking every sword if the collapse did not check both halves.
+TEST_F(SkillInspectPanelTest, OneHandOfAPairKeepsItsFullName) {
+  Skill skill = MakeIronBody();
+  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_SWORD);
+  EXPECT_NE(RenderAt(skill, 5).find("Two-Handed Sword"), std::string::npos);
+}
+
 TEST_F(SkillInspectPanelTest, NoReachRowForASingleTargetSkill) {
   Skill skill = MakeIronBody();
   std::string rendered = RenderAt(skill, 5);

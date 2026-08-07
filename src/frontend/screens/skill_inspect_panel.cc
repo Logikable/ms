@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -140,13 +141,59 @@ std::vector<std::string> WrapText(const std::string& text, int width) {
   return lines;
 }
 
-// The weapons an attack demands, as "Dagger" or "Dagger / Claw". Empty when
-// the skill can be swung with anything, which is what most skills want.
+// A weapon that comes in both hands' versions. Demanding the two of them is
+// how the data says "any sword", but "One-Handed Sword / Two-Handed Sword" is
+// neither how the description writes it nor narrow enough for the column.
+struct WeaponPair {
+  EquipType one_handed;
+  EquipType two_handed;
+  const char* name;
+};
+
+const WeaponPair kWeaponPairs[] = {
+    {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD, "Sword"},
+    {EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE, "Axe"},
+};
+
+// The pair `type` belongs to, if the skill demands the whole of it. Null when
+// only one hand's version is asked for, which stays the weapon it names.
+const WeaponPair* WholePairFor(const std::set<EquipType>& demanded,
+                               EquipType type) {
+  for (const WeaponPair& pair : kWeaponPairs) {
+    if ((type == pair.one_handed || type == pair.two_handed) &&
+        demanded.count(pair.one_handed) > 0 &&
+        demanded.count(pair.two_handed) > 0) {
+      return &pair;
+    }
+  }
+  return nullptr;
+}
+
+// The weapons a skill demands, as "Dagger" or "Sword / Axe". Empty when it can
+// be swung with anything, which is what most skills want.
 std::string RequiredWeapons(const Skill& skill) {
-  std::string result;
+  std::set<EquipType> demanded;
   for (int i = 0; i < skill.required_equip_type_size(); ++i) {
-    std::string name =
-        FormatEquipType(static_cast<EquipType>(skill.required_equip_type(i)));
+    demanded.insert(static_cast<EquipType>(skill.required_equip_type(i)));
+  }
+
+  // Walked in the order the skill lists them, so a collapsed pair lands where
+  // its first half was named.
+  std::string result;
+  std::set<EquipType> written;
+  for (int i = 0; i < skill.required_equip_type_size(); ++i) {
+    EquipType type = static_cast<EquipType>(skill.required_equip_type(i));
+    if (written.count(type) > 0) {
+      continue;
+    }
+    written.insert(type);
+    std::string name = FormatEquipType(type);
+    const WeaponPair* pair = WholePairFor(demanded, type);
+    if (pair != nullptr) {
+      name = pair->name;
+      written.insert(pair->one_handed);
+      written.insert(pair->two_handed);
+    }
     if (name.empty()) {
       continue;
     }
