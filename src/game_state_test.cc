@@ -84,42 +84,32 @@ GameState MakePlayModeStateWithItems() {
                    GameMode::kPlay);
 }
 
-TEST(GameStateTest, ConstructorStoresEquipsMap) {
-  EquipPrototype proto;
-  proto.set_name("Sword");
-  GameState state({{"sword", proto}}, {}, {}, {}, {});
-  ASSERT_TRUE(state.equips.count("sword"));
-  EXPECT_EQ(state.equips.at("sword").name(), "Sword");
-}
-
-TEST(GameStateTest, ConstructorStoresScrollsMap) {
+// One claim, five catalogs: the constructor hands each one through to the
+// field named after it.
+TEST(GameStateTest, ConstructorStoresEveryCatalog) {
+  EquipPrototype equip;
+  equip.set_name("Sword");
   Scroll scroll;
   scroll.set_name("60% ATT");
-  GameState state({}, {{"att_60", scroll}}, {}, {}, {});
-  ASSERT_TRUE(state.scrolls.count("att_60"));
-  EXPECT_EQ(state.scrolls.at("att_60").name(), "60% ATT");
-}
-
-TEST(GameStateTest, ConstructorStoresItemsMap) {
   ItemPrototype item;
   item.set_name("Green Snail Shell");
-  GameState state({}, {}, {{"green_snail_shell", item}}, {}, {});
-  ASSERT_TRUE(state.items.count("green_snail_shell"));
-  EXPECT_EQ(state.items.at("green_snail_shell").name(), "Green Snail Shell");
-}
-
-TEST(GameStateTest, ConstructorStoresMobsMap) {
   Mob mob;
   mob.set_name("Snail");
-  GameState state({}, {}, {}, {{"snail", mob}}, {});
-  ASSERT_TRUE(state.mobs.count("snail"));
-  EXPECT_EQ(state.mobs.at("snail").name(), "Snail");
-}
-
-TEST(GameStateTest, ConstructorStoresMapsMap) {
   MapData map;
   map.set_name("Right Around Lith Harbor");
-  GameState state({}, {}, {}, {}, {{"lith", map}});
+
+  GameState state({{"sword", equip}}, {{"att_60", scroll}},
+                  {{"green_snail_shell", item}}, {{"snail", mob}},
+                  {{"lith", map}});
+
+  ASSERT_TRUE(state.equips.count("sword"));
+  EXPECT_EQ(state.equips.at("sword").name(), "Sword");
+  ASSERT_TRUE(state.scrolls.count("att_60"));
+  EXPECT_EQ(state.scrolls.at("att_60").name(), "60% ATT");
+  ASSERT_TRUE(state.items.count("green_snail_shell"));
+  EXPECT_EQ(state.items.at("green_snail_shell").name(), "Green Snail Shell");
+  ASSERT_TRUE(state.mobs.count("snail"));
+  EXPECT_EQ(state.mobs.at("snail").name(), "Snail");
   ASSERT_TRUE(state.maps.count("lith"));
   EXPECT_EQ(state.maps.at("lith").name(), "Right Around Lith Harbor");
 }

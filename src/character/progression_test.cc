@@ -130,16 +130,13 @@ TEST_F(ProgressionTest, ThePaceNeverQuickens) {
 
 // --- the hotkeys tip ---
 
-// The one thing that expires rather than opens, so it is checked in both
-// directions: every level it should be up for, and the level it goes away on.
+// The one thing that expires rather than opens, so both directions matter:
+// every level it should be up for, and every level after it goes.
 TEST_F(ProgressionTest, TheTipStandsUntilItRetires) {
   for (int level = 1; level < HotkeysTipRetireLevel(); ++level) {
     CharacterInstance c = MakeCharacter(level);
-    EXPECT_TRUE(HotkeysTipVisible(c)) << "still up at level " << level;
+    EXPECT_TRUE(HotkeysTipVisible(c)) << "should still be up at " << level;
   }
-}
-
-TEST_F(ProgressionTest, TheTipIsGoneOnceItRetires) {
   CharacterInstance retired = MakeCharacter(HotkeysTipRetireLevel());
   EXPECT_FALSE(HotkeysTipVisible(retired));
   CharacterInstance later = MakeCharacter(HotkeysTipRetireLevel() + 20);
