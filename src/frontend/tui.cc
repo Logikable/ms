@@ -219,185 +219,172 @@ ftxui::Element Tui::RenderFrame() {
   });
 }
 
-ftxui::Element Tui::RenderScreen() {
-  if (controller_.screen() == kApAlloc) {
-    // Float the AP amount entry over the main view so the stat being raised
-    // stays visible behind it.
-    ftxui::Element dialog = ThemedWindow(
-        " Allocate AP ",
-        ftxui::vbox({
-            CenteredRow(StatFieldName(controller_.ap_alloc_field())),
-            ThemedSeparator(),
-            controller_.ap_selector().Render(),
-        }));
-    return ftxui::dbox({
-        RenderMain(),
-        ftxui::center(dialog | ftxui::clear_under),
-    });
-  }
-  if (controller_.screen() == kSkillLearn) {
-    // Float the skill-learning amount entry over the main view so the skill
-    // being raised stays visible behind it.
-    ftxui::Element dialog =
-        ThemedWindow(" Learn Skill ",
-                     ftxui::vbox({
-                         CenteredRow(controller_.skill_learn_skill().name()),
-                         ThemedSeparator(),
-                         controller_.sp_selector().Render(),
-                     }));
-    return ftxui::dbox({
-        RenderMain(),
-        ftxui::center(dialog | ftxui::clear_under),
-    });
-  }
-  if (controller_.screen() == kJobAdvance) {
-    // Float the confirmation over the main view, so the job list the choice
-    // came from stays behind it. A blank row separates the warning from the
-    // buttons, as on every other confirmation.
-    ftxui::Element dialog = ThemedWindow(
-        " Job Advancement ",
-        ftxui::vbox({
-            CenteredRow("Advance to " + JobName(controller_.job_advance_job()) +
-                        "?"),
-            CenteredRow("This action is irreversible."),
-            ThemedSeparator(),
-            CenteredRow(controller_.job_advance_prompt().Render()),
-        }));
-    return ftxui::dbox({
-        RenderMain(),
-        ftxui::center(dialog | ftxui::clear_under),
-    });
-  }
-  if (controller_.screen() == kQuit) {
-    // Titleless, like the bare confirm prompt: the question is the whole
-    // dialog, and a " Quit Game " chip above a "Quit Game?" row would ask it
-    // twice. Floated over the main view so the game the player is leaving is
-    // still behind the question.
-    ftxui::Element dialog =
-        ThemedWindow("", ftxui::vbox({
-                             CenteredRow("Quit Game?"),
-                             ThemedSeparator(),
-                             CenteredRow(controller_.quit_prompt().Render()),
-                         }));
-    return ftxui::dbox({
-        RenderMain(),
-        ftxui::center(dialog | ftxui::clear_under),
-    });
-  }
-  if (controller_.screen() == kSell) {
-    // Float the sell dialog over the main view for context.
-    return ftxui::dbox({
-        RenderMain(),
-        ftxui::center(sell_panel_.Render() | ftxui::clear_under),
-    });
-  }
-  if (controller_.screen() == kMapSelect) {
-    return ftxui::center(map_select_panel_.Render());
-  }
-  // kShopMenu draws the same thing: the menu is anchored to a row of the list,
-  // so the panel puts it up itself. It floats, so it may hang below the shop's
-  // bottom border without the centring here moving.
-  if (controller_.screen() == kShop || controller_.screen() == kShopMenu) {
+ftxui::Element Tui::OverMain(ftxui::Element dialog) {
+  return ftxui::dbox({
+      RenderMain(),
+      ftxui::center(std::move(dialog) | ftxui::clear_under),
+  });
+}
+
+namespace {
+
+// A window that keeps its own height. An hbox hands a bare child the full
+// height of the row, and these screens are far shorter than the terminal.
+ftxui::Element Standalone(ftxui::Element window) {
+  return ftxui::hbox({
+      ftxui::filler(),
+      ftxui::vbox({std::move(window), ftxui::filler()}),
+      ftxui::filler(),
+  });
+}
+
+}  // namespace
+
+ftxui::Element Tui::ApAllocDialog() {
+  return ThemedWindow(
+      " Allocate AP ",
+      ftxui::vbox({
+          CenteredRow(StatFieldName(controller_.ap_alloc_field())),
+          ThemedSeparator(),
+          controller_.ap_selector().Render(),
+      }));
+}
+
+ftxui::Element Tui::SkillLearnDialog() {
+  return ThemedWindow(" Learn Skill ",
+                      ftxui::vbox({
+                          CenteredRow(controller_.skill_learn_skill().name()),
+                          ThemedSeparator(),
+                          controller_.sp_selector().Render(),
+                      }));
+}
+
+ftxui::Element Tui::JobAdvanceDialog() {
+  return ThemedWindow(
+      " Job Advancement ",
+      ftxui::vbox({
+          CenteredRow("Advance to " + JobName(controller_.job_advance_job()) +
+                      "?"),
+          CenteredRow("This action is irreversible."),
+          ThemedSeparator(),
+          CenteredRow(controller_.job_advance_prompt().Render()),
+      }));
+}
+
+ftxui::Element Tui::QuitDialog() {
+  // Titleless: the question is the whole dialog, and a " Quit Game " chip over
+  // a "Quit Game?" row would ask it twice.
+  return ThemedWindow("", ftxui::vbox({
+                              CenteredRow("Quit Game?"),
+                              ThemedSeparator(),
+                              CenteredRow(controller_.quit_prompt().Render()),
+                          }));
+}
+
+ftxui::Element Tui::RenderShopInspect() {
+  const EquipPrototype* proto = shop_panel_.selected_item();
+  if (proto == nullptr) {
     return ftxui::center(shop_panel_.Render());
   }
-  if (controller_.screen() == kShopInspect) {
-    const EquipPrototype* proto = shop_panel_.selected_item();
-    if (proto == nullptr) {
+  // A pristine copy of what the shop would hand over -- no scrolls spent, no
+  // stars. Built here because nothing owns a shop item until it is bought.
+  EquipInstance preview(*proto);
+  inspect_panel_.SetItem(&preview);
+  return Standalone(inspect_panel_.Render());
+}
+
+ftxui::Element Tui::RenderTraceRecover() {
+  EquipInstance preview = trace_recover_panel_.PreviewResult();
+  trace_inspect_panel_.SetItem(&preview);
+  int base_idx = trace_recover_panel_.selected_index();
+  inspect_panel_.SetItem(base_idx >= 0 ? &state_.character.inventory()[base_idx]
+                                       : nullptr);
+  ftxui::Element right_col = ftxui::vbox({
+      trace_recover_panel_.RenderTabs(),
+      inspect_panel_.Render(),
+      trace_recover_panel_.RenderBelow(),
+  });
+  return ftxui::hbox({trace_inspect_panel_.Render() | ftxui::flex,
+                      std::move(right_col) | ftxui::flex});
+}
+
+ftxui::Element Tui::RenderInspect() {
+  // One screen, two kinds of item: the panel takes whichever the cursor was on
+  // and frames both the same way.
+  // Two overloads of SetItem, so this cannot fold into one ternary.
+  if (controller_.screen() == kItemInspect) {
+    inspect_panel_.SetItem(controller_.item_inspect_item());
+  } else {
+    inspect_panel_.SetItem(controller_.inspect_item());
+  }
+  return Standalone(inspect_panel_.Render());
+}
+
+ftxui::Element Tui::RenderScroll() {
+  inspect_panel_.SetItem(controller_.scroll_item());
+  ftxui::Element scroll_view = scroll_panel_.Render();
+  if (controller_.screen() == kScrollResult) {
+    ftxui::Element dialog =
+        scroll_panel_.RenderResult(controller_.scroll_result());
+    scroll_view =
+        ftxui::dbox({scroll_view, ftxui::center(dialog | ftxui::clear_under)});
+  }
+  return ftxui::hbox(
+      {scroll_view | ftxui::flex, inspect_panel_.Render() | ftxui::flex});
+}
+
+ftxui::Element Tui::RenderScreen() {
+  switch (controller_.screen()) {
+    // Dialogs float over the main view, so what they are about stays visible
+    // behind them.
+    case kApAlloc:
+      return OverMain(ApAllocDialog());
+    case kSkillLearn:
+      return OverMain(SkillLearnDialog());
+    case kJobAdvance:
+      return OverMain(JobAdvanceDialog());
+    case kQuit:
+      return OverMain(QuitDialog());
+    case kSell:
+      return OverMain(sell_panel_.Render());
+    case kMapSelect:
+      return ftxui::center(map_select_panel_.Render());
+    // kShopMenu draws the same thing: the menu is anchored to a row of the
+    // list, so the panel puts it up itself.
+    case kShop:
+    case kShopMenu:
       return ftxui::center(shop_panel_.Render());
-    }
-    // A pristine copy of what the shop would hand over -- no scrolls spent, no
-    // stars. Built here rather than held anywhere, because nothing owns a shop
-    // item until someone buys it.
-    EquipInstance preview(*proto);
-    inspect_panel_.SetItem(&preview);
-    // A screen of its own, like inspecting something already in the bag. The
-    // details are what the player came to read, so nothing sits behind them.
-    // Over a filler, not bare: an hbox hands its child the full height of the
-    // row, so the window would stretch to the terminal rather than fit what
-    // it holds.
-    return ftxui::hbox({
-        ftxui::filler(),
-        ftxui::vbox({inspect_panel_.Render(), ftxui::filler()}),
-        ftxui::filler(),
-    });
+    case kShopInspect:
+      return RenderShopInspect();
+    case kShopBuy:
+      return ftxui::dbox({
+          ftxui::center(shop_panel_.Render()),
+          ftxui::center(buy_panel_.Render() | ftxui::clear_under),
+      });
+    case kStarForce:
+      star_force_panel_.SetItem(controller_.star_force_item());
+      return ftxui::center(star_force_panel_.Render());
+    case kStarForceResult:
+      return ftxui::center(
+          star_force_panel_.RenderResult(controller_.star_force_result()));
+    case kTraceRecover:
+      return RenderTraceRecover();
+    case kTraceRecoverResult:
+      return ftxui::center(trace_recover_panel_.RenderResult(
+          controller_.trace_recovery_result()));
+    case kSkillInspect:
+      skill_inspect_panel_.SetSkill(&controller_.skill_inspect_skill(),
+                                    controller_.skill_inspect_level());
+      return Standalone(skill_inspect_panel_.Render());
+    case kInspect:
+    case kItemInspect:
+      return RenderInspect();
+    case kScrollSelect:
+    case kScrollResult:
+      return RenderScroll();
+    default:
+      return RenderMain();
   }
-  if (controller_.screen() == kShopBuy) {
-    // Float the buy dialog over the shop, so the list it came from stays
-    // behind it -- the same way selling floats over the bag.
-    return ftxui::dbox({
-        ftxui::center(shop_panel_.Render()),
-        ftxui::center(buy_panel_.Render() | ftxui::clear_under),
-    });
-  }
-  if (controller_.screen() == kStarForce) {
-    star_force_panel_.SetItem(controller_.star_force_item());
-    return ftxui::center(star_force_panel_.Render());
-  }
-  if (controller_.screen() == kStarForceResult) {
-    return ftxui::center(
-        star_force_panel_.RenderResult(controller_.star_force_result()));
-  }
-  if (controller_.screen() == kTraceRecover) {
-    EquipInstance preview = trace_recover_panel_.PreviewResult();
-    trace_inspect_panel_.SetItem(&preview);
-    int base_idx = trace_recover_panel_.selected_index();
-    inspect_panel_.SetItem(
-        base_idx >= 0 ? &state_.character.inventory()[base_idx] : nullptr);
-    ftxui::Element right_col = ftxui::vbox({
-        trace_recover_panel_.RenderTabs(),
-        inspect_panel_.Render(),
-        trace_recover_panel_.RenderBelow(),
-    });
-    return ftxui::hbox({trace_inspect_panel_.Render() | ftxui::flex,
-                        std::move(right_col) | ftxui::flex});
-  }
-  if (controller_.screen() == kTraceRecoverResult) {
-    return ftxui::center(
-        trace_recover_panel_.RenderResult(controller_.trace_recovery_result()));
-  }
-  if (controller_.screen() == kSkillInspect) {
-    skill_inspect_panel_.SetSkill(&controller_.skill_inspect_skill(),
-                                  controller_.skill_inspect_level());
-    // Over a filler so the window keeps its own height; an hbox stretches a
-    // bare child to the row height, and this screen is shorter than the
-    // terminal by a long way.
-    return ftxui::hbox({
-        ftxui::filler(),
-        ftxui::vbox({skill_inspect_panel_.Render(), ftxui::filler()}),
-        ftxui::filler(),
-    });
-  }
-  if (controller_.screen() == kInspect ||
-      controller_.screen() == kItemInspect) {
-    // One screen, two kinds of item: the panel takes whichever the cursor was
-    // on and frames both the same way.
-    if (controller_.screen() == kItemInspect) {
-      inspect_panel_.SetItem(controller_.item_inspect_item());
-    } else {
-      inspect_panel_.SetItem(controller_.inspect_item());
-    }
-    // Over a filler, not bare: an hbox hands its child the full height of the
-    // row, which for a stackable's three rows is a window of mostly nothing.
-    return ftxui::hbox({
-        ftxui::filler(),
-        ftxui::vbox({inspect_panel_.Render(), ftxui::filler()}),
-        ftxui::filler(),
-    });
-  }
-  if (controller_.screen() == kScrollSelect ||
-      controller_.screen() == kScrollResult) {
-    inspect_panel_.SetItem(controller_.scroll_item());
-    ftxui::Element scroll_view = scroll_panel_.Render();
-    if (controller_.screen() == kScrollResult) {
-      ftxui::Element dialog =
-          scroll_panel_.RenderResult(controller_.scroll_result());
-      scroll_view = ftxui::dbox(
-          {scroll_view, ftxui::center(dialog | ftxui::clear_under)});
-    }
-    return ftxui::hbox(
-        {scroll_view | ftxui::flex, inspect_panel_.Render() | ftxui::flex});
-  }
-  return RenderMain();
 }
 
 ftxui::Element Tui::RenderMain() {

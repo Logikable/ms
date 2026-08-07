@@ -54,6 +54,17 @@ class Tui {
   // Whichever screen the controller is showing, celebration aside.
   ftxui::Element RenderScreen();
   ftxui::Element RenderMain();
+  // Floats `dialog` centred over the main view.
+  ftxui::Element OverMain(ftxui::Element dialog);
+  // The dialogs, and the screens that take more than a line to build.
+  ftxui::Element ApAllocDialog();
+  ftxui::Element SkillLearnDialog();
+  ftxui::Element JobAdvanceDialog();
+  ftxui::Element QuitDialog();
+  ftxui::Element RenderShopInspect();
+  ftxui::Element RenderTraceRecover();
+  ftxui::Element RenderInspect();
+  ftxui::Element RenderScroll();
   ftxui::Element RenderExpBar();
   // Advances the world by the time since the previous call: combat, and the
   // playtime the session is accruing. Both come off one reading of a
