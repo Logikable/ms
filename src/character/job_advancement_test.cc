@@ -80,6 +80,7 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
           // A 2nd job gets what its Final Attack demands, which is what makes
           // the demand worth stating at all.
           {JOB_FIGHTER, {EQUIP_TYPE_TWO_HANDED_AXE}},
+          {JOB_PAGE, {EQUIP_TYPE_TWO_HANDED_BLUNT}},
           {JOB_SPEARMAN, {EQUIP_TYPE_SPEAR}},
       };
   return *kTypes;

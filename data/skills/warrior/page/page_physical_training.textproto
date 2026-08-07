@@ -1,0 +1,13 @@
+name: "Physical Training"
+description: "Permanently raises STR and DEX through sheer physical training."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PAGE
+max_level: 5
+base {
+  str: 6
+  dex: 6
+}
+per_level {
+  str: 6
+  dex: 6
+}

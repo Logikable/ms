@@ -33,6 +33,8 @@ std::vector<std::string> StarterEquipsFor(Job job) {
       return {"subi_throwing_stars", "fruit_knife", "garnier"};
     case JOB_FIGHTER:
       return {"blue_axe"};
+    case JOB_PAGE:
+      return {"mithril_maul"};
     case JOB_SPEARMAN:
       return {"forked_spear"};
     default:

@@ -1,0 +1,25 @@
+# Two hits of 60+x% apiece, folded into one percentage the way every final
+# attack here is -- see SkillEffect::final_attack_pct.
+name: "Final Attack"
+description:
+  "A chance for every swing to be followed by two more blows at whatever is "
+  "in front of you. Needs a sword or a blunt weapon in hand."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PAGE
+max_level: 20
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+required_skill {
+  skill_name: "Weapon Mastery"
+  level: 3
+}
+base {
+  final_attack_chance: 0.02
+  final_attack_pct: 1.22
+}
+per_level {
+  final_attack_chance: 0.02
+  final_attack_pct: 0.02
+}

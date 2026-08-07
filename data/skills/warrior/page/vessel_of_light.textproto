@@ -1,0 +1,23 @@
+# GMS grants the whole of this at once, and only while a Holy Power skill is
+# being used. Here it is permanent and bought a twentieth at a time, ending
+# exactly where GMS's one level does. Its HP recovery is left out, along with
+# the status resistance, which nothing in this game would resist.
+name: "Vessel of Light"
+description:
+  "Gathers the power of light inside you, until you hit harder and harder "
+  "things bounce off you."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PAGE
+max_level: 20
+base {
+  damage_pct: 0.005
+  attack: 2
+  damage_taken_pct: 0.005
+  status_resistance: 0.5
+}
+per_level {
+  damage_pct: 0.005
+  attack: 2
+  damage_taken_pct: 0.005
+  status_resistance: 0.5
+}

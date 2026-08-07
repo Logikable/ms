@@ -254,12 +254,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 1) {
     return {JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE};
   }
-  // From here on the choice is a function of the job already held. The Page is
-  // not offered: its book is not written, and picking it would strand thirty
-  // levels of SP with nothing to spend them on. Add it here when it has
-  // something to buy.
+  // From here on the choice is a function of the job already held.
   if (stage == 2 && job == JOB_SWORDMAN) {
-    return {JOB_FIGHTER, JOB_SPEARMAN};
+    return {JOB_FIGHTER, JOB_PAGE, JOB_SPEARMAN};
   }
   return {};
 }

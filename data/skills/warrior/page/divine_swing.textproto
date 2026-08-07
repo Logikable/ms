@@ -1,0 +1,14 @@
+# GMS stuns for 10+4x% on top of this. Nothing here is ever stunned, so the
+# hammer only hits.
+name: "Divine Swing"
+description:
+  "Swing a great hammer conjured out of light at everything around you, four "
+  "times over."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_PAGE
+max_level: 20
+max_enemies: 6
+lines: 4
+holy_power: true
+base { skill_pct: 1.22 }
+per_level { skill_pct: 0.02 }

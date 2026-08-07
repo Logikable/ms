@@ -1,0 +1,21 @@
+# Twenty levels rather than the other branches' ten, because the Page's book
+# loses two skills this game has no use for and the points have to land
+# somewhere. So the mastery climbs 2% a level from 12 and reaches GMS's 50 at
+# the top all the same.
+name: "Weapon Mastery"
+description:
+  "Trains your grip until your weapon lands where you mean it to, narrowing "
+  "your weakest swings toward your best. Also speeds them up. Needs a sword "
+  "or a blunt weapon in hand."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PAGE
+max_level: 20
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+base {
+  mastery: 0.12
+  attack_speed: 1
+}
+per_level { mastery: 0.02 }

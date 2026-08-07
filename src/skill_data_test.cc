@@ -68,7 +68,8 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   const JobAdvancement kWritten[] = {
       JOB_ADVANCEMENT_SWORDMAN, JOB_ADVANCEMENT_ARCHER,
       JOB_ADVANCEMENT_MAGICIAN, JOB_ADVANCEMENT_ROGUE,
-      JOB_ADVANCEMENT_SPEARMAN, JOB_ADVANCEMENT_FIGHTER};
+      JOB_ADVANCEMENT_SPEARMAN, JOB_ADVANCEMENT_FIGHTER,
+      JOB_ADVANCEMENT_PAGE};
   for (JobAdvancement advancement : kWritten) {
     EXPECT_TRUE(cost_by_advancement.count(advancement))
         << "advancement " << advancement << " has no skills at all";
