@@ -169,6 +169,31 @@ cc_test(
 
 # Not a test: a table to read while tuning the mob-hit cadence. See the file.
 cc_binary(
+    name = "weapon_sim",
+    srcs = ["weapon_sim.cc"],
+    deps = [
+        ":damage",
+        ":encounter",
+        "//src:embedded_data",
+        "//src:game_state",
+        "//src:proto_loader",
+        "//src/character",
+        "//src/character:character_stats",
+        "//src/character:progression",
+        "//src/item:equip_instance",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+cc_binary(
     name = "balance_sim",
     srcs = ["balance_sim.cc"],
     deps = [
