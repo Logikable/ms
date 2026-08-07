@@ -16,13 +16,12 @@
 namespace ms {
 namespace {
 
-// Column widths. Name, slot, level and job match the bag's equip tab, so the
-// two lists line up and the same item reads the same way in both. The cost
-// column fits a five-figure price and its coin.
+// Column widths. Name, slot and level match the bag's equip tab, so the two
+// lists line up and the same item reads the same way in both. The cost column
+// fits a five-figure price and its coin.
 constexpr int kNameWidth = 26;
 constexpr int kSlotWidth = 10;
 constexpr int kLevelWidth = 7;
-constexpr int kJobWidth = 13;
 constexpr int kCostWidth = 12;
 
 // Two leading spaces match the "  " / "> " cursor on the rows below.
@@ -30,7 +29,6 @@ ftxui::Element ColumnHeader() {
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
                      PadRight("Equip Slot", kSlotWidth) + "  " +
                      PadRight("Level", kLevelWidth) +
-                     PadRight("Job", kJobWidth) +
                      PadLeft("🪙 Cost", kCostWidth));
 }
 
@@ -50,11 +48,20 @@ ShopPanel::ShopPanel(const CharacterInstance& character,
                      const std::map<std::string, EquipPrototype>& equips)
     : character_(character),
       equips_(equips),
-      stock_(ShopStock(equips)),
       menu_({"Inspect", "Buy", "Close"}) {
+  Reset();
 }
 
 void ShopPanel::Reset() {
+  // Rebuilt rather than kept, because the shop stocks what this character can
+  // hold and that changes when they advance. Cheap: the catalog is small and
+  // the screen opens on a keypress.
+  stock_.clear();
+  for (const std::string& key : ShopStock(equips_)) {
+    if (character_.MeetsJob(equips_.at(key))) {
+      stock_.push_back(key);
+    }
+  }
   zone_ = kZoneList;
   selected_ = 0;
   menu_open_ = false;
@@ -163,17 +170,12 @@ ftxui::Element ShopPanel::Render() const {
     if (zone_ == kZoneList && i == selected_) {
       cursor = "> ";
     }
-    // Each of the three requirements is coloured by whether this character
-    // meets it, so the row says which one is in the way rather than only that
-    // something is. Same rule and same colour as the bag's equip tab.
+    // The level is coloured by whether this character has reached it, on the
+    // bag's rule and in the bag's colour. There is no class to colour: the list
+    // holds nothing this character is the wrong class for.
     ftxui::Element level = ftxui::text(LevelCell(proto));
     if (!character_.MeetsLevel(proto)) {
       level = std::move(level) | ftxui::color(kRed);
-    }
-    ftxui::Element job =
-        ftxui::text(PadRight(FormatJobCategories(proto), kJobWidth));
-    if (!character_.MeetsJob(proto)) {
-      job = std::move(job) | ftxui::color(kRed);
     }
     // The price is coloured by whether the player can pay it, so the list
     // answers "what can I buy" without arithmetic on every row.
@@ -187,7 +189,6 @@ ftxui::Element ShopPanel::Render() const {
                     PadRight(FormatSlot(proto.equip_slot()), kSlotWidth) +
                     "  "),
         std::move(level),
-        std::move(job),
         std::move(cost),
         ftxui::text(" "),
     }));

@@ -1,7 +1,11 @@
 /* ShopPanel is the full-screen buying screen, reached from the Shop tab of the
- * inventory. A row of tabs over a Name / Cost list of everything on sale, with
- * the player's meso beside the title so the price column has something to be
- * read against.
+ * inventory. A row of tabs over a Name / Cost list of what is on sale, with the
+ * player's meso beside the title so the price column has something to be read
+ * against.
+ *
+ * The list holds only what this character's class can hold. What is left out is
+ * left out because they could never use it, not because they cannot use it yet
+ * -- a level too high still shows, in red, as something to save toward.
  *
  * Only the Equips tab exists so far. The tab row is here rather than waiting
  * for the second tab because the stock is already split by what it goes in --
@@ -46,9 +50,11 @@ class ShopPanel {
   ShopPanel(const CharacterInstance& character,
             const std::map<std::string, EquipPrototype>& equips);
 
-  // Puts the cursor back on the first item. Call when the screen opens. The
-  // list rather than the tab bar: the shop is a screen the player came to in
-  // order to buy something, and the bar is one key away.
+  // Restocks and puts the cursor back on the first item. Call when the screen
+  // opens: the stock depends on the character's class, so a job advancement
+  // between two visits changes it. The cursor lands in the list rather than on
+  // the tab bar -- the shop is a screen the player came to in order to buy
+  // something, and the bar is one key away.
   void Reset();
   ftxui::Element Render() const;
   // Handles Up/Down along the list. Enter and Escape are left to the caller,
@@ -82,8 +88,8 @@ class ShopPanel {
 
   const CharacterInstance& character_;
   const std::map<std::string, EquipPrototype>& equips_;
-  // Catalog keys of the stock, in display order. Fixed at construction: what
-  // the shop sells does not change as the player buys.
+  // Catalog keys of the stock, in display order. Rebuilt by Reset(), which is
+  // the only thing that changes it -- buying does not.
   std::vector<std::string> stock_;
   Zone zone_ = kZoneList;
   int selected_ = 0;

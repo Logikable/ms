@@ -182,6 +182,9 @@ class ShopPanelTest : public testing::Test {
       {"long_sword", MakeItem("Long Sword", 10, 5000)},
       {"machete", MakeItem("Machete", 20, 10000, EQUIP_JOB_CATEGORY_WARRIOR)},
       {"gladius", MakeItem("Gladius", 30, 20000, EQUIP_JOB_CATEGORY_WARRIOR)},
+      {"scimitar", MakeItem("Scimitar", 30, 20000, EQUIP_JOB_CATEGORY_WARRIOR,
+                            EQUIP_TYPE_TWO_HANDED_SWORD)},
+      // A thief's, so a warrior never sees it.
       {"subi",
        MakeItem("Subi Throwing-Stars", 10, 1000, EQUIP_JOB_CATEGORY_THIEF,
                 EQUIP_TYPE_THROWING_STAR, EQUIP_SLOT_STARS)},
@@ -230,7 +233,7 @@ TEST_F(ShopPanelTest, WalksTheList) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_);
   panel.OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel.selected_item()->name(), "Subi Throwing-Stars");
+  EXPECT_EQ(panel.selected_item()->name(), "Machete");
   panel.OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(panel.selected_item()->name(), "Long Sword");
 }
@@ -252,8 +255,8 @@ TEST_F(ShopPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
   ShopPanel panel(c, equips_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
   panel.OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the last item
-  EXPECT_EQ(panel.selected_item()->name(), "Gladius");
-  EXPECT_NE(Render(panel).find("> Gladius"), std::string::npos);
+  EXPECT_EQ(panel.selected_item()->name(), "Scimitar");
+  EXPECT_NE(Render(panel).find("> Scimitar"), std::string::npos);
 }
 
 TEST_F(ShopPanelTest, DownFromTheLastItemReturnsToTheBar) {
@@ -261,9 +264,9 @@ TEST_F(ShopPanelTest, DownFromTheLastItemReturnsToTheBar) {
   ShopPanel panel(c, equips_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // straight to the last item
   panel.OnEvent(ftxui::Event::ArrowUp);
-  ASSERT_NE(Render(panel).find("> Gladius"), std::string::npos);
+  ASSERT_NE(Render(panel).find("> Scimitar"), std::string::npos);
   panel.OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
-  EXPECT_EQ(Render(panel).find("> Gladius"), std::string::npos);
+  EXPECT_EQ(Render(panel).find("> Scimitar"), std::string::npos);
 }
 
 // Enter on the bar is not Enter on an item. Opening the menu there would put a
@@ -302,50 +305,79 @@ TEST_F(ShopPanelTest, RedsOutPricesBeyondTheBalance) {
   EXPECT_EQ(CellColor(panel, "Gladius", "20,000"), kRed) << "20,000 is not";
 }
 
-// The three columns the bag's equip tab shows, in the same order and the same
-// widths, so an item reads the same way in both lists.
-TEST_F(ShopPanelTest, ShowsSlotLevelAndJob) {
+// The columns the bag's equip tab shows, in the same order and the same
+// widths, so an item reads the same way in both lists. Class is not among them:
+// the list holds nothing this character is the wrong class for.
+TEST_F(ShopPanelTest, ShowsSlotAndLevel) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99);
   ShopPanel panel(c, equips_);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
   EXPECT_NE(rendered.find("Level"), std::string::npos);
-  EXPECT_NE(rendered.find("Job"), std::string::npos);
   EXPECT_NE(rendered.find("Weapon"), std::string::npos);
-  EXPECT_NE(rendered.find("Stars"), std::string::npos);
   EXPECT_NE(rendered.find("Lv20"), std::string::npos);
-  EXPECT_NE(rendered.find("Warrior"), std::string::npos);
-  EXPECT_NE(rendered.find("All"), std::string::npos);
+  EXPECT_EQ(rendered.find("Job"), std::string::npos);
 }
 
-// Red says which requirement is in the way, so the two colour independently:
-// a level too high does not also accuse the class, and vice versa.
 TEST_F(ShopPanelTest, RedsOutALevelTheCharacterHasNotReached) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/20, JOB_SWORDMAN);
   ShopPanel panel(c, equips_);
   EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed) << "level 20 reaches it";
   EXPECT_EQ(CellColor(panel, "Gladius", "Lv30"), kRed) << "level 30 does not";
-  EXPECT_NE(CellColor(panel, "Gladius", "Warrior"), kRed)
-      << "a swordman is the right class for it; only the level is wrong";
-}
-
-TEST_F(ShopPanelTest, RedsOutAJobTheCharacterCannotBe) {
-  CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_MAGICIAN);
-  ShopPanel panel(c, equips_);
-  EXPECT_EQ(CellColor(panel, "Machete", "Warrior"), kRed)
-      << "a magician cannot hold a warrior weapon";
-  EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed)
-      << "level 99 clears it; only the class is wrong";
-  EXPECT_NE(CellColor(panel, "Long Sword", "All"), kRed)
-      << "anyone can hold a universal item";
+  EXPECT_NE(CellColor(panel, "Gladius", "20,000"), kRed)
+      << "the price is affordable; only the level is wrong";
 }
 
 TEST_F(ShopPanelTest, LeavesAnEquippableItemUncolored) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_SWORDMAN);
   ShopPanel panel(c, equips_);
   EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed);
-  EXPECT_NE(CellColor(panel, "Machete", "Warrior"), kRed);
   EXPECT_NE(CellColor(panel, "Machete", "10,000"), kRed);
+}
+
+// --- the stock is what this character could hold ---
+
+// A level too high is still listed, in red: it is something to save toward.
+// A class they can never be is not, which is what makes a Job column pointless.
+TEST_F(ShopPanelTest, OmitsWeaponsOfAnotherClass) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/1, JOB_SWORDMAN);
+  ShopPanel panel(c, equips_);
+  std::string rendered = Render(panel);
+  EXPECT_EQ(rendered.find("Subi"), std::string::npos)
+      << "a warrior is shown a thief's stars";
+  EXPECT_NE(rendered.find("Machete"), std::string::npos);
+  EXPECT_NE(rendered.find("Gladius"), std::string::npos)
+      << "level 30 is out of reach at level 1, which is not a reason to hide "
+         "it";
+}
+
+TEST_F(ShopPanelTest, StocksTheOtherClassForTheOtherClass) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_ROGUE);
+  ShopPanel panel(c, equips_);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Subi"), std::string::npos);
+  EXPECT_EQ(rendered.find("Machete"), std::string::npos);
+}
+
+// Universal items are everyone's, so nobody is left with an empty shop.
+TEST_F(ShopPanelTest, StocksUniversalItemsForAnyClass) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_MAGICIAN);
+  ShopPanel panel(c, equips_);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Long Sword"), std::string::npos);
+  EXPECT_EQ(rendered.find("Machete"), std::string::npos);
+}
+
+// The stock is a function of the class, so advancing has to change it. Reset is
+// where that happens -- it runs every time the screen opens.
+TEST_F(ShopPanelTest, ResetRestocksAfterAJobAdvancement) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_BEGINNER);
+  ShopPanel panel(c, equips_);
+  ASSERT_EQ(Render(panel).find("Machete"), std::string::npos)
+      << "a beginner is no class for a warrior weapon";
+  c.AdvanceJob(JOB_SWORDMAN);
+  panel.Reset();
+  EXPECT_NE(Render(panel).find("Machete"), std::string::npos);
 }
 
 TEST_F(ShopPanelTest, OpensAMenuOverTheSelectedItem) {
@@ -452,7 +484,7 @@ TEST_F(ShopPanelTest, TheMenuDrawsPastTheBottomBorder) {
   for (int i = 0; i < 3; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
-  ASSERT_EQ(panel.selected_item()->name(), "Gladius");
+  ASSERT_EQ(panel.selected_item()->name(), "Scimitar");
   panel.OpenMenu();
   std::vector<std::string> rows = ScreenRows(panel);
   // The first bottom-left corner down the screen is the window's: the menu
