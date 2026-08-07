@@ -770,5 +770,51 @@ TEST(AlwaysFocusableTest, ATabContainerReachesTheChild) {
   EXPECT_TRUE(seen_wrapped);
 }
 
+// --- The name tables ---
+//
+// Nothing else asserts these: they are read through a panel's rendered text,
+// where a missing name reads as a blank column rather than a failure.
+
+TEST(JobNameTest, EveryJobHasAName) {
+  for (int i = Job_MIN; i <= Job_MAX; ++i) {
+    if (!Job_IsValid(i) || i == JOB_UNSPECIFIED) {
+      continue;
+    }
+    Job job = static_cast<Job>(i);
+    EXPECT_NE(JobName(job), "Unknown") << Job_Name(job) << " is not named";
+  }
+}
+
+TEST(StatFieldNameTest, NamesTheFourAllocatableStats) {
+  EXPECT_EQ(StatFieldName(STAT_FIELD_STR), "STR");
+  EXPECT_EQ(StatFieldName(STAT_FIELD_DEX), "DEX");
+  EXPECT_EQ(StatFieldName(STAT_FIELD_INT), "INT");
+  EXPECT_EQ(StatFieldName(STAT_FIELD_LUK), "LUK");
+  EXPECT_EQ(StatFieldName(STAT_FIELD_UNSPECIFIED), "");
+}
+
+// A skill kind added without a look at this reads as a passive, which is what
+// happened to the first auto-attack: it inspected as " Passive " and showed no
+// effects at any level.
+TEST(IsActiveTest, EverythingButAPassiveIsActive) {
+  Skill skill;
+  skill.set_kind(SKILL_KIND_ATTACK);
+  EXPECT_TRUE(IsActive(skill));
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  EXPECT_TRUE(IsActive(skill));
+  skill.set_kind(SKILL_KIND_AUTO_ATTACK);
+  EXPECT_TRUE(IsActive(skill));
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  EXPECT_FALSE(IsActive(skill));
+}
+
+// One key per stage: the tab arrives again at every advancement, and having
+// seen the first is not having seen the second.
+TEST(AdvanceTabKeyTest, EveryStageHasItsOwnKey) {
+  EXPECT_NE(AdvanceTabKey(1), AdvanceTabKey(2));
+  EXPECT_NE(AdvanceTabKey(1), kShopTabKey);
+  EXPECT_FALSE(AdvanceTabKey(1).empty());
+}
+
 }  // namespace
 }  // namespace ms

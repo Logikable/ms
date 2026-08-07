@@ -292,34 +292,19 @@ class TuiControllerTest : public testing::Test {
 // panel: equipped -> inventory -> combat -> character -> back to equipped. The
 // character panel is always focusable, so no panel is ever skipped.
 
-TEST_F(TuiControllerTest, TabSwitchesToInventoryPanel) {
+TEST_F(TuiControllerTest, TabWalksThePanelRing) {
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kInventoryPanel);
-}
-
-TEST_F(TuiControllerTest, TabSwitchesToCombatPanel) {
-  controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kCombatPanel);
-}
-
-TEST_F(TuiControllerTest, TabSwitchesToCharPanel) {
-  controller_->OnEvent(ftxui::Event::Tab);
-  controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kCharPanel);
-}
-
-TEST_F(TuiControllerTest, TabCyclesBackToEquipPanel) {
-  controller_->OnEvent(ftxui::Event::Tab);
-  controller_->OnEvent(ftxui::Event::Tab);
-  controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kEquipPanel);
 }
 
-// Shift+Tab runs the same ring anticlockwise, and rounds the same way.
-TEST_F(TuiControllerTest, ShiftTabWalksThePanelsBackwards) {
+// The same ring anticlockwise, rounding the same way.
+TEST_F(TuiControllerTest, ShiftTabWalksTheRingBackwards) {
   controller_->OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(panel_focus_, kCharPanel);
   controller_->OnEvent(ftxui::Event::TabReverse);
@@ -1121,16 +1106,9 @@ TEST_F(TuiControllerTest, ShopMenuCloseReturnsToTheList) {
   EXPECT_EQ(controller_->screen(), kShop);
 }
 
-TEST_F(TuiControllerTest, EscapeFromTheShopMenuReturnsToTheList) {
-  OpenShop();
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Escape);
-  EXPECT_EQ(controller_->screen(), kShop);
-}
-
 // Escape out of the menu leaves the list where it was, so the next Escape is
 // the one that leaves the shop.
-TEST_F(TuiControllerTest, EscapeFromTheShopMenuDoesNotLeaveTheShop) {
+TEST_F(TuiControllerTest, EscapeFromTheShopMenuReturnsToTheList) {
   OpenShop();
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Escape);

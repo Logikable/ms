@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 
+#include "src/frontend/widgets/panel_util.h"
 #include "src/item/item.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
@@ -63,6 +64,22 @@ TEST(EquipDataTest, OrdinaryWeaponsStillTakeUpgrades) {
         << entry.first << " cannot be star forced";
     EXPECT_GT(proto.upgrade_slots(), 0)
         << entry.first << " has no slots to scroll";
+  }
+}
+
+// Every shipped item has to be describable. A slot or a weapon type added
+// without a display name shows up as a blank column in the bag, which reads as
+// a bug in the item rather than a missing label.
+TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    EXPECT_FALSE(FormatSlot(proto.equip_slot()).empty())
+        << entry.first << " wears in an unnamed slot";
+    if (proto.equip_type() != EQUIP_TYPE_UNSPECIFIED) {
+      EXPECT_FALSE(FormatEquipType(proto.equip_type()).empty())
+          << entry.first << " is an unnamed kind of item";
+    }
   }
 }
 
