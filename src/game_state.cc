@@ -58,16 +58,13 @@ void GiveEquip(GameState& state, const std::string& name) {
   state.character.PickUp(std::make_unique<EquipInstance>(it->second));
 }
 
-// Climbs the workbench's character to the end of 2nd job the way a player
-// gets there, so nothing it holds is out of a player's reach -- it is thirty
-// hours of grinding, handed over.
+// Climbs to the end of 2nd job the way a player gets there, so nothing the
+// workbench holds is out of reach: thirty hours of grinding, handed over.
 //
-// Everything earned on the way is spent: AP into the job's primary stat, SP
-// into whatever it will buy. A workbench hands over finished states, and a
-// level 60 with an unspent pool would still need a hundred and fifty
-// keypresses before any of 2nd job was on screen. The Level-Up items are what
-// is left for exercising the two allocation screens -- LevelUp is not bounded
-// by the trial cap, so there is always more AP and SP to be had.
+// Everything earned is spent, AP into the primary stat and SP into whatever it
+// will buy, because a level 60 with an unspent pool would still be a hundred
+// keypresses from seeing any of 2nd job. The Level-Up items are what is left
+// for exercising the allocation screens.
 void GrowToSecondJob(GameState& state) {
   CharacterInstance& character = state.character;
   int taken = 0;

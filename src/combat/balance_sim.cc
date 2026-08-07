@@ -84,14 +84,11 @@ StatField PrimaryStatFor(Job job) {
   }
 }
 
-// Brings `state`'s character up to `level` the way a player gets there: taking
-// each advancement of `path` as it is offered, spending every AP on the
-// primary stat, and every SP on whatever it will buy.
-//
-// Which skill the SP goes into first is the order of the catalog, which is
-// arbitrary -- but a book costs exactly what its levels pay out, so a
-// character standing at the end of a stage has bought the whole of it either
-// way. Only the levels in between differ.
+// Brings the character up to `level` the way a player gets there: each
+// advancement of `path` as it is offered, every AP on the primary stat, every
+// SP on whatever it will buy. Which skill goes first is the catalog's
+// arbitrary order, but a book costs exactly what its levels pay out, so the
+// end of a stage looks the same either way.
 void GrowTo(GameState& state, int level, const std::vector<Job>& path) {
   CharacterInstance& character = state.character;
   int taken = 0;

@@ -20,12 +20,8 @@ struct DerivedStats {
   int max_hp = 0;
   int max_mp = 0;
   // Everything worn and granted, plus the base every character carries for
-  // their primary stats alone -- 1.5 per STR and 0.4 per point of DEX and LUK.
-  // A character in rags has DEF, and a warrior who spends AP on STR gains it
-  // without touching their armour.
-  //
-  // Nothing in combat reads this yet: the character panel shows it, and the
-  // damage-taken formula wants it when mobs can hurt the player.
+  // their stats alone: 1.5 per STR and 0.4 per DEX and LUK. So a character in
+  // rags has DEF, and AP spent on STR buys some.
   int def = 0;
   // The share of incoming damage cancelled (0.10 == 10% less taken). Nothing
   // damages the character yet, so this is carried but never read.
@@ -33,27 +29,21 @@ struct DerivedStats {
   // Added chance for a swing to crit (0.40 == 40%). Feeds OffenseStatsFor,
   // since what it modifies is damage rather than the character's own bulk.
   double crit_rate = 0.0;
-  // The best weapon mastery the character's passives grant, 0..1, or 0 for a
-  // character with none -- which leaves the beginner's baseline in place
-  // rather than making their swing wilder. Feeds OffenseStatsFor beside the
-  // crit rate, and for the same reason.
+  // The best weapon mastery the passives grant, 0..1. 0 leaves the beginner's
+  // baseline in place rather than making the swing wilder.
   double mastery = 0.0;
-  // What Final Attack is worth on an average swing: its chance times its
-  // damage, so a 40% chance of an extra 160% hit reads 0.64. Collapsed to the
-  // one number because that is all the expected-value damage chain can use,
-  // and summed over skills because two independent procs do add in
-  // expectation. 0 for a character with no Final Attack.
+  // What Final Attack is worth on an average swing: chance times damage, so a
+  // 40% chance of an extra 160% hit reads 0.64. One number because that is all
+  // an expected-value chain can use, and summed because independent procs add
+  // in expectation.
   double final_attack_pct = 0.0;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;
-  // What the character's passives grant in the shape of a worn item, because
-  // that is how they behave: sum this with CharacterInstance::equip_stats()
-  // and hand the total wherever equipment stats go, OffenseStatsFor above all.
-  // Skills that grant a primary stat reach the damage chain no other way.
-  // DEF is in here too, but it is only the part the passives grant -- `def`
-  // above is a larger number, carrying the worn DEF and the primary-stat base
-  // as well. Neither is a substitute for the other.
+  // What the passives grant, in the shape of a worn item because that is how
+  // they behave: sum it with equip_stats() and hand the total wherever
+  // equipment stats go. It is the only way a skill's primary stat reaches the
+  // damage chain. Its DEF is only the passives' share, unlike `def` above.
   EquipStats skill_stats;
 };
 
