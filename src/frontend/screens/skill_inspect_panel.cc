@@ -19,6 +19,8 @@ constexpr int kContentWidth = 38;  // chars inside the window border
 // belonging to the "Level N" heading above them.
 constexpr int kEffectIndent = 3;
 constexpr int kEffectLabelWidth = 15;
+// What is left for an effect row's value once the indent and label are paid.
+constexpr int kValueWidth = kContentWidth - kEffectIndent - kEffectLabelWidth;
 
 // A percentage lever and how it reads to the player. The sign is the lever's
 // direction, not its stored value: every lever is stored positive, and one
@@ -176,9 +178,14 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", FormatSeconds(skill.cast_interval_seconds()) + "s"));
   }
-  std::string weapons = RequiredWeapons(skill);
-  if (!weapons.empty()) {
-    rows.push_back(EffectRow("Requires", weapons));
+  // The only row whose value runs long: two weapons with names like
+  // "One-Handed Sword" do not fit the value column, so it continues below with
+  // the label left blank rather than being cut off mid-weapon.
+  std::string label = "Requires";
+  for (const std::string& line :
+       WrapText(RequiredWeapons(skill), kValueWidth)) {
+    rows.push_back(EffectRow(label, line));
+    label.clear();
   }
   return rows;
 }
