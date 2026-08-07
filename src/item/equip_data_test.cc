@@ -70,6 +70,33 @@ TEST(EquipDataTest, OrdinaryWeaponsStillTakeUpgrades) {
 // Every shipped item has to be describable. A slot or a weapon type added
 // without a display name shows up as a blank column in the bag, which reads as
 // a bug in the item rather than a missing label.
+// A weapon type has one attack speed, and every weapon of it swings at that
+// speed. GMS's own low-level items disagree among themselves -- the polearms
+// range over three stages -- but by the level 150 tier, the one that matters,
+// Nexon had settled each type on a single value. That value is what the
+// catalog uses, all the way down.
+TEST(EquipDataTest, AWeaponTypeHasOneAttackSpeed) {
+  std::map<EquipType, std::pair<AttackSpeed, std::string>> speed_of_type;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_type() == EQUIP_TYPE_UNSPECIFIED ||
+        proto.attack_speed() == ATTACK_SPEED_UNSPECIFIED) {
+      continue;  // not a weapon, or ammunition that is never swung
+    }
+    std::map<EquipType, std::pair<AttackSpeed, std::string>>::iterator it =
+        speed_of_type.find(proto.equip_type());
+    if (it == speed_of_type.end()) {
+      speed_of_type[proto.equip_type()] = {proto.attack_speed(), entry.first};
+      continue;
+    }
+    EXPECT_EQ(proto.attack_speed(), it->second.first)
+        << entry.first << " and " << it->second.second << " are both "
+        << FormatEquipType(proto.equip_type())
+        << " but swing at different speeds";
+  }
+}
+
 TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {

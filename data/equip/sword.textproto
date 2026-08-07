@@ -3,7 +3,7 @@ required_level: 1
 base_stats {
   attack: 15
 }
-attack_speed: ATTACK_SPEED_FAST_2
+attack_speed: ATTACK_SPEED_FAST_1
 equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 upgrade_slots: 7
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
