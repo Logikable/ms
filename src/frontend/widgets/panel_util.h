@@ -110,8 +110,8 @@ std::string FormatSlot(EquipSlot slot);
 std::string FormatEquipType(EquipType type);
 
 // True for a skill the player casts, attack or otherwise -- everything that
-// isn't a passive. It is what the skill list sorts on and what the inspect
-// screen titles itself with, so both must answer it the same way.
+// isn't a passive. It is what the inspect screen titles itself with, and what
+// decides whether a skill's damage line is worth showing at all.
 bool IsActive(const Skill& skill);
 
 // Returns "All" for universal items or a slash-separated list of job category

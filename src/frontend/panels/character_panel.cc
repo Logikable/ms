@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -62,6 +63,63 @@ std::string StatText(const std::string& label, int base, int bonus) {
 ftxui::Element DisplayRow(const std::string& label, int value) {
   return ftxui::text(
       PadRight(" " + label + ": " + std::to_string(value), kContentWidth));
+}
+
+// Where a skill sits in the list, lowest first: the swings the player picks
+// between, then what fights alongside them on its own clock, then everything
+// that only ever sits in the background. A kind-less skill does nothing, so it
+// keeps the passives company at the bottom.
+int KindOrder(const Skill& skill) {
+  switch (skill.kind()) {
+    case SKILL_KIND_ATTACK:
+    case SKILL_KIND_ACTIVE:
+      return 0;
+    case SKILL_KIND_AUTO_ATTACK:
+      return 1;
+    default:
+      return 2;
+  }
+}
+
+// Appends `skill` to `out`, but only after whatever it waits on. Keyed by
+// display name, which is what a requirement names and what a learned level is
+// held under. Marking before the recursion rather than after is what stops a
+// cycle in the data from recurring forever.
+void EmitAfterRequirement(const Skill& skill,
+                          const std::map<std::string, const Skill*>& by_name,
+                          std::set<std::string>& emitted,
+                          std::vector<const Skill*>& out) {
+  if (!emitted.insert(skill.name()).second) {
+    return;
+  }
+  if (skill.has_required_skill()) {
+    std::map<std::string, const Skill*>::const_iterator it =
+        by_name.find(skill.required_skill().skill_name());
+    // A requirement naming a skill from another page is nothing this list can
+    // order around, and the player will find it in the book it belongs to.
+    if (it != by_name.end()) {
+      EmitAfterRequirement(*it->second, by_name, emitted, out);
+    }
+  }
+  out.push_back(&skill);
+}
+
+// Reorders so that no skill stands above one it waits on: a greyed-out row
+// whose condition is further down the list reads as a list in the wrong order.
+// A skill pulled up this way brings its dependent with it, so a chain stays
+// together instead of being scattered through the page.
+std::vector<const Skill*> RequirementsFirst(
+    const std::vector<const Skill*>& skills) {
+  std::map<std::string, const Skill*> by_name;
+  for (const Skill* skill : skills) {
+    by_name[skill->name()] = skill;
+  }
+  std::vector<const Skill*> ordered;
+  std::set<std::string> emitted;
+  for (const Skill* skill : skills) {
+    EmitAfterRequirement(*skill, by_name, emitted, ordered);
+  }
+  return ordered;
 }
 
 // The base (AP-allocated) and gear-bonus values for one allocatable stat.
@@ -326,13 +384,14 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
       result.push_back(&entry.second);
     }
   }
-  // Everything the player casts comes first, then the passives. Within each
-  // group the catalog's own order stands, which keeps the list stable.
+  // Grouped by what the player does with the skill, then settled so nothing
+  // waits on a skill below it. Within a group the catalog's own order stands,
+  // which keeps the list stable.
   std::stable_sort(result.begin(), result.end(),
                    [](const Skill* a, const Skill* b) {
-                     return IsActive(*a) && !IsActive(*b);
+                     return KindOrder(*a) < KindOrder(*b);
                    });
-  return result;
+  return RequirementsFirst(result);
 }
 
 ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,

@@ -589,6 +589,103 @@ TEST_F(CharacterPanelTest, SkillsTabListsActivesBeforePassives) {
   EXPECT_LT(leap, iron);
 }
 
+// Between the two: a skill that fights on its own clock is not one of the
+// swings to pick between, but it is not background either.
+TEST_F(CharacterPanelTest, AutoAttacksSitBetweenTheSwingsAndThePassives) {
+  // Stems chosen so the catalog's own order is the reverse of the wanted one.
+  Skill evil_eye;
+  evil_eye.set_name("Evil Eye Shock");
+  evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
+  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  evil_eye.set_max_level(10);
+  Skill iron_body;
+  iron_body.set_name("Iron Body");
+  iron_body.set_kind(SKILL_KIND_PASSIVE);
+  iron_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  iron_body.set_max_level(20);
+  std::map<std::string, Skill> catalog;
+  catalog["a_evil_eye"] = evil_eye;
+  catalog["b_iron_body"] = iron_body;
+  catalog["c_slash_blast"] = MakeSlashBlast();
+  catalog["c_slash_blast"].set_kind(SKILL_KIND_ATTACK);
+
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  std::string rendered = RenderComponent(comp);
+  size_t slash = rendered.find("Slash Blast");
+  size_t eye = rendered.find("Evil Eye Shock");
+  size_t iron = rendered.find("Iron Body");
+  ASSERT_NE(slash, std::string::npos);
+  ASSERT_NE(eye, std::string::npos);
+  ASSERT_NE(iron, std::string::npos);
+  EXPECT_LT(slash, eye);
+  EXPECT_LT(eye, iron);
+}
+
+// A requirement is a condition the player has to be able to act on, so what it
+// names has to be above it -- and next to it, so the pair reads as one thing.
+TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
+  Skill hyper_body;
+  hyper_body.set_name("Hyper Body");
+  hyper_body.set_kind(SKILL_KIND_PASSIVE);
+  hyper_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper_body.set_max_level(10);
+  hyper_body.mutable_required_skill()->set_skill_name("Iron Wall");
+  hyper_body.mutable_required_skill()->set_level(3);
+  Skill iron_wall;
+  iron_wall.set_name("Iron Wall");
+  iron_wall.set_kind(SKILL_KIND_PASSIVE);
+  iron_wall.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  iron_wall.set_max_level(10);
+  Skill physical_training;
+  physical_training.set_name("Physical Training");
+  physical_training.set_kind(SKILL_KIND_PASSIVE);
+  physical_training.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  physical_training.set_max_level(5);
+  // Stem order puts the gated skill first and something unrelated between the
+  // pair, so both halves of the claim have somewhere to fail.
+  std::map<std::string, Skill> catalog;
+  catalog["a_hyper_body"] = hyper_body;
+  catalog["b_physical_training"] = physical_training;
+  catalog["c_iron_wall"] = iron_wall;
+
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  std::string rendered = RenderComponent(comp);
+  size_t wall = rendered.find("Iron Wall");
+  size_t hyper = rendered.find("Hyper Body");
+  size_t training = rendered.find("Physical Training");
+  ASSERT_NE(wall, std::string::npos);
+  ASSERT_NE(hyper, std::string::npos);
+  ASSERT_NE(training, std::string::npos);
+  EXPECT_LT(wall, hyper);
+  EXPECT_LT(hyper, training);
+}
+
+// A requirement naming a skill from another book cannot be ordered around, and
+// must not take the skill that carries it out of the list.
+TEST_F(CharacterPanelTest, AnOffPageRequirementStillListsItsSkill) {
+  Skill gated = MakeSpearSweep();
+  gated.mutable_required_skill()->set_skill_name("Slash Blast");
+  gated.mutable_required_skill()->set_level(3);
+  std::map<std::string, Skill> catalog = TwoStageCatalog();
+  catalog["spear_sweep"] = gated;
+
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowRight);  // page I -> page II
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Spear Sweep"), std::string::npos);
+  EXPECT_EQ(rendered.find("Slash Blast"), std::string::npos);
+}
+
 TEST_F(CharacterPanelTest, DownIntoSkillRowsThenEnterFiresLearn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, panel_focus_, SkillCatalog());
