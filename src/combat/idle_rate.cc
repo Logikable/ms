@@ -29,21 +29,19 @@ double KillCycleSeconds(double damage_per_hit, double swing_interval_seconds,
 }
 
 std::vector<double> MapKillPeriods(const OffenseStats& offense,
-                                   const EquipPrototype& weapon,
+                                   double swing_interval_seconds,
                                    const std::vector<const Mob*>& mobs,
                                    int spawn_count, double game_speed_factor,
                                    double respawn_interval_seconds) {
-  double swing_interval = SwingIntervalSeconds(
-      BaseAttackDelayMs(weapon.equip_type()), weapon.attack_speed());
   double slots_per_type =
       mobs.empty() ? 0.0 : static_cast<double>(spawn_count) / mobs.size();
 
   std::vector<double> periods;
   periods.reserve(mobs.size());
   for (const Mob* mob : mobs) {
-    double cycle =
-        KillCycleSeconds(ExpectedAttackDamage(offense, *mob), swing_interval,
-                         *mob, game_speed_factor, respawn_interval_seconds);
+    double cycle = KillCycleSeconds(
+        ExpectedAttackDamage(offense, *mob), swing_interval_seconds, *mob,
+        game_speed_factor, respawn_interval_seconds);
     // The type's slots cycle in parallel, so the map-level period shrinks by
     // the slot share; zero slots (or an unkillable mob) leave it at +inf.
     periods.push_back(slots_per_type > 0.0

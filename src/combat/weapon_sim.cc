@@ -252,7 +252,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
       }
     }
   }
-  result.swing_seconds = params.swing_seconds / speed;
+  result.swing_seconds = best->swing_seconds / speed;
   double per_swing = best->damage_per_hit[0];
   if (!best->final_attack_damage.empty()) {
     per_swing += best->final_attack_damage[0];

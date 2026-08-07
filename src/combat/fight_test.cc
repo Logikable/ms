@@ -42,10 +42,10 @@ CombatParams MakeParams(double swing, double respawn,
   CombatParams params;
   params.active = true;
   params.map = map;
-  params.swing_seconds = swing;
   params.respawn_seconds = respawn;
   AttackOption attack;
   attack.max_enemies = reach;
+  attack.swing_seconds = swing;
   for (const TypeSpec& spec : specs) {
     CombatType type;
     type.mob = spec.mob;
@@ -234,6 +234,7 @@ TEST(CombatSimTest, PicksTheAttackThatLandsTheMostOnTheQueue) {
   AttackOption wide;
   wide.name = "Sweep";
   wide.max_enemies = 4;
+  wide.swing_seconds = 1.0;  // as quick as the poke, so only damage decides
   wide.damage_per_hit = {5.0};
   params.attacks.push_back(wide);
 
@@ -255,6 +256,7 @@ TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {
   AttackOption wide;
   wide.name = "Sweep";
   wide.max_enemies = 4;
+  wide.swing_seconds = 1.0;  // as quick as the poke, so only damage decides
   wide.damage_per_hit = {5.0};
   params.attacks.push_back(wide);
 
@@ -273,6 +275,7 @@ TEST(CombatSimTest, TheChoiceChangesAsTheQueueThins) {
   AttackOption wide;
   wide.name = "Sweep";
   wide.max_enemies = 4;
+  wide.swing_seconds = 1.0;  // as quick as the poke, so only damage decides
   wide.damage_per_hit = {10.0};
   params.attacks.push_back(wide);
 

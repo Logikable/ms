@@ -289,22 +289,12 @@ TEST(LevelMultiplierTest, FortyOrMoreLevelsUnderIsZero) {
   EXPECT_DOUBLE_EQ(LevelMultiplier(1, 100), 0.0);  // far under
 }
 
-TEST(BaseAttackDelayMsTest, OneHandedSwordIs800) {
-  EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_ONE_HANDED_SWORD), 800);
-}
-
-TEST(BaseAttackDelayMsTest, BowShootsOnTheSameReferenceAsASword) {
-  // Nothing published separates the two animations; the attack speed stage on
-  // the item is what makes a bow feel different.
-  EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_BOW), 800);
-}
-
-TEST(BaseAttackDelayMsTest, WandCastsOnTheSameReference) {
-  EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_WAND), 800);
-}
-
-TEST(BaseAttackDelayMsTest, UnknownTypeFallsBackToOneHanded) {
-  EXPECT_EQ(BaseAttackDelayMs(EQUIP_TYPE_UNSPECIFIED), 800);
+// Stage 4 is the reference the whole scale is built around: a swing there takes
+// exactly as long as its animation says.
+TEST(SwingIntervalSecondsTest, AverageSpeedIsTheAnimationItself) {
+  EXPECT_DOUBLE_EQ(SwingIntervalSeconds(780, ATTACK_SPEED_AVERAGE), 0.78);
+  EXPECT_DOUBLE_EQ(
+      SwingIntervalSeconds(kDefaultSwingDelayMs, ATTACK_SPEED_AVERAGE), 0.78);
 }
 
 TEST(OffenseStatsForTest, SumsAllocatedAndEquippedStats) {

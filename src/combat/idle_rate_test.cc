@@ -24,14 +24,10 @@ Mob MakeMob(int pdr = 0, bool boss = false, int max_hp = 0) {
   return mob;
 }
 
-// A weapon carrying just the fields MapKillPeriods reads: type (swing
-// animation) and attack speed (the stage).
-EquipPrototype MakeWeapon(EquipType type, AttackSpeed speed) {
-  EquipPrototype weapon;
-  weapon.set_equip_type(type);
-  weapon.set_attack_speed(speed);
-  return weapon;
-}
+// The swing the map-farming tests farm with: the default animation at average
+// attack speed, which is where the stage multiplier is exactly 1.
+const double kFarmSwingSeconds =
+    SwingIntervalSeconds(kDefaultSwingDelayMs, ATTACK_SPEED_AVERAGE);
 
 // A plain damage-dealing offense for the map-farming tests: 23 expected damage
 // per hit against a no-defense mob (StatValue 40, MaxBase 40, * (1.15)/2).
@@ -106,21 +102,17 @@ TEST(KillCycleTest, OverkillOnTheKillingHitIsWasted) {
       3.0 * kTestSpeed);  // spills into a 3rd hit
 }
 
-// Map-farming tests override respawn = 1.0 and farm the one-handed sword at
-// AVERAGE (swing interval 0.81s).
+// Map-farming tests override respawn = 1.0 and farm at kFarmSwingSeconds.
 TEST(MapKillPeriodsTest, SplitsSpawnCountEvenly) {
   // Two identical mobs share the slots evenly, so periods match; doubling
   // spawn_count doubles each type's slot share and halves its period.
   Mob a = MakeMob(0, false, 100);
   Mob b = MakeMob(0, false, 100);
   std::vector<const Mob*> mobs = {&a, &b};
-  EquipPrototype weapon =
-      MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE);
-
-  std::vector<double> two =
-      MapKillPeriods(FarmOffense(), weapon, mobs, 2, kTestSpeed, 1.0);
-  std::vector<double> four =
-      MapKillPeriods(FarmOffense(), weapon, mobs, 4, kTestSpeed, 1.0);
+  std::vector<double> two = MapKillPeriods(FarmOffense(), kFarmSwingSeconds,
+                                           mobs, 2, kTestSpeed, 1.0);
+  std::vector<double> four = MapKillPeriods(FarmOffense(), kFarmSwingSeconds,
+                                            mobs, 4, kTestSpeed, 1.0);
   EXPECT_DOUBLE_EQ(two[0], two[1]);
   EXPECT_DOUBLE_EQ(four[0], two[0] / 2.0);
 }
@@ -131,10 +123,8 @@ TEST(MapKillPeriodsTest, TankierMobHasLongerPeriodInOrder) {
   Mob weak = MakeMob(0, false, 10);
   Mob tanky = MakeMob(0, false, 1000);
   std::vector<const Mob*> mobs = {&weak, &tanky};
-  std::vector<double> periods = MapKillPeriods(
-      FarmOffense(),
-      MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE), mobs, 2,
-      1.0);
+  std::vector<double> periods =
+      MapKillPeriods(FarmOffense(), kFarmSwingSeconds, mobs, 2, 1.0);
   EXPECT_LT(periods[0], periods[1]);
 }
 
@@ -142,30 +132,24 @@ TEST(MapKillPeriodsTest, UnkillableMobHasInfinitePeriod) {
   // A zero-stat offense does no damage, so the mob is never killed.
   Mob mob = MakeMob(0, false, 10);
   std::vector<const Mob*> mobs = {&mob};
-  std::vector<double> periods = MapKillPeriods(
-      OffenseStats(),
-      MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE), mobs, 4,
-      1.0);
+  std::vector<double> periods =
+      MapKillPeriods(OffenseStats(), kFarmSwingSeconds, mobs, 4, 1.0);
   EXPECT_TRUE(std::isinf(periods[0]));
 }
 
 TEST(MapKillPeriodsTest, NoSpawnSlotsNeverFarmed) {
   Mob mob = MakeMob(0, false, 10);
   std::vector<const Mob*> mobs = {&mob};
-  std::vector<double> periods = MapKillPeriods(
-      FarmOffense(),
-      MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE), mobs, 0,
-      1.0);
+  std::vector<double> periods =
+      MapKillPeriods(FarmOffense(), kFarmSwingSeconds, mobs, 0, 1.0);
   EXPECT_TRUE(std::isinf(periods[0]));
 }
 
 TEST(MapKillPeriodsTest, EmptyMapHasNoPeriods) {
   std::vector<const Mob*> mobs;
-  EXPECT_TRUE(MapKillPeriods(
-                  FarmOffense(),
-                  MakeWeapon(EQUIP_TYPE_ONE_HANDED_SWORD, ATTACK_SPEED_AVERAGE),
-                  mobs, 4, kTestSpeed, 1.0)
-                  .empty());
+  EXPECT_TRUE(
+      MapKillPeriods(FarmOffense(), kFarmSwingSeconds, mobs, 4, kTestSpeed, 1.0)
+          .empty());
 }
 
 TEST(FlushKillsTest, AccumulatesAcrossCallsUntilWhole) {

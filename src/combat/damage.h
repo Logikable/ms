@@ -123,12 +123,17 @@ double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob);
 double LevelMultiplier(int player_level, int mob_level);
 
 // Seconds between swings: base_delay_ms * (20 - stage) / 16, rounded up to
-// whole kTickMs units. Stage 1..10, 10 fastest, 4 == base.
+// whole kTickMs units. Stage 1..10, 10 fastest, 4 == base. GMS's own formula.
+//
+// `base_delay_ms` belongs to the SKILL being swung -- see Skill::base_delay_ms.
+// The weapon's say in how fast a character attacks is the stage, and nothing
+// else; a spear and a sword swing the same skill at the same speed.
 double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 
-// Base swing animation (ms) for a weapon type -- the stage-4 reference scaled
-// by SwingIntervalSeconds. A weapon-class property, not per-item.
-int BaseAttackDelayMs(EquipType equip_type);
+// What the bare poke swings at, and what a skill naming no delay of its own is
+// taken to swing at. 780ms is the commonest 1st/2nd job animation, and the one
+// both Brandish and Spear Sweep have.
+inline constexpr int kDefaultSwingDelayMs = 780;
 
 }  // namespace ms
 

@@ -159,10 +159,10 @@ TEST(CombatPanelTest, ThePlayersHpBarFallsAsTheyAreHit) {
   type.damage_to_player = 10.0;
   AttackOption attack;
   attack.damage_per_hit = {4.0};
+  attack.swing_seconds = 10.0;
   CombatParams params;
   params.active = true;
   params.map = "field";
-  params.swing_seconds = 10.0;
   params.respawn_seconds = 1000.0;
   params.hit_seconds = 1.0;
   params.max_player_hp = 50;
@@ -199,10 +199,10 @@ TEST(CombatPanelTest, MergesEngagedMobsIntoOneBar) {
   AttackOption attack;
   attack.max_enemies = 2;
   attack.damage_per_hit = {4.0};
+  attack.swing_seconds = 1.0;
   CombatParams params;
   params.active = true;
   params.map = "field";
-  params.swing_seconds = 1.0;
   params.respawn_seconds = 100.0;
   params.types = {type};
   params.attacks = {attack};
@@ -219,7 +219,8 @@ TEST(CombatPanelTest, ShowsRespawningOnceTheRosterIsClear) {
   EquipSword(state);
   CombatSim sim;
   CombatParams params = ComputeCombatParams(state);
-  sim.Advance(params, params.swing_seconds);  // one swing kills the lone snail
+  // One swing kills the lone snail.
+  sim.Advance(params, params.attacks.front().swing_seconds);
   ASSERT_TRUE(sim.respawning());
 
   EXPECT_NE(RenderPanel(state, sim).find("Respawning"), std::string::npos);

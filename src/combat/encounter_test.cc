@@ -8,6 +8,7 @@
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/constants.h"
+#include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
@@ -133,7 +134,7 @@ TEST(ComputeCombatParamsTest, ReportsTypesSimultaneousAndDurations) {
   EXPECT_EQ(params.types[0].mob->name(), "Snail");
   EXPECT_EQ(params.types[0].mob->max_hp(), 15);
   EXPECT_EQ(params.types[0].simultaneous, 2);  // the snail's own spawn count
-  EXPECT_GT(params.swing_seconds, 0.0);
+  EXPECT_GT(params.attacks.front().swing_seconds, 0.0);
   EXPECT_DOUBLE_EQ(params.respawn_seconds,
                    kRespawnIntervalSeconds *
                        GameSpeedFactor(state.character.proto().level()));
@@ -193,6 +194,58 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
   // 183% against the poke's 100%, on the same mob.
   EXPECT_GT(params.attacks[1].damage_per_hit[0],
             params.attacks[0].damage_per_hit[0]);
+}
+
+// GMS keys the swing delay on the skill, so two skills in the same hand can
+// swing at different speeds. The weapon's say is its attack-speed stage, which
+// scales both alike.
+TEST(ComputeCombatParamsTest, EachSwingTakesItsOwnSkillsTime) {
+  Skill slow;
+  slow.set_name("Slow Swing");
+  slow.set_kind(SKILL_KIND_ATTACK);
+  slow.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  slow.set_max_level(20);
+  slow.set_base_delay_ms(1200);
+  slow.mutable_base()->set_skill_pct(1.83);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"slow_swing", slow}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(slow, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  // The poke takes the default; the skill takes its own, which is longer.
+  EXPECT_DOUBLE_EQ(
+      params.attacks[0].swing_seconds,
+      SwingIntervalSeconds(kDefaultSwingDelayMs, ATTACK_SPEED_AVERAGE) *
+          GameSpeedFactor(state.character.proto().level()));
+  EXPECT_DOUBLE_EQ(params.attacks[1].swing_seconds,
+                   SwingIntervalSeconds(1200, ATTACK_SPEED_AVERAGE) *
+                       GameSpeedFactor(state.character.proto().level()));
+}
+
+// A skill saying nothing about its animation is swung at the same pace as the
+// bare poke, rather than instantly.
+TEST(ComputeCombatParamsTest, ASwingWithNoDelayOfItsOwnTakesTheDefault) {
+  Skill slash;
+  slash.set_name("Slash Blast");
+  slash.set_kind(SKILL_KIND_ATTACK);
+  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  slash.set_max_level(20);
+  slash.mutable_base()->set_skill_pct(1.83);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"slash_blast", slash}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(slash, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_DOUBLE_EQ(params.attacks[1].swing_seconds,
+                   params.attacks[0].swing_seconds);
 }
 
 // A skill that fires on its own clock is not one of the swings the fight
@@ -370,9 +423,9 @@ TEST(ComputeCombatParamsTest, AttackSpeedPassiveShortensTheSwing) {
   // Bought up front so both readings are taken at the same level, and so at
   // the same pace: what is under test is the skill, not the band.
   GrantFirstJobSp(state, 1);
-  double slow = ComputeCombatParams(state).swing_seconds;
+  double slow = ComputeCombatParams(state).attacks.front().swing_seconds;
   ASSERT_TRUE(state.character.LearnSkill(haste, 1));
-  double fast = ComputeCombatParams(state).swing_seconds;
+  double fast = ComputeCombatParams(state).attacks.front().swing_seconds;
   EXPECT_LT(fast, slow);  // +1 stage swings sooner
 }
 
@@ -396,8 +449,9 @@ TEST(ComputeCombatParamsTest, AttackSpeedIsCappedAtTheFastestTier) {
   // comparison is about the attack-speed cap.
   GrantFirstJobSp(cap_state, 1);
 
-  EXPECT_DOUBLE_EQ(ComputeCombatParams(fast_state).swing_seconds,
-                   ComputeCombatParams(cap_state).swing_seconds);
+  EXPECT_DOUBLE_EQ(
+      ComputeCombatParams(fast_state).attacks.front().swing_seconds,
+      ComputeCombatParams(cap_state).attacks.front().swing_seconds);
 }
 
 // The pacing band, read straight off the params. The same character with the
@@ -420,7 +474,8 @@ TEST(ComputeCombatParamsTest, TheEncounterStretchesAsTheCharacterLevels) {
   // durations by the same amount -- they are the same clock.
   double stretch = GameSpeedFactor(10) / GameSpeedFactor(1);
   ASSERT_GT(stretch, 1.0) << "the bands either side of 10 must differ";
-  EXPECT_DOUBLE_EQ(later.swing_seconds, stretch * early.swing_seconds);
+  EXPECT_DOUBLE_EQ(later.attacks.front().swing_seconds,
+                   stretch * early.attacks.front().swing_seconds);
   EXPECT_DOUBLE_EQ(later.respawn_seconds, stretch * early.respawn_seconds);
   EXPECT_DOUBLE_EQ(later.hit_seconds, stretch * early.hit_seconds);
 }

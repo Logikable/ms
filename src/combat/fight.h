@@ -189,6 +189,8 @@ class CombatSim {
   // Reach of the attack the next swing will use -- also the width of the
   // engaged window the UI draws.
   int reach_ = 1;
+  // How long that attack's swing takes, for the charge bar to fill against.
+  double swing_seconds_ = 0.0;
   std::vector<int64_t> kills_this_step_;
   bool died_this_step_ = false;
   std::vector<EngagedGroup> engaged_groups_;

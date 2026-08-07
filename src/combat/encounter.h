@@ -41,6 +41,11 @@ struct AttackOption {
   int max_enemies = 1;          // front-of-queue mobs one swing reaches
   // Expected damage per target, parallel to CombatParams::types.
   std::vector<double> damage_per_hit;
+  // Seconds one swing of this attack takes, game-scaled. Per attack rather
+  // than per encounter because the delay belongs to the skill: a slower
+  // animation is the price a harder-hitting skill pays. 0 for an attack that
+  // fires on its own clock instead -- see interval_seconds.
+  double swing_seconds = 0.0;
   // Seconds between casts, for an attack that fires on its own clock rather
   // than on the character's swing. 0 for the swings themselves, which are
   // paced by swing_seconds.
@@ -58,7 +63,6 @@ struct CombatParams {
   // The map these params describe. The fight watches this to know when it is
   // playing out a different encounter than the one it holds a roster for.
   std::string map;
-  double swing_seconds = 0.0;    // time between auto-attacks (game-scaled)
   double respawn_seconds = 0.0;  // time between full-roster respawn beats
   double hit_seconds = 0.0;      // time between mob hits on the player
   int max_player_hp = 0;         // what a full heal fills the player back to

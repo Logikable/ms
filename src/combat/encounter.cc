@@ -46,12 +46,19 @@ constexpr double kBeatHealFraction = 0.10;
 AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
                        EquipType weapon, const Skill* skill, int level,
                        const std::vector<CombatType>& types,
-                       const DerivedStats& derived) {
+                       const DerivedStats& derived, int attack_speed,
+                       double speed_factor) {
   AttackOption attack;
+  int delay_ms = kDefaultSwingDelayMs;
   if (skill != nullptr) {
     attack.name = skill->name();
     attack.max_enemies = std::max(1, skill->max_enemies());
+    if (skill->base_delay_ms() > 0) {
+      delay_ms = skill->base_delay_ms();
+    }
   }
+  attack.swing_seconds =
+      SwingIntervalSeconds(delay_ms, attack_speed) * speed_factor;
   OffenseStats offense = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
       skill, level, PassiveOffenseFor(derived));
@@ -119,20 +126,22 @@ bool Swingable(const GameState& state, const Skill& skill,
 // Learned passives apply to whichever attack is chosen, so the already
 // resolved `derived` is handed to each option.
 void AddAttacks(const GameState& state, const DerivedStats& derived,
-                EquipType weapon_type, double speed_factor,
+                EquipType weapon_type, int attack_speed, double speed_factor,
                 CombatParams& params) {
   const Character& proto = state.character.proto();
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
   params.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr,
-                                     0, params.types, derived));
+                                     0, params.types, derived, attack_speed,
+                                     speed_factor));
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = state.character.skill_level(skill);
     if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
       continue;
     }
-    AttackOption attack = AttackFor(proto, total_stats, weapon_type, &skill,
-                                    learned, params.types, derived);
+    AttackOption attack =
+        AttackFor(proto, total_stats, weapon_type, &skill, learned,
+                  params.types, derived, attack_speed, speed_factor);
     if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {
       params.attacks.push_back(std::move(attack));
       continue;
@@ -143,6 +152,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       continue;
     }
     attack.interval_seconds = skill.cast_interval_seconds() * speed_factor;
+    attack.swing_seconds = 0.0;          // not swung, so never charged
     attack.final_attack_damage.clear();  // Final Attack follows a swing
     params.auto_attacks.push_back(std::move(attack));
   }
@@ -173,10 +183,6 @@ CombatParams ComputeCombatParams(const GameState& state) {
   // The pace the whole encounter runs at, and the only thing here that asks
   // the character's level directly: the game stretches out as they climb.
   double speed_factor = GameSpeedFactor(state.character.proto().level());
-  params.swing_seconds =
-      SwingIntervalSeconds(BaseAttackDelayMs(weapon.equip_type()),
-                           attack_speed) *
-      speed_factor;
   params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
   params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
   params.max_player_hp = derived.max_hp;
@@ -193,7 +199,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
   if (params.types.empty()) {
     return params;
   }
-  AddAttacks(state, derived, weapon.equip_type(), speed_factor, params);
+  AddAttacks(state, derived, weapon.equip_type(), attack_speed, speed_factor,
+             params);
   params.active = true;
   return params;
 }

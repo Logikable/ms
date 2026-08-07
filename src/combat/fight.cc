@@ -9,10 +9,12 @@
 namespace ms {
 namespace {
 
-// Whether there is a fight to advance at all.
+// Whether there is a fight to advance at all. The bare poke is always the
+// first attack, so its interval is the one to ask about: every character has
+// it, whatever they have learned or are holding.
 bool CanFight(const CombatParams& params) {
   return params.active && !params.types.empty() && !params.attacks.empty() &&
-         params.swing_seconds > 0.0;
+         params.attacks.front().swing_seconds > 0.0;
 }
 
 }  // namespace
@@ -205,6 +207,11 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
   attack_name_ = attack != nullptr ? attack->name : "";
   if (attack != nullptr) {
     reach_ = std::max(1, attack->max_enemies);
+    // Cached because the charge bar is drawn after the swing is aimed and has
+    // no attack of its own to ask. A pick that changes mid-charge changes the
+    // clock under it, which is the honest reading: the swing being charged is
+    // the one that will land.
+    swing_seconds_ = attack->swing_seconds;
   }
   return attack;
 }
@@ -218,10 +225,10 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     return;
   }
   attack_phase_ += dt;
-  if (attack_phase_ < params.swing_seconds) {
+  if (attack_phase_ < attack->swing_seconds) {
     return;
   }
-  attack_phase_ -= params.swing_seconds;
+  attack_phase_ -= attack->swing_seconds;
   Strike(*attack);
   AimSwing(params);
 }
@@ -264,7 +271,9 @@ void CombatSim::PublishTarget(const CombatParams& params) {
   target_hp_fraction_ = target.max_hp() > 0
                             ? std::clamp(front.hp / target.max_hp(), 0.0, 1.0)
                             : 0.0;
-  attack_fraction_ = std::clamp(attack_phase_ / params.swing_seconds, 0.0, 1.0);
+  attack_fraction_ = swing_seconds_ > 0.0
+                         ? std::clamp(attack_phase_ / swing_seconds_, 0.0, 1.0)
+                         : 0.0;
   MergeEngagedWindow(params);
 }
 
@@ -277,8 +286,10 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     return;
   }
   // Clamp a large real-time gap (a pause, say) to one swing, so the fight
-  // resumes rather than jumping.
-  double dt = std::min(elapsed_seconds, params.swing_seconds);
+  // resumes rather than jumping. Measured against the bare poke, which every
+  // character has: which skill is coming is not known until the swing is aimed,
+  // several steps below this.
+  double dt = std::min(elapsed_seconds, params.attacks.front().swing_seconds);
 
   BeginMapIfChanged(params);
   // A level-up widens the pool and fills it, as GMS does. player_max_hp_ is

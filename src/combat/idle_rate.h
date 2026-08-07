@@ -14,7 +14,6 @@
 
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
-#include "src/protos/equip.pb.h"
 #include "src/protos/mob.pb.h"
 
 namespace ms {
@@ -35,8 +34,12 @@ double KillCycleSeconds(
 // index-aligned with `mobs`. spawn_count slots split evenly across the N types
 // cycle in parallel: period_m = KillCycleSeconds(...) * N / spawn_count. +inf
 // when a mob can't be killed or no slots feed it.
+//
+// The swing interval is passed rather than derived from a weapon: how long a
+// swing takes depends on the skill being swung as well as the weapon holding
+// it, and only the caller knows which one that is. See SwingIntervalSeconds.
 std::vector<double> MapKillPeriods(
-    const OffenseStats& offense, const EquipPrototype& weapon,
+    const OffenseStats& offense, double swing_interval_seconds,
     const std::vector<const Mob*>& mobs, int spawn_count,
     double game_speed_factor,
     double respawn_interval_seconds = kRespawnIntervalSeconds);

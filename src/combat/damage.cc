@@ -66,19 +66,6 @@ const JobWeaponConstantRow kJobWeaponConstants[] = {
     {JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
 };
 
-// Basic-attack animation at the stage-4 (x1.0) reference. Every weapon we have
-// shares it: 800ms is the long-standing engine constant, and nothing published
-// distinguishes a bow's or a wand's basic attack from a sword's. What really
-// separates the classes is the attack speed stage on the item, and counting
-// their quickness twice would make them all swing wrong.
-//
-// Two-handed's swing/stab alternation waits until such a weapon exists.
-constexpr int kOneHandedBaseAttackDelayMs = 800;
-constexpr int kBowBaseAttackDelayMs = 800;
-constexpr int kWandBaseAttackDelayMs = 800;
-constexpr int kDaggerBaseAttackDelayMs = 800;
-constexpr int kClawBaseAttackDelayMs = 800;
-
 // Level multiplier: 1.1 at equal level, +0.02 per level above, capped at +5.
 constexpr double kEqualLevelMultiplier = 1.1;
 constexpr double kAboveLevelStep = 0.02;
@@ -340,25 +327,6 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage) {
                   static_cast<double>(kSpeedDivisor);
   double ticks = std::ceil(raw_ms / kTickMs);
   return ticks * kTickMs / 1000.0;
-}
-
-int BaseAttackDelayMs(EquipType equip_type) {
-  switch (equip_type) {
-    case EQUIP_TYPE_ONE_HANDED_SWORD:
-      return kOneHandedBaseAttackDelayMs;
-    case EQUIP_TYPE_BOW:
-      return kBowBaseAttackDelayMs;
-    case EQUIP_TYPE_WAND:
-      return kWandBaseAttackDelayMs;
-    case EQUIP_TYPE_DAGGER:
-      return kDaggerBaseAttackDelayMs;
-    case EQUIP_TYPE_CLAW:
-      return kClawBaseAttackDelayMs;
-    default:
-      // Fail safe: fall back to the one-handed swing until other weapon types
-      // are added, keeping the swing interval non-zero.
-      return kOneHandedBaseAttackDelayMs;
-  }
 }
 
 }  // namespace ms
