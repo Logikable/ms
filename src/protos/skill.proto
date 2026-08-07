@@ -65,6 +65,13 @@ message SkillEffect {
   // (1.20 == 120% of the damage received). Measured against what the character
   // actually loses, so their own defences cut the reflection with it.
   double damage_reflect_pct = 19;
+  // Plain % damage (0.05 == +5%). Every source of it sums inside a single
+  // multiplier, so two skills granting 5% come to 10%.
+  double damage_pct = 20;
+  // Final damage (0.10 == +10%), which multiplies where damage_pct adds: two
+  // sources of 10% are worth 21%, not 20%. The distinction is invisible until
+  // a second source of either exists, and expensive to unpick afterwards.
+  double final_dmg_pct = 21;
 }
 
 // A skill that has to be learned to a level before another can be bought at

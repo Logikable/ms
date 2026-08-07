@@ -48,6 +48,11 @@ struct PassiveOffense {
   // keeps the beginner's baseline: a mastery skill's first level is worth
   // less than that, and learning a skill must never make a swing worse.
   double mastery = 0.0;
+  // Plain % damage and final damage, already combined across every passive
+  // that grants them -- summed and multiplied respectively, which is where the
+  // two differ. See DerivedStats.
+  double damage_pct = 0.0;
+  double final_dmg_pct = 0.0;
 };
 
 // Builds OffenseStats from a character's job, level and summed stats. The job

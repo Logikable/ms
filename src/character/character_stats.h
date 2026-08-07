@@ -11,6 +11,7 @@
 #include <string>
 
 #include "src/character/character.h"
+#include "src/combat/damage.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -32,6 +33,11 @@ struct DerivedStats {
   // Added chance for a swing to crit (0.40 == 40%). Feeds OffenseStatsFor,
   // since what it modifies is damage rather than the character's own bulk.
   double crit_rate = 0.0;
+  // Plain % damage, summed over every passive granting it, and final damage,
+  // combined by multiplying: two 10% sources come to 21%. Both are one number
+  // by the time they leave here, because that is all the damage chain takes.
+  double damage_pct = 0.0;
+  double final_dmg_pct = 0.0;
   // The best weapon mastery the passives grant, 0..1. 0 leaves the beginner's
   // baseline in place rather than making the swing wilder.
   double mastery = 0.0;
@@ -59,6 +65,11 @@ bool SkillAllowsWeapon(const Skill& skill, EquipType weapon);
 // lever is damage, which OffenseStatsFor handles.
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills);
+
+// The offensive half of the derived stats, in the shape combat/damage.h asks
+// for them. One place to keep in step with DerivedStats, rather than every
+// caller that builds an OffenseStats knowing which fields cross over.
+PassiveOffense PassiveOffenseFor(const DerivedStats& derived);
 
 // Everything the character wears plus everything their passives grant, summed.
 // This is what the rest of the game should read wherever it wants "the

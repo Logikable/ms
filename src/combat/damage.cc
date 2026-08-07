@@ -170,6 +170,8 @@ OffenseStats OffenseStatsFor(Job job, int level,
   OffenseStats offense;
   offense.level = level;
   offense.crit_rate = passives.crit_rate;
+  offense.damage_pct = passives.damage_pct;
+  offense.final_dmg_pct = passives.final_dmg_pct;
   // A mastery skill's first level sits below the baseline every character
   // swings at, so the better of the two wins rather than the learned one.
   offense.mastery = std::max(offense.mastery, passives.mastery);

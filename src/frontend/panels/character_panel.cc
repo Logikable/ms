@@ -487,7 +487,7 @@ ftxui::Element CharacterPanel::Render() const {
   OffenseStats offense = OffenseStatsFor(
       p.job(), p.level(), p.allocated_stats(),
       TotalEquipStats(character_, derived), /*attack_skill=*/nullptr,
-      /*attack_level=*/0, PassiveOffense{derived.crit_rate, derived.mastery});
+      /*attack_level=*/0, PassiveOffenseFor(derived));
   std::string power = Centered("CP " + FormatWithCommas(CombatPower(offense)));
 
   bool focused = panel_focus_ == kCharPanel;

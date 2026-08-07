@@ -39,6 +39,8 @@ struct PercentLever {
 const PercentLever kPercentLevers[] = {
     {"Max HP", &SkillEffect::max_hp_pct, kPlus},
     {"Max MP", &SkillEffect::max_mp_pct, kPlus},
+    {"Damage", &SkillEffect::damage_pct, kPlus},
+    {"Final Damage", &SkillEffect::final_dmg_pct, kPlus},
     {"Critical Rate", &SkillEffect::crit_rate, kPlus},
     {"Mastery", &SkillEffect::mastery, kBare},
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus},

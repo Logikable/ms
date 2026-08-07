@@ -41,12 +41,16 @@ struct PassiveTotals {
   double crit_rate = 0.0;
   double mastery = 0.0;
   double final_attack_pct = 0.0;
+  double damage_pct = 0.0;
+  double final_dmg_pct = 0.0;
   int attack_speed = 0;
 };
 
-void AddPassive(const Skill& skill, int level, PassiveTotals& totals) {
-  const SkillEffect& base = skill.base();
-  const SkillEffect& per = skill.per_level();
+// Folds one skill's levers in at `level`, on top of whatever is already there.
+// Split out from AddPassive because a weapon bonus is a second helping of the
+// same levers, gated on the weapon rather than on the skill.
+void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
+               PassiveTotals& totals) {
   totals.hp_per_level +=
       base.max_hp_per_level() + per.max_hp_per_level() * (level - 1);
   totals.max_hp_pct += base.max_hp_pct() + per.max_hp_pct() * (level - 1);
@@ -58,26 +62,36 @@ void AddPassive(const Skill& skill, int level, PassiveTotals& totals) {
   totals.dex += base.dex() + per.dex() * (level - 1);
   totals.luk += base.luk() + per.luk() * (level - 1);
   totals.attack += base.attack() + per.attack() * (level - 1);
-  // The orbs are taken as full, so what a per-orb grant is worth is the whole
-  // ring of them. See SkillEffect::attack_per_combo_orb.
-  totals.attack +=
-      (base.attack_per_combo_orb() + per.attack_per_combo_orb() * (level - 1)) *
-      skill.combo_orbs();
   totals.damage_taken_pct +=
       base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
   totals.damage_reflect_pct +=
       base.damage_reflect_pct() + per.damage_reflect_pct() * (level - 1);
   totals.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
+  totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
   // The one lever taken at its best rather than summed: two masteries are not
   // twice as steady a swing, they are the better of the two.
   totals.mastery =
       std::max(totals.mastery, base.mastery() + per.mastery() * (level - 1));
+  // Final damage is the one that multiplies: two sources of 10% are worth 21%.
+  // Kept as the combined fraction, since that is the single number the damage
+  // chain applies.
+  double final_dmg = base.final_dmg_pct() + per.final_dmg_pct() * (level - 1);
+  totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + final_dmg) - 1.0;
   // Chance times damage: what the proc is worth on an average swing, which is
   // all an expected-value damage chain can use. See DerivedStats.
   totals.final_attack_pct +=
       (base.final_attack_chance() + per.final_attack_chance() * (level - 1)) *
       (base.final_attack_pct() + per.final_attack_pct() * (level - 1));
+}
+
+void AddPassive(const Skill& skill, int level, PassiveTotals& totals) {
+  AddEffect(skill.base(), skill.per_level(), level, totals);
+  // The orbs are taken as full, so what a per-orb grant is worth is the whole
+  // ring of them. See SkillEffect::attack_per_combo_orb.
+  totals.attack += (skill.base().attack_per_combo_orb() +
+                    skill.per_level().attack_per_combo_orb() * (level - 1)) *
+                   skill.combo_orbs();
 }
 
 // Sums every passive the character has learned. HP has to know its whole flat
@@ -162,10 +176,21 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.damage_taken_pct = passives.damage_taken_pct;
   stats.damage_reflect_pct = passives.damage_reflect_pct;
   stats.crit_rate = passives.crit_rate;
+  stats.damage_pct = passives.damage_pct;
+  stats.final_dmg_pct = passives.final_dmg_pct;
   stats.mastery = passives.mastery;
   stats.final_attack_pct = passives.final_attack_pct;
   stats.attack_speed_bonus = passives.attack_speed;
   return stats;
+}
+
+PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
+  PassiveOffense passives;
+  passives.crit_rate = derived.crit_rate;
+  passives.mastery = derived.mastery;
+  passives.damage_pct = derived.damage_pct;
+  passives.final_dmg_pct = derived.final_dmg_pct;
+  return passives;
 }
 
 EquipStats TotalEquipStats(const CharacterInstance& character,

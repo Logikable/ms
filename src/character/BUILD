@@ -27,6 +27,7 @@ cc_library(
     hdrs = ["character_stats.h"],
     deps = [
         ":character",
+        "//src/combat:damage",
         "//src/item:equip_stats",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

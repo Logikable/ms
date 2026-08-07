@@ -52,10 +52,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     attack.name = skill->name();
     attack.max_enemies = std::max(1, skill->max_enemies());
   }
-  PassiveOffense passives{derived.crit_rate, derived.mastery};
   OffenseStats offense =
       OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                      equipped, skill, level, passives);
+                      equipped, skill, level, PassiveOffenseFor(derived));
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
@@ -67,7 +66,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   if (derived.final_attack_pct > 0.0) {
     OffenseStats final_attack =
         OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
-                        equipped, nullptr, 0, passives);
+                        equipped, nullptr, 0, PassiveOffenseFor(derived));
     final_attack.skill_pct = derived.final_attack_pct;
     for (const CombatType& type : types) {
       attack.final_attack_damage.push_back(

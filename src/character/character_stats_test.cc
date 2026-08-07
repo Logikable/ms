@@ -582,6 +582,40 @@ TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 10);
 }
 
+// The two damage levers differ only once a second source exists: % damage
+// sums, final damage multiplies. Two skills of 10% each come to 20% and 21%.
+TEST_F(DerivedStatsTest, DamagePercentSumsAndFinalDamageMultiplies) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  std::map<std::string, Skill> skills;
+  for (const std::string& name : {"first", "second"}) {
+    Skill skill;
+    skill.set_name(name);
+    skill.set_kind(SKILL_KIND_PASSIVE);
+    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    skill.set_max_level(1);
+    skill.mutable_base()->set_damage_pct(0.10);
+    skill.mutable_base()->set_final_dmg_pct(0.10);
+    ASSERT_TRUE(c.LearnSkill(skill, 1));
+    skills[name] = skill;
+  }
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_DOUBLE_EQ(stats.damage_pct, 0.20);
+  // Not DOUBLE_EQ: 1.1 * 1.1 - 1 lands a few ulps off the 0.21 it means.
+  EXPECT_NEAR(stats.final_dmg_pct, 0.21, 1e-9);
+}
+
+// Both levers have to reach the damage chain, and PassiveOffenseFor is the
+// only thing carrying them across.
+TEST_F(DerivedStatsTest, TheDamageLeversReachTheOffenseStats) {
+  DerivedStats stats;
+  stats.damage_pct = 0.15;
+  stats.final_dmg_pct = 0.25;
+  PassiveOffense passives = PassiveOffenseFor(stats);
+  EXPECT_DOUBLE_EQ(passives.damage_pct, 0.15);
+  EXPECT_DOUBLE_EQ(passives.final_dmg_pct, 0.25);
+}
+
 // Final Attack demands a sword or an axe. A learned skill whose weapon is not
 // in hand grants nothing, and grants it all again once it is.
 TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
