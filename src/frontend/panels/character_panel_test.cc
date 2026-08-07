@@ -43,6 +43,26 @@ Skill MakeSlashBlast() {
   return skill;
 }
 
+// A stage-2 Spearman with points in both books.
+CharacterInstance MakeSpearman(std::mt19937& rng) {
+  Character proto;
+  proto.set_level(35);
+  proto.set_job(JOB_SPEARMAN);
+  proto.set_job_stage(2);
+  (*proto.mutable_sp_by_stage())[1] = 3;
+  (*proto.mutable_sp_by_stage())[2] = 3;
+  return CharacterInstance(rng, std::move(proto));
+}
+
+Skill MakeSpearSweep() {
+  Skill skill;
+  skill.set_name("Spear Sweep");
+  skill.set_kind(SKILL_KIND_ATTACK);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SPEARMAN);
+  skill.set_max_level(20);
+  return skill;
+}
+
 Skill MakePowerStrike() {
   Skill skill;
   skill.set_name("Power Strike");
@@ -55,6 +75,13 @@ Skill MakePowerStrike() {
 std::map<std::string, Skill> SkillCatalog() {
   std::map<std::string, Skill> catalog;
   catalog["slash_blast"] = MakeSlashBlast();
+  return catalog;
+}
+
+// One skill in each of a Spearman's two books.
+std::map<std::string, Skill> TwoStageCatalog() {
+  std::map<std::string, Skill> catalog = SkillCatalog();  // slash_blast
+  catalog["spear_sweep"] = MakeSpearSweep();
   return catalog;
 }
 
@@ -497,6 +524,36 @@ TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
   EXPECT_NE(rendered.find("0/20"), std::string::npos);
+}
+
+// The Skills tab opens on the first book. A character reads their books in
+// the order they earned them, and the newest one is a Right away.
+TEST_F(CharacterPanelTest, TheSkillsTabOpensOnTheFirstBook) {
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, panel_focus_, TwoStageCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
+  EXPECT_EQ(rendered.find("Spear Sweep"), std::string::npos);
+}
+
+// And it stays where the player left it. Down out of the tab bar used to snap
+// the advancement bar to the newest stage, so a second-job character could
+// never get back down onto their first book.
+TEST_F(CharacterPanelTest, TheAdvancementBarKeepsThePageItWasLeftOn) {
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, panel_focus_, TwoStageCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowRight);  // page I -> page II
+  ASSERT_NE(RenderComponent(comp).find("Spear Sweep"), std::string::npos);
+  comp->OnEvent(ftxui::Event::ArrowLeft);  // page II -> page I
+  comp->OnEvent(ftxui::Event::ArrowUp);    // back up to the outer tabs
+  comp->OnEvent(ftxui::Event::ArrowDown);  // and down onto the bar again
+  EXPECT_NE(RenderComponent(comp).find("Slash Blast"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, SkillsTabListsActivesBeforePassives) {

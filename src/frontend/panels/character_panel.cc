@@ -214,15 +214,10 @@ void CharacterPanel::SetCursorStop(int stop) {
 }
 
 void CharacterPanel::MoveCursor(int delta) {
-  // Leaving the tab bar for the Skills tab puts the advancement bar on the
-  // stage the character has reached, which is what Down has always done. It
-  // happens before the ring is measured because the stage decides how many
-  // skills are in it, and a bar left on an older one would size the ring for
-  // the wrong stage.
-  if (zone_ == kZoneTabs && ActiveTab() == kTabSkills &&
-      character_.proto().job_stage() > 0) {
-    skill_tab_ = character_.proto().job_stage() - 1;
-  }
+  // The advancement bar keeps whichever page the player left it on. Entering
+  // the Skills tab used to snap it to the newest stage, which meant a
+  // second-job character could not get back down onto their first book: every
+  // Down from the tab bar put them on page II again.
   SetCursorStop(StepCursor(CursorStop(), delta, RingStops()));
 }
 
