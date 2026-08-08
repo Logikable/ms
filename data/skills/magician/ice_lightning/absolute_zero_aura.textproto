@@ -1,0 +1,20 @@
+# A toggle in GMS, and worth an elemental resistance and a freeze that nothing
+# here has. What is left is the damage it cancels, which the wizard carries all
+# the time rather than while the aura is up.
+#
+# Status resistance is carried and never read: nothing inflicts a status. It is
+# here to keep the wiki's figure beside the skill it belongs to.
+name: "Absolute Zero Aura"
+skill_order: 4
+description: "Wraps you in a shield of cold that blunts what reaches you."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
+max_level: 10
+base {
+  damage_taken_pct: 0.02
+  status_resistance: 2
+}
+per_level {
+  damage_taken_pct: 0.02
+  status_resistance: 2
+}

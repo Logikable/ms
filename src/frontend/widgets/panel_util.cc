@@ -313,8 +313,19 @@ std::string JobName(Job job) {
       return "Hunter";
     case JOB_CROSSBOWMAN:
       return "Crossbowman";
+    case JOB_ICE_LIGHTNING_WIZARD:
+      return "Ice/Lightning Wizard";
     default:
       return "Unknown";
+  }
+}
+
+std::string ShortJobName(Job job) {
+  switch (job) {
+    case JOB_ICE_LIGHTNING_WIZARD:
+      return "I/L Wizard";
+    default:
+      return JobName(job);
   }
 }
 

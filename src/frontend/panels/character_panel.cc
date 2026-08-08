@@ -532,7 +532,7 @@ ftxui::Element CharacterPanel::Render() const {
   // Right-aligned in three columns so the job name doesn't shuffle sideways
   // as the character levels past 9 and 99.
   std::string lvl = PadLeft(std::to_string(p.level()), 3);
-  std::string title = Centered("Lv" + lvl + " " + JobName(p.job()));
+  std::string title = Centered("Lv" + lvl + " " + ShortJobName(p.job()));
 
   // Combat power stands for the character as a whole, so it is built from a
   // bare stat line -- no attack skill, no target.

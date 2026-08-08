@@ -404,7 +404,7 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
 // nothing to offer and the character must not be told otherwise.
 TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/30);
-  c.AdvanceJob(JOB_MAGICIAN);  // the magician's 2nd job is not written yet
+  c.AdvanceJob(JOB_ROGUE);  // the rogue's 2nd job is not written yet
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
@@ -443,8 +443,14 @@ TEST(JobChoicesTest, AnArcherIsOfferedBothBowmanBranches) {
             (std::vector<Job>{JOB_HUNTER, JOB_CROSSBOWMAN}));
 }
 
-TEST(JobChoicesTest, TheOtherFirstJobsHaveNoSecondJobYet) {
-  EXPECT_TRUE(JobChoicesForStage(JOB_MAGICIAN, 2).empty());
+// One of the magician's three, so far. Fire/Poison and Cleric are unwritten,
+// and an empty seat would offer a choice that is not there.
+TEST(JobChoicesTest, AMagicianIsOfferedTheOneWizardBranchWritten) {
+  EXPECT_EQ(JobChoicesForStage(JOB_MAGICIAN, 2),
+            (std::vector<Job>{JOB_ICE_LIGHTNING_WIZARD}));
+}
+
+TEST(JobChoicesTest, TheRogueHasNoSecondJobYet) {
   EXPECT_TRUE(JobChoicesForStage(JOB_ROGUE, 2).empty());
 }
 

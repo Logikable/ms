@@ -143,7 +143,7 @@ std::string EquippedPanel::RowInfo(const EquipStats& stats) const {
   // carries both, and a magician's weapon attack never reaches the damage
   // chain.
   std::string atk_str;
-  bool magic = job == JOB_MAGICIAN;
+  bool magic = job == JOB_MAGICIAN || job == JOB_ICE_LIGHTNING_WIZARD;
   if (!magic && stats.attack() > 0) {
     atk_str = "+" + std::to_string(stats.attack()) + " ATT";
   } else if (stats.magic_attack() > 0) {

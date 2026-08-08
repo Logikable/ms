@@ -852,6 +852,27 @@ TEST(JobNameTest, EveryJobHasAName) {
   }
 }
 
+// The short name is the default everywhere a job is shown, so every job has to
+// answer it -- and the ones that need no shortening answer their own name.
+TEST(JobNameTest, EveryJobHasAShortName) {
+  for (int i = Job_MIN; i <= Job_MAX; ++i) {
+    if (!Job_IsValid(i) || i == JOB_UNSPECIFIED) {
+      continue;
+    }
+    Job job = static_cast<Job>(i);
+    EXPECT_NE(ShortJobName(job), "Unknown") << Job_Name(job) << " is not named";
+    EXPECT_LE(static_cast<int>(ShortJobName(job).size()),
+              static_cast<int>(JobName(job).size()))
+        << Job_Name(job) << " is longer short than long";
+  }
+}
+
+TEST(JobNameTest, TheWizardIsSpelledOutInFullAndAbbreviated) {
+  EXPECT_EQ(JobName(JOB_ICE_LIGHTNING_WIZARD), "Ice/Lightning Wizard");
+  EXPECT_EQ(ShortJobName(JOB_ICE_LIGHTNING_WIZARD), "I/L Wizard");
+  EXPECT_EQ(ShortJobName(JOB_SPEARMAN), "Spearman");
+}
+
 TEST(StatFieldNameTest, NamesTheFourAllocatableStats) {
   EXPECT_EQ(StatFieldName(STAT_FIELD_STR), "STR");
   EXPECT_EQ(StatFieldName(STAT_FIELD_DEX), "DEX");

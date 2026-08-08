@@ -1,0 +1,20 @@
+# Half of the wizard's pair. GMS runs it over 20 levels at 99+5x; here it is
+# the same climb in half the steps, ending where GMS ends.
+#
+# The cooldown is not a cost. It is barely half a swing, so the other half of
+# the pair is always ready to fill it -- which is what makes the two alternate
+# rather than the better one being cast forever. See fight.h.
+name: "Cold Beam"
+skill_order: 1
+description:
+  "Grows a row of sharp ice crystals in front of you, and drives them "
+  "through whatever is standing there."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
+max_level: 10
+base_delay_ms: 810
+max_enemies: 6
+lines: 3
+cooldown_seconds: 0.5
+base { skill_pct: 1.09 }
+per_level { skill_pct: 0.10 }

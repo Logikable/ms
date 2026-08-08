@@ -62,6 +62,8 @@ std::vector<std::string> WorkbenchWeaponsFor(Job job) {
       return {"ryden"};
     case JOB_CROSSBOWMAN:
       return {"eagle_crow"};
+    case JOB_ICE_LIGHTNING_WIZARD:
+      return {"frantic_crow_staff"};
     default:
       return StarterEquipsFor(job);
   }

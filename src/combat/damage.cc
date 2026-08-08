@@ -237,6 +237,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
       offense.secondary = allocated.str() + equipped.str();
       break;
     case JOB_MAGICIAN:
+    case JOB_ICE_LIGHTNING_WIZARD:
       // INT primary, LUK secondary.
       offense.primary = allocated.int_() + equipped.int_();
       offense.secondary = allocated.luk() + equipped.luk();
@@ -251,8 +252,8 @@ OffenseStats OffenseStatsFor(Job job, int level,
   }
   // Magicians swing on magic attack; the rest of the chain treats it exactly
   // as weapon attack, so it rides the same field.
-  offense.attack =
-      job == JOB_MAGICIAN ? equipped.magic_attack() : equipped.attack();
+  bool magic = job == JOB_MAGICIAN || job == JOB_ICE_LIGHTNING_WIZARD;
+  offense.attack = magic ? equipped.magic_attack() : equipped.attack();
   offense.boss_pct = equipped.boss_damage() / kPercentToFraction;
   offense.ied = equipped.ignore_enemy_defense() / kPercentToFraction;
   // The learned attack skill's multiplier replaces the bare 100% poke. Effect

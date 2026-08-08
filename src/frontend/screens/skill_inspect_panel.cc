@@ -71,6 +71,7 @@ const FlatLever kFlatLevers[] = {
     {"ATT", &SkillEffect::attack_per_combo_orb, " per Combo Orb", false},
     {"STR", &SkillEffect::str, "", false},
     {"DEX", &SkillEffect::dex, "", false},
+    {"INT", &SkillEffect::int_, "", false},
     {"LUK", &SkillEffect::luk, "", false},
     {"Max HP", &SkillEffect::max_hp_per_level, " per level", false},
     {"Max MP", &SkillEffect::max_mp_per_level, " per level", false},

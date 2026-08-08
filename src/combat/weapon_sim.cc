@@ -75,6 +75,8 @@ std::string BranchName(Job job) {
       return "Hunter";
     case JOB_CROSSBOWMAN:
       return "Crossbowman";
+    case JOB_ICE_LIGHTNING_WIZARD:
+      return "I/L Wizard";
     default:
       return "?";
   }
@@ -87,6 +89,8 @@ Job FirstJobFor(Job branch) {
     case JOB_HUNTER:
     case JOB_CROSSBOWMAN:
       return JOB_ARCHER;
+    case JOB_ICE_LIGHTNING_WIZARD:
+      return JOB_MAGICIAN;
     default:
       return JOB_SWORDMAN;
   }
@@ -101,6 +105,7 @@ StatField PrimaryStatFor(Job job) {
     case JOB_CROSSBOWMAN:
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
+    case JOB_ICE_LIGHTNING_WIZARD:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
       return STAT_FIELD_LUK;
@@ -112,7 +117,14 @@ StatField PrimaryStatFor(Job job) {
 // What the row's primary figure is called, so the detail line labels the stat
 // it actually holds rather than assuming a warrior's.
 const char* PrimaryStatName(Job job) {
-  return PrimaryStatFor(job) == STAT_FIELD_DEX ? "DEX" : "STR";
+  switch (PrimaryStatFor(job)) {
+    case STAT_FIELD_DEX:
+      return "DEX";
+    case STAT_FIELD_INT:
+      return "INT";
+    default:
+      return "STR";
+  }
 }
 
 struct Catalogs {
@@ -356,10 +368,15 @@ void Run(int level) {
   // polearms. The bowman branches master one weapon apiece, so they bring one
   // row each rather than two.
   const Build kBuilds[] = {
-      {JOB_FIGHTER, "sparta"},      {JOB_FIGHTER, "the_shining"},
-      {JOB_PAGE, "sparta"},         {JOB_PAGE, "the_blessing"},
-      {JOB_SPEARMAN, "holy_spear"}, {JOB_SPEARMAN, "skylar"},
-      {JOB_HUNTER, "asianic_bow"},  {JOB_CROSSBOWMAN, "golden_crow"},
+      {JOB_FIGHTER, "sparta"},
+      {JOB_FIGHTER, "the_shining"},
+      {JOB_PAGE, "sparta"},
+      {JOB_PAGE, "the_blessing"},
+      {JOB_SPEARMAN, "holy_spear"},
+      {JOB_SPEARMAN, "skylar"},
+      {JOB_HUNTER, "asianic_bow"},
+      {JOB_CROSSBOWMAN, "golden_crow"},
+      {JOB_ICE_LIGHTNING_WIZARD, "frantic_crow_staff"},
   };
 
   std::printf(

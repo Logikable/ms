@@ -618,6 +618,27 @@ TEST_F(DerivedStatsTest, TheDamageLeversReachTheOffenseStats) {
   EXPECT_DOUBLE_EQ(passives.crit_dmg, 0.05);
 }
 
+// High Wisdom grants the magician's own stat. It reaches the stat line like
+// any other stat, and buys no DEF -- which is the rule for INT wherever it
+// comes from.
+TEST_F(DerivedStatsTest, SkillGrantedIntLandsInTheStatLineAndBuysNoDef) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill wisdom;
+  wisdom.set_name("High Wisdom");
+  wisdom.set_kind(SKILL_KIND_PASSIVE);
+  wisdom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  wisdom.set_max_level(5);
+  wisdom.mutable_base()->set_int_(8);
+  wisdom.mutable_per_level()->set_int_(8);
+  std::map<std::string, Skill> skills = {{"high_wisdom", wisdom}};
+  ASSERT_TRUE(c.LearnSkill(wisdom, 5));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.int_(), 40);
+  EXPECT_EQ(TotalEquipStats(c, stats).int_(), 40);
+  EXPECT_EQ(stats.def, 0);
+}
+
 // Freezing Crush's pair: critical damage rides beside crit rate, and magic
 // attack lands in the stat line exactly as a staff's would -- which is the
 // only way a magician's skills reach their own damage.

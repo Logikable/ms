@@ -1,0 +1,19 @@
+# GMS stacks this on frozen enemies and spends the stacks on a lightning
+# attack. Nothing here freezes, and the alternation the stacks reward happens
+# anyway, so the reward is simply permanent: the critical damage and the final
+# damage the stacked-up version would have been worth.
+name: "Freezing Crush"
+skill_order: 2
+description:
+  "The cold you leave on an enemy makes your next hit bite deeper."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
+max_level: 10
+base {
+  crit_dmg: 0.005
+  final_dmg_pct: 0.005
+}
+per_level {
+  crit_dmg: 0.005
+  final_dmg_pct: 0.005
+}

@@ -43,6 +43,7 @@ message SkillEffect {
   // Primary stats, exactly as a worn item grants them.
   int32 str = 12;
   int32 dex = 13;
+  int32 int = 25;
   int32 luk = 11;
 
   // HP and MP pools. The flat per-level amount lands first and the percent

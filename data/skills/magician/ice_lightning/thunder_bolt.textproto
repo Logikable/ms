@@ -1,0 +1,17 @@
+# The other half of the pair, on GMS's own figures: 130+8x over 10 levels, so
+# it ends a little above Cold Beam. Same animation length, same cooldown, so
+# the two trade the swing evenly.
+name: "Thunder Bolt"
+skill_order: 3
+description:
+  "Raises a magnetic field over the enemies in front of you, and calls "
+  "lightning down through it."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
+max_level: 10
+base_delay_ms: 810
+max_enemies: 6
+lines: 3
+cooldown_seconds: 0.5
+base { skill_pct: 1.38 }
+per_level { skill_pct: 0.08 }

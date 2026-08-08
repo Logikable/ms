@@ -49,6 +49,7 @@ struct PassiveTotals {
   int def = 0;
   int str = 0;
   int dex = 0;
+  int int_ = 0;
   int luk = 0;
   int attack = 0;
   int magic_attack = 0;
@@ -77,6 +78,7 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.def += base.def() + per.def() * (level - 1);
   totals.str += base.str() + per.str() * (level - 1);
   totals.dex += base.dex() + per.dex() * (level - 1);
+  totals.int_ += base.int_() + per.int_() * (level - 1);
   totals.luk += base.luk() + per.luk() * (level - 1);
   totals.attack += base.attack() + per.attack() * (level - 1);
   totals.magic_attack += base.magic_attack() + per.magic_attack() * (level - 1);
@@ -182,6 +184,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.skill_stats.set_def(passives.def);
   stats.skill_stats.set_str(passives.str);
   stats.skill_stats.set_dex(passives.dex);
+  stats.skill_stats.set_int_(passives.int_);
   stats.skill_stats.set_luk(passives.luk);
   stats.skill_stats.set_attack(passives.attack);
   stats.skill_stats.set_magic_attack(passives.magic_attack);

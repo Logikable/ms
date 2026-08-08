@@ -13,13 +13,17 @@ ftxui::Element AdvancementPopupPanel(Job from_job, Job to_job) {
   // level-up card has one because it has two things to say, and this has one.
   //
   // Same width floor as the level-up card too, and for both the reasons
-  // kCelebrationContentWidth gives.
+  // kCelebrationContentWidth gives. Short names for the same reason: the card
+  // is one size, and a job whose full name outgrew it would stretch it.
+  //
+  // The full name has already been shown twice by now -- in the picker and in
+  // the dialog confirming it -- so nothing is lost by abbreviating here.
   return AccentWindow(" Advancement ",
                       ftxui::vbox({
                           ftxui::text(""),
-                          CenteredRow(JobName(from_job)),
+                          CenteredRow(ShortJobName(from_job)),
                           CenteredRow("↓"),
-                          CenteredRow(JobName(to_job)),
+                          CenteredRow(ShortJobName(to_job)),
                           ftxui::text(""),
                       }) | ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN,
                                        kCelebrationContentWidth),
