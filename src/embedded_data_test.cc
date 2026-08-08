@@ -33,6 +33,11 @@ TEST(EmbeddedDataTest, ItemsParse) {
       LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
   ASSERT_TRUE(items.count("level_up") > 0);
   EXPECT_EQ(items["level_up"].effect(), ITEM_EFFECT_LEVEL_UP);
+  // One drop out of each band's folder. level_up alone sits at the top of
+  // data/items, so it would still be here if the glob stopped recursing and
+  // every Etc drop in the game quietly went missing.
+  EXPECT_TRUE(items.count("green_snail_shell") > 0);
+  EXPECT_TRUE(items.count("wooden_board") > 0);
 }
 
 TEST(EmbeddedDataTest, MapsParse) {
