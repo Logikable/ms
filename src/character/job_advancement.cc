@@ -26,7 +26,7 @@ std::vector<std::string> StarterEquipsFor(Job job) {
     case JOB_SWORDMAN:
       return {"long_sword"};
     case JOB_MAGICIAN:
-      return {"wooden_wand"};
+      return {"wooden_staff"};
     case JOB_ARCHER:
       return {"war_bow"};
     case JOB_ROGUE:

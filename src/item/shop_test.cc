@@ -97,7 +97,7 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
 // tier rather than at the end: they undercut the weapons they are listed
 // beside because they are ammunition, not the weapon a character is built
 // around.
-TEST(ShopTest, ShippedStockIsFortyFourWeapons) {
+TEST(ShopTest, ShippedStockIsFortySevenWeapons) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<std::string> stock = ShopStock(equips);
   std::vector<std::pair<std::string, int>> listing;
@@ -108,21 +108,21 @@ TEST(ShopTest, ShippedStockIsFortyFourWeapons) {
       // Level 10.
       {"Long Sword", 5000},
       {"War Bow", 5000},
-      {"Wooden Wand", 5000},
+      {"Wooden Staff", 5000},
       {"Fruit Knife", 5000},
       {"Garnier", 5000},
       {"Subi Throwing-Stars", 1000},
       // Level 20.
       {"Machete", 10000},
       {"Hunter's Bow", 10000},
-      {"Metal Wand", 10000},
+      {"Old Wooden Staff", 10000},
       {"Coconut Knife", 10000},
       {"Steel Igor", 10000},
       // Level 30 -- where the 2nd-job warrior weapons start, so the warriors
       // outnumber everyone else from here down.
       {"Gladius", 20000},
       {"Ryden", 20000},
-      {"Mithril Wand", 20000},
+      {"Circle-Winded Staff", 20000},
       {"Reef Claw", 20000},
       {"Steel Guards", 20000},
       {"Kumbi Throwing-Stars", 10000},
@@ -134,6 +134,7 @@ TEST(ShopTest, ShippedStockIsFortyFourWeapons) {
       {"Eagle Crow", 20000},
       // Level 40.
       {"Vaulter 2000", 30000},
+      {"Hall Staff", 30000},
       {"Sabretooth", 30000},
       {"Zeco", 30000},
       {"Crescent Polearm", 30000},
@@ -142,6 +143,7 @@ TEST(ShopTest, ShippedStockIsFortyFourWeapons) {
       {"Silver Crow", 30000},
       // Level 50.
       {"Olympus", 50000},
+      {"Mystic Cane", 50000},
       {"The Rising", 50000},
       {"Serpent's Tongue", 50000},
       {"The Nine Dragons", 50000},
@@ -150,6 +152,7 @@ TEST(ShopTest, ShippedStockIsFortyFourWeapons) {
       {"Rower", 50000},
       // Level 60 -- the last tier the trial cap can reach.
       {"Asianic Bow", 75000},
+      {"Frantic Crow Staff", 75000},
       {"The Shining", 75000},
       {"Holy Spear", 75000},
       {"Skylar", 75000},

@@ -52,10 +52,10 @@ class TuiControllerTest : public testing::Test {
     equips["Sword"] = sword_;
     // A stand-in under the catalog key a Magician's advancement asks for, so
     // the advancement tests see gear arrive without loading data/equip.
-    EquipPrototype wand;
-    wand.set_name("Wooden Wand");
-    wand.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-    equips["wooden_wand"] = wand;
+    EquipPrototype staff;
+    staff.set_name("Wooden Staff");
+    staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    equips["wooden_staff"] = staff;
     // Something for the shop to stock. ShopPanel fixes its list at
     // construction, so this has to exist before the panel does.
     EquipPrototype machete;

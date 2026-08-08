@@ -1,11 +1,12 @@
-name: "Cromi"
+name: "Mystic Cane"
 required_level: 50
 base_stats {
-  attack: 39
-  magic_attack: 63
+  attack: 42
+  magic_attack: 67
 }
-attack_speed: ATTACK_SPEED_AVERAGE
-equip_type: EQUIP_TYPE_WAND
+attack_speed: ATTACK_SPEED_SLOW_1
+equip_type: EQUIP_TYPE_STAFF
 upgrade_slots: 7
 equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
 equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+shop_price: 50000

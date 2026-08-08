@@ -219,8 +219,8 @@ std::string FormatEquipType(EquipType type) {
       return "Bow";
     case EQUIP_TYPE_CROSSBOW:
       return "Crossbow";
-    case EQUIP_TYPE_WAND:
-      return "Wand";
+    case EQUIP_TYPE_STAFF:
+      return "Staff";
     case EQUIP_TYPE_DAGGER:
       return "Dagger";
     case EQUIP_TYPE_CLAW:

@@ -70,42 +70,42 @@ TEST_F(EquippedPanelTest, ShowsEquippedItemName) {
             std::string::npos);
 }
 
-// A wand carries weapon and magic attack both; which one the row shows is the
+// A staff carries weapon and magic attack both; which one the row shows is the
 // one the wielder actually swings with.
 TEST_F(EquippedPanelTest, ShowsMagicAttackForAMagician) {
-  EquipPrototype wand;
-  wand.set_name("Metal Wand");
-  wand.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  wand.mutable_base_stats()->set_attack(21);
-  wand.mutable_base_stats()->set_magic_attack(33);
+  EquipPrototype staff;
+  staff.set_name("Old Wooden Staff");
+  staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  staff.mutable_base_stats()->set_attack(26);
+  staff.mutable_base_stats()->set_magic_attack(35);
 
   Character proto;
   proto.set_job(JOB_MAGICIAN);
   CharacterInstance mage(rng_, std::move(proto));
-  mage.PickUp(std::make_unique<EquipInstance>(wand));
+  mage.PickUp(std::make_unique<EquipInstance>(staff));
   mage.Equip(0);
 
   EquippedPanel panel(mage, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_NE(rendered.find("+33 MATT"), std::string::npos);
-  EXPECT_EQ(rendered.find("+21 ATT"), std::string::npos);
+  EXPECT_NE(rendered.find("+35 MATT"), std::string::npos);
+  EXPECT_EQ(rendered.find("+26 ATT"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, ShowsWeaponAttackForEveryoneElse) {
-  EquipPrototype wand;
-  wand.set_name("Metal Wand");
-  wand.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  wand.mutable_base_stats()->set_attack(21);
-  wand.mutable_base_stats()->set_magic_attack(33);
+  EquipPrototype staff;
+  staff.set_name("Old Wooden Staff");
+  staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  staff.mutable_base_stats()->set_attack(26);
+  staff.mutable_base_stats()->set_magic_attack(35);
 
   Character proto;
   proto.set_job(JOB_SWORDMAN);
   CharacterInstance warrior(rng_, std::move(proto));
-  warrior.PickUp(std::make_unique<EquipInstance>(wand));
+  warrior.PickUp(std::make_unique<EquipInstance>(staff));
   warrior.Equip(0);
 
   EquippedPanel panel(warrior, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("+21 ATT"),
+  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("+26 ATT"),
             std::string::npos);
 }
 
