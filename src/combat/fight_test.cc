@@ -69,6 +69,19 @@ AttackOption MakeBurst() {
   return burst;
 }
 
+// A learned swing, harder than the poke and held back for a moment after it
+// lands so that something else has to fill the gap.
+AttackOption MakeSkill(const std::string& name, double damage,
+                       double cooldown) {
+  AttackOption skill;
+  skill.name = name;
+  skill.max_enemies = 1;
+  skill.damage_per_hit = {damage};
+  skill.swing_seconds = 1.0;
+  skill.cooldown_seconds = cooldown;
+  return skill;
+}
+
 // Adds a skill that fires on its own clock, hitting `reach` mobs for `damage`
 // apiece every `interval` seconds.
 void AddAutoAttack(CombatParams& params, double interval, double damage,
@@ -368,6 +381,70 @@ TEST(CombatSimTest, ACooldownRunsDownOnAnEmptyMap) {
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.kills_this_step()[0], 1)
       << "the respawned mob survived, so the burst was still recharging";
+}
+
+// The pair of skills a wizard alternates between: each one out of reach for a
+// moment after it lands, so the other one is what there is.
+CombatParams MakeAlternatingParams(const Mob& snail) {
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 1.0, 1)});
+  params.attacks[0].name = "Attack";
+  params.attacks.push_back(MakeSkill("Ice", 10.0, 0.5));
+  params.attacks.push_back(MakeSkill("Bolt", 8.0, 0.5));
+  return params;
+}
+
+// The commitment is what makes a short cooldown alternate a pair of skills:
+// without it the harder one comes back mid-animation and simply takes the
+// swing, and the other is bought and never seen.
+TEST(CombatSimTest, ASwingUnderwayIsNotDisplacedByABetterOne) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeAlternatingParams(snail);
+
+  for (int i = 0; i < 4; ++i) {
+    sim.Advance(params, 0.25);  // Ice, the harder of the two, lands first
+  }
+  ASSERT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
+  ASSERT_EQ(sim.attack_name(), "Bolt");
+
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 0.25);  // Ice is off cooldown half way through this
+  }
+  EXPECT_EQ(sim.attack_name(), "Bolt") << "Ice took a swing already underway";
+  sim.Advance(params, 0.25);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.982, 1e-9);  // 10 and then 8
+}
+
+TEST(CombatSimTest, TwoRechargingSkillsTakeTurns) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeAlternatingParams(snail);
+
+  for (int i = 0; i < 4; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  // Ice, Bolt, Ice, Bolt: 36, not the 40 four Ices would be.
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.964, 1e-9);
+}
+
+// The poke is the exception to the commitment: it is what the character is
+// left with while everything else recharges, and holding them to it would
+// cost them the skill for the rest of the animation.
+TEST(CombatSimTest, TheFallbackPokeYieldsAsSoonAsTheSkillIsBack) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 1.0, 1)});
+  params.attacks[0].name = "Attack";
+  params.attacks.push_back(MakeSkill("Ice", 10.0, 0.5));
+
+  for (int i = 0; i < 4; ++i) {
+    sim.Advance(params, 0.25);
+  }
+  ASSERT_EQ(sim.attack_name(), "Attack") << "nothing else is up to swing";
+  for (int i = 0; i < 4; ++i) {
+    sim.Advance(params, 0.25);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.98, 1e-9);  // 10 twice, not 10 and 1
 }
 
 TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {

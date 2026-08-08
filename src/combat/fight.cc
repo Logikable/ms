@@ -85,6 +85,15 @@ int CombatSim::BestAttack(const CombatParams& params) const {
   return best;
 }
 
+int CombatSim::ChooseAttack(const CombatParams& params) const {
+  // Index 0 is the bare poke, which is never held to -- see fight.h.
+  if (aimed_ > 0 && aimed_ < static_cast<int>(params.attacks.size()) &&
+      params.attacks[aimed_].swing_seconds > 0.0 && !queue_.empty()) {
+    return aimed_;
+  }
+  return BestAttack(params);
+}
+
 void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
   // Unlike an auto-cast's clock, this runs on an empty map too: a player
   // waiting out a respawn really does have their cooldown back when the mobs
@@ -140,6 +149,7 @@ void CombatSim::GoIdle() {
   hit_phase_ = 0.0;
   auto_phase_.clear();
   cooldown_left_.clear();
+  aimed_ = -1;
 }
 
 void CombatSim::BeginMapIfChanged(const CombatParams& params) {
@@ -155,6 +165,9 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   hit_phase_ = 0.0;
   auto_phase_.assign(params.auto_attacks.size(), 0.0);
   cooldown_left_.assign(params.attacks.size(), 0.0);
+  // Another map's attacks were another map's indices, and nothing here is
+  // part-way through a swing at it any more.
+  aimed_ = -1;
   player_hp_ = params.max_player_hp;
   queue_.clear();
   TopUp(params);
@@ -239,7 +252,7 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
 }
 
 const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
-  aimed_ = BestAttack(params);
+  aimed_ = ChooseAttack(params);
   const AttackOption* attack = aimed_ >= 0 ? &params.attacks[aimed_] : nullptr;
   attack_name_ = attack != nullptr ? attack->name : "";
   if (attack != nullptr) {
@@ -255,8 +268,9 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
 
 void CombatSim::RunSwing(const CombatParams& params, double dt) {
   // Aimed against the queue as it stands, so the charge bar names the swing
-  // that is really coming and the pick can change as mobs die out from under
-  // it. Aimed again after the strike, because the queue just moved.
+  // that is really coming. Only the poke is re-aimed as mobs die out from
+  // under it; a skill winding up is committed to. Aimed again after the
+  // strike, because the queue just moved and the commitment is discharged.
   const AttackOption* attack = AimSwing(params);
   if (attack == nullptr) {
     return;
@@ -272,6 +286,7 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
   if (attack->cooldown_seconds > 0.0) {
     cooldown_left_[swung] = attack->cooldown_seconds;
   }
+  aimed_ = -1;  // the swing landed, so the next one is chosen afresh
   AimSwing(params);
 }
 

@@ -138,6 +138,15 @@ class CombatSim {
   // An index rather than a pointer because the cooldown it starts is held per
   // attack, and the caller has to be able to say which one it swung.
   int BestAttack(const CombatParams& params) const;
+  // What this step swings with: the skill already winding up, or a fresh pick
+  // from BestAttack. A skill part-way through its animation is committed to
+  // and finishes, so a better one coming free mid-charge waits its turn
+  // instead of taking over the swing that is already on its way.
+  //
+  // The bare poke is never committed to. It is what the character falls back
+  // on with everything else recharging, and holding them to it would cost
+  // them the skill the moment it came back.
+  int ChooseAttack(const CombatParams& params) const;
 
   // The steps of one Advance, in the order it runs them.
   //
@@ -208,7 +217,8 @@ class CombatSim {
   // How long that attack's swing takes, for the charge bar to fill against.
   double swing_seconds_ = 0.0;
   // Which attack the aimed swing is, so landing it can start that attack's
-  // cooldown. -1 with nothing aimed.
+  // cooldown -- and, while it is charging, the swing that is committed to.
+  // -1 with nothing aimed.
   int aimed_ = -1;
   std::vector<int64_t> kills_this_step_;
   bool died_this_step_ = false;
