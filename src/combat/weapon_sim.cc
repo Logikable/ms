@@ -184,27 +184,74 @@ struct Result {
   std::vector<std::pair<std::string, int>> skills;
 };
 
-// The attack the fight would swing at a single mob: the one landing the most
-// per second, reach being worth nothing when there is only one thing to reach.
-// The same rule CombatSim::BestAttack uses, Final Attack included.
-const AttackOption* BestSingleTarget(const CombatParams& params) {
-  const AttackOption* best = nullptr;
-  double best_rate = -1.0;
-  for (const AttackOption& attack : params.attacks) {
-    if (attack.damage_per_hit.empty() || attack.swing_seconds <= 0.0) {
+// What one swing of `attack` lands on a lone mob, Final Attack included.
+double SoloDamage(const AttackOption& attack) {
+  if (attack.damage_per_hit.empty()) {
+    return 0.0;
+  }
+  double damage = attack.damage_per_hit[0];
+  if (!attack.final_attack_damage.empty()) {
+    damage += attack.final_attack_damage[0];
+  }
+  return damage;
+}
+
+// What the swings came to over the horizon.
+struct Sequence {
+  double damage = 0.0;
+  double seconds = 0.0;  // time the swings that landed actually took
+  int main_attack = -1;  // index of the one swung most often
+};
+
+// Plays out the swings the fight would actually make against a lone mob, at
+// the same step and by the same rule as CombatSim: the best rate available,
+// with a recharging skill absent from the choice until it comes back.
+//
+// A closed form cannot answer this once a cooldown exists -- what the skill is
+// worth depends on what gets swung while it recharges, and on how much of a
+// charge is already wound up when it returns.
+Sequence PlaySwings(const CombatParams& params, double horizon) {
+  constexpr double kStep = 0.01;
+  std::vector<double> cooldown(params.attacks.size(), 0.0);
+  std::vector<int> swings(params.attacks.size(), 0);
+  Sequence played;
+  double phase = 0.0;
+  for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
+    for (double& left : cooldown) {
+      left = std::max(0.0, left - kStep);
+    }
+    int pick = -1;
+    double best_rate = -1.0;
+    for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
+      const AttackOption& attack = params.attacks[i];
+      if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0) {
+        continue;
+      }
+      double rate = SoloDamage(attack) / attack.swing_seconds;
+      if (rate > best_rate) {
+        best_rate = rate;
+        pick = i;
+      }
+    }
+    if (pick < 0) {
+      break;
+    }
+    phase += kStep;
+    if (phase < params.attacks[pick].swing_seconds) {
       continue;
     }
-    double damage = attack.damage_per_hit[0];
-    if (!attack.final_attack_damage.empty()) {
-      damage += attack.final_attack_damage[0];
-    }
-    double rate = damage / attack.swing_seconds;
-    if (rate > best_rate) {
-      best_rate = rate;
-      best = &attack;
+    phase -= params.attacks[pick].swing_seconds;
+    played.damage += SoloDamage(params.attacks[pick]);
+    played.seconds += params.attacks[pick].swing_seconds;
+    ++swings[pick];
+    cooldown[pick] = params.attacks[pick].cooldown_seconds;
+  }
+  for (int i = 0; i < static_cast<int>(swings.size()); ++i) {
+    if (played.main_attack < 0 || swings[i] > swings[played.main_attack]) {
+      played.main_attack = i;
     }
   }
-  return best;
+  return played;
 }
 
 Result Measure(const Catalogs& catalogs, int level, const Build& build) {
@@ -227,10 +274,14 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   result.combat_power = CombatPower(bare);
 
   CombatParams params = ComputeCombatParams(state);
-  const AttackOption* best = BestSingleTarget(params);
-  if (best == nullptr) {
+  // Long enough that a four-second cooldown lands hundreds of times, so the
+  // average is not moved by where the horizon happens to cut.
+  constexpr double kHorizonSeconds = 600.0;
+  Sequence played = PlaySwings(params, kHorizonSeconds);
+  if (played.main_attack < 0 || played.seconds <= 0.0) {
     return result;
   }
+  const AttackOption* best = &params.attacks[played.main_attack];
   // Back out the pacing the game stretches everything by, so the figure is the
   // 1x one and two levels can be compared without dividing by hand.
   double speed = GameSpeedFactor(level);
@@ -261,11 +312,10 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
     }
   }
   result.swing_seconds = best->swing_seconds / speed;
-  double per_swing = best->damage_per_hit[0];
-  if (!best->final_attack_damage.empty()) {
-    per_swing += best->final_attack_damage[0];
-  }
-  result.dps = per_swing / result.swing_seconds;
+  // Averaged over the swings that landed rather than the horizon, so the
+  // part-charged swing the horizon cuts off costs nothing. A cooldown skill is
+  // worth exactly the share of the swings it actually gets. Scaled back to 1x.
+  result.dps = played.damage * speed / played.seconds;
   // Skills on their own clock land beside the swing rather than instead of it.
   for (const AttackOption& extra : params.auto_attacks) {
     if (!extra.damage_per_hit.empty() && extra.interval_seconds > 0.0) {
