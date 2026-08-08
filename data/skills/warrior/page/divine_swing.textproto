@@ -10,6 +10,6 @@ max_level: 20
 base_delay_ms: 840
 max_enemies: 6
 lines: 4
-holy_power: true
+tags: SKILL_TAG_HOLY_POWER
 base { skill_pct: 1.22 }
 per_level { skill_pct: 0.02 }

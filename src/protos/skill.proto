@@ -20,6 +20,16 @@ enum SkillKind {
   SKILL_KIND_AUTO_ATTACK = 4;
 }
 
+// A mark on a skill that some rule outside the skill reads: a group it belongs
+// to, a family a later skill asks about. A tag never changes what the skill
+// itself does -- that is what SkillEffect is for.
+enum SkillTag {
+  SKILL_TAG_UNSPECIFIED = 0;
+  // The Paladin's Holy Power group. Nothing reads it yet: Vessel of Light, the
+  // skill GMS gates on having used one, is permanent here.
+  SKILL_TAG_HOLY_POWER = 1;
+}
+
 // A skill's per-level contribution to the character's stats. Only the levers we
 // currently model are here; a skill whose real effect is something we don't
 // track (speed, jump, ...) simply carries no levers and does nothing. Percents
@@ -149,10 +159,9 @@ message Skill {
   int32 combo_orbs = 13;
   // What the skill grants on top of `base` with particular weapons in hand.
   repeated WeaponBonus weapon_bonus = 14;
-  // Whether this is one of the Page's Holy Power skills. Nothing reads it:
-  // Vessel of Light, the skill GMS gates on having used one, is permanent
-  // here. Recorded so the group survives until something needs it.
-  bool holy_power = 15;
+  // Groups this skill belongs to. Recorded so a group survives until something
+  // needs it; see SkillTag.
+  repeated SkillTag tags = 15;
   // How long one swing of this attack takes at average attack speed, in
   // milliseconds: the sum of its animation's frames. GMS keys the delay on the
   // skill, not on the weapon -- a spear and a sword swing the same skill at the

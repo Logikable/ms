@@ -43,6 +43,17 @@ TEST(SkillDataTest, EverySkillBelongsToAnAdvancement) {
   }
 }
 
+// A tag is read by rules outside the skill, so an unset one is a skill quietly
+// left out of a group it was meant to be in.
+TEST(SkillDataTest, EveryTagNamesAGroup) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    for (int tag : entry.second.tags()) {
+      EXPECT_NE(tag, SKILL_TAG_UNSPECIFIED)
+          << entry.first << " carries a tag that names no group";
+    }
+  }
+}
+
 // The inspect screen has nothing else to say about a skill: its levers are
 // numbers, and only this tells the player what the numbers are for.
 TEST(SkillDataTest, EverySkillDescribesItself) {
