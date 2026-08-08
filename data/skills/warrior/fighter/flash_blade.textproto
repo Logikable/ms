@@ -1,15 +1,16 @@
-# GMS hands out two charges off one 4-second cooldown. One charge here, so the
-# cooldown is simply how often it fires -- and the fight has no notion of a
-# player saving a charge for later anyway.
+# GMS hands out two charges off one 4-second cooldown. One charge here, since
+# the fight has no notion of a player saving one for later -- so the cooldown
+# is simply how long it is until the next.
 name: "Flash Blade"
 description:
   "Zip forward in a flash, cutting everything in your path five times "
-  "over. Goes off the moment it comes back."
-kind: SKILL_KIND_AUTO_ATTACK
+  "over. Hits harder than an ordinary swing, and has to be waited for."
+kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 9
+base_delay_ms: 720
+cooldown_seconds: 4.0
 max_enemies: 6
 lines: 5
-cast_interval_seconds: 4.0
 base { skill_pct: 1.05 }
 per_level { skill_pct: 0.05 }
