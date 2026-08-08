@@ -97,7 +97,7 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
 // tier rather than at the end: they undercut the weapons they are listed
 // beside because they are ammunition, not the weapon a character is built
 // around.
-TEST(ShopTest, ShippedStockIsThirtySevenWeapons) {
+TEST(ShopTest, ShippedStockIsFortyFourWeapons) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<std::string> stock = ShopStock(equips);
   std::vector<std::pair<std::string, int>> listing;
@@ -131,24 +131,31 @@ TEST(ShopTest, ShippedStockIsThirtySevenWeapons) {
       {"Mithril Polearm", 20000},
       {"Mithril Maul", 20000},
       {"Scimitar", 20000},
+      {"Eagle Crow", 20000},
       // Level 40.
+      {"Vaulter 2000", 30000},
       {"Sabretooth", 30000},
       {"Zeco", 30000},
       {"Crescent Polearm", 30000},
       {"Titan", 30000},
       {"Zard", 30000},
+      {"Silver Crow", 30000},
       // Level 50.
+      {"Olympus", 50000},
       {"The Rising", 50000},
       {"Serpent's Tongue", 50000},
       {"The Nine Dragons", 50000},
       {"Golden Mole", 50000},
       {"Lion's Fang", 50000},
+      {"Rower", 50000},
       // Level 60 -- the last tier the trial cap can reach.
+      {"Asianic Bow", 75000},
       {"The Shining", 75000},
       {"Holy Spear", 75000},
       {"Skylar", 75000},
       {"The Blessing", 75000},
       {"Sparta", 75000},
+      {"Golden Crow", 75000},
   };
   EXPECT_EQ(listing, expected);
 }
