@@ -2,6 +2,7 @@
 # the fight has no notion of a player saving one for later -- so the cooldown
 # is simply how long it is until the next.
 name: "Flash Blade"
+skill_order: 2
 description:
   "Zip forward in a flash, cutting everything in your path five times "
   "over. Hits harder than an ordinary swing, and has to be waited for."

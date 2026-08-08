@@ -1,6 +1,7 @@
 # GMS stuns for 10+4x% on top of this. Nothing here is ever stunned, so the
 # hammer only hits.
 name: "Divine Swing"
+skill_order: 1
 description:
   "Swing a great hammer conjured out of light at everything around you, four "
   "times over."

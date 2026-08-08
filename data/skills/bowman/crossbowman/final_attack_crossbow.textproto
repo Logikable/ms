@@ -1,6 +1,7 @@
 # The same staircase as every other Final Attack: chance 2*L%, damage a single
 # hit of (100 + 5*floor(L/2))%, taken on the even step below.
 name: "Final Attack: Crossbow"
+skill_order: 5
 description:
   "A chance for every shot to be followed by a second bolt at whatever is "
   "in front of you. Needs a crossbow in hand."

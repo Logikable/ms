@@ -3,6 +3,7 @@
 # exactly where GMS's one level does. Its HP recovery is left out, along with
 # the status resistance, which nothing in this game would resist.
 name: "Vessel of Light"
+skill_order: 2
 description:
   "Gathers the power of light inside you, until you hit harder and harder "
   "things bounce off you."

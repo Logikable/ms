@@ -571,72 +571,40 @@ TEST_F(CharacterPanelTest, TheAdvancementBarKeepsThePageItWasLeftOn) {
   EXPECT_NE(RenderComponent(comp).find("Slash Blast"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, SkillsTabListsActivesBeforePassives) {
-  // The catalog is keyed by file stem, so "iron_body" would sort ahead of
-  // "slash_blast" on its own; the list must put the castable skill first.
-  Skill iron_body;
-  iron_body.set_name("Iron Body");
-  iron_body.set_kind(SKILL_KIND_PASSIVE);
-  iron_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  iron_body.set_max_level(20);
-  Skill war_leap;
-  war_leap.set_name("War Leap");
-  war_leap.set_kind(SKILL_KIND_ACTIVE);
-  war_leap.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  war_leap.set_max_level(5);
-  std::map<std::string, Skill> catalog = SkillCatalog();  // slash_blast
-  catalog["slash_blast"].set_kind(SKILL_KIND_ATTACK);
-  catalog["iron_body"] = iron_body;
-  catalog["war_leap"] = war_leap;
-
-  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, catalog);
-  ftxui::Component comp = panel.MakeComponent([](StatField) {});
-  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
-  std::string rendered = RenderComponent(comp);
-  size_t slash = rendered.find("Slash Blast");
-  size_t leap = rendered.find("War Leap");
-  size_t iron = rendered.find("Iron Body");
-  ASSERT_NE(slash, std::string::npos);
-  ASSERT_NE(leap, std::string::npos);
-  ASSERT_NE(iron, std::string::npos);
-  EXPECT_LT(slash, iron);
-  EXPECT_LT(leap, iron);
-}
-
-// Between the two: a skill that fights on its own clock is not one of the
-// swings to pick between, but it is not background either.
-TEST_F(CharacterPanelTest, AutoAttacksSitBetweenTheTwo) {
-  // Stems chosen so the catalog's own order is the reverse of the wanted one.
-  Skill evil_eye;
-  evil_eye.set_name("Evil Eye Shock");
-  evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
-  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  evil_eye.set_max_level(10);
-  Skill iron_body;
-  iron_body.set_name("Iron Body");
-  iron_body.set_kind(SKILL_KIND_PASSIVE);
-  iron_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  iron_body.set_max_level(20);
+// The book's own order decides the list, and nothing else does. GMS lists a
+// class's skills in an order of its own -- it does not gather the attacks
+// above the passives -- so the catalog carries skill_order and the panel
+// obeys it. Built here so that stem order, kind order and skill_order all
+// disagree, which is the only way to tell which one the list is following.
+TEST_F(CharacterPanelTest, TheListFollowsSkillOrderAndNotKind) {
+  const char* stems[] = {"a_iron_body", "b_evil_eye", "c_slash_blast"};
+  const char* names[] = {"Iron Body", "Evil Eye Shock", "Slash Blast"};
+  SkillKind kinds[] = {SKILL_KIND_PASSIVE, SKILL_KIND_AUTO_ATTACK,
+                       SKILL_KIND_ATTACK};
   std::map<std::string, Skill> catalog;
-  catalog["a_evil_eye"] = evil_eye;
-  catalog["b_iron_body"] = iron_body;
-  catalog["c_slash_blast"] = MakeSlashBlast();
-  catalog["c_slash_blast"].set_kind(SKILL_KIND_ATTACK);
+  for (int i = 0; i < 3; ++i) {
+    Skill skill;
+    skill.set_name(names[i]);
+    skill.set_kind(kinds[i]);
+    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    skill.set_max_level(20);
+    skill.set_skill_order(i + 1);  // the reverse of what KindOrder wanted
+    catalog[stems[i]] = skill;
+  }
 
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, panel_focus_, catalog);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
-  size_t slash = rendered.find("Slash Blast");
-  size_t eye = rendered.find("Evil Eye Shock");
   size_t iron = rendered.find("Iron Body");
-  ASSERT_NE(slash, std::string::npos);
-  ASSERT_NE(eye, std::string::npos);
+  size_t eye = rendered.find("Evil Eye Shock");
+  size_t slash = rendered.find("Slash Blast");
   ASSERT_NE(iron, std::string::npos);
-  EXPECT_LT(slash, eye);
-  EXPECT_LT(eye, iron);
+  ASSERT_NE(eye, std::string::npos);
+  ASSERT_NE(slash, std::string::npos);
+  EXPECT_LT(iron, eye);
+  EXPECT_LT(eye, slash);
 }
 
 // A catalog with one skill of each kind, plus a kind-less one.
@@ -653,6 +621,7 @@ std::map<std::string, Skill> AllKindsCatalog() {
     skill.set_kind(kinds[i]);
     skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
     skill.set_max_level(20);
+    skill.set_skill_order(i + 1);
     catalog[names[i]] = skill;
   }
   return catalog;

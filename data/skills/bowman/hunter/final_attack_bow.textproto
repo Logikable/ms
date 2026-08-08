@@ -2,6 +2,7 @@
 # is 2*L%, damage a single hit of (100 + 5*floor(L/2))%. The even step below
 # ends a hair under the top of the staircase and is never more than 2.5% out.
 name: "Final Attack: Bow"
+skill_order: 6
 description:
   "A chance for every shot to be followed by a second arrow at whatever is "
   "in front of you. Needs a bow in hand."

@@ -3,6 +3,7 @@
 # "+5% critical rate while holding a wand" is a weapon-type condition, which
 # nothing here models.
 name: "MP Boost"
+skill_order: 4
 description:
   "Increase Max MP and Attack Speed. Also increases MP proportional to your "
   "level."

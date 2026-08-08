@@ -143,6 +143,15 @@ message Skill {
   // Groups this skill belongs to. Recorded so a group survives until something
   // needs it; see SkillTag.
   repeated SkillTag tags = 15;
+  // Where this skill sits on its advancement's page, counting from 1. GMS's
+  // own order, taken off the wiki's skill list for the job, so a player who
+  // knows the class finds the skills where they expect them. Distinct within
+  // an advancement; nothing compares it across two.
+  //
+  // This is the whole of the order. What a skill DOES has no say in where it
+  // is listed -- the attacks are not gathered above the passives -- because
+  // GMS does not sort that way and a second rule would only fight this one.
+  int32 skill_order = 18;
 
   // The advancement this skill belongs to. Its SP pool buys the skill, and the
   // skills tab groups one page per advancement. Determines the SP stage (see

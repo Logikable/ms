@@ -2,6 +2,7 @@
 # target at level 1 rising to 480% at 20. Far stronger than the warrior's Slash
 # Blast, which is the point -- an archer's whole damage comes from one skill.
 name: "Arrow Blow"
+skill_order: 1
 description: "Shoot consecutive arrows at multiple enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_ARCHER

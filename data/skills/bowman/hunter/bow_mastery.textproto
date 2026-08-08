@@ -1,6 +1,7 @@
 # Mastery and nothing else, unlike the warriors' Weapon Mastery, which also
 # buys speed and crit. What the Hunter gets in its place is Quiver Cartridge.
 name: "Bow Mastery"
+skill_order: 5
 description:
   "Trains your draw until your arrows land where you mean them to, "
   "narrowing your weakest shots toward your best. Needs a bow in hand."

@@ -3,6 +3,7 @@
 # orb rather than as the +10 it comes to, because a later skill raises the
 # count and nothing else.
 name: "Combo Attack"
+skill_order: 3
 description: "Surround yourself with 5 Combo Orbs."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER

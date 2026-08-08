@@ -108,6 +108,32 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   }
 }
 
+// skill_order is the whole of the list order now, so a book that skips a
+// number or repeats one has two skills the player cannot tell apart the
+// position of -- and a book that leaves it unset piles up at the top.
+TEST(SkillDataTest, EveryBookIsNumberedOneThroughItsSize) {
+  std::map<int, std::map<int, std::string>> by_advancement;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    int order = entry.second.skill_order();
+    EXPECT_GT(order, 0) << entry.first << " has no place in its book";
+    std::pair<std::map<int, std::string>::iterator, bool> added =
+        by_advancement[entry.second.job_advancement()].insert(
+            {order, entry.first});
+    EXPECT_TRUE(added.second)
+        << entry.first << " and " << added.first->second << " both sit at "
+        << order << " of advancement " << entry.second.job_advancement();
+  }
+  for (const std::pair<const int, std::map<int, std::string>>& book :
+       by_advancement) {
+    int expected = 1;
+    for (const std::pair<const int, std::string>& entry : book.second) {
+      EXPECT_EQ(entry.first, expected)
+          << entry.second << " leaves a gap in advancement " << book.first;
+      ++expected;
+    }
+  }
+}
+
 // An auto-attack with no interval never fires, so a skill that means to be one
 // and forgets to say how often is a skill that silently does nothing.
 TEST(SkillDataTest, EveryAutoAttackSaysHowOftenItFires) {

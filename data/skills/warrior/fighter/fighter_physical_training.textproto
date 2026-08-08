@@ -1,4 +1,5 @@
 name: "Physical Training"
+skill_order: 8
 description: "Permanently raises STR and DEX through sheer physical training."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER

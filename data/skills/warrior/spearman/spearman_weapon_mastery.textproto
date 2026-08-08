@@ -1,4 +1,5 @@
 name: "Weapon Mastery"
+skill_order: 5
 description:
   "Trains your grip until your spear lands where you mean it to, narrowing "
   "your weakest swings toward your best. A spear also swings faster and hits "

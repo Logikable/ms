@@ -3,6 +3,7 @@
 # ends it, at 20 HP a character level, but climbs there a point at a time rather
 # than handing over most of the value with the first point.
 name: "Warrior Mastery"
+skill_order: 3
 description: "Trains up your warrior basics to increase Max HP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SWORDMAN

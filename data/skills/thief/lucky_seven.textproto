@@ -7,6 +7,7 @@
 # GMS throws three and always has. Kept as the wiki words it, because the name
 # is built on the seven.
 name: "Lucky Seven"
+skill_order: 2
 description:
   "Throw 7 lucky throwing stars to attack enemies in front. Can only be used "
   "when equipped with a claw."

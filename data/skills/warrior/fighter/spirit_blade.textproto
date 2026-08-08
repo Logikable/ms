@@ -2,6 +2,7 @@
 # it. There is no MP to spend and no party to buff, so what is left is a
 # permanent buff on the one character.
 name: "Spirit Blade"
+skill_order: 4
 description:
   "Unites sword and spirit, sharpening your attacks, blunting theirs, and "
   "throwing a multiple of every blow you take back at whoever landed it."

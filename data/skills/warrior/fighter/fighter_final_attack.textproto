@@ -2,6 +2,7 @@
 # base + per_level*(L-1) cannot climb. The even step below ends a hair under
 # the top of it and is never more than 2.5% out on the way.
 name: "Final Attack"
+skill_order: 7
 description:
   "A chance for every swing to be followed by a second blow at whatever is "
   "in front of you. Needs a sword or an axe in hand."

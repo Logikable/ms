@@ -7,6 +7,7 @@
 # defense, so the text has to say so or the levels below read as coming from
 # nowhere.
 name: "Archery Mastery"
+skill_order: 3
 description:
   "Gain proficiency in the fundamentals of Archery. Increases Attack Speed "
   "and DEF."

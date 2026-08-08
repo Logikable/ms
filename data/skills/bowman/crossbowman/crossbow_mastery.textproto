@@ -2,6 +2,7 @@
 # the trade between the two branches: the Crossbowman's damage is steady and
 # multiplies everything, the Hunter's arrives as a second Final Attack.
 name: "Crossbow Mastery"
+skill_order: 4
 description:
   "Trains your aim until your bolts land where you mean them to, narrowing "
   "your weakest shots toward your best and hardening every one of them. "

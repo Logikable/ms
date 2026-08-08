@@ -1,6 +1,7 @@
 # Chance is 2*L%; damage is two hits of (60+L)%, which is stated here as the
 # one number the pair is worth -- see SkillEffect::final_attack_pct.
 name: "Final Attack"
+skill_order: 7
 description:
   "A chance for every swing to be followed by a second blow at whatever is "
   "in front of you. Needs a spear or a polearm in hand."

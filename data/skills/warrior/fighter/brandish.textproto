@@ -1,4 +1,5 @@
 name: "Brandish"
+skill_order: 1
 description: "Cuts everything in front of you twice over."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIGHTER

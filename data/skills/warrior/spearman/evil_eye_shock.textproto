@@ -2,6 +2,7 @@
 # time it comes back is the same thing as a cast interval -- so that is what it
 # becomes here. The stun it also lands is not modelled.
 name: "Evil Eye Shock"
+skill_order: 2
 description:
   "Your Evil Eye appears and shouts, striking up to ten nearby enemies six "
   "times over. Fights on its own while you swing."

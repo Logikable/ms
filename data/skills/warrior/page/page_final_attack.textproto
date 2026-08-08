@@ -1,6 +1,7 @@
 # Two hits of 60+x% apiece, folded into one percentage the way every final
 # attack here is -- see SkillEffect::final_attack_pct.
 name: "Final Attack"
+skill_order: 5
 description:
   "A chance for every swing to be followed by two more blows at whatever is "
   "in front of you. Needs a sword or a blunt weapon in hand."

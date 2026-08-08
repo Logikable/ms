@@ -2,6 +2,7 @@
 # no positions to pull across and no state for a mob to be stunned in -- so
 # what is left is a wide, hard swing, which is most of what the skill is.
 name: "Spear Sweep"
+skill_order: 1
 description:
   "Swings your spear at everything in front of you at once, striking each "
   "of them four times over."

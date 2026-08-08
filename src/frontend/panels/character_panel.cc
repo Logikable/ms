@@ -66,22 +66,6 @@ ftxui::Element DisplayRow(const std::string& label, int value) {
       PadRight(" " + label + ": " + std::to_string(value), kContentWidth));
 }
 
-// Where a skill sits in the list, lowest first: the swings the player picks
-// between, then what fights alongside them on its own clock, then everything
-// that only ever sits in the background. A kind-less skill does nothing, so it
-// keeps the passives company at the bottom.
-int KindOrder(const Skill& skill) {
-  switch (skill.kind()) {
-    case SKILL_KIND_ATTACK:
-    case SKILL_KIND_ACTIVE:
-      return 0;
-    case SKILL_KIND_AUTO_ATTACK:
-      return 1;
-    default:
-      return 2;
-  }
-}
-
 // The tag a skill row opens with: what the player does with the skill, said
 // once at the front of the row instead of being worked out from the name.
 struct KindTag {
@@ -409,12 +393,12 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
       result.push_back(&entry.second);
     }
   }
-  // Grouped by what the player does with the skill, then settled so nothing
-  // waits on a skill below it. Within a group the catalog's own order stands,
-  // which keeps the list stable.
+  // GMS's own order, then settled so nothing waits on a skill below it. What a
+  // skill does has no say here: the wiki does not gather the attacks above the
+  // passives, and a second rule would only fight skill_order.
   std::stable_sort(result.begin(), result.end(),
                    [](const Skill* a, const Skill* b) {
-                     return KindOrder(*a) < KindOrder(*b);
+                     return a->skill_order() < b->skill_order();
                    });
   return RequirementsFirst(result);
 }

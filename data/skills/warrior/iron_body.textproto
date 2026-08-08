@@ -2,6 +2,7 @@
 # cannot express. The plain level/2 below is exact at every even level,
 # including the max, and half a point low at odd ones.
 name: "Iron Body"
+skill_order: 2
 description:
   "Boosts DEF and Max HP by a set percentage, and decreases damage taken "
   "when hit by enemies."

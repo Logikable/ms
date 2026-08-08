@@ -2,6 +2,7 @@
 # the character yet, so the lever is carried and never read -- the skill is here
 # because Magic Armor is built on it and a magician without it reads wrong.
 name: "Magic Guard"
+skill_order: 2
 description:
   "A portion of the damage dealt to you affects your MP instead of your HP."
 kind: SKILL_KIND_PASSIVE

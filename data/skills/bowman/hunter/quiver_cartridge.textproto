@@ -6,6 +6,7 @@
 # GMS gates the arrowheads on a later skill and lets you swap between them.
 # There is nothing to swap here, so what is left is the one arrowhead, levelled.
 name: "Quiver Cartridge"
+skill_order: 2
 description:
   "Tips your quiver so some of what you loose splits off and chases down "
   "whatever you were aiming at."

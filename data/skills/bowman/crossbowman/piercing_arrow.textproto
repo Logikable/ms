@@ -5,6 +5,7 @@
 # in would put the Crossbowman a third ahead of the Hunter on a full screen
 # and level with them on one mob, which is a worse lie than leaving it out.
 name: "Piercing Arrow"
+skill_order: 1
 description: "Fires an arrow that punches through everything in its line."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN

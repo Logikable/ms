@@ -3,6 +3,7 @@
 # The wiki names Magic Guard Lv. 3 as a prerequisite. Nothing here gates one
 # skill behind another, so saying it would only describe a rule we don't have.
 name: "Magic Armor"
+skill_order: 3
 description: "Uses magic to increase DEF."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MAGICIAN

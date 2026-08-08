@@ -1,6 +1,7 @@
 # Twice the Hunter's levels for the same 30 attack at the top, which is what
 # pays for the Crossbowman having no Quiver Cartridge to buy.
 name: "Soul Arrow: Crossbow"
+skill_order: 3
 description: "Increases Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
