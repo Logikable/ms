@@ -1,0 +1,2 @@
+name: "Ore Trail"
+spawns { mob: "big_boulder_muncher" count: 17 }

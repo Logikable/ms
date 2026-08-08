@@ -1,0 +1,2 @@
+name: "Along the Railway"
+spawns { mob: "stirge" count: 18 }

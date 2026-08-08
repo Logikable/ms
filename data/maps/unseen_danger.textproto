@@ -1,0 +1,2 @@
+name: "Unseen Danger"
+spawns { mob: "muddy_swamp_monster" count: 18 }

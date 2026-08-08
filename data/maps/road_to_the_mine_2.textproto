@@ -1,0 +1,2 @@
+name: "Road to the Mine 2"
+spawns { mob: "safety_first" count: 17 }

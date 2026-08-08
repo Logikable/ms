@@ -128,6 +128,24 @@ cc_test(
 )
 
 cc_test(
+    name = "map_data_test",
+    srcs = ["map_data_test.cc"],
+    data = [
+        "//data/items:all",
+        "//data/maps:all",
+        "//data/mobs:all",
+    ],
+    deps = [
+        ":proto_loader",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "skill_data_test",
     srcs = ["skill_data_test.cc"],
     data = ["//data/skills:all"],

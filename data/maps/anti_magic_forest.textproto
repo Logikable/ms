@@ -1,0 +1,2 @@
+name: "Anti-Magic Forest"
+spawns { mob: "onyx_stonegar" count: 17 }

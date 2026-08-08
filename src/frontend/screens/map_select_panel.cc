@@ -37,7 +37,7 @@ struct LevelBand {
   int min;
   int max;
 };
-constexpr LevelBand kLevelBands[] = {{1, 10}, {11, 30}};
+constexpr LevelBand kLevelBands[] = {{1, 10}, {11, 30}, {31, 60}};
 constexpr int kBandCount = static_cast<int>(std::size(kLevelBands));
 
 // Band `level` belongs to. A level past the last band's top lands there rather

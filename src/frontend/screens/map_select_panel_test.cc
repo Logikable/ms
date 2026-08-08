@@ -29,6 +29,10 @@ Mob MushroomMob() {
   return mob;
 }
 
+// More pages than the list will ever hold, so ChangePage clamps to the last
+// band whatever the band count has grown to.
+constexpr int kPastEveryBand = 99;
+
 void AddSpawn(MapData* map, const std::string& mob, int count) {
   MapData::Spawn* spawn = map->add_spawns();
   spawn->set_mob(mob);
@@ -62,9 +66,17 @@ Mob GolemMob() {
   return mob;
 }
 
-// Green (level 1) and Horny (level 8) sit on the 1-10 band; Temple (level 15)
-// sits alone on the 11-30 one.
-GameState TwoBands() {
+Mob DrakeMob() {
+  Mob mob;
+  mob.set_name("Drake");
+  mob.set_level(40);
+  return mob;
+}
+
+// One map on every band, so a test can page across the whole list: Green
+// (level 1) and Horny (level 8) on the 1-10 band, Temple (level 15) alone on
+// 11-30, and Cave (level 40) alone on 31-60.
+GameState EveryBand() {
   MapData green;
   green.set_name("Green Field");
   AddSpawn(&green, "snail", 4);
@@ -74,12 +86,18 @@ GameState TwoBands() {
   MapData temple;
   temple.set_name("Temple");
   AddSpawn(&temple, "golem", 3);
-  return GameState(
-      {}, {}, {},
-      {{"snail", SnailMob()},
-       {"mushroom", MushroomMob()},
-       {"golem", GolemMob()}},
-      {{"green_field", green}, {"horny_field", horny}, {"temple", temple}});
+  MapData cave;
+  cave.set_name("Cave");
+  AddSpawn(&cave, "drake", 3);
+  return GameState({}, {}, {},
+                   {{"snail", SnailMob()},
+                    {"mushroom", MushroomMob()},
+                    {"golem", GolemMob()},
+                    {"drake", DrakeMob()}},
+                   {{"green_field", green},
+                    {"horny_field", horny},
+                    {"temple", temple},
+                    {"cave", cave}});
 }
 
 std::string Render(const MapSelectPanel& panel) {
@@ -229,7 +247,7 @@ TEST(MapSelectPanelTest, TheCursorWrapsAtBothEndsOfTheBand) {
 // Wrapping stays inside the band. Bands are Left and Right, and rolling into
 // the next one on Up would move two things on one key.
 TEST(MapSelectPanelTest, WrappingDoesNotCarryIntoTheNextBand) {
-  GameState state = TwoBands();
+  GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
   std::string before = Render(panel);
@@ -240,7 +258,7 @@ TEST(MapSelectPanelTest, WrappingDoesNotCarryIntoTheNextBand) {
 }
 
 TEST(MapSelectPanelTest, OpensOnTheLowestBandByDefault) {
-  GameState state = TwoBands();
+  GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
   std::string rendered = Render(panel);
@@ -251,7 +269,7 @@ TEST(MapSelectPanelTest, OpensOnTheLowestBandByDefault) {
 }
 
 TEST(MapSelectPanelTest, ChangingPageShowsTheNextBandFromItsTop) {
-  GameState state = TwoBands();
+  GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
   panel.MoveCursor(1);  // Horny Field, so the cursor has somewhere to fall from
@@ -265,7 +283,7 @@ TEST(MapSelectPanelTest, ChangingPageShowsTheNextBandFromItsTop) {
 }
 
 TEST(MapSelectPanelTest, ResetOpensOnTheFarmedMapsBand) {
-  GameState state = TwoBands();
+  GameState state = EveryBand();
   state.current_map = "temple";
   MapSelectPanel panel(state);
   panel.Reset();
@@ -275,29 +293,29 @@ TEST(MapSelectPanelTest, ResetOpensOnTheFarmedMapsBand) {
 }
 
 TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
-  GameState state = TwoBands();
+  GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
 
   panel.ChangePage(-1);
   EXPECT_EQ(panel.selected_map(), "green_field");
 
-  panel.ChangePage(5);
-  EXPECT_EQ(panel.selected_map(), "temple");
+  panel.ChangePage(kPastEveryBand);
+  EXPECT_EQ(panel.selected_map(), "cave");
 }
 
 TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
-  // Nothing holds level 35 yet; it must not fall out of the list for that.
-  Mob drake;
-  drake.set_name("Drake");
-  drake.set_level(35);
+  // Nothing holds level 70 yet; it must not fall out of the list for that.
+  Mob balrog;
+  balrog.set_name("Balrog");
+  balrog.set_level(70);
   MapData cave;
   cave.set_name("Deep Cave");
-  AddSpawn(&cave, "drake", 5);
-  GameState state({}, {}, {}, {{"drake", drake}}, {{"deep_cave", cave}});
+  AddSpawn(&cave, "balrog", 5);
+  GameState state({}, {}, {}, {{"balrog", balrog}}, {{"deep_cave", cave}});
   MapSelectPanel panel(state);
   panel.Reset();
-  panel.ChangePage(1);
+  panel.ChangePage(kPastEveryBand);
 
   EXPECT_EQ(panel.selected_map(), "deep_cave");
   EXPECT_NE(Render(panel).find("Deep Cave"), std::string::npos);
