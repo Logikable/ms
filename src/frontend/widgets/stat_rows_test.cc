@@ -1,0 +1,147 @@
+#include "src/frontend/widgets/stat_rows.h"
+
+#include <gtest/gtest.h>
+
+#include <map>
+#include <memory>
+#include <random>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "src/item/equip_instance.h"
+#include "src/protos/character.pb.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/skill.pb.h"
+
+namespace ms {
+namespace {
+
+class StatRowsTest : public testing::Test {
+ protected:
+  CharacterInstance MakeWarrior() {
+    Character proto;
+    proto.set_level(15);
+    proto.set_job(JOB_SWORDMAN);
+    proto.set_job_stage(1);
+    proto.mutable_allocated_stats()->set_str(40);
+    (*proto.mutable_sp_by_stage())[1] = 20;
+    return CharacterInstance(rng_, std::move(proto));
+  }
+
+  // A passive granting one of every lever the extra stats report.
+  Skill Levers() {
+    Skill skill;
+    skill.set_name("Levers");
+    skill.set_kind(SKILL_KIND_PASSIVE);
+    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    skill.set_max_level(1);
+    skill.mutable_base()->set_damage_pct(0.075);
+    skill.mutable_base()->set_final_dmg_pct(0.05);
+    skill.mutable_base()->set_crit_rate(0.2);
+    skill.mutable_base()->set_crit_dmg(0.025);
+    skill.mutable_base()->set_attack_speed(2);
+    return skill;
+  }
+
+  // The value beside `label`, or "" when the list has no such row.
+  static std::string ValueOf(const std::vector<StatLine>& lines,
+                             const std::string& label) {
+    for (const StatLine& line : lines) {
+      if (line.label == label) {
+        return line.value;
+      }
+    }
+    return "";
+  }
+
+  std::mt19937 rng_{0};
+};
+
+TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
+  CharacterInstance c = MakeWarrior();
+  std::vector<StatLine> lines = ExtraStatLines(c, {});
+  std::vector<std::string> labels;
+  for (const StatLine& line : lines) {
+    labels.push_back(line.label);
+  }
+  // The Character panel drops the tail of this list on a short terminal, and
+  // the All Stats screen pairs it two to a row. Both depend on this order.
+  EXPECT_EQ(labels, (std::vector<std::string>{
+                        "Attack", "Magic Attack", "Damage", "Final Damage",
+                        "Critical Rate", "Critical Damage", "Attack Speed",
+                        "Defense"}));
+}
+
+TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
+  Skill levers = Levers();
+  std::map<std::string, Skill> skills = {{"levers", levers}};
+  CharacterInstance c = MakeWarrior();
+  ASSERT_TRUE(c.LearnSkill(levers, 1));
+
+  std::vector<StatLine> lines = ExtraStatLines(c, skills);
+  EXPECT_EQ(ValueOf(lines, "Damage"), "7.50%");
+  EXPECT_EQ(ValueOf(lines, "Final Damage"), "5.00%");
+  EXPECT_EQ(ValueOf(lines, "Critical Rate"), "20.00%");
+  EXPECT_EQ(ValueOf(lines, "Critical Damage"), "2.50%");
+}
+
+TEST_F(StatRowsTest, AttackSpeedNamesTheStageOrDashesWithNoWeapon) {
+  Skill levers = Levers();  // +2 stages
+  std::map<std::string, Skill> skills = {{"levers", levers}};
+  CharacterInstance c = MakeWarrior();
+  ASSERT_TRUE(c.LearnSkill(levers, 1));
+  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "-");
+
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  c.Equip(0);
+  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fast 2");
+}
+
+TEST_F(StatRowsTest, AttackSpeedStopsAtTheFastestStage) {
+  Skill levers = Levers();
+  std::map<std::string, Skill> skills = {{"levers", levers}};
+  CharacterInstance c = MakeWarrior();
+  ASSERT_TRUE(c.LearnSkill(levers, 1));
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.set_attack_speed(ATTACK_SPEED_FASTEST_3);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  c.Equip(0);
+  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fastest 3");
+}
+
+TEST_F(StatRowsTest, TheMainStatsPairUpForTheTwoColumnScreen) {
+  CharacterInstance c = MakeWarrior();
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.mutable_base_stats()->set_str(5);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  c.Equip(0);
+
+  std::vector<StatLine> lines = MainStatLines(c, {});
+  std::vector<std::string> labels;
+  for (const StatLine& line : lines) {
+    labels.push_back(line.label);
+  }
+  EXPECT_EQ(labels,
+            (std::vector<std::string>{"HP", "MP", "STR", "INT", "DEX", "LUK"}));
+  // The breakdown leads the total, so the totals still end in one column.
+  EXPECT_EQ(ValueOf(lines, "STR"), "(40+5) 45");
+  EXPECT_EQ(ValueOf(lines, "LUK"), "0");
+}
+
+TEST(CombatPowerTextTest, SpellsItOutUntilSevenFigures) {
+  EXPECT_EQ(CombatPowerText(0), "Combat Power 0");
+  EXPECT_EQ(CombatPowerText(999999), "Combat Power 999,999");
+  EXPECT_EQ(CombatPowerText(1000000), "CP 1,000,000");
+}
+
+}  // namespace
+}  // namespace ms

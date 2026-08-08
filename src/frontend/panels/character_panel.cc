@@ -19,7 +19,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
-#include "src/item/equip_instance.h"
+#include "src/frontend/widgets/stat_rows.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -33,14 +33,6 @@ constexpr int kContentWidth = 33;  // chars inside the window border
 std::string Centered(const std::string& s) {
   int pad = std::max(0, (kContentWidth - static_cast<int>(s.size())) / 2);
   return PadRight(std::string(pad, ' ') + s, kContentWidth);
-}
-
-// Combat power spelled out, until it outgrows the row. Six figures is as wide
-// as "Combat Power " and a number both fit inside the panel; past that the
-// label shortens rather than the number being cut.
-std::string CombatPowerText(int power) {
-  std::string value = FormatWithCommas(power);
-  return (power > 999999 ? "CP " : "Combat Power ") + value;
 }
 
 // The outer tab labels, indexed by CharacterPanel::Tab.
@@ -81,29 +73,6 @@ std::string StatText(const std::string& label, int base, int bonus) {
     s += " (" + std::to_string(base) + "+" + std::to_string(bonus) + ")";
   }
   return s;
-}
-
-// A fraction as a percentage, two decimals: 0.055 reads "5.50%".
-std::string Percent(double fraction) {
-  char buf[32];
-  snprintf(buf, sizeof(buf), "%.2f%%", fraction * 100.0);
-  return buf;
-}
-
-// The stage the character swings at: the weapon's own plus whatever the
-// passives add, capped at the fastest tier the game models. A dash where there
-// is no swing to name -- nothing in hand, or a weapon that names no stage.
-std::string AttackSpeedText(const std::map<EquipSlot, EquipInstance>& equipped,
-                            int bonus) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
-  if (it == equipped.end() ||
-      it->second.prototype().attack_speed() == ATTACK_SPEED_UNSPECIFIED) {
-    return "-";
-  }
-  int stage = std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
-                       it->second.prototype().attack_speed() + bonus);
-  return AttackSpeedName(static_cast<AttackSpeed>(stage));
 }
 
 // The skill row's columns. Every one is a fixed width, so the row comes to
@@ -418,17 +387,9 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
         AllocRow(kAllocStats[i].label, v.first, v.second, i, content_focused));
   }
   rows.push_back(PanelSeparator(highlighted_));
-  rows.push_back(StatRow("Attack", std::to_string(e.attack())));
-  rows.push_back(StatRow("Magic Attack", std::to_string(e.magic_attack())));
-  rows.push_back(StatRow("Damage", Percent(derived.damage_pct)));
-  rows.push_back(StatRow("Final Damage", Percent(derived.final_dmg_pct)));
-  rows.push_back(StatRow("Critical Rate", Percent(derived.crit_rate)));
-  rows.push_back(StatRow("Critical Damage", Percent(derived.crit_dmg)));
-  rows.push_back(StatRow(
-      "Attack Speed",
-      AttackSpeedText(character_.equipped(), derived.attack_speed_bonus)));
-  // Defence closes the block: everything above it is what the character deals.
-  rows.push_back(StatRow("Defense", std::to_string(derived.def)));
+  for (const StatLine& line : ExtraStatLines(character_, skills_)) {
+    rows.push_back(StatRow(line.label, line.value));
+  }
   return ftxui::vbox(std::move(rows));
 }
 
@@ -581,15 +542,8 @@ ftxui::Element CharacterPanel::Render() const {
   std::string lvl = PadLeft(std::to_string(p.level()), 3);
   std::string title = Centered("Lv" + lvl + " " + ShortJobName(p.job()));
 
-  // Combat power stands for the character as a whole, so it is built from a
-  // bare stat line -- no attack skill, no target.
-  DerivedStats derived = DerivedStatsFor(character_, skills_);
-  OffenseStats offense = OffenseStatsFor(
-      p.job(), p.level(), p.allocated_stats(),
-      TotalEquipStats(character_, derived), character_.weapon_type(),
-      /*attack_skill=*/nullptr,
-      /*attack_level=*/0, PassiveOffenseFor(derived));
-  std::string power = Centered(CombatPowerText(CombatPower(offense)));
+  std::string power =
+      Centered(CombatPowerText(CharacterCombatPower(character_, skills_)));
 
   bool focused = panel_focus_ == kCharPanel;
   Zone zone = EffectiveZone();

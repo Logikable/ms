@@ -41,6 +41,30 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "stat_rows",
+    srcs = ["stat_rows.cc"],
+    hdrs = ["stat_rows.h"],
+    deps = [
+        ":panel_util",
+        "//src/character",
+        "//src/character:character_stats",
+        "//src/combat:damage",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "stat_rows_test",
+    srcs = ["stat_rows_test.cc"],
+    deps = [
+        ":stat_rows",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "panel_util_test",
     srcs = ["panel_util_test.cc"],

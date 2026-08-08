@@ -1,0 +1,105 @@
+#include "src/frontend/widgets/stat_rows.h"
+
+#include <algorithm>
+#include <cstdio>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "src/character/character_stats.h"
+#include "src/combat/damage.h"
+#include "src/frontend/widgets/panel_util.h"
+#include "src/item/equip_instance.h"
+#include "src/protos/equip.pb.h"
+
+namespace ms {
+namespace {
+
+// A fraction as a percentage, two decimals: 0.055 reads "5.50%".
+std::string Percent(double fraction) {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%.2f%%", fraction * 100.0);
+  return buf;
+}
+
+// The stage the character swings at: the weapon's own plus whatever the
+// passives add, capped at the fastest tier the game models. A dash where there
+// is no swing to name -- nothing in hand, or a weapon that names no stage.
+std::string AttackSpeedText(const std::map<EquipSlot, EquipInstance>& equipped,
+                            int bonus) {
+  std::map<EquipSlot, EquipInstance>::const_iterator it =
+      equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
+  if (it == equipped.end() ||
+      it->second.prototype().attack_speed() == ATTACK_SPEED_UNSPECIFIED) {
+    return "-";
+  }
+  int stage = std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
+                       it->second.prototype().attack_speed() + bonus);
+  return AttackSpeedName(static_cast<AttackSpeed>(stage));
+}
+
+// "358", or "(308+50) 358" when gear or a skill contributes.
+std::string TotalWithBreakdown(int base, int bonus) {
+  std::string total = std::to_string(base + bonus);
+  if (bonus <= 0) {
+    return total;
+  }
+  return "(" + std::to_string(base) + "+" + std::to_string(bonus) + ") " +
+         total;
+}
+
+}  // namespace
+
+std::vector<StatLine> ExtraStatLines(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills) {
+  DerivedStats derived = DerivedStatsFor(character, skills);
+  const EquipStats e = TotalEquipStats(character, derived);
+  return {
+      {"Attack", std::to_string(e.attack())},
+      {"Magic Attack", std::to_string(e.magic_attack())},
+      {"Damage", Percent(derived.damage_pct)},
+      {"Final Damage", Percent(derived.final_dmg_pct)},
+      {"Critical Rate", Percent(derived.crit_rate)},
+      {"Critical Damage", Percent(derived.crit_dmg)},
+      {"Attack Speed",
+       AttackSpeedText(character.equipped(), derived.attack_speed_bonus)},
+      {"Defense", std::to_string(derived.def)},
+  };
+}
+
+std::vector<StatLine> MainStatLines(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills) {
+  DerivedStats derived = DerivedStatsFor(character, skills);
+  const EquipStats e = TotalEquipStats(character, derived);
+  const AllocatedStats& a = character.proto().allocated_stats();
+  return {
+      {"HP", std::to_string(derived.max_hp)},
+      {"MP", std::to_string(derived.max_mp)},
+      {"STR", TotalWithBreakdown(a.str(), e.str())},
+      {"INT", TotalWithBreakdown(a.int_(), e.int_())},
+      {"DEX", TotalWithBreakdown(a.dex(), e.dex())},
+      {"LUK", TotalWithBreakdown(a.luk(), e.luk())},
+  };
+}
+
+int CharacterCombatPower(const CharacterInstance& character,
+                         const std::map<std::string, Skill>& skills) {
+  const Character& p = character.proto();
+  DerivedStats derived = DerivedStatsFor(character, skills);
+  OffenseStats offense = OffenseStatsFor(
+      p.job(), p.level(), p.allocated_stats(),
+      TotalEquipStats(character, derived), character.weapon_type(),
+      /*attack_skill=*/nullptr,
+      /*attack_level=*/0, PassiveOffenseFor(derived));
+  return CombatPower(offense);
+}
+
+std::string CombatPowerText(int power) {
+  std::string value = FormatWithCommas(power);
+  return (power > 999999 ? "CP " : "Combat Power ") + value;
+}
+
+}  // namespace ms
