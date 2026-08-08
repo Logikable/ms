@@ -61,7 +61,7 @@ struct Build {
   std::string weapon;  // equip catalog key
 };
 
-// The three branches by name. Spelled out here rather than borrowed from the
+// The 2nd-job branches by name. Spelled out here rather than borrowed from the
 // frontend's JobName, which a combat tool has no business reaching into.
 std::string BranchName(Job job) {
   switch (job) {
@@ -71,8 +71,24 @@ std::string BranchName(Job job) {
       return "Page";
     case JOB_SPEARMAN:
       return "Spearman";
+    case JOB_HUNTER:
+      return "Hunter";
+    case JOB_CROSSBOWMAN:
+      return "Crossbowman";
     default:
       return "?";
+  }
+}
+
+// The 1st job a branch is reached through, so the sweep climbs the same path a
+// player does and collects that book's skills on the way.
+Job FirstJobFor(Job branch) {
+  switch (branch) {
+    case JOB_HUNTER:
+    case JOB_CROSSBOWMAN:
+      return JOB_ARCHER;
+    default:
+      return JOB_SWORDMAN;
   }
 }
 
@@ -81,6 +97,8 @@ std::string BranchName(Job job) {
 StatField PrimaryStatFor(Job job) {
   switch (job) {
     case JOB_ARCHER:
+    case JOB_HUNTER:
+    case JOB_CROSSBOWMAN:
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
       return STAT_FIELD_INT;
@@ -89,6 +107,12 @@ StatField PrimaryStatFor(Job job) {
     default:
       return STAT_FIELD_STR;
   }
+}
+
+// What the row's primary figure is called, so the detail line labels the stat
+// it actually holds rather than assuming a warrior's.
+const char* PrimaryStatName(Job job) {
+  return PrimaryStatFor(job) == STAT_FIELD_DEX ? "DEX" : "STR";
 }
 
 struct Catalogs {
@@ -169,7 +193,7 @@ struct Result {
   std::string swing;  // the attack the fight chose against a lone mob
   double swing_seconds = 0.0;
   // Everything behind the two headline numbers, for --detail.
-  int str = 0;
+  int primary = 0;
   int attack = 0;
   double mastery = 0.0;
   double crit_rate = 0.0;
@@ -258,7 +282,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
                   GameMode::kPlay);
-  GrowTo(state, level, {JOB_SWORDMAN, build.job});
+  GrowTo(state, level, {FirstJobFor(build.job), build.job});
   Result result;
   if (!Wield(state, build.weapon)) {
     return result;
@@ -286,7 +310,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // 1x one and two levels can be compared without dividing by hand.
   double speed = GameSpeedFactor(level);
   result.swing = best->name;
-  result.str = bare.primary;
+  result.primary = bare.primary;
   result.attack = bare.attack;
   result.mastery = bare.mastery;
   result.crit_rate = bare.crit_rate;
@@ -329,18 +353,20 @@ void Run(int level) {
   Catalogs catalogs = LoadCatalogs(level);
   // Every level-60 weapon each branch can hold, branch by branch. A Fighter
   // masters swords and axes, a Page swords and blunts, a Spearman spears and
-  // polearms.
+  // polearms. The bowman branches master one weapon apiece, so they bring one
+  // row each rather than two.
   const Build kBuilds[] = {
       {JOB_FIGHTER, "sparta"},      {JOB_FIGHTER, "the_shining"},
       {JOB_PAGE, "sparta"},         {JOB_PAGE, "the_blessing"},
       {JOB_SPEARMAN, "holy_spear"}, {JOB_SPEARMAN, "skylar"},
+      {JOB_HUNTER, "asianic_bow"},  {JOB_CROSSBOWMAN, "golden_crow"},
   };
 
   std::printf(
-      "Level %d, all AP in STR, every skill maxed. DPS is one mob of "
-      "the same level, at 1x speed.\n\n",
+      "Level %d, all AP in the job's primary stat, every skill maxed. DPS is "
+      "one mob of the same level, at 1x speed.\n\n",
       level);
-  std::printf("%-10s  %-18s  %6s  %8s  %-16s  %5s\n", "job", "weapon", "CP",
+  std::printf("%-12s  %-18s  %6s  %8s  %-16s  %5s\n", "job", "weapon", "CP",
               "DPS", "swing", "sec");
   std::printf("%s\n", std::string(72, '-').c_str());
   for (const Build& build : kBuilds) {
@@ -348,21 +374,22 @@ void Run(int level) {
     std::string weapon = catalogs.equips.count(build.weapon) > 0
                              ? catalogs.equips.at(build.weapon).name()
                              : build.weapon;
-    std::printf("%-10s  %-18s  %6d  %8.1f  %-16s  %5.2f\n",
+    std::printf("%-12s  %-18s  %6d  %8.1f  %-16s  %5.2f\n",
                 BranchName(build.job).c_str(), weapon.c_str(),
                 result.combat_power, result.dps, result.swing.c_str(),
                 result.swing_seconds);
     if (absl::GetFlag(FLAGS_detail)) {
       std::printf(
-          "            STR %d  ATT %d  wc %.2f  mastery %.0f%%  crit %.0f%%  "
+          "            %s %d  ATT %d  wc %.2f  mastery %.0f%%  crit %.0f%%  "
           "dmg %.0f%%  FD %.0f%%\n"
           "            swing %.0f (%d lines @ %.0f%%)  final attack %.0f  "
           "unspent SP %d\n            ",
-          result.str, result.attack, result.weapon_constant,
-          100.0 * result.mastery, 100.0 * result.crit_rate,
-          100.0 * result.damage_pct, 100.0 * result.final_dmg_pct,
-          result.swing_damage, result.lines, 100.0 * result.skill_pct,
-          result.final_attack_damage, result.unspent_sp);
+          PrimaryStatName(build.job), result.primary, result.attack,
+          result.weapon_constant, 100.0 * result.mastery,
+          100.0 * result.crit_rate, 100.0 * result.damage_pct,
+          100.0 * result.final_dmg_pct, result.swing_damage, result.lines,
+          100.0 * result.skill_pct, result.final_attack_damage,
+          result.unspent_sp);
       for (const std::pair<std::string, int>& skill : result.skills) {
         std::printf("%s %d  ", skill.first.c_str(), skill.second);
       }
