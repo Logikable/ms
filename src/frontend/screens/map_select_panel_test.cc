@@ -230,6 +230,27 @@ TEST(MapSelectPanelTest, MobTableShowsLevelAndCount) {
   EXPECT_NE(LineWith(rendered, "Snail").find("Snail 1 4"), std::string::npos);
 }
 
+// PadRight truncates, so a name past the column loses its last letters rather
+// than pushing the table wider. The longest shipped name is 19.
+TEST(MapSelectPanelTest, TheMobColumnFitsTheLongestName) {
+  Mob monster;
+  monster.set_name("Muddy Swamp Monster");  // 19 characters
+  monster.set_level(49);
+  MapData swamp;
+  swamp.set_name("Swamp");
+  AddSpawn(&swamp, "monster", 18);
+  GameState state({}, {}, {}, {{"monster", monster}}, {{"swamp", swamp}});
+  MapSelectPanel panel(state);
+  panel.Reset();
+  panel.ChangePage(kPastEveryBand);  // a level-49 mob sits on the top band
+
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Muddy Swamp Monster"), std::string::npos);
+  // And still a gap before the level, rather than running into it.
+  EXPECT_NE(LineWith(rendered, "Muddy Swamp Monster").find("Monster 49 18"),
+            std::string::npos);
+}
+
 // The band is a ring, so Up off the first map lands on the last and Down off
 // the last comes back to the first.
 TEST(MapSelectPanelTest, TheCursorWrapsAtBothEndsOfTheBand) {

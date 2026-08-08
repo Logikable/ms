@@ -21,8 +21,10 @@ namespace {
 constexpr int kMapNameWidth = 28;
 constexpr int kLevelWidth = 4;
 
-// Column widths of the mob table.
-constexpr int kMobNameWidth = 18;
+// Column widths of the mob table. The longest name is 19 ("Muddy Swamp
+// Monster"), and PadRight truncates rather than overflows, so anything
+// narrower quietly eats the last letters.
+constexpr int kMobNameWidth = 21;
 constexpr int kCountWidth = 6;
 
 // The level bands the list pages through, low to high. One band holds more of
