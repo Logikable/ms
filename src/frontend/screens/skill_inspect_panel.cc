@@ -15,11 +15,15 @@
 namespace ms {
 namespace {
 
-constexpr int kContentWidth = 38;  // chars inside the window border
+// Chars inside the window border. Wide enough that no requirement wraps: the
+// panel stands on its own in the middle of the screen, so the only cost of the
+// room is the room itself.
+constexpr int kContentWidth = 44;
 // Effect rows indent past the one-space border gutter, so they read as
 // belonging to the "Level N" heading above them.
 constexpr int kEffectIndent = 3;
-constexpr int kEffectLabelWidth = 15;
+// Seats "Required Weapon", the longest label, with a gap after it.
+constexpr int kEffectLabelWidth = 18;
 // What is left for an effect row's value once the indent and label are paid.
 constexpr int kValueWidth = kContentWidth - kEffectIndent - kEffectLabelWidth;
 
@@ -139,6 +143,20 @@ std::vector<std::string> WrapText(const std::string& text, int width) {
   return lines;
 }
 
+// A label/value row whose value is allowed not to fit: it continues on the
+// next line with the label left blank, rather than being cut mid-word. An
+// empty value writes no row at all.
+std::vector<ftxui::Element> WrappedEffectRows(const std::string& label,
+                                              const std::string& value) {
+  std::vector<ftxui::Element> rows;
+  std::string current = label;
+  for (const std::string& line : WrapText(value, kValueWidth)) {
+    rows.push_back(EffectRow(current, line));
+    current.clear();
+  }
+  return rows;
+}
+
 // A weapon that comes in both hands' versions. Demanding the two of them is
 // how the data says "any sword", but "One-Handed Sword / Two-Handed Sword" is
 // neither how the description writes it nor narrow enough for the column.
@@ -204,11 +222,34 @@ std::string RequiredWeapons(const google::protobuf::RepeatedField<int>& types) {
   return result;
 }
 
-// The rows that hold at every level: how far a swing reaches, how often it
-// goes off on its own, and what it must be held with. A skill with none of
-// them gets no block at all.
-std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
+// What the skill asks for before it can be swung at all. The two read as a
+// pair: a weapon in hand and a skill already learned are the same kind of
+// condition, so they are labelled and laid out alike instead of one sitting up
+// beside the description and the other down among the facts.
+std::vector<ftxui::Element> RequirementRows(const Skill& skill) {
   std::vector<ftxui::Element> rows;
+  for (ftxui::Element& row : WrappedEffectRows(
+           "Required Weapon", RequiredWeapons(skill.required_equip_type()))) {
+    rows.push_back(std::move(row));
+  }
+  if (!skill.has_required_skill()) {
+    return rows;
+  }
+  // Built from the requirement rather than typed beside it, so the sentence
+  // and the rule the skills tab enforces cannot drift apart.
+  std::string required = skill.required_skill().skill_name() + " Lv. " +
+                         std::to_string(skill.required_skill().level()) + "+";
+  for (ftxui::Element& row : WrappedEffectRows("Required Skill", required)) {
+    rows.push_back(std::move(row));
+  }
+  return rows;
+}
+
+// The rows that hold at every level: what the skill asks for, how far a swing
+// reaches, and how often it goes off on its own. A skill with none of them
+// gets no block at all.
+std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
+  std::vector<ftxui::Element> rows = RequirementRows(skill);
   if (skill.max_enemies() > 1) {
     rows.push_back(
         EffectRow("Enemies Hit", std::to_string(skill.max_enemies())));
@@ -223,15 +264,6 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   if (skill.cast_interval_seconds() > 0.0) {
     rows.push_back(EffectRow(
         "Fires Every", FormatSeconds(skill.cast_interval_seconds()) + "s"));
-  }
-  // The only row whose value runs long: two weapons with names like
-  // "One-Handed Sword" do not fit the value column, so it continues below with
-  // the label left blank rather than being cut off mid-weapon.
-  std::string label = "Requires";
-  for (const std::string& line :
-       WrapText(RequiredWeapons(skill.required_equip_type()), kValueWidth)) {
-    rows.push_back(EffectRow(label, line));
-    label.clear();
   }
   return rows;
 }
@@ -359,20 +391,6 @@ ftxui::Element SkillInspectPanel::Render() const {
   for (const std::string& line :
        WrapText(skill_->description(), kContentWidth - 2)) {
     rows.push_back(ftxui::text(" " + line));
-  }
-
-  // What must be learned first follows the description, the way GMS writes it,
-  // but behind a rule of its own: it is a condition on the skill rather than
-  // part of what the skill does. Built from the requirement rather than typed
-  // beside it, so the sentence and the rule cannot drift apart.
-  if (skill_->has_required_skill()) {
-    rows.push_back(ThemedSeparator());
-    std::string required =
-        "Required Skill: " + skill_->required_skill().skill_name() + " Lv. " +
-        std::to_string(skill_->required_skill().level()) + "+";
-    for (const std::string& line : WrapText(required, kContentWidth - 2)) {
-      rows.push_back(ftxui::text(" " + line));
-    }
   }
 
   std::vector<ftxui::Element> invariant = InvariantRows(*skill_);

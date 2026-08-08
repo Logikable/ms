@@ -152,7 +152,7 @@ TEST_F(SkillInspectPanelTest, ShowsTheFactsThatHoldAtEveryLevel) {
   Skill skill = MakeLuckySeven();
   std::string rendered = RenderAt(skill, 1);
   EXPECT_NE(rendered.find("Enemies Hit"), std::string::npos);
-  EXPECT_NE(rendered.find("Requires"), std::string::npos);
+  EXPECT_NE(rendered.find("Required Weapon"), std::string::npos);
   EXPECT_NE(rendered.find("Claw"), std::string::npos);
 }
 
@@ -173,7 +173,7 @@ TEST_F(SkillInspectPanelTest, ALongWeaponListWrapsRatherThanClipping) {
 }
 
 // A skill taking either hand's sword names the sword, not the two of them --
-// four spelled-out weapons would run the Requires row down four lines.
+// four spelled-out weapons would run the requirement down four lines.
 TEST_F(SkillInspectPanelTest, BothHandsOfAWeaponReadAsTheWeapon) {
   Skill skill = MakeIronBody();
   skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
@@ -236,7 +236,7 @@ TEST_F(SkillInspectPanelTest, NoReachRowForASingleTargetSkill) {
   Skill skill = MakeIronBody();
   std::string rendered = RenderAt(skill, 5);
   EXPECT_EQ(rendered.find("Enemies Hit"), std::string::npos);
-  EXPECT_EQ(rendered.find("Requires"), std::string::npos);
+  EXPECT_EQ(rendered.find("Required Weapon"), std::string::npos);
 }
 
 // base + per_level * (L - 1) lands a hair under the round figure at some
@@ -333,7 +333,7 @@ TEST_F(SkillInspectPanelTest, ShowsTheDamageOfASkillOnItsOwnClock) {
 
 // How often it goes off is most of what the skill is worth.
 TEST_F(SkillInspectPanelTest, SaysHowOftenASkillOnItsOwnClockFires) {
-  EXPECT_NE(RenderAt(MakeEvilEyeShock(), 1).find("Fires Every    12s"),
+  EXPECT_NE(RenderAt(MakeEvilEyeShock(), 1).find("Fires Every       12s"),
             std::string::npos);
 }
 
@@ -355,7 +355,7 @@ TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
   skill.mutable_per_level()->set_final_attack_chance(0.02);
   skill.mutable_per_level()->set_final_attack_pct(0.02);
 
-  EXPECT_NE(RenderAt(skill, 20).find("Final Attack   40% for 160%"),
+  EXPECT_NE(RenderAt(skill, 20).find("Final Attack      40% for 160%"),
             std::string::npos);
 }
 
@@ -371,27 +371,25 @@ TEST_F(SkillInspectPanelTest, ReadsTheNewStatLevers) {
   skill.mutable_base()->set_mastery(0.14);
 
   std::string out = RenderAt(skill, 1);
-  EXPECT_NE(out.find("STR            +6"), std::string::npos);
-  EXPECT_NE(out.find("DEX            +6"), std::string::npos);
-  EXPECT_NE(out.find("Mastery        14%"), std::string::npos);
+  EXPECT_NE(out.find("STR               +6"), std::string::npos);
+  EXPECT_NE(out.find("DEX               +6"), std::string::npos);
+  EXPECT_NE(out.find("Mastery           14%"), std::string::npos);
 }
 
-// GMS writes what must come first into the description, and so does this --
-// but from the requirement, not from a sentence typed beside it, so the
-// wording and the rule cannot drift apart.
+// Built from the requirement rather than from a sentence typed beside it, so
+// the wording and the rule the skills tab enforces cannot drift apart.
 TEST_F(SkillInspectPanelTest, SpellsOutWhatMustBeLearnedFirst) {
   Skill skill = MakeIronBody();
   skill.set_name("Hyper Body");
   skill.mutable_required_skill()->set_skill_name("Iron Wall");
   skill.mutable_required_skill()->set_level(3);
 
-  EXPECT_NE(RenderAt(skill, 1).find("Required Skill: Iron Wall Lv. 3+"),
+  EXPECT_NE(RenderAt(skill, 1).find("Required Skill    Iron Wall Lv. 3+"),
             std::string::npos);
 }
 
 // And it is ruled off from the description. What the skill does and what the
-// player must do first are two different claims, and a sentence that reads on
-// from the flavour text is easy to take for more of it.
+// player must do first are two different claims.
 TEST_F(SkillInspectPanelTest, RulesTheRequirementOffFromTheDescription) {
   Skill skill = MakeIronBody();
   skill.set_name("Hyper Body");
@@ -417,6 +415,35 @@ TEST_F(SkillInspectPanelTest, RulesTheRequirementOffFromTheDescription) {
 TEST_F(SkillInspectPanelTest, NoRequirementRowWhenThereIsNone) {
   EXPECT_EQ(RenderAt(MakeIronBody(), 1).find("Required Skill"),
             std::string::npos);
+}
+
+// A weapon in hand and a skill already learned are the same kind of claim, so
+// they read alike: one after the other, labels alike, values in one column.
+TEST_F(SkillInspectPanelTest, TheTwoRequirementsReadAlike) {
+  Skill skill = MakeIronBody();
+  skill.add_required_equip_type(EQUIP_TYPE_SPEAR);
+  skill.mutable_required_skill()->set_skill_name("Iron Wall");
+  skill.mutable_required_skill()->set_level(3);
+
+  std::vector<std::string> lines = Lines(RenderAt(skill, 1));
+  int weapon = -1;
+  int prereq = -1;
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (lines[i].find("Required Weapon") != std::string::npos) {
+      weapon = i;
+    }
+    if (lines[i].find("Required Skill") != std::string::npos) {
+      prereq = i;
+    }
+  }
+  ASSERT_GE(weapon, 0);
+  ASSERT_GE(prereq, 0);
+  EXPECT_EQ(prereq, weapon + 1) << "the two requirements are not together";
+  // Both rows carry the same border prefix, so an equal byte offset is an
+  // equal column.
+  EXPECT_EQ(lines[weapon].find("Spear"), lines[prereq].find("Iron Wall"))
+      << "the values do not share a column:\n[" << lines[weapon] << "]\n["
+      << lines[prereq] << "]";
 }
 
 }  // namespace
