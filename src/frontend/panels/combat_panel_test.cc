@@ -226,5 +226,76 @@ TEST(CombatPanelTest, ShowsRespawningOnceTheRosterIsClear) {
   EXPECT_NE(RenderPanel(state, sim).find("Respawning"), std::string::npos);
 }
 
+// The rows the panel actually draws, so Height() is checked against the panel
+// rather than against a copy of its own arithmetic.
+int DrawnRows(const GameState& state, const CombatSim& sim) {
+  int focus = kEquipPanel;
+  CombatPanel panel(state, sim, focus);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
+                                               ftxui::Dimension::Fixed(20));
+  // Both fillers, as the main layout has them: the hbox keeps the panel's own
+  // width and the vbox its own height. Without them the window stretches to
+  // the screen and every row reads as drawn.
+  ftxui::Render(screen,
+                ftxui::vbox({ftxui::hbox({panel.Render(), ftxui::filler()}),
+                             ftxui::filler()}));
+  int rows = 0;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    if (screen.PixelAt(0, y).character != " " &&
+        !screen.PixelAt(0, y).character.empty()) {
+      rows = y + 1;
+    }
+  }
+  return rows;
+}
+
+TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
+  int focus = kEquipPanel;
+  GameState idle({}, {}, {}, {}, {});
+  CombatSim no_fight;
+  CombatPanel idle_panel(idle, no_fight, focus);
+  EXPECT_EQ(idle_panel.Height(), DrawnRows(idle, no_fight));
+
+  // Two mob types, so a height that counted one bar per fight rather than one
+  // per type would still be wrong here.
+  Mob slime = SnailMob();
+  slime.set_name("Slime");
+  slime.set_level(2);
+  MapData two_types = SnailField();
+  MapData::Spawn* second = two_types.add_spawns();
+  second->set_mob("slime");
+  second->set_count(1);
+  // A swing that reaches both of them, or only the mob at the head of the
+  // queue is engaged and there is one bar either way.
+  Skill sweep;
+  sweep.set_name("Sweep");
+  sweep.set_kind(SKILL_KIND_ATTACK);
+  sweep.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  sweep.set_max_level(1);
+  sweep.set_max_enemies(6);
+  sweep.mutable_base()->set_skill_pct(1.0);
+  GameState state({}, {}, {}, {{"snail", SnailMob()}, {"slime", slime}},
+                  {{"field", two_types}}, {{"sweep", sweep}});
+  state.current_map = "field";
+  EquipSword(state);
+  state.character.AdvanceJob(JOB_SWORDMAN);
+  // SP arrives with the levels, and only past level 10.
+  for (int i = 0; i < 12; ++i) {
+    state.character.LevelUp();
+  }
+  ASSERT_TRUE(state.character.LearnSkill(sweep, 1));
+  CombatSim sim;
+  CombatParams params = ComputeCombatParams(state);
+  sim.Advance(params, 0.0);
+  ASSERT_EQ(sim.engaged_groups().size(), 2u);
+  CombatPanel panel(state, sim, focus);
+  EXPECT_EQ(panel.Height(), DrawnRows(state, sim));
+
+  // Clearing the roster puts one row where the mob bars were.
+  sim.Advance(params, 100.0);
+  ASSERT_TRUE(sim.respawning());
+  EXPECT_EQ(panel.Height(), DrawnRows(state, sim));
+}
+
 }  // namespace
 }  // namespace ms

@@ -29,6 +29,20 @@ std::string CombatPanel::MapName() const {
   return it == state_.maps.end() ? "-" : it->second.name();
 }
 
+int CombatPanel::Height() const {
+  // Border, map row, rule, then either the "Not fighting" line or the two
+  // bars the player always has and one per mob type they are up against.
+  int rows = 2 + 1 + 1;
+  if (!sim_.active()) {
+    return rows + 1;
+  }
+  rows += 2;
+  if (sim_.respawning()) {
+    return rows + 1;
+  }
+  return rows + static_cast<int>(sim_.engaged_groups().size());
+}
+
 ftxui::Element CombatPanel::Render() const {
   // The header fixes the panel's width: a cursor column plus the map name,
   // padded to the full content width. The bars below stretch to match. The

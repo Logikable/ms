@@ -1182,6 +1182,56 @@ Skill MakeLeverPassive() {
   return skill;
 }
 
+// The labels of the rows below the AP stats, in order: the extra stats the
+// budget left standing, and the View All Stats row under them. Rules and blank
+// rows are not labels; a rule's first character is box-drawing, not ASCII.
+std::vector<std::string> ExtrasShown(ftxui::Element element) {
+  std::vector<std::string> labels;
+  bool past_the_stats = false;
+  for (const std::string& row : PanelRows(std::move(element))) {
+    std::string text = Trimmed(row);
+    if (text.compare(0, 4, "LUK:") == 0) {
+      past_the_stats = true;
+      continue;
+    }
+    if (!past_the_stats || text.empty() ||
+        static_cast<unsigned char>(text[0]) > 127) {
+      continue;
+    }
+    // A stat row is a label, a run of spaces, then its value. The centred row
+    // has no run of spaces in it at all.
+    size_t gap = text.find("  ");
+    labels.push_back(gap == std::string::npos ? text : text.substr(0, gap));
+  }
+  return labels;
+}
+
+TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
+  CharacterPanel panel(c_, panel_focus_);
+  // 14 rows of chrome and stats above, then four rows for the extras: three
+  // stats and the row that leads to the rest of them.
+  panel.SetMaxRows(18);
+  EXPECT_EQ(ExtrasShown(panel.Render()),
+            (std::vector<std::string>{"Attack", "Magic Attack", "Damage",
+                                      "View All Stats"}));
+}
+
+TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
+  CharacterPanel panel(c_, panel_focus_);
+  // Room for nothing but the way out, and then for less than that.
+  panel.SetMaxRows(15);
+  EXPECT_EQ(ExtrasShown(panel.Render()),
+            (std::vector<std::string>{"View All Stats"}));
+  panel.SetMaxRows(4);
+  EXPECT_EQ(ExtrasShown(panel.Render()),
+            (std::vector<std::string>{"View All Stats"}));
+}
+
+TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
+  CharacterPanel panel(c_, panel_focus_);
+  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 9u);  // 8 stats and the row
+}
+
 TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {
   Skill levers = MakeLeverPassive();
   std::map<std::string, Skill> catalog;

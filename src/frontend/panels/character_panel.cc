@@ -368,6 +368,16 @@ ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
   });
 }
 
+int CharacterPanel::ExtraStatsShown(int total) const {
+  if (max_rows_ <= 0) {
+    return total;
+  }
+  // The View All Stats row is paid for first, because it is where the stats
+  // that did not fit have gone. A budget too small even for that still shows
+  // it and lets the panel be clipped: a panel with no way out of it is worse.
+  return std::max(0, std::min(total, max_rows_ - kStatsTabFixedRows - 1));
+}
+
 ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const Character& p = character_.proto();
   const AllocatedStats& a = p.allocated_stats();
@@ -388,16 +398,31 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
         AllocRow(kAllocStats[i].label, v.first, v.second, i, content_focused));
   }
   rows.push_back(PanelSeparator(highlighted_));
-  for (const StatLine& line : ExtraStatLines(character_, skills_)) {
-    rows.push_back(StatRow(line.label, line.value));
+  std::vector<StatLine> extras = ExtraStatLines(character_, skills_);
+  int shown = ExtraStatsShown(static_cast<int>(extras.size()));
+  for (int i = 0; i < shown; ++i) {
+    rows.push_back(StatRow(extras[i].label, extras[i].value));
   }
-  // Closes the block, because what the panel could not fit is on the screen it
-  // opens -- and the cursor reaches it by walking off the foot of the stats.
-  ftxui::Element view_all = ftxui::text("View All Stats");
+  // Closes the block, because whatever did not fit above it is on the screen
+  // it opens -- and the cursor reaches it by walking off the foot of the
+  // stats. It is the last row to go, not the first.
+  //
+  // Centred by hand and not with CenteredRow: every row of this panel is
+  // padded to kContentWidth, and a flexed row would centre itself in whatever
+  // width the window came out at instead. Only the label inverts, so the
+  // padding either side of it cannot be part of the same text.
+  const std::string kViewAll = "View All Stats";
+  int pad = (kContentWidth - static_cast<int>(kViewAll.size())) / 2;
+  ftxui::Element view_all = ftxui::text(kViewAll);
   if (content_focused && stat_sel_ == kNumAllocStats) {
     view_all = view_all | ftxui::inverted;
   }
-  rows.push_back(CenteredRow(std::move(view_all)));
+  rows.push_back(ftxui::hbox({
+      ftxui::text(std::string(pad, ' ')),
+      std::move(view_all),
+      ftxui::text(std::string(
+          kContentWidth - pad - static_cast<int>(kViewAll.size()), ' ')),
+  }));
   return ftxui::vbox(std::move(rows));
 }
 

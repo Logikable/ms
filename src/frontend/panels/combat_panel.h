@@ -29,6 +29,10 @@ class CombatPanel {
 
   CombatPanel(const GameState& state, const CombatSim& sim, int& panel_focus);
   ftxui::Element Render() const;
+  // Rows the panel takes on screen, borders included. It grows with the number
+  // of mob types engaged, so whatever shares the column with it has to ask
+  // rather than assume -- see MainLayout.
+  int Height() const;
   // on_travel fires when the player presses Enter with the panel focused.
   ftxui::Component MakeComponent(std::function<void()> on_travel);
 

@@ -15,6 +15,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/component/screen_interactive.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "ftxui/screen/terminal.hpp"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/progression.h"
@@ -397,6 +398,12 @@ ftxui::Element Tui::RenderScreen() {
 }
 
 ftxui::Element Tui::RenderMain() {
+  // The character panel and the combat panel share the left column, and combat
+  // is pinned to its foot. Without a budget the character panel takes the room
+  // it wants and the mob bars are drawn off the bottom of a short terminal.
+  // One row goes to the exp bar under both of them.
+  int left = ftxui::Terminal::Size().dimy - 1 - combat_panel_.Height();
+  char_panel_.SetMaxRows(left);
   // A panel the character has not unlocked is not drawn at all, and the layout
   // closes up around it. Rendering is skipped rather than hidden afterwards:
   // an undrawn panel has nothing to say about a game it is not part of yet.

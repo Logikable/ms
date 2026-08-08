@@ -41,6 +41,16 @@ class CharacterPanel {
   explicit CharacterPanel(CharacterInstance& character, int& panel_focus,
                           std::map<std::string, Skill> skills = {});
   ftxui::Element Render() const;
+
+  // The rows the panel may take, borders included. Anything past this and the
+  // Stats tab starts dropping extra stats off the bottom of its list, which is
+  // what keeps the combat panel below it on screen. Zero means no limit.
+  //
+  // Not read from the terminal here: the panel is drawn in tests at whatever
+  // size they choose, and only Tui knows what else is sharing the column.
+  void SetMaxRows(int rows) {
+    max_rows_ = rows;
+  }
   // What Enter does, by where it lands: on_allocate on a stat's [+] with AP to
   // spend, on_learn on a skill's [+] with SP, on_advance on a job (which
   // should confirm first -- the panel does not advance anything itself), and
@@ -63,9 +73,17 @@ class CharacterPanel {
   }
 
  private:
+  // Fixed rows of the Stats tab: the window's two borders, the two heading
+  // rows, the rule under them, the tab bar, its rule, HP, MP, the four AP
+  // stats, and the rule above the extras. Everything else on the tab is an
+  // extra stat or the View All Stats row.
+  static constexpr int kStatsTabFixedRows = 14;
+
   // Whether the border is currently lit gold. Not part of the panel's own
   // state machine -- it is set from outside and read by Render.
   bool highlighted_ = false;
+  // See SetMaxRows. Zero is "as many as it takes".
+  int max_rows_ = 0;
 
   // The panel's tabs, in bar order. Advance is only on the bar while an
   // advancement is pending, so these are not indices into it -- VisibleTabs().
@@ -164,6 +182,10 @@ class CharacterPanel {
   // the name never dims, since it can always be read.
   ftxui::Element RenderSkillRow(const Skill& skill, int index,
                                 bool rows_focused) const;
+  // How many of the `total` extra stats the row budget leaves room for, once
+  // the View All Stats row under them has been paid for. All of them when no
+  // budget is set.
+  int ExtraStatsShown(int total) const;
   // The MP row with unspent AP right-aligned as "N AP".
   ftxui::Element MpRow(int mp, int ap) const;
   // Renders one allocatable stat row: label/value on the left, a [+] button on
