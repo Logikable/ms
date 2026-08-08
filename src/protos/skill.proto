@@ -53,8 +53,16 @@ message SkillEffect {
   double max_mp_pct = 8;
 
   int32 attack = 17;      // flat weapon attack, as a worn weapon grants it
+  // Flat magic attack, likewise. A magician swings on this where everyone else
+  // swings on attack, so the two are separate fields for the same reason a
+  // staff's two numbers are: a skill grants one or the other, not both.
+  int32 magic_attack = 23;
   double skill_pct = 1;   // damage multiplier (attack skills)
   double crit_rate = 6;   // added chance for a swing to crit
+  // Added critical damage (0.05 == +5%), on top of the hidden 0.35 every
+  // character crits for. Worth its share of the swings: a crit rate of 20%
+  // makes 5% of critical damage worth 1% of damage.
+  double crit_dmg = 24;
   int32 attack_speed = 7; // faster-swing stages, added to the weapon's own
   // Attack per Combo Orb the character is carrying, for a skill that surrounds
   // them with orbs. The orbs are assumed full, so what this is worth is this

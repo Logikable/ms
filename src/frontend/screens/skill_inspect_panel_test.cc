@@ -376,6 +376,23 @@ TEST_F(SkillInspectPanelTest, ReadsTheNewStatLevers) {
   EXPECT_NE(out.find("Mastery           14%"), std::string::npos);
 }
 
+// The wizard's pair: magic attack reads beside ATT, and critical damage
+// beside critical rate.
+TEST_F(SkillInspectPanelTest, ReadsTheWizardsLevers) {
+  Skill skill;
+  skill.set_name("Freezing Crush");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_MAGICIAN);
+  skill.set_max_level(10);
+  skill.set_description("Sharpens what a critical hit is worth.");
+  skill.mutable_base()->set_crit_dmg(0.005);
+  skill.mutable_base()->set_magic_attack(3);
+
+  std::string out = RenderAt(skill, 1);
+  EXPECT_NE(out.find("Critical Damage   +0.5%"), std::string::npos);
+  EXPECT_NE(out.find("MATT              +3"), std::string::npos);
+}
+
 // Built from the requirement rather than from a sentence typed beside it, so
 // the wording and the rule the skills tab enforces cannot drift apart.
 TEST_F(SkillInspectPanelTest, SpellsOutWhatMustBeLearnedFirst) {

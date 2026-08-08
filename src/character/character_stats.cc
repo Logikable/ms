@@ -51,9 +51,11 @@ struct PassiveTotals {
   int dex = 0;
   int luk = 0;
   int attack = 0;
+  int magic_attack = 0;
   double damage_taken_pct = 0.0;
   double damage_reflect_pct = 0.0;
   double crit_rate = 0.0;
+  double crit_dmg = 0.0;
   double mastery = 0.0;
   double final_attack_pct = 0.0;
   double damage_pct = 0.0;
@@ -77,11 +79,13 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.dex += base.dex() + per.dex() * (level - 1);
   totals.luk += base.luk() + per.luk() * (level - 1);
   totals.attack += base.attack() + per.attack() * (level - 1);
+  totals.magic_attack += base.magic_attack() + per.magic_attack() * (level - 1);
   totals.damage_taken_pct +=
       base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
   totals.damage_reflect_pct +=
       base.damage_reflect_pct() + per.damage_reflect_pct() * (level - 1);
   totals.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
+  totals.crit_dmg += base.crit_dmg() + per.crit_dmg() * (level - 1);
   totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
   // The one lever taken at its best rather than summed: two masteries are not
@@ -180,6 +184,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.skill_stats.set_dex(passives.dex);
   stats.skill_stats.set_luk(passives.luk);
   stats.skill_stats.set_attack(passives.attack);
+  stats.skill_stats.set_magic_attack(passives.magic_attack);
   // Base DEF reads the totals rather than the allocation: a ring's LUK and a
   // passive's LUK are worth the same DEF. Floored once at the end, as GMS
   // shows it -- the worn and granted DEF are whole numbers already.
@@ -192,6 +197,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.damage_taken_pct = passives.damage_taken_pct;
   stats.damage_reflect_pct = passives.damage_reflect_pct;
   stats.crit_rate = passives.crit_rate;
+  stats.crit_dmg = passives.crit_dmg;
   stats.damage_pct = passives.damage_pct;
   stats.final_dmg_pct = passives.final_dmg_pct;
   stats.mastery = passives.mastery;
@@ -203,6 +209,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
 PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   PassiveOffense passives;
   passives.crit_rate = derived.crit_rate;
+  passives.crit_dmg = derived.crit_dmg;
   passives.mastery = derived.mastery;
   passives.damage_pct = derived.damage_pct;
   passives.final_dmg_pct = derived.final_dmg_pct;

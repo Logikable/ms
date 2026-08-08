@@ -58,6 +58,7 @@ bool DealsDamage(SkillKind kind);
 // DerivedStatsFor produces the values; see character_stats.h.
 struct PassiveOffense {
   double crit_rate = 0.0;  // added chance for a swing to crit (0.40 == 40%)
+  double crit_dmg = 0.0;   // added critical damage (0.05 == +5%)
   // Weapon mastery, 0..1. 0 means the character has no mastery skill and
   // keeps the beginner's baseline: a mastery skill's first level is worth
   // less than that, and learning a skill must never make a swing worse.

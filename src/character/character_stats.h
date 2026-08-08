@@ -33,6 +33,10 @@ struct DerivedStats {
   // Added chance for a swing to crit (0.40 == 40%). Feeds OffenseStatsFor,
   // since what it modifies is damage rather than the character's own bulk.
   double crit_rate = 0.0;
+  // Added critical damage (0.05 == +5%), summed, and worth only the share of
+  // swings that crit at all -- so it is the crit_rate skills that make it
+  // worth anything.
+  double crit_dmg = 0.0;
   // Plain % damage, summed over every passive granting it, and final damage,
   // combined by multiplying: two 10% sources come to 21%. Both are one number
   // by the time they leave here, because that is all the damage chain takes.

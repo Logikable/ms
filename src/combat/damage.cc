@@ -211,6 +211,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.level = level;
   offense.weapon_constant = WeaponConstant(job, weapon);
   offense.crit_rate = passives.crit_rate;
+  offense.crit_dmg = passives.crit_dmg;
   offense.damage_pct = passives.damage_pct;
   offense.final_dmg_pct = passives.final_dmg_pct;
   // A mastery skill's first level sits below the baseline every character

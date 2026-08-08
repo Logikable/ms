@@ -611,9 +611,34 @@ TEST_F(DerivedStatsTest, TheDamageLeversReachTheOffenseStats) {
   DerivedStats stats;
   stats.damage_pct = 0.15;
   stats.final_dmg_pct = 0.25;
+  stats.crit_dmg = 0.05;
   PassiveOffense passives = PassiveOffenseFor(stats);
   EXPECT_DOUBLE_EQ(passives.damage_pct, 0.15);
   EXPECT_DOUBLE_EQ(passives.final_dmg_pct, 0.25);
+  EXPECT_DOUBLE_EQ(passives.crit_dmg, 0.05);
+}
+
+// Freezing Crush's pair: critical damage rides beside crit rate, and magic
+// attack lands in the stat line exactly as a staff's would -- which is the
+// only way a magician's skills reach their own damage.
+TEST_F(DerivedStatsTest, MagicAttackAndCritDamageFoldIn) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill crush;
+  crush.set_name("Freezing Crush");
+  crush.set_kind(SKILL_KIND_PASSIVE);
+  crush.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  crush.set_max_level(10);
+  crush.mutable_base()->set_crit_dmg(0.005);
+  crush.mutable_base()->set_magic_attack(3);
+  crush.mutable_per_level()->set_crit_dmg(0.005);
+  crush.mutable_per_level()->set_magic_attack(3);
+  std::map<std::string, Skill> skills = {{"freezing_crush", crush}};
+  ASSERT_TRUE(c.LearnSkill(crush, 10));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.crit_dmg, 0.05, 1e-9);
+  EXPECT_EQ(stats.skill_stats.magic_attack(), 30);
+  EXPECT_EQ(TotalEquipStats(c, stats).magic_attack(), 30);
 }
 
 // Weapon Mastery masters a spear and a polearm alike, but only a spear swings

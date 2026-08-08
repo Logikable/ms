@@ -46,6 +46,7 @@ const PercentLever kPercentLevers[] = {
     {"Damage", &SkillEffect::damage_pct, kPlus},
     {"Final Damage", &SkillEffect::final_dmg_pct, kPlus},
     {"Critical Rate", &SkillEffect::crit_rate, kPlus},
+    {"Critical Damage", &SkillEffect::crit_dmg, kPlus},
     {"Mastery", &SkillEffect::mastery, kBare},
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare},
@@ -66,6 +67,7 @@ struct FlatLever {
 const FlatLever kFlatLevers[] = {
     {"DEF", &SkillEffect::def, "", false},
     {"ATT", &SkillEffect::attack, "", false},
+    {"MATT", &SkillEffect::magic_attack, "", false},
     {"ATT", &SkillEffect::attack_per_combo_orb, " per Combo Orb", false},
     {"STR", &SkillEffect::str, "", false},
     {"DEX", &SkillEffect::dex, "", false},
