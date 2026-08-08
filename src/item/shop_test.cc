@@ -97,7 +97,7 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
 // tier rather than at the end: they undercut the weapons they are listed
 // beside because they are ammunition, not the weapon a character is built
 // around.
-TEST(ShopTest, ShippedStockIsFortySevenWeapons) {
+TEST(ShopTest, ShippedStockIsFiftyThreeWeapons) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<std::string> stock = ShopStock(equips);
   std::vector<std::pair<std::string, int>> listing;
@@ -135,6 +135,8 @@ TEST(ShopTest, ShippedStockIsFortySevenWeapons) {
       // Level 40.
       {"Vaulter 2000", 30000},
       {"Hall Staff", 30000},
+      {"Dragon Toenail", 30000},
+      {"Steel Avarice", 30000},
       {"Sabretooth", 30000},
       {"Zeco", 30000},
       {"Crescent Polearm", 30000},
@@ -144,6 +146,8 @@ TEST(ShopTest, ShippedStockIsFortySevenWeapons) {
       // Level 50.
       {"Olympus", 50000},
       {"Mystic Cane", 50000},
+      {"Sai", 50000},
+      {"Steel Slain", 50000},
       {"The Rising", 50000},
       {"Serpent's Tongue", 50000},
       {"The Nine Dragons", 50000},
@@ -153,6 +157,8 @@ TEST(ShopTest, ShippedStockIsFortySevenWeapons) {
       // Level 60 -- the last tier the trial cap can reach.
       {"Asianic Bow", 75000},
       {"Frantic Crow Staff", 75000},
+      {"Deadly Fin", 75000},
+      {"Dark Gigantic", 75000},
       {"The Shining", 75000},
       {"Holy Spear", 75000},
       {"Skylar", 75000},
