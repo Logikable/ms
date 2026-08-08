@@ -15,6 +15,7 @@
 #include "src/character/progression.h"
 #include "src/combat/damage.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -78,6 +79,30 @@ int KindOrder(const Skill& skill) {
       return 1;
     default:
       return 2;
+  }
+}
+
+// The tag a skill row opens with: what the player does with the skill, said
+// once at the front of the row instead of being worked out from the name.
+struct KindTag {
+  const char* text;
+  ftxui::Color color;
+};
+
+// Four columns wide whichever tag it is, so every name below starts at the
+// same place and the list still reads as a column. A kind-less skill gets the
+// blanks rather than a tag that would be wrong.
+KindTag TagFor(const Skill& skill) {
+  switch (skill.kind()) {
+    case SKILL_KIND_ATTACK:
+    case SKILL_KIND_ACTIVE:
+      return {"A:  ", kRed};
+    case SKILL_KIND_AUTO_ATTACK:
+      return {"AA: ", kMutedYellow};
+    case SKILL_KIND_PASSIVE:
+      return {"P:  ", kGreen};
+    default:
+      return {"    ", kGray};
   }
 }
 
@@ -406,10 +431,17 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // skill.
   bool locked = !character_.MeetsSkillRequirement(skill);
 
-  // Only the name inverts. Enter opens the skill, so the highlight covers the
-  // skill and nothing else; the level beside it is a fact about the row, not a
-  // second thing to press. A locked skill still opens -- the screen behind it
-  // is where the player finds out what is holding it up.
+  KindTag tag = TagFor(skill);
+  ftxui::Element tag_text = ftxui::text(tag.text) | ftxui::color(tag.color);
+  if (locked) {
+    tag_text = tag_text | ftxui::dim;
+  }
+
+  // Only the name inverts -- the tag beside it is not part of what Enter
+  // opens. Enter opens the skill, so the highlight covers the skill and
+  // nothing else; the level beside it is a fact about the row, not a second
+  // thing to press. A locked skill still opens -- the screen behind it is
+  // where the player finds out what is holding it up.
   ftxui::Element name = ftxui::text(skill.name());
   if (selected && skill_col_ == kColName) {
     name = name | ftxui::inverted;
@@ -429,6 +461,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   }
   return ftxui::hbox({
       ftxui::text(" "),
+      tag_text,
       name,
       level_text,
       ftxui::filler(),

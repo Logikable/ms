@@ -146,10 +146,11 @@ class CharacterPanel {
   ftxui::Element RenderAdvTabBar(int stages, bool bar_focused) const;
   // The skills of the given job stage, in catalog order. Empty if none.
   std::vector<const Skill*> SkillsForStage(int stage) const;
-  // Renders one skill row: "name  level/max" on the left, a [+] button on the
-  // right. Whichever column the cursor is on inverts, on the selected row while
-  // the skill rows hold focus. The [+] is dimmed when the skill is maxed or its
-  // stage has no SP; the name never dims, since it can always be read.
+  // Renders one skill row: a kind tag, then "name  level/max" on the left, and
+  // a [+] button on the right. Whichever column the cursor is on inverts, on
+  // the selected row while the skill rows hold focus -- the tag is not one of
+  // them. The [+] is dimmed when the skill is maxed or its stage has no SP;
+  // the name never dims, since it can always be read.
   ftxui::Element RenderSkillRow(const Skill& skill, int index,
                                 bool rows_focused) const;
   // The MP row with unspent AP right-aligned as "N AP".

@@ -12,6 +12,7 @@ cc_library(
         "//src/character:progression",
         "//src/combat:damage",
         "//src/frontend:types",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

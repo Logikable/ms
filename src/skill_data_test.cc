@@ -43,6 +43,16 @@ TEST(SkillDataTest, EverySkillBelongsToAnAdvancement) {
   }
 }
 
+// The kind decides what the skill does in a fight and what tag opens its row
+// in the book, so an unset one is a skill that neither fights nor says what it
+// is.
+TEST(SkillDataTest, EverySkillNamesItsKind) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    EXPECT_NE(entry.second.kind(), SKILL_KIND_UNSPECIFIED)
+        << entry.first << " would list with no tag and do nothing";
+  }
+}
+
 // A tag is read by rules outside the skill, so an unset one is a skill quietly
 // left out of a group it was meant to be in.
 TEST(SkillDataTest, EveryTagNamesAGroup) {

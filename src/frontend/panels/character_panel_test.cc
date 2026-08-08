@@ -92,15 +92,19 @@ std::map<std::string, Skill> TwoSkillCatalog() {
   return catalog;
 }
 
-// The inverted flag of every cell under `needle`, as a string of '1' and '0' --
-// inversion is how the cursor shows itself, and a mask says exactly how far it
-// reaches. Walks pixels rather than the rendered string because the window
-// border is multibyte, so a byte offset is not a column. `needle` must be
-// ASCII: one character, one cell. Returns "" when `needle` is not on screen.
-std::string InversionMask(ftxui::Component comp, const std::string& needle) {
+ftxui::Screen RenderToScreen(ftxui::Component comp) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                ftxui::Dimension::Fixed(20));
   ftxui::Render(screen, comp->Render());
+  return screen;
+}
+
+// Where `needle` starts on `screen`, or {-1, -1} if it is not there. Walks
+// pixels rather than the rendered string because the window border is
+// multibyte, so a byte offset is not a column. `needle` must be ASCII: one
+// character, one cell.
+std::pair<int, int> FindCell(const ftxui::Screen& screen,
+                             const std::string& needle) {
   int len = static_cast<int>(needle.size());
   for (int y = 0; y < screen.dimy(); ++y) {
     for (int x = 0; x + len <= screen.dimx(); ++x) {
@@ -109,41 +113,52 @@ std::string InversionMask(ftxui::Component comp, const std::string& needle) {
         got += screen.PixelAt(x + i, y).character;
       }
       if (got == needle) {
-        std::string mask;
-        for (int i = 0; i < len; ++i) {
-          if (screen.PixelAt(x + i, y).inverted) {
-            mask += '1';
-          } else {
-            mask += '0';
-          }
-        }
-        return mask;
+        return {x, y};
       }
     }
   }
-  return "";
+  return {-1, -1};
+}
+
+// The inverted flag of every cell under `needle`, as a string of '1' and '0' --
+// inversion is how the cursor shows itself, and a mask says exactly how far it
+// reaches. Returns "" when `needle` is not on screen.
+std::string InversionMask(ftxui::Component comp, const std::string& needle) {
+  ftxui::Screen screen = RenderToScreen(comp);
+  std::pair<int, int> at = FindCell(screen, needle);
+  if (at.first < 0) {
+    return "";
+  }
+  std::string mask;
+  for (int i = 0; i < static_cast<int>(needle.size()); ++i) {
+    mask += screen.PixelAt(at.first + i, at.second).inverted ? '1' : '0';
+  }
+  return mask;
 }
 
 // The dim flag of the cell under the first character of `needle`. Dimming is
-// how a row says it cannot be spent on, and the byte-offset caveat above
-// applies here too.
+// how a row says it cannot be spent on.
 bool IsDim(ftxui::Component comp, const std::string& needle) {
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                               ftxui::Dimension::Fixed(20));
-  ftxui::Render(screen, comp->Render());
-  int len = static_cast<int>(needle.size());
-  for (int y = 0; y < screen.dimy(); ++y) {
-    for (int x = 0; x + len <= screen.dimx(); ++x) {
-      std::string got;
-      for (int i = 0; i < len; ++i) {
-        got += screen.PixelAt(x + i, y).character;
-      }
-      if (got == needle) {
-        return screen.PixelAt(x, y).dim;
-      }
-    }
+  ftxui::Screen screen = RenderToScreen(comp);
+  std::pair<int, int> at = FindCell(screen, needle);
+  return at.first >= 0 && screen.PixelAt(at.first, at.second).dim;
+}
+
+// Whether `needle` is on screen. RenderComponent's string is no use across a
+// change of colour: ToString writes escape codes between them, so a coloured
+// tag and the name beside it are not adjacent bytes.
+bool OnScreen(ftxui::Component comp, const std::string& needle) {
+  return FindCell(RenderToScreen(comp), needle).first >= 0;
+}
+
+// The foreground colour of the cell under the first character of `needle`.
+ftxui::Color ColorOf(ftxui::Component comp, const std::string& needle) {
+  ftxui::Screen screen = RenderToScreen(comp);
+  std::pair<int, int> at = FindCell(screen, needle);
+  if (at.first < 0) {
+    return ftxui::Color::Default;
   }
-  return false;
+  return screen.PixelAt(at.first, at.second).foreground_color;
 }
 
 // Whether the cell under the first character of `needle` is inverted.
@@ -622,6 +637,59 @@ TEST_F(CharacterPanelTest, AutoAttacksSitBetweenTheTwo) {
   ASSERT_NE(iron, std::string::npos);
   EXPECT_LT(slash, eye);
   EXPECT_LT(eye, iron);
+}
+
+// A catalog with one skill of each kind, plus a kind-less one.
+std::map<std::string, Skill> AllKindsCatalog() {
+  std::map<std::string, Skill> catalog;
+  const char* names[] = {"Slash Blast", "War Leap", "Evil Eye Shock",
+                         "Iron Body", "Nameless"};
+  SkillKind kinds[] = {SKILL_KIND_ATTACK, SKILL_KIND_ACTIVE,
+                       SKILL_KIND_AUTO_ATTACK, SKILL_KIND_PASSIVE,
+                       SKILL_KIND_UNSPECIFIED};
+  for (int i = 0; i < 5; ++i) {
+    Skill skill;
+    skill.set_name(names[i]);
+    skill.set_kind(kinds[i]);
+    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    skill.set_max_level(20);
+    catalog[names[i]] = skill;
+  }
+  return catalog;
+}
+
+// The tag says what the player does with a skill without their having to know
+// what the name means. Four columns whichever tag it is, so the names below
+// still line up; a kind-less skill gets the blanks rather than a wrong tag.
+TEST_F(CharacterPanelTest, EachSkillRowOpensWithItsKindTag) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, AllKindsCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+
+  EXPECT_TRUE(OnScreen(comp, "A:  Slash Blast"));
+  EXPECT_TRUE(OnScreen(comp, "A:  War Leap"));
+  EXPECT_TRUE(OnScreen(comp, "AA: Evil Eye Shock"));
+  EXPECT_TRUE(OnScreen(comp, "P:  Iron Body"));
+  EXPECT_TRUE(OnScreen(comp, "    Nameless"));
+
+  EXPECT_EQ(ColorOf(comp, "A:  Slash Blast"), kRed);
+  EXPECT_EQ(ColorOf(comp, "AA: Evil Eye Shock"), kMutedYellow);
+  EXPECT_EQ(ColorOf(comp, "P:  Iron Body"), kGreen);
+}
+
+// The tag is a fact about the skill, not a second thing to press: Enter opens
+// the skill, so the cursor covers the name and stops there at both ends.
+TEST_F(CharacterPanelTest, TheHighlightLeavesTheTagAlone) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, AllKindsCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
+
+  EXPECT_EQ(InversionMask(comp, "A:  Slash Blast  0/20"),
+            "000011111111111000000");
 }
 
 // A requirement is a condition the player has to be able to act on, so what it
