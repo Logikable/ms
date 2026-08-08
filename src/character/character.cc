@@ -235,6 +235,63 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
   return JOB_ADVANCEMENT_UNSPECIFIED;
 }
 
+Job JobForAdvancement(JobAdvancement advancement) {
+  switch (advancement) {
+    case JOB_ADVANCEMENT_SWORDMAN:
+      return JOB_SWORDMAN;
+    case JOB_ADVANCEMENT_ARCHER:
+      return JOB_ARCHER;
+    case JOB_ADVANCEMENT_MAGICIAN:
+      return JOB_MAGICIAN;
+    case JOB_ADVANCEMENT_ROGUE:
+      return JOB_ROGUE;
+    case JOB_ADVANCEMENT_FIGHTER:
+      return JOB_FIGHTER;
+    case JOB_ADVANCEMENT_PAGE:
+      return JOB_PAGE;
+    case JOB_ADVANCEMENT_SPEARMAN:
+      return JOB_SPEARMAN;
+    case JOB_ADVANCEMENT_HUNTER:
+      return JOB_HUNTER;
+    case JOB_ADVANCEMENT_CROSSBOWMAN:
+      return JOB_CROSSBOWMAN;
+    default:
+      return JOB_UNSPECIFIED;
+  }
+}
+
+int NextAdvancementLevel(int stage) {
+  if (stage < 0 || stage >= static_cast<int>(sizeof(kAdvancementLevels) /
+                                             sizeof(kAdvancementLevels[0]))) {
+    return 0;
+  }
+  return kAdvancementLevels[stage];
+}
+
+std::vector<std::string> StarterEquipsFor(Job job) {
+  // One weapon per 1st job, at the level the advancement happens, so an
+  // advancement is immediately playable. The Rogue gets three: the stars are a
+  // slot of their own, and which of the dagger or the claw is held decides
+  // which of the two attack skills can be swung, so handing over only one
+  // would quietly pick the job's build.
+  //
+  // A 2nd job is handed nothing. It arrives at level 30 already armed and with
+  // meso enough for the tier, and the shop stocks every weapon under the cap --
+  // so a free one would only undercut the choice of which to buy.
+  switch (job) {
+    case JOB_SWORDMAN:
+      return {"long_sword"};
+    case JOB_MAGICIAN:
+      return {"wooden_staff"};
+    case JOB_ARCHER:
+      return {"war_bow"};
+    case JOB_ROGUE:
+      return {"subi_throwing_stars", "fruit_knife", "garnier"};
+    default:
+      return {};
+  }
+}
+
 StatField PrimaryStatField(Job job) {
   switch (job) {
     case JOB_BEGINNER:

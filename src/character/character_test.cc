@@ -461,6 +461,34 @@ TEST(JobChoicesTest, ASpearmanKeepsTheirSwordmanSkills) {
   EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_SPEARMAN), 2);
 }
 
+// Every advancement names exactly the job that takes it, and that job answers
+// with the advancement again at the stage it belongs to. A branch wired into
+// one direction and not the other would send the workbench to the wrong job.
+TEST(JobChoicesTest, EveryAdvancementRoundTripsToItsJob) {
+  for (int i = 1; i <= JobAdvancement_MAX; ++i) {
+    JobAdvancement advancement = static_cast<JobAdvancement>(i);
+    Job job = JobForAdvancement(advancement);
+    ASSERT_NE(job, JOB_UNSPECIFIED) << JobAdvancement_Name(advancement);
+    EXPECT_EQ(AdvancementForJobStage(job, StageForAdvancement(advancement)),
+              advancement);
+  }
+}
+
+TEST(JobChoicesTest, NoJobTakesAnUnspecifiedAdvancement) {
+  EXPECT_EQ(JobForAdvancement(JOB_ADVANCEMENT_UNSPECIFIED), JOB_UNSPECIFIED);
+}
+
+// The thresholds LevelUp offers an advancement at, read back out: a 1st job
+// spans up to 30 and a 2nd up to 60, which is what puts a character asking to
+// start at the top of one where they belong.
+TEST(JobChoicesTest, EachStageEndsAtItsNextAdvancement) {
+  EXPECT_EQ(NextAdvancementLevel(0), 10);
+  EXPECT_EQ(NextAdvancementLevel(1), 30);
+  EXPECT_EQ(NextAdvancementLevel(2), 60);
+  EXPECT_EQ(NextAdvancementLevel(-1), 0);
+  EXPECT_EQ(NextAdvancementLevel(99), 0);
+}
+
 // --- skill requirements ---
 
 // Hyper Body's shape: it wants three points in Iron Wall first.

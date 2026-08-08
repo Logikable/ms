@@ -33,6 +33,23 @@ JobAdvancement AdvancementForJobStage(Job job, int stage);
 // Returns 0 for JOB_ADVANCEMENT_UNSPECIFIED.
 int StageForAdvancement(JobAdvancement advancement);
 
+// The job an advancement makes a character -- the inverse of
+// AdvancementForJobStage, which several jobs answer alike at stage 1 but only
+// one does at the stage the advancement belongs to. JOB_UNSPECIFIED for an
+// advancement no job takes.
+Job JobForAdvancement(JobAdvancement advancement);
+
+// The level at which a character at `stage` is offered their next
+// advancement, and so the last level that stage spans. Zero past the last
+// advancement the game defines.
+int NextAdvancementLevel(int stage);
+
+// The equip catalog keys a character is handed on advancing into `job`, or an
+// empty list for a job with no starting gear defined. Here rather than beside
+// PerformJobAdvancement so that the workbench, which is underneath it, can ask
+// the same question -- one table, not two that drift.
+std::vector<std::string> StarterEquipsFor(Job job);
+
 // The stat a job's damage is built on. STAT_FIELD_UNSPECIFIED for a job with
 // no primary stat defined.
 // TODO: Demon Avenger's primary stat is HP; Xenon's is STR+DEX+LUK combined.

@@ -34,17 +34,25 @@ class JobAdvancementTest : public testing::Test {
   GameState state_{LoadEquips(), {}, {}, {}, {}};
 };
 
-// Every job a character can advance into, with the level that advancement
-// happens at -- the thresholds in character.cc's kAdvancementLevels. A stage
-// with no branches written yet simply contributes nothing.
-std::vector<std::pair<Job, int>> AdvanceableJobs() {
+// One job a character can advance into: which job, at which level, and which
+// stage that advancement is.
+struct Advanceable {
+  Job job = JOB_UNSPECIFIED;
+  int level = 0;
+  int stage = 0;
+};
+
+// Every job a character can advance into. The levels are the thresholds in
+// character.cc's kAdvancementLevels. A stage with no branches written yet
+// simply contributes nothing.
+std::vector<Advanceable> AdvanceableJobs() {
   const int kLevelForStage[] = {0, 10, 30};
-  std::vector<std::pair<Job, int>> jobs;
+  std::vector<Advanceable> jobs;
   for (Job from :
        {JOB_BEGINNER, JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE}) {
     for (int stage = 1; stage <= 2; ++stage) {
       for (Job job : JobChoicesForStage(from, stage)) {
-        jobs.push_back({job, kLevelForStage[stage]});
+        jobs.push_back({job, kLevelForStage[stage], stage});
       }
     }
   }
@@ -55,14 +63,29 @@ std::vector<std::pair<Job, int>> AdvanceableJobs() {
 // system ties them to the files on disk -- renaming a textproto would leave a
 // job silently advancing empty-handed.
 TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
-  for (const std::pair<Job, int>& entry : AdvanceableJobs()) {
-    std::vector<std::string> names = StarterEquipsFor(entry.first);
-    EXPECT_FALSE(names.empty())
-        << Job_Name(entry.first) << " advances with no weapon";
+  for (const Advanceable& entry : AdvanceableJobs()) {
+    std::vector<std::string> names = StarterEquipsFor(entry.job);
+    if (entry.stage == 1) {
+      EXPECT_FALSE(names.empty())
+          << Job_Name(entry.job) << " advances with no weapon";
+    }
     for (const std::string& name : names) {
       EXPECT_NE(state_.equips.find(name), state_.equips.end())
           << name << " is not in data/equip";
     }
+  }
+}
+
+// A 2nd job buys its own weapon. It arrives already armed and able to afford
+// the tier, and the shop stocks all of it -- so the handout the 1st jobs get
+// would only be taking the choice away.
+TEST_F(JobAdvancementTest, ASecondJobAdvancesEmptyHanded) {
+  for (const Advanceable& entry : AdvanceableJobs()) {
+    if (entry.stage == 1) {
+      continue;
+    }
+    EXPECT_TRUE(StarterEquipsFor(entry.job).empty())
+        << Job_Name(entry.job) << " is handed a weapon it should have bought";
   }
 }
 
@@ -77,15 +100,6 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
           {JOB_ARCHER, {EQUIP_TYPE_BOW}},
           {JOB_ROGUE,
            {EQUIP_TYPE_DAGGER, EQUIP_TYPE_THROWING_STAR, EQUIP_TYPE_CLAW}},
-          // A 2nd job gets what its Final Attack demands, which is what makes
-          // the demand worth stating at all.
-          {JOB_FIGHTER, {EQUIP_TYPE_TWO_HANDED_AXE}},
-          {JOB_PAGE, {EQUIP_TYPE_TWO_HANDED_BLUNT}},
-          {JOB_SPEARMAN, {EQUIP_TYPE_SPEAR}},
-          // The archer's branch says the same thing about a bow: the Hunter's
-          // whole book lapses without one.
-          {JOB_HUNTER, {EQUIP_TYPE_BOW}},
-          {JOB_CROSSBOWMAN, {EQUIP_TYPE_CROSSBOW}},
       };
   return *kTypes;
 }
@@ -93,13 +107,16 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
 // Existence says nothing about what the weapon IS -- a job could advance into
 // a full set of the wrong class's gear and every other test here would pass.
 TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnWeapons) {
-  for (const std::pair<Job, int>& entry : AdvanceableJobs()) {
+  for (const Advanceable& entry : AdvanceableJobs()) {
+    if (entry.stage != 1) {
+      continue;  // covered by ASecondJobAdvancesEmptyHanded
+    }
     std::multiset<EquipType> actual;
-    for (const std::string& name : StarterEquipsFor(entry.first)) {
+    for (const std::string& name : StarterEquipsFor(entry.job)) {
       actual.insert(state_.equips.at(name).equip_type());
     }
-    EXPECT_EQ(actual, ExpectedStarterTypes().at(entry.first))
-        << Job_Name(entry.first) << " does not advance with its own weapons";
+    EXPECT_EQ(actual, ExpectedStarterTypes().at(entry.job))
+        << Job_Name(entry.job) << " does not advance with its own weapons";
   }
 }
 
@@ -107,10 +124,10 @@ TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnWeapons) {
 // level can wear": gear that drifted either way would hand over something
 // weaker than the tier, or something that cannot be held at all.
 TEST_F(JobAdvancementTest, StarterEquipsAreTheirTiersWeapons) {
-  for (const std::pair<Job, int>& entry : AdvanceableJobs()) {
-    for (const std::string& name : StarterEquipsFor(entry.first)) {
-      EXPECT_EQ(state_.equips.at(name).required_level(), entry.second)
-          << name << " is not a level " << entry.second << " weapon";
+  for (const Advanceable& entry : AdvanceableJobs()) {
+    for (const std::string& name : StarterEquipsFor(entry.job)) {
+      EXPECT_EQ(state_.equips.at(name).required_level(), entry.level)
+          << name << " is not a level " << entry.level << " weapon";
     }
   }
 }
