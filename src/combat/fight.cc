@@ -57,25 +57,42 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
   return total;
 }
 
-const AttackOption* CombatSim::BestAttack(const CombatParams& params) const {
+int CombatSim::BestAttack(const CombatParams& params) const {
   if (queue_.empty()) {
-    return nullptr;  // nothing to hit, so nothing to choose between
+    return -1;  // nothing to hit, so nothing to choose between
   }
-  const AttackOption* best = nullptr;
+  int best = -1;
   double best_rate = -1.0;
-  for (const AttackOption& attack : params.attacks) {
+  for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
+    const AttackOption& attack = params.attacks[i];
     if (attack.swing_seconds <= 0.0) {
       continue;  // not a swing; a skill on its own clock is not chosen between
+    }
+    // Still recharging, so it is not among the swings on offer this time --
+    // which is the whole point of a cooldown on something this good.
+    if (i < static_cast<int>(cooldown_left_.size()) &&
+        cooldown_left_[i] > 0.0) {
+      continue;
     }
     // Per second, not per swing: a skill that hits half again as hard but takes
     // twice as long is worse, and only the rate says so.
     double rate = SwingDamage(attack) / attack.swing_seconds;
     if (rate > best_rate) {
       best_rate = rate;
-      best = &attack;
+      best = i;
     }
   }
   return best;
+}
+
+void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
+  // Unlike an auto-cast's clock, this runs on an empty map too: a player
+  // waiting out a respawn really does have their cooldown back when the mobs
+  // land, where a summon with nothing to hit has simply not fired.
+  cooldown_left_.resize(params.attacks.size(), 0.0);
+  for (double& left : cooldown_left_) {
+    left = std::max(0.0, left - dt);
+  }
 }
 
 void CombatSim::Strike(const AttackOption& attack) {
@@ -122,6 +139,7 @@ void CombatSim::GoIdle() {
   player_max_hp_ = 0;
   hit_phase_ = 0.0;
   auto_phase_.clear();
+  cooldown_left_.clear();
 }
 
 void CombatSim::BeginMapIfChanged(const CombatParams& params) {
@@ -136,6 +154,7 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   attack_phase_ = 0.0;
   hit_phase_ = 0.0;
   auto_phase_.assign(params.auto_attacks.size(), 0.0);
+  cooldown_left_.assign(params.attacks.size(), 0.0);
   player_hp_ = params.max_player_hp;
   queue_.clear();
   TopUp(params);
@@ -220,7 +239,8 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
 }
 
 const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
-  const AttackOption* attack = BestAttack(params);
+  aimed_ = BestAttack(params);
+  const AttackOption* attack = aimed_ >= 0 ? &params.attacks[aimed_] : nullptr;
   attack_name_ = attack != nullptr ? attack->name : "";
   if (attack != nullptr) {
     reach_ = std::max(1, attack->max_enemies);
@@ -246,7 +266,12 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     return;
   }
   attack_phase_ -= attack->swing_seconds;
+  // Read before the strike, because aiming again below moves it.
+  int swung = aimed_;
   Strike(*attack);
+  if (attack->cooldown_seconds > 0.0) {
+    cooldown_left_[swung] = attack->cooldown_seconds;
+  }
   AimSwing(params);
 }
 
@@ -319,6 +344,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RespawnBeat(params, dt);
   TakeMobHit(params, dt);
   RunAutoCasts(params, dt);
+  RunCooldowns(params, dt);
   RunSwing(params, dt);
 
   player_max_hp_ = params.max_player_hp;

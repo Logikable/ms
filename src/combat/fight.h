@@ -127,13 +127,17 @@ class CombatSim {
   // What one swing of `attack` would land on the queue as it stands, Final
   // Attack included.
   double SwingDamage(const AttackOption& attack) const;
-  // The attack that would land the most damage per SECOND on the queue as it
-  // stands, or null when there is nothing to hit. Two things can make one
-  // swing beat another: reach is worth nothing past the number of mobs
-  // actually queued, so a wide, weak-per-target skill loses to the plain swing
-  // once the map thins out; and a slower animation has to hit proportionally
-  // harder to be worth choosing.
-  const AttackOption* BestAttack(const CombatParams& params) const;
+  // Index into params.attacks of the attack that would land the most damage
+  // per SECOND on the queue as it stands, or -1 when there is nothing to hit.
+  // Three things can make one swing beat another: reach is worth nothing past
+  // the number of mobs actually queued, so a wide, weak-per-target skill loses
+  // to the plain swing once the map thins out; a slower animation has to hit
+  // proportionally harder to be worth choosing; and a swing still recharging
+  // is no candidate at all.
+  //
+  // An index rather than a pointer because the cooldown it starts is held per
+  // attack, and the caller has to be able to say which one it swung.
+  int BestAttack(const CombatParams& params) const;
 
   // The steps of one Advance, in the order it runs them.
   //
@@ -154,6 +158,9 @@ class CombatSim {
   // Fires the skills that attack on their own clock, before the swing is
   // aimed, so it is aimed at what they leave standing.
   void RunAutoCasts(const CombatParams& params, double dt);
+  // Winds every recharging swing down by dt, before the swing is aimed, so one
+  // that comes back this step is available to it.
+  void RunCooldowns(const CombatParams& params, double dt);
   // Points the next swing at the queue as it stands, naming it for the charge
   // bar. Returns what it picked, or null with nothing to hit.
   const AttackOption* AimSwing(const CombatParams& params);
@@ -177,6 +184,10 @@ class CombatSim {
   // Seconds into each auto-attack's next cast, parallel to
   // params.auto_attacks. Runs only while there is something to hit.
   std::vector<double> auto_phase_;
+  // Seconds each swing has left before it can be chosen again, parallel to
+  // params.attacks. 0 for a swing that is ready, which is all of them for a
+  // character holding no cooldown skill.
+  std::vector<double> cooldown_left_;
 
   // Shuffles each batch of arriving mobs so they are fought in mixed order
   // rather than one whole type at a time (see TopUp). Default-seeded, so a sim
@@ -196,6 +207,9 @@ class CombatSim {
   int reach_ = 1;
   // How long that attack's swing takes, for the charge bar to fill against.
   double swing_seconds_ = 0.0;
+  // Which attack the aimed swing is, so landing it can start that attack's
+  // cooldown. -1 with nothing aimed.
+  int aimed_ = -1;
   std::vector<int64_t> kills_this_step_;
   bool died_this_step_ = false;
   std::vector<EngagedGroup> engaged_groups_;

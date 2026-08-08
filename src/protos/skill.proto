@@ -11,8 +11,9 @@ enum SkillKind {
   SKILL_KIND_UNSPECIFIED = 0;
   SKILL_KIND_ATTACK = 1;   // the swing's identity: supplies skill_pct
   SKILL_KIND_PASSIVE = 2;  // folds its levers into the character's stats
-  // Cast, but not an attack -- mobility and the like. Nothing it does is
-  // modelled; it exists so the skill list matches the real job.
+  // Cast, but not an attack: a buff that runs for a while and then has to be
+  // cast again. Nothing carries this yet -- the skills that would have (the
+  // mobility ones) are simply not in this game.
   SKILL_KIND_ACTIVE = 3;
   // Attacks on its own clock, alongside whatever the character is swinging,
   // rather than being the swing. A summon or a cooldown skill the player would
@@ -180,6 +181,15 @@ message Skill {
   // Meaningless for a SKILL_KIND_AUTO_ATTACK, which fires on
   // cast_interval_seconds rather than on the character's swing.
   int32 base_delay_ms = 16;
+  // Seconds this skill is unavailable for after it is used, in GMS scale
+  // before the game's own pacing stretches it. A swing with a cooldown is not
+  // there to be chosen every time, so the fight falls back on whatever else it
+  // has while this one recharges -- which is what lets a skill hit harder than
+  // the swing it interrupts without simply replacing it.
+  //
+  // Not cast_interval_seconds, which is how often a skill that fights on its
+  // own goes off by itself. A skill names one or the other, never both.
+  double cooldown_seconds = 17;
   // Seconds between casts of a SKILL_KIND_AUTO_ATTACK, in GMS scale before the
   // game's own pacing stretches it -- usually the skill's cooldown, since a
   // cooldown skill is one the player would fire the moment it came back.

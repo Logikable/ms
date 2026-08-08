@@ -199,6 +199,31 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
 // GMS keys the swing delay on the skill, so two skills in the same hand can
 // swing at different speeds. The weapon's say is its attack-speed stage, which
 // scales both alike.
+// A cooldown is a duration like any other here, so the pacing band stretches
+// it with the swings it keeps the player from making.
+TEST(ComputeCombatParamsTest, ACooldownStretchesWithEverythingElse) {
+  Skill burst;
+  burst.set_name("Burst");
+  burst.set_kind(SKILL_KIND_ATTACK);
+  burst.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  burst.set_max_level(20);
+  burst.set_base_delay_ms(720);
+  burst.set_cooldown_seconds(4.0);
+  burst.mutable_base()->set_skill_pct(1.83);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"burst", burst}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(burst, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_DOUBLE_EQ(params.attacks[0].cooldown_seconds, 0.0);
+  EXPECT_DOUBLE_EQ(params.attacks[1].cooldown_seconds,
+                   4.0 * GameSpeedFactor(state.character.proto().level()));
+}
+
 TEST(ComputeCombatParamsTest, EachSwingTakesItsOwnSkillsTime) {
   Skill slow;
   slow.set_name("Slow Swing");

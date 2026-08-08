@@ -265,6 +265,12 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", FormatSeconds(skill.cast_interval_seconds()) + "s"));
   }
+  // How long the player swings something else for afterwards, which is what a
+  // skill this much better than the usual swing costs.
+  if (skill.cooldown_seconds() > 0.0) {
+    rows.push_back(
+        EffectRow("Cooldown", FormatSeconds(skill.cooldown_seconds()) + "s"));
+  }
   return rows;
 }
 

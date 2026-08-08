@@ -57,6 +57,18 @@ CombatParams MakeParams(double swing, double respawn,
   return params;
 }
 
+// A swing worth three pokes, held back by a three-second cooldown -- so it
+// lands once every four swings rather than every one.
+AttackOption MakeBurst() {
+  AttackOption burst;
+  burst.name = "Burst";
+  burst.max_enemies = 1;
+  burst.damage_per_hit = {30.0};
+  burst.swing_seconds = 1.0;
+  burst.cooldown_seconds = 3.0;
+  return burst;
+}
+
 // Adds a skill that fires on its own clock, hitting `reach` mobs for `damage`
 // apiece every `interval` seconds.
 void AddAutoAttack(CombatParams& params, double interval, double damage,
@@ -304,6 +316,58 @@ TEST(CombatSimTest, TheChoiceCountsTheFinalAttackThatFollowsIt) {
 
   sim.Advance(params, 0.1);
   EXPECT_EQ(sim.attack_name(), "Attack");
+}
+
+// A swing three times the poke would simply replace it, so what a cooldown is
+// worth is the swings it is NOT there for.
+TEST(CombatSimTest, ACooldownKeepsTheBestSwingOffTheMenu) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Attack";
+  params.attacks.push_back(MakeBurst());
+
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  // One burst and then two pokes: 50, not the 90 three bursts would be.
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+}
+
+TEST(CombatSimTest, ACooldownSwingComesBackWhenItRunsOut) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 100.0, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Attack";
+  params.attacks.push_back(MakeBurst());
+
+  for (int i = 0; i < 4; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  // The cooldown started on the first swing, so three seconds later the fourth
+  // is a burst again: 30 + 10 + 10 + 30.
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.92, 1e-9);
+}
+
+// Unlike a summon's clock, which earns no free cast on an empty map: a player
+// waiting out a respawn really does have their cooldown back when the mobs
+// land. Here the burst kills the only mob, and the four seconds of empty map
+// are exactly the recharge -- so the mob that respawns dies to a burst too.
+TEST(CombatSimTest, ACooldownRunsDownOnAnEmptyMap) {
+  Mob snail = MakeMob("Snail", 30);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 4.0, {MakeType(&snail, 10.0, 1)});
+  params.attacks[0].name = "Attack";
+  params.attacks.push_back(MakeBurst());
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.kills_this_step()[0], 1);  // the burst lands and kills
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);
+  ASSERT_TRUE(sim.respawning());  // three seconds with nothing to hit
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 1)
+      << "the respawned mob survived, so the burst was still recharging";
 }
 
 TEST(CombatSimTest, FallsBackToTheStrongSwingOnTheLastMob) {

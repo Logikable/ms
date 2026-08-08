@@ -50,6 +50,9 @@ struct AttackOption {
   // than on the character's swing. 0 for the swings themselves, which are
   // paced by swing_seconds.
   double interval_seconds = 0.0;
+  // Seconds this attack cannot be swung for after it lands, game-scaled. 0 for
+  // one that is there every time, which is most of them.
+  double cooldown_seconds = 0.0;
   // Expected Final Attack damage per target type, landing on the front mob
   // alone however many the swing itself reached. Empty for a character with
   // no Final Attack, and for the skills that fire on their own clock -- those

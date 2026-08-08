@@ -59,6 +59,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   }
   attack.swing_seconds =
       SwingIntervalSeconds(delay_ms, attack_speed) * speed_factor;
+  if (skill != nullptr) {
+    attack.cooldown_seconds = skill->cooldown_seconds() * speed_factor;
+  }
   OffenseStats offense = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
       skill, level, PassiveOffenseFor(derived));

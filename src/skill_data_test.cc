@@ -123,6 +123,21 @@ TEST(SkillDataTest, EveryAutoAttackSaysHowOftenItFires) {
   }
 }
 
+// The two clocks answer different questions -- how long until this comes back,
+// against how often this goes off by itself -- and a skill wanting both is a
+// skill whose author meant one of them.
+TEST(SkillDataTest, NoSkillNamesBothClocks) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (entry.second.cooldown_seconds() <= 0.0) {
+      continue;
+    }
+    EXPECT_EQ(entry.second.cast_interval_seconds(), 0.0)
+        << entry.first << " both recharges and fires on its own clock";
+    EXPECT_NE(entry.second.kind(), SKILL_KIND_PASSIVE)
+        << entry.first << " is never used, so it never recharges";
+  }
+}
+
 // A swing takes as long as its own animation, so every swing has to say how
 // long that is. Nothing else does: the delay of a skill on its own clock is
 // its cast interval, and a passive is never swung at all.
