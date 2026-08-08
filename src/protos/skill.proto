@@ -95,8 +95,8 @@ message SkillEffect {
 
   int32 def = 3;                // flat weapon DEF
   double damage_taken_pct = 5;  // share of incoming damage cancelled
-  // Share of incoming damage that comes out of MP rather than HP. Like
-  // damage_taken_pct, it waits on a model of the character being hit.
+  // Share of incoming damage that comes out of MP rather than HP. Nothing
+  // tracks MP, so it lands as plain reduction alongside damage_taken_pct.
   double damage_to_mp_pct = 10;
   // Share of a hit taken that is dealt straight back to whatever landed it
   // (1.20 == 120% of the damage received). Measured against what the character

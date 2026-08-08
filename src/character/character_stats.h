@@ -24,7 +24,9 @@ struct DerivedStats {
   // their stats alone: 1.5 per STR and 0.4 per DEX and LUK. So a character in
   // rags has DEF, and AP spent on STR buys some.
   int def = 0;
-  // The share of incoming damage cancelled (0.10 == 10% less taken).
+  // The share of incoming damage cancelled (0.10 == 10% less taken), combined
+  // across every source by multiplying. Magic Guard counts here: the damage it
+  // sends to MP is damage the character never takes, since nothing tracks MP.
   double damage_taken_pct = 0.0;
   // Share of a hit taken that goes straight back into whatever landed it
   // (1.20 == 120% of what the character actually lost). Summed, since two

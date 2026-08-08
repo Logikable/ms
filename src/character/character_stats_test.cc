@@ -260,6 +260,44 @@ TEST_F(DerivedStatsTest, IronBodyScalesWithItsLearnedLevel) {
   EXPECT_NEAR(stats.damage_taken_pct, 0.10, 1e-9);
 }
 
+// Magic Guard as the data states it: 22% of a hit to MP, 7% more a level.
+Skill MagicGuard() {
+  Skill skill;
+  skill.set_name("Magic Guard");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(10);
+  skill.mutable_base()->set_damage_to_mp_pct(0.22);
+  skill.mutable_per_level()->set_damage_to_mp_pct(0.07);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, MagicGuardCancelsTheDamageItSendsToMp) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill magic_guard = MagicGuard();
+  std::map<std::string, Skill> skills = {{"magic_guard", magic_guard}};
+  ASSERT_TRUE(c.LearnSkill(magic_guard, 10));
+
+  // Nothing tracks MP, so the 85% it diverts is 85% the character never takes.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.damage_taken_pct, 0.85, 1e-9);
+}
+
+TEST_F(DerivedStatsTest, TwoReductionsMultiplyRatherThanSum) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill magic_guard = MagicGuard();
+  Skill iron_body = IronBody();
+  std::map<std::string, Skill> skills = {{"magic_guard", magic_guard},
+                                         {"iron_body", iron_body}};
+  ASSERT_TRUE(c.LearnSkill(magic_guard, 10));
+  ASSERT_TRUE(c.LearnSkill(iron_body, 20));
+
+  // 0.85 and 0.10 sum past nothing left to cancel; multiplied they leave
+  // 0.15 * 0.90 of the hit standing.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.damage_taken_pct, 1.0 - 0.15 * 0.90, 1e-9);
+}
+
 TEST_F(DerivedStatsTest, PerLevelHpScalesWithTheCharactersLevel) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill mastery = WarriorMastery();

@@ -82,8 +82,15 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.luk += base.luk() + per.luk() * (level - 1);
   totals.attack += base.attack() + per.attack() * (level - 1);
   totals.magic_attack += base.magic_attack() + per.magic_attack() * (level - 1);
-  totals.damage_taken_pct +=
-      base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
+  // Damage sent to the MP pool is damage the HP pool never sees, and nothing
+  // here tracks MP -- so Magic Guard reads as reduction, which is its whole
+  // effect. Reduction multiplies rather than adds: two halves leave a quarter
+  // of the hit, where summing them would leave none of it and then go on to
+  // heal the character.
+  double taken = base.damage_taken_pct() + per.damage_taken_pct() * (level - 1);
+  double to_mp = base.damage_to_mp_pct() + per.damage_to_mp_pct() * (level - 1);
+  totals.damage_taken_pct =
+      1.0 - (1.0 - totals.damage_taken_pct) * (1.0 - taken) * (1.0 - to_mp);
   totals.damage_reflect_pct +=
       base.damage_reflect_pct() + per.damage_reflect_pct() * (level - 1);
   totals.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
