@@ -212,17 +212,29 @@ TEST(GameStateTest, ChosenJobStartsAtTheTopOfThatAdvancement) {
   EXPECT_EQ(hunter.character.proto().job_stage(), 2);
 }
 
-// The AP is spent and the SP is not: which stats to raise is never the
-// question a tester is asking, and which skills to buy usually is.
-TEST(GameStateTest, ChosenJobSpendsTheApAndKeepsTheSp) {
+// The AP is spent: which stats to raise is never the question a tester is
+// asking. Only the chosen job's own book is left, since the books behind it
+// are not what was asked for either.
+TEST(GameStateTest, ChosenJobSpendsTheApAndEveryBookBelowItsOwn) {
   GameState state = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
   EXPECT_EQ(state.character.proto().ap(), 0);
   EXPECT_GT(state.character.proto().allocated_stats().dex(), 200);
-  EXPECT_GT(state.character.sp(1), 0);
+  EXPECT_EQ(state.character.sp(1), 0);
   EXPECT_GT(state.character.sp(2), 0);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    EXPECT_EQ(state.character.skill_level(entry.second), 0)
-        << entry.first << " was bought for the tester";
+    int stage = StageForAdvancement(entry.second.job_advancement());
+    int expected = stage < 2 ? entry.second.max_level() : 0;
+    EXPECT_EQ(state.character.skill_level(entry.second), expected)
+        << entry.first << " at stage " << stage;
+  }
+}
+
+// A 1st job is the highest book its character has, so nothing is bought.
+TEST(GameStateTest, AChosenFirstJobKeepsItsWholeBook) {
+  GameState state = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
+  EXPECT_GT(state.character.sp(1), 0);
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    EXPECT_EQ(state.character.skill_level(entry.second), 0) << entry.first;
   }
 }
 

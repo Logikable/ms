@@ -79,8 +79,8 @@ void GiveEquip(GameState& state, const std::string& name) {
   state.character.PickUp(std::make_unique<EquipInstance>(it->second));
 }
 
-// Whether the climb spends the SP it earns along with the AP.
-enum class SpendSp { kNo, kYes };
+// Passed as `unspent_stage` to spend every point the climb earns.
+constexpr int kSpendEveryStage = 0;
 
 // Climbs to `level` the way a player gets there, taking each advancement in
 // `path` as it is offered, so nothing the workbench holds is out of reach:
@@ -88,11 +88,12 @@ enum class SpendSp { kNo, kYes };
 //
 // The AP is always spent, into the primary stat, because a character with a
 // hundred points in the pool is a hundred keypresses from the screen the
-// tester came for. The SP is spent only when asked: which skills to buy is
-// usually the question, and a book already bought cannot be watched being
-// bought. The Level-Up items are what is left for exercising either screen.
+// tester came for. The SP is spent up to `unspent_stage`, whose book and every
+// one above it are left alone: the books already behind the character are
+// noise, and the one they are standing in is usually the question. The
+// Level-Up items are what is left for exercising either screen.
 void GrowTo(GameState& state, int level, const std::vector<Job>& path,
-            SpendSp spend) {
+            int unspent_stage) {
   CharacterInstance& character = state.character;
   int taken = 0;
   while (character.proto().level() < level) {
@@ -104,10 +105,11 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
     // the pool and re-spends it for the new job.
     while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
     }
-    if (spend == SpendSp::kNo) {
-      continue;
-    }
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
+      int stage = StageForAdvancement(entry.second.job_advancement());
+      if (unspent_stage != kSpendEveryStage && stage >= unspent_stage) {
+        continue;
+      }
       while (character.LearnSkill(entry.second)) {
       }
     }
@@ -117,14 +119,15 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
 // Climbs to the top of `advancement`: the job it names, at the last level
 // before the next advancement would be offered, having taken every earlier
 // advancement on the way to it.
-void GrowToJob(GameState& state, JobAdvancement advancement, SpendSp spend) {
+void GrowToJob(GameState& state, JobAdvancement advancement,
+               int unspent_stage) {
   Job job = JobForAdvancement(advancement);
   int stage = StageForAdvancement(advancement);
   std::vector<Job> path;
   for (int i = 1; i <= stage; ++i) {
     path.push_back(JobForAdvancement(AdvancementForJobStage(job, i)));
   }
-  GrowTo(state, NextAdvancementLevel(stage), path, spend);
+  GrowTo(state, NextAdvancementLevel(stage), path, unspent_stage);
   // The job's own gear, worn rather than carried, since there is no
   // advancement moment here to put it on at. Each piece is equipped from the
   // row it lands on, so a Rogue's three reach three slots -- and whatever a
@@ -213,8 +216,11 @@ void SeedTest(GameState& state, JobAdvancement chosen) {
     GiveEquip(state, "machete");
   }
   GiveUpgradeItems(state);
+  // Only the book the chosen job is standing in is left unspent. The ones
+  // behind them are not what --job was asked for, and leaving those unbought
+  // would put the tester through two allocation screens to reach one.
   GrowToJob(state, chose_job ? chosen : kTestAdvancement,
-            chose_job ? SpendSp::kNo : SpendSp::kYes);
+            chose_job ? StageForAdvancement(chosen) : kSpendEveryStage);
 
   // The weakest hunting ground there is; the tester picks anywhere else from
   // the map select.
