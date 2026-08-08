@@ -1,0 +1,22 @@
+# The same staircase as every other Final Attack: chance 2*L%, damage a single
+# hit of (100 + 5*floor(L/2))%, taken on the even step below.
+name: "Final Attack: Crossbow"
+description:
+  "A chance for every shot to be followed by a second bolt at whatever is "
+  "in front of you. Needs a crossbow in hand."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
+max_level: 20
+required_equip_type: EQUIP_TYPE_CROSSBOW
+required_skill {
+  skill_name: "Crossbow Mastery"
+  level: 3
+}
+base {
+  final_attack_chance: 0.02
+  final_attack_pct: 1.0
+}
+per_level {
+  final_attack_chance: 0.02
+  final_attack_pct: 0.025
+}

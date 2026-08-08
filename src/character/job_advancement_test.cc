@@ -85,6 +85,7 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
           // The archer's branch says the same thing about a bow: the Hunter's
           // whole book lapses without one.
           {JOB_HUNTER, {EQUIP_TYPE_BOW}},
+          {JOB_CROSSBOWMAN, {EQUIP_TYPE_CROSSBOW}},
       };
   return *kTypes;
 }

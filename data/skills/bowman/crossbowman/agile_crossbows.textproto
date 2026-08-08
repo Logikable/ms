@@ -1,0 +1,16 @@
+# Agile Bows for the other hand: GMS's 2 DEX a level over 10 spread over 5 at
+# 4 apiece, ending in the same place for half the points.
+name: "Agile Crossbows"
+description: "Loosens your aim, quickening your shots and building DEX."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
+max_level: 5
+required_skill {
+  skill_name: "Crossbow Mastery"
+  level: 5
+}
+base {
+  dex: 4
+  attack_speed: 2
+}
+per_level { dex: 4 }

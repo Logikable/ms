@@ -311,6 +311,8 @@ std::string JobName(Job job) {
       return "Spearman";
     case JOB_HUNTER:
       return "Hunter";
+    case JOB_CROSSBOWMAN:
+      return "Crossbowman";
     default:
       return "Unknown";
   }

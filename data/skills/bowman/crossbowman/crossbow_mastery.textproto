@@ -1,0 +1,20 @@
+# Carries final damage where the Hunter's Bow Mastery is bare mastery. That is
+# the trade between the two branches: the Crossbowman's damage is steady and
+# multiplies everything, the Hunter's arrives as a second Final Attack.
+name: "Crossbow Mastery"
+description:
+  "Trains your aim until your bolts land where you mean them to, narrowing "
+  "your weakest shots toward your best and hardening every one of them. "
+  "Needs a crossbow in hand."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
+max_level: 20
+required_equip_type: EQUIP_TYPE_CROSSBOW
+base {
+  mastery: 0.12
+  final_dmg_pct: 0.01
+}
+per_level {
+  mastery: 0.02
+  final_dmg_pct: 0.01
+}

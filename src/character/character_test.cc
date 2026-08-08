@@ -438,9 +438,9 @@ TEST(JobChoicesTest, ASwordmanIsOfferedEveryWarriorBranch) {
             (std::vector<Job>{JOB_FIGHTER, JOB_PAGE, JOB_SPEARMAN}));
 }
 
-// Only the Hunter so far -- the Crossbowman's book is not written.
-TEST(JobChoicesTest, AnArcherIsOfferedTheBranchesThatHaveBooks) {
-  EXPECT_EQ(JobChoicesForStage(JOB_ARCHER, 2), (std::vector<Job>{JOB_HUNTER}));
+TEST(JobChoicesTest, AnArcherIsOfferedBothBowmanBranches) {
+  EXPECT_EQ(JobChoicesForStage(JOB_ARCHER, 2),
+            (std::vector<Job>{JOB_HUNTER, JOB_CROSSBOWMAN}));
 }
 
 TEST(JobChoicesTest, TheOtherFirstJobsHaveNoSecondJobYet) {

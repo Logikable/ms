@@ -133,6 +133,7 @@ EquipJobCategory JobToCategory(Job job) {
       return EQUIP_JOB_CATEGORY_WARRIOR;
     case JOB_ARCHER:
     case JOB_HUNTER:
+    case JOB_CROSSBOWMAN:
       return EQUIP_JOB_CATEGORY_BOWMAN;
     case JOB_MAGICIAN:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
@@ -205,6 +206,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_SWORDMAN;
       case JOB_ARCHER:
       case JOB_HUNTER:
+      case JOB_CROSSBOWMAN:
         return JOB_ADVANCEMENT_ARCHER;
       case JOB_MAGICIAN:
         return JOB_ADVANCEMENT_MAGICIAN;
@@ -224,6 +226,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_SPEARMAN;
       case JOB_HUNTER:
         return JOB_ADVANCEMENT_HUNTER;
+      case JOB_CROSSBOWMAN:
+        return JOB_ADVANCEMENT_CROSSBOWMAN;
       default:
         break;
     }
@@ -241,6 +245,7 @@ StatField PrimaryStatField(Job job) {
       return STAT_FIELD_STR;
     case JOB_ARCHER:
     case JOB_HUNTER:
+    case JOB_CROSSBOWMAN:
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
       return STAT_FIELD_INT;
@@ -264,7 +269,7 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
     return {JOB_FIGHTER, JOB_PAGE, JOB_SPEARMAN};
   }
   if (stage == 2 && job == JOB_ARCHER) {
-    return {JOB_HUNTER};
+    return {JOB_HUNTER, JOB_CROSSBOWMAN};
   }
   return {};
 }
@@ -280,6 +285,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_PAGE:
     case JOB_ADVANCEMENT_SPEARMAN:
     case JOB_ADVANCEMENT_HUNTER:
+    case JOB_ADVANCEMENT_CROSSBOWMAN:
       return 2;
     default:
       return 0;
