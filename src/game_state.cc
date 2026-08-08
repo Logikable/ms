@@ -42,9 +42,16 @@ Character MakeBaseBeginnerProto() {
 constexpr int kTestLevelUpItems = 199;
 
 // Where the workbench's character stands: the end of 2nd job, holding the
-// whole of what this game has to hand out.
+// whole of what this game has to hand out. Flip the path to look at another
+// branch's screens -- and move kTestWeapon with it, since the workbench climbs
+// the levels itself and so never collects the starter gear a real advancement
+// hands over.
 constexpr int kTestLevel = 60;
-constexpr Job kTestJobPath[] = {JOB_SWORDMAN, JOB_PAGE};
+constexpr Job kTestJobPath[] = {JOB_SWORDMAN, JOB_FIGHTER};
+// StarterEquipsFor(the last job above). Named here rather than asked for,
+// because job_advancement is built on top of GameState and cannot be called
+// from underneath it.
+constexpr const char* kTestWeapon = "blue_axe";
 
 // Puts a copy of the named equip in the bag, or does nothing if the catalog
 // has no such entry. Lets a GameState be built for a test without the game's
@@ -130,11 +137,10 @@ void SeedTest(GameState& state) {
 
   GiveEquip(state, "long_sword");
   GiveEquip(state, "machete");
-  // The weapon the workbench's job is built around. It climbs the levels
-  // itself rather than advancing properly, so it never collects the starter
-  // gear -- and a Page holding a sword loses their mastery, their swing speed
-  // and their Final Attack with nothing on screen to say why.
-  GiveEquip(state, "mithril_maul");
+  // The weapon the workbench's job is built around: a character holding
+  // anything else loses their mastery, their swing speed and their Final
+  // Attack with nothing on screen to say why.
+  GiveEquip(state, kTestWeapon);
 
   std::map<std::string, EquipPrototype>::const_iterator fafnir =
       state.equips.find("fafnir_mistilteinn");
