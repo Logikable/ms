@@ -1,6 +1,7 @@
 #include "src/frontend/panels/character_panel.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <functional>
 #include <map>
 #include <set>
@@ -18,6 +19,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -52,19 +54,52 @@ constexpr AllocStat kAllocStats[] = {
 };
 constexpr int kNumAllocStats = sizeof(kAllocStats) / sizeof(kAllocStats[0]);
 
-// "STR: 13" with an optional " (base+bonus)" suffix when gear contributes.
-std::string StatText(const std::string& label, int base, int bonus) {
-  std::string s = label + ": " + std::to_string(base + bonus);
-  if (bonus > 0) {
-    s += " (" + std::to_string(base) + "+" + std::to_string(bonus) + ")";
-  }
-  return s;
+// Every stats row is these four columns, so the labels read down one edge and
+// the numbers down the other: gutter, label, right-aligned value, and the
+// right-hand column the [+] and the AP counter live in.
+constexpr int kLabelWidth = 16;
+constexpr int kValueWidth = 9;
+constexpr int kSuffixWidth = kContentWidth - 1 - kLabelWidth - kValueWidth;
+
+// A row with nothing on its right-hand end.
+ftxui::Element StatRow(const std::string& label, const std::string& value) {
+  return ftxui::text(" " + PadRight(label, kLabelWidth) +
+                     PadLeft(value, kValueWidth) +
+                     std::string(kSuffixWidth, ' '));
 }
 
-// A non-allocatable display row: one-space border gutter, then "label: value".
-ftxui::Element DisplayRow(const std::string& label, int value) {
-  return ftxui::text(
-      PadRight(" " + label + ": " + std::to_string(value), kContentWidth));
+// "STR", with " (base+bonus)" when gear or a skill contributes. The breakdown
+// rides beside the label rather than beside the number, which is what keeps
+// every total in the one column.
+std::string StatLabel(const std::string& label, int base, int bonus) {
+  if (bonus <= 0) {
+    return label;
+  }
+  return label + " (" + std::to_string(base) + "+" + std::to_string(bonus) +
+         ")";
+}
+
+// A fraction as a percentage, two decimals: 0.055 reads "5.50%".
+std::string Percent(double fraction) {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%.2f%%", fraction * 100.0);
+  return buf;
+}
+
+// The stage the character swings at: the weapon's own plus whatever the
+// passives add, capped at the fastest tier the game models. A dash where there
+// is no swing to name -- nothing in hand, or a weapon that names no stage.
+std::string AttackSpeedText(const std::map<EquipSlot, EquipInstance>& equipped,
+                            int bonus) {
+  std::map<EquipSlot, EquipInstance>::const_iterator it =
+      equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
+  if (it == equipped.end() ||
+      it->second.prototype().attack_speed() == ATTACK_SPEED_UNSPECIFIED) {
+    return "-";
+  }
+  int stage = std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
+                       it->second.prototype().attack_speed() + bonus);
+  return AttackSpeedName(static_cast<AttackSpeed>(stage));
 }
 
 // The skill row's columns. Every one is a fixed width, so the row comes to
@@ -176,7 +211,6 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
                                         int bonus, int index,
                                         bool content_focused) const {
   bool selected = content_focused && stat_sel_ == index;
-  std::string text = " " + StatText(label, base, bonus);
   // The cursor outranks the unavailable cue, as on the skill rows: a selected
   // [+] inverts even with no AP to spend, so the cursor stays visible while
   // the player reads down the stats.
@@ -186,9 +220,12 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
   } else if (character_.proto().ap() == 0) {
     plus = plus | ftxui::dim;
   }
+  // The [+] is its own element so it can invert on its own, which leaves the
+  // row to pad the columns up to it by hand.
   return ftxui::hbox({
-      ftxui::text(text),
-      ftxui::filler(),
+      ftxui::text(" " + PadRight(StatLabel(label, base, bonus), kLabelWidth) +
+                  PadLeft(std::to_string(base + bonus), kValueWidth) +
+                  std::string(kSuffixWidth - 4, ' ')),
       plus,
       ftxui::text(" "),
   });
@@ -353,11 +390,9 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
 // The MP display row with the character's unspent AP right-aligned, so the
 // player can see how much there is to spend on the [+] rows below.
 ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
-  return ftxui::hbox({
-      ftxui::text(" MP: " + std::to_string(mp)),
-      ftxui::filler(),
-      ftxui::text(std::to_string(ap) + " AP "),
-  });
+  return ftxui::text(" " + PadRight("MP", kLabelWidth) +
+                     PadLeft(std::to_string(mp), kValueWidth) +
+                     PadLeft(std::to_string(ap) + " AP ", kSuffixWidth));
 }
 
 ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
@@ -371,7 +406,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const EquipStats e = TotalEquipStats(character_, derived);
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(DisplayRow("HP", derived.max_hp));
+  rows.push_back(StatRow("HP", std::to_string(derived.max_hp)));
   rows.push_back(MpRow(derived.max_mp, p.ap()));
   for (int i = 0; i < kNumAllocStats; ++i) {
     std::pair<int, int> v = AllocStatValues(kAllocStats[i].field, a, e);
@@ -379,9 +414,17 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
         AllocRow(kAllocStats[i].label, v.first, v.second, i, content_focused));
   }
   rows.push_back(PanelSeparator(highlighted_));
-  rows.push_back(DisplayRow("ATT", e.attack()));
-  rows.push_back(DisplayRow("MATT", e.magic_attack()));
-  rows.push_back(DisplayRow("DEF", derived.def));
+  rows.push_back(StatRow("Attack", std::to_string(e.attack())));
+  rows.push_back(StatRow("Magic Attack", std::to_string(e.magic_attack())));
+  rows.push_back(StatRow("Damage", Percent(derived.damage_pct)));
+  rows.push_back(StatRow("Final Damage", Percent(derived.final_dmg_pct)));
+  rows.push_back(StatRow("Critical Rate", Percent(derived.crit_rate)));
+  rows.push_back(StatRow("Critical Damage", Percent(derived.crit_dmg)));
+  rows.push_back(StatRow(
+      "Attack Speed",
+      AttackSpeedText(character_.equipped(), derived.attack_speed_bonus)));
+  // Defence closes the block: everything above it is what the character deals.
+  rows.push_back(StatRow("Defense", std::to_string(derived.def)));
   return ftxui::vbox(std::move(rows));
 }
 
