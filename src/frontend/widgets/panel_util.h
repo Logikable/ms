@@ -1,6 +1,7 @@
 #ifndef MS_SRC_FRONTEND_WIDGETS_PANEL_UTIL_H_
 #define MS_SRC_FRONTEND_WIDGETS_PANEL_UTIL_H_
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -10,6 +11,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -115,12 +117,24 @@ std::string JobName(Job job);
 // STAT_FIELD_UNSPECIFIED.
 std::string StatFieldName(StatField field);
 
-// Formats a single item list entry: name (26 cols), slot (10 cols), info
-// (padded to 20 cols), and scroll pass/left/restore counts. Pass -1 for all
-// three scroll values to render "-" (use for non-upgradeable items).
+// How much room an item name gets in a list. Names run past it -- "Fafnir
+// Mistilteinn Trace" does -- so a name is cut to this and slides under it
+// while its row is selected; see ScrollingWindow.
+constexpr int kItemNameWidth = 26;
+
+// Formats a single item list entry: name (kItemNameWidth cols), slot (10
+// cols), info (padded to 20 cols), and scroll pass/left/restore counts. Pass
+// -1 for all three scroll values to render "-" (use for non-upgradeable
+// items).
+//
+// `elapsed` is how long this row has been the selected one, which is what
+// slides a name too long for the column. Zero -- the default, and what every
+// unselected row passes -- shows the head of the name and holds it there.
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
-                            int scroll_left, int scroll_restore);
+                            int scroll_left, int scroll_restore,
+                            std::chrono::steady_clock::duration elapsed =
+                                std::chrono::steady_clock::duration::zero());
 
 // A one-row bar filled to frac (clamped to [0, 1]) in `fill`, `label` centred
 // over it dark-on-filled and light-on-empty. Pass "" for no label.

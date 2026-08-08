@@ -36,6 +36,18 @@ int OffsetAt(int steps, std::chrono::steady_clock::duration elapsed) {
 
 }  // namespace
 
+void SelectionClock::Follow(int key) {
+  if (key == key_) {
+    return;
+  }
+  key_ = key;
+  since_ = std::chrono::steady_clock::now();
+}
+
+std::chrono::steady_clock::duration SelectionClock::Elapsed() const {
+  return std::chrono::steady_clock::now() - since_;
+}
+
 std::string ScrollingWindow(const std::string& text, int width,
                             std::chrono::steady_clock::duration elapsed) {
   if (width <= 0) {

@@ -31,6 +31,7 @@ cc_library(
     hdrs = ["panel_util.h"],
     deps = [
         ":colors",
+        ":marquee",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",

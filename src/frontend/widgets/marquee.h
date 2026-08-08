@@ -39,6 +39,29 @@ constexpr std::chrono::milliseconds kMarqueePause(2000);
 std::string ScrollingWindow(const std::string& text, int width,
                             std::chrono::steady_clock::duration elapsed);
 
+// How long the selection has sat where it is, for feeding ScrollingWindow.
+//
+// A panel that rebuilds its rows every render cannot hook the keypress that
+// moved the cursor -- an ftxui::Menu writes the index behind its back -- so
+// the move is noticed by watching the index instead.
+class SelectionClock {
+ public:
+  // Call once per render with whatever identifies the selected row: its index,
+  // or the index folded together with the page it is on, so that the same row
+  // of another page counts as a different row.
+  void Follow(int key);
+
+  // Zero at the moment the selection arrived, growing from there. Pass it for
+  // the selected row and `duration::zero()` for the rest, which is what shows
+  // every other name from its head.
+  std::chrono::steady_clock::duration Elapsed() const;
+
+ private:
+  int key_ = -1;
+  std::chrono::steady_clock::time_point since_ =
+      std::chrono::steady_clock::now();
+};
+
 }  // namespace ms
 
 #endif  // MS_SRC_FRONTEND_WIDGETS_MARQUEE_H_

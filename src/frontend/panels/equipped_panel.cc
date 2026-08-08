@@ -157,6 +157,9 @@ std::string EquippedPanel::RowInfo(const EquipStats& stats) const {
 }
 
 void EquippedPanel::RebuildRows() {
+  // The menu writes selected_ behind this panel's back, so a move is noticed
+  // here rather than hooked at the keypress.
+  name_clock_.Follow(selected_);
   entries_.clear();
   slots_.clear();
   inactive_.clear();
@@ -169,9 +172,13 @@ void EquippedPanel::RebuildRows() {
     int scroll_left = item.equip_state().remaining_upgrade_slots();
     int scroll_restore =
         item.prototype().upgrade_slots() - scroll_pass - scroll_left;
-    entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
-                                       RowInfo(item.stats()), scroll_pass,
-                                       scroll_left, scroll_restore));
+    // Only the selected row's name slides; the rest sit at their heads.
+    bool selected = static_cast<int>(entries_.size()) == selected_;
+    entries_.push_back(FormatItemEntry(
+        item.prototype().name(), kv.first, RowInfo(item.stats()), scroll_pass,
+        scroll_left, scroll_restore,
+        selected ? name_clock_.Elapsed()
+                 : std::chrono::steady_clock::duration::zero()));
   }
   if (!entries_.empty()) {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);

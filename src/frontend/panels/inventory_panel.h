@@ -26,6 +26,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -135,7 +136,10 @@ class InventoryPanel {
   Zone zone_ = kZoneTabs;  // which focus zone holds the cursor
   // Written by ftxui::reflect on the highlighted row each render.
   ftxui::Box cursor_box_;
-  int selected_ = 0;        // selected row on the Equip tab (ftxui::Menu index)
+  int selected_ = 0;
+  // When the selection last moved, for sliding a long name under its column.
+  SelectionClock
+      name_clock_;          // selected row on the Equip tab (ftxui::Menu index)
   int selected_stack_ = 0;  // selected row on the active Use/Etc tab
   int active_tab_ = 0;      // 0 = Equip, 1 = Use, 2 = Etc
   std::vector<InventoryRowState> rows_;

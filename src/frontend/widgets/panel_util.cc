@@ -339,7 +339,8 @@ std::string StatFieldName(StatField field) {
 
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
-                            int scroll_left, int scroll_restore) {
+                            int scroll_left, int scroll_restore,
+                            std::chrono::steady_clock::duration elapsed) {
   std::string padded_info = PadRight(info, kInfoWidth);
   std::string scrolls;
   if (scroll_pass < 0) {
@@ -348,8 +349,9 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
     scrolls = std::to_string(scroll_pass) + "/" + std::to_string(scroll_left) +
               "/" + std::to_string(scroll_restore);
   }
-  return PadRight(name, 26) + "  " + PadRight(FormatSlot(slot), kSlotWidth) +
-         "  " + padded_info + "  " + scrolls;
+  return ScrollingWindow(name, kItemNameWidth, elapsed) + "  " +
+         PadRight(FormatSlot(slot), kSlotWidth) + "  " + padded_info + "  " +
+         scrolls;
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,

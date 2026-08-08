@@ -72,13 +72,18 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
   });
 }
 
+// Room for any row index under one tab, so folding the tab and the row into
+// one key cannot make two different selections collide.
+constexpr int kNameClockTabStride = 4096;
+
 // Renders a Name/Quantity list of `stacks`, one row per stack, with a "> "
 // cursor on the `selected`-th row. An empty tab is just "(empty)", with no
 // column header over it. The cursor is drawn only when `focused`, matching the
 // Equip tab, whose menu takes its cursor from ftxui's own focus state.
 ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
                                int selected, bool focused,
-                               ftxui::Box& cursor_box, bool highlighted) {
+                               ftxui::Box& cursor_box, bool highlighted,
+                               std::chrono::steady_clock::duration elapsed) {
   if (stacks.empty()) {
     // No header over nothing, as on an empty Equip tab. Column names are there
     // to tell rows apart, and there are no rows to tell apart.
@@ -90,8 +95,13 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
     if (focused && i == selected) {
       cursor = "> ";
     }
-    ftxui::Element row = ftxui::text(cursor + PadRight(stacks[i].name(), 26) +
-                                     std::to_string(stacks[i].count()));
+    ftxui::Element row = ftxui::text(
+        cursor +
+        ScrollingWindow(stacks[i].name(), kItemNameWidth,
+                        i == selected
+                            ? elapsed
+                            : std::chrono::steady_clock::duration::zero()) +
+        std::to_string(stacks[i].count()));
     if (i == selected) {
       // What the frame scrolls to. These rows are plain text rather than an
       // ftxui::Menu, so nothing else marks the cursor and the list would
@@ -380,8 +390,12 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
       scroll_restore = proto.upgrade_slots() - scroll_pass - scroll_left;
     }
     InventoryRowState row;
-    row.label = FormatItemEntry(item.name(), proto.equip_slot(), info,
-                                scroll_pass, scroll_left, scroll_restore);
+    // Only the selected row's name slides; the rest sit at their heads.
+    row.label = FormatItemEntry(
+        item.name(), proto.equip_slot(), info, scroll_pass, scroll_left,
+        scroll_restore,
+        i == selected_ ? name_clock_.Elapsed()
+                       : std::chrono::steady_clock::duration::zero());
     row.is_trace = character_.inventory().equip_instance(i) == nullptr;
     row.level_ok = character_.MeetsLevel(proto);
     row.job_ok = character_.MeetsJob(proto);
@@ -414,6 +428,10 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     zone_ = kZoneTabs;
   }
   bool focused = panel_focus_ == kInventoryPanel;
+  // The tab rides in the key beside the row, so the same row of another tab
+  // counts as a different name and starts from its own head.
+  name_clock_.Follow(active_tab_ * kNameClockTabStride +
+                     (active_tab_ == kEquipTab ? selected_ : selected_stack_));
   ftxui::Element body;
   if (active_tab_ == kShopTab) {
     // The shop is a screen of its own, so where the other tabs list what the
@@ -432,7 +450,7 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     // competes with the white tab-bar highlight.
     body =
         RenderStackList(stacks, selected_stack_, focused && zone_ == kZoneList,
-                        cursor_box_, highlighted_);
+                        cursor_box_, highlighted_, name_clock_.Elapsed());
   } else {
     body = RenderEquipList(menu);
   }

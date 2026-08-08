@@ -19,6 +19,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
@@ -72,6 +73,8 @@ class EquippedPanel {
   CharacterInstance& character_;
   int& panel_focus_;
   int selected_ = 0;
+  // When the selection last moved, for sliding a long name under its column.
+  SelectionClock name_clock_;
   bool highlighted_ = false;
   std::vector<std::string> entries_;
   std::vector<EquipSlot> slots_;

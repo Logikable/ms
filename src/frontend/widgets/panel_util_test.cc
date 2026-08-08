@@ -149,6 +149,34 @@ TEST(FormatItemEntryTest, InfoColumnPaddedForAlignment) {
   EXPECT_EQ(short_entry.find("3/2/4"), long_entry.find("3/2/4"));
 }
 
+// An item name wider than its column is cut, and slides under the column once
+// its row has been selected long enough -- the same treatment a skill name
+// gets, through the same ScrollingWindow. Nothing shipped is this long yet;
+// the wiring is what is being pinned.
+TEST(FormatItemEntryTest, ALongNameIsCutAndThenSlides) {
+  const char* kWordy = "Fafnir Mistilteinn Trace Of Old";  // 31 columns
+  std::string still =
+      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 2, 4);
+  EXPECT_EQ(still.substr(0, kItemNameWidth), "Fafnir Mistilteinn Trace O");
+
+  std::string slid =
+      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 2, 4,
+                      kMarqueePause + kMarqueeStep);
+  EXPECT_EQ(slid.substr(0, kItemNameWidth), "fnir Mistilteinn Trace Of ");
+  // The columns after the name do not move with it.
+  EXPECT_EQ(still.substr(kItemNameWidth), slid.substr(kItemNameWidth));
+}
+
+// A name that fits is padded to the column and never moves, so a list of them
+// stays a list rather than shuffling under the cursor.
+TEST(FormatItemEntryTest, AShortNameNeverMoves) {
+  std::string still =
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 2, 4);
+  std::string later = FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON,
+                                      "+7 ATT", 3, 2, 4, kMarqueePause * 10);
+  EXPECT_EQ(still, later);
+}
+
 TEST(FormatItemEntryTest, NonUpgradeableItemShowsDash) {
   std::string entry =
       FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", -1, -1, -1);
