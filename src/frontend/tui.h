@@ -21,6 +21,7 @@
 #include "src/frontend/panels/combat_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -123,6 +124,8 @@ class Tui {
   TraceRecoverPanel trace_recover_panel_;
   SellPanel sell_panel_;
   MapSelectPanel map_select_panel_;
+  // Every stat on one screen, reached from the Character panel's last row.
+  AllStatsPanel all_stats_panel_;
   ShopPanel shop_panel_;
   BuyPanel buy_panel_;
 

@@ -82,6 +82,10 @@ int TuiController::skill_inspect_level() const {
   return state_.character.skill_level(skill_inspect_);
 }
 
+void TuiController::OpenAllStats() {
+  screen_ = kAllStats;
+}
+
 void TuiController::OpenJobAdvance(Job job) {
   job_advance_ = job;
   // Opens on Cancel: an advancement cannot be undone, so Enter alone must not
@@ -173,7 +177,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnApAllocEvent(event);
     case kSkillLearn:
       return OnSkillLearnEvent(event);
+    // Both are screens with nothing to do but read them, so they close the
+    // same way.
     case kSkillInspect:
+    case kAllStats:
       return OnSkillInspectEvent(event);
     case kJobAdvance:
       return OnJobAdvanceEvent(event);
@@ -337,7 +344,7 @@ bool TuiController::OnSkillLearnEvent(ftxui::Event event) {
 }
 
 // Reading is all there is to do here, so either key leaves -- the same way the
-// item inspect screen closes.
+// item inspect screen closes. Shared with the All Stats screen.
 bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
   if (IsBack(event) || IsForward(event)) {
     screen_ = kMain;

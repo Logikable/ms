@@ -60,6 +60,8 @@ class TuiController {
   // Open the skill's inspect screen. Copies the skill, as the learn dialog
   // does, so nothing downstream depends on the catalog outliving the screen.
   void OpenSkillInspect(const Skill& skill);
+  // Every stat the character has, on a screen of its own.
+  void OpenAllStats();
   // Float the job-advancement confirmation over the main view. The prompt opens
   // on Cancel: the choice cannot be taken back.
   void OpenJobAdvance(Job job);

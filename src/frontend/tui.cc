@@ -94,6 +94,7 @@ Tui::Tui(GameState& state, std::string save_path)
       scroll_panel_(state.scrolls),
       trace_recover_panel_(state.character),
       map_select_panel_(state),
+      all_stats_panel_(state.character, state.skills),
       shop_panel_(state.character, state.equips),
       controller_(state, equip_panel_, inventory_panel_, scroll_panel_,
                   star_force_panel_, trace_recover_panel_, sell_panel_,
@@ -109,7 +110,8 @@ void Tui::Run() {
       [this](StatField field) { controller_.OpenApAllocate(field); },
       [this](const Skill& skill) { controller_.OpenSkillLearn(skill); },
       [this](Job job) { controller_.OpenJobAdvance(job); },
-      [this](const Skill& skill) { controller_.OpenSkillInspect(skill); });
+      [this](const Skill& skill) { controller_.OpenSkillInspect(skill); },
+      [this]() { controller_.OpenAllStats(); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
 
@@ -377,6 +379,8 @@ ftxui::Element Tui::RenderScreen() {
     case kTraceRecoverResult:
       return ftxui::center(trace_recover_panel_.RenderResult(
           controller_.trace_recovery_result()));
+    case kAllStats:
+      return Standalone(all_stats_panel_.Render());
     case kSkillInspect:
       skill_inspect_panel_.SetSkill(&controller_.skill_inspect_skill(),
                                     controller_.skill_inspect_level());

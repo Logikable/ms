@@ -532,29 +532,53 @@ TEST_F(CharacterPanelTest, UpFromStrReturnsToTheTabBar) {
 
 // --- the tab bar is the top of every tab's ring ---
 
-// Up off the bar lands on the last row of the tab's content, which for Stats is
-// LUK. Enter names the row, which is how the test says where the cursor is.
-TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastStat) {
+// Up off the bar lands on the last row of the tab's content, which for Stats
+// is View All Stats. Enter names the row, which is how the test says where the
+// cursor is standing.
+TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnViewAllStats) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
-  ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
+  bool opened = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [&](StatField f) { field = f; }, {}, {}, {}, [&] { opened = true; });
   comp->OnEvent(ftxui::Event::ArrowUp);
   comp->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(field, STAT_FIELD_LUK);
+  EXPECT_TRUE(opened);
+  EXPECT_EQ(field, STAT_FIELD_UNSPECIFIED);
 }
 
-TEST_F(CharacterPanelTest, DownFromTheLastStatReturnsToTheTabBar) {
+TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheTabBar) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
-  bool fired = false;
-  ftxui::Component comp = panel.MakeComponent([&](StatField) { fired = true; });
-  comp->OnEvent(ftxui::Event::ArrowUp);    // tab bar -> LUK
-  comp->OnEvent(ftxui::Event::ArrowDown);  // LUK -> tab bar
-  // Enter allocates only from a stat row, so its silence is what says the
-  // cursor left one.
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  int opened = 0;
+  ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; },
+                                              {}, {}, {}, [&] { ++opened; });
+  for (int i = 0; i < 4; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR -> ... -> LUK
+  }
   comp->OnEvent(ftxui::Event::Return);
-  EXPECT_FALSE(fired);
+  EXPECT_EQ(field, STAT_FIELD_LUK);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // LUK -> View All Stats
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, 1);
+
+  comp->OnEvent(ftxui::Event::ArrowDown);  // View All Stats -> tab bar
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(opened, 1);
+}
+
+TEST_F(CharacterPanelTest, ViewAllStatsOpensWithNoApToSpend) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterPanel panel(c, panel_focus_);
+  bool opened = false;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, {}, {}, {}, [&] { opened = true; });
+  comp->OnEvent(ftxui::Event::ArrowUp);  // tab bar -> View All Stats
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(opened);
 }
 
 TEST_F(CharacterPanelTest, EnterWithoutApDoesNotAllocate) {

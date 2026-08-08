@@ -44,13 +44,15 @@ class CharacterPanel {
   // What Enter does, by where it lands: on_allocate on a stat's [+] with AP to
   // spend, on_learn on a skill's [+] with SP, on_advance on a job (which
   // should confirm first -- the panel does not advance anything itself), and
-  // on_inspect on a skill's name. Only on_inspect is never gated: a maxed
-  // skill with no SP behind it is still worth reading about.
+  // on_inspect on a skill's name, and on_all_stats on the View All Stats row
+  // below them. Only the last two are never gated: a maxed skill with no SP
+  // behind it is still worth reading about, and so are the stats.
   ftxui::Component MakeComponent(
       std::function<void(StatField)> on_allocate,
       std::function<void(const Skill&)> on_learn = {},
       std::function<void(Job)> on_advance = {},
-      std::function<void(const Skill&)> on_inspect = {});
+      std::function<void(const Skill&)> on_inspect = {},
+      std::function<void()> on_all_stats = {});
 
   // Lights the panel's border gold, to send the player's eye here while a
   // level-up or advancement is being celebrated -- this is where the AP, SP
@@ -90,7 +92,11 @@ class CharacterPanel {
   // stat rows for Stats, the advancement bar and skill rows for Skills.
   bool OnTabsEvent(const ftxui::Event& event);
   bool OnStatsTabEvent(const ftxui::Event& event,
-                       const std::function<void(StatField)>& on_allocate);
+                       const std::function<void(StatField)>& on_allocate,
+                       const std::function<void()>& on_all_stats);
+  // Whether the cursor is on the View All Stats row rather than on a stat.
+  // It is the one stop in the ring that spends nothing.
+  bool OnViewAllStatsRow() const;
   bool OnSkillsTabEvent(const ftxui::Event& event,
                         const std::function<void(const Skill&)>& on_learn,
                         const std::function<void(const Skill&)>& on_inspect);

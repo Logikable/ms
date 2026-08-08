@@ -241,7 +241,8 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
 
 int CharacterPanel::RingStops() const {
   if (ActiveTab() == kTabStats) {
-    return 1 + kNumAllocStats;
+    // The tab bar, the four AP stats, and the View All Stats row under them.
+    return 2 + kNumAllocStats;
   }
   if (ActiveTab() == kTabAdvance) {
     return 1 + static_cast<int>(
@@ -390,6 +391,13 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   for (const StatLine& line : ExtraStatLines(character_, skills_)) {
     rows.push_back(StatRow(line.label, line.value));
   }
+  // Closes the block, because what the panel could not fit is on the screen it
+  // opens -- and the cursor reaches it by walking off the foot of the stats.
+  ftxui::Element view_all = ftxui::text("View All Stats");
+  if (content_focused && stat_sel_ == kNumAllocStats) {
+    view_all = view_all | ftxui::inverted;
+  }
+  rows.push_back(CenteredRow(std::move(view_all)));
   return ftxui::vbox(std::move(rows));
 }
 
@@ -615,18 +623,32 @@ bool CharacterPanel::OnAdvanceTabEvent(
 
 bool CharacterPanel::OnStatsTabEvent(
     const ftxui::Event& event,
-    const std::function<void(StatField)>& on_allocate) {
+    const std::function<void(StatField)>& on_allocate,
+    const std::function<void()>& on_all_stats) {
   // Stat rows: Up/Down walk them, and off either end is the tab bar. Left/Right
   // do nothing here -- they belong to the tab bar.
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  if (IsForward(event) && character_.proto().ap() > 0) {
+  if (!IsForward(event)) {
+    return false;
+  }
+  if (OnViewAllStatsRow()) {
+    if (on_all_stats) {
+      on_all_stats();
+    }
+    return true;
+  }
+  if (character_.proto().ap() > 0) {
     on_allocate(kAllocStats[stat_sel_].field);
     return true;
   }
   return false;
+}
+
+bool CharacterPanel::OnViewAllStatsRow() const {
+  return EffectiveZone() == kZoneStatRows && stat_sel_ == kNumAllocStats;
 }
 
 bool CharacterPanel::OnSkillsTabEvent(
@@ -703,36 +725,38 @@ ftxui::Component CharacterPanel::MakeComponent(
     std::function<void(StatField)> on_allocate,
     std::function<void(const Skill&)> on_learn,
     std::function<void(Job)> on_advance,
-    std::function<void(const Skill&)> on_inspect) {
+    std::function<void(const Skill&)> on_inspect,
+    std::function<void()> on_all_stats) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
-  return ftxui::CatchEvent(renderer, [this, on_allocate, on_learn, on_advance,
-                                      on_inspect](ftxui::Event event) {
-    if (panel_focus_ != kCharPanel) {
-      return false;
-    }
-    // The tab bar can have been rewritten since the last key -- taking the
-    // advancement does exactly that -- so settle where the cursor is standing
-    // before reading the event.
-    if (active_tab_ >= static_cast<int>(VisibleTabs().size())) {
-      active_tab_ = kTabStats;
-    }
-    zone_ = EffectiveZone();
-    // Route by zone: the shared tab bar, else the active tab's content
-    // (only Stats reaches kZoneStatRows, only Skills the skill zones).
-    if (zone_ == kZoneTabs) {
-      return OnTabsEvent(event);
-    }
-    if (ActiveTab() == kTabStats) {
-      return OnStatsTabEvent(event, on_allocate);
-    }
-    if (ActiveTab() == kTabAdvance) {
-      return OnAdvanceTabEvent(event, on_advance);
-    }
-    return OnSkillsTabEvent(event, on_learn, on_inspect);
-  });
+  return ftxui::CatchEvent(
+      renderer, [this, on_allocate, on_learn, on_advance, on_inspect,
+                 on_all_stats](ftxui::Event event) {
+        if (panel_focus_ != kCharPanel) {
+          return false;
+        }
+        // The tab bar can have been rewritten since the last key -- taking the
+        // advancement does exactly that -- so settle where the cursor is
+        // standing before reading the event.
+        if (active_tab_ >= static_cast<int>(VisibleTabs().size())) {
+          active_tab_ = kTabStats;
+        }
+        zone_ = EffectiveZone();
+        // Route by zone: the shared tab bar, else the active tab's content
+        // (only Stats reaches kZoneStatRows, only Skills the skill zones).
+        if (zone_ == kZoneTabs) {
+          return OnTabsEvent(event);
+        }
+        if (ActiveTab() == kTabStats) {
+          return OnStatsTabEvent(event, on_allocate, on_all_stats);
+        }
+        if (ActiveTab() == kTabAdvance) {
+          return OnAdvanceTabEvent(event, on_advance);
+        }
+        return OnSkillsTabEvent(event, on_learn, on_inspect);
+      });
 }
 
 }  // namespace ms

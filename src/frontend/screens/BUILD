@@ -29,6 +29,29 @@ cc_test(
 )
 
 cc_library(
+    name = "all_stats_panel",
+    srcs = ["all_stats_panel.cc"],
+    hdrs = ["all_stats_panel.h"],
+    deps = [
+        "//src/character",
+        "//src/frontend/widgets:panel_util",
+        "//src/frontend/widgets:stat_rows",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "all_stats_panel_test",
+    srcs = ["all_stats_panel_test.cc"],
+    deps = [
+        ":all_stats_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "skill_inspect_panel",
     srcs = ["skill_inspect_panel.cc"],
     hdrs = ["skill_inspect_panel.h"],

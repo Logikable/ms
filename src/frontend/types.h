@@ -19,6 +19,8 @@ enum Screen : int {
   kApAlloc,
   kSkillLearn,
   kSkillInspect,
+  // Every stat on one screen, from the Character panel's last stats row.
+  kAllStats,
   kJobAdvance,
   kStarForce,
   kStarForceResult,

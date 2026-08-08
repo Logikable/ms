@@ -167,6 +167,7 @@ cc_library(
         "//src/frontend/panels:equipped_panel",
         "//src/frontend/panels:hotkeys_panel",
         "//src/frontend/panels:inventory_panel",
+        "//src/frontend/screens:all_stats_panel",
         "//src/frontend/screens:buy_panel",
         "//src/frontend/screens:inspect_panel",
         "//src/frontend/screens:map_select_panel",
