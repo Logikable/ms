@@ -35,6 +35,14 @@ std::string Centered(const std::string& s) {
   return PadRight(std::string(pad, ' ') + s, kContentWidth);
 }
 
+// Combat power spelled out, until it outgrows the row. Six figures is as wide
+// as "Combat Power " and a number both fit inside the panel; past that the
+// label shortens rather than the number being cut.
+std::string CombatPowerText(int power) {
+  std::string value = FormatWithCommas(power);
+  return (power > 999999 ? "CP " : "Combat Power ") + value;
+}
+
 // The outer tab labels, indexed by CharacterPanel::Tab.
 const char* kTabLabels[] = {"Stats", "Skills", "Advance"};
 
@@ -54,29 +62,25 @@ constexpr AllocStat kAllocStats[] = {
 };
 constexpr int kNumAllocStats = sizeof(kAllocStats) / sizeof(kAllocStats[0]);
 
-// Every stats row is these four columns, so the labels read down one edge and
-// the numbers down the other: gutter, label, right-aligned value, and the
-// right-hand column the [+] and the AP counter live in.
-constexpr int kLabelWidth = 16;
-constexpr int kValueWidth = 9;
-constexpr int kSuffixWidth = kContentWidth - 1 - kLabelWidth - kValueWidth;
+// The extra stats read as a label column and a number column hard against the
+// right edge, one gutter shy of the border. The main stats above them keep
+// their own "LABEL: value" shape, since their [+] and their AP counter already
+// own that edge.
+constexpr int kStatLabelWidth = 16;
+constexpr int kStatValueWidth = kContentWidth - 2 - kStatLabelWidth;
 
-// A row with nothing on its right-hand end.
 ftxui::Element StatRow(const std::string& label, const std::string& value) {
-  return ftxui::text(" " + PadRight(label, kLabelWidth) +
-                     PadLeft(value, kValueWidth) +
-                     std::string(kSuffixWidth, ' '));
+  return ftxui::text(" " + PadRight(label, kStatLabelWidth) +
+                     PadLeft(value, kStatValueWidth) + " ");
 }
 
-// "STR", with " (base+bonus)" when gear or a skill contributes. The breakdown
-// rides beside the label rather than beside the number, which is what keeps
-// every total in the one column.
-std::string StatLabel(const std::string& label, int base, int bonus) {
-  if (bonus <= 0) {
-    return label;
+// "STR: 13" with an optional " (base+bonus)" suffix when gear contributes.
+std::string StatText(const std::string& label, int base, int bonus) {
+  std::string s = label + ": " + std::to_string(base + bonus);
+  if (bonus > 0) {
+    s += " (" + std::to_string(base) + "+" + std::to_string(bonus) + ")";
   }
-  return label + " (" + std::to_string(base) + "+" + std::to_string(bonus) +
-         ")";
+  return s;
 }
 
 // A fraction as a percentage, two decimals: 0.055 reads "5.50%".
@@ -220,12 +224,9 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
   } else if (character_.proto().ap() == 0) {
     plus = plus | ftxui::dim;
   }
-  // The [+] is its own element so it can invert on its own, which leaves the
-  // row to pad the columns up to it by hand.
   return ftxui::hbox({
-      ftxui::text(" " + PadRight(StatLabel(label, base, bonus), kLabelWidth) +
-                  PadLeft(std::to_string(base + bonus), kValueWidth) +
-                  std::string(kSuffixWidth - 4, ' ')),
+      ftxui::text(" " + StatText(label, base, bonus)),
+      ftxui::filler(),
       plus,
       ftxui::text(" "),
   });
@@ -390,9 +391,11 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
 // The MP display row with the character's unspent AP right-aligned, so the
 // player can see how much there is to spend on the [+] rows below.
 ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
-  return ftxui::text(" " + PadRight("MP", kLabelWidth) +
-                     PadLeft(std::to_string(mp), kValueWidth) +
-                     PadLeft(std::to_string(ap) + " AP ", kSuffixWidth));
+  return ftxui::hbox({
+      ftxui::text(" MP: " + std::to_string(mp)),
+      ftxui::filler(),
+      ftxui::text(std::to_string(ap) + " AP "),
+  });
 }
 
 ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
@@ -406,7 +409,8 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const EquipStats e = TotalEquipStats(character_, derived);
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(StatRow("HP", std::to_string(derived.max_hp)));
+  rows.push_back(ftxui::text(
+      PadRight(" HP: " + std::to_string(derived.max_hp), kContentWidth)));
   rows.push_back(MpRow(derived.max_mp, p.ap()));
   for (int i = 0; i < kNumAllocStats; ++i) {
     std::pair<int, int> v = AllocStatValues(kAllocStats[i].field, a, e);
@@ -585,7 +589,7 @@ ftxui::Element CharacterPanel::Render() const {
       TotalEquipStats(character_, derived), character_.weapon_type(),
       /*attack_skill=*/nullptr,
       /*attack_level=*/0, PassiveOffenseFor(derived));
-  std::string power = Centered("CP " + FormatWithCommas(CombatPower(offense)));
+  std::string power = Centered(CombatPowerText(CombatPower(offense)));
 
   bool focused = panel_focus_ == kCharPanel;
   Zone zone = EffectiveZone();

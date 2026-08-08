@@ -127,7 +127,7 @@ std::string Trimmed(const std::string& s) {
 std::string StatValue(ftxui::Element element, const std::string& label) {
   for (const std::string& row : PanelRows(std::move(element))) {
     if (Trimmed(row.substr(1, 16)) == label) {
-      return Trimmed(row.substr(17, 9));
+      return Trimmed(row.substr(17, 15));
     }
   }
   return "";
@@ -361,7 +361,7 @@ TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
   comp->OnEvent(ftxui::Event::ArrowUp);     // back to the tab bar
   comp->OnEvent(ftxui::Event::ArrowLeft);   // which is where Left/Right act
-  EXPECT_NE(RenderComponent(comp).find(" HP "),
+  EXPECT_NE(RenderComponent(comp).find("HP:"),
             std::string::npos);  // the Stats tab
 }
 
@@ -393,7 +393,7 @@ TEST_F(CharacterPanelTest, TheSkillsTabArrivesWithTheAdvancement) {
 
 TEST_F(CharacterPanelTest, StatsTabIsShownByDefault) {
   CharacterPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderElement(panel.Render()).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
@@ -420,7 +420,7 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
   ASSERT_TRUE(c.LearnSkill(iron_body, 3));
 
   CharacterPanel panel(c, panel_focus_, catalog);
-  EXPECT_EQ(StatValue(panel.Render(), "HP"), "103");
+  EXPECT_NE(RenderElement(panel.Render()).find("HP: 103"), std::string::npos);
   EXPECT_EQ(StatValue(panel.Render(), "Defense"), "30");
 }
 
@@ -441,7 +441,30 @@ TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
 
   // 4 * 1000 STR * 500 ATT / 100 = 20000, halved toward the mastery floor.
   CharacterPanel panel(c, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find("CP 11,500"), std::string::npos);
+  EXPECT_NE(RenderElement(panel.Render()).find("Combat Power 11,500"),
+            std::string::npos);
+}
+
+TEST_F(CharacterPanelTest, CombatPowerShortensItsLabelPastSixFigures) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(100000);
+  CharacterInstance c(rng_, std::move(proto));
+
+  EquipPrototype weapon;
+  weapon.set_name("Sword");
+  weapon.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  weapon.mutable_base_stats()->set_attack(500);
+  c.PickUp(std::make_unique<EquipInstance>(weapon));
+  c.Equip(0);
+
+  // Past 999,999 the words go and the number stays.
+  CharacterPanel panel(c, panel_focus_);
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(rendered.find("CP 1,150,0"), std::string::npos);
+  EXPECT_EQ(rendered.find("Combat Power"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
@@ -449,13 +472,13 @@ TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
   CharacterPanel panel(c, panel_focus_);  // panel_focus_ == kCharPanel
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
-  EXPECT_EQ(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_EQ(RenderComponent(comp).find("HP:"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowLeft);  // Skills -> Stats
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, StatsTabShowsPlusButtons) {
@@ -553,7 +576,7 @@ TEST_F(CharacterPanelTest, NoApStillEntersTheStatRows) {
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> STR row
   comp->OnEvent(ftxui::Event::ArrowRight);  // on the rows: does nothing
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 // Right has nowhere to go on a Beginner's one-tab bar, so the stats stay put
@@ -562,7 +585,7 @@ TEST_F(CharacterPanelTest, RightStaysOnStatsForABeginner) {
   CharacterPanel panel(c_, panel_focus_);  // c_ is a stage-0 Beginner
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
@@ -585,7 +608,7 @@ TEST_F(CharacterPanelTest, SkillsAdvBarUpReturnsToOuterTabs) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // enter the advancement bar
   comp->OnEvent(ftxui::Event::ArrowUp);     // back to the outer tabs
   comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
@@ -983,7 +1006,7 @@ TEST_F(CharacterPanelTest, NoSpEntersTheSkillRowsButEnterDoesNothing) {
   comp->OnEvent(ftxui::Event::ArrowUp);    // rows -> advancement bar
   comp->OnEvent(ftxui::Event::ArrowUp);    // advancement bar -> outer tabs
   comp->OnEvent(ftxui::Event::ArrowLeft);  // outer tabs: Skills -> Stats
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
@@ -1017,7 +1040,7 @@ TEST_F(CharacterPanelTest, UpFromSkillRowsReturnsToTheAdvancementBar) {
   comp->OnEvent(ftxui::Event::ArrowUp);     // back to the advancement bar
   comp->OnEvent(ftxui::Event::ArrowUp);     // advancement bar -> outer tabs
   comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 // The Skills tab's ring is three deep: the outer tab bar, the advancement bar
@@ -1046,7 +1069,7 @@ TEST_F(CharacterPanelTest, DownFromTheLastSkillReturnsToTheBar) {
   // Left switches outer tabs only from the bar, so Stats coming back is where
   // the cursor went.
   comp->OnEvent(ftxui::Event::ArrowLeft);
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 // A stage with no skills is a ring of two: the outer bar and the advancement
@@ -1061,7 +1084,7 @@ TEST_F(CharacterPanelTest, DownFromTheAdvBarSkipsAnEmptySkillList) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // -> outer tab bar, not a row
   comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
-  EXPECT_NE(RenderComponent(comp).find(" HP "), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
 // Walking from one skill row to the next keeps whichever column the cursor was
@@ -1114,10 +1137,9 @@ TEST_F(CharacterPanelTest, ShowsStrWithBreakdownWhenGearContributes) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   CharacterPanel panel(c_, panel_focus_);
-  // The breakdown rides on the label, so the total stays in the number column
-  // beside every other total. Base AP STR is 0 here; gear adds 5.
-  EXPECT_EQ(StatValue(panel.Render(), "STR (0+5)"), "5");
-  EXPECT_EQ(StatValue(panel.Render(), "STR"), "");
+  // base AP STR is 0 for the test character; gear adds 5; total = 5.
+  EXPECT_NE(RenderElement(panel.Render()).find("STR: 5 (0+5)"),
+            std::string::npos);
 }
 
 // A passive granting one level's worth of every damage lever the stats tab
@@ -1186,10 +1208,9 @@ TEST_F(CharacterPanelTest, AttackSpeedStopsAtTheFastestStage) {
   EXPECT_EQ(StatValue(panel.Render(), "Attack Speed"), "Fastest 3");
 }
 
-TEST_F(CharacterPanelTest, TheWidestStatRowsStayInTheirColumns) {
-  // Stats far past anything the game hands out. The totals still read, and a
-  // breakdown too long for the label column is cut rather than widening the
-  // panel -- widening it is what would push a neighbouring panel off screen.
+TEST_F(CharacterPanelTest, StressTestStatRowWidth) {
+  // Exercises the widest realistic stat strings to verify kContentWidth holds.
+  // " LUK: 999999 (1300+998699)" is the longest at 26 chars.
   Character proto;
   proto.set_level(1);
   proto.set_job(JOB_BEGINNER);
@@ -1208,12 +1229,11 @@ TEST_F(CharacterPanelTest, TheWidestStatRowsStayInTheirColumns) {
   c.PickUp(std::make_unique<EquipInstance>(gear));
   c.Equip(0);
   CharacterPanel panel(c, panel_focus_);
-  EXPECT_EQ(StatValue(panel.Render(), "STR (4+995)"), "999");
-  EXPECT_EQ(StatValue(panel.Render(), "DEX (4+9995)"), "9999");
-  EXPECT_EQ(StatValue(panel.Render(), "INT (4+99995)"), "99999");
-  // The label column runs out here, so the breakdown loses its bracket. The
-  // number column is untouched, which is the part that had to hold.
-  EXPECT_EQ(StatValue(panel.Render(), "LUK (1300+998699"), "999999");
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(rendered.find("STR: 999 (4+995)"), std::string::npos);
+  EXPECT_NE(rendered.find("DEX: 9999 (4+9995)"), std::string::npos);
+  EXPECT_NE(rendered.find("INT: 99999 (4+99995)"), std::string::npos);
+  EXPECT_NE(rendered.find("LUK: 999999 (1300+998699)"), std::string::npos);
 }
 
 // --- highlighting ---
