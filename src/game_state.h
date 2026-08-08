@@ -43,13 +43,18 @@ struct GameState {
   // Constructs the catalogs and puts the character, bag and map into the
   // state `mode` begins from. Anything the catalogs do not name is skipped, so
   // a state built for a test need not carry the game's data files.
+  //
+  // `test_job` is --job, and applies to kTest alone: the advancement to start
+  // at the top of, with that job's SP left unspent for the tester. Unset takes
+  // the workbench's own job with its whole book already bought.
   GameState(std::map<std::string, EquipPrototype> equips,
             std::map<std::string, Scroll> scrolls,
             std::map<std::string, ItemPrototype> items,
             std::map<std::string, Mob> mobs,
             std::map<std::string, MapData> maps,
             std::map<std::string, Skill> skills = {},
-            GameMode mode = GameMode::kPlay);
+            GameMode mode = GameMode::kPlay,
+            JobAdvancement test_job = JOB_ADVANCEMENT_UNSPECIFIED);
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 

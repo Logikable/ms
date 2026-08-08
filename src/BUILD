@@ -85,6 +85,7 @@ _MAIN_DEPS = [
     "//src/frontend:tui",
     "//src/item",
     "//src/item:equip_instance",
+    "//src/protos:character_proto_cc",
     "//src/protos:equip_proto_cc",
     "//src/protos:item_proto_cc",
     "//src/protos:map_proto_cc",
@@ -93,6 +94,8 @@ _MAIN_DEPS = [
     "//src/protos:skill_proto_cc",
     "@abseil-cpp//absl/flags:flag",
     "@abseil-cpp//absl/flags:parse",
+    "@abseil-cpp//absl/log",
+    "@abseil-cpp//absl/strings",
 ]
 
 cc_binary(

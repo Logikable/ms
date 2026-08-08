@@ -41,17 +41,31 @@ Character MakeBaseBeginnerProto() {
 // earning AP and SP past the cap, since LevelUp is not bounded by it.
 constexpr int kTestLevelUpItems = 199;
 
-// Where the workbench's character stands: the end of 2nd job, holding the
-// whole of what this game has to hand out. Flip the path to look at another
-// branch's screens -- and move kTestWeapon with it, since the workbench climbs
-// the levels itself and so never collects the starter gear a real advancement
-// hands over.
-constexpr int kTestLevel = 60;
-constexpr Job kTestJobPath[] = {JOB_SWORDMAN, JOB_FIGHTER};
-// StarterEquipsFor(the last job above). Named here rather than asked for,
-// because job_advancement is built on top of GameState and cannot be called
-// from underneath it.
-constexpr const char* kTestWeapon = "blue_axe";
+// Where the workbench's character stands when --job says nothing: the end of
+// 2nd job, holding the whole of what this game has to hand out.
+constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_FIGHTER;
+
+// What the workbench puts in a job's hand. A 2nd job advances empty-handed --
+// it is meant to buy its own weapon -- but the workbench skips the shop as it
+// skips the grinding, and half a 2nd-job book lapses without the right weapon
+// in hand. So the workbench names one itself, the tier weapon for the level it
+// starts its character at. A 1st job simply gets what advancing would give.
+std::vector<std::string> WorkbenchWeaponsFor(Job job) {
+  switch (job) {
+    case JOB_FIGHTER:
+      return {"blue_axe"};
+    case JOB_PAGE:
+      return {"mithril_maul"};
+    case JOB_SPEARMAN:
+      return {"forked_spear"};
+    case JOB_HUNTER:
+      return {"ryden"};
+    case JOB_CROSSBOWMAN:
+      return {"eagle_crow"};
+    default:
+      return StarterEquipsFor(job);
+  }
+}
 
 // Puts a copy of the named equip in the bag, or does nothing if the catalog
 // has no such entry. Lets a GameState be built for a test without the game's
@@ -65,30 +79,61 @@ void GiveEquip(GameState& state, const std::string& name) {
   state.character.PickUp(std::make_unique<EquipInstance>(it->second));
 }
 
-// Climbs to the end of 2nd job the way a player gets there, so nothing the
-// workbench holds is out of reach: thirty hours of grinding, handed over.
+// Whether the climb spends the SP it earns along with the AP.
+enum class SpendSp { kNo, kYes };
+
+// Climbs to `level` the way a player gets there, taking each advancement in
+// `path` as it is offered, so nothing the workbench holds is out of reach:
+// thirty hours of grinding, handed over.
 //
-// Everything earned is spent, AP into the primary stat and SP into whatever it
-// will buy, because a level 60 with an unspent pool would still be a hundred
-// keypresses from seeing any of 2nd job. The Level-Up items are what is left
-// for exercising the allocation screens.
-void GrowToSecondJob(GameState& state) {
+// The AP is always spent, into the primary stat, because a character with a
+// hundred points in the pool is a hundred keypresses from the screen the
+// tester came for. The SP is spent only when asked: which skills to buy is
+// usually the question, and a book already bought cannot be watched being
+// bought. The Level-Up items are what is left for exercising either screen.
+void GrowTo(GameState& state, int level, const std::vector<Job>& path,
+            SpendSp spend) {
   CharacterInstance& character = state.character;
   int taken = 0;
-  while (character.proto().level() < kTestLevel) {
+  while (character.proto().level() < level) {
     character.LevelUp();
-    if (character.CanAdvanceJob() &&
-        taken <
-            static_cast<int>(sizeof(kTestJobPath) / sizeof(kTestJobPath[0]))) {
-      character.AdvanceJob(kTestJobPath[taken++]);
+    if (character.CanAdvanceJob() && taken < static_cast<int>(path.size())) {
+      character.AdvanceJob(path[taken++]);
     }
     // After the advancement, not before: it puts every allocated point back in
     // the pool and re-spends it for the new job.
     while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
     }
+    if (spend == SpendSp::kNo) {
+      continue;
+    }
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
       while (character.LearnSkill(entry.second)) {
       }
+    }
+  }
+}
+
+// Climbs to the top of `advancement`: the job it names, at the last level
+// before the next advancement would be offered, having taken every earlier
+// advancement on the way to it.
+void GrowToJob(GameState& state, JobAdvancement advancement, SpendSp spend) {
+  Job job = JobForAdvancement(advancement);
+  int stage = StageForAdvancement(advancement);
+  std::vector<Job> path;
+  for (int i = 1; i <= stage; ++i) {
+    path.push_back(JobForAdvancement(AdvancementForJobStage(job, i)));
+  }
+  GrowTo(state, NextAdvancementLevel(stage), path, spend);
+  // The job's own gear, worn rather than carried, since there is no
+  // advancement moment here to put it on at. Each piece is equipped from the
+  // row it lands on, so a Rogue's three reach three slots -- and whatever a
+  // later one displaces goes back to the bag for the tester to swap in.
+  for (const std::string& name : WorkbenchWeaponsFor(job)) {
+    int row = static_cast<int>(state.character.inventory().size());
+    GiveEquip(state, name);
+    if (static_cast<int>(state.character.inventory().size()) > row) {
+      state.character.Equip(row);
     }
   }
 }
@@ -103,15 +148,42 @@ void SeedPlay(GameState& state) {
   state.current_map = kHomeMap;
 }
 
-// The workbench. Everything here exists to reach a screen without playing up
-// to it, so the items are the awkward ones: a fully scrolled weapon at high
-// star force, a trace to recover, and the base item recovering it consumes.
 // What the workbench multiplies combat EXP by. High enough that the early
 // levels go by while the tester watches, which is what makes the level-gated
 // features reachable without farming for them.
 constexpr int kTestExpMultiplier = 5;
 
-void SeedTest(GameState& state) {
+// The awkward items, for the upgrade screens: a fully scrolled weapon at high
+// star force, a trace to recover, and the base item recovering it consumes.
+void GiveUpgradeItems(GameState& state) {
+  std::map<std::string, EquipPrototype>::const_iterator fafnir =
+      state.equips.find("fafnir_mistilteinn");
+  if (fafnir == state.equips.end()) {
+    return;
+  }
+  Equip scrolled;
+  scrolled.set_equip_name("Fafnir Mistilteinn");
+  scrolled.set_remaining_upgrade_slots(0);
+  scrolled.set_scroll_successes(8);
+  scrolled.set_stars(20);
+  scrolled.mutable_scroll_stats()->set_attack(40);
+  scrolled.mutable_scroll_stats()->set_str(16);
+  state.character.PickUp(
+      std::make_unique<EquipInstance>(fafnir->second, scrolled));
+
+  // The same at 22 stars but destroyed: the source trace for recovery.
+  Equip trace = scrolled;
+  trace.set_stars(22);
+  state.character.PickUp(std::make_unique<EquipTrace>(fafnir->second, trace));
+
+  // Fresh Fafnir -- the base item that recovering the trace consumes.
+  state.character.PickUp(std::make_unique<EquipInstance>(fafnir->second));
+}
+
+// The workbench. Everything here exists to reach a screen without playing up
+// to it. `chosen` is --job: unset takes kTestAdvancement and buys its whole
+// book, so the default workbench is finished rather than half-built.
+void SeedTest(GameState& state, JobAdvancement chosen) {
   state.exp_multiplier = kTestExpMultiplier;
 
   // Enough to buy anything the shop stocks, several times over, so the buying
@@ -126,49 +198,23 @@ void SeedTest(GameState& state) {
     state.character.AddStackable(level_up->second, kTestLevelUpItems);
   }
 
-  // Worn, not carried, and before anything else goes in the bag. A level 1
-  // character has neither the equipped panel nor the bag yet, so a workbench
-  // that only put a weapon in the bag could never swing one -- and without a
-  // weapon there is no combat, no EXP, and no way off level 1 at all.
-  GiveEquip(state, "sword");
-  if (!state.character.inventory().empty()) {
-    state.character.Equip(0);
+  bool chose_job = chosen != JOB_ADVANCEMENT_UNSPECIFIED;
+  if (!chose_job) {
+    // The rungs below the default job's weapon, to swap between on the equip
+    // screens. A job named by --job brings only its own. The first is worn
+    // straight away: it is what the character holds until the climb below
+    // hands them their job's weapon, and a catalog without that weapon -- a
+    // test's, say -- leaves them holding this rather than nothing.
+    GiveEquip(state, "sword");
+    if (!state.character.inventory().empty()) {
+      state.character.Equip(0);
+    }
+    GiveEquip(state, "long_sword");
+    GiveEquip(state, "machete");
   }
-
-  GiveEquip(state, "long_sword");
-  GiveEquip(state, "machete");
-  // The weapon the workbench's job is built around: a character holding
-  // anything else loses their mastery, their swing speed and their Final
-  // Attack with nothing on screen to say why.
-  GiveEquip(state, kTestWeapon);
-
-  std::map<std::string, EquipPrototype>::const_iterator fafnir =
-      state.equips.find("fafnir_mistilteinn");
-  if (fafnir != state.equips.end()) {
-    // Fully scrolled Fafnir at 20 stars -- high star force on a finished
-    // endgame weapon.
-    Equip scrolled;
-    scrolled.set_equip_name("Fafnir Mistilteinn");
-    scrolled.set_remaining_upgrade_slots(0);
-    scrolled.set_scroll_successes(8);
-    scrolled.set_stars(20);
-    scrolled.mutable_scroll_stats()->set_attack(40);
-    scrolled.mutable_scroll_stats()->set_str(16);
-    state.character.PickUp(
-        std::make_unique<EquipInstance>(fafnir->second, scrolled));
-
-    // The same at 22 stars but destroyed: the source trace for recovery.
-    Equip trace = scrolled;
-    trace.set_stars(22);
-    state.character.PickUp(std::make_unique<EquipTrace>(fafnir->second, trace));
-
-    // Fresh Fafnir -- the base item that recovering the trace consumes.
-    state.character.PickUp(std::make_unique<EquipInstance>(fafnir->second));
-  }
-
-  // Last, so the advancement's stat reset lands on a character already
-  // holding their gear rather than tearing through it afterwards.
-  GrowToSecondJob(state);
+  GiveUpgradeItems(state);
+  GrowToJob(state, chose_job ? chosen : kTestAdvancement,
+            chose_job ? SpendSp::kNo : SpendSp::kYes);
 
   // The weakest hunting ground there is; the tester picks anywhere else from
   // the map select.
@@ -182,7 +228,8 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
                      std::map<std::string, ItemPrototype> items_arg,
                      std::map<std::string, Mob> mobs_arg,
                      std::map<std::string, MapData> maps_arg,
-                     std::map<std::string, Skill> skills_arg, GameMode mode)
+                     std::map<std::string, Skill> skills_arg, GameMode mode,
+                     JobAdvancement test_job)
     : equips(std::move(equips_arg)),
       scrolls(std::move(scrolls_arg)),
       items(std::move(items_arg)),
@@ -198,7 +245,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       character(rng, MakeBaseBeginnerProto()),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   if (mode == GameMode::kTest) {
-    SeedTest(*this);
+    SeedTest(*this, test_job);
   } else {
     SeedPlay(*this);
   }

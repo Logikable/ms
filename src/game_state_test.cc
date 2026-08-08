@@ -152,6 +152,100 @@ TEST(GameStateTest, TestModeStartsWithBothBooksBought) {
   }
 }
 
+// --- the --job workbench ---
+
+// A bow, so a chosen bowman job has its own weapon to be handed. Named the way
+// StarterEquipsFor and the workbench's own table name it.
+std::map<std::string, EquipPrototype> BowCatalog() {
+  std::map<std::string, EquipPrototype> equips = SwordCatalog();
+  EquipPrototype war_bow;
+  war_bow.set_name("War Bow");
+  war_bow.set_equip_type(EQUIP_TYPE_BOW);
+  war_bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipPrototype ryden;
+  ryden.set_name("Ryden");
+  ryden.set_equip_type(EQUIP_TYPE_BOW);
+  ryden.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  equips["war_bow"] = war_bow;
+  equips["ryden"] = ryden;
+  return equips;
+}
+
+// A book the chosen job can actually buy from, so "the SP is unspent" means
+// unspent rather than unspendable. One skill per advancement that job reaches.
+std::map<std::string, Skill> BookFor(Job job) {
+  std::map<std::string, Skill> book;
+  const char* kNames[] = {"", "First Swing", "Second Swing"};
+  const int kMaxLevels[] = {0, 60, 90};
+  for (int stage = 1; stage <= 2; ++stage) {
+    JobAdvancement advancement = AdvancementForJobStage(job, stage);
+    if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+      continue;
+    }
+    Skill skill;
+    skill.set_name(kNames[stage]);
+    skill.set_kind(SKILL_KIND_ATTACK);
+    skill.set_job_advancement(advancement);
+    skill.set_max_level(kMaxLevels[stage]);
+    book[kNames[stage]] = skill;
+  }
+  return book;
+}
+
+GameState MakeChosenJobState(JobAdvancement advancement) {
+  return GameState(BowCatalog(), {}, {}, {}, {},
+                   BookFor(JobForAdvancement(advancement)), GameMode::kTest,
+                   advancement);
+}
+
+// --job stops at the top of the advancement it names, not at the workbench's
+// own: an archer is the last level before the 2nd job, a hunter the last
+// before the 3rd.
+TEST(GameStateTest, ChosenJobStartsAtTheTopOfThatAdvancement) {
+  GameState archer = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
+  EXPECT_EQ(archer.character.proto().job(), JOB_ARCHER);
+  EXPECT_EQ(archer.character.proto().level(), 30);
+
+  GameState hunter = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
+  EXPECT_EQ(hunter.character.proto().job(), JOB_HUNTER);
+  EXPECT_EQ(hunter.character.proto().level(), kTrialLevelCap);
+  EXPECT_EQ(hunter.character.proto().job_stage(), 2);
+}
+
+// The AP is spent and the SP is not: which stats to raise is never the
+// question a tester is asking, and which skills to buy usually is.
+TEST(GameStateTest, ChosenJobSpendsTheApAndKeepsTheSp) {
+  GameState state = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
+  EXPECT_EQ(state.character.proto().ap(), 0);
+  EXPECT_GT(state.character.proto().allocated_stats().dex(), 200);
+  EXPECT_GT(state.character.sp(1), 0);
+  EXPECT_GT(state.character.sp(2), 0);
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    EXPECT_EQ(state.character.skill_level(entry.second), 0)
+        << entry.first << " was bought for the tester";
+  }
+}
+
+// Worn, not carried. A 2nd job advances empty-handed now, so without this the
+// chosen job would arrive with nothing in hand and half its book asleep.
+TEST(GameStateTest, ChosenJobWearsThatJobsWeapon) {
+  GameState state = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
+  ASSERT_TRUE(state.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(state.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
+            "Ryden");
+}
+
+// The warrior ladder the default workbench carries is the default job's, so a
+// chosen job is spared it.
+TEST(GameStateTest, ChosenJobIsNotHandedTheDefaultJobsLadder) {
+  GameState state = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
+  for (int i = 0; i < static_cast<int>(state.character.inventory().size());
+       ++i) {
+    EXPECT_NE(state.character.inventory().equip_instance(i)->prototype().name(),
+              "Long Sword");
+  }
+}
+
 // Levels past the workbench's starting sixty, spent on demand. LevelUp is not
 // bounded by the trial cap, so this is also where more AP and SP come from
 // once the seeding has spent what the climb to sixty earned.
