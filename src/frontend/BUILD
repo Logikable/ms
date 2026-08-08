@@ -180,6 +180,7 @@ cc_library(
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:item_menu",
+        "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",

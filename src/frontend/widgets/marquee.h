@@ -19,16 +19,20 @@
 
 namespace ms {
 
-// How long each character of the slide is held. One redraw of the game's own
-// ticker: a shorter step would only drop frames, since nothing repaints in
-// between.
-constexpr std::chrono::milliseconds kMarqueeStep(300);
+// How long each character of the slide is held.
+//
+// This is also what the game repaints at -- Tui's ticker sleeps for exactly
+// this -- because a step finer than the redraw cannot be seen: the window
+// would jump two characters at once instead of sliding. Shortening it here
+// speeds the redraw with it; the tick that rides on the redraw is driven by
+// elapsed time, so it does not care how often it is asked.
+constexpr std::chrono::milliseconds kMarqueeStep(150);
 
 // How long the name is held still at each end of the slide -- long enough to
 // read the head before it leaves and the tail once it arrives. Without the
 // pause at the head, the first characters would be gone within one step of the
 // row being selected.
-constexpr std::chrono::milliseconds kMarqueePause(2000);
+constexpr std::chrono::milliseconds kMarqueePause(1000);
 
 // `text` cut to `width` columns, padded out if it is short of them. `elapsed`
 // is how long the row has been selected; pass zero for a row that is not, and
