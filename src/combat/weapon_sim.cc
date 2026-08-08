@@ -252,21 +252,25 @@ Sequence PlaySwings(const CombatParams& params, double horizon) {
   std::vector<int> swings(params.attacks.size(), 0);
   Sequence played;
   double phase = 0.0;
+  int pick = -1;  // the swing being wound up, held until it lands
   for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
     for (double& left : cooldown) {
       left = std::max(0.0, left - kStep);
     }
-    int pick = -1;
-    double best_rate = -1.0;
-    for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
-      const AttackOption& attack = params.attacks[i];
-      if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0) {
-        continue;
-      }
-      double rate = SoloDamage(attack) / attack.swing_seconds;
-      if (rate > best_rate) {
-        best_rate = rate;
-        pick = i;
+    // Index 0 is the bare poke, which is never committed to.
+    if (pick <= 0) {
+      pick = -1;
+      double best_rate = -1.0;
+      for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
+        const AttackOption& attack = params.attacks[i];
+        if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0) {
+          continue;
+        }
+        double rate = SoloDamage(attack) / attack.swing_seconds;
+        if (rate > best_rate) {
+          best_rate = rate;
+          pick = i;
+        }
       }
     }
     if (pick < 0) {
@@ -281,6 +285,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon) {
     played.seconds += params.attacks[pick].swing_seconds;
     ++swings[pick];
     cooldown[pick] = params.attacks[pick].cooldown_seconds;
+    pick = -1;
   }
   for (int i = 0; i < static_cast<int>(swings.size()); ++i) {
     if (played.main_attack < 0 || swings[i] > swings[played.main_attack]) {
