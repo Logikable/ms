@@ -13,6 +13,7 @@ cc_library(
         "//src/combat:damage",
         "//src/frontend:types",
         "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

@@ -13,6 +13,7 @@
 #ifndef MS_SRC_FRONTEND_PANELS_CHARACTER_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_CHARACTER_PANEL_H_
 
+#include <chrono>
 #include <functional>
 #include <map>
 #include <string>
@@ -129,6 +130,10 @@ class CharacterPanel {
   // Down off the last row returns to the tab bar and Up off the tab bar goes
   // to the last row, and neither is a rule of its own.
   void MoveCursor(int delta);
+  // Sends the selected row's name back to its first character. Called
+  // wherever the selection moves, so a new row is read from the head rather
+  // than from wherever the last one had slid to.
+  void RestartNameScroll();
   // Renders the Stats/Skills tab bar. When row_selected the active tab is drawn
   // white (the tab bar holds focus); otherwise it keeps the theme highlight.
   ftxui::Element RenderTabBar(bool row_selected) const;
@@ -172,7 +177,10 @@ class CharacterPanel {
   int skill_tab_ = 0;      // selected advancement tab (0-based stage index)
   int skill_sel_ = 0;      // selected skill row within the current stage
   SkillCol skill_col_ = kColName;  // selected column of that row
-  int job_sel_ = 0;                // selected Advance-tab job row
+  // When the selected skill row last changed, for the name scroll.
+  std::chrono::steady_clock::time_point skill_selected_at_ =
+      std::chrono::steady_clock::now();
+  int job_sel_ = 0;  // selected Advance-tab job row
 };
 
 }  // namespace ms

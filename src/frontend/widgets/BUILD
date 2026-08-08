@@ -11,6 +11,21 @@ cc_library(
 )
 
 cc_library(
+    name = "marquee",
+    srcs = ["marquee.cc"],
+    hdrs = ["marquee.h"],
+)
+
+cc_test(
+    name = "marquee_test",
+    srcs = ["marquee_test.cc"],
+    deps = [
+        ":marquee",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "panel_util",
     srcs = ["panel_util.cc"],
     hdrs = ["panel_util.h"],

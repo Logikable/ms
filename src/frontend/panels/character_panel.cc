@@ -16,6 +16,7 @@
 #include "src/combat/damage.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -65,6 +66,20 @@ ftxui::Element DisplayRow(const std::string& label, int value) {
   return ftxui::text(
       PadRight(" " + label + ": " + std::to_string(value), kContentWidth));
 }
+
+// The skill row's columns. Every one is a fixed width, so the row comes to
+// exactly kContentWidth and a long name slides inside its column instead of
+// pushing the panel wider -- which is what a name like "Final Attack:
+// Crossbow" used to do to the whole Character panel.
+//
+//   " " + tag(4) + name + level + filler + "[+]" + " "
+constexpr int kSkillTagWidth = 4;
+// " 20/20 " -- the widest a level reads, with the gutter either side that the
+// row has no filler left to provide.
+constexpr int kSkillLevelWidth = 7;
+constexpr int kSkillPlusWidth = 3;
+constexpr int kSkillNameWidth =
+    kContentWidth - 1 - kSkillTagWidth - kSkillLevelWidth - kSkillPlusWidth - 1;
 
 // The tag a skill row opens with: what the player does with the skill, said
 // once at the front of the row instead of being worked out from the name.
@@ -277,7 +292,14 @@ void CharacterPanel::SetCursorStop(int stop) {
     skill_col_ = kColName;
   }
   zone_ = kZoneSkillRows;
+  if (skill_sel_ != stop - 2) {
+    RestartNameScroll();
+  }
   skill_sel_ = stop - 2;
+}
+
+void CharacterPanel::RestartNameScroll() {
+  skill_selected_at_ = std::chrono::steady_clock::now();
 }
 
 void CharacterPanel::MoveCursor(int delta) {
@@ -426,14 +448,27 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // nothing else; the level beside it is a fact about the row, not a second
   // thing to press. A locked skill still opens -- the screen behind it is
   // where the player finds out what is holding it up.
-  ftxui::Element name = ftxui::text(skill.name());
+  // A name too long for the column slides under it while the row is selected,
+  // and sits cut when it is not. The column is a fixed width either way, which
+  // is what keeps a long name from widening the whole panel.
+  std::string window = ScrollingWindow(
+      skill.name(), kSkillNameWidth,
+      selected ? std::chrono::steady_clock::now() - skill_selected_at_
+               : std::chrono::steady_clock::duration::zero());
+  // The padding a short name is given rides outside the cursor, so the
+  // highlight still covers the name and stops -- a fixed-width bar would say
+  // the empty column after a short name was part of what Enter opens.
+  int lit = std::min(static_cast<int>(skill.name().size()), kSkillNameWidth);
+  ftxui::Element name = ftxui::text(window.substr(0, lit));
   if (selected && skill_col_ == kColName) {
     name = name | ftxui::inverted;
   } else if (locked) {
     name = name | ftxui::dim;
   }
-  ftxui::Element level_text = ftxui::text("  " + std::to_string(level) + "/" +
-                                          std::to_string(skill.max_level()));
+  ftxui::Element name_pad = ftxui::text(window.substr(lit));
+  ftxui::Element level_text = ftxui::text(PadRight(
+      " " + std::to_string(level) + "/" + std::to_string(skill.max_level()),
+      kSkillLevelWidth));
   if (locked) {
     level_text = level_text | ftxui::dim;
   }
@@ -447,6 +482,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
       ftxui::text(" "),
       tag_text,
       name,
+      name_pad,
       level_text,
       ftxui::filler(),
       plus,
@@ -607,12 +643,14 @@ bool CharacterPanel::OnSkillsTabEvent(
     if (event == ftxui::Event::ArrowLeft) {
       if (skill_tab_ > 0) {
         skill_tab_--;
+        RestartNameScroll();  // the same row on another page is another skill
       }
       return true;
     }
     if (event == ftxui::Event::ArrowRight) {
       if (skill_tab_ < character_.proto().job_stage() - 1) {
         skill_tab_++;
+        RestartNameScroll();
       }
       return true;
     }

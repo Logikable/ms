@@ -120,6 +120,23 @@ std::pair<int, int> FindCell(const ftxui::Screen& screen,
   return {-1, -1};
 }
 
+// Where `needle` starts on row `y`, or -1. FindCell answers for the whole
+// screen and so only ever finds the topmost row; a claim about two rows
+// lining up has to ask each of them separately.
+int FindInRow(const ftxui::Screen& screen, int y, const std::string& needle) {
+  int len = static_cast<int>(needle.size());
+  for (int x = 0; x + len <= screen.dimx(); ++x) {
+    std::string got;
+    for (int i = 0; i < len; ++i) {
+      got += screen.PixelAt(x + i, y).character;
+    }
+    if (got == needle) {
+      return x;
+    }
+  }
+  return -1;
+}
+
 // The inverted flag of every cell under `needle`, as a string of '1' and '0' --
 // inversion is how the cursor shows itself, and a mask says exactly how far it
 // reaches. Returns "" when `needle` is not on screen.
@@ -607,6 +624,83 @@ TEST_F(CharacterPanelTest, TheListFollowsSkillOrderAndNotKind) {
   EXPECT_LT(eye, slash);
 }
 
+// A book holding the longest name the game ships, which is four columns wider
+// than the column it has to sit in.
+std::map<std::string, Skill> WordyCatalog() {
+  Skill wordy;
+  wordy.set_name("Final Attack: Crossbow");
+  wordy.set_kind(SKILL_KIND_PASSIVE);
+  wordy.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  wordy.set_max_level(20);
+  wordy.set_skill_order(1);
+  return {{"wordy", wordy}};
+}
+
+// The panel is laid out beside three others at a fixed width, so a name wider
+// than its column has to slide inside the column rather than push the border
+// out -- which is what "Final Attack: Crossbow" did to the whole main screen.
+TEST_F(CharacterPanelTest, ALongSkillNameDoesNotWidenThePanel) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, WordyCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+
+  // The width the panel asks its layout for, which is what a long name used to
+  // inflate. Held against a book whose names all fit: the two must agree.
+  ftxui::Element wordy = panel.Render();
+  CharacterPanel narrow(c, panel_focus_, SkillCatalog());
+  ftxui::Component narrow_comp = narrow.MakeComponent([](StatField) {});
+  narrow_comp->OnEvent(ftxui::Event::ArrowRight);
+  ftxui::Element brief = narrow.Render();
+
+  EXPECT_EQ(ftxui::Dimension::Fit(wordy).dimx,
+            ftxui::Dimension::Fit(brief).dimx);
+  EXPECT_LE(ftxui::Dimension::Fit(wordy).dimx, CharacterPanel::kTotalWidth);
+}
+
+// A row nobody is looking at shows the head of its name and stops. The rest
+// arrives by selecting the row; see the marquee's own tests for the slide.
+TEST_F(CharacterPanelTest, AnUnselectedLongNameIsCutToItsColumn) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, WordyCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+
+  EXPECT_TRUE(OnScreen(comp, "Final Attack: Cro"));
+  EXPECT_FALSE(OnScreen(comp, "Final Attack: Cross"));
+}
+
+// The name column is a fixed width rather than each name's own, so the levels
+// beside them stay a column too -- which is the whole reason the long name is
+// cut instead of the row being allowed to grow.
+TEST_F(CharacterPanelTest, NamesAndLevelsStayColumnsWhateverTheNameLength) {
+  Skill brief;
+  brief.set_name("Rush");
+  brief.set_kind(SKILL_KIND_PASSIVE);
+  brief.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  brief.set_max_level(20);
+  brief.set_skill_order(2);
+  std::map<std::string, Skill> catalog = WordyCatalog();
+  catalog["rush"] = brief;
+
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, panel_focus_, catalog);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+
+  ftxui::Screen screen = RenderToScreen(comp);
+  std::pair<int, int> wordy = FindCell(screen, "Final Attack: Cro");
+  std::pair<int, int> rush = FindCell(screen, "Rush");
+  ASSERT_GE(wordy.first, 0);
+  ASSERT_GE(rush.first, 0);
+  ASSERT_NE(wordy.second, rush.second) << "expected two rows, not one";
+  EXPECT_EQ(wordy.first, rush.first);
+  EXPECT_EQ(FindInRow(screen, wordy.second, "0/20"),
+            FindInRow(screen, rush.second, "0/20"));
+  // And the level does not run into the [+] beside it.
+  EXPECT_GE(FindInRow(screen, wordy.second, "0/20 "), 0);
+}
+
 // A catalog with one skill of each kind, plus a kind-less one.
 std::map<std::string, Skill> AllKindsCatalog() {
   std::map<std::string, Skill> catalog;
@@ -657,8 +751,11 @@ TEST_F(CharacterPanelTest, TheHighlightLeavesTheTagAlone) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
 
-  EXPECT_EQ(InversionMask(comp, "A:  Slash Blast  0/20"),
-            "000011111111111000000");
+  // The name and nothing else: not the tag before it, and not the padding
+  // that holds the column open after it.
+  EXPECT_EQ(InversionMask(comp, "A:  Slash Blast  "),
+            "000011111111111"
+            "00");
 }
 
 // A requirement is a condition the player has to be able to act on, so what it
@@ -801,7 +898,11 @@ TEST_F(CharacterPanelTest, TheHighlightStopsAtTheEndOfTheName) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar -> skill rows
 
-  EXPECT_EQ(InversionMask(comp, "Slash Blast  0/20"), "11111111111000000");
+  // Eleven for the name, then the padding holding the column open and the
+  // level beyond it -- neither of which Enter reaches.
+  EXPECT_EQ(InversionMask(comp, "Slash Blast       0/20"),
+            "11111111111"
+            "00000000000");
 }
 
 // A maxed skill with no SP behind it dims its [+], but the name is still a
