@@ -97,7 +97,7 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
 // tier rather than at the end: they undercut the weapons they are listed
 // beside because they are ammunition, not the weapon a character is built
 // around.
-TEST(ShopTest, ShippedStockIsFiftyThreeWeapons) {
+TEST(ShopTest, ShippedStockIsFiftyFourWeapons) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<std::string> stock = ShopStock(equips);
   std::vector<std::pair<std::string, int>> listing;
@@ -148,6 +148,7 @@ TEST(ShopTest, ShippedStockIsFiftyThreeWeapons) {
       {"Mystic Cane", 50000},
       {"Sai", 50000},
       {"Steel Slain", 50000},
+      {"Steely Throwing-Knives", 25000},
       {"The Rising", 50000},
       {"Serpent's Tongue", 50000},
       {"The Nine Dragons", 50000},
