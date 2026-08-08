@@ -1,0 +1,22 @@
+# A second Final Attack, which is what GMS's readout describes: a chance for
+# an extra arrow worth a multiple of a plain shot. Each source is folded as its
+# own chance times damage and the two are summed, so stating it this way
+# composes with Final Attack: Bow rather than fighting it.
+#
+# GMS gates the arrowheads on a later skill and lets you swap between them.
+# There is nothing to swap here, so what is left is the one arrowhead, levelled.
+name: "Quiver Cartridge"
+description:
+  "Tips your quiver so some of what you loose splits off and chases down "
+  "whatever you were aiming at."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HUNTER
+max_level: 10
+base {
+  final_attack_chance: 0.12
+  final_attack_pct: 1.21
+}
+per_level {
+  final_attack_chance: 0.02
+  final_attack_pct: 0.11
+}

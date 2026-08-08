@@ -1,0 +1,23 @@
+# The warriors' Final Attack under another name and the same numbers: chance
+# is 2*L%, damage a single hit of (100 + 5*floor(L/2))%. The even step below
+# ends a hair under the top of the staircase and is never more than 2.5% out.
+name: "Final Attack: Bow"
+description:
+  "A chance for every shot to be followed by a second arrow at whatever is "
+  "in front of you. Needs a bow in hand."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HUNTER
+max_level: 20
+required_equip_type: EQUIP_TYPE_BOW
+required_skill {
+  skill_name: "Bow Mastery"
+  level: 3
+}
+base {
+  final_attack_chance: 0.02
+  final_attack_pct: 1.0
+}
+per_level {
+  final_attack_chance: 0.02
+  final_attack_pct: 0.025
+}

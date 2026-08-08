@@ -400,11 +400,11 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
-// Level 30 opens the 2nd advancement, but no job defines one yet, so there is
+// Level 30 opens the 2nd advancement, but a job whose branch is unwritten has
 // nothing to offer and the character must not be told otherwise.
 TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/30);
-  c.AdvanceJob(JOB_ARCHER);  // the archer's 2nd job is not written yet
+  c.AdvanceJob(JOB_MAGICIAN);  // the magician's 2nd job is not written yet
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
@@ -438,8 +438,12 @@ TEST(JobChoicesTest, ASwordmanIsOfferedEveryWarriorBranch) {
             (std::vector<Job>{JOB_FIGHTER, JOB_PAGE, JOB_SPEARMAN}));
 }
 
+// Only the Hunter so far -- the Crossbowman's book is not written.
+TEST(JobChoicesTest, AnArcherIsOfferedTheBranchesThatHaveBooks) {
+  EXPECT_EQ(JobChoicesForStage(JOB_ARCHER, 2), (std::vector<Job>{JOB_HUNTER}));
+}
+
 TEST(JobChoicesTest, TheOtherFirstJobsHaveNoSecondJobYet) {
-  EXPECT_TRUE(JobChoicesForStage(JOB_ARCHER, 2).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_MAGICIAN, 2).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_ROGUE, 2).empty());
 }

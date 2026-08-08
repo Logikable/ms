@@ -23,6 +23,10 @@ enum Job {
   JOB_FIGHTER = 6;
   JOB_PAGE = 7;
   JOB_SPEARMAN = 8;
+  // The archer's 2nd advancement. A branch for the same reason: one line
+  // masters the bow and the other the crossbow, and the weapon a character
+  // already holds does not decide it for them.
+  JOB_HUNTER = 9;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -38,6 +42,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_FIGHTER = 5;
   JOB_ADVANCEMENT_PAGE = 6;
   JOB_ADVANCEMENT_SPEARMAN = 7;
+  JOB_ADVANCEMENT_HUNTER = 8;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

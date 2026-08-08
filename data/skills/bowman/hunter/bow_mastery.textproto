@@ -1,0 +1,12 @@
+# Mastery and nothing else, unlike the warriors' Weapon Mastery, which also
+# buys speed and crit. What the Hunter gets in its place is Quiver Cartridge.
+name: "Bow Mastery"
+description:
+  "Trains your draw until your arrows land where you mean them to, "
+  "narrowing your weakest shots toward your best. Needs a bow in hand."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HUNTER
+max_level: 20
+required_equip_type: EQUIP_TYPE_BOW
+base { mastery: 0.12 }
+per_level { mastery: 0.02 }

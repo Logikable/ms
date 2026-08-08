@@ -1,0 +1,16 @@
+# GMS gives 2 DEX a level over 10 levels. Spread over 5 at 4 apiece, which
+# ends in the same place -- 20 -- for half the points, as Agile Arms does.
+name: "Agile Bows"
+description: "Loosens your draw, quickening your shots and building DEX."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HUNTER
+max_level: 5
+required_skill {
+  skill_name: "Bow Mastery"
+  level: 5
+}
+base {
+  dex: 4
+  attack_speed: 2
+}
+per_level { dex: 4 }

@@ -1,0 +1,12 @@
+# Three arrows to each of six enemies, so 249% a target at level 1 rising to
+# 534% at 20 -- close enough to Brandish that the two branches trade blows.
+name: "Wind Arrow"
+description: "Fire multiple arrows that fly like the wind."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_HUNTER
+max_level: 20
+base_delay_ms: 810
+max_enemies: 6
+lines: 3
+base { skill_pct: 0.83 }
+per_level { skill_pct: 0.05 }
