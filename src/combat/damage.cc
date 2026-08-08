@@ -46,6 +46,7 @@ const WeaponConstantRow kWeaponConstants[] = {
     {EQUIP_TYPE_SPEAR, 1.49},
     {EQUIP_TYPE_POLEARM, 1.49},
     {EQUIP_TYPE_BOW, 1.30},
+    {EQUIP_TYPE_CROSSBOW, 1.35},
     {EQUIP_TYPE_WAND, 1.20},
     {EQUIP_TYPE_DAGGER, 1.30},
     {EQUIP_TYPE_CLAW, 1.75},

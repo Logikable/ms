@@ -39,6 +39,9 @@ enum EquipType {
   // items -- a Fighter's mastery is of axes, not of two-handed axes.
   EQUIP_TYPE_ONE_HANDED_AXE = 12;
   EQUIP_TYPE_ONE_HANDED_BLUNT = 13;
+  // The bowman's other line. Hits harder than a bow of the same level and
+  // carries a higher weapon constant; nothing else separates the two here.
+  EQUIP_TYPE_CROSSBOW = 14;
 }
 
 // The equipment window slot this item occupies when worn. Determines where the
