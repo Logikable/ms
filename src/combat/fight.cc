@@ -38,8 +38,8 @@ void CombatSim::TopUp(const CombatParams& params) {
 }
 
 // What one swing of `attack` would land on the queue as it stands: its own
-// damage to each mob it reaches, plus the Final Attack that follows it onto the
-// front one.
+// damage to each mob it reaches, plus the Final Attack that follows it onto
+// every one of them.
 double CombatSim::SwingDamage(const AttackOption& attack) const {
   int reach = std::max(1, attack.max_enemies);
   int hit = std::min(reach, static_cast<int>(queue_.size()));
@@ -50,9 +50,11 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
       total += attack.damage_per_hit[type];
     }
   }
-  int front = queue_.empty() ? -1 : queue_.front().type;
-  if (hit > 0 && front < static_cast<int>(attack.final_attack_damage.size())) {
-    total += attack.final_attack_damage[front];
+  for (int j = 0; j < hit; ++j) {
+    int type = queue_[j].type;
+    if (type < static_cast<int>(attack.final_attack_damage.size())) {
+      total += attack.final_attack_damage[type];
+    }
   }
   return total;
 }
@@ -113,10 +115,12 @@ void CombatSim::Strike(const AttackOption& attack) {
   for (int j = 0; j < hit; ++j) {
     queue_[j].hp -= attack.damage_per_hit[queue_[j].type];
   }
-  // Final Attack follows the swing onto whatever the character is standing in
-  // front of -- one mob, however many the swing itself reached.
-  if (hit > 0 && !attack.final_attack_damage.empty()) {
-    queue_.front().hp -= attack.final_attack_damage[queue_.front().type];
+  // A Final Attack rolls separately against every enemy the swing reached, so
+  // in expectation each of them takes it.
+  if (!attack.final_attack_damage.empty()) {
+    for (int j = 0; j < hit; ++j) {
+      queue_[j].hp -= attack.final_attack_damage[queue_[j].type];
+    }
   }
   std::vector<QueuedMob> survivors;
   survivors.reserve(queue_.size());

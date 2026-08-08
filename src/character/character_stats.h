@@ -9,6 +9,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "src/character/character.h"
 #include "src/combat/damage.h"
@@ -16,6 +17,17 @@
 #include "src/protos/skill.pb.h"
 
 namespace ms {
+
+// One Final Attack the character carries: what it is worth against each enemy
+// the swing reached, and which swings set it off.
+struct FinalAttackSource {
+  // Chance times damage, so a 40% chance of an extra 160% hit reads 0.64. One
+  // number because that is all an expected-value damage chain can use.
+  double pct = 0.0;
+  // The swings this follows. SKILL_TAG_UNSPECIFIED means all of them, which is
+  // what a Final Attack gated on the weapon in hand wants.
+  SkillTag required_tag = SKILL_TAG_UNSPECIFIED;
+};
 
 struct DerivedStats {
   int max_hp = 0;
@@ -47,11 +59,11 @@ struct DerivedStats {
   // The best weapon mastery the passives grant, 0..1. 0 leaves the beginner's
   // baseline in place rather than making the swing wilder.
   double mastery = 0.0;
-  // What Final Attack is worth on an average swing: chance times damage, so a
-  // 40% chance of an extra 160% hit reads 0.64. One number because that is all
-  // an expected-value chain can use, and summed because independent procs add
-  // in expectation.
-  double final_attack_pct = 0.0;
+  // The Final Attacks the character's passives grant, merged by what sets them
+  // off. Two sources that follow the same swings are one entry, since
+  // independent procs add in expectation -- which is what keeps the Hunter's
+  // two arrow skills reading as one extra arrow.
+  std::vector<FinalAttackSource> final_attacks;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;

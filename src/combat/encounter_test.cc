@@ -336,6 +336,51 @@ TEST(ComputeCombatParamsTest, OnlyOwnSwingsCarryFinalAttack) {
   EXPECT_TRUE(params.auto_attacks[0].final_attack_damage.empty());
 }
 
+// A Final Attack that names a tag follows only the swings carrying it. The
+// bare poke carries none, so it never sets one off.
+TEST(ComputeCombatParamsTest, ATaggedFinalAttackFollowsOnlyThatTagsSwings) {
+  Skill flame;
+  flame.set_name("Flame Orb");
+  flame.set_kind(SKILL_KIND_ATTACK);
+  flame.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  flame.set_max_level(10);
+  flame.add_tags(SKILL_TAG_FIRE);
+  flame.mutable_base()->set_skill_pct(1.48);
+  Skill cold;
+  cold.set_name("Cold Beam");
+  cold.set_kind(SKILL_KIND_ATTACK);
+  cold.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  cold.set_max_level(10);
+  cold.mutable_base()->set_skill_pct(1.48);
+  Skill ignite;
+  ignite.set_name("Ignite");
+  ignite.set_kind(SKILL_KIND_PASSIVE);
+  ignite.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  ignite.set_max_level(10);
+  ignite.set_follows_skill_tag(SKILL_TAG_FIRE);
+  ignite.mutable_base()->set_final_attack_chance(0.50);
+  ignite.mutable_base()->set_final_attack_pct(1.20);
+  GameState state(
+      {}, {}, {}, {{"snail", MakeMob("Snail", 15)}}, {{"field", TwoSnailMap()}},
+      {{"flame_orb", flame}, {"cold_beam", cold}, {"ignite", ignite}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(flame, 1));
+  ASSERT_TRUE(state.character.LearnSkill(cold, 1));
+  ASSERT_TRUE(state.character.LearnSkill(ignite, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 3u);
+  for (const AttackOption& attack : params.attacks) {
+    if (attack.name == "Flame Orb") {
+      EXPECT_FALSE(attack.final_attack_damage.empty()) << attack.name;
+    } else {
+      EXPECT_TRUE(attack.final_attack_damage.empty()) << attack.name;
+    }
+  }
+}
+
 // Without the skill there is nothing to follow the swing, and the fight is
 // told so rather than being handed a column of zeroes to add.
 TEST(ComputeCombatParamsTest, NoFinalAttackLeavesTheSwingCarryingNone) {

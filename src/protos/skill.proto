@@ -29,6 +29,9 @@ enum SkillTag {
   // The Paladin's Holy Power group. Nothing reads it yet: Vessel of Light, the
   // skill GMS gates on having used one, is permanent here.
   SKILL_TAG_HOLY_POWER = 1;
+  // A fire spell. Ignite reads it: the fire mage's Final Attack follows their
+  // fire spells and nothing else, so the attacks say which of them burn.
+  SKILL_TAG_FIRE = 2;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we
@@ -83,13 +86,17 @@ message SkillEffect {
   double final_dmg_pct = 21;
 
   // Final Attack: a chance for the character's swing to be followed by one
-  // extra hit on whatever is in front of them, worth final_attack_pct of a
-  // plain swing. A multi-line final attack folds its lines into the percent --
-  // two hits of 80% is stated here as 1.60.
+  // extra hit, worth final_attack_pct of a plain swing, on each enemy that
+  // swing reached. A multi-line final attack folds its lines into the percent
+  // -- two hits of 80% is stated here as 1.60.
   //
   // Only the character's own swings carry it. A skill firing on its own clock
   // does not, which is why the two are separate fields rather than one
   // expected value: the chance and the damage are what the player is shown.
+  //
+  // It rolls separately for every enemy the swing reached, so what it is worth
+  // is this against each of them. Which swings set it off belongs to the skill
+  // rather than to the level -- see Skill.follows_skill_tag.
   double final_attack_chance = 15;
   double final_attack_pct = 16;
 
@@ -176,6 +183,11 @@ message Skill {
   // that names them stops granting anything without one, which is how Final
   // Attack demands a sword or an axe.
   repeated EquipType required_equip_type = 9;
+  // The swings this skill's Final Attack follows: only an attack carrying this
+  // tag sets it off. Unset means every swing does, which is what the warriors'
+  // and archers' Final Attacks want -- they are about the weapon in hand, and
+  // required_equip_type already says so.
+  SkillTag follows_skill_tag = 19;
 
   SkillEffect base = 4;
   SkillEffect per_level = 5;

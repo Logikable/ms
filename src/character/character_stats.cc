@@ -58,7 +58,10 @@ struct PassiveTotals {
   double crit_rate = 0.0;
   double crit_dmg = 0.0;
   double mastery = 0.0;
-  double final_attack_pct = 0.0;
+  // Keyed by the swings it follows: two sources that follow the same swings
+  // are one Final Attack. Ordered, so the result does not depend on which
+  // skill was read first.
+  std::map<int, double> final_attacks;
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
   int attack_speed = 0;
@@ -106,16 +109,28 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   // chain applies.
   double final_dmg = base.final_dmg_pct() + per.final_dmg_pct() * (level - 1);
   totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + final_dmg) - 1.0;
+}
+
+// Folds one skill's Final Attack in. Split from AddEffect because what sets a
+// Final Attack off belongs to the SKILL, not to the level's levers -- and
+// AddEffect is handed levers with no skill behind them.
+void AddFinalAttack(const Skill& skill, const SkillEffect& base,
+                    const SkillEffect& per, int level, PassiveTotals& totals) {
   // Chance times damage: what the proc is worth on an average swing, which is
   // all an expected-value damage chain can use. See DerivedStats.
-  totals.final_attack_pct +=
+  double pct =
       (base.final_attack_chance() + per.final_attack_chance() * (level - 1)) *
       (base.final_attack_pct() + per.final_attack_pct() * (level - 1));
+  if (pct <= 0.0) {
+    return;
+  }
+  totals.final_attacks[skill.follows_skill_tag()] += pct;
 }
 
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
   AddEffect(skill.base(), skill.per_level(), level, totals);
+  AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
   // The orbs are taken as full, so what a per-orb grant is worth is the whole
   // ring of them. See SkillEffect::attack_per_combo_orb.
   totals.attack += (skill.base().attack_per_combo_orb() +
@@ -127,6 +142,8 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
     if (bonus.required_equip_type_size() > 0 &&
         ListAllowsWeapon(bonus.required_equip_type(), weapon)) {
       AddEffect(bonus.effect(), SkillEffect::default_instance(), 1, totals);
+      AddFinalAttack(skill, bonus.effect(), SkillEffect::default_instance(), 1,
+                     totals);
     }
   }
 }
@@ -211,7 +228,12 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.damage_pct = passives.damage_pct;
   stats.final_dmg_pct = passives.final_dmg_pct;
   stats.mastery = passives.mastery;
-  stats.final_attack_pct = passives.final_attack_pct;
+  for (const std::pair<const int, double>& entry : passives.final_attacks) {
+    FinalAttackSource source;
+    source.pct = entry.second;
+    source.required_tag = static_cast<SkillTag>(entry.first);
+    stats.final_attacks.push_back(source);
+  }
   stats.attack_speed_bonus = passives.attack_speed;
   return stats;
 }

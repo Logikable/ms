@@ -39,6 +39,19 @@ constexpr double kMobHitIntervalSeconds = 1.5;
 // enduring it rather than only by killing fast enough to keep clearing it.
 constexpr double kBeatHealFraction = 0.10;
 
+// Whether `skill` is marked with `tag`. Null -- the bare poke -- carries none.
+bool HasTag(const Skill* skill, SkillTag tag) {
+  if (skill == nullptr) {
+    return false;
+  }
+  for (int i = 0; i < skill->tags_size(); ++i) {
+    if (skill->tags(i) == tag) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // One attack's damage against every mob type on the map. `skill` is null for
 // the bare poke, which hits one target for the character's plain 100% swing.
 // `equipped` is everything the character wears plus everything their passives
@@ -73,11 +86,23 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // line rather than from `offense` and takes neither its multiplier nor its
   // lines. Callers building an attack that fires on its own clock strip this
   // back off -- see ComputeCombatParams.
-  if (derived.final_attack_pct > 0.0) {
+  //
+  // A source that names a tag follows only the swings carrying it, which is
+  // how a fire mage's Final Attack ignores everything they cast that is not
+  // fire. The bare poke carries no tags at all. What is left sums, because
+  // independent procs add in expectation.
+  double final_attack_pct = 0.0;
+  for (const FinalAttackSource& source : derived.final_attacks) {
+    if (source.required_tag == SKILL_TAG_UNSPECIFIED ||
+        HasTag(skill, source.required_tag)) {
+      final_attack_pct += source.pct;
+    }
+  }
+  if (final_attack_pct > 0.0) {
     OffenseStats final_attack = OffenseStatsFor(
         proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
         nullptr, 0, PassiveOffenseFor(derived));
-    final_attack.skill_pct = derived.final_attack_pct;
+    final_attack.skill_pct = final_attack_pct;
     for (const CombatType& type : types) {
       attack.final_attack_damage.push_back(
           ExpectedAttackDamage(final_attack, *type.mob));

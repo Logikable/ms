@@ -53,10 +53,10 @@ struct AttackOption {
   // Seconds this attack cannot be swung for after it lands, game-scaled. 0 for
   // one that is there every time, which is most of them.
   double cooldown_seconds = 0.0;
-  // Expected Final Attack damage per target type, landing on the front mob
-  // alone however many the swing itself reached. Empty for a character with
-  // no Final Attack, and for the skills that fire on their own clock -- those
-  // are not the character's swing and do not set it off.
+  // Expected Final Attack damage per target type, landing on every mob the
+  // swing reached: it rolls separately for each of them. Empty for a character
+  // with no Final Attack, for a swing none of theirs follows, and for the
+  // skills that fire on their own clock -- those are not the character's swing.
   std::vector<double> final_attack_damage;
 };
 

@@ -433,14 +433,43 @@ TEST_F(DerivedStatsTest, FinalAttackCollapsesToWhatASwingIsWorth) {
   std::map<std::string, Skill> skills = {{"final_attack", final_attack}};
   ASSERT_TRUE(c.LearnSkill(final_attack, 20));
 
-  // 40% of an extra hit worth 160%.
-  EXPECT_NEAR(DerivedStatsFor(c, skills).final_attack_pct, 0.64, 1e-9);
+  // 40% of an extra hit worth 160%. It names no tag, so every swing sets it
+  // off -- which is what a Final Attack gated on the weapon in hand wants.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.final_attacks.size(), 1u);
+  EXPECT_NEAR(stats.final_attacks[0].pct, 0.64, 1e-9);
+  EXPECT_EQ(stats.final_attacks[0].required_tag, SKILL_TAG_UNSPECIFIED);
 }
 
 TEST_F(DerivedStatsTest, NoFinalAttackIsWorthNothing) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
-  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).final_attack_pct, 0.0);
+  EXPECT_TRUE(DerivedStatsFor(c, skills).final_attacks.empty());
+}
+
+// Two arrow skills of the same shape are one extra arrow, which is how the
+// Hunter's pair have always read. A skill that follows only some swings has to
+// stay a source of its own, or it would follow all of them.
+TEST_F(DerivedStatsTest, OnlyFinalAttacksFollowingTheSameSwingsMerge) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  Skill first = FinalAttack();
+  Skill second = FinalAttack();
+  second.set_name("Quiver Cartridge");
+  Skill ignite = FinalAttack();
+  ignite.set_name("Ignite");
+  ignite.set_follows_skill_tag(SKILL_TAG_FIRE);
+  std::map<std::string, Skill> skills = {
+      {"first", first}, {"second", second}, {"ignite", ignite}};
+  ASSERT_TRUE(c.LearnSkill(first, 20));
+  ASSERT_TRUE(c.LearnSkill(second, 20));
+  ASSERT_TRUE(c.LearnSkill(ignite, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.final_attacks.size(), 2u);
+  EXPECT_NEAR(stats.final_attacks[0].pct, 1.28, 1e-9);  // the two that agree
+  EXPECT_EQ(stats.final_attacks[0].required_tag, SKILL_TAG_UNSPECIFIED);
+  EXPECT_NEAR(stats.final_attacks[1].pct, 0.64, 1e-9);
+  EXPECT_EQ(stats.final_attacks[1].required_tag, SKILL_TAG_FIRE);
 }
 
 TEST_F(DerivedStatsTest, SkillStatsJoinWornStatsInTheTotal) {

@@ -1043,7 +1043,7 @@ TEST(CombatSimTest, AnAutoAttackIsNeverChosenAsTheSwing) {
 
 // --- Final Attack ---
 
-// Gives the swing a Final Attack worth `damage` on the front mob.
+// Gives the swing a Final Attack worth `damage` against each enemy it reaches.
 void AddFinalAttack(CombatParams& params, double damage) {
   params.attacks[0].final_attack_damage.assign(params.types.size(), damage);
 }
@@ -1059,9 +1059,9 @@ TEST(CombatSimTest, FinalAttackAddsToTheSwing) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.75, 1e-9);
 }
 
-// GMS's Final Attack hits one enemy. Spreading it over a wide swing's whole
-// window would make it as many times the skill as the swing has reach.
-TEST(CombatSimTest, FinalAttackLandsOnTheFrontMobAlone) {
+// A Final Attack rolls separately against every enemy the swing reached, so a
+// wide swing sets it off as many times as it had targets.
+TEST(CombatSimTest, FinalAttackFollowsTheSwingOntoEveryEnemy) {
   Mob snail = MakeMob("Snail", 100);
   CombatSim sim;
   CombatParams params =
@@ -1069,12 +1069,27 @@ TEST(CombatSimTest, FinalAttackLandsOnTheFrontMobAlone) {
   AddFinalAttack(params, /*damage=*/40.0);
 
   sim.Advance(params, 1.0);
-  // The front mob took 50 of its 100; the two behind it took the swing's 10.
+  // All three took the swing's 10 and the 40 following it.
   const std::vector<EngagedGroup>& groups = sim.engaged_groups();
   ASSERT_EQ(groups.size(), 1u);
   EXPECT_EQ(groups[0].count, 3);
-  // One at 0.5 and two at 0.9, averaged.
-  EXPECT_NEAR(groups[0].hp_fraction, (0.5 + 0.9 + 0.9) / 3.0, 1e-9);
+  EXPECT_NEAR(groups[0].hp_fraction, 0.5, 1e-9);
+}
+
+// A swing that outruns the queue sets it off once per mob actually there, not
+// once per target it could have reached.
+TEST(CombatSimTest, FinalAttackStopsWithTheSwing) {
+  Mob snail = MakeMob("Snail", 100);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 2)}, /*reach=*/6);
+  AddFinalAttack(params, /*damage=*/40.0);
+
+  sim.Advance(params, 1.0);
+  const std::vector<EngagedGroup>& groups = sim.engaged_groups();
+  ASSERT_EQ(groups.size(), 1u);
+  EXPECT_EQ(groups[0].count, 2);
+  EXPECT_NEAR(groups[0].hp_fraction, 0.5, 1e-9);
 }
 
 TEST(CombatSimTest, FinalAttackCanBeWhatKillsTheFrontMob) {
