@@ -210,6 +210,16 @@ TEST(FormatJobCategoriesTest, MultipleCategories) {
   EXPECT_EQ(FormatJobCategories(proto), "Warrior/Thief");
 }
 
+TEST(AttackSpeedNameTest, EveryStageHasAName) {
+  for (int stage = ATTACK_SPEED_SLOWER; stage <= ATTACK_SPEED_FASTEST_3;
+       ++stage) {
+    EXPECT_FALSE(AttackSpeedName(static_cast<AttackSpeed>(stage)).empty())
+        << "stage " << stage;
+  }
+  EXPECT_EQ(AttackSpeedName(ATTACK_SPEED_FAST_2), "Fast 2");
+  EXPECT_EQ(AttackSpeedName(ATTACK_SPEED_UNSPECIFIED), "");
+}
+
 // --- ScrollBar ---
 
 // The bar's glyphs, one per row, with the thumb's rows marked. A half-height

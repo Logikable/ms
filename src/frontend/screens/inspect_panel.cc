@@ -178,40 +178,9 @@ ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
 std::string InspectPanel::FormatAttackSpeed(AttackSpeed speed) {
   // Stage number matches the proto enum value (SLOWER=1 … FASTEST_3=10).
   int stage = static_cast<int>(speed);
-  std::string name;
-  switch (speed) {
-    case ATTACK_SPEED_SLOWER:
-      name = "Slower";
-      break;
-    case ATTACK_SPEED_SLOW_1:
-      name = "Slow 1";
-      break;
-    case ATTACK_SPEED_SLOW_2:
-      name = "Slow 2";
-      break;
-    case ATTACK_SPEED_AVERAGE:
-      name = "Average";
-      break;
-    case ATTACK_SPEED_FAST_1:
-      name = "Fast 1";
-      break;
-    case ATTACK_SPEED_FAST_2:
-      name = "Fast 2";
-      break;
-    case ATTACK_SPEED_FASTER:
-      name = "Faster";
-      break;
-    case ATTACK_SPEED_FASTEST_1:
-      name = "Fastest 1";
-      break;
-    case ATTACK_SPEED_FASTEST_2:
-      name = "Fastest 2";
-      break;
-    case ATTACK_SPEED_FASTEST_3:
-      name = "Fastest 3";
-      break;
-    default:
-      return "";
+  std::string name = AttackSpeedName(speed);
+  if (name.empty()) {
+    return "";
   }
   return "Stage " + std::to_string(stage) + " (" + name + ")";
 }

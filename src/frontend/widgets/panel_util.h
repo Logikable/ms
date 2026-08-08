@@ -100,6 +100,11 @@ std::string FormatSlot(EquipSlot slot);
 // types not yet implemented.
 std::string FormatEquipType(EquipType type);
 
+// The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for
+// an unspecified one. The stage number is the proto enum's own value, so a
+// caller wanting both can print it beside this.
+std::string AttackSpeedName(AttackSpeed speed);
+
 // True for a skill the player casts, attack or otherwise -- everything that
 // isn't a passive. It is what the inspect screen titles itself with, and what
 // decides whether a skill's damage line is worth showing at all.

@@ -211,6 +211,33 @@ std::string FormatSlot(EquipSlot slot) {
   }
 }
 
+std::string AttackSpeedName(AttackSpeed speed) {
+  switch (speed) {
+    case ATTACK_SPEED_SLOWER:
+      return "Slower";
+    case ATTACK_SPEED_SLOW_1:
+      return "Slow 1";
+    case ATTACK_SPEED_SLOW_2:
+      return "Slow 2";
+    case ATTACK_SPEED_AVERAGE:
+      return "Average";
+    case ATTACK_SPEED_FAST_1:
+      return "Fast 1";
+    case ATTACK_SPEED_FAST_2:
+      return "Fast 2";
+    case ATTACK_SPEED_FASTER:
+      return "Faster";
+    case ATTACK_SPEED_FASTEST_1:
+      return "Fastest 1";
+    case ATTACK_SPEED_FASTEST_2:
+      return "Fastest 2";
+    case ATTACK_SPEED_FASTEST_3:
+      return "Fastest 3";
+    default:
+      return "";
+  }
+}
+
 std::string FormatEquipType(EquipType type) {
   switch (type) {
     case EQUIP_TYPE_ONE_HANDED_SWORD:
