@@ -1,0 +1,6 @@
+name: "Big Boulder Muncher"
+level: 35
+attack: 163
+max_hp: 2800
+exp: 95
+drops { item: "fragmented_ore" per_kill: 0.4 }

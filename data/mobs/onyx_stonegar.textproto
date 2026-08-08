@@ -1,0 +1,6 @@
+name: "Onyx Stonegar"
+level: 40
+attack: 213
+max_hp: 7892
+exp: 149
+drops { item: "onyx_stonegar_piece" per_kill: 0.4 }

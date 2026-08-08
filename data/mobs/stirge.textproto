@@ -1,0 +1,6 @@
+name: "Stirge"
+level: 43
+attack: 257
+max_hp: 4400
+exp: 127
+drops { item: "stirge_wing" per_kill: 0.4 }

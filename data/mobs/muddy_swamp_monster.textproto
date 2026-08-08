@@ -1,0 +1,6 @@
+name: "Muddy Swamp Monster"
+level: 49
+attack: 247
+max_hp: 5760
+exp: 151
+drops { item: "mud_clump" per_kill: 0.4 }

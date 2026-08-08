@@ -1,0 +1,6 @@
+name: "Wild Boar"
+level: 55
+attack: 346
+max_hp: 8000
+exp: 187
+drops { item: "wild_boar_tooth" per_kill: 0.4 }
