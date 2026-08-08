@@ -1,0 +1,24 @@
+# GMS runs it over 20 levels at 141+8x with 2 attacks; here it is the same
+# climb in half the steps, ending where GMS ends.
+#
+# The one attack in this book that is fire, and the only reason the tag
+# exists: Ignite follows it and leaves Poison Breath alone.
+#
+# The cooldown is not a cost. It is barely half a swing, so the other half of
+# the pair is always ready to fill it -- which is what makes the two alternate
+# rather than the better one being cast forever. See fight.h.
+name: "Flame Orb"
+skill_order: 1
+description:
+  "Rolls a burning orb through the enemies in front of you. A fire spell, so "
+  "Ignite follows it."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_FIRE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+max_level: 10
+base_delay_ms: 720
+max_enemies: 6
+lines: 2
+cooldown_seconds: 0.5
+base { skill_pct: 1.48 }
+per_level { skill_pct: 0.17 }

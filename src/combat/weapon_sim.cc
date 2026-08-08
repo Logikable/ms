@@ -77,6 +77,8 @@ std::string BranchName(Job job) {
       return "Crossbowman";
     case JOB_ICE_LIGHTNING_WIZARD:
       return "I/L Wizard";
+    case JOB_FIRE_POISON_WIZARD:
+      return "F/P Wizard";
     default:
       return "?";
   }
@@ -90,6 +92,7 @@ Job FirstJobFor(Job branch) {
     case JOB_CROSSBOWMAN:
       return JOB_ARCHER;
     case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
       return JOB_MAGICIAN;
     default:
       return JOB_SWORDMAN;
@@ -106,6 +109,7 @@ StatField PrimaryStatFor(Job job) {
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
       return STAT_FIELD_LUK;
@@ -382,6 +386,7 @@ void Run(int level) {
       {JOB_HUNTER, "asianic_bow"},
       {JOB_CROSSBOWMAN, "golden_crow"},
       {JOB_ICE_LIGHTNING_WIZARD, "frantic_crow_staff"},
+      {JOB_FIRE_POISON_WIZARD, "frantic_crow_staff"},
   };
 
   std::printf(

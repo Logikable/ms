@@ -9,7 +9,7 @@ name: "Quiver Cartridge"
 skill_order: 2
 description:
   "Tips your quiver so some of what you loose splits off and chases down "
-  "whatever you were aiming at."
+  "everything the shot reached."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 10

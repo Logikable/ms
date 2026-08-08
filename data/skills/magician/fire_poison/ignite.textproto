@@ -1,0 +1,25 @@
+# GMS leaves a wall of fire standing for a few seconds, striking on its own
+# clock. Nothing here lives on the ground, so it is what the wall is worth:
+# a Final Attack behind the fire spell that lit it, on GMS's own figures --
+# a (10+4x)% chance of three hits of (30+x)%, folded into the one percent a
+# Final Attack is stated as.
+#
+# follows_skill_tag is what keeps it off Poison Breath, which is the whole
+# point of the skill.
+name: "Ignite"
+skill_order: 6
+description:
+  "Your fire spells leave the ground burning, with a chance to catch every "
+  "enemy they hit."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+max_level: 10
+follows_skill_tag: SKILL_TAG_FIRE
+base {
+  final_attack_chance: 0.14
+  final_attack_pct: 0.93
+}
+per_level {
+  final_attack_chance: 0.04
+  final_attack_pct: 0.03
+}

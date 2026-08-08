@@ -3,8 +3,8 @@
 name: "Final Attack"
 skill_order: 7
 description:
-  "A chance for every swing to be followed by a second blow at whatever is "
-  "in front of you. Needs a spear or a polearm in hand."
+  "A chance for every swing to be followed by a second blow, rolled against "
+  "each enemy it reached. Needs a spear or a polearm in hand."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 20

@@ -3,8 +3,8 @@
 name: "Final Attack: Crossbow"
 skill_order: 5
 description:
-  "A chance for every shot to be followed by a second bolt at whatever is "
-  "in front of you. Needs a crossbow in hand."
+  "A chance for every shot to be followed by a second bolt, rolled against "
+  "each enemy it reached. Needs a crossbow in hand."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20

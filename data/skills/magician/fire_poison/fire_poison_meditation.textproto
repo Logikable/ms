@@ -1,0 +1,13 @@
+# A party buff on a timer in GMS, at 10+x magic attack. There is no party and
+# nothing runs out here, so the wizard simply keeps it.
+#
+# GMS asks for MP Eater Lv. 3 first. MP Eater is not in this book -- nothing
+# spends MP -- so the requirement would name a skill that does not exist.
+name: "Meditation"
+skill_order: 4
+description: "Increases Magic Attack."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+max_level: 20
+base { magic_attack: 11 }
+per_level { magic_attack: 1 }

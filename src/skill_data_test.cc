@@ -86,12 +86,17 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   // and a folder that stopped being read would take a whole advancement out of
   // the map, leaving the rest to sum correctly and the check to pass on the
   // others while one job had no book at all.
-  const JobAdvancement kWritten[] = {
-      JOB_ADVANCEMENT_SWORDMAN,    JOB_ADVANCEMENT_ARCHER,
-      JOB_ADVANCEMENT_MAGICIAN,    JOB_ADVANCEMENT_ROGUE,
-      JOB_ADVANCEMENT_SPEARMAN,    JOB_ADVANCEMENT_FIGHTER,
-      JOB_ADVANCEMENT_PAGE,        JOB_ADVANCEMENT_HUNTER,
-      JOB_ADVANCEMENT_CROSSBOWMAN, JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD};
+  const JobAdvancement kWritten[] = {JOB_ADVANCEMENT_SWORDMAN,
+                                     JOB_ADVANCEMENT_ARCHER,
+                                     JOB_ADVANCEMENT_MAGICIAN,
+                                     JOB_ADVANCEMENT_ROGUE,
+                                     JOB_ADVANCEMENT_SPEARMAN,
+                                     JOB_ADVANCEMENT_FIGHTER,
+                                     JOB_ADVANCEMENT_PAGE,
+                                     JOB_ADVANCEMENT_HUNTER,
+                                     JOB_ADVANCEMENT_CROSSBOWMAN,
+                                     JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD,
+                                     JOB_ADVANCEMENT_FIRE_POISON_WIZARD};
   for (JobAdvancement advancement : kWritten) {
     EXPECT_TRUE(cost_by_advancement.count(advancement))
         << "advancement " << advancement << " has no skills at all";
@@ -298,11 +303,17 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
 // the same character.
 TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
   std::map<std::string, Skill> skills = LoadSkills();
-  const Job kJobs[] = {JOB_SWORDMAN,    JOB_FIGHTER,
-                       JOB_PAGE,        JOB_SPEARMAN,
-                       JOB_ARCHER,      JOB_MAGICIAN,
-                       JOB_ROGUE,       JOB_HUNTER,
-                       JOB_CROSSBOWMAN, JOB_ICE_LIGHTNING_WIZARD};
+  const Job kJobs[] = {JOB_SWORDMAN,
+                       JOB_FIGHTER,
+                       JOB_PAGE,
+                       JOB_SPEARMAN,
+                       JOB_ARCHER,
+                       JOB_MAGICIAN,
+                       JOB_ROGUE,
+                       JOB_HUNTER,
+                       JOB_CROSSBOWMAN,
+                       JOB_ICE_LIGHTNING_WIZARD,
+                       JOB_FIRE_POISON_WIZARD};
   for (Job job : kJobs) {
     std::map<std::string, std::string> stem_by_name;
     // Every stage the job has a book at. Two is what exists; a stage past the

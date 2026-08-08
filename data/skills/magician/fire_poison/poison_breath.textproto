@@ -1,0 +1,20 @@
+# GMS deals 130+5x% six times and then poisons for a while on top. Nothing
+# here damages over time, so the poison is rolled into the hit and the whole
+# thing cut to fit: six attacks of 69% climbing to 105%.
+#
+# Same cooldown as Flame Orb, so the two trade the swing evenly. Its animation
+# is the longer of the pair, which is what keeps it from simply winning.
+name: "Poison Breath"
+skill_order: 3
+description:
+  "Breathes a cloud of poison over the enemies in front of you, eating "
+  "through them as it goes."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+max_level: 10
+base_delay_ms: 780
+max_enemies: 6
+lines: 6
+cooldown_seconds: 0.5
+base { skill_pct: 0.69 }
+per_level { skill_pct: 0.04 }

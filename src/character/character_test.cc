@@ -443,11 +443,12 @@ TEST(JobChoicesTest, AnArcherIsOfferedBothBowmanBranches) {
             (std::vector<Job>{JOB_HUNTER, JOB_CROSSBOWMAN}));
 }
 
-// One of the magician's three, so far. Fire/Poison and Cleric are unwritten,
-// and an empty seat would offer a choice that is not there.
-TEST(JobChoicesTest, AMagicianIsOfferedTheOneWizardBranchWritten) {
-  EXPECT_EQ(JobChoicesForStage(JOB_MAGICIAN, 2),
-            (std::vector<Job>{JOB_ICE_LIGHTNING_WIZARD}));
+// Two of the magician's three. Cleric is unwritten, and an empty seat would
+// offer a choice that is not there.
+TEST(JobChoicesTest, AMagicianIsOfferedTheWizardBranchesWritten) {
+  EXPECT_EQ(
+      JobChoicesForStage(JOB_MAGICIAN, 2),
+      (std::vector<Job>{JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD}));
 }
 
 TEST(JobChoicesTest, TheRogueHasNoSecondJobYet) {

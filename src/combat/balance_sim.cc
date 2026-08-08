@@ -77,6 +77,7 @@ StatField PrimaryStatFor(Job job) {
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
       return STAT_FIELD_LUK;

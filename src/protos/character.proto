@@ -28,9 +28,11 @@ enum Job {
   // already holds does not decide it for them.
   JOB_HUNTER = 9;
   JOB_CROSSBOWMAN = 10;
-  // The magician's 2nd advancement. Named for the pair of elements it casts;
-  // the game shows it as "I/L Wizard" everywhere the full name will not fit.
+  // The magician's 2nd advancements. Named for the pair of elements each
+  // casts; the game shows them as "I/L Wizard" and "F/P Wizard" everywhere the
+  // full name will not fit.
   JOB_ICE_LIGHTNING_WIZARD = 11;
+  JOB_FIRE_POISON_WIZARD = 12;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -49,6 +51,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_HUNTER = 8;
   JOB_ADVANCEMENT_CROSSBOWMAN = 9;
   JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD = 10;
+  JOB_ADVANCEMENT_FIRE_POISON_WIZARD = 11;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

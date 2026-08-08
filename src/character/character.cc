@@ -117,6 +117,7 @@ LevelUpGain LevelUpGainFor(Job job) {
       return {48, 12};
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
       return {12, 48};
     default:
       return {36, 24};
@@ -138,6 +139,7 @@ EquipJobCategory JobToCategory(Job job) {
       return EQUIP_JOB_CATEGORY_BOWMAN;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
     case JOB_ROGUE:
       return EQUIP_JOB_CATEGORY_THIEF;
@@ -212,6 +214,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_ARCHER;
       case JOB_MAGICIAN:
       case JOB_ICE_LIGHTNING_WIZARD:
+      case JOB_FIRE_POISON_WIZARD:
         return JOB_ADVANCEMENT_MAGICIAN;
       case JOB_ROGUE:
         return JOB_ADVANCEMENT_ROGUE;
@@ -233,6 +236,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_CROSSBOWMAN;
       case JOB_ICE_LIGHTNING_WIZARD:
         return JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD;
+      case JOB_FIRE_POISON_WIZARD:
+        return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
       default:
         break;
     }
@@ -262,6 +267,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_CROSSBOWMAN;
     case JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD:
       return JOB_ICE_LIGHTNING_WIZARD;
+    case JOB_ADVANCEMENT_FIRE_POISON_WIZARD:
+      return JOB_FIRE_POISON_WIZARD;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -313,6 +320,7 @@ StatField PrimaryStatField(Job job) {
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
       return STAT_FIELD_LUK;
@@ -336,10 +344,10 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 2 && job == JOB_ARCHER) {
     return {JOB_HUNTER, JOB_CROSSBOWMAN};
   }
-  // One branch so far. Fire/Poison and Cleric are not written yet, and an
-  // empty seat in the picker would offer a choice that is not there.
+  // Two of the three. Cleric is not written yet, and an empty seat in the
+  // picker would offer a choice that is not there.
   if (stage == 2 && job == JOB_MAGICIAN) {
-    return {JOB_ICE_LIGHTNING_WIZARD};
+    return {JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD};
   }
   return {};
 }
@@ -357,6 +365,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_HUNTER:
     case JOB_ADVANCEMENT_CROSSBOWMAN:
     case JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD:
+    case JOB_ADVANCEMENT_FIRE_POISON_WIZARD:
       return 2;
     default:
       return 0;

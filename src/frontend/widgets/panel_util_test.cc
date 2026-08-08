@@ -877,9 +877,11 @@ TEST(JobNameTest, EveryJobHasAShortName) {
   }
 }
 
-TEST(JobNameTest, TheWizardIsSpelledOutInFullAndAbbreviated) {
+TEST(JobNameTest, TheWizardsAreSpelledOutInFullAndAbbreviated) {
   EXPECT_EQ(JobName(JOB_ICE_LIGHTNING_WIZARD), "Ice/Lightning Wizard");
   EXPECT_EQ(ShortJobName(JOB_ICE_LIGHTNING_WIZARD), "I/L Wizard");
+  EXPECT_EQ(JobName(JOB_FIRE_POISON_WIZARD), "Fire/Poison Wizard");
+  EXPECT_EQ(ShortJobName(JOB_FIRE_POISON_WIZARD), "F/P Wizard");
   EXPECT_EQ(ShortJobName(JOB_SPEARMAN), "Spearman");
 }
 

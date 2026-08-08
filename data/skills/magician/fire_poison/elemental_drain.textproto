@@ -1,0 +1,11 @@
+# GMS reads the damage-over-time effects on nearby enemies and pays final
+# damage for each of them. Nothing here burns or poisons over time, so there is
+# nothing to count -- what is left is the final damage, held permanently.
+name: "Elemental Drain"
+skill_order: 2
+description: "What your magic leaves burning in an enemy feeds the next spell."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
+max_level: 10
+base { final_dmg_pct: 0.015 }
+per_level { final_dmg_pct: 0.015 }
