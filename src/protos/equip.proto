@@ -53,6 +53,12 @@ enum EquipSlot {
   // beside a sword; stars are ammunition a claw draws from, so they get a slot
   // of their own that a shield will never compete for.
   EQUIP_SLOT_STARS = 2;
+  // The off hand: a shield beside a one-handed weapon, or one of the per-class
+  // secondaries -- a Shadower's dagger scabbard, an archer's arrow pouch.
+  // Nothing in the catalog goes here yet. The slot exists because Shield
+  // Mastery is written against it and grants nothing until it is filled; see
+  // Skill.requires_secondary.
+  EQUIP_SLOT_SECONDARY = 3;
 }
 
 // A way an item can be made stronger after it drops. Listed on a prototype

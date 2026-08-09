@@ -265,6 +265,10 @@ class CharacterInstance {
   // The type of weapon in hand, or EQUIP_TYPE_UNSPECIFIED with the slot empty.
   // What the skills that demand a particular weapon are asked against.
   EquipType weapon_type() const;
+  // Whether anything is worn in the secondary slot. Nothing in the catalog
+  // goes there yet, so this is false for every shipped character -- see
+  // Skill.requires_secondary, which waits on it.
+  bool has_secondary() const;
 
  private:
   // Recomputes equip_stats_ from the current equipped map.

@@ -581,6 +581,10 @@ EquipType CharacterInstance::weapon_type() const {
                                    : EQUIP_TYPE_UNSPECIFIED;
 }
 
+bool CharacterInstance::has_secondary() const {
+  return equipped_.find(EQUIP_SLOT_SECONDARY) != equipped_.end();
+}
+
 bool CharacterInstance::AttackCounts(const EquipPrototype& proto) const {
   if (proto.equip_type() != EQUIP_TYPE_THROWING_STAR) {
     return true;

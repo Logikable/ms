@@ -78,6 +78,12 @@ struct DerivedStats {
 // that names no weapon type, which is most of them.
 bool SkillAllowsWeapon(const Skill& skill, EquipType weapon);
 
+// Whether the character is carrying everything `skill` demands: the weapon
+// type it names, and something in the secondary slot if it asks for one. A
+// skill whose demand is unmet stays learned -- it is the effect that lapses,
+// and it comes back with the right gear on.
+bool SkillGearMet(const CharacterInstance& character, const Skill& skill);
+
 // `skills` is the loaded skill catalog; every passive in it the character has
 // learned contributes its level's effect. Attack skills are ignored -- their
 // lever is damage, which OffenseStatsFor handles.

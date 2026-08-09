@@ -801,5 +801,28 @@ TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 
+// Shield Mastery asks for a filled off hand rather than a weapon type. Nothing
+// in the catalog goes there yet, so what this pins is that the skill waits for
+// one rather than granting anyway.
+TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheSecondaryItNames) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill training = PhysicalTraining();
+  training.set_requires_secondary(true);
+  std::map<std::string, Skill> skills = {{"physical_training", training}};
+  ASSERT_TRUE(c.LearnSkill(training, 5));
+  EquipWeapon(c, EQUIP_TYPE_DAGGER);
+
+  ASSERT_FALSE(c.has_secondary());
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 0);
+
+  EquipPrototype scabbard;
+  scabbard.set_name("Dagger Scabbard");
+  scabbard.set_equip_slot(EQUIP_SLOT_SECONDARY);
+  c.PickUp(std::make_unique<EquipInstance>(scabbard));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  ASSERT_TRUE(c.has_secondary());
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
+}
+
 }  // namespace
 }  // namespace ms

@@ -163,10 +163,10 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
         !character.HasAdvancement(skill.job_advancement())) {
       continue;
     }
-    // A passive that demands a weapon grants nothing while another is held --
-    // Final Attack does not fire off a wand. The skill stays learned; it is
-    // the effect that lapses, and comes back with the right weapon in hand.
-    if (!SkillAllowsWeapon(skill, weapon)) {
+    // A passive that demands gear grants nothing without it -- Final Attack
+    // does not fire off a wand, and Shield Mastery does nothing with an empty
+    // off hand. The skill stays learned; it is the effect that lapses.
+    if (!SkillGearMet(character, skill)) {
       continue;
     }
     int level = character.skill_level(skill);
@@ -189,6 +189,13 @@ int FoldPool(int flat, double pct) {
 
 bool SkillAllowsWeapon(const Skill& skill, EquipType weapon) {
   return ListAllowsWeapon(skill.required_equip_type(), weapon);
+}
+
+bool SkillGearMet(const CharacterInstance& character, const Skill& skill) {
+  if (skill.requires_secondary() && !character.has_secondary()) {
+    return false;
+  }
+  return SkillAllowsWeapon(skill, character.weapon_type());
 }
 
 DerivedStats DerivedStatsFor(const CharacterInstance& character,

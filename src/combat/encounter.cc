@@ -166,10 +166,10 @@ bool Swingable(const GameState& state, const Skill& skill,
   if (!state.character.HasAdvancement(skill.job_advancement())) {
     return false;
   }
-  // A skill the weapon in hand cannot swing is no option, however well
-  // learned. The bare poke always is, so the character is never left with
-  // nothing to attack with.
-  return SkillAllowsWeapon(skill, weapon_type);
+  // A skill the gear in hand cannot swing is no option, however well learned.
+  // The bare poke always is, so the character is never left with nothing to
+  // attack with.
+  return SkillGearMet(state.character, skill);
 }
 
 // Every attack the character could swing: the bare poke first, then one per

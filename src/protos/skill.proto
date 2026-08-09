@@ -197,6 +197,10 @@ message Skill {
   // that names them stops granting anything without one, which is how Final
   // Attack demands a sword or an axe.
   repeated EquipType required_equip_type = 9;
+  // Whether this skill needs the secondary slot filled. Nothing in the catalog
+  // fills it yet, so a skill asking for one is learnable and grants nothing --
+  // which is what Shield Mastery does until secondaries are written.
+  bool requires_secondary = 21;
   // The swings this skill's Final Attack follows: only an attack carrying this
   // tag sets it off. Unset means every swing does, which is what the warriors'
   // and archers' Final Attacks want -- they are about the weapon in hand, and
