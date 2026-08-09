@@ -159,6 +159,7 @@ cc_binary(
     deps = [
         ":meso_curve",
         ":sim_format",
+        ":spell_trace_cost",
         "//src:embedded_data",
         "//src:proto_loader",
         "//src/item:equip_instance",
@@ -168,4 +169,11 @@ cc_binary(
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",
     ],
+)
+
+cc_library(
+    name = "spell_trace_cost",
+    srcs = ["spell_trace_cost.cc"],
+    hdrs = ["spell_trace_cost.h"],
+    deps = ["@abseil-cpp//absl/log"],
 )
