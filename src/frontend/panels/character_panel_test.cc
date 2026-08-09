@@ -444,7 +444,7 @@ TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
 
   // 4 * 1000 STR * 500 ATT / 100 = 20000, halved toward the mastery floor.
   CharacterPanel panel(c, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find("Combat Power 11,500"),
+  EXPECT_NE(RenderElement(panel.Render()).find("Combat Power 11,701"),
             std::string::npos);
 }
 
@@ -466,7 +466,7 @@ TEST_F(CharacterPanelTest, CombatPowerShortensItsLabelPastSixFigures) {
   // Past 999,999 the words go and the number stays.
   CharacterPanel panel(c, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
-  EXPECT_NE(rendered.find("CP 1,150,0"), std::string::npos);
+  EXPECT_NE(rendered.find("CP 1,170,1"), std::string::npos);
   EXPECT_EQ(rendered.find("Combat Power"), std::string::npos);
 }
 
@@ -1297,15 +1297,20 @@ TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {
   CharacterPanel panel(c, panel_focus_, catalog);
   EXPECT_EQ(StatValue(panel.Render(), "Damage"), "7.50%");
   EXPECT_EQ(StatValue(panel.Render(), "Final Damage"), "5.00%");
-  EXPECT_EQ(StatValue(panel.Render(), "Critical Rate"), "20.00%");
-  EXPECT_EQ(StatValue(panel.Render(), "Critical Damage"), "2.50%");
+  // The base 5% and 35% every character carries, with the skill's on top.
+  EXPECT_EQ(StatValue(panel.Render(), "Critical Rate"), "25.00%");
+  EXPECT_EQ(StatValue(panel.Render(), "Critical Damage"), "37.50%");
 }
 
-TEST_F(CharacterPanelTest, TheLeversReadZeroWithNoSkillsBehindThem) {
+// The levers a skill has to buy read zero; the two every character is born
+// with read what they are born with.
+TEST_F(CharacterPanelTest, TheLeversReadZeroButCritReadsItsBase) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, panel_focus_);
   EXPECT_EQ(StatValue(panel.Render(), "Damage"), "0.00%");
-  EXPECT_EQ(StatValue(panel.Render(), "Critical Rate"), "0.00%");
+  EXPECT_EQ(StatValue(panel.Render(), "Final Damage"), "0.00%");
+  EXPECT_EQ(StatValue(panel.Render(), "Critical Rate"), "5.00%");
+  EXPECT_EQ(StatValue(panel.Render(), "Critical Damage"), "35.00%");
 }
 
 TEST_F(CharacterPanelTest, AttackSpeedNamesTheStageTheWeaponIsSwungAt) {

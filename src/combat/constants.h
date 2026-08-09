@@ -19,6 +19,13 @@ constexpr double kRespawnIntervalSeconds = 7.56;
 // units of this. Not a simulation tick -- nothing here is stepped by it.
 constexpr int kTickMs = 30;
 
+// What every character crits at before a single skill is bought: GMS gives
+// them a 5% chance and a 35% bonus when it lands. Both are shown on the stats
+// page rather than folded away, so a skill adding to either reads as adding to
+// a number the player can already see.
+constexpr double kBaseCritRate = 0.05;
+constexpr double kBaseCritDamage = 0.35;
+
 }  // namespace ms
 
 #endif  // MS_SRC_COMBAT_CONSTANTS_H_

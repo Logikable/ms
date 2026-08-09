@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "src/combat/constants.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/mob.pb.h"
@@ -24,6 +25,10 @@ Mob MakeMob(int pdr = 0, bool boss = false, int level = 0) {
 // both sit at level 0, so every ExpectedAttackDamage below carries this factor.
 constexpr double kEqualLevel = 1.1;
 
+// What the base crit pair is worth to a character who has bought neither.
+// Every figure below carries it, the level multiplier included.
+constexpr double kBaseCrit = 1.0 + kBaseCritRate * kBaseCritDamage;
+
 class OffenseTest : public ::testing::Test {
  protected:
   // Only primary/secondary/attack set; every modifier at identity (mastery at
@@ -40,43 +45,50 @@ class OffenseTest : public ::testing::Test {
 
 TEST_F(OffenseTest, BaselineUsesStatAttackAndMastery) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob()),
-                   25.875 * kEqualLevel);
+                   25.875 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, FullMasteryRemovesMinFloor) {
   OffenseStats s = Baseline();
   s.mastery = 1.0;  // min == max, so expected == max base.
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 45.0 * kEqualLevel);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   45.0 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, SkillPctScalesLinearly) {
   OffenseStats s = Baseline();
   s.skill_pct = 2.0;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 51.75 * kEqualLevel);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   51.75 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, LinesMultiplyDamage) {
   OffenseStats s = Baseline();
   s.lines = 3;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 77.625 * kEqualLevel);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   77.625 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, DamagePctIsAdditive) {
   OffenseStats s = Baseline();
   s.damage_pct = 0.20;  // *1.2
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 31.05 * kEqualLevel);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   31.05 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, BossPctAppliesOnlyToBosses) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.50;
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875 * kEqualLevel);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   25.875 * kEqualLevel * kBaseCrit);
 }
 
-TEST_F(OffenseTest, CritIncludesHiddenBaseCritDamage) {
+// A rate of 1 is already every swing, so the base 5% has nowhere to go and the
+// figure carries the base bonus alone rather than kBaseCrit on top of it.
+TEST_F(OffenseTest, ARateOfOneCritsEverySwingAndNoMore) {
   OffenseStats s = Baseline();
-  s.crit_rate = 1.0;  // always crit
-  s.crit_dmg = 0.0;   // only the hidden 0.35 base applies
+  s.crit_rate = 1.0;
+  s.crit_dmg = 0.0;  // only the 0.35 base bonus applies
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
                    25.875 * 1.35 * kEqualLevel);
 }
@@ -85,43 +97,44 @@ TEST_F(OffenseTest, FinalDamageMultiplies) {
   OffenseStats s = Baseline();
   s.final_dmg_pct = 0.10;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   25.875 * 1.10 * kEqualLevel);
+                   25.875 * 1.10 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, TheWeaponConstantScalesTheWholeHit) {
   OffenseStats s = Baseline();
   s.weapon_constant = 1.44;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   25.875 * 1.44 * kEqualLevel);
+                   25.875 * 1.44 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, MobDefenseReducesDamage) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(30)),
-                   25.875 * 0.70 * kEqualLevel);
+                   25.875 * 0.70 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, IedNegatesMobDefense) {
   OffenseStats s = Baseline();
   s.ied = 1.0;  // fully ignore the 30% PDR
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(30)), 25.875 * kEqualLevel);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(30)),
+                   25.875 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, BossesTakeHalfElementalByDefault) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, true)),
-                   25.875 * 0.5 * kEqualLevel);
+                   25.875 * 0.5 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, IerRestoresBossElemental) {
   OffenseStats s = Baseline();
   s.ier = 1.0;  // 0.5*(1+1) == 1.0
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
-                   25.875 * kEqualLevel);
+                   25.875 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, LevelMultiplierAppliesToOutput) {
   // Attacker at level 0 against a level-5 mob: 5 levels under -> 0.88 penalty.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, false, 5)),
-                   25.875 * 0.88);
+                   25.875 * 0.88 * kBaseCrit);
 }
 
 TEST_F(OffenseTest, FortyLevelsUnderFloorsToOneDamage) {
@@ -131,26 +144,28 @@ TEST_F(OffenseTest, FortyLevelsUnderFloorsToOneDamage) {
 }
 
 TEST_F(OffenseTest, CombatPowerIsTheDamageChainWithoutATarget) {
-  // The same 25.875 the baseline swing produces, floored -- no mob, so no
-  // level multiplier and no defense.
-  EXPECT_EQ(CombatPower(Baseline()), 25);
+  // The same 25.875 the baseline swing produces, with the base crit pair and
+  // floored -- no mob, so no level multiplier and no defense.
+  EXPECT_EQ(CombatPower(Baseline()), 26);
 }
 
 TEST_F(OffenseTest, CombatPowerAlwaysCountsBossDamage) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.6;
   // A swing at an ordinary mob ignores this entirely; combat power does not.
-  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()), 25.875 * kEqualLevel);
-  EXPECT_EQ(CombatPower(s), 41);  // 25.875 * 1.6
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   25.875 * kEqualLevel * kBaseCrit);
+  EXPECT_EQ(CombatPower(s), 42);  // 25.875 * 1.6 * kBaseCrit
 }
 
 TEST_F(OffenseTest, CombatPowerWeightsCritDamageByItsRate) {
   OffenseStats s = Baseline();
   s.crit_rate = 0.5;
   s.crit_dmg = 0.25;
-  // 25.875 * (1 + 0.5 * (0.25 + 0.35)) = 33.6375. GMS's flat 1.35 + 0.25 would
-  // read 41 here, pricing the crit damage as though every swing crit.
-  EXPECT_EQ(CombatPower(s), 33);
+  // 25.875 * (1 + 0.55 * (0.25 + 0.35)) = 34.41 -- the rate carrying the base
+  // 5% with it. GMS's flat 1.35 + 0.25 would read 41 here, pricing the crit
+  // damage as though every swing crit.
+  EXPECT_EQ(CombatPower(s), 34);
 }
 
 TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
@@ -165,7 +180,7 @@ TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
 TEST_F(OffenseTest, CombatPowerCountsTheWeaponConstant) {
   OffenseStats s = Baseline();
   s.weapon_constant = 1.49;
-  EXPECT_EQ(CombatPower(s), 38);  // 25.875 * 1.49
+  EXPECT_EQ(CombatPower(s), 39);  // 25.875 * 1.49 * kBaseCrit
 }
 
 TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {

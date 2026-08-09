@@ -9,6 +9,7 @@
 
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
+#include "src/combat/constants.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
@@ -65,8 +66,14 @@ std::vector<StatLine> CombatStatLines(
   if (with_percents) {
     lines.push_back({"Damage", Percent(derived.damage_pct)});
     lines.push_back({"Final Damage", Percent(derived.final_dmg_pct)});
-    lines.push_back({"Critical Rate", Percent(derived.crit_rate)});
-    lines.push_back({"Critical Damage", Percent(derived.crit_dmg)});
+    // The base pair every character carries, plus what they bought. The stats
+    // a skill writes to hold only its own contribution, so a page reading
+    // 0.00% for both would be telling a character with a 5% chance of a 35%
+    // bonus that they never crit at all.
+    lines.push_back(
+        {"Critical Rate", Percent(kBaseCritRate + derived.crit_rate)});
+    lines.push_back(
+        {"Critical Damage", Percent(kBaseCritDamage + derived.crit_dmg)});
   }
   lines.push_back(
       {"Attack Speed",

@@ -108,8 +108,18 @@ TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
   std::vector<StatLine> lines = ExtraStatLines(c, skills);
   EXPECT_EQ(ValueOf(lines, "Damage"), "7.50%");
   EXPECT_EQ(ValueOf(lines, "Final Damage"), "5.00%");
-  EXPECT_EQ(ValueOf(lines, "Critical Rate"), "20.00%");
-  EXPECT_EQ(ValueOf(lines, "Critical Damage"), "2.50%");
+  // Crit carries the base pair every character has under the skill's own.
+  EXPECT_EQ(ValueOf(lines, "Critical Rate"), "25.00%");
+  EXPECT_EQ(ValueOf(lines, "Critical Damage"), "37.50%");
+}
+
+// A character who has bought nothing still crits: the page says so rather
+// than reading 0.00% at a character with a one-in-twenty chance of +35%.
+TEST_F(StatRowsTest, CritReadsItsBaseWithNothingBehindIt) {
+  CharacterInstance c = MakeWarrior();
+  std::vector<StatLine> lines = ExtraStatLines(c, {});
+  EXPECT_EQ(ValueOf(lines, "Critical Rate"), "5.00%");
+  EXPECT_EQ(ValueOf(lines, "Critical Damage"), "35.00%");
 }
 
 TEST_F(StatRowsTest, AttackSpeedNamesTheStageOrDashesWithNoWeapon) {

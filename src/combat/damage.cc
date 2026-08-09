@@ -12,10 +12,6 @@
 namespace ms {
 namespace {
 
-// Hidden base crit damage not shown in the stat menu; total crit damage is this
-// plus the displayed bonus.
-constexpr double kBaseCritDamage = 0.35;
-
 // Bosses take half elemental damage by default; ignore-elemental-resistance
 // claws it back via 0.5 * (1 + ier).
 constexpr double kBossElementalBase = 0.5;
@@ -122,6 +118,15 @@ constexpr double kDefEffectivenessFloor = 0.50;
 constexpr double kMinRollAttack = 0.85;
 constexpr double kMinRollDefCap = 0.68;
 constexpr double kMaxRollDefCap = 0.80;
+
+// What crit is worth to a swing on average: the share of swings that crit,
+// times what a crit adds. Both halves carry the base every character has, so a
+// character who has bought neither still crits sometimes -- and a rate can
+// never pass 1, however much a skill adds to it.
+double CritFactor(const OffenseStats& offense) {
+  double rate = std::min(1.0, offense.crit_rate + kBaseCritRate);
+  return rate * (offense.crit_dmg + kBaseCritDamage);
+}
 
 // A hit always costs at least a point of HP, however thoroughly DEF cancelled
 // the attack behind it, exactly as GMS does. The tenth of the pool a respawn
@@ -290,7 +295,7 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
 
   damage *= offense.lines * offense.skill_pct;
   damage *= 1.0 + offense.damage_pct + (is_boss ? offense.boss_pct : 0.0);
-  damage *= 1.0 + offense.crit_rate * (offense.crit_dmg + kBaseCritDamage);
+  damage *= 1.0 + CritFactor(offense);
   damage *= 1.0 + offense.final_dmg_pct;
   damage *= 1.0 - mob_pdr * (1.0 - offense.ied);
   if (is_boss) {
@@ -327,7 +332,7 @@ int CombatPower(const OffenseStats& offense) {
   double power = stat_value * offense.attack / 100.0 * offense.weapon_constant;
   power *= (1.0 + offense.mastery) / 2.0;
   power *= 1.0 + offense.damage_pct + offense.boss_pct;
-  power *= 1.0 + offense.crit_rate * (offense.crit_dmg + kBaseCritDamage);
+  power *= 1.0 + CritFactor(offense);
   power *= 1.0 + offense.final_dmg_pct;
   return static_cast<int>(std::floor(power));
 }
