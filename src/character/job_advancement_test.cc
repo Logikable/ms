@@ -65,10 +65,8 @@ std::vector<Advanceable> AdvanceableJobs() {
 TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
   for (const Advanceable& entry : AdvanceableJobs()) {
     std::vector<std::string> names = StarterEquipsFor(entry.job);
-    if (entry.stage == 1) {
-      EXPECT_FALSE(names.empty())
-          << Job_Name(entry.job) << " advances with no weapon";
-    }
+    EXPECT_FALSE(names.empty())
+        << Job_Name(entry.job) << " advances with nothing";
     for (const std::string& name : names) {
       EXPECT_NE(state_.equips.find(name), state_.equips.end())
           << name << " is not in data/equip";
@@ -76,16 +74,20 @@ TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
   }
 }
 
-// A 2nd job buys its own weapon. It arrives already armed and able to afford
-// the tier, and the shop stocks all of it -- so the handout the 1st jobs get
-// would only be taking the choice away.
-TEST_F(JobAdvancementTest, ASecondJobAdvancesEmptyHanded) {
+// A 2nd job is handed one thing, and it is not a weapon: it arrives armed and
+// able to afford the tier, so a free weapon would take the choice of which to
+// buy away. The off-hand is different -- the advancement is what opens that
+// slot, and nothing else would ever put anything in it.
+TEST_F(JobAdvancementTest, ASecondJobIsHandedItsOffHandAndNoWeapon) {
   for (const Advanceable& entry : AdvanceableJobs()) {
     if (entry.stage == 1) {
       continue;
     }
-    EXPECT_TRUE(StarterEquipsFor(entry.job).empty())
-        << Job_Name(entry.job) << " is handed a weapon it should have bought";
+    std::vector<std::string> names = StarterEquipsFor(entry.job);
+    ASSERT_EQ(names.size(), 1u)
+        << Job_Name(entry.job) << " advances with the wrong number of items";
+    EXPECT_EQ(state_.equips.at(names[0]).equip_slot(), EQUIP_SLOT_SECONDARY)
+        << Job_Name(entry.job) << " is handed something it should have bought";
   }
 }
 
@@ -100,34 +102,42 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
           {JOB_ARCHER, {EQUIP_TYPE_BOW}},
           {JOB_ROGUE,
            {EQUIP_TYPE_DAGGER, EQUIP_TYPE_THROWING_STAR, EQUIP_TYPE_CLAW}},
+          {JOB_FIGHTER, {EQUIP_TYPE_MEDALLION}},
+          {JOB_PAGE, {EQUIP_TYPE_ROSARY}},
+          {JOB_SPEARMAN, {EQUIP_TYPE_IRON_CHAIN}},
+          {JOB_HUNTER, {EQUIP_TYPE_ARROW_FLETCHING}},
+          {JOB_CROSSBOWMAN, {EQUIP_TYPE_BOW_THIMBLE}},
+          {JOB_FIRE_POISON_WIZARD, {EQUIP_TYPE_MAGIC_BOOK_FIRE_POISON}},
+          {JOB_ICE_LIGHTNING_WIZARD, {EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING}},
+          {JOB_CLERIC, {EQUIP_TYPE_MAGIC_BOOK_HOLY}},
+          {JOB_ASSASSIN, {EQUIP_TYPE_CHARM}},
+          {JOB_BANDIT, {EQUIP_TYPE_DAGGER_SCABBARD}},
       };
   return *kTypes;
 }
 
-// Existence says nothing about what the weapon IS -- a job could advance into
-// a full set of the wrong class's gear and every other test here would pass.
-TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnWeapons) {
+// Existence says nothing about what the gear IS -- a job could advance into a
+// full set of the wrong class's, or the wrong branch's, and every other test
+// here would pass.
+TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnGear) {
   for (const Advanceable& entry : AdvanceableJobs()) {
-    if (entry.stage != 1) {
-      continue;  // covered by ASecondJobAdvancesEmptyHanded
-    }
     std::multiset<EquipType> actual;
     for (const std::string& name : StarterEquipsFor(entry.job)) {
       actual.insert(state_.equips.at(name).equip_type());
     }
     EXPECT_EQ(actual, ExpectedStarterTypes().at(entry.job))
-        << Job_Name(entry.job) << " does not advance with its own weapons";
+        << Job_Name(entry.job) << " does not advance with its own gear";
   }
 }
 
-// "The weapon of the level the advancement happens at", not "a weapon that
-// level can wear": gear that drifted either way would hand over something
-// weaker than the tier, or something that cannot be held at all.
-TEST_F(JobAdvancementTest, StarterEquipsAreTheirTiersWeapons) {
+// "The gear of the level the advancement happens at", not "gear that level can
+// wear": either drift would hand over something weaker than the tier, or
+// something that cannot be held at all.
+TEST_F(JobAdvancementTest, StarterEquipsAreTheirTiers) {
   for (const Advanceable& entry : AdvanceableJobs()) {
     for (const std::string& name : StarterEquipsFor(entry.job)) {
       EXPECT_EQ(state_.equips.at(name).required_level(), entry.level)
-          << name << " is not a level " << entry.level << " weapon";
+          << name << " is not level " << entry.level << " gear";
     }
   }
 }

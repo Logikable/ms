@@ -308,9 +308,10 @@ std::vector<std::string> StarterEquipsFor(Job job) {
   // which of the two attack skills can be swung, so handing over only one
   // would quietly pick the job's build.
   //
-  // A 2nd job is handed nothing. It arrives at level 30 already armed and with
-  // meso enough for the tier, and the shop stocks every weapon under the cap --
-  // so a free one would only undercut the choice of which to buy.
+  // A 2nd job is handed its off-hand instead of a weapon. It arrives at level
+  // 30 already armed and with meso enough for the tier, so a free weapon would
+  // undercut the choice of which to buy -- but the off-hand is the slot the
+  // advancement opens, and nothing else would put anything in it.
   switch (job) {
     case JOB_SWORDMAN:
       return {"long_sword"};
@@ -320,6 +321,26 @@ std::vector<std::string> StarterEquipsFor(Job job) {
       return {"war_bow"};
     case JOB_ROGUE:
       return {"subi_throwing_stars", "fruit_knife", "garnier"};
+    case JOB_FIGHTER:
+      return {"powers_medallion"};
+    case JOB_PAGE:
+      return {"holy_rosary"};
+    case JOB_SPEARMAN:
+      return {"stark_chain"};
+    case JOB_HUNTER:
+      return {"breezy_feather"};
+    case JOB_CROSSBOWMAN:
+      return {"one_shot"};
+    case JOB_FIRE_POISON_WIZARD:
+      return {"rusty_book_strophe"};
+    case JOB_ICE_LIGHTNING_WIZARD:
+      return {"metallic_blue_book_strophe"};
+    case JOB_CLERIC:
+      return {"white_gold_book_strophe"};
+    case JOB_ASSASSIN:
+      return {"all_souls_charm"};
+    case JOB_BANDIT:
+      return {"hidden_shadow"};
     default:
       return {};
   }
