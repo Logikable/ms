@@ -641,7 +641,7 @@ TEST_F(InventoryPanelTest, StackMenuOpensOnInspect) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   panel.OpenMenu();
-  ScrollPanel sp({});
+  ScrollPanel sp(c_, {});
   EXPECT_EQ(panel.menu().selected(), kStackInspect);
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kItemInspect);
 }
@@ -685,7 +685,7 @@ TEST_F(InventoryPanelTest, UsingAnItemAppliesItsEffectAndSpendsOne) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   panel.OpenMenu();
-  ScrollPanel sp({});
+  ScrollPanel sp(c_, {});
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Use
   EXPECT_EQ(panel.menu().selected(), kStackUse);
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMain);
@@ -700,7 +700,7 @@ TEST_F(InventoryPanelTest, StackMenuSellReturnsSellScreen) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   panel.OpenMenu();
-  ScrollPanel sp({});
+  ScrollPanel sp(c_, {});
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kSell);
 }
@@ -711,7 +711,7 @@ TEST_F(InventoryPanelTest, StackMenuCloseReturnsMain) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   panel.OpenMenu();
-  ScrollPanel sp({});
+  ScrollPanel sp(c_, {});
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Inspect -> Sell
   panel.OnMenuEvent(ftxui::Event::ArrowDown, sp);  // Sell -> Close
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMain);

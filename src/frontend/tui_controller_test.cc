@@ -88,7 +88,8 @@ class TuiControllerTest : public testing::Test {
         std::make_unique<EquippedPanel>(state_->character, panel_focus_);
     inventory_panel_ =
         std::make_unique<InventoryPanel>(state_->character, panel_focus_);
-    scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
+    scroll_panel_ =
+        std::make_unique<ScrollPanel>(state_->character, state_->scrolls);
     star_force_panel_ = std::make_unique<StarForcePanel>();
     trace_recover_panel_ =
         std::make_unique<TraceRecoverPanel>(state_->character);
@@ -262,7 +263,8 @@ class TuiControllerTest : public testing::Test {
     fail.mutable_stats()->set_attack(5);
     state_->scrolls.clear();
     state_->scrolls["Fail Scroll"] = fail;
-    scroll_panel_ = std::make_unique<ScrollPanel>(state_->scrolls);
+    scroll_panel_ =
+        std::make_unique<ScrollPanel>(state_->character, state_->scrolls);
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
@@ -1331,7 +1333,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
 
   EquippedPanel equip(fresh.character, panel_focus_);
   InventoryPanel bag(fresh.character, panel_focus_);
-  ScrollPanel scroll({});
+  ScrollPanel scroll(fresh.character, {});
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
@@ -1364,7 +1366,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   GameState fresh({}, {}, {}, {}, {});
   EquippedPanel equip(fresh.character, panel_focus_);
   InventoryPanel bag(fresh.character, panel_focus_);
-  ScrollPanel scroll({});
+  ScrollPanel scroll(fresh.character, {});
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
@@ -1388,7 +1390,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   GameState fresh({}, {}, {}, {}, {});
   EquippedPanel equip(fresh.character, panel_focus_);
   InventoryPanel bag(fresh.character, panel_focus_);
-  ScrollPanel scroll({});
+  ScrollPanel scroll(fresh.character, {});
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
@@ -1412,7 +1414,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   GameState fresh({}, {}, {}, {}, {});
   EquippedPanel equip(fresh.character, panel_focus_);
   InventoryPanel bag(fresh.character, panel_focus_);
-  ScrollPanel scroll({});
+  ScrollPanel scroll(fresh.character, {});
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;

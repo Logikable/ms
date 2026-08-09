@@ -92,7 +92,7 @@ Tui::Tui(GameState& state, std::string save_path)
       combat_panel_(state, combat_sim_, panel_focus_),
       equip_panel_(state.character, panel_focus_),
       inventory_panel_(state.character, panel_focus_),
-      scroll_panel_(state.scrolls),
+      scroll_panel_(state.character, state.scrolls),
       trace_recover_panel_(state.character),
       map_select_panel_(state),
       all_stats_panel_(state.character, state.skills),

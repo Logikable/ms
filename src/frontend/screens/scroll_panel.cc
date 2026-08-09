@@ -1,6 +1,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 
 #include <algorithm>
+#include <chrono>
 #include <map>
 #include <set>
 #include <string>
@@ -11,8 +12,10 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -20,10 +23,33 @@ namespace ms {
 
 namespace {
 
-constexpr int kNameWidth = 16;
-constexpr int kRateWidth = 9;  // matches "Success %" header label width
+// The name gives up four columns and the rate two, which is what pays for the
+// Cost column. A name too long for what is left slides under it rather than
+// losing its tail.
+constexpr int kNameWidth = 12;
+constexpr int kRateWidth = 7;  // matches the "Success" header label width
+constexpr int kStatsWidth = 22;
+// Wide enough for a four-figure cost and the two columns 📜 occupies.
+constexpr int kCostWidth = 8;
+// The cost cell, right-aligned in kCostWidth columns.
+//
+// PadLeft counts bytes and the scroll glyph is four of them for two columns,
+// so the padding is worked out from the display width by hand. Getting this
+// wrong shows up as a Cost column that does not line up with its header.
+std::string CostCell(int traces) {
+  std::string digits = std::to_string(traces);
+  int shown = static_cast<int>(digits.size()) + 3;  // space + a two-column 📜
+  return std::string(std::max(0, kCostWidth - shown), ' ') + digits + " 📜";
+}
+
 // Two leading spaces match the "  " / "> " cursor the menu prepends to entries.
-constexpr char kColumnHeader[] = "  Name              Success %  Stats";
+// Built from the widths rather than written out, so a column cannot drift from
+// the heading over it.
+std::string ColumnHeader() {
+  return "  " + PadRight("Name", kNameWidth) + "  " +
+         PadRight("Success", kRateWidth) + "  " +
+         PadRight("Stats", kStatsWidth) + PadLeft("Cost", kCostWidth);
+}
 
 bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
   if (a->scroll_type() != b->scroll_type()) {
@@ -34,8 +60,9 @@ bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
 
 }  // namespace
 
-ScrollPanel::ScrollPanel(const std::map<std::string, Scroll>& scrolls)
-    : scrolls_(scrolls) {
+ScrollPanel::ScrollPanel(const CharacterInstance& character,
+                         const std::map<std::string, Scroll>& scrolls)
+    : character_(character), scrolls_(scrolls) {
   for (const std::pair<const std::string, Scroll>& kv : scrolls_) {
     ordered_.push_back(&kv.second);
   }
@@ -93,20 +120,29 @@ void ScrollPanel::ResetComponent() {
   // entries_ is rebuilt from ordered_ on every render so the display stays
   // in sync with SetFilter calls.
   component_ = ftxui::Renderer(menu, [this, menu]() -> ftxui::Element {
-    entries_.clear();
-    for (const Scroll* scroll : ordered_) {
-      entries_.push_back(FormatEntry(*scroll));
+    if (!ordered_.empty()) {
+      selected_ = std::min(selected_, static_cast<int>(ordered_.size()) - 1);
     }
-    if (!entries_.empty()) {
-      selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
+    // Followed before the rows are built, so the selected one is the only row
+    // asking for a slide and it asks from the moment it was selected.
+    clock_.Follow(selected_);
+    entries_.clear();
+    for (int i = 0; i < static_cast<int>(ordered_.size()); ++i) {
+      entries_.push_back(FormatEntry(
+          *ordered_[i], i == selected_
+                            ? clock_.Elapsed()
+                            : std::chrono::steady_clock::duration()));
     }
     std::vector<ftxui::Element> rows = {
-        ftxui::text(kColumnHeader),
+        ftxui::text(ColumnHeader()),
         ThemedSeparator(),
         menu->Render(),
     };
+    // The balance rides in the title: it is the number every row's Cost is
+    // read against, and up there it never scrolls away with the list.
     ftxui::Element main =
-        ThemedWindow(" Scrolls ", ftxui::vbox(std::move(rows)));
+        ThemedWindow(" Scrolls — " + FormatWithCommas(TracesHeld()) + " 📜 ",
+                     ftxui::vbox(std::move(rows)));
     if (confirm_.open()) {
       // yflex lets main fill the remaining height after the confirm window
       // takes its 3 rows, matching the full-height behaviour without confirm.
@@ -145,6 +181,23 @@ const Scroll& ScrollPanel::selected_scroll() const {
   return *ordered_[selected_];
 }
 
+int ScrollPanel::TracesHeld() const {
+  int held = 0;
+  for (const StackableItem& stack : character_.stackables(ITEM_CATEGORY_ETC)) {
+    if (stack.name() == kSpellTraceName) {
+      held += stack.count();
+    }
+  }
+  return held;
+}
+
+bool ScrollPanel::CanAffordSelected() const {
+  if (ordered_.empty()) {
+    return false;
+  }
+  return TracesHeld() >= selected_scroll().trace_cost();
+}
+
 ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
   if (r.outcome == kScrollNoSlots) {
     std::string msg = r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE
@@ -173,8 +226,9 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
       });
 }
 
-std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
-  std::string name = PadRight(scroll.name(), kNameWidth);
+std::string ScrollPanel::FormatEntry(
+    const Scroll& scroll, std::chrono::steady_clock::duration elapsed) {
+  std::string name = ScrollingWindow(scroll.name(), kNameWidth, elapsed);
   std::string rate =
       PadRight(std::to_string(scroll.success_rate()) + "%", kRateWidth);
   std::string stats;
@@ -192,7 +246,8 @@ std::string ScrollPanel::FormatEntry(const Scroll& scroll) {
     AppendStat(stats, s.def(), "DEF");
   }
 
-  return name + "  " + rate + "  " + stats;
+  return name + "  " + rate + "  " + PadRight(stats, kStatsWidth) +
+         CostCell(scroll.trace_cost());
 }
 
 }  // namespace ms

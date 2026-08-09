@@ -2,11 +2,17 @@
  * an item's context menu. It overlays the main layout while kScrollSelect is
  * active. TuiController forwards all events here; OnEvent returns false only
  * for navigation so Tui can update scroll position. TakeConfirmed() returns
- * true once when the player confirms the selection via the confirm bar.
+ * true once when the player confirms the selection.
+ *
+ * Every scroll costs spell traces, so the list carries a Cost column and the
+ * title carries what the player is holding -- the two numbers the choice is
+ * made between. The name column gives up the width for it and slides its
+ * longer names under the column instead, as the bag's rows do.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SCROLL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SCROLL_PANEL_H_
 
+#include <chrono>
 #include <map>
 #include <string>
 #include <vector>
@@ -15,8 +21,10 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
+#include "src/character/character.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -24,7 +32,8 @@ namespace ms {
 
 class ScrollPanel {
  public:
-  explicit ScrollPanel(const std::map<std::string, Scroll>& scrolls);
+  ScrollPanel(const CharacterInstance& character,
+              const std::map<std::string, Scroll>& scrolls);
   // Replaces the displayed scroll list and resets selection to 0. Call before
   // entering kScrollSelect to show only scrolls applicable to the target item.
   void SetFilter(std::vector<const Scroll*> filtered);
@@ -45,14 +54,23 @@ class ScrollPanel {
   }
   // Returns the scroll at the current selection.
   const Scroll& selected_scroll() const;
+  // Whether the player is holding enough traces for the selected scroll. The
+  // panel spends nothing itself; this is what the caller checks before it does.
+  bool CanAffordSelected() const;
   int selected() const {
     return selected_;
   }
 
  private:
   void ResetComponent();
-  static std::string FormatEntry(const Scroll& scroll);
+  // One row: name, success, stats, cost. `elapsed` is how long this row has
+  // been selected, which is what slides a too-long name under its column.
+  static std::string FormatEntry(const Scroll& scroll,
+                                 std::chrono::steady_clock::duration elapsed);
+  // Spell traces the character is carrying.
+  int TracesHeld() const;
 
+  const CharacterInstance& character_;
   const std::map<std::string, Scroll>& scrolls_;
   std::vector<const Scroll*> ordered_;
   int selected_ = 0;
@@ -60,6 +78,8 @@ class ScrollPanel {
   ftxui::Component component_;
   ConfirmPrompt confirm_;
   bool confirmed_ = false;
+  // Owned here because only the panel knows when the selection moved.
+  SelectionClock clock_;
 };
 
 }  // namespace ms

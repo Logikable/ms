@@ -19,6 +19,11 @@
 
 namespace ms {
 
+// Display name of the spell trace, the currency scrolls are bought with. Named
+// here because stackables are matched by display name wherever they cross a
+// boundary, so the string is load-bearing in more than one place.
+constexpr char kSpellTraceName[] = "Spell Trace";
+
 // Whether `proto` accepts `upgrade` at all. This is the item's own answer,
 // asked before any question about the state of a particular drop: a weapon
 // that supports scrolling may still have no slots left, and one that supports

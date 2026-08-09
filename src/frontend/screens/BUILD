@@ -80,9 +80,12 @@ cc_library(
     srcs = ["scroll_panel.cc"],
     hdrs = ["scroll_panel.h"],
     deps = [
+        "//src/character",
         "//src/frontend:types",
         "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
+        "//src/item",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
@@ -96,7 +99,10 @@ cc_test(
     srcs = ["scroll_panel_test.cc"],
     deps = [
         ":scroll_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "//src/item",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
