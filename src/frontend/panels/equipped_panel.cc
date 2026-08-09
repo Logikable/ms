@@ -42,6 +42,11 @@ EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
 }
 
 void EquippedPanel::OpenMenu() {
+  // Opening the menu on the worn weapon is the trail's first step walked: the
+  // player looked, and what they were being sent to look at is on screen.
+  if (selected_slot() == EQUIP_SLOT_PRIMARY_WEAPON) {
+    FollowedToWeapon(character_);
+  }
   menu_.Reset();
   // Entries the player has not reached yet are not drawn at all, ahead of any
   // question about this particular item: a character who has just been handed
@@ -130,8 +135,21 @@ EquipSlot EquippedPanel::selected_slot() const {
 
 ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
   std::string cursor = state.focused ? "> " : "  ";
-  ftxui::Element row = ftxui::text(cursor + state.label);
   int idx = state.index;
+  ftxui::Element row = ftxui::text(cursor + state.label);
+  if (idx >= 0 && idx < static_cast<int>(led_.size()) && led_[idx]) {
+    // The name alone, not the whole row: it is the item being pointed at, and
+    // the columns after it say what they always said. Split on the byte count
+    // RebuildRows kept -- a name may hold multibyte characters, so its column
+    // width is no guide to its length.
+    size_t bytes =
+        std::min(static_cast<size_t>(name_bytes_[idx]), state.label.size());
+    row = ftxui::hbox({
+        ftxui::text(cursor + state.label.substr(0, bytes)) |
+            ftxui::color(kYellow),
+        ftxui::text(state.label.substr(bytes)),
+    });
+  }
   if (idx == selected_) {
     // Records where this row lands so the item menu can open beside it.
     row = std::move(row) | ftxui::reflect(cursor_box_);
@@ -179,6 +197,11 @@ void EquippedPanel::RebuildRows() {
   entries_.clear();
   slots_.clear();
   inactive_.clear();
+  name_bytes_.clear();
+  led_.clear();
+  // Asked once for the whole list rather than per row: it is a fact about the
+  // character, and only the worn weapon's row acts on it.
+  bool lead = LeadToWeapon(character_);
   for (const std::pair<const EquipSlot, EquipInstance>& kv :
        character_.equipped()) {
     const EquipInstance& item = kv.second;
@@ -190,11 +213,15 @@ void EquippedPanel::RebuildRows() {
         item.prototype().upgrade_slots() - scroll_pass - scroll_left;
     // Only the selected row's name slides; the rest sit at their heads.
     bool selected = static_cast<int>(entries_.size()) == selected_;
-    entries_.push_back(FormatItemEntry(
-        item.prototype().name(), kv.first, RowInfo(item.stats()), scroll_pass,
-        scroll_left, scroll_restore,
+    std::chrono::steady_clock::duration elapsed =
         selected ? name_clock_.Elapsed()
-                 : std::chrono::steady_clock::duration::zero()));
+                 : std::chrono::steady_clock::duration::zero();
+    name_bytes_.push_back(static_cast<int>(
+        ItemNameCell(item.prototype().name(), elapsed).size()));
+    led_.push_back(lead && kv.first == EQUIP_SLOT_PRIMARY_WEAPON);
+    entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
+                                       RowInfo(item.stats()), scroll_pass,
+                                       scroll_left, scroll_restore, elapsed));
   }
   if (!entries_.empty()) {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);

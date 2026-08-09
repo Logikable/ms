@@ -387,6 +387,11 @@ std::string StatFieldName(StatField field) {
   }
 }
 
+std::string ItemNameCell(const std::string& name,
+                         std::chrono::steady_clock::duration elapsed) {
+  return ScrollingWindow(name, kItemNameWidth, elapsed);
+}
+
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
                             int scroll_left, int scroll_restore,
@@ -399,7 +404,7 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
     scrolls = std::to_string(scroll_pass) + "/" + std::to_string(scroll_left) +
               "/" + std::to_string(scroll_restore);
   }
-  return ScrollingWindow(name, kItemNameWidth, elapsed) + "  " +
+  return ItemNameCell(name, elapsed) + "  " +
          PadRight(FormatSlot(slot), kSlotWidth) + "  " + padded_info + "  " +
          scrolls;
 }

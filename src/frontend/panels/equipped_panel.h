@@ -78,6 +78,12 @@ class EquippedPanel {
   bool highlighted_ = false;
   std::vector<std::string> entries_;
   std::vector<EquipSlot> slots_;
+  // Parallel to entries_: the byte length of each row's name cell, so a row
+  // can be drawn with its name coloured apart from the columns after it.
+  std::vector<int> name_bytes_;
+  // Parallel to entries_: whether the row's name is drawn gold, which the worn
+  // weapon is while an upgrade waits that the player has not come to look at.
+  std::vector<bool> led_;
   // Parallel to entries_: whether that item is currently doing nothing, which
   // the entry transform draws as a dimmed row.
   std::vector<bool> inactive_;

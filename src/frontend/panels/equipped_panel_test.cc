@@ -464,6 +464,53 @@ TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
 
 // --- the gold trail to a new upgrade ---
 
+// The first step of the trail: something has opened, and the worn weapon is
+// where the player has to go to use it. The name alone goes gold -- the
+// columns after it say what they always said.
+TEST_F(EquippedPanelTest, TheWornWeaponsNameGoesGoldForANewUpgrade) {
+  LevelTo(UnlockLevel(Feature::kScrolling));
+  EquipPrototype stars;
+  stars.set_name("Subi Throwing-Stars");
+  stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
+  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  c_.PickUp(std::make_unique<EquipInstance>(stars));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  EXPECT_EQ(LabelColor(comp->Render(), "Sword"), kYellow);
+  EXPECT_NE(LabelColor(comp->Render(), "Weapon"), kYellow)
+      << "the slot column is not being pointed at";
+  // The weapon alone. Everything else worn is where it always was, and gilding
+  // the lot would point at nothing in particular.
+  EXPECT_NE(LabelColor(comp->Render(), "Subi"), kYellow);
+}
+
+TEST_F(EquippedPanelTest, NoGoldOnTheWeaponBeforeAnythingOpens) {
+  LevelTo(UnlockLevel(Feature::kScrolling) - 1);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  EXPECT_NE(LabelColor(panel.MakeComponent([]() {})->Render(), "Sword"),
+            kYellow);
+}
+
+// Opening the menu is the step: the player looked, so the signpost comes down
+// whether or not they went on to press anything.
+TEST_F(EquippedPanelTest, OpeningTheMenuPutsTheWeaponsGoldOut) {
+  LevelTo(UnlockLevel(Feature::kScrolling));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderComponent(comp);
+  ASSERT_EQ(LabelColor(comp->Render(), "Sword"), kYellow);
+
+  panel.OpenMenu();
+  EXPECT_NE(LabelColor(comp->Render(), "Sword"), kYellow);
+}
+
 // The same trail the bag menu carries, on the panel the player is led to
 // first: the entry stays gold until they press it.
 TEST_F(EquippedPanelTest, ANewUpgradeIsGoldOnTheMenu) {

@@ -137,6 +137,15 @@ std::string StatFieldName(StatField field);
 // while its row is selected; see ScrollingWindow.
 constexpr int kItemNameWidth = 26;
 
+// The name cell of a list row: `name` cut to kItemNameWidth columns, sliding
+// under them while the row is selected. FormatItemEntry opens with exactly
+// this, so a caller that wants to colour the name on its own can split the
+// rendered row on this cell's length -- the name may hold multibyte
+// characters, and its column width says nothing about how many bytes it is.
+std::string ItemNameCell(const std::string& name,
+                         std::chrono::steady_clock::duration elapsed =
+                             std::chrono::steady_clock::duration::zero());
+
 // Formats a single item list entry: name (kItemNameWidth cols), slot (10
 // cols), info (padded to 20 cols), and scroll pass/left/restore counts. Pass
 // -1 for all three scroll values to render "-" (use for non-upgradeable
