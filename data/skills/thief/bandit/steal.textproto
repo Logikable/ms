@@ -1,0 +1,14 @@
+# GMS lifts a potion off whatever you hit, and a potion lifted off a boss
+# carries a buff worth 30 attack. Nothing here drinks anything, so what is
+# left is the buff -- held permanently, at GMS's own 30 by the top of the
+# ladder.
+name: "Steal"
+skill_order: 3
+description:
+  "Everything you hit is carrying something worth taking, and everything you "
+  "take makes the next cut land harder."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BANDIT
+max_level: 10
+base { attack: 3 }
+per_level { attack: 3 }

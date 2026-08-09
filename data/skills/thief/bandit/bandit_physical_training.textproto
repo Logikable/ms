@@ -1,0 +1,16 @@
+# The thief's Physical Training, on GMS's own figure: six points of each of
+# their two stats a level.
+name: "Physical Training"
+skill_order: 7
+description: "Permanently raises LUK and DEX through sheer physical training."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BANDIT
+max_level: 5
+base {
+  luk: 6
+  dex: 6
+}
+per_level {
+  luk: 6
+  dex: 6
+}

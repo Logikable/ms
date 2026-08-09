@@ -66,6 +66,10 @@ std::vector<std::string> WorkbenchWeaponsFor(Job job) {
     case JOB_FIRE_POISON_WIZARD:
     case JOB_CLERIC:
       return {"frantic_crow_staff"};
+    case JOB_ASSASSIN:
+      return {"steel_guards", "kumbi_throwing_stars"};
+    case JOB_BANDIT:
+      return {"reef_claw"};
     default:
       return StarterEquipsFor(job);
   }

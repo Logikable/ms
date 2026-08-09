@@ -55,10 +55,13 @@ namespace {
 constexpr char kDummyMap[] = "__dps_dummy";
 constexpr char kDummyMob[] = "__dps_dummy_mob";
 
-// One row of the table: which branch, holding what.
+// One row of the table: which branch, holding what. `stars` arms a claw, which
+// carries almost no attack of its own -- an Assassin's damage is mostly in the
+// ammunition, and a claw with an empty star slot reads as a broken build.
 struct Build {
   Job job = JOB_UNSPECIFIED;
   std::string weapon;  // equip catalog key
+  std::string stars;   // equip catalog key, for the claws
 };
 
 // The 2nd-job branches by name. Spelled out here rather than borrowed from the
@@ -81,6 +84,10 @@ std::string BranchName(Job job) {
       return "F/P Wizard";
     case JOB_CLERIC:
       return "Cleric";
+    case JOB_ASSASSIN:
+      return "Assassin";
+    case JOB_BANDIT:
+      return "Bandit";
     default:
       return "?";
   }
@@ -97,6 +104,9 @@ Job FirstJobFor(Job branch) {
     case JOB_FIRE_POISON_WIZARD:
     case JOB_CLERIC:
       return JOB_MAGICIAN;
+    case JOB_ASSASSIN:
+    case JOB_BANDIT:
+      return JOB_ROGUE;
     default:
       return JOB_SWORDMAN;
   }
@@ -116,6 +126,8 @@ StatField PrimaryStatFor(Job job) {
     case JOB_CLERIC:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
+    case JOB_ASSASSIN:
+    case JOB_BANDIT:
       return STAT_FIELD_LUK;
     default:
       return STAT_FIELD_STR;
@@ -130,6 +142,8 @@ const char* PrimaryStatName(Job job) {
       return "DEX";
     case STAT_FIELD_INT:
       return "INT";
+    case STAT_FIELD_LUK:
+      return "LUK";
     default:
       return "STR";
   }
@@ -192,15 +206,15 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path) {
   }
 }
 
-// Puts `key` in the character's hand, replacing whatever they started with.
-// Returns false if the catalog has no such item.
-bool Wield(GameState& state, const std::string& key) {
+// Puts `key` on the character, in whichever slot its prototype names, dropping
+// whatever was already there. Returns false if the catalog has no such item.
+bool Wear(GameState& state, const std::string& key) {
   std::map<std::string, EquipPrototype>::const_iterator it =
       state.equips.find(key);
   if (it == state.equips.end()) {
     return false;
   }
-  state.character.Unequip(EQUIP_SLOT_PRIMARY_WEAPON);
+  state.character.Unequip(it->second.equip_slot());
   state.character.PickUp(std::make_unique<EquipInstance>(it->second));
   // The one just picked up is the last row of the bag.
   return state.character.Equip(state.character.inventory().size() - 1);
@@ -310,7 +324,10 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
                   GameMode::kPlay);
   GrowTo(state, level, {FirstJobFor(build.job), build.job});
   Result result;
-  if (!Wield(state, build.weapon)) {
+  if (!Wear(state, build.weapon)) {
+    return result;
+  }
+  if (!build.stars.empty() && !Wear(state, build.stars)) {
     return result;
   }
   state.current_map = kDummyMap;
@@ -393,6 +410,8 @@ void Run(int level) {
       {JOB_ICE_LIGHTNING_WIZARD, "frantic_crow_staff"},
       {JOB_FIRE_POISON_WIZARD, "frantic_crow_staff"},
       {JOB_CLERIC, "frantic_crow_staff"},
+      {JOB_ASSASSIN, "dark_gigantic", "steely_throwing_knives"},
+      {JOB_BANDIT, "deadly_fin"},
   };
 
   std::printf(

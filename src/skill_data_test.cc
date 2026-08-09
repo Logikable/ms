@@ -97,7 +97,9 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
                                      JOB_ADVANCEMENT_CROSSBOWMAN,
                                      JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD,
                                      JOB_ADVANCEMENT_FIRE_POISON_WIZARD,
-                                     JOB_ADVANCEMENT_CLERIC};
+                                     JOB_ADVANCEMENT_CLERIC,
+                                     JOB_ADVANCEMENT_ASSASSIN,
+                                     JOB_ADVANCEMENT_BANDIT};
   for (JobAdvancement advancement : kWritten) {
     EXPECT_TRUE(cost_by_advancement.count(advancement))
         << "advancement " << advancement << " has no skills at all";
@@ -345,7 +347,9 @@ TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
                        JOB_CROSSBOWMAN,
                        JOB_ICE_LIGHTNING_WIZARD,
                        JOB_FIRE_POISON_WIZARD,
-                       JOB_CLERIC};
+                       JOB_CLERIC,
+                       JOB_ASSASSIN,
+                       JOB_BANDIT};
   for (Job job : kJobs) {
     std::map<std::string, std::string> stem_by_name;
     // Every stage the job has a book at. Two is what exists; a stage past the

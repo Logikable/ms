@@ -111,6 +111,8 @@ StatField PrimaryStatFor(Job job) {
     case JOB_CLERIC:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
+    case JOB_ASSASSIN:
+    case JOB_BANDIT:
       return STAT_FIELD_LUK;
     default:
       return STAT_FIELD_STR;

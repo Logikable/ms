@@ -1,0 +1,28 @@
+# GMS throws it in two parts: 400+8x% at one enemy, and on striking them a
+# detonation of 45+3x% six times over six. The detonation is the swing here
+# and the opening throw is its lead hit -- see fight.h. Folding the two into
+# one column would have handed five bystanders a shuriken only the target
+# takes.
+#
+# The Assassin's only attack, so it carries no cooldown: the pair the wizards
+# alternate between is what a cooldown is for, and there is no pair here.
+name: "Shuriken Burst"
+skill_order: 1
+description:
+  "Throw three exploding shuriken. They detonate on whatever they strike "
+  "first, catching everything around it."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_ASSASSIN
+max_level: 20
+base_delay_ms: 720
+max_enemies: 6
+lines: 6
+lead_lines: 1
+base {
+  skill_pct: 0.48
+  lead_pct: 4.08
+}
+per_level {
+  skill_pct: 0.03
+  lead_pct: 0.08
+}

@@ -1,0 +1,21 @@
+# The mastery skill, over 20 levels rather than GMS's 10 so that the book costs
+# the 90 the Bandit's levels pay out. The mastery runs 12% to 50%, the same
+# climb every other 20-level mastery makes, and the final damage ends on GMS's
+# own 9%.
+name: "Dagger Mastery"
+skill_order: 6
+description:
+  "Steadies your hand, so your weakest cuts land nearer your best. Also "
+  "increases Final Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BANDIT
+max_level: 20
+required_equip_type: EQUIP_TYPE_DAGGER
+base {
+  mastery: 0.12
+  final_dmg_pct: 0.033
+}
+per_level {
+  mastery: 0.02
+  final_dmg_pct: 0.003
+}

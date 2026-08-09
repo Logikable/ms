@@ -1,0 +1,23 @@
+# GMS marks an enemy on hit and spends the mark on the next attack, throwing
+# two stars for 150%. One level there; ten here, climbing to GMS's own figures
+# from a little over half of them.
+#
+# The mark and the spending of it are one beat apart in GMS and none here, so
+# what is left is a Final Attack -- a chance, on every enemy the swing reached,
+# of two more stars. It names no tag, so every swing sets it off.
+name: "Assassin's Mark"
+skill_order: 2
+description:
+  "Your attacks leave a mark, and what you throw next finds it: two more "
+  "stars at every enemy you hit."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ASSASSIN
+max_level: 10
+base {
+  final_attack_chance: 0.22
+  final_attack_pct: 1.56
+}
+per_level {
+  final_attack_chance: 0.02
+  final_attack_pct: 0.16
+}

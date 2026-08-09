@@ -34,6 +34,11 @@ enum Job {
   JOB_ICE_LIGHTNING_WIZARD = 11;
   JOB_FIRE_POISON_WIZARD = 12;
   JOB_CLERIC = 13;
+  // The rogue's 2nd advancements. One throws stars off a claw, the other
+  // stabs with a dagger, and the weapon a character already holds does not
+  // decide it for them -- a Rogue is handed both.
+  JOB_ASSASSIN = 14;
+  JOB_BANDIT = 15;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -54,6 +59,8 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD = 10;
   JOB_ADVANCEMENT_FIRE_POISON_WIZARD = 11;
   JOB_ADVANCEMENT_CLERIC = 12;
+  JOB_ADVANCEMENT_ASSASSIN = 13;
+  JOB_ADVANCEMENT_BANDIT = 14;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

@@ -114,6 +114,10 @@ std::string BranchName(Job job) {
       return "F/P Wizard";
     case JOB_CLERIC:
       return "Cleric";
+    case JOB_ASSASSIN:
+      return "Assassin";
+    case JOB_BANDIT:
+      return "Bandit";
     default:
       return "?";
   }
@@ -130,6 +134,9 @@ Job FirstJobFor(Job branch) {
     case JOB_FIRE_POISON_WIZARD:
     case JOB_CLERIC:
       return JOB_MAGICIAN;
+    case JOB_ASSASSIN:
+    case JOB_BANDIT:
+      return JOB_ROGUE;
     default:
       return JOB_SWORDMAN;
   }
@@ -149,6 +156,8 @@ StatField PrimaryStatFor(Job job) {
     case JOB_CLERIC:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
+    case JOB_ASSASSIN:
+    case JOB_BANDIT:
       return STAT_FIELD_LUK;
     default:
       return STAT_FIELD_STR;
@@ -173,6 +182,11 @@ EquipType PreferredWeapon(Job job) {
     case JOB_FIRE_POISON_WIZARD:
     case JOB_CLERIC:
       return EQUIP_TYPE_STAFF;
+    case JOB_ROGUE:
+    case JOB_ASSASSIN:
+      return EQUIP_TYPE_CLAW;
+    case JOB_BANDIT:
+      return EQUIP_TYPE_DAGGER;
     case JOB_ARCHER:
     case JOB_HUNTER:
       return EQUIP_TYPE_BOW;
@@ -183,12 +197,20 @@ EquipType PreferredWeapon(Job job) {
   }
 }
 
-// The required level of what is in the character's hand, which is how one
-// weapon is ranked against another here: the shop's ladder is ordered by it,
-// and the tiers are 10 levels apart.
-int HeldWeaponTier(const CharacterInstance& character) {
+// What a claw draws from. A claw carries almost no attack of its own -- an
+// Assassin's damage is mostly in the ammunition -- so a claw user shops for
+// two things. Unspecified for everyone else, who shop for one.
+EquipType PreferredAmmo(Job job) {
+  return PreferredWeapon(job) == EQUIP_TYPE_CLAW ? EQUIP_TYPE_THROWING_STAR
+                                                 : EQUIP_TYPE_UNSPECIFIED;
+}
+
+// The required level of what is worn in `slot`, which is how one piece is
+// ranked against another here: the shop's ladder is ordered by it, and the
+// tiers are 10 levels apart.
+int HeldTier(const CharacterInstance& character, EquipSlot slot) {
   std::map<EquipSlot, EquipInstance>::const_iterator it =
-      character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
+      character.equipped().find(slot);
   if (it == character.equipped().end()) {
     return 0;
   }
@@ -240,15 +262,10 @@ void SellDrops(CharacterInstance& character) {
   }
 }
 
-// Buys and wears the best weapon of the job's own type on the shelf, if it
-// beats what is held. No-op before the shop opens or when nothing new is
-// affordable.
-void GoShopping(GameState& state) {
+// Buys and wears the best piece of `want` on the shelf, if it beats what is
+// already in that slot. No-op when nothing new is affordable.
+void BuyBest(GameState& state, EquipType want) {
   CharacterInstance& character = state.character;
-  if (!Unlocked(Feature::kShop, character)) {
-    return;
-  }
-  EquipType want = PreferredWeapon(character.proto().job());
   const EquipPrototype* best = nullptr;
   for (const std::string& key : ShopStock(state.equips)) {
     const EquipPrototype& proto = state.equips.at(key);
@@ -260,11 +277,26 @@ void GoShopping(GameState& state) {
       best = &proto;
     }
   }
-  if (best == nullptr || best->required_level() <= HeldWeaponTier(character)) {
+  if (best == nullptr ||
+      best->required_level() <= HeldTier(character, best->equip_slot())) {
     return;
   }
   if (character.Buy(*best, 1)) {
     EquipByName(character, best->name());
+  }
+}
+
+// Everything the player goes shopping for: the weapon of their branch's own
+// type, and the ammunition it draws from if it needs any.
+void GoShopping(GameState& state) {
+  if (!Unlocked(Feature::kShop, state.character)) {
+    return;
+  }
+  Job job = state.character.proto().job();
+  BuyBest(state, PreferredWeapon(job));
+  EquipType ammo = PreferredAmmo(job);
+  if (ammo != EQUIP_TYPE_UNSPECIFIED) {
+    BuyBest(state, ammo);
   }
 }
 
@@ -470,6 +502,8 @@ void Run() {
       JOB_ICE_LIGHTNING_WIZARD,
       JOB_FIRE_POISON_WIZARD,
       JOB_CLERIC,
+      JOB_ASSASSIN,
+      JOB_BANDIT,
   };
 
   std::printf(

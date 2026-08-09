@@ -144,6 +144,8 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_CLERIC:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
     case JOB_ROGUE:
+    case JOB_ASSASSIN:
+    case JOB_BANDIT:
       return EQUIP_JOB_CATEGORY_THIEF;
     default:
       return EQUIP_JOB_CATEGORY_UNSPECIFIED;
@@ -220,6 +222,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_CLERIC:
         return JOB_ADVANCEMENT_MAGICIAN;
       case JOB_ROGUE:
+      case JOB_ASSASSIN:
+      case JOB_BANDIT:
         return JOB_ADVANCEMENT_ROGUE;
       default:
         break;
@@ -243,6 +247,10 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
       case JOB_CLERIC:
         return JOB_ADVANCEMENT_CLERIC;
+      case JOB_ASSASSIN:
+        return JOB_ADVANCEMENT_ASSASSIN;
+      case JOB_BANDIT:
+        return JOB_ADVANCEMENT_BANDIT;
       default:
         break;
     }
@@ -276,6 +284,10 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_FIRE_POISON_WIZARD;
     case JOB_ADVANCEMENT_CLERIC:
       return JOB_CLERIC;
+    case JOB_ADVANCEMENT_ASSASSIN:
+      return JOB_ASSASSIN;
+    case JOB_ADVANCEMENT_BANDIT:
+      return JOB_BANDIT;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -331,6 +343,8 @@ StatField PrimaryStatField(Job job) {
     case JOB_CLERIC:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
+    case JOB_ASSASSIN:
+    case JOB_BANDIT:
       return STAT_FIELD_LUK;
     default:
       return STAT_FIELD_UNSPECIFIED;
@@ -355,6 +369,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 2 && job == JOB_MAGICIAN) {
     return {JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD, JOB_CLERIC};
   }
+  if (stage == 2 && job == JOB_ROGUE) {
+    return {JOB_ASSASSIN, JOB_BANDIT};
+  }
   return {};
 }
 
@@ -373,6 +390,8 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD:
     case JOB_ADVANCEMENT_FIRE_POISON_WIZARD:
     case JOB_ADVANCEMENT_CLERIC:
+    case JOB_ADVANCEMENT_ASSASSIN:
+    case JOB_ADVANCEMENT_BANDIT:
       return 2;
     default:
       return 0;

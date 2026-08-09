@@ -348,6 +348,10 @@ std::string JobName(Job job) {
       return "Fire/Poison Wizard";
     case JOB_CLERIC:
       return "Cleric";
+    case JOB_ASSASSIN:
+      return "Assassin";
+    case JOB_BANDIT:
+      return "Bandit";
     default:
       return "Unknown";
   }

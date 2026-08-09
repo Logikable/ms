@@ -1,0 +1,17 @@
+# GMS's own figures: critical rate 5+2x%, ending at 25%, and critical damage
+# 1+ceil(x/3)%, ending at 5% -- the same 5% Critical Throw ends on, reached in
+# a third of the levels.
+name: "Critical Edge"
+skill_order: 2
+description: "Permanently increases Critical Rate and Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BANDIT
+max_level: 10
+base {
+  crit_rate: 0.07
+  crit_dmg: 0.005
+}
+per_level {
+  crit_rate: 0.02
+  crit_dmg: 0.005
+}

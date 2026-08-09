@@ -1,0 +1,13 @@
+# GMS runs 11+x attack over 19 levels, ending at 30. The same 12 to 30 over 10
+# levels here.
+#
+# The knockback resistance it also grants is dropped: nothing in this game
+# knocks the player anywhere.
+name: "Channel Karma"
+skill_order: 5
+description: "Turns what you take into what you give, and hits harder for it."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BANDIT
+max_level: 10
+base { attack: 12 }
+per_level { attack: 2 }

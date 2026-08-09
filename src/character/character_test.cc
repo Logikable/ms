@@ -400,11 +400,13 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
-// Level 30 opens the 2nd advancement, but a job whose branch is unwritten has
-// nothing to offer and the character must not be told otherwise.
+// A stage whose branches are unwritten has nothing to offer, and the character
+// must not be told otherwise. Every 2nd job exists now, so the 3rd is what
+// this asks about: level 60 opens it and there is nothing behind it.
 TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/30);
-  c.AdvanceJob(JOB_ROGUE);  // the rogue's 2nd job is not written yet
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/60);
+  c.AdvanceJob(JOB_ROGUE);
+  c.AdvanceJob(JOB_ASSASSIN);
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
@@ -449,8 +451,9 @@ TEST(JobChoicesTest, AMagicianIsOfferedAllThreeBranches) {
                               JOB_CLERIC}));
 }
 
-TEST(JobChoicesTest, TheRogueHasNoSecondJobYet) {
-  EXPECT_TRUE(JobChoicesForStage(JOB_ROGUE, 2).empty());
+TEST(JobChoicesTest, ARogueIsOfferedBothThiefBranches) {
+  EXPECT_EQ(JobChoicesForStage(JOB_ROGUE, 2),
+            (std::vector<Job>{JOB_ASSASSIN, JOB_BANDIT}));
 }
 
 TEST(JobChoicesTest, ThereIsNoThirdJobYet) {

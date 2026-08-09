@@ -1,0 +1,24 @@
+# GMS's own figures over GMS's own 30 levels: critical rate 20+x%, ending at
+# half of every swing, and critical damage ceil(x/6)%, ending at 5%.
+#
+# This is what makes a thief a thief. Every other class in the game crits five
+# times in a hundred; an Assassin crits fifty, which is the only reason their
+# critical damage is worth anything at all.
+name: "Critical Throw"
+skill_order: 5
+description: "Permanently increases Critical Rate and Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ASSASSIN
+max_level: 30
+required_skill {
+  skill_name: "Claw Mastery"
+  level: 3
+}
+base {
+  crit_rate: 0.21
+  crit_dmg: 0.00167
+}
+per_level {
+  crit_rate: 0.01
+  crit_dmg: 0.00167
+}

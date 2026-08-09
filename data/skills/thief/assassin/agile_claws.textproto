@@ -1,0 +1,18 @@
+# GMS gives 2 LUK a level over 10 levels. Spread over 5 at 4 apiece, which ends
+# in the same place -- 20 -- for half the points, as every other Agile skill
+# does.
+name: "Agile Claws"
+skill_order: 4
+description: "Quickens your throwing arm and sharpens your luck."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ASSASSIN
+max_level: 5
+required_skill {
+  skill_name: "Claw Mastery"
+  level: 5
+}
+base {
+  luk: 4
+  attack_speed: 2
+}
+per_level { luk: 4 }

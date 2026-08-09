@@ -1,0 +1,16 @@
+# GMS's own figures over GMS's own 20 levels: 150+3x% three times over six
+# enemies, ending at 630% a swing -- level with the wizards' pairs and with
+# Shuriken Burst's detonation.
+#
+# The Bandit's only attack, so it carries no cooldown.
+name: "Savage Blow"
+skill_order: 1
+description: "Rakes the enemies in front of you with a flurry of quick cuts."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_BANDIT
+max_level: 20
+base_delay_ms: 780
+max_enemies: 6
+lines: 3
+base { skill_pct: 1.53 }
+per_level { skill_pct: 0.03 }

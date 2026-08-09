@@ -1,0 +1,26 @@
+# GMS asks for a shield or a dagger scabbard in the off hand and grants DEF,
+# avoidability, attack and damage reduction for it. Two of those four have
+# nowhere to land: DEF here is a flat lever rather than a percentage, and
+# nothing in the game avoids anything.
+#
+# What is left is on GMS's own figures -- 6% of the damage taken a level, and
+# attack ending at its +20. Both wait on the off hand: nothing in the catalog
+# fills the secondary slot yet, so this skill is learnable and grants nothing
+# until secondaries are written. See Skill.requires_secondary.
+name: "Shield Mastery"
+skill_order: 8
+description:
+  "What you carry in your off hand turns blows aside, and steadies the arm "
+  "that answers them. Needs something in the secondary slot."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BANDIT
+max_level: 10
+requires_secondary: true
+base {
+  damage_taken_pct: 0.06
+  attack: 2
+}
+per_level {
+  damage_taken_pct: 0.06
+  attack: 2
+}
