@@ -9,12 +9,16 @@
 #include <utility>
 
 #include "src/item/equip_instance.h"
+#include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
+#include "tools/cpp/runfiles/runfiles.h"
 
 namespace ms {
 namespace {
+
+using bazel::tools::cpp::runfiles::Runfiles;
 
 // A level-`level` character with `hp` AP-allocated HP and enough 1st-job SP to
 // max anything the tests learn.
@@ -801,9 +805,44 @@ TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheWeaponItNames) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 
-// Shield Mastery asks for a filled off hand rather than a weapon type. Nothing
-// in the catalog goes there yet, so what this pins is that the skill waits for
-// one rather than granting anyway.
+// The shipped Shield Mastery on a shipped Bandit holding a shipped scabbard.
+// The synthetic case below pins the rule; this pins that the rule reaches the
+// one skill written against it, through the real data on both sides.
+TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
+  std::string err;
+  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
+  ASSERT_NE(runfiles, nullptr) << err;
+  std::map<std::string, Skill> skills =
+      LoadTextProtoDir<Skill>(runfiles->Rlocation("ms/data/skills"));
+  std::map<std::string, EquipPrototype> equips =
+      LoadTextProtoDir<EquipPrototype>(runfiles->Rlocation("ms/data/equip"));
+  const Skill& mastery = skills.at("shield_mastery");
+
+  Character proto;
+  proto.set_level(60);
+  proto.set_job(JOB_BANDIT);
+  proto.set_job_stage(2);
+  (*proto.mutable_sp_by_stage())[2] = 100;
+  CharacterInstance c(rng_, std::move(proto));
+  ASSERT_TRUE(c.LearnSkill(mastery, mastery.max_level()));
+
+  // Learned and holding nothing: the skill grants neither of its two levers.
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 0);
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).damage_taken_pct, 0.0);
+
+  c.PickUp(std::make_unique<EquipInstance>(equips.at("hidden_shadow")));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  ASSERT_TRUE(c.has_secondary());
+
+  // GMS's own figures at level 10: +20 attack and 60% of damage turned aside.
+  DerivedStats armed = DerivedStatsFor(c, skills);
+  EXPECT_EQ(armed.skill_stats.attack(), 20);
+  EXPECT_DOUBLE_EQ(armed.damage_taken_pct, 0.6);
+}
+
+// Shield Mastery asks for a filled off hand rather than a weapon type. The
+// synthetic passive keeps the rule under test on its own, apart from whatever
+// the shipped skill happens to grant.
 TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheSecondaryItNames) {
   CharacterInstance c = MakeCharacter(rng_, 60, 0);
   Skill training = PhysicalTraining();

@@ -99,13 +99,19 @@ cc_test(
 cc_test(
     name = "character_stats_test",
     srcs = ["character_stats_test.cc"],
+    data = [
+        "//data/equip:all",
+        "//data/skills:all",
+    ],
     deps = [
         ":character",
         ":character_stats",
+        "//src:proto_loader",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
+        "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",
     ],
 )
