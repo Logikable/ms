@@ -50,6 +50,12 @@ int NextAdvancementLevel(int stage);
 // the same question -- one table, not two that drift.
 std::vector<std::string> StarterEquipsFor(Job job);
 
+// The advancement whose off hand `type` is, or JOB_ADVANCEMENT_UNSPECIFIED for
+// a type that is not a secondary at all. The stats of two secondaries in one
+// branch are identical, so this is the only thing standing between a Fighter
+// and a Page's rosary.
+JobAdvancement AdvancementForSecondary(EquipType type);
+
 // The stat a job's damage is built on. STAT_FIELD_UNSPECIFIED for a job with
 // no primary stat defined.
 // TODO: Demon Avenger's primary stat is HP; Xenon's is STR+DEX+LUK combined.

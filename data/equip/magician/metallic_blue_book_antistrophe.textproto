@@ -1,0 +1,13 @@
+name: "Metallic Blue Book (Antistrophe)"
+required_level: 60
+base_stats {
+  int: 6
+  luk: 6
+  magic_attack: 2
+}
+equip_type: EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_SECONDARY
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+shop_price: 30000

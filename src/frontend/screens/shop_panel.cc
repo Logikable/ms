@@ -79,7 +79,7 @@ void ShopPanel::Restock() {
     stock_ = ShopEtcStock(items_);
     return;
   }
-  for (const std::string& key : ShopStock(equips_)) {
+  for (const std::string& key : ShopWeaponStock(equips_)) {
     if (character_.MeetsJob(equips_.at(key))) {
       stock_.push_back(key);
     }

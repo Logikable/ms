@@ -270,6 +270,26 @@ std::string FormatEquipType(EquipType type) {
       return "Spear";
     case EQUIP_TYPE_POLEARM:
       return "Polearm";
+    case EQUIP_TYPE_MEDALLION:
+      return "Medallion";
+    case EQUIP_TYPE_ROSARY:
+      return "Rosary";
+    case EQUIP_TYPE_IRON_CHAIN:
+      return "Iron Chain";
+    // Three types, one name. Which branch's book it is shows in its own name
+    // -- calling it a "Fire/Poison Magic Book" here would say it twice.
+    case EQUIP_TYPE_MAGIC_BOOK_FIRE_POISON:
+    case EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING:
+    case EQUIP_TYPE_MAGIC_BOOK_HOLY:
+      return "Magic Book";
+    case EQUIP_TYPE_ARROW_FLETCHING:
+      return "Arrow Fletching";
+    case EQUIP_TYPE_BOW_THIMBLE:
+      return "Bow Thimble";
+    case EQUIP_TYPE_CHARM:
+      return "Charm";
+    case EQUIP_TYPE_DAGGER_SCABBARD:
+      return "Dagger Scabbard";
     default:
       return "";  // not yet implemented for other types
   }

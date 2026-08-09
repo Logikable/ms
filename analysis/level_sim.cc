@@ -267,7 +267,7 @@ void SellDrops(CharacterInstance& character) {
 void BuyBest(GameState& state, EquipType want) {
   CharacterInstance& character = state.character;
   const EquipPrototype* best = nullptr;
-  for (const std::string& key : ShopStock(state.equips)) {
+  for (const std::string& key : ShopWeaponStock(state.equips)) {
     const EquipPrototype& proto = state.equips.at(key);
     if (proto.equip_type() != want || !character.CanEquip(proto) ||
         proto.shop_price() > character.meso()) {

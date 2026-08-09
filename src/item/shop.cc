@@ -11,18 +11,24 @@
 
 namespace ms {
 
-std::vector<std::string> ShopStock(
-    const std::map<std::string, EquipPrototype>& equips) {
+namespace {
+
+// The stocked equips worn in any of `slots`, in the order the shop list reads:
+// the tier a player can reach now first, one kind of item together within
+// that, and the cheaper of two of a kind ahead of the dearer. Name last, so the
+// order never depends on how the catalog happens to be keyed.
+std::vector<std::string> StockForSlots(
+    const std::map<std::string, EquipPrototype>& equips,
+    const std::vector<EquipSlot>& slots) {
   std::vector<std::string> keys;
   for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
-    if (entry.second.shop_price() > 0) {
-      keys.push_back(entry.first);
+    if (entry.second.shop_price() <= 0 ||
+        std::find(slots.begin(), slots.end(), entry.second.equip_slot()) ==
+            slots.end()) {
+      continue;
     }
+    keys.push_back(entry.first);
   }
-  // The order the shop list reads in: the tier a player can reach now first,
-  // one kind of weapon together within that, and the cheaper of two of a kind
-  // ahead of the dearer. Name last, so the order never depends on how the
-  // catalog happens to be keyed.
   std::sort(keys.begin(), keys.end(),
             [&equips](const std::string& a, const std::string& b) {
               const EquipPrototype& pa = equips.at(a);
@@ -39,6 +45,15 @@ std::vector<std::string> ShopStock(
               return pa.name() < pb.name();
             });
   return keys;
+}
+
+}  // namespace
+
+std::vector<std::string> ShopWeaponStock(
+    const std::map<std::string, EquipPrototype>& equips) {
+  // Stars sit in this list rather than one of their own: they are what a claw
+  // swings, and a tab holding two items is not a tab.
+  return StockForSlots(equips, {EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_SLOT_STARS});
 }
 
 std::vector<std::string> ShopEtcStock(

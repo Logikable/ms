@@ -940,6 +940,24 @@ TEST_F(MeetsJobTest, FalseWhenJobUnspecified) {
   EXPECT_FALSE(c_.MeetsJob(sword_));
 }
 
+// An off-hand answers to its own branch of the category, not the category. All
+// three of the warrior's are EQUIP_JOB_CATEGORY_WARRIOR and carry the same
+// stats, so the branch is the only thing keeping them apart.
+TEST_F(MeetsJobTest, ASecondaryAsksForTheBranchThatCarriesIt) {
+  EquipPrototype rosary;
+  rosary.set_equip_slot(EQUIP_SLOT_SECONDARY);
+  rosary.set_equip_type(EQUIP_TYPE_ROSARY);
+  rosary.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  c_.AdvanceJob(JOB_SWORDMAN);
+  EXPECT_FALSE(c_.MeetsJob(rosary)) << "a 1st job has no off-hand yet";
+  c_.AdvanceJob(JOB_FIGHTER);
+  EXPECT_FALSE(c_.MeetsJob(rosary)) << "a Fighter is holding a Page's rosary";
+  CharacterInstance page = MakeCharacter(rng_);
+  page.AdvanceJob(JOB_SWORDMAN);
+  page.AdvanceJob(JOB_PAGE);
+  EXPECT_TRUE(page.MeetsJob(rosary));
+}
+
 // --- PickUp ---
 
 TEST_F(PickUpTest, AddsItemToInventory) {

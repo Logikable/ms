@@ -4,14 +4,18 @@
 // lets the player upgrade.
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "src/character/character.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/item.h"
 #include "src/proto_loader.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
@@ -94,6 +98,52 @@ TEST(EquipDataTest, AWeaponTypeHasOneAttackSpeed) {
         << entry.first << " and " << it->second.second << " are both "
         << FormatEquipType(proto.equip_type())
         << " but swing at different speeds";
+  }
+}
+
+// GMS gives none of these a slot or a star, and none of ours is near the level
+// 200 tier where enhancement begins. Asserted over the catalog for the same
+// reason the throwing stars are: each file has to say so itself.
+TEST(EquipDataTest, SecondariesTakeNoUpgrades) {
+  int seen = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_slot() != EQUIP_SLOT_SECONDARY) {
+      continue;
+    }
+    ++seen;
+    EXPECT_FALSE(Supports(proto, UPGRADE_SCROLL))
+        << entry.first << " can be scrolled";
+    EXPECT_FALSE(Supports(proto, UPGRADE_STAR_FORCE))
+        << entry.first << " can be star forced";
+    EXPECT_EQ(proto.upgrade_slots(), 0)
+        << entry.first << " carries slots it will never spend";
+  }
+  EXPECT_GT(seen, 0) << "no secondaries in the catalog to check";
+}
+
+// Two per branch, at the level of each tier, and no branch left out. A
+// missing one is a 2nd job handed nothing when it advances.
+TEST(EquipDataTest, EverySecondJobHasBothTiers) {
+  std::map<JobAdvancement, std::vector<int>> levels;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_slot() != EQUIP_SLOT_SECONDARY) {
+      continue;
+    }
+    JobAdvancement owner = AdvancementForSecondary(proto.equip_type());
+    ASSERT_NE(owner, JOB_ADVANCEMENT_UNSPECIFIED)
+        << entry.first << " is an off-hand nobody can hold";
+    levels[owner].push_back(proto.required_level());
+  }
+  for (int i = JOB_ADVANCEMENT_FIGHTER; i <= JOB_ADVANCEMENT_BANDIT; ++i) {
+    JobAdvancement advancement = static_cast<JobAdvancement>(i);
+    std::vector<int>& own = levels[advancement];
+    std::sort(own.begin(), own.end());
+    EXPECT_EQ(own, (std::vector<int>{30, 60}))
+        << JobAdvancement_Name(advancement) << " has the wrong secondaries";
   }
 }
 

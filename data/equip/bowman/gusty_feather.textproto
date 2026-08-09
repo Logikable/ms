@@ -1,0 +1,13 @@
+name: "Gusty Feather"
+required_level: 60
+base_stats {
+  str: 6
+  dex: 6
+  attack: 2
+}
+equip_type: EQUIP_TYPE_ARROW_FLETCHING
+equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+equip_slot: EQUIP_SLOT_SECONDARY
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+shop_price: 30000

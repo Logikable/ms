@@ -325,6 +325,33 @@ std::vector<std::string> StarterEquipsFor(Job job) {
   }
 }
 
+JobAdvancement AdvancementForSecondary(EquipType type) {
+  switch (type) {
+    case EQUIP_TYPE_MEDALLION:
+      return JOB_ADVANCEMENT_FIGHTER;
+    case EQUIP_TYPE_ROSARY:
+      return JOB_ADVANCEMENT_PAGE;
+    case EQUIP_TYPE_IRON_CHAIN:
+      return JOB_ADVANCEMENT_SPEARMAN;
+    case EQUIP_TYPE_MAGIC_BOOK_FIRE_POISON:
+      return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
+    case EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING:
+      return JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD;
+    case EQUIP_TYPE_MAGIC_BOOK_HOLY:
+      return JOB_ADVANCEMENT_CLERIC;
+    case EQUIP_TYPE_ARROW_FLETCHING:
+      return JOB_ADVANCEMENT_HUNTER;
+    case EQUIP_TYPE_BOW_THIMBLE:
+      return JOB_ADVANCEMENT_CROSSBOWMAN;
+    case EQUIP_TYPE_CHARM:
+      return JOB_ADVANCEMENT_ASSASSIN;
+    case EQUIP_TYPE_DAGGER_SCABBARD:
+      return JOB_ADVANCEMENT_BANDIT;
+    default:
+      return JOB_ADVANCEMENT_UNSPECIFIED;
+  }
+}
+
 StatField PrimaryStatField(Job job) {
   switch (job) {
     case JOB_BEGINNER:
@@ -998,6 +1025,13 @@ bool CharacterInstance::MeetsLevel(const EquipPrototype& proto) const {
 }
 
 bool CharacterInstance::MeetsJob(const EquipPrototype& proto) const {
+  // A secondary asks for one branch of one job category, so it is asked
+  // first: the category below would let every warrior hold every warrior
+  // off-hand, and the three of them are not interchangeable.
+  JobAdvancement owner = AdvancementForSecondary(proto.equip_type());
+  if (owner != JOB_ADVANCEMENT_UNSPECIFIED) {
+    return HasAdvancement(owner);
+  }
   if (proto.equip_job_categories_size() == 0) {
     return true;
   }

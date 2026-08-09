@@ -47,7 +47,7 @@ TEST(ShopTest, StocksOnlyPricedItems) {
       {"free", MakeItem("Free", 10, 0)},
       {"sold", MakeItem("Sold", 10, 5000)},
   };
-  EXPECT_EQ(ShopStock(equips), std::vector<std::string>{"sold"});
+  EXPECT_EQ(ShopWeaponStock(equips), std::vector<std::string>{"sold"});
 }
 
 // The four keys of the sort, checked one at a time: each case leaves every
@@ -63,7 +63,7 @@ TEST(ShopTest, SortsByLevelBeforeAnythingElse) {
       {"b", MakeItem("Zebra", 10, 9000, EQUIP_TYPE_SPEAR)},
   };
   std::vector<std::string> expected{"b", "a"};
-  EXPECT_EQ(ShopStock(equips), expected);
+  EXPECT_EQ(ShopWeaponStock(equips), expected);
 }
 
 TEST(ShopTest, SortsByWeaponTypeWithinALevel) {
@@ -72,7 +72,7 @@ TEST(ShopTest, SortsByWeaponTypeWithinALevel) {
       {"b", MakeItem("Zebra", 10, 5000, EQUIP_TYPE_BOW)},
   };
   std::vector<std::string> expected{"b", "a"};
-  EXPECT_EQ(ShopStock(equips), expected);
+  EXPECT_EQ(ShopWeaponStock(equips), expected);
 }
 
 TEST(ShopTest, SortsByPriceWithinAWeaponType) {
@@ -81,7 +81,7 @@ TEST(ShopTest, SortsByPriceWithinAWeaponType) {
       {"b", MakeItem("Zebra", 10, 5000, EQUIP_TYPE_BOW)},
   };
   std::vector<std::string> expected{"b", "a"};
-  EXPECT_EQ(ShopStock(equips), expected);
+  EXPECT_EQ(ShopWeaponStock(equips), expected);
 }
 
 TEST(ShopTest, SortsByNameWithinAPrice) {
@@ -90,7 +90,7 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
       {"b", MakeItem("Anvil", 10, 5000, EQUIP_TYPE_BOW)},
   };
   std::vector<std::string> expected{"b", "a"};
-  EXPECT_EQ(ShopStock(equips), expected);
+  EXPECT_EQ(ShopWeaponStock(equips), expected);
 }
 
 // The shipped catalog, so the stock the player sees is pinned rather than
@@ -100,7 +100,7 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
 // around.
 TEST(ShopTest, ShippedStockIsFiftyFourWeapons) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
-  std::vector<std::string> stock = ShopStock(equips);
+  std::vector<std::string> stock = ShopWeaponStock(equips);
   std::vector<std::pair<std::string, int>> listing;
   for (const std::string& key : stock) {
     listing.push_back({equips.at(key).name(), equips.at(key).shop_price()});
@@ -171,13 +171,23 @@ TEST(ShopTest, ShippedStockIsFiftyFourWeapons) {
   EXPECT_EQ(listing, expected);
 }
 
+// The off-hands are sold, and not here: they are a shelf of their own, and a
+// medallion listed among the swords would read as something to swing.
+TEST(ShopTest, TheWeaponShelfHoldsNoOffHands) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  for (const std::string& key : ShopWeaponStock(equips)) {
+    EXPECT_NE(equips.at(key).equip_slot(), EQUIP_SLOT_SECONDARY)
+        << key << " is on the weapon shelf";
+  }
+}
+
 // Nothing on sale is out of reach. The trial stops handing out EXP at 60, so
 // a weapon above it is one the shop takes meso for and the player can never
 // hold -- and an endgame weapon appearing here would be a balance change
 // nobody asked for.
 TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
-  for (const std::string& key : ShopStock(equips)) {
+  for (const std::string& key : ShopWeaponStock(equips)) {
     EXPECT_LE(equips.at(key).required_level(), kTrialLevelCap)
         << key << " is for sale";
   }
