@@ -139,7 +139,10 @@ cc_test(
     name = "item_menu_test",
     srcs = ["item_menu_test.cc"],
     deps = [
+        ":colors",
         ":item_menu",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
         "@googletest//:gtest_main",
     ],
 )

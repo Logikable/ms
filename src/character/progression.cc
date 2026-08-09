@@ -46,6 +46,27 @@ constexpr Feature kUpgrades[] = {
     Feature::kRecovery,
 };
 
+// The upgrades with a gold trail, and the slug their latch keys are built
+// from. The slugs are written into the save, so changing one forgets that
+// anybody was ever led anywhere and starts every player's trail over.
+struct Led {
+  Feature feature;
+  const char* slug;
+};
+
+constexpr Led kLedUpgrades[] = {
+    {Feature::kScrolling, "scrolling"},
+    {Feature::kStarForce, "star_force"},
+};
+
+std::string WeaponLeadKey(const char* slug) {
+  return std::string("lead_weapon:") + slug;
+}
+
+std::string ActionLeadKey(const char* slug) {
+  return std::string("lead_action:") + slug;
+}
+
 // The lowest level of each pacing band and how far it stretches a duration.
 // Read from the bottom up: the last band the level clears is the one that
 // applies.
@@ -114,6 +135,42 @@ std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level) {
     }
   }
   return opened;
+}
+
+bool LeadToWeapon(const CharacterInstance& character) {
+  for (const Led& led : kLedUpgrades) {
+    if (Unlocked(led.feature, character) &&
+        !character.TabSeen(WeaponLeadKey(led.slug))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void FollowedToWeapon(CharacterInstance& character) {
+  for (const Led& led : kLedUpgrades) {
+    if (Unlocked(led.feature, character)) {
+      character.MarkTabSeen(WeaponLeadKey(led.slug));
+    }
+  }
+}
+
+bool LeadToAction(Feature feature, const CharacterInstance& character) {
+  for (const Led& led : kLedUpgrades) {
+    if (led.feature == feature) {
+      return Unlocked(feature, character) &&
+             !character.TabSeen(ActionLeadKey(led.slug));
+    }
+  }
+  return false;
+}
+
+void FollowedToAction(Feature feature, CharacterInstance& character) {
+  for (const Led& led : kLedUpgrades) {
+    if (led.feature == feature) {
+      character.MarkTabSeen(ActionLeadKey(led.slug));
+    }
+  }
 }
 
 int HotkeysTipRetireLevel() {

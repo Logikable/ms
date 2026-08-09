@@ -428,6 +428,56 @@ TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
 }
 
+// --- the gold trail to a new upgrade ---
+
+// The far end of the trail that starts on the level-up card: the entry the
+// player has just been handed is gold until they press it.
+TEST_F(InventoryPanelTest, ANewUpgradeIsGoldOnTheMenu) {
+  LevelTo(UnlockLevel(Feature::kScrolling));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  panel.OpenMenu();
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
+}
+
+TEST_F(InventoryPanelTest, PressingTheUpgradePutsItsGoldOut) {
+  LevelTo(UnlockLevel(Feature::kScrolling));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  ScrollPanel sp(c_, {});
+  panel.OpenMenu();
+  while (panel.menu().selected() != kMenuScroll) {
+    panel.menu().Down();
+  }
+  panel.OnMenuEvent(ftxui::Event::Return, sp);
+
+  panel.OpenMenu();
+  EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
+}
+
+// The two upgrades keep their own gold. Star force is not open at the level
+// scrolling is, so nothing about it may be lit or spent yet.
+TEST_F(InventoryPanelTest, OnlyTheUpgradeThatOpenedIsGold) {
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  EquipPrototype proto = sword_;
+  proto.set_upgrade_slots(1);
+  Equip state;
+  state.set_equip_name(proto.name());
+  state.set_remaining_upgrade_slots(0);
+  c_.PickUp(std::make_unique<EquipInstance>(proto, state));
+  InventoryPanel panel(c_, panel_focus_);
+  ScrollPanel sp(c_, {});
+  panel.OpenMenu();
+  while (panel.menu().selected() != kMenuScroll) {
+    panel.menu().Down();
+  }
+  panel.OnMenuEvent(ftxui::Event::Return, sp);
+
+  panel.OpenMenu();
+  EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Star Force"), kYellow);
+}
+
 // --- the level-gated Shop tab ---
 
 // The bar simply ends at Etc rather than showing a greyed fourth chip: a shop

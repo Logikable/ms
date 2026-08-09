@@ -56,6 +56,36 @@ std::string FeatureName(Feature feature);
 // their own to light, so the level-up card says their names instead.
 std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level);
 
+/* The gold trail that leads a player to a newly unlocked upgrade.
+ *
+ * The card names it, and then two signposts stand until they are walked past:
+ * the equipped weapon's name is gold until the player opens its item menu, and
+ * the entry on that menu is gold until they press Enter on it. Each step
+ * latches in the character's seen-key list, so it survives a restart and never
+ * comes back.
+ *
+ * One pair of steps per upgrade, which is what makes the trail run again when
+ * the next one arrives rather than being spent on the first. Only the upgrades
+ * a worn weapon can actually take: recovery applies to a destroyed item's
+ * trace, so pointing at the weapon for it would lead nowhere.
+ */
+
+// Whether the equipped weapon's name should be gold: something has opened that
+// the player has not gone and looked at their weapon for.
+bool LeadToWeapon(const CharacterInstance& character);
+
+// Records that they did. Puts out the weapon step of every upgrade open right
+// now -- they opened the menu, and all of it was in front of them -- but not
+// of one that has yet to arrive.
+void FollowedToWeapon(CharacterInstance& character);
+
+// Whether `feature`'s entry on an item menu should be gold. False for a
+// feature with no trail of its own.
+bool LeadToAction(Feature feature, const CharacterInstance& character);
+
+// Records that the player pressed Enter on that entry, wherever they did it.
+void FollowedToAction(Feature feature, CharacterInstance& character);
+
 // The level the hotkeys tip stops being drawn at. Not a Feature: the enum
 // above is for things that open and stay open, and this is the one thing that
 // expires, so folding it in would make Unlocked read backwards.

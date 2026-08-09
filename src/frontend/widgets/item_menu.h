@@ -43,6 +43,13 @@ class ItemMenu {
   // advertise something they cannot ask about. Callers must leave at least
   // one entry standing; Close is never hidden.
   void Hide(int index);
+  // Marks the entry at `index` as new: drawn gold, but reachable and usable
+  // like any other. Must be called after Reset().
+  //
+  // For an action the player has just been handed and has never used. It is
+  // the far end of the trail that starts on the level-up card -- see
+  // progression.h.
+  void Highlight(int index);
   int selected() const;
 
  private:
@@ -53,6 +60,7 @@ class ItemMenu {
   std::vector<std::string> options_;
   std::vector<bool> disabled_;
   std::vector<bool> hidden_;
+  std::vector<bool> highlighted_;
   int selected_ = 0;
 };
 

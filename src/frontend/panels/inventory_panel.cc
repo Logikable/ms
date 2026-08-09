@@ -301,6 +301,15 @@ void InventoryPanel::OpenEquipMenu() {
   if (!eq->CanStarForce()) {
     menu_.Hide(kMenuStarForce);
   }
+  // Gold on an upgrade the player has been handed but never used, which is
+  // where the trail from the level-up card ends. Last, so it lands on the
+  // entries as they finally stand.
+  if (LeadToAction(Feature::kScrolling, character_)) {
+    menu_.Highlight(kMenuScroll);
+  }
+  if (LeadToAction(Feature::kStarForce, character_)) {
+    menu_.Highlight(kMenuStarForce);
+  }
 }
 
 void InventoryPanel::OpenMenu() {
@@ -361,12 +370,16 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
       return kInspect;
     }
     if (menu_.selected() == kMenuScroll) {
+      // Followed whether or not there is a scroll to show: they pressed the
+      // entry, which is what the gold was asking them to do.
+      FollowedToAction(Feature::kScrolling, character_);
       if (scroll_panel.SetFilterForPrototype(
               character_.inventory()[selected_].prototype())) {
         return kScrollSelect;
       }
     }
     if (menu_.selected() == kMenuStarForce) {
+      FollowedToAction(Feature::kStarForce, character_);
       return kStarForce;
     }
     if (menu_.selected() == kMenuRecover) {

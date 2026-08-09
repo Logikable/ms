@@ -107,6 +107,57 @@ TEST_F(ProgressionTest, EveryFeatureHasAName) {
   }
 }
 
+// --- the gold trail ---
+
+TEST_F(ProgressionTest, NothingIsLedBeforeTheUpgradeOpens) {
+  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling) - 1);
+  EXPECT_FALSE(LeadToWeapon(c));
+  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c));
+}
+
+TEST_F(ProgressionTest, TheUpgradeThatOpensLightsBothSignposts) {
+  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
+  EXPECT_TRUE(LeadToWeapon(c));
+  EXPECT_TRUE(LeadToAction(Feature::kScrolling, c));
+}
+
+// Two steps, and each is walked past on its own: opening the menu answers the
+// weapon's gold, and only pressing the entry answers the entry's.
+TEST_F(ProgressionTest, EachStepGoesOutOnItsOwn) {
+  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
+  FollowedToWeapon(c);
+  EXPECT_FALSE(LeadToWeapon(c));
+  EXPECT_TRUE(LeadToAction(Feature::kScrolling, c));
+
+  FollowedToAction(Feature::kScrolling, c);
+  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c));
+}
+
+// The whole reason each upgrade keeps its own pair of keys: a player led to
+// scrolling at 40 has to be led to star force again when it arrives.
+TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
+  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
+  FollowedToWeapon(c);
+  FollowedToAction(Feature::kScrolling, c);
+  ASSERT_FALSE(LeadToWeapon(c));
+
+  while (c.proto().level() < UnlockLevel(Feature::kStarForce)) {
+    c.LevelUp();
+  }
+  EXPECT_TRUE(LeadToWeapon(c));
+  EXPECT_TRUE(LeadToAction(Feature::kStarForce, c));
+  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c))
+      << "the one already followed stays followed";
+}
+
+// Recovery applies to a destroyed item's trace, so pointing at the worn weapon
+// for it would lead the player nowhere.
+TEST_F(ProgressionTest, RecoveryHasNoTrail) {
+  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kRecovery));
+  EXPECT_FALSE(LeadToAction(Feature::kRecovery, c));
+  EXPECT_FALSE(LeadToAction(Feature::kShop, c));
+}
+
 // Taking something off needs somewhere to put it, so the two move together.
 TEST_F(ProgressionTest, UnequipOpensWithTheBag) {
   EXPECT_EQ(UnlockLevel(Feature::kUnequip), UnlockLevel(Feature::kBag));

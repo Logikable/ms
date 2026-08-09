@@ -13,7 +13,8 @@ namespace ms {
 ItemMenu::ItemMenu(std::vector<std::string> options)
     : options_(std::move(options)),
       disabled_(options_.size(), false),
-      hidden_(options_.size(), false) {
+      hidden_(options_.size(), false),
+      highlighted_(options_.size(), false) {
 }
 
 ftxui::Element ItemMenu::Render(int row, int col) const {
@@ -24,6 +25,10 @@ ftxui::Element ItemMenu::Render(int row, int col) const {
     }
     std::string prefix = (i == selected_) ? "> " : "  ";
     ftxui::Element entry = ftxui::text(prefix + options_[i] + " ");
+    if (highlighted_[i]) {
+      // After the white the vbox paints below, so this is what the cell keeps.
+      entry = entry | ftxui::color(kYellow);
+    }
     if (disabled_[i]) {
       entry = entry | ftxui::dim;
     }
@@ -68,6 +73,7 @@ void ItemMenu::Step(int delta) {
 void ItemMenu::Reset() {
   std::fill(disabled_.begin(), disabled_.end(), false);
   std::fill(hidden_.begin(), hidden_.end(), false);
+  std::fill(highlighted_.begin(), highlighted_.end(), false);
   selected_ = 0;
 }
 
@@ -76,6 +82,10 @@ void ItemMenu::Hide(int index) {
   // A row that is not drawn must not be walked onto either, so hiding
   // subsumes disabling.
   Disable(index);
+}
+
+void ItemMenu::Highlight(int index) {
+  highlighted_[index] = true;
 }
 
 void ItemMenu::Disable(int index) {

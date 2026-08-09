@@ -462,6 +462,39 @@ TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
   EXPECT_NE(std::count(after.begin(), after.end(), kMenuAction), 0);
 }
 
+// --- the gold trail to a new upgrade ---
+
+// The same trail the bag menu carries, on the panel the player is led to
+// first: the entry stays gold until they press it.
+TEST_F(EquippedPanelTest, ANewUpgradeIsGoldOnTheMenu) {
+  LevelTo(UnlockLevel(Feature::kScrolling));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+  panel.OpenMenu();
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
+}
+
+// Pressed anywhere, spent everywhere: the player has learned what the entry
+// is, and the bag's copy of it has nothing left to teach them.
+TEST_F(EquippedPanelTest, PressingTheUpgradePutsItsGoldOut) {
+  LevelTo(UnlockLevel(Feature::kScrolling));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  ScrollPanel sp(c_, {});
+  RenderComponent(panel.MakeComponent([]() {}));
+  panel.OpenMenu();
+  while (panel.menu().selected() != kMenuScroll) {
+    panel.menu().Down();
+  }
+  panel.OnMenuEvent(ftxui::Event::Return, sp);
+
+  panel.OpenMenu();
+  EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
+}
+
 TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
   // A spent weapon: star force refuses an item with upgrade slots still on
   // it, and this test is about the level gate rather than that refusal.
