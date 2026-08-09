@@ -45,31 +45,50 @@ constexpr int kTestLevelUpItems = 199;
 // 2nd job, holding the whole of what this game has to hand out.
 constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_FIGHTER;
 
-// What the workbench puts in a job's hand. A 2nd job advances empty-handed --
-// it is meant to buy its own weapon -- but the workbench skips the shop as it
-// skips the grinding, and half a 2nd-job book lapses without the right weapon
-// in hand. So the workbench names one itself, the tier weapon for the level it
-// starts its character at. A 1st job simply gets what advancing would give.
+// What the workbench puts in a job's hand. Advancing hands over the weapon for
+// the level it happens at, which is the wrong end of the job: the workbench
+// starts its character at the TOP of an advancement, and a level 60 Fighter
+// swinging the axe they were given at 30 is not the character anyone came to
+// test. So every job names the best weapon of its own type that its starting
+// level can wear -- level 30 for a 1st job, level 60 for a 2nd.
+//
+// The one exception is ammunition: the star ladder's next rung after level 50
+// is out of a level 60 character's reach, so an Assassin tops out there.
+//
+// Where a job masters two weapons the better one is named, on the figures in
+// //analysis:weapon_sim. A Rogue gets three, as advancing gives them, because
+// which of the dagger and the claw is held decides which attack they can
+// swing.
 std::vector<std::string> WorkbenchWeaponsFor(Job job) {
   switch (job) {
-    case JOB_FIGHTER:
-      return {"blue_axe"};
-    case JOB_PAGE:
-      return {"mithril_maul"};
-    case JOB_SPEARMAN:
-      return {"forked_spear"};
-    case JOB_HUNTER:
+    // The 1st jobs, at level 30.
+    case JOB_SWORDMAN:
+      return {"gladius"};
+    case JOB_ARCHER:
       return {"ryden"};
+    case JOB_MAGICIAN:
+      return {"circle_winded_staff"};
+    case JOB_ROGUE:
+      return {"kumbi_throwing_stars", "reef_claw", "steel_guards"};
+    // The 2nd jobs, at level 60.
+    case JOB_FIGHTER:
+      return {"the_shining"};
+    case JOB_PAGE:
+      return {"the_blessing"};
+    case JOB_SPEARMAN:
+      return {"holy_spear"};
+    case JOB_HUNTER:
+      return {"asianic_bow"};
     case JOB_CROSSBOWMAN:
-      return {"eagle_crow"};
+      return {"golden_crow"};
     case JOB_ICE_LIGHTNING_WIZARD:
     case JOB_FIRE_POISON_WIZARD:
     case JOB_CLERIC:
       return {"frantic_crow_staff"};
     case JOB_ASSASSIN:
-      return {"steel_guards", "kumbi_throwing_stars"};
+      return {"steely_throwing_knives", "dark_gigantic"};
     case JOB_BANDIT:
-      return {"reef_claw"};
+      return {"deadly_fin"};
     default:
       return StarterEquipsFor(job);
   }

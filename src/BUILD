@@ -149,6 +149,34 @@ cc_test(
 )
 
 cc_test(
+    name = "workbench_gear_test",
+    srcs = ["workbench_gear_test.cc"],
+    data = [
+        "//data/equip:all",
+        "//data/items:all",
+        "//data/maps:all",
+        "//data/mobs:all",
+        "//data/scrolls:all",
+        "//data/skills:all",
+    ],
+    deps = [
+        ":game_state",
+        ":proto_loader",
+        "//src/character",
+        "//src/item:equip_instance",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "skill_data_test",
     srcs = ["skill_data_test.cc"],
     data = ["//data/skills:all"],

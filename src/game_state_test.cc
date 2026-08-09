@@ -166,8 +166,12 @@ std::map<std::string, EquipPrototype> BowCatalog() {
   ryden.set_name("Ryden");
   ryden.set_equip_type(EQUIP_TYPE_BOW);
   ryden.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  EquipPrototype asianic;
+  asianic.set_name("Asianic Bow");
+  asianic.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   equips["war_bow"] = war_bow;
   equips["ryden"] = ryden;
+  equips["asianic_bow"] = asianic;
   return equips;
 }
 
@@ -240,11 +244,19 @@ TEST(GameStateTest, AChosenFirstJobKeepsItsWholeBook) {
 
 // Worn, not carried. A 2nd job advances empty-handed now, so without this the
 // chosen job would arrive with nothing in hand and half its book asleep.
-TEST(GameStateTest, ChosenJobWearsThatJobsWeapon) {
-  GameState state = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
-  ASSERT_TRUE(state.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
-  EXPECT_EQ(state.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
+// An Archer is left at 30 holding the Ryden that a level 30 can wear; a Hunter
+// is left at 60 holding the Asianic Bow. Both are the top of the bow ladder
+// their level reaches -- see WorkbenchWeaponsFor.
+TEST(GameStateTest, ChosenJobWearsTheWeaponItsLevelTopsOutAt) {
+  GameState archer = MakeChosenJobState(JOB_ADVANCEMENT_ARCHER);
+  ASSERT_TRUE(archer.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(archer.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
             "Ryden");
+
+  GameState hunter = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
+  ASSERT_TRUE(hunter.character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON));
+  EXPECT_EQ(hunter.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).name(),
+            "Asianic Bow");
 }
 
 // The warrior ladder the default workbench carries is the default job's, so a
