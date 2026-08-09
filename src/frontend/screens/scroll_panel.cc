@@ -142,7 +142,7 @@ void ScrollPanel::ResetComponent() {
     // The balance rides in the title: it is the number every row's Cost is
     // read against, and up there it never scrolls away with the list.
     ftxui::Element main =
-        ThemedWindow(" Scrolls — " + FormatWithCommas(TracesHeld()) + " 📜 ",
+        ThemedWindow(" Scrolls — " + FormatWithCommas(TracesOwned()) + " 📜 ",
                      ftxui::vbox(std::move(rows)));
     if (confirm_.open()) {
       // yflex lets main fill the remaining height under the confirm window,
@@ -184,28 +184,28 @@ const Scroll& ScrollPanel::selected_scroll() const {
   return *ordered_[selected_];
 }
 
-int ScrollPanel::TracesHeld() const {
-  int held = 0;
+int ScrollPanel::TracesOwned() const {
+  int owned = 0;
   for (const StackableItem& stack : character_.stackables(ITEM_CATEGORY_ETC)) {
     if (stack.name() == kSpellTraceName) {
-      held += stack.count();
+      owned += stack.count();
     }
   }
-  return held;
+  return owned;
 }
 
 bool ScrollPanel::CanAffordSelected() const {
   if (ordered_.empty()) {
     return false;
   }
-  return TracesHeld() >= selected_scroll().trace_cost();
+  return TracesOwned() >= selected_scroll().trace_cost();
 }
 
 ftxui::Element ScrollPanel::RenderConfirm() const {
   const Scroll& scroll = selected_scroll();
   int cost = scroll.trace_cost();
-  int held = TracesHeld();
-  bool affordable = held >= cost;
+  int owned = TracesOwned();
+  bool affordable = owned >= cost;
 
   std::string what = scroll.name();
   if (!target_name_.empty()) {
@@ -233,11 +233,11 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
   // Red and unspent when they cannot pay, so the row and the greyed button
   // say the same thing.
   std::string money = "Cost " + FormatWithCommas(cost) + " \U0001F4DC" +
-                      "     held " + FormatWithCommas(held) + " \U0001F4DC";
-  ftxui::Element money_row =
-      CenteredRow(affordable ? money + "  ->  " +
-                                   FormatWithCommas(held - cost) + " \U0001F4DC"
-                             : money + "  ->  not enough");
+                      "     owned " + FormatWithCommas(owned) + " \U0001F4DC";
+  ftxui::Element money_row = CenteredRow(
+      affordable
+          ? money + "  ->  " + FormatWithCommas(owned - cost) + " \U0001F4DC"
+          : money + "  ->  not enough");
   if (!affordable) {
     money_row = std::move(money_row) | ftxui::color(kRed);
   }

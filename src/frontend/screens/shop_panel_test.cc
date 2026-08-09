@@ -815,7 +815,7 @@ TEST_F(ShopPanelTest, TheListIgnoresLeftAndRight) {
   EXPECT_NE(panel.selected_item(), nullptr);
 }
 
-TEST_F(ShopPanelTest, TheEtcShelfShowsHowManyAreHeld) {
+TEST_F(ShopPanelTest, TheEtcShelfShowsHowManyAreOwned) {
   CharacterInstance c = MakeCharacter(100000);
   c.AddStackable(items_.at("spell_trace"), 1234);
   ShopPanel panel(c, equips_, items_);

@@ -40,10 +40,11 @@ ftxui::Element ColumnHeader() {
 }
 
 // The Etc shelf has no type and no level to show, so the two columns between
-// the name and the price become one: how many the player is already carrying.
+// the name and the price become one: how many the player owns already. "Owned"
+// is the word for that everywhere -- the buy dialog says it too.
 ftxui::Element EtcColumnHeader() {
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
-                     PadRight("Held", kTypeWidth + 2 + kLevelWidth) +
+                     PadRight("Owned", kTypeWidth + 2 + kLevelWidth) +
                      PadLeft("🪙 Cost", kCostWidth));
 }
 

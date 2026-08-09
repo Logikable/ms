@@ -5,7 +5,7 @@
  * true once when the player confirms the selection.
  *
  * Every scroll costs spell traces, so the list carries a Cost column and the
- * title carries what the player is holding -- the two numbers the choice is
+ * title carries how many the player owns -- the two numbers the choice is
  * made between. The name column gives up the width for it and slides its
  * longer names under the column instead, as the bag's rows do.
  */
@@ -67,8 +67,8 @@ class ScrollPanel {
   // been selected, which is what slides a too-long name under its column.
   static std::string FormatEntry(const Scroll& scroll,
                                  std::chrono::steady_clock::duration elapsed);
-  // Spell traces the character is carrying.
-  int TracesHeld() const;
+  // Spell traces the character owns.
+  int TracesOwned() const;
   // The window that asks before a scroll is spent: what it is going on, what
   // it does, what it costs, and what the player is left holding.
   ftxui::Element RenderConfirm() const;
