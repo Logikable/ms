@@ -860,6 +860,15 @@ TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   iron_wall.set_kind(SKILL_KIND_PASSIVE);
   iron_wall.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   iron_wall.set_max_level(10);
+  // A second link, so the chain is deeper than one hop -- the Cleric's Bless
+  // waits on Invincible, which waits on Heal.
+  iron_wall.mutable_required_skill()->set_skill_name("Endure");
+  iron_wall.mutable_required_skill()->set_level(3);
+  Skill endure;
+  endure.set_name("Endure");
+  endure.set_kind(SKILL_KIND_PASSIVE);
+  endure.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  endure.set_max_level(10);
   Skill physical_training;
   physical_training.set_name("Physical Training");
   physical_training.set_kind(SKILL_KIND_PASSIVE);
@@ -871,18 +880,22 @@ TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   catalog["a_hyper_body"] = hyper_body;
   catalog["b_physical_training"] = physical_training;
   catalog["c_iron_wall"] = iron_wall;
+  catalog["d_endure"] = endure;
 
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, panel_focus_, catalog);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
+  size_t endure_at = rendered.find("Endure");
   size_t wall = rendered.find("Iron Wall");
   size_t hyper = rendered.find("Hyper Body");
   size_t training = rendered.find("Physical Training");
+  ASSERT_NE(endure_at, std::string::npos);
   ASSERT_NE(wall, std::string::npos);
   ASSERT_NE(hyper, std::string::npos);
   ASSERT_NE(training, std::string::npos);
+  EXPECT_LT(endure_at, wall);
   EXPECT_LT(wall, hyper);
   EXPECT_LT(hyper, training);
 }

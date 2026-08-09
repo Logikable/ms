@@ -118,6 +118,7 @@ LevelUpGain LevelUpGainFor(Job job) {
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
     case JOB_FIRE_POISON_WIZARD:
+    case JOB_CLERIC:
       return {12, 48};
     default:
       return {36, 24};
@@ -140,6 +141,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
     case JOB_FIRE_POISON_WIZARD:
+    case JOB_CLERIC:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
     case JOB_ROGUE:
       return EQUIP_JOB_CATEGORY_THIEF;
@@ -215,6 +217,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_MAGICIAN:
       case JOB_ICE_LIGHTNING_WIZARD:
       case JOB_FIRE_POISON_WIZARD:
+      case JOB_CLERIC:
         return JOB_ADVANCEMENT_MAGICIAN;
       case JOB_ROGUE:
         return JOB_ADVANCEMENT_ROGUE;
@@ -238,6 +241,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD;
       case JOB_FIRE_POISON_WIZARD:
         return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
+      case JOB_CLERIC:
+        return JOB_ADVANCEMENT_CLERIC;
       default:
         break;
     }
@@ -269,6 +274,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_ICE_LIGHTNING_WIZARD;
     case JOB_ADVANCEMENT_FIRE_POISON_WIZARD:
       return JOB_FIRE_POISON_WIZARD;
+    case JOB_ADVANCEMENT_CLERIC:
+      return JOB_CLERIC;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -321,6 +328,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
     case JOB_FIRE_POISON_WIZARD:
+    case JOB_CLERIC:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
       return STAT_FIELD_LUK;
@@ -344,10 +352,8 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 2 && job == JOB_ARCHER) {
     return {JOB_HUNTER, JOB_CROSSBOWMAN};
   }
-  // Two of the three. Cleric is not written yet, and an empty seat in the
-  // picker would offer a choice that is not there.
   if (stage == 2 && job == JOB_MAGICIAN) {
-    return {JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD};
+    return {JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD, JOB_CLERIC};
   }
   return {};
 }
@@ -366,6 +372,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_CROSSBOWMAN:
     case JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD:
     case JOB_ADVANCEMENT_FIRE_POISON_WIZARD:
+    case JOB_ADVANCEMENT_CLERIC:
       return 2;
     default:
       return 0;

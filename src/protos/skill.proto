@@ -32,6 +32,10 @@ enum SkillTag {
   // A fire spell. Ignite reads it: the fire mage's Final Attack follows their
   // fire spells and nothing else, so the attacks say which of them burn.
   SKILL_TAG_FIRE = 2;
+  // The Cleric's Benevolence group -- the healing half of their kit. Nothing
+  // reads it yet: what turns a Benevolence skill into its Vengeance form is a
+  // Hyper Skill, which is far above this game's cap.
+  SKILL_TAG_BENEVOLENCE = 3;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we

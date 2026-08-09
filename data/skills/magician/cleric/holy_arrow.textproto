@@ -1,0 +1,19 @@
+# GMS runs it over 20 levels at 125+3x with 3 attacks; here it is the same
+# climb in half the steps, ending where GMS ends.
+#
+# The only attack in this book, so it carries no cooldown: the pair the other
+# two wizards alternate between is what a cooldown is for, and there is no
+# pair here. It is also GMS's slowest 2nd-job magician animation and reaches
+# the fewest enemies, which is what the Cleric pays for Blessed Ensemble.
+name: "Holy Arrow"
+skill_order: 1
+description:
+  "Looses a volley of holy arrows at the enemies in front of you."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_CLERIC
+max_level: 10
+base_delay_ms: 870
+max_enemies: 4
+lines: 3
+base { skill_pct: 1.31 }
+per_level { skill_pct: 0.06 }

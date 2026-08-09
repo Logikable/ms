@@ -1,0 +1,15 @@
+# Carried, and not yet read by anything. The fight keeps the player's HP (see
+# fight.h) and hands a slice of it back on every respawn beat, so there is a
+# place for this to land -- but the recovery, the party it is shared with and
+# the cooldown the party shortens are one feature, and none of it is written.
+# GMS's figure is 15% a level over 20; this is the same 300% in half the steps.
+#
+# What keeps the levels from being wasted meanwhile is Invincible, which waits
+# on five of them exactly as it does in GMS.
+name: "Heal"
+skill_order: 3
+description: "Calls down a warm light that closes your wounds."
+kind: SKILL_KIND_ACTIVE
+tags: SKILL_TAG_BENEVOLENCE
+job_advancement: JOB_ADVANCEMENT_CLERIC
+max_level: 10

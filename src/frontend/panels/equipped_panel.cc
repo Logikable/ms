@@ -144,7 +144,7 @@ std::string EquippedPanel::RowInfo(const EquipStats& stats) const {
   // chain.
   std::string atk_str;
   bool magic = job == JOB_MAGICIAN || job == JOB_ICE_LIGHTNING_WIZARD ||
-               job == JOB_FIRE_POISON_WIZARD;
+               job == JOB_FIRE_POISON_WIZARD || job == JOB_CLERIC;
   if (!magic && stats.attack() > 0) {
     atk_str = "+" + std::to_string(stats.attack()) + " ATT";
   } else if (stats.magic_attack() > 0) {

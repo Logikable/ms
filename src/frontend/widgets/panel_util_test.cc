@@ -882,6 +882,9 @@ TEST(JobNameTest, TheWizardsAreSpelledOutInFullAndAbbreviated) {
   EXPECT_EQ(ShortJobName(JOB_ICE_LIGHTNING_WIZARD), "I/L Wizard");
   EXPECT_EQ(JobName(JOB_FIRE_POISON_WIZARD), "Fire/Poison Wizard");
   EXPECT_EQ(ShortJobName(JOB_FIRE_POISON_WIZARD), "F/P Wizard");
+  // The Cleric's name fits either way, so it is the same both times.
+  EXPECT_EQ(JobName(JOB_CLERIC), "Cleric");
+  EXPECT_EQ(ShortJobName(JOB_CLERIC), "Cleric");
   EXPECT_EQ(ShortJobName(JOB_SPEARMAN), "Spearman");
 }
 

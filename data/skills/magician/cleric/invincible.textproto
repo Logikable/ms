@@ -1,0 +1,18 @@
+# GMS runs it over 10 levels at -5-2x%, ending at -25%. Here it is the same
+# ending over 20 levels, which is where the Cleric's book finds the points
+# their levels pay out.
+#
+# Reductions multiply rather than sum, so this and Magic Guard's 85% come to
+# 89% together, not 110% -- see character_stats.cc.
+name: "Invincible"
+skill_order: 6
+description: "Blunts everything that reaches you."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CLERIC
+max_level: 20
+required_skill {
+  skill_name: "Heal"
+  level: 5
+}
+base { damage_taken_pct: 0.06 }
+per_level { damage_taken_pct: 0.01 }

@@ -1,0 +1,27 @@
+# A party buff on a timer in GMS, at 5+x attack, 5+x magic attack and 30x
+# DEF. There is no party and nothing runs out here, so the Cleric simply keeps
+# it -- the same treatment the other two wizards' Meditation gets.
+#
+# This is the Cleric's whole magic attack: they have no Meditation, so where
+# the other wizards end on +30 this ends on +15. The attack is granted as well
+# because GMS grants it, though a magician swings on the other number.
+name: "Bless"
+skill_order: 4
+description: "Blesses you with greater Attack, Magic Attack and Defense."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CLERIC
+max_level: 10
+required_skill {
+  skill_name: "Invincible"
+  level: 5
+}
+base {
+  attack: 6
+  magic_attack: 6
+  def: 30
+}
+per_level {
+  attack: 1
+  magic_attack: 1
+  def: 30
+}
