@@ -118,6 +118,20 @@ TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
   }
 }
 
+// The test above walks what is worn, so an empty slot is a slot it never
+// reaches -- which is how every 2nd job came to stand there with no off-hand at
+// all and nothing said so. This is the slot being filled at all.
+TEST_F(WorkbenchGearTest, ASecondJobWearsAnOffHandAndAFirstJobHasNone) {
+  for (JobAdvancement advancement : kAdvancements) {
+    GameState state = Workbench(advancement);
+    SCOPED_TRACE(JobAdvancement_Name(advancement));
+    bool second_job = StageForAdvancement(advancement) == 2;
+    EXPECT_EQ(state.character.equipped().count(EQUIP_SLOT_SECONDARY) == 1,
+              second_job)
+        << "a secondary belongs to a branch, and only a 2nd job is in one";
+  }
+}
+
 // The level the gear is checked against, so a change to the advancement levels
 // shows up here as itself rather than as a weapon that looks wrong.
 TEST_F(WorkbenchGearTest, FirstJobsStartAtThirtyAndSecondJobsAtSixty) {

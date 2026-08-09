@@ -45,11 +45,11 @@ constexpr int kTestLevelUpItems = 199;
 // 2nd job, holding the whole of what this game has to hand out.
 constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_FIGHTER;
 
-// What the workbench puts in a job's hand. Advancing hands over the weapon for
+// Everything the workbench dresses a job in. Advancing hands over the gear for
 // the level it happens at, which is the wrong end of the job: the workbench
 // starts its character at the TOP of an advancement, and a level 60 Fighter
 // swinging the axe they were given at 30 is not the character anyone came to
-// test. So every job names the best weapon of its own type that its starting
+// test. So every job names the best of each thing it carries that its starting
 // level can wear -- level 30 for a 1st job, level 60 for a 2nd.
 //
 // The one exception is ammunition: the star ladder's next rung after level 50
@@ -58,8 +58,9 @@ constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_FIGHTER;
 // Where a job masters two weapons the better one is named, on the figures in
 // //analysis:weapon_sim. A Rogue gets three, as advancing gives them, because
 // which of the dagger and the claw is held decides which attack they can
-// swing.
-std::vector<std::string> WorkbenchWeaponsFor(Job job) {
+// swing. Each 2nd job also names its off-hand; the 1st jobs have none, since a
+// secondary belongs to a branch and they are not in one yet.
+std::vector<std::string> WorkbenchGearFor(Job job) {
   switch (job) {
     // The 1st jobs, at level 30.
     case JOB_SWORDMAN:
@@ -70,25 +71,28 @@ std::vector<std::string> WorkbenchWeaponsFor(Job job) {
       return {"circle_winded_staff"};
     case JOB_ROGUE:
       return {"kumbi_throwing_stars", "reef_claw", "steel_guards"};
-    // The 2nd jobs, at level 60.
+    // The 2nd jobs, at level 60. The three magician branches swing the same
+    // staff but read from three different books.
     case JOB_FIGHTER:
-      return {"the_shining"};
+      return {"the_shining", "orders_medallion"};
     case JOB_PAGE:
-      return {"the_blessing"};
+      return {"the_blessing", "divine_rosary"};
     case JOB_SPEARMAN:
-      return {"holy_spear"};
+      return {"holy_spear", "dark_chain"};
     case JOB_HUNTER:
-      return {"asianic_bow"};
+      return {"asianic_bow", "gusty_feather"};
     case JOB_CROSSBOWMAN:
-      return {"golden_crow"};
-    case JOB_ICE_LIGHTNING_WIZARD:
+      return {"golden_crow", "sure_shot"};
     case JOB_FIRE_POISON_WIZARD:
+      return {"frantic_crow_staff", "rusty_book_antistrophe"};
+    case JOB_ICE_LIGHTNING_WIZARD:
+      return {"frantic_crow_staff", "metallic_blue_book_antistrophe"};
     case JOB_CLERIC:
-      return {"frantic_crow_staff"};
+      return {"frantic_crow_staff", "white_gold_book_antistrophe"};
     case JOB_ASSASSIN:
-      return {"steely_throwing_knives", "dark_gigantic"};
+      return {"steely_throwing_knives", "dark_gigantic", "evil_ender_charm"};
     case JOB_BANDIT:
-      return {"deadly_fin"};
+      return {"deadly_fin", "vanishing_shadow"};
     default:
       return StarterEquipsFor(job);
   }
@@ -159,7 +163,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement,
   // advancement moment here to put it on at. Each piece is equipped from the
   // row it lands on, so a Rogue's three reach three slots -- and whatever a
   // later one displaces goes back to the bag for the tester to swap in.
-  for (const std::string& name : WorkbenchWeaponsFor(job)) {
+  for (const std::string& name : WorkbenchGearFor(job)) {
     int row = static_cast<int>(state.character.inventory().size());
     GiveEquip(state, name);
     if (static_cast<int>(state.character.inventory().size()) > row) {
