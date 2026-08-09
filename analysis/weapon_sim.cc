@@ -11,8 +11,8 @@
  * Not a test. Tests pin behaviour that must not change; this prints numbers to
  * look at while deciding what the behaviour should be.
  *
- *   bazelisk run //src/combat:weapon_sim
- *   bazelisk run //src/combat:weapon_sim -- --level=40
+ *   bazelisk run //analysis:weapon_sim
+ *   bazelisk run //analysis:weapon_sim -- --level=40
  */
 #include <algorithm>
 #include <cstdint>

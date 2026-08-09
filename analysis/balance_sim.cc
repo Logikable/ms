@@ -6,7 +6,7 @@
  * Not a test. Tests pin behaviour that must not change; this prints numbers to
  * look at while deciding what the behaviour should be.
  *
- *   bazelisk run //src/combat:balance_sim
+ *   bazelisk run //analysis:balance_sim
  */
 #include <cstdio>
 #include <map>
