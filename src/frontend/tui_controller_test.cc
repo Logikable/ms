@@ -492,12 +492,16 @@ TEST_F(TuiControllerTest, EnterAloneDoesNotAdvance) {
 
 TEST_F(TuiControllerTest, ConfirmingAdvancesAndHandsOverTheGear) {
   int bag_before = state_->character.inventory().size();
+  int int_before = state_->character.proto().allocated_stats().int_();
   controller_->OpenJobAdvance(JOB_MAGICIAN);
   controller_->OnEvent(ftxui::Event::ArrowLeft);  // [Cancel] -> [Confirm]
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(state_->character.proto().job(), JOB_MAGICIAN);
-  EXPECT_EQ(state_->character.proto().allocated_stats().int_(), 25);
   EXPECT_GT(state_->character.inventory().size(), bag_before);
+  // The fixture already took a first advancement, so this is a second one: it
+  // hands the gear over and leaves the stats alone. A reset would seat the new
+  // primary at 25.
+  EXPECT_EQ(state_->character.proto().allocated_stats().int_(), int_before);
   EXPECT_EQ(controller_->screen(), kMain);
 }
 

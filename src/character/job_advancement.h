@@ -11,10 +11,10 @@
 
 namespace ms {
 
-// Advances the character into `job`: the advancement itself, the AP reset that
-// re-seats the stats on the new job's primary, and the starting weapons. The
-// weapons land in the bag rather than on the character, so the player's first
-// act as a Swordman is to equip one.
+// Advances the character into `job`: the advancement itself, the starting
+// gear, and -- on the first advancement only -- the AP reset that re-seats the
+// stats on the new job's primary. The gear lands in the bag rather than on the
+// character, so the player's first act as a Swordman is to equip one.
 void PerformJobAdvancement(GameState& state, Job job);
 
 }  // namespace ms

@@ -151,10 +151,30 @@ TEST_F(JobAdvancementTest, AdvancingSetsTheJobAndItsStage) {
   EXPECT_EQ(state_.character.proto().job_stage(), before + 1);
 }
 
-TEST_F(JobAdvancementTest, AdvancingReseatsTheStats) {
+TEST_F(JobAdvancementTest, TheFirstAdvancementReseatsTheStats) {
   PerformJobAdvancement(state_, JOB_MAGICIAN);
   EXPECT_EQ(state_.character.proto().allocated_stats().int_(), 25);
   EXPECT_EQ(state_.character.proto().allocated_stats().str(), 4);
+}
+
+// The second one leaves them where they are. It picks a branch of a category
+// the character is already in, raising the same stat -- so re-seating would
+// throw away every point spent since the first advancement and give the
+// player AP to put back where it came from.
+TEST_F(JobAdvancementTest, TheSecondAdvancementLeavesTheStatsAlone) {
+  PerformJobAdvancement(state_, JOB_SWORDMAN);
+  for (int i = 0; i < 5; ++i) {
+    state_.character.LevelUp();
+  }
+  while (state_.character.AllocateStat(STAT_FIELD_STR)) {
+  }
+  int str = state_.character.proto().allocated_stats().str();
+  int ap = state_.character.proto().ap();
+  ASSERT_GT(str, 25) << "nothing was spent, so nothing could be taken back";
+
+  PerformJobAdvancement(state_, JOB_FIGHTER);
+  EXPECT_EQ(state_.character.proto().allocated_stats().str(), str);
+  EXPECT_EQ(state_.character.proto().ap(), ap);
 }
 
 // The gear goes in the bag, not on the character: equipping it is the first
