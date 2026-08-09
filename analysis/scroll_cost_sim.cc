@@ -32,9 +32,6 @@
 #include "src/protos/scroll.pb.h"
 
 ABSL_FLAG(double, trace_meso, 5000.0, "Meso one spell trace costs.");
-ABSL_FLAG(double, clean_slate, 1000.0,
-          "Traces one clean slate costs. Not a GMS price -- GMS does not sell "
-          "clean slates for traces.");
 ABSL_FLAG(std::string, weapons, "40,70,100,140",
           "Weapon levels to scroll with 100/70/30.");
 ABSL_FLAG(int, slots, 7,
@@ -108,17 +105,17 @@ void PrintOnePass(const std::vector<int>& levels, int slots) {
   }
 }
 
-// Filling every slot, buying each failure back. This is the number that can be
-// compared across rates, because every row buys the same finished weapon.
+// Filling every slot. Reports the SCROLL spend and how many clean slates the
+// job demands, but never what a slate costs -- that price is not GMS's and not
+// settled, and this table is what it gets derived from.
 void PrintFullFill(const ms::MesoCurve& curve, const std::vector<int>& levels,
                    int slots, double slate_rate) {
-  double slate_price = absl::GetFlag(FLAGS_clean_slate);
   printf(
-      "\nfilling all %d slots, failures bought back with clean slates "
-      "(%.0f%%, %.0f traces each)\n",
-      slots, 100.0 * slate_rate, slate_price);
-  printf("%8s %6s %10s %10s %12s %12s %12s %9s\n", "level", "rate", "scrolls",
-         "slates", "scroll meso", "slate meso", "total", "of band");
+      "\nfilling all %d slots -- scroll spend only, slates counted not "
+      "priced\n",
+      slots);
+  printf("%8s %6s %10s %12s %10s %12s %9s\n", "level", "rate", "scrolls",
+         "scroll meso", "slates", "earned since", "of band");
   int previous = 1;
   for (int i = 0; i < static_cast<int>(levels.size()); ++i) {
     double earned = curve.Earned(previous, levels[i]);
@@ -128,39 +125,30 @@ void PrintFullFill(const ms::MesoCurve& curve, const std::vector<int>& levels,
       double slates = slots * (1.0 / p - 1.0) / slate_rate;
       double scroll_meso =
           scrolls * WeaponCost(levels[i], kRates[r]) * TraceMeso();
-      double slate_meso = slates * slate_price * TraceMeso();
       char a[32];
       char b[32];
-      char c[32];
       ms::FormatShort(scroll_meso, a, sizeof(a));
-      ms::FormatShort(slate_meso, b, sizeof(b));
-      ms::FormatShort(scroll_meso + slate_meso, c, sizeof(c));
-      printf("%8d %5d%% %10.1f %10.1f %12s %12s %12s %8.1f%%\n", levels[i],
-             kRates[r], scrolls, slates, a, b, c,
-             earned > 0.0 ? 100.0 * (scroll_meso + slate_meso) / earned : 0.0);
+      ms::FormatShort(earned, b, sizeof(b));
+      printf("%8d %5d%% %10.1f %12s %10.1f %12s %8.1f%%\n", levels[i],
+             kRates[r], scrolls, a, slates, b,
+             earned > 0.0 ? 100.0 * scroll_meso / earned : 0.0);
     }
     previous = levels[i];
   }
   printf(
-      "  \"of band\" is the money earned since the previous weapon on this "
-      "list\n");
+      "  what is left of \"earned since\" after the scrolls is the slate "
+      "budget:\n  divide it by the slate count for the most a slate could "
+      "cost\n");
 }
 
 void PrintFifteenRow(const char* label, int slots, int price,
                      double slate_rate) {
-  double slate_price = absl::GetFlag(FLAGS_clean_slate);
   double scrolls = slots / 0.15;
   double slates = slots * (1.0 / 0.15 - 1.0) / slate_rate;
   double scroll_meso = scrolls * price * TraceMeso();
-  double slate_meso = slates * slate_price * TraceMeso();
   char a[32];
-  char b[32];
-  char c[32];
   ms::FormatShort(scroll_meso, a, sizeof(a));
-  ms::FormatShort(slate_meso, b, sizeof(b));
-  ms::FormatShort(scroll_meso + slate_meso, c, sizeof(c));
-  printf("%14s %6d %10.1f %10.1f %12s %12s %12s\n", label, slots, scrolls,
-         slates, a, b, c);
+  printf("%14s %6d %10.1f %14s %10.1f\n", label, slots, scrolls, a, slates);
 }
 
 void PrintFifteen(const ms::MesoCurve& curve, const ms::EquipPrototype& equip,
@@ -168,8 +156,8 @@ void PrintFifteen(const ms::MesoCurve& curve, const ms::EquipPrototype& equip,
   int price = WeaponCost(equip.required_level(), 15);
   printf("\n%s, level %d, at 15%% (%d traces a scroll)\n", equip.name().c_str(),
          equip.required_level(), price);
-  printf("%14s %6s %10s %10s %12s %12s %12s\n", "", "slots", "scrolls",
-         "slates", "scroll meso", "slate meso", "total");
+  printf("%14s %6s %10s %14s %10s\n", "", "slots", "scrolls", "scroll meso",
+         "slates");
   PrintFifteenRow("no hammer", equip.upgrade_slots(), price, slate_rate);
   int hammers = absl::GetFlag(FLAGS_hammers);
   if (hammers > 0) {
