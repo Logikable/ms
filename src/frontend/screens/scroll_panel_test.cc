@@ -47,6 +47,15 @@ class ScrollPanelTest : public PanelTest {
     return screen.ToString();
   }
 
+  // How tall the panel asks to be, which is what says whether a window is
+  // stacked below the list or floating over it.
+  static int FitHeight(ScrollPanel& panel) {
+    ftxui::Element element = panel.Render();
+    return ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                                 ftxui::Dimension::Fit(element))
+        .dimy();
+  }
+
   // Traces the character is carrying, so a test can put the balance where it
   // needs it before the panel reads it.
   void GiveTraces(int count) {
@@ -263,14 +272,23 @@ TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
   EXPECT_TRUE(panel_.TakeConfirmed());
 }
 
-TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCostAndWhatIsLeft) {
+TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCost) {
   GiveTraces(100);
   panel_.OnEvent(ftxui::Event::Return);
   std::string rendered = Render(panel_);
   EXPECT_NE(rendered.find("Confirm"), std::string::npos);
   EXPECT_NE(rendered.find("AAA Scroll"), std::string::npos);
   EXPECT_NE(rendered.find("20 📜"), std::string::npos) << "the cost";
-  EXPECT_NE(rendered.find("80 📜"), std::string::npos) << "what is left after";
+}
+
+// The window is a pop-up over the list: opening it must not make the panel
+// taller, which is what it did when it sat below.
+TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
+  GiveTraces(100);
+  int closed = FitHeight(panel_);
+  panel_.OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(panel_.IsConfirming());
+  EXPECT_EQ(FitHeight(panel_), closed);
 }
 
 TEST_F(ScrollPanelTest, TheConfirmWindowSaysWhenTheTracesFallShort) {

@@ -145,9 +145,11 @@ void ScrollPanel::ResetComponent() {
         ThemedWindow(" Scrolls — " + FormatWithCommas(TracesOwned()) + " 📜 ",
                      ftxui::vbox(std::move(rows)));
     if (confirm_.open()) {
-      // yflex lets main fill the remaining height under the confirm window,
-      // matching the full-height behaviour without it.
-      return ftxui::vbox({std::move(main) | ftxui::yflex, RenderConfirm()});
+      // Over the list rather than under it: the question is about the row the
+      // cursor is on, and a window that pushed the list around while asking
+      // would move that row out from under it.
+      return ftxui::dbox({std::move(main),
+                          ftxui::center(RenderConfirm() | ftxui::clear_under)});
     }
     return main;
   });
@@ -204,8 +206,7 @@ bool ScrollPanel::CanAffordSelected() const {
 ftxui::Element ScrollPanel::RenderConfirm() const {
   const Scroll& scroll = selected_scroll();
   int cost = scroll.trace_cost();
-  int owned = TracesOwned();
-  bool affordable = owned >= cost;
+  bool affordable = CanAffordSelected();
 
   std::string what = scroll.name();
   if (!target_name_.empty()) {
@@ -226,18 +227,15 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
     AppendStat(effect, s.luk(), "LUK");
     AppendStat(effect, s.max_hp(), "HP");
     AppendStat(effect, s.def(), "DEF");
-    effect += "   on success, " + std::to_string(scroll.success_rate()) + "%";
   }
 
-  // The balance after, which is the number the player is really deciding on.
-  // Red and unspent when they cannot pay, so the row and the greyed button
-  // say the same thing.
-  std::string money = "Cost " + FormatWithCommas(cost) + " \U0001F4DC" +
-                      "     owned " + FormatWithCommas(owned) + " \U0001F4DC";
-  ftxui::Element money_row = CenteredRow(
-      affordable
-          ? money + "  ->  " + FormatWithCommas(owned - cost) + " \U0001F4DC"
-          : money + "  ->  not enough");
+  // The price alone. What the player owns is in the list's title behind this
+  // window, and doing the subtraction for them here only crowded the one
+  // number they are deciding on. Red when they cannot pay, so the row and the
+  // greyed button say the same thing.
+  std::string money = "Cost " + FormatWithCommas(cost) + " \U0001F4DC";
+  ftxui::Element money_row =
+      CenteredRow(affordable ? money : money + "  not enough");
   if (!affordable) {
     money_row = std::move(money_row) | ftxui::color(kRed);
   }

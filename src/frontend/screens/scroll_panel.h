@@ -69,8 +69,8 @@ class ScrollPanel {
                                  std::chrono::steady_clock::duration elapsed);
   // Spell traces the character owns.
   int TracesOwned() const;
-  // The window that asks before a scroll is spent: what it is going on, what
-  // it does, what it costs, and what the player is left holding.
+  // The pop-up that asks before a scroll is spent: what it is going on, what
+  // it does, and what it costs. Drawn over the list, not below it.
   ftxui::Element RenderConfirm() const;
 
   const CharacterInstance& character_;
