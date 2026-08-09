@@ -17,6 +17,9 @@
 #ifndef MS_SRC_FRONTEND_CELEBRATION_H_
 #define MS_SRC_FRONTEND_CELEBRATION_H_
 
+#include <string>
+#include <vector>
+
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/types.h"
 #include "src/protos/character.pb.h"
@@ -113,6 +116,9 @@ class Celebration {
   int to_level_ = 0;
   int ap_ = 0;
   int sp_ = 0;
+  // Worked out when the climb happens, for the same reason the glow is: the
+  // character no longer knows which levels it came through.
+  std::vector<std::string> unlocks_;
   Job from_job_ = JOB_BEGINNER;
   Job to_job_ = JOB_BEGINNER;
 };

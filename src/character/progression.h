@@ -8,6 +8,9 @@
 #ifndef MS_SRC_CHARACTER_PROGRESSION_H_
 #define MS_SRC_CHARACTER_PROGRESSION_H_
 
+#include <string>
+#include <vector>
+
 #include "src/character/character.h"
 
 namespace ms {
@@ -40,6 +43,18 @@ bool Unlocked(Feature feature, const CharacterInstance& character);
 // The level `feature` opens at. Skills carries a second condition on top of
 // this one, so ask Unlocked rather than comparing against this yourself.
 int UnlockLevel(Feature feature);
+
+// What a feature is called on screen: "Scrolling", "Star Force".
+std::string FeatureName(Feature feature);
+
+// The upgrades a climb from `from_level` to `to_level` opened, in the order
+// they arrive. Asked of the span rather than of the level landed on, because
+// one idle stretch can carry a character past several thresholds.
+//
+// Only the item-menu upgrades. A panel or a tab lights itself gold when it
+// arrives; these are actions two keypresses deep in a menu with nothing of
+// their own to light, so the level-up card says their names instead.
+std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level);
 
 // The level the hotkeys tip stops being drawn at. Not a Feature: the enum
 // above is for things that open and stay open, and this is the one thing that

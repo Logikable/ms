@@ -1,6 +1,8 @@
 #include "src/character/progression.h"
 
 #include <cstddef>
+#include <string>
+#include <vector>
 
 #include "absl/log/log.h"
 #include "src/character/character.h"
@@ -34,6 +36,14 @@ constexpr Unlock kUnlocks[] = {
     // the workbench reaches it, by way of the Level-Up item.
     {Feature::kStarForce, 70},
     {Feature::kRecovery, 140},
+};
+
+// The upgrades, in the order they arrive. One list rather than a condition in
+// the card and another in the menus, so a fourth upgrade joins both at once.
+constexpr Feature kUpgrades[] = {
+    Feature::kScrolling,
+    Feature::kStarForce,
+    Feature::kRecovery,
 };
 
 // The lowest level of each pacing band and how far it stretches a duration.
@@ -71,6 +81,39 @@ bool Unlocked(Feature feature, const CharacterInstance& character) {
     return character.proto().job() != JOB_BEGINNER;
   }
   return true;
+}
+
+std::string FeatureName(Feature feature) {
+  switch (feature) {
+    case Feature::kEquipped:
+      return "Equipment";
+    case Feature::kBag:
+      return "the Bag";
+    case Feature::kUnequip:
+      return "Unequipping";
+    case Feature::kScrolling:
+      return "Scrolling";
+    case Feature::kStarForce:
+      return "Star Force";
+    case Feature::kRecovery:
+      return "Recovery";
+    case Feature::kSkills:
+      return "Skills";
+    case Feature::kShop:
+      return "the Shop";
+  }
+  LOG(FATAL) << "Feature " << static_cast<int>(feature) << " has no name";
+}
+
+std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level) {
+  std::vector<Feature> opened;
+  for (Feature feature : kUpgrades) {
+    int level = UnlockLevel(feature);
+    if (from_level < level && level <= to_level) {
+      opened.push_back(feature);
+    }
+  }
+  return opened;
 }
 
 int HotkeysTipRetireLevel() {

@@ -137,6 +137,29 @@ TEST_F(CelebrationTest, AClimbStartingOnAnUnlockDoesNotRelightIt) {
   EXPECT_FALSE(celebration_.Lights(kEquipPanel));
 }
 
+// Scrolling and star force live in an item menu, with no panel of their own to
+// go gold, so the card has to name them or a player never learns they arrived.
+TEST_F(CelebrationTest, TheCardNamesAnUpgradeTheClimbOpened) {
+  int level = UnlockLevel(Feature::kScrolling);
+  BeginAway(level - 1, level);
+  EXPECT_NE(CardText(celebration_).find("Unlocked Scrolling!"),
+            std::string::npos);
+}
+
+TEST_F(CelebrationTest, TheCardNamesNoUpgradeOnAnOrdinaryLevel) {
+  BeginAway(11, 12);
+  EXPECT_EQ(CardText(celebration_).find("Unlocked"), std::string::npos);
+}
+
+// The card is rebuilt from the last climb, not accumulated: an unlock
+// announced once must not ride along on the next level.
+TEST_F(CelebrationTest, TheNextLevelDropsTheAnnouncement) {
+  int level = UnlockLevel(Feature::kScrolling);
+  BeginAway(level - 1, level);
+  BeginAway(level, level + 1);
+  EXPECT_EQ(CardText(celebration_).find("Unlocked"), std::string::npos);
+}
+
 TEST_F(CelebrationTest, AnAdvancementLightsTheCharacterPanelOnly) {
   celebration_.BeginAdvancement(JOB_BEGINNER, JOB_SWORDMAN, kCombatPanel);
   EXPECT_TRUE(celebration_.Lights(kCharPanel));

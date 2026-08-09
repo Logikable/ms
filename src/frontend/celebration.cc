@@ -35,6 +35,10 @@ void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
   to_level_ = to_level;
   ap_ = ap;
   sp_ = sp;
+  unlocks_.clear();
+  for (Feature feature : UpgradesUnlockedBetween(from_level, to_level)) {
+    unlocks_.push_back(FeatureName(feature));
+  }
 
   std::fill(std::begin(glow_), std::end(glow_), Glow::kOff);
   // Always the character panel: it is where the AP a level pays out is spent,
@@ -114,7 +118,7 @@ ftxui::Element Celebration::Render() const {
   if (kind_ == Kind::kAdvancement) {
     return AdvancementPopupPanel(from_job_, to_job_);
   }
-  return LevelUpPopupPanel(from_level_, to_level_, ap_, sp_);
+  return LevelUpPopupPanel(from_level_, to_level_, ap_, sp_, unlocks_);
 }
 
 }  // namespace ms

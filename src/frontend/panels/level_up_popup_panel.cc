@@ -28,16 +28,23 @@ ftxui::Element GainRow(int amount, const std::string& label) {
 
 }  // namespace
 
-ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp) {
+ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
+                                 const std::vector<std::string>& unlocks) {
   // AP above SP, in the order the character panel spends them.
-  std::vector<ftxui::Element> gains;
+  std::vector<ftxui::Element> body;
   ftxui::Element ap_row = GainRow(ap, "AP");
   if (ap_row != nullptr) {
-    gains.push_back(std::move(ap_row));
+    body.push_back(std::move(ap_row));
   }
   ftxui::Element sp_row = GainRow(sp, "SP");
   if (sp_row != nullptr) {
-    gains.push_back(std::move(sp_row));
+    body.push_back(std::move(sp_row));
+  }
+  // Below what the level paid, and gold against the card's white: a point of
+  // AP is the same news every level, and this is not.
+  for (const std::string& unlock : unlocks) {
+    body.push_back(CenteredRow("Unlocked " + unlock + "!") |
+                   ftxui::color(kYellow));
   }
 
   std::vector<ftxui::Element> rows;
@@ -47,15 +54,16 @@ ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp) {
   rows.push_back(CenteredRow(std::to_string(from_level) + "  →  " +
                              std::to_string(to_level)));
   rows.push_back(AccentSeparator(kYellow));
-  // The gains sit in the middle of the body, with the odd row left over going
-  // below them: a lone AP line lands dead centre, and a pair sits off the rule
-  // rather than up against it.
-  int above = (kBodyRows - static_cast<int>(gains.size())) / 2;
+  // The body sits in the middle, with the odd row left over going below it: a
+  // lone AP line lands dead centre, and a pair sits off the rule rather than
+  // up against it. A climb that opened something can outgrow the three rows,
+  // and then the card grows with it -- news worth breaking the shape for.
+  int above = (kBodyRows - static_cast<int>(body.size())) / 2;
   for (int i = 0; i < above; ++i) {
     rows.push_back(ftxui::text(""));
   }
-  for (ftxui::Element& gain : gains) {
-    rows.push_back(std::move(gain));
+  for (ftxui::Element& row : body) {
+    rows.push_back(std::move(row));
   }
   // Whatever is left of the body, so the card stands the same height every
   // time -- two rows of it when a level paid nothing at all.

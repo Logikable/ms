@@ -12,6 +12,9 @@
 #ifndef MS_SRC_FRONTEND_PANELS_LEVEL_UP_POPUP_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_LEVEL_UP_POPUP_PANEL_H_
 
+#include <string>
+#include <vector>
+
 #include "ftxui/dom/elements.hpp"
 
 namespace ms {
@@ -25,7 +28,12 @@ namespace ms {
 // reports what it earned rather than what the last one did. A total of zero is
 // left off entirely -- a Beginner earns no SP they can reach, and "+0 SP" on a
 // card celebrating something would read as a slight.
-ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp);
+//
+// `unlocks` are the names of anything the climb opened, each announced on a
+// line of its own in gold. They share the body with the gains rather than
+// being added below it, so the ordinary card keeps its shape.
+ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
+                                 const std::vector<std::string>& unlocks = {});
 
 }  // namespace ms
 

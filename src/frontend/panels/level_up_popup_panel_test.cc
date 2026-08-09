@@ -16,8 +16,9 @@ namespace {
 // The card rendered at its natural size, read off cell by cell. Not
 // Screen::ToString -- that threads colour escapes through every row, so a row
 // does not read as the line the player sees.
-ftxui::Screen RenderCard(int from, int to, int ap, int sp) {
-  ftxui::Element card = LevelUpPopupPanel(from, to, ap, sp);
+ftxui::Screen RenderCard(int from, int to, int ap, int sp,
+                         const std::vector<std::string>& unlocks = {}) {
+  ftxui::Element card = LevelUpPopupPanel(from, to, ap, sp, unlocks);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
   return screen;
@@ -49,6 +50,19 @@ int RowIndexOf(const ftxui::Screen& screen, const std::string& needle) {
 
 bool AnyRowHas(const ftxui::Screen& screen, const std::string& needle) {
   return RowIndexOf(screen, needle) >= 0;
+}
+
+// The colour of the first cell of `needle`, for asking whether a line came out
+// gold. Color::Default when it is not on the card, which no colour equals.
+ftxui::Color ColorOf(const ftxui::Screen& screen, const std::string& needle) {
+  std::vector<std::string> rows = Rows(screen);
+  for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
+    size_t at = rows[y].find(needle);
+    if (at != std::string::npos) {
+      return screen.PixelAt(static_cast<int>(at), y).foreground_color;
+    }
+  }
+  return ftxui::Color::Default;
 }
 
 TEST(LevelUpPopupPanelTest, ShowsTheLevelClimbedAsAnArrow) {
@@ -134,6 +148,34 @@ TEST(LevelUpPopupPanelTest, TheRuleInsideItIsGoldToo) {
   ASSERT_GE(rule_row, 1) << "a rule between the level and what it paid";
   EXPECT_EQ(screen.PixelAt(screen.dimx() / 2, rule_row).foreground_color,
             kYellow);
+}
+
+// --- what a level opened ---
+
+// The one line on the card the player has never seen before, so it is the one
+// line drawn gold against the white.
+TEST(LevelUpPopupPanelTest, AnnouncesAnUnlockInGold) {
+  ftxui::Screen screen = RenderCard(39, 40, 5, 3, {"Scrolling"});
+  EXPECT_TRUE(AnyRowHas(screen, "Unlocked Scrolling!"));
+  EXPECT_EQ(ColorOf(screen, "Unlocked"), kYellow);
+  EXPECT_NE(ColorOf(screen, "+5 AP"), kYellow) << "the gains stay white";
+}
+
+// The announcement shares the body with the gains rather than being stacked
+// under it, so the card that opened something is the same size as every other.
+TEST(LevelUpPopupPanelTest, AnUnlockDoesNotGrowTheCard) {
+  EXPECT_EQ(RenderCard(39, 40, 5, 3, {"Scrolling"}).dimy(),
+            RenderCard(39, 40, 5, 3).dimy());
+}
+
+TEST(LevelUpPopupPanelTest, AnnouncesUnlocksBelowTheGains) {
+  ftxui::Screen screen = RenderCard(39, 40, 5, 3, {"Scrolling"});
+  EXPECT_GT(RowIndexOf(screen, "Unlocked"), RowIndexOf(screen, "+3 SP"));
+}
+
+// Every other level, which is nearly all of them.
+TEST(LevelUpPopupPanelTest, SaysNothingWhenALevelOpenedNothing) {
+  EXPECT_FALSE(AnyRowHas(RenderCard(12, 13, 5, 3), "Unlocked"));
 }
 
 // --- the room around what it says ---

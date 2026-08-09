@@ -67,6 +67,46 @@ TEST_F(ProgressionTest, ScrollingIsTheOnlyUpgradeTheTrialReaches) {
   EXPECT_GT(UnlockLevel(Feature::kRecovery), kTrialLevelCap);
 }
 
+// --- the upgrades a climb opened ---
+
+TEST_F(ProgressionTest, NamesTheUpgradeThatOpened) {
+  int level = UnlockLevel(Feature::kScrolling);
+  std::vector<Feature> opened = UpgradesUnlockedBetween(level - 1, level);
+  ASSERT_EQ(opened.size(), 1u);
+  EXPECT_EQ(FeatureName(opened[0]), "Scrolling");
+}
+
+// The span, not the level landed on: one idle stretch can carry a character
+// past a threshold and out the other side, and stepping over it would leave
+// them never told.
+TEST_F(ProgressionTest, ReadsTheWholeSpanNotTheLevelLandedOn) {
+  int level = UnlockLevel(Feature::kScrolling);
+  EXPECT_EQ(UpgradesUnlockedBetween(level - 5, level + 5).size(), 1u);
+  EXPECT_TRUE(UpgradesUnlockedBetween(level, level + 5).empty())
+      << "a climb starting on the unlock has already been through it";
+  EXPECT_TRUE(UpgradesUnlockedBetween(level - 5, level - 1).empty());
+}
+
+// Panels and tabs go gold on their own when they arrive; only the item-menu
+// upgrades need the card to say their names.
+TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
+  EXPECT_TRUE(UpgradesUnlockedBetween(1, UnlockLevel(Feature::kShop)).empty());
+  EXPECT_EQ(UpgradesUnlockedBetween(1, UnlockLevel(Feature::kRecovery)).size(),
+            3u)
+      << "scrolling, star force and recovery, in the order they arrive";
+}
+
+TEST_F(ProgressionTest, EveryFeatureHasAName) {
+  const Feature kAll[] = {
+      Feature::kEquipped,  Feature::kBag,       Feature::kUnequip,
+      Feature::kScrolling, Feature::kStarForce, Feature::kRecovery,
+      Feature::kSkills,    Feature::kShop,
+  };
+  for (Feature feature : kAll) {
+    EXPECT_FALSE(FeatureName(feature).empty());
+  }
+}
+
 // Taking something off needs somewhere to put it, so the two move together.
 TEST_F(ProgressionTest, UnequipOpensWithTheBag) {
   EXPECT_EQ(UnlockLevel(Feature::kUnequip), UnlockLevel(Feature::kBag));
