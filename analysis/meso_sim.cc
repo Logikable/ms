@@ -1,4 +1,4 @@
-/* Drives the real combat engine from level 1 to 30 and reports the meso a
+/* Drives the real combat engine to the level cap and reports the meso a
  * player holds on reaching each milestone level, selling all Etc loot as it
  * drops. Scratch analysis tool, not part of the game.
  */
@@ -80,7 +80,11 @@ void SellAllEtc(ms::CharacterInstance& character) {
 void PlayCharacter(ms::GameState& state) {
   ms::CharacterInstance& c = state.character;
   if (c.CanAdvanceJob()) {
-    c.AdvanceJob(ms::JOB_SWORDMAN);
+    // Whatever the current job is offered next -- the branch does not matter
+    // here, since meso per kill is the same whoever swings.
+    std::vector<ms::Job> choices =
+        ms::JobChoicesForStage(c.proto().job(), c.proto().job_stage() + 1);
+    c.AdvanceJob(choices.empty() ? ms::JOB_SWORDMAN : choices.front());
   }
   ms::StatField primary = ms::PrimaryStatField(c.proto().job());
   if (primary != ms::STAT_FIELD_UNSPECIFIED && c.proto().ap() > 0) {
@@ -128,12 +132,14 @@ int main(int argc, char** argv) {
          state.character.proto().level());
 
   ms::CombatSim sim;
-  const int kMilestones[] = {5, 10, 15, 20, 25, 30};
+  const int kMilestones[] = {5, 10, 15, 20, 25, 30, 40, 50, 60};
+  const int kNumMilestones =
+      static_cast<int>(sizeof(kMilestones) / sizeof(kMilestones[0]));
   int next = 0;
   double seconds = 0.0;
   int64_t last_meso = -1;
   int64_t stalled = 0;
-  while (next < 6) {
+  while (next < kNumMilestones) {
     int level = state.character.proto().level();
     std::string map = AppropriateMap(state, level);
     if (map != state.current_map) {
@@ -144,7 +150,7 @@ int main(int argc, char** argv) {
     seconds += 0.3;
     SellAllEtc(state.character);
     int now = state.character.proto().level();
-    while (next < 6 && now >= kMilestones[next]) {
+    while (next < kNumMilestones && now >= kMilestones[next]) {
       printf("level %2d  meso %10lld   (%.1f h farmed, map %s)\n",
              kMilestones[next],
              static_cast<long long>(state.character.proto().meso()),
