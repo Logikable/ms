@@ -54,6 +54,11 @@ struct AttackOption {
   // Seconds this attack cannot be swung for after it lands, game-scaled. 0 for
   // one that is there every time, which is most of them.
   double cooldown_seconds = 0.0;
+  // Expected damage of the opening hit, per target type. It lands on ONE of
+  // the mobs the swing reached -- the healthiest of them, because a hit this
+  // big is worth least where it overkills. Empty for a swing that lands once,
+  // which is most of them.
+  std::vector<double> lead_damage;
   // Expected Final Attack damage per target type, landing on every mob the
   // swing reached: it rolls separately for each of them. Empty for a character
   // with no Final Attack, for a swing none of theirs follows, and for the

@@ -83,6 +83,19 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
+  // Some swings open with a harder hit on a single enemy before spreading --
+  // GMS's "strikes one, then detonates in place". Same character, same weapon,
+  // the skill's other multiplier: only the target count differs, and that is
+  // the fight's business rather than the damage chain's.
+  if (skill != nullptr && skill->base().lead_pct() > 0.0) {
+    OffenseStats lead = offense;
+    lead.skill_pct =
+        skill->base().lead_pct() + skill->per_level().lead_pct() * (level - 1);
+    lead.lines = std::max(1, skill->lead_lines());
+    for (const CombatType& type : types) {
+      attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
+    }
+  }
   // Final Attack rides the character's own swing, not the skill's identity:
   // it is a plain hit worth its own percent, so it starts from the bare stat
   // line rather than from `offense` and takes neither its multiplier nor its
@@ -188,6 +201,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     if (attack.heal_fraction > 0.0) {
       std::fill(attack.damage_per_hit.begin(), attack.damage_per_hit.end(),
                 0.0);
+      attack.lead_damage.clear();
       attack.final_attack_damage.clear();
     }
     if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {

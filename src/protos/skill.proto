@@ -72,6 +72,10 @@ message SkillEffect {
   // staff's two numbers are: a skill grants one or the other, not both.
   int32 magic_attack = 23;
   double skill_pct = 1;   // damage multiplier (attack skills)
+  // Damage multiplier of the harder opening hit some swings land on a single
+  // enemy before spreading -- GMS's "strikes one, then detonates in place".
+  // Read with Skill.lead_lines, and 0 for the swings that land once.
+  double lead_pct = 27;
   double crit_rate = 6;   // added chance for a swing to crit
   // Added critical damage (0.05 == +5%), on top of the hidden 0.35 every
   // character crits for. Worth its share of the swings: a crit rate of 20%
@@ -211,6 +215,10 @@ message Skill {
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.
   // Unset/0 is treated as 1.
   int32 lines = 8;
+  // How many times the opening hit strikes, on the one enemy it picks. Damage
+  // is SkillEffect.lead_pct per line, exactly as `lines` reads skill_pct.
+  // Unset/0 is treated as 1, and means nothing without a lead_pct.
+  int32 lead_lines = 20;
   // How long one swing of this attack takes at average attack speed, in
   // milliseconds: the sum of its animation's frames. GMS keys the delay on the
   // skill, not on the weapon -- a spear and a sword swing the same skill at the

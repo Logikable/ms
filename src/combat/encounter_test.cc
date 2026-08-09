@@ -196,6 +196,62 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
             params.attacks[0].damage_per_hit[0]);
 }
 
+// A swing that opens with a harder hit on one enemy carries two damage columns
+// off one skill: the spread every reached mob takes, and the opening hit.
+TEST(ComputeCombatParamsTest, ASwingWithAnOpeningHitCarriesBothHalves) {
+  Skill burst;
+  burst.set_name("Shuriken Burst");
+  burst.set_kind(SKILL_KIND_ATTACK);
+  burst.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  burst.set_max_level(20);
+  burst.set_max_enemies(6);
+  burst.set_lines(6);
+  burst.set_lead_lines(1);
+  burst.mutable_base()->set_skill_pct(0.48);
+  burst.mutable_per_level()->set_skill_pct(0.03);
+  burst.mutable_base()->set_lead_pct(4.08);
+  burst.mutable_per_level()->set_lead_pct(0.08);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"shuriken_burst", burst}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(burst, 2));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  ASSERT_EQ(params.attacks[1].lead_damage.size(), params.types.size());
+  // Six lines of 51% against one of 416%: the opening hit is worth more even
+  // though the spread strikes six times.
+  EXPECT_GT(params.attacks[1].lead_damage[0],
+            params.attacks[1].damage_per_hit[0]);
+  // Both scale with the level, off their own halves of the skill.
+  EXPECT_NEAR(
+      params.attacks[1].lead_damage[0] / params.attacks[1].damage_per_hit[0],
+      4.16 / (6.0 * 0.51), 1e-6);
+}
+
+// Nothing but a skill saying so gives a swing an opening hit.
+TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
+  Skill slash;
+  slash.set_name("Slash Blast");
+  slash.set_kind(SKILL_KIND_ATTACK);
+  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  slash.set_max_level(20);
+  slash.mutable_base()->set_skill_pct(1.83);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"slash_blast", slash}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(slash, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_TRUE(params.attacks[0].lead_damage.empty());
+  EXPECT_TRUE(params.attacks[1].lead_damage.empty());
+}
+
 // A cast joins the swings the fight can spend a turn on, but it never joins
 // what they can land: the damage chain has no multiplier for a skill that
 // deals none, so what it built for the cast is the bare poke's damage. Left

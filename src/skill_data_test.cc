@@ -192,6 +192,21 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
   }
 }
 
+// The opening hit is a pair: a multiplier and how many times it strikes. One
+// without the other is a figure nothing will read.
+TEST(SkillDataTest, AnOpeningHitStatesBothOfItsHalves) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.lead_lines() <= 0 && skill.base().lead_pct() <= 0.0) {
+      continue;
+    }
+    EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
+        << entry.first << " opens with a hit it never swings";
+    EXPECT_GT(skill.base().lead_pct(), 0.0) << entry.first;
+    EXPECT_GT(skill.lead_lines(), 0) << entry.first;
+  }
+}
+
 // A cast takes the swing an attack would have had, so one with no lever behind
 // it would cost the character a swing and give nothing back. The encounter
 // declines to offer such a skill at all; this says none is written.

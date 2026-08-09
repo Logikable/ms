@@ -125,11 +125,17 @@ class CombatSim {
   // interrupt the swing depends on why it happened.
   void TopUp(const CombatParams& params);
   // Lands one attack on the front of the queue: the first max_enemies mobs
-  // each take their own type's damage, and the dead are counted and leave. A
-  // swing and a skill on its own clock are the same thing here.
+  // each take their own type's damage, one of them also takes the opening hit,
+  // and the dead are counted and leave. A swing and a skill on its own clock
+  // are the same thing here.
   void Strike(const AttackOption& attack);
-  // What one swing of `attack` would land on the queue as it stands, Final
-  // Attack included.
+  // Index into the queue of the mob `attack`'s opening hit picks, or -1 when
+  // it has none. The healthiest of the `hit` mobs the swing reaches: a hit
+  // that big is worth least where it overkills, and GMS aims the same shape at
+  // the highest-HP target for the same reason.
+  int LeadTarget(const AttackOption& attack, int hit) const;
+  // What one swing of `attack` would land on the queue as it stands, the
+  // opening hit and Final Attack included.
   double SwingDamage(const AttackOption& attack) const;
   // Index into params.attacks of the healing cast to spend this swing on, or
   // -1 for none: the player is not low enough, has nothing to fight, or holds

@@ -1123,6 +1123,50 @@ TEST(CombatSimTest, NoFinalAttackLeavesTheSwingAsItIs) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
 }
 
+// Gives the swing an opening hit worth `damage` on one enemy.
+void AddLead(CombatParams& params, double damage) {
+  params.attacks[0].lead_damage.assign(params.types.size(), damage);
+}
+
+// The opening hit lands once, on the healthiest of the mobs the swing reached
+// -- not on all of them, and not on the front one.
+TEST(CombatSimTest, TheOpeningHitPicksTheHealthiestMobItReached) {
+  Mob snail = MakeMob("Snail", 100);
+  Mob boar = MakeMob("Boar", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(
+      1.0, 1000.0, {MakeType(&snail, 10.0, 2), MakeType(&boar, 10.0, 1)},
+      /*reach=*/3);
+  AddLead(params, /*damage=*/100.0);
+
+  sim.Advance(params, 1.0);
+  // All three took the spread's 10. Only the boar, on 1000 against the snails'
+  // 100, also took the opening 100.
+  const EngagedGroup* snails = FindGroup(sim.engaged_groups(), "Snail");
+  const EngagedGroup* boars = FindGroup(sim.engaged_groups(), "Boar");
+  ASSERT_NE(snails, nullptr);
+  ASSERT_NE(boars, nullptr);
+  EXPECT_NEAR(snails->hp_fraction, 0.90, 1e-9);
+  EXPECT_NEAR(boars->hp_fraction, 0.89, 1e-9);
+}
+
+// A swing worth more than its spread alone has to be ranked on the whole of
+// it, or the fight reaches for the wrong one.
+TEST(CombatSimTest, TheOpeningHitCountsTowardChoosingTheSwing) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 5.0, 1)});
+  AddLead(params, /*damage=*/50.0);
+  AttackOption plain = MakeSkill("Plain", /*damage=*/20.0, /*cooldown=*/0.0);
+  params.attacks.push_back(std::move(plain));
+
+  // The poke spreads for 5 where Plain lands 20, but its opening hit is worth
+  // 50 on top -- 55 against 20, so it is what gets swung.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.attack_name(), "Attack");
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 55.0 / 100000.0, 1e-9);
+}
+
 // Puts a healing cast beside the swing, worth `fraction` of the pool. It
 // carries damage the fight must never land: what makes a cast harmless is the
 // fight declining to strike with it, not the encounter having zeroed it.

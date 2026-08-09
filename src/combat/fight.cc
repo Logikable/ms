@@ -43,9 +43,22 @@ void CombatSim::TopUp(const CombatParams& params) {
   std::shuffle(queue_.begin() + first_new, queue_.end(), rng_);
 }
 
+int CombatSim::LeadTarget(const AttackOption& attack, int hit) const {
+  if (attack.lead_damage.empty() || hit <= 0) {
+    return -1;
+  }
+  int lead = 0;
+  for (int j = 1; j < hit; ++j) {
+    if (queue_[j].hp > queue_[lead].hp) {
+      lead = j;
+    }
+  }
+  return lead;
+}
+
 // What one swing of `attack` would land on the queue as it stands: its own
-// damage to each mob it reaches, plus the Final Attack that follows it onto
-// every one of them.
+// damage to each mob it reaches, the opening hit on one of them, and the Final
+// Attack that follows it onto every one of them.
 double CombatSim::SwingDamage(const AttackOption& attack) const {
   int reach = std::max(1, attack.max_enemies);
   int hit = std::min(reach, static_cast<int>(queue_.size()));
@@ -55,6 +68,11 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
     if (type < static_cast<int>(attack.damage_per_hit.size())) {
       total += attack.damage_per_hit[type];
     }
+  }
+  int lead = LeadTarget(attack, hit);
+  if (lead >= 0 &&
+      queue_[lead].type < static_cast<int>(attack.lead_damage.size())) {
+    total += attack.lead_damage[queue_[lead].type];
   }
   for (int j = 0; j < hit; ++j) {
     int type = queue_[j].type;
@@ -150,8 +168,14 @@ void CombatSim::Strike(const AttackOption& attack) {
   // behind slide into the window next time.
   int hit = std::min(std::max(1, attack.max_enemies),
                      static_cast<int>(queue_.size()));
+  // Picked before anything lands, so the opening hit chooses by the HP the
+  // mobs went into the swing with rather than what the spread left them on.
+  int lead = LeadTarget(attack, hit);
   for (int j = 0; j < hit; ++j) {
     queue_[j].hp -= attack.damage_per_hit[queue_[j].type];
+  }
+  if (lead >= 0) {
+    queue_[lead].hp -= attack.lead_damage[queue_[lead].type];
   }
   // A Final Attack rolls separately against every enemy the swing reached, so
   // in expectation each of them takes it.
