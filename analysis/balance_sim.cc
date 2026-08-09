@@ -17,6 +17,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/log/log.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
@@ -37,6 +38,9 @@
 ABSL_FLAG(double, minutes, 5.0,
           "How long to farm each (level, map) pair before giving up on the "
           "character dying.");
+ABSL_FLAG(std::string, job, "SPEARMAN",
+          "The 2nd-job branch to sweep, as its Job enum name without the "
+          "JOB_ prefix. What a character survives depends on their book.");
 
 namespace ms {
 namespace {
@@ -67,6 +71,32 @@ Catalogs LoadCatalogs() {
   c.maps = LoadTextProtoMap<MapData>(EmbeddedMaps());
   c.skills = LoadTextProtoMap<Skill>(EmbeddedSkills());
   return c;
+}
+
+// The 1st job a branch is reached through, so the sweep climbs the same path a
+// player does and collects that book's skills on the way.
+Job FirstJobFor(Job branch) {
+  switch (branch) {
+    case JOB_HUNTER:
+    case JOB_CROSSBOWMAN:
+      return JOB_ARCHER;
+    case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
+    case JOB_CLERIC:
+      return JOB_MAGICIAN;
+    default:
+      return JOB_SWORDMAN;
+  }
+}
+
+// The branch --job names. Dies on anything else rather than sweeping the wrong
+// character quietly.
+Job ParseBranch(const std::string& name) {
+  Job job = JOB_UNSPECIFIED;
+  if (!Job_Parse("JOB_" + name, &job) || FirstJobFor(job) == job) {
+    LOG(FATAL) << "Unknown --job '" << name << "'";
+  }
+  return job;
 }
 
 // Which stat this job's damage is built on, so the sweep spends AP the way a
@@ -164,8 +194,9 @@ double MapLevel(const Catalogs& catalogs, const MapData& map) {
   return count > 0.0 ? total / count : 0.0;
 }
 
-void Run(double seconds) {
+void Run(double seconds, Job branch) {
   Catalogs catalogs = LoadCatalogs();
+  std::vector<Job> path = {FirstJobFor(branch), branch};
   // Maps in the order the player meets them, weakest first.
   std::vector<std::pair<double, std::string>> maps;
   for (const std::pair<const std::string, MapData>& entry : catalogs.maps) {
@@ -188,8 +219,7 @@ void Run(double seconds) {
     std::printf("%-28s %5.1f", catalogs.maps.at(map.second).name().c_str(),
                 map.first);
     for (int level : kLevels) {
-      Outcome outcome = Farm(catalogs, level, {JOB_SWORDMAN, JOB_SPEARMAN},
-                             map.second, seconds);
+      Outcome outcome = Farm(catalogs, level, path, map.second, seconds);
       char cell[32];
       if (outcome.death_seconds >= 0.0) {
         // Died: how long it took, and what they took with them.
@@ -217,6 +247,7 @@ void Run(double seconds) {
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
-  ms::Run(absl::GetFlag(FLAGS_minutes) * 60.0);
+  ms::Run(absl::GetFlag(FLAGS_minutes) * 60.0,
+          ms::ParseBranch(absl::GetFlag(FLAGS_job)));
   return 0;
 }

@@ -80,6 +80,7 @@ cc_binary(
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
     ],
 )
 
