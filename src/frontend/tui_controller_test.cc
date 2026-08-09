@@ -11,6 +11,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
+#include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -20,6 +21,7 @@
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
+#include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -86,6 +88,8 @@ class TuiControllerTest : public testing::Test {
     // level, so 60 of it is exactly level 30). Stated rather than relied on:
     // either number can move without the other.
     LevelTo(UnlockLevel(Feature::kScrolling));
+    char_panel_ = std::make_unique<CharacterPanel>(
+        state_->character, panel_focus_, state_->skills);
     equip_panel_ =
         std::make_unique<EquippedPanel>(state_->character, panel_focus_);
     inventory_panel_ =
@@ -101,7 +105,7 @@ class TuiControllerTest : public testing::Test {
                                               state_->items);
     buy_panel_ = std::make_unique<BuyPanel>();
     controller_ = std::make_unique<TuiController>(
-        *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
+        *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *map_select_panel_, *shop_panel_, *buy_panel_, panel_focus_);
 
@@ -188,7 +192,7 @@ class TuiControllerTest : public testing::Test {
   void RebuildMapSelect() {
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
     controller_ = std::make_unique<TuiController>(
-        *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
+        *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *map_select_panel_, *shop_panel_, *buy_panel_, panel_focus_);
   }
@@ -269,7 +273,7 @@ class TuiControllerTest : public testing::Test {
     scroll_panel_ =
         std::make_unique<ScrollPanel>(state_->character, state_->scrolls);
     controller_ = std::make_unique<TuiController>(
-        *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
+        *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *map_select_panel_, *shop_panel_, *buy_panel_, panel_focus_);
   }
@@ -288,6 +292,7 @@ class TuiControllerTest : public testing::Test {
 
   EquipPrototype sword_;
   std::unique_ptr<GameState> state_;
+  std::unique_ptr<CharacterPanel> char_panel_;
   std::unique_ptr<EquippedPanel> equip_panel_;
   std::unique_ptr<InventoryPanel> inventory_panel_;
   std::unique_ptr<ScrollPanel> scroll_panel_;
@@ -329,6 +334,18 @@ TEST_F(TuiControllerTest, ShiftTabWalksTheRingBackwards) {
   EXPECT_EQ(panel_focus_, kInventoryPanel);
   controller_->OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
+// A gold tab says "there is something new in here". Tabbing to the panel it is
+// already open on is reading it, so the gold has to come off -- otherwise it
+// could only be cleared by arrowing away from the tab and back onto it.
+TEST_F(TuiControllerTest, ArrivingOnAPanelReadsTheTabLeftOpenOnIt) {
+  int stage = state_->character.proto().job_stage();
+  ASSERT_FALSE(state_->character.TabSeen(EquipGiftTabKey(stage)));
+
+  controller_->OnEvent(ftxui::Event::Tab);
+  ASSERT_EQ(panel_focus_, kInventoryPanel);
+  EXPECT_TRUE(state_->character.TabSeen(EquipGiftTabKey(stage)));
 }
 
 // Which is what it is for: undoing a Tab that went one panel too far.
@@ -1422,6 +1439,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   GameState fresh({}, {}, {}, {}, {});
   ASSERT_EQ(fresh.character.proto().level(), 1);
 
+  CharacterPanel chars(fresh.character, panel_focus_, fresh.skills);
   EquippedPanel equip(fresh.character, panel_focus_);
   InventoryPanel bag(fresh.character, panel_focus_);
   ScrollPanel scroll(fresh.character, {});
@@ -1432,8 +1450,8 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   int focus = kCharPanel;
-  TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
-                           shop, buy, focus);
+  TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
+                           maps, shop, buy, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
   EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
@@ -1455,6 +1473,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
 // cannot leave the player pressing Tab at a panel that is not on screen.
 TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   GameState fresh({}, {}, {}, {}, {});
+  CharacterPanel chars(fresh.character, panel_focus_, fresh.skills);
   EquippedPanel equip(fresh.character, panel_focus_);
   InventoryPanel bag(fresh.character, panel_focus_);
   ScrollPanel scroll(fresh.character, {});
@@ -1465,8 +1484,8 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   int focus = kCharPanel;
-  TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
-                           shop, buy, focus);
+  TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
+                           maps, shop, buy, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
@@ -1479,6 +1498,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
 // the modulo negative.
 TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   GameState fresh({}, {}, {}, {}, {});
+  CharacterPanel chars(fresh.character, panel_focus_, fresh.skills);
   EquippedPanel equip(fresh.character, panel_focus_);
   InventoryPanel bag(fresh.character, panel_focus_);
   ScrollPanel scroll(fresh.character, {});
@@ -1489,8 +1509,8 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   int focus = kCharPanel;
-  TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
-                           shop, buy, focus);
+  TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
+                           maps, shop, buy, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
@@ -1503,6 +1523,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
 // on a panel the player cannot see.
 TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   GameState fresh({}, {}, {}, {}, {});
+  CharacterPanel chars(fresh.character, panel_focus_, fresh.skills);
   EquippedPanel equip(fresh.character, panel_focus_);
   InventoryPanel bag(fresh.character, panel_focus_);
   ScrollPanel scroll(fresh.character, {});
@@ -1513,8 +1534,8 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   int focus = kEquipPanel;  // where the game starts
-  TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
-                           shop, buy, focus);
+  TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
+                           maps, shop, buy, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));

@@ -209,6 +209,11 @@ inline constexpr char kShopTabKey[] = "shop";
 // threshold, and having seen the first is not having seen the second.
 std::string AdvanceTabKey(int stage);
 
+// The equip tab's key for the gear an advancement into `stage` handed over.
+// Per stage for the same reason: the 2nd advancement puts an off-hand in the
+// bag, and having gone to look at the 1st job's weapon is not having seen it.
+std::string EquipGiftTabKey(int stage);
+
 // One chip of a tab bar in the game's one tab style. The active chip goes
 // white while its row holds focus and keeps the theme-blue invert otherwise,
 // which is how the player tells which bar the arrows are reaching; pass

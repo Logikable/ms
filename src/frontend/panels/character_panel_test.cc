@@ -1413,6 +1413,25 @@ TEST_F(CharacterPanelTest, OpeningTheAdvanceTabClearsItsGold) {
          "advancement is news again";
 }
 
+// The other way a tab is read: focus arriving on the panel while the tab is
+// already the open one. The controller calls this on every Tab, so the rule
+// reads the same on both panels that carry gold -- see the bag, where the
+// Equip tab is the one it actually catches.
+TEST_F(CharacterPanelTest, MarkingTheActiveTabReadsIt) {
+  CharacterInstance c = MakeCharacter(/*level=*/10);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([](StatField) {});
+  panel_focus_ = kCharPanel;
+  component->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_TRUE(c.TabSeen(AdvanceTabKey(1)));
+
+  // Stats has nothing to announce, so marking it records nothing rather than
+  // recording the empty key -- which TabSeen would then answer yes to.
+  component->OnEvent(ftxui::Event::ArrowLeft);
+  panel.MarkActiveTabSeen();
+  EXPECT_FALSE(c.TabSeen(""));
+}
+
 // --- skills waiting on another skill ---
 
 // Hyper Body's shape: three points in Iron Wall come first.

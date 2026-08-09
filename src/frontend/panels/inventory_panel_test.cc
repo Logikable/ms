@@ -1036,6 +1036,64 @@ TEST_F(InventoryPanelTest, OpeningTheShopTabStopsItAnnouncingItself) {
   EXPECT_EQ(LabelColor(component->Render(), "Shop"), kTheme);
 }
 
+// An advancement puts gear in the bag -- a weapon at the 1st, an off-hand at
+// the 2nd -- and the gold on the tab is what says to go and look.
+TEST_F(InventoryPanelTest, TheEquipTabGoesGoldForTheGearAnAdvancementGave) {
+  LevelTo(UnlockLevel(Feature::kBag));
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  EXPECT_EQ(LabelColor(component->Render(), "Equip"), kTheme)
+      << "a Beginner has been handed nothing";
+
+  c_.AdvanceJob(JOB_SWORDMAN);
+  EXPECT_EQ(LabelColor(component->Render(), "Equip"), kYellow);
+}
+
+// Per advancement, like the Advance tab's own key: having gone to look at the
+// 1st job's weapon is not having seen the 2nd job's off-hand.
+TEST_F(InventoryPanelTest, TheSecondAdvancementGildsTheEquipTabAgain) {
+  LevelTo(UnlockLevel(Feature::kBag));
+  c_.AdvanceJob(JOB_SWORDMAN);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  panel.MarkActiveTabSeen();
+  ASSERT_EQ(LabelColor(component->Render(), "Equip"), kTheme);
+
+  c_.AdvanceJob(JOB_FIGHTER);
+  EXPECT_EQ(LabelColor(component->Render(), "Equip"), kYellow);
+}
+
+// Stepping back onto the tab is what puts the gold out, exactly as it is for
+// the shop.
+TEST_F(InventoryPanelTest, OpeningTheEquipTabStopsItAnnouncingItself) {
+  LevelTo(UnlockLevel(Feature::kBag));
+  c_.AdvanceJob(JOB_SWORDMAN);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  // Read unfocused: the active chip is black on white while the panel holds
+  // focus, whatever its history, which would hide the thing under test.
+  ASSERT_EQ(LabelColor(component->Render(), "Equip"), kYellow);
+
+  panel_focus_ = kInventoryPanel;
+  component->OnEvent(ftxui::Event::ArrowRight);
+  component->OnEvent(ftxui::Event::ArrowLeft);
+  panel_focus_ = kCharPanel;
+  EXPECT_EQ(LabelColor(component->Render(), "Equip"), kTheme);
+}
+
+// The other half of the rule: a tab already open under the cursor is one the
+// player is reading, and arriving on the panel is what tells it so.
+TEST_F(InventoryPanelTest, ArrivingOnThePanelReadsTheOpenTab) {
+  LevelTo(UnlockLevel(Feature::kBag));
+  c_.AdvanceJob(JOB_SWORDMAN);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  ASSERT_EQ(LabelColor(component->Render(), "Equip"), kYellow);
+
+  panel.MarkActiveTabSeen();
+  EXPECT_EQ(LabelColor(component->Render(), "Equip"), kTheme);
+}
+
 // And it stays put: the record is on the character, so it survives the panel
 // being rebuilt -- which is what a relaunch amounts to.
 TEST_F(InventoryPanelTest, AnOpenedShopTabStaysQuietForANewPanel) {

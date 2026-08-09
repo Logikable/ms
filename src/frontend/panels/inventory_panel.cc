@@ -47,6 +47,20 @@ constexpr char kColumnHeader2[] =
 constexpr const char* kTabLabels[kNumInventoryTabs] = {"Equip", "Use", "Etc",
                                                        "Shop"};
 
+// The seen-key `tab` announces itself under, or "" for a tab with nothing to
+// announce. Use and Etc have been there since the first frame of the game.
+// Equip has one key per advancement, because that is when something arrives
+// in it: a weapon at the 1st, an off-hand at the 2nd.
+std::string TabKey(int tab, const CharacterInstance& character) {
+  if (tab == kShopTab) {
+    return kShopTabKey;
+  }
+  if (tab == kEquipTab && character.proto().job_stage() > 0) {
+    return EquipGiftTabKey(character.proto().job_stage());
+  }
+  return "";
+}
+
 // Renders the left-aligned chip row in the shared tab style, with a centered
 // meso counter overlaid in the empty space, over a separator. `tabs` is what
 // the character has unlocked, so a locked tab leaves no gap behind it.
@@ -56,9 +70,9 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
                             bool highlighted) {
   std::vector<ftxui::Element> chips;
   for (int tab : tabs) {
-    // Only the shop is ever new: the three bag tabs have been there since the
-    // first frame of the game.
-    bool unseen = tab == kShopTab && !character.TabSeen(kShopTabKey);
+    // Asking TabSeen("") would answer no and leave those tabs gold forever.
+    std::string key = TabKey(tab, character);
+    bool unseen = !key.empty() && !character.TabSeen(key);
     chips.push_back(
         TabChip(kTabLabels[tab], tab == active_tab, row_selected, unseen));
   }
@@ -166,10 +180,13 @@ void InventoryPanel::StepTab(int direction) {
   }
   active_tab_ = tabs[next];
   selected_stack_ = 0;
-  // Opened it, so it stops announcing itself. The shop is the only tab here
-  // that ever does.
-  if (active_tab_ == kShopTab) {
-    character_.MarkTabSeen(kShopTabKey);
+  MarkActiveTabSeen();
+}
+
+void InventoryPanel::MarkActiveTabSeen() {
+  std::string key = TabKey(active_tab_, character_);
+  if (!key.empty()) {
+    character_.MarkTabSeen(key);
   }
 }
 

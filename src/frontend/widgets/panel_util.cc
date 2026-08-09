@@ -468,6 +468,10 @@ std::string AdvanceTabKey(int stage) {
   return "advance:" + std::to_string(stage);
 }
 
+std::string EquipGiftTabKey(int stage) {
+  return "equip_gift:" + std::to_string(stage);
+}
+
 ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
                        bool unseen) {
   ftxui::Element chip = ftxui::text(" " + label + " ");

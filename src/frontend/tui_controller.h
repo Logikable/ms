@@ -13,6 +13,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "src/frontend/item_ref.h"
+#include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -38,9 +39,9 @@ class TuiController {
  public:
   // panel_focus is a reference shared with panel components and
   // Container::Tab; the controller mutates it as focus changes.
-  TuiController(GameState& state, EquippedPanel& equip_panel,
-                InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
-                StarForcePanel& star_force_panel,
+  TuiController(GameState& state, CharacterPanel& char_panel,
+                EquippedPanel& equip_panel, InventoryPanel& inventory_panel,
+                ScrollPanel& scroll_panel, StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
                 MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
                 BuyPanel& buy_panel, int& panel_focus);
@@ -183,6 +184,9 @@ class TuiController {
   bool OnShopBuyEvent(ftxui::Event event);
 
   GameState& state_;
+  // Held only so focus arriving here can clear the Advance tab's gold; the
+  // panel drives itself otherwise.
+  CharacterPanel& char_panel_;
   EquippedPanel& equip_panel_;
   InventoryPanel& inventory_panel_;
   ScrollPanel& scroll_panel_;

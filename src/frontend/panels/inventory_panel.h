@@ -76,6 +76,12 @@ class InventoryPanel {
     return selected_stack_;
   }
 
+  // Records the active tab as opened, which is what puts its gold out. Called
+  // by the panel when the player steps onto a tab, and by the controller when
+  // focus arrives on the panel -- a tab already open under the cursor has been
+  // seen just as surely as one stepped onto.
+  void MarkActiveTabSeen();
+
   // Lights the panel's border gold, to send the player's eye to it while a
   // level-up is being celebrated -- the bag arrives at level 4, and a card in
   // the middle of the screen does not say where to look. The panel keeps no

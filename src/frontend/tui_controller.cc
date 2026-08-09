@@ -25,12 +25,13 @@
 namespace ms {
 
 TuiController::TuiController(
-    GameState& state, EquippedPanel& equip_panel,
+    GameState& state, CharacterPanel& char_panel, EquippedPanel& equip_panel,
     InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
     StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
     SellPanel& sell_panel, MapSelectPanel& map_select_panel,
     ShopPanel& shop_panel, BuyPanel& buy_panel, int& panel_focus)
     : state_(state),
+      char_panel_(char_panel),
       equip_panel_(equip_panel),
       inventory_panel_(inventory_panel),
       scroll_panel_(scroll_panel),
@@ -155,6 +156,15 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
   do {
     panel_focus_ = (panel_focus_ + step) % kNumPanels;
   } while (!PanelVisible(panel_focus_));
+  // Arriving on a panel is reading whatever tab was left open on it. Without
+  // this, a gold tab the player is already standing on could only be cleared
+  // by arrowing off it and back.
+  if (panel_focus_ == kInventoryPanel) {
+    inventory_panel_.MarkActiveTabSeen();
+  }
+  if (panel_focus_ == kCharPanel) {
+    char_panel_.MarkActiveTabSeen();
+  }
   return true;
 }
 

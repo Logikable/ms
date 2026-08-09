@@ -97,9 +97,10 @@ Tui::Tui(GameState& state, std::string save_path)
       map_select_panel_(state),
       all_stats_panel_(state.character, state.skills),
       shop_panel_(state.character, state.equips, state.items),
-      controller_(state, equip_panel_, inventory_panel_, scroll_panel_,
-                  star_force_panel_, trace_recover_panel_, sell_panel_,
-                  map_select_panel_, shop_panel_, buy_panel_, panel_focus_) {
+      controller_(state, char_panel_, equip_panel_, inventory_panel_,
+                  scroll_panel_, star_force_panel_, trace_recover_panel_,
+                  sell_panel_, map_select_panel_, shop_panel_, buy_panel_,
+                  panel_focus_) {
 }
 
 void Tui::Run() {

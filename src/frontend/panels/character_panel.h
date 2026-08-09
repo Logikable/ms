@@ -64,6 +64,12 @@ class CharacterPanel {
       std::function<void(const Skill&)> on_inspect = {},
       std::function<void()> on_all_stats = {});
 
+  // Records the active tab as opened, which is what puts its gold out. Called
+  // wherever the tab bar moves, and by the controller when focus arrives on
+  // the panel -- a tab already open under the cursor has been seen just as
+  // surely as one stepped onto.
+  void MarkActiveTabSeen();
+
   // Lights the panel's border gold, to send the player's eye here while a
   // level-up or advancement is being celebrated -- this is where the AP, SP
   // and job the moment handed over are spent. The panel keeps no clock of its
@@ -127,9 +133,6 @@ class CharacterPanel {
   // The save key `tab` records being opened under, or "" for a tab that has
   // always been there and has nothing to announce.
   std::string TabKey(Tab tab) const;
-  // Records the active tab as opened. Called wherever the tab bar moves, which
-  // is the moment a gold "this is new" chip has done its job.
-  void MarkActiveTabSeen();
   // The tab actually being shown, which is the selected one unless it has
   // since disappeared -- taking the advancement closes the tab the player was
   // standing on.

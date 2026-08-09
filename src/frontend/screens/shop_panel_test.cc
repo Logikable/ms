@@ -353,11 +353,11 @@ TEST_F(ShopPanelTest, RedsOutPricesBeyondTheBalance) {
 // What every weapon in the shop shares is the slot it goes in, so the column
 // names the kind of weapon instead. Class is not a column either: the list
 // holds nothing this character is the wrong class for.
-TEST_F(ShopPanelTest, ShowsWeaponTypeAndLevel) {
+TEST_F(ShopPanelTest, ShowsTypeAndLevel) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99);
   ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Weapon Type"), std::string::npos);
+  EXPECT_NE(rendered.find("Type"), std::string::npos);
   EXPECT_NE(rendered.find("One-Handed Sword"), std::string::npos);
   EXPECT_NE(rendered.find("Two-Handed Sword"), std::string::npos);
   EXPECT_NE(rendered.find("Lv20"), std::string::npos);
@@ -795,6 +795,17 @@ TEST_F(ShopPanelTest, TheBarReadsWeaponsSecondariesEtc) {
   ASSERT_NE(secondaries, std::string::npos);
   EXPECT_LT(weapons, secondaries);
   EXPECT_LT(secondaries, etc);
+}
+
+// The meso counter is drawn over the same row as the chips. A third chip took
+// the bar out far enough that a centred counter landed on top of "Etc" and cut
+// it to "Et" -- so the counter now sits in what the chips leave.
+TEST_F(ShopPanelTest, TheMesoCounterDoesNotCoverATab) {
+  CharacterInstance c = MakeCharacter(1000000000);
+  ShopPanel panel(c, equips_, items_);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Etc"), std::string::npos);
+  EXPECT_NE(rendered.find("1,000,000,000"), std::string::npos);
 }
 
 TEST_F(ShopPanelTest, TheSecondariesShelfHoldsTheBranchsOwnOffHand) {

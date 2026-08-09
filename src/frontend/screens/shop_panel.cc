@@ -34,7 +34,7 @@ constexpr int kVisibleRows = 15;
 // Two leading spaces match the "  " / "> " cursor on the rows below.
 ftxui::Element ColumnHeader() {
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
-                     PadRight("Weapon Type", kTypeWidth) + "  " +
+                     PadRight("Type", kTypeWidth) + "  " +
                      PadRight("Level", kLevelWidth) +
                      PadLeft("🪙 Cost", kCostWidth));
 }
@@ -223,11 +223,14 @@ ftxui::Element ShopPanel::Render() const {
                           /*row_focused=*/zone_ == kZoneTabs));
   chips.push_back(TabChip("Etc", /*active=*/tab_ == kShopEtcTab,
                           /*row_focused=*/zone_ == kZoneTabs));
-  ftxui::Element tab_row = ftxui::dbox({
-      ftxui::hbox(std::move(chips)),
-      ftxui::text(FormatMeso(character_.meso())) | ftxui::color(kTheme) |
-          ftxui::hcenter,
-  });
+  // The meso sits in what the chips leave rather than over the whole row: a
+  // third chip took the bar out to where a centred counter was drawn on top of
+  // it, and a fourth would reach further still.
+  chips.push_back(ftxui::filler());
+  chips.push_back(ftxui::text(FormatMeso(character_.meso())) |
+                  ftxui::color(kTheme));
+  chips.push_back(ftxui::filler());
+  ftxui::Element tab_row = ftxui::hbox(std::move(chips));
 
   std::vector<ftxui::Element> rows;
   rows.push_back(std::move(tab_row));
