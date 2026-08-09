@@ -295,6 +295,23 @@ std::string DamageText(const Skill& skill, int level) {
          FormatPercent(per_hit * lines);
 }
 
+// The opening hit's line, or "" for a swing that has none. It lands on top of
+// the swing's own damage, on one enemy of the several the swing reaches, so
+// the row has to say which enemy or the two numbers read as alternatives.
+std::string LeadText(const Skill& skill, int level) {
+  double per_hit = PercentAt(skill, &SkillEffect::lead_pct, level);
+  if (per_hit <= 0.0) {
+    return "";
+  }
+  int lines = std::max(1, skill.lead_lines());
+  std::string damage = FormatPercent(per_hit);
+  if (lines > 1) {
+    damage +=
+        " x" + std::to_string(lines) + " = " + FormatPercent(per_hit * lines);
+  }
+  return damage + " (one enemy)";
+}
+
 // The plain lever rows of one effect, at `level`. `suffix` goes after every
 // value: a weapon bonus uses it to name what has to be in hand, and the
 // skill's own levers pass "" because the Requires row above says it once.
@@ -336,6 +353,12 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
   if (IsActive(skill) && PercentAt(skill, &SkillEffect::skill_pct, level) > 0) {
     rows.push_back(EffectRow("Damage", DamageText(skill, level)));
+  }
+  // Under the swing's own damage, because it is the extra the swing opens with
+  // rather than a second attack.
+  for (ftxui::Element& row :
+       WrappedEffectRows("Opening Hit", LeadText(skill, level))) {
+    rows.push_back(std::move(row));
   }
   // Final Attack's chance and its damage are one fact, not two levers: neither
   // half says anything on its own, so they share a line.

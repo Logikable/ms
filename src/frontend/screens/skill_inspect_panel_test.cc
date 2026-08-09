@@ -138,6 +138,31 @@ TEST_F(SkillInspectPanelTest, SpellsOutAMultiLineSwing) {
   EXPECT_NE(RenderAt(skill, 1).find("72% x3 = 216%"), std::string::npos);
 }
 
+// Shuriken Burst opens on one enemy for far more than the spread that
+// follows, and a page that showed only the spread would read as a weak skill.
+TEST_F(SkillInspectPanelTest, SpellsOutTheOpeningHit) {
+  Skill skill = MakeLuckySeven();
+  skill.mutable_base()->set_lead_pct(4.08);
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_NE(rendered.find("Opening Hit"), std::string::npos);
+  EXPECT_NE(rendered.find("408%"), std::string::npos);
+  EXPECT_NE(rendered.find("one enemy"), std::string::npos)
+      << "or it reads as an alternative to the swing's own damage";
+}
+
+TEST_F(SkillInspectPanelTest, AMultiStrikeOpeningHitTotalsItself) {
+  Skill skill = MakeLuckySeven();
+  skill.mutable_base()->set_lead_pct(1.0);
+  skill.set_lead_lines(3);
+  EXPECT_NE(RenderAt(skill, 1).find("100% x3 = 300%"), std::string::npos);
+}
+
+// Every other skill in the game has none, so the row must not appear at all.
+TEST_F(SkillInspectPanelTest, NoOpeningHitRowWithoutOne) {
+  Skill skill = MakeLuckySeven();
+  EXPECT_EQ(RenderAt(skill, 1).find("Opening"), std::string::npos);
+}
+
 TEST_F(SkillInspectPanelTest, ASingleLineSwingIsJustItsPercentage) {
   Skill skill = MakeLuckySeven();
   skill.clear_lines();
