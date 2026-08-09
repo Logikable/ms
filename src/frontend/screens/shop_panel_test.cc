@@ -178,13 +178,25 @@ class ShopPanelTest : public testing::Test {
   }
 
   CharacterInstance MakeCharacter(int64_t meso, int level = 1,
-                                  Job job = JOB_SWORDMAN) {
+                                  Job job = JOB_SWORDMAN, int stage = 1) {
     Character proto;
     proto.set_level(level);
     proto.set_job(job);
+    // Which advancement the character holds, not just which line: an off-hand
+    // asks for the branch, and a 2nd job is a stage as well as a job.
+    proto.set_job_stage(stage);
     CharacterInstance c(rng_, std::move(proto));
     c.AddMeso(meso);
     return c;
+  }
+
+  // Walks the bar to `tab` from wherever the panel opened. Up is what puts the
+  // cursor on the bar; Left and Right only reach it from there.
+  static void OpenShelf(ShopPanel& panel, ShopTab tab) {
+    panel.OnEvent(ftxui::Event::ArrowUp);
+    for (int i = 0; i < tab; ++i) {
+      panel.OnEvent(ftxui::Event::ArrowRight);
+    }
   }
 
   // `count` universal weapons, one per level so they list in name order.
@@ -208,6 +220,13 @@ class ShopPanelTest : public testing::Test {
       {"subi",
        MakeItem("Subi Throwing-Stars", 10, 1000, EQUIP_JOB_CATEGORY_THIEF,
                 EQUIP_TYPE_THROWING_STAR, EQUIP_SLOT_STARS)},
+      // The off-hands of two warrior branches, so the shelf can be checked for
+      // both what it holds and what it keeps back.
+      {"medallion",
+       MakeItem("Powers Medallion", 30, 10000, EQUIP_JOB_CATEGORY_WARRIOR,
+                EQUIP_TYPE_MEDALLION, EQUIP_SLOT_SECONDARY)},
+      {"rosary", MakeItem("Holy Rosary", 30, 10000, EQUIP_JOB_CATEGORY_WARRIOR,
+                          EQUIP_TYPE_ROSARY, EQUIP_SLOT_SECONDARY)},
       {"heirloom", MakeItem("Heirloom", 10, 0)},
   };
 
@@ -762,6 +781,46 @@ TEST_F(ShopPanelTest, AnEmptyShopSaysSo) {
   EXPECT_NE(Render(panel).find("nothing for sale"), std::string::npos);
 }
 
+// --- the Secondaries tab ---
+
+// The bar reads left to right in the order a player meets the shelves: the
+// weapon first, then the hand beside it, and the consumables last.
+TEST_F(ShopPanelTest, TheBarReadsWeaponsSecondariesEtc) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_, items_);
+  std::string rendered = Render(panel);
+  size_t weapons = rendered.find("Weapons");
+  size_t secondaries = rendered.find("Secondaries");
+  size_t etc = rendered.find("Etc");
+  ASSERT_NE(secondaries, std::string::npos);
+  EXPECT_LT(weapons, secondaries);
+  EXPECT_LT(secondaries, etc);
+}
+
+TEST_F(ShopPanelTest, TheSecondariesShelfHoldsTheBranchsOwnOffHand) {
+  CharacterInstance c = MakeCharacter(100000, 30, JOB_FIGHTER, /*stage=*/2);
+  ShopPanel panel(c, equips_, items_);
+  OpenShelf(panel, kShopSecondariesTab);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Powers Medallion"), std::string::npos);
+  EXPECT_EQ(rendered.find("Holy Rosary"), std::string::npos)
+      << "a Fighter is offered a Page's rosary";
+  // A shelf of its own, not more rows of the weapons.
+  EXPECT_EQ(rendered.find("Long Sword"), std::string::npos);
+  ASSERT_NE(panel.selected_item(), nullptr);
+  EXPECT_EQ(panel.selected_item()->name(), "Powers Medallion");
+}
+
+// An off-hand belongs to one branch of one job, and a 1st job is not in a
+// branch yet -- so there is nothing on the shelf to buy or to want.
+TEST_F(ShopPanelTest, TheSecondariesShelfIsEmptyBeforeTheSecondJob) {
+  CharacterInstance c = MakeCharacter(100000, 30, JOB_SWORDMAN);
+  ShopPanel panel(c, equips_, items_);
+  OpenShelf(panel, kShopSecondariesTab);
+  EXPECT_NE(Render(panel).find("nothing for sale"), std::string::npos);
+  EXPECT_EQ(panel.selected_item(), nullptr);
+}
+
 // --- the Etc tab ---
 
 // Left and Right only reach the bar from the bar. Up off the first row is what
@@ -770,8 +829,7 @@ TEST_F(ShopPanelTest, RightOnTheBarOpensTheEtcShelf) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_, items_);
   EXPECT_EQ(Render(panel).find("Spell Trace"), std::string::npos);
-  panel.OnEvent(ftxui::Event::ArrowUp);
-  panel.OnEvent(ftxui::Event::ArrowRight);
+  OpenShelf(panel, kShopEtcTab);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Spell Trace"), std::string::npos);
   EXPECT_NE(rendered.find("5,000"), std::string::npos);
@@ -788,8 +846,7 @@ TEST_F(ShopPanelTest, OnlyOneOfTheTwoSelectionsEverAnswers) {
   ShopPanel panel(c, equips_, items_);
   EXPECT_NE(panel.selected_item(), nullptr);
   EXPECT_EQ(panel.selected_stackable(), nullptr);
-  panel.OnEvent(ftxui::Event::ArrowUp);
-  panel.OnEvent(ftxui::Event::ArrowRight);
+  OpenShelf(panel, kShopEtcTab);
   EXPECT_EQ(panel.selected_item(), nullptr);
   ASSERT_NE(panel.selected_stackable(), nullptr);
   EXPECT_EQ(panel.selected_stackable()->name(), "Spell Trace");
@@ -801,8 +858,9 @@ TEST_F(ShopPanelTest, TheEndsOfTheBarAreWalls) {
   panel.OnEvent(ftxui::Event::ArrowUp);
   panel.OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_NE(panel.selected_item(), nullptr) << "stepped off the left end";
-  panel.OnEvent(ftxui::Event::ArrowRight);
-  panel.OnEvent(ftxui::Event::ArrowRight);
+  for (int i = 0; i < kNumShopTabs; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowRight);
+  }
   EXPECT_NE(panel.selected_stackable(), nullptr) << "stepped off the right end";
 }
 
@@ -819,8 +877,7 @@ TEST_F(ShopPanelTest, TheEtcShelfShowsHowManyAreOwned) {
   CharacterInstance c = MakeCharacter(100000);
   c.AddStackable(items_.at("spell_trace"), 1234);
   ShopPanel panel(c, equips_, items_);
-  panel.OnEvent(ftxui::Event::ArrowUp);
-  panel.OnEvent(ftxui::Event::ArrowRight);
+  OpenShelf(panel, kShopEtcTab);
   EXPECT_NE(Render(panel).find("1,234"), std::string::npos);
 }
 
@@ -829,8 +886,7 @@ TEST_F(ShopPanelTest, TheEtcShelfShowsHowManyAreOwned) {
 TEST_F(ShopPanelTest, ReopeningComesBackToTheWeaponsTab) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_, items_);
-  panel.OnEvent(ftxui::Event::ArrowUp);
-  panel.OnEvent(ftxui::Event::ArrowRight);
+  OpenShelf(panel, kShopEtcTab);
   ASSERT_NE(panel.selected_stackable(), nullptr);
   panel.Reset();
   EXPECT_NE(panel.selected_item(), nullptr);

@@ -79,7 +79,10 @@ void ShopPanel::Restock() {
     stock_ = ShopEtcStock(items_);
     return;
   }
-  for (const std::string& key : ShopWeaponStock(equips_)) {
+  std::vector<std::string> shelf = tab_ == kShopSecondariesTab
+                                       ? ShopSecondaryStock(equips_)
+                                       : ShopWeaponStock(equips_);
+  for (const std::string& key : shelf) {
     if (character_.MeetsJob(equips_.at(key))) {
       stock_.push_back(key);
     }
@@ -178,7 +181,7 @@ Screen ShopPanel::OnMenuEvent(ftxui::Event event) {
 }
 
 const EquipPrototype* ShopPanel::selected_item() const {
-  if (tab_ != kShopWeaponsTab || selected_ < 0 ||
+  if (tab_ == kShopEtcTab || selected_ < 0 ||
       selected_ >= static_cast<int>(stock_.size())) {
     return nullptr;
   }
@@ -214,6 +217,9 @@ ftxui::Element ShopPanel::Render() const {
   // White while the bar holds the cursor and theme-blue otherwise, which is how
   // the player tells whether the arrow keys are on the bar or in the list.
   chips.push_back(TabChip("Weapons", /*active=*/tab_ == kShopWeaponsTab,
+                          /*row_focused=*/zone_ == kZoneTabs));
+  chips.push_back(TabChip("Secondaries",
+                          /*active=*/tab_ == kShopSecondariesTab,
                           /*row_focused=*/zone_ == kZoneTabs));
   chips.push_back(TabChip("Etc", /*active=*/tab_ == kShopEtcTab,
                           /*row_focused=*/zone_ == kZoneTabs));

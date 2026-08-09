@@ -23,6 +23,12 @@ namespace ms {
 std::vector<std::string> ShopWeaponStock(
     const std::map<std::string, EquipPrototype>& equips);
 
+// Catalog keys of the off-hands the shop sells, in the same order. Class
+// filtering is left to the caller, as it is for the weapons -- this says what
+// is on the shelf, not who may buy it.
+std::vector<std::string> ShopSecondaryStock(
+    const std::map<std::string, EquipPrototype>& equips);
+
 // Catalog keys of the stackables the shop sells, cheapest first and then by
 // name. Joining the shop works the same way it does for an equip: name a
 // shop_price in the item's own data file and it is stocked.

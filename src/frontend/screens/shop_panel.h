@@ -7,10 +7,13 @@
  * left out because they could never use it, not because they cannot use it yet
  * -- a level too high still shows, in red, as something to save toward.
  *
- * Two tabs: Weapons, and Etc for the stackables -- spell traces today. They are
- * different lists rather than more rows of one, which is what a tab is for. The
- * ends of the bar are walls, as in the bag; Left and Right step along it while
- * the cursor is on it.
+ * Three tabs: Weapons, Secondaries for the off-hands, and Etc for the
+ * stackables. They are different lists rather than more rows of one, which is
+ * what a tab is for. The ends of the bar are walls, as in the bag; Left and
+ * Right step along it while the cursor is on it.
+ *
+ * The Secondaries shelf is empty until the 2nd advancement: an off-hand
+ * belongs to one branch of one job, and a 1st job is not yet in a branch.
  *
  * The panel is a view: it moves its own cursor but never spends anything. The
  * controller reads selected_item() when the player presses Enter.
@@ -35,8 +38,9 @@ namespace ms {
 // Tabs of the shop, in display order.
 enum ShopTab : int {
   kShopWeaponsTab = 0,
-  kShopEtcTab = 1,
-  kNumShopTabs = 2,
+  kShopSecondariesTab = 1,
+  kShopEtcTab = 2,
+  kNumShopTabs = 3,
 };
 
 // Entries of the context menu an item opens, in display order.

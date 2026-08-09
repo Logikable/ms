@@ -56,6 +56,11 @@ std::vector<std::string> ShopWeaponStock(
   return StockForSlots(equips, {EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_SLOT_STARS});
 }
 
+std::vector<std::string> ShopSecondaryStock(
+    const std::map<std::string, EquipPrototype>& equips) {
+  return StockForSlots(equips, {EQUIP_SLOT_SECONDARY});
+}
+
 std::vector<std::string> ShopEtcStock(
     const std::map<std::string, ItemPrototype>& items) {
   std::vector<std::string> keys;
