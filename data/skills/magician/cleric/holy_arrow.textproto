@@ -8,7 +8,8 @@
 name: "Holy Arrow"
 skill_order: 1
 description:
-  "Looses a volley of holy arrows at the enemies in front of you."
+  "Light drawn to a point and loosed. Attacks multiple enemies with holy "
+  "arrows."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10

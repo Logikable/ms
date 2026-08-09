@@ -12,8 +12,8 @@
 name: "Heal"
 skill_order: 3
 description:
-  "Calls down a warm light that closes your wounds. Cast in place of a swing "
-  "when you are badly hurt."
+  "A warm light closes what the fight opened. Restores your HP, cast in place "
+  "of an attack when you are badly hurt."
 kind: SKILL_KIND_ACTIVE
 tags: SKILL_TAG_BENEVOLENCE
 job_advancement: JOB_ADVANCEMENT_CLERIC

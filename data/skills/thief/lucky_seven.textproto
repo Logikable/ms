@@ -9,8 +9,8 @@
 name: "Lucky Seven"
 skill_order: 2
 description:
-  "Throw 7 lucky throwing stars to attack enemies in front. Can only be used "
-  "when equipped with a claw."
+  "The stars leave your hand before the thought does. Throw lucky throwing "
+  "stars at the enemies in front of you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20

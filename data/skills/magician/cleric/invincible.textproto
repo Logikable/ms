@@ -6,7 +6,8 @@
 # 89% together, not 110% -- see character_stats.cc.
 name: "Invincible"
 skill_order: 6
-description: "Blunts everything that reaches you."
+description:
+  "Faith makes a poor shield and a very good one. Decreases all damage taken."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 20

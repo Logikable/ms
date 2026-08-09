@@ -7,8 +7,8 @@
 name: "Poison Breath"
 skill_order: 3
 description:
-  "Breathes a cloud of poison over the enemies in front of you, eating "
-  "through them as it goes."
+  "A poison-attribute attack. Breathes a cloud of poison over the enemies in "
+  "front of you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 10

@@ -8,8 +8,8 @@
 name: "Quiver Cartridge"
 skill_order: 2
 description:
-  "Tips your quiver so some of what you loose splits off and chases down "
-  "everything the shot reached."
+  "Every head in the quiver was cut for a different job. Grants a chance to "
+  "strike again after an attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 10

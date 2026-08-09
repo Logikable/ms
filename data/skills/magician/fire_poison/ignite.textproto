@@ -9,8 +9,8 @@
 name: "Ignite"
 skill_order: 6
 description:
-  "Your fire spells leave the ground burning, with a chance to catch every "
-  "enemy they hit."
+  "Fire is never finished with a place it has been. Grants your fire spells a "
+  "chance to strike again."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 10

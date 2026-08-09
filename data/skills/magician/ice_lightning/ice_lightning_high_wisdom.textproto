@@ -2,7 +2,7 @@
 # on GMS's own figure.
 name: "High Wisdom"
 skill_order: 8
-description: "Permanently raises INT through mental discipline."
+description: "Permanently increases INT through mental discipline."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 5

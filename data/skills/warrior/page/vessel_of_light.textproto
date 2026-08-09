@@ -5,8 +5,8 @@
 name: "Vessel of Light"
 skill_order: 2
 description:
-  "Gathers the power of light inside you, until you hit harder and harder "
-  "things bounce off you."
+  "The light you carry into a fight never quite leaves you. Increases Damage "
+  "and Attack Power, and reduces the damage you take."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 20

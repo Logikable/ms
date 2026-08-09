@@ -1,6 +1,7 @@
 name: "Physical Training"
 skill_order: 6
-description: "Permanently raises STR and DEX through sheer physical training."
+description:
+  "Permanently increases STR and DEX through sheer physical training."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 5

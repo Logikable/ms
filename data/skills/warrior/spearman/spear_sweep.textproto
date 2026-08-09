@@ -4,8 +4,8 @@
 name: "Spear Sweep"
 skill_order: 1
 description:
-  "Swings your spear at everything in front of you at once, striking each "
-  "of them four times over."
+  "One long arc of the spear, wide enough to catch everything standing near "
+  "you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 20

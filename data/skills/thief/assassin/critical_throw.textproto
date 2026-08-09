@@ -6,7 +6,9 @@
 # critical damage is worth anything at all.
 name: "Critical Throw"
 skill_order: 5
-description: "Permanently increases Critical Rate and Critical Damage."
+description:
+  "At this range a throw finds the gap or wastes a star. Increases Critical "
+  "Rate and Critical Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ASSASSIN
 max_level: 30

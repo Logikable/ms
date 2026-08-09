@@ -7,8 +7,8 @@
 name: "Cold Beam"
 skill_order: 1
 description:
-  "Grows a row of sharp ice crystals in front of you, and drives them "
-  "through whatever is standing there."
+  "An ice-attribute attack. Grows sharp ice crystals in front of you and "
+  "drives them through whatever is standing there."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 10

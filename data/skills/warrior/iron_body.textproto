@@ -4,8 +4,8 @@
 name: "Iron Body"
 skill_order: 2
 description:
-  "Boosts DEF and Max HP by a set percentage, and decreases damage taken "
-  "when hit by enemies."
+  "Drilled until a blow lands like nothing. Boosts DEF and Max HP, and "
+  "decreases damage taken."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20

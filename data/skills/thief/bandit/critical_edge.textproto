@@ -3,7 +3,9 @@
 # a third of the levels.
 name: "Critical Edge"
 skill_order: 2
-description: "Permanently increases Critical Rate and Critical Damage."
+description:
+  "A thief finds the seam in the armour before they find the blade. "
+  "Permanently increases Critical Rate and Critical Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 10

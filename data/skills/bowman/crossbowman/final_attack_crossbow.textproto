@@ -3,8 +3,8 @@
 name: "Final Attack: Crossbow"
 skill_order: 5
 description:
-  "A chance for every shot to be followed by a second bolt, rolled against "
-  "each enemy it reached. Needs a crossbow in hand."
+  "Years of drilling turn one shot into two. Grants a chance to deliver an "
+  "additional hit after an attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20

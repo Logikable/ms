@@ -1,6 +1,7 @@
 name: "Brandish"
 skill_order: 1
-description: "Cuts everything in front of you twice over."
+description:
+  "A broad, driving swing that carries through everything in front of you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 20

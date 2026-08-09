@@ -2,7 +2,7 @@
 # in the same place -- 20 -- for half the points.
 name: "Agile Arms"
 skill_order: 6
-description: "Loosens your arms, speeding up your swings and building STR."
+description: "Loose shoulders, faster steel. Increases Attack Speed and STR."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 5

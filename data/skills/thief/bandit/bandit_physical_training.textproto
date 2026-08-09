@@ -2,7 +2,8 @@
 # their two stats a level.
 name: "Physical Training"
 skill_order: 7
-description: "Permanently raises LUK and DEX through sheer physical training."
+description:
+  "Permanently increases LUK and DEX through sheer physical training."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 5

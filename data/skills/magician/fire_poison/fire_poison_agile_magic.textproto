@@ -3,7 +3,9 @@
 # Bows do.
 name: "Agile Magic"
 skill_order: 5
-description: "Quickens your casting and sharpens your mind."
+description:
+  "The words come quicker than the thought behind them. Increases Attack "
+  "Speed and INT."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 5

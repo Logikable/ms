@@ -6,7 +6,8 @@
 # the player for something the game has no way to do.
 name: "Blessed Ensemble"
 skill_order: 2
-description: "The blessings around you make everything you cast hit harder."
+description:
+  "Blessings gather, and each one leans on the last. Increases Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10

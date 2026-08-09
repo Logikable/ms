@@ -6,8 +6,7 @@
 # an equipped item that never runs out, so there is no count to raise.
 name: "Claw Mastery"
 skill_order: 3
-description:
-  "Increases Claw Mastery."
+description: "Throw and stance drilled past thinking. Increases Claw Mastery."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ASSASSIN
 max_level: 20

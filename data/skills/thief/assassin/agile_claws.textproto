@@ -3,7 +3,9 @@
 # does.
 name: "Agile Claws"
 skill_order: 4
-description: "Quickens your throwing arm and sharpens your luck."
+description:
+  "A quicker hand, and the luck to go with it. Increases Attack Speed and "
+  "LUK."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ASSASSIN
 max_level: 5

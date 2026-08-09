@@ -3,7 +3,9 @@
 # nothing to count -- what is left is the final damage, held permanently.
 name: "Elemental Drain"
 skill_order: 2
-description: "What your magic leaves burning in an enemy feeds the next spell."
+description:
+  "What your magic leaves burning in an enemy feeds the next spell. Increases "
+  "Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 10

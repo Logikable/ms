@@ -4,8 +4,8 @@
 name: "Flash Blade"
 skill_order: 2
 description:
-  "Zip forward in a flash, cutting everything in your path five times "
-  "over. Hits harder than an ordinary swing, and has to be waited for."
+  "Gone and back before the eye can follow. Zip forward in a flash, cutting "
+  "enemies in your path."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 9

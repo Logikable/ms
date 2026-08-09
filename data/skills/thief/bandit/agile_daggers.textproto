@@ -3,7 +3,9 @@
 # does.
 name: "Agile Daggers"
 skill_order: 4
-description: "Quickens your knife hand and sharpens your luck."
+description:
+  "A quicker hand, and the luck to go with it. Increases Attack Speed and "
+  "LUK."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 5

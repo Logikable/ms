@@ -8,7 +8,8 @@
 name: "Spell Mastery"
 skill_order: 7
 description:
-  "Increases Spell Mastery, Magic Attack and Critical Rate."
+  "Casting drilled past thinking. Increases Spell Mastery, Magic Attack and "
+  "Critical Rate."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 20

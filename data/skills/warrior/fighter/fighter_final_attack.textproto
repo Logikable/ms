@@ -4,8 +4,8 @@
 name: "Final Attack"
 skill_order: 7
 description:
-  "A chance for every swing to be followed by a second blow, rolled against "
-  "each enemy it reached. Needs a sword or an axe in hand."
+  "Years of drilling turn one blow into two. Grants a chance to deliver an "
+  "additional hit after an attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 20

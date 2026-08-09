@@ -4,7 +4,9 @@
 # count and nothing else.
 name: "Combo Attack"
 skill_order: 3
-description: "Surround yourself with 5 Combo Orbs."
+description:
+  "Blows land and orbs gather, and every orb rides on the next swing. "
+  "Increases Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 1

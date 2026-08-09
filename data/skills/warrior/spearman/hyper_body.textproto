@@ -2,7 +2,9 @@
 # spend MP on and nothing to watch a buff timer with, so it is simply always on.
 name: "Hyper Body"
 skill_order: 3
-description: "Steels your body, raising your Max HP and Max MP alike."
+description:
+  "Breath and bulk past anything the body was born with. Increases Max HP and "
+  "Max MP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10

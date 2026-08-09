@@ -4,8 +4,8 @@
 name: "Evil Eye Shock"
 skill_order: 2
 description:
-  "Your Evil Eye appears and shouts, striking up to ten nearby enemies six "
-  "times over. Fights on its own while you swing."
+  "The Evil Eye at your shoulder opens its mouth and screams. Damages nearby "
+  "enemies on its own."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10

@@ -10,8 +10,8 @@
 name: "Flame Orb"
 skill_order: 1
 description:
-  "Rolls a burning orb through the enemies in front of you. A fire spell, so "
-  "Ignite follows it."
+  "A fire-attribute attack. Creates and rolls a burning orb through the "
+  "enemies in front of you."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD

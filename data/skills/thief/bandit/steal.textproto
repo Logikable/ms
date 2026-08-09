@@ -5,8 +5,8 @@
 name: "Steal"
 skill_order: 3
 description:
-  "Everything you hit is carrying something worth taking, and everything you "
-  "take makes the next cut land harder."
+  "A hand in every pocket, and the confidence that comes of it. Increases "
+  "Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 10

@@ -5,7 +5,8 @@
 name: "Weapon Mastery"
 skill_order: 4
 description:
-  "Increases Weapon Mastery and Attack Speed."
+  "Grip and stance drilled past thinking. Increases Sword and Blunt Weapon "
+  "Mastery and Attack Speed."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 20
