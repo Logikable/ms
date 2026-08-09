@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "src/character/character_stats.h"
+#include "src/character/progression.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
@@ -49,24 +50,47 @@ std::string TotalWithBreakdown(int base, int bonus) {
          total;
 }
 
+// The combat stats, with the four percent rows in or out. They sit in the
+// middle of the order rather than on the end, so leaving them out is a gap to
+// close and not a tail to cut.
+std::vector<StatLine> CombatStatLines(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills, bool with_percents) {
+  DerivedStats derived = DerivedStatsFor(character, skills);
+  const EquipStats e = TotalEquipStats(character, derived);
+  std::vector<StatLine> lines = {
+      {"Attack", std::to_string(e.attack())},
+      {"Magic Attack", std::to_string(e.magic_attack())},
+  };
+  if (with_percents) {
+    lines.push_back({"Damage", Percent(derived.damage_pct)});
+    lines.push_back({"Final Damage", Percent(derived.final_dmg_pct)});
+    lines.push_back({"Critical Rate", Percent(derived.crit_rate)});
+    lines.push_back({"Critical Damage", Percent(derived.crit_dmg)});
+  }
+  lines.push_back(
+      {"Attack Speed",
+       AttackSpeedText(character.equipped(), derived.attack_speed_bonus)});
+  lines.push_back({"Defense", std::to_string(derived.def)});
+  return lines;
+}
+
 }  // namespace
 
 std::vector<StatLine> ExtraStatLines(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills) {
-  DerivedStats derived = DerivedStatsFor(character, skills);
-  const EquipStats e = TotalEquipStats(character, derived);
-  return {
-      {"Attack", std::to_string(e.attack())},
-      {"Magic Attack", std::to_string(e.magic_attack())},
-      {"Damage", Percent(derived.damage_pct)},
-      {"Final Damage", Percent(derived.final_dmg_pct)},
-      {"Critical Rate", Percent(derived.crit_rate)},
-      {"Critical Damage", Percent(derived.crit_dmg)},
-      {"Attack Speed",
-       AttackSpeedText(character.equipped(), derived.attack_speed_bonus)},
-      {"Defense", std::to_string(derived.def)},
-  };
+  return CombatStatLines(character, skills, /*with_percents=*/true);
+}
+
+std::vector<StatLine> PanelExtraStatLines(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills) {
+  if (!Unlocked(Feature::kCombatStats, character)) {
+    return {};
+  }
+  return CombatStatLines(character, skills,
+                         Unlocked(Feature::kDamageStats, character));
 }
 
 std::vector<StatLine> MainStatLines(

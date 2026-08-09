@@ -26,12 +26,15 @@ namespace {
 
 class CharacterPanelTest : public PanelTest {};
 
-// A stage-1 Warrior carrying `sp` first-job skill points.
-CharacterInstance MakeWarrior(std::mt19937& rng, int sp) {
+// A stage-1 Warrior carrying `sp` first-job skill points and `ap` to spend.
+// The combat stats are gated on the advancement, so a test that wants to read
+// them starts from a character who has taken one rather than from c_.
+CharacterInstance MakeWarrior(std::mt19937& rng, int sp, int ap = 0) {
   Character proto;
   proto.set_level(15);
   proto.set_job(JOB_SWORDMAN);
   proto.set_job_stage(1);
+  proto.set_ap(ap);
   (*proto.mutable_sp_by_stage())[1] = sp;
   return CharacterInstance(rng, std::move(proto));
 }
@@ -536,7 +539,7 @@ TEST_F(CharacterPanelTest, UpFromStrReturnsToTheTabBar) {
 // is View All Stats. Enter names the row, which is how the test says where the
 // cursor is standing.
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnViewAllStats) {
-  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
   bool opened = false;
@@ -549,7 +552,7 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnViewAllStats) {
 }
 
 TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheTabBar) {
-  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
   int opened = 0;
@@ -571,7 +574,7 @@ TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheTabBar) {
 }
 
 TEST_F(CharacterPanelTest, ViewAllStatsOpensWithNoApToSpend) {
-  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
   CharacterPanel panel(c, panel_focus_);
   bool opened = false;
   ftxui::Component comp =
@@ -1163,9 +1166,10 @@ TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheCursorOnTheRows) {
 
 TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {
   sword_.mutable_base_stats()->set_attack(10);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  c_.Equip(0);
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  c.Equip(0);
+  CharacterPanel panel(c, panel_focus_);
   EXPECT_EQ(StatValue(panel.Render(), "Attack"), "10");
 }
 
@@ -1220,7 +1224,8 @@ std::vector<std::string> ExtrasShown(ftxui::Element element) {
 }
 
 TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, panel_focus_);
   // 14 rows of chrome and stats above, then four rows for the extras: three
   // stats and the row that leads to the rest of them.
   panel.SetMaxRows(18);
@@ -1230,7 +1235,8 @@ TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
 }
 
 TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, panel_focus_);
   // Room for nothing but the way out, and then for less than that.
   panel.SetMaxRows(15);
   EXPECT_EQ(ExtrasShown(panel.Render()),
@@ -1241,15 +1247,51 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
 }
 
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()).size(), 9u);  // 8 stats and the row
+}
+
+// The block is what a job fills in, so a Beginner's tab ends at the AP rows --
+// and the way through to the All Stats screen ends with it. Up off the bar
+// lands on LUK instead, and Enter there spends the point.
+TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  EXPECT_TRUE(ExtrasShown(panel.Render()).empty());
+
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  bool opened = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [&](StatField f) { field = f; }, {}, {}, {}, [&] { opened = true; });
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(opened);
+  EXPECT_EQ(field, STAT_FIELD_LUK);
+}
+
+// The first advancement brings the four stats a new job can move, and the
+// second brings the percent rows that its passives are where crit comes from.
+TEST_F(CharacterPanelTest, TheFirstJobBringsFourStatsAndTheSecondTheRest) {
+  CharacterInstance first = MakeWarrior(rng_, /*sp=*/0);
+  CharacterPanel panel(first, panel_focus_);
+  EXPECT_EQ(ExtrasShown(panel.Render()),
+            (std::vector<std::string>{"Attack", "Magic Attack", "Attack Speed",
+                                      "Defense", "View All Stats"}));
+
+  CharacterInstance second = MakeSpearman(rng_);
+  CharacterPanel later(second, panel_focus_);
+  std::vector<std::string> shown = ExtrasShown(later.Render());
+  EXPECT_NE(std::find(shown.begin(), shown.end(), "Critical Rate"),
+            shown.end());
+  EXPECT_NE(std::find(shown.begin(), shown.end(), "Damage"), shown.end());
 }
 
 TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {
   Skill levers = MakeLeverPassive();
   std::map<std::string, Skill> catalog;
   catalog["levers"] = levers;
-  CharacterInstance c = MakeWarrior(rng_, /*sp=*/1);
+  CharacterInstance c = MakeSpearman(rng_);
   ASSERT_TRUE(c.LearnSkill(levers, 1));
 
   CharacterPanel panel(c, panel_focus_, catalog);
@@ -1260,7 +1302,8 @@ TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {
 }
 
 TEST_F(CharacterPanelTest, TheLeversReadZeroWithNoSkillsBehindThem) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, panel_focus_);
   EXPECT_EQ(StatValue(panel.Render(), "Damage"), "0.00%");
   EXPECT_EQ(StatValue(panel.Render(), "Critical Rate"), "0.00%");
 }

@@ -49,6 +49,7 @@ cc_library(
         ":panel_util",
         "//src/character",
         "//src/character:character_stats",
+        "//src/character:progression",
         "//src/combat:damage",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",

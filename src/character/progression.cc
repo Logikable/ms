@@ -38,6 +38,24 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kRecovery, 140},
 };
 
+// What an advancement opens rather than a level, and which one opens it: 1 is
+// the first advancement, 2 the second. A separate table because the level is
+// not the gate here -- a Beginner who never advances stays at the bottom of it
+// however high they climb.
+struct StageUnlock {
+  Feature feature;
+  int stage;
+};
+
+// Attack, Magic Attack, Attack Speed and Defense arrive with the first job,
+// which is the first thing the player has that moves them. The four percent
+// rows wait for the second, whose passives are where crit and damage rate
+// first come from.
+constexpr StageUnlock kStageUnlocks[] = {
+    {Feature::kCombatStats, 1},
+    {Feature::kDamageStats, 2},
+};
+
 // The upgrades, in the order they arrive. One list rather than a condition in
 // the card and another in the menus, so a fourth upgrade joins both at once.
 constexpr Feature kUpgrades[] = {
@@ -87,11 +105,23 @@ int UnlockLevel(Feature feature) {
       return unlock.level;
     }
   }
+  for (const StageUnlock& unlock : kStageUnlocks) {
+    if (unlock.feature == feature) {
+      // The level its advancement is offered at, which is the soonest it can
+      // open. Whether it has is the character's business, not the level's.
+      return NextAdvancementLevel(unlock.stage - 1);
+    }
+  }
   LOG(FATAL) << "Feature " << static_cast<int>(feature)
              << " has no unlock level";
 }
 
 bool Unlocked(Feature feature, const CharacterInstance& character) {
+  for (const StageUnlock& unlock : kStageUnlocks) {
+    if (unlock.feature == feature) {
+      return character.proto().job_stage() >= unlock.stage;
+    }
+  }
   if (character.proto().level() < UnlockLevel(feature)) {
     return false;
   }
@@ -122,6 +152,10 @@ std::string FeatureName(Feature feature) {
       return "Skills";
     case Feature::kShop:
       return "the Shop";
+    case Feature::kCombatStats:
+      return "Combat Stats";
+    case Feature::kDamageStats:
+      return "Damage Stats";
   }
   LOG(FATAL) << "Feature " << static_cast<int>(feature) << " has no name";
 }

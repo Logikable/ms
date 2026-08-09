@@ -24,10 +24,18 @@ struct StatLine {
   std::string value;
 };
 
-// The combat stats, **most important first**. The Character panel drops the
-// tail of this list when the terminal is too short to hold it, so a new stat
-// goes where it belongs in that order rather than on the end.
+// The combat stats, **most important first**. Every one the character has, so
+// this is the All Stats screen's list. A new stat goes where it belongs in
+// that order rather than on the end -- both callers drop the tail.
 std::vector<StatLine> ExtraStatLines(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills);
+
+// The same list as the Character panel shows it, which is less of it early on:
+// empty until the first job advancement, and without the four percent rows
+// until the second. The panel is one column on a busy screen, so it earns its
+// numbers; the All Stats screen is where all of them always are.
+std::vector<StatLine> PanelExtraStatLines(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills);
 

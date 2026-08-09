@@ -63,6 +63,10 @@ TEST_F(AllStatsPanelTest, PairsTheStatsTwoToARow) {
   AllStatsPanel panel(c, {});
   // The pairings the screen is laid out for. Reading the left label and
   // finding the right one on the same row is the whole assertion.
+  //
+  // This character is a 1st job, whose Character panel holds the four percent
+  // rows back until the 2nd. They are here regardless: the gate is on the
+  // panel, and this screen is where all of them always are.
   EXPECT_NE(RowWith(panel.Render(), "HP").find("MP"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "STR").find("INT"), std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "DEX").find("LUK"), std::string::npos);

@@ -35,13 +35,23 @@ enum class Feature {
   // Tabs. Skills is the one gate that is not level alone -- see Unlocked.
   kSkills,
   kShop,
+  // The combat stat block on the Character panel, in two halves. Gated on the
+  // advancement rather than the level: what fills those rows is a job's
+  // passives and the gear a job can wear, so a Beginner has nothing to read
+  // there however high they climb. Only the panel is held back -- the All
+  // Stats screen behind it lists everything, and the first half is what opens
+  // the way to it.
+  kCombatStats,
+  kDamageStats,
 };
 
 // Whether `character` has reached `feature` yet.
 bool Unlocked(Feature feature, const CharacterInstance& character);
 
-// The level `feature` opens at. Skills carries a second condition on top of
-// this one, so ask Unlocked rather than comparing against this yourself.
+// The earliest level `feature` can open at. Several carry a second condition
+// on top of it -- Skills wants a job, and the stat block wants an advancement,
+// which a player can always put off -- so ask Unlocked rather than comparing
+// against this yourself.
 int UnlockLevel(Feature feature);
 
 // What a feature is called on screen: "Scrolling", "Star Force".

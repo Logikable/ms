@@ -73,6 +73,32 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
                         "Defense"}));
 }
 
+// The panel's list is the same one, opened up by the advancements. The All
+// Stats screen's is not touched: it is where every stat always is.
+TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
+  Character proto;
+  proto.set_level(60);  // high enough that only the job can be holding it back
+  proto.set_job(JOB_BEGINNER);
+  CharacterInstance beginner(rng_, std::move(proto));
+  EXPECT_TRUE(PanelExtraStatLines(beginner, {}).empty());
+  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 8u);
+
+  CharacterInstance first = MakeWarrior();
+  std::vector<std::string> labels;
+  for (const StatLine& line : PanelExtraStatLines(first, {})) {
+    labels.push_back(line.label);
+  }
+  EXPECT_EQ(labels, (std::vector<std::string>{"Attack", "Magic Attack",
+                                              "Attack Speed", "Defense"}));
+
+  Character second_proto;
+  second_proto.set_level(35);
+  second_proto.set_job(JOB_SPEARMAN);
+  second_proto.set_job_stage(2);
+  CharacterInstance second(rng_, std::move(second_proto));
+  EXPECT_EQ(PanelExtraStatLines(second, {}).size(), 8u);
+}
+
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
   Skill levers = Levers();
   std::map<std::string, Skill> skills = {{"levers", levers}};

@@ -121,6 +121,10 @@ class CharacterPanel {
   // Whether the cursor is on the View All Stats row rather than on a stat.
   // It is the one stop in the ring that spends nothing.
   bool OnViewAllStatsRow() const;
+  // Whether the Stats tab carries its combat block at all. Everything below
+  // the AP rows hangs off this: the rule, the stats, the View All Stats row
+  // that leads to the rest of them, and that row's stop in the cursor ring.
+  bool ShowsCombatStats() const;
   bool OnSkillsTabEvent(const ftxui::Event& event,
                         const std::function<void(const Skill&)>& on_learn,
                         const std::function<void(const Skill&)>& on_inspect);

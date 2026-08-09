@@ -20,6 +20,14 @@ class ProgressionTest : public testing::Test {
     return CharacterInstance(rng_, std::move(proto));
   }
 
+  CharacterInstance MakeAdvanced(int level, Job job, int stage) {
+    Character proto;
+    proto.set_level(level);
+    proto.set_job(job);
+    proto.set_job_stage(stage);
+    return CharacterInstance(rng_, std::move(proto));
+  }
+
   std::mt19937 rng_{0};
 };
 
@@ -35,6 +43,31 @@ TEST_F(ProgressionTest, ANewCharacterHasOnePanel) {
   EXPECT_FALSE(Unlocked(Feature::kRecovery, c));
   EXPECT_FALSE(Unlocked(Feature::kSkills, c));
   EXPECT_FALSE(Unlocked(Feature::kShop, c));
+  EXPECT_FALSE(Unlocked(Feature::kCombatStats, c));
+  EXPECT_FALSE(Unlocked(Feature::kDamageStats, c));
+}
+
+// The stat block is the one thing a level alone never buys. A Beginner who
+// puts the choice off climbs past every threshold in the table and still has
+// nothing to read: what fills those rows is a job.
+TEST_F(ProgressionTest, TheStatBlockWaitsForTheAdvancementNotTheLevel) {
+  CharacterInstance late = MakeCharacter(kTrialLevelCap);
+  EXPECT_FALSE(Unlocked(Feature::kCombatStats, late));
+  EXPECT_FALSE(Unlocked(Feature::kDamageStats, late));
+
+  CharacterInstance first = MakeAdvanced(10, JOB_SWORDMAN, 1);
+  EXPECT_TRUE(Unlocked(Feature::kCombatStats, first));
+  EXPECT_FALSE(Unlocked(Feature::kDamageStats, first));
+
+  CharacterInstance second = MakeAdvanced(30, JOB_FIGHTER, 2);
+  EXPECT_TRUE(Unlocked(Feature::kDamageStats, second));
+}
+
+// The level it reports is the one its advancement is offered at -- the soonest
+// it can open, which is what a test asking "how early is this" wants.
+TEST_F(ProgressionTest, TheStatBlockReportsTheAdvancementLevel) {
+  EXPECT_EQ(UnlockLevel(Feature::kCombatStats), 10);
+  EXPECT_EQ(UnlockLevel(Feature::kDamageStats), 30);
 }
 
 // The level named is the level it opens on, not the one after.

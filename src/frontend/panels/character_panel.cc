@@ -241,8 +241,9 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
 
 int CharacterPanel::RingStops() const {
   if (ActiveTab() == kTabStats) {
-    // The tab bar, the four AP stats, and the View All Stats row under them.
-    return 2 + kNumAllocStats;
+    // The tab bar, the four AP stats, and the View All Stats row under them --
+    // which is not there while there are no combat stats for it to lead to.
+    return 1 + kNumAllocStats + (ShowsCombatStats() ? 1 : 0);
   }
   if (ActiveTab() == kTabAdvance) {
     return 1 + static_cast<int>(
@@ -397,8 +398,13 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
     rows.push_back(
         AllocRow(kAllocStats[i].label, v.first, v.second, i, content_focused));
   }
+  // A Beginner's tab ends at the AP rows: nothing below fills in yet, and a
+  // separator with nothing under it reads as something that failed to draw.
+  if (!ShowsCombatStats()) {
+    return ftxui::vbox(std::move(rows));
+  }
   rows.push_back(PanelSeparator(highlighted_));
-  std::vector<StatLine> extras = ExtraStatLines(character_, skills_);
+  std::vector<StatLine> extras = PanelExtraStatLines(character_, skills_);
   int shown = ExtraStatsShown(static_cast<int>(extras.size()));
   for (int i = 0; i < shown; ++i) {
     rows.push_back(StatRow(extras[i].label, extras[i].value));
@@ -673,7 +679,12 @@ bool CharacterPanel::OnStatsTabEvent(
 }
 
 bool CharacterPanel::OnViewAllStatsRow() const {
-  return EffectiveZone() == kZoneStatRows && stat_sel_ == kNumAllocStats;
+  return ShowsCombatStats() && EffectiveZone() == kZoneStatRows &&
+         stat_sel_ == kNumAllocStats;
+}
+
+bool CharacterPanel::ShowsCombatStats() const {
+  return Unlocked(Feature::kCombatStats, character_);
 }
 
 bool CharacterPanel::OnSkillsTabEvent(
