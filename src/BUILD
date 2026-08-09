@@ -177,6 +177,18 @@ cc_test(
 )
 
 cc_test(
+    name = "scroll_data_test",
+    srcs = ["scroll_data_test.cc"],
+    data = ["//data/scrolls:all"],
+    deps = [
+        ":proto_loader",
+        "//src/protos:scroll_proto_cc",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "skill_data_test",
     srcs = ["skill_data_test.cc"],
     data = ["//data/skills:all"],

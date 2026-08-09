@@ -44,4 +44,8 @@ message Scroll {
   int32 success_rate = 5;
   EquipStats stats = 6;
   repeated EquipJobCategory applicable_job_categories = 7;
+  // Spell traces one copy costs. GMS prices a scroll by the item's ten-level
+  // band; a tier here spans several of those, so each tier takes the band its
+  // own equipment actually sits in -- level 60 for T1, 100 for T2, 150 for T3.
+  int32 trace_cost = 8;
 }

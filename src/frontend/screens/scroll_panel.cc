@@ -50,11 +50,13 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
   std::vector<const Scroll*> filtered;
   for (const std::pair<const std::string, Scroll>& kv : scrolls_) {
     const Scroll& s = kv.second;
-    if (s.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
-      filtered.push_back(&s);
+    if (s.tier() != item_tier) {
       continue;
     }
-    if (s.tier() != item_tier) {
+    // A clean slate restores a slot whoever is holding the item, so it skips
+    // the job check -- but not the tier one, which is what it costs by.
+    if (s.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+      filtered.push_back(&s);
       continue;
     }
     for (int scroll_cat : s.applicable_job_categories()) {

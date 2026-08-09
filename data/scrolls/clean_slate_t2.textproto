@@ -1,0 +1,5 @@
+name: "100% Clean Slate"
+success_rate: 100
+scroll_category: SCROLL_CATEGORY_CLEAN_SLATE
+tier: SCROLL_TIER_2
+trace_cost: 100
