@@ -45,25 +45,25 @@ TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   EXPECT_TRUE(Unlocked(Feature::kBag, MakeCharacter(4)));
   EXPECT_FALSE(Unlocked(Feature::kShop, MakeCharacter(19)));
   EXPECT_TRUE(Unlocked(Feature::kShop, MakeCharacter(20)));
-  EXPECT_FALSE(Unlocked(Feature::kStarForce, MakeCharacter(59)));
-  EXPECT_TRUE(Unlocked(Feature::kStarForce, MakeCharacter(60)));
+  EXPECT_FALSE(Unlocked(Feature::kStarForce, MakeCharacter(69)));
+  EXPECT_TRUE(Unlocked(Feature::kStarForce, MakeCharacter(70)));
   EXPECT_FALSE(Unlocked(Feature::kRecovery, MakeCharacter(139)));
   EXPECT_TRUE(Unlocked(Feature::kRecovery, MakeCharacter(140)));
 }
 
-// Scrolling works, but spell traces -- the half a player would reach for --
-// are not written yet, so it is held back until the early game is behind them.
+// Held back until the early game is over and there is meso coming in for the
+// spell traces it spends.
 TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
-  EXPECT_FALSE(Unlocked(Feature::kScrolling, MakeCharacter(29)));
-  EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(30)));
+  EXPECT_FALSE(Unlocked(Feature::kScrolling, MakeCharacter(39)));
+  EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(40)));
 }
 
-// Star force opens on the trial's last level and not past it. Recovery is
-// deliberately out of reach -- the star force levels that destroy an item in
-// the first place need equipment this game does not have -- so it is not held
-// to this.
-TEST_F(ProgressionTest, StarForceIsReachableWithinTheTrial) {
-  EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
+// Scrolling is the one upgrade the trial hands over, so it has to fall inside
+// the cap. Star force and recovery are both deliberately above it and wait for
+// the cap to lift -- only the workbench reaches them.
+TEST_F(ProgressionTest, ScrollingIsTheOnlyUpgradeTheTrialReaches) {
+  EXPECT_LE(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
+  EXPECT_GT(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
   EXPECT_GT(UnlockLevel(Feature::kRecovery), kTrialLevelCap);
 }
 

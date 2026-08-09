@@ -27,10 +27,12 @@ constexpr Unlock kUnlocks[] = {
     {Feature::kSkills, 10},
     {Feature::kShop, 20},
     // Far enough out that a player meets it once the early game is behind
-    // them. Scrolling itself works; spell traces -- the half of it a player
-    // would actually reach for -- are not written yet, so there is no hurry.
-    {Feature::kScrolling, 30},
-    {Feature::kStarForce, 60},
+    // them, and far enough that the meso for spell traces is coming in.
+    {Feature::kScrolling, 40},
+    // Above kTrialLevelCap on purpose: star force is written and playable, but
+    // it is not what the trial is for, so it waits for the cap to lift. Only
+    // the workbench reaches it, by way of the Level-Up item.
+    {Feature::kStarForce, 70},
     {Feature::kRecovery, 140},
 };
 
