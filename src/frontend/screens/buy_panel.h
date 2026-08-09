@@ -27,8 +27,9 @@ namespace ms {
 class BuyPanel {
  public:
   // The most that can be bought in one go, whatever the balance and the bag
-  // allow. Four digits is as much as the field is meant to take.
-  static constexpr int kMaxQuantity = 9999;
+  // allow. A spell trace stacks to 30,000 and is bought by the stack, so the
+  // ceiling has to clear a full one.
+  static constexpr int kMaxQuantity = 30000;
 
   // Seeds the panel for buying `item_name` at `unit_price` meso each, against
   // a balance of `meso`, with `room` copies' worth of space left in the bag

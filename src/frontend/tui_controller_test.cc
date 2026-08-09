@@ -94,8 +94,8 @@ class TuiControllerTest : public testing::Test {
         std::make_unique<TraceRecoverPanel>(state_->character);
     sell_panel_ = std::make_unique<SellPanel>();
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
-    shop_panel_ =
-        std::make_unique<ShopPanel>(state_->character, state_->equips);
+    shop_panel_ = std::make_unique<ShopPanel>(state_->character, state_->equips,
+                                              state_->items);
     buy_panel_ = std::make_unique<BuyPanel>();
     controller_ = std::make_unique<TuiController>(
         *state_, *equip_panel_, *inventory_panel_, *scroll_panel_,
@@ -1336,7 +1336,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   MapSelectPanel maps(fresh);
-  ShopPanel shop(fresh.character, fresh.equips);
+  ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   int focus = kCharPanel;
   TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
@@ -1369,7 +1369,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   MapSelectPanel maps(fresh);
-  ShopPanel shop(fresh.character, fresh.equips);
+  ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   int focus = kCharPanel;
   TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
@@ -1393,7 +1393,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   MapSelectPanel maps(fresh);
-  ShopPanel shop(fresh.character, fresh.equips);
+  ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   int focus = kCharPanel;
   TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,
@@ -1417,7 +1417,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   MapSelectPanel maps(fresh);
-  ShopPanel shop(fresh.character, fresh.equips);
+  ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   int focus = kEquipPanel;  // where the game starts
   TuiController controller(fresh, equip, bag, scroll, star, trace, sell, maps,

@@ -12,6 +12,7 @@
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/shop.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
@@ -38,6 +39,14 @@ ftxui::Element ColumnHeader() {
                      PadLeft("🪙 Cost", kCostWidth));
 }
 
+// The Etc shelf has no type and no level to show, so the two columns between
+// the name and the price become one: how many the player is already carrying.
+ftxui::Element EtcColumnHeader() {
+  return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
+                     PadRight("Held", kTypeWidth + 2 + kLevelWidth) +
+                     PadLeft("🪙 Cost", kCostWidth));
+}
+
 // The level cell, e.g. "Lv30  ". An item with no level requirement reads as
 // level 1 rather than as a blank, matching the bag.
 std::string LevelCell(const EquipPrototype& proto) {
@@ -51,27 +60,49 @@ std::string LevelCell(const EquipPrototype& proto) {
 }  // namespace
 
 ShopPanel::ShopPanel(const CharacterInstance& character,
-                     const std::map<std::string, EquipPrototype>& equips)
+                     const std::map<std::string, EquipPrototype>& equips,
+                     const std::map<std::string, ItemPrototype>& items)
     : character_(character),
       equips_(equips),
+      items_(items),
       menu_({"Inspect", "Buy", "Close"}) {
   Reset();
 }
 
-void ShopPanel::Reset() {
+void ShopPanel::Restock() {
   // Rebuilt rather than kept, because the shop stocks what this character can
   // hold and that changes when they advance. Cheap: the catalog is small and
   // the screen opens on a keypress.
   stock_.clear();
+  if (tab_ == kShopEtcTab) {
+    stock_ = ShopEtcStock(items_);
+    return;
+  }
   for (const std::string& key : ShopStock(equips_)) {
     if (character_.MeetsJob(equips_.at(key))) {
       stock_.push_back(key);
     }
   }
+}
+
+void ShopPanel::Reset() {
+  tab_ = kShopWeaponsTab;
+  Restock();
   zone_ = kZoneList;
   selected_ = 0;
   first_visible_ = 0;
   menu_open_ = false;
+}
+
+void ShopPanel::StepTab(int direction) {
+  int next = tab_ + direction;
+  if (next < 0 || next >= kNumShopTabs) {
+    return;  // the ends of the bar are walls, not wrapping points
+  }
+  tab_ = next;
+  Restock();
+  selected_ = 0;
+  first_visible_ = 0;
 }
 
 int ShopPanel::CursorStop() const {
@@ -105,7 +136,7 @@ void ShopPanel::OpenMenu() {
     // Nothing to open a menu on: the cursor is on the bar, not on an item.
     return;
   }
-  if (selected_item() == nullptr) {
+  if (selected_item() == nullptr && selected_stackable() == nullptr) {
     return;
   }
   menu_.Reset();
@@ -146,15 +177,32 @@ Screen ShopPanel::OnMenuEvent(ftxui::Event event) {
 }
 
 const EquipPrototype* ShopPanel::selected_item() const {
-  if (selected_ < 0 || selected_ >= static_cast<int>(stock_.size())) {
+  if (tab_ != kShopWeaponsTab || selected_ < 0 ||
+      selected_ >= static_cast<int>(stock_.size())) {
     return nullptr;
   }
   return &equips_.at(stock_[selected_]);
 }
 
+const ItemPrototype* ShopPanel::selected_stackable() const {
+  if (tab_ != kShopEtcTab || selected_ < 0 ||
+      selected_ >= static_cast<int>(stock_.size())) {
+    return nullptr;
+  }
+  return &items_.at(stock_[selected_]);
+}
+
 bool ShopPanel::OnEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  // Left and Right belong to the bar, and only while the cursor is standing on
+  // it -- in the list they would be a keypress that quietly changed the list
+  // under the cursor.
+  if (zone_ == kZoneTabs &&
+      (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight)) {
+    StepTab(event == ftxui::Event::ArrowLeft ? -1 : 1);
     return true;
   }
   return false;
@@ -164,7 +212,9 @@ ftxui::Element ShopPanel::Render() const {
   std::vector<ftxui::Element> chips;
   // White while the bar holds the cursor and theme-blue otherwise, which is how
   // the player tells whether the arrow keys are on the bar or in the list.
-  chips.push_back(TabChip("Weapons", /*active=*/true,
+  chips.push_back(TabChip("Weapons", /*active=*/tab_ == kShopWeaponsTab,
+                          /*row_focused=*/zone_ == kZoneTabs));
+  chips.push_back(TabChip("Etc", /*active=*/tab_ == kShopEtcTab,
                           /*row_focused=*/zone_ == kZoneTabs));
   ftxui::Element tab_row = ftxui::dbox({
       ftxui::hbox(std::move(chips)),
@@ -175,7 +225,7 @@ ftxui::Element ShopPanel::Render() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(std::move(tab_row));
   rows.push_back(ThemedSeparator());
-  rows.push_back(ColumnHeader());
+  rows.push_back(tab_ == kShopEtcTab ? EtcColumnHeader() : ColumnHeader());
   rows.push_back(ThemedSeparator());
   if (stock_.empty()) {
     rows.push_back(EmptyState("nothing for sale", /*gutter=*/2));
@@ -184,13 +234,28 @@ ftxui::Element ShopPanel::Render() const {
   int last =
       std::min(static_cast<int>(stock_.size()), first_visible_ + kVisibleRows);
   for (int i = first_visible_; i < last; ++i) {
-    const EquipPrototype& proto = equips_.at(stock_[i]);
-    // Drawn only while the list holds the cursor, as in the bag: the caret and
-    // the white chip are never both on screen.
-    std::string cursor = "  ";
+    std::string cursor_cell = "  ";
     if (zone_ == kZoneList && i == selected_) {
-      cursor = "> ";
+      cursor_cell = "> ";
     }
+    if (tab_ == kShopEtcTab) {
+      const ItemPrototype& item = items_.at(stock_[i]);
+      ftxui::Element cost =
+          ftxui::text(PadLeft(FormatMeso(item.shop_price()), kCostWidth));
+      if (item.shop_price() > character_.meso()) {
+        cost = std::move(cost) | ftxui::color(kRed);
+      }
+      item_rows.push_back(ftxui::hbox({
+          ftxui::text(
+              cursor_cell + PadRight(item.name(), kNameWidth) + "  " +
+              PadRight(FormatWithCommas(character_.CountStackable(item)),
+                       kTypeWidth + 2 + kLevelWidth)),
+          std::move(cost),
+          ftxui::text(" "),
+      }));
+      continue;
+    }
+    const EquipPrototype& proto = equips_.at(stock_[i]);
     // The level is coloured by whether this character has reached it, on the
     // bag's rule and in the bag's colour. There is no class to colour: the list
     // holds nothing this character is the wrong class for.
@@ -206,7 +271,7 @@ ftxui::Element ShopPanel::Render() const {
       cost = std::move(cost) | ftxui::color(kRed);
     }
     item_rows.push_back(ftxui::hbox({
-        ftxui::text(cursor + PadRight(proto.name(), kNameWidth) + "  " +
+        ftxui::text(cursor_cell + PadRight(proto.name(), kNameWidth) + "  " +
                     PadRight(FormatEquipType(proto.equip_type()), kTypeWidth) +
                     "  "),
         std::move(level),

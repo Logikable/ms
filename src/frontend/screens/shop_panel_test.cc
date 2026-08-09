@@ -15,6 +15,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
@@ -31,6 +32,15 @@ EquipPrototype MakeItem(const std::string& name, int level, int price,
   e.set_shop_price(price);
   e.add_equip_job_categories(job);
   return e;
+}
+
+ItemPrototype MakeStackable(const std::string& name, int price, int stack) {
+  ItemPrototype p;
+  p.set_name(name);
+  p.set_category(ITEM_CATEGORY_ETC);
+  p.set_shop_price(price);
+  p.set_max_stack(stack);
+  return p;
 }
 
 class ShopPanelTest : public testing::Test {
@@ -200,11 +210,17 @@ class ShopPanelTest : public testing::Test {
                 EQUIP_TYPE_THROWING_STAR, EQUIP_SLOT_STARS)},
       {"heirloom", MakeItem("Heirloom", 10, 0)},
   };
+
+  std::map<std::string, ItemPrototype> items_{
+      {"spell_trace", MakeStackable("Spell Trace", 5000, 30000)},
+      // Unpriced, so the Etc shelf never shows it.
+      {"shell", MakeStackable("Snail Shell", 0, 200)},
+  };
 };
 
 TEST_F(ShopPanelTest, ListsTheStockWithNamesAndCosts) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Long Sword"), std::string::npos);
   EXPECT_NE(rendered.find("5,000"), std::string::npos);
@@ -215,7 +231,7 @@ TEST_F(ShopPanelTest, ListsTheStockWithNamesAndCosts) {
 
 TEST_F(ShopPanelTest, ShowsTheWeaponsTabAndTheTitle) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Shop"), std::string::npos);
   EXPECT_NE(rendered.find("Weapons"), std::string::npos);
@@ -227,13 +243,13 @@ TEST_F(ShopPanelTest, ShowsTheWeaponsTabAndTheTitle) {
 // read against.
 TEST_F(ShopPanelTest, ShowsTheBalance) {
   CharacterInstance c = MakeCharacter(34567);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   EXPECT_NE(Render(panel).find("34,567"), std::string::npos);
 }
 
 TEST_F(ShopPanelTest, OpensOnTheFirstItem) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   ASSERT_NE(panel.selected_item(), nullptr);
   EXPECT_EQ(panel.selected_item()->name(), "Long Sword");
   EXPECT_NE(Render(panel).find("> Long Sword"), std::string::npos);
@@ -241,7 +257,7 @@ TEST_F(ShopPanelTest, OpensOnTheFirstItem) {
 
 TEST_F(ShopPanelTest, WalksTheList) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel.selected_item()->name(), "Machete");
   panel.OnEvent(ftxui::Event::ArrowUp);
@@ -254,7 +270,7 @@ TEST_F(ShopPanelTest, WalksTheList) {
 // says which of the two has the keys.
 TEST_F(ShopPanelTest, ArrowUpFromTheFirstItemLandsOnTheTabBar) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   ASSERT_NE(Render(panel).find("> Long Sword"), std::string::npos);
   panel.OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(Render(panel).find("> Long Sword"), std::string::npos);
@@ -262,7 +278,7 @@ TEST_F(ShopPanelTest, ArrowUpFromTheFirstItemLandsOnTheTabBar) {
 
 TEST_F(ShopPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
   panel.OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the last item
   EXPECT_EQ(panel.selected_item()->name(), "Scimitar");
@@ -271,7 +287,7 @@ TEST_F(ShopPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
 
 TEST_F(ShopPanelTest, DownFromTheLastItemReturnsToTheBar) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // straight to the last item
   panel.OnEvent(ftxui::Event::ArrowUp);
   ASSERT_NE(Render(panel).find("> Scimitar"), std::string::npos);
@@ -283,7 +299,7 @@ TEST_F(ShopPanelTest, DownFromTheLastItemReturnsToTheBar) {
 // context menu over a row the cursor is not on.
 TEST_F(ShopPanelTest, NoContextMenuOpensFromTheTabBar) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
   panel.OpenMenu();
   EXPECT_FALSE(panel.menu_open());
@@ -291,7 +307,7 @@ TEST_F(ShopPanelTest, NoContextMenuOpensFromTheTabBar) {
 
 TEST_F(ShopPanelTest, ResetPutsTheCursorBackInTheList) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
   panel.Reset();
   EXPECT_NE(Render(panel).find("> Long Sword"), std::string::npos);
@@ -299,7 +315,7 @@ TEST_F(ShopPanelTest, ResetPutsTheCursorBackInTheList) {
 
 TEST_F(ShopPanelTest, ResetReturnsToTheTop) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OnEvent(ftxui::Event::ArrowDown);
   panel.Reset();
   EXPECT_EQ(panel.selected_item()->name(), "Long Sword");
@@ -309,7 +325,7 @@ TEST_F(ShopPanelTest, ResetReturnsToTheTop) {
 // every row.
 TEST_F(ShopPanelTest, RedsOutPricesBeyondTheBalance) {
   CharacterInstance c = MakeCharacter(7000, /*level=*/99);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   EXPECT_NE(CellColor(panel, "Long Sword", "5,000"), kRed)
       << "5,000 is affordable on 7,000";
   EXPECT_EQ(CellColor(panel, "Gladius", "20,000"), kRed) << "20,000 is not";
@@ -320,7 +336,7 @@ TEST_F(ShopPanelTest, RedsOutPricesBeyondTheBalance) {
 // holds nothing this character is the wrong class for.
 TEST_F(ShopPanelTest, ShowsWeaponTypeAndLevel) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Weapon Type"), std::string::npos);
   EXPECT_NE(rendered.find("One-Handed Sword"), std::string::npos);
@@ -332,7 +348,7 @@ TEST_F(ShopPanelTest, ShowsWeaponTypeAndLevel) {
 
 TEST_F(ShopPanelTest, RedsOutALevelTheCharacterHasNotReached) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/20, JOB_SWORDMAN);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed) << "level 20 reaches it";
   EXPECT_EQ(CellColor(panel, "Gladius", "Lv30"), kRed) << "level 30 does not";
   EXPECT_NE(CellColor(panel, "Gladius", "20,000"), kRed)
@@ -341,7 +357,7 @@ TEST_F(ShopPanelTest, RedsOutALevelTheCharacterHasNotReached) {
 
 TEST_F(ShopPanelTest, LeavesAnEquippableItemUncolored) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_SWORDMAN);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   EXPECT_NE(CellColor(panel, "Machete", "Lv20"), kRed);
   EXPECT_NE(CellColor(panel, "Machete", "10,000"), kRed);
 }
@@ -352,7 +368,7 @@ TEST_F(ShopPanelTest, LeavesAnEquippableItemUncolored) {
 // A class they can never be is not, which is what makes a Job column pointless.
 TEST_F(ShopPanelTest, OmitsWeaponsOfAnotherClass) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/1, JOB_SWORDMAN);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
   EXPECT_EQ(rendered.find("Subi"), std::string::npos)
       << "a warrior is shown a thief's stars";
@@ -364,7 +380,7 @@ TEST_F(ShopPanelTest, OmitsWeaponsOfAnotherClass) {
 
 TEST_F(ShopPanelTest, StocksTheOtherClassForTheOtherClass) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_ROGUE);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Subi"), std::string::npos);
   EXPECT_EQ(rendered.find("Machete"), std::string::npos);
@@ -373,7 +389,7 @@ TEST_F(ShopPanelTest, StocksTheOtherClassForTheOtherClass) {
 // Universal items are everyone's, so nobody is left with an empty shop.
 TEST_F(ShopPanelTest, StocksUniversalItemsForAnyClass) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_MAGICIAN);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Long Sword"), std::string::npos);
   EXPECT_EQ(rendered.find("Machete"), std::string::npos);
@@ -383,7 +399,7 @@ TEST_F(ShopPanelTest, StocksUniversalItemsForAnyClass) {
 // where that happens -- it runs every time the screen opens.
 TEST_F(ShopPanelTest, ResetRestocksAfterAJobAdvancement) {
   CharacterInstance c = MakeCharacter(100000, /*level=*/99, JOB_BEGINNER);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   ASSERT_EQ(Render(panel).find("Machete"), std::string::npos)
       << "a beginner is no class for a warrior weapon";
   c.AdvanceJob(JOB_SWORDMAN);
@@ -393,7 +409,7 @@ TEST_F(ShopPanelTest, ResetRestocksAfterAJobAdvancement) {
 
 TEST_F(ShopPanelTest, OpensAMenuOverTheSelectedItem) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   EXPECT_FALSE(panel.menu_open());
   panel.OpenMenu();
   EXPECT_TRUE(panel.menu_open());
@@ -405,7 +421,7 @@ TEST_F(ShopPanelTest, OpensAMenuOverTheSelectedItem) {
 
 TEST_F(ShopPanelTest, DoesNotDrawTheMenuUntilItIsOpened) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
   EXPECT_EQ(rendered.find("Inspect"), std::string::npos);
   EXPECT_EQ(rendered.find("Close"), std::string::npos);
@@ -413,7 +429,7 @@ TEST_F(ShopPanelTest, DoesNotDrawTheMenuUntilItIsOpened) {
 
 TEST_F(ShopPanelTest, MenuEntriesGoToTheirScreens) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
 
   panel.OpenMenu();
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kShopInspect)
@@ -433,7 +449,7 @@ TEST_F(ShopPanelTest, MenuEntriesGoToTheirScreens) {
 // still be standing over the list behind the screen it opened.
 TEST_F(ShopPanelTest, ChoosingAnEntryClosesTheMenu) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OpenMenu();
   panel.OnMenuEvent(ftxui::Event::Return);
   EXPECT_FALSE(panel.menu_open());
@@ -442,7 +458,7 @@ TEST_F(ShopPanelTest, ChoosingAnEntryClosesTheMenu) {
 
 TEST_F(ShopPanelTest, EscapeClosesTheMenuAndStaysInTheShop) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OpenMenu();
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Escape), kShop);
   EXPECT_FALSE(panel.menu_open());
@@ -450,7 +466,7 @@ TEST_F(ShopPanelTest, EscapeClosesTheMenuAndStaysInTheShop) {
 
 TEST_F(ShopPanelTest, TheMenuStaysUpWhileWalkingIt) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OpenMenu();
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::ArrowDown), kShopMenu);
   EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::ArrowUp), kShopMenu);
@@ -462,7 +478,7 @@ TEST_F(ShopPanelTest, TheMenuStaysUpWhileWalkingIt) {
 // The menu opens on Inspect every time, rather than wherever it was left.
 TEST_F(ShopPanelTest, TheMenuReopensOnItsFirstEntry) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OpenMenu();
   panel.OnMenuEvent(ftxui::Event::ArrowDown);
   panel.OnMenuEvent(ftxui::Event::Escape);
@@ -475,7 +491,7 @@ TEST_F(ShopPanelTest, TheMenuReopensOnItsFirstEntry) {
 // including the last, where the overlay reaches furthest past the window.
 TEST_F(ShopPanelTest, TheMenuDoesNotGrowThePanel) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   int closed = RenderHeight(panel);
   for (int i = 0; i < 4; ++i) {
     panel.OpenMenu();
@@ -491,7 +507,7 @@ TEST_F(ShopPanelTest, TheMenuDoesNotGrowThePanel) {
 // item it belongs to.
 TEST_F(ShopPanelTest, TheMenuDrawsPastTheBottomBorder) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   for (int i = 0; i < 3; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -511,7 +527,7 @@ TEST_F(ShopPanelTest, TheMenuDrawsPastTheBottomBorder) {
 // Floating it must not move the window it floats over, in either direction.
 TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderWhereItWas) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   for (int i = 0; i < 3; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -527,7 +543,7 @@ TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderWhereItWas) {
 TEST_F(ShopPanelTest, TheMenuOpensBesideTheLastItem) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(12);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   for (int i = 0; i < 11; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -548,7 +564,7 @@ TEST_F(ShopPanelTest, TheMenuOpensBesideTheLastItem) {
 TEST_F(ShopPanelTest, TheMenuOpensBesideTheFirstItem) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(12);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   panel.OpenMenu();
   std::vector<std::string> rows = ScreenRows(panel);
   int item_row = IndexWith(rows, "> Item 00");
@@ -563,7 +579,7 @@ TEST_F(ShopPanelTest, TheMenuOpensBesideTheFirstItem) {
 // gives up its anchor and comes back up to sit on the last one.
 TEST_F(ShopPanelTest, TheMenuSlidesBackOntoAShortScreen) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   for (int i = 0; i < 3; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -581,7 +597,7 @@ TEST_F(ShopPanelTest, TheMenuSlidesBackOntoAShortScreen) {
 // off the top, rather than staying anchored and losing its own last entry.
 TEST_F(ShopPanelTest, TheMenuStaysWholeOnAShortTerminal) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   for (int i = 0; i < 3; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -602,7 +618,7 @@ constexpr int kVisibleRows = 15;
 TEST_F(ShopPanelTest, ShowsOnlyAWindowOfALongList) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(30);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Item 00"), std::string::npos);
   EXPECT_NE(rendered.find("Item 14"), std::string::npos) << "the 15th row";
@@ -614,7 +630,7 @@ TEST_F(ShopPanelTest, ShowsOnlyAWindowOfALongList) {
 TEST_F(ShopPanelTest, ScrollsOneRowAtATimeOffTheBottom) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(30);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   for (int i = 0; i < kVisibleRows - 1; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -632,7 +648,7 @@ TEST_F(ShopPanelTest, ScrollsOneRowAtATimeOffTheBottom) {
 TEST_F(ShopPanelTest, ScrollsBackUpOffTheTop) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(30);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   for (int i = 0; i < 20; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -649,7 +665,7 @@ TEST_F(ShopPanelTest, ScrollsBackUpOffTheTop) {
 TEST_F(ShopPanelTest, WrappingToTheLastItemScrollsToTheFoot) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(30);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
   panel.OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the last item
   std::string rendered = Render(panel);
@@ -660,7 +676,7 @@ TEST_F(ShopPanelTest, WrappingToTheLastItemScrollsToTheFoot) {
 TEST_F(ShopPanelTest, ResetScrollsBackToTheTop) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(30);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   for (int i = 0; i < 20; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -674,8 +690,8 @@ TEST_F(ShopPanelTest, ALongListDoesNotGrowThePanel) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> full = ManyItems(kVisibleRows);
   std::map<std::string, EquipPrototype> over = ManyItems(60);
-  ShopPanel small(c, full);
-  ShopPanel big(c, over);
+  ShopPanel small(c, full, items_);
+  ShopPanel big(c, over, items_);
   EXPECT_EQ(RenderHeight(big), RenderHeight(small));
 }
 
@@ -683,8 +699,8 @@ TEST_F(ShopPanelTest, DrawsAScrollBarOnlyWhenThereIsMoreToSee) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> fits = ManyItems(kVisibleRows);
   std::map<std::string, EquipPrototype> over = ManyItems(30);
-  ShopPanel small(c, fits);
-  ShopPanel big(c, over);
+  ShopPanel small(c, fits, items_);
+  ShopPanel big(c, over, items_);
   EXPECT_EQ(Render(small).find("\u2503"), std::string::npos)
       << "nothing is off screen, so there is nothing to indicate";
   EXPECT_NE(Render(big).find("\u2503"), std::string::npos);
@@ -694,7 +710,7 @@ TEST_F(ShopPanelTest, DrawsAScrollBarOnlyWhenThereIsMoreToSee) {
 TEST_F(ShopPanelTest, TheScrollBarFollowsTheWindow) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(60);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   int at_top = RowIndexWith(panel, "\u2503");
   ASSERT_GE(at_top, 0);
   panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
@@ -707,7 +723,7 @@ TEST_F(ShopPanelTest, TheScrollBarFollowsTheWindow) {
 TEST_F(ShopPanelTest, TheMenuOpensBesideAScrolledRow) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> many = ManyItems(30);
-  ShopPanel panel(c, many);
+  ShopPanel panel(c, many, items_);
   for (int i = 0; i < 25; ++i) {
     panel.OnEvent(ftxui::Event::ArrowDown);
   }
@@ -723,7 +739,7 @@ TEST_F(ShopPanelTest, TheMenuOpensBesideAScrolledRow) {
 
 TEST_F(ShopPanelTest, ResetTakesDownAnOpenMenu) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_);
+  ShopPanel panel(c, equips_, items_);
   panel.OpenMenu();
   panel.Reset();
   EXPECT_FALSE(panel.menu_open());
@@ -733,7 +749,7 @@ TEST_F(ShopPanelTest, ResetTakesDownAnOpenMenu) {
 TEST_F(ShopPanelTest, AnEmptyShopOpensNoMenu) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> nothing;
-  ShopPanel panel(c, nothing);
+  ShopPanel panel(c, nothing, items_);
   panel.OpenMenu();
   EXPECT_FALSE(panel.menu_open());
 }
@@ -741,9 +757,84 @@ TEST_F(ShopPanelTest, AnEmptyShopOpensNoMenu) {
 TEST_F(ShopPanelTest, AnEmptyShopSaysSo) {
   CharacterInstance c = MakeCharacter(100000);
   std::map<std::string, EquipPrototype> nothing;
-  ShopPanel panel(c, nothing);
+  ShopPanel panel(c, nothing, items_);
   EXPECT_EQ(panel.selected_item(), nullptr);
   EXPECT_NE(Render(panel).find("nothing for sale"), std::string::npos);
+}
+
+// --- the Etc tab ---
+
+// Left and Right only reach the bar from the bar. Up off the first row is what
+// puts the cursor there, exactly as in the bag.
+TEST_F(ShopPanelTest, RightOnTheBarOpensTheEtcShelf) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_, items_);
+  EXPECT_EQ(Render(panel).find("Spell Trace"), std::string::npos);
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Spell Trace"), std::string::npos);
+  EXPECT_NE(rendered.find("5,000"), std::string::npos);
+  // Unpriced, so the shelf never stocks it.
+  EXPECT_EQ(rendered.find("Snail Shell"), std::string::npos);
+  // The weapons are gone with the tab, not merely scrolled past.
+  EXPECT_EQ(rendered.find("Long Sword"), std::string::npos);
+}
+
+// A tab is a different list, so the two selections must not be read as one:
+// asking for an equip on the Etc shelf has to answer nothing.
+TEST_F(ShopPanelTest, OnlyOneOfTheTwoSelectionsEverAnswers) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_, items_);
+  EXPECT_NE(panel.selected_item(), nullptr);
+  EXPECT_EQ(panel.selected_stackable(), nullptr);
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(panel.selected_item(), nullptr);
+  ASSERT_NE(panel.selected_stackable(), nullptr);
+  EXPECT_EQ(panel.selected_stackable()->name(), "Spell Trace");
+}
+
+TEST_F(ShopPanelTest, TheEndsOfTheBarAreWalls) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_, items_);
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  panel.OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_NE(panel.selected_item(), nullptr) << "stepped off the left end";
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(panel.selected_stackable(), nullptr) << "stepped off the right end";
+}
+
+// In the list Left and Right are not tab keys: changing the list under a cursor
+// the player was moving through it would lose their place.
+TEST_F(ShopPanelTest, TheListIgnoresLeftAndRight) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_, items_);
+  EXPECT_FALSE(panel.OnEvent(ftxui::Event::ArrowRight));
+  EXPECT_NE(panel.selected_item(), nullptr);
+}
+
+TEST_F(ShopPanelTest, TheEtcShelfShowsHowManyAreHeld) {
+  CharacterInstance c = MakeCharacter(100000);
+  c.AddStackable(items_.at("spell_trace"), 1234);
+  ShopPanel panel(c, equips_, items_);
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(Render(panel).find("1,234"), std::string::npos);
+}
+
+// Reset is what the screen calls on the way in, so it has to land on Weapons
+// however the player left it.
+TEST_F(ShopPanelTest, ReopeningComesBackToTheWeaponsTab) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_, items_);
+  panel.OnEvent(ftxui::Event::ArrowUp);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_NE(panel.selected_stackable(), nullptr);
+  panel.Reset();
+  EXPECT_NE(panel.selected_item(), nullptr);
+  EXPECT_EQ(panel.selected_stackable(), nullptr);
 }
 
 }  // namespace

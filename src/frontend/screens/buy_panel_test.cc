@@ -153,8 +153,8 @@ TEST(BuyPanelTest, AFullBagOpensAtZeroAndCannotConfirm) {
   EXPECT_FALSE(panel.TakeConfirmed());
 }
 
-// Neither the balance nor the bag is the only ceiling: the field itself stops
-// at four digits.
+// Neither the balance nor the bag is the only ceiling: the field itself stops,
+// at a full stack of spell traces.
 TEST(BuyPanelTest, CannotTypePastTheQuantityLimit) {
   BuyPanel panel;
   panel.Reset("Machete", 1, /*meso=*/100000000, /*room=*/kRoomy, /*owned=*/0);
@@ -164,7 +164,7 @@ TEST(BuyPanelTest, CannotTypePastTheQuantityLimit) {
   }
   // The literal rather than the constant: a test that reads the limit off the
   // thing under test cannot notice the limit changing.
-  EXPECT_EQ(panel.quantity(), 9999);
+  EXPECT_EQ(panel.quantity(), 30000);
 }
 
 // The limit is a ceiling, not a floor: it does not raise a cap the balance or

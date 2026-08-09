@@ -640,6 +640,16 @@ int CharacterInstance::RoomFor(const EquipPrototype& proto) const {
   return inventory_.room();
 }
 
+int CharacterInstance::CountStackable(const ItemPrototype& proto) const {
+  int owned = 0;
+  for (const StackableItem& stack : StacksFor(proto.category())) {
+    if (stack.name() == proto.name()) {
+      owned += stack.count();
+    }
+  }
+  return owned;
+}
+
 int CharacterInstance::CountOwned(const EquipPrototype& proto) const {
   // Matched on name, which is what identifies an equip everywhere else it
   // crosses a boundary -- the save writes items by display name, and the shop

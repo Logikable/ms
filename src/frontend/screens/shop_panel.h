@@ -7,10 +7,10 @@
  * left out because they could never use it, not because they cannot use it yet
  * -- a level too high still shows, in red, as something to save toward.
  *
- * Only the Weapons tab exists so far, weapons being all the shop sells. The tab
- * row is here rather than waiting for the second tab because armour or potions
- * would be a different list, not more rows of this one. The bar is already a
- * stop the cursor can stand on, so a second tab is a tab and nothing else.
+ * Two tabs: Weapons, and Etc for the stackables -- spell traces today. They are
+ * different lists rather than more rows of one, which is what a tab is for. The
+ * ends of the bar are walls, as in the bag; Left and Right step along it while
+ * the cursor is on it.
  *
  * The panel is a view: it moves its own cursor but never spends anything. The
  * controller reads selected_item() when the player presses Enter.
@@ -28,13 +28,15 @@
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 
 // Tabs of the shop, in display order.
 enum ShopTab : int {
   kShopWeaponsTab = 0,
-  kNumShopTabs = 1,
+  kShopEtcTab = 1,
+  kNumShopTabs = 2,
 };
 
 // Entries of the context menu an item opens, in display order.
@@ -48,7 +50,8 @@ enum ShopMenuItem : int {
 class ShopPanel {
  public:
   ShopPanel(const CharacterInstance& character,
-            const std::map<std::string, EquipPrototype>& equips);
+            const std::map<std::string, EquipPrototype>& equips,
+            const std::map<std::string, ItemPrototype>& items);
 
   // Restocks and puts the cursor back on the first item. Call when the screen
   // opens: the stock depends on the character's class, so a job advancement
@@ -61,8 +64,12 @@ class ShopPanel {
   // which owns the screen the one opens and the other closes. Returns true if
   // the event was consumed.
   bool OnEvent(ftxui::Event event);
-  // The prototype under the cursor, or nullptr when the shop is empty.
+  // The equip under the cursor, or nullptr when the Weapons tab is empty or
+  // some other tab is open. Exactly one of this and selected_stackable() ever
+  // answers, so a caller can ask both and act on whichever does.
   const EquipPrototype* selected_item() const;
+  // The stackable under the cursor, on the same terms.
+  const ItemPrototype* selected_stackable() const;
 
   // Opens the context menu over the selected item. Does nothing while the tab
   // bar holds the cursor, or when the shop has nothing to open it on.
@@ -85,6 +92,11 @@ class ShopPanel {
   int CursorStop() const;
   // Moves the cursor `delta` stops around the ring, tab bar included.
   void MoveCursor(int delta);
+  // Steps one tab along the bar and restocks. The ends are walls, as in the
+  // bag: there is nothing past Etc, and stepping off does nothing.
+  void StepTab(int direction);
+  // Fills stock_ from whichever tab is open.
+  void Restock();
   // Scrolls the window by as little as it takes to put the cursor back inside
   // it. Does nothing while the cursor is already on screen, which is most
   // moves.
@@ -92,6 +104,8 @@ class ShopPanel {
 
   const CharacterInstance& character_;
   const std::map<std::string, EquipPrototype>& equips_;
+  const std::map<std::string, ItemPrototype>& items_;
+  int tab_ = kShopWeaponsTab;
   // Catalog keys of the stock, in display order. Rebuilt by Reset(), which is
   // the only thing that changes it -- buying does not.
   std::vector<std::string> stock_;

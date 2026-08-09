@@ -500,14 +500,23 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
   Screen next = shop_panel_.OnMenuEvent(event);
   if (next == kShopBuy) {
     const EquipPrototype* item = shop_panel_.selected_item();
-    if (item == nullptr) {
+    const ItemPrototype* stackable = shop_panel_.selected_stackable();
+    if (item == nullptr && stackable == nullptr) {
       screen_ = kShop;
       return true;
     }
-    buy_item_ = item->name();
-    buy_panel_.Reset(item->name(), item->shop_price(), state_.character.meso(),
-                     state_.character.RoomFor(*item),
-                     state_.character.CountOwned(*item));
+    if (item != nullptr) {
+      buy_item_ = item->name();
+      buy_panel_.Reset(item->name(), item->shop_price(),
+                       state_.character.meso(), state_.character.RoomFor(*item),
+                       state_.character.CountOwned(*item));
+    } else {
+      buy_item_ = stackable->name();
+      buy_panel_.Reset(stackable->name(), stackable->shop_price(),
+                       state_.character.meso(),
+                       state_.character.RoomFor(*stackable),
+                       state_.character.CountStackable(*stackable));
+    }
   }
   screen_ = next;
   return true;
@@ -526,9 +535,14 @@ bool TuiController::OnShopInspectEvent(ftxui::Event event) {
 bool TuiController::OnShopBuyEvent(ftxui::Event event) {
   buy_panel_.OnEvent(event);
   if (buy_panel_.TakeConfirmed()) {
+    // Re-read rather than remembered, and the name checked, so a selection that
+    // moved under the dialog cannot buy something the player never chose.
     const EquipPrototype* item = shop_panel_.selected_item();
+    const ItemPrototype* stackable = shop_panel_.selected_stackable();
     if (item != nullptr && item->name() == buy_item_) {
       state_.character.Buy(*item, buy_panel_.quantity());
+    } else if (stackable != nullptr && stackable->name() == buy_item_) {
+      state_.character.Buy(*stackable, buy_panel_.quantity());
     }
     // Back to the shop rather than the bag: a player buying one thing is
     // usually buying two.

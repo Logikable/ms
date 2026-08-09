@@ -147,6 +147,9 @@ class CharacterInstance {
   // not a copy of it -- somebody deciding whether to buy another has none of
   // the thing itself.
   int CountOwned(const EquipPrototype& proto) const;
+  // How many copies of a stackable the character is carrying, summed across
+  // every stack of it. Matched on name, as CountOwned is.
+  int CountStackable(const ItemPrototype& proto) const;
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
   // Sells up to `count` copies from the `index`-th stack in `category`,
