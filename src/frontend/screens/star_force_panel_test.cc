@@ -7,13 +7,15 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
 namespace {
 
-class StarForcePanelTest : public testing::Test {
+class StarForcePanelTest : public PanelTest {
  protected:
   EquipInstance MakeItem(int required_level, int stars) {
     EquipPrototype proto;
@@ -119,6 +121,31 @@ TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
   EXPECT_NE(rendered.find("Maximum"), std::string::npos);
   EXPECT_EQ(rendered.find("Success"), std::string::npos);
   EXPECT_EQ(rendered.find("Enter"), std::string::npos);
+}
+
+// --- the result window's colour ---
+
+// Which of the three happened is the whole point of the window, so it is said
+// in the frame before it is said in words. The rules go with the border: a
+// steel-blue seam across a gold window would read as two windows.
+TEST_F(StarForcePanelTest, TheResultWindowTakesTheOutcomesColour) {
+  StarForcePanel panel;
+  StarForceResult r;
+  r.equip_name = "Sword";
+  r.stars_before = 3;
+  r.stars_after = 4;
+
+  r.outcome = kStarForceSuccess;
+  EXPECT_EQ(BorderColor(panel.RenderResult(r)), kYellow);
+  EXPECT_EQ(InnerRuleColor(panel.RenderResult(r)), kYellow);
+
+  r.outcome = kStarForceDestroy;
+  EXPECT_EQ(BorderColor(panel.RenderResult(r)), kRed);
+  EXPECT_EQ(InnerRuleColor(panel.RenderResult(r)), kRed);
+
+  // Nothing changed, so nothing is coloured for it.
+  r.outcome = kStarForceFail;
+  EXPECT_EQ(BorderColor(panel.RenderResult(r)), kTheme);
 }
 
 }  // namespace

@@ -175,9 +175,14 @@ ftxui::Element Floating(ftxui::Element element);
 // A modal result screen: the subject over a rule, `body`, a rule, [Continue].
 // Scrolling, star forcing and recovering all end on one of these, so the rules
 // and the button land in the same place on each.
+//
+// `accent` colours the border and the rules, so the window says how it went
+// before the player reads a word of it: gold for a success worth having, red
+// for a destroyed item, steel blue for everything in between.
 ftxui::Element ResultWindow(const std::string& title,
                             const std::string& subject,
-                            std::vector<ftxui::Element> body);
+                            std::vector<ftxui::Element> body,
+                            ftxui::Color accent = kTheme);
 
 // The one way a panel says it has nothing to show: " (empty)". Use a specific
 // reason ("no matching items") only where it tells the player something they

@@ -257,25 +257,26 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
                           : "No scroll slots remaining";
     return ResultWindow(" Error ", r.equip_name, {CenteredRow(msg)});
   }
-  std::string result_text;
-  ftxui::Color result_color;
-  if (r.outcome == kScrollSuccess &&
-      r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE) {
-    result_text = "Slot Restored";
-    result_color = kGreen;
-  } else if (r.outcome == kScrollSuccess) {
-    result_text = "SUCCESS";
-    result_color = kGreen;
-  } else {
-    result_text = "FAILED";
-    result_color = kMutedYellow;
+  // A scroll that landed goes gold all the way through: border, rules and the
+  // word itself. It is the moment the traces were spent for. A failure keeps
+  // the steel-blue frame -- nothing happened worth colouring the room for.
+  std::string result_text = "FAILED";
+  ftxui::Color text_color = kMutedYellow;
+  ftxui::Color accent = kTheme;
+  if (r.outcome == kScrollSuccess) {
+    result_text = r.scroll_category == SCROLL_CATEGORY_CLEAN_SLATE
+                      ? "Slot Restored"
+                      : "SUCCESS";
+    text_color = kYellow;
+    accent = kYellow;
   }
   return ResultWindow(
       " Result ", r.equip_name + "  |  " + r.scroll_name,
       {
-          CenteredRow(result_text) | ftxui::color(result_color),
+          CenteredRow(result_text) | ftxui::color(text_color),
           CenteredRow(std::to_string(r.slots_remaining) + " slots remaining"),
-      });
+      },
+      accent);
 }
 
 std::string ScrollPanel::FormatEntry(

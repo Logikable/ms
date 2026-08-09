@@ -422,16 +422,17 @@ ftxui::Element Floating(ftxui::Element element) {
 
 ftxui::Element ResultWindow(const std::string& title,
                             const std::string& subject,
-                            std::vector<ftxui::Element> body) {
+                            std::vector<ftxui::Element> body,
+                            ftxui::Color accent) {
   std::vector<ftxui::Element> rows;
   rows.push_back(CenteredRow(subject));
-  rows.push_back(ThemedSeparator());
+  rows.push_back(AccentSeparator(accent));
   for (ftxui::Element& row : body) {
     rows.push_back(std::move(row));
   }
-  rows.push_back(ThemedSeparator());
+  rows.push_back(AccentSeparator(accent));
   rows.push_back(CenteredRow(ActionButton("Continue", /*focused=*/true)));
-  return ThemedWindow(title, ftxui::vbox(std::move(rows)));
+  return AccentWindow(title, ftxui::vbox(std::move(rows)), accent);
 }
 
 ftxui::Element EmptyState(const std::string& what, int gutter) {

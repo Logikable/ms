@@ -147,17 +147,24 @@ void StarForcePanel::ResetConfirm() {
 }
 
 ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
+  // The whole window takes the outcome's colour -- gold for a star gained, red
+  // for an item lost -- so the player knows which of the three happened before
+  // reading anything. A plain failure keeps the steel-blue frame: it is the
+  // outcome where nothing changed.
   std::string outcome_text;
   ftxui::Color outcome_color;
+  ftxui::Color accent = kTheme;
   if (r.outcome == kStarForceSuccess) {
     outcome_text = " SUCCESS ";
-    outcome_color = kGreen;
+    outcome_color = kYellow;
+    accent = kYellow;
   } else if (r.outcome == kStarForceFail) {
     outcome_text = " FAILED ";
     outcome_color = kMutedYellow;
   } else {
     outcome_text = " DESTROYED ";
     outcome_color = kRed;
+    accent = kRed;
   }
   std::string stars_text;
   if (r.outcome == kStarForceSuccess) {
@@ -173,7 +180,8 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
       {
           CenteredRow(outcome_text) | ftxui::color(outcome_color),
           CenteredRow(stars_text),
-      });
+      },
+      accent);
 }
 
 }  // namespace ms

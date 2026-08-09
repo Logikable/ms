@@ -9,6 +9,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
@@ -224,7 +225,7 @@ TEST_F(ScrollPanelTest, TheCostColumnLinesUpWithItsHeading) {
             DisplayColumns(row.substr(0, row.find("📜") + 4)));
 }
 
-TEST_F(ScrollPanelTest, TheTitleShowsWhatThePlayerIsHolding) {
+TEST_F(ScrollPanelTest, TheTitleShowsWhatThePlayerOwns) {
   EXPECT_NE(Render(panel_).find("0 📜"), std::string::npos);
   GiveTraces(1240);
   EXPECT_NE(Render(panel_).find("1,240 📜"), std::string::npos);
@@ -307,6 +308,22 @@ TEST_F(ScrollPanelTest, TheConfirmWindowNamesTheItemBeingScrolled) {
   ASSERT_TRUE(panel_.SetFilterForPrototype(sword));
   panel_.OnEvent(ftxui::Event::Return);
   EXPECT_NE(Render(panel_).find("Long Sword"), std::string::npos);
+}
+
+// A landed scroll is what the traces were spent for, so the window goes gold
+// -- border and rules alike. A failure leaves the frame alone.
+TEST_F(ScrollPanelTest, TheResultWindowGoesGoldOnSuccess) {
+  ScrollResult r;
+  r.equip_name = "Sword";
+  r.scroll_name = "AAA Scroll";
+  r.slots_remaining = 3;
+
+  r.outcome = kScrollSuccess;
+  EXPECT_EQ(BorderColor(panel_.RenderResult(r)), kYellow);
+  EXPECT_EQ(InnerRuleColor(panel_.RenderResult(r)), kYellow);
+
+  r.outcome = kScrollFail;
+  EXPECT_EQ(BorderColor(panel_.RenderResult(r)), kTheme);
 }
 
 }  // namespace

@@ -99,6 +99,7 @@ cc_test(
     srcs = ["scroll_panel_test.cc"],
     deps = [
         ":scroll_panel",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "//src/item",
         "//src/protos:equip_proto_cc",
@@ -130,6 +131,8 @@ cc_test(
     srcs = ["star_force_panel_test.cc"],
     deps = [
         ":star_force_panel",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_test_base",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "@ftxui//:dom",
