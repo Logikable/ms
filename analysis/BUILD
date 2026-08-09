@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 # Sims, not tests. Tests pin behaviour that must not change; each of these
 # prints numbers to look at while deciding what the behaviour should be.
@@ -110,5 +110,25 @@ cc_binary(
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+cc_library(
+    name = "gms_mob_exp",
+    srcs = ["gms_mob_exp.cc"],
+    hdrs = ["gms_mob_exp.h"],
+)
+
+cc_binary(
+    name = "meso_curve_sim",
+    srcs = ["meso_curve_sim.cc"],
+    deps = [
+        ":gms_mob_exp",
+        "//src/character:exp_table",
+        "//src/combat:loot",
+        "//src/protos:mob_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
     ],
 )
