@@ -150,6 +150,12 @@ class CharacterInstance {
   // How many copies of a stackable the character is carrying, summed across
   // every stack of it. Matched on name, as CountOwned is.
   int CountStackable(const ItemPrototype& proto) const;
+  int CountStackable(ItemCategory category, const std::string& name) const;
+  // Spends `count` copies of a named stackable, emptying stacks as it goes.
+  // All or nothing: returns false and takes nothing if the character is not
+  // holding that many.
+  bool ConsumeStackable(ItemCategory category, const std::string& name,
+                        int count);
   // Adds `amount` meso to the character's balance. No-op if amount <= 0.
   void AddMeso(int64_t amount);
   // Sells up to `count` copies from the `index`-th stack in `category`,

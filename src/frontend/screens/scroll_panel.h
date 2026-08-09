@@ -39,7 +39,7 @@ class ScrollPanel {
   void SetFilter(std::vector<const Scroll*> filtered);
   // Filters to scrolls applicable to proto by tier and job category, then
   // calls SetFilter. Returns false (and does not update the filter) if no
-  // scrolls match.
+  // scrolls match. Remembers the item's name for the confirmation window.
   bool SetFilterForPrototype(const EquipPrototype& proto);
   ftxui::Element Render();
   ftxui::Element RenderResult(const ScrollResult& r) const;
@@ -69,9 +69,14 @@ class ScrollPanel {
                                  std::chrono::steady_clock::duration elapsed);
   // Spell traces the character is carrying.
   int TracesHeld() const;
+  // The window that asks before a scroll is spent: what it is going on, what
+  // it does, what it costs, and what the player is left holding.
+  ftxui::Element RenderConfirm() const;
 
   const CharacterInstance& character_;
   const std::map<std::string, Scroll>& scrolls_;
+  // Display name of the item being scrolled, for the confirmation window.
+  std::string target_name_;
   std::vector<const Scroll*> ordered_;
   int selected_ = 0;
   std::vector<std::string> entries_;

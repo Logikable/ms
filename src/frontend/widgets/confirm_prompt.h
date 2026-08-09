@@ -52,6 +52,10 @@ class ConfirmPrompt {
   // never reach the panel behind it. Returns which way the answer went and
   // closes the prompt on kConfirmed or kCancelled.
   ConfirmChoice OnEvent(ftxui::Event event);
+  // Which button the cursor is on, for a caller drawing the row itself --
+  // a dialog that greys Confirm out needs the focus and the enabled flag
+  // together, and only ConfirmButtons takes both.
+  ConfirmFocus focus() const;
   // The bare button row, for a caller placing it inside its own window.
   ftxui::Element Render() const;
   // The button row centered in a titleless window, for sitting below a panel.

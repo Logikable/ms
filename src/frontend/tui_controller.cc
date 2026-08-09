@@ -17,6 +17,7 @@
 #include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
@@ -304,6 +305,13 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     const EquipInstance* item = scroll_ref_.GetInstance(state_.character);
     std::string equip_name = item->prototype().name();
     const Scroll& scroll = scroll_panel_.selected_scroll();
+    // Paid for before it is used, and only used if it was paid for. The panel
+    // will not confirm what the player cannot afford, so this refusing is a
+    // second line rather than the first.
+    if (!state_.character.ConsumeStackable(ITEM_CATEGORY_ETC, kSpellTraceName,
+                                           scroll.trace_cost())) {
+      return true;
+    }
     ScrollOutcome outcome = ScrollItem(state_.character, scroll_ref_, scroll);
     int slots_remaining =
         item ? item->equip_state().remaining_upgrade_slots() : 0;

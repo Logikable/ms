@@ -61,6 +61,10 @@ ftxui::Element ConfirmButtons(ConfirmFocus focus, bool confirm_enabled) {
   });
 }
 
+ConfirmFocus ConfirmPrompt::focus() const {
+  return cancel_selected_ ? ConfirmFocus::kCancel : ConfirmFocus::kConfirm;
+}
+
 ftxui::Element ConfirmPrompt::Render() const {
   return ConfirmButtons(cancel_selected_ ? ConfirmFocus::kCancel
                                          : ConfirmFocus::kConfirm);

@@ -641,13 +641,40 @@ int CharacterInstance::RoomFor(const EquipPrototype& proto) const {
 }
 
 int CharacterInstance::CountStackable(const ItemPrototype& proto) const {
+  return CountStackable(proto.category(), proto.name());
+}
+
+int CharacterInstance::CountStackable(ItemCategory category,
+                                      const std::string& name) const {
   int owned = 0;
-  for (const StackableItem& stack : StacksFor(proto.category())) {
-    if (stack.name() == proto.name()) {
+  for (const StackableItem& stack : StacksFor(category)) {
+    if (stack.name() == name) {
       owned += stack.count();
     }
   }
   return owned;
+}
+
+bool CharacterInstance::ConsumeStackable(ItemCategory category,
+                                         const std::string& name, int count) {
+  if (count <= 0 || CountStackable(category, name) < count) {
+    return false;
+  }
+  std::vector<StackableItem>& stacks = StacksFor(category);
+  // Emptied stacks are dropped as they go, so spending the last trace leaves
+  // no zero row behind in the bag.
+  for (int i = static_cast<int>(stacks.size()) - 1; i >= 0 && count > 0; --i) {
+    if (stacks[i].name() != name) {
+      continue;
+    }
+    int taken = std::min(count, stacks[i].count());
+    stacks[i].add_count(-taken);
+    count -= taken;
+    if (stacks[i].count() == 0) {
+      stacks.erase(stacks.begin() + i);
+    }
+  }
+  return true;
 }
 
 int CharacterInstance::CountOwned(const EquipPrototype& proto) const {

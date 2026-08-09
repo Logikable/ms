@@ -248,5 +248,48 @@ TEST_F(ScrollPanelTest, ALongNameIsCutToItsColumn) {
   EXPECT_EQ(rendered.find("100% Clean Slate"), std::string::npos);
 }
 
+// The panel is the first of two refusals -- the controller will not spend what
+// is not there either -- so this has to be asserted here, where the controller
+// cannot cover for it.
+TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
+  panel_.OnEvent(ftxui::Event::Return);  // open the confirm window
+  ASSERT_TRUE(panel_.IsConfirming());
+  panel_.OnEvent(ftxui::Event::Return);  // answer yes with nothing to pay with
+  EXPECT_FALSE(panel_.TakeConfirmed());
+
+  GiveTraces(20);
+  panel_.OnEvent(ftxui::Event::Return);
+  panel_.OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(panel_.TakeConfirmed());
+}
+
+TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCostAndWhatIsLeft) {
+  GiveTraces(100);
+  panel_.OnEvent(ftxui::Event::Return);
+  std::string rendered = Render(panel_);
+  EXPECT_NE(rendered.find("Confirm"), std::string::npos);
+  EXPECT_NE(rendered.find("AAA Scroll"), std::string::npos);
+  EXPECT_NE(rendered.find("20 📜"), std::string::npos) << "the cost";
+  EXPECT_NE(rendered.find("80 📜"), std::string::npos) << "what is left after";
+}
+
+TEST_F(ScrollPanelTest, TheConfirmWindowSaysWhenTheTracesFallShort) {
+  GiveTraces(5);
+  panel_.OnEvent(ftxui::Event::Return);
+  EXPECT_NE(Render(panel_).find("not enough"), std::string::npos);
+}
+
+// The window names the item as well as the scroll, which is the whole reason
+// it replaced a bare button row.
+TEST_F(ScrollPanelTest, TheConfirmWindowNamesTheItemBeingScrolled) {
+  EquipPrototype sword;
+  sword.set_name("Long Sword");
+  sword.set_required_level(10);
+  sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  ASSERT_TRUE(panel_.SetFilterForPrototype(sword));
+  panel_.OnEvent(ftxui::Event::Return);
+  EXPECT_NE(Render(panel_).find("Long Sword"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

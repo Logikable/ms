@@ -71,6 +71,7 @@ ScrollPanel::ScrollPanel(const CharacterInstance& character,
 }
 
 bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
+  target_name_ = proto.name();
   ScrollTier item_tier = TierForLevel(proto.required_level());
   std::set<int> item_cats(proto.equip_job_categories().begin(),
                           proto.equip_job_categories().end());
@@ -144,10 +145,9 @@ void ScrollPanel::ResetComponent() {
         ThemedWindow(" Scrolls — " + FormatWithCommas(TracesHeld()) + " 📜 ",
                      ftxui::vbox(std::move(rows)));
     if (confirm_.open()) {
-      // yflex lets main fill the remaining height after the confirm window
-      // takes its 3 rows, matching the full-height behaviour without confirm.
-      return ftxui::vbox(
-          {std::move(main) | ftxui::yflex, confirm_.RenderWindow()});
+      // yflex lets main fill the remaining height under the confirm window,
+      // matching the full-height behaviour without it.
+      return ftxui::vbox({std::move(main) | ftxui::yflex, RenderConfirm()});
     }
     return main;
   });
@@ -159,7 +159,10 @@ ftxui::Element ScrollPanel::Render() {
 
 bool ScrollPanel::OnEvent(ftxui::Event event) {
   if (confirm_.open()) {
-    if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed) {
+    // Answered yes only counts when the player can pay: the window greys
+    // Confirm out, and this is what makes the key agree with the picture.
+    if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed &&
+        CanAffordSelected()) {
       confirmed_ = true;
     }
     return true;
@@ -196,6 +199,57 @@ bool ScrollPanel::CanAffordSelected() const {
     return false;
   }
   return TracesHeld() >= selected_scroll().trace_cost();
+}
+
+ftxui::Element ScrollPanel::RenderConfirm() const {
+  const Scroll& scroll = selected_scroll();
+  int cost = scroll.trace_cost();
+  int held = TracesHeld();
+  bool affordable = held >= cost;
+
+  std::string what = scroll.name();
+  if (!target_name_.empty()) {
+    what += "  ->  " + target_name_;
+  }
+
+  // What the scroll does, said the same way the list says it.
+  std::string effect;
+  if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+    effect = "Restores one lost slot";
+  } else {
+    const EquipStats& s = scroll.stats();
+    AppendStat(effect, s.attack(), "ATT");
+    AppendStat(effect, s.magic_attack(), "MATT");
+    AppendStat(effect, s.str(), "STR");
+    AppendStat(effect, s.dex(), "DEX");
+    AppendStat(effect, s.int_(), "INT");
+    AppendStat(effect, s.luk(), "LUK");
+    AppendStat(effect, s.max_hp(), "HP");
+    AppendStat(effect, s.def(), "DEF");
+    effect += "   on success, " + std::to_string(scroll.success_rate()) + "%";
+  }
+
+  // The balance after, which is the number the player is really deciding on.
+  // Red and unspent when they cannot pay, so the row and the greyed button
+  // say the same thing.
+  std::string money = "Cost " + FormatWithCommas(cost) + " \U0001F4DC" +
+                      "     held " + FormatWithCommas(held) + " \U0001F4DC";
+  ftxui::Element money_row =
+      CenteredRow(affordable ? money + "  ->  " +
+                                   FormatWithCommas(held - cost) + " \U0001F4DC"
+                             : money + "  ->  not enough");
+  if (!affordable) {
+    money_row = std::move(money_row) | ftxui::color(kRed);
+  }
+
+  return ThemedWindow(
+      " Confirm ",
+      ftxui::vbox({
+          CenteredRow(what),
+          CenteredRow(effect),
+          std::move(money_row),
+          ConfirmButtons(confirm_.focus(), affordable) | ftxui::hcenter,
+      }));
 }
 
 ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {

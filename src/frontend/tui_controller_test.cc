@@ -45,6 +45,7 @@ class TuiControllerTest : public testing::Test {
     scroll.set_name("Test Scroll");
     scroll.set_success_rate(100);
     scroll.set_tier(SCROLL_TIER_1);
+    scroll.set_trace_cost(5);
     scroll.mutable_stats()->set_attack(5);
     scroll.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
 
@@ -71,6 +72,7 @@ class TuiControllerTest : public testing::Test {
                                          std::map<std::string, ItemPrototype>{},
                                          std::map<std::string, Mob>{},
                                          std::map<std::string, MapData>{});
+
     state_->character.AdvanceJob(JOB_SWORDMAN);
     // The starting character stands at its advancement with no SP yet; these
     // tests spend SP, so they level far enough to have some of their own.
@@ -259,6 +261,7 @@ class TuiControllerTest : public testing::Test {
     fail.set_name("Fail Scroll");
     fail.set_success_rate(0);
     fail.set_tier(SCROLL_TIER_1);
+    fail.set_trace_cost(5);
     fail.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
     fail.mutable_stats()->set_attack(5);
     state_->scrolls.clear();
@@ -272,6 +275,17 @@ class TuiControllerTest : public testing::Test {
   }
 
   int panel_focus_ = kEquipPanel;
+  // Scrolling is paid for in spell traces, so a test that scrolls stocks some
+  // first. Not done in SetUp: it would put a stack at the head of the Etc tab
+  // and shift every index the sell tests count on.
+  void GiveTraces(int count) {
+    ItemPrototype trace;
+    trace.set_name(kSpellTraceName);
+    trace.set_category(ITEM_CATEGORY_ETC);
+    trace.set_max_stack(30000);
+    state_->character.AddStackable(trace, count);
+  }
+
   EquipPrototype sword_;
   std::unique_ptr<GameState> state_;
   std::unique_ptr<EquippedPanel> equip_panel_;
@@ -592,6 +606,7 @@ TEST_F(TuiControllerTest, ScrollFromTheEquipPanelOpensSelect) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -620,6 +635,7 @@ TEST_F(TuiControllerTest,
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -641,6 +657,7 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -660,6 +677,7 @@ TEST_F(TuiControllerTest,
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -678,6 +696,7 @@ TEST_F(TuiControllerTest,
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   // Open menu while item still has 1 slot — Star Force should be disabled.
   controller_->OpenEquipMenu();
@@ -702,6 +721,7 @@ TEST_F(TuiControllerTest, EnterOnAResultReturnsToSelect) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -718,6 +738,7 @@ TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -734,6 +755,7 @@ TEST_F(TuiControllerTest, ASuccessSpendsAnUpgradeSlot) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -746,11 +768,78 @@ TEST_F(TuiControllerTest, ASuccessSpendsAnUpgradeSlot) {
   EXPECT_EQ(controller_->scroll_result().slots_remaining, 2);
 }
 
+// A scroll is bought, not merely chosen: the traces have to leave the bag.
+TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  GiveTraces(100);
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // open the confirm window
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
+
+  EXPECT_EQ(controller_->screen(), kScrollResult);
+  EXPECT_EQ(
+      state_->character.CountStackable(ITEM_CATEGORY_ETC, kSpellTraceName), 95);
+}
+
+// A failed roll is still a scroll spent -- the trace pays for the attempt,
+// not for the result.
+TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
+  UseFailScroll();
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  GiveTraces(100);
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->scroll_result().outcome, kScrollFail);
+  EXPECT_EQ(
+      state_->character.CountStackable(ITEM_CATEGORY_ETC, kSpellTraceName), 95);
+}
+
+// Too few traces and Enter on the confirm window does nothing: no scroll, no
+// spend, and the window stays up rather than dropping the player somewhere.
+TEST_F(TuiControllerTest, ScrollingWithoutTheTracesIsRefused) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  GiveTraces(4);  // one short of the 5 the test scroll costs
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
+  EXPECT_EQ(
+      state_->character.CountStackable(ITEM_CATEGORY_ETC, kSpellTraceName), 4);
+  EXPECT_EQ(state_->character.equipped()
+                .at(EQUIP_SLOT_PRIMARY_WEAPON)
+                .equip_state()
+                .scroll_stats()
+                .attack(),
+            0);
+}
+
 TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
   UseFailScroll();
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
+  GiveTraces(100);
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
@@ -792,6 +881,7 @@ TEST_F(TuiControllerTest, BagScrollEscapeReturnsToTheMenu) {
 TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
+  GiveTraces(100);
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
@@ -809,6 +899,7 @@ TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
 TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
+  GiveTraces(100);
 
   controller_->OpenInventoryMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
