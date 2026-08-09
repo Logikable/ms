@@ -217,8 +217,10 @@ void SeedTest(GameState& state, JobAdvancement chosen) {
   state.exp_multiplier = kTestExpMultiplier;
 
   // Enough to buy anything the shop stocks, several times over, so the buying
-  // screens can be exercised without grinding for the meso first.
-  state.character.AddMeso(1000000);
+  // screens can be exercised without grinding for the meso first. A billion
+  // rather than a million because spell traces are bought by the thousand at
+  // 5,000 each, and the scroll screen is unusable without a pile of them.
+  state.character.AddMeso(1000000000);
 
   // The ladder in a bag. Skipped when the catalog has no such item, as every
   // other piece of seeding is.

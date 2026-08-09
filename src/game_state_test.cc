@@ -330,7 +330,7 @@ TEST(GameStateTest, PlayModeStartsOnMapleIsland) {
 
 TEST(GameStateTest, TestModeStartsWithMesoAndAFullBag) {
   GameState state = MakeTestModeState();
-  EXPECT_EQ(state.character.meso(), 1000000);
+  EXPECT_EQ(state.character.meso(), 1000000000);
   EXPECT_FALSE(state.character.inventory().empty());
 }
 
@@ -355,7 +355,7 @@ TEST(GameStateTest, SeedingSkipsEquipsTheCatalogDoesNotHave) {
   GameState test({}, {}, {}, {}, {}, {}, GameMode::kTest);
   EXPECT_TRUE(test.character.inventory().empty());
   // The meso does not depend on the catalog, so it still arrives.
-  EXPECT_EQ(test.character.meso(), 1000000);
+  EXPECT_EQ(test.character.meso(), 1000000000);
 }
 
 // Play is what an unadorned construction gives, so the game's default is the
