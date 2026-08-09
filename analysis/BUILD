@@ -82,3 +82,32 @@ cc_binary(
         "@abseil-cpp//absl/flags:parse",
     ],
 )
+
+cc_binary(
+    name = "level_sim",
+    srcs = ["level_sim.cc"],
+    deps = [
+        "//src:embedded_data",
+        "//src:game_state",
+        "//src:proto_loader",
+        "//src/character",
+        "//src/character:exp_table",
+        "//src/character:job_advancement",
+        "//src/character:progression",
+        "//src/combat",
+        "//src/combat:encounter",
+        "//src/combat:fight",
+        "//src/item",
+        "//src/item:equip_instance",
+        "//src/item:shop",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
