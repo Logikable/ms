@@ -11,6 +11,7 @@
 #include "src/character/exp_table.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace ms {
@@ -180,6 +181,48 @@ TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
     EXPECT_LE(equips.at(key).required_level(), kTrialLevelCap)
         << key << " is for sale";
   }
+}
+
+ItemPrototype MakeStackable(const std::string& name, ItemCategory category,
+                            int price) {
+  ItemPrototype p;
+  p.set_name(name);
+  p.set_category(category);
+  p.set_shop_price(price);
+  return p;
+}
+
+// Same rule the equip shelf follows: naming a price is what stocks an item,
+// and an item with no price is simply not sold.
+TEST(ShopEtcStockTest, OnlyPricedEtcItemsAreStocked) {
+  std::map<std::string, ItemPrototype> items;
+  items["trace"] = MakeStackable("Spell Trace", ITEM_CATEGORY_ETC, 5000);
+  items["shell"] = MakeStackable("Snail Shell", ITEM_CATEGORY_ETC, 0);
+  items["potion"] = MakeStackable("Red Potion", ITEM_CATEGORY_USE, 50);
+  EXPECT_EQ(ShopEtcStock(items), std::vector<std::string>{"trace"});
+}
+
+TEST(ShopEtcStockTest, CheapestFirstThenByName) {
+  std::map<std::string, ItemPrototype> items;
+  items["c"] = MakeStackable("Zinc", ITEM_CATEGORY_ETC, 10);
+  items["a"] = MakeStackable("Alum", ITEM_CATEGORY_ETC, 10);
+  items["b"] = MakeStackable("Brass", ITEM_CATEGORY_ETC, 5);
+  EXPECT_EQ(ShopEtcStock(items), (std::vector<std::string>{"b", "a", "c"}));
+}
+
+// The shipped catalog, so the trace reaching the shelf is asserted where a
+// missing shop_price would actually show up.
+TEST(ShopEtcStockTest, TheSpellTraceIsStocked) {
+  std::string err;
+  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
+  ASSERT_NE(runfiles, nullptr) << err;
+  std::map<std::string, ItemPrototype> items =
+      LoadTextProtoDir<ItemPrototype>(runfiles->Rlocation("ms/data/items"));
+  std::vector<std::string> stock = ShopEtcStock(items);
+  ASSERT_EQ(stock.size(), 1u) << "the Etc shelf holds more than the trace now";
+  EXPECT_EQ(stock[0], "spell_trace");
+  EXPECT_EQ(items.at("spell_trace").shop_price(), 5000);
+  EXPECT_EQ(items.at("spell_trace").max_stack(), 30000);
 }
 
 }  // namespace

@@ -1,0 +1,7 @@
+name: "Spell Trace"
+category: ITEM_CATEGORY_ETC
+max_stack: 30000
+shop_price: 5000
+description:
+  "An old piece of paper holding a scrap of a spell, unused. Spent on the "
+  "scrolls that upgrade equipment."

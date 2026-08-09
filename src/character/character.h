@@ -166,6 +166,10 @@ class CharacterInstance {
   // the character cannot pay for every copy. Each copy is a fresh item, so
   // buying two puts two separate rows in the bag.
   bool Buy(const EquipPrototype& proto, int count);
+  // As above for a stackable. All or nothing on the same terms: the price is
+  // checked in one go and the bag's room up front, so a purchase the character
+  // cannot finish never takes the meso for the part of it that would fit.
+  bool Buy(const ItemPrototype& proto, int count);
   // Moves the item at `inventory_index` into the slot indicated by its
   // EquipPrototype. If the slot was occupied, the displaced item is appended
   // to inventory. Returns false if `inventory_index` is out of range or the

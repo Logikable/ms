@@ -50,7 +50,10 @@ cc_library(
     srcs = ["shop.cc"],
     hdrs = ["shop.h"],
     visibility = ["//visibility:public"],
-    deps = ["//src/protos:equip_proto_cc"],
+    deps = [
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+    ],
 )
 
 cc_test(
@@ -98,12 +101,16 @@ cc_test(
 cc_test(
     name = "shop_test",
     srcs = ["shop_test.cc"],
-    data = ["//data/equip:all"],
+    data = [
+        "//data/equip:all",
+        "//data/items:all",
+    ],
     deps = [
         ":shop",
         "//src:proto_loader",
         "//src/character:exp_table",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",
     ],

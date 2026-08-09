@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 
@@ -32,6 +33,27 @@ std::vector<std::string> ShopStock(
               if (pa.equip_type() != pb.equip_type()) {
                 return pa.equip_type() < pb.equip_type();
               }
+              if (pa.shop_price() != pb.shop_price()) {
+                return pa.shop_price() < pb.shop_price();
+              }
+              return pa.name() < pb.name();
+            });
+  return keys;
+}
+
+std::vector<std::string> ShopEtcStock(
+    const std::map<std::string, ItemPrototype>& items) {
+  std::vector<std::string> keys;
+  for (const std::pair<const std::string, ItemPrototype>& entry : items) {
+    if (entry.second.category() == ITEM_CATEGORY_ETC &&
+        entry.second.shop_price() > 0) {
+      keys.push_back(entry.first);
+    }
+  }
+  std::sort(keys.begin(), keys.end(),
+            [&items](const std::string& a, const std::string& b) {
+              const ItemPrototype& pa = items.at(a);
+              const ItemPrototype& pb = items.at(b);
               if (pa.shop_price() != pb.shop_price()) {
                 return pa.shop_price() < pb.shop_price();
               }

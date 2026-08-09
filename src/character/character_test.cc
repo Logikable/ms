@@ -1096,6 +1096,65 @@ TEST_F(BuyTest, NonPositiveCountIsNoOp) {
   EXPECT_EQ(c_.inventory().size(), 0);
 }
 
+// --- Buy, stackable ---
+
+class BuyStackableTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    trace_.set_name("Spell Trace");
+    trace_.set_category(ITEM_CATEGORY_ETC);
+    trace_.set_max_stack(30000);
+    trace_.set_shop_price(5000);
+    c_.AddMeso(50000);
+  }
+
+  ItemPrototype trace_;
+  CharacterInstance c_ = MakeCharacter(rng_);
+};
+
+// Ten of a stackable is one row of ten, not ten rows -- the opposite of what
+// buying ten swords does.
+TEST_F(BuyStackableTest, TakesTheMesoAndStacksTheCopies) {
+  EXPECT_TRUE(c_.Buy(trace_, 10));
+  EXPECT_EQ(c_.meso(), 0);
+  ASSERT_EQ(c_.stackables(ITEM_CATEGORY_ETC).size(), 1);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].count(), 10);
+  EXPECT_EQ(c_.stackables(ITEM_CATEGORY_ETC)[0].name(), "Spell Trace");
+}
+
+TEST_F(BuyStackableTest, BuysNothingWhenItCannotBuyEverything) {
+  EXPECT_FALSE(c_.Buy(trace_, 11));
+  EXPECT_EQ(c_.meso(), 50000);
+  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+}
+
+TEST_F(BuyStackableTest, WillNotSellWhatTheShopDoesNotStock) {
+  ItemPrototype unpriced;
+  unpriced.set_name("Snail Shell");
+  unpriced.set_category(ITEM_CATEGORY_ETC);
+  EXPECT_FALSE(c_.Buy(unpriced, 1));
+  EXPECT_EQ(c_.meso(), 50000);
+  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+}
+
+TEST_F(BuyStackableTest, NonPositiveCountIsNoOp) {
+  EXPECT_FALSE(c_.Buy(trace_, 0));
+  EXPECT_FALSE(c_.Buy(trace_, -2));
+  EXPECT_EQ(c_.meso(), 50000);
+}
+
+// The bag's room is checked before the meso, so an order too big for it takes
+// nothing -- the same promise the equip shelf makes.
+TEST_F(BuyStackableTest, BuysNothingWhenTheBagCannotHoldItAll) {
+  // Far past what a full bag of traces costs, so the bag is what refuses and
+  // not the purse.
+  c_.AddMeso(1000000000000LL);
+  int room = c_.RoomFor(trace_);
+  EXPECT_FALSE(c_.Buy(trace_, room + 1));
+  EXPECT_TRUE(c_.stackables(ITEM_CATEGORY_ETC).empty());
+  EXPECT_TRUE(c_.Buy(trace_, room));
+}
+
 // --- SellStackable ---
 
 // Fixture providing a sellable Etc item (7 meso each) and an unsellable one.

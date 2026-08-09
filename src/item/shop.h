@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 
@@ -20,6 +21,12 @@ namespace ms {
 // tier without claiming an order the player is meant to read anything into.
 std::vector<std::string> ShopStock(
     const std::map<std::string, EquipPrototype>& equips);
+
+// Catalog keys of the stackables the shop sells, cheapest first and then by
+// name. Joining the shop works the same way it does for an equip: name a
+// shop_price in the item's own data file and it is stocked.
+std::vector<std::string> ShopEtcStock(
+    const std::map<std::string, ItemPrototype>& items);
 
 }  // namespace ms
 

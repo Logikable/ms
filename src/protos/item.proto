@@ -35,4 +35,7 @@ message ItemPrototype {
   // What one copy does when used. Unset means nothing happens, and the Use
   // entry is offered but inert.
   ItemEffect effect = 6;
+  // Meso one copy costs in the shop. 0 = not stocked. Naming a price here is
+  // the whole of how a stackable joins the shop, exactly as it is for equips.
+  int32 shop_price = 7;
 }

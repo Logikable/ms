@@ -809,6 +809,19 @@ bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
   return true;
 }
 
+bool CharacterInstance::Buy(const ItemPrototype& proto, int count) {
+  if (count <= 0 || proto.shop_price() <= 0) {
+    return false;
+  }
+  int64_t cost = static_cast<int64_t>(count) * proto.shop_price();
+  if (cost > character_.meso() || count > RoomFor(proto)) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - cost);
+  AddStackable(proto, count);
+  return true;
+}
+
 std::vector<const EquipTrace*> CharacterInstance::traces() const {
   return inventory_.traces();
 }
