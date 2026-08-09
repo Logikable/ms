@@ -12,6 +12,10 @@
  * above the player is dangerous when its mobs take more between beats than a
  * beat gives back, and one at their level can be held all day.
  *
+ * A character holding a healing cast has a third way: below a quarter of their
+ * pool they spend a swing on it instead of attacking, which trades kill rate
+ * for staying alive on a map that would otherwise be out of reach.
+ *
  * This is the single engine behind both halves of combat: the kills it reports
  * each step are what the reward layer pays out for, and the same step drives
  * the panel's animation -- so what the player watches and what they are paid
@@ -127,6 +131,11 @@ class CombatSim {
   // What one swing of `attack` would land on the queue as it stands, Final
   // Attack included.
   double SwingDamage(const AttackOption& attack) const;
+  // Index into params.attacks of the healing cast to spend this swing on, or
+  // -1 for none: the player is not low enough, has nothing to fight, or holds
+  // no such skill. A cleared map heals on the beat for free, so a cast there
+  // would buy nothing.
+  int HealToCast(const CombatParams& params) const;
   // Index into params.attacks of the attack that would land the most damage
   // per SECOND on the queue as it stands, or -1 when there is nothing to hit.
   // Three things can make one swing beat another: reach is worth nothing past
@@ -146,6 +155,9 @@ class CombatSim {
   // The bare poke is never committed to. It is what the character falls back
   // on with everything else recharging, and holding them to it would cost
   // them the skill the moment it came back.
+  //
+  // A healing cast comes ahead of every attack, but only once whatever is
+  // winding up has landed: it replaces the next swing rather than this one.
   int ChooseAttack(const CombatParams& params) const;
 
   // The steps of one Advance, in the order it runs them.

@@ -31,11 +31,12 @@ struct CombatType {
   double damage_to_player = 0.0;
 };
 
-// One attack the character could swing with: the bare poke, or a learned
-// attack skill. Which one is best depends on how many mobs are actually in
-// front of the player, so the choice is made per swing by the fight rather
-// than fixed here -- a wide skill that does less per target wins on a crowd
-// and loses on the last mob standing.
+// One thing the character could spend a swing on: the bare poke, a learned
+// attack skill, or a cast that does something else with the swing entirely.
+// Which one is best depends on how many mobs are actually in front of the
+// player, so the choice is made per swing by the fight rather than fixed here
+// -- a wide skill that does less per target wins on a crowd and loses on the
+// last mob standing.
 struct AttackOption {
   std::string name = "Attack";  // shown on the charge bar
   int max_enemies = 1;          // front-of-queue mobs one swing reaches
@@ -58,6 +59,11 @@ struct AttackOption {
   // with no Final Attack, for a swing none of theirs follows, and for the
   // skills that fire on their own clock -- those are not the character's swing.
   std::vector<double> final_attack_damage;
+  // Share of the player's HP pool this option puts back instead of dealing
+  // damage (1.00 == all of it). 0 for every attack, which is all of them bar
+  // the Cleric's Heal. An option carrying this deals no damage at all, and the
+  // fight picks it by need rather than by rate -- see CombatSim::HealToCast.
+  double heal_fraction = 0.0;
 };
 
 // A snapshot of the current encounter's combat parameters.

@@ -171,12 +171,14 @@ TEST(SkillDataTest, NoSkillNamesBothClocks) {
   }
 }
 
-// A swing takes as long as its own animation, so every swing has to say how
-// long that is. Nothing else does: the delay of a skill on its own clock is
+// Anything spending a swing takes as long as its own animation, so it has to
+// say how long that is -- the attacks, and the casts that spend a swing on
+// something else. Nothing else does: the delay of a skill on its own clock is
 // its cast interval, and a passive is never swung at all.
 TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    if (entry.second.kind() != SKILL_KIND_ATTACK) {
+    if (entry.second.kind() != SKILL_KIND_ATTACK &&
+        entry.second.kind() != SKILL_KIND_ACTIVE) {
       EXPECT_EQ(entry.second.base_delay_ms(), 0)
           << entry.first << " sets a swing delay it will never be asked for";
       continue;
@@ -187,6 +189,19 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
     // attack, to catch a figure entered in seconds or in frames.
     EXPECT_GE(entry.second.base_delay_ms(), 300) << entry.first;
     EXPECT_LE(entry.second.base_delay_ms(), 2000) << entry.first;
+  }
+}
+
+// A cast takes the swing an attack would have had, so one with no lever behind
+// it would cost the character a swing and give nothing back. The encounter
+// declines to offer such a skill at all; this says none is written.
+TEST(SkillDataTest, EveryCastDoesSomethingWithTheSwingItTakes) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (entry.second.kind() != SKILL_KIND_ACTIVE) {
+      continue;
+    }
+    EXPECT_GT(entry.second.base().heal_pct(), 0.0)
+        << entry.first << " spends a swing and does nothing with it";
   }
 }
 

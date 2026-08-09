@@ -74,6 +74,8 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       SwingIntervalSeconds(delay_ms, attack_speed) * speed_factor;
   if (skill != nullptr) {
     attack.cooldown_seconds = skill->cooldown_seconds() * speed_factor;
+    attack.heal_fraction =
+        skill->base().heal_pct() + skill->per_level().heal_pct() * (level - 1);
   }
   OffenseStats offense = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
@@ -129,10 +131,20 @@ void AddTypes(const GameState& state, const MapData& map,
   }
 }
 
-// Whether a learned attack skill is one this character can swing right now.
+// Whether the fight can spend a swing on this skill at all: an attack, or a
+// cast with a lever behind it. A cast with nothing we model would take the
+// slot and do nothing, so it is not offered.
+bool Castable(const Skill& skill) {
+  if (DealsDamage(skill.kind())) {
+    return true;
+  }
+  return skill.kind() == SKILL_KIND_ACTIVE && skill.base().heal_pct() > 0.0;
+}
+
+// Whether a learned skill is one this character can swing right now.
 bool Swingable(const GameState& state, const Skill& skill,
                EquipType weapon_type) {
-  if (!DealsDamage(skill.kind())) {
+  if (!Castable(skill)) {
     return false;
   }
   // Another branch's book can share a skill's display name, and learned levels
@@ -170,6 +182,14 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     AttackOption attack =
         AttackFor(proto, total_stats, weapon_type, &skill, learned,
                   params.types, derived, attack_speed, speed_factor);
+    // A cast is not a hit. The damage chain has no multiplier to apply to a
+    // skill that deals none, so what it built is the bare poke's damage --
+    // which a cast must not land, and which a Final Attack must not follow.
+    if (attack.heal_fraction > 0.0) {
+      std::fill(attack.damage_per_hit.begin(), attack.damage_per_hit.end(),
+                0.0);
+      attack.final_attack_damage.clear();
+    }
     if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {
       params.attacks.push_back(std::move(attack));
       continue;

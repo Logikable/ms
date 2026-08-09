@@ -11,9 +11,10 @@ enum SkillKind {
   SKILL_KIND_UNSPECIFIED = 0;
   SKILL_KIND_ATTACK = 1;   // the swing's identity: supplies skill_pct
   SKILL_KIND_PASSIVE = 2;  // folds its levers into the character's stats
-  // Cast, but not an attack: a buff that runs for a while and then has to be
-  // cast again. Nothing carries this yet -- the skills that would have (the
-  // mobility ones) are simply not in this game.
+  // Cast, but not an attack. It spends the character's swing on something
+  // other than damage -- the Cleric's Heal, which they cast in place of a
+  // swing when they are low. A cast with no lever behind it is not offered at
+  // all: it would take the slot and do nothing.
   SKILL_KIND_ACTIVE = 3;
   // Attacks on its own clock, alongside whatever the character is swinging,
   // rather than being the swing. A summon or a cooldown skill the player would
@@ -59,6 +60,11 @@ message SkillEffect {
   double max_hp_pct = 2;
   int32 max_mp_per_level = 9;
   double max_mp_pct = 8;
+  // Share of the HP pool one cast of this skill puts back (1.00 == all of it).
+  // The one lever spent during a fight rather than folded into the stat line:
+  // the character casts it in place of a swing when they are low, and the
+  // fight is what reads it. See CombatSim::HealToCast.
+  double heal_pct = 26;
 
   int32 attack = 17;      // flat weapon attack, as a worn weapon grants it
   // Flat magic attack, likewise. A magician swings on this where everyone else

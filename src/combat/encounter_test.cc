@@ -196,6 +196,69 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
             params.attacks[0].damage_per_hit[0]);
 }
 
+// A cast joins the swings the fight can spend a turn on, but it never joins
+// what they can land: the damage chain has no multiplier for a skill that
+// deals none, so what it built for the cast is the bare poke's damage. Left
+// there, casting would hit for a plain swing and pull a Final Attack behind
+// it.
+TEST(ComputeCombatParamsTest, ACastIsOfferedAsASwingButCarriesNoDamage) {
+  Skill heal;
+  heal.set_name("Heal");
+  heal.set_kind(SKILL_KIND_ACTIVE);
+  heal.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  heal.set_max_level(10);
+  heal.set_base_delay_ms(600);
+  heal.mutable_base()->set_heal_pct(0.10);
+  heal.mutable_per_level()->set_heal_pct(0.10);
+  Skill final_attack;
+  final_attack.set_name("Final Attack");
+  final_attack.set_kind(SKILL_KIND_PASSIVE);
+  final_attack.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  final_attack.set_max_level(1);
+  final_attack.mutable_base()->set_final_attack_chance(0.5);
+  final_attack.mutable_base()->set_final_attack_pct(1.0);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"heal", heal}, {"final_attack", final_attack}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 5);
+  ASSERT_TRUE(state.character.LearnSkill(heal, 4));
+  ASSERT_TRUE(state.character.LearnSkill(final_attack, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.attacks[1].name, "Heal");
+  // Four levels of a tenth of the pool apiece.
+  EXPECT_DOUBLE_EQ(params.attacks[1].heal_fraction, 0.4);
+  EXPECT_GT(params.attacks[0].damage_per_hit[0], 0.0);
+  for (double damage : params.attacks[1].damage_per_hit) {
+    EXPECT_DOUBLE_EQ(damage, 0.0);
+  }
+  EXPECT_TRUE(params.attacks[1].final_attack_damage.empty());
+  EXPECT_FALSE(params.attacks[0].final_attack_damage.empty());
+}
+
+// A cast with no lever behind it would take a swing and give nothing back, so
+// it is not offered at all.
+TEST(ComputeCombatParamsTest, ACastWithNothingBehindItIsNoOption) {
+  Skill shout;
+  shout.set_name("Shout");
+  shout.set_kind(SKILL_KIND_ACTIVE);
+  shout.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  shout.set_max_level(10);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"shout", shout}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(shout, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 1u);
+  EXPECT_EQ(params.attacks[0].name, "Attack");
+}
+
 // GMS keys the swing delay on the skill, so two skills in the same hand can
 // swing at different speeds. The weapon's say is its attack-speed stage, which
 // scales both alike.

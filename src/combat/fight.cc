@@ -9,6 +9,12 @@
 namespace ms {
 namespace {
 
+// How low the player has to fall before they will spend a swing healing
+// instead of attacking. The whole of the decision: a cast that cost a swing
+// every time it was merely useful would never let the character attack, and
+// one saved for the last sliver would come too late to matter.
+constexpr double kHealBelowFraction = 0.25;
+
 // Whether there is a fight to advance at all. The bare poke is always the
 // first attack, so its interval is the one to ask about: every character has
 // it, whatever they have learned or are holding.
@@ -70,6 +76,9 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     if (attack.swing_seconds <= 0.0) {
       continue;  // not a swing; a skill on its own clock is not chosen between
     }
+    if (attack.heal_fraction > 0.0) {
+      continue;  // a cast is chosen by need, not by rate -- see HealToCast
+    }
     // Still recharging, so it is not among the swings on offer this time --
     // which is the whole point of a cooldown on something this good.
     if (i < static_cast<int>(cooldown_left_.size()) &&
@@ -87,11 +96,40 @@ int CombatSim::BestAttack(const CombatParams& params) const {
   return best;
 }
 
+int CombatSim::HealToCast(const CombatParams& params) const {
+  // Only mid-fight. With the map cleared the beat hands HP back for free, so
+  // spending a swing on it would buy nothing.
+  if (queue_.empty() || params.max_player_hp <= 0) {
+    return -1;
+  }
+  if (player_hp_ >= kHealBelowFraction * params.max_player_hp) {
+    return -1;
+  }
+  for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
+    const AttackOption& attack = params.attacks[i];
+    if (attack.heal_fraction <= 0.0 || attack.swing_seconds <= 0.0) {
+      continue;
+    }
+    if (i < static_cast<int>(cooldown_left_.size()) &&
+        cooldown_left_[i] > 0.0) {
+      continue;
+    }
+    return i;
+  }
+  return -1;
+}
+
 int CombatSim::ChooseAttack(const CombatParams& params) const {
   // Index 0 is the bare poke, which is never held to -- see fight.h.
   if (aimed_ > 0 && aimed_ < static_cast<int>(params.attacks.size()) &&
       params.attacks[aimed_].swing_seconds > 0.0 && !queue_.empty()) {
     return aimed_;
+  }
+  // Checked after the commitment, so a swing already winding up lands first:
+  // the cast replaces the NEXT attack, it does not interrupt this one.
+  int heal = HealToCast(params);
+  if (heal >= 0) {
+    return heal;
   }
   return BestAttack(params);
 }
@@ -260,7 +298,11 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
   const AttackOption* attack = aimed_ >= 0 ? &params.attacks[aimed_] : nullptr;
   attack_name_ = attack != nullptr ? attack->name : "";
   if (attack != nullptr) {
-    reach_ = std::max(1, attack->max_enemies);
+    // A cast reaches nobody, so it leaves the window on whatever the last
+    // swing set: the mob bars must not collapse for the length of the cast.
+    if (attack->heal_fraction <= 0.0) {
+      reach_ = std::max(1, attack->max_enemies);
+    }
     // Cached because the charge bar is drawn after the swing is aimed and has
     // no attack of its own to ask. A pick that changes mid-charge changes the
     // clock under it, which is the honest reading: the swing being charged is
@@ -286,7 +328,13 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
   attack_phase_ -= attack->swing_seconds;
   // Read before the strike, because aiming again below moves it.
   int swung = aimed_;
-  Strike(*attack);
+  if (attack->heal_fraction > 0.0) {
+    player_hp_ =
+        std::min(static_cast<double>(params.max_player_hp),
+                 player_hp_ + attack->heal_fraction * params.max_player_hp);
+  } else {
+    Strike(*attack);
+  }
   if (attack->cooldown_seconds > 0.0) {
     cooldown_left_[swung] = attack->cooldown_seconds;
   }

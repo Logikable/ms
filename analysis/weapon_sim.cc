@@ -271,8 +271,9 @@ Sequence PlaySwings(const CombatParams& params, double horizon) {
       double best_rate = -1.0;
       for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
         const AttackOption& attack = params.attacks[i];
-        if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0) {
-          continue;
+        if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0 ||
+            attack.heal_fraction > 0.0) {
+          continue;  // a cast is not one of the swings being compared
         }
         double rate = SoloDamage(attack) / attack.swing_seconds;
         if (rate > best_rate) {

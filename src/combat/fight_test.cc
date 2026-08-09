@@ -1123,5 +1123,113 @@ TEST(CombatSimTest, NoFinalAttackLeavesTheSwingAsItIs) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
 }
 
+// Puts a healing cast beside the swing, worth `fraction` of the pool. It
+// carries damage the fight must never land: what makes a cast harmless is the
+// fight declining to strike with it, not the encounter having zeroed it.
+void AddHeal(CombatParams& params, double fraction, double swing = 1.0) {
+  AttackOption heal;
+  heal.name = "Heal";
+  heal.max_enemies = 1;
+  heal.damage_per_hit.assign(params.types.size(), 1000.0);
+  heal.swing_seconds = swing;
+  heal.heal_fraction = fraction;
+  params.attacks.push_back(std::move(heal));
+}
+
+// The whole of the cast's rule on one setup: ignored while the player is
+// comfortable, taken the moment they fall under a quarter, and landing the
+// pool share it is worth instead of any damage at all.
+TEST(CombatSimTest, AHealingCastIsSpentOnlyOnceThePlayerIsLow) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GivePlayerHp(params, /*max_hp=*/100, /*interval=*/1.0, /*damage=*/10.0);
+  AddHeal(params, /*fraction=*/0.5);
+
+  // Seven seconds of being hit leaves them on 30, still above the quarter, so
+  // every swing so far has been the attack: seven of them, 70 damage.
+  for (int i = 0; i < 7; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_EQ(sim.player_hp(), 30);
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 70.0 / 100000.0, 1e-9);
+  EXPECT_EQ(sim.attack_name(), "Attack");
+
+  // The eighth hit takes them to 20, and that swing goes on the cast instead:
+  // half the pool back, and the mob left on the seven hits it has taken.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 70);
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 70.0 / 100000.0, 1e-9);
+}
+
+// The cast replaces the NEXT swing, not the one already on its way: a skill
+// winding up is committed to, and being in trouble is no exception to that.
+TEST(CombatSimTest, AHealingCastWaitsForTheSwingAlreadyWindingUp) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  // The poke does nothing, so the four-second skill is what gets chosen -- and
+  // unlike the poke, a skill is committed to once it is winding up.
+  CombatParams params =
+      MakeParams(4.0, 1000.0, {MakeType(&snail, 0.0, 3)}, /*reach=*/3);
+  AttackOption skill = MakeSkill("Skill", /*damage=*/10.0, /*cooldown=*/0.0);
+  skill.swing_seconds = 4.0;
+  skill.max_enemies = 3;
+  params.attacks.push_back(std::move(skill));
+  AddHeal(params, /*fraction=*/0.5, /*swing=*/4.0);
+  GivePlayerHp(params, /*max_hp=*/1000, /*interval=*/3.0, /*damage=*/800.0);
+
+  // One hit lands on the third second and takes them to a fifth of the pool,
+  // with the skill three seconds into its four.
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_EQ(sim.player_hp(), 200);
+  EXPECT_EQ(sim.attack_name(), "Skill");
+  EXPECT_DOUBLE_EQ(sim.target_hp_fraction(), 1.0);
+
+  // The fourth second finishes it: the skill lands rather than being dropped,
+  // and only then is the cast lined up.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 10.0 / 100000.0, 1e-9);
+  EXPECT_EQ(sim.attack_name(), "Heal");
+  // The cast reaches nobody, but the window it is charging in front of is
+  // still the last swing's -- the mob bars must not collapse behind it.
+  ASSERT_EQ(sim.engaged_groups().size(), 1u);
+  EXPECT_EQ(sim.engaged_groups().front().count, 3);
+}
+
+// The pool is the ceiling: an overheal is wasted rather than banked.
+TEST(CombatSimTest, AHealingCastStopsAtAFullPool) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GivePlayerHp(params, /*max_hp=*/100, /*interval=*/1.0, /*damage=*/45.0);
+  AddHeal(params, /*fraction=*/5.0);
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 55);
+  sim.Advance(params, 1.0);  // down to 10, then five pools' worth of healing
+  EXPECT_EQ(sim.player_hp(), 100);
+}
+
+// A cleared map hands HP back on the beat for free, so a swing spent healing
+// there would buy nothing. Reachable because a skill on its own clock can take
+// the last mob before the swing is ever aimed.
+TEST(CombatSimTest, AHealingCastIsNotSpentOnAnEmptyMap) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/10.0);
+  GivePlayerHp(params, /*max_hp=*/100, /*interval=*/1.0, /*damage=*/80.0);
+  AddHeal(params, /*fraction=*/0.5);
+
+  // The hit takes them under the quarter, and the cast clears the map before
+  // the swing is chosen.
+  sim.Advance(params, 1.0);
+  ASSERT_TRUE(sim.respawning());
+  EXPECT_EQ(sim.player_hp(), 20);
+  EXPECT_EQ(sim.attack_name(), "");
+}
+
 }  // namespace
 }  // namespace ms

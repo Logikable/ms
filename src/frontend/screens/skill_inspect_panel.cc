@@ -51,6 +51,7 @@ const PercentLever kPercentLevers[] = {
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare},
     {"Reflected", &SkillEffect::damage_reflect_pct, kBare},
+    {"Recovery", &SkillEffect::heal_pct, kPlus},
 };
 
 struct FlatLever {
