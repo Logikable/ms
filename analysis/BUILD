@@ -123,10 +123,47 @@ cc_binary(
     name = "meso_curve_sim",
     srcs = ["meso_curve_sim.cc"],
     deps = [
+        ":meso_curve",
+        ":sim_format",
+        "//src/character:exp_table",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+cc_library(
+    name = "sim_format",
+    srcs = ["sim_format.cc"],
+    hdrs = ["sim_format.h"],
+    deps = [
+        "//src/character:exp_table",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+cc_library(
+    name = "meso_curve",
+    srcs = ["meso_curve.cc"],
+    hdrs = ["meso_curve.h"],
+    deps = [
         ":gms_mob_exp",
         "//src/character:exp_table",
         "//src/combat:loot",
         "//src/protos:mob_proto_cc",
+    ],
+)
+
+cc_binary(
+    name = "scroll_cost_sim",
+    srcs = ["scroll_cost_sim.cc"],
+    deps = [
+        ":meso_curve",
+        ":sim_format",
+        "//src:embedded_data",
+        "//src:proto_loader",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",
