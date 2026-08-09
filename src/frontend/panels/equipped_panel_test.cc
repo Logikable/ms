@@ -190,6 +190,11 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
+  // Gone from the menu rather than greyed on it: ReachableMenuEntries cannot
+  // tell those two apart, so the rendered menu is asked as well.
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
+  EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {

@@ -277,15 +277,18 @@ void InventoryPanel::OpenEquipMenu() {
   if (!Unlocked(Feature::kRecovery, character_)) {
     menu_.Hide(kMenuRecover);
   }
+  // An upgrade this item cannot take is not drawn either. A greyed row invites
+  // the player to press it and find out why; on this menu the answer is always
+  // "not to this item", which is worth no row at all.
   const EquipInstance* eq = character_.inventory().equip_instance(selected_);
   if (eq == nullptr) {
     // Traces can only be inspected or recovered.
     menu_.Disable(kMenuAction);
-    menu_.Disable(kMenuScroll);
-    menu_.Disable(kMenuStarForce);
+    menu_.Hide(kMenuScroll);
+    menu_.Hide(kMenuStarForce);
     return;
   }
-  menu_.Disable(kMenuRecover);  // live items cannot be recovered
+  menu_.Hide(kMenuRecover);  // live items cannot be recovered
   if (!character_.CanEquip(eq->prototype())) {
     menu_.Disable(kMenuAction);
   }
@@ -293,10 +296,10 @@ void InventoryPanel::OpenEquipMenu() {
   // spent still takes a Clean Slate, so only an item that refuses scrolls
   // outright loses the entry.
   if (!Supports(eq->prototype(), UPGRADE_SCROLL)) {
-    menu_.Disable(kMenuScroll);
+    menu_.Hide(kMenuScroll);
   }
   if (!eq->CanStarForce()) {
-    menu_.Disable(kMenuStarForce);
+    menu_.Hide(kMenuStarForce);
   }
 }
 

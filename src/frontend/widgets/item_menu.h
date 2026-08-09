@@ -29,9 +29,12 @@ class ItemMenu {
   // Marks the entry at `index` as disabled: rendered dim and skipped during
   // Up/Down navigation. Must be called after Reset().
   //
-  // For an action this item cannot take right now -- a trace that cannot be
-  // worn, a weapon with no slots left. The entry stays visible because its
-  // absence would be the surprise.
+  // For an action the item could take but for the state it is in -- a trace
+  // that cannot be worn, a potion with nothing to drink. The entry stays
+  // visible because its absence would be the surprise.
+  //
+  // Not for an upgrade the item refuses outright: those are hidden, so the
+  // menu offers only what this item can actually be put through.
   void Disable(int index);
   // Marks the entry at `index` as hidden: not rendered at all, and skipped
   // like a disabled one. Must be called after Reset().

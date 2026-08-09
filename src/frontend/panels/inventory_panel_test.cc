@@ -317,6 +317,23 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
+  // The two upgrades are gone from the menu, not greyed on it. Equip stays,
+  // greyed: the player can wear one of these, just not this wreck of one.
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
+  EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
+  EXPECT_NE(rendered.find("Equip"), std::string::npos);
+}
+
+// Recovery puts a destroyed item back together, so it means nothing on an item
+// that was never destroyed.
+TEST_F(InventoryPanelTest, ALiveItemIsOfferedNoRecovery) {
+  LevelTo(UnlockLevel(Feature::kRecovery));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  panel.OpenMenu();
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Recover"),
+            std::string::npos);
 }
 
 // Neither action can do anything to a throwing star, so the menu should not
@@ -337,10 +354,13 @@ TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
   // Still a usable menu, or the assertions above would pass on a dead one.
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
+  // Gone from the menu rather than greyed on it: ReachableMenuEntries cannot
+  // tell those two apart, so the rendered menu is asked as well.
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
+  EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
 }
 
-// An ordinary weapon keeps both, including one with no slots left: a spent
-// weapon is what star force is for, and a Clean Slate still applies to it.
 // --- level-gated menu entries ---
 
 // A gated entry is not drawn at all, rather than drawn grey: greying it would
@@ -391,6 +411,8 @@ TEST_F(InventoryPanelTest, StarForceAndRecoveryArriveOnTime) {
   EXPECT_NE(std::count(at_140.begin(), at_140.end(), kMenuRecover), 0);
 }
 
+// An ordinary weapon keeps both, including one with no slots left: a spent
+// weapon is what star force is for, and a Clean Slate still applies to it.
 TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   EquipPrototype proto = sword_;

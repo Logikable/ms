@@ -62,11 +62,13 @@ void EquippedPanel::OpenMenu() {
     // Scrolling asks the prototype, not the slot count: a weapon with every
     // slot spent still takes a Clean Slate, so only an item that refuses
     // scrolls outright loses the entry.
+    // Not drawn rather than drawn grey, as above: an upgrade this item cannot
+    // take is worth no row, whatever the reason it cannot take it.
     if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
-      menu_.Disable(kMenuScroll);
+      menu_.Hide(kMenuScroll);
     }
     if (!item.CanStarForce()) {
-      menu_.Disable(kMenuStarForce);
+      menu_.Hide(kMenuStarForce);
     }
   }
 }
