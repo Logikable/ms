@@ -3,8 +3,7 @@
 name: "Bow Mastery"
 skill_order: 5
 description:
-  "Trains your draw until your arrows land where you mean them to, "
-  "narrowing your weakest shots toward your best. Needs a bow in hand."
+  "Increases Bow Mastery."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 20

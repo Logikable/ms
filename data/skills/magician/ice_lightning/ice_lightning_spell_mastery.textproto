@@ -8,8 +8,7 @@
 name: "Spell Mastery"
 skill_order: 7
 description:
-  "Steadies your casting, so your weakest spells land nearer your best. "
-  "Also increases Magic Attack and Critical Rate."
+  "Increases Spell Mastery, Magic Attack and Critical Rate."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 20

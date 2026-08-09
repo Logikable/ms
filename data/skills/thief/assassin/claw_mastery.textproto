@@ -7,7 +7,7 @@
 name: "Claw Mastery"
 skill_order: 3
 description:
-  "Steadies your throw, so your weakest stars land nearer your best."
+  "Increases Claw Mastery."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ASSASSIN
 max_level: 20

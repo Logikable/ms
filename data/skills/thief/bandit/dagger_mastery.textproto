@@ -5,8 +5,7 @@
 name: "Dagger Mastery"
 skill_order: 6
 description:
-  "Steadies your hand, so your weakest cuts land nearer your best. Also "
-  "increases Final Damage."
+  "Increases Dagger Mastery and Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 20

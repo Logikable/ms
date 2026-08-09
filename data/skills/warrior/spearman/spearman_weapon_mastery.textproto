@@ -1,9 +1,8 @@
 name: "Weapon Mastery"
 skill_order: 5
 description:
-  "Trains your grip until your spear lands where you mean it to, narrowing "
-  "your weakest swings toward your best. A spear also swings faster and hits "
-  "harder for it. Needs a spear or a polearm in hand."
+  "Increases Weapon Mastery. Increases Attack Speed and Damage further "
+  "with a spear."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10

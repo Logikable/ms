@@ -5,9 +5,7 @@
 name: "Weapon Mastery"
 skill_order: 4
 description:
-  "Trains your grip until your weapon lands where you mean it to, narrowing "
-  "your weakest swings toward your best. Also speeds them up. Needs a sword "
-  "or a blunt weapon in hand."
+  "Increases Weapon Mastery and Attack Speed."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 20

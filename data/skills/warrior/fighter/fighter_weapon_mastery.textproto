@@ -1,9 +1,8 @@
 name: "Weapon Mastery"
 skill_order: 5
 description:
-  "Trains your grip until your sword lands where you mean it to, narrowing "
-  "your weakest swings toward your best. Sharpens and speeds them up too, "
-  "and rewards an axe over a sword. Needs a sword or an axe in hand."
+  "Increases Weapon Mastery, Attack Speed, Final Damage and Critical "
+  "Rate. Increases Damage further with an axe."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 10

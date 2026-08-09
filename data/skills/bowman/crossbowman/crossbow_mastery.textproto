@@ -4,9 +4,7 @@
 name: "Crossbow Mastery"
 skill_order: 4
 description:
-  "Trains your aim until your bolts land where you mean them to, narrowing "
-  "your weakest shots toward your best and hardening every one of them. "
-  "Needs a crossbow in hand."
+  "Increases Crossbow Mastery and Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20
