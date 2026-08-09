@@ -17,6 +17,10 @@
 namespace ms {
 
 enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };
+
+// Which tier of scroll an item of this required level takes. GMS's cutoffs:
+// T1 below 75, T2 75-114, T3 115 and up.
+ScrollTier TierForLevel(int required_level);
 enum StarForceOutcome { kStarForceSuccess, kStarForceFail, kStarForceDestroy };
 
 // Absolute maximum star force level (for level 138+ equipment).

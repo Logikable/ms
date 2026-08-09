@@ -46,6 +46,16 @@ constexpr StarForceRate kRates[kMaxStarForce] = {
 
 }  // namespace
 
+ScrollTier TierForLevel(int required_level) {
+  if (required_level >= 115) {
+    return SCROLL_TIER_3;
+  }
+  if (required_level >= 75) {
+    return SCROLL_TIER_2;
+  }
+  return SCROLL_TIER_1;
+}
+
 EquipInstance::EquipInstance(const EquipPrototype& prototype,
                              const Equip& state)
     : EquipTabItem(prototype, state) {
@@ -65,6 +75,11 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
     return kScrollNoSlots;
   }
   if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+    // TODO: golden hammers will not work against this. The cap counts the
+    // prototype's slots, so a hammer slot added to the instance cannot be
+    // bought back once it fails -- the cap has to come from the instance's own
+    // total once hammers exist. //analysis:scroll_cost_sim prices the job
+    // assuming they do.
     int cap = prototype_.upgrade_slots() - state_.scroll_successes();
     if (state_.remaining_upgrade_slots() >= cap) {
       return kScrollNoSlots;

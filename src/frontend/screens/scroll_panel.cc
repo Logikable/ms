@@ -12,6 +12,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -29,17 +30,6 @@ bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
     return a->scroll_type() < b->scroll_type();
   }
   return a->success_rate() > b->success_rate();
-}
-
-// GMS tier cutoffs: T1 < 75, T2 75–114, T3 115+.
-ScrollTier TierForLevel(int required_level) {
-  if (required_level >= 115) {
-    return SCROLL_TIER_3;
-  }
-  if (required_level >= 75) {
-    return SCROLL_TIER_2;
-  }
-  return SCROLL_TIER_1;
 }
 
 }  // namespace

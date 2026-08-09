@@ -83,6 +83,7 @@ cc_library(
         "//src/frontend:types",
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:panel_util",
+        "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@ftxui//:component",
