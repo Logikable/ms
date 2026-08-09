@@ -292,10 +292,15 @@ TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
   EXPECT_EQ(FitHeight(panel_), closed);
 }
 
-TEST_F(ScrollPanelTest, TheConfirmWindowSaysWhenTheTracesFallShort) {
+// Said in red and in the greyed Confirm, and in no words at all: the cost row
+// is the thing they cannot pay, so it is the thing that turns.
+TEST_F(ScrollPanelTest, TheCostGoesRedWhenTheTracesFallShort) {
   GiveTraces(5);
   panel_.OnEvent(ftxui::Event::Return);
-  EXPECT_NE(Render(panel_).find("not enough"), std::string::npos);
+  EXPECT_EQ(LabelColor(panel_.Render(), "Cost 20"), kRed);
+
+  GiveTraces(100);
+  EXPECT_NE(LabelColor(panel_.Render(), "Cost 20"), kRed);
 }
 
 // The window names the item as well as the scroll, which is the whole reason

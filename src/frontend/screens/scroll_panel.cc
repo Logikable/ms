@@ -231,11 +231,10 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
 
   // The price alone. What the player owns is in the list's title behind this
   // window, and doing the subtraction for them here only crowded the one
-  // number they are deciding on. Red when they cannot pay, so the row and the
-  // greyed button say the same thing.
-  std::string money = "Cost " + FormatWithCommas(cost) + " \U0001F4DC";
+  // number they are deciding on. Red says they cannot pay it, and the greyed
+  // Confirm below says the same -- neither needs the words for it.
   ftxui::Element money_row =
-      CenteredRow(affordable ? money : money + "  not enough");
+      CenteredRow("Cost " + FormatWithCommas(cost) + " \U0001F4DC");
   if (!affordable) {
     money_row = std::move(money_row) | ftxui::color(kRed);
   }
