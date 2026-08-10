@@ -302,16 +302,13 @@ int NextAdvancementLevel(int stage) {
 }
 
 std::vector<std::string> StarterEquipsFor(Job job) {
-  // One weapon per 1st job, at the level the advancement happens, so an
-  // advancement is immediately playable. The Rogue gets three: the stars are a
-  // slot of their own, and which of the dagger or the claw is held decides
-  // which of the two attack skills can be swung, so handing over only one
-  // would quietly pick the job's build.
+  // One weapon per 1st job, at the level it happens, so an advancement is
+  // playable straight away. The Rogue gets three: which of the dagger or the
+  // claw is held decides what they can swing, so one would pick their build.
   //
-  // A 2nd job is handed its off-hand instead of a weapon. It arrives at level
-  // 30 already armed and with meso enough for the tier, so a free weapon would
-  // undercut the choice of which to buy -- but the off-hand is the slot the
-  // advancement opens, and nothing else would put anything in it.
+  // A 2nd job gets its off-hand and no weapon. It arrives already armed and
+  // able to afford the tier, so a free weapon would undercut the choice of
+  // which to buy -- but nothing else would ever fill the new slot.
   switch (job) {
     case JOB_SWORDMAN:
       return {"long_sword"};

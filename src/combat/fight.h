@@ -142,28 +142,17 @@ class CombatSim {
   // no such skill. A cleared map heals on the beat for free, so a cast there
   // would buy nothing.
   int HealToCast(const CombatParams& params) const;
-  // Index into params.attacks of the attack that would land the most damage
-  // per SECOND on the queue as it stands, or -1 when there is nothing to hit.
-  // Three things can make one swing beat another: reach is worth nothing past
-  // the number of mobs actually queued, so a wide, weak-per-target skill loses
-  // to the plain swing once the map thins out; a slower animation has to hit
-  // proportionally harder to be worth choosing; and a swing still recharging
-  // is no candidate at all.
-  //
-  // An index rather than a pointer because the cooldown it starts is held per
-  // attack, and the caller has to be able to say which one it swung.
+  // Index into params.attacks of the attack landing the most damage per SECOND
+  // on the queue as it stands, or -1 with nothing to hit. Per second and per
+  // queue, so a slow animation has to hit proportionally harder, and a wide
+  // skill loses its reach bonus once the map thins out. An index, not a
+  // pointer: the cooldown it starts is held per attack.
   int BestAttack(const CombatParams& params) const;
   // What this step swings with: the skill already winding up, or a fresh pick
-  // from BestAttack. A skill part-way through its animation is committed to
-  // and finishes, so a better one coming free mid-charge waits its turn
-  // instead of taking over the swing that is already on its way.
-  //
-  // The bare poke is never committed to. It is what the character falls back
-  // on with everything else recharging, and holding them to it would cost
-  // them the skill the moment it came back.
-  //
-  // A healing cast comes ahead of every attack, but only once whatever is
-  // winding up has landed: it replaces the next swing rather than this one.
+  // from BestAttack. A skill mid-animation is committed to and finishes, so a
+  // better one coming free waits its turn -- except the bare poke, which is
+  // never committed to, or the fallback would cost the skill it fell back
+  // from. A healing cast outranks every attack, but only from the next swing.
   int ChooseAttack(const CombatParams& params) const;
 
   // The steps of one Advance, in the order it runs them.

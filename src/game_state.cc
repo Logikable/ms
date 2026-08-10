@@ -45,21 +45,13 @@ constexpr int kTestLevelUpItems = 199;
 // 2nd job, holding the whole of what this game has to hand out.
 constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_FIGHTER;
 
-// Everything the workbench dresses a job in. Advancing hands over the gear for
-// the level it happens at, which is the wrong end of the job: the workbench
-// starts its character at the TOP of an advancement, and a level 60 Fighter
-// swinging the axe they were given at 30 is not the character anyone came to
-// test. So every job names the best of each thing it carries that its starting
-// level can wear -- level 30 for a 1st job, level 60 for a 2nd.
+// Everything the workbench dresses a job in: the best of each thing it carries
+// that its starting level can wear. Advancing hands over gear for the level it
+// happens at, and the workbench starts at the TOP of an advancement, so a level
+// 60 Fighter would otherwise swing the axe they were given at 30.
 //
-// The one exception is ammunition: the star ladder's next rung after level 50
-// is out of a level 60 character's reach, so an Assassin tops out there.
-//
-// Where a job masters two weapons the better one is named, on the figures in
-// //analysis:weapon_sim. A Rogue gets three, as advancing gives them, because
-// which of the dagger and the claw is held decides which attack they can
-// swing. Each 2nd job also names its off-hand; the 1st jobs have none, since a
-// secondary belongs to a branch and they are not in one yet.
+// Two weapons means the better one by //analysis:weapon_sim, but a Rogue gets
+// all three: which of the dagger and the claw is held decides what they swing.
 std::vector<std::string> WorkbenchGearFor(Job job) {
   switch (job) {
     // The 1st jobs, at level 30.
@@ -71,8 +63,9 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"circle_winded_staff"};
     case JOB_ROGUE:
       return {"kumbi_throwing_stars", "reef_claw", "steel_guards"};
-    // The 2nd jobs, at level 60. The three magician branches swing the same
-    // staff but read from three different books.
+    // The 2nd jobs, at level 60, each with its off-hand -- a secondary belongs
+    // to a branch, so the 1st jobs above have none. The three magician branches
+    // swing the same staff but read from three different books.
     case JOB_FIGHTER:
       return {"the_shining", "orders_medallion"};
     case JOB_PAGE:
@@ -89,6 +82,7 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"frantic_crow_staff", "metallic_blue_book_antistrophe"};
     case JOB_CLERIC:
       return {"frantic_crow_staff", "white_gold_book_antistrophe"};
+    // Level 50 stars: the ladder's next rung is out of a level 60's reach.
     case JOB_ASSASSIN:
       return {"steely_throwing_knives", "dark_gigantic", "evil_ender_charm"};
     case JOB_BANDIT:
@@ -114,15 +108,12 @@ void GiveEquip(GameState& state, const std::string& name) {
 constexpr int kSpendEveryStage = 0;
 
 // Climbs to `level` the way a player gets there, taking each advancement in
-// `path` as it is offered, so nothing the workbench holds is out of reach:
-// thirty hours of grinding, handed over.
+// `path` as it is offered. Thirty hours of grinding, handed over.
 //
-// The AP is always spent, into the primary stat, because a character with a
-// hundred points in the pool is a hundred keypresses from the screen the
-// tester came for. The SP is spent up to `unspent_stage`, whose book and every
-// one above it are left alone: the books already behind the character are
-// noise, and the one they are standing in is usually the question. The
-// Level-Up items are what is left for exercising either screen.
+// AP is always spent, into the primary stat: a hundred points in the pool is a
+// hundred keypresses between the tester and the screen they came for. SP is
+// spent below `unspent_stage` only, leaving the book they are standing in --
+// usually the question -- to spend by hand.
 void GrowTo(GameState& state, int level, const std::vector<Job>& path,
             int unspent_stage) {
   CharacterInstance& character = state.character;

@@ -225,17 +225,13 @@ TEST(AdvanceCombatTest, TheSameFightPaysLessAsTheGameSlowsDown) {
   EXPECT_GT(at_10, at_140) << "3x band vs 10x band";
 }
 
-// The workbench's standing EXP bonus, which is what makes the level-gated
-// features reachable in a sitting. It pays only EXP: the same corpses, the
-// same drops, the same meso as the same fight without it.
+// The workbench's EXP bonus pays EXP and nothing else: same corpses, same
+// drops, same meso.
 //
-// Both characters are pinned just under the cap first. Otherwise the bonus
-// changes what it is measuring: EXP levels the character, levelling slows the
-// game down, and the boosted character ends up killing FEWER mobs over the
-// same wall time. One level under the cap is the highest level that still
-// earns anything, and the last threshold below it is far out of reach of a
-// farm this short, so neither character moves and the multiplier is all that
-// differs.
+// Both characters are pinned just under the cap first, or the bonus changes
+// what it measures -- EXP levels the character, levelling slows the game, and
+// the boosted one ends up killing FEWER mobs in the same wall time. Neither
+// moves from there, so the multiplier is all that differs.
 TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});

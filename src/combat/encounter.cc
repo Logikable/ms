@@ -96,16 +96,14 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
     }
   }
-  // Final Attack rides the character's own swing, not the skill's identity:
-  // it is a plain hit worth its own percent, so it starts from the bare stat
-  // line rather than from `offense` and takes neither its multiplier nor its
-  // lines. Callers building an attack that fires on its own clock strip this
-  // back off -- see ComputeCombatParams.
+  // Final Attack rides the swing, not the skill: a plain hit worth its own
+  // percent, so it starts from the bare stat line and takes neither the skill's
+  // multiplier nor its lines. An attack on its own clock strips it back off --
+  // see ComputeCombatParams.
   //
-  // A source that names a tag follows only the swings carrying it, which is
-  // how a fire mage's Final Attack ignores everything they cast that is not
-  // fire. The bare poke carries no tags at all. What is left sums, because
-  // independent procs add in expectation.
+  // A source naming a tag follows only the swings carrying it, which is how a
+  // fire mage's ignores everything they cast that is not fire. What is left
+  // sums: independent procs add in expectation.
   double final_attack_pct = 0.0;
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag == SKILL_TAG_UNSPECIFIED ||

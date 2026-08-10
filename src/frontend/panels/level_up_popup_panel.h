@@ -19,19 +19,15 @@
 
 namespace ms {
 
-// The card as a bordered window: the level climbed, a rule, then what it paid,
-// one line each. Always the same size -- five rows inside the border and a
-// floor under its width -- so it is one shape the player learns rather than a
-// box that grows and shrinks with the news.
+// The card as a bordered window: the level climbed, a rule, then what it paid.
+// Always five rows inside the border, so it is one shape the player learns
+// rather than a box that grows with the news.
 //
-// `ap` and `sp` are totals for the whole climb, so a jump of several levels
-// reports what it earned rather than what the last one did. A total of zero is
-// left off entirely -- a Beginner earns no SP they can reach, and "+0 SP" on a
-// card celebrating something would read as a slight.
+// `ap` and `sp` are totals for the whole climb. A total of zero is left off --
+// "+0 SP" on a card celebrating something reads as a slight.
 //
-// `unlocks` are the names of anything the climb opened, each announced on a
-// line of its own in gold. They share the body with the gains rather than
-// being added below it, so the ordinary card keeps its shape.
+// `unlocks` names anything the climb opened, in gold, sharing the body with the
+// gains rather than added below them.
 ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
                                  const std::vector<std::string>& unlocks = {});
 

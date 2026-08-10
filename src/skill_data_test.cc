@@ -323,17 +323,12 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
   }
 }
 
-// The catalog is keyed by file stem, so two skills can share a display name --
-// the three 2nd-job warriors each get their own Weapon Mastery. A character's
-// learned levels are keyed by that display name, though, so two skills one
-// character can reach under the same name are one level between them: buying
-// either buys both, and each folds the other's levers into the stats.
-//
-// Nothing in the model stops that; what keeps it from happening is that the
-// branches are exclusive, so only one book of any pair is ever the
-// character's. This is the check that the data stays that way -- the trap is a
-// later stage repeating a name from an earlier one, where both books belong to
-// the same character.
+// The catalog keys on file stem but learned levels key on DISPLAY name, so two
+// skills one character can reach under one name share a level: buying either
+// buys both. Exclusive branches are the only thing preventing it -- each
+// 2nd-job warrior has their own Weapon Mastery and no character sees two. The
+// trap this guards is a later stage repeating an earlier stage's name, where
+// both books do belong to one character.
 TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
   std::map<std::string, Skill> skills = LoadSkills();
   const Job kJobs[] = {JOB_SWORDMAN,

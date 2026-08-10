@@ -13,17 +13,12 @@ struct Band {
   int cost[4][4];
 };
 
-// Two judgement calls, both on cells the wiki leaves as "?":
+// Two calls on cells the wiki leaves as "?": level 20-29 accessories read
+// 2/3/3, the only value that keeps the column climbing by one between the rows
+// either side; level 250+ is left at 0, since nothing here reaches it.
 //
-//  - Level 20-29 accessories are filled in as 2/3/3. The rows either side are
-//    1/2/2 and 3/4/4, so this is the only reading that keeps the column
-//    climbing by one at each step.
-//  - Level 250+ gloves, weapons and accessories are left at 0. Nothing in this
-//    game reaches level 250, so an invented number there would only be a
-//    number nobody checked.
-//
-// The wiki has no rows at all for 170-199 or 210-249, so those levels fall
-// back to the band below them, which is what GMS itself does.
+// The wiki has no rows for 170-199 or 210-249, so those fall back to the band
+// below, as GMS itself does.
 const Band kBands[] = {
     {0, {{1, 1, 1, 1}, {2, 1, 2, 2}, {2, 2, 3, 2}, {0, 0, 4, 0}}},
     {20, {{2, 1, 2, 2}, {2, 2, 3, 3}, {3, 2, 4, 3}, {0, 0, 5, 0}}},
