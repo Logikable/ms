@@ -3,6 +3,8 @@
  *
  * An equip (EquipInstance or EquipTrace) gets the full account: star bar,
  * name, level, job categories, per-stat breakdown, remaining upgrade slots.
+ * The bar and the slot count are drawn only for an item that accepts that
+ * upgrade -- an empty row of either would promise something the item cannot do.
  * A stackable Use or Etc item has none of that -- what it has is a sentence
  * saying what it is, so that is what it gets.
  *

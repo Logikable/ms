@@ -71,13 +71,15 @@ ftxui::Element InspectPanel::RenderEquip() const {
   const EquipPrototype& proto = item_->prototype();
   const EquipStats& base = proto.base_stats();
   const EquipStats& scroll = item_state.scroll_stats();
-  int stars = item_->stars();
-  int max_stars = item_->max_stars();
 
   int level = proto.required_level() > 0 ? proto.required_level() : 1;
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(CenteredRow(StarBar(stars, max_stars)));
+  // An item that refuses star force gets no bar at all. A row of empty stars
+  // reads as a bar waiting to be filled, which is the opposite of the truth.
+  if (Supports(proto, UPGRADE_STAR_FORCE)) {
+    rows.push_back(CenteredRow(StarBar(item_->stars(), item_->max_stars())));
+  }
   rows.push_back(CenteredRow(item_->name()));
   rows.push_back(ThemedSeparator());
   // Trailing space on each text row keeps the right border one column clear.

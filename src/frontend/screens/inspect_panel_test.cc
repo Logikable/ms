@@ -198,6 +198,16 @@ TEST_F(InspectPanelTest, StarBarLengthReflectsItemMaxStars) {
   EXPECT_NE(Render(panel).find("☆☆☆☆☆"), std::string::npos);
 }
 
+TEST_F(InspectPanelTest, AnItemThatRefusesStarForceHasNoBar) {
+  sword_.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  EXPECT_EQ(rendered.find("☆"), std::string::npos);
+  EXPECT_EQ(rendered.find("★"), std::string::npos);
+}
+
 TEST_F(InspectPanelTest, ShowsTraceNameWithSuffix) {
   sword_.set_name("Iron Sword");
   Equip state;
