@@ -2,9 +2,11 @@
  * and what that comes to on each map once spawn counts are taken in.
  *
  * Two tables. The first walks the mobs in level order and prints, beside each,
- * how fast HP and EXP grew per level since the mob below it. A ladder that
- * follows a curve holds those two roughly steady; a mob that is off the curve
- * shows as a spike and is paid for by a dip on whichever mob comes next.
+ * how fast HP, EXP and attack grew per level since the mob below it. A ladder
+ * that follows a curve holds those steady; a mob that is off the curve shows
+ * as a spike and is paid for by a dip on whichever mob comes next. Attack has
+ * its own curve, and it can be out of step with the other two -- what a mob
+ * costs to kill and what it does to the player on the way are set separately.
  *
  * The second weights each map by its spawn counts, which is what a player
  * actually meets, and carries the counts through to a kill rate. EXP/HP is the
@@ -44,6 +46,7 @@ struct MapRow {
   double level = 0.0;
   double hp = 0.0;
   double exp = 0.0;
+  double attack = 0.0;
   int spawns = 0;
 };
 
@@ -70,8 +73,8 @@ std::vector<Mob> MobsByLevel(const std::map<std::string, Mob>& mobs) {
 
 void PrintMobs(const std::map<std::string, Mob>& mobs) {
   printf("\nthe ladder, in level order\n\n");
-  printf("%-22s %4s %9s %6s %6s %8s %8s %8s\n", "mob", "lv", "hp", "exp", "att",
-         "exp/hp", "hp x/lv", "exp x/lv");
+  printf("%-22s %4s %9s %6s %6s %8s %8s %8s %8s\n", "mob", "lv", "hp", "exp",
+         "att", "exp/hp", "hp x/lv", "exp x/lv", "att x/lv");
   std::vector<Mob> ladder = MobsByLevel(mobs);
   for (int i = 0; i < static_cast<int>(ladder.size()); ++i) {
     const Mob& mob = ladder[i];
@@ -83,13 +86,14 @@ void PrintMobs(const std::map<std::string, Mob>& mobs) {
     // between two mobs sharing a level -- the mushrooms do.
     int steps = i == 0 ? 0 : mob.level() - ladder[i - 1].level();
     if (steps <= 0) {
-      printf(" %8s %8s\n", "--", "--");
+      printf(" %8s %8s %8s\n", "--", "--", "--");
       continue;
     }
     const Mob& below = ladder[i - 1];
-    printf(" %8.3f %8.3f\n",
+    printf(" %8.3f %8.3f %8.3f\n",
            GrowthPerLevel(below.max_hp(), mob.max_hp(), steps),
-           GrowthPerLevel(below.exp(), mob.exp(), steps));
+           GrowthPerLevel(below.exp(), mob.exp(), steps),
+           GrowthPerLevel(below.attack(), mob.attack(), steps));
   }
 }
 
@@ -108,11 +112,13 @@ MapRow WeightMap(const MapData& map, const std::map<std::string, Mob>& mobs) {
     row.level += it->second.level() * spawn.count();
     row.hp += it->second.max_hp() * spawn.count();
     row.exp += it->second.exp() * spawn.count();
+    row.attack += it->second.attack() * spawn.count();
   }
   if (row.spawns > 0) {
     row.level /= row.spawns;
     row.hp /= row.spawns;
     row.exp /= row.spawns;
+    row.attack /= row.spawns;
   }
   return row;
 }
@@ -133,12 +139,13 @@ void PrintMaps(const std::map<std::string, MapData>& maps,
   printf("\nwhat a player meets, weighted by spawn count\n");
   printf("dps to cap is the damage per second that holds the spawn cap; ");
   printf("compare //analysis:weapon_sim\n\n");
-  printf("%-26s %5s %6s %9s %7s %8s %8s %8s %10s\n", "map", "lv", "spawn",
-         "avg hp", "avg exp", "exp/hp", "kills/s", "exp/s", "dps to cap");
+  printf("%-26s %5s %6s %9s %7s %7s %8s %8s %8s %10s\n", "map", "lv", "spawn",
+         "avg hp", "avg exp", "avg att", "exp/hp", "kills/s", "exp/s",
+         "dps to cap");
   for (const MapRow& row : rows) {
     double kills = row.spawns / kRespawnIntervalSeconds;
-    printf("%-26s %5.1f %6d %9.0f %7.1f %8.3f %8.2f %8.1f %10.0f\n",
-           row.name.c_str(), row.level, row.spawns, row.hp, row.exp,
+    printf("%-26s %5.1f %6d %9.0f %7.1f %7.0f %8.3f %8.2f %8.1f %10.0f\n",
+           row.name.c_str(), row.level, row.spawns, row.hp, row.exp, row.attack,
            row.hp > 0.0 ? row.exp / row.hp : 0.0, kills, kills * row.exp,
            kills * row.hp);
   }
