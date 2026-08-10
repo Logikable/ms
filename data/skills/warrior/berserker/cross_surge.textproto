@@ -1,0 +1,17 @@
+# GMS splits this in two: a buff worth 10+floor(L/2)% final damage on an MP
+# cost and a timer, and a passive worth 2L+10% that is always on. Nothing here
+# spends MP or watches a timer, so the two are summed and always on -- 22.5% at
+# level 1 climbing to 70% at 20.
+#
+# The other half of the GMS skill cuts damage taken by a share of the HP the
+# character is missing. That is dropped: it pays most when nearly dead, and a
+# fight that heals a tenth of the pool on every beat never sits there.
+name: "Cross Surge"
+skill_order: 2
+description:
+  "Trade steadiness for fury. Increases the damage of everything you swing."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BERSERKER
+max_level: 20
+base { final_dmg_pct: 0.225 }
+per_level { final_dmg_pct: 0.025 }

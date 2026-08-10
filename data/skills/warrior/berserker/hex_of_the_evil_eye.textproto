@@ -1,0 +1,24 @@
+# GMS re-applies this every 24-4*floor(L/4) seconds for 20+4L, so it is up
+# almost always -- and there is no buff timer here anyway, so it simply is.
+# Party members get half; there are no party members.
+#
+# The magic attack GMS grants alongside the weapon attack is dropped: no
+# warrior weapon carries any, so it would be a row of zeroes.
+name: "Hex of the Evil Eye"
+skill_order: 4
+description:
+  "The Evil Eye turns its regard on you instead. Increases Attack, DEF and "
+  "Critical Rate."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BERSERKER
+max_level: 20
+base {
+  attack: 2
+  def: 25
+  crit_rate: 0.005
+}
+per_level {
+  attack: 2
+  def: 25
+  crit_rate: 0.005
+}

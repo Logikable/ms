@@ -1,0 +1,15 @@
+# GMS gives no frame data for the animation, so it swings at the same 780ms as
+# Spear Sweep, the skill it replaces as the Berserker's main attack.
+name: "La Mancha Spear"
+skill_order: 1
+description:
+  "The spear goes round in one long spin, and everything standing close "
+  "enough is inside it."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_BERSERKER
+max_level: 20
+base_delay_ms: 780
+max_enemies: 10
+lines: 4
+base { skill_pct: 1.47 }
+per_level { skill_pct: 0.02 }

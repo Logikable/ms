@@ -1,0 +1,27 @@
+# Not a replacement for Evil Eye Shock. GMS reads as one -- it repeats the base
+# skill's whole description -- but KMS calls it a "강화판이자 추가타 패시브", an
+# enhancement AND an additional-hit passive: the base scream still lands, and
+# this is a second volley fired with it. Which is why a level 1 of this is
+# worth less than a maxed Evil Eye Shock and is still worth buying.
+#
+# So it is an auto attack of its own on the same clock. The 2 seconds GMS also
+# takes off the base skill's cooldown are not modelled -- one skill cannot
+# reach into another here, and the stun is already left out for its own
+# reasons.
+name: "Evil Eye Shock II"
+skill_order: 3
+description:
+  "The Evil Eye screams a second time, and the dark goes out from it in four "
+  "directions at once."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_BERSERKER
+max_level: 20
+required_skill {
+  skill_name: "Evil Eye Shock"
+  level: 10
+}
+max_enemies: 10
+lines: 6
+cast_interval_seconds: 12.0
+base { skill_pct: 1.39 }
+per_level { skill_pct: 0.04 }

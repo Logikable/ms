@@ -1,0 +1,26 @@
+# GMS caps this at 10 and ends at 30% critical rate and 8% critical damage.
+# Stretched over 20 levels to the same two endpoints, so the book totals 120 --
+# the levels are finer, the skill is no stronger.
+#
+# The recovery is GMS's "10*L% chance to recover 2% of Max HP during the
+# attack", which at their max is every attack. Written here as the expectation
+# it comes to, because that is what an expected-damage fight can spend: 0.1% of
+# the pool per landed swing at level 1, 2% at 20.
+name: "Lord of Darkness"
+skill_order: 5
+description:
+  "The dark answers to you now. Increases Critical Rate and Critical Damage, "
+  "and returns some of your HP as you attack."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BERSERKER
+max_level: 20
+base {
+  crit_rate: 0.11
+  crit_dmg: 0.0325
+  hp_recover_pct: 0.001
+}
+per_level {
+  crit_rate: 0.01
+  crit_dmg: 0.0025
+  hp_recover_pct: 0.001
+}

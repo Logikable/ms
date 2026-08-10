@@ -25,8 +25,9 @@ using bazel::tools::cpp::runfiles::Runfiles;
 
 // What a job stage's levels pay out, indexed by stage: 3 SP a level over the
 // span that feeds it, with the advancement itself granting nothing. Levels
-// 11-30 feed stage 1 and 31-60 feed stage 2, so 60 and then 90.
-constexpr int kSpByStage[] = {0, 60, 90};
+// 11-30 feed stage 1, 31-60 feed stage 2 and 61-100 feed stage 3 -- so 60,
+// then 90, then 120.
+constexpr int kSpByStage[] = {0, 60, 90, 120};
 
 std::map<std::string, Skill> LoadSkills() {
   std::string err;
@@ -99,7 +100,8 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
                                      JOB_ADVANCEMENT_FIRE_POISON_WIZARD,
                                      JOB_ADVANCEMENT_CLERIC,
                                      JOB_ADVANCEMENT_ASSASSIN,
-                                     JOB_ADVANCEMENT_BANDIT};
+                                     JOB_ADVANCEMENT_BANDIT,
+                                     JOB_ADVANCEMENT_BERSERKER};
   for (JobAdvancement advancement : kWritten) {
     EXPECT_TRUE(cost_by_advancement.count(advancement))
         << "advancement " << advancement << " has no skills at all";
@@ -113,6 +115,62 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
     EXPECT_EQ(entry.second, kSpByStage[stage])
         << "advancement " << entry.first << " costs " << entry.second
         << " against the " << kSpByStage[stage] << " its levels pay out";
+  }
+}
+
+// A requirement may name a skill from a book below it -- Evil Eye Shock II
+// waits on the Spearman's Evil Eye Shock -- because learned levels are keyed
+// by display name and a character keeps every book they climbed through. What
+// it may not do is name a book the same character could never hold, which is
+// what would leave a skill permanently unbuyable.
+TEST(SkillDataTest, EveryRequirementNamesASkillTheSameCharacterCanHold) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  const Job kJobs[] = {JOB_SWORDMAN,
+                       JOB_FIGHTER,
+                       JOB_PAGE,
+                       JOB_SPEARMAN,
+                       JOB_BERSERKER,
+                       JOB_ARCHER,
+                       JOB_HUNTER,
+                       JOB_CROSSBOWMAN,
+                       JOB_MAGICIAN,
+                       JOB_ICE_LIGHTNING_WIZARD,
+                       JOB_FIRE_POISON_WIZARD,
+                       JOB_CLERIC,
+                       JOB_ROGUE,
+                       JOB_ASSASSIN,
+                       JOB_BANDIT};
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    if (!entry.second.has_required_skill()) {
+      continue;
+    }
+    const SkillRequirement& required = entry.second.required_skill();
+    // Some job that holds the requiring skill's book has to also hold a book
+    // the required name is in, at a level it can be raised to.
+    bool satisfiable = false;
+    for (Job job : kJobs) {
+      std::set<JobAdvancement> books;
+      for (int stage = 1; stage <= 3; ++stage) {
+        books.insert(AdvancementForJobStage(job, stage));
+      }
+      if (books.count(entry.second.job_advancement()) == 0) {
+        continue;
+      }
+      for (const std::pair<const std::string, Skill>& other : skills) {
+        if (other.second.name() != required.skill_name() ||
+            books.count(other.second.job_advancement()) == 0) {
+          continue;
+        }
+        EXPECT_LE(required.level(), other.second.max_level())
+            << entry.first << " waits on a level of " << required.skill_name()
+            << " that cannot be reached";
+        satisfiable = true;
+      }
+    }
+    EXPECT_GT(required.level(), 0) << entry.first;
+    EXPECT_TRUE(satisfiable)
+        << entry.first << " waits on \"" << required.skill_name()
+        << "\", which no character holding it can learn";
   }
 }
 
@@ -366,36 +424,6 @@ TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
             << entry.second.name() << "\" and so share one learned level";
       }
     }
-  }
-}
-
-// A requirement naming a skill that is not in the catalog locks its skill
-// forever and says so in words the player cannot act on. Learned levels are
-// keyed by display name, so that is what has to match -- but within the book,
-// since each 2nd-job warrior has a Weapon Mastery of their own and a skill
-// must wait on its own. Waiting on another book's is waiting forever.
-TEST(SkillDataTest, EveryRequirementNamesASkillInTheSameBook) {
-  std::map<std::string, Skill> skills = LoadSkills();
-  std::map<std::pair<int, std::string>, const Skill*> by_book_and_name;
-  for (const std::pair<const std::string, Skill>& entry : skills) {
-    by_book_and_name[{entry.second.job_advancement(), entry.second.name()}] =
-        &entry.second;
-  }
-  for (const std::pair<const std::string, Skill>& entry : skills) {
-    if (!entry.second.has_required_skill()) {
-      continue;
-    }
-    const SkillRequirement& required = entry.second.required_skill();
-    std::map<std::pair<int, std::string>, const Skill*>::const_iterator it =
-        by_book_and_name.find(
-            {entry.second.job_advancement(), required.skill_name()});
-    ASSERT_NE(it, by_book_and_name.end())
-        << entry.first << " waits on \"" << required.skill_name()
-        << "\", which nothing in its own book is called";
-    EXPECT_GT(required.level(), 0) << entry.first;
-    EXPECT_LE(required.level(), it->second->max_level())
-        << entry.first << " waits on a level of " << required.skill_name()
-        << " that cannot be reached";
   }
 }
 
