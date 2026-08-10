@@ -26,6 +26,10 @@ struct OffenseStats {
   int lines = 1;            // hits per attack
   double damage_pct = 0.0;  // additive %dmg, as fraction
   double boss_pct = 0.0;    // additive boss %dmg; applies only vs bosses
+  // Added to skill_pct against anything that is not a boss, so it is worth its
+  // value once per line. Comes from the attack being swung rather than from
+  // the character, unlike boss_pct -- see SkillEffect::normal_skill_pct.
+  double normal_skill_pct = 0.0;
   // Both sit atop every character's base pair in constants.h, which the
   // formula adds; these carry only what gear and skills bought.
   double crit_rate = 0.0;      // 0..1

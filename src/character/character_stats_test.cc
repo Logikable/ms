@@ -653,6 +653,84 @@ TEST_F(DerivedStatsTest, ComboOrbsAreWorthTheirAttackApiece) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 10);
 }
 
+// The skill pricing the orbs is not the skill handing them out, so the count
+// has to reach across the book: Combo Synergy states final damage per orb and
+// Combo Attack alone says there are five. Priced against the ring rather than
+// against nothing, the pair is worth 5 x 5% -- and against the same ring, the
+// attack per orb still lands.
+TEST_F(DerivedStatsTest, OneSkillPricesTheOrbsAnotherHandsOut) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill combo;
+  combo.set_name("Combo Attack");
+  combo.set_kind(SKILL_KIND_PASSIVE);
+  combo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  combo.set_max_level(1);
+  combo.set_combo_orbs(5);
+  combo.mutable_base()->set_attack_per_combo_orb(2);
+  Skill synergy;
+  synergy.set_name("Combo Synergy");
+  synergy.set_kind(SKILL_KIND_PASSIVE);
+  synergy.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  synergy.set_max_level(20);
+  synergy.mutable_base()->set_final_dmg_pct_per_combo_orb(0.0025);
+  synergy.mutable_per_level()->set_final_dmg_pct_per_combo_orb(0.0025);
+  std::map<std::string, Skill> skills = {{"combo_attack", combo},
+                                         {"combo_synergy", synergy}};
+  ASSERT_TRUE(c.LearnSkill(combo, 1));
+  ASSERT_TRUE(c.LearnSkill(synergy, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.attack(), 10);
+  EXPECT_NEAR(stats.final_dmg_pct, 0.25, 1e-9);
+}
+
+// A character carries one ring of orbs however many skills describe it, so two
+// skills naming a count leave the larger, not the pair added up. This is the
+// rule that matters when a later skill raises the maximum -- summed, it would
+// stack on the old count instead of replacing it.
+TEST_F(DerivedStatsTest, TwoOrbCountsLeaveTheLargerRing) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  std::map<std::string, Skill> skills;
+  int counts[] = {5, 8};
+  for (int i = 0; i < 2; ++i) {
+    Skill skill;
+    skill.set_name("Combo " + std::to_string(i));
+    skill.set_kind(SKILL_KIND_PASSIVE);
+    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    skill.set_max_level(1);
+    skill.set_combo_orbs(counts[i]);
+    skills.insert({"combo_" + std::to_string(i), skill});
+    ASSERT_TRUE(c.LearnSkill(skill, 1));
+  }
+  Skill priced;
+  priced.set_name("Combo Attack");
+  priced.set_kind(SKILL_KIND_PASSIVE);
+  priced.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  priced.set_max_level(1);
+  priced.mutable_base()->set_attack_per_combo_orb(2);
+  skills.insert({"combo_attack", priced});
+  ASSERT_TRUE(c.LearnSkill(priced, 1));
+
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 16);
+}
+
+// A ring nobody hands out is no ring: the bargain is priced against nothing
+// and the character is left with the plain final damage they bought.
+TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {
+  CharacterInstance c = MakeCharacter(rng_, 60, 0);
+  Skill synergy;
+  synergy.set_name("Combo Synergy");
+  synergy.set_kind(SKILL_KIND_PASSIVE);
+  synergy.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  synergy.set_max_level(20);
+  synergy.mutable_base()->set_final_dmg_pct_per_combo_orb(0.05);
+  synergy.mutable_base()->set_final_dmg_pct(0.10);
+  std::map<std::string, Skill> skills = {{"combo_synergy", synergy}};
+  ASSERT_TRUE(c.LearnSkill(synergy, 1));
+
+  EXPECT_NEAR(DerivedStatsFor(c, skills).final_dmg_pct, 0.10, 1e-9);
+}
+
 // The two damage levers differ only once a second source exists: % damage
 // sums, final damage multiplies. Two skills of 10% each come to 20% and 21%.
 TEST_F(DerivedStatsTest, DamagePercentSumsAndFinalDamageMultiplies) {

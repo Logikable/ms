@@ -90,6 +90,8 @@ std::string BranchName(Job job) {
       return "Bandit";
     case JOB_BERSERKER:
       return "Berserker";
+    case JOB_CRUSADER:
+      return "Crusader";
     default:
       return "?";
   }
@@ -436,6 +438,8 @@ void Run(int level) {
       {JOB_BANDIT, EQUIP_TYPE_DAGGER},
       {JOB_BERSERKER, EQUIP_TYPE_SPEAR},
       {JOB_BERSERKER, EQUIP_TYPE_POLEARM},
+      {JOB_CRUSADER, EQUIP_TYPE_TWO_HANDED_SWORD},
+      {JOB_CRUSADER, EQUIP_TYPE_TWO_HANDED_AXE},
   };
 
   std::printf(

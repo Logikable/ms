@@ -1,0 +1,19 @@
+# GMS pays the final damage only against an enemy already pierced or held, and
+# caps this at 10. Nothing here inflicts either, so it is permanent -- and
+# stretched over 20 levels to GMS's own endpoints, 25% and 20%.
+name: "Chance Attack"
+skill_order: 5
+description:
+  "You have learned where a fight is already lost. Permanently increases "
+  "Final Damage and Critical Rate."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CRUSADER
+max_level: 20
+base {
+  final_dmg_pct: 0.06
+  crit_rate: 0.01
+}
+per_level {
+  final_dmg_pct: 0.01
+  crit_rate: 0.01
+}

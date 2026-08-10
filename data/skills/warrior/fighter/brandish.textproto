@@ -3,6 +3,7 @@ skill_order: 1
 description:
   "A broad, driving swing that carries through everything in front of you."
 kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_SWORDSMANSHIP
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 20
 base_delay_ms: 780

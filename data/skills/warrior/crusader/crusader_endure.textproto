@@ -1,0 +1,23 @@
+# GMS caps this at 14 and ends at +30 of each. Stretched over 20 levels to the
+# same place, starting at 11 rather than the Berserker's 1: the Hero line's
+# copy of the skill is the stronger one.
+#
+# Nothing in this game inflicts an abnormal status or deals elemental damage,
+# so this grants nothing today. Written out in full anyway -- the figures
+# belong with the skill, and the stats page shows both rows.
+name: "Endure"
+skill_order: 6
+description:
+  "Take the hit and keep the footing. Increases resistance to abnormal status "
+  "and to elemental damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CRUSADER
+max_level: 20
+base {
+  status_resistance: 11
+  elemental_resistance: 0.11
+}
+per_level {
+  status_resistance: 1
+  elemental_resistance: 0.01
+}

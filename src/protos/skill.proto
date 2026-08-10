@@ -37,6 +37,10 @@ enum SkillTag {
   // reads it yet: what turns a Benevolence skill into its Vengeance form is a
   // Hyper Skill, which is far above this game's cap.
   SKILL_TAG_BENEVOLENCE = 3;
+  // The Hero line's Swordsmanship group -- Brandish and Intrepid Slash, the
+  // two swings GMS marks with it. Nothing reads it yet: what reads it in GMS
+  // is a 4th job skill, far above this game's cap.
+  SKILL_TAG_SWORDSMANSHIP = 4;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we
@@ -123,6 +127,15 @@ message SkillEffect {
   // than as the product because a later skill raises the count and only the
   // count. See Skill.combo_orbs.
   int32 attack_per_combo_orb = 102;
+  // The Crusader's, and the same bargain per orb as the field above.
+  double final_dmg_pct_per_combo_orb = 108;
+  // The Crusader's. Damage percentage this attack ADDS against anything that
+  // is not a boss, per line, exactly as skill_pct is per line -- so a 180%
+  // swing carrying 180% here lands 360% on an ordinary monster. GMS states it
+  // as percentage POINTS on the skill for that reason, and it is Beam Blade's
+  // whole identity. Not the equipment's boss damage in mirror image: that one
+  // is a share of the character's damage, and this is a share of one swing's.
+  double normal_skill_pct = 109;
   // The Magician's. Share of incoming damage that comes out of MP rather than
   // HP. Nothing tracks MP, so it lands as plain reduction alongside
   // damage_taken_pct.

@@ -1,0 +1,16 @@
+# GMS's 198 + 3*L%, three hits, and Brandish's animation -- the swing it grows
+# out of, one line longer.
+name: "Intrepid Slash"
+skill_order: 1
+description:
+  "Three cuts before the first has finished landing. Deals consecutive "
+  "attacks to enemies in front of you."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_SWORDSMANSHIP
+job_advancement: JOB_ADVANCEMENT_CRUSADER
+max_level: 20
+base_delay_ms: 780
+max_enemies: 6
+lines: 3
+base { skill_pct: 2.01 }
+per_level { skill_pct: 0.03 }

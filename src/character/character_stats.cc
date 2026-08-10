@@ -68,6 +68,14 @@ struct PassiveTotals {
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
   int attack_speed = 0;
+  // Combo Orbs, and the two bargains priced per orb. The count is the best any
+  // learned passive grants rather than the sum -- a character carries one ring
+  // of orbs however many skills describe it -- and the bargains are folded
+  // against it only once every passive has been read, because the skill
+  // offering one is not the skill that says how many orbs there are.
+  int combo_orbs = 0;
+  int attack_per_combo_orb = 0;
+  double final_dmg_pct_per_combo_orb = 0.0;
 };
 
 // Folds one skill's levers in at `level`, on top of whatever is already there.
@@ -108,6 +116,11 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.elemental_resistance +=
       base.elemental_resistance() + per.elemental_resistance() * (level - 1);
   totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
+  totals.attack_per_combo_orb +=
+      base.attack_per_combo_orb() + per.attack_per_combo_orb() * (level - 1);
+  totals.final_dmg_pct_per_combo_orb +=
+      base.final_dmg_pct_per_combo_orb() +
+      per.final_dmg_pct_per_combo_orb() * (level - 1);
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
   // The one lever taken at its best rather than summed: two masteries are not
   // twice as steady a swing, they are the better of the two.
@@ -140,11 +153,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
   AddEffect(skill.base(), skill.per_level(), level, totals);
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
-  // The orbs are taken as full, so what a per-orb grant is worth is the whole
-  // ring of them. See SkillEffect::attack_per_combo_orb.
-  totals.attack += (skill.base().attack_per_combo_orb() +
-                    skill.per_level().attack_per_combo_orb() * (level - 1)) *
-                   skill.combo_orbs();
+  totals.combo_orbs = std::max(totals.combo_orbs, skill.combo_orbs());
   // A weapon bonus is a second helping of the same levers for a subset of the
   // weapons the skill accepts. Read at level 1: it is flat by construction.
   for (const WeaponBonus& bonus : skill.weapon_bonus()) {
@@ -155,6 +164,17 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
                      totals);
     }
   }
+}
+
+// Cashes in the per-orb bargains against the ring of orbs the character
+// carries. The orbs are taken as full: a fight paid out in expected damage has
+// nowhere to put a counter, and GMS builds them up over 40% of the swings.
+// The final damage lands as ONE source however many skills priced it, which is
+// what "total applied between combo orbs" means.
+void FoldComboOrbs(PassiveTotals& totals) {
+  totals.attack += totals.attack_per_combo_orb * totals.combo_orbs;
+  double orbs = totals.final_dmg_pct_per_combo_orb * totals.combo_orbs;
+  totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + orbs) - 1.0;
 }
 
 // Sums every passive the character has learned. HP has to know its whole flat
@@ -183,6 +203,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
       AddPassive(skill, level, weapon, totals);
     }
   }
+  FoldComboOrbs(totals);
   return totals;
 }
 

@@ -41,9 +41,12 @@ Character MakeBaseBeginnerProto() {
 // earning AP and SP past the cap, since LevelUp is not bounded by it.
 constexpr int kTestLevelUpItems = 199;
 
-// Where the workbench's character stands when --job says nothing: the end of
-// 2nd job, holding the whole of what this game has to hand out.
-constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_FIGHTER;
+// Where the workbench's character stands when --job says nothing: the top of
+// the Hero line as far as it is written, holding the whole of what this game
+// has to hand out. It moves up with the line rather than staying put -- a
+// workbench with an advancement still waiting is one the tester has to finish
+// before they can look at anything.
+constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_CRUSADER;
 
 // Everything the workbench dresses a job in: the best of each thing it carries
 // that its starting level can wear. Advancing hands over gear for the level it
@@ -87,11 +90,15 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"steely_throwing_knives", "dark_gigantic", "evil_ender_charm"};
     case JOB_BANDIT:
       return {"deadly_fin", "vanishing_shadow"};
-    // The 3rd job, at level 100 -- the top of the game, so this is the best
-    // gear there is. The spear over the polearm on //analysis:weapon_sim, and
-    // the off-hand is still the Spearman's: a 3rd job opens no new slot.
+    // The 3rd jobs, at level 100 -- the top of the game, so this is the best
+    // gear there is. Each takes the better of its line's two weapons on
+    // //analysis:weapon_sim, and keeps its 2nd job's off-hand: a 3rd job opens
+    // no new slot. The Crusader's axe beats the sword of the same tier on
+    // Weapon Mastery's axe bonus alone.
     case JOB_BERSERKER:
       return {"pinaka", "berserk_chain"};
+    case JOB_CRUSADER:
+      return {"tavar", "virtues_medallion"};
     default:
       return StarterEquipsFor(job);
   }

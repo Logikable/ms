@@ -83,6 +83,26 @@ TEST_F(OffenseTest, BossPctAppliesOnlyToBosses) {
                    25.875 * kEqualLevel * kBaseCrit);
 }
 
+// The mirror of boss_pct, and pointedly not in the same place: it joins the
+// swing's own percentage, so it is worth its value once per LINE. Three lines
+// of 100% carrying 50% land 450%, where 50% of plain damage would land 350%.
+TEST_F(OffenseTest, NormalSkillPctJoinsTheSwingOnceALine) {
+  OffenseStats s = Baseline();
+  s.lines = 3;
+  s.normal_skill_pct = 0.50;
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   116.4375 * kEqualLevel * kBaseCrit);
+}
+
+// A boss is what the bonus is not for, so it drops out entirely -- leaving the
+// half-elemental every boss takes as the only difference from a plain swing.
+TEST_F(OffenseTest, NormalSkillPctIsWorthNothingAgainstABoss) {
+  OffenseStats s = Baseline();
+  s.normal_skill_pct = 0.50;
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
+                   25.875 * 0.5 * kEqualLevel * kBaseCrit);
+}
+
 // A rate of 1 is already every swing, so the base 5% has nowhere to go and the
 // figure carries the base bonus alone rather than kBaseCrit on top of it.
 TEST_F(OffenseTest, ARateOfOneCritsEverySwingAndNoMore) {
@@ -217,6 +237,28 @@ TEST(WeaponConstantTest, AFighterSwingsASwordHarderThanAnyoneElse) {
                    1.44);
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_PAGE, EQUIP_TYPE_ONE_HANDED_SWORD), 1.24);
   EXPECT_DOUBLE_EQ(WeaponConstant(JOB_PAGE, EQUIP_TYPE_TWO_HANDED_SWORD), 1.34);
+}
+
+// A line's constant belongs to the line, not to one rung of it: a Crusader is
+// still on the Hero line and a Berserker still on the Dark Knight's. Checked
+// against the 2nd job rather than against a figure, so the pair cannot drift.
+TEST(WeaponConstantTest, AThirdJobSwingsWhatItsLineSwings) {
+  const EquipType kWeapons[] = {
+      EQUIP_TYPE_ONE_HANDED_SWORD,
+      EQUIP_TYPE_TWO_HANDED_SWORD,
+      EQUIP_TYPE_ONE_HANDED_AXE,
+      EQUIP_TYPE_TWO_HANDED_AXE,
+      EQUIP_TYPE_SPEAR,
+      EQUIP_TYPE_POLEARM,
+  };
+  for (EquipType weapon : kWeapons) {
+    EXPECT_DOUBLE_EQ(WeaponConstant(JOB_CRUSADER, weapon),
+                     WeaponConstant(JOB_FIGHTER, weapon))
+        << EquipType_Name(weapon);
+    EXPECT_DOUBLE_EQ(WeaponConstant(JOB_BERSERKER, weapon),
+                     WeaponConstant(JOB_SPEARMAN, weapon))
+        << EquipType_Name(weapon);
+  }
 }
 
 // An axe is the Hero line's own weapon, so the default already is theirs and

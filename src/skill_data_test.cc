@@ -29,6 +29,33 @@ using bazel::tools::cpp::runfiles::Runfiles;
 // then 90, then 120.
 constexpr int kSpByStage[] = {0, 60, 90, 120};
 
+// Every value of an enum bar its UNSPECIFIED zero, taken from the descriptor
+// rather than listed: a hardcoded list is one a new job joins only when
+// somebody remembers to add it, and a job nobody remembers is a job whose book
+// no test below ever looks at.
+template <typename Enum>
+std::vector<Enum> EveryValueOf(const google::protobuf::EnumDescriptor* desc) {
+  std::vector<Enum> all;
+  for (int i = 0; i < desc->value_count(); ++i) {
+    if (desc->value(i)->number() != 0) {
+      all.push_back(static_cast<Enum>(desc->value(i)->number()));
+    }
+  }
+  return all;
+}
+
+// The books one job holds: their own and every one they climbed through.
+std::set<JobAdvancement> BooksFor(Job job) {
+  std::set<JobAdvancement> books;
+  for (int stage = 1; stage <= 3; ++stage) {
+    JobAdvancement advancement = AdvancementForJobStage(job, stage);
+    if (advancement != JOB_ADVANCEMENT_UNSPECIFIED) {
+      books.insert(advancement);
+    }
+  }
+  return books;
+}
+
 std::map<std::string, Skill> LoadSkills() {
   std::string err;
   std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
@@ -83,26 +110,11 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
     cost_by_advancement[entry.second.job_advancement()] +=
         entry.second.max_level();
   }
-  // Named one by one rather than counted: the skills sit in a folder per job,
-  // and a folder that stopped being read would take a whole advancement out of
-  // the map, leaving the rest to sum correctly and the check to pass on the
-  // others while one job had no book at all.
-  const JobAdvancement kWritten[] = {JOB_ADVANCEMENT_SWORDMAN,
-                                     JOB_ADVANCEMENT_ARCHER,
-                                     JOB_ADVANCEMENT_MAGICIAN,
-                                     JOB_ADVANCEMENT_ROGUE,
-                                     JOB_ADVANCEMENT_SPEARMAN,
-                                     JOB_ADVANCEMENT_FIGHTER,
-                                     JOB_ADVANCEMENT_PAGE,
-                                     JOB_ADVANCEMENT_HUNTER,
-                                     JOB_ADVANCEMENT_CROSSBOWMAN,
-                                     JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD,
-                                     JOB_ADVANCEMENT_FIRE_POISON_WIZARD,
-                                     JOB_ADVANCEMENT_CLERIC,
-                                     JOB_ADVANCEMENT_ASSASSIN,
-                                     JOB_ADVANCEMENT_BANDIT,
-                                     JOB_ADVANCEMENT_BERSERKER};
-  for (JobAdvancement advancement : kWritten) {
+  // Every advancement has to turn up, not just sum correctly: the skills sit in
+  // a folder per job, and a folder that stopped being read would drop one out
+  // of the map entirely and leave the rest to pass on their own.
+  for (JobAdvancement advancement :
+       EveryValueOf<JobAdvancement>(JobAdvancement_descriptor())) {
     EXPECT_TRUE(cost_by_advancement.count(advancement))
         << "advancement " << advancement << " has no skills at all";
   }
@@ -125,21 +137,7 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
 // what would leave a skill permanently unbuyable.
 TEST(SkillDataTest, EveryRequirementNamesASkillTheSameCharacterCanHold) {
   std::map<std::string, Skill> skills = LoadSkills();
-  const Job kJobs[] = {JOB_SWORDMAN,
-                       JOB_FIGHTER,
-                       JOB_PAGE,
-                       JOB_SPEARMAN,
-                       JOB_BERSERKER,
-                       JOB_ARCHER,
-                       JOB_HUNTER,
-                       JOB_CROSSBOWMAN,
-                       JOB_MAGICIAN,
-                       JOB_ICE_LIGHTNING_WIZARD,
-                       JOB_FIRE_POISON_WIZARD,
-                       JOB_CLERIC,
-                       JOB_ROGUE,
-                       JOB_ASSASSIN,
-                       JOB_BANDIT};
+  std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
   for (const std::pair<const std::string, Skill>& entry : skills) {
     if (!entry.second.has_required_skill()) {
       continue;
@@ -148,11 +146,8 @@ TEST(SkillDataTest, EveryRequirementNamesASkillTheSameCharacterCanHold) {
     // Some job that holds the requiring skill's book has to also hold a book
     // the required name is in, at a level it can be raised to.
     bool satisfiable = false;
-    for (Job job : kJobs) {
-      std::set<JobAdvancement> books;
-      for (int stage = 1; stage <= 3; ++stage) {
-        books.insert(AdvancementForJobStage(job, stage));
-      }
+    for (Job job : jobs) {
+      std::set<JobAdvancement> books = BooksFor(job);
       if (books.count(entry.second.job_advancement()) == 0) {
         continue;
       }
@@ -353,13 +348,35 @@ TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   }
 }
 
-// Attack per orb is worth the orbs times the attack, so either half alone is
-// a skill that says something and grants nothing.
-TEST(SkillDataTest, ComboOrbsAndTheirAttackComeTogether) {
-  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+// A per-orb bargain is worth the orbs times the bargain, so one without the
+// other is a skill that says something and grants nothing. The two halves need
+// not be the same skill -- Combo Synergy prices the orbs Combo Attack hands
+// out -- but they do have to reach the same character.
+TEST(SkillDataTest, EveryPerOrbBargainHasOrbsToBePaidAgainst) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
+  for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    EXPECT_EQ(skill.combo_orbs() > 0, skill.base().attack_per_combo_orb() > 0)
-        << entry.first << " has one half of a Combo Orb grant";
+    bool prices_orbs = skill.base().attack_per_combo_orb() > 0 ||
+                       skill.base().final_dmg_pct_per_combo_orb() > 0.0;
+    if (!prices_orbs) {
+      EXPECT_EQ(skill.combo_orbs(), 0)
+          << entry.first << " hands out orbs nothing it grants is worth";
+      continue;
+    }
+    bool paid = false;
+    for (Job job : jobs) {
+      std::set<JobAdvancement> books = BooksFor(job);
+      if (books.count(skill.job_advancement()) == 0) {
+        continue;
+      }
+      for (const std::pair<const std::string, Skill>& other : skills) {
+        paid = paid || (other.second.combo_orbs() > 0 &&
+                        books.count(other.second.job_advancement()) > 0);
+      }
+    }
+    EXPECT_TRUE(paid) << entry.first
+                      << " prices Combo Orbs no character holding it carries";
   }
 }
 
@@ -372,11 +389,14 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
     if (skill.kind() == SKILL_KIND_PASSIVE) {
       EXPECT_EQ(skill.base().skill_pct(), 0.0)
           << entry.first << " is a passive carrying a swing's damage";
+      EXPECT_EQ(skill.base().normal_skill_pct(), 0.0)
+          << entry.first << " is a passive carrying a swing's damage";
     } else {
       EXPECT_EQ(skill.base().final_attack_chance(), 0.0)
           << entry.first << " is not a passive, so its levers go unread";
       EXPECT_EQ(skill.base().mastery(), 0.0) << entry.first;
       EXPECT_EQ(skill.base().str(), 0) << entry.first;
+      EXPECT_EQ(skill.base().final_dmg_pct_per_combo_orb(), 0.0) << entry.first;
     }
   }
 }
@@ -389,40 +409,19 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
 // both books do belong to one character.
 TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
   std::map<std::string, Skill> skills = LoadSkills();
-  const Job kJobs[] = {JOB_SWORDMAN,
-                       JOB_FIGHTER,
-                       JOB_PAGE,
-                       JOB_SPEARMAN,
-                       JOB_ARCHER,
-                       JOB_MAGICIAN,
-                       JOB_ROGUE,
-                       JOB_HUNTER,
-                       JOB_CROSSBOWMAN,
-                       JOB_ICE_LIGHTNING_WIZARD,
-                       JOB_FIRE_POISON_WIZARD,
-                       JOB_CLERIC,
-                       JOB_ASSASSIN,
-                       JOB_BANDIT};
-  for (Job job : kJobs) {
+  for (Job job : EveryValueOf<Job>(Job_descriptor())) {
+    std::set<JobAdvancement> books = BooksFor(job);
     std::map<std::string, std::string> stem_by_name;
-    // Every stage the job has a book at. Two is what exists; a stage past the
-    // last one simply answers with no advancement.
-    for (int stage = 1; stage <= 2; ++stage) {
-      JobAdvancement advancement = AdvancementForJobStage(job, stage);
-      if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+    for (const std::pair<const std::string, Skill>& entry : skills) {
+      if (books.count(entry.second.job_advancement()) == 0) {
         continue;
       }
-      for (const std::pair<const std::string, Skill>& entry : skills) {
-        if (entry.second.job_advancement() != advancement) {
-          continue;
-        }
-        std::pair<std::map<std::string, std::string>::iterator, bool> added =
-            stem_by_name.insert({entry.second.name(), entry.first});
-        EXPECT_TRUE(added.second)
-            << Job_Name(job) << " reaches both " << entry.first << " and "
-            << added.first->second << ", which are both called \""
-            << entry.second.name() << "\" and so share one learned level";
-      }
+      std::pair<std::map<std::string, std::string>::iterator, bool> added =
+          stem_by_name.insert({entry.second.name(), entry.first});
+      EXPECT_TRUE(added.second)
+          << Job_Name(job) << " reaches both " << entry.first << " and "
+          << added.first->second << ", which are both called \""
+          << entry.second.name() << "\" and so share one learned level";
     }
   }
 }

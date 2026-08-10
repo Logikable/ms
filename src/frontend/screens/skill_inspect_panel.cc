@@ -36,22 +36,38 @@ struct PercentLever {
   const char* label;
   double (SkillEffect::*fn)() const;
   Sign sign;
+  // What the percentage is charged against, when it is not the whole of the
+  // effect: a per-orb bargain is worth five times what its row says, and a row
+  // that did not say so would read as the total.
+  const char* unit;
 };
 
 // Percentage levers in display order. Damage is not here -- an attack's own
 // percentage is its identity and gets a line of its own, above these.
 const PercentLever kPercentLevers[] = {
-    {"Max HP", &SkillEffect::max_hp_pct, kPlus},
-    {"Max MP", &SkillEffect::max_mp_pct, kPlus},
-    {"Damage", &SkillEffect::damage_pct, kPlus},
-    {"Final Damage", &SkillEffect::final_dmg_pct, kPlus},
-    {"Critical Rate", &SkillEffect::crit_rate, kPlus},
-    {"Critical Damage", &SkillEffect::crit_dmg, kPlus},
-    {"Mastery", &SkillEffect::mastery, kBare},
-    {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus},
-    {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare},
-    {"Reflected", &SkillEffect::damage_reflect_pct, kBare},
-    {"Recovery", &SkillEffect::heal_pct, kPlus},
+    {"Max HP", &SkillEffect::max_hp_pct, kPlus, ""},
+    {"Max MP", &SkillEffect::max_mp_pct, kPlus, ""},
+    {"Damage", &SkillEffect::damage_pct, kPlus, ""},
+    {"Final Damage", &SkillEffect::final_dmg_pct, kPlus, ""},
+    {"Final Damage", &SkillEffect::final_dmg_pct_per_combo_orb, kPlus,
+     " per Combo Orb"},
+    {"Critical Rate", &SkillEffect::crit_rate, kPlus, ""},
+    {"Critical Damage", &SkillEffect::crit_dmg, kPlus, ""},
+    {"Mastery", &SkillEffect::mastery, kBare, ""},
+    {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus, ""},
+    {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare, ""},
+    {"Reflected", &SkillEffect::damage_reflect_pct, kBare, ""},
+    {"Recovery", &SkillEffect::heal_pct, kPlus, ""},
+    {"Recovery on Hit", &SkillEffect::hp_recover_pct, kPlus, ""},
+    {"Normal Monsters", &SkillEffect::normal_skill_pct, kPlus, ""},
+    {"Elemental Resist", &SkillEffect::elemental_resistance, kPlus, ""},
+};
+
+// The levers that are a plain count rather than a share of anything. Only
+// abnormal status resistance, which GMS states on a scale of its own -- and
+// which is a double for the half point Vessel of Light grants.
+const PercentLever kNumberLevers[] = {
+    {"Status Resist", &SkillEffect::status_resistance, kPlus, ""},
 };
 
 struct FlatLever {
@@ -249,6 +265,18 @@ std::vector<ftxui::Element> RequirementRows(const Skill& skill) {
   return rows;
 }
 
+// A plain number, to one decimal, with a whole number left whole. The same
+// rounding FormatPercent does and for the same reason.
+std::string FormatNumber(double value) {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%.1f", std::round(value * 10.0) / 10.0);
+  std::string s = buf;
+  if (s.size() > 2 && s.compare(s.size() - 2, 2, ".0") == 0) {
+    s.resize(s.size() - 2);
+  }
+  return s;
+}
+
 // The rows that hold at every level: what the skill asks for, how far a swing
 // reaches, and how often it goes off on its own. A skill with none of them
 // gets no block at all.
@@ -341,8 +369,16 @@ std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
     } else if (lever.sign == kMinus) {
       sign = "-";
     }
-    rows.push_back(
-        EffectRow(lever.label, sign + FormatPercent(value) + suffix));
+    rows.push_back(EffectRow(
+        lever.label, sign + FormatPercent(value) + lever.unit + suffix));
+  }
+  for (const PercentLever& lever : kNumberLevers) {
+    double value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);
+    if (value <= 0.0) {
+      continue;
+    }
+    rows.push_back(EffectRow(lever.label,
+                             "+" + FormatNumber(value) + lever.unit + suffix));
   }
   return rows;
 }

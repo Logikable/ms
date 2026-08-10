@@ -1,0 +1,13 @@
+# GMS recovers a share of the pool every few seconds, on a clock of its own.
+# There is no such clock here, so the recovery rides the attack instead -- a
+# tenth of a percent of the pool a swing at level 1, two percent at 20.
+name: "Self Recovery"
+skill_order: 4
+description:
+  "Wounds close between one blow and the next. Returns some of your HP as "
+  "you attack."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CRUSADER
+max_level: 20
+base { hp_recover_pct: 0.001 }
+per_level { hp_recover_pct: 0.001 }

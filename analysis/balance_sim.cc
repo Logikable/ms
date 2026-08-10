@@ -18,6 +18,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
+#include "absl/strings/ascii.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_format.h"
 #include "src/character/character.h"
@@ -100,7 +101,8 @@ std::vector<Job> PathTo(Job branch) {
 // character quietly.
 Job ParseBranch(const std::string& name) {
   Job job = JOB_UNSPECIFIED;
-  if (!Job_Parse("JOB_" + name, &job) || PathTo(job).size() < 2) {
+  if (!Job_Parse("JOB_" + absl::AsciiStrToUpper(name), &job) ||
+      PathTo(job).size() < 2) {
     LOG(FATAL) << "Unknown --job '" << name << "'";
   }
   return job;

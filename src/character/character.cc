@@ -115,6 +115,7 @@ LevelUpGain LevelUpGainFor(Job job) {
     case JOB_PAGE:
     case JOB_SPEARMAN:
     case JOB_BERSERKER:
+    case JOB_CRUSADER:
       return {48, 12};
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -135,6 +136,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_PAGE:
     case JOB_SPEARMAN:
     case JOB_BERSERKER:
+    case JOB_CRUSADER:
       return EQUIP_JOB_CATEGORY_WARRIOR;
     case JOB_ARCHER:
     case JOB_HUNTER:
@@ -214,6 +216,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_PAGE:
       case JOB_SPEARMAN:
       case JOB_BERSERKER:
+      case JOB_CRUSADER:
         return JOB_ADVANCEMENT_SWORDMAN;
       case JOB_ARCHER:
       case JOB_HUNTER:
@@ -235,6 +238,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
   if (stage == 2) {
     switch (job) {
       case JOB_FIGHTER:
+      case JOB_CRUSADER:
         return JOB_ADVANCEMENT_FIGHTER;
       case JOB_PAGE:
         return JOB_ADVANCEMENT_PAGE;
@@ -263,6 +267,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
     switch (job) {
       case JOB_BERSERKER:
         return JOB_ADVANCEMENT_BERSERKER;
+      case JOB_CRUSADER:
+        return JOB_ADVANCEMENT_CRUSADER;
       default:
         break;
     }
@@ -302,6 +308,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_BANDIT;
     case JOB_ADVANCEMENT_BERSERKER:
       return JOB_BERSERKER;
+    case JOB_ADVANCEMENT_CRUSADER:
+      return JOB_CRUSADER;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -392,6 +400,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_PAGE:
     case JOB_SPEARMAN:
     case JOB_BERSERKER:
+    case JOB_CRUSADER:
       return STAT_FIELD_STR;
     case JOB_ARCHER:
     case JOB_HUNTER:
@@ -433,10 +442,13 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
     return {JOB_ASSASSIN, JOB_BANDIT};
   }
   // The 3rd advancement narrows instead of forking: one branch per 2nd job,
-  // so the picker offers a single choice rather than a set. Only the Spearman
-  // has one written.
+  // so the picker offers a single choice rather than a set. The Page's White
+  // Knight is the one still unwritten.
   if (stage == 3 && job == JOB_SPEARMAN) {
     return {JOB_BERSERKER};
+  }
+  if (stage == 3 && job == JOB_FIGHTER) {
+    return {JOB_CRUSADER};
   }
   return {};
 }
@@ -460,6 +472,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_BANDIT:
       return 2;
     case JOB_ADVANCEMENT_BERSERKER:
+    case JOB_ADVANCEMENT_CRUSADER:
       return 3;
     default:
       return 0;

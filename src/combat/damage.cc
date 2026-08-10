@@ -29,9 +29,11 @@ struct WeaponConstantRow {
   double constant;
 };
 
-// Each weapon carrying the constant of the job line that owns it. The two
-// sword entries are the Paladin line's; the axes are the Hero line's, which
-// has no one-handed items yet but names the type in its skills.
+// Each weapon carrying the constant of the job line that owns it. The swords
+// and blunts are the Paladin line's (Page -> White Knight -> Paladin), the
+// axes the Hero line's (Fighter -> Crusader -> Hero), the spear and polearm
+// the Dark Knight line's (Spearman -> Berserker). Neither warrior line has a
+// one-handed item yet, but both name the type in their skills.
 const WeaponConstantRow kWeaponConstants[] = {
     {EQUIP_TYPE_ONE_HANDED_SWORD, 1.24},
     {EQUIP_TYPE_TWO_HANDED_SWORD, 1.34},
@@ -58,9 +60,14 @@ struct JobWeaponConstantRow {
 // it swings a sword harder than the Paladin line the sword's default comes
 // from. A first-job character is on no line yet and takes the default, so
 // advancing to a Fighter is worth a tenth of a multiplier on its own.
+//
+// A line's every job needs its own row -- a Crusader is still on the Hero line
+// and would otherwise swing a sword worse than the Fighter they were.
 const JobWeaponConstantRow kJobWeaponConstants[] = {
     {JOB_FIGHTER, EQUIP_TYPE_ONE_HANDED_SWORD, 1.34},
     {JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
+    {JOB_CRUSADER, EQUIP_TYPE_ONE_HANDED_SWORD, 1.34},
+    {JOB_CRUSADER, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
 };
 
 // Level multiplier: 1.1 at equal level, +0.02 per level above, capped at +5.
@@ -230,6 +237,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
     case JOB_PAGE:
     case JOB_SPEARMAN:
     case JOB_BERSERKER:
+    case JOB_CRUSADER:
     case JOB_BEGINNER:
       // STR primary, DEX secondary.
       offense.primary = allocated.str() + equipped.str();
@@ -276,6 +284,9 @@ OffenseStats OffenseStatsFor(Job job, int level,
     offense.skill_pct =
         attack_skill->base().skill_pct() +
         attack_skill->per_level().skill_pct() * (attack_level - 1);
+    offense.normal_skill_pct =
+        attack_skill->base().normal_skill_pct() +
+        attack_skill->per_level().normal_skill_pct() * (attack_level - 1);
     // A multi-hit skill strikes each target this many times per swing, so its
     // per-target damage is skill_pct once per line.
     offense.lines = std::max(1, attack_skill->lines());
@@ -294,7 +305,10 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
       stat_value * offense.attack / 100.0 * offense.weapon_constant;
   double damage = max_base * (1.0 + offense.mastery) / 2.0;
 
-  damage *= offense.lines * offense.skill_pct;
+  // A swing that hits normal monsters harder adds its bonus to the swing
+  // itself, so it is worth its value once per line rather than once per swing.
+  damage *= offense.lines *
+            (offense.skill_pct + (is_boss ? 0.0 : offense.normal_skill_pct));
   damage *= 1.0 + offense.damage_pct + (is_boss ? offense.boss_pct : 0.0);
   damage *= 1.0 + CritFactor(offense);
   damage *= 1.0 + offense.final_dmg_pct;

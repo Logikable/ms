@@ -48,29 +48,33 @@ GameState MakePlayModeState() {
 // Which branch the workbench's character takes -- a knob in game_state.cc,
 // meant to be flipped to look at another job's screens. Read rather than
 // named, so flipping it does not fail the tests below.
-Job WorkbenchSecondJob() {
+Job WorkbenchJob() {
   return MakeTestModeState().character.proto().job();
 }
 
 // One skill of each advancement the workbench's character passes through, so
 // the seeding has a book to spend its SP on. The levels are the real ones, so
 // what a stage's pool buys is the real question too.
-std::map<std::string, Skill> TwoStageBook() {
-  Skill first;
-  first.set_name("Slash Blast");
-  first.set_kind(SKILL_KIND_ATTACK);
-  first.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  first.set_max_level(60);
-  Skill second;
-  second.set_name("Second Swing");
-  second.set_kind(SKILL_KIND_ATTACK);
-  second.set_job_advancement(AdvancementForJobStage(WorkbenchSecondJob(), 2));
-  second.set_max_level(90);
-  return {{"slash_blast", first}, {"second_swing", second}};
+std::map<std::string, Skill> EveryStageBook() {
+  const int kSpByStage[] = {0, 60, 90, 120};
+  std::map<std::string, Skill> book;
+  for (int stage = 1; stage <= 3; ++stage) {
+    JobAdvancement advancement = AdvancementForJobStage(WorkbenchJob(), stage);
+    if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+      continue;
+    }
+    Skill skill;
+    skill.set_name("Stage " + std::to_string(stage) + " Swing");
+    skill.set_kind(SKILL_KIND_ATTACK);
+    skill.set_job_advancement(advancement);
+    skill.set_max_level(kSpByStage[stage]);
+    book.insert({"stage_" + std::to_string(stage), skill});
+  }
+  return book;
 }
 
 GameState MakeTestModeStateWithSkills() {
-  return GameState(SwordCatalog(), {}, {}, {}, {}, TwoStageBook(),
+  return GameState(SwordCatalog(), {}, {}, {}, {}, EveryStageBook(),
                    GameMode::kTest);
 }
 
@@ -126,14 +130,20 @@ TEST(GameStateTest, ConstructorStoresEveryCatalog) {
 // The workbench opens on a finished character, because everything past level
 // thirty is otherwise thirty hours away and there is no other way to look at
 // it. Play mode is where the climb is worth watching a level at a time.
-TEST(GameStateTest, TestModeStartsAtTheEndOfSecondJob) {
+TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   GameState test = MakeTestModeState();
-  // The top of 2nd job, which is no longer the level cap: the cap follows the
-  // maps and there are maps past 60 now.
-  EXPECT_EQ(test.character.proto().level(), NextAdvancementLevel(2));
-  EXPECT_EQ(test.character.proto().job_stage(), 2);
-  // Some warrior branch, not a particular one -- see WorkbenchSecondJob.
-  std::vector<Job> branches = JobChoicesForStage(JOB_SWORDMAN, 2);
+  // The top of 3rd job, which is also the level cap -- the cap follows the
+  // maps, and the maps stop at 100.
+  EXPECT_EQ(test.character.proto().level(), NextAdvancementLevel(3));
+  EXPECT_EQ(test.character.proto().job_stage(), 3);
+  // Some 2nd job's branch, not a particular one -- see WorkbenchJob.
+  std::vector<Job> second = JobChoicesForStage(JOB_SWORDMAN, 2);
+  std::vector<Job> branches;
+  for (Job job : second) {
+    for (Job third : JobChoicesForStage(job, 3)) {
+      branches.push_back(third);
+    }
+  }
   EXPECT_NE(
       std::find(branches.begin(), branches.end(), test.character.proto().job()),
       branches.end());
@@ -143,10 +153,11 @@ TEST(GameStateTest, TestModeStartsAtTheEndOfSecondJob) {
   EXPECT_EQ(test.character.proto().ap(), 0);
 }
 
-TEST(GameStateTest, TestModeStartsWithBothBooksBought) {
+TEST(GameStateTest, TestModeStartsWithEveryBookBought) {
   GameState state = MakeTestModeStateWithSkills();
   EXPECT_EQ(state.character.sp(1), 0);
   EXPECT_EQ(state.character.sp(2), 0);
+  EXPECT_EQ(state.character.sp(3), 0);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     EXPECT_EQ(state.character.skill_level(entry.second),
               entry.second.max_level())
