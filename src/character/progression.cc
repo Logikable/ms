@@ -31,9 +31,9 @@ constexpr Unlock kUnlocks[] = {
     // Far enough out that a player meets it once the early game is behind
     // them, and far enough that the meso for spell traces is coming in.
     {Feature::kScrolling, 40},
-    // Above kTrialLevelCap on purpose: star force is written and playable, but
-    // it is not what the trial is for, so it waits for the cap to lift. Only
-    // the workbench reaches it, by way of the Level-Up item.
+    // Held above the 2nd job so it arrives with the gear worth spending it on,
+    // rather than beside scrolling. It sat above the cap until the 61-100 maps
+    // lifted the cap past it; a played character reaches it now.
     {Feature::kStarForce, 70},
     {Feature::kRecovery, 140},
 };

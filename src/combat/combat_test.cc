@@ -161,6 +161,10 @@ TEST(AdvanceCombatTest, FarmingStopsAtTheLevelCap) {
   state.current_map = "field";
   state.exp_multiplier = 1000;
   EquipSword(state);
+  // Set down one level short rather than farmed up the whole table: the
+  // ceiling is what is being tested, and the climb to it only costs time --
+  // time that grows every time the cap moves.
+  LevelTo(state, kTrialLevelCap - 1);
 
   Farm(state, 20000.0);
   EXPECT_EQ(state.character.proto().level(), kTrialLevelCap);

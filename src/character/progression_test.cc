@@ -91,12 +91,12 @@ TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
   EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(40)));
 }
 
-// Scrolling is the one upgrade the trial hands over, so it has to fall inside
-// the cap. Star force and recovery are both deliberately above it and wait for
-// the cap to lift -- only the workbench reaches them.
-TEST_F(ProgressionTest, ScrollingIsTheOnlyUpgradeTheTrialReaches) {
+// Star force waited above the cap for as long as the cap was 60. The 61-100
+// maps lifted it, so a played character now reaches star force as well as
+// scrolling. Recovery is still out past the end of the maps and stays there.
+TEST_F(ProgressionTest, TheCapReachesScrollingAndStarForceButNotRecovery) {
   EXPECT_LE(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
-  EXPECT_GT(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
+  EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
   EXPECT_GT(UnlockLevel(Feature::kRecovery), kTrialLevelCap);
 }
 

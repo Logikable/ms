@@ -12,9 +12,14 @@ constexpr int kMaxLevel = 300;
 // simply out of reach. Raise it or delete it when the trial ends; kMaxLevel is
 // the real ceiling waiting behind it.
 //
-// It sits at the end of 2nd job: the levels from 31 up are what pay for a 2nd
-// job skill book, so stopping short of 60 would leave one half-bought.
-constexpr int kTrialLevelCap = 60;
+// It sits at the top of the map ladder: 100 is where the maps stop, and a
+// character who cannot be paid past the last map has nothing left to do. Move
+// it with the content, as it moved 30 -> 60 when the 2nd jobs landed.
+//
+// The 61-100 maps have no 3rd job book and no weapon tier behind them yet, so
+// the climb over them is a 2nd job in level 60 gear. That is a content gap,
+// not a cap problem -- see //analysis:level_sim for what it costs.
+constexpr int kTrialLevelCap = 100;
 
 // Returns EXP required to advance from `level` to `level + 1`.
 // Returns 0 for level < 1 or level >= kMaxLevel.

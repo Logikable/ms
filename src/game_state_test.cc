@@ -128,7 +128,9 @@ TEST(GameStateTest, ConstructorStoresEveryCatalog) {
 // it. Play mode is where the climb is worth watching a level at a time.
 TEST(GameStateTest, TestModeStartsAtTheEndOfSecondJob) {
   GameState test = MakeTestModeState();
-  EXPECT_EQ(test.character.proto().level(), kTrialLevelCap);
+  // The top of 2nd job, which is no longer the level cap: the cap follows the
+  // maps and there are maps past 60 now.
+  EXPECT_EQ(test.character.proto().level(), NextAdvancementLevel(2));
   EXPECT_EQ(test.character.proto().job_stage(), 2);
   // Some warrior branch, not a particular one -- see WorkbenchSecondJob.
   std::vector<Job> branches = JobChoicesForStage(JOB_SWORDMAN, 2);
@@ -212,7 +214,7 @@ TEST(GameStateTest, ChosenJobStartsAtTheTopOfThatAdvancement) {
 
   GameState hunter = MakeChosenJobState(JOB_ADVANCEMENT_HUNTER);
   EXPECT_EQ(hunter.character.proto().job(), JOB_HUNTER);
-  EXPECT_EQ(hunter.character.proto().level(), kTrialLevelCap);
+  EXPECT_EQ(hunter.character.proto().level(), NextAdvancementLevel(2));
   EXPECT_EQ(hunter.character.proto().job_stage(), 2);
 }
 
