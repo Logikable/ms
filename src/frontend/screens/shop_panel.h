@@ -105,6 +105,15 @@ class ShopPanel {
   // it. Does nothing while the cursor is already on screen, which is most
   // moves.
   void ScrollToCursor();
+  // The tab chips with the meso counter in what they leave.
+  ftxui::Element RenderTabBar() const;
+  // One stock row. `cursor` is the two-column gutter the cursor draws in.
+  ftxui::Element RenderEtcRow(const ItemPrototype& item,
+                              const std::string& cursor) const;
+  ftxui::Element RenderEquipRow(const EquipPrototype& proto,
+                                const std::string& cursor) const;
+  // The rows on screen, scroll bar beside them. Empty while the shelf is.
+  std::vector<ftxui::Element> RenderStock() const;
 
   const CharacterInstance& character_;
   const std::map<std::string, EquipPrototype>& equips_;

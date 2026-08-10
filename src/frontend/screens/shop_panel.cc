@@ -212,17 +212,17 @@ bool ShopPanel::OnEvent(ftxui::Event event) {
   return false;
 }
 
-ftxui::Element ShopPanel::Render() const {
+ftxui::Element ShopPanel::RenderTabBar() const {
+  // Chips are white while the bar holds the cursor and theme-blue otherwise,
+  // which is how the player tells the arrow keys are on the bar.
+  bool focused = zone_ == kZoneTabs;
   std::vector<ftxui::Element> chips;
-  // White while the bar holds the cursor and theme-blue otherwise, which is how
-  // the player tells whether the arrow keys are on the bar or in the list.
   chips.push_back(TabChip("Weapons", /*active=*/tab_ == kShopWeaponsTab,
-                          /*row_focused=*/zone_ == kZoneTabs));
-  chips.push_back(TabChip("Secondaries",
-                          /*active=*/tab_ == kShopSecondariesTab,
-                          /*row_focused=*/zone_ == kZoneTabs));
+                          /*row_focused=*/focused));
+  chips.push_back(TabChip("Secondaries", /*active=*/tab_ == kShopSecondariesTab,
+                          /*row_focused=*/focused));
   chips.push_back(TabChip("Etc", /*active=*/tab_ == kShopEtcTab,
-                          /*row_focused=*/zone_ == kZoneTabs));
+                          /*row_focused=*/focused));
   // The meso sits in what the chips leave rather than over the whole row: a
   // third chip took the bar out to where a centred counter was drawn on top of
   // it, and a fourth would reach further still.
@@ -230,71 +230,80 @@ ftxui::Element ShopPanel::Render() const {
   chips.push_back(ftxui::text(FormatMeso(character_.meso())) |
                   ftxui::color(kTheme));
   chips.push_back(ftxui::filler());
-  ftxui::Element tab_row = ftxui::hbox(std::move(chips));
+  return ftxui::hbox(std::move(chips));
+}
 
+// The price is red when the player cannot pay it, so the list answers "what can
+// I buy" without arithmetic on every row.
+ftxui::Element ShopPanel::RenderEtcRow(const ItemPrototype& item,
+                                       const std::string& cursor) const {
+  ftxui::Element cost =
+      ftxui::text(PadLeft(FormatMeso(item.shop_price()), kCostWidth));
+  if (item.shop_price() > character_.meso()) {
+    cost = std::move(cost) | ftxui::color(kRed);
+  }
+  return ftxui::hbox({
+      ftxui::text(cursor + PadRight(item.name(), kNameWidth) + "  " +
+                  PadRight(FormatWithCommas(character_.CountStackable(item)),
+                           kTypeWidth + 2 + kLevelWidth)),
+      std::move(cost),
+      ftxui::text(" "),
+  });
+}
+
+// The level is red on the bag's rule and in the bag's colour. There is no class
+// to colour: the list holds nothing this character is the wrong class for.
+ftxui::Element ShopPanel::RenderEquipRow(const EquipPrototype& proto,
+                                         const std::string& cursor) const {
+  ftxui::Element level = ftxui::text(LevelCell(proto));
+  if (!character_.MeetsLevel(proto)) {
+    level = std::move(level) | ftxui::color(kRed);
+  }
+  ftxui::Element cost =
+      ftxui::text(PadLeft(FormatMeso(proto.shop_price()), kCostWidth));
+  if (proto.shop_price() > character_.meso()) {
+    cost = std::move(cost) | ftxui::color(kRed);
+  }
+  return ftxui::hbox({
+      ftxui::text(cursor + PadRight(proto.name(), kNameWidth) + "  " +
+                  PadRight(FormatEquipType(proto.equip_type()), kTypeWidth) +
+                  "  "),
+      std::move(level),
+      std::move(cost),
+      ftxui::text(" "),
+  });
+}
+
+std::vector<ftxui::Element> ShopPanel::RenderStock() const {
+  std::vector<ftxui::Element> item_rows;
+  int last =
+      std::min(static_cast<int>(stock_.size()), first_visible_ + kVisibleRows);
+  for (int i = first_visible_; i < last; ++i) {
+    std::string cursor = zone_ == kZoneList && i == selected_ ? "> " : "  ";
+    item_rows.push_back(tab_ == kShopEtcTab
+                            ? RenderEtcRow(items_.at(stock_[i]), cursor)
+                            : RenderEquipRow(equips_.at(stock_[i]), cursor));
+  }
+  if (item_rows.empty()) {
+    return {};
+  }
+  return {ftxui::hbox({
+      ftxui::vbox(std::move(item_rows)),
+      ScrollBar(static_cast<int>(stock_.size()), first_visible_, kVisibleRows),
+  })};
+}
+
+ftxui::Element ShopPanel::Render() const {
   std::vector<ftxui::Element> rows;
-  rows.push_back(std::move(tab_row));
+  rows.push_back(RenderTabBar());
   rows.push_back(ThemedSeparator());
   rows.push_back(tab_ == kShopEtcTab ? EtcColumnHeader() : ColumnHeader());
   rows.push_back(ThemedSeparator());
   if (stock_.empty()) {
     rows.push_back(EmptyState("nothing for sale", /*gutter=*/2));
   }
-  std::vector<ftxui::Element> item_rows;
-  int last =
-      std::min(static_cast<int>(stock_.size()), first_visible_ + kVisibleRows);
-  for (int i = first_visible_; i < last; ++i) {
-    std::string cursor_cell = "  ";
-    if (zone_ == kZoneList && i == selected_) {
-      cursor_cell = "> ";
-    }
-    if (tab_ == kShopEtcTab) {
-      const ItemPrototype& item = items_.at(stock_[i]);
-      ftxui::Element cost =
-          ftxui::text(PadLeft(FormatMeso(item.shop_price()), kCostWidth));
-      if (item.shop_price() > character_.meso()) {
-        cost = std::move(cost) | ftxui::color(kRed);
-      }
-      item_rows.push_back(ftxui::hbox({
-          ftxui::text(
-              cursor_cell + PadRight(item.name(), kNameWidth) + "  " +
-              PadRight(FormatWithCommas(character_.CountStackable(item)),
-                       kTypeWidth + 2 + kLevelWidth)),
-          std::move(cost),
-          ftxui::text(" "),
-      }));
-      continue;
-    }
-    const EquipPrototype& proto = equips_.at(stock_[i]);
-    // The level is coloured by whether this character has reached it, on the
-    // bag's rule and in the bag's colour. There is no class to colour: the list
-    // holds nothing this character is the wrong class for.
-    ftxui::Element level = ftxui::text(LevelCell(proto));
-    if (!character_.MeetsLevel(proto)) {
-      level = std::move(level) | ftxui::color(kRed);
-    }
-    // The price is coloured by whether the player can pay it, so the list
-    // answers "what can I buy" without arithmetic on every row.
-    ftxui::Element cost =
-        ftxui::text(PadLeft(FormatMeso(proto.shop_price()), kCostWidth));
-    if (proto.shop_price() > character_.meso()) {
-      cost = std::move(cost) | ftxui::color(kRed);
-    }
-    item_rows.push_back(ftxui::hbox({
-        ftxui::text(cursor_cell + PadRight(proto.name(), kNameWidth) + "  " +
-                    PadRight(FormatEquipType(proto.equip_type()), kTypeWidth) +
-                    "  "),
-        std::move(level),
-        std::move(cost),
-        ftxui::text(" "),
-    }));
-  }
-  if (!item_rows.empty()) {
-    rows.push_back(ftxui::hbox({
-        ftxui::vbox(std::move(item_rows)),
-        ScrollBar(static_cast<int>(stock_.size()), first_visible_,
-                  kVisibleRows),
-    }));
+  for (ftxui::Element& row : RenderStock()) {
+    rows.push_back(std::move(row));
   }
   ftxui::Element window = ThemedWindow(" Shop ", ftxui::vbox(std::move(rows)));
   if (!menu_open_) {
