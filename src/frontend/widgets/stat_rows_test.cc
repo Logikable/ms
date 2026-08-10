@@ -70,7 +70,7 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   EXPECT_EQ(labels, (std::vector<std::string>{
                         "Attack", "Magic Attack", "Damage", "Final Damage",
                         "Critical Rate", "Critical Damage", "Attack Speed",
-                        "Defense"}));
+                        "Defense", "Elemental Resist", "Status Resist"}));
 }
 
 // The panel's list is the same one, opened up by the advancements. The All
@@ -81,22 +81,23 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
   EXPECT_TRUE(PanelExtraStatLines(beginner, {}).empty());
-  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 8u);
+  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 10u);
 
   CharacterInstance first = MakeWarrior();
   std::vector<std::string> labels;
   for (const StatLine& line : PanelExtraStatLines(first, {})) {
     labels.push_back(line.label);
   }
-  EXPECT_EQ(labels, (std::vector<std::string>{"Attack", "Magic Attack",
-                                              "Attack Speed", "Defense"}));
+  EXPECT_EQ(labels, (std::vector<std::string>{
+                        "Attack", "Magic Attack", "Attack Speed", "Defense",
+                        "Elemental Resist", "Status Resist"}));
 
   Character second_proto;
   second_proto.set_level(35);
   second_proto.set_job(JOB_SPEARMAN);
   second_proto.set_job_stage(2);
   CharacterInstance second(rng_, std::move(second_proto));
-  EXPECT_EQ(PanelExtraStatLines(second, {}).size(), 8u);
+  EXPECT_EQ(PanelExtraStatLines(second, {}).size(), 10u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {

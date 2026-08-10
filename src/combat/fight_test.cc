@@ -817,6 +817,45 @@ TEST(CombatSimTest, ClearingTheMapHealsThePlayer) {
   EXPECT_EQ(sim.player_hp(), 100);
 }
 
+// A passive that heals on attack pays per landed swing, costing none of them,
+// so it stacks with the beat rather than replacing it -- and it cannot carry
+// the pool past full.
+TEST(CombatSimTest, RecoveryOnAttackRidesTheSwing) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/20.0);
+  params.hp_recover_pct = 0.05;
+
+  sim.Advance(params, 1.0);  // one hit taken, one swing landed
+  EXPECT_EQ(sim.player_hp(), 85);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 70);
+  for (int i = 0; i < 20; ++i) {  // swinging alone cannot overfill the pool
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_LE(sim.player_hp(), 100);
+}
+
+// Nothing to hit is nothing to heal off. A cleared map already gives the pool
+// back on the beat, and a swing at empty air must not pay twice for it.
+TEST(CombatSimTest, RecoveryOnAttackPaysNothingOnAnEmptyMap) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  params.hp_recover_pct = 0.05;
+
+  sim.Advance(params, 0.5);
+  sim.Advance(params, 0.5);  // a hit lands, then the swing clears the map
+  ASSERT_TRUE(sim.respawning());
+  int cleared = sim.player_hp();
+  for (int i = 0; i < 6; ++i) {  // idling well short of the 1000s beat
+    sim.Advance(params, 0.5);
+  }
+  EXPECT_EQ(sim.player_hp(), cleared);
+}
+
 TEST(CombatSimTest, TheHitClockWaitsOnAnEmptyMap) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;

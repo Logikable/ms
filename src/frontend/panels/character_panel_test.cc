@@ -101,8 +101,11 @@ std::map<std::string, Skill> TwoSkillCatalog() {
 // a byte offset into the rendered string does not land where it looks like it
 // does.
 std::vector<std::string> PanelRows(ftxui::Element element) {
+  // Taller than any panel this draws. A screen only as tall as a real terminal
+  // clips the tail, which reads as a stat the panel chose to drop -- and the
+  // budget tests set their own limit anyway.
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                               ftxui::Dimension::Fixed(24));
+                                               ftxui::Dimension::Fixed(40));
   ftxui::Render(screen, element);
   std::vector<std::string> rows;
   for (int y = 0; y < screen.dimy(); ++y) {
@@ -1249,7 +1252,7 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, panel_focus_);
-  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 9u);  // 8 stats and the row
+  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 11u);  // 10 stats and the row
 }
 
 // The block is what a job fills in, so a Beginner's tab ends at the AP rows --
@@ -1277,7 +1280,8 @@ TEST_F(CharacterPanelTest, TheFirstJobBringsFourStatsAndTheSecondTheRest) {
   CharacterPanel panel(first, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"Attack", "Magic Attack", "Attack Speed",
-                                      "Defense", "View All Stats"}));
+                                      "Defense", "Elemental Resist",
+                                      "Status Resist", "View All Stats"}));
 
   CharacterInstance second = MakeSpearman(rng_);
   CharacterPanel later(second, panel_focus_);

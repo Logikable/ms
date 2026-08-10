@@ -88,6 +88,10 @@ struct CombatParams {
   // landed it (1.20 == 120% of the damage taken). 0 for a character with no
   // reflection, which is all of them until Spirit Blade is learned.
   double damage_reflect_pct = 0.0;
+  // Share of the pool a landed swing puts back, from a passive that heals on
+  // attack. Costs no swing, so it stacks with the beat heal rather than
+  // replacing it, and pays nothing on an empty map -- there is nothing to hit.
+  double hp_recover_pct = 0.0;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

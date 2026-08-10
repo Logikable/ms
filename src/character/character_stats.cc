@@ -58,6 +58,9 @@ struct PassiveTotals {
   double crit_rate = 0.0;
   double crit_dmg = 0.0;
   double mastery = 0.0;
+  double hp_recover_pct = 0.0;
+  double status_resistance = 0.0;
+  double elemental_resistance = 0.0;
   // Keyed by the swings it follows: two sources that follow the same swings
   // are one Final Attack. Ordered, so the result does not depend on which
   // skill was read first.
@@ -98,6 +101,12 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
       base.damage_reflect_pct() + per.damage_reflect_pct() * (level - 1);
   totals.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
   totals.crit_dmg += base.crit_dmg() + per.crit_dmg() * (level - 1);
+  totals.hp_recover_pct +=
+      base.hp_recover_pct() + per.hp_recover_pct() * (level - 1);
+  totals.status_resistance +=
+      base.status_resistance() + per.status_resistance() * (level - 1);
+  totals.elemental_resistance +=
+      base.elemental_resistance() + per.elemental_resistance() * (level - 1);
   totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
   // The one lever taken at its best rather than summed: two masteries are not
@@ -232,6 +241,9 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.damage_reflect_pct = passives.damage_reflect_pct;
   stats.crit_rate = passives.crit_rate;
   stats.crit_dmg = passives.crit_dmg;
+  stats.hp_recover_pct = passives.hp_recover_pct;
+  stats.status_resistance = passives.status_resistance;
+  stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;
   stats.final_dmg_pct = passives.final_dmg_pct;
   stats.mastery = passives.mastery;

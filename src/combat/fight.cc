@@ -358,6 +358,11 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
                  player_hp_ + attack->heal_fraction * params.max_player_hp);
   } else {
     Strike(*attack);
+    // Recovery rides the hit, so a cast does not earn it and neither does a
+    // swing at nothing.
+    player_hp_ =
+        std::min(static_cast<double>(params.max_player_hp),
+                 player_hp_ + params.hp_recover_pct * params.max_player_hp);
   }
   if (attack->cooldown_seconds > 0.0) {
     cooldown_left_[swung] = attack->cooldown_seconds;

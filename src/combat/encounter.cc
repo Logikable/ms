@@ -248,6 +248,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.max_player_hp = derived.max_hp;
   params.beat_heal_fraction = kBeatHealFraction;
   params.damage_reflect_pct = derived.damage_reflect_pct;
+  params.hp_recover_pct = derived.hp_recover_pct;
 
   // What the character brings to being hit is the same whichever mob is
   // hitting them, so it is resolved once and asked per type.

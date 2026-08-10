@@ -123,11 +123,19 @@ message SkillEffect {
   // (1.20 == 120% of the damage received). Measured against what the character
   // actually loses, so their own defences cut the reflection with it.
   double damage_reflect_pct = 19;
+  // Expected share of the HP pool a landed swing puts back (0.02 == 2%). GMS
+  // states it as a chance of a fixed amount; the expectation is what an
+  // expected-damage fight can use, so the two are multiplied out here. Unlike
+  // heal_pct this costs no swing -- it rides the attack.
+  double hp_recover_pct = 28;
+
   // Resistance to abnormal statuses, on GMS's own scale rather than as a
-  // fraction. Nothing in this game inflicts a status, so nothing folds this in
-  // and no screen shows it -- it is here to keep the wiki's figure with the
-  // skill it belongs to, against the day statuses exist.
+  // fraction, and to elemental damage as a fraction. Nothing in this game
+  // inflicts a status or an element, so nothing reads either -- they are here
+  // to keep the wiki's figures with the skill, and the stats page shows them
+  // so the player can see what they bought.
   double status_resistance = 22;
+  double elemental_resistance = 29;
 }
 
 // An extra grant that lands only with certain weapons in hand, on top of what

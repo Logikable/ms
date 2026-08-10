@@ -79,6 +79,13 @@ std::vector<StatLine> CombatStatLines(
       {"Attack Speed",
        AttackSpeedText(character.equipped(), derived.attack_speed_bonus)});
   lines.push_back({"Defense", std::to_string(derived.def)});
+  // Last, because nothing reads either of them yet -- no mob inflicts a status
+  // or an element. They are here so a player who spent SP on Endure can see
+  // what they bought. Shortened to seat the 16-column label: "Elemental
+  // Resistance" is 20 and would be cut mid-word.
+  lines.push_back({"Elemental Resist", Percent(derived.elemental_resistance)});
+  lines.push_back({"Status Resist", std::to_string(static_cast<int>(
+                                        derived.status_resistance))});
   return lines;
 }
 

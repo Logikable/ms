@@ -51,6 +51,13 @@ struct DerivedStats {
   // swings that crit at all -- so it is the crit_rate skills that make it
   // worth anything.
   double crit_dmg = 0.0;
+  // Expected share of the HP pool a landed swing puts back. Costs no swing,
+  // unlike a healing cast -- the fight adds it after the hit lands.
+  double hp_recover_pct = 0.0;
+  // Resistance to abnormal statuses and to elemental damage. Nothing inflicts
+  // either, so these reach the stats page and go no further.
+  double status_resistance = 0.0;
+  double elemental_resistance = 0.0;
   // Plain % damage, summed over every passive granting it, and final damage,
   // combined by multiplying: two 10% sources come to 21%. Both are one number
   // by the time they leave here, because that is all the damage chain takes.
