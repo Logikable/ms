@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/item.h"
 #include "src/proto_loader.h"
@@ -71,9 +72,6 @@ TEST(EquipDataTest, OrdinaryWeaponsStillTakeUpgrades) {
   }
 }
 
-// Every shipped item has to be describable. A slot or a weapon type added
-// without a display name shows up as a blank column in the bag, which reads as
-// a bug in the item rather than a missing label.
 // A weapon type has one attack speed, and every weapon of it swings at that
 // speed. GMS's own low-level items disagree among themselves -- the polearms
 // range over three stages -- but by the level 150 tier, the one that matters,
@@ -148,6 +146,78 @@ TEST(EquipDataTest, EverySecondJobHasEveryTier) {
   }
 }
 
+// The priced levels of one weapon type, low to high.
+std::map<EquipType, std::vector<int>> WeaponLadders() {
+  std::map<EquipType, std::vector<int>> ladders;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
+        proto.shop_price() <= 0) {
+      continue;
+    }
+    ladders[proto.equip_type()].push_back(proto.required_level());
+  }
+  for (std::pair<const EquipType, std::vector<int>>& ladder : ladders) {
+    std::sort(ladder.second.begin(), ladder.second.end());
+  }
+  return ladders;
+}
+
+// Every weapon type climbs in steps of ten with no gap and no tier holding two
+// of a kind. A branch that skips a tier is one the player outgrows their weapon
+// on and cannot re-arm.
+TEST(EquipDataTest, EveryWeaponTypeClimbsInTens) {
+  std::map<EquipType, std::vector<int>> ladders = WeaponLadders();
+  ASSERT_FALSE(ladders.empty());
+  for (const std::pair<const EquipType, std::vector<int>>& ladder : ladders) {
+    std::vector<int> expected;
+    for (int level = ladder.second.front(); level <= ladder.second.back();
+         level += 10) {
+      expected.push_back(level);
+    }
+    EXPECT_EQ(ladder.second, expected)
+        << FormatEquipType(ladder.first) << " has a hole in its ladder";
+  }
+}
+
+// Every ladder reaches the top of the game. The one-handed sword is the
+// exception by design: the warrior takes two hands at their 2nd job, so it
+// stops where the two-handed tiers start.
+TEST(EquipDataTest, EveryWeaponTypeReachesTheLevelCap) {
+  for (const std::pair<const EquipType, std::vector<int>>& ladder :
+       WeaponLadders()) {
+    int expected =
+        ladder.first == EQUIP_TYPE_ONE_HANDED_SWORD ? 30 : kTrialLevelCap;
+    EXPECT_EQ(ladder.second.back(), expected)
+        << FormatEquipType(ladder.first) << " stops at the wrong tier";
+  }
+}
+
+// One tier, one price. Every weapon a level opens costs the same, so the choice
+// between branches is never a choice of what the player can afford -- and a
+// mistyped price cannot hide among items nobody compares it with.
+TEST(EquipDataTest, ATierHasOnePrice) {
+  std::map<std::pair<EquipSlot, int>, std::pair<int, std::string>> price_of;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.shop_price() <= 0) {
+      continue;
+    }
+    std::pair<EquipSlot, int> tier{proto.equip_slot(), proto.required_level()};
+    if (price_of.find(tier) == price_of.end()) {
+      price_of[tier] = {proto.shop_price(), entry.first};
+      continue;
+    }
+    EXPECT_EQ(proto.shop_price(), price_of[tier].first)
+        << entry.first << " and " << price_of[tier].second
+        << " share a tier but not a price";
+  }
+}
+
+// A slot or a type added without a display name shows up as a blank column in
+// the bag, which reads as a broken item rather than a missing label.
 TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {

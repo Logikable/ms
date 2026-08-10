@@ -5,7 +5,7 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <utility>
+#include <tuple>
 #include <vector>
 
 #include "src/character/exp_table.h"
@@ -93,136 +93,43 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
   EXPECT_EQ(ShopWeaponStock(equips), expected);
 }
 
-// The shipped catalog, so the stock the player sees is pinned rather than
-// whatever the data files happen to say. The stars sit in their own level's
-// tier rather than at the end: they undercut the weapons they are listed
-// beside because they are ammunition, not the weapon a character is built
-// around.
-TEST(ShopTest, ShippedStockIsNinetyFourWeapons) {
+// The shipped shelves, checked pair by pair against the same four keys the
+// header promises. Sortedness rather than a copy of the list: a copy has to be
+// rewritten for every tier added, and says nothing the rule does not.
+TEST(ShopTest, BothShelvesReadInColumnOrder) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
-  std::vector<std::string> stock = ShopWeaponStock(equips);
-  std::vector<std::pair<std::string, int>> listing;
-  for (const std::string& key : stock) {
-    listing.push_back({equips.at(key).name(), equips.at(key).shop_price()});
+  for (const std::vector<std::string>& shelf :
+       {ShopWeaponStock(equips), ShopSecondaryStock(equips)}) {
+    ASSERT_FALSE(shelf.empty());
+    for (int i = 1; i < static_cast<int>(shelf.size()); ++i) {
+      const EquipPrototype& above = equips.at(shelf[i - 1]);
+      const EquipPrototype& below = equips.at(shelf[i]);
+      std::tuple<int, int, int, std::string> keys_above{
+          above.required_level(), above.equip_type(), above.shop_price(),
+          above.name()};
+      std::tuple<int, int, int, std::string> keys_below{
+          below.required_level(), below.equip_type(), below.shop_price(),
+          below.name()};
+      EXPECT_LT(keys_above, keys_below)
+          << shelf[i - 1] << " is listed above " << shelf[i];
+    }
   }
-  std::vector<std::pair<std::string, int>> expected{
-      // Level 10.
-      {"Long Sword", 5000},
-      {"War Bow", 5000},
-      {"Wooden Staff", 5000},
-      {"Fruit Knife", 5000},
-      {"Garnier", 5000},
-      {"Subi Throwing-Stars", 1000},
-      // Level 20.
-      {"Machete", 10000},
-      {"Hunter's Bow", 10000},
-      {"Old Wooden Staff", 10000},
-      {"Coconut Knife", 10000},
-      {"Steel Igor", 10000},
-      // Level 30 -- where the 2nd-job warrior weapons start, so the warriors
-      // outnumber everyone else from here down.
-      {"Gladius", 20000},
-      {"Ryden", 20000},
-      {"Circle-Winded Staff", 20000},
-      {"Reef Claw", 20000},
-      {"Steel Guards", 20000},
-      {"Kumbi Throwing-Stars", 10000},
-      {"Blue Axe", 20000},
-      {"Forked Spear", 20000},
-      {"Mithril Polearm", 20000},
-      {"Mithril Maul", 20000},
-      {"Scimitar", 20000},
-      {"Eagle Crow", 20000},
-      // Level 40.
-      {"Vaulter 2000", 30000},
-      {"Hall Staff", 30000},
-      {"Dragon Toenail", 30000},
-      {"Steel Avarice", 30000},
-      {"Sabretooth", 30000},
-      {"Zeco", 30000},
-      {"Crescent Polearm", 30000},
-      {"Titan", 30000},
-      {"Zard", 30000},
-      {"Silver Crow", 30000},
-      // Level 50.
-      {"Olympus", 50000},
-      {"Mystic Cane", 50000},
-      {"Sai", 50000},
-      {"Steel Slain", 50000},
-      {"Steely Throwing-Knives", 25000},
-      {"The Rising", 50000},
-      {"Serpent's Tongue", 50000},
-      {"The Nine Dragons", 50000},
-      {"Golden Mole", 50000},
-      {"Lion's Fang", 50000},
-      {"Rower", 50000},
-      // Level 60.
-      {"Asianic Bow", 75000},
-      {"Frantic Crow Staff", 75000},
-      {"Deadly Fin", 75000},
-      {"Dark Gigantic", 75000},
-      {"The Shining", 75000},
-      {"Holy Spear", 75000},
-      {"Skylar", 75000},
-      {"The Blessing", 75000},
-      {"Sparta", 75000},
-      {"Golden Crow", 75000},
-      // Level 70.
-      {"Red Hinkel", 120000},
-      {"Celestial Staff", 120000},
-      {"Kandine", 120000},
-      {"Black Scarab", 120000},
-      {"Chrono", 120000},
-      {"Redemption", 120000},
-      {"The Gold Dragon", 120000},
-      {"Gigantic Sledge", 120000},
-      {"Doombringer", 120000},
-      {"Void Hunter", 120000},
-      // Level 80.
-      {"Dark Arund", 175000},
-      {"Umarumagna", 175000},
-      {"Dragon's Tail", 175000},
-      {"Black Mamba", 175000},
-      {"Helios", 175000},
-      {"Omega Spear", 175000},
-      {"Eclipse", 175000},
-      {"The Morningstar", 175000},
-      {"Heaven's Gate", 175000},
-      {"Dark Raven", 175000},
-      // Level 90.
-      {"Metus", 250000},
-      {"Enraged Crow Staff", 250000},
-      {"Varkit", 250000},
-      {"Casters", 250000},
-      {"Colonian Axe", 250000},
-      {"Fairfrozen", 250000},
-      {"Hellslayer", 250000},
-      {"Leomite", 250000},
-      {"Devil's Sunrise", 250000},
-      {"Dark Crow", 250000},
-      // Level 100 -- the last tier the level cap can reach.
-      {"Dark Nisrock", 400000},
-      {"Crimson Arcanon", 400000},
-      {"Blood Dagger", 400000},
-      {"Red Craven", 400000},
-      {"Tavar", 400000},
-      {"Pinaka", 400000},
-      {"Zedbug", 400000},
-      {"Golden Smith Hammer", 400000},
-      {"Stonetooth Sword", 400000},
-      {"Dark Neschere", 400000},
-  };
-  EXPECT_EQ(listing, expected);
 }
 
-// The off-hands are sold, and not here: they are a shelf of their own, and a
-// medallion listed among the swords would read as something to swing.
-TEST(ShopTest, TheWeaponShelfHoldsNoOffHands) {
+// What shares the weapon shelf. Stars belong on it, because they are what a
+// claw swings and a tab holding one item is not a tab. Off-hands do not: they
+// have a shelf of their own, and a medallion among the swords would read as
+// something to swing. Level orders the shelf, so the stars land in their own
+// tier rather than at the end.
+TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNoOffHands) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
+  int stars = 0;
   for (const std::string& key : ShopWeaponStock(equips)) {
-    EXPECT_NE(equips.at(key).equip_slot(), EQUIP_SLOT_SECONDARY)
-        << key << " is on the weapon shelf";
+    EquipSlot slot = equips.at(key).equip_slot();
+    EXPECT_NE(slot, EQUIP_SLOT_SECONDARY) << key << " is on the weapon shelf";
+    stars += slot == EQUIP_SLOT_STARS ? 1 : 0;
   }
+  EXPECT_GT(stars, 0) << "the stars have fallen off the weapon shelf";
 }
 
 // Nothing on sale is out of reach. EXP stops at the cap, so an item above it
