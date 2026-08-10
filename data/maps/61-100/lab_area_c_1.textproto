@@ -1,0 +1,2 @@
+name: "Lab - Area C-1"
+spawns { mob: "roid" count: 22 }

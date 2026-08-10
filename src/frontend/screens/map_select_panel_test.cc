@@ -73,9 +73,18 @@ Mob DrakeMob() {
   return mob;
 }
 
+Mob HareMob() {
+  Mob mob;
+  mob.set_name("Brown Hare");
+  mob.set_level(86);
+  return mob;
+}
+
 // One map on every band, so a test can page across the whole list: Green
 // (level 1) and Horny (level 8) on the 1-10 band, Temple (level 15) alone on
-// 11-30, and Cave (level 40) alone on 31-60.
+// 11-30, Cave (level 40) alone on 31-60 and Meadow (level 86) alone on 61-100.
+// **Adding a band to kLevelBands means adding a map here**, or paging to the
+// end lands on an empty band and the tests below say nothing.
 GameState EveryBand() {
   MapData green;
   green.set_name("Green Field");
@@ -89,15 +98,20 @@ GameState EveryBand() {
   MapData cave;
   cave.set_name("Cave");
   AddSpawn(&cave, "drake", 3);
+  MapData meadow;
+  meadow.set_name("Meadow");
+  AddSpawn(&meadow, "hare", 3);
   return GameState({}, {}, {},
                    {{"snail", SnailMob()},
                     {"mushroom", MushroomMob()},
                     {"golem", GolemMob()},
-                    {"drake", DrakeMob()}},
+                    {"drake", DrakeMob()},
+                    {"hare", HareMob()}},
                    {{"green_field", green},
                     {"horny_field", horny},
                     {"temple", temple},
-                    {"cave", cave}});
+                    {"cave", cave},
+                    {"meadow", meadow}});
 }
 
 std::string Render(const MapSelectPanel& panel) {
@@ -240,9 +254,11 @@ TEST(MapSelectPanelTest, TheMobColumnFitsTheLongestName) {
   swamp.set_name("Swamp");
   AddSpawn(&swamp, "monster", 18);
   GameState state({}, {}, {}, {{"monster", monster}}, {{"swamp", swamp}});
+  // Reset opens on the farmed map's own band, whichever band that turns out to
+  // be. Paging to the end would land on whatever band is last today.
+  state.current_map = "swamp";
   MapSelectPanel panel(state);
   panel.Reset();
-  panel.ChangePage(kPastEveryBand);  // a level-49 mob sits on the top band
 
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Muddy Swamp Monster"), std::string::npos);
@@ -322,7 +338,7 @@ TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
   EXPECT_EQ(panel.selected_map(), "green_field");
 
   panel.ChangePage(kPastEveryBand);
-  EXPECT_EQ(panel.selected_map(), "cave");
+  EXPECT_EQ(panel.selected_map(), "meadow");
 }
 
 TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {

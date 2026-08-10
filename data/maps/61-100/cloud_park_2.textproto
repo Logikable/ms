@@ -1,0 +1,2 @@
+name: "Cloud Park II"
+spawns { mob: "star_pixie" count: 20 }

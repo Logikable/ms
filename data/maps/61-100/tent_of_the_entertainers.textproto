@@ -1,0 +1,2 @@
+name: "Tent of the Entertainers"
+spawns { mob: "brown_hare" count: 21 }

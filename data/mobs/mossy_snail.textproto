@@ -1,0 +1,6 @@
+name: "Mossy Snail"
+level: 98
+attack: 887
+max_hp: 122000
+exp: 1522
+drops { item: "moss_snail_shell" per_kill: 0.4 }

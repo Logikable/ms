@@ -1,0 +1,2 @@
+name: "Mushroom Hill Entrance"
+spawns { mob: "mossy_snail" count: 22 }

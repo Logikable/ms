@@ -1,0 +1,2 @@
+name: "Crystal Gorge"
+spawns { mob: "poopa" count: 20 }

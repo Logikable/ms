@@ -1,0 +1,3 @@
+name: "Endless Hallway"
+spawns { mob: "tauromacis" count: 10 }
+spawns { mob: "taurospear" count: 9 }

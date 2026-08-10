@@ -1,0 +1,6 @@
+name: "Sand Dwarf"
+level: 90
+attack: 715
+max_hp: 90000
+exp: 1188
+drops { item: "empty_sack" per_kill: 0.4 }

@@ -1,0 +1,2 @@
+name: "Ant Tunnel Square 2"
+spawns { mob: "zombie_mushroom" count: 19 }

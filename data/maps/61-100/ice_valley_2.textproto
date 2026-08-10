@@ -1,0 +1,2 @@
+name: "Ice Valley II"
+spawns { mob: "white_fang" count: 21 }

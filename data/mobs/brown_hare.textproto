@@ -1,0 +1,6 @@
+name: "Brown Hare"
+level: 86
+attack: 624
+max_hp: 74000
+exp: 1012
+drops { item: "carrot" per_kill: 0.4 }

@@ -1,0 +1,2 @@
+name: "The Ruins of Desert Nomads"
+spawns { mob: "sand_dwarf" count: 21 }
