@@ -18,6 +18,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
+#include "analysis/sim_format.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
@@ -41,6 +42,9 @@ ABSL_FLAG(double, minutes, 5.0,
 ABSL_FLAG(std::string, job, "SPEARMAN",
           "The 2nd-job branch to sweep, as its Job enum name without the "
           "JOB_ prefix. What a character survives depends on their book.");
+ABSL_FLAG(std::string, levels, "1,10,20,30,40,50,60,70,80,90,100",
+          "Comma-separated character levels to sweep, one column each. Narrow "
+          "it when the table is wider than the terminal.");
 
 namespace ms {
 namespace {
@@ -49,9 +53,11 @@ namespace {
 // rounded away, and the same order as the frontend's ticker.
 constexpr double kStepSeconds = 0.05;
 
-// Levels to sweep. Every band boundary the game has in its first thirty
-// levels, plus the ends.
-constexpr int kLevels[] = {1, 10, 20, 30, 40, 50, 60};
+// Levels to sweep, from --levels. Read once: every row is the same sweep, and
+// re-parsing per row would let a bad flag fail halfway through a table.
+std::vector<int> SweptLevels() {
+  return ParseLevels(absl::GetFlag(FLAGS_levels), "--levels");
+}
 
 struct Catalogs {
   std::map<std::string, EquipPrototype> equips;
@@ -209,18 +215,17 @@ void Run(double seconds, Job branch) {
   }
   std::sort(maps.begin(), maps.end());
 
+  std::vector<int> levels = SweptLevels();
   std::printf("%-28s %5s", "map", "mobLv");
-  for (int level : kLevels) {
+  for (int level : levels) {
     std::printf("  %13s", ("Lv" + std::to_string(level)).c_str());
   }
-  std::printf("\n%s\n",
-              std::string(34 + 15 * (sizeof(kLevels) / sizeof(kLevels[0])), '-')
-                  .c_str());
+  std::printf("\n%s\n", std::string(34 + 15 * levels.size(), '-').c_str());
 
   for (const std::pair<double, std::string>& map : maps) {
     std::printf("%-28s %5.1f", catalogs.maps.at(map.second).name().c_str(),
                 map.first);
-    for (int level : kLevels) {
+    for (int level : levels) {
       Outcome outcome = Farm(catalogs, level, path, map.second, seconds);
       char cell[32];
       if (outcome.death_seconds >= 0.0) {

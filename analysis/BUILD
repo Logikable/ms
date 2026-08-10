@@ -62,6 +62,7 @@ cc_binary(
     name = "balance_sim",
     srcs = ["balance_sim.cc"],
     deps = [
+        ":sim_format",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
