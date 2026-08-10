@@ -612,38 +612,24 @@ TEST_F(AdvanceJobTest, ResetLeavesLeveledHpAndMpAlone) {
 
 // --- AllocateStat ---
 
-TEST_F(AllocateStatTest, DeductsApAndAddsStat) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/5);
-  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_STR));
-  EXPECT_EQ(c.proto().ap(), 4);
-  EXPECT_EQ(c.proto().allocated_stats().str(), 1);
-}
-
-TEST_F(AllocateStatTest, DefaultAmountIsOne) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/3);
-  c.AllocateStat(STAT_FIELD_DEX);
-  EXPECT_EQ(c.proto().allocated_stats().dex(), 1);
-  EXPECT_EQ(c.proto().ap(), 2);
-}
-
-TEST_F(AllocateStatTest, MultipleAmountWorks) {
+TEST_F(AllocateStatTest, SpendsTheApAndRaisesTheStat) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/10);
+  EXPECT_TRUE(c.AllocateStat(STAT_FIELD_STR));
+  EXPECT_EQ(c.proto().allocated_stats().str(), 1) << "one by default";
+  EXPECT_EQ(c.proto().ap(), 9);
   EXPECT_TRUE(c.AllocateStat(STAT_FIELD_LUK, 7));
   EXPECT_EQ(c.proto().allocated_stats().luk(), 7);
-  EXPECT_EQ(c.proto().ap(), 3);
+  EXPECT_EQ(c.proto().ap(), 2);
 }
 
-TEST_F(AllocateStatTest, ReturnsFalseOnInsufficientAp) {
+// A refused call spends nothing, so a player who asks for more than they have
+// is left where they were rather than part-way.
+TEST_F(AllocateStatTest, RefusesWhatItCannotPayForInFull) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/2);
   EXPECT_FALSE(c.AllocateStat(STAT_FIELD_STR, 3));
-  EXPECT_EQ(c.proto().ap(), 2);
   EXPECT_EQ(c.proto().allocated_stats().str(), 0);
-}
-
-TEST_F(AllocateStatTest, ReturnsFalseForUnspecifiedField) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/1, /*ap=*/5);
   EXPECT_FALSE(c.AllocateStat(STAT_FIELD_UNSPECIFIED));
-  EXPECT_EQ(c.proto().ap(), 5);
+  EXPECT_EQ(c.proto().ap(), 2);
 }
 
 TEST_F(AllocateStatTest, AllFieldsWork) {
@@ -818,123 +804,73 @@ TEST_F(LearnSkillTest, UnlearnedSkillIsLevelZero) {
 
 // --- CanEquip ---
 
-TEST_F(CanEquipTest, ReturnsTrueWhenLevelAndJobMatch) {
+TEST_F(CanEquipTest, AWarriorWearsAWarriorSwordOfTheirLevel) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.CanEquip(sword_));
-}
-
-TEST_F(CanEquipTest, ReturnsFalseWhenLevelTooLow) {
   sword_.set_required_level(10);
-  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  c_.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_FALSE(c_.CanEquip(sword_));
+  EXPECT_FALSE(c_.CanEquip(sword_)) << "a level 1 in a level 10 sword";
 }
 
-TEST_F(CanEquipTest, ReturnsFalseWhenWrongJob) {
+// The category has to name the job, and an item naming nobody is worn by
+// nobody -- CanEquip reads empty categories as "no job", where MeetsJob reads
+// them as "any job".
+TEST_F(CanEquipTest, TheCategoryHasToNameTheJob) {
   sword_.set_required_level(1);
+  c_.AdvanceJob(JOB_SWORDMAN);
+  EXPECT_FALSE(c_.CanEquip(sword_)) << "no category at all";
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_BOWMAN);
-  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_FALSE(c_.CanEquip(sword_));
-}
-
-TEST_F(CanEquipTest, ReturnsTrueForUniversalItem) {
-  sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_TRUE(c_.CanEquip(sword_));
 }
 
-TEST_F(CanEquipTest, ReturnsFalseWhenJobUnspecified) {
+// A beginner is a job like any other here, and a character who has not advanced
+// at all is no job, so nothing fits them.
+TEST_F(CanEquipTest, ABeginnerWearsWhatNamesThemAndNothingElse) {
   sword_.set_required_level(1);
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  EXPECT_FALSE(c_.CanEquip(sword_));
-}
-
-TEST_F(CanEquipTest, ReturnsTrueForUniversalItemAsBeginner) {
-  sword_.set_required_level(1);
-  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  EXPECT_FALSE(c_.CanEquip(sword_)) << "job unspecified";
   c_.AdvanceJob(JOB_BEGINNER);
-  EXPECT_TRUE(c_.CanEquip(sword_));
-}
-
-TEST_F(CanEquipTest, ReturnsTrueForBeginnerCategoryItem) {
-  sword_.set_required_level(1);
+  EXPECT_FALSE(c_.CanEquip(sword_));
+  sword_.clear_equip_job_categories();
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_BEGINNER);
-  c_.AdvanceJob(JOB_BEGINNER);
   EXPECT_TRUE(c_.CanEquip(sword_));
-}
-
-TEST_F(CanEquipTest, ABeginnerCannotEquipAWarriorItem) {
-  sword_.set_required_level(1);
-  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  c_.AdvanceJob(JOB_BEGINNER);
-  EXPECT_FALSE(c_.CanEquip(sword_));
-}
-
-TEST_F(CanEquipTest, ReturnsTrueWhenExactLevelMet) {
-  sword_.set_required_level(1);
-  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  c_.AdvanceJob(JOB_SWORDMAN);
+  sword_.clear_equip_job_categories();
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
   EXPECT_TRUE(c_.CanEquip(sword_));
-}
-
-TEST_F(CanEquipTest, ReturnsFalseForEmptyJobCategories) {
-  sword_.set_required_level(1);
-  // No equip_job_categories set; no job can equip it.
-  c_.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_FALSE(c_.CanEquip(sword_));
 }
 
 // --- MeetsLevel ---
 
-TEST_F(MeetsLevelTest, TrueWhenNoRequiredLevel) {
-  EXPECT_TRUE(c_.MeetsLevel(sword_));
-}
-
-TEST_F(MeetsLevelTest, TrueWhenLevelExactlyMet) {
+TEST_F(MeetsLevelTest, PassesAtTheLevelAskedForAndAbove) {
+  EXPECT_TRUE(c_.MeetsLevel(sword_)) << "no level asked for";
   sword_.set_required_level(1);
   EXPECT_TRUE(c_.MeetsLevel(sword_));
-}
-
-TEST_F(MeetsLevelTest, TrueWhenLevelExceeded) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  sword_.set_required_level(5);
-  EXPECT_TRUE(c.MeetsLevel(sword_));
-}
-
-TEST_F(MeetsLevelTest, FalseWhenLevelTooLow) {
   sword_.set_required_level(10);
   EXPECT_FALSE(c_.MeetsLevel(sword_));
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
+  EXPECT_TRUE(c.MeetsLevel(sword_));
 }
 
 // --- MeetsJob ---
 
-TEST_F(MeetsJobTest, TrueWhenNoJobCategories) {
-  // Empty categories are treated as universal (unlike CanEquip).
+// Empty categories mean any job at all, unlike CanEquip: MeetsJob answers only
+// the question it is asked, and an item with no demand makes none.
+TEST_F(MeetsJobTest, PassesOnAMatchOrOnNoDemandAtAll) {
   c_.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_TRUE(c_.MeetsJob(sword_));
-}
-
-TEST_F(MeetsJobTest, TrueForUniversalCategory) {
-  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  c_.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_TRUE(c_.MeetsJob(sword_));
-}
-
-TEST_F(MeetsJobTest, TrueWhenJobMatches) {
-  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
-  c_.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_TRUE(c_.MeetsJob(sword_));
-}
-
-TEST_F(MeetsJobTest, FalseWhenJobDoesNotMatch) {
+  EXPECT_TRUE(c_.MeetsJob(sword_)) << "no categories";
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_BOWMAN);
-  c_.AdvanceJob(JOB_SWORDMAN);
   EXPECT_FALSE(c_.MeetsJob(sword_));
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  EXPECT_TRUE(c_.MeetsJob(sword_));
+  sword_.clear_equip_job_categories();
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  EXPECT_TRUE(c_.MeetsJob(sword_));
 }
 
+// An unadvanced character matches nothing that names a job.
 TEST_F(MeetsJobTest, FalseWhenJobUnspecified) {
   sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   EXPECT_FALSE(c_.MeetsJob(sword_));
@@ -1667,23 +1603,16 @@ TEST_F(CapacityTest, RoomForAnEquipCountsTracesAsWell) {
 
 // --- CountOwned ---
 
-TEST_F(CapacityTest, CountOwnedIsZeroForSomethingNeverPickedUp) {
-  EXPECT_EQ(c_.CountOwned(sword_), 0);
-}
-
-TEST_F(CapacityTest, CountOwnedCountsEveryCopyInTheBag) {
+// Worn is still owned. A player looking at the shop's second Sword has one
+// already, whether it is in the bag or on their back.
+TEST_F(CapacityTest, CountOwnedCountsEveryCopyBagAndBack) {
+  EXPECT_EQ(c_.CountOwned(sword_), 0) << "never picked one up";
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   EXPECT_EQ(c_.CountOwned(sword_), 2);
-}
-
-// Worn is still owned. A player looking at the shop's second Sword has one
-// already, whether it is in the bag or on their back.
-TEST_F(CapacityTest, CountOwnedCountsWhatIsWorn) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  ASSERT_EQ(c_.inventory().size(), 0) << "moved out of the bag, not copied";
-  EXPECT_EQ(c_.CountOwned(sword_), 1);
+  ASSERT_EQ(c_.inventory().size(), 1) << "moved out of the bag, not copied";
+  EXPECT_EQ(c_.CountOwned(sword_), 2);
 }
 
 TEST_F(CapacityTest, CountOwnedIgnoresOtherItems) {

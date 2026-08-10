@@ -34,79 +34,59 @@ TEST(AmountSelectorTest, DrawsTheSharedConfirmRow) {
   EXPECT_NE(rendered.find("[MAX]"), std::string::npos);
 }
 
+// Opens on the whole amount, so a player who wants all of it presses Enter and
+// nothing else.
 TEST(AmountSelectorTest, DefaultsToMax) {
   AmountSelector sel;
   sel.Reset(10);
   EXPECT_EQ(sel.value(), 10);
 }
 
-TEST(AmountSelectorTest, TextboxSelectedByDefaultSoDigitsEdit) {
-  AmountSelector sel;
-  sel.Reset(100);                        // value starts at 100
-  sel.OnEvent(ftxui::Event::Backspace);  // only edits if the textbox is on
-  EXPECT_EQ(sel.value(), 10);            // 100 -> 10
-}
-
-TEST(AmountSelectorTest, OneButtonSetsValueToOne) {
-  AmountSelector sel;
-  sel.Reset(10);
-  sel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
-  sel.OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(sel.value(), 1);
-}
-
-TEST(AmountSelectorTest, MaxButtonRestoresMax) {
-  AmountSelector sel;
-  sel.Reset(100);
-  Clear(&sel);
-  sel.OnEvent(ftxui::Event::ArrowRight);  // textbox -> [MAX]
-  sel.OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(sel.value(), 100);
-}
-
-TEST(AmountSelectorTest, ZeroIsReachableByHand) {
-  AmountSelector sel;
-  sel.Reset(10);
-  sel.OnEvent(ftxui::Event::Backspace);
-  sel.OnEvent(ftxui::Event::Backspace);
-  EXPECT_EQ(sel.value(), 0);
-}
-
-TEST(AmountSelectorTest, DigitsEditValue) {
+// Digits append, Backspace drops the last one, and a value over the max is held
+// at it. Zero is reachable, which is why the confirm can be refused.
+TEST(AmountSelectorTest, TheTextboxEditsByDigitAndBackspace) {
   AmountSelector sel;
   sel.Reset(100);
   Clear(&sel);
   sel.OnEvent(ftxui::Event::Character('2'));
   sel.OnEvent(ftxui::Event::Character('5'));
   EXPECT_EQ(sel.value(), 25);
-}
-
-TEST(AmountSelectorTest, DigitsClampToMax) {
-  AmountSelector sel;
-  sel.Reset(100);
-  Clear(&sel);
-  sel.OnEvent(ftxui::Event::Character('9'));
-  sel.OnEvent(ftxui::Event::Character('9'));
-  sel.OnEvent(ftxui::Event::Character('9'));  // 999 -> clamp 100
-  EXPECT_EQ(sel.value(), 100);
-}
-
-TEST(AmountSelectorTest, BackspaceDeletesLastDigit) {
-  AmountSelector sel;
-  sel.Reset(100);
-  Clear(&sel);
-  sel.OnEvent(ftxui::Event::Character('2'));
-  sel.OnEvent(ftxui::Event::Character('5'));  // 25
   sel.OnEvent(ftxui::Event::Backspace);
   EXPECT_EQ(sel.value(), 2);
+  sel.OnEvent(ftxui::Event::Backspace);
+  EXPECT_EQ(sel.value(), 0);
+  sel.OnEvent(ftxui::Event::Character('9'));
+  sel.OnEvent(ftxui::Event::Character('9'));
+  sel.OnEvent(ftxui::Event::Character('9'));
+  EXPECT_EQ(sel.value(), 100) << "999 held at the max";
 }
 
-TEST(AmountSelectorTest, DigitsIgnoredWhenAButtonIsSelected) {
+TEST(AmountSelectorTest, TheShortcutButtonsSetOneAndMax) {
   AmountSelector sel;
-  sel.Reset(100);                             // value 100, textbox selected
-  sel.OnEvent(ftxui::Event::ArrowLeft);       // textbox -> [1] button
-  sel.OnEvent(ftxui::Event::Character('5'));  // ignored off the textbox
+  sel.Reset(100);
+  sel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
+  sel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(sel.value(), 1);
+  sel.OnEvent(ftxui::Event::ArrowRight);  // [1] -> textbox
+  sel.OnEvent(ftxui::Event::ArrowRight);  // textbox -> [MAX]
+  sel.OnEvent(ftxui::Event::Return);
   EXPECT_EQ(sel.value(), 100);
+}
+
+// Digits belong to the textbox alone, so arrowing onto a button and typing does
+// not quietly change the amount under it.
+TEST(AmountSelectorTest, DigitsEditOnlyWhileTheTextboxHoldsFocus) {
+  AmountSelector sel;
+  sel.Reset(100);
+  sel.OnEvent(ftxui::Event::Backspace);
+  EXPECT_EQ(sel.value(), 10) << "the textbox holds focus to begin with";
+  sel.OnEvent(ftxui::Event::ArrowLeft);  // textbox -> [1]
+  sel.OnEvent(ftxui::Event::Character('5'));
+  sel.OnEvent(ftxui::Event::Backspace);
+  EXPECT_EQ(sel.value(), 10);
+  sel.OnEvent(ftxui::Event::ArrowRight);  // [1] -> textbox
+  sel.OnEvent(ftxui::Event::Backspace);
+  EXPECT_EQ(sel.value(), 1);
 }
 
 TEST(AmountSelectorTest, DownFromTextboxActivatesConfirm) {
@@ -128,12 +108,14 @@ TEST(AmountSelectorTest, RightFromConfirmActivatesCancel) {
   EXPECT_FALSE(sel.TakeConfirmed());
 }
 
-TEST(AmountSelectorTest, UpFromButtonReturnsToTextbox) {
+// The confirm row is one Up from the textbox, so a player who went down to it
+// by mistake gets back to the amount without leaving the dialog.
+TEST(AmountSelectorTest, UpFromTheConfirmRowReturnsToTheTextbox) {
   AmountSelector sel;
   sel.Reset(100);
-  sel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
-  sel.OnEvent(ftxui::Event::ArrowUp);    // [Confirm] -> textbox
-  sel.OnEvent(ftxui::Event::Backspace);  // edits only if textbox is on
+  sel.OnEvent(ftxui::Event::ArrowDown);
+  sel.OnEvent(ftxui::Event::ArrowUp);
+  sel.OnEvent(ftxui::Event::Backspace);
   EXPECT_EQ(sel.value(), 10);
 }
 

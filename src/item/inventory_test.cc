@@ -17,47 +17,29 @@ EquipPrototype MakeProto(const std::string& name) {
   return proto;
 }
 
-TEST(InventoryInstanceTest, EmptyInitially) {
+TEST(InventoryInstanceTest, StartsEmptyAndGrowsOnAdd) {
   InventoryInstance inv;
   EXPECT_TRUE(inv.empty());
   EXPECT_EQ(inv.size(), 0);
-}
-
-TEST(InventoryInstanceTest, AddIncreasesSize) {
-  InventoryInstance inv;
   inv.add(std::make_unique<EquipInstance>(MakeProto("Sword")));
-  EXPECT_EQ(inv.size(), 1);
   EXPECT_FALSE(inv.empty());
-}
-
-TEST(InventoryInstanceTest, OperatorBracketsReturnsItem) {
-  InventoryInstance inv;
-  inv.add(std::make_unique<EquipInstance>(MakeProto("Sword")));
+  EXPECT_EQ(inv.size(), 1);
   EXPECT_EQ(inv[0].prototype().name(), "Sword");
 }
 
-TEST(InventoryInstanceTest, EquipInstanceReturnsLiveItem) {
+// equip_instance() is the live-item accessor, so it answers for an ordinary
+// item and refuses everything else: a trace, and either end of the range. The
+// const overload is the same function and is checked alongside it.
+TEST(InventoryInstanceTest, EquipInstanceAnswersOnlyForALiveItem) {
   InventoryInstance inv;
   inv.add(std::make_unique<EquipInstance>(MakeProto("Sword")));
+  inv.add(std::make_unique<EquipTrace>(MakeProto("Axe"), Equip{}));
   EXPECT_NE(inv.equip_instance(0), nullptr);
-}
-
-TEST(InventoryInstanceTest, EquipInstanceReturnsNullptrForTrace) {
-  InventoryInstance inv;
-  inv.add(std::make_unique<EquipTrace>(MakeProto("Sword"), Equip{}));
-  EXPECT_EQ(inv.equip_instance(0), nullptr);
-}
-
-TEST(InventoryInstanceTest, NoEquipInstanceForANegativeIndex) {
-  InventoryInstance inv;
-  inv.add(std::make_unique<EquipInstance>(MakeProto("Sword")));
+  EXPECT_EQ(inv.equip_instance(1), nullptr) << "a trace is not a live item";
   EXPECT_EQ(inv.equip_instance(-1), nullptr);
-}
-
-TEST(InventoryInstanceTest, EquipInstanceReturnsNullptrForOOBIndex) {
-  InventoryInstance inv;
-  inv.add(std::make_unique<EquipInstance>(MakeProto("Sword")));
-  EXPECT_EQ(inv.equip_instance(1), nullptr);
+  EXPECT_EQ(inv.equip_instance(2), nullptr);
+  const InventoryInstance& const_inv = inv;
+  EXPECT_NE(const_inv.equip_instance(0), nullptr);
 }
 
 TEST(InventoryInstanceTest, RemoveEquipExtractsItem) {
@@ -94,13 +76,6 @@ TEST(InventoryInstanceTest, TracesReturnsOnlyTraces) {
   std::vector<const EquipTrace*> traces = inv.traces();
   ASSERT_EQ(traces.size(), 1u);
   EXPECT_EQ(traces[0]->prototype().name(), "Axe");
-}
-
-TEST(InventoryInstanceTest, ConstEquipInstanceWorks) {
-  InventoryInstance inv;
-  inv.add(std::make_unique<EquipInstance>(MakeProto("Sword")));
-  const InventoryInstance& const_inv = inv;
-  EXPECT_NE(const_inv.equip_instance(0), nullptr);
 }
 
 }  // namespace
