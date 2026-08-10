@@ -39,6 +39,9 @@ enum Job {
   // decide it for them -- a Rogue is handed both.
   JOB_ASSASSIN = 14;
   JOB_BANDIT = 15;
+  // The warrior's 3rd advancement. A Spearman's only branch -- the 3rd job
+  // narrows rather than forks, so this is one Job and not a set.
+  JOB_BERSERKER = 16;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -61,6 +64,8 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_CLERIC = 12;
   JOB_ADVANCEMENT_ASSASSIN = 13;
   JOB_ADVANCEMENT_BANDIT = 14;
+  // The first of the 3rd advancements, at level 60.
+  JOB_ADVANCEMENT_BERSERKER = 15;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

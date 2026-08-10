@@ -114,6 +114,7 @@ LevelUpGain LevelUpGainFor(Job job) {
     case JOB_FIGHTER:
     case JOB_PAGE:
     case JOB_SPEARMAN:
+    case JOB_BERSERKER:
       return {48, 12};
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -133,6 +134,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_FIGHTER:
     case JOB_PAGE:
     case JOB_SPEARMAN:
+    case JOB_BERSERKER:
       return EQUIP_JOB_CATEGORY_WARRIOR;
     case JOB_ARCHER:
     case JOB_HUNTER:
@@ -202,15 +204,16 @@ std::unique_ptr<EquipTabItem> RestoreEquipItem(
 }  // namespace
 
 JobAdvancement AdvancementForJobStage(Job job, int stage) {
-  // A 2nd-job warrior still carries their Swordman skills, so stage 1 answers
-  // the same for all four. Only the warrior branch has a 2nd advancement so
-  // far; the other three end at stage 1 until their books are written.
+  // A character keeps every book below the one they are in, so each stage
+  // answers for the whole line: a Berserker still holds their Swordman and
+  // Spearman skills.
   if (stage == 1) {
     switch (job) {
       case JOB_SWORDMAN:
       case JOB_FIGHTER:
       case JOB_PAGE:
       case JOB_SPEARMAN:
+      case JOB_BERSERKER:
         return JOB_ADVANCEMENT_SWORDMAN;
       case JOB_ARCHER:
       case JOB_HUNTER:
@@ -236,6 +239,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_PAGE:
         return JOB_ADVANCEMENT_PAGE;
       case JOB_SPEARMAN:
+      case JOB_BERSERKER:
         return JOB_ADVANCEMENT_SPEARMAN;
       case JOB_HUNTER:
         return JOB_ADVANCEMENT_HUNTER;
@@ -251,6 +255,14 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_ASSASSIN;
       case JOB_BANDIT:
         return JOB_ADVANCEMENT_BANDIT;
+      default:
+        break;
+    }
+  }
+  if (stage == 3) {
+    switch (job) {
+      case JOB_BERSERKER:
+        return JOB_ADVANCEMENT_BERSERKER;
       default:
         break;
     }
@@ -288,6 +300,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_ASSASSIN;
     case JOB_ADVANCEMENT_BANDIT:
       return JOB_BANDIT;
+    case JOB_ADVANCEMENT_BERSERKER:
+      return JOB_BERSERKER;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -377,6 +391,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_FIGHTER:
     case JOB_PAGE:
     case JOB_SPEARMAN:
+    case JOB_BERSERKER:
       return STAT_FIELD_STR;
     case JOB_ARCHER:
     case JOB_HUNTER:
@@ -417,6 +432,12 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 2 && job == JOB_ROGUE) {
     return {JOB_ASSASSIN, JOB_BANDIT};
   }
+  // The 3rd advancement narrows instead of forking: one branch per 2nd job,
+  // so the picker offers a single choice rather than a set. Only the Spearman
+  // has one written.
+  if (stage == 3 && job == JOB_SPEARMAN) {
+    return {JOB_BERSERKER};
+  }
   return {};
 }
 
@@ -438,6 +459,8 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_ASSASSIN:
     case JOB_ADVANCEMENT_BANDIT:
       return 2;
+    case JOB_ADVANCEMENT_BERSERKER:
+      return 3;
     default:
       return 0;
   }

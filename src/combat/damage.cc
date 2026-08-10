@@ -229,6 +229,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
     case JOB_FIGHTER:
     case JOB_PAGE:
     case JOB_SPEARMAN:
+    case JOB_BERSERKER:
     case JOB_BEGINNER:
       // STR primary, DEX secondary.
       offense.primary = allocated.str() + equipped.str();

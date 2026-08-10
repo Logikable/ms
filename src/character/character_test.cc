@@ -456,17 +456,45 @@ TEST(JobChoicesTest, ARogueIsOfferedBothThiefBranches) {
             (std::vector<Job>{JOB_ASSASSIN, JOB_BANDIT}));
 }
 
-TEST(JobChoicesTest, ThereIsNoThirdJobYet) {
-  EXPECT_TRUE(JobChoicesForStage(JOB_SPEARMAN, 3).empty());
+// The 3rd advancement narrows rather than forking, so it offers one job and
+// not a set. Only the Spearman's is written; every other 2nd job stops here.
+TEST(JobChoicesTest, OnlyTheSpearmanHasAThirdJob) {
+  EXPECT_EQ(JobChoicesForStage(JOB_SPEARMAN, 3),
+            (std::vector<Job>{JOB_BERSERKER}));
+  EXPECT_TRUE(JobChoicesForStage(JOB_FIGHTER, 3).empty());
+  EXPECT_TRUE(JobChoicesForStage(JOB_ASSASSIN, 3).empty());
+  EXPECT_TRUE(JobChoicesForStage(JOB_BERSERKER, 4).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
 }
 
-// A 2nd-job warrior keeps the Swordman book they bought on the way up: its
-// page has to stay on the skills tab, and its SP pool has to stay spendable.
-TEST(JobChoicesTest, ASpearmanKeepsTheirSwordmanSkills) {
+// A character keeps every book they bought on the way up: each page has to
+// stay on the skills tab, and each SP pool has to stay spendable.
+TEST(JobChoicesTest, ABerserkerKeepsEveryBookBelowTheirOwn) {
   EXPECT_EQ(AdvancementForJobStage(JOB_SPEARMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
   EXPECT_EQ(AdvancementForJobStage(JOB_SPEARMAN, 2), JOB_ADVANCEMENT_SPEARMAN);
-  EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_SPEARMAN), 2);
+  EXPECT_EQ(AdvancementForJobStage(JOB_BERSERKER, 1), JOB_ADVANCEMENT_SWORDMAN);
+  EXPECT_EQ(AdvancementForJobStage(JOB_BERSERKER, 2), JOB_ADVANCEMENT_SPEARMAN);
+  EXPECT_EQ(AdvancementForJobStage(JOB_BERSERKER, 3),
+            JOB_ADVANCEMENT_BERSERKER);
+  EXPECT_EQ(StageForAdvancement(JOB_ADVANCEMENT_BERSERKER), 3);
+}
+
+// A Berserker is a warrior in every table that reads a job: the stat they
+// spend AP into, the HP a level grants them, and the gear they may wear.
+TEST(JobChoicesTest, ABerserkerCountsAsAWarriorThroughout) {
+  EXPECT_EQ(PrimaryStatField(JOB_BERSERKER), STAT_FIELD_STR);
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng);
+  c.AdvanceJob(JOB_SWORDMAN);
+  c.AdvanceJob(JOB_SPEARMAN);
+  c.AdvanceJob(JOB_BERSERKER);
+  int before = c.proto().allocated_stats().hp();
+  c.LevelUp();
+  EXPECT_EQ(c.proto().allocated_stats().hp() - before, 48) << "warrior HP rate";
+  EquipPrototype spear;
+  spear.set_required_level(1);
+  spear.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  EXPECT_TRUE(c.CanEquip(spear));
 }
 
 // Every advancement names exactly the job that takes it, and that job answers
