@@ -113,6 +113,20 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "mob_curve_sim",
+    srcs = ["mob_curve_sim.cc"],
+    deps = [
+        "//src:embedded_data",
+        "//src:proto_loader",
+        "//src/combat:constants",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
 cc_library(
     name = "gms_mob_exp",
     srcs = ["gms_mob_exp.cc"],
