@@ -18,6 +18,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
+#include "analysis/parallel.h"
 #include "analysis/sim_format.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
@@ -42,9 +43,10 @@ ABSL_FLAG(double, minutes, 5.0,
 ABSL_FLAG(std::string, job, "SPEARMAN",
           "The 2nd-job branch to sweep, as its Job enum name without the "
           "JOB_ prefix. What a character survives depends on their book.");
-ABSL_FLAG(std::string, levels, "1,10,20,30,40,50,60,70,80,90,100",
+ABSL_FLAG(std::string, levels, "10,20,30,40,50,60,70,80,90,100",
           "Comma-separated character levels to sweep, one column each. Narrow "
-          "it when the table is wider than the terminal.");
+          "it when the table is wider than the terminal. Starts at 10 because "
+          "a level 1 has no job to sweep and ParseLevels refuses it.");
 
 namespace ms {
 namespace {
@@ -167,8 +169,18 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
 
   Outcome outcome;
   CombatSim sim;
+  // Built once and rebuilt only when the character changes under it, which
+  // here means levelling from the EXP the run itself earns. Rebuilding it
+  // every step prices every attack against every mob afresh, and that was
+  // almost the whole cost of this sim.
+  CombatParams params = ComputeCombatParams(state);
+  int at_level = state.character.proto().level();
   for (double t = 0.0; t < seconds; t += kStepSeconds) {
-    AdvanceCombat(state, sim, kStepSeconds);
+    AdvanceCombat(state, sim, params, kStepSeconds);
+    if (state.character.proto().level() != at_level) {
+      at_level = state.character.proto().level();
+      params = ComputeCombatParams(state);
+    }
     for (int64_t killed : sim.kills_this_step()) {
       outcome.kills += killed;
     }
@@ -221,25 +233,35 @@ void Run(double seconds, Job branch) {
   }
   std::printf("\n%s\n", std::string(34 + 15 * levels.size(), '-').c_str());
 
-  for (const std::pair<double, std::string>& map : maps) {
-    std::printf("%-28s %5.1f", catalogs.maps.at(map.second).name().c_str(),
-                map.first);
-    for (int level : levels) {
-      Outcome outcome = Farm(catalogs, level, path, map.second, seconds);
-      char cell[32];
-      if (outcome.death_seconds >= 0.0) {
-        // Died: how long it took, and what they took with them.
-        std::snprintf(cell, sizeof(cell), "died %.0fs/%lld",
-                      outcome.death_seconds,
-                      static_cast<long long>(outcome.kills));
-      } else {
-        // Survived: the body count, and how close it got.
-        std::snprintf(cell, sizeof(cell), "%lld/%.0f%%",
-                      static_cast<long long>(outcome.kills),
-                      100.0 * outcome.low_water);
-      }
-      std::printf("  %13s", cell);
-      std::fflush(stdout);
+  // Every cell is its own character farming its own map, so the whole grid
+  // runs at once and the table is printed from it afterwards.
+  int rows = static_cast<int>(maps.size());
+  int columns = static_cast<int>(levels.size());
+  std::vector<std::string> cells(rows * columns);
+  ParallelFor(rows * columns, [&](int i) {
+    Outcome outcome = Farm(catalogs, levels[i % columns], path,
+                           maps[i / columns].second, seconds);
+    char cell[32];
+    if (outcome.death_seconds >= 0.0) {
+      // Died: how long it took, and what they took with them.
+      std::snprintf(cell, sizeof(cell), "died %.0fs/%lld",
+                    outcome.death_seconds,
+                    static_cast<long long>(outcome.kills));
+    } else {
+      // Survived: the body count, and how close it got.
+      std::snprintf(cell, sizeof(cell), "%lld/%.0f%%",
+                    static_cast<long long>(outcome.kills),
+                    100.0 * outcome.low_water);
+    }
+    cells[i] = cell;
+  });
+
+  for (int row = 0; row < rows; ++row) {
+    std::printf("%-28s %5.1f",
+                catalogs.maps.at(maps[row].second).name().c_str(),
+                maps[row].first);
+    for (int column = 0; column < columns; ++column) {
+      std::printf("  %13s", cells[row * columns + column].c_str());
     }
     std::printf("\n");
   }

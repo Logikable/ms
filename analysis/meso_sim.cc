@@ -132,6 +132,12 @@ int main(int argc, char** argv) {
          state.character.proto().level());
 
   ms::CombatSim sim;
+  // Rebuilt only when the character levels or moves map, the two things that
+  // change what a fight is worth. Building it every step prices every attack
+  // against every mob afresh, which is where this sim spent its time.
+  ms::CombatParams params;
+  int params_level = -1;
+  std::string params_map;
   const int kMilestones[] = {5, 10, 15, 20, 25, 30, 40, 50, 60};
   const int kNumMilestones =
       static_cast<int>(sizeof(kMilestones) / sizeof(kMilestones[0]));
@@ -146,7 +152,12 @@ int main(int argc, char** argv) {
       state.current_map = map;
     }
     PlayCharacter(state);
-    ms::AdvanceCombat(state, sim, 0.3);
+    if (level != params_level || state.current_map != params_map) {
+      params = ms::ComputeCombatParams(state);
+      params_level = level;
+      params_map = state.current_map;
+    }
+    ms::AdvanceCombat(state, sim, params, 0.3);
     seconds += 0.3;
     SellAllEtc(state.character);
     int now = state.character.proto().level();

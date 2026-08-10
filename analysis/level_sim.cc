@@ -35,6 +35,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "analysis/parallel.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/job_advancement.h"
@@ -521,16 +522,22 @@ void Run() {
   }
   std::printf("\n%s\n", std::string(13 + 10 * kNumMilestones, '-').c_str());
 
-  for (Job branch : kBranches) {
-    Climb climb = Play(catalogs, branch, maps);
-    std::printf("%-13s", BranchName(branch).c_str());
-    for (int i = 0; i < kNumMilestones; ++i) {
-      std::printf("  %8s", Clock(climb.milestone_seconds[i]).c_str());
+  // Every branch climbs on its own character and its own copy of the
+  // catalogs, so they all run at once. The rows are printed afterwards, in the
+  // table's own order rather than the order the threads happened to finish.
+  int count = static_cast<int>(sizeof(kBranches) / sizeof(kBranches[0]));
+  std::vector<Climb> climbs(count);
+  ParallelFor(count,
+              [&](int i) { climbs[i] = Play(catalogs, kBranches[i], maps); });
+
+  for (int i = 0; i < count; ++i) {
+    std::printf("%-13s", BranchName(kBranches[i]).c_str());
+    for (int m = 0; m < kNumMilestones; ++m) {
+      std::printf("  %8s", Clock(climbs[i].milestone_seconds[m]).c_str());
     }
     std::printf("\n");
-    std::fflush(stdout);
     if (absl::GetFlag(FLAGS_detail)) {
-      PrintDetail(catalogs, climb);
+      PrintDetail(catalogs, climbs[i]);
     }
   }
 }

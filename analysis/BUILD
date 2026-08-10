@@ -20,6 +20,7 @@ cc_binary(
         "//src:proto_loader",
         "//src/character",
         "//src/combat",
+        "//src/combat:encounter",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
@@ -62,6 +63,7 @@ cc_binary(
     name = "balance_sim",
     srcs = ["balance_sim.cc"],
     deps = [
+        ":parallel",
         ":sim_format",
         "//src:embedded_data",
         "//src:game_state",
@@ -89,6 +91,7 @@ cc_binary(
     name = "level_sim",
     srcs = ["level_sim.cc"],
     deps = [
+        ":parallel",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -144,6 +147,12 @@ cc_binary(
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
     ],
+)
+
+cc_library(
+    name = "parallel",
+    srcs = ["parallel.cc"],
+    hdrs = ["parallel.h"],
 )
 
 cc_library(
