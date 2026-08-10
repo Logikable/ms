@@ -225,15 +225,19 @@ TEST(ShopTest, TheWeaponShelfHoldsNoOffHands) {
   }
 }
 
-// Nothing on sale is out of reach. The trial stops handing out EXP at 60, so
-// a weapon above it is one the shop takes meso for and the player can never
-// hold -- and an endgame weapon appearing here would be a balance change
-// nobody asked for.
+// Nothing on sale is out of reach. EXP stops at the cap, so an item above it
+// is one the shop takes meso for and the player can never hold -- and an
+// endgame item appearing here would be a balance change nobody asked for.
+// Both shelves: the off-hands have a tier sitting on the cap now, so the one
+// above it is the next thing that could slip through.
 TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
-  for (const std::string& key : ShopWeaponStock(equips)) {
-    EXPECT_LE(equips.at(key).required_level(), kTrialLevelCap)
-        << key << " is for sale";
+  for (const std::vector<std::string>& shelf :
+       {ShopWeaponStock(equips), ShopSecondaryStock(equips)}) {
+    for (const std::string& key : shelf) {
+      EXPECT_LE(equips.at(key).required_level(), kTrialLevelCap)
+          << key << " is for sale";
+    }
   }
 }
 

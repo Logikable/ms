@@ -1,13 +1,13 @@
-name: "Divine Rosary"
-required_level: 60
+name: "Sacred Rosary"
+required_level: 100
 base_stats {
-  str: 6
-  dex: 6
-  attack: 2
+  str: 10
+  dex: 10
+  attack: 3
 }
 equip_type: EQUIP_TYPE_ROSARY
 equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
 equip_slot: EQUIP_SLOT_SECONDARY
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-shop_price: 50000
+shop_price: 200000

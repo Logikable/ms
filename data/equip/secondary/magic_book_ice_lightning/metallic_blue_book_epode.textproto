@@ -1,13 +1,13 @@
-name: "White Gold Book (Antistrophe)"
-required_level: 60
+name: "Metallic Blue Book (Epode)"
+required_level: 100
 base_stats {
-  int: 6
-  luk: 6
-  magic_attack: 2
+  int: 10
+  luk: 10
+  magic_attack: 3
 }
-equip_type: EQUIP_TYPE_MAGIC_BOOK_HOLY
+equip_type: EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING
 equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
 equip_slot: EQUIP_SLOT_SECONDARY
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-shop_price: 50000
+shop_price: 200000

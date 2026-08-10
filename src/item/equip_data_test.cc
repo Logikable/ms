@@ -123,9 +123,10 @@ TEST(EquipDataTest, SecondariesTakeNoUpgrades) {
   EXPECT_GT(seen, 0) << "no secondaries in the catalog to check";
 }
 
-// Two per branch, at the level of each tier, and no branch left out. A
-// missing one is a 2nd job handed nothing when it advances.
-TEST(EquipDataTest, EverySecondJobHasBothTiers) {
+// One per branch at every tier, and no branch left out. A missing one is a 2nd
+// job with a level it cannot re-arm its off hand at.
+TEST(EquipDataTest, EverySecondJobHasEveryTier) {
+  const std::vector<int> kSecondaryTiers{30, 60, 100};
   std::map<JobAdvancement, std::vector<int>> levels;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
@@ -142,7 +143,7 @@ TEST(EquipDataTest, EverySecondJobHasBothTiers) {
     JobAdvancement advancement = static_cast<JobAdvancement>(i);
     std::vector<int>& own = levels[advancement];
     std::sort(own.begin(), own.end());
-    EXPECT_EQ(own, (std::vector<int>{30, 60}))
+    EXPECT_EQ(own, kSecondaryTiers)
         << JobAdvancement_Name(advancement) << " has the wrong secondaries";
   }
 }

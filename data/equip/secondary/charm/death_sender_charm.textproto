@@ -1,13 +1,13 @@
-name: "Evil Ender Charm"
-required_level: 60
+name: "Death Sender Charm"
+required_level: 100
 base_stats {
-  dex: 6
-  luk: 6
-  attack: 2
+  dex: 10
+  luk: 10
+  attack: 3
 }
 equip_type: EQUIP_TYPE_CHARM
 equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
 equip_slot: EQUIP_SLOT_SECONDARY
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-shop_price: 50000
+shop_price: 200000
