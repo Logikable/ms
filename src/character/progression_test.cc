@@ -70,18 +70,20 @@ TEST_F(ProgressionTest, TheStatBlockReportsTheAdvancementLevel) {
   EXPECT_EQ(UnlockLevel(Feature::kDamageStats), 30);
 }
 
-// The level named is the level it opens on, not the one after.
+// The level named is the level it opens on, not the one after. Asked of each
+// feature through UnlockLevel rather than against a copy of the table, so
+// moving a gate does not need this test touched.
 TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
-  EXPECT_FALSE(Unlocked(Feature::kEquipped, MakeCharacter(2)));
-  EXPECT_TRUE(Unlocked(Feature::kEquipped, MakeCharacter(3)));
-  EXPECT_FALSE(Unlocked(Feature::kBag, MakeCharacter(3)));
-  EXPECT_TRUE(Unlocked(Feature::kBag, MakeCharacter(4)));
-  EXPECT_FALSE(Unlocked(Feature::kShop, MakeCharacter(19)));
-  EXPECT_TRUE(Unlocked(Feature::kShop, MakeCharacter(20)));
-  EXPECT_FALSE(Unlocked(Feature::kStarForce, MakeCharacter(69)));
-  EXPECT_TRUE(Unlocked(Feature::kStarForce, MakeCharacter(70)));
-  EXPECT_FALSE(Unlocked(Feature::kRecovery, MakeCharacter(139)));
-  EXPECT_TRUE(Unlocked(Feature::kRecovery, MakeCharacter(140)));
+  const Feature kLevelGated[] = {Feature::kEquipped,  Feature::kBag,
+                                 Feature::kUnequip,   Feature::kShop,
+                                 Feature::kScrolling, Feature::kStarForce,
+                                 Feature::kRecovery};
+  for (Feature feature : kLevelGated) {
+    int level = UnlockLevel(feature);
+    SCOPED_TRACE(FeatureName(feature));
+    EXPECT_FALSE(Unlocked(feature, MakeCharacter(level - 1)));
+    EXPECT_TRUE(Unlocked(feature, MakeCharacter(level)));
+  }
 }
 
 // Held back until the early game is over and there is meso coming in for the
@@ -91,12 +93,12 @@ TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
   EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(40)));
 }
 
-// Star force waited above the cap for as long as the cap was 60. The 61-100
-// maps lifted it, so a played character now reaches star force as well as
-// scrolling. Recovery is still out past the end of the maps and stays there.
-TEST_F(ProgressionTest, TheCapReachesScrollingAndStarForceButNotRecovery) {
+// Scrolling is the one upgrade a played character reaches, so it has to fall
+// inside the cap. Star force and recovery both sit above it and wait for the
+// content that lifts it next -- only the workbench reaches them.
+TEST_F(ProgressionTest, ScrollingIsTheOnlyUpgradeThePlayerReaches) {
   EXPECT_LE(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
-  EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
+  EXPECT_GT(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
   EXPECT_GT(UnlockLevel(Feature::kRecovery), kTrialLevelCap);
 }
 
