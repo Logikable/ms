@@ -12,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "src/character/character.h"
 #include "src/game_state.h"
@@ -33,21 +34,16 @@ using bazel::tools::cpp::runfiles::Runfiles;
 
 // Every advancement --job accepts, which is every one a character can stand at
 // the top of.
-constexpr JobAdvancement kAdvancements[] = {
-    JOB_ADVANCEMENT_SWORDMAN,
-    JOB_ADVANCEMENT_ARCHER,
-    JOB_ADVANCEMENT_MAGICIAN,
-    JOB_ADVANCEMENT_ROGUE,
-    JOB_ADVANCEMENT_FIGHTER,
-    JOB_ADVANCEMENT_PAGE,
-    JOB_ADVANCEMENT_SPEARMAN,
-    JOB_ADVANCEMENT_HUNTER,
-    JOB_ADVANCEMENT_CROSSBOWMAN,
-    JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD,
-    JOB_ADVANCEMENT_FIRE_POISON_WIZARD,
-    JOB_ADVANCEMENT_CLERIC,
-    JOB_ADVANCEMENT_ASSASSIN,
-    JOB_ADVANCEMENT_BANDIT};
+// Every advancement in the enum, taken from the descriptor rather than listed:
+// a hardcoded list is one a new job joins only when somebody remembers to add
+// it, which is exactly how a new job comes to stand there unarmed.
+std::vector<JobAdvancement> EveryAdvancement() {
+  std::vector<JobAdvancement> all;
+  for (int i = 1; i <= JobAdvancement_MAX; ++i) {
+    all.push_back(static_cast<JobAdvancement>(i));
+  }
+  return all;
+}
 
 class WorkbenchGearTest : public ::testing::Test {
  protected:
@@ -101,7 +97,7 @@ class WorkbenchGearTest : public ::testing::Test {
 // less and the tester is looking at a weaker character than the game has --
 // which is exactly what a stale entry in the switch produces.
 TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
-  for (JobAdvancement advancement : kAdvancements) {
+  for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);
     const CharacterInstance& character = state.character;
     SCOPED_TRACE(JobAdvancement_Name(advancement));
@@ -121,22 +117,24 @@ TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
 // The test above walks what is worn, so an empty slot is a slot it never
 // reaches -- which is how every 2nd job came to stand there with no off-hand at
 // all and nothing said so. This is the slot being filled at all.
-TEST_F(WorkbenchGearTest, ASecondJobWearsAnOffHandAndAFirstJobHasNone) {
-  for (JobAdvancement advancement : kAdvancements) {
+TEST_F(WorkbenchGearTest, EveryJobPastTheFirstWearsAnOffHand) {
+  for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);
     SCOPED_TRACE(JobAdvancement_Name(advancement));
-    bool second_job = StageForAdvancement(advancement) == 2;
+    bool branched = StageForAdvancement(advancement) >= 2;
     EXPECT_EQ(state.character.equipped().count(EQUIP_SLOT_SECONDARY) == 1,
-              second_job)
-        << "a secondary belongs to a branch, and only a 2nd job is in one";
+              branched)
+        << "a secondary belongs to a branch, and a 1st job is not in one";
   }
 }
 
 // The level the gear is checked against, so a change to the advancement levels
 // shows up here as itself rather than as a weapon that looks wrong.
-TEST_F(WorkbenchGearTest, FirstJobsStartAtThirtyAndSecondJobsAtSixty) {
+TEST_F(WorkbenchGearTest, EachJobStartsAtTheTopOfItsOwnBand) {
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_ROGUE).character.proto().level(), 30);
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_BANDIT).character.proto().level(), 60);
+  EXPECT_EQ(Workbench(JOB_ADVANCEMENT_BERSERKER).character.proto().level(),
+            100);
 }
 
 }  // namespace

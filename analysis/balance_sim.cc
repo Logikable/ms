@@ -79,19 +79,18 @@ Catalogs LoadCatalogs() {
   return c;
 }
 
-// The 1st job a branch is reached through, so the sweep climbs the same path a
-// player does and collects that book's skills on the way.
-Job FirstJobFor(Job branch) {
-  switch (branch) {
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-      return JOB_ARCHER;
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-      return JOB_MAGICIAN;
-    default:
-      return JOB_SWORDMAN;
+// The advancements a branch is reached through, in order, so the sweep climbs
+// the same path a player does and collects each book's skills on the way. Read
+// off the game's own stage table rather than listed, so a new job joins by
+// existing -- which is how the Berserker's three-step path came for free.
+std::vector<Job> PathTo(Job branch) {
+  std::vector<Job> path;
+  for (int stage = 1;; ++stage) {
+    JobAdvancement advancement = AdvancementForJobStage(branch, stage);
+    if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+      return path;
+    }
+    path.push_back(JobForAdvancement(advancement));
   }
 }
 
@@ -99,7 +98,7 @@ Job FirstJobFor(Job branch) {
 // character quietly.
 Job ParseBranch(const std::string& name) {
   Job job = JOB_UNSPECIFIED;
-  if (!Job_Parse("JOB_" + name, &job) || FirstJobFor(job) == job) {
+  if (!Job_Parse("JOB_" + name, &job) || PathTo(job).size() < 2) {
     LOG(FATAL) << "Unknown --job '" << name << "'";
   }
   return job;
@@ -204,7 +203,7 @@ double MapLevel(const Catalogs& catalogs, const MapData& map) {
 
 void Run(double seconds, Job branch) {
   Catalogs catalogs = LoadCatalogs();
-  std::vector<Job> path = {FirstJobFor(branch), branch};
+  std::vector<Job> path = PathTo(branch);
   // Maps in the order the player meets them, weakest first.
   std::vector<std::pair<double, std::string>> maps;
   for (const std::pair<const std::string, MapData>& entry : catalogs.maps) {

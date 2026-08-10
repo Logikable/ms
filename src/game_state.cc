@@ -87,6 +87,11 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"steely_throwing_knives", "dark_gigantic", "evil_ender_charm"};
     case JOB_BANDIT:
       return {"deadly_fin", "vanishing_shadow"};
+    // The 3rd job, at level 100 -- the top of the game, so this is the best
+    // gear there is. The spear over the polearm on //analysis:weapon_sim, and
+    // the off-hand is still the Spearman's: a 3rd job opens no new slot.
+    case JOB_BERSERKER:
+      return {"pinaka", "berserk_chain"};
     default:
       return StarterEquipsFor(job);
   }

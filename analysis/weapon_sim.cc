@@ -88,27 +88,25 @@ std::string BranchName(Job job) {
       return "Assassin";
     case JOB_BANDIT:
       return "Bandit";
+    case JOB_BERSERKER:
+      return "Berserker";
     default:
       return "?";
   }
 }
 
-// The 1st job a branch is reached through, so the sweep climbs the same path a
-// player does and collects that book's skills on the way.
-Job FirstJobFor(Job branch) {
-  switch (branch) {
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-      return JOB_ARCHER;
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-      return JOB_MAGICIAN;
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-      return JOB_ROGUE;
-    default:
-      return JOB_SWORDMAN;
+// The advancements a branch is reached through, in order, so the sweep climbs
+// the same path a player does and collects each book's skills on the way. Read
+// off the game's own stage table rather than listed, so a new job joins by
+// existing -- which is how the Berserker's three-step path came for free.
+std::vector<Job> PathTo(Job branch) {
+  std::vector<Job> path;
+  for (int stage = 1;; ++stage) {
+    JobAdvancement advancement = AdvancementForJobStage(branch, stage);
+    if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+      return path;
+    }
+    path.push_back(JobForAdvancement(advancement));
   }
 }
 
@@ -342,7 +340,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
                   GameMode::kPlay);
-  GrowTo(state, level, {FirstJobFor(build.job), build.job});
+  GrowTo(state, level, PathTo(build.job));
   Result result;
   if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {
     return result;
@@ -436,6 +434,8 @@ void Run(int level) {
       {JOB_CLERIC, EQUIP_TYPE_STAFF},
       {JOB_ASSASSIN, EQUIP_TYPE_CLAW, EQUIP_TYPE_THROWING_STAR},
       {JOB_BANDIT, EQUIP_TYPE_DAGGER},
+      {JOB_BERSERKER, EQUIP_TYPE_SPEAR},
+      {JOB_BERSERKER, EQUIP_TYPE_POLEARM},
   };
 
   std::printf(
