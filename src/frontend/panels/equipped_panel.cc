@@ -207,10 +207,6 @@ void EquippedPanel::RebuildRows() {
     const EquipInstance& item = kv.second;
     slots_.push_back(kv.first);
     inactive_.push_back(!character_.AttackCounts(item.prototype()));
-    int scroll_pass = item.equip_state().scroll_successes();
-    int scroll_left = item.equip_state().remaining_upgrade_slots();
-    int scroll_restore =
-        item.prototype().upgrade_slots() - scroll_pass - scroll_left;
     // Only the selected row's name slides; the rest sit at their heads.
     bool selected = static_cast<int>(entries_.size()) == selected_;
     std::chrono::steady_clock::duration elapsed =
@@ -220,8 +216,8 @@ void EquippedPanel::RebuildRows() {
         ItemNameCell(item.prototype().name(), elapsed).size()));
     led_.push_back(lead && kv.first == EQUIP_SLOT_PRIMARY_WEAPON);
     entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
-                                       RowInfo(item.stats()), scroll_pass,
-                                       scroll_left, scroll_restore, elapsed));
+                                       RowInfo(item.stats()), item.prototype(),
+                                       item.equip_state(), elapsed));
   }
   if (!entries_.empty()) {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);

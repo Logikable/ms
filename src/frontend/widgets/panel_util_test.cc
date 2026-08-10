@@ -184,6 +184,26 @@ TEST(FormatItemEntryTest, NonUpgradeableItemShowsDash) {
   EXPECT_EQ(entry.find("/"), std::string::npos);
 }
 
+// The overload every list actually calls: the counts come off the item, so
+// the slot-less case cannot be got right in one panel and wrong in another.
+TEST(FormatItemEntryTest, ReadsTheScrollCountsOffTheItem) {
+  EquipPrototype proto;
+  proto.set_upgrade_slots(7);
+  Equip state;
+  state.set_scroll_successes(3);
+  state.set_remaining_upgrade_slots(2);
+  EXPECT_NE(
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", proto, state)
+          .find("3/2/2"),
+      std::string::npos);
+
+  proto.set_upgrade_slots(0);
+  EXPECT_EQ(
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", proto, state)
+          .find("/"),
+      std::string::npos);
+}
+
 // --- FormatJobCategories ---
 
 TEST(FormatJobCategoriesTest, EmptyCategoriesReturnsAll) {

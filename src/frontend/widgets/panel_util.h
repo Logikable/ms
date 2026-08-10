@@ -160,6 +160,15 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             std::chrono::steady_clock::duration elapsed =
                                 std::chrono::steady_clock::duration::zero());
 
+// The same row, with the scroll counts read off the item itself. Every list
+// that draws equipment uses this one, so no two of them can disagree about
+// what an item with no slots shows.
+std::string FormatItemEntry(const std::string& name, EquipSlot slot,
+                            const std::string& info,
+                            const EquipPrototype& proto, const Equip& state,
+                            std::chrono::steady_clock::duration elapsed =
+                                std::chrono::steady_clock::duration::zero());
+
 // A one-row bar filled to frac (clamped to [0, 1]) in `fill`, `label` centred
 // over it dark-on-filled and light-on-empty. Pass "" for no label.
 //

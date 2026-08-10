@@ -416,17 +416,10 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
     int level = proto.required_level() > 0 ? proto.required_level() : 1;
     std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
                        FormatJobCategories(proto);
-    int scroll_pass = -1, scroll_left = -1, scroll_restore = -1;
-    if (proto.upgrade_slots() > 0) {
-      scroll_pass = item.equip_state().scroll_successes();
-      scroll_left = item.equip_state().remaining_upgrade_slots();
-      scroll_restore = proto.upgrade_slots() - scroll_pass - scroll_left;
-    }
     InventoryRowState row;
     // Only the selected row's name slides; the rest sit at their heads.
     row.label = FormatItemEntry(
-        item.name(), proto.equip_slot(), info, scroll_pass, scroll_left,
-        scroll_restore,
+        item.name(), proto.equip_slot(), info, proto, item.equip_state(),
         i == selected_ ? name_clock_.Elapsed()
                        : std::chrono::steady_clock::duration::zero());
     row.is_trace = character_.inventory().equip_instance(i) == nullptr;

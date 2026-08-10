@@ -429,6 +429,23 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
          scrolls;
 }
 
+std::string FormatItemEntry(const std::string& name, EquipSlot slot,
+                            const std::string& info,
+                            const EquipPrototype& proto, const Equip& state,
+                            std::chrono::steady_clock::duration elapsed) {
+  // An item with no slots has no ledger to show, so the column reads "-".
+  // Three zeroes would look like slots standing ready to be spent. A weapon
+  // that has spent all of its own still reads 8/0/0, because a Clean Slate can
+  // buy one back.
+  if (proto.upgrade_slots() <= 0) {
+    return FormatItemEntry(name, slot, info, -1, -1, -1, elapsed);
+  }
+  int pass = state.scroll_successes();
+  int left = state.remaining_upgrade_slots();
+  return FormatItemEntry(name, slot, info, pass, left,
+                         proto.upgrade_slots() - pass - left, elapsed);
+}
+
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label) {
   return std::make_shared<ProgressBarNode>(
