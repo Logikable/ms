@@ -17,7 +17,11 @@
 namespace ms {
 
 void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds) {
-  CombatParams params = ComputeCombatParams(state);
+  AdvanceCombat(state, sim, ComputeCombatParams(state), elapsed_seconds);
+}
+
+void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
+                   double elapsed_seconds) {
   sim.Advance(params, elapsed_seconds);
   const std::vector<int64_t>& kills = sim.kills_this_step();
 

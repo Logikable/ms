@@ -56,9 +56,11 @@
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 
-ABSL_FLAG(double, step, 0.1,
-          "Seconds the fight is advanced by per tick. Small enough that no "
-          "swing or mob hit is rounded away.");
+ABSL_FLAG(double, step, 0.5,
+          "Seconds the fight is advanced by per tick. Comfortably finer than a "
+          "swing (0.66s) or a mob hit (1.5s), which is all the resolution the "
+          "climb needs: against 0.1s the playtimes move by under 2% and the "
+          "sweep takes a third as long.");
 ABSL_FLAG(int, probe_beats, 4,
           "Respawn beats each candidate map is played out for when the "
           "character picks where to farm.");
@@ -71,7 +73,7 @@ namespace ms {
 namespace {
 
 // The levels the table reports a running total at.
-constexpr int kMilestones[] = {10, 20, 30, 40, 50, 60};
+constexpr int kMilestones[] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
 constexpr int kNumMilestones = sizeof(kMilestones) / sizeof(kMilestones[0]);
 
 struct Catalogs {
@@ -118,27 +120,24 @@ std::string BranchName(Job job) {
       return "Assassin";
     case JOB_BANDIT:
       return "Bandit";
+    case JOB_BERSERKER:
+      return "Berserker";
     default:
       return "?";
   }
 }
 
-// The 1st job a branch is reached through, so the climb takes the same path a
-// player does and collects that book's skills on the way.
-Job FirstJobFor(Job branch) {
-  switch (branch) {
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-      return JOB_ARCHER;
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-      return JOB_MAGICIAN;
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-      return JOB_ROGUE;
-    default:
-      return JOB_SWORDMAN;
+// The advancements a branch is reached through, in order, so the climb takes
+// the same path a player does and collects each book's skills on the way. Read
+// off the game's own stage table, so a third job joins by existing.
+std::vector<Job> PathTo(Job branch) {
+  std::vector<Job> path;
+  for (int stage = 1;; ++stage) {
+    JobAdvancement advancement = AdvancementForJobStage(branch, stage);
+    if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+      return path;
+    }
+    path.push_back(JobForAdvancement(advancement));
   }
 }
 
@@ -409,7 +408,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
                   GameMode::kPlay);
-  std::vector<Job> path = {FirstJobFor(branch), branch};
+  std::vector<Job> path = PathTo(branch);
   int taken = 0;
 
   Climb climb;
@@ -424,12 +423,17 @@ Climb Play(const Catalogs& catalogs, Job branch,
   Stint stint = {level, 0.0, state.current_map,
                  HeldWeaponName(state.character)};
   CombatSim sim;
+  // Built once and reused until something changes it. Nothing in a fight moves
+  // between two steps of the same level on the same map, and rebuilding it
+  // every step is where this sim used to spend almost all of its time.
+  CombatParams params = ComputeCombatParams(state);
   while (level < kTrialLevelCap && seconds < give_up) {
-    AdvanceCombat(state, sim, step);
+    AdvanceCombat(state, sim, params, step);
     seconds += step;
     if (sim.died_this_step()) {
       // Dying sends them home, where there is nothing to fight.
       PickMap(state, maps, beats, step);
+      params = ComputeCombatParams(state);
     }
     if (state.character.proto().level() == level) {
       continue;
@@ -444,6 +448,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
       }
     }
     Retool(state, path, &taken, maps, beats, step);
+    params = ComputeCombatParams(state);
     stint = {level, 0.0, state.current_map, HeldWeaponName(state.character)};
   }
   return climb;
@@ -504,6 +509,7 @@ void Run() {
       JOB_CLERIC,
       JOB_ASSASSIN,
       JOB_BANDIT,
+      JOB_BERSERKER,
   };
 
   std::printf(

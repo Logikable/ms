@@ -9,6 +9,7 @@
 #ifndef MS_SRC_COMBAT_COMBAT_H_
 #define MS_SRC_COMBAT_COMBAT_H_
 
+#include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/game_state.h"
 
@@ -18,6 +19,18 @@ namespace ms {
 // rewards for every mob it killed: their EXP, their drops, and their meso.
 // No-op without a current map or an equipped weapon.
 void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds);
+
+// The same, against params already built. `params` must be what
+// ComputeCombatParams would return for `state` right now, so a caller has to
+// rebuild them whenever the character or the map changes.
+//
+// For a caller stepping far faster than the game's tick: building the params
+// walks every skill and prices every attack against every mob on the map, and
+// none of that changes between two steps of the same fight. The game itself
+// has no use for this -- it ticks 3 times a second -- but a sim stepping at
+// 0.1s spends almost all of its time here. See //analysis:level_sim.
+void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
+                   double elapsed_seconds);
 
 }  // namespace ms
 
