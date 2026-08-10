@@ -12,7 +12,7 @@ WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # is missing repos like ftxui; the output base holds the complete set. main()
 # points this at $(bazel info output_base)/external.
 EXTERNAL = os.path.join(WORKSPACE, "bazel-external")
-TARGETS = ["//src/..."]
+TARGETS = ["//src/...", "//analysis/..."]
 
 
 def path_fragments(data):
