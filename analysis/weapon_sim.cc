@@ -60,8 +60,8 @@ constexpr char kDummyMob[] = "__dps_dummy_mob";
 // ammunition, and a claw with an empty star slot reads as a broken build.
 struct Build {
   Job job = JOB_UNSPECIFIED;
-  std::string weapon;  // equip catalog key
-  std::string stars;   // equip catalog key, for the claws
+  EquipType weapon = EQUIP_TYPE_UNSPECIFIED;
+  EquipType stars = EQUIP_TYPE_UNSPECIFIED;  // ammunition, for the claws
 };
 
 // The 2nd-job branches by name. Spelled out here rather than borrowed from the
@@ -208,6 +208,26 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path) {
 
 // Puts `key` on the character, in whichever slot its prototype names, dropping
 // whatever was already there. Returns false if the catalog has no such item.
+// The best weapon of `type` a character at `level` can wear. Named by type
+// rather than by catalog key so the table below never has to be edited when a
+// tier is added -- which is the whole reason a build says "claw" and not
+// "dark_gigantic".
+std::string BestOfType(const Catalogs& catalogs, EquipType type, int level) {
+  std::string best;
+  int best_level = -1;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       catalogs.equips) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_type() != type || proto.required_level() > level ||
+        proto.required_level() <= best_level) {
+      continue;
+    }
+    best_level = proto.required_level();
+    best = entry.first;
+  }
+  return best;
+}
+
 bool Wear(GameState& state, const std::string& key) {
   std::map<std::string, EquipPrototype>::const_iterator it =
       state.equips.find(key);
@@ -324,10 +344,11 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
                   GameMode::kPlay);
   GrowTo(state, level, {FirstJobFor(build.job), build.job});
   Result result;
-  if (!Wear(state, build.weapon)) {
+  if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {
     return result;
   }
-  if (!build.stars.empty() && !Wear(state, build.stars)) {
+  if (build.stars != EQUIP_TYPE_UNSPECIFIED &&
+      !Wear(state, BestOfType(catalogs, build.stars, level))) {
     return result;
   }
   state.current_map = kDummyMap;
@@ -398,20 +419,23 @@ void Run(int level) {
   // masters swords and axes, a Page swords and blunts, a Spearman spears and
   // polearms. The bowman branches master one weapon apiece, so they bring one
   // row each rather than two.
+  // Each branch against every weapon type it has mastery for. Two rows where a
+  // branch masters two, so the comparison that decides which one it is built
+  // around stays on the table.
   const Build kBuilds[] = {
-      {JOB_FIGHTER, "sparta"},
-      {JOB_FIGHTER, "the_shining"},
-      {JOB_PAGE, "sparta"},
-      {JOB_PAGE, "the_blessing"},
-      {JOB_SPEARMAN, "holy_spear"},
-      {JOB_SPEARMAN, "skylar"},
-      {JOB_HUNTER, "asianic_bow"},
-      {JOB_CROSSBOWMAN, "golden_crow"},
-      {JOB_ICE_LIGHTNING_WIZARD, "frantic_crow_staff"},
-      {JOB_FIRE_POISON_WIZARD, "frantic_crow_staff"},
-      {JOB_CLERIC, "frantic_crow_staff"},
-      {JOB_ASSASSIN, "dark_gigantic", "steely_throwing_knives"},
-      {JOB_BANDIT, "deadly_fin"},
+      {JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_SWORD},
+      {JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_AXE},
+      {JOB_PAGE, EQUIP_TYPE_TWO_HANDED_SWORD},
+      {JOB_PAGE, EQUIP_TYPE_TWO_HANDED_BLUNT},
+      {JOB_SPEARMAN, EQUIP_TYPE_SPEAR},
+      {JOB_SPEARMAN, EQUIP_TYPE_POLEARM},
+      {JOB_HUNTER, EQUIP_TYPE_BOW},
+      {JOB_CROSSBOWMAN, EQUIP_TYPE_CROSSBOW},
+      {JOB_ICE_LIGHTNING_WIZARD, EQUIP_TYPE_STAFF},
+      {JOB_FIRE_POISON_WIZARD, EQUIP_TYPE_STAFF},
+      {JOB_CLERIC, EQUIP_TYPE_STAFF},
+      {JOB_ASSASSIN, EQUIP_TYPE_CLAW, EQUIP_TYPE_THROWING_STAR},
+      {JOB_BANDIT, EQUIP_TYPE_DAGGER},
   };
 
   std::printf(
@@ -423,9 +447,10 @@ void Run(int level) {
   std::printf("%s\n", std::string(72, '-').c_str());
   for (const Build& build : kBuilds) {
     Result result = Measure(catalogs, level, build);
-    std::string weapon = catalogs.equips.count(build.weapon) > 0
-                             ? catalogs.equips.at(build.weapon).name()
-                             : build.weapon;
+    std::string key = BestOfType(catalogs, build.weapon, level);
+    std::string weapon = catalogs.equips.count(key) > 0
+                             ? catalogs.equips.at(key).name()
+                             : "(none this level can wear)";
     std::printf("%-12s  %-18s  %6d  %8.1f  %-16s  %5.2f\n",
                 BranchName(build.job).c_str(), weapon.c_str(),
                 result.combat_power, result.dps, result.swing.c_str(),

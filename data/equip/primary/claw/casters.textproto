@@ -1,0 +1,11 @@
+name: "Casters"
+required_level: 90
+base_stats {
+  attack: 42
+}
+attack_speed: ATTACK_SPEED_FAST_2
+equip_type: EQUIP_TYPE_CLAW
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+shop_price: 250000

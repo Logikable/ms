@@ -1,0 +1,12 @@
+name: "Celestial Staff"
+required_level: 70
+base_stats {
+  attack: 60
+  magic_attack: 90
+}
+attack_speed: ATTACK_SPEED_SLOW_1
+equip_type: EQUIP_TYPE_STAFF
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+shop_price: 110000

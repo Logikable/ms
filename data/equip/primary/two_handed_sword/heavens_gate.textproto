@@ -1,0 +1,11 @@
+name: "Heaven's Gate"
+required_level: 80
+base_stats {
+  attack: 90
+}
+attack_speed: ATTACK_SPEED_AVERAGE
+equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+shop_price: 165000

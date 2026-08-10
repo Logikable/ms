@@ -1,0 +1,11 @@
+name: "Dark Crow"
+required_level: 90
+base_stats {
+  attack: 93
+}
+attack_speed: ATTACK_SPEED_AVERAGE
+equip_type: EQUIP_TYPE_CROSSBOW
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+shop_price: 250000

@@ -1,0 +1,11 @@
+name: "Void Hunter"
+required_level: 70
+base_stats {
+  attack: 83
+}
+attack_speed: ATTACK_SPEED_AVERAGE
+equip_type: EQUIP_TYPE_CROSSBOW
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+shop_price: 110000

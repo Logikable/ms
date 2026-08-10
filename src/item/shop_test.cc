@@ -98,7 +98,7 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
 // tier rather than at the end: they undercut the weapons they are listed
 // beside because they are ammunition, not the weapon a character is built
 // around.
-TEST(ShopTest, ShippedStockIsFiftyFourWeapons) {
+TEST(ShopTest, ShippedStockIsNinetyFourWeapons) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   std::vector<std::string> stock = ShopWeaponStock(equips);
   std::vector<std::pair<std::string, int>> listing;
@@ -156,7 +156,7 @@ TEST(ShopTest, ShippedStockIsFiftyFourWeapons) {
       {"Golden Mole", 50000},
       {"Lion's Fang", 50000},
       {"Rower", 50000},
-      // Level 60 -- the last tier the trial cap can reach.
+      // Level 60.
       {"Asianic Bow", 75000},
       {"Frantic Crow Staff", 75000},
       {"Deadly Fin", 75000},
@@ -167,6 +167,50 @@ TEST(ShopTest, ShippedStockIsFiftyFourWeapons) {
       {"The Blessing", 75000},
       {"Sparta", 75000},
       {"Golden Crow", 75000},
+      // Level 70.
+      {"Red Hinkel", 110000},
+      {"Celestial Staff", 110000},
+      {"Kandine", 110000},
+      {"Black Scarab", 110000},
+      {"Chrono", 110000},
+      {"Redemption", 110000},
+      {"The Gold Dragon", 110000},
+      {"Gigantic Sledge", 110000},
+      {"Doombringer", 110000},
+      {"Void Hunter", 110000},
+      // Level 80.
+      {"Dark Arund", 165000},
+      {"Umarumagna", 165000},
+      {"Dragon's Tail", 165000},
+      {"Black Mamba", 165000},
+      {"Helios", 165000},
+      {"Omega Spear", 165000},
+      {"Eclipse", 165000},
+      {"The Morningstar", 165000},
+      {"Heaven's Gate", 165000},
+      {"Dark Raven", 165000},
+      // Level 90.
+      {"Metus", 250000},
+      {"Enraged Crow Staff", 250000},
+      {"Varkit", 250000},
+      {"Casters", 250000},
+      {"Colonian Axe", 250000},
+      {"Fairfrozen", 250000},
+      {"Hellslayer", 250000},
+      {"Leomite", 250000},
+      {"Devil's Sunrise", 250000},
+      {"Dark Crow", 250000},
+      // Level 100 -- the last tier the level cap can reach.
+      {"Dark Nisrock", 375000},
+      {"Crimson Arcanon", 375000},
+      {"Blood Dagger", 375000},
+      {"Red Craven", 375000},
+      {"Tavar", 375000},
+      {"Pinaka", 375000},
+      {"Zedbug", 375000},
+      {"Golden Smith Hammer", 375000},
+      {"Stonetooth Sword", 375000},
+      {"Dark Neschere", 375000},
   };
   EXPECT_EQ(listing, expected);
 }

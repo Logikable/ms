@@ -1,0 +1,11 @@
+name: "Eclipse"
+required_level: 80
+base_stats {
+  attack: 92
+}
+attack_speed: ATTACK_SPEED_FAST_1
+equip_type: EQUIP_TYPE_POLEARM
+upgrade_slots: 7
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+shop_price: 165000
