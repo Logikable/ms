@@ -178,6 +178,23 @@ TEST_F(SkillInspectPanelTest, ASwingPacedByTheWeaponStatesNoRate) {
   EXPECT_EQ(RenderAt(skill, 1).find("Swing Time"), std::string::npos);
 }
 
+// The other clock a skill on its own clock can run on, and what a swing too
+// rapid to count for a whole attack is worth to it.
+TEST_F(SkillInspectPanelTest, TheSwingClockedRowsStateBothHalves) {
+  Skill mirage = MakeLuckySeven();
+  mirage.set_kind(SKILL_KIND_AUTO_ATTACK);
+  mirage.set_attacks_per_cast(4);
+  EXPECT_NE(RenderAt(mirage, 1).find("Fires Every       4 Attacks"),
+            std::string::npos);
+
+  Skill blaster = MakeLuckySeven();
+  blaster.set_hits_per_attack_count(7);
+  EXPECT_NE(RenderAt(blaster, 1).find("Counts As         1 per 7 Hits"),
+            std::string::npos);
+  // An ordinary swing is worth a whole one and says nothing about it.
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Counts As"), std::string::npos);
+}
+
 TEST_F(SkillInspectPanelTest, TheNormalMonsterRowStatesTheWholeSwing) {
   Skill skill = MakeLuckySeven();
   skill.mutable_base()->set_normal_skill_pct(0.72);

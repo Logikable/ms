@@ -328,6 +328,18 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", FormatSeconds(skill.cast_interval_seconds()) + "s"));
   }
+  // The other clock such a skill can run on: the player's own attacking.
+  if (skill.attacks_per_cast() > 0) {
+    rows.push_back(EffectRow(
+        "Fires Every", std::to_string(skill.attacks_per_cast()) + " Attacks"));
+  }
+  // And what one swing of THIS skill is worth to that count, for the one that
+  // lands too often to count for a whole one.
+  if (skill.hits_per_attack_count() > 1) {
+    rows.push_back(EffectRow(
+        "Counts As",
+        "1 per " + std::to_string(skill.hits_per_attack_count()) + " Hits"));
+  }
   // How long the player swings something else for afterwards, which is what a
   // skill this much better than the usual swing costs.
   if (skill.cooldown_seconds() > 0.0) {

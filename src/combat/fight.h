@@ -174,6 +174,14 @@ class CombatSim {
   // Fires the skills that attack on their own clock, before the swing is
   // aimed, so it is aimed at what they leave standing.
   void RunAutoCasts(const CombatParams& params, double dt);
+  // Credits a landed swing to the skills clocked by swings rather than by
+  // seconds, and fires any whose count has come round. `weight` is what that
+  // swing was worth -- a seventh for one that lands seven times as often.
+  //
+  // The count carries its remainder rather than resetting: a swing worth a
+  // seventh must not have six sevenths of it thrown away, or a rapid attack
+  // would never set the skill off at all.
+  void CreditSwing(const CombatParams& params, double weight);
   // Winds every recharging swing down by dt, before the swing is aimed, so one
   // that comes back this step is available to it.
   void RunCooldowns(const CombatParams& params, double dt);
@@ -200,6 +208,10 @@ class CombatSim {
   // Seconds into each auto-attack's next cast, parallel to
   // params.auto_attacks. Runs only while there is something to hit.
   std::vector<double> auto_phase_;
+  // Swings credited toward each triggered attack's next cast, parallel to
+  // params.triggered_attacks. Fractional, since a swing can be worth less than
+  // a whole one.
+  std::vector<double> trigger_count_;
   // Seconds each swing has left before it can be chosen again, parallel to
   // params.attacks. 0 for a swing that is ready, which is all of them for a
   // character holding no cooldown skill.

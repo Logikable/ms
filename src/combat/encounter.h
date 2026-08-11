@@ -51,6 +51,14 @@ struct AttackOption {
   // than on the character's swing. 0 for the swings themselves, which are
   // paced by swing_seconds.
   double interval_seconds = 0.0;
+  // Landed swings between casts, for an attack clocked by the character's
+  // attacking rather than by the clock. 0 for everything else. An attack
+  // carries this or interval_seconds, never both.
+  int attacks_per_cast = 0;
+  // What one landed swing of this attack counts toward the field above, on
+  // whichever attacks are so clocked. 1 for an ordinary swing; less for one
+  // that lands several times a second.
+  double count_weight = 1.0;
   // Seconds this attack cannot be swung for after it lands, game-scaled. 0 for
   // one that is there every time, which is most of them.
   double cooldown_seconds = 0.0;
@@ -99,6 +107,14 @@ struct CombatParams {
   // summons and cooldown skills. Not candidates for the swing, so a wide one
   // never crowds out the character's own attack; they simply also happen.
   std::vector<AttackOption> auto_attacks;
+  // The same, but clocked by swings landed rather than by seconds passed. Held
+  // apart from auto_attacks because the fight has to count something for these
+  // and nothing for those, and one list with an empty field on half its
+  // entries would hide which half.
+  //
+  // A cast of one of these does not itself count toward any of them: what the
+  // player is being paid for is their own attacking.
+  std::vector<AttackOption> triggered_attacks;
 };
 
 // Reads `state`'s current map/character into a CombatParams. active is false

@@ -94,6 +94,18 @@ void AddAutoAttack(CombatParams& params, double interval, double damage,
   params.auto_attacks.push_back(std::move(cast));
 }
 
+// Adds a skill clocked by swings landed rather than by seconds, hitting
+// `reach` mobs for `damage` apiece every `attacks` of them.
+void AddTriggeredAttack(CombatParams& params, int attacks, double damage,
+                        int reach = 1) {
+  AttackOption cast;
+  cast.name = "Speed Mirage";
+  cast.max_enemies = reach;
+  cast.attacks_per_cast = attacks;
+  cast.damage_per_hit.assign(params.types.size(), damage);
+  params.triggered_attacks.push_back(std::move(cast));
+}
+
 const EngagedGroup* FindGroup(const std::vector<EngagedGroup>& groups,
                               const std::string& name) {
   for (const EngagedGroup& g : groups) {
@@ -1017,6 +1029,104 @@ TEST(CombatSimTest, AnAutoAttackReachesWhatItsSkillSays) {
 
   sim.Advance(params, 1.0);
   EXPECT_EQ(sim.kills_this_step()[0], 3);  // three of the five, not one
+}
+
+TEST(CombatSimTest, ATriggeredAttackFiresOnTheFourthSwing) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  // A swing that does nothing, so what lands on the mob is the volley alone.
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  AddTriggeredAttack(params, /*attacks=*/4, /*damage=*/100.0);
+
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+    EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9) << "swing " << i + 1;
+  }
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
+  // And again four swings later, not every swing from here on. Stepped one
+  // swing at a time: a single long Advance is clamped to one of them.
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+    EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9) << "swing " << i + 5;
+  }
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.80, 1e-9);
+}
+
+// The whole reason the weight exists: a swing landing seven times as often is
+// worth a seventh, so the volley comes at the same rate either way.
+TEST(CombatSimTest, ARapidSwingTakesSevenTimesAsManyToFireIt) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  params.attacks[0].count_weight = 1.0 / 7.0;
+  AddTriggeredAttack(params, /*attacks=*/4, /*damage=*/100.0);
+
+  // 27 swings is a hair under the 4 attacks it takes.
+  for (int i = 0; i < 27; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0, 1e-9);
+  // The 28th closes it. A seventh cannot be written exactly, so this is also
+  // the assertion that the counter is nudged rather than compared bare.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
+}
+
+// The remainder carries rather than resetting, or a swing worth a fraction
+// would throw the rest away and never come round at all.
+TEST(CombatSimTest, TheSwingCountCarriesItsRemainder) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  params.attacks[0].count_weight = 3.0;
+  AddTriggeredAttack(params, /*attacks=*/2, /*damage=*/100.0);
+
+  // Worth three where two are needed: it fires, and the spare one is still
+  // there to be half of the next.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.90, 1e-9);
+  sim.Advance(params, 1.0);  // 1 carried + 3 = 4, so two more casts
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.70, 1e-9);
+}
+
+TEST(CombatSimTest, ATriggeredAttackReachesWhatItsSkillSays) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 6)});
+  AddTriggeredAttack(params, /*attacks=*/1, /*damage=*/100.0, /*reach=*/6);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 6);
+}
+
+// A healing cast is not an attack, so it credits nothing -- a character
+// spending swings staying alive is not also building a volley.
+TEST(CombatSimTest, AHealingCastCreditsNothing) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  AttackOption heal;
+  heal.name = "Heal";
+  heal.swing_seconds = 1.0;
+  heal.heal_fraction = 0.05;
+  heal.damage_per_hit.assign(params.types.size(), 0.0);
+  params.attacks.push_back(std::move(heal));
+  AddTriggeredAttack(params, /*attacks=*/4, /*damage=*/100.0);
+
+  // Beaten below a quarter of the pool, at which point every swing goes on the
+  // cast -- and the mob's HP never moves however many of them are spent.
+  for (int i = 0; i < 40; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_LT(sim.player_hp_fraction(), 0.25);
+  double before = sim.target_hp_fraction();
+  for (int i = 0; i < 20; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), before, 1e-9);
 }
 
 // The swing is chosen after the casts land, so a skill that thins the map out

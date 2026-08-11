@@ -15,6 +15,10 @@ namespace {
 // one saved for the last sliver would come too late to matter.
 constexpr double kHealBelowFraction = 0.25;
 
+// Slack for the swing counter below, far smaller than any weight a swing
+// carries. A weight of a seventh cannot be written exactly.
+constexpr double kCountEpsilon = 1e-9;
+
 // Whether there is a fight to advance at all. The bare poke is always the
 // first attack, so its interval is the one to ask about: every character has
 // it, whatever they have learned or are holding.
@@ -317,6 +321,26 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
   }
 }
 
+void CombatSim::CreditSwing(const CombatParams& params, double weight) {
+  trigger_count_.resize(params.triggered_attacks.size(), 0.0);
+  for (int i = 0; i < static_cast<int>(params.triggered_attacks.size()); ++i) {
+    const AttackOption& cast = params.triggered_attacks[i];
+    if (cast.attacks_per_cast <= 0) {
+      continue;
+    }
+    trigger_count_[i] += weight;
+    // A while rather than an if: nothing stops a swing being worth more than
+    // the whole count, and one that is should fire the skill for each of them.
+    // Nudged, because a weight of a seventh cannot be written exactly: 28 of
+    // them land a hair under the 4 they are meant to come to, and the volley
+    // would fire one swing late every time.
+    while (trigger_count_[i] + kCountEpsilon >= cast.attacks_per_cast) {
+      trigger_count_[i] -= cast.attacks_per_cast;
+      Strike(cast);
+    }
+  }
+}
+
 const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
   aimed_ = ChooseAttack(params);
   const AttackOption* attack = aimed_ >= 0 ? &params.attacks[aimed_] : nullptr;
@@ -363,6 +387,10 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     player_hp_ =
         std::min(static_cast<double>(params.max_player_hp),
                  player_hp_ + params.hp_recover_pct * params.max_player_hp);
+    // Credited after the strike, so the volley lands on what the swing left
+    // standing rather than on mobs it was about to kill anyway. A healing cast
+    // credits nothing: it is not an attack.
+    CreditSwing(params, attack->count_weight);
   }
   if (attack->cooldown_seconds > 0.0) {
     cooldown_left_[swung] = attack->cooldown_seconds;

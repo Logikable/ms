@@ -311,6 +311,24 @@ message Skill {
   // cooldown skill is one the player would fire the moment it came back.
   // Ignored for every other kind. A skill with no interval never fires.
   double cast_interval_seconds = 18;
+  // The other clock a SKILL_KIND_AUTO_ATTACK can run on: swings landed rather
+  // than seconds passed. Speed Mirage fires once every four of them.
+  //
+  // A skill names one clock or the other. Counting attacks rather than seconds
+  // is what keeps such a skill worth the same behind a fast swing and a slow
+  // one -- and it is the shape GMS states these in, because what the player is
+  // being paid for is attacking.
+  int32 attacks_per_cast = 20;
+  // How many landed swings of THIS attack count as one toward the field above.
+  // Unset is one, which is what an ordinary swing is worth.
+  //
+  // Above one for a swing that lands far faster than the rest: Arrow Blaster
+  // fires at 120ms and takes seven, so 28 of them do what 4 ordinary swings
+  // do. Without it a rapid swing would set off every counter in the book
+  // several times a second. GMS states the rule in exactly this shape --
+  // "every 7 hits count as 1 successful strike" -- so it is an integer here
+  // rather than the fraction it works out to.
+  int32 hits_per_attack_count = 21;
 
   // --- From here down, one job line apiece. See the message comment. ---
 

@@ -211,17 +211,28 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       attack.final_attack_damage.clear();
     }
     if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {
+      // What this swing counts toward the skills clocked by swings landed.
+      // Unset is one, which is what an ordinary swing is worth.
+      if (skill.hits_per_attack_count() > 1) {
+        attack.count_weight = 1.0 / skill.hits_per_attack_count();
+      }
       params.attacks.push_back(std::move(attack));
       continue;
     }
-    // A skill with no interval would fire every step, so an unset one is taken
-    // as "does not fire" rather than "fires constantly".
+    attack.swing_seconds = 0.0;          // not swung, so never charged
+    attack.final_attack_damage.clear();  // Final Attack follows a swing
+    // Clocked by swings landed rather than by seconds passed.
+    if (skill.attacks_per_cast() > 0) {
+      attack.attacks_per_cast = skill.attacks_per_cast();
+      params.triggered_attacks.push_back(std::move(attack));
+      continue;
+    }
+    // A skill with no clock at all would fire every step, so naming neither is
+    // taken as "does not fire" rather than "fires constantly".
     if (skill.cast_interval_seconds() <= 0.0) {
       continue;
     }
     attack.interval_seconds = skill.cast_interval_seconds() * speed_factor;
-    attack.swing_seconds = 0.0;          // not swung, so never charged
-    attack.final_attack_damage.clear();  // Final Attack follows a swing
     params.auto_attacks.push_back(std::move(attack));
   }
 }

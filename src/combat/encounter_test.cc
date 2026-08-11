@@ -508,6 +508,61 @@ TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
                    12.0 * GameSpeedFactor(state.character.proto().level()));
 }
 
+// A skill clocked by swings landed goes on its own list, not beside the ones
+// clocked by seconds: the fight has to count something for these and nothing
+// for those.
+TEST(ComputeCombatParamsTest, ASwingClockedSkillLandsOnTheTriggeredList) {
+  Skill mirage;
+  mirage.set_name("Speed Mirage");
+  mirage.set_kind(SKILL_KIND_AUTO_ATTACK);
+  mirage.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mirage.set_max_level(20);
+  mirage.set_max_enemies(6);
+  mirage.set_lines(4);
+  mirage.set_attacks_per_cast(4);
+  mirage.mutable_base()->set_skill_pct(3.25);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"speed_mirage", mirage}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(mirage, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_EQ(params.attacks.size(), 1u);  // the bare poke, and nothing else
+  EXPECT_TRUE(params.auto_attacks.empty());
+  ASSERT_EQ(params.triggered_attacks.size(), 1u);
+  EXPECT_EQ(params.triggered_attacks[0].name, "Speed Mirage");
+  EXPECT_EQ(params.triggered_attacks[0].attacks_per_cast, 4);
+  EXPECT_EQ(params.triggered_attacks[0].max_enemies, 6);
+  EXPECT_GT(params.triggered_attacks[0].damage_per_hit[0], 0.0);
+  // Counted in swings, so the pacing band never touches it.
+  EXPECT_DOUBLE_EQ(params.triggered_attacks[0].interval_seconds, 0.0);
+}
+
+// A swing that lands seven times as often is worth a seventh of an attack, so
+// the skill it feeds fires at the same rate whichever swing is feeding it.
+TEST(ComputeCombatParamsTest, ARapidSwingCountsForLessThanAWholeAttack) {
+  Skill blaster;
+  blaster.set_name("Arrow Blaster");
+  blaster.set_kind(SKILL_KIND_ATTACK);
+  blaster.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  blaster.set_max_level(20);
+  blaster.set_hits_per_attack_count(7);
+  blaster.mutable_base()->set_skill_pct(1.24);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"arrow_blaster", blaster}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(blaster, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_DOUBLE_EQ(params.attacks[0].count_weight, 1.0);  // the bare poke
+  EXPECT_DOUBLE_EQ(params.attacks[1].count_weight, 1.0 / 7.0);
+}
+
 // Final Attack follows the character's swing. A summon firing on its own clock
 // is not that, so the option the fight gets for it carries none.
 TEST(ComputeCombatParamsTest, OnlyOwnSwingsCarryFinalAttack) {
