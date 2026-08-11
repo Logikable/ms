@@ -60,6 +60,7 @@ struct PassiveTotals {
   int int_ = 0;
   int luk = 0;
   int attack = 0;
+  double attack_pct = 0.0;
   int magic_attack = 0;
   double damage_taken_pct = 0.0;
   double dodge_chance = 0.0;
@@ -106,6 +107,7 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.int_ += base.int_() + per.int_() * (level - 1);
   totals.luk += base.luk() + per.luk() * (level - 1);
   totals.attack += base.attack() + per.attack() * (level - 1);
+  totals.attack_pct += base.attack_pct() + per.attack_pct() * (level - 1);
   totals.magic_attack += base.magic_attack() + per.magic_attack() * (level - 1);
   // Damage sent to the MP pool is damage the HP pool never sees, and nothing
   // here tracks MP -- so Magic Guard reads as reduction, which is its whole
@@ -225,11 +227,13 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   return totals;
 }
 
-// Flat HP or MP, then the percentage over the whole pile, with the fraction
-// dropped. The nudge before the floor is for the percentage: summing a skill's
-// per-level steps lands a hair under the round figure (16 levels of +1% is
-// 0.15999...), which would otherwise cost a whole point.
-int FoldPool(int flat, double pct) {
+// A flat total, then the percentage over the whole of it, with the fraction
+// dropped. Every pile that takes a percentage folds through here: the HP and
+// MP pools, DEF, and what the character swings with. The nudge before the
+// floor is for the percentage: summing a skill's per-level steps lands a hair
+// under the round figure (16 levels of +1% is 0.15999...), which would
+// otherwise cost a whole point.
+int FoldPercent(int flat, double pct) {
   return static_cast<int>(std::floor(flat * (1.0 + pct) + kPercentEpsilon));
 }
 
@@ -284,12 +288,12 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   PassiveTotals passives = LearnedPassives(character, skills);
 
   DerivedStats stats;
-  stats.max_hp = FoldPool(allocated.hp() + equipped.max_hp() +
-                              passives.hp_per_level * proto.level(),
-                          passives.max_hp_pct);
-  stats.max_mp = FoldPool(allocated.mp() + equipped.max_mp() +
-                              passives.mp_per_level * proto.level(),
-                          passives.max_mp_pct);
+  stats.max_hp = FoldPercent(allocated.hp() + equipped.max_hp() +
+                                 passives.hp_per_level * proto.level(),
+                             passives.max_hp_pct);
+  stats.max_mp = FoldPercent(allocated.mp() + equipped.max_mp() +
+                                 passives.mp_per_level * proto.level(),
+                             passives.max_mp_pct);
   stats.skill_stats.set_def(passives.def);
   stats.skill_stats.set_str(passives.str);
   stats.skill_stats.set_dex(passives.dex);
@@ -307,8 +311,8 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
       std::floor(kDefPerStr * str + kDefPerDexLuk * (dex + luk)));
   // The percentage lands over the whole pile, exactly as it does on the HP
   // pool: what a character wears and what their stats buy are the same DEF.
-  stats.def = FoldPool(stats.base_def + equipped.def() + passives.def,
-                       passives.def_pct);
+  stats.def = FoldPercent(stats.base_def + equipped.def() + passives.def,
+                          passives.def_pct);
   stats.damage_taken_pct = passives.damage_taken_pct;
   stats.dodge_chance = passives.dodge_chance;
   stats.damage_reflect_pct = passives.damage_reflect_pct;
@@ -328,6 +332,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     stats.final_attacks.push_back(source);
   }
   stats.attack_speed_bonus = passives.attack_speed;
+  stats.attack_pct = passives.attack_pct;
   return stats;
 }
 
@@ -345,7 +350,14 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
 EquipStats TotalEquipStats(const CharacterInstance& character,
                            const DerivedStats& derived) {
   const EquipStats sources[] = {character.equip_stats(), derived.skill_stats};
-  return SumEquipStats(absl::MakeConstSpan(sources));
+  EquipStats total = SumEquipStats(absl::MakeConstSpan(sources));
+  // The percentage lands here rather than in skill_stats, because what it
+  // scales is the weapon in the character's hand as much as the skill's own
+  // grant. Both attack fields take it: a magician swings on magic attack, and
+  // a percentage of what you swing on means the same thing either way.
+  total.set_attack(FoldPercent(total.attack(), derived.attack_pct));
+  total.set_magic_attack(FoldPercent(total.magic_attack(), derived.attack_pct));
+  return total;
 }
 
 }  // namespace ms

@@ -55,6 +55,7 @@ struct PercentLever {
 const PercentLever kPercentLevers[] = {
     {"Max HP", &SkillEffect::max_hp_pct, kPlus, ""},
     {"Max MP", &SkillEffect::max_mp_pct, kPlus, ""},
+    {"ATT", &SkillEffect::attack_pct, kPlus, ""},
     {"Damage", &SkillEffect::damage_pct, kPlus, ""},
     {"Final Damage", &SkillEffect::final_dmg_pct, kPlus, ""},
     {"Ignore DEF", &SkillEffect::ied_pct, kPlus, ""},

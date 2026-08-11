@@ -87,6 +87,11 @@ struct DerivedStats {
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;
+  // Percentage over the character's whole attack, worn and granted alike.
+  // Applied where the totals are summed rather than folded into skill_stats,
+  // because what it scales includes the weapon in their hand -- see
+  // TotalEquipStats.
+  double attack_pct = 0.0;
   // What the passives grant, in the shape of a worn item because that is how
   // they behave: sum it with equip_stats() and hand the total wherever
   // equipment stats go. It is the only way a skill's primary stat reaches the

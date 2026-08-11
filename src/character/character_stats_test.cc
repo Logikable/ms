@@ -933,6 +933,65 @@ Skill Marksmanship() {
   return skill;
 }
 
+// Marksmanship's other half: attack raised by a percentage rather than a
+// count, climbing a point a level from 6%.
+Skill AttackPercent() {
+  Skill skill;
+  skill.set_name("Marksmanship");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(20);
+  skill.mutable_base()->set_attack_pct(0.06);
+  skill.mutable_per_level()->set_attack_pct(0.01);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, AttackPercentScalesWornAndGrantedAlike) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill marks = AttackPercent();
+  Skill grant;
+  grant.set_name("Soul Arrow");
+  grant.set_kind(SKILL_KIND_PASSIVE);
+  grant.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  grant.set_max_level(1);
+  grant.mutable_base()->set_attack(20);
+  std::map<std::string, Skill> skills = {{"marksmanship", marks},
+                                         {"soul_arrow", grant}};
+  ASSERT_TRUE(c.LearnSkill(marks, 20));
+  ASSERT_TRUE(c.LearnSkill(grant, 1));
+
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.mutable_base_stats()->set_attack(80);
+  c.PickUp(std::make_unique<EquipInstance>(bow));
+  c.Equip(0);
+
+  // 80 worn and 20 granted make 100, and the 25% lands over the pair of them
+  // rather than over either alone.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.attack_pct, 0.25, 1e-9);
+  EXPECT_EQ(TotalEquipStats(c, stats).attack(), 125);
+}
+
+TEST_F(DerivedStatsTest, AttackPercentScalesMagicAttackToo) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill marks = AttackPercent();
+  std::map<std::string, Skill> skills = {{"marksmanship", marks}};
+  ASSERT_TRUE(c.LearnSkill(marks, 20));
+
+  EquipPrototype staff;
+  staff.set_name("Staff");
+  staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  staff.mutable_base_stats()->set_magic_attack(80);
+  c.PickUp(std::make_unique<EquipInstance>(staff));
+  c.Equip(0);
+
+  // A magician swings on magic attack, so a percentage of what you swing on
+  // has to reach it too.
+  EXPECT_EQ(TotalEquipStats(c, DerivedStatsFor(c, skills)).magic_attack(), 100);
+}
+
 TEST_F(DerivedStatsTest, IgnoredDefenceClimbsWithItsLevel) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill marks = Marksmanship();

@@ -69,6 +69,11 @@ message SkillEffect {
   double max_mp_pct = 8;
 
   int32 attack = 9;  // flat weapon attack, as a worn weapon grants it
+  // Percentage added to the whole of the character's attack, worn and granted
+  // alike, and the last thing to land on it -- the same bargain def_pct makes
+  // with DEF. Unlike that one it pays: attack is the second factor of the
+  // damage chain, so 25% here is worth 25% more damage.
+  double attack_pct = 24;
   // Flat magic attack, likewise. A magician swings on this where everyone else
   // swings on attack, so the two are separate fields for the same reason a
   // staff's two numbers are: a skill grants one or the other, not both.

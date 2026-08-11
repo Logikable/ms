@@ -59,9 +59,17 @@ std::vector<StatLine> CombatStatLines(
     const std::map<std::string, Skill>& skills, bool with_percents) {
   DerivedStats derived = DerivedStatsFor(character, skills);
   const EquipStats e = TotalEquipStats(character, derived);
+  // Split like DEF: what the character wears and was granted, then whatever a
+  // percentage added on top. Read off the unscaled sum rather than held as a
+  // stat, because the split exists only for this row.
+  int flat_attack =
+      character.equip_stats().attack() + derived.skill_stats.attack();
+  int flat_magic = character.equip_stats().magic_attack() +
+                   derived.skill_stats.magic_attack();
   std::vector<StatLine> lines = {
-      {"Attack", std::to_string(e.attack())},
-      {"Magic Attack", std::to_string(e.magic_attack())},
+      {"Attack", TotalWithBreakdown(flat_attack, e.attack() - flat_attack)},
+      {"Magic Attack",
+       TotalWithBreakdown(flat_magic, e.magic_attack() - flat_magic)},
   };
   if (with_percents) {
     lines.push_back({"Damage", Percent(derived.damage_pct)});
