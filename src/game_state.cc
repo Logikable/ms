@@ -99,6 +99,8 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"pinaka", "berserk_chain"};
     case JOB_CRUSADER:
       return {"tavar", "virtues_medallion"};
+    case JOB_WHITE_KNIGHT:
+      return {"golden_smith_hammer", "sacred_rosary"};
     default:
       return StarterEquipsFor(job);
   }

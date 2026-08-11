@@ -45,6 +45,7 @@ enum Job {
   // Berserker -> Dark Knight, Page -> White Knight -> Paladin.
   JOB_BERSERKER = 16;
   JOB_CRUSADER = 17;
+  JOB_WHITE_KNIGHT = 18;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -70,6 +71,7 @@ enum JobAdvancement {
   // The 3rd advancements, at level 60.
   JOB_ADVANCEMENT_BERSERKER = 15;
   JOB_ADVANCEMENT_CRUSADER = 16;
+  JOB_ADVANCEMENT_WHITE_KNIGHT = 17;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

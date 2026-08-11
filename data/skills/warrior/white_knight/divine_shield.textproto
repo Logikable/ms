@@ -1,0 +1,21 @@
+# GMS raises the shield on a chance when struck, for ninety seconds and ten
+# blows, and leaves the attack behind afterwards. Here it is permanent, which
+# is what the user asked for and what a fight paid in expected damage can hold.
+#
+# Twenty levels rather than GMS's ten, both ladders ending where GMS's do.
+name: "Divine Shield"
+skill_order: 7
+description:
+  "A shield of light stands between you and the next blow, and the one after. "
+  "Increases Attack Power and decreases the damage you take."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+max_level: 20
+base {
+  attack: 1
+  damage_taken_pct: 0.06
+}
+per_level {
+  attack: 1
+  damage_taken_pct: 0.01
+}

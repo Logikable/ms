@@ -457,14 +457,14 @@ TEST(JobChoicesTest, ARogueIsOfferedBothThiefBranches) {
 }
 
 // The 3rd advancement narrows rather than forking, so it offers one job and
-// not a set. The Page's is the warrior branch still unwritten, and no other
-// class has one at all.
+// not a set. All three warrior branches have one; no other class does.
 TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
   EXPECT_EQ(JobChoicesForStage(JOB_SPEARMAN, 3),
             (std::vector<Job>{JOB_BERSERKER}));
   EXPECT_EQ(JobChoicesForStage(JOB_FIGHTER, 3),
             (std::vector<Job>{JOB_CRUSADER}));
-  EXPECT_TRUE(JobChoicesForStage(JOB_PAGE, 3).empty());
+  EXPECT_EQ(JobChoicesForStage(JOB_PAGE, 3),
+            (std::vector<Job>{JOB_WHITE_KNIGHT}));
   EXPECT_TRUE(JobChoicesForStage(JOB_ASSASSIN, 3).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BERSERKER, 4).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());

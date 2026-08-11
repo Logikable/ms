@@ -1,0 +1,24 @@
+# GMS grants this for eighty seconds at a time and to the whole party; here it
+# is permanent and the character's own, like every other buff in this game.
+#
+# One level for most of the ladder and two at the top, which is a step rather
+# than a slope -- so per_level carries a ninth, written to as many digits as it
+# takes for the floor to land on 2 at level 10. See SkillEffect.
+# skill_level_bonus, and do not shorten the literal.
+#
+# The 4th job skills GMS lets this carry past their master level are far above
+# this game's cap, so here it stops at the master level every time.
+name: "Combat Orders"
+skill_order: 3
+description:
+  "An order given well is worth a year of drill. Raises the level of your "
+  "other skills, up to the highest each one can be taught."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+max_level: 10
+required_skill {
+  skill_name: "HP Recovery"
+  level: 5
+}
+base { skill_level_bonus: 1.0 }
+per_level { skill_level_bonus: 0.11111111111 }

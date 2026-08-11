@@ -1,0 +1,18 @@
+# GMS silences what it hits and charges the hammer with an element. Neither is
+# real here, so what is left is the hammer: 250 + 3L% four times over.
+#
+# Divine Swing's animation, which is the same hammer one tier down.
+name: "Divine Charge"
+skill_order: 1
+description:
+  "Light gathers into a hammer, and this time it does not let go. Conjures a "
+  "holy hammer that slams into the enemies around you."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+max_level: 20
+base_delay_ms: 840
+max_enemies: 8
+lines: 4
+tags: SKILL_TAG_HOLY_POWER
+base { skill_pct: 2.53 }
+per_level { skill_pct: 0.03 }

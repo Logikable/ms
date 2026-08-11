@@ -1,0 +1,17 @@
+# A cast spent in place of a swing when the character drops low, exactly as the
+# Cleric's Heal is -- see fight.h. GMS's own figures, 20 + 3L% of the pool,
+# which tops out at half of it rather than the Cleric's whole.
+#
+# The penalty for casting it again soon after is dropped: the user asked for it
+# out, and a fight paid in expected damage has no clock to charge it against.
+name: "HP Recovery"
+skill_order: 2
+description:
+  "You close what the fight opened, and go back to it. Restores your HP, cast "
+  "in place of an attack when you are badly hurt."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+max_level: 10
+base_delay_ms: 600
+base { heal_pct: 0.23 }
+per_level { heal_pct: 0.03 }

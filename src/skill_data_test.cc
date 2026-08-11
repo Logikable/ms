@@ -4,6 +4,7 @@
 // that rots the moment a skill is added.
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <map>
 #include <memory>
 #include <set>
@@ -377,6 +378,26 @@ TEST(SkillDataTest, EveryPerOrbBargainHasOrbsToBePaidAgainst) {
     }
     EXPECT_TRUE(paid) << entry.first
                       << " prices Combo Orbs no character holding it carries";
+  }
+}
+
+// A ladder counted in whole levels has to land on one. Its per-level step is a
+// fraction that cannot be written exactly, so the top of the ladder sits a hair
+// under the level it climbs to and is only carried over by the epsilon the
+// floor adds -- shorten the literal in the data and the last level buys
+// nothing. This is the test that says so.
+TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    double step = skill.base().skill_level_bonus();
+    if (step <= 0.0) {
+      continue;
+    }
+    double top =
+        step + skill.per_level().skill_level_bonus() * (skill.max_level() - 1);
+    EXPECT_NEAR(top, std::round(top), 1e-9)
+        << entry.first << " ends its ladder between two levels";
+    EXPECT_GT(top, 1.0) << entry.first << " never climbs at all";
   }
 }
 

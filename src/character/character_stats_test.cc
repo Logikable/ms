@@ -1005,7 +1005,7 @@ TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
       LoadTextProtoDir<Skill>(runfiles->Rlocation("ms/data/skills"));
   std::map<std::string, EquipPrototype> equips =
       LoadTextProtoDir<EquipPrototype>(runfiles->Rlocation("ms/data/equip"));
-  const Skill& mastery = skills.at("shield_mastery");
+  const Skill& mastery = skills.at("bandit_shield_mastery");
 
   Character proto;
   proto.set_level(60);
@@ -1033,8 +1033,8 @@ TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
   // And DEF at 2.1 times what the same character carries without the lever,
   // which is the only way to ask it of a character wearing real gear.
   std::map<std::string, Skill> without = skills;
-  without.at("shield_mastery").mutable_base()->clear_def_pct();
-  without.at("shield_mastery").mutable_per_level()->clear_def_pct();
+  without.at("bandit_shield_mastery").mutable_base()->clear_def_pct();
+  without.at("bandit_shield_mastery").mutable_per_level()->clear_def_pct();
   EXPECT_EQ(armed.def, static_cast<int>(DerivedStatsFor(c, without).def * 2.1));
 }
 

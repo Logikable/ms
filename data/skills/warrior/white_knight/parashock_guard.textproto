@@ -1,0 +1,13 @@
+# GMS shields the party and leaves the caster out of it, so all this game keeps
+# is the attack the caster gets for holding the guard up. Twenty levels rather
+# than GMS's ten, at a point apiece, ending on the same +20.
+name: "Parashock Guard"
+skill_order: 4
+description:
+  "The guard you hold for someone else steadies your own arm. Increases your "
+  "Attack Power."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+max_level: 20
+base { attack: 1 }
+per_level { attack: 1 }

@@ -1,0 +1,29 @@
+# Twenty levels rather than GMS's ten, every ladder ending where GMS's does:
+# 40 status resistance, 40% elemental, 250% DEF and +20 attack.
+#
+# The block and the stun on it are dropped -- nothing here blocks. Of what is
+# left only the attack is worth anything: the two resistances have nothing to
+# resist, and DEF is already past what it can cancel. All of it waits on the
+# off hand, which for a White Knight can only be a rosary.
+name: "Shield Mastery"
+skill_order: 5
+description:
+  "The shield stops being a thing you carry and becomes a thing you are. "
+  "Increases Defense, Attack Power and every resistance. Needs something in "
+  "the secondary slot."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
+max_level: 20
+requires_secondary: true
+base {
+  status_resistance: 2
+  elemental_resistance: 0.02
+  def_pct: 1.17
+  attack: 1
+}
+per_level {
+  status_resistance: 2
+  elemental_resistance: 0.02
+  def_pct: 0.07
+  attack: 1
+}
