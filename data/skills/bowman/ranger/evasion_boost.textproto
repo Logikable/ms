@@ -6,8 +6,7 @@
 name: "Evasion Boost"
 skill_order: 7
 description:
-  "An archer who is standing still is an archer being hit. Learn to not be "
-  "where the blow lands."
+  "Increases your chance to dodge an attack outright, and increases Max HP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 10

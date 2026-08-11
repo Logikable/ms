@@ -6,9 +6,7 @@
 # The wiki says "Luck"; every stat this game shows the player says LUK.
 name: "Nimble Body"
 skill_order: 3
-description:
-  "Light feet, and a knack for being where the blow is not. Permanently "
-  "increases LUK."
+description: "Permanently increases LUK."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20

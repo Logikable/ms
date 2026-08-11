@@ -8,8 +8,8 @@
 name: "Arrow Blaster"
 skill_order: 1
 description:
-  "Loose arrows in a high arc, faster than the eye follows, and plant the bow "
-  "in the ground to keep firing without you."
+  "A rapid volley of arrows in a high arc. The bow left planted in the ground "
+  "fires on its own at the same time."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 20

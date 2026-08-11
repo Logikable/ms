@@ -3,9 +3,7 @@
 # stretched over 20 levels to GMS's own endpoints, 25% and 20%.
 name: "Chance Attack"
 skill_order: 5
-description:
-  "You have learned where a fight is already lost. Permanently increases "
-  "Final Damage and Critical Rate."
+description: "Permanently increases Final Damage and Critical Rate."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20

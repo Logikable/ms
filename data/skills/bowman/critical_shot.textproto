@@ -2,9 +2,7 @@
 # the crit half of the damage chain, which until now sat at zero.
 name: "Critical Shot"
 skill_order: 2
-description:
-  "An archer sees where a thing is soft long before they learn to draw. "
-  "Increases Critical Rate."
+description: "Increases Critical Rate."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ARCHER
 max_level: 20

@@ -11,8 +11,8 @@
 name: "Evil Eye Shock II"
 skill_order: 3
 description:
-  "The Evil Eye screams a second time, and the dark goes out from it in four "
-  "directions at once."
+  "The Evil Eye screams a second time, louder. Damages nearby enemies on its "
+  "own."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20

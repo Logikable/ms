@@ -4,9 +4,7 @@
 # skill behind another, so saying it would only describe a rule we don't have.
 name: "Magic Armor"
 skill_order: 3
-description:
-  "A skin of hardened air, worn where plate would only slow you. Uses magic "
-  "to increase DEF."
+description: "A skin of hardened air. Uses magic to increase DEF."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MAGICIAN
 max_level: 10

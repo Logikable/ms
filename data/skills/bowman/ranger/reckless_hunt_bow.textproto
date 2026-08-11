@@ -5,8 +5,8 @@
 name: "Reckless Hunt: Bow"
 skill_order: 4
 description:
-  "Step out from cover and shoot. What you give up in guard you take back in "
-  "the weight behind every arrow."
+  "Step out from cover and shoot. Lowers your DEF, and increases Attack Power "
+  "and Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 10

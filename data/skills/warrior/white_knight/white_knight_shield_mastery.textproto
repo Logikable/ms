@@ -8,7 +8,6 @@
 name: "Shield Mastery"
 skill_order: 5
 description:
-  "The shield stops being a thing you carry and becomes a thing you are. "
   "Increases Defense, Attack Power and every resistance. Needs something in "
   "the secondary slot."
 kind: SKILL_KIND_PASSIVE

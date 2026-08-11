@@ -4,9 +4,7 @@
 # damage the stacked-up version would have been worth.
 name: "Freezing Crush"
 skill_order: 2
-description:
-  "Cold slows a thing down, and a slow thing is easy to hit properly. "
-  "Increases Critical Damage and Final Damage."
+description: "Increases Critical Damage and Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 10

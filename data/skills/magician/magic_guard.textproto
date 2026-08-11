@@ -4,8 +4,8 @@
 name: "Magic Guard"
 skill_order: 2
 description:
-  "Let the wound land somewhere that grows back. A portion of the damage "
-  "dealt to you is taken from your MP instead of your HP."
+  "A portion of the damage dealt to you is taken from your MP instead of your "
+  "HP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MAGICIAN
 max_level: 10

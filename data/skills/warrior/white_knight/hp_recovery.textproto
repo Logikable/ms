@@ -7,8 +7,7 @@
 name: "HP Recovery"
 skill_order: 2
 description:
-  "You close what the fight opened, and go back to it. Restores your HP, cast "
-  "in place of an attack when you are badly hurt."
+  "Restores your HP, cast in place of an attack when you are badly hurt."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 10

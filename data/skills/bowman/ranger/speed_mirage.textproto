@@ -9,8 +9,8 @@
 name: "Speed Mirage"
 skill_order: 2
 description:
-  "Shoot fast enough to leave yourself behind. The afterimages loose arrows of "
-  "their own, and each one runs a line of enemies through."
+  "Shoot fast enough to leave yourself behind. The afterimages fire arrows of "
+  "their own, each running a line of enemies through."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 20

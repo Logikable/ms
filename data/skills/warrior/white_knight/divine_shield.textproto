@@ -6,8 +6,8 @@
 name: "Divine Shield"
 skill_order: 7
 description:
-  "A shield of light stands between you and the next blow, and the one after. "
-  "Increases Attack Power and decreases the damage you take."
+  "A shield of light stands between you and the next blow. Increases Attack "
+  "Power and decreases the damage you take."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 20

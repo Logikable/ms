@@ -3,9 +3,7 @@
 # than summing -- see AddEffect.
 name: "Achilles"
 skill_order: 6
-description:
-  "Blows that would have put you down land and stop there. Decreases the "
-  "damage you take."
+description: "Decreases the damage you take."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 20
