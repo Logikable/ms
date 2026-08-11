@@ -129,6 +129,8 @@ std::string BranchName(Job job) {
       return "White Knight";
     case JOB_RANGER:
       return "Ranger";
+    case JOB_SNIPER:
+      return "Sniper";
     default:
       return "?";
   }
@@ -498,6 +500,7 @@ void Run() {
       JOB_CRUSADER,
       JOB_WHITE_KNIGHT,
       JOB_RANGER,
+      JOB_SNIPER,
   };
 
   std::printf(

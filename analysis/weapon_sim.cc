@@ -96,6 +96,8 @@ std::string BranchName(Job job) {
       return "White Knight";
     case JOB_RANGER:
       return "Ranger";
+    case JOB_SNIPER:
+      return "Sniper";
     default:
       return "?";
   }
@@ -244,7 +246,10 @@ struct Result {
   std::vector<std::pair<std::string, int>> skills;
 };
 
-// What one swing of `attack` lands on a lone mob, Final Attack included.
+// What one swing of `attack` lands on a lone mob, Final Attack included, and
+// an empowered form averaged over the swings it takes the place of -- the same
+// reading CombatSim::SwingDamage takes. The form has none of its own, so this
+// recurs exactly once.
 double SoloDamage(const AttackOption& attack) {
   if (attack.damage_per_hit.empty()) {
     return 0.0;
@@ -252,6 +257,9 @@ double SoloDamage(const AttackOption& attack) {
   double damage = attack.damage_per_hit[0];
   if (!attack.final_attack_damage.empty()) {
     damage += attack.final_attack_damage[0];
+  }
+  if (attack.empowered != nullptr && attack.empowered_every > 0) {
+    damage += (SoloDamage(*attack.empowered) - damage) / attack.empowered_every;
   }
   return damage;
 }
@@ -377,6 +385,14 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
       if (entry.second.name() == best->name) {
         result.skill_pct = entry.second.base().skill_pct() +
                            entry.second.per_level().skill_pct() * (learned - 1);
+        // A swing another skill strengthens is worth more per line than its
+        // own data says, and the line printing it has to agree with the
+        // damage beside it.
+        std::map<std::string, double>::const_iterator boost =
+            derived.skill_pct_bonus.find(best->name);
+        if (boost != derived.skill_pct_bonus.end()) {
+          result.skill_pct += boost->second;
+        }
         result.lines = std::max(1, entry.second.lines());
       }
     }
@@ -436,6 +452,7 @@ void Run(int level) {
       {JOB_WHITE_KNIGHT, EQUIP_TYPE_TWO_HANDED_SWORD},
       {JOB_WHITE_KNIGHT, EQUIP_TYPE_TWO_HANDED_BLUNT},
       {JOB_RANGER, EQUIP_TYPE_BOW},
+      {JOB_SNIPER, EQUIP_TYPE_CROSSBOW},
   };
 
   std::printf(
