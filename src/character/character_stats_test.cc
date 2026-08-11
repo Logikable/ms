@@ -617,6 +617,44 @@ TEST_F(DerivedStatsTest, DefPercentTakesTheWholePileAndLeavesBaseDefAlone) {
   EXPECT_EQ(derived.def, 285);
 }
 
+TEST_F(DerivedStatsTest, TwoDefPercentsMultiplyRatherThanSum) {
+  CharacterInstance c = MakeStatCharacter(rng_, 100, 0, 0, 0);
+  Skill phoenix = IronBody();
+  phoenix.mutable_base()->clear_def();
+  phoenix.mutable_per_level()->clear_def();
+  phoenix.mutable_base()->set_def_pct(0.30);
+  phoenix.mutable_per_level()->clear_def_pct();
+  Skill reckless = phoenix;
+  reckless.set_name("Reckless Hunt");
+  reckless.mutable_base()->set_def_pct(-0.25);
+  std::map<std::string, Skill> skills = {{"phoenix", phoenix},
+                                         {"reckless", reckless}};
+  ASSERT_TRUE(c.LearnSkill(phoenix, 1));
+  ASSERT_TRUE(c.LearnSkill(reckless, 1));
+
+  // Summed the pair would be +5% and leave 157 DEF. Multiplied they leave
+  // 1.30 * 0.75 of the 150 the character's STR bought.
+  EXPECT_EQ(DerivedStatsFor(c, skills).def, 146);
+}
+
+TEST_F(DerivedStatsTest, ADefPercentCanTakeDefenceAway) {
+  CharacterInstance c = MakeStatCharacter(rng_, 100, 0, 0, 0);
+  Skill reckless = IronBody();
+  reckless.mutable_base()->clear_def();
+  reckless.mutable_per_level()->clear_def();
+  reckless.set_max_level(10);
+  reckless.mutable_base()->set_def_pct(-0.07);
+  reckless.mutable_per_level()->set_def_pct(-0.02);
+  std::map<std::string, Skill> skills = {{"reckless", reckless}};
+  ASSERT_TRUE(c.LearnSkill(reckless, 10));
+
+  // Reckless Hunt's whole bargain: a quarter of the armour given up. The base
+  // the percentage is charged against is untouched.
+  DerivedStats derived = DerivedStatsFor(c, skills);
+  EXPECT_EQ(derived.base_def, 150);
+  EXPECT_EQ(derived.def, 112);
+}
+
 // Combat Orders as the White Knight's book states it: one level for most of
 // the ladder and two at the top, which is a step the per-level shape can only
 // walk by carrying a fraction.

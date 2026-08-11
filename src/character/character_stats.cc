@@ -54,7 +54,10 @@ struct PassiveTotals {
   int mp_per_level = 0;
   double max_mp_pct = 0.0;
   int def = 0;
-  double def_pct = 0.0;
+  // Held as the factor the DEF pile is multiplied by rather than as a sum of
+  // percentages, because two sources multiply: Phoenix's +30% and Reckless
+  // Hunt's -25% leave 97.5% of the armour, not 105% of it.
+  double def_factor = 1.0;
   int str = 0;
   int dex = 0;
   int int_ = 0;
@@ -101,7 +104,7 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
       base.max_mp_per_level() + per.max_mp_per_level() * (level - 1);
   totals.max_mp_pct += base.max_mp_pct() + per.max_mp_pct() * (level - 1);
   totals.def += base.def() + per.def() * (level - 1);
-  totals.def_pct += base.def_pct() + per.def_pct() * (level - 1);
+  totals.def_factor *= 1.0 + base.def_pct() + per.def_pct() * (level - 1);
   totals.str += base.str() + per.str() * (level - 1);
   totals.dex += base.dex() + per.dex() * (level - 1);
   totals.int_ += base.int_() + per.int_() * (level - 1);
@@ -311,8 +314,11 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
       std::floor(kDefPerStr * str + kDefPerDexLuk * (dex + luk)));
   // The percentage lands over the whole pile, exactly as it does on the HP
   // pool: what a character wears and what their stats buy are the same DEF.
+  // It can also be a loss -- Reckless Hunt buys attack by giving DEF up -- and
+  // a character deep enough in the red ends with less DEF than their stats
+  // alone bought them.
   stats.def = FoldPercent(stats.base_def + equipped.def() + passives.def,
-                          passives.def_pct);
+                          passives.def_factor - 1.0);
   stats.damage_taken_pct = passives.damage_taken_pct;
   stats.dodge_chance = passives.dodge_chance;
   stats.damage_reflect_pct = passives.damage_reflect_pct;

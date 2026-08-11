@@ -175,6 +175,49 @@ TEST_F(StatRowsTest, TheMainStatsPairUpForTheTwoColumnScreen) {
   EXPECT_EQ(ValueOf(lines, "LUK"), "0");
 }
 
+// A skill that takes DEF away rather than granting it: the row has to say so,
+// or the player reads a smaller number with nothing explaining it.
+TEST_F(StatRowsTest, ALostStatReadsAsASubtraction) {
+  Skill reckless;
+  reckless.set_name("Reckless Hunt");
+  reckless.set_kind(SKILL_KIND_PASSIVE);
+  reckless.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  reckless.set_max_level(1);
+  reckless.mutable_base()->set_def_pct(-0.25);
+  std::map<std::string, Skill> skills = {{"reckless", reckless}};
+  CharacterInstance c = MakeWarrior();
+  ASSERT_TRUE(c.LearnSkill(reckless, 1));
+
+  // 40 STR buys 60 DEF, and a quarter of it goes.
+  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Defense"), "(60-15) 45");
+  // The same row with nothing taken or added stays a plain total.
+  CharacterInstance bare = MakeWarrior();
+  EXPECT_EQ(ValueOf(ExtraStatLines(bare, {}), "Defense"), "60");
+}
+
+// Marksmanship's percentage over a worn weapon, read off the row that has to
+// show the player it landed.
+TEST_F(StatRowsTest, AttackShowsWhatAPercentageAddedToIt) {
+  Skill marks;
+  marks.set_name("Marksmanship");
+  marks.set_kind(SKILL_KIND_PASSIVE);
+  marks.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  marks.set_max_level(1);
+  marks.mutable_base()->set_attack_pct(0.25);
+  std::map<std::string, Skill> skills = {{"marksmanship", marks}};
+  CharacterInstance c = MakeWarrior();
+  ASSERT_TRUE(c.LearnSkill(marks, 1));
+
+  EquipPrototype bow;
+  bow.set_name("Bow");
+  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  bow.mutable_base_stats()->set_attack(80);
+  c.PickUp(std::make_unique<EquipInstance>(bow));
+  c.Equip(0);
+
+  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack"), "(80+20) 100");
+}
+
 TEST(CombatPowerTextTest, SpellsItOutUntilSevenFigures) {
   EXPECT_EQ(CombatPowerText(0), "Combat Power 0");
   EXPECT_EQ(CombatPowerText(999999), "Combat Power 999,999");

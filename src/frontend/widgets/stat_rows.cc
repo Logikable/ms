@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <string>
 #include <utility>
@@ -41,14 +42,18 @@ std::string AttackSpeedText(const std::map<EquipSlot, EquipInstance>& equipped,
   return AttackSpeedName(static_cast<AttackSpeed>(stage));
 }
 
-// "358", or "(308+50) 358" when gear or a skill contributes.
+// "358", or "(308+50) 358" when gear or a skill contributes. A skill can also
+// take a stat away -- Reckless Hunt buys attack by giving DEF up -- and that
+// reads "(308-50) 258": the sign belongs in the breakdown, so the player can
+// see the trade they bought rather than only the number it left them.
 std::string TotalWithBreakdown(int base, int bonus) {
   std::string total = std::to_string(base + bonus);
-  if (bonus <= 0) {
+  if (bonus == 0) {
     return total;
   }
-  return "(" + std::to_string(base) + "+" + std::to_string(bonus) + ") " +
-         total;
+  std::string sign = bonus > 0 ? "+" : "-";
+  return "(" + std::to_string(base) + sign + std::to_string(std::abs(bonus)) +
+         ") " + total;
 }
 
 // The combat stats, with the four percent rows in or out. They sit in the
