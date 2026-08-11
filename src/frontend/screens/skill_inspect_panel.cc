@@ -63,6 +63,7 @@ const PercentLever kPercentLevers[] = {
     {"Critical Damage", &SkillEffect::crit_dmg, kPlus, ""},
     {"Mastery", &SkillEffect::mastery, kBare, ""},
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus, ""},
+    {"Dodge Chance", &SkillEffect::dodge_chance, kPlus, ""},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare, ""},
     {"Reflected", &SkillEffect::damage_reflect_pct, kBare, ""},
     {"Heal", &SkillEffect::heal_pct, kPlus, " HP"},

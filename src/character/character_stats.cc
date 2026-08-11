@@ -62,6 +62,7 @@ struct PassiveTotals {
   int attack = 0;
   int magic_attack = 0;
   double damage_taken_pct = 0.0;
+  double dodge_chance = 0.0;
   double damage_reflect_pct = 0.0;
   double crit_rate = 0.0;
   double crit_dmg = 0.0;
@@ -114,6 +115,10 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   double to_mp = base.damage_to_mp_pct() + per.damage_to_mp_pct() * (level - 1);
   totals.damage_taken_pct =
       1.0 - (1.0 - totals.damage_taken_pct) * (1.0 - taken) * (1.0 - to_mp);
+  // Dodging combines the same way and for the same reason: what two sources
+  // leave standing is the product of what each leaves standing.
+  double dodge = base.dodge_chance() + per.dodge_chance() * (level - 1);
+  totals.dodge_chance = 1.0 - (1.0 - totals.dodge_chance) * (1.0 - dodge);
   totals.damage_reflect_pct +=
       base.damage_reflect_pct() + per.damage_reflect_pct() * (level - 1);
   totals.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
@@ -302,6 +307,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.def = FoldPool(stats.base_def + equipped.def() + passives.def,
                        passives.def_pct);
   stats.damage_taken_pct = passives.damage_taken_pct;
+  stats.dodge_chance = passives.dodge_chance;
   stats.damage_reflect_pct = passives.damage_reflect_pct;
   stats.crit_rate = passives.crit_rate;
   stats.crit_dmg = passives.crit_dmg;

@@ -45,6 +45,10 @@ struct DerivedStats {
   // across every source by multiplying. Magic Guard counts here: the damage it
   // sends to MP is damage the character never takes, since nothing tracks MP.
   double damage_taken_pct = 0.0;
+  // Chance an incoming hit misses outright (0.30 == 30%), combined across
+  // sources by multiplying what gets through -- two 50% dodges leave a quarter
+  // of the hits landing, not none of them.
+  double dodge_chance = 0.0;
   // Share of a hit taken that goes straight back into whatever landed it
   // (1.20 == 120% of what the character actually lost). Summed, since two
   // reflections both fire.

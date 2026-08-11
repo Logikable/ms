@@ -696,6 +696,33 @@ TEST_F(DamageTakenTest, ReductionAppliesAfterTheFormula) {
                    78.625 / 2.0);
 }
 
+TEST_F(DamageTakenTest, DodgingTakesAShareOfTheHitsAway) {
+  DefenseStats defense = Naked();
+  defense.dodge_chance = 0.30;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)),
+                   78.625 * 0.70);
+}
+
+TEST_F(DamageTakenTest, DodgingAndReductionBothLand) {
+  DefenseStats defense = Naked();
+  defense.dodge_chance = 0.30;
+  defense.damage_taken_pct = 0.5;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)),
+                   78.625 / 2.0 * 0.70);
+}
+
+TEST_F(DamageTakenTest, DodgingCutsPastTheOneDamageFloor) {
+  DefenseStats defense = Naked();
+  defense.level = 30;
+  defense.def = 200;
+  // The floor holds a hit at 1 point; dodging it half the time costs half a
+  // point on average. Reduction can never do this -- it lands before the
+  // floor, and the floor is what a hit that arrives always costs.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 1.0);
+  defense.dodge_chance = 0.5;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(2, 1)), 0.5);
+}
+
 TEST_F(DamageTakenTest, EveryHitCostsAtLeastAPoint) {
   DefenseStats defense = Naked();
   defense.level = 30;

@@ -303,6 +303,46 @@ TEST_F(DerivedStatsTest, TwoReductionsMultiplyRatherThanSum) {
   EXPECT_NEAR(stats.damage_taken_pct, 1.0 - 0.15 * 0.90, 1e-9);
 }
 
+// Evasion Boost's shape: 12% dodge at level 1 climbing 2 points a level.
+Skill EvasionBoost() {
+  Skill skill;
+  skill.set_name("Evasion Boost");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(10);
+  skill.mutable_base()->set_dodge_chance(0.12);
+  skill.mutable_per_level()->set_dodge_chance(0.02);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, DodgeClimbsWithItsLevelAndLeavesReductionAlone) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill boost = EvasionBoost();
+  std::map<std::string, Skill> skills = {{"evasion_boost", boost}};
+  ASSERT_TRUE(c.LearnSkill(boost, 10));
+
+  // Dodging is not reduction: it cancels whole hits rather than a share of
+  // one, and the two reach the fight down separate wires.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.dodge_chance, 0.30, 1e-9);
+  EXPECT_DOUBLE_EQ(stats.damage_taken_pct, 0.0);
+}
+
+TEST_F(DerivedStatsTest, TwoDodgesLeaveTheProductStanding) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill first = EvasionBoost();
+  Skill second = EvasionBoost();
+  second.set_name("Nimble Feet");
+  std::map<std::string, Skill> skills = {{"evasion_boost", first},
+                                         {"nimble_feet", second}};
+  ASSERT_TRUE(c.LearnSkill(first, 10));
+  ASSERT_TRUE(c.LearnSkill(second, 10));
+
+  // 30% and 30% summed would be 60%; what actually gets through is 0.7 * 0.7.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.dodge_chance, 1.0 - 0.70 * 0.70, 1e-9);
+}
+
 TEST_F(DerivedStatsTest, PerLevelHpScalesWithTheCharactersLevel) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill mastery = WarriorMastery();

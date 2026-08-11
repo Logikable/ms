@@ -114,6 +114,10 @@ struct DefenseStats {
   // The share of incoming damage cancelled after the formula below has run
   // (0.10 == 10% less taken).
   double damage_taken_pct = 0.0;
+  // Chance the hit misses outright (0.30 == 30%). A miss and a reduction come
+  // to the same thing over enough hits, and enough hits is all this function
+  // ever reports -- see DerivedStats::dodge_chance.
+  double dodge_chance = 0.0;
 };
 
 // Expected damage of one hit from `mob` -- min and max rolls averaged, no RNG.

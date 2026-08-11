@@ -83,6 +83,10 @@ std::vector<StatLine> CombatStatLines(
   lines.push_back(
       {"Defense",
        TotalWithBreakdown(derived.base_def, derived.def - derived.base_def)});
+  // Beside the DEF it is the other half of: both are read only when something
+  // is hitting the character, and this one is the share of hits that never
+  // arrive at all.
+  lines.push_back({"Dodge Chance", Percent(derived.dodge_chance)});
   // Last, because nothing reads either of them yet -- no mob inflicts a status
   // or an element. They are here so a player who spent SP on Endure can see
   // what they bought. Shortened to seat the 16-column label: "Elemental

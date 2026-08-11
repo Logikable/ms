@@ -257,6 +257,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   defense.level = state.character.proto().level();
   defense.def = derived.def;
   defense.damage_taken_pct = derived.damage_taken_pct;
+  defense.dodge_chance = derived.dodge_chance;
   AddTypes(state, map_it->second, defense, params);
   if (params.types.empty()) {
     return params;

@@ -338,7 +338,10 @@ double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
   // Reduction from skills and gear lands after the whole defense formula, and
   // multiplies rather than adds -- see DerivedStats::damage_taken_pct.
   damage *= 1.0 - defense.damage_taken_pct;
-  return std::max(kMinimumDamage, damage);
+  // A dodge takes the whole hit away rather than a share of it, so it lands
+  // outside the floor: a character who dodges everything takes nothing, where
+  // reduction alone always leaves the 1 damage GMS insists on.
+  return std::max(kMinimumDamage, damage) * (1.0 - defense.dodge_chance);
 }
 
 int CombatPower(const OffenseStats& offense) {

@@ -109,6 +109,12 @@ message SkillEffect {
 
   int32 def = 20;                // flat weapon DEF
   double damage_taken_pct = 21;  // share of incoming damage cancelled
+  // Chance an incoming hit misses outright (0.30 == 30%). Not reduction: what
+  // it cancels is the whole hit rather than a share of one. The two are still
+  // worth the same to an expected-value fight, which is why this multiplies
+  // into the damage taken beside them -- what it buys the player that reduction
+  // does not is a hit they never took at all, and nothing here can tell.
+  double dodge_chance = 22;
 
   // --- From here down, one job line apiece. See the message comment. ---
 

@@ -67,10 +67,11 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   }
   // The Character panel drops the tail of this list on a short terminal, and
   // the All Stats screen pairs it two to a row. Both depend on this order.
-  EXPECT_EQ(labels, (std::vector<std::string>{
-                        "Attack", "Magic Attack", "Damage", "Final Damage",
-                        "Critical Rate", "Critical Damage", "Attack Speed",
-                        "Defense", "Elemental Resist", "Status Resist"}));
+  EXPECT_EQ(labels,
+            (std::vector<std::string>{
+                "Attack", "Magic Attack", "Damage", "Final Damage",
+                "Critical Rate", "Critical Damage", "Attack Speed", "Defense",
+                "Dodge Chance", "Elemental Resist", "Status Resist"}));
 }
 
 // The panel's list is the same one, opened up by the advancements. The All
@@ -81,7 +82,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
   EXPECT_TRUE(PanelExtraStatLines(beginner, {}).empty());
-  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 10u);
+  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 11u);
 
   CharacterInstance first = MakeWarrior();
   std::vector<std::string> labels;
@@ -90,14 +91,14 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   }
   EXPECT_EQ(labels, (std::vector<std::string>{
                         "Attack", "Magic Attack", "Attack Speed", "Defense",
-                        "Elemental Resist", "Status Resist"}));
+                        "Dodge Chance", "Elemental Resist", "Status Resist"}));
 
   Character second_proto;
   second_proto.set_level(35);
   second_proto.set_job(JOB_SPEARMAN);
   second_proto.set_job_stage(2);
   CharacterInstance second(rng_, std::move(second_proto));
-  EXPECT_EQ(PanelExtraStatLines(second, {}).size(), 10u);
+  EXPECT_EQ(PanelExtraStatLines(second, {}).size(), 11u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
