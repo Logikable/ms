@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/combat/constants.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
@@ -196,19 +197,41 @@ TEST(SkillDataTest, EveryBookIsNumberedOneThroughItsSize) {
   }
 }
 
-// An auto-attack with no interval never fires, so a skill that means to be one
-// and forgets to say how often is a skill that silently does nothing.
-TEST(SkillDataTest, EveryAutoAttackSaysHowOftenItFires) {
+// An auto-attack naming no clock never fires, so a skill that means to be one
+// and forgets to say when is a skill that silently does nothing. There are two
+// clocks it can name -- seconds passed, or swings landed -- and it needs one.
+TEST(SkillDataTest, EveryAutoAttackSaysWhenItFires) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    if (entry.second.kind() != SKILL_KIND_AUTO_ATTACK) {
-      EXPECT_EQ(entry.second.cast_interval_seconds(), 0.0)
+    const Skill& skill = entry.second;
+    bool by_seconds = skill.cast_interval_seconds() > 0.0;
+    bool by_swings = skill.attacks_per_cast() > 0;
+    if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {
+      EXPECT_FALSE(by_seconds)
           << entry.first << " sets an interval it will never be asked for";
+      EXPECT_FALSE(by_swings)
+          << entry.first << " sets a swing count it will never be asked for";
       continue;
     }
-    EXPECT_GT(entry.second.cast_interval_seconds(), 0.0)
-        << entry.first << " would never fire";
-    EXPECT_GT(entry.second.base().skill_pct(), 0.0)
+    EXPECT_TRUE(by_seconds || by_swings) << entry.first << " would never fire";
+    EXPECT_FALSE(by_seconds && by_swings)
+        << entry.first << " runs on two clocks at once";
+    EXPECT_GT(skill.base().skill_pct(), 0.0)
         << entry.first << " would fire for nothing";
+  }
+}
+
+// A skill's own-clock half is a second attack out of one skill, so it needs
+// both halves of what makes an attack: something to fire, and when.
+TEST(SkillDataTest, EveryAutoModeSaysWhenItFiresAndForHowMuch) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.has_auto_mode()) {
+      continue;
+    }
+    EXPECT_GT(skill.auto_mode().cast_interval_seconds(), 0.0)
+        << entry.first << "'s own-clock half would never fire";
+    EXPECT_GT(skill.auto_mode().base().skill_pct(), 0.0)
+        << entry.first << "'s own-clock half would fire for nothing";
   }
 }
 
@@ -241,10 +264,16 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
     }
     EXPECT_GT(entry.second.base_delay_ms(), 0)
         << entry.first << " would swing at the bare poke's speed";
-    // Loose bounds either side of every animation GMS has for a 1st or 2nd job
-    // attack, to catch a figure entered in seconds or in frames.
-    EXPECT_GE(entry.second.base_delay_ms(), 300) << entry.first;
     EXPECT_LE(entry.second.base_delay_ms(), 2000) << entry.first;
+    // Loose bounds either side of every animation GMS has for a 1st or 2nd job
+    // attack, to catch a figure entered in seconds or in frames. A key-down
+    // skill is not an animation and is not held to them: GMS paces those in
+    // the low hundreds of milliseconds, and Arrow Blaster is 120.
+    if (entry.second.fixed_delay()) {
+      EXPECT_GE(entry.second.base_delay_ms(), kTickMs) << entry.first;
+      continue;
+    }
+    EXPECT_GE(entry.second.base_delay_ms(), 300) << entry.first;
   }
 }
 
@@ -401,10 +430,11 @@ TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
   }
 }
 
-// Damage belongs to the things that swing, and the levers belong to the
-// passives. A skill filed on the wrong side of that carries data nothing will
-// ever read.
-TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
+// Damage belongs to the things that swing. The reverse no longer holds -- an
+// active can carry a permanent grant, which is how GMS writes Phoenix and how
+// LearnedPassives now reads it -- but a passive carrying a swing's damage is
+// still data nothing will ever read.
+TEST(SkillDataTest, APassiveCarriesNoSwingsDamage) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
     if (skill.kind() == SKILL_KIND_PASSIVE) {
@@ -412,16 +442,6 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
           << entry.first << " is a passive carrying a swing's damage";
       EXPECT_EQ(skill.base().normal_skill_pct(), 0.0)
           << entry.first << " is a passive carrying a swing's damage";
-    } else {
-      EXPECT_EQ(skill.base().final_attack_chance(), 0.0)
-          << entry.first << " is not a passive, so its levers go unread";
-      EXPECT_EQ(skill.base().mastery(), 0.0) << entry.first;
-      EXPECT_EQ(skill.base().str(), 0) << entry.first;
-      EXPECT_EQ(skill.base().final_dmg_pct_per_combo_orb(), 0.0) << entry.first;
-      EXPECT_EQ(skill.base().def_pct(), 0.0) << entry.first;
-      EXPECT_EQ(skill.base().dodge_chance(), 0.0) << entry.first;
-      EXPECT_EQ(skill.base().ied_pct(), 0.0) << entry.first;
-      EXPECT_EQ(skill.base().attack_pct(), 0.0) << entry.first;
     }
   }
 }

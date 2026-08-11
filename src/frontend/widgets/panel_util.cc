@@ -378,6 +378,8 @@ std::string JobName(Job job) {
       return "Crusader";
     case JOB_WHITE_KNIGHT:
       return "White Knight";
+    case JOB_RANGER:
+      return "Ranger";
     default:
       return "Unknown";
   }

@@ -328,6 +328,19 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", FormatSeconds(skill.cast_interval_seconds()) + "s"));
   }
+  // A skill with an own-clock half of its own says what that half reaches and
+  // how often, beside the same facts about the swing. Its damage climbs with
+  // the level, so it is written among the level rows instead.
+  if (skill.auto_mode().cast_interval_seconds() > 0.0) {
+    if (skill.auto_mode().max_enemies() > 1) {
+      rows.push_back(EffectRow(
+          "Turret Enemies", std::to_string(skill.auto_mode().max_enemies())));
+    }
+    rows.push_back(EffectRow(
+        "Turret Fires",
+        "Every " + FormatSeconds(skill.auto_mode().cast_interval_seconds()) +
+            "s"));
+  }
   // The other clock such a skill can run on: the player's own attacking.
   if (skill.attacks_per_cast() > 0) {
     rows.push_back(EffectRow(
@@ -473,6 +486,15 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
                   FormatPercent(proc) + " for " +
                       FormatPercent(PercentAt(
                           skill, &SkillEffect::final_attack_pct, level))));
+  }
+  // The own-clock half's damage, under the swing's own so the two read as one
+  // skill with two ways of hurting things.
+  if (skill.auto_mode().cast_interval_seconds() > 0.0) {
+    rows.push_back(EffectRow(
+        "Turret Damage",
+        SwingText(skill.auto_mode().base().skill_pct() +
+                      skill.auto_mode().per_level().skill_pct() * (level - 1),
+                  skill.auto_mode().lines())));
   }
   // What this skill hands another one. Named in the value rather than used as
   // the label, so a long skill name wraps instead of being cut to the label

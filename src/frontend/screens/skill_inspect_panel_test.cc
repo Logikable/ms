@@ -157,9 +157,6 @@ TEST_F(SkillInspectPanelTest, AMultiStrikeOpeningHitTotalsItself) {
   EXPECT_NE(RenderAt(skill, 1).find("100% x3 = 300%"), std::string::npos);
 }
 
-// Beam Blade's bonus against normal monsters adds to the swing per LINE, so
-// the row states the whole swing. Stated as the bonus alone it would read as
-// 216 + 72 against a swing that actually lands 432.
 // A key-down skill's rate is its whole identity, and it is the only rate this
 // panel can state: every other swing is paced by the weapon in hand, which the
 // panel is not given.
@@ -210,6 +207,31 @@ TEST_F(SkillInspectPanelTest, ABoostNamesTheSkillItReachesAcrossTo) {
   EXPECT_EQ(RenderAt(bare, 1).find("Boosts            "), std::string::npos);
 }
 
+// One skill with two ways of hurting things: the swing the player holds the
+// key for, and the turret it leaves behind. Both halves belong on the one page,
+// or the player buys twenty levels of a skill and sees half of what they got.
+TEST_F(SkillInspectPanelTest, AnAutoModeStatesItsOwnHalfOfTheSkill) {
+  Skill blaster = MakeLuckySeven();
+  blaster.set_max_enemies(4);
+  blaster.set_lines(1);
+  blaster.mutable_base()->set_skill_pct(1.24);
+  AutoMode* turret = blaster.mutable_auto_mode();
+  turret->set_cast_interval_seconds(0.21);
+  turret->set_max_enemies(4);
+  turret->mutable_base()->set_skill_pct(0.66);
+
+  std::string rendered = RenderAt(blaster, 1);
+  EXPECT_NE(rendered.find("Damage            124%"), std::string::npos);
+  EXPECT_NE(rendered.find("Turret Damage     66%"), std::string::npos);
+  EXPECT_NE(rendered.find("Turret Enemies    4"), std::string::npos);
+  EXPECT_NE(rendered.find("Turret Fires      Every 0.21s"), std::string::npos);
+  // A skill without one says nothing about a turret.
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Turret"), std::string::npos);
+}
+
+// Beam Blade's bonus against normal monsters adds to the swing per LINE, so
+// the row states the whole swing. Stated as the bonus alone it would read as
+// 216 + 72 against a swing that actually lands 432.
 TEST_F(SkillInspectPanelTest, TheNormalMonsterRowStatesTheWholeSwing) {
   Skill skill = MakeLuckySeven();
   skill.mutable_base()->set_normal_skill_pct(0.72);

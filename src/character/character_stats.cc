@@ -218,11 +218,16 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   int bonus = BonusSkillLevels(character, skills);
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
+    // Every kind is read, not only the passives: GMS hangs permanent grants off
+    // active skills too, and marks them "[Passive Effects: ...]" when it does.
+    // Phoenix is the first here -- a summon that also raises DEF for good. A
+    // skill with no lever contributes nothing whatever kind it is, so this
+    // costs the rest of the catalog nothing.
+    //
     // Learned levels are keyed by display name, and the warrior branches share
     // several names -- so only the character's own book counts, or the other
     // branch's copy would fold in beside it.
-    if (skill.kind() != SKILL_KIND_PASSIVE ||
-        !character.HasAdvancement(skill.job_advancement())) {
+    if (!character.HasAdvancement(skill.job_advancement())) {
       continue;
     }
     // A passive that demands gear grants nothing without it -- Final Attack

@@ -1,0 +1,11 @@
+# GMS builds this up over thirty hits and lets it lapse after five seconds.
+# Here it is simply on, like every other buff in this game.
+name: "Mortal Blow"
+skill_order: 5
+description:
+  "Keep shooting the same thing long enough and you learn where it breaks."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_RANGER
+max_level: 10
+base { damage_pct: 0.08 }
+per_level { damage_pct: 0.03 }

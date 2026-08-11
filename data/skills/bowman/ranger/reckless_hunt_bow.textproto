@@ -1,0 +1,15 @@
+# The one skill in the game that takes a stat away. The DEF goes and the attack
+# and final damage come, and the stats page shows the loss as a loss -- see
+# TotalWithBreakdown. It is a bargain the Ranger can afford: DEF stops paying
+# long before this much of it is gone.
+name: "Reckless Hunt: Bow"
+skill_order: 4
+description:
+  "Step out from cover and shoot. What you give up in guard you take back in "
+  "the weight behind every arrow."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_RANGER
+max_level: 10
+required_equip_type: EQUIP_TYPE_BOW
+base { def_pct: -0.07 attack: 4 final_dmg_pct: 0.03 }
+per_level { def_pct: -0.02 attack: 4 final_dmg_pct: 0.03 }

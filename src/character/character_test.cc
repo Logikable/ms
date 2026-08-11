@@ -465,6 +465,9 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_CRUSADER}));
   EXPECT_EQ(JobChoicesForStage(JOB_PAGE, 3),
             (std::vector<Job>{JOB_WHITE_KNIGHT}));
+  EXPECT_EQ(JobChoicesForStage(JOB_HUNTER, 3), (std::vector<Job>{JOB_RANGER}));
+  // The Crossbowman's Sniper is not written, so their line stops at 2nd job.
+  EXPECT_TRUE(JobChoicesForStage(JOB_CROSSBOWMAN, 3).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_ASSASSIN, 3).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BERSERKER, 4).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());

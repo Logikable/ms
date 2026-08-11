@@ -46,6 +46,7 @@ enum Job {
   JOB_BERSERKER = 16;
   JOB_CRUSADER = 17;
   JOB_WHITE_KNIGHT = 18;
+  JOB_RANGER = 19;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -72,6 +73,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_BERSERKER = 15;
   JOB_ADVANCEMENT_CRUSADER = 16;
   JOB_ADVANCEMENT_WHITE_KNIGHT = 17;
+  JOB_ADVANCEMENT_RANGER = 18;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

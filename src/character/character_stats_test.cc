@@ -747,22 +747,27 @@ TEST_F(DerivedStatsTest, BonusLevelsComeOnlyFromTheCharactersOwnBook) {
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 180);
 }
 
-TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {
+// GMS hangs permanent grants off active skills and marks them "[Passive
+// Effects: ...]" -- Phoenix is a summon that also raises DEF for good. So the
+// kind decides what the skill does in a fight, not whether its levers are read.
+TEST_F(DerivedStatsTest, AnAttackSkillsPermanentGrantsStillLand) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
-  Skill slash;
-  slash.set_name("Slash Blast");
-  slash.set_kind(SKILL_KIND_ATTACK);
-  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  slash.set_max_level(20);
-  // An attack skill with defensive levers set still contributes none of them.
-  slash.mutable_base()->set_def(999);
-  slash.mutable_base()->set_max_hp_pct(9.0);
-  std::map<std::string, Skill> skills = {{"slash_blast", slash}};
-  ASSERT_TRUE(c.LearnSkill(slash, 1));
+  Skill phoenix;
+  phoenix.set_name("Phoenix");
+  phoenix.set_kind(SKILL_KIND_AUTO_ATTACK);
+  phoenix.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  phoenix.set_max_level(10);
+  phoenix.mutable_base()->set_skill_pct(2.28);  // what it hits for
+  phoenix.mutable_base()->set_def(30);          // and what it grants for good
+  phoenix.mutable_base()->set_max_hp_pct(0.10);
+  std::map<std::string, Skill> skills = {{"phoenix", phoenix}};
+  ASSERT_TRUE(c.LearnSkill(phoenix, 1));
 
   DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.max_hp, 50);
-  EXPECT_EQ(stats.def, 0);
+  EXPECT_EQ(stats.max_hp, 55);
+  EXPECT_EQ(stats.def, 30);
+  // Its damage is the fight's business and stays out of the stat line.
+  EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
 }
 
 // Fighter, Page and Spearman share four skill names between them, and learned

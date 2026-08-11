@@ -143,6 +143,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_ARCHER:
     case JOB_HUNTER:
     case JOB_CROSSBOWMAN:
+    case JOB_RANGER:
       return EQUIP_JOB_CATEGORY_BOWMAN;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -224,6 +225,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_ARCHER:
       case JOB_HUNTER:
       case JOB_CROSSBOWMAN:
+      case JOB_RANGER:
         return JOB_ADVANCEMENT_ARCHER;
       case JOB_MAGICIAN:
       case JOB_ICE_LIGHTNING_WIZARD:
@@ -250,6 +252,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_BERSERKER:
         return JOB_ADVANCEMENT_SPEARMAN;
       case JOB_HUNTER:
+      case JOB_RANGER:
         return JOB_ADVANCEMENT_HUNTER;
       case JOB_CROSSBOWMAN:
         return JOB_ADVANCEMENT_CROSSBOWMAN;
@@ -275,6 +278,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_CRUSADER;
       case JOB_WHITE_KNIGHT:
         return JOB_ADVANCEMENT_WHITE_KNIGHT;
+      case JOB_RANGER:
+        return JOB_ADVANCEMENT_RANGER;
       default:
         break;
     }
@@ -318,6 +323,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_CRUSADER;
     case JOB_ADVANCEMENT_WHITE_KNIGHT:
       return JOB_WHITE_KNIGHT;
+    case JOB_ADVANCEMENT_RANGER:
+      return JOB_RANGER;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -414,6 +421,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_ARCHER:
     case JOB_HUNTER:
     case JOB_CROSSBOWMAN:
+    case JOB_RANGER:
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -461,6 +469,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 3 && job == JOB_PAGE) {
     return {JOB_WHITE_KNIGHT};
   }
+  if (stage == 3 && job == JOB_HUNTER) {
+    return {JOB_RANGER};
+  }
   return {};
 }
 
@@ -485,6 +496,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_BERSERKER:
     case JOB_ADVANCEMENT_CRUSADER:
     case JOB_ADVANCEMENT_WHITE_KNIGHT:
+    case JOB_ADVANCEMENT_RANGER:
       return 3;
     default:
       return 0;

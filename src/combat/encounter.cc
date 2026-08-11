@@ -177,6 +177,43 @@ bool Swingable(const GameState& state, const Skill& skill,
   return SkillGearMet(state.character, skill);
 }
 
+// A skill's own-clock half, as a skill in its own right, so the same damage
+// chain builds it. It keeps the parent's name because it is one skill to the
+// player -- one row in the book, one SP ladder, one page -- and carries none of
+// the parent's tags: what fires by itself is not the character's swing.
+Skill AutoModeSkill(const Skill& skill) {
+  Skill mode;
+  mode.set_name(skill.name());
+  mode.set_kind(SKILL_KIND_AUTO_ATTACK);
+  *mode.mutable_base() = skill.auto_mode().base();
+  *mode.mutable_per_level() = skill.auto_mode().per_level();
+  mode.set_max_enemies(skill.auto_mode().max_enemies());
+  mode.set_lines(skill.auto_mode().lines());
+  return mode;
+}
+
+// Adds the own-clock half of a skill that has one, beside the swing it already
+// is. Nothing for the skills that have none, which is all of them but one.
+void AddAutoMode(const Character& proto, const EquipStats& equipped,
+                 EquipType weapon_type, const Skill& skill, int level,
+                 const DerivedStats& derived, double speed_factor,
+                 CombatParams& params) {
+  if (skill.auto_mode().cast_interval_seconds() <= 0.0) {
+    return;
+  }
+  Skill mode = AutoModeSkill(skill);
+  // The stage is not read: what this builds is paced by its own interval, and
+  // nothing firing on its own clock answers to how fast the weapon swings.
+  AttackOption attack =
+      AttackFor(proto, equipped, weapon_type, &mode, level, params.types,
+                derived, kUnscaledAttackSpeedStage, speed_factor);
+  attack.swing_seconds = 0.0;          // not swung, so never charged
+  attack.final_attack_damage.clear();  // Final Attack follows a swing
+  attack.interval_seconds =
+      skill.auto_mode().cast_interval_seconds() * speed_factor;
+  params.auto_attacks.push_back(std::move(attack));
+}
+
 // Every attack the character could swing: the bare poke first, then one per
 // learned attack skill, for the fight to pick between each swing. Skills that
 // fire on their own clock go to auto_attacks instead.
@@ -198,6 +235,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
       continue;
     }
+    AddAutoMode(proto, total_stats, weapon_type, skill, learned, derived,
+                speed_factor, params);
     AttackOption attack =
         AttackFor(proto, total_stats, weapon_type, &skill, learned,
                   params.types, derived, attack_speed, speed_factor);

@@ -1,0 +1,22 @@
+# GMS builds this over twelve strikes and then fires three afterimages at once.
+# Here it is one afterimage every four, which comes to the same arrows at the
+# same rate and needs no burst to model. The six enemies are the five an arrow
+# pierces plus the one it was aimed at.
+#
+# Counted in attacks rather than seconds so the rate holds whatever the
+# character is swinging -- which is the whole point of Arrow Blaster counting a
+# seventh. See Skill.hits_per_attack_count.
+name: "Speed Mirage"
+skill_order: 2
+description:
+  "Shoot fast enough to leave yourself behind. The afterimages loose arrows of "
+  "their own, and each one runs a line of enemies through."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_RANGER
+max_level: 20
+max_enemies: 6
+lines: 4
+attacks_per_cast: 4
+boosts_skill_name: "Wind Arrow"
+base { skill_pct: 3.25 boosted_skill_pct: 0.51 }
+per_level { skill_pct: 0.05 boosted_skill_pct: 0.01 }

@@ -1,0 +1,16 @@
+# GMS masters this at 10 and reaches 25% of both. Stretched to 20 for the
+# book's budget, landing on the same pair.
+#
+# Both halves are the strongest levers a bow line has. The attack is a
+# percentage of the whole pile, worn and granted alike, and the ignored DEF
+# meets the gear's in reverse rather than summing with it.
+name: "Marksmanship"
+skill_order: 8
+description:
+  "Shoot for the gap in the armour rather than the armour. The bow answers "
+  "better for it too."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_RANGER
+max_level: 20
+base { ied_pct: 0.06 attack_pct: 0.06 }
+per_level { ied_pct: 0.01 attack_pct: 0.01 }

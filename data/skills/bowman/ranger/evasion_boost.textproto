@@ -1,0 +1,15 @@
+# GMS masters this at 4. Stretched to 10 to help pay the book's 120, landing on
+# GMS's own top figures -- the same treatment Marksmanship gets below.
+#
+# The crit-on-dodge second and the knockback resistance are left out: one is a
+# window this game has no clock for, and the other is a thing no mob does.
+name: "Evasion Boost"
+skill_order: 7
+description:
+  "An archer who is standing still is an archer being hit. Learn to not be "
+  "where the blow lands."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_RANGER
+max_level: 10
+base { dodge_chance: 0.12 max_hp_pct: 0.13 }
+per_level { dodge_chance: 0.02 max_hp_pct: 0.03 }

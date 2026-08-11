@@ -1,0 +1,27 @@
+# Two attacks out of one skill: the volley the player holds the key for, and
+# the turret they leave behind firing by itself. One row in the book and one SP
+# ladder, because it is one skill -- see Skill.auto_mode.
+#
+# Neither half answers to attack speed. The volley is a key-down skill, which
+# GMS paces itself, and the turret is a summon, which nothing has ever hurried.
+# So a Ranger gets nothing from Agile Bows, exactly as in GMS.
+name: "Arrow Blaster"
+skill_order: 1
+description:
+  "Loose arrows in a high arc, faster than the eye follows, and plant the bow "
+  "in the ground to keep firing without you."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_RANGER
+max_level: 20
+base_delay_ms: 120
+fixed_delay: true
+max_enemies: 4
+hits_per_attack_count: 7
+base { skill_pct: 1.24 }
+per_level { skill_pct: 0.03 }
+auto_mode {
+  cast_interval_seconds: 0.21
+  max_enemies: 4
+  base { skill_pct: 0.66 }
+  per_level { skill_pct: 0.01 }
+}

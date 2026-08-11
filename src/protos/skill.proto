@@ -201,6 +201,23 @@ message SkillEffect {
   double elemental_resistance = 107;
 }
 
+// A second attack the same skill makes, on its own clock, beside the swing it
+// already is. Arrow Blaster is the case it exists for: one skill the player
+// learns once, which they fire by holding the key AND which leaves a turret
+// behind firing by itself. Two skills sharing a display name would cost one SP
+// ladder and list as two rows; this is one row, one ladder, one page.
+//
+// Read at the same learned level as the skill carrying it.
+message AutoMode {
+  SkillEffect base = 1;
+  SkillEffect per_level = 2;
+  // Seconds between its casts, exactly as Skill.cast_interval_seconds. Never
+  // scaled by attack speed -- nothing on its own clock is.
+  double cast_interval_seconds = 3;
+  int32 max_enemies = 4;
+  int32 lines = 5;
+}
+
 // An extra grant that lands only with certain weapons in hand, on top of what
 // the skill gives with any weapon it accepts. Weapon Mastery is the case it
 // exists for: a Spearman masters a spear and a polearm equally, but only a
@@ -359,4 +376,7 @@ message Skill {
   // to a family -- follows_skill_tag is the other shape, and the right one
   // whenever more than one swing is meant.
   string boosts_skill_name = 103;
+  // The Ranger's. What this skill also does on its own clock, beside being the
+  // swing it already is. See AutoMode.
+  AutoMode auto_mode = 104;
 }
