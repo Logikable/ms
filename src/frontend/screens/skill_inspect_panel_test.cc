@@ -157,6 +157,34 @@ TEST_F(SkillInspectPanelTest, AMultiStrikeOpeningHitTotalsItself) {
   EXPECT_NE(RenderAt(skill, 1).find("100% x3 = 300%"), std::string::npos);
 }
 
+// Beam Blade's bonus against normal monsters adds to the swing per LINE, so
+// the row states the whole swing. Stated as the bonus alone it would read as
+// 216 + 72 against a swing that actually lands 432.
+TEST_F(SkillInspectPanelTest, TheNormalMonsterRowStatesTheWholeSwing) {
+  Skill skill = MakeLuckySeven();
+  skill.mutable_base()->set_normal_skill_pct(0.72);
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_NE(rendered.find("Normal Monsters"), std::string::npos);
+  EXPECT_NE(rendered.find("144% x3 = 432%"), std::string::npos);
+  EXPECT_EQ(rendered.find("+72%"), std::string::npos);
+}
+
+TEST_F(SkillInspectPanelTest, NoNormalMonsterRowWithoutTheBonus) {
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Normal Monsters"),
+            std::string::npos);
+}
+
+// Both healing levers are a share of the HP pool, not of anything the row
+// sits beside, and both say so.
+TEST_F(SkillInspectPanelTest, TheHealingRowsNameWhatTheyAreAShareOf) {
+  Skill skill = MakeIronBody();
+  skill.mutable_base()->set_hp_recover_pct(0.001);
+  skill.mutable_base()->set_heal_pct(0.23);
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_NE(rendered.find("Heal per Attack   +0.1% HP"), std::string::npos);
+  EXPECT_NE(rendered.find("Heal              +23% HP"), std::string::npos);
+}
+
 // Every other skill in the game has none, so the row must not appear at all.
 TEST_F(SkillInspectPanelTest, NoOpeningHitRowWithoutOne) {
   Skill skill = MakeLuckySeven();

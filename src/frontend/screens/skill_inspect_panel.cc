@@ -65,9 +65,8 @@ const PercentLever kPercentLevers[] = {
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus, ""},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare, ""},
     {"Reflected", &SkillEffect::damage_reflect_pct, kBare, ""},
-    {"Recovery", &SkillEffect::heal_pct, kPlus, ""},
-    {"Recovery on Hit", &SkillEffect::hp_recover_pct, kPlus, ""},
-    {"Normal Monsters", &SkillEffect::normal_skill_pct, kPlus, ""},
+    {"Heal", &SkillEffect::heal_pct, kPlus, " HP"},
+    {"Heal per Attack", &SkillEffect::hp_recover_pct, kPlus, " HP"},
     {"Elemental Resist", &SkillEffect::elemental_resistance, kPlus, ""},
     {"Defense", &SkillEffect::def_pct, kPlus, ""},
 };
@@ -319,13 +318,11 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   return rows;
 }
 
-// The damage line of an attack skill. A multi-line swing shows the per-strike
-// percentage, how many strikes, and what the two come to against one enemy --
-// the total is what the player is really comparing between skills.
-std::string DamageText(const Skill& skill, int level) {
-  double per_hit = PercentAt(skill, &SkillEffect::skill_pct, level);
+// A swing's damage: the per-strike percentage, how many strikes, and what the
+// two come to against one enemy -- the total is what the player is really
+// comparing between skills. One strike states the one figure and stops.
+std::string SwingText(double per_hit, int lines) {
   // An unset lines means one strike, the same reading the damage chain takes.
-  int lines = skill.lines();
   if (lines <= 0) {
     lines = 1;
   }
@@ -334,6 +331,24 @@ std::string DamageText(const Skill& skill, int level) {
   }
   return FormatPercent(per_hit) + " x" + std::to_string(lines) + " = " +
          FormatPercent(per_hit * lines);
+}
+
+std::string DamageText(const Skill& skill, int level) {
+  return SwingText(PercentAt(skill, &SkillEffect::skill_pct, level),
+                   skill.lines());
+}
+
+// What the same swing lands on anything that is not a boss, for a skill
+// carrying normal_skill_pct. Stated as the whole swing rather than as the
+// bonus, because the bonus adds to the damage above per LINE and a row saying
+// "+180%" beside a 900% swing reads as 1080% when it is twice that.
+std::string NormalMonsterText(const Skill& skill, int level) {
+  double bonus = PercentAt(skill, &SkillEffect::normal_skill_pct, level);
+  if (bonus <= 0.0) {
+    return "";
+  }
+  return SwingText(PercentAt(skill, &SkillEffect::skill_pct, level) + bonus,
+                   skill.lines());
 }
 
 // The opening hit's line, or "" for a swing that has none. It lands on top of
@@ -405,6 +420,12 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
   if (IsActive(skill) && PercentAt(skill, &SkillEffect::skill_pct, level) > 0) {
     rows.push_back(EffectRow("Damage", DamageText(skill, level)));
+  }
+  // Straight under the damage it is the other reading of, so the two totals
+  // stand one over the other.
+  std::string normal = NormalMonsterText(skill, level);
+  if (!normal.empty()) {
+    rows.push_back(EffectRow("Normal Monsters", normal));
   }
   // Under the swing's own damage, because it is the extra the swing opens with
   // rather than a second attack.
