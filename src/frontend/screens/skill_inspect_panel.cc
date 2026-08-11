@@ -27,10 +27,11 @@ constexpr int kEffectLabelWidth = 18;
 // What is left for an effect row's value once the indent and label are paid.
 constexpr int kValueWidth = kContentWidth - kEffectIndent - kEffectLabelWidth;
 
-// A percentage lever and how it reads to the player. The sign is the lever's
-// direction, not its stored value: every lever is stored positive, and one
-// that cancels damage is a good thing shown as a subtraction.
-enum Sign { kPlus, kMinus, kBare };
+// A percentage lever and how it reads to the player. Usually the sign is the
+// lever's direction rather than its stored value: a lever is stored positive,
+// and one that cancels damage is a good thing shown as a subtraction. kSigned
+// is for the lever that can be spent as well as bought.
+enum Sign { kPlus, kMinus, kBare, kSigned };
 
 // Slack for the floor a whole-number lever takes, matching the one the stats
 // use: a per-level step that cannot be written exactly lands a hair under the
@@ -71,7 +72,9 @@ const PercentLever kPercentLevers[] = {
     {"Heal", &SkillEffect::heal_pct, kPlus, " HP"},
     {"Heal per Attack", &SkillEffect::hp_recover_pct, kPlus, " HP"},
     {"Elemental Resist", &SkillEffect::elemental_resistance, kPlus, ""},
-    {"Defense", &SkillEffect::def_pct, kPlus, ""},
+    // The one lever a skill can take away instead of grant: Reckless Hunt
+    // sells DEF for damage, and a row that hid the price would be a lie.
+    {"Defense", &SkillEffect::def_pct, kSigned, ""},
 };
 
 // The levers that are a plain count rather than a share of anything. Both are
@@ -381,7 +384,11 @@ std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
   }
   for (const PercentLever& lever : kPercentLevers) {
     double value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);
-    if (value <= 0.0) {
+    // A signed lever writes a row for anything but nothing at all; every other
+    // one is unset when it is not positive.
+    bool unset =
+        lever.sign == kSigned ? std::abs(value) < kWholeEpsilon : value <= 0.0;
+    if (unset) {
       continue;
     }
     std::string sign = "";
@@ -389,9 +396,12 @@ std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
       sign = "+";
     } else if (lever.sign == kMinus) {
       sign = "-";
+    } else if (lever.sign == kSigned) {
+      sign = value > 0.0 ? "+" : "-";
     }
-    rows.push_back(EffectRow(
-        lever.label, sign + FormatPercent(value) + lever.unit + suffix));
+    rows.push_back(
+        EffectRow(lever.label,
+                  sign + FormatPercent(std::abs(value)) + lever.unit + suffix));
   }
   for (const PercentLever& lever : kNumberLevers) {
     double value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);

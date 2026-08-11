@@ -107,6 +107,16 @@ TEST_F(SkillInspectPanelTest, ReadsEveryLeverAtTheLearnedLevel) {
   EXPECT_NE(rendered.find("-2.5%"), std::string::npos);  // Damage Taken
 }
 
+// Reckless Hunt sells DEF for damage. The price is half the skill, so the page
+// prints it as a loss rather than dropping the row for not being a gain.
+TEST_F(SkillInspectPanelTest, ShowsALeverTheSkillTakesAway) {
+  Skill skill = MakeIronBody();
+  skill.mutable_base()->set_def_pct(-0.07);
+  skill.mutable_per_level()->set_def_pct(-0.02);
+  EXPECT_NE(RenderAt(skill, 3).find("Defense           -11%"),
+            std::string::npos);
+}
+
 TEST_F(SkillInspectPanelTest, ShowsWhatTheNextPointBuys) {
   Skill skill = MakeIronBody();
   std::string rendered = RenderAt(skill, 5);
