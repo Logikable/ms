@@ -156,6 +156,18 @@ message SkillEffect {
   // monster's own attack, and a character has passed that cap on their stats
   // alone long before a skill grants any. See DerivedStats::def.
   double def_pct = 110;
+  // The White Knight's. Levels this skill adds to every other skill the
+  // character has already learned, held to each one's master level. It never
+  // raises the skill granting it, and never teaches one that is unlearned.
+  //
+  // A double for a lever counted in whole levels, because GMS climbs it in a
+  // step -- one level for most of the ladder and two at the top -- which
+  // base + per_level * (L - 1) can only walk by carrying the fraction and
+  // flooring it where it is read. See EffectiveSkillLevel.
+  //
+  // GMS lets a 4th job skill go past its master level for this; nothing here
+  // reaches 4th job, so the cap always holds.
+  double skill_level_bonus = 111;
   // The Berserker's. Resistance to abnormal statuses, on GMS's own scale rather
   // than as a fraction, and to elemental damage as a fraction. Nothing in this
   // game inflicts a status or an element, so nothing reads either -- they are

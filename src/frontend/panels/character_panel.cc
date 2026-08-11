@@ -474,6 +474,10 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
 
 ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
                                               bool rows_focused) const {
+  // What the player bought, not what Combat Orders granted on top of it: this
+  // column stands beside the [+] and is the ledger for the SP spent. The
+  // granted level is real in the stats and in the fight, and Combat Orders'
+  // own page is where the player reads what it hands out.
   int level = character_.skill_level(skill);
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = level >= skill.max_level();

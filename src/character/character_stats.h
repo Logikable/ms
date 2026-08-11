@@ -96,6 +96,23 @@ bool SkillAllowsWeapon(const Skill& skill, EquipType weapon);
 // and it comes back with the right gear on.
 bool SkillGearMet(const CharacterInstance& character, const Skill& skill);
 
+// Levels every skill the character has learned gains from a skill that grants
+// them -- Combat Orders, and nothing else so far. 0 for a character without
+// one, which is every character but a White Knight.
+int BonusSkillLevels(const CharacterInstance& character,
+                     const std::map<std::string, Skill>& skills);
+
+// What `skill` is actually worth to this character: the level they learned
+// plus `bonus`, held to the master level. An unlearned skill stays unlearned,
+// and the skill granting the bonus does not receive it.
+//
+// This is the level everything that READS a skill wants -- its stats, its
+// damage, the level shown beside it. Spending SP wants skill_level() instead:
+// a granted level is not one the player bought, and must not stop them buying
+// the real one.
+int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
+                        int bonus);
+
 // `skills` is the loaded skill catalog; every passive in it the character has
 // learned contributes its level's effect. Attack skills are ignored -- their
 // lever is damage, which OffenseStatsFor handles.

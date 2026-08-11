@@ -252,6 +252,37 @@ TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
   EXPECT_TRUE(params.attacks[1].lead_damage.empty());
 }
 
+// A swing is swung at the level the character has it, not the level they
+// bought: a granted level buys damage like any other.
+TEST(ComputeCombatParamsTest, BonusLevelsReachTheSwing) {
+  Skill slash;
+  slash.set_name("Slash Blast");
+  slash.set_kind(SKILL_KIND_ATTACK);
+  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  slash.set_max_level(20);
+  slash.mutable_base()->set_skill_pct(1.0);
+  slash.mutable_per_level()->set_skill_pct(1.0);
+  Skill orders;
+  orders.set_name("Combat Orders");
+  orders.set_kind(SKILL_KIND_PASSIVE);
+  orders.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  orders.set_max_level(10);
+  orders.mutable_base()->set_skill_level_bonus(1.0);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"slash_blast", slash}, {"combat_orders", orders}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 5);
+  ASSERT_TRUE(state.character.LearnSkill(slash, 1));
+  double bought = ComputeCombatParams(state).attacks[1].damage_per_hit[0];
+
+  ASSERT_TRUE(state.character.LearnSkill(orders, 1));
+  // Level 2 of a skill worth 100% a level: twice the swing.
+  EXPECT_NEAR(ComputeCombatParams(state).attacks[1].damage_per_hit[0],
+              bought * 2.0, 1.0);
+}
+
 // A cast joins the swings the fight can spend a turn on, but it never joins
 // what they can land: the damage chain has no multiplier for a skill that
 // deals none, so what it built for the cast is the bare poke's damage. Left

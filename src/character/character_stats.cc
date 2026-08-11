@@ -39,6 +39,13 @@ bool ListAllowsWeapon(const google::protobuf::RepeatedField<int>& types,
   return false;
 }
 
+// Whether this is the skill that raises other skills' levels. Asked of the
+// data rather than of the name, so the rule that it does not raise itself
+// holds for any later skill written the same way.
+bool GrantsSkillLevels(const Skill& skill) {
+  return skill.base().skill_level_bonus() > 0.0;
+}
+
 // What one learned passive is worth at `level`, in the shape they are summed
 // in. Every lever is base + per_level * (L - 1).
 struct PassiveTotals {
@@ -185,6 +192,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills) {
   PassiveTotals totals;
   EquipType weapon = character.weapon_type();
+  int bonus = BonusSkillLevels(character, skills);
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // Learned levels are keyed by display name, and the warrior branches share
@@ -200,7 +208,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
     if (!SkillGearMet(character, skill)) {
       continue;
     }
-    int level = character.skill_level(skill);
+    int level = EffectiveSkillLevel(character, skill, bonus);
     if (level > 0) {
       AddPassive(skill, level, weapon, totals);
     }
@@ -221,6 +229,36 @@ int FoldPool(int flat, double pct) {
 
 bool SkillAllowsWeapon(const Skill& skill, EquipType weapon) {
   return ListAllowsWeapon(skill.required_equip_type(), weapon);
+}
+
+int BonusSkillLevels(const CharacterInstance& character,
+                     const std::map<std::string, Skill>& skills) {
+  double bonus = 0.0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (!GrantsSkillLevels(skill) ||
+        !character.HasAdvancement(skill.job_advancement())) {
+      continue;
+    }
+    int level = character.skill_level(skill);
+    if (level > 0) {
+      bonus += skill.base().skill_level_bonus() +
+               skill.per_level().skill_level_bonus() * (level - 1);
+    }
+  }
+  // Floored, and nudged first: the per-level step is a fraction that cannot be
+  // written exactly, so the top of the ladder lands a hair under the whole
+  // level it is meant to reach.
+  return static_cast<int>(std::floor(bonus + kPercentEpsilon));
+}
+
+int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
+                        int bonus) {
+  int level = character.skill_level(skill);
+  if (level <= 0 || GrantsSkillLevels(skill)) {
+    return level;
+  }
+  return std::min(level + bonus, skill.max_level());
 }
 
 bool SkillGearMet(const CharacterInstance& character, const Skill& skill) {

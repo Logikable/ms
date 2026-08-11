@@ -184,9 +184,10 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   params.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr,
                                      0, params.types, derived, attack_speed,
                                      speed_factor));
+  int bonus = BonusSkillLevels(state.character, state.skills);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
-    int learned = state.character.skill_level(skill);
+    int learned = EffectiveSkillLevel(state.character, skill, bonus);
     if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
       continue;
     }

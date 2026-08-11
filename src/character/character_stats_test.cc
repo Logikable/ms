@@ -577,6 +577,98 @@ TEST_F(DerivedStatsTest, DefPercentTakesTheWholePileAndLeavesBaseDefAlone) {
   EXPECT_EQ(derived.def, 285);
 }
 
+// Combat Orders as the White Knight's book states it: one level for most of
+// the ladder and two at the top, which is a step the per-level shape can only
+// walk by carrying a fraction.
+Skill CombatOrders() {
+  Skill skill;
+  skill.set_name("Combat Orders");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(10);
+  skill.mutable_base()->set_skill_level_bonus(1.0);
+  skill.mutable_per_level()->set_skill_level_bonus(0.11111111111);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, BonusLevelsClimbInWholeStepsAndStopAtTwo) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  Skill orders = CombatOrders();
+  std::map<std::string, Skill> skills = {{"combat_orders", orders}};
+
+  EXPECT_EQ(BonusSkillLevels(c, skills), 0);
+  ASSERT_TRUE(c.LearnSkill(orders, 1));
+  EXPECT_EQ(BonusSkillLevels(c, skills), 1);
+  ASSERT_TRUE(c.LearnSkill(orders, 8));
+  EXPECT_EQ(BonusSkillLevels(c, skills), 1);
+  ASSERT_TRUE(c.LearnSkill(orders, 1));
+  EXPECT_EQ(BonusSkillLevels(c, skills), 2);
+}
+
+// The granted level is real everywhere a skill is read: Iron Body learned to
+// 18 is worth its 20th level with two granted on top.
+TEST_F(DerivedStatsTest, BonusLevelsRaiseWhatAPassiveGrants) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  Skill iron_body = IronBody();
+  Skill orders = CombatOrders();
+  std::map<std::string, Skill> skills = {{"iron_body", iron_body},
+                                         {"combat_orders", orders}};
+  ASSERT_TRUE(c.LearnSkill(iron_body, 18));
+  EXPECT_EQ(DerivedStatsFor(c, skills).def, 180);
+
+  ASSERT_TRUE(c.LearnSkill(orders, 10));
+  EXPECT_EQ(DerivedStatsFor(c, skills).def, 200);
+}
+
+// Two rules the bonus has to hold at once: it never carries a skill past its
+// master level, and it never raises the skill handing it out.
+TEST_F(DerivedStatsTest, BonusLevelsStopAtTheMasterLevelAndSkipTheirOwnSkill) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  Skill iron_body = IronBody();
+  Skill orders = CombatOrders();
+  std::map<std::string, Skill> skills = {{"iron_body", iron_body},
+                                         {"combat_orders", orders}};
+  ASSERT_TRUE(c.LearnSkill(iron_body, 20));
+  ASSERT_TRUE(c.LearnSkill(orders, 5));
+
+  int bonus = BonusSkillLevels(c, skills);
+  EXPECT_EQ(EffectiveSkillLevel(c, iron_body, bonus), 20);
+  // Room to be raised, and still not raised: it is the skill handing out the
+  // levels.
+  EXPECT_EQ(EffectiveSkillLevel(c, orders, bonus), 5);
+}
+
+// A skill nobody has bought is not one the bonus teaches.
+TEST_F(DerivedStatsTest, BonusLevelsLeaveAnUnlearnedSkillUnlearned) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  Skill iron_body = IronBody();
+  Skill orders = CombatOrders();
+  std::map<std::string, Skill> skills = {{"iron_body", iron_body},
+                                         {"combat_orders", orders}};
+  ASSERT_TRUE(c.LearnSkill(orders, 10));
+
+  EXPECT_EQ(EffectiveSkillLevel(c, iron_body, BonusSkillLevels(c, skills)), 0);
+  EXPECT_EQ(DerivedStatsFor(c, skills).def, 0);
+}
+
+// Another branch's Combat Orders is not this character's, so it hands out
+// nothing -- the same rule that keeps a Page's Weapon Mastery off a Fighter.
+TEST_F(DerivedStatsTest, BonusLevelsComeOnlyFromTheCharactersOwnBook) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  Skill iron_body = IronBody();
+  Skill orders = CombatOrders();
+  std::map<std::string, Skill> skills = {{"iron_body", iron_body},
+                                         {"combat_orders", orders}};
+  ASSERT_TRUE(c.LearnSkill(iron_body, 18));
+  ASSERT_TRUE(c.LearnSkill(orders, 10));
+  // Learned, then moved into a book this swordman does not hold. The level
+  // stays -- it is keyed by display name -- and stops counting.
+  skills["combat_orders"].set_job_advancement(JOB_ADVANCEMENT_MAGICIAN);
+
+  EXPECT_EQ(BonusSkillLevels(c, skills), 0);
+  EXPECT_EQ(DerivedStatsFor(c, skills).def, 180);
+}
+
 TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill slash;

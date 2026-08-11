@@ -32,6 +32,11 @@ constexpr int kValueWidth = kContentWidth - kEffectIndent - kEffectLabelWidth;
 // that cancels damage is a good thing shown as a subtraction.
 enum Sign { kPlus, kMinus, kBare };
 
+// Slack for the floor a whole-number lever takes, matching the one the stats
+// use: a per-level step that cannot be written exactly lands a hair under the
+// level it climbs to.
+constexpr double kWholeEpsilon = 1e-9;
+
 struct PercentLever {
   const char* label;
   double (SkillEffect::*fn)() const;
@@ -40,6 +45,9 @@ struct PercentLever {
   // effect: a per-orb bargain is worth five times what its row says, and a row
   // that did not say so would read as the total.
   const char* unit;
+  // Whether the lever only ever pays out in whole numbers, so the page floors
+  // it as the game does. Left off by every row but the one that needs it.
+  bool whole;
 };
 
 // Percentage levers in display order. Damage is not here -- an attack's own
@@ -64,11 +72,15 @@ const PercentLever kPercentLevers[] = {
     {"Defense", &SkillEffect::def_pct, kPlus, ""},
 };
 
-// The levers that are a plain count rather than a share of anything. Only
-// abnormal status resistance, which GMS states on a scale of its own -- and
-// which is a double for the half point Vessel of Light grants.
+// The levers that are a plain count rather than a share of anything. Both are
+// doubles for reasons of their own: abnormal status resistance for the half
+// point Vessel of Light grants, and bonus skill levels for the fraction its
+// ladder climbs by.
 const PercentLever kNumberLevers[] = {
     {"Status Resist", &SkillEffect::status_resistance, kPlus, ""},
+    // Whole levels, carried as a fraction so the ladder can step. Floored for
+    // the page exactly as it is floored where it is read.
+    {"Skill Levels", &SkillEffect::skill_level_bonus, kPlus, "", true},
 };
 
 struct FlatLever {
@@ -375,6 +387,9 @@ std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
   }
   for (const PercentLever& lever : kNumberLevers) {
     double value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);
+    if (lever.whole) {
+      value = std::floor(value + kWholeEpsilon);
+    }
     if (value <= 0.0) {
       continue;
     }
