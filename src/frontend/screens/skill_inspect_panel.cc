@@ -131,13 +131,21 @@ std::string FormatPercent(double frac) {
   return s + "%";
 }
 
-// A count of seconds, without a trailing ".0" on the whole ones.
+// A count of seconds, to as many decimals as it takes and no more: 12, 0.5,
+// 0.12. Two places rather than one because the fastest swings in the game are
+// measured in hundredths -- a key-down skill at 0.12s reads "0.1" otherwise,
+// and against a turret at "0.2" that hides which is faster.
 std::string FormatSeconds(double seconds) {
   char buf[32];
-  snprintf(buf, sizeof(buf), "%.1f", seconds);
+  snprintf(buf, sizeof(buf), "%.2f", seconds);
   std::string s = buf;
-  if (s.size() > 2 && s.compare(s.size() - 2, 2, ".0") == 0) {
-    s.resize(s.size() - 2);
+  while (s.find('.') != std::string::npos &&
+         (s.back() == '0' || s.back() == '.')) {
+    bool done = s.back() == '.';
+    s.pop_back();
+    if (done) {
+      break;
+    }
   }
   return s;
 }
@@ -303,6 +311,14 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   }
   if (skill.combo_orbs() > 0) {
     rows.push_back(EffectRow("Combo Orbs", std::to_string(skill.combo_orbs())));
+  }
+  // Only a skill that ignores attack speed can have its rate stated here: for
+  // every other swing the weapon in hand decides it, and this panel is handed
+  // a skill rather than a character. For this one the rate is the whole
+  // identity, so it has to be on the page.
+  if (skill.fixed_delay() && skill.base_delay_ms() > 0) {
+    rows.push_back(EffectRow(
+        "Swing Time", FormatSeconds(skill.base_delay_ms() / 1000.0) + "s"));
   }
   // How often a skill that fights on its own goes off, which is most of what
   // it is worth. Stated in GMS seconds, as the data holds it -- the pacing

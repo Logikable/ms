@@ -150,6 +150,12 @@ double LevelMultiplier(int player_level, int mob_level);
 // else; a spear and a sword swing the same skill at the same speed.
 double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 
+// The stage at which the formula above is the identity, so a skill that
+// ignores attack speed swings at exactly its stated delay. Named rather than
+// written as a 4, because a bare 4 beside a stage means "average weapon" and
+// this means "no scaling at all".
+inline constexpr int kUnscaledAttackSpeedStage = 4;
+
 // What the bare poke swings at, and what a skill naming no delay of its own is
 // taken to swing at. 780ms is the commonest 1st/2nd job animation, and the one
 // both Brandish and Spear Sweep have.

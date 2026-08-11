@@ -289,6 +289,14 @@ message Skill {
   // Meaningless for a SKILL_KIND_AUTO_ATTACK, which fires on
   // cast_interval_seconds rather than on the character's swing.
   int32 base_delay_ms = 16;
+  // Whether base_delay_ms is the whole story, with no attack-speed stage
+  // scaling it. True for GMS's key-down skills -- the ones held rather than
+  // pressed, Hurricane and Arrow Blaster among them -- which fire at a fixed
+  // rate however fast the weapon swings.
+  //
+  // A character whose only swing carries this gets nothing from an
+  // attack-speed skill, which is the bargain GMS strikes too.
+  bool fixed_delay = 19;
   // Seconds this skill is unavailable for after it is used, in GMS scale
   // before the game's own pacing stretches it. A swing with a cooldown is not
   // there to be chosen every time, so the fight falls back on whatever else it

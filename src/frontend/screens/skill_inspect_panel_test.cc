@@ -160,6 +160,24 @@ TEST_F(SkillInspectPanelTest, AMultiStrikeOpeningHitTotalsItself) {
 // Beam Blade's bonus against normal monsters adds to the swing per LINE, so
 // the row states the whole swing. Stated as the bonus alone it would read as
 // 216 + 72 against a swing that actually lands 432.
+// A key-down skill's rate is its whole identity, and it is the only rate this
+// panel can state: every other swing is paced by the weapon in hand, which the
+// panel is not given.
+TEST_F(SkillInspectPanelTest, AFixedDelaySwingStatesItsRate) {
+  Skill skill = MakeLuckySeven();
+  skill.set_base_delay_ms(120);
+  skill.set_fixed_delay(true);
+  // Two decimals, or 0.12 and a 0.21 turret would both read "0.2".
+  EXPECT_NE(RenderAt(skill, 1).find("Swing Time        0.12s"),
+            std::string::npos);
+}
+
+TEST_F(SkillInspectPanelTest, ASwingPacedByTheWeaponStatesNoRate) {
+  Skill skill = MakeLuckySeven();
+  skill.set_base_delay_ms(810);
+  EXPECT_EQ(RenderAt(skill, 1).find("Swing Time"), std::string::npos);
+}
+
 TEST_F(SkillInspectPanelTest, TheNormalMonsterRowStatesTheWholeSwing) {
   Skill skill = MakeLuckySeven();
   skill.mutable_base()->set_normal_skill_pct(0.72);

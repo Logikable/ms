@@ -63,15 +63,22 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
                        double speed_factor) {
   AttackOption attack;
   int delay_ms = kDefaultSwingDelayMs;
+  // A key-down skill fires at its own rate however fast the weapon swings, so
+  // it is handed the stage the formula is the identity at rather than the
+  // character's. The game's own pacing still stretches it -- that is about the
+  // game running slower than GMS, not about the weapon.
+  int stage = attack_speed;
   if (skill != nullptr) {
     attack.name = skill->name();
     attack.max_enemies = std::max(1, skill->max_enemies());
     if (skill->base_delay_ms() > 0) {
       delay_ms = skill->base_delay_ms();
     }
+    if (skill->fixed_delay()) {
+      stage = kUnscaledAttackSpeedStage;
+    }
   }
-  attack.swing_seconds =
-      SwingIntervalSeconds(delay_ms, attack_speed) * speed_factor;
+  attack.swing_seconds = SwingIntervalSeconds(delay_ms, stage) * speed_factor;
   if (skill != nullptr) {
     attack.cooldown_seconds = skill->cooldown_seconds() * speed_factor;
     attack.heal_fraction =

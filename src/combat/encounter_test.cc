@@ -401,6 +401,62 @@ TEST(ComputeCombatParamsTest, EachSwingTakesItsOwnSkillsTime) {
                        GameSpeedFactor(state.character.proto().level()));
 }
 
+// A key-down skill fires at its stated rate however fast the weapon swings:
+// the whole point of the flag is that the stage has no say.
+TEST(ComputeCombatParamsTest, AFixedDelaySwingIgnoresTheAttackSpeedStage) {
+  Skill blaster;
+  blaster.set_name("Arrow Blaster");
+  blaster.set_kind(SKILL_KIND_ATTACK);
+  blaster.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  blaster.set_max_level(20);
+  blaster.set_base_delay_ms(120);
+  blaster.set_fixed_delay(true);
+  blaster.mutable_base()->set_skill_pct(1.24);
+
+  // The same character and skill under the slowest weapon and the fastest.
+  double at_stage[2] = {0.0, 0.0};
+  AttackSpeed speeds[2] = {ATTACK_SPEED_SLOWER, ATTACK_SPEED_FASTEST_3};
+  for (int i = 0; i < 2; ++i) {
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}}, {{"arrow_blaster", blaster}});
+    state.current_map = "field";
+    EquipSwordAt(state, speeds[i]);
+    GrantFirstJobSp(state, 1);
+    ASSERT_TRUE(state.character.LearnSkill(blaster, 1));
+    CombatParams params = ComputeCombatParams(state);
+    ASSERT_EQ(params.attacks.size(), 2u);
+    at_stage[i] = params.attacks[1].swing_seconds;
+    // The bare poke beside it still answers to the weapon, so the two weapons
+    // really do differ -- the skill is what does not move.
+    EXPECT_DOUBLE_EQ(params.attacks[1].swing_seconds,
+                     0.120 * GameSpeedFactor(state.character.proto().level()));
+  }
+  EXPECT_DOUBLE_EQ(at_stage[0], at_stage[1]);
+}
+
+TEST(ComputeCombatParamsTest, AnOrdinarySwingStillAnswersToTheWeapon) {
+  Skill wind;
+  wind.set_name("Wind Arrow");
+  wind.set_kind(SKILL_KIND_ATTACK);
+  wind.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  wind.set_max_level(20);
+  wind.set_base_delay_ms(810);
+  wind.mutable_base()->set_skill_pct(0.83);
+
+  double at_stage[2] = {0.0, 0.0};
+  AttackSpeed speeds[2] = {ATTACK_SPEED_SLOWER, ATTACK_SPEED_FASTEST_3};
+  for (int i = 0; i < 2; ++i) {
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}}, {{"wind_arrow", wind}});
+    state.current_map = "field";
+    EquipSwordAt(state, speeds[i]);
+    GrantFirstJobSp(state, 1);
+    ASSERT_TRUE(state.character.LearnSkill(wind, 1));
+    at_stage[i] = ComputeCombatParams(state).attacks[1].swing_seconds;
+  }
+  EXPECT_GT(at_stage[0], at_stage[1]);
+}
+
 // A skill saying nothing about its animation is swung at the same pace as the
 // bare poke, rather than instantly.
 TEST(ComputeCombatParamsTest, ASwingWithNoDelayOfItsOwnTakesTheDefault) {
