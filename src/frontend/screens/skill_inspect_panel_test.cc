@@ -228,6 +228,31 @@ TEST_F(SkillInspectPanelTest, AnAutoModeStatesItsOwnHalfOfTheSkill) {
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Turret"), std::string::npos);
 }
 
+// Empowered Arrows strengthens Piercing Arrow twice over: a permanent bonus on
+// every shot, and a bigger shot every fourth. Both halves belong on the page,
+// and the upgraded swing's reach with them -- it is wider than the one it
+// stands in for, which no other row could tell the player.
+TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
+  Skill arrows = MakeIronBody();
+  arrows.set_boosts_skill_name("Piercing Arrow");
+  arrows.mutable_base()->set_boosted_skill_pct(1.02);
+  EmpoweredForm* form = arrows.mutable_empowered_form();
+  form->set_casts_per_trigger(4);
+  form->set_max_enemies(8);
+  form->set_lines(6);
+  form->mutable_base()->set_skill_pct(2.03);
+
+  std::string rendered = RenderAt(arrows, 1);
+  EXPECT_NE(rendered.find("Every 4th"), std::string::npos);
+  EXPECT_NE(rendered.find("Piercing Arrow"), std::string::npos);
+  EXPECT_NE(rendered.find("Empowered Enemies 8"), std::string::npos);
+  EXPECT_NE(rendered.find("Empowered Damage  203% x6 = 1218%"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Piercing Arrow +102%"), std::string::npos);
+  // A skill that upgrades nothing says nothing about upgrading.
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Empower"), std::string::npos);
+}
+
 // Beam Blade's bonus against normal monsters adds to the swing per LINE, so
 // the row states the whole swing. Stated as the bonus alone it would read as
 // 216 + 72 against a swing that actually lands 432.

@@ -235,6 +235,24 @@ TEST(SkillDataTest, EveryAutoModeSaysWhenItFiresAndForHowMuch) {
   }
 }
 
+// An empowered form is aimed by boosts_skill_name, so it is nothing without
+// one -- and a form with no period or no damage is a swing that never lands or
+// lands for nothing.
+TEST(SkillDataTest, EveryEmpoweredFormSaysHowOftenAndForHowMuch) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.has_empowered_form()) {
+      continue;
+    }
+    EXPECT_FALSE(skill.boosts_skill_name().empty())
+        << entry.first << "'s empowered form takes the place of nothing";
+    EXPECT_GT(skill.empowered_form().casts_per_trigger(), 0)
+        << entry.first << "'s empowered form would never be swung";
+    EXPECT_GT(skill.empowered_form().base().skill_pct(), 0.0)
+        << entry.first << "'s empowered form would be swung for nothing";
+  }
+}
+
 // The two clocks answer different questions -- how long until this comes back,
 // against how often this goes off by itself -- and a skill wanting both is a
 // skill whose author meant one of them.

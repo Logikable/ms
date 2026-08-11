@@ -134,6 +134,23 @@ std::string FormatPercent(double frac) {
   return s + "%";
 }
 
+// "4th", for the swing an upgrade lands on. Only ever a small number here, but
+// the teens are written out anyway rather than left as a trap for the day one
+// of these runs to eleven.
+std::string Ordinal(int n) {
+  std::string suffix = "th";
+  if (n % 100 < 11 || n % 100 > 13) {
+    if (n % 10 == 1) {
+      suffix = "st";
+    } else if (n % 10 == 2) {
+      suffix = "nd";
+    } else if (n % 10 == 3) {
+      suffix = "rd";
+    }
+  }
+  return std::to_string(n) + suffix;
+}
+
 // One "  label      value" row of an effect block.
 ftxui::Element EffectRow(const std::string& label, const std::string& value) {
   return ftxui::text(std::string(kEffectIndent, ' ') +
@@ -305,6 +322,22 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", std::to_string(skill.attacks_per_cast()) + " Attacks"));
   }
+  // A skill that upgrades another's swing says which swing and how often. Its
+  // reach is stated too, unlike a turret's: this one is wider than the swing
+  // it stands in for, so leaving it out would understate the upgrade.
+  if (skill.empowered_form().casts_per_trigger() > 0) {
+    for (ftxui::Element& row : WrappedEffectRows(
+             "Empowers",
+             "Every " + Ordinal(skill.empowered_form().casts_per_trigger()) +
+                 " " + skill.boosts_skill_name())) {
+      rows.push_back(std::move(row));
+    }
+    if (skill.empowered_form().max_enemies() > 1) {
+      rows.push_back(
+          EffectRow("Empowered Enemies",
+                    std::to_string(skill.empowered_form().max_enemies())));
+    }
+  }
   // How long the player swings something else for afterwards, which is what a
   // skill this much better than the usual swing costs.
   if (skill.cooldown_seconds() > 0.0) {
@@ -454,6 +487,16 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
         SwingText(skill.auto_mode().base().skill_pct() +
                       skill.auto_mode().per_level().skill_pct() * (level - 1),
                   skill.auto_mode().lines())));
+  }
+  // The upgraded swing's damage, beside the permanent bonus below it: one
+  // skill that strengthens another twice over, so both halves read together.
+  if (skill.empowered_form().casts_per_trigger() > 0) {
+    rows.push_back(EffectRow(
+        "Empowered Damage",
+        SwingText(
+            skill.empowered_form().base().skill_pct() +
+                skill.empowered_form().per_level().skill_pct() * (level - 1),
+            skill.empowered_form().lines())));
   }
   // What this skill hands another one. Named in the value rather than used as
   // the label, so a long skill name wraps instead of being cut to the label
