@@ -94,6 +94,8 @@ std::string BranchName(Job job) {
       return "Crusader";
     case JOB_WHITE_KNIGHT:
       return "White Knight";
+    case JOB_RANGER:
+      return "Ranger";
     default:
       return "?";
   }
@@ -114,32 +116,10 @@ std::vector<Job> PathTo(Job branch) {
   }
 }
 
-// Which stat this job's damage is built on, so the sweep spends AP the way a
-// player would rather than leaving it in the pool.
-StatField PrimaryStatFor(Job job) {
-  switch (job) {
-    case JOB_ARCHER:
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-      return STAT_FIELD_DEX;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-      return STAT_FIELD_INT;
-    case JOB_ROGUE:
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-      return STAT_FIELD_LUK;
-    default:
-      return STAT_FIELD_STR;
-  }
-}
-
 // What the row's primary figure is called, so the detail line labels the stat
 // it actually holds rather than assuming a warrior's.
 const char* PrimaryStatName(Job job) {
-  switch (PrimaryStatFor(job)) {
+  switch (PrimaryStatField(job)) {
     case STAT_FIELD_DEX:
       return "DEX";
     case STAT_FIELD_INT:
@@ -199,7 +179,7 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path) {
     if (character.CanAdvanceJob() && taken < static_cast<int>(path.size())) {
       character.AdvanceJob(path[taken++]);
     }
-    while (character.AllocateStat(PrimaryStatFor(character.proto().job()))) {
+    while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
     }
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
       while (character.LearnSkill(entry.second)) {
@@ -412,6 +392,17 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
       result.dps += extra.damage_per_hit[0] / (extra.interval_seconds / speed);
     }
   }
+  // And the ones clocked by swings landed. How often they go off depends on
+  // the swing feeding them: a rapid attack counting a seventh apiece is worth
+  // no more of these than a slow one counting a whole attack.
+  for (const AttackOption& extra : params.triggered_attacks) {
+    if (extra.damage_per_hit.empty() || extra.attacks_per_cast <= 0) {
+      continue;
+    }
+    double casts_per_second =
+        best->count_weight / (result.swing_seconds * extra.attacks_per_cast);
+    result.dps += extra.damage_per_hit[0] * casts_per_second;
+  }
   return result;
 }
 
@@ -444,6 +435,7 @@ void Run(int level) {
       {JOB_CRUSADER, EQUIP_TYPE_TWO_HANDED_AXE},
       {JOB_WHITE_KNIGHT, EQUIP_TYPE_TWO_HANDED_SWORD},
       {JOB_WHITE_KNIGHT, EQUIP_TYPE_TWO_HANDED_BLUNT},
+      {JOB_RANGER, EQUIP_TYPE_BOW},
   };
 
   std::printf(

@@ -127,6 +127,8 @@ std::string BranchName(Job job) {
       return "Crusader";
     case JOB_WHITE_KNIGHT:
       return "White Knight";
+    case JOB_RANGER:
+      return "Ranger";
     default:
       return "?";
   }
@@ -143,28 +145,6 @@ std::vector<Job> PathTo(Job branch) {
       return path;
     }
     path.push_back(JobForAdvancement(advancement));
-  }
-}
-
-// Which stat this job's damage is built on, so the sweep spends AP the way a
-// player would rather than leaving it in the pool.
-StatField PrimaryStatFor(Job job) {
-  switch (job) {
-    case JOB_ARCHER:
-    case JOB_HUNTER:
-    case JOB_CROSSBOWMAN:
-      return STAT_FIELD_DEX;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-      return STAT_FIELD_INT;
-    case JOB_ROGUE:
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-      return STAT_FIELD_LUK;
-    default:
-      return STAT_FIELD_STR;
   }
 }
 
@@ -243,7 +223,7 @@ void EquipByName(CharacterInstance& character, const std::string& name) {
 
 // Spends everything the last level handed over.
 void SpendPoints(CharacterInstance& character) {
-  while (character.AllocateStat(PrimaryStatFor(character.proto().job()))) {
+  while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
   }
 }
 
@@ -517,6 +497,7 @@ void Run() {
       JOB_BERSERKER,
       JOB_CRUSADER,
       JOB_WHITE_KNIGHT,
+      JOB_RANGER,
   };
 
   std::printf(

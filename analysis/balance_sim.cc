@@ -108,26 +108,6 @@ Job ParseBranch(const std::string& name) {
   return job;
 }
 
-// Which stat this job's damage is built on, so the sweep spends AP the way a
-// player would rather than leaving it in the pool.
-StatField PrimaryStatFor(Job job) {
-  switch (job) {
-    case JOB_ARCHER:
-      return STAT_FIELD_DEX;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-      return STAT_FIELD_INT;
-    case JOB_ROGUE:
-    case JOB_ASSASSIN:
-    case JOB_BANDIT:
-      return STAT_FIELD_LUK;
-    default:
-      return STAT_FIELD_STR;
-  }
-}
-
 // Brings the character up to `level` the way a player gets there: each
 // advancement of `path` as it is offered, every AP on the primary stat, every
 // SP on whatever it will buy. Which skill goes first is the catalog's
@@ -141,7 +121,7 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path) {
     if (character.CanAdvanceJob() && taken < static_cast<int>(path.size())) {
       character.AdvanceJob(path[taken++]);
     }
-    while (character.AllocateStat(PrimaryStatFor(character.proto().job()))) {
+    while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
     }
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
       while (character.LearnSkill(entry.second)) {
