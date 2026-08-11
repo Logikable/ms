@@ -157,39 +157,30 @@ TEST_F(SkillInspectPanelTest, AMultiStrikeOpeningHitTotalsItself) {
   EXPECT_NE(RenderAt(skill, 1).find("100% x3 = 300%"), std::string::npos);
 }
 
-// A key-down skill's rate is its whole identity, and it is the only rate this
-// panel can state: every other swing is paced by the weapon in hand, which the
-// panel is not given.
-TEST_F(SkillInspectPanelTest, AFixedDelaySwingStatesItsRate) {
+// How fast a skill swings, how often its turret fires and what one hit of it
+// is worth to a counter are all bookkeeping the player cannot act on, and the
+// pacing band means the seconds would not even be the seconds they see.
+TEST_F(SkillInspectPanelTest, KeepsASkillsTimingOffThePage) {
   Skill skill = MakeLuckySeven();
   skill.set_base_delay_ms(120);
   skill.set_fixed_delay(true);
-  // Two decimals, or 0.12 and a 0.21 turret would both read "0.2".
-  EXPECT_NE(RenderAt(skill, 1).find("Swing Time        0.12s"),
-            std::string::npos);
+  skill.set_hits_per_attack_count(7);
+  skill.mutable_auto_mode()->set_cast_interval_seconds(0.21);
+  skill.mutable_auto_mode()->set_max_enemies(4);
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_EQ(rendered.find("0.12"), std::string::npos);
+  EXPECT_EQ(rendered.find("0.21"), std::string::npos);
+  EXPECT_EQ(rendered.find("Counts As"), std::string::npos);
+  EXPECT_EQ(rendered.find("Turret Enemies"), std::string::npos);
 }
 
-TEST_F(SkillInspectPanelTest, ASwingPacedByTheWeaponStatesNoRate) {
-  Skill skill = MakeLuckySeven();
-  skill.set_base_delay_ms(810);
-  EXPECT_EQ(RenderAt(skill, 1).find("Swing Time"), std::string::npos);
-}
-
-// The other clock a skill on its own clock can run on, and what a swing too
-// rapid to count for a whole attack is worth to it.
-TEST_F(SkillInspectPanelTest, TheSwingClockedRowsStateBothHalves) {
+// The one clock the player sets themselves, and the only one the page states.
+TEST_F(SkillInspectPanelTest, SaysHowManyAttacksSetASkillOff) {
   Skill mirage = MakeLuckySeven();
   mirage.set_kind(SKILL_KIND_AUTO_ATTACK);
   mirage.set_attacks_per_cast(4);
   EXPECT_NE(RenderAt(mirage, 1).find("Fires Every       4 Attacks"),
             std::string::npos);
-
-  Skill blaster = MakeLuckySeven();
-  blaster.set_hits_per_attack_count(7);
-  EXPECT_NE(RenderAt(blaster, 1).find("Counts As         1 per 7 Hits"),
-            std::string::npos);
-  // An ordinary swing is worth a whole one and says nothing about it.
-  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Counts As"), std::string::npos);
 }
 
 // A passive that reaches across to one other skill says which, since nothing
@@ -223,8 +214,6 @@ TEST_F(SkillInspectPanelTest, AnAutoModeStatesItsOwnHalfOfTheSkill) {
   std::string rendered = RenderAt(blaster, 1);
   EXPECT_NE(rendered.find("Damage            124%"), std::string::npos);
   EXPECT_NE(rendered.find("Turret Damage     66%"), std::string::npos);
-  EXPECT_NE(rendered.find("Turret Enemies    4"), std::string::npos);
-  EXPECT_NE(rendered.find("Turret Fires      Every 0.21s"), std::string::npos);
   // A skill without one says nothing about a turret.
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Turret"), std::string::npos);
 }
@@ -456,13 +445,11 @@ TEST_F(SkillInspectPanelTest, ShowsTheDamageOfASkillOnItsOwnClock) {
   EXPECT_EQ(out.find("no effect"), std::string::npos);
 }
 
-// How often it goes off is most of what the skill is worth.
-TEST_F(SkillInspectPanelTest, SaysHowOftenASkillOnItsOwnClockFires) {
-  EXPECT_NE(RenderAt(MakeEvilEyeShock(), 1).find("Fires Every       12s"),
+// How often it goes off is not the player's to change, and the seconds the
+// data holds are not the seconds the pacing band plays them at.
+TEST_F(SkillInspectPanelTest, SaysNothingAboutHowOftenASkillFires) {
+  EXPECT_EQ(RenderAt(MakeEvilEyeShock(), 1).find("Fires Every"),
             std::string::npos);
-}
-
-TEST_F(SkillInspectPanelTest, SaysNothingAboutFiringForASwing) {
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Fires Every"),
             std::string::npos);
 }

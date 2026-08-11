@@ -131,25 +131,6 @@ std::string FormatPercent(double frac) {
   return s + "%";
 }
 
-// A count of seconds, to as many decimals as it takes and no more: 12, 0.5,
-// 0.12. Two places rather than one because the fastest swings in the game are
-// measured in hundredths -- a key-down skill at 0.12s reads "0.1" otherwise,
-// and against a turret at "0.2" that hides which is faster.
-std::string FormatSeconds(double seconds) {
-  char buf[32];
-  snprintf(buf, sizeof(buf), "%.2f", seconds);
-  std::string s = buf;
-  while (s.find('.') != std::string::npos &&
-         (s.back() == '0' || s.back() == '.')) {
-    bool done = s.back() == '.';
-    s.pop_back();
-    if (done) {
-      break;
-    }
-  }
-  return s;
-}
-
 // One "  label      value" row of an effect block.
 ftxui::Element EffectRow(const std::string& label, const std::string& value) {
   return ftxui::text(std::string(kEffectIndent, ' ') +
@@ -300,9 +281,12 @@ std::string FormatNumber(double value) {
   return s;
 }
 
-// The rows that hold at every level: what the skill asks for, how far a swing
-// reaches, and how often it goes off on its own. A skill with none of them
-// gets no block at all.
+// The rows that hold at every level: what the skill asks for and how far a
+// swing reaches. A skill with none of them gets no block at all.
+//
+// No row here counts seconds. The pacing band stretches every duration in the
+// game alike, so a figure the player could hold a stopwatch to would not be
+// the one printed -- and none of them is a choice they make anyway.
 std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   std::vector<ftxui::Element> rows = RequirementRows(skill);
   if (skill.max_enemies() > 1) {
@@ -312,52 +296,17 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   if (skill.combo_orbs() > 0) {
     rows.push_back(EffectRow("Combo Orbs", std::to_string(skill.combo_orbs())));
   }
-  // Only a skill that ignores attack speed can have its rate stated here: for
-  // every other swing the weapon in hand decides it, and this panel is handed
-  // a skill rather than a character. For this one the rate is the whole
-  // identity, so it has to be on the page.
-  if (skill.fixed_delay() && skill.base_delay_ms() > 0) {
-    rows.push_back(EffectRow(
-        "Swing Time", FormatSeconds(skill.base_delay_ms() / 1000.0) + "s"));
-  }
-  // How often a skill that fights on its own goes off, which is most of what
-  // it is worth. Stated in GMS seconds, as the data holds it -- the pacing
-  // band stretches this and every other duration alike, so a figure the
-  // player could hold a stopwatch to would say less than the ratio does.
-  if (skill.cast_interval_seconds() > 0.0) {
-    rows.push_back(EffectRow(
-        "Fires Every", FormatSeconds(skill.cast_interval_seconds()) + "s"));
-  }
-  // A skill with an own-clock half of its own says what that half reaches and
-  // how often, beside the same facts about the swing. Its damage climbs with
-  // the level, so it is written among the level rows instead.
-  if (skill.auto_mode().cast_interval_seconds() > 0.0) {
-    if (skill.auto_mode().max_enemies() > 1) {
-      rows.push_back(EffectRow(
-          "Turret Enemies", std::to_string(skill.auto_mode().max_enemies())));
-    }
-    rows.push_back(EffectRow(
-        "Turret Fires",
-        "Every " + FormatSeconds(skill.auto_mode().cast_interval_seconds()) +
-            "s"));
-  }
-  // The other clock such a skill can run on: the player's own attacking.
+  // The one clock the player can feel, because they set it: their own
+  // attacking. It is a count of swings rather than a duration.
   if (skill.attacks_per_cast() > 0) {
     rows.push_back(EffectRow(
         "Fires Every", std::to_string(skill.attacks_per_cast()) + " Attacks"));
-  }
-  // And what one swing of THIS skill is worth to that count, for the one that
-  // lands too often to count for a whole one.
-  if (skill.hits_per_attack_count() > 1) {
-    rows.push_back(EffectRow(
-        "Counts As",
-        "1 per " + std::to_string(skill.hits_per_attack_count()) + " Hits"));
   }
   // How long the player swings something else for afterwards, which is what a
   // skill this much better than the usual swing costs.
   if (skill.cooldown_seconds() > 0.0) {
     rows.push_back(
-        EffectRow("Cooldown", FormatSeconds(skill.cooldown_seconds()) + "s"));
+        EffectRow("Cooldown", FormatNumber(skill.cooldown_seconds()) + "s"));
   }
   return rows;
 }
