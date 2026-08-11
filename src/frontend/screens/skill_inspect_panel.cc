@@ -474,6 +474,17 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
                       FormatPercent(PercentAt(
                           skill, &SkillEffect::final_attack_pct, level))));
   }
+  // What this skill hands another one. Named in the value rather than used as
+  // the label, so a long skill name wraps instead of being cut to the label
+  // column -- and so the row reads as a sentence about somewhere else.
+  double boost = PercentAt(skill, &SkillEffect::boosted_skill_pct, level);
+  if (boost > 0.0 && !skill.boosts_skill_name().empty()) {
+    for (ftxui::Element& row :
+         WrappedEffectRows("Boosts", skill.boosts_skill_name() + " +" +
+                                         FormatPercent(boost))) {
+      rows.push_back(std::move(row));
+    }
+  }
   for (ftxui::Element& row :
        LeverRows(skill.base(), skill.per_level(), level, "")) {
     rows.push_back(std::move(row));

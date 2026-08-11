@@ -78,6 +78,9 @@ struct PassiveTotals {
   // are one Final Attack. Ordered, so the result does not depend on which
   // skill was read first.
   std::map<int, double> final_attacks;
+  // Damage added to one named skill apiece. Summed per name, so two passives
+  // strengthening the same swing both count.
+  std::map<std::string, double> skill_pct_bonus;
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
   double ied = 0.0;
@@ -174,6 +177,13 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& base,
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
   AddEffect(skill.base(), skill.per_level(), level, totals);
+  // Folded here rather than in AddEffect, which is handed levers with no skill
+  // behind them -- and which skill is strengthened is written on the skill.
+  double boost = skill.base().boosted_skill_pct() +
+                 skill.per_level().boosted_skill_pct() * (level - 1);
+  if (boost > 0.0 && !skill.boosts_skill_name().empty()) {
+    totals.skill_pct_bonus[skill.boosts_skill_name()] += boost;
+  }
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
   totals.combo_orbs = std::max(totals.combo_orbs, skill.combo_orbs());
   // A weapon bonus is a second helping of the same levers for a subset of the
@@ -339,6 +349,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   }
   stats.attack_speed_bonus = passives.attack_speed;
   stats.attack_pct = passives.attack_pct;
+  stats.skill_pct_bonus = passives.skill_pct_bonus;
   return stats;
 }
 
@@ -350,6 +361,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.damage_pct = derived.damage_pct;
   passives.final_dmg_pct = derived.final_dmg_pct;
   passives.ied = derived.ied;
+  passives.skill_pct_bonus = derived.skill_pct_bonus;
   return passives;
 }
 

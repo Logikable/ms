@@ -418,6 +418,32 @@ TEST(OffenseStatsForTest, EachIedSourceOnlyTakesAShareOfWhatIsLeft) {
   EXPECT_GT(two - one, three - two);
 }
 
+TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsMultiplier) {
+  Skill wind;
+  wind.set_name("Wind Arrow");
+  wind.set_kind(SKILL_KIND_ATTACK);
+  wind.set_lines(3);
+  wind.mutable_base()->set_skill_pct(1.78);
+  Skill other = wind;
+  other.set_name("Arrow Blaster");
+
+  PassiveOffense passives;
+  passives.skill_pct_bonus["Wind Arrow"] = 0.70;
+
+  // Added to the multiplier, so it is worth its value once per line: three
+  // lines of 178% become three of 248%.
+  OffenseStats boosted =
+      OffenseStatsFor(JOB_ARCHER, 1, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_BOW, &wind, 1, passives);
+  EXPECT_DOUBLE_EQ(boosted.skill_pct, 2.48);
+  EXPECT_EQ(boosted.lines, 3);
+
+  OffenseStats untouched =
+      OffenseStatsFor(JOB_ARCHER, 1, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_BOW, &other, 1, passives);
+  EXPECT_DOUBLE_EQ(untouched.skill_pct, 1.78);
+}
+
 TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
   OffenseStats offense =
       OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(), EquipStats(),

@@ -1030,6 +1030,48 @@ TEST_F(DerivedStatsTest, AttackPercentScalesMagicAttackToo) {
   EXPECT_EQ(TotalEquipStats(c, DerivedStatsFor(c, skills)).magic_attack(), 100);
 }
 
+// Speed Mirage's passive half: a skill that makes ONE other skill hit harder,
+// named rather than tagged.
+Skill SpeedMirage() {
+  Skill skill;
+  skill.set_name("Speed Mirage");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(20);
+  skill.set_boosts_skill_name("Wind Arrow");
+  skill.mutable_base()->set_boosted_skill_pct(0.51);
+  skill.mutable_per_level()->set_boosted_skill_pct(0.01);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, ABoostReachesOnlyTheSkillItNames) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill mirage = SpeedMirage();
+  std::map<std::string, Skill> skills = {{"speed_mirage", mirage}};
+  ASSERT_TRUE(c.LearnSkill(mirage, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.skill_pct_bonus.size(), 1u);
+  EXPECT_NEAR(stats.skill_pct_bonus.at("Wind Arrow"), 0.70, 1e-9);
+  EXPECT_EQ(stats.skill_pct_bonus.count("Piercing Arrow"), 0u);
+  // It is not plain damage: everything else the character swings is untouched.
+  EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
+}
+
+TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill first = SpeedMirage();
+  Skill second = SpeedMirage();
+  second.set_name("Silhouette Mirage");
+  std::map<std::string, Skill> skills = {{"speed_mirage", first},
+                                         {"silhouette", second}};
+  ASSERT_TRUE(c.LearnSkill(first, 20));
+  ASSERT_TRUE(c.LearnSkill(second, 20));
+
+  EXPECT_NEAR(DerivedStatsFor(c, skills).skill_pct_bonus.at("Wind Arrow"), 1.40,
+              1e-9);
+}
+
 TEST_F(DerivedStatsTest, IgnoredDefenceClimbsWithItsLevel) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill marks = Marksmanship();

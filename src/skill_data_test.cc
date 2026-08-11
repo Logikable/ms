@@ -426,6 +426,40 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
   }
 }
 
+// A skill naming another one has to name one that exists, and the two halves
+// of the bargain have to both be there: a name with no damage behind it grants
+// nothing, and damage with no name has nowhere to go.
+TEST(SkillDataTest, EveryBoostNamesASkillTheSameCharacterCanHold) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    bool named = !skill.boosts_skill_name().empty();
+    bool paid = skill.base().boosted_skill_pct() > 0.0;
+    EXPECT_EQ(named, paid) << entry.first
+                           << " carries half of a boost and half of nothing";
+    if (!named) {
+      continue;
+    }
+    // Some job holding this skill's book must also hold the named skill's.
+    bool reachable = false;
+    for (Job job : EveryValueOf<Job>(Job_descriptor())) {
+      std::set<JobAdvancement> books = BooksFor(job);
+      if (books.count(skill.job_advancement()) == 0) {
+        continue;
+      }
+      for (const std::pair<const std::string, Skill>& other : skills) {
+        if (other.second.name() == skill.boosts_skill_name() &&
+            books.count(other.second.job_advancement()) > 0) {
+          reachable = true;
+        }
+      }
+    }
+    EXPECT_TRUE(reachable) << entry.first << " boosts \""
+                           << skill.boosts_skill_name()
+                           << "\", which no character holding it can learn";
+  }
+}
+
 // The catalog keys on file stem but learned levels key on DISPLAY name, so two
 // skills one character can reach under one name share a level: buying either
 // buys both. Exclusive branches are the only thing preventing it -- each

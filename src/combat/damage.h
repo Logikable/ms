@@ -6,6 +6,9 @@
 #ifndef MS_SRC_COMBAT_DAMAGE_H_
 #define MS_SRC_COMBAT_DAMAGE_H_
 
+#include <map>
+#include <string>
+
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/mob.pb.h"
@@ -83,6 +86,10 @@ struct PassiveOffense {
   // Share of the monster's DEF the passives ignore, already combined across
   // them. Meets the gear's share in reverse, the same way they combined.
   double ied = 0.0;
+  // Extra damage per line for particular attack skills, keyed by display name.
+  // Only the entry matching the skill being swung is read, and most characters
+  // carry none -- see SkillEffect::boosted_skill_pct.
+  std::map<std::string, double> skill_pct_bonus;
 };
 
 // Builds OffenseStats from a character's job, level and summed stats. The job

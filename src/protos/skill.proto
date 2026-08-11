@@ -185,6 +185,13 @@ message SkillEffect {
   // GMS lets a 4th job skill go past its master level for this; nothing here
   // reaches 4th job, so the cap always holds.
   double skill_level_bonus = 111;
+  // The Ranger's. Damage this skill adds to the ONE skill named by
+  // Skill.boosts_skill_name, per line, exactly as skill_pct is per line -- so
+  // 70% here on a 178% three-line swing makes it 248% three times.
+  //
+  // Not damage_pct, which lifts everything the character swings. GMS states
+  // this in percentage POINTS on the named skill for that reason.
+  double boosted_skill_pct = 112;
   // The Berserker's. Resistance to abnormal statuses, on GMS's own scale rather
   // than as a fraction, and to elemental damage as a fraction. Nothing in this
   // game inflicts a status or an element, so nothing reads either -- they are
@@ -343,4 +350,13 @@ message Skill {
   // The Fighter's. How many Combo Orbs this skill surrounds the character with.
   // Read with SkillEffect::attack_per_combo_orb, and meaningless without it.
   int32 combo_orbs = 102;
+  // The Ranger's. Another skill this one strengthens, by display name. What it
+  // adds is SkillEffect::boosted_skill_pct, and this is meaningless without
+  // it: Speed Mirage empowers Wind Arrow, and nothing else in the game reaches
+  // across to a second skill by name.
+  //
+  // The name rather than a tag, because the grant is to one skill rather than
+  // to a family -- follows_skill_tag is the other shape, and the right one
+  // whenever more than one swing is meant.
+  string boosts_skill_name = 103;
 }

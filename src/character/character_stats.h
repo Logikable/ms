@@ -87,6 +87,11 @@ struct DerivedStats {
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;
+  // Damage the passives add to one named skill apiece, keyed by that skill's
+  // display name and charged per line. Empty for every character but a Ranger.
+  // Kept as a map rather than folded into damage_pct because what it lifts is
+  // one swing rather than all of them -- see SkillEffect::boosted_skill_pct.
+  std::map<std::string, double> skill_pct_bonus;
   // Percentage over the character's whole attack, worn and granted alike.
   // Applied where the totals are summed rather than folded into skill_stats,
   // because what it scales includes the weapon in their hand -- see

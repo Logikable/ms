@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 #include "src/combat/constants.h"
 #include "src/protos/character.pb.h"
@@ -293,6 +294,14 @@ OffenseStats OffenseStatsFor(Job job, int level,
     offense.normal_skill_pct =
         attack_skill->base().normal_skill_pct() +
         attack_skill->per_level().normal_skill_pct() * (attack_level - 1);
+    // A passive elsewhere in the book can name this skill and make it hit
+    // harder. Added to the multiplier rather than beside it, so it is worth
+    // its value once per line -- which is how GMS states it.
+    std::map<std::string, double>::const_iterator boost =
+        passives.skill_pct_bonus.find(attack_skill->name());
+    if (boost != passives.skill_pct_bonus.end()) {
+      offense.skill_pct += boost->second;
+    }
     // A multi-hit skill strikes each target this many times per swing, so its
     // per-target damage is skill_pct once per line.
     offense.lines = std::max(1, attack_skill->lines());

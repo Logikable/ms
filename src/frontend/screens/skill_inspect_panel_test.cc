@@ -195,6 +195,21 @@ TEST_F(SkillInspectPanelTest, TheSwingClockedRowsStateBothHalves) {
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Counts As"), std::string::npos);
 }
 
+// A passive that reaches across to one other skill says which, since nothing
+// on that skill's own page could tell the player where the damage came from.
+TEST_F(SkillInspectPanelTest, ABoostNamesTheSkillItReachesAcrossTo) {
+  Skill mirage = MakeIronBody();
+  mirage.set_boosts_skill_name("Wind Arrow");
+  mirage.mutable_base()->set_boosted_skill_pct(0.70);
+  EXPECT_NE(RenderAt(mirage, 1).find("Boosts            Wind Arrow +70%"),
+            std::string::npos);
+  // Half a bargain writes no row: a name with no damage behind it. Matched on
+  // the padded label, since this skill's own description opens with "Boosts".
+  Skill bare = MakeIronBody();
+  bare.set_boosts_skill_name("Wind Arrow");
+  EXPECT_EQ(RenderAt(bare, 1).find("Boosts            "), std::string::npos);
+}
+
 TEST_F(SkillInspectPanelTest, TheNormalMonsterRowStatesTheWholeSwing) {
   Skill skill = MakeLuckySeven();
   skill.mutable_base()->set_normal_skill_pct(0.72);
