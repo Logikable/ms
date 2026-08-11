@@ -42,6 +42,12 @@ struct OffenseStats {
   double weapon_constant = 1.0;
 };
 
+// How two shares of ignored monster DEF meet: in reverse, so what is left of
+// the armour is the product of what each share leaves standing. 30% and 40%
+// come to 58%, and no pile of sources ever reaches all of it. Every source
+// combines this way -- two skills, two items, or a skill and an item.
+double CombineIgnoredDefense(double a, double b);
+
 // The first factor of the GMS damage chain, and the game's whole notion of one
 // weapon class hitting harder than another. It belongs to the job and the
 // weapon together rather than to either alone: a one-handed sword is 1.24 in a
@@ -74,6 +80,9 @@ struct PassiveOffense {
   // two differ. See DerivedStats.
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
+  // Share of the monster's DEF the passives ignore, already combined across
+  // them. Meets the gear's share in reverse, the same way they combined.
+  double ied = 0.0;
 };
 
 // Builds OffenseStats from a character's job, level and summed stats. The job

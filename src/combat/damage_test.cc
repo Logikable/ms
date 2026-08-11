@@ -394,6 +394,30 @@ TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
   EXPECT_DOUBLE_EQ(offense.ied, 0.20);
 }
 
+TEST(OffenseStatsForTest, WornAndLearnedIedMeetInReverse) {
+  EquipStats equipped;
+  equipped.set_ignore_enemy_defense(30);
+  PassiveOffense passives;
+  passives.ied = 0.40;
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), equipped,
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
+  // Summed they would be 70%; what is left of the armour is 0.70 * 0.60.
+  EXPECT_DOUBLE_EQ(offense.ied, 1.0 - 0.70 * 0.60);
+}
+
+TEST(OffenseStatsForTest, EachIedSourceOnlyTakesAShareOfWhatIsLeft) {
+  EXPECT_DOUBLE_EQ(CombineIgnoredDefense(0.30, 0.40), 0.58);
+  // Three halves leave an eighth rather than cancelling the armour outright,
+  // which is what summing them to 150% would do. Each source is worth less
+  // than the one before it: the second takes half of the half left standing.
+  double one = CombineIgnoredDefense(0.0, 0.50);
+  double two = CombineIgnoredDefense(one, 0.50);
+  double three = CombineIgnoredDefense(two, 0.50);
+  EXPECT_DOUBLE_EQ(three, 0.875);
+  EXPECT_GT(two - one, three - two);
+}
+
 TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
   OffenseStats offense =
       OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(), EquipStats(),

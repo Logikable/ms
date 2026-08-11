@@ -76,6 +76,7 @@ struct PassiveTotals {
   std::map<int, double> final_attacks;
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
+  double ied = 0.0;
   int attack_speed = 0;
   // Combo Orbs, and the two bargains priced per orb. The count is the best any
   // learned passive grants rather than the sum -- a character carries one ring
@@ -136,6 +137,8 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
       base.final_dmg_pct_per_combo_orb() +
       per.final_dmg_pct_per_combo_orb() * (level - 1);
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
+  totals.ied = CombineIgnoredDefense(
+      totals.ied, base.ied_pct() + per.ied_pct() * (level - 1));
   // The one lever taken at its best rather than summed: two masteries are not
   // twice as steady a swing, they are the better of the two.
   totals.mastery =
@@ -316,6 +319,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;
   stats.final_dmg_pct = passives.final_dmg_pct;
+  stats.ied = passives.ied;
   stats.mastery = passives.mastery;
   for (const std::pair<const int, double>& entry : passives.final_attacks) {
     FinalAttackSource source;
@@ -334,6 +338,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.mastery = derived.mastery;
   passives.damage_pct = derived.damage_pct;
   passives.final_dmg_pct = derived.final_dmg_pct;
+  passives.ied = derived.ied;
   return passives;
 }
 

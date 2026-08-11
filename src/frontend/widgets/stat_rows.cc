@@ -74,6 +74,11 @@ std::vector<StatLine> CombatStatLines(
         {"Critical Rate", Percent(kBaseCritRate + derived.crit_rate)});
     lines.push_back(
         {"Critical Damage", Percent(kBaseCritDamage + derived.crit_dmg)});
+    // What gear and skills come to between them, which is not their sum.
+    // Shortened to seat the 16-column label: "Ignore Enemy Defense" is 20.
+    lines.push_back(
+        {"Ignore DEF", Percent(CombineIgnoredDefense(
+                           e.ignore_enemy_defense() / 100.0, derived.ied))});
   }
   lines.push_back(
       {"Attack Speed",

@@ -76,7 +76,13 @@ TEST_F(AllStatsPanelTest, PairsTheStatsTwoToARow) {
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Critical Rate").find("Critical Damage"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Attack Speed").find("Defense"),
+  EXPECT_NE(RowWith(panel.Render(), "Ignore DEF").find("Attack Speed"),
+            std::string::npos);
+  // The two defensive pairs. Twelve rows divide evenly, so nothing is left
+  // sitting alone at the bottom.
+  EXPECT_NE(RowWith(panel.Render(), "Defense").find("Dodge Chance"),
+            std::string::npos);
+  EXPECT_NE(RowWith(panel.Render(), "Elemental Resist").find("Status Resist"),
             std::string::npos);
 }
 

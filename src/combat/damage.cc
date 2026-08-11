@@ -196,6 +196,10 @@ double LevelMultiplier(int player_level, int mob_level) {
   return kUnderLevelMultiplier[gap];
 }
 
+double CombineIgnoredDefense(double a, double b) {
+  return 1.0 - (1.0 - a) * (1.0 - b);
+}
+
 bool DealsDamage(SkillKind kind) {
   return kind == SKILL_KIND_ATTACK || kind == SKILL_KIND_AUTO_ATTACK;
 }
@@ -275,7 +279,8 @@ OffenseStats OffenseStatsFor(Job job, int level,
                job == JOB_FIRE_POISON_WIZARD || job == JOB_CLERIC;
   offense.attack = magic ? equipped.magic_attack() : equipped.attack();
   offense.boss_pct = equipped.boss_damage() / kPercentToFraction;
-  offense.ied = equipped.ignore_enemy_defense() / kPercentToFraction;
+  offense.ied = CombineIgnoredDefense(
+      equipped.ignore_enemy_defense() / kPercentToFraction, passives.ied);
   // The learned attack skill's multiplier replaces the bare 100% poke. Effect
   // at level L is base + per_level*(L-1). Passive skills fold elsewhere (their
   // levers are all defensive -- see DerivedStatsFor), so they are ignored here.

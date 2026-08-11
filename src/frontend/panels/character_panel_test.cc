@@ -1253,7 +1253,7 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, panel_focus_);
-  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 12u);  // 11 stats and the row
+  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 13u);  // 12 stats and the row
 }
 
 // The block is what a job fills in, so a Beginner's tab ends at the AP rows --

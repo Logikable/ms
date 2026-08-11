@@ -115,6 +115,12 @@ message SkillEffect {
   // into the damage taken beside them -- what it buys the player that reduction
   // does not is a hit they never took at all, and nothing here can tell.
   double dodge_chance = 22;
+  // Share of the monster's DEF this character's attacks ignore (0.25 == 25%).
+  // Combines in reverse: what two sources leave the monster is the product of
+  // what each leaves it, so 30% and 40% ignore 58% between them and no pile of
+  // sources ever reaches all of it. Gear grants the same thing -- see
+  // EquipStats::ignore_enemy_defense -- and the two meet the same way.
+  double ied_pct = 23;
 
   // --- From here down, one job line apiece. See the message comment. ---
 

@@ -57,6 +57,7 @@ const PercentLever kPercentLevers[] = {
     {"Max MP", &SkillEffect::max_mp_pct, kPlus, ""},
     {"Damage", &SkillEffect::damage_pct, kPlus, ""},
     {"Final Damage", &SkillEffect::final_dmg_pct, kPlus, ""},
+    {"Ignore DEF", &SkillEffect::ied_pct, kPlus, ""},
     {"Final Damage", &SkillEffect::final_dmg_pct_per_combo_orb, kPlus,
      " per Combo Orb"},
     {"Critical Rate", &SkillEffect::crit_rate, kPlus, ""},

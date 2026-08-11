@@ -912,10 +912,50 @@ TEST_F(DerivedStatsTest, TheDamageLeversReachTheOffenseStats) {
   stats.damage_pct = 0.15;
   stats.final_dmg_pct = 0.25;
   stats.crit_dmg = 0.05;
+  stats.ied = 0.25;
   PassiveOffense passives = PassiveOffenseFor(stats);
   EXPECT_DOUBLE_EQ(passives.damage_pct, 0.15);
   EXPECT_DOUBLE_EQ(passives.final_dmg_pct, 0.25);
   EXPECT_DOUBLE_EQ(passives.crit_dmg, 0.05);
+  EXPECT_DOUBLE_EQ(passives.ied, 0.25);
+}
+
+// Marksmanship's shape: 6% of the monster's DEF ignored at level 1, climbing a
+// point a level.
+Skill Marksmanship() {
+  Skill skill;
+  skill.set_name("Marksmanship");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(20);
+  skill.mutable_base()->set_ied_pct(0.06);
+  skill.mutable_per_level()->set_ied_pct(0.01);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, IgnoredDefenceClimbsWithItsLevel) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill marks = Marksmanship();
+  std::map<std::string, Skill> skills = {{"marksmanship", marks}};
+  ASSERT_TRUE(c.LearnSkill(marks, 20));
+
+  EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 0.25, 1e-9);
+}
+
+TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredDefenceCombineInReverse) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill first = Marksmanship();
+  Skill second = Marksmanship();
+  second.set_name("Sharp Eyes");
+  second.mutable_base()->set_ied_pct(0.40);
+  second.clear_per_level();
+  std::map<std::string, Skill> skills = {{"marksmanship", first},
+                                         {"sharp_eyes", second}};
+  ASSERT_TRUE(c.LearnSkill(first, 20));
+  ASSERT_TRUE(c.LearnSkill(second, 1));
+
+  // 25% and 40% summed would be 65%; what is left of the armour is 0.75 * 0.60.
+  EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 1.0 - 0.75 * 0.60, 1e-9);
 }
 
 // High Wisdom grants the magician's own stat. It reaches the stat line like

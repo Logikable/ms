@@ -72,6 +72,10 @@ struct DerivedStats {
   // by the time they leave here, because that is all the damage chain takes.
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
+  // Share of the monster's DEF the character's attacks ignore, combined in
+  // reverse across the passives granting it. Gear grants it too, and the two
+  // meet the same way -- see OffenseStatsFor.
+  double ied = 0.0;
   // The best weapon mastery the passives grant, 0..1. 0 leaves the beginner's
   // baseline in place rather than making the swing wilder.
   double mastery = 0.0;
