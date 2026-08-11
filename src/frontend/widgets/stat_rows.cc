@@ -78,7 +78,11 @@ std::vector<StatLine> CombatStatLines(
   lines.push_back(
       {"Attack Speed",
        AttackSpeedText(character.equipped(), derived.attack_speed_bonus)});
-  lines.push_back({"Defense", std::to_string(derived.def)});
+  // Split like the primary stats: what the character's own stats buy, then
+  // everything worn, granted or multiplied on top of it.
+  lines.push_back(
+      {"Defense",
+       TotalWithBreakdown(derived.base_def, derived.def - derived.base_def)});
   // Last, because nothing reads either of them yet -- no mob inflicts a status
   // or an element. They are here so a player who spent SP on Endure can see
   // what they bought. Shortened to seat the 16-column label: "Elemental

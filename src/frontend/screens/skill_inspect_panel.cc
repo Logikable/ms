@@ -61,6 +61,7 @@ const PercentLever kPercentLevers[] = {
     {"Recovery on Hit", &SkillEffect::hp_recover_pct, kPlus, ""},
     {"Normal Monsters", &SkillEffect::normal_skill_pct, kPlus, ""},
     {"Elemental Resist", &SkillEffect::elemental_resistance, kPlus, ""},
+    {"Defense", &SkillEffect::def_pct, kPlus, ""},
 };
 
 // The levers that are a plain count rather than a share of anything. Only

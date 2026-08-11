@@ -397,6 +397,7 @@ TEST(SkillDataTest, DamageAndPassiveLeversDoNotCross) {
       EXPECT_EQ(skill.base().mastery(), 0.0) << entry.first;
       EXPECT_EQ(skill.base().str(), 0) << entry.first;
       EXPECT_EQ(skill.base().final_dmg_pct_per_combo_orb(), 0.0) << entry.first;
+      EXPECT_EQ(skill.base().def_pct(), 0.0) << entry.first;
     }
   }
 }

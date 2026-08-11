@@ -72,6 +72,7 @@ CharacterInstance MakeStatCharacter(std::mt19937& rng, int str, int dex,
   stats->set_dex(dex);
   stats->set_int_(int_);
   stats->set_luk(luk);
+  (*proto.mutable_sp_by_stage())[1] = 100;
   return CharacterInstance(rng, std::move(proto));
 }
 
@@ -558,6 +559,24 @@ TEST_F(DerivedStatsTest, StatsFromPassivesBuyDefToo) {
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 8);
 }
 
+// The percentage takes the whole pile -- what the stats buy, what is worn and
+// what a skill grants flat -- and leaves the base half of the pair alone,
+// which is what the stats page reads to show the two.
+TEST_F(DerivedStatsTest, DefPercentTakesTheWholePileAndLeavesBaseDefAlone) {
+  CharacterInstance c = MakeStatCharacter(rng_, 100, 0, 0, 0);
+  EquipArmor(c, /*max_hp=*/0, /*def=*/30);
+  Skill mastery = IronBody();
+  mastery.mutable_base()->set_def_pct(0.5);
+  mastery.mutable_per_level()->set_def_pct(0.0);
+  std::map<std::string, Skill> skills = {{"iron_body", mastery}};
+  ASSERT_TRUE(c.LearnSkill(mastery, 1));
+
+  // 150 from STR, 30 worn, 10 from the skill, half as much again over the lot.
+  DerivedStats derived = DerivedStatsFor(c, skills);
+  EXPECT_EQ(derived.base_def, 150);
+  EXPECT_EQ(derived.def, 285);
+}
+
 TEST_F(DerivedStatsTest, AttackSkillsAreIgnored) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill slash;
@@ -904,9 +923,11 @@ TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
   CharacterInstance c(rng_, std::move(proto));
   ASSERT_TRUE(c.LearnSkill(mastery, mastery.max_level()));
 
-  // Learned and holding nothing: the skill grants neither of its two levers.
-  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 0);
-  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).damage_taken_pct, 0.0);
+  // Learned and holding nothing: the skill grants none of its three levers.
+  DerivedStats bare = DerivedStatsFor(c, skills);
+  EXPECT_EQ(bare.skill_stats.attack(), 0);
+  EXPECT_DOUBLE_EQ(bare.damage_taken_pct, 0.0);
+  EXPECT_EQ(bare.def, bare.base_def);
 
   c.PickUp(std::make_unique<EquipInstance>(equips.at("hidden_shadow")));
   ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
@@ -916,6 +937,13 @@ TEST_F(DerivedStatsTest, ABanditsShieldMasteryWaitsForTheScabbard) {
   DerivedStats armed = DerivedStatsFor(c, skills);
   EXPECT_EQ(armed.skill_stats.attack(), 20);
   EXPECT_DOUBLE_EQ(armed.damage_taken_pct, 0.6);
+
+  // And DEF at 2.1 times what the same character carries without the lever,
+  // which is the only way to ask it of a character wearing real gear.
+  std::map<std::string, Skill> without = skills;
+  without.at("shield_mastery").mutable_base()->clear_def_pct();
+  without.at("shield_mastery").mutable_per_level()->clear_def_pct();
+  EXPECT_EQ(armed.def, static_cast<int>(DerivedStatsFor(c, without).def * 2.1));
 }
 
 // Shield Mastery asks for a filled off hand rather than a weapon type. The

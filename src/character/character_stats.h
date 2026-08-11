@@ -32,9 +32,14 @@ struct FinalAttackSource {
 struct DerivedStats {
   int max_hp = 0;
   int max_mp = 0;
-  // Everything worn and granted, plus the base every character carries for
-  // their stats alone: 1.5 per STR and 0.4 per DEX and LUK. So a character in
-  // rags has DEF, and AP spent on STR buys some.
+  // What the character's stats alone are worth in DEF: 1.5 per STR and 0.4 per
+  // DEX and LUK. So a character in rags has DEF, and AP spent on STR buys
+  // some. Split out from the total because the stats page shows the pair.
+  int base_def = 0;
+  // base_def plus everything worn and granted, with any percentage over the
+  // whole of it. Worth less than it looks: DEF stops paying once it reaches a
+  // share of the attacking monster's attack, and a levelled character sits
+  // past that cap already -- see DefenseReduction.
   int def = 0;
   // The share of incoming damage cancelled (0.10 == 10% less taken), combined
   // across every source by multiplying. Magic Guard counts here: the damage it

@@ -47,6 +47,7 @@ struct PassiveTotals {
   int mp_per_level = 0;
   double max_mp_pct = 0.0;
   int def = 0;
+  double def_pct = 0.0;
   int str = 0;
   int dex = 0;
   int int_ = 0;
@@ -90,6 +91,7 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
       base.max_mp_per_level() + per.max_mp_per_level() * (level - 1);
   totals.max_mp_pct += base.max_mp_pct() + per.max_mp_pct() * (level - 1);
   totals.def += base.def() + per.def() * (level - 1);
+  totals.def_pct += base.def_pct() + per.def_pct() * (level - 1);
   totals.str += base.str() + per.str() * (level - 1);
   totals.dex += base.dex() + per.dex() * (level - 1);
   totals.int_ += base.int_() + per.int_() * (level - 1);
@@ -255,9 +257,12 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   int str = allocated.str() + equipped.str() + passives.str;
   int dex = allocated.dex() + equipped.dex() + passives.dex;
   int luk = allocated.luk() + equipped.luk() + passives.luk;
-  int base_def = static_cast<int>(
+  stats.base_def = static_cast<int>(
       std::floor(kDefPerStr * str + kDefPerDexLuk * (dex + luk)));
-  stats.def = base_def + equipped.def() + passives.def;
+  // The percentage lands over the whole pile, exactly as it does on the HP
+  // pool: what a character wears and what their stats buy are the same DEF.
+  stats.def = FoldPool(stats.base_def + equipped.def() + passives.def,
+                       passives.def_pct);
   stats.damage_taken_pct = passives.damage_taken_pct;
   stats.damage_reflect_pct = passives.damage_reflect_pct;
   stats.crit_rate = passives.crit_rate;

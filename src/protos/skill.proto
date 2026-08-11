@@ -149,6 +149,13 @@ message SkillEffect {
   // is what an expected-damage fight can use, so the two are multiplied out
   // here. Unlike heal_pct this costs no swing -- it rides the attack.
   double hp_recover_pct = 105;
+  // Shield Mastery's, in both books that carry one -- the Bandit's and the
+  // White Knight's. Percentage added to the whole of the character's DEF, worn
+  // and granted and bought with AP alike, and the last thing to land on it.
+  // Ships dead by design: DEF stops paying at a share of the attacking
+  // monster's own attack, and a character has passed that cap on their stats
+  // alone long before a skill grants any. See DerivedStats::def.
+  double def_pct = 110;
   // The Berserker's. Resistance to abnormal statuses, on GMS's own scale rather
   // than as a fraction, and to elemental damage as a fraction. Nothing in this
   // game inflicts a status or an element, so nothing reads either -- they are

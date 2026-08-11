@@ -427,7 +427,8 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
 
   CharacterPanel panel(c, panel_focus_, catalog);
   EXPECT_NE(RenderElement(panel.Render()).find("HP: 103"), std::string::npos);
-  EXPECT_EQ(StatValue(panel.Render(), "Defense"), "30");
+  // All 30 of it granted: this character has no STR to buy any of their own.
+  EXPECT_EQ(StatValue(panel.Render(), "Defense"), "(0+30) 30");
 }
 
 TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
