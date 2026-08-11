@@ -214,6 +214,56 @@ void AddAutoMode(const Character& proto, const EquipStats& equipped,
   params.auto_attacks.push_back(std::move(attack));
 }
 
+// A skill's empowered form, as a skill in its own right, so the same damage
+// chain builds it. It takes a name of its own -- unlike an own-clock half,
+// this really is a different swing, and it must not pick up the permanent
+// bonus its parent hands the ordinary version.
+Skill EmpoweredSkill(const Skill& skill, const std::string& target) {
+  Skill form;
+  form.set_name("Empowered " + target);
+  form.set_kind(SKILL_KIND_ATTACK);
+  *form.mutable_base() = skill.empowered_form().base();
+  *form.mutable_per_level() = skill.empowered_form().per_level();
+  form.set_max_enemies(skill.empowered_form().max_enemies());
+  form.set_lines(skill.empowered_form().lines());
+  return form;
+}
+
+// Attaches each attack's empowered form to it, once every attack is built. A
+// second pass because the skill carrying the form is a passive that names its
+// target by display name, so the target may not have been reached yet.
+void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
+                       EquipType weapon_type, const DerivedStats& derived,
+                       int attack_speed, double speed_factor,
+                       CombatParams& params) {
+  int bonus = BonusSkillLevels(state.character, state.skills);
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const Skill& skill = entry.second;
+    if (skill.empowered_form().casts_per_trigger() <= 0) {
+      continue;
+    }
+    int learned = EffectiveSkillLevel(state.character, skill, bonus);
+    if (learned <= 0) {
+      continue;
+    }
+    for (AttackOption& attack : params.attacks) {
+      if (attack.name != skill.boosts_skill_name()) {
+        continue;
+      }
+      Skill form = EmpoweredSkill(skill, attack.name);
+      std::shared_ptr<AttackOption> swing =
+          std::make_shared<AttackOption>(AttackFor(
+              state.character.proto(), equipped, weapon_type, &form, learned,
+              params.types, derived, attack_speed, speed_factor));
+      // It stands in for the swing, so it takes the swing's time: the form
+      // carries damage and reach of its own, but no animation.
+      swing->swing_seconds = attack.swing_seconds;
+      attack.empowered_every = skill.empowered_form().casts_per_trigger();
+      attack.empowered = swing;
+    }
+  }
+}
+
 // Every attack the character could swing: the bare poke first, then one per
 // learned attack skill, for the fight to pick between each swing. Skills that
 // fire on their own clock go to auto_attacks instead.
@@ -321,6 +371,9 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
   AddAttacks(state, derived, weapon.equip_type(), attack_speed, speed_factor,
              params);
+  AddEmpoweredForms(state, TotalEquipStats(state.character, derived),
+                    weapon.equip_type(), derived, attack_speed, speed_factor,
+                    params);
   params.active = true;
   return params;
 }

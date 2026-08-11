@@ -135,8 +135,14 @@ class CombatSim {
   // the highest-HP target for the same reason.
   int LeadTarget(const AttackOption& attack, int hit) const;
   // What one swing of `attack` would land on the queue as it stands, the
-  // opening hit and Final Attack included.
+  // opening hit and Final Attack included. An attack with an empowered form is
+  // averaged over the run of swings that form takes its place in.
   double SwingDamage(const AttackOption& attack) const;
+  // The swing `attack` really lands this time: its empowered form when the
+  // count has come round, and itself otherwise. Advancing that count is the
+  // point of the call, so it is made once per landed swing and nowhere else.
+  const AttackOption& SwingToLand(const CombatParams& params, int index,
+                                  const AttackOption& attack);
   // Index into params.attacks of the healing cast to spend this swing on, or
   // -1 for none: the player is not low enough, has nothing to fight, or holds
   // no such skill. A cleared map heals on the beat for free, so a cast there
@@ -212,6 +218,10 @@ class CombatSim {
   // params.triggered_attacks. Fractional, since a swing can be worth less than
   // a whole one.
   std::vector<double> trigger_count_;
+  // Swings landed with each attack since its last empowered one, parallel to
+  // params.attacks. Stays at 0 for every attack that has no empowered form,
+  // which is all of them but the Sniper's Piercing Arrow.
+  std::vector<int> empowered_count_;
   // Seconds each swing has left before it can be chosen again, parallel to
   // params.attacks. 0 for a swing that is ready, which is all of them for a
   // character holding no cooldown skill.

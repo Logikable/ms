@@ -11,6 +11,7 @@
 #ifndef MS_SRC_COMBAT_ENCOUNTER_H_
 #define MS_SRC_COMBAT_ENCOUNTER_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -77,6 +78,12 @@ struct AttackOption {
   // the Cleric's Heal. An option carrying this deals no damage at all, and the
   // fight picks it by need rather than by rate -- see CombatSim::HealToCast.
   double heal_fraction = 0.0;
+  // The bigger swing that takes the PLACE of every empowered_every'th swing of
+  // this one, and how often that is. Null and 0 for every attack but the one
+  // the Sniper's Empowered Arrows names. Shared rather than owned outright
+  // because an AttackOption is copied freely, and the form never changes.
+  std::shared_ptr<const AttackOption> empowered;
+  int empowered_every = 0;
 };
 
 // A snapshot of the current encounter's combat parameters.

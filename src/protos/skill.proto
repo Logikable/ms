@@ -218,6 +218,27 @@ message AutoMode {
   int32 lines = 5;
 }
 
+// A stronger version of ANOTHER skill, swung in place of every Nth swing of
+// it. Empowered Arrows is the case it exists for: the Sniper's Piercing Arrow
+// is upgraded to an Empowered Piercing Arrow every fourth shot.
+//
+// Which skill it takes the place of is Skill::boosts_skill_name, the same
+// field that names what the permanent half of the bonus lands on -- one skill
+// strengthening one other skill in two ways, not two relationships.
+//
+// It replaces the swing rather than adding to it, so four swings are three
+// ordinary ones and one of these, never four and a fifth. Read at the same
+// learned level as the skill carrying it.
+message EmpoweredForm {
+  SkillEffect base = 1;
+  SkillEffect per_level = 2;
+  // Swings of the named skill one of these takes the place of: 4 means three
+  // ordinary swings, then this. Nothing happens without it.
+  int32 casts_per_trigger = 3;
+  int32 max_enemies = 4;
+  int32 lines = 5;
+}
+
 // An extra grant that lands only with certain weapons in hand, on top of what
 // the skill gives with any weapon it accepts. Weapon Mastery is the case it
 // exists for: a Spearman masters a spear and a polearm equally, but only a
@@ -379,4 +400,7 @@ message Skill {
   // The Ranger's. What this skill also does on its own clock, beside being the
   // swing it already is. See AutoMode.
   AutoMode auto_mode = 104;
+  // The Sniper's. The bigger swing this skill puts in the place of every Nth
+  // swing of the one boosts_skill_name names. See EmpoweredForm.
+  EmpoweredForm empowered_form = 105;
 }

@@ -84,6 +84,13 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
       total += attack.final_attack_damage[type];
     }
   }
+  // A swing with an empowered form lands it once in every N, so what the
+  // attack is worth per swing is the average of the two. The rate has to say
+  // so, or the attack would be weighed on the weaker of the two things it
+  // does. The form has no form of its own, so this recurs exactly once.
+  if (attack.empowered != nullptr && attack.empowered_every > 0) {
+    total += (SwingDamage(*attack.empowered) - total) / attack.empowered_every;
+  }
   return total;
 }
 
@@ -198,6 +205,22 @@ void CombatSim::Strike(const AttackOption& attack) {
     }
   }
   queue_ = std::move(survivors);
+}
+
+const AttackOption& CombatSim::SwingToLand(const CombatParams& params,
+                                           int index,
+                                           const AttackOption& attack) {
+  empowered_count_.resize(params.attacks.size(), 0);
+  if (attack.empowered == nullptr || attack.empowered_every <= 0 || index < 0) {
+    return attack;
+  }
+  // Counted before the test, so a period of four is three ordinary swings and
+  // then this one -- not this one first and three after.
+  if (++empowered_count_[index] < attack.empowered_every) {
+    return attack;
+  }
+  empowered_count_[index] = 0;
+  return *attack.empowered;
 }
 
 int CombatSim::player_hp() const {
@@ -381,7 +404,7 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
         std::min(static_cast<double>(params.max_player_hp),
                  player_hp_ + attack->heal_fraction * params.max_player_hp);
   } else {
-    Strike(*attack);
+    Strike(SwingToLand(params, swung, *attack));
     // Recovery rides the hit, so a cast does not earn it and neither does a
     // swing at nothing.
     player_hp_ =

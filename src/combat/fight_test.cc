@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -104,6 +105,19 @@ void AddTriggeredAttack(CombatParams& params, int attacks, double damage,
   cast.attacks_per_cast = attacks;
   cast.damage_per_hit.assign(params.types.size(), damage);
   params.triggered_attacks.push_back(std::move(cast));
+}
+
+// Gives `attack` a bigger form that takes the place of every `every`th swing
+// of it, hitting `reach` mobs for `damage` apiece.
+void SetEmpoweredForm(AttackOption& attack, int every, double damage,
+                      int reach = 1) {
+  std::shared_ptr<AttackOption> form = std::make_shared<AttackOption>();
+  form->name = "Empowered " + attack.name;
+  form->max_enemies = reach;
+  form->swing_seconds = attack.swing_seconds;
+  form->damage_per_hit.assign(attack.damage_per_hit.size(), damage);
+  attack.empowered_every = every;
+  attack.empowered = form;
 }
 
 const EngagedGroup* FindGroup(const std::vector<EngagedGroup>& groups,
@@ -1422,6 +1436,71 @@ TEST(CombatSimTest, AHealingCastIsNotSpentOnAnEmptyMap) {
   ASSERT_TRUE(sim.respawning());
   EXPECT_EQ(sim.player_hp(), 20);
   EXPECT_EQ(sim.attack_name(), "");
+}
+
+// Empowered Arrows: the Sniper's Piercing Arrow is upgraded every fourth shot.
+// Three ordinary swings, then the bigger one -- not the bigger one first.
+TEST(CombatSimTest, LandsAnEmpoweredSwingOnceEveryNth) {
+  Mob snail = MakeMob("Snail", 20);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  SetEmpoweredForm(params.attacks[0], /*every=*/4, /*damage=*/10.0);
+
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.85, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.35, 1e-9)
+      << "the fourth swing lands the empowered form";
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.30, 1e-9)
+      << "and the count starts again from the fifth";
+}
+
+// It takes the PLACE of the swing rather than riding on top of it: four swings
+// are three ordinary ones and one empowered, never four and a fifth.
+TEST(CombatSimTest, AnEmpoweredSwingReplacesTheOneItLandsFor) {
+  Mob snail = MakeMob("Snail", 20);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  SetEmpoweredForm(params.attacks[0], /*every=*/4, /*damage=*/5.0);
+
+  for (int i = 0; i < 4; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  // 1 + 1 + 1 + 5 of 20. Adding instead of replacing would leave 0.45.
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.60, 1e-9);
+}
+
+// The empowered form carries its own reach, which is wider than the swing it
+// stands in for: on its turn it takes mobs the ordinary swing never touches.
+TEST(CombatSimTest, AnEmpoweredSwingBringsItsOwnReach) {
+  Mob snail = MakeMob("Snail", 10);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 3)});
+  SetEmpoweredForm(params.attacks[0], /*every=*/2, /*damage=*/10.0,
+                   /*reach=*/3);
+
+  sim.Advance(params, 1.0);  // ordinary: one mob, no kill
+  EXPECT_EQ(sim.kills_this_step()[0], 0);
+  sim.Advance(params, 1.0);  // empowered: all three at once
+  EXPECT_EQ(sim.kills_this_step()[0], 3);
+}
+
+// The choice between swings goes on damage per second, so an attack that lands
+// a much bigger form every few swings has to be weighed on the average of the
+// two. Weighed on its ordinary swing alone, this one loses to the poke.
+TEST(CombatSimTest, WeighsAnEmpoweredSwingIntoTheChoice) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 3.0, 1)});
+  params.attacks.push_back(MakeSkill("Piercing Arrow", 2.0, /*cooldown=*/0.0));
+  SetEmpoweredForm(params.attacks[1], /*every=*/4, /*damage=*/10.0);
+
+  // 2 + (10 - 2) / 4 = 4 a swing, against the poke's 3.
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.attack_name(), "Piercing Arrow");
 }
 
 }  // namespace
