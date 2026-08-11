@@ -1,0 +1,12 @@
+# GMS sells avoidability here, which this game has no notion of, so it sells
+# the same DEF its bow twin does -- and buys critical damage rather than attack
+# and final damage. See reckless_hunt_bow.
+name: "Reckless Hunt: Crossbow"
+skill_order: 4
+description: "Reduces DEF and instead increases Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SNIPER
+max_level: 10
+required_equip_type: EQUIP_TYPE_CROSSBOW
+base { def_pct: -0.07 crit_dmg: 0.11 }
+per_level { def_pct: -0.02 crit_dmg: 0.01 }

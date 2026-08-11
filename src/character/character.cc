@@ -144,6 +144,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_HUNTER:
     case JOB_CROSSBOWMAN:
     case JOB_RANGER:
+    case JOB_SNIPER:
       return EQUIP_JOB_CATEGORY_BOWMAN;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -226,6 +227,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_HUNTER:
       case JOB_CROSSBOWMAN:
       case JOB_RANGER:
+      case JOB_SNIPER:
         return JOB_ADVANCEMENT_ARCHER;
       case JOB_MAGICIAN:
       case JOB_ICE_LIGHTNING_WIZARD:
@@ -255,6 +257,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_RANGER:
         return JOB_ADVANCEMENT_HUNTER;
       case JOB_CROSSBOWMAN:
+      case JOB_SNIPER:
         return JOB_ADVANCEMENT_CROSSBOWMAN;
       case JOB_ICE_LIGHTNING_WIZARD:
         return JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD;
@@ -280,6 +283,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_WHITE_KNIGHT;
       case JOB_RANGER:
         return JOB_ADVANCEMENT_RANGER;
+      case JOB_SNIPER:
+        return JOB_ADVANCEMENT_SNIPER;
       default:
         break;
     }
@@ -325,6 +330,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_WHITE_KNIGHT;
     case JOB_ADVANCEMENT_RANGER:
       return JOB_RANGER;
+    case JOB_ADVANCEMENT_SNIPER:
+      return JOB_SNIPER;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -422,6 +429,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_HUNTER:
     case JOB_CROSSBOWMAN:
     case JOB_RANGER:
+    case JOB_SNIPER:
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -472,6 +480,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 3 && job == JOB_HUNTER) {
     return {JOB_RANGER};
   }
+  if (stage == 3 && job == JOB_CROSSBOWMAN) {
+    return {JOB_SNIPER};
+  }
   return {};
 }
 
@@ -497,6 +508,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_CRUSADER:
     case JOB_ADVANCEMENT_WHITE_KNIGHT:
     case JOB_ADVANCEMENT_RANGER:
+    case JOB_ADVANCEMENT_SNIPER:
       return 3;
     default:
       return 0;

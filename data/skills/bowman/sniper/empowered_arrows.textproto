@@ -1,0 +1,33 @@
+# Two grants out of one skill, both aimed at Piercing Arrow: a permanent
+# addition to every shot, and every fourth shot swapped for a bigger one. GMS
+# writes the second as "after striking enemies with Piercing Arrow 3 times,
+# your next Piercing Arrow will be upgraded" -- three ordinary, then this. See
+# Skill.empowered_form.
+#
+# GMS masters this at 10, reaching +140% points and a 230% upgraded shot.
+# Stretched to 20 for the book's budget, landing on the same pair.
+#
+# Unlike Speed Mirage's boost on Wind Arrow, this one is felt: Bolt Burst
+# recharges for seven seconds, so Piercing Arrow stays the filler swing.
+name: "Empowered Arrows"
+skill_order: 1
+description:
+  "Empowers Piercing Arrow as you use it. Every fourth shot is upgraded to an "
+  "Empowered Piercing Arrow."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SNIPER
+max_level: 20
+required_skill {
+  skill_name: "Piercing Arrow"
+  level: 20
+}
+boosts_skill_name: "Piercing Arrow"
+base { boosted_skill_pct: 1.02 }
+per_level { boosted_skill_pct: 0.02 }
+empowered_form {
+  casts_per_trigger: 4
+  max_enemies: 8
+  lines: 6
+  base { skill_pct: 2.03 }
+  per_level { skill_pct: 0.015 }
+}
