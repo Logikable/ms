@@ -6,7 +6,8 @@
 # here to keep the wiki's figure beside the skill it belongs to.
 name: "Absolute Zero Aura"
 skill_order: 4
-description: "Envelops you in a shield of cold. Reduces the damage you take."
+description:
+  "Envelops you in a shield of cold that reduces the damage you take."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 10

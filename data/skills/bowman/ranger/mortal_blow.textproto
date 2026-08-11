@@ -2,9 +2,7 @@
 # Here it is simply on, like every other buff in this game.
 name: "Mortal Blow"
 skill_order: 5
-description:
-  "Keep shooting the same thing long enough and you learn where it breaks. "
-  "Increases Damage."
+description: "Permanently increases your Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 10

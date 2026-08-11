@@ -8,8 +8,8 @@
 name: "Quiver Cartridge"
 skill_order: 2
 description:
-  "Every head in the quiver was cut for a different job. Grants a chance to "
-  "strike again after an attack."
+  "Fits a special arrowhead that grants a chance to strike again after an "
+  "attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 10

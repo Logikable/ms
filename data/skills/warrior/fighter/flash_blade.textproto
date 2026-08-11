@@ -3,9 +3,7 @@
 # is simply how long it is until the next.
 name: "Flash Blade"
 skill_order: 2
-description:
-  "Gone and back before the eye can follow. Zip forward in a flash, cutting "
-  "enemies in your path."
+description: "Zip forward in a flash, cutting the enemies in your path."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 9

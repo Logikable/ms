@@ -2,7 +2,7 @@
 # ends in the same place -- 270 -- with a level's worth of finer grain.
 name: "Iron Wall"
 skill_order: 4
-description: "Steel your resolve to bolster your defenses. Increases DEF."
+description: "Steel your resolve to bolster your defenses."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10

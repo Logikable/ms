@@ -2,9 +2,7 @@
 # attack is all that is left to say.
 name: "Slash Blast"
 skill_order: 1
-description:
-  "A wheeling cut for when they crowd in. Strikes the enemies around you all "
-  "at once."
+description: "Attack nearby enemies all at once."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20

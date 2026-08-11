@@ -6,7 +6,7 @@
 name: "Evasion Boost"
 skill_order: 7
 description:
-  "Increases your chance to dodge an attack outright, and increases Max HP."
+  "Grants a chance to dodge enemy attacks. Also permanently increases Max HP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 10

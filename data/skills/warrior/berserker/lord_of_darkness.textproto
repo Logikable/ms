@@ -9,8 +9,8 @@
 name: "Lord of Darkness"
 skill_order: 5
 description:
-  "The dark answers to you now. Increases Critical Rate and Critical Damage, "
-  "and returns some of your HP as you attack."
+  "Increases Critical Rate and Critical Damage, and grants a chance to recover "
+  "HP as you attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20

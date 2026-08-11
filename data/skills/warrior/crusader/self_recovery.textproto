@@ -3,9 +3,7 @@
 # tenth of a percent of the pool a swing at level 1, two percent at 20.
 name: "Self Recovery"
 skill_order: 4
-description:
-  "Wounds close between one blow and the next. Returns some of your HP as "
-  "you attack."
+description: "Recovers some of your HP as you attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20

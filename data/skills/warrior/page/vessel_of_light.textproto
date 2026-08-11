@@ -5,7 +5,8 @@
 name: "Vessel of Light"
 skill_order: 2
 description:
-  "Increases Damage and Attack Power, and reduces the damage you take."
+  "Amasses the power of light within you. Increases Damage and Attack Power, "
+  "and reduces the damage you take."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 20

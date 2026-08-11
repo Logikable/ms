@@ -2,9 +2,7 @@
 # 534% at 20 -- close enough to Brandish that the two branches trade blows.
 name: "Wind Arrow"
 skill_order: 1
-description:
-  "Loosed and gone, quick as the air itself. Fire arrows that fly like the "
-  "wind."
+description: "Fire multiple arrows that fly like the wind."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 20

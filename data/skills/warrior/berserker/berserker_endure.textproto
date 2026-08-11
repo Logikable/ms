@@ -8,8 +8,7 @@
 name: "Endure"
 skill_order: 6
 description:
-  "Stand through what would put another warrior down. Increases resistance to "
-  "abnormal status and to elemental damage."
+  "Enhances your Abnormal Status Resistance and Elemental Resistance."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20

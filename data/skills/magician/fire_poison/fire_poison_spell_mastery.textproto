@@ -7,9 +7,7 @@
 # does not swamp Meditation's.
 name: "Spell Mastery"
 skill_order: 7
-description:
-  "Casting drilled past thinking. Increases Spell Mastery, Magic Attack and "
-  "Critical Rate."
+description: "Increases Magic Mastery, Magic ATT and Critical Rate."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 20

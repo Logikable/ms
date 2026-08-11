@@ -3,9 +3,7 @@
 # ends a hair under the top of the staircase and is never more than 2.5% out.
 name: "Final Attack: Bow"
 skill_order: 6
-description:
-  "Years of drilling turn one shot into two. Grants a chance to deliver an "
-  "additional hit after an attack."
+description: "Grants a chance to deliver an additional hit after an attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 20

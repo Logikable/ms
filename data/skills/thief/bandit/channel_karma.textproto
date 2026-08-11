@@ -5,8 +5,7 @@
 # knocks the player anywhere.
 name: "Channel Karma"
 skill_order: 5
-description:
-  "Every blow you take is only more to give back. Increases Attack Power."
+description: "Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 10

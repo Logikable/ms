@@ -3,9 +3,7 @@
 # Bows do.
 name: "Agile Magic"
 skill_order: 6
-description:
-  "The words come quicker than the thought behind them. Increases Attack "
-  "Speed and INT."
+description: "Increases Attack Speed and INT."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 5

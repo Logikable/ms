@@ -7,7 +7,8 @@
 name: "HP Recovery"
 skill_order: 2
 description:
-  "Restores your HP, cast in place of an attack when you are badly hurt."
+  "Instantly recovers your HP, cast in place of an attack when you are badly "
+  "hurt."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 10

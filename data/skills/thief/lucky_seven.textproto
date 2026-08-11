@@ -8,9 +8,7 @@
 # is built on the seven.
 name: "Lucky Seven"
 skill_order: 2
-description:
-  "The stars leave your hand before the thought does. Throw lucky throwing "
-  "stars at the enemies in front of you."
+description: "Throw lucky throwing stars at the enemies in front of you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20

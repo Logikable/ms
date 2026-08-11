@@ -3,9 +3,7 @@
 # the top of it and is never more than 2.5% out on the way.
 name: "Final Attack"
 skill_order: 7
-description:
-  "Years of drilling turn one blow into two. Grants a chance to deliver an "
-  "additional hit after an attack."
+description: "Grants a chance to deliver an additional hit after an attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 20

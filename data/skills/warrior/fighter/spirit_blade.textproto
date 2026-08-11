@@ -4,8 +4,8 @@
 name: "Spirit Blade"
 skill_order: 4
 description:
-  "Increases your Attack Power, reduces the damage you take, and reflects a "
-  "multiple of every blow back at whoever landed it."
+  "The sword and the spirit are united. Increases your Attack Power, reduces "
+  "the damage you take, and reflects a multiple of the damage you receive."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 20

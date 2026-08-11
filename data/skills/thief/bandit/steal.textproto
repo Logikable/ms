@@ -4,9 +4,7 @@
 # ladder.
 name: "Steal"
 skill_order: 3
-description:
-  "A hand in every pocket, and the confidence that comes of it. Increases "
-  "Attack Power."
+description: "Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 10

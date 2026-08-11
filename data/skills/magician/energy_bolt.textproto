@@ -6,8 +6,7 @@
 name: "Energy Bolt"
 skill_order: 1
 description:
-  "The first spell anyone is taught, and it never stops working. Fire a "
-  "condensed energy bolt that explodes on contact with an enemy."
+  "Fire a condensed energy bolt that explodes on contact with an enemy."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_MAGICIAN
 max_level: 20

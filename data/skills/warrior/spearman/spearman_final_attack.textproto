@@ -2,9 +2,7 @@
 # one number the pair is worth -- see SkillEffect::final_attack_pct.
 name: "Final Attack"
 skill_order: 7
-description:
-  "Years of drilling turn one blow into two. Grants a chance to deliver an "
-  "additional hit after an attack."
+description: "Grants a chance to deliver an additional hit after an attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 20

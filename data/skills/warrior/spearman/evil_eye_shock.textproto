@@ -3,9 +3,7 @@
 # becomes here. The stun it also lands is not modelled.
 name: "Evil Eye Shock"
 skill_order: 2
-description:
-  "The Evil Eye at your shoulder opens its mouth and screams. Damages nearby "
-  "enemies on its own."
+description: "Your Evil Eye shouts, damaging nearby enemies on its own."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10

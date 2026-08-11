@@ -9,7 +9,7 @@
 name: "Archery Mastery"
 skill_order: 3
 description:
-  "Gain proficiency in the fundamentals of archery. Increases Attack Speed "
+  "Gain proficiency in the fundamentals of archery, increasing Attack Speed "
   "and DEF."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ARCHER

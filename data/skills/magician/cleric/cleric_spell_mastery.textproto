@@ -6,9 +6,7 @@
 # ends at GMS's 5%, and the magic attack is held to a point a level.
 name: "Spell Mastery"
 skill_order: 7
-description:
-  "Casting drilled past thinking. Increases Spell Mastery, Magic Attack and "
-  "Critical Rate."
+description: "Increases Magic Mastery, Magic ATT and Critical Rate."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 20

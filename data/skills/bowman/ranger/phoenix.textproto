@@ -10,8 +10,8 @@
 name: "Phoenix"
 skill_order: 3
 description:
-  "A bird of fire circles overhead and attacks nearby enemies on its own. Also "
-  "increases your DEF."
+  "Summons a Phoenix that deals fire damage to nearby enemies on its own. "
+  "Permanently increases DEF."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 10

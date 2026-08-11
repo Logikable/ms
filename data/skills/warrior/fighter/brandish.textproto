@@ -1,7 +1,6 @@
 name: "Brandish"
 skill_order: 1
-description:
-  "A broad, driving swing that carries through everything in front of you."
+description: "Perform a double attack on the enemies in front of you."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
 job_advancement: JOB_ADVANCEMENT_FIGHTER

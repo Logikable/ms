@@ -7,9 +7,7 @@
 # because GMS grants it, though a magician swings on the other number.
 name: "Bless"
 skill_order: 4
-description:
-  "A blessing spoken over your own head. Increases Attack Power, Magic Attack "
-  "and DEF."
+description: "Increases your Attack Power, Magic ATT and DEF."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10

@@ -6,7 +6,7 @@
 # the player for something the game has no way to do.
 name: "Blessed Ensemble"
 skill_order: 2
-description: "Increases Final Damage."
+description: "Blessings increase your Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10

@@ -2,9 +2,7 @@
 # Spear Sweep, the skill it replaces as the Berserker's main attack.
 name: "La Mancha Spear"
 skill_order: 1
-description:
-  "The spear goes round in one long spin, and everything standing close "
-  "enough is inside it."
+description: "Spin your spear to attack the enemies in front of you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20

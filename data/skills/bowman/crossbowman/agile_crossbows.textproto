@@ -2,7 +2,7 @@
 # 4 apiece, ending in the same place for half the points.
 name: "Agile Crossbows"
 skill_order: 2
-description: "A looser grip, a quicker draw. Increases Attack Speed and DEX."
+description: "Increases Attack Speed and DEX."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 5

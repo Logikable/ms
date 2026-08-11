@@ -3,7 +3,7 @@
 # including the max, and half a point low at odd ones.
 name: "Iron Body"
 skill_order: 2
-description: "Boosts DEF and Max HP, and decreases damage taken."
+description: "Boosts DEF and Max HP, and decreases the damage you take."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20

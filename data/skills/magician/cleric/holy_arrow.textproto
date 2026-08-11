@@ -7,9 +7,7 @@
 # the fewest enemies, which is what the Cleric pays for Blessed Ensemble.
 name: "Holy Arrow"
 skill_order: 1
-description:
-  "Light drawn to a point and loosed. Attacks multiple enemies with holy "
-  "arrows."
+description: "Attack multiple enemies with holy arrows."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10

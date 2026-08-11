@@ -8,9 +8,8 @@
 name: "Shield Mastery"
 skill_order: 8
 description:
-  "What you carry in your off hand turns blows aside. Increases Defense and "
-  "Attack Power, and decreases damage taken. Needs something in the secondary "
-  "slot."
+  "While something is equipped in your secondary slot, increases DEF and "
+  "Attack Power and reduces the damage you take."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 10

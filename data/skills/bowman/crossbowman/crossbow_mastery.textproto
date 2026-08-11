@@ -3,9 +3,7 @@
 # multiplies everything, the Hunter's arrives as a second Final Attack.
 name: "Crossbow Mastery"
 skill_order: 4
-description:
-  "Aim and breath drilled past thinking. Increases Crossbow Mastery and Final "
-  "Damage."
+description: "Increases Crossbow Mastery and Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20

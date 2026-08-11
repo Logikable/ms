@@ -8,8 +8,8 @@
 name: "Assassin's Mark"
 skill_order: 2
 description:
-  "Your attacks leave a mark, and the next thing you throw finds it. Grants a "
-  "chance to strike again after an attack."
+  "Has a chance to mark an enemy when you attack. Throwing stars form on a "
+  "marked enemy and strike it again."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ASSASSIN
 max_level: 10

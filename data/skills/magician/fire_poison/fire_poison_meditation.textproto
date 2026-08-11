@@ -5,8 +5,7 @@
 # spends MP -- so the requirement would name a skill that does not exist.
 name: "Meditation"
 skill_order: 4
-description:
-  "The mind goes quiet, and the magic comes louder. Increases Magic Attack."
+description: "Enhances your Magic ATT through meditation."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 20

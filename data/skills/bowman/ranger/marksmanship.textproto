@@ -7,8 +7,8 @@
 name: "Marksmanship"
 skill_order: 8
 description:
-  "Shoot for the gap in the armour rather than the armour itself. Ignores a "
-  "share of enemy DEF and increases Attack Power."
+  "Ignores a portion of enemy DEF when you attack. Permanently increases your "
+  "Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 20

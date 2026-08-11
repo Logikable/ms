@@ -11,8 +11,8 @@
 name: "Combat Orders"
 skill_order: 3
 description:
-  "An order given well is worth a year of drill. Raises the level of your "
-  "other skills, up to the highest each one can be taught."
+  "Grants bonus levels to your other skills, up to the highest each one can be "
+  "taught."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 10

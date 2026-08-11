@@ -2,7 +2,7 @@
 # spend MP on and nothing to watch a buff timer with, so it is simply always on.
 name: "Hyper Body"
 skill_order: 3
-description: "Increases Max HP and Max MP."
+description: "Increases your Max HP and Max MP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10

@@ -2,7 +2,7 @@
 # buys speed and crit. What the Hunter gets in its place is Quiver Cartridge.
 name: "Bow Mastery"
 skill_order: 5
-description: "Draw and breath drilled past thinking. Increases Bow Mastery."
+description: "Increases Bow Mastery."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 20

@@ -6,9 +6,7 @@
 # and level with them on one mob, which is a worse lie than leaving it out.
 name: "Piercing Arrow"
 skill_order: 1
-description:
-  "One bolt, driven hard enough to pass clean through the line. Fires an "
-  "arrow through the enemies in front of you."
+description: "Fire an arrow through the enemies in front of you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20

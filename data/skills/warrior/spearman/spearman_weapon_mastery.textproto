@@ -1,8 +1,8 @@
 name: "Weapon Mastery"
 skill_order: 5
 description:
-  "Grip and stance drilled past thinking. Increases Spear and Polearm "
-  "Mastery. A spear increases Attack Speed and Damage further."
+  "Increases Spear and Polearm Mastery. A spear increases Attack Speed and "
+  "Damage further."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10

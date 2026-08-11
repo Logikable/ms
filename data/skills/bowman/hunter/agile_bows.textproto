@@ -2,7 +2,7 @@
 # ends in the same place -- 20 -- for half the points, as Agile Arms does.
 name: "Agile Bows"
 skill_order: 3
-description: "A looser grip, a quicker draw. Increases Attack Speed and DEX."
+description: "Increases Attack Speed and DEX."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 5

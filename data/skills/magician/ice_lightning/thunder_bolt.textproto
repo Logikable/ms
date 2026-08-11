@@ -4,7 +4,7 @@
 name: "Thunder Bolt"
 skill_order: 3
 description:
-  "A lightning-attribute attack. Creates a powerful magnetic field and hurls "
+  "A lightning-attribute attack. Create a powerful magnetic field and hurl "
   "lightning down through it."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD

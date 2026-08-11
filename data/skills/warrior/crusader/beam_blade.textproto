@@ -7,8 +7,8 @@
 name: "Beam Blade"
 skill_order: 2
 description:
-  "Blades leave the sword and go on without it. Launches blades that tear "
-  "your enemies apart, and cut deeper into anything that is not a boss."
+  "Launch blades that tear your enemies apart, and cut deeper into anything "
+  "that is not a boss."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20

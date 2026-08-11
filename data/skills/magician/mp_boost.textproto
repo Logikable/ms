@@ -5,8 +5,8 @@
 name: "MP Boost"
 skill_order: 4
 description:
-  "A deeper well, and a quicker hand to draw from it. Increases Max MP and "
-  "Attack Speed, and increases MP proportional to your level."
+  "Increases Max MP and Attack Speed. Also increases MP proportional to your "
+  "level."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MAGICIAN
 max_level: 20

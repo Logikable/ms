@@ -6,9 +6,7 @@
 # and does not count them, so raising the count later is one edit.
 name: "Combo Synergy"
 skill_order: 3
-description:
-  "Every orb you carry leans into the blow. Increases Final Damage for each "
-  "Combo Orb."
+description: "Increases Final Damage for each Combo Orb you carry."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20

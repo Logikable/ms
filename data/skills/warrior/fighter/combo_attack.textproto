@@ -5,8 +5,8 @@
 name: "Combo Attack"
 skill_order: 3
 description:
-  "Blows land and orbs gather, and every orb rides on the next swing. "
-  "Increases Attack Power."
+  "Grants a chance to gather a Combo Orb with each attack. Every orb increases "
+  "your Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 1
