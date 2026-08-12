@@ -75,6 +75,9 @@ const PercentLever kPercentLevers[] = {
     // The one lever a skill can take away instead of grant: Reckless Hunt
     // sells DEF for damage, and a row that hid the price would be a lie.
     {"Defense", &SkillEffect::def_pct, kSigned, ""},
+    // Last, and the only row here that is not about a fight -- the same place
+    // it takes on the stats page, for the same reason.
+    {"Additional EXP", &SkillEffect::exp_pct, kPlus, ""},
 };
 
 // The levers that are a plain count rather than a share of anything. Both are
@@ -476,6 +479,12 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
     rows.push_back(EffectRow("HP Recovered", FormatPercent(regen)));
     rows.push_back(
         EffectRow("Heals Every", FormatNumber(regen_interval) + "s"));
+  }
+  // Dispel's whole effect, and a promise the skill really keeps -- there is
+  // just nothing in the game yet that inflicts what it lifts. Stated flatly,
+  // because it is the same at every level: the points buy nothing more.
+  if (skill.base().cures_conditions()) {
+    rows.push_back(EffectRow("Cures", "All Conditions"));
   }
   // Straight under the damage it is the other reading of, so the two totals
   // stand one over the other.

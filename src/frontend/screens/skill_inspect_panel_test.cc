@@ -274,6 +274,40 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAFountain) {
             std::string::npos);
 }
 
+// Holy Symbol's whole effect. It buys no part of a fight, so it would read as
+// a skill granting nothing at all if the page had no row for it.
+TEST_F(SkillInspectPanelTest, StatesTheExpASkillAdds) {
+  Skill symbol = MakeIronBody();
+  symbol.clear_base();
+  symbol.clear_per_level();
+  symbol.mutable_base()->set_exp_pct(0.215);
+  symbol.mutable_per_level()->set_exp_pct(0.015);
+
+  EXPECT_NE(RenderAt(symbol, 1).find("Additional EXP    +21.5%"),
+            std::string::npos);
+  EXPECT_NE(RenderAt(symbol, 20).find("Additional EXP    +50%"),
+            std::string::npos);
+  EXPECT_EQ(RenderAt(symbol, 1).find("no effect"), std::string::npos);
+}
+
+// Dispel keeps a real promise that nothing in the game can call on yet. The
+// page says what it does rather than calling it empty, and says the same thing
+// at every level, because that is what a point buys: nothing more.
+TEST_F(SkillInspectPanelTest, StatesWhatDispelCures) {
+  Skill dispel = MakeIronBody();
+  dispel.clear_base();
+  dispel.clear_per_level();
+  dispel.mutable_base()->set_cures_conditions(true);
+
+  std::string rendered = RenderAt(dispel, 1);
+  EXPECT_NE(rendered.find("Cures             All Conditions"),
+            std::string::npos);
+  EXPECT_EQ(rendered.find("no effect"), std::string::npos);
+  EXPECT_NE(RenderAt(dispel, 10).find("Cures             All Conditions"),
+            std::string::npos);
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Cures"), std::string::npos);
+}
+
 // Creeping Toxin upgrades its own attack, so there is no name to print -- and
 // its form carries a normal-monster reading of its own beside the damage.
 TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {
