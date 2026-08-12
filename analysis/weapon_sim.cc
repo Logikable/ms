@@ -104,6 +104,8 @@ std::string BranchName(Job job) {
       return "F/P Mage";
     case JOB_PRIEST:
       return "Priest";
+    case JOB_HERMIT:
+      return "Hermit";
     default:
       return "?";
   }
@@ -246,6 +248,10 @@ struct Result {
   double weapon_constant = 0.0;
   double skill_pct = 0.0;
   int lines = 0;
+  // What a shadow copy of one line is worth, or 0 for a character with no
+  // Shadow Partner. The swing beside it counts them, so the line has to say
+  // they are there.
+  double mirror_pct = 0.0;
   double swing_damage = 0.0;
   double final_attack_damage = 0.0;
   int unspent_sp = 0;
@@ -403,6 +409,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
       }
     }
   }
+  result.mirror_pct = derived.mirror_line_pct;
   result.swing_seconds = best->swing_seconds / speed;
   // Averaged over the swings that landed rather than the horizon, so the
   // part-charged swing the horizon cuts off costs nothing. A cooldown skill is
@@ -472,6 +479,7 @@ void Run(int level) {
       {JOB_ICE_LIGHTNING_MAGE, EQUIP_TYPE_STAFF},
       {JOB_FIRE_POISON_MAGE, EQUIP_TYPE_STAFF},
       {JOB_PRIEST, EQUIP_TYPE_STAFF},
+      {JOB_HERMIT, EQUIP_TYPE_CLAW, EQUIP_TYPE_THROWING_STAR},
   };
 
   std::printf(
@@ -492,16 +500,24 @@ void Run(int level) {
                 result.combat_power, result.dps, result.swing.c_str(),
                 result.swing_seconds);
     if (absl::GetFlag(FLAGS_detail)) {
+      // The shadow's lines are already in the damage; without this the count
+      // beside it would be half of what really landed.
+      char shadow_buf[48] = "";
+      if (result.mirror_pct > 0.0) {
+        std::snprintf(shadow_buf, sizeof(shadow_buf), " + %d shadow @ %.0f%%",
+                      result.lines, 100.0 * result.mirror_pct);
+      }
+      std::string shadow = shadow_buf;
       std::printf(
           "            %s %d  ATT %d  wc %.2f  mastery %.0f%%  crit %.0f%%  "
           "dmg %.0f%%  FD %.0f%%\n"
-          "            swing %.0f (%d lines @ %.0f%%)  final attack %.0f  "
+          "            swing %.0f (%d lines @ %.0f%%%s)  final attack %.0f  "
           "unspent SP %d\n            ",
           PrimaryStatName(build.job), result.primary, result.attack,
           result.weapon_constant, 100.0 * result.mastery,
           100.0 * result.crit_rate, 100.0 * result.damage_pct,
           100.0 * result.final_dmg_pct, result.swing_damage, result.lines,
-          100.0 * result.skill_pct, result.final_attack_damage,
+          100.0 * result.skill_pct, shadow.c_str(), result.final_attack_damage,
           result.unspent_sp);
       for (const std::pair<std::string, int>& skill : result.skills) {
         std::printf("%s %d  ", skill.first.c_str(), skill.second);

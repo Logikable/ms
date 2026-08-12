@@ -1,0 +1,21 @@
+# GMS's own figures: 3x attack and x% boss damage over 10 levels. The half that
+# lets a thief attack without spending throwing stars is already true here --
+# stars are worn, not consumed.
+#
+# The boss damage ships dead: no mob in the game is a boss. It is on the stats
+# page so the points can be seen.
+name: "Spirit of the Star"
+skill_order: 5
+description:
+  "Permanently increases your Attack Power and the damage you deal to bosses."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERMIT
+max_level: 10
+base {
+  attack: 3
+  boss_pct: 0.01
+}
+per_level {
+  attack: 3
+  boss_pct: 0.01
+}

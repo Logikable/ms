@@ -1,0 +1,15 @@
+# GMS's own figures: 200+3x% four times over 20 levels, on eight enemies.
+# 800ms is the animation's own, from the frame data.
+name: "Shuriken Challenge"
+skill_order: 2
+description:
+  "Summon a huge shadow-powered shuriken that tears through the enemies "
+  "around you."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_HERMIT
+max_level: 20
+base_delay_ms: 800
+max_enemies: 8
+lines: 4
+base { skill_pct: 2.03 }
+per_level { skill_pct: 0.03 }

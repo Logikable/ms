@@ -111,6 +111,10 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"crimson_arcanon", "rusty_book_epode"};
     case JOB_PRIEST:
       return {"crimson_arcanon", "white_gold_book_epode"};
+    // The stars are worn, not thrown: a claw with none in the slot swings for
+    // nothing at all. See the Assassin above.
+    case JOB_HERMIT:
+      return {"balanced_fury", "red_craven", "death_sender_charm"};
     default:
       return StarterEquipsFor(job);
   }

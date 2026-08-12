@@ -1,0 +1,19 @@
+# GMS's own figures: 9+2x% final damage over 10 levels, and a flat 20% critical
+# rate that does not climb. The requirement is GMS's own too.
+name: "Expert Throwing Star Handling"
+skill_order: 8
+description:
+  "The Thief's secret technique, which increases Final Damage and Critical "
+  "Rate."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERMIT
+max_level: 10
+required_skill {
+  skill_name: "Spirit of the Star"
+  level: 5
+}
+base {
+  final_dmg_pct: 0.11
+  crit_rate: 0.20
+}
+per_level { final_dmg_pct: 0.02 }

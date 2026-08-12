@@ -1,0 +1,11 @@
+# GMS gives x% critical damage over 10 levels. Five levels here at 2% apiece,
+# ending where GMS does. The potion half and the knockback half both go: this
+# game has neither.
+name: "Alchemic Adrenaline"
+skill_order: 9
+description: "Permanently increases your Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERMIT
+max_level: 5
+base { crit_dmg: 0.02 }
+per_level { crit_dmg: 0.02 }

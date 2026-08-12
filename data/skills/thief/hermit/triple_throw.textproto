@@ -1,0 +1,22 @@
+# GMS's own figures: 210+4x% three times over 20 levels, on one enemy. The
+# single target is the whole of what this skill is -- GMS keeps it for bosses,
+# and Shuriken Challenge for everything else.
+#
+# 630ms is chosen, not measured: the frame database has no Hermit Triple Throw.
+# Quad Star throws four stars in 660ms, so three is one tick less. It has to be
+# this fast or faster to be worth swinging at all -- at 660 the 30ms rounding
+# lands the swing on 510ms against Shuriken Challenge's 600, and this skill
+# loses on one enemy as well as on eight.
+name: "Triple Throw"
+skill_order: 1
+description:
+  "Throw three throwing stars at once. They strike the enemy with the most HP "
+  "left first."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_HERMIT
+max_level: 20
+base_delay_ms: 630
+max_enemies: 1
+lines: 3
+base { skill_pct: 2.14 }
+per_level { skill_pct: 0.04 }
