@@ -1102,6 +1102,30 @@ TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredDefenceCombineInReverse) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 1.0 - 0.75 * 0.60, 1e-9);
 }
 
+// Boss damage sums across the passives granting it, like plain damage and
+// unlike IED. Nothing reads it -- no mob in the game is a boss -- so the fold
+// and the stats page are the whole of what a player sees for their points.
+TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill spirit;
+  spirit.set_name("Spirit of the Star");
+  spirit.set_kind(SKILL_KIND_PASSIVE);
+  spirit.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  spirit.set_max_level(10);
+  spirit.mutable_base()->set_boss_pct(0.01);
+  spirit.mutable_per_level()->set_boss_pct(0.01);
+  Skill other = spirit;
+  other.set_name("Something Else");
+  other.set_max_level(5);
+  other.mutable_base()->set_boss_pct(0.05);
+  other.mutable_per_level()->set_boss_pct(0.0);
+  std::map<std::string, Skill> skills = {{"spirit", spirit}, {"other", other}};
+
+  ASSERT_TRUE(c.LearnSkill(spirit, 10));
+  ASSERT_TRUE(c.LearnSkill(other, 1));
+  EXPECT_NEAR(DerivedStatsFor(c, skills).boss_pct, 0.15, 1e-9);
+}
+
 // Holy Fountain states a pulse and a wait. What the fight can use is neither
 // on its own -- both halves move with the level, and only their quotient says
 // what a point bought.

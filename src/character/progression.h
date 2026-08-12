@@ -43,6 +43,7 @@ enum class Feature {
   // the way to it.
   kCombatStats,
   kDamageStats,
+  kAdvancedStats,
 };
 
 // Whether `character` has reached `feature` yet.

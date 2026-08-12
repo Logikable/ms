@@ -83,6 +83,10 @@ struct PassiveOffense {
   // two differ. See DerivedStats.
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
+  // Share added to damage against a boss, summed across the passives granting
+  // it. Meets the gear's own by summing too -- both are shares of the same
+  // damage, unlike ied.
+  double boss_pct = 0.0;
   // Share of the monster's DEF the passives ignore, already combined across
   // them. Meets the gear's share in reverse, the same way they combined.
   double ied = 0.0;

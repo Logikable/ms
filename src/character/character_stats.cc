@@ -84,6 +84,7 @@ struct PassiveTotals {
   // strengthening the same swing both count.
   std::map<std::string, double> skill_pct_bonus;
   double damage_pct = 0.0;
+  double boss_pct = 0.0;
   double final_dmg_pct = 0.0;
   double ied = 0.0;
   int attack_speed = 0;
@@ -150,6 +151,7 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.elemental_resistance +=
       base.elemental_resistance() + per.elemental_resistance() * (level - 1);
   totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
+  totals.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
   totals.attack_per_combo_orb +=
       base.attack_per_combo_orb() + per.attack_per_combo_orb() * (level - 1);
   totals.final_dmg_pct_per_combo_orb +=
@@ -356,6 +358,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.status_resistance = passives.status_resistance;
   stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;
+  stats.boss_pct = passives.boss_pct;
   stats.final_dmg_pct = passives.final_dmg_pct;
   stats.ied = passives.ied;
   stats.mastery = passives.mastery;
@@ -377,6 +380,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.crit_dmg = derived.crit_dmg;
   passives.mastery = derived.mastery;
   passives.damage_pct = derived.damage_pct;
+  passives.boss_pct = derived.boss_pct;
   passives.final_dmg_pct = derived.final_dmg_pct;
   passives.ied = derived.ied;
   passives.skill_pct_bonus = derived.skill_pct_bonus;

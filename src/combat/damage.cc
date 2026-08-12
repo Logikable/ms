@@ -286,7 +286,8 @@ OffenseStats OffenseStatsFor(Job job, int level,
                job == JOB_ICE_LIGHTNING_MAGE || job == JOB_FIRE_POISON_MAGE ||
                job == JOB_PRIEST;
   offense.attack = magic ? equipped.magic_attack() : equipped.attack();
-  offense.boss_pct = equipped.boss_damage() / kPercentToFraction;
+  offense.boss_pct =
+      equipped.boss_damage() / kPercentToFraction + passives.boss_pct;
   offense.ied = CombineIgnoredDefense(
       equipped.ignore_enemy_defense() / kPercentToFraction, passives.ied);
   // The learned attack skill's multiplier replaces the bare 100% poke. Effect

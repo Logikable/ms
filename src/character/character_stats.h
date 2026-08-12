@@ -79,6 +79,10 @@ struct DerivedStats {
   // by the time they leave here, because that is all the damage chain takes.
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
+  // Share added to damage against a boss and nothing else. Summed, and summed
+  // again with the equipment's own -- see OffenseStatsFor. Nothing in the game
+  // is a boss yet, so nothing reads it.
+  double boss_pct = 0.0;
   // Share of the monster's DEF the character's attacks ignore, combined in
   // reverse across the passives granting it. Gear grants it too, and the two
   // meet the same way -- see OffenseStatsFor.

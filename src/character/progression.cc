@@ -49,12 +49,15 @@ struct StageUnlock {
 };
 
 // Attack, Magic Attack, Attack Speed and Defense arrive with the first job,
-// which is the first thing the player has that moves them. The four percent
-// rows wait for the second, whose passives are where crit and damage rate
-// first come from.
+// which is the first thing the player has that moves them. The percent rows
+// wait for the second, whose passives are where crit and damage rate first
+// come from. The last three wait for the third, which is where the levers that
+// write them are -- and two of the three pay out on nothing the player has met
+// by then anyway.
 constexpr StageUnlock kStageUnlocks[] = {
     {Feature::kCombatStats, 1},
     {Feature::kDamageStats, 2},
+    {Feature::kAdvancedStats, 3},
 };
 
 // The upgrades, in the order they arrive. One list rather than a condition in
@@ -157,6 +160,8 @@ std::string FeatureName(Feature feature) {
       return "Combat Stats";
     case Feature::kDamageStats:
       return "Damage Stats";
+    case Feature::kAdvancedStats:
+      return "Advanced Stats";
   }
   LOG(FATAL) << "Feature " << static_cast<int>(feature) << " has no name";
 }

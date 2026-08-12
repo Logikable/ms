@@ -56,12 +56,13 @@ std::string TotalWithBreakdown(int base, int bonus) {
          ") " + total;
 }
 
-// The combat stats, with the four percent rows in or out. They sit in the
-// middle of the order rather than on the end, so leaving them out is a gap to
-// close and not a tail to cut.
+// The combat stats, in two tiers the panel can hold back. Both sit in the
+// middle of the order rather than on the end, so leaving either out is a gap
+// to close and not a tail to cut.
 std::vector<StatLine> CombatStatLines(
     const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills, bool with_percents) {
+    const std::map<std::string, Skill>& skills, bool with_percents,
+    bool with_advanced) {
   DerivedStats derived = DerivedStatsFor(character, skills);
   const EquipStats e = TotalEquipStats(character, derived);
   // Split like DEF: what the character wears and was granted, then whatever a
@@ -79,6 +80,19 @@ std::vector<StatLine> CombatStatLines(
   if (with_percents) {
     lines.push_back({"Damage", Percent(derived.damage_pct)});
     lines.push_back({"Final Damage", Percent(derived.final_dmg_pct)});
+    // The two that only ever matter against something the character has not
+    // met yet: boss damage pays on no monster in the game, and ignoring DEF
+    // pays little until the monsters have some. Both sit above the crit pair
+    // because they qualify the damage rows over them.
+    if (with_advanced) {
+      lines.push_back(
+          {"Boss Damage", Percent(e.boss_damage() / 100.0 + derived.boss_pct)});
+      // What gear and skills come to between them, which is not their sum.
+      // Shortened to seat the 16-column label: "Ignore Enemy Defense" is 20.
+      lines.push_back(
+          {"Ignore DEF", Percent(CombineIgnoredDefense(
+                             e.ignore_enemy_defense() / 100.0, derived.ied))});
+    }
     // The base pair every character carries, plus what they bought. The stats
     // a skill writes to hold only its own contribution, so a page reading
     // 0.00% for both would be telling a character with a 5% chance of a 35%
@@ -87,11 +101,6 @@ std::vector<StatLine> CombatStatLines(
         {"Critical Rate", Percent(kBaseCritRate + derived.crit_rate)});
     lines.push_back(
         {"Critical Damage", Percent(kBaseCritDamage + derived.crit_dmg)});
-    // What gear and skills come to between them, which is not their sum.
-    // Shortened to seat the 16-column label: "Ignore Enemy Defense" is 20.
-    lines.push_back(
-        {"Ignore DEF", Percent(CombineIgnoredDefense(
-                           e.ignore_enemy_defense() / 100.0, derived.ied))});
   }
   lines.push_back(
       {"Attack Speed",
@@ -101,10 +110,6 @@ std::vector<StatLine> CombatStatLines(
   lines.push_back(
       {"Defense",
        TotalWithBreakdown(derived.base_def, derived.def - derived.base_def)});
-  // Beside the DEF it is the other half of: both are read only when something
-  // is hitting the character, and this one is the share of hits that never
-  // arrive at all.
-  lines.push_back({"Dodge Chance", Percent(derived.dodge_chance)});
   // Last, because nothing reads either of them yet -- no mob inflicts a status
   // or an element. They are here so a player who spent SP on Endure can see
   // what they bought. Shortened to seat the 16-column label: "Elemental
@@ -114,7 +119,9 @@ std::vector<StatLine> CombatStatLines(
                                         derived.status_resistance))});
   // Last of all, and the only row here that is not about a fight: what it
   // shortens is the climb rather than the swing.
-  lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
+  if (with_advanced) {
+    lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
+  }
   return lines;
 }
 
@@ -123,7 +130,8 @@ std::vector<StatLine> CombatStatLines(
 std::vector<StatLine> ExtraStatLines(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills) {
-  return CombatStatLines(character, skills, /*with_percents=*/true);
+  return CombatStatLines(character, skills, /*with_percents=*/true,
+                         /*with_advanced=*/true);
 }
 
 std::vector<StatLine> PanelExtraStatLines(
@@ -133,7 +141,8 @@ std::vector<StatLine> PanelExtraStatLines(
     return {};
   }
   return CombatStatLines(character, skills,
-                         Unlocked(Feature::kDamageStats, character));
+                         Unlocked(Feature::kDamageStats, character),
+                         Unlocked(Feature::kAdvancedStats, character));
 }
 
 std::vector<StatLine> MainStatLines(

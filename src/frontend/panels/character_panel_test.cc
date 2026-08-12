@@ -1253,7 +1253,7 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, panel_focus_);
-  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 14u);  // 12 stats and the row
+  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 11u);  // 10 stats and the row
 }
 
 // The block is what a job fills in, so a Beginner's tab ends at the AP rows --
@@ -1274,16 +1274,16 @@ TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
   EXPECT_EQ(field, STAT_FIELD_LUK);
 }
 
-// The first advancement brings the four stats a new job can move, and the
-// second brings the percent rows that its passives are where crit comes from.
-TEST_F(CharacterPanelTest, TheFirstJobBringsFourStatsAndTheSecondTheRest) {
+// Each advancement opens the block further: the first brings what a new job
+// can move, the second the percent rows its passives write, the third the
+// three that pay out on nothing the player has met before then.
+TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
   CharacterInstance first = MakeWarrior(rng_, /*sp=*/0);
   CharacterPanel panel(first, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"Attack", "Magic Attack", "Attack Speed",
-                                      "Defense", "Dodge Chance",
-                                      "Elemental Resist", "Status Resist",
-                                      "Additional EXP", "View All Stats"}));
+                                      "Defense", "Elemental Resist",
+                                      "Status Resist", "View All Stats"}));
 
   CharacterInstance second = MakeSpearman(rng_);
   CharacterPanel later(second, panel_focus_);
@@ -1291,6 +1291,20 @@ TEST_F(CharacterPanelTest, TheFirstJobBringsFourStatsAndTheSecondTheRest) {
   EXPECT_NE(std::find(shown.begin(), shown.end(), "Critical Rate"),
             shown.end());
   EXPECT_NE(std::find(shown.begin(), shown.end(), "Damage"), shown.end());
+  EXPECT_EQ(std::find(shown.begin(), shown.end(), "Boss Damage"), shown.end());
+
+  Character third_proto;
+  third_proto.set_level(70);
+  third_proto.set_job(JOB_BERSERKER);
+  third_proto.set_job_stage(3);
+  CharacterInstance third(rng_, std::move(third_proto));
+  CharacterPanel last(third, panel_focus_);
+  std::vector<std::string> late = ExtrasShown(last.Render());
+  for (const char* label : {"Boss Damage", "Ignore DEF", "Additional EXP"}) {
+    EXPECT_NE(std::find(late.begin(), late.end(), label), late.end()) << label;
+  }
+  // And the row nobody asked for is gone from both.
+  EXPECT_EQ(std::find(late.begin(), late.end(), "Dodge Chance"), late.end());
 }
 
 TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {

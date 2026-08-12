@@ -67,12 +67,12 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   }
   // The Character panel drops the tail of this list on a short terminal, and
   // the All Stats screen pairs it two to a row. Both depend on this order.
-  EXPECT_EQ(labels,
-            (std::vector<std::string>{
-                "Attack", "Magic Attack", "Damage", "Final Damage",
-                "Critical Rate", "Critical Damage", "Ignore DEF",
-                "Attack Speed", "Defense", "Dodge Chance", "Elemental Resist",
-                "Status Resist", "Additional EXP"}));
+  EXPECT_EQ(
+      labels,
+      (std::vector<std::string>{
+          "Attack", "Magic Attack", "Damage", "Final Damage", "Boss Damage",
+          "Ignore DEF", "Critical Rate", "Critical Damage", "Attack Speed",
+          "Defense", "Elemental Resist", "Status Resist", "Additional EXP"}));
 }
 
 // The panel's list is the same one, opened up by the advancements. The All
@@ -92,15 +92,23 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   }
   EXPECT_EQ(labels, (std::vector<std::string>{
                         "Attack", "Magic Attack", "Attack Speed", "Defense",
-                        "Dodge Chance", "Elemental Resist", "Status Resist",
-                        "Additional EXP"}));
+                        "Elemental Resist", "Status Resist"}));
 
+  // The second opens the percent block, but not the three that pay out on
+  // something the player has not met yet.
   Character second_proto;
   second_proto.set_level(35);
   second_proto.set_job(JOB_SPEARMAN);
   second_proto.set_job_stage(2);
   CharacterInstance second(rng_, std::move(second_proto));
-  EXPECT_EQ(PanelExtraStatLines(second, {}).size(), 13u);
+  EXPECT_EQ(PanelExtraStatLines(second, {}).size(), 10u);
+
+  Character third_proto;
+  third_proto.set_level(70);
+  third_proto.set_job(JOB_BERSERKER);
+  third_proto.set_job_stage(3);
+  CharacterInstance third(rng_, std::move(third_proto));
+  EXPECT_EQ(PanelExtraStatLines(third, {}).size(), 13u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {

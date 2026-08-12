@@ -394,6 +394,19 @@ TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {
   EXPECT_DOUBLE_EQ(offense.ied, 0.20);
 }
 
+// Boss damage from gear and from a passive are the same quantity from two
+// places, so they add -- unlike IED, which meets in reverse just below.
+TEST(OffenseStatsForTest, WornAndLearnedBossDamageAdd) {
+  EquipStats equipped;
+  equipped.set_boss_damage(30);
+  PassiveOffense passives;
+  passives.boss_pct = 0.10;
+  OffenseStats offense =
+      OffenseStatsFor(JOB_ROGUE, 1, AllocatedStats(), equipped,
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
+  EXPECT_DOUBLE_EQ(offense.boss_pct, 0.40);
+}
+
 TEST(OffenseStatsForTest, WornAndLearnedIedMeetInReverse) {
   EquipStats equipped;
   equipped.set_ignore_enemy_defense(30);
