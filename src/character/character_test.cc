@@ -470,11 +470,12 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_SNIPER}));
   EXPECT_EQ(JobChoicesForStage(JOB_ICE_LIGHTNING_WIZARD, 3),
             (std::vector<Job>{JOB_ICE_LIGHTNING_MAGE}));
-  // The rogue's 3rd jobs are not written, nor the magician's other two, so
-  // those lines stop at 2nd job.
+  EXPECT_EQ(JobChoicesForStage(JOB_FIRE_POISON_WIZARD, 3),
+            (std::vector<Job>{JOB_FIRE_POISON_MAGE}));
+  // The rogue's 3rd jobs are not written, nor the Cleric's, so those
+  // lines stop at 2nd job.
   EXPECT_TRUE(JobChoicesForStage(JOB_ASSASSIN, 3).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_CLERIC, 3).empty());
-  EXPECT_TRUE(JobChoicesForStage(JOB_FIRE_POISON_WIZARD, 3).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BERSERKER, 4).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
 }

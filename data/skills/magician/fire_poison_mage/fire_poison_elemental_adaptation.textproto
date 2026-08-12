@@ -1,0 +1,21 @@
+# GMS's veil blocks status conditions and recharges; what survives here is the
+# passive half printed under it, x% of each resistance at level x. The I/L
+# mage's is the same skill on the same ladder.
+#
+# Both levers are dead by design. Nothing in this game inflicts a status or
+# carries an element, so neither is ever read -- they are here to keep the
+# wiki's figures beside the skill, and the stats page shows them.
+name: "Elemental Adaptation"
+skill_order: 4
+description: "Permanently increases Status Resistance and Elemental Resistance."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_MAGE
+max_level: 20
+base {
+  status_resistance: 1
+  elemental_resistance: 0.01
+}
+per_level {
+  status_resistance: 1
+  elemental_resistance: 0.01
+}

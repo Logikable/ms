@@ -263,6 +263,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
     case JOB_FIRE_POISON_WIZARD:
     case JOB_CLERIC:
     case JOB_ICE_LIGHTNING_MAGE:
+    case JOB_FIRE_POISON_MAGE:
       // INT primary, LUK secondary.
       offense.primary = allocated.int_() + equipped.int_();
       offense.secondary = allocated.luk() + equipped.luk();
@@ -281,7 +282,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
   // as weapon attack, so it rides the same field.
   bool magic = job == JOB_MAGICIAN || job == JOB_ICE_LIGHTNING_WIZARD ||
                job == JOB_FIRE_POISON_WIZARD || job == JOB_CLERIC ||
-               job == JOB_ICE_LIGHTNING_MAGE;
+               job == JOB_ICE_LIGHTNING_MAGE || job == JOB_FIRE_POISON_MAGE;
   offense.attack = magic ? equipped.magic_attack() : equipped.attack();
   offense.boss_pct = equipped.boss_damage() / kPercentToFraction;
   offense.ied = CombineIgnoredDefense(

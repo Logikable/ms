@@ -1,0 +1,18 @@
+# GMS casts a fog that lasts a few seconds and ticks 120+6x% inside it. Here
+# the fog is simply always up, so the tick is the whole skill and the opening
+# hit is dropped with the duration.
+#
+# Six enemies against the pool's ten: GMS caps neither, and what separates them
+# is that one is a fog you stand in and the other spreads down the platform.
+name: "Poison Mist"
+skill_order: 2
+description:
+  "Surrounds you with a poisonous fog that deals poison damage to nearby "
+  "enemies on its own."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_MAGE
+max_level: 20
+max_enemies: 6
+cast_interval_seconds: 1.0
+base { skill_pct: 1.26 }
+per_level { skill_pct: 0.06 }

@@ -384,6 +384,8 @@ std::string JobName(Job job) {
       return "Sniper";
     case JOB_ICE_LIGHTNING_MAGE:
       return "Ice/Lightning Mage";
+    case JOB_FIRE_POISON_MAGE:
+      return "Fire/Poison Mage";
     default:
       return "Unknown";
   }
@@ -397,6 +399,8 @@ std::string ShortJobName(Job job) {
       return "F/P Wizard";
     case JOB_ICE_LIGHTNING_MAGE:
       return "I/L Mage";
+    case JOB_FIRE_POISON_MAGE:
+      return "F/P Mage";
     default:
       return JobName(job);
   }

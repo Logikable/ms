@@ -48,9 +48,11 @@ enum Job {
   JOB_WHITE_KNIGHT = 18;
   JOB_RANGER = 19;
   JOB_SNIPER = 20;
-  // The magician's 3rd advancements. Shown as "I/L Mage" wherever the full
-  // name will not fit, the same abbreviation the wizard below it takes.
+  // The magician's 3rd advancements. Shown as "I/L Mage" and "F/P Mage"
+  // wherever the full name will not fit, the same abbreviations the wizards
+  // below them take.
   JOB_ICE_LIGHTNING_MAGE = 21;
+  JOB_FIRE_POISON_MAGE = 22;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -80,6 +82,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_RANGER = 18;
   JOB_ADVANCEMENT_SNIPER = 19;
   JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE = 20;
+  JOB_ADVANCEMENT_FIRE_POISON_MAGE = 21;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

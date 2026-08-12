@@ -107,6 +107,8 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"dark_neschere", "true_shot"};
     case JOB_ICE_LIGHTNING_MAGE:
       return {"crimson_arcanon", "metallic_blue_book_epode"};
+    case JOB_FIRE_POISON_MAGE:
+      return {"crimson_arcanon", "rusty_book_epode"};
     default:
       return StarterEquipsFor(job);
   }
