@@ -542,6 +542,42 @@ TEST(ComputeCombatParamsTest, ASummonCutsDeeperIntoANormalMonsterToo) {
   }
 }
 
+// Creeping Toxin's shape: a summon that upgrades its own pulse rather than
+// another skill's swing, which is what an empty boosts_skill_name means.
+TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {
+  Skill toxin;
+  toxin.set_name("Creeping Toxin");
+  toxin.set_kind(SKILL_KIND_AUTO_ATTACK);
+  toxin.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  toxin.set_max_level(10);
+  toxin.set_max_enemies(10);
+  toxin.set_cast_interval_seconds(1.0);
+  toxin.mutable_base()->set_skill_pct(1.00);
+  EmpoweredForm* form = toxin.mutable_empowered_form();
+  form->set_casts_per_trigger(4);
+  form->set_max_enemies(10);
+  form->set_lines(4);
+  form->mutable_base()->set_skill_pct(2.00);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"creeping_toxin", toxin}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(toxin, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  const AttackOption& pulse = params.auto_attacks[0];
+  EXPECT_EQ(pulse.empowered_every, 4);
+  ASSERT_NE(pulse.empowered, nullptr);
+  // Eight times the pulse: twice the damage, four lines against the one.
+  EXPECT_DOUBLE_EQ(pulse.empowered->damage_per_hit[0],
+                   8.0 * pulse.damage_per_hit[0]);
+  // It stands in for a pulse, so it is paced by the summon's clock and never
+  // charged a swing of its own.
+  EXPECT_DOUBLE_EQ(pulse.empowered->swing_seconds, 0.0);
+}
+
 // A skill clocked by swings landed goes on its own list, not beside the ones
 // clocked by seconds: the fight has to count something for these and nothing
 // for those.

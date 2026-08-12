@@ -253,6 +253,24 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Empower"), std::string::npos);
 }
 
+// Creeping Toxin upgrades its own attack, so there is no name to print -- and
+// its form carries a normal-monster reading of its own beside the damage.
+TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {
+  Skill toxin = MakeIronBody();
+  EmpoweredForm* form = toxin.mutable_empowered_form();
+  form->set_casts_per_trigger(4);
+  form->set_lines(4);
+  form->mutable_base()->set_skill_pct(2.00);
+  form->mutable_base()->set_normal_skill_pct(0.50);
+
+  std::string rendered = RenderAt(toxin, 1);
+  EXPECT_NE(rendered.find("Every 4th attack"), std::string::npos);
+  EXPECT_NE(rendered.find("Empowered Damage  200% x4 = 800%"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Empowered Normal  250% x4 = 1000%"),
+            std::string::npos);
+}
+
 // Beam Blade's bonus against normal monsters adds to the swing per LINE, so
 // the row states the whole swing. Stated as the bonus alone it would read as
 // 216 + 72 against a swing that actually lands 432.

@@ -244,7 +244,10 @@ TEST(SkillDataTest, EveryEmpoweredFormSaysHowOftenAndForHowMuch) {
     if (!skill.has_empowered_form()) {
       continue;
     }
-    EXPECT_FALSE(skill.boosts_skill_name().empty())
+    // A form either names the skill it upgrades or upgrades the one carrying
+    // it -- and a passive has no attack of its own to upgrade, so it must name.
+    EXPECT_TRUE(!skill.boosts_skill_name().empty() ||
+                skill.kind() != SKILL_KIND_PASSIVE)
         << entry.first << "'s empowered form takes the place of nothing";
     EXPECT_GT(skill.empowered_form().casts_per_trigger(), 0)
         << entry.first << "'s empowered form would never be swung";

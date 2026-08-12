@@ -218,15 +218,21 @@ message AutoMode {
   int32 lines = 5;
 }
 
-// A stronger version of ANOTHER skill, swung in place of every Nth swing of
-// it. Empowered Arrows is the case it exists for: the Sniper's Piercing Arrow
-// is upgraded to an Empowered Piercing Arrow every fourth shot.
+// A stronger version of a skill's attack, landed in place of every Nth
+// ordinary one. Empowered Arrows is the case it exists for: the Sniper's
+// Piercing Arrow is upgraded to an Empowered Piercing Arrow every fourth shot.
 //
-// Which skill it takes the place of is Skill::boosts_skill_name, the same
-// field that names what the permanent half of the bonus lands on -- one skill
-// strengthening one other skill in two ways, not two relationships.
+// Which attack it takes the place of is Skill::boosts_skill_name -- the same
+// field that names what the permanent half of the bonus lands on, so one skill
+// strengthening one other skill is one relationship and not two. Leaving that
+// name EMPTY means the skill upgrades its own attack instead, which is how the
+// F/P Mage's Creeping Toxin detonates the pool it is already spreading.
 //
-// It replaces the swing rather than adding to it, so four swings are three
+// Either clock will carry it. A form on a swing is landed in place of a swing;
+// a form on a summon is landed in place of a pulse, and takes that pulse's
+// place in the summon's interval rather than getting one of its own.
+//
+// It replaces the attack rather than adding to it, so four landings are three
 // ordinary ones and one of these, never four and a fifth. Read at the same
 // learned level as the skill carrying it.
 message EmpoweredForm {
@@ -389,13 +395,16 @@ message Skill {
   // Read with SkillEffect::attack_per_combo_orb, and meaningless without it.
   int32 combo_orbs = 102;
   // The Ranger's. Another skill this one strengthens, by display name. What it
-  // adds is SkillEffect::boosted_skill_pct, and this is meaningless without
-  // it: Speed Mirage empowers Wind Arrow, and nothing else in the game reaches
-  // across to a second skill by name.
+  // adds is SkillEffect::boosted_skill_pct, or an empowered_form below, or
+  // both -- Speed Mirage empowers Wind Arrow, and nothing else in the game
+  // reaches across to a second skill by name.
   //
   // The name rather than a tag, because the grant is to one skill rather than
   // to a family -- follows_skill_tag is the other shape, and the right one
   // whenever more than one swing is meant.
+  //
+  // Empty on a skill carrying an empowered_form means that form upgrades this
+  // skill's own attack. See EmpoweredForm.
   string boosts_skill_name = 103;
   // The Ranger's. What this skill also does on its own clock, beside being the
   // swing it already is. See AutoMode.

@@ -322,14 +322,18 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Fires Every", std::to_string(skill.attacks_per_cast()) + " Attacks"));
   }
-  // A skill that upgrades another's swing says which swing and how often. Its
-  // reach is stated too, unlike a turret's: this one is wider than the swing
-  // it stands in for, so leaving it out would understate the upgrade.
+  // A skill that upgrades an attack says which attack and how often. Its reach
+  // is stated too, unlike a turret's: this one is wider than the attack it
+  // stands in for, so leaving it out would understate the upgrade. An empty
+  // name is the skill upgrading its own attack, which has no name to give.
   if (skill.empowered_form().casts_per_trigger() > 0) {
+    std::string upgraded = skill.boosts_skill_name().empty()
+                               ? "attack"
+                               : skill.boosts_skill_name();
     for (ftxui::Element& row : WrappedEffectRows(
              "Empowers",
              "Every " + Ordinal(skill.empowered_form().casts_per_trigger()) +
-                 " " + skill.boosts_skill_name())) {
+                 " " + upgraded)) {
       rows.push_back(std::move(row));
     }
     if (skill.empowered_form().max_enemies() > 1) {
@@ -488,15 +492,22 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
                       skill.auto_mode().per_level().skill_pct() * (level - 1),
                   skill.auto_mode().lines())));
   }
-  // The upgraded swing's damage, beside the permanent bonus below it: one
+  // The upgraded attack's damage, beside the permanent bonus below it: one
   // skill that strengthens another twice over, so both halves read together.
+  // Its own normal-monster reading follows, for the same reason the ordinary
+  // attack's does -- two numbers for the swing above, two for this one.
   if (skill.empowered_form().casts_per_trigger() > 0) {
-    rows.push_back(EffectRow(
-        "Empowered Damage",
-        SwingText(
-            skill.empowered_form().base().skill_pct() +
-                skill.empowered_form().per_level().skill_pct() * (level - 1),
-            skill.empowered_form().lines())));
+    const EmpoweredForm& form = skill.empowered_form();
+    double per_hit =
+        form.base().skill_pct() + form.per_level().skill_pct() * (level - 1);
+    rows.push_back(
+        EffectRow("Empowered Damage", SwingText(per_hit, form.lines())));
+    double normal = form.base().normal_skill_pct() +
+                    form.per_level().normal_skill_pct() * (level - 1);
+    if (normal > 0.0) {
+      rows.push_back(EffectRow("Empowered Normal",
+                               SwingText(per_hit + normal, form.lines())));
+    }
   }
   // What this skill hands another one. Named in the value rather than used as
   // the label, so a long skill name wraps instead of being cut to the label

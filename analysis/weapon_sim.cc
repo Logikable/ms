@@ -405,10 +405,20 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // worth exactly the share of the swings it actually gets. Scaled back to 1x.
   result.dps = played.damage * speed / played.seconds;
   // Skills on their own clock land beside the swing rather than instead of it.
+  // A pulse with an empowered form lands it once in every N, so what the summon
+  // is worth per pulse is the average of the two -- the same reading
+  // CombatSim::SwingDamage takes of a swing that has one.
   for (const AttackOption& extra : params.auto_attacks) {
-    if (!extra.damage_per_hit.empty() && extra.interval_seconds > 0.0) {
-      result.dps += extra.damage_per_hit[0] / (extra.interval_seconds / speed);
+    if (extra.damage_per_hit.empty() || extra.interval_seconds <= 0.0) {
+      continue;
     }
+    double per_pulse = extra.damage_per_hit[0];
+    if (extra.empowered != nullptr && extra.empowered_every > 0 &&
+        !extra.empowered->damage_per_hit.empty()) {
+      per_pulse += (extra.empowered->damage_per_hit[0] - per_pulse) /
+                   extra.empowered_every;
+    }
+    result.dps += per_pulse / (extra.interval_seconds / speed);
   }
   // And the ones clocked by swings landed. How often they go off depends on
   // the swing feeding them: a rapid attack counting a seventh apiece is worth

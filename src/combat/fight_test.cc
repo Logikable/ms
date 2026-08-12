@@ -1458,6 +1458,48 @@ TEST(CombatSimTest, LandsAnEmpoweredSwingOnceEveryNth) {
       << "and the count starts again from the fifth";
 }
 
+// Creeping Toxin: the pool ticks away, and every fourth tick detonates instead.
+// The same swap on the other clock, counted in pulses rather than swings.
+TEST(CombatSimTest, LandsAnEmpoweredPulseOnceEveryNth) {
+  Mob snail = MakeMob("Snail", 20);
+  CombatSim sim;
+  // A swing worth nothing, so only the summon moves the bar.
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/1.0);
+  SetEmpoweredForm(params.auto_attacks[0], /*every=*/4, /*damage=*/8.0);
+
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.85, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.45, 1e-9)
+      << "the fourth pulse detonates instead of ticking";
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.40, 1e-9)
+      << "and the count starts again from the fifth";
+}
+
+// The two clocks count apart. A swing landing its empowered form must not
+// bring the summon's round forward, or the Sniper's Piercing Arrow would set
+// off a pool it has nothing to do with.
+TEST(CombatSimTest, EachClockCountsItsOwnEmpoweredRound) {
+  Mob snail = MakeMob("Snail", 20);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  SetEmpoweredForm(params.attacks[0], /*every=*/2, /*damage=*/3.0);
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/1.0);
+  SetEmpoweredForm(params.auto_attacks[0], /*every=*/4, /*damage=*/40.0);
+
+  // Three seconds in: the swing has landed its form once, on the second of
+  // three, for 1 + 3 + 1. The summon has pulsed three times and must still be
+  // waiting for its fourth, so all three are worth 1.
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.60, 1e-9);
+}
+
 // It takes the PLACE of the swing rather than riding on top of it: four swings
 // are three ordinary ones and one empowered, never four and a fifth.
 TEST(CombatSimTest, AnEmpoweredSwingReplacesTheOneItLandsFor) {

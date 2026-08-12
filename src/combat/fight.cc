@@ -207,19 +207,19 @@ void CombatSim::Strike(const AttackOption& attack) {
   queue_ = std::move(survivors);
 }
 
-const AttackOption& CombatSim::SwingToLand(const CombatParams& params,
-                                           int index,
-                                           const AttackOption& attack) {
-  empowered_count_.resize(params.attacks.size(), 0);
+const AttackOption& CombatSim::FormToLand(std::vector<int>& counts, int size,
+                                          int index,
+                                          const AttackOption& attack) {
+  counts.resize(size, 0);
   if (attack.empowered == nullptr || attack.empowered_every <= 0 || index < 0) {
     return attack;
   }
-  // Counted before the test, so a period of four is three ordinary swings and
-  // then this one -- not this one first and three after.
-  if (++empowered_count_[index] < attack.empowered_every) {
+  // Counted before the test, so a period of four is three ordinary landings
+  // and then this one -- not this one first and three after.
+  if (++counts[index] < attack.empowered_every) {
     return attack;
   }
-  empowered_count_[index] = 0;
+  counts[index] = 0;
   return *attack.empowered;
 }
 
@@ -257,6 +257,7 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   attack_phase_ = 0.0;
   hit_phase_ = 0.0;
   auto_phase_.assign(params.auto_attacks.size(), 0.0);
+  auto_empowered_count_.assign(params.auto_attacks.size(), 0);
   cooldown_left_.assign(params.attacks.size(), 0.0);
   // Another map's attacks were another map's indices, and nothing here is
   // part-way through a swing at it any more.
@@ -339,7 +340,8 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     auto_phase_[i] += dt;
     if (auto_phase_[i] >= cast.interval_seconds) {
       auto_phase_[i] -= cast.interval_seconds;
-      Strike(cast);
+      Strike(FormToLand(auto_empowered_count_,
+                        static_cast<int>(params.auto_attacks.size()), i, cast));
     }
   }
 }
@@ -404,7 +406,8 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
         std::min(static_cast<double>(params.max_player_hp),
                  player_hp_ + attack->heal_fraction * params.max_player_hp);
   } else {
-    Strike(SwingToLand(params, swung, *attack));
+    Strike(FormToLand(empowered_count_, static_cast<int>(params.attacks.size()),
+                      swung, *attack));
     // Recovery rides the hit, so a cast does not earn it and neither does a
     // swing at nothing.
     player_hp_ =

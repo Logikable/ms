@@ -229,9 +229,43 @@ Skill EmpoweredSkill(const Skill& skill, const std::string& target) {
   return form;
 }
 
-// Attaches each attack's empowered form to it, once every attack is built. A
-// second pass because the skill carrying the form is a passive that names its
-// target by display name, so the target may not have been reached yet.
+// Attaches `skill`'s empowered form to every attack in `into` that it upgrades.
+// The form takes the place of the attack it lands for, so it inherits the
+// attack's pacing: an animation for a swing, nothing at all for a summon, which
+// is paced by the clock the pulse it replaced would have run on.
+void AttachEmpoweredForms(const GameState& state, const EquipStats& equipped,
+                          EquipType weapon_type, const Skill& skill,
+                          int learned, const DerivedStats& derived,
+                          int attack_speed, double speed_factor,
+                          CombatParams& params,
+                          std::vector<AttackOption>& into) {
+  // An empty name means the skill upgrades its own attack rather than another
+  // skill's -- Creeping Toxin detonating its own pool.
+  std::string target = skill.boosts_skill_name().empty()
+                           ? skill.name()
+                           : skill.boosts_skill_name();
+  for (AttackOption& attack : into) {
+    if (attack.name != target) {
+      continue;
+    }
+    Skill form = EmpoweredSkill(skill, attack.name);
+    std::shared_ptr<AttackOption> swing = std::make_shared<AttackOption>(
+        AttackFor(state.character.proto(), equipped, weapon_type, &form,
+                  learned, params.types, derived, attack_speed, speed_factor));
+    swing->swing_seconds = attack.swing_seconds;
+    // Final Attack follows the character's swing, and a summon's pulse is not
+    // one -- so a form standing in for a pulse must not carry one either.
+    if (attack.interval_seconds > 0.0) {
+      swing->final_attack_damage.clear();
+    }
+    attack.empowered_every = skill.empowered_form().casts_per_trigger();
+    attack.empowered = swing;
+  }
+}
+
+// Attaches every empowered form, once every attack is built. A second pass
+// because the skill carrying the form may be a passive naming its target by
+// display name, so the target may not have been reached yet.
 void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
                        EquipType weapon_type, const DerivedStats& derived,
                        int attack_speed, double speed_factor,
@@ -246,21 +280,11 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
     if (learned <= 0) {
       continue;
     }
-    for (AttackOption& attack : params.attacks) {
-      if (attack.name != skill.boosts_skill_name()) {
-        continue;
-      }
-      Skill form = EmpoweredSkill(skill, attack.name);
-      std::shared_ptr<AttackOption> swing =
-          std::make_shared<AttackOption>(AttackFor(
-              state.character.proto(), equipped, weapon_type, &form, learned,
-              params.types, derived, attack_speed, speed_factor));
-      // It stands in for the swing, so it takes the swing's time: the form
-      // carries damage and reach of its own, but no animation.
-      swing->swing_seconds = attack.swing_seconds;
-      attack.empowered_every = skill.empowered_form().casts_per_trigger();
-      attack.empowered = swing;
-    }
+    AttachEmpoweredForms(state, equipped, weapon_type, skill, learned, derived,
+                         attack_speed, speed_factor, params, params.attacks);
+    AttachEmpoweredForms(state, equipped, weapon_type, skill, learned, derived,
+                         attack_speed, speed_factor, params,
+                         params.auto_attacks);
   }
 }
 
