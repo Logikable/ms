@@ -1,0 +1,11 @@
+# GMS buys the damage with MP the spells then cost more of. Nothing here
+# spends MP, so the bargain is one-sided: 5x% damage, the biggest single lever
+# in the book.
+name: "Element Amplification"
+skill_order: 8
+description: "Permanently increases the Damage of your magic skills."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+max_level: 10
+base { damage_pct: 0.05 }
+per_level { damage_pct: 0.05 }

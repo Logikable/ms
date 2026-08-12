@@ -1,0 +1,18 @@
+# GMS's own figures: 175+8x% four times over 20 levels, on eight enemies. The
+# freeze is dropped, as every freeze in this game is, and with it the cooldown
+# the pair below it carries -- nothing has to be kept alive for this one.
+#
+# 810ms is Cold Beam's and Thunder Bolt's. No source gives this skill an
+# animation length, and it takes over from that pair.
+name: "Ice Strike"
+skill_order: 1
+description:
+  "Create an ice-attribute explosion near you that attacks nearby enemies."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+max_level: 20
+base_delay_ms: 810
+max_enemies: 8
+lines: 4
+base { skill_pct: 1.83 }
+per_level { skill_pct: 0.08 }

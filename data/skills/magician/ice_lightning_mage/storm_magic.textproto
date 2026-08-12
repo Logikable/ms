@@ -1,0 +1,11 @@
+# GMS pays this out only against enemies already burning, frozen or stunned.
+# Nothing here suffers any of that, so it is flat, and it keeps GMS's 10+x%
+# ladder as the flat one: 11% up to 20%.
+name: "Storm Magic"
+skill_order: 7
+description: "Permanently increases the Final Damage of every spell you cast."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+max_level: 10
+base { final_dmg_pct: 0.11 }
+per_level { final_dmg_pct: 0.01 }

@@ -1,0 +1,11 @@
+# GMS pays this out on frozen enemies only, and stacks it. Nothing here
+# freezes, so it is simply always on: half a point of enemy DEF ignored per
+# level, ending at the ten points GMS's four stacks come to.
+name: "Shatter"
+skill_order: 4
+description: "Ignores a portion of enemy DEF when you attack."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+max_level: 20
+base { ied_pct: 0.005 }
+per_level { ied_pct: 0.005 }

@@ -1,0 +1,15 @@
+# GMS's figures exactly: 10+2x% critical rate and 5+x% critical damage.
+name: "Magic Critical"
+skill_order: 6
+description: "Permanently increases Critical Rate and Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+max_level: 10
+base {
+  crit_rate: 0.12
+  crit_dmg: 0.06
+}
+per_level {
+  crit_rate: 0.02
+  crit_dmg: 0.01
+}

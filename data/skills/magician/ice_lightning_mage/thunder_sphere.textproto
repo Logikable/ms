@@ -1,0 +1,29 @@
+# A summon rather than a swing: the orb hangs there and discharges by itself,
+# so the wizard casts Ice Strike the whole time. GMS's 196+5x% three times on
+# six enemies, and its normal-enemy bonus of 70+5x percentage POINTS per line
+# -- Beam Blade's lever, and since nothing here is a boss it always lands.
+#
+# Two seconds is ours. The wiki gives the orb a summon duration and no rate,
+# and the Korean DPM calculator models the 4th job's Lightning Spear instead.
+# GMS's orb discharges about once a second, which would out-damage the wizard
+# casting it; at two it is worth about 40% of the swing beside it.
+name: "Thunder Sphere"
+skill_order: 2
+description:
+  "Summons an orb of condensed lightning that discharges a high-voltage "
+  "current at nearby enemies on its own. It cuts deeper into anything that is "
+  "not a boss."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
+max_level: 20
+max_enemies: 6
+lines: 3
+cast_interval_seconds: 2.0
+base {
+  skill_pct: 2.01
+  normal_skill_pct: 0.75
+}
+per_level {
+  skill_pct: 0.05
+  normal_skill_pct: 0.05
+}
