@@ -466,6 +466,17 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   if (IsActive(skill) && PercentAt(skill, &SkillEffect::skill_pct, level) > 0) {
     rows.push_back(EffectRow("Damage", DamageText(skill, level)));
   }
+  // A fountain states both halves. Neither alone says what a point bought:
+  // the pulse grows and the wait between pulses shortens together, so a page
+  // showing only the pulse would understate every point after the first.
+  double regen = PercentAt(skill, &SkillEffect::regen_pct, level);
+  double regen_interval =
+      PercentAt(skill, &SkillEffect::regen_interval_seconds, level);
+  if (regen > 0.0 && regen_interval > 0.0) {
+    rows.push_back(EffectRow("HP Recovered", FormatPercent(regen)));
+    rows.push_back(
+        EffectRow("Heals Every", FormatNumber(regen_interval) + "s"));
+  }
   // Straight under the damage it is the other reading of, so the two totals
   // stand one over the other.
   std::string normal = NormalMonsterText(skill, level);

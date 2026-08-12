@@ -73,6 +73,7 @@ struct PassiveTotals {
   double mastery = 0.0;
   double hp_recover_pct = 0.0;
   double exp_pct = 0.0;
+  double regen_pct_per_second = 0.0;
   double status_resistance = 0.0;
   double elemental_resistance = 0.0;
   // Keyed by the swings it follows: two sources that follow the same swings
@@ -136,6 +137,14 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.hp_recover_pct +=
       base.hp_recover_pct() + per.hp_recover_pct() * (level - 1);
   totals.exp_pct += base.exp_pct() + per.exp_pct() * (level - 1);
+  // What reaches the fight is the rate, so the pulse and its interval are read
+  // together here and never separately.
+  double regen_interval = base.regen_interval_seconds() +
+                          per.regen_interval_seconds() * (level - 1);
+  if (regen_interval > 0.0) {
+    totals.regen_pct_per_second +=
+        (base.regen_pct() + per.regen_pct() * (level - 1)) / regen_interval;
+  }
   totals.status_resistance +=
       base.status_resistance() + per.status_resistance() * (level - 1);
   totals.elemental_resistance +=
@@ -343,6 +352,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.crit_dmg = passives.crit_dmg;
   stats.hp_recover_pct = passives.hp_recover_pct;
   stats.exp_pct = passives.exp_pct;
+  stats.regen_pct_per_second = passives.regen_pct_per_second;
   stats.status_resistance = passives.status_resistance;
   stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;

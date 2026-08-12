@@ -66,6 +66,10 @@ struct DerivedStats {
   // Extra EXP every kill yields, summed. Unlike everything else here it is
   // read outside a fight -- see AwardCombatRewards.
   double exp_pct = 0.0;
+  // Share of the HP pool a fountain puts back every second: one pulse divided
+  // by how far apart the pulses are, summed across whatever grants it. Costs
+  // no swing and needs no hit, unlike hp_recover_pct above.
+  double regen_pct_per_second = 0.0;
   // Resistance to abnormal statuses and to elemental damage. Nothing inflicts
   // either, so these reach the stats page and go no further.
   double status_resistance = 0.0;

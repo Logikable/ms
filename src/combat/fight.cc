@@ -493,6 +493,11 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
 
   RespawnBeat(params, dt);
   TakeMobHit(params, dt);
+  // After the hit and before the swing, so a fountain is worth something on
+  // the step it was needed rather than only on the next one.
+  player_hp_ = std::min(
+      static_cast<double>(params.max_player_hp),
+      player_hp_ + params.regen_pct_per_second * params.max_player_hp * dt);
   RunAutoCasts(params, dt);
   RunCooldowns(params, dt);
   RunSwing(params, dt);

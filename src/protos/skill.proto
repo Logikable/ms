@@ -202,6 +202,16 @@ message SkillEffect {
   // granting it, and the only lever in the game that pays in something other
   // than a fight -- what it buys is the time to the next level.
   double exp_pct = 113;
+  // The Priest's. Share of the HP pool one pulse of a fountain puts back, and
+  // how many seconds apart the pulses are. Both are read together and only
+  // together: what reaches the fight is the rate, so two sources would add
+  // their rates rather than their pulses.
+  //
+  // Unlike heal_pct this costs no swing and asks for nothing -- the fountain
+  // stands there whether the character is winning or losing. The interval
+  // climbs the ladder downwards, so per_level is negative.
+  double regen_pct = 114;
+  double regen_interval_seconds = 115;
   double status_resistance = 106;
   double elemental_resistance = 107;
 }

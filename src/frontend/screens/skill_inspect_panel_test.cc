@@ -253,6 +253,27 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Empower"), std::string::npos);
 }
 
+// Holy Fountain: the pulse and the wait between pulses both move with the
+// level, so a page showing one of them says nothing about what a point bought.
+TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAFountain) {
+  Skill fountain = MakeIronBody();
+  fountain.mutable_base()->set_regen_pct(0.13);
+  fountain.mutable_per_level()->set_regen_pct(0.03);
+  fountain.mutable_base()->set_regen_interval_seconds(7.5);
+  fountain.mutable_per_level()->set_regen_interval_seconds(-0.5);
+
+  std::string rendered = RenderAt(fountain, 1);
+  EXPECT_NE(rendered.find("HP Recovered      13%"), std::string::npos);
+  EXPECT_NE(rendered.find("Heals Every       7.5s"), std::string::npos);
+
+  std::string maxed = RenderAt(fountain, 10);
+  EXPECT_NE(maxed.find("HP Recovered      40%"), std::string::npos);
+  EXPECT_NE(maxed.find("Heals Every       3s"), std::string::npos);
+  // A skill with no fountain says nothing about one.
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Heals Every"),
+            std::string::npos);
+}
+
 // Creeping Toxin upgrades its own attack, so there is no name to print -- and
 // its form carries a normal-monster reading of its own beside the damage.
 TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {

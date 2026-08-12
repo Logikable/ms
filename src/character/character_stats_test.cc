@@ -1102,6 +1102,46 @@ TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredDefenceCombineInReverse) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 1.0 - 0.75 * 0.60, 1e-9);
 }
 
+// Holy Fountain states a pulse and a wait. What the fight can use is neither
+// on its own -- both halves move with the level, and only their quotient says
+// what a point bought.
+TEST_F(DerivedStatsTest, AFountainFoldsToARatePerSecond) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill fountain;
+  fountain.set_name("Holy Fountain");
+  fountain.set_kind(SKILL_KIND_PASSIVE);
+  fountain.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  fountain.set_max_level(10);
+  fountain.mutable_base()->set_regen_pct(0.13);
+  fountain.mutable_per_level()->set_regen_pct(0.03);
+  fountain.mutable_base()->set_regen_interval_seconds(7.5);
+  fountain.mutable_per_level()->set_regen_interval_seconds(-0.5);
+  std::map<std::string, Skill> skills = {{"holy_fountain", fountain}};
+
+  ASSERT_TRUE(c.LearnSkill(fountain, 1));
+  EXPECT_NEAR(DerivedStatsFor(c, skills).regen_pct_per_second, 0.13 / 7.5,
+              1e-9);
+  ASSERT_TRUE(c.LearnSkill(fountain, 9));  // up to its master level
+  EXPECT_NEAR(DerivedStatsFor(c, skills).regen_pct_per_second, 0.40 / 3.0,
+              1e-9);
+}
+
+// A fountain with no wait between its pulses would divide by nothing, so it
+// grants nothing rather than an infinity.
+TEST_F(DerivedStatsTest, AFountainWithNoIntervalGrantsNothing) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill fountain;
+  fountain.set_name("Holy Fountain");
+  fountain.set_kind(SKILL_KIND_PASSIVE);
+  fountain.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  fountain.set_max_level(10);
+  fountain.mutable_base()->set_regen_pct(0.13);
+  std::map<std::string, Skill> skills = {{"holy_fountain", fountain}};
+  ASSERT_TRUE(c.LearnSkill(fountain, 1));
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).regen_pct_per_second, 0.0);
+}
+
 // High Wisdom grants the magician's own stat. It reaches the stat line like
 // any other stat, and buys no DEF -- which is the rule for INT wherever it
 // comes from.

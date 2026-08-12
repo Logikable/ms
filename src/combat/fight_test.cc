@@ -740,6 +740,34 @@ TEST(CombatSimTest, TheEngagedMobHitsBackOnItsOwnClock) {
   EXPECT_EQ(sim.player_hp(), 80);
 }
 
+// Holy Fountain: healing on a clock of its own, costing no swing and asking
+// for no hit. It runs against the damage coming in rather than instead of it.
+TEST(CombatSimTest, AFountainHealsWhileTheMobIsStillHitting) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  params.regen_pct_per_second = 0.04;  // 4 HP a second against 10 a hit
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 94);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 88);
+}
+
+// It stops at the pool rather than running past it, the way every other heal
+// here does.
+TEST(CombatSimTest, AFountainNeverFillsPastTheHpPool) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1000.0, /*damage=*/10.0);
+  params.regen_pct_per_second = 0.50;
+
+  sim.Advance(params, 10.0);
+  EXPECT_EQ(sim.player_hp(), 100);
+}
+
 TEST(CombatSimTest, OnlyOneMobHitsBackHoweverManyAreOnTheMap) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;

@@ -382,6 +382,9 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.damage_reflect_pct = derived.damage_reflect_pct;
   params.hp_recover_pct = derived.hp_recover_pct;
   params.exp_pct = derived.exp_pct;
+  // The band stretches the interval between pulses, so it thins the rate.
+  params.regen_pct_per_second =
+      speed_factor > 0.0 ? derived.regen_pct_per_second / speed_factor : 0.0;
 
   // What the character brings to being hit is the same whichever mob is
   // hitting them, so it is resolved once and asked per type.
