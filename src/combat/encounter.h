@@ -107,6 +107,10 @@ struct CombatParams {
   // attack. Costs no swing, so it stacks with the beat heal rather than
   // replacing it, and pays nothing on an empty map -- there is nothing to hit.
   double hp_recover_pct = 0.0;
+  // Extra EXP every kill yields, as a fraction of what the mob was worth. Read
+  // by AwardCombatRewards rather than by the fight -- Holy Symbol is the one
+  // skill whose payment is not made in the fight it was cast in.
+  double exp_pct = 0.0;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

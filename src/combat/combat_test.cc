@@ -259,6 +259,43 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   EXPECT_EQ(boosted.character.meso(), plain.character.meso());
 }
 
+// Holy Symbol: the one skill paid out in EXP rather than in the fight. Meso
+// and drops are untouched, the same bargain the debug multiplier makes.
+TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
+  Skill symbol;
+  symbol.set_name("Holy Symbol");
+  symbol.set_kind(SKILL_KIND_PASSIVE);
+  symbol.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  symbol.set_max_level(1);
+  symbol.mutable_base()->set_exp_pct(1.0);
+
+  GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}},
+                  {{"holy_symbol", symbol}});
+  plain.current_map = "field";
+  LevelTo(plain, kTrialLevelCap - 1);
+  EquipSword(plain);
+  plain.character.AdvanceJob(JOB_SWORDMAN);
+  Farm(plain, 600.0);
+
+  GameState blessed({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                    {{"snail", SnailMob()}}, {{"field", OneSnailMap()}},
+                    {{"holy_symbol", symbol}});
+  blessed.current_map = "field";
+  LevelTo(blessed, kTrialLevelCap - 1);
+  EquipSword(blessed);
+  // The skill is a Swordman's, so its book has to be open before its one
+  // point can be spent.
+  ASSERT_TRUE(blessed.character.CanAdvanceJob());
+  blessed.character.AdvanceJob(JOB_SWORDMAN);
+  ASSERT_TRUE(blessed.character.LearnSkill(symbol, 1));
+  Farm(blessed, 600.0);
+
+  ASSERT_GT(plain.character.proto().exp(), 0);
+  EXPECT_EQ(blessed.character.proto().exp(), 2 * plain.character.proto().exp());
+  EXPECT_EQ(blessed.character.meso(), plain.character.meso());
+}
+
 // Farms `state` until the ogre kills the character, or gives up after a
 // generous stretch. Returns whether they died.
 bool FarmUntilDeath(GameState& state) {

@@ -72,6 +72,7 @@ struct PassiveTotals {
   double crit_dmg = 0.0;
   double mastery = 0.0;
   double hp_recover_pct = 0.0;
+  double exp_pct = 0.0;
   double status_resistance = 0.0;
   double elemental_resistance = 0.0;
   // Keyed by the swings it follows: two sources that follow the same swings
@@ -134,6 +135,7 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.crit_dmg += base.crit_dmg() + per.crit_dmg() * (level - 1);
   totals.hp_recover_pct +=
       base.hp_recover_pct() + per.hp_recover_pct() * (level - 1);
+  totals.exp_pct += base.exp_pct() + per.exp_pct() * (level - 1);
   totals.status_resistance +=
       base.status_resistance() + per.status_resistance() * (level - 1);
   totals.elemental_resistance +=
@@ -340,6 +342,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.crit_rate = passives.crit_rate;
   stats.crit_dmg = passives.crit_dmg;
   stats.hp_recover_pct = passives.hp_recover_pct;
+  stats.exp_pct = passives.exp_pct;
   stats.status_resistance = passives.status_resistance;
   stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;

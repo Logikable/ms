@@ -63,6 +63,9 @@ struct DerivedStats {
   // Expected share of the HP pool a landed swing puts back. Costs no swing,
   // unlike a healing cast -- the fight adds it after the hit lands.
   double hp_recover_pct = 0.0;
+  // Extra EXP every kill yields, summed. Unlike everything else here it is
+  // read outside a fight -- see AwardCombatRewards.
+  double exp_pct = 0.0;
   // Resistance to abnormal statuses and to elemental damage. Nothing inflicts
   // either, so these reach the stats page and go no further.
   double status_resistance = 0.0;

@@ -56,7 +56,11 @@ void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
     }
   }
   if (exp_gained > 0) {
-    character.AddExp(exp_gained * state.exp_multiplier);
+    // Holy Symbol's share lands here rather than in the fight: what it buys is
+    // the climb, not the swing. Truncated, so a kill worth 1 EXP with a 50%
+    // bonus is still worth 1 -- the same rounding every other reward takes.
+    character.AddExp(static_cast<int64_t>(exp_gained * (1.0 + params.exp_pct)) *
+                     state.exp_multiplier);
   }
   if (sim.died_this_step()) {
     // Dying costs the trip home and nothing else -- no EXP, no meso. The

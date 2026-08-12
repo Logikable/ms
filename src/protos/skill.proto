@@ -197,6 +197,11 @@ message SkillEffect {
   // game inflicts a status or an element, so nothing reads either -- they are
   // here to keep the wiki's figures with the skill, and the stats page shows
   // them so the player can see what they bought.
+  // The Priest's. Extra EXP every kill yields, as a fraction of what the mob
+  // was already worth (0.50 == half again). Summed across the passives
+  // granting it, and the only lever in the game that pays in something other
+  // than a fight -- what it buys is the time to the next level.
+  double exp_pct = 113;
   double status_resistance = 106;
   double elemental_resistance = 107;
 }
