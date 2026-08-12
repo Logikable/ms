@@ -124,6 +124,7 @@ LevelUpGain LevelUpGainFor(Job job) {
     case JOB_CLERIC:
     case JOB_ICE_LIGHTNING_MAGE:
     case JOB_FIRE_POISON_MAGE:
+    case JOB_PRIEST:
       return {12, 48};
     default:
       return {36, 24};
@@ -154,6 +155,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_CLERIC:
     case JOB_ICE_LIGHTNING_MAGE:
     case JOB_FIRE_POISON_MAGE:
+    case JOB_PRIEST:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -239,6 +241,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_CLERIC:
       case JOB_ICE_LIGHTNING_MAGE:
       case JOB_FIRE_POISON_MAGE:
+      case JOB_PRIEST:
         return JOB_ADVANCEMENT_MAGICIAN;
       case JOB_ROGUE:
       case JOB_ASSASSIN:
@@ -272,6 +275,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_FIRE_POISON_MAGE:
         return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
       case JOB_CLERIC:
+      case JOB_PRIEST:
         return JOB_ADVANCEMENT_CLERIC;
       case JOB_ASSASSIN:
         return JOB_ADVANCEMENT_ASSASSIN;
@@ -297,6 +301,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE;
       case JOB_FIRE_POISON_MAGE:
         return JOB_ADVANCEMENT_FIRE_POISON_MAGE;
+      case JOB_PRIEST:
+        return JOB_ADVANCEMENT_PRIEST;
       default:
         break;
     }
@@ -348,6 +354,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_ICE_LIGHTNING_MAGE;
     case JOB_ADVANCEMENT_FIRE_POISON_MAGE:
       return JOB_FIRE_POISON_MAGE;
+    case JOB_ADVANCEMENT_PRIEST:
+      return JOB_PRIEST;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -453,6 +461,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_CLERIC:
     case JOB_ICE_LIGHTNING_MAGE:
     case JOB_FIRE_POISON_MAGE:
+    case JOB_PRIEST:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -507,6 +516,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 3 && job == JOB_FIRE_POISON_WIZARD) {
     return {JOB_FIRE_POISON_MAGE};
   }
+  if (stage == 3 && job == JOB_CLERIC) {
+    return {JOB_PRIEST};
+  }
   return {};
 }
 
@@ -535,6 +547,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_SNIPER:
     case JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE:
     case JOB_ADVANCEMENT_FIRE_POISON_MAGE:
+    case JOB_ADVANCEMENT_PRIEST:
       return 3;
     default:
       return 0;

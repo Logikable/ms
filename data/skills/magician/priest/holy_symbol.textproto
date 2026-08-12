@@ -1,0 +1,14 @@
+# GMS's 20+ceil(3x)/2 %, which runs from 21.5% at level 1 to 50% at 20 -- a
+# clean point and a half a level. The party half and the duration are dropped:
+# there is one character here and nothing to re-cast.
+#
+# The only lever in the game paid out somewhere other than a fight. What it
+# buys is the climb.
+name: "Holy Symbol"
+skill_order: 6
+description: "Permanently increases the EXP you gain from every kill."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PRIEST
+max_level: 20
+base { exp_pct: 0.215 }
+per_level { exp_pct: 0.015 }

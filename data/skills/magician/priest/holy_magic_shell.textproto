@@ -1,0 +1,15 @@
+# GMS's 30+x% of the pool, and GMS's ninety-second cooldown. The shield half is
+# dropped: nothing here counts blocked hits.
+#
+# Cast in place of a swing, and only when badly hurt -- which the Priest may
+# never be. It is insurance rather than a rotation.
+name: "Holy Magic Shell"
+skill_order: 2
+description: "Restores a percentage of your HP."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_PRIEST
+max_level: 20
+base_delay_ms: 870
+cooldown_seconds: 90.0
+base { heal_pct: 0.31 }
+per_level { heal_pct: 0.01 }

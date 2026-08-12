@@ -1,0 +1,10 @@
+# Grants nothing, and is meant to. Nothing in this game inflicts an abnormal
+# condition, so there is none to lift -- the skill is here because the boss
+# that needs it and the Vengeance form that answers it are both still to come.
+name: "Dispel"
+skill_order: 4
+description: "Removes the abnormal conditions afflicting you."
+kind: SKILL_KIND_PASSIVE
+tags: SKILL_TAG_BENEVOLENCE
+job_advancement: JOB_ADVANCEMENT_PRIEST
+max_level: 10

@@ -1,0 +1,17 @@
+# GMS's own figures: 154+5x% four times over 20 levels, on six enemies. The
+# stun is dropped, as every stun in this game is.
+#
+# 840ms is Holy Arrow's, the swing this takes over from -- no source gives this
+# skill an animation length of its own.
+name: "Shining Ray"
+skill_order: 1
+description:
+  "Attack multiple enemies at once with a ray of holy light."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_PRIEST
+max_level: 20
+base_delay_ms: 870
+max_enemies: 6
+lines: 4
+base { skill_pct: 1.59 }
+per_level { skill_pct: 0.05 }

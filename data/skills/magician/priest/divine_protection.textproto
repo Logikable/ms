@@ -1,0 +1,20 @@
+# GMS's barrier blocks status conditions and recharges; what survives here is
+# the passive half printed under it. GMS reaches 40 of each at its ten levels;
+# this walks the same ceiling over twenty, two a level.
+#
+# Both levers are dead by design -- nothing inflicts a status or carries an
+# element -- and are here so the stats page can show what the SP bought.
+name: "Divine Protection"
+skill_order: 5
+description: "Permanently increases Status Resistance and Elemental Resistance."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PRIEST
+max_level: 20
+base {
+  status_resistance: 2
+  elemental_resistance: 0.02
+}
+per_level {
+  status_resistance: 2
+  elemental_resistance: 0.02
+}
