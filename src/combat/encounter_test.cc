@@ -231,6 +231,67 @@ TEST(ComputeCombatParamsTest, ASwingWithAnOpeningHitCarriesBothHalves) {
       4.16 / (6.0 * 0.51), 1e-6);
 }
 
+// Shadow Partner doubles what a swing lands. It reaches the swing's own lines
+// and its opening hit -- both are the same swing -- and stops at the summons
+// and the Final Attacks, which are not.
+TEST(ComputeCombatParamsTest, TheShadowCopiesTheSwingAndItsOpeningHit) {
+  Skill burst;
+  burst.set_name("Shuriken Burst");
+  burst.set_kind(SKILL_KIND_ATTACK);
+  burst.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  burst.set_max_level(20);
+  burst.set_max_enemies(6);
+  burst.set_lines(6);
+  burst.set_lead_lines(1);
+  burst.mutable_base()->set_skill_pct(0.48);
+  burst.mutable_base()->set_lead_pct(4.08);
+  Skill mist;
+  mist.set_name("Poison Mist");
+  mist.set_kind(SKILL_KIND_AUTO_ATTACK);
+  mist.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mist.set_max_level(20);
+  mist.set_max_enemies(6);
+  mist.set_cast_interval_seconds(1.0);
+  mist.mutable_base()->set_skill_pct(1.26);
+  Skill partner;
+  partner.set_name("Shadow Partner");
+  partner.set_kind(SKILL_KIND_PASSIVE);
+  partner.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  partner.set_max_level(20);
+  partner.mutable_base()->set_mirror_line_pct(0.70);
+
+  double bare[3] = {0.0, 0.0, 0.0};
+  double shadowed[3] = {0.0, 0.0, 0.0};
+  for (int pass = 0; pass < 2; ++pass) {
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}},
+                    {{"shuriken_burst", burst},
+                     {"poison_mist", mist},
+                     {"shadow_partner", partner}});
+    state.current_map = "field";
+    EquipSword(state);
+    GrantFirstJobSp(state, 3);
+    ASSERT_TRUE(state.character.LearnSkill(burst, 1));
+    ASSERT_TRUE(state.character.LearnSkill(mist, 1));
+    if (pass == 1) {
+      ASSERT_TRUE(state.character.LearnSkill(partner, 1));
+    }
+    CombatParams params = ComputeCombatParams(state);
+    ASSERT_EQ(params.attacks.size(), 2u);
+    ASSERT_EQ(params.auto_attacks.size(), 1u);
+    double* into = pass == 0 ? bare : shadowed;
+    into[0] = params.attacks[1].damage_per_hit[0];
+    into[1] = params.attacks[1].lead_damage[0];
+    into[2] = params.auto_attacks[0].damage_per_hit[0];
+  }
+  // Six real lines and six shadow ones at 70% apiece, and the same again for
+  // the single-line opening hit.
+  EXPECT_NEAR(shadowed[0] / bare[0], 1.70, 1e-9);
+  EXPECT_NEAR(shadowed[1] / bare[1], 1.70, 1e-9);
+  // The mist pulses on its own clock, so no shadow follows it.
+  EXPECT_NEAR(shadowed[2], bare[2], 1e-9);
+}
+
 // Nothing but a skill saying so gives a swing an opening hit.
 TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
   Skill slash;

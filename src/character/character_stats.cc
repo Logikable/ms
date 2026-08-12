@@ -85,6 +85,7 @@ struct PassiveTotals {
   std::map<std::string, double> skill_pct_bonus;
   double damage_pct = 0.0;
   double boss_pct = 0.0;
+  double mirror_line_pct = 0.0;
   double final_dmg_pct = 0.0;
   double ied = 0.0;
   int attack_speed = 0;
@@ -152,6 +153,8 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
       base.elemental_resistance() + per.elemental_resistance() * (level - 1);
   totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
   totals.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
+  totals.mirror_line_pct +=
+      base.mirror_line_pct() + per.mirror_line_pct() * (level - 1);
   totals.attack_per_combo_orb +=
       base.attack_per_combo_orb() + per.attack_per_combo_orb() * (level - 1);
   totals.final_dmg_pct_per_combo_orb +=
@@ -359,6 +362,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;
   stats.boss_pct = passives.boss_pct;
+  stats.mirror_line_pct = passives.mirror_line_pct;
   stats.final_dmg_pct = passives.final_dmg_pct;
   stats.ied = passives.ied;
   stats.mastery = passives.mastery;
@@ -381,6 +385,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.mastery = derived.mastery;
   passives.damage_pct = derived.damage_pct;
   passives.boss_pct = derived.boss_pct;
+  passives.mirror_line_pct = derived.mirror_line_pct;
   passives.final_dmg_pct = derived.final_dmg_pct;
   passives.ied = derived.ied;
   passives.skill_pct_bonus = derived.skill_pct_bonus;

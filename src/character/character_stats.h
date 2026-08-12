@@ -79,6 +79,10 @@ struct DerivedStats {
   // by the time they leave here, because that is all the damage chain takes.
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
+  // Share of one line's damage a shadow copy of the swing lands, per line the
+  // swing already has. 0 for a character with no Shadow Partner, which is
+  // every character but a Hermit.
+  double mirror_line_pct = 0.0;
   // Share added to damage against a boss and nothing else. Summed, and summed
   // again with the equipment's own -- see OffenseStatsFor. Nothing in the game
   // is a boss yet, so nothing reads it.

@@ -288,6 +288,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.attack = magic ? equipped.magic_attack() : equipped.attack();
   offense.boss_pct =
       equipped.boss_damage() / kPercentToFraction + passives.boss_pct;
+  offense.mirror_pct = passives.mirror_line_pct;
   offense.ied = CombineIgnoredDefense(
       equipped.ignore_enemy_defense() / kPercentToFraction, passives.ied);
   // The learned attack skill's multiplier replaces the bare 100% poke. Effect
@@ -314,6 +315,9 @@ OffenseStats OffenseStatsFor(Job job, int level,
     // per-target damage is skill_pct once per line.
     offense.lines = std::max(1, attack_skill->lines());
   }
+  // The shadow copies whatever the swing turned out to be, the bare poke's one
+  // line included. Set last, so it cannot be read before lines is settled.
+  offense.mirror_lines = offense.lines;
   return offense;
 }
 
@@ -330,8 +334,11 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
 
   // A swing that hits normal monsters harder adds its bonus to the swing
   // itself, so it is worth its value once per line rather than once per swing.
-  damage *= offense.lines *
-            (offense.skill_pct + (is_boss ? 0.0 : offense.normal_skill_pct));
+  // The shadow's lines land beside the real ones rather than multiplying them:
+  // same damage either way, but this is the shape the swing really has.
+  double lines = offense.lines + offense.mirror_lines * offense.mirror_pct;
+  damage *=
+      lines * (offense.skill_pct + (is_boss ? 0.0 : offense.normal_skill_pct));
   damage *= 1.0 + offense.damage_pct + (is_boss ? offense.boss_pct : 0.0);
   damage *= 1.0 + CritFactor(offense);
   damage *= 1.0 + offense.final_dmg_pct;
@@ -373,6 +380,9 @@ int CombatPower(const OffenseStats& offense) {
   double power = stat_value * offense.attack / 100.0 * offense.weapon_constant;
   power *= (1.0 + offense.mastery) / 2.0;
   power *= 1.0 + offense.damage_pct + offense.boss_pct;
+  // Lines are stripped out of this number, so the shadow's share of one has to
+  // be put back by hand -- it is a fact about the character, not the swing.
+  power *= 1.0 + offense.mirror_pct;
   power *= 1.0 + CritFactor(offense);
   power *= 1.0 + offense.final_dmg_pct;
   return static_cast<int>(std::floor(power));

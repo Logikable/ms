@@ -481,6 +481,13 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
     rows.push_back(
         EffectRow("Heals Every", FormatNumber(regen_interval) + "s"));
   }
+  // The shadow doubles the lines, so the row states one line's worth: the
+  // count is the same as the swing's whatever the swing is, and saying "x2"
+  // beside a number that is already per-line would read as the total.
+  double mirror = PercentAt(skill, &SkillEffect::mirror_line_pct, level);
+  if (mirror > 0.0) {
+    rows.push_back(EffectRow("Shadow Damage", FormatPercent(mirror)));
+  }
   // Dispel's whole effect, and a promise the skill really keeps -- there is
   // just nothing in the game yet that inflicts what it lifts. Stated flatly,
   // because it is the same at every level: the points buy nothing more.

@@ -99,6 +99,10 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     lead.skill_pct =
         skill->base().lead_pct() + skill->per_level().lead_pct() * (level - 1);
     lead.lines = std::max(1, skill->lead_lines());
+    // The shadow copies the opening hit as it copies every other line of the
+    // swing -- it is the same swing, landed on one enemy instead of all of
+    // them. Reset here because lead.lines just changed under it.
+    lead.mirror_lines = lead.lines;
     for (const CombatType& type : types) {
       attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
     }
@@ -123,6 +127,10 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
         proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
         nullptr, 0, PassiveOffenseFor(derived));
     final_attack.skill_pct = final_attack_pct;
+    // The shadow mimics the swing, and this is what the swing set off rather
+    // than the swing. Same line the skill's own multiplier and lines are
+    // already dropped on, two comments up.
+    final_attack.mirror_lines = 0;
     for (const CombatType& type : types) {
       attack.final_attack_damage.push_back(
           ExpectedAttackDamage(final_attack, *type.mob));
@@ -282,8 +290,12 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
     }
     AttachEmpoweredForms(state, equipped, weapon_type, skill, learned, derived,
                          attack_speed, speed_factor, params, params.attacks);
-    AttachEmpoweredForms(state, equipped, weapon_type, skill, learned, derived,
-                         attack_speed, speed_factor, params,
+    // A form standing in for a pulse is a pulse: no shadow, for the reason
+    // AddAttacks gives.
+    DerivedStats unmirrored = derived;
+    unmirrored.mirror_line_pct = 0.0;
+    AttachEmpoweredForms(state, equipped, weapon_type, skill, learned,
+                         unmirrored, attack_speed, speed_factor, params,
                          params.auto_attacks);
   }
 }
@@ -299,6 +311,11 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
                 CombatParams& params) {
   const Character& proto = state.character.proto();
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
+  // The shadow copies the character's swings. A skill on its own clock is not
+  // one, so anything built for that clock is built without it -- the same line
+  // Final Attack is drawn on in AttackFor.
+  DerivedStats unmirrored = derived;
+  unmirrored.mirror_line_pct = 0.0;
   params.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr,
                                      0, params.types, derived, attack_speed,
                                      speed_factor));
@@ -309,11 +326,12 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
       continue;
     }
-    AddAutoMode(proto, total_stats, weapon_type, skill, learned, derived,
+    AddAutoMode(proto, total_stats, weapon_type, skill, learned, unmirrored,
                 speed_factor, params);
-    AttackOption attack =
-        AttackFor(proto, total_stats, weapon_type, &skill, learned,
-                  params.types, derived, attack_speed, speed_factor);
+    AttackOption attack = AttackFor(
+        proto, total_stats, weapon_type, &skill, learned, params.types,
+        skill.kind() == SKILL_KIND_AUTO_ATTACK ? unmirrored : derived,
+        attack_speed, speed_factor);
     // A cast is not a hit. The damage chain has no multiplier to apply to a
     // skill that deals none, so what it built is the bare poke's damage --
     // which a cast must not land, and which a Final Attack must not follow.

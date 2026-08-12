@@ -290,6 +290,23 @@ TEST_F(SkillInspectPanelTest, StatesTheExpASkillAdds) {
   EXPECT_EQ(RenderAt(symbol, 1).find("no effect"), std::string::npos);
 }
 
+// Shadow Partner's whole effect. One line's worth, because the shadow lands as
+// many lines as the swing does and the swing is not this skill's to know.
+TEST_F(SkillInspectPanelTest, StatesWhatAShadowLineIsWorth) {
+  Skill partner = MakeIronBody();
+  partner.clear_base();
+  partner.clear_per_level();
+  partner.mutable_base()->set_mirror_line_pct(0.51);
+  partner.mutable_per_level()->set_mirror_line_pct(0.01);
+
+  EXPECT_NE(RenderAt(partner, 1).find("Shadow Damage     51%"),
+            std::string::npos);
+  EXPECT_NE(RenderAt(partner, 20).find("Shadow Damage     70%"),
+            std::string::npos);
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Shadow Damage"),
+            std::string::npos);
+}
+
 // Dispel keeps a real promise that nothing in the game can call on yet. The
 // page says what it does rather than calling it empty, and says the same thing
 // at every level, because that is what a point buys: nothing more.

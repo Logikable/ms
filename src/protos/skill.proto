@@ -215,6 +215,18 @@ message SkillEffect {
   // The stats page shows it so a player can see what their points and their
   // gear bought, which is more than the equipment's own half ever got.
   double boss_pct = 117;
+  // The Hermit's. Shadow Partner. A shadow copies every line the character's
+  // swing lands and strikes again for this share of one (0.70 == 70%), so a
+  // three-line swing lands three real lines and three shadow ones.
+  //
+  // Carried as lines rather than folded into a multiplier, which comes to the
+  // same damage: what the player is buying is a second set of hits, and a page
+  // that says so is worth the field. Summed across sources, of which there is
+  // one.
+  //
+  // The shadow copies SWINGS. It does not copy a summon's pulse or a Final
+  // Attack -- the same line those two are already drawn on in encounter.cc.
+  double mirror_line_pct = 118;
   // The Priest's. Lifts every abnormal condition on the character. Nothing
   // inflicts one yet, so nothing reads it -- but it is the whole of what Dispel
   // does, and a skill page calling that skill empty would be saying the game

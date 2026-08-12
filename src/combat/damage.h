@@ -20,13 +20,20 @@ namespace ms {
 // to their identity (no-effect) value; real values graduate in one at a time as
 // gear, skills, etc. produce them.
 struct OffenseStats {
-  int primary = 0;          // total primary stat
-  int secondary = 0;        // total secondary stat
-  int attack = 0;           // total weapon/gear attack
-  int level = 0;            // attacker level, for the level multiplier
-  double mastery = 0.15;    // 0..1; raises min damage (beginner placeholder)
-  double skill_pct = 1.0;   // skill damage multiplier (1.0 == 100%)
-  int lines = 1;            // hits per attack
+  int primary = 0;         // total primary stat
+  int secondary = 0;       // total secondary stat
+  int attack = 0;          // total weapon/gear attack
+  int level = 0;           // attacker level, for the level multiplier
+  double mastery = 0.15;   // 0..1; raises min damage (beginner placeholder)
+  double skill_pct = 1.0;  // skill damage multiplier (1.0 == 100%)
+  int lines = 1;           // hits per attack
+  // The shadow's hits, kept beside the real ones rather than folded into them.
+  // `mirror_lines` is normally a copy of `lines`; each lands `mirror_pct` of
+  // what a real line does. Two fields because the pair is what lets a future
+  // page break a swing down into its real hits and its copied ones -- the
+  // damage would come out the same from one multiplier.
+  int mirror_lines = 0;
+  double mirror_pct = 0.0;
   double damage_pct = 0.0;  // additive %dmg, as fraction
   double boss_pct = 0.0;    // additive boss %dmg; applies only vs bosses
   // Added to skill_pct against anything that is not a boss, so it is worth its
@@ -83,6 +90,9 @@ struct PassiveOffense {
   // two differ. See DerivedStats.
   double damage_pct = 0.0;
   double final_dmg_pct = 0.0;
+  // Share of one line a shadow copy of the swing lands, per line the swing
+  // already has. See DerivedStats::mirror_line_pct.
+  double mirror_line_pct = 0.0;
   // Share added to damage against a boss, summed across the passives granting
   // it. Meets the gear's own by summing too -- both are shares of the same
   // damage, unlike ied.
