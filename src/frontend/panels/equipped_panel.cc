@@ -167,7 +167,8 @@ std::string EquippedPanel::RowInfo(const EquipStats& stats) const {
   // the character panel and the AP reset ask, so asked in the same place
   // rather than switched over jobs here.
   Job job = character_.proto().job();
-  const DisplayStat* main = DisplayStatFor(PrimaryStatField(job));
+  StatField primary = PrimaryStatField(job);
+  const DisplayStat* main = DisplayStatFor(primary);
   std::string main_str;
   if (main != nullptr && main->GetFrom(stats) > 0) {
     main_str = "+" + std::to_string(main->GetFrom(stats)) + " " + main->label;
@@ -175,9 +176,12 @@ std::string EquippedPanel::RowInfo(const EquipStats& stats) const {
   // Room for one attack figure, so show the one this job swings with. A wand
   // carries both, and a magician's weapon attack never reaches the damage
   // chain.
+  //
+  // Asked of the stat this job builds on rather than listed job by job: every
+  // INT job is a magician, so a new magician branch reads right the day it is
+  // added instead of the day someone remembers this list.
   std::string atk_str;
-  bool magic = job == JOB_MAGICIAN || job == JOB_ICE_LIGHTNING_WIZARD ||
-               job == JOB_FIRE_POISON_WIZARD || job == JOB_CLERIC;
+  bool magic = primary == STAT_FIELD_INT;
   if (!magic && stats.attack() > 0) {
     atk_str = "+" + std::to_string(stats.attack()) + " ATT";
   } else if (stats.magic_attack() > 0) {

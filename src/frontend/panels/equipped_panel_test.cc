@@ -71,24 +71,33 @@ TEST_F(EquippedPanelTest, ShowsEquippedItemName) {
 }
 
 // A staff carries weapon and magic attack both; which one the row shows is the
-// one the wielder actually swings with.
-TEST_F(EquippedPanelTest, ShowsMagicAttackForAMagician) {
+// one the wielder actually swings with. Every magician branch is asked, because
+// a list of jobs written out by hand went stale once and left the 3rd-job
+// mages reading ATT.
+TEST_F(EquippedPanelTest, ShowsMagicAttackForEveryMagician) {
   EquipPrototype staff;
   staff.set_name("Old Wooden Staff");
   staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   staff.mutable_base_stats()->set_attack(26);
   staff.mutable_base_stats()->set_magic_attack(35);
 
-  Character proto;
-  proto.set_job(JOB_MAGICIAN);
-  CharacterInstance mage(rng_, std::move(proto));
-  mage.PickUp(std::make_unique<EquipInstance>(staff));
-  mage.Equip(0);
+  const Job kMagicians[] = {
+      JOB_MAGICIAN, JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD,
+      JOB_CLERIC,   JOB_ICE_LIGHTNING_MAGE,   JOB_FIRE_POISON_MAGE,
+      JOB_PRIEST,
+  };
+  for (Job job : kMagicians) {
+    Character proto;
+    proto.set_job(job);
+    CharacterInstance mage(rng_, std::move(proto));
+    mage.PickUp(std::make_unique<EquipInstance>(staff));
+    mage.Equip(0);
 
-  EquippedPanel panel(mage, panel_focus_);
-  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_NE(rendered.find("+35 MATT"), std::string::npos);
-  EXPECT_EQ(rendered.find("+26 ATT"), std::string::npos);
+    EquippedPanel panel(mage, panel_focus_);
+    std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+    EXPECT_NE(rendered.find("+35 MATT"), std::string::npos) << Job_Name(job);
+    EXPECT_EQ(rendered.find("+26 ATT"), std::string::npos) << Job_Name(job);
+  }
 }
 
 TEST_F(EquippedPanelTest, ShowsWeaponAttackForEveryoneElse) {
