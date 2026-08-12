@@ -131,6 +131,8 @@ std::string BranchName(Job job) {
       return "Ranger";
     case JOB_SNIPER:
       return "Sniper";
+    case JOB_ICE_LIGHTNING_MAGE:
+      return "I/L Mage";
     default:
       return "?";
   }
@@ -167,6 +169,7 @@ EquipType PreferredWeapon(Job job) {
     case JOB_ICE_LIGHTNING_WIZARD:
     case JOB_FIRE_POISON_WIZARD:
     case JOB_CLERIC:
+    case JOB_ICE_LIGHTNING_MAGE:
       return EQUIP_TYPE_STAFF;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -501,6 +504,7 @@ void Run() {
       JOB_WHITE_KNIGHT,
       JOB_RANGER,
       JOB_SNIPER,
+      JOB_ICE_LIGHTNING_MAGE,
   };
 
   std::printf(
