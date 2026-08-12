@@ -336,7 +336,12 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
                  " " + upgraded)) {
       rows.push_back(std::move(row));
     }
-    if (skill.empowered_form().max_enemies() > 1) {
+    // Only when it differs from the reach stated above: the Sniper's form is
+    // wider than the swing it stands in for, and leaving that out would
+    // understate the upgrade -- but Creeping Toxin detonates exactly as far as
+    // it spread, and a row repeating the one above it is noise.
+    if (skill.empowered_form().max_enemies() > 1 &&
+        skill.empowered_form().max_enemies() != skill.max_enemies()) {
       rows.push_back(
           EffectRow("Empowered Enemies",
                     std::to_string(skill.empowered_form().max_enemies())));

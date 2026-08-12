@@ -263,8 +263,14 @@ TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {
   form->mutable_base()->set_skill_pct(2.00);
   form->mutable_base()->set_normal_skill_pct(0.50);
 
+  toxin.set_max_enemies(10);
+  form->set_max_enemies(10);
+
   std::string rendered = RenderAt(toxin, 1);
   EXPECT_NE(rendered.find("Every 4th attack"), std::string::npos);
+  // The form reaches exactly as far as the attack it stands in for, so a row
+  // saying so twice is noise.
+  EXPECT_EQ(rendered.find("Empowered Enemies"), std::string::npos);
   EXPECT_NE(rendered.find("Empowered Damage  200% x4 = 800%"),
             std::string::npos);
   EXPECT_NE(rendered.find("Empowered Normal  250% x4 = 1000%"),
