@@ -508,6 +508,40 @@ TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
                    12.0 * GameSpeedFactor(state.character.proto().level()));
 }
 
+// The Thunder Sphere case. Beam Blade's normal-monster lever was written for a
+// swing, and the orb that carries it now is not one -- so the thing to check is
+// that a summon reaches the lever at all.
+TEST(ComputeCombatParamsTest, ASummonCutsDeeperIntoANormalMonsterToo) {
+  Skill orb;
+  orb.set_name("Thunder Sphere");
+  orb.set_kind(SKILL_KIND_AUTO_ATTACK);
+  orb.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  orb.set_max_level(10);
+  orb.set_cast_interval_seconds(2.0);
+  orb.mutable_base()->set_skill_pct(1.00);
+
+  double plain = 0.0;
+  for (double normal : {0.0, 1.00}) {
+    orb.mutable_base()->set_normal_skill_pct(normal);
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}}, {{"thunder_sphere", orb}});
+    state.current_map = "field";
+    EquipSword(state);
+    GrantFirstJobSp(state, 1);
+    ASSERT_TRUE(state.character.LearnSkill(orb, 1));
+
+    CombatParams params = ComputeCombatParams(state);
+    ASSERT_EQ(params.auto_attacks.size(), 1u);
+    double damage = params.auto_attacks[0].damage_per_hit[0];
+    if (normal == 0.0) {
+      plain = damage;
+      ASSERT_GT(plain, 0.0);
+    } else {
+      EXPECT_DOUBLE_EQ(damage, 2.0 * plain);
+    }
+  }
+}
+
 // A skill clocked by swings landed goes on its own list, not beside the ones
 // clocked by seconds: the fight has to count something for these and nothing
 // for those.
