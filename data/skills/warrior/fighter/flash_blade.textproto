@@ -7,7 +7,7 @@ description: "Zip forward in a flash, cutting the enemies in your path."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 9
-base_delay_ms: 720
+base_delay_ms: 630
 cooldown_seconds: 4.0
 max_enemies: 6
 lines: 5

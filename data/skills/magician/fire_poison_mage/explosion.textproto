@@ -1,6 +1,6 @@
-# GMS's own figures: 245+8x% twice over 20 levels, on eight enemies. 720ms is
-# Flame Orb's, the swing this takes over from -- no source gives this skill an
-# animation length of its own.
+# GMS's own figures: 245+8x% twice over 20 levels, on eight enemies. 870ms is
+# the animation's own, from the frame data -- a long wind-up for the hardest
+# swing the branch has.
 #
 # The fire tag is load-bearing. Ignite is the wizard's Final Attack and follows
 # fire swings only, so without it Ignite would stop paying at the advancement.
@@ -11,7 +11,7 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_MAGE
 max_level: 20
-base_delay_ms: 720
+base_delay_ms: 870
 max_enemies: 8
 lines: 2
 base { skill_pct: 2.53 }

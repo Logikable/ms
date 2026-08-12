@@ -7,7 +7,7 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20
-base_delay_ms: 780
+base_delay_ms: 810
 max_enemies: 6
 lines: 3
 base { skill_pct: 2.01 }

@@ -2,15 +2,15 @@
 # filler -- but not its normal-monster doubling, which GMS gives the Crusader
 # and not the Sniper.
 #
-# The calculator has no delay for this one: it models 4th job rotations only.
-# 780ms is Piercing Arrow's, the swing this alternates with.
+# 660ms is the animation's own, from the frame data -- faster than the Piercing
+# Arrow it alternates with, on top of hitting harder.
 name: "Bolt Burst"
 skill_order: 3
 description: "Fire arrows in all directions, striking the enemies around you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 20
-base_delay_ms: 780
+base_delay_ms: 660
 cooldown_seconds: 7.0
 max_enemies: 8
 lines: 6

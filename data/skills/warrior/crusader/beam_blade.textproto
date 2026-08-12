@@ -12,7 +12,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20
-base_delay_ms: 720
+base_delay_ms: 660
 cooldown_seconds: 7.0
 max_enemies: 8
 lines: 5
