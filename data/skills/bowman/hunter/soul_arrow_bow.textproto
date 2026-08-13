@@ -2,7 +2,7 @@
 # aside. There are no arrows to consume here, so the aside is the whole skill.
 name: "Soul Arrow: Bow"
 skill_order: 4
-description: "Increases your Attack Power."
+description: "Permanently increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 10

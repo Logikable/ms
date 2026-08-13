@@ -8,7 +8,8 @@
 name: "Aggressive Resistance"
 skill_order: 6
 description:
-  "When attacking, creates a barrier that reduces a share of incoming damage."
+  "A barrier stands around you for good, reducing a share of the damage you "
+  "take."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 20

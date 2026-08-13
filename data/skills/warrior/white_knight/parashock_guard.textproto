@@ -3,7 +3,7 @@
 # than GMS's ten, at a point apiece, ending on the same +20.
 name: "Parashock Guard"
 skill_order: 4
-description: "Increases your Attack Power."
+description: "Permanently increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 20

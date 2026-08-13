@@ -3,7 +3,7 @@
 # ladder as the flat one: 11% up to 20%.
 name: "Storm Magic"
 skill_order: 7
-description: "Permanently increases the Final Damage of every spell you cast."
+description: "Permanently increases your Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 10
