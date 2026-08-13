@@ -8,8 +8,8 @@
  *
  *   - every AP on the job's primary stat, every SP on whatever it will buy;
  *   - the whole Etc tab sold at each level;
- *   - the best weapon of the branch's own type that the shop will sell them
- *     and they can pay for, bought the level it comes within reach;
+ *   - the best weapon they can hold and pay for, bought the level it comes
+ *     within reach, with the type of it measured rather than assumed;
  *   - and the map that pays the most EXP a second of the ones they live on,
  *     re-chosen at every level.
  *
@@ -36,6 +36,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "analysis/parallel.h"
+#include "analysis/sim_gear.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/job_advancement.h"
@@ -158,83 +159,6 @@ std::vector<Job> PathTo(Job branch) {
   }
 }
 
-// What the player goes shopping for. One type per job rather than a search
-// over everything on the shelf: within a type the ladder only climbs, and
-// which type a branch ends on is already settled -- see weapon_sim, where the
-// Fighter's axe, the Page's blunt and the Spearman's spear each top their
-// branch.
-EquipType PreferredWeapon(Job job) {
-  switch (job) {
-    case JOB_FIGHTER:
-      return EQUIP_TYPE_TWO_HANDED_AXE;
-    case JOB_PAGE:
-      return EQUIP_TYPE_TWO_HANDED_BLUNT;
-    case JOB_SPEARMAN:
-      return EQUIP_TYPE_SPEAR;
-    case JOB_MAGICIAN:
-    case JOB_ICE_LIGHTNING_WIZARD:
-    case JOB_FIRE_POISON_WIZARD:
-    case JOB_CLERIC:
-    case JOB_ICE_LIGHTNING_MAGE:
-    case JOB_FIRE_POISON_MAGE:
-    case JOB_PRIEST:
-      return EQUIP_TYPE_STAFF;
-    case JOB_ROGUE:
-    case JOB_ASSASSIN:
-    case JOB_HERMIT:
-      return EQUIP_TYPE_CLAW;
-    case JOB_BANDIT:
-      return EQUIP_TYPE_DAGGER;
-    case JOB_ARCHER:
-    case JOB_HUNTER:
-      return EQUIP_TYPE_BOW;
-    case JOB_CROSSBOWMAN:
-      return EQUIP_TYPE_CROSSBOW;
-    default:
-      return EQUIP_TYPE_ONE_HANDED_SWORD;
-  }
-}
-
-// What a claw draws from. A claw carries almost no attack of its own -- an
-// Assassin's damage is mostly in the ammunition -- so a claw user shops for
-// two things. Unspecified for everyone else, who shop for one.
-EquipType PreferredAmmo(Job job) {
-  return PreferredWeapon(job) == EQUIP_TYPE_CLAW ? EQUIP_TYPE_THROWING_STAR
-                                                 : EQUIP_TYPE_UNSPECIFIED;
-}
-
-// The required level of what is worn in `slot`, which is how one piece is
-// ranked against another here: the shop's ladder is ordered by it, and the
-// tiers are 10 levels apart.
-int HeldTier(const CharacterInstance& character, EquipSlot slot) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      character.equipped().find(slot);
-  if (it == character.equipped().end()) {
-    return 0;
-  }
-  return it->second.prototype().required_level();
-}
-
-std::string HeldWeaponName(const CharacterInstance& character) {
-  std::map<EquipSlot, EquipInstance>::const_iterator it =
-      character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
-  return it == character.equipped().end() ? "-" : it->second.name();
-}
-
-// Puts the bag's copy of `name` on, if the character can wear it. Found by
-// name rather than by index because equipping shuffles the bag: what is
-// displaced goes back into it.
-void EquipByName(CharacterInstance& character, const std::string& name) {
-  for (int i = 0; i < character.inventory().size(); ++i) {
-    const EquipInstance* item = character.inventory().equip_instance(i);
-    if (item != nullptr && item->name() == name &&
-        character.CanEquip(item->prototype())) {
-      character.Equip(i);
-      return;
-    }
-  }
-}
-
 // Spends everything the last level handed over.
 void SpendPoints(CharacterInstance& character) {
   while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
@@ -257,44 +181,6 @@ void SellDrops(CharacterInstance& character) {
     if (character.SellStackable(ITEM_CATEGORY_ETC, 0, count) <= 0) {
       return;  // unsellable, and every later stack waits behind it
     }
-  }
-}
-
-// Buys and wears the best piece of `want` on the shelf, if it beats what is
-// already in that slot. No-op when nothing new is affordable.
-void BuyBest(GameState& state, EquipType want) {
-  CharacterInstance& character = state.character;
-  const EquipPrototype* best = nullptr;
-  for (const std::string& key : ShopWeaponStock(state.equips)) {
-    const EquipPrototype& proto = state.equips.at(key);
-    if (proto.equip_type() != want || !character.CanEquip(proto) ||
-        proto.shop_price() > character.meso()) {
-      continue;
-    }
-    if (best == nullptr || proto.required_level() > best->required_level()) {
-      best = &proto;
-    }
-  }
-  if (best == nullptr ||
-      best->required_level() <= HeldTier(character, best->equip_slot())) {
-    return;
-  }
-  if (character.Buy(*best, 1)) {
-    EquipByName(character, best->name());
-  }
-}
-
-// Everything the player goes shopping for: the weapon of their branch's own
-// type, and the ammunition it draws from if it needs any.
-void GoShopping(GameState& state) {
-  if (!Unlocked(Feature::kShop, state.character)) {
-    return;
-  }
-  Job job = state.character.proto().job();
-  BuyBest(state, PreferredWeapon(job));
-  EquipType ammo = PreferredAmmo(job);
-  if (ammo != EQUIP_TYPE_UNSPECIFIED) {
-    BuyBest(state, ammo);
   }
 }
 
@@ -379,7 +265,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   SpendPoints(state.character);
   LearnEverything(state);
   SellDrops(state.character);
-  GoShopping(state);
+  Outfit(state, /*budget=*/true);
   PickMap(state, maps, beats, step);
 }
 

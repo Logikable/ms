@@ -25,6 +25,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "analysis/sim_gear.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
@@ -257,88 +258,6 @@ struct Result {
   int unspent_sp = 0;
   std::vector<std::pair<std::string, int>> skills;
 };
-
-// What one swing of `attack` lands on a lone mob, Final Attack included, and
-// an empowered form averaged over the swings it takes the place of -- the same
-// reading CombatSim::SwingDamage takes. The form has none of its own, so this
-// recurs exactly once.
-double SoloDamage(const AttackOption& attack) {
-  if (attack.damage_per_hit.empty()) {
-    return 0.0;
-  }
-  double damage = attack.damage_per_hit[0];
-  if (!attack.final_attack_damage.empty()) {
-    damage += attack.final_attack_damage[0];
-  }
-  if (attack.empowered != nullptr && attack.empowered_every > 0) {
-    damage += (SoloDamage(*attack.empowered) - damage) / attack.empowered_every;
-  }
-  return damage;
-}
-
-// What the swings came to over the horizon.
-struct Sequence {
-  double damage = 0.0;
-  double seconds = 0.0;  // time the swings that landed actually took
-  int main_attack = -1;  // index of the one swung most often
-};
-
-// Plays out the swings the fight would actually make against a lone mob, at
-// the same step and by the same rule as CombatSim: the best rate available,
-// with a recharging skill absent from the choice until it comes back.
-//
-// A closed form cannot answer this once a cooldown exists -- what the skill is
-// worth depends on what gets swung while it recharges, and on how much of a
-// charge is already wound up when it returns.
-Sequence PlaySwings(const CombatParams& params, double horizon) {
-  constexpr double kStep = 0.01;
-  std::vector<double> cooldown(params.attacks.size(), 0.0);
-  std::vector<int> swings(params.attacks.size(), 0);
-  Sequence played;
-  double phase = 0.0;
-  int pick = -1;  // the swing being wound up, held until it lands
-  for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
-    for (double& left : cooldown) {
-      left = std::max(0.0, left - kStep);
-    }
-    // Index 0 is the bare poke, which is never committed to.
-    if (pick <= 0) {
-      pick = -1;
-      double best_rate = -1.0;
-      for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
-        const AttackOption& attack = params.attacks[i];
-        if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0 ||
-            attack.heal_fraction > 0.0) {
-          continue;  // a cast is not one of the swings being compared
-        }
-        double rate = SoloDamage(attack) / attack.swing_seconds;
-        if (rate > best_rate) {
-          best_rate = rate;
-          pick = i;
-        }
-      }
-    }
-    if (pick < 0) {
-      break;
-    }
-    phase += kStep;
-    if (phase < params.attacks[pick].swing_seconds) {
-      continue;
-    }
-    phase -= params.attacks[pick].swing_seconds;
-    played.damage += SoloDamage(params.attacks[pick]);
-    played.seconds += params.attacks[pick].swing_seconds;
-    ++swings[pick];
-    cooldown[pick] = params.attacks[pick].cooldown_seconds;
-    pick = -1;
-  }
-  for (int i = 0; i < static_cast<int>(swings.size()); ++i) {
-    if (played.main_attack < 0 || swings[i] > swings[played.main_attack]) {
-      played.main_attack = i;
-    }
-  }
-  return played;
-}
 
 Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,

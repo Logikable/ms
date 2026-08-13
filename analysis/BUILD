@@ -38,6 +38,7 @@ cc_binary(
     name = "weapon_sim",
     srcs = ["weapon_sim.cc"],
     deps = [
+        ":sim_gear",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -65,6 +66,7 @@ cc_binary(
     deps = [
         ":parallel",
         ":sim_format",
+        ":sim_gear",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -93,6 +95,7 @@ cc_binary(
     srcs = ["level_sim.cc"],
     deps = [
         ":parallel",
+        ":sim_gear",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -147,6 +150,24 @@ cc_binary(
         "//src/character:exp_table",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
+    ],
+)
+
+cc_library(
+    name = "sim_gear",
+    srcs = ["sim_gear.cc"],
+    hdrs = ["sim_gear.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/character:progression",
+        "//src/combat:encounter",
+        "//src/item:equip_instance",
+        "//src/item:shop",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
     ],
 )
 

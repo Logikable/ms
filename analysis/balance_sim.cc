@@ -21,6 +21,7 @@
 #include "absl/strings/ascii.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_format.h"
+#include "analysis/sim_gear.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
@@ -147,6 +148,11 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
                   GameMode::kPlay);
   GrowTo(state, level, path);
+  // Geared before the fight rather than during it: nothing here changes the
+  // character once the run starts, so what a player would have bought by now
+  // they have. Without a purse -- this table asks whether a build can hold a
+  // map, and what it could afford is no part of that answer.
+  Outfit(state, /*budget=*/false);
   state.current_map = map;
 
   Outcome outcome;
