@@ -216,6 +216,29 @@ TEST(EquipDataTest, ATierHasOnePrice) {
   }
 }
 
+// GMS buys equipment back at a few percent of what it charges, rising with the
+// tier; a flat tenth sits inside that band the whole way. Pinned over the
+// catalog because the failure it guards against is an item that pays more than
+// it costs, which is not a mispriced item but a meso printer.
+TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
+  int seen = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.shop_price() <= 0) {
+      // Not stocked, so there is no price to take a share of. It still sells,
+      // for nothing -- that is how a starter sword leaves the bag.
+      EXPECT_EQ(proto.sell_price(), 0)
+          << entry.first << " pays out but cannot be bought";
+      continue;
+    }
+    ++seen;
+    EXPECT_EQ(proto.sell_price(), proto.shop_price() / 10)
+        << entry.first << " does not sell for a tenth of its price";
+  }
+  EXPECT_GT(seen, 0) << "no stocked equips in the catalog to check";
+}
+
 // A slot or a type added without a display name shows up as a blank column in
 // the bag, which reads as a broken item rather than a missing label.
 TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {

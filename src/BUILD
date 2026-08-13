@@ -120,6 +120,7 @@ cc_test(
     deps = [
         ":embedded_data",
         ":proto_loader",
+        "//src/item",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",

@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 
+#include "src/item/item.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -38,6 +39,19 @@ TEST(EmbeddedDataTest, ItemsParse) {
   // every Etc drop in the game quietly went missing.
   EXPECT_TRUE(items.count("green_snail_shell") > 0);
   EXPECT_TRUE(items.count("wooden_board") > 0);
+}
+
+// Spell traces are bought, never sold. They are the currency scrolling is paid
+// in, so a sell price on them would be a way to turn the game's largest meso
+// sink back into meso. Pinned here because the rule is enforced by a line the
+// data file does not have, and nothing else would notice it appearing.
+TEST(EmbeddedDataTest, SpellTracesCannotBeSold) {
+  std::map<std::string, ItemPrototype> items =
+      LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
+  ASSERT_TRUE(items.count("spell_trace") > 0);
+  EXPECT_EQ(items["spell_trace"].name(), kSpellTraceName);
+  EXPECT_EQ(items["spell_trace"].sell_price(), 0);
+  EXPECT_GT(items["spell_trace"].shop_price(), 0);
 }
 
 TEST(EmbeddedDataTest, MapsParse) {

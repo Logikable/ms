@@ -138,6 +138,13 @@ message EquipPrototype {
   // not stock it, so an item joins the shop by naming its price and nothing
   // keeps a second list in step with this one.
   int32 shop_price = 10;
+  // What the shop pays for one of these, in meso. A tenth of shop_price
+  // throughout, which is the rate GMS itself buys equipment back at.
+  //
+  // Zero does NOT mean unsellable, as it does on a stackable: every item on
+  // the equip tab can be sold, and one worth nothing is simply thrown away.
+  // That is what clears a starter sword out of the bag.
+  int32 sell_price = 11;
 }
 
 // Per-instance mutable state for a single drop of equipment. Persisted in the
