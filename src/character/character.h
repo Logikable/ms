@@ -170,6 +170,14 @@ class CharacterInstance {
   // range, count <= 0, or the item is unsellable (sell_price 0). Returns the
   // meso earned.
   int64_t SellStackable(ItemCategory category, int index, int count);
+  // Sells the equip-tab item at `index`, crediting its prototype's sell_price
+  // and removing it from the bag. Returns the meso earned, or 0 if the index
+  // is out of range.
+  //
+  // Zero is not a refusal here, unlike on a stackable: an item worth nothing
+  // still goes. What the copy carries is worth nothing either -- scrolls and
+  // stars pay out at the base item's price, and a trace pays out at none.
+  int64_t SellEquip(int index);
   // Uses one copy from the `index`-th stack in `category`: applies the item's
   // effect and consumes it, erasing the stack once it empties. Returns false
   // and consumes nothing if the index is out of range or the item has no

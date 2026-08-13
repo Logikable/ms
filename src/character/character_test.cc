@@ -1214,6 +1214,76 @@ TEST_F(SellStackableTest, OutOfRangeIndexIsNoOp) {
   EXPECT_EQ(c_.meso(), 0);
 }
 
+// --- SellEquip ---
+
+// Fixture providing a sword worth 900 meso and a worthless one, so the two
+// halves of "zero is not a refusal here" can be told apart.
+class SellEquipTest : public CharacterEquipFixture {
+ protected:
+  void SetUp() override {
+    CharacterEquipFixture::SetUp();
+    sword_.set_sell_price(900);
+    starter_.set_name("Starter Sword");
+    starter_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);  // sell_price 0
+  }
+  EquipPrototype starter_;
+};
+
+TEST_F(SellEquipTest, SellsItemAndCreditsMeso) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  EXPECT_EQ(c_.SellEquip(0), 900);
+  EXPECT_EQ(c_.inventory().size(), 0);
+  EXPECT_EQ(c_.meso(), 900);
+}
+
+// The difference from a stackable, and the reason the starter sword can leave
+// the bag at all: a price of zero sells, it does not refuse.
+TEST_F(SellEquipTest, WorthlessItemStillGoes) {
+  c_.PickUp(std::make_unique<EquipInstance>(starter_));
+  EXPECT_EQ(c_.SellEquip(0), 0);
+  EXPECT_EQ(c_.inventory().size(), 0);
+  EXPECT_EQ(c_.meso(), 0);
+}
+
+// Scrolls and stars are poured in, never poured back out. Selling a scrolled
+// item for more than the base one would make spell traces -- which cost meso
+// -- a way of printing it.
+TEST_F(SellEquipTest, UpgradesAddNothingToWhatItPays) {
+  Equip upgraded;
+  upgraded.set_equip_name(sword_.name());
+  upgraded.set_stars(12);
+  upgraded.set_scroll_successes(7);
+  upgraded.mutable_scroll_stats()->set_attack(35);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_, upgraded));
+  EXPECT_EQ(c_.SellEquip(0), 900);
+  EXPECT_EQ(c_.meso(), 900);
+}
+
+// A trace is the record of a destroyed item, not a copy of it, so it pays what
+// the record is worth however dear the item behind it was.
+TEST_F(SellEquipTest, TracePaysNothing) {
+  c_.PickUp(std::make_unique<EquipTrace>(sword_, Equip()));
+  EXPECT_EQ(c_.SellEquip(0), 0);
+  EXPECT_EQ(c_.inventory().size(), 0);
+  EXPECT_EQ(c_.meso(), 0);
+}
+
+TEST_F(SellEquipTest, SellsTheItemAtTheIndexAsked) {
+  c_.PickUp(std::make_unique<EquipInstance>(starter_));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  EXPECT_EQ(c_.SellEquip(1), 900);
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory()[0].name(), "Starter Sword");
+}
+
+TEST_F(SellEquipTest, OutOfRangeIndexIsNoOp) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  EXPECT_EQ(c_.SellEquip(1), 0);
+  EXPECT_EQ(c_.SellEquip(-1), 0);
+  EXPECT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.meso(), 0);
+}
+
 // --- Equip ---
 
 TEST_F(EquipTest, EquipsItemIntoEmptySlot) {

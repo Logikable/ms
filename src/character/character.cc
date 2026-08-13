@@ -1000,6 +1000,20 @@ int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
   return earned;
 }
 
+int64_t CharacterInstance::SellEquip(int index) {
+  if (index < 0 || index >= inventory_.size()) {
+    return 0;
+  }
+  // A trace is the record of a destroyed item, not a copy of it, so it is
+  // worth what the record is worth. Selling one is how the player throws it
+  // away once they have given up on recovering it.
+  bool is_trace = inventory_.equip_instance(index) == nullptr;
+  int64_t earned = is_trace ? 0 : inventory_[index].prototype().sell_price();
+  inventory_.remove_equip(index);
+  AddMeso(earned);
+  return earned;
+}
+
 bool CharacterInstance::UseStackable(ItemCategory category, int index) {
   std::vector<StackableItem>& stacks = StacksFor(category);
   if (index < 0 || index >= static_cast<int>(stacks.size())) {
