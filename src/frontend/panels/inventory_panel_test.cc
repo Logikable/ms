@@ -363,12 +363,29 @@ TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
 }
 
-// Sell is the one entry with no gate and no item it does not apply to. It is
-// the only way anything leaves the bag, so a gate added to it by accident
-// would strand a full bag with no way out -- which is why the case is pinned
-// at level 1, where every other upgrade entry is still hidden.
+// Selling arrives with the shop and not before: there is nowhere to sell to
+// until then.
+TEST_F(InventoryPanelTest, SellArrivesWithTheShop) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  InventoryPanel panel(c_, panel_focus_);
+  LevelTo(UnlockLevel(Feature::kShop) - 1);
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kMenuSell), 0);
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Sell"),
+            std::string::npos);
+
+  LevelTo(UnlockLevel(Feature::kShop));
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kMenuSell), 0);
+}
+
+// Once it is there it is there for everything: no item and no state of one
+// refuses it. Selling is the only way anything leaves the bag, so an item it
+// skipped would be an item the player cannot get rid of.
 TEST_F(InventoryPanelTest, SellIsOfferedOnEverything) {
-  ASSERT_EQ(c_.proto().level(), 1);
+  LevelTo(UnlockLevel(Feature::kShop));
   InventoryPanel panel(c_, panel_focus_);
   // One at a time in the first row, which is where the menu opens. Three items
   // in the bag at once would only ever ask about the one on top.

@@ -276,9 +276,7 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     bool is_trace = state_.character.inventory().equip_instance(
                         sell_equip_index_) == nullptr;
     int price = is_trace ? 0 : item.prototype().sell_price();
-    bool upgraded = !is_trace && (item.stars() > 0 ||
-                                  item.equip_state().scroll_successes() > 0);
-    sell_equip_panel_.Reset(item.name(), price, upgraded);
+    sell_equip_panel_.Reset(item.name(), price);
   }
   if (next == kSell) {
     sell_category_ = inventory_panel_.active_category();

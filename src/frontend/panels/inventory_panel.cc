@@ -295,6 +295,13 @@ void InventoryPanel::OpenEquipMenu() {
   if (!Unlocked(Feature::kRecovery, character_)) {
     menu_.Hide(kMenuRecover);
   }
+  // Selling arrives with the shop, which is the counter it happens at. No
+  // gold on it when it does: the gold trail is for an upgrade the player is
+  // being sent to find, and the Shop tab lighting up already says this one
+  // opened.
+  if (!Unlocked(Feature::kShop, character_)) {
+    menu_.Hide(kMenuSell);
+  }
   // An upgrade this item cannot take is not drawn either. A greyed row invites
   // the player to press it and find out why; on this menu the answer is always
   // "not to this item", which is worth no row at all.

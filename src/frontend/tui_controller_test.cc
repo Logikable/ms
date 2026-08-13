@@ -1260,7 +1260,8 @@ TEST_F(TuiControllerTest, BagSellThrowsATraceAwayForNothing) {
   controller_->OnEvent(ftxui::Event::Return);
   // The dialog has to say so too. What it prints and what the sale pays are
   // worked out separately, so one can go wrong while the other is right.
-  EXPECT_NE(RenderSellDialog().find("Pays nothing"), std::string::npos);
+  EXPECT_NE(RenderSellDialog().find("Sell for \U0001FA99 0"),
+            std::string::npos);
   controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
 
