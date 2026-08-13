@@ -215,109 +215,125 @@ std::unique_ptr<EquipTabItem> RestoreEquipItem(
   return std::make_unique<EquipInstance>(*proto->second, state);
 }
 
+// The four beginner books. Every job in a line answers to the one it grew
+// out of, however far along the line it is.
+JobAdvancement FirstAdvancement(Job job) {
+  switch (job) {
+    case JOB_SWORDMAN:
+    case JOB_FIGHTER:
+    case JOB_PAGE:
+    case JOB_SPEARMAN:
+    case JOB_BERSERKER:
+    case JOB_CRUSADER:
+    case JOB_WHITE_KNIGHT:
+      return JOB_ADVANCEMENT_SWORDMAN;
+    case JOB_ARCHER:
+    case JOB_HUNTER:
+    case JOB_CROSSBOWMAN:
+    case JOB_RANGER:
+    case JOB_SNIPER:
+      return JOB_ADVANCEMENT_ARCHER;
+    case JOB_MAGICIAN:
+    case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
+    case JOB_CLERIC:
+    case JOB_ICE_LIGHTNING_MAGE:
+    case JOB_FIRE_POISON_MAGE:
+    case JOB_PRIEST:
+      return JOB_ADVANCEMENT_MAGICIAN;
+    case JOB_ROGUE:
+    case JOB_ASSASSIN:
+    case JOB_BANDIT:
+    case JOB_HERMIT:
+    case JOB_CHIEF_BANDIT:
+      return JOB_ADVANCEMENT_ROGUE;
+    default:
+      return JOB_ADVANCEMENT_UNSPECIFIED;
+  }
+}
+
+// The ten 2nd job books. A 3rd job still holds the one below it.
+JobAdvancement SecondAdvancement(Job job) {
+  switch (job) {
+    case JOB_FIGHTER:
+    case JOB_CRUSADER:
+      return JOB_ADVANCEMENT_FIGHTER;
+    case JOB_PAGE:
+    case JOB_WHITE_KNIGHT:
+      return JOB_ADVANCEMENT_PAGE;
+    case JOB_SPEARMAN:
+    case JOB_BERSERKER:
+      return JOB_ADVANCEMENT_SPEARMAN;
+    case JOB_HUNTER:
+    case JOB_RANGER:
+      return JOB_ADVANCEMENT_HUNTER;
+    case JOB_CROSSBOWMAN:
+    case JOB_SNIPER:
+      return JOB_ADVANCEMENT_CROSSBOWMAN;
+    case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_ICE_LIGHTNING_MAGE:
+      return JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD;
+    case JOB_FIRE_POISON_WIZARD:
+    case JOB_FIRE_POISON_MAGE:
+      return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
+    case JOB_CLERIC:
+    case JOB_PRIEST:
+      return JOB_ADVANCEMENT_CLERIC;
+    case JOB_ASSASSIN:
+    case JOB_HERMIT:
+      return JOB_ADVANCEMENT_ASSASSIN;
+    case JOB_BANDIT:
+    case JOB_CHIEF_BANDIT:
+      return JOB_ADVANCEMENT_BANDIT;
+    default:
+      return JOB_ADVANCEMENT_UNSPECIFIED;
+  }
+}
+
+// The ten 3rd job books, one per job -- the top of every line the game has.
+JobAdvancement ThirdAdvancement(Job job) {
+  switch (job) {
+    case JOB_BERSERKER:
+      return JOB_ADVANCEMENT_BERSERKER;
+    case JOB_CRUSADER:
+      return JOB_ADVANCEMENT_CRUSADER;
+    case JOB_WHITE_KNIGHT:
+      return JOB_ADVANCEMENT_WHITE_KNIGHT;
+    case JOB_RANGER:
+      return JOB_ADVANCEMENT_RANGER;
+    case JOB_SNIPER:
+      return JOB_ADVANCEMENT_SNIPER;
+    case JOB_ICE_LIGHTNING_MAGE:
+      return JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE;
+    case JOB_FIRE_POISON_MAGE:
+      return JOB_ADVANCEMENT_FIRE_POISON_MAGE;
+    case JOB_PRIEST:
+      return JOB_ADVANCEMENT_PRIEST;
+    case JOB_HERMIT:
+      return JOB_ADVANCEMENT_HERMIT;
+    case JOB_CHIEF_BANDIT:
+      return JOB_ADVANCEMENT_CHIEF_BANDIT;
+    default:
+      return JOB_ADVANCEMENT_UNSPECIFIED;
+  }
+}
+
 }  // namespace
 
 JobAdvancement AdvancementForJobStage(Job job, int stage) {
   // A character keeps every book below the one they are in, so each stage
   // answers for the whole line: a Berserker still holds their Swordman and
   // Spearman skills.
-  if (stage == 1) {
-    switch (job) {
-      case JOB_SWORDMAN:
-      case JOB_FIGHTER:
-      case JOB_PAGE:
-      case JOB_SPEARMAN:
-      case JOB_BERSERKER:
-      case JOB_CRUSADER:
-      case JOB_WHITE_KNIGHT:
-        return JOB_ADVANCEMENT_SWORDMAN;
-      case JOB_ARCHER:
-      case JOB_HUNTER:
-      case JOB_CROSSBOWMAN:
-      case JOB_RANGER:
-      case JOB_SNIPER:
-        return JOB_ADVANCEMENT_ARCHER;
-      case JOB_MAGICIAN:
-      case JOB_ICE_LIGHTNING_WIZARD:
-      case JOB_FIRE_POISON_WIZARD:
-      case JOB_CLERIC:
-      case JOB_ICE_LIGHTNING_MAGE:
-      case JOB_FIRE_POISON_MAGE:
-      case JOB_PRIEST:
-        return JOB_ADVANCEMENT_MAGICIAN;
-      case JOB_ROGUE:
-      case JOB_ASSASSIN:
-      case JOB_BANDIT:
-      case JOB_HERMIT:
-      case JOB_CHIEF_BANDIT:
-        return JOB_ADVANCEMENT_ROGUE;
-      default:
-        break;
-    }
+  switch (stage) {
+    case 1:
+      return FirstAdvancement(job);
+    case 2:
+      return SecondAdvancement(job);
+    case 3:
+      return ThirdAdvancement(job);
+    default:
+      return JOB_ADVANCEMENT_UNSPECIFIED;
   }
-  if (stage == 2) {
-    switch (job) {
-      case JOB_FIGHTER:
-      case JOB_CRUSADER:
-        return JOB_ADVANCEMENT_FIGHTER;
-      case JOB_PAGE:
-      case JOB_WHITE_KNIGHT:
-        return JOB_ADVANCEMENT_PAGE;
-      case JOB_SPEARMAN:
-      case JOB_BERSERKER:
-        return JOB_ADVANCEMENT_SPEARMAN;
-      case JOB_HUNTER:
-      case JOB_RANGER:
-        return JOB_ADVANCEMENT_HUNTER;
-      case JOB_CROSSBOWMAN:
-      case JOB_SNIPER:
-        return JOB_ADVANCEMENT_CROSSBOWMAN;
-      case JOB_ICE_LIGHTNING_WIZARD:
-      case JOB_ICE_LIGHTNING_MAGE:
-        return JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD;
-      case JOB_FIRE_POISON_WIZARD:
-      case JOB_FIRE_POISON_MAGE:
-        return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
-      case JOB_CLERIC:
-      case JOB_PRIEST:
-        return JOB_ADVANCEMENT_CLERIC;
-      case JOB_ASSASSIN:
-      case JOB_HERMIT:
-        return JOB_ADVANCEMENT_ASSASSIN;
-      case JOB_BANDIT:
-      case JOB_CHIEF_BANDIT:
-        return JOB_ADVANCEMENT_BANDIT;
-      default:
-        break;
-    }
-  }
-  if (stage == 3) {
-    switch (job) {
-      case JOB_BERSERKER:
-        return JOB_ADVANCEMENT_BERSERKER;
-      case JOB_CRUSADER:
-        return JOB_ADVANCEMENT_CRUSADER;
-      case JOB_WHITE_KNIGHT:
-        return JOB_ADVANCEMENT_WHITE_KNIGHT;
-      case JOB_RANGER:
-        return JOB_ADVANCEMENT_RANGER;
-      case JOB_SNIPER:
-        return JOB_ADVANCEMENT_SNIPER;
-      case JOB_ICE_LIGHTNING_MAGE:
-        return JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE;
-      case JOB_FIRE_POISON_MAGE:
-        return JOB_ADVANCEMENT_FIRE_POISON_MAGE;
-      case JOB_PRIEST:
-        return JOB_ADVANCEMENT_PRIEST;
-      case JOB_HERMIT:
-        return JOB_ADVANCEMENT_HERMIT;
-      case JOB_CHIEF_BANDIT:
-        return JOB_ADVANCEMENT_CHIEF_BANDIT;
-      default:
-        break;
-    }
-  }
-  return JOB_ADVANCEMENT_UNSPECIFIED;
 }
 
 Job JobForAdvancement(JobAdvancement advancement) {

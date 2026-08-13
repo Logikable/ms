@@ -261,6 +261,73 @@ struct Result {
   std::vector<std::pair<std::string, int>> skills;
 };
 
+// The whole book the character ended up with, and the figures of the swing
+// they settled on. Filled here rather than read off the AttackOption because
+// what the page prints is the skill's own data, not the damage it produced.
+void RecordBook(const GameState& state, const DerivedStats& derived,
+                const std::string& swing, Result* result) {
+  for (const std::pair<const int32_t, int32_t>& entry :
+       state.character.proto().sp_by_stage()) {
+    result->unspent_sp += entry.second;
+  }
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    int learned = state.character.skill_level(entry.second);
+    if (learned <= 0 ||
+        !state.character.HasAdvancement(entry.second.job_advancement())) {
+      continue;
+    }
+    result->skills.push_back({entry.second.name(), learned});
+    if (entry.second.name() != swing) {
+      continue;
+    }
+    result->skill_pct = entry.second.base().skill_pct() +
+                        entry.second.per_level().skill_pct() * (learned - 1);
+    // A swing another skill strengthens is worth more per line than its own
+    // data says, and the line printing it has to agree with the damage beside
+    // it.
+    std::map<std::string, double>::const_iterator boost =
+        derived.skill_pct_bonus.find(swing);
+    if (boost != derived.skill_pct_bonus.end()) {
+      result->skill_pct += boost->second;
+    }
+    result->lines = std::max(1, entry.second.lines());
+  }
+}
+
+// What the summons and the triggered attacks add, per second at 1x. They land
+// beside the swing rather than instead of it, so none of this competes with
+// the swing damage for the clock.
+double OffClockDps(const CombatParams& params, const AttackOption& best,
+                   double speed, double swing_seconds) {
+  double dps = 0.0;
+  // A pulse with an empowered form lands it once in every N, so what the summon
+  // is worth per pulse is the average of the two -- the same reading
+  // CombatSim::SwingDamage takes of a swing that has one.
+  for (const AttackOption& extra : params.auto_attacks) {
+    if (extra.damage_per_hit.empty() || extra.interval_seconds <= 0.0) {
+      continue;
+    }
+    double per_pulse = extra.damage_per_hit[0];
+    if (extra.empowered != nullptr && extra.empowered_every > 0 &&
+        !extra.empowered->damage_per_hit.empty()) {
+      per_pulse += (extra.empowered->damage_per_hit[0] - per_pulse) /
+                   extra.empowered_every;
+    }
+    dps += per_pulse / (extra.interval_seconds / speed);
+  }
+  // How often a triggered attack goes off depends on the swing feeding it: a
+  // rapid attack counting a seventh apiece is worth no more of these than a
+  // slow one counting a whole attack.
+  for (const AttackOption& extra : params.triggered_attacks) {
+    if (extra.damage_per_hit.empty() || extra.attacks_per_cast <= 0) {
+      continue;
+    }
+    dps += extra.damage_per_hit[0] * best.count_weight /
+           (swing_seconds * extra.attacks_per_cast);
+  }
+  return dps;
+}
+
 Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
@@ -307,63 +374,43 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   result.swing_damage = best->damage_per_hit[0];
   result.final_attack_damage =
       best->final_attack_damage.empty() ? 0.0 : best->final_attack_damage[0];
-  for (const std::pair<const int32_t, int32_t>& entry : proto.sp_by_stage()) {
-    result.unspent_sp += entry.second;
-  }
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    int learned = state.character.skill_level(entry.second);
-    if (learned > 0 &&
-        state.character.HasAdvancement(entry.second.job_advancement())) {
-      result.skills.push_back({entry.second.name(), learned});
-      if (entry.second.name() == best->name) {
-        result.skill_pct = entry.second.base().skill_pct() +
-                           entry.second.per_level().skill_pct() * (learned - 1);
-        // A swing another skill strengthens is worth more per line than its
-        // own data says, and the line printing it has to agree with the
-        // damage beside it.
-        std::map<std::string, double>::const_iterator boost =
-            derived.skill_pct_bonus.find(best->name);
-        if (boost != derived.skill_pct_bonus.end()) {
-          result.skill_pct += boost->second;
-        }
-        result.lines = std::max(1, entry.second.lines());
-      }
-    }
-  }
+  RecordBook(state, derived, best->name, &result);
   result.mirror_pct = derived.mirror_line_pct;
   result.swing_seconds = best->swing_seconds / speed;
   // Averaged over the swings that landed rather than the horizon, so the
   // part-charged swing the horizon cuts off costs nothing. A cooldown skill is
   // worth exactly the share of the swings it actually gets. Scaled back to 1x.
   result.dps = played.damage * speed / played.seconds;
-  // Skills on their own clock land beside the swing rather than instead of it.
-  // A pulse with an empowered form lands it once in every N, so what the summon
-  // is worth per pulse is the average of the two -- the same reading
-  // CombatSim::SwingDamage takes of a swing that has one.
-  for (const AttackOption& extra : params.auto_attacks) {
-    if (extra.damage_per_hit.empty() || extra.interval_seconds <= 0.0) {
-      continue;
-    }
-    double per_pulse = extra.damage_per_hit[0];
-    if (extra.empowered != nullptr && extra.empowered_every > 0 &&
-        !extra.empowered->damage_per_hit.empty()) {
-      per_pulse += (extra.empowered->damage_per_hit[0] - per_pulse) /
-                   extra.empowered_every;
-    }
-    result.dps += per_pulse / (extra.interval_seconds / speed);
-  }
-  // And the ones clocked by swings landed. How often they go off depends on
-  // the swing feeding them: a rapid attack counting a seventh apiece is worth
-  // no more of these than a slow one counting a whole attack.
-  for (const AttackOption& extra : params.triggered_attacks) {
-    if (extra.damage_per_hit.empty() || extra.attacks_per_cast <= 0) {
-      continue;
-    }
-    double casts_per_second =
-        best->count_weight / (result.swing_seconds * extra.attacks_per_cast);
-    result.dps += extra.damage_per_hit[0] * casts_per_second;
-  }
+  result.dps += OffClockDps(params, *best, speed, result.swing_seconds);
   return result;
+}
+
+// The stat line behind one row, under --detail. Everything the damage chain
+// read, so a figure that looks wrong can be traced to the factor that made it.
+void PrintDetail(const Build& build, const Result& result) {
+  // The shadow's lines are already in the damage; without this the count
+  // beside it would be half of what really landed. Its percentage is what one
+  // shadow line deals, not the share it takes -- a 70% shadow behind a 210%
+  // line lands 147%, and the bare 70% beside "210%" reads as a flat figure.
+  char shadow_buf[48] = "";
+  if (result.mirror_pct > 0.0) {
+    std::snprintf(shadow_buf, sizeof(shadow_buf), " + %d shadow @ %.0f%%",
+                  result.lines, 100.0 * result.mirror_pct * result.skill_pct);
+  }
+  std::printf(
+      "            %s %d  ATT %d  wc %.2f  mastery %.0f%%  crit %.0f%%  "
+      "dmg %.0f%%  FD %.0f%%\n"
+      "            swing %.0f (%d lines @ %.0f%%%s)  final attack %.0f  "
+      "unspent SP %d\n            ",
+      PrimaryStatName(build.job), result.primary, result.attack,
+      result.weapon_constant, 100.0 * result.mastery, 100.0 * result.crit_rate,
+      100.0 * result.damage_pct, 100.0 * result.final_dmg_pct,
+      result.swing_damage, result.lines, 100.0 * result.skill_pct, shadow_buf,
+      result.final_attack_damage, result.unspent_sp);
+  for (const std::pair<std::string, int>& skill : result.skills) {
+    std::printf("%s %d  ", skill.first.c_str(), skill.second);
+  }
+  std::printf("\n\n");
 }
 
 void Run(int level) {
@@ -422,29 +469,7 @@ void Run(int level) {
                 result.combat_power, result.dps, result.swing.c_str(),
                 result.swing_seconds);
     if (absl::GetFlag(FLAGS_detail)) {
-      // The shadow's lines are already in the damage; without this the count
-      // beside it would be half of what really landed.
-      char shadow_buf[48] = "";
-      if (result.mirror_pct > 0.0) {
-        std::snprintf(shadow_buf, sizeof(shadow_buf), " + %d shadow @ %.0f%%",
-                      result.lines, 100.0 * result.mirror_pct);
-      }
-      std::string shadow = shadow_buf;
-      std::printf(
-          "            %s %d  ATT %d  wc %.2f  mastery %.0f%%  crit %.0f%%  "
-          "dmg %.0f%%  FD %.0f%%\n"
-          "            swing %.0f (%d lines @ %.0f%%%s)  final attack %.0f  "
-          "unspent SP %d\n            ",
-          PrimaryStatName(build.job), result.primary, result.attack,
-          result.weapon_constant, 100.0 * result.mastery,
-          100.0 * result.crit_rate, 100.0 * result.damage_pct,
-          100.0 * result.final_dmg_pct, result.swing_damage, result.lines,
-          100.0 * result.skill_pct, shadow.c_str(), result.final_attack_damage,
-          result.unspent_sp);
-      for (const std::pair<std::string, int>& skill : result.skills) {
-        std::printf("%s %d  ", skill.first.c_str(), skill.second);
-      }
-      std::printf("\n\n");
+      PrintDetail(build, result);
     }
     std::fflush(stdout);
   }

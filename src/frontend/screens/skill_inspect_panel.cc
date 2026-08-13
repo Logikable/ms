@@ -467,9 +467,9 @@ std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
   return rows;
 }
 
-// Everything the skill grants at `level`. Empty for a skill whose real effect
-// is something this game has no notion of.
-std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
+// What the skill itself does when it goes off: its damage, its healing, and
+// the shapes a plain lever row cannot state.
+std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
   if (IsActive(skill) && PercentAt(skill, &SkillEffect::skill_pct, level) > 0) {
     rows.push_back(EffectRow("Damage", DamageText(skill, level)));
@@ -519,6 +519,13 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
        WrappedEffectRows("Opening Hit", LeadText(skill, level))) {
     rows.push_back(std::move(row));
   }
+  return rows;
+}
+
+// What lands beside the swing rather than as part of it, and what the skill
+// hands to another skill in the book.
+std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
+  std::vector<ftxui::Element> rows;
   // Final Attack's chance and its damage are one fact, not two levers: neither
   // half says anything on its own, so they share a line.
   double proc = PercentAt(skill, &SkillEffect::final_attack_chance, level);
@@ -565,6 +572,19 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
                                          FormatPercent(boost))) {
       rows.push_back(std::move(row));
     }
+  }
+  return rows;
+}
+
+// Everything the skill grants at `level`. Empty for a skill whose real effect
+// is something this game has no notion of.
+std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
+  std::vector<ftxui::Element> rows;
+  for (ftxui::Element& row : OwnEffectRows(skill, level)) {
+    rows.push_back(std::move(row));
+  }
+  for (ftxui::Element& row : ExtraAttackRows(skill, level)) {
+    rows.push_back(std::move(row));
   }
   for (ftxui::Element& row :
        LeverRows(skill.base(), skill.per_level(), level, "")) {
