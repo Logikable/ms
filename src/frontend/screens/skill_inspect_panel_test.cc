@@ -307,6 +307,32 @@ TEST_F(SkillInspectPanelTest, StatesWhatAShadowLineIsWorth) {
             std::string::npos);
 }
 
+// A thrown meso reads like every other swing on the page: what one line does,
+// times how many a meso is worth. Pick Pocket's chance is its own row, because
+// it is a chance rather than a gain.
+TEST_F(SkillInspectPanelTest, StatesWhatAMesoIsWorthAndHowOftenOneFalls) {
+  Skill explosion = MakeIronBody();
+  explosion.clear_base();
+  explosion.clear_per_level();
+  explosion.set_lines(2);
+  explosion.mutable_base()->set_meso_hit_pct(0.43);
+  explosion.mutable_per_level()->set_meso_hit_pct(0.03);
+
+  EXPECT_NE(RenderAt(explosion, 1).find("Damage per Meso   43% x2 = 86%"),
+            std::string::npos);
+  EXPECT_NE(RenderAt(explosion, 20).find("Damage per Meso   100% x2 = 200%"),
+            std::string::npos);
+
+  Skill pocket = MakeIronBody();
+  pocket.clear_base();
+  pocket.clear_per_level();
+  pocket.mutable_base()->set_meso_drop_chance(0.12);
+  pocket.mutable_per_level()->set_meso_drop_chance(0.02);
+  EXPECT_NE(RenderAt(pocket, 10).find("Meso Drop Chance  30%"),
+            std::string::npos);
+  EXPECT_EQ(RenderAt(pocket, 10).find("Damage per Meso"), std::string::npos);
+}
+
 // Dispel keeps a real promise that nothing in the game can call on yet. The
 // page says what it does rather than calling it empty, and says the same thing
 // at every level, because that is what a point buys: nothing more.

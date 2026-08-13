@@ -296,6 +296,44 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   EXPECT_EQ(blessed.character.meso(), plain.character.meso());
 }
 
+// Meso Mastery is the mirror of Holy Symbol: paid out in the purse, and the
+// fight and the EXP behind it left exactly as they were.
+TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
+  Skill mastery;
+  mastery.set_name("Meso Mastery");
+  mastery.set_kind(SKILL_KIND_PASSIVE);
+  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mastery.set_max_level(1);
+  mastery.mutable_base()->set_meso_pct(1.0);
+
+  // A mob near the character's own level: meso falls off hard once they
+  // out-level what they kill, and a purse of zero would prove nothing.
+  Mob mob = SnailMob();
+  mob.set_level(20);
+
+  int64_t meso[2] = {0, 0};
+  int64_t exp[2] = {0, 0};
+  for (int pass = 0; pass < 2; ++pass) {
+    GameState state({}, {}, {}, {{"snail", mob}}, {{"field", OneSnailMap()}},
+                    {{"meso_mastery", mastery}});
+    state.current_map = "field";
+    LevelTo(state, 25);
+    EquipSword(state);
+    ASSERT_TRUE(state.character.CanAdvanceJob());
+    state.character.AdvanceJob(JOB_SWORDMAN);
+    if (pass == 1) {
+      ASSERT_TRUE(state.character.LearnSkill(mastery, 1));
+    }
+    Farm(state, 600.0);
+    meso[pass] = state.character.meso();
+    exp[pass] = state.character.proto().exp();
+  }
+
+  ASSERT_GT(meso[0], 0);
+  EXPECT_EQ(meso[1], 2 * meso[0]);
+  EXPECT_EQ(exp[1], exp[0]);
+}
+
 // Farms `state` until the ogre kills the character, or gives up after a
 // generous stretch. Returns whether they died.
 bool FarmUntilDeath(GameState& state) {

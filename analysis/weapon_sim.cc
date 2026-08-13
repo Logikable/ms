@@ -107,6 +107,8 @@ std::string BranchName(Job job) {
       return "Priest";
     case JOB_HERMIT:
       return "Hermit";
+    case JOB_CHIEF_BANDIT:
+      return "Chief Bandit";
     default:
       return "?";
   }
@@ -399,6 +401,7 @@ void Run(int level) {
       {JOB_FIRE_POISON_MAGE, EQUIP_TYPE_STAFF},
       {JOB_PRIEST, EQUIP_TYPE_STAFF},
       {JOB_HERMIT, EQUIP_TYPE_CLAW, EQUIP_TYPE_THROWING_STAR},
+      {JOB_CHIEF_BANDIT, EQUIP_TYPE_DAGGER},
   };
 
   std::printf(

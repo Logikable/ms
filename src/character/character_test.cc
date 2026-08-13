@@ -476,8 +476,9 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
   EXPECT_EQ(JobChoicesForStage(JOB_CLERIC, 3), (std::vector<Job>{JOB_PRIEST}));
   EXPECT_EQ(JobChoicesForStage(JOB_ASSASSIN, 3),
             (std::vector<Job>{JOB_HERMIT}));
-  // The Bandit's is the last 3rd job left unwritten.
-  EXPECT_TRUE(JobChoicesForStage(JOB_BANDIT, 3).empty());
+  EXPECT_EQ(JobChoicesForStage(JOB_BANDIT, 3),
+            (std::vector<Job>{JOB_CHIEF_BANDIT}));
+  // Every branch of every explorer is written; a 4th offers nothing.
   EXPECT_TRUE(JobChoicesForStage(JOB_BERSERKER, 4).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
 }

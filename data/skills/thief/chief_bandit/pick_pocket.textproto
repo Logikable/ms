@@ -1,0 +1,20 @@
+# GMS: a 10+4x% chance of one meso every time you attack, over 5 levels, up to
+# 15 on the ground. Ten levels here at 2% apiece, which lands on GMS's 30%.
+#
+# The roll is per LINE the swing lands on an enemy. GMS never says so outright,
+# but four coins off a single monster from one attack cannot happen any other
+# way, and it is what makes the pair worth its thirty points.
+#
+# What a meso is worth is not modelled, and GMS does not state it either: its
+# own hyper enhancement raises the chance and the count and never a value. A
+# meso is ammunition for Meso Explosion, which spends it.
+name: "Pick Pocket"
+skill_order: 4
+description:
+  "Shake mesos loose from the enemies you strike. Every hit you land has a "
+  "chance to knock one free."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+max_level: 10
+base { meso_drop_chance: 0.12 }
+per_level { meso_drop_chance: 0.02 }

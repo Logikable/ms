@@ -1,0 +1,25 @@
+# GMS gives 4x of each over 5 levels; ten levels at 2 apiece lands on the same
+# ceiling. The three read together: the attack is for the swing, the drop rate
+# for the purse, and the last for what Meso Explosion throws.
+#
+# Its points land on a LINE of the explosion, which is how GMS states them and
+# why it says "per shot" -- 20 points at master is 40% on a two-line meso.
+name: "Meso Mastery"
+skill_order: 8
+description:
+  "Learn the worth of what you take: your attacks hit harder, enemies drop "
+  "more mesos, and each meso you fling hits harder."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+max_level: 10
+boosts_skill_name: "Meso Explosion"
+base {
+  attack: 2
+  meso_pct: 0.02
+  boosted_skill_pct: 0.02
+}
+per_level {
+  attack: 2
+  meso_pct: 0.02
+  boosted_skill_pct: 0.02
+}

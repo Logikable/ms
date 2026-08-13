@@ -1,0 +1,18 @@
+# GMS gives this 150+2x% four times on eight enemies, and gives Phase Dash
+# 320+5x% twice on the same eight -- 760% against 840% at master, off a swing
+# 270ms shorter. Phase Dash is simply the better skill, and two buttons where
+# one is strictly worse is not a choice.
+#
+# So the two are one skill here: Midnight Carnival's four lines carrying Phase
+# Dash's total. 750ms is Midnight Carnival's own, from the frame data.
+name: "Midnight Carnival"
+skill_order: 1
+description: "Overwhelm the enemies around you with supersonic slashes."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+max_level: 20
+base_delay_ms: 750
+max_enemies: 8
+lines: 4
+base { skill_pct: 1.72 }
+per_level { skill_pct: 0.02 }

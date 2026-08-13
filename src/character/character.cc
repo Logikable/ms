@@ -161,6 +161,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_ASSASSIN:
     case JOB_BANDIT:
     case JOB_HERMIT:
+    case JOB_CHIEF_BANDIT:
       return EQUIP_JOB_CATEGORY_THIEF;
     default:
       return EQUIP_JOB_CATEGORY_UNSPECIFIED;
@@ -248,6 +249,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_ASSASSIN:
       case JOB_BANDIT:
       case JOB_HERMIT:
+      case JOB_CHIEF_BANDIT:
         return JOB_ADVANCEMENT_ROGUE;
       default:
         break;
@@ -283,6 +285,7 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       case JOB_HERMIT:
         return JOB_ADVANCEMENT_ASSASSIN;
       case JOB_BANDIT:
+      case JOB_CHIEF_BANDIT:
         return JOB_ADVANCEMENT_BANDIT;
       default:
         break;
@@ -308,6 +311,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
         return JOB_ADVANCEMENT_PRIEST;
       case JOB_HERMIT:
         return JOB_ADVANCEMENT_HERMIT;
+      case JOB_CHIEF_BANDIT:
+        return JOB_ADVANCEMENT_CHIEF_BANDIT;
       default:
         break;
     }
@@ -363,6 +368,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_PRIEST;
     case JOB_ADVANCEMENT_HERMIT:
       return JOB_HERMIT;
+    case JOB_ADVANCEMENT_CHIEF_BANDIT:
+      return JOB_CHIEF_BANDIT;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -413,6 +420,7 @@ std::vector<std::string> StarterEquipsFor(Job job) {
     case JOB_HERMIT:
       return {"all_souls_charm"};
     case JOB_BANDIT:
+    case JOB_CHIEF_BANDIT:
       return {"hidden_shadow"};
     default:
       return {};
@@ -475,6 +483,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_ASSASSIN:
     case JOB_BANDIT:
     case JOB_HERMIT:
+    case JOB_CHIEF_BANDIT:
       return STAT_FIELD_LUK;
     default:
       return STAT_FIELD_UNSPECIFIED;
@@ -531,6 +540,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 3 && job == JOB_ASSASSIN) {
     return {JOB_HERMIT};
   }
+  if (stage == 3 && job == JOB_BANDIT) {
+    return {JOB_CHIEF_BANDIT};
+  }
   return {};
 }
 
@@ -561,6 +573,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_FIRE_POISON_MAGE:
     case JOB_ADVANCEMENT_PRIEST:
     case JOB_ADVANCEMENT_HERMIT:
+    case JOB_ADVANCEMENT_CHIEF_BANDIT:
       return 3;
     default:
       return 0;

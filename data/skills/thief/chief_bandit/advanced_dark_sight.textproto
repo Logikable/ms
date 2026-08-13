@@ -1,0 +1,12 @@
+# GMS hangs this on Dark Sight: 12% final damage while attacking out of
+# stealth, over one level. There is no stealth here and no attacking out of it,
+# so what is left is the final damage -- 1% a level over five, kept low because
+# the character is never asked to earn it.
+name: "Advanced Dark Sight"
+skill_order: 6
+description: "Hone your stealth until every strike out of the dark lands harder."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+max_level: 5
+base { final_dmg_pct: 0.01 }
+per_level { final_dmg_pct: 0.01 }

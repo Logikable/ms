@@ -1,0 +1,22 @@
+# GMS's own figures: 40+3x% twice per meso per enemy. What it throws is the
+# mesos Pick Pocket knocked onto the ground, never the ones in the purse -- so
+# it costs the character nothing but the coins they would not have collected.
+#
+# A passive here, because there is no ground to stand on and no meso to walk
+# over: every meso that drops is thrown the moment it does. GMS's cap of 15 on
+# the ground has nothing to cap for the same reason.
+#
+# Normal-enemy damage is dropped -- 2+floor(x/6)% is 5 points at master, on a
+# skill whose whole line is 200%.
+name: "Meso Explosion"
+skill_order: 2
+description:
+  "Fling the mesos your attacks knock loose back at the enemy that dropped "
+  "them."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+max_level: 20
+lines: 2
+required_skill { skill_name: "Pick Pocket" level: 1 }
+base { meso_hit_pct: 0.43 }
+per_level { meso_hit_pct: 0.03 }

@@ -1,0 +1,21 @@
+# The Hermit's, to the number -- GMS gives both branches 5x% HP and 6+6x
+# resistance over 4 levels, and five levels at 4% and 5 lands near its ceiling
+# for a point more. Both resistances ship dead, as every resistance here does.
+name: "Enveloping Darkness"
+skill_order: 9
+description:
+  "Wrap yourself in darkness, permanently increasing Max HP, Abnormal Status "
+  "Resistance and Elemental Resistance."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+max_level: 5
+base {
+  max_hp_pct: 0.04
+  status_resistance: 10
+  elemental_resistance: 0.10
+}
+per_level {
+  max_hp_pct: 0.04
+  status_resistance: 5
+  elemental_resistance: 0.05
+}

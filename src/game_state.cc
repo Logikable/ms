@@ -115,6 +115,8 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     // nothing at all. See the Assassin above.
     case JOB_HERMIT:
       return {"balanced_fury", "red_craven", "death_sender_charm"};
+    case JOB_CHIEF_BANDIT:
+      return {"blood_dagger", "slashing_shadow"};
     default:
       return StarterEquipsFor(job);
   }

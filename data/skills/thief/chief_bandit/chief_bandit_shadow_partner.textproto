@@ -1,0 +1,14 @@
+# The Hermit's, to the number: 50+x% of every line the character lands. GMS
+# gives both branches the same skill, and says of this one that the shadow
+# cannot copy Meso Explosion -- which it does not, a thrown meso being no
+# swing of the character's.
+name: "Shadow Partner"
+skill_order: 5
+description:
+  "Summon a shadow that copies your attacks. Every strike you land is struck "
+  "again for a share of its damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+max_level: 20
+base { mirror_line_pct: 0.51 }
+per_level { mirror_line_pct: 0.01 }

@@ -1,0 +1,16 @@
+# The Hermit's, to the number: GMS gives both branches 50+4x% a second. The
+# chance and the duration go for the reason written there, and eight enemies is
+# ours -- the reach Midnight Carnival has, since it is the dagger that is
+# poisoned.
+name: "Venom"
+skill_order: 7
+description:
+  "Coat your dagger in poison for good, so the enemies around you take damage "
+  "over time."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
+max_level: 10
+max_enemies: 8
+cast_interval_seconds: 1.0
+base { skill_pct: 0.54 }
+per_level { skill_pct: 0.04 }
