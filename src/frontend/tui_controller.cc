@@ -532,6 +532,11 @@ bool TuiController::OnShopEvent(ftxui::Event event) {
 
 bool TuiController::OnShopMenuEvent(ftxui::Event event) {
   Screen next = shop_panel_.OnMenuEvent(event);
+  if (next == kShopBuy && shop_panel_.selected_buy_back() != nullptr) {
+    OpenBuyBackDialog(*shop_panel_.selected_buy_back());
+    screen_ = next;
+    return true;
+  }
   if (next == kShopBuy) {
     const EquipPrototype* item = shop_panel_.selected_item();
     const ItemPrototype* stackable = shop_panel_.selected_stackable();
@@ -566,18 +571,60 @@ bool TuiController::OnShopInspectEvent(ftxui::Event event) {
   return true;
 }
 
+// The shelf holds one row per sale, so the amount a row offers is the whole
+// of that sale and an equip is always the one item. Priced at what the sale
+// paid, which is the only price the row has.
+void TuiController::OpenBuyBackDialog(const BuyBackEntry& entry) {
+  buy_back_row_ = shop_panel_.selected_row();
+  if (entry.has_equip()) {
+    buy_item_ = entry.equip().equip_name();
+    // One item, so one is also the ceiling: the row IS the sale, and there is
+    // no second copy of it behind the first.
+    buy_panel_.Reset(buy_item_, static_cast<int>(entry.unit_price()),
+                     state_.character.meso(),
+                     std::min(1, state_.character.inventory().room()),
+                     /*owned=*/0);
+    return;
+  }
+  buy_item_ = entry.stack().name();
+  const ItemPrototype* proto = FindItemByName(state_.items, buy_item_);
+  buy_panel_.Reset(
+      buy_item_, static_cast<int>(entry.unit_price()), state_.character.meso(),
+      std::min(entry.stack().count(),
+               proto == nullptr ? 0 : state_.character.RoomFor(*proto)),
+      proto == nullptr ? 0 : state_.character.CountStackable(*proto));
+}
+
+// Everything the confirmed dialog buys, whichever shelf it was opened on. The
+// selection is re-read rather than remembered, and what it names checked
+// against what the dialog was opened on, so a cursor that moved under the
+// dialog cannot buy something the player never chose.
+void TuiController::BuyWhatTheDialogAgreedTo() {
+  const BuyBackEntry* entry = shop_panel_.selected_buy_back();
+  if (entry != nullptr) {
+    std::string name = entry->has_equip() ? entry->equip().equip_name()
+                                          : entry->stack().name();
+    if (shop_panel_.selected_row() == buy_back_row_ && name == buy_item_) {
+      state_.character.BuyBack(buy_back_row_, buy_panel_.quantity(),
+                               state_.equips, state_.items);
+    }
+    return;
+  }
+  const EquipPrototype* item = shop_panel_.selected_item();
+  const ItemPrototype* stackable = shop_panel_.selected_stackable();
+  if (item != nullptr && item->name() == buy_item_) {
+    state_.character.Buy(*item, buy_panel_.quantity());
+  } else if (stackable != nullptr && stackable->name() == buy_item_) {
+    state_.character.Buy(*stackable, buy_panel_.quantity());
+  }
+}
+
 bool TuiController::OnShopBuyEvent(ftxui::Event event) {
   buy_panel_.OnEvent(event);
+  // Taken once: both of these answer true only on the frame the player
+  // pressed, and asking twice throws the answer away.
   if (buy_panel_.TakeConfirmed()) {
-    // Re-read rather than remembered, and the name checked, so a selection that
-    // moved under the dialog cannot buy something the player never chose.
-    const EquipPrototype* item = shop_panel_.selected_item();
-    const ItemPrototype* stackable = shop_panel_.selected_stackable();
-    if (item != nullptr && item->name() == buy_item_) {
-      state_.character.Buy(*item, buy_panel_.quantity());
-    } else if (stackable != nullptr && stackable->name() == buy_item_) {
-      state_.character.Buy(*stackable, buy_panel_.quantity());
-    }
+    BuyWhatTheDialogAgreedTo();
     // Back to the shop rather than the bag: a player buying one thing is
     // usually buying two.
     screen_ = kShop;

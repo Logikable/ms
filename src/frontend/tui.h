@@ -64,6 +64,9 @@ class Tui {
   ftxui::Element JobAdvanceDialog();
   ftxui::Element QuitDialog();
   ftxui::Element RenderShopInspect();
+  // The inspect screen for a row of the buy-back shelf: the item as the sale
+  // left it, rebuilt from the shelf plus the catalog.
+  ftxui::Element RenderBuyBackInspect(const BuyBackEntry& entry);
   ftxui::Element RenderTraceRecover();
   ftxui::Element RenderInspect();
   ftxui::Element RenderScroll();

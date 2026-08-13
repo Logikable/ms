@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <map>
+#include <memory>
 #include <random>
 #include <string>
 #include <utility>
@@ -13,6 +14,8 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/character.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -872,7 +875,10 @@ TEST_F(ShopPanelTest, TheEndsOfTheBarAreWalls) {
   for (int i = 0; i < kNumShopTabs; ++i) {
     panel.OnEvent(ftxui::Event::ArrowRight);
   }
-  EXPECT_NE(panel.selected_stackable(), nullptr) << "stepped off the right end";
+  // One step more than there are tabs, so a bar that wrapped would be back on
+  // Weapons. Buy-Back is the last shelf, and the only one with a Qty column.
+  EXPECT_NE(Render(panel).find("Qty"), std::string::npos)
+      << "stepped off the right end";
 }
 
 // In the list Left and Right are not tab keys: changing the list under a cursor
@@ -894,6 +900,119 @@ TEST_F(ShopPanelTest, TheEtcShelfShowsHowManyAreOwned) {
 
 // Reset is what the screen calls on the way in, so it has to land on Weapons
 // however the player left it.
+// --- the buy-back shelf ---
+
+// The shelf holds both kinds at once, so the columns have to carry an equip
+// and a stack without either one reading as the other.
+TEST_F(ShopPanelTest, TheBuyBackShelfShowsBothKindsOfRow) {
+  CharacterInstance c = MakeCharacter(100000);
+  EquipPrototype sword = MakeItem("Gladius", 30, 20000);
+  sword.set_sell_price(2000);
+  ItemPrototype shell = MakeStackable("Green Snail Shell", 0, 200);
+  shell.set_sell_price(7);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  c.SellEquip(0);
+  c.AddStackable(shell, 40);
+  c.SellStackable(ITEM_CATEGORY_ETC, 0, 40);
+
+  ShopPanel panel(c, equips_, items_);
+  OpenShelf(panel, kShopBuyBackTab);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Qty"), std::string::npos);
+  // The stack carries its count and no type; the equip carries its type and
+  // no count. Each priced at what one of it sold for.
+  EXPECT_NE(rendered.find("Green Snail Shell"), std::string::npos);
+  EXPECT_NE(rendered.find("40"), std::string::npos);
+  EXPECT_NE(rendered.find("Gladius"), std::string::npos);
+  EXPECT_NE(rendered.find("One-Handed Sword"), std::string::npos);
+  EXPECT_NE(rendered.find("2,000"), std::string::npos);
+  // Newest on top: the stack was sold second.
+  EXPECT_LT(RowIndexWith(panel, "Green Snail Shell"),
+            RowIndexWith(panel, "Gladius"));
+}
+
+TEST_F(ShopPanelTest, AnEmptyShelfSaysNothingWasSold) {
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, equips_, items_);
+  OpenShelf(panel, kShopBuyBackTab);
+  EXPECT_NE(Render(panel).find("nothing sold yet"), std::string::npos);
+  EXPECT_EQ(panel.selected_buy_back(), nullptr);
+}
+
+// The shelf is the player's own history, so nothing filters it. A weapon of
+// another class or a level they have outgrown is still theirs to take back.
+TEST_F(ShopPanelTest, TheShelfIsNotFilteredByClassOrLevel) {
+  CharacterInstance c = MakeCharacter(100000, /*level=*/1, JOB_SWORDMAN);
+  EquipPrototype bow =
+      MakeItem("Metus", 90, 250000, EQUIP_JOB_CATEGORY_BOWMAN, EQUIP_TYPE_BOW);
+  bow.set_sell_price(25000);
+  c.PickUp(std::make_unique<EquipInstance>(bow));
+  c.SellEquip(0);
+  ASSERT_FALSE(c.CanEquip(bow));
+
+  ShopPanel panel(c, equips_, items_);
+  OpenShelf(panel, kShopBuyBackTab);
+  EXPECT_NE(Render(panel).find("Metus"), std::string::npos);
+  ASSERT_NE(panel.selected_buy_back(), nullptr);
+  EXPECT_EQ(panel.selected_buy_back()->equip().equip_name(), "Metus");
+}
+
+// Exactly one of the three "what is selected" questions ever answers, or a
+// caller asking all three acts on the wrong one.
+TEST_F(ShopPanelTest, OnlyTheShelfAnswersOnTheShelf) {
+  CharacterInstance c = MakeCharacter(100000);
+  EquipPrototype sword = MakeItem("Gladius", 30, 20000);
+  sword.set_sell_price(2000);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  c.SellEquip(0);
+
+  ShopPanel panel(c, equips_, items_);
+  OpenShelf(panel, kShopBuyBackTab);
+  EXPECT_NE(panel.selected_buy_back(), nullptr);
+  EXPECT_EQ(panel.selected_item(), nullptr);
+  EXPECT_EQ(panel.selected_stackable(), nullptr);
+
+  // Walked back rather than opened again: OpenShelf steps right from wherever
+  // the cursor is, and it is on the last tab.
+  for (int i = 0; i < kShopBuyBackTab; ++i) {
+    panel.OnEvent(ftxui::Event::ArrowLeft);
+  }
+  EXPECT_NE(panel.selected_item(), nullptr);
+  EXPECT_EQ(panel.selected_buy_back(), nullptr);
+}
+
+// A trace sold and listed has to read as a trace, or it looks like the working
+// item it is the wreck of.
+TEST_F(ShopPanelTest, ATraceOnTheShelfSaysSo) {
+  CharacterInstance c = MakeCharacter(100000);
+  EquipPrototype sword = MakeItem("Gladius", 30, 20000);
+  sword.set_sell_price(2000);
+  Equip destroyed;
+  destroyed.set_equip_name("Gladius");
+  destroyed.set_stars(19);
+  c.PickUp(std::make_unique<EquipTrace>(sword, destroyed));
+  c.SellEquip(0);
+
+  ShopPanel panel(c, equips_, items_);
+  OpenShelf(panel, kShopBuyBackTab);
+  EXPECT_NE(Render(panel).find("Gladius Trace"), std::string::npos);
+}
+
+// The menu is what leads to Inspect and Buy, and the shelf offers both.
+TEST_F(ShopPanelTest, TheMenuOpensOnAShelfRow) {
+  CharacterInstance c = MakeCharacter(100000);
+  EquipPrototype sword = MakeItem("Gladius", 30, 20000);
+  sword.set_sell_price(2000);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  c.SellEquip(0);
+
+  ShopPanel panel(c, equips_, items_);
+  OpenShelf(panel, kShopBuyBackTab);
+  panel.OnEvent(ftxui::Event::ArrowDown);  // the bar -> the one row
+  panel.OpenMenu();
+  EXPECT_TRUE(panel.menu_open());
+}
+
 TEST_F(ShopPanelTest, ReopeningComesBackToTheWeaponsTab) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_, items_);

@@ -10,6 +10,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/item/item.h"
 #include "src/item/shop.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -48,6 +49,16 @@ ftxui::Element EtcColumnHeader() {
                      PadLeft("🪙 Cost", kCostWidth));
 }
 
+// The buy-back shelf holds both kinds at once, so it keeps the type column for
+// the equips and turns the level column into the quantity the stackables need.
+// Each row fills one of the two and leaves the other blank.
+ftxui::Element BuyBackColumnHeader() {
+  return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
+                     PadRight("Type", kTypeWidth) + "  " +
+                     PadRight("Qty", kLevelWidth) +
+                     PadLeft("🪙 Cost", kCostWidth));
+}
+
 // The level cell, e.g. "Lv30  ". An item with no level requirement reads as
 // level 1 rather than as a blank, matching the bag.
 std::string LevelCell(const EquipPrototype& proto) {
@@ -70,11 +81,25 @@ ShopPanel::ShopPanel(const CharacterInstance& character,
   Reset();
 }
 
+int ShopPanel::RowCount() const {
+  if (tab_ == kShopBuyBackTab) {
+    return character_.buy_backs().size();
+  }
+  return static_cast<int>(stock_.size());
+}
+
 void ShopPanel::Restock() {
   // Rebuilt rather than kept, because the shop stocks what this character can
   // hold and that changes when they advance. Cheap: the catalog is small and
   // the screen opens on a keypress.
   stock_.clear();
+  // The buy-back shelf is the character's, not the shop's. It is read where it
+  // lives, so a sale made while the screen is open shows up without restocking
+  // -- and nothing here filters it: what a player sold is theirs to buy back
+  // whatever their class or level says now.
+  if (tab_ == kShopBuyBackTab) {
+    return;
+  }
   if (tab_ == kShopEtcTab) {
     stock_ = ShopEtcStock(items_);
     return;
@@ -114,8 +139,7 @@ int ShopPanel::CursorStop() const {
 }
 
 void ShopPanel::MoveCursor(int delta) {
-  int next =
-      StepCursor(CursorStop(), delta, 1 + static_cast<int>(stock_.size()));
+  int next = StepCursor(CursorStop(), delta, 1 + RowCount());
   if (next == 0) {
     // The window stays where it is: the cursor has left the list rather than
     // moved within it, and it comes back to the row it left.
@@ -140,7 +164,8 @@ void ShopPanel::OpenMenu() {
     // Nothing to open a menu on: the cursor is on the bar, not on an item.
     return;
   }
-  if (selected_item() == nullptr && selected_stackable() == nullptr) {
+  if (selected_item() == nullptr && selected_stackable() == nullptr &&
+      selected_buy_back() == nullptr) {
     return;
   }
   menu_.Reset();
@@ -180,8 +205,16 @@ Screen ShopPanel::OnMenuEvent(ftxui::Event event) {
   return kShopMenu;
 }
 
+const BuyBackEntry* ShopPanel::selected_buy_back() const {
+  if (tab_ != kShopBuyBackTab || selected_ < 0 ||
+      selected_ >= character_.buy_backs().size()) {
+    return nullptr;
+  }
+  return &character_.buy_backs().Get(selected_);
+}
+
 const EquipPrototype* ShopPanel::selected_item() const {
-  if (tab_ == kShopEtcTab || selected_ < 0 ||
+  if (tab_ == kShopEtcTab || tab_ == kShopBuyBackTab || selected_ < 0 ||
       selected_ >= static_cast<int>(stock_.size())) {
     return nullptr;
   }
@@ -222,6 +255,8 @@ ftxui::Element ShopPanel::RenderTabBar() const {
   chips.push_back(TabChip("Secondaries", /*active=*/tab_ == kShopSecondariesTab,
                           /*row_focused=*/focused));
   chips.push_back(TabChip("Etc", /*active=*/tab_ == kShopEtcTab,
+                          /*row_focused=*/focused));
+  chips.push_back(TabChip("Buy-Back", /*active=*/tab_ == kShopBuyBackTab,
                           /*row_focused=*/focused));
   // The meso sits in what the chips leave rather than over the whole row: a
   // third chip took the bar out to where a centred counter was drawn on top of
@@ -274,22 +309,60 @@ ftxui::Element ShopPanel::RenderEquipRow(const EquipPrototype& proto,
   });
 }
 
+ftxui::Element ShopPanel::RenderBuyBackRow(const BuyBackEntry& entry,
+                                           const std::string& cursor) const {
+  // The name is the item's own, and a trace's name already says it is one.
+  std::string name;
+  std::string type;
+  std::string qty;
+  if (entry.has_equip()) {
+    const EquipPrototype* proto =
+        FindEquipByName(equips_, entry.equip().equip_name());
+    name = proto == nullptr ? entry.equip().equip_name() : proto->name();
+    if (entry.equip().trace()) {
+      name += " Trace";
+    }
+    if (proto != nullptr) {
+      type = FormatEquipType(proto->equip_type());
+    }
+  } else {
+    name = entry.stack().name();
+    qty = FormatWithCommas(entry.stack().count());
+  }
+  ftxui::Element cost =
+      ftxui::text(PadLeft(FormatMeso(entry.unit_price()), kCostWidth));
+  if (entry.unit_price() > character_.meso()) {
+    cost = std::move(cost) | ftxui::color(kRed);
+  }
+  return ftxui::hbox({
+      ftxui::text(cursor + PadRight(name, kNameWidth) + "  " +
+                  PadRight(type, kTypeWidth) + "  " +
+                  PadRight(qty, kLevelWidth)),
+      std::move(cost),
+      ftxui::text(" "),
+  });
+}
+
 std::vector<ftxui::Element> ShopPanel::RenderStock() const {
   std::vector<ftxui::Element> item_rows;
-  int last =
-      std::min(static_cast<int>(stock_.size()), first_visible_ + kVisibleRows);
+  int last = std::min(RowCount(), first_visible_ + kVisibleRows);
   for (int i = first_visible_; i < last; ++i) {
     std::string cursor = zone_ == kZoneList && i == selected_ ? "> " : "  ";
-    item_rows.push_back(tab_ == kShopEtcTab
-                            ? RenderEtcRow(items_.at(stock_[i]), cursor)
-                            : RenderEquipRow(equips_.at(stock_[i]), cursor));
+    if (tab_ == kShopBuyBackTab) {
+      item_rows.push_back(
+          RenderBuyBackRow(character_.buy_backs().Get(i), cursor));
+    } else if (tab_ == kShopEtcTab) {
+      item_rows.push_back(RenderEtcRow(items_.at(stock_[i]), cursor));
+    } else {
+      item_rows.push_back(RenderEquipRow(equips_.at(stock_[i]), cursor));
+    }
   }
   if (item_rows.empty()) {
     return {};
   }
   return {ftxui::hbox({
       ftxui::vbox(std::move(item_rows)),
-      ScrollBar(static_cast<int>(stock_.size()), first_visible_, kVisibleRows),
+      ScrollBar(RowCount(), first_visible_, kVisibleRows),
   })};
 }
 
@@ -297,10 +370,18 @@ ftxui::Element ShopPanel::Render() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(RenderTabBar());
   rows.push_back(ThemedSeparator());
-  rows.push_back(tab_ == kShopEtcTab ? EtcColumnHeader() : ColumnHeader());
+  if (tab_ == kShopBuyBackTab) {
+    rows.push_back(BuyBackColumnHeader());
+  } else if (tab_ == kShopEtcTab) {
+    rows.push_back(EtcColumnHeader());
+  } else {
+    rows.push_back(ColumnHeader());
+  }
   rows.push_back(ThemedSeparator());
-  if (stock_.empty()) {
-    rows.push_back(EmptyState("nothing for sale", /*gutter=*/2));
+  if (RowCount() == 0) {
+    rows.push_back(EmptyState(
+        tab_ == kShopBuyBackTab ? "nothing sold yet" : "nothing for sale",
+        /*gutter=*/2));
   }
   for (ftxui::Element& row : RenderStock()) {
     rows.push_back(std::move(row));

@@ -120,6 +120,19 @@ StatFlags PrimaryStatFlags(const EquipPrototype& proto) {
   return flags;
 }
 
+// One pass over the catalog. Small enough that an index would cost more to
+// build than the walk it saves, and every caller is on a keypress.
+template <typename Proto>
+const Proto* FindByName(const std::map<std::string, Proto>& catalog,
+                        const std::string& name) {
+  for (const std::pair<const std::string, Proto>& entry : catalog) {
+    if (entry.second.name() == name) {
+      return &entry.second;
+    }
+  }
+  return nullptr;
+}
+
 }  // namespace
 
 bool Supports(const EquipPrototype& proto, Upgrade upgrade) {
@@ -147,6 +160,18 @@ int StackableItem::max_stack() const {
     default:
       return 1;
   }
+}
+
+const EquipPrototype* FindEquipByName(
+    const std::map<std::string, EquipPrototype>& equips,
+    const std::string& name) {
+  return FindByName(equips, name);
+}
+
+const ItemPrototype* FindItemByName(
+    const std::map<std::string, ItemPrototype>& items,
+    const std::string& name) {
+  return FindByName(items, name);
 }
 
 Equip EquipTabItem::SavedState() const {

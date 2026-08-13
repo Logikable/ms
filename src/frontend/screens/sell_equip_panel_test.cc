@@ -42,19 +42,19 @@ TEST_F(SellEquipPanelTest, WorthlessItemSellsForZero) {
   EXPECT_NE(Render(panel).find("0"), std::string::npos);
 }
 
-// Enter on arrival must not sell. A sale cannot be undone, so the cursor opens
-// on the way out.
-TEST_F(SellEquipPanelTest, OpensOnCancel) {
+// Enter on arrival sells. The shop keeps the sale on its buy-back shelf, so
+// the dialog is a confirmation and not a warning.
+TEST_F(SellEquipPanelTest, OpensOnConfirm) {
   SellEquipPanel panel;
   panel.Reset("Hunter's Bow", 1000);
-  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
 }
 
-TEST_F(SellEquipPanelTest, ConfirmsAfterSteppingOntoIt) {
+TEST_F(SellEquipPanelTest, CancelsAfterSteppingOntoIt) {
   SellEquipPanel panel;
   panel.Reset("Hunter's Bow", 1000);
-  EXPECT_EQ(panel.OnEvent(ftxui::Event::ArrowLeft), ConfirmChoice::kPending);
-  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kConfirmed);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::ArrowRight), ConfirmChoice::kPending);
+  EXPECT_EQ(panel.OnEvent(ftxui::Event::Return), ConfirmChoice::kCancelled);
 }
 
 TEST_F(SellEquipPanelTest, EscapeCancels) {

@@ -4,8 +4,9 @@
  * asks.
  *
  * The panel owns no game state. Reset() seeds it with the name and the price;
- * OnEvent() reports which way the answer went. The cursor opens on [Cancel],
- * because a sale cannot be undone.
+ * OnEvent() reports which way the answer went. The cursor opens on [Confirm]:
+ * the shop's buy-back shelf holds the sale afterwards, so there is nothing to
+ * guard the player against.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SELL_EQUIP_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SELL_EQUIP_PANEL_H_

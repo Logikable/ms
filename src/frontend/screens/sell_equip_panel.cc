@@ -13,9 +13,9 @@ namespace ms {
 void SellEquipPanel::Reset(const std::string& item_name, int price) {
   item_name_ = item_name;
   price_ = price;
-  // On [Cancel]: the item does not come back, and the player reached this
-  // dialog from a menu whose other entries are all harmless.
-  confirm_.Open(/*cancel_selected=*/true);
+  // On [Confirm]. A sale used to be final, which is what put the cursor on
+  // the way out; the shop's buy-back shelf keeps it now, at the price it paid.
+  confirm_.Open(/*cancel_selected=*/false);
 }
 
 ftxui::Element SellEquipPanel::Render() const {

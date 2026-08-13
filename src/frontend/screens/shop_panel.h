@@ -40,7 +40,10 @@ enum ShopTab : int {
   kShopWeaponsTab = 0,
   kShopSecondariesTab = 1,
   kShopEtcTab = 2,
-  kNumShopTabs = 3,
+  // The player's own last 32 sales, bought back at what they paid out. Last
+  // because it is the only shelf the shop did not stock itself.
+  kShopBuyBackTab = 3,
+  kNumShopTabs = 4,
 };
 
 // Entries of the context menu an item opens, in display order.
@@ -74,6 +77,14 @@ class ShopPanel {
   const EquipPrototype* selected_item() const;
   // The stackable under the cursor, on the same terms.
   const ItemPrototype* selected_stackable() const;
+  // The buy-back row under the cursor, on the same terms again. Exactly one of
+  // the three ever answers.
+  const BuyBackEntry* selected_buy_back() const;
+  // Where that row sits on the shelf, which is what BuyBack is asked for. The
+  // cursor position is the shelf position: the tab lists the shelf whole.
+  int selected_row() const {
+    return selected_;
+  }
 
   // Opens the context menu over the selected item. Does nothing while the tab
   // bar holds the cursor, or when the shop has nothing to open it on.
@@ -101,6 +112,9 @@ class ShopPanel {
   void StepTab(int direction);
   // Fills stock_ from whichever tab is open.
   void Restock();
+  // Rows in the open tab. The three shelves are stock_; the buy-back tab
+  // reads the character's shelf directly, having no catalog keys of its own.
+  int RowCount() const;
   // Scrolls the window by as little as it takes to put the cursor back inside
   // it. Does nothing while the cursor is already on screen, which is most
   // moves.
@@ -112,6 +126,11 @@ class ShopPanel {
                               const std::string& cursor) const;
   ftxui::Element RenderEquipRow(const EquipPrototype& proto,
                                 const std::string& cursor) const;
+  // One buy-back row. An equip fills the type column and leaves the quantity
+  // blank; a stackable does the opposite. Both are priced at what the sale
+  // paid for one.
+  ftxui::Element RenderBuyBackRow(const BuyBackEntry& entry,
+                                  const std::string& cursor) const;
   // The rows on screen, scroll bar beside them. Empty while the shelf is.
   std::vector<ftxui::Element> RenderStock() const;
 

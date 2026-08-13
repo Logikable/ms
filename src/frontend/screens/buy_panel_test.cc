@@ -202,5 +202,18 @@ TEST(BuyPanelTest, SaysOwnedZeroRatherThanDroppingTheRow) {
   EXPECT_NE(Render(panel).find("Owned: 0"), std::string::npos);
 }
 
+// The shop never stocks a free item, but the buy-back shelf does -- a trace,
+// or anything the shop does not sell, sold for nothing and comes back for it.
+// The balance cannot cap what costs nothing.
+TEST(BuyPanelTest, AFreeItemCanBeTakenWithNoMeso) {
+  BuyPanel panel;
+  panel.Reset("Sword Trace", /*unit_price=*/0, /*meso=*/0, /*room=*/1,
+              /*owned=*/0);
+  EXPECT_EQ(panel.quantity(), 1);
+  panel.OnEvent(ftxui::Event::ArrowDown);  // the field -> [Confirm]
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(panel.TakeConfirmed());
+}
+
 }  // namespace
 }  // namespace ms

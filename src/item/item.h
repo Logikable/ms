@@ -11,6 +11,7 @@
 #ifndef MS_SRC_ITEM_ITEM_H_
 #define MS_SRC_ITEM_ITEM_H_
 
+#include <map>
 #include <string>
 
 #include "src/item/equip_stats.h"
@@ -29,6 +30,15 @@ constexpr char kSpellTraceName[] = "Spell Trace";
 // that supports scrolling may still have no slots left, and one that supports
 // star force may already be at max stars.
 bool Supports(const EquipPrototype& proto, Upgrade upgrade);
+
+// The catalog entry with this display name, or nullptr. Catalogs are keyed by
+// data-file stem, so anything holding only a name -- a save, the shop's
+// buy-back shelf -- has to come back in through here rather than by key.
+const EquipPrototype* FindEquipByName(
+    const std::map<std::string, EquipPrototype>& equips,
+    const std::string& name);
+const ItemPrototype* FindItemByName(
+    const std::map<std::string, ItemPrototype>& items, const std::string& name);
 
 // Abstract base for all inventory items across all tabs.
 class Item {

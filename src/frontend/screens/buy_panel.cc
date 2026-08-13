@@ -23,7 +23,10 @@ void BuyPanel::Reset(const std::string& item_name, int unit_price, int64_t meso,
   // four digits the field is meant to take. A player who cannot afford one, or
   // has nowhere to put it, gets a cap of zero and a field that will not leave
   // it.
-  int64_t affordable = 0;
+  // A price of zero puts no ceiling on the balance. The shop never stocks a
+  // free item, but the buy-back shelf carries them: a trace, and anything the
+  // shop does not sell, went for nothing and comes back for nothing.
+  int64_t affordable = kMaxQuantity;
   if (unit_price > 0) {
     affordable = meso / unit_price;
   }

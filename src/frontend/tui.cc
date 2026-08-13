@@ -290,7 +290,40 @@ ftxui::Element Tui::QuitDialog() {
                           }));
 }
 
+ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
+  if (entry.has_stack()) {
+    const ItemPrototype* proto =
+        FindItemByName(state_.items, entry.stack().name());
+    if (proto == nullptr) {
+      return ftxui::center(shop_panel_.Render());
+    }
+    inspect_panel_.SetItem(proto);
+    return Standalone(inspect_panel_.Render());
+  }
+  const EquipPrototype* proto =
+      FindEquipByName(state_.equips, entry.equip().equip_name());
+  if (proto == nullptr) {
+    return ftxui::center(shop_panel_.Render());
+  }
+  // Rebuilt from the state the sale kept, which is what buying it back would
+  // hand over. A trace is inspected as a trace, for the same reason.
+  if (entry.equip().trace()) {
+    EquipTrace trace(*proto, entry.equip());
+    inspect_panel_.SetItem(&trace);
+    return Standalone(inspect_panel_.Render());
+  }
+  EquipInstance item(*proto, entry.equip());
+  inspect_panel_.SetItem(&item);
+  return Standalone(inspect_panel_.Render());
+}
+
 ftxui::Element Tui::RenderShopInspect() {
+  // A buy-back row is an item the player owned, so what it inspects is that
+  // item -- stars, scrolls and all -- and not a fresh one off the shelf.
+  const BuyBackEntry* entry = shop_panel_.selected_buy_back();
+  if (entry != nullptr) {
+    return RenderBuyBackInspect(*entry);
+  }
   // A stackable has no instance to build and nothing to preview: the panel
   // reads the prototype straight, as the bag's Etc tab does.
   const ItemPrototype* stackable = shop_panel_.selected_stackable();

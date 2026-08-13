@@ -185,6 +185,12 @@ class TuiController {
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
   bool OnShopBuyEvent(ftxui::Event event);
+  // Seeds the buy dialog for a row of the buy-back shelf, which is priced and
+  // bounded by the sale rather than by what the shop stocks.
+  void OpenBuyBackDialog(const BuyBackEntry& entry);
+  // Spends what a confirmed buy dialog agreed to, on whichever shelf it was
+  // opened over.
+  void BuyWhatTheDialogAgreedTo();
 
   GameState& state_;
   // Held only so focus arriving here can clear the Advance tab's gold; the
@@ -203,6 +209,9 @@ class TuiController {
   // Catalog key of the item the buy dialog is open on, so the purchase reads
   // the prototype rather than trusting a pointer to outlive the screen.
   std::string buy_item_;
+  // The shelf row the buy dialog was opened on, so a cursor that moved under
+  // it cannot buy back a different sale.
+  int buy_back_row_ = 0;
   int& panel_focus_;
   Screen screen_ = kMain;
   // Each modal remembers the item it was opened on. Where that item lives is

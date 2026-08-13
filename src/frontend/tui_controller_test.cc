@@ -164,6 +164,25 @@ class TuiControllerTest : public testing::Test {
     inventory_component_->OnEvent(ftxui::Event::Return);
   }
 
+  // Opens the shop on the Buy-Back shelf with the cursor on its first row.
+  // Up puts the cursor on the bar; Down brings it back into the list.
+  void OpenBuyBackShelf() {
+    OpenShop();
+    controller_->OnEvent(ftxui::Event::ArrowUp);
+    for (int i = 0; i < kShopBuyBackTab; ++i) {
+      controller_->OnEvent(ftxui::Event::ArrowRight);
+    }
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
+
+  // As OpenBuyDialog, from the shelf.
+  void OpenBuyBackDialog() {
+    OpenBuyBackShelf();
+    controller_->OnEvent(ftxui::Event::Return);     // -> kShopMenu, on Inspect
+    controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Buy
+    controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy
+  }
+
   // Opens the shop, then the menu on the first item, then its Buy entry,
   // leaving the buy dialog up with the quantity field focused.
   void OpenBuyDialog() {
@@ -1200,17 +1219,18 @@ TEST_F(TuiControllerTest, BagSellOpensTheSellDialog) {
   EXPECT_EQ(controller_->screen(), kSellEquip);
 }
 
-// The dialog opens on [Cancel], so the Enter that opened it cannot also
-// answer it. A sale does not come back.
-TEST_F(TuiControllerTest, BagSellNeedsAStepOntoConfirm) {
+// Stepping off [Confirm] backs out. The dialog opens on the way through, the
+// shop's shelf being what a mis-sale is undone by.
+TEST_F(TuiControllerTest, BagSellCanBeSteppedAwayFrom) {
   sword_.set_sell_price(900);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
 
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);
-  controller_->OnEvent(ftxui::Event::Return);  // open the dialog
-  controller_->OnEvent(ftxui::Event::Return);  // lands on Cancel
+  controller_->OnEvent(ftxui::Event::Return);      // open the dialog
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // Confirm -> Cancel
+  controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.inventory().size(), 1);
@@ -1224,9 +1244,8 @@ TEST_F(TuiControllerTest, BagSellConfirmedTakesTheItemAndPays) {
 
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);
-  controller_->OnEvent(ftxui::Event::Return);     // open the dialog
-  controller_->OnEvent(ftxui::Event::ArrowLeft);  // Cancel -> Confirm
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // open the dialog
+  controller_->OnEvent(ftxui::Event::Return);  // lands on Confirm
 
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(state_->character.inventory().size(), 0);
@@ -1262,7 +1281,6 @@ TEST_F(TuiControllerTest, BagSellThrowsATraceAwayForNothing) {
   // worked out separately, so one can go wrong while the other is right.
   EXPECT_NE(RenderSellDialog().find("Sell for \U0001FA99 0"),
             std::string::npos);
-  controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
 
   EXPECT_EQ(state_->character.inventory().size(), 0);
@@ -1285,7 +1303,6 @@ TEST_F(TuiControllerTest, BagSellTakesTheSelectedRow) {
   controller_->OpenInventoryMenu();
   StepToSell(*controller_);
   controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::ArrowLeft);
   controller_->OnEvent(ftxui::Event::Return);
 
   ASSERT_EQ(state_->character.inventory().size(), 1);
@@ -1472,6 +1489,87 @@ TEST_F(TuiControllerTest, SellConfirmSellsTypedQuantity) {
 
   EXPECT_EQ(state_->character.stackables(ITEM_CATEGORY_ETC)[0].count(), 7);
   EXPECT_EQ(state_->character.meso(), 6);  // 3 * 2
+}
+
+// --- the buy-back shelf ---
+
+TEST_F(TuiControllerTest, BuyingBackAnEquipReturnsTheItemThatLeft) {
+  sword_.set_sell_price(900);
+  Equip starred;
+  starred.set_equip_name("Sword");
+  starred.set_stars(11);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_, starred));
+  state_->character.SellEquip(0);
+  int64_t meso = state_->character.meso();
+
+  OpenBuyBackDialog();
+  ASSERT_EQ(controller_->screen(), kShopBuy);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // the field -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kShop);
+  EXPECT_EQ(state_->character.meso(), meso - 900);
+  ASSERT_EQ(state_->character.inventory().size(), 1);
+  const EquipInstance* item = state_->character.inventory().equip_instance(0);
+  ASSERT_NE(item, nullptr);
+  EXPECT_EQ(item->stars(), 11) << "came back stripped";
+  EXPECT_TRUE(state_->character.buy_backs().empty());
+}
+
+TEST_F(TuiControllerTest, BuyingBackPartOfAStackLeavesTheRest) {
+  ItemPrototype shell;
+  shell.set_name("Green Snail Shell");
+  shell.set_category(ITEM_CATEGORY_ETC);
+  shell.set_sell_price(7);
+  state_->items["green_snail_shell"] = shell;
+  state_->character.AddStackable(shell, 50);
+  state_->character.SellStackable(ITEM_CATEGORY_ETC, 0, 50);
+  int64_t meso = state_->character.meso();
+
+  OpenBuyBackDialog();
+  ASSERT_EQ(controller_->screen(), kShopBuy);
+  // The dialog opens on the whole row; [1] takes one copy of it.
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(state_->character.meso(), meso - 7);
+  EXPECT_EQ(state_->character.CountStackable(shell), 1);
+  ASSERT_EQ(state_->character.buy_backs().size(), 1);
+  EXPECT_EQ(state_->character.buy_backs().Get(0).stack().count(), 49);
+}
+
+TEST_F(TuiControllerTest, CancellingABuyBackChangesNothing) {
+  sword_.set_sell_price(900);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.SellEquip(0);
+  int64_t meso = state_->character.meso();
+
+  OpenBuyBackDialog();
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(controller_->screen(), kShop);
+  EXPECT_EQ(state_->character.meso(), meso);
+  EXPECT_EQ(state_->character.buy_backs().size(), 1);
+  EXPECT_EQ(state_->character.inventory().size(), 0);
+}
+
+// Inspect shows the item the sale kept, not a fresh one off the shelf: the
+// stars are the whole reason the row is worth buying back.
+TEST_F(TuiControllerTest, InspectingAShelfRowShowsTheItemThatLeft) {
+  sword_.set_sell_price(900);
+  Equip starred;
+  starred.set_equip_name("Sword");
+  starred.set_stars(11);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_, starred));
+  state_->character.SellEquip(0);
+
+  OpenBuyBackShelf();
+  controller_->OnEvent(ftxui::Event::Return);  // -> kShopMenu, on Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kShopInspect);
 }
 
 // --- Equip via bag panel ---
