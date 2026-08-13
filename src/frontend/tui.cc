@@ -99,8 +99,8 @@ Tui::Tui(GameState& state, std::string save_path)
       shop_panel_(state.character, state.equips, state.items),
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
-                  sell_panel_, map_select_panel_, shop_panel_, buy_panel_,
-                  panel_focus_) {
+                  sell_panel_, sell_equip_panel_, map_select_panel_,
+                  shop_panel_, buy_panel_, panel_focus_) {
 }
 
 void Tui::Run() {
@@ -363,6 +363,8 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(QuitDialog());
     case kSell:
       return OverMain(sell_panel_.Render());
+    case kSellEquip:
+      return OverMain(sell_equip_panel_.Render());
     case kMapSelect:
       return ftxui::center(map_select_panel_.Render());
     // kShopMenu draws the same thing: the menu is anchored to a row of the

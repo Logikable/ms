@@ -28,8 +28,9 @@ TuiController::TuiController(
     GameState& state, CharacterPanel& char_panel, EquippedPanel& equip_panel,
     InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
     StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
-    SellPanel& sell_panel, MapSelectPanel& map_select_panel,
-    ShopPanel& shop_panel, BuyPanel& buy_panel, int& panel_focus)
+    SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
+    MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
+    BuyPanel& buy_panel, int& panel_focus)
     : state_(state),
       char_panel_(char_panel),
       equip_panel_(equip_panel),
@@ -38,6 +39,7 @@ TuiController::TuiController(
       star_force_panel_(star_force_panel),
       trace_recover_panel_(trace_recover_panel),
       sell_panel_(sell_panel),
+      sell_equip_panel_(sell_equip_panel),
       map_select_panel_(map_select_panel),
       shop_panel_(shop_panel),
       buy_panel_(buy_panel),
@@ -207,6 +209,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnTraceRecoverResultEvent(event);
     case kSell:
       return OnSellEvent(event);
+    case kSellEquip:
+      return OnSellEquipEvent(event);
     case kMapSelect:
       return OnMapSelectEvent(event);
     case kShop:
@@ -263,6 +267,18 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   if (next == kTraceRecover) {
     trace_index_ = inventory_panel_.selected();
     trace_recover_panel_.SetTrace(&state_.character.inventory()[trace_index_]);
+  }
+  if (next == kSellEquip) {
+    sell_equip_index_ = inventory_panel_.selected();
+    const EquipTabItem& item = state_.character.inventory()[sell_equip_index_];
+    // A trace pays nothing whatever its prototype says, so the dialog is told
+    // what the sale will really hand over rather than what the item cost.
+    bool is_trace = state_.character.inventory().equip_instance(
+                        sell_equip_index_) == nullptr;
+    int price = is_trace ? 0 : item.prototype().sell_price();
+    bool upgraded = !is_trace && (item.stars() > 0 ||
+                                  item.equip_state().scroll_successes() > 0);
+    sell_equip_panel_.Reset(item.name(), price, upgraded);
   }
   if (next == kSell) {
     sell_category_ = inventory_panel_.active_category();
@@ -582,6 +598,18 @@ bool TuiController::OnSellEvent(ftxui::Event event) {
   } else if (sell_panel_.TakeCancelled()) {
     screen_ = kMain;
   }
+  return true;
+}
+
+bool TuiController::OnSellEquipEvent(ftxui::Event event) {
+  ConfirmChoice choice = sell_equip_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    state_.character.SellEquip(sell_equip_index_);
+  }
+  screen_ = kMain;
   return true;
 }
 

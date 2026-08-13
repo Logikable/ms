@@ -27,6 +27,9 @@ enum Screen : int {
   kTraceRecover,
   kTraceRecoverResult,
   kSell,
+  // The equip tab's counterpart to kSell. Equipment does not stack, so it
+  // asks a yes/no question rather than for an amount.
+  kSellEquip,
   kMapSelect,
   kShop,
   kShopMenu,
@@ -58,6 +61,9 @@ enum MenuItem : int {
   kMenuScroll = 2,
   kMenuStarForce = 3,
   kMenuRecover = 4,
+  // Second to last, above Close. It is the one entry on this menu that
+  // destroys the item, so it does not sit where the cursor lands.
+  kMenuSell = 5,
 };
 // Entries of the Use/Etc stackable context menu.
 enum StackMenuItem : int {

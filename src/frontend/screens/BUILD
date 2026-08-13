@@ -195,6 +195,31 @@ cc_test(
 )
 
 cc_library(
+    name = "sell_equip_panel",
+    srcs = ["sell_equip_panel.cc"],
+    hdrs = ["sell_equip_panel.h"],
+    deps = [
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "sell_equip_panel_test",
+    srcs = ["sell_equip_panel_test.cc"],
+    deps = [
+        ":sell_equip_panel",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "buy_panel",
     srcs = ["buy_panel.cc"],
     hdrs = ["buy_panel.h"],

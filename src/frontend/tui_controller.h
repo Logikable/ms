@@ -19,6 +19,7 @@
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
+#include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
@@ -43,6 +44,7 @@ class TuiController {
                 EquippedPanel& equip_panel, InventoryPanel& inventory_panel,
                 ScrollPanel& scroll_panel, StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
+                SellEquipPanel& sell_equip_panel,
                 MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
                 BuyPanel& buy_panel, int& panel_focus);
 
@@ -177,6 +179,7 @@ class TuiController {
   bool OnTraceRecoverEvent(ftxui::Event event);
   bool OnTraceRecoverResultEvent(ftxui::Event event);
   bool OnSellEvent(ftxui::Event event);
+  bool OnSellEquipEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
@@ -193,6 +196,7 @@ class TuiController {
   StarForcePanel& star_force_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
+  SellEquipPanel& sell_equip_panel_;
   MapSelectPanel& map_select_panel_;
   ShopPanel& shop_panel_;
   BuyPanel& buy_panel_;
@@ -211,6 +215,9 @@ class TuiController {
   int trace_index_ = 0;
   ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
   int sell_index_ = 0;
+  // The bag row the equip sale is open on. Bag-only, like recovery: an item
+  // has to come off before it can be sold.
+  int sell_equip_index_ = 0;
   StatField ap_field_ = STAT_FIELD_UNSPECIFIED;
   AmountSelector ap_selector_;
   Skill skill_learn_;

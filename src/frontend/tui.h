@@ -26,6 +26,7 @@
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
+#include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/skill_inspect_panel.h"
@@ -123,6 +124,7 @@ class Tui {
   StarForcePanel star_force_panel_;
   TraceRecoverPanel trace_recover_panel_;
   SellPanel sell_panel_;
+  SellEquipPanel sell_equip_panel_;
   MapSelectPanel map_select_panel_;
   // Every stat on one screen, reached from the Character panel's last row.
   AllStatsPanel all_stats_panel_;

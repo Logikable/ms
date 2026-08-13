@@ -141,7 +141,8 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
 InventoryPanel::InventoryPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
-      menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Close"}),
+      menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Sell",
+             "Close"}),
       sell_menu_({"Inspect", "Use", "Sell", "Close"}) {
 }
 
@@ -401,6 +402,9 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
     }
     if (menu_.selected() == kMenuRecover) {
       return kTraceRecover;
+    }
+    if (menu_.selected() == kMenuSell) {
+      return kSellEquip;
     }
     return kMain;
   }
