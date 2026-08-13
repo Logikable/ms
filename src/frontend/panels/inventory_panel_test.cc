@@ -17,6 +17,7 @@
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -307,8 +308,8 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   InventoryPanel panel(c_, panel_focus_);
   panel.OpenMenu();
   // Recover is offered on a trace -- it is the one thing a trace is for -- so
-  // Inspect and Recover are what remain. Equip, Scroll and Star Force all need
-  // an item that still exists.
+  // Inspect, Recover and Sell are what remain. Equip, Scroll and Star Force
+  // all need an item that still exists.
   // Read before walking the menu: ReachableMenuEntries moves the selection,
   // so where the menu opens has to be captured first.
   EXPECT_EQ(panel.menu().selected(), kMenuInspect);
@@ -317,6 +318,7 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuSell), 0);
   // The two upgrades are gone from the menu, not greyed on it. Equip stays,
   // greyed: the player can wear one of these, just not this wreck of one.
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
@@ -359,6 +361,33 @@ TEST_F(InventoryPanelTest, ThrowingStarsOfferNoScrollOrStarForce) {
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
+}
+
+// Sell is the one entry with no gate and no item it does not apply to. It is
+// the only way anything leaves the bag, so a gate added to it by accident
+// would strand a full bag with no way out -- which is why the case is pinned
+// at level 1, where every other upgrade entry is still hidden.
+TEST_F(InventoryPanelTest, SellIsOfferedOnEverything) {
+  ASSERT_EQ(c_.proto().level(), 1);
+  InventoryPanel panel(c_, panel_focus_);
+  // One at a time in the first row, which is where the menu opens. Three items
+  // in the bag at once would only ever ask about the one on top.
+  std::vector<std::unique_ptr<EquipTabItem>> items;
+  items.push_back(std::make_unique<EquipInstance>(sword_));
+  items.push_back(std::make_unique<EquipInstance>(MakeThrowingStars()));
+  items.push_back(std::make_unique<EquipTrace>(sword_, Equip()));
+  for (std::unique_ptr<EquipTabItem>& item : items) {
+    std::string name = item->name();
+    c_.PickUp(std::move(item));
+    panel.OpenMenu();
+    std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+    EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuSell), 0)
+        << name << " cannot be sold";
+    EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Sell"),
+              std::string::npos)
+        << name << " has no Sell entry";
+    c_.SellEquip(0);
+  }
 }
 
 // --- level-gated menu entries ---
