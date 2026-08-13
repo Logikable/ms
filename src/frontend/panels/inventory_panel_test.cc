@@ -89,8 +89,12 @@ class InventoryPanelTest : public PanelTest {
 
   // Fills the bag past what the test screen can show.
   void FillBag(int count) {
+    EquipPrototype proto = sword_;
     for (int i = 0; i < count; ++i) {
-      c_.PickUp(std::make_unique<EquipInstance>(sword_));
+      // Numbered, so a test can say which row the cursor is on rather than
+      // only that some row has it.
+      proto.set_name("Item" + std::to_string(i));
+      c_.PickUp(std::make_unique<EquipInstance>(proto));
     }
   }
 
@@ -150,6 +154,48 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastItem) {
   RenderComponent(comp);
   comp->OnEvent(ftxui::Event::ArrowUp);
   EXPECT_EQ(panel.selected(), 1) << "the second and last row";
+}
+
+// The caret is the panel's own, drawn from selected_. It used to be drawn from
+// ftxui's focused entry, which only the Menu's own key handling moves -- and
+// the two jumps the panel takes itself, the tab bar to the last row and back
+// to the first, are the two the Menu never sees. On a list short enough not to
+// scroll both indices sat at 0 and agreed by luck.
+TEST_F(InventoryPanelTest, TheCaretShowsOnArrivalFromTheTabBar) {
+  FillBag(25);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderComponent(comp);
+
+  comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> the last row
+  ASSERT_EQ(panel.selected(), 24);
+  EXPECT_NE(RenderComponent(comp).find("> Item24"), std::string::npos)
+      << "no caret after wrapping up onto the last row";
+}
+
+TEST_F(InventoryPanelTest, TheCaretShowsOnReturnToTheFirstRow) {
+  FillBag(25);
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderComponent(comp);
+
+  // Walked down rather than wrapped, so the Menu handles every step and its
+  // own idea of the focused row follows the cursor to the bottom.
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  for (int i = 0; i < 24; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+    RenderComponent(comp);
+  }
+  ASSERT_EQ(panel.selected(), 24);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the bar
+  RenderComponent(comp);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // the bar -> the first row
+
+  ASSERT_EQ(panel.selected(), 0);
+  EXPECT_NE(RenderComponent(comp).find("> Item0"), std::string::npos)
+      << "no caret after coming back round to the first row";
 }
 
 TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
@@ -219,6 +265,7 @@ TEST_F(InventoryPanelTest, ShowsItemName) {
 }
 
 TEST_F(InventoryPanelTest, ShowsSelectionCursorInListZone) {
+  panel_focus_ = kInventoryPanel;
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -227,11 +274,26 @@ TEST_F(InventoryPanelTest, ShowsSelectionCursorInListZone) {
 }
 
 TEST_F(InventoryPanelTest, NoSelectionCursorOnTheTabRow) {
+  panel_focus_ = kInventoryPanel;
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, panel_focus_);
   // The panel opens on the tab row, so the list cursor is hidden until Down.
   EXPECT_EQ(RenderComponent(panel.MakeComponent([]() {})).find("> Sword"),
             std::string::npos);
+}
+
+// The other half of the rule the Use tab already keeps: a caret on an
+// unfocused panel would claim the keys are going there.
+TEST_F(InventoryPanelTest, EquipTabCursorHiddenWhenPanelNotFocused) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
+  ASSERT_NE(RenderComponent(comp).find("> Sword"), std::string::npos);
+
+  panel_focus_ = kEquipPanel;
+  EXPECT_EQ(RenderComponent(comp).find("> Sword"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, ShowsColumnHeader) {
@@ -912,6 +974,7 @@ TEST_F(InventoryPanelTest, KeepsTheCursorInViewOnAStackableTab) {
 // What the item menu anchors to. It has to be where the cursor was actually
 // drawn, not where the selected index says it should be.
 TEST_F(InventoryPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
+  panel_focus_ = kInventoryPanel;
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, panel_focus_);
@@ -928,6 +991,7 @@ TEST_F(InventoryPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
 // time -- stepping to the end and looking once cannot tell a cursor that kept
 // up from one that merely caught up.
 TEST_F(InventoryPanelTest, CursorRowFollowsAListThatHasScrolled) {
+  panel_focus_ = kInventoryPanel;
   FillBag(40);
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
@@ -950,6 +1014,7 @@ TEST_F(InventoryPanelTest, CursorRowFollowsAListThatHasScrolled) {
 // whichever is built. sword_ is level 10 and Warrior-only, so every test above
 // takes the coloured path; this one is something a level-1 Beginner can wear.
 TEST_F(InventoryPanelTest, CursorRowFindsAnEquippableItem) {
+  panel_focus_ = kInventoryPanel;
   EquipPrototype plain;
   plain.set_name("Plain Sword");
   plain.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -970,6 +1035,7 @@ TEST_F(InventoryPanelTest, CursorRowFindsAnEquippableItem) {
 // sits above it. The row reported has to be the row on the SCREEN, so it has
 // to carry that offset.
 TEST_F(InventoryPanelTest, CursorRowIsAScreenRow) {
+  panel_focus_ = kInventoryPanel;
   FillBag(40);
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});

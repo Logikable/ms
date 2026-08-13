@@ -502,10 +502,18 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
 
 ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
   const std::string& lbl = state.label;
-  // The cursor shows only while the list holds focus, so it never competes
-  // with the tab-bar highlight above.
-  std::string cursor = state.focused && zone_ == kZoneList ? "> " : "  ";
   int idx = state.index;
+  // Drawn from the panel's own cursor rather than ftxui's focused entry, which
+  // moves only when the Menu handles the key itself. The two jumps the panel
+  // takes for it -- the tab bar to the last row, and back round to the first
+  // -- are exactly the two the Menu never sees, so the caret went missing on
+  // arrival from the bar. It agreed by luck on a list too short to scroll,
+  // where both indices sat at 0. The two conditions after it are the same
+  // pair the Use and Etc lists ask: not while another panel has focus, and
+  // not while the cursor is up on the tab bar.
+  bool on_cursor =
+      idx == selected_ && zone_ == kZoneList && panel_focus_ == kInventoryPanel;
+  std::string cursor = on_cursor ? "> " : "  ";
   // Records where the highlighted row landed, so the item menu can open beside
   // it. Applied to whichever row is built below, so it follows the row rather
   // than one way of drawing it.
