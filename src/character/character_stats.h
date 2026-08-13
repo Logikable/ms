@@ -27,6 +27,11 @@ struct FinalAttackSource {
   // The swings this follows. SKILL_TAG_UNSPECIFIED means all of them, which is
   // what a Final Attack gated on the weapon in hand wants.
   SkillTag required_tag = SKILL_TAG_UNSPECIFIED;
+  // Whether the roll above happens once per LINE the swing lands rather than
+  // once per enemy it reaches. A Final Attack is the second; a meso knocked
+  // loose by Pick Pocket is the first, and on a four-line swing that is four
+  // times the source.
+  bool per_line = false;
 };
 
 struct DerivedStats {
@@ -83,6 +88,9 @@ struct DerivedStats {
   // swing already has. 0 for a character with no Shadow Partner, which is
   // every character but a Hermit.
   double mirror_line_pct = 0.0;
+  // Share added to the meso a kill yields (0.20 == +20%). Summed across the
+  // passives granting it.
+  double meso_pct = 0.0;
   // Share added to damage against a boss and nothing else. Summed, and summed
   // again with the equipment's own -- see OffenseStatsFor. Nothing in the game
   // is a boss yet, so nothing reads it.

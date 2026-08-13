@@ -52,6 +52,19 @@ bool HasTag(const Skill* skill, SkillTag tag) {
   return false;
 }
 
+// Takes the meso-drop sources back out of a copy of the character's passives.
+// What throws a meso is the character swinging, so a pulse on a clock of its
+// own carries none however the passive reads.
+void StripMesoDrops(DerivedStats& derived) {
+  std::vector<FinalAttackSource> kept;
+  for (const FinalAttackSource& source : derived.final_attacks) {
+    if (!source.per_line) {
+      kept.push_back(source);
+    }
+  }
+  derived.final_attacks = std::move(kept);
+}
+
 // One attack's damage against every mob type on the map. `skill` is null for
 // the bare poke, which hits one target for the character's plain 100% swing.
 // `equipped` is everything the character wears plus everything their passives
@@ -115,12 +128,18 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // A source naming a tag follows only the swings carrying it, which is how a
   // fire mage's ignores everything they cast that is not fire. What is left
   // sums: independent procs add in expectation.
+  //
+  // A source rolling per line is worth the swing's line count of itself: four
+  // lines knock four mesos loose where a Final Attack rolls once. The shadow's
+  // copies are not the character's lines and do not count.
+  int swing_lines = skill != nullptr ? std::max(1, skill->lines()) : 1;
   double final_attack_pct = 0.0;
   for (const FinalAttackSource& source : derived.final_attacks) {
-    if (source.required_tag == SKILL_TAG_UNSPECIFIED ||
-        HasTag(skill, source.required_tag)) {
-      final_attack_pct += source.pct;
+    if (source.required_tag != SKILL_TAG_UNSPECIFIED &&
+        !HasTag(skill, source.required_tag)) {
+      continue;
     }
+    final_attack_pct += source.per_line ? source.pct * swing_lines : source.pct;
   }
   if (final_attack_pct > 0.0) {
     OffenseStats final_attack = OffenseStatsFor(
@@ -290,12 +309,13 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
     }
     AttachEmpoweredForms(state, equipped, weapon_type, skill, learned, derived,
                          attack_speed, speed_factor, params, params.attacks);
-    // A form standing in for a pulse is a pulse: no shadow, for the reason
-    // AddAttacks gives.
-    DerivedStats unmirrored = derived;
-    unmirrored.mirror_line_pct = 0.0;
+    // A form standing in for a pulse is a pulse: no shadow and no mesos, for
+    // the reason AddAttacks gives.
+    DerivedStats off_clock = derived;
+    off_clock.mirror_line_pct = 0.0;
+    StripMesoDrops(off_clock);
     AttachEmpoweredForms(state, equipped, weapon_type, skill, learned,
-                         unmirrored, attack_speed, speed_factor, params,
+                         off_clock, attack_speed, speed_factor, params,
                          params.auto_attacks);
   }
 }
@@ -311,11 +331,12 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
                 CombatParams& params) {
   const Character& proto = state.character.proto();
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
-  // The shadow copies the character's swings. A skill on its own clock is not
-  // one, so anything built for that clock is built without it -- the same line
-  // Final Attack is drawn on in AttackFor.
-  DerivedStats unmirrored = derived;
-  unmirrored.mirror_line_pct = 0.0;
+  // What a skill on its own clock is not: the character's own swing. It gets
+  // no shadow copying it and knocks no mesos loose, both for the reason Final
+  // Attack is stripped off it in AttackFor -- the character did not swing it.
+  DerivedStats off_clock = derived;
+  off_clock.mirror_line_pct = 0.0;
+  StripMesoDrops(off_clock);
   params.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr,
                                      0, params.types, derived, attack_speed,
                                      speed_factor));
@@ -326,11 +347,11 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
       continue;
     }
-    AddAutoMode(proto, total_stats, weapon_type, skill, learned, unmirrored,
+    AddAutoMode(proto, total_stats, weapon_type, skill, learned, off_clock,
                 speed_factor, params);
     AttackOption attack = AttackFor(
         proto, total_stats, weapon_type, &skill, learned, params.types,
-        skill.kind() == SKILL_KIND_AUTO_ATTACK ? unmirrored : derived,
+        skill.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,
         attack_speed, speed_factor);
     // A cast is not a hit. The damage chain has no multiplier to apply to a
     // skill that deals none, so what it built is the bare poke's damage --
@@ -400,6 +421,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.damage_reflect_pct = derived.damage_reflect_pct;
   params.hp_recover_pct = derived.hp_recover_pct;
   params.exp_pct = derived.exp_pct;
+  params.meso_pct = derived.meso_pct;
   // The band stretches the interval between pulses, so it thins the rate.
   params.regen_pct_per_second =
       speed_factor > 0.0 ? derived.regen_pct_per_second / speed_factor : 0.0;

@@ -292,6 +292,67 @@ TEST(ComputeCombatParamsTest, TheShadowCopiesTheSwingAndItsOpeningHit) {
   EXPECT_NEAR(shadowed[2], bare[2], 1e-9);
 }
 
+// A meso falls out per LINE the swing lands, not per enemy it reaches, so a
+// four-line swing is worth four times what a one-line swing is. And a skill on
+// a clock of its own knocks none loose at all: the character did not swing it.
+TEST(ComputeCombatParamsTest, MesosDropPerLineAndOnlyFromWhatIsSwung) {
+  Skill carnival;
+  carnival.set_name("Midnight Carnival");
+  carnival.set_kind(SKILL_KIND_ATTACK);
+  carnival.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  carnival.set_max_level(20);
+  carnival.set_max_enemies(8);
+  carnival.set_lines(4);
+  carnival.mutable_base()->set_skill_pct(1.72);
+  Skill flare;
+  flare.set_name("Dark Flare");
+  flare.set_kind(SKILL_KIND_AUTO_ATTACK);
+  flare.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  flare.set_max_level(20);
+  flare.set_max_enemies(3);
+  flare.set_cast_interval_seconds(1.5);
+  flare.mutable_base()->set_skill_pct(2.08);
+  Skill pocket;
+  pocket.set_name("Pick Pocket");
+  pocket.set_kind(SKILL_KIND_PASSIVE);
+  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  pocket.set_max_level(10);
+  pocket.mutable_base()->set_meso_drop_chance(0.30);
+  Skill explosion;
+  explosion.set_name("Meso Explosion");
+  explosion.set_kind(SKILL_KIND_PASSIVE);
+  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  explosion.set_max_level(20);
+  explosion.set_lines(2);
+  explosion.mutable_base()->set_meso_hit_pct(1.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"midnight_carnival", carnival},
+                   {"dark_flare", flare},
+                   {"pick_pocket", pocket},
+                   {"meso_explosion", explosion}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 4);
+  ASSERT_TRUE(state.character.LearnSkill(carnival, 1));
+  ASSERT_TRUE(state.character.LearnSkill(flare, 1));
+  ASSERT_TRUE(state.character.LearnSkill(pocket, 1));
+  ASSERT_TRUE(state.character.LearnSkill(explosion, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  // The bare poke is one line; Midnight Carnival is four. Both throw 30% of a
+  // two-line 100% meso per line, so the swing is worth four pokes of it.
+  ASSERT_FALSE(params.attacks[0].final_attack_damage.empty());
+  ASSERT_FALSE(params.attacks[1].final_attack_damage.empty());
+  EXPECT_NEAR(params.attacks[1].final_attack_damage[0] /
+                  params.attacks[0].final_attack_damage[0],
+              4.0, 1e-9);
+  EXPECT_TRUE(params.auto_attacks[0].final_attack_damage.empty());
+}
+
 // Nothing but a skill saying so gives a swing an opening hit.
 TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
   Skill slash;

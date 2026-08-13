@@ -111,6 +111,9 @@ struct CombatParams {
   // by AwardCombatRewards rather than by the fight -- Holy Symbol is the one
   // skill whose payment is not made in the fight it was cast in.
   double exp_pct = 0.0;
+  // Share added to the meso every kill yields, from the character's passives.
+  // 0 for everyone but a Chief Bandit.
+  double meso_pct = 0.0;
   // Share of the HP pool a fountain puts back every second, already stretched
   // by the pacing band. Runs whether or not the character is swinging.
   double regen_pct_per_second = 0.0;

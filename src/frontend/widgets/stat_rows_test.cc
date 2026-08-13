@@ -67,12 +67,12 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   }
   // The Character panel drops the tail of this list on a short terminal, and
   // the All Stats screen pairs it two to a row. Both depend on this order.
-  EXPECT_EQ(
-      labels,
-      (std::vector<std::string>{
-          "Attack", "Magic Attack", "Damage", "Final Damage", "Boss Damage",
-          "Ignore DEF", "Critical Rate", "Critical Damage", "Attack Speed",
-          "Defense", "Elemental Resist", "Status Resist", "Additional EXP"}));
+  EXPECT_EQ(labels,
+            (std::vector<std::string>{
+                "Attack", "Magic Attack", "Damage", "Final Damage",
+                "Boss Damage", "Ignore DEF", "Critical Rate", "Critical Damage",
+                "Attack Speed", "Defense", "Elemental Resist", "Status Resist",
+                "Meso Drop Rate", "Additional EXP"}));
 }
 
 // The panel's list is the same one, opened up by the advancements. The All
@@ -83,7 +83,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
   EXPECT_TRUE(PanelExtraStatLines(beginner, {}).empty());
-  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 13u);
+  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 14u);
 
   CharacterInstance first = MakeWarrior();
   std::vector<std::string> labels;
@@ -94,7 +94,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
                         "Attack", "Magic Attack", "Attack Speed", "Defense",
                         "Elemental Resist", "Status Resist"}));
 
-  // The second opens the percent block, but not the three that pay out on
+  // The second opens the percent block, but not the four that pay out on
   // something the player has not met yet.
   Character second_proto;
   second_proto.set_level(35);
@@ -108,7 +108,7 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   third_proto.set_job(JOB_BERSERKER);
   third_proto.set_job_stage(3);
   CharacterInstance third(rng_, std::move(third_proto));
-  EXPECT_EQ(PanelExtraStatLines(third, {}).size(), 13u);
+  EXPECT_EQ(PanelExtraStatLines(third, {}).size(), 14u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {

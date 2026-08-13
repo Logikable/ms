@@ -76,8 +76,12 @@ const PercentLever kPercentLevers[] = {
     // The one lever a skill can take away instead of grant: Reckless Hunt
     // sells DEF for damage, and a row that hid the price would be a lie.
     {"Defense", &SkillEffect::def_pct, kSigned, ""},
-    // Last, and the only row here that is not about a fight -- the same place
-    // it takes on the stats page, for the same reason.
+    // Pick Pocket's, rolled once per line the swing lands -- see the note on
+    // the field. Bare, because it is a chance rather than a gain.
+    {"Meso Drop Chance", &SkillEffect::meso_drop_chance, kBare, ""},
+    // Last, and the only rows here that are not about a fight -- the same
+    // place they take on the stats page, for the same reason.
+    {"Meso Drop Rate", &SkillEffect::meso_pct, kPlus, ""},
     {"Additional EXP", &SkillEffect::exp_pct, kPlus, ""},
 };
 
@@ -484,6 +488,14 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   // The shadow doubles the lines, so the row states one line's worth: the
   // count is the same as the swing's whatever the swing is, and saying "x2"
   // beside a number that is already per-line would read as the total.
+  // What one meso is worth thrown back, read the way every other swing on this
+  // page is read: per line, times the count. Meso Mastery's points land on a
+  // line apiece, so the per-line figure is the one that has to be shown.
+  double meso_hit = PercentAt(skill, &SkillEffect::meso_hit_pct, level);
+  if (meso_hit > 0.0) {
+    rows.push_back(
+        EffectRow("Damage per Meso", SwingText(meso_hit, skill.lines())));
+  }
   double mirror = PercentAt(skill, &SkillEffect::mirror_line_pct, level);
   if (mirror > 0.0) {
     rows.push_back(EffectRow("Shadow Damage", FormatPercent(mirror)));

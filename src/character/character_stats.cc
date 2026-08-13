@@ -80,6 +80,15 @@ struct PassiveTotals {
   // are one Final Attack. Ordered, so the result does not depend on which
   // skill was read first.
   std::map<int, double> final_attacks;
+  // Pick Pocket's chance and Meso Explosion's damage, which live on two
+  // different skills and are worth nothing apart -- totalled here and paired
+  // once the fold is done.
+  double meso_drop_chance = 0.0;
+  // Per line until FoldMesoExplosion multiplies the count in.
+  double meso_hit_pct = 0.0;
+  int meso_lines = 1;
+  std::string meso_skill;
+  double meso_pct = 0.0;
   // Damage added to one named skill apiece. Summed per name, so two passives
   // strengthening the same swing both count.
   std::map<std::string, double> skill_pct_bonus;
@@ -153,6 +162,9 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
       base.elemental_resistance() + per.elemental_resistance() * (level - 1);
   totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
   totals.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
+  totals.meso_pct += base.meso_pct() + per.meso_pct() * (level - 1);
+  totals.meso_drop_chance +=
+      base.meso_drop_chance() + per.meso_drop_chance() * (level - 1);
   totals.mirror_line_pct +=
       base.mirror_line_pct() + per.mirror_line_pct() * (level - 1);
   totals.attack_per_combo_orb +=
@@ -190,6 +202,21 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& base,
   totals.final_attacks[skill.follows_skill_tag()] += pct;
 }
 
+// Notes Meso Explosion down. Recorded rather than folded: Meso Mastery's
+// points land on each of its lines, the two skills fold in catalog order, and
+// so the pair cannot be settled until every passive is in. See
+// FoldMesoExplosion.
+void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
+  double per_line = skill.base().meso_hit_pct() +
+                    skill.per_level().meso_hit_pct() * (level - 1);
+  if (per_line <= 0.0) {
+    return;
+  }
+  totals.meso_skill = skill.name();
+  totals.meso_hit_pct += per_line;
+  totals.meso_lines = std::max(1, skill.lines());
+}
+
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
   AddEffect(skill.base(), skill.per_level(), level, totals);
@@ -201,6 +228,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
     totals.skill_pct_bonus[skill.boosts_skill_name()] += boost;
   }
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
+  AddMesoExplosion(skill, level, totals);
   totals.combo_orbs = std::max(totals.combo_orbs, skill.combo_orbs());
   // A weapon bonus is a second helping of the same levers for a subset of the
   // weapons the skill accepts. Read at level 1: it is flat by construction.
@@ -219,6 +247,20 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
 // nowhere to put a counter, and GMS builds them up over 40% of the swings.
 // The final damage lands as ONE source however many skills priced it, which is
 // what "total applied between combo orbs" means.
+// Turns what one line of a thrown meso is worth into what one whole meso is,
+// now that Meso Mastery's points are certain to be in.
+void FoldMesoExplosion(PassiveTotals& totals) {
+  if (totals.meso_hit_pct <= 0.0) {
+    return;
+  }
+  std::map<std::string, double>::const_iterator boost =
+      totals.skill_pct_bonus.find(totals.meso_skill);
+  if (boost != totals.skill_pct_bonus.end()) {
+    totals.meso_hit_pct += boost->second;
+  }
+  totals.meso_hit_pct *= totals.meso_lines;
+}
+
 void FoldComboOrbs(PassiveTotals& totals) {
   totals.attack += totals.attack_per_combo_orb * totals.combo_orbs;
   double orbs = totals.final_dmg_pct_per_combo_orb * totals.combo_orbs;
@@ -257,6 +299,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
       AddPassive(skill, level, weapon, totals);
     }
   }
+  FoldMesoExplosion(totals);
   FoldComboOrbs(totals);
   return totals;
 }
@@ -362,6 +405,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;
   stats.boss_pct = passives.boss_pct;
+  stats.meso_pct = passives.meso_pct;
   stats.mirror_line_pct = passives.mirror_line_pct;
   stats.final_dmg_pct = passives.final_dmg_pct;
   stats.ied = passives.ied;
@@ -371,6 +415,16 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     source.pct = entry.second;
     source.required_tag = static_cast<SkillTag>(entry.first);
     stats.final_attacks.push_back(source);
+  }
+  // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
+  // an enemy and is thrown straight back at them. It rides the swing exactly
+  // as a Final Attack does, except that the roll is per line -- so it is one
+  // more source in the same list rather than a mechanism of its own.
+  if (passives.meso_drop_chance > 0.0 && passives.meso_hit_pct > 0.0) {
+    FinalAttackSource meso;
+    meso.pct = passives.meso_drop_chance * passives.meso_hit_pct;
+    meso.per_line = true;
+    stats.final_attacks.push_back(meso);
   }
   stats.attack_speed_bonus = passives.attack_speed;
   stats.attack_pct = passives.attack_pct;

@@ -117,9 +117,10 @@ std::vector<StatLine> CombatStatLines(
   lines.push_back({"Elemental Resist", Percent(derived.elemental_resistance)});
   lines.push_back({"Status Resist", std::to_string(static_cast<int>(
                                         derived.status_resistance))});
-  // Last of all, and the only row here that is not about a fight: what it
-  // shortens is the climb rather than the swing.
+  // Last of all, the two rows that are not about a fight at all: what they buy
+  // is the purse and the climb rather than the swing.
   if (with_advanced) {
+    lines.push_back({"Meso Drop Rate", Percent(derived.meso_pct)});
     lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
   }
   return lines;

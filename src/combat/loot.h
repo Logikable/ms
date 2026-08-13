@@ -19,7 +19,8 @@ double MesoLevelPenalty(int level_difference);
 
 // Expected meso one kill of `mob` yields a player at player_level: the 60% base
 // drop chance times the mob's level-banded amount times the level penalty.
-// Ignores the character's Mesos Obtained and item-drop-rate stats (deferred).
+// The character's own meso bonus is applied by the caller, which is where the
+// passives are already resolved; item-drop-rate is still deferred.
 double ExpectedMesoPerKill(const Mob& mob, int player_level);
 
 // Banks `kills` worth of a drop at `per_kill` expected items each into a

@@ -215,6 +215,29 @@ message SkillEffect {
   // The stats page shows it so a player can see what their points and their
   // gear bought, which is more than the equipment's own half ever got.
   double boss_pct = 117;
+  // The Chief Bandit's. Pick Pocket. Chance a meso falls out of an enemy,
+  // rolled once per LINE the swing lands on them (0.30 == 30%) -- so a
+  // four-line swing across eight enemies rolls thirty-two times. GMS states
+  // one meso a proc and never states what one is worth, and its own hyper
+  // enhancement raises the chance and the count and nothing else: a meso here
+  // is a unit of ammunition, not money.
+  //
+  // Only the character's own swings drop them, and only the ones they chose to
+  // swing -- not a summon's pulse, not a Final Attack, not a shadow's copy,
+  // and not a skill on a clock of its own.
+  double meso_drop_chance = 119;
+  // The Chief Bandit's. Meso Explosion. What ONE LINE of a thrown meso deals
+  // (1.00 == 100%); the skill's `lines` says how many a meso is worth.
+  //
+  // Nothing is spent to throw them. They are the mesos on the ground that Pick
+  // Pocket knocked loose, never the ones in the player's purse, so what the
+  // pair really trades is coins the character would never have picked up.
+  double meso_hit_pct = 120;
+  // The Chief Bandit's. Share added to the meso a kill yields (0.20 == +20%).
+  // Sums across its sources, and the second lever in the game to pay in
+  // something other than a fight -- exp_pct above is the first.
+  double meso_pct = 121;
+
   // The Hermit's. Shadow Partner. A shadow copies every line the character's
   // swing lands and strikes again for this share of one (0.70 == 70%), so a
   // three-line swing lands three real lines and three shadow ones.

@@ -36,8 +36,9 @@ void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
     exp_gained += kills[i] * mob.exp();
     // Meso pools across every mob type into one balance, so all kills bank into
     // the shared meso_progress accumulator.
-    int64_t meso = FlushDrops(ExpectedMesoPerKill(mob, player_level), kills[i],
-                              &state.meso_progress);
+    int64_t meso = FlushDrops(
+        ExpectedMesoPerKill(mob, player_level) * (1.0 + params.meso_pct),
+        kills[i], &state.meso_progress);
     if (meso > 0) {
       character.AddMeso(meso);
     }

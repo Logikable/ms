@@ -1105,6 +1105,57 @@ TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredDefenceCombineInReverse) {
 // Boss damage sums across the passives granting it, like plain damage and
 // unlike IED. Nothing reads it -- no mob in the game is a boss -- so the fold
 // and the stats page are the whole of what a player sees for their points.
+// Pick Pocket knocks the meso loose and Meso Explosion throws it, so neither
+// is worth anything without the other -- and Meso Mastery's points land on a
+// line of the throw, whichever order the catalog folds the three in.
+TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocketAndTakesItsBoost) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill pocket;
+  pocket.set_name("Pick Pocket");
+  pocket.set_kind(SKILL_KIND_PASSIVE);
+  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  pocket.set_max_level(10);
+  pocket.mutable_base()->set_meso_drop_chance(0.12);
+  pocket.mutable_per_level()->set_meso_drop_chance(0.02);
+
+  Skill explosion;
+  explosion.set_name("Meso Explosion");
+  explosion.set_kind(SKILL_KIND_PASSIVE);
+  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  explosion.set_max_level(20);
+  explosion.set_lines(2);
+  explosion.mutable_base()->set_meso_hit_pct(0.43);
+  explosion.mutable_per_level()->set_meso_hit_pct(0.03);
+
+  Skill mastery;
+  mastery.set_name("Meso Mastery");
+  mastery.set_kind(SKILL_KIND_PASSIVE);
+  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mastery.set_max_level(10);
+  mastery.set_boosts_skill_name("Meso Explosion");
+  mastery.mutable_base()->set_boosted_skill_pct(0.02);
+  mastery.mutable_per_level()->set_boosted_skill_pct(0.02);
+  mastery.mutable_base()->set_meso_pct(0.02);
+  mastery.mutable_per_level()->set_meso_pct(0.02);
+
+  // The explosion alone is worth nothing: there is no meso to throw.
+  std::map<std::string, Skill> lonely = {{"explosion", explosion}};
+  ASSERT_TRUE(c.LearnSkill(explosion, 20));
+  EXPECT_TRUE(DerivedStatsFor(c, lonely).final_attacks.empty());
+
+  std::map<std::string, Skill> skills = {
+      {"pocket", pocket}, {"explosion", explosion}, {"mastery", mastery}};
+  ASSERT_TRUE(c.LearnSkill(pocket, 10));
+  ASSERT_TRUE(c.LearnSkill(mastery, 10));
+  DerivedStats derived = DerivedStatsFor(c, skills);
+
+  ASSERT_EQ(derived.final_attacks.size(), 1u);
+  // 30% a line, throwing two lines of 100% + Meso Mastery's 20 points.
+  EXPECT_NEAR(derived.final_attacks[0].pct, 0.30 * 2 * 1.20, 1e-9);
+  EXPECT_TRUE(derived.final_attacks[0].per_line);
+  EXPECT_NEAR(derived.meso_pct, 0.20, 1e-9);
+}
+
 TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill spirit;
