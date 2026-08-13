@@ -1241,7 +1241,7 @@ Character CharacterInstance::ToProto() const {
   saved.clear_equipped();
   saved.clear_stacks();
   for (int i = 0; i < inventory_.size(); ++i) {
-    *saved.mutable_inventory()->add_equip_tab() = inventory_[i].equip_state();
+    *saved.mutable_inventory()->add_equip_tab() = inventory_[i].SavedState();
   }
   for (const std::pair<const EquipSlot, EquipInstance>& worn : equipped_) {
     (*saved.mutable_equipped())[static_cast<int>(worn.first)] =

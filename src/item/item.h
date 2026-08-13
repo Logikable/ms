@@ -91,6 +91,17 @@ class EquipTabItem : public Item {
   const Equip& equip_state() const {
     return state_;
   }
+  // Whether this is the record of a destroyed item rather than an item that
+  // still exists. Which of the two a row is lives in the C++ type, so nothing
+  // reading the state alone can tell.
+  virtual bool is_trace() const {
+    return false;
+  }
+  // The state with that answer written into it, for anything that has to
+  // rebuild the item later -- the save file, the shop's buy-back list. Not
+  // folded into equip_state(), because a trace's state is also what recovery
+  // copies to build the live item that replaces it.
+  Equip SavedState() const;
   int stars() const {
     return state_.stars();
   }
@@ -114,6 +125,9 @@ class EquipTrace : public EquipTabItem {
   EquipTrace(EquipPrototype prototype, Equip state);
   const std::string& name() const override {
     return display_name_;
+  }
+  bool is_trace() const override {
+    return true;
   }
 
  private:

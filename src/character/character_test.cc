@@ -1990,12 +1990,15 @@ TEST_F(SaveRoundTripTest, CarriesTheEquipTabAcross) {
 // A trace and a live item differ by one flag, and only the flag decides which
 // type comes back. Getting this wrong turns a destroyed item into a wearable
 // one on the next launch.
+//
+// The flag is NOT set here. It used to be, and that was the whole of what made
+// this pass: nothing in the game ever set it, so every trace saved as a live
+// item and came back as one, with its stars.
 TEST_F(SaveRoundTripTest, ATraceComesBackATrace) {
   CharacterInstance c = MakeCharacter(rng_);
   Equip destroyed;
   destroyed.set_equip_name("Sword");
   destroyed.set_stars(19);
-  destroyed.set_trace(true);
   c.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
 
   CharacterInstance loaded = Reload(c.ToProto());
@@ -2003,6 +2006,45 @@ TEST_F(SaveRoundTripTest, ATraceComesBackATrace) {
   EXPECT_EQ(loaded.inventory().equip_instance(0), nullptr)
       << "a trace is not an EquipInstance";
   EXPECT_EQ(loaded.traces().size(), 1u);
+}
+
+// The same thing by the road the player takes to it, since a trace built by
+// hand is a trace whose flags the test chose.
+TEST_F(SaveRoundTripTest, ATraceLeftByARealBoomComesBackATrace) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip state;
+  state.set_equip_name("Sword");
+  state.set_stars(19);
+  c.PickUp(std::make_unique<EquipInstance>(sword_, state));
+  bool boomed = false;
+  for (int i = 0; i < 200 && !boomed; ++i) {
+    boomed = c.StarForceInventory(0) == kStarForceDestroy;
+  }
+  ASSERT_TRUE(boomed);
+  ASSERT_EQ(c.inventory().equip_instance(0), nullptr);
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  ASSERT_EQ(loaded.inventory().size(), 1);
+  EXPECT_EQ(loaded.inventory().equip_instance(0), nullptr)
+      << "the boom was undone by saving and loading";
+}
+
+// Recovery copies the trace's state onto the item that replaces it, so the
+// flag must not ride along -- or the recovered weapon saves as another trace.
+TEST_F(SaveRoundTripTest, ARecoveredItemComesBackAlive) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip destroyed;
+  destroyed.set_equip_name("Sword");
+  destroyed.set_stars(19);
+  c.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
+  c.PickUp(std::make_unique<EquipInstance>(sword_));
+  ASSERT_GT(c.RecoverTrace(0, 1), 0);
+  ASSERT_NE(c.inventory().equip_instance(0), nullptr);
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  ASSERT_EQ(loaded.inventory().size(), 1);
+  EXPECT_NE(loaded.inventory().equip_instance(0), nullptr)
+      << "the recovered item saved as a trace";
 }
 
 TEST_F(SaveRoundTripTest, CarriesWornItemsInTheirOwnSlots) {

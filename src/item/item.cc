@@ -149,6 +149,12 @@ int StackableItem::max_stack() const {
   }
 }
 
+Equip EquipTabItem::SavedState() const {
+  Equip saved = state_;
+  saved.set_trace(is_trace());
+  return saved;
+}
+
 EquipTrace::EquipTrace(EquipPrototype prototype, Equip state)
     : EquipTabItem(std::move(prototype), std::move(state)),
       display_name_(prototype_.name() + " Trace") {
