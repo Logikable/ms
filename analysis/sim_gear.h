@@ -47,8 +47,8 @@ std::string HeldWeaponName(const CharacterInstance& character);
 // displaced goes back into it.
 bool EquipByName(CharacterInstance& character, const std::string& name);
 
-// Buys and wears the best weapon the character can hold, and the ammunition it
-// draws from.
+// Buys and wears the best gear the character can hold: the weapon, the
+// ammunition it draws from, and their branch's off-hand.
 //
 // Which weapon it is comes out of a measurement, not a list: the top rung of
 // every ladder they can hold is tried on and swung at a mob of their own
@@ -59,6 +59,10 @@ bool EquipByName(CharacterInstance& character, const std::string& name);
 // wants at 30 is not the one they want once the book behind it is full, and a
 // choice frozen at the advancement would hold them to the wrong one for
 // thirty levels.
+//
+// Only the weapon is measured. Ammunition and off-hands are owned by one
+// branch apiece and carry plain stats, so for those there is nothing to
+// choose between -- only a tier to reach.
 //
 // The try-ons are free and the winner is paid for, which is how a player
 // shops: looking at the shelf costs nothing, and only one weapon goes home.

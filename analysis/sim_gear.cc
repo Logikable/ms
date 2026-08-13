@@ -294,6 +294,29 @@ void ClimbLadder(GameState& state, EquipType type, bool budget) {
   WearCopy(state.character, *best);
 }
 
+// The best off-hand the shop will sell the character. Nothing is measured
+// here: one branch owns each off-hand and they carry plain stats, so there is
+// no choice to make -- only a tier to reach.
+const EquipPrototype* BestSecondary(const GameState& state, bool budget) {
+  const EquipPrototype* best = nullptr;
+  for (const std::string& key : ShopSecondaryStock(state.equips)) {
+    const EquipPrototype& proto = state.equips.at(key);
+    // The shop's own filter rather than CanEquip, which asks only the job
+    // category -- and the three warrior off-hands are not interchangeable.
+    if (!state.character.MeetsLevel(proto) ||
+        !state.character.MeetsJob(proto)) {
+      continue;
+    }
+    if (budget && proto.shop_price() > state.character.meso()) {
+      continue;
+    }
+    if (best == nullptr || proto.required_level() > best->required_level()) {
+      best = &proto;
+    }
+  }
+  return best;
+}
+
 }  // namespace
 
 void Outfit(GameState& state, bool budget) {
@@ -312,6 +335,18 @@ void Outfit(GameState& state, bool budget) {
   if (ammo != EQUIP_TYPE_UNSPECIFIED) {
     ClimbLadder(state, ammo, budget);
   }
+  // Last, because it is the smallest of the three and the purse is spent in
+  // the order that matters.
+  const EquipPrototype* off_hand = BestSecondary(state, budget);
+  if (off_hand == nullptr ||
+      off_hand->required_level() <=
+          HeldTier(state.character, EQUIP_SLOT_SECONDARY)) {
+    return;
+  }
+  if (budget && !state.character.Buy(*off_hand, 1)) {
+    return;
+  }
+  WearCopy(state.character, *off_hand);
 }
 
 }  // namespace ms
