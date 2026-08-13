@@ -485,9 +485,6 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
     rows.push_back(
         EffectRow("Heals Every", FormatNumber(regen_interval) + "s"));
   }
-  // The shadow doubles the lines, so the row states one line's worth: the
-  // count is the same as the swing's whatever the swing is, and saying "x2"
-  // beside a number that is already per-line would read as the total.
   // What one meso is worth thrown back, read the way every other swing on this
   // page is read: per line, times the count. Meso Mastery's points land on a
   // line apiece, so the per-line figure is the one that has to be shown.
@@ -496,9 +493,13 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
     rows.push_back(
         EffectRow("Damage per Meso", SwingText(meso_hit, skill.lines())));
   }
+  // A share of what the hit it copies dealt, not a share of a bare swing: a
+  // 70% shadow behind a 210% line lands 147%. The row says "of each hit"
+  // because the bare percentage reads as the flat figure to everyone.
   double mirror = PercentAt(skill, &SkillEffect::mirror_line_pct, level);
   if (mirror > 0.0) {
-    rows.push_back(EffectRow("Shadow Damage", FormatPercent(mirror)));
+    rows.push_back(
+        EffectRow("Shadow Damage", FormatPercent(mirror) + " of each hit"));
   }
   // Dispel's whole effect, and a promise the skill really keeps -- there is
   // just nothing in the game yet that inflicts what it lifts. Stated flatly,

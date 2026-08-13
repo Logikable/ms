@@ -1,6 +1,7 @@
-# GMS pays this out on frozen enemies only, and stacks it. Nothing here
-# freezes, so it is simply always on: half a point of enemy DEF ignored per
-# level, ending at the ten points GMS's four stacks come to.
+# GMS pays this out on frozen enemies only, at 2 points of DEF a stack over
+# four levels. Nothing here freezes, so it is simply always on: half a point
+# of enemy DEF ignored per level, ending at 10 rather than GMS's 8. The two
+# points over are what the twenty levels are spread across.
 name: "Shatter"
 skill_order: 4
 description: "Ignores a portion of enemy DEF when you attack."

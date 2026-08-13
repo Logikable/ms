@@ -290,8 +290,8 @@ TEST_F(SkillInspectPanelTest, StatesTheExpASkillAdds) {
   EXPECT_EQ(RenderAt(symbol, 1).find("no effect"), std::string::npos);
 }
 
-// Shadow Partner's whole effect. One line's worth, because the shadow lands as
-// many lines as the swing does and the swing is not this skill's to know.
+// Shadow Partner's whole effect. A share of each hit rather than a flat
+// percentage, and the row has to say so -- 70% behind a 210% line is 147%.
 TEST_F(SkillInspectPanelTest, StatesWhatAShadowLineIsWorth) {
   Skill partner = MakeIronBody();
   partner.clear_base();
@@ -299,9 +299,9 @@ TEST_F(SkillInspectPanelTest, StatesWhatAShadowLineIsWorth) {
   partner.mutable_base()->set_mirror_line_pct(0.51);
   partner.mutable_per_level()->set_mirror_line_pct(0.01);
 
-  EXPECT_NE(RenderAt(partner, 1).find("Shadow Damage     51%"),
+  EXPECT_NE(RenderAt(partner, 1).find("Shadow Damage     51% of each hit"),
             std::string::npos);
-  EXPECT_NE(RenderAt(partner, 20).find("Shadow Damage     70%"),
+  EXPECT_NE(RenderAt(partner, 20).find("Shadow Damage     70% of each hit"),
             std::string::npos);
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Shadow Damage"),
             std::string::npos);

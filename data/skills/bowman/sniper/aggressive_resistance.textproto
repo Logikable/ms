@@ -1,7 +1,7 @@
 # GMS masters this at 10 and reduces 6*L% of the damage taken. Stretched to 20
-# at half the step, landing on the same 60% -- by some way the largest single
-# reduction in the game, and it multiplies with the dodge Evasion Boost grants
-# rather than summing with it.
+# at half the step, landing on the same 60% -- which the Bandit's Shield
+# Mastery also reaches, for half the points. It multiplies with the dodge
+# Evasion Boost grants rather than summing with it.
 #
 # The barrier it really is, with a cap on what it can absorb, is not modelled:
 # nothing here tracks damage dealt over a window.
