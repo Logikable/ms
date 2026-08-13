@@ -123,6 +123,19 @@ message Inventory {
   repeated Equip equip_tab = 1;
 }
 
+// One sale the shop will undo. Buying an entry back costs exactly what the
+// sale paid out, and an equip comes back as the item that left -- its stars,
+// its scrolls, its spent slots, its trace flag -- because the price it sold
+// for never paid for any of that.
+message BuyBackEntry {
+  // Exactly one of these is set.
+  Equip equip = 1;
+  StackableStack stack = 2;
+  // What one copy sold for. The whole of an equip's price; a stackable row is
+  // worth this times its count, and buying part of one costs this each.
+  int64 unit_price = 3;
+}
+
 message Character {
   string name = 1;
   int32 level = 2;
@@ -168,6 +181,12 @@ message Character {
   // new, and this is what stops it saying so forever -- and what stops it
   // starting over every time the game is launched.
   repeated string seen_tabs = 14;
+
+  // The shop's buy-back shelf: the last sales this character made, newest
+  // first, capped at kBuyBackSlots. One entry per sale rather than per item,
+  // so selling 300 of something in two goes leaves two rows and buying them
+  // back is two purchases. Oldest falls off the end.
+  repeated BuyBackEntry buy_backs = 15;
 }
 
 // One stack on the Use or Etc tab. Carries the catalog key and a count, not

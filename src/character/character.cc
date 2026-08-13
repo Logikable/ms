@@ -992,11 +992,17 @@ int64_t CharacterInstance::SellStackable(ItemCategory category, int index,
     return 0;  // Nothing to sell, or the item cannot be sold.
   }
   int64_t earned = static_cast<int64_t>(count) * price;
+  BuyBackEntry entry;
+  entry.mutable_stack()->set_name(stack.name());
+  entry.mutable_stack()->set_count(count);
+  entry.mutable_stack()->set_category(category);
+  entry.set_unit_price(price);
   stack.add_count(-count);
   if (stack.count() <= 0) {
     stacks.erase(stacks.begin() + index);
   }
   AddMeso(earned);
+  RecordSale(std::move(entry));
   return earned;
 }
 
@@ -1009,9 +1015,90 @@ int64_t CharacterInstance::SellEquip(int index) {
   // away once they have given up on recovering it.
   bool is_trace = inventory_.equip_instance(index) == nullptr;
   int64_t earned = is_trace ? 0 : inventory_[index].prototype().sell_price();
+  // SavedState rather than equip_state: the shelf has to be able to tell a
+  // trace from a live item when it hands the row back.
+  BuyBackEntry entry;
+  *entry.mutable_equip() = inventory_[index].SavedState();
+  entry.set_unit_price(earned);
   inventory_.remove_equip(index);
   AddMeso(earned);
+  RecordSale(std::move(entry));
   return earned;
+}
+
+void CharacterInstance::RecordSale(BuyBackEntry entry) {
+  // Newest first, so the row the player wants is the one they land on. The
+  // shelf is 32 long, so walking the new entry up it costs nothing worth a
+  // deque.
+  *character_.add_buy_backs() = std::move(entry);
+  for (int i = character_.buy_backs_size() - 1; i > 0; --i) {
+    character_.mutable_buy_backs()->SwapElements(i, i - 1);
+  }
+  if (character_.buy_backs_size() > kBuyBackSlots) {
+    character_.mutable_buy_backs()->DeleteSubrange(
+        kBuyBackSlots, character_.buy_backs_size() - kBuyBackSlots);
+  }
+}
+
+bool CharacterInstance::BuyBack(
+    int index, int count, const std::map<std::string, EquipPrototype>& equips,
+    const std::map<std::string, ItemPrototype>& items) {
+  if (index < 0 || index >= character_.buy_backs_size()) {
+    return false;
+  }
+  // Copied out before anything is removed: `entry` is a reference into the
+  // shelf, and taking the row off leaves it pointing at the next one.
+  const BuyBackEntry entry = character_.buy_backs(index);
+  if (entry.has_equip()) {
+    return BuyBackEquip(index, entry, equips);
+  }
+  return BuyBackStack(index, entry, count, items);
+}
+
+bool CharacterInstance::BuyBackEquip(
+    int index, const BuyBackEntry& entry,
+    const std::map<std::string, EquipPrototype>& equips) {
+  std::unique_ptr<EquipTabItem> item =
+      RestoreEquipItem(entry.equip(), IndexByDisplayName(equips));
+  // Nothing to hand back: the item has since left data/, exactly as a save
+  // naming it would find on load.
+  if (item == nullptr || entry.unit_price() > character_.meso() ||
+      inventory_.full()) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - entry.unit_price());
+  PickUp(std::move(item));
+  character_.mutable_buy_backs()->DeleteSubrange(index, 1);
+  return true;
+}
+
+bool CharacterInstance::BuyBackStack(
+    int index, const BuyBackEntry& entry, int count,
+    const std::map<std::string, ItemPrototype>& items) {
+  count = std::clamp(count, 0, entry.stack().count());
+  std::map<std::string, const ItemPrototype*> by_name =
+      IndexByDisplayName(items);
+  std::map<std::string, const ItemPrototype*>::const_iterator proto =
+      by_name.find(entry.stack().name());
+  if (count <= 0 || proto == by_name.end()) {
+    return false;
+  }
+  int64_t cost = static_cast<int64_t>(count) * entry.unit_price();
+  if (cost > character_.meso() || count > RoomFor(*proto->second)) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - cost);
+  AddStackable(*proto->second, count);
+  // Part of a row leaves the rest of it on the shelf, in its own place: the
+  // shelf is a history, and taking some of a sale back does not make it a
+  // newer one.
+  int left = entry.stack().count() - count;
+  if (left > 0) {
+    character_.mutable_buy_backs(index)->mutable_stack()->set_count(left);
+  } else {
+    character_.mutable_buy_backs()->DeleteSubrange(index, 1);
+  }
+  return true;
 }
 
 bool CharacterInstance::UseStackable(ItemCategory category, int index) {

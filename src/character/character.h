@@ -79,6 +79,10 @@ struct LevelGains {
 // just earn", which is a count, not a place to spend from.
 LevelGains GainsForLevels(int from_level, int to_level);
 
+// Rows on the shop's buy-back shelf. One per sale, so a player who sold 300 of
+// something in two goes finds two of them.
+inline constexpr int kBuyBackSlots = 32;
+
 class CharacterInstance {
  public:
   CharacterInstance(std::mt19937& rng, Character character);
@@ -170,6 +174,23 @@ class CharacterInstance {
   // range, count <= 0, or the item is unsellable (sell_price 0). Returns the
   // meso earned.
   int64_t SellStackable(ItemCategory category, int index, int count);
+  // The shop's buy-back shelf, newest sale first. Reading it is the panel's
+  // business; BuyBack is the only thing that takes one off.
+  const google::protobuf::RepeatedPtrField<BuyBackEntry>& buy_backs() const {
+    return character_.buy_backs();
+  }
+  // Buys back `count` copies from buy-back entry `index`, at the price the
+  // sale paid. `count` is ignored for an equip, which is always one item.
+  // Prototypes are resolved by name against the catalogs, as RestoreFrom does,
+  // so an item dropped from data/ cannot be bought back.
+  //
+  // All or nothing, on the same terms as Buy: returns false and changes
+  // nothing unless the character can pay for every copy and the bag can hold
+  // them. Buying part of a stackable row leaves the rest of it on the shelf.
+  bool BuyBack(int index, int count,
+               const std::map<std::string, EquipPrototype>& equips,
+               const std::map<std::string, ItemPrototype>& items);
+
   // Sells the equip-tab item at `index`, crediting its prototype's sell_price
   // and removing it from the bag. Returns the meso earned, or 0 if the index
   // is out of range.
@@ -298,6 +319,17 @@ class CharacterInstance {
   bool has_secondary() const;
 
  private:
+  // Puts a sale on the buy-back shelf, newest first, and drops the oldest row
+  // once the shelf is full.
+  void RecordSale(BuyBackEntry entry);
+  // The two halves of BuyBack, which shares only the lookup of the row. Each
+  // owns its own affordability and room checks, because what "room" means is
+  // a slot for one and a share of every open stack for the other.
+  bool BuyBackEquip(int index, const BuyBackEntry& entry,
+                    const std::map<std::string, EquipPrototype>& equips);
+  bool BuyBackStack(int index, const BuyBackEntry& entry, int count,
+                    const std::map<std::string, ItemPrototype>& items);
+
   // Recomputes equip_stats_ from the current equipped map.
   void RecomputeEquipStats();
   // The stack vector backing `category`. USE and ETC each have their own;

@@ -1284,6 +1284,187 @@ TEST_F(SellEquipTest, OutOfRangeIndexIsNoOp) {
   EXPECT_EQ(c_.meso(), 0);
 }
 
+// --- BuyBack ---
+
+// The shelf hands items back, so it needs the catalogs a save needs, keyed by
+// data-file stem rather than display name for the same reason.
+class BuyBackTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    sword_.set_name("Sword");
+    sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    sword_.set_upgrade_slots(7);
+    sword_.set_sell_price(900);
+    equips_["sword"] = sword_;
+    shell_.set_name("Green Snail Shell");
+    shell_.set_category(ITEM_CATEGORY_ETC);
+    shell_.set_sell_price(7);
+    items_["green_snail_shell"] = shell_;
+  }
+  bool BuyBack(int index, int count = 1) {
+    return c_.BuyBack(index, count, equips_, items_);
+  }
+  CharacterInstance c_ = MakeCharacter(rng_);
+  EquipPrototype sword_;
+  ItemPrototype shell_;
+  std::map<std::string, EquipPrototype> equips_;
+  std::map<std::string, ItemPrototype> items_;
+};
+
+TEST_F(BuyBackTest, ASoldEquipLandsOnTheShelfAtWhatItPaid) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.SellEquip(0);
+  ASSERT_EQ(c_.buy_backs().size(), 1);
+  EXPECT_TRUE(c_.buy_backs().Get(0).has_equip());
+  EXPECT_EQ(c_.buy_backs().Get(0).equip().equip_name(), "Sword");
+  EXPECT_EQ(c_.buy_backs().Get(0).unit_price(), 900);
+}
+
+TEST_F(BuyBackTest, ASoldStackLandsOnTheShelfAtItsUnitPrice) {
+  c_.AddStackable(shell_, 10);
+  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 4);
+  ASSERT_EQ(c_.buy_backs().size(), 1);
+  EXPECT_TRUE(c_.buy_backs().Get(0).has_stack());
+  EXPECT_EQ(c_.buy_backs().Get(0).stack().name(), "Green Snail Shell");
+  EXPECT_EQ(c_.buy_backs().Get(0).stack().count(), 4);
+  EXPECT_EQ(c_.buy_backs().Get(0).unit_price(), 7);
+}
+
+// The point of the whole shelf: the price never paid for the stars, so buying
+// the item back must not have to buy them again.
+TEST_F(BuyBackTest, AnEquipComesBackAsTheItemThatLeft) {
+  Equip upgraded;
+  upgraded.set_equip_name("Sword");
+  upgraded.set_stars(12);
+  upgraded.set_scroll_successes(7);
+  upgraded.set_remaining_upgrade_slots(0);
+  upgraded.mutable_scroll_stats()->set_attack(35);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_, upgraded));
+  c_.SellEquip(0);
+  ASSERT_EQ(c_.meso(), 900);
+
+  ASSERT_TRUE(BuyBack(0));
+  EXPECT_EQ(c_.meso(), 0) << "bought back at exactly what it sold for";
+  EXPECT_TRUE(c_.buy_backs().empty());
+  ASSERT_EQ(c_.inventory().size(), 1);
+  const EquipInstance* item = c_.inventory().equip_instance(0);
+  ASSERT_NE(item, nullptr);
+  EXPECT_EQ(item->stars(), 12);
+  EXPECT_EQ(item->equip_state().scroll_stats().attack(), 35);
+  EXPECT_EQ(item->equip_state().remaining_upgrade_slots(), 0);
+}
+
+// A trace is worth nothing both ways, and has to come back a trace -- coming
+// back alive would undo a star force boom for free.
+TEST_F(BuyBackTest, ATraceComesBackATraceForNothing) {
+  Equip destroyed;
+  destroyed.set_equip_name("Sword");
+  destroyed.set_stars(19);
+  c_.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
+  c_.SellEquip(0);
+  ASSERT_EQ(c_.buy_backs().Get(0).unit_price(), 0);
+
+  ASSERT_TRUE(BuyBack(0));
+  EXPECT_EQ(c_.meso(), 0);
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory().equip_instance(0), nullptr) << "came back alive";
+}
+
+TEST_F(BuyBackTest, PartOfAStackLeavesTheRestWhereItWas) {
+  c_.AddStackable(shell_, 100);
+  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 100);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.SellEquip(0);  // a newer row, so the shelf has an order to keep
+  ASSERT_EQ(c_.buy_backs().size(), 2);
+
+  ASSERT_TRUE(BuyBack(1, 30));
+  EXPECT_EQ(c_.CountStackable(shell_), 30);
+  ASSERT_EQ(c_.buy_backs().size(), 2) << "the row stays until it empties";
+  EXPECT_EQ(c_.buy_backs().Get(1).stack().count(), 70);
+  EXPECT_TRUE(c_.buy_backs().Get(0).has_equip()) << "and stays where it was";
+
+  ASSERT_TRUE(BuyBack(1, 70));
+  EXPECT_EQ(c_.CountStackable(shell_), 100);
+  EXPECT_EQ(c_.buy_backs().size(), 1);
+}
+
+// One row per sale, not per item: two sales of the same thing are two rows,
+// and the newer of them is the one on top.
+TEST_F(BuyBackTest, EachSaleIsItsOwnRowNewestFirst) {
+  c_.AddStackable(shell_, 300);
+  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 200);
+  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 100);
+  ASSERT_EQ(c_.buy_backs().size(), 2);
+  EXPECT_EQ(c_.buy_backs().Get(0).stack().count(), 100)
+      << "the later sale on top";
+  EXPECT_EQ(c_.buy_backs().Get(1).stack().count(), 200);
+}
+
+TEST_F(BuyBackTest, TheOldestRowFallsOffAFullShelf) {
+  c_.AddStackable(shell_, 1000);
+  for (int i = 0; i < kBuyBackSlots + 3; ++i) {
+    c_.AddStackable(shell_, i + 1);
+    c_.SellStackable(ITEM_CATEGORY_ETC, 0, i + 1);
+  }
+  ASSERT_EQ(c_.buy_backs().size(), kBuyBackSlots);
+  // The last sale on top, and the three oldest gone from the bottom.
+  EXPECT_EQ(c_.buy_backs().Get(0).stack().count(), kBuyBackSlots + 3);
+  EXPECT_EQ(c_.buy_backs().Get(kBuyBackSlots - 1).stack().count(), 4);
+}
+
+TEST_F(BuyBackTest, RefusesWhatTheCharacterCannotPayFor) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.SellEquip(0);
+  // Spent since, which is the case the shelf outlives: the row is still there
+  // and the money for it is not.
+  shell_.set_shop_price(1);
+  ASSERT_TRUE(c_.Buy(shell_, 900));
+  ASSERT_EQ(c_.meso(), 0);
+
+  EXPECT_FALSE(BuyBack(0));
+  EXPECT_EQ(c_.meso(), 0);
+  EXPECT_EQ(c_.inventory().size(), 0);
+  EXPECT_EQ(c_.buy_backs().size(), 1) << "still there to come back for";
+}
+
+TEST_F(BuyBackTest, RefusesAStackTheBagHasNoRoomFor) {
+  c_.AddStackable(shell_, 10);
+  c_.SellStackable(ITEM_CATEGORY_ETC, 0, 10);
+  c_.AddMeso(1000);
+  int64_t meso = c_.meso();
+  // Every Etc slot filled with something else, so topping up cannot help.
+  ItemPrototype filler;
+  filler.set_category(ITEM_CATEGORY_ETC);
+  for (int i = 0; i < kTabCapacity; ++i) {
+    filler.set_name("Filler" + std::to_string(i));
+    c_.AddStackable(filler, 1);
+  }
+  ASSERT_EQ(c_.RoomFor(shell_), 0);
+
+  EXPECT_FALSE(BuyBack(0, 10));
+  EXPECT_EQ(c_.meso(), meso);
+  EXPECT_EQ(c_.buy_backs().size(), 1);
+}
+
+TEST_F(BuyBackTest, RefusesAnItemTheCatalogNoLongerHas) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.SellEquip(0);
+  equips_.clear();
+
+  EXPECT_FALSE(BuyBack(0));
+  EXPECT_EQ(c_.meso(), 900) << "not charged for what it cannot hand over";
+  EXPECT_EQ(c_.buy_backs().size(), 1);
+}
+
+TEST_F(BuyBackTest, OutOfRangeIndexIsNoOp) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.SellEquip(0);
+  EXPECT_FALSE(BuyBack(1));
+  EXPECT_FALSE(BuyBack(-1));
+  EXPECT_EQ(c_.buy_backs().size(), 1);
+  EXPECT_EQ(c_.meso(), 900);
+}
+
 // --- Equip ---
 
 TEST_F(EquipTest, EquipsItemIntoEmptySlot) {
@@ -2045,6 +2226,26 @@ TEST_F(SaveRoundTripTest, ARecoveredItemComesBackAlive) {
   ASSERT_EQ(loaded.inventory().size(), 1);
   EXPECT_NE(loaded.inventory().equip_instance(0), nullptr)
       << "the recovered item saved as a trace";
+}
+
+// The shelf is the shop's memory of what this character sold, so it has to
+// outlive the session the sale happened in.
+TEST_F(SaveRoundTripTest, CarriesTheBuyBackShelfAcross) {
+  CharacterInstance c = MakeCharacter(rng_);
+  Equip starred;
+  starred.set_equip_name("Sword");
+  starred.set_stars(9);
+  c.PickUp(std::make_unique<EquipInstance>(sword_, starred));
+  c.SellEquip(0);
+  ItemPrototype shell = items_["green_snail_shell"];
+  shell.set_sell_price(7);  // the fixture's copy is unsellable
+  c.AddStackable(shell, 6);
+  ASSERT_GT(c.SellStackable(ITEM_CATEGORY_ETC, 0, 6), 0);
+
+  CharacterInstance loaded = Reload(c.ToProto());
+  ASSERT_EQ(loaded.buy_backs().size(), 2);
+  EXPECT_EQ(loaded.buy_backs().Get(0).stack().count(), 6) << "newest first";
+  EXPECT_EQ(loaded.buy_backs().Get(1).equip().stars(), 9);
 }
 
 TEST_F(SaveRoundTripTest, CarriesWornItemsInTheirOwnSlots) {
