@@ -1,12 +1,14 @@
 # GMS rolls an L% chance of L*2% more damage, which comes to 2% at its master
-# level -- so 2% is what the flat lever reaches. The 1% HP it hands back on a
-# trigger becomes a share of the pool on every attack, on Self Recovery's
-# ladder. The MP half is dropped: there is no MP pool to fill.
+# level -- so 2% is what the flat lever reaches.
+#
+# Both halves of the recovery are dropped. There is no MP pool to fill, and the
+# HP is 1% on a trigger that fires a tenth of the time -- a tenth of a percent
+# of the pool a swing, which every level below the last would print as "0%".
 name: "Mortal Blow"
 skill_order: 5
-description: "Permanently increases Damage, and recovers HP as you attack."
+description: "Permanently increases your Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 10
-base { damage_pct: 0.002 hp_recover_pct: 0.001 }
-per_level { damage_pct: 0.002 hp_recover_pct: 0.001 }
+base { damage_pct: 0.002 }
+per_level { damage_pct: 0.002 }

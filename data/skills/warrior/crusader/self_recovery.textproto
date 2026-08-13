@@ -1,11 +1,21 @@
-# GMS recovers a share of the pool every few seconds, on a clock of its own.
-# There is no such clock here, so the recovery rides the attack instead -- a
-# tenth of a percent of the pool a swing at level 1, two percent at 20.
+# GMS's own shape: a share of the pool on a clock of its own, ending at 4% of
+# it every 4 seconds. It rode the swing until the Priest's Holy Fountain built
+# a clock to hang it on -- which paid a Crusader swinging at 0.6s more than
+# three times what GMS pays them.
+#
+# The interval steps a clean quarter-second over the twenty levels, so it lands
+# on GMS's 4 seconds exactly rather than near it.
 name: "Self Recovery"
 skill_order: 4
-description: "Recovers some of your HP as you attack."
+description: "Recovers your HP on its own, a little at a time."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20
-base { hp_recover_pct: 0.001 }
-per_level { hp_recover_pct: 0.001 }
+base {
+  regen_pct: 0.021
+  regen_interval_seconds: 8.75
+}
+per_level {
+  regen_pct: 0.001
+  regen_interval_seconds: -0.25
+}
