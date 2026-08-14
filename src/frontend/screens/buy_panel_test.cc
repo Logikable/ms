@@ -63,12 +63,17 @@ TEST(BuyPanelTest, OpensAtOne) {
   EXPECT_EQ(panel.quantity(), 1);
 }
 
-TEST(BuyPanelTest, HasNoQuickPickShortcuts) {
+// Opening at one is not the same as offering only one: every other quantity
+// dialog carries the shortcuts, and [MAX] here is "as many as I can afford".
+TEST(BuyPanelTest, HasTheQuickPickShortcuts) {
   BuyPanel panel;
   panel.Reset("Machete", 10000, /*meso=*/50000, /*room=*/kRoomy, /*owned=*/0);
   std::string rendered = Render(panel);
-  EXPECT_EQ(rendered.find("[1]"), std::string::npos);
-  EXPECT_EQ(rendered.find("[MAX]"), std::string::npos);
+  EXPECT_NE(rendered.find("[1]"), std::string::npos);
+  EXPECT_NE(rendered.find("[MAX]"), std::string::npos);
+  panel.OnEvent(ftxui::Event::ArrowRight);  // textbox -> [MAX]
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(panel.quantity(), 5) << "50,000 buys five at 10,000";
 }
 
 TEST(BuyPanelTest, ShowsUnitPriceAndTotal) {

@@ -3,10 +3,10 @@
  * the per-item and total cost above a shared AmountSelector.
  *
  * Two things differ from selling. The quantity opens at one rather than at the
- * whole amount, without the [1]/[MAX] shortcuts, because a shopper picks a
- * number rather than reaching for "as many as I can afford". And the total is
- * a cost rather than a gain, so it turns red and takes Confirm down with it
- * once it passes what the player holds.
+ * whole amount, because a shopper picks a number rather than reaching for "as
+ * many as I can afford" -- [MAX] is still there for the player who is. And the
+ * total is a cost rather than a gain, so it turns red and takes Confirm down
+ * with it once it passes what the player holds.
  *
  * The panel owns no game state: Reset() seeds it with the item's price and the
  * player's meso, quantity() reports the chosen amount, and TakeConfirmed() /

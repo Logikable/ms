@@ -126,7 +126,7 @@ TEST(AmountSelectorTest, EscapeCancels) {
   EXPECT_TRUE(sel.TakeCancelled());
 }
 
-// --- opening amount and hidden shortcuts ---
+// --- the opening amount ---
 
 std::string RenderSelector(const AmountSelector& sel) {
   ftxui::Element element = sel.Render();
@@ -138,7 +138,7 @@ std::string RenderSelector(const AmountSelector& sel) {
 
 TEST(AmountSelectorTest, OpensOnTheAmountItIsGiven) {
   AmountSelector sel;
-  sel.Reset(9, /*initial=*/1, QuickPicks::kShown);
+  sel.Reset(9, /*initial=*/1);
   EXPECT_EQ(sel.value(), 1);
 }
 
@@ -146,31 +146,8 @@ TEST(AmountSelectorTest, OpensOnTheAmountItIsGiven) {
 // amount has to survive a max of zero rather than sit above it.
 TEST(AmountSelectorTest, ClampsTheOpeningAmountToMax) {
   AmountSelector sel;
-  sel.Reset(0, /*initial=*/1, QuickPicks::kShown);
+  sel.Reset(0, /*initial=*/1);
   EXPECT_EQ(sel.value(), 0);
-}
-
-TEST(AmountSelectorTest, HidesTheShortcutsWhenAsked) {
-  AmountSelector sel;
-  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
-  std::string rendered = RenderSelector(sel);
-  EXPECT_EQ(rendered.find("[1]"), std::string::npos);
-  EXPECT_EQ(rendered.find("[MAX]"), std::string::npos);
-  EXPECT_NE(rendered.find("[Confirm]"), std::string::npos);
-}
-
-// Hidden is not merely invisible. Left and Right used to walk onto the
-// shortcuts, which would strand the cursor on a control nobody can see.
-TEST(AmountSelectorTest, HiddenShortcutsCannotBeReached) {
-  AmountSelector sel;
-  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
-  sel.OnEvent(ftxui::Event::ArrowLeft);
-  sel.OnEvent(ftxui::Event::Backspace);
-  EXPECT_EQ(sel.value(), 0) << "Left moved off the textbox";
-  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
-  sel.OnEvent(ftxui::Event::ArrowRight);
-  sel.OnEvent(ftxui::Event::Backspace);
-  EXPECT_EQ(sel.value(), 0) << "Right moved off the textbox";
 }
 
 // The single line holding `needle`, escape codes and all.
@@ -186,12 +163,12 @@ std::string LineWith(const std::string& rendered, const std::string& needle) {
 
 TEST(AmountSelectorTest, DimsAConfirmItCannotHonour) {
   AmountSelector sel;
-  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.Reset(9, /*initial=*/1);
   sel.set_confirm_enabled(false);
   std::string row = LineWith(RenderSelector(sel), "[Confirm]");
   EXPECT_NE(row.find("\033[2m"), std::string::npos);
 
-  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.Reset(9, /*initial=*/1);
   EXPECT_EQ(LineWith(RenderSelector(sel), "[Confirm]").find("\033[2m"),
             std::string::npos);
 }
@@ -200,7 +177,7 @@ TEST(AmountSelectorTest, DimsAConfirmItCannotHonour) {
 // amount must never be told the player confirmed it.
 TEST(AmountSelectorTest, ADisabledConfirmDoesNotConfirm) {
   AmountSelector sel;
-  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.Reset(9, /*initial=*/1);
   sel.set_confirm_enabled(false);
   sel.OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
   sel.OnEvent(ftxui::Event::Return);
@@ -213,9 +190,9 @@ TEST(AmountSelectorTest, ADisabledConfirmDoesNotConfirm) {
 
 TEST(AmountSelectorTest, ResetClearsTheDisabledConfirm) {
   AmountSelector sel;
-  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.Reset(9, /*initial=*/1);
   sel.set_confirm_enabled(false);
-  sel.Reset(9, /*initial=*/1, QuickPicks::kHidden);
+  sel.Reset(9, /*initial=*/1);
   sel.OnEvent(ftxui::Event::ArrowDown);
   sel.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(sel.TakeConfirmed());

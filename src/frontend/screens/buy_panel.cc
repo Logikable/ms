@@ -32,7 +32,7 @@ void BuyPanel::Reset(const std::string& item_name, int unit_price, int64_t meso,
   }
   int64_t max = std::min({affordable, static_cast<int64_t>(std::max(0, room)),
                           static_cast<int64_t>(kMaxQuantity)});
-  selector_.Reset(static_cast<int>(max), /*initial=*/1, QuickPicks::kHidden);
+  selector_.Reset(static_cast<int>(max), /*initial=*/1);
   selector_.set_confirm_enabled(Affordable());
 }
 

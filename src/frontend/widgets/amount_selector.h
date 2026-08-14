@@ -18,20 +18,15 @@
 
 namespace ms {
 
-// Whether the [1] and [MAX] shortcuts sit beside the value field. A shop hides
-// them: buying opens at one, and "as many as I can afford" is not an amount
-// anyone reaches for.
-enum class QuickPicks { kShown, kHidden };
-
 class AmountSelector {
  public:
   // Seeds the control for choosing 0..max, defaulting the value to max with the
   // textbox selected.
   void Reset(int max);
-  // As above, but opening at `initial` and optionally without the shortcuts.
-  // `initial` is clamped to 0..max, so a caller may pass 1 for a max of 0 and
-  // get the empty field that amount deserves.
-  void Reset(int max, int initial, QuickPicks quick_picks);
+  // As above, but opening at `initial`, which is clamped to 0..max -- so a
+  // caller may pass 1 for a max of 0 and get the empty field that amount
+  // deserves.
+  void Reset(int max, int initial);
   // Greys out [Confirm] and stops it activating, for a choice the caller cannot
   // honour -- a total beyond the player's meso. Cancel still works. Cleared by
   // the next Reset.
@@ -58,7 +53,6 @@ class AmountSelector {
   int focus_ = 0;  // an internal Focus value (see amount_selector.cc)
   bool confirmed_ = false;
   bool cancelled_ = false;
-  QuickPicks quick_picks_ = QuickPicks::kShown;
   bool confirm_enabled_ = true;
 };
 
