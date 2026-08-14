@@ -919,12 +919,13 @@ TEST_F(ShopPanelTest, TheBuyBackShelfShowsBothKindsOfRow) {
   OpenShelf(panel, kShopBuyBackTab);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Qty"), std::string::npos);
-  // The stack carries its count and no type; the equip carries its type and
-  // no count. Each priced at what one of it sold for.
+  // The stack carries its count; the equip, being one item, carries none.
+  // Each priced at what one of it sold for.
   EXPECT_NE(rendered.find("Green Snail Shell"), std::string::npos);
   EXPECT_NE(rendered.find("40"), std::string::npos);
   EXPECT_NE(rendered.find("Gladius"), std::string::npos);
-  EXPECT_NE(rendered.find("One-Handed Sword"), std::string::npos);
+  EXPECT_EQ(rendered.find("One-Handed Sword"), std::string::npos)
+      << "the shelf has no type column";
   EXPECT_NE(rendered.find("2,000"), std::string::npos);
   // Newest on top: the stack was sold second.
   EXPECT_LT(RowIndexWith(panel, "Green Snail Shell"),

@@ -126,8 +126,8 @@ class ShopPanel {
                               const std::string& cursor) const;
   ftxui::Element RenderEquipRow(const EquipPrototype& proto,
                                 const std::string& cursor) const;
-  // One buy-back row. An equip fills the type column and leaves the quantity
-  // blank; a stackable does the opposite. Both are priced at what the sale
+  // One buy-back row. A stackable fills the quantity column; an equip, being
+  // the one item it was, leaves it blank. Both are priced at what the sale
   // paid for one.
   ftxui::Element RenderBuyBackRow(const BuyBackEntry& entry,
                                   const std::string& cursor) const;

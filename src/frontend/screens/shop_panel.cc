@@ -49,13 +49,13 @@ ftxui::Element EtcColumnHeader() {
                      PadLeft("🪙 Cost", kCostWidth));
 }
 
-// The buy-back shelf holds both kinds at once, so it keeps the type column for
-// the equips and turns the level column into the quantity the stackables need.
-// Each row fills one of the two and leaves the other blank.
+// The buy-back shelf holds both kinds at once, so it shows what only one of
+// them has: an equip comes back as the one item it was, and a stack comes back
+// as many. The type is left to Inspect -- a name the player chose to sell is
+// one they already know.
 ftxui::Element BuyBackColumnHeader() {
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
-                     PadRight("Type", kTypeWidth) + "  " +
-                     PadRight("Qty", kLevelWidth) +
+                     PadRight("Qty", kTypeWidth + 2 + kLevelWidth) +
                      PadLeft("🪙 Cost", kCostWidth));
 }
 
@@ -313,7 +313,6 @@ ftxui::Element ShopPanel::RenderBuyBackRow(const BuyBackEntry& entry,
                                            const std::string& cursor) const {
   // The name is the item's own, and a trace's name already says it is one.
   std::string name;
-  std::string type;
   std::string qty;
   if (entry.has_equip()) {
     const EquipPrototype* proto =
@@ -321,9 +320,6 @@ ftxui::Element ShopPanel::RenderBuyBackRow(const BuyBackEntry& entry,
     name = proto == nullptr ? entry.equip().equip_name() : proto->name();
     if (entry.equip().trace()) {
       name += " Trace";
-    }
-    if (proto != nullptr) {
-      type = FormatEquipType(proto->equip_type());
     }
   } else {
     name = entry.stack().name();
@@ -336,8 +332,7 @@ ftxui::Element ShopPanel::RenderBuyBackRow(const BuyBackEntry& entry,
   }
   return ftxui::hbox({
       ftxui::text(cursor + PadRight(name, kNameWidth) + "  " +
-                  PadRight(type, kTypeWidth) + "  " +
-                  PadRight(qty, kLevelWidth)),
+                  PadRight(qty, kTypeWidth + 2 + kLevelWidth)),
       std::move(cost),
       ftxui::text(" "),
   });
