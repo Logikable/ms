@@ -135,12 +135,14 @@ cc_test(
     name = "map_data_test",
     srcs = ["map_data_test.cc"],
     data = [
+        "//data/equip:all",
         "//data/items:all",
         "//data/maps:all",
         "//data/mobs:all",
     ],
     deps = [
         ":proto_loader",
+        "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",

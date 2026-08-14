@@ -226,10 +226,10 @@ TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
     if (proto.shop_price() <= 0) {
-      // Not stocked, so there is no price to take a share of. It still sells,
-      // for nothing -- that is how a starter sword leaves the bag.
-      EXPECT_EQ(proto.sell_price(), 0)
-          << entry.first << " pays out but cannot be bought";
+      // Not stocked, so there is no price to take a share of and the item
+      // names its own. Most of them name nothing and sell for nothing -- that
+      // is how a starter sword leaves the bag -- but a dropped piece is worth
+      // what it is worth whether or not a shop ever sold one.
       continue;
     }
     ++seen;

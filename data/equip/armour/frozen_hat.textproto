@@ -1,0 +1,19 @@
+name: "Frozen Hat"
+required_level: 90
+base_stats {
+  str: 14
+  dex: 14
+  int: 14
+  luk: 14
+  attack: 1
+  magic_attack: 1
+  max_hp: 270
+  max_mp: 270
+  def: 152
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_HAT
+upgrade_slots: 7
+# Dropped, never stocked. A spare is worth a pretty penny, which is what
+# a lucky run pays out.
+sell_price: 50000

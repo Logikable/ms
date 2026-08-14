@@ -4,3 +4,5 @@ attack: 454
 max_hp: 28000
 exp: 458
 drops { item: "star_pixies_starpiece" per_kill: 0.4 }
+drops { equip: "frozen_top" per_kill: 0.0001 }
+drops { equip: "frozen_bottom" per_kill: 0.00025 }

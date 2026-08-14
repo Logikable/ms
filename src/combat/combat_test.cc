@@ -143,6 +143,87 @@ TEST(AdvanceCombatTest, AccruesDropsWhileFarming) {
             "Green Snail Shell");
 }
 
+// A mob can hand over equipment, not just stackables. It lands in the equip
+// tab as its own item, ready to be worn.
+TEST(AdvanceCombatTest, DropsEquipmentIntoTheEquipTab) {
+  Mob mob = SnailMob();
+  mob.clear_drops();
+  MobDrop* drop = mob.add_drops();
+  drop->set_equip("frozen_top");
+  drop->set_per_kill(1.0);
+
+  EquipPrototype top;
+  top.set_name("Frozen Top");
+  top.set_equip_slot(EQUIP_SLOT_TOP);
+  top.set_upgrade_slots(7);
+
+  GameState state({{"frozen_top", top}}, {}, {}, {{"snail", mob}},
+                  {{"field", OneSnailMap()}}, {}, GameMode::kPlay,
+                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/5);
+  state.current_map = "field";
+  EquipSword(state);
+
+  Farm(state, 60.0);
+  ASSERT_GT(state.character.inventory().size(), 1) << "nothing dropped";
+  // Index 0 is the sword's replacement -- the swords are worn -- so look for
+  // the piece by name rather than by position.
+  bool found = false;
+  for (int i = 0; i < state.character.inventory().size(); ++i) {
+    if (state.character.inventory()[i].prototype().name() == "Frozen Top") {
+      found = true;
+      EXPECT_EQ(state.character.inventory()[i]
+                    .equip_state()
+                    .remaining_upgrade_slots(),
+                7)
+          << "it dropped in a state it can be scrolled from";
+    }
+  }
+  EXPECT_TRUE(found);
+}
+
+// A full equip tab loses what drops into it. The alternative is a queue the
+// player cannot see.
+TEST(AdvanceCombatTest, AFullEquipTabLosesTheDrop) {
+  Mob mob = SnailMob();
+  mob.clear_drops();
+  MobDrop* drop = mob.add_drops();
+  drop->set_equip("frozen_top");
+  drop->set_per_kill(1.0);
+
+  EquipPrototype top;
+  top.set_name("Frozen Top");
+  top.set_equip_slot(EQUIP_SLOT_TOP);
+
+  GameState state({{"frozen_top", top}}, {}, {}, {{"snail", mob}},
+                  {{"field", OneSnailMap()}}, {}, GameMode::kPlay,
+                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/5);
+  state.current_map = "field";
+  EquipSword(state);
+  while (state.character.RoomFor(top) > 0) {
+    state.character.PickUp(std::make_unique<EquipInstance>(top));
+  }
+  int filled = state.character.inventory().size();
+
+  Farm(state, 60.0);
+  EXPECT_EQ(state.character.inventory().size(), filled);
+}
+
+// A drop naming something no catalog holds is skipped, not guessed at.
+TEST(AdvanceCombatTest, AnUnknownEquipDropsNothing) {
+  Mob mob = SnailMob();
+  mob.clear_drops();
+  MobDrop* drop = mob.add_drops();
+  drop->set_equip("no_such_item");
+  drop->set_per_kill(1.0);
+
+  GameState state({}, {}, {}, {{"snail", mob}}, {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  Farm(state, 60.0);
+  EXPECT_EQ(state.character.inventory().size(), 0);
+}
+
 TEST(AdvanceCombatTest, AccruesMesoWhileFarming) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", OneSnailMap()}});

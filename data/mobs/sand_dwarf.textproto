@@ -4,3 +4,6 @@ attack: 715
 max_hp: 90000
 exp: 1188
 drops { item: "empty_sack" per_kill: 0.4 }
+drops { equip: "frozen_top" per_kill: 0.0001 }
+drops { equip: "frozen_bottom" per_kill: 0.0001 }
+drops { equip: "frozen_hat" per_kill: 0.00025 }

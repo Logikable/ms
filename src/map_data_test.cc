@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "src/proto_loader.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -40,6 +41,11 @@ std::map<std::string, ItemPrototype> LoadItems() {
       TestRunfiles()->Rlocation("ms/data/items"));
 }
 
+std::map<std::string, EquipPrototype> LoadEquips() {
+  return LoadTextProtoDir<EquipPrototype>(
+      TestRunfiles()->Rlocation("ms/data/equip"));
+}
+
 // A spawn naming no mob file is dropped by the loader, so the map quietly
 // farms fewer monsters than its data says -- which has cost us a live bug
 // before, and which nothing else would catch.
@@ -60,15 +66,79 @@ TEST(MapDataTest, EverySpawnNamesAMob) {
 // unresolvable one is skipped, so the mob simply drops nothing.
 TEST(MapDataTest, EveryDropNamesAnItem) {
   std::map<std::string, ItemPrototype> items = LoadItems();
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
     for (const MobDrop& drop : entry.second.drops()) {
-      EXPECT_GT(items.count(drop.item()), 0u)
-          << entry.first << " drops \"" << drop.item() << "\", which no item "
-          << "file defines";
+      // A drop names one catalog or the other, never both and never neither.
+      if (!drop.equip().empty()) {
+        EXPECT_TRUE(drop.item().empty())
+            << entry.first << " drops \"" << drop.equip()
+            << "\" as both an equip and a stackable";
+        EXPECT_GT(equips.count(drop.equip()), 0u)
+            << entry.first << " drops \"" << drop.equip()
+            << "\", which no equip file defines";
+      } else {
+        EXPECT_GT(items.count(drop.item()), 0u)
+            << entry.first << " drops \"" << drop.item()
+            << "\", which no item file defines";
+      }
       EXPECT_GT(drop.per_kill(), 0.0)
-          << entry.first << " drops " << drop.item() << " never";
+          << entry.first << " drops something never";
     }
   }
+}
+
+// The Frozen set's whole drop table, checked as the rule it is rather than as
+// a copy of itself: each piece drops from the ten mob levels below the level
+// it can be worn at, and thinly from everything above that. A mob added to the
+// 61-100 stretch without its share is a piece the player can no longer expect
+// to find. See the rates in the plan: 1/4,000 in a piece's own band, 1/10,000
+// above it, and double for the cape, which has one band and the fewest kills
+// in it.
+TEST(MapDataTest, EveryMobInTheStretchDropsItsShareOfTheFrozenSet) {
+  struct Piece {
+    const char* stem;
+    int band_low;  // first mob level that drops it
+    double own;    // rate through band_low..band_low + 9
+  };
+  const Piece kPieces[] = {
+      {"frozen_top", 61, 0.00025},
+      {"frozen_bottom", 71, 0.00025},
+      {"frozen_hat", 81, 0.00025},
+      {"frozen_cape", 91, 0.0005},
+  };
+  constexpr double kTrickle = 0.0001;
+  constexpr int kTopOfTheStretch = 100;
+
+  int checked = 0;
+  for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
+    int level = entry.second.level();
+    std::map<std::string, double> rates;
+    for (const MobDrop& drop : entry.second.drops()) {
+      if (!drop.equip().empty()) {
+        rates[drop.equip()] = drop.per_kill();
+      }
+    }
+    for (const Piece& piece : kPieces) {
+      double expected = 0.0;
+      if (level >= piece.band_low && level <= kTopOfTheStretch) {
+        expected = level <= piece.band_low + 9 ? piece.own : kTrickle;
+      }
+      if (expected == 0.0) {
+        EXPECT_EQ(rates.count(piece.stem), 0u)
+            << entry.first << " (Lv" << level << ") drops " << piece.stem
+            << ", which belongs to mobs " << piece.band_low << " to "
+            << kTopOfTheStretch;
+        continue;
+      }
+      ++checked;
+      ASSERT_EQ(rates.count(piece.stem), 1u)
+          << entry.first << " (Lv" << level << ") does not drop " << piece.stem;
+      EXPECT_DOUBLE_EQ(rates[piece.stem], expected)
+          << entry.first << " drops " << piece.stem << " at the wrong rate";
+    }
+  }
+  EXPECT_GT(checked, 0) << "no mob in the catalog drops the set";
 }
 
 // An Etc drop is worth picking up only for what it sells for, and a price of

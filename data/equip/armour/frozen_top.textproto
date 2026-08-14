@@ -1,0 +1,17 @@
+name: "Frozen Top"
+required_level: 70
+base_stats {
+  str: 18
+  dex: 18
+  int: 18
+  luk: 18
+  attack: 1
+  magic_attack: 1
+  def: 228
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_TOP
+upgrade_slots: 7
+# Dropped, never stocked. A spare is worth a pretty penny, which is what
+# a lucky run pays out.
+sell_price: 50000
