@@ -92,21 +92,20 @@ TEST(MapDataTest, EveryDropNamesAnItem) {
 // a copy of itself: each piece drops from the ten mob levels below the level
 // it can be worn at, and thinly from everything above that. A mob added to the
 // 61-100 stretch without its share is a piece the player can no longer expect
-// to find. See the rates in the plan: 1/4,000 in a piece's own band, 1/10,000
-// above it, and double for the cape, which has one band and the fewest kills
-// in it.
+// to find. One rule for all four: 1/4,000 through a piece's own band, 1/10,000
+// from everything above it.
 TEST(MapDataTest, EveryMobInTheStretchDropsItsShareOfTheFrozenSet) {
   struct Piece {
     const char* stem;
     int band_low;  // first mob level that drops it
-    double own;    // rate through band_low..band_low + 9
   };
   const Piece kPieces[] = {
-      {"frozen_top", 61, 0.00025},
-      {"frozen_bottom", 71, 0.00025},
-      {"frozen_hat", 81, 0.00025},
-      {"frozen_cape", 91, 0.0005},
+      {"frozen_top", 61},
+      {"frozen_bottom", 71},
+      {"frozen_hat", 81},
+      {"frozen_cape", 91},
   };
+  constexpr double kInBand = 0.00025;
   constexpr double kTrickle = 0.0001;
   constexpr int kTopOfTheStretch = 100;
 
@@ -122,7 +121,7 @@ TEST(MapDataTest, EveryMobInTheStretchDropsItsShareOfTheFrozenSet) {
     for (const Piece& piece : kPieces) {
       double expected = 0.0;
       if (level >= piece.band_low && level <= kTopOfTheStretch) {
-        expected = level <= piece.band_low + 9 ? piece.own : kTrickle;
+        expected = level <= piece.band_low + 9 ? kInBand : kTrickle;
       }
       if (expected == 0.0) {
         EXPECT_EQ(rates.count(piece.stem), 0u)
