@@ -781,7 +781,7 @@ TEST_F(ShopPanelTest, AnEmptyShopSaysSo) {
   std::map<std::string, EquipPrototype> nothing;
   ShopPanel panel(c, nothing, items_);
   EXPECT_EQ(panel.selected_item(), nullptr);
-  EXPECT_NE(Render(panel).find("nothing for sale"), std::string::npos);
+  EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
 }
 
 // --- the Secondaries tab ---
@@ -831,7 +831,7 @@ TEST_F(ShopPanelTest, TheSecondariesShelfIsEmptyBeforeTheSecondJob) {
   CharacterInstance c = MakeCharacter(100000, 30, JOB_SWORDMAN);
   ShopPanel panel(c, equips_, items_);
   OpenShelf(panel, kShopSecondariesTab);
-  EXPECT_NE(Render(panel).find("nothing for sale"), std::string::npos);
+  EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
   EXPECT_EQ(panel.selected_item(), nullptr);
 }
 
@@ -932,11 +932,11 @@ TEST_F(ShopPanelTest, TheBuyBackShelfShowsBothKindsOfRow) {
             RowIndexWith(panel, "Gladius"));
 }
 
-TEST_F(ShopPanelTest, AnEmptyShelfSaysNothingWasSold) {
+TEST_F(ShopPanelTest, AnEmptyShelfSaysSo) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_, items_);
   OpenShelf(panel, kShopBuyBackTab);
-  EXPECT_NE(Render(panel).find("nothing sold yet"), std::string::npos);
+  EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
   EXPECT_EQ(panel.selected_buy_back(), nullptr);
 }
 

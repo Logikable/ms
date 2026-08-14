@@ -374,9 +374,9 @@ ftxui::Element ShopPanel::Render() const {
   }
   rows.push_back(ThemedSeparator());
   if (RowCount() == 0) {
-    rows.push_back(EmptyState(
-        tab_ == kShopBuyBackTab ? "nothing sold yet" : "nothing for sale",
-        /*gutter=*/2));
+    // The game's one word for a list with nothing in it. A shelf is empty for
+    // a reason the player can already see -- the tab they are standing on.
+    rows.push_back(EmptyState("empty", /*gutter=*/2));
   }
   for (ftxui::Element& row : RenderStock()) {
     rows.push_back(std::move(row));
