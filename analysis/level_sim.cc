@@ -466,15 +466,25 @@ void Run() {
     }
   }
 
+  // Third jobs only. A branch that stops at its 2nd job is scaffolding for the
+  // playtime table above, not a player: the advancement is there at 60 and
+  // nobody climbs to 100 without it. It matters here because the two answer
+  // differently -- a 2nd job finds the top two maps a coin flip against Sand
+  // Dwarf and stays put, where a 3rd job is paid a third more for moving up,
+  // and the cape only falls off the mobs up there.
   std::printf(
-      "\nThe level each Frozen piece first dropped at. A dash is a climb that "
-      "reached the cap without it.\n\n");
+      "\nThe level each Frozen piece first dropped at, for the branches that "
+      "take their 3rd advancement.\nA dash is a climb that reached the cap "
+      "without it.\n\n");
   std::printf("%-13s", "branch");
   for (const char* piece : kFrozenPieces) {
     std::printf("  %8s", piece + std::strlen("Frozen "));
   }
   std::printf("\n%s\n", std::string(13 + 10 * kNumFrozenPieces, '-').c_str());
   for (int i = 0; i < count; ++i) {
+    if (PathTo(kBranches[i]).size() < 3) {
+      continue;
+    }
     std::printf("%-13s", BranchName(kBranches[i]).c_str());
     for (int piece = 0; piece < kNumFrozenPieces; ++piece) {
       int level = climbs[i].frozen_level[piece];
