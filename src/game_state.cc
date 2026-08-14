@@ -289,14 +289,14 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
                      std::map<std::string, Mob> mobs_arg,
                      std::map<std::string, MapData> maps_arg,
                      std::map<std::string, Skill> skills_arg, GameMode mode,
-                     JobAdvancement test_job)
+                     JobAdvancement test_job, std::optional<unsigned int> seed)
     : equips(std::move(equips_arg)),
       scrolls(std::move(scrolls_arg)),
       items(std::move(items_arg)),
       mobs(std::move(mobs_arg)),
       maps(std::move(maps_arg)),
       skills(std::move(skills_arg)),
-      rng(std::random_device{}()),
+      rng(seed.has_value() ? *seed : std::random_device{}()),
       // Both modes start at level 1. The workbench used to start at 10,
       // standing at its first advancement, but the game reveals itself a
       // level at a time now and starting part way up would skip the half of

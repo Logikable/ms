@@ -74,6 +74,11 @@ ABSL_FLAG(bool, detail, false,
 namespace ms {
 namespace {
 
+// Fixes the random stream every run of this sim draws from. Rewards are
+// rolled, so an unseeded run would print a table that moved a little each
+// time and hide a real change under the noise.
+constexpr unsigned int kSimSeed = 20260813;
+
 // The levels the table reports a running total at.
 constexpr int kMilestones[] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
 constexpr int kNumMilestones = sizeof(kMilestones) / sizeof(kMilestones[0]);
@@ -294,7 +299,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
 
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay);
+                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, kSimSeed);
   std::vector<Job> path = PathTo(branch);
   int taken = 0;
 

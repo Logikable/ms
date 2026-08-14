@@ -53,6 +53,11 @@ ABSL_FLAG(std::string, levels, "10,20,30,40,50,60,70,80,90,100",
 namespace ms {
 namespace {
 
+// Fixes the random stream every run of this sim draws from. Rewards are
+// rolled, so an unseeded run would print a table that moved a little each
+// time and hide a real change under the noise.
+constexpr unsigned int kSimSeed = 20260813;
+
 // The step the sim is driven in. Small enough that no swing or mob hit is
 // rounded away, and the same order as the frontend's ticker.
 constexpr double kStepSeconds = 0.05;
@@ -146,7 +151,7 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
              const std::string& map, double seconds) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay);
+                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, kSimSeed);
   GrowTo(state, level, path);
   // Geared before the fight rather than during it: nothing here changes the
   // character once the run starts, so what a player would have bought by now

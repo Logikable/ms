@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <ctime>
 #include <map>
+#include <optional>
 #include <random>
 #include <string>
 
@@ -47,6 +48,11 @@ struct GameState {
   // `test_job` is --job, and applies to kTest alone: the advancement to start
   // at the top of, with that job's SP left unspent for the tester. Unset takes
   // the workbench's own job with its whole book already bought.
+  //
+  // `seed` fixes the random stream. The game leaves it unset and gets a
+  // different one every time; a sim or a test passes one so that a run it
+  // repeats pays what it paid last time -- rewards are rolled, and two runs of
+  // the same fight otherwise disagree.
   GameState(std::map<std::string, EquipPrototype> equips,
             std::map<std::string, Scroll> scrolls,
             std::map<std::string, ItemPrototype> items,
@@ -54,7 +60,8 @@ struct GameState {
             std::map<std::string, MapData> maps,
             std::map<std::string, Skill> skills = {},
             GameMode mode = GameMode::kPlay,
-            JobAdvancement test_job = JOB_ADVANCEMENT_UNSPECIFIED);
+            JobAdvancement test_job = JOB_ADVANCEMENT_UNSPECIFIED,
+            std::optional<unsigned int> seed = std::nullopt);
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 
@@ -74,12 +81,6 @@ struct GameState {
 
   // Name of the map being farmed (key into `maps`); empty means none.
   std::string current_map;
-  // Fractional drops banked per item name, carried across AdvanceCombat calls.
-  // Whole drops are deposited into the character's stackable storage.
-  std::map<std::string, double> drop_progress;
-  // Fractional meso banked across AdvanceCombat calls; whole meso is added to
-  // the character's balance.
-  double meso_progress = 0.0;
 
   // When this character was started, as seconds since the Unix epoch. Stamped
   // here rather than at save time so that both of the ways it can go

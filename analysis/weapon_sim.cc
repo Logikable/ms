@@ -50,6 +50,11 @@ ABSL_FLAG(bool, detail, false,
 namespace ms {
 namespace {
 
+// Fixes the random stream every run of this sim draws from. Rewards are
+// rolled, so an unseeded run would print a table that moved a little each
+// time and hide a real change under the noise.
+constexpr unsigned int kSimSeed = 20260813;
+
 // The map and mob the comparison is run on, invented here rather than taken
 // from the catalog: the real maps stop well below the trial cap, and a crowd
 // would let a wide skill answer a question about one weapon against one mob.
@@ -331,7 +336,7 @@ double OffClockDps(const CombatParams& params, const AttackOption& best,
 Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay);
+                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, kSimSeed);
   GrowTo(state, level, PathTo(build.job));
   Result result;
   if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {
