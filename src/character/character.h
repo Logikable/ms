@@ -335,6 +335,8 @@ class CharacterInstance {
   const std::map<std::string, EquipSet>& equip_sets() const {
     return equip_sets_;
   }
+  // Whether the item named is worn right now, by display name.
+  bool IsWearing(const std::string& item_name) const;
   // How many pieces of `set` are worn right now. What every tier is measured
   // against, and what the inspect screen greys its unearned tiers by.
   int PiecesWornOf(const EquipSet& set) const;

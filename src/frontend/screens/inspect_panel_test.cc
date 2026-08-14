@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
@@ -60,17 +61,26 @@ class InspectPanelTest : public PanelTest {
 
   // Whether the first cell of `label` came out dimmed. False when the label is
   // not on screen at all, so a test asserting dimness has to find it first.
+  //
+  // A row is searched as bytes and read as columns, which are not the same
+  // thing: a border or a star is one column and three bytes, so the byte a
+  // match starts at is nowhere near the column it is drawn in.
   static bool DimAt(InspectPanel& panel, const std::string& label) {
     ftxui::Screen screen = Draw(panel);
     for (int y = 0; y < screen.dimy(); ++y) {
       std::string row;
+      std::vector<int> column_of_byte;
       for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        row += cell.empty() ? " " : cell;
+        std::string cell = screen.PixelAt(x, y).character;
+        if (cell.empty()) {
+          cell = " ";
+        }
+        row += cell;
+        column_of_byte.insert(column_of_byte.end(), cell.size(), x);
       }
       size_t at = row.find(label);
       if (at != std::string::npos) {
-        return screen.PixelAt(static_cast<int>(at), y).dim;
+        return screen.PixelAt(column_of_byte[at], y).dim;
       }
     }
     return false;
@@ -490,6 +500,25 @@ TEST_F(InspectPanelTest, SplitsAPairWhoseHalvesDisagree) {
   EXPECT_EQ(rendered.find("All Stats"), std::string::npos);
   EXPECT_NE(rendered.find("STR +7"), std::string::npos);
   EXPECT_NE(rendered.find("LUK +4"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, DimsThePiecesNotBeingWorn) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&hat);
+  EXPECT_TRUE(DimAt(panel, "Hat        Frozen Hat"));
+  EXPECT_TRUE(DimAt(panel, "Cape       Frozen Cape"));
+  // A slot still waiting on its items can never be worn, so it is always dim.
+  EXPECT_TRUE(DimAt(panel, "Weapon     Choose 1 Frozen Weapon"));
+
+  // The item being inspected does not count -- only what is on the character.
+  Wear(c_, "Frozen Hat", EQUIP_SLOT_HAT);
+  EXPECT_FALSE(DimAt(panel, "Hat        Frozen Hat"));
+  EXPECT_TRUE(DimAt(panel, "Cape       Frozen Cape"));
 }
 
 TEST_F(InspectPanelTest, DimsTheTiersTheCharacterHasNotEarned) {

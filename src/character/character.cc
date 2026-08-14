@@ -814,18 +814,24 @@ void CharacterInstance::UseEquipSets(std::map<std::string, EquipSet> sets) {
   RecomputeSetBonuses();
 }
 
-int CharacterInstance::PiecesWornOf(const EquipSet& set) const {
-  // Counted by display name, the way a save names what it holds: the character
-  // carries prototypes, not the catalog keys they were loaded under. A member
-  // with no name is a family nobody has an item from yet, and counts nothing.
-  int worn = 0;
+bool CharacterInstance::IsWearing(const std::string& item_name) const {
+  // By display name, the way a save names what it holds: the character carries
+  // prototypes, not the catalog keys they were loaded under.
   for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
-    for (const EquipSetMember& member : set.members()) {
-      if (!member.name().empty() &&
-          kv.second.prototype().name() == member.name()) {
-        ++worn;
-        break;
-      }
+    if (kv.second.prototype().name() == item_name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+int CharacterInstance::PiecesWornOf(const EquipSet& set) const {
+  int worn = 0;
+  for (const EquipSetMember& member : set.members()) {
+    // A member with no name is a family nobody has an item from yet, and
+    // counts nothing.
+    if (!member.name().empty() && IsWearing(member.name())) {
+      ++worn;
     }
   }
   return worn;

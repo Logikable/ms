@@ -224,8 +224,14 @@ ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
     // toward no tier, so the set reads as unfinished rather than as broken.
     std::string fills =
         member.name().empty() ? "Choose 1 " + member.family() : member.name();
-    rows.push_back(ftxui::text(
-        " " + PadRight(FormatSlot(member.slot()), kSetSlotWidth) + fills));
+    ftxui::Element row = ftxui::text(
+        " " + PadRight(FormatSlot(member.slot()), kSetSlotWidth) + fills);
+    // Dimmed unless it is on the character right now -- the same question the
+    // tiers below are asking, one piece at a time.
+    if (member.name().empty() || !character_->IsWearing(member.name())) {
+      row = row | ftxui::dim;
+    }
+    rows.push_back(row);
   }
   rows.push_back(ThemedSeparator());
   for (const EquipSetTier& tier : set.tiers()) {
