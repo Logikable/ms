@@ -21,23 +21,43 @@ namespace {
 // Column widths. Name and level match the bag's equip tab, so the two lists
 // line up and the same item reads the same way in both. The type column takes
 // the longest name a weapon has ("Two-Handed Sword"), and the cost column a
-// five-figure price and its coin.
+// seven-figure price and its coin -- room the current catalog is nowhere near,
+// so a dearer tier costs no layout.
 constexpr int kNameWidth = 26;
 constexpr int kTypeWidth = 16;
 constexpr int kLevelWidth = 7;
 constexpr int kCostWidth = 12;
+
+// Screen columns the coin and its space draw in. It is four bytes long, which
+// is what PadLeft would count, so the cost cell is aligned by hand instead --
+// see CoinCell.
+constexpr int kCoinWidth = 3;
 
 // Stock rows on screen at once. Deep enough to hold most of a warrior's list --
 // the longest any class has -- and short enough that the window still clears
 // the bottom of a modest terminal.
 constexpr int kVisibleRows = 15;
 
+// Every row and header ends one column clear of the border, and the scroll bar
+// takes the column after that whether or not it is drawn. Held exactly, so the
+// window is one width: it is drawn centred, and a price one digit longer than
+// the last would otherwise slide the whole shop sideways.
+constexpr int kContentWidth =
+    2 + kNameWidth + 2 + kTypeWidth + 2 + kLevelWidth + kCostWidth + 1 + 1;
+
+// A "🪙 <text>" cell, right-aligned in kCostWidth screen columns. Aligned in
+// columns rather than in bytes, so the cell is the same width whatever the
+// number in it.
+std::string CoinCell(const std::string& text) {
+  int columns = kCoinWidth + static_cast<int>(text.size());
+  return std::string(std::max(0, kCostWidth - columns), ' ') + "🪙 " + text;
+}
+
 // Two leading spaces match the "  " / "> " cursor on the rows below.
 ftxui::Element ColumnHeader() {
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
                      PadRight("Type", kTypeWidth) + "  " +
-                     PadRight("Level", kLevelWidth) +
-                     PadLeft("🪙 Cost", kCostWidth));
+                     PadRight("Level", kLevelWidth) + CoinCell("Cost"));
 }
 
 // The Etc shelf has no type and no level to show, so the two columns between
@@ -46,7 +66,7 @@ ftxui::Element ColumnHeader() {
 ftxui::Element EtcColumnHeader() {
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
                      PadRight("Owned", kTypeWidth + 2 + kLevelWidth) +
-                     PadLeft("🪙 Cost", kCostWidth));
+                     CoinCell("Cost"));
 }
 
 // The buy-back shelf holds both kinds at once, so it shows what only one of
@@ -56,7 +76,7 @@ ftxui::Element EtcColumnHeader() {
 ftxui::Element BuyBackColumnHeader() {
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
                      PadRight("Qty", kTypeWidth + 2 + kLevelWidth) +
-                     PadLeft("🪙 Cost", kCostWidth));
+                     CoinCell("Cost"));
 }
 
 // The level cell, e.g. "Lv30  ". An item with no level requirement reads as
@@ -273,7 +293,7 @@ ftxui::Element ShopPanel::RenderTabBar() const {
 ftxui::Element ShopPanel::RenderEtcRow(const ItemPrototype& item,
                                        const std::string& cursor) const {
   ftxui::Element cost =
-      ftxui::text(PadLeft(FormatMeso(item.shop_price()), kCostWidth));
+      ftxui::text(CoinCell(FormatWithCommas(item.shop_price())));
   if (item.shop_price() > character_.meso()) {
     cost = std::move(cost) | ftxui::color(kRed);
   }
@@ -295,7 +315,7 @@ ftxui::Element ShopPanel::RenderEquipRow(const EquipPrototype& proto,
     level = std::move(level) | ftxui::color(kRed);
   }
   ftxui::Element cost =
-      ftxui::text(PadLeft(FormatMeso(proto.shop_price()), kCostWidth));
+      ftxui::text(CoinCell(FormatWithCommas(proto.shop_price())));
   if (proto.shop_price() > character_.meso()) {
     cost = std::move(cost) | ftxui::color(kRed);
   }
@@ -326,7 +346,7 @@ ftxui::Element ShopPanel::RenderBuyBackRow(const BuyBackEntry& entry,
     qty = FormatWithCommas(entry.stack().count());
   }
   ftxui::Element cost =
-      ftxui::text(PadLeft(FormatMeso(entry.unit_price()), kCostWidth));
+      ftxui::text(CoinCell(FormatWithCommas(entry.unit_price())));
   if (entry.unit_price() > character_.meso()) {
     cost = std::move(cost) | ftxui::color(kRed);
   }
@@ -382,7 +402,12 @@ ftxui::Element ShopPanel::Render() const {
   }
   rows.push_back(ThemedSeparator());
   rows.push_back(RenderStock());
-  ftxui::Element window = ThemedWindow(" Shop ", ftxui::vbox(std::move(rows)));
+  // Held at one width for the same reason it is held at one height: a shelf
+  // whose dearest item has a digit more than the last would otherwise widen
+  // the window, and a centred window that changes width moves.
+  ftxui::Element body = ftxui::vbox(std::move(rows)) |
+                        ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
+  ftxui::Element window = ThemedWindow(" Shop ", std::move(body));
   if (!menu_open_) {
     return window;
   }

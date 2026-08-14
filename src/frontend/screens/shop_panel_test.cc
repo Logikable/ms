@@ -83,6 +83,13 @@ class ShopPanelTest : public testing::Test {
     return screen.dimy();
   }
 
+  int RenderWidth(const ShopPanel& panel) {
+    ftxui::Element element = panel.Render();
+    ftxui::Screen screen = ftxui::Screen::Create(
+        ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
+    return screen.dimx();
+  }
+
   // The panel drawn the way the game shows it -- centred on a terminal of the
   // given size -- with every row of that terminal returned, not just the ones
   // the panel covers.
@@ -689,6 +696,51 @@ TEST_F(ShopPanelTest, ResetScrollsBackToTheTop) {
   }
   panel.Reset();
   EXPECT_NE(Render(panel).find("> Item 00"), std::string::npos);
+}
+
+// One width, on the same grounds and for a longer list of reasons: the tab
+// the player is on, the price of the dearest thing on it, and how much meso
+// they are carrying all used to set it. A centred window that changes width
+// slides sideways under whoever is reading it.
+TEST_F(ShopPanelTest, ThePanelIsOneWidthWhateverItHolds) {
+  CharacterInstance poor = MakeCharacter(500, /*level=*/60, JOB_FIGHTER,
+                                         /*stage=*/2);
+  CharacterInstance rich = MakeCharacter(1000000000, /*level=*/60, JOB_FIGHTER,
+                                         /*stage=*/2);
+  ShopPanel panel(poor, equips_, items_);
+  int width = RenderWidth(panel);
+  for (int tab = 0; tab < kNumShopTabs; ++tab) {
+    ShopPanel stepped(poor, equips_, items_);
+    OpenShelf(stepped, static_cast<ShopTab>(tab));
+    EXPECT_EQ(RenderWidth(stepped), width) << "on tab " << tab;
+  }
+  ShopPanel wealthy(rich, equips_, items_);
+  EXPECT_EQ(RenderWidth(wealthy), width) << "a big meso counter widened it";
+
+  // A price with three digits more than anything the catalog stocks today.
+  std::map<std::string, EquipPrototype> dear = equips_;
+  dear["dear"] = MakeItem("Fafnir Mistilteinn", 100, 9999999);
+  ShopPanel expensive(rich, dear, items_);
+  EXPECT_EQ(RenderWidth(expensive), width) << "a dear item widened it";
+  EXPECT_NE(Render(expensive).find("9,999,999"), std::string::npos)
+      << "and its price is still shown in full";
+  // Both prices end in the same column. Each row holds exactly one coin, so
+  // the bytes it costs are the same on both and the offsets compare.
+  std::vector<std::string> rows = ScreenRows(expensive);
+  int dear_row = -1;
+  int cheap_row = -1;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    if (rows[i].find("9,999,999") != std::string::npos) {
+      dear_row = i;
+    } else if (rows[i].find("5,000") != std::string::npos) {
+      cheap_row = i;
+    }
+  }
+  ASSERT_GE(dear_row, 0);
+  ASSERT_GE(cheap_row, 0);
+  EXPECT_EQ(rows[dear_row].find_last_of("0123456789"),
+            rows[cheap_row].find_last_of("0123456789"))
+      << "the prices are not aligned on the same column";
 }
 
 // The panel is one height whatever the tab holds -- it is drawn centred, so a
