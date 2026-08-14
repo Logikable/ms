@@ -17,6 +17,7 @@
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -108,10 +109,16 @@ int main(int argc, char** argv) {
       ms::LoadTextProtoMap<ms::MapData>(ms::EmbeddedMaps());
   std::map<std::string, ms::Skill> skills =
       ms::LoadTextProtoMap<ms::Skill>(ms::EmbeddedSkills());
+  std::map<std::string, ms::EquipSet> sets =
+      ms::LoadTextProtoMap<ms::EquipSet>(ms::EmbeddedSets());
 
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
                       std::move(mobs), std::move(maps), std::move(skills), mode,
                       test_job);
+  // Handed over after the state is built and before anything is loaded into
+  // it: what a set pays is worked out from what is worn, and a save restores
+  // the worn map through the same recompute.
+  state.character.UseEquipSets(std::move(sets));
 
   // The workbench neither reads nor writes a save: it starts from its known
   // state every run, and must never be able to overwrite a real character.

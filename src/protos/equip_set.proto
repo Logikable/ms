@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package ms;
+
+import "src/protos/skill.proto";
+
+// What wearing several pieces of one set is worth. Each tier is a SkillEffect
+// because a set bonus grants exactly what a passive skill grants -- stats,
+// attack, a share of the HP pool, damage, defense ignored -- and everything
+// that reads those levers should not have to learn a second shape for them.
+message EquipSetTier {
+  // Pieces of the set that must be worn for this tier to pay.
+  int32 pieces = 1;
+  SkillEffect effect = 2;
+}
+
+// A family of equipment that pays for being worn together. Loaded from
+// data/sets textprotos at startup.
+message EquipSet {
+  string name = 1;
+  // Display names of the pieces, as their data files write them -- the way a
+  // save names what it holds, because the character carries prototypes rather
+  // than the catalog keys they were loaded under. One piece per slot, so no
+  // slot can count twice.
+  repeated string members = 2;
+  // Tiers are cumulative: five pieces pay the three, four and five tiers
+  // together. Written that way so a tier states what it adds rather than
+  // restating everything below it.
+  repeated EquipSetTier tiers = 3;
+}

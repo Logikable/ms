@@ -299,6 +299,12 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
       AddPassive(skill, level, weapon, totals);
     }
   }
+  // A set bonus grants what a passive grants, so it folds in through the same
+  // door. It carries no level and no per-level step: a tier is worth what it
+  // says however far the character has come.
+  for (const SkillEffect& bonus : character.set_bonuses()) {
+    AddEffect(bonus, SkillEffect::default_instance(), 1, totals);
+  }
   FoldMesoExplosion(totals);
   FoldComboOrbs(totals);
   return totals;

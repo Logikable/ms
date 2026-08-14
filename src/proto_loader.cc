@@ -8,6 +8,7 @@
 #include "absl/log/log.h"
 #include "google/protobuf/text_format.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -78,6 +79,8 @@ template std::map<std::string, ItemPrototype> LoadTextProtoDir<ItemPrototype>(
     const std::string&);
 template std::map<std::string, Skill> LoadTextProtoDir<Skill>(
     const std::string&);
+template std::map<std::string, EquipSet> LoadTextProtoDir<EquipSet>(
+    const std::string&);
 
 template std::map<std::string, EquipPrototype> LoadTextProtoMap<EquipPrototype>(
     const std::map<std::string, std::string>&);
@@ -90,6 +93,8 @@ template std::map<std::string, MapData> LoadTextProtoMap<MapData>(
 template std::map<std::string, ItemPrototype> LoadTextProtoMap<ItemPrototype>(
     const std::map<std::string, std::string>&);
 template std::map<std::string, Skill> LoadTextProtoMap<Skill>(
+    const std::map<std::string, std::string>&);
+template std::map<std::string, EquipSet> LoadTextProtoMap<EquipSet>(
     const std::map<std::string, std::string>&);
 
 }  // namespace ms

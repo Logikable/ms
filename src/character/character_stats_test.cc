@@ -223,6 +223,108 @@ TEST_F(DerivedStatsTest, SumsAllocatedAndEquippedWithoutSkills) {
   EXPECT_DOUBLE_EQ(stats.damage_taken_pct, 0.0);
 }
 
+// --- set bonuses ---
+
+// A four-piece set, tiered at three and four, with levers on both sides of the
+// pipeline: flat stats and attack, and a percentage over the HP pool.
+std::map<std::string, EquipSet> FrozenSet() {
+  EquipSet set;
+  set.set_name("Frozen Set");
+  for (const char* piece : {"Top", "Bottom", "Hat", "Cape"}) {
+    set.add_members(std::string("Frozen ") + piece);
+  }
+  EquipSetTier* three = set.add_tiers();
+  three->set_pieces(3);
+  three->mutable_effect()->set_str(7);
+  three->mutable_effect()->set_attack(5);
+  EquipSetTier* four = set.add_tiers();
+  four->set_pieces(4);
+  four->mutable_effect()->set_attack(9);
+  four->mutable_effect()->set_max_hp_pct(0.20);
+  return {{"frozen", set}};
+}
+
+// Wears the `index`-th piece of the set, in the slot that piece belongs to.
+void WearFrozenPiece(CharacterInstance& character, int index) {
+  const EquipSlot kSlots[] = {EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM, EQUIP_SLOT_HAT,
+                              EQUIP_SLOT_CAPE};
+  const char* kNames[] = {"Frozen Top", "Frozen Bottom", "Frozen Hat",
+                          "Frozen Cape"};
+  EquipPrototype piece;
+  piece.set_name(kNames[index]);
+  piece.set_equip_slot(kSlots[index]);
+  character.PickUp(std::make_unique<EquipInstance>(piece));
+  character.Equip(character.inventory().size() - 1);
+}
+
+// Wears the first `count` pieces of the set, each in its own slot.
+void WearFrozen(CharacterInstance& character, int count) {
+  for (int i = 0; i < count; ++i) {
+    WearFrozenPiece(character, i);
+  }
+}
+
+TEST_F(DerivedStatsTest, ASetPaysNothingUntilItsFirstTier) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  c.UseEquipSets(FrozenSet());
+  WearFrozen(c, 2);
+
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_EQ(stats.skill_stats.str(), 0);
+  EXPECT_EQ(stats.skill_stats.attack(), 0);
+  EXPECT_EQ(stats.max_hp, 1000);
+}
+
+TEST_F(DerivedStatsTest, TheTiersOfASetAddUp) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  c.UseEquipSets(FrozenSet());
+
+  WearFrozen(c, 3);
+  DerivedStats three = DerivedStatsFor(c, {});
+  EXPECT_EQ(three.skill_stats.str(), 7);
+  EXPECT_EQ(three.skill_stats.attack(), 5);
+  EXPECT_EQ(three.max_hp, 1000) << "the HP tier is not reached yet";
+
+  WearFrozenPiece(c, 3);
+  DerivedStats four = DerivedStatsFor(c, {});
+  EXPECT_EQ(four.skill_stats.str(), 7) << "the three-piece tier still pays";
+  EXPECT_EQ(four.skill_stats.attack(), 14) << "5 and 9 together";
+  EXPECT_EQ(four.max_hp, 1200);
+}
+
+// Taking a piece off takes the tier with it -- the bonus follows what is worn,
+// not what was once worn.
+TEST_F(DerivedStatsTest, StrippingAPieceEndsTheTier) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  c.UseEquipSets(FrozenSet());
+  WearFrozen(c, 4);
+  ASSERT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 14);
+
+  c.Unequip(EQUIP_SLOT_CAPE);
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 5);
+  c.Unequip(EQUIP_SLOT_HAT);
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 0);
+}
+
+// Gear outside the set is gear outside the set, however much of it is worn.
+TEST_F(DerivedStatsTest, OtherGearDoesNotCountTowardASet) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  c.UseEquipSets(FrozenSet());
+  WearFrozen(c, 2);
+  EquipArmor(c, 100, 30);
+
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.str(), 0);
+}
+
+// A character who was never told about the sets earns nothing from them, which
+// is what every test and sim that does not care about them relies on.
+TEST_F(DerivedStatsTest, NoCatalogNoBonus) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  WearFrozen(c, 4);
+
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 0);
+}
+
 TEST_F(DerivedStatsTest, PercentMpAppliesAfterEveryFlatSource) {
   CharacterInstance c = MakeCharacter(rng_, 15, 0, /*mp=*/50);
   Skill boost = MpBoost();

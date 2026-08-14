@@ -20,6 +20,7 @@
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -318,6 +319,19 @@ class CharacterInstance {
   // Skill.requires_secondary, which waits on it.
   bool has_secondary() const;
 
+  // Teaches the character which sets their gear belongs to. Data rather than
+  // state: what is earned comes from what is worn, so this is handed over once
+  // at startup and never saved. A caller with no sets in play need never call
+  // it, and the character then earns nothing from any of them.
+  void UseEquipSets(std::map<std::string, EquipSet> sets);
+  // Every set tier the worn pieces have earned, in no particular order. Tiers
+  // are cumulative, so four pieces of a set answer with both its three and its
+  // four. Read by DerivedStatsFor, which folds them in beside the passives --
+  // a set bonus grants what a passive grants.
+  const std::vector<SkillEffect>& set_bonuses() const {
+    return set_bonuses_;
+  }
+
  private:
   // Puts a sale on the buy-back shelf, newest first, and drops the oldest row
   // once the shelf is full.
@@ -330,8 +344,11 @@ class CharacterInstance {
   bool BuyBackStack(int index, const BuyBackEntry& entry, int count,
                     const std::map<std::string, ItemPrototype>& items);
 
-  // Recomputes equip_stats_ from the current equipped map.
+  // Recomputes equip_stats_ and set_bonuses_ from the current equipped map.
   void RecomputeEquipStats();
+  // Rebuilds set_bonuses_: every tier of every known set that the worn pieces
+  // reach. Cumulative, so a four-piece set contributes both its tiers.
+  void RecomputeSetBonuses();
   // The stack vector backing `category`. USE and ETC each have their own;
   // anything else falls back to the Etc stacks (fail safe).
   std::vector<StackableItem>& StacksFor(ItemCategory category);
@@ -344,6 +361,8 @@ class CharacterInstance {
   std::vector<StackableItem> use_items_;
   std::vector<StackableItem> etc_items_;
   EquipStats equip_stats_;
+  std::map<std::string, EquipSet> equip_sets_;
+  std::vector<SkillEffect> set_bonuses_;
 };
 
 }  // namespace ms

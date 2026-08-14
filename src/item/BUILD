@@ -119,7 +119,10 @@ cc_test(
 cc_test(
     name = "equip_data_test",
     srcs = ["equip_data_test.cc"],
-    data = ["//data/equip:all"],
+    data = [
+        "//data/equip:all",
+        "//data/sets:all",
+    ],
     deps = [
         ":item",
         "//src:proto_loader",
@@ -128,6 +131,7 @@ cc_test(
         "//src/frontend/widgets:panel_util",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:equip_set_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",
     ],

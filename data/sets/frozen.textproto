@@ -1,0 +1,48 @@
+name: "Frozen Set"
+members: "Frozen Top"
+members: "Frozen Bottom"
+members: "Frozen Hat"
+members: "Frozen Cape"
+# The weapon and the secondary are not written yet: no monster in the game is
+# above level 98, and a weapon here belongs to one class rather than to all of
+# them. The last two tiers are what they will pay when those arrive.
+tiers {
+  pieces: 3
+  effect {
+    str: 7
+    dex: 7
+    int: 7
+    luk: 7
+    attack: 5
+    magic_attack: 5
+  }
+}
+tiers {
+  pieces: 4
+  effect {
+    max_hp_pct: 0.20
+    max_mp_pct: 0.20
+    attack: 9
+    magic_attack: 9
+  }
+}
+tiers {
+  pieces: 5
+  effect {
+    str: 8
+    dex: 8
+    int: 8
+    luk: 8
+    attack: 11
+    magic_attack: 11
+    damage_pct: 0.09
+  }
+}
+tiers {
+  pieces: 6
+  effect {
+    attack: 15
+    magic_attack: 15
+    ied_pct: 0.30
+  }
+}

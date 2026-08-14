@@ -809,7 +809,39 @@ bool CharacterInstance::AttackCounts(const EquipPrototype& proto) const {
   return weapon_type() == EQUIP_TYPE_CLAW;
 }
 
+void CharacterInstance::UseEquipSets(std::map<std::string, EquipSet> sets) {
+  equip_sets_ = std::move(sets);
+  RecomputeSetBonuses();
+}
+
+void CharacterInstance::RecomputeSetBonuses() {
+  set_bonuses_.clear();
+  for (const std::pair<const std::string, EquipSet>& entry : equip_sets_) {
+    const EquipSet& set = entry.second;
+    // Counted by display name, the way a save names what it holds: the
+    // character carries prototypes, not the catalog keys they were loaded
+    // under. One piece per slot, so no slot can count twice.
+    int worn = 0;
+    for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
+      for (const std::string& member : set.members()) {
+        if (kv.second.prototype().name() == member) {
+          ++worn;
+          break;
+        }
+      }
+    }
+    for (const EquipSetTier& tier : set.tiers()) {
+      if (worn >= tier.pieces()) {
+        set_bonuses_.push_back(tier.effect());
+      }
+    }
+  }
+}
+
 void CharacterInstance::RecomputeEquipStats() {
+  // The set bonus is worked out from the same map and changes with it, so the
+  // two are recomputed together and nothing can update one without the other.
+  RecomputeSetBonuses();
   // An attack that doesn't count is dropped here -- once, at the one place
   // equipment becomes stats, so that the damage chain, combat power and the
   // stat panel cannot come to different conclusions about the same stars.

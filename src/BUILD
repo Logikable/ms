@@ -13,6 +13,7 @@ embedded_data(
         "//data/maps:all": "EmbeddedMaps",
         "//data/mobs:all": "EmbeddedMobs",
         "//data/scrolls:all": "EmbeddedScrolls",
+        "//data/sets:all": "EmbeddedSets",
         "//data/skills:all": "EmbeddedSkills",
     },
 )
@@ -23,6 +24,7 @@ cc_library(
     hdrs = ["proto_loader.h"],
     deps = [
         "//src/protos:equip_proto_cc",
+        "//src/protos:equip_set_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
@@ -87,6 +89,7 @@ _MAIN_DEPS = [
     "//src/item:equip_instance",
     "//src/protos:character_proto_cc",
     "//src/protos:equip_proto_cc",
+    "//src/protos:equip_set_proto_cc",
     "//src/protos:item_proto_cc",
     "//src/protos:map_proto_cc",
     "//src/protos:mob_proto_cc",

@@ -18,6 +18,7 @@
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace ms {
@@ -237,6 +238,51 @@ TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
         << entry.first << " does not sell for a tenth of its price";
   }
   EXPECT_GT(seen, 0) << "no stocked equips in the catalog to check";
+}
+
+std::map<std::string, EquipSet> LoadSets() {
+  std::string err;
+  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
+  EXPECT_NE(runfiles, nullptr) << err;
+  return LoadTextProtoDir<EquipSet>(runfiles->Rlocation("ms/data/sets"));
+}
+
+// A set names its pieces by display name, and a name that matches nothing is a
+// piece that can never be worn toward the bonus -- silently, because counting
+// what is worn cannot tell a misspelling from an item nobody has found yet.
+TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  int checked = 0;
+  for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
+    EXPECT_FALSE(entry.second.name().empty()) << entry.first << " is unnamed";
+    for (const std::string& member : entry.second.members()) {
+      ++checked;
+      bool found = false;
+      for (const std::pair<const std::string, EquipPrototype>& equip : equips) {
+        if (equip.second.name() == member) {
+          found = true;
+          break;
+        }
+      }
+      EXPECT_TRUE(found) << entry.first << " counts \"" << member
+                         << "\", which no equip file defines";
+    }
+  }
+  EXPECT_GT(checked, 0) << "no sets in the catalog to check";
+}
+
+// Tiers are read as "at least this many pieces", so one asking for more pieces
+// than the set has is a bonus nobody can reach, and one asking for none pays
+// everybody. Both are data mistakes rather than states the model handles.
+TEST(EquipDataTest, EverySetTierIsReachable) {
+  for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
+    for (const EquipSetTier& tier : entry.second.tiers()) {
+      EXPECT_GT(tier.pieces(), 1)
+          << entry.first << " pays a tier for wearing one piece";
+      EXPECT_LE(tier.pieces(), 6)
+          << entry.first << " has a tier past the six a set can hold";
+    }
+  }
 }
 
 // A slot or a type added without a display name shows up as a blank column in
