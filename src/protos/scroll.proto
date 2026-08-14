@@ -33,6 +33,17 @@ enum ScrollType {
   SCROLL_TYPE_DEF = 8;
 }
 
+// The kind of equipment a scroll goes on. The job categories cannot say this:
+// a universal hat lists the same category every weapon scroll applies to, so
+// without a target every weapon scroll is offered for it. TargetForSlot reads
+// the item's side of the question.
+enum ScrollTarget {
+  // Any item. What a clean slate is: it restores a slot on whatever holds one.
+  SCROLL_TARGET_UNSPECIFIED = 0;
+  SCROLL_TARGET_WEAPON = 1;
+  SCROLL_TARGET_ARMOUR = 2;
+}
+
 // One Scroll represents a single, fully-specified scroll option,
 // e.g. "Spell Trace 100% STR, Warrior, Tier 1".
 message Scroll {
@@ -48,4 +59,5 @@ message Scroll {
   // band; a tier here spans several of those, so each tier takes the band its
   // own equipment actually sits in -- level 60 for T1, 100 for T2, 150 for T3.
   int32 trace_cost = 8;
+  ScrollTarget target = 9;
 }

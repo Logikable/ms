@@ -11,3 +11,4 @@ applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
 applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 scroll_type: SCROLL_TYPE_DEX
 trace_cost: 480
+target: SCROLL_TARGET_WEAPON

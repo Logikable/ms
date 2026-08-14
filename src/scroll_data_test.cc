@@ -41,12 +41,29 @@ TEST_F(ScrollDataTest, EveryScrollIsTieredAndPriced) {
   }
 }
 
+// A scroll that names no kind of equipment is offered for none of it, which
+// is a scroll nobody can ever buy. Only a clean slate goes on anything.
+TEST_F(ScrollDataTest, EveryScrollButACleanSlateNamesWhatItGoesOn) {
+  for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
+    if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+      EXPECT_EQ(entry.second.target(), SCROLL_TARGET_UNSPECIFIED)
+          << entry.first << " is a clean slate held to one kind of item";
+      continue;
+    }
+    EXPECT_NE(entry.second.target(), SCROLL_TARGET_UNSPECIFIED)
+        << entry.first << " goes on nothing";
+  }
+}
+
 // Within one tier a scroll that lands less often has to cost more, or the
 // player would take the safe one every time and the risky ones are decoration.
+// Within one target, too: armour is cheaper to scroll than a weapon at every
+// rate, so the two families are only comparable against themselves.
 TEST_F(ScrollDataTest, LongerOddsCostMoreWithinATier) {
   for (const std::pair<const std::string, Scroll>& a : scrolls_) {
     for (const std::pair<const std::string, Scroll>& b : scrolls_) {
       if (a.second.tier() != b.second.tier() ||
+          a.second.target() != b.second.target() ||
           a.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE ||
           b.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
         continue;

@@ -73,6 +73,7 @@ ScrollPanel::ScrollPanel(const CharacterInstance& character,
 bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
   target_name_ = proto.name();
   ScrollTier item_tier = TierForLevel(proto.required_level());
+  ScrollTarget item_target = TargetForSlot(proto.equip_slot());
   std::set<int> item_cats(proto.equip_job_categories().begin(),
                           proto.equip_job_categories().end());
   std::vector<const Scroll*> filtered;
@@ -85,6 +86,12 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
     // the job check -- but not the tier one, which is what it costs by.
     if (s.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
       filtered.push_back(&s);
+      continue;
+    }
+    // A weapon scroll on a hat is not a thing GMS sells. Both sides have to
+    // name the same kind of equipment, so an item in a slot that names none
+    // is offered nothing.
+    if (s.target() != item_target) {
       continue;
     }
     for (int scroll_cat : s.applicable_job_categories()) {

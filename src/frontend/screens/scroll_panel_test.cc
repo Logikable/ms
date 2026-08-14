@@ -30,6 +30,7 @@ class ScrollPanelTest : public PanelTest {
     a.set_scroll_type(SCROLL_TYPE_ATT);
     a.mutable_stats()->set_attack(5);
     a.set_trace_cost(20);
+    a.set_target(SCROLL_TARGET_WEAPON);
     a.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
     Scroll& z = scrolls["ZZZ Scroll"];
     z.set_name("ZZZ Scroll");
@@ -37,6 +38,7 @@ class ScrollPanelTest : public PanelTest {
     z.set_tier(SCROLL_TIER_2);
     z.set_scroll_type(SCROLL_TYPE_DEX);
     z.set_trace_cost(300);
+    z.set_target(SCROLL_TARGET_WEAPON);
     z.add_applicable_job_categories(EQUIP_JOB_CATEGORY_BOWMAN);
     return scrolls;
   }
@@ -139,6 +141,7 @@ TEST_F(ScrollPanelTest, SetFilterResetsSelectionToZero) {
 TEST_F(ScrollPanelTest, SetFilterForPrototypeReturnsTrueForMatch) {
   EquipPrototype proto;
   proto.set_required_level(1);  // tier 1
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   EXPECT_TRUE(panel_.SetFilterForPrototype(proto));
   Render(panel_);
@@ -148,6 +151,7 @@ TEST_F(ScrollPanelTest, SetFilterForPrototypeReturnsTrueForMatch) {
 TEST_F(ScrollPanelTest, SetFilterRejectsAnItemWithNoScrolls) {
   EquipPrototype proto;
   proto.set_required_level(1);  // tier 1
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   proto.add_equip_job_categories(
       EQUIP_JOB_CATEGORY_PIRATE);  // no pirate scrolls
   EXPECT_FALSE(panel_.SetFilterForPrototype(proto));
@@ -158,8 +162,35 @@ TEST_F(ScrollPanelTest, SetFilterRejectsAnItemWithNoScrolls) {
 TEST_F(ScrollPanelTest, SetFilterRejectsATierMismatch) {
   EquipPrototype proto;
   proto.set_required_level(75);  // tier 2; only ZZZ is tier 2 but it's bowman
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   EXPECT_FALSE(panel_.SetFilterForPrototype(proto));
+}
+
+// A hat lists the same job category a weapon does, so the categories alone
+// would hand it every weapon scroll in the catalog.
+TEST_F(ScrollPanelTest, SetFilterRejectsAWeaponScrollForArmour) {
+  EquipPrototype hat;
+  hat.set_required_level(1);  // tier 1, where AAA lives
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  EXPECT_FALSE(panel_.SetFilterForPrototype(hat));
+
+  scrolls_["AAA Scroll"].set_target(SCROLL_TARGET_ARMOUR);
+  ScrollPanel armour_panel(c_, scrolls_);
+  EXPECT_TRUE(armour_panel.SetFilterForPrototype(hat));
+}
+
+// The one scroll that asks nothing of the item but its tier.
+TEST_F(ScrollPanelTest, ACleanSlateIsOfferedForEveryKindOfItem) {
+  scrolls_["AAA Scroll"].set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
+  scrolls_["AAA Scroll"].set_target(SCROLL_TARGET_UNSPECIFIED);
+  ScrollPanel panel(c_, scrolls_);
+
+  EquipPrototype hat;
+  hat.set_required_level(1);
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  EXPECT_TRUE(panel.SetFilterForPrototype(hat));
 }
 
 TEST_F(ScrollPanelTest, SetFilterResetsTheSelection) {
@@ -168,6 +199,7 @@ TEST_F(ScrollPanelTest, SetFilterResetsTheSelection) {
 
   EquipPrototype proto;
   proto.set_required_level(1);
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   panel_.SetFilterForPrototype(proto);
   EXPECT_EQ(panel_.selected(), 0);
@@ -309,6 +341,7 @@ TEST_F(ScrollPanelTest, TheConfirmWindowNamesTheItemBeingScrolled) {
   EquipPrototype sword;
   sword.set_name("Long Sword");
   sword.set_required_level(10);
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   ASSERT_TRUE(panel_.SetFilterForPrototype(sword));
   panel_.OnEvent(ftxui::Event::Return);

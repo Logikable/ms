@@ -56,6 +56,23 @@ ScrollTier TierForLevel(int required_level) {
   return SCROLL_TIER_1;
 }
 
+ScrollTarget TargetForSlot(EquipSlot slot) {
+  switch (slot) {
+    case EQUIP_SLOT_PRIMARY_WEAPON:
+      return SCROLL_TARGET_WEAPON;
+    case EQUIP_SLOT_HAT:
+    case EQUIP_SLOT_TOP:
+    case EQUIP_SLOT_BOTTOM:
+    case EQUIP_SLOT_CAPE:
+      return SCROLL_TARGET_ARMOUR;
+    case EQUIP_SLOT_UNSPECIFIED:
+    case EQUIP_SLOT_STARS:
+    case EQUIP_SLOT_SECONDARY:
+      return SCROLL_TARGET_UNSPECIFIED;
+  }
+  return SCROLL_TARGET_UNSPECIFIED;
+}
+
 EquipInstance::EquipInstance(const EquipPrototype& prototype,
                              const Equip& state)
     : EquipTabItem(prototype, state) {

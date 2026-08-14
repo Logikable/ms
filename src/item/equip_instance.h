@@ -21,6 +21,11 @@ enum ScrollOutcome : int { kScrollSuccess, kScrollFail, kScrollNoSlots };
 // Which tier of scroll an item of this required level takes. GMS's cutoffs:
 // T1 below 75, T2 75-114, T3 115 and up.
 ScrollTier TierForLevel(int required_level);
+
+// Which scrolls an item worn in this slot takes. Unspecified for the slots
+// whose items refuse scrolls anyway -- stars and the off hand -- so a scroll
+// written for neither weapon nor armour is offered for nothing.
+ScrollTarget TargetForSlot(EquipSlot slot);
 enum StarForceOutcome { kStarForceSuccess, kStarForceFail, kStarForceDestroy };
 
 // Absolute maximum star force level (for level 138+ equipment).

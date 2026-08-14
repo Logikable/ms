@@ -50,6 +50,7 @@ class TuiControllerTest : public testing::Test {
     scroll.set_tier(SCROLL_TIER_1);
     scroll.set_trace_cost(5);
     scroll.mutable_stats()->set_attack(5);
+    scroll.set_target(SCROLL_TARGET_WEAPON);
     scroll.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
 
     std::map<std::string, EquipPrototype> equips;
@@ -307,6 +308,7 @@ class TuiControllerTest : public testing::Test {
     fail.set_tier(SCROLL_TIER_1);
     fail.set_trace_cost(5);
     fail.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+    fail.set_target(SCROLL_TARGET_WEAPON);
     fail.mutable_stats()->set_attack(5);
     state_->scrolls.clear();
     state_->scrolls["Fail Scroll"] = fail;
