@@ -939,5 +939,18 @@ TEST(AdvanceTabKeyTest, EveryStageHasItsOwnKey) {
   EXPECT_FALSE(AdvanceTabKey(1).empty());
 }
 
+// Every slot names itself. The armour rows arrived after the two the player
+// already reads, so a blank here would be a worn item with no slot.
+TEST(FormatSlotTest, NamesEverySlot) {
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_PRIMARY_WEAPON), "Weapon");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_STARS), "Stars");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_SECONDARY), "Secondary");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_HAT), "Hat");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_TOP), "Top");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_BOTTOM), "Bottom");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_CAPE), "Cape");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
+}
+
 }  // namespace
 }  // namespace ms

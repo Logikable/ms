@@ -208,6 +208,14 @@ std::string FormatSlot(EquipSlot slot) {
       return "Stars";
     case EQUIP_SLOT_SECONDARY:
       return "Secondary";
+    case EQUIP_SLOT_HAT:
+      return "Hat";
+    case EQUIP_SLOT_TOP:
+      return "Top";
+    case EQUIP_SLOT_BOTTOM:
+      return "Bottom";
+    case EQUIP_SLOT_CAPE:
+      return "Cape";
     default:
       return "";
   }

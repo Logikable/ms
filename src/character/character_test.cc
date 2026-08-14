@@ -1476,6 +1476,24 @@ TEST_F(EquipTest, EquipsItemIntoEmptySlot) {
             "Sword");
 }
 
+// Armour is four more slots, not a fifth weapon: each piece lands in its own
+// and none of them displaces another.
+TEST_F(EquipTest, ArmourWearsFourPiecesAtOnce) {
+  const EquipSlot slots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM,
+                             EQUIP_SLOT_CAPE};
+  for (EquipSlot slot : slots) {
+    EquipPrototype piece;
+    piece.set_name("Frozen " + std::to_string(static_cast<int>(slot)));
+    piece.set_equip_slot(slot);
+    piece.mutable_base_stats()->set_str(10);
+    c_.PickUp(std::make_unique<EquipInstance>(piece));
+    ASSERT_TRUE(c_.Equip(0)) << "slot " << static_cast<int>(slot);
+  }
+  EXPECT_EQ(c_.equipped().size(), 4);
+  EXPECT_EQ(c_.inventory().size(), 0);
+  EXPECT_EQ(c_.equip_stats().str(), 40) << "every piece counts";
+}
+
 TEST_F(EquipTest, DisplacesExistingItemToInventory) {
   EquipPrototype axe;
   axe.set_name("Axe");

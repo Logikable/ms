@@ -74,6 +74,18 @@ enum EquipSlot {
   // would go here too, and none are written. What fills this slot is what
   // Shield Mastery waits on; see Skill.requires_secondary.
   EQUIP_SLOT_SECONDARY = 3;
+
+  // Armour. Numbered after the hands because the Equipped panel lists what is
+  // worn in this enum's order, and the two rows a player already reads should
+  // not move to make room.
+  //
+  // Top and bottom are separate slots and always will be. An overall covers
+  // both for one item's worth of scrolling and star forcing, which is a
+  // permanent loss of everything the second item would have carried.
+  EQUIP_SLOT_HAT = 4;
+  EQUIP_SLOT_TOP = 5;
+  EQUIP_SLOT_BOTTOM = 6;
+  EQUIP_SLOT_CAPE = 7;
 }
 
 // A way an item can be made stronger after it drops. Listed on a prototype
