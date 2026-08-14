@@ -42,6 +42,10 @@ class InspectPanel {
   // which is what a test with no sets in play wants.
   void UseCharacter(const CharacterInstance& character);
   ftxui::Element Render() const;
+  // The item's card alone, with no set card beside it. What a screen that
+  // already has a panel of its own next to the item asks for: three windows
+  // in a row leaves none of them the width they need.
+  ftxui::Element RenderItemOnly() const;
 
  private:
   // The body for each kind. Both are wrapped in the same window by Render, so

@@ -355,10 +355,10 @@ ftxui::Element Tui::RenderTraceRecover() {
                                        : nullptr);
   ftxui::Element right_col = ftxui::vbox({
       trace_recover_panel_.RenderTabs(),
-      inspect_panel_.Render(),
+      inspect_panel_.RenderItemOnly(),
       trace_recover_panel_.RenderBelow(),
   });
-  return ftxui::hbox({trace_inspect_panel_.Render() | ftxui::flex,
+  return ftxui::hbox({trace_inspect_panel_.RenderItemOnly() | ftxui::flex,
                       std::move(right_col) | ftxui::flex});
 }
 
@@ -383,8 +383,8 @@ ftxui::Element Tui::RenderScroll() {
     scroll_view =
         ftxui::dbox({scroll_view, ftxui::center(dialog | ftxui::clear_under)});
   }
-  return ftxui::hbox(
-      {scroll_view | ftxui::flex, inspect_panel_.Render() | ftxui::flex});
+  return ftxui::hbox({scroll_view | ftxui::flex,
+                      inspect_panel_.RenderItemOnly() | ftxui::flex});
 }
 
 ftxui::Element Tui::RenderScreen() {

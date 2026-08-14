@@ -216,7 +216,7 @@ void InspectPanel::UseCharacter(const CharacterInstance& character) {
   character_ = &character;
 }
 
-ftxui::Element InspectPanel::Render() const {
+ftxui::Element InspectPanel::RenderItemOnly() const {
   if (stackable_ != nullptr) {
     return ThemedWindow(" Inspect ", RenderStackable()) |
            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStackableWidth);
@@ -224,7 +224,11 @@ ftxui::Element InspectPanel::Render() const {
   if (item_ == nullptr) {
     return ThemedWindow(" Inspect ", EmptyState("no item"));
   }
-  ftxui::Element window = ThemedWindow(" Inspect ", RenderEquip());
+  return ThemedWindow(" Inspect ", RenderEquip());
+}
+
+ftxui::Element InspectPanel::Render() const {
+  ftxui::Element window = RenderItemOnly();
   const EquipSet* set = SetOfItem();
   if (set == nullptr) {
     return window;

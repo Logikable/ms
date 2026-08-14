@@ -530,6 +530,24 @@ TEST_F(InspectPanelTest, ShowsTheWholeSetBesideOneOfItsPieces) {
             std::string::npos);
 }
 
+// The scroll screen puts its list where the set card would go, and three
+// windows in a row leaves none of them the width they need.
+TEST_F(InspectPanelTest, TheCardAloneLeavesTheSetCardOut) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&hat);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(34));
+  ftxui::Render(screen, panel.RenderItemOnly());
+  std::string rendered = StripAnsi(screen.ToString());
+  EXPECT_EQ(rendered.find("Set Effect"), std::string::npos);
+  EXPECT_NE(rendered.find("Frozen Hat"), std::string::npos);
+}
+
 TEST_F(InspectPanelTest, ReadsWhatEachTierPays) {
   EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
   EquipInstance hat(proto);
