@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <map>
 #include <memory>
 #include <string>
@@ -284,12 +285,35 @@ struct Stint {
   std::string weapon;
 };
 
+// The Frozen Set's pieces, in the order they become wearable. Named rather
+// than derived so the table reads the same however the catalog is walked.
+const char* const kFrozenPieces[] = {"Frozen Top", "Frozen Bottom",
+                                     "Frozen Hat", "Frozen Cape"};
+constexpr int kNumFrozenPieces = 4;
+
 // What one branch's climb came to.
 struct Climb {
   // Playtime in seconds at each milestone, or -1 for one never reached.
   double milestone_seconds[kNumMilestones];
+  // The level each Frozen piece first dropped at, or 0 for one that never
+  // did. The rates are set so that all four arrive before the level cap --
+  // this is the check on that, farmed rather than argued.
+  int frozen_level[kNumFrozenPieces] = {0, 0, 0, 0};
   std::vector<Stint> stints;
 };
+
+// Notes any Frozen piece the bag has picked up since the last look.
+void NoteFrozenDrops(const GameState& state, int level, Climb& climb) {
+  const InventoryInstance& bag = state.character.inventory();
+  for (int i = 0; i < bag.size(); ++i) {
+    for (int piece = 0; piece < kNumFrozenPieces; ++piece) {
+      if (climb.frozen_level[piece] == 0 &&
+          bag[i].prototype().name() == kFrozenPieces[piece]) {
+        climb.frozen_level[piece] = level;
+      }
+    }
+  }
+}
 
 Climb Play(const Catalogs& catalogs, Job branch,
            const std::vector<std::string>& maps) {
@@ -334,6 +358,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
     climb.stints.push_back(stint);
     level_began = seconds;
     level = state.character.proto().level();
+    NoteFrozenDrops(state, level, climb);
     for (int i = 0; i < kNumMilestones; ++i) {
       if (level >= kMilestones[i] && climb.milestone_seconds[i] < 0.0) {
         climb.milestone_seconds[i] = seconds;
@@ -439,6 +464,24 @@ void Run() {
     if (absl::GetFlag(FLAGS_detail)) {
       PrintDetail(catalogs, climbs[i]);
     }
+  }
+
+  std::printf(
+      "\nThe level each Frozen piece first dropped at. A dash is a climb that "
+      "reached the cap without it.\n\n");
+  std::printf("%-13s", "branch");
+  for (const char* piece : kFrozenPieces) {
+    std::printf("  %8s", piece + std::strlen("Frozen "));
+  }
+  std::printf("\n%s\n", std::string(13 + 10 * kNumFrozenPieces, '-').c_str());
+  for (int i = 0; i < count; ++i) {
+    std::printf("%-13s", BranchName(kBranches[i]).c_str());
+    for (int piece = 0; piece < kNumFrozenPieces; ++piece) {
+      int level = climbs[i].frozen_level[piece];
+      std::printf("  %8s",
+                  level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
+    }
+    std::printf("\n");
   }
 }
 
