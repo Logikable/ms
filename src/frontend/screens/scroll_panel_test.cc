@@ -95,6 +95,35 @@ TEST_F(ScrollPanelTest, RenderShowsStat) {
   EXPECT_NE(Render(panel_).find("+5 ATT"), std::string::npos);
 }
 
+// The armour scroll that raises all four stats. Four cells saying the same
+// number is what the option is named for, and it does not fit the row anyway.
+TEST_F(ScrollPanelTest, FourStatsThatAgreeReadAsAllStats) {
+  EquipStats* stats = scrolls_["AAA Scroll"].mutable_stats();
+  stats->set_attack(0);
+  stats->set_str(2);
+  stats->set_dex(2);
+  stats->set_int_(2);
+  stats->set_luk(2);
+  stats->set_def(7);
+  ScrollPanel panel(c_, scrolls_);
+  std::string drawn = Render(panel);
+  EXPECT_NE(drawn.find("+2 All Stats"), std::string::npos);
+  EXPECT_EQ(drawn.find("+2 STR"), std::string::npos);
+  EXPECT_NE(drawn.find("+7 DEF"), std::string::npos);
+}
+
+// Four stats that disagree are four stats, whatever the scroll is called.
+TEST_F(ScrollPanelTest, StatsThatDisagreeStayApart) {
+  EquipStats* stats = scrolls_["AAA Scroll"].mutable_stats();
+  stats->set_attack(0);
+  stats->set_str(2);
+  stats->set_dex(2);
+  stats->set_int_(2);
+  stats->set_luk(3);
+  ScrollPanel panel(c_, scrolls_);
+  EXPECT_NE(Render(panel).find("+2 STR"), std::string::npos);
+}
+
 TEST_F(ScrollPanelTest, ArrowDownMovesSelection) {
   Render(panel_);  // populate entries_ so the menu knows its size
   panel_.OnEvent(ftxui::Event::ArrowDown);

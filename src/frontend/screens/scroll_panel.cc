@@ -28,7 +28,9 @@ namespace {
 // losing its tail.
 constexpr int kNameWidth = 12;
 constexpr int kRateWidth = 7;  // matches the "Success" header label width
-constexpr int kStatsWidth = 22;
+// Wide enough for the longest line any scroll writes: an armour All Stats
+// scroll, which pays a stat, HP and DEF at once.
+constexpr int kStatsWidth = 30;
 // Wide enough for a four-figure cost and the two columns 📜 occupies.
 constexpr int kCostWidth = 8;
 // The cost cell, right-aligned in kCostWidth columns.
@@ -49,6 +51,31 @@ std::string ColumnHeader() {
   return "  " + PadRight("Name", kNameWidth) + "  " +
          PadRight("Success", kRateWidth) + "  " +
          PadRight("Stats", kStatsWidth) + PadLeft("Cost", kCostWidth);
+}
+
+// What a scroll pays, in the order EquipStats lists it. Four stats that agree
+// are one "All Stats" line: that is the option's name, and spelling it out
+// costs the row four cells to say one thing.
+std::string ScrollStats(const Scroll& scroll) {
+  if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+    return "Restores slot";
+  }
+  const EquipStats& s = scroll.stats();
+  std::string out;
+  AppendStat(out, s.attack(), "ATT");
+  AppendStat(out, s.magic_attack(), "MATT");
+  if (s.str() > 0 && s.str() == s.dex() && s.str() == s.int_() &&
+      s.str() == s.luk()) {
+    AppendStat(out, s.str(), "All Stats");
+  } else {
+    AppendStat(out, s.str(), "STR");
+    AppendStat(out, s.dex(), "DEX");
+    AppendStat(out, s.int_(), "INT");
+    AppendStat(out, s.luk(), "LUK");
+  }
+  AppendStat(out, s.max_hp(), "HP");
+  AppendStat(out, s.def(), "DEF");
+  return out;
 }
 
 bool ByTypeAndRate(const Scroll* a, const Scroll* b) {
@@ -221,20 +248,9 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
   }
 
   // What the scroll does, said the same way the list says it.
-  std::string effect;
-  if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
-    effect = "Restores one lost slot";
-  } else {
-    const EquipStats& s = scroll.stats();
-    AppendStat(effect, s.attack(), "ATT");
-    AppendStat(effect, s.magic_attack(), "MATT");
-    AppendStat(effect, s.str(), "STR");
-    AppendStat(effect, s.dex(), "DEX");
-    AppendStat(effect, s.int_(), "INT");
-    AppendStat(effect, s.luk(), "LUK");
-    AppendStat(effect, s.max_hp(), "HP");
-    AppendStat(effect, s.def(), "DEF");
-  }
+  std::string effect = scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE
+                           ? "Restores one lost slot"
+                           : ScrollStats(scroll);
 
   // The price alone. What the player owns is in the list's title behind this
   // window, and doing the subtraction for them here only crowded the one
@@ -290,22 +306,8 @@ std::string ScrollPanel::FormatEntry(
   std::string name = ScrollingWindow(scroll.name(), kNameWidth, elapsed);
   std::string rate =
       PadRight(std::to_string(scroll.success_rate()) + "%", kRateWidth);
-  std::string stats;
-  if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
-    stats = "Restores slot";
-  } else {
-    const EquipStats& s = scroll.stats();
-    AppendStat(stats, s.attack(), "ATT");
-    AppendStat(stats, s.magic_attack(), "MATT");
-    AppendStat(stats, s.str(), "STR");
-    AppendStat(stats, s.dex(), "DEX");
-    AppendStat(stats, s.int_(), "INT");
-    AppendStat(stats, s.luk(), "LUK");
-    AppendStat(stats, s.max_hp(), "HP");
-    AppendStat(stats, s.def(), "DEF");
-  }
-
-  return name + "  " + rate + "  " + PadRight(stats, kStatsWidth) +
+  return name + "  " + rate + "  " +
+         PadRight(ScrollStats(scroll), kStatsWidth) +
          CostCell(scroll.trace_cost());
 }
 
