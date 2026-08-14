@@ -1,13 +1,19 @@
 #include "src/frontend/screens/inspect_panel.h"
 
+#include <cmath>
+#include <cstdio>
+#include <map>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -17,6 +23,146 @@ namespace {
 // cursor moves from one item to the next. The equip body sets its own width
 // from its columns.
 constexpr int kStackableWidth = 44;
+
+// The set card. One width whatever the set holds, for the same reason the
+// stackable body has one: the card sits beside the item, and a card that
+// resized would walk the item panel across the screen.
+constexpr int kSetWidth = 47;
+constexpr int kSetSlotWidth = 11;
+constexpr int kSetTierWidth = 15;
+
+// A fraction as a percentage, with a whole number left whole: a set's figures
+// are written round, and "+20.00%" says nothing "+20%" does not.
+std::string SetPercent(double fraction) {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%.1f", std::round(fraction * 1000.0) / 10.0);
+  std::string s = buf;
+  if (s.size() > 2 && s.compare(s.size() - 2, 2, ".0") == 0) {
+    s.resize(s.size() - 2);
+  }
+  return s + "%";
+}
+
+// Two levers a set states as one row when both halves agree. They virtually
+// always come bundled -- a set that pays attack pays magic attack with it --
+// and two rows saying the same number is two rows the player has to compare.
+template <typename T>
+struct LeverPair {
+  const char* together;
+  const char* first;
+  const char* second;
+  T (SkillEffect::*a)() const;
+  T (SkillEffect::*b)() const;
+};
+
+const LeverPair<int> kFlatPairs[] = {
+    {"Attack Power & Magic ATT", "Attack Power", "Magic ATT",
+     &SkillEffect::attack, &SkillEffect::magic_attack},
+};
+
+const LeverPair<double> kPercentPairs[] = {
+    {"Max HP & MP", "Max HP", "Max MP", &SkillEffect::max_hp_pct,
+     &SkillEffect::max_mp_pct},
+};
+
+// The levers a set states on their own, in display order.
+struct FlatLever {
+  const char* label;
+  int (SkillEffect::*fn)() const;
+};
+
+const FlatLever kFlatLevers[] = {
+    {"DEF", &SkillEffect::def},
+};
+
+struct PercentLever {
+  const char* label;
+  double (SkillEffect::*fn)() const;
+};
+
+const PercentLever kPercentLevers[] = {
+    {"ATT", &SkillEffect::attack_pct},
+    {"Damage", &SkillEffect::damage_pct},
+    {"Boss Damage", &SkillEffect::boss_pct},
+    {"Ignore DEF", &SkillEffect::ied_pct},
+    {"Critical Rate", &SkillEffect::crit_rate},
+    {"Critical Damage", &SkillEffect::crit_dmg},
+    {"Meso Drop Rate", &SkillEffect::meso_pct},
+    {"Additional EXP", &SkillEffect::exp_pct},
+};
+
+struct StatValue {
+  const char* label;
+  int value;
+};
+
+// The four primary stats, which a set grants in equal shares or not at all.
+void AppendStatLines(const SkillEffect& e, std::vector<std::string>& lines) {
+  if (e.str() != 0 && e.str() == e.dex() && e.dex() == e.int_() &&
+      e.int_() == e.luk()) {
+    lines.push_back("All Stats +" + std::to_string(e.str()));
+    return;
+  }
+  const StatValue kStats[] = {
+      {"STR", e.str()}, {"DEX", e.dex()}, {"INT", e.int_()}, {"LUK", e.luk()}};
+  for (const StatValue& stat : kStats) {
+    if (stat.value != 0) {
+      lines.push_back(std::string(stat.label) + " +" +
+                      std::to_string(stat.value));
+    }
+  }
+}
+
+// A flat lever's own figure, so both kinds of pair share one shape.
+std::string SetWhole(int value) {
+  return std::to_string(value);
+}
+
+// Adds a pair as one row when both halves agree, and as a row each when they
+// do not: a set is free to pay one side more than the other.
+template <typename T, typename Format>
+void AppendPairLines(const LeverPair<T>& pair, const SkillEffect& e,
+                     Format format, std::vector<std::string>& lines) {
+  T a = (e.*pair.a)();
+  T b = (e.*pair.b)();
+  if (a != T() && a == b) {
+    lines.push_back(std::string(pair.together) + " +" + format(a));
+    return;
+  }
+  if (a != T()) {
+    lines.push_back(std::string(pair.first) + " +" + format(a));
+  }
+  if (b != T()) {
+    lines.push_back(std::string(pair.second) + " +" + format(b));
+  }
+}
+
+// What one tier of a set pays, a line per lever. A lever with no row here is
+// a bonus the player is paid and never told about, which the set data test
+// watches for.
+std::vector<std::string> EffectLines(const SkillEffect& e) {
+  std::vector<std::string> lines;
+  AppendStatLines(e, lines);
+  for (const FlatLever& lever : kFlatLevers) {
+    int value = (e.*lever.fn)();
+    if (value != 0) {
+      lines.push_back(std::string(lever.label) + " +" + std::to_string(value));
+    }
+  }
+  for (const LeverPair<double>& pair : kPercentPairs) {
+    AppendPairLines(pair, e, SetPercent, lines);
+  }
+  for (const LeverPair<int>& pair : kFlatPairs) {
+    AppendPairLines(pair, e, SetWhole, lines);
+  }
+  for (const PercentLever& lever : kPercentLevers) {
+    double value = (e.*lever.fn)();
+    if (value != 0.0) {
+      lines.push_back(std::string(lever.label) + " +" + SetPercent(value));
+    }
+  }
+  return lines;
+}
 
 }  // namespace
 
@@ -30,6 +176,10 @@ void InspectPanel::SetItem(const ItemPrototype* item) {
   item_ = nullptr;
 }
 
+void InspectPanel::UseCharacter(const CharacterInstance& character) {
+  character_ = &character;
+}
+
 ftxui::Element InspectPanel::Render() const {
   if (stackable_ != nullptr) {
     return ThemedWindow(" Inspect ", RenderStackable()) |
@@ -38,7 +188,63 @@ ftxui::Element InspectPanel::Render() const {
   if (item_ == nullptr) {
     return ThemedWindow(" Inspect ", EmptyState("no item"));
   }
-  return ThemedWindow(" Inspect ", RenderEquip());
+  ftxui::Element window = ThemedWindow(" Inspect ", RenderEquip());
+  const EquipSet* set = SetOfItem();
+  if (set == nullptr) {
+    return window;
+  }
+  return ftxui::hbox({std::move(window), RenderSetEffect(*set)});
+}
+
+const EquipSet* InspectPanel::SetOfItem() const {
+  if (item_ == nullptr || character_ == nullptr) {
+    return nullptr;
+  }
+  // By display name, as the character counts what is worn. A trace of a set
+  // piece is a piece of that set: it is the same item, waiting to be recovered.
+  const std::string& name = item_->prototype().name();
+  for (const std::pair<const std::string, EquipSet>& entry :
+       character_->equip_sets()) {
+    for (const EquipSetMember& member : entry.second.members()) {
+      if (!member.name().empty() && member.name() == name) {
+        return &entry.second;
+      }
+    }
+  }
+  return nullptr;
+}
+
+ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
+  int worn = character_->PiecesWornOf(set);
+  std::vector<ftxui::Element> rows;
+  rows.push_back(CenteredRow(FormatEquipSet(set.name())));
+  rows.push_back(ThemedSeparator());
+  for (const EquipSetMember& member : set.members()) {
+    // A slot with no item written yet says what it is waiting for. It counts
+    // toward no tier, so the set reads as unfinished rather than as broken.
+    std::string fills =
+        member.name().empty() ? "Choose 1 " + member.family() : member.name();
+    rows.push_back(ftxui::text(
+        " " + PadRight(FormatSlot(member.slot()), kSetSlotWidth) + fills));
+  }
+  rows.push_back(ThemedSeparator());
+  for (const EquipSetTier& tier : set.tiers()) {
+    std::string label = std::to_string(tier.pieces()) + " Set Effect";
+    for (const std::string& line : EffectLines(tier.effect())) {
+      ftxui::Element row =
+          ftxui::text(" " + PadRight(label, kSetTierWidth) + line);
+      // Dimmed until the pieces are on: the card is what the set would pay,
+      // and the stats page is what the character has.
+      if (worn < tier.pieces()) {
+        row = row | ftxui::dim;
+      }
+      rows.push_back(row);
+      // Only the first line of a tier is labelled; the rest hang under it.
+      label.clear();
+    }
+  }
+  return ThemedWindow(" Set Effect ", ftxui::vbox(std::move(rows))) |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kSetWidth);
 }
 
 // A stack has no stats, no stars and no slots. Its name and what it is for is

@@ -8,6 +8,9 @@
  * A stackable Use or Etc item has none of that -- what it has is a sentence
  * saying what it is, so that is what it gets.
  *
+ * A piece of a set gets a second card beside the first, listing the whole set
+ * and what each of its tiers pays.
+ *
  * One panel rather than two because it is one screen to the player, reached
  * the same way from either list, and two would be free to drift apart.
  * SetItem(nullptr) of either kind renders a placeholder.
@@ -18,8 +21,10 @@
 #include <string>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/character.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
 
 namespace ms {
@@ -31,6 +36,10 @@ class InspectPanel {
   // item the cursor was last on.
   void SetItem(const EquipTabItem* item);
   void SetItem(const ItemPrototype* item);
+  // Teaches the panel which sets exist and how many pieces of one are worn.
+  // Left unset, an item is described on its own and no set card appears --
+  // which is what a test with no sets in play wants.
+  void UseCharacter(const CharacterInstance& character);
   ftxui::Element Render() const;
 
  private:
@@ -38,6 +47,12 @@ class InspectPanel {
   // the two screens cannot drift apart in their framing.
   ftxui::Element RenderEquip() const;
   ftxui::Element RenderStackable() const;
+  // The set the inspected item is a piece of, or nullptr for an item that
+  // belongs to none -- which is every item but a handful.
+  const EquipSet* SetOfItem() const;
+  // The card beside the item: what the set is made of, and what each tier
+  // pays. Tiers the worn pieces do not reach are dimmed.
+  ftxui::Element RenderSetEffect(const EquipSet& set) const;
 
   static ftxui::Element FormatJobCategories(const EquipPrototype& proto);
   // Returns "Stage N (name)" or empty string if unspecified.
@@ -52,6 +67,7 @@ class InspectPanel {
 
   const EquipTabItem* item_ = nullptr;
   const ItemPrototype* stackable_ = nullptr;
+  const CharacterInstance* character_ = nullptr;
 };
 
 }  // namespace ms

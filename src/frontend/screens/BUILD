@@ -7,10 +7,13 @@ cc_library(
     srcs = ["inspect_panel.cc"],
     hdrs = ["inspect_panel.h"],
     deps = [
+        "//src/character",
         "//src/frontend/widgets:panel_util",
         "//src/item",
         "//src/protos:equip_proto_cc",
+        "//src/protos:equip_set_proto_cc",
         "//src/protos:item_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@ftxui//:dom",
     ],
 )
@@ -20,8 +23,11 @@ cc_test(
     srcs = ["inspect_panel_test.cc"],
     deps = [
         ":inspect_panel",
+        "//src/character",
         "//src/frontend/widgets:panel_test_base",
+        "//src/protos:equip_set_proto_cc",
         "//src/protos:item_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

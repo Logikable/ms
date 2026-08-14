@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include "google/protobuf/descriptor.h"
+#include "google/protobuf/message.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/frontend/widgets/panel_util.h"
@@ -20,6 +22,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
+#include "src/protos/skill.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace ms {
@@ -298,6 +301,36 @@ TEST(EquipDataTest, EverySetTierIsReachable) {
           << entry.first << " has a tier past the pieces the set holds";
     }
   }
+}
+
+// The levers the inspect screen's set card writes a row for. A tier that pulls
+// one outside this list pays the player a bonus nothing tells them about, so
+// the card and this list move together -- see InspectPanel::EffectLines.
+const char* const kShownLevers[] = {
+    "str",        "dex",          "int",        "luk",        "def",
+    "attack",     "magic_attack", "attack_pct", "max_hp_pct", "max_mp_pct",
+    "damage_pct", "boss_pct",     "ied_pct",    "crit_rate",  "crit_dmg",
+    "meso_pct",   "exp_pct",
+};
+
+TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {
+  std::set<std::string> shown(std::begin(kShownLevers), std::end(kShownLevers));
+  int checked = 0;
+  for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
+    for (const EquipSetTier& tier : entry.second.tiers()) {
+      std::vector<const google::protobuf::FieldDescriptor*> fields;
+      tier.effect().GetReflection()->ListFields(tier.effect(), &fields);
+      EXPECT_FALSE(fields.empty())
+          << entry.first << " has a tier that pays nothing";
+      for (const google::protobuf::FieldDescriptor* field : fields) {
+        ++checked;
+        EXPECT_TRUE(shown.count(std::string(field->name())) > 0)
+            << entry.first << " pays " << field->name()
+            << ", which the inspect screen has no row for";
+      }
+    }
+  }
+  EXPECT_GT(checked, 0) << "no set tiers in the catalog to check";
 }
 
 // A slot or a type added without a display name shows up as a blank column in

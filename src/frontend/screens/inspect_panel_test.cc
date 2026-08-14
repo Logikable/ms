@@ -2,12 +2,20 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <string>
+
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/character.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -19,6 +27,53 @@ class InspectPanelTest : public PanelTest {
                                                  ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, panel.Render());
     return StripAnsi(screen.ToString());
+  }
+
+  // A screen with room for an item and the set card beside it, which the 80x20
+  // one clips on both axes.
+  static ftxui::Screen Draw(InspectPanel& panel) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                                 ftxui::Dimension::Fixed(34));
+    ftxui::Render(screen, panel.Render());
+    return screen;
+  }
+
+  static std::string RenderWide(InspectPanel& panel) {
+    return StripAnsi(Draw(panel).ToString());
+  }
+
+  // Columns the panel actually drew in: one past the rightmost cell with
+  // anything in it.
+  static int DrawnWidth(InspectPanel& panel) {
+    ftxui::Screen screen = Draw(panel);
+    int width = 0;
+    for (int y = 0; y < screen.dimy(); ++y) {
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const std::string& cell = screen.PixelAt(x, y).character;
+        if (!cell.empty() && cell != " ") {
+          width = std::max(width, x + 1);
+        }
+      }
+    }
+    return width;
+  }
+
+  // Whether the first cell of `label` came out dimmed. False when the label is
+  // not on screen at all, so a test asserting dimness has to find it first.
+  static bool DimAt(InspectPanel& panel, const std::string& label) {
+    ftxui::Screen screen = Draw(panel);
+    for (int y = 0; y < screen.dimy(); ++y) {
+      std::string row;
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const std::string& cell = screen.PixelAt(x, y).character;
+        row += cell.empty() ? " " : cell;
+      }
+      size_t at = row.find(label);
+      if (at != std::string::npos) {
+        return screen.PixelAt(static_cast<int>(at), y).dim;
+      }
+    }
+    return false;
   }
 
   // Strips ANSI escape sequences so substring searches work regardless of
@@ -299,6 +354,183 @@ TEST_F(InspectPanelTest, EitherKindOfItemReplacesTheOther) {
   std::string back = Render(panel);
   EXPECT_NE(back.find("Sword"), std::string::npos);
   EXPECT_EQ(back.find("Recovers 50 HP."), std::string::npos);
+}
+
+// --- the set card ---
+
+// The Frozen Set as its data file writes it: four pieces written, a weapon and
+// a secondary still waiting on items, and the two tiers those four can reach.
+std::map<std::string, EquipSet> FrozenSet() {
+  const EquipSlot kSlots[] = {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM,
+                              EQUIP_SLOT_CAPE};
+  const char* kNames[] = {"Frozen Hat", "Frozen Top", "Frozen Bottom",
+                          "Frozen Cape"};
+  EquipSet set;
+  set.set_name(EQUIP_SET_NAME_FROZEN);
+  for (int i = 0; i < 4; ++i) {
+    EquipSetMember* member = set.add_members();
+    member->set_slot(kSlots[i]);
+    member->set_name(kNames[i]);
+  }
+  EquipSetMember* weapon = set.add_members();
+  weapon->set_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  weapon->set_family("Frozen Weapon");
+  EquipSetMember* secondary = set.add_members();
+  secondary->set_slot(EQUIP_SLOT_SECONDARY);
+  secondary->set_family("Frozen Secondary");
+
+  EquipSetTier* three = set.add_tiers();
+  three->set_pieces(3);
+  SkillEffect* effect = three->mutable_effect();
+  effect->set_str(7);
+  effect->set_dex(7);
+  effect->set_int_(7);
+  effect->set_luk(7);
+  effect->set_attack(5);
+  effect->set_magic_attack(5);
+  EquipSetTier* four = set.add_tiers();
+  four->set_pieces(4);
+  four->mutable_effect()->set_max_hp_pct(0.20);
+  four->mutable_effect()->set_max_mp_pct(0.20);
+  four->mutable_effect()->set_damage_pct(0.09);
+  return {{"frozen", set}};
+}
+
+EquipPrototype FrozenPiece(const std::string& name, EquipSlot slot) {
+  EquipPrototype proto;
+  proto.set_name(name);
+  proto.set_equip_slot(slot);
+  return proto;
+}
+
+// Wears one piece of the set, so the tiers it reaches light up.
+void Wear(CharacterInstance& character, const std::string& name,
+          EquipSlot slot) {
+  character.PickUp(std::make_unique<EquipInstance>(FrozenPiece(name, slot)));
+  character.Equip(static_cast<int>(character.inventory().size()) - 1);
+}
+
+TEST_F(InspectPanelTest, NoSetCardForAnItemInNoSet) {
+  EquipInstance sword(sword_);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&sword);
+  EXPECT_EQ(RenderWide(panel).find("Set Effect"), std::string::npos);
+}
+
+// The panel is free to be used without a character behind it -- a test, or a
+// screen that only ever shows one item -- and then knows of no sets at all.
+TEST_F(InspectPanelTest, NoSetCardWithoutACharacter) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+
+  InspectPanel panel;
+  panel.SetItem(&hat);
+  EXPECT_EQ(RenderWide(panel).find("Set Effect"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, ShowsTheWholeSetBesideOneOfItsPieces) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&hat);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Set Effect"), std::string::npos);
+  EXPECT_NE(rendered.find("Frozen Set"), std::string::npos);
+  EXPECT_NE(rendered.find("Hat        Frozen Hat"), std::string::npos);
+  EXPECT_NE(rendered.find("Cape       Frozen Cape"), std::string::npos);
+  // The two slots with no item written yet name what they are waiting for.
+  EXPECT_NE(rendered.find("Weapon     Choose 1 Frozen Weapon"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Secondary  Choose 1 Frozen Secondary"),
+            std::string::npos);
+}
+
+TEST_F(InspectPanelTest, ReadsWhatEachTierPays) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&hat);
+  std::string rendered = RenderWide(panel);
+  // Four equal stats read as one row, and so do the pairs that travel
+  // together. Only the first line of a tier carries its label.
+  EXPECT_NE(rendered.find("3 Set Effect   All Stats +7"), std::string::npos);
+  EXPECT_NE(rendered.find("                Attack Power & Magic ATT +5"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("4 Set Effect   Max HP & MP +20%"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("                Damage +9%"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, SplitsAPairWhoseHalvesDisagree) {
+  std::map<std::string, EquipSet> sets = FrozenSet();
+  SkillEffect* three = sets["frozen"].mutable_tiers(0)->mutable_effect();
+  three->set_magic_attack(3);
+  three->set_luk(4);
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(sets);
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&hat);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Attack Power +5"), std::string::npos);
+  EXPECT_NE(rendered.find("Magic ATT +3"), std::string::npos);
+  EXPECT_EQ(rendered.find("Attack Power & Magic ATT"), std::string::npos);
+  // Stats that no longer agree are four rows of their own.
+  EXPECT_EQ(rendered.find("All Stats"), std::string::npos);
+  EXPECT_NE(rendered.find("STR +7"), std::string::npos);
+  EXPECT_NE(rendered.find("LUK +4"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, DimsTheTiersTheCharacterHasNotEarned) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&hat);
+  EXPECT_TRUE(DimAt(panel, "3 Set Effect"));
+  EXPECT_TRUE(DimAt(panel, "4 Set Effect"));
+
+  Wear(c_, "Frozen Hat", EQUIP_SLOT_HAT);
+  Wear(c_, "Frozen Top", EQUIP_SLOT_TOP);
+  Wear(c_, "Frozen Bottom", EQUIP_SLOT_BOTTOM);
+  EXPECT_FALSE(DimAt(panel, "3 Set Effect"));
+  // Every line of the tier lights up, not only the labelled one.
+  EXPECT_FALSE(DimAt(panel, "Attack Power & Magic ATT +5"));
+  EXPECT_TRUE(DimAt(panel, "4 Set Effect"));
+}
+
+// The card sits beside the item, so a card that resized with its contents
+// would walk the item panel across the screen.
+TEST_F(InspectPanelTest, TheCardIsOneWidthWhateverTheSetHolds) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&hat);
+  int wide = DrawnWidth(panel);
+
+  std::map<std::string, EquipSet> small = FrozenSet();
+  SkillEffect* three = small["frozen"].mutable_tiers(0)->mutable_effect();
+  three->Clear();
+  three->set_str(1);
+  c_.UseEquipSets(small);
+
+  EXPECT_EQ(DrawnWidth(panel), wide);
 }
 
 }  // namespace

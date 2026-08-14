@@ -101,6 +101,11 @@ Tui::Tui(GameState& state, std::string save_path)
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
                   sell_panel_, sell_equip_panel_, map_select_panel_,
                   shop_panel_, buy_panel_, panel_focus_) {
+  // Both inspect panels read the character, not just the item: a piece of a
+  // set is described beside the set it belongs to, and which of its tiers are
+  // being paid depends on what is worn.
+  inspect_panel_.UseCharacter(state.character);
+  trace_inspect_panel_.UseCharacter(state.character);
 }
 
 void Tui::Run() {
