@@ -188,6 +188,7 @@ cc_test(
     data = ["//data/scrolls:all"],
     deps = [
         ":proto_loader",
+        "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",

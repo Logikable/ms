@@ -1,0 +1,20 @@
+name: "30% All Stats"
+success_rate: 30
+tier: SCROLL_TIER_3
+stats {
+  str: 3
+  dex: 3
+  int: 3
+  luk: 3
+  max_hp: 120
+  def: 10
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_ALL_STATS
+trace_cost: 290
+target: SCROLL_TARGET_ARMOUR

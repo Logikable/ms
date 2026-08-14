@@ -1,0 +1,14 @@
+name: "70% LUK"
+success_rate: 70
+tier: SCROLL_TIER_2
+stats {
+  luk: 3
+  max_hp: 40
+  def: 4
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_LUK
+trace_cost: 17
+target: SCROLL_TARGET_ARMOUR

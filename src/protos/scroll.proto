@@ -31,6 +31,9 @@ enum ScrollType {
   SCROLL_TYPE_LUK = 6;
   SCROLL_TYPE_HP = 7;
   SCROLL_TYPE_DEF = 8;
+  // Armour only, and only at the long odds. Raises all four stats at once by
+  // less than the single-stat scroll beside it raises one.
+  SCROLL_TYPE_ALL_STATS = 9;
 }
 
 // The kind of equipment a scroll goes on. The job categories cannot say this:

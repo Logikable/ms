@@ -1,0 +1,13 @@
+name: "30% INT"
+success_rate: 30
+tier: SCROLL_TIER_3
+stats {
+  int: 7
+  max_hp: 120
+  def: 10
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_INT
+trace_cost: 290
+target: SCROLL_TARGET_ARMOUR
