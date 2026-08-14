@@ -338,8 +338,13 @@ ftxui::Element ShopPanel::RenderBuyBackRow(const BuyBackEntry& entry,
   });
 }
 
-std::vector<ftxui::Element> ShopPanel::RenderStock() const {
+ftxui::Element ShopPanel::RenderStock() const {
   std::vector<ftxui::Element> item_rows;
+  if (RowCount() == 0) {
+    // The game's one word for a list with nothing in it. A shelf is empty for
+    // a reason the player can already see -- the tab they are standing on.
+    item_rows.push_back(EmptyState("empty", /*gutter=*/2));
+  }
   int last = std::min(RowCount(), first_visible_ + kVisibleRows);
   for (int i = first_visible_; i < last; ++i) {
     std::string cursor = zone_ == kZoneList && i == selected_ ? "> " : "  ";
@@ -352,13 +357,16 @@ std::vector<ftxui::Element> ShopPanel::RenderStock() const {
       item_rows.push_back(RenderEquipRow(equips_.at(stock_[i]), cursor));
     }
   }
-  if (item_rows.empty()) {
-    return {};
+  // Padded out to the full window, so the shop is one height whatever the tab
+  // holds. It is drawn centred: a shelf two rows shorter than the last would
+  // otherwise slide the title, the bar and the column header up the screen.
+  while (static_cast<int>(item_rows.size()) < kVisibleRows) {
+    item_rows.push_back(ftxui::text(""));
   }
-  return {ftxui::hbox({
+  return ftxui::hbox({
       ftxui::vbox(std::move(item_rows)),
       ScrollBar(RowCount(), first_visible_, kVisibleRows),
-  })};
+  });
 }
 
 ftxui::Element ShopPanel::Render() const {
@@ -373,14 +381,7 @@ ftxui::Element ShopPanel::Render() const {
     rows.push_back(ColumnHeader());
   }
   rows.push_back(ThemedSeparator());
-  if (RowCount() == 0) {
-    // The game's one word for a list with nothing in it. A shelf is empty for
-    // a reason the player can already see -- the tab they are standing on.
-    rows.push_back(EmptyState("empty", /*gutter=*/2));
-  }
-  for (ftxui::Element& row : RenderStock()) {
-    rows.push_back(std::move(row));
-  }
+  rows.push_back(RenderStock());
   ftxui::Element window = ThemedWindow(" Shop ", ftxui::vbox(std::move(rows)));
   if (!menu_open_) {
     return window;

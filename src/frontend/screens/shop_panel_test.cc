@@ -529,34 +529,19 @@ TEST_F(ShopPanelTest, TheMenuDoesNotGrowThePanel) {
 // item it belongs to.
 TEST_F(ShopPanelTest, TheMenuDrawsPastTheBottomBorder) {
   CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_, items_);
-  for (int i = 0; i < 3; ++i) {
-    panel.OnEvent(ftxui::Event::ArrowDown);
-  }
-  ASSERT_EQ(panel.selected_item()->name(), "Scimitar");
-  panel.OpenMenu();
-  std::vector<std::string> rows = ScreenRows(panel);
-  // The first bottom-left corner down the screen is the window's: the menu
-  // opens inside it and only its own bottom corner lands lower.
-  int border = IndexWith(rows, "\u2570");
-  int last_entry = IndexWith(rows, "Close");
+  std::map<std::string, EquipPrototype> many = ManyItems(30);
+  ShopPanel panel(c, many, items_);
+  panel.OnEvent(ftxui::Event::ArrowUp);  // first item -> tab bar
+  panel.OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the last item
+  // Measured with the menu closed: the window is one height whatever it holds,
+  // so where its bottom border sits does not depend on the menu at all.
+  int border = IndexWith(ScreenRows(panel), "\u2570");
   ASSERT_GE(border, 0);
+  panel.OpenMenu();
+  int last_entry = IndexWith(ScreenRows(panel), "Close");
   ASSERT_GE(last_entry, 0);
   EXPECT_GT(last_entry, border) << "the menu is being held inside the window "
                                    "instead of hanging out of it";
-}
-
-// Floating it must not move the window it floats over, in either direction.
-TEST_F(ShopPanelTest, TheMenuLeavesTheBottomBorderWhereItWas) {
-  CharacterInstance c = MakeCharacter(100000);
-  ShopPanel panel(c, equips_, items_);
-  for (int i = 0; i < 3; ++i) {
-    panel.OnEvent(ftxui::Event::ArrowDown);
-  }
-  int closed = IndexWith(ScreenRows(panel), "\u2570");
-  panel.OpenMenu();
-  ASSERT_GE(closed, 0);
-  EXPECT_EQ(IndexWith(ScreenRows(panel), "\u2570"), closed);
 }
 
 // The whole point of the anchor: wherever the cursor is, the menu opens on
@@ -706,15 +691,22 @@ TEST_F(ShopPanelTest, ResetScrollsBackToTheTop) {
   EXPECT_NE(Render(panel).find("> Item 00"), std::string::npos);
 }
 
-// However long the list, the panel is the same height -- that is what the
-// window is for.
-TEST_F(ShopPanelTest, ALongListDoesNotGrowThePanel) {
+// The panel is one height whatever the tab holds -- it is drawn centred, so a
+// shelf that shrank the window would slide the title and the column header up
+// the screen every time the player stepped along the bar.
+TEST_F(ShopPanelTest, ThePanelIsOneHeightHoweverManyRows) {
   CharacterInstance c = MakeCharacter(100000);
+  std::map<std::string, EquipPrototype> nothing;
+  std::map<std::string, EquipPrototype> few = ManyItems(2);
   std::map<std::string, EquipPrototype> full = ManyItems(kVisibleRows);
   std::map<std::string, EquipPrototype> over = ManyItems(60);
-  ShopPanel small(c, full, items_);
+  ShopPanel empty(c, nothing, items_);
+  ShopPanel small(c, few, items_);
+  ShopPanel exact(c, full, items_);
   ShopPanel big(c, over, items_);
-  EXPECT_EQ(RenderHeight(big), RenderHeight(small));
+  EXPECT_EQ(RenderHeight(small), RenderHeight(exact));
+  EXPECT_EQ(RenderHeight(empty), RenderHeight(exact));
+  EXPECT_EQ(RenderHeight(big), RenderHeight(exact));
 }
 
 TEST_F(ShopPanelTest, DrawsAScrollBarOnlyWhenThereIsMoreToSee) {

@@ -131,8 +131,10 @@ class ShopPanel {
   // paid for one.
   ftxui::Element RenderBuyBackRow(const BuyBackEntry& entry,
                                   const std::string& cursor) const;
-  // The rows on screen, scroll bar beside them. Empty while the shelf is.
-  std::vector<ftxui::Element> RenderStock() const;
+  // The rows on screen, scroll bar beside them, or "(empty)" over blanks while
+  // the shelf is. Always kVisibleRows tall: the panel is drawn centred, so a
+  // block that shrank with the list would move the whole window up the screen.
+  ftxui::Element RenderStock() const;
 
   const CharacterInstance& character_;
   const std::map<std::string, EquipPrototype>& equips_;
