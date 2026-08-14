@@ -16,6 +16,11 @@ constexpr double kMesoDropChance = 0.60;
 // The level gap (either direction) within which meso is unpenalized.
 constexpr int kMesoPenaltyFreeGap = 10;
 
+// How far either side of the mean the multiplier is drawn. Every GMS band is
+// its mean plus or minus a fifth -- 2-20 runs 1.6 to 2.4, 91+ runs 6 to 9 --
+// so one spread covers the table.
+constexpr double kMesoSpread = 0.2;
+
 // Mean of the mob's randomized meso multiplier k, chosen by the level band the
 // mob falls in; the dropped amount is mob_level * k. Bounds are the midpoints
 // of the GMS per-band k ranges. Level 1 is a flat 1 meso, handled by the
@@ -82,14 +87,49 @@ double ExpectedMesoPerKill(const Mob& mob, int player_level) {
          MesoLevelPenalty(player_level - mob_level);
 }
 
-int64_t FlushDrops(double per_kill, int64_t kills, double* accumulator) {
+int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng) {
   if (!std::isfinite(per_kill) || per_kill <= 0.0 || kills <= 0) {
     return 0;
   }
-  *accumulator += per_kill * static_cast<double>(kills);
-  double whole = std::floor(*accumulator);
-  *accumulator -= whole;
-  return static_cast<int64_t>(whole);
+  // A rate above one is a drop every kill plus a chance at another, so the
+  // whole part is paid outright and only the remainder is a coin to flip.
+  double whole = std::floor(per_kill);
+  int64_t dropped = static_cast<int64_t>(whole) * kills;
+  double chance = per_kill - whole;
+  if (chance > 0.0) {
+    std::binomial_distribution<int64_t> flips(kills, chance);
+    dropped += flips(rng);
+  }
+  return dropped;
+}
+
+int64_t RollMeso(const Mob& mob, int player_level, int64_t kills,
+                 std::mt19937& rng) {
+  if (kills <= 0) {
+    return 0;
+  }
+  double penalty = MesoLevelPenalty(player_level - mob.level());
+  if (penalty <= 0.0) {
+    return 0;  // out-levelled far enough that the mob pays nothing
+  }
+  // The drop chance is one roll over the batch: which of these kills paid at
+  // all is not a question anything downstream asks.
+  std::binomial_distribution<int64_t> paying(kills, kMesoDropChance);
+  int64_t drops = paying(rng);
+  int mob_level = mob.level();
+  if (mob_level <= 1) {
+    return static_cast<int64_t>(drops * penalty);  // a flat 1 meso each
+  }
+  double mean = MeanMesoMultiplier(mob_level);
+  std::uniform_real_distribution<double> multiplier(mean * (1.0 - kMesoSpread),
+                                                    mean * (1.0 + kMesoSpread));
+  // Rolled one drop at a time, because each drop is its own amount. A tick
+  // pays for a few dozen kills and a sim's longest step for a few hundred.
+  int64_t total = 0;
+  for (int64_t i = 0; i < drops; ++i) {
+    total += std::llround(mob_level * multiplier(rng) * penalty);
+  }
+  return total;
 }
 
 }  // namespace ms

@@ -2,35 +2,98 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
+#include <limits>
+#include <random>
+
 #include "src/protos/mob.pb.h"
 
 namespace ms {
 namespace {
 
-TEST(FlushDropsTest, AccumulatesAcrossKillsUntilWhole) {
-  double acc = 0.0;
-  EXPECT_EQ(FlushDrops(0.5, 1, &acc), 0);  // 0.5 banked, no drop yet
-  EXPECT_EQ(FlushDrops(0.5, 1, &acc), 1);  // 0.5 + 0.5 -> 1 drop
-  EXPECT_DOUBLE_EQ(acc, 0.0);
+// A rate below one is a chance per kill, so a big enough sample lands near
+// the rate and no single kill is owed anything.
+TEST(RollDropsTest, PaysTheRateOverManyKills) {
+  std::mt19937 rng(1234);
+  int64_t dropped = RollDrops(0.4, 100000, rng);
+  EXPECT_NEAR(dropped, 40000, 1500);
 }
 
-TEST(FlushDropsTest, FlushesMultipleDropsAndCarriesRemainder) {
-  double acc = 0.0;
-  EXPECT_EQ(FlushDrops(0.5, 7, &acc), 3);  // 3.5 -> 3 drops
-  EXPECT_DOUBLE_EQ(acc, 0.5);
+// The old accumulator paid the 5,000th kill, every time. A roll does not.
+TEST(RollDropsTest, DoesNotPayOnASchedule) {
+  std::mt19937 rng(7);
+  bool differed = false;
+  for (int trial = 0; trial < 20 && !differed; ++trial) {
+    differed = RollDrops(0.5, 10, rng) != 5;
+  }
+  EXPECT_TRUE(differed) << "twenty batches all paid exactly the mean";
 }
 
-TEST(FlushDropsTest, RemainderCarriesIntoNextFlush) {
-  double acc = 0.0;
-  EXPECT_EQ(FlushDrops(0.25, 10, &acc), 2);  // 2.5 -> 2, 0.5 left
-  EXPECT_EQ(FlushDrops(0.25, 10, &acc), 3);  // 0.5 + 2.5 = 3.0 -> 3
-  EXPECT_DOUBLE_EQ(acc, 0.0);
+// A rate above one owes a drop outright and rolls only what is left over.
+TEST(RollDropsTest, ARateAboveOnePaysItsWholePartEveryTime) {
+  std::mt19937 rng(99);
+  for (int trial = 0; trial < 10; ++trial) {
+    int64_t dropped = RollDrops(2.5, 100, rng);
+    EXPECT_GE(dropped, 200);
+    EXPECT_LE(dropped, 300);
+  }
 }
 
-TEST(FlushDropsTest, NonPositivePerKillYieldsNoDrops) {
-  double acc = 0.25;
-  EXPECT_EQ(FlushDrops(0.0, 1000, &acc), 0);
-  EXPECT_DOUBLE_EQ(acc, 0.25);  // accumulator untouched
+TEST(RollDropsTest, NothingComesOfNothing) {
+  std::mt19937 rng(3);
+  EXPECT_EQ(RollDrops(0.0, 1000, rng), 0);
+  EXPECT_EQ(RollDrops(-1.0, 1000, rng), 0);
+  EXPECT_EQ(RollDrops(std::numeric_limits<double>::quiet_NaN(), 1000, rng), 0);
+  EXPECT_EQ(RollDrops(0.5, 0, rng), 0);
+}
+
+// The roll has to average what the curve says the economy pays, or the sims
+// measure one game and the player plays another.
+TEST(RollMesoTest, AveragesTheExpectedAmount) {
+  Mob mob;
+  mob.set_level(70);
+  std::mt19937 rng(2024);
+  int64_t total = RollMeso(mob, 70, 200000, rng);
+  double expected = ExpectedMesoPerKill(mob, 70) * 200000;
+  EXPECT_NEAR(total / expected, 1.0, 0.01);
+}
+
+// Each paying kill lands inside the band's range -- a fifth either side of the
+// mean -- rather than on the mean itself.
+TEST(RollMesoTest, OneKillPaysInsideTheBandOrNothing) {
+  Mob mob;
+  mob.set_level(70);  // band mean 6.0, so 4.8 to 7.2 times the level
+  std::mt19937 rng(5);
+  bool paid_off_the_mean = false;
+  for (int trial = 0; trial < 200; ++trial) {
+    int64_t meso = RollMeso(mob, 70, 1, rng);
+    if (meso == 0) {
+      continue;  // the 40% of kills that pay nothing
+    }
+    EXPECT_GE(meso, 70 * 4.8);
+    EXPECT_LE(meso, 70 * 7.2);
+    if (meso != 70 * 6) {
+      paid_off_the_mean = true;
+    }
+  }
+  EXPECT_TRUE(paid_off_the_mean) << "every drop paid the band mean exactly";
+}
+
+TEST(RollMesoTest, ALevelOneMobPaysAFlatMeso) {
+  Mob mob;
+  mob.set_level(1);
+  std::mt19937 rng(11);
+  int64_t total = RollMeso(mob, 1, 10000, rng);
+  EXPECT_NEAR(total, 6000, 200);  // 60% of kills, one meso each
+}
+
+// Out-levelled far enough and the mob pays nothing at all, so there is
+// nothing to roll.
+TEST(RollMesoTest, PaysNothingPastTheLevelPenalty) {
+  Mob mob;
+  mob.set_level(10);
+  std::mt19937 rng(13);
+  EXPECT_EQ(RollMeso(mob, 40, 10000, rng), 0);
 }
 
 TEST(MesoLevelPenaltyTest, NoPenaltyWithinTenLevels) {

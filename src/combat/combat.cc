@@ -34,17 +34,17 @@ void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
     }
     const Mob& mob = *params.types[i].mob;
     exp_gained += kills[i] * mob.exp();
-    // Meso pools across every mob type into one balance, so all kills bank into
-    // the shared meso_progress accumulator.
-    int64_t meso = FlushDrops(
-        ExpectedMesoPerKill(mob, player_level) * (1.0 + params.meso_pct),
-        kills[i], &state.meso_progress);
+    // The bonus multiplies the purse rather than each drop in it: a share of a
+    // sum is the share of its parts, and the passives are already resolved
+    // here.
+    int64_t meso =
+        static_cast<int64_t>(RollMeso(mob, player_level, kills[i], state.rng) *
+                             (1.0 + params.meso_pct));
     if (meso > 0) {
       character.AddMeso(meso);
     }
     for (const MobDrop& drop : mob.drops()) {
-      int64_t dropped = FlushDrops(drop.per_kill(), kills[i],
-                                   &state.drop_progress[drop.item()]);
+      int64_t dropped = RollDrops(drop.per_kill(), kills[i], state.rng);
       if (dropped <= 0) {
         continue;
       }

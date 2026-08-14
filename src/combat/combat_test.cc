@@ -314,8 +314,11 @@ TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
   int64_t meso[2] = {0, 0};
   int64_t exp[2] = {0, 0};
   for (int pass = 0; pass < 2; ++pass) {
+    // Both passes roll from the same stream: the drops are rolled now, so a
+    // purse twice the size has to come from the bonus rather than from luck.
     GameState state({}, {}, {}, {{"snail", mob}}, {{"field", OneSnailMap()}},
-                    {{"meso_mastery", mastery}});
+                    {{"meso_mastery", mastery}}, GameMode::kPlay,
+                    JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/7);
     state.current_map = "field";
     LevelTo(state, 25);
     EquipSword(state);
