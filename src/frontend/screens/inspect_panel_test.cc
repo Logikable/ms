@@ -43,20 +43,31 @@ class InspectPanelTest : public PanelTest {
     return StripAnsi(Draw(panel).ToString());
   }
 
-  // Columns the panel actually drew in: one past the rightmost cell with
-  // anything in it.
-  static int DrawnWidth(InspectPanel& panel) {
-    ftxui::Screen screen = Draw(panel);
-    int width = 0;
-    for (int y = 0; y < screen.dimy(); ++y) {
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const std::string& cell = screen.PixelAt(x, y).character;
-        if (!cell.empty() && cell != " ") {
-          width = std::max(width, x + 1);
-        }
+  // The columns the panel needs when nothing squeezes or stretches it. Not the
+  // columns it draws in: a window fills whatever box it is handed, so a bare
+  // render is always as wide as the screen.
+  static int NaturalWidth(InspectPanel& panel) {
+    ftxui::Element body = panel.Render();
+    body->ComputeRequirement();
+    return body->requirement().min_x;
+  }
+
+  // How many rendered rows carry `text`.
+  static int RowsWith(InspectPanel& panel, const std::string& text) {
+    std::string rendered = RenderWide(panel);
+    int rows = 0;
+    size_t start = 0;
+    while (start < rendered.size()) {
+      size_t end = rendered.find('\n', start);
+      if (end == std::string::npos) {
+        end = rendered.size();
       }
+      if (rendered.substr(start, end - start).find(text) != std::string::npos) {
+        ++rows;
+      }
+      start = end + 1;
     }
-    return width;
+    return rows;
   }
 
   // Whether the first cell of `label` came out dimmed. False when the label is
@@ -366,6 +377,64 @@ TEST_F(InspectPanelTest, EitherKindOfItemReplacesTheOther) {
   EXPECT_EQ(back.find("Recovers 50 HP."), std::string::npos);
 }
 
+// --- a narrow item gets a narrow card ---
+
+// The six job categories are the same six on every item, and the star bar is
+// as long as the item's level allows. Neither should be what decides how wide
+// the card is.
+TEST_F(InspectPanelTest, FoldsTheJobRowWhenNothingElseIsWide) {
+  sword_.clear_equip_job_categories();
+  sword_.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Beginner / Warrior / Bowman"), std::string::npos);
+  EXPECT_NE(rendered.find("Magician / Thief / Pirate"), std::string::npos);
+  EXPECT_EQ(rendered.find("Bowman / Magician"), std::string::npos);
+  EXPECT_LT(NaturalWidth(panel), 35);
+}
+
+TEST_F(InspectPanelTest, KeepsTheJobRowWholeWhenTheCardIsWideAnyway) {
+  sword_.set_name("Fafnir Mistilteinn of Preposterous Length and Renown Trace");
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  EXPECT_NE(RenderWide(panel).find("Bowman / Magician"), std::string::npos);
+}
+
+TEST_F(InspectPanelTest, FoldsAStarBarPastFifteen) {
+  sword_.set_required_level(150);  // 30 stars
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  EXPECT_EQ(RowsWith(panel, "☆"), 2);
+  // Fifteen to a rank, grouped in fives from the start of each rank.
+  EXPECT_EQ(RowsWith(panel, "☆☆☆☆☆ ☆☆☆☆☆ ☆☆☆☆☆"), 2);
+  EXPECT_LT(NaturalWidth(panel), 35);
+}
+
+// The excess is a rank of its own however short it is, and it is centred under
+// the first.
+TEST_F(InspectPanelTest, FoldsAStarBarIntoFifteenAndTheRest) {
+  sword_.set_required_level(128);  // 20 stars
+  Equip state;
+  state.set_stars(17);
+  EquipInstance item(sword_, state);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  EXPECT_EQ(RowsWith(panel, "★★★★★ ★★★★★ ★★★★★"), 1);
+  EXPECT_EQ(RowsWith(panel, "★★☆☆☆"), 1);
+}
+
+TEST_F(InspectPanelTest, KeepsAStarBarOfFifteenOnOneRow) {
+  sword_.set_required_level(118);  // 15 stars
+  EquipInstance item(sword_);
+  InspectPanel panel;
+  panel.SetItem(&item);
+  EXPECT_EQ(RowsWith(panel, "☆"), 1);
+}
+
 // --- the set card ---
 
 // The Frozen Set as its data file writes it: four pieces written, a weapon and
@@ -551,7 +620,7 @@ TEST_F(InspectPanelTest, TheCardIsOneWidthWhateverTheSetHolds) {
   InspectPanel panel;
   panel.UseCharacter(c_);
   panel.SetItem(&hat);
-  int wide = DrawnWidth(panel);
+  int wide = NaturalWidth(panel);
 
   std::map<std::string, EquipSet> small = FrozenSet();
   SkillEffect* three = small["frozen"].mutable_tiers(0)->mutable_effect();
@@ -559,7 +628,7 @@ TEST_F(InspectPanelTest, TheCardIsOneWidthWhateverTheSetHolds) {
   three->set_str(1);
   c_.UseEquipSets(small);
 
-  EXPECT_EQ(DrawnWidth(panel), wide);
+  EXPECT_EQ(NaturalWidth(panel), wide);
 }
 
 }  // namespace

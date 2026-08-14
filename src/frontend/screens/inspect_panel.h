@@ -19,6 +19,7 @@
 #define MS_SRC_FRONTEND_SCREENS_INSPECT_PANEL_H_
 
 #include <string>
+#include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
@@ -47,6 +48,14 @@ class InspectPanel {
   // the two screens cannot drift apart in their framing.
   ftxui::Element RenderEquip() const;
   ftxui::Element RenderStackable() const;
+  // The equip body in parts. The rows an item cannot fold are built first and
+  // measured; the two that can -- the star bar and the job categories -- are
+  // then folded onto two lines each if leaving them on one is what would make
+  // the panel wide. `fixed` is the width the rest of the card already needs.
+  std::vector<ftxui::Element> HeadRows() const;
+  std::vector<ftxui::Element> FactRows() const;
+  std::vector<ftxui::Element> JobRows(int fixed) const;
+  std::vector<ftxui::Element> StarRows(int fixed) const;
   // The set the inspected item is a piece of, or nullptr for an item that
   // belongs to none -- which is every item but a handful.
   const EquipSet* SetOfItem() const;
@@ -54,16 +63,19 @@ class InspectPanel {
   // pays. Tiers the worn pieces do not reach are dimmed.
   ftxui::Element RenderSetEffect(const EquipSet& set) const;
 
-  static ftxui::Element FormatJobCategories(const EquipPrototype& proto);
+  // `count` job categories from `from`, as one row: dimmed for the ones this
+  // item is not for, and every one of them listed either way.
+  static ftxui::Element JobRow(const EquipPrototype& proto, int from,
+                               int count);
   // Returns "Stage N (name)" or empty string if unspecified.
   static std::string FormatAttackSpeed(AttackSpeed speed);
   // Returns a colored hbox with the stat line, or nullptr if all are zero.
   // Total and base are default color; scroll is amber; SF is periwinkle.
   static ftxui::Element StatLine(const std::string& label, int base, int scroll,
                                  int sf = 0);
-  // Returns filled (★) and empty (☆) stars in groups of 5 up to max_stars.
-  // Filled stars are gold; empty stars are dark gray.
-  static ftxui::Element StarBar(int stars, int max_stars);
+  // `count` stars from `from`, in groups of 5: filled (★) up to `stars`, empty
+  // (☆) after it. Filled stars are gold; empty stars are dark gray.
+  static ftxui::Element StarBar(int stars, int from, int count);
 
   const EquipTabItem* item_ = nullptr;
   const ItemPrototype* stackable_ = nullptr;

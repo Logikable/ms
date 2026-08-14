@@ -31,6 +31,42 @@ constexpr int kSetWidth = 47;
 constexpr int kSetSlotWidth = 11;
 constexpr int kSetTierWidth = 15;
 
+// Stars to a rank when the bar is folded. Fifteen because that is where GMS
+// splits the two star force regimes, and because a 30-star bar reads as two
+// even ranks.
+constexpr int kStarsPerRow = 15;
+
+// The job categories, in the order every screen lists them.
+struct JobCategoryEntry {
+  const char* name;
+  EquipJobCategory category;
+};
+
+const JobCategoryEntry kJobCategories[] = {
+    {"Beginner", EQUIP_JOB_CATEGORY_BEGINNER},
+    {"Warrior", EQUIP_JOB_CATEGORY_WARRIOR},
+    {"Bowman", EQUIP_JOB_CATEGORY_BOWMAN},
+    {"Magician", EQUIP_JOB_CATEGORY_MAGICIAN},
+    {"Thief", EQUIP_JOB_CATEGORY_THIEF},
+    {"Pirate", EQUIP_JOB_CATEGORY_PIRATE},
+};
+
+constexpr int kJobCategoryCount =
+    static_cast<int>(sizeof(kJobCategories) / sizeof(kJobCategories[0]));
+
+// The columns `rows` would take if nothing squeezed them. What the panel asks
+// before deciding whether folding a row would buy it anything.
+int NaturalWidth(const std::vector<ftxui::Element>& rows) {
+  ftxui::Element box = ftxui::vbox(rows);
+  box->ComputeRequirement();
+  return box->requirement().min_x;
+}
+
+void Append(std::vector<ftxui::Element>& rows,
+            const std::vector<ftxui::Element>& more) {
+  rows.insert(rows.end(), more.begin(), more.end());
+}
+
 // A fraction as a percentage, with a whole number left whole: a set's figures
 // are written round, and "+20.00%" says nothing "+20%" does not.
 std::string SetPercent(double fraction) {
@@ -277,28 +313,27 @@ ftxui::Element InspectPanel::RenderStackable() const {
   });
 }
 
-ftxui::Element InspectPanel::RenderEquip() const {
+// The rows above the job categories: the item's name and the level it asks
+// for.
+std::vector<ftxui::Element> InspectPanel::HeadRows() const {
+  int level = item_->prototype().required_level();
+  return {
+      CenteredRow(item_->name()),
+      ThemedSeparator(),
+      // Trailing space on each text row keeps the right border one column
+      // clear.
+      ftxui::text(" Req Lev: " + std::to_string(level > 0 ? level : 1) + " "),
+  };
+}
+
+// Everything below the job categories: what kind of item it is, what it
+// grants, and what it has spent.
+std::vector<ftxui::Element> InspectPanel::FactRows() const {
+  const EquipPrototype& proto = item_->prototype();
   const Equip& item_state = item_->equip_state();
 
-  const EquipPrototype& proto = item_->prototype();
-  const EquipStats& base = proto.base_stats();
-  const EquipStats& scroll = item_state.scroll_stats();
-
-  int level = proto.required_level() > 0 ? proto.required_level() : 1;
-
   std::vector<ftxui::Element> rows;
-  // An item that refuses star force gets no bar at all. A row of empty stars
-  // reads as a bar waiting to be filled, which is the opposite of the truth.
-  if (Supports(proto, UPGRADE_STAR_FORCE)) {
-    rows.push_back(CenteredRow(StarBar(item_->stars(), item_->max_stars())));
-  }
-  rows.push_back(CenteredRow(item_->name()));
   rows.push_back(ThemedSeparator());
-  // Trailing space on each text row keeps the right border one column clear.
-  rows.push_back(ftxui::text(" Req Lev: " + std::to_string(level) + " "));
-  rows.push_back(FormatJobCategories(proto));
-  rows.push_back(ThemedSeparator());
-
   if (proto.equip_type() != EQUIP_TYPE_UNSPECIFIED) {
     rows.push_back(
         ftxui::text(" Type: " + FormatEquipType(proto.equip_type()) + " "));
@@ -308,23 +343,19 @@ ftxui::Element InspectPanel::RenderEquip() const {
         " Attack Speed: " + FormatAttackSpeed(proto.attack_speed()) + " "));
   }
 
+  const EquipStats& base = proto.base_stats();
+  const EquipStats& scroll = item_state.scroll_stats();
   EquipStats sf = item_->StarForceStatGains();
-
   bool any_stat = false;
-  auto AddRow = [&](const std::string& label, int base, int scroll,
-                    int star_force) {
-    ftxui::Element elem = StatLine(label, base, scroll, star_force);
-    if (elem == nullptr) {
-      return;
-    }
-    rows.push_back(elem);
-    any_stat = true;
-  };
   for (const DisplayStat& stat : kDisplayStats) {
-    AddRow(stat.label, stat.GetFrom(base), stat.GetFrom(scroll),
-           stat.GetFrom(sf));
+    ftxui::Element row = StatLine(stat.label, stat.GetFrom(base),
+                                  stat.GetFrom(scroll), stat.GetFrom(sf));
+    if (row == nullptr) {
+      continue;
+    }
+    rows.push_back(row);
+    any_stat = true;
   }
-
   if (!any_stat) {
     rows.push_back(EmptyState("no stats"));
   }
@@ -341,16 +372,68 @@ ftxui::Element InspectPanel::RenderEquip() const {
     rows.push_back(ftxui::text(" (" + std::to_string(left) + " Left, " +
                                std::to_string(restore) + restore_label));
   }
+  return rows;
+}
 
+ftxui::Element InspectPanel::RenderEquip() const {
+  std::vector<ftxui::Element> head = HeadRows();
+  std::vector<ftxui::Element> facts = FactRows();
+  // What the item has to say sets the width; the two rows that can be folded
+  // are measured against it rather than the other way round.
+  int fixed = std::max(NaturalWidth(head), NaturalWidth(facts));
+
+  std::vector<ftxui::Element> jobs = JobRows(fixed);
+  std::vector<ftxui::Element> rows =
+      StarRows(std::max(fixed, NaturalWidth(jobs)));
+  Append(rows, head);
+  Append(rows, jobs);
+  Append(rows, facts);
   return ftxui::vbox(std::move(rows));
 }
 
-ftxui::Element InspectPanel::StarBar(int stars, int max_stars) {
+// The six job categories, on one row or folded onto two. Folded whenever the
+// one-row form would be what makes the panel wide: the categories are the same
+// six on every item, so a card describing a narrow item should not be 55
+// columns across to list them.
+std::vector<ftxui::Element> InspectPanel::JobRows(int fixed) const {
+  const EquipPrototype& proto = item_->prototype();
+  ftxui::Element one_row = JobRow(proto, 0, kJobCategoryCount);
+  if (NaturalWidth({one_row}) <= fixed) {
+    return {one_row};
+  }
+  int half = kJobCategoryCount / 2;
+  return {CenteredRow(JobRow(proto, 0, half)),
+          CenteredRow(JobRow(proto, half, kJobCategoryCount - half))};
+}
+
+// The star bar, on one row or folded onto two. An item that refuses star force
+// gets no bar at all: a row of empty stars reads as a bar waiting to be
+// filled, which is the opposite of the truth.
+std::vector<ftxui::Element> InspectPanel::StarRows(int fixed) const {
+  const EquipPrototype& proto = item_->prototype();
+  if (!Supports(proto, UPGRADE_STAR_FORCE)) {
+    return {};
+  }
+  int stars = item_->stars();
+  int max_stars = item_->max_stars();
+  ftxui::Element one_row = CenteredRow(StarBar(stars, 0, max_stars));
+  if (max_stars <= kStarsPerRow || NaturalWidth({one_row}) <= fixed) {
+    return {one_row};
+  }
+  // A row of fifteen with the excess centred under it, which is how a 30-star
+  // bar reads as two ranks rather than one long line.
+  return {CenteredRow(StarBar(stars, 0, kStarsPerRow)),
+          CenteredRow(StarBar(stars, kStarsPerRow, max_stars - kStarsPerRow))};
+}
+
+ftxui::Element InspectPanel::StarBar(int stars, int from, int count) {
   const ftxui::Color kFilled = kYellow;
   const ftxui::Color kEmpty = kGray;
   std::vector<ftxui::Element> parts;
-  for (int i = 0; i < max_stars; ++i) {
-    if (i > 0 && i % 5 == 0) {
+  for (int i = from; i < from + count; ++i) {
+    // Grouped in fives from the start of the row, so a folded bar's second
+    // rank groups like its first rather than carrying the first's remainder.
+    if (i > from && (i - from) % 5 == 0) {
       parts.push_back(ftxui::text(" "));
     }
     bool filled = i < stars;
@@ -399,39 +482,25 @@ std::string InspectPanel::FormatAttackSpeed(AttackSpeed speed) {
   return "Stage " + std::to_string(stage) + " (" + name + ")";
 }
 
-ftxui::Element InspectPanel::FormatJobCategories(const EquipPrototype& proto) {
+ftxui::Element InspectPanel::JobRow(const EquipPrototype& proto, int from,
+                                    int count) {
   std::set<EquipJobCategory> cats;
   for (int i = 0; i < proto.equip_job_categories_size(); ++i) {
     cats.insert(static_cast<EquipJobCategory>(proto.equip_job_categories(i)));
   }
   bool universal = cats.empty() || cats.count(EQUIP_JOB_CATEGORY_UNIVERSAL);
 
-  struct Entry {
-    const char* name;
-    EquipJobCategory cat;
-  };
-  const Entry kEntries[] = {
-      {"Beginner", EQUIP_JOB_CATEGORY_BEGINNER},
-      {"Warrior", EQUIP_JOB_CATEGORY_WARRIOR},
-      {"Bowman", EQUIP_JOB_CATEGORY_BOWMAN},
-      {"Magician", EQUIP_JOB_CATEGORY_MAGICIAN},
-      {"Thief", EQUIP_JOB_CATEGORY_THIEF},
-      {"Pirate", EQUIP_JOB_CATEGORY_PIRATE},
-  };
-
   std::vector<ftxui::Element> elems;
   elems.push_back(ftxui::text(" "));
-  bool first = true;
-  for (const Entry& entry : kEntries) {
-    if (!first) {
+  for (int i = from; i < from + count; ++i) {
+    if (i > from) {
       elems.push_back(ftxui::text(" / "));
     }
-    first = false;
-    ftxui::Element e = ftxui::text(entry.name);
-    if (!universal && !cats.count(entry.cat)) {
-      e = e | ftxui::dim;
+    ftxui::Element name = ftxui::text(kJobCategories[i].name);
+    if (!universal && !cats.count(kJobCategories[i].category)) {
+      name = name | ftxui::dim;
     }
-    elems.push_back(e);
+    elems.push_back(name);
   }
   elems.push_back(ftxui::text(" "));
   return ftxui::hbox(std::move(elems));
