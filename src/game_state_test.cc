@@ -355,6 +355,33 @@ TEST(GameStateTest, BothModesStartWearingAWeapon) {
   EXPECT_FALSE(MakePlayModeState().character.equipped().empty());
 }
 
+// The set effect cannot be read off the stats page without the whole set, and
+// farming one out takes a climb to 100. The workbench hands it over instead.
+TEST(GameStateTest, TestModeCarriesTheWholeFrozenSet) {
+  const std::pair<std::string, std::string> kPieces[] = {
+      {"frozen_hat", "Frozen Hat"},
+      {"frozen_top", "Frozen Top"},
+      {"frozen_bottom", "Frozen Bottom"},
+      {"frozen_cape", "Frozen Cape"}};
+  std::map<std::string, EquipPrototype> catalog = SwordCatalog();
+  for (const std::pair<std::string, std::string>& piece : kPieces) {
+    EquipPrototype proto;
+    proto.set_name(piece.second);
+    proto.set_equip_slot(EQUIP_SLOT_TOP);
+    catalog[piece.first] = proto;
+  }
+
+  GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
+  const InventoryInstance& bag = state.character.inventory();
+  for (const std::pair<std::string, std::string>& piece : kPieces) {
+    bool held = false;
+    for (int i = 0; i < bag.size(); ++i) {
+      held = held || bag[i].prototype().name() == piece.second;
+    }
+    EXPECT_TRUE(held) << "the workbench has no " << piece.second;
+  }
+}
+
 TEST(GameStateTest, TestModeStartsOnAHuntingGround) {
   EXPECT_EQ(MakeTestModeState().current_map, "right_around_lith_harbor");
 }

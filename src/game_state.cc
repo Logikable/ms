@@ -270,6 +270,14 @@ void SeedTest(GameState& state, JobAdvancement chosen) {
     GiveEquip(state, "machete");
   }
   GiveUpgradeItems(state);
+  // The whole Frozen Set, so the set bonus can be read off the stats page
+  // without farming to level 100 for the pieces first. Left in the bag rather
+  // than worn: the workbench starts too low to wear any of them, and the
+  // Level-Up items are how a tester gets there.
+  for (const std::string& piece :
+       {"frozen_hat", "frozen_top", "frozen_bottom", "frozen_cape"}) {
+    GiveEquip(state, piece);
+  }
   // Only the book the chosen job is standing in is left unspent. The ones
   // behind them are not what --job was asked for, and leaving those unbought
   // would put the tester through two allocation screens to reach one.
