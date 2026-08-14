@@ -200,6 +200,15 @@ void AppendStat(std::string& out, int val, const std::string& label) {
   out += "+" + std::to_string(val) + " " + label;
 }
 
+std::string FormatEquipSet(EquipSetName set) {
+  switch (set) {
+    case EQUIP_SET_NAME_FROZEN:
+      return "Frozen Set";
+    default:
+      return "";
+  }
+}
+
 std::string FormatSlot(EquipSlot slot) {
   switch (slot) {
     case EQUIP_SLOT_PRIMARY_WEAPON:

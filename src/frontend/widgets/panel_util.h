@@ -14,6 +14,7 @@
 #include "src/frontend/widgets/marquee.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -99,6 +100,10 @@ std::string FormatSlot(EquipSlot slot);
 // Returns the display name for a weapon type (e.g. "Claw"). Returns "" for
 // types not yet implemented.
 std::string FormatEquipType(EquipType type);
+
+// Returns the display name for a set of equipment (e.g. "Frozen Set"), or ""
+// for an unnamed one.
+std::string FormatEquipSet(EquipSetName set);
 
 // The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for
 // an unspecified one. The stage number is the proto enum's own value, so a

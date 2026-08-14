@@ -814,22 +814,28 @@ void CharacterInstance::UseEquipSets(std::map<std::string, EquipSet> sets) {
   RecomputeSetBonuses();
 }
 
+int CharacterInstance::PiecesWornOf(const EquipSet& set) const {
+  // Counted by display name, the way a save names what it holds: the character
+  // carries prototypes, not the catalog keys they were loaded under. A member
+  // with no name is a family nobody has an item from yet, and counts nothing.
+  int worn = 0;
+  for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
+    for (const EquipSetMember& member : set.members()) {
+      if (!member.name().empty() &&
+          kv.second.prototype().name() == member.name()) {
+        ++worn;
+        break;
+      }
+    }
+  }
+  return worn;
+}
+
 void CharacterInstance::RecomputeSetBonuses() {
   set_bonuses_.clear();
   for (const std::pair<const std::string, EquipSet>& entry : equip_sets_) {
     const EquipSet& set = entry.second;
-    // Counted by display name, the way a save names what it holds: the
-    // character carries prototypes, not the catalog keys they were loaded
-    // under. One piece per slot, so no slot can count twice.
-    int worn = 0;
-    for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
-      for (const std::string& member : set.members()) {
-        if (kv.second.prototype().name() == member) {
-          ++worn;
-          break;
-        }
-      }
-    }
+    int worn = PiecesWornOf(set);
     for (const EquipSetTier& tier : set.tiers()) {
       if (worn >= tier.pieces()) {
         set_bonuses_.push_back(tier.effect());

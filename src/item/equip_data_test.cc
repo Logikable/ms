@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -254,17 +255,31 @@ TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   int checked = 0;
   for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
-    EXPECT_FALSE(entry.second.name().empty()) << entry.first << " is unnamed";
-    for (const std::string& member : entry.second.members()) {
+    EXPECT_FALSE(FormatEquipSet(entry.second.name()).empty())
+        << entry.first << " is an unnamed set";
+    std::set<EquipSlot> slots;
+    for (const EquipSetMember& member : entry.second.members()) {
+      EXPECT_FALSE(FormatSlot(member.slot()).empty())
+          << entry.first << " has a member in an unnamed slot";
+      EXPECT_TRUE(slots.insert(member.slot()).second)
+          << entry.first << " fills " << FormatSlot(member.slot()) << " twice";
+      // One item or a family of them, never both and never neither: the
+      // inspect screen prints one column from whichever it is, and a member
+      // that is both would count a family toward the tiers.
+      EXPECT_NE(member.name().empty(), member.family().empty())
+          << entry.first << " has a member that is not one item or one family";
+      if (member.name().empty()) {
+        continue;
+      }
       ++checked;
       bool found = false;
       for (const std::pair<const std::string, EquipPrototype>& equip : equips) {
-        if (equip.second.name() == member) {
+        if (equip.second.name() == member.name()) {
           found = true;
           break;
         }
       }
-      EXPECT_TRUE(found) << entry.first << " counts \"" << member
+      EXPECT_TRUE(found) << entry.first << " counts \"" << member.name()
                          << "\", which no equip file defines";
     }
   }
@@ -279,8 +294,8 @@ TEST(EquipDataTest, EverySetTierIsReachable) {
     for (const EquipSetTier& tier : entry.second.tiers()) {
       EXPECT_GT(tier.pieces(), 1)
           << entry.first << " pays a tier for wearing one piece";
-      EXPECT_LE(tier.pieces(), 6)
-          << entry.first << " has a tier past the six a set can hold";
+      EXPECT_LE(tier.pieces(), entry.second.members_size())
+          << entry.first << " has a tier past the pieces the set holds";
     }
   }
 }

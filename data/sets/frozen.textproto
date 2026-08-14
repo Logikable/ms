@@ -1,11 +1,34 @@
-name: "Frozen Set"
-members: "Frozen Top"
-members: "Frozen Bottom"
-members: "Frozen Hat"
-members: "Frozen Cape"
+name: EQUIP_SET_NAME_FROZEN
+# In the order the inspect screen lists them, which is the order they are worn
+# in rather than the order they drop in.
+members {
+  slot: EQUIP_SLOT_HAT
+  name: "Frozen Hat"
+}
+members {
+  slot: EQUIP_SLOT_TOP
+  name: "Frozen Top"
+}
+members {
+  slot: EQUIP_SLOT_BOTTOM
+  name: "Frozen Bottom"
+}
+members {
+  slot: EQUIP_SLOT_CAPE
+  name: "Frozen Cape"
+}
 # The weapon and the secondary are not written yet: no monster in the game is
 # above level 98, and a weapon here belongs to one class rather than to all of
-# them. The last two tiers are what they will pay when those arrive.
+# them. Named as families so the set can state what it is waiting for; the last
+# two tiers are what they will pay when those arrive.
+members {
+  slot: EQUIP_SLOT_PRIMARY_WEAPON
+  family: "Frozen Weapon"
+}
+members {
+  slot: EQUIP_SLOT_SECONDARY
+  family: "Frozen Secondary"
+}
 tiers {
   pieces: 3
   effect {

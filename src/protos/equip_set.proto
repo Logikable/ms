@@ -2,7 +2,16 @@ syntax = "proto3";
 
 package ms;
 
+import "src/protos/equip.proto";
 import "src/protos/skill.proto";
+
+// Every set of equipment in the game. An enum rather than a free-typed name
+// because there will only ever be a handful, and the screens that name a set
+// should not be able to disagree with the data about its spelling.
+enum EquipSetName {
+  EQUIP_SET_NAME_UNSPECIFIED = 0;
+  EQUIP_SET_NAME_FROZEN = 1;
+}
 
 // What wearing several pieces of one set is worth. Each tier is a SkillEffect
 // because a set bonus grants exactly what a passive skill grants -- stats,
@@ -14,15 +23,27 @@ message EquipSetTier {
   SkillEffect effect = 2;
 }
 
+// One slot of a set and what fills it.
+message EquipSetMember {
+  EquipSlot slot = 1;
+  // The piece, by display name -- the way a save names what it holds, because
+  // the character carries prototypes rather than the catalog keys they were
+  // loaded under. Empty when the slot takes any one of a family instead.
+  string name = 2;
+  // What fills the slot when no single item does: a set's weapon belongs to
+  // one class, so there is one per class rather than one item. The inspect
+  // screen reads it as "Choose 1 <family>". A member with a family and no name
+  // counts toward nothing until the items are written.
+  string family = 3;
+}
+
 // A family of equipment that pays for being worn together. Loaded from
 // data/sets textprotos at startup.
 message EquipSet {
-  string name = 1;
-  // Display names of the pieces, as their data files write them -- the way a
-  // save names what it holds, because the character carries prototypes rather
-  // than the catalog keys they were loaded under. One piece per slot, so no
-  // slot can count twice.
-  repeated string members = 2;
+  EquipSetName name = 1;
+  // One member per slot, so no slot can count twice. Written in the order the
+  // inspect screen lists them.
+  repeated EquipSetMember members = 2;
   // Tiers are cumulative: five pieces pay the three, four and five tiers
   // together. Written that way so a tier states what it adds rather than
   // restating everything below it.

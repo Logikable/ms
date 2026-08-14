@@ -228,10 +228,15 @@ TEST_F(DerivedStatsTest, SumsAllocatedAndEquippedWithoutSkills) {
 // A four-piece set, tiered at three and four, with levers on both sides of the
 // pipeline: flat stats and attack, and a percentage over the HP pool.
 std::map<std::string, EquipSet> FrozenSet() {
+  const EquipSlot kSlots[] = {EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM, EQUIP_SLOT_HAT,
+                              EQUIP_SLOT_CAPE};
+  const char* kPieces[] = {"Top", "Bottom", "Hat", "Cape"};
   EquipSet set;
-  set.set_name("Frozen Set");
-  for (const char* piece : {"Top", "Bottom", "Hat", "Cape"}) {
-    set.add_members(std::string("Frozen ") + piece);
+  set.set_name(EQUIP_SET_NAME_FROZEN);
+  for (int i = 0; i < 4; ++i) {
+    EquipSetMember* member = set.add_members();
+    member->set_slot(kSlots[i]);
+    member->set_name(std::string("Frozen ") + kPieces[i]);
   }
   EquipSetTier* three = set.add_tiers();
   three->set_pieces(3);

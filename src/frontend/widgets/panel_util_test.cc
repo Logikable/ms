@@ -952,5 +952,10 @@ TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
 }
 
+TEST(FormatEquipSetTest, NamesEverySet) {
+  EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_FROZEN), "Frozen Set");
+  EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_UNSPECIFIED), "");
+}
+
 }  // namespace
 }  // namespace ms

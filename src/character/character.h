@@ -331,6 +331,13 @@ class CharacterInstance {
   const std::vector<SkillEffect>& set_bonuses() const {
     return set_bonuses_;
   }
+  // The sets the character knows about, keyed as their data files were loaded.
+  const std::map<std::string, EquipSet>& equip_sets() const {
+    return equip_sets_;
+  }
+  // How many pieces of `set` are worn right now. What every tier is measured
+  // against, and what the inspect screen greys its unearned tiers by.
+  int PiecesWornOf(const EquipSet& set) const;
 
  private:
   // Puts a sale on the buy-back shelf, newest first, and drops the oldest row
