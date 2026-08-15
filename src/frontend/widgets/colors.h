@@ -36,8 +36,11 @@ inline const ftxui::Color kTheme = ftxui::Color::RGB(100, 150, 200);
 inline const ftxui::Color kYellow = ftxui::Color::RGB(255, 210, 50);
 inline const ftxui::Color kGray = ftxui::Color::RGB(100, 100, 100);
 
-// Stat source breakdown in the inspect panel, and the skills tab's attack tag.
+// Stat source breakdown in the inspect panel, and a skill list's auto-attack
+// tag. Far enough from the orange beside it that the two tags cannot be read
+// as shades of each other.
 inline const ftxui::Color kPurple = ftxui::Color::RGB(173, 163, 255);
+// A skill list's attack tag.
 inline const ftxui::Color kOrange = ftxui::Color::RGB(255, 198, 50);
 
 // Star Force outcome rates.

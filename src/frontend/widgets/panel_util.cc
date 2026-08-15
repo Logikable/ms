@@ -312,7 +312,9 @@ KindTag TagFor(const Skill& skill) {
     case SKILL_KIND_ACTIVE:
       return {"A:  ", kOrange};
     case SKILL_KIND_AUTO_ATTACK:
-      return {"AA: ", kMutedYellow};
+      // Purple rather than another yellow: an auto-attack is not a shade of
+      // active, and two tags a step apart in the same hue read as one.
+      return {"AA: ", kPurple};
     case SKILL_KIND_PASSIVE:
       return {"P:  ", kGreen};
     default:
