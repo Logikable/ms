@@ -245,9 +245,20 @@ TEST_F(ScrollPanelTest, SetFilterResetsTheSelection) {
 // Display columns, not bytes: the scroll glyph is four bytes wide and two
 // columns wide, which is exactly the confusion this file has to keep out of
 // the Cost column.
+//
+// Screen::ToString keeps the colour escapes, so a styled cell puts bytes on
+// the line that occupy no columns at all. Skipping them is what lets a red
+// cost be measured against a heading that is not red.
 int DisplayColumns(const std::string& s) {
   int width = 0;
   for (size_t i = 0; i < s.size();) {
+    if (s[i] == '\x1b') {
+      while (i < s.size() && s[i] != 'm') {
+        ++i;
+      }
+      ++i;  // the 'm' that ends it
+      continue;
+    }
     unsigned char c = s[i];
     int bytes = c < 0x80 ? 1 : (c < 0xE0 ? 2 : (c < 0xF0 ? 3 : 4));
     width += bytes == 4 ? 2 : 1;  // the emoji is the only wide glyph here
@@ -261,6 +272,16 @@ TEST_F(ScrollPanelTest, EachRowCarriesItsTraceCost) {
   std::string rendered = Render(panel_);
   EXPECT_NE(rendered.find("34 📜"), std::string::npos);
   EXPECT_NE(rendered.find("Cost"), std::string::npos);
+}
+
+// The list answers "what can I afford" on its face, in the same red the
+// confirm window uses, so a player need not open a row to find out.
+TEST_F(ScrollPanelTest, ARowsCostGoesRedWhenItCannotBePaid) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  EXPECT_EQ(LabelColor(panel_.Render(), "34"), kRed);
+
+  GiveTraces(kAaaCost);
+  EXPECT_NE(LabelColor(panel_.Render(), "34"), kRed);
 }
 
 // The change this screen exists to show: one scroll, two prices, because the

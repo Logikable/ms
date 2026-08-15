@@ -71,10 +71,13 @@ class ScrollPanel {
 
  private:
   void ResetComponent();
-  // One row: name, success, stats, cost. `elapsed` is how long this row has
-  // been selected, which is what slides a too-long name under its column.
-  static std::string FormatEntry(const Scroll& scroll, int required_level,
+  // One row's text: name, success, stats. The cost is not in it -- it is drawn
+  // as its own cell so it can turn red. `elapsed` is how long this row has been
+  // selected, which is what slides a too-long name under its column.
+  static std::string FormatEntry(const Scroll& scroll,
                                  std::chrono::steady_clock::duration elapsed);
+  // The Cost cell of the row at `index`, red when the player cannot pay it.
+  ftxui::Element CostCellFor(int index) const;
   // Spell traces the character owns.
   int TracesOwned() const;
   // The pop-up that asks before a scroll is spent: what it is going on, what

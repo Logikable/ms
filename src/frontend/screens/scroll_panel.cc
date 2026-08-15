@@ -147,8 +147,14 @@ void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered,
 
 void ScrollPanel::ResetComponent() {
   ftxui::MenuOption opt;
-  opt.entries_option.transform = [](ftxui::EntryState state) -> ftxui::Element {
-    return ftxui::text((state.active ? "> " : "  ") + state.label);
+  // The cost is its own cell rather than part of the label, so a price the
+  // player cannot pay can be said in red without colouring the whole row.
+  opt.entries_option.transform =
+      [this](ftxui::EntryState state) -> ftxui::Element {
+    return ftxui::hbox({
+        ftxui::text((state.active ? "> " : "  ") + state.label),
+        CostCellFor(state.index),
+    });
   };
   // Wrapped so the list is a ring: this screen is the list and nothing else,
   // so Up off the top row has nowhere to go but the bottom one.
@@ -166,10 +172,10 @@ void ScrollPanel::ResetComponent() {
     clock_.Follow(selected_);
     entries_.clear();
     for (int i = 0; i < static_cast<int>(ordered_.size()); ++i) {
-      entries_.push_back(
-          FormatEntry(*ordered_[i], target_level_,
-                      i == selected_ ? clock_.Elapsed()
-                                     : std::chrono::steady_clock::duration()));
+      entries_.push_back(FormatEntry(
+          *ordered_[i], i == selected_
+                            ? clock_.Elapsed()
+                            : std::chrono::steady_clock::duration()));
     }
     std::vector<ftxui::Element> rows = {
         ftxui::text(ColumnHeader()),
@@ -238,6 +244,20 @@ bool ScrollPanel::CanAffordSelected() const {
     return false;
   }
   return TracesOwned() >= CostOfSelected();
+}
+
+ftxui::Element ScrollPanel::CostCellFor(int index) const {
+  if (index < 0 || index >= static_cast<int>(ordered_.size())) {
+    return ftxui::text(std::string(kCostWidth, ' '));
+  }
+  int cost = TraceCost(*ordered_[index], target_level_);
+  ftxui::Element cell = ftxui::text(CostCell(cost));
+  if (cost > TracesOwned()) {
+    // The same red the confirm window says it in, so the list answers "what
+    // can I afford" without opening every row to find out.
+    cell = std::move(cell) | ftxui::color(kRed);
+  }
+  return cell;
 }
 
 int ScrollPanel::CostOfSelected() const {
@@ -317,14 +337,11 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
 }
 
 std::string ScrollPanel::FormatEntry(
-    const Scroll& scroll, int required_level,
-    std::chrono::steady_clock::duration elapsed) {
+    const Scroll& scroll, std::chrono::steady_clock::duration elapsed) {
   std::string name = ScrollingWindow(scroll.name(), kNameWidth, elapsed);
   std::string rate =
       PadRight(std::to_string(scroll.success_rate()) + "%", kRateWidth);
-  return name + "  " + rate + "  " +
-         PadRight(ScrollStats(scroll), kStatsWidth) +
-         CostCell(TraceCost(scroll, required_level));
+  return name + "  " + rate + "  " + PadRight(ScrollStats(scroll), kStatsWidth);
 }
 
 }  // namespace ms
