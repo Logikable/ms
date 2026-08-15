@@ -70,6 +70,14 @@ class CharacterPanel {
   // surely as one stepped onto.
   void MarkActiveTabSeen();
 
+  // The screen row the selected job was last drawn on, for anchoring the job
+  // menu beside it. Read from the render rather than worked out from the rows
+  // above it, so the menu does not have to know the panel's shape. One frame
+  // behind, which is right: opening the menu does not move the list.
+  int job_cursor_row() const {
+    return job_cursor_box_.y_min;
+  }
+
   // Lights the panel's border gold, to send the player's eye here while a
   // level-up or advancement is being celebrated -- this is where the AP, SP
   // and job the moment handed over are spent. The panel keeps no clock of its
@@ -216,6 +224,8 @@ class CharacterPanel {
   std::chrono::steady_clock::time_point skill_selected_at_ =
       std::chrono::steady_clock::now();
   int job_sel_ = 0;  // selected Advance-tab job row
+  // Written by ftxui::reflect on the selected job row each render.
+  mutable ftxui::Box job_cursor_box_;
 };
 
 }  // namespace ms

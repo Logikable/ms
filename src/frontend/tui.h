@@ -24,6 +24,7 @@
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
+#include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
@@ -67,6 +68,7 @@ class Tui {
   // The inspect screen for a row of the buy-back shelf: the item as the sale
   // left it, rebuilt from the shelf plus the catalog.
   ftxui::Element RenderBuyBackInspect(const BuyBackEntry& entry);
+  ftxui::Element RenderJobInspect();
   ftxui::Element RenderTraceRecover();
   ftxui::Element RenderInspect();
   ftxui::Element RenderScroll();
@@ -129,6 +131,8 @@ class Tui {
   SellPanel sell_panel_;
   SellEquipPanel sell_equip_panel_;
   MapSelectPanel map_select_panel_;
+  // The job's book, read before the advancement is taken.
+  JobInspectPanel job_inspect_panel_;
   // Every stat on one screen, reached from the Character panel's last row.
   AllStatsPanel all_stats_panel_;
   ShopPanel shop_panel_;

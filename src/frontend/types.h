@@ -21,6 +21,10 @@ enum Screen : int {
   kSkillInspect,
   // Every stat on one screen, from the Character panel's last stats row.
   kAllStats,
+  // Enter on a job in the Character panel's Advance tab: read it, take it, or
+  // walk away. The screen it leads to reads the job's book without taking it.
+  kJobMenu,
+  kJobInspect,
   kJobAdvance,
   kStarForce,
   kStarForceResult,
@@ -64,6 +68,14 @@ enum MenuItem : int {
   // Second to last, above Close. It is the one entry on this menu that
   // destroys the item, so it does not sit where the cursor lands.
   kMenuSell = 5,
+};
+// Entries of the job context menu, on Enter in the Advance tab. Advance sits
+// under Inspect for the same reason Sell sits low on the item menu: it is the
+// entry there is no coming back from, so it is not where the cursor lands.
+enum JobMenuItem : int {
+  kJobMenuInspect = 0,
+  kJobMenuAdvance = 1,
+  kJobMenuClose = 2,
 };
 // Entries of the Use/Etc stackable context menu.
 enum StackMenuItem : int {

@@ -95,12 +95,13 @@ Tui::Tui(GameState& state, std::string save_path)
       scroll_panel_(state.character, state.scrolls),
       trace_recover_panel_(state.character),
       map_select_panel_(state),
+      job_inspect_panel_(state.skills),
       all_stats_panel_(state.character, state.skills),
       shop_panel_(state.character, state.equips, state.items),
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
                   sell_panel_, sell_equip_panel_, map_select_panel_,
-                  shop_panel_, buy_panel_, panel_focus_) {
+                  shop_panel_, buy_panel_, job_inspect_panel_, panel_focus_) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -116,7 +117,7 @@ void Tui::Run() {
   char_component_ = char_panel_.MakeComponent(
       [this](StatField field) { controller_.OpenApAllocate(field); },
       [this](const Skill& skill) { controller_.OpenSkillLearn(skill); },
-      [this](Job job) { controller_.OpenJobAdvance(job); },
+      [this](Job job) { controller_.OpenJobMenu(job); },
       [this](const Skill& skill) { controller_.OpenSkillInspect(skill); },
       [this]() { controller_.OpenAllStats(); });
   combat_component_ =
@@ -347,6 +348,18 @@ ftxui::Element Tui::RenderShopInspect() {
   return Standalone(inspect_panel_.Render());
 }
 
+// The job's book on the left and whichever skill the cursor is on to the
+// right, previewed at both ends of its levels: the player has spent no points
+// on it and has none to spend, so "one more point" would say nothing.
+ftxui::Element Tui::RenderJobInspect() {
+  skill_inspect_panel_.SetSkill(job_inspect_panel_.selected_skill(), 0,
+                                SkillInspectPanel::kPreview);
+  return Standalone(ftxui::hbox({
+      job_inspect_panel_.Render(),
+      skill_inspect_panel_.Render(),
+  }));
+}
+
 ftxui::Element Tui::RenderTraceRecover() {
   EquipInstance preview = trace_recover_panel_.PreviewResult();
   trace_inspect_panel_.SetItem(&preview);
@@ -430,6 +443,8 @@ ftxui::Element Tui::RenderScreen() {
           controller_.trace_recovery_result()));
     case kAllStats:
       return Standalone(all_stats_panel_.Render());
+    case kJobInspect:
+      return RenderJobInspect();
     case kSkillInspect:
       skill_inspect_panel_.SetSkill(&controller_.skill_inspect_skill(),
                                     controller_.skill_inspect_level());
@@ -470,6 +485,17 @@ ftxui::Element Tui::RenderMain() {
   ftxui::Element layout = MainLayout(
       char_panel_.Render(), combat_component_->Render(), std::move(equipped),
       std::move(inventory), std::move(hotkeys), RenderExpBar());
+  if (controller_.screen() == kJobMenu) {
+    // Anchored to the job row the same way the bag's menu is anchored to an
+    // item, and one row above it so the highlighted entry lands beside the job
+    // rather than below it. Clear of the names to its left: which job the menu
+    // is about is the one thing it must not cover.
+    constexpr int kJobMenuCol = 14;
+    return ftxui::dbox(
+        {layout,
+         Floating(controller_.job_menu().Render(
+             std::max(0, char_panel_.job_cursor_row() - 1), kJobMenuCol))});
+  }
   if (controller_.screen() != kItemMenu) {
     return layout;
   }

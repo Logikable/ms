@@ -30,7 +30,7 @@ TuiController::TuiController(
     StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
     SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
     MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
-    BuyPanel& buy_panel, int& panel_focus)
+    BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel, int& panel_focus)
     : state_(state),
       char_panel_(char_panel),
       equip_panel_(equip_panel),
@@ -41,6 +41,7 @@ TuiController::TuiController(
       sell_panel_(sell_panel),
       sell_equip_panel_(sell_equip_panel),
       map_select_panel_(map_select_panel),
+      job_inspect_panel_(job_inspect_panel),
       shop_panel_(shop_panel),
       buy_panel_(buy_panel),
       panel_focus_(panel_focus) {
@@ -90,6 +91,12 @@ int TuiController::skill_inspect_level() const {
 
 void TuiController::OpenAllStats() {
   screen_ = kAllStats;
+}
+
+void TuiController::OpenJobMenu(Job job) {
+  job_advance_ = job;
+  job_menu_.Reset();
+  screen_ = kJobMenu;
 }
 
 void TuiController::OpenJobAdvance(Job job) {
@@ -197,6 +204,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
     case kSkillInspect:
     case kAllStats:
       return OnSkillInspectEvent(event);
+    case kJobMenu:
+      return OnJobMenuEvent(event);
+    case kJobInspect:
+      return OnJobInspectEvent(event);
     case kJobAdvance:
       return OnJobAdvanceEvent(event);
     case kStarForce:
@@ -405,6 +416,55 @@ bool TuiController::OnQuitEvent(ftxui::Event event) {
     screen_ = kMain;
   } else if (choice == ConfirmChoice::kCancelled) {
     screen_ = kMain;
+  }
+  return true;
+}
+
+bool TuiController::OnJobMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    job_menu_.Up();
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    job_menu_.Down();
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;  // The menu is modal: nothing behind it hears a key.
+  }
+  switch (job_menu_.selected()) {
+    case kJobMenuInspect:
+      job_inspect_panel_.SetJob(job_advance_);
+      screen_ = kJobInspect;
+      break;
+    case kJobMenuAdvance:
+      OpenJobAdvance(job_advance_);
+      break;
+    default:
+      screen_ = kMain;
+      break;
+  }
+  return true;
+}
+
+// Read-only, so Up and Down are the whole of it. Back returns to the menu the
+// screen was opened from rather than to the main view: the player came here to
+// decide, and the decision is one keypress away on the menu.
+bool TuiController::OnJobInspectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    job_inspect_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    job_inspect_panel_.MoveCursor(1);
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kJobMenu;
   }
   return true;
 }

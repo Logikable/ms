@@ -500,8 +500,12 @@ ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
     // A caret rather than the [+] the other tabs use: there is nothing to
     // spend here, only one of four things to become.
     std::string cursor = content_focused && job_sel_ == i ? " > " : "   ";
-    rows.push_back(
-        ftxui::text(PadRight(cursor + JobName(jobs[i]), kContentWidth)));
+    ftxui::Element row =
+        ftxui::text(PadRight(cursor + JobName(jobs[i]), kContentWidth));
+    if (job_sel_ == i) {
+      row = std::move(row) | ftxui::reflect(job_cursor_box_);
+    }
+    rows.push_back(std::move(row));
   }
   return ftxui::vbox(std::move(rows));
 }

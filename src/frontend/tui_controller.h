@@ -17,6 +17,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/screens/buy_panel.h"
+#include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
@@ -27,6 +28,7 @@
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/amount_selector.h"
 #include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/item_menu.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -46,7 +48,8 @@ class TuiController {
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
                 SellEquipPanel& sell_equip_panel,
                 MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
-                BuyPanel& buy_panel, int& panel_focus);
+                BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
+                int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
@@ -65,6 +68,10 @@ class TuiController {
   void OpenSkillInspect(const Skill& skill);
   // Every stat the character has, on a screen of its own.
   void OpenAllStats();
+  // Float the job's context menu over the main view: read the job, take it, or
+  // walk away. Enter in the Advance tab lands here rather than on the
+  // confirmation -- what a job is should be readable before it is chosen.
+  void OpenJobMenu(Job job);
   // Float the job-advancement confirmation over the main view. The prompt opens
   // on Cancel: the choice cannot be taken back.
   void OpenJobAdvance(Job job);
@@ -102,6 +109,11 @@ class TuiController {
   }
   const ConfirmPrompt& job_advance_prompt() const {
     return job_advance_prompt_;
+  }
+
+  // The job menu, for the overlay Tui floats beside the job's row.
+  const ItemMenu& job_menu() const {
+    return job_menu_;
   }
 
   // The prompt on the quit dialog, for the same reason.
@@ -172,6 +184,8 @@ class TuiController {
   bool OnApAllocEvent(ftxui::Event event);
   bool OnSkillLearnEvent(ftxui::Event event);
   bool OnSkillInspectEvent(ftxui::Event event);
+  bool OnJobMenuEvent(ftxui::Event event);
+  bool OnJobInspectEvent(ftxui::Event event);
   bool OnJobAdvanceEvent(ftxui::Event event);
   bool OnQuitEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
@@ -204,6 +218,7 @@ class TuiController {
   SellPanel& sell_panel_;
   SellEquipPanel& sell_equip_panel_;
   MapSelectPanel& map_select_panel_;
+  JobInspectPanel& job_inspect_panel_;
   ShopPanel& shop_panel_;
   BuyPanel& buy_panel_;
   // Catalog key of the item the buy dialog is open on, so the purchase reads
@@ -233,6 +248,7 @@ class TuiController {
   AmountSelector sp_selector_;
   Skill skill_inspect_;
   Job job_advance_ = JOB_UNSPECIFIED;
+  ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
   ConfirmPrompt job_advance_prompt_;
   ConfirmPrompt quit_prompt_;
   bool quit_requested_ = false;
