@@ -17,16 +17,23 @@
 namespace ms {
 namespace {
 
-// Column widths of the map list. Names run long ("Right Around Lith Harbor"),
-// so leave room for one to sit beside the level rather than against it.
-constexpr int kMapNameWidth = 28;
+// Column widths of the map list. PadRight truncates rather than overflows, so
+// a name past the column quietly loses its last letters. The chip bar above
+// the rows is wider than they are, so this column is free up to that.
+constexpr int kMapNameWidth = 34;
 constexpr int kLevelWidth = 4;
 
-// Column widths of the mob table. The longest name is 19 ("Muddy Swamp
-// Monster"), and PadRight truncates rather than overflows, so anything
-// narrower quietly eats the last letters.
-constexpr int kMobNameWidth = 21;
+// Column widths of the mob table. Mob names top out at 19 ("Muddy Swamp
+// Monster"); the column is wider than that because the map's name stands over
+// it, and PadRight truncates rather than overflows.
+constexpr int kMobNameWidth = 22;
 constexpr int kCountWidth = 6;
+
+// What every line of the mob table comes to. The map's name stands over the
+// columns and is padded out to this: the two windows sit side by side and the
+// pair is centered, so a name wider than the columns walks them both sideways
+// as the cursor moves. Wide enough for the longest map name and one space.
+constexpr int kMobTableWidth = 1 + kMobNameWidth + kLevelWidth + kCountWidth;
 
 // The level bands the list pages through, low to high. One band holds more of
 // the ladder than the one below it, since a level buys less the further along
@@ -205,8 +212,9 @@ ftxui::Element MapSelectPanel::RenderMobTable() const {
   // side, so a row one has and the other lacks shows as a step between them.
   std::string selected = selected_map();
   rows.push_back(
-      ftxui::text(" " +
-                  (selected.empty() ? "" : state_.maps.at(selected).name())) |
+      ftxui::text(PadRight(
+          " " + (selected.empty() ? "" : state_.maps.at(selected).name()),
+          kMobTableWidth)) |
       ftxui::color(kTheme));
   rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text(" " + PadRight("Name", kMobNameWidth) +

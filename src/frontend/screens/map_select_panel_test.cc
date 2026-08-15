@@ -167,6 +167,21 @@ void GoToTheBar(MapSelectPanel* panel) {
   }
 }
 
+// The column the mob table's top-right corner lands on -- the right edge of
+// the pair. Read off the pixels because Screen::ToString keeps the colour
+// escapes, so a byte offset into a line is not the column it looks like.
+int MobTableRightEdge(const MapSelectPanel& panel) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(14));
+  ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
+  for (int x = screen.dimx() - 1; x >= 0; --x) {
+    if (screen.PixelAt(x, 0).character == "╮") {
+      return x;
+    }
+  }
+  return -1;
+}
+
 // Runs of spaces collapsed to one, so assertions can name the columns without
 // pinning their widths.
 std::string Squeeze(const std::string& line) {
@@ -309,6 +324,64 @@ TEST(MapSelectPanelTest, TheTwoTablesShareAHeaderLine) {
   EXPECT_NE(header.find("Name"), header.rfind("Name"))
       << "both tables' headers belong on one line, and this one reads: "
       << header;
+}
+
+// The mob table wears the selected map's name over its columns, and the pair
+// of windows is centered. A name wider than the columns would push that window
+// out and walk both of them sideways every time the cursor moved.
+TEST(MapSelectPanelTest, ALongMapNameDoesNotWidenTheMobTable) {
+  Mob beetle;
+  beetle.set_name("Beetle");
+  beetle.set_level(103);
+  MapData nest;
+  nest.set_name("Nest");
+  AddSpawn(&nest, "beetle", 23);
+  MapData battlefield;
+  battlefield.set_name("Battlefield of Fire and Darkness");  // 32 characters
+  AddSpawn(&battlefield, "beetle", 23);
+  GameState state({}, {}, {}, {{"beetle", beetle}},
+                  {{"nest", nest}, {"battlefield", battlefield}});
+  state.current_map = "nest";
+  MapSelectPanel panel(state);
+  panel.Reset();
+
+  int narrow = MobTableRightEdge(panel);
+  ASSERT_GT(narrow, 0);
+  panel.MoveCursor(-1);
+  ASSERT_EQ(panel.selected_map(), "battlefield");
+  EXPECT_EQ(MobTableRightEdge(panel), narrow);
+  // And the name is all there, not clipped to buy that width. The label shares
+  // its line with the chip bar, so that line is the one to read -- the map's
+  // own row further down carries the name too, and is wider.
+  std::string label = LineWith(Render(panel), "1-10");
+  EXPECT_NE(label.find("Battlefield of Fire and Darkness"), std::string::npos)
+      << "the mob table's label is clipped: " << label;
+}
+
+// And a name past even that is clipped rather than allowed to push the window
+// out. Which of the two the columns can hold is a number that will move; that
+// the label never sets the width is not.
+TEST(MapSelectPanelTest, AMapNamePastTheMobColumnsIsClipped) {
+  Mob beetle;
+  beetle.set_name("Beetle");
+  beetle.set_level(103);
+  MapData nest;
+  nest.set_name("Nest");
+  AddSpawn(&nest, "beetle", 23);
+  MapData sprawl;
+  sprawl.set_name("A Map Whose Name Runs Well Past The Mob Columns");
+  AddSpawn(&sprawl, "beetle", 23);
+  GameState state({}, {}, {}, {{"beetle", beetle}},
+                  {{"nest", nest}, {"sprawl", sprawl}});
+  state.current_map = "nest";
+  MapSelectPanel panel(state);
+  panel.Reset();
+
+  int narrow = MobTableRightEdge(panel);
+  ASSERT_GT(narrow, 0);
+  panel.MoveCursor(-1);
+  ASSERT_EQ(panel.selected_map(), "sprawl");
+  EXPECT_EQ(MobTableRightEdge(panel), narrow);
 }
 
 TEST(MapSelectPanelTest, MobTableFollowsTheCursor) {
