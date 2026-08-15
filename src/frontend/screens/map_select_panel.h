@@ -6,6 +6,10 @@
  * commit. Opening the panel puts the cursor on the map being farmed, band and
  * all, which is how the player sees where they are.
  *
+ * The bands are a chip bar over the list, in the game's one tab style, and the
+ * bar is a cursor stop above the first map -- the same shape the bag and the
+ * shop use. Left and Right belong to the bar and do nothing in the list.
+ *
  * Travel is free: every map is always selectable, with no adjacency or unlock
  * gating. The panel is a view -- it moves its own cursor but never writes to
  * the game state; the controller reads selected_map() when the player confirms.
@@ -27,18 +31,24 @@ class MapSelectPanel {
 
   // Puts the cursor back on the map being farmed. Call when the screen opens.
   void Reset();
-  // Moves the cursor `delta` rows. The band is a ring: Up off the first map
-  // lands on the last. It does not roll over into the neighbouring band --
-  // bands are Left and Right, and one key should move one thing.
+  // Moves the cursor `delta` stops. The band's rows and the chip bar over them
+  // are one ring: Up off the first map lands on the bar, and Up again wraps to
+  // the last map. It does not roll over into the neighbouring band -- bands are
+  // Left and Right, and one key should move one thing.
   void MoveCursor(int delta);
-  // Moves `delta` level bands, clamped to the ends. The cursor goes to the top
-  // of the band it lands on.
+  // Moves `delta` level bands, clamped to the ends, and puts the cursor on the
+  // top of the band it lands on. Does nothing unless the cursor is on the chip
+  // bar: in the list these keys would quietly change the list under it.
   void ChangePage(int delta);
   ftxui::Element Render() const;
   // Key into GameState::maps of the highlighted map; empty when there are none.
   std::string selected_map() const;
 
  private:
+  // Where the cursor stands: 0 is the chip bar, then one stop per map.
+  int CursorStop() const;
+
+  ftxui::Element RenderBandBar() const;
   ftxui::Element RenderMapList() const;
   ftxui::Element RenderMobTable() const;
 
@@ -48,8 +58,11 @@ class MapSelectPanel {
   // Fixed at construction, since maps are static data.
   std::vector<std::vector<std::string>> pages_;
   int page_ = 0;
-  // Row within pages_[page_].
+  // Row within pages_[page_]. Held while the cursor is on the bar, so stepping
+  // off the bar comes back to the row it left.
   int selected_ = 0;
+  enum Zone { kZoneTabs, kZoneList };
+  Zone zone_ = kZoneList;
 };
 
 }  // namespace ms

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/protos/map.pb.h"
@@ -59,19 +60,6 @@ std::string BandLabel(int band) {
          std::to_string(kLevelBands[band].max);
 }
 
-// Title of the map list: the band on show, with an arrow only where there's a
-// band to reach. An arrow that isn't there still holds its space, so the band
-// stays put as the player pages rather than sliding around under them. The
-// band rides in the title because the Mobs window sits alongside in an hbox --
-// a row here would push this list out of step with that one.
-std::string BandTitle(int band) {
-  std::string title = " Maps  ";
-  title += band > 0 ? "< " : "  ";
-  title += "Lv " + BandLabel(band);
-  title += band < kBandCount - 1 ? " >" : "  ";
-  return title + " ";
-}
-
 // Mean mob level weighted by spawn count, rounded down: one number for how far
 // along a map is meant for. Weighting by count puts the number where the
 // player's time actually goes -- a couple of stragglers shouldn't pull a map's
@@ -114,6 +102,7 @@ MapSelectPanel::MapSelectPanel(const GameState& state) : state_(state) {
 }
 
 void MapSelectPanel::Reset() {
+  zone_ = kZoneList;
   for (int band = 0; band < kBandCount; ++band) {
     for (int i = 0; i < static_cast<int>(pages_[band].size()); ++i) {
       if (pages_[band][i] == state_.current_map) {
@@ -128,12 +117,27 @@ void MapSelectPanel::Reset() {
   selected_ = 0;
 }
 
+int MapSelectPanel::CursorStop() const {
+  return zone_ == kZoneTabs ? 0 : selected_ + 1;
+}
+
 void MapSelectPanel::MoveCursor(int delta) {
-  selected_ =
-      StepCursor(selected_, delta, static_cast<int>(pages_[page_].size()));
+  int next = StepCursor(CursorStop(), delta,
+                        1 + static_cast<int>(pages_[page_].size()));
+  if (next == 0) {
+    // Off the list rather than moved within it, so the row is left where it is
+    // and the cursor comes back to it.
+    zone_ = kZoneTabs;
+    return;
+  }
+  zone_ = kZoneList;
+  selected_ = next - 1;
 }
 
 void MapSelectPanel::ChangePage(int delta) {
+  if (zone_ != kZoneTabs) {
+    return;
+  }
   int page = std::clamp(page_ + delta, 0, kBandCount - 1);
   if (page == page_) {
     return;
@@ -150,8 +154,22 @@ std::string MapSelectPanel::selected_map() const {
   return pages_[page_][selected_];
 }
 
+// The bands as a chip bar, the game's one tab style. The chips go white while
+// the bar holds the cursor, which is how the player tells Left and Right are
+// reaching it.
+ftxui::Element MapSelectPanel::RenderBandBar() const {
+  std::vector<ftxui::Element> chips;
+  for (int band = 0; band < kBandCount; ++band) {
+    chips.push_back(TabChip(BandLabel(band), band == page_,
+                            /*row_focused=*/zone_ == kZoneTabs));
+  }
+  return ftxui::hbox(std::move(chips));
+}
+
 ftxui::Element MapSelectPanel::RenderMapList() const {
   std::vector<ftxui::Element> rows;
+  rows.push_back(RenderBandBar());
+  rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text("  " + PadRight("Name", kMapNameWidth) +
                              PadRight("Lv", kLevelWidth)));
   rows.push_back(ThemedSeparator());
@@ -161,7 +179,7 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
   }
   for (int i = 0; i < static_cast<int>(page.size()); ++i) {
     const MapData& map = state_.maps.at(page[i]);
-    std::string row = i == selected_ ? "> " : "  ";
+    std::string row = zone_ == kZoneList && i == selected_ ? "> " : "  ";
     row += PadRight(map.name(), kMapNameWidth);
     row += PadRight(std::to_string(WeightedLevel(state_, map)), kLevelWidth);
     rows.push_back(ftxui::text(row));
@@ -177,18 +195,26 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
   for (int i = filled; i < tallest; ++i) {
     rows.push_back(ftxui::text(""));
   }
-  return ThemedWindow(BandTitle(page_), ftxui::vbox(rows));
+  return ThemedWindow(" Maps ", ftxui::vbox(rows));
 }
 
 ftxui::Element MapSelectPanel::RenderMobTable() const {
   std::vector<ftxui::Element> rows;
+  // The map these mobs come from, standing where the band chips stand next
+  // door. It keeps the two tables' headers on one line -- they sit side by
+  // side, so a row one has and the other lacks shows as a step between them.
+  std::string selected = selected_map();
+  rows.push_back(
+      ftxui::text(" " +
+                  (selected.empty() ? "" : state_.maps.at(selected).name())) |
+      ftxui::color(kTheme));
+  rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text(" " + PadRight("Name", kMobNameWidth) +
                              PadRight("Lv", kLevelWidth) +
                              PadRight("Count", kCountWidth)));
   rows.push_back(ThemedSeparator());
 
   int shown = 0;
-  std::string selected = selected_map();
   if (!selected.empty()) {
     const MapData& map = state_.maps.at(selected);
     for (const MapData::Spawn& spawn : map.spawns()) {

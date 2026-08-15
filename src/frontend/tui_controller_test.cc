@@ -1637,10 +1637,25 @@ TEST_F(TuiControllerTest, LeftAndRightInMapSelectChangeTheLevelBand) {
   state_->current_map = "field";
 
   controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::ArrowUp);     // field is row 0 -> the bar
   controller_->OnEvent(ftxui::Event::ArrowRight);  // 1-10 -> 11-30
   EXPECT_EQ(map_select_panel_->selected_map(), "temple");
 
   controller_->OnEvent(ftxui::Event::ArrowLeft);  // back down
+  EXPECT_EQ(map_select_panel_->selected_map(), "field");
+}
+
+// The bar owns Left and Right, as it does in the bag and the shop. In the list
+// they are a key that would change the list under the cursor.
+TEST_F(TuiControllerTest, LeftAndRightInTheMapListDoNothing) {
+  LoadTwoMaps();
+  AddMapOnTheSecondBand();
+  state_->current_map = "field";
+
+  controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(map_select_panel_->selected_map(), "field");
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_EQ(map_select_panel_->selected_map(), "field");
 }
 
@@ -1650,6 +1665,7 @@ TEST_F(TuiControllerTest, EnterTravelsToAMapOnAnotherBand) {
   state_->current_map = "field";
 
   controller_->OpenMapSelect();
+  controller_->OnEvent(ftxui::Event::ArrowUp);  // onto the chip bar
   controller_->OnEvent(ftxui::Event::ArrowRight);
   controller_->OnEvent(ftxui::Event::Return);
 

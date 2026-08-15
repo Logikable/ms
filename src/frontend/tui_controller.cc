@@ -487,6 +487,8 @@ bool TuiController::OnMapSelectEvent(ftxui::Event event) {
     map_select_panel_.MoveCursor(1);
     return true;
   }
+  // Left and Right belong to the chip bar. The panel holds that rule, so it
+  // stays true of every caller rather than of this one handler.
   if (event == ftxui::Event::ArrowLeft) {
     map_select_panel_.ChangePage(-1);
     return true;

@@ -7,6 +7,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
+#include "ftxui/screen/color.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/game_state.h"
 #include "src/protos/map.pb.h"
@@ -122,32 +123,95 @@ std::string Render(const MapSelectPanel& panel) {
   return screen.ToString();
 }
 
-// The first rendered line containing `needle`, with runs of spaces collapsed so
-// assertions can name the columns without pinning their widths. The map list
-// and the mob table share a line, since they sit side by side.
+// The band chip drawn as the active one. Screen::ToString drops both the
+// invert and the colours, so this has to read pixels: an unfocused bar marks
+// its chip with ftxui's invert, and a focused one paints it white instead.
+std::string ActiveBand(const MapSelectPanel& panel) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(14));
+  ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
+  std::string label;
+  for (int y = 0; y < screen.dimy() && label.empty(); ++y) {
+    for (int x = 0; x < screen.dimx(); ++x) {
+      const ftxui::Pixel& pixel = screen.PixelAt(x, y);
+      bool marked =
+          pixel.inverted || pixel.background_color == ftxui::Color::White;
+      if (marked && pixel.character != " " && !pixel.character.empty()) {
+        label += pixel.character;
+      }
+    }
+  }
+  return label;
+}
+
+// Whether the chip bar is holding the cursor, which it says by going white.
+bool BarHasTheCursor(const MapSelectPanel& panel) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(14));
+  ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x < screen.dimx(); ++x) {
+      if (screen.PixelAt(x, y).background_color == ftxui::Color::White) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Steps the cursor up onto the chip bar, which is the stop above the first map
+// and the only place Left and Right do anything.
+void GoToTheBar(MapSelectPanel* panel) {
+  while (!BarHasTheCursor(*panel)) {
+    panel->MoveCursor(-1);
+  }
+}
+
+// Runs of spaces collapsed to one, so assertions can name the columns without
+// pinning their widths.
+std::string Squeeze(const std::string& line) {
+  std::string squeezed;
+  bool in_spaces = false;
+  for (char c : line) {
+    if (c == ' ') {
+      in_spaces = true;
+      continue;
+    }
+    if (in_spaces && !squeezed.empty()) {
+      squeezed += ' ';
+    }
+    in_spaces = false;
+    squeezed += c;
+  }
+  return squeezed;
+}
+
+// The first rendered line containing `needle`. The map list and the mob table
+// share a line, since they sit side by side.
 std::string LineWith(const std::string& rendered, const std::string& needle) {
   std::istringstream lines(rendered);
   std::string line;
   while (std::getline(lines, line)) {
-    if (line.find(needle) == std::string::npos) {
-      continue;
+    if (line.find(needle) != std::string::npos) {
+      return Squeeze(line);
     }
-    std::string squeezed;
-    bool in_spaces = false;
-    for (char c : line) {
-      if (c == ' ') {
-        in_spaces = true;
-        continue;
-      }
-      if (in_spaces && !squeezed.empty()) {
-        squeezed += ' ';
-      }
-      in_spaces = false;
-      squeezed += c;
-    }
-    return squeezed;
   }
   return "";
+}
+
+// A map's own row in the list. A map name is on screen twice -- the mob table
+// labels itself with it, up on the chip line -- and the row is the lower of
+// the two, so this takes the last match rather than the first.
+std::string MapRow(const std::string& rendered, const std::string& name) {
+  std::istringstream lines(rendered);
+  std::string line;
+  std::string found;
+  while (std::getline(lines, line)) {
+    if (line.find(name) != std::string::npos) {
+      found = Squeeze(line);
+    }
+  }
+  return found;
 }
 
 TEST(MapSelectPanelTest, ListsMapsByWeightedLevelThenName) {
@@ -168,11 +232,11 @@ TEST(MapSelectPanelTest, ShowsWeightedLevelRoundedDown) {
   MapSelectPanel panel(state);
   std::string rendered = Render(panel);
 
-  EXPECT_NE(LineWith(rendered, "Green Field").find("Green Field 1"),
+  EXPECT_NE(MapRow(rendered, "Green Field").find("Green Field 1"),
             std::string::npos);
   // Mixed Field spawns nine level 1 mobs and one level 8: 1.7, down to 1.
   // Ignoring the counts would say 4.5, and rounding to nearest would say 2.
-  EXPECT_NE(LineWith(rendered, "Mixed Field").find("Mixed Field 1"),
+  EXPECT_NE(MapRow(rendered, "Mixed Field").find("Mixed Field 1"),
             std::string::npos);
 }
 
@@ -188,7 +252,7 @@ TEST(MapSelectPanelTest, AMapWithNoMobsShowsLevelZero) {
                   {{"green_field", green}, {"maple_island", town}});
   MapSelectPanel panel(state);
   std::string rendered = Render(panel);
-  EXPECT_NE(LineWith(rendered, "Maple Island").find("Maple Island 0"),
+  EXPECT_NE(MapRow(rendered, "Maple Island").find("Maple Island 0"),
             std::string::npos);
 }
 
@@ -215,9 +279,36 @@ TEST(MapSelectPanelTest, ResetPutsTheCursorOnTheMapBeingFarmed) {
 
   EXPECT_EQ(panel.selected_map(), "horny_field");
   std::string rendered = Render(panel);
-  EXPECT_NE(LineWith(rendered, "Horny Field").find("> Horny Field"),
+  EXPECT_NE(MapRow(rendered, "Horny Field").find("> Horny Field"),
             std::string::npos);
-  EXPECT_EQ(LineWith(rendered, "Green Field").find(">"), std::string::npos);
+  EXPECT_EQ(MapRow(rendered, "Green Field").find(">"), std::string::npos);
+}
+
+// The mob table names the map it is showing, in the row the band chips fill
+// next door. Without it the two tables sit one line out of step, since they
+// share a screen and one has a bar the other has not.
+TEST(MapSelectPanelTest, TheMobTableNamesTheMapItIsShowing) {
+  GameState state = ThreeMaps();
+  MapSelectPanel panel(state);
+  std::string rendered = Render(panel);
+
+  int seen = 0;
+  for (size_t at = rendered.find("Green Field"); at != std::string::npos;
+       at = rendered.find("Green Field", at + 1)) {
+    ++seen;
+  }
+  EXPECT_EQ(seen, 2) << "once in the map list, once over its mobs";
+}
+
+// The pin for that alignment: both column headers land on one line.
+TEST(MapSelectPanelTest, TheTwoTablesShareAHeaderLine) {
+  GameState state = ThreeMaps();
+  MapSelectPanel panel(state);
+  std::string header = LineWith(Render(panel), "Count");
+  ASSERT_FALSE(header.empty());
+  EXPECT_NE(header.find("Name"), header.rfind("Name"))
+      << "both tables' headers belong on one line, and this one reads: "
+      << header;
 }
 
 TEST(MapSelectPanelTest, MobTableFollowsTheCursor) {
@@ -267,18 +358,62 @@ TEST(MapSelectPanelTest, TheMobColumnFitsTheLongestName) {
             std::string::npos);
 }
 
-// The band is a ring, so Up off the first map lands on the last and Down off
-// the last comes back to the first.
-TEST(MapSelectPanelTest, TheCursorWrapsAtBothEndsOfTheBand) {
+// The rows and the chip bar over them are one ring: Up off the first map
+// reaches the bar, Up again wraps to the last map, and Down comes back round.
+TEST(MapSelectPanelTest, TheCursorRingRunsThroughTheChipBar) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
   ASSERT_EQ(panel.selected_map(), "green_field") << "the first row";
+  ASSERT_FALSE(BarHasTheCursor(panel));
 
   panel.MoveCursor(-1);
+  EXPECT_TRUE(BarHasTheCursor(panel)) << "the stop above the first map";
+  // The row is held, not moved, so stepping back down returns to it.
+  EXPECT_EQ(panel.selected_map(), "green_field");
+  EXPECT_EQ(LineWith(Render(panel), "Green Field").find(">"), std::string::npos)
+      << "no row cursor while the bar has it";
+
+  panel.MoveCursor(-1);
+  EXPECT_FALSE(BarHasTheCursor(panel));
   EXPECT_EQ(panel.selected_map(), "horny_field") << "the last row";
 
   panel.MoveCursor(1);
+  EXPECT_TRUE(BarHasTheCursor(panel)) << "round through the bar again";
+
+  panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_map(), "green_field");
+  EXPECT_FALSE(BarHasTheCursor(panel));
+}
+
+// The bar carries one chip per band, and the one on show is the marked one.
+TEST(MapSelectPanelTest, TheBarShowsEveryBandAndMarksTheOneOnShow) {
+  GameState state = EveryBand();
+  MapSelectPanel panel(state);
+  panel.Reset();
+  std::string rendered = Render(panel);
+
+  EXPECT_NE(rendered.find("1-10"), std::string::npos);
+  EXPECT_NE(rendered.find("11-30"), std::string::npos);
+  EXPECT_NE(rendered.find("31-60"), std::string::npos);
+  EXPECT_NE(rendered.find("61-100"), std::string::npos);
+  EXPECT_EQ(ActiveBand(panel), "1-10");
+}
+
+// Left and Right belong to the bar. In the list they would change the list
+// under the cursor on a key the player pressed to move within it.
+TEST(MapSelectPanelTest, TheBandChangesOnlyFromTheBar) {
+  GameState state = EveryBand();
+  MapSelectPanel panel(state);
+  panel.Reset();
+
+  panel.ChangePage(1);
+  EXPECT_EQ(ActiveBand(panel), "1-10") << "ignored from the list";
+  EXPECT_EQ(panel.selected_map(), "green_field");
+
+  GoToTheBar(&panel);
+  panel.ChangePage(1);
+  EXPECT_EQ(ActiveBand(panel), "11-30");
+  EXPECT_EQ(panel.selected_map(), "temple");
 }
 
 // Wrapping stays inside the band. Bands are Left and Right, and rolling into
@@ -287,11 +422,12 @@ TEST(MapSelectPanelTest, WrappingDoesNotCarryIntoTheNextBand) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
-  std::string before = Render(panel);
-  ASSERT_NE(before.find("Lv 1-10"), std::string::npos);
+  ASSERT_EQ(ActiveBand(panel), "1-10");
 
   panel.MoveCursor(-1);
-  EXPECT_NE(Render(panel).find("Lv 1-10"), std::string::npos);
+  panel.MoveCursor(-1);
+  EXPECT_EQ(ActiveBand(panel), "1-10");
+  EXPECT_EQ(panel.selected_map(), "horny_field") << "the last map of this band";
 }
 
 TEST(MapSelectPanelTest, OpensOnTheLowestBandByDefault) {
@@ -300,7 +436,7 @@ TEST(MapSelectPanelTest, OpensOnTheLowestBandByDefault) {
   panel.Reset();
   std::string rendered = Render(panel);
 
-  EXPECT_NE(rendered.find("Lv 1-10"), std::string::npos);
+  EXPECT_EQ(ActiveBand(panel), "1-10");
   EXPECT_NE(rendered.find("Green Field"), std::string::npos);
   EXPECT_EQ(rendered.find("Temple"), std::string::npos);
 }
@@ -310,10 +446,11 @@ TEST(MapSelectPanelTest, ChangingPageShowsTheNextBandFromItsTop) {
   MapSelectPanel panel(state);
   panel.Reset();
   panel.MoveCursor(1);  // Horny Field, so the cursor has somewhere to fall from
+  GoToTheBar(&panel);
 
   panel.ChangePage(1);
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("Lv 11-30"), std::string::npos);
+  EXPECT_EQ(ActiveBand(panel), "11-30");
   EXPECT_NE(rendered.find("Temple"), std::string::npos);
   EXPECT_EQ(rendered.find("Green Field"), std::string::npos);
   EXPECT_EQ(panel.selected_map(), "temple");
@@ -326,13 +463,14 @@ TEST(MapSelectPanelTest, ResetOpensOnTheFarmedMapsBand) {
   panel.Reset();
 
   EXPECT_EQ(panel.selected_map(), "temple");
-  EXPECT_NE(Render(panel).find("Lv 11-30"), std::string::npos);
+  EXPECT_EQ(ActiveBand(panel), "11-30");
 }
 
 TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
   GameState state = EveryBand();
   MapSelectPanel panel(state);
   panel.Reset();
+  GoToTheBar(&panel);
 
   panel.ChangePage(-1);
   EXPECT_EQ(panel.selected_map(), "green_field");
@@ -352,6 +490,7 @@ TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
   GameState state({}, {}, {}, {{"balrog", balrog}}, {{"deep_cave", cave}});
   MapSelectPanel panel(state);
   panel.Reset();
+  GoToTheBar(&panel);
   panel.ChangePage(kPastEveryBand);
 
   EXPECT_EQ(panel.selected_map(), "deep_cave");

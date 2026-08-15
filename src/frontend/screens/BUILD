@@ -292,6 +292,7 @@ cc_library(
     hdrs = ["map_select_panel.h"],
     deps = [
         "//src:game_state",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
