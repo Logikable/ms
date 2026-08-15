@@ -1,0 +1,6 @@
+name: "Harp"
+level: 106
+attack: 1156
+max_hp: 173250
+exp: 1984
+drops { item: "harps_tail_feather" per_kill: 0.4 }

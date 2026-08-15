@@ -1,0 +1,2 @@
+name: "Road to Oblivion 1"
+spawns { mob: "oblivion_monk" count: 27 }

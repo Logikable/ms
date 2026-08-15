@@ -1,0 +1,6 @@
+name: "Qualm Monk"
+level: 136
+attack: 2750
+max_hp: 915750
+exp: 6369
+drops { item: "blue_cloth" per_kill: 0.4 }

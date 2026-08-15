@@ -139,12 +139,12 @@ void PrintMaps(const std::map<std::string, MapData>& maps,
   printf("\nwhat a player meets, weighted by spawn count\n");
   printf("dps to cap is the damage per second that holds the spawn cap; ");
   printf("compare //analysis:weapon_sim\n\n");
-  printf("%-26s %5s %6s %9s %7s %7s %8s %8s %8s %10s\n", "map", "lv", "spawn",
+  printf("%-32s %5s %6s %9s %7s %7s %8s %8s %8s %10s\n", "map", "lv", "spawn",
          "avg hp", "avg exp", "avg att", "exp/hp", "kills/s", "exp/s",
          "dps to cap");
   for (const MapRow& row : rows) {
     double kills = row.spawns / kRespawnIntervalSeconds;
-    printf("%-26s %5.1f %6d %9.0f %7.1f %7.0f %8.3f %8.2f %8.1f %10.0f\n",
+    printf("%-32s %5.1f %6d %9.0f %7.1f %7.0f %8.3f %8.2f %8.1f %10.0f\n",
            row.name.c_str(), row.level, row.spawns, row.hp, row.exp, row.attack,
            row.hp > 0.0 ? row.exp / row.hp : 0.0, kills, kills * row.exp,
            kills * row.hp);

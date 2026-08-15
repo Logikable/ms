@@ -1,0 +1,6 @@
+name: "Spirit Viking"
+level: 119
+attack: 1626
+max_hp: 437235
+exp: 3510
+drops { item: "viking_sail" per_kill: 0.4 }

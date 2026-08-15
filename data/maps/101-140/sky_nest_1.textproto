@@ -1,0 +1,3 @@
+name: "Sky Nest I"
+spawns { mob: "harp" count: 11 }
+spawns { mob: "blood_harp" count: 12 }

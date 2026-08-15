@@ -1,0 +1,3 @@
+name: "Battlefield of Fire and Darkness"
+spawns { mob: "black_kentaurus" count: 12 }
+spawns { mob: "red_kentaurus" count: 12 }

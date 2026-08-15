@@ -1,0 +1,2 @@
+name: "Leafre : East Forest"
+spawns { mob: "beetle" count: 23 }

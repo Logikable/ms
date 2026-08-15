@@ -1,0 +1,2 @@
+name: "Warped Path of Time <4>"
+spawns { mob: "spirit_viking" count: 24 }

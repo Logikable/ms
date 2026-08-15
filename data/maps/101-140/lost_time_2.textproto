@@ -1,0 +1,2 @@
+name: "Lost Time <2>"
+spawns { mob: "master_chronos" count: 24 }

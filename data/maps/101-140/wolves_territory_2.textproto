@@ -1,0 +1,2 @@
+name: "Wolves' Territory 2"
+spawns { mob: "lycanthrope" count: 25 }

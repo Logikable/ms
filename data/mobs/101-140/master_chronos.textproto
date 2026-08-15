@@ -1,0 +1,6 @@
+name: "Master Chronos"
+level: 115
+attack: 1555
+max_hp: 377625
+exp: 3148
+drops { item: "cog" per_kill: 0.4 }
