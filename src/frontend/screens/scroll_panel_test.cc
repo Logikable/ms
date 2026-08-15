@@ -547,6 +547,35 @@ int LineIndex(const std::vector<std::string>& lines,
   return -1;
 }
 
+// A blank column between them. At one space the two headings read as the one
+// phrase "Cost Pin".
+TEST_F(ScrollPanelTest, TheCostAndPinHeadingsStandApart) {
+  std::string rendered = Render(panel_);
+  EXPECT_NE(rendered.find("Cost  Pin"), std::string::npos);
+  EXPECT_EQ(rendered.find("Cost Pin"), std::string::npos);
+}
+
+// And the pin stays in its column rather than drifting into the gap. Right
+// edges, because the glyph is two columns and the heading is three -- the same
+// way the costs sit under "Cost".
+TEST_F(ScrollPanelTest, ThePinEndsWhereItsHeadingEnds) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
+  PinByName(&panel_, "AAA Scroll");
+  std::vector<std::string> lines = Lines(Render(panel_));
+  int header = LineIndex(lines, "Cost");
+  int row = LineIndex(lines, "📌");
+  ASSERT_GE(header, 0);
+  ASSERT_GT(row, header);
+
+  const std::string& head = lines[header];
+  const std::string& pinned = lines[row];
+  int head_end = DisplayColumns(head.substr(0, head.find("Pin") + 3));
+  // Two columns for the glyph itself, which the substring stops short of.
+  int pin_end = DisplayColumns(pinned.substr(0, pinned.find("📌"))) + 2;
+  EXPECT_EQ(head_end, pin_end);
+}
+
 // Three blocks, ruled off: what is going on what, then what it does and costs,
 // then the answer. Without the rules the four rows read as one list.
 TEST_F(ScrollPanelTest, TheConfirmWindowRulesOffItsBlocks) {

@@ -36,9 +36,11 @@ constexpr int kStatsWidth = 30;
 // Wide enough for a four-figure cost and the two columns 📜 occupies.
 constexpr int kCostWidth = 8;
 // The Pin column: the pin glyph is two columns, right-aligned under its
-// heading like the cost is.
-constexpr int kPinWidth = 4;
-constexpr const char* kPinGlyph = "  \U0001F4CC";
+// heading like the cost is. Five wide rather than four, so a blank column
+// stands between it and the Cost -- at four the two headings read as one
+// phrase, "Cost Pin".
+constexpr int kPinWidth = 5;
+constexpr const char* kPinGlyph = "   \U0001F4CC";
 
 // The menu Enter opens on a row, in the order the player wants them: the thing
 // they came to do, the thing they might do once, and the way out.
