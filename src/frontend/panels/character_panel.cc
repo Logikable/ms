@@ -101,11 +101,16 @@ struct KindTag {
 // Four columns wide whichever tag it is, so every name below starts at the
 // same place and the list still reads as a column. A kind-less skill gets the
 // blanks rather than a tag that would be wrong.
+//
+// Orange rather than red for the attack tag: red is the colour that says a
+// thing is refused (colors.h), and every attack skill carrying it on a screen
+// that dims what cannot be learned spent the alarm on something that is never
+// a problem.
 KindTag TagFor(const Skill& skill) {
   switch (skill.kind()) {
     case SKILL_KIND_ATTACK:
     case SKILL_KIND_ACTIVE:
-      return {"A:  ", kRed};
+      return {"A:  ", kOrange};
     case SKILL_KIND_AUTO_ATTACK:
       return {"AA: ", kMutedYellow};
     case SKILL_KIND_PASSIVE:

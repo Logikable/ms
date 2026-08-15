@@ -862,7 +862,10 @@ TEST_F(CharacterPanelTest, EachSkillRowOpensWithItsKindTag) {
   EXPECT_TRUE(OnScreen(comp, "P:  Iron Body"));
   EXPECT_TRUE(OnScreen(comp, "    Nameless"));
 
-  EXPECT_EQ(ColorOf(comp, "A:  Slash Blast"), kRed);
+  // Orange, not red: red is the colour that says a thing is refused, and an
+  // attack skill is never a problem for carrying its own kind.
+  EXPECT_EQ(ColorOf(comp, "A:  Slash Blast"), kOrange);
+  EXPECT_NE(ColorOf(comp, "A:  Slash Blast"), kRed);
   EXPECT_EQ(ColorOf(comp, "AA: Evil Eye Shock"), kMutedYellow);
   EXPECT_EQ(ColorOf(comp, "P:  Iron Body"), kGreen);
 }
