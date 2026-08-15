@@ -26,6 +26,25 @@ Skill MakeSkill(const std::string& name, JobAdvancement advancement, int order,
   return skill;
 }
 
+// A block `rows` tall, standing in for a card or a book of that height.
+ftxui::Element Block(int rows) {
+  std::vector<ftxui::Element> lines;
+  for (int i = 0; i < rows; ++i) {
+    lines.push_back(ftxui::text("x"));
+  }
+  return ftxui::vbox(std::move(lines));
+}
+
+int Rows(ftxui::Element element) {
+  element->ComputeRequirement();
+  return element->requirement().min_y;
+}
+
+int Cols(ftxui::Element element) {
+  element->ComputeRequirement();
+  return element->requirement().min_x;
+}
+
 class JobInspectPanelTest : public PanelTest {
  protected:
   // A Fighter's book and a Page's, so a test can prove one job's page is not
@@ -111,6 +130,39 @@ TEST_F(JobInspectPanelTest, SkillsAreInBookOrderWithTheirTagAndMaxLevel) {
             std::string::npos);
 }
 
+// Every list in the game marks its selected row with a caret, so this one
+// does too -- an inverted name would read as a button, and nothing here is
+// pressed.
+TEST_F(JobInspectPanelTest, TheSelectedRowWearsTheCursor) {
+  JobInspectPanel panel = PanelOn(JOB_FIGHTER);
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(LineWith(rendered, "Brandish").find(">"), std::string::npos);
+  EXPECT_EQ(LineWith(rendered, "Weapon Mastery").find(">"), std::string::npos);
+
+  panel.MoveCursor(1);
+  rendered = RenderElement(panel.Render());
+  EXPECT_EQ(LineWith(rendered, "Brandish").find(">"), std::string::npos);
+  EXPECT_NE(LineWith(rendered, "Weapon Mastery").find(">"), std::string::npos);
+}
+
+// The longest name in the game is half again the column it sits in. It is cut
+// to the column and slides under it while selected, rather than widening the
+// panel or being lost.
+TEST_F(JobInspectPanelTest, ALongNameIsCutToItsColumnAndNotPastIt) {
+  const std::string kLongest = "Expert Throwing Star Handling";
+  std::map<std::string, Skill> catalog = {
+      {"expert", MakeSkill(kLongest, JOB_ADVANCEMENT_FIGHTER, 1, 20)}};
+  JobInspectPanel panel(catalog);
+  panel.SetJob(JOB_FIGHTER);
+  std::string rendered = RenderElement(panel.Render());
+
+  EXPECT_EQ(rendered.find(kLongest), std::string::npos)
+      << "the whole name fits, so this test proves nothing";
+  EXPECT_NE(rendered.find(kLongest.substr(0, 19)), std::string::npos);
+  EXPECT_EQ(Cols(panel.Render()), Cols(PanelOn(JOB_FIGHTER).Render()))
+      << "a long name widened the panel";
+}
+
 TEST_F(JobInspectPanelTest, TheCursorStartsAtTheTopAndWrapsBothWays) {
   JobInspectPanel panel = PanelOn(JOB_FIGHTER);
   ASSERT_NE(panel.selected_skill(), nullptr);
@@ -141,20 +193,6 @@ TEST_F(JobInspectPanelTest, AJobWithNoBookSaysSoRatherThanCrashing) {
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_skill(), nullptr);
   EXPECT_NE(RenderElement(panel.Render()).find("(empty)"), std::string::npos);
-}
-
-// A block `rows` tall, standing in for a card or a book of that height.
-ftxui::Element Block(int rows) {
-  std::vector<ftxui::Element> lines;
-  for (int i = 0; i < rows; ++i) {
-    lines.push_back(ftxui::text("x"));
-  }
-  return ftxui::vbox(std::move(lines));
-}
-
-int Rows(ftxui::Element element) {
-  element->ComputeRequirement();
-  return element->requirement().min_y;
 }
 
 // The whole point of passing the tallest card in: the screen is the same

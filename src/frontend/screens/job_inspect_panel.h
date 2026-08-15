@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/marquee.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -52,6 +53,10 @@ class JobInspectPanel {
   std::map<std::string, Skill> skills_;
   Job job_ = JOB_UNSPECIFIED;
   int selected_ = 0;
+  // How long the cursor has sat where it is, for sliding a long name under
+  // its column. Mutable because it is written by the render, which is where
+  // the move is noticed -- see SelectionClock.
+  mutable SelectionClock name_clock_;
 };
 
 // The job inspect screen: the book on the left, the card of whichever skill

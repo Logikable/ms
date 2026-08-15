@@ -63,6 +63,7 @@ cc_library(
     hdrs = ["job_inspect_panel.h"],
     deps = [
         "//src/character",
+        "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

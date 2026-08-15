@@ -1,6 +1,7 @@
 #include "src/frontend/screens/job_inspect_panel.h"
 
 #include <algorithm>
+#include <chrono>
 #include <map>
 #include <string>
 #include <utility>
@@ -17,11 +18,10 @@
 namespace ms {
 namespace {
 
-// Chars inside the window border. The longest shipped skill name is "Final
-// Attack: Crossbow" at 21, and the weapon row's value is longer still --
-// "Two-Handed Sword" for a job with only half a pair. The panel stands beside
-// the skill card rather than in the middle of the screen, so the room it takes
-// is room the card does not get; this is the least that holds both.
+// Chars inside the window border. The panel stands beside the skill card
+// rather than in the middle of the screen, so the room it takes is room the
+// card does not get. Wide enough for the weapon row, which is the longest
+// thing here that cannot slide: names longer than the column left over do.
 constexpr int kContentWidth = 33;
 
 // Seats " Weapon" with a gap after it. The row is the only labelled one on the
@@ -30,8 +30,15 @@ constexpr int kLabelWidth = 9;
 
 // " Max 20 " -- the widest a level reads, with the gutter either side.
 constexpr int kMaxLevelWidth = 8;
+
+// The "> " cursor every list in the game marks its selected row with.
+constexpr int kCursorWidth = 2;
 constexpr int kNameWidth =
-    kContentWidth - 1 - kSkillTagWidth - kMaxLevelWidth - 1;
+    kContentWidth - kCursorWidth - kSkillTagWidth - kMaxLevelWidth;
+
+// Room for any book under one job, so a row number in one book and the same
+// row number in another are different keys to the name clock.
+constexpr int kJobClockStride = 100;
 
 // The advancement whose book is `job`'s own -- the inverse of
 // JobForAdvancement. Walked rather than switched, because every stage of a job
@@ -80,29 +87,38 @@ void JobInspectPanel::MoveCursor(int delta) {
 
 ftxui::Element JobInspectPanel::RenderSkillRow(const Skill& skill,
                                                int index) const {
+  bool selected = index == selected_;
   KindTag tag = TagFor(skill);
-  std::string name = PadRight(skill.name(), kNameWidth);
-  ftxui::Element name_text = ftxui::text(name);
-  if (index == selected_) {
-    name_text = name_text | ftxui::inverted;
-  }
+  // A book holds names longer than the column, and cutting one silently costs
+  // the player the one thing the row is for. The selected name slides under
+  // the column instead; the rest sit cut, which they can be read out of by
+  // stepping onto them.
+  std::string name =
+      ScrollingWindow(skill.name(), kNameWidth,
+                      selected ? name_clock_.Elapsed()
+                               : std::chrono::steady_clock::duration::zero());
   return ftxui::hbox({
-      ftxui::text(" "),
+      ftxui::text(selected ? "> " : "  "),
       ftxui::text(tag.text) | ftxui::color(tag.color),
-      std::move(name_text),
+      ftxui::text(std::move(name)),
       ftxui::text(PadLeft("Max " + std::to_string(skill.max_level()) + " ",
                           kMaxLevelWidth)),
   });
 }
 
 ftxui::Element JobInspectPanel::Render() const {
+  // Folded with the job so that opening another book restarts the slide: the
+  // cursor is back on row 0 either way, and row 0 of a book nobody has read
+  // is a new name.
+  name_clock_.Follow(static_cast<int>(job_) * kJobClockStride + selected_);
+
   std::vector<ftxui::Element> rows;
   // What the job is built around, which is the one thing a player cannot read
   // off the skills themselves -- most of a book names no weapon at all.
   std::string weapons = FormatWeaponList(ExpectedWeapons(job_));
-  rows.push_back(ftxui::text(PadRight(
-      " " + PadRight("Weapon", kLabelWidth) + (weapons.empty() ? "-" : weapons),
-      kContentWidth)));
+  rows.push_back(ftxui::text(PadRight("  " + PadRight("Weapon", kLabelWidth) +
+                                          (weapons.empty() ? "-" : weapons),
+                                      kContentWidth)));
   rows.push_back(ThemedSeparator());
 
   std::vector<const Skill*> skills = Skills();
