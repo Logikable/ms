@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <random>
 #include <set>
 #include <string>
 #include <utility>
@@ -74,6 +75,60 @@ TEST(EquipDataTest, OrdinaryWeaponsStillTakeUpgrades) {
         << entry.first << " cannot be star forced";
     EXPECT_GT(proto.upgrade_slots(), 0)
         << entry.first << " has no slots to scroll";
+  }
+}
+
+// Every job the advancement picker can offer, gathered the way it gathers
+// them: stage 1 from a Beginner, then the next stage of each job that gave.
+std::vector<Job> EveryOfferedJob() {
+  std::vector<Job> jobs;
+  std::vector<Job> frontier = {JOB_BEGINNER};
+  for (int stage = 1; !frontier.empty(); ++stage) {
+    std::vector<Job> next;
+    for (Job job : frontier) {
+      for (Job choice : JobChoicesForStage(job, stage)) {
+        jobs.push_back(choice);
+        next.push_back(choice);
+      }
+    }
+    frontier = next;
+  }
+  return jobs;
+}
+
+// The job inspect screen tells a player what to go and buy, so no job may name
+// a weapon of somebody else's branch, and every job's row must point at
+// something buyable. A named type nothing ships yet -- the one-handed axe and
+// blunt, which both warrior books name and no item is -- proves neither, and
+// is skipped rather than failed. Levelled past every requirement, since what is
+// under test is the job and not the tier.
+TEST(EquipDataTest, EveryJobOnOfferNamesWeaponsOfItsOwnBranch) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  std::vector<Job> offered = EveryOfferedJob();
+  ASSERT_GE(offered.size(), 20u);  // 4 + 9 + 9 as the game stands
+  for (Job job : offered) {
+    std::vector<EquipType> weapons = ExpectedWeapons(job);
+    EXPECT_FALSE(weapons.empty()) << Job_Name(job);
+    std::set<EquipType> named(weapons.begin(), weapons.end());
+    std::mt19937 rng(0);
+    Character proto;
+    proto.set_job(job);
+    proto.set_level(200);
+    CharacterInstance character(rng, std::move(proto));
+
+    int holdable = 0;
+    for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
+      const EquipPrototype& p = entry.second;
+      if (p.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
+          named.count(p.equip_type()) == 0) {
+        continue;
+      }
+      EXPECT_TRUE(character.CanEquip(p))
+          << Job_Name(job) << " names " << FormatEquipType(p.equip_type())
+          << ", which it cannot hold: " << entry.first;
+      ++holdable;
+    }
+    EXPECT_GT(holdable, 0) << Job_Name(job) << " names nothing that ships";
   }
 }
 

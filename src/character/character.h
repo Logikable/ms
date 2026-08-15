@@ -51,6 +51,16 @@ int NextAdvancementLevel(int stage);
 // the same question -- one table, not two that drift.
 std::vector<std::string> StarterEquipsFor(Job job);
 
+// The weapons `job` is built around, in the order to name them. Not what it
+// may legally hold -- a Swordman may hold any warrior weapon -- but what its
+// skills and its damage assume, which is what a player choosing a job needs
+// told. Empty for a job with no weapons defined.
+//
+// A 1st job names the one weapon it is handed on advancing, since the fork is
+// not real until the 2nd. A 3rd job names its 2nd job's pair: nothing about
+// the weapon changes on the way up.
+std::vector<EquipType> ExpectedWeapons(Job job);
+
 // The advancement whose off hand `type` is, or JOB_ADVANCEMENT_UNSPECIFIED for
 // a type that is not a secondary at all. The stats of two secondaries in one
 // branch are identical, so this is the only thing standing between a Fighter

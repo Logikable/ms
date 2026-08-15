@@ -443,6 +443,58 @@ std::vector<std::string> StarterEquipsFor(Job job) {
   }
 }
 
+std::vector<EquipType> ExpectedWeapons(Job job) {
+  switch (job) {
+    // The 1st jobs, each naming what StarterEquipsFor hands it. The Rogue is
+    // handed both, and which is held decides what they can swing.
+    case JOB_SWORDMAN:
+      return {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD};
+    case JOB_MAGICIAN:
+      return {EQUIP_TYPE_STAFF};
+    case JOB_ARCHER:
+      return {EQUIP_TYPE_BOW};
+    case JOB_ROGUE:
+      return {EQUIP_TYPE_DAGGER, EQUIP_TYPE_CLAW};
+    // The warrior branches, each with a pair its skills name by hand.
+    case JOB_FIGHTER:
+    case JOB_CRUSADER:
+      // Both hands of each, which reads as "Sword / Axe". Nothing shipped is a
+      // one-handed axe yet; the books name the type, so this does too.
+      return {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD,
+              EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE};
+    case JOB_PAGE:
+    case JOB_WHITE_KNIGHT:
+      return {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD,
+              EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_TWO_HANDED_BLUNT};
+    case JOB_SPEARMAN:
+    case JOB_BERSERKER:
+      return {EQUIP_TYPE_SPEAR, EQUIP_TYPE_POLEARM};
+    case JOB_HUNTER:
+    case JOB_RANGER:
+      return {EQUIP_TYPE_BOW};
+    case JOB_CROSSBOWMAN:
+    case JOB_SNIPER:
+      return {EQUIP_TYPE_CROSSBOW};
+    // Every mage line, however it casts: the staff is the magician's weapon
+    // and no branch of them has a second one.
+    case JOB_FIRE_POISON_WIZARD:
+    case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_CLERIC:
+    case JOB_FIRE_POISON_MAGE:
+    case JOB_ICE_LIGHTNING_MAGE:
+    case JOB_PRIEST:
+      return {EQUIP_TYPE_STAFF};
+    case JOB_ASSASSIN:
+    case JOB_HERMIT:
+      return {EQUIP_TYPE_CLAW};
+    case JOB_BANDIT:
+    case JOB_CHIEF_BANDIT:
+      return {EQUIP_TYPE_DAGGER};
+    default:
+      return {};
+  }
+}
+
 JobAdvancement AdvancementForSecondary(EquipType type) {
   switch (type) {
     case EQUIP_TYPE_MEDALLION:
