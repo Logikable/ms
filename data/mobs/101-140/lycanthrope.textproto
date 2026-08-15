@@ -4,3 +4,4 @@ attack: 2030
 max_hp: 504495
 exp: 3910
 drops { item: "lycanthrope_toenail" per_kill: 0.4 }
+drops { equip: "frozen_cape" per_kill: 0.0001 }

@@ -90,24 +90,28 @@ TEST(MapDataTest, EveryDropNamesAnItem) {
 
 // The Frozen set's whole drop table, checked as the rule it is rather than as
 // a copy of itself: each piece drops from the ten mob levels below the level
-// it can be worn at, and thinly from everything above that. A mob added to the
-// 61-100 stretch without its share is a piece the player can no longer expect
-// to find. One rule for all four: 1/4,000 through a piece's own band, 1/10,000
-// from everything above it.
-TEST(MapDataTest, EveryMobInTheStretchDropsItsShareOfTheFrozenSet) {
+// it can be worn at, and thinly from everything above that up to its own top.
+// A mob added inside a piece's reach without its share is a piece the player
+// can no longer expect to find. One rule for all four: 1/4,000 through a
+// piece's own band, 1/10,000 the rest of the way up.
+//
+// The tops are staggered rather than shared. The better the piece, the longer
+// it stays worth finding, so the cape is still turning up thirty levels past
+// where the top has stopped.
+TEST(MapDataTest, EveryMobInAPiecesReachDropsItsShareOfTheFrozenSet) {
   struct Piece {
     const char* stem;
-    int band_low;  // first mob level that drops it
+    int band_low;   // first mob level that drops it
+    int band_high;  // last one
   };
   const Piece kPieces[] = {
-      {"frozen_top", 61},
-      {"frozen_bottom", 71},
-      {"frozen_hat", 81},
-      {"frozen_cape", 91},
+      {"frozen_top", 61, 100},
+      {"frozen_bottom", 71, 110},
+      {"frozen_hat", 81, 120},
+      {"frozen_cape", 91, 130},
   };
   constexpr double kInBand = 0.00025;
   constexpr double kTrickle = 0.0001;
-  constexpr int kTopOfTheStretch = 100;
 
   int checked = 0;
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
@@ -120,14 +124,14 @@ TEST(MapDataTest, EveryMobInTheStretchDropsItsShareOfTheFrozenSet) {
     }
     for (const Piece& piece : kPieces) {
       double expected = 0.0;
-      if (level >= piece.band_low && level <= kTopOfTheStretch) {
+      if (level >= piece.band_low && level <= piece.band_high) {
         expected = level <= piece.band_low + 9 ? kInBand : kTrickle;
       }
       if (expected == 0.0) {
         EXPECT_EQ(rates.count(piece.stem), 0u)
             << entry.first << " (Lv" << level << ") drops " << piece.stem
             << ", which belongs to mobs " << piece.band_low << " to "
-            << kTopOfTheStretch;
+            << piece.band_high;
         continue;
       }
       ++checked;
