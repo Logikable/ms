@@ -269,15 +269,11 @@ ftxui::Element ShopPanel::RenderTabBar() const {
   // Chips are white while the bar holds the cursor and theme-blue otherwise,
   // which is how the player tells the arrow keys are on the bar.
   bool focused = zone_ == kZoneTabs;
+  const std::vector<TabSpec> kTabs = {
+      {"Weapons"}, {"Secondaries"}, {"Etc"}, {"Buy-Back"}};
   std::vector<ftxui::Element> chips;
-  chips.push_back(TabChip("Weapons", /*active=*/tab_ == kShopWeaponsTab,
-                          /*row_focused=*/focused));
-  chips.push_back(TabChip("Secondaries", /*active=*/tab_ == kShopSecondariesTab,
-                          /*row_focused=*/focused));
-  chips.push_back(TabChip("Etc", /*active=*/tab_ == kShopEtcTab,
-                          /*row_focused=*/focused));
-  chips.push_back(TabChip("Buy-Back", /*active=*/tab_ == kShopBuyBackTab,
-                          /*row_focused=*/focused));
+  // No width limit: four fixed labels, and the shop's rows are far wider.
+  chips.push_back(TabBar(kTabs, tab_, focused, /*width=*/0));
   // The meso sits in what the chips leave rather than over the whole row: a
   // third chip took the bar out to where a centred counter was drawn on top of
   // it, and a fourth would reach further still.

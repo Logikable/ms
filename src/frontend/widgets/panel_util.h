@@ -238,6 +238,27 @@ std::string EquipGiftTabKey(int stage);
 ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
                        bool unseen = false);
 
+// One tab, as a bar needs it.
+struct TabSpec {
+  std::string label;
+  bool unseen = false;  // see TabChip
+};
+
+// A whole tab bar, cut to `width` columns. Chips past the edge are held back
+// behind a mark -- kTabMore -- shown only while there is something that way,
+// though its column is reserved either way so the chips do not shuffle as it
+// comes and goes. The window follows `active`, which is therefore always drawn.
+//
+// Prefer this to building a row of TabChips: a bar wide enough to overflow is
+// a bar that would otherwise widen the window around it, and which bar that
+// will be is not something the widget's author gets to know.
+//
+// `width` is the columns the bar may use, and should be the width of the rows
+// under it -- the content is what a window should be sized by, not its tabs.
+// Pass 0 for no limit.
+ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
+                      bool row_focused, int width);
+
 // A bracketed button in the game's one button style, inverted when focused.
 // Every button the player can land on is drawn with this.
 ftxui::Element ActionButton(const std::string& label, bool focused);

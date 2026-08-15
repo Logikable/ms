@@ -509,6 +509,90 @@ TEST(TabChipTest, ActiveChipOnTheFocusedRowGoesWhite) {
   EXPECT_EQ(screen.PixelAt(1, 0).foreground_color, ftxui::Color::Black);
 }
 
+// --- TabBar ---
+
+// The bar as plain text, read cell by cell: Screen::ToString keeps the colour
+// escapes, so a byte offset into a line is not the column it looks like.
+std::string RenderTabBar(const std::vector<TabSpec>& tabs, int active,
+                         int width) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
+                                               ftxui::Dimension::Fixed(1));
+  ftxui::Render(screen,
+                ftxui::hbox({TabBar(tabs, active, /*row_focused=*/false, width),
+                             ftxui::filler()}));
+  std::string out;
+  for (int x = 0; x < screen.dimx(); ++x) {
+    out += screen.PixelAt(x, 0).character;
+  }
+  while (!out.empty() && out.back() == ' ') {
+    out.pop_back();
+  }
+  return out;
+}
+
+// Four chips of five columns each -- TabChip pads a space either side -- so
+// 20 columns is exactly enough and 19 has to give something up.
+const std::vector<TabSpec> kFour = {{"one"}, {"two"}, {"six"}, {"ten"}};
+constexpr int kFits = 20;
+constexpr int kTight = 19;
+
+TEST(TabBarTest, ABarThatFitsDrawsEveryTabAndNoMarks) {
+  EXPECT_EQ(RenderTabBar(kFour, 0, kFits), " one  two  six  ten");
+}
+
+TEST(TabBarTest, NoWidthMeansNoLimit) {
+  EXPECT_EQ(RenderTabBar(kFour, 0, /*width=*/0), " one  two  six  ten");
+}
+
+// The marks cost a column each, so a bar one column short of fitting gives up
+// two chips, not one.
+TEST(TabBarTest, ABarThatOverflowsHoldsTheRestBehindAMark) {
+  EXPECT_EQ(RenderTabBar(kFour, 0, kTight), "  one  two  six ›");
+}
+
+// Left mark at the start, right mark at the end: each shows only while there
+// is something that way. The absent one still holds its column, so the chips
+// do not shuffle as the bar scrolls under them.
+TEST(TabBarTest, EachMarkShowsOnlyWhileThereIsMoreThatWay) {
+  EXPECT_EQ(RenderTabBar(kFour, 0, kTight).substr(0, 1), " ");
+  EXPECT_EQ(RenderTabBar(kFour, 3, kTight), "‹ two  six  ten");
+}
+
+// The window follows the selection rather than sitting still, so the chip the
+// player is on is drawn whichever it is.
+TEST(TabBarTest, TheWindowFollowsTheActiveTab) {
+  for (int active = 0; active < 4; ++active) {
+    EXPECT_NE(RenderTabBar(kFour, active, kTight).find(kFour[active].label),
+              std::string::npos)
+        << "tab " << active << " fell off the bar";
+  }
+}
+
+// It moves by the least it can, and comes back to where it was: the window is
+// a plain function of the selection, not a thing with a memory of its own.
+TEST(TabBarTest, SteppingBackReturnsTheWindowToWhereItWas) {
+  std::string at_the_start = RenderTabBar(kFour, 0, kTight);
+  EXPECT_EQ(RenderTabBar(kFour, 2, kTight), at_the_start)
+      << "the window moved before it had to";
+  EXPECT_NE(RenderTabBar(kFour, 3, kTight), at_the_start);
+  EXPECT_EQ(RenderTabBar(kFour, 2, kTight), at_the_start);
+}
+
+// A width too small for even one chip draws the chip the player is on anyway.
+// A bar showing nothing says less than one that overflows.
+TEST(TabBarTest, TooNarrowForAnyChipStillDrawsTheActiveOne) {
+  EXPECT_EQ(RenderTabBar(kFour, 2, /*width=*/3), "‹ six ›");
+}
+
+TEST(TabBarTest, AnUnseenTabIsStillGoldThroughTheBar) {
+  std::vector<TabSpec> tabs = {{"one"}, {"two", /*unseen=*/true}};
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(12),
+                                               ftxui::Dimension::Fixed(1));
+  ftxui::Render(screen, TabBar(tabs, 0, /*row_focused=*/false, /*width=*/0));
+  EXPECT_EQ(screen.PixelAt(6, 0).character, "t");
+  EXPECT_EQ(screen.PixelAt(6, 0).foreground_color, kYellow);
+}
+
 // --- Floating ---
 
 // A three-row bordered box, standing in for the panel a float is drawn over.

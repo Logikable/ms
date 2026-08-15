@@ -68,16 +68,20 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
                             int64_t meso, bool row_selected,
                             const CharacterInstance& character,
                             bool highlighted) {
-  std::vector<ftxui::Element> chips;
+  std::vector<TabSpec> specs;
+  int active = 0;
   for (int tab : tabs) {
     // Asking TabSeen("") would answer no and leave those tabs gold forever.
     std::string key = TabKey(tab, character);
-    bool unseen = !key.empty() && !character.TabSeen(key);
-    chips.push_back(
-        TabChip(kTabLabels[tab], tab == active_tab, row_selected, unseen));
+    if (tab == active_tab) {
+      active = static_cast<int>(specs.size());
+    }
+    specs.push_back({kTabLabels[tab], !key.empty() && !character.TabSeen(key)});
   }
   ftxui::Element tab_row = ftxui::dbox({
-      ftxui::hbox(std::move(chips)),
+      // No width limit: the bag's four tabs are a fixed set, and every one of
+      // them fits several times over in a row 71 columns wide.
+      TabBar(specs, active, row_selected, /*width=*/0),
       ftxui::text(FormatMeso(meso)) | ftxui::color(kTheme) | ftxui::hcenter,
   });
   return ftxui::vbox({

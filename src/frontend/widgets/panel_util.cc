@@ -12,6 +12,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "ftxui/screen/string.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/protos/equip.pb.h"
 
@@ -542,6 +543,88 @@ ftxui::Element TabChip(const std::string& label, bool active, bool row_focused,
     chip = chip | ftxui::inverted;
   }
   return chip;
+}
+
+// The mark standing where a bar runs off its edge, and the column it is drawn
+// in -- reserved on both sides whether or not there is a mark to put there, so
+// the chips hold still as the bar scrolls under them.
+namespace {
+
+constexpr char kMoreLeft[] = "‹";   // a single left angle
+constexpr char kMoreRight[] = "›";  // and its mirror
+constexpr int kMoreWidth = 1;
+
+int ChipWidth(const TabSpec& tab) {
+  return ftxui::string_width(tab.label) + 2;  // TabChip pads a space each side
+}
+
+// The leftmost chip a window on to `tabs` can start at and still reach
+// `active` within `budget` columns. Being leftmost makes it a plain function
+// of the selection: stepping right moves the window by the least it can, and
+// stepping back moves it to exactly where it was on the way out.
+int FirstVisible(const std::vector<TabSpec>& tabs, int active, int budget) {
+  int first = 0;
+  while (first < active) {
+    int used = 0;
+    for (int i = first; i <= active; ++i) {
+      used += ChipWidth(tabs[i]);
+    }
+    if (used <= budget) {
+      break;
+    }
+    ++first;
+  }
+  return first;
+}
+
+ftxui::Element MoreMark(const char* glyph, bool show) {
+  return ftxui::text(show ? glyph : " ") | ftxui::color(kTheme);
+}
+
+}  // namespace
+
+ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
+                      bool row_focused, int width) {
+  int end = static_cast<int>(tabs.size());
+  int whole = 0;
+  for (const TabSpec& tab : tabs) {
+    whole += ChipWidth(tab);
+  }
+  // A bar that fits is drawn as it always was, marks and all left off. Their
+  // two columns would otherwise indent every bar in the game for the sake of
+  // the one that scrolls.
+  bool scrolls = width > 0 && whole > width;
+
+  int first = 0;
+  int last = end - 1;
+  if (scrolls) {
+    int budget = width - 2 * kMoreWidth;
+    first = FirstVisible(tabs, std::clamp(active, 0, last), budget);
+    int used = 0;
+    for (last = first; last < end; ++last) {
+      used += ChipWidth(tabs[last]);
+      if (used > budget) {
+        break;
+      }
+    }
+    --last;  // the one that did not fit, or the end of the list
+    // A budget too small for even one chip still shows the chip the player is
+    // on: a bar that draws nothing says less than one that overflows.
+    last = std::max(last, first);
+  }
+
+  std::vector<ftxui::Element> chips;
+  if (scrolls) {
+    chips.push_back(MoreMark(kMoreLeft, first > 0));
+  }
+  for (int i = first; i <= last; ++i) {
+    chips.push_back(
+        TabChip(tabs[i].label, i == active, row_focused, tabs[i].unseen));
+  }
+  if (scrolls) {
+    chips.push_back(MoreMark(kMoreRight, last < end - 1));
+  }
+  return ftxui::hbox(std::move(chips));
 }
 
 ftxui::Element ActionButton(const std::string& label, bool focused) {

@@ -14,6 +14,14 @@
 #include "src/protos/equip.pb.h"
 
 namespace ms {
+namespace {
+
+// What the star bar may use. It stands over the Inspect card on this screen,
+// so it is held to the card's width rather than allowed to push it wider --
+// a player holding a dozen copies of one item has a dozen chips.
+constexpr int kBarWidth = 44;
+
+}  // namespace
 
 TraceRecoverPanel::TraceRecoverPanel(const CharacterInstance& character)
     : character_(character) {
@@ -51,14 +59,13 @@ ftxui::Element TraceRecoverPanel::RenderTabs() const {
   }
   // The chip row is the only thing on this screen the keys reach, so it is
   // always the focused bar.
-  std::vector<ftxui::Element> chips;
-  for (int i = 0; i < static_cast<int>(matching_indices_.size()); ++i) {
-    const EquipTabItem& item = character_.inventory()[matching_indices_[i]];
-    chips.push_back(TabChip(std::to_string(item.stars()) + "★", i == selected_,
-                            /*row_focused=*/true));
+  std::vector<TabSpec> tabs;
+  for (int index : matching_indices_) {
+    const EquipTabItem& item = character_.inventory()[index];
+    tabs.push_back({std::to_string(item.stars()) + "★"});
   }
   return ftxui::vbox({
-      CenteredRow(ftxui::hbox(std::move(chips))),
+      CenteredRow(TabBar(tabs, selected_, /*row_focused=*/true, kBarWidth)),
       ThemedSeparator(),
   });
 }

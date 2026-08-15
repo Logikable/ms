@@ -41,6 +41,9 @@ const char* kTabLabels[] = {"Stats", "Skills", "Advance"};
 // Roman numerals for the job-advancement tabs, indexed by stage (1..6).
 const char* kStageNumerals[] = {"", "I", "II", "III", "IV", "V", "VI"};
 
+// Columns the SP counter takes off the end of the stage bar's row: " 999 SP ".
+constexpr int kSpCol = 8;
+
 // The four AP-allocatable stats, in display order; the index is stat_sel_.
 struct AllocStat {
   const char* label;
@@ -348,7 +351,8 @@ void CharacterPanel::MarkActiveTabSeen() {
 ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
   // Left-aligned chip row in the shared tab style.
   std::vector<Tab> tabs = VisibleTabs();
-  std::vector<ftxui::Element> chips;
+  std::vector<TabSpec> specs;
+  int active = 0;
   for (int i = 0; i < static_cast<int>(tabs.size()); ++i) {
     // A tab with no key never announces itself. Asking TabSeen("") instead
     // would answer no and leave those tabs permanently gold.
@@ -358,12 +362,16 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
     // standing on it -- gold on a tab they are already reading says nothing,
     // and would sit there until they arrowed away and back to clear it.
     std::string key = TabKey(tabs[i]);
-    bool unseen = !key.empty() && !character_.TabSeen(key);
-    chips.push_back(TabChip(kTabLabels[tabs[i]], tabs[i] == ActiveTab(),
-                            row_selected, unseen));
+    if (tabs[i] == ActiveTab()) {
+      active = i;
+    }
+    specs.push_back(
+        {kTabLabels[tabs[i]], !key.empty() && !character_.TabSeen(key)});
   }
-  chips.push_back(ftxui::filler());
-  return ftxui::hbox(std::move(chips));
+  // The panel is only kContentWidth wide and the tabs are already most of it,
+  // so this is the bar most likely to need the scroll.
+  return ftxui::hbox(
+      {TabBar(specs, active, row_selected, kContentWidth), ftxui::filler()});
 }
 
 // The MP display row with the character's unspent AP right-aligned, so the
@@ -443,11 +451,13 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(int stages,
                                                bool bar_focused) const {
   // One chip per unlocked stage, in the shared tab style. The selected stage's
   // SP is right-aligned on the same row, reading like the AP counter.
-  std::vector<ftxui::Element> row;
+  std::vector<TabSpec> specs;
   for (int stage = 1; stage <= stages; ++stage) {
-    row.push_back(
-        TabChip(kStageNumerals[stage], stage - 1 == skill_tab_, bar_focused));
+    specs.push_back({kStageNumerals[stage]});
   }
+  // The SP counter shares the row, so the bar gets what is left of it.
+  std::vector<ftxui::Element> row;
+  row.push_back(TabBar(specs, skill_tab_, bar_focused, kContentWidth - kSpCol));
   row.push_back(ftxui::filler());
   row.push_back(
       ftxui::text(std::to_string(character_.sp(skill_tab_ + 1)) + " SP "));

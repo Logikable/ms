@@ -23,6 +23,10 @@ namespace {
 constexpr int kMapNameWidth = 34;
 constexpr int kLevelWidth = 4;
 
+// What a map row comes to, cursor included. The band bar is held to this, so
+// the window is sized by the maps in it rather than by the tabs over them.
+constexpr int kMapRowWidth = 2 + kMapNameWidth + kLevelWidth;
+
 // Column widths of the mob table. Mob names top out at 19 ("Muddy Swamp
 // Monster"); the column is wider than that because the map's name stands over
 // it, and PadRight truncates rather than overflows.
@@ -164,14 +168,14 @@ std::string MapSelectPanel::selected_map() const {
 
 // The bands as a chip bar, the game's one tab style. The chips go white while
 // the bar holds the cursor, which is how the player tells Left and Right are
-// reaching it.
+// reaching it. There are more bands than fit, so the bar is held to the rows'
+// width and scrolls under them rather than widening the window.
 ftxui::Element MapSelectPanel::RenderBandBar() const {
-  std::vector<ftxui::Element> chips;
+  std::vector<TabSpec> bands;
   for (int band = 0; band < kBandCount; ++band) {
-    chips.push_back(TabChip(BandLabel(band), band == page_,
-                            /*row_focused=*/zone_ == kZoneTabs));
+    bands.push_back({BandLabel(band)});
   }
-  return ftxui::hbox(std::move(chips));
+  return TabBar(bands, page_, /*row_focused=*/zone_ == kZoneTabs, kMapRowWidth);
 }
 
 ftxui::Element MapSelectPanel::RenderMapList() const {

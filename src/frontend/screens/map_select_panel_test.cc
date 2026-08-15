@@ -207,6 +207,20 @@ int MobTableRightEdge(const MapSelectPanel& panel) {
   return -1;
 }
 
+// The column the map list's own top-right corner lands on -- the first of the
+// two the pair draws.
+int MapListRightEdge(const MapSelectPanel& panel) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(14));
+  ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
+  for (int x = 0; x < screen.dimx(); ++x) {
+    if (screen.PixelAt(x, 0).character == "╮") {
+      return x;
+    }
+  }
+  return -1;
+}
+
 // Runs of spaces collapsed to one, so assertions can name the columns without
 // pinning their widths.
 std::string Squeeze(const std::string& line) {
@@ -349,6 +363,19 @@ TEST(MapSelectPanelTest, TheTwoTablesShareAHeaderLine) {
   EXPECT_NE(header.find("Name"), header.rfind("Name"))
       << "both tables' headers belong on one line, and this one reads: "
       << header;
+}
+
+// There are more bands than fit beside the maps, so the bar is held to the
+// rows' width and scrolls under them. Left to itself it would take the window
+// out past 48 columns and the maps would sit in a window sized by its tabs.
+TEST(MapSelectPanelTest, TheBandBarDoesNotWidenTheMapList) {
+  GameState state = EveryBand();
+  MapSelectPanel panel(state);
+  panel.Reset();
+
+  EXPECT_LT(MapListRightEdge(panel), 47);
+  // And it says so, rather than just dropping the bands it cannot draw.
+  EXPECT_NE(Render(panel).find("›"), std::string::npos);
 }
 
 // The mob table wears the selected map's name over its columns, and the pair
