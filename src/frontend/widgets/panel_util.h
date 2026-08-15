@@ -101,9 +101,26 @@ std::string FormatSlot(EquipSlot slot);
 // types not yet implemented.
 std::string FormatEquipType(EquipType type);
 
+// A list of weapon types as the player reads it: "Dagger", or "Sword / Axe".
+// Both hands' versions of one weapon collapse to the bare name, which is how
+// the data says "any sword" and not how it should be shown. A pair lands where
+// its first half was listed. Empty in, empty out.
+std::string FormatWeaponList(const std::vector<EquipType>& types);
+
 // Returns the display name for a set of equipment (e.g. "Frozen Set"), or ""
 // for an unnamed one.
 std::string FormatEquipSet(EquipSetName set);
+
+// The tag a skill row opens with: what the player does with the skill, said
+// once at the front of the row instead of being worked out from the name.
+// Four columns wide whichever tag it is, so every name after it starts at the
+// same place. A kind-less skill gets the blanks rather than a wrong tag.
+struct KindTag {
+  const char* text;
+  ftxui::Color color;
+};
+constexpr int kSkillTagWidth = 4;
+KindTag TagFor(const Skill& skill);
 
 // The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for
 // an unspecified one. The stage number is the proto enum's own value, so a

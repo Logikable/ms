@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -199,6 +200,73 @@ void AppendStat(std::string& out, int val, const std::string& label) {
     out += "  ";
   }
   out += "+" + std::to_string(val) + " " + label;
+}
+
+std::string FormatWeaponList(const std::vector<EquipType>& types) {
+  // A weapon that comes in both hands' versions. Naming the two of them is how
+  // the data says "any sword", but "One-Handed Sword / Two-Handed Sword" is
+  // neither how a description writes it nor narrow enough for a column.
+  struct WeaponPair {
+    EquipType one_handed;
+    EquipType two_handed;
+    const char* name;
+  };
+  const WeaponPair kWeaponPairs[] = {
+      {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD, "Sword"},
+      {EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE, "Axe"},
+      {EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_TWO_HANDED_BLUNT, "Blunt"},
+  };
+  std::set<EquipType> listed(types.begin(), types.end());
+
+  // Walked in the order they were given, so a collapsed pair lands where its
+  // first half was named.
+  std::string result;
+  std::set<EquipType> written;
+  for (EquipType type : types) {
+    if (written.count(type) > 0) {
+      continue;
+    }
+    written.insert(type);
+    std::string name = FormatEquipType(type);
+    for (const WeaponPair& pair : kWeaponPairs) {
+      // Only a list holding the whole pair collapses: one hand's version alone
+      // stays the weapon it names.
+      if ((type == pair.one_handed || type == pair.two_handed) &&
+          listed.count(pair.one_handed) > 0 &&
+          listed.count(pair.two_handed) > 0) {
+        name = pair.name;
+        written.insert(pair.one_handed);
+        written.insert(pair.two_handed);
+        break;
+      }
+    }
+    if (name.empty()) {
+      continue;
+    }
+    if (!result.empty()) {
+      result += " / ";
+    }
+    result += name;
+  }
+  return result;
+}
+
+KindTag TagFor(const Skill& skill) {
+  // Orange rather than red for the attack tag: red is the colour that says a
+  // thing is refused (colors.h), and every attack skill carrying it on a
+  // screen that dims what cannot be learned spent the alarm on something that
+  // is never a problem.
+  switch (skill.kind()) {
+    case SKILL_KIND_ATTACK:
+    case SKILL_KIND_ACTIVE:
+      return {"A:  ", kOrange};
+    case SKILL_KIND_AUTO_ATTACK:
+      return {"AA: ", kMutedYellow};
+    case SKILL_KIND_PASSIVE:
+      return {"P:  ", kGreen};
+    default:
+      return {"    ", kGray};
+  }
 }
 
 std::string FormatEquipSet(EquipSetName set) {

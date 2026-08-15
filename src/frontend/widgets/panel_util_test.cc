@@ -128,6 +128,49 @@ TEST(AppendStatTest, SkipsZeroInMiddle) {
   EXPECT_EQ(out, "+3 STR  +2 LUK");
 }
 
+// --- FormatWeaponList ---
+
+TEST(FormatWeaponListTest, NamesOneWeaponAndJoinsSeveral) {
+  EXPECT_EQ(FormatWeaponList({}), "");
+  EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_DAGGER}), "Dagger");
+  EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_DAGGER, EQUIP_TYPE_CLAW}),
+            "Dagger / Claw");
+}
+
+// Both hands of one weapon is how the data says "any sword".
+TEST(FormatWeaponListTest, AWholePairCollapsesToItsBareName) {
+  EXPECT_EQ(FormatWeaponList(
+                {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD,
+                 EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE}),
+            "Sword / Axe");
+  // The collapsed name lands where the first half was listed, not at the end.
+  EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_SPEAR,
+                              EQUIP_TYPE_TWO_HANDED_BLUNT}),
+            "Blunt / Spear");
+}
+
+TEST(FormatWeaponListTest, HalfAPairStaysTheWeaponItNames) {
+  EXPECT_EQ(FormatWeaponList({EQUIP_TYPE_TWO_HANDED_SWORD}),
+            "Two-Handed Sword");
+}
+
+// --- TagFor ---
+
+TEST(TagForTest, EveryKindGetsAFourColumnTag) {
+  Skill skill;
+  skill.set_kind(SKILL_KIND_ATTACK);
+  EXPECT_EQ(std::string(TagFor(skill).text), "A:  ");
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  EXPECT_EQ(std::string(TagFor(skill).text), "A:  ");
+  skill.set_kind(SKILL_KIND_AUTO_ATTACK);
+  EXPECT_EQ(std::string(TagFor(skill).text), "AA: ");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  EXPECT_EQ(std::string(TagFor(skill).text), "P:  ");
+  // A kind-less skill gets the blanks rather than a tag that would be wrong.
+  skill.set_kind(SKILL_KIND_UNSPECIFIED);
+  EXPECT_EQ(std::string(TagFor(skill).text), "    ");
+}
+
 // --- FormatItemEntry ---
 
 TEST(FormatItemEntryTest, ContainsNameSlotInfoAndScrollCounts) {

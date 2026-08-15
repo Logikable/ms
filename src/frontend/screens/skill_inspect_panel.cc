@@ -209,69 +209,14 @@ std::vector<ftxui::Element> WrappedEffectRows(const std::string& label,
   return rows;
 }
 
-// A weapon that comes in both hands' versions. Demanding the two of them is
-// how the data says "any sword", but "One-Handed Sword / Two-Handed Sword" is
-// neither how the description writes it nor narrow enough for the column.
-struct WeaponPair {
-  EquipType one_handed;
-  EquipType two_handed;
-  const char* name;
-};
-
-const WeaponPair kWeaponPairs[] = {
-    {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD, "Sword"},
-    {EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE, "Axe"},
-    {EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_TWO_HANDED_BLUNT, "Blunt"},
-};
-
-// The pair `type` belongs to, if the skill demands the whole of it. Null when
-// only one hand's version is asked for, which stays the weapon it names.
-const WeaponPair* WholePairFor(const std::set<EquipType>& demanded,
-                               EquipType type) {
-  for (const WeaponPair& pair : kWeaponPairs) {
-    if ((type == pair.one_handed || type == pair.two_handed) &&
-        demanded.count(pair.one_handed) > 0 &&
-        demanded.count(pair.two_handed) > 0) {
-      return &pair;
-    }
-  }
-  return nullptr;
-}
-
 // The weapons a skill demands, as "Dagger" or "Sword / Axe". Empty when it can
 // be swung with anything, which is what most skills want.
 std::string RequiredWeapons(const google::protobuf::RepeatedField<int>& types) {
-  std::set<EquipType> demanded;
+  std::vector<EquipType> demanded;
   for (int type : types) {
-    demanded.insert(static_cast<EquipType>(type));
+    demanded.push_back(static_cast<EquipType>(type));
   }
-
-  // Walked in the order they are listed, so a collapsed pair lands where its
-  // first half was named.
-  std::string result;
-  std::set<EquipType> written;
-  for (int listed : types) {
-    EquipType type = static_cast<EquipType>(listed);
-    if (written.count(type) > 0) {
-      continue;
-    }
-    written.insert(type);
-    std::string name = FormatEquipType(type);
-    const WeaponPair* pair = WholePairFor(demanded, type);
-    if (pair != nullptr) {
-      name = pair->name;
-      written.insert(pair->one_handed);
-      written.insert(pair->two_handed);
-    }
-    if (name.empty()) {
-      continue;
-    }
-    if (!result.empty()) {
-      result += " / ";
-    }
-    result += name;
-  }
-  return result;
+  return FormatWeaponList(demanded);
 }
 
 // What the skill asks for before it can be swung at all. The two read as a

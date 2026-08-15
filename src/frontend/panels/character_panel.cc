@@ -86,42 +86,12 @@ std::string StatText(const std::string& label, int base, int bonus) {
 // Crossbow" used to do to the whole Character panel.
 //
 //   " " + tag(4) + name + level + filler + "[+]" + " "
-constexpr int kSkillTagWidth = 4;
 // " 20/20 " -- the widest a level reads, with the gutter either side that the
 // row has no filler left to provide.
 constexpr int kSkillLevelWidth = 7;
 constexpr int kSkillPlusWidth = 3;
 constexpr int kSkillNameWidth =
     kContentWidth - 1 - kSkillTagWidth - kSkillLevelWidth - kSkillPlusWidth - 1;
-
-// The tag a skill row opens with: what the player does with the skill, said
-// once at the front of the row instead of being worked out from the name.
-struct KindTag {
-  const char* text;
-  ftxui::Color color;
-};
-
-// Four columns wide whichever tag it is, so every name below starts at the
-// same place and the list still reads as a column. A kind-less skill gets the
-// blanks rather than a tag that would be wrong.
-//
-// Orange rather than red for the attack tag: red is the colour that says a
-// thing is refused (colors.h), and every attack skill carrying it on a screen
-// that dims what cannot be learned spent the alarm on something that is never
-// a problem.
-KindTag TagFor(const Skill& skill) {
-  switch (skill.kind()) {
-    case SKILL_KIND_ATTACK:
-    case SKILL_KIND_ACTIVE:
-      return {"A:  ", kOrange};
-    case SKILL_KIND_AUTO_ATTACK:
-      return {"AA: ", kMutedYellow};
-    case SKILL_KIND_PASSIVE:
-      return {"P:  ", kGreen};
-    default:
-      return {"    ", kGray};
-  }
-}
 
 // Appends `skill` to `out`, but only after whatever it waits on. Keyed by
 // display name, which is what a requirement names and what a learned level is
