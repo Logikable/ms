@@ -95,6 +95,10 @@ struct CombatParams {
   double respawn_seconds = 0.0;  // time between full-roster respawn beats
   double hit_seconds = 0.0;      // time between mob hits on the player
   int max_player_hp = 0;         // what a full heal fills the player back to
+  // The character's level. The fight watches it for the level-up fill, which
+  // cannot be read off max_player_hp: a skill point, a scroll or a swapped hat
+  // all widen the pool too, and none of them is a reason to be healed.
+  int player_level = 0;
   // Share of that pool the player gets back on every respawn beat, whether or
   // not they cleared the map (0.10 == a tenth of it). What lets a map be
   // survived by outlasting it rather than only by emptying it.

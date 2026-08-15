@@ -1010,16 +1010,56 @@ TEST(CombatSimTest, LevellingUpFillsTheWiderPool) {
   CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  params.player_level = 30;
 
   sim.Advance(params, 1.0);
   ASSERT_EQ(sim.player_hp(), 90);
 
   // The level lands and the pool grows. Left alone, the bar would read 90 of
   // 200 -- less than half full, having lost one hit.
+  params.player_level = 31;
   params.max_player_hp = 200;
   sim.Advance(params, 0.5);
   EXPECT_EQ(sim.player_hp(), 200);
   EXPECT_EQ(sim.player_max_hp(), 200);
+}
+
+// A skill point into a passive that carries max HP widens the pool at the same
+// level. It is not a level-up and must not heal -- the player would otherwise
+// have a free full heal for every point they had left to spend.
+TEST(CombatSimTest, AWiderPoolAtTheSameLevelDoesNotHeal) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  params.player_level = 30;
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 90);
+
+  params.max_player_hp = 200;
+  sim.Advance(params, 0.5);
+  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_EQ(sim.player_max_hp(), 200);
+}
+
+// And a pool that shrank -- an unequipped hat -- takes the player down with
+// it, rather than leaving them holding HP their stats do not give them. The
+// step's regen already clamps to the pool whether or not there is any regen to
+// apply, so this needs no code of its own; it needs a test saying so.
+TEST(CombatSimTest, ANarrowerPoolTakesTheOverflowWithIt) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  params.player_level = 30;
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 90);
+
+  params.max_player_hp = 50;
+  sim.Advance(params, 0.5);
+  EXPECT_EQ(sim.player_hp(), 50);
 }
 
 TEST(CombatSimTest, InactiveParamsShowNoPlayerHp) {

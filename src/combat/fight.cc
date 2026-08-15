@@ -239,6 +239,7 @@ void CombatSim::GoIdle() {
   player_hp_ = 0.0;
   player_hp_fraction_ = 0.0;
   player_max_hp_ = 0;
+  player_level_ = 0;
   hit_phase_ = 0.0;
   auto_phase_.clear();
   cooldown_left_.clear();
@@ -484,10 +485,11 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   double dt = std::min(elapsed_seconds, params.attacks.front().swing_seconds);
 
   BeginMapIfChanged(params);
-  // A level-up widens the pool and fills it, as GMS does. player_max_hp_ is
-  // still last step's, so this catches the moment it moves; without the fill a
-  // character who levelled at full health would watch their bar drop.
-  if (params.max_player_hp != player_max_hp_) {
+  // A level-up widens the pool and fills it, as GMS does. player_level_ is
+  // still last step's, so this catches the moment it moves. It watches the
+  // level and not the pool because everything else that widens the pool -- a
+  // skill point, a scroll, a swapped hat -- is not a reason to be healed.
+  if (params.player_level != player_level_) {
     player_hp_ = params.max_player_hp;
   }
 
@@ -503,6 +505,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunSwing(params, dt);
 
   player_max_hp_ = params.max_player_hp;
+  player_level_ = params.player_level;
   player_hp_fraction_ =
       params.max_player_hp > 0
           ? std::clamp(player_hp_ / params.max_player_hp, 0.0, 1.0)

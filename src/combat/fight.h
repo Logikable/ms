@@ -245,6 +245,7 @@ class CombatSim {
   double attack_fraction_ = 0.0;
   double player_hp_fraction_ = 0.0;
   int player_max_hp_ = 0;
+  int player_level_ = 0;
   std::string attack_name_;
   // Reach of the attack the next swing will use -- also the width of the
   // engaged window the UI draws.

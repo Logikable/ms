@@ -417,6 +417,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
   params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
   params.max_player_hp = derived.max_hp;
+  params.player_level = state.character.proto().level();
   params.beat_heal_fraction = kBeatHealFraction;
   params.damage_reflect_pct = derived.damage_reflect_pct;
   params.hp_recover_pct = derived.hp_recover_pct;
