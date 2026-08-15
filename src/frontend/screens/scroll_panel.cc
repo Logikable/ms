@@ -272,12 +272,17 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
     money_row = std::move(money_row) | ftxui::color(kRed);
   }
 
+  // Three blocks with a rule between each: what is going on what, what it does
+  // and what it costs, and the answer. The middle block is the only one the
+  // player reads twice.
   return ThemedWindow(
       " Confirm ",
       ftxui::vbox({
           CenteredRow(what),
+          ThemedSeparator(),
           CenteredRow(effect),
           std::move(money_row),
+          ThemedSeparator(),
           ConfirmButtons(confirm_.focus(), affordable) | ftxui::hcenter,
       }));
 }

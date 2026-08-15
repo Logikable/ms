@@ -367,14 +367,90 @@ TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCost) {
   EXPECT_NE(rendered.find("34 📜"), std::string::npos) << "the cost";
 }
 
+// Rendered lines, so a test can say which row sits under which.
+std::vector<std::string> Lines(const std::string& rendered) {
+  std::vector<std::string> lines;
+  size_t start = 0;
+  while (start <= rendered.size()) {
+    size_t end = rendered.find('\n', start);
+    if (end == std::string::npos) {
+      end = rendered.size();
+    }
+    lines.push_back(rendered.substr(start, end - start));
+    start = end + 1;
+  }
+  return lines;
+}
+
+// Lines carrying a horizontal rule. A rule inside a window is drawn into that
+// window's own side borders, so it always brings a left and a right end with
+// it -- which is what tells a rule from the plain rows around it.
+int RuleLines(const std::vector<std::string>& lines) {
+  int count = 0;
+  for (const std::string& line : lines) {
+    if (line.find("├") != std::string::npos &&
+        line.find("┤") != std::string::npos) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+int LineIndex(const std::vector<std::string>& lines,
+              const std::string& needle) {
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (lines[i].find(needle) != std::string::npos) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+// Three blocks, ruled off: what is going on what, then what it does and costs,
+// then the answer. Without the rules the four rows read as one list.
+TEST_F(ScrollPanelTest, TheConfirmWindowRulesOffItsBlocks) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  GiveTraces(100);
+  panel_.OnEvent(ftxui::Event::Return);
+  std::vector<std::string> lines = Lines(Render(panel_));
+
+  int effect = LineIndex(lines, "+5 ATT");
+  int cost = LineIndex(lines, "Cost 34");
+  int buttons = LineIndex(lines, "[Confirm]");
+  ASSERT_GT(effect, 0);
+  ASSERT_GT(buttons, 0);
+
+  // One rule belongs to the list behind, and two to the window over it.
+  EXPECT_EQ(RuleLines(lines), 3);
+  EXPECT_EQ(cost, effect + 1) << "the cost belongs with what it buys";
+  EXPECT_LT(effect, buttons);
+}
+
 // The window is a pop-up over the list: opening it must not make the panel
 // taller, which is what it did when it sat below.
+//
+// Needs a list the window can fit inside. Against the two-scroll fixture the
+// window is the taller of the two and the panel grows whatever it is doing,
+// so the assertion would say nothing about floating.
 TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
-  GiveTraces(100);
-  int closed = FitHeight(panel_);
-  panel_.OnEvent(ftxui::Event::Return);
-  ASSERT_TRUE(panel_.IsConfirming());
-  EXPECT_EQ(FitHeight(panel_), closed);
+  std::map<std::string, Scroll> many;
+  for (int i = 0; i < 10; ++i) {
+    Scroll& s = many["scroll " + std::to_string(i)];
+    s.set_name("Scroll " + std::to_string(i));
+    s.set_success_rate(100);
+    s.set_tier(SCROLL_TIER_1);
+    s.set_scroll_type(SCROLL_TYPE_ATT);
+    s.set_target(SCROLL_TARGET_WEAPON);
+    s.mutable_stats()->set_attack(1);
+    s.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  }
+  ScrollPanel panel(c_, many);
+  GiveTraces(1000);
+
+  int closed = FitHeight(panel);
+  panel.OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(panel.IsConfirming());
+  EXPECT_EQ(FitHeight(panel), closed);
 }
 
 // Said in red and in the greyed Confirm, and in no words at all: the cost row
