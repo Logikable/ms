@@ -289,6 +289,7 @@ cc_library(
         "//src/frontend:types",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:item_menu",
+        "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/item",
         "//src/item:shop",

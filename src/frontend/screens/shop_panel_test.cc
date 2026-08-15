@@ -1058,6 +1058,26 @@ TEST_F(ShopPanelTest, TheMenuOpensOnAShelfRow) {
   EXPECT_TRUE(panel.menu_open());
 }
 
+// The shelf stocks names half again its name column -- the magician books run
+// to 32 characters. A name is cut to the column and slides under it while its
+// row is selected, rather than widening the window or being lost.
+TEST_F(ShopPanelTest, ALongNameIsCutToItsColumnAndNotPastIt) {
+  const std::string kLongest = "Metallic Blue Book (Antistrophe)";
+  std::map<std::string, EquipPrototype> shelf = equips_;
+  shelf["metallic"] = MakeItem(kLongest, 10, 5000);
+
+  CharacterInstance c = MakeCharacter(100000);
+  ShopPanel panel(c, shelf, items_);
+  ShopPanel plain(c, equips_, items_);
+  std::string rendered = Render(panel);
+
+  EXPECT_EQ(rendered.find(kLongest), std::string::npos)
+      << "the whole name fits, so this test proves nothing";
+  EXPECT_NE(rendered.find(kLongest.substr(0, 26)), std::string::npos);
+  EXPECT_EQ(RenderWidth(panel), RenderWidth(plain))
+      << "a long name widened the shop";
+}
+
 TEST_F(ShopPanelTest, ReopeningComesBackToTheWeaponsTab) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_, items_);

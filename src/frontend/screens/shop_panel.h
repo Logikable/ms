@@ -21,6 +21,7 @@
 #ifndef MS_SRC_FRONTEND_SCREENS_SHOP_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SHOP_PANEL_H_
 
+#include <chrono>
 #include <map>
 #include <string>
 #include <vector>
@@ -30,6 +31,7 @@
 #include "src/character/character.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/item_menu.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -121,16 +123,21 @@ class ShopPanel {
   void ScrollToCursor();
   // The tab chips with the meso counter in what they leave.
   ftxui::Element RenderTabBar() const;
-  // One stock row. `cursor` is the two-column gutter the cursor draws in.
-  ftxui::Element RenderEtcRow(const ItemPrototype& item,
-                              const std::string& cursor) const;
-  ftxui::Element RenderEquipRow(const EquipPrototype& proto,
-                                const std::string& cursor) const;
+  // One stock row. `cursor` is the two-column gutter the cursor draws in, and
+  // `elapsed` how long this row has been selected -- zero for one that is not,
+  // which is what shows every other name from its head.
+  ftxui::Element RenderEtcRow(
+      const ItemPrototype& item, const std::string& cursor,
+      std::chrono::steady_clock::duration elapsed) const;
+  ftxui::Element RenderEquipRow(
+      const EquipPrototype& proto, const std::string& cursor,
+      std::chrono::steady_clock::duration elapsed) const;
   // One buy-back row. A stackable fills the quantity column; an equip, being
   // the one item it was, leaves it blank. Both are priced at what the sale
   // paid for one.
-  ftxui::Element RenderBuyBackRow(const BuyBackEntry& entry,
-                                  const std::string& cursor) const;
+  ftxui::Element RenderBuyBackRow(
+      const BuyBackEntry& entry, const std::string& cursor,
+      std::chrono::steady_clock::duration elapsed) const;
   // The rows on screen, scroll bar beside them, or "(empty)" over blanks while
   // the shelf is. Always kVisibleRows tall: the panel is drawn centred, so a
   // block that shrank with the list would move the whole window up the screen.
@@ -152,6 +159,9 @@ class ShopPanel {
   int first_visible_ = 0;
   ItemMenu menu_;
   bool menu_open_ = false;
+  // How long the cursor has sat on its row, for sliding a long name under the
+  // name column. Mutable because the render is where the move is noticed.
+  mutable SelectionClock name_clock_;
 
   // The row the context menu starts on, held back far enough that the menu
   // ends inside the window rather than stretching it.

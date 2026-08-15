@@ -1,6 +1,7 @@
 #include "src/frontend/screens/shop_panel.h"
 
 #include <algorithm>
+#include <chrono>
 #include <map>
 #include <string>
 #include <utility>
@@ -37,6 +38,10 @@ constexpr int kCoinWidth = 3;
 // the longest any class has -- and short enough that the window still clears
 // the bottom of a modest terminal.
 constexpr int kVisibleRows = 15;
+
+// Room for any row index under one tab, so folding the tab and the row into
+// one key cannot make two different selections collide.
+constexpr int kNameClockTabStride = 4096;
 
 // Every row and header ends one column clear of the border, and the scroll bar
 // takes the column after that whether or not it is drawn. Held exactly, so the
@@ -286,15 +291,17 @@ ftxui::Element ShopPanel::RenderTabBar() const {
 
 // The price is red when the player cannot pay it, so the list answers "what can
 // I buy" without arithmetic on every row.
-ftxui::Element ShopPanel::RenderEtcRow(const ItemPrototype& item,
-                                       const std::string& cursor) const {
+ftxui::Element ShopPanel::RenderEtcRow(
+    const ItemPrototype& item, const std::string& cursor,
+    std::chrono::steady_clock::duration elapsed) const {
   ftxui::Element cost =
       ftxui::text(CoinCell(FormatWithCommas(item.shop_price())));
   if (item.shop_price() > character_.meso()) {
     cost = std::move(cost) | ftxui::color(kRed);
   }
   return ftxui::hbox({
-      ftxui::text(cursor + PadRight(item.name(), kNameWidth) + "  " +
+      ftxui::text(cursor + ScrollingWindow(item.name(), kNameWidth, elapsed) +
+                  "  " +
                   PadRight(FormatWithCommas(character_.CountStackable(item)),
                            kTypeWidth + 2 + kLevelWidth)),
       std::move(cost),
@@ -304,8 +311,9 @@ ftxui::Element ShopPanel::RenderEtcRow(const ItemPrototype& item,
 
 // The level is red on the bag's rule and in the bag's colour. There is no class
 // to colour: the list holds nothing this character is the wrong class for.
-ftxui::Element ShopPanel::RenderEquipRow(const EquipPrototype& proto,
-                                         const std::string& cursor) const {
+ftxui::Element ShopPanel::RenderEquipRow(
+    const EquipPrototype& proto, const std::string& cursor,
+    std::chrono::steady_clock::duration elapsed) const {
   ftxui::Element level = ftxui::text(LevelCell(proto));
   if (!character_.MeetsLevel(proto)) {
     level = std::move(level) | ftxui::color(kRed);
@@ -316,17 +324,18 @@ ftxui::Element ShopPanel::RenderEquipRow(const EquipPrototype& proto,
     cost = std::move(cost) | ftxui::color(kRed);
   }
   return ftxui::hbox({
-      ftxui::text(cursor + PadRight(proto.name(), kNameWidth) + "  " +
-                  PadRight(FormatEquipType(proto.equip_type()), kTypeWidth) +
-                  "  "),
+      ftxui::text(
+          cursor + ScrollingWindow(proto.name(), kNameWidth, elapsed) + "  " +
+          PadRight(FormatEquipType(proto.equip_type()), kTypeWidth) + "  "),
       std::move(level),
       std::move(cost),
       ftxui::text(" "),
   });
 }
 
-ftxui::Element ShopPanel::RenderBuyBackRow(const BuyBackEntry& entry,
-                                           const std::string& cursor) const {
+ftxui::Element ShopPanel::RenderBuyBackRow(
+    const BuyBackEntry& entry, const std::string& cursor,
+    std::chrono::steady_clock::duration elapsed) const {
   // The name is the item's own, and a trace's name already says it is one.
   std::string name;
   std::string qty;
@@ -347,7 +356,7 @@ ftxui::Element ShopPanel::RenderBuyBackRow(const BuyBackEntry& entry,
     cost = std::move(cost) | ftxui::color(kRed);
   }
   return ftxui::hbox({
-      ftxui::text(cursor + PadRight(name, kNameWidth) + "  " +
+      ftxui::text(cursor + ScrollingWindow(name, kNameWidth, elapsed) + "  " +
                   PadRight(qty, kTypeWidth + 2 + kLevelWidth)),
       std::move(cost),
       ftxui::text(" "),
@@ -361,16 +370,24 @@ ftxui::Element ShopPanel::RenderStock() const {
     // a reason the player can already see -- the tab they are standing on.
     item_rows.push_back(EmptyState("empty", /*gutter=*/2));
   }
+  // The tab rides in the key beside the row, so the same row of another tab
+  // counts as a different name and starts from its own head.
+  name_clock_.Follow(tab_ * kNameClockTabStride + selected_);
   int last = std::min(RowCount(), first_visible_ + kVisibleRows);
   for (int i = first_visible_; i < last; ++i) {
-    std::string cursor = zone_ == kZoneList && i == selected_ ? "> " : "  ";
+    bool selected = zone_ == kZoneList && i == selected_;
+    std::string cursor = selected ? "> " : "  ";
+    std::chrono::steady_clock::duration elapsed =
+        selected ? name_clock_.Elapsed()
+                 : std::chrono::steady_clock::duration::zero();
     if (tab_ == kShopBuyBackTab) {
       item_rows.push_back(
-          RenderBuyBackRow(character_.buy_backs().Get(i), cursor));
+          RenderBuyBackRow(character_.buy_backs().Get(i), cursor, elapsed));
     } else if (tab_ == kShopEtcTab) {
-      item_rows.push_back(RenderEtcRow(items_.at(stock_[i]), cursor));
+      item_rows.push_back(RenderEtcRow(items_.at(stock_[i]), cursor, elapsed));
     } else {
-      item_rows.push_back(RenderEquipRow(equips_.at(stock_[i]), cursor));
+      item_rows.push_back(
+          RenderEquipRow(equips_.at(stock_[i]), cursor, elapsed));
     }
   }
   // Padded out to the full window, so the shop is one height whatever the tab
