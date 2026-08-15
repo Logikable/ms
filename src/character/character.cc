@@ -644,6 +644,24 @@ void CharacterInstance::MarkTabSeen(const std::string& key) {
   character_.add_seen_tabs(key);
 }
 
+bool CharacterInstance::ScrollPinned(const std::string& key) const {
+  const google::protobuf::RepeatedPtrField<std::string>& pinned =
+      character_.pinned_scrolls();
+  return std::find(pinned.begin(), pinned.end(), key) != pinned.end();
+}
+
+void CharacterInstance::ToggleScrollPin(const std::string& key) {
+  google::protobuf::RepeatedPtrField<std::string>* pinned =
+      character_.mutable_pinned_scrolls();
+  google::protobuf::RepeatedPtrField<std::string>::iterator it =
+      std::find(pinned->begin(), pinned->end(), key);
+  if (it == pinned->end()) {
+    pinned->Add(std::string(key));
+    return;
+  }
+  pinned->erase(it);
+}
+
 void CharacterInstance::AddExp(int64_t amount) {
   // At the cap the EXP is dropped rather than banked, so a character who kept
   // fighting there is not sitting on a windfall the day the cap is lifted.

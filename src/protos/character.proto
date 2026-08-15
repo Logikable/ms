@@ -182,6 +182,12 @@ message Character {
   // starting over every time the game is launched.
   repeated string seen_tabs = 14;
 
+  // Scrolls the player has pinned to the top of the scroll list, by the keys
+  // ScrollPinKey builds. A pin names a stat and a rate on one kind of
+  // equipment, not one scroll file, so it holds as the character outgrows a
+  // tier and meets the same scroll again at the next one.
+  repeated string pinned_scrolls = 16;
+
   // The shop's buy-back shelf: the last sales this character made, newest
   // first, capped at kBuyBackSlots. One entry per sale rather than per item,
   // so selling 300 of something in two goes leaves two rows and buying them

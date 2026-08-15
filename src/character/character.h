@@ -99,6 +99,12 @@ class CharacterInstance {
   bool TabSeen(const std::string& key) const;
   // Records that they have. Marking a tab already marked does nothing.
   void MarkTabSeen(const std::string& key);
+  // Whether the scroll recorded under `key` is pinned to the top of the scroll
+  // list. As with the tabs above, the keys are the frontend's -- the character
+  // keeps the record because it is the player's own and rides the save.
+  bool ScrollPinned(const std::string& key) const;
+  // Pins it if it is loose, loosens it if it is pinned.
+  void ToggleScrollPin(const std::string& key);
   // Adds amount to the character's accumulated EXP, leveling up as many times
   // as the new total allows. No-op once kTrialLevelCap is reached.
   void AddExp(int64_t amount);

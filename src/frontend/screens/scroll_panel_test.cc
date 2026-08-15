@@ -75,6 +75,18 @@ class ScrollPanelTest : public PanelTest {
   static constexpr int kAaaCost = 34;  // 30% weapon, level 100 band
   static constexpr int kZzzCost = 28;  // 70% weapon, same band
 
+  // Moves the cursor onto `name` and pins it, the way the menu will. The
+  // render first is what lets the Menu take an arrow key at all.
+  void PinByName(ScrollPanel* panel, const std::string& name) {
+    Render(*panel);
+    for (int i = 0; i < 32 && panel->selected_scroll().name() != name; ++i) {
+      panel->OnEvent(ftxui::Event::ArrowDown);
+    }
+    EXPECT_EQ(panel->selected_scroll().name(), name) << "no such row";
+    c_.ToggleScrollPin(panel->PinKeyOfSelected());
+    panel->Resort();
+  }
+
   std::map<std::string, Scroll> scrolls_ = MakeScrolls();
   ScrollPanel panel_{c_, scrolls_};
 };
@@ -158,7 +170,7 @@ TEST_F(ScrollPanelTest, ArrowDownSelectsTheSecondScroll) {
 
 TEST_F(ScrollPanelTest, SetFilterChangesSelectedScroll) {
   std::vector<const Scroll*> filter = {&scrolls_["ZZZ Scroll"]};
-  panel_.SetFilter(filter, kSwordLevel);
+  panel_.SetFilter(filter, kSwordLevel, SCROLL_TARGET_WEAPON);
   Render(panel_);
   EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
 }
@@ -169,7 +181,7 @@ TEST_F(ScrollPanelTest, SetFilterResetsSelectionToZero) {
   EXPECT_EQ(panel_.selected(), 1);
 
   std::vector<const Scroll*> filter = {&scrolls_["AAA Scroll"]};
-  panel_.SetFilter(filter, kSwordLevel);
+  panel_.SetFilter(filter, kSwordLevel, SCROLL_TARGET_WEAPON);
   EXPECT_EQ(panel_.selected(), 0);
 }
 
@@ -268,16 +280,106 @@ int DisplayColumns(const std::string& s) {
 }
 
 TEST_F(ScrollPanelTest, EachRowCarriesItsTraceCost) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
   std::string rendered = Render(panel_);
   EXPECT_NE(rendered.find("34 📜"), std::string::npos);
   EXPECT_NE(rendered.find("Cost"), std::string::npos);
 }
 
+// --- pins ---
+
+// A pinned scroll rides at the top of the list, and says so in its own column.
+TEST_F(ScrollPanelTest, APinnedScrollSitsAtTheTop) {
+  std::vector<const Scroll*> both = {&scrolls_["AAA Scroll"],
+                                     &scrolls_["ZZZ Scroll"]};
+  panel_.SetFilter(both, kSwordLevel, SCROLL_TARGET_WEAPON);
+  ASSERT_EQ(panel_.selected_scroll().name(), "AAA Scroll");
+
+  PinByName(&panel_, "ZZZ Scroll");
+
+  EXPECT_EQ(panel_.selected(), 0) << "the cursor follows the scroll it was on";
+  EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
+  EXPECT_TRUE(panel_.SelectedIsPinned());
+  EXPECT_NE(Render(panel_).find("📌"), std::string::npos);
+}
+
+// Pinning changes what is at the top, not the order of anything else: the two
+// halves of the list each keep the order they had.
+TEST_F(ScrollPanelTest, PinnedScrollsKeepTheUsualOrderAmongThemselves) {
+  std::map<std::string, Scroll> four;
+  const int kRates[] = {100, 70, 30};
+  for (int i = 0; i < 3; ++i) {
+    Scroll& s = four["s" + std::to_string(i)];
+    s.set_name("Scroll " + std::to_string(kRates[i]));
+    s.set_success_rate(kRates[i]);
+    s.set_tier(SCROLL_TIER_1);
+    s.set_scroll_type(SCROLL_TYPE_ATT);
+    s.set_target(SCROLL_TARGET_WEAPON);
+    s.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  }
+  ScrollPanel panel(c_, four);
+  panel.SetFilter({&four["s0"], &four["s1"], &four["s2"]}, kSwordLevel,
+                  SCROLL_TARGET_WEAPON);
+  // Pin the 30%, the last of the three, and then the 70% above it.
+  PinByName(&panel, "Scroll 30");
+  PinByName(&panel, "Scroll 70");
+
+  // 70 before 30 among the pinned, as they were before either was pinned.
+  std::string rendered = Render(panel);
+  EXPECT_LT(rendered.find("Scroll 70"), rendered.find("Scroll 30"));
+  EXPECT_LT(rendered.find("Scroll 30"), rendered.find("Scroll 100"));
+}
+
+// A pin is filed under the kind of equipment it was set on, so the weapons a
+// player pins do not follow them onto their armour.
+TEST_F(ScrollPanelTest, PinsAreKeptPerKindOfEquipment) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
+  c_.ToggleScrollPin(panel_.PinKeyOfSelected());
+  ASSERT_TRUE(panel_.SelectedIsPinned());
+
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_ARMOUR);
+  EXPECT_FALSE(panel_.SelectedIsPinned());
+}
+
+// The pin holds as the player outgrows a tier: it names the stat and the rate,
+// not the file, and the same scroll met again at the next tier is still theirs.
+TEST_F(ScrollPanelTest, APinHoldsAcrossTiers) {
+  Scroll higher = scrolls_["AAA Scroll"];
+  higher.set_tier(SCROLL_TIER_2);
+  scrolls_["Higher"] = higher;
+
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
+  c_.ToggleScrollPin(panel_.PinKeyOfSelected());
+
+  panel_.SetFilter({&scrolls_["Higher"]}, 150, SCROLL_TARGET_WEAPON);
+  EXPECT_TRUE(panel_.SelectedIsPinned());
+}
+
+// Unpinning drops it back among the rest.
+TEST_F(ScrollPanelTest, UnpinningPutsTheScrollBack) {
+  std::vector<const Scroll*> both = {&scrolls_["AAA Scroll"],
+                                     &scrolls_["ZZZ Scroll"]};
+  panel_.SetFilter(both, kSwordLevel, SCROLL_TARGET_WEAPON);
+  PinByName(&panel_, "ZZZ Scroll");
+  ASSERT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
+  ASSERT_EQ(panel_.selected(), 0);
+
+  c_.ToggleScrollPin(panel_.PinKeyOfSelected());
+  panel_.Resort();
+  EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
+  EXPECT_EQ(panel_.selected(), 1) << "back where it sorts";
+  EXPECT_EQ(Render(panel_).find("📌"), std::string::npos);
+}
+
 // The list answers "what can I afford" on its face, in the same red the
 // confirm window uses, so a player need not open a row to find out.
 TEST_F(ScrollPanelTest, ARowsCostGoesRedWhenItCannotBePaid) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
   EXPECT_EQ(LabelColor(panel_.Render(), "34"), kRed);
 
   GiveTraces(kAaaCost);
@@ -288,9 +390,9 @@ TEST_F(ScrollPanelTest, ARowsCostGoesRedWhenItCannotBePaid) {
 // price is the item's. A Cost read off the scroll alone would not move.
 TEST_F(ScrollPanelTest, TheSameScrollCostsMoreOnABetterItem) {
   std::vector<const Scroll*> one = {&scrolls_["AAA Scroll"]};
-  panel_.SetFilter(one, 30);
+  panel_.SetFilter(one, 30, SCROLL_TARGET_WEAPON);
   int cheap = panel_.CostOfSelected();
-  panel_.SetFilter(one, kSwordLevel);
+  panel_.SetFilter(one, kSwordLevel, SCROLL_TARGET_WEAPON);
   EXPECT_GT(panel_.CostOfSelected(), cheap);
   EXPECT_EQ(panel_.CostOfSelected(), kAaaCost);
   EXPECT_NE(Render(panel_).find("34 📜"), std::string::npos);
@@ -299,7 +401,8 @@ TEST_F(ScrollPanelTest, TheSameScrollCostsMoreOnABetterItem) {
 // The one that catches a byte-padded cost cell: the heading and the number
 // under it have to end in the same column.
 TEST_F(ScrollPanelTest, TheCostColumnLinesUpWithItsHeading) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
   std::string rendered = Render(panel_);
   std::vector<std::string> lines;
   size_t start = 0;
@@ -334,7 +437,8 @@ TEST_F(ScrollPanelTest, TheTitleShowsWhatThePlayerOwns) {
 }
 
 TEST_F(ScrollPanelTest, AffordabilityFollowsTheBalance) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
   ASSERT_EQ(panel_.CostOfSelected(), kAaaCost);
   EXPECT_FALSE(panel_.CanAffordSelected());
   GiveTraces(kAaaCost - 1);
@@ -366,7 +470,8 @@ TEST_F(ScrollPanelTest, ALongNameIsCutToItsColumn) {
 // is not there either -- so this has to be asserted here, where the controller
 // cannot cover for it.
 TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
   panel_.OnEvent(ftxui::Event::Return);  // open the confirm window
   ASSERT_TRUE(panel_.IsConfirming());
   panel_.OnEvent(ftxui::Event::Return);  // answer yes with nothing to pay with
@@ -379,7 +484,8 @@ TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
 }
 
 TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCost) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
   GiveTraces(100);
   panel_.OnEvent(ftxui::Event::Return);
   std::string rendered = Render(panel_);
@@ -430,7 +536,8 @@ int LineIndex(const std::vector<std::string>& lines,
 // Three blocks, ruled off: what is going on what, then what it does and costs,
 // then the answer. Without the rules the four rows read as one list.
 TEST_F(ScrollPanelTest, TheConfirmWindowRulesOffItsBlocks) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
   GiveTraces(100);
   panel_.OnEvent(ftxui::Event::Return);
   std::vector<std::string> lines = Lines(Render(panel_));
@@ -477,7 +584,8 @@ TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
 // Said in red and in the greyed Confirm, and in no words at all: the cost row
 // is the thing they cannot pay, so it is the thing that turns.
 TEST_F(ScrollPanelTest, TheCostGoesRedWhenTheTracesFallShort) {
-  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
+                   SCROLL_TARGET_WEAPON);
   GiveTraces(5);
   panel_.OnEvent(ftxui::Event::Return);
   EXPECT_EQ(LabelColor(panel_.Render(), "Cost 34"), kRed);

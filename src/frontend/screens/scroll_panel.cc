@@ -34,6 +34,10 @@ constexpr int kRateWidth = 7;  // matches the "Success" header label width
 constexpr int kStatsWidth = 30;
 // Wide enough for a four-figure cost and the two columns 📜 occupies.
 constexpr int kCostWidth = 8;
+// The Pin column: the pin glyph is two columns, right-aligned under its
+// heading like the cost is.
+constexpr int kPinWidth = 4;
+constexpr const char* kPinGlyph = "  \U0001F4CC";
 // The cost cell, right-aligned in kCostWidth columns.
 //
 // PadLeft counts bytes and the scroll glyph is four of them for two columns,
@@ -51,7 +55,8 @@ std::string CostCell(int traces) {
 std::string ColumnHeader() {
   return "  " + PadRight("Name", kNameWidth) + "  " +
          PadRight("Success", kRateWidth) + "  " +
-         PadRight("Stats", kStatsWidth) + PadLeft("Cost", kCostWidth);
+         PadRight("Stats", kStatsWidth) + PadLeft("Cost", kCostWidth) +
+         PadLeft("Pin", kPinWidth);
 }
 
 // What a scroll pays, in the order EquipStats lists it. Four stats that agree
@@ -132,17 +137,70 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
   if (filtered.empty()) {
     return false;
   }
-  SetFilter(std::move(filtered), proto.required_level());
+  SetFilter(std::move(filtered), proto.required_level(), item_target);
   return true;
 }
 
 void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered,
-                            int required_level) {
+                            int required_level, ScrollTarget target) {
   ordered_ = std::move(filtered);
   target_level_ = required_level;
-  std::sort(ordered_.begin(), ordered_.end(), ByTypeAndRate);
+  target_target_ = target;
+  SortRows();
   selected_ = 0;
   ResetComponent();
+}
+
+// Pinned rows first, and within each half the order the list has always used.
+// A pin lifts a row without reshuffling anything around it.
+void ScrollPanel::SortRows() {
+  std::stable_sort(
+      ordered_.begin(), ordered_.end(),
+      [](const Scroll* a, const Scroll* b) { return ByTypeAndRate(a, b); });
+  std::stable_sort(ordered_.begin(), ordered_.end(),
+                   [this](const Scroll* a, const Scroll* b) {
+                     return character_.ScrollPinned(PinKey(*a)) >
+                            character_.ScrollPinned(PinKey(*b));
+                   });
+}
+
+void ScrollPanel::Resort() {
+  const Scroll* was = ordered_.empty() ? nullptr : ordered_[selected_];
+  SortRows();
+  for (int i = 0; i < static_cast<int>(ordered_.size()); ++i) {
+    if (ordered_[i] == was) {
+      selected_ = i;
+      break;
+    }
+  }
+}
+
+// The item's kind, the stat and the rate. Not the scroll file: the three tiers
+// of one scroll are the same choice to a player, met at three points in their
+// climb, so a pin set at one holds at the next.
+std::string ScrollPanel::PinKey(const Scroll& scroll) const {
+  return std::to_string(static_cast<int>(target_target_)) + ":" +
+         std::to_string(static_cast<int>(scroll.scroll_type())) + ":" +
+         std::to_string(scroll.success_rate());
+}
+
+std::string ScrollPanel::PinKeyOfSelected() const {
+  if (ordered_.empty()) {
+    return "";
+  }
+  return PinKey(selected_scroll());
+}
+
+bool ScrollPanel::SelectedIsPinned() const {
+  return !ordered_.empty() && character_.ScrollPinned(PinKeyOfSelected());
+}
+
+std::string ScrollPanel::PinCellFor(int index) const {
+  if (index < 0 || index >= static_cast<int>(ordered_.size()) ||
+      !character_.ScrollPinned(PinKey(*ordered_[index]))) {
+    return std::string(kPinWidth, ' ');
+  }
+  return kPinGlyph;
 }
 
 void ScrollPanel::ResetComponent() {
@@ -154,6 +212,7 @@ void ScrollPanel::ResetComponent() {
     return ftxui::hbox({
         ftxui::text((state.active ? "> " : "  ") + state.label),
         CostCellFor(state.index),
+        ftxui::text(PinCellFor(state.index)),
     });
   };
   // Wrapped so the list is a ring: this screen is the list and nothing else,

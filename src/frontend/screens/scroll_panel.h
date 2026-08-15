@@ -40,8 +40,11 @@ class ScrollPanel {
               const std::map<std::string, Scroll>& scrolls);
   // Replaces the displayed scroll list and resets selection to 0. Call before
   // entering kScrollSelect to show only scrolls applicable to the target item.
-  // `required_level` is the target item's, which is what prices every row.
-  void SetFilter(std::vector<const Scroll*> filtered, int required_level);
+  // `required_level` is the target item's, which is what prices every row, and
+  // `target` is what kind of equipment it is, which is what its pins are
+  // filed under.
+  void SetFilter(std::vector<const Scroll*> filtered, int required_level,
+                 ScrollTarget target);
   // Filters to scrolls applicable to proto by tier and job category, then
   // calls SetFilter. Returns false (and does not update the filter) if no
   // scrolls match. Remembers the item's name for the confirmation window.
@@ -65,6 +68,14 @@ class ScrollPanel {
   // Whether the player is holding enough traces for the selected scroll. The
   // panel spends nothing itself; this is what the caller checks before it does.
   bool CanAffordSelected() const;
+  // The save key for the selected scroll's pin, and whether it is pinned now.
+  // The panel writes nothing to the character; the caller toggles the pin and
+  // calls Resort.
+  std::string PinKeyOfSelected() const;
+  bool SelectedIsPinned() const;
+  // Re-sorts the list after a pin changed, keeping the cursor on the scroll it
+  // was on rather than on the row number.
+  void Resort();
   int selected() const {
     return selected_;
   }
@@ -78,6 +89,15 @@ class ScrollPanel {
                                  std::chrono::steady_clock::duration elapsed);
   // The Cost cell of the row at `index`, red when the player cannot pay it.
   ftxui::Element CostCellFor(int index) const;
+  // The Pin cell of the row at `index`: the pin itself, or the space it would
+  // take, so the column holds its width whatever is in it.
+  std::string PinCellFor(int index) const;
+  // The save key a scroll's pin is filed under, on the item now being
+  // scrolled. Two scrolls that differ only by tier share one key, so a pin
+  // holds as the character outgrows a tier.
+  std::string PinKey(const Scroll& scroll) const;
+  // Pinned first, then the order the list has always used. Sorts ordered_.
+  void SortRows();
   // Spell traces the character owns.
   int TracesOwned() const;
   // The pop-up that asks before a scroll is spent: what it is going on, what
@@ -90,6 +110,9 @@ class ScrollPanel {
   std::string target_name_;
   // Its required level, which is what every price on this screen is read from.
   int target_level_ = 0;
+  // What kind of equipment it is. Pins are filed per kind, so the weapons a
+  // player pins do not follow them onto their armour.
+  ScrollTarget target_target_ = SCROLL_TARGET_UNSPECIFIED;
   std::vector<const Scroll*> ordered_;
   int selected_ = 0;
   std::vector<std::string> entries_;
