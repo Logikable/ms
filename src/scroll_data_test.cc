@@ -1,7 +1,7 @@
-// Checks the shipped scroll catalog. A scroll with no trace cost is a scroll
-// the player gets for nothing, and a tier that prices the same as the one
-// below it is a tier that does not exist -- neither shows up as a crash, so
-// neither shows up at all without this.
+// Checks the shipped scroll catalog. A scroll that prices to nothing is a
+// scroll the player gets for free, and a stat that no job can scroll is a file
+// nobody will ever see -- neither shows up as a crash, so neither shows up at
+// all without this.
 #include <gtest/gtest.h>
 
 #include <map>
@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 
+#include "src/item/spell_trace_cost.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -30,6 +31,23 @@ class ScrollDataTest : public ::testing::Test {
     ASSERT_FALSE(scrolls_.empty());
   }
 
+  // A level inside each tier's own span, where the game ships equipment: the
+  // price comes from the item, so a scroll cannot be priced without one.
+  static int LevelForTier(ScrollTier tier) {
+    switch (tier) {
+      case SCROLL_TIER_2:
+        return 100;
+      case SCROLL_TIER_3:
+        return 150;
+      default:
+        return 70;
+    }
+  }
+
+  int CostOf(const Scroll& scroll) const {
+    return TraceCost(scroll, LevelForTier(scroll.tier()));
+  }
+
   std::map<std::string, Scroll> scrolls_;
 };
 
@@ -39,7 +57,9 @@ TEST_F(ScrollDataTest, EveryScrollIsTieredAndPriced) {
     EXPECT_NE(scroll.tier(), SCROLL_TIER_UNSPECIFIED)
         << entry.first << " belongs to no tier, so it is offered for every "
         << "item at once";
-    EXPECT_GT(scroll.trace_cost(), 0) << entry.first << " costs nothing to use";
+    EXPECT_GT(CostOf(scroll), 0)
+        << entry.first << " costs nothing to use on an item of its own tier, "
+        << "which means GMS sells no such scroll";
   }
 }
 
@@ -57,12 +77,15 @@ TEST_F(ScrollDataTest, EveryScrollButACleanSlateNamesWhatItGoesOn) {
   }
 }
 
-// Within one tier a scroll that lands less often has to cost more, or the
-// player would take the safe one every time and the risky ones are decoration.
-// Within one target, too: armour is priced well under a weapon, so a safe
-// weapon scroll costs more than a risky armour one and the two families are
-// only comparable against themselves.
-TEST_F(ScrollDataTest, LongerOddsCostMoreWithinATier) {
+// Within one tier a scroll that lands less often must not cost less, or the
+// player would take the risky one every time and the safe ones are decoration.
+// Within one target too: a weapon is dearer than armour at every level, so the
+// two families are only comparable against themselves.
+//
+// "Not less" rather than "more" because the price is GMS's, and at the bottom
+// of its table two rates can round to the same figure. src/item's own test
+// pins where that happens.
+TEST_F(ScrollDataTest, LongerOddsNeverCostLess) {
   for (const std::pair<const std::string, Scroll>& a : scrolls_) {
     for (const std::pair<const std::string, Scroll>& b : scrolls_) {
       if (a.second.tier() != b.second.tier() ||
@@ -72,11 +95,26 @@ TEST_F(ScrollDataTest, LongerOddsCostMoreWithinATier) {
         continue;
       }
       if (a.second.success_rate() < b.second.success_rate()) {
-        EXPECT_GT(a.second.trace_cost(), b.second.trace_cost())
+        EXPECT_GE(CostOf(a.second), CostOf(b.second))
             << a.first << " lands less often than " << b.first
-            << " and costs no more";
+            << " and costs less";
       }
     }
+  }
+}
+
+// Only a clean slate carries a price of its own. A figure written on any other
+// scroll is ignored, so leaving one there is a second price that drifts out of
+// step with the one the player is actually charged.
+TEST_F(ScrollDataTest, OnlyACleanSlateWritesItsOwnPrice) {
+  for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
+    if (entry.second.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+      EXPECT_GT(entry.second.trace_cost(), 0) << entry.first << " is free";
+      continue;
+    }
+    EXPECT_EQ(entry.second.trace_cost(), 0)
+        << entry.first << " names a price, which nothing reads: the item's "
+        << "level sets it";
   }
 }
 
@@ -113,24 +151,6 @@ TEST_F(ScrollDataTest, EveryArmourScrollPaysHpAndDef) {
         << entry.first << " pays weapon attack, which armour never does";
   }
   EXPECT_GT(seen, 0);
-}
-
-// Armour is never dearer to scroll than a weapon of the same level and rate.
-// It is why the two families cannot be priced against each other. The only
-// place the two meet is the cheapest scroll in the game, at tier 1's 100%.
-TEST_F(ScrollDataTest, ArmourCostsNoMoreThanAWeaponOfTheSameTierAndRate) {
-  for (const std::pair<const std::string, Scroll>& a : scrolls_) {
-    for (const std::pair<const std::string, Scroll>& w : scrolls_) {
-      if (a.second.target() != SCROLL_TARGET_ARMOUR ||
-          w.second.target() != SCROLL_TARGET_WEAPON ||
-          a.second.tier() != w.second.tier() ||
-          a.second.success_rate() != w.second.success_rate()) {
-        continue;
-      }
-      EXPECT_LE(a.second.trace_cost(), w.second.trace_cost())
-          << a.first << " costs more than " << w.first;
-    }
-  }
 }
 
 // Which stat a job can put on its armour, from the wiki's own table. A missing

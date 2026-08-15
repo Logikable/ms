@@ -8,6 +8,10 @@
  * title carries how many the player owns -- the two numbers the choice is
  * made between. The name column gives up the width for it and slides its
  * longer names under the column instead, as the bag's rows do.
+ *
+ * A Cost is only meaningful once the target item is known: the price comes
+ * from the item's level band, so the same scroll is dearer on better gear.
+ * Both SetFilter calls take that level for it.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SCROLL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SCROLL_PANEL_H_
@@ -36,7 +40,8 @@ class ScrollPanel {
               const std::map<std::string, Scroll>& scrolls);
   // Replaces the displayed scroll list and resets selection to 0. Call before
   // entering kScrollSelect to show only scrolls applicable to the target item.
-  void SetFilter(std::vector<const Scroll*> filtered);
+  // `required_level` is the target item's, which is what prices every row.
+  void SetFilter(std::vector<const Scroll*> filtered, int required_level);
   // Filters to scrolls applicable to proto by tier and job category, then
   // calls SetFilter. Returns false (and does not update the filter) if no
   // scrolls match. Remembers the item's name for the confirmation window.
@@ -54,6 +59,9 @@ class ScrollPanel {
   }
   // Returns the scroll at the current selection.
   const Scroll& selected_scroll() const;
+  // Traces the selected scroll costs on the item being scrolled. The price is
+  // the item's, not the scroll's, so the caller cannot work it out alone.
+  int CostOfSelected() const;
   // Whether the player is holding enough traces for the selected scroll. The
   // panel spends nothing itself; this is what the caller checks before it does.
   bool CanAffordSelected() const;
@@ -65,7 +73,7 @@ class ScrollPanel {
   void ResetComponent();
   // One row: name, success, stats, cost. `elapsed` is how long this row has
   // been selected, which is what slides a too-long name under its column.
-  static std::string FormatEntry(const Scroll& scroll,
+  static std::string FormatEntry(const Scroll& scroll, int required_level,
                                  std::chrono::steady_clock::duration elapsed);
   // Spell traces the character owns.
   int TracesOwned() const;
@@ -77,6 +85,8 @@ class ScrollPanel {
   const std::map<std::string, Scroll>& scrolls_;
   // Display name of the item being scrolled, for the confirmation window.
   std::string target_name_;
+  // Its required level, which is what every price on this screen is read from.
+  int target_level_ = 0;
   std::vector<const Scroll*> ordered_;
   int selected_ = 0;
   std::vector<std::string> entries_;

@@ -67,6 +67,8 @@ const Band kBands[] = {
     {250, {{850, 0, 0, 0}, {1100, 0, 0, 0}, {1325, 0, 0, 0}, {1560, 0, 0, 0}}},
 };
 
+// -1 for a rate GMS does not sell, which prices the same as a combination it
+// leaves blank: no price at all.
 int RateRow(int success_rate) {
   switch (success_rate) {
     case 100:
@@ -78,7 +80,7 @@ int RateRow(int success_rate) {
     case 15:
       return 3;
     default:
-      LOG(FATAL) << "no spell trace scroll is sold at " << success_rate << "%";
+      return -1;
   }
 }
 
@@ -91,13 +93,17 @@ TraceCategory CategoryFor(ScrollTarget target) {
     case SCROLL_TARGET_UNSPECIFIED:
       break;
   }
-  LOG(FATAL) << "a scroll that goes on nothing has no price";
+  LOG(FATAL) << "asked the band table to price a scroll that goes on nothing";
 }
 
 }  // namespace
 
 int SpellTraceCost(int required_level, TraceCategory category,
                    int success_rate) {
+  int row = RateRow(success_rate);
+  if (row < 0) {
+    return 0;
+  }
   const Band* found = &kBands[0];
   for (int i = 0; i < static_cast<int>(sizeof(kBands) / sizeof(kBands[0]));
        ++i) {
@@ -105,15 +111,18 @@ int SpellTraceCost(int required_level, TraceCategory category,
       found = &kBands[i];
     }
   }
-  return found->cost[RateRow(success_rate)][static_cast<int>(category)];
+  return found->cost[row][static_cast<int>(category)];
 }
 
 int TraceCost(const Scroll& scroll, int required_level) {
-  if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+  // A scroll that goes on no particular kind of equipment is not something GMS
+  // sells for traces -- the clean slate -- so there is no band to read.
+  if (scroll.target() == SCROLL_TARGET_UNSPECIFIED) {
     return scroll.trace_cost();
   }
-  return SpellTraceCost(required_level, CategoryFor(scroll.target()),
-                        scroll.success_rate());
+  int banded = SpellTraceCost(required_level, CategoryFor(scroll.target()),
+                              scroll.success_rate());
+  return banded > 0 ? banded : scroll.trace_cost();
 }
 
 }  // namespace ms

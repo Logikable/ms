@@ -304,6 +304,9 @@ class TuiControllerTest : public testing::Test {
   void UseFailScroll() {
     Scroll fail;
     fail.set_name("Fail Scroll");
+    // GMS sells no 0% scroll, so no band prices it and the figure written here
+    // is what the player pays. That is what makes a guaranteed failure
+    // affordable to test: the real rates all sometimes land.
     fail.set_success_rate(0);
     fail.set_tier(SCROLL_TIER_1);
     fail.set_trace_cost(5);
@@ -834,7 +837,11 @@ TEST_F(TuiControllerTest, ASuccessSpendsAnUpgradeSlot) {
 }
 
 // A scroll is bought, not merely chosen: the traces have to leave the bag.
+// The price is the sword's, not the scroll's -- a level 60 weapon at 100% is
+// 5 traces in GMS's table.
 TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
+  LevelTo(60);
+  sword_.set_required_level(60);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -876,10 +883,12 @@ TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
 // Too few traces and Enter on the confirm window does nothing: no scroll, no
 // spend, and the window stays up rather than dropping the player somewhere.
 TEST_F(TuiControllerTest, ScrollingWithoutTheTracesIsRefused) {
+  LevelTo(60);
+  sword_.set_required_level(60);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
-  GiveTraces(4);  // one short of the 5 the test scroll costs
+  GiveTraces(4);  // one short of the 5 a level 60 weapon costs at 100%
 
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);

@@ -93,6 +93,7 @@ cc_library(
         "//src/frontend/widgets:panel_util",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/item:spell_trace_cost",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@ftxui//:component",

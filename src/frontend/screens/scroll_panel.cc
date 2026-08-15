@@ -16,6 +16,7 @@
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/item/spell_trace_cost.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 
@@ -131,12 +132,14 @@ bool ScrollPanel::SetFilterForPrototype(const EquipPrototype& proto) {
   if (filtered.empty()) {
     return false;
   }
-  SetFilter(std::move(filtered));
+  SetFilter(std::move(filtered), proto.required_level());
   return true;
 }
 
-void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered) {
+void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered,
+                            int required_level) {
   ordered_ = std::move(filtered);
+  target_level_ = required_level;
   std::sort(ordered_.begin(), ordered_.end(), ByTypeAndRate);
   selected_ = 0;
   ResetComponent();
@@ -163,10 +166,10 @@ void ScrollPanel::ResetComponent() {
     clock_.Follow(selected_);
     entries_.clear();
     for (int i = 0; i < static_cast<int>(ordered_.size()); ++i) {
-      entries_.push_back(FormatEntry(
-          *ordered_[i], i == selected_
-                            ? clock_.Elapsed()
-                            : std::chrono::steady_clock::duration()));
+      entries_.push_back(
+          FormatEntry(*ordered_[i], target_level_,
+                      i == selected_ ? clock_.Elapsed()
+                                     : std::chrono::steady_clock::duration()));
     }
     std::vector<ftxui::Element> rows = {
         ftxui::text(ColumnHeader()),
@@ -234,12 +237,19 @@ bool ScrollPanel::CanAffordSelected() const {
   if (ordered_.empty()) {
     return false;
   }
-  return TracesOwned() >= selected_scroll().trace_cost();
+  return TracesOwned() >= CostOfSelected();
+}
+
+int ScrollPanel::CostOfSelected() const {
+  if (ordered_.empty()) {
+    return 0;
+  }
+  return TraceCost(selected_scroll(), target_level_);
 }
 
 ftxui::Element ScrollPanel::RenderConfirm() const {
   const Scroll& scroll = selected_scroll();
-  int cost = scroll.trace_cost();
+  int cost = CostOfSelected();
   bool affordable = CanAffordSelected();
 
   std::string what = scroll.name();
@@ -302,13 +312,14 @@ ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {
 }
 
 std::string ScrollPanel::FormatEntry(
-    const Scroll& scroll, std::chrono::steady_clock::duration elapsed) {
+    const Scroll& scroll, int required_level,
+    std::chrono::steady_clock::duration elapsed) {
   std::string name = ScrollingWindow(scroll.name(), kNameWidth, elapsed);
   std::string rate =
       PadRight(std::to_string(scroll.success_rate()) + "%", kRateWidth);
   return name + "  " + rate + "  " +
          PadRight(ScrollStats(scroll), kStatsWidth) +
-         CostCell(scroll.trace_cost());
+         CostCell(TraceCost(scroll, required_level));
 }
 
 }  // namespace ms

@@ -22,18 +22,21 @@ namespace ms {
 enum class TraceCategory { kArmor, kGloves, kWeapon, kAccessory };
 
 // Traces one scroll costs for an item of this required level. `success_rate`
-// is a whole percent and must be 100, 70, 30 or 15.
+// is a whole percent.
 //
 // Returns 0 where GMS sells no such scroll: 15% is weapon-only below level
-// 200, and above 250 only armor is priced.
+// 200, above 250 only armor is priced, and GMS sells no rate but 100, 70, 30
+// and 15.
 int SpellTraceCost(int required_level, TraceCategory category,
                    int success_rate);
 
 // What `scroll` costs on an item of this level. The one call the game makes.
 //
-// A clean slate is the exception and carries its own price: GMS does not sell
-// one for traces at all, so there is no band to read it from. It is priced by
-// the scroll's tier instead, which is the only place a tier still sets a cost.
+// Where GMS prices the scroll, that price wins and the scroll file's own
+// `trace_cost` is ignored. Where GMS sells no such scroll -- the clean slate,
+// which was never a spell trace purchase at all -- the file's price stands.
+// A scroll that ends up costing nothing is a scroll given away, so a data test
+// refuses one.
 int TraceCost(const Scroll& scroll, int required_level);
 
 }  // namespace ms

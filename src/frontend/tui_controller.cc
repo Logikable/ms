@@ -335,7 +335,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     // will not confirm what the player cannot afford, so this refusing is a
     // second line rather than the first.
     if (!state_.character.ConsumeStackable(ITEM_CATEGORY_ETC, kSpellTraceName,
-                                           scroll.trace_cost())) {
+                                           scroll_panel_.CostOfSelected())) {
       return true;
     }
     ScrollOutcome outcome = ScrollItem(state_.character, scroll_ref_, scroll);

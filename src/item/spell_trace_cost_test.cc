@@ -66,9 +66,11 @@ TEST(SpellTraceCostTest, RiskAndWeaponsNeverCostLess) {
             << "at level " << level;
       }
     }
-    EXPECT_LE(SpellTraceCost(level, TraceCategory::kArmor, 100),
-              SpellTraceCost(level, TraceCategory::kWeapon, 100))
-        << "at level " << level;
+    for (int rate : {100, 70, 30}) {
+      EXPECT_LE(SpellTraceCost(level, TraceCategory::kArmor, rate),
+                SpellTraceCost(level, TraceCategory::kWeapon, rate))
+          << "at level " << level << ", " << rate << "%";
+    }
   }
 }
 
@@ -81,7 +83,7 @@ TEST(SpellTraceCostTest, NoFifteenPercentArmourBelowTwoHundred) {
 }
 
 // A clean slate is not priced by band -- GMS does not sell one for traces at
-// all -- so it keeps the cost written in its own file.
+// all -- so it keeps the cost written in its own file, whatever the item.
 TEST(SpellTraceCostTest, ACleanSlateCarriesItsOwnPrice) {
   Scroll slate;
   slate.set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
@@ -89,6 +91,17 @@ TEST(SpellTraceCostTest, ACleanSlateCarriesItsOwnPrice) {
   slate.set_trace_cost(100);
   EXPECT_EQ(TraceCost(slate, 70), 100);
   EXPECT_EQ(TraceCost(slate, 150), 100);
+}
+
+// Same rule for anything else GMS does not sell: no band price, so the file's
+// own figure stands rather than the scroll going free.
+TEST(SpellTraceCostTest, AnUnsoldScrollFallsBackToItsFile) {
+  Scroll armour = StatScroll(SCROLL_TARGET_ARMOUR, 15);  // none below Lv200
+  armour.set_trace_cost(40);
+  EXPECT_EQ(TraceCost(armour, 100), 40);
+  // And GMS does sell it at 200, where the band price takes over again.
+  EXPECT_EQ(TraceCost(armour, 200),
+            SpellTraceCost(200, TraceCategory::kArmor, 15));
 }
 
 // A stat scroll's own trace_cost is dead data. Leaving one in a file must not

@@ -21,23 +21,23 @@ namespace {
 
 class ScrollPanelTest : public PanelTest {
  protected:
+  // The rates are GMS's own, because the price table only prices those four.
+  // A made-up rate has no price and stops the panel.
   static std::map<std::string, Scroll> MakeScrolls() {
     std::map<std::string, Scroll> scrolls;
     Scroll& a = scrolls["AAA Scroll"];
     a.set_name("AAA Scroll");
-    a.set_success_rate(10);
+    a.set_success_rate(30);
     a.set_tier(SCROLL_TIER_1);
     a.set_scroll_type(SCROLL_TYPE_ATT);
     a.mutable_stats()->set_attack(5);
-    a.set_trace_cost(20);
     a.set_target(SCROLL_TARGET_WEAPON);
     a.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
     Scroll& z = scrolls["ZZZ Scroll"];
     z.set_name("ZZZ Scroll");
-    z.set_success_rate(60);
+    z.set_success_rate(70);
     z.set_tier(SCROLL_TIER_2);
     z.set_scroll_type(SCROLL_TYPE_DEX);
-    z.set_trace_cost(300);
     z.set_target(SCROLL_TARGET_WEAPON);
     z.add_applicable_job_categories(EQUIP_JOB_CATEGORY_BOWMAN);
     return scrolls;
@@ -69,6 +69,12 @@ class ScrollPanelTest : public PanelTest {
     c_.AddStackable(trace, count);
   }
 
+  // A level to price against, and what the two scrolls cost there. The price
+  // comes from the item, so a test that reads a Cost has to name a level.
+  static constexpr int kSwordLevel = 100;
+  static constexpr int kAaaCost = 34;  // 30% weapon, level 100 band
+  static constexpr int kZzzCost = 28;  // 70% weapon, same band
+
   std::map<std::string, Scroll> scrolls_ = MakeScrolls();
   ScrollPanel panel_{c_, scrolls_};
 };
@@ -79,7 +85,7 @@ TEST_F(ScrollPanelTest, DefaultSelectionIsZero) {
 
 TEST_F(ScrollPanelTest, SelectedScrollSortsByTypeThenRate) {
   // AAA is SCROLL_TYPE_ATT (1), ZZZ is SCROLL_TYPE_DEX (4).
-  // Type sort puts AAA first despite its lower rate.
+  // Type sort puts AAA first despite its longer odds.
   EXPECT_EQ(panel_.selected_scroll().name(), "AAA Scroll");
 }
 
@@ -88,7 +94,7 @@ TEST_F(ScrollPanelTest, RenderShowsScrollName) {
 }
 
 TEST_F(ScrollPanelTest, RenderShowsSuccessRate) {
-  EXPECT_NE(Render(panel_).find("10%"), std::string::npos);
+  EXPECT_NE(Render(panel_).find("30%"), std::string::npos);
 }
 
 TEST_F(ScrollPanelTest, RenderShowsStat) {
@@ -152,7 +158,7 @@ TEST_F(ScrollPanelTest, ArrowDownSelectsTheSecondScroll) {
 
 TEST_F(ScrollPanelTest, SetFilterChangesSelectedScroll) {
   std::vector<const Scroll*> filter = {&scrolls_["ZZZ Scroll"]};
-  panel_.SetFilter(filter);
+  panel_.SetFilter(filter, kSwordLevel);
   Render(panel_);
   EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
 }
@@ -163,7 +169,7 @@ TEST_F(ScrollPanelTest, SetFilterResetsSelectionToZero) {
   EXPECT_EQ(panel_.selected(), 1);
 
   std::vector<const Scroll*> filter = {&scrolls_["AAA Scroll"]};
-  panel_.SetFilter(filter);
+  panel_.SetFilter(filter, kSwordLevel);
   EXPECT_EQ(panel_.selected(), 0);
 }
 
@@ -251,14 +257,28 @@ int DisplayColumns(const std::string& s) {
 }
 
 TEST_F(ScrollPanelTest, EachRowCarriesItsTraceCost) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
   std::string rendered = Render(panel_);
-  EXPECT_NE(rendered.find("20 📜"), std::string::npos);
+  EXPECT_NE(rendered.find("34 📜"), std::string::npos);
   EXPECT_NE(rendered.find("Cost"), std::string::npos);
+}
+
+// The change this screen exists to show: one scroll, two prices, because the
+// price is the item's. A Cost read off the scroll alone would not move.
+TEST_F(ScrollPanelTest, TheSameScrollCostsMoreOnABetterItem) {
+  std::vector<const Scroll*> one = {&scrolls_["AAA Scroll"]};
+  panel_.SetFilter(one, 30);
+  int cheap = panel_.CostOfSelected();
+  panel_.SetFilter(one, kSwordLevel);
+  EXPECT_GT(panel_.CostOfSelected(), cheap);
+  EXPECT_EQ(panel_.CostOfSelected(), kAaaCost);
+  EXPECT_NE(Render(panel_).find("34 📜"), std::string::npos);
 }
 
 // The one that catches a byte-padded cost cell: the heading and the number
 // under it have to end in the same column.
 TEST_F(ScrollPanelTest, TheCostColumnLinesUpWithItsHeading) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
   std::string rendered = Render(panel_);
   std::vector<std::string> lines;
   size_t start = 0;
@@ -276,7 +296,7 @@ TEST_F(ScrollPanelTest, TheCostColumnLinesUpWithItsHeading) {
     if (line.find("Cost") != std::string::npos) {
       header = line;
     }
-    if (line.find("20 📜") != std::string::npos) {
+    if (line.find("34 📜") != std::string::npos) {
       row = line;
     }
   }
@@ -293,9 +313,10 @@ TEST_F(ScrollPanelTest, TheTitleShowsWhatThePlayerOwns) {
 }
 
 TEST_F(ScrollPanelTest, AffordabilityFollowsTheBalance) {
-  EXPECT_EQ(panel_.selected_scroll().trace_cost(), 20);
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
+  ASSERT_EQ(panel_.CostOfSelected(), kAaaCost);
   EXPECT_FALSE(panel_.CanAffordSelected());
-  GiveTraces(19);
+  GiveTraces(kAaaCost - 1);
   EXPECT_FALSE(panel_.CanAffordSelected());
   GiveTraces(1);  // exactly the price
   EXPECT_TRUE(panel_.CanAffordSelected());
@@ -311,6 +332,7 @@ TEST_F(ScrollPanelTest, ALongNameIsCutToItsColumn) {
   s.set_name("100% Clean Slate");
   s.set_success_rate(100);
   s.set_tier(SCROLL_TIER_1);
+  s.set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
   s.set_trace_cost(20);
   s.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   ScrollPanel panel(c_, scrolls);
@@ -323,24 +345,26 @@ TEST_F(ScrollPanelTest, ALongNameIsCutToItsColumn) {
 // is not there either -- so this has to be asserted here, where the controller
 // cannot cover for it.
 TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
   panel_.OnEvent(ftxui::Event::Return);  // open the confirm window
   ASSERT_TRUE(panel_.IsConfirming());
   panel_.OnEvent(ftxui::Event::Return);  // answer yes with nothing to pay with
   EXPECT_FALSE(panel_.TakeConfirmed());
 
-  GiveTraces(20);
+  GiveTraces(kAaaCost);
   panel_.OnEvent(ftxui::Event::Return);
   panel_.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(panel_.TakeConfirmed());
 }
 
 TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCost) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
   GiveTraces(100);
   panel_.OnEvent(ftxui::Event::Return);
   std::string rendered = Render(panel_);
   EXPECT_NE(rendered.find("Confirm"), std::string::npos);
   EXPECT_NE(rendered.find("AAA Scroll"), std::string::npos);
-  EXPECT_NE(rendered.find("20 📜"), std::string::npos) << "the cost";
+  EXPECT_NE(rendered.find("34 📜"), std::string::npos) << "the cost";
 }
 
 // The window is a pop-up over the list: opening it must not make the panel
@@ -356,12 +380,13 @@ TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
 // Said in red and in the greyed Confirm, and in no words at all: the cost row
 // is the thing they cannot pay, so it is the thing that turns.
 TEST_F(ScrollPanelTest, TheCostGoesRedWhenTheTracesFallShort) {
+  panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel);
   GiveTraces(5);
   panel_.OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(LabelColor(panel_.Render(), "Cost 20"), kRed);
+  EXPECT_EQ(LabelColor(panel_.Render(), "Cost 34"), kRed);
 
   GiveTraces(100);
-  EXPECT_NE(LabelColor(panel_.Render(), "Cost 20"), kRed);
+  EXPECT_NE(LabelColor(panel_.Render(), "Cost 34"), kRed);
 }
 
 // The window names the item as well as the scroll, which is the whole reason
