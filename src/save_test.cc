@@ -93,6 +93,7 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   saved->character.AddMeso(1234);
   saved->character.PickUp(std::make_unique<EquipInstance>(sword_));
   saved->character.AddStackable(shell_, 17);
+  saved->character.ToggleScrollPin("2:1:30");
   saved->current_map = "lith";
   ASSERT_TRUE(SaveGameToFile(*saved, path_));
 
@@ -105,6 +106,9 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   EXPECT_EQ(loaded->character.inventory().size(), 1);
   ASSERT_EQ(loaded->character.stackables(ITEM_CATEGORY_ETC).size(), 1u);
   EXPECT_EQ(loaded->character.stackables(ITEM_CATEGORY_ETC)[0].count(), 17);
+  // A pinned scroll is a standing preference, so it rides the save.
+  EXPECT_TRUE(loaded->character.ScrollPinned("2:1:30"));
+  EXPECT_FALSE(loaded->character.ScrollPinned("2:1:70"));
   EXPECT_EQ(loaded->current_map, "lith");
 }
 

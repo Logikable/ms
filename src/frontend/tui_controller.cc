@@ -298,7 +298,8 @@ bool TuiController::OnInspectEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
-  if (IsBack(event) && !scroll_panel_.IsConfirming()) {
+  if (IsBack(event) && !scroll_panel_.IsConfirming() &&
+      !scroll_panel_.IsMenuOpen()) {
     if (panel_focus_ == kEquipPanel) {
       equip_panel_.OpenMenu();
     } else {
@@ -307,7 +308,16 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     screen_ = kItemMenu;
     return true;
   }
-  if (IsForward(event) && !scroll_panel_.IsConfirming()) {
+  scroll_panel_.OnEvent(event);
+  if (scroll_panel_.TakePinToggled()) {
+    // The panel reads the pin but never writes it: the record is the
+    // character's and rides the save.
+    state_.character.ToggleScrollPin(scroll_panel_.PinKeyOfSelected());
+    scroll_panel_.Resort();
+  }
+  if (scroll_panel_.TakeScrollChosen()) {
+    // Asked before the confirm window opens, so a scroll with nowhere to go
+    // says so rather than asking the player to pay first.
     const EquipInstance* item = scroll_item();
     const Scroll& scroll = scroll_panel_.selected_scroll();
     int remaining = item->equip_state().remaining_upgrade_slots();
@@ -325,8 +335,8 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
       screen_ = kScrollResult;
       return true;
     }
+    scroll_panel_.OpenConfirm();
   }
-  scroll_panel_.OnEvent(event);
   if (scroll_panel_.TakeConfirmed()) {
     const EquipInstance* item = scroll_ref_.GetInstance(state_.character);
     std::string equip_name = item->prototype().name();

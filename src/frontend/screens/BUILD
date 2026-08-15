@@ -89,6 +89,7 @@ cc_library(
         "//src/character",
         "//src/frontend:types",
         "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/item",

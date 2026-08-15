@@ -12,6 +12,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
@@ -38,6 +39,14 @@ constexpr int kCostWidth = 8;
 // heading like the cost is.
 constexpr int kPinWidth = 4;
 constexpr const char* kPinGlyph = "  \U0001F4CC";
+
+// The menu Enter opens on a row, in the order the player wants them: the thing
+// they came to do, the thing they might do once, and the way out.
+enum MenuEntry { kEntryScroll, kEntryPin, kEntryClose };
+
+// Where the menu hangs: past the Name column, so it covers the stats rather
+// than the names the player is choosing between.
+constexpr int kMenuCol = 1 + 2 + kNameWidth + 2;
 // The cost cell, right-aligned in kCostWidth columns.
 //
 // PadLeft counts bytes and the scroll glyph is four of them for two columns,
@@ -148,6 +157,7 @@ void ScrollPanel::SetFilter(std::vector<const Scroll*> filtered,
   target_target_ = target;
   SortRows();
   selected_ = 0;
+  menu_open_ = false;
   ResetComponent();
 }
 
@@ -253,6 +263,15 @@ void ScrollPanel::ResetComponent() {
       return ftxui::dbox({std::move(main),
                           ftxui::center(RenderConfirm() | ftxui::clear_under)});
     }
+    if (menu_open_) {
+      // Opened a row above the selection, so the entry standing highlighted
+      // lands beside the scroll it would act on. The bag opens its menu the
+      // same way.
+      int header_rows = 3;  // border, column header, rule
+      return ftxui::dbox(
+          {std::move(main),
+           menu_.Render(std::max(0, header_rows + selected_ - 1), kMenuCol)});
+    }
     return main;
   });
 }
@@ -271,11 +290,64 @@ bool ScrollPanel::OnEvent(ftxui::Event event) {
     }
     return true;
   }
-  if (IsForward(event)) {
-    confirm_.Open();
+  if (menu_open_) {
+    return OnMenuEvent(event);
+  }
+  if (IsForward(event) && !ordered_.empty()) {
+    OpenMenu();
     return true;
   }
   return component_->OnEvent(event);
+}
+
+bool ScrollPanel::OnMenuEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    menu_open_ = false;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    menu_.Up();
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    menu_.Down();
+    return true;
+  }
+  if (IsForward(event)) {
+    if (menu_.selected() == kEntryScroll) {
+      scroll_chosen_ = true;
+    } else if (menu_.selected() == kEntryPin) {
+      pin_toggled_ = true;
+    }
+    menu_open_ = false;
+    return true;
+  }
+  // Swallow the rest: the menu is modal over the list behind it.
+  return true;
+}
+
+void ScrollPanel::OpenMenu() {
+  // Rebuilt rather than relabelled: the middle entry is Pin or Unpin
+  // depending on the row it opened on.
+  menu_ = ItemMenu({"Scroll", SelectedIsPinned() ? "Unpin" : "Pin", "Close"});
+  menu_.Reset();
+  menu_open_ = true;
+}
+
+void ScrollPanel::OpenConfirm() {
+  confirm_.Open();
+}
+
+bool ScrollPanel::TakeScrollChosen() {
+  bool v = scroll_chosen_;
+  scroll_chosen_ = false;
+  return v;
+}
+
+bool ScrollPanel::TakePinToggled() {
+  bool v = pin_toggled_;
+  pin_toggled_ = false;
+  return v;
 }
 
 bool ScrollPanel::TakeConfirmed() {

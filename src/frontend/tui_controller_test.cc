@@ -709,7 +709,8 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
@@ -731,7 +732,8 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
@@ -751,7 +753,8 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // bypass confirm (0 slots)
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll, which has no slot
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
@@ -771,7 +774,8 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);     // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);     // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);     // pick Scroll -> confirm
   controller_->OnEvent(
       ftxui::Event::Return);  // confirm → kScrollResult (0 slots)
   controller_->OnEvent(ftxui::Event::Escape);  // → kScrollSelect
@@ -795,7 +799,8 @@ TEST_F(TuiControllerTest, EnterOnAResultReturnsToSelect) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);  // confirm
   controller_->OnEvent(ftxui::Event::Return);  // dismiss result
 
@@ -812,7 +817,8 @@ TEST_F(TuiControllerTest, EscapeInScrollResultGoesToScrollSelect) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);  // confirm
   controller_->OnEvent(ftxui::Event::Escape);  // dismiss result
 
@@ -829,7 +835,8 @@ TEST_F(TuiControllerTest, ASuccessSpendsAnUpgradeSlot) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   // sword_ has 3 upgrade slots; one was consumed.
@@ -851,7 +858,8 @@ TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open the confirm window
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
@@ -861,6 +869,81 @@ TEST_F(TuiControllerTest, ScrollingSpendsItsTraces) {
 
 // A failed roll is still a scroll spent -- the trace pays for the attempt,
 // not for the result.
+// Pin is the second entry of the row's menu, and the pin it sets belongs to
+// the character rather than the screen -- so it is still there next time.
+TEST_F(TuiControllerTest, PinningFromTheMenuMarksTheCharacter) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);     // open the row's menu
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // onto Pin
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_TRUE(scroll_panel_->SelectedIsPinned());
+  EXPECT_TRUE(
+      state_->character.ScrollPinned(scroll_panel_->PinKeyOfSelected()));
+  EXPECT_EQ(controller_->screen(), kScrollSelect) << "still on the list";
+
+  // And the same entry takes it back off.
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(scroll_panel_->SelectedIsPinned());
+}
+
+// Close is the way out of the menu that changes nothing.
+TEST_F(TuiControllerTest, CloseLeavesTheMenuWithoutScrolling) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  GiveTraces(100);
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);     // open the row's menu
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Pin
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Close
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_FALSE(scroll_panel_->IsMenuOpen());
+  EXPECT_FALSE(scroll_panel_->IsConfirming());
+  EXPECT_FALSE(scroll_panel_->SelectedIsPinned());
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
+  EXPECT_EQ(
+      state_->character.CountStackable(ITEM_CATEGORY_ETC, kSpellTraceName),
+      100);
+}
+
+// Escape closes the menu rather than the screen behind it. Without this the
+// one key would back out of both at once.
+TEST_F(TuiControllerTest, EscapeClosesTheRowMenuAndStaysOnTheList) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(scroll_panel_->IsMenuOpen());
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_FALSE(scroll_panel_->IsMenuOpen());
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
+
+  // And a second Escape does leave, now that there is nothing over the list.
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kItemMenu);
+}
+
 TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
   UseFailScroll();
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -871,9 +954,10 @@ TEST_F(TuiControllerTest, AFailedScrollStillCosts) {
   controller_->OpenEquipMenu();
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
-  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollFail);
   EXPECT_EQ(
@@ -919,7 +1003,8 @@ TEST_F(TuiControllerTest, FailedScrollStoresFailOutcome) {
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);     // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);     // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);     // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);     // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollFail);
@@ -961,7 +1046,8 @@ TEST_F(TuiControllerTest, BagScrollAppliesScrollToInventory) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
@@ -979,7 +1065,8 @@ TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   controller_->OnEvent(ftxui::Event::Return);  // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll -> confirm
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollSuccess);
@@ -997,7 +1084,8 @@ TEST_F(TuiControllerTest,
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::Return);     // enter kScrollSelect
-  controller_->OnEvent(ftxui::Event::Return);     // bypass confirm (0 slots)
+  controller_->OnEvent(ftxui::Event::Return);     // open the row's menu
+  controller_->OnEvent(ftxui::Event::Return);  // pick Scroll, which has no slot
 
   EXPECT_EQ(controller_->screen(), kScrollResult);
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);

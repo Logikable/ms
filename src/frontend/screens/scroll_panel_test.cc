@@ -87,6 +87,18 @@ class ScrollPanelTest : public PanelTest {
     panel->Resort();
   }
 
+  // Enter opens the menu, and Enter again on Scroll asks the CALLER to open
+  // the confirm -- the panel does not, because only the caller knows whether
+  // the item has a slot left. Tests stand in for that caller here.
+  void OpenConfirmThroughTheMenu(ScrollPanel* panel) {
+    Render(*panel);
+    panel->OnEvent(ftxui::Event::Return);
+    EXPECT_TRUE(panel->IsMenuOpen());
+    panel->OnEvent(ftxui::Event::Return);
+    EXPECT_TRUE(panel->TakeScrollChosen());
+    panel->OpenConfirm();
+  }
+
   std::map<std::string, Scroll> scrolls_ = MakeScrolls();
   ScrollPanel panel_{c_, scrolls_};
 };
@@ -472,13 +484,15 @@ TEST_F(ScrollPanelTest, ALongNameIsCutToItsColumn) {
 TEST_F(ScrollPanelTest, TheConfirmWindowWillNotAnswerYesUnpaid) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
-  panel_.OnEvent(ftxui::Event::Return);  // open the confirm window
+  OpenConfirmThroughTheMenu(&panel_);
   ASSERT_TRUE(panel_.IsConfirming());
   panel_.OnEvent(ftxui::Event::Return);  // answer yes with nothing to pay with
   EXPECT_FALSE(panel_.TakeConfirmed());
 
+  // The refused answer closed the window, so paying for it means walking the
+  // menu again.
   GiveTraces(kAaaCost);
-  panel_.OnEvent(ftxui::Event::Return);
+  OpenConfirmThroughTheMenu(&panel_);
   panel_.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(panel_.TakeConfirmed());
 }
@@ -487,7 +501,7 @@ TEST_F(ScrollPanelTest, TheConfirmWindowShowsTheCost) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
   GiveTraces(100);
-  panel_.OnEvent(ftxui::Event::Return);
+  OpenConfirmThroughTheMenu(&panel_);
   std::string rendered = Render(panel_);
   EXPECT_NE(rendered.find("Confirm"), std::string::npos);
   EXPECT_NE(rendered.find("AAA Scroll"), std::string::npos);
@@ -539,7 +553,7 @@ TEST_F(ScrollPanelTest, TheConfirmWindowRulesOffItsBlocks) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
   GiveTraces(100);
-  panel_.OnEvent(ftxui::Event::Return);
+  OpenConfirmThroughTheMenu(&panel_);
   std::vector<std::string> lines = Lines(Render(panel_));
 
   int effect = LineIndex(lines, "+5 ATT");
@@ -576,7 +590,7 @@ TEST_F(ScrollPanelTest, TheConfirmWindowDoesNotGrowThePanel) {
   GiveTraces(1000);
 
   int closed = FitHeight(panel);
-  panel.OnEvent(ftxui::Event::Return);
+  OpenConfirmThroughTheMenu(&panel);
   ASSERT_TRUE(panel.IsConfirming());
   EXPECT_EQ(FitHeight(panel), closed);
 }
@@ -587,7 +601,7 @@ TEST_F(ScrollPanelTest, TheCostGoesRedWhenTheTracesFallShort) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
   GiveTraces(5);
-  panel_.OnEvent(ftxui::Event::Return);
+  OpenConfirmThroughTheMenu(&panel_);
   EXPECT_EQ(LabelColor(panel_.Render(), "Cost 34"), kRed);
 
   GiveTraces(100);
@@ -603,7 +617,7 @@ TEST_F(ScrollPanelTest, TheConfirmWindowNamesTheItemBeingScrolled) {
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   ASSERT_TRUE(panel_.SetFilterForPrototype(sword));
-  panel_.OnEvent(ftxui::Event::Return);
+  OpenConfirmThroughTheMenu(&panel_);
   EXPECT_NE(Render(panel_).find("Long Sword"), std::string::npos);
 }
 

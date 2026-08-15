@@ -12,6 +12,11 @@
  * A Cost is only meaningful once the target item is known: the price comes
  * from the item's level band, so the same scroll is dearer on better gear.
  * Both SetFilter calls take that level for it.
+ *
+ * Enter on a row opens a menu -- Scroll, Pin or Unpin, Close -- rather than
+ * going straight to the confirm window. The panel decides nothing that touches
+ * the game: it raises TakeScrollChosen and TakePinToggled for the caller, who
+ * owns the item and the character.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_SCROLL_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SCROLL_PANEL_H_
@@ -28,6 +33,7 @@
 #include "src/character/character.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -60,6 +66,17 @@ class ScrollPanel {
   bool IsConfirming() const {
     return confirm_.open();
   }
+  bool IsMenuOpen() const {
+    return menu_open_;
+  }
+  // True once when the player picked Scroll from the menu. The caller checks
+  // the item has a slot for it and then calls OpenConfirm.
+  bool TakeScrollChosen();
+  // True once when they picked Pin or Unpin. The caller writes the pin to the
+  // character and calls Resort.
+  bool TakePinToggled();
+  // Opens the confirm window on the selected scroll.
+  void OpenConfirm();
   // Returns the scroll at the current selection.
   const Scroll& selected_scroll() const;
   // Traces the selected scroll costs on the item being scrolled. The price is
@@ -100,6 +117,10 @@ class ScrollPanel {
   void SortRows();
   // Spell traces the character owns.
   int TracesOwned() const;
+  void OpenMenu();
+  // The menu's own key handling while it is open. Modal: it swallows what it
+  // does not use, so nothing leaks to the list behind it.
+  bool OnMenuEvent(ftxui::Event event);
   // The pop-up that asks before a scroll is spent: what it is going on, what
   // it does, and what it costs. Drawn over the list, not below it.
   ftxui::Element RenderConfirm() const;
@@ -119,6 +140,12 @@ class ScrollPanel {
   ftxui::Component component_;
   ConfirmPrompt confirm_;
   bool confirmed_ = false;
+  // The menu Enter opens on a row. Rebuilt each time, because the middle entry
+  // reads Pin or Unpin depending on the row it was opened on.
+  ItemMenu menu_{{"Scroll", "Pin", "Close"}};
+  bool menu_open_ = false;
+  bool scroll_chosen_ = false;
+  bool pin_toggled_ = false;
   // Owned here because only the panel knows when the selection moved.
   SelectionClock clock_;
 };
