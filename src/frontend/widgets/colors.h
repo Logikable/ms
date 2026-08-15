@@ -5,6 +5,30 @@
 
 namespace ms {
 
+/* Red and dim, and which of them says what.
+ *
+ * **Red is the reason.** It goes on the ONE value the player falls short of --
+ * a level, a job, a price -- so the screen answers "why not" without being
+ * asked. Always a cell, never a whole row, and never a value that is merely
+ * absent. Red is not a category colour: a thing that is always red says
+ * nothing.
+ *
+ * **Dim is the door.** It goes on what cannot be used: a button that will not
+ * answer, a menu entry, a row whose action is blocked. Never on the value the
+ * player is meant to read and compare -- that is red's job.
+ *
+ * **Both at once is the strongest form, and is deliberate.** The scroll
+ * confirm reddens the cost and dims the Confirm button: red names the
+ * shortfall, dim says the door is shut. Copy that pairing rather than choosing
+ * between them. Put them on DIFFERENT elements, though -- dimming a red cell
+ * mutes the one thing worth reading.
+ *
+ * Dim has a second, softer job: what is not in play rather than what is
+ * blocked -- a set tier not yet earned, a job category an item does not serve.
+ * Those sit on screens where nothing is being refused, so the two readings do
+ * not collide in practice.
+ */
+
 // Identity color: borders, separators, panel titles, structural labels.
 inline const ftxui::Color kTheme = ftxui::Color::RGB(100, 150, 200);
 
@@ -12,7 +36,7 @@ inline const ftxui::Color kTheme = ftxui::Color::RGB(100, 150, 200);
 inline const ftxui::Color kYellow = ftxui::Color::RGB(255, 210, 50);
 inline const ftxui::Color kGray = ftxui::Color::RGB(100, 100, 100);
 
-// Stat source breakdown in the inspect panel.
+// Stat source breakdown in the inspect panel, and the skills tab's attack tag.
 inline const ftxui::Color kPurple = ftxui::Color::RGB(173, 163, 255);
 inline const ftxui::Color kOrange = ftxui::Color::RGB(255, 198, 50);
 
@@ -20,7 +44,8 @@ inline const ftxui::Color kOrange = ftxui::Color::RGB(255, 198, 50);
 inline const ftxui::Color kGreen = ftxui::Color::RGB(100, 175, 100);
 inline const ftxui::Color kMutedYellow = ftxui::Color::RGB(185, 155, 70);
 
-// Error / bad outcome: item requirements not met, SF destroy.
+// The reason something is refused, and a bad outcome: a requirement not met,
+// a price out of reach, the Star Force destroy rate. See the note above.
 inline const ftxui::Color kRed = ftxui::Color::RGB(185, 70, 70);
 
 // Unfilled remainder of any progress bar (EXP, attack charge, mob HP).

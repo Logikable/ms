@@ -280,7 +280,9 @@ ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
       ftxui::Element row =
           ftxui::text(" " + PadRight(label, kSetTierWidth) + line);
       // Dimmed until the pieces are on: the card is what the set would pay,
-      // and the stats page is what the character has.
+      // and the stats page is what the character has. This is dim's softer
+      // reading -- not in play rather than refused (colors.h). Nothing on this
+      // card is being turned down, so the two do not collide here.
       if (worn < tier.pieces()) {
         row = row | ftxui::dim;
       }
