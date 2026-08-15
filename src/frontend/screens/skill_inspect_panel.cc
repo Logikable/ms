@@ -566,9 +566,10 @@ std::vector<ftxui::Element> LevelBlock(const Skill& skill, int level) {
 
 }  // namespace
 
-void SkillInspectPanel::SetSkill(const Skill* skill, int level) {
+void SkillInspectPanel::SetSkill(const Skill* skill, int level, Levels levels) {
   skill_ = skill;
   level_ = level;
+  levels_ = levels;
 }
 
 ftxui::Element SkillInspectPanel::Render() const {
@@ -595,17 +596,21 @@ ftxui::Element SkillInspectPanel::Render() const {
     }
   }
 
-  // The level the skill is at, then what one more point would buy. An
-  // unlearned skill has only the second; a maxed one has only the first.
-  if (level_ > 0) {
+  // Two blocks, and which two is the whole of the difference between the
+  // modes: the level the skill is at and what one more point would buy, or
+  // the first level and the last. A skill with one level has one block either
+  // way, and so does a maxed or an unlearned one.
+  int first = levels_ == kPreview ? 1 : level_;
+  int second = levels_ == kPreview ? skill_->max_level() : level_ + 1;
+  if (first > 0) {
     rows.push_back(ThemedSeparator());
-    for (ftxui::Element& row : LevelBlock(*skill_, level_)) {
+    for (ftxui::Element& row : LevelBlock(*skill_, first)) {
       rows.push_back(std::move(row));
     }
   }
-  if (level_ < skill_->max_level()) {
+  if (second > first && second <= skill_->max_level()) {
     rows.push_back(ThemedSeparator());
-    for (ftxui::Element& row : LevelBlock(*skill_, level_ + 1)) {
+    for (ftxui::Element& row : LevelBlock(*skill_, second)) {
       rows.push_back(std::move(row));
     }
   }

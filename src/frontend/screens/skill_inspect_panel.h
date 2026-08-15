@@ -23,14 +23,27 @@ namespace ms {
 
 class SkillInspectPanel {
  public:
+  // Which levels the card shows.
+  enum Levels {
+    // The level the character has the skill at, and what one more point would
+    // buy. What a player spending SP is deciding between.
+    kLearned,
+    // Level 1 and the last level, for a book nobody has opened yet: what the
+    // first point buys and what the skill becomes. What a player choosing a
+    // job is deciding between, where "one more point" means nothing.
+    kPreview,
+  };
+
   // `level` is the level the character has learned the skill to, 0 for one
-  // they have not spent a point on.
-  void SetSkill(const Skill* skill, int level);
+  // they have not spent a point on. Ignored under kPreview, which is about a
+  // skill rather than about a character.
+  void SetSkill(const Skill* skill, int level, Levels levels = kLearned);
   ftxui::Element Render() const;
 
  private:
   const Skill* skill_ = nullptr;
   int level_ = 0;
+  Levels levels_ = kLearned;
 };
 
 }  // namespace ms

@@ -20,6 +20,12 @@ class SkillInspectPanelTest : public PanelTest {
     return RenderElement(panel.Render());
   }
 
+  std::string RenderPreview(const Skill& skill) {
+    SkillInspectPanel panel;
+    panel.SetSkill(&skill, 0, SkillInspectPanel::kPreview);
+    return RenderElement(panel.Render());
+  }
+
   // A rendered panel split into its rows, so a test can say what sits above
   // what rather than only what is somewhere on screen.
   static std::vector<std::string> Lines(const std::string& rendered) {
@@ -139,6 +145,44 @@ TEST_F(SkillInspectPanelTest, AMaxedSkillShowsNoNextLevel) {
   std::string rendered = RenderAt(skill, 20);
   EXPECT_NE(rendered.find("Level 20"), std::string::npos);
   EXPECT_EQ(rendered.find("Level 21"), std::string::npos);
+}
+
+// A player choosing a job has no points spent and none to spend, so "one more
+// point" says nothing. The two ends of the skill are what there is to compare.
+TEST_F(SkillInspectPanelTest, APreviewShowsTheFirstLevelAndTheLast) {
+  Skill skill = MakeIronBody();
+  std::string rendered = RenderPreview(skill);
+  EXPECT_NE(rendered.find("Level 1"), std::string::npos);
+  EXPECT_NE(rendered.find("+10"), std::string::npos);  // DEF at level 1
+  EXPECT_NE(rendered.find("Level 20"), std::string::npos);
+  EXPECT_NE(rendered.find("+200"), std::string::npos);  // DEF at level 20
+  EXPECT_EQ(rendered.find("Level 2 "), std::string::npos);
+}
+
+// The learned level is not read at all under a preview: the card is about the
+// skill, and nothing has been spent on it.
+TEST_F(SkillInspectPanelTest, APreviewIgnoresWhatIsLearned) {
+  Skill skill = MakeIronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 7, SkillInspectPanel::kPreview);
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_EQ(rendered.find("Level 7"), std::string::npos);
+  EXPECT_EQ(rendered.find("Level 8"), std::string::npos);
+  EXPECT_NE(rendered.find("Level 1"), std::string::npos);
+}
+
+// One level is both ends of it, so the block is not drawn twice.
+TEST_F(SkillInspectPanelTest, APreviewOfAOneLevelSkillShowsOneBlock) {
+  Skill skill = MakeIronBody();
+  skill.set_max_level(1);
+  std::vector<std::string> lines = Lines(RenderPreview(skill));
+  int blocks = 0;
+  for (const std::string& line : lines) {
+    if (line.find("Level 1") != std::string::npos) {
+      ++blocks;
+    }
+  }
+  EXPECT_EQ(blocks, 1);
 }
 
 // Damage is per strike, how many strikes, and what the two come to -- the
