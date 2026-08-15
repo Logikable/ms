@@ -1,6 +1,6 @@
 /* What GMS's own spell trace prices cost a player in this game's economy.
  *
- * The trace costs are GMS's (analysis/spell_trace_cost.h). What this adds is
+ * The trace costs are GMS's (src/item/spell_trace_cost.h). What this adds is
  * the two things GMS cannot tell us: how many scrolls a job actually takes,
  * and whether the player has the meso for it by the level they want it done.
  *
@@ -25,8 +25,8 @@
 #include "absl/log/log.h"
 #include "analysis/meso_curve.h"
 #include "analysis/sim_format.h"
-#include "analysis/spell_trace_cost.h"
 #include "src/embedded_data.h"
+#include "src/item/spell_trace_cost.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"

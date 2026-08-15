@@ -26,6 +26,16 @@ cc_library(
 )
 
 cc_library(
+    name = "spell_trace_cost",
+    srcs = ["spell_trace_cost.cc"],
+    hdrs = ["spell_trace_cost.h"],
+    deps = [
+        "//src/protos:scroll_proto_cc",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+cc_library(
     name = "equip_stats",
     srcs = ["equip_stats.cc"],
     hdrs = ["equip_stats.h"],
@@ -73,6 +83,16 @@ cc_test(
     deps = [
         ":equip_instance",
         "//src/protos:equip_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "spell_trace_cost_test",
+    srcs = ["spell_trace_cost_test.cc"],
+    deps = [
+        ":spell_trace_cost",
         "//src/protos:scroll_proto_cc",
         "@googletest//:gtest_main",
     ],

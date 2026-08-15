@@ -1,6 +1,7 @@
-#include "analysis/spell_trace_cost.h"
+#include "src/item/spell_trace_cost.h"
 
 #include "absl/log/log.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 namespace {
@@ -81,6 +82,18 @@ int RateRow(int success_rate) {
   }
 }
 
+TraceCategory CategoryFor(ScrollTarget target) {
+  switch (target) {
+    case SCROLL_TARGET_ARMOUR:
+      return TraceCategory::kArmor;
+    case SCROLL_TARGET_WEAPON:
+      return TraceCategory::kWeapon;
+    case SCROLL_TARGET_UNSPECIFIED:
+      break;
+  }
+  LOG(FATAL) << "a scroll that goes on nothing has no price";
+}
+
 }  // namespace
 
 int SpellTraceCost(int required_level, TraceCategory category,
@@ -93,6 +106,14 @@ int SpellTraceCost(int required_level, TraceCategory category,
     }
   }
   return found->cost[RateRow(success_rate)][static_cast<int>(category)];
+}
+
+int TraceCost(const Scroll& scroll, int required_level) {
+  if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+    return scroll.trace_cost();
+  }
+  return SpellTraceCost(required_level, CategoryFor(scroll.target()),
+                        scroll.success_rate());
 }
 
 }  // namespace ms
