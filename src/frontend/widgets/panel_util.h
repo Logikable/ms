@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -121,6 +122,16 @@ struct KindTag {
 };
 constexpr int kSkillTagWidth = 4;
 KindTag TagFor(const Skill& skill);
+
+// One advancement's skills out of `catalog`, in the order every page lists
+// them: GMS's own skill_order, then settled so nothing waits on a skill listed
+// below it. What a skill does has no say -- the wiki does not gather the
+// attacks above the passives, and a second rule would only fight skill_order.
+//
+// The pointers are into `catalog`, which has to outlive them. Empty for an
+// unspecified advancement, so a caller may pass one straight through.
+std::vector<const Skill*> SkillsForAdvancement(
+    const std::map<std::string, Skill>& catalog, JobAdvancement advancement);
 
 // The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for
 // an unspecified one. The stage number is the proto enum's own value, so a

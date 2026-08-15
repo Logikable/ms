@@ -58,6 +58,32 @@ cc_test(
 )
 
 cc_library(
+    name = "job_inspect_panel",
+    srcs = ["job_inspect_panel.cc"],
+    hdrs = ["job_inspect_panel.h"],
+    deps = [
+        "//src/character",
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "job_inspect_panel_test",
+    srcs = ["job_inspect_panel_test.cc"],
+    deps = [
+        ":job_inspect_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "skill_inspect_panel",
     srcs = ["skill_inspect_panel.cc"],
     hdrs = ["skill_inspect_panel.h"],

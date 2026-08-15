@@ -147,6 +147,29 @@ class FloatingNode : public ftxui::Node {
   }
 };
 
+// Appends `skill` to `out`, but only after whatever it waits on. Keyed by
+// display name, which is what a requirement names and what a learned level is
+// held under. Marking before the recursion rather than after is what stops a
+// cycle in the data from recurring forever.
+void EmitAfterRequirement(const Skill& skill,
+                          const std::map<std::string, const Skill*>& by_name,
+                          std::set<std::string>& emitted,
+                          std::vector<const Skill*>& out) {
+  if (!emitted.insert(skill.name()).second) {
+    return;
+  }
+  if (skill.has_required_skill()) {
+    std::map<std::string, const Skill*>::const_iterator it =
+        by_name.find(skill.required_skill().skill_name());
+    // A requirement naming a skill from another page is nothing this list can
+    // order around, and the player will find it in the book it belongs to.
+    if (it != by_name.end()) {
+      EmitAfterRequirement(*it->second, by_name, emitted, out);
+    }
+  }
+  out.push_back(&skill);
+}
+
 }  // namespace
 
 const DisplayStat* DisplayStatFor(StatField field) {
@@ -249,6 +272,34 @@ std::string FormatWeaponList(const std::vector<EquipType>& types) {
     result += name;
   }
   return result;
+}
+
+std::vector<const Skill*> SkillsForAdvancement(
+    const std::map<std::string, Skill>& catalog, JobAdvancement advancement) {
+  std::vector<const Skill*> result;
+  if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
+    return result;
+  }
+  for (const std::pair<const std::string, Skill>& entry : catalog) {
+    if (entry.second.job_advancement() == advancement) {
+      result.push_back(&entry.second);
+    }
+  }
+  std::stable_sort(result.begin(), result.end(),
+                   [](const Skill* a, const Skill* b) {
+                     return a->skill_order() < b->skill_order();
+                   });
+
+  std::map<std::string, const Skill*> by_name;
+  for (const Skill* skill : result) {
+    by_name[skill->name()] = skill;
+  }
+  std::vector<const Skill*> ordered;
+  std::set<std::string> emitted;
+  for (const Skill* skill : result) {
+    EmitAfterRequirement(*skill, by_name, emitted, ordered);
+  }
+  return ordered;
 }
 
 KindTag TagFor(const Skill& skill) {

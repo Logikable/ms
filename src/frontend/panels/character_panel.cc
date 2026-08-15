@@ -93,47 +93,6 @@ constexpr int kSkillPlusWidth = 3;
 constexpr int kSkillNameWidth =
     kContentWidth - 1 - kSkillTagWidth - kSkillLevelWidth - kSkillPlusWidth - 1;
 
-// Appends `skill` to `out`, but only after whatever it waits on. Keyed by
-// display name, which is what a requirement names and what a learned level is
-// held under. Marking before the recursion rather than after is what stops a
-// cycle in the data from recurring forever.
-void EmitAfterRequirement(const Skill& skill,
-                          const std::map<std::string, const Skill*>& by_name,
-                          std::set<std::string>& emitted,
-                          std::vector<const Skill*>& out) {
-  if (!emitted.insert(skill.name()).second) {
-    return;
-  }
-  if (skill.has_required_skill()) {
-    std::map<std::string, const Skill*>::const_iterator it =
-        by_name.find(skill.required_skill().skill_name());
-    // A requirement naming a skill from another page is nothing this list can
-    // order around, and the player will find it in the book it belongs to.
-    if (it != by_name.end()) {
-      EmitAfterRequirement(*it->second, by_name, emitted, out);
-    }
-  }
-  out.push_back(&skill);
-}
-
-// Reorders so that no skill stands above one it waits on: a greyed-out row
-// whose condition is further down the list reads as a list in the wrong order.
-// A skill pulled up this way brings its dependent with it, so a chain stays
-// together instead of being scattered through the page.
-std::vector<const Skill*> RequirementsFirst(
-    const std::vector<const Skill*>& skills) {
-  std::map<std::string, const Skill*> by_name;
-  for (const Skill* skill : skills) {
-    by_name[skill->name()] = skill;
-  }
-  std::vector<const Skill*> ordered;
-  std::set<std::string> emitted;
-  for (const Skill* skill : skills) {
-    EmitAfterRequirement(*skill, by_name, emitted, ordered);
-  }
-  return ordered;
-}
-
 // The base (AP-allocated) and gear-bonus values for one allocatable stat.
 std::pair<int, int> AllocStatValues(StatField field, const AllocatedStats& a,
                                     const EquipStats& e) {
@@ -438,25 +397,8 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
   // A stage's page shows exactly the skills of the advancement this character's
   // job is at there -- so a Swordman never sees an Archer's skills, and vice
   // versa. An unreached or undefined advancement has no skills.
-  JobAdvancement advancement =
-      AdvancementForJobStage(character_.proto().job(), stage);
-  std::vector<const Skill*> result;
-  if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
-    return result;
-  }
-  for (const std::pair<const std::string, Skill>& entry : skills_) {
-    if (entry.second.job_advancement() == advancement) {
-      result.push_back(&entry.second);
-    }
-  }
-  // GMS's own order, then settled so nothing waits on a skill below it. What a
-  // skill does has no say here: the wiki does not gather the attacks above the
-  // passives, and a second rule would only fight skill_order.
-  std::stable_sort(result.begin(), result.end(),
-                   [](const Skill* a, const Skill* b) {
-                     return a->skill_order() < b->skill_order();
-                   });
-  return RequirementsFirst(result);
+  return SkillsForAdvancement(
+      skills_, AdvancementForJobStage(character_.proto().job(), stage));
 }
 
 ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
