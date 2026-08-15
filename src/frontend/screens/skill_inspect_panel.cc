@@ -1,5 +1,6 @@
 #include "src/frontend/screens/skill_inspect_panel.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <set>
@@ -622,6 +623,21 @@ ftxui::Element SkillInspectPanel::Render() const {
   return ThemedWindow(
       title, ftxui::vbox(std::move(rows)) |
                  ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth));
+}
+
+int TallestPreviewCardRows(const std::vector<const Skill*>& skills) {
+  int rows = 0;
+  SkillInspectPanel panel;
+  for (const Skill* skill : skills) {
+    if (skill == nullptr) {
+      continue;
+    }
+    panel.SetSkill(skill, 0, SkillInspectPanel::kPreview);
+    ftxui::Element card = panel.Render();
+    card->ComputeRequirement();
+    rows = std::max(rows, card->requirement().min_y);
+  }
+  return rows;
 }
 
 }  // namespace ms

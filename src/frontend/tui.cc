@@ -354,10 +354,9 @@ ftxui::Element Tui::RenderShopInspect() {
 ftxui::Element Tui::RenderJobInspect() {
   skill_inspect_panel_.SetSkill(job_inspect_panel_.selected_skill(), 0,
                                 SkillInspectPanel::kPreview);
-  return Standalone(ftxui::hbox({
-      job_inspect_panel_.Render(),
-      skill_inspect_panel_.Render(),
-  }));
+  return Standalone(JobInspectScreen(
+      job_inspect_panel_.Render(), skill_inspect_panel_.Render(),
+      TallestPreviewCardRows(job_inspect_panel_.Skills())));
 }
 
 ftxui::Element Tui::RenderTraceRecover() {

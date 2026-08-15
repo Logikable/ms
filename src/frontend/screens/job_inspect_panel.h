@@ -39,11 +39,13 @@ class JobInspectPanel {
   // Walks the book, wrapping at both ends.
   void MoveCursor(int delta);
 
+  // The job's book, in the order the Character panel lists it. Public because
+  // the screen measures the cards of all of them before drawing any one.
+  std::vector<const Skill*> Skills() const;
+
   ftxui::Element Render() const;
 
  private:
-  // The job's book, in the order the Character panel lists it.
-  std::vector<const Skill*> Skills() const;
   // One skill row: the kind tag, the name, and the level it tops out at.
   ftxui::Element RenderSkillRow(const Skill& skill, int index) const;
 
@@ -51,6 +53,17 @@ class JobInspectPanel {
   Job job_ = JOB_UNSPECIFIED;
   int selected_ = 0;
 };
+
+// The job inspect screen: the book on the left, the card of whichever skill
+// the cursor is on to its right, the pair held to at least `rows` tall. Split
+// out of Tui so a test can measure it.
+//
+// `rows` is the tallest card in the book, which is what keeps the screen still
+// as the cursor walks it -- a short card leaves room below itself rather than
+// pulling the whole screen up. A book taller than its cards still gets its
+// full height.
+ftxui::Element JobInspectScreen(ftxui::Element book, ftxui::Element card,
+                                int rows);
 
 }  // namespace ms
 

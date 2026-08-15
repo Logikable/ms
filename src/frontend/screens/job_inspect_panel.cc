@@ -118,4 +118,10 @@ ftxui::Element JobInspectPanel::Render() const {
           ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth));
 }
 
+ftxui::Element JobInspectScreen(ftxui::Element book, ftxui::Element card,
+                                int rows) {
+  return ftxui::hbox({std::move(book), std::move(card)}) |
+         ftxui::size(ftxui::HEIGHT, ftxui::GREATER_THAN, rows);
+}
+
 }  // namespace ms

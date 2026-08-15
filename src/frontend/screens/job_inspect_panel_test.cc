@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/character.pb.h"
@@ -140,6 +141,33 @@ TEST_F(JobInspectPanelTest, AJobWithNoBookSaysSoRatherThanCrashing) {
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_skill(), nullptr);
   EXPECT_NE(RenderElement(panel.Render()).find("(empty)"), std::string::npos);
+}
+
+// A block `rows` tall, standing in for a card or a book of that height.
+ftxui::Element Block(int rows) {
+  std::vector<ftxui::Element> lines;
+  for (int i = 0; i < rows; ++i) {
+    lines.push_back(ftxui::text("x"));
+  }
+  return ftxui::vbox(std::move(lines));
+}
+
+int Rows(ftxui::Element element) {
+  element->ComputeRequirement();
+  return element->requirement().min_y;
+}
+
+// The whole point of passing the tallest card in: the screen is the same
+// height whichever skill the cursor is on.
+TEST_F(JobInspectPanelTest, TheScreenStandsStillUnderAShortCard) {
+  constexpr int kTallest = 20;
+  EXPECT_EQ(Rows(JobInspectScreen(Block(9), Block(kTallest), kTallest)),
+            kTallest);
+  EXPECT_EQ(Rows(JobInspectScreen(Block(9), Block(6), kTallest)), kTallest);
+}
+
+TEST_F(JobInspectPanelTest, ABookTallerThanEveryCardIsNotClipped) {
+  EXPECT_EQ(Rows(JobInspectScreen(Block(30), Block(6), 20)), 30);
 }
 
 }  // namespace

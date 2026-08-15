@@ -2,9 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
+#include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -774,6 +776,25 @@ TEST_F(SkillInspectPanelTest, TheTwoRequirementsReadAlike) {
   EXPECT_EQ(lines[weapon].find("Spear"), lines[prereq].find("Iron Wall"))
       << "the values do not share a column:\n[" << lines[weapon] << "]\n["
       << lines[prereq] << "]";
+}
+
+TEST_F(SkillInspectPanelTest, TheTallestCardIsTheTallestOfThem) {
+  Skill iron_body = MakeIronBody();
+  Skill lucky_seven = MakeLuckySeven();
+  SkillInspectPanel panel;
+  std::vector<int> heights;
+  for (const Skill* skill : {&iron_body, &lucky_seven}) {
+    panel.SetSkill(skill, 0, SkillInspectPanel::kPreview);
+    ftxui::Element card = panel.Render();
+    card->ComputeRequirement();
+    heights.push_back(card->requirement().min_y);
+  }
+  ASSERT_NE(heights[0], heights[1]) << "both cards are the same height";
+
+  int tallest = std::max(heights[0], heights[1]);
+  EXPECT_EQ(TallestPreviewCardRows({&iron_body, &lucky_seven}), tallest);
+  EXPECT_EQ(TallestPreviewCardRows({&lucky_seven, &iron_body}), tallest);
+  EXPECT_EQ(TallestPreviewCardRows({}), 0);
 }
 
 }  // namespace

@@ -16,6 +16,8 @@
 #ifndef MS_SRC_FRONTEND_SCREENS_SKILL_INSPECT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_SKILL_INSPECT_PANEL_H_
 
+#include <vector>
+
 #include "ftxui/dom/elements.hpp"
 #include "src/protos/skill.pb.h"
 
@@ -45,6 +47,13 @@ class SkillInspectPanel {
   int level_ = 0;
   Levels levels_ = kLearned;
 };
+
+// The rows the tallest preview card of `skills` takes, borders included. What
+// a screen holding a card beside a list of skills asks before drawing it, so
+// the screen stands still while the cursor walks cards of different heights.
+// Measured rather than guessed: a card is as tall as its description and
+// whichever levers its skill happens to carry.
+int TallestPreviewCardRows(const std::vector<const Skill*>& skills);
 
 }  // namespace ms
 
