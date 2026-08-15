@@ -1,5 +1,7 @@
 #include "src/frontend/panels/combat_panel.h"
 
+#include <chrono>
+#include <cstddef>
 #include <functional>
 #include <map>
 #include <string>
@@ -12,6 +14,7 @@
 #include "src/combat/fight.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/protos/map.pb.h"
@@ -49,8 +52,18 @@ ftxui::Element CombatPanel::Render() const {
   // cursor is the map's -- Enter on it travels -- so it shows only when the
   // panel holds focus, as in the equip and inventory lists.
   bool focused = panel_focus_ == kCombatPanel;
-  ftxui::Element header = ftxui::text((focused ? "> " : "  ") +
-                                      PadRight(MapName(), kContentWidth - 2));
+  // The longest map name is a column wider than the row holds, so it slides
+  // under it while the panel holds focus. Focus rides in the key beside the
+  // map: arriving at the panel starts the name from its head, as stepping
+  // onto a row does everywhere else.
+  size_t key =
+      std::hash<std::string>{}(state_.current_map) * 2 + (focused ? 1 : 0);
+  name_clock_.Follow(static_cast<int>(key));
+  ftxui::Element header = ftxui::text(
+      (focused ? "> " : "  ") +
+      ScrollingWindow(MapName(), kContentWidth - 2,
+                      focused ? name_clock_.Elapsed()
+                              : std::chrono::steady_clock::duration::zero()));
   if (focused) {
     header = header | ftxui::focus;
   }

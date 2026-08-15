@@ -122,6 +122,7 @@ cc_library(
         "//src/combat:fight",
         "//src/frontend:types",
         "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/protos:map_proto_cc",
         "@ftxui//:component",

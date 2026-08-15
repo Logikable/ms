@@ -108,6 +108,27 @@ TEST(CombatPanelTest, ShowsTheMapCursorOnlyWhenFocused) {
   EXPECT_NE(unfocused.find("  Snail Field"), std::string::npos);
 }
 
+// The longest map in the game is a column wider than the row. It is cut to
+// the row rather than pushing the panel out, and slides under it while the
+// panel holds focus.
+TEST(CombatPanelTest, ALongMapNameIsCutToItsRow) {
+  const std::string kLongest = "Battlefield of Fire and Darkness";
+  MapData map = SnailField();
+  map.set_name(kLongest);
+  GameState state({}, {}, {}, {{"snail", SnailMob()}}, {{"field", map}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatSim sim;
+
+  ftxui::Screen screen = RenderScreen(state, sim, kCombatPanel);
+  std::string rendered = screen.ToString();
+  EXPECT_EQ(rendered.find(kLongest), std::string::npos)
+      << "the whole name fits, so this test proves nothing";
+  EXPECT_NE(rendered.find(kLongest.substr(0, 31)), std::string::npos);
+  // Still exactly as wide as it was, name or no name.
+  EXPECT_EQ(screen.PixelAt(CombatPanel::kTotalWidth - 1, 0).character, "╮");
+}
+
 TEST(CombatPanelTest, ReportsNotFightingWithoutAWeapon) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", SnailField()}});

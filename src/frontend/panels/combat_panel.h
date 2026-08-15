@@ -18,6 +18,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/fight.h"
 #include "src/frontend/panels/character_panel.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/game_state.h"
 
 namespace ms {
@@ -48,6 +49,9 @@ class CombatPanel {
   const GameState& state_;
   const CombatSim& sim_;
   int& panel_focus_;
+  // How long the map row has been the focused one, for sliding a long map
+  // name under it. Mutable because the render is where the move is noticed.
+  mutable SelectionClock name_clock_;
 };
 
 }  // namespace ms
