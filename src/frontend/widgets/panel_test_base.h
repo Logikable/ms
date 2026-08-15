@@ -99,6 +99,29 @@ class PanelTest : public testing::Test {
     return ftxui::Color::Default;
   }
 
+  // The rendered component as plain characters, one per column, with a
+  // newline between rows.
+  //
+  // Screen::ToString KEEPS the colour and dim escapes, so a styled cell puts
+  // bytes between two things that look adjacent on screen -- which is what
+  // breaks a search for "> Name" the moment the name is dimmed. Use this to
+  // ask what the screen says; use RenderComponent only when the styling is
+  // what is being asserted.
+  static std::string RenderComponentText(ftxui::Component component) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Render(screen, component->Render());
+    std::string out;
+    for (int y = 0; y < screen.dimy(); ++y) {
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const std::string& cell = screen.PixelAt(x, y).character;
+        out += cell.empty() ? " " : cell;
+      }
+      out += '\n';
+    }
+    return out;
+  }
+
   static std::string RenderComponent(ftxui::Component component) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(20));

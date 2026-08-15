@@ -98,6 +98,25 @@ class InventoryPanelTest : public PanelTest {
     }
   }
 
+  // The pixel the first cell of `needle` lands on, so a test can ask both what
+  // colour it came out and whether it was dimmed. Reads the grid rather than
+  // ToString, which keeps the escapes.
+  ftxui::Pixel PixelOf(ftxui::Component component, const std::string& needle) {
+    ftxui::Screen screen = RenderToScreen(std::move(component));
+    for (int y = 0; y < screen.dimy(); ++y) {
+      std::string row;
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const std::string& cell = screen.PixelAt(x, y).character;
+        row += cell.empty() ? " " : cell;
+      }
+      size_t at = row.find(needle);
+      if (at != std::string::npos) {
+        return screen.PixelAt(static_cast<int>(at), y);
+      }
+    }
+    return ftxui::Pixel();
+  }
+
   // The panel wired the way the main screen wires it: as one tab of a
   // Container::Tab, which is what routes keys to it in the running game.
   // Every other test here calls OnEvent on the panel component directly, so
@@ -170,7 +189,7 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnArrivalFromTheTabBar) {
 
   comp->OnEvent(ftxui::Event::ArrowUp);  // the bar -> the last row
   ASSERT_EQ(panel.selected(), 24);
-  EXPECT_NE(RenderComponent(comp).find("> Item24"), std::string::npos)
+  EXPECT_NE(RenderComponentText(comp).find("> Item24"), std::string::npos)
       << "no caret after wrapping up onto the last row";
 }
 
@@ -194,7 +213,7 @@ TEST_F(InventoryPanelTest, TheCaretShowsOnReturnToTheFirstRow) {
   comp->OnEvent(ftxui::Event::ArrowDown);  // the bar -> the first row
 
   ASSERT_EQ(panel.selected(), 0);
-  EXPECT_NE(RenderComponent(comp).find("> Item0"), std::string::npos)
+  EXPECT_NE(RenderComponentText(comp).find("> Item0"), std::string::npos)
       << "no caret after coming back round to the first row";
 }
 
@@ -204,12 +223,12 @@ TEST_F(InventoryPanelTest, DownFromTheLastItemReturnsToTheBar) {
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> the one item
-  ASSERT_NE(RenderComponent(comp).find("> Sword"), std::string::npos);
+  ASSERT_NE(RenderComponentText(comp).find("> Sword"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowDown);  // off the bottom -> the tab bar
   // The cursor is drawn only in the list zone, so its absence is where the
   // cursor went. Left still switching tabs is the other half of the answer.
-  EXPECT_EQ(RenderComponent(comp).find("> Sword"), std::string::npos);
+  EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos);
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_TRUE(panel.on_stackable_tab());
 }
@@ -222,7 +241,7 @@ TEST_F(InventoryPanelTest, ArrowUpFromTheTabBarLandsOnTheLastStack) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   comp->OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_NE(RenderComponent(comp).find("> Blue Potion"), std::string::npos);
+  EXPECT_NE(RenderComponentText(comp).find("> Blue Potion"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, DownFromTheLastStackReturnsToTheBar) {
@@ -232,10 +251,10 @@ TEST_F(InventoryPanelTest, DownFromTheLastStackReturnsToTheBar) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> the one stack
-  ASSERT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+  ASSERT_NE(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
 
   comp->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+  EXPECT_EQ(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
 }
 
 // A tab with nothing under it is a ring of one stop, so neither key moves the
@@ -264,13 +283,52 @@ TEST_F(InventoryPanelTest, ShowsItemName) {
             std::string::npos);
 }
 
+// A row whose item cannot be worn dims whole -- the same answer the skills tab
+// gives a skill that cannot be learned -- while the cells that say WHY stay
+// bright and red. Dimming the reason too would mute the one thing on the row
+// worth reading.
+TEST_F(InventoryPanelTest, AnUnwearableRowDimsAndItsReasonStaysRed) {
+  // sword_ is level 10 and Warrior only; c_ is a level 1 Beginner, so both.
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+
+  EXPECT_TRUE(PixelOf(comp, "Sword").dim) << "the name";
+
+  ftxui::Pixel level = PixelOf(comp, "Lv10");
+  EXPECT_EQ(level.foreground_color, kRed);
+  EXPECT_FALSE(level.dim) << "the reason must not be muted";
+
+  ftxui::Pixel job = PixelOf(comp, "Warrior");
+  EXPECT_EQ(job.foreground_color, kRed);
+  EXPECT_FALSE(job.dim);
+}
+
+// And a row that can be worn is left alone: dim has to mean something.
+TEST_F(InventoryPanelTest, AWearableRowIsNotDimmed) {
+  EquipPrototype wearable;
+  wearable.set_name("Plain Cape");
+  wearable.set_equip_slot(EQUIP_SLOT_CAPE);
+  wearable.set_required_level(1);
+  wearable.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.PickUp(std::make_unique<EquipInstance>(wearable));
+  panel_focus_ = kInventoryPanel;
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+
+  ftxui::Pixel name = PixelOf(comp, "Plain Cape");
+  EXPECT_FALSE(name.dim);
+  EXPECT_NE(name.foreground_color, kRed);
+}
+
 TEST_F(InventoryPanelTest, ShowsSelectionCursorInListZone) {
   panel_focus_ = kInventoryPanel;
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
-  EXPECT_NE(RenderComponent(comp).find("> Sword"), std::string::npos);
+  EXPECT_NE(RenderComponentText(comp).find("> Sword"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, NoSelectionCursorOnTheTabRow) {
@@ -290,10 +348,10 @@ TEST_F(InventoryPanelTest, EquipTabCursorHiddenWhenPanelNotFocused) {
   InventoryPanel panel(c_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> item list
-  ASSERT_NE(RenderComponent(comp).find("> Sword"), std::string::npos);
+  ASSERT_NE(RenderComponentText(comp).find("> Sword"), std::string::npos);
 
   panel_focus_ = kEquipPanel;
-  EXPECT_EQ(RenderComponent(comp).find("> Sword"), std::string::npos);
+  EXPECT_EQ(RenderComponentText(comp).find("> Sword"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, ShowsColumnHeader) {
@@ -748,7 +806,7 @@ TEST_F(InventoryPanelTest, UseTabCursorStartsOnFirstStack) {
   ftxui::Component comp = panel.MakeComponent([]() {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> stack list
-  EXPECT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+  EXPECT_NE(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, UseTabCursorHiddenWhenPanelNotFocused) {
@@ -790,7 +848,7 @@ TEST_F(InventoryPanelTest, SwitchingTabsResetsStackCursor) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
   comp->OnEvent(ftxui::Event::ArrowLeft);   // Etc -> Use, cursor reset
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> first stack
-  EXPECT_NE(RenderComponent(comp).find("> Red Potion"), std::string::npos);
+  EXPECT_NE(RenderComponentText(comp).find("> Red Potion"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, UseTabEnterOpensMenuOnNonEmptyStack) {

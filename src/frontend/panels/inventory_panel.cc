@@ -526,26 +526,29 @@ ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
     return ftxui::text(cursor + lbl) | mark;
   }
   const InventoryRowState& row = rows_[idx];
-  if (row.level_ok && row.job_ok && !row.is_trace) {
+  // A row nothing can be done with: too low for it, the wrong class for it, or
+  // a trace, which is a record of an item rather than one. Dimmed whole, the
+  // way the skills tab dims a skill that cannot be learned -- one answer for
+  // "this row's action is shut", in both lists (colors.h).
+  bool blocked = !row.level_ok || !row.job_ok || row.is_trace;
+  if (!blocked) {
     return ftxui::text(cursor + lbl) | mark;
   }
   // Byte offsets into the label built by RenderEquipList:
   // name(26) | slot and padding(14) | level(7) | job(13) | rest
-  ftxui::Element name_elem = ftxui::text(lbl.substr(0, 26));
-  if (row.is_trace) {
-    name_elem = name_elem | ftxui::dim;
-  }
+  //
+  // The cell that says WHY stays bright and red while the rest of the row
+  // dims. Dimming it too would mute the one thing on the row worth reading.
+  ftxui::Element name_elem = ftxui::text(lbl.substr(0, 26)) | ftxui::dim;
+  ftxui::Element slot_elem = ftxui::text(lbl.substr(26, 14)) | ftxui::dim;
   ftxui::Element lv_elem = ftxui::text(lbl.substr(40, 7));
-  if (!row.level_ok) {
-    lv_elem = lv_elem | ftxui::color(kRed);
-  }
+  lv_elem = row.level_ok ? lv_elem | ftxui::dim : lv_elem | ftxui::color(kRed);
   ftxui::Element job_elem = ftxui::text(lbl.substr(47, 13));
-  if (!row.job_ok) {
-    job_elem = job_elem | ftxui::color(kRed);
-  }
-  return ftxui::hbox({ftxui::text(cursor), name_elem,
-                      ftxui::text(lbl.substr(26, 14)), lv_elem, job_elem,
-                      ftxui::text(lbl.substr(60))}) |
+  job_elem = row.job_ok ? job_elem | ftxui::dim : job_elem | ftxui::color(kRed);
+  ftxui::Element rest = ftxui::text(lbl.substr(60)) | ftxui::dim;
+  // The caret stays bright: it is the cursor, not part of the row.
+  return ftxui::hbox({ftxui::text(cursor), name_elem, slot_elem, lv_elem,
+                      job_elem, rest}) |
          mark;
 }
 
