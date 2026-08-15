@@ -113,5 +113,43 @@ TEST_F(AllStatsPanelTest, AnAddedToStatCarriesItsBreakdown) {
   EXPECT_NE(RenderElement(panel.Render()).find("(40+5) 45"), std::string::npos);
 }
 
+// Defense is the one stat written "(base+bonus) total", so it is the only one
+// that can outgrow a value column -- and when it did, it ran into the gutter
+// and a column past every other value on the screen. The gap before a value
+// gives way now, not the column.
+TEST_F(AllStatsPanelTest, ALongDefenseKeepsTheColumn) {
+  CharacterInstance c = MakeWarrior();
+  EquipPrototype armour;
+  armour.set_name("Plate");
+  armour.set_equip_slot(EQUIP_SLOT_TOP);
+  // Chosen to write "(60+940) 1000": one character past the value column.
+  armour.mutable_base_stats()->set_def(940);
+  armour.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c.PickUp(std::make_unique<EquipInstance>(armour));
+  c.Equip(0);
+
+  AllStatsPanel panel(c, {});
+  std::vector<std::string> rows = Rows(panel.Render());
+  std::string defense;
+  std::string other;
+  for (const std::string& row : rows) {
+    if (row.find("Defense") != std::string::npos) {
+      defense = row;
+    }
+    if (row.find("Critical Rate") != std::string::npos) {
+      other = row;
+    }
+  }
+  ASSERT_FALSE(defense.empty());
+  ASSERT_NE(defense.find("(60+940) 1000"), std::string::npos)
+      << "the value the case is built on changed: " << defense;
+  ASSERT_FALSE(other.empty());
+
+  // Every value ends in the same column, so the last non-blank column of a
+  // row carrying two stats is the same wherever you look.
+  EXPECT_EQ(defense.find_last_not_of(' '), other.find_last_not_of(' '))
+      << "[" << defense << "] against [" << other << "]";
+}
+
 }  // namespace
 }  // namespace ms

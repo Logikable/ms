@@ -11,19 +11,23 @@
 namespace ms {
 namespace {
 
-// Seats "Critical Damage", the longest label here.
-constexpr int kLabelWidth = 16;
-// What is left of a column once the gutter either side and the label are paid.
-constexpr int kValueWidth = AllStatsPanel::kColumnWidth - 2 - kLabelWidth;
-
 // One stat in one column. A blank line renders as blank space, which is what
 // squares off a row with an odd number of stats in it.
+//
+// The value's RIGHT edge is what is fixed, and the gap before it gives way --
+// not the label's width. Defense is the one stat written "(base+bonus) total",
+// so it is the only one that outgrows a value column, and padding the label to
+// a fixed 16 left it nothing to give: the value ran into the gutter and out
+// past every other value on the screen.
 std::string ColumnText(const StatLine& line) {
   if (line.label.empty()) {
     return std::string(AllStatsPanel::kColumnWidth, ' ');
   }
-  return " " + PadRight(line.label, kLabelWidth) +
-         PadLeft(line.value, kValueWidth) + " ";
+  int gap =
+      AllStatsPanel::kColumnWidth - 2 - static_cast<int>(line.value.size());
+  // PadRight truncates, so a value long enough to reach the label cuts into it
+  // rather than breaking the column the whole screen is built on.
+  return " " + PadRight(line.label, std::max(0, gap)) + line.value + " ";
 }
 
 }  // namespace

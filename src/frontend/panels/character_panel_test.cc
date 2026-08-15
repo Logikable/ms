@@ -431,6 +431,38 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
   EXPECT_EQ(StatValue(panel.Render(), "Defense"), "(0+30) 30");
 }
 
+// Defense is the one stat written "(base+bonus) total", so it is the only one
+// that can outgrow its value column. When it did, it ran into the gutter and
+// took the row -- and the panel -- wider than every other row.
+TEST_F(CharacterPanelTest, ALongDefenseKeepsTheRowWidth) {
+  CharacterInstance c = MakeWarrior(rng_, 0);
+  EquipPrototype armour;
+  armour.set_name("Plate");
+  armour.set_equip_slot(EQUIP_SLOT_TOP);
+  armour.mutable_base_stats()->set_def(123456);
+  armour.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c.PickUp(std::make_unique<EquipInstance>(armour));
+  c.Equip(0);
+
+  CharacterPanel panel(c, panel_focus_, {});
+  std::vector<std::string> rows = PanelRows(panel.Render());
+  std::string defense;
+  std::string other;
+  for (const std::string& row : rows) {
+    if (row.find("(0+123456) 123456") != std::string::npos) {
+      defense = row;
+    }
+    if (row.find("Critical Rate") != std::string::npos ||
+        row.find("Attack Speed") != std::string::npos) {
+      other = row;
+    }
+  }
+  ASSERT_FALSE(defense.empty()) << "the Defense row did not render as expected";
+  ASSERT_FALSE(other.empty());
+  EXPECT_EQ(defense.find_last_not_of(' '), other.find_last_not_of(' '))
+      << "[" << defense << "] against [" << other << "]";
+}
+
 TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
   Character proto;
   proto.set_level(15);
