@@ -26,10 +26,13 @@ std::string Percent(double fraction) {
   return buf;
 }
 
-// The stage the character swings at: the weapon's own plus whatever the
-// passives add, capped at the fastest tier the game models. A dash where there
-// is no swing to name -- nothing in hand, or a weapon that names no stage.
-std::string AttackSpeedText(const std::map<EquipSlot, EquipInstance>& equipped,
+// The stage the character swings at: the stage their job starts from plus
+// whatever the passives add, capped at the fastest tier the game models. A
+// dash where there is no swing to name -- nothing in hand, or a weapon that
+// names no stage. A magician reads Average whatever staff they hold, which is
+// the row saying what BaseAttackSpeedStage does.
+std::string AttackSpeedText(Job job,
+                            const std::map<EquipSlot, EquipInstance>& equipped,
                             int bonus) {
   std::map<EquipSlot, EquipInstance>::const_iterator it =
       equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
@@ -37,8 +40,9 @@ std::string AttackSpeedText(const std::map<EquipSlot, EquipInstance>& equipped,
       it->second.prototype().attack_speed() == ATTACK_SPEED_UNSPECIFIED) {
     return "-";
   }
-  int stage = std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
-                       it->second.prototype().attack_speed() + bonus);
+  int stage = std::min(
+      static_cast<int>(ATTACK_SPEED_FASTEST_3),
+      BaseAttackSpeedStage(job, it->second.prototype().attack_speed()) + bonus);
   return AttackSpeedName(static_cast<AttackSpeed>(stage));
 }
 
@@ -104,7 +108,8 @@ std::vector<StatLine> CombatStatLines(
   }
   lines.push_back(
       {"Attack Speed",
-       AttackSpeedText(character.equipped(), derived.attack_speed_bonus)});
+       AttackSpeedText(character.proto().job(), character.equipped(),
+                       derived.attack_speed_bonus)});
   // Split like the primary stats: what the character's own stats buy, then
   // everything worn, granted or multiplied on top of it.
   lines.push_back(

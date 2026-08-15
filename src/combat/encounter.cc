@@ -405,12 +405,14 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
   const EquipPrototype& weapon = weapon_it->second.prototype();
 
-  // Passives that speed the swing add stages on top of the weapon's own, up to
-  // the fastest tier we model.
+  // Passives that speed the swing add stages on top of the stage the character
+  // starts at, up to the fastest tier we model.
   DerivedStats derived = DerivedStatsFor(state.character, state.skills);
   int attack_speed =
       std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
-               weapon.attack_speed() + derived.attack_speed_bonus);
+               BaseAttackSpeedStage(state.character.proto().job(),
+                                    weapon.attack_speed()) +
+                   derived.attack_speed_bonus);
   // The pace the whole encounter runs at, and the only thing here that asks
   // the character's level directly: the game stretches out as they climb.
   double speed_factor = GameSpeedFactor(state.character.proto().level());

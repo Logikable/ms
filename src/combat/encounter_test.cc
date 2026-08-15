@@ -579,6 +579,27 @@ TEST(ComputeCombatParamsTest, AnOrdinarySwingStillAnswersToTheWeapon) {
   EXPECT_GT(at_stage[0], at_stage[1]);
 }
 
+// The magician's exception, against the test above it: GMS casts at the
+// unscaled stage whatever the staff says. The boosts still land on top --
+// AttackSpeedPassiveShortensTheSwing holds that end.
+TEST(ComputeCombatParamsTest, AMagiciansSwingIgnoresTheWeaponsStage) {
+  double at_stage[2] = {0.0, 0.0};
+  AttackSpeed speeds[2] = {ATTACK_SPEED_SLOWER, ATTACK_SPEED_FASTEST_3};
+  for (int i = 0; i < 2; ++i) {
+    GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}});
+    state.current_map = "field";
+    EquipSwordAt(state, speeds[i]);
+    state.character.AdvanceJob(JOB_MAGICIAN);
+    at_stage[i] = ComputeCombatParams(state).attacks.front().swing_seconds;
+    EXPECT_DOUBLE_EQ(
+        at_stage[i],
+        SwingIntervalSeconds(kDefaultSwingDelayMs, kUnscaledAttackSpeedStage) *
+            GameSpeedFactor(state.character.proto().level()));
+  }
+  EXPECT_DOUBLE_EQ(at_stage[0], at_stage[1]);
+}
+
 // A skill saying nothing about its animation is swung at the same pace as the
 // bare poke, rather than instantly.
 TEST(ComputeCombatParamsTest, ASwingWithNoDelayOfItsOwnTakesTheDefault) {

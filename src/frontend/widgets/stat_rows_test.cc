@@ -29,6 +29,16 @@ class StatRowsTest : public testing::Test {
     return CharacterInstance(rng_, std::move(proto));
   }
 
+  CharacterInstance MakeMagician() {
+    Character proto;
+    proto.set_level(15);
+    proto.set_job(JOB_MAGICIAN);
+    proto.set_job_stage(1);
+    proto.mutable_allocated_stats()->set_int_(40);
+    (*proto.mutable_sp_by_stage())[1] = 20;
+    return CharacterInstance(rng_, std::move(proto));
+  }
+
   // A passive granting one of every lever the extra stats report.
   Skill Levers() {
     Skill skill;
@@ -148,6 +158,26 @@ TEST_F(StatRowsTest, AttackSpeedNamesTheStageOrDashesWithNoWeapon) {
   c.PickUp(std::make_unique<EquipInstance>(sword));
   c.Equip(0);
   EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack Speed"), "Fast 2");
+}
+
+// Every staff in the game is Slow, and no magician casts at Slow: the row has
+// to say what they swing at, not what they hold.
+TEST_F(StatRowsTest, AMagiciansAttackSpeedIgnoresTheStaff) {
+  EquipPrototype staff;
+  staff.set_name("Staff");
+  staff.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  staff.set_attack_speed(ATTACK_SPEED_SLOW_1);
+
+  CharacterInstance mage = MakeMagician();
+  mage.PickUp(std::make_unique<EquipInstance>(staff));
+  mage.Equip(0);
+  EXPECT_EQ(ValueOf(ExtraStatLines(mage, {}), "Attack Speed"), "Average");
+
+  // The same staff on someone who really does swing it reads its own stage.
+  CharacterInstance warrior = MakeWarrior();
+  warrior.PickUp(std::make_unique<EquipInstance>(staff));
+  warrior.Equip(0);
+  EXPECT_EQ(ValueOf(ExtraStatLines(warrior, {}), "Attack Speed"), "Slow 1");
 }
 
 TEST_F(StatRowsTest, AttackSpeedStopsAtTheFastestStage) {

@@ -177,6 +177,17 @@ double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage);
 // this means "no scaling at all".
 inline constexpr int kUnscaledAttackSpeedStage = 4;
 
+// True when the job attacks with magic attack rather than weapon attack. The
+// damage chain treats the two alike; what differs is which field it reads,
+// and what the weapon has to say about how fast it swings.
+bool SwingsOnMagic(Job job);
+
+// The stage a character's attacks start from, before the passives that speed
+// them add on top. Usually the weapon's own, but GMS casts every spell at the
+// unscaled stage whatever the magician holds. A staff is Slow and a mage
+// casting from one is not.
+int BaseAttackSpeedStage(Job job, int weapon_stage);
+
 // What the bare poke swings at, and what a skill naming no delay of its own is
 // taken to swing at. 780ms is the commonest 1st/2nd job animation, and the one
 // both Brandish and Spear Sweep have.

@@ -283,11 +283,8 @@ OffenseStats OffenseStatsFor(Job job, int level,
   }
   // Magicians swing on magic attack; the rest of the chain treats it exactly
   // as weapon attack, so it rides the same field.
-  bool magic = job == JOB_MAGICIAN || job == JOB_ICE_LIGHTNING_WIZARD ||
-               job == JOB_FIRE_POISON_WIZARD || job == JOB_CLERIC ||
-               job == JOB_ICE_LIGHTNING_MAGE || job == JOB_FIRE_POISON_MAGE ||
-               job == JOB_PRIEST;
-  offense.attack = magic ? equipped.magic_attack() : equipped.attack();
+  offense.attack =
+      SwingsOnMagic(job) ? equipped.magic_attack() : equipped.attack();
   offense.boss_pct =
       equipped.boss_damage() / kPercentToFraction + passives.boss_pct;
   offense.mirror_pct = passives.mirror_line_pct;
@@ -388,6 +385,29 @@ int CombatPower(const OffenseStats& offense) {
   power *= 1.0 + CritFactor(offense);
   power *= 1.0 + offense.final_dmg_pct;
   return static_cast<int>(std::floor(power));
+}
+
+bool SwingsOnMagic(Job job) {
+  switch (job) {
+    case JOB_MAGICIAN:
+    case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
+    case JOB_CLERIC:
+    case JOB_ICE_LIGHTNING_MAGE:
+    case JOB_FIRE_POISON_MAGE:
+    case JOB_PRIEST:
+      return true;
+    default:
+      return false;
+  }
+}
+
+int BaseAttackSpeedStage(Job job, int weapon_stage) {
+  // GMS holds a mage's weapon out of this entirely: every cast starts at the
+  // unscaled stage, and only the boosts move it. The weapon still speaks for
+  // the bare swing there, which we fold in -- a mage learns a spell at level 1
+  // and never pokes anything again.
+  return SwingsOnMagic(job) ? kUnscaledAttackSpeedStage : weapon_stage;
 }
 
 double SwingIntervalSeconds(int base_delay_ms, int attack_speed_stage) {

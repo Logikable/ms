@@ -321,6 +321,33 @@ TEST(SwingIntervalTest, SlowestStageIsSlowerThanBase) {
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(800, 1), 0.96);
 }
 
+// GMS holds a magician's weapon out of the timing entirely: every cast starts
+// at the unscaled stage, however slow the staff in hand is.
+TEST(BaseAttackSpeedStageTest, EveryMagicianCastsAtTheUnscaledStage) {
+  const Job kMagicians[] = {
+      JOB_MAGICIAN, JOB_ICE_LIGHTNING_WIZARD, JOB_FIRE_POISON_WIZARD,
+      JOB_CLERIC,   JOB_ICE_LIGHTNING_MAGE,   JOB_FIRE_POISON_MAGE,
+      JOB_PRIEST};
+  for (Job job : kMagicians) {
+    EXPECT_EQ(BaseAttackSpeedStage(job, ATTACK_SPEED_SLOW_1),
+              kUnscaledAttackSpeedStage)
+        << Job_Name(job);
+    // Not a floor on a slow weapon -- a fast one is ignored just the same.
+    EXPECT_EQ(BaseAttackSpeedStage(job, ATTACK_SPEED_FASTEST_3),
+              kUnscaledAttackSpeedStage)
+        << Job_Name(job);
+  }
+}
+
+TEST(BaseAttackSpeedStageTest, EveryOtherJobStartsAtItsWeapon) {
+  EXPECT_EQ(BaseAttackSpeedStage(JOB_FIGHTER, ATTACK_SPEED_FAST_1),
+            ATTACK_SPEED_FAST_1);
+  EXPECT_EQ(BaseAttackSpeedStage(JOB_HERMIT, ATTACK_SPEED_FAST_2),
+            ATTACK_SPEED_FAST_2);
+  EXPECT_EQ(BaseAttackSpeedStage(JOB_SNIPER, ATTACK_SPEED_SLOWER),
+            ATTACK_SPEED_SLOWER);
+}
+
 TEST(LevelMultiplierTest, EqualLevelGivesTenPercentBonus) {
   EXPECT_DOUBLE_EQ(LevelMultiplier(10, 10), 1.1);
 }
