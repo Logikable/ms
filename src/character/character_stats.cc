@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -307,6 +308,41 @@ bool GrantsBuff(const Skill& skill) {
   return skill.buff().duration_seconds() > 0.0;
 }
 
+// Whether this character reads anything at all off `skill`: their own book,
+// the gear it demands in hand, and a level in it. Asked twice -- once to fold
+// the skill in and once to let it supersede another -- because a skill
+// granting nothing must not be replacing anything either.
+//
+// Gear lapses the effect rather than the skill: Final Attack does not fire off
+// a wand and Shield Mastery does nothing with an empty off hand, but both stay
+// learned.
+bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
+                    int bonus) {
+  // Learned levels are keyed by display name, and the warrior branches share
+  // several names -- so only the character's own book counts, or the other
+  // branch's copy would fold in beside it.
+  return character.HasAdvancement(skill.job_advancement()) &&
+         SkillGearMet(character, skill) &&
+         EffectiveSkillLevel(character, skill, bonus) > 0;
+}
+
+// The skills this character's book has replaced, by display name. Gathered
+// ahead of the fold because the skill doing the replacing may be read after
+// the one it replaces, and by then the levers are already in.
+std::set<std::string> SupersededNames(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills, int bonus) {
+  std::set<std::string> names;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (!skill.supersedes_skill_name().empty() &&
+        GrantsAnything(character, skill, bonus)) {
+      names.insert(skill.supersedes_skill_name());
+    }
+  }
+  return names;
+}
+
 // Sums every passive the character has learned. HP has to know its whole flat
 // total before any percentage lands on it, so nothing is folded here.
 PassiveTotals LearnedPassives(const CharacterInstance& character,
@@ -315,30 +351,25 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   PassiveTotals totals;
   EquipType weapon = character.weapon_type();
   int bonus = BonusSkillLevels(character, skills);
+  std::set<std::string> superseded = SupersededNames(character, skills, bonus);
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
+    // An Advanced X states the whole of the X it replaces rather than a delta,
+    // so the two must never both pay. The skill keeps its level and its page;
+    // what it loses is its levers. See Skill.supersedes_skill_name.
+    if (superseded.count(skill.name()) > 0) {
+      continue;
+    }
     // Every kind is read, not only the passives: GMS hangs permanent grants off
     // active skills too, and marks them "[Passive Effects: ...]" when it does.
     // Phoenix is the first here -- a summon that also raises DEF for good. A
     // skill with no lever contributes nothing whatever kind it is, so this
     // costs the rest of the catalog nothing.
-    //
-    // Learned levels are keyed by display name, and the warrior branches share
-    // several names -- so only the character's own book counts, or the other
-    // branch's copy would fold in beside it.
-    if (!character.HasAdvancement(skill.job_advancement())) {
+    if (!GrantsAnything(character, skill, bonus)) {
       continue;
     }
-    // A passive that demands gear grants nothing without it -- Final Attack
-    // does not fire off a wand, and Shield Mastery does nothing with an empty
-    // off hand. The skill stays learned; it is the effect that lapses.
-    if (!SkillGearMet(character, skill)) {
-      continue;
-    }
-    int level = EffectiveSkillLevel(character, skill, bonus);
-    if (level > 0) {
-      AddPassive(skill, level, weapon, totals);
-    }
+    AddPassive(skill, EffectiveSkillLevel(character, skill, bonus), weapon,
+               totals);
   }
   // A set bonus grants what a passive grants, so it folds in through the same
   // door. It carries no level and no per-level step: a tier is worth what it

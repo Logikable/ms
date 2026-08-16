@@ -633,4 +633,19 @@ message Skill {
   // Repeated, unlike boosts_skill_name above, because Greater Vessel of Light
   // strengthens two of them and grants each a different thing. See SkillBoost.
   repeated SkillBoost boost = 107;
+  // The Hero's. A skill this one takes the place of, by display name: once
+  // both are learned the named skill grants nothing at all. GMS says "boosted
+  // to" rather than "increased by" when it means this -- Advanced Combo's
+  // final damage per orb replaces Combo Synergy's, and Advanced Final Attack
+  // states the whole of the Final Attack it supersedes rather than a delta.
+  //
+  // Only for a skill whose whole grant is the one being replaced. Where two
+  // skills merely overlap, the lever settles it on its own: two masteries are
+  // already the better of the two, so a 4th job mastery skill outbids Weapon
+  // Mastery without superseding it -- and must not, since Weapon Mastery pays
+  // attack speed and critical rate beside it.
+  //
+  // The superseded skill stays learned and keeps its page. What it stops doing
+  // is paying.
+  string supersedes_skill_name = 109;
 }

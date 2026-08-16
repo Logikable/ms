@@ -59,6 +59,27 @@ std::set<JobAdvancement> BooksFor(Job job) {
   return books;
 }
 
+// Whether some one job holds both `skill`'s book and the book of a skill
+// called `name`. Every reference one skill makes to another is by display
+// name, and a name no character can reach from where the reference is written
+// is a grant nothing will ever read.
+bool SameCharacterCanHold(const std::map<std::string, Skill>& skills,
+                          const Skill& skill, const std::string& name) {
+  for (Job job : EveryValueOf<Job>(Job_descriptor())) {
+    std::set<JobAdvancement> books = BooksFor(job);
+    if (books.count(skill.job_advancement()) == 0) {
+      continue;
+    }
+    for (const std::pair<const std::string, Skill>& other : skills) {
+      if (other.second.name() == name &&
+          books.count(other.second.job_advancement()) > 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // Whether the character swings this skill: an attack, or a cast they spend a
 // swing on. A skill that only puts a buff up is cast on its own clock and
 // takes no swing, so nothing ever asks how long its animation is.
@@ -572,23 +593,9 @@ TEST(SkillDataTest, EveryBoostNamesASkillTheSameCharacterCanHold) {
     if (!named) {
       continue;
     }
-    // Some job holding this skill's book must also hold the named skill's.
-    bool reachable = false;
-    for (Job job : EveryValueOf<Job>(Job_descriptor())) {
-      std::set<JobAdvancement> books = BooksFor(job);
-      if (books.count(skill.job_advancement()) == 0) {
-        continue;
-      }
-      for (const std::pair<const std::string, Skill>& other : skills) {
-        if (other.second.name() == skill.boosts_skill_name() &&
-            books.count(other.second.job_advancement()) > 0) {
-          reachable = true;
-        }
-      }
-    }
-    EXPECT_TRUE(reachable) << entry.first << " boosts \""
-                           << skill.boosts_skill_name()
-                           << "\", which no character holding it can learn";
+    EXPECT_TRUE(SameCharacterCanHold(skills, skill, skill.boosts_skill_name()))
+        << entry.first << " boosts \"" << skill.boosts_skill_name()
+        << "\", which no character holding it can learn";
   }
 }
 
@@ -606,20 +613,8 @@ TEST(SkillDataTest, EverySkillBoostNamesASkillTheSameCharacterCanHold) {
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
       ++checked;
-      bool reachable = false;
-      for (Job job : EveryValueOf<Job>(Job_descriptor())) {
-        std::set<JobAdvancement> books = BooksFor(job);
-        if (books.count(entry.second.job_advancement()) == 0) {
-          continue;
-        }
-        for (const std::pair<const std::string, Skill>& other : skills) {
-          if (other.second.name() == boost.skill_name() &&
-              books.count(other.second.job_advancement()) > 0) {
-            reachable = true;
-          }
-        }
-      }
-      EXPECT_TRUE(reachable)
+      EXPECT_TRUE(
+          SameCharacterCanHold(skills, entry.second, boost.skill_name()))
           << entry.first << " grants strikes to \"" << boost.skill_name()
           << "\", which no character holding it can learn";
     }

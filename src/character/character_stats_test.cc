@@ -658,6 +658,73 @@ TEST_F(DerivedStatsTest, OnlyFinalAttacksFollowingTheSameSwingsMerge) {
   EXPECT_EQ(stats.final_attacks[1].required_tag, SKILL_TAG_FIRE);
 }
 
+// Advanced Final Attack's shape: it states the WHOLE of the Final Attack it
+// replaces rather than a delta, so the pair must never both pay.
+Skill AdvancedFinalAttack() {
+  Skill skill;
+  skill.set_name("Advanced Final Attack");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(30);
+  skill.set_supersedes_skill_name("Final Attack");
+  skill.mutable_base()->set_final_attack_chance(0.60);
+  skill.mutable_base()->set_final_attack_pct(5.10);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, AnAdvancedSkillStopsTheOneItSupersedes) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 50);
+  Skill final_attack = FinalAttack();
+  Skill advanced = AdvancedFinalAttack();
+  std::map<std::string, Skill> skills = {{"final_attack", final_attack},
+                                         {"advanced", advanced}};
+  ASSERT_TRUE(c.LearnSkill(final_attack, 20));
+  ASSERT_TRUE(c.LearnSkill(advanced, 1));
+
+  // 3.06, not 3.70: the Fighter's 0.64 is gone rather than added to.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.final_attacks.size(), 1u);
+  EXPECT_NEAR(stats.final_attacks[0].pct, 3.06, 1e-9);
+}
+
+// Three ways a supersede does not take, each the same rule: a skill granting
+// nothing replaces nothing. Unlearned, another branch's book, or the gear it
+// demands missing -- and the skill it names goes on paying.
+TEST_F(DerivedStatsTest, ASkillGrantingNothingSupersedesNothing) {
+  Skill final_attack = FinalAttack();
+  Skill advanced = AdvancedFinalAttack();
+  advanced.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_SWORD);
+
+  for (int which = 0; which < 3; ++which) {
+    CharacterInstance c = MakeCharacter(rng_, 100, 50);
+    EquipWeapon(c,
+                which == 2 ? EQUIP_TYPE_POLEARM : EQUIP_TYPE_TWO_HANDED_SWORD);
+    ASSERT_TRUE(c.LearnSkill(final_attack, 20));
+    if (which != 0) {
+      ASSERT_TRUE(c.LearnSkill(advanced, 1));
+    }
+    // Learned under this character's own book, then handed to the catalog as
+    // another branch's -- the only way to hold a level in a book you do not
+    // have, and what a shared display name really does.
+    Skill theirs = advanced;
+    if (which == 1) {
+      theirs.set_job_advancement(JOB_ADVANCEMENT_FIGHTER);
+    }
+    std::map<std::string, Skill> skills = {{"final_attack", final_attack},
+                                           {"advanced", theirs}};
+
+    // Summed rather than read off one source, so a failing case reports rather
+    // than aborting the two behind it -- and so 3.70 (both paid) and 3.06 (the
+    // wrong one paid) are told apart from the 0.64 that is right.
+    double total = 0.0;
+    for (const FinalAttackSource& source :
+         DerivedStatsFor(c, skills).final_attacks) {
+      total += source.pct;
+    }
+    EXPECT_NEAR(total, 0.64, 1e-9) << "case " << which;
+  }
+}
+
 TEST_F(DerivedStatsTest, SkillStatsJoinWornStatsInTheTotal) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   EquipArmor(c, /*max_hp=*/0, /*def=*/7);
