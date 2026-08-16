@@ -16,6 +16,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -111,6 +112,11 @@ std::string FormatWeaponList(const std::vector<EquipType>& types);
 // Returns the display name for a set of equipment (e.g. "Frozen Set"), or ""
 // for an unnamed one.
 std::string FormatEquipSet(EquipSetName set);
+
+// The colour a currency's mark is drawn in. The mark's shape says which tier of
+// gear its token belongs to and this says which piece it buys, so the two read
+// together without a legend.
+ftxui::Color MarkColor(CurrencyColor color);
 
 // The tag a skill row opens with: what the player does with the skill, said
 // once at the front of the row instead of being worked out from the name.

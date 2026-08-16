@@ -43,6 +43,11 @@ inline const ftxui::Color kPurple = ftxui::Color::RGB(173, 163, 255);
 // A skill list's attack tag.
 inline const ftxui::Color kOrange = ftxui::Color::RGB(255, 198, 50);
 
+// The marks a shop price is asked in. Ice blue buys a weapon and amber an
+// off-hand, whichever tier of gear the mark's own shape belongs to.
+inline const ftxui::Color kIceBlue = ftxui::Color::RGB(120, 195, 235);
+inline const ftxui::Color kAmber = ftxui::Color::RGB(240, 180, 80);
+
 // Star Force outcome rates.
 inline const ftxui::Color kGreen = ftxui::Color::RGB(100, 175, 100);
 inline const ftxui::Color kMutedYellow = ftxui::Color::RGB(185, 155, 70);

@@ -35,6 +35,7 @@ cc_library(
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",
+        "//src/protos:item_proto_cc",
         "//src/protos:skill_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",

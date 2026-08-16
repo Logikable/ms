@@ -167,9 +167,12 @@ class TuiControllerTest : public testing::Test {
   }
 
   // Opens the shop on the Buy-Back shelf with the cursor on its first row.
-  // Up puts the cursor on the bar; Down brings it back into the list.
+  // Up twice puts the cursor on the tab bar, past the pay row under it; Down
+  // brings it back into the list, which the Buy-Back shelf has no pay row to
+  // stop at on the way.
   void OpenBuyBackShelf() {
     OpenShop();
+    controller_->OnEvent(ftxui::Event::ArrowUp);
     controller_->OnEvent(ftxui::Event::ArrowUp);
     for (int i = 0; i < kShopBuyBackTab; ++i) {
       controller_->OnEvent(ftxui::Event::ArrowRight);

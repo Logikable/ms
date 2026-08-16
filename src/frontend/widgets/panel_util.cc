@@ -16,6 +16,7 @@
 #include "ftxui/screen/string.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
@@ -300,6 +301,17 @@ std::vector<const Skill*> SkillsForAdvancement(
     EmitAfterRequirement(*skill, by_name, emitted, ordered);
   }
   return ordered;
+}
+
+ftxui::Color MarkColor(CurrencyColor color) {
+  switch (color) {
+    case CURRENCY_COLOR_ICE_BLUE:
+      return kIceBlue;
+    case CURRENCY_COLOR_AMBER:
+      return kAmber;
+    default:
+      return kTheme;
+  }
 }
 
 KindTag TagFor(const Skill& skill) {

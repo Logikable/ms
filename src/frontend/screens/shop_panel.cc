@@ -29,10 +29,11 @@ constexpr int kTypeWidth = 16;
 constexpr int kLevelWidth = 7;
 constexpr int kCostWidth = 12;
 
-// Screen columns the coin and its space draw in. It is four bytes long, which
-// is what PadLeft would count, so the cost cell is aligned by hand instead --
-// see CoinCell.
-constexpr int kCoinWidth = 3;
+// Screen columns the meso coin takes. It is four bytes long, which is what
+// PadLeft would count, so a cost cell is aligned by hand instead -- see
+// CostCell. A token's mark is one column, not two.
+constexpr int kCoinWidth = 2;
+constexpr int kTokenMarkWidth = 1;
 
 // Stock rows on screen at once. Deep enough to hold most of a warrior's list --
 // the longest any class has -- and short enough that the window still clears
@@ -50,19 +51,51 @@ constexpr int kNameClockTabStride = 4096;
 constexpr int kContentWidth =
     2 + kNameWidth + 2 + kTypeWidth + 2 + kLevelWidth + kCostWidth + 1 + 1;
 
-// A "🪙 <text>" cell, right-aligned in kCostWidth screen columns. Aligned in
-// columns rather than in bytes, so the cell is the same width whatever the
-// number in it.
+// A "<mark> <text>" cell, right-aligned in kCostWidth screen columns. Aligned
+// in columns rather than in bytes -- a coin is two columns and four bytes, a
+// token's mark one column and three -- so the cell is the same width whatever
+// the number in it.
+std::string MarkedCell(const std::string& mark, int mark_width,
+                       const std::string& text) {
+  int columns = mark_width + 1 + static_cast<int>(text.size());
+  return std::string(std::max(0, kCostWidth - columns), ' ') + mark + " " +
+         text;
+}
+
 std::string CoinCell(const std::string& text) {
-  int columns = kCoinWidth + static_cast<int>(text.size());
-  return std::string(std::max(0, kCostWidth - columns), ' ') + "🪙 " + text;
+  return MarkedCell("🪙", kCoinWidth, text);
+}
+
+// The cost cell of one row. The mark keeps its own colour whatever the price
+// does: red is the reason a row is out of reach, and the currency is not a
+// reason (colors.h).
+ftxui::Element CostCell(const ItemPrototype* token, const std::string& text,
+                        bool affordable) {
+  if (token == nullptr) {
+    ftxui::Element cell = ftxui::text(CoinCell(text));
+    return affordable ? cell : std::move(cell) | ftxui::color(kRed);
+  }
+  ftxui::Element amount = ftxui::text(" " + text);
+  if (!affordable) {
+    amount = std::move(amount) | ftxui::color(kRed);
+  }
+  int columns = kTokenMarkWidth + 1 + static_cast<int>(text.size());
+  return ftxui::hbox({
+      ftxui::text(std::string(std::max(0, kCostWidth - columns), ' ')),
+      ftxui::text(token->currency_mark()) |
+          ftxui::color(MarkColor(token->currency_color())),
+      std::move(amount),
+  });
 }
 
 // Two leading spaces match the "  " / "> " cursor on the rows below.
-ftxui::Element ColumnHeader() {
+ftxui::Element ColumnHeader(const ItemPrototype* token) {
+  std::string cost = token == nullptr ? CoinCell("Cost")
+                                      : MarkedCell(token->currency_mark(),
+                                                   kTokenMarkWidth, "Cost");
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
                      PadRight("Type", kTypeWidth) + "  " +
-                     PadRight("Level", kLevelWidth) + CoinCell("Cost"));
+                     PadRight("Level", kLevelWidth) + cost);
 }
 
 // The Etc shelf has no type and no level to show, so the two columns between
@@ -129,9 +162,10 @@ void ShopPanel::Restock() {
     stock_ = ShopEtcStock(items_);
     return;
   }
-  std::vector<std::string> shelf =
-      tab_ == kShopSecondariesTab ? ShopSecondaryStock(equips_, kPaidInMeso)
-                                  : ShopWeaponStock(equips_, kPaidInMeso);
+  Payment payment = pay_ == kShopTokenTab ? kPaidInTokens : kPaidInMeso;
+  std::vector<std::string> shelf = tab_ == kShopSecondaryTab
+                                       ? ShopSecondaryStock(equips_, payment)
+                                       : ShopWeaponStock(equips_, payment);
   for (const std::string& key : shelf) {
     if (character_.MeetsJob(equips_.at(key))) {
       stock_.push_back(key);
@@ -140,7 +174,8 @@ void ShopPanel::Restock() {
 }
 
 void ShopPanel::Reset() {
-  tab_ = kShopWeaponsTab;
+  tab_ = kShopWeaponTab;
+  pay_ = kShopMesoTab;
   Restock();
   zone_ = kZoneList;
   selected_ = 0;
@@ -159,21 +194,45 @@ void ShopPanel::StepTab(int direction) {
   first_visible_ = 0;
 }
 
-int ShopPanel::CursorStop() const {
-  return zone_ == kZoneTabs ? 0 : selected_ + 1;
+void ShopPanel::StepPayTab(int direction) {
+  int next = pay_ + direction;
+  if (next < 0 || next >= kNumShopPayTabs) {
+    return;
+  }
+  pay_ = next;
+  Restock();
+  selected_ = 0;
+  first_visible_ = 0;
+}
+
+bool ShopPanel::HasPayRow() const {
+  return tab_ == kShopWeaponTab || tab_ == kShopSecondaryTab;
 }
 
 void ShopPanel::MoveCursor(int delta) {
-  int next = StepCursor(CursorStop(), delta, 1 + RowCount());
-  if (next == 0) {
+  int bars = HasPayRow() ? 2 : 1;
+  int next = StepCursor(CursorStop(), delta, bars + RowCount());
+  if (next < bars) {
     // The window stays where it is: the cursor has left the list rather than
     // moved within it, and it comes back to the row it left.
-    zone_ = kZoneTabs;
+    zone_ = next == 0 ? kZoneTabs : kZonePay;
     return;
   }
   zone_ = kZoneList;
-  selected_ = next - 1;
+  selected_ = next - bars;
   ScrollToCursor();
+}
+
+// The stops above the list: the tab bar always, and the pay bar under the two
+// tabs that have one.
+int ShopPanel::CursorStop() const {
+  if (zone_ == kZoneTabs) {
+    return 0;
+  }
+  if (zone_ == kZonePay) {
+    return 1;
+  }
+  return selected_ + (HasPayRow() ? 2 : 1);
 }
 
 void ShopPanel::ScrollToCursor() {
@@ -185,8 +244,8 @@ void ShopPanel::ScrollToCursor() {
 }
 
 void ShopPanel::OpenMenu() {
-  if (zone_ == kZoneTabs) {
-    // Nothing to open a menu on: the cursor is on the bar, not on an item.
+  if (zone_ != kZoneList) {
+    // Nothing to open a menu on: the cursor is on a bar, not on an item.
     return;
   }
   if (selected_item() == nullptr && selected_stackable() == nullptr &&
@@ -238,6 +297,20 @@ const BuyBackEntry* ShopPanel::selected_buy_back() const {
   return &character_.buy_backs().Get(selected_);
 }
 
+const ItemPrototype* ShopPanel::RowToken(const EquipPrototype& proto) const {
+  if (proto.token_item().empty()) {
+    return nullptr;
+  }
+  std::map<std::string, ItemPrototype>::const_iterator it =
+      items_.find(proto.token_item());
+  return it == items_.end() ? nullptr : &it->second;
+}
+
+const ItemPrototype* ShopPanel::selected_token() const {
+  const EquipPrototype* item = selected_item();
+  return item == nullptr ? nullptr : RowToken(*item);
+}
+
 const EquipPrototype* ShopPanel::selected_item() const {
   if (tab_ == kShopEtcTab || tab_ == kShopBuyBackTab || selected_ < 0 ||
       selected_ >= static_cast<int>(stock_.size())) {
@@ -259,15 +332,40 @@ bool ShopPanel::OnEvent(ftxui::Event event) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
   }
-  // Left and Right belong to the bar, and only while the cursor is standing on
-  // it -- in the list they would be a keypress that quietly changed the list
-  // under the cursor.
-  if (zone_ == kZoneTabs &&
-      (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight)) {
-    StepTab(event == ftxui::Event::ArrowLeft ? -1 : 1);
-    return true;
+  // Left and Right belong to whichever bar the cursor is standing on, and only
+  // while it is standing on one -- in the list they would be a keypress that
+  // quietly changed the list under the cursor.
+  if (event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight) {
+    int direction = event == ftxui::Event::ArrowLeft ? -1 : 1;
+    if (zone_ == kZoneTabs) {
+      StepTab(direction);
+      return true;
+    }
+    if (zone_ == kZonePay) {
+      StepPayTab(direction);
+      return true;
+    }
   }
   return false;
+}
+
+const ItemPrototype* ShopPanel::TabToken() const {
+  if (!HasPayRow() || pay_ != kShopTokenTab) {
+    return nullptr;
+  }
+  // The unfiltered shelf, so the tab still knows what it deals in while the
+  // class filter has left the player nothing to look at.
+  std::vector<std::string> shelf =
+      tab_ == kShopSecondaryTab ? ShopSecondaryStock(equips_, kPaidInTokens)
+                                : ShopWeaponStock(equips_, kPaidInTokens);
+  for (const std::string& key : shelf) {
+    std::map<std::string, ItemPrototype>::const_iterator it =
+        items_.find(equips_.at(key).token_item());
+    if (it != items_.end()) {
+      return &it->second;
+    }
+  }
+  return nullptr;
 }
 
 ftxui::Element ShopPanel::RenderTabBar() const {
@@ -275,18 +373,39 @@ ftxui::Element ShopPanel::RenderTabBar() const {
   // which is how the player tells the arrow keys are on the bar.
   bool focused = zone_ == kZoneTabs;
   const std::vector<TabSpec> kTabs = {
-      {"Weapons"}, {"Secondaries"}, {"Etc"}, {"Buy-Back"}};
+      {"Weapon"}, {"Secondary"}, {"Etc"}, {"Buy-Back"}};
   std::vector<ftxui::Element> chips;
   // No width limit: four fixed labels, and the shop's rows are far wider.
   chips.push_back(TabBar(kTabs, tab_, focused, /*width=*/0));
-  // The meso sits in what the chips leave rather than over the whole row: a
+  // The counter sits in what the chips leave rather than over the whole row: a
   // third chip took the bar out to where a centred counter was drawn on top of
   // it, and a fourth would reach further still.
+  const ItemPrototype* token = TabToken();
+  ftxui::Element counter =
+      token == nullptr
+          ? ftxui::text(FormatMeso(character_.meso())) | ftxui::color(kTheme)
+          : ftxui::hbox({
+                ftxui::text(token->currency_mark()) |
+                    ftxui::color(MarkColor(token->currency_color())),
+                ftxui::text(
+                    " " + FormatWithCommas(character_.CountStackable(*token))) |
+                    ftxui::color(kTheme),
+            });
   chips.push_back(ftxui::filler());
-  chips.push_back(ftxui::text(FormatMeso(character_.meso())) |
-                  ftxui::color(kTheme));
+  chips.push_back(std::move(counter));
   chips.push_back(ftxui::filler());
   return ftxui::hbox(std::move(chips));
+}
+
+// Blank under a tab with nothing to choose, so the window is one height
+// whichever tab is open -- it is drawn centred, and a row that came and went
+// would move the whole shop up the screen.
+ftxui::Element ShopPanel::RenderPayBar() const {
+  if (!HasPayRow()) {
+    return ftxui::text("");
+  }
+  const std::vector<TabSpec> kTabs = {{"Meso"}, {"Token"}};
+  return TabBar(kTabs, pay_, zone_ == kZonePay, /*width=*/0);
 }
 
 // The price is red when the player cannot pay it, so the list answers "what can
@@ -318,11 +437,13 @@ ftxui::Element ShopPanel::RenderEquipRow(
   if (!character_.MeetsLevel(proto)) {
     level = std::move(level) | ftxui::color(kRed);
   }
-  ftxui::Element cost =
-      ftxui::text(CoinCell(FormatWithCommas(proto.shop_price())));
-  if (proto.shop_price() > character_.meso()) {
-    cost = std::move(cost) | ftxui::color(kRed);
-  }
+  // Each row asks in its own currency: the shelf it came off says which, and
+  // the item says how many.
+  const ItemPrototype* token = RowToken(proto);
+  int64_t price = token == nullptr ? proto.shop_price() : proto.token_price();
+  int64_t held =
+      token == nullptr ? character_.meso() : character_.CountStackable(*token);
+  ftxui::Element cost = CostCell(token, FormatWithCommas(price), price <= held);
   return ftxui::hbox({
       ftxui::text(
           cursor + ScrollingWindow(proto.name(), kNameWidth, elapsed) + "  " +
@@ -405,13 +526,14 @@ ftxui::Element ShopPanel::RenderStock() const {
 ftxui::Element ShopPanel::Render() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(RenderTabBar());
+  rows.push_back(RenderPayBar());
   rows.push_back(ThemedSeparator());
   if (tab_ == kShopBuyBackTab) {
     rows.push_back(BuyBackColumnHeader());
   } else if (tab_ == kShopEtcTab) {
     rows.push_back(EtcColumnHeader());
   } else {
-    rows.push_back(ColumnHeader());
+    rows.push_back(ColumnHeader(TabToken()));
   }
   rows.push_back(ThemedSeparator());
   rows.push_back(RenderStock());
@@ -441,10 +563,10 @@ ftxui::Element ShopPanel::Render() const {
 }
 
 int ShopPanel::MenuRow() const {
-  // +5 rows: the window's top border, the tab row, its separator, the column
-  // header, its separator. Measured from the top of the window, so it is the
-  // cursor's place within the scrolled view and not its place in the stock.
-  constexpr int kFirstItemRow = 5;
+  // +6 rows: the window's top border, the two tab rows, their separator, the
+  // column header, its separator. Measured from the top of the window, so it is
+  // the cursor's place within the scrolled view and not its place in the stock.
+  constexpr int kFirstItemRow = 6;
   return kFirstItemRow + selected_ - first_visible_;
 }
 
