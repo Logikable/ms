@@ -25,6 +25,7 @@
  *   bazelisk run //analysis:level_sim -- --detail
  */
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -71,14 +72,14 @@ ABSL_FLAG(double, give_up_hours, 2000.0,
           "Playtime after which a branch is written off as stuck.");
 ABSL_FLAG(bool, detail, false,
           "Also print the map and the weapon each level was spent on.");
+// Fixes the random stream every run of this sim draws from. Rewards are
+// rolled, so an unseeded run would print a table that moved a little each
+// time and hide a real change under the noise. Move it to see how much of a
+// number is the seed and how much is the game.
+ABSL_FLAG(int, seed, 20260813, "The random stream every climb draws from.");
 
 namespace ms {
 namespace {
-
-// Fixes the random stream every run of this sim draws from. Rewards are
-// rolled, so an unseeded run would print a table that moved a little each
-// time and hide a real change under the noise.
-constexpr unsigned int kSimSeed = 20260813;
 
 // The levels the table reports a running total at.
 constexpr int kMilestones[] = {10, 20, 30,  40,  50,  60,  70,
@@ -296,6 +297,9 @@ const char* const kFrozenPieces[] = {"Frozen Top", "Frozen Bottom",
 constexpr int kNumFrozenPieces = 4;
 const char* const kFrozenTokens[] = {"Frozen Weapon Token",
                                      "Frozen Secondary Token"};
+// The same two by catalog key, which is how a mob's drop list names them.
+const char* const kFrozenTokenKeys[] = {"frozen_weapon_token",
+                                        "frozen_secondary_token"};
 constexpr int kNumFrozenTokens = 2;
 
 // What one branch's climb came to.
@@ -309,8 +313,34 @@ struct Climb {
   // The same for the two tokens, which is the only reading there is on
   // whether a climb ever gets to hold the tier they buy.
   int token_level[kNumFrozenTokens] = {0, 0};
+  // Kills off mobs that carry each token, and the log of the chance every one
+  // of them came up empty. One climb either drops a token or does not, which
+  // says almost nothing at 1/10,000; the kills behind it say how likely that
+  // was, which is the number worth reading.
+  int64_t token_kills[kNumFrozenTokens] = {0, 0};
+  double token_log_miss[kNumFrozenTokens] = {0.0, 0.0};
   std::vector<Stint> stints;
 };
+
+// Counts this step's kills against the tokens they were a chance at.
+void NoteTokenChances(const CombatParams& params, const CombatSim& sim,
+                      Climb& climb) {
+  const std::vector<int64_t>& kills = sim.kills_this_step();
+  for (std::size_t i = 0; i < params.types.size(); ++i) {
+    if (kills[i] <= 0) {
+      continue;
+    }
+    for (const MobDrop& drop : params.types[i].mob->drops()) {
+      for (int token = 0; token < kNumFrozenTokens; ++token) {
+        if (drop.item() != kFrozenTokenKeys[token] || drop.per_kill() <= 0.0) {
+          continue;
+        }
+        climb.token_kills[token] += kills[i];
+        climb.token_log_miss[token] += kills[i] * std::log1p(-drop.per_kill());
+      }
+    }
+  }
+}
 
 // Notes any Frozen piece or token picked up since the last look. Called before
 // the level's shopping, so a token counted here is one the shelf has not
@@ -344,7 +374,8 @@ Climb Play(const Catalogs& catalogs, Job branch,
 
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, kSimSeed);
+                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED,
+                  static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)));
   std::vector<Job> path = PathTo(branch);
   int taken = 0;
 
@@ -366,6 +397,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   CombatParams params = ComputeCombatParams(state);
   while (level < kTrialLevelCap && seconds < give_up) {
     AdvanceCombat(state, sim, params, step);
+    NoteTokenChances(params, sim, climb);
     seconds += step;
     if (sim.died_this_step()) {
       // Dying sends them home, where there is nothing to fight.
@@ -431,6 +463,34 @@ void PrintDetail(const Catalogs& catalogs, const Climb& climb) {
                 stint.weapon.c_str());
   }
   std::printf("\n");
+}
+
+// What the kills say about the tokens, which is a steadier reading than
+// whether this one seed dropped them: the band is where a token can fall at
+// all, so a climb that hurries through it buys fewer chances at one.
+void PrintTokenOdds(const Job* branches, const std::vector<Climb>& climbs,
+                    int count) {
+  std::printf(
+      "\nThe chance a climb makes those kills and comes away with nothing, "
+      "since one seed\ndropping a token says little at 1/10,000. Kills are "
+      "off the mobs that carry one.\n\n");
+  std::printf("%-13s  %11s", "branch", "band kills");
+  for (const char* token : kFrozenTokens) {
+    std::printf("  %16s", (std::string("no ") + token).c_str());
+  }
+  std::printf("\n%s\n", std::string(26 + 18 * kNumFrozenTokens, '-').c_str());
+  for (int i = 0; i < count; ++i) {
+    if (PathTo(branches[i]).size() < 3) {
+      continue;
+    }
+    std::printf("%-13s  %11lld", BranchName(branches[i]).c_str(),
+                static_cast<long long>(climbs[i].token_kills[0]));
+    for (int token = 0; token < kNumFrozenTokens; ++token) {
+      std::printf("  %15.1f%%",
+                  100.0 * std::exp(climbs[i].token_log_miss[token]));
+    }
+    std::printf("\n");
+  }
 }
 
 void Run() {
@@ -526,6 +586,7 @@ void Run() {
     }
     std::printf("\n");
   }
+  PrintTokenOdds(kBranches, climbs, count);
 }
 
 }  // namespace
