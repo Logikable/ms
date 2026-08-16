@@ -69,13 +69,26 @@ class TuiControllerTest : public testing::Test {
     machete.set_required_level(20);
     machete.set_shop_price(10000);
     equips["machete"] = machete;
+    // The token shelf's own stock, and the token that buys it.
+    EquipPrototype frozen;
+    frozen.set_name("Frozen Sword");
+    frozen.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    frozen.set_required_level(120);
+    frozen.set_token_item("weapon_token");
+    frozen.set_token_price(1);
+    equips["frozen_sword"] = frozen;
+    token_.set_name("Weapon Token");
+    token_.set_category(ITEM_CATEGORY_ETC);
+    token_.set_currency_mark("●");
+    token_.set_currency_color(CURRENCY_COLOR_ICE_BLUE);
+    std::map<std::string, ItemPrototype> items;
+    items["weapon_token"] = token_;
     std::map<std::string, Scroll> scrolls;
     scrolls["Test Scroll"] = scroll;
 
-    state_ = std::make_unique<GameState>(std::move(equips), std::move(scrolls),
-                                         std::map<std::string, ItemPrototype>{},
-                                         std::map<std::string, Mob>{},
-                                         std::map<std::string, MapData>{});
+    state_ = std::make_unique<GameState>(
+        std::move(equips), std::move(scrolls), std::move(items),
+        std::map<std::string, Mob>{}, std::map<std::string, MapData>{});
 
     state_->character.AdvanceJob(JOB_SWORDMAN);
     // The starting character stands at its advancement with no SP yet; these
@@ -195,6 +208,17 @@ class TuiControllerTest : public testing::Test {
     controller_->OnEvent(ftxui::Event::Return);     // -> kShopMenu, on Inspect
     controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Buy
     controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy
+  }
+
+  // As above, on the Token half of the weapon shelf.
+  void OpenTokenBuyDialog() {
+    OpenShop();
+    controller_->OnEvent(ftxui::Event::ArrowUp);     // list -> the pay row
+    controller_->OnEvent(ftxui::Event::ArrowRight);  // Meso -> Token
+    controller_->OnEvent(ftxui::Event::ArrowDown);   // -> the first item
+    controller_->OnEvent(ftxui::Event::Return);      // -> kShopMenu
+    controller_->OnEvent(ftxui::Event::ArrowDown);   // -> Buy
+    controller_->OnEvent(ftxui::Event::Return);      // -> kShopBuy
   }
 
   // The buy dialog's text, read off the screen cell by cell rather than from
@@ -341,6 +365,7 @@ class TuiControllerTest : public testing::Test {
   }
 
   EquipPrototype sword_;
+  ItemPrototype token_;
   std::unique_ptr<GameState> state_;
   std::unique_ptr<CharacterPanel> char_panel_;
   std::unique_ptr<EquippedPanel> equip_panel_;
@@ -1578,6 +1603,53 @@ TEST_F(TuiControllerTest, TheBuyDialogCountsWhatIsOwned) {
   controller_->OnEvent(ftxui::Event::ArrowDown);  // -> Buy
   controller_->OnEvent(ftxui::Event::Return);     // -> kShopBuy again
   EXPECT_NE(RenderBuyDialog().find("Owned: 1"), std::string::npos);
+}
+
+// The token shelf charges in tokens and leaves the meso alone -- the same
+// dialog, counting a different balance.
+TEST_F(TuiControllerTest, BuyingWithATokenSpendsTheTokenAndNotTheMeso) {
+  state_->character.AddMeso(25000);
+  state_->character.AddStackable(token_, 2);
+  OpenTokenBuyDialog();
+  std::string dialog = RenderBuyDialog();
+  ASSERT_NE(dialog.find("Frozen Sword"), std::string::npos);
+  EXPECT_NE(dialog.find("● 1"), std::string::npos) << "priced in its mark";
+
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(state_->character.meso(), 25000);
+  EXPECT_EQ(state_->character.CountStackable(token_), 1);
+  ASSERT_EQ(state_->character.inventory().size(), 1);
+  EXPECT_EQ(state_->character.inventory()[0].name(), "Frozen Sword");
+}
+
+// The tokens held are a ceiling on the field, as the meso is: a number past
+// them cannot be typed, so the shop is never offered an order it would refuse.
+TEST_F(TuiControllerTest, TheTokenDialogCapsTheOrderAtTheTokensHeld) {
+  state_->character.AddStackable(token_, 1);
+  OpenTokenBuyDialog();
+  controller_->OnEvent(ftxui::Event::Backspace);
+  controller_->OnEvent(ftxui::Event::Character('2'));
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(state_->character.CountStackable(token_), 0);
+  EXPECT_EQ(state_->character.inventory().size(), 1)
+      << "one, not the two typed";
+}
+
+// Meso is no help on this shelf: with no token the dialog opens on a quantity
+// of zero and Confirm does nothing.
+TEST_F(TuiControllerTest, TheTokenDialogIsInertWithoutAToken) {
+  state_->character.AddMeso(25000);
+  OpenTokenBuyDialog();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(state_->character.meso(), 25000);
+  EXPECT_EQ(state_->character.inventory().size(), 0);
+  EXPECT_EQ(controller_->screen(), kShopBuy) << "Confirm should be inert";
 }
 
 TEST_F(TuiControllerTest, BuyingTheTypedQuantity) {

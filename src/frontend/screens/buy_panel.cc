@@ -12,12 +12,14 @@
 
 namespace ms {
 
-void BuyPanel::Reset(const std::string& item_name, int unit_price, int64_t meso,
-                     int room, int owned) {
+void BuyPanel::Reset(const std::string& item_name, int unit_price,
+                     int64_t balance, int room, int owned,
+                     const ItemPrototype* token) {
   item_name_ = item_name;
   unit_price_ = unit_price;
-  meso_ = meso;
+  balance_ = balance;
   owned_ = owned;
+  token_ = token;
   // Capped so the field cannot be typed up to an amount the shop would only
   // refuse: at what the balance covers, at what the bag has left, and at the
   // four digits the field is meant to take. A player who cannot afford one, or
@@ -28,7 +30,7 @@ void BuyPanel::Reset(const std::string& item_name, int unit_price, int64_t meso,
   // shop does not sell, went for nothing and comes back for nothing.
   int64_t affordable = kMaxQuantity;
   if (unit_price > 0) {
-    affordable = meso / unit_price;
+    affordable = balance / unit_price;
   }
   int64_t max = std::min({affordable, static_cast<int64_t>(std::max(0, room)),
                           static_cast<int64_t>(kMaxQuantity)});
@@ -43,14 +45,33 @@ int64_t BuyPanel::total() const {
 bool BuyPanel::Affordable() const {
   // A quantity of zero is not a purchase, so Confirm has nothing to honour --
   // the same reason it goes down when the total runs past the balance.
-  return total() <= meso_ && selector_.value() > 0;
+  return total() <= balance_ && selector_.value() > 0;
+}
+
+// The mark keeps its own colour whatever the number does: red is the reason
+// the player cannot pay, and a currency is not a reason (colors.h).
+ftxui::Element BuyPanel::Amount(int64_t value, bool red) const {
+  if (token_ == nullptr) {
+    ftxui::Element meso = ftxui::text(FormatMeso(value));
+    return red ? std::move(meso) | ftxui::color(kRed) : meso;
+  }
+  ftxui::Element number = ftxui::text(" " + FormatWithCommas(value));
+  if (red) {
+    number = std::move(number) | ftxui::color(kRed);
+  }
+  return ftxui::hbox({ftxui::text(token_->currency_mark()) |
+                          ftxui::color(MarkColor(token_->currency_color())),
+                      std::move(number)});
 }
 
 ftxui::Element BuyPanel::Render() const {
-  ftxui::Element total_row = ftxui::text("Total: " + FormatMeso(total()));
-  if (!Affordable()) {
-    total_row = std::move(total_row) | ftxui::color(kRed);
+  bool red = !Affordable();
+  ftxui::Element label = ftxui::text("Total: ");
+  if (red) {
+    label = std::move(label) | ftxui::color(kRed);
   }
+  ftxui::Element total_row =
+      ftxui::hbox({std::move(label), Amount(total(), red)});
   ftxui::Element content = ftxui::vbox({
       CenteredRow(item_name_),
       ThemedSeparator(),
@@ -59,7 +80,8 @@ ftxui::Element BuyPanel::Render() const {
       // before working out what it costs. Shown at zero as well -- "none yet"
       // is an answer, and a row that came and went would be read as a glitch.
       CenteredRow("Owned: " + std::to_string(owned_)),
-      CenteredRow(FormatMeso(unit_price_) + " each"),
+      CenteredRow(ftxui::hbox(
+          {Amount(unit_price_, /*red=*/false), ftxui::text(" each")})),
       CenteredRow(std::move(total_row)),
       ThemedSeparator(),
       selector_.Render(),

@@ -307,6 +307,11 @@ const ItemPrototype* ShopPanel::RowToken(const EquipPrototype& proto) const {
 }
 
 const ItemPrototype* ShopPanel::selected_token() const {
+  // Asked of the open shelf as well as of the row, so the answer is the
+  // contract the header states however the two ever come apart.
+  if (!HasPayRow() || pay_ != kShopTokenTab) {
+    return nullptr;
+  }
   const EquipPrototype* item = selected_item();
   return item == nullptr ? nullptr : RowToken(*item);
 }

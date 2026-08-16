@@ -3,11 +3,13 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/colors.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 namespace {
@@ -49,6 +51,41 @@ bool RowIsColored(const BuyPanel& panel, const std::string& needle,
     return false;
   }
   return false;
+}
+
+// The colour of the cell holding `cell`, on the row holding `row_needle`. A row
+// is searched as bytes and read as columns, which are not the same thing: a
+// border or a currency mark is one column and three bytes.
+ftxui::Color CellColor(const BuyPanel& panel, const std::string& row_needle,
+                       const std::string& cell) {
+  ftxui::Element element = panel.Render();
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(element),
+                                               ftxui::Dimension::Fit(element));
+  ftxui::Render(screen, element);
+  for (int y = 0; y < screen.dimy(); ++y) {
+    std::string row;
+    std::vector<int> column_of_byte;
+    for (int x = 0; x < screen.dimx(); ++x) {
+      std::string ch = screen.PixelAt(x, y).character;
+      if (ch.empty()) {
+        ch = " ";
+      }
+      row += ch;
+      column_of_byte.insert(column_of_byte.end(), ch.size(), x);
+    }
+    if (row.find(row_needle) == std::string::npos) {
+      continue;
+    }
+    size_t cell_at = row.find(cell);
+    EXPECT_NE(cell_at, std::string::npos)
+        << "'" << cell << "' is not on the '" << row_needle << "' row";
+    if (cell_at == std::string::npos) {
+      return ftxui::Color::Default;
+    }
+    return screen.PixelAt(column_of_byte[cell_at], y).foreground_color;
+  }
+  ADD_FAILURE() << "no row holding '" << row_needle << "'";
+  return ftxui::Color::Default;
 }
 
 // A bag with more room than any of these tests is about, so the cap under
@@ -218,6 +255,48 @@ TEST(BuyPanelTest, AFreeItemCanBeTakenWithNoMeso) {
   panel.OnEvent(ftxui::Event::ArrowDown);  // the field -> [Confirm]
   panel.OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(panel.TakeConfirmed());
+}
+
+// --- priced in a token ---
+
+ItemPrototype WeaponToken() {
+  ItemPrototype token;
+  token.set_name("Frozen Weapon Token");
+  token.set_category(ITEM_CATEGORY_ETC);
+  token.set_currency_mark("●");
+  token.set_currency_color(CURRENCY_COLOR_ICE_BLUE);
+  return token;
+}
+
+// Same arithmetic, different balance: the dialog counts tokens and draws the
+// token's own mark where the coin would be.
+TEST(BuyPanelTest, ATokenPriceIsCountedInTokens) {
+  ItemPrototype token = WeaponToken();
+  BuyPanel panel;
+  panel.Reset("Frozen Sword", /*unit_price=*/1, /*balance=*/3,
+              /*room=*/kRoomy, /*owned=*/0, &token);
+  panel.OnEvent(ftxui::Event::Backspace);
+  panel.OnEvent(ftxui::Event::Character('9'));
+  EXPECT_EQ(panel.quantity(), 3) << "three tokens buy three";
+  // Read cell by cell: the mark is coloured, so ToString threads escapes
+  // between it and the number.
+  std::string rendered = Render(panel);
+  EXPECT_EQ(rendered.find("🪙"), std::string::npos) << "no meso on this shelf";
+  EXPECT_NE(rendered.find("each"), std::string::npos);
+}
+
+// Red is the reason, and a currency is not a reason -- so the mark stays its
+// own colour while the number it is beside goes red.
+TEST(BuyPanelTest, AnUnaffordableTokenTotalReddensTheNumberOnly) {
+  ItemPrototype token = WeaponToken();
+  BuyPanel panel;
+  panel.Reset("Frozen Sword", /*unit_price=*/1, /*balance=*/0, /*room=*/kRoomy,
+              /*owned=*/0, &token);
+  EXPECT_EQ(panel.quantity(), 0) << "nothing to buy it with";
+  EXPECT_EQ(CellColor(panel, "Total:", "0"), kRed);
+  EXPECT_EQ(CellColor(panel, "Total:", "●"), kIceBlue)
+      << "the mark is the currency, not the reason";
+  EXPECT_EQ(CellColor(panel, "each", "●"), kIceBlue);
 }
 
 }  // namespace

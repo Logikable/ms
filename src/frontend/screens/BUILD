@@ -262,6 +262,7 @@ cc_library(
         "//src/frontend/widgets:amount_selector",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",
+        "//src/protos:item_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],
@@ -273,6 +274,7 @@ cc_test(
     deps = [
         ":buy_panel",
         "//src/frontend/widgets:colors",
+        "//src/protos:item_proto_cc",
         "@ftxui//:component",
         "@ftxui//:dom",
         "@ftxui//:screen",

@@ -9,8 +9,12 @@
  * with it once it passes what the player holds.
  *
  * The panel owns no game state: Reset() seeds it with the item's price and the
- * player's meso, quantity() reports the chosen amount, and TakeConfirmed() /
- * TakeCancelled() each return true once.
+ * balance it is counted against, quantity() reports the chosen amount, and
+ * TakeConfirmed() / TakeCancelled() each return true once.
+ *
+ * A price is not always meso. An item off the shop's token shelf is priced in
+ * the token it names, and the dialog then counts in that instead -- the same
+ * arithmetic against a different balance, with the token's own mark on it.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_BUY_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_BUY_PANEL_H_
@@ -21,6 +25,7 @@
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/amount_selector.h"
+#include "src/protos/item.pb.h"
 
 namespace ms {
 
@@ -31,15 +36,16 @@ class BuyPanel {
   // ceiling has to clear a full one.
   static constexpr int kMaxQuantity = 30000;
 
-  // Seeds the panel for buying `item_name` at `unit_price` meso each, against
-  // a balance of `meso`, with `room` copies' worth of space left in the bag
-  // and `owned` copies already to the player's name.
+  // Seeds the panel for buying `item_name` at `unit_price` each, against a
+  // balance of `balance`, with `room` copies' worth of space left in the bag
+  // and `owned` copies already to the player's name. `token` is the currency
+  // the price is asked in, or nullptr for meso.
   //
   // Quantity opens at one and is capped by whichever of the three ceilings
   // bites first: the balance, the room, and kMaxQuantity. The field will not
   // go past the cap, so the shop is never offered a number it would refuse.
-  void Reset(const std::string& item_name, int unit_price, int64_t meso,
-             int room, int owned);
+  void Reset(const std::string& item_name, int unit_price, int64_t balance,
+             int room, int owned, const ItemPrototype* token = nullptr);
   ftxui::Element Render() const;
   bool OnEvent(ftxui::Event event);
   int quantity() const {
@@ -49,8 +55,11 @@ class BuyPanel {
   bool TakeCancelled();
 
  private:
-  // Meso the current quantity would cost.
+  // What the current quantity would cost, in whichever currency it is priced.
   int64_t total() const;
+  // One amount as the dialog draws it: the mark, then the number, which is the
+  // half that reddens when the player cannot pay it.
+  ftxui::Element Amount(int64_t value, bool red) const;
   // Whether the current quantity is one the player could actually go through
   // with: at least one, and within the balance.
   bool Affordable() const;
@@ -58,7 +67,10 @@ class BuyPanel {
   std::string item_name_;
   int unit_price_ = 0;
   int owned_ = 0;
-  int64_t meso_ = 0;
+  int64_t balance_ = 0;
+  // The catalog outlives every dialog, so the panel holds the prototype rather
+  // than a copy of its mark and colour.
+  const ItemPrototype* token_ = nullptr;
   AmountSelector selector_;
 };
 
