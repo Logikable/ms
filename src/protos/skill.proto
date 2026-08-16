@@ -125,6 +125,10 @@ message SkillEffect {
   // what each leaves it, so 30% and 40% ignore 58% between them and no pile of
   // sources ever reaches all of it. Gear grants the same thing -- see
   // EquipStats::ignore_enemy_defense -- and the two meet the same way.
+  //
+  // On an ATTACK this rides that attack's own swing and no other; on a passive
+  // it rides the character. GMS writes it both ways and means two different
+  // things by them. See WithoutSwingLevers.
   double ied_pct = 23;
 
   // --- From here down, one job line apiece. See the message comment. ---
@@ -214,6 +218,9 @@ message SkillEffect {
   // Ships dead, like the resistances below: no mob in the game sets `boss`.
   // The stats page shows it so a player can see what their points and their
   // gear bought, which is more than the equipment's own half ever got.
+  //
+  // Rides one swing or the character by the same rule ied_pct does: Heaven's
+  // Hammer hits a boss 30% harder and hands nothing to the swing after it.
   double boss_pct = 117;
   // The Chief Bandit's. Pick Pocket. Chance a meso falls out of an enemy,
   // rolled once per LINE the swing lands on them (0.30 == 30%) -- so a

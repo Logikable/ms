@@ -496,6 +496,37 @@ TEST(OffenseStatsForTest, WornAndLearnedIedMeetInReverse) {
   EXPECT_DOUBLE_EQ(offense.ied, 1.0 - 0.70 * 0.60);
 }
 
+// Gungnir's Descent ignores 30% of a monster's defence and Heaven's Hammer
+// hits a boss 30% harder, and GMS means both only while that skill is the one
+// landing. The character's own share is already in, so the swing's meets it
+// the way a second source does.
+TEST(OffenseStatsForTest, AnAttacksOwnIedAndBossDamageRideThatSwing) {
+  Skill gungnir;
+  gungnir.set_kind(SKILL_KIND_ATTACK);
+  gungnir.mutable_base()->set_skill_pct(1.96);
+  gungnir.mutable_base()->set_ied_pct(0.01);
+  gungnir.mutable_per_level()->set_ied_pct(0.01);
+  gungnir.mutable_base()->set_boss_pct(0.30);
+  PassiveOffense passives;
+  passives.ied = 0.40;
+  passives.boss_pct = 0.10;
+
+  OffenseStats offense =
+      OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, &gungnir, 30, passives);
+  // 30% at level 30, meeting the character's 40% in reverse rather than
+  // summing.
+  EXPECT_DOUBLE_EQ(offense.ied, 1.0 - 0.60 * 0.70);
+  EXPECT_DOUBLE_EQ(offense.boss_pct, 0.40);
+
+  // The swing after it carries neither: what the character has is all it has.
+  OffenseStats bare =
+      OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
+  EXPECT_DOUBLE_EQ(bare.ied, 0.40);
+  EXPECT_DOUBLE_EQ(bare.boss_pct, 0.10);
+}
+
 TEST(OffenseStatsForTest, EachIedSourceOnlyTakesAShareOfWhatIsLeft) {
   EXPECT_DOUBLE_EQ(CombineIgnoredDefense(0.30, 0.40), 0.58);
   // Three halves leave an eighth rather than cancelling the armour outright,

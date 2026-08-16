@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "src/combat/damage.h"
 #include "src/item/equip_stats.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -234,9 +235,25 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
   totals.meso_lines = SkillLinesAt(skill, level);
 }
 
+// The levers an attack keeps for its own swing rather than handing to the
+// character. Stripped here, and read back in OffenseStatsFor against the skill
+// being swung -- so Gungnir's Descent ignores 30% of a monster's defence when
+// it lands and Dark Impale, swung a moment later, does not.
+SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
+  SkillEffect kept = effect;
+  kept.clear_ied_pct();
+  kept.clear_boss_pct();
+  return kept;
+}
+
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
-  AddEffect(skill.base(), skill.per_level(), level, totals);
+  if (DealsDamage(skill.kind())) {
+    AddEffect(WithoutSwingLevers(skill.base()),
+              WithoutSwingLevers(skill.per_level()), level, totals);
+  } else {
+    AddEffect(skill.base(), skill.per_level(), level, totals);
+  }
   // Folded here rather than in AddEffect, which is handed levers with no skill
   // behind them -- and which skill is strengthened is written on the skill.
   double boost = skill.base().boosted_skill_pct() +

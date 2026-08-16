@@ -324,6 +324,18 @@ OffenseStats OffenseStatsFor(Job job, int level,
     if (boost != passives.skill_pct_bonus.end()) {
       offense.skill_pct += boost->second;
     }
+    // Ignored defence and boss damage written on an ATTACK ride that attack
+    // alone. GMS states both on the skill -- Gungnir's Descent ignores 30% and
+    // Heaven's Hammer hits bosses for 30% more, neither of which follows the
+    // character to their next swing. A passive granting either is the other
+    // shape, and folds into the character where it belongs.
+    offense.ied = CombineIgnoredDefense(
+        offense.ied,
+        attack_skill->base().ied_pct() +
+            attack_skill->per_level().ied_pct() * (attack_level - 1));
+    offense.boss_pct +=
+        attack_skill->base().boss_pct() +
+        attack_skill->per_level().boss_pct() * (attack_level - 1);
     // A multi-hit skill strikes each target this many times per swing, so its
     // per-target damage is skill_pct once per line.
     offense.lines = SkillLinesAt(*attack_skill, attack_level);
