@@ -86,12 +86,22 @@ std::string StatText(const std::string& label, int base, int bonus) {
 // Crossbow" used to do to the whole Character panel.
 //
 //   " " + tag(4) + name + level + filler + "[+]" + " "
-// " 20/20 " -- the widest a level reads, with the gutter either side that the
-// row has no filler left to provide.
-constexpr int kSkillLevelWidth = 7;
 constexpr int kSkillPlusWidth = 3;
-constexpr int kSkillNameWidth =
-    kContentWidth - 1 - kSkillTagWidth - kSkillLevelWidth - kSkillPlusWidth - 1;
+// Every level in the game is two digits, so the level column is the gutter
+// either side of them -- and, for a character whose book grants skill levels,
+// the " (+2)" saying how many of them are borrowed. Sized per character: a
+// job that grants none pays no column for them, and the name gets the room.
+int SkillLevelWidth(int bonus) {
+  if (bonus <= 0) {
+    return 1 + 2 + 1;
+  }
+  return 1 + 2 + 1 + static_cast<int>(std::to_string(bonus).size()) + 4;
+}
+
+int SkillNameWidth(int bonus) {
+  return kContentWidth - 1 - kSkillTagWidth - SkillLevelWidth(bonus) -
+         kSkillPlusWidth - 1;
+}
 
 // The base (AP-allocated) and gear-bonus values for one allocatable stat.
 std::pair<int, int> AllocStatValues(StatField field, const AllocatedStats& a,
@@ -402,14 +412,15 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
 }
 
 ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
+                                              int bonus,
                                               bool rows_focused) const {
-  // What the player bought, not what Combat Orders granted on top of it: this
-  // column stands beside the [+] and is the ledger for the SP spent. The
-  // granted level is real in the stats and in the fight, and Combat Orders'
-  // own page is where the player reads what it hands out.
-  int level = character_.skill_level(skill);
+  int learned = character_.skill_level(skill);
+  // The level the rest of the game runs on -- the stats, the fight, the skill
+  // page -- with what Combat Orders lent beside it. The player's own ledger of
+  // SP is the subtraction, which is how GMS prints it too.
+  int level = LevelWithBonus(skill, learned, bonus);
   bool selected = rows_focused && skill_sel_ == index;
-  bool maxed = level >= skill.max_level();
+  bool maxed = learned >= skill.max_level();
   bool has_sp = character_.sp(StageForAdvancement(skill.job_advancement())) > 0;
   // A skill still waiting on another one is not a skill this character has
   // yet, so the whole row dims -- name included. Running out of SP dims the
@@ -431,14 +442,15 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // A name too long for the column slides under it while the row is selected,
   // and sits cut when it is not. The column is a fixed width either way, which
   // is what keeps a long name from widening the whole panel.
+  int name_width = SkillNameWidth(bonus);
   std::string window = ScrollingWindow(
-      skill.name(), kSkillNameWidth,
+      skill.name(), name_width,
       selected ? std::chrono::steady_clock::now() - skill_selected_at_
                : std::chrono::steady_clock::duration::zero());
   // The padding a short name is given rides outside the cursor, so the
   // highlight still covers the name and stops -- a fixed-width bar would say
   // the empty column after a short name was part of what Enter opens.
-  int lit = std::min(static_cast<int>(skill.name().size()), kSkillNameWidth);
+  int lit = std::min(static_cast<int>(skill.name().size()), name_width);
   ftxui::Element name = ftxui::text(window.substr(0, lit));
   if (selected && skill_col_ == kColName) {
     name = name | ftxui::inverted;
@@ -446,9 +458,12 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
     name = name | ftxui::dim;
   }
   ftxui::Element name_pad = ftxui::text(window.substr(lit));
-  ftxui::Element level_text = ftxui::text(PadRight(
-      " " + std::to_string(level) + "/" + std::to_string(skill.max_level()),
-      kSkillLevelWidth));
+  // Only a skill that has some levels of its own can be lent any: a skill
+  // nobody has bought stays at 0, with nothing in brackets to say otherwise.
+  std::string lent =
+      level > learned ? " (+" + std::to_string(level - learned) + ")" : "";
+  ftxui::Element level_text = ftxui::text(
+      PadRight(" " + std::to_string(level) + lent, SkillLevelWidth(bonus)));
   if (locked) {
     level_text = level_text | ftxui::dim;
   }
@@ -485,8 +500,11 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
     rows.push_back(ftxui::text(PadRight(" No skills yet.", kContentWidth)) |
                    ftxui::dim);
   } else {
+    // Read once for the whole list: the level column is as wide as the widest
+    // thing this character can put in it, so every row has to agree.
+    int bonus = BonusSkillLevels(character_, skills_);
     for (int i = 0; i < static_cast<int>(skills.size()); ++i) {
-      rows.push_back(RenderSkillRow(*skills[i], i, rows_focused));
+      rows.push_back(RenderSkillRow(*skills[i], i, bonus, rows_focused));
     }
   }
   return ftxui::vbox(std::move(rows));

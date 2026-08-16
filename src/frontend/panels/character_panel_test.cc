@@ -681,7 +681,10 @@ TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
-  EXPECT_NE(rendered.find("0/20"), std::string::npos);
+  // The level the player has it at, and no maximum beside it: the [+] going
+  // dim is what says a skill is finished.
+  EXPECT_NE(rendered.find("Slash Blast          0"), std::string::npos);
+  EXPECT_EQ(rendered.find("0/20"), std::string::npos);
 }
 
 // The Skills tab opens on the first book. A character reads their books in
@@ -792,8 +795,8 @@ TEST_F(CharacterPanelTest, AnUnselectedLongNameIsCutToItsColumn) {
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
-  EXPECT_TRUE(OnScreen(comp, "Final Attack: Cro"));
-  EXPECT_FALSE(OnScreen(comp, "Final Attack: Cross"));
+  EXPECT_TRUE(OnScreen(comp, "Final Attack: Crossb"));
+  EXPECT_FALSE(OnScreen(comp, "Final Attack: Crossbo"));
 }
 
 // The name column is a fixed width rather than each name's own, so the levels
@@ -815,16 +818,104 @@ TEST_F(CharacterPanelTest, NamesAndLevelsStayColumnsWhateverTheNameLength) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
   ftxui::Screen screen = RenderToScreen(comp);
-  std::pair<int, int> wordy = FindCell(screen, "Final Attack: Cro");
+  std::pair<int, int> wordy = FindCell(screen, "Final Attack: Crossb");
   std::pair<int, int> rush = FindCell(screen, "Rush");
   ASSERT_GE(wordy.first, 0);
   ASSERT_GE(rush.first, 0);
   ASSERT_NE(wordy.second, rush.second) << "expected two rows, not one";
   EXPECT_EQ(wordy.first, rush.first);
-  EXPECT_EQ(FindInRow(screen, wordy.second, "0/20"),
-            FindInRow(screen, rush.second, "0/20"));
-  // And the level does not run into the [+] beside it.
-  EXPECT_GE(FindInRow(screen, wordy.second, "0/20 "), 0);
+  ASSERT_GE(FindInRow(screen, wordy.second, " 0 "), 0);
+  EXPECT_EQ(FindInRow(screen, wordy.second, " 0 "),
+            FindInRow(screen, rush.second, " 0 "));
+  // And so does the [+] past them, which is the far side of the column.
+  EXPECT_EQ(FindInRow(screen, wordy.second, "[+]"),
+            FindInRow(screen, rush.second, "[+]"));
+}
+
+// Combat Orders' shape: two levels to every other skill in the book, by the
+// time it is maxed itself.
+std::map<std::string, Skill> LendingCatalog() {
+  Skill orders;
+  orders.set_name("Combat Orders");
+  orders.set_kind(SKILL_KIND_PASSIVE);
+  orders.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  orders.set_max_level(10);
+  orders.set_skill_order(2);
+  orders.mutable_base()->set_skill_level_bonus(1.0);
+  orders.mutable_per_level()->set_skill_level_bonus(0.11111111111);
+  std::map<std::string, Skill> catalog = SkillCatalog();  // slash_blast
+  catalog["combat_orders"] = orders;
+  return catalog;
+}
+
+CharacterInstance MakeLender(std::mt19937& rng, int slash_blast) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  (*proto.mutable_sp_by_stage())[1] = 3;
+  (*proto.mutable_skill_levels())["Combat Orders"] = 10;
+  if (slash_blast > 0) {
+    (*proto.mutable_skill_levels())["Slash Blast"] = slash_blast;
+  }
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// The level the rest of the game runs on, with the borrowed part in brackets
+// after it -- GMS prints a 10 with two lent as "12 (+2)", not "10 (+2)".
+TEST_F(CharacterPanelTest, ALentLevelIsCountedInAndThenNamed) {
+  CharacterInstance c = MakeLender(rng_, /*slash_blast=*/10);
+  CharacterPanel panel(c, panel_focus_, LendingCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+
+  EXPECT_TRUE(OnScreen(comp, "12 (+2)"));
+  EXPECT_FALSE(OnScreen(comp, "10 (+2)")) << "the lent levels are counted in";
+}
+
+// Two rules at once, both about who is owed nothing: a skill nobody has bought
+// stays at 0 with no brackets, and the skill lending the levels lends none to
+// itself.
+TEST_F(CharacterPanelTest, NothingIsLentToTheUnlearnedOrToTheLender) {
+  CharacterInstance c = MakeLender(rng_, /*slash_blast=*/0);
+  CharacterPanel panel(c, panel_focus_, LendingCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+
+  ftxui::Screen screen = RenderToScreen(comp);
+  int blast = FindCell(screen, "Slash Blast").second;
+  int orders = FindCell(screen, "Combat Orders").second;
+  ASSERT_GE(blast, 0);
+  ASSERT_GE(orders, 0);
+  EXPECT_EQ(FindInRow(screen, blast, "(+"), -1);
+  EXPECT_EQ(FindInRow(screen, orders, "(+"), -1);
+  EXPECT_GE(FindInRow(screen, orders, " 10 "), 0) << "its own level, unlifted";
+}
+
+// The column the brackets need is only opened for a character whose book can
+// lend levels; everyone else gets the room for their skill names instead.
+TEST_F(CharacterPanelTest, OnlyALenderPaysForTheLentColumn) {
+  CharacterInstance lender = MakeLender(rng_, /*slash_blast=*/10);
+  CharacterPanel wide(lender, panel_focus_, LendingCatalog());
+  ftxui::Component wide_comp = wide.MakeComponent([](StatField) {});
+  wide_comp->OnEvent(ftxui::Event::ArrowRight);
+
+  CharacterInstance plain = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel narrow(plain, panel_focus_, SkillCatalog());
+  ftxui::Component narrow_comp = narrow.MakeComponent([](StatField) {});
+  narrow_comp->OnEvent(ftxui::Event::ArrowRight);
+
+  ftxui::Screen wide_screen = RenderToScreen(wide_comp);
+  ftxui::Screen narrow_screen = RenderToScreen(narrow_comp);
+  int lent = FindCell(wide_screen, "12 (+2)").first;
+  int plain_level = FindInRow(
+      narrow_screen, FindCell(narrow_screen, "Slash Blast").second, " 0 ");
+  ASSERT_GE(lent, 0);
+  ASSERT_GE(plain_level, 0);
+  EXPECT_LT(lent, plain_level) << "the lender's names give up the room";
+  ftxui::Element card = wide.Render();
+  EXPECT_LE(ftxui::Dimension::Fit(card).dimx, CharacterPanel::kTotalWidth)
+      << "and the panel itself does not widen for them";
 }
 
 // A catalog with one skill of each kind, plus a kind-less one.
@@ -1042,7 +1133,7 @@ TEST_F(CharacterPanelTest, TheHighlightStopsAtTheEndOfTheName) {
 
   // Eleven for the name, then the padding holding the column open and the
   // level beyond it -- neither of which Enter reaches.
-  EXPECT_EQ(InversionMask(comp, "Slash Blast       0/20"),
+  EXPECT_EQ(InversionMask(comp, "Slash Blast          0"),
             "11111111111"
             "00000000000");
 }
@@ -1104,7 +1195,8 @@ TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // skill rows (has SP, so entered)
   comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
-  EXPECT_NE(RenderComponent(comp).find("20/20"), std::string::npos);
+  EXPECT_NE(RenderComponent(comp).find("Slash Blast          20"),
+            std::string::npos);
   comp->OnEvent(ftxui::Event::Return);  // maxed: nothing to learn
   EXPECT_FALSE(fired);
 }
