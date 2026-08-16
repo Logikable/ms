@@ -353,6 +353,10 @@ class CharacterInstance {
   }
   // Whether the item named is worn right now, by display name.
   bool IsWearing(const std::string& item_name) const;
+  // The item of `family` being worn, by display name, or "" for none. A set
+  // slot that no single item can fill -- a weapon belongs to one class -- names
+  // a family instead, and this is what answers it.
+  std::string WornOfFamily(const std::string& family) const;
   // How many pieces of `set` are worn right now. What every tier is measured
   // against, and what the inspect screen greys its unearned tiers by.
   int PiecesWornOf(const EquipSet& set) const;

@@ -482,10 +482,26 @@ EquipPrototype FrozenPiece(const std::string& name, EquipSlot slot) {
   return proto;
 }
 
+// A piece the set names by family rather than by name, as every Frozen weapon
+// and secondary is.
+EquipPrototype FrozenFamilyPiece(const std::string& name, EquipSlot slot,
+                                 const std::string& family) {
+  EquipPrototype proto = FrozenPiece(name, slot);
+  proto.set_set_family(family);
+  return proto;
+}
+
 // Wears one piece of the set, so the tiers it reaches light up.
 void Wear(CharacterInstance& character, const std::string& name,
           EquipSlot slot) {
   character.PickUp(std::make_unique<EquipInstance>(FrozenPiece(name, slot)));
+  character.Equip(static_cast<int>(character.inventory().size()) - 1);
+}
+
+void WearFamilyPiece(CharacterInstance& character, const std::string& name,
+                     EquipSlot slot, const std::string& family) {
+  character.PickUp(
+      std::make_unique<EquipInstance>(FrozenFamilyPiece(name, slot, family)));
   character.Equip(static_cast<int>(character.inventory().size()) - 1);
 }
 
@@ -599,13 +615,50 @@ TEST_F(InspectPanelTest, DimsThePiecesNotBeingWorn) {
   panel.SetItem(&hat);
   EXPECT_TRUE(DimAt(panel, "Hat        Frozen Hat"));
   EXPECT_TRUE(DimAt(panel, "Cape       Frozen Cape"));
-  // A slot still waiting on its items can never be worn, so it is always dim.
+  // Nothing of that family is on the character, so the slot is still asking.
   EXPECT_TRUE(DimAt(panel, "Weapon     Choose 1 Frozen Weapon"));
 
   // The item being inspected does not count -- only what is on the character.
   Wear(c_, "Frozen Hat", EQUIP_SLOT_HAT);
   EXPECT_FALSE(DimAt(panel, "Hat        Frozen Hat"));
   EXPECT_TRUE(DimAt(panel, "Cape       Frozen Cape"));
+}
+
+// A family slot asks for a piece until one is worn, and then names the one
+// that answered. Which is also the moment the tiers past four become reachable.
+TEST_F(InspectPanelTest, AWornFamilyPieceNamesItselfInItsSlot) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&hat);
+  ASSERT_NE(RenderWide(panel).find("Weapon     Choose 1 Frozen Weapon"),
+            std::string::npos);
+
+  WearFamilyPiece(c_, "Frozen Polearm", EQUIP_SLOT_PRIMARY_WEAPON,
+                  "Frozen Weapon");
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Weapon     Frozen Polearm"), std::string::npos);
+  EXPECT_EQ(rendered.find("Choose 1 Frozen Weapon"), std::string::npos);
+  EXPECT_FALSE(DimAt(panel, "Weapon     Frozen Polearm"));
+}
+
+// The set names no weapon, so a weapon has to be matched by its family or the
+// card would never open beside one.
+TEST_F(InspectPanelTest, AFamilyPieceOpensTheSameCard) {
+  EquipPrototype proto = FrozenFamilyPiece(
+      "Frozen Polearm", EQUIP_SLOT_PRIMARY_WEAPON, "Frozen Weapon");
+  EquipInstance polearm(proto);
+  c_.UseEquipSets(FrozenSet());
+
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&polearm);
+  std::string rendered = RenderWide(panel);
+  EXPECT_NE(rendered.find("Frozen Set"), std::string::npos);
+  EXPECT_NE(rendered.find("Hat        Frozen Hat"), std::string::npos);
 }
 
 TEST_F(InspectPanelTest, DimsTheTiersTheCharacterHasNotEarned) {

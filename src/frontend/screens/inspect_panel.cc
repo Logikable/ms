@@ -242,11 +242,16 @@ const EquipSet* InspectPanel::SetOfItem() const {
   }
   // By display name, as the character counts what is worn. A trace of a set
   // piece is a piece of that set: it is the same item, waiting to be recovered.
+  // An item the set names by family answers to its family instead.
   const std::string& name = item_->prototype().name();
+  const std::string& family = item_->prototype().set_family();
   for (const std::pair<const std::string, EquipSet>& entry :
        character_->equip_sets()) {
     for (const EquipSetMember& member : entry.second.members()) {
       if (!member.name().empty() && member.name() == name) {
+        return &entry.second;
+      }
+      if (!family.empty() && member.family() == family) {
         return &entry.second;
       }
     }
@@ -260,15 +265,21 @@ ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
   rows.push_back(CenteredRow(FormatEquipSet(set.name())));
   rows.push_back(ThemedSeparator());
   for (const EquipSetMember& member : set.members()) {
-    // A slot with no item written yet says what it is waiting for. It counts
-    // toward no tier, so the set reads as unfinished rather than as broken.
-    std::string fills =
-        member.name().empty() ? "Choose 1 " + member.family() : member.name();
+    // A family slot names what fills it once something does, and asks for one
+    // while it is empty -- a weapon belongs to a class, so the set cannot name
+    // it outright.
+    std::string worn_of_family = character_->WornOfFamily(member.family());
+    bool on = member.name().empty() ? !worn_of_family.empty()
+                                    : character_->IsWearing(member.name());
+    std::string fills = member.name();
+    if (fills.empty()) {
+      fills = on ? worn_of_family : "Choose 1 " + member.family();
+    }
     ftxui::Element row = ftxui::text(
         " " + PadRight(FormatSlot(member.slot()), kSetSlotWidth) + fills);
     // Dimmed unless it is on the character right now -- the same question the
     // tiers below are asking, one piece at a time.
-    if (member.name().empty() || !character_->IsWearing(member.name())) {
+    if (!on) {
       row = row | ftxui::dim;
     }
     rows.push_back(row);

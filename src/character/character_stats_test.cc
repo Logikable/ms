@@ -246,6 +246,14 @@ std::map<std::string, EquipSet> FrozenSet() {
   four->set_pieces(4);
   four->mutable_effect()->set_attack(9);
   four->mutable_effect()->set_max_hp_pct(0.20);
+  // The fifth slot names a family rather than an item: a weapon belongs to one
+  // class, so the set cannot say which one.
+  EquipSetMember* weapon = set.add_members();
+  weapon->set_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  weapon->set_family("Frozen Weapon");
+  EquipSetTier* five = set.add_tiers();
+  five->set_pieces(5);
+  five->mutable_effect()->set_attack(11);
   return {{"frozen", set}};
 }
 
@@ -309,6 +317,32 @@ TEST_F(DerivedStatsTest, StrippingAPieceEndsTheTier) {
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 5);
   c.Unequip(EQUIP_SLOT_HAT);
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 0);
+}
+
+// Any item of the family fills the slot the set names it by, and an item of no
+// family fills nothing -- which is what keeps an ordinary weapon out of a set
+// it was never part of.
+TEST_F(DerivedStatsTest, AFamilyPieceFillsTheSlotTheSetNamesIt) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  c.UseEquipSets(FrozenSet());
+  WearFrozen(c, 4);
+  ASSERT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 14);
+
+  EquipPrototype plain;
+  plain.set_name("Zedbug");
+  plain.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  c.PickUp(std::make_unique<EquipInstance>(plain));
+  c.Equip(c.inventory().size() - 1);
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 14)
+      << "a weapon of no family is not a piece of the set";
+
+  EquipPrototype frozen;
+  frozen.set_name("Frozen Polearm");
+  frozen.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  frozen.set_set_family("Frozen Weapon");
+  c.PickUp(std::make_unique<EquipInstance>(frozen));
+  c.Equip(c.inventory().size() - 1);
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 25) << "5, 9 and 11";
 }
 
 // Gear outside the set is gear outside the set, however much of it is worn.

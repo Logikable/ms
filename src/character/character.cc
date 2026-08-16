@@ -895,12 +895,26 @@ bool CharacterInstance::IsWearing(const std::string& item_name) const {
   return false;
 }
 
+std::string CharacterInstance::WornOfFamily(const std::string& family) const {
+  if (family.empty()) {
+    return "";  // an ordinary item names no family, and would match every one
+  }
+  for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
+    if (kv.second.prototype().set_family() == family) {
+      return kv.second.prototype().name();
+    }
+  }
+  return "";
+}
+
 int CharacterInstance::PiecesWornOf(const EquipSet& set) const {
   int worn = 0;
   for (const EquipSetMember& member : set.members()) {
-    // A member with no name is a family nobody has an item from yet, and
-    // counts nothing.
-    if (!member.name().empty() && IsWearing(member.name())) {
+    // A member names either the one item that fills it or the family any of
+    // several items fill. Both count the same once one is on.
+    bool on = member.name().empty() ? !WornOfFamily(member.family()).empty()
+                                    : IsWearing(member.name());
+    if (on) {
       ++worn;
     }
   }
