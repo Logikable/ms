@@ -793,6 +793,47 @@ TEST(ComputeCombatParamsTest, ASummonCutsDeeperIntoANormalMonsterToo) {
   }
 }
 
+// Divine Mark's shape: the hammer and the brand it leaves exploding, landed as
+// one swing. Kept as two hits rather than averaged so each keeps its own
+// multiplier -- and so only the explosion hits an ordinary monster harder.
+TEST(ComputeCombatParamsTest, ASwingCanLandTwoHitsPricedSeparately) {
+  Skill mark;
+  mark.set_name("Divine Mark");
+  mark.set_kind(SKILL_KIND_ATTACK);
+  mark.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mark.set_max_level(30);
+  mark.set_max_enemies(10);
+  mark.set_lines(7);
+  mark.mutable_base()->set_skill_pct(3.00);
+  SwingHit* blast = mark.add_extra_hit();
+  blast->set_label("Explosion");
+  blast->set_lines(5);
+  blast->mutable_base()->set_skill_pct(2.00);
+  blast->mutable_base()->set_normal_skill_pct(0.60);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"divine_mark", mark}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(mark, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  // The snail is no boss, so the explosion lands 260% five times beside the
+  // hammer's 300% seven: 21 + 13 poke-fuls against the poke's own 100% once.
+  double poke = params.attacks[0].damage_per_hit[0];
+  EXPECT_DOUBLE_EQ(params.attacks[1].damage_per_hit[0], 34.0 * poke);
+
+  // The bonus is worth its five strikes and not the hammer's seven, which is
+  // the whole reason the two halves are priced apart rather than averaged.
+  Skill plain = mark;
+  plain.mutable_extra_hit(0)->mutable_base()->clear_normal_skill_pct();
+  state.skills["divine_mark"] = plain;
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).attacks[1].damage_per_hit[0],
+                   31.0 * poke);
+}
+
 // Greater Vessel of Light's shape: one passive that hands a strike to two
 // attacks and widens one of them. The grant is folded into the target before
 // its attack is built, so the damage the fight sees is already carrying it.

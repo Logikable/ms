@@ -121,6 +121,26 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
     }
   }
+  // A swing that lands two hits at once: the hammer, and the brand it leaves
+  // exploding. Same character, same weapon, same reach -- what differs is the
+  // multiplier and what it adds against an ordinary monster, so each half is
+  // priced on its own and the two are summed into the one swing.
+  if (skill != nullptr) {
+    for (const SwingHit& hit : skill->extra_hit()) {
+      OffenseStats extra = offense;
+      extra.skill_pct =
+          hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
+      extra.normal_skill_pct = hit.base().normal_skill_pct() +
+                               hit.per_level().normal_skill_pct() * (level - 1);
+      extra.lines = std::max(1, hit.lines());
+      // The shadow copies it as it copies the rest of the swing. Reset here
+      // because the line count just changed under it.
+      extra.mirror_lines = extra.lines;
+      for (std::size_t i = 0; i < types.size(); ++i) {
+        attack.damage_per_hit[i] += ExpectedAttackDamage(extra, *types[i].mob);
+      }
+    }
+  }
   // Final Attack rides the swing, not the skill: a plain hit worth its own
   // percent, so it starts from the bare stat line and takes neither the skill's
   // multiplier nor its lines. An attack on its own clock strips it back off --

@@ -318,6 +318,31 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
             std::string::npos);
 }
 
+// Divine Mark lands two hits at once and GMS prices them differently, so the
+// page prices them differently too: a row each, and the bonus against ordinary
+// monsters under the half that carries it rather than over both.
+TEST_F(SkillInspectPanelTest, StatesEachHitOfASwingThatLandsTwo) {
+  Skill mark = MakeLuckySeven();
+  mark.set_lines(7);
+  mark.mutable_base()->set_skill_pct(4.20);
+  mark.clear_per_level();
+  SwingHit* blast = mark.add_extra_hit();
+  blast->set_label("Explosion");
+  blast->set_lines(5);
+  blast->mutable_base()->set_skill_pct(2.90);
+  blast->mutable_base()->set_normal_skill_pct(0.87);
+
+  std::string rendered = RenderAt(mark, 1);
+  EXPECT_NE(rendered.find("Damage            420% x7 = 2940%"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Explosion         290% x5 = 1450%"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Explosion Normal  377% x5 = 1885%"),
+            std::string::npos);
+  // The hammer carries no such bonus, so it gets no such row.
+  EXPECT_EQ(rendered.find("Normal Monsters"), std::string::npos);
+}
+
 // What a skill hands another that is not damage reads as the same sentence the
 // damage boost does, one row per skill named -- two skills granted different
 // things cannot share a row.

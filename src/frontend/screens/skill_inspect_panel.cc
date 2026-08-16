@@ -550,6 +550,20 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   if (!normal.empty()) {
     rows.push_back(EffectRow("Normal Monsters", normal));
   }
+  // The other hit the same swing lands, and its own reading against an
+  // ordinary monster under it -- the pair reads exactly as the swing's own two
+  // rows above, because that is what it is.
+  for (const SwingHit& hit : skill.extra_hit()) {
+    double per_hit =
+        hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
+    rows.push_back(EffectRow(hit.label(), SwingText(per_hit, hit.lines())));
+    double bonus = hit.base().normal_skill_pct() +
+                   hit.per_level().normal_skill_pct() * (level - 1);
+    if (bonus > 0.0) {
+      rows.push_back(EffectRow(hit.label() + " Normal",
+                               SwingText(per_hit + bonus, hit.lines())));
+    }
+  }
   // Under the swing's own damage, because it is the extra the swing opens with
   // rather than a second attack.
   for (ftxui::Element& row :

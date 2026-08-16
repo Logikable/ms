@@ -347,6 +347,29 @@ message Buff {
   double cooldown_reduction_seconds = 5;
 }
 
+// A second hit the same swing lands at the same moment. Divine Mark is the
+// case it exists for: the hammer falls and the brand it leaves explodes, and
+// GMS prices the two differently -- 420% seven times and 290% five times, with
+// only the explosion hitting an ordinary monster harder.
+//
+// Folded into ONE swing rather than told apart in time, because nothing here
+// would do anything with the gap between them. What it buys over simply adding
+// the strikes together is that each half keeps its own multiplier and its own
+// bonus against ordinary monsters, both of which are per line.
+//
+// It reaches whatever the swing reached: it is the same swing. It carries none
+// of the swing's riders either -- a Final Attack rolls once for the swing, not
+// once per hit in it, and a shadow copies the swing it was already copying.
+//
+// Read at the same learned level as the skill carrying it.
+message SwingHit {
+  SkillEffect base = 1;
+  SkillEffect per_level = 2;
+  // What the skill page calls it, under the swing's own Damage row.
+  string label = 3;
+  int32 lines = 4;
+}
+
 // A stronger version of a skill's attack, landed in place of every Nth
 // ordinary one. Empowered Arrows is the case it exists for: the Sniper's
 // Piercing Arrow is upgraded to an Empowered Piercing Arrow every fourth shot.
@@ -587,6 +610,9 @@ message Skill {
   // the wait cooldown_seconds states. See Buff. The heal a cast hands over at
   // once is the buff's own heal_pct.
   Buff buff = 106;
+  // The Paladin's. A second hit this swing lands at the same moment, priced on
+  // its own. See SwingHit.
+  repeated SwingHit extra_hit = 108;
   // The Paladin's. Strikes and reach this skill hands to skills it names.
   // Repeated, unlike boosts_skill_name above, because Greater Vessel of Light
   // strengthens two of them and grants each a different thing. See SkillBoost.
