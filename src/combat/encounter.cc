@@ -94,7 +94,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   }
   attack.swing_seconds = SwingIntervalSeconds(delay_ms, stage) * speed_factor;
   if (skill != nullptr) {
-    attack.cooldown_seconds = skill->cooldown_seconds() * speed_factor;
+    attack.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
     attack.heal_fraction =
         skill->base().heal_pct() + skill->per_level().heal_pct() * (level - 1);
   }
@@ -438,7 +438,7 @@ void AddBuffs(const CharacterInstance& character,
         (buff.duration_seconds() +
          buff.duration_seconds_per_level() * (level - 1)) *
         speed_factor;
-    option.cooldown_seconds = skill->cooldown_seconds() * speed_factor;
+    option.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
     option.cooldown_reduction_seconds =
         buff.cooldown_reduction_seconds() * speed_factor;
     option.heal_fraction =

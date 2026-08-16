@@ -218,6 +218,15 @@ int SkillLinesAt(const Skill& skill, int level) {
                      skill.lines_per_level() * (level - 1) + kLineEpsilon));
 }
 
+double CooldownAt(const Skill& skill, int level) {
+  if (skill.cooldown_seconds() <= 0.0) {
+    return 0.0;
+  }
+  double wait = skill.cooldown_seconds() +
+                skill.cooldown_seconds_per_level() * (level - 1);
+  return std::max(0.0, wait);
+}
+
 double WeaponConstant(Job job, EquipType weapon) {
   for (const JobWeaponConstantRow& row : kJobWeaponConstants) {
     if (row.job == job && row.weapon == weapon) {

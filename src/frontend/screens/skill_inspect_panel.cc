@@ -280,6 +280,18 @@ std::string ReachText(int enemies, double clock) {
          FormatNumber(clock, 2) + "s";
 }
 
+// The wait before a skill can be swung again, at `level`. What a landed hit
+// takes off that wait rides the same row: it is the same clock, and a row of
+// its own read as a second one.
+std::string CooldownText(const Skill& skill, int level) {
+  std::string wait = FormatNumber(CooldownAt(skill, level)) + "s";
+  if (skill.buff().cooldown_reduction_seconds() > 0.0) {
+    wait += ", -" + FormatNumber(skill.buff().cooldown_reduction_seconds(), 2) +
+            "s per hit";
+  }
+  return wait;
+}
+
 // The rows that hold at every level: what the skill asks for and how far a
 // swing reaches. A skill with none of them gets no block at all.
 //
@@ -354,17 +366,11 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     }
   }
   // How long the player swings something else for afterwards, which is what a
-  // skill this much better than the usual swing costs.
-  if (skill.cooldown_seconds() > 0.0) {
-    std::string wait = FormatNumber(skill.cooldown_seconds()) + "s";
-    // What a landed hit takes off that wait rides the same row: it is the
-    // same clock, and a row of its own read as a second one.
-    if (skill.buff().cooldown_reduction_seconds() > 0.0) {
-      wait += ", -" +
-              FormatNumber(skill.buff().cooldown_reduction_seconds(), 2) +
-              "s per hit";
-    }
-    rows.push_back(EffectRow("Cooldown", wait));
+  // skill this much better than the usual swing costs. A wait that shortens as
+  // the skill is taught is not invariant, so it waits for the level block.
+  if (skill.cooldown_seconds() > 0.0 &&
+      skill.cooldown_seconds_per_level() == 0.0) {
+    rows.push_back(EffectRow("Cooldown", CooldownText(skill, 1)));
   }
   return rows;
 }
@@ -650,6 +656,13 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   }
   for (ftxui::Element& row : permanent) {
     rows.push_back(std::move(row));
+  }
+  // A wait that shortens as the skill is taught is one of the things a point
+  // buys, so it is read at the level like the rest. The waits that never move
+  // are stated once, above the divider.
+  if (skill.cooldown_seconds() > 0.0 &&
+      skill.cooldown_seconds_per_level() != 0.0) {
+    rows.push_back(EffectRow("Cooldown", CooldownText(skill, level)));
   }
   // A weapon bonus reads as the lever it grants with the weapons it needs in
   // brackets: "Damage  +5% (Axe)". Flat, so it is read at level 1.

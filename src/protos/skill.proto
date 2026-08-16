@@ -490,6 +490,11 @@ message Skill {
   // Not cast_interval_seconds, which is how often a skill that fights on its
   // own goes off by itself. A skill names one or the other, never both.
   double cooldown_seconds = 17;
+  // Seconds the wait moves by per level, NEGATIVE for the usual case of a
+  // skill that comes back sooner the further it is taught -- Heaven's Hammer
+  // walks 29 seconds down to 15. Read together with the field above and only
+  // through CooldownAt, which floors the pair at nothing.
+  double cooldown_seconds_per_level = 24;
   // Seconds between casts of a SKILL_KIND_AUTO_ATTACK, in GMS scale before the
   // game's own pacing stretches it -- usually the skill's cooldown, since a
   // cooldown skill is one the player would fire the moment it came back.

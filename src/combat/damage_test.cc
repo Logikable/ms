@@ -500,6 +500,32 @@ TEST(OffenseStatsForTest, WornAndLearnedIedMeetInReverse) {
 // hits a boss 30% harder, and GMS means both only while that skill is the one
 // landing. The character's own share is already in, so the swing's meets it
 // the way a second source does.
+// Heaven's Hammer comes back sooner the further it is taught: 29 seconds down
+// to 15 over its thirty levels, which is GMS's 30 - floor(L/2) walked as a
+// line. The step is negative and the pair never falls below nothing.
+TEST(CooldownAtTest, AWaitShortensAsTheSkillIsTaught) {
+  Skill hammer;
+  hammer.set_cooldown_seconds(29.5);
+  hammer.set_cooldown_seconds_per_level(-0.5);
+  EXPECT_DOUBLE_EQ(CooldownAt(hammer, 1), 29.5);
+  EXPECT_DOUBLE_EQ(CooldownAt(hammer, 30), 15.0);
+
+  // A wait with no step holds wherever it is read, and a skill with no wait
+  // has none at any level.
+  Skill flat;
+  flat.set_cooldown_seconds(7.0);
+  EXPECT_DOUBLE_EQ(CooldownAt(flat, 1), 7.0);
+  EXPECT_DOUBLE_EQ(CooldownAt(flat, 30), 7.0);
+  EXPECT_DOUBLE_EQ(CooldownAt(Skill(), 30), 0.0);
+
+  // A step steep enough to run the wait past zero leaves no wait at all,
+  // rather than handing the fight a negative one.
+  Skill steep;
+  steep.set_cooldown_seconds(5.0);
+  steep.set_cooldown_seconds_per_level(-1.0);
+  EXPECT_DOUBLE_EQ(CooldownAt(steep, 20), 0.0);
+}
+
 TEST(OffenseStatsForTest, AnAttacksOwnIedAndBossDamageRideThatSwing) {
   Skill gungnir;
   gungnir.set_kind(SKILL_KIND_ATTACK);

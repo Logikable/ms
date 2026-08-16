@@ -83,6 +83,14 @@ bool DealsDamage(SkillKind kind);
 // a skill whose lines climb has to climb everywhere at once.
 int SkillLinesAt(const Skill& skill, int level);
 
+// How long `skill` is unavailable for after it is used, at `level`, in GMS
+// scale: its `cooldown_seconds` plus the per-level step, never below nothing.
+// 0 for the skills that are there every time, which is most of them.
+//
+// Here for the reason SkillLinesAt is: the fight and the skill page both ask,
+// and a wait that shortens as the skill is taught has to shorten in both.
+double CooldownAt(const Skill& skill, int level);
+
 // What a character's learned passives add to every swing, whichever attack
 // they end up choosing. Kept together rather than passed one at a time: the
 // list grows with each job book, and none of it depends on the target.

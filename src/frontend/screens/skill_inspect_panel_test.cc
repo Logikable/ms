@@ -318,6 +318,30 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
             std::string::npos);
 }
 
+// A wait that never moves is stated once above the divider; one that shortens
+// as the skill is taught is part of what a point buys, so it reads at the
+// level with everything else a point buys.
+TEST_F(SkillInspectPanelTest, AShorteningWaitIsReadAtTheLevel) {
+  Skill hammer = MakeLuckySeven();
+  hammer.set_max_level(30);
+  hammer.set_cooldown_seconds(29.5);
+  hammer.set_cooldown_seconds_per_level(-0.5);
+  EXPECT_NE(RenderAt(hammer, 1).find("Cooldown          29.5s"),
+            std::string::npos);
+  EXPECT_NE(RenderAt(hammer, 30).find("Cooldown          15s"),
+            std::string::npos);
+
+  // Above the divider it would have to state one wait for all thirty levels,
+  // so the row up there belongs to the skills whose wait really is invariant.
+  std::string rendered = RenderAt(hammer, 30);
+  EXPECT_LT(rendered.find("Level 30"), rendered.find("Cooldown"));
+
+  Skill flat = MakeLuckySeven();
+  flat.set_cooldown_seconds(7.0);
+  std::string plain = RenderAt(flat, 5);
+  EXPECT_LT(plain.find("Cooldown"), plain.find("Level 5"));
+}
+
 // Revenge of the Evil Eye: three attacks out of one row in the book, and the
 // auras land twenty strikes on three enemies where the volley beside them
 // reaches ten. Without a reach row for each half the biggest number on the page
