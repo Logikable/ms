@@ -490,14 +490,17 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
                       FormatPercent(PercentAt(
                           skill, &SkillEffect::final_attack_pct, level))));
   }
-  // The own-clock half's damage, under the swing's own so the two read as one
-  // skill with two ways of hurting things.
-  if (skill.auto_mode().cast_interval_seconds() > 0.0) {
+  // Each own-clock half's damage, under the swing's own so they read as one
+  // skill with several ways of hurting things. Every one names itself, or two
+  // of them would be two rows saying the same word.
+  for (const AutoMode& mode : skill.auto_mode()) {
+    if (mode.cast_interval_seconds() <= 0.0) {
+      continue;
+    }
     rows.push_back(EffectRow(
-        "Turret Damage",
-        SwingText(skill.auto_mode().base().skill_pct() +
-                      skill.auto_mode().per_level().skill_pct() * (level - 1),
-                  skill.auto_mode().lines())));
+        mode.label(), SwingText(mode.base().skill_pct() +
+                                    mode.per_level().skill_pct() * (level - 1),
+                                mode.lines())));
   }
   // The upgraded attack's damage, beside the permanent bonus below it: one
   // skill that strengthens another twice over, so both halves read together.

@@ -204,41 +204,42 @@ bool Swingable(const GameState& state, const Skill& skill,
   return SkillGearMet(state.character, skill);
 }
 
-// A skill's own-clock half, as a skill in its own right, so the same damage
-// chain builds it. It keeps the parent's name because it is one skill to the
-// player -- one row in the book, one SP ladder, one page -- and carries none of
-// the parent's tags: what fires by itself is not the character's swing.
-Skill AutoModeSkill(const Skill& skill) {
-  Skill mode;
-  mode.set_name(skill.name());
-  mode.set_kind(SKILL_KIND_AUTO_ATTACK);
-  *mode.mutable_base() = skill.auto_mode().base();
-  *mode.mutable_per_level() = skill.auto_mode().per_level();
-  mode.set_max_enemies(skill.auto_mode().max_enemies());
-  mode.set_lines(skill.auto_mode().lines());
-  return mode;
+// One of a skill's own-clock halves, as a skill in its own right, so the same
+// damage chain builds it. It keeps the parent's name because it is one skill to
+// the player -- one row in the book, one SP ladder, one page -- and carries
+// none of the parent's tags: what fires by itself is not the character's swing.
+Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {
+  Skill built;
+  built.set_name(skill.name());
+  built.set_kind(SKILL_KIND_AUTO_ATTACK);
+  *built.mutable_base() = mode.base();
+  *built.mutable_per_level() = mode.per_level();
+  built.set_max_enemies(mode.max_enemies());
+  built.set_lines(mode.lines());
+  return built;
 }
 
-// Adds the own-clock half of a skill that has one, beside the swing it already
-// is. Nothing for the skills that have none, which is all of them but one.
-void AddAutoMode(const Character& proto, const EquipStats& equipped,
-                 EquipType weapon_type, const Skill& skill, int level,
-                 const DerivedStats& derived, double speed_factor,
-                 CombatParams& params) {
-  if (skill.auto_mode().cast_interval_seconds() <= 0.0) {
-    return;
+// Adds every own-clock half of a skill that has any, beside the swing it
+// already is. Nothing for the skills that have none, which is most of them.
+void AddAutoModes(const Character& proto, const EquipStats& equipped,
+                  EquipType weapon_type, const Skill& skill, int level,
+                  const DerivedStats& derived, double speed_factor,
+                  CombatParams& params) {
+  for (const AutoMode& mode : skill.auto_mode()) {
+    if (mode.cast_interval_seconds() <= 0.0) {
+      continue;
+    }
+    Skill built = AutoModeSkill(skill, mode);
+    // The stage is not read: what this builds is paced by its own interval, and
+    // nothing firing on its own clock answers to how fast the weapon swings.
+    AttackOption attack =
+        AttackFor(proto, equipped, weapon_type, &built, level, params.types,
+                  derived, kUnscaledAttackSpeedStage, speed_factor);
+    attack.swing_seconds = 0.0;          // not swung, so never charged
+    attack.final_attack_damage.clear();  // Final Attack follows a swing
+    attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
+    params.auto_attacks.push_back(std::move(attack));
   }
-  Skill mode = AutoModeSkill(skill);
-  // The stage is not read: what this builds is paced by its own interval, and
-  // nothing firing on its own clock answers to how fast the weapon swings.
-  AttackOption attack =
-      AttackFor(proto, equipped, weapon_type, &mode, level, params.types,
-                derived, kUnscaledAttackSpeedStage, speed_factor);
-  attack.swing_seconds = 0.0;          // not swung, so never charged
-  attack.final_attack_damage.clear();  // Final Attack follows a swing
-  attack.interval_seconds =
-      skill.auto_mode().cast_interval_seconds() * speed_factor;
-  params.auto_attacks.push_back(std::move(attack));
 }
 
 // A skill's empowered form, as a skill in its own right, so the same damage
@@ -347,8 +348,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
       continue;
     }
-    AddAutoMode(proto, total_stats, weapon_type, skill, learned, off_clock,
-                speed_factor, params);
+    AddAutoModes(proto, total_stats, weapon_type, skill, learned, off_clock,
+                 speed_factor, params);
     AttackOption attack = AttackFor(
         proto, total_stats, weapon_type, &skill, learned, params.types,
         skill.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,

@@ -221,8 +221,10 @@ TEST_F(SkillInspectPanelTest, KeepsASkillsTimingOffThePage) {
   skill.set_base_delay_ms(120);
   skill.set_fixed_delay(true);
   skill.set_hits_per_attack_count(7);
-  skill.mutable_auto_mode()->set_cast_interval_seconds(0.21);
-  skill.mutable_auto_mode()->set_max_enemies(4);
+  AutoMode* mode = skill.add_auto_mode();
+  mode->set_label("Turret Damage");
+  mode->set_cast_interval_seconds(0.21);
+  mode->set_max_enemies(4);
   std::string rendered = RenderAt(skill, 1);
   EXPECT_EQ(rendered.find("0.12"), std::string::npos);
   EXPECT_EQ(rendered.find("0.21"), std::string::npos);
@@ -262,7 +264,8 @@ TEST_F(SkillInspectPanelTest, AnAutoModeStatesItsOwnHalfOfTheSkill) {
   blaster.set_max_enemies(4);
   blaster.set_lines(1);
   blaster.mutable_base()->set_skill_pct(1.24);
-  AutoMode* turret = blaster.mutable_auto_mode();
+  AutoMode* turret = blaster.add_auto_mode();
+  turret->set_label("Turret Damage");
   turret->set_cast_interval_seconds(0.21);
   turret->set_max_enemies(4);
   turret->mutable_base()->set_skill_pct(0.66);

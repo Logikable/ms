@@ -651,6 +651,56 @@ TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
                    12.0 * GameSpeedFactor(state.character.proto().level()));
 }
 
+// Revenge of the Evil Eye's shape: one skill that fires on its own clock AND
+// carries two more clocks behind it, each reaching a different number of
+// enemies -- which is why they cannot be folded into one attack.
+TEST(ComputeCombatParamsTest, ASkillCanCarrySeveralOwnClockHalves) {
+  Skill revenge;
+  revenge.set_name("Revenge of the Evil Eye");
+  revenge.set_kind(SKILL_KIND_AUTO_ATTACK);
+  revenge.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  revenge.set_max_level(30);
+  revenge.set_max_enemies(10);
+  revenge.set_cast_interval_seconds(5.0);
+  revenge.mutable_base()->set_skill_pct(1.35);
+  AutoMode* shock = revenge.add_auto_mode();
+  shock->set_label("Evil Eye Shock III");
+  shock->set_cast_interval_seconds(10.0);
+  shock->set_max_enemies(10);
+  shock->mutable_base()->set_skill_pct(3.40);
+  AutoMode* auras = revenge.add_auto_mode();
+  auras->set_label("Dark Auras");
+  auras->set_cast_interval_seconds(10.0);
+  auras->set_max_enemies(3);
+  auras->mutable_base()->set_skill_pct(2.20);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"revenge", revenge}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(revenge, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_EQ(params.attacks.size(), 1u);  // the bare poke, and nothing else
+  ASSERT_EQ(params.auto_attacks.size(), 3u);
+  // The two halves are built first, then the skill's own clock behind them.
+  // Each keeps its own reach and its own period.
+  double factor = GameSpeedFactor(state.character.proto().level());
+  EXPECT_EQ(params.auto_attacks[0].max_enemies, 10);
+  EXPECT_EQ(params.auto_attacks[1].max_enemies, 3);
+  EXPECT_EQ(params.auto_attacks[2].max_enemies, 10);
+  EXPECT_DOUBLE_EQ(params.auto_attacks[0].interval_seconds, 10.0 * factor);
+  EXPECT_DOUBLE_EQ(params.auto_attacks[1].interval_seconds, 10.0 * factor);
+  EXPECT_DOUBLE_EQ(params.auto_attacks[2].interval_seconds, 5.0 * factor);
+  // 340%, then 220%, then the skill's own 135%: each is hitting for its own
+  // damage rather than for the parent's.
+  EXPECT_GT(params.auto_attacks[0].damage_per_hit[0],
+            params.auto_attacks[1].damage_per_hit[0]);
+  EXPECT_GT(params.auto_attacks[1].damage_per_hit[0],
+            params.auto_attacks[2].damage_per_hit[0]);
+}
+
 // The Thunder Sphere case. Beam Blade's normal-monster lever was written for a
 // swing, and the orb that carries it now is not one -- so the thing to check is
 // that a summon reaches the lever at all.

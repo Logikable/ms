@@ -20,6 +20,7 @@ hits_per_attack_count: 7
 base { skill_pct: 1.24 }
 per_level { skill_pct: 0.03 }
 auto_mode {
+  label: "Turret Damage"
   cast_interval_seconds: 0.21
   max_enemies: 4
   base { skill_pct: 0.66 }

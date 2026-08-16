@@ -289,10 +289,17 @@ message SkillEffect {
 // behind firing by itself. Two skills sharing a display name would cost one SP
 // ladder and list as two rows; this is one row, one ladder, one page.
 //
+// A skill may carry several. Revenge of the Evil Eye is the case for that:
+// its Evil Eye Shock III lands a volley and then four auras behind it, which
+// reach different numbers of enemies and so cannot be one attack.
+//
 // Read at the same learned level as the skill carrying it.
 message AutoMode {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
+  // What the skill page calls this half. A skill with two of them has two
+  // rows, and "Turret Damage" twice would say nothing about either.
+  string label = 6;
   // Seconds between its casts, exactly as Skill.cast_interval_seconds. Never
   // scaled by attack speed -- nothing on its own clock is.
   double cast_interval_seconds = 3;
@@ -498,7 +505,7 @@ message Skill {
   string boosts_skill_name = 103;
   // The Ranger's. What this skill also does on its own clock, beside being the
   // swing it already is. See AutoMode.
-  AutoMode auto_mode = 104;
+  repeated AutoMode auto_mode = 104;
   // The Sniper's. The bigger swing this skill puts in the place of every Nth
   // swing of the one boosts_skill_name names. See EmpoweredForm.
   EmpoweredForm empowered_form = 105;
