@@ -1,17 +1,14 @@
-# The wound's chance and its damage fold into one figure the way a Final
-# Attack's do: a 40 + 2L% chance of 75 + 3L% every two seconds is what one tick
-# is worth. Its 45-60 second stretch is dropped -- against a two-second tick it
-# stands on anything still alive.
+# The wound is a buff the swing lays: what leaves one is puncturing something,
+# so it stands for a stretch and the fight spends a swing going back for it
+# when it lapses. Both halves of it wait on that -- the damage a wounded enemy
+# takes, and the pulse that ticks on them.
 #
-# The extra damage a wounded enemy takes lands on the character rather than on
-# the enemies carrying the wound. That is Chance Attack's liberty in mirror
-# image: that skill pays only against a pierced enemy and nothing here pierces,
-# and this pays only against a wounded one and a Hero wounds everything.
+# The tick's chance and its damage fold into one figure the way a Final
+# Attack's do: a 40 + 2L% chance of 75 + 3L% every two seconds is what one is
+# worth.
 #
-# The wound ticks whether or not this is the swing the fight settled on, which
-# reads as the Hero opening with it and then holding Raging Blow -- the way the
-# job is played. So the swing below is the one a Hero rarely spends: what this
-# skill is really worth to them is the wound and the damage it opens up.
+# So the swing itself is one a Hero rarely spends -- Raging Blow lands harder
+# once the wound is up -- which is the shape GMS has: puncture, then hold.
 name: "Puncture"
 skill_order: 2
 description:
@@ -32,11 +29,13 @@ required_skill {
 base {
   skill_pct: 3.13
   normal_skill_pct: 0.50
-  damage_pct: 0.11
 }
-per_level {
-  skill_pct: 0.03
-  damage_pct: 0.00483
+per_level { skill_pct: 0.03 }
+buff {
+  duration_seconds: 45.0
+  duration_seconds_per_level: 0.51724
+  base { damage_pct: 0.11 }
+  per_level { damage_pct: 0.00483 }
 }
 auto_mode {
   label: "Wound"

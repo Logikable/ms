@@ -328,30 +328,10 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
 // What the summons and the triggered attacks add, per second at 1x. They land
 // beside the swing rather than instead of it, so none of this competes with
 // the swing damage for the clock.
-double OffClockDps(const CombatParams& params, const AttackOption& best,
-                   double speed, double swing_seconds) {
-  double dps = 0.0;
-  // A pulse with an empowered form lands it once in every N, so what the summon
-  // is worth per pulse is the average of the two -- the same reading
-  // CombatSim::SwingDamage takes of a swing that has one.
-  for (const AttackOption& extra : params.auto_attacks) {
-    if (extra.damage_per_hit.empty() || extra.interval_seconds <= 0.0) {
-      continue;
-    }
-    double per_pulse = extra.damage_per_hit[0];
-    if (extra.empowered != nullptr && extra.empowered_every > 0 &&
-        !extra.empowered->damage_per_hit.empty()) {
-      // Marking, the form rides the pulse that set it off rather than standing
-      // in for one. No summon marks today, but the two readings differ and the
-      // averaging has to pick the right one.
-      per_pulse +=
-          extra.brands_enemies
-              ? extra.empowered->damage_per_hit[0] / extra.empowered_every
-              : (extra.empowered->damage_per_hit[0] - per_pulse) /
-                    extra.empowered_every;
-    }
-    dps += per_pulse / (extra.interval_seconds / speed);
-  }
+double OffClockDps(const CombatParams& params, const Sequence& played,
+                   const AttackOption& best, double speed,
+                   double swing_seconds) {
+  double dps = OffClockRate(params, played, speed);
   // How often a triggered attack goes off depends on the swing feeding it: a
   // rapid attack counting a seventh apiece is worth no more of these than a
   // slow one counting a whole attack.
@@ -418,7 +398,7 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // part-charged swing the horizon cuts off costs nothing. A cooldown skill is
   // worth exactly the share of the swings it actually gets. Scaled back to 1x.
   result.dps = played.damage * speed / played.seconds;
-  result.dps += OffClockDps(params, *best, speed, result.swing_seconds);
+  result.dps += OffClockDps(params, played, *best, speed, result.swing_seconds);
   return result;
 }
 

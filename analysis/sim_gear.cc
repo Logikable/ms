@@ -163,12 +163,7 @@ double MeasureRate(GameState& state) {
   CombatParams params = ComputeCombatParams(state);
   Sequence played = PlaySwings(params, kTryoutSeconds);
   double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
-  for (const AttackOption& extra : params.auto_attacks) {
-    if (!extra.damage_per_hit.empty() && extra.interval_seconds > 0.0) {
-      rate += extra.damage_per_hit[0] / extra.interval_seconds;
-    }
-  }
-  return rate;
+  return rate + OffClockRate(params, played, 1.0);
 }
 
 }  // namespace
@@ -193,46 +188,125 @@ double SoloDamage(const AttackOption& attack) {
   return damage;
 }
 
+namespace {
+
+// The buff clocks a run of swings carries, mirroring CombatSim's: seconds each
+// buff has left standing, seconds until it can go up again, and which of them
+// are up right now as the mask CombatParams indexes its tables by.
+struct BuffClocks {
+  std::vector<double> left;
+  std::vector<double> cooldown;
+  std::vector<double> standing;  // seconds each has spent up over the run
+  int mask = 0;
+};
+
+// Winds every buff's clocks on by one step and puts up any that has come round
+// on its own. A buff its own swing lays is left alone here -- see LayBuff.
+void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
+  c.left.resize(params.buffs.size(), 0.0);
+  c.cooldown.resize(params.buffs.size(), 0.0);
+  c.standing.resize(params.buffs.size(), 0.0);
+  c.mask = 0;
+  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+    const BuffOption& buff = params.buffs[i];
+    c.left[i] = std::max(0.0, c.left[i] - step);
+    c.cooldown[i] = std::max(0.0, c.cooldown[i] - step);
+    if (buff.laid_by_attack < 0 && c.left[i] <= 0.0 && c.cooldown[i] <= 0.0 &&
+        buff.duration_seconds > 0.0) {
+      c.left[i] = buff.duration_seconds;
+      c.cooldown[i] = buff.cooldown_seconds;
+    }
+    if (c.left[i] > 0.0) {
+      c.mask |= 1 << i;
+      c.standing[i] += step;
+    }
+  }
+}
+
+// Puts up every buff the swing at `swung` lays.
+void LayBuff(const CombatParams& params, int swung, BuffClocks& c) {
+  for (int i = 0; i < static_cast<int>(c.left.size()); ++i) {
+    if (params.buffs[i].laid_by_attack == swung) {
+      c.left[i] = params.buffs[i].duration_seconds;
+      c.cooldown[i] = params.buffs[i].cooldown_seconds;
+    }
+  }
+}
+
+// The swing that lays a lapsed buff, ahead of the hardest one on offer -- the
+// same rule CombatSim::BuffToLay follows, and for the same reason.
+int SwingToLay(const CombatParams& params, const BuffClocks& c,
+               const std::vector<double>& cooldown) {
+  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+    const BuffOption& buff = params.buffs[i];
+    if (buff.laid_by_attack < 0 || buff.duration_seconds <= 0.0 ||
+        c.left[i] > 0.0 || cooldown[buff.laid_by_attack] > 0.0) {
+      continue;
+    }
+    return buff.laid_by_attack;
+  }
+  return -1;
+}
+
+// The swing landing the most per second of the ones off cooldown, or -1 when
+// none is. A cast is not among them: it deals no damage.
+int BestSwing(const std::vector<AttackOption>& attacks,
+              const std::vector<double>& cooldown) {
+  int pick = -1;
+  double best_rate = -1.0;
+  for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
+    const AttackOption& attack = attacks[i];
+    if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0 ||
+        attack.heal_fraction > 0.0) {
+      continue;
+    }
+    double rate = SoloDamage(attack) / attack.swing_seconds;
+    if (rate > best_rate) {
+      best_rate = rate;
+      pick = i;
+    }
+  }
+  return pick;
+}
+
+}  // namespace
+
 Sequence PlaySwings(const CombatParams& params, double horizon) {
   constexpr double kStep = 0.01;
   std::vector<double> cooldown(params.attacks.size(), 0.0);
   std::vector<int> swings(params.attacks.size(), 0);
+  BuffClocks clocks;
   Sequence played;
   double phase = 0.0;
   int pick = -1;  // the swing being wound up, held until it lands
   for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
+    RunBuffClocks(params, kStep, clocks);
     for (double& left : cooldown) {
       left = std::max(0.0, left - kStep);
     }
     // Index 0 is the bare poke, which is never committed to.
     if (pick <= 0) {
-      pick = -1;
-      double best_rate = -1.0;
-      for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
-        const AttackOption& attack = params.attacks[i];
-        if (attack.swing_seconds <= 0.0 || cooldown[i] > 0.0 ||
-            attack.heal_fraction > 0.0) {
-          continue;  // a cast is not one of the swings being compared
-        }
-        double rate = SoloDamage(attack) / attack.swing_seconds;
-        if (rate > best_rate) {
-          best_rate = rate;
-          pick = i;
-        }
+      pick = SwingToLay(params, clocks, cooldown);
+      if (pick < 0) {
+        pick = BestSwing(params.Attacks(clocks.mask), cooldown);
       }
     }
     if (pick < 0) {
       break;
     }
+    // Read off the table for the buffs standing now: the same swing is worth
+    // more under a buff, and which one it is was settled when it was aimed.
+    const AttackOption& swung = params.Attacks(clocks.mask)[pick];
     phase += kStep;
-    if (phase < params.attacks[pick].swing_seconds) {
+    if (phase < swung.swing_seconds) {
       continue;
     }
-    phase -= params.attacks[pick].swing_seconds;
-    played.damage += SoloDamage(params.attacks[pick]);
-    played.seconds += params.attacks[pick].swing_seconds;
+    phase -= swung.swing_seconds;
+    played.damage += SoloDamage(swung);
+    played.seconds += swung.swing_seconds;
     ++swings[pick];
-    cooldown[pick] = params.attacks[pick].cooldown_seconds;
+    cooldown[pick] = swung.cooldown_seconds;
+    LayBuff(params, pick, clocks);
     pick = -1;
   }
   for (int i = 0; i < static_cast<int>(swings.size()); ++i) {
@@ -240,7 +314,43 @@ Sequence PlaySwings(const CombatParams& params, double horizon) {
       played.main_attack = i;
     }
   }
+  for (double standing : clocks.standing) {
+    played.buff_uptime.push_back(horizon > 0.0 ? standing / horizon : 0.0);
+  }
   return played;
+}
+
+double OffClockRate(const CombatParams& params, const Sequence& played,
+                    double speed) {
+  double rate = 0.0;
+  for (int i = 0; i < static_cast<int>(params.auto_attacks.size()); ++i) {
+    int gate = params.auto_attacks[i].needs_buff;
+    // Priced where it fires: a gated pulse off the table with its own buff up,
+    // an ungated one off the character as they stand.
+    const AttackOption& extra =
+        gate >= 0 ? params.AutoAttacks(1 << gate)[i] : params.auto_attacks[i];
+    if (extra.damage_per_hit.empty() || extra.interval_seconds <= 0.0) {
+      continue;
+    }
+    double per_pulse = extra.damage_per_hit[0];
+    if (extra.empowered != nullptr && extra.empowered_every > 0 &&
+        !extra.empowered->damage_per_hit.empty()) {
+      // Marking, the form rides the pulse that set it off rather than standing
+      // in for one. No summon marks today, but the two readings differ and the
+      // averaging has to pick the right one.
+      per_pulse +=
+          extra.brands_enemies
+              ? extra.empowered->damage_per_hit[0] / extra.empowered_every
+              : (extra.empowered->damage_per_hit[0] - per_pulse) /
+                    extra.empowered_every;
+    }
+    double share =
+        gate >= 0 && gate < static_cast<int>(played.buff_uptime.size())
+            ? played.buff_uptime[gate]
+            : 1.0;
+    rate += share * per_pulse / (extra.interval_seconds / speed);
+  }
+  return rate;
 }
 
 bool EquipByName(CharacterInstance& character, const std::string& name) {

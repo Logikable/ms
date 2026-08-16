@@ -10,6 +10,7 @@
 #define MS_ANALYSIS_SIM_GEAR_H_
 
 #include <string>
+#include <vector>
 
 #include "src/character/character.h"
 #include "src/combat/encounter.h"
@@ -28,16 +29,33 @@ struct Sequence {
   double damage = 0.0;
   double seconds = 0.0;  // time the swings that landed actually took
   int main_attack = -1;  // index of the one swung most often
+  // Share of the run each of the character's buffs spent standing, parallel to
+  // CombatParams::buffs. What a pulse gated on one is worth is its own damage
+  // times this -- see AttackOption::needs_buff.
+  std::vector<double> buff_uptime;
 };
 
 // Plays out the swings the fight would actually make against a lone mob, at
 // the same step and by the same rule as CombatSim: the best rate available,
-// with a recharging skill absent from the choice until it comes back.
+// with a recharging skill absent from the choice until it comes back, and the
+// timed buffs running beside it -- a swing lands for what it is worth under
+// whichever of them happen to be standing.
 //
 // A closed form cannot answer this once a cooldown exists -- what the skill is
 // worth depends on what gets swung while it recharges, and on how much of a
-// charge is already wound up when it returns.
+// charge is already wound up when it returns. The buffs are the same problem
+// again: a buff worth 25% that stands for half the run is not worth 12.5% of
+// every swing, it is worth all of it to half of them.
 Sequence PlaySwings(const CombatParams& params, double horizon);
+
+// What the character's summons and pulses add per second, at `speed` (1.0 for
+// the game-scaled figure, the speed factor to back the scaling out).
+//
+// A pulse gated on a buff is worth its own damage times the share of the run
+// that buff stood, and is priced off the table where it does stand -- it hits
+// harder there, which is the point of the buff it waits for.
+double OffClockRate(const CombatParams& params, const Sequence& played,
+                    double speed);
 
 // The name of the character's weapon, "-" for empty hands.
 std::string HeldWeaponName(const CharacterInstance& character);
