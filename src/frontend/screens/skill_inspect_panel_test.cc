@@ -229,9 +229,9 @@ TEST_F(SkillInspectPanelTest, KeepsWhatTheWeaponMovesOffThePage) {
   std::string rendered = RenderAt(skill, 1);
   EXPECT_EQ(rendered.find("0.66"), std::string::npos);
   EXPECT_EQ(rendered.find("Counts As"), std::string::npos);
-  EXPECT_EQ(rendered.find("Turret Enemies"), std::string::npos);
   // The turret's own rate is stated: nothing the player holds moves it.
-  EXPECT_NE(rendered.find("Turret (0.21s)"), std::string::npos);
+  EXPECT_NE(rendered.find("Turret            4 enemies every 0.21s"),
+            std::string::npos);
 }
 
 // The one clock the player sets themselves, and the only one the page states.
@@ -274,8 +274,8 @@ TEST_F(SkillInspectPanelTest, AnAutoModeStatesItsOwnHalfOfTheSkill) {
 
   std::string rendered = RenderAt(blaster, 1);
   EXPECT_NE(rendered.find("Damage            124%"), std::string::npos);
-  // The turret's own clock rides its name rather than holding a row.
-  EXPECT_NE(rendered.find("Turret (0.21s)    66%"), std::string::npos);
+  // Its damage sits under the swing's, named as its reach row above names it.
+  EXPECT_NE(rendered.find("Turret            66%"), std::string::npos);
   // A skill without one says nothing about a turret.
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Turret"), std::string::npos);
 }
@@ -315,6 +315,39 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
   EXPECT_NE(RenderAt(sphere, 1).find("Attacks           1 enemy every 2s"),
             std::string::npos);
   EXPECT_NE(RenderAt(MakeLuckySeven(), 1).find("Enemies Hit       5"),
+            std::string::npos);
+}
+
+// Revenge of the Evil Eye: three attacks out of one row in the book, and the
+// auras land twenty strikes on three enemies where the volley beside them
+// reaches ten. Without a reach row for each half the biggest number on the page
+// is the one that lands on the fewest enemies, and nothing says so.
+TEST_F(SkillInspectPanelTest, EachHalfStatesTheReachItHasRatherThanTheSkills) {
+  Skill revenge = MakeLuckySeven();
+  revenge.set_kind(SKILL_KIND_AUTO_ATTACK);
+  revenge.set_max_enemies(10);
+  revenge.set_cast_interval_seconds(5.0);
+  AutoMode* volley = revenge.add_auto_mode();
+  volley->set_label("Shock III");
+  volley->set_cast_interval_seconds(10.0);
+  volley->set_max_enemies(10);
+  volley->set_lines(7);
+  volley->mutable_base()->set_skill_pct(3.40);
+  AutoMode* auras = revenge.add_auto_mode();
+  auras->set_label("Dark Auras");
+  auras->set_cast_interval_seconds(10.0);
+  auras->set_max_enemies(3);
+  auras->set_lines(20);
+  auras->mutable_base()->set_skill_pct(2.20);
+
+  std::string rendered = RenderAt(revenge, 1);
+  EXPECT_NE(rendered.find("Attacks           10 enemies every 5s"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Shock III         10 enemies every 10s"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Dark Auras        3 enemies every 10s"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Dark Auras        220% x20 = 4400%"),
             std::string::npos);
 }
 

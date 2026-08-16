@@ -271,6 +271,15 @@ std::string FormatNumber(double value, int decimals = 1) {
   return s;
 }
 
+// How far one attack reaches and how often it comes. The skill's own swing and
+// each of its own-clock halves say it in these same words, so two halves that
+// reach differently can be told apart at a glance.
+std::string ReachText(int enemies, double clock) {
+  return std::to_string(enemies) +
+         (enemies == 1 ? " enemy every " : " enemies every ") +
+         FormatNumber(clock, 2) + "s";
+}
+
 // The rows that hold at every level: what the skill asks for and how far a
 // swing reaches. A skill with none of them gets no block at all.
 //
@@ -293,13 +302,22 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     clock = skill.base_delay_ms() / 1000.0;
   }
   if (clock > 0.0) {
-    rows.push_back(EffectRow(
-        "Attacks", std::to_string(enemies) +
-                       (enemies == 1 ? " enemy every " : " enemies every ") +
-                       FormatNumber(clock, 2) + "s"));
+    rows.push_back(EffectRow("Attacks", ReachText(enemies, clock)));
   } else if (skill.max_enemies() > 1) {
     rows.push_back(
         EffectRow("Enemies Hit", std::to_string(skill.max_enemies())));
+  }
+  // Each own-clock half states its own reach beside the swing's. Revenge of the
+  // Evil Eye is why: its auras land 20 strikes on 3 enemies where the volley
+  // fired with them reaches 10, and the damage rows alone would read as one
+  // number simply being twice the other.
+  for (const AutoMode& mode : skill.auto_mode()) {
+    if (mode.cast_interval_seconds() <= 0.0) {
+      continue;
+    }
+    rows.push_back(
+        EffectRow(mode.label(), ReachText(std::max(1, mode.max_enemies()),
+                                          mode.cast_interval_seconds())));
   }
   if (skill.combo_orbs() > 0) {
     rows.push_back(EffectRow("Combo Orbs", std::to_string(skill.combo_orbs())));
@@ -525,18 +543,16 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
                           skill, &SkillEffect::final_attack_pct, level))));
   }
   // Each own-clock half's damage, under the swing's own so they read as one
-  // skill with several ways of hurting things. Every one names itself, or two
-  // of them would be two rows saying the same word.
+  // skill with several ways of hurting things. Every one names itself, under
+  // the same name its reach row above carries.
   for (const AutoMode& mode : skill.auto_mode()) {
     if (mode.cast_interval_seconds() <= 0.0) {
       continue;
     }
-    rows.push_back(
-        EffectRow(mode.label() + " (" +
-                      FormatNumber(mode.cast_interval_seconds(), 2) + "s)",
-                  SwingText(mode.base().skill_pct() +
-                                mode.per_level().skill_pct() * (level - 1),
-                            mode.lines())));
+    rows.push_back(EffectRow(
+        mode.label(), SwingText(mode.base().skill_pct() +
+                                    mode.per_level().skill_pct() * (level - 1),
+                                mode.lines())));
   }
   // The upgraded attack's damage, beside the permanent bonus below it: one
   // skill that strengthens another twice over, so both halves read together.

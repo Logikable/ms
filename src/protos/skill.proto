@@ -297,12 +297,15 @@ message SkillEffect {
 message AutoMode {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
-  // What the skill page calls this half. A skill with two of them has two
-  // rows, and "Turret Damage" twice would say nothing about either.
+  // What the skill page calls this half, in both the row stating its reach and
+  // the row stating its damage. Two halves sharing a label would say nothing
+  // about either, so keep them short and distinct.
   string label = 6;
   // Seconds between its casts, exactly as Skill.cast_interval_seconds. Never
   // scaled by attack speed -- nothing on its own clock is.
   double cast_interval_seconds = 3;
+  // How many enemies it reaches, which is its own and not the skill's: the
+  // Evil Eye's auras cover 3 where the volley fired with them covers 10.
   int32 max_enemies = 4;
   int32 lines = 5;
 }
