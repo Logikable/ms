@@ -132,6 +132,11 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
           hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
       extra.normal_skill_pct = hit.base().normal_skill_pct() +
                                hit.per_level().normal_skill_pct() * (level - 1);
+      // A hit that crits harder than the rest of the swing. Added to what the
+      // character brought rather than replacing it, so 1.00 is certainty
+      // whatever they have bought -- see SwingHit.
+      extra.crit_rate +=
+          hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
       extra.lines = std::max(1, hit.lines());
       // The shadow copies it as it copies the rest of the swing. Reset here
       // because the line count just changed under it.

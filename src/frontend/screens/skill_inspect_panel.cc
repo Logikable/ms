@@ -567,7 +567,21 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   for (const SwingHit& hit : skill.extra_hit()) {
     double per_hit =
         hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
-    rows.push_back(EffectRow(hit.label(), SwingText(per_hit, hit.lines())));
+    // A hit that crits more often says so on its own damage row: it is a fact
+    // about this damage rather than a lever of the character's, and a row of
+    // its own would read as one. Wrapped, since the note is the one thing that
+    // can push a damage row past its column.
+    std::string text = SwingText(per_hit, hit.lines());
+    double crit =
+        hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
+    if (crit >= 1.0) {
+      text += " (crit)";
+    } else if (crit > 0.0) {
+      text += " (" + FormatPercent(crit) + " crit)";
+    }
+    for (ftxui::Element& row : WrappedEffectRows(hit.label(), text)) {
+      rows.push_back(std::move(row));
+    }
     double bonus = hit.base().normal_skill_pct() +
                    hit.per_level().normal_skill_pct() * (level - 1);
     if (bonus > 0.0) {

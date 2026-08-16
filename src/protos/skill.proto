@@ -361,6 +361,14 @@ message Buff {
 // of the swing's riders either -- a Final Attack rolls once for the swing, not
 // once per hit in it, and a shadow copies the swing it was already copying.
 //
+// Beside its own multiplier, a hit may crit more often than the rest of the
+// swing: `crit_rate` here is ADDED to the character's own for this hit alone.
+// GMS only ever states it as certainty -- Raging Blow's "the final two attacks
+// are criticals" -- which is a rate of 1.00, and the damage chain already
+// holds the total at 1.00 so nothing special has to happen for it. The
+// character's critical DAMAGE is untouched: a certain crit is still worth what
+// their crits are worth.
+//
 // Read at the same learned level as the skill carrying it.
 message SwingHit {
   SkillEffect base = 1;

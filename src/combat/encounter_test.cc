@@ -834,6 +834,49 @@ TEST(ComputeCombatParamsTest, ASwingCanLandTwoHitsPricedSeparately) {
                    31.0 * poke);
 }
 
+// Raging Blow's shape: four strikes of which the final two always crit. The
+// two halves are the same multiplier, so the whole of the difference between
+// them is the certainty -- which is what makes it worth telling them apart.
+TEST(ComputeCombatParamsTest, AHalfOfASwingCanBeCertainToCrit) {
+  Skill blow;
+  blow.set_name("Raging Blow");
+  blow.set_kind(SKILL_KIND_ATTACK);
+  blow.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  blow.set_max_level(30);
+  blow.set_max_enemies(8);
+  blow.set_lines(2);
+  blow.mutable_base()->set_skill_pct(2.00);
+  SwingHit* certain = blow.add_extra_hit();
+  certain->set_label("Critical Hits");
+  certain->set_lines(2);
+  certain->mutable_base()->set_skill_pct(2.00);
+  certain->mutable_base()->set_crit_rate(1.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"raging_blow", blow}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(blow, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  // Four poke-fuls from the ordinary half, and four more from the certain one
+  // lifted by the whole of a crit rather than by the base 5% chance of one.
+  double poke = params.attacks[0].damage_per_hit[0];
+  double plain = 1.0 + kBaseCritRate * kBaseCritDamage;
+  double certainly = 1.0 + kBaseCritDamage;
+  EXPECT_NEAR(params.attacks[1].damage_per_hit[0],
+              poke * (4.0 + 4.0 * certainly / plain), 1e-6);
+
+  // The same swing with the certainty struck out is eight plain poke-fuls,
+  // which is the claim the line above is really making.
+  blow.mutable_extra_hit(0)->mutable_base()->clear_crit_rate();
+  state.skills["raging_blow"] = blow;
+  EXPECT_NEAR(ComputeCombatParams(state).attacks[1].damage_per_hit[0],
+              poke * 8.0, 1e-6);
+}
+
 // Greater Vessel of Light's shape: one passive that hands a strike to two
 // attacks and widens one of them. The grant is folded into the target before
 // its attack is built, so the damage the fight sees is already carrying it.

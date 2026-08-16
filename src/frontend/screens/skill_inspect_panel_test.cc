@@ -390,6 +390,19 @@ TEST_F(SkillInspectPanelTest, StatesEachHitOfASwingThatLandsTwo) {
             std::string::npos);
   // The hammer carries no such bonus, so it gets no such row.
   EXPECT_EQ(rendered.find("Normal Monsters"), std::string::npos);
+
+  // A hit certain to crit says so on the same row, since the two halves of
+  // Raging Blow are otherwise the same number printed twice.
+  mark.mutable_extra_hit(0)->mutable_base()->set_crit_rate(1.00);
+  EXPECT_NE(RenderAt(mark, 1).find("Explosion         290% x5 = 1450% (crit)"),
+            std::string::npos);
+  // A rate short of certainty prints the rate, and is the one thing that can
+  // push a damage row past its column -- so it wraps rather than overhanging.
+  mark.mutable_extra_hit(0)->mutable_base()->set_crit_rate(0.20);
+  std::string wrapped = RenderAt(mark, 1);
+  EXPECT_NE(wrapped.find("Explosion         290% x5 = 1450% (20%"),
+            std::string::npos);
+  EXPECT_NE(wrapped.find("                  crit)"), std::string::npos);
 }
 
 // What a skill hands another that is not damage reads as the same sentence the
