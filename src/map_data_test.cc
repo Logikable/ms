@@ -144,6 +144,48 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsItsShareOfTheFrozenSet) {
   EXPECT_GT(checked, 0) << "no mob in the catalog drops the set";
 }
 
+// The Frozen tokens buy the last two pieces of the same set, so they drop on
+// the same shape of rule: 1/4,000 through the band the weapons are worn in,
+// and 1/10,000 from every mob above it. There is no top -- until a later tier
+// of gear has a token of its own, a player who farms upward would otherwise
+// find the shelf quietly switched off behind them.
+TEST(MapDataTest, EveryMobAbove100DropsBothFrozenTokens) {
+  constexpr int kBandLow = 101;
+  constexpr int kBandHigh = 120;
+  constexpr double kInBand = 0.00025;
+  constexpr double kTrickle = 0.0001;
+  const char* kTokens[] = {"frozen_weapon_token", "frozen_secondary_token"};
+
+  int checked = 0;
+  for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
+    int level = entry.second.level();
+    std::map<std::string, double> rates;
+    for (const MobDrop& drop : entry.second.drops()) {
+      if (!drop.item().empty()) {
+        rates[drop.item()] = drop.per_kill();
+      }
+    }
+    double expected = 0.0;
+    if (level >= kBandLow) {
+      expected = level <= kBandHigh ? kInBand : kTrickle;
+    }
+    for (const char* token : kTokens) {
+      if (expected == 0.0) {
+        EXPECT_EQ(rates.count(token), 0u)
+            << entry.first << " (Lv" << level << ") drops " << token
+            << ", which belongs to mobs " << kBandLow << " and up";
+        continue;
+      }
+      ++checked;
+      ASSERT_EQ(rates.count(token), 1u)
+          << entry.first << " (Lv" << level << ") does not drop " << token;
+      EXPECT_DOUBLE_EQ(rates[token], expected)
+          << entry.first << " drops " << token << " at the wrong rate";
+    }
+  }
+  EXPECT_GT(checked, 0) << "no mob in the catalog drops a token";
+}
+
 // An Etc drop is worth picking up only for what it sells for, and a price of
 // zero also disables the Sell menu entry -- so the drop would be litter.
 //
@@ -160,6 +202,9 @@ TEST(MapDataTest, EveryEtcDropIsWorthSomething) {
           items.find(drop.item());
       if (it == items.end() || it->second.category() != ITEM_CATEGORY_ETC) {
         continue;  // a missing item is covered above; a Use drop has a use
+      }
+      if (!it->second.currency_mark().empty()) {
+        continue;  // a token buys gear, so it is not litter at any price
       }
       EXPECT_GT(it->second.sell_price(), 0)
           << drop.item() << ", off " << entry.first << ", sells for nothing";

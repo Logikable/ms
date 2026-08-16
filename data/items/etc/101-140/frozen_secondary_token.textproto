@@ -1,0 +1,7 @@
+name: "Frozen Secondary Token"
+category: ITEM_CATEGORY_ETC
+description:
+  "A shard of everlasting ice, warm to hold. The shop trades one for any "
+  "Frozen secondary."
+currency_mark: "●"
+currency_color: CURRENCY_COLOR_AMBER

@@ -4,3 +4,5 @@ attack: 3025
 max_hp: 1134300
 exp: 7594
 drops { item: "red_cloth" per_kill: 0.4 }
+drops { item: "frozen_weapon_token" per_kill: 0.0001 }
+drops { item: "frozen_secondary_token" per_kill: 0.0001 }

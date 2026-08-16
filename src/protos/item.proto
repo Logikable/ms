@@ -19,6 +19,15 @@ enum ItemEffect {
   ITEM_EFFECT_LEVEL_UP = 1;
 }
 
+// The colour of a currency item's mark. The mark's SHAPE says which stage of
+// the game the token belongs to, and its colour which piece it buys, so a
+// player reads both off one glyph without a legend.
+enum CurrencyColor {
+  CURRENCY_COLOR_UNSPECIFIED = 0;
+  CURRENCY_COLOR_ICE_BLUE = 1;
+  CURRENCY_COLOR_AMBER = 2;
+}
+
 // Static definition of a stackable item type. Loaded from data/items textprotos
 // at startup; shared read-only across all stacks of the same type.
 message ItemPrototype {
@@ -38,4 +47,8 @@ message ItemPrototype {
   // Meso one copy costs in the shop. 0 = not stocked. Naming a price here is
   // the whole of how a stackable joins the shop, exactly as it is for equips.
   int32 shop_price = 7;
+  // The mark the shop draws where a price is paid in this item, e.g. "●".
+  // Empty for an ordinary item, which no price is ever asked in.
+  string currency_mark = 8;
+  CurrencyColor currency_color = 9;
 }

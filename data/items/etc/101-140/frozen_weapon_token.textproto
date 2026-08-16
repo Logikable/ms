@@ -1,0 +1,9 @@
+# A currency rather than litter: it sells for nothing, and the shop asks for it
+# by the mark below instead of by meso.
+name: "Frozen Weapon Token"
+category: ITEM_CATEGORY_ETC
+description:
+  "A shard of everlasting ice, cold to hold. The shop trades one for any "
+  "Frozen weapon."
+currency_mark: "●"
+currency_color: CURRENCY_COLOR_ICE_BLUE
