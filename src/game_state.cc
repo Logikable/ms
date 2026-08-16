@@ -102,6 +102,8 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     // buys rather than the last one meso reaches.
     case JOB_DARK_KNIGHT:
       return {"frozen_spear", "frozen_chain"};
+    case JOB_PALADIN:
+      return {"frozen_maul", "frozen_rosary"};
     case JOB_CRUSADER:
       return {"tavar", "virtues_medallion"};
     case JOB_WHITE_KNIGHT:

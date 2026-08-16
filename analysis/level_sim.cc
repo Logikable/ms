@@ -160,6 +160,8 @@ std::string BranchName(Job job) {
       return "Chief Bandit";
     case JOB_DARK_KNIGHT:
       return "Dark Knight";
+    case JOB_PALADIN:
+      return "Paladin";
     default:
       return "?";
   }
@@ -548,6 +550,7 @@ void Run() {
       JOB_HERMIT,
       JOB_CHIEF_BANDIT,
       JOB_DARK_KNIGHT,
+      JOB_PALADIN,
   };
   std::vector<Job> branches = BranchesToClimb(
       kEveryBranch, static_cast<int>(sizeof(kEveryBranch) / sizeof(Job)));

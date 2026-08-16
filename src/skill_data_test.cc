@@ -413,6 +413,11 @@ TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
 // A skill that wants a sword wants a sword in either hand, and the same goes
 // for an axe -- naming only the half with items today is a skill that quietly
 // stops working the day the other half gets one.
+//
+// The DEMAND only. A weapon bonus is the opposite thing: it exists to pay one
+// weapon and not another, and High Paladin's whole shape is a different bonus
+// per hand. Its one-handed rows are dropped because this game ships no shield
+// to fill the other hand, which is a decision rather than an oversight.
 TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   const std::pair<EquipType, EquipType> kPairs[] = {
       {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD},
@@ -420,12 +425,11 @@ TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
       {EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_TWO_HANDED_BLUNT},
   };
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    for (const std::set<EquipType>& demanded : WeaponLists(entry.second)) {
-      for (const std::pair<EquipType, EquipType>& pair : kPairs) {
-        EXPECT_EQ(demanded.count(pair.first), demanded.count(pair.second))
-            << entry.first << " takes one hand's "
-            << FormatEquipType(pair.second) << " and not the other's";
-      }
+    std::set<EquipType> demanded = WeaponLists(entry.second).front();
+    for (const std::pair<EquipType, EquipType>& pair : kPairs) {
+      EXPECT_EQ(demanded.count(pair.first), demanded.count(pair.second))
+          << entry.first << " takes one hand's " << FormatEquipType(pair.second)
+          << " and not the other's";
     }
   }
 }
@@ -521,9 +525,17 @@ TEST(SkillDataTest, EveryBoostNamesASkillTheSameCharacterCanHold) {
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     bool named = !skill.boosts_skill_name().empty();
-    bool paid = skill.base().boosted_skill_pct() > 0.0;
-    EXPECT_EQ(named, paid) << entry.first
-                           << " carries half of a boost and half of nothing";
+    // A skill pays a boost either way it can: a percentage on every swing of
+    // the named skill, or a bigger swing standing in for every Nth. Divine
+    // Judgment pays only the second -- its whole effect is the detonation.
+    bool percent = skill.base().boosted_skill_pct() > 0.0;
+    bool form = skill.empowered_form().casts_per_trigger() > 0;
+    EXPECT_FALSE(percent && !named)
+        << entry.first << " pays a boost with nowhere to send it";
+    // An empty name with a form is the skill upgrading its own attack, which
+    // is what Creeping Toxin does. An empty name with neither is nothing.
+    EXPECT_FALSE(named && !percent && !form)
+        << entry.first << " names a skill it hands nothing to";
     if (!named) {
       continue;
     }
@@ -545,6 +557,41 @@ TEST(SkillDataTest, EveryBoostNamesASkillTheSameCharacterCanHold) {
                            << skill.boosts_skill_name()
                            << "\", which no character holding it can learn";
   }
+}
+
+// The same rule for the structural half of a boost: strikes and reach handed
+// to a skill nobody holding this one can learn are strikes nobody ever swings.
+TEST(SkillDataTest, EverySkillBoostNamesASkillTheSameCharacterCanHold) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  int checked = 0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    for (const SkillBoost& boost : entry.second.boost()) {
+      EXPECT_FALSE(boost.skill_name().empty())
+          << entry.first << " grants strikes to nobody";
+      EXPECT_TRUE(boost.lines() > 0 || boost.max_enemies() > 0 ||
+                  boost.max_enemies_per_level() > 0.0)
+          << entry.first << " names " << boost.skill_name()
+          << " and hands it nothing";
+      ++checked;
+      bool reachable = false;
+      for (Job job : EveryValueOf<Job>(Job_descriptor())) {
+        std::set<JobAdvancement> books = BooksFor(job);
+        if (books.count(entry.second.job_advancement()) == 0) {
+          continue;
+        }
+        for (const std::pair<const std::string, Skill>& other : skills) {
+          if (other.second.name() == boost.skill_name() &&
+              books.count(other.second.job_advancement()) > 0) {
+            reachable = true;
+          }
+        }
+      }
+      EXPECT_TRUE(reachable)
+          << entry.first << " grants strikes to \"" << boost.skill_name()
+          << "\", which no character holding it can learn";
+    }
+  }
+  EXPECT_GT(checked, 0) << "no skill in the catalog grants strikes or reach";
 }
 
 // The catalog keys on file stem but learned levels key on DISPLAY name, so two

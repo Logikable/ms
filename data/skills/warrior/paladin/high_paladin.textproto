@@ -1,0 +1,57 @@
+# GMS caps this at 30. Scaled to 20 levels landing on exactly GMS's level-30
+# figures -- 70% mastery, 400 DEF, 40% critical rate, 15% critical damage, 30%
+# ignored defence and 40% final damage -- so the book totals 200. The levels
+# are coarser, the skill is no stronger.
+#
+# Only the two-handed weapon bonuses are kept. GMS grants a one-handed sword
+# and a one-handed blunt weapon their own, but this game ships no shield to put
+# in the other hand, so a Paladin holding one hand free is a build nothing here
+# rewards. The rosary they carry instead sits with either.
+#
+# The 40% final damage is the largest single grant in the game and the number
+# to watch when the line is measured against the Dark Knight's Final Pact.
+name: "High Paladin"
+skill_order: 7
+description:
+  "Your long service permanently increases Weapon Mastery, DEF, Critical Rate, "
+  "Critical Damage, Ignore Defense and Final Damage, with more still for the "
+  "weapon in your hands."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+max_level: 20
+exceeds_master_level: true
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+required_skill {
+  skill_name: "Weapon Mastery"
+  level: 10
+}
+base {
+  mastery: 0.51
+  def: 115
+  crit_rate: 0.115
+  crit_dmg: 0.055
+  ied_pct: 0.16
+  final_dmg_pct: 0.115
+}
+per_level {
+  mastery: 0.01
+  def: 15
+  crit_rate: 0.015
+  crit_dmg: 0.005
+  ied_pct: 0.00737
+  final_dmg_pct: 0.015
+}
+weapon_bonus {
+  required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+  effect { crit_dmg: 0.05 }
+}
+weapon_bonus {
+  required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+  effect {
+    crit_dmg: 0.05
+    ied_pct: 0.10
+  }
+}

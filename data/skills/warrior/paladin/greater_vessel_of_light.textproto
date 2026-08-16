@@ -1,0 +1,42 @@
+# GMS says this OVERRIDES Vessel of Light rather than stacking with it, which
+# nothing here can express: every source of damage sums. So what it grants is
+# the DIFFERENCE -- Vessel of Light maxed is 10% damage and 40 attack, and the
+# two together come to the 25% and 60 GMS's override reaches. A Paladin who
+# never finished the 2nd job skill gets less than GMS would give them, which is
+# the price of the reading and is small.
+#
+# Its HP recovery is dropped, as the user asked; the status resistance and the
+# damage taken are already the whole of what Vessel of Light grants, so this
+# adds nothing to either. Both figures below are per Light Charge times the
+# five charges a Paladin holds, exactly as Vessel of Light folds them.
+#
+# The strikes and the reach are the rest of the skill and the reason SkillBoost
+# exists: a strike each to Divine Charge and Blast, and two more enemies for
+# Divine Charge by the sixth level -- GMS's ceil(L/5).
+name: "Greater Vessel of Light"
+skill_order: 8
+description:
+  "The light within you grows greater still. Increases Damage and Attack "
+  "Power, and strengthens Divine Charge and Blast."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+max_level: 10
+exceeds_master_level: true
+base {
+  damage_pct: 0.10
+  attack: 11
+}
+per_level {
+  damage_pct: 0.00556
+  attack: 1
+}
+boost {
+  skill_name: "Divine Charge"
+  lines: 1
+  max_enemies: 1
+  max_enemies_per_level: 0.2
+}
+boost {
+  skill_name: "Blast"
+  lines: 1
+}

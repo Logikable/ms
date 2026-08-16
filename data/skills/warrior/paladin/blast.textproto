@@ -1,0 +1,21 @@
+# The Paladin's single-target swing: ten strikes into three enemies, where
+# Divine Charge spreads four across eight. What it is really for is a boss, and
+# the game has none yet -- so it ships as the swing a Paladin reaches for when
+# there is one thing left standing.
+#
+# 780ms is chosen rather than measured: heavier than the hammer and lighter
+# than Heaven's Hammer, which is where ten strikes of this size belong.
+name: "Blast"
+skill_order: 2
+description:
+  "Call upon the full divine might of the Paladin to deal a powerful blow."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_PALADIN
+max_level: 30
+exceeds_master_level: true
+tags: SKILL_TAG_HOLY_POWER
+base_delay_ms: 780
+max_enemies: 3
+lines: 10
+base { skill_pct: 2.18 }
+per_level { skill_pct: 0.03 }

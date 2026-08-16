@@ -1,0 +1,36 @@
+# GMS brands an enemy every time Blast strikes it and detonates the brand at
+# five stacks, on each enemy separately. The fight counts casts rather than
+# stacks per enemy, which comes to the same thing against one target -- and one
+# target is what a bossing passive is for.
+#
+# So the fifth Blast is REPLACED by the detonation rather than followed by it:
+# an empowered form is the mechanism the game already has, and what it costs is
+# one Blast in five. The explosion is worth eighteen of them, so the trade is
+# barely visible beside what it pays.
+#
+# Its 20% ignored defence is the point of the skill. It rides the swing alone,
+# which is what an ied_pct on an attack means -- see WithoutSwingLevers.
+name: "Divine Judgment"
+skill_order: 3
+description:
+  "Marks enemies struck by Blast with a Divine Brand. At full stacks the brand "
+  "detonates, dealing damage that ignores some of the enemy's Defense."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+max_level: 30
+exceeds_master_level: true
+required_skill {
+  skill_name: "Blast"
+  level: 5
+}
+boosts_skill_name: "Blast"
+empowered_form {
+  casts_per_trigger: 5
+  max_enemies: 1
+  lines: 10
+  base {
+    skill_pct: 4.34
+    ied_pct: 0.20
+  }
+  per_level { skill_pct: 0.04 }
+}

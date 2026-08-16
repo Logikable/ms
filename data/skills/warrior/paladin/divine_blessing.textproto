@@ -1,0 +1,16 @@
+# GMS holds this up for a couple of minutes at a time with nothing to stop the
+# player putting it straight back up, which this game folds in as permanent --
+# the same reading Cross Surge and Hyper Body get. See Skill.buff for the case
+# a buff really has to be timed.
+#
+# Twenty levels rather than GMS's thirty, a point of final damage each, ending
+# on the 20% GMS reaches.
+name: "Divine Blessing"
+skill_order: 5
+description: "A holy blessing permanently increases your Final Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+max_level: 20
+exceeds_master_level: true
+base { final_dmg_pct: 0.01 }
+per_level { final_dmg_pct: 0.01 }

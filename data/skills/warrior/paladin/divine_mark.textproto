@@ -1,0 +1,51 @@
+# Two hits landed at once: the hammer, and the brand of light it leaves, which
+# GMS detonates a moment later. Nothing here would do anything with the gap, so
+# they are one swing -- but priced apart, because only the explosion hits an
+# ordinary monster harder and a single averaged multiplier would spread that
+# across the hammer's seven strikes as well. See Skill.extra_hit.
+#
+# The silence it also lands and the range it also grants are dropped: nothing
+# here is ever silenced, and range is not a thing this game has.
+#
+# 660ms is Divine Charge's, the same hammer one tier down -- the animation
+# frames for this one are not published anywhere we could read them.
+name: "Divine Mark"
+skill_order: 1
+description:
+  "Summon a greater hammer of light, and leave a brand behind that explodes "
+  "over a wide area. The explosion strikes ordinary monsters harder. "
+  "Permanently strengthens Divine Charge."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_PALADIN
+max_level: 30
+exceeds_master_level: true
+required_skill {
+  skill_name: "Divine Charge"
+  level: 20
+}
+tags: SKILL_TAG_HOLY_POWER
+base_delay_ms: 660
+cooldown_seconds: 7.0
+max_enemies: 10
+lines: 7
+base {
+  skill_pct: 3.04
+  boosted_skill_pct: 0.42
+}
+per_level {
+  skill_pct: 0.04
+  boosted_skill_pct: 0.02
+}
+boosts_skill_name: "Divine Charge"
+extra_hit {
+  label: "Explosion"
+  lines: 5
+  base {
+    skill_pct: 2.03
+    normal_skill_pct: 0.609
+  }
+  per_level {
+    skill_pct: 0.03
+    normal_skill_pct: 0.009
+  }
+}
