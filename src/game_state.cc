@@ -1,5 +1,6 @@
 #include "src/game_state.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <ctime>
 #include <map>
@@ -9,6 +10,7 @@
 #include <utility>
 
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
@@ -96,6 +98,10 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     // Weapon Mastery's axe bonus alone.
     case JOB_BERSERKER:
       return {"pinaka", "berserk_chain"};
+    // The 4th job, at the level cap, so its gear is the Frozen tier a token
+    // buys rather than the last one meso reaches.
+    case JOB_DARK_KNIGHT:
+      return {"frozen_spear", "frozen_chain"};
     case JOB_CRUSADER:
       return {"tavar", "virtues_medallion"};
     case JOB_WHITE_KNIGHT:
@@ -178,7 +184,10 @@ void GrowToJob(GameState& state, JobAdvancement advancement,
   for (int i = 1; i <= stage; ++i) {
     path.push_back(JobForAdvancement(AdvancementForJobStage(job, i)));
   }
-  GrowTo(state, NextAdvancementLevel(stage), path, unspent_stage);
+  // Held to the cap: the 5th advancement's level is above it, so the 4th job
+  // stops where the EXP table does rather than climbing past the end.
+  GrowTo(state, std::min(NextAdvancementLevel(stage), kTrialLevelCap), path,
+         unspent_stage);
   // The job's own gear, worn rather than carried, since there is no
   // advancement moment here to put it on at. Each piece is equipped from the
   // row it lands on, so a Rogue's three reach three slots -- and whatever a

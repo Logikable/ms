@@ -1,0 +1,16 @@
+# GMS climbs the strike count from 5 to 6 at level 16. A skill's lines cannot
+# climb here, so this is the master level's 6 throughout -- which leaves the
+# first fifteen levels landing one strike ahead of GMS and the last fifteen
+# exactly on it.
+name: "Dark Impale"
+skill_order: 2
+description: "Launch rapid spear thrusts at the enemies in front of you."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 660
+max_enemies: 8
+lines: 6
+base { skill_pct: 1.64 }
+per_level { skill_pct: 0.04 }

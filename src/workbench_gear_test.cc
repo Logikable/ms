@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/character/exp_table.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/proto_loader.h"
@@ -135,6 +136,10 @@ TEST_F(WorkbenchGearTest, EachJobStartsAtTheTopOfItsOwnBand) {
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_BANDIT).character.proto().level(), 60);
   EXPECT_EQ(Workbench(JOB_ADVANCEMENT_BERSERKER).character.proto().level(),
             100);
+  // The 4th job stops at the cap rather than at the 5th advancement's level,
+  // which is above everything the EXP table describes.
+  EXPECT_EQ(Workbench(JOB_ADVANCEMENT_DARK_KNIGHT).character.proto().level(),
+            kTrialLevelCap);
 }
 
 }  // namespace

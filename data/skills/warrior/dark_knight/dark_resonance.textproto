@@ -1,0 +1,38 @@
+# The first skill in the game whose buff is really timed. It stands for 30
+# seconds at master level against a 70-second wait, so a Dark Knight is buffed
+# for part of a fight and bare for the rest -- and every swing they land takes
+# a third of a second off the wait for the next one.
+#
+# The two shares of ignored defence are one row because they land as one
+# source. GMS states 30% permanent and 10% while up; those combine to 37%
+# rather than summing to 40%, and the ladder walks to that.
+name: "Dark Resonance"
+skill_order: 4
+description:
+  "Resonate with your Evil Eye to unlock the power of pure darkness. Restores "
+  "HP and increases Final Damage, Ignore Defense and Boss Damage for a time. "
+  "Permanently increases Ignore Defense."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+max_level: 30
+exceeds_master_level: true
+cooldown_seconds: 70.0
+base { ied_pct: 0.01 }
+per_level { ied_pct: 0.01 }
+buff {
+  duration_seconds: 15.0
+  duration_seconds_per_level: 0.51724
+  cooldown_reduction_seconds: 0.35
+  base {
+    heal_pct: 0.13
+    final_dmg_pct: 0.02
+    ied_pct: 0.01
+    boss_pct: 0.06
+  }
+  per_level {
+    heal_pct: 0.03
+    final_dmg_pct: 0.00207
+    ied_pct: 0.0031
+    boss_pct: 0.0031
+  }
+}

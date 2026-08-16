@@ -1,0 +1,25 @@
+# GMS also scales this with the character's Max HP -- "damage increases by
+# 50+2L% of Max HP for every attack" -- which is dropped. Nothing else in the
+# game pays out on the HP pool, and a lever that made a bigger pool a damage
+# stat would quietly rewrite what every hat and every level-up is worth.
+#
+# 660ms is the animation's own, from the frame data: the same as Dark Impale,
+# which is what leaves the two attacks to be told apart by their reach.
+name: "Gungnir's Descent"
+skill_order: 1
+description: "Throw a mythical spear to deal fatal damage."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 660
+max_enemies: 3
+lines: 12
+base {
+  skill_pct: 1.96
+  ied_pct: 0.01
+}
+per_level {
+  skill_pct: 0.01
+  ied_pct: 0.01
+}

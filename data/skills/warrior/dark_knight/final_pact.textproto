@@ -1,0 +1,26 @@
+# GMS offers four pacts and asks the player to accept one; this is the Full
+# pact, the one whose invincibility is worth having and whose wait is the
+# longest. The invincibility itself is not modelled -- what a player does with
+# 40 seconds of it is fight on, which is what a full pool already buys them.
+# The kills that shorten the wait are dropped with it.
+name: "Final Pact"
+skill_order: 3
+description:
+  "Your dark contract keeps you alive when your HP reaches 0. Permanently "
+  "increases Final Damage, Critical Rate and Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+max_level: 30
+exceeds_master_level: true
+base {
+  final_dmg_pct: 0.01
+  crit_rate: 0.01
+  crit_dmg: 0.05
+  revive_cooldown_seconds: 1103
+}
+per_level {
+  final_dmg_pct: 0.01
+  crit_rate: 0.0031
+  crit_dmg: 0.00345
+  revive_cooldown_seconds: -7
+}

@@ -25,11 +25,11 @@ namespace {
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
-// What a job stage's levels pay out, indexed by stage: 3 SP a level over the
-// span that feeds it, with the advancement itself granting nothing. Levels
-// 11-30 feed stage 1, 31-60 feed stage 2 and 61-100 feed stage 3 -- so 60,
-// then 90, then 120.
-constexpr int kSpByStage[] = {0, 60, 90, 120};
+// What a job stage's levels pay out, indexed by stage, with the advancement
+// itself granting nothing. Levels 11-30 feed stage 1, 31-60 feed stage 2 and
+// 61-100 feed stage 3, at 3 SP a level -- so 60, then 90, then 120. The 4th
+// job's 101-140 pay 5 a level, so its book is 200.
+constexpr int kSpByStage[] = {0, 60, 90, 120, 200};
 
 // Every value of an enum bar its UNSPECIFIED zero, taken from the descriptor
 // rather than listed: a hardcoded list is one a new job joins only when
@@ -49,13 +49,21 @@ std::vector<Enum> EveryValueOf(const google::protobuf::EnumDescriptor* desc) {
 // The books one job holds: their own and every one they climbed through.
 std::set<JobAdvancement> BooksFor(Job job) {
   std::set<JobAdvancement> books;
-  for (int stage = 1; stage <= 3; ++stage) {
+  for (int stage = 1; stage <= 4; ++stage) {
     JobAdvancement advancement = AdvancementForJobStage(job, stage);
     if (advancement != JOB_ADVANCEMENT_UNSPECIFIED) {
       books.insert(advancement);
     }
   }
   return books;
+}
+
+// Whether the character swings this skill: an attack, or a cast they spend a
+// swing on. A skill that only puts a buff up is cast on its own clock and
+// takes no swing, so nothing ever asks how long its animation is.
+bool SpendsASwing(const Skill& skill) {
+  return skill.kind() == SKILL_KIND_ATTACK ||
+         (skill.kind() == SKILL_KIND_ACTIVE && skill.base().heal_pct() > 0.0);
 }
 
 std::map<std::string, Skill> LoadSkills() {
@@ -294,11 +302,11 @@ TEST(SkillDataTest, NoSkillNamesBothClocks) {
 // Anything spending a swing takes as long as its own animation, so it has to
 // say how long that is -- the attacks, and the casts that spend a swing on
 // something else. Nothing else does: the delay of a skill on its own clock is
-// its cast interval, and a passive is never swung at all.
+// its cast interval, a passive is never swung at all, and a skill that only
+// puts a buff up costs the character no swing either.
 TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    if (entry.second.kind() != SKILL_KIND_ATTACK &&
-        entry.second.kind() != SKILL_KIND_ACTIVE) {
+    if (!SpendsASwing(entry.second)) {
       EXPECT_EQ(entry.second.base_delay_ms(), 0)
           << entry.first << " sets a swing delay it will never be asked for";
       continue;
@@ -333,15 +341,17 @@ TEST(SkillDataTest, AnOpeningHitStatesBothOfItsHalves) {
   }
 }
 
-// A cast takes the swing an attack would have had, so one with no lever behind
-// it would cost the character a swing and give nothing back. The encounter
-// declines to offer such a skill at all; this says none is written.
+// A cast either takes the swing an attack would have had and heals with it, or
+// puts a buff up on a clock of its own. One that does neither would be a row in
+// the book that does nothing at all -- the encounter declines to offer such a
+// skill, and this says none is written.
 TEST(SkillDataTest, EveryCastDoesSomethingWithTheSwingItTakes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     if (entry.second.kind() != SKILL_KIND_ACTIVE) {
       continue;
     }
-    EXPECT_GT(entry.second.base().heal_pct(), 0.0)
+    EXPECT_TRUE(entry.second.base().heal_pct() > 0.0 ||
+                entry.second.buff().duration_seconds() > 0.0)
         << entry.first << " spends a swing and does nothing with it";
   }
 }

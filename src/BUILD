@@ -67,6 +67,7 @@ cc_library(
     hdrs = ["game_state.h"],
     deps = [
         "//src/character",
+        "//src/character:exp_table",
         "//src/item",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
@@ -169,6 +170,7 @@ cc_test(
         ":game_state",
         ":proto_loader",
         "//src/character",
+        "//src/character:exp_table",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

@@ -1,0 +1,30 @@
+# GMS caps this at 30 and ends at 70% mastery, 30 attack and 15% critical
+# damage. Scaled to 20 levels to exactly those three, so the book totals 200 --
+# the levels are coarser, the skill is no stronger. Level 1 lands a little
+# above GMS's: attack is a whole number, so a ladder that ends on 30 in twenty
+# steps has to start at 11.
+name: "Barricade Mastery"
+skill_order: 7
+description:
+  "Improves Spear and Polearm Mastery to their human limits, and increases "
+  "Attack Power and Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+max_level: 20
+exceeds_master_level: true
+required_equip_type: EQUIP_TYPE_SPEAR
+required_equip_type: EQUIP_TYPE_POLEARM
+required_skill {
+  skill_name: "Weapon Mastery"
+  level: 10
+}
+base {
+  mastery: 0.567
+  attack: 11
+  crit_dmg: 0.055
+}
+per_level {
+  mastery: 0.007
+  attack: 1
+  crit_dmg: 0.005
+}

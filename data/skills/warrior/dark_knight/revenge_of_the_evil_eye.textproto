@@ -1,0 +1,43 @@
+# Three attacks out of one row in the book. The Evil Eye counterattacks as the
+# player swings -- once every 5 seconds, which for a character who never stops
+# attacking is simply its own clock -- and Evil Eye Shock III lands a volley
+# every 10 seconds with four auras of darkness behind it.
+#
+# The auras reach 3 enemies where the volley reaches 10, so they cannot be one
+# attack: four auras of five strikes are 20 lines on the three. And this does
+# not replace Evil Eye Shock or its second, exactly as that one did not replace
+# the first -- all three shout.
+name: "Revenge of the Evil Eye"
+skill_order: 6
+description:
+  "Your Evil Eye counterattacks the enemies you strike, and its shout grows "
+  "stronger still."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+max_level: 30
+exceeds_master_level: true
+required_skill {
+  skill_name: "Evil Eye Shock II"
+  level: 20
+}
+max_enemies: 10
+lines: 7
+cast_interval_seconds: 5.0
+base { skill_pct: 1.35 }
+per_level { skill_pct: 0.06 }
+auto_mode {
+  label: "Shock III"
+  cast_interval_seconds: 10.0
+  max_enemies: 10
+  lines: 7
+  base { skill_pct: 3.40 }
+  per_level { skill_pct: 0.10 }
+}
+auto_mode {
+  label: "Dark Auras"
+  cast_interval_seconds: 10.0
+  max_enemies: 3
+  lines: 20
+  base { skill_pct: 2.20 }
+  per_level { skill_pct: 0.07 }
+}

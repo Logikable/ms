@@ -131,6 +131,7 @@ LevelUpGain LevelUpGainFor(Job job) {
     case JOB_BERSERKER:
     case JOB_CRUSADER:
     case JOB_WHITE_KNIGHT:
+    case JOB_DARK_KNIGHT:
       return {48, 12};
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -156,6 +157,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_BERSERKER:
     case JOB_CRUSADER:
     case JOB_WHITE_KNIGHT:
+    case JOB_DARK_KNIGHT:
       return EQUIP_JOB_CATEGORY_WARRIOR;
     case JOB_ARCHER:
     case JOB_HUNTER:
@@ -240,6 +242,7 @@ JobAdvancement FirstAdvancement(Job job) {
     case JOB_BERSERKER:
     case JOB_CRUSADER:
     case JOB_WHITE_KNIGHT:
+    case JOB_DARK_KNIGHT:
       return JOB_ADVANCEMENT_SWORDMAN;
     case JOB_ARCHER:
     case JOB_HUNTER:
@@ -277,6 +280,7 @@ JobAdvancement SecondAdvancement(Job job) {
       return JOB_ADVANCEMENT_PAGE;
     case JOB_SPEARMAN:
     case JOB_BERSERKER:
+    case JOB_DARK_KNIGHT:
       return JOB_ADVANCEMENT_SPEARMAN;
     case JOB_HUNTER:
     case JOB_RANGER:
@@ -308,6 +312,7 @@ JobAdvancement SecondAdvancement(Job job) {
 JobAdvancement ThirdAdvancement(Job job) {
   switch (job) {
     case JOB_BERSERKER:
+    case JOB_DARK_KNIGHT:
       return JOB_ADVANCEMENT_BERSERKER;
     case JOB_CRUSADER:
       return JOB_ADVANCEMENT_CRUSADER;
@@ -332,6 +337,17 @@ JobAdvancement ThirdAdvancement(Job job) {
   }
 }
 
+// The 4th job books. One per 3rd job when they are all written; the Dark
+// Knight is the first.
+JobAdvancement FourthAdvancement(Job job) {
+  switch (job) {
+    case JOB_DARK_KNIGHT:
+      return JOB_ADVANCEMENT_DARK_KNIGHT;
+    default:
+      return JOB_ADVANCEMENT_UNSPECIFIED;
+  }
+}
+
 }  // namespace
 
 JobAdvancement AdvancementForJobStage(Job job, int stage) {
@@ -345,6 +361,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       return SecondAdvancement(job);
     case 3:
       return ThirdAdvancement(job);
+    case 4:
+      return FourthAdvancement(job);
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
   }
@@ -400,6 +418,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_HERMIT;
     case JOB_ADVANCEMENT_CHIEF_BANDIT:
       return JOB_CHIEF_BANDIT;
+    case JOB_ADVANCEMENT_DARK_KNIGHT:
+      return JOB_DARK_KNIGHT;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -482,6 +502,7 @@ std::vector<EquipType> ExpectedWeapons(Job job) {
               EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_TWO_HANDED_BLUNT};
     case JOB_SPEARMAN:
     case JOB_BERSERKER:
+    case JOB_DARK_KNIGHT:
       return {EQUIP_TYPE_SPEAR, EQUIP_TYPE_POLEARM};
     case JOB_HUNTER:
     case JOB_RANGER:
@@ -546,6 +567,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_BERSERKER:
     case JOB_CRUSADER:
     case JOB_WHITE_KNIGHT:
+    case JOB_DARK_KNIGHT:
       return STAT_FIELD_STR;
     case JOB_ARCHER:
     case JOB_HUNTER:
@@ -625,6 +647,12 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 3 && job == JOB_BANDIT) {
     return {JOB_CHIEF_BANDIT};
   }
+  // The 4th advancement narrows no further either. Only the Dark Knight is
+  // written; every other 3rd job stays at the top of its line, and an
+  // advancement with nothing on the far side of it is not offered at all.
+  if (stage == 4 && job == JOB_BERSERKER) {
+    return {JOB_DARK_KNIGHT};
+  }
   return {};
 }
 
@@ -657,6 +685,8 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_HERMIT:
     case JOB_ADVANCEMENT_CHIEF_BANDIT:
       return 3;
+    case JOB_ADVANCEMENT_DARK_KNIGHT:
+      return 4;
     default:
       return 0;
   }

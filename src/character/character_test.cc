@@ -507,8 +507,12 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_HERMIT}));
   EXPECT_EQ(JobChoicesForStage(JOB_BANDIT, 3),
             (std::vector<Job>{JOB_CHIEF_BANDIT}));
-  // Every branch of every explorer is written; a 4th offers nothing.
-  EXPECT_TRUE(JobChoicesForStage(JOB_BERSERKER, 4).empty());
+  // The 4th narrows no further either, and only the Spearman line has one
+  // written -- a branch with nothing on the far side offers nothing.
+  EXPECT_EQ(JobChoicesForStage(JOB_BERSERKER, 4),
+            (std::vector<Job>{JOB_DARK_KNIGHT}));
+  EXPECT_TRUE(JobChoicesForStage(JOB_CRUSADER, 4).empty());
+  EXPECT_TRUE(JobChoicesForStage(JOB_DARK_KNIGHT, 5).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());
 }
 

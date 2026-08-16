@@ -1,0 +1,16 @@
+# GMS's own reading of this skill is "all stats with a direct AP investment",
+# and the share it grants is classified as an added stat -- so it lands where
+# a ring's stat lands and anything scaling the character's stats scales it
+# too. See SkillEffect.ap_stat_pct.
+#
+# The ladder is GMS's ceil(L/2)%, walked as a line: 1% at level 1 and 15% at
+# 30, which is 16% at the two levels Combat Orders reaches past the top.
+name: "Maple Warrior"
+skill_order: 5
+description: "Increases every stat you have spent AP on."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+max_level: 30
+exceeds_master_level: true
+base { ap_stat_pct: 0.01 }
+per_level { ap_stat_pct: 0.00483 }

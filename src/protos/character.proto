@@ -57,6 +57,10 @@ enum Job {
   // The rogue's 3rd advancements.
   JOB_HERMIT = 24;
   JOB_CHIEF_BANDIT = 25;
+  // The first 4th advancement, at the end of the Spearman line. The 4th job
+  // narrows no further -- every 3rd job has exactly one -- so this is one of
+  // ten, and the rest follow it.
+  JOB_DARK_KNIGHT = 26;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -90,6 +94,8 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_PRIEST = 22;
   JOB_ADVANCEMENT_HERMIT = 23;
   JOB_ADVANCEMENT_CHIEF_BANDIT = 24;
+  // The 4th advancements, at level 100.
+  JOB_ADVANCEMENT_DARK_KNIGHT = 25;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.
