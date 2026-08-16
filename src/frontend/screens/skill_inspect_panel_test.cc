@@ -214,23 +214,24 @@ TEST_F(SkillInspectPanelTest, AMultiStrikeOpeningHitTotalsItself) {
   EXPECT_NE(RenderAt(skill, 1).find("100% x3 = 300%"), std::string::npos);
 }
 
-// How fast a skill swings, how often its turret fires and what one hit of it
-// is worth to a counter are all bookkeeping the player cannot act on, and the
-// pacing band means the seconds would not even be the seconds they see.
-TEST_F(SkillInspectPanelTest, KeepsASkillsTimingOffThePage) {
+// A clock the weapon can hurry is not one the page can state: an ordinary
+// swing's delay is scaled by the speed stage of whatever is in hand, so a
+// figure here would be wrong for half the weapons that can swing it. What one
+// hit is worth to a counter is bookkeeping either way.
+TEST_F(SkillInspectPanelTest, KeepsWhatTheWeaponMovesOffThePage) {
   Skill skill = MakeLuckySeven();
-  skill.set_base_delay_ms(120);
-  skill.set_fixed_delay(true);
+  skill.set_base_delay_ms(660);
   skill.set_hits_per_attack_count(7);
   AutoMode* mode = skill.add_auto_mode();
-  mode->set_label("Turret Damage");
+  mode->set_label("Turret");
   mode->set_cast_interval_seconds(0.21);
   mode->set_max_enemies(4);
   std::string rendered = RenderAt(skill, 1);
-  EXPECT_EQ(rendered.find("0.12"), std::string::npos);
-  EXPECT_EQ(rendered.find("0.21"), std::string::npos);
+  EXPECT_EQ(rendered.find("0.66"), std::string::npos);
   EXPECT_EQ(rendered.find("Counts As"), std::string::npos);
   EXPECT_EQ(rendered.find("Turret Enemies"), std::string::npos);
+  // The turret's own rate is stated: nothing the player holds moves it.
+  EXPECT_NE(rendered.find("Turret (0.21s)"), std::string::npos);
 }
 
 // The one clock the player sets themselves, and the only one the page states.
@@ -266,16 +267,55 @@ TEST_F(SkillInspectPanelTest, AnAutoModeStatesItsOwnHalfOfTheSkill) {
   blaster.set_lines(1);
   blaster.mutable_base()->set_skill_pct(1.24);
   AutoMode* turret = blaster.add_auto_mode();
-  turret->set_label("Turret Damage");
+  turret->set_label("Turret");
   turret->set_cast_interval_seconds(0.21);
   turret->set_max_enemies(4);
   turret->mutable_base()->set_skill_pct(0.66);
 
   std::string rendered = RenderAt(blaster, 1);
   EXPECT_NE(rendered.find("Damage            124%"), std::string::npos);
-  EXPECT_NE(rendered.find("Turret Damage     66%"), std::string::npos);
+  // The turret's own clock rides its name rather than holding a row.
+  EXPECT_NE(rendered.find("Turret (0.21s)    66%"), std::string::npos);
   // A skill without one says nothing about a turret.
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Turret"), std::string::npos);
+}
+
+// A summon's whole worth is how hard it hits and how often, and the second of
+// those used to be nowhere on the page. It rides the row that already states
+// the skill's reach, so it costs no row of its own.
+TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
+  Skill phoenix = MakeLuckySeven();
+  phoenix.set_kind(SKILL_KIND_AUTO_ATTACK);
+  phoenix.set_max_enemies(4);
+  phoenix.set_cast_interval_seconds(1.71);
+  std::string rendered = RenderAt(phoenix, 1);
+  EXPECT_NE(rendered.find("Attacks           4 enemies every 1.71s"),
+            std::string::npos);
+  EXPECT_EQ(rendered.find("Enemies Hit"), std::string::npos);
+
+  // A key-down skill fires at a rate the weapon cannot hurry, so that rate is
+  // knowable here too. Arrow Blaster is the only one.
+  Skill blaster = MakeLuckySeven();
+  blaster.set_max_enemies(4);
+  blaster.set_base_delay_ms(120);
+  blaster.set_fixed_delay(true);
+  EXPECT_NE(
+      RenderAt(blaster, 1).find("Attacks           4 enemies every 0.12s"),
+      std::string::npos);
+  // An ordinary swing's delay moves with the weapon, so the page states none.
+  Skill swing = MakeLuckySeven();
+  swing.set_base_delay_ms(660);
+  EXPECT_EQ(RenderAt(swing, 1).find("every 0.66s"), std::string::npos);
+
+  // One enemy is one enemy, and a skill that swings when the player does keeps
+  // the plain reach row.
+  Skill sphere = phoenix;
+  sphere.set_max_enemies(1);
+  sphere.set_cast_interval_seconds(2.0);
+  EXPECT_NE(RenderAt(sphere, 1).find("Attacks           1 enemy every 2s"),
+            std::string::npos);
+  EXPECT_NE(RenderAt(MakeLuckySeven(), 1).find("Enemies Hit       5"),
+            std::string::npos);
 }
 
 // Empowered Arrows strengthens Piercing Arrow twice over: a permanent bonus on
@@ -312,15 +352,14 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAFountain) {
   fountain.mutable_base()->set_regen_interval_seconds(7.5);
   fountain.mutable_per_level()->set_regen_interval_seconds(-0.5);
 
-  std::string rendered = RenderAt(fountain, 1);
-  EXPECT_NE(rendered.find("HP Recovered      13%"), std::string::npos);
-  EXPECT_NE(rendered.find("Heals Every       7.5s"), std::string::npos);
-
-  std::string maxed = RenderAt(fountain, 10);
-  EXPECT_NE(maxed.find("HP Recovered      40%"), std::string::npos);
-  EXPECT_NE(maxed.find("Heals Every       3s"), std::string::npos);
+  // Both halves on one row: the pulse grows and the wait shortens together,
+  // so either alone understates every point after the first.
+  EXPECT_NE(RenderAt(fountain, 1).find("HP Recovered      13% every 7.5s"),
+            std::string::npos);
+  EXPECT_NE(RenderAt(fountain, 10).find("HP Recovered      40% every 3s"),
+            std::string::npos);
   // A skill with no fountain says nothing about one.
-  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Heals Every"),
+  EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("HP Recovered"),
             std::string::npos);
 }
 
@@ -825,7 +864,7 @@ TEST_F(SkillInspectPanelTest, StatesTheShareOfApAndTheWaitToRevive) {
   std::string rendered = RenderAt(skill, 20);
   EXPECT_NE(rendered.find("Stats from AP"), std::string::npos);
   EXPECT_NE(rendered.find("+10.2%"), std::string::npos);
-  EXPECT_NE(rendered.find("Revive Cooldown"), std::string::npos);
+  EXPECT_NE(rendered.find("Revives Every"), std::string::npos);
   EXPECT_NE(rendered.find("970s"), std::string::npos);
 }
 

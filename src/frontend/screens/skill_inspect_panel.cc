@@ -99,10 +99,11 @@ const PercentLever kNumberLevers[] = {
     // Whole levels, carried as a fraction so the ladder can step. Floored for
     // the page exactly as it is floored where it is read.
     {"Skill Levels", &SkillEffect::skill_level_bonus, kPlus, "", true},
-    // How long the player waits between one revival and the next -- a wait
-    // rather than a gain, so it takes no sign, and it SHORTENS as the skill is
-    // levelled.
-    {"Revive Cooldown", &SkillEffect::revive_cooldown_seconds, kBare, "s"},
+    // The wait between one revival and the next. Named for what it buys
+    // rather than for the clock, so the row states the effect too: nothing
+    // else on the page says the skill revives at all. No sign, and it
+    // SHORTENS as the skill is levelled.
+    {"Revives Every", &SkillEffect::revive_cooldown_seconds, kBare, "s"},
 };
 
 struct FlatLever {
@@ -278,7 +279,25 @@ std::string FormatNumber(double value, int decimals = 1) {
 // the one printed -- and none of them is a choice they make anyway.
 std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   std::vector<ftxui::Element> rows = RequirementRows(skill);
-  if (skill.max_enemies() > 1) {
+  // A skill with a clock of its own states it where it states its reach: the
+  // two together are the shape of it, and a row holding only a number of
+  // seconds is a row spent on bookkeeping.
+  //
+  // Only a clock the weapon cannot hurry is stated -- a skill on its own
+  // interval, or a key-down one whose delay is fixed. An ordinary swing's
+  // delay is scaled by the weapon's speed stage, so a single figure here
+  // would be wrong for half the weapons that can swing it.
+  int enemies = std::max(1, skill.max_enemies());
+  double clock = skill.cast_interval_seconds();
+  if (clock <= 0.0 && skill.fixed_delay() && skill.base_delay_ms() > 0) {
+    clock = skill.base_delay_ms() / 1000.0;
+  }
+  if (clock > 0.0) {
+    rows.push_back(EffectRow(
+        "Attacks", std::to_string(enemies) +
+                       (enemies == 1 ? " enemy every " : " enemies every ") +
+                       FormatNumber(clock, 2) + "s"));
+  } else if (skill.max_enemies() > 1) {
     rows.push_back(
         EffectRow("Enemies Hit", std::to_string(skill.max_enemies())));
   }
@@ -450,9 +469,9 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   double regen_interval =
       PercentAt(skill, &SkillEffect::regen_interval_seconds, level);
   if (regen > 0.0 && regen_interval > 0.0) {
-    rows.push_back(EffectRow("HP Recovered", FormatPercent(regen)));
-    rows.push_back(
-        EffectRow("Heals Every", FormatNumber(regen_interval) + "s"));
+    rows.push_back(EffectRow(
+        "HP Recovered",
+        FormatPercent(regen) + " every " + FormatNumber(regen_interval) + "s"));
   }
   // What one meso is worth thrown back, read the way every other swing on this
   // page is read: per line, times the count. Meso Mastery's points land on a
@@ -512,10 +531,12 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
     if (mode.cast_interval_seconds() <= 0.0) {
       continue;
     }
-    rows.push_back(EffectRow(
-        mode.label(), SwingText(mode.base().skill_pct() +
-                                    mode.per_level().skill_pct() * (level - 1),
-                                mode.lines())));
+    rows.push_back(
+        EffectRow(mode.label() + " (" +
+                      FormatNumber(mode.cast_interval_seconds(), 2) + "s)",
+                  SwingText(mode.base().skill_pct() +
+                                mode.per_level().skill_pct() * (level - 1),
+                            mode.lines())));
   }
   // The upgraded attack's damage, beside the permanent bonus below it: one
   // skill that strengthens another twice over, so both halves read together.
