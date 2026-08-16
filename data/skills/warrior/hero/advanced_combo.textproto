@@ -1,0 +1,40 @@
+# GMS caps this at 30 and ends at 10% final damage an orb, ten orbs and 70%
+# mastery. Scaled to 20 levels to exactly those three -- this is the job's
+# mastery skill, and 20 is what the book has room for.
+#
+# The orb rate is 5/19 written out: five orbs bought over the nineteen steps
+# above level 1, so the tenth lands on the master level and the two levels
+# Combat Orders reaches past it buy no eleventh.
+#
+# It supersedes Combo Synergy, whose whole grant is the per-orb final damage
+# this one restates. It does NOT supersede Combo Attack -- the ring is taken at
+# its largest rather than summed, so the Fighter's 2 ATT an orb goes on being
+# paid, now against ten of them.
+name: "Advanced Combo"
+skill_order: 4
+description:
+  "Your combo rings wider and pays better. Increases the Final Damage each "
+  "Combo Orb is worth, how many you carry, and your Weapon Mastery."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+max_level: 20
+exceeds_master_level: true
+supersedes_skill_name: "Combo Synergy"
+combo_orbs: 5
+combo_orbs_per_level: 0.26316
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+required_skill {
+  skill_name: "Weapon Mastery"
+  level: 10
+}
+base {
+  final_dmg_pct_per_combo_orb: 0.06
+  mastery: 0.55
+}
+per_level {
+  final_dmg_pct_per_combo_orb: 0.00211
+  mastery: 0.00789
+}

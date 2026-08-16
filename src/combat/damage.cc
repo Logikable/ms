@@ -69,6 +69,8 @@ const JobWeaponConstantRow kJobWeaponConstants[] = {
     {JOB_FIGHTER, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
     {JOB_CRUSADER, EQUIP_TYPE_ONE_HANDED_SWORD, 1.34},
     {JOB_CRUSADER, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
+    {JOB_HERO, EQUIP_TYPE_ONE_HANDED_SWORD, 1.34},
+    {JOB_HERO, EQUIP_TYPE_TWO_HANDED_SWORD, 1.44},
 };
 
 // Level multiplier: 1.1 at equal level, +0.02 per level above, capped at +5.
@@ -279,6 +281,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
     case JOB_WHITE_KNIGHT:
     case JOB_DARK_KNIGHT:
     case JOB_PALADIN:
+    case JOB_HERO:
     case JOB_BEGINNER:
       // STR primary, DEX secondary.
       offense.primary = allocated.str() + equipped.str();

@@ -1,0 +1,48 @@
+# The wound's chance and its damage fold into one figure the way a Final
+# Attack's do: a 40 + 2L% chance of 75 + 3L% every two seconds is what one tick
+# is worth. Its 45-60 second stretch is dropped -- against a two-second tick it
+# stands on anything still alive.
+#
+# The extra damage a wounded enemy takes lands on the character rather than on
+# the enemies carrying the wound. That is Chance Attack's liberty in mirror
+# image: that skill pays only against a pierced enemy and nothing here pierces,
+# and this pays only against a wounded one and a Hero wounds everything.
+#
+# The wound ticks whether or not this is the swing the fight settled on, which
+# reads as the Hero opening with it and then holding Raging Blow -- the way the
+# job is played. So the swing below is the one a Hero rarely spends: what this
+# skill is really worth to them is the wound and the damage it opens up.
+name: "Puncture"
+skill_order: 2
+description:
+  "Drive your sword down into the enemies in front of you, leaving a wound "
+  "that bleeds. A wounded enemy takes more damage from everything."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_SWORDSMANSHIP
+job_advancement: JOB_ADVANCEMENT_HERO
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 720
+max_enemies: 8
+lines: 4
+required_skill {
+  skill_name: "Advanced Combo"
+  level: 20
+}
+base {
+  skill_pct: 3.13
+  normal_skill_pct: 0.50
+  damage_pct: 0.11
+}
+per_level {
+  skill_pct: 0.03
+  damage_pct: 0.00483
+}
+auto_mode {
+  label: "Wound"
+  cast_interval_seconds: 2.0
+  max_enemies: 8
+  lines: 1
+  base { skill_pct: 0.3276 }
+  per_level { skill_pct: 0.0456 }
+}

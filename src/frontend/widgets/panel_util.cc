@@ -547,6 +547,8 @@ std::string JobName(Job job) {
       return "Dark Knight";
     case JOB_PALADIN:
       return "Paladin";
+    case JOB_HERO:
+      return "Hero";
     default:
       return "Unknown";
   }

@@ -1,0 +1,11 @@
+# The Dark Knight's, shared -- see that file for why the share is classified as
+# an added stat and how the ladder is walked.
+name: "Maple Warrior"
+skill_order: 3
+description: "Increases every stat you have spent AP on."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+max_level: 30
+exceeds_master_level: true
+base { ap_stat_pct: 0.01 }
+per_level { ap_stat_pct: 0.00483 }

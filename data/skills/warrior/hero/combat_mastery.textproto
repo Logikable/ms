@@ -1,0 +1,13 @@
+# 20 + L% straight from GMS. Ships dead: no monster in this game sets any
+# physical defence, so every share of it ignored cancels nothing. Written out
+# anyway -- the figure belongs with the skill, and the stats page shows the row.
+name: "Combat Mastery"
+skill_order: 5
+description:
+  "Your blows find the gaps in a monster's guard, ignoring part of its Defense."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+max_level: 30
+exceeds_master_level: true
+base { ied_pct: 0.21 }
+per_level { ied_pct: 0.01 }

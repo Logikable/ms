@@ -1,0 +1,25 @@
+# A plain passive in modern GMS. The combo orb it used to spend and the
+# max-enemy penalty it used to carry both went years ago; what is left is the
+# two levers, at 10 + floor(L/2)% and 10 + floor(L/3)%, walked as lines to the
+# same 25% and 20%.
+name: "Enrage"
+skill_order: 7
+description:
+  "Your rage gathers in your combo orbs. Permanently increases Final Damage "
+  "and Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+max_level: 30
+exceeds_master_level: true
+required_skill {
+  skill_name: "Advanced Combo"
+  level: 20
+}
+base {
+  final_dmg_pct: 0.10
+  crit_dmg: 0.10
+}
+per_level {
+  final_dmg_pct: 0.00517
+  crit_dmg: 0.00345
+}

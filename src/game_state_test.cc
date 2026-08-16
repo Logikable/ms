@@ -56,9 +56,9 @@ Job WorkbenchJob() {
 // the seeding has a book to spend its SP on. The levels are the real ones, so
 // what a stage's pool buys is the real question too.
 std::map<std::string, Skill> EveryStageBook() {
-  const int kSpByStage[] = {0, 60, 90, 120};
+  const int kSpByStage[] = {0, 60, 90, 120, 200};
   std::map<std::string, Skill> book;
-  for (int stage = 1; stage <= 3; ++stage) {
+  for (int stage = 1; stage <= 4; ++stage) {
     JobAdvancement advancement = AdvancementForJobStage(WorkbenchJob(), stage);
     if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
       continue;
@@ -141,21 +141,28 @@ TEST(GameStateTest, ConstructorStoresEveryCatalog) {
 // it. Play mode is where the climb is worth watching a level at a time.
 TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   GameState test = MakeTestModeState();
-  // The top of 3rd job, which is also the level cap -- the cap follows the
-  // maps, and the maps stop at 100.
-  EXPECT_EQ(test.character.proto().level(), NextAdvancementLevel(3));
-  EXPECT_EQ(test.character.proto().job_stage(), 3);
-  // Some 2nd job's branch, not a particular one -- see WorkbenchJob.
-  std::vector<Job> second = JobChoicesForStage(JOB_SWORDMAN, 2);
-  std::vector<Job> branches;
-  for (Job job : second) {
-    for (Job third : JobChoicesForStage(job, 3)) {
-      branches.push_back(third);
+  // The top of 4th job, held to the level cap: the 5th advancement's level is
+  // above the cap, so the workbench stops where the EXP table does.
+  int stage = test.character.proto().job_stage();
+  EXPECT_EQ(stage, 4);
+  EXPECT_EQ(test.character.proto().level(),
+            std::min(NextAdvancementLevel(stage), kTrialLevelCap));
+  // Some warrior branch, not a particular one -- see WorkbenchJob. Walked down
+  // the tree from the 1st job, so a workbench standing somewhere the choices
+  // cannot reach fails here.
+  std::vector<Job> reached = {JOB_SWORDMAN};
+  for (int i = 2; i <= stage; ++i) {
+    std::vector<Job> next;
+    for (Job job : reached) {
+      for (Job choice : JobChoicesForStage(job, i)) {
+        next.push_back(choice);
+      }
     }
+    reached = next;
   }
   EXPECT_NE(
-      std::find(branches.begin(), branches.end(), test.character.proto().job()),
-      branches.end());
+      std::find(reached.begin(), reached.end(), test.character.proto().job()),
+      reached.end());
   // Nothing left standing between the tester and the screens: no advancement
   // waiting to be taken, and no pool waiting to be spent.
   EXPECT_FALSE(test.character.CanAdvanceJob());
@@ -167,6 +174,7 @@ TEST(GameStateTest, TestModeStartsWithEveryBookBought) {
   EXPECT_EQ(state.character.sp(1), 0);
   EXPECT_EQ(state.character.sp(2), 0);
   EXPECT_EQ(state.character.sp(3), 0);
+  EXPECT_EQ(state.character.sp(4), 0);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     EXPECT_EQ(state.character.skill_level(entry.second),
               entry.second.max_level())

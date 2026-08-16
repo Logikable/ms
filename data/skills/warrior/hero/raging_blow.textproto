@@ -1,0 +1,39 @@
+# GMS enhances this while the combo ring is full, and this game takes the ring
+# as full everywhere else -- so what ships is the enhanced version and only
+# that: 267 + 4L% four times, of which the final two always crit.
+#
+# Those two are a second hit of the same swing rather than a lever over it.
+# They carry the same multiplier as the other two, so the whole of the
+# difference between the halves is the certainty -- which is what makes them
+# worth telling apart at all.
+name: "Raging Blow"
+skill_order: 1
+description:
+  "Slash several times at the enemies in front of you. The last two strikes "
+  "always land as critical hits, and Beam Blade cuts deeper for it."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_SWORDSMANSHIP
+job_advancement: JOB_ADVANCEMENT_HERO
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 660
+max_enemies: 8
+lines: 2
+boosts_skill_name: "Beam Blade"
+base {
+  skill_pct: 2.71
+  boosted_skill_pct: 0.41
+}
+per_level {
+  skill_pct: 0.04
+  boosted_skill_pct: 0.01
+}
+extra_hit {
+  label: "Critical Hits"
+  lines: 2
+  base {
+    skill_pct: 2.71
+    crit_rate: 1.00
+  }
+  per_level { skill_pct: 0.04 }
+}

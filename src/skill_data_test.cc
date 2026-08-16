@@ -622,6 +622,29 @@ TEST(SkillDataTest, EverySkillBoostNamesASkillTheSameCharacterCanHold) {
   EXPECT_GT(checked, 0) << "no skill in the catalog grants strikes or reach";
 }
 
+// Superseding is the bluntest thing one skill can do to another -- the named
+// skill stops paying at all -- so it may only name a skill the same character
+// can hold, and never itself. A self-reference would leave a book that
+// silently teaches nothing.
+TEST(SkillDataTest, EverySupersededSkillIsOneTheSameCharacterCanHold) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  int checked = 0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.supersedes_skill_name().empty()) {
+      continue;
+    }
+    ++checked;
+    EXPECT_NE(skill.supersedes_skill_name(), skill.name())
+        << entry.first << " supersedes itself";
+    EXPECT_TRUE(
+        SameCharacterCanHold(skills, skill, skill.supersedes_skill_name()))
+        << entry.first << " supersedes \"" << skill.supersedes_skill_name()
+        << "\", which no character holding it can learn";
+  }
+  EXPECT_GT(checked, 0) << "no skill in the catalog supersedes another";
+}
+
 // The catalog keys on file stem but learned levels key on DISPLAY name, so two
 // skills one character can reach under one name share a level: buying either
 // buys both. Exclusive branches are the only thing preventing it -- each

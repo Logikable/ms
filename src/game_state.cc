@@ -47,7 +47,7 @@ constexpr int kTestLevelUpItems = 199;
 // has to hand out. It moves up with the line rather than staying put -- a
 // workbench with an advancement still waiting is one the tester has to finish
 // before they can look at anything.
-constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_CRUSADER;
+constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO;
 
 // Everything the workbench dresses a job in: the best of each thing it carries
 // that its starting level can wear. Advancing hands over gear for the level it
@@ -104,6 +104,11 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
       return {"frozen_spear", "frozen_chain"};
     case JOB_PALADIN:
       return {"frozen_maul", "frozen_rosary"};
+    // The axe over the sword, for the reason the Crusader takes one: the two
+    // weigh the same in the damage chain and Weapon Mastery pays 5% more for
+    // an axe.
+    case JOB_HERO:
+      return {"frozen_two_handed_axe", "frozen_medal"};
     case JOB_CRUSADER:
       return {"tavar", "virtues_medallion"};
     case JOB_WHITE_KNIGHT:

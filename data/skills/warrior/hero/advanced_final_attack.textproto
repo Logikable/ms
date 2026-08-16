@@ -1,0 +1,35 @@
+# GMS states the whole of the Final Attack here rather than a delta over the
+# Fighter's -- 45 + ceil(L/2)% for 110 + 2L%, three times -- so this supersedes
+# it rather than stacking on it. The three activations fold into the one
+# percent a Final Attack is stated as, the way a multi-hit one always has.
+#
+# The weapons it demands are the Fighter's, so the pair lapse together: a Hero
+# holding something neither will fire off keeps neither.
+name: "Advanced Final Attack"
+skill_order: 6
+description:
+  "Permanently increases your Attack Power, and your Final Attack strikes far "
+  "harder and far more often."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+max_level: 30
+exceeds_master_level: true
+supersedes_skill_name: "Final Attack"
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+required_skill {
+  skill_name: "Final Attack"
+  level: 20
+}
+base {
+  attack: 1
+  final_attack_chance: 0.46
+  final_attack_pct: 3.36
+}
+per_level {
+  attack: 1
+  final_attack_chance: 0.00483
+  final_attack_pct: 0.06
+}
