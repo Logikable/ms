@@ -683,7 +683,7 @@ TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
   EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
   // The level the player has it at, and no maximum beside it: the [+] going
   // dim is what says a skill is finished.
-  EXPECT_NE(rendered.find("Slash Blast          0"), std::string::npos);
+  EXPECT_NE(rendered.find("Slash Blast           0"), std::string::npos);
   EXPECT_EQ(rendered.find("0/20"), std::string::npos);
 }
 
@@ -795,8 +795,8 @@ TEST_F(CharacterPanelTest, AnUnselectedLongNameIsCutToItsColumn) {
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
-  EXPECT_TRUE(OnScreen(comp, "Final Attack: Crossb"));
-  EXPECT_FALSE(OnScreen(comp, "Final Attack: Crossbo"));
+  EXPECT_TRUE(OnScreen(comp, "Final Attack: Crossbo"));
+  EXPECT_FALSE(OnScreen(comp, "Final Attack: Crossbow"));
 }
 
 // The name column is a fixed width rather than each name's own, so the levels
@@ -818,7 +818,7 @@ TEST_F(CharacterPanelTest, NamesAndLevelsStayColumnsWhateverTheNameLength) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
   ftxui::Screen screen = RenderToScreen(comp);
-  std::pair<int, int> wordy = FindCell(screen, "Final Attack: Crossb");
+  std::pair<int, int> wordy = FindCell(screen, "Final Attack: Crossbo");
   std::pair<int, int> rush = FindCell(screen, "Rush");
   ASSERT_GE(wordy.first, 0);
   ASSERT_GE(rush.first, 0);
@@ -890,6 +890,49 @@ TEST_F(CharacterPanelTest, NothingIsLentToTheUnlearnedOrToTheLender) {
   EXPECT_EQ(FindInRow(screen, blast, "(+"), -1);
   EXPECT_EQ(FindInRow(screen, orders, "(+"), -1);
   EXPECT_GE(FindInRow(screen, orders, " 10 "), 0) << "its own level, unlifted";
+}
+
+// The column is as wide as the widest level ON THE PAGE, not the widest one
+// the character could ever reach: an unopened book is a thin column of 0s,
+// and the first point spent widens it and narrows the names beside it.
+TEST_F(CharacterPanelTest, TheLevelColumnIsAsWideAsThePageNeeds) {
+  CharacterInstance closed = MakeLender(rng_, /*slash_blast=*/0);
+  CharacterPanel thin(closed, panel_focus_, LendingCatalog());
+  ftxui::Component thin_comp = thin.MakeComponent([](StatField) {});
+  thin_comp->OnEvent(ftxui::Event::ArrowRight);
+  ftxui::Screen thin_screen = RenderToScreen(thin_comp);
+
+  CharacterInstance opened = MakeLender(rng_, /*slash_blast=*/1);
+  CharacterPanel wide(opened, panel_focus_, LendingCatalog());
+  ftxui::Component wide_comp = wide.MakeComponent([](StatField) {});
+  wide_comp->OnEvent(ftxui::Event::ArrowRight);
+  ftxui::Screen wide_screen = RenderToScreen(wide_comp);
+
+  int closed_row = FindCell(thin_screen, "Slash Blast").second;
+  int opened_row = FindCell(wide_screen, "Slash Blast").second;
+  ASSERT_GE(closed_row, 0);
+  ASSERT_GE(opened_row, 0);
+  EXPECT_GT(FindInRow(thin_screen, closed_row, "0"),
+            FindInRow(wide_screen, opened_row, "3 (+2)"))
+      << "one point in, the column widens and the names give up the room";
+}
+
+// Right-aligned, so the gap a short level leaves sits between the name and the
+// level instead of trailing off after it.
+TEST_F(CharacterPanelTest, TheLevelIsRightAlignedInItsColumn) {
+  CharacterInstance c = MakeLender(rng_, /*slash_blast=*/1);
+  CharacterPanel panel(c, panel_focus_, LendingCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);
+
+  ftxui::Screen screen = RenderToScreen(comp);
+  int blast = FindCell(screen, "3 (+2)").second;
+  int orders = FindCell(screen, "Combat Orders").second;
+  ASSERT_GE(blast, 0);
+  ASSERT_GE(orders, 0);
+  // "3 (+2)" and "10" end in the same column; only their heads differ.
+  EXPECT_EQ(FindInRow(screen, blast, "3 (+2) "),
+            FindInRow(screen, orders, "10 ") - 4);
 }
 
 // The column the brackets need is only opened for a character whose book can
@@ -1133,9 +1176,9 @@ TEST_F(CharacterPanelTest, TheHighlightStopsAtTheEndOfTheName) {
 
   // Eleven for the name, then the padding holding the column open and the
   // level beyond it -- neither of which Enter reaches.
-  EXPECT_EQ(InversionMask(comp, "Slash Blast          0"),
+  EXPECT_EQ(InversionMask(comp, "Slash Blast           0"),
             "11111111111"
-            "00000000000");
+            "000000000000");
 }
 
 // A maxed skill with no SP behind it dims its [+], but the name is still a

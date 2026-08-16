@@ -190,16 +190,28 @@ class CharacterPanel {
   ftxui::Element RenderAdvTabBar(int stages, bool bar_focused) const;
   // The skills of the given job stage, in catalog order. Empty if none.
   std::vector<const Skill*> SkillsForStage(int stage) const;
-  // Renders one skill row: a kind tag, then "name  20 (+2)" on the left, and a
-  // [+] button on the right. Whichever column the cursor is on inverts, on the
-  // selected row while the skill rows hold focus -- the tag is not one of
+  // How the level column is drawn for one page of skills.
+  struct LevelColumn {
+    // The levels this character's book lends every skill they have opened.
+    // Whether a given skill takes any of them is its own business -- see
+    // LevelWithBonus.
+    int bonus = 0;
+    // The column's width, gutters included. Measured from the widest level
+    // actually on the page rather than the widest one that could ever be, so
+    // an unopened book is a thin column of 0s and every column it does not
+    // need goes to the skill names beside it. The first point spent on a
+    // lender's book widens it, and the names give the room back.
+    int width = 3;
+  };
+  LevelColumn MeasureLevelColumn(const std::vector<const Skill*>& skills) const;
+
+  // Renders one skill row: a kind tag, then "name    20 (+2)" on the left, and
+  // a [+] button on the right. Whichever column the cursor is on inverts, on
+  // the selected row while the skill rows hold focus -- the tag is not one of
   // them. The [+] is dimmed when the skill is maxed or its stage has no SP;
   // the name never dims, since it can always be read.
-  //
-  // `bonus` is the levels the character's book lends every skill, which sets
-  // how wide the level column has to be. Whether this skill takes any of them
-  // is its own business -- see LevelWithBonus.
-  ftxui::Element RenderSkillRow(const Skill& skill, int index, int bonus,
+  ftxui::Element RenderSkillRow(const Skill& skill, int index,
+                                const LevelColumn& column,
                                 bool rows_focused) const;
   // How many of the `total` extra stats the row budget leaves room for, once
   // the View All Stats row under them has been paid for. All of them when no
