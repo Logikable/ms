@@ -746,6 +746,46 @@ TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
                    params.attacks[0].damage_per_hit[0]);
 }
 
+// Puncture's shape: the buff hangs off an ATTACK, so it is laid by that swing
+// rather than raised on a wait of its own. The fight needs to know which swing
+// lays it, and that has to be the swing's index in the attack list.
+TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
+  Skill puncture;
+  puncture.set_name("Puncture");
+  puncture.set_kind(SKILL_KIND_ATTACK);
+  puncture.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  puncture.set_max_level(30);
+  puncture.set_base_delay_ms(720);
+  puncture.set_max_enemies(8);
+  puncture.mutable_base()->set_skill_pct(3.13);
+  Buff* wound = puncture.mutable_buff();
+  wound->set_duration_seconds(45.0);
+  wound->mutable_base()->set_damage_pct(0.25);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"puncture", puncture}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(puncture, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  // Index 1, past the bare poke: the swing that leaves the wound, and no wait
+  // at all, since what it waits for is being swung again.
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.attacks[1].name, "Puncture");
+  EXPECT_EQ(params.buffs[0].laid_by_attack, 1);
+  EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 0.0);
+
+  // A buff raised on its own wait says so by naming no swing -- the fight
+  // tells the two apart on this field alone.
+  puncture.set_kind(SKILL_KIND_ACTIVE);
+  puncture.set_cooldown_seconds(70.0);
+  state.skills["puncture"] = puncture;
+  EXPECT_EQ(ComputeCombatParams(state).buffs[0].laid_by_attack, -1);
+}
+
 // A character with no buff carries no tables at all: the cost of the
 // mechanism is paid only by the jobs that use it.
 TEST(ComputeCombatParamsTest, NoBuffMeansNoExtraTables) {

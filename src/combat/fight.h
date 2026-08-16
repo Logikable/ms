@@ -173,6 +173,10 @@ class CombatSim {
   // never committed to, or the fallback would cost the skill it fell back
   // from. A healing cast outranks every attack, but only from the next swing.
   int ChooseAttack(const CombatParams& params) const;
+  // The swing that lays a buff nobody is holding, or -1 when every one of them
+  // is standing. Outranks BestAttack and is outranked by the heal -- see the
+  // note on the definition for why it never asks whether the buff pays.
+  int BuffToLay(const CombatParams& params) const;
 
   // The steps of one Advance, in the order it runs them.
   //
@@ -203,6 +207,9 @@ class CombatSim {
   // cast. `weight` is what that swing counted for, the same share
   // CreditSwing uses -- a rapid swing must not pay a whole attack's worth.
   void CreditBuffs(const CombatParams& params, double weight);
+  // Puts up every buff the swing at index `swung` lays. Nothing for the
+  // swings that lay none, which is all of them bar Puncture.
+  void LayBuffs(const CombatParams& params, int swung);
   // The attacks as they stand under the buffs currently up. Every set holds
   // the same attacks in the same order, so an index survives a buff going up
   // or lapsing under it.

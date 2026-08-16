@@ -513,6 +513,19 @@ AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
 // holding more keeps the first four; nothing in the game holds two.
 constexpr int kMaxBuffWindows = 4;
 
+// Where `name`'s swing sits among the attacks, or -1 if the character cannot
+// swing it. Answered off the unbuffed set, which holds the same attacks in the
+// same order as every buffed one.
+int AttackNamed(const std::vector<AttackOption>& attacks,
+                const std::string& name) {
+  for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
+    if (attacks[i].name == name && attacks[i].swing_seconds > 0.0) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 // What the fight needs to run each buff's clock, at the level it is learned.
 // The levers are not here: those are folded into the tables below.
 void AddBuffs(const CharacterInstance& character,
@@ -534,6 +547,12 @@ void AddBuffs(const CharacterInstance& character,
         buff.cooldown_reduction_seconds() * speed_factor;
     option.heal_fraction =
         buff.base().heal_pct() + buff.per_level().heal_pct() * (level - 1);
+    // A buff hanging off an ATTACK is laid by that swing rather than raised on
+    // a wait: what leaves the wound is puncturing something. See
+    // BuffOption::laid_by_attack.
+    if (skill->kind() == SKILL_KIND_ATTACK) {
+      option.laid_by_attack = AttackNamed(params.attacks, skill->name());
+    }
     params.buffs.push_back(std::move(option));
   }
 }

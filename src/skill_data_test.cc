@@ -277,6 +277,12 @@ TEST(SkillDataTest, EveryBuffStandsForAWhileAndWaitsForTheNextOne) {
     }
     EXPECT_GT(skill.buff().duration_seconds(), 0.0)
         << entry.first << "'s buff would never stand";
+    // A buff its own swing lays waits for that swing rather than for a clock,
+    // and the swing costs the fight a turn either way. Only the ones raised
+    // for free need a wait to keep them from being permanent.
+    if (skill.kind() == SKILL_KIND_ATTACK) {
+      continue;
+    }
     EXPECT_GT(skill.cooldown_seconds(), 0.0)
         << entry.first << "'s buff would never be waited for";
     EXPECT_GT(skill.cooldown_seconds(), skill.buff().duration_seconds())

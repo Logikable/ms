@@ -1733,6 +1733,74 @@ void GiveBuff(CombatParams& params, double duration, double cooldown,
   params.buffed.push_back(std::move(set));
 }
 
+// Puncture's shape: a weaker swing that leaves a wound, and a harder one the
+// fight would otherwise never put down. The buff is laid by the weak swing
+// rather than raised on a wait, and while it stands every swing hits `factor`
+// times as hard.
+void GiveWound(CombatParams& params, double duration, double factor) {
+  params.attacks.push_back(MakeSkill("Puncture", 5.0, /*cooldown=*/0.0));
+  params.attacks.push_back(MakeSkill("Raging Blow", 20.0, /*cooldown=*/0.0));
+  BuffOption buff;
+  buff.name = "Puncture";
+  buff.duration_seconds = duration;
+  buff.laid_by_attack = 1;  // where Puncture's swing sits in params.attacks
+  params.buffs.push_back(std::move(buff));
+  AttackSet set;
+  set.attacks = params.attacks;
+  set.auto_attacks = params.auto_attacks;
+  set.triggered_attacks = params.triggered_attacks;
+  for (AttackOption& attack : set.attacks) {
+    for (double& damage : attack.damage_per_hit) {
+      damage *= factor;
+    }
+  }
+  params.buffed.push_back(std::move(set));
+}
+
+// The whole of the mechanism: the fight spends a swing laying the wound, then
+// goes back to the swing that hits hardest, and comes back when it lapses.
+//
+// Read off the damage rather than attack_name(), which names the swing being
+// charged NEXT -- the strike re-aims before the step ends.
+TEST(CombatSimTest, TheFightSpendsASwingToLayALapsedBuff) {
+  Mob snail = MakeMob("Snail", 10000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GiveWound(params, /*duration=*/3.0, /*factor=*/2.0);
+
+  // 5: Puncture, the weakest swing on offer, and landing bare -- the wound it
+  // leaves is not up while it is being laid.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.9995, 1e-9);
+  // 40 twice: the hardest swing, doubled by the wound now standing.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.9955, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.9915, 1e-9);
+  // Three seconds up, so the wound has lapsed -- but the swing aimed while it
+  // still stood is committed to and finishes, landing 20 rather than 40.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.9895, 1e-9);
+  // Only then is it laid again, for another 5.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.9890, 1e-9);
+}
+
+// The other half of the rule: a wound still standing is left alone. Nothing
+// re-lays it early, so the hard swing keeps every turn after the first.
+TEST(CombatSimTest, ABuffStillStandingIsNotLaidAgain) {
+  Mob snail = MakeMob("Snail", 10000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GiveWound(params, /*duration=*/1000.0, /*factor=*/2.0);
+
+  for (int step = 0; step < 6; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  // 5 to lay it, then 40 five times over.
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.9795, 1e-9);
+}
+
 // Dark Resonance's shape, and the one thing that makes a timed buff a
 // mechanism rather than another passive: it lapses before it comes round
 // again, so the fight swings buffed for part of the time and bare for the

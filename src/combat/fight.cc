@@ -178,6 +178,12 @@ int CombatSim::ChooseAttack(const CombatParams& params) const {
   if (heal >= 0) {
     return heal;
   }
+  // Below the heal, since staying alive comes before hitting harder, and above
+  // the damage: a lapsed wound is worth more than one more of the best swing.
+  int lay = BuffToLay(params);
+  if (lay >= 0) {
+    return lay;
+  }
   return BestAttack(params);
 }
 
@@ -409,8 +415,12 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     // spent on an empty map is one the player does not have when the mobs
     // land. Nothing is recast while it is still standing -- a player timing
     // these would not throw the tail of one away.
-    if (buff_left_[i] <= 0.0 && buff_cooldown_left_[i] <= 0.0 &&
-        !queue_.empty() && buff.duration_seconds > 0.0) {
+    //
+    // A buff its own swing lays is not raised here at all: it waits for that
+    // swing to land. See LayBuffs.
+    if (buff.laid_by_attack < 0 && buff_left_[i] <= 0.0 &&
+        buff_cooldown_left_[i] <= 0.0 && !queue_.empty() &&
+        buff.duration_seconds > 0.0) {
       buff_left_[i] = buff.duration_seconds;
       buff_cooldown_left_[i] = buff.cooldown_seconds;
       player_hp_ =
@@ -421,6 +431,52 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       buff_mask_ |= 1 << i;
     }
   }
+}
+
+void CombatSim::LayBuffs(const CombatParams& params, int swung) {
+  for (int i = 0; i < static_cast<int>(buff_left_.size()); ++i) {
+    const BuffOption& buff = params.buffs[i];
+    if (buff.laid_by_attack != swung) {
+      continue;
+    }
+    // Refreshed rather than stacked, and its wait started from the swing that
+    // laid it: what a second puncture leaves is one wound, not two.
+    buff_left_[i] = buff.duration_seconds;
+    buff_cooldown_left_[i] = buff.cooldown_seconds;
+  }
+}
+
+// The swing that lays a buff nobody is holding, chosen ahead of the hardest
+// swing on offer. Deliberately not a comparison: a wound that has lapsed lifts
+// every swing after it for as long as it stands, and the one swing it costs is
+// one in a hundred, so asking whether it pays would be arithmetic with only
+// one answer.
+//
+// It is a rule about every swing-laid buff, not just this one. A buff worth
+// less than the swing it displaces would be over-cast here -- the guard for
+// that is a rate check, and it belongs with the first skill that needs one
+// rather than with an imagined one.
+int CombatSim::BuffToLay(const CombatParams& params) const {
+  if (queue_.empty()) {
+    return -1;
+  }
+  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+    const BuffOption& buff = params.buffs[i];
+    if (buff.laid_by_attack < 0 || buff.duration_seconds <= 0.0) {
+      continue;
+    }
+    if (i < static_cast<int>(buff_left_.size()) && buff_left_[i] > 0.0) {
+      continue;  // still standing, so there is nothing to go and do
+    }
+    // The swing itself may be recharging, in which case there is no laying it
+    // this time and the fight swings for damage instead.
+    if (buff.laid_by_attack < static_cast<int>(cooldown_left_.size()) &&
+        cooldown_left_[buff.laid_by_attack] > 0.0) {
+      continue;
+    }
+    return buff.laid_by_attack;
+  }
+  return -1;
 }
 
 void CombatSim::CreditBuffs(const CombatParams& params, double weight) {
@@ -526,6 +582,7 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     // Attacking is what brings a buff round sooner, so the same swing that
     // credits the volleys credits the buffs. A cast credits neither.
     CreditBuffs(params, attack->count_weight);
+    LayBuffs(params, swung);
   }
   if (attack->cooldown_seconds > 0.0) {
     cooldown_left_[swung] = attack->cooldown_seconds;

@@ -114,6 +114,15 @@ struct BuffOption {
   double cooldown_reduction_seconds = 0.0;
   // Share of the pool the cast puts back at once (1.00 == all of it).
   double heal_fraction = 0.0;
+  // Index into AttackSet::attacks of the swing that lays this buff, or -1 for
+  // one the character raises on its own wait. A buff hanging off an ATTACK is
+  // inseparable from the swing that delivers it -- Puncture's wound is left by
+  // puncturing something -- so the fight has to spend a swing to put it up.
+  //
+  // An index rather than a name, because the attacks are the same in the same
+  // order in every buffed set: one index stays good however the buffs come and
+  // go.
+  int laid_by_attack = -1;
 };
 
 // A snapshot of the current encounter's combat parameters.
