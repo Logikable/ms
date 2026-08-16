@@ -1,0 +1,13 @@
+name: "Frozen Two-handed Sword"
+required_level: 110
+base_stats {
+  attack: 123
+}
+attack_speed: ATTACK_SPEED_AVERAGE
+equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+upgrade_slots: 8
+equip_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
+set_family: "Frozen Weapon"
+token_item: "frozen_weapon_token"
+token_price: 1

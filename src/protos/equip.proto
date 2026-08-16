@@ -157,6 +157,17 @@ message EquipPrototype {
   // the equip tab can be sold, and one worth nothing is simply thrown away.
   // That is what clears a starter sword out of the bag.
   int32 sell_price = 11;
+  // The token this is bought with, by data file stem, and how many of it. Both
+  // unset for an item the shop sells for meso, which is most of them. An item
+  // joins the token shelf by naming a price here, the same way naming a
+  // shop_price joins it to the meso shelf.
+  string token_item = 12;
+  int32 token_price = 13;
+  // The set family this item belongs to, e.g. "Frozen Weapon". A set names a
+  // family where any one of many items fills the slot -- a weapon belongs to
+  // one class, so the set cannot name it. Empty for an item in no set, and for
+  // one the set names outright.
+  string set_family = 14;
 }
 
 // Per-instance mutable state for a single drop of equipment. Persisted in the

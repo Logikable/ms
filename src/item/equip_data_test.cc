@@ -23,6 +23,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/skill.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
@@ -36,6 +37,13 @@ std::map<std::string, EquipPrototype> LoadEquips() {
   std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
   EXPECT_NE(runfiles, nullptr) << err;
   return LoadTextProtoDir<EquipPrototype>(runfiles->Rlocation("ms/data/equip"));
+}
+
+std::map<std::string, ItemPrototype> LoadItems() {
+  std::string err;
+  std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&err));
+  EXPECT_NE(runfiles, nullptr) << err;
+  return LoadTextProtoDir<ItemPrototype>(runfiles->Rlocation("ms/data/items"));
 }
 
 // Stars are ammunition, not a weapon a player invests in. Asserted over the
@@ -182,10 +190,14 @@ TEST(EquipDataTest, SecondariesTakeNoUpgrades) {
 }
 
 // One per branch at every tier, and no branch left out. A missing one is a 2nd
-// job with a level it cannot re-arm its off hand at.
+// job with a level it cannot re-arm its off hand at. The two shelves are
+// counted apart: what meso buys climbs in tiers, and what a token buys is the
+// one Frozen piece.
 TEST(EquipDataTest, EverySecondJobHasEveryTier) {
-  const std::vector<int> kSecondaryTiers{30, 60, 100};
-  std::map<JobAdvancement, std::vector<int>> levels;
+  const std::vector<int> kMesoTiers{30, 60, 100};
+  const std::vector<int> kTokenTiers{110};
+  std::map<JobAdvancement, std::vector<int>> meso;
+  std::map<JobAdvancement, std::vector<int>> token;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
@@ -195,14 +207,23 @@ TEST(EquipDataTest, EverySecondJobHasEveryTier) {
     JobAdvancement owner = AdvancementForSecondary(proto.equip_type());
     ASSERT_NE(owner, JOB_ADVANCEMENT_UNSPECIFIED)
         << entry.first << " is an off-hand nobody can hold";
-    levels[owner].push_back(proto.required_level());
+    ASSERT_GT(proto.shop_price() + proto.token_price(), 0)
+        << entry.first << " is an off-hand nothing buys";
+    if (proto.shop_price() > 0) {
+      meso[owner].push_back(proto.required_level());
+    } else {
+      token[owner].push_back(proto.required_level());
+    }
   }
   for (int i = JOB_ADVANCEMENT_FIGHTER; i <= JOB_ADVANCEMENT_BANDIT; ++i) {
     JobAdvancement advancement = static_cast<JobAdvancement>(i);
-    std::vector<int>& own = levels[advancement];
+    std::vector<int>& own = meso[advancement];
     std::sort(own.begin(), own.end());
-    EXPECT_EQ(own, kSecondaryTiers)
+    EXPECT_EQ(own, kMesoTiers)
         << JobAdvancement_Name(advancement) << " has the wrong secondaries";
+    EXPECT_EQ(token[advancement], kTokenTiers)
+        << JobAdvancement_Name(advancement)
+        << " has the wrong Frozen secondary";
   }
 }
 
@@ -252,6 +273,64 @@ TEST(EquipDataTest, EveryWeaponTypeReachesTheLevelCap) {
     EXPECT_EQ(ladder.second.back(), expected)
         << FormatEquipType(ladder.first) << " stops at the wrong tier";
   }
+}
+
+// Every weapon type the shop's ladder reaches the cap with has a Frozen one
+// above it, so no branch is asked to farm tokens for a weapon it cannot hold.
+// The one-handed sword is out for the reason its ladder stops: nobody swings
+// one past their 2nd job.
+TEST(EquipDataTest, EveryWeaponTypeHasAFrozenTier) {
+  std::map<EquipType, int> frozen;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON &&
+        proto.token_price() > 0) {
+      EXPECT_EQ(frozen.count(proto.equip_type()), 0u)
+          << entry.first << " is a second Frozen "
+          << FormatEquipType(proto.equip_type());
+      frozen[proto.equip_type()] = proto.required_level();
+    }
+  }
+  for (const std::pair<const EquipType, std::vector<int>>& ladder :
+       WeaponLadders()) {
+    if (ladder.first == EQUIP_TYPE_ONE_HANDED_SWORD) {
+      continue;
+    }
+    ASSERT_EQ(frozen.count(ladder.first), 1u)
+        << FormatEquipType(ladder.first) << " has no Frozen tier";
+    EXPECT_EQ(frozen[ladder.first], 110)
+        << "the Frozen " << FormatEquipType(ladder.first)
+        << " is worn at the wrong level";
+  }
+}
+
+// A price is only a price if something answers it. An item naming a token that
+// no data file defines would sit on the shelf at a cost nobody can pay, and the
+// loader would say nothing.
+TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
+  std::map<std::string, ItemPrototype> items = LoadItems();
+  int seen = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.token_price() <= 0 && proto.token_item().empty()) {
+      continue;
+    }
+    ++seen;
+    EXPECT_GT(proto.token_price(), 0) << entry.first << " names a token for 0";
+    std::map<std::string, ItemPrototype>::const_iterator it =
+        items.find(proto.token_item());
+    ASSERT_NE(it, items.end())
+        << entry.first << " is bought with " << proto.token_item()
+        << ", which is not an item";
+    EXPECT_FALSE(it->second.currency_mark().empty())
+        << proto.token_item() << " pays for " << entry.first
+        << " without a mark to draw in the cost column";
+    EXPECT_EQ(proto.shop_price(), 0)
+        << entry.first << " is on both shelves at once";
+  }
+  EXPECT_GT(seen, 0) << "nothing in the catalog is bought with a token";
 }
 
 // One tier, one price. Every weapon a level opens costs the same, so the choice

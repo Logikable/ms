@@ -1,0 +1,15 @@
+name: "Frozen Metallic Book"
+required_level: 110
+base_stats {
+  int: 8
+  luk: 8
+  magic_attack: 5
+}
+equip_type: EQUIP_TYPE_MAGIC_BOOK_ICE_LIGHTNING
+equip_job_categories: EQUIP_JOB_CATEGORY_MAGICIAN
+equip_slot: EQUIP_SLOT_SECONDARY
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+set_family: "Frozen Secondary"
+token_item: "frozen_secondary_token"
+token_price: 1
