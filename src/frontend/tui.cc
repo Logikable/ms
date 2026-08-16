@@ -352,7 +352,7 @@ ftxui::Element Tui::RenderShopInspect() {
 // right, previewed at both ends of its levels: the player has spent no points
 // on it and has none to spend, so "one more point" would say nothing.
 ftxui::Element Tui::RenderJobInspect() {
-  skill_inspect_panel_.SetSkill(job_inspect_panel_.selected_skill(), 0,
+  skill_inspect_panel_.SetSkill(job_inspect_panel_.selected_skill(), 0, 0,
                                 SkillInspectPanel::kPreview);
   return Standalone(JobInspectScreen(
       job_inspect_panel_.Render(), skill_inspect_panel_.Render(),
@@ -446,7 +446,8 @@ ftxui::Element Tui::RenderScreen() {
       return RenderJobInspect();
     case kSkillInspect:
       skill_inspect_panel_.SetSkill(&controller_.skill_inspect_skill(),
-                                    controller_.skill_inspect_level());
+                                    controller_.skill_inspect_level(),
+                                    controller_.skill_inspect_bonus());
       return Standalone(skill_inspect_panel_.Render());
     case kInspect:
     case kItemInspect:

@@ -95,12 +95,14 @@ class TuiController {
     return sp_selector_;
   }
 
-  // The skill being inspected while in kSkillInspect, and the level the
-  // character has it at, for the screen Tui draws.
+  // The skill being inspected while in kSkillInspect, the level the character
+  // has spent points to, and the levels their book lends every skill, for the
+  // screen Tui draws.
   const Skill& skill_inspect_skill() const {
     return skill_inspect_;
   }
   int skill_inspect_level() const;
+  int skill_inspect_bonus() const;
 
   // The job the pending advancement would take, and its prompt, for the dialog
   // Tui floats over the main view.

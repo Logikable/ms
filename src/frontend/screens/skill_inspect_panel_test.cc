@@ -17,15 +17,15 @@ namespace {
 
 class SkillInspectPanelTest : public PanelTest {
  protected:
-  std::string RenderAt(const Skill& skill, int level) {
+  std::string RenderAt(const Skill& skill, int level, int bonus = 0) {
     SkillInspectPanel panel;
-    panel.SetSkill(&skill, level);
+    panel.SetSkill(&skill, level, bonus);
     return RenderElement(panel.Render());
   }
 
   std::string RenderPreview(const Skill& skill) {
     SkillInspectPanel panel;
-    panel.SetSkill(&skill, 0, SkillInspectPanel::kPreview);
+    panel.SetSkill(&skill, 0, 0, SkillInspectPanel::kPreview);
     return RenderElement(panel.Render());
   }
 
@@ -150,6 +150,55 @@ TEST_F(SkillInspectPanelTest, AMaxedSkillShowsNoNextLevel) {
   EXPECT_EQ(rendered.find("Level 21"), std::string::npos);
 }
 
+// The card is about what the skill is worth, so the levels a book lends are
+// counted into both blocks: a 5 with two lent reads as a 7, and the point
+// after it as an 8.
+TEST_F(SkillInspectPanelTest, LentLevelsAreCountedIntoBothBlocks) {
+  Skill skill = MakeIronBody();
+  std::string rendered = RenderAt(skill, 5, /*bonus=*/2);
+  EXPECT_NE(rendered.find("Level 7"), std::string::npos);
+  EXPECT_NE(rendered.find("+70"), std::string::npos);  // DEF at 7, not at 5
+  EXPECT_NE(rendered.find("Level 8"), std::string::npos);
+  EXPECT_EQ(rendered.find("Level 5"), std::string::npos);
+}
+
+// A skill nobody has opened is lent nothing, so there is still no current
+// level to show -- but the first point in it arrives lent, and the block for
+// what that point buys says the level it would really be worth.
+TEST_F(SkillInspectPanelTest, AnUnlearnedSkillIsLentNothingUntilItIsOpened) {
+  Skill skill = MakeIronBody();
+  std::string rendered = RenderAt(skill, 0, /*bonus=*/2);
+  EXPECT_EQ(rendered.find("Level 0"), std::string::npos);
+  EXPECT_EQ(rendered.find("Level 1"), std::string::npos);
+  EXPECT_NE(rendered.find("Level 3"), std::string::npos);
+  EXPECT_NE(rendered.find("+30"), std::string::npos);  // DEF at 3, not at 1
+}
+
+// Two things the master level does to a lent one. A skill marked for the 4th
+// job takes two levels past it, and both blocks say so; one not marked stops
+// there, and the point that buys nothing new gets no block of its own.
+TEST_F(SkillInspectPanelTest, LentLevelsStopWhereTheSkillDoes) {
+  Skill plain = MakeIronBody();
+  std::string held = RenderAt(plain, 19, /*bonus=*/2);
+  EXPECT_NE(held.find("Level 20"), std::string::npos);
+  EXPECT_EQ(held.find("Level 21"), std::string::npos)
+      << "the next point buys a level the lent ones already reached";
+
+  Skill marked = MakeIronBody();
+  marked.set_exceeds_master_level(true);
+  std::string past = RenderAt(marked, 19, /*bonus=*/2);
+  EXPECT_NE(past.find("Level 21"), std::string::npos);
+  EXPECT_NE(past.find("Level 22"), std::string::npos);
+  EXPECT_NE(past.find("Max Level: 20"), std::string::npos)
+      << "and the maximum it is past is still the maximum";
+
+  // The two levels past the master level are lent, never bought, so a maxed
+  // skill has nothing left to spend on however far it is allowed to reach.
+  std::string bought_out = RenderAt(marked, 20, /*bonus=*/0);
+  EXPECT_NE(bought_out.find("Level 20"), std::string::npos);
+  EXPECT_EQ(bought_out.find("Level 21"), std::string::npos);
+}
+
 // A player choosing a job has no points spent and none to spend, so "one more
 // point" says nothing. The two ends of the skill are what there is to compare.
 TEST_F(SkillInspectPanelTest, APreviewShowsTheFirstLevelAndTheLast) {
@@ -167,7 +216,7 @@ TEST_F(SkillInspectPanelTest, APreviewShowsTheFirstLevelAndTheLast) {
 TEST_F(SkillInspectPanelTest, APreviewIgnoresWhatIsLearned) {
   Skill skill = MakeIronBody();
   SkillInspectPanel panel;
-  panel.SetSkill(&skill, 7, SkillInspectPanel::kPreview);
+  panel.SetSkill(&skill, 7, 0, SkillInspectPanel::kPreview);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_EQ(rendered.find("Level 7"), std::string::npos);
   EXPECT_EQ(rendered.find("Level 8"), std::string::npos);
@@ -800,7 +849,7 @@ TEST_F(SkillInspectPanelTest, WrapsALongDescriptionOntoItsOwnLines) {
 
 TEST_F(SkillInspectPanelTest, RendersAPlaceholderWithNoSkill) {
   SkillInspectPanel panel;
-  panel.SetSkill(nullptr, 0);
+  panel.SetSkill(nullptr, 0, 0);
   EXPECT_NE(RenderElement(panel.Render()).find("(no skill)"),
             std::string::npos);
 }
@@ -971,7 +1020,7 @@ TEST_F(SkillInspectPanelTest, TheTallestCardIsTheTallestOfThem) {
   SkillInspectPanel panel;
   std::vector<int> heights;
   for (const Skill* skill : {&iron_body, &lucky_seven}) {
-    panel.SetSkill(skill, 0, SkillInspectPanel::kPreview);
+    panel.SetSkill(skill, 0, 0, SkillInspectPanel::kPreview);
     ftxui::Element card = panel.Render();
     card->ComputeRequirement();
     heights.push_back(card->requirement().min_y);
@@ -1063,7 +1112,7 @@ TEST_F(SkillInspectPanelTest, HeadsTheTwoHalvesInTheSkillListsColors) {
   resonance.mutable_buff()->set_duration_seconds(15.0);
   resonance.mutable_buff()->mutable_base()->set_final_dmg_pct(0.02);
   SkillInspectPanel panel;
-  panel.SetSkill(&resonance, 1);
+  panel.SetSkill(&resonance, 1, 0);
   EXPECT_EQ(LabelColor(panel.Render(), "Active for 15s"), kOrange);
   EXPECT_EQ(LabelColor(panel.Render(), "Passive"), kGreen);
 }

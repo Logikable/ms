@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/character_stats.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/equip.pb.h"
@@ -754,9 +755,11 @@ std::vector<ftxui::Element> LevelBlock(const Skill& skill, int level) {
 
 }  // namespace
 
-void SkillInspectPanel::SetSkill(const Skill* skill, int level, Levels levels) {
+void SkillInspectPanel::SetSkill(const Skill* skill, int learned, int bonus,
+                                 Levels levels) {
   skill_ = skill;
-  level_ = level;
+  level_ = learned;
+  bonus_ = bonus;
   levels_ = levels;
 }
 
@@ -788,15 +791,28 @@ ftxui::Element SkillInspectPanel::Render() const {
   // modes: the level the skill is at and what one more point would buy, or
   // the first level and the last. A skill with one level has one block either
   // way, and so does a maxed or an unlearned one.
-  int first = levels_ == kPreview ? 1 : level_;
-  int second = levels_ == kPreview ? skill_->max_level() : level_ + 1;
+  //
+  // Both levels are the lent ones -- what the skill is actually worth now,
+  // and what it would be worth with one more point in it. Whether there is a
+  // point left to spend is the LEARNED level's business, which is why the two
+  // are asked separately.
+  int first = 1;
+  int second = skill_->max_level();
+  bool has_second = second > first;
+  if (levels_ == kLearned) {
+    first = LevelWithBonus(*skill_, level_, bonus_);
+    second = LevelWithBonus(*skill_, level_ + 1, bonus_);
+    // A point that buys nothing gets no block: the lent levels can already
+    // have carried the skill to the ceiling the next one would reach.
+    has_second = level_ < skill_->max_level() && second > first;
+  }
   if (first > 0) {
     rows.push_back(ThemedSeparator());
     for (ftxui::Element& row : LevelBlock(*skill_, first)) {
       rows.push_back(std::move(row));
     }
   }
-  if (second > first && second <= skill_->max_level()) {
+  if (has_second) {
     rows.push_back(ThemedSeparator());
     for (ftxui::Element& row : LevelBlock(*skill_, second)) {
       rows.push_back(std::move(row));
@@ -819,7 +835,7 @@ int TallestPreviewCardRows(const std::vector<const Skill*>& skills) {
     if (skill == nullptr) {
       continue;
     }
-    panel.SetSkill(skill, 0, SkillInspectPanel::kPreview);
+    panel.SetSkill(skill, 0, 0, SkillInspectPanel::kPreview);
     ftxui::Element card = panel.Render();
     card->ComputeRequirement();
     rows = std::max(rows, card->requirement().min_y);

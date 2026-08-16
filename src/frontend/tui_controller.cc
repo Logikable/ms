@@ -5,6 +5,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "src/character/character.h"
+#include "src/character/character_stats.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
 #include "src/frontend/panels/equipped_panel.h"
@@ -81,12 +82,16 @@ void TuiController::OpenSkillInspect(const Skill& skill) {
   screen_ = kSkillInspect;
 }
 
-// Read live rather than captured, so a point spent on the skill and then
-// inspected again shows the level it is actually at. The learned level, to
-// match the column on the skills tab: the pair of them are the ledger for the
-// SP spent, and a level Combat Orders granted was not bought with any.
+// Both read live rather than captured, so a point spent on the skill and then
+// inspected again shows the level it is actually at. The learned level: what
+// the card makes of the lent ones is the card's business, since it also has
+// to say what one more point would buy.
 int TuiController::skill_inspect_level() const {
   return state_.character.skill_level(skill_inspect_);
+}
+
+int TuiController::skill_inspect_bonus() const {
+  return BonusSkillLevels(state_.character, state_.skills);
 }
 
 void TuiController::OpenAllStats() {

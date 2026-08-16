@@ -36,15 +36,19 @@ class SkillInspectPanel {
     kPreview,
   };
 
-  // `level` is the level the character has learned the skill to, 0 for one
-  // they have not spent a point on. Ignored under kPreview, which is about a
-  // skill rather than about a character.
-  void SetSkill(const Skill* skill, int level, Levels levels = kLearned);
+  // `learned` is the level the character has spent points to, 0 for one they
+  // have not opened. `bonus` is the levels their book lends every skill --
+  // Combat Orders' -- which the card counts into the level it heads its
+  // blocks with. Both are ignored under kPreview, which is about a skill
+  // rather than about a character.
+  void SetSkill(const Skill* skill, int learned, int bonus,
+                Levels levels = kLearned);
   ftxui::Element Render() const;
 
  private:
   const Skill* skill_ = nullptr;
   int level_ = 0;
+  int bonus_ = 0;
   Levels levels_ = kLearned;
 };
 

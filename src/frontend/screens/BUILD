@@ -89,6 +89,7 @@ cc_library(
     srcs = ["skill_inspect_panel.cc"],
     hdrs = ["skill_inspect_panel.h"],
     deps = [
+        "//src/character:character_stats",
         "//src/combat:damage",
         "//src/frontend/widgets:panel_util",
         "//src/protos:equip_proto_cc",

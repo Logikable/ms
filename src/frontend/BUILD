@@ -42,6 +42,7 @@ cc_library(
         ":types",
         "//src:game_state",
         "//src/character",
+        "//src/character:character_stats",
         "//src/character:job_advancement",
         "//src/frontend/panels:character_panel",
         "//src/frontend/panels:equipped_panel",
