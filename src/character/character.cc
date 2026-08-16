@@ -1273,6 +1273,29 @@ bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
   return true;
 }
 
+bool CharacterInstance::BuyWithToken(const EquipPrototype& proto,
+                                     const ItemPrototype& token, int count) {
+  // A mark is what makes an item a currency, so an item without one buys
+  // nothing however many of it the caller passes.
+  if (count <= 0 || proto.token_price() <= 0 || token.currency_mark().empty()) {
+    return false;
+  }
+  // Room first, then the whole price in one go: ConsumeStackable is all or
+  // nothing, so a purchase the character cannot finish never spends the tokens
+  // for the part of it they could.
+  if (count > RoomFor(proto)) {
+    return false;
+  }
+  if (!ConsumeStackable(ITEM_CATEGORY_ETC, token.name(),
+                        count * proto.token_price())) {
+    return false;
+  }
+  for (int i = 0; i < count; ++i) {
+    PickUp(std::make_unique<EquipInstance>(proto));
+  }
+  return true;
+}
+
 bool CharacterInstance::Buy(const ItemPrototype& proto, int count) {
   if (count <= 0 || proto.shop_price() <= 0) {
     return false;

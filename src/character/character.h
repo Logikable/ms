@@ -227,6 +227,14 @@ class CharacterInstance {
   // the character cannot pay for every copy. Each copy is a fresh item, so
   // buying two puts two separate rows in the bag.
   bool Buy(const EquipPrototype& proto, int count);
+  // Buys `count` copies of `proto` with the token it names, spending
+  // `count * token_price` of them out of the Etc tab. The caller resolves
+  // `token` from the prototype's token_item, since only it holds the catalog.
+  //
+  // All or nothing on the same terms as Buy. An item with no token price, or
+  // an item passed as a token that is not one, buys nothing.
+  bool BuyWithToken(const EquipPrototype& proto, const ItemPrototype& token,
+                    int count);
   // As above for a stackable. All or nothing on the same terms: the price is
   // checked in one go and the bag's room up front, so a purchase the character
   // cannot finish never takes the meso for the part of it that would fit.

@@ -1094,6 +1094,73 @@ TEST_F(BuyTest, NonPositiveCountIsNoOp) {
   EXPECT_EQ(c_.inventory().size(), 0);
 }
 
+// --- BuyWithToken ---
+
+class BuyWithTokenTest : public CharacterTest {
+ protected:
+  void SetUp() override {
+    polearm_.set_name("Frozen Polearm");
+    polearm_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    polearm_.set_token_item("frozen_weapon_token");
+    polearm_.set_token_price(1);
+    token_.set_name("Frozen Weapon Token");
+    token_.set_category(ITEM_CATEGORY_ETC);
+    token_.set_currency_mark("●");
+    c_.AddStackable(token_, 2);
+  }
+
+  int TokensLeft() {
+    return c_.CountStackable(token_);
+  }
+
+  EquipPrototype polearm_;
+  ItemPrototype token_;
+  CharacterInstance c_ = MakeCharacter(rng_);
+};
+
+TEST_F(BuyWithTokenTest, TakesTheTokenAndGivesTheItem) {
+  EXPECT_TRUE(c_.BuyWithToken(polearm_, token_, 1));
+  EXPECT_EQ(TokensLeft(), 1);
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory()[0].name(), "Frozen Polearm");
+}
+
+// The whole order or none of it, as the meso shelf does it: a player left
+// short a token would have paid for something they never received.
+TEST_F(BuyWithTokenTest, BuysNothingWhenItCannotBuyEverything) {
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, token_, 3));
+  EXPECT_EQ(TokensLeft(), 2);
+  EXPECT_EQ(c_.inventory().size(), 0);
+
+  EXPECT_TRUE(c_.BuyWithToken(polearm_, token_, 2));
+  EXPECT_EQ(TokensLeft(), 0);
+  EXPECT_EQ(c_.inventory().size(), 2) << "each copy is its own item";
+}
+
+TEST_F(BuyWithTokenTest, RefusesWhatNoTokenBuys) {
+  EquipPrototype meso_item;
+  meso_item.set_name("Zedbug");
+  meso_item.set_shop_price(400000);
+  EXPECT_FALSE(c_.BuyWithToken(meso_item, token_, 1));
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, token_, 0));
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, token_, -1));
+  EXPECT_EQ(TokensLeft(), 2);
+  EXPECT_EQ(c_.inventory().size(), 0);
+}
+
+// An Etc item is not a currency for having been passed as one. The mark is
+// what says the shop asks prices in it.
+TEST_F(BuyWithTokenTest, RefusesAnItemThatIsNotACurrency) {
+  ItemPrototype horn;
+  horn.set_name("Beetle's Horn");
+  horn.set_category(ITEM_CATEGORY_ETC);
+  c_.AddStackable(horn, 50);
+
+  EXPECT_FALSE(c_.BuyWithToken(polearm_, horn, 1));
+  EXPECT_EQ(c_.CountStackable(horn), 50);
+  EXPECT_EQ(c_.inventory().size(), 0);
+}
+
 // --- Buy, stackable ---
 
 class BuyStackableTest : public CharacterTest {
