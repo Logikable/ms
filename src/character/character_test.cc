@@ -195,6 +195,73 @@ TEST_F(LevelUpTest, FirstJobSpTotalsSixtyAndStopsAtTheBandEnd) {
   EXPECT_EQ(c.sp(2), 3);   // 2nd-job SP begins
 }
 
+// The 4th job's SP is a schedule of its own: the rate climbs by the decade and
+// doubles on the levels ending in 3, 6, 9 and 0, so a decade pays fourteen
+// times its rate. Checked decade by decade rather than as one total, so a band
+// paying the wrong rate says which band it was.
+TEST_F(LevelUpTest, FourthJobSpClimbsByTheDecade) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/100);
+  const int kDecades[] = {42, 56, 70, 84};  // 14 x 3, 4, 5 and 6
+  int paid = 0;
+  for (int decade = 0; decade < 4; ++decade) {
+    for (int i = 0; i < 10; ++i) {
+      c.LevelUp();
+    }
+    paid += kDecades[decade];
+    EXPECT_EQ(c.sp(4), paid) << "at level " << c.proto().level();
+  }
+  EXPECT_EQ(c.proto().level(), 140) << "the level cap, where the book is paid";
+  EXPECT_EQ(c.sp(4), 252) << "the 255 a book costs, less the 3 for advancing";
+}
+
+TEST_F(LevelUpTest, TheFourthJobDoublesOnLevelsEndingInThreeSixNineAndZero) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/101);
+  std::map<int, int> paid;  // the level arrived at -> what it handed over
+  for (int i = 0; i < 15; ++i) {
+    int before = c.sp(4);
+    c.LevelUp();
+    paid[c.proto().level()] = c.sp(4) - before;
+  }
+  EXPECT_EQ(paid[102], 3);
+  EXPECT_EQ(paid[103], 6);
+  EXPECT_EQ(paid[105], 3);
+  EXPECT_EQ(paid[106], 6);
+  EXPECT_EQ(paid[109], 6);
+  EXPECT_EQ(paid[110], 6);
+  EXPECT_EQ(paid[111], 4) << "the next decade pays one more";
+  EXPECT_EQ(paid[113], 8);
+}
+
+// Nothing below the 4th band moves: each of the first three books still costs
+// exactly what its own levels pay out.
+TEST_F(LevelUpTest, TheEarlierBooksStillCostWhatTheirLevelsPay) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
+  for (int i = 0; i < 90; ++i) {
+    c.LevelUp();  // levels 11..100
+  }
+  EXPECT_EQ(c.sp(1), 60);
+  EXPECT_EQ(c.sp(2), 90);
+  EXPECT_EQ(c.sp(3), 120);
+  EXPECT_EQ(c.sp(4), 0) << "level 100 is the last of the 3rd job's band";
+}
+
+// The 4th advancement is the one that pays, and it pays the 3 its book is
+// short of what the levels hand over. The others open a book their own levels
+// cover exactly.
+TEST_F(LevelUpTest, OnlyTheFourthAdvancementPaysSp) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/100);
+  c.AdvanceJob(JOB_SWORDMAN);
+  EXPECT_EQ(c.sp(1), 0);
+  c.AdvanceJob(JOB_SPEARMAN);
+  EXPECT_EQ(c.sp(2), 0);
+  c.AdvanceJob(JOB_BERSERKER);
+  EXPECT_EQ(c.sp(3), 0);
+  // The job the 4th advancement leads to does not exist yet; what pays here is
+  // the stage, so any job stands in for it until it does.
+  c.AdvanceJob(JOB_BERSERKER);
+  EXPECT_EQ(c.sp(4), 3);
+}
+
 TEST_F(LevelUpTest, EveryFirstJobReachesTheSameSixty) {
   // No job is handed a head start; the pools are identical.
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
@@ -270,7 +337,8 @@ TEST_F(GainsForLevelsTest, ASpanThatGoesNowhereGrantsNothing) {
 // player the wrong number.
 TEST_F(GainsForLevelsTest, AgreesWithLevellingUpForReal) {
   const std::pair<int, int> spans[] = {
-      {1, 2}, {1, 10}, {10, 11}, {10, 30}, {29, 32}, {1, 40},
+      {1, 2},   {1, 10}, {10, 11},  {10, 30},
+      {29, 32}, {1, 40}, {99, 104}, {100, 140},
   };
   for (const std::pair<int, int>& span : spans) {
     LevelGains predicted = GainsForLevels(span.first, span.second);

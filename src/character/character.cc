@@ -85,16 +85,37 @@ int SpStageForLevel(int level) {
   return stage;
 }
 
-// SP granted for completing an advancement into `job`. Every first-job book is
-// built to cost exactly the 60 that levels 11-30 pay out, so the advancement
-// itself hands over nothing: reaching level 11 is no more of an event than
-// reaching level 10 was. A job whose skills can't be made to total 60 sets a
-// bonus here to cover the difference.
-int JobAdvancementSpBonus(Job job) {
-  switch (job) {
-    default:
-      return 0;
+// SP a level-up pays. Flat through the first three books, each of which costs
+// exactly what its levels hand over: 60 for 11-30, 90 for 31-60, 120 for
+// 61-100.
+//
+// The 4th job is on a schedule of its own. The rate climbs by the decade --
+// 3, 4, 5, 6 -- and doubles on the levels ending in 3, 6, 9 and 0, so a decade
+// pays fourteen times its rate and the 255-point book is bought outright by
+// the level cap. Above the cap the last decade's rate carries on; only a
+// workbench character is up there, and their book is long since paid for.
+int SpForLevel(int level) {
+  int stage = SpStageForLevel(level);
+  if (stage < 1) {
+    return 0;
   }
+  if (stage < 4) {
+    return kSpPerLevel;
+  }
+  constexpr int kLastBand = 3;  // 131-140, the last decade under the cap
+  int rate = kSpPerLevel + std::min((level - 101) / 10, kLastBand);
+  int digit = level % 10;
+  bool doubled = digit == 0 || digit == 3 || digit == 6 || digit == 9;
+  return doubled ? rate * 2 : rate;
+}
+
+// SP granted for completing the advancement into `stage`. The first three
+// books each cost exactly what their levels pay out, so those advancements
+// hand over nothing: reaching level 11 is no more of an event than reaching
+// level 10 was. The 4th pays 3, which is the last of the 255 its book costs --
+// levels 101-140 pay the other 252.
+int JobAdvancementSpBonus(int stage) {
+  return stage == 4 ? 3 : 0;
 }
 
 // What a level-up grants a job in HP and MP. Real GMS varies this per class
@@ -656,9 +677,7 @@ LevelGains GainsForLevels(int from_level, int to_level) {
   // real gains against this, so a change to one that misses the other fails.
   for (int level = from_level + 1; level <= to_level; ++level) {
     gains.ap += kApPerLevel;
-    if (SpStageForLevel(level) >= 1) {
-      gains.sp += kSpPerLevel;
-    }
+    gains.sp += SpForLevel(level);
   }
   return gains;
 }
@@ -676,10 +695,12 @@ void CharacterInstance::LevelUp() {
   AllocatedStats* stats = character_.mutable_allocated_stats();
   stats->set_hp(stats->hp() + gain.hp);
   stats->set_mp(stats->mp() + gain.mp);
-  // The new level's band decides which stage's SP this grants (none below 11).
+  // The new level's band decides both how much SP it pays and which stage's
+  // book it goes to (none below 11).
   int stage = SpStageForLevel(character_.level());
   if (stage >= 1) {
-    (*character_.mutable_sp_by_stage())[stage] += kSpPerLevel;
+    (*character_.mutable_sp_by_stage())[stage] +=
+        SpForLevel(character_.level());
   }
 }
 
@@ -742,7 +763,7 @@ void CharacterInstance::AdvanceJob(Job next_job) {
     character_.set_ap(character_.ap() + kApJobAdvancementBonus);
   }
   // Each advancement opens a new skill set, so it comes with SP for that stage.
-  (*character_.mutable_sp_by_stage())[stage] += JobAdvancementSpBonus(next_job);
+  (*character_.mutable_sp_by_stage())[stage] += JobAdvancementSpBonus(stage);
 }
 
 void CharacterInstance::ResetStatsForJob(Job job) {
