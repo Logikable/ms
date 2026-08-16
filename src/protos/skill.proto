@@ -307,6 +307,36 @@ message AutoMode {
   int32 lines = 5;
 }
 
+// A buff a skill puts up for a while, on a cooldown of its own: what it grants
+// while it is up, how long that is, and what shortens the wait for the next
+// one. The skill's own cooldown_seconds is that wait.
+//
+// Dark Resonance is the case it exists for, and what makes it a mechanism
+// rather than another passive is that its duration is SHORTER than its
+// cooldown. Cross Surge and Hyper Body are up for as long as a player keeps
+// pressing them, so this game simply folds them in as permanent; a buff that
+// cannot be permanent has to be modelled, or the game would be handing out
+// something GMS never does.
+//
+// What it grants goes through the same fold every passive does, so its levers
+// meet the character's the way two skills' do -- two sources of ignored
+// defence combine rather than sum, which is the whole reason a buff cannot be
+// a multiplier applied to a damage number after the fact.
+//
+// Read at the same learned level as the skill carrying it.
+message Buff {
+  SkillEffect base = 1;
+  SkillEffect per_level = 2;
+  // Seconds it stays up, climbing the same base + per_level * (L - 1) ladder
+  // every other number here climbs.
+  double duration_seconds = 3;
+  double duration_seconds_per_level = 4;
+  // Seconds a landed swing takes off the wait for the next cast. What it buys
+  // the player is the reason to swing fast beyond the damage: the buff comes
+  // round sooner. 0 for a buff that waits out its whole cooldown.
+  double cooldown_reduction_seconds = 5;
+}
+
 // A stronger version of a skill's attack, landed in place of every Nth
 // ordinary one. Empowered Arrows is the case it exists for: the Sniper's
 // Piercing Arrow is upgraded to an Empowered Piercing Arrow every fourth shot.
@@ -509,4 +539,8 @@ message Skill {
   // The Sniper's. The bigger swing this skill puts in the place of every Nth
   // swing of the one boosts_skill_name names. See EmpoweredForm.
   EmpoweredForm empowered_form = 105;
+  // The Dark Knight's. What this skill grants for a while when it goes up, on
+  // the wait cooldown_seconds states. See Buff. The heal a cast hands over at
+  // once is the buff's own heal_pct.
+  Buff buff = 106;
 }

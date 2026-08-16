@@ -236,6 +236,25 @@ TEST(SkillDataTest, EveryAutoModeSaysWhenItFiresAndForHowMuch) {
   }
 }
 
+// A timed buff is worth nothing without the two halves that make it one: a
+// stretch it stands for, and a wait for the next one. A buff with no wait
+// would simply be a passive written the hard way.
+TEST(SkillDataTest, EveryBuffStandsForAWhileAndWaitsForTheNextOne) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.has_buff()) {
+      continue;
+    }
+    EXPECT_GT(skill.buff().duration_seconds(), 0.0)
+        << entry.first << "'s buff would never stand";
+    EXPECT_GT(skill.cooldown_seconds(), 0.0)
+        << entry.first << "'s buff would never be waited for";
+    EXPECT_GT(skill.cooldown_seconds(), skill.buff().duration_seconds())
+        << entry.first << "'s buff is up for longer than it waits, so it is a "
+        << "passive rather than a buff";
+  }
+}
+
 // An empowered form is aimed by boosts_skill_name, so it is nothing without
 // one -- and a form with no period or no damage is a swing that never lands or
 // lands for nothing.

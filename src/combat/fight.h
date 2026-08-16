@@ -184,6 +184,22 @@ class CombatSim {
   // Puts the reflected share of a hit back into the mob that landed it, and
   // counts it dead if that finishes it. Nothing without a reflection skill.
   void Reflect(const CombatParams& params, double damage_taken);
+  // Runs the timed buffs: winds each one's clocks down, puts up any that has
+  // come round, and works out which are standing this step. Before the
+  // attacks, so a buff that goes up now is one this step's swing has.
+  void RunBuffs(const CombatParams& params, double dt);
+  // Takes what a landed swing is worth off the wait for each buff's next
+  // cast. `weight` is what that swing counted for, the same share
+  // CreditSwing uses -- a rapid swing must not pay a whole attack's worth.
+  void CreditBuffs(const CombatParams& params, double weight);
+  // The attacks as they stand under the buffs currently up. Every set holds
+  // the same attacks in the same order, so an index survives a buff going up
+  // or lapsing under it.
+  const std::vector<AttackOption>& Attacks(const CombatParams& params) const;
+  const std::vector<AttackOption>& AutoAttacks(
+      const CombatParams& params) const;
+  const std::vector<AttackOption>& TriggeredAttacks(
+      const CombatParams& params) const;
   // Fires the skills that attack on their own clock, before the swing is
   // aimed, so it is aimed at what they leave standing.
   void RunAutoCasts(const CombatParams& params, double dt);
@@ -218,6 +234,15 @@ class CombatSim {
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
   double player_hp_ = 0.0;        // remaining player HP, topped up on a beat
   double hit_phase_ = 0.0;        // seconds into the engaged mob's next hit
+  // Seconds each buff has left standing, and seconds until each can be put up
+  // again -- both parallel to params.buffs. They keep running across a change
+  // of map, unlike the fight's own clocks: a buff belongs to the character
+  // rather than to the mobs in front of them.
+  std::vector<double> buff_left_;
+  std::vector<double> buff_cooldown_left_;
+  // Which buffs are standing, as the bitmask CombatParams indexes its damage
+  // tables by. Worked out once a step, at the top.
+  int buff_mask_ = 0;
   // Seconds left before a passive will revive the player again. Counts down
   // wherever the character is, since what it measures is the pact rather than
   // the fight, and stays at 0 for everyone who holds no such skill.

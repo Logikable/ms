@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "src/character/character.h"
 #include "src/combat/damage.h"
 #include "src/protos/equip.pb.h"
@@ -165,11 +166,24 @@ int BonusSkillLevels(const CharacterInstance& character,
 int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
                         int bonus);
 
+// The timed buffs this character can put up: the skills they have learned that
+// carry one, in catalog order. What a buff grants is not folded in here -- it
+// is up only some of the time, so the fight decides when. See Skill.buff.
+std::vector<const Skill*> BuffSkillsFor(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills);
+
 // `skills` is the loaded skill catalog; every passive in it the character has
 // learned contributes its level's effect. Attack skills are ignored -- their
 // lever is damage, which OffenseStatsFor handles.
+//
+// `buffs_up` are the timed buffs standing at this moment, out of the list
+// BuffSkillsFor gives: each one's levers fold in as a source of its own, so
+// they meet the character's permanent ones exactly as another skill's would.
+// Empty is the character as they are between casts.
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
-                             const std::map<std::string, Skill>& skills);
+                             const std::map<std::string, Skill>& skills,
+                             absl::Span<const Skill* const> buffs_up = {});
 
 // The offensive half of the derived stats, in the shape combat/damage.h asks
 // for them. One place to keep in step with DerivedStats, rather than every

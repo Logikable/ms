@@ -1673,5 +1673,59 @@ TEST_F(DerivedStatsTest, TwoPactsLeaveTheShorterWaitStanding) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 300.0);
 }
 
+// --- timed buffs ---
+
+// Dark Resonance's shape: ignored defence for good, and more of it for a
+// while at a time.
+Skill DarkResonance() {
+  Skill skill;
+  skill.set_name("Dark Resonance");
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(30);
+  skill.set_cooldown_seconds(70.0);
+  skill.mutable_base()->set_ied_pct(0.01);
+  skill.mutable_per_level()->set_ied_pct(0.01);
+  Buff* buff = skill.mutable_buff();
+  buff->set_duration_seconds(15.0);
+  buff->set_duration_seconds_per_level(0.5);
+  buff->set_cooldown_reduction_seconds(0.35);
+  buff->mutable_base()->set_ied_pct(0.10);
+  buff->mutable_per_level()->set_final_dmg_pct(0.002);
+  return skill;
+}
+
+// The whole reason a buff cannot be a multiplier over a finished damage
+// number: what it grants meets what the character already has the way two
+// skills meet, and two sources of ignored defence combine rather than sum.
+TEST_F(DerivedStatsTest, ABuffCombinesWithThePermanentHalfRatherThanSumming) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 100);
+  Skill resonance = DarkResonance();
+  std::map<std::string, Skill> skills = {{"dark_resonance", resonance}};
+  ASSERT_TRUE(c.LearnSkill(resonance, 30));
+
+  EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 0.30, 1e-9);
+  const Skill* up[] = {&skills.at("dark_resonance")};
+  DerivedStats buffed = DerivedStatsFor(c, skills, absl::MakeConstSpan(up));
+  // 30% and 10%, which leave 63% of the monster's DEF between them.
+  EXPECT_NEAR(buffed.ied, 0.37, 1e-9);
+  EXPECT_NEAR(buffed.final_dmg_pct, 0.058, 1e-9);
+}
+
+TEST_F(DerivedStatsTest, OnlyALearnedBuffIsOneTheCharacterCanPutUp) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 100);
+  Skill resonance = DarkResonance();
+  Skill plain = PhysicalTraining();
+  std::map<std::string, Skill> skills = {{"dark_resonance", resonance},
+                                         {"physical_training", plain}};
+  ASSERT_TRUE(c.LearnSkill(plain, 5));
+  EXPECT_TRUE(BuffSkillsFor(c, skills).empty());
+
+  ASSERT_TRUE(c.LearnSkill(resonance, 1));
+  std::vector<const Skill*> buffs = BuffSkillsFor(c, skills);
+  ASSERT_EQ(buffs.size(), 1u);
+  EXPECT_EQ(buffs[0]->name(), "Dark Resonance");
+}
+
 }  // namespace
 }  // namespace ms

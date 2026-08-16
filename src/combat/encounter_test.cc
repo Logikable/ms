@@ -701,6 +701,64 @@ TEST(ComputeCombatParamsTest, ASkillCanCarrySeveralOwnClockHalves) {
             params.auto_attacks[2].damage_per_hit[0]);
 }
 
+// A timed buff needs a damage table of its own, because what it grants -- a
+// share of the monster's DEF ignored -- cannot be applied to a damage number
+// after that number has been worked out.
+TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
+  Skill resonance;
+  resonance.set_name("Dark Resonance");
+  resonance.set_kind(SKILL_KIND_ACTIVE);
+  resonance.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  resonance.set_max_level(30);
+  resonance.set_cooldown_seconds(70.0);
+  Buff* buff = resonance.mutable_buff();
+  buff->set_duration_seconds(30.0);
+  buff->set_cooldown_reduction_seconds(0.35);
+  buff->mutable_base()->set_final_dmg_pct(0.50);
+  buff->mutable_base()->set_heal_pct(1.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"dark_resonance", resonance}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(resonance, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_EQ(params.buffs[0].name, "Dark Resonance");
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 30.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 70.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_reduction_seconds, 0.35 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].heal_fraction, 1.00);
+
+  // One table for the one combination there is, holding the same attacks in
+  // the same order -- half again as hard, since the buff is 50% final damage.
+  ASSERT_EQ(params.buffed.size(), 1u);
+  ASSERT_EQ(params.Attacks(1).size(), params.attacks.size());
+  EXPECT_NEAR(params.Attacks(1)[0].damage_per_hit[0],
+              1.5 * params.attacks[0].damage_per_hit[0], 1e-9);
+  // Out of range is the character as they stand, never a read off the end.
+  EXPECT_DOUBLE_EQ(params.Attacks(0)[0].damage_per_hit[0],
+                   params.attacks[0].damage_per_hit[0]);
+  EXPECT_DOUBLE_EQ(params.Attacks(7)[0].damage_per_hit[0],
+                   params.attacks[0].damage_per_hit[0]);
+}
+
+// A character with no buff carries no tables at all: the cost of the
+// mechanism is paid only by the jobs that use it.
+TEST(ComputeCombatParamsTest, NoBuffMeansNoExtraTables) {
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+
+  CombatParams params = ComputeCombatParams(state);
+  EXPECT_TRUE(params.buffs.empty());
+  EXPECT_TRUE(params.buffed.empty());
+}
+
 // The Thunder Sphere case. Beam Blade's normal-monster lever was written for a
 // swing, and the orb that carries it now is not one -- so the thing to check is
 // that a summon reaches the lever at all.

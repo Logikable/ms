@@ -819,5 +819,34 @@ TEST_F(SkillInspectPanelTest, StatesTheShareOfApAndTheWaitToRevive) {
   EXPECT_NE(rendered.find("970s"), std::string::npos);
 }
 
+// A timed buff is half of what the skill does, and the half a player has to
+// plan around -- so the page states how long it stands, what the cast hands
+// over, and which of the levers are only there while it does.
+TEST_F(SkillInspectPanelTest, StatesBothHalvesOfATimedBuff) {
+  Skill resonance = MakeIronBody();
+  resonance.clear_base();
+  resonance.clear_per_level();
+  resonance.set_cooldown_seconds(70.0);
+  resonance.mutable_base()->set_ied_pct(0.01);
+  resonance.mutable_per_level()->set_ied_pct(0.01);
+  Buff* buff = resonance.mutable_buff();
+  buff->set_duration_seconds(15.0);
+  buff->set_duration_seconds_per_level(0.5);
+  buff->set_cooldown_reduction_seconds(0.35);
+  buff->mutable_base()->set_heal_pct(0.13);
+  buff->mutable_per_level()->set_heal_pct(0.03);
+  buff->mutable_base()->set_final_dmg_pct(0.02);
+
+  std::string rendered = RenderAt(resonance, 11);
+  EXPECT_NE(rendered.find("Ignore DEF        +11%"), std::string::npos);
+  EXPECT_NE(rendered.find("Cooldown          70s"), std::string::npos);
+  EXPECT_NE(rendered.find("Buff Duration     20s"), std::string::npos);
+  EXPECT_NE(rendered.find("Cooldown per Hit  -0.35s"), std::string::npos);
+  EXPECT_NE(rendered.find("Heal on Cast      +43% HP"), std::string::npos);
+  EXPECT_NE(rendered.find("Final Damage      +2% while up"), std::string::npos);
+  // A skill with no buff says nothing about one.
+  EXPECT_EQ(RenderAt(MakeIronBody(), 5).find("while up"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/types/span.h"
 #include "src/item/equip_stats.h"
@@ -283,10 +284,17 @@ void FoldComboOrbs(PassiveTotals& totals) {
   totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + orbs) - 1.0;
 }
 
+// Whether `skill` puts up a timed buff -- one the character has for a while
+// rather than for good. See Skill.buff.
+bool GrantsBuff(const Skill& skill) {
+  return skill.buff().duration_seconds() > 0.0;
+}
+
 // Sums every passive the character has learned. HP has to know its whole flat
 // total before any percentage lands on it, so nothing is folded here.
 PassiveTotals LearnedPassives(const CharacterInstance& character,
-                              const std::map<std::string, Skill>& skills) {
+                              const std::map<std::string, Skill>& skills,
+                              absl::Span<const Skill* const> buffs_up) {
   PassiveTotals totals;
   EquipType weapon = character.weapon_type();
   int bonus = BonusSkillLevels(character, skills);
@@ -320,6 +328,14 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   // says however far the character has come.
   for (const SkillEffect& bonus : character.set_bonuses()) {
     AddEffect(bonus, SkillEffect::default_instance(), 1, totals);
+  }
+  // A buff standing right now grants what a passive grants for as long as it
+  // is up, and folds in through the same door for the same reason -- as a
+  // source of its own, so its ignored defence combines with the character's
+  // rather than summing with it.
+  for (const Skill* skill : buffs_up) {
+    AddEffect(skill->buff().base(), skill->buff().per_level(),
+              EffectiveSkillLevel(character, *skill, bonus), totals);
   }
   FoldMesoExplosion(totals);
   FoldComboOrbs(totals);
@@ -408,12 +424,31 @@ bool SkillGearMet(const CharacterInstance& character, const Skill& skill) {
   return SkillAllowsWeapon(skill, character.weapon_type());
 }
 
+std::vector<const Skill*> BuffSkillsFor(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills) {
+  std::vector<const Skill*> buffs;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    // The same three gates every passive passes: whose book it is, whether the
+    // gear it demands is in hand, and whether it is learned at all.
+    if (!GrantsBuff(skill) ||
+        !character.HasAdvancement(skill.job_advancement()) ||
+        !SkillGearMet(character, skill) || character.skill_level(skill) <= 0) {
+      continue;
+    }
+    buffs.push_back(&skill);
+  }
+  return buffs;
+}
+
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
-                             const std::map<std::string, Skill>& skills) {
+                             const std::map<std::string, Skill>& skills,
+                             absl::Span<const Skill* const> buffs_up) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats();
-  PassiveTotals passives = LearnedPassives(character, skills);
+  PassiveTotals passives = LearnedPassives(character, skills, buffs_up);
   FoldApStats(allocated, passives);
 
   DerivedStats stats;

@@ -252,12 +252,19 @@ std::vector<ftxui::Element> RequirementRows(const Skill& skill) {
 
 // A plain number, to one decimal, with a whole number left whole. The same
 // rounding FormatPercent does and for the same reason.
-std::string FormatNumber(double value) {
+std::string FormatNumber(double value, int decimals = 1) {
   char buf[32];
-  snprintf(buf, sizeof(buf), "%.1f", std::round(value * 10.0) / 10.0);
+  snprintf(buf, sizeof(buf), "%.*f", decimals, value);
   std::string s = buf;
-  if (s.size() > 2 && s.compare(s.size() - 2, 2, ".0") == 0) {
-    s.resize(s.size() - 2);
+  // A whole number is written whole, and a shorter fraction keeps only the
+  // digits it needs: 0.35 stays 0.35 where 70.0 is just 70.
+  if (s.find('.') != std::string::npos) {
+    while (s.back() == '0') {
+      s.pop_back();
+    }
+    if (s.back() == '.') {
+      s.pop_back();
+    }
   }
   return s;
 }
@@ -533,6 +540,43 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
   return rows;
 }
 
+// What a timed buff grants, under the permanent half of the same skill: how
+// long it stands, what the cast itself hands over, and its levers marked as
+// the temporary things they are. The wait for the next one is the skill's own
+// Cooldown row, above.
+std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
+  std::vector<ftxui::Element> rows;
+  const Buff& buff = skill.buff();
+  if (buff.duration_seconds() <= 0.0) {
+    return rows;
+  }
+  rows.push_back(
+      EffectRow("Buff Duration",
+                FormatNumber(buff.duration_seconds() +
+                             buff.duration_seconds_per_level() * (level - 1)) +
+                    "s"));
+  if (buff.cooldown_reduction_seconds() > 0.0) {
+    rows.push_back(EffectRow(
+        "Cooldown per Hit",
+        "-" + FormatNumber(buff.cooldown_reduction_seconds(), 2) + "s"));
+  }
+  // The heal is handed over once, when the buff goes up -- so it is stated on
+  // its own rather than among the levers that hold for as long as it stands.
+  SkillEffect base = buff.base();
+  SkillEffect per = buff.per_level();
+  double heal = base.heal_pct() + per.heal_pct() * (level - 1);
+  if (heal > 0.0) {
+    rows.push_back(
+        EffectRow("Heal on Cast", "+" + FormatPercent(heal) + " HP"));
+  }
+  base.clear_heal_pct();
+  per.clear_heal_pct();
+  for (ftxui::Element& row : LeverRows(base, per, level, " while up")) {
+    rows.push_back(std::move(row));
+  }
+  return rows;
+}
+
 // Everything the skill grants at `level`. Empty for a skill whose real effect
 // is something this game has no notion of.
 std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
@@ -545,6 +589,9 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   }
   for (ftxui::Element& row :
        LeverRows(skill.base(), skill.per_level(), level, "")) {
+    rows.push_back(std::move(row));
+  }
+  for (ftxui::Element& row : BuffRows(skill, level)) {
     rows.push_back(std::move(row));
   }
   // A weapon bonus reads as the lever it grants with the weapons it needs in

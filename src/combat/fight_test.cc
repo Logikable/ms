@@ -1655,5 +1655,97 @@ TEST(CombatSimTest, APactCatchesAgainOnceItsWaitIsOut) {
   EXPECT_EQ(sim.player_hp(), 100);
 }
 
+// Gives `params` a timed buff: while it is up, every swing hits `factor` times
+// as hard. Its table is the same attacks with bigger numbers in them, which is
+// the shape ComputeCombatParams really builds.
+void GiveBuff(CombatParams& params, double duration, double cooldown,
+              double factor, double heal = 0.0, double reduction = 0.0) {
+  BuffOption buff;
+  buff.name = "Dark Resonance";
+  buff.duration_seconds = duration;
+  buff.cooldown_seconds = cooldown;
+  buff.heal_fraction = heal;
+  buff.cooldown_reduction_seconds = reduction;
+  params.buffs.push_back(std::move(buff));
+  AttackSet set;
+  set.attacks = params.attacks;
+  set.auto_attacks = params.auto_attacks;
+  set.triggered_attacks = params.triggered_attacks;
+  for (AttackOption& attack : set.attacks) {
+    for (double& damage : attack.damage_per_hit) {
+      damage *= factor;
+    }
+  }
+  params.buffed.push_back(std::move(set));
+}
+
+// Dark Resonance's shape, and the one thing that makes a timed buff a
+// mechanism rather than another passive: it lapses before it comes round
+// again, so the fight swings buffed for part of the time and bare for the
+// rest.
+TEST(CombatSimTest, ABuffLandsHarderUntilItLapses) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GiveBuff(params, /*duration=*/2.0, /*cooldown=*/5.0, /*factor=*/2.0);
+
+  sim.Advance(params, 1.0);  // up from the first step, so 20 rather than 10
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.98, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.96, 1e-9);
+  // Two seconds on it lapses, and the same swing is worth half of what it was.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+}
+
+TEST(CombatSimTest, ABuffComesBackWhenItsWaitIsOut) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GiveBuff(params, /*duration=*/2.0, /*cooldown=*/5.0, /*factor=*/2.0);
+
+  for (int step = 0; step < 5; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  // 20, 20, then 10 three times: the buff is spent and the wait is not out.
+  ASSERT_NEAR(sim.target_hp_fraction(), 0.93, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.91, 1e-9);
+}
+
+// What the player buys by swinging fast, beyond the damage: the buff comes
+// round sooner. Five seconds of waiting, less a second for every swing landed
+// in the meantime, is a buff back in four steps rather than six.
+TEST(CombatSimTest, AttackingShortensTheWaitForTheNextBuff) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  GiveBuff(params, /*duration=*/2.0, /*cooldown=*/5.0, /*factor=*/2.0,
+           /*heal=*/0.0, /*reduction=*/1.0);
+
+  for (int step = 0; step < 3; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);  // 20, 20, 10
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.93, 1e-9);  // up again already
+}
+
+TEST(CombatSimTest, ABuffHealsTheShareItPromisesWhenItGoesUp) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/60.0);
+  GiveBuff(params, /*duration=*/1.0, /*cooldown=*/1000.0, /*factor=*/1.0,
+           /*heal=*/0.5);
+
+  // The hit lands first, then the buff goes up and hands half the pool back.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 90);
+  // And only when it goes up: the next hit is not healed.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 30);
+}
+
 }  // namespace
 }  // namespace ms

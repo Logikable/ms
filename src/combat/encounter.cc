@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
@@ -224,7 +225,7 @@ Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {
 void AddAutoModes(const Character& proto, const EquipStats& equipped,
                   EquipType weapon_type, const Skill& skill, int level,
                   const DerivedStats& derived, double speed_factor,
-                  CombatParams& params) {
+                  const std::vector<CombatType>& types, AttackSet& set) {
   for (const AutoMode& mode : skill.auto_mode()) {
     if (mode.cast_interval_seconds() <= 0.0) {
       continue;
@@ -233,12 +234,12 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
     // The stage is not read: what this builds is paced by its own interval, and
     // nothing firing on its own clock answers to how fast the weapon swings.
     AttackOption attack =
-        AttackFor(proto, equipped, weapon_type, &built, level, params.types,
-                  derived, kUnscaledAttackSpeedStage, speed_factor);
+        AttackFor(proto, equipped, weapon_type, &built, level, types, derived,
+                  kUnscaledAttackSpeedStage, speed_factor);
     attack.swing_seconds = 0.0;          // not swung, so never charged
     attack.final_attack_damage.clear();  // Final Attack follows a swing
     attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
-    params.auto_attacks.push_back(std::move(attack));
+    set.auto_attacks.push_back(std::move(attack));
   }
 }
 
@@ -265,7 +266,7 @@ void AttachEmpoweredForms(const GameState& state, const EquipStats& equipped,
                           EquipType weapon_type, const Skill& skill,
                           int learned, const DerivedStats& derived,
                           int attack_speed, double speed_factor,
-                          CombatParams& params,
+                          const std::vector<CombatType>& types,
                           std::vector<AttackOption>& into) {
   // An empty name means the skill upgrades its own attack rather than another
   // skill's -- Creeping Toxin detonating its own pool.
@@ -279,7 +280,7 @@ void AttachEmpoweredForms(const GameState& state, const EquipStats& equipped,
     Skill form = EmpoweredSkill(skill, attack.name);
     std::shared_ptr<AttackOption> swing = std::make_shared<AttackOption>(
         AttackFor(state.character.proto(), equipped, weapon_type, &form,
-                  learned, params.types, derived, attack_speed, speed_factor));
+                  learned, types, derived, attack_speed, speed_factor));
     swing->swing_seconds = attack.swing_seconds;
     // Final Attack follows the character's swing, and a summon's pulse is not
     // one -- so a form standing in for a pulse must not carry one either.
@@ -297,7 +298,7 @@ void AttachEmpoweredForms(const GameState& state, const EquipStats& equipped,
 void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
                        EquipType weapon_type, const DerivedStats& derived,
                        int attack_speed, double speed_factor,
-                       CombatParams& params) {
+                       const std::vector<CombatType>& types, AttackSet& set) {
   int bonus = BonusSkillLevels(state.character, state.skills);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
@@ -309,15 +310,15 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
       continue;
     }
     AttachEmpoweredForms(state, equipped, weapon_type, skill, learned, derived,
-                         attack_speed, speed_factor, params, params.attacks);
+                         attack_speed, speed_factor, types, set.attacks);
     // A form standing in for a pulse is a pulse: no shadow and no mesos, for
     // the reason AddAttacks gives.
     DerivedStats off_clock = derived;
     off_clock.mirror_line_pct = 0.0;
     StripMesoDrops(off_clock);
     AttachEmpoweredForms(state, equipped, weapon_type, skill, learned,
-                         off_clock, attack_speed, speed_factor, params,
-                         params.auto_attacks);
+                         off_clock, attack_speed, speed_factor, types,
+                         set.auto_attacks);
   }
 }
 
@@ -329,7 +330,7 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
 // resolved `derived` is handed to each option.
 void AddAttacks(const GameState& state, const DerivedStats& derived,
                 EquipType weapon_type, int attack_speed, double speed_factor,
-                CombatParams& params) {
+                const std::vector<CombatType>& types, AttackSet& set) {
   const Character& proto = state.character.proto();
   const EquipStats total_stats = TotalEquipStats(state.character, derived);
   // What a skill on its own clock is not: the character's own swing. It gets
@@ -338,9 +339,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   DerivedStats off_clock = derived;
   off_clock.mirror_line_pct = 0.0;
   StripMesoDrops(off_clock);
-  params.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr,
-                                     0, params.types, derived, attack_speed,
-                                     speed_factor));
+  set.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr, 0,
+                                  types, derived, attack_speed, speed_factor));
   int bonus = BonusSkillLevels(state.character, state.skills);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
@@ -349,11 +349,11 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       continue;
     }
     AddAutoModes(proto, total_stats, weapon_type, skill, learned, off_clock,
-                 speed_factor, params);
-    AttackOption attack = AttackFor(
-        proto, total_stats, weapon_type, &skill, learned, params.types,
-        skill.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,
-        attack_speed, speed_factor);
+                 speed_factor, types, set);
+    AttackOption attack =
+        AttackFor(proto, total_stats, weapon_type, &skill, learned, types,
+                  skill.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,
+                  attack_speed, speed_factor);
     // A cast is not a hit. The damage chain has no multiplier to apply to a
     // skill that deals none, so what it built is the bare poke's damage --
     // which a cast must not land, and which a Final Attack must not follow.
@@ -369,7 +369,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       if (skill.hits_per_attack_count() > 1) {
         attack.count_weight = 1.0 / skill.hits_per_attack_count();
       }
-      params.attacks.push_back(std::move(attack));
+      set.attacks.push_back(std::move(attack));
       continue;
     }
     attack.swing_seconds = 0.0;          // not swung, so never charged
@@ -377,7 +377,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     // Clocked by swings landed rather than by seconds passed.
     if (skill.attacks_per_cast() > 0) {
       attack.attacks_per_cast = skill.attacks_per_cast();
-      params.triggered_attacks.push_back(std::move(attack));
+      set.triggered_attacks.push_back(std::move(attack));
       continue;
     }
     // A skill with no clock at all would fire every step, so naming neither is
@@ -386,11 +386,111 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       continue;
     }
     attack.interval_seconds = skill.cast_interval_seconds() * speed_factor;
-    params.auto_attacks.push_back(std::move(attack));
+    set.auto_attacks.push_back(std::move(attack));
+  }
+}
+
+// The stage the character's swings are paced at: what they start at for their
+// job and weapon, plus whatever their passives add, up to the fastest tier we
+// model. Asked per attack set, since a buff can be one of the things adding.
+int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
+                        const DerivedStats& derived) {
+  return std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
+                  BaseAttackSpeedStage(state.character.proto().job(),
+                                       weapon.attack_speed()) +
+                      derived.attack_speed_bonus);
+}
+
+// Everything the character can attack with, at one particular set of stats --
+// theirs alone, or theirs with some buff up.
+AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
+                         const EquipPrototype& weapon, double speed_factor,
+                         const std::vector<CombatType>& types) {
+  int attack_speed = AttackSpeedStageFor(state, weapon, derived);
+  AttackSet set;
+  AddAttacks(state, derived, weapon.equip_type(), attack_speed, speed_factor,
+             types, set);
+  AddEmpoweredForms(state, TotalEquipStats(state.character, derived),
+                    weapon.equip_type(), derived, attack_speed, speed_factor,
+                    types, set);
+  return set;
+}
+
+// How many timed buffs are modelled at once. Every combination of them needs a
+// damage table of its own, so the count of tables doubles with each one --
+// which is affordable at four and would stop being so before long. A character
+// holding more keeps the first four; nothing in the game holds two.
+constexpr int kMaxBuffWindows = 4;
+
+// What the fight needs to run each buff's clock, at the level it is learned.
+// The levers are not here: those are folded into the tables below.
+void AddBuffs(const CharacterInstance& character,
+              const std::map<std::string, Skill>& skills,
+              const std::vector<const Skill*>& buff_skills, double speed_factor,
+              CombatParams& params) {
+  int bonus = BonusSkillLevels(character, skills);
+  for (const Skill* skill : buff_skills) {
+    int level = EffectiveSkillLevel(character, *skill, bonus);
+    const Buff& buff = skill->buff();
+    BuffOption option;
+    option.name = skill->name();
+    option.duration_seconds =
+        (buff.duration_seconds() +
+         buff.duration_seconds_per_level() * (level - 1)) *
+        speed_factor;
+    option.cooldown_seconds = skill->cooldown_seconds() * speed_factor;
+    option.cooldown_reduction_seconds =
+        buff.cooldown_reduction_seconds() * speed_factor;
+    option.heal_fraction =
+        buff.base().heal_pct() + buff.per_level().heal_pct() * (level - 1);
+    params.buffs.push_back(std::move(option));
+  }
+}
+
+// A damage table for every combination of the character's buffs, indexed the
+// way CombatParams::Attacks reads them: the mask of which are up, less one.
+void AddBuffedSets(const GameState& state,
+                   const std::vector<const Skill*>& buff_skills,
+                   const EquipPrototype& weapon, double speed_factor,
+                   CombatParams& params) {
+  int count = static_cast<int>(buff_skills.size());
+  for (int mask = 1; mask < (1 << count); ++mask) {
+    std::vector<const Skill*> up;
+    for (int i = 0; i < count; ++i) {
+      if ((mask & (1 << i)) != 0) {
+        up.push_back(buff_skills[i]);
+      }
+    }
+    DerivedStats derived =
+        DerivedStatsFor(state.character, state.skills, absl::MakeConstSpan(up));
+    params.buffed.push_back(
+        BuildAttackSet(state, derived, weapon, speed_factor, params.types));
   }
 }
 
 }  // namespace
+
+const std::vector<AttackOption>& CombatParams::Attacks(int mask) const {
+  if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
+    return attacks;
+  }
+  return buffed[mask - 1].attacks;
+}
+
+const std::vector<AttackOption>& CombatParams::AutoAttacks(int mask) const {
+  if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
+    return auto_attacks;
+  }
+  return buffed[mask - 1].auto_attacks;
+}
+
+const std::vector<AttackOption>& CombatParams::TriggeredAttacks(
+    int mask) const {
+  if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
+    return triggered_attacks;
+  }
+  return buffed[mask - 1].triggered_attacks;
+}
 
 CombatParams ComputeCombatParams(const GameState& state) {
   CombatParams params;
@@ -406,14 +506,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
   const EquipPrototype& weapon = weapon_it->second.prototype();
 
-  // Passives that speed the swing add stages on top of the stage the character
-  // starts at, up to the fastest tier we model.
   DerivedStats derived = DerivedStatsFor(state.character, state.skills);
-  int attack_speed =
-      std::min(static_cast<int>(ATTACK_SPEED_FASTEST_3),
-               BaseAttackSpeedStage(state.character.proto().job(),
-                                    weapon.attack_speed()) +
-                   derived.attack_speed_bonus);
   // The pace the whole encounter runs at, and the only thing here that asks
   // the character's level directly: the game stretches out as they climb.
   double speed_factor = GameSpeedFactor(state.character.proto().level());
@@ -443,11 +536,21 @@ CombatParams ComputeCombatParams(const GameState& state) {
   if (params.types.empty()) {
     return params;
   }
-  AddAttacks(state, derived, weapon.equip_type(), attack_speed, speed_factor,
-             params);
-  AddEmpoweredForms(state, TotalEquipStats(state.character, derived),
-                    weapon.equip_type(), derived, attack_speed, speed_factor,
-                    params);
+  // The character as they stand, then one table for every combination of
+  // buffs they can have up. What being hit costs them is read off the
+  // unbuffed stats alone: nothing yet buffs a pool or a defence.
+  AttackSet base =
+      BuildAttackSet(state, derived, weapon, speed_factor, params.types);
+  params.attacks = std::move(base.attacks);
+  params.auto_attacks = std::move(base.auto_attacks);
+  params.triggered_attacks = std::move(base.triggered_attacks);
+  std::vector<const Skill*> buff_skills =
+      BuffSkillsFor(state.character, state.skills);
+  if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {
+    buff_skills.resize(kMaxBuffWindows);
+  }
+  AddBuffs(state.character, state.skills, buff_skills, speed_factor, params);
+  AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
   params.active = true;
   return params;
 }

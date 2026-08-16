@@ -86,6 +86,31 @@ struct AttackOption {
   int empowered_every = 0;
 };
 
+// Everything the character can attack with, as it stands under one particular
+// set of buffs. The same attacks in the same order in every set -- what
+// differs is the damage -- so an index the fight is holding stays good however
+// the buffs come and go.
+struct AttackSet {
+  std::vector<AttackOption> attacks;
+  std::vector<AttackOption> auto_attacks;
+  std::vector<AttackOption> triggered_attacks;
+};
+
+// A buff the character puts up for a while, on a wait of its own. What it
+// GRANTS is not here: it is already folded into the buffed attack sets,
+// because a lever like ignored defence cannot be applied to a damage number
+// after that number has been worked out.
+struct BuffOption {
+  std::string name;
+  // All game-scaled, like every other duration here.
+  double duration_seconds = 0.0;
+  double cooldown_seconds = 0.0;
+  // Seconds a landed swing takes off the wait for the next cast.
+  double cooldown_reduction_seconds = 0.0;
+  // Share of the pool the cast puts back at once (1.00 == all of it).
+  double heal_fraction = 0.0;
+};
+
 // A snapshot of the current encounter's combat parameters.
 struct CombatParams {
   bool active = false;  // false when not farming (no map/weapon/mobs)
@@ -140,6 +165,20 @@ struct CombatParams {
   // A cast of one of these does not itself count toward any of them: what the
   // player is being paid for is their own attacking.
   std::vector<AttackOption> triggered_attacks;
+  // The timed buffs this character can put up. Empty for everyone but a Dark
+  // Knight; the fight runs their clocks and asks for the matching attacks.
+  std::vector<BuffOption> buffs;
+  // One attack set per combination of those buffs, indexed by the bitmask of
+  // which are up, less one -- the three lists above are the set for none of
+  // them. Empty when nothing grants a buff.
+  std::vector<AttackSet> buffed;
+
+  // The three lists above as they stand with `mask`'s buffs up. Out of range
+  // reads as none of them, so a fight one step behind a change in what the
+  // character has learned swings unbuffed rather than off the end.
+  const std::vector<AttackOption>& Attacks(int mask) const;
+  const std::vector<AttackOption>& AutoAttacks(int mask) const;
+  const std::vector<AttackOption>& TriggeredAttacks(int mask) const;
 };
 
 // Reads `state`'s current map/character into a CombatParams. active is false
