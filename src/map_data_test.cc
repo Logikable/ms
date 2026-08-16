@@ -144,16 +144,14 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsItsShareOfTheFrozenSet) {
   EXPECT_GT(checked, 0) << "no mob in the catalog drops the set";
 }
 
-// The Frozen tokens buy the last two pieces of the same set, so they drop on
-// the same shape of rule: 1/4,000 through the band the weapons are worn in,
-// and 1/10,000 from every mob above it. There is no top -- until a later tier
-// of gear has a token of its own, a player who farms upward would otherwise
-// find the shelf quietly switched off behind them.
-TEST(MapDataTest, EveryMobAbove100DropsBothFrozenTokens) {
+// The Frozen tokens buy the last two pieces of the same set, and drop from the
+// band the weapons they buy are worn in -- 1/10,000, one flat rate, with
+// nothing above 120. A player past the band who still wants one goes back down
+// for it, the way they would for any other drop they walked past.
+TEST(MapDataTest, OnlyTheTokenBandDropsBothFrozenTokens) {
   constexpr int kBandLow = 101;
   constexpr int kBandHigh = 120;
-  constexpr double kInBand = 0.00025;
-  constexpr double kTrickle = 0.0001;
+  constexpr double kInBand = 0.0001;
   const char* kTokens[] = {"frozen_weapon_token", "frozen_secondary_token"};
 
   int checked = 0;
@@ -165,15 +163,12 @@ TEST(MapDataTest, EveryMobAbove100DropsBothFrozenTokens) {
         rates[drop.item()] = drop.per_kill();
       }
     }
-    double expected = 0.0;
-    if (level >= kBandLow) {
-      expected = level <= kBandHigh ? kInBand : kTrickle;
-    }
+    double expected = level >= kBandLow && level <= kBandHigh ? kInBand : 0.0;
     for (const char* token : kTokens) {
       if (expected == 0.0) {
         EXPECT_EQ(rates.count(token), 0u)
             << entry.first << " (Lv" << level << ") drops " << token
-            << ", which belongs to mobs " << kBandLow << " and up";
+            << ", which belongs to mobs " << kBandLow << " to " << kBandHigh;
         continue;
       }
       ++checked;
