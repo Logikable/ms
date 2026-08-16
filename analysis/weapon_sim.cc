@@ -270,6 +270,25 @@ struct Result {
   std::vector<std::pair<std::string, int>> skills;
 };
 
+// Strikes another skill hands `swing`, summed over the book the character
+// holds. Greater Vessel of Light gives Blast an eleventh, and a line that
+// printed ten beside eleven strikes' worth of damage would not add up.
+int BoostedLines(const GameState& state, const std::string& swing) {
+  int lines = 0;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (state.character.skill_level(entry.second) <= 0 ||
+        !state.character.HasAdvancement(entry.second.job_advancement())) {
+      continue;
+    }
+    for (const SkillBoost& boost : entry.second.boost()) {
+      if (boost.skill_name() == swing) {
+        lines += boost.lines();
+      }
+    }
+  }
+  return lines;
+}
+
 // The whole book the character ended up with, and the figures of the swing
 // they settled on. Filled here rather than read off the AttackOption because
 // what the page prints is the skill's own data, not the damage it produced.
@@ -299,7 +318,8 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
     if (boost != derived.skill_pct_bonus.end()) {
       result->skill_pct += boost->second;
     }
-    result->lines = std::max(1, entry.second.lines());
+    result->lines =
+        SkillLinesAt(entry.second, learned) + BoostedLines(state, swing);
   }
 }
 
