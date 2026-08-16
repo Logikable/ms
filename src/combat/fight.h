@@ -176,6 +176,11 @@ class CombatSim {
   void RespawnBeat(const CombatParams& params, double dt);
   // Lets the engaged mob hit the player, on its own clock.
   void TakeMobHit(const CombatParams& params, double dt);
+  // Whether a passive brings the player back from the hit that just emptied
+  // them. Asked only of a player who has hit 0: true when they hold such a
+  // skill and its wait has run out, in which case the pool is full again by
+  // the time this returns and the wait starts over.
+  bool Revive(const CombatParams& params);
   // Puts the reflected share of a hit back into the mob that landed it, and
   // counts it dead if that finishes it. Nothing without a reflection skill.
   void Reflect(const CombatParams& params, double damage_taken);
@@ -213,6 +218,10 @@ class CombatSim {
   double respawn_phase_ = 0.0;    // seconds into the current respawn cycle
   double player_hp_ = 0.0;        // remaining player HP, topped up on a beat
   double hit_phase_ = 0.0;        // seconds into the engaged mob's next hit
+  // Seconds left before a passive will revive the player again. Counts down
+  // wherever the character is, since what it measures is the pact rather than
+  // the fight, and stays at 0 for everyone who holds no such skill.
+  double revive_left_ = 0.0;
   // Seconds into each auto-attack's next cast, parallel to
   // params.auto_attacks. Runs only while there is something to hit.
   std::vector<double> auto_phase_;

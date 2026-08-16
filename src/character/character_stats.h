@@ -68,6 +68,10 @@ struct DerivedStats {
   // Expected share of the HP pool a landed swing puts back. Costs no swing,
   // unlike a healing cast -- the fight adds it after the hit lands.
   double hp_recover_pct = 0.0;
+  // Seconds between one revival and the next, for a character whose passives
+  // revive them at all -- 0 for everyone else, which is everyone but a Dark
+  // Knight. A hit that would kill them fills the pool instead.
+  double revive_cooldown_seconds = 0.0;
   // Extra EXP every kill yields, summed. Unlike everything else here it is
   // read outside a fight -- see AwardCombatRewards.
   double exp_pct = 0.0;

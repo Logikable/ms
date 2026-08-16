@@ -233,6 +233,16 @@ message SkillEffect {
   // Pocket knocked loose, never the ones in the player's purse, so what the
   // pair really trades is coins the character would never have picked up.
   double meso_hit_pct = 120;
+  // The Dark Knight's. Final Pact. Seconds a character waits between one
+  // revival and the next; anything above 0 says the skill revives them at all.
+  // A hit that would kill them fills the pool back up instead, and the fight
+  // carries on where it stood.
+  //
+  // Held here rather than in Skill.cooldown_seconds, which is a flat field: a
+  // GMS pact shortens its own wait as it is levelled, and this one walks 1103
+  // seconds down to 900. Two skills granting it would leave the shorter wait
+  // standing rather than adding two chances.
+  double revive_cooldown_seconds = 123;
   // The Dark Knight's. Maple Warrior. Share of what AP bought that this skill
   // grants back as flat stat, stat by stat (0.15 == 15%): 1000 points of STR
   // and 100 of DEX become 150 and 10. Rounded down, as GMS rounds it.

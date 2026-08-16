@@ -98,6 +98,10 @@ const PercentLever kNumberLevers[] = {
     // Whole levels, carried as a fraction so the ladder can step. Floored for
     // the page exactly as it is floored where it is read.
     {"Skill Levels", &SkillEffect::skill_level_bonus, kPlus, "", true},
+    // How long the player waits between one revival and the next -- a wait
+    // rather than a gain, so it takes no sign, and it SHORTENS as the skill is
+    // levelled.
+    {"Revive Cooldown", &SkillEffect::revive_cooldown_seconds, kBare, "s"},
 };
 
 struct FlatLever {
@@ -410,8 +414,9 @@ std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
     if (value <= 0.0) {
       continue;
     }
+    std::string sign = lever.sign == kBare ? "" : "+";
     rows.push_back(EffectRow(lever.label,
-                             "+" + FormatNumber(value) + lever.unit + suffix));
+                             sign + FormatNumber(value) + lever.unit + suffix));
   }
   return rows;
 }

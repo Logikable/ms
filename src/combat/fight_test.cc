@@ -1613,5 +1613,47 @@ TEST(CombatSimTest, WeighsAnEmpoweredSwingIntoTheChoice) {
   EXPECT_EQ(sim.attack_name(), "Piercing Arrow");
 }
 
+// Final Pact: a passive that catches the hit that would have emptied the
+// player. They stand where they fell with the whole pool back, and the fight
+// carries on -- see AdvanceCombat for what dying costs when it is not caught.
+TEST(CombatSimTest, APactCatchesTheHitThatWouldHaveKilled) {
+  Mob snail = MakeMob("Snail", 1000);  // too tough to kill, so the hits keep
+  CombatSim sim;                       // coming
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/60.0);
+  params.revive_cooldown_seconds = 10.0;
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 40);
+
+  sim.Advance(params, 1.0);
+  EXPECT_FALSE(sim.died_this_step());
+  EXPECT_EQ(sim.player_hp(), 100);
+
+  // The next one inside the wait is a real death.
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 40);
+  sim.Advance(params, 1.0);
+  EXPECT_TRUE(sim.died_this_step());
+}
+
+TEST(CombatSimTest, APactCatchesAgainOnceItsWaitIsOut) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/60.0);
+  params.revive_cooldown_seconds = 2.0;
+
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 100);  // caught, and the wait starts
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 40);
+  sim.Advance(params, 1.0);  // two seconds on, so it catches this one too
+  EXPECT_FALSE(sim.died_this_step());
+  EXPECT_EQ(sim.player_hp(), 100);
+}
+
 }  // namespace
 }  // namespace ms

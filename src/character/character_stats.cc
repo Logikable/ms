@@ -89,6 +89,9 @@ struct PassiveTotals {
   int meso_lines = 1;
   std::string meso_skill;
   double meso_pct = 0.0;
+  // The shortest wait between revivals any passive grants, and 0 for the
+  // characters no passive revives.
+  double revive_cooldown_seconds = 0.0;
   // Share of what AP bought that comes back as flat stat. Summed, and cashed
   // in against the allocation once every passive is read -- see
   // DerivedStatsFor.
@@ -177,6 +180,14 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
       base.final_dmg_pct_per_combo_orb() +
       per.final_dmg_pct_per_combo_orb() * (level - 1);
   totals.ap_stat_pct += base.ap_stat_pct() + per.ap_stat_pct() * (level - 1);
+  // The shortest wait rather than the sum: two pacts are not one long one,
+  // and what a character wants to know is how soon the next one comes.
+  double revive = base.revive_cooldown_seconds() +
+                  per.revive_cooldown_seconds() * (level - 1);
+  if (revive > 0.0 && (totals.revive_cooldown_seconds <= 0.0 ||
+                       revive < totals.revive_cooldown_seconds)) {
+    totals.revive_cooldown_seconds = revive;
+  }
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
   totals.ied = CombineIgnoredDefense(
       totals.ied, base.ied_pct() + per.ied_pct() * (level - 1));
@@ -440,6 +451,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.crit_rate = passives.crit_rate;
   stats.crit_dmg = passives.crit_dmg;
   stats.hp_recover_pct = passives.hp_recover_pct;
+  stats.revive_cooldown_seconds = passives.revive_cooldown_seconds;
   stats.exp_pct = passives.exp_pct;
   stats.regen_pct_per_second = passives.regen_pct_per_second;
   stats.status_resistance = passives.status_resistance;

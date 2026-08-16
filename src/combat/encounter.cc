@@ -428,6 +428,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
   // The band stretches the interval between pulses, so it thins the rate.
   params.regen_pct_per_second =
       speed_factor > 0.0 ? derived.regen_pct_per_second / speed_factor : 0.0;
+  params.revive_cooldown_seconds =
+      derived.revive_cooldown_seconds * speed_factor;
 
   // What the character brings to being hit is the same whichever mob is
   // hitting them, so it is resolved once and asked per type.

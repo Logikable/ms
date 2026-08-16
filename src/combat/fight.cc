@@ -310,8 +310,19 @@ void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
   hit_phase_ -= params.hit_seconds;
   double taken = params.types[queue_.front().type].damage_to_player;
   player_hp_ = std::max(0.0, player_hp_ - taken);
-  died_this_step_ = player_hp_ <= 0.0;
+  died_this_step_ = player_hp_ <= 0.0 && !Revive(params);
   Reflect(params, taken);
+}
+
+bool CombatSim::Revive(const CombatParams& params) {
+  if (params.revive_cooldown_seconds <= 0.0 || revive_left_ > 0.0) {
+    return false;
+  }
+  // The whole pool back, standing where they fell: what the pact buys is the
+  // trip home, and the mob that landed the hit is still in front of them.
+  player_hp_ = params.max_player_hp;
+  revive_left_ = params.revive_cooldown_seconds;
+  return true;
 }
 
 void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
@@ -493,6 +504,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
     player_hp_ = params.max_player_hp;
   }
 
+  // Before the hit that may need it, so a wait that runs out this step is one
+  // the player has the benefit of.
+  revive_left_ = std::max(0.0, revive_left_ - dt);
   RespawnBeat(params, dt);
   TakeMobHit(params, dt);
   // After the hit and before the swing, so a fountain is worth something on

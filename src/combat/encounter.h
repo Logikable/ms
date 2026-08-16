@@ -121,6 +121,10 @@ struct CombatParams {
   // Share of the HP pool a fountain puts back every second, already stretched
   // by the pacing band. Runs whether or not the character is swinging.
   double regen_pct_per_second = 0.0;
+  // Seconds between one revival and the next, game-scaled. Above 0 for a
+  // character whose passives revive them: the hit that would have killed them
+  // fills the pool instead, and the wait starts over. 0 for everyone else.
+  double revive_cooldown_seconds = 0.0;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

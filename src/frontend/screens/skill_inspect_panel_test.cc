@@ -797,5 +797,24 @@ TEST_F(SkillInspectPanelTest, TheTallestCardIsTheTallestOfThem) {
   EXPECT_EQ(TallestPreviewCardRows({}), 0);
 }
 
+// The two Dark Knight levers a plain row could state wrongly: one is charged
+// against what the player spent rather than what they carry, and the other is
+// a wait that shortens, so it takes no plus sign.
+TEST_F(SkillInspectPanelTest, StatesTheShareOfApAndTheWaitToRevive) {
+  Skill skill = MakeIronBody();
+  skill.clear_base();
+  skill.clear_per_level();
+  skill.mutable_base()->set_ap_stat_pct(0.01);
+  skill.mutable_per_level()->set_ap_stat_pct(0.00483);
+  skill.mutable_base()->set_revive_cooldown_seconds(1103);
+  skill.mutable_per_level()->set_revive_cooldown_seconds(-7);
+
+  std::string rendered = RenderAt(skill, 20);
+  EXPECT_NE(rendered.find("Stats from AP"), std::string::npos);
+  EXPECT_NE(rendered.find("+10.2%"), std::string::npos);
+  EXPECT_NE(rendered.find("Revive Cooldown"), std::string::npos);
+  EXPECT_NE(rendered.find("970s"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

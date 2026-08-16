@@ -1631,5 +1631,47 @@ TEST_F(DerivedStatsTest, MapleWarriorRoundsEachStatDown) {
   EXPECT_EQ(stats.skill_stats.luk(), 0);
 }
 
+// --- Final Pact ---
+
+// Final Pact's shape: a wait between revivals that SHORTENS as the skill is
+// levelled, 1103 seconds down to 900 at 30.
+Skill FinalPact() {
+  Skill skill;
+  skill.set_name("Final Pact");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(30);
+  skill.mutable_base()->set_revive_cooldown_seconds(1103);
+  skill.mutable_per_level()->set_revive_cooldown_seconds(-7);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, APactShortensItsOwnWaitAsItIsLevelled) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 100);
+  Skill pact = FinalPact();
+  std::map<std::string, Skill> skills = {{"final_pact", pact}};
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 0.0);
+
+  ASSERT_TRUE(c.LearnSkill(pact, 30));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 900.0);
+}
+
+// Two pacts are not one long one: what a character wants to know is how soon
+// the next revival comes, so the shorter wait stands.
+TEST_F(DerivedStatsTest, TwoPactsLeaveTheShorterWaitStanding) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 100);
+  Skill pact = FinalPact();
+  Skill lesser = FinalPact();
+  lesser.set_name("Lesser Pact");
+  lesser.mutable_base()->set_revive_cooldown_seconds(300);
+  lesser.clear_per_level();
+  std::map<std::string, Skill> skills = {{"final_pact", pact},
+                                         {"lesser_pact", lesser}};
+  ASSERT_TRUE(c.LearnSkill(pact, 30));
+  ASSERT_TRUE(c.LearnSkill(lesser, 1));
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 300.0);
+}
+
 }  // namespace
 }  // namespace ms
