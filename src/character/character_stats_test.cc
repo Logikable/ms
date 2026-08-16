@@ -839,8 +839,30 @@ TEST_F(DerivedStatsTest, BonusLevelsRaiseWhatAPassiveGrants) {
   EXPECT_EQ(DerivedStatsFor(c, skills).def, 200);
 }
 
-// Two rules the bonus has to hold at once: it never carries a skill past its
-// master level, and it never raises the skill handing it out.
+// The 4th job's rule: a skill marked for it takes granted levels PAST its
+// master level, two of them, which is where the levels its own page never
+// describes live. They are worth what the ladder says, like any other level.
+TEST_F(DerivedStatsTest, BonusLevelsCarryAMarkedSkillPastItsMasterLevel) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  Skill iron_body = IronBody();
+  iron_body.set_exceeds_master_level(true);
+  Skill orders = CombatOrders();
+  std::map<std::string, Skill> skills = {{"iron_body", iron_body},
+                                         {"combat_orders", orders}};
+  ASSERT_TRUE(c.LearnSkill(iron_body, 20));  // its master level, bought out
+  ASSERT_TRUE(c.LearnSkill(orders, 10));     // two levels to hand out
+
+  int bonus = BonusSkillLevels(c, skills);
+  ASSERT_EQ(bonus, 2);
+  EXPECT_EQ(EffectiveSkillLevel(c, iron_body, bonus), 22);
+  EXPECT_EQ(DerivedStatsFor(c, skills).def, 220);
+  EXPECT_EQ(EffectiveSkillLevel(c, iron_body, 5), 22)
+      << "two past the master level however many are going";
+}
+
+// Two rules the bonus has to hold at once for a skill NOT marked for the 4th
+// job's: it never carries the skill past its master level, and it never raises
+// the skill handing it out.
 TEST_F(DerivedStatsTest, BonusLevelsStopAtTheMasterLevelAndSkipTheirOwnSkill) {
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
   Skill iron_body = IronBody();

@@ -137,6 +137,11 @@ bool SkillAllowsWeapon(const Skill& skill, EquipType weapon);
 // and it comes back with the right gear on.
 bool SkillGearMet(const CharacterInstance& character, const Skill& skill);
 
+// How far past its master level a granted level can carry a skill that allows
+// it. Two, which is what Combat Orders hands out at its own master level, so a
+// 4th job skill maxing at 30 can reach 32 and no further.
+inline constexpr int kLevelsPastMasterLevel = 2;
+
 // Levels every skill the character has learned gains from a skill that grants
 // them -- Combat Orders, and nothing else so far. 0 for a character without
 // one, which is every character but a White Knight.
@@ -144,8 +149,10 @@ int BonusSkillLevels(const CharacterInstance& character,
                      const std::map<std::string, Skill>& skills);
 
 // What `skill` is actually worth to this character: the level they learned
-// plus `bonus`, held to the master level. An unlearned skill stays unlearned,
-// and the skill granting the bonus does not receive it.
+// plus `bonus`, held to the master level -- or to kLevelsPastMasterLevel above
+// it for a skill marked exceeds_master_level, which is how a 4th job skill
+// reaches the two levels its page never describes. An unlearned skill stays
+// unlearned, and the skill granting the bonus does not receive it.
 //
 // This is the level everything that READS a skill wants -- its stats, its
 // damage, the level shown beside it. Spending SP wants skill_level() instead:

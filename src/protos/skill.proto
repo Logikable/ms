@@ -182,8 +182,8 @@ message SkillEffect {
   // base + per_level * (L - 1) can only walk by carrying the fraction and
   // flooring it where it is read. See EffectiveSkillLevel.
   //
-  // GMS lets a 4th job skill go past its master level for this; nothing here
-  // reaches 4th job, so the cap always holds.
+  // A skill marked Skill.exceeds_master_level takes these levels past its own
+  // master level; every other skill stops there.
   double skill_level_bonus = 111;
   // The Ranger's. Damage this skill adds to the ONE skill named by
   // Skill.boosts_skill_name, per line, exactly as skill_pct is per line -- so
@@ -443,6 +443,14 @@ message Skill {
   // "every 7 hits count as 1 successful strike" -- so it is an integer here
   // rather than the fraction it works out to.
   int32 hits_per_attack_count = 21;
+  // Whether granted levels can carry this skill PAST its master level. GMS
+  // allows it for 4th job skills and marks each one, so a 4th job skill that
+  // maxes at 30 has two levels above it that its own page never describes --
+  // they exist only while something is handing levels out.
+  //
+  // Nothing else changes: SP still buys the skill to its master level and no
+  // further. See kLevelsPastMasterLevel.
+  bool exceeds_master_level = 22;
 
   // --- From here down, one job line apiece. See the message comment. ---
 

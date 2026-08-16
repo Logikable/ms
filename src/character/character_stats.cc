@@ -353,7 +353,11 @@ int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
   if (level <= 0 || GrantsSkillLevels(skill)) {
     return level;
   }
-  return std::min(level + bonus, skill.max_level());
+  int ceiling = skill.max_level();
+  if (skill.exceeds_master_level()) {
+    ceiling += kLevelsPastMasterLevel;
+  }
+  return std::min(level + bonus, ceiling);
 }
 
 bool SkillGearMet(const CharacterInstance& character, const Skill& skill) {
