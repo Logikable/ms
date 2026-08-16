@@ -66,9 +66,13 @@ bool EquipByName(CharacterInstance& character, const std::string& name);
 //
 // The try-ons are free and the winner is paid for, which is how a player
 // shops: looking at the shelf costs nothing, and only one weapon goes home.
-// `budget` weighs the shop price against the purse -- a sim measuring the
-// climb wants it, since affording the weapon is part of what it measures; a
-// sim asking whether a build can hold a map does not.
+// `budget` weighs the price against what the character has -- a sim measuring
+// the climb wants it, since affording the weapon is part of what it measures;
+// a sim asking whether a build can hold a map does not.
+//
+// Both shelves are shopped. The Frozen tier is paid for in the tokens the
+// fights dropped, so under a budget it is reached by farming rather than by
+// saving, and without one it is simply the top rung.
 void Outfit(GameState& state, bool budget);
 
 }  // namespace ms

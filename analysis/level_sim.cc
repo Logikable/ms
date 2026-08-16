@@ -181,14 +181,14 @@ void LearnEverything(GameState& state) {
   }
 }
 
-// Empties the Etc tab into the meso balance. Nothing in the game uses an Etc
-// item for anything else, so a player who is saving for a weapon sells the
-// lot.
+// Sells the Etc tab, skipping what will not sell. A token is the one Etc item
+// worth keeping: it sells for nothing and buys the Frozen tier.
 void SellDrops(CharacterInstance& character) {
-  while (!character.stackables(ITEM_CATEGORY_ETC).empty()) {
-    int count = character.stackables(ITEM_CATEGORY_ETC)[0].count();
-    if (character.SellStackable(ITEM_CATEGORY_ETC, 0, count) <= 0) {
-      return;  // unsellable, and every later stack waits behind it
+  int i = 0;
+  while (i < static_cast<int>(character.stackables(ITEM_CATEGORY_ETC).size())) {
+    int count = character.stackables(ITEM_CATEGORY_ETC)[i].count();
+    if (character.SellStackable(ITEM_CATEGORY_ETC, i, count) <= 0) {
+      ++i;  // a token sells for nothing; it is kept and spent on the shelf
     }
   }
 }
@@ -286,11 +286,15 @@ struct Stint {
   std::string weapon;
 };
 
-// The Frozen Set's pieces, in the order they become wearable. Named rather
-// than derived so the table reads the same however the catalog is walked.
+// The Frozen Set's pieces, in the order they become wearable, and the two
+// tokens the last two pieces are bought with. Named rather than derived so the
+// table reads the same however the catalog is walked.
 const char* const kFrozenPieces[] = {"Frozen Top", "Frozen Bottom",
                                      "Frozen Hat", "Frozen Cape"};
 constexpr int kNumFrozenPieces = 4;
+const char* const kFrozenTokens[] = {"Frozen Weapon Token",
+                                     "Frozen Secondary Token"};
+constexpr int kNumFrozenTokens = 2;
 
 // What one branch's climb came to.
 struct Climb {
@@ -300,10 +304,15 @@ struct Climb {
   // did. The rates are set so that all four arrive before the level cap --
   // this is the check on that, farmed rather than argued.
   int frozen_level[kNumFrozenPieces] = {0, 0, 0, 0};
+  // The same for the two tokens, which is the only reading there is on
+  // whether a climb ever gets to hold the tier they buy.
+  int token_level[kNumFrozenTokens] = {0, 0};
   std::vector<Stint> stints;
 };
 
-// Notes any Frozen piece the bag has picked up since the last look.
+// Notes any Frozen piece or token picked up since the last look. Called before
+// the level's shopping, so a token counted here is one the shelf has not
+// spent yet.
 void NoteFrozenDrops(const GameState& state, int level, Climb& climb) {
   const InventoryInstance& bag = state.character.inventory();
   for (int i = 0; i < bag.size(); ++i) {
@@ -311,6 +320,15 @@ void NoteFrozenDrops(const GameState& state, int level, Climb& climb) {
       if (climb.frozen_level[piece] == 0 &&
           bag[i].prototype().name() == kFrozenPieces[piece]) {
         climb.frozen_level[piece] = level;
+      }
+    }
+  }
+  for (const StackableItem& stack :
+       state.character.stackables(ITEM_CATEGORY_ETC)) {
+    for (int token = 0; token < kNumFrozenTokens; ++token) {
+      if (climb.token_level[token] == 0 &&
+          stack.name() == kFrozenTokens[token]) {
+        climb.token_level[token] = level;
       }
     }
   }
@@ -474,14 +492,20 @@ void Run() {
   // Dwarf and stays put, where a 3rd job is paid a third more for moving up,
   // and the cape only falls off the mobs up there.
   std::printf(
-      "\nThe level each Frozen piece first dropped at, for the branches that "
-      "take their 3rd advancement.\nA dash is a climb that reached the cap "
-      "without it.\n\n");
+      "\nThe level each Frozen piece first dropped at, and each token first "
+      "fell, for the branches\nthat take their 3rd advancement. A dash is a "
+      "climb that reached the cap without it.\n\n");
   std::printf("%-13s", "branch");
   for (const char* piece : kFrozenPieces) {
     std::printf("  %8s", piece + std::strlen("Frozen "));
   }
-  std::printf("\n%s\n", std::string(13 + 10 * kNumFrozenPieces, '-').c_str());
+  for (const char* token : kFrozenTokens) {
+    std::printf("  %15s", token + std::strlen("Frozen "));
+  }
+  std::printf(
+      "\n%s\n",
+      std::string(13 + 10 * kNumFrozenPieces + 17 * kNumFrozenTokens, '-')
+          .c_str());
   for (int i = 0; i < count; ++i) {
     if (PathTo(kBranches[i]).size() < 3) {
       continue;
@@ -490,6 +514,11 @@ void Run() {
     for (int piece = 0; piece < kNumFrozenPieces; ++piece) {
       int level = climbs[i].frozen_level[piece];
       std::printf("  %8s",
+                  level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
+    }
+    for (int token = 0; token < kNumFrozenTokens; ++token) {
+      int level = climbs[i].token_level[token];
+      std::printf("  %15s",
                   level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
     }
     std::printf("\n");

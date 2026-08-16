@@ -13,6 +13,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/shop.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 
@@ -20,8 +21,8 @@ namespace ms {
 namespace {
 
 // The map and mob a weapon is tried out on, invented rather than taken from
-// the catalog: a real map would let its crowd answer a question about one
-// weapon against one mob, and the real maps stop below the trial cap anyway.
+// the catalog: a real map would let its crowd answer a question meant for one
+// weapon against one mob.
 constexpr char kTryoutMap[] = "__sim_gear_tryout";
 constexpr char kTryoutMob[] = "__sim_gear_tryout_mob";
 
@@ -62,20 +63,66 @@ bool WearCopy(CharacterInstance& character, const EquipPrototype& proto) {
   return character.Equip(character.inventory().size() - 1);
 }
 
+// Both shelves of one stock list, one after the other. What a token buys is
+// stock like any other here: the sims play the fights that drop the tokens, so
+// the Frozen tier is as reachable to them as it is to a player.
+std::vector<std::string> BothShelves(std::vector<std::string> meso,
+                                     const std::vector<std::string>& tokens) {
+  meso.insert(meso.end(), tokens.begin(), tokens.end());
+  return meso;
+}
+
+std::vector<std::string> WeaponShelf(const GameState& state) {
+  return BothShelves(ShopWeaponStock(state.equips, kPaidInMeso),
+                     ShopWeaponStock(state.equips, kPaidInTokens));
+}
+
+std::vector<std::string> SecondaryShelf(const GameState& state) {
+  return BothShelves(ShopSecondaryStock(state.equips, kPaidInMeso),
+                     ShopSecondaryStock(state.equips, kPaidInTokens));
+}
+
+// The token `proto` is priced in, or null for one the shop takes meso for.
+const ItemPrototype* TokenFor(const GameState& state,
+                              const EquipPrototype& proto) {
+  if (proto.token_price() <= 0) {
+    return nullptr;
+  }
+  std::map<std::string, ItemPrototype>::const_iterator it =
+      state.items.find(proto.token_item());
+  return it == state.items.end() ? nullptr : &it->second;
+}
+
+// Whether the character can pay for `proto` as they stand. A token price is
+// met out of what the fights dropped, so this asks the Etc tab rather than the
+// purse.
+bool CanPayFor(const GameState& state, const EquipPrototype& proto) {
+  const ItemPrototype* token = TokenFor(state, proto);
+  if (token == nullptr) {
+    return proto.shop_price() <= state.character.meso();
+  }
+  return proto.token_price() <=
+         state.character.CountStackable(ITEM_CATEGORY_ETC, token->name());
+}
+
+// Pays for one of `proto`, in whichever currency it is priced in.
+bool BuyOne(GameState& state, const EquipPrototype& proto) {
+  const ItemPrototype* token = TokenFor(state, proto);
+  return token == nullptr ? state.character.Buy(proto, 1)
+                          : state.character.BuyWithToken(proto, *token, 1);
+}
+
 // The best rung of `type` the character can reach, or null when the shop
 // stocks none they can hold. `budget` also asks whether they can pay.
-//
-// The meso shelf only. What a token buys is farmed rather than bought, and the
-// sims model no token count -- the same reason they equip no dropped armour.
 const EquipPrototype* BestRung(const GameState& state, EquipType type,
                                bool budget) {
   const EquipPrototype* best = nullptr;
-  for (const std::string& key : ShopWeaponStock(state.equips, kPaidInMeso)) {
+  for (const std::string& key : WeaponShelf(state)) {
     const EquipPrototype& proto = state.equips.at(key);
     if (proto.equip_type() != type || !state.character.CanEquip(proto)) {
       continue;
     }
-    if (budget && proto.shop_price() > state.character.meso()) {
+    if (budget && !CanPayFor(state, proto)) {
       continue;
     }
     if (best == nullptr || proto.required_level() > best->required_level()) {
@@ -92,7 +139,7 @@ std::vector<const EquipPrototype*> Ladders(const GameState& state,
                                            bool budget) {
   std::vector<const EquipPrototype*> tops;
   std::vector<EquipType> seen;
-  for (const std::string& key : ShopWeaponStock(state.equips, kPaidInMeso)) {
+  for (const std::string& key : WeaponShelf(state)) {
     const EquipPrototype& proto = state.equips.at(key);
     if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
         !state.character.CanEquip(proto)) {
@@ -210,8 +257,9 @@ std::string HeldWeaponName(const CharacterInstance& character) {
 namespace {
 
 // Which weapon type the character hits hardest with as they now stand. Every
-// ladder's top rung is tried on and swung at a mob of their own level, and
-// only that: within a type the tiers climb, so which rung is not in question.
+// ladder's top rung is tried on and swung at a mob of their own level, along
+// with the weapon they already hold, and only those: within a type the tiers
+// climb, so which rung is not in question.
 //
 // Unspecified when the shelf holds nothing they can wear or the bag is too
 // full to try anything on -- in either case they keep what they hold.
@@ -222,6 +270,18 @@ EquipType MeasureBestType(GameState& state, bool budget) {
     return EQUIP_TYPE_UNSPECIFIED;
   }
   std::string held = HeldWeaponName(state.character);
+
+  // The weapon already in their hands is a candidate too, and the first one,
+  // so a tie keeps it. Without this the shelf can talk them out of a weapon
+  // better than anything on it -- a Frozen weapon has no second token behind
+  // it, and a purse just spent leaves only the cheap rungs on offer.
+  EquipPrototype worn;
+  std::map<EquipSlot, EquipInstance>::const_iterator it =
+      state.character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
+  if (it != state.character.equipped().end()) {
+    worn = it->second.prototype();
+    ladders.insert(ladders.begin(), &worn);
+  }
 
   // A mob of the character's own level, so the level multiplier lands where a
   // player fighting their own tier would put it. Torn down afterwards: it is
@@ -291,7 +351,7 @@ void ClimbLadder(GameState& state, EquipType type, bool budget) {
       best->required_level() <= held->second.prototype().required_level()) {
     return;
   }
-  if (budget && !state.character.Buy(*best, 1)) {
+  if (budget && !BuyOne(state, *best)) {
     return;
   }
   WearCopy(state.character, *best);
@@ -302,7 +362,7 @@ void ClimbLadder(GameState& state, EquipType type, bool budget) {
 // no choice to make -- only a tier to reach.
 const EquipPrototype* BestSecondary(const GameState& state, bool budget) {
   const EquipPrototype* best = nullptr;
-  for (const std::string& key : ShopSecondaryStock(state.equips, kPaidInMeso)) {
+  for (const std::string& key : SecondaryShelf(state)) {
     const EquipPrototype& proto = state.equips.at(key);
     // The shop's own filter rather than CanEquip, which asks only the job
     // category -- and the three warrior off-hands are not interchangeable.
@@ -310,7 +370,7 @@ const EquipPrototype* BestSecondary(const GameState& state, bool budget) {
         !state.character.MeetsJob(proto)) {
       continue;
     }
-    if (budget && proto.shop_price() > state.character.meso()) {
+    if (budget && !CanPayFor(state, proto)) {
       continue;
     }
     if (best == nullptr || proto.required_level() > best->required_level()) {
@@ -346,7 +406,7 @@ void Outfit(GameState& state, bool budget) {
           HeldTier(state.character, EQUIP_SLOT_SECONDARY)) {
     return;
   }
-  if (budget && !state.character.Buy(*off_hand, 1)) {
+  if (budget && !BuyOne(state, *off_hand)) {
     return;
   }
   WearCopy(state.character, *off_hand);
