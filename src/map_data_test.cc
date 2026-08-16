@@ -145,13 +145,19 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsItsShareOfTheFrozenSet) {
 }
 
 // The Frozen tokens buy the last two pieces of the same set, and drop from the
-// band the weapons they buy are worn in -- 1/10,000, one flat rate, with
+// band the weapons they buy are worn in -- 1/5,000, one flat rate, with
 // nothing above 120. A player past the band who still wants one goes back down
 // for it, the way they would for any other drop they walked past.
+//
+// The rate is set by the fastest character rather than the average one: the
+// band is a window, and whoever crosses it quickest buys the fewest chances.
+// //analysis:level_sim counts those kills -- 17k for a Dark Knight against
+// 120k for a Crusader -- and at 1/5,000 even the shortest crossing comes away
+// empty about one climb in thirty.
 TEST(MapDataTest, OnlyTheTokenBandDropsBothFrozenTokens) {
   constexpr int kBandLow = 101;
   constexpr int kBandHigh = 120;
-  constexpr double kInBand = 0.0001;
+  constexpr double kInBand = 0.0002;
   const char* kTokens[] = {"frozen_weapon_token", "frozen_secondary_token"};
 
   int checked = 0;

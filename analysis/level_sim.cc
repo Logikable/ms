@@ -315,8 +315,8 @@ struct Climb {
   int token_level[kNumFrozenTokens] = {0, 0};
   // Kills off mobs that carry each token, and the log of the chance every one
   // of them came up empty. One climb either drops a token or does not, which
-  // says almost nothing at 1/10,000; the kills behind it say how likely that
-  // was, which is the number worth reading.
+  // says almost nothing at a rate this long; the kills behind it say how
+  // likely that was, which is the number worth reading.
   int64_t token_kills[kNumFrozenTokens] = {0, 0};
   double token_log_miss[kNumFrozenTokens] = {0.0, 0.0};
   std::vector<Stint> stints;
@@ -472,13 +472,16 @@ void PrintTokenOdds(const Job* branches, const std::vector<Climb>& climbs,
                     int count) {
   std::printf(
       "\nThe chance a climb makes those kills and comes away with nothing, "
-      "since one seed\ndropping a token says little at 1/10,000. Kills are "
+      "since one seed\ndropping a token says little at a rate this long. "
+      "Kills are "
       "off the mobs that carry one.\n\n");
   std::printf("%-13s  %11s", "branch", "band kills");
   for (const char* token : kFrozenTokens) {
-    std::printf("  %16s", (std::string("no ") + token).c_str());
+    std::printf(
+        "  %18s",
+        (std::string("no ") + (token + std::strlen("Frozen "))).c_str());
   }
-  std::printf("\n%s\n", std::string(26 + 18 * kNumFrozenTokens, '-').c_str());
+  std::printf("\n%s\n", std::string(26 + 20 * kNumFrozenTokens, '-').c_str());
   for (int i = 0; i < count; ++i) {
     if (PathTo(branches[i]).size() < 3) {
       continue;
@@ -486,7 +489,7 @@ void PrintTokenOdds(const Job* branches, const std::vector<Climb>& climbs,
     std::printf("%-13s  %11lld", BranchName(branches[i]).c_str(),
                 static_cast<long long>(climbs[i].token_kills[0]));
     for (int token = 0; token < kNumFrozenTokens; ++token) {
-      std::printf("  %15.1f%%",
+      std::printf("  %17.1f%%",
                   100.0 * std::exp(climbs[i].token_log_miss[token]));
     }
     std::printf("\n");
