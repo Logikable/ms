@@ -1,12 +1,14 @@
 # GMS caps this at 30. Scaled to 20 levels landing on exactly GMS's level-30
-# figures -- 70% mastery, 400 DEF, 40% critical rate, 15% critical damage, 30%
+# figures -- 70% mastery, 400 DEF, 40% critical rate, 20% critical damage, 30%
 # ignored defence and 40% final damage -- so the book totals 200. The levels
 # are coarser, the skill is no stronger.
 #
-# Only the two-handed weapon bonuses are kept. GMS grants a one-handed sword
-# and a one-handed blunt weapon their own, but this game ships no shield to put
-# in the other hand, so a Paladin holding one hand free is a build nothing here
-# rewards. The rosary they carry instead sits with either.
+# The critical damage is one line rather than three: GMS pays 15% flat and 5%
+# more for the weapon in hand, and every weapon this skill works with was owed
+# that 5%. Folded into the base, so the ladder still climbs by half a point a
+# level and still lands on 20%. What is left of the weapon bonuses is the
+# blunt weapon's ignored defence, which is the only one that ever said
+# anything about the weapon.
 #
 # The 40% final damage is the largest single grant in the game and the number
 # to watch when the line is measured against the Dark Knight's Final Pact.
@@ -32,7 +34,7 @@ base {
   mastery: 0.51
   def: 115
   crit_rate: 0.115
-  crit_dmg: 0.055
+  crit_dmg: 0.105
   ied_pct: 0.16
   final_dmg_pct: 0.115
 }
@@ -45,13 +47,6 @@ per_level {
   final_dmg_pct: 0.015
 }
 weapon_bonus {
-  required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
-  effect { crit_dmg: 0.05 }
-}
-weapon_bonus {
   required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
-  effect {
-    crit_dmg: 0.05
-    ied_pct: 0.10
-  }
+  effect { ied_pct: 0.10 }
 }

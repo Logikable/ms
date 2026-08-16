@@ -405,6 +405,10 @@ TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
     for (const WeaponBonus& bonus : skill.weapon_bonus()) {
       EXPECT_GT(bonus.required_equip_type_size(), 0)
           << entry.first << " has a bonus for no weapon at all";
+      // Nothing set is nothing granted, and the skill page prints a row per
+      // lever -- so an empty bonus is an empty promise nobody can even read.
+      EXPECT_GT(bonus.effect().ByteSizeLong(), 0u)
+          << entry.first << " has a bonus that grants nothing";
       for (int i = 0; i < bonus.required_equip_type_size(); ++i) {
         EquipType type = static_cast<EquipType>(bonus.required_equip_type(i));
         EXPECT_TRUE(accepted.empty() || accepted.count(type) > 0)
@@ -420,9 +424,8 @@ TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
 // stops working the day the other half gets one.
 //
 // The DEMAND only. A weapon bonus is the opposite thing: it exists to pay one
-// weapon and not another, and High Paladin's whole shape is a different bonus
-// per hand. Its one-handed rows are dropped because this game ships no shield
-// to fill the other hand, which is a decision rather than an oversight.
+// weapon and not another, which is why High Paladin's ignored defence is on
+// the blunt weapon alone.
 TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   const std::pair<EquipType, EquipType> kPairs[] = {
       {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD},
