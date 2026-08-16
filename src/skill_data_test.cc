@@ -494,6 +494,31 @@ TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
   }
 }
 
+// GMS lets granted levels carry a skill past its master level only in the 4th
+// job, and only where that master level is 10 or more. Below it the skill
+// simply stops, however many levels are on offer.
+constexpr int kSmallestMasterLevelPastIt = 10;
+
+// Which skills those are is a property of the catalog, so the catalog is what
+// has to say it. Neither mistake announces itself: a 4th job skill missing the
+// mark quietly stops two levels short of where its book goes, and one below
+// the 4th job carrying it quietly grants two levels nobody wrote.
+TEST(SkillDataTest, OnlyA4thJobSkillPassesItsMasterLevel) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    bool eligible = StageForAdvancement(skill.job_advancement()) == 4 &&
+                    skill.max_level() >= kSmallestMasterLevelPastIt;
+    if (eligible) {
+      EXPECT_TRUE(skill.exceeds_master_level())
+          << entry.first << " stops at " << skill.max_level()
+          << " where Combat Orders carries a 4th job skill two past it";
+      continue;
+    }
+    EXPECT_FALSE(skill.exceeds_master_level())
+        << entry.first << " climbs past a master level GMS holds it to";
+  }
+}
+
 // A strike is whole, so a rate too small to buy one before the master level
 // is a lever that reads as a climb and never climbs.
 TEST(SkillDataTest, ALineLadderBuysAStrikeBeforeTheMasterLevel) {
