@@ -182,7 +182,13 @@ double SoloDamage(const AttackOption& attack) {
     damage += attack.final_attack_damage[0];
   }
   if (attack.empowered != nullptr && attack.empowered_every > 0) {
-    damage += (SoloDamage(*attack.empowered) - damage) / attack.empowered_every;
+    // A form that marks enemies rides on top of the strike that sets it off,
+    // where one counted on the swing stands in for the swing. The same two
+    // readings CombatSim::SwingDamage takes, against the one mob measured here.
+    damage +=
+        attack.brands_enemies
+            ? SoloDamage(*attack.empowered) / attack.empowered_every
+            : (SoloDamage(*attack.empowered) - damage) / attack.empowered_every;
   }
   return damage;
 }

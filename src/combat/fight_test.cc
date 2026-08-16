@@ -108,17 +108,18 @@ void AddTriggeredAttack(CombatParams& params, int attacks, double damage,
 }
 
 // Gives `attack` a bigger form that takes the place of every `every`th swing
-// of it, hitting `reach` mobs for `damage` apiece. With `per_enemy` the count
-// runs against each mob struck instead, and the swing is never replaced whole.
+// of it, hitting `reach` mobs for `damage` apiece. With `marks` the count runs
+// against each mob struck instead, and the form lands on top of the strike
+// that set it off rather than in place of the swing.
 void SetEmpoweredForm(AttackOption& attack, int every, double damage,
-                      int reach = 1, bool per_enemy = false) {
+                      int reach = 1, bool marks = false) {
   std::shared_ptr<AttackOption> form = std::make_shared<AttackOption>();
   form->name = "Empowered " + attack.name;
   form->max_enemies = reach;
   form->swing_seconds = attack.swing_seconds;
   form->damage_per_hit.assign(attack.damage_per_hit.size(), damage);
   attack.empowered_every = every;
-  attack.empowered_per_enemy = per_enemy;
+  attack.brands_enemies = marks;
   attack.empowered = form;
 }
 
@@ -1610,7 +1611,7 @@ TEST(CombatSimTest, ABrandRidesTheEnemyRatherThanTheSwing) {
   CombatParams params = MakeParams(
       1.0, 1000.0, {MakeType(&soft, 20.0, 1), MakeType(&tough, 1.0, 1)});
   SetEmpoweredForm(params.attacks[0], /*every=*/2, /*damage=*/6.0, /*reach=*/1,
-                   /*per_enemy=*/true);
+                   /*marks=*/true);
 
   sim.Advance(params, 1.0);
   ASSERT_EQ(sim.target_name(), "Tough") << "the soft one dies to one strike";
@@ -1618,14 +1619,16 @@ TEST(CombatSimTest, ABrandRidesTheEnemyRatherThanTheSwing) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9)
       << "the newcomer's first strike is an ordinary one, not the swing's 2nd";
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.65, 1e-9)
-      << "and the brand comes due on the second strike IT has taken";
+  // 19 - (1 + 6) of 20. Replacing the strike rather than riding it would leave
+  // 13, and inheriting the swing's count would have gone off a swing sooner.
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.60, 1e-9)
+      << "the mark goes off on the second strike IT has taken, on top of it";
 }
 
-// Counted per enemy, the form never takes the whole swing: it lands on the
-// mobs whose brands came due, and everything else the swing reached takes an
+// Marking enemies, the form never takes the whole swing: it goes off on the
+// mobs whose marks came due, and everything else the swing reached takes its
 // ordinary strike beside them.
-TEST(CombatSimTest, ABrandDetonatesOnlyOnTheEnemyThatEarnedIt) {
+TEST(CombatSimTest, AMarkGoesOffOnlyOnTheEnemyThatEarnedIt) {
   Mob soft = MakeMob("Soft", 20);
   Mob tough = MakeMob("Tough", 20);
   CombatSim sim;
@@ -1633,19 +1636,20 @@ TEST(CombatSimTest, ABrandDetonatesOnlyOnTheEnemyThatEarnedIt) {
       1.0, 1000.0, {MakeType(&soft, 20.0, 1), MakeType(&tough, 1.0, 2)},
       /*reach=*/2);
   SetEmpoweredForm(params.attacks[0], /*every=*/2, /*damage=*/6.0, /*reach=*/2,
-                   /*per_enemy=*/true);
+                   /*marks=*/true);
 
-  // The first swing kills the soft one and brands the tough one beside it. The
+  // The first swing kills the soft one and marks the tough one beside it. The
   // second reaches both tough ones: one is due, the other has only just
   // arrived.
   sim.Advance(params, 1.0);
   sim.Advance(params, 1.0);
-  EXPECT_NEAR(sim.target_hp_fraction(), 0.65, 1e-9) << "13 of 20, detonated";
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.60, 1e-9)
+      << "12 of 20: one ordinary strike, then a second with the mark on top";
   const EngagedGroup* group = FindGroup(sim.engaged_groups(), "Tough");
   ASSERT_NE(group, nullptr);
   EXPECT_EQ(group->count, 2);
-  EXPECT_NEAR(group->hp_fraction, 0.80, 1e-9)
-      << "13 and 19 of 20 apiece: only one of them took the detonation";
+  EXPECT_NEAR(group->hp_fraction, 0.775, 1e-9)
+      << "12 and 19 of 20 apiece: only one of them was due";
 }
 
 // The choice between swings goes on damage per second, so an attack that lands

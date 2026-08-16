@@ -389,24 +389,28 @@ message SwingHit {
 // learned level as the skill carrying it.
 //
 // What is counted is ordinarily the swing, so the whole of the fourth one is
-// this instead. See counts_per_enemy below for the other reading, where each
-// enemy carries its own count and only the enemies that come due take it.
+// this instead. brands_each_enemy below is the other shape entirely -- a mark
+// riding each enemy that goes off ON TOP of the strike that completes it.
 message EmpoweredForm {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
   // Swings of the named skill one of these takes the place of: 4 means three
   // ordinary swings, then this. Nothing happens without it.
   int32 casts_per_trigger = 3;
-  // Ignored when counts_per_enemy is set, where the form goes exactly as far
+  // Ignored when brands_each_enemy is set, where the form goes exactly as far
   // as the enemies that came due.
   int32 max_enemies = 4;
   int32 lines = 5;
-  // Count the field above against each ENEMY the swing reaches rather than
-  // against the swing. Divine Judgment is what it is for: a Blast brands every
-  // enemy it strikes, and the brand detonates on the enemy that has taken five
-  // of them -- so the rest of the swing lands ordinarily beside it, and an
-  // enemy that dies at four takes its count with it.
-  bool counts_per_enemy = 6;
+  // A mark on each enemy the swing strikes rather than a count on the swing.
+  // Divine Judgment is what it is for: every Blast marks the enemies it hits,
+  // and the mark detonates on the enemy that has taken casts_per_trigger of
+  // them. Two things follow, and both are the opposite of the reading above.
+  //
+  // It ADDS rather than replaces: the enemy that came due takes its ordinary
+  // strike and the detonation on top. And the count belongs to the enemy, so
+  // one that dies partway there takes it to the grave, and the rest of the
+  // swing lands ordinarily beside whoever went off.
+  bool brands_each_enemy = 6;
 }
 
 // An extra grant that lands only with certain weapons in hand, on top of what

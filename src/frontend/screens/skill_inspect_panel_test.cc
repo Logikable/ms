@@ -452,30 +452,30 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
             std::string::npos);
   EXPECT_NE(rendered.find("Piercing Arrow +102%"), std::string::npos);
   // Counted on the swing, which is the ordinary reading and needs no row.
-  EXPECT_EQ(rendered.find("Counted"), std::string::npos);
+  EXPECT_EQ(rendered.find("Marks"), std::string::npos);
   // A skill that upgrades nothing says nothing about upgrading.
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Empower"), std::string::npos);
 }
 
-// Divine Judgment counts the brands one enemy has taken rather than the swings
+// Divine Judgment counts the marks one enemy has taken rather than the swings
 // landed, and its reach is whichever of them came due -- so the page says the
 // first and drops the second.
-TEST_F(SkillInspectPanelTest, StatesAFormCountedPerEnemy) {
+TEST_F(SkillInspectPanelTest, StatesAFormThatMarksEachEnemy) {
   Skill judgment = MakeIronBody();
   judgment.set_boosts_skill_name("Blast");
   EmpoweredForm* form = judgment.mutable_empowered_form();
   form->set_casts_per_trigger(5);
-  form->set_counts_per_enemy(true);
+  form->set_brands_each_enemy(true);
   form->set_max_enemies(8);
   form->set_lines(10);
   form->mutable_base()->set_skill_pct(4.34);
 
   std::string rendered = RenderAt(judgment, 1);
   EXPECT_NE(rendered.find("Every 5th"), std::string::npos);
-  EXPECT_NE(rendered.find("Counted           Per Enemy Hit"),
+  EXPECT_NE(rendered.find("Marks             Each Enemy Hit"),
             std::string::npos);
   EXPECT_EQ(rendered.find("Empowered Enemies"), std::string::npos)
-      << "a form counted per enemy carries no reach of its own";
+      << "a form that marks enemies carries no reach of its own";
 }
 
 // Holy Fountain: the pulse and the wait between pulses both move with the

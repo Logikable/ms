@@ -84,10 +84,11 @@ struct AttackOption {
   // because an AttackOption is copied freely, and the form never changes.
   std::shared_ptr<const AttackOption> empowered;
   int empowered_every = 0;
-  // Whether that count runs per ENEMY rather than per swing. Set, the swing is
-  // never replaced whole: it brands each mob it reaches, and the form lands on
-  // whichever of them have taken enough. Only Divine Judgment sets it.
-  bool empowered_per_enemy = false;
+  // Whether the count runs per ENEMY rather than per swing. Set, nothing is
+  // replaced: the swing marks each mob it reaches, and the form lands on top
+  // of the ordinary strike for whichever of them came due. Only Divine
+  // Judgment sets it.
+  bool brands_enemies = false;
 };
 
 // Everything the character can attack with, as it stands under one particular

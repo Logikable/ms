@@ -368,7 +368,7 @@ void AttachEmpoweredForms(const GameState& state, const EquipStats& equipped,
       swing->final_attack_damage.clear();
     }
     attack.empowered_every = skill.empowered_form().casts_per_trigger();
-    attack.empowered_per_enemy = skill.empowered_form().counts_per_enemy();
+    attack.brands_enemies = skill.empowered_form().brands_each_enemy();
     attack.empowered = swing;
   }
 }

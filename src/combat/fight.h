@@ -117,8 +117,8 @@ class CombatSim {
   struct QueuedMob {
     int type = 0;
     double hp = 0.0;
-    // Strikes this mob has taken from a swing that brands what it hits, since
-    // the last one detonated on it. A brand rides the mob rather than the
+    // Strikes this mob has taken from a swing that marks what it hits, since
+    // the last mark went off on it. A mark rides the mob rather than the
     // swing, so one that dies partway there takes its count to the grave and
     // whatever replaces it starts at nothing.
     int brand = 0;
@@ -150,11 +150,11 @@ class CombatSim {
   // a counter apiece.
   const AttackOption& FormToLand(std::vector<int>& counts, int size, int index,
                                  const AttackOption& attack);
-  // What `attack` lands on the queued mob at `index`: its empowered form when
-  // that mob's brand has come round, and its ordinary damage otherwise. Only
-  // for an attack counting per enemy -- everything else is answered before the
-  // swing lands, by FormToLand. Advances the brand, so it is called once per
-  // mob per landed swing.
+  // What `attack` lands on the queued mob at `index`: its ordinary damage, and
+  // its empowered form on top when that mob's mark has come round. Only for an
+  // attack that marks enemies -- everything else is answered before the swing
+  // lands, by FormToLand. Advances the mark, so it is called once per mob per
+  // landed swing.
   double DamageToBranded(const AttackOption& attack, int index);
   // Index into params.attacks of the healing cast to spend this swing on, or
   // -1 for none: the player is not low enough, has nothing to fight, or holds

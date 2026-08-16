@@ -339,8 +339,14 @@ double OffClockDps(const CombatParams& params, const AttackOption& best,
     double per_pulse = extra.damage_per_hit[0];
     if (extra.empowered != nullptr && extra.empowered_every > 0 &&
         !extra.empowered->damage_per_hit.empty()) {
-      per_pulse += (extra.empowered->damage_per_hit[0] - per_pulse) /
-                   extra.empowered_every;
+      // Marking, the form rides the pulse that set it off rather than standing
+      // in for one. No summon marks today, but the two readings differ and the
+      // averaging has to pick the right one.
+      per_pulse +=
+          extra.brands_enemies
+              ? extra.empowered->damage_per_hit[0] / extra.empowered_every
+              : (extra.empowered->damage_per_hit[0] - per_pulse) /
+                    extra.empowered_every;
     }
     dps += per_pulse / (extra.interval_seconds / speed);
   }

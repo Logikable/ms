@@ -1,10 +1,12 @@
 # A brand rides the ENEMY, as GMS's does: every Blast that strikes one brands
-# it, and the fifth brand detonates on that enemy alone. So a boss with several
-# bodies is worth several detonations, and a monster that dies at four brands
-# is worth none -- which is the reading a passive for bossing wants.
+# it, and the fifth brand detonates on that enemy alone, on top of the strike
+# that set it off. So a boss with several bodies is worth several detonations,
+# and a monster that dies at four brands is worth none -- which is the reading
+# a passive for bossing wants.
 #
-# The detonation REPLACES that enemy's share of the fifth Blast rather than
-# following it. Worth eighteen Blasts, so the one it costs is barely visible.
+# At master level the detonation is 5500% against Blast's own 3355%, so a Blast
+# that sets one off lands two and a half times what the four before it did --
+# and it is the number to trim first if the Paladin outgrows the Dark Knight.
 #
 # Its 20% ignored defence is the point of the skill. It rides the swing alone,
 # which is what an ied_pct on an attack means -- see WithoutSwingLevers.
@@ -24,7 +26,7 @@ required_skill {
 boosts_skill_name: "Blast"
 empowered_form {
   casts_per_trigger: 5
-  counts_per_enemy: true
+  brands_each_enemy: true
   lines: 10
   base {
     skill_pct: 4.34
