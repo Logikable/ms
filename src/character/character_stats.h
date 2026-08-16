@@ -153,11 +153,18 @@ inline constexpr int kLevelsPastMasterLevel = 2;
 int BonusSkillLevels(const CharacterInstance& character,
                      const std::map<std::string, Skill>& skills);
 
-// What `skill` is actually worth to this character: the level they learned
-// plus `bonus`, held to the master level -- or to kLevelsPastMasterLevel above
-// it for a skill marked exceeds_master_level, which is how a 4th job skill
-// reaches the two levels its page never describes. An unlearned skill stays
-// unlearned, and the skill granting the bonus does not receive it.
+// `learned` lifted by `bonus`, held to the master level -- or to
+// kLevelsPastMasterLevel above it for a skill marked exceeds_master_level,
+// which is how a 4th job skill reaches the two levels its page never
+// describes. An unlearned skill stays unlearned, and the skill granting the
+// bonus does not receive it.
+//
+// For a caller holding a level rather than a character: the skill page asks
+// what one more point would buy, which is nobody's current level.
+int LevelWithBonus(const Skill& skill, int learned, int bonus);
+
+// What `skill` is actually worth to this character: LevelWithBonus of the
+// level they learned.
 //
 // This is the level everything that READS a skill wants -- its stats, its
 // damage, the level shown beside it. Spending SP wants skill_level() instead:

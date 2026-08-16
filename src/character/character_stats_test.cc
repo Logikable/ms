@@ -860,6 +860,21 @@ TEST_F(DerivedStatsTest, BonusLevelsCarryAMarkedSkillPastItsMasterLevel) {
       << "two past the master level however many are going";
 }
 
+// The same four rules read off a bare level, which is what the skill page
+// holds when it asks what one more point would buy.
+TEST_F(DerivedStatsTest, LevelWithBonusNeedsNoCharacter) {
+  Skill iron_body = IronBody();
+  Skill marked = IronBody();
+  marked.set_exceeds_master_level(true);
+
+  EXPECT_EQ(LevelWithBonus(iron_body, 5, 2), 7);
+  EXPECT_EQ(LevelWithBonus(iron_body, 0, 2), 0) << "unlearned stays unlearned";
+  EXPECT_EQ(LevelWithBonus(iron_body, 19, 2), 20) << "held to the master level";
+  EXPECT_EQ(LevelWithBonus(marked, 19, 2), 21) << "two past it when marked";
+  EXPECT_EQ(LevelWithBonus(CombatOrders(), 5, 2), 5)
+      << "the skill handing out the levels does not take them";
+}
+
 // Two rules the bonus has to hold at once for a skill NOT marked for the 4th
 // job's: it never carries the skill past its master level, and it never raises
 // the skill handing it out.

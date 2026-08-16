@@ -421,17 +421,20 @@ int BonusSkillLevels(const CharacterInstance& character,
   return static_cast<int>(std::floor(bonus + kPercentEpsilon));
 }
 
-int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
-                        int bonus) {
-  int level = character.skill_level(skill);
-  if (level <= 0 || GrantsSkillLevels(skill)) {
-    return level;
+int LevelWithBonus(const Skill& skill, int learned, int bonus) {
+  if (learned <= 0 || GrantsSkillLevels(skill)) {
+    return learned;
   }
   int ceiling = skill.max_level();
   if (skill.exceeds_master_level()) {
     ceiling += kLevelsPastMasterLevel;
   }
-  return std::min(level + bonus, ceiling);
+  return std::min(learned + bonus, ceiling);
+}
+
+int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
+                        int bonus) {
+  return LevelWithBonus(skill, character.skill_level(skill), bonus);
 }
 
 bool SkillGearMet(const CharacterInstance& character, const Skill& skill) {
