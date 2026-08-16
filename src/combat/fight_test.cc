@@ -1786,6 +1786,28 @@ TEST(CombatSimTest, TheFightSpendsASwingToLayALapsedBuff) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.9890, 1e-9);
 }
 
+// The wound itself: a pulse that waits for the buff its skill lays, so it
+// ticks only where one was left rather than from the moment the skill is
+// learned.
+TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
+  Mob snail = MakeMob("Snail", 10000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0);
+  GiveWound(params, /*duration=*/3.0, /*factor=*/1.0);
+  params.auto_attacks[0].name = "Puncture";
+  params.auto_attacks[0].needs_buff = 0;
+  params.buffed[0].auto_attacks = params.auto_attacks;
+
+  // 5 for the swing that lays it and nothing from the pulse: no wound stood
+  // when the step began.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.9995, 1e-9);
+  // Now it ticks, beside the 20 the hardest swing lands.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.9875, 1e-9);
+}
+
 // The other half of the rule: a wound still standing is left alone. Nothing
 // re-lays it early, so the hard swing keeps every turn after the first.
 TEST(CombatSimTest, ABuffStillStandingIsNotLaidAgain) {

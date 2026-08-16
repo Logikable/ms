@@ -89,6 +89,12 @@ struct AttackOption {
   // of the ordinary strike for whichever of them came due. Only Divine
   // Judgment sets it.
   bool brands_enemies = false;
+  // Which of the character's buffs has to be standing for this to fire at all,
+  // as an index into CombatParams::buffs, or -1 for a clock that runs on its
+  // own. Puncture's wound is the case it exists for: what ticks is the wound,
+  // so it ticks only where one was left. Off-clock attacks only -- a swing is
+  // chosen rather than fired.
+  int needs_buff = -1;
 };
 
 // Everything the character can attack with, as it stands under one particular

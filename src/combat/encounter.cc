@@ -557,6 +557,31 @@ void AddBuffs(const CharacterInstance& character,
   }
 }
 
+// Points every own-clock half of a swing-laid buff's skill at that buff, in
+// the base set and in every buffed one alike -- the fight reads whichever set
+// the mask names, so a tag on one of them would come and go with the buffs.
+//
+// Matched by name because an own-clock half keeps its parent skill's name, and
+// so does the buff: one skill, one row in the book, one name.
+void TagBuffGatedPulses(CombatParams& params) {
+  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+    if (params.buffs[i].laid_by_attack < 0) {
+      continue;
+    }
+    std::vector<std::vector<AttackOption>*> sets = {&params.auto_attacks};
+    for (AttackSet& set : params.buffed) {
+      sets.push_back(&set.auto_attacks);
+    }
+    for (std::vector<AttackOption>* set : sets) {
+      for (AttackOption& cast : *set) {
+        if (cast.name == params.buffs[i].name) {
+          cast.needs_buff = i;
+        }
+      }
+    }
+  }
+}
+
 // A damage table for every combination of the character's buffs, indexed the
 // way CombatParams::Attacks reads them: the mask of which are up, less one.
 void AddBuffedSets(const GameState& state,
@@ -661,6 +686,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
   AddBuffs(state.character, state.skills, buff_skills, speed_factor, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
+  TagBuffGatedPulses(params);
   params.active = true;
   return params;
 }

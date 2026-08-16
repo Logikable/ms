@@ -780,10 +780,28 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
 
   // A buff raised on its own wait says so by naming no swing -- the fight
   // tells the two apart on this field alone.
-  puncture.set_kind(SKILL_KIND_ACTIVE);
-  puncture.set_cooldown_seconds(70.0);
-  state.skills["puncture"] = puncture;
+  Skill on_a_wait = puncture;
+  on_a_wait.set_kind(SKILL_KIND_ACTIVE);
+  on_a_wait.set_cooldown_seconds(70.0);
+  state.skills["puncture"] = on_a_wait;
   EXPECT_EQ(ComputeCombatParams(state).buffs[0].laid_by_attack, -1);
+
+  // And the skill's own-clock half is pointed at the buff, in the base table
+  // and in the buffed one alike: what ticks is the wound, so it ticks only
+  // where one was left.
+  AutoMode* wound_tick = puncture.add_auto_mode();
+  wound_tick->set_label("Wound");
+  wound_tick->set_cast_interval_seconds(2.0);
+  wound_tick->set_max_enemies(8);
+  wound_tick->set_lines(1);
+  wound_tick->mutable_base()->set_skill_pct(1.65);
+  state.skills["puncture"] = puncture;
+  CombatParams gated = ComputeCombatParams(state);
+  ASSERT_EQ(gated.auto_attacks.size(), 1u);
+  EXPECT_EQ(gated.auto_attacks[0].needs_buff, 0);
+  ASSERT_EQ(gated.buffed.size(), 1u);
+  ASSERT_EQ(gated.buffed[0].auto_attacks.size(), 1u);
+  EXPECT_EQ(gated.buffed[0].auto_attacks[0].needs_buff, 0);
 }
 
 // A character with no buff carries no tables at all: the cost of the

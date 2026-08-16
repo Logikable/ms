@@ -497,6 +497,12 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     if (queue_.empty() || cast.interval_seconds <= 0.0) {
       continue;
     }
+    // A pulse that is really a wound waits for one to have been left. Its
+    // phase is left alone rather than wound on, so it does not come due the
+    // instant the wound lands and then again a moment later.
+    if (cast.needs_buff >= 0 && (buff_mask_ & (1 << cast.needs_buff)) == 0) {
+      continue;
+    }
     auto_phase_[i] += dt;
     if (auto_phase_[i] >= cast.interval_seconds) {
       auto_phase_[i] -= cast.interval_seconds;
