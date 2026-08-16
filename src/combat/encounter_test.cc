@@ -793,6 +793,57 @@ TEST(ComputeCombatParamsTest, ASummonCutsDeeperIntoANormalMonsterToo) {
   }
 }
 
+// Greater Vessel of Light's shape: one passive that hands a strike to two
+// attacks and widens one of them. The grant is folded into the target before
+// its attack is built, so the damage the fight sees is already carrying it.
+TEST(ComputeCombatParamsTest, APassiveHandsStrikesAndReachToSkillsItNames) {
+  Skill charge;
+  charge.set_name("Divine Charge");
+  charge.set_kind(SKILL_KIND_ATTACK);
+  charge.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  charge.set_max_level(20);
+  charge.set_max_enemies(8);
+  charge.set_lines(4);
+  charge.mutable_base()->set_skill_pct(2.53);
+  Skill vessel;
+  vessel.set_name("Greater Vessel of Light");
+  vessel.set_kind(SKILL_KIND_PASSIVE);
+  vessel.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  vessel.set_max_level(10);
+  SkillBoost* boost = vessel.add_boost();
+  boost->set_skill_name("Divine Charge");
+  boost->set_lines(1);
+  boost->set_max_enemies(1);
+  boost->set_max_enemies_per_level(0.2);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"divine_charge", charge}, {"vessel", vessel}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 30);
+  ASSERT_TRUE(state.character.LearnSkill(charge, 1));
+
+  // Unboosted first: four strikes across eight enemies.
+  CombatParams bare = ComputeCombatParams(state);
+  ASSERT_EQ(bare.attacks.size(), 2u);
+  double one_line = bare.attacks[1].damage_per_hit[0] / 4.0;
+  EXPECT_EQ(bare.attacks[1].max_enemies, 8);
+
+  // At level 1 the vessel is worth a strike and one enemy.
+  ASSERT_TRUE(state.character.LearnSkill(vessel, 1));
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.attacks[1].max_enemies, 9);
+  EXPECT_DOUBLE_EQ(params.attacks[1].damage_per_hit[0], 5.0 * one_line);
+
+  // The reach climbs on the ladder its rate names, at the sixth level.
+  ASSERT_TRUE(state.character.LearnSkill(vessel, 4));  // level 5
+  EXPECT_EQ(ComputeCombatParams(state).attacks[1].max_enemies, 9);
+  ASSERT_TRUE(state.character.LearnSkill(vessel, 1));  // level 6
+  EXPECT_EQ(ComputeCombatParams(state).attacks[1].max_enemies, 10);
+}
+
 // Creeping Toxin's shape: a summon that upgrades its own pulse rather than
 // another skill's swing, which is what an empty boosts_skill_name means.
 TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {

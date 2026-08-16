@@ -408,6 +408,31 @@ std::string NormalMonsterText(const Skill& skill, int level) {
                    SkillLinesAt(skill, level));
 }
 
+// What one skill hands another that is not damage, at `level`: strikes on
+// every swing, enemies on its reach, or both. "" when it grants neither.
+std::string BoostText(const SkillBoost& boost, int level) {
+  // Read exactly as the line ladder is, so the level a skill widens at is the
+  // level its data names.
+  constexpr double kEnemyEpsilon = 1e-9;
+  std::string gains;
+  if (boost.lines() > 0) {
+    gains = "+" + std::to_string(boost.lines()) +
+            (boost.lines() == 1 ? " Strike" : " Strikes");
+  }
+  int enemies =
+      boost.max_enemies() +
+      static_cast<int>(std::floor(boost.max_enemies_per_level() * (level - 1) +
+                                  kEnemyEpsilon));
+  if (enemies > 0) {
+    if (!gains.empty()) {
+      gains += ", ";
+    }
+    gains +=
+        "+" + std::to_string(enemies) + (enemies == 1 ? " Enemy" : " Enemies");
+  }
+  return gains;
+}
+
 // The opening hit's line, or "" for a swing that has none. It lands on top of
 // the swing's own damage, on one enemy of the several the swing reaches, so
 // the row has to say which enemy or the two numbers read as alternatives.
@@ -585,6 +610,19 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
     for (ftxui::Element& row :
          WrappedEffectRows("Boosts", skill.boosts_skill_name() + " +" +
                                          FormatPercent(boost))) {
+      rows.push_back(std::move(row));
+    }
+  }
+  // The same sentence for what it hands another skill that is not damage: a
+  // strike on every swing, a wider reach, or both. One row per skill named,
+  // because two skills granted different things cannot share a row.
+  for (const SkillBoost& granted : skill.boost()) {
+    std::string gains = BoostText(granted, level);
+    if (gains.empty()) {
+      continue;
+    }
+    for (ftxui::Element& row :
+         WrappedEffectRows("Boosts", granted.skill_name() + " " + gains)) {
       rows.push_back(std::move(row));
     }
   }

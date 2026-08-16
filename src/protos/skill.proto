@@ -388,6 +388,31 @@ message WeaponBonus {
   SkillEffect effect = 2;
 }
 
+// What one skill hands another by name, beyond damage. Greater Vessel of Light
+// is the case it exists for: it adds a strike to Divine Charge and to Blast,
+// and widens Divine Charge alone.
+//
+// Damage is deliberately not here. A percentage added to a named skill climbs
+// with the level, so it is a lever and lives in SkillEffect as
+// boosted_skill_pct beside the others. What is here is structural -- strikes
+// and reach -- which no lever can express, because a SkillEffect has no notion
+// of a target.
+//
+// Applied to a COPY of the target before its attack is built, so the damage
+// chain, the line count and the reach all see one skill that already carries
+// them. Read at the granting skill's own learned level.
+message SkillBoost {
+  string skill_name = 1;
+  // Strikes added to every swing of the named skill. Flat: every GMS bonus of
+  // this shape is +1 however far the granting skill is taught.
+  int32 lines = 2;
+  // Enemies added to its reach at level 1, and the rate that climbs, read
+  // exactly as Skill.lines and Skill.lines_per_level are -- 0.2 is one more
+  // enemy every fifth level, which is GMS's ceil(L/5).
+  int32 max_enemies = 3;
+  double max_enemies_per_level = 4;
+}
+
 // A skill that has to be learned to a level before another can be bought at
 // all. GMS states this in the description; here it is structured, because the
 // skills tab has to enforce it as well as say it.
@@ -562,4 +587,8 @@ message Skill {
   // the wait cooldown_seconds states. See Buff. The heal a cast hands over at
   // once is the buff's own heal_pct.
   Buff buff = 106;
+  // The Paladin's. Strikes and reach this skill hands to skills it names.
+  // Repeated, unlike boosts_skill_name above, because Greater Vessel of Light
+  // strengthens two of them and grants each a different thing. See SkillBoost.
+  repeated SkillBoost boost = 107;
 }

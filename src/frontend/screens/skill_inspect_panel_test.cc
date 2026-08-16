@@ -318,6 +318,36 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
             std::string::npos);
 }
 
+// What a skill hands another that is not damage reads as the same sentence the
+// damage boost does, one row per skill named -- two skills granted different
+// things cannot share a row.
+TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
+  Skill vessel = MakeIronBody();
+  vessel.set_max_level(10);
+  SkillBoost* charge = vessel.add_boost();
+  charge->set_skill_name("Divine Charge");
+  charge->set_lines(1);
+  charge->set_max_enemies(1);
+  charge->set_max_enemies_per_level(0.2);
+  SkillBoost* blast = vessel.add_boost();
+  blast->set_skill_name("Blast");
+  blast->set_lines(1);
+
+  std::string rendered = RenderAt(vessel, 10);
+  // Too long for the value column, so it wraps rather than being cut.
+  EXPECT_NE(rendered.find("Boosts            Divine Charge +1"),
+            std::string::npos);
+  EXPECT_NE(rendered.find("Strike, +2 Enemies"), std::string::npos);
+  EXPECT_NE(rendered.find("Boosts            Blast +1 Strike"),
+            std::string::npos);
+  // The reach climbs with the level; the strike does not.
+  EXPECT_NE(RenderAt(vessel, 1).find("Strike, +1 Enemy"), std::string::npos);
+  // A skill granting neither writes no row. Matched on the padded label, since
+  // this skill's own description opens with the same word.
+  EXPECT_EQ(RenderAt(MakeIronBody(), 1).find("Boosts            "),
+            std::string::npos);
+}
+
 // A wait that never moves is stated once above the divider; one that shortens
 // as the skill is taught is part of what a point buys, so it reads at the
 // level with everything else a point buys.

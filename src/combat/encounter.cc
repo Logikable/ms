@@ -243,6 +243,66 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
   }
 }
 
+// What the rest of the book hands one skill: strikes added to every swing and
+// enemies added to its reach.
+struct SkillBoosts {
+  int lines = 0;
+  int max_enemies = 0;
+};
+
+// Every such grant in the character's book, summed and keyed by the skill it
+// names. Gathered once: the granting skill may be listed after the skill it
+// strengthens, and every attack has to be built with the whole of it already
+// in.
+std::map<std::string, SkillBoosts> BoostsByTarget(const GameState& state,
+                                                  int bonus) {
+  // The nudge SkillLinesAt takes, for the same reason: a rate written as a
+  // decimal lands a hair under the level it is meant to buy.
+  constexpr double kEnemyEpsilon = 1e-9;
+  std::map<std::string, SkillBoosts> by_target;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    const Skill& skill = entry.second;
+    // Learned levels are keyed by display name and the warrior branches share
+    // several, so only the character's own book grants anything.
+    if (!state.character.HasAdvancement(skill.job_advancement())) {
+      continue;
+    }
+    int learned = EffectiveSkillLevel(state.character, skill, bonus);
+    if (learned <= 0) {
+      continue;
+    }
+    for (const SkillBoost& boost : skill.boost()) {
+      SkillBoosts& into = by_target[boost.skill_name()];
+      into.lines += boost.lines();
+      into.max_enemies +=
+          boost.max_enemies() +
+          static_cast<int>(std::floor(
+              boost.max_enemies_per_level() * (learned - 1) + kEnemyEpsilon));
+    }
+  }
+  return by_target;
+}
+
+// `skill` with whatever the book grants it folded in, or `skill` itself when
+// nothing does. The line ladder is cashed in at `level` on the way, so the
+// strike granted lands on top of the ones the skill bought for itself rather
+// than being climbed past a second time.
+const Skill& Boosted(const Skill& skill, int level,
+                     const std::map<std::string, SkillBoosts>& boosts,
+                     Skill& scratch) {
+  std::map<std::string, SkillBoosts>::const_iterator it =
+      boosts.find(skill.name());
+  if (it == boosts.end()) {
+    return skill;
+  }
+  scratch = skill;
+  scratch.set_lines(SkillLinesAt(skill, level) + it->second.lines);
+  scratch.clear_lines_per_level();
+  scratch.set_max_enemies(std::max(1, skill.max_enemies()) +
+                          it->second.max_enemies);
+  return scratch;
+}
+
 // A skill's empowered form, as a skill in its own right, so the same damage
 // chain builds it. It takes a name of its own -- unlike an own-clock half,
 // this really is a different swing, and it must not pick up the permanent
@@ -342,16 +402,21 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   set.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr, 0,
                                   types, derived, attack_speed, speed_factor));
   int bonus = BonusSkillLevels(state.character, state.skills);
+  std::map<std::string, SkillBoosts> boosts = BoostsByTarget(state, bonus);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = EffectiveSkillLevel(state.character, skill, bonus);
     if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
       continue;
     }
-    AddAutoModes(proto, total_stats, weapon_type, skill, learned, off_clock,
+    // Strikes and reach another skill in the book grants this one, folded in
+    // before anything is built so the whole chain below sees one skill.
+    Skill boosted;
+    const Skill& swung = Boosted(skill, learned, boosts, boosted);
+    AddAutoModes(proto, total_stats, weapon_type, swung, learned, off_clock,
                  speed_factor, types, set);
     AttackOption attack =
-        AttackFor(proto, total_stats, weapon_type, &skill, learned, types,
+        AttackFor(proto, total_stats, weapon_type, &swung, learned, types,
                   skill.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,
                   attack_speed, speed_factor);
     // A cast is not a hit. The damage chain has no multiplier to apply to a
