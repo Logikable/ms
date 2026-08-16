@@ -23,6 +23,7 @@
  *
  *   bazelisk run //analysis:level_sim
  *   bazelisk run //analysis:level_sim -- --detail
+ *   bazelisk run //analysis:level_sim -- --branch=DARK_KNIGHT
  */
 #include <algorithm>
 #include <cmath>
@@ -37,6 +38,8 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/log/log.h"
+#include "absl/strings/ascii.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_gear.h"
 #include "src/character/character.h"
@@ -77,6 +80,11 @@ ABSL_FLAG(bool, detail, false,
 // time and hide a real change under the noise. Move it to see how much of a
 // number is the seed and how much is the game.
 ABSL_FLAG(int, seed, 20260813, "The random stream every climb draws from.");
+ABSL_FLAG(std::string, branch, "",
+          "One branch to climb, as its Job enum name without the JOB_ prefix "
+          "(DARK_KNIGHT). Empty climbs them all, which waits on the slowest "
+          "of them however many cores are free -- so name one when one is the "
+          "question.");
 
 namespace ms {
 namespace {
@@ -496,10 +504,29 @@ void PrintTokenOdds(const Job* branches, const std::vector<Climb>& climbs,
   }
 }
 
+// The branches to climb: all of them, or the one --branch names. Dies on a
+// name no branch answers to rather than printing an empty table.
+std::vector<Job> BranchesToClimb(const Job* all, int count) {
+  std::string name = absl::AsciiStrToUpper(absl::GetFlag(FLAGS_branch));
+  if (name.empty()) {
+    return std::vector<Job>(all, all + count);
+  }
+  Job wanted = JOB_UNSPECIFIED;
+  if (Job_Parse("JOB_" + name, &wanted)) {
+    for (int i = 0; i < count; ++i) {
+      if (all[i] == wanted) {
+        return {wanted};
+      }
+    }
+  }
+  LOG(FATAL) << "Unknown --branch '" << absl::GetFlag(FLAGS_branch) << "'";
+  return {};
+}
+
 void Run() {
   Catalogs catalogs = LoadCatalogs();
   std::vector<std::string> maps = HuntingGrounds(catalogs);
-  const Job kBranches[] = {
+  const Job kEveryBranch[] = {
       JOB_FIGHTER,
       JOB_PAGE,
       JOB_SPEARMAN,
@@ -522,6 +549,8 @@ void Run() {
       JOB_CHIEF_BANDIT,
       JOB_DARK_KNIGHT,
   };
+  std::vector<Job> branches = BranchesToClimb(
+      kEveryBranch, static_cast<int>(sizeof(kEveryBranch) / sizeof(Job)));
 
   std::printf(
       "Playtime to each level, played at the best map the character survives "
@@ -535,13 +564,13 @@ void Run() {
   // Every branch climbs on its own character and its own copy of the
   // catalogs, so they all run at once. The rows are printed afterwards, in the
   // table's own order rather than the order the threads happened to finish.
-  int count = static_cast<int>(sizeof(kBranches) / sizeof(kBranches[0]));
+  int count = static_cast<int>(branches.size());
   std::vector<Climb> climbs(count);
   ParallelFor(count,
-              [&](int i) { climbs[i] = Play(catalogs, kBranches[i], maps); });
+              [&](int i) { climbs[i] = Play(catalogs, branches[i], maps); });
 
   for (int i = 0; i < count; ++i) {
-    std::printf("%-13s", BranchName(kBranches[i]).c_str());
+    std::printf("%-13s", BranchName(branches[i]).c_str());
     for (int m = 0; m < kNumMilestones; ++m) {
       std::printf("  %8s", Clock(climbs[i].milestone_seconds[m]).c_str());
     }
@@ -573,10 +602,10 @@ void Run() {
       std::string(13 + 10 * kNumFrozenPieces + 17 * kNumFrozenTokens, '-')
           .c_str());
   for (int i = 0; i < count; ++i) {
-    if (PathTo(kBranches[i]).size() < 3) {
+    if (PathTo(branches[i]).size() < 3) {
       continue;
     }
-    std::printf("%-13s", BranchName(kBranches[i]).c_str());
+    std::printf("%-13s", BranchName(branches[i]).c_str());
     for (int piece = 0; piece < kNumFrozenPieces; ++piece) {
       int level = climbs[i].frozen_level[piece];
       std::printf("  %8s",
@@ -589,7 +618,7 @@ void Run() {
     }
     std::printf("\n");
   }
-  PrintTokenOdds(kBranches, climbs, count);
+  PrintTokenOdds(branches.data(), climbs, count);
 }
 
 }  // namespace
