@@ -264,7 +264,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   }
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
   AddMesoExplosion(skill, level, totals);
-  totals.combo_orbs = std::max(totals.combo_orbs, skill.combo_orbs());
+  totals.combo_orbs = std::max(totals.combo_orbs, ComboOrbsAt(skill, level));
   // A weapon bonus is a second helping of the same levers for a subset of the
   // weapons the skill accepts. Read at level 1: it is flat by construction.
   for (const WeaponBonus& bonus : skill.weapon_bonus()) {

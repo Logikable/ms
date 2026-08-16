@@ -1153,6 +1153,35 @@ TEST_F(DerivedStatsTest, TwoOrbCountsLeaveTheLargerRing) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 16);
 }
 
+// Advanced Combo's whole trick: it widens the ring the Fighter's Combo Attack
+// prices, without replacing the skill doing the pricing. So the ATT per orb
+// goes on being paid, against more orbs than the skill granting it names.
+TEST_F(DerivedStatsTest, AWiderRingIsStillPricedByTheSkillThatNamedIt) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  Skill combo;
+  combo.set_name("Combo Attack");
+  combo.set_kind(SKILL_KIND_PASSIVE);
+  combo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  combo.set_max_level(1);
+  combo.set_combo_orbs(5);
+  combo.mutable_base()->set_attack_per_combo_orb(2);
+  Skill advanced;
+  advanced.set_name("Advanced Combo");
+  advanced.set_kind(SKILL_KIND_PASSIVE);
+  advanced.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  advanced.set_max_level(20);
+  advanced.set_combo_orbs(5);
+  advanced.set_combo_orbs_per_level(0.26316);
+  std::map<std::string, Skill> skills = {{"combo_attack", combo},
+                                         {"advanced_combo", advanced}};
+  ASSERT_TRUE(c.LearnSkill(combo, 1));
+
+  // Five orbs at 2 ATT apiece, before Advanced Combo is opened at all.
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 10);
+  ASSERT_TRUE(c.LearnSkill(advanced, 20));
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 20);
+}
+
 // A ring nobody hands out is no ring: the bargain is priced against nothing
 // and the character is left with the plain final damage they bought.
 TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {

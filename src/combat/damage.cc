@@ -218,6 +218,17 @@ int SkillLinesAt(const Skill& skill, int level) {
                      skill.lines_per_level() * (level - 1) + kLineEpsilon));
 }
 
+int ComboOrbsAt(const Skill& skill, int level) {
+  // The nudge SkillLinesAt takes, and for the same reason.
+  constexpr double kOrbEpsilon = 1e-9;
+  if (skill.combo_orbs_per_level() <= 0.0 || level <= 1) {
+    return skill.combo_orbs();
+  }
+  return skill.combo_orbs() +
+         static_cast<int>(std::floor(
+             skill.combo_orbs_per_level() * (level - 1) + kOrbEpsilon));
+}
+
 double CooldownAt(const Skill& skill, int level) {
   if (skill.cooldown_seconds() <= 0.0) {
     return 0.0;

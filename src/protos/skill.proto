@@ -601,9 +601,18 @@ message Skill {
   // picks. Damage is SkillEffect.lead_pct per line, exactly as `lines` reads
   // skill_pct. Unset/0 is treated as 1, and means nothing without a lead_pct.
   int32 lead_lines = 101;
-  // The Fighter's. How many Combo Orbs this skill surrounds the character with.
-  // Read with SkillEffect::attack_per_combo_orb, and meaningless without it.
+  // The Fighter's. How many Combo Orbs this skill surrounds the character with
+  // at level 1, and the rate that ring grows -- read exactly as `lines` and
+  // `lines_per_level` are, so 0.25 is one more orb every fourth level. A
+  // character carries ONE ring however many skills describe it: the largest
+  // count wins rather than the sum, which is what lets the Hero's Advanced
+  // Combo raise the Fighter's five to ten without replacing the skill that
+  // prices them.
+  //
+  // Meaningless without something reading it -- see
+  // SkillEffect::attack_per_combo_orb and final_dmg_pct_per_combo_orb.
   int32 combo_orbs = 102;
+  double combo_orbs_per_level = 110;
   // The Ranger's. Another skill this one strengthens, by display name. What it
   // adds is SkillEffect::boosted_skill_pct, or an empowered_form below, or
   // both -- Speed Mirage empowers Wind Arrow, and nothing else in the game

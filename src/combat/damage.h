@@ -83,6 +83,14 @@ bool DealsDamage(SkillKind kind);
 // a skill whose lines climb has to climb everywhere at once.
 int SkillLinesAt(const Skill& skill, int level);
 
+// How many Combo Orbs `skill` surrounds the character with at `level`: its
+// `combo_orbs`, plus whole orbs its `combo_orbs_per_level` has bought since
+// level 1. 0 for the skills that hand out none, which is most of them.
+//
+// Here for the reason SkillLinesAt is: the stat line and the skill page both
+// ask, and a ring that grows has to grow in both.
+int ComboOrbsAt(const Skill& skill, int level);
+
 // How long `skill` is unavailable for after it is used, at `level`, in GMS
 // scale: its `cooldown_seconds` plus the per-level step, never below nothing.
 // 0 for the skills that are there every time, which is most of them.

@@ -446,6 +446,25 @@ TEST_F(SkillInspectPanelTest, AShorteningWaitIsReadAtTheLevel) {
   EXPECT_LT(plain.find("Cooldown"), plain.find("Level 5"));
 }
 
+// A growing ring of Combo Orbs takes the same split as the shortening wait
+// above, and for the same reason: one number cannot stand for twenty levels.
+TEST_F(SkillInspectPanelTest, AGrowingRingOfOrbsIsReadAtTheLevel) {
+  Skill advanced = MakeIronBody();
+  advanced.set_combo_orbs(5);
+  advanced.set_combo_orbs_per_level(0.26316);
+  EXPECT_NE(RenderAt(advanced, 1).find("Combo Orbs        5"),
+            std::string::npos);
+  std::string rendered = RenderAt(advanced, 20);
+  EXPECT_NE(rendered.find("Combo Orbs        10"), std::string::npos);
+  EXPECT_LT(rendered.find("Level 20"), rendered.find("Combo Orbs"));
+
+  Skill flat = MakeIronBody();
+  flat.set_combo_orbs(5);
+  std::string plain = RenderAt(flat, 5);
+  EXPECT_NE(plain.find("Combo Orbs        5"), std::string::npos);
+  EXPECT_LT(plain.find("Combo Orbs"), plain.find("Level 5"));
+}
+
 // Revenge of the Evil Eye: three attacks out of one row in the book, and the
 // auras land twenty strikes on three enemies where the volley beside them
 // reaches ten. Without a reach row for each half the biggest number on the page

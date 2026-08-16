@@ -314,6 +314,28 @@ TEST(SkillLinesAtTest, TheLadderBuysAStrikeAtTheLevelItPaysFor) {
   EXPECT_EQ(SkillLinesAt(skill, 32), 7);
 }
 
+TEST(ComboOrbsAtTest, ARingWithNoLadderIsTheSameAtEveryLevel) {
+  Skill skill;
+  EXPECT_EQ(ComboOrbsAt(skill, 1), 0);  // most skills hand out none
+  EXPECT_EQ(ComboOrbsAt(skill, 30), 0);
+  skill.set_combo_orbs(5);
+  EXPECT_EQ(ComboOrbsAt(skill, 1), 5);
+  EXPECT_EQ(ComboOrbsAt(skill, 30), 5);
+}
+
+// Advanced Combo's ladder, as the textproto carries it: five orbs bought over
+// twenty levels, the fifth landing exactly on the master level.
+TEST(ComboOrbsAtTest, ADecimalRateStillLandsOnTheLevelItNames) {
+  Skill skill;
+  skill.set_combo_orbs(5);
+  skill.set_combo_orbs_per_level(0.26316);
+  EXPECT_EQ(ComboOrbsAt(skill, 1), 5);
+  EXPECT_EQ(ComboOrbsAt(skill, 4), 5);
+  EXPECT_EQ(ComboOrbsAt(skill, 5), 6);
+  EXPECT_EQ(ComboOrbsAt(skill, 20), 10);
+  EXPECT_EQ(ComboOrbsAt(skill, 22), 10);  // Combat Orders buys no eleventh
+}
+
 TEST(SkillLinesAtTest, ADecimalRateStillLandsOnTheLevelItNames) {
   // What the textproto actually carries, rounded where a decimal must be.
   Skill skill;

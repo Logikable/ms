@@ -332,7 +332,10 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
         EffectRow(mode.label(), ReachText(std::max(1, mode.max_enemies()),
                                           mode.cast_interval_seconds())));
   }
-  if (skill.combo_orbs() > 0) {
+  // A ring that never grows is stated once here. One that does is a thing a
+  // point buys, so it reads at the level instead -- the same split the
+  // cooldown takes, and for the same reason.
+  if (skill.combo_orbs() > 0 && skill.combo_orbs_per_level() <= 0.0) {
     rows.push_back(EffectRow("Combo Orbs", std::to_string(skill.combo_orbs())));
   }
   // The one clock the player can feel, because they set it: their own
@@ -719,10 +722,15 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   }
   // A wait that shortens as the skill is taught is one of the things a point
   // buys, so it is read at the level like the rest. The waits that never move
-  // are stated once, above the divider.
+  // are stated once, above the divider. A growing ring of Combo Orbs splits
+  // the same way.
   if (skill.cooldown_seconds() > 0.0 &&
       skill.cooldown_seconds_per_level() != 0.0) {
     rows.push_back(EffectRow("Cooldown", CooldownText(skill, level)));
+  }
+  if (skill.combo_orbs_per_level() > 0.0) {
+    rows.push_back(
+        EffectRow("Combo Orbs", std::to_string(ComboOrbsAt(skill, level))));
   }
   // A weapon bonus reads as the lever it grants with the weapons it needs in
   // brackets: "Damage  +5% (Axe)". Flat, so it is read at level 1.
