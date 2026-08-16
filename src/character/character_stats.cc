@@ -89,6 +89,10 @@ struct PassiveTotals {
   int meso_lines = 1;
   std::string meso_skill;
   double meso_pct = 0.0;
+  // Share of what AP bought that comes back as flat stat. Summed, and cashed
+  // in against the allocation once every passive is read -- see
+  // DerivedStatsFor.
+  double ap_stat_pct = 0.0;
   // Damage added to one named skill apiece. Summed per name, so two passives
   // strengthening the same swing both count.
   std::map<std::string, double> skill_pct_bonus;
@@ -172,6 +176,7 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.final_dmg_pct_per_combo_orb +=
       base.final_dmg_pct_per_combo_orb() +
       per.final_dmg_pct_per_combo_orb() * (level - 1);
+  totals.ap_stat_pct += base.ap_stat_pct() + per.ap_stat_pct() * (level - 1);
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
   totals.ied = CombineIgnoredDefense(
       totals.ied, base.ied_pct() + per.ied_pct() * (level - 1));
@@ -310,6 +315,31 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   return totals;
 }
 
+// Cashes Maple Warrior in against the AP the character has spent. It grants
+// what a ring grants, so it lands in the same pile the passives' flat stats
+// do -- and it is read here rather than in AddEffect because a skill's levers
+// know nothing about the character carrying them.
+//
+// Rounded down per stat, as GMS rounds it, and nudged first for the reason
+// FoldPercent is: a per-level step that cannot be written exactly lands a hair
+// under the share it climbs to.
+void FoldApStats(const AllocatedStats& allocated, PassiveTotals& totals) {
+  if (totals.ap_stat_pct <= 0.0) {
+    return;
+  }
+  const int stats[] = {allocated.str(), allocated.dex(), allocated.int_(),
+                       allocated.luk()};
+  int granted[4];
+  for (int i = 0; i < 4; ++i) {
+    granted[i] = static_cast<int>(
+        std::floor(stats[i] * totals.ap_stat_pct + kPercentEpsilon));
+  }
+  totals.str += granted[0];
+  totals.dex += granted[1];
+  totals.int_ += granted[2];
+  totals.luk += granted[3];
+}
+
 // A flat total, then the percentage over the whole of it, with the fraction
 // dropped. Every pile that takes a percentage folds through here: the HP and
 // MP pools, DEF, and what the character swings with. The nudge before the
@@ -373,6 +403,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats();
   PassiveTotals passives = LearnedPassives(character, skills);
+  FoldApStats(allocated, passives);
 
   DerivedStats stats;
   stats.max_hp = FoldPercent(allocated.hp() + equipped.max_hp() +

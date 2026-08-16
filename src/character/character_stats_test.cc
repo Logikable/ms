@@ -1563,5 +1563,73 @@ TEST_F(DerivedStatsTest, APassiveLapsesWithoutTheSecondaryItNames) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.str(), 30);
 }
 
+// --- Maple Warrior ---
+
+// Maple Warrior's shape: a share of what AP bought, granted back as flat
+// stat. 1% at level 1 climbing to 15% at 30, which is GMS's ceil(L/2)%.
+Skill MapleWarrior() {
+  Skill skill;
+  skill.set_name("Maple Warrior");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(30);
+  skill.mutable_base()->set_ap_stat_pct(0.01);
+  skill.mutable_per_level()->set_ap_stat_pct(0.00483);
+  return skill;
+}
+
+// A character who spent AP, and a ring that grants the same stat, so the test
+// can tell what the share is charged against.
+CharacterInstance MapleWarriorCharacter(std::mt19937& rng) {
+  Character proto;
+  proto.set_level(140);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(1000);
+  proto.mutable_allocated_stats()->set_dex(100);
+  (*proto.mutable_sp_by_stage())[1] = 100;
+  return CharacterInstance(rng, std::move(proto));
+}
+
+TEST_F(DerivedStatsTest, MapleWarriorGrantsAShareOfWhatApBought) {
+  CharacterInstance c = MapleWarriorCharacter(rng_);
+  Skill mw = MapleWarrior();
+  std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
+  ASSERT_TRUE(c.LearnSkill(mw, 30));
+
+  // A ring's 500 STR is not part of what AP bought, so the 15% is 150 and not
+  // 225 -- and what the skill grants is a grant like the ring's.
+  EquipPrototype ring;
+  ring.set_name("Ring");
+  ring.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  ring.mutable_base_stats()->set_str(500);
+  c.PickUp(std::make_unique<EquipInstance>(ring));
+  c.Equip(0);
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.str(), 150);
+  EXPECT_EQ(stats.skill_stats.dex(), 15);
+  EXPECT_EQ(TotalEquipStats(c, stats).str(), 650);
+  // 1.5 DEF per STR and 0.4 per DEX, over everything the character has.
+  EXPECT_EQ(stats.base_def, static_cast<int>(1.5 * 1650 + 0.4 * 115));
+}
+
+// The share is rounded down per stat, which is what GMS does with it: 100 DEX
+// at 1% is one point, and 100 at 15% is fifteen rather than a fraction of the
+// pair summed.
+TEST_F(DerivedStatsTest, MapleWarriorRoundsEachStatDown) {
+  CharacterInstance c = MapleWarriorCharacter(rng_);
+  Skill mw = MapleWarrior();
+  std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
+  ASSERT_TRUE(c.LearnSkill(mw, 1));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.str(), 10);
+  EXPECT_EQ(stats.skill_stats.dex(), 1);
+  // Nothing was spent on either of these, so neither grants anything.
+  EXPECT_EQ(stats.skill_stats.int_(), 0);
+  EXPECT_EQ(stats.skill_stats.luk(), 0);
+}
+
 }  // namespace
 }  // namespace ms

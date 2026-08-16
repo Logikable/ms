@@ -233,6 +233,15 @@ message SkillEffect {
   // Pocket knocked loose, never the ones in the player's purse, so what the
   // pair really trades is coins the character would never have picked up.
   double meso_hit_pct = 120;
+  // The Dark Knight's. Maple Warrior. Share of what AP bought that this skill
+  // grants back as flat stat, stat by stat (0.15 == 15%): 1000 points of STR
+  // and 100 of DEX become 150 and 10. Rounded down, as GMS rounds it.
+  //
+  // Only what AP bought counts. A ring's STR and another skill's STR are not
+  // multiplied by this, which is why it reads the allocation rather than the
+  // total -- and what it grants IS a grant like theirs, so a percentage over
+  // the character's stats would lift this too.
+  double ap_stat_pct = 122;
   // The Chief Bandit's. Share added to the meso a kill yields (0.20 == +20%).
   // Sums across its sources, and the second lever in the game to pay in
   // something other than a fight -- exp_pct above is the first.

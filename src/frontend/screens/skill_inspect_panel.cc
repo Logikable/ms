@@ -71,6 +71,9 @@ const PercentLever kPercentLevers[] = {
     {"Dodge Chance", &SkillEffect::dodge_chance, kPlus, ""},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare, ""},
     {"Reflected", &SkillEffect::damage_reflect_pct, kBare, ""},
+    // Maple Warrior's, and the only row charged against what the player spent
+    // rather than against a total the game knows.
+    {"Stats from AP", &SkillEffect::ap_stat_pct, kPlus, ""},
     {"Heal", &SkillEffect::heal_pct, kPlus, " HP"},
     {"Heal per Attack", &SkillEffect::hp_recover_pct, kPlus, " HP"},
     {"Elemental Resist", &SkillEffect::elemental_resistance, kPlus, ""},
