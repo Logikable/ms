@@ -89,7 +89,26 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
   // so, or the attack would be weighed on the weaker of the two things it
   // does. The form has no form of its own, so this recurs exactly once.
   if (attack.empowered != nullptr && attack.empowered_every > 0) {
-    total += (SwingDamage(*attack.empowered) - total) / attack.empowered_every;
+    if (!attack.empowered_per_enemy) {
+      total +=
+          (SwingDamage(*attack.empowered) - total) / attack.empowered_every;
+      return total;
+    }
+    // Counted per enemy, every mob the swing reaches comes due once in every N
+    // rather than the swing doing so, and takes the form in place of its own
+    // share alone. Averaged over the cycle like the case above, and for the
+    // same reason: what an attack is worth is what it does over the run of
+    // swings, not what this one swing happens to land on.
+    for (int j = 0; j < hit; ++j) {
+      int type = queue_[j].type;
+      if (type >= static_cast<int>(attack.damage_per_hit.size()) ||
+          type >= static_cast<int>(attack.empowered->damage_per_hit.size())) {
+        continue;
+      }
+      total += (attack.empowered->damage_per_hit[type] -
+                attack.damage_per_hit[type]) /
+               attack.empowered_every;
+    }
   }
   return total;
 }
@@ -185,7 +204,7 @@ void CombatSim::Strike(const AttackOption& attack) {
   // mobs went into the swing with rather than what the spread left them on.
   int lead = LeadTarget(attack, hit);
   for (int j = 0; j < hit; ++j) {
-    queue_[j].hp -= attack.damage_per_hit[queue_[j].type];
+    queue_[j].hp -= DamageToBranded(attack, j);
   }
   if (lead >= 0) {
     queue_[lead].hp -= attack.lead_damage[queue_[lead].type];
@@ -209,11 +228,29 @@ void CombatSim::Strike(const AttackOption& attack) {
   queue_ = std::move(survivors);
 }
 
+double CombatSim::DamageToBranded(const AttackOption& attack, int index) {
+  double ordinary = attack.damage_per_hit[queue_[index].type];
+  if (!attack.empowered_per_enemy || attack.empowered == nullptr ||
+      attack.empowered_every <= 0) {
+    return ordinary;
+  }
+  // Counted before the test, exactly as FormToLand counts swings: a brand of
+  // five is four ordinary strikes and then this one.
+  if (++queue_[index].brand < attack.empowered_every) {
+    return ordinary;
+  }
+  queue_[index].brand = 0;
+  return attack.empowered->damage_per_hit[queue_[index].type];
+}
+
 const AttackOption& CombatSim::FormToLand(std::vector<int>& counts, int size,
                                           int index,
                                           const AttackOption& attack) {
   counts.resize(size, 0);
-  if (attack.empowered == nullptr || attack.empowered_every <= 0 || index < 0) {
+  // A form counted per enemy never stands in for the swing: the swing lands as
+  // itself, and DamageToBranded decides mob by mob what each of them takes.
+  if (attack.empowered == nullptr || attack.empowered_every <= 0 ||
+      attack.empowered_per_enemy || index < 0) {
     return attack;
   }
   // Counted before the test, so a period of four is three ordinary landings

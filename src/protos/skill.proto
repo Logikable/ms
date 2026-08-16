@@ -387,14 +387,26 @@ message SwingHit {
 // It replaces the attack rather than adding to it, so four landings are three
 // ordinary ones and one of these, never four and a fifth. Read at the same
 // learned level as the skill carrying it.
+//
+// What is counted is ordinarily the swing, so the whole of the fourth one is
+// this instead. See counts_per_enemy below for the other reading, where each
+// enemy carries its own count and only the enemies that come due take it.
 message EmpoweredForm {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
   // Swings of the named skill one of these takes the place of: 4 means three
   // ordinary swings, then this. Nothing happens without it.
   int32 casts_per_trigger = 3;
+  // Ignored when counts_per_enemy is set, where the form goes exactly as far
+  // as the enemies that came due.
   int32 max_enemies = 4;
   int32 lines = 5;
+  // Count the field above against each ENEMY the swing reaches rather than
+  // against the swing. Divine Judgment is what it is for: a Blast brands every
+  // enemy it strikes, and the brand detonates on the enemy that has taken five
+  // of them -- so the rest of the swing lands ordinarily beside it, and an
+  // enemy that dies at four takes its count with it.
+  bool counts_per_enemy = 6;
 }
 
 // An extra grant that lands only with certain weapons in hand, on top of what

@@ -1,12 +1,10 @@
-# GMS brands an enemy every time Blast strikes it and detonates the brand at
-# five stacks, on each enemy separately. The fight counts casts rather than
-# stacks per enemy, which comes to the same thing against one target -- and one
-# target is what a bossing passive is for.
+# A brand rides the ENEMY, as GMS's does: every Blast that strikes one brands
+# it, and the fifth brand detonates on that enemy alone. So a boss with several
+# bodies is worth several detonations, and a monster that dies at four brands
+# is worth none -- which is the reading a passive for bossing wants.
 #
-# So the fifth Blast is REPLACED by the detonation rather than followed by it:
-# an empowered form is the mechanism the game already has, and what it costs is
-# one Blast in five. The explosion is worth eighteen of them, so the trade is
-# barely visible beside what it pays.
+# The detonation REPLACES that enemy's share of the fifth Blast rather than
+# following it. Worth eighteen Blasts, so the one it costs is barely visible.
 #
 # Its 20% ignored defence is the point of the skill. It rides the swing alone,
 # which is what an ied_pct on an attack means -- see WithoutSwingLevers.
@@ -26,7 +24,7 @@ required_skill {
 boosts_skill_name: "Blast"
 empowered_form {
   casts_per_trigger: 5
-  max_enemies: 1
+  counts_per_enemy: true
   lines: 10
   base {
     skill_pct: 4.34

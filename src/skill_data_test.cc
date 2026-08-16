@@ -282,6 +282,11 @@ TEST(SkillDataTest, EveryEmpoweredFormSaysHowOftenAndForHowMuch) {
         << entry.first << "'s empowered form would never be swung";
     EXPECT_GT(skill.empowered_form().base().skill_pct(), 0.0)
         << entry.first << "'s empowered form would be swung for nothing";
+    // Counted per enemy, the form goes exactly as far as the enemies that came
+    // due, so a reach beside it is a number nothing reads.
+    EXPECT_FALSE(skill.empowered_form().counts_per_enemy() &&
+                 skill.empowered_form().max_enemies() > 0)
+        << entry.first << "'s empowered form states a reach it does not use";
   }
 }
 

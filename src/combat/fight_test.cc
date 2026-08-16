@@ -108,15 +108,17 @@ void AddTriggeredAttack(CombatParams& params, int attacks, double damage,
 }
 
 // Gives `attack` a bigger form that takes the place of every `every`th swing
-// of it, hitting `reach` mobs for `damage` apiece.
+// of it, hitting `reach` mobs for `damage` apiece. With `per_enemy` the count
+// runs against each mob struck instead, and the swing is never replaced whole.
 void SetEmpoweredForm(AttackOption& attack, int every, double damage,
-                      int reach = 1) {
+                      int reach = 1, bool per_enemy = false) {
   std::shared_ptr<AttackOption> form = std::make_shared<AttackOption>();
   form->name = "Empowered " + attack.name;
   form->max_enemies = reach;
   form->swing_seconds = attack.swing_seconds;
   form->damage_per_hit.assign(attack.damage_per_hit.size(), damage);
   attack.empowered_every = every;
+  attack.empowered_per_enemy = per_enemy;
   attack.empowered = form;
 }
 
@@ -1596,6 +1598,54 @@ TEST(CombatSimTest, AnEmpoweredSwingBringsItsOwnReach) {
   EXPECT_EQ(sim.kills_this_step()[0], 0);
   sim.Advance(params, 1.0);  // empowered: all three at once
   EXPECT_EQ(sim.kills_this_step()[0], 3);
+}
+
+// Divine Judgment: Blast brands what it strikes, and the brand belongs to the
+// enemy. A monster stepping into a fight already in progress starts its own
+// count from nothing rather than inheriting where the swing had got to.
+TEST(CombatSimTest, ABrandRidesTheEnemyRatherThanTheSwing) {
+  Mob soft = MakeMob("Soft", 20);
+  Mob tough = MakeMob("Tough", 20);
+  CombatSim sim;
+  CombatParams params = MakeParams(
+      1.0, 1000.0, {MakeType(&soft, 20.0, 1), MakeType(&tough, 1.0, 1)});
+  SetEmpoweredForm(params.attacks[0], /*every=*/2, /*damage=*/6.0, /*reach=*/1,
+                   /*per_enemy=*/true);
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.target_name(), "Tough") << "the soft one dies to one strike";
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9)
+      << "the newcomer's first strike is an ordinary one, not the swing's 2nd";
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.65, 1e-9)
+      << "and the brand comes due on the second strike IT has taken";
+}
+
+// Counted per enemy, the form never takes the whole swing: it lands on the
+// mobs whose brands came due, and everything else the swing reached takes an
+// ordinary strike beside them.
+TEST(CombatSimTest, ABrandDetonatesOnlyOnTheEnemyThatEarnedIt) {
+  Mob soft = MakeMob("Soft", 20);
+  Mob tough = MakeMob("Tough", 20);
+  CombatSim sim;
+  CombatParams params = MakeParams(
+      1.0, 1000.0, {MakeType(&soft, 20.0, 1), MakeType(&tough, 1.0, 2)},
+      /*reach=*/2);
+  SetEmpoweredForm(params.attacks[0], /*every=*/2, /*damage=*/6.0, /*reach=*/2,
+                   /*per_enemy=*/true);
+
+  // The first swing kills the soft one and brands the tough one beside it. The
+  // second reaches both tough ones: one is due, the other has only just
+  // arrived.
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.65, 1e-9) << "13 of 20, detonated";
+  const EngagedGroup* group = FindGroup(sim.engaged_groups(), "Tough");
+  ASSERT_NE(group, nullptr);
+  EXPECT_EQ(group->count, 2);
+  EXPECT_NEAR(group->hp_fraction, 0.80, 1e-9)
+      << "13 and 19 of 20 apiece: only one of them took the detonation";
 }
 
 // The choice between swings goes on damage per second, so an attack that lands

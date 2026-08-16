@@ -354,11 +354,18 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
                  " " + upgraded)) {
       rows.push_back(std::move(row));
     }
+    // A count kept per enemy is a different promise from a count kept on the
+    // swing -- five that one enemy took, rather than five swings -- and only a
+    // row of its own says which of the two the number above is.
+    if (skill.empowered_form().counts_per_enemy()) {
+      rows.push_back(EffectRow("Counted", "Per Enemy Hit"));
+    }
     // Only when it differs from the reach stated above: the Sniper's form is
     // wider than the swing it stands in for, and leaving that out would
     // understate the upgrade -- but Creeping Toxin detonates exactly as far as
     // it spread, and a row repeating the one above it is noise.
-    if (skill.empowered_form().max_enemies() > 1 &&
+    if (!skill.empowered_form().counts_per_enemy() &&
+        skill.empowered_form().max_enemies() > 1 &&
         skill.empowered_form().max_enemies() != skill.max_enemies()) {
       rows.push_back(
           EffectRow("Empowered Enemies",
