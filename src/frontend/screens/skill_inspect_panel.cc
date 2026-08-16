@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/combat/damage.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -341,7 +342,7 @@ std::string SwingText(double per_hit, int lines) {
 
 std::string DamageText(const Skill& skill, int level) {
   return SwingText(PercentAt(skill, &SkillEffect::skill_pct, level),
-                   skill.lines());
+                   SkillLinesAt(skill, level));
 }
 
 // What the same swing lands on anything that is not a boss, for a skill
@@ -354,7 +355,7 @@ std::string NormalMonsterText(const Skill& skill, int level) {
     return "";
   }
   return SwingText(PercentAt(skill, &SkillEffect::skill_pct, level) + bonus,
-                   skill.lines());
+                   SkillLinesAt(skill, level));
 }
 
 // The opening hit's line, or "" for a swing that has none. It lands on top of
@@ -451,8 +452,8 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   // line apiece, so the per-line figure is the one that has to be shown.
   double meso_hit = PercentAt(skill, &SkillEffect::meso_hit_pct, level);
   if (meso_hit > 0.0) {
-    rows.push_back(
-        EffectRow("Damage per Meso", SwingText(meso_hit, skill.lines())));
+    rows.push_back(EffectRow("Damage per Meso",
+                             SwingText(meso_hit, SkillLinesAt(skill, level))));
   }
   // A share of what the hit it copies dealt, not a share of a bare swing: a
   // 70% shadow behind a 210% line lands 147%. The row says "of each hit"

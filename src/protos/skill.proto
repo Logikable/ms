@@ -447,8 +447,12 @@ message Skill {
   int32 max_enemies = 14;
   // How many times one swing strikes each enemy it reaches. Damage is
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.
-  // Unset/0 is treated as 1.
+  // Unset/0 is treated as 1. This is the count at level 1.
   int32 lines = 15;
+  // Lines the skill gains per level, as a fraction: a strike is whole, so what
+  // this buys is the level the next one arrives at. 1/15 is a line every
+  // fifteen levels. See SkillLinesAt.
+  double lines_per_level = 23;
   // How long one swing of this attack takes at average attack speed, in
   // milliseconds: the sum of its animation's frames. GMS keys the delay on the
   // skill, not on the weapon -- a spear and a sword swing the same skill at the

@@ -231,7 +231,7 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
   }
   totals.meso_skill = skill.name();
   totals.meso_hit_pct += per_line;
-  totals.meso_lines = std::max(1, skill.lines());
+  totals.meso_lines = SkillLinesAt(skill, level);
 }
 
 void AddPassive(const Skill& skill, int level, EquipType weapon,

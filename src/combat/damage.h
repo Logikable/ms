@@ -74,6 +74,15 @@ double WeaponConstant(Job job, EquipType weapon);
 // into the character's stats or do nothing we model.
 bool DealsDamage(SkillKind kind);
 
+// How many times one swing of `skill` strikes each enemy at `level`: its
+// `lines`, plus whole lines its `lines_per_level` has bought since level 1.
+// Never below 1, so an attack that says nothing still lands once.
+//
+// Every reader of the line count goes through here -- the damage chain, the
+// meso a Chief Bandit's explosion knocks loose, and the skill page -- because
+// a skill whose lines climb has to climb everywhere at once.
+int SkillLinesAt(const Skill& skill, int level);
+
 // What a character's learned passives add to every swing, whichever attack
 // they end up choosing. Kept together rather than passed one at a time: the
 // list grows with each job book, and none of it depends on the target.

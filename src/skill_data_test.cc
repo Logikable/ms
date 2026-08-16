@@ -14,6 +14,7 @@
 
 #include "src/character/character.h"
 #include "src/combat/constants.h"
+#include "src/combat/damage.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
@@ -478,6 +479,21 @@ TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
     EXPECT_NEAR(top, std::round(top), 1e-9)
         << entry.first << " ends its ladder between two levels";
     EXPECT_GT(top, 1.0) << entry.first << " never climbs at all";
+  }
+}
+
+// A strike is whole, so a rate too small to buy one before the master level
+// is a lever that reads as a climb and never climbs.
+TEST(SkillDataTest, ALineLadderBuysAStrikeBeforeTheMasterLevel) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.lines_per_level() <= 0.0) {
+      continue;
+    }
+    EXPECT_GT(skill.lines(), 0)
+        << entry.first << " climbs a strike count it never states";
+    EXPECT_GT(SkillLinesAt(skill, skill.max_level()), skill.lines())
+        << entry.first << " never buys a whole strike";
   }
 }
 

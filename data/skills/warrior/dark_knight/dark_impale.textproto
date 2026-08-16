@@ -1,7 +1,6 @@
-# GMS climbs the strike count from 5 to 6 at level 16. A skill's lines cannot
-# climb here, so this is the master level's 6 throughout -- which leaves the
-# first fifteen levels landing one strike ahead of GMS and the last fifteen
-# exactly on it.
+# The strike count climbs the way GMS's does: 5 thrusts, and a 6th at level 16.
+# The rate carries it to a 7th at 31, so the two levels Combat Orders grants
+# are worth a whole strike rather than a rounding.
 name: "Dark Impale"
 skill_order: 2
 description: "Launch rapid spear thrusts at the enemies in front of you."
@@ -11,6 +10,7 @@ max_level: 30
 exceeds_master_level: true
 base_delay_ms: 660
 max_enemies: 8
-lines: 6
+lines: 5
+lines_per_level: 0.0666667
 base { skill_pct: 1.64 }
 per_level { skill_pct: 0.04 }

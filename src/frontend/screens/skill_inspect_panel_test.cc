@@ -458,6 +458,15 @@ TEST_F(SkillInspectPanelTest, NoOpeningHitRowWithoutOne) {
   EXPECT_EQ(RenderAt(skill, 1).find("Opening"), std::string::npos);
 }
 
+// A skill whose strike count climbs has to say so where the damage is read,
+// or the page states a swing the fight does not land.
+TEST_F(SkillInspectPanelTest, TheStrikeCountClimbsWithTheLevel) {
+  Skill skill = MakeLuckySeven();
+  skill.set_lines_per_level(0.5);
+  EXPECT_NE(RenderAt(skill, 1).find("72% x3 = 216%"), std::string::npos);
+  EXPECT_NE(RenderAt(skill, 3).find("76% x4 = 304%"), std::string::npos);
+}
+
 TEST_F(SkillInspectPanelTest, ASingleLineSwingIsJustItsPercentage) {
   Skill skill = MakeLuckySeven();
   skill.clear_lines();

@@ -133,7 +133,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // A source rolling per line is worth the swing's line count of itself: four
   // lines knock four mesos loose where a Final Attack rolls once. The shadow's
   // copies are not the character's lines and do not count.
-  int swing_lines = skill != nullptr ? std::max(1, skill->lines()) : 1;
+  int swing_lines = skill != nullptr ? SkillLinesAt(*skill, level) : 1;
   double final_attack_pct = 0.0;
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag != SKILL_TAG_UNSPECIFIED &&

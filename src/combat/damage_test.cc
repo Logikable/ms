@@ -291,6 +291,56 @@ TEST(OffenseStatsForTest, TheWeaponInHandDecidesTheConstant) {
   EXPECT_DOUBLE_EQ(offense.weapon_constant, 1.49);
 }
 
+TEST(SkillLinesAtTest, ASkillWithNoLadderStrikesTheSameAtEveryLevel) {
+  Skill skill;
+  EXPECT_EQ(SkillLinesAt(skill, 1), 1);  // unset is one strike
+  EXPECT_EQ(SkillLinesAt(skill, 30), 1);
+  skill.set_lines(4);
+  EXPECT_EQ(SkillLinesAt(skill, 1), 4);
+  EXPECT_EQ(SkillLinesAt(skill, 30), 4);
+}
+
+// Dark Impale's ladder: two strikes bought over thirty levels, so the second
+// lands exactly on the level Combat Orders can reach.
+TEST(SkillLinesAtTest, TheLadderBuysAStrikeAtTheLevelItPaysFor) {
+  Skill skill;
+  skill.set_lines(5);
+  skill.set_lines_per_level(2.0 / 30.0);
+  EXPECT_EQ(SkillLinesAt(skill, 1), 5);
+  EXPECT_EQ(SkillLinesAt(skill, 15), 5);
+  EXPECT_EQ(SkillLinesAt(skill, 16), 6);
+  EXPECT_EQ(SkillLinesAt(skill, 30), 6);
+  EXPECT_EQ(SkillLinesAt(skill, 31), 7);
+  EXPECT_EQ(SkillLinesAt(skill, 32), 7);
+}
+
+TEST(SkillLinesAtTest, ADecimalRateStillLandsOnTheLevelItNames) {
+  // What the textproto actually carries, rounded where a decimal must be.
+  Skill skill;
+  skill.set_lines(5);
+  skill.set_lines_per_level(0.0666667);
+  EXPECT_EQ(SkillLinesAt(skill, 16), 6);
+  EXPECT_EQ(SkillLinesAt(skill, 31), 7);
+}
+
+TEST(OffenseStatsForTest, TheLineLadderReachesTheDamageChain) {
+  Skill skill;
+  skill.set_kind(SKILL_KIND_ATTACK);
+  skill.set_lines(5);
+  skill.set_lines_per_level(2.0 / 30.0);
+  skill.mutable_base()->set_skill_pct(1.0);
+  OffenseStats early =
+      OffenseStatsFor(JOB_SPEARMAN, 30, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_POLEARM, &skill, 15);
+  OffenseStats late =
+      OffenseStatsFor(JOB_SPEARMAN, 30, AllocatedStats(), EquipStats(),
+                      EQUIP_TYPE_POLEARM, &skill, 16);
+  EXPECT_EQ(early.lines, 5);
+  EXPECT_EQ(late.lines, 6);
+  // The shadow copies whatever the swing turned out to be.
+  EXPECT_EQ(late.mirror_lines, 6);
+}
+
 TEST(SwingIntervalTest, Stage4IsTheUnscaledBase) {
   // stage 4 => (20-4)/16 == 1.0; 720 is already a 30ms multiple.
   EXPECT_DOUBLE_EQ(SwingIntervalSeconds(720, 4), 0.72);

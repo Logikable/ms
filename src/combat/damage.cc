@@ -205,6 +205,19 @@ bool DealsDamage(SkillKind kind) {
   return kind == SKILL_KIND_ATTACK || kind == SKILL_KIND_AUTO_ATTACK;
 }
 
+int SkillLinesAt(const Skill& skill, int level) {
+  // The nudge is for a rate written as a decimal: 2/30 typed out lands a
+  // hair under the line it is meant to buy, and a skill would gain its strike
+  // a level late.
+  constexpr double kLineEpsilon = 1e-9;
+  int lines = std::max(1, skill.lines());
+  if (skill.lines_per_level() <= 0.0 || level <= 1) {
+    return lines;
+  }
+  return lines + static_cast<int>(std::floor(
+                     skill.lines_per_level() * (level - 1) + kLineEpsilon));
+}
+
 double WeaponConstant(Job job, EquipType weapon) {
   for (const JobWeaponConstantRow& row : kJobWeaponConstants) {
     if (row.job == job && row.weapon == weapon) {
@@ -313,7 +326,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
     }
     // A multi-hit skill strikes each target this many times per swing, so its
     // per-target damage is skill_pct once per line.
-    offense.lines = std::max(1, attack_skill->lines());
+    offense.lines = SkillLinesAt(*attack_skill, attack_level);
   }
   // The shadow copies whatever the swing turned out to be, the bare poke's one
   // line included. Set last, so it cannot be read before lines is settled.

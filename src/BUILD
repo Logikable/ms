@@ -206,6 +206,7 @@ cc_test(
         ":proto_loader",
         "//src/character",
         "//src/combat:constants",
+        "//src/combat:damage",
         "//src/frontend/widgets:panel_util",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
