@@ -64,10 +64,13 @@ bool WearCopy(CharacterInstance& character, const EquipPrototype& proto) {
 
 // The best rung of `type` the character can reach, or null when the shop
 // stocks none they can hold. `budget` also asks whether they can pay.
+//
+// The meso shelf only. What a token buys is farmed rather than bought, and the
+// sims model no token count -- the same reason they equip no dropped armour.
 const EquipPrototype* BestRung(const GameState& state, EquipType type,
                                bool budget) {
   const EquipPrototype* best = nullptr;
-  for (const std::string& key : ShopWeaponStock(state.equips)) {
+  for (const std::string& key : ShopWeaponStock(state.equips, kPaidInMeso)) {
     const EquipPrototype& proto = state.equips.at(key);
     if (proto.equip_type() != type || !state.character.CanEquip(proto)) {
       continue;
@@ -89,7 +92,7 @@ std::vector<const EquipPrototype*> Ladders(const GameState& state,
                                            bool budget) {
   std::vector<const EquipPrototype*> tops;
   std::vector<EquipType> seen;
-  for (const std::string& key : ShopWeaponStock(state.equips)) {
+  for (const std::string& key : ShopWeaponStock(state.equips, kPaidInMeso)) {
     const EquipPrototype& proto = state.equips.at(key);
     if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
         !state.character.CanEquip(proto)) {
@@ -299,7 +302,7 @@ void ClimbLadder(GameState& state, EquipType type, bool budget) {
 // no choice to make -- only a tier to reach.
 const EquipPrototype* BestSecondary(const GameState& state, bool budget) {
   const EquipPrototype* best = nullptr;
-  for (const std::string& key : ShopSecondaryStock(state.equips)) {
+  for (const std::string& key : ShopSecondaryStock(state.equips, kPaidInMeso)) {
     const EquipPrototype& proto = state.equips.at(key);
     // The shop's own filter rather than CanEquip, which asks only the job
     // category -- and the three warrior off-hands are not interchangeable.

@@ -1,5 +1,5 @@
 name: "Frozen Medal"
-required_level: 110
+required_level: 120
 base_stats {
   str: 8
   dex: 8

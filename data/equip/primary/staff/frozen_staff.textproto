@@ -1,5 +1,5 @@
 name: "Frozen Staff"
-required_level: 110
+required_level: 120
 base_stats {
   attack: 91
   magic_attack: 147

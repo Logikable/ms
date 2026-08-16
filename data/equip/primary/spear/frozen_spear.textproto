@@ -1,5 +1,5 @@
 name: "Frozen Spear"
-required_level: 110
+required_level: 120
 base_stats {
   attack: 123
 }

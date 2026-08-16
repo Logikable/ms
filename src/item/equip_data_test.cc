@@ -195,7 +195,7 @@ TEST(EquipDataTest, SecondariesTakeNoUpgrades) {
 // one Frozen piece.
 TEST(EquipDataTest, EverySecondJobHasEveryTier) {
   const std::vector<int> kMesoTiers{30, 60, 100};
-  const std::vector<int> kTokenTiers{110};
+  const std::vector<int> kTokenTiers{120};
   std::map<JobAdvancement, std::vector<int>> meso;
   std::map<JobAdvancement, std::vector<int>> token;
   for (const std::pair<const std::string, EquipPrototype>& entry :
@@ -299,7 +299,7 @@ TEST(EquipDataTest, EveryWeaponTypeHasAFrozenTier) {
     }
     ASSERT_EQ(frozen.count(ladder.first), 1u)
         << FormatEquipType(ladder.first) << " has no Frozen tier";
-    EXPECT_EQ(frozen[ladder.first], 110)
+    EXPECT_EQ(frozen[ladder.first], 120)
         << "the Frozen " << FormatEquipType(ladder.first)
         << " is worn at the wrong level";
   }

@@ -47,7 +47,8 @@ TEST(ShopTest, StocksOnlyPricedItems) {
       {"free", MakeItem("Free", 10, 0)},
       {"sold", MakeItem("Sold", 10, 5000)},
   };
-  EXPECT_EQ(ShopWeaponStock(equips), std::vector<std::string>{"sold"});
+  EXPECT_EQ(ShopWeaponStock(equips, kPaidInMeso),
+            std::vector<std::string>{"sold"});
 }
 
 // The four keys of the sort, checked one at a time: each case leaves every
@@ -63,7 +64,7 @@ TEST(ShopTest, SortsByLevelBeforeAnythingElse) {
       {"b", MakeItem("Zebra", 10, 9000, EQUIP_TYPE_SPEAR)},
   };
   std::vector<std::string> expected{"b", "a"};
-  EXPECT_EQ(ShopWeaponStock(equips), expected);
+  EXPECT_EQ(ShopWeaponStock(equips, kPaidInMeso), expected);
 }
 
 TEST(ShopTest, SortsByWeaponTypeWithinALevel) {
@@ -72,7 +73,7 @@ TEST(ShopTest, SortsByWeaponTypeWithinALevel) {
       {"b", MakeItem("Zebra", 10, 5000, EQUIP_TYPE_BOW)},
   };
   std::vector<std::string> expected{"b", "a"};
-  EXPECT_EQ(ShopWeaponStock(equips), expected);
+  EXPECT_EQ(ShopWeaponStock(equips, kPaidInMeso), expected);
 }
 
 TEST(ShopTest, SortsByPriceWithinAWeaponType) {
@@ -81,7 +82,7 @@ TEST(ShopTest, SortsByPriceWithinAWeaponType) {
       {"b", MakeItem("Zebra", 10, 5000, EQUIP_TYPE_BOW)},
   };
   std::vector<std::string> expected{"b", "a"};
-  EXPECT_EQ(ShopWeaponStock(equips), expected);
+  EXPECT_EQ(ShopWeaponStock(equips, kPaidInMeso), expected);
 }
 
 TEST(ShopTest, SortsByNameWithinAPrice) {
@@ -90,7 +91,7 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
       {"b", MakeItem("Anvil", 10, 5000, EQUIP_TYPE_BOW)},
   };
   std::vector<std::string> expected{"b", "a"};
-  EXPECT_EQ(ShopWeaponStock(equips), expected);
+  EXPECT_EQ(ShopWeaponStock(equips, kPaidInMeso), expected);
 }
 
 // The shipped shelves, checked pair by pair against the same four keys the
@@ -99,7 +100,8 @@ TEST(ShopTest, SortsByNameWithinAPrice) {
 TEST(ShopTest, BothShelvesReadInColumnOrder) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::vector<std::string>& shelf :
-       {ShopWeaponStock(equips), ShopSecondaryStock(equips)}) {
+       {ShopWeaponStock(equips, kPaidInMeso),
+        ShopSecondaryStock(equips, kPaidInMeso)}) {
     ASSERT_FALSE(shelf.empty());
     for (int i = 1; i < static_cast<int>(shelf.size()); ++i) {
       const EquipPrototype& above = equips.at(shelf[i - 1]);
@@ -124,7 +126,7 @@ TEST(ShopTest, BothShelvesReadInColumnOrder) {
 TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNoOffHands) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   int stars = 0;
-  for (const std::string& key : ShopWeaponStock(equips)) {
+  for (const std::string& key : ShopWeaponStock(equips, kPaidInMeso)) {
     EquipSlot slot = equips.at(key).equip_slot();
     EXPECT_NE(slot, EQUIP_SLOT_SECONDARY) << key << " is on the weapon shelf";
     stars += slot == EQUIP_SLOT_STARS ? 1 : 0;
@@ -140,11 +142,46 @@ TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNoOffHands) {
 TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::vector<std::string>& shelf :
-       {ShopWeaponStock(equips), ShopSecondaryStock(equips)}) {
+       {ShopWeaponStock(equips, kPaidInMeso),
+        ShopSecondaryStock(equips, kPaidInMeso)}) {
     for (const std::string& key : shelf) {
       EXPECT_LE(equips.at(key).required_level(), kTrialLevelCap)
           << key << " is for sale";
     }
+  }
+}
+
+// The token shelf is the same shelf read for a different price: an item names
+// one or the other, so neither list can hold anything off the other one.
+TEST(ShopTest, TheTokenShelvesHoldWhatATokenBuys) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  std::vector<std::string> weapons = ShopWeaponStock(equips, kPaidInTokens);
+  std::vector<std::string> secondaries =
+      ShopSecondaryStock(equips, kPaidInTokens);
+  EXPECT_EQ(weapons.size(), 10u) << "one Frozen weapon per type";
+  EXPECT_EQ(secondaries.size(), 10u) << "one Frozen off-hand per branch";
+  for (const std::vector<std::string>& shelf : {weapons, secondaries}) {
+    for (const std::string& key : shelf) {
+      const EquipPrototype& proto = equips.at(key);
+      EXPECT_GT(proto.token_price(), 0) << key << " costs no token";
+      EXPECT_EQ(proto.shop_price(), 0) << key << " is on the meso shelf too";
+    }
+  }
+  for (const std::string& key : ShopWeaponStock(equips, kPaidInMeso)) {
+    EXPECT_EQ(equips.at(key).token_price(), 0)
+        << key << " is on the meso shelf and the token shelf at once";
+  }
+}
+
+// The tokens buy the tier above everything the shop sells, so the two shelves
+// never offer the same level twice.
+TEST(ShopTest, TheTokenTierIsAboveEveryMesoTier) {
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  for (const std::string& key : ShopWeaponStock(equips, kPaidInTokens)) {
+    EXPECT_EQ(equips.at(key).required_level(), 120) << key;
+  }
+  for (const std::string& key : ShopSecondaryStock(equips, kPaidInTokens)) {
+    EXPECT_EQ(equips.at(key).required_level(), 120) << key;
   }
 }
 

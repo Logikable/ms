@@ -129,9 +129,9 @@ void ShopPanel::Restock() {
     stock_ = ShopEtcStock(items_);
     return;
   }
-  std::vector<std::string> shelf = tab_ == kShopSecondariesTab
-                                       ? ShopSecondaryStock(equips_)
-                                       : ShopWeaponStock(equips_);
+  std::vector<std::string> shelf =
+      tab_ == kShopSecondariesTab ? ShopSecondaryStock(equips_, kPaidInMeso)
+                                  : ShopWeaponStock(equips_, kPaidInMeso);
   for (const std::string& key : shelf) {
     if (character_.MeetsJob(equips_.at(key))) {
       stock_.push_back(key);

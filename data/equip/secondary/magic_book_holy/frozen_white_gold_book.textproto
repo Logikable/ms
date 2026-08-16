@@ -1,5 +1,5 @@
 name: "Frozen White Gold Book"
-required_level: 110
+required_level: 120
 base_stats {
   int: 8
   luk: 8
