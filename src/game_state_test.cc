@@ -301,8 +301,8 @@ TEST(GameStateTest, TestModeStartsWithLevelUpItems) {
       state.character.stackables(ITEM_CATEGORY_USE);
   ASSERT_EQ(use.size(), 1u);
   EXPECT_EQ(use[0].name(), "Level-Up");
-  // Enough of them to climb past every gate in the unlock table -- including
-  // the ones above kTrialLevelCap, which combat can no longer reach.
+  // Enough of them to climb past every gate in the unlock table without
+  // farming a level of it.
   EXPECT_GT(use[0].count(), UnlockLevel(Feature::kRecovery));
   EXPECT_EQ(use[0].prototype().effect(), ITEM_EFFECT_LEVEL_UP);
 }

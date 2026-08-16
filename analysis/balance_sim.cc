@@ -45,10 +45,11 @@ ABSL_FLAG(double, minutes, 5.0,
 ABSL_FLAG(std::string, job, "SPEARMAN",
           "The 2nd-job branch to sweep, as its Job enum name without the "
           "JOB_ prefix. What a character survives depends on their book.");
-ABSL_FLAG(std::string, levels, "10,20,30,40,50,60,70,80,90,100",
+ABSL_FLAG(std::string, levels, "10,20,40,60,80,100,110,120,130,140",
           "Comma-separated character levels to sweep, one column each. Narrow "
           "it when the table is wider than the terminal. Starts at 10 because "
-          "a level 1 has no job to sweep and ParseLevels refuses it.");
+          "a level 1 has no job to sweep and ParseLevels refuses it, and ends "
+          "at the cap, in tens through the band the Frozen tier is worn in.");
 
 namespace ms {
 namespace {

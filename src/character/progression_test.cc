@@ -93,13 +93,13 @@ TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
   EXPECT_TRUE(Unlocked(Feature::kScrolling, MakeCharacter(40)));
 }
 
-// Scrolling is the one upgrade a played character reaches, so it has to fall
-// inside the cap. Star force and recovery both sit above it and wait for the
-// content that lifts it next -- only the workbench reaches them.
-TEST_F(ProgressionTest, ScrollingIsTheOnlyUpgradeThePlayerReaches) {
+// An upgrade written above the cap is one nobody but the workbench can press,
+// so every one of them has to fall inside it. Recovery sits on the cap itself
+// -- it is the last thing the climb hands over.
+TEST_F(ProgressionTest, EveryUpgradeFallsInsideTheCap) {
   EXPECT_LE(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
-  EXPECT_GT(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
-  EXPECT_GT(UnlockLevel(Feature::kRecovery), kTrialLevelCap);
+  EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
+  EXPECT_LE(UnlockLevel(Feature::kRecovery), kTrialLevelCap);
 }
 
 // --- the upgrades a climb opened ---

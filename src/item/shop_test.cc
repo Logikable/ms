@@ -137,8 +137,7 @@ TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNoOffHands) {
 // Nothing on sale is out of reach. EXP stops at the cap, so an item above it
 // is one the shop takes meso for and the player can never hold -- and an
 // endgame item appearing here would be a balance change nobody asked for.
-// Both shelves: the off-hands have a tier sitting on the cap now, so the one
-// above it is the next thing that could slip through.
+// Both shelves, since a tier is added to each of them at once.
 TEST(ShopTest, NothingAboveTheTrialCapIsForSale) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::vector<std::string>& shelf :

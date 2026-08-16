@@ -81,7 +81,8 @@ namespace {
 constexpr unsigned int kSimSeed = 20260813;
 
 // The levels the table reports a running total at.
-constexpr int kMilestones[] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+constexpr int kMilestones[] = {10, 20, 30,  40,  50,  60,  70,
+                               80, 90, 100, 110, 120, 130, 140};
 constexpr int kNumMilestones = sizeof(kMilestones) / sizeof(kMilestones[0]);
 
 struct Catalogs {

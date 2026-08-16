@@ -31,12 +31,13 @@ constexpr Unlock kUnlocks[] = {
     // Far enough out that a player meets it once the early game is behind
     // them, and far enough that the meso for spell traces is coming in.
     {Feature::kScrolling, 40},
-    // Above kTrialLevelCap on purpose, and the user's call to keep it there.
-    // Star force is written and playable, and the Lv70-100 gear it would go on
-    // now exists -- but a star is worth little at the 5 and 8 star caps those
-    // levels carry, so it waits for the content that comes after 100. Only the
-    // workbench reaches it, by way of the Level-Up item.
+    // Held back to where a star is worth putting on: the gear below carries
+    // 5 and 8 star caps, and the Frozen tier a token buys at 120 is the first
+    // that takes 15. Out of a player's reach until the cap moved to 140.
     {Feature::kStarForce, 110},
+    // Nothing in reach can be destroyed -- that starts at the 16th star, and
+    // no gear yet takes more than 15 -- so this waits at the top for the tier
+    // that can. Only the workbench has anything to recover.
     {Feature::kRecovery, 140},
 };
 

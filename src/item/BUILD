@@ -148,7 +148,6 @@ cc_test(
         ":item",
         "//src:proto_loader",
         "//src/character",
-        "//src/character:exp_table",
         "//src/frontend/widgets:panel_util",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

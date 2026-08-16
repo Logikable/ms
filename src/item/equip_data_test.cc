@@ -16,7 +16,6 @@
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
 #include "src/character/character.h"
-#include "src/character/exp_table.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/item.h"
 #include "src/proto_loader.h"
@@ -262,14 +261,22 @@ TEST(EquipDataTest, EveryWeaponTypeClimbsInTens) {
   }
 }
 
-// Every ladder reaches the top of the game. The one-handed sword is the
-// exception by design: the warrior takes two hands at their 2nd job, so it
-// stops where the two-handed tiers start.
-TEST(EquipDataTest, EveryWeaponTypeReachesTheLevelCap) {
-  for (const std::pair<const EquipType, std::vector<int>>& ladder :
-       WeaponLadders()) {
-    int expected =
-        ladder.first == EQUIP_TYPE_ONE_HANDED_SWORD ? 30 : kTrialLevelCap;
+// Every ladder reaches the top of the shelf, so no branch is left a tier short
+// of what the others can buy. Asked against the highest tier there is rather
+// than against a level written here: the Frozen tier a token buys sits above
+// all of these, and the meso ladders stopping short of it is the content gap,
+// not a fault in one of them. The one-handed sword is the exception by design:
+// the warrior takes two hands at their 2nd job, so it stops where the
+// two-handed tiers start.
+TEST(EquipDataTest, EveryWeaponTypeReachesTheTopMesoTier) {
+  std::map<EquipType, std::vector<int>> ladders = WeaponLadders();
+  ASSERT_FALSE(ladders.empty());
+  int top = 0;
+  for (const std::pair<const EquipType, std::vector<int>>& ladder : ladders) {
+    top = std::max(top, ladder.second.back());
+  }
+  for (const std::pair<const EquipType, std::vector<int>>& ladder : ladders) {
+    int expected = ladder.first == EQUIP_TYPE_ONE_HANDED_SWORD ? 30 : top;
     EXPECT_EQ(ladder.second.back(), expected)
         << FormatEquipType(ladder.first) << " stops at the wrong tier";
   }
