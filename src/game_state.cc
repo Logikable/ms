@@ -208,6 +208,10 @@ void SeedPlay(GameState& state) {
 // features reachable without farming for them.
 constexpr int kTestExpMultiplier = 5;
 
+// How many of each token the workbench opens with: enough to buy a shelf's
+// worth and still have one left to buy with.
+constexpr int kTestTokens = 20;
+
 // The awkward items, for the upgrade screens: a fully scrolled weapon at high
 // star force, a trace to recover, and the base item recovering it consumes.
 void GiveUpgradeItems(GameState& state) {
@@ -253,6 +257,14 @@ void SeedTest(GameState& state, JobAdvancement chosen) {
       state.items.find("level_up");
   if (level_up != state.items.end()) {
     state.character.AddStackable(level_up->second, kTestLevelUpItems);
+  }
+
+  // A handful of every token, so the shop's token shelves can be bought from
+  // without farming the mobs that drop them.
+  for (const std::pair<const std::string, ItemPrototype>& entry : state.items) {
+    if (!entry.second.currency_mark().empty()) {
+      state.character.AddStackable(entry.second, kTestTokens);
+    }
   }
 
   bool chose_job = chosen != JOB_ADVANCEMENT_UNSPECIFIED;

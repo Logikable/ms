@@ -78,13 +78,22 @@ GameState MakeTestModeStateWithSkills() {
                    GameMode::kTest);
 }
 
-// The item catalog under the key test mode's seeding asks for.
+// The item catalog under the key test mode's seeding asks for, plus a currency
+// and an ordinary Etc item to tell it from.
 std::map<std::string, ItemPrototype> LevelUpCatalog() {
   ItemPrototype item;
   item.set_name("Level-Up");
   item.set_category(ITEM_CATEGORY_USE);
   item.set_effect(ITEM_EFFECT_LEVEL_UP);
-  return {{"level_up", item}};
+  ItemPrototype token;
+  token.set_name("Weapon Token");
+  token.set_category(ITEM_CATEGORY_ETC);
+  token.set_currency_mark("●");
+  ItemPrototype horn;
+  horn.set_name("Beetle's Horn");
+  horn.set_category(ITEM_CATEGORY_ETC);
+  horn.set_sell_price(230);
+  return {{"level_up", item}, {"weapon_token", token}, {"horn", horn}};
 }
 
 GameState MakeTestModeStateWithItems() {
@@ -296,6 +305,23 @@ TEST(GameStateTest, TestModeStartsWithLevelUpItems) {
   // the ones above kTrialLevelCap, which combat can no longer reach.
   EXPECT_GT(use[0].count(), UnlockLevel(Feature::kRecovery));
   EXPECT_EQ(use[0].prototype().effect(), ITEM_EFFECT_LEVEL_UP);
+}
+
+// The token shelves are unbuyable without one, and farming for one is exactly
+// what a workbench is for skipping. Only a currency: an ordinary Etc drop is
+// not something the shop asks a price in.
+TEST(GameStateTest, TestModeStartsWithEveryToken) {
+  GameState state = MakeTestModeStateWithItems();
+  const std::vector<StackableItem>& etc =
+      state.character.stackables(ITEM_CATEGORY_ETC);
+  ASSERT_EQ(etc.size(), 1u);
+  EXPECT_EQ(etc[0].name(), "Weapon Token");
+  EXPECT_GT(etc[0].count(), 1);
+}
+
+TEST(GameStateTest, PlayModeGetsNoTokens) {
+  GameState state = MakePlayModeStateWithItems();
+  EXPECT_TRUE(state.character.stackables(ITEM_CATEGORY_ETC).empty());
 }
 
 TEST(GameStateTest, PlayModeGetsNoLevelUpItems) {
