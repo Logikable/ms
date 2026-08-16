@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -829,12 +830,13 @@ TEST_F(SkillInspectPanelTest, StatesTheShareOfApAndTheWaitToRevive) {
 }
 
 // A timed buff is half of what the skill does, and the half a player has to
-// plan around -- so the page states how long it stands, what the cast hands
-// over, and which of the levers are only there while it does.
+// plan around -- so the page leads with it, heads both halves, and keeps the
+// wait for the next cast on one row with what a landed hit takes off it.
 TEST_F(SkillInspectPanelTest, StatesBothHalvesOfATimedBuff) {
   Skill resonance = MakeIronBody();
   resonance.clear_base();
   resonance.clear_per_level();
+  resonance.set_kind(SKILL_KIND_ACTIVE);
   resonance.set_cooldown_seconds(70.0);
   resonance.mutable_base()->set_ied_pct(0.01);
   resonance.mutable_per_level()->set_ied_pct(0.01);
@@ -847,14 +849,61 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfATimedBuff) {
   buff->mutable_base()->set_final_dmg_pct(0.02);
 
   std::string rendered = RenderAt(resonance, 11);
-  EXPECT_NE(rendered.find("Ignore DEF        +11%"), std::string::npos);
-  EXPECT_NE(rendered.find("Cooldown          70s"), std::string::npos);
-  EXPECT_NE(rendered.find("Buff Duration     20s"), std::string::npos);
-  EXPECT_NE(rendered.find("Cooldown per Hit  -0.35s"), std::string::npos);
+  EXPECT_NE(rendered.find("Cooldown          70s, -0.35s per hit"),
+            std::string::npos);
   EXPECT_NE(rendered.find("Heal on Cast      +43% HP"), std::string::npos);
-  EXPECT_NE(rendered.find("Final Damage      +2% while up"), std::string::npos);
-  // A skill with no buff says nothing about one.
-  EXPECT_EQ(RenderAt(MakeIronBody(), 5).find("while up"), std::string::npos);
+  EXPECT_NE(rendered.find("Final Damage      +2%"), std::string::npos);
+  EXPECT_NE(rendered.find("Ignore DEF        +11%"), std::string::npos);
+  // The heading says "while up" once, so no row repeats it.
+  EXPECT_EQ(rendered.find("while up"), std::string::npos);
+  EXPECT_EQ(rendered.find("Buff Duration"), std::string::npos);
+
+  // What lapses is read first, and what keeps is under its own heading.
+  std::vector<std::string> lines = Lines(rendered);
+  int active = -1;
+  int passive = -1;
+  int keeps = -1;
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (lines[i].find("Active for 20s") != std::string::npos) {
+      active = i;
+    }
+    // Unambiguous here because this skill's window is titled "Active".
+    if (lines[i].find("Passive") != std::string::npos) {
+      passive = i;
+    }
+    if (lines[i].find("Ignore DEF") != std::string::npos) {
+      keeps = i;
+    }
+  }
+  EXPECT_GT(active, 0);
+  EXPECT_GT(passive, active);
+  EXPECT_GT(keeps, passive);
+}
+
+// The skill list tells an active from a passive by colour; a skill that is
+// both has to tell its own halves apart the same way, or the colours mean one
+// thing in the book and another on the page.
+TEST_F(SkillInspectPanelTest, HeadsTheTwoHalvesInTheSkillListsColors) {
+  Skill resonance = MakeIronBody();
+  resonance.set_kind(SKILL_KIND_ACTIVE);
+  resonance.mutable_buff()->set_duration_seconds(15.0);
+  resonance.mutable_buff()->mutable_base()->set_final_dmg_pct(0.02);
+  SkillInspectPanel panel;
+  panel.SetSkill(&resonance, 1);
+  EXPECT_EQ(LabelColor(panel.Render(), "Active for 15s"), kOrange);
+  EXPECT_EQ(LabelColor(panel.Render(), "Passive"), kGreen);
+}
+
+// Every other skill has one half and nothing to disambiguate, so a heading
+// over it would be a row spent saying what the window title already says.
+TEST_F(SkillInspectPanelTest, ASkillWithOneHalfIsNotHeadedAtAll) {
+  std::vector<std::string> lines = Lines(RenderAt(MakeIronBody(), 5));
+  for (int i = 1; i < static_cast<int>(lines.size()); ++i) {
+    // Row 0 is the window's own title, which is "Passive" for this skill.
+    // What must not appear is a heading row saying it a second time.
+    EXPECT_EQ(lines[i].find("Passive"), std::string::npos) << lines[i];
+    EXPECT_EQ(lines[i].find("Active for"), std::string::npos) << lines[i];
+  }
 }
 
 }  // namespace

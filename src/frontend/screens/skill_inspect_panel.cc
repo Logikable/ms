@@ -319,8 +319,15 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   // How long the player swings something else for afterwards, which is what a
   // skill this much better than the usual swing costs.
   if (skill.cooldown_seconds() > 0.0) {
-    rows.push_back(
-        EffectRow("Cooldown", FormatNumber(skill.cooldown_seconds()) + "s"));
+    std::string wait = FormatNumber(skill.cooldown_seconds()) + "s";
+    // What a landed hit takes off that wait rides the same row: it is the
+    // same clock, and a row of its own read as a second one.
+    if (skill.buff().cooldown_reduction_seconds() > 0.0) {
+      wait += ", -" +
+              FormatNumber(skill.buff().cooldown_reduction_seconds(), 2) +
+              "s per hit";
+    }
+    rows.push_back(EffectRow("Cooldown", wait));
   }
   return rows;
 }
@@ -541,26 +548,29 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
   return rows;
 }
 
-// What a timed buff grants, under the permanent half of the same skill: how
-// long it stands, what the cast itself hands over, and its levers marked as
-// the temporary things they are. The wait for the next one is the skill's own
-// Cooldown row, above.
+// A heading over one half of a skill that has two. Orange and green are the
+// skill list's own tags for active and passive (panel_util's TagFor), so the
+// two halves are told apart here by the colours the player learned there.
+// Only the heading is coloured: a value that is always coloured says nothing.
+ftxui::Element SectionRow(const std::string& label, ftxui::Color color) {
+  return ftxui::text(" " + label) | ftxui::color(color);
+}
+
+// What a timed buff grants, headed by how long it stands. The wait for the
+// next one is the skill's own Cooldown row, above. No row here says "while
+// up" -- the heading says it once for all of them.
 std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
   const Buff& buff = skill.buff();
   if (buff.duration_seconds() <= 0.0) {
     return rows;
   }
-  rows.push_back(
-      EffectRow("Buff Duration",
-                FormatNumber(buff.duration_seconds() +
-                             buff.duration_seconds_per_level() * (level - 1)) +
-                    "s"));
-  if (buff.cooldown_reduction_seconds() > 0.0) {
-    rows.push_back(EffectRow(
-        "Cooldown per Hit",
-        "-" + FormatNumber(buff.cooldown_reduction_seconds(), 2) + "s"));
-  }
+  rows.push_back(SectionRow(
+      "Active for " +
+          FormatNumber(buff.duration_seconds() +
+                       buff.duration_seconds_per_level() * (level - 1)) +
+          "s",
+      kOrange));
   // The heal is handed over once, when the buff goes up -- so it is stated on
   // its own rather than among the levers that hold for as long as it stands.
   SkillEffect base = buff.base();
@@ -572,7 +582,7 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
   }
   base.clear_heal_pct();
   per.clear_heal_pct();
-  for (ftxui::Element& row : LeverRows(base, per, level, " while up")) {
+  for (ftxui::Element& row : LeverRows(base, per, level, "")) {
     rows.push_back(std::move(row));
   }
   return rows;
@@ -588,11 +598,20 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   for (ftxui::Element& row : ExtraAttackRows(skill, level)) {
     rows.push_back(std::move(row));
   }
-  for (ftxui::Element& row :
-       LeverRows(skill.base(), skill.per_level(), level, "")) {
+  // A skill with a timed buff grants two different things, and one of them
+  // lapses: what it is holding up goes first, then what it keeps. Both are
+  // headed, because "Ignore Defense" is otherwise the same row twice. A skill
+  // with only one half needs neither heading and gets neither.
+  std::vector<ftxui::Element> permanent =
+      LeverRows(skill.base(), skill.per_level(), level, "");
+  std::vector<ftxui::Element> buff = BuffRows(skill, level);
+  for (ftxui::Element& row : buff) {
     rows.push_back(std::move(row));
   }
-  for (ftxui::Element& row : BuffRows(skill, level)) {
+  if (!buff.empty() && !permanent.empty()) {
+    rows.push_back(SectionRow("Passive", kGreen));
+  }
+  for (ftxui::Element& row : permanent) {
     rows.push_back(std::move(row));
   }
   // A weapon bonus reads as the lever it grants with the weapons it needs in

@@ -102,6 +102,7 @@ cc_test(
     srcs = ["skill_inspect_panel_test.cc"],
     deps = [
         ":skill_inspect_panel",
+        "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "@ftxui//:dom",
         "@ftxui//:screen",
