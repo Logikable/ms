@@ -101,7 +101,8 @@ Tui::Tui(GameState& state, std::string save_path)
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
                   sell_panel_, sell_equip_panel_, map_select_panel_,
-                  shop_panel_, buy_panel_, job_inspect_panel_, panel_focus_) {
+                  shop_panel_, buy_panel_, job_inspect_panel_,
+                  skill_inspect_panel_, panel_focus_) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -448,6 +449,7 @@ ftxui::Element Tui::RenderScreen() {
       skill_inspect_panel_.SetSkill(&controller_.skill_inspect_skill(),
                                     controller_.skill_inspect_level(),
                                     controller_.skill_inspect_bonus());
+      skill_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
       return Standalone(skill_inspect_panel_.Render());
     case kInspect:
     case kItemInspect:

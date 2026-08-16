@@ -1129,5 +1129,154 @@ TEST_F(SkillInspectPanelTest, ASkillWithOneHalfIsNotHeadedAtAll) {
   }
 }
 
+// --- Scrolling a card too tall for the terminal ---
+
+// A rendered row as the plain text it says. The colour escapes, the window
+// border and the scroll bar's own glyph are all either escapes or multibyte,
+// so stripping to ASCII leaves the row's words and nothing about how it was
+// drawn -- which is what a claim about WHICH row is on screen is about.
+std::string RowText(const std::string& line) {
+  std::string out;
+  for (size_t i = 0; i < line.size(); ++i) {
+    if (line[i] == '\x1B') {
+      while (i < line.size() && line[i] != 'm') {
+        ++i;
+      }
+      continue;
+    }
+    unsigned char c = static_cast<unsigned char>(line[i]);
+    if (c >= 0x20 && c < 0x7F) {
+      out += line[i];
+    }
+  }
+  while (!out.empty() && out.back() == ' ') {
+    out.pop_back();
+  }
+  return out;
+}
+
+// The rows a card takes with no budget on it, borders included. Every scroll
+// test measures the card rather than assuming a height: the card grows
+// whenever a skill gains a lever, and a hardcoded number would go quietly
+// wrong rather than loudly.
+int CardRows(SkillInspectPanel& panel) {
+  ftxui::Element card = panel.Render();
+  card->ComputeRequirement();
+  return card->requirement().min_y;
+}
+
+// The bar is drawn with ftxui's half-height glyphs; any of the three means a
+// thumb is on screen.
+bool HasScrollBar(const std::string& rendered) {
+  return rendered.find("\u2503") != std::string::npos ||
+         rendered.find("\u2579") != std::string::npos ||
+         rendered.find("\u257B") != std::string::npos;
+}
+
+// A budget the card cannot fit into cuts it and says so, rather than drawing
+// rows off the bottom of the terminal where nobody can see them.
+TEST_F(SkillInspectPanelTest, ACardTooTallForItsBudgetIsCutAndSaysSo) {
+  Skill skill = MakeIronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 5, 0);
+  int tall = CardRows(panel);
+  ASSERT_GT(tall, 8) << "the card has to have something to lose";
+
+  std::vector<std::string> full = Lines(RenderElement(panel.Render()));
+  panel.SetMaxRows(tall - 3);
+  std::string cut = RenderElement(panel.Render());
+  std::vector<std::string> lines = Lines(cut);
+
+  EXPECT_TRUE(HasScrollBar(cut));
+  EXPECT_EQ(RowText(lines[1]), RowText(full[1])) << "cut at the foot";
+  // Three rows shorter, so the last row it still shows is three from the end.
+  EXPECT_EQ(RowText(lines[tall - 5]), RowText(full[tall - 5]));
+  EXPECT_EQ(cut.find(RowText(full[tall - 2])), std::string::npos)
+      << "and the last row of the card is off the bottom of it";
+}
+
+// Down walks the card under the window. There is no cursor to follow, so the
+// page itself is what moves.
+TEST_F(SkillInspectPanelTest, ScrollingWalksTheCardUnderTheWindow) {
+  Skill skill = MakeIronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 5, 0);
+  int tall = CardRows(panel);
+  std::vector<std::string> full = Lines(RenderElement(panel.Render()));
+  panel.SetMaxRows(tall - 3);
+
+  panel.ScrollBy(1);
+  std::vector<std::string> lines = Lines(RenderElement(panel.Render()));
+  EXPECT_EQ(RowText(lines[1]), RowText(full[2])) << "one row down the card";
+
+  panel.ScrollBy(2);
+  lines = Lines(RenderElement(panel.Render()));
+  EXPECT_EQ(RowText(lines[1]), RowText(full[4]));
+}
+
+// Held at both ends rather than wrapped: with nothing selected to follow,
+// falling out of the foot of a card at its head reads as a glitch.
+TEST_F(SkillInspectPanelTest, ScrollingStopsAtBothEndsInsteadOfWrapping) {
+  Skill skill = MakeIronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 5, 0);
+  int tall = CardRows(panel);
+  std::vector<std::string> full = Lines(RenderElement(panel.Render()));
+  panel.SetMaxRows(tall - 3);
+
+  for (int i = 0; i < 50; ++i) {
+    panel.ScrollBy(1);
+  }
+  std::vector<std::string> foot = Lines(RenderElement(panel.Render()));
+  // Three rows are off the top, and the last row of the card is now the last
+  // row of the window.
+  EXPECT_EQ(RowText(foot[1]), RowText(full[4]));
+  EXPECT_EQ(RowText(foot[tall - 5]), RowText(full[tall - 2]));
+
+  panel.ScrollBy(1);
+  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(foot[1]));
+
+  for (int i = 0; i < 50; ++i) {
+    panel.ScrollBy(-1);
+  }
+  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(full[1]))
+      << "back at the top";
+}
+
+// Nothing off screen, nothing to indicate -- but the column the bar would take
+// is held open, so a card does not jump a column wider the moment it outgrows
+// the terminal.
+TEST_F(SkillInspectPanelTest, ACardThatFitsHasNoThumbAndTheSameWidth) {
+  Skill skill = MakeIronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 5, 0);
+  int tall = CardRows(panel);
+
+  ftxui::Element roomy = panel.Render();
+  EXPECT_FALSE(HasScrollBar(RenderElement(panel.Render())));
+  panel.SetMaxRows(tall);
+  EXPECT_FALSE(HasScrollBar(RenderElement(panel.Render())))
+      << "a budget it exactly fits is still no reason for a thumb";
+
+  panel.SetMaxRows(tall - 3);
+  ftxui::Element cut = panel.Render();
+  EXPECT_EQ(ftxui::Dimension::Fit(roomy).dimx, ftxui::Dimension::Fit(cut).dimx);
+}
+
+// A card is opened at its head, however far down the last one was read.
+TEST_F(SkillInspectPanelTest, ResetScrollReturnsToTheHeadOfTheCard) {
+  Skill skill = MakeIronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 5, 0);
+  int tall = CardRows(panel);
+  std::vector<std::string> full = Lines(RenderElement(panel.Render()));
+  panel.SetMaxRows(tall - 3);
+
+  panel.ScrollBy(2);
+  ASSERT_NE(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(full[1]));
+  panel.ResetScroll();
+  EXPECT_EQ(RowText(Lines(RenderElement(panel.Render()))[1]), RowText(full[1]));
+}
+
 }  // namespace
 }  // namespace ms

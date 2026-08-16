@@ -763,11 +763,7 @@ void SkillInspectPanel::SetSkill(const Skill* skill, int learned, int bonus,
   levels_ = levels;
 }
 
-ftxui::Element SkillInspectPanel::Render() const {
-  if (skill_ == nullptr) {
-    return ThemedWindow(" Skill ", EmptyState("no skill"));
-  }
-
+std::vector<ftxui::Element> SkillInspectPanel::BuildRows() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(CenteredRow(skill_->name()));
   rows.push_back(
@@ -818,14 +814,55 @@ ftxui::Element SkillInspectPanel::Render() const {
       rows.push_back(std::move(row));
     }
   }
+  return rows;
+}
+
+int SkillInspectPanel::VisibleRows(int total) const {
+  if (max_rows_ <= 0) {
+    return total;
+  }
+  // The two border rows are paid first, and at least one row is drawn however
+  // small the budget: a card cut to nothing says less than a card cut short.
+  return std::max(1, std::min(total, max_rows_ - 2));
+}
+
+void SkillInspectPanel::ScrollBy(int delta) {
+  if (skill_ == nullptr) {
+    return;
+  }
+  int total = static_cast<int>(BuildRows().size());
+  int last = total - VisibleRows(total);
+  offset_ = std::max(0, std::min(offset_ + delta, last));
+}
+
+ftxui::Element SkillInspectPanel::Render() const {
+  if (skill_ == nullptr) {
+    return ThemedWindow(" Skill ", EmptyState("no skill"));
+  }
+
+  std::vector<ftxui::Element> rows = BuildRows();
+  int total = static_cast<int>(rows.size());
+  int visible = VisibleRows(total);
+  // Clamped here as well as in ScrollBy: the terminal can be made taller under
+  // a card already scrolled to its foot, which leaves the old offset too far
+  // down for the window it now has.
+  int offset = std::max(0, std::min(offset_, total - visible));
+  std::vector<ftxui::Element> shown(rows.begin() + offset,
+                                    rows.begin() + offset + visible);
 
   std::string title = " Passive ";
   if (IsActive(*skill_)) {
     title = " Active ";
   }
+  // The bar's column is held open whether or not there is anything to scroll,
+  // so a card does not change width the moment it outgrows the terminal.
   return ThemedWindow(
-      title, ftxui::vbox(std::move(rows)) |
-                 ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth));
+      title, ftxui::hbox({
+                 ftxui::vbox(std::move(shown)) |
+                     ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth),
+                 ScrollBar(total, offset, visible) |
+                     ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
+             }));
 }
 
 int TallestPreviewCardRows(const std::vector<const Skill*>& skills) {

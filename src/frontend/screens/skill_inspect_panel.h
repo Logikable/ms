@@ -43,13 +43,43 @@ class SkillInspectPanel {
   // rather than about a character.
   void SetSkill(const Skill* skill, int learned, int bonus,
                 Levels levels = kLearned);
+
+  // The rows the card may take, borders included. Past this it scrolls, with
+  // a bar down its right edge saying how much is off screen. Zero means no
+  // limit, which is what a card laid out beside something else wants.
+  //
+  // Not read from the terminal here, for the reason CharacterPanel gives:
+  // tests draw the card at whatever size they choose.
+  void SetMaxRows(int rows) {
+    max_rows_ = rows;
+  }
+  // Moves the view `delta` rows, held to the card at both ends. There is no
+  // selected row on this screen -- nothing to point at, only text to read --
+  // so a key moves the page itself, and it does not wrap: coming out of the
+  // foot at the head is disorienting with no cursor to follow.
+  void ScrollBy(int delta);
+  // Back to the top, for a card the player has just opened.
+  void ResetScroll() {
+    offset_ = 0;
+  }
+
   ftxui::Element Render() const;
 
  private:
+  // Every row of the card, in order, borders aside. Render draws a window of
+  // these and ScrollBy counts them: both have to agree on how tall the card
+  // is, so neither gets its own copy of the layout.
+  std::vector<ftxui::Element> BuildRows() const;
+  // How many of `total` rows fit inside the border, given the row budget. All
+  // of them when there is no budget.
+  int VisibleRows(int total) const;
+
   const Skill* skill_ = nullptr;
   int level_ = 0;
   int bonus_ = 0;
   Levels levels_ = kLearned;
+  int max_rows_ = 0;
+  int offset_ = 0;
 };
 
 // The rows the tallest preview card of `skills` takes, borders included. What

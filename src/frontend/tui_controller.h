@@ -23,6 +23,7 @@
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
+#include "src/frontend/screens/skill_inspect_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/types.h"
@@ -49,7 +50,7 @@ class TuiController {
                 SellEquipPanel& sell_equip_panel,
                 MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
                 BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
-                int& panel_focus);
+                SkillInspectPanel& skill_inspect_panel, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
@@ -221,6 +222,7 @@ class TuiController {
   SellEquipPanel& sell_equip_panel_;
   MapSelectPanel& map_select_panel_;
   JobInspectPanel& job_inspect_panel_;
+  SkillInspectPanel& skill_inspect_panel_;
   ShopPanel& shop_panel_;
   BuyPanel& buy_panel_;
   // Catalog key of the item the buy dialog is open on, so the purchase reads

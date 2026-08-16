@@ -54,6 +54,7 @@ cc_library(
         "//src/frontend/screens:sell_equip_panel",
         "//src/frontend/screens:sell_panel",
         "//src/frontend/screens:shop_panel",
+        "//src/frontend/screens:skill_inspect_panel",
         "//src/frontend/screens:star_force_panel",
         "//src/frontend/screens:trace_recover_panel",
         "//src/frontend/widgets:amount_selector",

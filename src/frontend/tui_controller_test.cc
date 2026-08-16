@@ -20,6 +20,7 @@
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
 #include "src/frontend/screens/shop_panel.h"
+#include "src/frontend/screens/skill_inspect_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/widgets/panel_util.h"
@@ -125,7 +126,7 @@ class TuiControllerTest : public testing::Test {
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *map_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, panel_focus_);
+        *job_inspect_panel_, skill_inspect_panel_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -246,7 +247,7 @@ class TuiControllerTest : public testing::Test {
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *map_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, panel_focus_);
+        *job_inspect_panel_, skill_inspect_panel_, panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -313,6 +314,14 @@ class TuiControllerTest : public testing::Test {
     ftxui::Render(scr, inventory_component_->Render());
   }
 
+  // The skill card as text, for asserting which rows of it are on screen.
+  std::string RenderSkillCard() {
+    ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
+                                              ftxui::Dimension::Fixed(20));
+    ftxui::Render(scr, skill_inspect_panel_.Render());
+    return scr.ToString();
+  }
+
   // The equip sell dialog as text, for asserting what it tells the player.
   std::string RenderSellDialog() {
     ftxui::Screen scr = ftxui::Screen::Create(ftxui::Dimension::Fixed(44),
@@ -349,7 +358,7 @@ class TuiControllerTest : public testing::Test {
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *map_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, panel_focus_);
+        *job_inspect_panel_, skill_inspect_panel_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -379,6 +388,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<ShopPanel> shop_panel_;
   std::unique_ptr<BuyPanel> buy_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
+  SkillInspectPanel skill_inspect_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
   ftxui::Component inventory_component_;
@@ -539,6 +549,26 @@ TEST_F(TuiControllerTest, EscapeLeavesTheSkillInspectScreen) {
   controller_->OpenSkillInspect(SlashBlast());
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// The arrows scroll the card rather than leaving the screen, and every card
+// opens at its head however far down the last one was read.
+TEST_F(TuiControllerTest,
+       TheArrowsScrollTheSkillCardAndAFreshOneStartsAtTheTop) {
+  Skill skill = SlashBlast();
+  ASSERT_TRUE(state_->character.LearnSkill(skill, 3));
+  controller_->OpenSkillInspect(skill);
+  skill_inspect_panel_.SetSkill(&skill, 3, 0);
+  // Small enough that there is somewhere to scroll to.
+  skill_inspect_panel_.SetMaxRows(6);
+
+  std::string head = RenderSkillCard();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(controller_->screen(), kSkillInspect) << "scrolled, not closed";
+  EXPECT_NE(RenderSkillCard(), head);
+
+  controller_->OpenSkillInspect(skill);
+  EXPECT_EQ(RenderSkillCard(), head);
 }
 
 // Reading is all there is to do, so Enter leaves too rather than sitting there
@@ -1944,9 +1974,11 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
+  SkillInspectPanel skill_card;
   int focus = kCharPanel;
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, shop, buy, jobs, focus);
+                           sell_equip, maps, shop, buy, jobs, skill_card,
+                           focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
   EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
@@ -1980,9 +2012,11 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
+  SkillInspectPanel skill_card;
   int focus = kCharPanel;
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, shop, buy, jobs, focus);
+                           sell_equip, maps, shop, buy, jobs, skill_card,
+                           focus);
 
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
@@ -2007,9 +2041,11 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
+  SkillInspectPanel skill_card;
   int focus = kCharPanel;
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, shop, buy, jobs, focus);
+                           sell_equip, maps, shop, buy, jobs, skill_card,
+                           focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
@@ -2034,9 +2070,11 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
+  SkillInspectPanel skill_card;
   int focus = kEquipPanel;  // where the game starts
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, shop, buy, jobs, focus);
+                           sell_equip, maps, shop, buy, jobs, skill_card,
+                           focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));

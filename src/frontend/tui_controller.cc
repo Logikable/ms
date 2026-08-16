@@ -31,7 +31,8 @@ TuiController::TuiController(
     StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
     SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
     MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
-    BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel, int& panel_focus)
+    BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
+    SkillInspectPanel& skill_inspect_panel, int& panel_focus)
     : state_(state),
       char_panel_(char_panel),
       equip_panel_(equip_panel),
@@ -43,6 +44,7 @@ TuiController::TuiController(
       sell_equip_panel_(sell_equip_panel),
       map_select_panel_(map_select_panel),
       job_inspect_panel_(job_inspect_panel),
+      skill_inspect_panel_(skill_inspect_panel),
       shop_panel_(shop_panel),
       buy_panel_(buy_panel),
       panel_focus_(panel_focus) {
@@ -79,6 +81,7 @@ void TuiController::OpenSkillLearn(const Skill& skill) {
 
 void TuiController::OpenSkillInspect(const Skill& skill) {
   skill_inspect_ = skill;
+  skill_inspect_panel_.ResetScroll();
   screen_ = kSkillInspect;
 }
 
@@ -404,8 +407,19 @@ bool TuiController::OnSkillLearnEvent(ftxui::Event event) {
 }
 
 // Reading is all there is to do here, so either key leaves -- the same way the
-// item inspect screen closes. Shared with the All Stats screen.
+// item inspect screen closes. Shared with the All Stats screen, which has no
+// card to scroll.
 bool TuiController::OnSkillInspectEvent(ftxui::Event event) {
+  if (screen_ == kSkillInspect) {
+    if (event == ftxui::Event::ArrowUp) {
+      skill_inspect_panel_.ScrollBy(-1);
+      return true;
+    }
+    if (event == ftxui::Event::ArrowDown) {
+      skill_inspect_panel_.ScrollBy(1);
+      return true;
+    }
+  }
   if (IsBack(event) || IsForward(event)) {
     screen_ = kMain;
   }
