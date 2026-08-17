@@ -46,6 +46,13 @@ std::vector<JobAdvancement> EveryAdvancement() {
   return all;
 }
 
+// Every piece of the set is named for it, which is what the player reads too.
+// The armour carries no set_family -- only the two the token shelf sells do,
+// where the family is what stops a second of one being bought.
+bool IsFrozen(const EquipPrototype& proto) {
+  return proto.name().rfind("Frozen ", 0) == 0;
+}
+
 class WorkbenchGearTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -70,14 +77,21 @@ class WorkbenchGearTest : public ::testing::Test {
                      GameMode::kTest, advancement);
   }
 
-  // The highest required level the catalog offers for `type` among the items
-  // this character could put on -- CanEquip asks about their level and their
-  // job together, which is the same question the shop asks.
-  int BestTier(const CharacterInstance& character, EquipType type) {
+  // The highest required level the catalog offers on `worn`'s own ladder among
+  // the items this character could put on -- CanEquip asks about their level
+  // and their job together, which is the same question the shop asks.
+  //
+  // A ladder is a slot and a type together. The type alone would put a
+  // Fighter's swords and axes on one, which is the choice the workbench makes;
+  // the slot alone would put all four pieces of armour on one, and armour
+  // names no type at all.
+  int BestTier(const CharacterInstance& character, const EquipPrototype& worn) {
     int best = 0;
     for (const std::pair<const std::string, EquipPrototype>& entry : equips_) {
       const EquipPrototype& proto = entry.second;
-      if (proto.equip_type() == type && character.CanEquip(proto)) {
+      if (proto.equip_slot() == worn.equip_slot() &&
+          proto.equip_type() == worn.equip_type() &&
+          character.CanEquip(proto)) {
         best = std::max(best, proto.required_level());
       }
     }
@@ -107,9 +121,9 @@ TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
     for (const std::pair<const EquipSlot, EquipInstance>& worn :
          character.equipped()) {
       const EquipPrototype& proto = worn.second.prototype();
-      EXPECT_EQ(proto.required_level(), BestTier(character, proto.equip_type()))
+      EXPECT_EQ(proto.required_level(), BestTier(character, proto))
           << worn.second.name() << " is not the best "
-          << EquipType_Name(proto.equip_type()) << " a level "
+          << EquipSlot_Name(proto.equip_slot()) << " a level "
           << character.proto().level() << " can wear";
     }
   }
@@ -126,6 +140,24 @@ TEST_F(WorkbenchGearTest, EveryJobPastTheFirstWearsAnOffHand) {
     EXPECT_EQ(state.character.equipped().count(EQUIP_SLOT_SECONDARY) == 1,
               branched)
         << "a secondary belongs to a branch, and a 1st job is not in one";
+  }
+}
+
+// The Frozen set drops rather than sells, so the workbench is the only place
+// the whole of it is ever seen. A 3rd job at 100 reaches all four armour
+// pieces and keeps its meso weapon and off-hand; a 4th job at the cap adds the
+// two the token shelf sells, for six. Below that, none.
+TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
+  for (JobAdvancement advancement : EveryAdvancement()) {
+    GameState state = Workbench(advancement);
+    SCOPED_TRACE(JobAdvancement_Name(advancement));
+    int frozen = 0;
+    for (const std::pair<const EquipSlot, EquipInstance>& worn :
+         state.character.equipped()) {
+      frozen += IsFrozen(worn.second.prototype()) ? 1 : 0;
+    }
+    int stage = StageForAdvancement(advancement);
+    EXPECT_EQ(frozen, stage < 3 ? 0 : (stage == 3 ? 4 : 6));
   }
 }
 

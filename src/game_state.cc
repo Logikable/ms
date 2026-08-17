@@ -146,6 +146,24 @@ void GiveEquip(GameState& state, const std::string& name) {
   state.character.PickUp(std::make_unique<EquipInstance>(it->second));
 }
 
+// Puts each of `names` on, from the row it lands on, so a Rogue's three reach
+// three slots -- and whatever a later one displaces goes back to the bag for
+// the tester to swap in.
+void WearAll(GameState& state, const std::vector<std::string>& names) {
+  for (const std::string& name : names) {
+    int row = static_cast<int>(state.character.inventory().size());
+    GiveEquip(state, name);
+    if (static_cast<int>(state.character.inventory().size()) > row) {
+      state.character.Equip(row);
+    }
+  }
+}
+
+// The only armour there is. Universal, so it fits whoever the workbench is.
+std::vector<std::string> FrozenArmour() {
+  return {"frozen_hat", "frozen_top", "frozen_bottom", "frozen_cape"};
+}
+
 // Passed as `unspent_stage` to spend every point the climb earns.
 constexpr int kSpendEveryStage = 0;
 
@@ -196,15 +214,15 @@ void GrowToJob(GameState& state, JobAdvancement advancement,
   GrowTo(state, std::min(NextAdvancementLevel(stage), kTrialLevelCap), path,
          unspent_stage);
   // The job's own gear, worn rather than carried, since there is no
-  // advancement moment here to put it on at. Each piece is equipped from the
-  // row it lands on, so a Rogue's three reach three slots -- and whatever a
-  // later one displaces goes back to the bag for the tester to swap in.
-  for (const std::string& name : WorkbenchGearFor(job)) {
-    int row = static_cast<int>(state.character.inventory().size());
-    GiveEquip(state, name);
-    if (static_cast<int>(state.character.inventory().size()) > row) {
-      state.character.Equip(row);
-    }
+  // advancement moment here to put it on at.
+  WearAll(state, WorkbenchGearFor(job));
+  // The Frozen set on top, from the 3rd job up. It drops rather than sells, so
+  // a workbench is the only character that will ever be seen in the whole of
+  // it -- and every piece is inside a 3rd job's level 100, which is what makes
+  // their four slots four. A 4th job adds the two the token shelf armed them
+  // with above, for six.
+  if (stage >= 3) {
+    WearAll(state, FrozenArmour());
   }
 }
 
