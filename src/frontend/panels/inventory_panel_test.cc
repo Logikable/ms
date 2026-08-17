@@ -595,6 +595,24 @@ TEST_F(InventoryPanelTest, ASpentWeaponKeepsScrollAndStarForce) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
 }
 
+// An item with slots left keeps the entry too, greyed. Hiding it would have
+// made the order a secret: the player would never see what the scrolling they
+// are in the middle of is a step towards.
+TEST_F(InventoryPanelTest, StarForceGreysWhileSlotsRemain) {
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  EquipPrototype proto = sword_;
+  proto.set_upgrade_slots(1);
+  c_.PickUp(std::make_unique<EquipInstance>(proto));
+  InventoryPanel panel(c_, panel_focus_);
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0)
+      << "an unspent item let the player onto the entry";
+  EXPECT_NE(RenderElement(panel.menu().Render(0, 0)).find("Star Force"),
+            std::string::npos)
+      << "greyed, not gone";
+}
+
 // --- the gold trail to a new upgrade ---
 
 // The far end of the trail that starts on the level-up card: the entry the

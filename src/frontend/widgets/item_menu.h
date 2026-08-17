@@ -44,7 +44,8 @@ class ItemMenu {
   // one entry standing; Close is never hidden.
   void Hide(int index);
   // Marks the entry at `index` as new: drawn gold, but reachable and usable
-  // like any other. Must be called after Reset().
+  // like any other. Must be called after Reset(), and after any Disable() --
+  // a disabled entry refuses the gold, so the order matters.
   //
   // For an action the player has just been handed and has never used. It is
   // the far end of the trail that starts on the level-up card -- see

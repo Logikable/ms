@@ -644,6 +644,29 @@ TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
             0);
 }
 
+// Every item that takes stars at all carries the entry, greyed until its
+// slots are spent. Hidden, it would have made the order a secret: a player
+// scrolling a weapon would never see what scrolling it is for.
+TEST_F(EquippedPanelTest, StarForceGreysWhileSlotsRemain) {
+  sword_.set_upgrade_slots(1);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  EquippedPanel panel(c_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+  panel.OpenMenu();
+
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0)
+      << "an unspent item let the player onto the entry";
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_NE(rendered.find("Star Force"), std::string::npos)
+      << "greyed, not gone";
+  // And the gold waits with it: an entry nobody can press is not the far end
+  // of a trail.
+  EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Star Force"), kYellow);
+}
+
 // --- highlighting ---
 
 // This panel arrives at level 3, and a card across the screen does

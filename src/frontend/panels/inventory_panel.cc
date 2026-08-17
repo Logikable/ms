@@ -306,9 +306,9 @@ void InventoryPanel::OpenEquipMenu() {
   if (!Unlocked(Feature::kShop, character_)) {
     menu_.Hide(kMenuSell);
   }
-  // An upgrade this item cannot take is not drawn either. A greyed row invites
-  // the player to press it and find out why; on this menu the answer is always
-  // "not to this item", which is worth no row at all.
+  // An upgrade the item refuses outright is not drawn either. What it refuses
+  // is the prototype's answer, so armour and weapons carry the same entries
+  // however far along a particular drop is.
   const EquipInstance* eq = character_.inventory().equip_instance(selected_);
   if (eq == nullptr) {
     // Traces can only be inspected or recovered.
@@ -321,14 +321,15 @@ void InventoryPanel::OpenEquipMenu() {
   if (!character_.CanEquip(eq->prototype())) {
     menu_.Disable(kMenuAction);
   }
-  // Scrolling asks the prototype, not the slot count: a weapon with every slot
-  // spent still takes a Clean Slate, so only an item that refuses scrolls
-  // outright loses the entry.
   if (!Supports(eq->prototype(), UPGRADE_SCROLL)) {
     menu_.Hide(kMenuScroll);
   }
-  if (!eq->CanStarForce()) {
+  if (!Supports(eq->prototype(), UPGRADE_STAR_FORCE)) {
     menu_.Hide(kMenuStarForce);
+  } else if (!eq->CanStarForce()) {
+    // Greyed, not gone: stars come after the slots are spent, and a row that
+    // stands there dim is how the player learns the order.
+    menu_.Disable(kMenuStarForce);
   }
   // Gold on an upgrade the player has been handed but never used, which is
   // where the trail from the level-up card ends. Last, so it lands on the

@@ -85,6 +85,12 @@ void ItemMenu::Hide(int index) {
 }
 
 void ItemMenu::Highlight(int index) {
+  // Gold says "press this", so a row that cannot be pressed does not take it.
+  // Star force is the case: it greys until the slots are spent, and the trail
+  // waits there rather than pointing at a row that does nothing.
+  if (disabled_[index]) {
+    return;
+  }
   highlighted_[index] = true;
 }
 

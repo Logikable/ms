@@ -64,16 +64,18 @@ void EquippedPanel::OpenMenu() {
   EquipSlot slot = selected_slot();
   if (slot != EQUIP_SLOT_UNSPECIFIED) {
     const EquipInstance& item = character_.equipped().at(slot);
-    // Scrolling asks the prototype, not the slot count: a weapon with every
-    // slot spent still takes a Clean Slate, so only an item that refuses
-    // scrolls outright loses the entry.
-    // Not drawn rather than drawn grey, as above: an upgrade this item cannot
-    // take is worth no row, whatever the reason it cannot take it.
+    // Both ask the prototype: an upgrade the item refuses outright is worth no
+    // row, and everything else keeps one. So a weapon and a piece of armour
+    // carry the same two entries however far along either of them is.
     if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
       menu_.Hide(kMenuScroll);
     }
-    if (!item.CanStarForce()) {
+    if (!Supports(item.prototype(), UPGRADE_STAR_FORCE)) {
       menu_.Hide(kMenuStarForce);
+    } else if (!item.CanStarForce()) {
+      // Greyed, not gone: stars come after the slots are spent, and a row that
+      // stands there dim is how the player learns the order.
+      menu_.Disable(kMenuStarForce);
     }
   }
   // Gold on an upgrade the player has been handed but never used, which is

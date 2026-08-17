@@ -138,6 +138,15 @@ TEST_F(ItemMenuTest, AHighlightedEntryIsStillReachable) {
   EXPECT_EQ(menu_.selected(), 1);
 }
 
+// Gold is an invitation to press the row, so the one row that cannot be
+// pressed refuses it. Star force is why: it greys until the item's slots are
+// spent, and the trail should wait rather than point at a dead row.
+TEST_F(ItemMenuTest, ADisabledEntryRefusesTheGold) {
+  menu_.Disable(1);
+  menu_.Highlight(1);
+  EXPECT_NE(LabelColor(menu_, "Two"), kYellow);
+}
+
 TEST_F(ItemMenuTest, ResetClearsTheHighlight) {
   menu_.Highlight(1);
   menu_.Reset();
