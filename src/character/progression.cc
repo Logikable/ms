@@ -31,10 +31,11 @@ constexpr Unlock kUnlocks[] = {
     // Far enough out that a player meets it once the early game is behind
     // them, and far enough that the meso for spell traces is coming in.
     {Feature::kScrolling, 40},
-    // Held back to where a star is worth putting on: the gear below carries
-    // 5 and 8 star caps, and the Frozen tier a token buys at 120 is the first
-    // that takes 15. Out of a player's reach until the cap moved to 140.
-    {Feature::kStarForce, 110},
+    // Held to the level of the gear it is for. The tiers below carry 5 and 8
+    // star caps; the Frozen weapons a token buys at 120 are the first that
+    // take 15, and now that an attempt is priced, opening the screen earlier
+    // only offers the player a bill for a star that is barely worth having.
+    {Feature::kStarForce, 120},
     // Nothing in reach can be destroyed -- that starts at the 16th star, and
     // no gear yet takes more than 15 -- so this waits at the top for the tier
     // that can. Only the workbench has anything to recover.
