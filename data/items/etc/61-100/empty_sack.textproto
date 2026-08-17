@@ -1,3 +1,6 @@
 name: "Empty Sack"
 category: ITEM_CATEGORY_ETC
 sell_price: 180
+description:
+  "The sack that the Sand Dwarves used to excavate Lidium stones. It is "
+  "currently empty."

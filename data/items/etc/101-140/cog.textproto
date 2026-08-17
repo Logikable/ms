@@ -1,3 +1,4 @@
 name: "Cog"
 category: ITEM_CATEGORY_ETC
 sell_price: 230
+description: "An important part of a clock."

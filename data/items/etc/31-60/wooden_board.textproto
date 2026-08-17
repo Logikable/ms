@@ -1,3 +1,4 @@
 name: "Wooden Board"
 category: ITEM_CATEGORY_ETC
 sell_price: 120
+description: "A wooden board that Wooden Mask wears."

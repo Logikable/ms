@@ -1,3 +1,4 @@
 name: "Axe"
 category: ITEM_CATEGORY_ETC
 sell_price: 28
+description: "An axe stuck in a trunk."

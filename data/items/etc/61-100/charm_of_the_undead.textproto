@@ -1,3 +1,4 @@
 name: "Charm of the Undead"
 category: ITEM_CATEGORY_ETC
 sell_price: 130
+description: "A charm taken out of an undead monster."

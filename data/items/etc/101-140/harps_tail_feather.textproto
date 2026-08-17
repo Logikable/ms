@@ -1,3 +1,6 @@
 name: "Harp's Tail Feather"
 category: ITEM_CATEGORY_ETC
 sell_price: 212
+description:
+  "A tail feather removed from Harp. Visually pleasing enough to use as an "
+  "accessory."

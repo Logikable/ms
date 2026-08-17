@@ -1,3 +1,5 @@
 name: "Moss Snail Shell"
 category: ITEM_CATEGORY_ETC
 sell_price: 196
+description:
+  "A snail shell from Moss Snail. Very tough and solid, as if made with rocks."

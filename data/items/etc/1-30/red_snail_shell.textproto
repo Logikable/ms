@@ -1,3 +1,5 @@
 name: "Red Snail Shell"
 category: ITEM_CATEGORY_ETC
 sell_price: 8
+description:
+  "You bravely liberated this red shell from its previous owner. Good work."

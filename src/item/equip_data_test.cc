@@ -516,5 +516,17 @@ TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {
   }
 }
 
+// A stack has no stats, so its description is the whole of what inspecting one
+// tells the player. Without it the card is a name over an empty box.
+TEST(EquipDataTest, EveryStackableDescribesItself) {
+  int checked = 0;
+  for (const std::pair<const std::string, ItemPrototype>& entry : LoadItems()) {
+    ++checked;
+    EXPECT_FALSE(entry.second.description().empty())
+        << entry.first << " has nothing to say about itself";
+  }
+  EXPECT_GT(checked, 0) << "no stackables in the catalog to check";
+}
+
 }  // namespace
 }  // namespace ms

@@ -1,3 +1,6 @@
 name: "Red Shell"
 category: ITEM_CATEGORY_ETC
 sell_price: 256
+description:
+  "A red shell from the Red Dragon Turtle. Features an intimidating set of "
+  "spikes on the shell."

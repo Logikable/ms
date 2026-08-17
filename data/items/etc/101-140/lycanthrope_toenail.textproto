@@ -1,3 +1,6 @@
 name: "Lycanthrope Toenail"
 category: ITEM_CATEGORY_ETC
 sell_price: 246
+description:
+  "A toenail cut out of Werewolf. Better be careful, because it's not only "
+  "really sharp, but almost unbreakable."

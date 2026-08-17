@@ -1,3 +1,4 @@
 name: "Viking Sail"
 category: ITEM_CATEGORY_ETC
 sell_price: 238
+description: "A sail on the ship that Viking was riding on."

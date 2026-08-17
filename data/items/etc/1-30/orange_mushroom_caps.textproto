@@ -1,3 +1,4 @@
 name: "Orange Mushroom Caps"
 category: ITEM_CATEGORY_ETC
 sell_price: 20
+description: "A cap removed from a mushroom."

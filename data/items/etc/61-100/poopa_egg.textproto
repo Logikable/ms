@@ -1,3 +1,4 @@
 name: "Poopa Egg"
 category: ITEM_CATEGORY_ETC
 sell_price: 158
+description: "A small egg laid by a Poopa."

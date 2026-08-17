@@ -1,3 +1,6 @@
 name: "Fragmented Ore"
 category: ITEM_CATEGORY_ETC
 sell_price: 70
+description:
+  "An ore fragment obtained from a Big Boulder Muncher. It seems difficult to "
+  "use."

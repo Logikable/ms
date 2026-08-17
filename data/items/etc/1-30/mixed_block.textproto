@@ -1,3 +1,4 @@
 name: "Mixed Block"
 category: ITEM_CATEGORY_ETC
 sell_price: 34
+description: "A block from Mix Golem that consists of its chest area."
