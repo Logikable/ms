@@ -1,10 +1,13 @@
-# HP and EXP both lifted 21.6% off GMS's numbers. Leafre's dragon nests
-# were written for their own era and sit a fifth under the curve the rest of
-# the game runs on; EXP alone would have made the map unusually cheap, so the
-# HP goes with it and the EXP a kill pays per point of HP stays GMS's.
+# The head of a band that is on the game's curve rather than on GMS's own
+# numbers. Leafre's dragon nests were written for their own era and sag a
+# fifth under it; every mob from here to 168 sits on x1.053 HP / x1.038 EXP /
+# x1.029 attack per level, the shape the ladder has held since level 98.
+#
+# HP is lifted by the same share as EXP, so the EXP a kill pays per point of
+# HP stays GMS's -- lifting EXP alone would have made these maps cheap.
 name: "Jr. Newtie"
 level: 145
-attack: 3331
+attack: 3391
 max_hp: 1612800
 exp: 8748
 drops { item: "egg_shell" per_kill: 0.4 }

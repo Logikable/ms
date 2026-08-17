@@ -1,7 +1,7 @@
-# Lifted 23.3%, HP with EXP -- see jr_newtie.
+# On the band's curve -- see jr_newtie.
 name: "Skelosaurus"
 level: 153
-attack: 4177
+attack: 4263
 max_hp: 2251300
 exp: 11608
 drops { item: "old_neck_bone" per_kill: 0.4 }

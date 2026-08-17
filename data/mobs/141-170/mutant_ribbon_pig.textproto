@@ -1,7 +1,8 @@
-# Attack tempered 8,758 -> 6,542 -- see mutant_snail. HP and EXP are GMS's.
+# The top of the ladder. On the band's curve -- see jr_newtie and
+# mutant_snail; its attack comes down for the same reason.
 name: "Mutant Ribbon Pig"
 level: 168
-attack: 6542
+attack: 6545
 max_hp: 4624800
 exp: 19716
 drops { item: "mutant_pork" per_kill: 0.4 }

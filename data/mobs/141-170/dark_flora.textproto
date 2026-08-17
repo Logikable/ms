@@ -1,8 +1,9 @@
-# GMS's numbers untouched: this is where the curve comes back. It looked
-# like a cliff only because the four nest mobs below it had sagged.
+# HP and EXP are GMS's untouched: this is where the curve comes back, and it
+# looked like a cliff only because the four nest mobs below it had sagged.
+# Attack is on the band's curve like the rest -- see jr_newtie.
 name: "Dark Flora"
 level: 156
-attack: 4282
+attack: 4645
 max_hp: 2824600
 exp: 12878
 drops { item: "dark_flora_petal" per_kill: 0.4 }

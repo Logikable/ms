@@ -1,9 +1,9 @@
-# Attack tempered 7,107 -> 5,510, onto the curve the rest of the game
-# climbs. GMS runs the Henesys Ruins mobs a third hot on attack, and mobs
-# hit the player here.
+# On the band's curve -- see jr_newtie. GMS runs the Henesys Ruins pair a
+# third HOT on attack against HP that is on the curve, so here the curve
+# brings the attack down rather than up. Mobs damage the player.
 name: "Mutant Snail"
 level: 162
-attack: 5510
+attack: 5514
 max_hp: 3675000
 exp: 16158
 drops { item: "mutant_snail_shell" per_kill: 0.4 }
