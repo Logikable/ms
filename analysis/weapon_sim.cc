@@ -34,6 +34,7 @@
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/projectile.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -61,13 +62,12 @@ constexpr unsigned int kSimSeed = 20260813;
 constexpr char kDummyMap[] = "__dps_dummy";
 constexpr char kDummyMob[] = "__dps_dummy_mob";
 
-// One row of the table: which branch, holding what. `stars` arms a claw, which
-// carries almost no attack of its own -- an Assassin's damage is mostly in the
-// ammunition, and a claw with an empty star slot reads as a broken build.
+// One row of the table: which branch, holding what. Whatever the weapon draws
+// from is bought with it, since an empty projectile slot reads as a broken
+// build -- an Assassin's damage is mostly in the ammunition.
 struct Build {
   Job job = JOB_UNSPECIFIED;
   EquipType weapon = EQUIP_TYPE_UNSPECIFIED;
-  EquipType stars = EQUIP_TYPE_UNSPECIFIED;  // ammunition, for the claws
 };
 
 // The 2nd-job branches by name. Spelled out here rather than borrowed from the
@@ -354,8 +354,9 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {
     return result;
   }
-  if (build.stars != EQUIP_TYPE_UNSPECIFIED &&
-      !Wear(state, BestOfType(catalogs, build.stars, level))) {
+  EquipType ammo = AmmoFor(build.weapon);
+  if (ammo != EQUIP_TYPE_UNSPECIFIED &&
+      !Wear(state, BestOfType(catalogs, ammo, level))) {
     return result;
   }
   state.current_map = kDummyMap;
@@ -451,7 +452,7 @@ void Run(int level) {
       {JOB_ICE_LIGHTNING_WIZARD, EQUIP_TYPE_STAFF},
       {JOB_FIRE_POISON_WIZARD, EQUIP_TYPE_STAFF},
       {JOB_CLERIC, EQUIP_TYPE_STAFF},
-      {JOB_ASSASSIN, EQUIP_TYPE_CLAW, EQUIP_TYPE_THROWING_STAR},
+      {JOB_ASSASSIN, EQUIP_TYPE_CLAW},
       {JOB_BANDIT, EQUIP_TYPE_DAGGER},
       {JOB_BERSERKER, EQUIP_TYPE_SPEAR},
       {JOB_BERSERKER, EQUIP_TYPE_POLEARM},
@@ -464,7 +465,7 @@ void Run(int level) {
       {JOB_ICE_LIGHTNING_MAGE, EQUIP_TYPE_STAFF},
       {JOB_FIRE_POISON_MAGE, EQUIP_TYPE_STAFF},
       {JOB_PRIEST, EQUIP_TYPE_STAFF},
-      {JOB_HERMIT, EQUIP_TYPE_CLAW, EQUIP_TYPE_THROWING_STAR},
+      {JOB_HERMIT, EQUIP_TYPE_CLAW},
       {JOB_CHIEF_BANDIT, EQUIP_TYPE_DAGGER},
       {JOB_DARK_KNIGHT, EQUIP_TYPE_SPEAR},
       {JOB_DARK_KNIGHT, EQUIP_TYPE_POLEARM},

@@ -18,6 +18,7 @@
 #include "src/character/character.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/item.h"
+#include "src/item/projectile.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -45,15 +46,15 @@ std::map<std::string, ItemPrototype> LoadItems() {
   return LoadTextProtoDir<ItemPrototype>(runfiles->Rlocation("ms/data/items"));
 }
 
-// Stars are ammunition, not a weapon a player invests in. Asserted over the
-// whole catalog because the refusal has to be written on each one: nothing
-// derives it from the type, deliberately, since a later star may well differ.
-TEST(EquipDataTest, ThrowingStarsTakeNoUpgrades) {
+// A projectile is ammunition, not a weapon a player invests in. Asserted over
+// the whole catalog because the refusal has to be written on each one: nothing
+// derives it from the slot, deliberately, since a later one may well differ.
+TEST(EquipDataTest, ProjectilesTakeNoUpgrades) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.equip_type() != EQUIP_TYPE_THROWING_STAR) {
+    if (proto.equip_slot() != EQUIP_SLOT_PROJECTILE) {
       continue;
     }
     ++seen;
@@ -64,7 +65,33 @@ TEST(EquipDataTest, ThrowingStarsTakeNoUpgrades) {
     EXPECT_EQ(proto.upgrade_slots(), 0)
         << entry.first << " carries slots it will never spend";
   }
-  EXPECT_GT(seen, 0) << "no throwing stars in the catalog to check";
+  EXPECT_GT(seen, 0) << "no projectiles in the catalog to check";
+}
+
+// Three ladders, one shape: stars for the claw, arrows for the bow and for the
+// crossbow. A rung missing from one is a branch that cannot re-arm where the
+// others can, and a projectile whose type no weapon draws is attack a player
+// wears and never fires.
+TEST(EquipDataTest, EveryProjectileClimbsTheSameLadder) {
+  const std::vector<int> kTiers{10, 30, 50, 70, 100};
+  std::map<EquipType, std::vector<int>> ladders;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_slot() != EQUIP_SLOT_PROJECTILE) {
+      continue;
+    }
+    EXPECT_NE(WeaponDrawing(proto.equip_type()), EQUIP_TYPE_UNSPECIFIED)
+        << entry.first << " is ammunition no weapon draws";
+    EXPECT_GT(proto.shop_price(), 0) << entry.first << " is not on the shelf";
+    ladders[proto.equip_type()].push_back(proto.required_level());
+  }
+  EXPECT_EQ(ladders.size(), 3u) << "a projectile ladder is missing";
+  for (std::pair<const EquipType, std::vector<int>>& ladder : ladders) {
+    std::sort(ladder.second.begin(), ladder.second.end());
+    EXPECT_EQ(ladder.second, kTiers)
+        << FormatEquipType(ladder.first) << " has a hole in its ladder";
+  }
 }
 
 // The refusal is the exception. A catalog where it spread to ordinary weapons

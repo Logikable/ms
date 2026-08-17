@@ -1908,60 +1908,66 @@ TEST_F(RecoverTraceTest, BaseBeforeTraceInInventoryStillWorks) {
   EXPECT_NE(c.inventory().equip_instance(0), nullptr);
 }
 
-// --- Throwing stars ---
+// --- Projectiles ---
 
-// A weapon of `type` carrying `attack`, and a stack of stars for the star slot.
-class ThrowingStarTest : public CharacterTest {
+// A 10-attack weapon and a 15-attack projectile, so 25 means the ammunition
+// counted and 10 means it did not.
+class ProjectileTest : public CharacterTest {
  protected:
-  EquipPrototype Weapon(EquipType type, int attack) {
+  EquipPrototype Weapon(EquipType type) {
     EquipPrototype proto;
     proto.set_name("Weapon");
     proto.set_equip_type(type);
     proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-    proto.mutable_base_stats()->set_attack(attack);
+    proto.mutable_base_stats()->set_attack(10);
     return proto;
   }
-  EquipPrototype Stars(int attack) {
+  EquipPrototype Ammo(EquipType type) {
     EquipPrototype proto;
-    proto.set_name("Subi Throwing-Stars");
-    proto.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-    proto.set_equip_slot(EQUIP_SLOT_STARS);
-    proto.mutable_base_stats()->set_attack(attack);
+    proto.set_name("Ammo");
+    proto.set_equip_type(type);
+    proto.set_equip_slot(EQUIP_SLOT_PROJECTILE);
+    proto.mutable_base_stats()->set_attack(15);
     return proto;
+  }
+  // A fresh character holding both, since what is under test is the pairing
+  // and not what one character does over time.
+  int AttackWith(EquipType weapon, EquipType ammo) {
+    CharacterInstance c = MakeCharacter(rng_);
+    c.PickUp(std::make_unique<EquipInstance>(Weapon(weapon)));
+    c.PickUp(std::make_unique<EquipInstance>(Ammo(ammo)));
+    EXPECT_TRUE(c.Equip(0));
+    EXPECT_TRUE(c.Equip(0));
+    return c.equip_stats().attack();
   }
   CharacterInstance c_ = MakeCharacter(rng_);
 };
 
-TEST_F(ThrowingStarTest, ArmsAClaw) {
-  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_CLAW, 10)));
-  c_.PickUp(std::make_unique<EquipInstance>(Stars(15)));
-  ASSERT_TRUE(c_.Equip(0));
-  ASSERT_TRUE(c_.Equip(0));
-  EXPECT_EQ(c_.equip_stats().attack(), 25);
-}
+TEST_F(ProjectileTest, CountsOnlyForTheWeaponThatDrawsIt) {
+  EXPECT_EQ(AttackWith(EQUIP_TYPE_CLAW, EQUIP_TYPE_THROWING_STAR), 25);
+  EXPECT_EQ(AttackWith(EQUIP_TYPE_BOW, EQUIP_TYPE_ARROW_FOR_BOW), 25);
+  EXPECT_EQ(AttackWith(EQUIP_TYPE_CROSSBOW, EQUIP_TYPE_ARROW_FOR_CROSSBOW), 25);
 
-TEST_F(ThrowingStarTest, ArmsNothingElse) {
   // Worn all the same -- a thief may carry stars while holding a dagger -- but
-  // there is no claw to throw them, so their attack does not count.
-  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_DAGGER, 25)));
-  c_.PickUp(std::make_unique<EquipInstance>(Stars(15)));
-  ASSERT_TRUE(c_.Equip(0));
-  ASSERT_TRUE(c_.Equip(0));
-  EXPECT_EQ(c_.equip_stats().attack(), 25);
+  // nothing in hand draws them, so their attack does not count. The two arrows
+  // are as unrelated to each other as a star is to either.
+  EXPECT_EQ(AttackWith(EQUIP_TYPE_DAGGER, EQUIP_TYPE_THROWING_STAR), 10);
+  EXPECT_EQ(AttackWith(EQUIP_TYPE_BOW, EQUIP_TYPE_ARROW_FOR_CROSSBOW), 10);
+  EXPECT_EQ(AttackWith(EQUIP_TYPE_CROSSBOW, EQUIP_TYPE_ARROW_FOR_BOW), 10);
 }
 
-TEST_F(ThrowingStarTest, StopsCountingWhenTheClawComesOff) {
-  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_CLAW, 10)));
-  c_.PickUp(std::make_unique<EquipInstance>(Stars(15)));
+TEST_F(ProjectileTest, StopsCountingWhenTheWeaponComesOff) {
+  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_CLAW)));
+  c_.PickUp(std::make_unique<EquipInstance>(Ammo(EQUIP_TYPE_THROWING_STAR)));
   ASSERT_TRUE(c_.Equip(0));
   ASSERT_TRUE(c_.Equip(0));
   ASSERT_EQ(c_.equip_stats().attack(), 25);
 
   // Swapping the claw for a dagger has to re-evaluate the stars, not just
   // subtract the claw.
-  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_DAGGER, 25)));
+  c_.PickUp(std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_DAGGER)));
   ASSERT_TRUE(c_.Equip(0));
-  EXPECT_EQ(c_.equip_stats().attack(), 25);
+  EXPECT_EQ(c_.equip_stats().attack(), 10);
 }
 
 // --- capacity ---

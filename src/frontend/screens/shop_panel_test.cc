@@ -262,7 +262,7 @@ class ShopPanelTest : public testing::Test {
       // A thief's, so a warrior never sees it.
       {"subi",
        MakeItem("Subi Throwing-Stars", 10, 1000, EQUIP_JOB_CATEGORY_THIEF,
-                EQUIP_TYPE_THROWING_STAR, EQUIP_SLOT_STARS)},
+                EQUIP_TYPE_THROWING_STAR, EQUIP_SLOT_PROJECTILE)},
       // The off-hands of two warrior branches, so the shelf can be checked for
       // both what it holds and what it keeps back.
       {"medallion",

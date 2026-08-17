@@ -59,6 +59,11 @@ enum EquipType {
   EQUIP_TYPE_BOW_THIMBLE = 22;
   EQUIP_TYPE_CHARM = 23;
   EQUIP_TYPE_DAGGER_SCABBARD = 24;
+  // The archer's ammunition, one ladder per weapon. Two types rather than one
+  // because the type is what says which weapon draws it, and a bow will not
+  // fire a bolt -- see AmmoFor in src/item/projectile.h.
+  EQUIP_TYPE_ARROW_FOR_BOW = 25;
+  EQUIP_TYPE_ARROW_FOR_CROSSBOW = 26;
 }
 
 // The equipment window slot this item occupies when worn. Determines where the
@@ -66,10 +71,10 @@ enum EquipType {
 enum EquipSlot {
   EQUIP_SLOT_UNSPECIFIED = 0;
   EQUIP_SLOT_PRIMARY_WEAPON = 1;
-  // Throwing stars, and only throwing stars. A shield goes in the off hand
-  // beside a sword; stars are ammunition a claw draws from, so they get a slot
-  // of their own that a shield will never compete for.
-  EQUIP_SLOT_STARS = 2;
+  // What the weapon throws: a thief's stars, an archer's arrows. A shield goes
+  // in the off hand beside a sword; ammunition is drawn from rather than held,
+  // so it gets a slot of its own that a shield will never compete for.
+  EQUIP_SLOT_PROJECTILE = 2;
   // The off hand: one of the per-class secondaries a 2nd job carries. Shields
   // would go here too, and none are written. What fills this slot is what
   // Shield Mastery waits on; see Skill.requires_secondary.

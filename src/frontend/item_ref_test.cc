@@ -46,7 +46,8 @@ TEST_F(ItemRefTest, KnowsWhichHalfItNames) {
   EXPECT_TRUE(ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON).equipped());
   EXPECT_FALSE(ItemRef::InBag(3).equipped());
   EXPECT_EQ(ItemRef::InBag(3).index(), 3);
-  EXPECT_EQ(ItemRef::Equipped(EQUIP_SLOT_STARS).slot(), EQUIP_SLOT_STARS);
+  EXPECT_EQ(ItemRef::Equipped(EQUIP_SLOT_PROJECTILE).slot(),
+            EQUIP_SLOT_PROJECTILE);
 }
 
 TEST_F(ItemRefTest, DefaultRefNamesNothing) {

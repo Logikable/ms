@@ -12,6 +12,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
+#include "src/item/projectile.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -453,8 +454,10 @@ int NextAdvancementLevel(int stage) {
 
 std::vector<std::string> StarterEquipsFor(Job job) {
   // One weapon per 1st job, at the level it happens, so an advancement is
-  // playable straight away. The Rogue gets three: which of the dagger or the
-  // claw is held decides what they can swing, so one would pick their build.
+  // playable straight away, plus whatever that weapon draws from. The Rogue
+  // gets three: which of the dagger or the claw is held decides what they can
+  // swing, so one would pick their build. The Archer gets arrows for the bow
+  // only -- a crossbow is the 2nd job's choice, and its arrows are bought.
   //
   // A 2nd job gets its off-hand and no weapon. It arrives already armed and
   // able to afford the tier, so a free weapon would undercut the choice of
@@ -465,7 +468,7 @@ std::vector<std::string> StarterEquipsFor(Job job) {
     case JOB_MAGICIAN:
       return {"wooden_staff"};
     case JOB_ARCHER:
-      return {"war_bow"};
+      return {"war_bow", "bronze_arrow_for_bow"};
     case JOB_ROGUE:
       return {"subi_throwing_stars", "fruit_knife", "garnier"};
     case JOB_FIGHTER:
@@ -947,10 +950,11 @@ bool CharacterInstance::has_secondary() const {
 }
 
 bool CharacterInstance::AttackCounts(const EquipPrototype& proto) const {
-  if (proto.equip_type() != EQUIP_TYPE_THROWING_STAR) {
-    return true;
+  EquipType drawn_by = WeaponDrawing(proto.equip_type());
+  if (drawn_by == EQUIP_TYPE_UNSPECIFIED) {
+    return true;  // not ammunition, so nothing has to draw it
   }
-  return weapon_type() == EQUIP_TYPE_CLAW;
+  return weapon_type() == drawn_by;
 }
 
 void CharacterInstance::UseEquipSets(std::map<std::string, EquipSet> sets) {

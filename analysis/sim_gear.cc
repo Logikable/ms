@@ -11,6 +11,7 @@
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/projectile.h"
 #include "src/item/shop.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -31,14 +32,6 @@ constexpr char kTryoutMob[] = "__sim_gear_tryout_mob";
 // needs -- weapon_sim's own horizon is ten times this because it prints the
 // number, where this only ranks with it.
 constexpr double kTryoutSeconds = 60.0;
-
-// What a weapon draws from, or unspecified for the ones that draw from
-// nothing. The claw is the only weapon in the game whose damage lives in what
-// it throws rather than in itself, so it is the only one that shops twice.
-EquipType AmmoFor(EquipType weapon) {
-  return weapon == EQUIP_TYPE_CLAW ? EQUIP_TYPE_THROWING_STAR
-                                   : EQUIP_TYPE_UNSPECIFIED;
-}
 
 // The required level of what is worn in `slot`, which is how one rung is
 // ranked against another: the shop's ladder is ordered by it.
@@ -422,10 +415,10 @@ EquipType MeasureBestType(GameState& state, bool budget) {
     if (!WearCopy(state.character, *candidate)) {
       continue;
     }
-    // A claw with an empty star slot swings for nothing, and a dagger wearing
-    // stars would be credited with ammunition it never throws. Either way the
-    // candidate is measured holding exactly what it draws from.
-    state.character.Unequip(EQUIP_SLOT_STARS);
+    // A claw with an empty projectile slot swings for nothing, and a dagger
+    // wearing stars would be credited with ammunition it never throws. Either
+    // way the candidate is measured holding exactly what it draws from.
+    state.character.Unequip(EQUIP_SLOT_PROJECTILE);
     EquipType ammo = AmmoFor(candidate->equip_type());
     if (ammo != EQUIP_TYPE_UNSPECIFIED) {
       const EquipPrototype* rung = BestRung(state, ammo, budget);
@@ -445,7 +438,7 @@ EquipType MeasureBestType(GameState& state, bool budget) {
   state.mobs.erase(kTryoutMob);
   // Everything tried on comes back off. What the character wears is what they
   // paid for, which is Buy's business below.
-  state.character.Unequip(EQUIP_SLOT_STARS);
+  state.character.Unequip(EQUIP_SLOT_PROJECTILE);
   EquipByName(state.character, held);
   return winner;
 }

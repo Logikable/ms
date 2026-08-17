@@ -46,7 +46,7 @@ class InventoryPanelTest : public PanelTest {
   EquipPrototype MakeThrowingStars() {
     EquipPrototype stars;
     stars.set_name("Subi Throwing-Stars");
-    stars.set_equip_slot(EQUIP_SLOT_STARS);
+    stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
     stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
     stars.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
     stars.add_unsupported_upgrades(UPGRADE_SCROLL);

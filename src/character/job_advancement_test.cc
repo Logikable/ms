@@ -99,7 +99,7 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
       new std::map<Job, std::multiset<EquipType>>{
           {JOB_SWORDMAN, {EQUIP_TYPE_ONE_HANDED_SWORD}},
           {JOB_MAGICIAN, {EQUIP_TYPE_STAFF}},
-          {JOB_ARCHER, {EQUIP_TYPE_BOW}},
+          {JOB_ARCHER, {EQUIP_TYPE_BOW, EQUIP_TYPE_ARROW_FOR_BOW}},
           {JOB_ROGUE,
            {EQUIP_TYPE_DAGGER, EQUIP_TYPE_THROWING_STAR, EQUIP_TYPE_CLAW}},
           {JOB_FIGHTER, {EQUIP_TYPE_MEDALLION}},

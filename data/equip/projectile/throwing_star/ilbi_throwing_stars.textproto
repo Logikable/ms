@@ -1,12 +1,12 @@
-name: "Subi Throwing-Stars"
-required_level: 10
+name: "Ilbi Throwing-Stars"
+required_level: 70
 base_stats {
-  attack: 15
+  attack: 27
 }
 equip_type: EQUIP_TYPE_THROWING_STAR
 equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
-equip_slot: EQUIP_SLOT_STARS
+equip_slot: EQUIP_SLOT_PROJECTILE
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-shop_price: 1000
-sell_price: 100
+shop_price: 100000
+sell_price: 10000

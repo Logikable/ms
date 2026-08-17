@@ -11,6 +11,7 @@ cc_library(
         "//src/item:equip_instance",
         "//src/item:equip_stats",
         "//src/item:inventory",
+        "//src/item:projectile",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",

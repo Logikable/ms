@@ -347,8 +347,8 @@ std::string FormatSlot(EquipSlot slot) {
   switch (slot) {
     case EQUIP_SLOT_PRIMARY_WEAPON:
       return "Weapon";
-    case EQUIP_SLOT_STARS:
-      return "Stars";
+    case EQUIP_SLOT_PROJECTILE:
+      return "Projectile";
     case EQUIP_SLOT_SECONDARY:
       return "Secondary";
     case EQUIP_SLOT_HAT:
@@ -407,6 +407,10 @@ std::string FormatEquipType(EquipType type) {
       return "Claw";
     case EQUIP_TYPE_THROWING_STAR:
       return "Throwing Star";
+    case EQUIP_TYPE_ARROW_FOR_BOW:
+      return "Arrow for Bow";
+    case EQUIP_TYPE_ARROW_FOR_CROSSBOW:
+      return "Arrow for Crossbow";
     case EQUIP_TYPE_TWO_HANDED_SWORD:
       return "Two-Handed Sword";
     case EQUIP_TYPE_ONE_HANDED_AXE:

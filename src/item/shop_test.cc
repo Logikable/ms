@@ -129,7 +129,7 @@ TEST(ShopTest, TheWeaponShelfCarriesTheStarsAndNoOffHands) {
   for (const std::string& key : ShopWeaponStock(equips, kPaidInMeso)) {
     EquipSlot slot = equips.at(key).equip_slot();
     EXPECT_NE(slot, EQUIP_SLOT_SECONDARY) << key << " is on the weapon shelf";
-    stars += slot == EQUIP_SLOT_STARS ? 1 : 0;
+    stars += slot == EQUIP_SLOT_PROJECTILE ? 1 : 0;
   }
   EXPECT_GT(stars, 0) << "the stars have fallen off the weapon shelf";
 }

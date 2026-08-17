@@ -57,10 +57,10 @@ std::vector<std::string> StockForSlots(
 
 std::vector<std::string> ShopWeaponStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment) {
-  // Stars sit in this list rather than one of their own: they are what a claw
-  // swings, and a tab holding two items is not a tab.
-  return StockForSlots(equips, {EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_SLOT_STARS},
-                       payment);
+  // Projectiles sit in this list rather than one of their own: they are what a
+  // claw or a bow swings, and a tab holding two items is not a tab.
+  return StockForSlots(
+      equips, {EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_SLOT_PROJECTILE}, payment);
 }
 
 std::vector<std::string> ShopSecondaryStock(

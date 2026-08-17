@@ -62,7 +62,7 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     case JOB_SWORDMAN:
       return {"gladius"};
     case JOB_ARCHER:
-      return {"ryden"};
+      return {"ryden", "quality_arrow_for_bow"};
     case JOB_MAGICIAN:
       return {"circle_winded_staff"};
     case JOB_ROGUE:
@@ -77,9 +77,9 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     case JOB_SPEARMAN:
       return {"holy_spear", "dark_chain"};
     case JOB_HUNTER:
-      return {"asianic_bow", "gusty_feather"};
+      return {"asianic_bow", "gusty_feather", "strong_arrow_for_bow"};
     case JOB_CROSSBOWMAN:
-      return {"golden_crow", "sure_shot"};
+      return {"golden_crow", "sure_shot", "strong_arrow_for_crossbow"};
     case JOB_FIRE_POISON_WIZARD:
       return {"frantic_crow_staff", "rusty_book_antistrophe"};
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -114,9 +114,9 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     case JOB_WHITE_KNIGHT:
       return {"golden_smith_hammer", "sacred_rosary"};
     case JOB_RANGER:
-      return {"dark_nisrock", "blasted_feather"};
+      return {"dark_nisrock", "blasted_feather", "titanium_arrow_for_bow"};
     case JOB_SNIPER:
-      return {"dark_neschere", "true_shot"};
+      return {"dark_neschere", "true_shot", "titanium_arrow_for_crossbow"};
     case JOB_ICE_LIGHTNING_MAGE:
       return {"crimson_arcanon", "metallic_blue_book_epode"};
     case JOB_FIRE_POISON_MAGE:

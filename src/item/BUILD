@@ -36,6 +36,24 @@ cc_library(
 )
 
 cc_library(
+    name = "projectile",
+    srcs = ["projectile.cc"],
+    hdrs = ["projectile.h"],
+    deps = ["//src/protos:equip_proto_cc"],
+)
+
+cc_test(
+    name = "projectile_test",
+    srcs = ["projectile_test.cc"],
+    deps = [
+        ":projectile",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
+        "@protobuf",
+    ],
+)
+
+cc_library(
     name = "equip_stats",
     srcs = ["equip_stats.cc"],
     hdrs = ["equip_stats.h"],
@@ -146,6 +164,7 @@ cc_test(
     ],
     deps = [
         ":item",
+        ":projectile",
         "//src:proto_loader",
         "//src/character",
         "//src/frontend/widgets:panel_util",

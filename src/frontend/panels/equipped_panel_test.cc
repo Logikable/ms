@@ -179,7 +179,7 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
   stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
   stars.add_unsupported_upgrades(UPGRADE_SCROLL);
   stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   // Past both gates, or neither entry would be offered on any item and the
@@ -194,7 +194,7 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   // the menu opens on a row the player is already looking at.
   RenderComponent(panel.MakeComponent([]() {}));
   panel.OpenMenu();
-  ASSERT_EQ(panel.selected_slot(), EQUIP_SLOT_STARS);
+  ASSERT_EQ(panel.selected_slot(), EQUIP_SLOT_PROJECTILE);
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
   EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
@@ -215,7 +215,7 @@ TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {
   EquipPrototype stars;
   stars.set_name("Steely Throwing-Knives");
   stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
   stars.mutable_base_stats()->set_attack(25);
 
   Character proto;
@@ -251,7 +251,7 @@ TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
 TEST_F(EquippedPanelTest, TheScrollColumnReadsADashWithoutSlots) {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
-  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
   stars.add_unsupported_upgrades(UPGRADE_SCROLL);
   sword_.set_upgrade_slots(7);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -306,7 +306,7 @@ namespace {
 EquipPrototype MakeStars() {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
-  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
   stars.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
   return stars;
 }
@@ -417,7 +417,7 @@ CharacterInstance MakeRogueWithTwoItems(std::mt19937& rng) {
   EquipPrototype stars;
   stars.set_name("Steely Throwing-Knives");
   stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
   Character proto;
   proto.set_job(JOB_ROGUE);
   CharacterInstance rogue(rng, std::move(proto));
@@ -500,7 +500,7 @@ TEST_F(EquippedPanelTest, TheWornWeaponsNameGoesGoldForANewUpgrade) {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
   stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-  stars.set_equip_slot(EQUIP_SLOT_STARS);
+  stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   c_.PickUp(std::make_unique<EquipInstance>(stars));

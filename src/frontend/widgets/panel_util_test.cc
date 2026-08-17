@@ -1070,7 +1070,7 @@ TEST(AdvanceTabKeyTest, EveryStageHasItsOwnKey) {
 // already reads, so a blank here would be a worn item with no slot.
 TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_PRIMARY_WEAPON), "Weapon");
-  EXPECT_EQ(FormatSlot(EQUIP_SLOT_STARS), "Stars");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_PROJECTILE), "Projectile");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_SECONDARY), "Secondary");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_HAT), "Hat");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_TOP), "Top");
