@@ -93,7 +93,27 @@ std::map<std::string, ItemPrototype> LevelUpCatalog() {
   horn.set_name("Beetle's Horn");
   horn.set_category(ITEM_CATEGORY_ETC);
   horn.set_sell_price(230);
-  return {{"level_up", item}, {"weapon_token", token}, {"horn", horn}};
+  // The real one's max_stack, because the count the workbench is handed is
+  // that number: a smaller cap here would spill it across a hundred rows.
+  ItemPrototype trace;
+  trace.set_name("Spell Trace");
+  trace.set_category(ITEM_CATEGORY_ETC);
+  trace.set_max_stack(30000);
+  return {{"level_up", item},
+          {"weapon_token", token},
+          {"horn", horn},
+          {"spell_trace", trace}};
+}
+
+// The stack of `name` on `category`'s tab, or nullptr when there is none.
+const StackableItem* FindStack(const GameState& state, ItemCategory category,
+                               const std::string& name) {
+  for (const StackableItem& stack : state.character.stackables(category)) {
+    if (stack.name() == name) {
+      return &stack;
+    }
+  }
+  return nullptr;
 }
 
 GameState MakeTestModeStateWithItems() {
@@ -320,11 +340,25 @@ TEST(GameStateTest, TestModeStartsWithLevelUpItems) {
 // not something the shop asks a price in.
 TEST(GameStateTest, TestModeStartsWithEveryToken) {
   GameState state = MakeTestModeStateWithItems();
-  const std::vector<StackableItem>& etc =
-      state.character.stackables(ITEM_CATEGORY_ETC);
-  ASSERT_EQ(etc.size(), 1u);
-  EXPECT_EQ(etc[0].name(), "Weapon Token");
-  EXPECT_GT(etc[0].count(), 1);
+  const StackableItem* token =
+      FindStack(state, ITEM_CATEGORY_ETC, "Weapon Token");
+  ASSERT_NE(token, nullptr);
+  EXPECT_GT(token->count(), 1);
+  // The ordinary Etc drop beside it in the catalog stays where it was: the
+  // workbench is handed currencies, not somebody else's loot.
+  EXPECT_EQ(FindStack(state, ITEM_CATEGORY_ETC, "Beetle's Horn"), nullptr);
+}
+
+// Scrolling is priced in traces and the shop counts them out 5,000 meso at a
+// time, which is a long walk to reach a screen a tester wants to be on. A full
+// stack is handed over instead -- 30,000 is the item's own max_stack, so it
+// arrives as ONE row rather than a hundred and fifty.
+TEST(GameStateTest, TestModeCarriesAFullStackOfSpellTraces) {
+  GameState state = MakeTestModeStateWithItems();
+  const StackableItem* traces =
+      FindStack(state, ITEM_CATEGORY_ETC, "Spell Trace");
+  ASSERT_NE(traces, nullptr);
+  EXPECT_EQ(traces->count(), traces->max_stack());
 }
 
 TEST(GameStateTest, PlayModeGetsNoTokens) {
@@ -377,7 +411,7 @@ TEST(GameStateTest, PlayModeStartsOnMapleIsland) {
 
 TEST(GameStateTest, TestModeStartsWithMesoAndAFullBag) {
   GameState state = MakeTestModeState();
-  EXPECT_EQ(state.character.meso(), 1000000000);
+  EXPECT_EQ(state.character.meso(), 100000000000);
   EXPECT_FALSE(state.character.inventory().empty());
 }
 
@@ -441,7 +475,7 @@ TEST(GameStateTest, SeedingSkipsEquipsTheCatalogDoesNotHave) {
   GameState test({}, {}, {}, {}, {}, {}, GameMode::kTest);
   EXPECT_TRUE(test.character.inventory().empty());
   // The meso does not depend on the catalog, so it still arrives.
-  EXPECT_EQ(test.character.meso(), 1000000000);
+  EXPECT_EQ(test.character.meso(), 100000000000);
 }
 
 // Play is what an unadorned construction gives, so the game's default is the

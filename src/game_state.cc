@@ -245,6 +245,12 @@ constexpr int kTestExpMultiplier = 5;
 // worth and still have one left to buy with.
 constexpr int kTestTokens = 20;
 
+// A full stack of spell traces -- 30,000 is the item's own max_stack, so this
+// is one row of the Etc tab and the most the tester can be handed without a
+// second. Carried rather than bought: the shop counts them out 5,000 meso at a
+// time, which is a long walk to reach the scroll screen.
+constexpr int kTestSpellTraces = 30000;
+
 // The awkward items, for the upgrade screens: a fully scrolled weapon at high
 // star force, a trace to recover, and the base item recovering it consumes.
 void GiveUpgradeItems(GameState& state) {
@@ -279,10 +285,11 @@ void SeedTest(GameState& state, JobAdvancement chosen) {
   state.exp_multiplier = kTestExpMultiplier;
 
   // Enough to buy anything the shop stocks, several times over, so the buying
-  // screens can be exercised without grinding for the meso first. A billion
-  // rather than a million because spell traces are bought by the thousand at
-  // 5,000 each, and the scroll screen is unusable without a pile of them.
-  state.character.AddMeso(1000000000);
+  // screens can be exercised without grinding for the meso first. A hundred
+  // billion because star force is what really spends it: one attempt at the
+  // top of the ladder runs to nine figures, so a billion bought a tester about
+  // sixteen presses of the button.
+  state.character.AddMeso(100000000000);
 
   // The ladder in a bag. Skipped when the catalog has no such item, as every
   // other piece of seeding is.
@@ -290,6 +297,12 @@ void SeedTest(GameState& state, JobAdvancement chosen) {
       state.items.find("level_up");
   if (level_up != state.items.end()) {
     state.character.AddStackable(level_up->second, kTestLevelUpItems);
+  }
+
+  std::map<std::string, ItemPrototype>::const_iterator trace =
+      state.items.find("spell_trace");
+  if (trace != state.items.end()) {
+    state.character.AddStackable(trace->second, kTestSpellTraces);
   }
 
   // A handful of every token, so the shop's token shelves can be bought from
