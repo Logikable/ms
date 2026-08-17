@@ -254,10 +254,12 @@ class CharacterInstance {
   // `index` is out of range; otherwise returns the result of Scroll().
   ScrollOutcome ScrollInventory(int index, const Scroll& scroll);
   // Applies a star force attempt to the item in `slot`. On kStarForceDestroy,
-  // removes the item from equipped and recomputes equip stats.
+  // removes the item from equipped and recomputes equip stats. Spends
+  // StarForceCost first, and returns kStarForceNoMeso without rolling if the
+  // character cannot afford it.
   StarForceOutcome StarForceEquipped(EquipSlot slot);
   // Applies a star force attempt to the inventory item at `index`. On
-  // kStarForceDestroy, removes the item from inventory.
+  // kStarForceDestroy, removes the item from inventory. Priced as above.
   StarForceOutcome StarForceInventory(int index);
   // Recovers the EquipTrace at `trace_index` using the EquipInstance at
   // `base_item_index` as the replacement body. Both items are removed from
@@ -370,6 +372,9 @@ class CharacterInstance {
   int PiecesWornOf(const EquipSet& set) const;
 
  private:
+  // Spends one star force attempt's price, or returns false and spends
+  // nothing. Both StarForce entry points call it before they roll.
+  bool PayForStarForce(const EquipInstance& item);
   // Puts a sale on the buy-back shelf, newest first, and drops the oldest row
   // once the shelf is full.
   void RecordSale(BuyBackEntry entry);

@@ -12,6 +12,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
 #include "src/item/item.h"
+#include "src/item/star_force_cost.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -28,6 +29,15 @@ CharacterInstance MakeCharacter(std::mt19937& rng, int level = 1, int ap = 0,
   proto.set_ap(ap);
   proto.set_job_stage(job_stage);
   return CharacterInstance(rng, std::move(proto));
+}
+
+// A purse no amount of farming would fill. Star forcing is priced now, and one
+// attempt on a level 138 item runs to nine figures -- a test that rolls until
+// the item explodes has to be able to pay for every roll.
+CharacterInstance MakeRichCharacter(std::mt19937& rng) {
+  CharacterInstance c = MakeCharacter(rng);
+  c.AddMeso(1'000'000'000'000);
+  return c;
 }
 
 // Base fixture providing a deterministic RNG. All character test fixtures
@@ -1743,6 +1753,45 @@ TEST_F(ScrollEquippedTest, EquipStatsUpdatesOnScrollSuccess) {
   EXPECT_EQ(c_.equip_stats().attack(), 7);
 }
 
+// --- StarForce prices ---
+
+// GMS charges for the roll and not for the star, which is the whole reason
+// the top of the ladder is out of reach. Both entry points take the price, and
+// neither rolls without it.
+class StarForcePriceTest : public CharacterTest {
+ protected:
+  EquipPrototype Sword() {
+    EquipPrototype proto;
+    proto.set_name("Sword");
+    proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    proto.set_required_level(138);
+    return proto;
+  }
+  int64_t FirstStar() {
+    return StarForceCost(138, 0);
+  }
+};
+
+TEST_F(StarForcePriceTest, AnAttemptTakesItsPrice) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.AddMeso(4 * FirstStar());
+  c.PickUp(std::make_unique<EquipInstance>(Sword()));
+  EXPECT_NE(c.StarForceInventory(0), kStarForceNoMeso);
+  EXPECT_EQ(c.meso(), 3 * FirstStar());
+  c.Equip(0);
+  EXPECT_NE(c.StarForceEquipped(EQUIP_SLOT_PRIMARY_WEAPON), kStarForceNoMeso);
+  EXPECT_LT(c.meso(), 3 * FirstStar()) << "the equipped path is free";
+}
+
+TEST_F(StarForcePriceTest, AnAttemptItCannotAffordNeverHappens) {
+  CharacterInstance c = MakeCharacter(rng_);
+  c.AddMeso(FirstStar() - 1);
+  c.PickUp(std::make_unique<EquipInstance>(Sword()));
+  EXPECT_EQ(c.StarForceInventory(0), kStarForceNoMeso);
+  EXPECT_EQ(c.meso(), FirstStar() - 1) << "a refused attempt still charged";
+  EXPECT_EQ(c.inventory()[0].stars(), 0) << "a refused attempt still rolled";
+}
+
 // --- StarForce traces ---
 
 class StarForceTraceTest : public CharacterTest {
@@ -1763,7 +1812,7 @@ TEST_F(StarForceTraceTest, NoTracesInitially) {
 TEST_F(StarForceTraceTest, DestroyedEquippedItemSavesTrace) {
   Equip state;
   state.set_stars(19);
-  CharacterInstance c = MakeCharacter(rng_);
+  CharacterInstance c = MakeRichCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   c.Equip(0);
   bool saw_destroy = false;
@@ -1781,7 +1830,7 @@ TEST_F(StarForceTraceTest, DestroyedEquippedItemSavesTrace) {
 TEST_F(StarForceTraceTest, DestroyedInventoryItemSavesTrace) {
   Equip state;
   state.set_stars(19);
-  CharacterInstance c = MakeCharacter(rng_);
+  CharacterInstance c = MakeRichCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
@@ -1797,7 +1846,7 @@ TEST_F(StarForceTraceTest, DestroyedInventoryItemSavesTrace) {
 TEST_F(StarForceTraceTest, EquipTraceInInventoryReturnsFalse) {
   Equip state;
   state.set_stars(19);
-  CharacterInstance c = MakeCharacter(rng_);
+  CharacterInstance c = MakeRichCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
@@ -1814,7 +1863,7 @@ TEST_F(StarForceTraceTest, EquipTraceInInventoryReturnsFalse) {
 TEST_F(StarForceTraceTest, ScrollInventoryOnTraceReturnsFail) {
   Equip state;
   state.set_stars(19);
-  CharacterInstance c = MakeCharacter(rng_);
+  CharacterInstance c = MakeRichCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
@@ -1831,7 +1880,7 @@ TEST_F(StarForceTraceTest, ScrollInventoryOnTraceReturnsFail) {
 TEST_F(StarForceTraceTest, StarForceInventoryOnTraceReturnsFail) {
   Equip state;
   state.set_stars(19);
-  CharacterInstance c = MakeCharacter(rng_);
+  CharacterInstance c = MakeRichCharacter(rng_);
   c.PickUp(std::make_unique<EquipInstance>(proto_, state));
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
@@ -2320,7 +2369,7 @@ TEST_F(SaveRoundTripTest, ATraceComesBackATrace) {
 // The same thing by the road the player takes to it, since a trace built by
 // hand is a trace whose flags the test chose.
 TEST_F(SaveRoundTripTest, ATraceLeftByARealBoomComesBackATrace) {
-  CharacterInstance c = MakeCharacter(rng_);
+  CharacterInstance c = MakeRichCharacter(rng_);
   Equip state;
   state.set_equip_name("Sword");
   state.set_stars(19);

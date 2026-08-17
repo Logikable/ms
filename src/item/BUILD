@@ -36,6 +36,22 @@ cc_library(
 )
 
 cc_library(
+    name = "star_force_cost",
+    srcs = ["star_force_cost.cc"],
+    hdrs = ["star_force_cost.h"],
+    deps = [":equip_instance"],
+)
+
+cc_test(
+    name = "star_force_cost_test",
+    srcs = ["star_force_cost_test.cc"],
+    deps = [
+        ":star_force_cost",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "projectile",
     srcs = ["projectile.cc"],
     hdrs = ["projectile.h"],

@@ -414,6 +414,7 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
   Equip state;
   state.set_stars(19);
   c_.PickUp(std::make_unique<EquipInstance>(proto, state));
+  c_.AddMeso(1'000'000'000'000);  // a hundred attempts at nine figures each
   bool saw_destroy = false;
   for (int i = 0; i < 100 && !saw_destroy; ++i) {
     if (c_.StarForceInventory(0) == kStarForceDestroy) {

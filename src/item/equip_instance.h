@@ -26,7 +26,14 @@ ScrollTier TierForLevel(int required_level);
 // whose items refuse scrolls anyway -- stars and the off hand -- so a scroll
 // written for neither weapon nor armour is offered for nothing.
 ScrollTarget TargetForSlot(EquipSlot slot);
-enum StarForceOutcome { kStarForceSuccess, kStarForceFail, kStarForceDestroy };
+// kStarForceNoMeso is the one outcome that is not a roll: the attempt never
+// happened, so the item is untouched and nothing was spent.
+enum StarForceOutcome {
+  kStarForceSuccess,
+  kStarForceFail,
+  kStarForceDestroy,
+  kStarForceNoMeso
+};
 
 // Absolute maximum star force level (for level 138+ equipment).
 constexpr int kMaxStarForce = 30;

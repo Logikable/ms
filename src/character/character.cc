@@ -13,6 +13,7 @@
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
 #include "src/item/projectile.h"
+#include "src/item/star_force_cost.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -1454,10 +1455,25 @@ ScrollOutcome CharacterInstance::ScrollInventory(int index,
   return item->Scroll(scroll, rng_);
 }
 
+// Takes the price of one attempt, or leaves the purse alone and says no. GMS
+// charges for the roll, not for the star, so a failure and a destroy cost the
+// same as a success -- this is why the top of the ladder is expensive.
+bool CharacterInstance::PayForStarForce(const EquipInstance& item) {
+  int64_t cost = StarForceCost(item.prototype().required_level(), item.stars());
+  if (cost > character_.meso()) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - cost);
+  return true;
+}
+
 StarForceOutcome CharacterInstance::StarForceEquipped(EquipSlot slot) {
   std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
   if (it == equipped_.end()) {
     return kStarForceFail;
+  }
+  if (!PayForStarForce(it->second)) {
+    return kStarForceNoMeso;
   }
   StarForceOutcome outcome = it->second.StarForce(rng_);
   if (outcome == kStarForceDestroy) {
@@ -1475,6 +1491,9 @@ StarForceOutcome CharacterInstance::StarForceInventory(int index) {
   EquipInstance* item = inventory_.equip_instance(index);
   if (item == nullptr) {
     return kStarForceFail;
+  }
+  if (!PayForStarForce(*item)) {
+    return kStarForceNoMeso;
   }
   StarForceOutcome outcome = item->StarForce(rng_);
   if (outcome == kStarForceDestroy) {
