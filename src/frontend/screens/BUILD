@@ -159,6 +159,7 @@ cc_library(
         "//src/frontend/widgets:confirm_prompt",
         "//src/frontend/widgets:panel_util",
         "//src/item:equip_instance",
+        "//src/item:star_force_cost",
         "@ftxui//:component",
         "@ftxui//:dom",
     ],

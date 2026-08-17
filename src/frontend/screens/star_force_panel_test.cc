@@ -26,6 +26,18 @@ class StarForcePanelTest : public PanelTest {
     return EquipInstance(proto, state);
   }
 
+  // The line drawn under the one holding `needle`, or "" if there is none.
+  static std::string LineAfter(const std::string& rendered,
+                               const std::string& needle) {
+    size_t at = rendered.find(needle);
+    size_t eol = at == std::string::npos ? at : rendered.find('\n', at);
+    if (eol == std::string::npos) {
+      return "";
+    }
+    size_t next = rendered.find('\n', eol + 1);
+    return rendered.substr(eol + 1, next - eol - 1);
+  }
+
   static std::string Render(StarForcePanel& panel) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                  ftxui::Dimension::Fixed(20));
@@ -123,6 +135,37 @@ TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
   EXPECT_EQ(rendered.find("Enter"), std::string::npos);
 }
 
+// What the attempt takes, in its own section between the odds and the button
+// -- the last thing read before pressing. A level 150 item's first star is
+// 136,000.
+TEST_F(StarForcePanelTest, RenderShowsWhatTheAttemptCosts) {
+  EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
+  StarForcePanel panel;
+  panel.SetItem(&item);
+  std::string rendered = Render(panel);
+  size_t price = rendered.find("136,000");
+  ASSERT_NE(price, std::string::npos) << rendered;
+  EXPECT_LT(rendered.find("Success"), price) << "the price is above the odds";
+  EXPECT_LT(price, rendered.find("Enhance")) << "the price is below the button";
+}
+
+// The name and the star it is going for are one heading, so the rules start
+// below the two of them rather than between.
+TEST_F(StarForcePanelTest, NoRuleThroughTheHeading) {
+  EquipInstance climbing = MakeItem(/*required_level=*/150, /*stars=*/3);
+  StarForcePanel panel;
+  panel.SetItem(&climbing);
+  std::string under = LineAfter(Render(panel), "Sword");
+  EXPECT_NE(under.find("3"), std::string::npos) << under;
+  EXPECT_EQ(under.find("─"), std::string::npos) << "a rule split it";
+
+  // And the same on the screen an item at its last star gets.
+  EquipInstance topped = MakeItem(/*required_level=*/10, /*stars=*/5);
+  panel.SetItem(&topped);
+  under = LineAfter(Render(panel), "Sword");
+  EXPECT_NE(under.find("(max)"), std::string::npos) << under;
+}
+
 // --- the result window's colour ---
 
 // Which of the three happened is the whole point of the window, so it is said
@@ -143,9 +186,20 @@ TEST_F(StarForcePanelTest, TheResultWindowTakesTheOutcomesColour) {
   EXPECT_EQ(BorderColor(panel.RenderResult(r)), kRed);
   EXPECT_EQ(InnerRuleColor(panel.RenderResult(r)), kRed);
 
-  // Nothing changed, so nothing is coloured for it.
+  // Nothing changed, so nothing is coloured for it. Same for an attempt that
+  // was never made -- which is why it must not fall through to the destroy
+  // branch and tell the player an item they still own is gone.
   r.outcome = kStarForceFail;
   EXPECT_EQ(BorderColor(panel.RenderResult(r)), kTheme);
+
+  r.outcome = kStarForceNoMeso;
+  EXPECT_EQ(BorderColor(panel.RenderResult(r)), kTheme);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, panel.RenderResult(r));
+  std::string rendered = screen.ToString();
+  EXPECT_NE(rendered.find("NOT ENOUGH MESO"), std::string::npos);
+  EXPECT_EQ(rendered.find("DESTROYED"), std::string::npos);
 }
 
 }  // namespace

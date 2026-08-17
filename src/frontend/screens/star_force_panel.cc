@@ -10,6 +10,7 @@
 #include "src/frontend/widgets/confirm_prompt.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
+#include "src/item/star_force_cost.h"
 
 namespace ms {
 namespace {
@@ -49,10 +50,10 @@ ftxui::Element StarForcePanel::Render() const {
   std::string name = item_->prototype().name();
 
   if (stars >= item_->max_stars()) {
+    // The name and the star count are one heading, so no rule between them.
     return ThemedWindow(" Star Force ",
                         ftxui::vbox({
                             CenteredRow(name),
-                            ThemedSeparator(),
                             CenteredRow(std::to_string(stars) + "★ (max)"),
                             ThemedSeparator(),
                             CenteredRow("Maximum stars reached."),
@@ -73,8 +74,10 @@ ftxui::Element StarForcePanel::Render() const {
   EquipStats after = item_->StarForceStatGains(stars + 1);
 
   std::vector<ftxui::Element> rows;
+  // The name and the star it is going for are one heading, so no rule between
+  // them: what the rules separate is the heading, the stats, the odds and the
+  // price.
   rows.push_back(CenteredRow(name));
-  rows.push_back(ThemedSeparator());
   std::string arrow =
       std::to_string(stars) + "★ → " + std::to_string(stars + 1) + "★";
   rows.push_back(CenteredRow(arrow));
@@ -103,6 +106,12 @@ ftxui::Element StarForcePanel::Render() const {
   if (rate.destroy > 0) {
     RateRow("Destroy  ", destroy_str, kRed);
   }
+  rows.push_back(ThemedSeparator());
+  // What the attempt takes, charged whichever of the three ways it lands. Its
+  // own section, between the odds and the button: it is the last thing the
+  // player reads before pressing.
+  rows.push_back(CenteredRow(
+      FormatMeso(StarForceCost(item_->prototype().required_level(), stars))));
   rows.push_back(ThemedSeparator());
   rows.push_back(CenteredRow(ActionButton("Enhance", /*focused=*/true)));
   // Constrain inner width to at least the confirm prompt's, so the panel
@@ -161,6 +170,11 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
   } else if (r.outcome == kStarForceFail) {
     outcome_text = " FAILED ";
     outcome_color = kMutedYellow;
+  } else if (r.outcome == kStarForceNoMeso) {
+    // The one outcome that is not a roll: nothing was spent and the item was
+    // not touched, so it takes the plain frame a failure takes.
+    outcome_text = " NOT ENOUGH MESO ";
+    outcome_color = kRed;
   } else {
     outcome_text = " DESTROYED ";
     outcome_color = kRed;
@@ -170,7 +184,7 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
   if (r.outcome == kStarForceSuccess) {
     stars_text = std::to_string(r.stars_before) + "★ → " +
                  std::to_string(r.stars_after) + "★";
-  } else if (r.outcome == kStarForceFail) {
+  } else if (r.outcome == kStarForceFail || r.outcome == kStarForceNoMeso) {
     stars_text = std::to_string(r.stars_before) + "★";
   } else {
     stars_text = "lost at " + std::to_string(r.stars_before) + "★";
