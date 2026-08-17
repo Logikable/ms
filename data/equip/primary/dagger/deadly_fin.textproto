@@ -8,5 +8,5 @@ equip_type: EQUIP_TYPE_DAGGER
 upgrade_slots: 7
 equip_job_categories: EQUIP_JOB_CATEGORY_THIEF
 equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
-shop_price: 75000
-sell_price: 7500
+shop_price: 300000
+sell_price: 30000

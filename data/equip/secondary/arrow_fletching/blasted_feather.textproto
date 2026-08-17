@@ -10,5 +10,5 @@ equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
 equip_slot: EQUIP_SLOT_SECONDARY
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-shop_price: 200000
-sell_price: 20000
+shop_price: 1000000
+sell_price: 100000

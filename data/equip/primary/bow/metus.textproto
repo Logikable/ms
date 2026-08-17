@@ -8,5 +8,5 @@ equip_type: EQUIP_TYPE_BOW
 upgrade_slots: 7
 equip_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
 equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
-shop_price: 250000
-sell_price: 25000
+shop_price: 1250000
+sell_price: 125000
