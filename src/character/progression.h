@@ -75,11 +75,13 @@ std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level);
  * comes back.
  *
  * One pair of steps per upgrade, which is what makes the trail run again when
- * the next one arrives rather than being spent on the first.
+ * the next one arrives rather than being spent on the first. Not every upgrade
+ * takes both steps: star force arrives long after the item menu stopped being
+ * news, so its trail is the entry alone.
  */
 
-// Whether the equipped weapon's name should be gold: something has opened that
-// the player has not gone and looked at their weapon for.
+// Whether the equipped weapon's name should be gold: something that starts at
+// the weapon has opened, and the player has not gone and looked at it.
 bool LeadToWeapon(const CharacterInstance& character);
 
 // Records that they did. Puts out the weapon step of every upgrade open right

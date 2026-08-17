@@ -619,6 +619,41 @@ TEST_F(EquippedPanelTest, PressingTheUpgradePutsItsGoldOut) {
   EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
 }
 
+// Star force lights its entry and nothing else. By 120 the player has been
+// opening this menu since level 40, so the weapon needs no signpost -- and a
+// second gold thing on screen would only take the eye off the row that is
+// actually new.
+TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
+  sword_.set_upgrade_slots(1);
+  Equip spent;
+  spent.set_equip_name(sword_.name());
+  spent.set_remaining_upgrade_slots(0);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_, spent));
+  c_.Equip(0);
+  EquippedPanel panel(c_, panel_focus_);
+  ScrollPanel sp(c_, {});
+  ftxui::Component comp = panel.MakeComponent([]() {});
+
+  // Scrolling's own trail walked first, or its gold would still be lit and
+  // the assertions below could not tell the two upgrades apart.
+  LevelTo(UnlockLevel(Feature::kScrolling));
+  RenderComponent(comp);
+  panel.OpenMenu();
+  while (panel.menu().selected() != kMenuScroll) {
+    panel.menu().Down();
+  }
+  panel.OnMenuEvent(ftxui::Event::Return, sp);
+
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  // The weapon asked first: opening the menu is what puts a weapon's gold out,
+  // so asking after would answer for the wrong reason.
+  EXPECT_NE(LabelColor(comp->Render(), "Sword"), kYellow)
+      << "star force lit the weapon as well";
+  panel.OpenMenu();
+  EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Star Force"), kYellow);
+  EXPECT_NE(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
+}
+
 TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
   // A spent weapon: star force refuses an item with upgrade slots still on
   // it, and this test is about the level gate rather than that refusal.

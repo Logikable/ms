@@ -73,11 +73,17 @@ constexpr Feature kUpgrades[] = {
 struct Led {
   Feature feature;
   const char* slug;
+  // Whether the trail starts at the worn weapon's name. Scrolling arrives
+  // while the item menu is still a place the player may never have opened, so
+  // it needs the first signpost. Star force arrives at 120, by which time they
+  // have opened it a hundred times, and a second gold thing on screen only
+  // takes the eye off the entry.
+  bool from_weapon;
 };
 
 constexpr Led kLedUpgrades[] = {
-    {Feature::kScrolling, "scrolling"},
-    {Feature::kStarForce, "star_force"},
+    {Feature::kScrolling, "scrolling", true},
+    {Feature::kStarForce, "star_force", false},
 };
 
 std::string WeaponLeadKey(const char* slug) {
@@ -176,7 +182,7 @@ std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level) {
 
 bool LeadToWeapon(const CharacterInstance& character) {
   for (const Led& led : kLedUpgrades) {
-    if (Unlocked(led.feature, character) &&
+    if (led.from_weapon && Unlocked(led.feature, character) &&
         !character.TabSeen(WeaponLeadKey(led.slug))) {
       return true;
     }
@@ -186,7 +192,7 @@ bool LeadToWeapon(const CharacterInstance& character) {
 
 void FollowedToWeapon(CharacterInstance& character) {
   for (const Led& led : kLedUpgrades) {
-    if (Unlocked(led.feature, character)) {
+    if (led.from_weapon && Unlocked(led.feature, character)) {
       character.MarkTabSeen(WeaponLeadKey(led.slug));
     }
   }

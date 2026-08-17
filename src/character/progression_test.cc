@@ -163,8 +163,11 @@ TEST_F(ProgressionTest, EachStepGoesOutOnItsOwn) {
   EXPECT_FALSE(LeadToAction(Feature::kScrolling, c));
 }
 
-// The whole reason each upgrade keeps its own pair of keys: a player led to
-// scrolling at 40 has to be led to star force again when it arrives.
+// The whole reason each upgrade keeps its own keys: a player led to scrolling
+// at 40 has to be led to star force again when it arrives. Star force lights
+// the entry alone -- by 120 the item menu is somewhere the player has been a
+// hundred times, and a gold weapon name would only take the eye off the row
+// that matters.
 TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
   FollowedToWeapon(c);
@@ -174,10 +177,22 @@ TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
   while (c.proto().level() < UnlockLevel(Feature::kStarForce)) {
     c.LevelUp();
   }
-  EXPECT_TRUE(LeadToWeapon(c));
   EXPECT_TRUE(LeadToAction(Feature::kStarForce, c));
+  EXPECT_FALSE(LeadToWeapon(c)) << "star force lit the weapon as well";
   EXPECT_FALSE(LeadToAction(Feature::kScrolling, c))
       << "the one already followed stays followed";
+}
+
+// A player who never opened the menu at 40 is still owed the weapon's gold at
+// 120: the step that arrives with an upgrade stays lit until it is walked, and
+// star force adds nothing to it either way.
+TEST_F(ProgressionTest, AnUnwalkedFirstStepOutlastsTheNextUpgrade) {
+  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kStarForce));
+  EXPECT_TRUE(LeadToWeapon(c));
+  FollowedToWeapon(c);
+  EXPECT_FALSE(LeadToWeapon(c));
+  EXPECT_TRUE(LeadToAction(Feature::kStarForce, c))
+      << "opening the menu is not pressing the entry";
 }
 
 // Only the upgrades have one. A tab that lights itself gold when it arrives is
