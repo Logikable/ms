@@ -36,10 +36,6 @@ constexpr Unlock kUnlocks[] = {
     // take 15, and now that an attempt is priced, opening the screen earlier
     // only offers the player a bill for a star that is barely worth having.
     {Feature::kStarForce, 120},
-    // Nothing in reach can be destroyed -- that starts at the 16th star, and
-    // no gear yet takes more than 15 -- so this waits at the top for the tier
-    // that can. Only the workbench has anything to recover.
-    {Feature::kRecovery, 140},
 };
 
 // What an advancement opens rather than a level, and which one opens it: 1 is
@@ -63,12 +59,12 @@ constexpr StageUnlock kStageUnlocks[] = {
     {Feature::kAdvancedStats, 3},
 };
 
-// The upgrades, in the order they arrive. One list rather than a condition in
-// the card and another in the menus, so a fourth upgrade joins both at once.
+// The upgrades a level opens, in the order they arrive. One list rather than a
+// condition in the card and another in the menus, so a third joins both at
+// once.
 constexpr Feature kUpgrades[] = {
     Feature::kScrolling,
     Feature::kStarForce,
-    Feature::kRecovery,
 };
 
 // The upgrades with a gold trail, and the slug their latch keys are built
@@ -153,8 +149,6 @@ std::string FeatureName(Feature feature) {
       return "Scrolling";
     case Feature::kStarForce:
       return "Star Force";
-    case Feature::kRecovery:
-      return "Recovery";
     case Feature::kSkills:
       return "Skills";
     case Feature::kShop:

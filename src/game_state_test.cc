@@ -311,7 +311,7 @@ TEST(GameStateTest, TestModeStartsWithLevelUpItems) {
   EXPECT_EQ(use[0].name(), "Level-Up");
   // Enough of them to climb past every gate in the unlock table without
   // farming a level of it.
-  EXPECT_GT(use[0].count(), UnlockLevel(Feature::kRecovery));
+  EXPECT_GT(use[0].count(), UnlockLevel(Feature::kStarForce));
   EXPECT_EQ(use[0].prototype().effect(), ITEM_EFFECT_LEVEL_UP);
 }
 

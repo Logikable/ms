@@ -29,9 +29,8 @@ enum class Feature {
   kUnequip,
   kScrolling,
   kStarForce,
-  // Recovering a destroyed item's trace. Last, because the star force levels
-  // that can destroy an item in the first place need equipment this late.
-  kRecovery,
+  // Recovery is not here: it needs a trace, and a trace only exists after an
+  // item exploded, which no level reaches on its own. The item is the gate.
   // Tabs. Skills is the one gate that is not level alone -- see Unlocked.
   kSkills,
   kShop,
@@ -76,9 +75,7 @@ std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level);
  * comes back.
  *
  * One pair of steps per upgrade, which is what makes the trail run again when
- * the next one arrives rather than being spent on the first. Only the upgrades
- * a worn weapon can actually take: recovery applies to a destroyed item's
- * trace, so pointing at the weapon for it would lead nowhere.
+ * the next one arrives rather than being spent on the first.
  */
 
 // Whether the equipped weapon's name should be gold: something has opened that

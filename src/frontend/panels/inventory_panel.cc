@@ -296,9 +296,10 @@ void InventoryPanel::OpenEquipMenu() {
   if (!Unlocked(Feature::kStarForce, character_)) {
     menu_.Hide(kMenuStarForce);
   }
-  if (!Unlocked(Feature::kRecovery, character_)) {
-    menu_.Hide(kMenuRecover);
-  }
+  // Recovery has no level of its own: owning a trace already means an item
+  // exploded, which takes the 16th star. The item is the gate, so the entry
+  // stands on every trace and on nothing else.
+  //
   // Selling arrives with the shop, which is the counter it happens at. No
   // gold on it when it does: the gold trail is for an upgrade the player is
   // being sent to find, and the Shop tab lighting up already says this one

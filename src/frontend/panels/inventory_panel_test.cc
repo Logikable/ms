@@ -425,7 +425,7 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
 
   // High enough that every upgrade entry would be on the menu for an ordinary
   // item. What disables them here has to be the trace, not the level.
-  LevelTo(UnlockLevel(Feature::kRecovery));
+  LevelTo(UnlockLevel(Feature::kStarForce));
   InventoryPanel panel(c_, panel_focus_);
   panel.OpenMenu();
   // Recover is offered on a trace -- it is the one thing a trace is for -- so
@@ -451,7 +451,7 @@ TEST_F(InventoryPanelTest, TraceMenuDisablesAllExceptInspect) {
 // Recovery puts a destroyed item back together, so it means nothing on an item
 // that was never destroyed.
 TEST_F(InventoryPanelTest, ALiveItemIsOfferedNoRecovery) {
-  LevelTo(UnlockLevel(Feature::kRecovery));
+  LevelTo(UnlockLevel(Feature::kStarForce));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, panel_focus_);
   panel.OpenMenu();
@@ -559,23 +559,39 @@ TEST_F(InventoryPanelTest, ScrollingArrivesAtItsLevel) {
   EXPECT_NE(std::count(after.begin(), after.end(), kMenuScroll), 0);
 }
 
-// Star force and recovery are the two late ones, and they arrive separately.
-TEST_F(InventoryPanelTest, StarForceAndRecoveryArriveOnTime) {
+TEST_F(InventoryPanelTest, StarForceArrivesAtItsLevel) {
+  // A spent weapon: an item with slots left greys the entry, and this test is
+  // about the level gate rather than that refusal.
+  EquipPrototype proto = sword_;
+  proto.set_upgrade_slots(1);
+  Equip spent;
+  spent.set_equip_name(proto.name());
+  spent.set_remaining_upgrade_slots(0);
+  c_.PickUp(std::make_unique<EquipInstance>(proto, spent));
+  InventoryPanel panel(c_, panel_focus_);
+
+  LevelTo(UnlockLevel(Feature::kStarForce) - 1);
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kMenuStarForce), 0);
+
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kMenuStarForce), 0);
+}
+
+// Recovery has no level of its own. A trace exists only because an item
+// exploded, which takes the 16th star, so the trace is the whole of the gate
+// -- a character holding one at level 1 is offered it.
+TEST_F(InventoryPanelTest, RecoveryFollowsTheTraceAndNotTheLevel) {
   Equip destroyed;
   destroyed.set_equip_name(sword_.name());
   c_.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
   InventoryPanel panel(c_, panel_focus_);
-
-  LevelTo(UnlockLevel(Feature::kStarForce));
   panel.OpenMenu();
-  std::vector<int> at_60 = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(at_60.begin(), at_60.end(), kMenuRecover), 0)
-      << "recovery waits for 140";
-
-  LevelTo(UnlockLevel(Feature::kRecovery));
-  panel.OpenMenu();
-  std::vector<int> at_140 = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(at_140.begin(), at_140.end(), kMenuRecover), 0);
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuRecover), 0);
 }
 
 // An ordinary weapon keeps both, including one with no slots left: a spent

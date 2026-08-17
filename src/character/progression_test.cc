@@ -40,7 +40,6 @@ TEST_F(ProgressionTest, ANewCharacterHasOnePanel) {
   EXPECT_FALSE(Unlocked(Feature::kUnequip, c));
   EXPECT_FALSE(Unlocked(Feature::kScrolling, c));
   EXPECT_FALSE(Unlocked(Feature::kStarForce, c));
-  EXPECT_FALSE(Unlocked(Feature::kRecovery, c));
   EXPECT_FALSE(Unlocked(Feature::kSkills, c));
   EXPECT_FALSE(Unlocked(Feature::kShop, c));
   EXPECT_FALSE(Unlocked(Feature::kCombatStats, c));
@@ -76,8 +75,7 @@ TEST_F(ProgressionTest, TheStatBlockReportsTheAdvancementLevel) {
 TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
   const Feature kLevelGated[] = {Feature::kEquipped,  Feature::kBag,
                                  Feature::kUnequip,   Feature::kShop,
-                                 Feature::kScrolling, Feature::kStarForce,
-                                 Feature::kRecovery};
+                                 Feature::kScrolling, Feature::kStarForce};
   for (Feature feature : kLevelGated) {
     int level = UnlockLevel(feature);
     SCOPED_TRACE(FeatureName(feature));
@@ -94,12 +92,10 @@ TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
 }
 
 // An upgrade written above the cap is one nobody but the workbench can press,
-// so every one of them has to fall inside it. Recovery sits on the cap itself
-// -- it is the last thing the climb hands over.
+// so every one of them has to fall inside it.
 TEST_F(ProgressionTest, EveryUpgradeFallsInsideTheCap) {
   EXPECT_LE(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
   EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
-  EXPECT_LE(UnlockLevel(Feature::kRecovery), kTrialLevelCap);
 }
 
 // --- the upgrades a climb opened ---
@@ -126,16 +122,15 @@ TEST_F(ProgressionTest, ReadsTheWholeSpanNotTheLevelLandedOn) {
 // upgrades need the card to say their names.
 TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
   EXPECT_TRUE(UpgradesUnlockedBetween(1, UnlockLevel(Feature::kShop)).empty());
-  EXPECT_EQ(UpgradesUnlockedBetween(1, UnlockLevel(Feature::kRecovery)).size(),
-            3u)
-      << "scrolling, star force and recovery, in the order they arrive";
+  EXPECT_EQ(UpgradesUnlockedBetween(1, kTrialLevelCap).size(), 2u)
+      << "scrolling and star force, in the order they arrive";
 }
 
 TEST_F(ProgressionTest, EveryFeatureHasAName) {
   const Feature kAll[] = {
       Feature::kEquipped,  Feature::kBag,       Feature::kUnequip,
-      Feature::kScrolling, Feature::kStarForce, Feature::kRecovery,
-      Feature::kSkills,    Feature::kShop,
+      Feature::kScrolling, Feature::kStarForce, Feature::kSkills,
+      Feature::kShop,
   };
   for (Feature feature : kAll) {
     EXPECT_FALSE(FeatureName(feature).empty());
@@ -185,12 +180,12 @@ TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
       << "the one already followed stays followed";
 }
 
-// Recovery applies to a destroyed item's trace, so pointing at the worn weapon
-// for it would lead the player nowhere.
-TEST_F(ProgressionTest, RecoveryHasNoTrail) {
-  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kRecovery));
-  EXPECT_FALSE(LeadToAction(Feature::kRecovery, c));
+// Only the upgrades have one. A tab that lights itself gold when it arrives is
+// not being led to.
+TEST_F(ProgressionTest, AFeatureWithoutATrailIsNeverGold) {
+  CharacterInstance c = MakeCharacter(kTrialLevelCap);
   EXPECT_FALSE(LeadToAction(Feature::kShop, c));
+  EXPECT_FALSE(LeadToAction(Feature::kBag, c));
 }
 
 // Taking something off needs somewhere to put it, so the two move together.
