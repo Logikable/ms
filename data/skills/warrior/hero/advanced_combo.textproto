@@ -1,6 +1,7 @@
 # GMS caps this at 30 and ends at 10% final damage an orb, ten orbs and 70%
 # mastery. Scaled to 20 levels to exactly those three -- this is the job's
-# mastery skill, and 20 is what the book has room for.
+# mastery skill, and 20 is what the book has room for. Mastery climbs 51% to
+# 70%, the ladder every 4th job mastery skill takes.
 #
 # The orb rate is 5/19 written out: five orbs bought over the nineteen steps
 # above level 1, so the tenth lands on the master level and the two levels
@@ -32,9 +33,9 @@ required_skill {
 }
 base {
   final_dmg_pct_per_combo_orb: 0.06
-  mastery: 0.55
+  mastery: 0.51
 }
 per_level {
   final_dmg_pct_per_combo_orb: 0.00211
-  mastery: 0.00789
+  mastery: 0.01
 }

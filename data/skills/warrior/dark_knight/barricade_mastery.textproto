@@ -1,8 +1,8 @@
 # GMS caps this at 30 and ends at 70% mastery, 30 attack and 15% critical
 # damage. Scaled to 20 levels to exactly those three, so the book totals 200 --
-# the levels are coarser, the skill is no stronger. Level 1 lands a little
-# above GMS's: attack is a whole number, so a ladder that ends on 30 in twenty
-# steps has to start at 11.
+# the levels are coarser, the skill is no stronger. Mastery climbs 51% to 70%,
+# the ladder every 4th job mastery skill takes. Attack starts at 11 rather than
+# GMS's 10 because it is a whole number and has to reach 30 in twenty steps.
 name: "Barricade Mastery"
 skill_order: 7
 description:
@@ -19,12 +19,12 @@ required_skill {
   level: 10
 }
 base {
-  mastery: 0.567
+  mastery: 0.51
   attack: 11
   crit_dmg: 0.055
 }
 per_level {
-  mastery: 0.007
+  mastery: 0.01
   attack: 1
   crit_dmg: 0.005
 }

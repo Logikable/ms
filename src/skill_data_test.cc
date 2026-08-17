@@ -676,5 +676,28 @@ TEST(SkillDataTest, OneSkillPerNamePerCharacter) {
   }
 }
 
+// A 4th job's mastery skill is what its branch holds a weapon by, so all of
+// them climb one ladder: 51% at level 1 to 70% at 20. Written to its own
+// arithmetic, one branch would end up better at holding a weapon than the
+// next for no reason a player could read.
+TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
+  int checked = 0;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (StageForAdvancement(skill.job_advancement()) != 4 ||
+        skill.base().mastery() <= 0.0) {
+      continue;
+    }
+    ++checked;
+    EXPECT_EQ(skill.max_level(), 20) << entry.first;
+    EXPECT_NEAR(skill.base().mastery(), 0.51, 1e-9) << entry.first;
+    EXPECT_NEAR(skill.base().mastery() +
+                    skill.per_level().mastery() * (skill.max_level() - 1),
+                0.70, 1e-9)
+        << entry.first;
+  }
+  EXPECT_GT(checked, 0) << "no 4th job mastery skill in the catalog";
+}
+
 }  // namespace
 }  // namespace ms
