@@ -70,9 +70,9 @@ TEST(RollMesoTest, OneKillPaysInsideTheBandOrNothing) {
     if (meso == 0) {
       continue;  // the 40% of kills that pay nothing
     }
-    EXPECT_GE(meso, 70 * 4.8);
-    EXPECT_LE(meso, 70 * 7.2);
-    if (meso != 70 * 6) {
+    EXPECT_GE(meso, 6.0 * 70 * 4.8);
+    EXPECT_LE(meso, 6.0 * 70 * 7.2);
+    if (meso != 6 * 70 * 6) {
       paid_off_the_mean = true;
     }
   }
@@ -84,7 +84,8 @@ TEST(RollMesoTest, ALevelOneMobPaysAFlatMeso) {
   mob.set_level(1);
   std::mt19937 rng(11);
   int64_t total = RollMeso(mob, 1, 10000, rng);
-  EXPECT_NEAR(total, 6000, 200);  // 60% of kills, one meso each
+  // 60% of kills, one meso each, at the Heroic world's 6x.
+  EXPECT_NEAR(total, 36000, 1000);
 }
 
 // Out-levelled far enough and the mob pays nothing at all, so there is
@@ -136,32 +137,28 @@ TEST(MesoLevelPenaltyTest, UnderLevelThirtyFourPlusYieldsNothing) {
   EXPECT_DOUBLE_EQ(MesoLevelPenalty(-60), 0.0);
 }
 
+// The 6.0 in each of these is the Heroic world rate, written out rather than
+// folded into the number so a change to it reads as itself.
 TEST(ExpectedMesoPerKillTest, LevelOneMobDropsFlatBase) {
   Mob mob;
   mob.set_level(1);
   // 0.60 drop chance * 1 flat meso * no penalty.
-  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 1), 0.60);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 1), 6.0 * 0.60);
 }
 
 TEST(ExpectedMesoPerKillTest, ScalesByLevelBandMean) {
   Mob mob;
   mob.set_level(10);
-  // 0.60 * (10 * 2.0 band mean) * no penalty.
-  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 10), 12.0);
-}
-
-TEST(ExpectedMesoPerKillTest, HigherBandUsesHigherMean) {
-  Mob mob;
-  mob.set_level(21);
-  // 0.60 * (21 * 2.5 band mean) * no penalty.
-  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 21), 31.5);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 10), 6.0 * 0.60 * 10 * 2.0);
+  mob.set_level(21);  // the next band up
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 21), 6.0 * 0.60 * 21 * 2.5);
 }
 
 TEST(ExpectedMesoPerKillTest, AppliesLevelPenalty) {
   Mob mob;
   mob.set_level(10);
   // Player 20 levels over: 0.60 * 20 * 0.80 penalty.
-  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 30), 0.60 * 20.0 * 0.80);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 30), 6.0 * 0.60 * 20.0 * 0.80);
 }
 
 }  // namespace

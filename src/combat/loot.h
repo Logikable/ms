@@ -25,9 +25,13 @@ namespace ms {
 double MesoLevelPenalty(int level_difference);
 
 // Expected meso one kill of `mob` yields a player at player_level: the 60% base
-// drop chance times the mob's level-banded amount times the level penalty.
-// The character's own meso bonus is applied by the caller, which is where the
-// passives are already resolved; item-drop-rate is still deferred.
+// drop chance times the mob's level-banded amount times the level penalty, all
+// at the Heroic world's 6x rate. The character's own meso bonus is applied by
+// the caller, which is where the passives are already resolved;
+// item-drop-rate is still deferred.
+//
+// The world rate belongs here and not in AddMeso, which pays out sales as
+// well: GMS multiplies what a monster drops, never what an NPC pays.
 //
 // What RollMeso averages, and the number the meso curve is drawn from. A sim
 // measuring the economy wants the mean rather than one sample of it.

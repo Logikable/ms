@@ -21,6 +21,12 @@ constexpr int kMesoPenaltyFreeGap = 10;
 // so one spread covers the table.
 constexpr double kMesoSpread = 0.2;
 
+// What a Heroic world multiplies every meso drop by. GMS hands one out as a
+// Novice passive: a world with no trading has to buy with meso what an
+// Interactive world buys for cash, so the drops are worth six times as much.
+// We have no trading either, which makes Heroic the world we already are.
+constexpr double kHeroicMesoMultiplier = 6.0;
+
 // Mean of the mob's randomized meso multiplier k, chosen by the level band the
 // mob falls in; the dropped amount is mob_level * k. Bounds are the midpoints
 // of the GMS per-band k ranges. Level 1 is a flat 1 meso, handled by the
@@ -83,7 +89,7 @@ double ExpectedMesoPerKill(const Mob& mob, int player_level) {
   // mean.
   double base_amount =
       mob_level <= 1 ? 1.0 : mob_level * MeanMesoMultiplier(mob_level);
-  return kMesoDropChance * base_amount *
+  return kHeroicMesoMultiplier * kMesoDropChance * base_amount *
          MesoLevelPenalty(player_level - mob_level);
 }
 
@@ -118,7 +124,8 @@ int64_t RollMeso(const Mob& mob, int player_level, int64_t kills,
   int64_t drops = paying(rng);
   int mob_level = mob.level();
   if (mob_level <= 1) {
-    return static_cast<int64_t>(drops * penalty);  // a flat 1 meso each
+    // A flat 1 meso each before the world rate.
+    return static_cast<int64_t>(drops * penalty * kHeroicMesoMultiplier);
   }
   double mean = MeanMesoMultiplier(mob_level);
   std::uniform_real_distribution<double> multiplier(mean * (1.0 - kMesoSpread),
@@ -127,7 +134,8 @@ int64_t RollMeso(const Mob& mob, int player_level, int64_t kills,
   // pays for a few dozen kills and a sim's longest step for a few hundred.
   int64_t total = 0;
   for (int64_t i = 0; i < drops; ++i) {
-    total += std::llround(mob_level * multiplier(rng) * penalty);
+    total += std::llround(mob_level * multiplier(rng) * penalty *
+                          kHeroicMesoMultiplier);
   }
   return total;
 }
