@@ -42,6 +42,41 @@ class EquippedPanelTest : public PanelTest {
       seen.push_back(menu.selected());
     }
   }
+
+  // The Equipped panel of a `job` wearing a 45-attack weapon and a 25-attack
+  // projectile, rendered. Nothing is asserted here about which of the two
+  // counts -- that is what the caller reads off the rows.
+  std::string RenderWorn(Job job, const std::string& weapon_name,
+                         EquipType weapon_type, const std::string& ammo_name,
+                         EquipType ammo_type) {
+    EquipPrototype weapon;
+    weapon.set_name(weapon_name);
+    weapon.set_equip_type(weapon_type);
+    weapon.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    weapon.mutable_base_stats()->set_attack(45);
+    EquipPrototype ammo;
+    ammo.set_name(ammo_name);
+    ammo.set_equip_type(ammo_type);
+    ammo.set_equip_slot(EQUIP_SLOT_PROJECTILE);
+    ammo.mutable_base_stats()->set_attack(25);
+
+    Character proto;
+    proto.set_job(job);
+    characters_.push_back(
+        std::make_unique<CharacterInstance>(rng_, std::move(proto)));
+    CharacterInstance& character = *characters_.back();
+    character.PickUp(std::make_unique<EquipInstance>(weapon));
+    character.Equip(0);
+    character.PickUp(std::make_unique<EquipInstance>(ammo));
+    character.Equip(0);
+    EXPECT_EQ(character.equip_stats().attack(), 45) << ammo_name << " counted";
+
+    EquippedPanel panel(character, panel_focus_);
+    return RenderComponent(panel.MakeComponent([]() {}));
+  }
+
+  // The panel holds a reference, so each character has to outlive its render.
+  std::vector<std::unique_ptr<CharacterInstance>> characters_;
 };
 
 // The single rendered line holding `needle`, escape codes and all.
@@ -207,35 +242,23 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
 }
 
 TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {
-  EquipPrototype dagger;
-  dagger.set_name("Reef Claw");
-  dagger.set_equip_type(EQUIP_TYPE_DAGGER);
-  dagger.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  dagger.mutable_base_stats()->set_attack(45);
-  EquipPrototype stars;
-  stars.set_name("Steely Throwing-Knives");
-  stars.set_equip_type(EQUIP_TYPE_THROWING_STAR);
-  stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
-  stars.mutable_base_stats()->set_attack(25);
-
-  Character proto;
-  proto.set_job(JOB_ROGUE);
-  CharacterInstance rogue(rng_, std::move(proto));
-  rogue.PickUp(std::make_unique<EquipInstance>(dagger));
-  rogue.Equip(0);
-  rogue.PickUp(std::make_unique<EquipInstance>(stars));
-  rogue.Equip(0);
-  ASSERT_EQ(rogue.equip_stats().attack(), 45);  // the stars are not counting
-
-  EquippedPanel panel(rogue, panel_focus_);
-  std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
+  // A rogue holding a dagger, and an archer holding a bow: neither draws the
+  // ammunition worn beside it, so neither projectile counts.
+  std::string rogue =
+      RenderWorn(JOB_ROGUE, "Reef Claw", EQUIP_TYPE_DAGGER,
+                 "Steely Throwing-Knives", EQUIP_TYPE_THROWING_STAR);
+  std::string archer =
+      RenderWorn(JOB_ARCHER, "War Bow", EQUIP_TYPE_BOW, "Bronze Arrow",
+                 EQUIP_TYPE_ARROW_FOR_CROSSBOW);
   // Color codes sit between the dim marker and the text, so the row is checked
   // as a whole rather than for an exact prefix.
-  std::string stars_row = LineWith(rendered, "Steely");
+  std::string stars_row = LineWith(rogue, "Steely");
   EXPECT_NE(stars_row.find("+25 ATT"), std::string::npos);  // still shown
   EXPECT_NE(stars_row.find("\033[2m"), std::string::npos);
-  // The dagger is counting, so its row is drawn plainly.
-  EXPECT_EQ(LineWith(rendered, "Reef Claw").find("\033[2m"), std::string::npos);
+  EXPECT_NE(LineWith(archer, "Bronze").find("\033[2m"), std::string::npos);
+  // Each weapon is counting, so its own row is drawn plainly.
+  EXPECT_EQ(LineWith(rogue, "Reef Claw").find("\033[2m"), std::string::npos);
+  EXPECT_EQ(LineWith(archer, "War Bow").find("\033[2m"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
