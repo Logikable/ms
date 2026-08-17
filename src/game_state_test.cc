@@ -390,29 +390,41 @@ TEST(GameStateTest, BothModesStartWearingAWeapon) {
 }
 
 // The set effect cannot be read off the stats page without the whole set, and
-// farming one out takes a climb to 100. The workbench hands it over instead.
-TEST(GameStateTest, TestModeCarriesTheWholeFrozenSet) {
-  const std::pair<std::string, std::string> kPieces[] = {
-      {"frozen_hat", "Frozen Hat"},
-      {"frozen_top", "Frozen Top"},
-      {"frozen_bottom", "Frozen Bottom"},
-      {"frozen_cape", "Frozen Cape"}};
+// farming one out takes a climb to 100. The workbench wears it instead --
+// worn and not carried, so nothing has to be put on to read the bonus.
+TEST(GameStateTest, TestModeWearsTheWholeFrozenSet) {
+  struct Piece {
+    const char* key;
+    const char* name;
+    EquipSlot slot;
+  };
+  const Piece kPieces[] = {
+      {"frozen_hat", "Frozen Hat", EQUIP_SLOT_HAT},
+      {"frozen_top", "Frozen Top", EQUIP_SLOT_TOP},
+      {"frozen_bottom", "Frozen Bottom", EQUIP_SLOT_BOTTOM},
+      {"frozen_cape", "Frozen Cape", EQUIP_SLOT_CAPE}};
   std::map<std::string, EquipPrototype> catalog = SwordCatalog();
-  for (const std::pair<std::string, std::string>& piece : kPieces) {
+  for (const Piece& piece : kPieces) {
     EquipPrototype proto;
-    proto.set_name(piece.second);
-    proto.set_equip_slot(EQUIP_SLOT_TOP);
-    catalog[piece.first] = proto;
+    proto.set_name(piece.name);
+    proto.set_equip_slot(piece.slot);
+    catalog[piece.key] = proto;
   }
 
   GameState state(catalog, {}, {}, {}, {}, {}, GameMode::kTest);
+  const std::map<EquipSlot, EquipInstance>& worn = state.character.equipped();
+  for (const Piece& piece : kPieces) {
+    std::map<EquipSlot, EquipInstance>::const_iterator it =
+        worn.find(piece.slot);
+    ASSERT_NE(it, worn.end()) << "the workbench has no " << piece.name;
+    EXPECT_EQ(it->second.prototype().name(), piece.name);
+  }
+  // And no second copy in the bag. Four pieces nobody can wear twice were
+  // four rows of clutter in front of everything the workbench is for.
   const InventoryInstance& bag = state.character.inventory();
-  for (const std::pair<std::string, std::string>& piece : kPieces) {
-    bool held = false;
-    for (int i = 0; i < bag.size(); ++i) {
-      held = held || bag[i].prototype().name() == piece.second;
-    }
-    EXPECT_TRUE(held) << "the workbench has no " << piece.second;
+  for (int i = 0; i < bag.size(); ++i) {
+    EXPECT_EQ(bag[i].prototype().name().find("Frozen"), std::string::npos)
+        << bag[i].prototype().name() << " is carried as well as worn";
   }
 }
 
