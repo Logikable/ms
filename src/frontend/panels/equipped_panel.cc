@@ -134,8 +134,13 @@ EquipSlot EquippedPanel::selected_slot() const {
 }
 
 ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
-  std::string cursor = state.focused ? "> " : "  ";
   int idx = state.index;
+  // Drawn from selected_, not from state.focused. The Menu keeps its own idea
+  // of the current row, and WrappingList turns the ring by writing selected_
+  // itself -- a move the Menu never sees. The two then disagree, and the caret
+  // points at the row the player left while Enter acts on the one they are on.
+  bool on_cursor = idx == selected_ && panel_focus_ == kEquipPanel;
+  std::string cursor = on_cursor ? "> " : "  ";
   ftxui::Element row = ftxui::text(cursor + state.label);
   if (idx >= 0 && idx < static_cast<int>(led_.size()) && led_[idx]) {
     // The name alone, not the whole row: it is the item being pointed at, and

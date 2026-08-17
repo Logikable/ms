@@ -264,6 +264,7 @@ TEST_F(EquippedPanelTest, DimsAnItemThatIsNotCounting) {
 TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
+  panel_focus_ = kEquipPanel;
   EquippedPanel panel(c_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("> Sword"),
             std::string::npos);
@@ -468,6 +469,7 @@ int RowWithCursor(const ftxui::Screen& screen) {
 // from the header rows above the list, which is what the caller used to do.
 TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
+  panel_focus_ = kEquipPanel;
   EquippedPanel panel(rogue, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
@@ -478,9 +480,33 @@ TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   EXPECT_EQ(panel.cursor_row(), drawn);
 }
 
+// The list is a ring, and WrappingList turns the corner by writing selected_
+// itself -- a move the ftxui::Menu never sees, so the Menu's own idea of the
+// current row stays where the player left it. A caret drawn from that idea
+// then points at one row while Enter acts on another, which is what the
+// player sees: they wrap to the top and the caret stays at the bottom.
+TEST_F(EquippedPanelTest, TheCursorFollowsTheSelectionAroundTheRing) {
+  CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(rogue, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderComponent(comp);
+  int top = panel.cursor_row();
+  comp->OnEvent(ftxui::Event::ArrowDown);  // to the second row
+  RenderComponent(comp);
+  ASSERT_EQ(panel.cursor_row(), top + 1);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // round to the first
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                               ftxui::Dimension::Fixed(20));
+  ftxui::Render(screen, comp->Render());
+  ASSERT_EQ(panel.selected(), 0) << "the ring did not wrap";
+  EXPECT_EQ(RowWithCursor(screen), top) << "the caret stayed behind the wrap";
+}
+
 // It follows the cursor rather than sitting at the top of the list.
 TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
+  panel_focus_ = kEquipPanel;
   EquippedPanel panel(rogue, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
