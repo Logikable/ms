@@ -1,0 +1,8 @@
+# The Normal form, not the Transformed one that shares its name and pays
+# double. Lifted 25.0%, HP with EXP -- see jr_newtie.
+name: "Nest Golem"
+level: 150
+attack: 3412
+max_hp: 1983500
+exp: 10440
+drops { item: "destroyed_nest" per_kill: 0.4 }

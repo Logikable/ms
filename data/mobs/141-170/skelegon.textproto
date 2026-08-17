@@ -1,0 +1,8 @@
+# Lifted 22.7%, HP with EXP -- see jr_newtie. Attack is GMS's own and is
+# lower than Jr. Newtie's two levels below: the whole nest is soft.
+name: "Skelegon"
+level: 147
+attack: 3199
+max_hp: 1748500
+exp: 9389
+drops { item: "broken_horn" per_kill: 0.4 }

@@ -1,0 +1,2 @@
+name: "Dreamy Forest Trail"
+spawns { mob: "mutant_ribbon_pig" count: 29 }

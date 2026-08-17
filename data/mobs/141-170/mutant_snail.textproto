@@ -1,0 +1,9 @@
+# Attack tempered 7,107 -> 5,510, onto the curve the rest of the game
+# climbs. GMS runs the Henesys Ruins mobs a third hot on attack, and mobs
+# hit the player here.
+name: "Mutant Snail"
+level: 162
+attack: 5510
+max_hp: 3675000
+exp: 16158
+drops { item: "mutant_snail_shell" per_kill: 0.4 }

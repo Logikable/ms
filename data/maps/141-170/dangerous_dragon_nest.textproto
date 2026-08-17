@@ -1,0 +1,2 @@
+name: "Dangerous Dragon Nest"
+spawns { mob: "nest_golem" count: 27 }

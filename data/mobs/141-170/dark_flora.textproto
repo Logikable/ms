@@ -1,0 +1,8 @@
+# GMS's numbers untouched: this is where the curve comes back. It looked
+# like a cliff only because the four nest mobs below it had sagged.
+name: "Dark Flora"
+level: 156
+attack: 4282
+max_hp: 2824600
+exp: 12878
+drops { item: "dark_flora_petal" per_kill: 0.4 }

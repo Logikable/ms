@@ -1,0 +1,3 @@
+name: "Peak of the Big Nest"
+spawns { mob: "skelegon" count: 14 }
+spawns { mob: "skelosaurus" count: 14 }

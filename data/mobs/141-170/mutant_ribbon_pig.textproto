@@ -1,0 +1,7 @@
+# Attack tempered 8,758 -> 6,542 -- see mutant_snail. HP and EXP are GMS's.
+name: "Mutant Ribbon Pig"
+level: 168
+attack: 6542
+max_hp: 4624800
+exp: 19716
+drops { item: "mutant_pork" per_kill: 0.4 }
