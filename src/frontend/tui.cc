@@ -431,7 +431,8 @@ ftxui::Element Tui::RenderScreen() {
           ftxui::center(buy_panel_.Render() | ftxui::clear_under),
       });
     case kStarForce:
-      star_force_panel_.SetItem(controller_.star_force_item());
+      star_force_panel_.SetItem(controller_.star_force_item(),
+                                state_.character.meso());
       return ftxui::center(star_force_panel_.Render());
     case kStarForceResult:
       return ftxui::center(

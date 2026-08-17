@@ -47,18 +47,8 @@ ftxui::Element ConfirmButtons(ConfirmFocus focus) {
 }
 
 ftxui::Element ConfirmButtons(ConfirmFocus focus, bool confirm_enabled) {
-  ftxui::Element confirm =
-      ActionButton("Confirm", focus == ConfirmFocus::kConfirm);
-  if (!confirm_enabled) {
-    confirm = confirm | ftxui::dim;
-  }
-  return ftxui::hbox({
-      ftxui::text(" "),
-      std::move(confirm),
-      ftxui::text("   "),
-      ActionButton("Cancel", focus == ConfirmFocus::kCancel),
-      ftxui::text(" "),
-  });
+  return ButtonRow("Confirm", "Cancel", focus == ConfirmFocus::kConfirm,
+                   focus == ConfirmFocus::kCancel, confirm_enabled);
 }
 
 ConfirmFocus ConfirmPrompt::focus() const {

@@ -1,8 +1,10 @@
 #include "src/frontend/screens/star_force_panel.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -37,8 +39,24 @@ std::string PadTo(const std::string& s, int width) {
 
 }  // namespace
 
-void StarForcePanel::SetItem(const EquipInstance* item) {
+void StarForcePanel::SetItem(const EquipInstance* item, int64_t meso) {
   item_ = item;
+  meso_ = meso;
+}
+
+int64_t StarForcePanel::Cost() const {
+  if (item_ == nullptr) {
+    return 0;
+  }
+  return StarForceCost(item_->prototype().required_level(), item_->stars());
+}
+
+bool StarForcePanel::Affordable() const {
+  return meso_ >= Cost();
+}
+
+bool StarForcePanel::OnCancel() const {
+  return cancel_selected_ || !Affordable();
 }
 
 ftxui::Element StarForcePanel::Render() const {
@@ -109,11 +127,18 @@ ftxui::Element StarForcePanel::Render() const {
   rows.push_back(ThemedSeparator());
   // What the attempt takes, charged whichever of the three ways it lands. Its
   // own section, between the odds and the button: it is the last thing the
-  // player reads before pressing.
-  rows.push_back(CenteredRow(
-      FormatMeso(StarForceCost(item_->prototype().required_level(), stars))));
+  // player reads before pressing. Red when the purse will not cover it, which
+  // is the reason the button below is greyed.
+  ftxui::Element price = CenteredRow(FormatMeso(Cost()));
+  if (!Affordable()) {
+    price = std::move(price) | ftxui::color(kRed);
+  }
+  rows.push_back(std::move(price));
   rows.push_back(ThemedSeparator());
-  rows.push_back(CenteredRow(ActionButton("Enhance", /*focused=*/true)));
+  rows.push_back(CenteredRow(ButtonRow("Enhance", "Cancel",
+                                       /*go_focused=*/!OnCancel(),
+                                       /*leave_focused=*/OnCancel(),
+                                       /*go_enabled=*/Affordable())));
   // Constrain inner width to at least the confirm prompt's, so the panel
   // never widens when the prompt appears below.
   ftxui::Element content =
@@ -132,13 +157,29 @@ ftxui::Element StarForcePanel::Render() const {
 
 bool StarForcePanel::OnEvent(ftxui::Event event) {
   if (confirm_.open()) {
+    // The prompt's own Cancel closes the prompt and no more: the player is
+    // backing out of the question, not out of the screen.
     if (confirm_.OnEvent(event) == ConfirmChoice::kConfirmed) {
       confirmed_ = true;
     }
     return true;
   }
+  if (event == ftxui::Event::ArrowLeft) {
+    // Recorded whether or not it lands: OnCancel holds the cursor on [Cancel]
+    // while the price is out of reach, and lets it go the moment it is not.
+    cancel_selected_ = false;
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    cancel_selected_ = true;
+    return true;
+  }
   if (IsForward(event)) {
-    confirm_.Open();
+    if (OnCancel()) {
+      cancelled_ = true;
+    } else {
+      confirm_.Open();
+    }
     return true;
   }
   return false;  // Esc and other events pass through to caller
@@ -150,9 +191,17 @@ bool StarForcePanel::TakeConfirmed() {
   return v;
 }
 
+bool StarForcePanel::TakeCancelled() {
+  bool v = cancelled_;
+  cancelled_ = false;
+  return v;
+}
+
 void StarForcePanel::ResetConfirm() {
   confirm_.Close();
   confirmed_ = false;
+  cancelled_ = false;
+  cancel_selected_ = false;
 }
 
 ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
@@ -171,8 +220,9 @@ ftxui::Element StarForcePanel::RenderResult(const StarForceResult& r) const {
     outcome_text = " FAILED ";
     outcome_color = kMutedYellow;
   } else if (r.outcome == kStarForceNoMeso) {
-    // The one outcome that is not a roll: nothing was spent and the item was
-    // not touched, so it takes the plain frame a failure takes.
+    // The screen no longer lets a player press for an attempt they cannot pay
+    // for -- the button is greyed. This is the backstop for a purse that
+    // emptied some other way between the render and the keypress.
     outcome_text = " NOT ENOUGH MESO ";
     outcome_color = kRed;
   } else {

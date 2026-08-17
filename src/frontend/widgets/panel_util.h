@@ -297,6 +297,16 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
 // Every button the player can land on is drawn with this.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
+// A row of two buttons, the doing one and the leaving one, spaced the way the
+// game spaces them everywhere it asks a question. `go_enabled` false dims the
+// left button, for an answer that cannot be given from where the player
+// stands; the right one is never dimmed, since leaving always can.
+//
+// Both focus flags are asked rather than one: a dialog whose cursor is
+// somewhere else entirely -- the amount selector's textbox -- inverts neither.
+ftxui::Element ButtonRow(const std::string& go, const std::string& leave,
+                         bool go_focused, bool leave_focused, bool go_enabled);
+
 // A one-column scroll bar for a list showing `visible` of its `total` rows,
 // starting at row `first_visible`. Drawn with the same half-height glyphs as
 // ftxui's own vscroll_indicator, which the bag scrolls with, so the two bars

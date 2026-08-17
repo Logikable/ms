@@ -516,6 +516,10 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
     return true;
   }
   star_force_panel_.OnEvent(event);
+  if (star_force_panel_.TakeCancelled()) {
+    screen_ = kMain;
+    return true;
+  }
   if (star_force_panel_.TakeConfirmed()) {
     std::string equip_name = item->prototype().name();
     int stars_before = item->stars();

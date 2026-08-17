@@ -778,6 +778,21 @@ ftxui::Element ActionButton(const std::string& label, bool focused) {
   return button;
 }
 
+ftxui::Element ButtonRow(const std::string& go, const std::string& leave,
+                         bool go_focused, bool leave_focused, bool go_enabled) {
+  ftxui::Element go_button = ActionButton(go, go_focused);
+  if (!go_enabled) {
+    go_button = std::move(go_button) | ftxui::dim;
+  }
+  return ftxui::hbox({
+      ftxui::text(" "),
+      std::move(go_button),
+      ftxui::text("   "),
+      ActionButton(leave, leave_focused),
+      ftxui::text(" "),
+  });
+}
+
 ftxui::Element ScrollBar(int total, int first_visible, int visible) {
   if (visible <= 0 || total <= visible) {
     return ftxui::text("");

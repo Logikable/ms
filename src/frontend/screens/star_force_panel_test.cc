@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <string>
 
 #include "ftxui/component/event.hpp"
@@ -14,6 +15,10 @@
 
 namespace ms {
 namespace {
+
+// More than the dearest attempt in the game, so a test that is not about the
+// price never trips over it.
+constexpr int64_t kDeepPurse = 1'000'000'000'000;
 
 class StarForcePanelTest : public PanelTest {
  protected:
@@ -38,6 +43,27 @@ class StarForcePanelTest : public PanelTest {
     return rendered.substr(eol + 1, next - eol - 1);
   }
 
+  // The cell the first character of `label` lands on. Asked for the styling
+  // ftxui records per pixel -- a focused button's inversion, a greyed one's
+  // dim -- which the rendered string cannot be searched for.
+  static ftxui::Pixel PixelOf(StarForcePanel& panel, const std::string& label) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Render(screen, panel.Render());
+    for (int y = 0; y < screen.dimy(); ++y) {
+      std::string row;
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const std::string& cell = screen.PixelAt(x, y).character;
+        row += cell.empty() ? " " : cell;
+      }
+      size_t at = row.find(label);
+      if (at != std::string::npos) {
+        return screen.PixelAt(static_cast<int>(at), y);
+      }
+    }
+    return ftxui::Pixel();
+  }
+
   static std::string Render(StarForcePanel& panel) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                  ftxui::Dimension::Fixed(20));
@@ -56,7 +82,7 @@ TEST_F(StarForcePanelTest, NullItemShowsPlaceholder) {
 TEST_F(StarForcePanelTest, DrawsButtonsInTheSharedStyle) {
   EquipInstance item = MakeItem(0, 0);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   EXPECT_NE(Render(panel).find("[Enhance]"), std::string::npos);
   panel.OnEvent(ftxui::Event::Return);  // opens the confirm prompt
   std::string rendered = Render(panel);
@@ -67,7 +93,7 @@ TEST_F(StarForcePanelTest, DrawsButtonsInTheSharedStyle) {
 TEST_F(StarForcePanelTest, RenderShowsNameAndUpgradeArrow) {
   EquipInstance item = MakeItem(0, 0);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Sword"), std::string::npos);
   EXPECT_NE(rendered.find("0"), std::string::npos);
@@ -78,7 +104,7 @@ TEST_F(StarForcePanelTest, RenderShowsSuccessAndFailRates) {
   // At 0★: success=95%, fail=5%.
   EquipInstance item = MakeItem(0, 0);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("95%"), std::string::npos);
   EXPECT_NE(rendered.find("5%"), std::string::npos);
@@ -87,7 +113,7 @@ TEST_F(StarForcePanelTest, RenderShowsSuccessAndFailRates) {
 TEST_F(StarForcePanelTest, RenderHidesDestroyRowWhenZero) {
   EquipInstance item = MakeItem(0, 0);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   EXPECT_EQ(Render(panel).find("Destroy"), std::string::npos);
 }
 
@@ -95,7 +121,7 @@ TEST_F(StarForcePanelTest, RenderShowsDestroyRowWhenNonZero) {
   // At 15★: destroy=2.1%.
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Destroy"), std::string::npos);
   EXPECT_NE(rendered.find("2.1%"), std::string::npos);
@@ -105,7 +131,7 @@ TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
   // At 21★: destroy=12.75%.
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/21);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   EXPECT_NE(Render(panel).find("12.75%"), std::string::npos);
 }
 
@@ -115,7 +141,7 @@ TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
   // so hcenter places them at identical x offsets.
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
   // All three rate lines appear; spot-check exact padded strings.
   EXPECT_NE(rendered.find("Success  30%  "), std::string::npos);
@@ -127,7 +153,7 @@ TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
   // Level 10 item: MaxStarsForLevel(10) == 5; place it at 5★.
   EquipInstance item = MakeItem(/*required_level=*/10, /*stars=*/5);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("(max)"), std::string::npos);
   EXPECT_NE(rendered.find("Maximum"), std::string::npos);
@@ -141,7 +167,7 @@ TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
 TEST_F(StarForcePanelTest, RenderShowsWhatTheAttemptCosts) {
   EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
   StarForcePanel panel;
-  panel.SetItem(&item);
+  panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
   size_t price = rendered.find("136,000");
   ASSERT_NE(price, std::string::npos) << rendered;
@@ -154,16 +180,82 @@ TEST_F(StarForcePanelTest, RenderShowsWhatTheAttemptCosts) {
 TEST_F(StarForcePanelTest, NoRuleThroughTheHeading) {
   EquipInstance climbing = MakeItem(/*required_level=*/150, /*stars=*/3);
   StarForcePanel panel;
-  panel.SetItem(&climbing);
+  panel.SetItem(&climbing, kDeepPurse);
   std::string under = LineAfter(Render(panel), "Sword");
   EXPECT_NE(under.find("3"), std::string::npos) << under;
   EXPECT_EQ(under.find("─"), std::string::npos) << "a rule split it";
 
   // And the same on the screen an item at its last star gets.
   EquipInstance topped = MakeItem(/*required_level=*/10, /*stars=*/5);
-  panel.SetItem(&topped);
+  panel.SetItem(&topped, kDeepPurse);
   under = LineAfter(Render(panel), "Sword");
   EXPECT_NE(under.find("(max)"), std::string::npos) << under;
+}
+
+// --- the foot: [Enhance] [Cancel] ---
+
+// Leaving is a button rather than only a key, and the cursor starts on the
+// one the player came to press.
+TEST_F(StarForcePanelTest, TheFootIsEnhanceThenCancel) {
+  EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
+  StarForcePanel panel;
+  panel.SetItem(&item, kDeepPurse);
+  std::string rendered = Render(panel);
+  EXPECT_LT(rendered.find("[Enhance]"), rendered.find("[Cancel]"));
+  EXPECT_TRUE(PixelOf(panel, "[Enhance]").inverted);
+  EXPECT_FALSE(PixelOf(panel, "[Cancel]").inverted);
+}
+
+TEST_F(StarForcePanelTest, TheCursorMovesBetweenTheTwoButtons) {
+  EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
+  StarForcePanel panel;
+  panel.SetItem(&item, kDeepPurse);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_TRUE(PixelOf(panel, "[Cancel]").inverted);
+  EXPECT_FALSE(PixelOf(panel, "[Enhance]").inverted);
+  panel.OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_TRUE(PixelOf(panel, "[Enhance]").inverted);
+}
+
+// Reported the way a confirmed attempt is: the panel says it happened, once,
+// and the caller is the one that closes the screen.
+TEST_F(StarForcePanelTest, CancelIsReportedOnceAndOpensNoPrompt) {
+  EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
+  StarForcePanel panel;
+  panel.SetItem(&item, kDeepPurse);
+  panel.OnEvent(ftxui::Event::ArrowRight);
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(panel.IsConfirming());
+  EXPECT_FALSE(panel.TakeConfirmed());
+  EXPECT_TRUE(panel.TakeCancelled());
+  EXPECT_FALSE(panel.TakeCancelled()) << "reported twice";
+}
+
+// A player who cannot pay is told so where the price is, and left standing on
+// the only button that does anything -- rather than being walked through a
+// confirmation to reach an attempt that was never going to happen.
+TEST_F(StarForcePanelTest, APurseTooThinGreysEnhanceAndParksOnCancel) {
+  // A level 150 item's first star is 136,000.
+  EquipInstance item = MakeItem(/*required_level=*/150, /*stars=*/0);
+  StarForcePanel panel;
+  panel.SetItem(&item, 135999);
+  EXPECT_EQ(PixelOf(panel, "🪙").foreground_color, kRed);
+  EXPECT_TRUE(PixelOf(panel, "[Enhance]").dim);
+  EXPECT_FALSE(PixelOf(panel, "[Enhance]").inverted);
+  EXPECT_TRUE(PixelOf(panel, "[Cancel]").inverted);
+
+  // Left cannot reach the greyed button, and Enter leaves rather than asking.
+  panel.OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_TRUE(PixelOf(panel, "[Cancel]").inverted);
+  panel.OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(panel.IsConfirming());
+  EXPECT_TRUE(panel.TakeCancelled());
+
+  // One more meso and the screen is the ordinary one again.
+  panel.SetItem(&item, 136000);
+  EXPECT_NE(PixelOf(panel, "🪙").foreground_color, kRed);
+  EXPECT_FALSE(PixelOf(panel, "[Enhance]").dim);
+  EXPECT_TRUE(PixelOf(panel, "[Enhance]").inverted);
 }
 
 // --- the result window's colour ---

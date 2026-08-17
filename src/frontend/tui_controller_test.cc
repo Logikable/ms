@@ -1246,6 +1246,25 @@ TEST_F(TuiControllerTest, EscapeInStarForceGoesToMain) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
+// The way out is a button as well as a key: the screen's own [Cancel] closes
+// it, so a player who never learned Escape is not stuck on it.
+TEST_F(TuiControllerTest, CancelInStarForceGoesToMain) {
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  PickUpScrolledSword();
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);      // enter kStarForce
+  controller_->OnEvent(ftxui::Event::ArrowRight);  // onto [Cancel]
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
 TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
