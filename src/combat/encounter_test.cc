@@ -196,6 +196,40 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
             params.attacks[0].damage_per_hit[0]);
 }
 
+// A skill the book has replaced stops being an option to swing, not only a
+// pile of levers that stops paying: the replacement states the whole of it, so
+// offering both would be offering one skill twice.
+TEST(ComputeCombatParamsTest, ASupersededSwingIsNotOffered) {
+  Skill slash;
+  slash.set_name("Slash Blast");
+  slash.set_kind(SKILL_KIND_ATTACK);
+  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  slash.set_max_level(20);
+  slash.set_max_enemies(6);
+  slash.mutable_base()->set_skill_pct(1.83);
+  Skill blast_ii = slash;
+  blast_ii.set_name("Slash Blast II");
+  blast_ii.set_supersedes_skill_name("Slash Blast");
+  blast_ii.mutable_base()->set_skill_pct(3.20);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"slash_blast", slash}, {"slash_blast_ii", blast_ii}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(slash, 1));
+
+  // Unlearned, the replacement replaces nothing -- the original still swings.
+  CombatParams before = ComputeCombatParams(state);
+  ASSERT_EQ(before.attacks.size(), 2u);
+  EXPECT_EQ(before.attacks[1].name, "Slash Blast");
+
+  ASSERT_TRUE(state.character.LearnSkill(blast_ii, 1));
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.attacks[1].name, "Slash Blast II");
+}
+
 // A swing that opens with a harder hit on one enemy carries two damage columns
 // off one skill: the spread every reached mob takes, and the opening hit.
 TEST(ComputeCombatParamsTest, ASwingWithAnOpeningHitCarriesBothHalves) {

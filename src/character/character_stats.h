@@ -8,6 +8,7 @@
 #define MS_SRC_CHARACTER_CHARACTER_STATS_H_
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -175,6 +176,13 @@ int LevelWithBonus(const Skill& skill, int learned, int bonus);
 // the real one.
 int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
                         int bonus);
+
+// The skills this character's book has replaced, by display name. A superseded
+// skill keeps its level and its page and stops paying -- both its levers and,
+// where it is an attack, the swing it offered. See Skill.supersedes_skill_name.
+std::set<std::string> SupersededSkillNames(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills, int bonus);
 
 // The timed buffs this character can put up: the skills they have learned that
 // carry one, in catalog order. What a buff grants is not folded in here -- it

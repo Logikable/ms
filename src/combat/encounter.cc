@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -230,8 +231,14 @@ bool Castable(const Skill& skill) {
 
 // Whether a learned skill is one this character can swing right now.
 bool Swingable(const GameState& state, const Skill& skill,
-               EquipType weapon_type) {
+               EquipType weapon_type, const std::set<std::string>& superseded) {
   if (!Castable(skill)) {
+    return false;
+  }
+  // A skill the book has replaced stops offering its swing along with its
+  // levers -- Piercing Arrow II states the whole of the Piercing Arrow it
+  // takes over, so both being swingable would be one skill offered twice.
+  if (superseded.count(skill.name()) > 0) {
     return false;
   }
   // Another branch's book can share a skill's display name, and learned levels
@@ -487,10 +494,12 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
                                   types, derived, attack_speed, speed_factor));
   int bonus = BonusSkillLevels(state.character, state.skills);
   std::map<std::string, SkillBoosts> boosts = BoostsByTarget(state, bonus);
+  std::set<std::string> superseded =
+      SupersededSkillNames(state.character, state.skills, bonus);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = EffectiveSkillLevel(state.character, skill, bonus);
-    if (learned <= 0 || !Swingable(state, skill, weapon_type)) {
+    if (learned <= 0 || !Swingable(state, skill, weapon_type, superseded)) {
       continue;
     }
     // Strikes and reach another skill in the book grants this one, folded in

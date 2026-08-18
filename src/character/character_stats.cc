@@ -326,23 +326,6 @@ bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
          EffectiveSkillLevel(character, skill, bonus) > 0;
 }
 
-// The skills this character's book has replaced, by display name. Gathered
-// ahead of the fold because the skill doing the replacing may be read after
-// the one it replaces, and by then the levers are already in.
-std::set<std::string> SupersededNames(
-    const CharacterInstance& character,
-    const std::map<std::string, Skill>& skills, int bonus) {
-  std::set<std::string> names;
-  for (const std::pair<const std::string, Skill>& entry : skills) {
-    const Skill& skill = entry.second;
-    if (!skill.supersedes_skill_name().empty() &&
-        GrantsAnything(character, skill, bonus)) {
-      names.insert(skill.supersedes_skill_name());
-    }
-  }
-  return names;
-}
-
 // Sums every passive the character has learned. HP has to know its whole flat
 // total before any percentage lands on it, so nothing is folded here.
 PassiveTotals LearnedPassives(const CharacterInstance& character,
@@ -351,7 +334,8 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   PassiveTotals totals;
   EquipType weapon = character.weapon_type();
   int bonus = BonusSkillLevels(character, skills);
-  std::set<std::string> superseded = SupersededNames(character, skills, bonus);
+  std::set<std::string> superseded =
+      SupersededSkillNames(character, skills, bonus);
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // An Advanced X states the whole of the X it replaces rather than a delta,
@@ -466,6 +450,22 @@ int LevelWithBonus(const Skill& skill, int learned, int bonus) {
 int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
                         int bonus) {
   return LevelWithBonus(skill, character.skill_level(skill), bonus);
+}
+
+std::set<std::string> SupersededSkillNames(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills, int bonus) {
+  std::set<std::string> names;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    // A skill granting nothing replaces nothing: an unlearned Piercing Arrow
+    // II leaves the Piercing Arrow it will one day take over still swinging.
+    if (!skill.supersedes_skill_name().empty() &&
+        GrantsAnything(character, skill, bonus)) {
+      names.insert(skill.supersedes_skill_name());
+    }
+  }
+  return names;
 }
 
 bool SkillGearMet(const CharacterInstance& character, const Skill& skill) {
