@@ -61,6 +61,11 @@ struct FinalAttackRoll {
 struct AttackOption {
   std::string name = "Attack";  // shown on the charge bar
   int max_enemies = 1;          // front-of-queue mobs one swing reaches
+  // What this swing gains for every enemy it has already gone through, as a
+  // fraction -- compounding, so the k'th enemy it reaches takes (1 + this)^k.
+  // 0 for a swing that hits everything it reaches alike, which is all of them
+  // but Piercing Arrow. See Skill::pierce_gain_pct.
+  double pierce_gain_pct = 0.0;
   // Expected damage per target, parallel to CombatParams::types.
   std::vector<double> damage_per_hit;
   // The same swing broken into the blocks that roll. Their expected damages

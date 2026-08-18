@@ -548,6 +548,17 @@ message Skill {
   // this buys is the level the next one arrives at. 1/15 is a line every
   // fifteen levels. See SkillLinesAt.
   double lines_per_level = 23;
+  // What an arrow gains for every enemy it has already gone through, as a
+  // fraction. It COMPOUNDS: at 0.15 the second enemy the swing reaches takes
+  // 1.15 times the first and the sixth takes 1.15^5 = 2.01 times it, which is
+  // the doubling GMS names beside the 15%. 0 for every skill that hits all its
+  // targets alike, which is all of them but Piercing Arrow.
+  //
+  // Which enemy an arrow reaches first is arbitrary here -- nothing in this
+  // game has a position -- so the swing draws the order at random. Its own
+  // lines all land at the same step, the arrow having passed once; the opening
+  // hit and the Final Attack are other arrows and take none of it.
+  double pierce_gain_pct = 25;
   // How long one swing of this attack takes at average attack speed, in
   // milliseconds: the sum of its animation's frames. GMS keys the delay on the
   // skill, not on the weapon -- a spear and a sword swing the same skill at the

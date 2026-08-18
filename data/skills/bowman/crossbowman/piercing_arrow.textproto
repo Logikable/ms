@@ -1,18 +1,19 @@
 # GMS's readout ends "Final damage increases by 15% with each enemy pierced,
 # and damage is doubled" -- one mechanic, not two: the arrow compounds x1.15
 # per enemy, so the sixth takes 1.15^5 = 2.01x the first, which is the
-# doubling. Dropped rather than averaged: an arrow that gains as it travels
-# needs an order to travel along, and every enemy in reach takes the same
-# damage here. An average would pay +46% on a full screen and nothing on one
-# mob, which flatters the Crossbowman at mobbing for no reason it earned.
+# doubling. The swing draws the order it goes through them in, nothing here
+# having a position. Worth +46% on a full six and nothing at all on one mob.
 name: "Piercing Arrow"
 skill_order: 1
-description: "Fire an arrow through the enemies in front of you."
+description:
+  "Fire an arrow through the enemies in front of you. Its damage grows with "
+  "every enemy it has already pierced."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20
 base_delay_ms: 780
 max_enemies: 6
 lines: 4
+pierce_gain_pct: 0.15
 base { skill_pct: 0.92 }
 per_level { skill_pct: 0.02 }

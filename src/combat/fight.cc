@@ -27,6 +27,16 @@ bool CanFight(const CombatParams& params) {
          params.attacks.front().swing_seconds > 0.0;
 }
 
+// What one swing of an attack gaining `gain` a step is worth per enemy, over
+// `hit` of them: the escalation averaged, since the order is drawn fresh. A
+// sixth of (1 + 1.15 + ... + 1.15^5) is 1.46, at Piercing Arrow's own numbers.
+double PierceMean(double gain, int hit) {
+  if (gain <= 0.0 || hit <= 1) {
+    return 1.0;
+  }
+  return (std::pow(1.0 + gain, hit) - 1.0) / (gain * hit);
+}
+
 }  // namespace
 
 void CombatSim::TopUp(const CombatParams& params) {
@@ -45,6 +55,18 @@ void CombatSim::TopUp(const CombatParams& params) {
   // fought, and moving a wounded one out of the front window would hand back
   // the damage done to it.
   std::shuffle(queue_.begin() + first_new, queue_.end(), rng_);
+}
+
+std::vector<int> CombatSim::PierceOrder(const AttackOption& attack, int hit) {
+  if (attack.pierce_gain_pct <= 0.0 || hit <= 1) {
+    return {};
+  }
+  std::vector<int> order(hit);
+  for (int j = 0; j < hit; ++j) {
+    order[j] = j;
+  }
+  std::shuffle(order.begin(), order.end(), rng_);
+  return order;
 }
 
 int CombatSim::LeadTarget(const AttackOption& attack, int hit) const {
@@ -73,6 +95,7 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
       total += attack.damage_per_hit[type];
     }
   }
+  total *= PierceMean(attack.pierce_gain_pct, hit);
   int lead = LeadTarget(attack, hit);
   if (lead >= 0 &&
       queue_[lead].type < static_cast<int>(attack.lead_damage.size())) {
@@ -206,8 +229,16 @@ void CombatSim::Strike(const AttackOption& attack) {
   // Picked before anything lands, so the opening hit chooses by the HP the
   // mobs went into the swing with rather than what the spread left them on.
   int lead = LeadTarget(attack, hit);
-  for (int j = 0; j < hit; ++j) {
-    queue_[j].hp -= DamageToMob(attack, j);
+  // An arrow that gains as it travels needs an order to travel along, and
+  // nothing here has a position -- so the swing draws one. Every other swing
+  // hits the queue as it stands, which is the same thing for damage that does
+  // not escalate.
+  std::vector<int> order = PierceOrder(attack, hit);
+  for (int step = 0; step < hit; ++step) {
+    int j = order.empty() ? step : order[step];
+    double gain =
+        order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
+    queue_[j].hp -= DamageToMob(attack, j) * gain;
   }
   if (lead >= 0) {
     queue_[lead].hp -= attack.lead_damage[queue_[lead].type] *

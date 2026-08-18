@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -150,6 +151,104 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
   }
   ASSERT_GT(kills[0], 0.0);
   EXPECT_NEAR(kills[1] / kills[0], 1.0, 0.01);
+}
+
+// An arrow that gains as it travels: the enemy it reaches first takes the
+// plain damage, and each one after takes 15% more than the last, compounding.
+// Six of them and the last takes 1.15^5 -- twice the first, which is the
+// doubling GMS names beside the 15%.
+TEST(CombatSimTest, APiercingSwingCompoundsThroughTheEnemiesItReaches) {
+  std::vector<Mob> mobs;
+  for (int i = 0; i < 6; ++i) {
+    mobs.push_back(MakeMob("M" + std::to_string(i), 10000));
+  }
+  std::vector<TypeSpec> specs;
+  for (const Mob& mob : mobs) {
+    specs.push_back(MakeType(&mob, 100.0, 1));
+  }
+  CombatParams params = MakeParams(1.0, 1e9, specs, /*reach=*/6);
+  params.attacks[0].pierce_gain_pct = 0.15;
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.engaged_groups().size(), 6u);
+  std::vector<double> lost;
+  for (const EngagedGroup& group : sim.engaged_groups()) {
+    lost.push_back((1.0 - group.hp_fraction) * 10000.0);
+  }
+  std::sort(lost.begin(), lost.end());
+  for (int step = 0; step < 6; ++step) {
+    EXPECT_NEAR(lost[step], 100.0 * std::pow(1.15, step), 1e-6)
+        << "step " << step;
+  }
+}
+
+// The rate a swing is chosen on carries the escalation too, averaged over the
+// mobs it would reach. Six of them make the piercing swing worth 8.75 hits
+// rather than 6, which is what wins it the pick over a flatter, harder one.
+TEST(CombatSimTest, APiercingSwingIsChosenForWhatItsGainIsWorth) {
+  std::vector<Mob> mobs;
+  for (int i = 0; i < 6; ++i) {
+    mobs.push_back(MakeMob("M" + std::to_string(i), 1000000));
+  }
+  std::vector<TypeSpec> specs;
+  for (const Mob& mob : mobs) {
+    specs.push_back(MakeType(&mob, 100.0, 1));
+  }
+  CombatParams params = MakeParams(1.0, 1e9, specs, /*reach=*/6);
+  params.attacks[0].name = "Piercing Arrow";
+  params.attacks[0].pierce_gain_pct = 0.15;
+  // Harder on every mob it reaches and gaining nothing: 840 a swing against
+  // the arrow's 875, so it wins only if the gain is left out of the reckoning.
+  AttackOption flat;
+  flat.name = "Bolt Burst";
+  flat.max_enemies = 6;
+  flat.swing_seconds = 1.0;
+  flat.damage_per_hit.assign(6, 140.0);
+  params.attacks.push_back(std::move(flat));
+
+  CombatSim sim;
+  sim.Advance(params, 0.1);
+  EXPECT_EQ(sim.attack_name(), "Piercing Arrow");
+
+  // Take the gain away and the flatter swing wins, which is what says the
+  // pick above was made on the gain rather than on anything else.
+  params.attacks[0].pierce_gain_pct = 0.0;
+  CombatSim without;
+  without.Advance(params, 0.1);
+  EXPECT_EQ(without.attack_name(), "Bolt Burst");
+}
+
+// Which enemy the arrow meets first is drawn fresh, so the gain does not
+// always fall on the same end of the queue. Without this the front mob would
+// take the plain hit every swing of the fight.
+TEST(CombatSimTest, APiercingSwingDrawsTheOrderItTravelsIn) {
+  std::vector<Mob> mobs;
+  for (int i = 0; i < 4; ++i) {
+    mobs.push_back(MakeMob("M" + std::to_string(i), 1000000));
+  }
+  std::vector<TypeSpec> specs;
+  for (const Mob& mob : mobs) {
+    specs.push_back(MakeType(&mob, 100.0, 1));
+  }
+  CombatParams params = MakeParams(1.0, 1e9, specs, /*reach=*/4);
+  params.attacks[0].pierce_gain_pct = 0.15;
+
+  CombatSim sim;
+  std::vector<double> first;
+  for (int swing = 0; swing < 20; ++swing) {
+    sim.Advance(params, 1.0);
+    first.push_back(sim.engaged_groups()[0].hp_fraction);
+  }
+  // Twenty swings, so nineteen gaps: the mob at the front cannot have taken
+  // the same share of the swing every time.
+  bool varied = false;
+  for (std::size_t i = 2; i < first.size(); ++i) {
+    if (std::abs((first[i - 1] - first[i]) - (first[0] - first[1])) > 1e-12) {
+      varied = true;
+    }
+  }
+  EXPECT_TRUE(varied);
 }
 
 // A swing worth three pokes, held back by a three-second cooldown -- so it

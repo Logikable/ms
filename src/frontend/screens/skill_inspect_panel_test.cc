@@ -523,6 +523,28 @@ TEST_F(SkillInspectPanelTest, EachHalfStatesTheReachItHasRatherThanTheSkills) {
             std::string::npos);
 }
 
+// An arrow that gains as it travels states the gain beside the reach: the
+// reach is how far it compounds, so the two are one fact.
+TEST_F(SkillInspectPanelTest, APiercingSwingStatesItsGainBesideItsReach) {
+  Skill arrow;
+  arrow.set_name("Piercing Arrow");
+  arrow.set_kind(SKILL_KIND_ATTACK);
+  arrow.set_job_advancement(JOB_ADVANCEMENT_CROSSBOWMAN);
+  arrow.set_max_level(20);
+  arrow.set_max_enemies(6);
+  arrow.set_lines(4);
+  arrow.set_pierce_gain_pct(0.15);
+  arrow.mutable_base()->set_skill_pct(0.92);
+  EXPECT_NE(RenderAt(arrow, 1).find("Enemies Hit       6, +15% each"),
+            std::string::npos);
+
+  // A swing that hits everything it reaches alike says only how many.
+  arrow.clear_pierce_gain_pct();
+  std::string plain = RenderAt(arrow, 1);
+  EXPECT_NE(plain.find("Enemies Hit       6"), std::string::npos);
+  EXPECT_EQ(plain.find("each"), std::string::npos);
+}
+
 // Empowered Arrows strengthens Piercing Arrow twice over: a permanent bonus on
 // every shot, and a bigger shot every fourth. Both halves belong on the page,
 // and the upgraded swing's reach with them -- it is wider than the one it

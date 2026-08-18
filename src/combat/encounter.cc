@@ -105,6 +105,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
   attack.groups.push_back({attack.damage_per_hit, RollsFor(offense)});
+  if (skill != nullptr) {
+    attack.pierce_gain_pct = skill->pierce_gain_pct();
+  }
   // Some swings open with a harder hit on a single enemy before spreading --
   // GMS's "strikes one, then detonates in place". Same character, same weapon,
   // the skill's other multiplier: only the target count differs, and that is
@@ -364,6 +367,9 @@ Skill EmpoweredSkill(const Skill& skill, const std::string& target) {
   *form.mutable_per_level() = skill.empowered_form().per_level();
   form.set_max_enemies(skill.empowered_form().max_enemies());
   form.set_lines(skill.empowered_form().lines());
+  // The form is the same arrow, further upgraded: it gains as it travels the
+  // same way, over the further enemies it reaches.
+  form.set_pierce_gain_pct(skill.pierce_gain_pct());
   return form;
 }
 

@@ -317,8 +317,13 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   if (clock > 0.0) {
     rows.push_back(EffectRow("Attacks", ReachText(enemies, clock)));
   } else if (skill.max_enemies() > 1) {
-    rows.push_back(
-        EffectRow("Enemies Hit", std::to_string(skill.max_enemies())));
+    // An arrow that gains as it travels states the gain beside the reach, the
+    // two being one fact: the reach is how far the gain compounds.
+    std::string reach = std::to_string(skill.max_enemies());
+    if (skill.pierce_gain_pct() > 0.0) {
+      reach += ", +" + FormatPercent(skill.pierce_gain_pct()) + " each";
+    }
+    rows.push_back(EffectRow("Enemies Hit", reach));
   }
   // Each own-clock half states its own reach beside the swing's. Revenge of the
   // Evil Eye is why: its auras land 20 strikes on 3 enemies where the volley

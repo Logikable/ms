@@ -134,6 +134,12 @@ class CombatSim {
   // and the dead are counted and leave. A swing and a skill on its own clock
   // are the same thing here.
   void Strike(const AttackOption& attack);
+  // The order a swing that gains as it travels goes through the `hit` mobs it
+  // reached, drawn fresh each swing: nothing here has a position, so which
+  // enemy an arrow meets first is arbitrary and drawing it keeps the gain from
+  // always falling on the same end of the queue. Empty for every other swing,
+  // whose order cannot be seen.
+  std::vector<int> PierceOrder(const AttackOption& attack, int hit);
   // Index into the queue of the mob `attack`'s opening hit picks, or -1 when
   // it has none. The healthiest of the `hit` mobs the swing reaches: a hit
   // that big is worth least where it overkills, and GMS aims the same shape at
