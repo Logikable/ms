@@ -1,10 +1,9 @@
 # GMS's own figures: 200+8x% on three enemies. The summon's duration is
 # dropped, as every duration here is -- the shuriken simply always hangs there.
 #
-# 900ms between pulses is the client's own -- the shuriken's attack animation
-# is six frames of 150ms, and the skill repeats that as `subTime`. The wiki
-# states no rate for any summon; read the same way, Phoenix and Frostprey give
-# back the 1710ms they already carry.
+# 900ms between pulses is the skill's own `subTime`, and dpm_calc counted 62
+# strikes over its 60 seconds, which agrees within a frame. Nothing in the
+# shuriken's animation sets a cadence -- that clock is the server's.
 name: "Dark Flare"
 skill_order: 3
 description:

@@ -1,5 +1,5 @@
 # The Hermit's, to the number -- GMS gives both branches 200+8x% on three
-# enemies, and both hang off the same 900ms animation, for the reason written
+# enemies, and both pulse at the same 900ms, for the reason written
 # there. A dagger hangs in the air where a shuriken does.
 name: "Dark Flare"
 skill_order: 3
