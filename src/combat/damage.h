@@ -20,11 +20,14 @@ namespace ms {
 // to their identity (no-effect) value; real values graduate in one at a time as
 // gear, skills, etc. produce them.
 struct OffenseStats {
-  int primary = 0;         // total primary stat
-  int secondary = 0;       // total secondary stat
-  int attack = 0;          // total weapon/gear attack
-  int level = 0;           // attacker level, for the level multiplier
-  double mastery = 0.15;   // 0..1; raises min damage (beginner placeholder)
+  int primary = 0;    // total primary stat
+  int secondary = 0;  // total secondary stat
+  int attack = 0;     // total weapon/gear attack
+  int level = 0;      // attacker level, for the level multiplier
+  // 0..1; the floor of every line's roll, so it raises min damage without
+  // touching max. 1.0 is a swing that never rolls low, not a swing that hits
+  // hardest. OffenseStatsFor sets it; see BaseMastery.
+  double mastery = 0.20;
   double skill_pct = 1.0;  // skill damage multiplier (1.0 == 100%)
   int lines = 1;           // hits per attack
   // The shadow's hits, kept beside the real ones rather than folded into them.
@@ -69,6 +72,14 @@ double CombineIgnoredDefense(double a, double b);
 // A weapon no line lists at all is 1.0.
 double WeaponConstant(Job job, EquipType weapon);
 
+// The mastery a job line swings at before it learns a mastery skill, which
+// GMS sets by what the line fights with: 20% for the warrior's and thief's
+// melee weapons, 15% for the bow and crossbow, 25% for wand and staff. The
+// skill's grant ADDS to this, so a line ends at 70/65/75 in 2nd job and
+// 90/85/95 in 4th -- and no mastery skill can ever make a swing wilder than
+// the bare one, which taking the better of the two had to guard against.
+double BaseMastery(Job job);
+
 // Whether a skill of this kind carries a damage multiplier of its own -- the
 // swings and the things that fire on their own clock. The rest either fold
 // into the character's stats or do nothing we model.
@@ -106,9 +117,8 @@ double CooldownAt(const Skill& skill, int level);
 struct PassiveOffense {
   double crit_rate = 0.0;  // added chance for a swing to crit (0.40 == 40%)
   double crit_dmg = 0.0;   // added critical damage (0.05 == +5%)
-  // Weapon mastery, 0..1. 0 means the character has no mastery skill and
-  // keeps the beginner's baseline: a mastery skill's first level is worth
-  // less than that, and learning a skill must never make a swing worse.
+  // What the best mastery skill grants, 0..1, before the job line's own base
+  // is added under it. 0 for a character holding no such skill.
   double mastery = 0.0;
   // Plain % damage and final damage, already combined across every passive
   // that grants them -- summed and multiplied respectively, which is where the

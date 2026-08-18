@@ -29,11 +29,15 @@ constexpr double kEqualLevel = 1.1;
 // Every figure below carries it, the level multiplier included.
 constexpr double kBaseCrit = 1.0 + kBaseCritRate * kBaseCritDamage;
 
+// What the baseline swing below comes to before any modifier: 45 max base at
+// the melee mastery the default carries, 45 * (1 + 0.20) / 2.
+constexpr double kBaseline = 27.0;
+
 class OffenseTest : public ::testing::Test {
  protected:
-  // Only primary/secondary/attack set; every modifier at identity (mastery at
-  // its 0.15 default). StatValue = 4*10+5 = 45; MaxBase = 45*100/100 = 45;
-  // expected = 45*(1+0.15)/2 = 25.875.
+  // Only primary/secondary/attack set; every modifier at identity, mastery at
+  // the melee base its default carries. StatValue = 4*10+5 = 45;
+  // MaxBase = 45*100/100 = 45; expected = 45*(1+0.20)/2 = 27.
   OffenseStats Baseline() {
     OffenseStats s;
     s.primary = 10;
@@ -45,7 +49,7 @@ class OffenseTest : public ::testing::Test {
 
 TEST_F(OffenseTest, BaselineUsesStatAttackAndMastery) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob()),
-                   25.875 * kEqualLevel * kBaseCrit);
+                   kBaseline * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, FullMasteryRemovesMinFloor) {
@@ -59,28 +63,28 @@ TEST_F(OffenseTest, SkillPctScalesLinearly) {
   OffenseStats s = Baseline();
   s.skill_pct = 2.0;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   51.75 * kEqualLevel * kBaseCrit);
+                   kBaseline * 2.0 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, LinesMultiplyDamage) {
   OffenseStats s = Baseline();
   s.lines = 3;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   77.625 * kEqualLevel * kBaseCrit);
+                   kBaseline * 3.0 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, DamagePctIsAdditive) {
   OffenseStats s = Baseline();
   s.damage_pct = 0.20;  // *1.2
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   31.05 * kEqualLevel * kBaseCrit);
+                   kBaseline * 1.2 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, BossPctAppliesOnlyToBosses) {
   OffenseStats s = Baseline();
   s.boss_pct = 0.50;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   25.875 * kEqualLevel * kBaseCrit);
+                   kBaseline * kEqualLevel * kBaseCrit);
 }
 
 // The mirror of boss_pct, and pointedly not in the same place: it joins the
@@ -91,7 +95,7 @@ TEST_F(OffenseTest, NormalSkillPctJoinsTheSwingOnceALine) {
   s.lines = 3;
   s.normal_skill_pct = 0.50;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   116.4375 * kEqualLevel * kBaseCrit);
+                   kBaseline * 4.5 * kEqualLevel * kBaseCrit);
 }
 
 // A boss is what the bonus is not for, so it drops out entirely -- leaving the
@@ -100,7 +104,7 @@ TEST_F(OffenseTest, NormalSkillPctIsWorthNothingAgainstABoss) {
   OffenseStats s = Baseline();
   s.normal_skill_pct = 0.50;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
-                   25.875 * 0.5 * kEqualLevel * kBaseCrit);
+                   kBaseline * 0.5 * kEqualLevel * kBaseCrit);
 }
 
 // A rate of 1 is already every swing, so the base 5% has nowhere to go and the
@@ -110,51 +114,51 @@ TEST_F(OffenseTest, ARateOfOneCritsEverySwingAndNoMore) {
   s.crit_rate = 1.0;
   s.crit_dmg = 0.0;  // only the 0.35 base bonus applies
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   25.875 * 1.35 * kEqualLevel);
+                   kBaseline * 1.35 * kEqualLevel);
 }
 
 TEST_F(OffenseTest, FinalDamageMultiplies) {
   OffenseStats s = Baseline();
   s.final_dmg_pct = 0.10;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   25.875 * 1.10 * kEqualLevel * kBaseCrit);
+                   kBaseline * 1.10 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, TheWeaponConstantScalesTheWholeHit) {
   OffenseStats s = Baseline();
   s.weapon_constant = 1.44;
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   25.875 * 1.44 * kEqualLevel * kBaseCrit);
+                   kBaseline * 1.44 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, MobDefenseReducesDamage) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(30)),
-                   25.875 * 0.70 * kEqualLevel * kBaseCrit);
+                   kBaseline * 0.70 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, IedNegatesMobDefense) {
   OffenseStats s = Baseline();
   s.ied = 1.0;  // fully ignore the 30% PDR
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(30)),
-                   25.875 * kEqualLevel * kBaseCrit);
+                   kBaseline * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, BossesTakeHalfElementalByDefault) {
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, true)),
-                   25.875 * 0.5 * kEqualLevel * kBaseCrit);
+                   kBaseline * 0.5 * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, IerRestoresBossElemental) {
   OffenseStats s = Baseline();
   s.ier = 1.0;  // 0.5*(1+1) == 1.0
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
-                   25.875 * kEqualLevel * kBaseCrit);
+                   kBaseline * kEqualLevel * kBaseCrit);
 }
 
 TEST_F(OffenseTest, LevelMultiplierAppliesToOutput) {
   // Attacker at level 0 against a level-5 mob: 5 levels under -> 0.88 penalty.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(Baseline(), MakeMob(0, false, 5)),
-                   25.875 * 0.88 * kBaseCrit);
+                   kBaseline * 0.88 * kBaseCrit);
 }
 
 TEST_F(OffenseTest, FortyLevelsUnderFloorsToOneDamage) {
@@ -164,9 +168,9 @@ TEST_F(OffenseTest, FortyLevelsUnderFloorsToOneDamage) {
 }
 
 TEST_F(OffenseTest, CombatPowerIsTheDamageChainWithoutATarget) {
-  // The same 25.875 the baseline swing produces, with the base crit pair and
+  // The same 27 the baseline swing produces, with the base crit pair and
   // floored -- no mob, so no level multiplier and no defense.
-  EXPECT_EQ(CombatPower(Baseline()), 26);
+  EXPECT_EQ(CombatPower(Baseline()), 27);
 }
 
 TEST_F(OffenseTest, CombatPowerAlwaysCountsBossDamage) {
@@ -174,18 +178,18 @@ TEST_F(OffenseTest, CombatPowerAlwaysCountsBossDamage) {
   s.boss_pct = 0.6;
   // A swing at an ordinary mob ignores this entirely; combat power does not.
   EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
-                   25.875 * kEqualLevel * kBaseCrit);
-  EXPECT_EQ(CombatPower(s), 42);  // 25.875 * 1.6 * kBaseCrit
+                   kBaseline * kEqualLevel * kBaseCrit);
+  EXPECT_EQ(CombatPower(s), 43);  // kBaseline * 1.6 * kBaseCrit
 }
 
 TEST_F(OffenseTest, CombatPowerWeightsCritDamageByItsRate) {
   OffenseStats s = Baseline();
   s.crit_rate = 0.5;
   s.crit_dmg = 0.25;
-  // 25.875 * (1 + 0.55 * (0.25 + 0.35)) = 34.41 -- the rate carrying the base
-  // 5% with it. GMS's flat 1.35 + 0.25 would read 41 here, pricing the crit
-  // damage as though every swing crit.
-  EXPECT_EQ(CombatPower(s), 34);
+  // kBaseline * (1 + 0.55 * (0.25 + 0.35)) = 35.91 -- the rate carrying the
+  // base 5% with it. GMS's flat 1.35 + 0.25 would read 43 here, pricing the
+  // crit damage as though every swing crit.
+  EXPECT_EQ(CombatPower(s), 35);
 }
 
 TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
@@ -200,7 +204,7 @@ TEST_F(OffenseTest, CombatPowerRisesWithMastery) {
 TEST_F(OffenseTest, CombatPowerCountsTheWeaponConstant) {
   OffenseStats s = Baseline();
   s.weapon_constant = 1.49;
-  EXPECT_EQ(CombatPower(s), 39);  // 25.875 * 1.49 * kBaseCrit
+  EXPECT_EQ(CombatPower(s), 40);  // kBaseline * 1.49 * kBaseCrit
 }
 
 TEST_F(OffenseTest, CombatPowerIgnoresTheSwingAndTheTarget) {
@@ -613,11 +617,18 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsMultiplier) {
   EXPECT_DOUBLE_EQ(untouched.skill_pct, 1.78);
 }
 
+// The mastery a bare character of `job` swings at, holding `passives`.
+double MasteryFor(Job job, const PassiveOffense& passives) {
+  return OffenseStatsFor(job, 30, AllocatedStats(), EquipStats(),
+                         EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives)
+      .mastery;
+}
+
 TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {
   OffenseStats offense =
       OffenseStatsFor(JOB_BEGINNER, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  EXPECT_DOUBLE_EQ(offense.mastery, 0.15);
+  EXPECT_DOUBLE_EQ(offense.mastery, 0.20);
   EXPECT_DOUBLE_EQ(offense.skill_pct, 1.0);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.0);
   EXPECT_DOUBLE_EQ(offense.ied, 0.0);
@@ -684,27 +695,33 @@ TEST(OffenseStatsForTest, PassiveCritRateReachesTheOffense) {
   EXPECT_DOUBLE_EQ(offense.crit_rate, 0.40);
 }
 
-TEST(OffenseStatsForTest, PassiveMasteryReplacesTheBaseline) {
-  PassiveOffense passives;
-  passives.mastery = 0.50;
-  OffenseStats offense =
-      OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
-  EXPECT_DOUBLE_EQ(offense.mastery, 0.50);
+// The base is the line's, and the skill adds to it -- so the warrior ends a
+// 2nd job book at 70, the archer a 4th at 85 and the magician a 2nd at 75.
+TEST(OffenseStatsForTest, MasteryAddsTheSkillToTheLineBase) {
+  PassiveOffense none;
+  EXPECT_DOUBLE_EQ(MasteryFor(JOB_SWORDMAN, none), 0.20);
+  EXPECT_DOUBLE_EQ(MasteryFor(JOB_ARCHER, none), 0.15);
+  EXPECT_DOUBLE_EQ(MasteryFor(JOB_MAGICIAN, none), 0.25);
+  EXPECT_DOUBLE_EQ(MasteryFor(JOB_ROGUE, none), 0.20);
+
+  PassiveOffense second;
+  second.mastery = 0.50;
+  EXPECT_DOUBLE_EQ(MasteryFor(JOB_SWORDMAN, second), 0.70);
+  EXPECT_DOUBLE_EQ(MasteryFor(JOB_MAGICIAN, second), 0.75);
+
+  PassiveOffense fourth;
+  fourth.mastery = 0.70;
+  EXPECT_DOUBLE_EQ(MasteryFor(JOB_BOW_MASTER, fourth), 0.85);
+  EXPECT_DOUBLE_EQ(MasteryFor(JOB_HERO, fourth), 0.90);
 }
 
-// The first level of a mastery skill is worth less than what every character
-// swings at already, and learning a skill must never make a swing worse.
-TEST(OffenseStatsForTest, MasteryBelowTheBaselineIsIgnored) {
-  OffenseStats bare =
-      OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
-  PassiveOffense passives;
-  passives.mastery = 0.14;
-  OffenseStats learned =
-      OffenseStatsFor(JOB_SWORDMAN, 30, AllocatedStats(), EquipStats(),
-                      EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
-  EXPECT_DOUBLE_EQ(learned.mastery, bare.mastery);
+// Adding rather than taking the better of the two is what makes the ladder
+// monotonic: a mastery skill's first level grants 12%, under every line's
+// base, and taking the better of the two would have thrown it away.
+TEST(OffenseStatsForTest, TheFirstLevelOfAMasterySkillStillPays) {
+  PassiveOffense first;
+  first.mastery = 0.12;
+  EXPECT_GT(MasteryFor(JOB_SWORDMAN, first), MasteryFor(JOB_SWORDMAN, {}));
 }
 
 TEST(OffenseStatsForTest, UnknownJobYieldsZeroMainStats) {

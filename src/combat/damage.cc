@@ -25,6 +25,13 @@ constexpr int kSpeedDivisor = 16;
 // EquipStats stores boss_damage / ignore_enemy_defense as whole percents.
 constexpr double kPercentToFraction = 100.0;
 
+// GMS's initial mastery, set by what a job line fights with rather than by the
+// line itself: melee covers sword, axe, spear, polearm and dagger, ranged the
+// bow and crossbow, magic the wand and staff. See BaseMastery.
+constexpr double kMeleeBaseMastery = 0.20;
+constexpr double kRangedBaseMastery = 0.15;
+constexpr double kMagicBaseMastery = 0.25;
+
 struct WeaponConstantRow {
   EquipType weapon;
   double constant;
@@ -254,6 +261,30 @@ double WeaponConstant(Job job, EquipType weapon) {
   return 1.0;
 }
 
+double BaseMastery(Job job) {
+  switch (job) {
+    case JOB_ARCHER:
+    case JOB_HUNTER:
+    case JOB_CROSSBOWMAN:
+    case JOB_RANGER:
+    case JOB_SNIPER:
+    case JOB_BOW_MASTER:
+      return kRangedBaseMastery;
+    case JOB_MAGICIAN:
+    case JOB_ICE_LIGHTNING_WIZARD:
+    case JOB_FIRE_POISON_WIZARD:
+    case JOB_CLERIC:
+    case JOB_ICE_LIGHTNING_MAGE:
+    case JOB_FIRE_POISON_MAGE:
+    case JOB_PRIEST:
+      return kMagicBaseMastery;
+    default:
+      // Warriors, thieves and the beginner all swing something GMS calls a
+      // melee weapon -- the dagger among them.
+      return kMeleeBaseMastery;
+  }
+}
+
 OffenseStats OffenseStatsFor(Job job, int level,
                              const AllocatedStats& allocated,
                              const EquipStats& equipped, EquipType weapon,
@@ -266,9 +297,8 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.crit_dmg = passives.crit_dmg;
   offense.damage_pct = passives.damage_pct;
   offense.final_dmg_pct = passives.final_dmg_pct;
-  // A mastery skill's first level sits below the baseline every character
-  // swings at, so the better of the two wins rather than the learned one.
-  offense.mastery = std::max(offense.mastery, passives.mastery);
+  // The line's own base, plus whatever the best mastery skill grants on top.
+  offense.mastery = BaseMastery(job) + passives.mastery;
   // Primary/secondary stat by job; unknown jobs fall through to 0, matching
   // MainStatValue in equipped_panel.
   switch (job) {

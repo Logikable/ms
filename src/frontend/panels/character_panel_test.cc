@@ -480,7 +480,7 @@ TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
 
   // 4 * 1000 STR * 500 ATT / 100 = 20000, halved toward the mastery floor.
   CharacterPanel panel(c, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find("Combat Power 11,701"),
+  EXPECT_NE(RenderElement(panel.Render()).find("Combat Power 12,210"),
             std::string::npos);
 }
 
@@ -502,7 +502,7 @@ TEST_F(CharacterPanelTest, CombatPowerShortensItsLabelPastSixFigures) {
   // Past 999,999 the words go and the number stays.
   CharacterPanel panel(c, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
-  EXPECT_NE(rendered.find("CP 1,170,1"), std::string::npos);
+  EXPECT_NE(rendered.find("CP 1,221,0"), std::string::npos);
   EXPECT_EQ(rendered.find("Combat Power"), std::string::npos);
 }
 

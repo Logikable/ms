@@ -104,8 +104,9 @@ struct DerivedStats {
   // reverse across the passives granting it. Gear grants it too, and the two
   // meet the same way -- see OffenseStatsFor.
   double ied = 0.0;
-  // The best weapon mastery the passives grant, 0..1. 0 leaves the beginner's
-  // baseline in place rather than making the swing wilder.
+  // The best weapon mastery the passives grant, 0..1 -- the better of two
+  // rather than their sum, since two masteries are not twice as steady a
+  // swing. The job line's own base is added under it; see BaseMastery.
   double mastery = 0.0;
   // The Final Attacks the character's passives grant, merged by what sets them
   // off. Two sources that follow the same swings are one entry, since
