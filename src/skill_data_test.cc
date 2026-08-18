@@ -668,7 +668,8 @@ TEST(SkillDataTest, EverySkillBoostNamesASkillTheSameCharacterCanHold) {
       EXPECT_FALSE(boost.skill_name().empty())
           << entry.first << " grants strikes to nobody";
       EXPECT_TRUE(boost.lines() > 0 || boost.max_enemies() > 0 ||
-                  boost.max_enemies_per_level() > 0.0)
+                  boost.max_enemies_per_level() > 0.0 ||
+                  boost.attacks_per_cast() > 0)
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
       ++checked;
@@ -676,6 +677,17 @@ TEST(SkillDataTest, EverySkillBoostNamesASkillTheSameCharacterCanHold) {
           SameCharacterCanHold(skills, entry.second, boost.skill_name()))
           << entry.first << " grants strikes to \"" << boost.skill_name()
           << "\", which no character holding it can learn";
+      // A clock handed to a skill that is not on one is a clock nothing reads.
+      if (boost.attacks_per_cast() > 0) {
+        for (const std::pair<const std::string, Skill>& target : skills) {
+          if (target.second.name() != boost.skill_name()) {
+            continue;
+          }
+          EXPECT_GT(target.second.attacks_per_cast(), 0)
+              << entry.first << " reclocks " << target.first
+              << ", which is not clocked by swings landed";
+        }
+      }
     }
   }
   EXPECT_GT(checked, 0) << "no skill in the catalog grants strikes or reach";
