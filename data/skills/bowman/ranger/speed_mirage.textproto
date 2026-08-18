@@ -1,7 +1,8 @@
 # GMS builds this over twelve strikes and then fires three afterimages at once.
 # Here it is one afterimage every four, which comes to the same arrows at the
-# same rate and needs no burst to model. The six enemies are the five an arrow
-# pierces plus the one it was aimed at.
+# same rate and needs no burst to model. "Pierces up to 5 enemies" is GMS's
+# mobCount, the same field it words as "Max Enemies Hit" elsewhere -- five in
+# total, the target among them.
 #
 # Counted in attacks rather than seconds so the rate holds whatever the
 # character is swinging -- which is the whole point of Arrow Blaster counting a
@@ -14,7 +15,7 @@ description:
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 20
-max_enemies: 6
+max_enemies: 5
 lines: 4
 attacks_per_cast: 4
 boosts_skill_name: "Wind Arrow"

@@ -1,9 +1,10 @@
 # GMS's readout ends "Final damage increases by 15% with each enemy pierced,
-# and damage is doubled". Neither is here: an arrow that gains as it travels
+# and damage is doubled" -- one mechanic, not two: the arrow compounds x1.15
+# per enemy, so the sixth takes 1.15^5 = 2.01x the first, which is the
+# doubling. Dropped rather than averaged: an arrow that gains as it travels
 # needs an order to travel along, and every enemy in reach takes the same
-# damage in this game. Dropped rather than averaged -- folding the escalation
-# in would put the Crossbowman a third ahead of the Hunter on a full screen
-# and level with them on one mob, which is a worse lie than leaving it out.
+# damage here. An average would pay +46% on a full screen and nothing on one
+# mob, which flatters the Crossbowman at mobbing for no reason it earned.
 name: "Piercing Arrow"
 skill_order: 1
 description: "Fire an arrow through the enemies in front of you."
