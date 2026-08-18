@@ -13,9 +13,6 @@ namespace {
 // meso.
 constexpr double kMesoDropChance = 0.60;
 
-// The level gap (either direction) within which meso is unpenalized.
-constexpr int kMesoPenaltyFreeGap = 10;
-
 // How far either side of the mean the multiplier is drawn. Every GMS band is
 // its mean plus or minus a fifth -- 2-20 runs 1.6 to 2.4, 91+ runs 6 to 9 --
 // so one spread covers the table.
@@ -55,42 +52,13 @@ double MeanMesoMultiplier(int mob_level) {
 
 }  // namespace
 
-double MesoLevelPenalty(int level_difference) {
-  if (level_difference >= -kMesoPenaltyFreeGap &&
-      level_difference <= kMesoPenaltyFreeGap) {
-    return 1.0;
-  }
-  if (level_difference > kMesoPenaltyFreeGap) {
-    // Player out-levels the mob; the steepest penalty.
-    if (level_difference >= 30) {
-      return 0.0;
-    }
-    if (level_difference <= 20) {
-      return 1.0 - 0.02 * (level_difference - 10);
-    }
-    // 21..29 follow an irregular reduction table (percent reduced).
-    const int reduction[] = {25, 31, 38, 46, 55, 65, 76, 83, 97};
-    return 1.0 - reduction[level_difference - 21] / 100.0;
-  }
-  // Mob out-levels the player; a gentler penalty than the reverse.
-  int below = -level_difference;
-  if (below >= 34) {
-    return 0.0;
-  }
-  if (below <= 20) {
-    return 1.0 - 0.03 * (below - 10);
-  }
-  return 1.0 - (0.30 + 0.05 * (below - 20));
-}
-
-double ExpectedMesoPerKill(const Mob& mob, int player_level) {
+double ExpectedMesoPerKill(const Mob& mob) {
   int mob_level = mob.level();
   // A level-1 mob drops a flat 1 meso; all higher levels scale by the band
   // mean.
   double base_amount =
       mob_level <= 1 ? 1.0 : mob_level * MeanMesoMultiplier(mob_level);
-  return kHeroicMesoMultiplier * kMesoDropChance * base_amount *
-         MesoLevelPenalty(player_level - mob_level);
+  return kHeroicMesoMultiplier * kMesoDropChance * base_amount;
 }
 
 int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng) {
@@ -109,14 +77,9 @@ int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng) {
   return dropped;
 }
 
-int64_t RollMeso(const Mob& mob, int player_level, int64_t kills,
-                 std::mt19937& rng) {
+int64_t RollMeso(const Mob& mob, int64_t kills, std::mt19937& rng) {
   if (kills <= 0) {
     return 0;
-  }
-  double penalty = MesoLevelPenalty(player_level - mob.level());
-  if (penalty <= 0.0) {
-    return 0;  // out-levelled far enough that the mob pays nothing
   }
   // The drop chance is one roll over the batch: which of these kills paid at
   // all is not a question anything downstream asks.
@@ -125,7 +88,7 @@ int64_t RollMeso(const Mob& mob, int player_level, int64_t kills,
   int mob_level = mob.level();
   if (mob_level <= 1) {
     // A flat 1 meso each before the world rate.
-    return static_cast<int64_t>(drops * penalty * kHeroicMesoMultiplier);
+    return static_cast<int64_t>(drops * kHeroicMesoMultiplier);
   }
   double mean = MeanMesoMultiplier(mob_level);
   std::uniform_real_distribution<double> multiplier(mean * (1.0 - kMesoSpread),
@@ -134,8 +97,7 @@ int64_t RollMeso(const Mob& mob, int player_level, int64_t kills,
   // pays for a few dozen kills and a sim's longest step for a few hundred.
   int64_t total = 0;
   for (int64_t i = 0; i < drops; ++i) {
-    total += std::llround(mob_level * multiplier(rng) * penalty *
-                          kHeroicMesoMultiplier);
+    total += std::llround(mob_level * multiplier(rng) * kHeroicMesoMultiplier);
   }
   return total;
 }

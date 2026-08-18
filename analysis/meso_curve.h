@@ -14,9 +14,9 @@
 
 namespace ms {
 
-// What one kill of a level-appropriate mob pays. The player is assumed to
-// train at their own level, which the map ladder keeps them near and which
-// leaves them inside MesoLevelPenalty's free +/-10 band the whole way.
+// What one kill of a level-appropriate mob pays. A kill pays the same whatever
+// level the player is, so this is the game's own formula with nothing taken
+// off.
 struct KillValue {
   double exp = 0.0;
   double meso = 0.0;

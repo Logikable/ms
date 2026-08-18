@@ -60,7 +60,6 @@ void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
   const std::vector<int64_t>& kills = sim.kills_this_step();
 
   CharacterInstance& character = state.character;
-  int player_level = character.proto().level();
   int64_t exp_gained = 0;
   for (std::size_t i = 0; i < params.types.size(); ++i) {
     if (kills[i] <= 0) {
@@ -71,9 +70,8 @@ void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
     // The bonus multiplies the purse rather than each drop in it: a share of a
     // sum is the share of its parts, and the passives are already resolved
     // here.
-    int64_t meso =
-        static_cast<int64_t>(RollMeso(mob, player_level, kills[i], state.rng) *
-                             (1.0 + params.meso_pct));
+    int64_t meso = static_cast<int64_t>(RollMeso(mob, kills[i], state.rng) *
+                                        (1.0 + params.meso_pct));
     if (meso > 0) {
       character.AddMeso(meso);
     }

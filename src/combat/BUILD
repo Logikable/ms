@@ -73,6 +73,7 @@ cc_test(
     deps = [
         ":combat",
         ":fight",
+        ":loot",
         "//src:game_state",
         "//src/character:exp_table",
         "//src/item",

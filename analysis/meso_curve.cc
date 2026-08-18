@@ -15,9 +15,7 @@ KillValue KillValueAt(int level, const MesoCurveParams& params) {
   mob.set_level(level);
   KillValue value;
   value.exp = GmsMobExpPerKill(level);
-  // Player level equals mob level, so MesoLevelPenalty returns 1.0 and this is
-  // the game's own formula with nothing taken off.
-  value.meso = ExpectedMesoPerKill(mob, level);
+  value.meso = ExpectedMesoPerKill(mob);
   value.etc = params.etc_per_kill * params.etc_price_per_level * level;
   return value;
 }

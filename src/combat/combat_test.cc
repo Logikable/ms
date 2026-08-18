@@ -8,6 +8,7 @@
 
 #include "src/character/exp_table.h"
 #include "src/combat/fight.h"
+#include "src/combat/loot.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
@@ -284,6 +285,15 @@ TEST(AdvanceCombatTest, NoOpWithoutCurrentMap) {
 // Corpses rather than EXP: EXP stops at kTrialLevelCap and most of the bands
 // sit above it, so counting kills is the only way to see the whole table. The
 // snail drops a shell every time, which makes the Etc stack the body count.
+int64_t EtcHeld(const GameState& state) {
+  int64_t held = 0;
+  for (const StackableItem& stack :
+       state.character.stackables(ITEM_CATEGORY_ETC)) {
+    held += stack.count();
+  }
+  return held;
+}
+
 int64_t KillsFarmedAt(int level, double seconds) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
@@ -291,9 +301,37 @@ int64_t KillsFarmedAt(int level, double seconds) {
   LevelTo(state, level);
   EquipSword(state);
   Farm(state, seconds);
-  const std::vector<StackableItem>& etc =
-      state.character.stackables(ITEM_CATEGORY_ETC);
-  return etc.empty() ? 0 : etc[0].count();
+  return EtcHeld(state);
+}
+
+// Meso a level-`level` character earned per mob killed, farming level-20
+// snails for long enough that the roll averages out. The shell drops every
+// kill, so the Etc the character holds is the body count.
+double MesoPerKillAt(int level) {
+  Mob mob = SnailMob();
+  mob.set_level(20);
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", mob}}, {{"field", OneSnailMap()}}, {},
+                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/3);
+  state.current_map = "field";
+  LevelTo(state, level);
+  EquipSword(state);
+  Farm(state, 6000.0);
+  int64_t kills = EtcHeld(state);
+  return kills == 0 ? 0.0 : static_cast<double>(state.character.meso()) / kills;
+}
+
+// A mob pays what it is worth, whatever level the character killing it is.
+// GMS reduces the reward once the gap passes ten levels either way, which
+// guards a shared economy we do not have; we pay the mob's own worth instead.
+// Under GMS's rule the +40 gap here paid nothing at all.
+TEST(AdvanceCombatTest, TheLevelGapDoesNotChangeWhatAMobPays) {
+  Mob mob;
+  mob.set_level(20);
+  double expected = ExpectedMesoPerKill(mob);
+  EXPECT_NEAR(MesoPerKillAt(20) / expected, 1.0, 0.05);
+  EXPECT_NEAR(MesoPerKillAt(60) / expected, 1.0, 0.05);  // 40 levels over
+  EXPECT_NEAR(MesoPerKillAt(5) / expected, 1.0, 0.05);   // 15 levels under
 }
 
 // The same fight kills less per second the higher the band, because the fight
@@ -316,15 +354,19 @@ TEST(AdvanceCombatTest, TheSameFightPaysLessAsTheGameSlowsDown) {
 // the boosted one ends up killing FEWER mobs in the same wall time. Neither
 // moves from there, so the multiplier is all that differs.
 TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
+  // One seed across both runs: the purse is rolled, so two streams disagree on
+  // it however little the bonus touches them.
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}}, {},
+                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/9);
   plain.current_map = "field";
   LevelTo(plain, kTrialLevelCap - 1);
   EquipSword(plain);
   Farm(plain, 600.0);
 
   GameState boosted({}, {}, {{"green_snail_shell", GreenSnailShell()}},
-                    {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+                    {{"snail", SnailMob()}}, {{"field", OneSnailMap()}}, {},
+                    GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/9);
   boosted.current_map = "field";
   LevelTo(boosted, kTrialLevelCap - 1);
   boosted.exp_multiplier = 5;
@@ -352,9 +394,11 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   symbol.set_max_level(1);
   symbol.mutable_base()->set_exp_pct(1.0);
 
+  // One seed across both runs, as above.
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", OneSnailMap()}},
-                  {{"holy_symbol", symbol}});
+                  {{"holy_symbol", symbol}}, GameMode::kPlay,
+                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/9);
   plain.current_map = "field";
   LevelTo(plain, kTrialLevelCap - 1);
   EquipSword(plain);
@@ -363,7 +407,8 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
 
   GameState blessed({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                     {{"snail", SnailMob()}}, {{"field", OneSnailMap()}},
-                    {{"holy_symbol", symbol}});
+                    {{"holy_symbol", symbol}}, GameMode::kPlay,
+                    JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/9);
   blessed.current_map = "field";
   LevelTo(blessed, kTrialLevelCap - 1);
   EquipSword(blessed);
@@ -389,8 +434,6 @@ TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
   mastery.set_max_level(1);
   mastery.mutable_base()->set_meso_pct(1.0);
 
-  // A mob near the character's own level: meso falls off hard once they
-  // out-level what they kill, and a purse of zero would prove nothing.
   Mob mob = SnailMob();
   mob.set_level(20);
 
