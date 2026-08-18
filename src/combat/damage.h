@@ -7,6 +7,7 @@
 #define MS_SRC_COMBAT_DAMAGE_H_
 
 #include <map>
+#include <random>
 #include <string>
 
 #include "src/protos/character.pb.h"
@@ -54,6 +55,35 @@ struct OffenseStats {
   // bare stat line carries, not a value any real weapon has.
   double weapon_constant = 1.0;
 };
+
+// The part of a swing that varies from one landing to the next, pulled out of
+// an OffenseStats. The expected-value chain folds these in as averages; a live
+// swing rolls them per LINE and per enemy, which is what GMS does.
+struct SwingRolls {
+  int lines = 1;         // the swing's own hits on one enemy
+  int mirror_lines = 0;  // the shadow's, each worth mirror_pct of a real line
+  double mirror_pct = 0.0;
+  // The floor of each line's uniform roll, 0..1. 1.0 is a line that never
+  // rolls low, which is what the default is for: a caller that fills in
+  // nothing gets no variance at all.
+  double mastery = 1.0;
+  // Both already carry the base pair every character has, unlike the fields
+  // they come from -- what rolls is the whole chance, not the bought share.
+  double crit_rate = 0.0;
+  double crit_dmg = 0.0;
+};
+
+// What `offense` will vary by. Everything else in the chain is settled before
+// the swing lands.
+SwingRolls RollsFor(const OffenseStats& offense);
+
+// One landing's share of the mean: the per-line rolls summed, over what they
+// average to. Exactly 1.0 when nothing rolls, so damage times this is damage.
+//
+// A factor rather than a damage because the expected damage is already worked
+// out and cached -- multiplying keeps the two agreeing in expectation by
+// construction, and every reader that wants the average keeps reading it.
+double RollFactor(const SwingRolls& rolls, std::mt19937& rng);
 
 // How two shares of ignored monster DEF meet: in reverse, so what is left of
 // the armour is the product of what each share leaves standing. 30% and 40%

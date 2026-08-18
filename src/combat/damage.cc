@@ -206,6 +206,39 @@ double LevelMultiplier(int player_level, int mob_level) {
   return kUnderLevelMultiplier[gap];
 }
 
+SwingRolls RollsFor(const OffenseStats& offense) {
+  SwingRolls rolls;
+  rolls.lines = std::max(1, offense.lines);
+  rolls.mirror_lines = offense.mirror_lines;
+  rolls.mirror_pct = offense.mirror_pct;
+  rolls.mastery = offense.mastery;
+  rolls.crit_rate = std::min(1.0, offense.crit_rate + kBaseCritRate);
+  rolls.crit_dmg = offense.crit_dmg + kBaseCritDamage;
+  return rolls;
+}
+
+double RollFactor(const SwingRolls& rolls, std::mt19937& rng) {
+  double effective_lines = rolls.lines + rolls.mirror_lines * rolls.mirror_pct;
+  double mean =
+      (1.0 + rolls.mastery) / 2.0 * (1.0 + rolls.crit_rate * rolls.crit_dmg);
+  if (effective_lines <= 0.0 || mean <= 0.0) {
+    return 1.0;
+  }
+  std::uniform_real_distribution<double> spread(rolls.mastery, 1.0);
+  std::bernoulli_distribution crits(rolls.crit_rate);
+  double total = 0.0;
+  for (int i = 0; i < rolls.lines; ++i) {
+    total += spread(rng) * (crits(rng) ? 1.0 + rolls.crit_dmg : 1.0);
+  }
+  // The shadow's copies roll on their own rather than sharing the swing's: it
+  // is a second set of hits, and GMS rolls every hit.
+  for (int i = 0; i < rolls.mirror_lines; ++i) {
+    total += rolls.mirror_pct * spread(rng) *
+             (crits(rng) ? 1.0 + rolls.crit_dmg : 1.0);
+  }
+  return total / (effective_lines * mean);
+}
+
 double CombineIgnoredDefense(double a, double b) {
   return 1.0 - (1.0 - a) * (1.0 - b);
 }

@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <random>
+
 #include "src/combat/constants.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -622,6 +625,75 @@ double MasteryFor(Job job, const PassiveOffense& passives) {
   return OffenseStatsFor(job, 30, AllocatedStats(), EquipStats(),
                          EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives)
       .mastery;
+}
+
+// The whole contract: whatever rolls, the average is the damage already
+// worked out. Only that keeps the fight and the sims agreeing.
+TEST(RollFactorTest, AveragesToOne) {
+  SwingRolls rolls;
+  rolls.lines = 4;
+  rolls.mirror_lines = 4;
+  rolls.mirror_pct = 0.7;
+  rolls.mastery = 0.5;
+  rolls.crit_rate = 0.3;
+  rolls.crit_dmg = 1.0;
+  std::mt19937 rng(1234);
+  double total = 0.0;
+  const int kRuns = 200000;
+  for (int i = 0; i < kRuns; ++i) {
+    total += RollFactor(rolls, rng);
+  }
+  EXPECT_NEAR(total / kRuns, 1.0, 0.005);
+}
+
+// A caller filling in nothing gets no variance, which is what lets an attack
+// built by hand land exactly the damage it was given.
+TEST(RollFactorTest, DefaultsRollNothing) {
+  std::mt19937 rng(1);
+  for (int i = 0; i < 20; ++i) {
+    EXPECT_DOUBLE_EQ(RollFactor(SwingRolls(), rng), 1.0);
+  }
+}
+
+// One line, so the factor is the roll itself: never below the mastery floor
+// over the mean, never above a crit at full roll, and both ends reached.
+TEST(RollFactorTest, StaysWithinTheFloorAndTheCrit) {
+  SwingRolls rolls;
+  rolls.mastery = 0.4;
+  rolls.crit_rate = 0.5;
+  rolls.crit_dmg = 0.8;
+  double mean = 0.7 * 1.4;
+  std::mt19937 rng(7);
+  double low = 2.0;
+  double high = 0.0;
+  for (int i = 0; i < 5000; ++i) {
+    double factor = RollFactor(rolls, rng);
+    EXPECT_GE(factor, 0.4 / mean);
+    EXPECT_LE(factor, 1.8 / mean);
+    low = std::min(low, factor);
+    high = std::max(high, factor);
+  }
+  EXPECT_LT(low, 0.5 / mean);   // a non-crit near the floor turned up
+  EXPECT_GT(high, 1.7 / mean);  // so did a crit at full roll
+}
+
+// The rolls come off the stats the chain already holds, with the base crit
+// pair folded in -- what varies is the whole chance, not the bought share.
+TEST(RollFactorTest, RollsForTakesTheWholeCritChance) {
+  OffenseStats offense;
+  offense.lines = 3;
+  offense.mirror_lines = 3;
+  offense.mirror_pct = 0.5;
+  offense.mastery = 0.9;
+  offense.crit_rate = 0.20;
+  offense.crit_dmg = 0.15;
+  SwingRolls rolls = RollsFor(offense);
+  EXPECT_EQ(rolls.lines, 3);
+  EXPECT_EQ(rolls.mirror_lines, 3);
+  EXPECT_DOUBLE_EQ(rolls.mirror_pct, 0.5);
+  EXPECT_DOUBLE_EQ(rolls.mastery, 0.9);
+  EXPECT_DOUBLE_EQ(rolls.crit_rate, 0.20 + kBaseCritRate);
+  EXPECT_DOUBLE_EQ(rolls.crit_dmg, 0.15 + kBaseCritDamage);
 }
 
 TEST(OffenseStatsForTest, DefaultsAreUntouchedWithoutGear) {

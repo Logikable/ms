@@ -104,6 +104,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
+  attack.groups.push_back({attack.damage_per_hit, RollsFor(offense)});
   // Some swings open with a harder hit on a single enemy before spreading --
   // GMS's "strikes one, then detonates in place". Same character, same weapon,
   // the skill's other multiplier: only the target count differs, and that is
@@ -120,6 +121,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     for (const CombatType& type : types) {
       attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
     }
+    attack.lead_rolls = RollsFor(lead);
   }
   // A swing that lands two hits at once: the hammer, and the brand it leaves
   // exploding. Same character, same weapon, same reach -- what differs is the
@@ -141,9 +143,13 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       // The shadow copies it as it copies the rest of the swing. Reset here
       // because the line count just changed under it.
       extra.mirror_lines = extra.lines;
+      HitGroup group;
+      group.rolls = RollsFor(extra);
       for (std::size_t i = 0; i < types.size(); ++i) {
-        attack.damage_per_hit[i] += ExpectedAttackDamage(extra, *types[i].mob);
+        group.damage.push_back(ExpectedAttackDamage(extra, *types[i].mob));
+        attack.damage_per_hit[i] += group.damage.back();
       }
+      attack.groups.push_back(std::move(group));
     }
   }
   // Final Attack rides the swing, not the skill: a plain hit worth its own
@@ -464,6 +470,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     if (attack.heal_fraction > 0.0) {
       std::fill(attack.damage_per_hit.begin(), attack.damage_per_hit.end(),
                 0.0);
+      attack.groups.clear();
       attack.lead_damage.clear();
       attack.final_attack_damage.clear();
     }

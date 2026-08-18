@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -56,6 +57,68 @@ CombatParams MakeParams(double swing, double respawn,
   }
   params.attacks.push_back(std::move(attack));
   return params;
+}
+
+// A swing that rolls: every line lands somewhere between the mastery floor and
+// full, and crits on top of that. Over a long run the kills have to come out
+// where the unrolled swing would have put them, or the fight and the reward
+// layer stop agreeing with the sims.
+TEST(CombatSimTest, ARollingSwingKillsAtTheRateItsAverageWould) {
+  Mob mob = MakeMob("Snail", 100);
+  double kills = 0.0;
+  double rolled_kills = 0.0;
+  for (int run = 0; run < 2; ++run) {
+    CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 200)});
+    if (run == 1) {
+      // Four lines of a quarter of the damage apiece, wide open and crit-heavy
+      // -- the same 25 on average, landing anywhere from 10 to 60.
+      HitGroup group;
+      group.damage = {25.0};
+      group.rolls.lines = 4;
+      group.rolls.mastery = 0.4;
+      group.rolls.crit_rate = 0.5;
+      group.rolls.crit_dmg = 1.0;
+      params.attacks[0].groups.push_back(group);
+    }
+    CombatSim sim;
+    double total = 0.0;
+    for (int step = 0; step < 4000; ++step) {
+      sim.Advance(params, 1.0);
+      total += sim.kills_this_step()[0];
+    }
+    (run == 0 ? kills : rolled_kills) = total;
+  }
+  ASSERT_GT(kills, 0.0);
+  EXPECT_NEAR(rolled_kills / kills, 1.0, 0.02);
+}
+
+// The same swing landing differently twice, which is the whole point: without
+// this the roll could be a constant and every average above would still hold.
+TEST(CombatSimTest, ARollingSwingDoesNotLandTheSameTwice) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
+  HitGroup group;
+  group.damage = {25.0};
+  group.rolls.lines = 4;
+  group.rolls.mastery = 0.4;
+  group.rolls.crit_rate = 0.5;
+  group.rolls.crit_dmg = 1.0;
+  params.attacks[0].groups.push_back(group);
+
+  CombatSim sim;
+  std::vector<double> left;
+  for (int step = 0; step < 5; ++step) {
+    sim.Advance(params, 1.0);
+    left.push_back(sim.target_hp_fraction());
+  }
+  // Five swings, so four gaps -- at least one of them differs from the first.
+  bool varied = false;
+  for (std::size_t i = 2; i < left.size(); ++i) {
+    if (std::abs((left[i - 1] - left[i]) - (left[0] - left[1])) > 1e-9) {
+      varied = true;
+    }
+  }
+  EXPECT_TRUE(varied);
 }
 
 // A swing worth three pokes, held back by a three-second cooldown -- so it

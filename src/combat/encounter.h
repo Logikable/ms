@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/protos/mob.pb.h"
 
@@ -32,6 +33,14 @@ struct CombatType {
   double damage_to_player = 0.0;
 };
 
+// One block of lines inside a swing, and what makes it vary. A swing is one of
+// these plus one per extra hit the skill lands: the parts differ in line count
+// and in how often they crit, so each rolls on its own.
+struct HitGroup {
+  std::vector<double> damage;  // per target type, parallel to CombatParams
+  SwingRolls rolls;
+};
+
 // One thing the character could spend a swing on: the bare poke, a learned
 // attack skill, or a cast that does something else with the swing entirely.
 // Which one is best depends on how many mobs are actually in front of the
@@ -43,6 +52,11 @@ struct AttackOption {
   int max_enemies = 1;          // front-of-queue mobs one swing reaches
   // Expected damage per target, parallel to CombatParams::types.
   std::vector<double> damage_per_hit;
+  // The same swing broken into the blocks that roll. Their expected damages
+  // sum to damage_per_hit, so a reader after the average never looks in here.
+  // Empty lands the average itself, which is what a caller building an attack
+  // by hand wants.
+  std::vector<HitGroup> groups;
   // Seconds one swing of this attack takes, game-scaled. Per attack rather
   // than per encounter because the delay belongs to the skill: a slower
   // animation is the price a harder-hitting skill pays. 0 for an attack that
@@ -68,6 +82,9 @@ struct AttackOption {
   // big is worth least where it overkills. Empty for a swing that lands once,
   // which is most of them.
   std::vector<double> lead_damage;
+  // What the opening hit varies by. Its own, because it lands on its own line
+  // count rather than the swing's.
+  SwingRolls lead_rolls;
   // Expected Final Attack damage per target type, landing on every mob the
   // swing reached: it rolls separately for each of them. Empty for a character
   // with no Final Attack, for a swing none of theirs follows, and for the

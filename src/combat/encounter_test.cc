@@ -883,6 +883,17 @@ TEST(ComputeCombatParamsTest, ASwingCanLandTwoHitsPricedSeparately) {
   double poke = params.attacks[0].damage_per_hit[0];
   EXPECT_DOUBLE_EQ(params.attacks[1].damage_per_hit[0], 34.0 * poke);
 
+  // Each half also rolls apart, on its own line count: the hammer's seven and
+  // the explosion's five. Their expected damages are what damage_per_hit is
+  // the sum of, which is what keeps the rolled swing and the average one
+  // agreeing.
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_EQ(swing.groups.size(), 2u);
+  EXPECT_EQ(swing.groups[0].rolls.lines, 7);
+  EXPECT_EQ(swing.groups[1].rolls.lines, 5);
+  EXPECT_DOUBLE_EQ(swing.groups[0].damage[0] + swing.groups[1].damage[0],
+                   swing.damage_per_hit[0]);
+
   // The bonus is worth its five strikes and not the hammer's seven, which is
   // the whole reason the two halves are priced apart rather than averaged.
   Skill plain = mark;

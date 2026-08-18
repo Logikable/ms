@@ -207,10 +207,11 @@ void CombatSim::Strike(const AttackOption& attack) {
   // mobs went into the swing with rather than what the spread left them on.
   int lead = LeadTarget(attack, hit);
   for (int j = 0; j < hit; ++j) {
-    queue_[j].hp -= DamageToBranded(attack, j);
+    queue_[j].hp -= DamageToMob(attack, j);
   }
   if (lead >= 0) {
-    queue_[lead].hp -= attack.lead_damage[queue_[lead].type];
+    queue_[lead].hp -= attack.lead_damage[queue_[lead].type] *
+                       RollFactor(attack.lead_rolls, rng_);
   }
   // A Final Attack rolls separately against every enemy the swing reached, so
   // in expectation each of them takes it.
@@ -231,8 +232,22 @@ void CombatSim::Strike(const AttackOption& attack) {
   queue_ = std::move(survivors);
 }
 
-double CombatSim::DamageToBranded(const AttackOption& attack, int index) {
-  double ordinary = attack.damage_per_hit[queue_[index].type];
+double CombatSim::RolledDamage(const AttackOption& attack, int type) {
+  if (attack.groups.empty()) {
+    return attack.damage_per_hit[type];
+  }
+  double total = 0.0;
+  for (const HitGroup& group : attack.groups) {
+    if (type < static_cast<int>(group.damage.size())) {
+      total += group.damage[type] * RollFactor(group.rolls, rng_);
+    }
+  }
+  return total;
+}
+
+double CombatSim::DamageToMob(const AttackOption& attack, int index) {
+  int type = queue_[index].type;
+  double ordinary = RolledDamage(attack, type);
   if (!attack.brands_enemies || attack.empowered == nullptr ||
       attack.empowered_every <= 0) {
     return ordinary;
@@ -245,7 +260,7 @@ double CombatSim::DamageToBranded(const AttackOption& attack, int index) {
   queue_[index].brand = 0;
   // On top of the strike that set it off, not instead of it: a mark going off
   // is its own event, where an empowered swing IS the swing.
-  return ordinary + attack.empowered->damage_per_hit[queue_[index].type];
+  return ordinary + RolledDamage(*attack.empowered, type);
 }
 
 const AttackOption& CombatSim::FormToLand(std::vector<int>& counts, int size,
