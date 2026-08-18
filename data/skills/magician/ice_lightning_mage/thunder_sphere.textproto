@@ -3,10 +3,9 @@
 # six enemies, and its normal-enemy bonus of 70+5x percentage POINTS per line
 # -- Beam Blade's lever, and since nothing here is a boss it always lands.
 #
-# Two seconds is ours. The wiki gives the orb a summon duration and no rate,
-# and the Korean DPM calculator models the 4th job's Lightning Spear instead.
-# GMS's orb discharges about once a second, which would out-damage the wizard
-# casting it; at two it is worth about 40% of the swing beside it.
+# 1.8s between discharges is the client's own: fifteen frames of 120ms in the
+# orb's attack animation. The wiki gives the orb a duration and no rate, and
+# the Korean DPM calculator models the 4th job's Lightning Spear instead.
 name: "Thunder Sphere"
 skill_order: 2
 description:
@@ -18,7 +17,7 @@ job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 20
 max_enemies: 6
 lines: 3
-cast_interval_seconds: 2.0
+cast_interval_seconds: 1.8
 base {
   skill_pct: 2.01
   normal_skill_pct: 0.75

@@ -1,10 +1,10 @@
 # GMS's own figures: 200+8x% on three enemies. The summon's duration is
 # dropped, as every duration here is -- the shuriken simply always hangs there.
 #
-# 968ms between pulses is `oleneyl/maplestory_dpm_calc`'s 60000/62: 62 strikes
-# over the 60 seconds GMS gives it. The wiki states no rate for any summon, and
-# this is the same file Phoenix, Frostprey and the Arrow Blaster turret are
-# read from.
+# 900ms between pulses is the client's own -- the shuriken's attack animation
+# is six frames of 150ms, and the skill repeats that as `subTime`. The wiki
+# states no rate for any summon; read the same way, Phoenix and Frostprey give
+# back the 1710ms they already carry.
 name: "Dark Flare"
 skill_order: 3
 description:
@@ -14,6 +14,6 @@ kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 20
 max_enemies: 3
-cast_interval_seconds: 0.968
+cast_interval_seconds: 0.9
 base { skill_pct: 2.08 }
 per_level { skill_pct: 0.08 }

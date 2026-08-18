@@ -1,5 +1,5 @@
 # The Hermit's, to the number -- GMS gives both branches 200+8x% on three
-# enemies, and dpm_calc gives both the same 968ms pulse, for the reason written
+# enemies, and both hang off the same 900ms animation, for the reason written
 # there. A dagger hangs in the air where a shuriken does.
 name: "Dark Flare"
 skill_order: 3
@@ -10,6 +10,6 @@ kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 20
 max_enemies: 3
-cast_interval_seconds: 0.968
+cast_interval_seconds: 0.9
 base { skill_pct: 2.08 }
 per_level { skill_pct: 0.08 }
