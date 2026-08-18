@@ -266,6 +266,19 @@ message SkillEffect {
   // total -- and what it grants IS a grant like theirs, so a percentage over
   // the character's stats would lift this too.
   double ap_stat_pct = 122;
+  // The Marksman's. Strikes added to every multi-line swing the character makes
+  // -- Bolt Surplus's "+1 attack to all multi-hit skills". Summed across its
+  // sources, of which there is one.
+  //
+  // GMS says it skips summons, 5th job common skills and "certain skills", and
+  // every one of those falls out of what a swing is here: a summon fires on its
+  // own clock rather than being swung, and a Final Attack is a lever with no
+  // line count to add to. What is left is exactly the attacks the character
+  // chooses between, an empowered form among them.
+  //
+  // A swing that lands once is left alone. GMS grants this to multi-hit skills,
+  // and a single strike doubling would be the largest lever in the game.
+  int32 bonus_attack_lines = 124;
   // The Chief Bandit's. Share added to the meso a kill yields (0.20 == +20%).
   // Sums across its sources, and the second lever in the game to pay in
   // something other than a fight -- exp_pct above is the first.

@@ -395,10 +395,12 @@ const Skill& Boosted(const Skill& skill, int level,
 // this really is a different swing, and it must not pick up the permanent
 // bonus its parent hands the ordinary version.
 Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
-                     const std::string& target) {
+                     const std::string& target, SkillKind kind) {
   Skill form;
   form.set_name("Empowered " + target);
-  form.set_kind(SKILL_KIND_ATTACK);
+  // The kind of the attack it stands in for, not of the skill granting it --
+  // the grant is often a passive, and what stands in for a pulse is a pulse.
+  form.set_kind(kind);
   *form.mutable_base() = upgrade.base();
   *form.mutable_per_level() = upgrade.per_level();
   form.set_max_enemies(upgrade.max_enemies());
@@ -419,7 +421,7 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
                          const EmpoweredForm& upgrade, int learned,
                          const DerivedStats& derived, int attack_speed,
                          double speed_factor,
-                         const std::vector<CombatType>& types,
+                         const std::vector<CombatType>& types, SkillKind kind,
                          std::vector<AttackOption>& into) {
   // The form may name its own target, which is what a skill carrying two of
   // them does. Failing that it takes the one skill this one strengthens, and
@@ -434,7 +436,7 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
     if (attack.name != target) {
       continue;
     }
-    Skill form = EmpoweredSkill(skill, upgrade, attack.name);
+    Skill form = EmpoweredSkill(skill, upgrade, attack.name, kind);
     std::shared_ptr<AttackOption> swing = std::make_shared<AttackOption>(
         AttackFor(state.character.proto(), equipped, weapon_type, &form,
                   learned, types, derived, attack_speed, speed_factor));
@@ -476,10 +478,10 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
       }
       AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,
                           derived, attack_speed, speed_factor, types,
-                          set.attacks);
+                          SKILL_KIND_ATTACK, set.attacks);
       AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,
                           off_clock, attack_speed, speed_factor, types,
-                          set.auto_attacks);
+                          SKILL_KIND_AUTO_ATTACK, set.auto_attacks);
     }
   }
 }

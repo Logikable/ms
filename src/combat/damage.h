@@ -158,6 +158,9 @@ struct PassiveOffense {
   // Share of one line a shadow copy of the swing lands, per line the swing
   // already has. See DerivedStats::mirror_line_pct.
   double mirror_line_pct = 0.0;
+  // Strikes added to a swing that already lands more than one. See
+  // SkillEffect::bonus_attack_lines.
+  int bonus_attack_lines = 0;
   // Share added to damage against a boss, summed across the passives granting
   // it. Meets the gear's own by summing too -- both are shares of the same
   // damage, unlike ied.

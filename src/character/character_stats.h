@@ -96,6 +96,9 @@ struct DerivedStats {
   // swing already has. 0 for a character with no Shadow Partner, which is
   // every character but a Hermit.
   double mirror_line_pct = 0.0;
+  // Strikes added to every multi-line swing. 0 for a character with no Bolt
+  // Surplus, which is every character but a Marksman.
+  int bonus_attack_lines = 0;
   // Share added to the meso a kill yields (0.20 == +20%). Summed across the
   // passives granting it.
   double meso_pct = 0.0;

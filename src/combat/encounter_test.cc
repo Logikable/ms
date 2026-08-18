@@ -1197,6 +1197,62 @@ TEST(ComputeCombatParamsTest, OneSkillCanEmpowerTwoDifferentSwings) {
                    (10.0 * 3.0 / 9.0) * upgraded_snipe.damage_per_hit[0]);
 }
 
+// Bolt Surplus's strike lands on the swings the character chooses between and
+// nowhere else: not on the bare poke, which lands once, and not on a summon,
+// which they never swung.
+TEST(ComputeCombatParamsTest, AnExtraStrikeReachesOnlyMultiHitSwings) {
+  Skill snipe;
+  snipe.set_name("Snipe");
+  snipe.set_kind(SKILL_KIND_ATTACK);
+  snipe.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  snipe.set_max_level(30);
+  snipe.set_max_enemies(1);
+  snipe.set_lines(9);
+  snipe.mutable_base()->set_skill_pct(1.00);
+  Skill illusion;
+  illusion.set_name("Arrow Illusion");
+  illusion.set_kind(SKILL_KIND_AUTO_ATTACK);
+  illusion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  illusion.set_max_level(20);
+  illusion.set_max_enemies(6);
+  illusion.set_lines(4);
+  illusion.set_cast_interval_seconds(3.0);
+  illusion.mutable_base()->set_skill_pct(1.00);
+  Skill surplus;
+  surplus.set_name("Bolt Surplus");
+  surplus.set_kind(SKILL_KIND_PASSIVE);
+  surplus.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  surplus.set_max_level(10);
+  surplus.mutable_base()->set_bonus_attack_lines(1);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"snipe", snipe},
+                   {"arrow_illusion", illusion},
+                   {"bolt_surplus", surplus}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(snipe, 1));
+  ASSERT_TRUE(state.character.LearnSkill(illusion, 1));
+
+  CombatParams before = ComputeCombatParams(state);
+  ASSERT_EQ(before.attacks.size(), 2u);
+  ASSERT_EQ(before.auto_attacks.size(), 1u);
+  double poke_before = before.attacks[0].damage_per_hit[0];
+  double snipe_before = before.attacks[1].damage_per_hit[0];
+  double pulse_before = before.auto_attacks[0].damage_per_hit[0];
+
+  ASSERT_TRUE(state.character.LearnSkill(surplus, 1));
+  CombatParams after = ComputeCombatParams(state);
+  // Nine lines become ten; the poke's one line and the summon's four are left
+  // exactly as they were.
+  EXPECT_DOUBLE_EQ(after.attacks[1].damage_per_hit[0],
+                   snipe_before * 10.0 / 9.0);
+  EXPECT_DOUBLE_EQ(after.attacks[0].damage_per_hit[0], poke_before);
+  EXPECT_DOUBLE_EQ(after.auto_attacks[0].damage_per_hit[0], pulse_before);
+}
+
 // An empowered swing lands its own second hit the way an ordinary one does:
 // Empowered Snipe spends the mark Snipe left on the target it hits.
 TEST(ComputeCombatParamsTest, AnEmpoweredFormLandsItsOwnSecondHit) {

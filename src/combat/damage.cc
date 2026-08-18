@@ -427,6 +427,11 @@ OffenseStats OffenseStatsFor(Job job, int level,
     // A multi-hit skill strikes each target this many times per swing, so its
     // per-target damage is skill_pct once per line.
     offense.lines = SkillLinesAt(*attack_skill, attack_level);
+    // Bolt Surplus's strike, on a swing that already lands more than one and on
+    // nothing that fires by itself. See SkillEffect::bonus_attack_lines.
+    if (offense.lines > 1 && attack_skill->kind() == SKILL_KIND_ATTACK) {
+      offense.lines += passives.bonus_attack_lines;
+    }
   }
   // The shadow copies whatever the swing turned out to be, the bare poke's one
   // line included. Set last, so it cannot be read before lines is settled.

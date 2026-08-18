@@ -605,6 +605,15 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
     rows.push_back(
         EffectRow("Shadow Damage", FormatPercent(mirror) + " of each hit"));
   }
+  // A strike on every swing the character already lands more than once. Worth
+  // most on the shortest of them, which the row cannot say and the player will
+  // work out the first time they read a nine-line skill.
+  int strikes = skill.base().bonus_attack_lines() +
+                skill.per_level().bonus_attack_lines() * (level - 1);
+  if (strikes > 0) {
+    rows.push_back(EffectRow("Extra Strike", "+" + std::to_string(strikes) +
+                                                 " on every multi-hit skill"));
+  }
   // Dispel's whole effect, and a promise the skill really keeps -- there is
   // just nothing in the game yet that inflicts what it lifts. Stated flatly,
   // because it is the same at every level: the points buy nothing more.
