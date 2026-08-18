@@ -36,12 +36,11 @@ buff {
   duration_seconds_per_level: 0.51724
   base { damage_pct: 0.11 }
   per_level { damage_pct: 0.00483 }
-}
-auto_mode {
-  label: "Wound"
-  cast_interval_seconds: 2.0
-  max_enemies: 8
-  lines: 1
-  base { skill_pct: 0.3276 }
-  per_level { skill_pct: 0.0456 }
+  pulse {
+    label: "Wound"
+    cast_interval_seconds: 2.0
+    lines: 1
+    base { skill_pct: 0.3276 }
+    per_level { skill_pct: 0.0456 }
+  }
 }

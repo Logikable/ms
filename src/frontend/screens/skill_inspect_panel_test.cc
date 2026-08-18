@@ -1169,6 +1169,42 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfATimedBuff) {
   EXPECT_GT(keeps, passive);
 }
 
+// A wound bleeds only while it stands, so it reads under the heading that
+// says how long that is -- not above it, where a permanent aura reads.
+TEST_F(SkillInspectPanelTest, AWoundReadsUnderTheWindowItBleedsIn) {
+  Skill puncture = MakeIronBody();
+  puncture.set_kind(SKILL_KIND_ATTACK);
+  puncture.set_max_enemies(8);
+  Buff* wound = puncture.mutable_buff();
+  wound->set_duration_seconds(45.0);
+  wound->set_duration_seconds_per_level(0.5);
+  wound->mutable_base()->set_damage_pct(0.11);
+  BuffPulse* pulse = wound->mutable_pulse();
+  pulse->set_label("Wound");
+  pulse->set_cast_interval_seconds(2.0);
+  pulse->set_lines(1);
+  pulse->mutable_base()->set_skill_pct(0.33);
+  pulse->mutable_per_level()->set_skill_pct(0.05);
+
+  std::string rendered = RenderAt(puncture, 11);
+  // Its damage and its clock share a row, and its reach is the swing's own.
+  EXPECT_NE(rendered.find("Wound             83% every 2s"), std::string::npos)
+      << rendered;
+  std::vector<std::string> lines = Lines(rendered);
+  int active = -1;
+  int wounded = -1;
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (lines[i].find("Active for 50s") != std::string::npos) {
+      active = i;
+    }
+    if (lines[i].find("Wound") != std::string::npos) {
+      wounded = i;
+    }
+  }
+  EXPECT_GT(active, 0);
+  EXPECT_GT(wounded, active);
+}
+
 // The skill list tells an active from a passive by colour; a skill that is
 // both has to tell its own halves apart the same way, or the colours mean one
 // thing in the book and another on the page.

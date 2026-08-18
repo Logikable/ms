@@ -324,6 +324,33 @@ message AutoMode {
   int32 lines = 5;
 }
 
+// The damage a buff itself ticks: a wound, bleeding for as long as the buff
+// stands and only then. Puncture is the case it exists for -- GMS's "attacked
+// enemies take #dot% damage every #dotInterval sec., for #dotTime sec.", where
+// the seconds are the buff's own and the enemies are the ones the swing
+// reached.
+//
+// Not an AutoMode, which is a turret: that fires whether or not anything was
+// struck and picks its own targets. This has no reach of its own -- it takes
+// the swing's, being the mark that swing left -- and no clock beyond the
+// buff's.
+//
+// GMS words the tick as a chance of a damage: "a 100% chance to take 165%".
+// Both fold into skill_pct here, the way a Final Attack's chance and damage
+// do, because neither half says anything on its own.
+//
+// Read at the same learned level as the skill carrying it.
+message BuffPulse {
+  SkillEffect base = 1;
+  SkillEffect per_level = 2;
+  // What the skill page calls it, in its row under the buff's heading.
+  string label = 3;
+  // Seconds between ticks. Never scaled by attack speed -- nothing on its own
+  // clock is.
+  double cast_interval_seconds = 4;
+  int32 lines = 5;
+}
+
 // A buff a skill puts up for a while, on a cooldown of its own: what it grants
 // while it is up, how long that is, and what shortens the wait for the next
 // one. The skill's own cooldown_seconds is that wait.
@@ -352,6 +379,9 @@ message Buff {
   // the player is the reason to swing fast beyond the damage: the buff comes
   // round sooner. 0 for a buff that waits out its whole cooldown.
   double cooldown_reduction_seconds = 5;
+  // What the buff bleeds while it stands. Unset for every buff that only
+  // grants levers, which is all of them but Puncture's wound.
+  BuffPulse pulse = 6;
 }
 
 // A second hit the same swing lands at the same moment. Divine Mark is the

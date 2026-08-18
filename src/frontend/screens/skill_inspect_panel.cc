@@ -719,6 +719,17 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
   for (ftxui::Element& row : LeverRows(base, per, level, "")) {
     rows.push_back(std::move(row));
   }
+  // What the buff bleeds, on one row: its damage and its clock are one fact,
+  // and the enemies it reaches are the ones the swing above already states.
+  const BuffPulse& pulse = buff.pulse();
+  if (pulse.cast_interval_seconds() > 0.0) {
+    rows.push_back(EffectRow(
+        pulse.label(),
+        SwingText(pulse.base().skill_pct() +
+                      pulse.per_level().skill_pct() * (level - 1),
+                  pulse.lines()) +
+            " every " + FormatNumber(pulse.cast_interval_seconds(), 2) + "s"));
+  }
   return rows;
 }
 

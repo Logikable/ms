@@ -261,6 +261,20 @@ Skill AutoModeSkill(const Skill& skill, const AutoMode& mode) {
   return built;
 }
 
+// The wound a skill's buff bleeds, as a skill in its own right. It reaches
+// what the swing reached, being the mark that swing left, and carries none of
+// the parent's tags for the reason AutoModeSkill gives.
+Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
+  Skill built;
+  built.set_name(skill.name());
+  built.set_kind(SKILL_KIND_AUTO_ATTACK);
+  *built.mutable_base() = pulse.base();
+  *built.mutable_per_level() = pulse.per_level();
+  built.set_max_enemies(skill.max_enemies());
+  built.set_lines(pulse.lines());
+  return built;
+}
+
 // Adds every own-clock half of a skill that has any, beside the swing it
 // already is. Nothing for the skills that have none, which is most of them.
 void AddAutoModes(const Character& proto, const EquipStats& equipped,
@@ -283,6 +297,19 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
     attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
     set.auto_attacks.push_back(std::move(attack));
   }
+  const BuffPulse& pulse = skill.buff().pulse();
+  if (pulse.cast_interval_seconds() <= 0.0) {
+    return;
+  }
+  Skill bleed = BuffPulseSkill(skill, pulse);
+  AttackOption wound =
+      AttackFor(proto, equipped, weapon_type, &bleed, level, types, derived,
+                kUnscaledAttackSpeedStage, speed_factor);
+  wound.swing_seconds = 0.0;
+  wound.final_attack_damage.clear();
+  wound.final_attack_rolls.clear();
+  wound.interval_seconds = pulse.cast_interval_seconds() * speed_factor;
+  set.auto_attacks.push_back(std::move(wound));
 }
 
 // What the rest of the book hands one skill: strikes added to every swing,
@@ -594,15 +621,17 @@ void AddBuffs(const CharacterInstance& character,
   }
 }
 
-// Points every own-clock half of a swing-laid buff's skill at that buff, in
-// the base set and in every buffed one alike -- the fight reads whichever set
-// the mask names, so a tag on one of them would come and go with the buffs.
+// Points each bleeding buff's pulse at the buff it belongs to, in the base set
+// and in every buffed one alike -- the fight reads whichever set the mask
+// names, so a tag on one of them would come and go with the buffs.
 //
-// Matched by name because an own-clock half keeps its parent skill's name, and
-// so does the buff: one skill, one row in the book, one name.
-void TagBuffGatedPulses(CombatParams& params) {
+// Matched by name because a pulse keeps its parent skill's name, and so does
+// the buff: one skill, one row in the book, one name.
+void TagBuffGatedPulses(const std::vector<const Skill*>& buff_skills,
+                        CombatParams& params) {
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
-    if (params.buffs[i].laid_by_attack < 0) {
+    if (i >= static_cast<int>(buff_skills.size()) ||
+        buff_skills[i]->buff().pulse().cast_interval_seconds() <= 0.0) {
       continue;
     }
     std::vector<std::vector<AttackOption>*> sets = {&params.auto_attacks};
@@ -723,7 +752,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   }
   AddBuffs(state.character, state.skills, buff_skills, speed_factor, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
-  TagBuffGatedPulses(params);
+  TagBuffGatedPulses(buff_skills, params);
   params.active = true;
   return params;
 }
