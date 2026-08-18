@@ -1,9 +1,10 @@
 # GMS's own figures: 200+8x% on three enemies. The summon's duration is
 # dropped, as every duration here is -- the shuriken simply always hangs there.
 #
-# 1.5s between pulses is ours: GMS gives a duration and no rate. It puts the
-# skill at 240% a second on each of its three enemies, level with Poison Mist
-# and above Creeping Toxin -- which is where a summon reaching this few belongs.
+# 968ms between pulses is `oleneyl/maplestory_dpm_calc`'s 60000/62: 62 strikes
+# over the 60 seconds GMS gives it. The wiki states no rate for any summon, and
+# this is the same file Phoenix, Frostprey and the Arrow Blaster turret are
+# read from.
 name: "Dark Flare"
 skill_order: 3
 description:
@@ -13,6 +14,6 @@ kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 20
 max_enemies: 3
-cast_interval_seconds: 1.5
+cast_interval_seconds: 0.968
 base { skill_pct: 2.08 }
 per_level { skill_pct: 0.08 }
