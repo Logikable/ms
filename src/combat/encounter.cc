@@ -268,11 +268,12 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
   }
 }
 
-// What the rest of the book hands one skill: strikes added to every swing and
-// enemies added to its reach.
+// What the rest of the book hands one skill: strikes added to every swing,
+// enemies added to its reach, and the clock it fires on.
 struct SkillBoosts {
   int lines = 0;
   int max_enemies = 0;
+  int attacks_per_cast = 0;
 };
 
 // Every such grant in the character's book, summed and keyed by the skill it
@@ -303,6 +304,12 @@ std::map<std::string, SkillBoosts> BoostsByTarget(const GameState& state,
           boost.max_enemies() +
           static_cast<int>(std::floor(
               boost.max_enemies_per_level() * (learned - 1) + kEnemyEpsilon));
+      // The clock replaces rather than sums, so the faster of two stands.
+      if (boost.attacks_per_cast() > 0 &&
+          (into.attacks_per_cast == 0 ||
+           boost.attacks_per_cast() < into.attacks_per_cast)) {
+        into.attacks_per_cast = boost.attacks_per_cast();
+      }
     }
   }
   return by_target;
@@ -325,6 +332,9 @@ const Skill& Boosted(const Skill& skill, int level,
   scratch.clear_lines_per_level();
   scratch.set_max_enemies(std::max(1, skill.max_enemies()) +
                           it->second.max_enemies);
+  if (it->second.attacks_per_cast > 0) {
+    scratch.set_attacks_per_cast(it->second.attacks_per_cast);
+  }
   return scratch;
 }
 
@@ -441,9 +451,12 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     const Skill& swung = Boosted(skill, learned, boosts, boosted);
     AddAutoModes(proto, total_stats, weapon_type, swung, learned, off_clock,
                  speed_factor, types, set);
+    // Everything from here reads `swung`, never `skill`: a boost that changed
+    // the clock would otherwise be dropped, the reach and the strikes having
+    // already been taken from the copy.
     AttackOption attack =
         AttackFor(proto, total_stats, weapon_type, &swung, learned, types,
-                  skill.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,
+                  swung.kind() == SKILL_KIND_AUTO_ATTACK ? off_clock : derived,
                   attack_speed, speed_factor);
     // A cast is not a hit. The damage chain has no multiplier to apply to a
     // skill that deals none, so what it built is the bare poke's damage --
@@ -454,11 +467,11 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       attack.lead_damage.clear();
       attack.final_attack_damage.clear();
     }
-    if (skill.kind() != SKILL_KIND_AUTO_ATTACK) {
+    if (swung.kind() != SKILL_KIND_AUTO_ATTACK) {
       // What this swing counts toward the skills clocked by swings landed.
       // Unset is one, which is what an ordinary swing is worth.
-      if (skill.hits_per_attack_count() > 1) {
-        attack.count_weight = 1.0 / skill.hits_per_attack_count();
+      if (swung.hits_per_attack_count() > 1) {
+        attack.count_weight = 1.0 / swung.hits_per_attack_count();
       }
       set.attacks.push_back(std::move(attack));
       continue;
@@ -466,17 +479,17 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
     attack.swing_seconds = 0.0;          // not swung, so never charged
     attack.final_attack_damage.clear();  // Final Attack follows a swing
     // Clocked by swings landed rather than by seconds passed.
-    if (skill.attacks_per_cast() > 0) {
-      attack.attacks_per_cast = skill.attacks_per_cast();
+    if (swung.attacks_per_cast() > 0) {
+      attack.attacks_per_cast = swung.attacks_per_cast();
       set.triggered_attacks.push_back(std::move(attack));
       continue;
     }
     // A skill with no clock at all would fire every step, so naming neither is
     // taken as "does not fire" rather than "fires constantly".
-    if (skill.cast_interval_seconds() <= 0.0) {
+    if (swung.cast_interval_seconds() <= 0.0) {
       continue;
     }
-    attack.interval_seconds = skill.cast_interval_seconds() * speed_factor;
+    attack.interval_seconds = swung.cast_interval_seconds() * speed_factor;
     set.auto_attacks.push_back(std::move(attack));
   }
 }

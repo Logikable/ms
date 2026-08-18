@@ -458,6 +458,12 @@ message SkillBoost {
   // enemy every fifth level, which is GMS's ceil(L/5).
   int32 max_enemies = 3;
   double max_enemies_per_level = 4;
+  // The swing count a skill clocked by swings landed now fires on, replacing
+  // its own rather than adding to it -- GMS says "reduces the strikes required
+  // to 7", an absolute. 0 leaves the clock alone, which is what every boost
+  // but Speed Mirage II's wants. Where two of them name one skill the faster
+  // clock stands, since neither is a quantity that can be summed.
+  int32 attacks_per_cast = 5;
 }
 
 // A skill that has to be learned to a level before another can be bought at

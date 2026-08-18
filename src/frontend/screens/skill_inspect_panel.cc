@@ -420,7 +420,8 @@ std::string NormalMonsterText(const Skill& skill, int level) {
 }
 
 // What one skill hands another that is not damage, at `level`: strikes on
-// every swing, enemies on its reach, or both. "" when it grants neither.
+// every swing, enemies on its reach, a faster clock, or several. "" when it
+// grants none of them.
 std::string BoostText(const SkillBoost& boost, int level) {
   // Read exactly as the line ladder is, so the level a skill widens at is the
   // level its data names.
@@ -440,6 +441,14 @@ std::string BoostText(const SkillBoost& boost, int level) {
     }
     gains +=
         "+" + std::to_string(enemies) + (enemies == 1 ? " Enemy" : " Enemies");
+  }
+  // The new clock rather than the change to it: what replaces cannot be read
+  // as a delta, and the target's own page states the same figure the same way.
+  if (boost.attacks_per_cast() > 0) {
+    if (!gains.empty()) {
+      gains += ", ";
+    }
+    gains += "every " + std::to_string(boost.attacks_per_cast()) + " attacks";
   }
   return gains;
 }

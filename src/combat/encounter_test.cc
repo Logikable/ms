@@ -1054,6 +1054,49 @@ TEST(ComputeCombatParamsTest, ASwingClockedSkillLandsOnTheTriggeredList) {
   EXPECT_DOUBLE_EQ(params.triggered_attacks[0].interval_seconds, 0.0);
 }
 
+// Speed Mirage II's shape: a passive that resets the clock of the skill it
+// names, rather than adding to it. Strikes and reach sum; the clock replaces.
+TEST(ComputeCombatParamsTest, ABoostCanResetTheClockItNames) {
+  Skill mirage;
+  mirage.set_name("Speed Mirage");
+  mirage.set_kind(SKILL_KIND_AUTO_ATTACK);
+  mirage.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mirage.set_max_level(20);
+  mirage.set_max_enemies(6);
+  mirage.set_lines(4);
+  mirage.set_attacks_per_cast(4);
+  mirage.mutable_base()->set_skill_pct(3.25);
+  Skill second;
+  second.set_name("Speed Mirage II");
+  second.set_kind(SKILL_KIND_PASSIVE);
+  second.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  second.set_max_level(20);
+  SkillBoost* boost = second.add_boost();
+  boost->set_skill_name("Speed Mirage");
+  boost->set_lines(12);
+  boost->set_attacks_per_cast(7);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"speed_mirage", mirage}, {"speed_mirage_ii", second}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 30);
+  ASSERT_TRUE(state.character.LearnSkill(mirage, 1));
+
+  ASSERT_EQ(ComputeCombatParams(state).triggered_attacks.size(), 1u);
+  double one_line =
+      ComputeCombatParams(state).triggered_attacks[0].damage_per_hit[0] / 4.0;
+
+  ASSERT_TRUE(state.character.LearnSkill(second, 1));
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.triggered_attacks.size(), 1u);
+  EXPECT_EQ(params.triggered_attacks[0].attacks_per_cast, 7);
+  EXPECT_EQ(params.triggered_attacks[0].max_enemies, 6);
+  EXPECT_DOUBLE_EQ(params.triggered_attacks[0].damage_per_hit[0],
+                   16.0 * one_line);
+}
+
 // A swing that lands seven times as often is worth a seventh of an attack, so
 // the skill it feeds fires at the same rate whichever swing is feeding it.
 TEST(ComputeCombatParamsTest, ARapidSwingCountsForLessThanAWholeAttack) {

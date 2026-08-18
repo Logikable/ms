@@ -433,6 +433,18 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   // this skill's own description opens with the same word.
   EXPECT_EQ(RenderAt(MakeIronBody(), 1).find("Boosts            "),
             std::string::npos);
+
+  // A clock handed over reads as the clock it becomes, not as a change to one.
+  Skill second = MakeIronBody();
+  second.set_max_level(20);
+  SkillBoost* mirage = second.add_boost();
+  mirage->set_skill_name("Speed Mirage");
+  mirage->set_lines(12);
+  mirage->set_attacks_per_cast(7);
+  std::string clocked = RenderAt(second, 1);
+  EXPECT_NE(clocked.find("Boosts            Speed Mirage +12"),
+            std::string::npos);
+  EXPECT_NE(clocked.find("Strikes, every 7"), std::string::npos);
 }
 
 // A wait that never moves is stated once above the divider; one that shortens
