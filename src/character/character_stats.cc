@@ -244,6 +244,11 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
 // being swung -- so Gungnir's Descent ignores 30% of a monster's defence when
 // it lands and Dark Impale, swung a moment later, does not. Snipe's certain
 // critical is the third of them, and reads the same way.
+//
+// Only a swing keeps them. A skill on its own clock is not one the character
+// chose, and GMS writes these on a summon only under "[Passive Effects]",
+// meaning the character -- which is how Arrow Illusion's ignored defence
+// follows the Marksman rather than staying with the decoy.
 SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   SkillEffect kept = effect;
   kept.clear_ied_pct();
@@ -254,7 +259,7 @@ SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
 
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
-  if (DealsDamage(skill.kind())) {
+  if (skill.kind() == SKILL_KIND_ATTACK) {
     AddEffect(WithoutSwingLevers(skill.base()),
               WithoutSwingLevers(skill.per_level()), level, totals);
   } else {

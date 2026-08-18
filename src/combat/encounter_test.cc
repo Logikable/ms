@@ -26,6 +26,14 @@ Mob MakeMob(const std::string& name, int max_hp) {
   return mob;
 }
 
+// A mob with weapon defence to ignore, so an Ignore DEF lever has something to
+// cancel: every mob in the game itself has none.
+Mob MakeArmouredMob(const std::string& name, int max_hp, int pdr) {
+  Mob mob = MakeMob(name, max_hp);
+  mob.set_pdr(pdr);
+  return mob;
+}
+
 // A mob that swings back: attack and level are what the damage-taken formula
 // reads off it.
 Mob MakeAttacker(const std::string& name, int max_hp, int attack, int level) {
@@ -1240,6 +1248,46 @@ TEST(ComputeCombatParamsTest, ACertainCritRidesOnlyItsOwnSwing) {
             params.attacks[plain_at].damage_per_hit[0]);
   EXPECT_DOUBLE_EQ(params.attacks[snipe_at].groups[0].rolls.crit_rate, 1.0);
   EXPECT_LT(params.attacks[plain_at].groups[0].rolls.crit_rate, 1.0);
+}
+
+// A summon states its ignored defence under GMS's "[Passive Effects]", meaning
+// the character keeps it -- unlike a swing's, which lasts exactly as long as
+// the swing does. Arrow Illusion is what states one.
+TEST(ComputeCombatParamsTest, ASummonsIgnoredDefenceFollowsTheCharacter) {
+  Skill plain;
+  plain.set_name("Plain Shot");
+  plain.set_kind(SKILL_KIND_ATTACK);
+  plain.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  plain.set_max_level(20);
+  plain.set_max_enemies(1);
+  plain.mutable_base()->set_skill_pct(1.00);
+  Skill illusion;
+  illusion.set_name("Arrow Illusion");
+  illusion.set_kind(SKILL_KIND_AUTO_ATTACK);
+  illusion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  illusion.set_max_level(20);
+  illusion.set_max_enemies(6);
+  illusion.set_cast_interval_seconds(3.0);
+  illusion.mutable_base()->set_skill_pct(1.00);
+  illusion.mutable_base()->set_ied_pct(0.30);
+
+  GameState state({}, {}, {}, {{"snail", MakeArmouredMob("Snail", 15, 60)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"plain_shot", plain}, {"arrow_illusion", illusion}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(plain, 1));
+
+  CombatParams before = ComputeCombatParams(state);
+  ASSERT_EQ(before.attacks.size(), 2u);
+  double swing_before = before.attacks[1].damage_per_hit[0];
+
+  ASSERT_TRUE(state.character.LearnSkill(illusion, 1));
+  CombatParams after = ComputeCombatParams(state);
+  // The decoy's ignored defence lifts the character's own swing, which is what
+  // a passive grant means -- a swing lever would have stayed with the decoy.
+  EXPECT_GT(after.attacks[1].damage_per_hit[0], swing_before);
 }
 
 // Bolt Surplus's strike lands on the swings the character chooses between and

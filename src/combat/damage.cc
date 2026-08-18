@@ -412,25 +412,26 @@ OffenseStats OffenseStatsFor(Job job, int level,
     if (boost != passives.skill_pct_bonus.end()) {
       offense.skill_pct += boost->second;
     }
-    // Ignored defence and boss damage written on an ATTACK ride that attack
-    // alone. GMS states both on the skill -- Gungnir's Descent ignores 30% and
-    // Heaven's Hammer hits bosses for 30% more, neither of which follows the
-    // character to their next swing. A passive granting either is the other
-    // shape, and folds into the character where it belongs.
-    offense.ied = CombineIgnoredDefense(
-        offense.ied,
-        attack_skill->base().ied_pct() +
-            attack_skill->per_level().ied_pct() * (attack_level - 1));
-    offense.boss_pct +=
-        attack_skill->base().boss_pct() +
-        attack_skill->per_level().boss_pct() * (attack_level - 1);
-    // Critical rate written on an ATTACK rides that attack too, and the same
-    // way a SwingHit's does: added to what the character brought, so 1.00 is
-    // certainty however little they have bought. Snipe is what states it --
-    // GMS's "Bonus Critical Rate: 100%", true of that shot and no other.
-    offense.crit_rate +=
-        attack_skill->base().crit_rate() +
-        attack_skill->per_level().crit_rate() * (attack_level - 1);
+    // Ignored defence, boss damage and critical rate written on an ATTACK ride
+    // that attack alone. GMS states them on the skill -- Gungnir's Descent
+    // ignores 30%, Heaven's Hammer hits bosses for 30% harder, Snipe always
+    // crits -- and none of the three follows the character to their next swing.
+    // A passive granting any of them is the other shape, and folds into the
+    // character where it belongs; so is a summon's, which is never swung.
+    if (attack_skill->kind() == SKILL_KIND_ATTACK) {
+      offense.ied = CombineIgnoredDefense(
+          offense.ied,
+          attack_skill->base().ied_pct() +
+              attack_skill->per_level().ied_pct() * (attack_level - 1));
+      offense.boss_pct +=
+          attack_skill->base().boss_pct() +
+          attack_skill->per_level().boss_pct() * (attack_level - 1);
+      // Added to what the character brought rather than replacing it, so 1.00
+      // is certainty however little they have bought.
+      offense.crit_rate +=
+          attack_skill->base().crit_rate() +
+          attack_skill->per_level().crit_rate() * (attack_level - 1);
+    }
     // A multi-hit skill strikes each target this many times per swing, so its
     // per-target damage is skill_pct once per line.
     offense.lines = SkillLinesAt(*attack_skill, attack_level);
