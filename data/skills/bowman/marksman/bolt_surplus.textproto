@@ -1,0 +1,21 @@
+# GMS: "+1 attack to all multi-hit skills. Does not apply to Summon, 5th Job
+# Common, or certain skills." Every one of those exclusions falls out of what a
+# swing is here -- a summon fires on its own clock, and a Final Attack has no
+# line count -- so the lever needs no list of its own.
+#
+# The strike is worth most where the swing is shortest: a tenth more of Snipe's
+# nine, a fifth more of Piercing Arrow II's five.
+name: "Bolt Surplus"
+skill_order: 5
+description:
+  "Loose one more bolt with every shot that already fires several, and hit "
+  "harder with all of them."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+max_level: 10
+exceeds_master_level: true
+base {
+  final_dmg_pct: 0.06
+  bonus_attack_lines: 1
+}
+per_level { final_dmg_pct: 0.01 }

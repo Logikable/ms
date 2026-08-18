@@ -302,6 +302,7 @@ double BaseMastery(Job job) {
     case JOB_RANGER:
     case JOB_SNIPER:
     case JOB_BOW_MASTER:
+    case JOB_MARKSMAN:
       return kRangedBaseMastery;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -356,6 +357,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
     case JOB_RANGER:
     case JOB_SNIPER:
     case JOB_BOW_MASTER:
+    case JOB_MARKSMAN:
       // The mirror image: DEX primary, STR secondary.
       offense.primary = allocated.dex() + equipped.dex();
       offense.secondary = allocated.str() + equipped.str();

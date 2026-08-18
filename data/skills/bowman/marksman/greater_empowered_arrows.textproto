@@ -1,0 +1,72 @@
+# One passive, one ladder, two swings upgraded: every fourth Piercing Arrow II
+# and every fourth Snipe. GMS states each form's damage on this skill's page
+# rather than on the swing's, which is why both ladders climb with this one.
+#
+# The Marked Target buff is folded into the passive, as every buff a player
+# simply keeps up is here -- so the two permanent halves read as one: 4+8% of
+# final damage, and 13% of ignored defence meeting 20% in reverse for 30.4%.
+#
+# Snipe's mark rides Empowered Snipe rather than Snipe, and can: three ordinary
+# Snipes precede every empowered one, so the mark is always standing when the
+# empowered shot lands.
+#
+# It supersedes nothing, and needs to: Empowered Arrows aims both its halves at
+# Piercing Arrow, which Piercing Arrow II has already taken the place of, so it
+# goes quiet on its own the moment the swing it names stops being swung.
+name: "Greater Empowered Arrows"
+skill_order: 3
+description:
+  "Upgrades your Empowered Arrows. Every fourth Piercing Arrow II and every "
+  "fourth Snipe is fired empowered, and the empowered shot spends the mark "
+  "Snipe left."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+max_level: 20
+exceeds_master_level: true
+required_skill {
+  skill_name: "Empowered Arrows"
+  level: 10
+}
+base {
+  final_dmg_pct: 0.006
+  ied_pct: 0.0152
+}
+per_level {
+  final_dmg_pct: 0.006
+  ied_pct: 0.0152
+}
+empowered_form {
+  skill_name: "Piercing Arrow II"
+  casts_per_trigger: 4
+  max_enemies: 10
+  lines: 6
+  base { skill_pct: 3.51 }
+  per_level { skill_pct: 0.04 }
+  extra_hit {
+    label: "Fragment"
+    lines: 10
+    base { skill_pct: 2.42 }
+    per_level { skill_pct: 0.02 }
+  }
+}
+empowered_form {
+  skill_name: "Snipe"
+  casts_per_trigger: 4
+  max_enemies: 1
+  lines: 10
+  base {
+    skill_pct: 3.80
+    ied_pct: 0.07
+    crit_rate: 1.0
+  }
+  per_level {
+    skill_pct: 0.06
+    ied_pct: 0.0062
+  }
+  extra_hit {
+    label: "Marked Target"
+    lines: 5
+    base { skill_pct: 2.20 }
+    per_level { skill_pct: 0.04 }
+  }
+}

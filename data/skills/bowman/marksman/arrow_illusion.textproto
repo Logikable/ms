@@ -1,0 +1,30 @@
+# GMS's decoy, cut down to the one thing this game can read: damage on a clock.
+# Its health bar, the counterattack it launches when struck, and the stun are
+# all dropped -- nothing here draws aggro, so a decoy that holds it is a decoy
+# doing nothing.
+#
+# Six enemies rather than GMS's eight, and its top 200% reached at 20 levels
+# rather than 30. Stripped of everything but the damage it would otherwise
+# crowd out Frostprey, which is the Sniper's whole summon.
+#
+# Three seconds between strikes, watched rather than read: GMS states no rate
+# for it, and unlike Phoenix it carries no cadence in its animation either.
+name: "Arrow Illusion"
+skill_order: 4
+description:
+  "Plant an illusion of yourself that looses arrows at nearby enemies on its "
+  "own. Ignores a portion of enemy DEF permanently."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+max_level: 20
+exceeds_master_level: true
+max_enemies: 6
+cast_interval_seconds: 3.0
+base {
+  skill_pct: 1.13
+  ied_pct: 0.01
+}
+per_level {
+  skill_pct: 0.0458
+  ied_pct: 0.01526
+}

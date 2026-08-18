@@ -1,0 +1,18 @@
+# The Bow Master's, to the number and for the same reasons -- see that file.
+name: "Sharp Eyes"
+skill_order: 7
+description:
+  "Lets you find an enemy's weak spot, permanently increasing Critical Rate "
+  "and Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+max_level: 20
+exceeds_master_level: true
+base {
+  crit_rate: 0.01
+  crit_dmg: 0.0075
+}
+per_level {
+  crit_rate: 0.01
+  crit_dmg: 0.0075
+}

@@ -1,0 +1,28 @@
+# The bossing swing: one enemy, nine strikes, and every one of them a
+# critical. GMS aims it at the highest Max HP in range, which is what the
+# fight already does with a single-target swing.
+#
+# The mark it leaves is spent by Empowered Snipe, so what it is worth is
+# written there -- three ordinary Snipes precede every empowered one, so the
+# mark is always standing when that swing lands.
+name: "Snipe"
+skill_order: 2
+description:
+  "Take careful aim and fire a single devastating shot, ignoring much of the "
+  "enemy's defense. The shot marks what it hits."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 630
+max_enemies: 1
+lines: 9
+base {
+  skill_pct: 3.24
+  ied_pct: 0.07
+  crit_rate: 1.0
+}
+per_level {
+  skill_pct: 0.04
+  ied_pct: 0.0062
+}

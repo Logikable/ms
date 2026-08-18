@@ -122,6 +122,8 @@ std::string BranchName(Job job) {
       return "Hero";
     case JOB_BOW_MASTER:
       return "Bow Master";
+    case JOB_MARKSMAN:
+      return "Marksman";
     default:
       return "?";
   }
@@ -324,6 +326,11 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
     }
     result->lines =
         SkillLinesAt(entry.second, learned) + BoostedLines(state, swing);
+    // Bolt Surplus's strike is in the damage beside this count, so it has to
+    // be in the count -- on the same terms the damage chain grants it.
+    if (result->lines > 1) {
+      result->lines += derived.bonus_attack_lines;
+    }
   }
 }
 
@@ -476,6 +483,7 @@ void Run(int level) {
       {JOB_HERO, EQUIP_TYPE_TWO_HANDED_SWORD},
       {JOB_HERO, EQUIP_TYPE_TWO_HANDED_AXE},
       {JOB_BOW_MASTER, EQUIP_TYPE_BOW},
+      {JOB_MARKSMAN, EQUIP_TYPE_CROSSBOW},
   };
 
   std::printf(

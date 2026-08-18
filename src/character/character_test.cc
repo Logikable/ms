@@ -517,7 +517,7 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_HERMIT}));
   EXPECT_EQ(JobChoicesForStage(JOB_BANDIT, 3),
             (std::vector<Job>{JOB_CHIEF_BANDIT}));
-  // The 4th narrows no further either, and four of the ten are written -- a
+  // The 4th narrows no further either, and five of the ten are written -- a
   // branch with nothing on the far side offers nothing.
   EXPECT_EQ(JobChoicesForStage(JOB_BERSERKER, 4),
             (std::vector<Job>{JOB_DARK_KNIGHT}));
@@ -526,7 +526,9 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
   EXPECT_EQ(JobChoicesForStage(JOB_CRUSADER, 4), (std::vector<Job>{JOB_HERO}));
   EXPECT_EQ(JobChoicesForStage(JOB_RANGER, 4),
             (std::vector<Job>{JOB_BOW_MASTER}));
-  EXPECT_TRUE(JobChoicesForStage(JOB_SNIPER, 4).empty());
+  EXPECT_EQ(JobChoicesForStage(JOB_SNIPER, 4),
+            (std::vector<Job>{JOB_MARKSMAN}));
+  EXPECT_TRUE(JobChoicesForStage(JOB_HERMIT, 4).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_DARK_KNIGHT, 5).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_PALADIN, 5).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());

@@ -1,0 +1,36 @@
+# The Crossbowman's arrow, restated whole rather than as a delta -- more
+# enemies, more strikes, more damage -- so it supersedes the skill it grows
+# out of instead of adding to it.
+#
+# The fragment bounces off the first enemy onto two of the eight the arrow
+# went through, which is what lead_enemies is for: the same shape as a Rogue's
+# opening hit, landing on more than one of them.
+name: "Piercing Arrow II"
+skill_order: 1
+description:
+  "Fire an arrow through the enemies in front of you. Its damage grows with "
+  "every enemy it has already pierced, and a fragment breaks off the first "
+  "one it strikes."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+max_level: 30
+exceeds_master_level: true
+supersedes_skill_name: "Piercing Arrow"
+required_skill {
+  skill_name: "Piercing Arrow"
+  level: 20
+}
+base_delay_ms: 780
+max_enemies: 8
+lines: 5
+pierce_gain_pct: 0.15
+lead_lines: 4
+lead_enemies: 2
+base {
+  skill_pct: 2.27
+  lead_pct: 2.05
+}
+per_level {
+  skill_pct: 0.04
+  lead_pct: 0.05
+}

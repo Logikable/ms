@@ -1,0 +1,30 @@
+# The line's mastery skill, at 20 levels rather than GMS's 30 and landing on
+# GMS's own top figures -- 70% mastery, +40 attack and 15% critical damage.
+#
+# It does not supersede Crossbow Mastery and must not: masteries take the
+# better of two rather than the sum, so this outbids the Crossbowman's on its
+# own while that one goes on paying its attack speed.
+name: "Crossbow Expert"
+skill_order: 9
+description:
+  "Your long service permanently increases Crossbow Mastery, Attack Power and "
+  "Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+max_level: 20
+exceeds_master_level: true
+required_equip_type: EQUIP_TYPE_CROSSBOW
+required_skill {
+  skill_name: "Crossbow Mastery"
+  level: 10
+}
+base {
+  mastery: 0.51
+  attack: 2
+  crit_dmg: 0.055
+}
+per_level {
+  mastery: 0.01
+  attack: 2
+  crit_dmg: 0.005
+}

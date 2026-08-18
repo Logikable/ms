@@ -112,7 +112,10 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     // The arrows are the one thing the Frozen tier has no answer for, so the
     // bow line keeps buying its ammunition off the shelf.
     case JOB_BOW_MASTER:
-      return {"frozen_longbow", "frozen_true_shot", "titanium_arrow_for_bow"};
+      return {"frozen_longbow", "frozen_feather", "titanium_arrow_for_bow"};
+    case JOB_MARKSMAN:
+      return {"frozen_crossbow", "frozen_true_shot",
+              "titanium_arrow_for_crossbow"};
     case JOB_CRUSADER:
       return {"tavar", "virtues_medallion"};
     case JOB_WHITE_KNIGHT:

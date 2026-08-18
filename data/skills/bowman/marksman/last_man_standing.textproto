@@ -1,0 +1,11 @@
+# One lever, flat: GMS's 3+L% of final damage, the whole skill.
+name: "Last Man Standing"
+skill_order: 6
+description:
+  "An indomitable mind permanently increases the damage you deal."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+max_level: 10
+exceeds_master_level: true
+base { final_dmg_pct: 0.04 }
+per_level { final_dmg_pct: 0.01 }

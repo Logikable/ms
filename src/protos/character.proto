@@ -63,6 +63,7 @@ enum Job {
   JOB_PALADIN = 27;
   JOB_HERO = 28;
   JOB_BOW_MASTER = 29;
+  JOB_MARKSMAN = 30;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -101,6 +102,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_PALADIN = 26;
   JOB_ADVANCEMENT_HERO = 27;
   JOB_ADVANCEMENT_BOW_MASTER = 28;
+  JOB_ADVANCEMENT_MARKSMAN = 29;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.
