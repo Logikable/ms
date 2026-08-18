@@ -140,11 +140,11 @@ class CombatSim {
   // always falling on the same end of the queue. Empty for every other swing,
   // whose order cannot be seen.
   std::vector<int> PierceOrder(const AttackOption& attack, int hit);
-  // Index into the queue of the mob `attack`'s opening hit picks, or -1 when
-  // it has none. The healthiest of the `hit` mobs the swing reaches: a hit
-  // that big is worth least where it overkills, and GMS aims the same shape at
-  // the highest-HP target for the same reason.
-  int LeadTarget(const AttackOption& attack, int hit) const;
+  // Indices into the queue of the mobs `attack`'s opening hit picks, empty when
+  // it has none. The healthiest of the `hit` mobs the swing reaches, as many of
+  // them as lead_enemies: a hit that big is worth least where it overkills, and
+  // GMS aims the same shape at the highest-HP target for the same reason.
+  std::vector<int> LeadTargets(const AttackOption& attack, int hit) const;
   // What one swing of `attack` would land on the queue as it stands, the
   // opening hit and Final Attack included. An attack with an empowered form is
   // averaged over the run of swings that form takes its place in.

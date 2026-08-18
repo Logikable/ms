@@ -98,6 +98,10 @@ struct AttackOption {
   // big is worth least where it overkills. Empty for a swing that lands once,
   // which is most of them.
   std::vector<double> lead_damage;
+  // How many of the reached mobs the opening hit lands on, healthiest first.
+  // 1 for the Rogue's shape, which strikes one and spreads; more for a swing
+  // whose second half simply reaches fewer enemies than its first.
+  int lead_enemies = 1;
   // What the opening hit varies by. Its own, because it lands on its own line
   // count rather than the swing's.
   SwingRolls lead_rolls;

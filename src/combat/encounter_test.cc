@@ -263,6 +263,42 @@ TEST(ComputeCombatParamsTest, ASwingWithAnOpeningHitCarriesBothHalves) {
   EXPECT_NEAR(
       params.attacks[1].lead_damage[0] / params.attacks[1].damage_per_hit[0],
       4.16 / (6.0 * 0.51), 1e-6);
+  // Unsaid is one enemy, which is the shape the field was written for.
+  EXPECT_EQ(params.attacks[1].lead_enemies, 1);
+}
+
+// The same half of a swing, told to reach further than the one enemy an
+// opening hit picks: Piercing Arrow II's fragment bounces onto two of the
+// eight the arrow went through.
+TEST(ComputeCombatParamsTest, TheOpeningHitCarriesItsOwnReach) {
+  Skill piercing;
+  piercing.set_name("Piercing Arrow II");
+  piercing.set_kind(SKILL_KIND_ATTACK);
+  piercing.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  piercing.set_max_level(30);
+  piercing.set_max_enemies(8);
+  piercing.set_lines(5);
+  piercing.set_lead_lines(4);
+  piercing.set_lead_enemies(2);
+  piercing.mutable_base()->set_skill_pct(3.43);
+  piercing.mutable_base()->set_lead_pct(3.50);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"piercing_arrow_ii", piercing}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(piercing, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.attacks[1].max_enemies, 8);
+  EXPECT_EQ(params.attacks[1].lead_enemies, 2);
+  // Four lines of 350% against five of 343%: the fragment is worth a little
+  // less than the arrow, and lands on a quarter of what the arrow reaches.
+  EXPECT_NEAR(
+      params.attacks[1].lead_damage[0] / params.attacks[1].damage_per_hit[0],
+      (4.0 * 3.50) / (5.0 * 3.43), 1e-6);
 }
 
 // Shadow Partner doubles what a swing lands. It reaches the swing's own lines

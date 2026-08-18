@@ -659,10 +659,19 @@ message Skill {
   // the catalog fills it yet, so a skill asking for one is learnable and grants
   // nothing -- which is what Shield Mastery does until secondaries are written.
   bool requires_secondary = 100;
-  // The Rogue's. How many times the opening hit strikes, on the one enemy it
+  // The Rogue's. How many times the opening hit strikes, on the enemies it
   // picks. Damage is SkillEffect.lead_pct per line, exactly as `lines` reads
   // skill_pct. Unset/0 is treated as 1, and means nothing without a lead_pct.
   int32 lead_lines = 101;
+  // The Marksman's. How many of the enemies the swing reached the opening hit
+  // lands on, healthiest first. Unset/0 is treated as 1, which is the Rogue's
+  // shape -- "strikes one, then detonates in place".
+  //
+  // Above 1 it stops being an opening hit and becomes the part of a swing that
+  // reaches fewer enemies than the rest of it: Piercing Arrow II's fragment
+  // bounces off the first enemy onto two of the eight the arrow went through.
+  // The same field either way, because the fight does the same thing with it.
+  int32 lead_enemies = 111;
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and
   // `lines_per_level` are, so 0.25 is one more orb every fourth level. A

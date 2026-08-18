@@ -69,17 +69,22 @@ std::vector<int> CombatSim::PierceOrder(const AttackOption& attack, int hit) {
   return order;
 }
 
-int CombatSim::LeadTarget(const AttackOption& attack, int hit) const {
+std::vector<int> CombatSim::LeadTargets(const AttackOption& attack,
+                                        int hit) const {
   if (attack.lead_damage.empty() || hit <= 0) {
-    return -1;
+    return {};
   }
-  int lead = 0;
-  for (int j = 1; j < hit; ++j) {
-    if (queue_[j].hp > queue_[lead].hp) {
-      lead = j;
-    }
+  std::vector<int> reached(hit);
+  for (int j = 0; j < hit; ++j) {
+    reached[j] = j;
   }
-  return lead;
+  int want = std::min(std::max(1, attack.lead_enemies), hit);
+  // Only the front `want` need be in order, and the queue is short either way.
+  std::partial_sort(
+      reached.begin(), reached.begin() + want, reached.end(),
+      [this](int a, int b) { return queue_[a].hp > queue_[b].hp; });
+  reached.resize(want);
+  return reached;
 }
 
 // What one swing of `attack` would land on the queue as it stands: its own
@@ -96,10 +101,10 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
     }
   }
   total *= PierceMean(attack.pierce_gain_pct, hit);
-  int lead = LeadTarget(attack, hit);
-  if (lead >= 0 &&
-      queue_[lead].type < static_cast<int>(attack.lead_damage.size())) {
-    total += attack.lead_damage[queue_[lead].type];
+  for (int lead : LeadTargets(attack, hit)) {
+    if (queue_[lead].type < static_cast<int>(attack.lead_damage.size())) {
+      total += attack.lead_damage[queue_[lead].type];
+    }
   }
   for (int j = 0; j < hit; ++j) {
     int type = queue_[j].type;
@@ -228,7 +233,7 @@ void CombatSim::Strike(const AttackOption& attack) {
                      static_cast<int>(queue_.size()));
   // Picked before anything lands, so the opening hit chooses by the HP the
   // mobs went into the swing with rather than what the spread left them on.
-  int lead = LeadTarget(attack, hit);
+  std::vector<int> lead = LeadTargets(attack, hit);
   // An arrow that gains as it travels needs an order to travel along, and
   // nothing here has a position -- so the swing draws one. Every other swing
   // hits the queue as it stands, which is the same thing for damage that does
@@ -240,9 +245,9 @@ void CombatSim::Strike(const AttackOption& attack) {
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
     queue_[j].hp -= DamageToMob(attack, j) * gain;
   }
-  if (lead >= 0) {
-    queue_[lead].hp -= attack.lead_damage[queue_[lead].type] *
-                       RollFactor(attack.lead_rolls, rng_);
+  for (int j : lead) {
+    queue_[j].hp -= attack.lead_damage[queue_[j].type] *
+                    RollFactor(attack.lead_rolls, rng_);
   }
   // A Final Attack rolls separately against every enemy the swing reached, so
   // in expectation each of them takes it.

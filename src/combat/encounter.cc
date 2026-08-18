@@ -126,6 +126,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       attack.lead_damage.push_back(ExpectedAttackDamage(lead, *type.mob));
     }
     attack.lead_rolls = RollsFor(lead);
+    attack.lead_enemies = std::max(1, skill->lead_enemies());
   }
   // A swing that lands two hits at once: the hammer, and the brand it leaves
   // exploding. Same character, same weapon, same reach -- what differs is the

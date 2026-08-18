@@ -1577,6 +1577,35 @@ TEST(CombatSimTest, TheOpeningHitPicksTheHealthiestMobItReached) {
   EXPECT_NEAR(boars->hp_fraction, 0.89, 1e-9);
 }
 
+// A second half that reaches fewer enemies than the first lands on that many
+// of them, healthiest first -- the shape Piercing Arrow II's fragment has.
+TEST(CombatSimTest, TheOpeningHitCanLandOnSeveralMobs) {
+  Mob snail = MakeMob("Snail", 100);
+  Mob boar = MakeMob("Boar", 1000);
+  Mob ogre = MakeMob("Ogre", 10000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 1000.0,
+                 {MakeType(&snail, 10.0, 1), MakeType(&boar, 10.0, 1),
+                  MakeType(&ogre, 10.0, 1)},
+                 /*reach=*/3);
+  AddLead(params, /*damage=*/100.0);
+  params.attacks[0].lead_enemies = 2;
+
+  sim.Advance(params, 1.0);
+  // The ogre and the boar are the two healthiest, so the fragment finds them
+  // and the snail takes the spread alone.
+  const EngagedGroup* snails = FindGroup(sim.engaged_groups(), "Snail");
+  const EngagedGroup* boars = FindGroup(sim.engaged_groups(), "Boar");
+  const EngagedGroup* ogres = FindGroup(sim.engaged_groups(), "Ogre");
+  ASSERT_NE(snails, nullptr);
+  ASSERT_NE(boars, nullptr);
+  ASSERT_NE(ogres, nullptr);
+  EXPECT_NEAR(snails->hp_fraction, 0.90, 1e-9);
+  EXPECT_NEAR(boars->hp_fraction, 0.89, 1e-9);
+  EXPECT_NEAR(ogres->hp_fraction, 0.989, 1e-9);
+}
+
 // A swing worth more than its spread alone has to be ranked on the whole of
 // it, or the fight reaches for the wrong one.
 TEST(CombatSimTest, TheOpeningHitCountsTowardChoosingTheSwing) {
