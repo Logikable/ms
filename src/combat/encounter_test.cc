@@ -1197,6 +1197,54 @@ TEST(ComputeCombatParamsTest, OneSkillCanEmpowerTwoDifferentSwings) {
                    (10.0 * 3.0 / 9.0) * upgraded_snipe.damage_per_hit[0]);
 }
 
+// An empowered swing lands its own second hit the way an ordinary one does:
+// Empowered Snipe spends the mark Snipe left on the target it hits.
+TEST(ComputeCombatParamsTest, AnEmpoweredFormLandsItsOwnSecondHit) {
+  Skill snipe;
+  snipe.set_name("Snipe");
+  snipe.set_kind(SKILL_KIND_ATTACK);
+  snipe.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  snipe.set_max_level(30);
+  snipe.set_max_enemies(1);
+  snipe.set_lines(9);
+  snipe.mutable_base()->set_skill_pct(1.00);
+
+  Skill greater;
+  greater.set_name("Greater Empowered Arrows");
+  greater.set_kind(SKILL_KIND_PASSIVE);
+  greater.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  greater.set_max_level(20);
+  EmpoweredForm* shot = greater.add_empowered_form();
+  shot->set_skill_name("Snipe");
+  shot->set_casts_per_trigger(4);
+  shot->set_max_enemies(1);
+  shot->set_lines(10);
+  shot->mutable_base()->set_skill_pct(1.00);
+  SwingHit* mark = shot->add_extra_hit();
+  mark->set_label("Marked Target");
+  mark->set_lines(5);
+  mark->mutable_base()->set_skill_pct(2.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"snipe", snipe}, {"greater_empowered_arrows", greater}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(snipe, 1));
+  ASSERT_TRUE(state.character.LearnSkill(greater, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  const AttackOption& shot_at = params.attacks[1];
+  ASSERT_NE(shot_at.empowered, nullptr);
+  // Ten lines of 100% and five of 200%, against the ordinary nine of 100%.
+  EXPECT_DOUBLE_EQ(shot_at.empowered->damage_per_hit[0],
+                   (20.0 / 9.0) * shot_at.damage_per_hit[0]);
+  // Each half rolls on its own, so the mark is a group beside the swing's.
+  EXPECT_EQ(shot_at.empowered->groups.size(), 2u);
+}
+
 // A skill clocked by swings landed goes on its own list, not beside the ones
 // clocked by seconds: the fight has to count something for these and nothing
 // for those.

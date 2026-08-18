@@ -403,6 +403,7 @@ Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
   *form.mutable_per_level() = upgrade.per_level();
   form.set_max_enemies(upgrade.max_enemies());
   form.set_lines(upgrade.lines());
+  *form.mutable_extra_hit() = upgrade.extra_hit();
   // The form is the same arrow, further upgraded: it gains as it travels the
   // same way, over the further enemies it reaches.
   form.set_pierce_gain_pct(skill.pierce_gain_pct());

@@ -486,6 +486,40 @@ std::string LeadText(const Skill& skill, int level) {
 // The plain lever rows of one effect, at `level`. `suffix` goes after every
 // value: a weapon bonus uses it to name what has to be in hand, and the
 // skill's own levers pass "" because the Requires row above says it once.
+// The damage rows for hits a swing lands beside its own: each on its own line,
+// with what it is worth against an ordinary monster under it where that
+// differs. Shared, because an empowered form lands them too.
+std::vector<ftxui::Element> SwingHitRows(
+    const google::protobuf::RepeatedPtrField<SwingHit>& hits, int level) {
+  std::vector<ftxui::Element> rows;
+  for (const SwingHit& hit : hits) {
+    double per_hit =
+        hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
+    // A hit that crits more often says so on its own damage row: it is a fact
+    // about this damage rather than a lever of the character's, and a row of
+    // its own would read as one. Wrapped, since the note is the one thing that
+    // can push a damage row past its column.
+    std::string text = SwingText(per_hit, hit.lines());
+    double crit =
+        hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
+    if (crit >= 1.0) {
+      text += " (crit)";
+    } else if (crit > 0.0) {
+      text += " (" + FormatPercent(crit) + " crit)";
+    }
+    for (ftxui::Element& row : WrappedEffectRows(hit.label(), text)) {
+      rows.push_back(std::move(row));
+    }
+    double bonus = hit.base().normal_skill_pct() +
+                   hit.per_level().normal_skill_pct() * (level - 1);
+    if (bonus > 0.0) {
+      rows.push_back(EffectRow(hit.label() + " Normal",
+                               SwingText(per_hit + bonus, hit.lines())));
+    }
+  }
+  return rows;
+}
+
 std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
                                       const SkillEffect& per, int level,
                                       const std::string& suffix) {
@@ -586,30 +620,8 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   // The other hit the same swing lands, and its own reading against an
   // ordinary monster under it -- the pair reads exactly as the swing's own two
   // rows above, because that is what it is.
-  for (const SwingHit& hit : skill.extra_hit()) {
-    double per_hit =
-        hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
-    // A hit that crits more often says so on its own damage row: it is a fact
-    // about this damage rather than a lever of the character's, and a row of
-    // its own would read as one. Wrapped, since the note is the one thing that
-    // can push a damage row past its column.
-    std::string text = SwingText(per_hit, hit.lines());
-    double crit =
-        hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
-    if (crit >= 1.0) {
-      text += " (crit)";
-    } else if (crit > 0.0) {
-      text += " (" + FormatPercent(crit) + " crit)";
-    }
-    for (ftxui::Element& row : WrappedEffectRows(hit.label(), text)) {
-      rows.push_back(std::move(row));
-    }
-    double bonus = hit.base().normal_skill_pct() +
-                   hit.per_level().normal_skill_pct() * (level - 1);
-    if (bonus > 0.0) {
-      rows.push_back(EffectRow(hit.label() + " Normal",
-                               SwingText(per_hit + bonus, hit.lines())));
-    }
+  for (ftxui::Element& row : SwingHitRows(skill.extra_hit(), level)) {
+    rows.push_back(std::move(row));
   }
   // Under the swing's own damage, because it is the extra the swing opens with
   // rather than a second attack.
@@ -667,6 +679,11 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
     if (normal > 0.0) {
       rows.push_back(EffectRow("Empowered Normal",
                                SwingText(per_hit + normal, form.lines())));
+    }
+    // What the upgraded swing lands beside itself, under the swing it belongs
+    // to -- the explosion at the end of an arrow's flight, the mark it spends.
+    for (ftxui::Element& row : SwingHitRows(form.extra_hit(), level)) {
+      rows.push_back(std::move(row));
     }
   }
   // What this skill hands another one. Named in the value rather than used as

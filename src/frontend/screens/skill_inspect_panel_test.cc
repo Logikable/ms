@@ -572,6 +572,48 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Empower"), std::string::npos);
 }
 
+// Two forms off one ladder cannot both read "Empowered Damage", so each takes
+// the name of the swing it upgrades -- and each states what it lands beside
+// itself under its own row.
+TEST_F(SkillInspectPanelTest, NamesEachOfTwoEmpoweredSwings) {
+  Skill greater = MakeIronBody();
+  EmpoweredForm* arrow = greater.add_empowered_form();
+  arrow->set_skill_name("Piercing Arrow II");
+  arrow->set_casts_per_trigger(4);
+  arrow->set_max_enemies(10);
+  arrow->set_lines(6);
+  arrow->mutable_base()->set_skill_pct(4.27);
+  SwingHit* blast = arrow->add_extra_hit();
+  blast->set_label("Fragment");
+  blast->set_lines(10);
+  blast->mutable_base()->set_skill_pct(2.80);
+  EmpoweredForm* shot = greater.add_empowered_form();
+  shot->set_skill_name("Snipe");
+  shot->set_casts_per_trigger(4);
+  shot->set_max_enemies(1);
+  shot->set_lines(10);
+  shot->mutable_base()->set_skill_pct(4.94);
+
+  std::string rendered = RenderAt(greater, 1);
+  // One "Empowers" row per form, each naming its own swing.
+  EXPECT_NE(rendered.find("Every 4th Piercing"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Every 4th Snipe"), std::string::npos) << rendered;
+  // Named by what each upgrades, not by the one label they would share.
+  EXPECT_NE(rendered.find("Piercing Arrow II 427% x6"), std::string::npos)
+      << rendered;
+  EXPECT_NE(rendered.find("Snipe             494% x10"), std::string::npos)
+      << rendered;
+  EXPECT_EQ(rendered.find("Empowered Damage"), std::string::npos) << rendered;
+  // The form's own second hit reads between the two swings: under the one it
+  // belongs to, and above the one it does not.
+  EXPECT_LT(rendered.find("Piercing Arrow II 427%"),
+            rendered.find("Fragment          280%"))
+      << rendered;
+  EXPECT_LT(rendered.find("Fragment          280%"),
+            rendered.find("Snipe             494%"))
+      << rendered;
+}
+
 // Divine Judgment counts the marks one enemy has taken rather than the swings
 // landed, and its reach is whichever of them came due -- so the page says the
 // first and drops the second.

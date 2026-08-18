@@ -452,6 +452,11 @@ message EmpoweredForm {
   // as the enemies that came due.
   int32 max_enemies = 4;
   int32 lines = 5;
+  // Second hits this form lands, exactly as Skill.extra_hit are for a swing:
+  // each keeps its own multiplier, its own line count and its own reach.
+  // Empowered Piercing Arrow II explodes at the end of its flight, and
+  // Empowered Snipe spends the mark Snipe left.
+  repeated SwingHit extra_hit = 8;
   // A mark on each enemy the swing strikes rather than a count on the swing.
   // Divine Judgment is what it is for: every Blast marks the enemies it hits,
   // and the mark detonates on the enemy that has taken casts_per_trigger of
