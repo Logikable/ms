@@ -328,29 +328,40 @@ TEST(SkillDataTest, EveryBuffStandsForAWhileAndWaitsForTheNextOne) {
   }
 }
 
-// An empowered form is aimed by boosts_skill_name, so it is nothing without
-// one -- and a form with no period or no damage is a swing that never lands or
-// lands for nothing.
+// An empowered form has to say what it takes the place of, so it is nothing
+// without a name to aim it -- and a form with no period or no damage is a swing
+// that never lands or lands for nothing.
 TEST(SkillDataTest, EveryEmpoweredFormSaysHowOftenAndForHowMuch) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (!skill.has_empowered_form()) {
-      continue;
+    for (const EmpoweredForm& form : skill.empowered_form()) {
+      // A form either names the skill it upgrades, or takes the one this skill
+      // strengthens, or upgrades the attack this skill already is -- and a
+      // passive has no attack of its own, so it must name one of the two.
+      EXPECT_TRUE(!form.skill_name().empty() ||
+                  !skill.boosts_skill_name().empty() ||
+                  skill.kind() != SKILL_KIND_PASSIVE)
+          << entry.first << "'s empowered form takes the place of nothing";
+      EXPECT_GT(form.casts_per_trigger(), 0)
+          << entry.first << "'s empowered form would never be swung";
+      EXPECT_GT(form.base().skill_pct(), 0.0)
+          << entry.first << "'s empowered form would be swung for nothing";
+      // Marking enemies, the form goes exactly as far as the ones that came
+      // due, so a reach beside it is a number nothing reads.
+      EXPECT_FALSE(form.brands_each_enemy() && form.max_enemies() > 0)
+          << entry.first << "'s empowered form states a reach it does not use";
     }
-    // A form either names the skill it upgrades or upgrades the one carrying
-    // it -- and a passive has no attack of its own to upgrade, so it must name.
-    EXPECT_TRUE(!skill.boosts_skill_name().empty() ||
-                skill.kind() != SKILL_KIND_PASSIVE)
-        << entry.first << "'s empowered form takes the place of nothing";
-    EXPECT_GT(skill.empowered_form().casts_per_trigger(), 0)
-        << entry.first << "'s empowered form would never be swung";
-    EXPECT_GT(skill.empowered_form().base().skill_pct(), 0.0)
-        << entry.first << "'s empowered form would be swung for nothing";
-    // Marking enemies, the form goes exactly as far as the ones that came due,
-    // so a reach beside it is a number nothing reads.
-    EXPECT_FALSE(skill.empowered_form().brands_each_enemy() &&
-                 skill.empowered_form().max_enemies() > 0)
-        << entry.first << "'s empowered form states a reach it does not use";
+    // Two forms off one ladder have to say which is which, or the second would
+    // land in the first one's place.
+    if (skill.empowered_form_size() > 1) {
+      std::set<std::string> targets;
+      for (const EmpoweredForm& form : skill.empowered_form()) {
+        EXPECT_FALSE(form.skill_name().empty())
+            << entry.first << " carries several forms and one names no skill";
+        EXPECT_TRUE(targets.insert(form.skill_name()).second)
+            << entry.first << " upgrades \"" << form.skill_name() << "\" twice";
+      }
+    }
   }
 }
 
@@ -642,7 +653,7 @@ TEST(SkillDataTest, EveryBoostNamesASkillTheSameCharacterCanHold) {
     // the named skill, or a bigger swing standing in for every Nth. Divine
     // Judgment pays only the second -- its whole effect is the detonation.
     bool percent = skill.base().boosted_skill_pct() > 0.0;
-    bool form = skill.empowered_form().casts_per_trigger() > 0;
+    bool form = skill.empowered_form_size() > 0;
     EXPECT_FALSE(percent && !named)
         << entry.first << " pays a boost with nowhere to send it";
     // An empty name with a form is the skill upgrading its own attack, which

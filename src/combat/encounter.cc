@@ -394,14 +394,15 @@ const Skill& Boosted(const Skill& skill, int level,
 // chain builds it. It takes a name of its own -- unlike an own-clock half,
 // this really is a different swing, and it must not pick up the permanent
 // bonus its parent hands the ordinary version.
-Skill EmpoweredSkill(const Skill& skill, const std::string& target) {
+Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
+                     const std::string& target) {
   Skill form;
   form.set_name("Empowered " + target);
   form.set_kind(SKILL_KIND_ATTACK);
-  *form.mutable_base() = skill.empowered_form().base();
-  *form.mutable_per_level() = skill.empowered_form().per_level();
-  form.set_max_enemies(skill.empowered_form().max_enemies());
-  form.set_lines(skill.empowered_form().lines());
+  *form.mutable_base() = upgrade.base();
+  *form.mutable_per_level() = upgrade.per_level();
+  form.set_max_enemies(upgrade.max_enemies());
+  form.set_lines(upgrade.lines());
   // The form is the same arrow, further upgraded: it gains as it travels the
   // same way, over the further enemies it reaches.
   form.set_pierce_gain_pct(skill.pierce_gain_pct());
@@ -412,22 +413,27 @@ Skill EmpoweredSkill(const Skill& skill, const std::string& target) {
 // The form takes the place of the attack it lands for, so it inherits the
 // attack's pacing: an animation for a swing, nothing at all for a summon, which
 // is paced by the clock the pulse it replaced would have run on.
-void AttachEmpoweredForms(const GameState& state, const EquipStats& equipped,
-                          EquipType weapon_type, const Skill& skill,
-                          int learned, const DerivedStats& derived,
-                          int attack_speed, double speed_factor,
-                          const std::vector<CombatType>& types,
-                          std::vector<AttackOption>& into) {
-  // An empty name means the skill upgrades its own attack rather than another
-  // skill's -- Creeping Toxin detonating its own pool.
-  std::string target = skill.boosts_skill_name().empty()
-                           ? skill.name()
-                           : skill.boosts_skill_name();
+void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
+                         EquipType weapon_type, const Skill& skill,
+                         const EmpoweredForm& upgrade, int learned,
+                         const DerivedStats& derived, int attack_speed,
+                         double speed_factor,
+                         const std::vector<CombatType>& types,
+                         std::vector<AttackOption>& into) {
+  // The form may name its own target, which is what a skill carrying two of
+  // them does. Failing that it takes the one skill this one strengthens, and
+  // failing that it upgrades its own attack -- Creeping Toxin detonating the
+  // pool it is already spreading.
+  std::string target = upgrade.skill_name();
+  if (target.empty()) {
+    target = skill.boosts_skill_name().empty() ? skill.name()
+                                               : skill.boosts_skill_name();
+  }
   for (AttackOption& attack : into) {
     if (attack.name != target) {
       continue;
     }
-    Skill form = EmpoweredSkill(skill, attack.name);
+    Skill form = EmpoweredSkill(skill, upgrade, attack.name);
     std::shared_ptr<AttackOption> swing = std::make_shared<AttackOption>(
         AttackFor(state.character.proto(), equipped, weapon_type, &form,
                   learned, types, derived, attack_speed, speed_factor));
@@ -438,8 +444,8 @@ void AttachEmpoweredForms(const GameState& state, const EquipStats& equipped,
       swing->final_attack_damage.clear();
       swing->final_attack_rolls.clear();
     }
-    attack.empowered_every = skill.empowered_form().casts_per_trigger();
-    attack.brands_enemies = skill.empowered_form().brands_each_enemy();
+    attack.empowered_every = upgrade.casts_per_trigger();
+    attack.brands_enemies = upgrade.brands_each_enemy();
     attack.empowered = swing;
   }
 }
@@ -454,23 +460,26 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
   int bonus = BonusSkillLevels(state.character, state.skills);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
-    if (skill.empowered_form().casts_per_trigger() <= 0) {
-      continue;
-    }
     int learned = EffectiveSkillLevel(state.character, skill, bonus);
     if (learned <= 0) {
       continue;
     }
-    AttachEmpoweredForms(state, equipped, weapon_type, skill, learned, derived,
-                         attack_speed, speed_factor, types, set.attacks);
     // A form standing in for a pulse is a pulse: no shadow and no mesos, for
     // the reason AddAttacks gives.
     DerivedStats off_clock = derived;
     off_clock.mirror_line_pct = 0.0;
     StripMesoDrops(off_clock);
-    AttachEmpoweredForms(state, equipped, weapon_type, skill, learned,
-                         off_clock, attack_speed, speed_factor, types,
-                         set.auto_attacks);
+    for (const EmpoweredForm& upgrade : skill.empowered_form()) {
+      if (upgrade.casts_per_trigger() <= 0) {
+        continue;
+      }
+      AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,
+                          derived, attack_speed, speed_factor, types,
+                          set.attacks);
+      AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,
+                          off_clock, attack_speed, speed_factor, types,
+                          set.auto_attacks);
+    }
   }
 }
 

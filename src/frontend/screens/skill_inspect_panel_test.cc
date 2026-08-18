@@ -553,7 +553,7 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   Skill arrows = MakeIronBody();
   arrows.set_boosts_skill_name("Piercing Arrow");
   arrows.mutable_base()->set_boosted_skill_pct(1.02);
-  EmpoweredForm* form = arrows.mutable_empowered_form();
+  EmpoweredForm* form = arrows.add_empowered_form();
   form->set_casts_per_trigger(4);
   form->set_max_enemies(8);
   form->set_lines(6);
@@ -578,7 +578,7 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
 TEST_F(SkillInspectPanelTest, StatesAFormThatMarksEachEnemy) {
   Skill judgment = MakeIronBody();
   judgment.set_boosts_skill_name("Blast");
-  EmpoweredForm* form = judgment.mutable_empowered_form();
+  EmpoweredForm* form = judgment.add_empowered_form();
   form->set_casts_per_trigger(5);
   form->set_brands_each_enemy(true);
   form->set_max_enemies(8);
@@ -694,7 +694,7 @@ TEST_F(SkillInspectPanelTest, StatesWhatDispelCures) {
 // its form carries a normal-monster reading of its own beside the damage.
 TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {
   Skill toxin = MakeIronBody();
-  EmpoweredForm* form = toxin.mutable_empowered_form();
+  EmpoweredForm* form = toxin.add_empowered_form();
   form->set_casts_per_trigger(4);
   form->set_lines(4);
   form->mutable_base()->set_skill_pct(2.00);

@@ -1095,7 +1095,7 @@ TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {
   toxin.set_max_enemies(10);
   toxin.set_cast_interval_seconds(1.0);
   toxin.mutable_base()->set_skill_pct(1.00);
-  EmpoweredForm* form = toxin.mutable_empowered_form();
+  EmpoweredForm* form = toxin.add_empowered_form();
   form->set_casts_per_trigger(4);
   form->set_max_enemies(10);
   form->set_lines(4);
@@ -1118,6 +1118,83 @@ TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {
   // It stands in for a pulse, so it is paced by the summon's clock and never
   // charged a swing of its own.
   EXPECT_DOUBLE_EQ(pulse.empowered->swing_seconds, 0.0);
+}
+
+// Greater Empowered Arrows' shape: one passive, one SP ladder, two swings
+// upgraded. Each form names the swing it takes the place of, and neither
+// lands on the other's.
+TEST(ComputeCombatParamsTest, OneSkillCanEmpowerTwoDifferentSwings) {
+  Skill piercing;
+  piercing.set_name("Piercing Arrow II");
+  piercing.set_kind(SKILL_KIND_ATTACK);
+  piercing.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  piercing.set_max_level(30);
+  piercing.set_max_enemies(8);
+  piercing.set_lines(5);
+  piercing.mutable_base()->set_skill_pct(1.00);
+  Skill snipe = piercing;
+  snipe.set_name("Snipe");
+  snipe.set_max_enemies(1);
+  snipe.set_lines(9);
+
+  Skill greater;
+  greater.set_name("Greater Empowered Arrows");
+  greater.set_kind(SKILL_KIND_PASSIVE);
+  greater.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  greater.set_max_level(20);
+  EmpoweredForm* arrow = greater.add_empowered_form();
+  arrow->set_skill_name("Piercing Arrow II");
+  arrow->set_casts_per_trigger(4);
+  arrow->set_max_enemies(10);
+  arrow->set_lines(6);
+  arrow->mutable_base()->set_skill_pct(2.00);
+  EmpoweredForm* shot = greater.add_empowered_form();
+  shot->set_skill_name("Snipe");
+  shot->set_casts_per_trigger(4);
+  shot->set_max_enemies(1);
+  shot->set_lines(10);
+  shot->mutable_base()->set_skill_pct(3.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"piercing_arrow_ii", piercing},
+                   {"snipe", snipe},
+                   {"greater_empowered_arrows", greater}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(piercing, 1));
+  ASSERT_TRUE(state.character.LearnSkill(snipe, 1));
+  ASSERT_TRUE(state.character.LearnSkill(greater, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  int arrow_at = -1;
+  int snipe_at = -1;
+  for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
+    if (params.attacks[i].name == "Piercing Arrow II") {
+      arrow_at = i;
+    }
+    if (params.attacks[i].name == "Snipe") {
+      snipe_at = i;
+    }
+  }
+  ASSERT_GE(arrow_at, 0);
+  ASSERT_GE(snipe_at, 0);
+  const AttackOption& upgraded_arrow = params.attacks[arrow_at];
+  const AttackOption& upgraded_snipe = params.attacks[snipe_at];
+  ASSERT_NE(upgraded_arrow.empowered, nullptr);
+  ASSERT_NE(upgraded_snipe.empowered, nullptr);
+  EXPECT_EQ(upgraded_arrow.empowered->name, "Empowered Piercing Arrow II");
+  EXPECT_EQ(upgraded_snipe.empowered->name, "Empowered Snipe");
+  // Each form's own reach and its own multiplier, not the other's.
+  EXPECT_EQ(upgraded_arrow.empowered->max_enemies, 10);
+  EXPECT_EQ(upgraded_snipe.empowered->max_enemies, 1);
+  // 6 lines of 200% against the arrow's 5 of 100%, and 10 of 300% against the
+  // shot's 9 of 100%.
+  EXPECT_DOUBLE_EQ(upgraded_arrow.empowered->damage_per_hit[0],
+                   2.4 * upgraded_arrow.damage_per_hit[0]);
+  EXPECT_DOUBLE_EQ(upgraded_snipe.empowered->damage_per_hit[0],
+                   (10.0 * 3.0 / 9.0) * upgraded_snipe.damage_per_hit[0]);
 }
 
 // A skill clocked by swings landed goes on its own list, not beside the ones

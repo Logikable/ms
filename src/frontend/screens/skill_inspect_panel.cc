@@ -171,6 +171,17 @@ std::string Ordinal(int n) {
 }
 
 // One "  label      value" row of an effect block.
+// What an empowered form upgrades, as the page names it. A form carried by a
+// skill with no attack of its own and no skill named is a data error the
+// catalog test catches; here it reads as the skill's own attack.
+std::string EmpoweredTarget(const Skill& skill, const EmpoweredForm& form) {
+  if (!form.skill_name().empty()) {
+    return form.skill_name();
+  }
+  return skill.boosts_skill_name().empty() ? "attack"
+                                           : skill.boosts_skill_name();
+}
+
 ftxui::Element EffectRow(const std::string& label, const std::string& value) {
   return ftxui::text(std::string(kEffectIndent, ' ') +
                      PadRight(label, kEffectLabelWidth) + value);
@@ -353,32 +364,29 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   // is stated too, unlike a turret's: this one is wider than the attack it
   // stands in for, so leaving it out would understate the upgrade. An empty
   // name is the skill upgrading its own attack, which has no name to give.
-  if (skill.empowered_form().casts_per_trigger() > 0) {
-    std::string upgraded = skill.boosts_skill_name().empty()
-                               ? "attack"
-                               : skill.boosts_skill_name();
+  for (const EmpoweredForm& form : skill.empowered_form()) {
+    if (form.casts_per_trigger() <= 0) {
+      continue;
+    }
     for (ftxui::Element& row : WrappedEffectRows(
-             "Empowers",
-             "Every " + Ordinal(skill.empowered_form().casts_per_trigger()) +
-                 " " + upgraded)) {
+             "Empowers", "Every " + Ordinal(form.casts_per_trigger()) + " " +
+                             EmpoweredTarget(skill, form))) {
       rows.push_back(std::move(row));
     }
     // A mark on each enemy is a different promise from a count on the swing --
     // five that one enemy took, rather than five swings -- and only a row of
     // its own says which of the two the number above is.
-    if (skill.empowered_form().brands_each_enemy()) {
+    if (form.brands_each_enemy()) {
       rows.push_back(EffectRow("Marks", "Each Enemy Hit"));
     }
     // Only when it differs from the reach stated above: the Sniper's form is
     // wider than the swing it stands in for, and leaving that out would
     // understate the upgrade -- but Creeping Toxin detonates exactly as far as
     // it spread, and a row repeating the one above it is noise.
-    if (!skill.empowered_form().brands_each_enemy() &&
-        skill.empowered_form().max_enemies() > 1 &&
-        skill.empowered_form().max_enemies() != skill.max_enemies()) {
+    if (!form.brands_each_enemy() && form.max_enemies() > 1 &&
+        form.max_enemies() != skill.max_enemies()) {
       rows.push_back(
-          EffectRow("Empowered Enemies",
-                    std::to_string(skill.empowered_form().max_enemies())));
+          EffectRow("Empowered Enemies", std::to_string(form.max_enemies())));
     }
   }
   // How long the player swings something else for afterwards, which is what a
@@ -642,12 +650,18 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
   // skill that strengthens another twice over, so both halves read together.
   // Its own normal-monster reading follows, for the same reason the ordinary
   // attack's does -- two numbers for the swing above, two for this one.
-  if (skill.empowered_form().casts_per_trigger() > 0) {
-    const EmpoweredForm& form = skill.empowered_form();
+  for (const EmpoweredForm& form : skill.empowered_form()) {
+    if (form.casts_per_trigger() <= 0) {
+      continue;
+    }
+    // One form is "Empowered Damage" and needs no more; several have to say
+    // which swing each belongs to, so they take the upgraded skill's name.
+    std::string label = skill.empowered_form_size() > 1
+                            ? EmpoweredTarget(skill, form)
+                            : std::string("Empowered Damage");
     double per_hit =
         form.base().skill_pct() + form.per_level().skill_pct() * (level - 1);
-    rows.push_back(
-        EffectRow("Empowered Damage", SwingText(per_hit, form.lines())));
+    rows.push_back(EffectRow(label, SwingText(per_hit, form.lines())));
     double normal = form.base().normal_skill_pct() +
                     form.per_level().normal_skill_pct() * (level - 1);
     if (normal > 0.0) {
