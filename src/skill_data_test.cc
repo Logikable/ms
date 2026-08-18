@@ -59,6 +59,43 @@ std::set<JobAdvancement> BooksFor(Job job) {
   return books;
 }
 
+// One lever's value, whatever numeric type it is stored as, so a check can
+// walk every lever a SkillEffect has without naming any of them. A field the
+// message does not carry reads 0.
+double LeverValue(const SkillEffect& effect,
+                  const google::protobuf::FieldDescriptor* field) {
+  const google::protobuf::Reflection* reflection = effect.GetReflection();
+  switch (field->cpp_type()) {
+    case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
+      return reflection->GetDouble(effect, field);
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
+      return reflection->GetInt32(effect, field);
+    default:
+      return 0.0;
+  }
+}
+
+// A skill's levers at `level`, on the ladder every reader climbs:
+// base + per_level * (L - 1).
+SkillEffect EffectAt(const Skill& skill, int level) {
+  SkillEffect at = skill.base();
+  const google::protobuf::Descriptor* levers = SkillEffect::descriptor();
+  const google::protobuf::Reflection* reflection = at.GetReflection();
+  for (int i = 0; i < levers->field_count(); ++i) {
+    const google::protobuf::FieldDescriptor* field = levers->field(i);
+    double climbed = LeverValue(skill.base(), field) +
+                     LeverValue(skill.per_level(), field) * (level - 1);
+    if (field->cpp_type() ==
+        google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE) {
+      reflection->SetDouble(&at, field, climbed);
+    } else if (field->cpp_type() ==
+               google::protobuf::FieldDescriptor::CPPTYPE_INT32) {
+      reflection->SetInt32(&at, field, static_cast<int>(climbed));
+    }
+  }
+  return at;
+}
+
 // Whether some one job holds both `skill`'s book and the book of a skill
 // called `name`. Every reference one skill makes to another is by display
 // name, and a name no character can reach from where the reference is written
@@ -526,6 +563,21 @@ TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
 // simply stops, however many levels are on offer.
 constexpr int kSmallestMasterLevelPastIt = 10;
 
+// The 4th job skills GMS does NOT mark, by file stem. Combat Orders is GMS's
+// mechanic and GMS says which skills take it, so a book with one of these in
+// it is not a mistake -- and naming them here keeps the check strict for the
+// rest rather than weakening it to a direction that catches nothing.
+const char* const kHeldToTheirMasterLevel[] = {"enchanted_quiver"};
+
+bool GmsHoldsItToTheMasterLevel(const std::string& stem) {
+  for (const char* held : kHeldToTheirMasterLevel) {
+    if (stem == held) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Which skills those are is a property of the catalog, so the catalog is what
 // has to say it. Neither mistake announces itself: a 4th job skill missing the
 // mark quietly stops two levels short of where its book goes, and one below
@@ -534,7 +586,8 @@ TEST(SkillDataTest, OnlyA4thJobSkillPassesItsMasterLevel) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
     bool eligible = StageForAdvancement(skill.job_advancement()) == 4 &&
-                    skill.max_level() >= kSmallestMasterLevelPastIt;
+                    skill.max_level() >= kSmallestMasterLevelPastIt &&
+                    !GmsHoldsItToTheMasterLevel(entry.first);
     if (eligible) {
       EXPECT_TRUE(skill.exceeds_master_level())
           << entry.first << " stops at " << skill.max_level()
@@ -647,6 +700,44 @@ TEST(SkillDataTest, EverySupersededSkillIsOneTheSameCharacterCanHold) {
         SameCharacterCanHold(skills, skill, skill.supersedes_skill_name()))
         << entry.first << " supersedes \"" << skill.supersedes_skill_name()
         << "\", which no character holding it can learn";
+  }
+  EXPECT_GT(checked, 0) << "no skill in the catalog supersedes another";
+}
+
+// A superseding skill states the whole of what it replaces, so its FIRST level
+// has to clear the replaced skill's LAST one on every lever they share. The
+// point that buys it is otherwise a point spent going backwards, and nothing
+// in the game would say so -- the replaced skill keeps its page and its level
+// and quietly stops paying. GMS starts Advanced Final Attack at 41% against a
+// Final Attack that reaches 40% for exactly this reason.
+TEST(SkillDataTest, ASupersedingSkillIsNeverWorseAtLevelOne) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  const google::protobuf::Descriptor* levers = SkillEffect::descriptor();
+  int checked = 0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.supersedes_skill_name().empty()) {
+      continue;
+    }
+    for (const std::pair<const std::string, Skill>& other : skills) {
+      if (other.second.name() != skill.supersedes_skill_name()) {
+        continue;
+      }
+      ++checked;
+      SkillEffect replaced = EffectAt(other.second, other.second.max_level());
+      SkillEffect replacing = EffectAt(skill, 1);
+      for (int i = 0; i < levers->field_count(); ++i) {
+        const google::protobuf::FieldDescriptor* field = levers->field(i);
+        double was = LeverValue(replaced, field);
+        double now = LeverValue(replacing, field);
+        if (was <= 0.0) {
+          continue;
+        }
+        EXPECT_GE(now, was)
+            << entry.first << " supersedes " << other.first << " but pays "
+            << now << " of " << field->name() << " where it paid " << was;
+      }
+    }
   }
   EXPECT_GT(checked, 0) << "no skill in the catalog supersedes another";
 }

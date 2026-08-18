@@ -1,0 +1,29 @@
+# The line's mastery skill, at 20 levels rather than GMS's 30 and landing on
+# GMS's own top figures -- 70% mastery, +60 attack and 16% critical damage.
+#
+# It does not supersede Bow Mastery and must not: masteries take the better of
+# two rather than the sum, so this simply outbids the Hunter's 50% on its own.
+name: "Bow Expert"
+skill_order: 7
+description:
+  "Your long service permanently increases Bow Mastery, Attack Power and "
+  "Critical Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+max_level: 20
+exceeds_master_level: true
+required_equip_type: EQUIP_TYPE_BOW
+required_skill {
+  skill_name: "Bow Mastery"
+  level: 10
+}
+base {
+  mastery: 0.51
+  attack: 3
+  crit_dmg: 0.065
+}
+per_level {
+  mastery: 0.01
+  attack: 3
+  crit_dmg: 0.005
+}

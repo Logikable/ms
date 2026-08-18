@@ -58,10 +58,11 @@ enum Job {
   JOB_HERMIT = 24;
   JOB_CHIEF_BANDIT = 25;
   // The 4th advancements. The 4th job narrows no further -- every 3rd job has
-  // exactly one -- so these are three of ten, and the rest follow them.
+  // exactly one -- so these are four of ten, and the rest follow them.
   JOB_DARK_KNIGHT = 26;
   JOB_PALADIN = 27;
   JOB_HERO = 28;
+  JOB_BOW_MASTER = 29;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -99,6 +100,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_DARK_KNIGHT = 25;
   JOB_ADVANCEMENT_PALADIN = 26;
   JOB_ADVANCEMENT_HERO = 27;
+  JOB_ADVANCEMENT_BOW_MASTER = 28;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

@@ -1,0 +1,32 @@
+# GMS states the whole of the Final Attack rather than a delta over the
+# Hunter's, so this supersedes it. The base has to clear 40% for that: Final
+# Attack: Bow already reaches it, and a level-1 buy that fired less often would
+# be a point spent going backwards. GMS starts at 41% for the same reason.
+#
+# The bow it demands is the Hunter's, so the pair lapse together: a Bow Master
+# holding something neither will fire off keeps neither.
+name: "Advanced Final Attack"
+skill_order: 9
+description:
+  "Permanently increases your Attack Power, and your Final Attack strikes far "
+  "harder and far more often."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+max_level: 20
+exceeds_master_level: true
+supersedes_skill_name: "Final Attack: Bow"
+required_equip_type: EQUIP_TYPE_BOW
+required_skill {
+  skill_name: "Final Attack: Bow"
+  level: 20
+}
+base {
+  attack: 1
+  final_attack_chance: 0.41
+  final_attack_pct: 1.52
+}
+per_level {
+  attack: 1
+  final_attack_chance: 0.01526
+  final_attack_pct: 0.03053
+}

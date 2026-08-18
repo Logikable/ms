@@ -1,0 +1,21 @@
+# 35 + floor(L/2)% and 6 + L%, straight from GMS. The ignored defence ships
+# dead: no monster in this game sets any, so every share of it cancels nothing.
+# Written out anyway -- the figure belongs with the skill, and the stats page
+# shows the row. The final damage is the half that pays.
+name: "Armor Break"
+skill_order: 10
+description:
+  "Your arrows find the gaps in a monster's guard, ignoring part of its "
+  "Defense. Also permanently increases Final Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+max_level: 10
+exceeds_master_level: true
+base {
+  ied_pct: 0.355
+  final_dmg_pct: 0.07
+}
+per_level {
+  ied_pct: 0.005
+  final_dmg_pct: 0.01
+}

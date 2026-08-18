@@ -1,0 +1,29 @@
+# The bossing swing: one arrow at one enemy, over and over, at a rate no
+# weapon can hurry. 120ms is GMS's own figure for it, and `fixed_delay` is
+# what a key-down skill is -- see Skill.fixed_delay.
+#
+# Seven of them count as one attack, exactly as Arrow Blaster's do. Without
+# that a swing landing eight times a second would set off every counter in the
+# book several times over.
+#
+# It reaches one enemy, so Arrow Stream wins any map with a crowd on it. What
+# keeps this ahead on a lone target is that both Final Attacks roll once per
+# SWING: eight rolls a second against Arrow Stream's two.
+name: "Hurricane"
+skill_order: 1
+description:
+  "Launch a tremendous volley of arrows, like a catastrophic rainstorm. Also "
+  "permanently strengthens Arrow Stream."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 120
+fixed_delay: true
+hits_per_attack_count: 7
+boosts_skill_name: "Arrow Stream"
+base {
+  skill_pct: 2.63
+  boosted_skill_pct: 0.50
+}
+per_level { skill_pct: 0.03 }

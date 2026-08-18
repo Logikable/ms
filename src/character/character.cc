@@ -170,6 +170,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_CROSSBOWMAN:
     case JOB_RANGER:
     case JOB_SNIPER:
+    case JOB_BOW_MASTER:
       return EQUIP_JOB_CATEGORY_BOWMAN;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -257,6 +258,7 @@ JobAdvancement FirstAdvancement(Job job) {
     case JOB_CROSSBOWMAN:
     case JOB_RANGER:
     case JOB_SNIPER:
+    case JOB_BOW_MASTER:
       return JOB_ADVANCEMENT_ARCHER;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -294,6 +296,7 @@ JobAdvancement SecondAdvancement(Job job) {
       return JOB_ADVANCEMENT_SPEARMAN;
     case JOB_HUNTER:
     case JOB_RANGER:
+    case JOB_BOW_MASTER:
       return JOB_ADVANCEMENT_HUNTER;
     case JOB_CROSSBOWMAN:
     case JOB_SNIPER:
@@ -331,6 +334,7 @@ JobAdvancement ThirdAdvancement(Job job) {
     case JOB_PALADIN:
       return JOB_ADVANCEMENT_WHITE_KNIGHT;
     case JOB_RANGER:
+    case JOB_BOW_MASTER:
       return JOB_ADVANCEMENT_RANGER;
     case JOB_SNIPER:
       return JOB_ADVANCEMENT_SNIPER;
@@ -359,6 +363,8 @@ JobAdvancement FourthAdvancement(Job job) {
       return JOB_ADVANCEMENT_PALADIN;
     case JOB_HERO:
       return JOB_ADVANCEMENT_HERO;
+    case JOB_BOW_MASTER:
+      return JOB_ADVANCEMENT_BOW_MASTER;
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
   }
@@ -440,6 +446,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_PALADIN;
     case JOB_ADVANCEMENT_HERO:
       return JOB_HERO;
+    case JOB_ADVANCEMENT_BOW_MASTER:
+      return JOB_BOW_MASTER;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -530,6 +538,7 @@ std::vector<EquipType> ExpectedWeapons(Job job) {
       return {EQUIP_TYPE_SPEAR, EQUIP_TYPE_POLEARM};
     case JOB_HUNTER:
     case JOB_RANGER:
+    case JOB_BOW_MASTER:
       return {EQUIP_TYPE_BOW};
     case JOB_CROSSBOWMAN:
     case JOB_SNIPER:
@@ -600,6 +609,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_CROSSBOWMAN:
     case JOB_RANGER:
     case JOB_SNIPER:
+    case JOB_BOW_MASTER:
       return STAT_FIELD_DEX;
     case JOB_MAGICIAN:
     case JOB_ICE_LIGHTNING_WIZARD:
@@ -673,7 +683,7 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 3 && job == JOB_BANDIT) {
     return {JOB_CHIEF_BANDIT};
   }
-  // The 4th advancement narrows no further either. Three of the ten are
+  // The 4th advancement narrows no further either. Four of the ten are
   // written; every other 3rd job stays at the top of its line, and an
   // advancement with nothing on the far side of it is not offered at all.
   if (stage == 4 && job == JOB_BERSERKER) {
@@ -684,6 +694,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   }
   if (stage == 4 && job == JOB_CRUSADER) {
     return {JOB_HERO};
+  }
+  if (stage == 4 && job == JOB_RANGER) {
+    return {JOB_BOW_MASTER};
   }
   return {};
 }
@@ -720,6 +733,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_DARK_KNIGHT:
     case JOB_ADVANCEMENT_PALADIN:
     case JOB_ADVANCEMENT_HERO:
+    case JOB_ADVANCEMENT_BOW_MASTER:
       return 4;
     default:
       return 0;

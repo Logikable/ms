@@ -1,0 +1,27 @@
+# GMS states the whole of the arrowhead rather than a delta over the Hunter's,
+# so this supersedes Quiver Cartridge instead of stacking on it. Level 1
+# already clears that skill's best -- 33% against 30, 224% against 220 -- so
+# the point that buys this is never a step backwards.
+#
+# The blood arrowhead is left out. It heals a share of the pool on a chance,
+# which the Berserker's lever already does, and GMS makes the two arrowheads
+# alternatives rather than a pair.
+name: "Enchanted Quiver"
+skill_order: 4
+description:
+  "Equips a specialized arrowhead that strikes far more often and far harder. "
+  "Also permanently increases Final Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+max_level: 10
+supersedes_skill_name: "Quiver Cartridge"
+base {
+  final_attack_chance: 0.33
+  final_attack_pct: 2.24
+  final_dmg_pct: 0.01
+}
+per_level {
+  final_attack_chance: 0.03
+  final_attack_pct: 0.04
+  final_dmg_pct: 0.00556
+}

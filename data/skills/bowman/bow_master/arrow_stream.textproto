@@ -1,0 +1,15 @@
+# The mobbing swing, and the one the Bow Master actually spends the day on:
+# five strikes across eight enemies. Hurricane's passive is worth 50 points on
+# every one of the five, which is why the pair are bought together.
+name: "Arrow Stream"
+skill_order: 2
+description: "Shoot a wild flurry of arrows straight ahead."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 660
+max_enemies: 8
+lines: 5
+base { skill_pct: 2.63 }
+per_level { skill_pct: 0.03 }
