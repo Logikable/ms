@@ -1,6 +1,8 @@
 # GMS asks for a shield or a dagger scabbard in the off hand and grants DEF,
-# avoidability, attack and damage reduction for it. Avoidability has nowhere to
-# land -- nothing in this game avoids anything.
+# avoidability, attack and damage reduction for it. The avoidability is left
+# out: GMS grants a share of the AVOID STAT here, which is the accuracy check
+# and not the flat roll dodge_chance models. See Illusion Step for the other
+# kind.
 #
 # The rest is on GMS's own figures: DEF and the damage taken both 11% and 6% a
 # level, and attack ending at its +20. All of it waits on the off hand. The DEF

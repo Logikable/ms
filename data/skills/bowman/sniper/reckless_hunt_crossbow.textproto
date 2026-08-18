@@ -1,6 +1,7 @@
-# GMS sells avoidability here, which this game has no notion of, so it sells
-# the same DEF its bow twin does -- and buys critical damage rather than attack
-# and final damage. See reckless_hunt_bow.
+# GMS sells avoidability here and never says how much, and what it sells is the
+# AVOID STAT rather than the flat roll dodge_chance models -- so this sells the
+# same DEF its bow twin does, and buys critical damage rather than attack and
+# final damage. See reckless_hunt_bow.
 name: "Reckless Hunt: Crossbow"
 skill_order: 4
 description: "Reduces DEF and instead increases Critical Damage."

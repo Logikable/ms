@@ -119,6 +119,13 @@ message SkillEffect {
   // worth the same to an expected-value fight, which is why this multiplies
   // into the damage taken beside them -- what it buys the player that reduction
   // does not is a hit they never took at all, and nothing here can tell.
+  //
+  // GMS calls two different things avoidability and this is only one of them.
+  // What lands here is the flat roll -- Evasion Boost's, and the "Bonus
+  // Avoidability Chance" Illusion Step grants. The other is the AVOID STAT,
+  // which loses an accuracy check against the monster's, and which this game
+  // has no notion of: a skill granting a share of THAT grants nothing here.
+  // Two rolls meet as rolls do, so no pile of them ever reaches certainty.
   double dodge_chance = 22;
   // Share of the monster's DEF this character's attacks ignore (0.25 == 25%).
   // Combines in reverse: what two sources leave the monster is the product of
