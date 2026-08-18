@@ -242,11 +242,13 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
 // The levers an attack keeps for its own swing rather than handing to the
 // character. Stripped here, and read back in OffenseStatsFor against the skill
 // being swung -- so Gungnir's Descent ignores 30% of a monster's defence when
-// it lands and Dark Impale, swung a moment later, does not.
+// it lands and Dark Impale, swung a moment later, does not. Snipe's certain
+// critical is the third of them, and reads the same way.
 SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   SkillEffect kept = effect;
   kept.clear_ied_pct();
   kept.clear_boss_pct();
+  kept.clear_crit_rate();
   return kept;
 }
 

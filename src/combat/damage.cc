@@ -424,6 +424,13 @@ OffenseStats OffenseStatsFor(Job job, int level,
     offense.boss_pct +=
         attack_skill->base().boss_pct() +
         attack_skill->per_level().boss_pct() * (attack_level - 1);
+    // Critical rate written on an ATTACK rides that attack too, and the same
+    // way a SwingHit's does: added to what the character brought, so 1.00 is
+    // certainty however little they have bought. Snipe is what states it --
+    // GMS's "Bonus Critical Rate: 100%", true of that shot and no other.
+    offense.crit_rate +=
+        attack_skill->base().crit_rate() +
+        attack_skill->per_level().crit_rate() * (attack_level - 1);
     // A multi-hit skill strikes each target this many times per swing, so its
     // per-target damage is skill_pct once per line.
     offense.lines = SkillLinesAt(*attack_skill, attack_level);

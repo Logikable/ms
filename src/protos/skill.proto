@@ -79,7 +79,11 @@ message SkillEffect {
   // staff's two numbers are: a skill grants one or the other, not both.
   int32 magic_attack = 10;
   double skill_pct = 11;  // damage multiplier (attack skills)
-  double crit_rate = 12;  // added chance for a swing to crit
+  // Added chance for a swing to crit. On a passive it rides the character; on
+  // an ATTACK it rides that attack alone, the way ied_pct and boss_pct do --
+  // Snipe crits every time and hands nothing to the swing after it. Added to
+  // what the character already has, so 1.00 is certainty either way.
+  double crit_rate = 12;
   // Added critical damage (0.05 == +5%), on top of the hidden 0.35 every
   // character crits for. Worth its share of the swings: a crit rate of 20%
   // makes 5% of critical damage worth 1% of damage.

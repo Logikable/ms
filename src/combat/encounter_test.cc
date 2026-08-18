@@ -1197,6 +1197,51 @@ TEST(ComputeCombatParamsTest, OneSkillCanEmpowerTwoDifferentSwings) {
                    (10.0 * 3.0 / 9.0) * upgraded_snipe.damage_per_hit[0]);
 }
 
+// A swing that always crits states so on itself, and says nothing about the
+// swing after it -- the same shape ignored defence written on an attack has.
+TEST(ComputeCombatParamsTest, ACertainCritRidesOnlyItsOwnSwing) {
+  Skill snipe;
+  snipe.set_name("Snipe");
+  snipe.set_kind(SKILL_KIND_ATTACK);
+  snipe.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  snipe.set_max_level(30);
+  snipe.set_max_enemies(1);
+  snipe.mutable_base()->set_skill_pct(1.00);
+  snipe.mutable_base()->set_crit_rate(1.0);
+  Skill plain = snipe;
+  plain.set_name("Plain Shot");
+  plain.clear_base();
+  plain.mutable_base()->set_skill_pct(1.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"snipe", snipe}, {"plain_shot", plain}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(snipe, 1));
+  ASSERT_TRUE(state.character.LearnSkill(plain, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  int snipe_at = -1;
+  int plain_at = -1;
+  for (int i = 0; i < static_cast<int>(params.attacks.size()); ++i) {
+    if (params.attacks[i].name == "Snipe") {
+      snipe_at = i;
+    }
+    if (params.attacks[i].name == "Plain Shot") {
+      plain_at = i;
+    }
+  }
+  ASSERT_GE(snipe_at, 0);
+  ASSERT_GE(plain_at, 0);
+  // Same multiplier, same lines: what separates them is the certainty.
+  EXPECT_GT(params.attacks[snipe_at].damage_per_hit[0],
+            params.attacks[plain_at].damage_per_hit[0]);
+  EXPECT_DOUBLE_EQ(params.attacks[snipe_at].groups[0].rolls.crit_rate, 1.0);
+  EXPECT_LT(params.attacks[plain_at].groups[0].rolls.crit_rate, 1.0);
+}
+
 // Bolt Surplus's strike lands on the swings the character chooses between and
 // nowhere else: not on the bare poke, which lands once, and not on a summon,
 // which they never swung.
