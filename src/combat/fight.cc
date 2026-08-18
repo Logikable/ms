@@ -217,7 +217,7 @@ void CombatSim::Strike(const AttackOption& attack) {
   // in expectation each of them takes it.
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
-      queue_[j].hp -= attack.final_attack_damage[queue_[j].type];
+      queue_[j].hp -= RolledFinalAttack(attack, queue_[j].type);
     }
   }
   std::vector<QueuedMob> survivors;
@@ -240,6 +240,31 @@ double CombatSim::RolledDamage(const AttackOption& attack, int type) {
   for (const HitGroup& group : attack.groups) {
     if (type < static_cast<int>(group.damage.size())) {
       total += group.damage[type] * RollFactor(group.rolls, rng_);
+    }
+  }
+  return total;
+}
+
+double CombatSim::RolledFinalAttack(const AttackOption& attack, int type) {
+  if (attack.final_attack_rolls.empty()) {
+    return attack.final_attack_damage[type];
+  }
+  double total = 0.0;
+  for (const FinalAttackRoll& source : attack.final_attack_rolls) {
+    if (type >= static_cast<int>(source.damage.size())) {
+      continue;
+    }
+    // A chance past certainty is that many hits guaranteed and a roll for
+    // what is left over. Nothing grants one yet, but summing two sources into
+    // one entry is exactly what this design stopped doing, so the shape has
+    // to hold if one ever does.
+    int certain = static_cast<int>(source.chance);
+    std::bernoulli_distribution lands(source.chance - certain);
+    for (int roll = 0; roll < source.count; ++roll) {
+      int hits = certain + (lands(rng_) ? 1 : 0);
+      for (int hit = 0; hit < hits; ++hit) {
+        total += source.damage[type] * RollFactor(source.rolls, rng_);
+      }
     }
   }
   return total;

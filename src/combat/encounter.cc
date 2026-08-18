@@ -158,34 +158,41 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // see ComputeCombatParams.
   //
   // A source naming a tag follows only the swings carrying it, which is how a
-  // fire mage's ignores everything they cast that is not fire. What is left
-  // sums: independent procs add in expectation.
+  // fire mage's ignores everything they cast that is not fire. Every source
+  // that survives keeps its own entry, since each rolls on its own.
   //
-  // A source rolling per line is worth the swing's line count of itself: four
+  // A source rolling per line rolls the swing's line count of times: four
   // lines knock four mesos loose where a Final Attack rolls once. The shadow's
   // copies are not the character's lines and do not count.
   int swing_lines = skill != nullptr ? SkillLinesAt(*skill, level) : 1;
-  double final_attack_pct = 0.0;
+  OffenseStats follow =
+      OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                      equipped, weapon, nullptr, 0, PassiveOffenseFor(derived));
+  // The shadow mimics the swing, and this is what the swing set off rather
+  // than the swing. Same line the skill's own multiplier and lines are already
+  // dropped on, two comments up.
+  follow.mirror_lines = 0;
+  attack.final_attack_damage.assign(types.size(), 0.0);
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag != SKILL_TAG_UNSPECIFIED &&
         !HasTag(skill, source.required_tag)) {
       continue;
     }
-    final_attack_pct += source.per_line ? source.pct * swing_lines : source.pct;
-  }
-  if (final_attack_pct > 0.0) {
-    OffenseStats final_attack = OffenseStatsFor(
-        proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,
-        nullptr, 0, PassiveOffenseFor(derived));
-    final_attack.skill_pct = final_attack_pct;
-    // The shadow mimics the swing, and this is what the swing set off rather
-    // than the swing. Same line the skill's own multiplier and lines are
-    // already dropped on, two comments up.
-    final_attack.mirror_lines = 0;
-    for (const CombatType& type : types) {
-      attack.final_attack_damage.push_back(
-          ExpectedAttackDamage(final_attack, *type.mob));
+    FinalAttackRoll roll;
+    roll.chance = source.chance;
+    roll.count = source.per_line ? swing_lines : 1;
+    follow.skill_pct = source.damage_pct;
+    roll.rolls = RollsFor(follow);
+    for (std::size_t i = 0; i < types.size(); ++i) {
+      roll.damage.push_back(ExpectedAttackDamage(follow, *types[i].mob));
+      attack.final_attack_damage[i] +=
+          roll.damage.back() * roll.chance * roll.count;
     }
+    attack.final_attack_rolls.push_back(std::move(roll));
+  }
+  if (attack.final_attack_rolls.empty()) {
+    attack.final_attack_damage.clear();
+    attack.final_attack_rolls.clear();
   }
   return attack;
 }
@@ -267,8 +274,9 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
     AttackOption attack =
         AttackFor(proto, equipped, weapon_type, &built, level, types, derived,
                   kUnscaledAttackSpeedStage, speed_factor);
-    attack.swing_seconds = 0.0;          // not swung, so never charged
-    attack.final_attack_damage.clear();  // Final Attack follows a swing
+    attack.swing_seconds = 0.0;  // not swung, so never charged
+    attack.final_attack_damage.clear();
+    attack.final_attack_rolls.clear();  // Final Attack follows a swing
     attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
     set.auto_attacks.push_back(std::move(attack));
   }
@@ -387,6 +395,7 @@ void AttachEmpoweredForms(const GameState& state, const EquipStats& equipped,
     // one -- so a form standing in for a pulse must not carry one either.
     if (attack.interval_seconds > 0.0) {
       swing->final_attack_damage.clear();
+      swing->final_attack_rolls.clear();
     }
     attack.empowered_every = skill.empowered_form().casts_per_trigger();
     attack.brands_enemies = skill.empowered_form().brands_each_enemy();
@@ -473,6 +482,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       attack.groups.clear();
       attack.lead_damage.clear();
       attack.final_attack_damage.clear();
+      attack.final_attack_rolls.clear();
     }
     if (swung.kind() != SKILL_KIND_AUTO_ATTACK) {
       // What this swing counts toward the skills clocked by swings landed.
@@ -483,8 +493,9 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       set.attacks.push_back(std::move(attack));
       continue;
     }
-    attack.swing_seconds = 0.0;          // not swung, so never charged
-    attack.final_attack_damage.clear();  // Final Attack follows a swing
+    attack.swing_seconds = 0.0;  // not swung, so never charged
+    attack.final_attack_damage.clear();
+    attack.final_attack_rolls.clear();  // Final Attack follows a swing
     // Clocked by swings landed rather than by seconds passed.
     if (swung.attacks_per_cast() > 0) {
       attack.attacks_per_cast = swung.attacks_per_cast();

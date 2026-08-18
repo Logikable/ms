@@ -22,9 +22,11 @@ namespace ms {
 // One Final Attack the character carries: what it is worth against each enemy
 // the swing reached, and which swings set it off.
 struct FinalAttackSource {
-  // Chance times damage, so a 40% chance of an extra 160% hit reads 0.64. One
-  // number because that is all an expected-value damage chain can use.
-  double pct = 0.0;
+  // Kept apart rather than multiplied together, because the fight rolls the
+  // chance and pays the damage: a 40% chance of an extra 160% hit is 0.40 and
+  // 1.60. Their product is what it is worth on an average swing.
+  double chance = 0.0;
+  double damage_pct = 0.0;
   // The swings this follows. SKILL_TAG_UNSPECIFIED means all of them, which is
   // what a Final Attack gated on the weapon in hand wants.
   SkillTag required_tag = SKILL_TAG_UNSPECIFIED;
@@ -108,10 +110,10 @@ struct DerivedStats {
   // rather than their sum, since two masteries are not twice as steady a
   // swing. The job line's own base is added under it; see BaseMastery.
   double mastery = 0.0;
-  // The Final Attacks the character's passives grant, merged by what sets them
-  // off. Two sources that follow the same swings are one entry, since
-  // independent procs add in expectation -- which is what keeps the Hunter's
-  // two arrow skills reading as one extra arrow.
+  // The Final Attacks the character's passives grant, one entry apiece and in
+  // catalog order. Kept apart even where two follow the same swings: they are
+  // independent rolls, and merging them into one would have to settle on a
+  // chance and a damage that no single source has.
   std::vector<FinalAttackSource> final_attacks;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.

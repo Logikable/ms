@@ -79,10 +79,9 @@ struct PassiveTotals {
   double regen_pct_per_second = 0.0;
   double status_resistance = 0.0;
   double elemental_resistance = 0.0;
-  // Keyed by the swings it follows: two sources that follow the same swings
-  // are one Final Attack. Ordered, so the result does not depend on which
-  // skill was read first.
-  std::map<int, double> final_attacks;
+  // One per skill granting one, in catalog order. Two that follow the same
+  // swings stay apart: they are independent rolls.
+  std::vector<FinalAttackSource> final_attacks;
   // Pick Pocket's chance and Meso Explosion's damage, which live on two
   // different skills and are worth nothing apart -- totalled here and paired
   // once the fold is done.
@@ -210,15 +209,16 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
 // AddEffect is handed levers with no skill behind them.
 void AddFinalAttack(const Skill& skill, const SkillEffect& base,
                     const SkillEffect& per, int level, PassiveTotals& totals) {
-  // Chance times damage: what the proc is worth on an average swing, which is
-  // all an expected-value damage chain can use. See DerivedStats.
-  double pct =
-      (base.final_attack_chance() + per.final_attack_chance() * (level - 1)) *
-      (base.final_attack_pct() + per.final_attack_pct() * (level - 1));
-  if (pct <= 0.0) {
+  FinalAttackSource source;
+  source.chance =
+      base.final_attack_chance() + per.final_attack_chance() * (level - 1);
+  source.damage_pct =
+      base.final_attack_pct() + per.final_attack_pct() * (level - 1);
+  if (source.chance <= 0.0 || source.damage_pct <= 0.0) {
     return;
   }
-  totals.final_attacks[skill.follows_skill_tag()] += pct;
+  source.required_tag = skill.follows_skill_tag();
+  totals.final_attacks.push_back(source);
 }
 
 // Notes Meso Explosion down. Recorded rather than folded: Meso Mastery's
@@ -549,19 +549,15 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.final_dmg_pct = passives.final_dmg_pct;
   stats.ied = passives.ied;
   stats.mastery = passives.mastery;
-  for (const std::pair<const int, double>& entry : passives.final_attacks) {
-    FinalAttackSource source;
-    source.pct = entry.second;
-    source.required_tag = static_cast<SkillTag>(entry.first);
-    stats.final_attacks.push_back(source);
-  }
+  stats.final_attacks = passives.final_attacks;
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one
   // more source in the same list rather than a mechanism of its own.
   if (passives.meso_drop_chance > 0.0 && passives.meso_hit_pct > 0.0) {
     FinalAttackSource meso;
-    meso.pct = passives.meso_drop_chance * passives.meso_hit_pct;
+    meso.chance = passives.meso_drop_chance;
+    meso.damage_pct = passives.meso_hit_pct;
     meso.per_line = true;
     stats.final_attacks.push_back(meso);
   }

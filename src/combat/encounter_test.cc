@@ -351,6 +351,21 @@ TEST(ComputeCombatParamsTest, MesosDropPerLineAndOnlyFromWhatIsSwung) {
                   params.attacks[0].final_attack_damage[0],
               4.0, 1e-9);
   EXPECT_TRUE(params.auto_attacks[0].final_attack_damage.empty());
+
+  // And the rolls behind that average say the same thing another way: one
+  // source, rolled once a line, so the four-line swing rolls it four times.
+  const AttackOption& poke = params.attacks[0];
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_EQ(swing.final_attack_rolls.size(), 1u);
+  EXPECT_NEAR(swing.final_attack_rolls[0].chance, 0.30, 1e-9);
+  EXPECT_EQ(swing.final_attack_rolls[0].count, 4);
+  EXPECT_EQ(poke.final_attack_rolls[0].count, 1);
+  // One meso is worth the same wherever it was knocked loose from.
+  EXPECT_DOUBLE_EQ(swing.final_attack_rolls[0].damage[0],
+                   poke.final_attack_rolls[0].damage[0]);
+  // The average is the roll's, or the fight and the sims part company.
+  EXPECT_DOUBLE_EQ(swing.final_attack_damage[0],
+                   swing.final_attack_rolls[0].damage[0] * 0.30 * 4);
 }
 
 // Nothing but a skill saying so gives a swing an opening hit.

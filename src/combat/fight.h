@@ -160,6 +160,10 @@ class CombatSim {
   // at its own roll. The plain expected damage for an attack carrying no
   // blocks, which is every one built by hand rather than by the encounter.
   double RolledDamage(const AttackOption& attack, int type);
+  // What the Final Attacks following `attack` land on one mob of `type` this
+  // time: a roll per source, per line where the source rides them. The plain
+  // expected damage for an attack carrying no sources.
+  double RolledFinalAttack(const AttackOption& attack, int type);
   // Index into params.attacks of the healing cast to spend this swing on, or
   // -1 for none: the player is not low enough, has nothing to fight, or holds
   // no such skill. A cleared map heals on the beat for free, so a cast there

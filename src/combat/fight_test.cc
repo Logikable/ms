@@ -60,36 +60,41 @@ CombatParams MakeParams(double swing, double respawn,
 }
 
 // A swing that rolls: every line lands somewhere between the mastery floor and
-// full, and crits on top of that. Over a long run the kills have to come out
-// where the unrolled swing would have put them, or the fight and the reward
-// layer stop agreeing with the sims.
+// full, and crits on top of that. Wide open or barely at all, it has to kill
+// at the rate the unrolled swing did -- the only thing rolling costs is
+// overkill on the killing blow, and against a mob eighty swings deep that is a
+// fraction of one kill.
 TEST(CombatSimTest, ARollingSwingKillsAtTheRateItsAverageWould) {
-  Mob mob = MakeMob("Snail", 100);
-  double kills = 0.0;
-  double rolled_kills = 0.0;
-  for (int run = 0; run < 2; ++run) {
-    CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 200)});
-    if (run == 1) {
-      // Four lines of a quarter of the damage apiece, wide open and crit-heavy
-      // -- the same 25 on average, landing anywhere from 10 to 60.
+  // A deep roster and a respawn that never comes: what limits the kills has to
+  // be the damage, or every run simply empties the map and agrees about
+  // nothing.
+  // The HP is many swings deep and no multiple of one: a mob that dies on an
+  // exact swing count would lose a whole swing to the smallest jitter, which
+  // is granularity rather than anything the roll did.
+  Mob mob = MakeMob("Snail", 2013);
+  double kills[3] = {0.0, 0.0, 0.0};
+  for (int run = 0; run < 3; ++run) {
+    CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 25.0, 400)});
+    if (run > 0) {
+      // Four lines of a quarter of the damage apiece: the same 25 on average
+      // either way. Run 1 rolls wide open and crit-heavy, run 2 barely at all.
       HitGroup group;
       group.damage = {25.0};
       group.rolls.lines = 4;
-      group.rolls.mastery = 0.4;
-      group.rolls.crit_rate = 0.5;
+      group.rolls.mastery = run == 1 ? 0.4 : 0.99;
+      group.rolls.crit_rate = run == 1 ? 0.5 : 0.0;
       group.rolls.crit_dmg = 1.0;
       params.attacks[0].groups.push_back(group);
     }
     CombatSim sim;
-    double total = 0.0;
-    for (int step = 0; step < 4000; ++step) {
+    for (int step = 0; step < 20000; ++step) {
       sim.Advance(params, 1.0);
-      total += sim.kills_this_step()[0];
+      kills[run] += sim.kills_this_step()[0];
     }
-    (run == 0 ? kills : rolled_kills) = total;
   }
-  ASSERT_GT(kills, 0.0);
-  EXPECT_NEAR(rolled_kills / kills, 1.0, 0.02);
+  ASSERT_GT(kills[0], 0.0);
+  EXPECT_NEAR(kills[1] / kills[0], 1.0, 0.01);
+  EXPECT_NEAR(kills[2] / kills[0], 1.0, 0.01);
 }
 
 // The same swing landing differently twice, which is the whole point: without
@@ -119,6 +124,32 @@ TEST(CombatSimTest, ARollingSwingDoesNotLandTheSameTwice) {
     }
   }
   EXPECT_TRUE(varied);
+}
+
+// A Final Attack is a chance, not a fraction of a hit. It rolls once per enemy
+// the swing reached, and over a long run it has to pay what the fraction did.
+TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
+  Mob mob = MakeMob("Snail", 2013);
+  double kills[2] = {0.0, 0.0};
+  for (int run = 0; run < 2; ++run) {
+    CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 20.0, 400)});
+    params.attacks[0].final_attack_damage = {5.0};
+    if (run == 1) {
+      // A quarter chance of a hit worth four times as much: the same 5 on
+      // average, and mostly nothing at all.
+      FinalAttackRoll roll;
+      roll.chance = 0.25;
+      roll.damage = {20.0};
+      params.attacks[0].final_attack_rolls.push_back(roll);
+    }
+    CombatSim sim;
+    for (int step = 0; step < 20000; ++step) {
+      sim.Advance(params, 1.0);
+      kills[run] += sim.kills_this_step()[0];
+    }
+  }
+  ASSERT_GT(kills[0], 0.0);
+  EXPECT_NEAR(kills[1] / kills[0], 1.0, 0.01);
 }
 
 // A swing worth three pokes, held back by a three-second cooldown -- so it

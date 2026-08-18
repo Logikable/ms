@@ -610,10 +610,9 @@ TEST_F(DerivedStatsTest, NoMasterySkillKeepsTheBaseline) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).mastery, 0.0);
 }
 
-// The chance and the damage are separate on the skill because that is what
-// the player is shown, but only their product can reach an expected-value
-// damage chain.
-TEST_F(DerivedStatsTest, FinalAttackCollapsesToWhatASwingIsWorth) {
+// The chance and the damage stay apart all the way through, because the fight
+// rolls the one and pays the other.
+TEST_F(DerivedStatsTest, FinalAttackKeepsItsChanceAndItsDamageApart) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   Skill final_attack = FinalAttack();
   std::map<std::string, Skill> skills = {{"final_attack", final_attack}};
@@ -623,7 +622,8 @@ TEST_F(DerivedStatsTest, FinalAttackCollapsesToWhatASwingIsWorth) {
   // off -- which is what a Final Attack gated on the weapon in hand wants.
   DerivedStats stats = DerivedStatsFor(c, skills);
   ASSERT_EQ(stats.final_attacks.size(), 1u);
-  EXPECT_NEAR(stats.final_attacks[0].pct, 0.64, 1e-9);
+  EXPECT_NEAR(stats.final_attacks[0].chance, 0.40, 1e-9);
+  EXPECT_NEAR(stats.final_attacks[0].damage_pct, 1.60, 1e-9);
   EXPECT_EQ(stats.final_attacks[0].required_tag, SKILL_TAG_UNSPECIFIED);
 }
 
@@ -633,10 +633,10 @@ TEST_F(DerivedStatsTest, NoFinalAttackIsWorthNothing) {
   EXPECT_TRUE(DerivedStatsFor(c, skills).final_attacks.empty());
 }
 
-// Two arrow skills of the same shape are one extra arrow, which is how the
-// Hunter's pair have always read. A skill that follows only some swings has to
-// stay a source of its own, or it would follow all of them.
-TEST_F(DerivedStatsTest, OnlyFinalAttacksFollowingTheSameSwingsMerge) {
+// Every Final Attack keeps its own entry, the Hunter's matching pair included:
+// two of them are two independent rolls, and one merged entry would have to
+// settle on a chance and a damage that neither source has.
+TEST_F(DerivedStatsTest, EveryFinalAttackKeepsItsOwnEntry) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   Skill first = FinalAttack();
   Skill second = FinalAttack();
@@ -651,11 +651,14 @@ TEST_F(DerivedStatsTest, OnlyFinalAttacksFollowingTheSameSwingsMerge) {
   ASSERT_TRUE(c.LearnSkill(ignite, 20));
 
   DerivedStats stats = DerivedStatsFor(c, skills);
-  ASSERT_EQ(stats.final_attacks.size(), 2u);
-  EXPECT_NEAR(stats.final_attacks[0].pct, 1.28, 1e-9);  // the two that agree
+  ASSERT_EQ(stats.final_attacks.size(), 3u);
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_NEAR(stats.final_attacks[i].chance, 0.40, 1e-9);
+    EXPECT_NEAR(stats.final_attacks[i].damage_pct, 1.60, 1e-9);
+  }
   EXPECT_EQ(stats.final_attacks[0].required_tag, SKILL_TAG_UNSPECIFIED);
-  EXPECT_NEAR(stats.final_attacks[1].pct, 0.64, 1e-9);
   EXPECT_EQ(stats.final_attacks[1].required_tag, SKILL_TAG_FIRE);
+  EXPECT_EQ(stats.final_attacks[2].required_tag, SKILL_TAG_UNSPECIFIED);
 }
 
 // Advanced Final Attack's shape: it states the WHOLE of the Final Attack it
@@ -681,10 +684,12 @@ TEST_F(DerivedStatsTest, AnAdvancedSkillStopsTheOneItSupersedes) {
   ASSERT_TRUE(c.LearnSkill(final_attack, 20));
   ASSERT_TRUE(c.LearnSkill(advanced, 1));
 
-  // 3.06, not 3.70: the Fighter's 0.64 is gone rather than added to.
+  // 60% of 5.10 and nothing else: the Fighter's own is gone rather than
+  // joined by a second roll.
   DerivedStats stats = DerivedStatsFor(c, skills);
   ASSERT_EQ(stats.final_attacks.size(), 1u);
-  EXPECT_NEAR(stats.final_attacks[0].pct, 3.06, 1e-9);
+  EXPECT_NEAR(stats.final_attacks[0].chance, 0.60, 1e-9);
+  EXPECT_NEAR(stats.final_attacks[0].damage_pct, 5.10, 1e-9);
 }
 
 // Three ways a supersede does not take, each the same rule: a skill granting
@@ -719,7 +724,7 @@ TEST_F(DerivedStatsTest, ASkillGrantingNothingSupersedesNothing) {
     double total = 0.0;
     for (const FinalAttackSource& source :
          DerivedStatsFor(c, skills).final_attacks) {
-      total += source.pct;
+      total += source.chance * source.damage_pct;
     }
     EXPECT_NEAR(total, 0.64, 1e-9) << "case " << which;
   }
@@ -1450,8 +1455,10 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocketAndTakesItsBoost) {
   DerivedStats derived = DerivedStatsFor(c, skills);
 
   ASSERT_EQ(derived.final_attacks.size(), 1u);
-  // 30% a line, throwing two lines of 100% + Meso Mastery's 20 points.
-  EXPECT_NEAR(derived.final_attacks[0].pct, 0.30 * 2 * 1.20, 1e-9);
+  // 30% a line to knock one loose, and one throws two lines of 100% + Meso
+  // Mastery's 20 points.
+  EXPECT_NEAR(derived.final_attacks[0].chance, 0.30, 1e-9);
+  EXPECT_NEAR(derived.final_attacks[0].damage_pct, 2 * 1.20, 1e-9);
   EXPECT_TRUE(derived.final_attacks[0].per_line);
   EXPECT_NEAR(derived.meso_pct, 0.20, 1e-9);
 }

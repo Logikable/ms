@@ -41,6 +41,17 @@ struct HitGroup {
   SwingRolls rolls;
 };
 
+// One Final Attack following a swing: a chance, rolled once per enemy the
+// swing reached, that one more hit lands on that enemy. `count` is above 1
+// only for a source that rides the LINES rather than the swing -- the meso a
+// Chief Bandit knocks loose is rolled once per line.
+struct FinalAttackRoll {
+  double chance = 0.0;
+  int count = 1;
+  std::vector<double> damage;  // per target type, one hit's worth
+  SwingRolls rolls;            // how that hit itself varies
+};
+
 // One thing the character could spend a swing on: the bare poke, a learned
 // attack skill, or a cast that does something else with the swing entirely.
 // Which one is best depends on how many mobs are actually in front of the
@@ -90,6 +101,9 @@ struct AttackOption {
   // with no Final Attack, for a swing none of theirs follows, and for the
   // skills that fire on their own clock -- those are not the character's swing.
   std::vector<double> final_attack_damage;
+  // The same, one entry per source, as what actually rolls. Empty lands the
+  // average above -- what a caller building an attack by hand wants.
+  std::vector<FinalAttackRoll> final_attack_rolls;
   // Share of the player's HP pool this option puts back instead of dealing
   // damage (1.00 == all of it). 0 for every attack, which is all of them bar
   // the Cleric's Heal. An option carrying this deals no damage at all, and the
