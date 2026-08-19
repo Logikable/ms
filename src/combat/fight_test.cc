@@ -153,6 +153,17 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
   EXPECT_NEAR(kills[1] / kills[0], 1.0, 0.01);
 }
 
+// The burn a hand-built swing leaves: the one slot such a swing ever needs,
+// what a tick of it costs one mob type, and the clock it burns on.
+DotApplication MakeBurn(double damage, double interval, double duration) {
+  DotApplication burn;
+  burn.slot = 0;
+  burn.damage.assign(1, damage);
+  burn.interval_seconds = interval;
+  burn.duration_seconds = duration;
+  return burn;
+}
+
 // A burn is worth what it can sustain, not what one lighting of it comes to:
 // a swing that relights it every second buys one tick a second however long
 // the burn would have lasted. Priced in full it would look thirty times its
@@ -165,10 +176,7 @@ TEST(CombatSimTest, ABurnIsWeighedAtTheRateItCanBeRelit) {
   AttackOption smoulder = params.attacks[0];
   smoulder.name = "Smoulder";
   smoulder.damage_per_hit.assign(1, 10.0);
-  smoulder.dot_slot = 0;
-  smoulder.dot_damage.assign(1, 10.0);
-  smoulder.dot_interval_seconds = 1.0;
-  smoulder.dot_duration_seconds = 30.0;
+  smoulder.dots.push_back(MakeBurn(10.0, 1.0, 30.0));
   params.dot_count = 1;
   params.attacks.push_back(std::move(smoulder));
 
@@ -190,10 +198,7 @@ TEST(CombatSimTest, ABurnTicksForItsDurationAndNoLonger) {
   // A slow swing, so one cast's burn runs out well before the next lights it.
   CombatParams params = MakeParams(10.0, 1e9, {MakeType(&mob, 0.0, 1)});
   params.dot_count = 1;
-  params.attacks[0].dot_slot = 0;
-  params.attacks[0].dot_damage.assign(1, 100.0);
-  params.attacks[0].dot_interval_seconds = 1.0;
-  params.attacks[0].dot_duration_seconds = 5.0;
+  params.attacks[0].dots.push_back(MakeBurn(100.0, 1.0, 5.0));
 
   CombatSim sim;
   // Through the first cast at 10s and the five ticks behind it.
@@ -220,10 +225,7 @@ TEST(CombatSimTest, ABurnDoesNotStackWithItself) {
     CombatParams params =
         MakeParams(run == 0 ? 1.0 : 0.5, 1e9, {MakeType(&mob, 0.0, 1)});
     params.dot_count = 1;
-    params.attacks[0].dot_slot = 0;
-    params.attacks[0].dot_damage.assign(1, 100.0);
-    params.attacks[0].dot_interval_seconds = 1.0;
-    params.attacks[0].dot_duration_seconds = 5.0;
+    params.attacks[0].dots.push_back(MakeBurn(100.0, 1.0, 5.0));
     CombatSim sim;
     for (int step = 0; step < 400; ++step) {
       sim.Advance(params, 0.1);
@@ -236,6 +238,53 @@ TEST(CombatSimTest, ABurnDoesNotStackWithItself) {
   EXPECT_NEAR(left[0], left[1], 100.0 / 100000.0 + 1e-9);
 }
 
+// A poison piles helpings up to its limit and no further, each ticking for the
+// whole damage. Three of them are worth three times one, and the swings after
+// the third buy nothing but the duration.
+TEST(CombatSimTest, APoisonPilesUpToItsLimit) {
+  Mob mob = MakeMob("Snail", 1000000);
+  double taken[2] = {0.0, 0.0};
+  for (int run = 0; run < 2; ++run) {
+    CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
+    params.dot_count = 1;
+    DotApplication burn = MakeBurn(100.0, 1.0, 5.0);
+    burn.max_stacks = run == 0 ? 1 : 3;
+    params.attacks[0].dots.push_back(burn);
+    CombatSim sim;
+    for (int step = 0; step < 200; ++step) {
+      sim.Advance(params, 0.5);
+    }
+    taken[run] = 1.0 - sim.target_hp_fraction();
+  }
+  // A swing a second saturates the pile in three, so all but the first two
+  // seconds of a hundred tick three times over.
+  EXPECT_GT(taken[0], 0.0);
+  EXPECT_NEAR(taken[1] / taken[0], 3.0, 0.05);
+}
+
+// A poison is rolled for on each enemy the swing reached, so half of them
+// burn. What is asked of the roll is only that it thins the burn -- a poison
+// that always took hold would be the burn above.
+TEST(CombatSimTest, APoisonIsRolledForPerEnemy) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 8)}, 8);
+  params.dot_count = 1;
+  DotApplication burn = MakeBurn(100.0, 1.0, 1.0);
+  burn.chance = 0.5;
+  params.attacks[0].dots.push_back(burn);
+
+  CombatSim sim;
+  for (int step = 0; step < 400; ++step) {
+    sim.Advance(params, 0.5);
+  }
+  // One tick per swing per enemy at certainty; half of them at half a chance.
+  // Loose bounds: what is being caught is a roll that never fires or never
+  // misses, not the shape of the distribution.
+  double burned = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  EXPECT_GT(burned, 100.0 * 200.0 * 0.3);
+  EXPECT_LT(burned, 100.0 * 200.0 * 0.7);
+}
+
 // The burn takes its damage from the character as they stood when it was lit,
 // and keeps it: a buff that drops halfway through does not thin what is
 // already burning.
@@ -243,10 +292,7 @@ TEST(CombatSimTest, ABurnKeepsTheDamageItWasLitWith) {
   Mob mob = MakeMob("Snail", 10000);
   CombatParams params = MakeParams(10.0, 1e9, {MakeType(&mob, 0.0, 1)});
   params.dot_count = 1;
-  params.attacks[0].dot_slot = 0;
-  params.attacks[0].dot_damage.assign(1, 100.0);
-  params.attacks[0].dot_interval_seconds = 1.0;
-  params.attacks[0].dot_duration_seconds = 5.0;
+  params.attacks[0].dots.push_back(MakeBurn(100.0, 1.0, 5.0));
 
   CombatSim sim;
   for (int step = 0; step < 23; ++step) {
@@ -255,7 +301,7 @@ TEST(CombatSimTest, ABurnKeepsTheDamageItWasLitWith) {
   ASSERT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
   // Whatever the character is worth now, the four ticks still owed were
   // priced when the burn landed.
-  params.attacks[0].dot_damage.assign(1, 1.0);
+  params.attacks[0].dots[0].damage.assign(1, 1.0);
   for (int step = 0; step < 10; ++step) {
     sim.Advance(params, 0.5);
   }

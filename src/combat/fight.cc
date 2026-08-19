@@ -124,14 +124,16 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
   // is the seconds before it comes round again, capped by the burn's own life.
   // How long the monster lives thins it further, and the chooser cannot know
   // that before it swings.
-  if (attack.dot_interval_seconds > 0.0) {
+  for (const DotApplication& burn : attack.dots) {
     double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
-    double ticks = std::min(attack.dot_duration_seconds, cadence) /
-                   attack.dot_interval_seconds;
+    double ticks =
+        std::min(burn.duration_seconds, cadence) / burn.interval_seconds;
+    // One helping of it, however many the monster could carry: what a swing is
+    // worth is the burn it lights, not the pile the last few swings built.
     for (int j = 0; j < hit; ++j) {
       int type = queue_[j].type;
-      if (type < static_cast<int>(attack.dot_damage.size())) {
-        total += attack.dot_damage[type] * ticks;
+      if (type < static_cast<int>(burn.damage.size())) {
+        total += burn.damage[type] * ticks * burn.chance;
       }
     }
   }
@@ -291,7 +293,7 @@ void CombatSim::Strike(const AttackOption& attack) {
   }
   // Marked before the dead are cleared, so the indices the swing reached are
   // still the ones the mark is written to.
-  ApplyDot(attack, hit);
+  ApplyDots(attack, hit);
   Reap();
 }
 
@@ -308,30 +310,40 @@ void CombatSim::Reap() {
   queue_ = std::move(survivors);
 }
 
-void CombatSim::ApplyDot(const AttackOption& attack, int hit) {
-  if (attack.dot_slot < 0 || attack.dot_interval_seconds <= 0.0) {
-    return;
-  }
-  for (int j = 0; j < hit; ++j) {
-    QueuedMob& mob = queue_[j];
-    if (static_cast<int>(mob.dots.size()) <= attack.dot_slot) {
-      mob.dots.resize(attack.dot_slot + 1);
-    }
-    if (mob.type >= static_cast<int>(attack.dot_damage.size())) {
+void CombatSim::ApplyDots(const AttackOption& attack, int hit) {
+  for (const DotApplication& burn : attack.dots) {
+    if (burn.slot < 0 || burn.interval_seconds <= 0.0) {
       continue;
     }
-    // Written over rather than added to: a burn does not stack with itself.
-    // Only the duration starts again -- the tick clock is left where it is, or
-    // a swing faster than the interval would refresh the burn out of ever
-    // ticking at all.
-    MobDot& dot = mob.dots[attack.dot_slot];
-    if (dot.left_seconds <= 0.0) {
-      dot.phase = 0.0;
+    for (int j = 0; j < hit; ++j) {
+      QueuedMob& mob = queue_[j];
+      if (static_cast<int>(mob.dots.size()) <= burn.slot) {
+        mob.dots.resize(burn.slot + 1);
+      }
+      if (mob.type >= static_cast<int>(burn.damage.size())) {
+        continue;
+      }
+      // Rolled per enemy, so a poison takes hold on some of what the swing
+      // reached and not the rest.
+      std::bernoulli_distribution takes(burn.chance);
+      if (burn.chance < 1.0 && !takes(rng_)) {
+        continue;
+      }
+      // The damage is written over rather than added to, and only the duration
+      // starts again -- the tick clock is left where it is, or a swing faster
+      // than the interval would refresh the burn out of ever ticking at all.
+      // What piles up is the helpings, up to what the burn allows.
+      MobDot& dot = mob.dots[burn.slot];
+      if (dot.left_seconds <= 0.0) {
+        dot.phase = 0.0;
+        dot.stacks = 0;
+      }
+      dot.stacks = std::min(burn.max_stacks, dot.stacks + 1);
+      dot.left_seconds = burn.duration_seconds;
+      dot.interval_seconds = burn.interval_seconds;
+      dot.damage = burn.damage[mob.type];
+      dot.rolls = burn.rolls;
     }
-    dot.left_seconds = attack.dot_duration_seconds;
-    dot.interval_seconds = attack.dot_interval_seconds;
-    dot.damage = attack.dot_damage[mob.type];
-    dot.rolls = attack.dot_rolls;
   }
 }
 
@@ -349,7 +361,10 @@ void CombatSim::RunDots(double dt) {
       dot.phase += spent;
       while (dot.phase >= dot.interval_seconds) {
         dot.phase -= dot.interval_seconds;
-        mob.hp -= dot.damage * RollFactor(dot.rolls, rng_);
+        // Every helping ticks for the whole damage, and each rolls its own.
+        for (int i = 0; i < dot.stacks; ++i) {
+          mob.hp -= dot.damage * RollFactor(dot.rolls, rng_);
+        }
         burned = true;
       }
     }

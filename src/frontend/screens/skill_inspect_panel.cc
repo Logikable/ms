@@ -663,9 +663,23 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
 std::string DotText(const Dot& dot, int level) {
   double per_tick =
       dot.base().skill_pct() + dot.per_level().skill_pct() * (level - 1);
-  return SwingText(per_tick, dot.lines()) + " every " +
-         FormatNumber(dot.interval_seconds(), 2) + "s for " +
-         FormatNumber(dot.duration_seconds()) + "s";
+  std::string text = SwingText(per_tick, dot.lines()) + " every " +
+                     FormatNumber(dot.interval_seconds(), 2) + "s for " +
+                     FormatNumber(dot.duration_seconds()) + "s";
+  // What a poison the character carries has and a burn a swing leaves does
+  // not: it is rolled for, and it piles up. Both are silent on the burns that
+  // simply take hold once.
+  double chance = dot.chance() + dot.chance_per_level() * (level - 1);
+  if (chance > 0.0) {
+    text = FormatPercent(std::min(1.0, chance)) + " chance of " + text;
+  }
+  int stacks = static_cast<int>(dot.max_stacks() +
+                                dot.max_stacks_per_level() * (level - 1) +
+                                kWholeEpsilon);
+  if (stacks > 1) {
+    text += ", stacks " + std::to_string(stacks) + " times";
+  }
+  return text;
 }
 
 // What lands beside the swing rather than as part of it, and what the skill

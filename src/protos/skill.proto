@@ -440,10 +440,11 @@ message Buff {
 // for -- GMS's "enemies struck by the flame are burned and take continuous
 // damage".
 //
-// It does not stack with itself. A second cast writes the mark again, so the
-// duration starts over and the damage is taken fresh from the character as
-// they stand at that moment -- a burn lit under a buff keeps the buffed number
-// for the whole of its life, and one lit without it never gains.
+// A second cast writes the mark again, so the duration starts over and the
+// damage is taken fresh from the character as they stand at that moment -- a
+// burn lit under a buff keeps the buffed number for the whole of its life, and
+// one lit without it never gains. Where max_stacks allows it the second cast
+// also piles another helping on, and the monster burns for both.
 //
 // Not an AutoMode, which is a turret with a reach of its own, and not a
 // BuffPulse, which bleeds for as long as a buff on the CHARACTER stands. This
@@ -460,6 +461,18 @@ message Dot {
   // Seconds it burns for, from the swing that lit it.
   double duration_seconds = 5;
   int32 lines = 6;
+  // Chance it takes hold on each enemy the swing reached (0.30 == 30%). 0 is
+  // certainty, which is what a burn a swing simply leaves wants -- only the
+  // poison a rogue keeps on their claw is rolled for.
+  double chance = 7;
+  double chance_per_level = 8;
+  // Helpings of it one monster can carry at once, each ticking for the whole
+  // damage. A ladder rather than a number because Toxic Venom's count climbs,
+  // and floored where it is read: GMS's 2 + floor(L/6) is 2 through level 5, 3
+  // through 11 and 4 at 12, which only a fractional step can walk. 0 reads as
+  // one, which is every other burn in the game.
+  double max_stacks = 9;
+  double max_stacks_per_level = 10;
 }
 
 // A second hit the same swing lands at the same moment. Divine Mark is the

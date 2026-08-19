@@ -1013,7 +1013,7 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
                   {{"flame_sweep", sweep}, {"ifrit", summon}});
   state.current_map = "field";
   EquipSword(state);
-  GrantFirstJobSp(state, 2);
+  GrantFirstJobSp(state, 13);
   ASSERT_TRUE(state.character.LearnSkill(sweep, 1));
   ASSERT_TRUE(state.character.LearnSkill(summon, 1));
 
@@ -1022,19 +1022,45 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
   ASSERT_EQ(params.attacks.size(), 2u);
   const AttackOption& swing = params.attacks[1];
   ASSERT_EQ(swing.name, "Flame Sweep");
-  EXPECT_EQ(swing.dot_slot, 0);
+  ASSERT_EQ(swing.dots.size(), 1u);
+  EXPECT_EQ(swing.dots[0].slot, 0);
   EXPECT_EQ(params.dot_count, 1);
-  ASSERT_EQ(swing.dot_damage.size(), 1u);
-  EXPECT_DOUBLE_EQ(swing.dot_interval_seconds, 1.0 * factor);
-  EXPECT_DOUBLE_EQ(swing.dot_duration_seconds, 5.0 * factor);
+  ASSERT_EQ(swing.dots[0].damage.size(), 1u);
+  EXPECT_DOUBLE_EQ(swing.dots[0].interval_seconds, 1.0 * factor);
+  EXPECT_DOUBLE_EQ(swing.dots[0].duration_seconds, 5.0 * factor);
+  // Said nothing about either, so it takes hold every time and burns once.
+  EXPECT_DOUBLE_EQ(swing.dots[0].chance, 1.0);
+  EXPECT_EQ(swing.dots[0].max_stacks, 1);
   // One line at 240% against the swing's seven at 200%: the burn is priced on
   // its own multiplier, not on a share of the strike that lit it.
-  EXPECT_NEAR(swing.dot_damage[0] / (swing.damage_per_hit[0] / 7.0), 1.2, 0.02);
+  EXPECT_NEAR(swing.dots[0].damage[0] / (swing.damage_per_hit[0] / 7.0), 1.2,
+              0.02);
 
   ASSERT_EQ(params.auto_attacks.size(), 1u);
   EXPECT_EQ(params.auto_attacks[0].name, "Ifrit");
-  EXPECT_TRUE(params.auto_attacks[0].dot_damage.empty());
-  EXPECT_EQ(params.auto_attacks[0].dot_slot, -1);
+  EXPECT_TRUE(params.auto_attacks[0].dots.empty());
+
+  // A poison is rolled for and piles up, on the ladder GMS's own walks: two
+  // helpings through level 5, three through 11, four at 12. Read a level at a
+  // time, because a step this shallow is exactly what floors wrongly.
+  burn->set_chance(0.32);
+  burn->set_chance_per_level(0.02);
+  burn->set_max_stacks(2.1666667);
+  burn->set_max_stacks_per_level(0.1666667);
+  *sweep.mutable_dot() = *burn;
+  state.skills["flame_sweep"] = sweep;
+  const int kStacksAt[12] = {2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4};
+  for (int level = 1; level <= 12; ++level) {
+    if (level > 1) {
+      ASSERT_TRUE(state.character.LearnSkill(sweep, 1));
+    }
+    CombatParams at = ComputeCombatParams(state);
+    ASSERT_EQ(at.attacks[1].dots.size(), 1u);
+    EXPECT_NEAR(at.attacks[1].dots[0].chance, 0.30 + 0.02 * level, 1e-9)
+        << "level " << level;
+    EXPECT_EQ(at.attacks[1].dots[0].max_stacks, kStacksAt[level - 1])
+        << "level " << level;
+  }
 }
 
 // Puncture's shape: the buff hangs off an ATTACK, so it is laid by that swing

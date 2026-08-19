@@ -1065,6 +1065,18 @@ TEST_F(SkillInspectPanelTest, ReadsADotAsOneRow) {
 
   EXPECT_NE(RenderAt(skill, 30).find("DoT               240% every 1s for 5s"),
             std::string::npos);
+
+  // A poison says the two things a burn a swing simply leaves has nothing to
+  // say about: what it takes to land, and how deep it piles.
+  burn->set_chance(0.32);
+  burn->set_chance_per_level(0.02);
+  burn->set_max_stacks(2.1666667);
+  burn->set_max_stacks_per_level(0.1666667);
+  std::string poison = RenderAt(skill, 10);
+  EXPECT_NE(poison.find("DoT               50% chance of 160%"),
+            std::string::npos);
+  EXPECT_NE(poison.find("every 1s for 5s, stacks"), std::string::npos);
+  EXPECT_NE(poison.find("3 times"), std::string::npos);
 }
 
 // Neither half of Final Attack says anything alone, so they share a line.

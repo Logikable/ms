@@ -41,6 +41,28 @@ struct HitGroup {
   SwingRolls rolls;
 };
 
+// One burn a swing leaves on the enemies it reaches: what one tick is worth
+// per target type, the clock it burns on, and how it takes hold. A swing
+// carries one of these per source that marks what it hits. Game-scaled, like
+// every other duration here.
+struct DotApplication {
+  std::vector<double> damage;  // per target type, one tick's worth
+  SwingRolls rolls;
+  double interval_seconds = 0.0;
+  double duration_seconds = 0.0;
+  // Chance it takes hold on each enemy reached. 1 for a burn a swing simply
+  // leaves, which is all of them bar the poison on a rogue's claw.
+  double chance = 1.0;
+  // Helpings one monster can carry at once, each ticking for the whole damage.
+  int max_stacks = 1;
+  // Which mark this is, so two burns on one monster do not overwrite each
+  // other: an index into the slots every mob carries. Assigned per SOURCE, so
+  // the poison a character keeps on their claw writes one slot whichever swing
+  // applied it -- and the numbering is the same in every buffed set, so a slot
+  // the fight is holding means the same thing however the buffs come and go.
+  int slot = -1;
+};
+
 // One Final Attack following a swing: a chance, rolled once per enemy the
 // swing reached, that one more hit lands on that enemy. `count` is above 1
 // only for a source that rides the LINES rather than the swing -- the meso a
@@ -119,19 +141,9 @@ struct AttackOption {
   // damage is added -- once per swing here, once per enemy there.
   std::vector<double> single_final_attack_damage;
   std::vector<FinalAttackRoll> single_final_attack_rolls;
-  // The burn this swing leaves on every enemy it reaches: what one tick is
-  // worth per target type, and the clock it burns on. Empty and 0 for every
-  // swing that leaves no mark, which is all of them but the F/P Arch Mage's
-  // two. Game-scaled, like every other duration here.
-  std::vector<double> dot_damage;
-  SwingRolls dot_rolls;
-  double dot_interval_seconds = 0.0;
-  double dot_duration_seconds = 0.0;
-  // Which mark this is, so two burns on one monster do not overwrite each
-  // other: an index into the slots every mob carries, or -1 for a swing that
-  // leaves none. Assigned by attack order, which is the same in every buffed
-  // set, so a slot means the same thing whatever is up.
-  int dot_slot = -1;
+  // The burns this swing leaves on the enemies it reaches. Empty for every
+  // swing that leaves none, which is most of them.
+  std::vector<DotApplication> dots;
   // Share of the player's HP pool this option puts back instead of dealing
   // damage (1.00 == all of it). 0 for every attack, which is all of them bar
   // the Cleric's Heal. An option carrying this deals no damage at all, and the

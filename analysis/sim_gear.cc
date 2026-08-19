@@ -187,16 +187,20 @@ double CrowdDamage(const AttackOption& attack, int enemies) {
   if (!attack.single_final_attack_damage.empty()) {
     damage += attack.single_final_attack_damage[0];
   }
-  // The burn this swing lights, charged at the rate it can actually sustain.
-  // Relighting it buys no more ticks -- it does not stack -- so what a swing
-  // is worth is the seconds before the same swing comes round again, capped by
-  // how long the burn would have lasted anyway. A swing on no cooldown is back
-  // as soon as it lands; one on a long wait keeps burning through it.
-  if (attack.dot_interval_seconds > 0.0 && !attack.dot_damage.empty()) {
+  // The burns this swing lights, charged at the rate they can actually
+  // sustain. Relighting one buys no more ticks, so what a swing is worth is
+  // the seconds before the same swing comes round again, capped by how long
+  // the burn would have lasted anyway. A swing on no cooldown is back as soon
+  // as it lands; one on a long wait keeps burning through it. One helping
+  // apiece, for the reason CombatSim::SwingDamage charges one.
+  for (const DotApplication& burn : attack.dots) {
+    if (burn.interval_seconds <= 0.0 || burn.damage.empty()) {
+      continue;
+    }
     double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
-    double burning = std::min(attack.dot_duration_seconds, cadence);
+    double burning = std::min(burn.duration_seconds, cadence);
     damage +=
-        attack.dot_damage[0] * hit * burning / attack.dot_interval_seconds;
+        burn.damage[0] * hit * burning * burn.chance / burn.interval_seconds;
   }
   if (attack.empowered != nullptr && attack.empowered_every > 0) {
     // A form that marks enemies rides on top of the strike that sets it off,

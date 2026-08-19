@@ -52,9 +52,7 @@ void ClearSwingRiders(AttackOption& attack) {
   attack.final_attack_rolls.clear();
   attack.single_final_attack_damage.clear();
   attack.single_final_attack_rolls.clear();
-  attack.dot_damage.clear();
-  attack.dot_interval_seconds = 0.0;
-  attack.dot_duration_seconds = 0.0;
+  attack.dots.clear();
 }
 
 // Whether `skill` is marked with `tag`. Null -- the bare poke -- carries none.
@@ -81,6 +79,42 @@ void StripMesoDrops(DerivedStats& derived) {
     }
   }
   derived.final_attacks = std::move(kept);
+}
+
+// What one burn is worth against every mob type on the map, priced off the
+// stat line the swing that lights it was priced off. Its own multiplier and
+// its own strikes: a burn is not the swing, it is what the swing left behind.
+DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
+                       const std::vector<CombatType>& types,
+                       double speed_factor) {
+  // A stack ladder walked in thirds or sixths lands a hair under the whole
+  // number it climbs to, and a burn that stacks 2.9999 times stacks twice.
+  constexpr double kStackEpsilon = 1e-9;
+  OffenseStats burn = offense;
+  burn.skill_pct =
+      dot.base().skill_pct() + dot.per_level().skill_pct() * (level - 1);
+  burn.normal_skill_pct = dot.base().normal_skill_pct() +
+                          dot.per_level().normal_skill_pct() * (level - 1);
+  burn.lines = std::max(1, dot.lines());
+  // A shadow copies the swing it was cast beside, not the mark that swing left
+  // burning after it.
+  burn.mirror_lines = 0;
+  DotApplication application;
+  for (const CombatType& type : types) {
+    application.damage.push_back(ExpectedAttackDamage(burn, *type.mob));
+  }
+  application.rolls = RollsFor(burn);
+  application.interval_seconds = dot.interval_seconds() * speed_factor;
+  application.duration_seconds = dot.duration_seconds() * speed_factor;
+  double chance = dot.chance() + dot.chance_per_level() * (level - 1);
+  // Nothing said is certainty, which is what a burn a swing simply leaves
+  // wants. Only a poison the character carries is rolled for.
+  application.chance = chance > 0.0 ? std::min(1.0, chance) : 1.0;
+  application.max_stacks =
+      std::max(1, static_cast<int>(dot.max_stacks() +
+                                   dot.max_stacks_per_level() * (level - 1) +
+                                   kStackEpsilon));
+  return application;
 }
 
 // One attack's damage against every mob type on the map. `skill` is null for
@@ -185,22 +219,8 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // is worth is settled now and carried for the whole of its life, which is
   // what makes a burn lit under a buff keep the buffed number -- see Dot.
   if (skill != nullptr && skill->dot().interval_seconds() > 0.0) {
-    const Dot& dot = skill->dot();
-    OffenseStats burn = offense;
-    burn.skill_pct =
-        dot.base().skill_pct() + dot.per_level().skill_pct() * (level - 1);
-    burn.normal_skill_pct = dot.base().normal_skill_pct() +
-                            dot.per_level().normal_skill_pct() * (level - 1);
-    burn.lines = std::max(1, dot.lines());
-    // A shadow copies the swing it was cast beside, not the mark that swing
-    // left burning after it.
-    burn.mirror_lines = 0;
-    for (const CombatType& type : types) {
-      attack.dot_damage.push_back(ExpectedAttackDamage(burn, *type.mob));
-    }
-    attack.dot_rolls = RollsFor(burn);
-    attack.dot_interval_seconds = dot.interval_seconds() * speed_factor;
-    attack.dot_duration_seconds = dot.duration_seconds() * speed_factor;
+    attack.dots.push_back(
+        BurnFor(skill->dot(), offense, level, types, speed_factor));
   }
   // Final Attack rides the swing, not the skill: a plain hit worth its own
   // percent, so it starts from the bare stat line and takes neither the skill's
@@ -646,8 +666,8 @@ int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
 void NumberDots(AttackSet& set) {
   int next = 0;
   for (AttackOption& attack : set.attacks) {
-    if (!attack.dot_damage.empty()) {
-      attack.dot_slot = next++;
+    for (DotApplication& burn : attack.dots) {
+      burn.slot = next++;
     }
   }
 }
@@ -843,7 +863,9 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.auto_attacks = std::move(base.auto_attacks);
   params.triggered_attacks = std::move(base.triggered_attacks);
   for (const AttackOption& attack : params.attacks) {
-    params.dot_count = std::max(params.dot_count, attack.dot_slot + 1);
+    for (const DotApplication& burn : attack.dots) {
+      params.dot_count = std::max(params.dot_count, burn.slot + 1);
+    }
   }
   std::vector<const Skill*> buff_skills =
       BuffSkillsFor(state.character, state.skills);

@@ -121,6 +121,10 @@ class CombatSim {
     double phase = 0.0;
     double interval_seconds = 0.0;
     double damage = 0.0;
+    // Helpings of it the monster is carrying, each ticking for the whole
+    // damage. 1 for every burn but a Night Lord's poison, and 0 while nothing
+    // is burning at all.
+    int stacks = 0;
     SwingRolls rolls;
   };
 
@@ -143,11 +147,11 @@ class CombatSim {
   // HP and drops it. Shared by the swing and the burn, since a burn kills the
   // same way a swing does and the two must be counted alike.
   void Reap();
-  // Marks everything `attack` just reached with its burn, if it leaves one. A
-  // mob already burning is written over rather than added to: the mark does
-  // not stack with itself, so a fresh cast restarts the clock and takes the
-  // damage the character is worth at that moment.
-  void ApplyDot(const AttackOption& attack, int hit);
+  // Marks everything `attack` just reached with each burn it leaves, where the
+  // burn takes hold at all. A mob already burning has its clock restarted and
+  // its damage taken fresh from the character as they stand; whether that
+  // piles another helping on top depends on what the burn allows.
+  void ApplyDots(const AttackOption& attack, int hit);
   // Runs every burn on the queue forward by dt, landing whatever ticks come
   // due. Only the mobs actually burning cost anything here.
   void RunDots(double dt);
