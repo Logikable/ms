@@ -431,8 +431,6 @@ message Buff {
 message Dot {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
-  // What the skill page calls it, in its own row under the swing's damage.
-  string label = 3;
   // Seconds between ticks. Never scaled by attack speed -- nothing on its own
   // clock is.
   double interval_seconds = 4;
@@ -505,8 +503,11 @@ message EmpoweredForm {
   // Swings of the named skill one of these takes the place of: 4 means three
   // ordinary swings, then this. Nothing happens without it.
   int32 casts_per_trigger = 3;
-  // Ignored when brands_each_enemy is set, where the form goes exactly as far
-  // as the enemies that came due.
+  // How far the form reaches, when that is not how far the attack it stands in
+  // for already reaches. Empty takes the attack's own, which is what a form
+  // that only hits harder wants -- see AttachEmpoweredForm. Ignored when
+  // brands_each_enemy is set, where the form goes exactly as far as the
+  // enemies that came due.
   int32 max_enemies = 4;
   int32 lines = 5;
   // Second hits this form lands, exactly as Skill.extra_hit are for a swing:

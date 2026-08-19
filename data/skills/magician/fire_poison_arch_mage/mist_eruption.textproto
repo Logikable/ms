@@ -36,7 +36,6 @@ boosts_skill_name: "Poison Mist"
 empowered_form {
   skill_name: "Poison Mist"
   casts_per_trigger: 1
-  max_enemies: 6
   lines: 1
   base { skill_pct: 2.71 }
   per_level { skill_pct: 0.01526 }

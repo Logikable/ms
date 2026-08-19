@@ -743,12 +743,11 @@ TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {
   form->mutable_base()->set_normal_skill_pct(0.50);
 
   toxin.set_max_enemies(10);
-  form->set_max_enemies(10);
 
   std::string rendered = RenderAt(toxin, 1);
   EXPECT_NE(rendered.find("Every 4th attack"), std::string::npos);
-  // The form reaches exactly as far as the attack it stands in for, so a row
-  // saying so twice is noise.
+  // A form that states no reach of its own goes as far as the attack it stands
+  // in for, so a row saying so twice is noise.
   EXPECT_EQ(rendered.find("Empowered Enemies"), std::string::npos);
   EXPECT_NE(rendered.find("Empowered Damage  200% x4 = 800%"),
             std::string::npos);
@@ -1025,9 +1024,9 @@ TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsEveryCast) {
             std::string::npos);
 }
 
-// A burn is one row: what a tick is worth, how often it comes and how long it
+// A DoT is one row: what a tick is worth, how often it comes and how long it
 // lasts. None of the three says anything without the others.
-TEST_F(SkillInspectPanelTest, ReadsABurnAsOneRow) {
+TEST_F(SkillInspectPanelTest, ReadsADotAsOneRow) {
   Skill skill;
   skill.set_name("Flame Sweep");
   skill.set_kind(SKILL_KIND_ATTACK);
@@ -1039,14 +1038,13 @@ TEST_F(SkillInspectPanelTest, ReadsABurnAsOneRow) {
   skill.mutable_base()->set_skill_pct(1.42);
   skill.mutable_per_level()->set_skill_pct(0.02);
   Dot* burn = skill.mutable_dot();
-  burn->set_label("Burn");
   burn->set_interval_seconds(1.0);
   burn->set_duration_seconds(5.0);
   burn->set_lines(1);
   burn->mutable_base()->set_skill_pct(1.24);
   burn->mutable_per_level()->set_skill_pct(0.04);
 
-  EXPECT_NE(RenderAt(skill, 30).find("Burn              240% every 1s for 5s"),
+  EXPECT_NE(RenderAt(skill, 30).find("DoT               240% every 1s for 5s"),
             std::string::npos);
 }
 
@@ -1318,6 +1316,51 @@ TEST_F(SkillInspectPanelTest, HeadsTheTwoHalvesInTheSkillListsColors) {
   panel.SetSkill(&resonance, 1, 0);
   EXPECT_EQ(LabelColor(panel.Render(), "Active for 15s"), kOrange);
   EXPECT_EQ(LabelColor(panel.Render(), "Passive"), kGreen);
+}
+
+// An attack's ignored defence is true only while that swing is in the air; the
+// ATT it grants is the character's for good. Unheaded the two rows read alike.
+// The same levers on a passive ARE the character's, so nothing heads them.
+TEST_F(SkillInspectPanelTest, HeadsWhatRidesTheSwingApartFromWhatIsKept) {
+  Skill mist = MakeLuckySeven();
+  mist.mutable_base()->set_ied_pct(0.40);
+  mist.mutable_base()->set_attack(20);
+
+  std::vector<std::string> lines = Lines(RenderAt(mist, 1));
+  int swing = -1;
+  int ied = -1;
+  int passive = -1;
+  int att = -1;
+  // The first of each: the card carries a second level block saying the same
+  // things again, and the claim here is about the order inside one block.
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (swing < 0 && lines[i].find("This Attack Only") != std::string::npos) {
+      swing = i;
+    }
+    if (ied < 0 && lines[i].find("Ignore DEF") != std::string::npos) {
+      ied = i;
+    }
+    if (passive < 0 && lines[i].find("Passive") != std::string::npos) {
+      passive = i;
+    }
+    if (att < 0 && lines[i].find("ATT ") != std::string::npos) {
+      att = i;
+    }
+  }
+  EXPECT_GT(swing, 0);
+  EXPECT_GT(ied, swing);
+  EXPECT_GT(passive, ied);
+  EXPECT_GT(att, passive);
+
+  SkillInspectPanel panel;
+  panel.SetSkill(&mist, 1, 0);
+  EXPECT_EQ(LabelColor(panel.Render(), "This Attack Only"), kOrange);
+
+  Skill aim = MakeIronBody();
+  aim.mutable_base()->set_ied_pct(0.02);
+  std::string rendered = RenderAt(aim, 1);
+  EXPECT_NE(rendered.find("Ignore DEF        +2%"), std::string::npos);
+  EXPECT_EQ(rendered.find("This Attack Only"), std::string::npos) << rendered;
 }
 
 // Every other skill has one half and nothing to disambiguate, so a heading

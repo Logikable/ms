@@ -20,7 +20,6 @@ lines: 7
 base { skill_pct: 1.42 }
 per_level { skill_pct: 0.02 }
 dot {
-  label: "Burn"
   interval_seconds: 1.0
   duration_seconds: 5.0
   lines: 1

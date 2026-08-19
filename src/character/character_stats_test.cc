@@ -1411,6 +1411,35 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   EXPECT_NEAR(folded.final_dmg_pct, 0.20, 1e-9);
 }
 
+// The two halves together are the whole effect: what one takes the other
+// leaves, and neither invents a lever. The skill page heads them apart, so a
+// lever falling through both cracks would go unstated as well as unpaid.
+TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
+  SkillEffect effect;
+  effect.set_ied_pct(0.40);
+  effect.set_boss_pct(0.30);
+  effect.set_crit_rate(0.20);
+  effect.set_final_dmg_pct(0.10);
+  effect.set_attack(20);
+  effect.set_damage_pct(0.05);
+
+  SkillEffect swing = SwingLeversOf(effect);
+  EXPECT_DOUBLE_EQ(swing.ied_pct(), 0.40);
+  EXPECT_DOUBLE_EQ(swing.boss_pct(), 0.30);
+  EXPECT_DOUBLE_EQ(swing.crit_rate(), 0.20);
+  EXPECT_DOUBLE_EQ(swing.final_dmg_pct(), 0.10);
+  EXPECT_EQ(swing.attack(), 0);
+  EXPECT_DOUBLE_EQ(swing.damage_pct(), 0.0);
+
+  SkillEffect kept = WithoutSwingLevers(effect);
+  EXPECT_DOUBLE_EQ(kept.ied_pct(), 0.0);
+  EXPECT_DOUBLE_EQ(kept.boss_pct(), 0.0);
+  EXPECT_DOUBLE_EQ(kept.crit_rate(), 0.0);
+  EXPECT_DOUBLE_EQ(kept.final_dmg_pct(), 0.0);
+  EXPECT_EQ(kept.attack(), 20);
+  EXPECT_DOUBLE_EQ(kept.damage_pct(), 0.05);
+}
+
 // Boss damage sums across the passives granting it, like plain damage and
 // unlike IED. Nothing reads it -- no mob in the game is a boss -- so the fold
 // and the stats page are the whole of what a player sees for their points.

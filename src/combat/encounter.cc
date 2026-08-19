@@ -441,7 +441,7 @@ const Skill& Boosted(const Skill& skill, int level,
 // this really is a different swing, and it must not pick up the permanent
 // bonus its parent hands the ordinary version.
 Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
-                     const std::string& target, SkillKind kind) {
+                     const std::string& target, SkillKind kind, int reach) {
   Skill form;
   form.set_name("Empowered " + target);
   // The kind of the attack it stands in for, not of the skill granting it --
@@ -449,7 +449,10 @@ Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
   form.set_kind(kind);
   *form.mutable_base() = upgrade.base();
   *form.mutable_per_level() = upgrade.per_level();
-  form.set_max_enemies(upgrade.max_enemies());
+  // A form that says nothing about its reach goes as far as the attack it
+  // stands in for: Mist Eruption sets off the mist exactly where the mist is.
+  form.set_max_enemies(upgrade.max_enemies() > 0 ? upgrade.max_enemies()
+                                                 : reach);
   form.set_lines(upgrade.lines());
   *form.mutable_extra_hit() = upgrade.extra_hit();
   // The form is the same arrow, further upgraded: it gains as it travels the
@@ -482,7 +485,8 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
     if (attack.name != target) {
       continue;
     }
-    Skill form = EmpoweredSkill(skill, upgrade, attack.name, kind);
+    Skill form =
+        EmpoweredSkill(skill, upgrade, attack.name, kind, attack.max_enemies);
     std::shared_ptr<AttackOption> swing = std::make_shared<AttackOption>(
         AttackFor(state.character.proto(), equipped, weapon_type, &form,
                   learned, types, derived, attack_speed, speed_factor));

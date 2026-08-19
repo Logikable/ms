@@ -22,7 +22,6 @@ cooldown_seconds_per_level: -0.526316
 base { skill_pct: 1.15 }
 per_level { skill_pct: 0.045789 }
 dot {
-  label: "Burn"
   interval_seconds: 1.0
   duration_seconds: 30.0
   lines: 1

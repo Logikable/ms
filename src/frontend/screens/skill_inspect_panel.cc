@@ -384,12 +384,11 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     if (form.brands_each_enemy()) {
       rows.push_back(EffectRow("Marks", "Each Enemy Hit"));
     }
-    // Only when it differs from the reach stated above: the Sniper's form is
+    // Only a form that states a reach of its own gets the row: the Sniper's is
     // wider than the swing it stands in for, and leaving that out would
-    // understate the upgrade -- but Creeping Toxin detonates exactly as far as
-    // it spread, and a row repeating the one above it is noise.
-    if (!form.brands_each_enemy() && form.max_enemies() > 1 &&
-        form.max_enemies() != skill.max_enemies()) {
+    // understate the upgrade. One that says nothing goes exactly as far as
+    // what it replaces, and a row repeating that is noise.
+    if (!form.brands_each_enemy() && form.max_enemies() > 1) {
       rows.push_back(
           EffectRow("Empowered Enemies", std::to_string(form.max_enemies())));
     }
@@ -663,10 +662,8 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
   // Under the swing's own damage, since it is what that swing left behind.
   if (skill.dot().interval_seconds() > 0.0) {
-    std::string label =
-        skill.dot().label().empty() ? std::string("Burn") : skill.dot().label();
     for (ftxui::Element& row :
-         WrappedEffectRows(label, DotText(skill.dot(), level))) {
+         WrappedEffectRows("DoT", DotText(skill.dot(), level))) {
       rows.push_back(std::move(row));
     }
   }
@@ -815,17 +812,34 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   for (ftxui::Element& row : ExtraAttackRows(skill, level)) {
     rows.push_back(std::move(row));
   }
-  // A skill with a timed buff grants two different things, and one of them
-  // lapses: what it is holding up goes first, then what it keeps. Both are
-  // headed, because "Ignore Defense" is otherwise the same row twice. A skill
-  // with only one half needs neither heading and gets neither.
-  std::vector<ftxui::Element> permanent =
-      LeverRows(skill.base(), skill.per_level(), level, "");
+  // A skill can grant three different things, and only one of them is the
+  // character's for good: what rides the swing it states them on, what stands
+  // for as long as a buff is up, and what it simply keeps. Each is headed
+  // where another is present, because "Ignore DEF" is otherwise the same row
+  // meaning three things. A skill with one half alone needs no heading and
+  // gets none.
+  bool swings = skill.kind() == SKILL_KIND_ATTACK;
+  std::vector<ftxui::Element> swing;
+  std::vector<ftxui::Element> permanent;
+  if (swings) {
+    swing = LeverRows(SwingLeversOf(skill.base()),
+                      SwingLeversOf(skill.per_level()), level, "");
+    permanent = LeverRows(WithoutSwingLevers(skill.base()),
+                          WithoutSwingLevers(skill.per_level()), level, "");
+  } else {
+    permanent = LeverRows(skill.base(), skill.per_level(), level, "");
+  }
+  if (!swing.empty()) {
+    rows.push_back(SectionRow("This Attack Only", kOrange));
+    for (ftxui::Element& row : swing) {
+      rows.push_back(std::move(row));
+    }
+  }
   std::vector<ftxui::Element> buff = BuffRows(skill, level);
   for (ftxui::Element& row : buff) {
     rows.push_back(std::move(row));
   }
-  if (!buff.empty() && !permanent.empty()) {
+  if (!permanent.empty() && (!buff.empty() || !swing.empty())) {
     rows.push_back(SectionRow("Passive", kGreen));
   }
   for (ftxui::Element& row : permanent) {

@@ -189,6 +189,17 @@ int LevelWithBonus(const Skill& skill, int learned, int bonus);
 int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
                         int bonus);
 
+// An attack's effect, split in two. A few levers on an ATTACK skill are true
+// only for the swing that states them -- Gungnir's Descent ignores 30% of a
+// monster's defence when it lands, and Dark Impale a moment later does not --
+// while everything else it grants follows the character for good. The two
+// halves together are the whole effect, and neither overlaps the other.
+//
+// Only an ATTACK splits this way. On any other skill every lever is the
+// character's, and SwingLeversOf is not asked.
+SkillEffect WithoutSwingLevers(const SkillEffect& effect);
+SkillEffect SwingLeversOf(const SkillEffect& effect);
+
 // The skills this character's book has replaced, by display name. A superseded
 // skill keeps its level and its page and stops paying -- both its levers and,
 // where it is an attack, the swing it offered. See Skill.supersedes_skill_name.

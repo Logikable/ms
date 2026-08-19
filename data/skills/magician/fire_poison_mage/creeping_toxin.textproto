@@ -25,7 +25,6 @@ base {
 per_level { skill_pct: 0.04 }
 empowered_form {
   casts_per_trigger: 4
-  max_enemies: 10
   lines: 4
   base {
     skill_pct: 1.62

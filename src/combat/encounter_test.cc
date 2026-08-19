@@ -928,7 +928,6 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
   sweep.set_lines(7);
   sweep.mutable_base()->set_skill_pct(2.00);
   Dot* burn = sweep.mutable_dot();
-  burn->set_label("Burn");
   burn->set_interval_seconds(1.0);
   burn->set_duration_seconds(5.0);
   burn->set_lines(1);
@@ -1239,7 +1238,6 @@ TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {
   toxin.mutable_base()->set_skill_pct(1.00);
   EmpoweredForm* form = toxin.add_empowered_form();
   form->set_casts_per_trigger(4);
-  form->set_max_enemies(10);
   form->set_lines(4);
   form->mutable_base()->set_skill_pct(2.00);
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
@@ -1260,6 +1258,9 @@ TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {
   // It stands in for a pulse, so it is paced by the summon's clock and never
   // charged a swing of its own.
   EXPECT_DOUBLE_EQ(pulse.empowered->swing_seconds, 0.0);
+  // Saying nothing about its reach, it goes exactly as far as the pulse it
+  // replaces.
+  EXPECT_EQ(pulse.empowered->max_enemies, 10);
 }
 
 // Greater Empowered Arrows' shape: one passive, one SP ladder, two swings

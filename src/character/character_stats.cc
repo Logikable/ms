@@ -243,26 +243,6 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
   totals.meso_lines = SkillLinesAt(skill, level);
 }
 
-// The levers an attack keeps for its own swing rather than handing to the
-// character. Stripped here, and read back in OffenseStatsFor against the skill
-// being swung -- so Gungnir's Descent ignores 30% of a monster's defence when
-// it lands and Dark Impale, swung a moment later, does not. Snipe's certain
-// critical is the third of them, and Mist Eruption's final damage the fourth:
-// GMS pays that for the mists the cast set off, which is a fact about the cast.
-//
-// Only a swing keeps them. A skill on its own clock is not one the character
-// chose, and GMS writes these on a summon only under "[Passive Effects]",
-// meaning the character -- which is how Arrow Illusion's ignored defence
-// follows the Marksman rather than staying with the decoy.
-SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
-  SkillEffect kept = effect;
-  kept.clear_ied_pct();
-  kept.clear_boss_pct();
-  kept.clear_crit_rate();
-  kept.clear_final_dmg_pct();
-  return kept;
-}
-
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
   if (skill.kind() == SKILL_KIND_ATTACK) {
@@ -426,6 +406,39 @@ int FoldPercent(int flat, double pct) {
 }
 
 }  // namespace
+
+// The levers an attack keeps for its own swing rather than handing to the
+// character. Stripped here, and read back in OffenseStatsFor against the skill
+// being swung -- so Gungnir's Descent ignores 30% of a monster's defence when
+// it lands and Dark Impale, swung a moment later, does not. Snipe's certain
+// critical is the third of them, and Mist Eruption's final damage the fourth:
+// GMS pays that for the mists the cast set off, which is a fact about the cast.
+//
+// Only a swing keeps them. A skill on its own clock is not one the character
+// chose, and GMS writes these on a summon only under "[Passive Effects]",
+// meaning the character -- which is how Arrow Illusion's ignored defence
+// follows the Marksman rather than staying with the decoy.
+SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
+  SkillEffect kept = effect;
+  kept.clear_ied_pct();
+  kept.clear_boss_pct();
+  kept.clear_crit_rate();
+  kept.clear_final_dmg_pct();
+  return kept;
+}
+
+// The other half, for the skill page, which heads the two apart so a player
+// can see which numbers leave with the swing. Written beside the function it
+// is the complement of: the two must name the same four levers, and apart they
+// would drift.
+SkillEffect SwingLeversOf(const SkillEffect& effect) {
+  SkillEffect swing;
+  swing.set_ied_pct(effect.ied_pct());
+  swing.set_boss_pct(effect.boss_pct());
+  swing.set_crit_rate(effect.crit_rate());
+  swing.set_final_dmg_pct(effect.final_dmg_pct());
+  return swing;
+}
 
 bool SkillAllowsWeapon(const Skill& skill, EquipType weapon) {
   return ListAllowsWeapon(skill.required_equip_type(), weapon);
