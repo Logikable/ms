@@ -47,6 +47,15 @@ struct FinalAttackSource {
   bool single_enemy = false;
 };
 
+// A burn the character leaves on everything they swing at, from a passive
+// rather than from the swing itself -- the poison a rogue keeps on their claw.
+// The level rides with it because what a tick is worth cannot be settled until
+// the mobs on the map are known.
+struct CharacterDot {
+  Dot dot;
+  int level = 1;
+};
+
 struct DerivedStats {
   int max_hp = 0;
   int max_mp = 0;
@@ -132,6 +141,9 @@ struct DerivedStats {
   // independent rolls, and merging them into one would have to settle on a
   // chance and a damage that no single source has.
   std::vector<FinalAttackSource> final_attacks;
+  // The burns the character's passives leave on every swing they choose.
+  // Empty for everyone holding no such skill, which is everyone but a rogue.
+  std::vector<CharacterDot> dots;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;

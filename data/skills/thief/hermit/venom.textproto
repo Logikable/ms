@@ -1,18 +1,21 @@
 # GMS poisons the claw: a chance on every hit of 50+4x% a second for a few
-# seconds. The chance and the duration both go -- the poison is simply always
-# on every enemy in reach -- which leaves the tick, and that is the skill.
-#
-# Eight enemies is ours. GMS caps it at whatever the character can hit; here it
-# is the reach Shuriken Challenge has, since it is the claw that is poisoned.
+# seconds, not stacking. All of it is here now -- the chance is rolled per
+# enemy the swing reached, and the poison burns on the monster rather than
+# pulsing out of the character.
 name: "Venom"
 skill_order: 7
 description:
-  "Coat your claw in poison for good, so the enemies around you take damage "
+  "Coat your claw in poison for good, so the enemies you hit take damage "
   "over time."
-kind: SKILL_KIND_AUTO_ATTACK
+kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 10
-max_enemies: 8
-cast_interval_seconds: 1.0
-base { skill_pct: 0.54 }
-per_level { skill_pct: 0.04 }
+dot {
+  interval_seconds: 1.0
+  duration_seconds: 6.0
+  lines: 1
+  chance: 0.12
+  chance_per_level: 0.02
+  base { skill_pct: 0.54 }
+  per_level { skill_pct: 0.04 }
+}

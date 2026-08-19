@@ -1063,6 +1063,64 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
   }
 }
 
+// A poison on the claw is the character's, not one swing's: every swing they
+// choose applies it, and all of them write the one slot -- or a monster would
+// carry a different poison per swing that hit it. A burn the skill itself
+// leaves takes a slot after them.
+TEST(ComputeCombatParamsTest, APassivesBurnRidesEverySwing) {
+  Skill venom;
+  venom.set_name("Venom");
+  venom.set_kind(SKILL_KIND_PASSIVE);
+  venom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  venom.set_max_level(10);
+  Dot* poison = venom.mutable_dot();
+  poison->set_interval_seconds(1.0);
+  poison->set_duration_seconds(6.0);
+  poison->set_chance(0.12);
+  poison->set_chance_per_level(0.02);
+  poison->mutable_base()->set_skill_pct(0.54);
+  poison->mutable_per_level()->set_skill_pct(0.04);
+
+  Skill raid;
+  raid.set_name("Sudden Raid");
+  raid.set_kind(SKILL_KIND_ATTACK);
+  raid.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  raid.set_max_level(30);
+  raid.set_base_delay_ms(900);
+  raid.mutable_base()->set_skill_pct(3.49);
+  Dot* own = raid.mutable_dot();
+  own->set_interval_seconds(1.0);
+  own->set_duration_seconds(10.0);
+  own->mutable_base()->set_skill_pct(0.94);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"venom", venom}, {"sudden_raid", raid}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 11);
+  ASSERT_TRUE(state.character.LearnSkill(venom, 10));
+  ASSERT_TRUE(state.character.LearnSkill(raid, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.dot_count, 2);
+  // The bare poke carries the poison too: it is on the claw, not in a skill.
+  ASSERT_EQ(params.attacks[0].dots.size(), 1u);
+  EXPECT_EQ(params.attacks[0].dots[0].slot, 0);
+  EXPECT_NEAR(params.attacks[0].dots[0].chance, 0.30, 1e-9);
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_EQ(swing.dots.size(), 2u);
+  EXPECT_EQ(swing.dots[0].slot, 0);
+  EXPECT_EQ(swing.dots[1].slot, 1);
+  // The same poison whichever swing applied it, and priced off the bare stat
+  // line rather than off the swing that carried it.
+  EXPECT_DOUBLE_EQ(swing.dots[0].damage[0],
+                   params.attacks[0].dots[0].damage[0]);
+  EXPECT_DOUBLE_EQ(swing.dots[1].chance, 1.0);
+  EXPECT_GT(swing.dots[1].damage[0], swing.dots[0].damage[0]);
+}
+
 // Puncture's shape: the buff hangs off an ATTACK, so it is laid by that swing
 // rather than raised on a wait of its own. The fight needs to know which swing
 // lays it, and that has to be the swing's index in the attack list.

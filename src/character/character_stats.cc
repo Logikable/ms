@@ -95,6 +95,8 @@ struct PassiveTotals {
   // One per skill granting one, in catalog order. Two that follow the same
   // swings stay apart: they are independent rolls.
   std::vector<FinalAttackSource> final_attacks;
+  // The burns a passive leaves on every swing, likewise.
+  std::vector<CharacterDot> dots;
   // Pick Pocket's chance and Meso Explosion's damage, which live on two
   // different skills and are worth nothing apart -- totalled here and paired
   // once the fold is done.
@@ -284,6 +286,14 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
     totals.skill_pct_bonus[skill.boosts_skill_name()] += boost;
   }
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
+  // A burn on a PASSIVE belongs to the character rather than to one swing: the
+  // poison stays on the claw, so everything the claw hits takes it. One on an
+  // attack is that swing's own, and one on a summon is its pulses' -- both are
+  // read where those are built.
+  if (skill.kind() == SKILL_KIND_PASSIVE &&
+      skill.dot().interval_seconds() > 0.0) {
+    totals.dots.push_back(CharacterDot{skill.dot(), level});
+  }
   AddMesoExplosion(skill, level, totals);
   totals.combo_orbs = std::max(totals.combo_orbs, ComboOrbsAt(skill, level));
   // A weapon bonus is a second helping of the same levers for a subset of the
@@ -621,6 +631,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.ied = passives.ied;
   stats.mastery = passives.mastery;
   stats.final_attacks = passives.final_attacks;
+  stats.dots = passives.dots;
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one

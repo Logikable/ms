@@ -214,14 +214,6 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       attack.groups.push_back(std::move(group));
     }
   }
-  // The burn a swing leaves behind: a mark on what it reached rather than part
-  // of the strike, so it is priced here and paid out on its own clock. What it
-  // is worth is settled now and carried for the whole of its life, which is
-  // what makes a burn lit under a buff keep the buffed number -- see Dot.
-  if (skill != nullptr && skill->dot().interval_seconds() > 0.0) {
-    attack.dots.push_back(
-        BurnFor(skill->dot(), offense, level, types, speed_factor));
-  }
   // Final Attack rides the swing, not the skill: a plain hit worth its own
   // percent, so it starts from the bare stat line and takes neither the skill's
   // multiplier nor its lines. An attack on its own clock strips it back off --
@@ -242,6 +234,23 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // than the swing. Same line the skill's own multiplier and lines are already
   // dropped on, two comments up.
   follow.mirror_lines = 0;
+  // The burns this swing leaves behind: marks on what it reached rather than
+  // part of the strike, so they are priced here and paid out on their own
+  // clock. What one is worth is settled now and carried for the whole of its
+  // life, which is what makes a burn lit under a buff keep the buffed number.
+  //
+  // The character's own come first and in their own order, so that every swing
+  // writes one poison to one slot. They are priced off the bare stat line for
+  // the same reason a Final Attack is -- the poison is on the claw, not in the
+  // skill, and takes neither its multiplier nor its ignored defence.
+  for (const CharacterDot& carried : derived.dots) {
+    attack.dots.push_back(
+        BurnFor(carried.dot, follow, carried.level, types, speed_factor));
+  }
+  if (skill != nullptr && skill->dot().interval_seconds() > 0.0) {
+    attack.dots.push_back(
+        BurnFor(skill->dot(), offense, level, types, speed_factor));
+  }
   attack.final_attack_damage.assign(types.size(), 0.0);
   attack.single_final_attack_damage.assign(types.size(), 0.0);
   for (const FinalAttackSource& source : derived.final_attacks) {
@@ -659,15 +668,20 @@ int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
 
 // Everything the character can attack with, at one particular set of stats --
 // theirs alone, or theirs with some buff up.
-// Hands each burning swing a slot of its own on the monsters it marks, so two
-// burns never write over each other. Numbered by attack order, which is the
-// same in every buffed set, so a slot the fight is holding means the same
-// thing however the buffs come and go.
-void NumberDots(AttackSet& set) {
-  int next = 0;
+// Hands each burn a slot of its own on the monsters it marks, so two never
+// write over each other. `shared` is how many of them the character carries
+// rather than any one swing. Numbered by attack order, which is the same in
+// every buffed set, so a slot the fight is holding means the same thing
+// however the buffs come and go.
+void NumberDots(AttackSet& set, int shared) {
+  int next = shared;
   for (AttackOption& attack : set.attacks) {
-    for (DotApplication& burn : attack.dots) {
-      burn.slot = next++;
+    for (int i = 0; i < static_cast<int>(attack.dots.size()); ++i) {
+      // The character's own burns lead every swing's list and are the same
+      // burn wherever they were applied from, so each keeps the slot its
+      // place gives it. Whatever follows is one swing's own and gets a slot
+      // nothing else writes.
+      attack.dots[i].slot = i < shared ? i : next++;
     }
   }
 }
@@ -682,7 +696,7 @@ AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
   AddEmpoweredForms(state, TotalEquipStats(state.character, derived),
                     weapon.equip_type(), derived, attack_speed, speed_factor,
                     types, set);
-  NumberDots(set);
+  NumberDots(set, static_cast<int>(derived.dots.size()));
   return set;
 }
 

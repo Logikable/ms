@@ -659,6 +659,32 @@ TEST_F(DerivedStatsTest, FinalAttackKeepsItsChanceAndItsDamageApart) {
   EXPECT_EQ(stats.final_attacks[0].lines, 3);
 }
 
+// A burn on a PASSIVE follows the character onto every swing; one on the
+// attack that leaves it stays with that attack, where the swing is priced.
+TEST_F(DerivedStatsTest, OnlyAPassivesBurnFollowsTheCharacter) {
+  CharacterInstance c = MakeCharacter(rng_, 40, 50);
+  Skill venom;
+  venom.set_name("Venom");
+  venom.set_kind(SKILL_KIND_PASSIVE);
+  venom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  venom.set_max_level(10);
+  venom.mutable_dot()->set_interval_seconds(1.0);
+  venom.mutable_dot()->set_duration_seconds(6.0);
+  Skill raid = venom;
+  raid.set_name("Sudden Raid");
+  raid.set_kind(SKILL_KIND_ATTACK);
+  raid.set_base_delay_ms(900);
+  std::map<std::string, Skill> skills = {{"venom", venom},
+                                         {"sudden_raid", raid}};
+  ASSERT_TRUE(c.LearnSkill(venom, 7));
+  ASSERT_TRUE(c.LearnSkill(raid, 3));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.dots.size(), 1u);
+  EXPECT_EQ(stats.dots[0].level, 7);
+  EXPECT_DOUBLE_EQ(stats.dots[0].dot.duration_seconds(), 6.0);
+}
+
 TEST_F(DerivedStatsTest, NoFinalAttackIsWorthNothing) {
   CharacterInstance c = MakeCharacter(rng_, 40, 50);
   std::map<std::string, Skill> skills = {{"iron_body", IronBody()}};
