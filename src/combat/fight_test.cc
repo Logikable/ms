@@ -153,6 +153,34 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
   EXPECT_NEAR(kills[1] / kills[0], 1.0, 0.01);
 }
 
+// Blizzard's passive falls on one enemy however many the swing reached, so
+// four times the reach is not four times the Final Attack. The ordinary bank
+// beside it scales with the reach, which is what tells the two apart.
+TEST(CombatSimTest, ASingleEnemyFinalAttackDoesNotScaleWithTheReach) {
+  // One hit of the Final Attack kills outright, so kills count the hits.
+  Mob mob = MakeMob("Snail", 100);
+  int64_t killed[2][2] = {{0, 0}, {0, 0}};
+  for (int single = 0; single < 2; ++single) {
+    for (int reach = 1; reach <= 4; reach += 3) {
+      CombatParams params =
+          MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 40)}, reach);
+      std::vector<double>& bank =
+          single == 1 ? params.attacks[0].single_final_attack_damage
+                      : params.attacks[0].final_attack_damage;
+      bank.assign(params.types.size(), 100.0);
+      CombatSim sim;
+      for (int step = 0; step < 5; ++step) {
+        sim.Advance(params, 1.0);
+        killed[single][reach == 1 ? 0 : 1] += sim.kills_this_step()[0];
+      }
+    }
+  }
+  ASSERT_GT(killed[0][0], 0);
+  // The ordinary bank pays per enemy reached; the single-enemy one does not.
+  EXPECT_EQ(killed[0][1], 4 * killed[0][0]);
+  EXPECT_EQ(killed[1][1], killed[1][0]);
+}
+
 // An arrow that gains as it travels: the enemy it reaches first takes the
 // plain damage, and each one after takes 15% more than the last, compounding.
 // Six of them and the last takes 1.15^5 -- twice the first, which is the

@@ -650,11 +650,15 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
   // half says anything on its own, so they share a line.
   double proc = PercentAt(skill, &SkillEffect::final_attack_chance, level);
   if (proc > 0.0) {
-    rows.push_back(
-        EffectRow("Final Attack",
-                  FormatPercent(proc) + " for " +
-                      FormatPercent(PercentAt(
-                          skill, &SkillEffect::final_attack_pct, level))));
+    // Where it falls on one enemy the row has to say so: a player comparing it
+    // with the warriors' would otherwise read it as worth several times more.
+    std::string reach =
+        skill.final_attack_single_enemy() ? " on one enemy" : "";
+    rows.push_back(EffectRow(
+        "Final Attack", FormatPercent(proc) + " for " +
+                            FormatPercent(PercentAt(
+                                skill, &SkillEffect::final_attack_pct, level)) +
+                            reach));
   }
   // Each own-clock half's damage, under the swing's own so they read as one
   // skill with several ways of hurting things. Every one names itself, under

@@ -224,6 +224,7 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& base,
     return;
   }
   source.required_tag = skill.follows_skill_tag();
+  source.single_enemy = skill.final_attack_single_enemy();
   totals.final_attacks.push_back(source);
 }
 

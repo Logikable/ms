@@ -112,6 +112,13 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
       total += attack.final_attack_damage[type];
     }
   }
+  // Added once for the whole swing, not once per enemy: that is the whole
+  // difference between the two banks.
+  if (hit > 0 &&
+      queue_[0].type <
+          static_cast<int>(attack.single_final_attack_damage.size())) {
+    total += attack.single_final_attack_damage[queue_[0].type];
+  }
   // A swing with an empowered form lands it once in every N, so what the
   // attack is worth per swing is the average of the two. The rate has to say
   // so, or the attack would be weighed on the weaker of the two things it
@@ -253,8 +260,18 @@ void CombatSim::Strike(const AttackOption& attack) {
   // in expectation each of them takes it.
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
-      queue_[j].hp -= RolledFinalAttack(attack, queue_[j].type);
+      queue_[j].hp -=
+          RolledFinalAttack(attack.final_attack_rolls,
+                            attack.final_attack_damage, queue_[j].type);
     }
+  }
+  // Blizzard's rolls once for the swing and falls on one enemy, whatever the
+  // swing reached. The first in the queue is as good as any: nothing here has
+  // a position, so no enemy is nearer than another.
+  if (hit > 0 && !attack.single_final_attack_damage.empty()) {
+    queue_[0].hp -=
+        RolledFinalAttack(attack.single_final_attack_rolls,
+                          attack.single_final_attack_damage, queue_[0].type);
   }
   std::vector<QueuedMob> survivors;
   survivors.reserve(queue_.size());
@@ -281,12 +298,14 @@ double CombatSim::RolledDamage(const AttackOption& attack, int type) {
   return total;
 }
 
-double CombatSim::RolledFinalAttack(const AttackOption& attack, int type) {
-  if (attack.final_attack_rolls.empty()) {
-    return attack.final_attack_damage[type];
+double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
+                                    const std::vector<double>& expected,
+                                    int type) {
+  if (sources.empty()) {
+    return expected[type];
   }
   double total = 0.0;
-  for (const FinalAttackRoll& source : attack.final_attack_rolls) {
+  for (const FinalAttackRoll& source : sources) {
     if (type >= static_cast<int>(source.damage.size())) {
       continue;
     }

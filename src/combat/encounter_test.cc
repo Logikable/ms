@@ -541,6 +541,44 @@ TEST(ComputeCombatParamsTest, ACastIsOfferedAsASwingButCarriesNoDamage) {
   EXPECT_FALSE(params.attacks[0].final_attack_damage.empty());
 }
 
+// Blizzard's passive: the same chance and the same damage as any other Final
+// Attack, banked apart because it falls on one enemy rather than on each of
+// them. A wide swing is worth no more of it than a narrow one.
+TEST(ComputeCombatParamsTest, AFinalAttackCanStrikeOneEnemyOnly) {
+  Skill wide;
+  wide.set_name("Blizzard");
+  wide.set_kind(SKILL_KIND_ATTACK);
+  wide.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  wide.set_max_level(30);
+  wide.set_base_delay_ms(900);
+  wide.set_max_enemies(15);
+  wide.mutable_base()->set_skill_pct(3.01);
+  wide.set_final_attack_single_enemy(true);
+  wide.mutable_base()->set_final_attack_chance(0.60);
+  wide.mutable_base()->set_final_attack_pct(2.20);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"blizzard", wide}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(wide, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_EQ(swing.name, "Blizzard");
+  // Nothing in the ordinary bank, everything in the single-enemy one.
+  EXPECT_TRUE(swing.final_attack_damage.empty());
+  EXPECT_TRUE(swing.final_attack_rolls.empty());
+  ASSERT_EQ(swing.single_final_attack_rolls.size(), 1u);
+  EXPECT_NEAR(swing.single_final_attack_rolls[0].chance, 0.60, 1e-9);
+  EXPECT_EQ(swing.single_final_attack_rolls[0].count, 1);
+  ASSERT_FALSE(swing.single_final_attack_damage.empty());
+  EXPECT_DOUBLE_EQ(swing.single_final_attack_damage[0],
+                   swing.single_final_attack_rolls[0].damage[0] * 0.60);
+}
+
 // A cast with no lever behind it would take a swing and give nothing back, so
 // it is not offered at all.
 TEST(ComputeCombatParamsTest, ACastWithNothingBehindItIsNoOption) {

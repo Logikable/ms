@@ -699,6 +699,16 @@ message Skill {
   // picks. Damage is SkillEffect.lead_pct per line, exactly as `lines` reads
   // skill_pct. Unset/0 is treated as 1, and means nothing without a lead_pct.
   int32 lead_lines = 101;
+  // The I/L Arch Mage's. Whether this skill's Final Attack strikes ONE of the
+  // enemies the swing reached rather than each of them. Blizzard's passive is
+  // what it exists for -- GMS says "a chance to strike a single enemy" where
+  // every other Final Attack in the game follows the swing onto all of them,
+  // and read the ordinary way it would pay six times over on a six-enemy
+  // swing.
+  //
+  // The roll happens once for the whole swing, not once per enemy, so a wide
+  // swing is worth no more of it than a narrow one.
+  bool final_attack_single_enemy = 112;
   // The Marksman's. How many of the enemies the swing reached the opening hit
   // lands on, healthiest first. Unset/0 is treated as 1, which is the Rogue's
   // shape -- "strikes one, then detonates in place".

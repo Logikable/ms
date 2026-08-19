@@ -41,6 +41,16 @@ constexpr double kMobHitIntervalSeconds = 1.5;
 // enduring it rather than only by killing fast enough to keep clearing it.
 constexpr double kBeatHealFraction = 0.10;
 
+// Strips both Final Attacks off an attack. A Final Attack follows the
+// character's own swing, so anything on a clock of its own -- a summon, a
+// wound, a form standing in for a pulse -- carries neither.
+void ClearFinalAttack(AttackOption& attack) {
+  attack.final_attack_damage.clear();
+  attack.final_attack_rolls.clear();
+  attack.single_final_attack_damage.clear();
+  attack.single_final_attack_rolls.clear();
+}
+
 // Whether `skill` is marked with `tag`. Null -- the bare poke -- carries none.
 bool HasTag(const Skill* skill, SkillTag tag) {
   if (skill == nullptr) {
@@ -178,6 +188,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // dropped on, two comments up.
   follow.mirror_lines = 0;
   attack.final_attack_damage.assign(types.size(), 0.0);
+  attack.single_final_attack_damage.assign(types.size(), 0.0);
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag != SKILL_TAG_UNSPECIFIED &&
         !HasTag(skill, source.required_tag)) {
@@ -188,16 +199,27 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     roll.count = source.per_line ? swing_lines : 1;
     follow.skill_pct = source.damage_pct;
     roll.rolls = RollsFor(follow);
+    // A source that strikes one enemy is banked apart: what the swing is worth
+    // has to add it once rather than once for every mob in front of the
+    // player.
+    std::vector<double>& bank = source.single_enemy
+                                    ? attack.single_final_attack_damage
+                                    : attack.final_attack_damage;
     for (std::size_t i = 0; i < types.size(); ++i) {
       roll.damage.push_back(ExpectedAttackDamage(follow, *types[i].mob));
-      attack.final_attack_damage[i] +=
-          roll.damage.back() * roll.chance * roll.count;
+      bank[i] += roll.damage.back() * roll.chance * roll.count;
     }
-    attack.final_attack_rolls.push_back(std::move(roll));
+    if (source.single_enemy) {
+      attack.single_final_attack_rolls.push_back(std::move(roll));
+    } else {
+      attack.final_attack_rolls.push_back(std::move(roll));
+    }
   }
   if (attack.final_attack_rolls.empty()) {
     attack.final_attack_damage.clear();
-    attack.final_attack_rolls.clear();
+  }
+  if (attack.single_final_attack_rolls.empty()) {
+    attack.single_final_attack_damage.clear();
   }
   return attack;
 }
@@ -300,8 +322,7 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
         AttackFor(proto, equipped, weapon_type, &built, level, types, derived,
                   kUnscaledAttackSpeedStage, speed_factor);
     attack.swing_seconds = 0.0;  // not swung, so never charged
-    attack.final_attack_damage.clear();
-    attack.final_attack_rolls.clear();  // Final Attack follows a swing
+    ClearFinalAttack(attack);    // Final Attack follows a swing
     attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
     set.auto_attacks.push_back(std::move(attack));
   }
@@ -314,8 +335,7 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
       AttackFor(proto, equipped, weapon_type, &bleed, level, types, derived,
                 kUnscaledAttackSpeedStage, speed_factor);
   wound.swing_seconds = 0.0;
-  wound.final_attack_damage.clear();
-  wound.final_attack_rolls.clear();
+  ClearFinalAttack(wound);
   wound.interval_seconds = pulse.cast_interval_seconds() * speed_factor;
   set.auto_attacks.push_back(std::move(wound));
 }
@@ -444,8 +464,7 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
     // Final Attack follows the character's swing, and a summon's pulse is not
     // one -- so a form standing in for a pulse must not carry one either.
     if (attack.interval_seconds > 0.0) {
-      swing->final_attack_damage.clear();
-      swing->final_attack_rolls.clear();
+      ClearFinalAttack(*swing);
     }
     attack.empowered_every = upgrade.casts_per_trigger();
     attack.brands_enemies = upgrade.brands_each_enemy();
@@ -536,8 +555,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
                 0.0);
       attack.groups.clear();
       attack.lead_damage.clear();
-      attack.final_attack_damage.clear();
-      attack.final_attack_rolls.clear();
+      ClearFinalAttack(attack);
     }
     if (swung.kind() != SKILL_KIND_AUTO_ATTACK) {
       // What this swing counts toward the skills clocked by swings landed.
@@ -549,8 +567,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       continue;
     }
     attack.swing_seconds = 0.0;  // not swung, so never charged
-    attack.final_attack_damage.clear();
-    attack.final_attack_rolls.clear();  // Final Attack follows a swing
+    ClearFinalAttack(attack);    // Final Attack follows a swing
     // Clocked by swings landed rather than by seconds passed.
     if (swung.attacks_per_cast() > 0) {
       attack.attacks_per_cast = swung.attacks_per_cast();

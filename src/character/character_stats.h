@@ -36,6 +36,11 @@ struct FinalAttackSource {
   // loose by Pick Pocket is the first, and on a four-line swing that is four
   // times the source.
   bool per_line = false;
+  // Whether the whole swing rolls this ONCE and lands it on a single enemy.
+  // Blizzard's passive alone; every other source follows the swing onto every
+  // enemy it reached. Never set with per_line -- one counts enemies down to
+  // one, the other counts lines up.
+  bool single_enemy = false;
 };
 
 struct DerivedStats {

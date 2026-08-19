@@ -113,6 +113,12 @@ struct AttackOption {
   // The same, one entry per source, as what actually rolls. Empty lands the
   // average above -- what a caller building an attack by hand wants.
   std::vector<FinalAttackRoll> final_attack_rolls;
+  // Blizzard's shape: the pair above, for the sources that roll ONCE for the
+  // whole swing and land on one of the enemies it reached. Kept apart rather
+  // than flagged inside the vectors above, because the difference is where the
+  // damage is added -- once per swing here, once per enemy there.
+  std::vector<double> single_final_attack_damage;
+  std::vector<FinalAttackRoll> single_final_attack_rolls;
   // Share of the player's HP pool this option puts back instead of dealing
   // damage (1.00 == all of it). 0 for every attack, which is all of them bar
   // the Cleric's Heal. An option carrying this deals no damage at all, and the
