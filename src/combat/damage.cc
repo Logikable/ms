@@ -418,10 +418,12 @@ OffenseStats OffenseStatsFor(Job job, int level,
     if (boost != passives.skill_pct_bonus.end()) {
       offense.skill_pct += boost->second;
     }
-    // Ignored defence, boss damage and critical rate written on an ATTACK ride
-    // that attack alone. GMS states them on the skill -- Gungnir's Descent
-    // ignores 30%, Heaven's Hammer hits bosses for 30% harder, Snipe always
-    // crits -- and none of the three follows the character to their next swing.
+    // Ignored defence, boss damage, critical rate and final damage written on
+    // an ATTACK ride that attack alone. GMS states them on the skill --
+    // Gungnir's Descent ignores 30%, Heaven's Hammer hits bosses for 30%
+    // harder, Snipe always crits, Mist Eruption is worth 20% more for the pair
+    // of mists it sets off -- and none of them follows the character to their
+    // next swing.
     // A passive granting any of them is the other shape, and folds into the
     // character where it belongs; so is a summon's, which is never swung.
     if (attack_skill->kind() == SKILL_KIND_ATTACK) {
@@ -437,6 +439,13 @@ OffenseStats OffenseStatsFor(Job job, int level,
       offense.crit_rate +=
           attack_skill->base().crit_rate() +
           attack_skill->per_level().crit_rate() * (attack_level - 1);
+      // Multiplied into what the character brought, the way two final damage
+      // sources always meet here -- see SkillEffect::final_dmg_pct.
+      double swing_fd =
+          attack_skill->base().final_dmg_pct() +
+          attack_skill->per_level().final_dmg_pct() * (attack_level - 1);
+      offense.final_dmg_pct =
+          (1.0 + offense.final_dmg_pct) * (1.0 + swing_fd) - 1.0;
     }
     // A multi-hit skill strikes each target this many times per swing, so its
     // per-target damage is skill_pct once per line.

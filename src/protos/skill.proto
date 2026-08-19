@@ -99,6 +99,9 @@ message SkillEffect {
   // Final damage (0.10 == +10%), which multiplies where damage_pct adds: two
   // sources of 10% are worth 21%, not 20%. The distinction is invisible until
   // a second source of either exists, and expensive to unpick afterwards.
+  //
+  // On an ATTACK this rides that swing alone rather than following the
+  // character, exactly as ied_pct and boss_pct do -- see WithoutSwingLevers.
   double final_dmg_pct = 17;
 
   // Final Attack: a chance for the character's swing to be followed by one

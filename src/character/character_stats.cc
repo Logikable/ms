@@ -247,7 +247,8 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
 // character. Stripped here, and read back in OffenseStatsFor against the skill
 // being swung -- so Gungnir's Descent ignores 30% of a monster's defence when
 // it lands and Dark Impale, swung a moment later, does not. Snipe's certain
-// critical is the third of them, and reads the same way.
+// critical is the third of them, and Mist Eruption's final damage the fourth:
+// GMS pays that for the mists the cast set off, which is a fact about the cast.
 //
 // Only a swing keeps them. A skill on its own clock is not one the character
 // chose, and GMS writes these on a summon only under "[Passive Effects]",
@@ -258,6 +259,7 @@ SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   kept.clear_ied_pct();
   kept.clear_boss_pct();
   kept.clear_crit_rate();
+  kept.clear_final_dmg_pct();
   return kept;
 }
 

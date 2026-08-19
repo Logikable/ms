@@ -555,16 +555,18 @@ TEST(CooldownAtTest, AWaitShortensAsTheSkillIsTaught) {
   EXPECT_DOUBLE_EQ(CooldownAt(steep, 20), 0.0);
 }
 
-TEST(OffenseStatsForTest, AnAttacksOwnIedAndBossDamageRideThatSwing) {
+TEST(OffenseStatsForTest, AnAttacksOwnLeversRideThatSwing) {
   Skill gungnir;
   gungnir.set_kind(SKILL_KIND_ATTACK);
   gungnir.mutable_base()->set_skill_pct(1.96);
   gungnir.mutable_base()->set_ied_pct(0.01);
   gungnir.mutable_per_level()->set_ied_pct(0.01);
   gungnir.mutable_base()->set_boss_pct(0.30);
+  gungnir.mutable_base()->set_final_dmg_pct(0.20);
   PassiveOffense passives;
   passives.ied = 0.40;
   passives.boss_pct = 0.10;
+  passives.final_dmg_pct = 0.50;
 
   OffenseStats offense =
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), EquipStats(),
@@ -573,13 +575,17 @@ TEST(OffenseStatsForTest, AnAttacksOwnIedAndBossDamageRideThatSwing) {
   // summing.
   EXPECT_DOUBLE_EQ(offense.ied, 1.0 - 0.60 * 0.70);
   EXPECT_DOUBLE_EQ(offense.boss_pct, 0.40);
+  // Final damage multiplies where the two above do not: 1.5 x 1.2.
+  EXPECT_DOUBLE_EQ(offense.final_dmg_pct, 0.80);
 
-  // The swing after it carries neither: what the character has is all it has.
+  // The swing after it carries none of them: what the character has is all it
+  // has.
   OffenseStats bare =
       OffenseStatsFor(JOB_SWORDMAN, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0, passives);
   EXPECT_DOUBLE_EQ(bare.ied, 0.40);
   EXPECT_DOUBLE_EQ(bare.boss_pct, 0.10);
+  EXPECT_DOUBLE_EQ(bare.final_dmg_pct, 0.50);
 }
 
 TEST(OffenseStatsForTest, EachIedSourceOnlyTakesAShareOfWhatIsLeft) {

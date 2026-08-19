@@ -1,13 +1,11 @@
-# GMS detonates your own Poison Mists and pays more for each one that goes off
-# -- up to +125% final damage for five. Nothing here places a mist or stands
-# anywhere, so there is no count to key that to and the multiplier is simply
-# folded into the damage.
+# GMS's own numbers throughout. The client says 10 attacks and "Number of
+# Explosions: 2" -- a cast sets off two mists at once, so an enemy caught by
+# both takes the ten hits twice. Twenty lines of 95+x%.
 #
-# This is the book's crowd lever, and the folded number is what it was tuned
-# with: GMS's 95+x% ten times became 271% -> 320%, which puts the class within
-# 2% of the I/L Arch Mage against twelve enemies. It reaches twelve where
-# I/L's cooldown swing reaches eight, so it is the wider of the two nukes and
-# the one that answers a full room.
+# The final damage is GMS's too: it pays +20% for two explosions, climbing to
+# +125% for five. Nothing here places a mist, so the count cannot vary and the
+# skill keeps the figure its own pair of explosions earns. It rides this swing
+# alone, the way an attack's ignored defence does.
 #
 # The passive raises Poison Mist for good, which is an empowered form that
 # takes the place of EVERY pulse rather than every fourth.
@@ -26,13 +24,14 @@ required_skill {
 }
 base_delay_ms: 930
 max_enemies: 12
-lines: 10
+lines: 20
 cooldown_seconds: 10.0
 base {
-  skill_pct: 2.71
+  skill_pct: 0.96
   ied_pct: 0.40
+  final_dmg_pct: 0.20
 }
-per_level { skill_pct: 0.0258 }
+per_level { skill_pct: 0.015263 }
 boosts_skill_name: "Poison Mist"
 empowered_form {
   skill_name: "Poison Mist"

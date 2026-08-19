@@ -1381,30 +1381,34 @@ TEST_F(DerivedStatsTest, TwoSourcesOfIgnoredDefenceCombineInReverse) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).ied, 1.0 - 0.75 * 0.60, 1e-9);
 }
 
-// An ATTACK's own ignored defence and boss damage belong to its swing, so they
-// never reach the character's stat line -- OffenseStatsFor reads them off the
-// skill being swung instead. Gungnir's Descent is the shape: 30% ignored while
-// it lands, nothing at all for the spear thrust after it.
-TEST_F(DerivedStatsTest, AnAttacksOwnIedAndBossDamageStayOffTheStatLine) {
+// An ATTACK's own ignored defence, boss damage and final damage belong to its
+// swing, so they never reach the character's stat line -- OffenseStatsFor
+// reads them off the skill being swung instead. Gungnir's Descent is the
+// shape: 30% ignored while it lands, nothing at all for the spear thrust after
+// it. Mist Eruption's final damage is the same promise about a different
+// lever.
+TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill gungnir = Marksmanship();
   gungnir.set_name("Gungnir's Descent");
   gungnir.set_kind(SKILL_KIND_ATTACK);
   gungnir.mutable_base()->set_boss_pct(0.30);
+  gungnir.mutable_base()->set_final_dmg_pct(0.20);
   std::map<std::string, Skill> skills = {{"gungnirs_descent", gungnir}};
   ASSERT_TRUE(c.LearnSkill(gungnir, 20));
 
   DerivedStats stats = DerivedStatsFor(c, skills);
   EXPECT_DOUBLE_EQ(stats.ied, 0.0);
   EXPECT_DOUBLE_EQ(stats.boss_pct, 0.0);
+  EXPECT_DOUBLE_EQ(stats.final_dmg_pct, 0.0);
 
-  // The same two levers on a passive fold in as they always have.
+  // The same levers on a passive fold in as they always have.
   Skill passive = gungnir;
   passive.set_kind(SKILL_KIND_PASSIVE);
-  EXPECT_NEAR(DerivedStatsFor(c, {{"gungnirs_descent", passive}}).ied, 0.25,
-              1e-9);
-  EXPECT_NEAR(DerivedStatsFor(c, {{"gungnirs_descent", passive}}).boss_pct,
-              0.30, 1e-9);
+  DerivedStats folded = DerivedStatsFor(c, {{"gungnirs_descent", passive}});
+  EXPECT_NEAR(folded.ied, 0.25, 1e-9);
+  EXPECT_NEAR(folded.boss_pct, 0.30, 1e-9);
+  EXPECT_NEAR(folded.final_dmg_pct, 0.20, 1e-9);
 }
 
 // Boss damage sums across the passives granting it, like plain damage and
