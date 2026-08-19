@@ -17,6 +17,9 @@ EquipStats SumEquipStats(absl::Span<const EquipStats> sources) {
     result.set_max_hp(result.max_hp() + s.max_hp());
     result.set_max_mp(result.max_mp() + s.max_mp());
     result.set_def(result.def() + s.def());
+    result.set_boss_damage(result.boss_damage() + s.boss_damage());
+    result.set_ignore_enemy_defense(result.ignore_enemy_defense() +
+                                    s.ignore_enemy_defense());
   }
   return result;
 }
