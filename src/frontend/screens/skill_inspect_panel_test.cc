@@ -1001,6 +1001,30 @@ TEST_F(SkillInspectPanelTest, SaysNothingAboutHowOftenASkillFires) {
             std::string::npos);
 }
 
+// A form that takes the place of every cast is permanent, and the row says so
+// rather than counting to one.
+TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsEveryCast) {
+  Skill skill;
+  skill.set_name("Mist Eruption");
+  skill.set_kind(SKILL_KIND_ATTACK);
+  skill.set_job_advancement(JOB_ADVANCEMENT_FIRE_POISON_MAGE);
+  skill.set_max_level(20);
+  skill.set_description("Sets off the poison hanging around you.");
+  skill.set_max_enemies(12);
+  skill.set_lines(10);
+  skill.mutable_base()->set_skill_pct(2.71);
+  skill.set_boosts_skill_name("Poison Mist");
+  EmpoweredForm* form = skill.add_empowered_form();
+  form->set_skill_name("Poison Mist");
+  form->set_casts_per_trigger(1);
+  form->set_max_enemies(6);
+  form->set_lines(1);
+  form->mutable_base()->set_skill_pct(2.71);
+
+  EXPECT_NE(RenderAt(skill, 1).find("Empowers          Every Poison Mist"),
+            std::string::npos);
+}
+
 // A burn is one row: what a tick is worth, how often it comes and how long it
 // lasts. None of the three says anything without the others.
 TEST_F(SkillInspectPanelTest, ReadsABurnAsOneRow) {

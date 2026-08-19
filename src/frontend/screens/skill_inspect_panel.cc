@@ -369,9 +369,13 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     if (form.casts_per_trigger() <= 0) {
       continue;
     }
-    for (ftxui::Element& row : WrappedEffectRows(
-             "Empowers", "Every " + Ordinal(form.casts_per_trigger()) + " " +
-                             EmpoweredTarget(skill, form))) {
+    // One in every one is every one, and "Every 1st" reads as a count where
+    // there is none: the upgrade is simply permanent.
+    std::string how = form.casts_per_trigger() == 1
+                          ? "Every "
+                          : "Every " + Ordinal(form.casts_per_trigger()) + " ";
+    for (ftxui::Element& row :
+         WrappedEffectRows("Empowers", how + EmpoweredTarget(skill, form))) {
       rows.push_back(std::move(row));
     }
     // A mark on each enemy is a different promise from a count on the swing --
