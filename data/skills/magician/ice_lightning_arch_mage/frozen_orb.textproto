@@ -1,0 +1,23 @@
+# The orb pulses every 210ms for 4 seconds on a 5-second wait, so one throw is
+# 19 strikes on 8 enemies. Written as one swing of 19 lines: nothing here does
+# anything with the gap between them, and folding them into a swing is what
+# charges the player the 900ms the throw costs. A summon would have handed
+# those 19 strikes over free while Chain Lightning went on beside them.
+#
+# Both numbers are read rather than guessed: Frozen Orb is a ball skill, so
+# the client states its rate in attackDelay and its lifetime in time.
+name: "Frozen Orb"
+skill_order: 3
+description:
+  "Throw an orb of ice that rolls through the room, firing shards at "
+  "everything near it until it melts."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 900
+max_enemies: 8
+lines: 19
+cooldown_seconds: 5.0
+base { skill_pct: 1.04 }
+per_level { skill_pct: 0.04 }

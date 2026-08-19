@@ -1,0 +1,31 @@
+# The summon, and the book's mastery in one. Three strikes on three enemies
+# every three seconds -- 3030ms in the client, and the same clock Ifrit and
+# Bahamut run on.
+#
+# Its 70% mastery over the magician's own 25% reaches 95%, which is where
+# every 4th job mastery lands. Spell Mastery keeps its page and stops paying:
+# a character holds the better of two masteries, never their sum.
+name: "Elquines"
+skill_order: 5
+description:
+  "Summon Elquines to fight beside you. Its attacks freeze what they touch, "
+  "and learning to call it permanently increases your Mastery."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+max_level: 20
+exceeds_master_level: true
+required_skill {
+  skill_name: "Spell Mastery"
+  level: 10
+}
+max_enemies: 3
+lines: 3
+cast_interval_seconds: 3.0
+base {
+  skill_pct: 0.70
+  mastery: 0.51
+}
+per_level {
+  skill_pct: 0.03
+  mastery: 0.01
+}

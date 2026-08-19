@@ -1,0 +1,27 @@
+# The swing the class lives on, wide enough to mob with and heavy enough to
+# boss with: ten strikes on six enemies, and a critical rate that rides this
+# swing and hands nothing to the next one.
+#
+# GMS's stun is dropped -- nothing here can be stunned -- and with it the line
+# about the bolt arcing between nearby targets, which is only how GMS draws
+# reaching six enemies at once.
+name: "Chain Lightning"
+skill_order: 1
+description:
+  "Strike with a high-voltage lightning attack that finds several enemies at "
+  "once and crits far more often than your other spells."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 780
+max_enemies: 6
+lines: 10
+base {
+  skill_pct: 1.33
+  crit_rate: 0.11
+}
+per_level {
+  skill_pct: 0.03
+  crit_rate: 0.004828
+}

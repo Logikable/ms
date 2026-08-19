@@ -574,11 +574,14 @@ TEST(SkillDataTest, ABonusLevelLadderEndsOnAWholeLevel) {
 // simply stops, however many levels are on offer.
 constexpr int kSmallestMasterLevelPastIt = 10;
 
-// The 4th job skills GMS does NOT mark, by file stem. Combat Orders is GMS's
-// mechanic and GMS says which skills take it, so a book with one of these in
-// it is not a mistake -- and naming them here keeps the check strict for the
-// rest rather than weakening it to a direction that catches nothing.
-const char* const kHeldToTheirMasterLevel[] = {"enchanted_quiver"};
+// The 4th job skills Combat Orders does NOT carry, by file stem. It is GMS's
+// mechanic and GMS names the skills it reaches, so a book holding one of these
+// is not a mistake -- and naming them here keeps the check strict for the rest
+// rather than weakening it to a direction that catches nothing.
+//
+// Infinity is ours rather than GMS's: it is the largest single lever any book
+// grants, and two free levels of it were not worth handing over.
+const char* const kHeldToTheirMasterLevel[] = {"enchanted_quiver", "infinity"};
 
 bool GmsHoldsItToTheMasterLevel(const std::string& stem) {
   for (const char* held : kHeldToTheirMasterLevel) {

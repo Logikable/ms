@@ -64,6 +64,9 @@ enum Job {
   JOB_HERO = 28;
   JOB_BOW_MASTER = 29;
   JOB_MARKSMAN = 30;
+  // The magician's 4th advancements. Shown as "I/L Arch Mage" wherever the
+  // full name will not fit, the same way its wizard and mage do.
+  JOB_ICE_LIGHTNING_ARCH_MAGE = 31;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -103,6 +106,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_HERO = 27;
   JOB_ADVANCEMENT_BOW_MASTER = 28;
   JOB_ADVANCEMENT_MARKSMAN = 29;
+  JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE = 30;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.
