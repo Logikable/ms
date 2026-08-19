@@ -6,7 +6,7 @@
 # GMS's knockback resistance is dropped -- nothing here knocks a character
 # back.
 name: "Buff Mastery"
-skill_order: 10
+skill_order: 9
 description:
   "Permanently increases your Magic ATT and keeps every buff you raise "
   "standing for longer."

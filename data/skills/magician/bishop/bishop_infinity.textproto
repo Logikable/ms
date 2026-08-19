@@ -4,7 +4,7 @@
 # Combat Orders does not reach it, alone among the book -- so no
 # exceeds_master_level here.
 name: "Infinity"
-skill_order: 6
+skill_order: 5
 description:
   "A bolstered spirit permanently increases your Final Damage and steadily "
   "restores your HP."

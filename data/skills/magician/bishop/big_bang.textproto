@@ -5,7 +5,7 @@
 # its ceiling, so the ladder starts at what GMS reaches at 11 rather than at
 # its own level 1 -- a skill this central is not worth 306% for a decade.
 name: "Big Bang"
-skill_order: 3
+skill_order: 2
 description:
   "Holy power spreads out and ends in an explosion, which cuts deeper into "
   "anything that is not a boss."

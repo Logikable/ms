@@ -1,6 +1,6 @@
 # The Bow Master's, to the number and for the same reasons -- see that file.
 name: "Illusion Step"
-skill_order: 10
+skill_order: 8
 description:
   "Moving too fast to be followed permanently increases DEX, grants a chance "
   "to dodge enemy attacks, and reduces the damage you take."

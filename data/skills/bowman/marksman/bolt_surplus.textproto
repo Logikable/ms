@@ -6,7 +6,7 @@
 # The strike is worth most where the swing is shortest: a tenth more of Snipe's
 # nine, a fifth more of Piercing Arrow II's five.
 name: "Bolt Surplus"
-skill_order: 5
+skill_order: 9
 description:
   "Loose one more bolt with every shot that already fires several, and hit "
   "harder with all of them."

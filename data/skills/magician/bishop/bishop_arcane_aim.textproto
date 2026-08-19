@@ -5,7 +5,7 @@
 # The ignored defence beside it cancels nothing yet -- no mob in the game
 # carries any.
 name: "Arcane Aim"
-skill_order: 11
+skill_order: 10
 description:
   "Taking careful aim permanently increases your Damage and ignores a portion "
   "of enemy DEF."

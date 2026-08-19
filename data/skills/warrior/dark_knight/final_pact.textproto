@@ -4,7 +4,7 @@
 # 40 seconds of it is fight on, which is what a full pool already buys them.
 # The kills that shorten the wait are dropped with it.
 name: "Final Pact"
-skill_order: 3
+skill_order: 4
 description:
   "Your dark contract keeps you alive when your HP reaches 0. Permanently "
   "increases Final Damage, Critical Rate and Critical Damage."

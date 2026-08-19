@@ -6,7 +6,7 @@
 # "can be stacked with other buff skills, excluding Bless". Every lever it
 # starts at clears what Bless ends at.
 name: "Advanced Blessing"
-skill_order: 8
+skill_order: 7
 description:
   "Greatly increases your Attack Power, Magic ATT, DEF, Max HP and Max MP, in "
   "place of Bless."

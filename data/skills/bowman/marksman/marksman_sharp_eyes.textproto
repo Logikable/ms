@@ -1,6 +1,6 @@
 # The Bow Master's, to the number and for the same reasons -- see that file.
 name: "Sharp Eyes"
-skill_order: 7
+skill_order: 5
 description:
   "Lets you find an enemy's weak spot, permanently increasing Critical Rate "
   "and Critical Damage."

@@ -7,7 +7,7 @@
 # source. GMS states 30% permanent and 10% while up; those combine to 37%
 # rather than summing to 40%, and the ladder walks to that.
 name: "Dark Resonance"
-skill_order: 4
+skill_order: 3
 description:
   "Resonate with your Evil Eye to unlock the power of pure darkness. Restores "
   "HP and increases Final Damage, Ignore Defense and Boss Damage for a time. "

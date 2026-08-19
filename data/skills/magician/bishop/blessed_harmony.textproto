@@ -3,7 +3,7 @@
 # damage lever any book grants -- and what pays for the softest swings in the
 # game. See the measured figures in the Bishop's notes.
 name: "Blessed Harmony"
-skill_order: 4
+skill_order: 11
 description: "Your blessings permanently increase your Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BISHOP
