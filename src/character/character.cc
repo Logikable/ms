@@ -146,6 +146,7 @@ LevelUpGain LevelUpGainFor(Job job) {
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
       return {12, 48};
     default:
       return {36, 24};
@@ -184,6 +185,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -275,6 +277,7 @@ JobAdvancement FirstAdvancement(Job job) {
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
       return JOB_ADVANCEMENT_MAGICIAN;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -320,6 +323,7 @@ JobAdvancement SecondAdvancement(Job job) {
       return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
     case JOB_CLERIC:
     case JOB_PRIEST:
+    case JOB_BISHOP:
       return JOB_ADVANCEMENT_CLERIC;
     case JOB_ASSASSIN:
     case JOB_HERMIT:
@@ -357,6 +361,7 @@ JobAdvancement ThirdAdvancement(Job job) {
     case JOB_FIRE_POISON_ARCH_MAGE:
       return JOB_ADVANCEMENT_FIRE_POISON_MAGE;
     case JOB_PRIEST:
+    case JOB_BISHOP:
       return JOB_ADVANCEMENT_PRIEST;
     case JOB_HERMIT:
       return JOB_ADVANCEMENT_HERMIT;
@@ -367,7 +372,7 @@ JobAdvancement ThirdAdvancement(Job job) {
   }
 }
 
-// The 4th job books. One per 3rd job when they are all written; three of the
+// The 4th job books. One per 3rd job when they are all written; eight of the
 // ten are.
 JobAdvancement FourthAdvancement(Job job) {
   switch (job) {
@@ -385,6 +390,8 @@ JobAdvancement FourthAdvancement(Job job) {
       return JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE;
     case JOB_FIRE_POISON_ARCH_MAGE:
       return JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE;
+    case JOB_BISHOP:
+      return JOB_ADVANCEMENT_BISHOP;
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
   }
@@ -474,6 +481,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_ICE_LIGHTNING_ARCH_MAGE;
     case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE:
       return JOB_FIRE_POISON_ARCH_MAGE;
+    case JOB_ADVANCEMENT_BISHOP:
+      return JOB_BISHOP;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -580,6 +589,7 @@ std::vector<EquipType> ExpectedWeapons(Job job) {
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
       return {EQUIP_TYPE_STAFF};
     case JOB_ASSASSIN:
     case JOB_HERMIT:
@@ -650,6 +660,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -715,7 +726,7 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 3 && job == JOB_BANDIT) {
     return {JOB_CHIEF_BANDIT};
   }
-  // The 4th advancement narrows no further either. Four of the ten are
+  // The 4th advancement narrows no further either. Eight of the ten are
   // written; every other 3rd job stays at the top of its line, and an
   // advancement with nothing on the far side of it is not offered at all.
   if (stage == 4 && job == JOB_BERSERKER) {
@@ -738,6 +749,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   }
   if (stage == 4 && job == JOB_FIRE_POISON_MAGE) {
     return {JOB_FIRE_POISON_ARCH_MAGE};
+  }
+  if (stage == 4 && job == JOB_PRIEST) {
+    return {JOB_BISHOP};
   }
   return {};
 }
@@ -778,6 +792,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_MARKSMAN:
     case JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE:
+    case JOB_ADVANCEMENT_BISHOP:
       return 4;
     default:
       return 0;

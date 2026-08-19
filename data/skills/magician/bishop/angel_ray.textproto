@@ -1,0 +1,28 @@
+# GMS's own figures: 75+5x% fourteen times on ONE enemy, and 3+floor(x/6)% of
+# the pool back with every cast. The bossing swing, and the only one in the
+# book that hits a single target.
+#
+# The heal is GMS's party heal with nobody else standing there. It rides this
+# swing alone, so a Bishop mobbing with Big Bang recovers nothing -- see
+# SkillEffect.hp_recover_pct.
+name: "Angel Ray"
+skill_order: 1
+description:
+  "Attack with a holy sword, which seeks out the healthiest enemy and "
+  "restores your HP as it strikes."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_BENEVOLENCE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 660
+max_enemies: 1
+lines: 14
+base {
+  skill_pct: 0.80
+  hp_recover_pct: 0.03
+}
+per_level {
+  skill_pct: 0.05
+  hp_recover_pct: 0.0017241379
+}

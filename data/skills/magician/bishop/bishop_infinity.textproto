@@ -1,0 +1,19 @@
+# The same skill the two Arch Mages hold, on the same ladder: 91% of final
+# damage at its master level, plus a tenth of the pool every five seconds.
+#
+# Combat Orders does not reach it, alone among the book -- so no
+# exceeds_master_level here.
+name: "Infinity"
+skill_order: 6
+description:
+  "A bolstered spirit permanently increases your Final Damage and steadily "
+  "restores your HP."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+max_level: 20
+base {
+  final_dmg_pct: 0.15
+  regen_pct: 0.10
+  regen_interval_seconds: 5.0
+}
+per_level { final_dmg_pct: 0.04 }

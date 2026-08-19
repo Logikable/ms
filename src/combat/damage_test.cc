@@ -3,8 +3,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <map>
 #include <random>
 
+#include "src/character/character.h"
 #include "src/combat/constants.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -487,6 +489,53 @@ TEST(OffenseStatsForTest, WarriorUsesStrPrimaryDexSecondary) {
                       EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
   EXPECT_EQ(offense.primary, 100);
   EXPECT_EQ(offense.secondary, 20);
+}
+
+// Three switches in this file answer per job, and every one of them has a
+// default a new job falls through silently: a Bishop read a warrior's stats,
+// swung on weapon attack they do not have and dealt nothing at all. Walked off
+// the enum rather than listed, so the next job joins by existing.
+TEST(OffenseStatsForTest, EveryJobIsNamedByTheDamageChain) {
+  AllocatedStats allocated;
+  allocated.set_str(101);
+  allocated.set_dex(102);
+  allocated.set_int_(103);
+  allocated.set_luk(104);
+  EquipStats equipped;
+  equipped.set_attack(50);
+  equipped.set_magic_attack(70);
+  // Held against the job's own primary stat rather than against a list: what
+  // is asked is that the damage chain and the stats page agree about a job.
+  const std::map<StatField, int> kValue = {{STAT_FIELD_STR, 101},
+                                           {STAT_FIELD_DEX, 102},
+                                           {STAT_FIELD_INT, 103},
+                                           {STAT_FIELD_LUK, 104}};
+  const google::protobuf::EnumDescriptor* jobs = Job_descriptor();
+  for (int i = 0; i < jobs->value_count(); ++i) {
+    Job job = static_cast<Job>(jobs->value(i)->number());
+    if (job == JOB_UNSPECIFIED) {
+      continue;
+    }
+    StatField primary = PrimaryStatField(job);
+    ASSERT_TRUE(kValue.count(primary)) << Job_Name(job) << " has no primary";
+    OffenseStats offense = OffenseStatsFor(job, 1, allocated, equipped,
+                                           EQUIP_TYPE_UNSPECIFIED, nullptr, 0);
+    // A job in no branch of the stat switch reads nothing at all, and one in
+    // the wrong branch reads its neighbour's stat.
+    EXPECT_EQ(offense.primary, kValue.at(primary)) << Job_Name(job);
+    // The number the branch swings on, and the mastery it holds a weapon by.
+    // A magician swings on magic attack and masters a wand; everyone whose
+    // primary stat is DEX draws a bow, and the rest swing something melee.
+    bool magic = primary == STAT_FIELD_INT;
+    EXPECT_EQ(offense.attack, magic ? 70 : 50) << Job_Name(job);
+    Job like = JOB_SWORDMAN;
+    if (magic) {
+      like = JOB_MAGICIAN;
+    } else if (primary == STAT_FIELD_DEX) {
+      like = JOB_ARCHER;
+    }
+    EXPECT_DOUBLE_EQ(BaseMastery(job), BaseMastery(like)) << Job_Name(job);
+  }
 }
 
 TEST(OffenseStatsForTest, GearGraduatesBossPctAndIed) {

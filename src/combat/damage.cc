@@ -313,6 +313,7 @@ double BaseMastery(Job job) {
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
       return kMagicBaseMastery;
     default:
       // Warriors, thieves and the beginner all swing something GMS calls a
@@ -373,6 +374,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
       // INT primary, LUK secondary.
       offense.primary = allocated.int_() + equipped.int_();
       offense.secondary = allocated.luk() + equipped.luk();
@@ -540,6 +542,7 @@ bool SwingsOnMagic(Job job) {
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
+    case JOB_BISHOP:
       return true;
     default:
       return false;

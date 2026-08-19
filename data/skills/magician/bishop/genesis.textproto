@@ -1,0 +1,27 @@
+# GMS: 174+5x% ten times on 15 enemies every 30 seconds, and 5+floor(x/2)%
+# critical rate while it is in the air. Both ends are GMS's own, stretched
+# over 20 levels instead of 30.
+#
+# The critical rate rides this swing and hands nothing to the next one, which
+# is what GMS states on the skill rather than under a passive heading.
+name: "Genesis"
+skill_order: 2
+description:
+  "A holy ray of light shines down over the whole room, and strikes far more "
+  "often for a critical than your other spells."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_BISHOP
+max_level: 20
+exceeds_master_level: true
+base_delay_ms: 660
+max_enemies: 15
+lines: 10
+cooldown_seconds: 30.0
+base {
+  skill_pct: 1.79
+  crit_rate: 0.05
+}
+per_level {
+  skill_pct: 0.0763158
+  crit_rate: 0.0078947
+}

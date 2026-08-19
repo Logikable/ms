@@ -1,0 +1,24 @@
+# Magic attack, and Buff Duration beside it. The second half grants nothing
+# today: no magician skill raises a buff with a duration to lengthen. It is
+# written because the lever is what the class is for, and a page showing only
+# the attack would be describing a different skill.
+#
+# GMS's knockback resistance is dropped -- nothing here knocks a character
+# back.
+name: "Buff Mastery"
+skill_order: 10
+description:
+  "Permanently increases your Magic ATT and keeps every buff you raise "
+  "standing for longer."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+max_level: 10
+exceeds_master_level: true
+base {
+  magic_attack: 3
+  buff_duration_pct: 0.05
+}
+per_level {
+  magic_attack: 3
+  buff_duration_pct: 0.05
+}

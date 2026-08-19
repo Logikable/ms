@@ -25,6 +25,7 @@ cc_test(
     srcs = ["damage_test.cc"],
     deps = [
         ":damage",
+        "//src/character",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:mob_proto_cc",

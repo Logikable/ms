@@ -1,0 +1,35 @@
+# GMS climbs +10+x attack, +390+8x DEF and +250+25x to each pool over twenty
+# levels. Ten here, walking the top half of that ladder: GMS's level 11 to its
+# level 20, so the ceiling is GMS's own.
+#
+# It replaces Bless rather than stacking with it, which is what GMS means by
+# "can be stacked with other buff skills, excluding Bless". Every lever it
+# starts at clears what Bless ends at.
+name: "Advanced Blessing"
+skill_order: 8
+description:
+  "Greatly increases your Attack Power, Magic ATT, DEF, Max HP and Max MP, in "
+  "place of Bless."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+max_level: 10
+exceeds_master_level: true
+required_skill {
+  skill_name: "Bless"
+  level: 10
+}
+supersedes_skill_name: "Bless"
+base {
+  attack: 21
+  magic_attack: 21
+  def: 478
+  max_hp: 525
+  max_mp: 525
+}
+per_level {
+  attack: 1
+  magic_attack: 1
+  def: 8
+  max_hp: 25
+  max_mp: 25
+}

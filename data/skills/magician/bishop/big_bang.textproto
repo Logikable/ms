@@ -1,0 +1,23 @@
+# The mobbing swing: four strikes on ten enemies, and 50 percentage points
+# more on each line against anything that is not a boss.
+#
+# GMS climbs 300+6x% over 30 levels. Twenty levels here keep GMS's step and
+# its ceiling, so the ladder starts at what GMS reaches at 11 rather than at
+# its own level 1 -- a skill this central is not worth 306% for a decade.
+name: "Big Bang"
+skill_order: 3
+description:
+  "Holy power spreads out and ends in an explosion, which cuts deeper into "
+  "anything that is not a boss."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_BISHOP
+max_level: 20
+exceeds_master_level: true
+base_delay_ms: 660
+max_enemies: 10
+lines: 4
+base {
+  skill_pct: 3.66
+  normal_skill_pct: 0.50
+}
+per_level { skill_pct: 0.06 }

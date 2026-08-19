@@ -127,6 +127,8 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
     case JOB_FIRE_POISON_ARCH_MAGE:
       return {"frozen_staff", "frozen_metallic_book"};
+    case JOB_BISHOP:
+      return {"frozen_staff", "frozen_white_gold_book"};
     case JOB_ICE_LIGHTNING_MAGE:
       return {"crimson_arcanon", "metallic_blue_book_epode"};
     case JOB_FIRE_POISON_MAGE:

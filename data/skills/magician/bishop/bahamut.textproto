@@ -1,0 +1,18 @@
+# GMS's own: 110+3x% three times on three enemies, on the 3030ms clock Ifrit
+# and Elquines share.
+#
+# It grants no mastery, alone among the magician summons. The other two are
+# their books' mastery skill; the Priest's Holy Focus already reaches 70%, so
+# a Bishop holds a staff as well as anyone before the 4th job starts.
+name: "Bahamut"
+skill_order: 7
+description: "Summon Bahamut to fight beside you, breathing holy fire."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_BISHOP
+max_level: 20
+exceeds_master_level: true
+max_enemies: 3
+lines: 3
+cast_interval_seconds: 3.0
+base { skill_pct: 1.13 }
+per_level { skill_pct: 0.03 }
