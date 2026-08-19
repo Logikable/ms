@@ -119,6 +119,19 @@ struct AttackOption {
   // damage is added -- once per swing here, once per enemy there.
   std::vector<double> single_final_attack_damage;
   std::vector<FinalAttackRoll> single_final_attack_rolls;
+  // The burn this swing leaves on every enemy it reaches: what one tick is
+  // worth per target type, and the clock it burns on. Empty and 0 for every
+  // swing that leaves no mark, which is all of them but the F/P Arch Mage's
+  // two. Game-scaled, like every other duration here.
+  std::vector<double> dot_damage;
+  SwingRolls dot_rolls;
+  double dot_interval_seconds = 0.0;
+  double dot_duration_seconds = 0.0;
+  // Which mark this is, so two burns on one monster do not overwrite each
+  // other: an index into the slots every mob carries, or -1 for a swing that
+  // leaves none. Assigned by attack order, which is the same in every buffed
+  // set, so a slot means the same thing whatever is up.
+  int dot_slot = -1;
   // Share of the player's HP pool this option puts back instead of dealing
   // damage (1.00 == all of it). 0 for every attack, which is all of them bar
   // the Cleric's Heal. An option carrying this deals no damage at all, and the
@@ -216,6 +229,9 @@ struct CombatParams {
   // character whose passives revive them: the hit that would have killed them
   // fills the pool instead, and the wait starts over. 0 for everyone else.
   double revive_cooldown_seconds = 0.0;
+  // How many distinct burns the character can leave, and so how many slots a
+  // monster needs. 0 for everyone who leaves none.
+  int dot_count = 0;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

@@ -119,6 +119,18 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
           static_cast<int>(attack.single_final_attack_damage.size())) {
     total += attack.single_final_attack_damage[queue_[0].type];
   }
+  // The whole of the burn this swing would light, on everything it reaches. It
+  // is counted in full: what actually ticks depends on how long the monster
+  // lives, and the chooser has no way to know that before it swings.
+  if (attack.dot_interval_seconds > 0.0) {
+    double ticks = attack.dot_duration_seconds / attack.dot_interval_seconds;
+    for (int j = 0; j < hit; ++j) {
+      int type = queue_[j].type;
+      if (type < static_cast<int>(attack.dot_damage.size())) {
+        total += attack.dot_damage[type] * ticks;
+      }
+    }
+  }
   // A swing with an empowered form lands it once in every N, so what the
   // attack is worth per swing is the average of the two. The rate has to say
   // so, or the attack would be weighed on the weaker of the two things it
@@ -273,16 +285,77 @@ void CombatSim::Strike(const AttackOption& attack) {
         RolledFinalAttack(attack.single_final_attack_rolls,
                           attack.single_final_attack_damage, queue_[0].type);
   }
+  // Marked before the dead are cleared, so the indices the swing reached are
+  // still the ones the mark is written to.
+  ApplyDot(attack, hit);
+  Reap();
+}
+
+void CombatSim::Reap() {
   std::vector<QueuedMob> survivors;
   survivors.reserve(queue_.size());
-  for (int j = 0; j < static_cast<int>(queue_.size()); ++j) {
-    if (j < hit && queue_[j].hp <= 0.0) {
-      ++kills_this_step_[queue_[j].type];
+  for (QueuedMob& mob : queue_) {
+    if (mob.hp <= 0.0) {
+      ++kills_this_step_[mob.type];
     } else {
-      survivors.push_back(queue_[j]);
+      survivors.push_back(std::move(mob));
     }
   }
   queue_ = std::move(survivors);
+}
+
+void CombatSim::ApplyDot(const AttackOption& attack, int hit) {
+  if (attack.dot_slot < 0 || attack.dot_interval_seconds <= 0.0) {
+    return;
+  }
+  for (int j = 0; j < hit; ++j) {
+    QueuedMob& mob = queue_[j];
+    if (static_cast<int>(mob.dots.size()) <= attack.dot_slot) {
+      mob.dots.resize(attack.dot_slot + 1);
+    }
+    if (mob.type >= static_cast<int>(attack.dot_damage.size())) {
+      continue;
+    }
+    // Written over rather than added to: a burn does not stack with itself.
+    // Only the duration starts again -- the tick clock is left where it is, or
+    // a swing faster than the interval would refresh the burn out of ever
+    // ticking at all.
+    MobDot& dot = mob.dots[attack.dot_slot];
+    if (dot.left_seconds <= 0.0) {
+      dot.phase = 0.0;
+    }
+    dot.left_seconds = attack.dot_duration_seconds;
+    dot.interval_seconds = attack.dot_interval_seconds;
+    dot.damage = attack.dot_damage[mob.type];
+    dot.rolls = attack.dot_rolls;
+  }
+}
+
+void CombatSim::RunDots(double dt) {
+  bool burned = false;
+  for (QueuedMob& mob : queue_) {
+    for (MobDot& dot : mob.dots) {
+      if (dot.left_seconds <= 0.0 || dot.interval_seconds <= 0.0) {
+        continue;
+      }
+      // Only the seconds the burn still had are spent, so one running out
+      // partway through a step lands the ticks it was owed and no more.
+      double spent = std::min(dt, dot.left_seconds);
+      dot.left_seconds -= spent;
+      dot.phase += spent;
+      while (dot.phase >= dot.interval_seconds) {
+        dot.phase -= dot.interval_seconds;
+        mob.hp -= dot.damage * RollFactor(dot.rolls, rng_);
+        burned = true;
+      }
+    }
+  }
+  // A burn kills the same way a swing does, and the kill is counted the same
+  // way. Skipped where nothing ticked, since walking the queue costs more than
+  // the burn did.
+  if (burned) {
+    Reap();
+  }
 }
 
 double CombatSim::RolledDamage(const AttackOption& attack, int type) {
@@ -773,6 +846,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
       static_cast<double>(params.max_player_hp),
       player_hp_ + params.regen_pct_per_second * params.max_player_hp * dt);
   RunAutoCasts(params, dt);
+  // After the summons and before the swing, so a burn lit last step has landed
+  // its ticks before this step's swing decides what is worth hitting.
+  RunDots(dt);
   RunCooldowns(params, dt);
   RunSwing(params, dt);
 

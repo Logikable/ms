@@ -41,14 +41,18 @@ constexpr double kMobHitIntervalSeconds = 1.5;
 // enduring it rather than only by killing fast enough to keep clearing it.
 constexpr double kBeatHealFraction = 0.10;
 
-// Strips both Final Attacks off an attack. A Final Attack follows the
-// character's own swing, so anything on a clock of its own -- a summon, a
-// wound, a form standing in for a pulse -- carries neither.
-void ClearFinalAttack(AttackOption& attack) {
+// Strips everything that rides the character's own swing -- both Final
+// Attacks and the burn a swing leaves. Anything on a clock of its own (a
+// summon, a wound, a form standing in for a pulse) sets none of them off, and
+// neither does a cast that deals no damage.
+void ClearSwingRiders(AttackOption& attack) {
   attack.final_attack_damage.clear();
   attack.final_attack_rolls.clear();
   attack.single_final_attack_damage.clear();
   attack.single_final_attack_rolls.clear();
+  attack.dot_damage.clear();
+  attack.dot_interval_seconds = 0.0;
+  attack.dot_duration_seconds = 0.0;
 }
 
 // Whether `skill` is marked with `tag`. Null -- the bare poke -- carries none.
@@ -166,6 +170,28 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
       }
       attack.groups.push_back(std::move(group));
     }
+  }
+  // The burn a swing leaves behind: a mark on what it reached rather than part
+  // of the strike, so it is priced here and paid out on its own clock. What it
+  // is worth is settled now and carried for the whole of its life, which is
+  // what makes a burn lit under a buff keep the buffed number -- see Dot.
+  if (skill != nullptr && skill->dot().interval_seconds() > 0.0) {
+    const Dot& dot = skill->dot();
+    OffenseStats burn = offense;
+    burn.skill_pct =
+        dot.base().skill_pct() + dot.per_level().skill_pct() * (level - 1);
+    burn.normal_skill_pct = dot.base().normal_skill_pct() +
+                            dot.per_level().normal_skill_pct() * (level - 1);
+    burn.lines = std::max(1, dot.lines());
+    // A shadow copies the swing it was cast beside, not the mark that swing
+    // left burning after it.
+    burn.mirror_lines = 0;
+    for (const CombatType& type : types) {
+      attack.dot_damage.push_back(ExpectedAttackDamage(burn, *type.mob));
+    }
+    attack.dot_rolls = RollsFor(burn);
+    attack.dot_interval_seconds = dot.interval_seconds() * speed_factor;
+    attack.dot_duration_seconds = dot.duration_seconds() * speed_factor;
   }
   // Final Attack rides the swing, not the skill: a plain hit worth its own
   // percent, so it starts from the bare stat line and takes neither the skill's
@@ -322,7 +348,7 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
         AttackFor(proto, equipped, weapon_type, &built, level, types, derived,
                   kUnscaledAttackSpeedStage, speed_factor);
     attack.swing_seconds = 0.0;  // not swung, so never charged
-    ClearFinalAttack(attack);    // Final Attack follows a swing
+    ClearSwingRiders(attack);    // what rides a swing needs one
     attack.interval_seconds = mode.cast_interval_seconds() * speed_factor;
     set.auto_attacks.push_back(std::move(attack));
   }
@@ -335,7 +361,7 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
       AttackFor(proto, equipped, weapon_type, &bleed, level, types, derived,
                 kUnscaledAttackSpeedStage, speed_factor);
   wound.swing_seconds = 0.0;
-  ClearFinalAttack(wound);
+  ClearSwingRiders(wound);
   wound.interval_seconds = pulse.cast_interval_seconds() * speed_factor;
   set.auto_attacks.push_back(std::move(wound));
 }
@@ -464,7 +490,7 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
     // Final Attack follows the character's swing, and a summon's pulse is not
     // one -- so a form standing in for a pulse must not carry one either.
     if (attack.interval_seconds > 0.0) {
-      ClearFinalAttack(*swing);
+      ClearSwingRiders(*swing);
     }
     attack.empowered_every = upgrade.casts_per_trigger();
     attack.brands_enemies = upgrade.brands_each_enemy();
@@ -555,7 +581,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
                 0.0);
       attack.groups.clear();
       attack.lead_damage.clear();
-      ClearFinalAttack(attack);
+      ClearSwingRiders(attack);
     }
     if (swung.kind() != SKILL_KIND_AUTO_ATTACK) {
       // What this swing counts toward the skills clocked by swings landed.
@@ -567,7 +593,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
       continue;
     }
     attack.swing_seconds = 0.0;  // not swung, so never charged
-    ClearFinalAttack(attack);    // Final Attack follows a swing
+    ClearSwingRiders(attack);    // what rides a swing needs one
     // Clocked by swings landed rather than by seconds passed.
     if (swung.attacks_per_cast() > 0) {
       attack.attacks_per_cast = swung.attacks_per_cast();
@@ -597,6 +623,19 @@ int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
 
 // Everything the character can attack with, at one particular set of stats --
 // theirs alone, or theirs with some buff up.
+// Hands each burning swing a slot of its own on the monsters it marks, so two
+// burns never write over each other. Numbered by attack order, which is the
+// same in every buffed set, so a slot the fight is holding means the same
+// thing however the buffs come and go.
+void NumberDots(AttackSet& set) {
+  int next = 0;
+  for (AttackOption& attack : set.attacks) {
+    if (!attack.dot_damage.empty()) {
+      attack.dot_slot = next++;
+    }
+  }
+}
+
 AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
                          const EquipPrototype& weapon, double speed_factor,
                          const std::vector<CombatType>& types) {
@@ -607,6 +646,7 @@ AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
   AddEmpoweredForms(state, TotalEquipStats(state.character, derived),
                     weapon.equip_type(), derived, attack_speed, speed_factor,
                     types, set);
+  NumberDots(set);
   return set;
 }
 
@@ -786,6 +826,9 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.attacks = std::move(base.attacks);
   params.auto_attacks = std::move(base.auto_attacks);
   params.triggered_attacks = std::move(base.triggered_attacks);
+  for (const AttackOption& attack : params.attacks) {
+    params.dot_count = std::max(params.dot_count, attack.dot_slot + 1);
+  }
   std::vector<const Skill*> buff_skills =
       BuffSkillsFor(state.character, state.skills);
   if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {

@@ -112,6 +112,18 @@ class CombatSim {
   }
 
  private:
+  // One burn on one monster: how long it has left, how far into the current
+  // tick it is, and what a tick of it is worth. The damage is settled when the
+  // burn lands and never asked again, which is what makes it a snapshot -- see
+  // the Dot message.
+  struct MobDot {
+    double left_seconds = 0.0;
+    double phase = 0.0;
+    double interval_seconds = 0.0;
+    double damage = 0.0;
+    SwingRolls rolls;
+  };
+
   // A mob waiting in or being fought in the queue: its type (an index into
   // params.types) and its remaining HP.
   struct QueuedMob {
@@ -122,7 +134,23 @@ class CombatSim {
     // swing, so one that dies partway there takes its count to the grave and
     // whatever replaces it starts at nothing.
     int brand = 0;
+    // The burns on it, one slot per source the character can leave. Sized only
+    // for a character who burns anything, which is the F/P Arch Mage alone.
+    std::vector<MobDot> dots;
   };
+
+  // Brings out the dead: counts every mob the queue is holding at or below no
+  // HP and drops it. Shared by the swing and the burn, since a burn kills the
+  // same way a swing does and the two must be counted alike.
+  void Reap();
+  // Marks everything `attack` just reached with its burn, if it leaves one. A
+  // mob already burning is written over rather than added to: the mark does
+  // not stack with itself, so a fresh cast restarts the clock and takes the
+  // damage the character is worth at that moment.
+  void ApplyDot(const AttackOption& attack, int hit);
+  // Runs every burn on the queue forward by dt, landing whatever ticks come
+  // due. Only the mobs actually burning cost anything here.
+  void RunDots(double dt);
 
   // Brings the queue back up to a full roster, adding only what each type is
   // missing: a respawn puts new monsters on the map, it does not heal the one

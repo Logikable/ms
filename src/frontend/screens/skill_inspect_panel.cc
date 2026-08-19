@@ -642,10 +642,30 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   return rows;
 }
 
+// The burn a swing leaves, as one row: what a tick is worth, how often it
+// comes and how long it lasts. All three on the damage row, because none of
+// them says anything on its own and a clock never gets a row of its own here.
+std::string DotText(const Dot& dot, int level) {
+  double per_tick =
+      dot.base().skill_pct() + dot.per_level().skill_pct() * (level - 1);
+  return SwingText(per_tick, dot.lines()) + " every " +
+         FormatNumber(dot.interval_seconds(), 2) + "s for " +
+         FormatNumber(dot.duration_seconds()) + "s";
+}
+
 // What lands beside the swing rather than as part of it, and what the skill
 // hands to another skill in the book.
 std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
+  // Under the swing's own damage, since it is what that swing left behind.
+  if (skill.dot().interval_seconds() > 0.0) {
+    std::string label =
+        skill.dot().label().empty() ? std::string("Burn") : skill.dot().label();
+    for (ftxui::Element& row :
+         WrappedEffectRows(label, DotText(skill.dot(), level))) {
+      rows.push_back(std::move(row));
+    }
+  }
   // Final Attack's chance and its damage are one fact, not two levers: neither
   // half says anything on its own, so they share a line.
   double proc = PercentAt(skill, &SkillEffect::final_attack_chance, level);

@@ -409,6 +409,35 @@ message Buff {
   BuffPulse pulse = 6;
 }
 
+// A burn a swing leaves on the enemies it reached: damage on a clock of its
+// own, for a while after the swing that lit it. Flame Sweep is what it exists
+// for -- GMS's "enemies struck by the flame are burned and take continuous
+// damage".
+//
+// It does not stack with itself. A second cast writes the mark again, so the
+// duration starts over and the damage is taken fresh from the character as
+// they stand at that moment -- a burn lit under a buff keeps the buffed number
+// for the whole of its life, and one lit without it never gains.
+//
+// Not an AutoMode, which is a turret with a reach of its own, and not a
+// BuffPulse, which bleeds for as long as a buff on the CHARACTER stands. This
+// rides the monster: it lives and dies with the one it was left on, and one
+// that dies burning takes the rest of the burn with it.
+//
+// Read at the same learned level as the skill carrying it.
+message Dot {
+  SkillEffect base = 1;
+  SkillEffect per_level = 2;
+  // What the skill page calls it, in its own row under the swing's damage.
+  string label = 3;
+  // Seconds between ticks. Never scaled by attack speed -- nothing on its own
+  // clock is.
+  double interval_seconds = 4;
+  // Seconds it burns for, from the swing that lit it.
+  double duration_seconds = 5;
+  int32 lines = 6;
+}
+
 // A second hit the same swing lands at the same moment. Divine Mark is the
 // case it exists for: the hammer falls and the brand it leaves explodes, and
 // GMS prices the two differently -- 420% seven times and 290% five times, with
@@ -757,6 +786,9 @@ message Skill {
   // The Paladin's. A second hit this swing lands at the same moment, priced on
   // its own. See SwingHit.
   repeated SwingHit extra_hit = 108;
+  // The F/P Arch Mage's. The burn this swing leaves on everything it reached.
+  // See Dot.
+  Dot dot = 113;
   // The Paladin's. Strikes and reach this skill hands to skills it names.
   // Repeated, unlike boosts_skill_name above, because Greater Vessel of Light
   // strengthens two of them and grants each a different thing. See SkillBoost.

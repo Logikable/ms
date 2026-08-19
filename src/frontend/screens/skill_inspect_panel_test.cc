@@ -1001,6 +1001,31 @@ TEST_F(SkillInspectPanelTest, SaysNothingAboutHowOftenASkillFires) {
             std::string::npos);
 }
 
+// A burn is one row: what a tick is worth, how often it comes and how long it
+// lasts. None of the three says anything without the others.
+TEST_F(SkillInspectPanelTest, ReadsABurnAsOneRow) {
+  Skill skill;
+  skill.set_name("Flame Sweep");
+  skill.set_kind(SKILL_KIND_ATTACK);
+  skill.set_job_advancement(JOB_ADVANCEMENT_FIRE_POISON_MAGE);
+  skill.set_max_level(30);
+  skill.set_description("Sweeps the room with flame.");
+  skill.set_max_enemies(8);
+  skill.set_lines(7);
+  skill.mutable_base()->set_skill_pct(1.42);
+  skill.mutable_per_level()->set_skill_pct(0.02);
+  Dot* burn = skill.mutable_dot();
+  burn->set_label("Burn");
+  burn->set_interval_seconds(1.0);
+  burn->set_duration_seconds(5.0);
+  burn->set_lines(1);
+  burn->mutable_base()->set_skill_pct(1.24);
+  burn->mutable_per_level()->set_skill_pct(0.04);
+
+  EXPECT_NE(RenderAt(skill, 30).find("Burn              240% every 1s for 5s"),
+            std::string::npos);
+}
+
 // Neither half of Final Attack says anything alone, so they share a line.
 TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
   Skill skill;

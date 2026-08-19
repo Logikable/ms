@@ -153,6 +153,85 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
   EXPECT_NEAR(kills[1] / kills[0], 1.0, 0.01);
 }
 
+// A burn ticks on its own clock for as long as it was lit for, and then stops
+// -- it is not a second attack that runs forever.
+TEST(CombatSimTest, ABurnTicksForItsDurationAndNoLonger) {
+  Mob mob = MakeMob("Snail", 10000);
+  // A slow swing, so one cast's burn runs out well before the next lights it.
+  CombatParams params = MakeParams(10.0, 1e9, {MakeType(&mob, 0.0, 1)});
+  params.dot_count = 1;
+  params.attacks[0].dot_slot = 0;
+  params.attacks[0].dot_damage.assign(1, 100.0);
+  params.attacks[0].dot_interval_seconds = 1.0;
+  params.attacks[0].dot_duration_seconds = 5.0;
+
+  CombatSim sim;
+  // Through the first cast at 10s and the five ticks behind it.
+  for (int step = 0; step < 32; ++step) {
+    sim.Advance(params, 0.5);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+  // Six more seconds with the burn out and the next cast still to come.
+  for (int step = 0; step < 8; ++step) {
+    sim.Advance(params, 0.5);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9)
+      << "the burn kept ticking past the seconds it was lit for";
+}
+
+// Lighting a burn again refreshes it rather than adding a second one, so
+// swinging twice as often buys none of it. It must also not put the tick clock
+// back, or a swing faster than the interval would refresh it out of ever
+// ticking.
+TEST(CombatSimTest, ABurnDoesNotStackWithItself) {
+  Mob mob = MakeMob("Snail", 100000);
+  double left[2] = {0.0, 0.0};
+  for (int run = 0; run < 2; ++run) {
+    CombatParams params =
+        MakeParams(run == 0 ? 1.0 : 0.5, 1e9, {MakeType(&mob, 0.0, 1)});
+    params.dot_count = 1;
+    params.attacks[0].dot_slot = 0;
+    params.attacks[0].dot_damage.assign(1, 100.0);
+    params.attacks[0].dot_interval_seconds = 1.0;
+    params.attacks[0].dot_duration_seconds = 5.0;
+    CombatSim sim;
+    for (int step = 0; step < 400; ++step) {
+      sim.Advance(params, 0.1);
+    }
+    left[run] = sim.target_hp_fraction();
+  }
+  // Forty seconds of burning either way, to within the one tick the earlier
+  // first swing buys the faster run.
+  EXPECT_LT(left[0], 1.0);
+  EXPECT_NEAR(left[0], left[1], 100.0 / 100000.0 + 1e-9);
+}
+
+// The burn takes its damage from the character as they stood when it was lit,
+// and keeps it: a buff that drops halfway through does not thin what is
+// already burning.
+TEST(CombatSimTest, ABurnKeepsTheDamageItWasLitWith) {
+  Mob mob = MakeMob("Snail", 10000);
+  CombatParams params = MakeParams(10.0, 1e9, {MakeType(&mob, 0.0, 1)});
+  params.dot_count = 1;
+  params.attacks[0].dot_slot = 0;
+  params.attacks[0].dot_damage.assign(1, 100.0);
+  params.attacks[0].dot_interval_seconds = 1.0;
+  params.attacks[0].dot_duration_seconds = 5.0;
+
+  CombatSim sim;
+  for (int step = 0; step < 23; ++step) {
+    sim.Advance(params, 0.5);  // the cast at 10s, and one tick after it
+  }
+  ASSERT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
+  // Whatever the character is worth now, the four ticks still owed were
+  // priced when the burn landed.
+  params.attacks[0].dot_damage.assign(1, 1.0);
+  for (int step = 0; step < 10; ++step) {
+    sim.Advance(params, 0.5);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+}
+
 // Blizzard's passive falls on one enemy however many the swing reached, so
 // four times the reach is not four times the Final Attack. The ordinary bank
 // beside it scales with the reach, which is what tells the two apart.

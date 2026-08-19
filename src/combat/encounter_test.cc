@@ -914,6 +914,65 @@ TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {
   EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 70.0 * factor);
 }
 
+// Flame Sweep's shape: the swing leaves a burn on what it reached, priced on
+// its own multiplier and given a slot of its own. Nothing on a clock of its
+// own leaves one -- a summon marks nothing.
+TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
+  Skill sweep;
+  sweep.set_name("Flame Sweep");
+  sweep.set_kind(SKILL_KIND_ATTACK);
+  sweep.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  sweep.set_max_level(30);
+  sweep.set_base_delay_ms(780);
+  sweep.set_max_enemies(8);
+  sweep.set_lines(7);
+  sweep.mutable_base()->set_skill_pct(2.00);
+  Dot* burn = sweep.mutable_dot();
+  burn->set_label("Burn");
+  burn->set_interval_seconds(1.0);
+  burn->set_duration_seconds(5.0);
+  burn->set_lines(1);
+  burn->mutable_base()->set_skill_pct(2.40);
+
+  Skill summon;
+  summon.set_name("Ifrit");
+  summon.set_kind(SKILL_KIND_AUTO_ATTACK);
+  summon.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  summon.set_max_level(20);
+  summon.set_max_enemies(3);
+  summon.set_cast_interval_seconds(3.0);
+  summon.mutable_base()->set_skill_pct(4.30);
+  *summon.mutable_dot() = *burn;
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"flame_sweep", sweep}, {"ifrit", summon}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(sweep, 1));
+  ASSERT_TRUE(state.character.LearnSkill(summon, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.attacks.size(), 2u);
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_EQ(swing.name, "Flame Sweep");
+  EXPECT_EQ(swing.dot_slot, 0);
+  EXPECT_EQ(params.dot_count, 1);
+  ASSERT_EQ(swing.dot_damage.size(), 1u);
+  EXPECT_DOUBLE_EQ(swing.dot_interval_seconds, 1.0 * factor);
+  EXPECT_DOUBLE_EQ(swing.dot_duration_seconds, 5.0 * factor);
+  // One line at 240% against the swing's seven at 200%: the burn is priced on
+  // its own multiplier, not on a share of the strike that lit it.
+  EXPECT_NEAR(swing.dot_damage[0] / (swing.damage_per_hit[0] / 7.0), 1.2, 0.02);
+
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  EXPECT_EQ(params.auto_attacks[0].name, "Ifrit");
+  EXPECT_TRUE(params.auto_attacks[0].dot_damage.empty());
+  EXPECT_EQ(params.auto_attacks[0].dot_slot, -1);
+}
+
 // Puncture's shape: the buff hangs off an ATTACK, so it is laid by that swing
 // rather than raised on a wait of its own. The fight needs to know which swing
 // lays it, and that has to be the swing's index in the attack list.
