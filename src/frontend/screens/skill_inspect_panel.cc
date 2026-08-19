@@ -688,9 +688,12 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
     // Wrapped, because that note is the one thing long enough to push the row
     // past its column, and clipped to a comma so Blizzard's own fits on a line.
     std::string reach = skill.final_attack_single_enemy() ? ", one enemy" : "";
+    int strikes = skill.base().final_attack_lines() +
+                  skill.per_level().final_attack_lines() * (level - 1);
     std::string text =
         FormatPercent(proc) + " for " +
-        FormatPercent(PercentAt(skill, &SkillEffect::final_attack_pct, level)) +
+        SwingText(PercentAt(skill, &SkillEffect::final_attack_pct, level),
+                  strikes) +
         reach;
     for (ftxui::Element& row : WrappedEffectRows("Final Attack", text)) {
       rows.push_back(std::move(row));

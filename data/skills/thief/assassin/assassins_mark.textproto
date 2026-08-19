@@ -5,6 +5,9 @@
 # The mark and the spending of it are one beat apart in GMS and none here, so
 # what is left is a Final Attack -- a chance, on every enemy the swing reached,
 # of two more stars. It names no tag, so every swing sets it off.
+#
+# The two stars are two lines rather than one worth double, so each rolls its
+# own crit and its own mastery. Same 300% at master level either way.
 name: "Assassin's Mark"
 skill_order: 2
 description:
@@ -15,9 +18,10 @@ job_advancement: JOB_ADVANCEMENT_ASSASSIN
 max_level: 10
 base {
   final_attack_chance: 0.22
-  final_attack_pct: 1.56
+  final_attack_pct: 0.78
+  final_attack_lines: 2
 }
 per_level {
   final_attack_chance: 0.02
-  final_attack_pct: 0.16
+  final_attack_pct: 0.08
 }

@@ -246,6 +246,8 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& base,
   if (source.chance <= 0.0 || source.damage_pct <= 0.0) {
     return;
   }
+  source.lines = std::max(
+      1, base.final_attack_lines() + per.final_attack_lines() * (level - 1));
   source.required_tag = skill.follows_skill_tag();
   source.single_enemy = skill.final_attack_single_enemy();
   totals.final_attacks.push_back(source);

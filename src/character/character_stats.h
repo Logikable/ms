@@ -28,6 +28,10 @@ struct FinalAttackSource {
   // 1.60. Their product is what it is worth on an average swing.
   double chance = 0.0;
   double damage_pct = 0.0;
+  // Strikes one of those extra hits lands, each worth damage_pct. Told apart
+  // rather than summed into the percent because every one rolls its own crit
+  // and its own mastery.
+  int lines = 1;
   // The swings this follows. SKILL_TAG_UNSPECIFIED means all of them, which is
   // what a Final Attack gated on the weapon in hand wants.
   SkillTag required_tag = SKILL_TAG_UNSPECIFIED;

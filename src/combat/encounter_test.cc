@@ -579,6 +579,40 @@ TEST(ComputeCombatParamsTest, AFinalAttackCanStrikeOneEnemyOnly) {
                    swing.single_final_attack_rolls[0].damage[0] * 0.60);
 }
 
+// A Night Lord's mark throws three stars where an Assassin's throws two. The
+// strikes are told apart rather than folded into one percent, so each rolls
+// its own crit -- and three of them are worth three times one.
+TEST(ComputeCombatParamsTest, AFinalAttackLandsItsOwnStrikes) {
+  Skill mark;
+  mark.set_name("Night Lord's Mark");
+  mark.set_kind(SKILL_KIND_PASSIVE);
+  mark.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mark.set_max_level(10);
+  mark.mutable_base()->set_final_attack_chance(0.42);
+  mark.mutable_base()->set_final_attack_pct(2.10);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"mark", mark}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(mark, 1));
+  CombatParams single = ComputeCombatParams(state);
+  ASSERT_FALSE(single.attacks[0].final_attack_damage.empty());
+  double one = single.attacks[0].final_attack_damage[0];
+
+  mark.mutable_base()->set_final_attack_lines(3);
+  state.skills["mark"] = mark;
+  CombatParams params = ComputeCombatParams(state);
+  const AttackOption& poke = params.attacks[0];
+  EXPECT_NEAR(poke.final_attack_damage[0], one * 3.0, 1e-9);
+  ASSERT_EQ(poke.final_attack_rolls.size(), 1u);
+  // Three strikes, not three rolls: one chance decides whether all three land.
+  EXPECT_EQ(poke.final_attack_rolls[0].count, 1);
+  EXPECT_DOUBLE_EQ(poke.final_attack_damage[0],
+                   poke.final_attack_rolls[0].damage[0] * 0.42);
+}
+
 // Angel Ray's shape: an attack that heals as it lands. The recovery is that
 // swing's own, so it reaches the option rather than the character -- a Bishop
 // swinging Big Bang instead heals for nothing.

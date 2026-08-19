@@ -111,9 +111,11 @@ message SkillEffect {
   double final_dmg_pct = 17;
 
   // Final Attack: a chance for the character's swing to be followed by one
-  // extra hit, worth final_attack_pct of a plain swing, on each enemy that
-  // swing reached. A multi-line final attack folds its lines into the percent
-  // -- two hits of 80% is stated here as 1.60.
+  // extra hit on each enemy that swing reached, worth final_attack_pct of a
+  // plain swing on each of final_attack_lines strikes. The lines are told
+  // apart rather than folded into one percent because each rolls its own crit
+  // and its own mastery, which two stars of 150% and one of 300% do not come
+  // to the same thing under. 0 lines is one strike.
   //
   // Only the character's own swings carry it. A skill firing on its own clock
   // does not, which is why the two are separate fields rather than one
@@ -124,6 +126,7 @@ message SkillEffect {
   // rather than to the level -- see Skill.follows_skill_tag.
   double final_attack_chance = 18;
   double final_attack_pct = 19;
+  int32 final_attack_lines = 127;
 
   int32 def = 20;                // flat weapon DEF
   double damage_taken_pct = 21;  // share of incoming damage cancelled

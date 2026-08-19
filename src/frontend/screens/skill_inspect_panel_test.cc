@@ -1083,6 +1083,13 @@ TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
   EXPECT_NE(RenderAt(skill, 20).find("Final Attack      40% for 160%"),
             std::string::npos);
 
+  // A mark that throws several stars reads them the way the swing above reads
+  // its own lines: what one is worth, times how many, and the total.
+  skill.mutable_base()->set_final_attack_lines(3);
+  EXPECT_NE(RenderAt(skill, 20).find("40% for 160% x3 = 480%"),
+            std::string::npos);
+  skill.mutable_base()->clear_final_attack_lines();
+
   // Blizzard's own ladder, which is the widest this row goes: it names the one
   // enemy it falls on, whole and on the one line. The note is the only thing
   // here long enough to be cut off.

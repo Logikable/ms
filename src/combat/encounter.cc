@@ -233,6 +233,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     roll.chance = source.chance;
     roll.count = source.per_line ? swing_lines : 1;
     follow.skill_pct = source.damage_pct;
+    // Its own strikes, not the swing's: a Night Lord's mark throws three stars
+    // behind a four-star swing, and each of the three rolls on its own.
+    follow.lines = source.lines;
     roll.rolls = RollsFor(follow);
     // A source that strikes one enemy is banked apart: what the swing is worth
     // has to add it once rather than once for every mob in front of the

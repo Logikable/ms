@@ -645,6 +645,18 @@ TEST_F(DerivedStatsTest, FinalAttackKeepsItsChanceAndItsDamageApart) {
   EXPECT_NEAR(stats.final_attacks[0].chance, 0.40, 1e-9);
   EXPECT_NEAR(stats.final_attacks[0].damage_pct, 1.60, 1e-9);
   EXPECT_EQ(stats.final_attacks[0].required_tag, SKILL_TAG_UNSPECIFIED);
+  // A source that says nothing about its strikes lands one, which is every
+  // source but the rogue's two marks.
+  EXPECT_EQ(stats.final_attacks[0].lines, 1);
+
+  // Three stars for 160% apiece, where the line above is one for 160%. The
+  // damage stays per strike -- the count is what changed.
+  final_attack.mutable_base()->set_final_attack_lines(3);
+  skills["final_attack"] = final_attack;
+  stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.final_attacks.size(), 1u);
+  EXPECT_NEAR(stats.final_attacks[0].damage_pct, 1.60, 1e-9);
+  EXPECT_EQ(stats.final_attacks[0].lines, 3);
 }
 
 TEST_F(DerivedStatsTest, NoFinalAttackIsWorthNothing) {
