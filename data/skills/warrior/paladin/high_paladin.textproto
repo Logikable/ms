@@ -1,6 +1,6 @@
 # GMS caps this at 30. Scaled to 20 levels landing on exactly GMS's level-30
 # figures -- 70% mastery, 400 DEF, 40% critical rate, 20% critical damage, 30%
-# ignored defence and 40% final damage -- so the book totals 200. The levels
+# ignored defence and 35% final damage -- so the book totals 200. The levels
 # are coarser, the skill is no stronger.
 #
 # The critical damage is one line rather than three: GMS pays 15% flat and 5%
@@ -10,8 +10,8 @@
 # blunt weapon's ignored defence, which is the only one that ever said
 # anything about the weapon.
 #
-# The 40% final damage is the largest single grant in the game and the number
-# to watch when the line is measured against the Dark Knight's Final Pact.
+# The final damage is GMS's own (5+x at 30), which is the number to watch when
+# the line is measured against the Dark Knight's Final Pact.
 name: "High Paladin"
 skill_order: 7
 description:
@@ -36,7 +36,7 @@ base {
   crit_rate: 0.115
   crit_dmg: 0.105
   ied_pct: 0.16
-  final_dmg_pct: 0.115
+  final_dmg_pct: 0.16
 }
 per_level {
   mastery: 0.01
@@ -44,7 +44,7 @@ per_level {
   crit_rate: 0.015
   crit_dmg: 0.005
   ied_pct: 0.00737
-  final_dmg_pct: 0.015
+  final_dmg_pct: 0.01
 }
 weapon_bonus {
   required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
