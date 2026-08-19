@@ -1016,6 +1016,16 @@ TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
 
   EXPECT_NE(RenderAt(skill, 20).find("Final Attack      40% for 160%"),
             std::string::npos);
+
+  // Blizzard's own ladder, which is the widest this row goes: it names the one
+  // enemy it falls on, whole and on the one line. The note is the only thing
+  // here long enough to be cut off.
+  skill.set_final_attack_single_enemy(true);
+  skill.set_max_level(30);
+  skill.mutable_base()->set_final_attack_pct(1.04);
+  skill.mutable_per_level()->set_final_attack_pct(0.04);
+  EXPECT_NE(RenderAt(skill, 30).find("60% for 220%, one enemy"),
+            std::string::npos);
 }
 
 TEST_F(SkillInspectPanelTest, ReadsTheNewStatLevers) {

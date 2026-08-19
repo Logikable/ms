@@ -652,13 +652,16 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
   if (proc > 0.0) {
     // Where it falls on one enemy the row has to say so: a player comparing it
     // with the warriors' would otherwise read it as worth several times more.
-    std::string reach =
-        skill.final_attack_single_enemy() ? " on one enemy" : "";
-    rows.push_back(EffectRow(
-        "Final Attack", FormatPercent(proc) + " for " +
-                            FormatPercent(PercentAt(
-                                skill, &SkillEffect::final_attack_pct, level)) +
-                            reach));
+    // Wrapped, because that note is the one thing long enough to push the row
+    // past its column, and clipped to a comma so Blizzard's own fits on a line.
+    std::string reach = skill.final_attack_single_enemy() ? ", one enemy" : "";
+    std::string text =
+        FormatPercent(proc) + " for " +
+        FormatPercent(PercentAt(skill, &SkillEffect::final_attack_pct, level)) +
+        reach;
+    for (ftxui::Element& row : WrappedEffectRows("Final Attack", text)) {
+      rows.push_back(std::move(row));
+    }
   }
   // Each own-clock half's damage, under the swing's own so they read as one
   // skill with several ways of hurting things. Every one names itself, under
