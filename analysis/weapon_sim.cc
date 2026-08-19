@@ -56,6 +56,15 @@ ABSL_FLAG(bool, boss, false,
           "Fight a boss instead of an ordinary monster: boss damage counts, "
           "a swing's bonus against normal monsters does not, and elemental "
           "damage is halved. Nothing in the shipped catalog is one yet.");
+ABSL_FLAG(int, bonus_stat, 0,
+          "Hands every build this much of its own primary stat, and nothing "
+          "else, so two jobs can be compared holding the same numbers. Rides "
+          "a fabricated charm rather than AP, so no skill lifts it.");
+ABSL_FLAG(int, bonus_attack, 0,
+          "The same for attack, physical and magic alike -- a build reads "
+          "whichever of the two its weapon uses.");
+ABSL_FLAG(int, bonus_boss_pct, 0,
+          "The same for boss damage, as a percent. Only counts with --boss.");
 ABSL_FLAG(bool, upgraded, false,
           "Wear everything at its ceiling: every upgrade slot filled with the "
           "spell trace that swings hardest on it, and stars up to the item's "
@@ -182,6 +191,40 @@ const char* PrimaryStatName(Job job) {
     default:
       return "STR";
   }
+}
+
+// The charm the two bonus flags ride on: a hat, because nothing in the
+// catalog fills that slot, carrying the stat and the attack and nothing else.
+// A charm is not gear a player can reach -- it is there to hold two jobs at
+// the same numbers and see what is left between them.
+constexpr char kCharm[] = "__sim_charm";
+
+EquipPrototype Charm(Job job, int stat, int attack, int boss_pct) {
+  EquipPrototype proto;
+  proto.set_name("Sim Charm");
+  proto.set_equip_slot(EQUIP_SLOT_HAT);
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  proto.add_unsupported_upgrades(UPGRADE_SCROLL);
+  proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  EquipStats* stats = proto.mutable_base_stats();
+  stats->set_attack(attack);
+  stats->set_magic_attack(attack);
+  stats->set_boss_damage(boss_pct);
+  switch (PrimaryStatField(job)) {
+    case STAT_FIELD_DEX:
+      stats->set_dex(stat);
+      break;
+    case STAT_FIELD_INT:
+      stats->set_int_(stat);
+      break;
+    case STAT_FIELD_LUK:
+      stats->set_luk(stat);
+      break;
+    default:
+      stats->set_str(stat);
+      break;
+  }
+  return proto;
 }
 
 struct Catalogs {
@@ -430,6 +473,14 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   if (absl::GetFlag(FLAGS_upgraded)) {
     FullyUpgrade(state);
   }
+  int bonus_stat = absl::GetFlag(FLAGS_bonus_stat);
+  int bonus_attack = absl::GetFlag(FLAGS_bonus_attack);
+  int bonus_boss = absl::GetFlag(FLAGS_bonus_boss_pct);
+  if (bonus_stat > 0 || bonus_attack > 0 || bonus_boss > 0) {
+    state.equips[kCharm] =
+        Charm(build.job, bonus_stat, bonus_attack, bonus_boss);
+    Wear(state, kCharm);
+  }
 
   const Character& proto = state.character.proto();
   DerivedStats derived = DerivedStatsFor(state.character, state.skills);
@@ -572,10 +623,14 @@ void Run(int level) {
     std::string weapon = catalogs.equips.count(key) > 0
                              ? catalogs.equips.at(key).name()
                              : "(none this level can wear)";
-    std::printf("%-12s  %-18s  %6d  %8.1f  %-16s  %5.2f\n",
-                BranchName(build.job).c_str(), weapon.c_str(),
-                result.combat_power, result.dps, result.swing.c_str(),
-                result.swing_seconds);
+    // A charm big enough to hold two jobs level carries the character's CP
+    // past what an int holds. The figure is the game's own, so it is dropped
+    // here rather than widened there.
+    std::string power =
+        result.combat_power > 0 ? std::to_string(result.combat_power) : "-";
+    std::printf("%-12s  %-18s  %6s  %8.1f  %-16s  %5.2f\n",
+                BranchName(build.job).c_str(), weapon.c_str(), power.c_str(),
+                result.dps, result.swing.c_str(), result.swing_seconds);
     if (absl::GetFlag(FLAGS_detail)) {
       PrintDetail(build, result);
     }
