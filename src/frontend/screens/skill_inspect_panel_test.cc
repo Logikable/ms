@@ -1000,9 +1000,9 @@ TEST_F(SkillInspectPanelTest, SaysNothingAboutHowOftenASkillFires) {
             std::string::npos);
 }
 
-// A form that takes the place of every cast is permanent, and the row says so
-// rather than counting to one.
-TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsEveryCast) {
+// A form that takes the place of every cast is permanent. "Empowers" says
+// that on its own -- a rate is what marks the other shape out from it.
+TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsUnconditional) {
   Skill skill;
   skill.set_name("Mist Eruption");
   skill.set_kind(SKILL_KIND_ATTACK);
@@ -1016,12 +1016,12 @@ TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsEveryCast) {
   EmpoweredForm* form = skill.add_empowered_form();
   form->set_skill_name("Poison Mist");
   form->set_casts_per_trigger(1);
-  form->set_max_enemies(6);
   form->set_lines(1);
   form->mutable_base()->set_skill_pct(2.71);
 
-  EXPECT_NE(RenderAt(skill, 1).find("Empowers          Every Poison Mist"),
-            std::string::npos);
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_NE(rendered.find("Empowers          Poison Mist"), std::string::npos);
+  EXPECT_EQ(rendered.find("Every"), std::string::npos) << rendered;
 }
 
 // A DoT is one row: what a tick is worth, how often it comes and how long it

@@ -369,10 +369,10 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     if (form.casts_per_trigger() <= 0) {
       continue;
     }
-    // One in every one is every one, and "Every 1st" reads as a count where
-    // there is none: the upgrade is simply permanent.
+    // An upgrade with no rate on it is unconditional -- "Empowers" already
+    // says so, and a rate is what tells the other shape apart from it.
     std::string how = form.casts_per_trigger() == 1
-                          ? "Every "
+                          ? ""
                           : "Every " + Ordinal(form.casts_per_trigger()) + " ";
     for (ftxui::Element& row :
          WrappedEffectRows("Empowers", how + EmpoweredTarget(skill, form))) {
