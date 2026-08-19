@@ -56,6 +56,10 @@ ABSL_FLAG(bool, boss, false,
           "Fight a boss instead of an ordinary monster: boss damage counts, "
           "a swing's bonus against normal monsters does not, and elemental "
           "damage is halved. Nothing in the shipped catalog is one yet.");
+ABSL_FLAG(bool, upgraded, false,
+          "Wear everything at its ceiling: every upgrade slot filled with the "
+          "spell trace that swings hardest on it, and stars up to the item's "
+          "own maximum. The default is gear straight off the shelf.");
 ABSL_FLAG(int, boss_pdr, 0,
           "Percent of the mob's physical defence, which every Ignore DEF "
           "lever in the game is measured against. 0 is the shipped catalog, "
@@ -423,6 +427,9 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
     return result;
   }
   state.current_map = kDummyMap;
+  if (absl::GetFlag(FLAGS_upgraded)) {
+    FullyUpgrade(state);
+  }
 
   const Character& proto = state.character.proto();
   DerivedStats derived = DerivedStatsFor(state.character, state.skills);

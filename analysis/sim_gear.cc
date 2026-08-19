@@ -4,6 +4,7 @@
 #include <cmath>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -18,6 +19,7 @@
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 namespace {
@@ -149,6 +151,33 @@ std::vector<const EquipPrototype*> Ladders(const GameState& state,
     }
   }
   return tops;
+}
+
+// Stands the tryout map and its mob up, and moves the character onto it.
+// The mob is their own level, so the level multiplier lands where a player
+// fighting their own tier would put it. Returns the map they came from.
+std::string OpenTryout(GameState& state) {
+  Mob mob;
+  mob.set_name("Tryout");
+  mob.set_level(state.character.proto().level());
+  mob.set_max_hp(1);
+  state.mobs[kTryoutMob] = mob;
+  MapData map;
+  map.set_name("Tryout");
+  MapData::Spawn* spawn = map.add_spawns();
+  spawn->set_mob(kTryoutMob);
+  spawn->set_count(1);
+  state.maps[kTryoutMap] = map;
+  std::string farming = state.current_map;
+  state.current_map = kTryoutMap;
+  return farming;
+}
+
+// Tears it down again. It is scratch, not one of the game's.
+void CloseTryout(GameState& state, const std::string& farming) {
+  state.current_map = farming;
+  state.maps.erase(kTryoutMap);
+  state.mobs.erase(kTryoutMob);
 }
 
 // What the character now hits for a second against a lone mob of their own
@@ -433,22 +462,7 @@ EquipType MeasureBestType(GameState& state, bool budget) {
     ladders.insert(ladders.begin(), &worn);
   }
 
-  // A mob of the character's own level, so the level multiplier lands where a
-  // player fighting their own tier would put it. Torn down afterwards: it is
-  // scratch, not one of the game's.
-  Mob mob;
-  mob.set_name("Tryout");
-  mob.set_level(state.character.proto().level());
-  mob.set_max_hp(1);
-  state.mobs[kTryoutMob] = mob;
-  MapData map;
-  map.set_name("Tryout");
-  MapData::Spawn* spawn = map.add_spawns();
-  spawn->set_mob(kTryoutMob);
-  spawn->set_count(1);
-  state.maps[kTryoutMap] = map;
-  std::string farming = state.current_map;
-  state.current_map = kTryoutMap;
+  std::string farming = OpenTryout(state);
 
   EquipType winner = EQUIP_TYPE_UNSPECIFIED;
   double best_rate = 0.0;
@@ -474,9 +488,7 @@ EquipType MeasureBestType(GameState& state, bool budget) {
     }
   }
 
-  state.current_map = farming;
-  state.maps.erase(kTryoutMap);
-  state.mobs.erase(kTryoutMob);
+  CloseTryout(state, farming);
   // Everything tried on comes back off. What the character wears is what they
   // paid for, which is Buy's business below.
   state.character.Unequip(EQUIP_SLOT_PROJECTILE);
@@ -531,6 +543,115 @@ const EquipPrototype* BestSecondary(const GameState& state, bool budget) {
 }
 
 }  // namespace
+
+namespace {
+
+// The scrolls `proto` takes: the tier its level falls in, the kind of
+// equipment it is, and a job category both sides name. The scroll panel's own
+// three rules, less the clean slate, which undoes rather than upgrades.
+std::vector<const Scroll*> ScrollsFor(const GameState& state,
+                                      const EquipPrototype& proto) {
+  std::vector<const Scroll*> taken;
+  ScrollTarget target = TargetForSlot(proto.equip_slot());
+  if (target == SCROLL_TARGET_UNSPECIFIED || !Supports(proto, UPGRADE_SCROLL) ||
+      proto.upgrade_slots() <= 0) {
+    return taken;
+  }
+  std::set<int> categories(proto.equip_job_categories().begin(),
+                           proto.equip_job_categories().end());
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    const Scroll& scroll = entry.second;
+    if (scroll.tier() != TierForLevel(proto.required_level()) ||
+        scroll.target() != target ||
+        scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
+      continue;
+    }
+    for (int category : scroll.applicable_job_categories()) {
+      if (categories.count(category) > 0) {
+        taken.push_back(&scroll);
+        break;
+      }
+    }
+  }
+  return taken;
+}
+
+// `proto` as a player who kept at it would leave it: every slot spent on
+// `scroll` and every star landed. A null scroll leaves the slots unspent,
+// which is what an item taking none gets.
+Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll) {
+  Equip state;
+  state.set_equip_name(proto.name());
+  int slots = proto.upgrade_slots();
+  if (scroll == nullptr) {
+    state.set_remaining_upgrade_slots(slots);
+  } else {
+    state.set_scroll_successes(slots);
+    EquipStats gained;
+    for (int i = 0; i < slots; ++i) {
+      gained = SumEquipStats({gained, scroll->stats()});
+    }
+    *state.mutable_scroll_stats() = gained;
+  }
+  if (Supports(proto, UPGRADE_STAR_FORCE) &&
+      state.remaining_upgrade_slots() == 0) {
+    state.set_stars(EquipTabItem::MaxStarsForLevel(proto.required_level()));
+  }
+  return state;
+}
+
+// Wears a fresh `proto` carrying `made`, in place of whatever the slot holds.
+// The displaced copy stays in the bag, which is where a try-on goes.
+bool WearMade(CharacterInstance& character, const EquipPrototype& proto,
+              const Equip& made) {
+  character.Unequip(proto.equip_slot());
+  if (!character.PickUp(std::make_unique<EquipInstance>(proto, made))) {
+    return false;
+  }
+  return character.Equip(character.inventory().size() - 1);
+}
+
+// Puts what is worn in `slot` at its ceiling under whichever scroll swings
+// hardest. Wearing none is a candidate too, and the first, so an item no
+// scroll helps keeps its slots.
+void UpgradeSlot(GameState& state, EquipSlot slot) {
+  std::map<EquipSlot, EquipInstance>::const_iterator it =
+      state.character.equipped().find(slot);
+  if (it == state.character.equipped().end()) {
+    return;
+  }
+  EquipPrototype proto = it->second.prototype();
+  std::vector<const Scroll*> candidates = ScrollsFor(state, proto);
+  candidates.insert(candidates.begin(), nullptr);
+  const Scroll* best = nullptr;
+  double best_rate = -1.0;
+  for (const Scroll* candidate : candidates) {
+    if (!WearMade(state.character, proto, AtCeiling(proto, candidate))) {
+      continue;
+    }
+    double rate = MeasureRate(state);
+    if (rate > best_rate) {
+      best_rate = rate;
+      best = candidate;
+    }
+  }
+  WearMade(state.character, proto, AtCeiling(proto, best));
+}
+
+}  // namespace
+
+void FullyUpgrade(GameState& state) {
+  std::vector<EquipSlot> worn;
+  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+       state.character.equipped()) {
+    worn.push_back(entry.first);
+  }
+  std::string farming = OpenTryout(state);
+  for (EquipSlot slot : worn) {
+    UpgradeSlot(state, slot);
+  }
+  CloseTryout(state, farming);
+}
 
 void Outfit(GameState& state, bool budget) {
   // Nothing is for sale before the shop opens, so there is nothing to choose

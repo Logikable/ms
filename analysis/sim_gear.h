@@ -104,6 +104,16 @@ bool EquipByName(CharacterInstance& character, const std::string& name);
 // saving, and without one it is simply the top rung.
 void Outfit(GameState& state, bool budget);
 
+// Puts everything worn at its ceiling: every upgrade slot filled with the
+// scroll that measures best on the item, and stars up to the item's own
+// maximum. Nothing is rolled and nothing is paid for -- a sim asking what a
+// build can reach wants the ceiling, not one draw from it.
+//
+// Which scroll is best is measured rather than listed, for the reason Outfit
+// measures the weapon: a thief's weapon takes three 15% traces that differ
+// only in which stat rides the attack, and only a swing says which.
+void FullyUpgrade(GameState& state);
+
 }  // namespace ms
 
 #endif  // MS_ANALYSIS_SIM_GEAR_H_
