@@ -20,7 +20,7 @@ required_skill {
   skill_name: "Piercing Arrow"
   level: 20
 }
-base_delay_ms: 780
+base_delay_ms: 660
 max_enemies: 8
 lines: 5
 pierce_gain_pct: 0.15

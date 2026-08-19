@@ -14,7 +14,7 @@ kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 30
 exceeds_master_level: true
-base_delay_ms: 630
+base_delay_ms: 660
 max_enemies: 1
 lines: 9
 base {

@@ -16,7 +16,7 @@ kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
 max_level: 30
 exceeds_master_level: true
-base_delay_ms: 780
+base_delay_ms: 660
 max_enemies: 6
 lines: 2
 base {

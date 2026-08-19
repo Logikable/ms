@@ -22,7 +22,7 @@ required_skill {
   skill_name: "Poison Mist"
   level: 20
 }
-base_delay_ms: 930
+base_delay_ms: 660
 max_enemies: 12
 lines: 20
 cooldown_seconds: 10.0

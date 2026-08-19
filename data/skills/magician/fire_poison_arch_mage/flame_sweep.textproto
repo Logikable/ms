@@ -14,7 +14,7 @@ tags: SKILL_TAG_FIRE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 30
 exceeds_master_level: true
-base_delay_ms: 780
+base_delay_ms: 660
 max_enemies: 8
 lines: 7
 base { skill_pct: 1.42 }

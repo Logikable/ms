@@ -14,7 +14,7 @@ tags: SKILL_TAG_FIRE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 20
 exceeds_master_level: true
-base_delay_ms: 1170
+base_delay_ms: 660
 max_enemies: 1
 lines: 15
 cooldown_seconds: 20.0
