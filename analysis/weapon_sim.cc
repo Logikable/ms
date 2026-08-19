@@ -46,7 +46,12 @@
 
 ABSL_FLAG(int, level, 60, "Character level, and the level of the mob fought.");
 ABSL_FLAG(bool, detail, false,
-          "Also print the stat line and skill levels behind each row.");
+          "Also print the stat line, the skill levels and the share of the "
+          "damage each attack took.");
+ABSL_FLAG(int, enemies, 1,
+          "How many mobs stand together. 1 compares weapons, which is what "
+          "the table is for; a larger crowd asks a different question -- what "
+          "a wide skill is worth once there is something to be wide against.");
 
 namespace ms {
 namespace {
@@ -126,6 +131,8 @@ std::string BranchName(Job job) {
       return "Marksman";
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
       return "I/L Arch Mage";
+    case JOB_FIRE_POISON_ARCH_MAGE:
+      return "F/P Arch Mage";
     default:
       return "?";
   }
@@ -276,6 +283,10 @@ struct Result {
   double final_attack_damage = 0.0;
   int unspent_sp = 0;
   std::vector<std::pair<std::string, int>> skills;
+  // Share of the run's damage each attack took, largest first, with everything
+  // on a clock of its own gathered into one row. What it is for is deciding
+  // whether a skill in the book is earning its points.
+  std::vector<std::pair<std::string, double>> shares;
 };
 
 // Strikes another skill hands `swing`, summed over the book the character
@@ -340,9 +351,9 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
 // beside the swing rather than instead of it, so none of this competes with
 // the swing damage for the clock.
 double OffClockDps(const CombatParams& params, const Sequence& played,
-                   const AttackOption& best, double speed,
-                   double swing_seconds) {
-  double dps = OffClockRate(params, played, speed);
+                   const AttackOption& best, double speed, double swing_seconds,
+                   int enemies) {
+  double dps = OffClockRate(params, played, speed, enemies);
   // How often a triggered attack goes off depends on the swing feeding it: a
   // rapid attack counting a seventh apiece is worth no more of these than a
   // slow one counting a whole attack.
@@ -350,10 +361,37 @@ double OffClockDps(const CombatParams& params, const Sequence& played,
     if (extra.damage_per_hit.empty() || extra.attacks_per_cast <= 0) {
       continue;
     }
-    dps += extra.damage_per_hit[0] * best.count_weight /
+    dps += CrowdDamage(extra, enemies) * best.count_weight /
            (swing_seconds * extra.attacks_per_cast);
   }
   return dps;
+}
+
+// Where the run's damage went, as a share apiece. The swings are counted over
+// the run and everything on its own clock is one row, since a summon competes
+// with nothing for the clock and its share is simply what it added.
+void RecordShares(const CombatParams& params, const Sequence& played,
+                  double off_clock_dps, double speed, Result* result) {
+  double off_clock = off_clock_dps * played.seconds / speed;
+  double total = played.damage + off_clock;
+  if (total <= 0.0) {
+    return;
+  }
+  for (int i = 0; i < static_cast<int>(played.damage_by_attack.size()); ++i) {
+    if (played.damage_by_attack[i] <= 0.0) {
+      continue;
+    }
+    result->shares.push_back(
+        {params.attacks[i].name, played.damage_by_attack[i] / total});
+  }
+  if (off_clock > 0.0) {
+    result->shares.push_back({"(own clock)", off_clock / total});
+  }
+  std::sort(result->shares.begin(), result->shares.end(),
+            [](const std::pair<std::string, double>& a,
+               const std::pair<std::string, double>& b) {
+              return a.second > b.second;
+            });
 }
 
 Result Measure(const Catalogs& catalogs, int level, const Build& build) {
@@ -384,7 +422,8 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // Long enough that a four-second cooldown lands hundreds of times, so the
   // average is not moved by where the horizon happens to cut.
   constexpr double kHorizonSeconds = 600.0;
-  Sequence played = PlaySwings(params, kHorizonSeconds);
+  int enemies = absl::GetFlag(FLAGS_enemies);
+  Sequence played = PlaySwings(params, kHorizonSeconds, enemies);
   if (played.main_attack < 0 || played.seconds <= 0.0) {
     return result;
   }
@@ -410,7 +449,10 @@ Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   // part-charged swing the horizon cuts off costs nothing. A cooldown skill is
   // worth exactly the share of the swings it actually gets. Scaled back to 1x.
   result.dps = played.damage * speed / played.seconds;
-  result.dps += OffClockDps(params, played, *best, speed, result.swing_seconds);
+  double off_clock =
+      OffClockDps(params, played, *best, speed, result.swing_seconds, enemies);
+  result.dps += off_clock;
+  RecordShares(params, played, off_clock, speed, &result);
   return result;
 }
 
@@ -438,6 +480,10 @@ void PrintDetail(const Build& build, const Result& result) {
       result.final_attack_damage, result.unspent_sp);
   for (const std::pair<std::string, int>& skill : result.skills) {
     std::printf("%s %d  ", skill.first.c_str(), skill.second);
+  }
+  std::printf("\n            ");
+  for (const std::pair<std::string, double>& share : result.shares) {
+    std::printf("%s %.1f%%  ", share.first.c_str(), 100.0 * share.second);
   }
   std::printf("\n\n");
 }
@@ -487,6 +533,7 @@ void Run(int level) {
       {JOB_BOW_MASTER, EQUIP_TYPE_BOW},
       {JOB_MARKSMAN, EQUIP_TYPE_CROSSBOW},
       {JOB_ICE_LIGHTNING_ARCH_MAGE, EQUIP_TYPE_STAFF},
+      {JOB_FIRE_POISON_ARCH_MAGE, EQUIP_TYPE_STAFF},
   };
 
   std::printf(

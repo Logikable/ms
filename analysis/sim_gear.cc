@@ -1,6 +1,7 @@
 #include "analysis/sim_gear.h"
 
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <memory>
 #include <string>
@@ -161,24 +162,57 @@ double MeasureRate(GameState& state) {
 
 }  // namespace
 
-double SoloDamage(const AttackOption& attack) {
+double CrowdDamage(const AttackOption& attack, int enemies) {
   if (attack.damage_per_hit.empty()) {
     return 0.0;
   }
-  double damage = attack.damage_per_hit[0];
+  int hit = std::min(std::max(1, attack.max_enemies), std::max(1, enemies));
+  double per = attack.damage_per_hit[0];
+  // A swing that gains as it travels: the k'th enemy takes (1 + gain)^k, so
+  // what the whole swing lands is the geometric sum rather than hit times one.
+  double damage =
+      attack.pierce_gain_pct > 0.0
+          ? per * (std::pow(1.0 + attack.pierce_gain_pct, hit) - 1.0) /
+                attack.pierce_gain_pct
+          : per * hit;
+  if (!attack.lead_damage.empty()) {
+    damage +=
+        attack.lead_damage[0] * std::min(std::max(1, attack.lead_enemies), hit);
+  }
+  // Rolled once per enemy reached, so it climbs with the crowd.
   if (!attack.final_attack_damage.empty()) {
-    damage += attack.final_attack_damage[0];
+    damage += attack.final_attack_damage[0] * hit;
+  }
+  // Rolled once for the whole swing, so it does not.
+  if (!attack.single_final_attack_damage.empty()) {
+    damage += attack.single_final_attack_damage[0];
+  }
+  // The burn this swing lights, charged at the rate it can actually sustain.
+  // Relighting it buys no more ticks -- it does not stack -- so what a swing
+  // is worth is the seconds before the same swing comes round again, capped by
+  // how long the burn would have lasted anyway. A swing on no cooldown is back
+  // as soon as it lands; one on a long wait keeps burning through it.
+  if (attack.dot_interval_seconds > 0.0 && !attack.dot_damage.empty()) {
+    double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
+    double burning = std::min(attack.dot_duration_seconds, cadence);
+    damage +=
+        attack.dot_damage[0] * hit * burning / attack.dot_interval_seconds;
   }
   if (attack.empowered != nullptr && attack.empowered_every > 0) {
     // A form that marks enemies rides on top of the strike that sets it off,
     // where one counted on the swing stands in for the swing. The same two
-    // readings CombatSim::SwingDamage takes, against the one mob measured here.
+    // readings CombatSim::SwingDamage takes.
     damage +=
         attack.brands_enemies
-            ? SoloDamage(*attack.empowered) / attack.empowered_every
-            : (SoloDamage(*attack.empowered) - damage) / attack.empowered_every;
+            ? CrowdDamage(*attack.empowered, enemies) / attack.empowered_every
+            : (CrowdDamage(*attack.empowered, enemies) - damage) /
+                  attack.empowered_every;
   }
   return damage;
+}
+
+double SoloDamage(const AttackOption& attack) {
+  return CrowdDamage(attack, 1);
 }
 
 namespace {
@@ -244,7 +278,7 @@ int SwingToLay(const CombatParams& params, const BuffClocks& c,
 // The swing landing the most per second of the ones off cooldown, or -1 when
 // none is. A cast is not among them: it deals no damage.
 int BestSwing(const std::vector<AttackOption>& attacks,
-              const std::vector<double>& cooldown) {
+              const std::vector<double>& cooldown, int enemies) {
   int pick = -1;
   double best_rate = -1.0;
   for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
@@ -253,7 +287,7 @@ int BestSwing(const std::vector<AttackOption>& attacks,
         attack.heal_fraction > 0.0) {
       continue;
     }
-    double rate = SoloDamage(attack) / attack.swing_seconds;
+    double rate = CrowdDamage(attack, enemies) / attack.swing_seconds;
     if (rate > best_rate) {
       best_rate = rate;
       pick = i;
@@ -264,12 +298,13 @@ int BestSwing(const std::vector<AttackOption>& attacks,
 
 }  // namespace
 
-Sequence PlaySwings(const CombatParams& params, double horizon) {
+Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
   constexpr double kStep = 0.01;
   std::vector<double> cooldown(params.attacks.size(), 0.0);
   std::vector<int> swings(params.attacks.size(), 0);
   BuffClocks clocks;
   Sequence played;
+  played.damage_by_attack.assign(params.attacks.size(), 0.0);
   double phase = 0.0;
   int pick = -1;  // the swing being wound up, held until it lands
   for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
@@ -281,7 +316,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon) {
     if (pick <= 0) {
       pick = SwingToLay(params, clocks, cooldown);
       if (pick < 0) {
-        pick = BestSwing(params.Attacks(clocks.mask), cooldown);
+        pick = BestSwing(params.Attacks(clocks.mask), cooldown, enemies);
       }
     }
     if (pick < 0) {
@@ -295,7 +330,9 @@ Sequence PlaySwings(const CombatParams& params, double horizon) {
       continue;
     }
     phase -= swung.swing_seconds;
-    played.damage += SoloDamage(swung);
+    double landed = CrowdDamage(swung, enemies);
+    played.damage += landed;
+    played.damage_by_attack[pick] += landed;
     played.seconds += swung.swing_seconds;
     ++swings[pick];
     cooldown[pick] = swung.cooldown_seconds;
@@ -314,7 +351,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon) {
 }
 
 double OffClockRate(const CombatParams& params, const Sequence& played,
-                    double speed) {
+                    double speed, int enemies) {
   double rate = 0.0;
   for (int i = 0; i < static_cast<int>(params.auto_attacks.size()); ++i) {
     int gate = params.auto_attacks[i].needs_buff;
@@ -325,18 +362,7 @@ double OffClockRate(const CombatParams& params, const Sequence& played,
     if (extra.damage_per_hit.empty() || extra.interval_seconds <= 0.0) {
       continue;
     }
-    double per_pulse = extra.damage_per_hit[0];
-    if (extra.empowered != nullptr && extra.empowered_every > 0 &&
-        !extra.empowered->damage_per_hit.empty()) {
-      // Marking, the form rides the pulse that set it off rather than standing
-      // in for one. No summon marks today, but the two readings differ and the
-      // averaging has to pick the right one.
-      per_pulse +=
-          extra.brands_enemies
-              ? extra.empowered->damage_per_hit[0] / extra.empowered_every
-              : (extra.empowered->damage_per_hit[0] - per_pulse) /
-                    extra.empowered_every;
-    }
+    double per_pulse = CrowdDamage(extra, enemies);
     double share =
         gate >= 0 && gate < static_cast<int>(played.buff_uptime.size())
             ? played.buff_uptime[gate]

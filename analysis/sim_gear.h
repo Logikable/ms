@@ -18,10 +18,17 @@
 
 namespace ms {
 
-// What one swing of `attack` lands on a lone mob, Final Attack included, and
-// an empowered form averaged over the swings it takes the place of -- the same
-// reading CombatSim::SwingDamage takes. The form has none of its own, so this
-// recurs exactly once.
+// What one swing of `attack` lands on `enemies` mobs standing together: every
+// rider the swing carries, and an empowered form averaged over the swings it
+// takes the place of -- the same reading CombatSim::SwingDamage takes. The
+// form has none of its own, so this recurs exactly once.
+//
+// Which riders count per enemy and which count once is the whole of what an
+// enemy count changes: a Final Attack that falls on one enemy is worth the
+// same against twelve, and a burn is worth twelve times as much.
+double CrowdDamage(const AttackOption& attack, int enemies);
+
+// The same against a lone mob, which is what a weapon comparison wants.
 double SoloDamage(const AttackOption& attack);
 
 // What a run of swings came to.
@@ -29,6 +36,9 @@ struct Sequence {
   double damage = 0.0;
   double seconds = 0.0;  // time the swings that landed actually took
   int main_attack = -1;  // index of the one swung most often
+  // What each swing came to over the run, parallel to CombatParams::attacks.
+  // Sums to `damage`, so a share is one entry over that.
+  std::vector<double> damage_by_attack;
   // Share of the run each of the character's buffs spent standing, parallel to
   // CombatParams::buffs. What a pulse gated on one is worth is its own damage
   // times this -- see AttackOption::needs_buff.
@@ -46,7 +56,8 @@ struct Sequence {
 // charge is already wound up when it returns. The buffs are the same problem
 // again: a buff worth 25% that stands for half the run is not worth 12.5% of
 // every swing, it is worth all of it to half of them.
-Sequence PlaySwings(const CombatParams& params, double horizon);
+Sequence PlaySwings(const CombatParams& params, double horizon,
+                    int enemies = 1);
 
 // What the character's summons and pulses add per second, at `speed` (1.0 for
 // the game-scaled figure, the speed factor to back the scaling out).
@@ -55,7 +66,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon);
 // that buff stood, and is priced off the table where it does stand -- it hits
 // harder there, which is the point of the buff it waits for.
 double OffClockRate(const CombatParams& params, const Sequence& played,
-                    double speed);
+                    double speed, int enemies = 1);
 
 // The name of the character's weapon, "-" for empty hands.
 std::string HeldWeaponName(const CharacterInstance& character);
