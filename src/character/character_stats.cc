@@ -49,6 +49,15 @@ bool GrantsSkillLevels(const Skill& skill) {
   return skill.base().skill_level_bonus() > 0.0;
 }
 
+// A fountain whose pour grows with the character's INT: the rate one helping
+// comes to, and the INT that buys another. Held per skill rather than summed,
+// because two granting different steps cannot share one -- and what the total
+// INT is cannot be known until every passive has been read.
+struct IntScaledRegen {
+  double pct_per_second = 0.0;
+  double int_step = 0.0;
+};
+
 // What one learned passive is worth at `level`, in the shape they are summed
 // in. Every lever is base + per_level * (L - 1).
 struct PassiveTotals {
@@ -79,6 +88,8 @@ struct PassiveTotals {
   double hp_recover_pct = 0.0;
   double exp_pct = 0.0;
   double regen_pct_per_second = 0.0;
+  // Holy Water's: the extra helpings its INT buys, one entry per skill.
+  std::vector<IntScaledRegen> int_scaled_regen;
   double status_resistance = 0.0;
   double elemental_resistance = 0.0;
   // One per skill granting one, in catalog order. Two that follow the same
@@ -168,8 +179,16 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   double regen_interval = base.regen_interval_seconds() +
                           per.regen_interval_seconds() * (level - 1);
   if (regen_interval > 0.0) {
-    totals.regen_pct_per_second +=
+    double rate =
         (base.regen_pct() + per.regen_pct() * (level - 1)) / regen_interval;
+    totals.regen_pct_per_second += rate;
+    // A fountain that pours harder for a clever character. The rate is
+    // recorded a second time here, because what the INT buys is more of the
+    // same helping -- see DerivedStatsFor.
+    double step = base.regen_int_step() + per.regen_int_step() * (level - 1);
+    if (step > 0.0) {
+      totals.int_scaled_regen.push_back(IntScaledRegen{rate, step});
+    }
   }
   totals.status_resistance +=
       base.status_resistance() + per.status_resistance() * (level - 1);
@@ -578,7 +597,16 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.hp_recover_pct = passives.hp_recover_pct;
   stats.revive_cooldown_seconds = passives.revive_cooldown_seconds;
   stats.exp_pct = passives.exp_pct;
+  // A fountain pours one more helping per whole step of INT, so Holy Water is
+  // worth twice its stated rate at 2500 and three times it at 5000. Charged
+  // against the character's WHOLE INT -- what a ring grants and what Maple
+  // Warrior grants back count the same as what AP bought.
+  int total_int = allocated.int_() + equipped.int_() + passives.int_;
   stats.regen_pct_per_second = passives.regen_pct_per_second;
+  for (const IntScaledRegen& source : passives.int_scaled_regen) {
+    stats.regen_pct_per_second +=
+        source.pct_per_second * std::floor(total_int / source.int_step);
+  }
   stats.status_resistance = passives.status_resistance;
   stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;

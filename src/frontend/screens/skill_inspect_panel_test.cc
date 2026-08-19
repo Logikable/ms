@@ -659,6 +659,19 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAFountain) {
   // A skill with no fountain says nothing about one.
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("HP Recovered"),
             std::string::npos);
+
+  // Holy Water pours one more helping per step of INT, which is most of what
+  // the points buy -- so the row says so, wrapping rather than dropping it.
+  Skill water = MakeIronBody();
+  water.mutable_base()->set_regen_pct(0.005);
+  water.mutable_per_level()->set_regen_pct(0.005);
+  water.mutable_base()->set_regen_interval_seconds(10.0);
+  water.mutable_base()->set_regen_int_step(2500);
+  std::string rendered = RenderAt(water, 10);
+  EXPECT_NE(rendered.find("HP Recovered      5% every 10s, +5%"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(rendered.find("per 2500 INT"), std::string::npos) << rendered;
 }
 
 // Holy Symbol's whole effect. It buys no part of a fight, so it would read as

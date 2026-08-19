@@ -591,9 +591,19 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   double regen_interval =
       PercentAt(skill, &SkillEffect::regen_interval_seconds, level);
   if (regen > 0.0 && regen_interval > 0.0) {
-    rows.push_back(EffectRow(
-        "HP Recovered",
-        FormatPercent(regen) + " every " + FormatNumber(regen_interval) + "s"));
+    std::string text =
+        FormatPercent(regen) + " every " + FormatNumber(regen_interval) + "s";
+    // Holy Water pours one more helping per step of INT, which is most of
+    // what a Bishop's points buy. Stated with the pulse rather than as a row
+    // of its own: alone it would read as a share of the pool.
+    double step = PercentAt(skill, &SkillEffect::regen_int_step, level);
+    if (step > 0.0) {
+      text +=
+          ", +" + FormatPercent(regen) + " per " + FormatNumber(step) + " INT";
+    }
+    for (ftxui::Element& row : WrappedEffectRows("HP Recovered", text)) {
+      rows.push_back(std::move(row));
+    }
   }
   // What one meso is worth thrown back, read the way every other swing on this
   // page is read: per line, times the count. Meso Mastery's points land on a

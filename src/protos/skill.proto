@@ -236,6 +236,15 @@ message SkillEffect {
   // climbs the ladder downwards, so per_level is negative.
   double regen_pct = 114;
   double regen_interval_seconds = 115;
+  // The Bishop's. Total INT that buys one more helping of regen_pct above, so
+  // at 2500 a character with 5000 INT is poured three times what the fountain
+  // states. Holy Water is what it exists for -- GMS's "HP Recovery is
+  // increased by 5% per 2500 INT".
+  //
+  // The whole of the character's INT counts, their skills' grants included, so
+  // it is folded where the total is finally known rather than where the pulse
+  // is read. 0 for a fountain that pours the same however clever they are.
+  double regen_int_step = 126;
   // The Hermit's. Share added to the character's damage against a boss and
   // nothing else (0.10 == +10%). Sums with what gear grants, the two being the
   // same quantity from two places.

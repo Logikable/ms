@@ -1564,6 +1564,47 @@ TEST_F(DerivedStatsTest, AFountainFoldsToARatePerSecond) {
               1e-9);
 }
 
+// Holy Water's shape: the same pulse again for every whole step of INT the
+// character carries, so 2500 doubles it and 5000 trebles it. Charged against
+// the whole of their INT -- what a skill grants counts with what AP bought.
+TEST_F(DerivedStatsTest, AFountainCanPourHarderForACleverCharacter) {
+  Skill water;
+  water.set_name("Holy Water");
+  water.set_kind(SKILL_KIND_PASSIVE);
+  water.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  water.set_max_level(10);
+  water.mutable_base()->set_regen_pct(0.005);
+  water.mutable_per_level()->set_regen_pct(0.005);
+  water.mutable_base()->set_regen_interval_seconds(10.0);
+  water.mutable_base()->set_regen_int_step(2500);
+  Skill wisdom;
+  wisdom.set_name("High Wisdom");
+  wisdom.set_kind(SKILL_KIND_PASSIVE);
+  wisdom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  wisdom.set_max_level(10);
+  wisdom.mutable_base()->set_int_(1000);
+  std::map<std::string, Skill> skills = {{"holy_water", water},
+                                         {"high_wisdom", wisdom}};
+
+  CharacterInstance dim = MakeStatCharacter(rng_, 0, 0, 2499, 0);
+  ASSERT_TRUE(dim.LearnSkill(water, 10));
+  EXPECT_NEAR(DerivedStatsFor(dim, skills).regen_pct_per_second, 0.05 / 10.0,
+              1e-9);
+
+  CharacterInstance clever = MakeStatCharacter(rng_, 0, 0, 5000, 0);
+  ASSERT_TRUE(clever.LearnSkill(water, 10));
+  EXPECT_NEAR(DerivedStatsFor(clever, skills).regen_pct_per_second,
+              3.0 * 0.05 / 10.0, 1e-9);
+
+  // The last 1000 points come from a skill rather than from AP, and buy the
+  // same helping: a fold reading the allocation alone would stop at two.
+  CharacterInstance granted = MakeStatCharacter(rng_, 0, 0, 4000, 0);
+  ASSERT_TRUE(granted.LearnSkill(water, 10));
+  ASSERT_TRUE(granted.LearnSkill(wisdom, 1));
+  EXPECT_NEAR(DerivedStatsFor(granted, skills).regen_pct_per_second,
+              3.0 * 0.05 / 10.0, 1e-9);
+}
+
 // A fountain with no wait between its pulses would divide by nothing, so it
 // grants nothing rather than an infinity.
 TEST_F(DerivedStatsTest, AFountainWithNoIntervalGrantsNothing) {
