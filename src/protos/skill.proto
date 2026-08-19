@@ -61,8 +61,14 @@ message SkillEffect {
   int32 int = 3;
   int32 luk = 4;
 
-  // HP and MP pools. The flat per-level amount lands first and the percent
-  // scales what it comes to.
+  // HP and MP pools. The flat amounts land first -- the outright grant and the
+  // per-level one alike -- and the percent scales what they come to.
+  //
+  // The pair below is per LEVEL, which is how most of GMS's pool skills read.
+  // Advanced Blessing simply grants 750, so the flat pair above it is what a
+  // worn item's Max HP is: the same number at level 1 and at 140.
+  int32 max_hp = 25;
+  int32 max_mp = 26;
   int32 max_hp_per_level = 5;
   double max_hp_pct = 6;
   int32 max_mp_per_level = 7;

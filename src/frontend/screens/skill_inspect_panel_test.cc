@@ -109,11 +109,17 @@ TEST_F(SkillInspectPanelTest, TitlesACastNonAttackActive) {
 
 TEST_F(SkillInspectPanelTest, ReadsEveryLeverAtTheLearnedLevel) {
   Skill skill = MakeIronBody();
+  // A pool granted outright, which reads as a plain number rather than as the
+  // "per level" the pair beside it takes.
+  skill.mutable_base()->set_max_hp(525);
+  skill.mutable_per_level()->set_max_hp(25);
   std::string rendered = RenderAt(skill, 5);
   EXPECT_NE(rendered.find("Level 5"), std::string::npos);
   EXPECT_NE(rendered.find("+50"), std::string::npos);    // DEF
   EXPECT_NE(rendered.find("+5%"), std::string::npos);    // Max HP
   EXPECT_NE(rendered.find("-2.5%"), std::string::npos);  // Damage Taken
+  EXPECT_NE(rendered.find("Max HP            +625"), std::string::npos)
+      << rendered;
 }
 
 // Reckless Hunt sells DEF for damage. The price is half the skill, so the page

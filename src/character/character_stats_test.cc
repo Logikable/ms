@@ -207,6 +207,21 @@ Skill WarriorMastery() {
   return skill;
 }
 
+// Advanced Blessing, trimmed to the pools: an outright grant, the same at
+// level 1 of the character as at 140.
+Skill AdvancedBlessing() {
+  Skill skill;
+  skill.set_name("Advanced Blessing");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(10);
+  skill.mutable_base()->set_max_hp(525);
+  skill.mutable_base()->set_max_mp(525);
+  skill.mutable_per_level()->set_max_hp(25);
+  skill.mutable_per_level()->set_max_mp(25);
+  return skill;
+}
+
 class DerivedStatsTest : public testing::Test {
  protected:
   std::mt19937 rng_{0};
@@ -500,16 +515,21 @@ TEST_F(DerivedStatsTest, PercentHpAppliesAfterEveryFlatSource) {
   EquipArmor(c, 100, 0);
   Skill iron_body = IronBody();
   Skill mastery = WarriorMastery();
+  Skill blessing = AdvancedBlessing();
   std::map<std::string, Skill> skills = {{"iron_body", iron_body},
-                                         {"warrior_mastery", mastery}};
+                                         {"warrior_mastery", mastery},
+                                         {"advanced_blessing", blessing}};
   ASSERT_TRUE(c.LearnSkill(iron_body, 10));
   ASSERT_TRUE(c.LearnSkill(mastery, 1));
+  ASSERT_TRUE(c.LearnSkill(blessing, 10));
 
-  // Flat first: 50 allocated + 100 equipped + 6 * 15 per-level = 240, then
-  // Iron Body's +10% on the whole pile. Applying the percent to any one source
-  // alone would land short.
+  // Flat first: 50 allocated + 100 equipped + 6 * 15 per-level + a flat 750,
+  // then Iron Body's +10% on the whole pile. Applying the percent to any one
+  // source alone would land short.
   DerivedStats stats = DerivedStatsFor(c, skills);
-  EXPECT_EQ(stats.max_hp, 264);
+  EXPECT_EQ(stats.max_hp, 1089);
+  // The MP half of the same grant, with no percentage over it.
+  EXPECT_EQ(stats.max_mp, 750);
 }
 
 TEST_F(DerivedStatsTest, PercentHpSurvivesItsOwnAccumulation) {

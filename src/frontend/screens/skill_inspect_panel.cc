@@ -128,6 +128,8 @@ const FlatLever kFlatLevers[] = {
     {"DEX", &SkillEffect::dex, "", false},
     {"INT", &SkillEffect::int_, "", false},
     {"LUK", &SkillEffect::luk, "", false},
+    {"Max HP", &SkillEffect::max_hp, "", false},
+    {"Max MP", &SkillEffect::max_mp, "", false},
     {"Max HP", &SkillEffect::max_hp_per_level, " per level", false},
     {"Max MP", &SkillEffect::max_mp_per_level, " per level", false},
     {"Attack Speed", &SkillEffect::attack_speed, " stage", true},

@@ -52,6 +52,8 @@ bool GrantsSkillLevels(const Skill& skill) {
 // What one learned passive is worth at `level`, in the shape they are summed
 // in. Every lever is base + per_level * (L - 1).
 struct PassiveTotals {
+  int max_hp = 0;
+  int max_mp = 0;
   int hp_per_level = 0;
   double max_hp_pct = 0.0;
   int mp_per_level = 0;
@@ -124,6 +126,8 @@ struct PassiveTotals {
 // same levers, gated on the weapon rather than on the skill.
 void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
                PassiveTotals& totals) {
+  totals.max_hp += base.max_hp() + per.max_hp() * (level - 1);
+  totals.max_mp += base.max_mp() + per.max_mp() * (level - 1);
   totals.hp_per_level +=
       base.max_hp_per_level() + per.max_hp_per_level() * (level - 1);
   totals.max_hp_pct += base.max_hp_pct() + per.max_hp_pct() * (level - 1);
@@ -536,12 +540,14 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   FoldApStats(allocated, passives);
 
   DerivedStats stats;
-  stats.max_hp = FoldPercent(allocated.hp() + equipped.max_hp() +
-                                 passives.hp_per_level * proto.level(),
-                             passives.max_hp_pct);
-  stats.max_mp = FoldPercent(allocated.mp() + equipped.max_mp() +
-                                 passives.mp_per_level * proto.level(),
-                             passives.max_mp_pct);
+  stats.max_hp =
+      FoldPercent(allocated.hp() + equipped.max_hp() + passives.max_hp +
+                      passives.hp_per_level * proto.level(),
+                  passives.max_hp_pct);
+  stats.max_mp =
+      FoldPercent(allocated.mp() + equipped.max_mp() + passives.max_mp +
+                      passives.mp_per_level * proto.level(),
+                  passives.max_mp_pct);
   stats.skill_stats.set_def(passives.def);
   stats.skill_stats.set_str(passives.str);
   stats.skill_stats.set_dex(passives.dex);
