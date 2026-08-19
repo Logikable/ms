@@ -1,0 +1,36 @@
+# GMS: 112+3x% fifteen times, a 110+3x% burn for thirty seconds, and a wait
+# that shortens from 20 seconds to 10 as the skill is levelled. GMS also holds
+# the enemy untouchable, slows it and lays a Poison Mist where it lands, none
+# of which has anything to act on here.
+#
+# Both halves are GMS's x2.8, which makes this the book's single-target lever.
+# Flame Sweep is a much smaller swing than the I/L Arch Mage's Chain Lightning
+# -- 1400% against 2200% on the same clock -- and GMS pays that back with five
+# more damage-over-time sources, Poison Nova and DoT Punisher, none of which
+# this game has. One skill carries all of it, and it is this one, because it
+# reaches a single enemy and so cannot touch what the class does to a room.
+name: "Flame Haze"
+skill_order: 4
+description:
+  "Wrap one enemy in burning mist, striking it hard and leaving it to burn "
+  "for a long while."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_FIRE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+max_level: 20
+exceeds_master_level: true
+base_delay_ms: 1170
+max_enemies: 1
+lines: 15
+cooldown_seconds: 20.0
+cooldown_seconds_per_level: -0.526316
+base { skill_pct: 3.22 }
+per_level { skill_pct: 0.12821 }
+dot {
+  label: "Burn"
+  interval_seconds: 1.0
+  duration_seconds: 30.0
+  lines: 1
+  base { skill_pct: 3.164 }
+  per_level { skill_pct: 0.12821 }
+}

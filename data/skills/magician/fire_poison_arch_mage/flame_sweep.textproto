@@ -1,0 +1,29 @@
+# GMS: 140+2x% seven times on 8 enemies, and everything it touches burns for
+# 120+4x% a second for five seconds. Both ladders are GMS's own.
+#
+# The burn is the first effect over time the game keeps. Every earlier one was
+# dropped, because a map mob dies inside a swing and a few seconds of ticking
+# never arrived -- what changed is that this class is built on them.
+name: "Flame Sweep"
+skill_order: 1
+description:
+  "A fire attack. Sweep the room in front of you with flame, and leave what "
+  "it touches burning."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_FIRE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 780
+max_enemies: 8
+lines: 7
+base { skill_pct: 1.42 }
+per_level { skill_pct: 0.02 }
+dot {
+  label: "Burn"
+  interval_seconds: 1.0
+  duration_seconds: 5.0
+  lines: 1
+  base { skill_pct: 1.24000 }
+  per_level { skill_pct: 0.04000 }
+}

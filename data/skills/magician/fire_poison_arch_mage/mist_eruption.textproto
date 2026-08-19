@@ -1,0 +1,44 @@
+# GMS detonates your own Poison Mists and pays more for each one that goes off
+# -- up to +125% final damage for five. Nothing here places a mist or stands
+# anywhere, so there is no count to key that to and the multiplier is simply
+# folded into the damage.
+#
+# This is the book's crowd lever, and the folded number is what it was tuned
+# with: GMS's 95+x% ten times became 271% -> 320%, which puts the class within
+# 2% of the I/L Arch Mage against twelve enemies. It reaches twelve where
+# I/L's cooldown swing reaches eight, so it is the wider of the two nukes and
+# the one that answers a full room.
+#
+# The passive raises Poison Mist for good, which is an empowered form that
+# takes the place of EVERY pulse rather than every fourth.
+name: "Mist Eruption"
+skill_order: 2
+description:
+  "Set off the poison hanging around you all at once, dealing heavy damage. "
+  "Also permanently strengthens Poison Mist."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+max_level: 20
+exceeds_master_level: true
+required_skill {
+  skill_name: "Poison Mist"
+  level: 20
+}
+base_delay_ms: 930
+max_enemies: 12
+lines: 10
+cooldown_seconds: 10.0
+base {
+  skill_pct: 2.71
+  ied_pct: 0.40
+}
+per_level { skill_pct: 0.0258 }
+boosts_skill_name: "Poison Mist"
+empowered_form {
+  skill_name: "Poison Mist"
+  casts_per_trigger: 1
+  max_enemies: 6
+  lines: 1
+  base { skill_pct: 2.71 }
+  per_level { skill_pct: 0.01526 }
+}

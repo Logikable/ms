@@ -1,0 +1,32 @@
+# GMS: 225+3x% twelve times on 15 enemies every 45 seconds, and a permanent
+# 2x% chance of a meteorite worth 100+4x%. Both ends are GMS's own, stretched
+# over 20 levels instead of 30.
+#
+# The meteorite falls on one enemy, like Blizzard's. GMS words only Blizzard's
+# that way, but the two passives carry the same numbers to the digit, and read
+# per enemy this one would pay fifteen times over on a full room.
+name: "Meteor Shower"
+skill_order: 3
+description:
+  "Call meteors down over the whole room. Afterwards every attack you make "
+  "may drop one more on a single enemy."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_FIRE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+max_level: 20
+exceeds_master_level: true
+base_delay_ms: 900
+max_enemies: 15
+lines: 12
+cooldown_seconds: 45.0
+final_attack_single_enemy: true
+base {
+  skill_pct: 2.28
+  final_attack_chance: 0.02
+  final_attack_pct: 1.04
+}
+per_level {
+  skill_pct: 0.0458
+  final_attack_chance: 0.030526
+  final_attack_pct: 0.061053
+}
