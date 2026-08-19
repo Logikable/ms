@@ -1,0 +1,26 @@
+# The book's mastery skill, on the ladder every 4th job's climbs: 51% at level
+# 1 to 70% at 20. GMS pays x attack and floor(x/3)% critical damage over 30
+# levels; twenty here, so the attack lands a point a level and the critical
+# damage is flat at what GMS reaches.
+name: "Claw Expert"
+skill_order: 10
+description:
+  "Master the claw. Your throwing stars land closer to their hardest and hurt "
+  "more when they land true."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+max_level: 20
+exceeds_master_level: true
+required_skill {
+  skill_name: "Claw Mastery"
+  level: 10
+}
+base {
+  mastery: 0.51
+  attack: 11
+  crit_dmg: 0.10
+}
+per_level {
+  mastery: 0.01
+  attack: 1
+}

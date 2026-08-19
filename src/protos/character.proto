@@ -70,6 +70,8 @@ enum Job {
   JOB_ICE_LIGHTNING_ARCH_MAGE = 31;
   JOB_FIRE_POISON_ARCH_MAGE = 32;
   JOB_BISHOP = 33;
+  // The rogue's 4th advancements.
+  JOB_NIGHT_LORD = 34;
 }
 
 // A single advancement tier -- finer than Job. One Job spans a sequence of
@@ -112,6 +114,7 @@ enum JobAdvancement {
   JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE = 30;
   JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE = 31;
   JOB_ADVANCEMENT_BISHOP = 32;
+  JOB_ADVANCEMENT_NIGHT_LORD = 33;
 }
 
 // Identifies a stat that a player can spend AP into via AllocateStat.

@@ -1,0 +1,20 @@
+# GMS pays 5+floor(x/2) attack, x% ignored defence and 5+floor(x/3)% final
+# damage over 30 levels. Ten here, so the ignored defence and the final damage
+# arrive where GMS's do and the attack is a point a level.
+name: "Dark Harmony"
+skill_order: 7
+description: "Become one with the darkness, and deal more damage for it."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+max_level: 10
+exceeds_master_level: true
+base {
+  attack: 1
+  ied_pct: 0.21
+  final_dmg_pct: 0.06
+}
+per_level {
+  attack: 1
+  ied_pct: 0.01
+  final_dmg_pct: 0.01
+}

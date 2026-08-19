@@ -1,0 +1,23 @@
+# GMS's own figures: a 40+2x% chance of a mark, and three stars for 205+5x%
+# apiece on the next attack. The mark and the spending of it are one beat apart
+# in GMS and none here, so what is left is a Final Attack -- the same shape
+# Assassin's Mark takes, one star wider and half again as likely.
+name: "Night Lord's Mark"
+skill_order: 3
+description:
+  "Sharpens the assassin's mark. It lands more often, and three throwing "
+  "stars form on the marked enemy instead of two."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+max_level: 10
+exceeds_master_level: true
+supersedes_skill_name: "Assassin's Mark"
+base {
+  final_attack_chance: 0.42
+  final_attack_pct: 2.10
+  final_attack_lines: 3
+}
+per_level {
+  final_attack_chance: 0.02
+  final_attack_pct: 0.05
+}

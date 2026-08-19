@@ -1,0 +1,12 @@
+# GMS's is a barrier that weakens what walks into it, with the boss damage as
+# its passive half. Nothing here can be weakened, so the passive half is the
+# whole skill -- 1% a level over 20, where GMS pays 5+ceil(x/2)% over 30.
+name: "Frailty Curse"
+skill_order: 5
+description: "Curse your enemies with frailty, so bosses take more from you."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+max_level: 20
+exceeds_master_level: true
+base { boss_pct: 0.01 }
+per_level { boss_pct: 0.01 }

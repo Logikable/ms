@@ -1,0 +1,39 @@
+# GMS's own figures: 365+8x% twice on six enemies, and a dark shuriken that
+# attacks six times for 9+3*floor(x/6)% once every five seconds, hitting an
+# ordinary monster for 200% more. The provocation goes -- nothing here can be
+# taunted -- but what the provoked enemies pay stays, as a permanent grant of
+# ceil(x/6)% EXP walked as a line.
+#
+# The shuriken is a side strike rather than a summon on purpose: it has to go
+# out with this swing and no other, or a Night Lord holding Quad Star at a boss
+# would be firing it the whole time.
+name: "Showdown"
+skill_order: 2
+description:
+  "Throw a talisman that provokes the enemies around you. It bursts into a "
+  "dark shuriken that hunts them down, and what it marks pays out more EXP."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 780
+max_enemies: 6
+lines: 2
+base {
+  skill_pct: 3.73
+  exp_pct: 0.01
+}
+per_level {
+  skill_pct: 0.08
+  exp_pct: 0.0013793103
+}
+side_strike {
+  label: "Shuriken"
+  lines: 6
+  cooldown_seconds: 5.0
+  base {
+    skill_pct: 0.09
+    normal_skill_pct: 2.00
+  }
+  per_level { skill_pct: 0.0051724138 }
+}

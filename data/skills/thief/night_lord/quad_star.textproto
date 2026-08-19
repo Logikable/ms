@@ -1,0 +1,17 @@
+# GMS's own figures: 323+4x% four times over 30 levels, on one enemy. The
+# single target is the whole of what this skill is -- a Night Lord keeps it for
+# bosses and Showdown for everything else. 780ms is the animation's own.
+name: "Quad Star"
+skill_order: 1
+description:
+  "Throw four throwing stars at once. They strike the enemy with the most HP "
+  "left first."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 780
+max_enemies: 1
+lines: 4
+base { skill_pct: 3.27 }
+per_level { skill_pct: 0.04 }

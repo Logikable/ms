@@ -133,6 +133,8 @@ std::string BranchName(Job job) {
       return "I/L Arch Mage";
     case JOB_FIRE_POISON_ARCH_MAGE:
       return "F/P Arch Mage";
+    case JOB_NIGHT_LORD:
+      return "Night Lord";
     case JOB_BISHOP:
       return "Bishop";
     default:
@@ -537,6 +539,7 @@ void Run(int level) {
       {JOB_ICE_LIGHTNING_ARCH_MAGE, EQUIP_TYPE_STAFF},
       {JOB_FIRE_POISON_ARCH_MAGE, EQUIP_TYPE_STAFF},
       {JOB_BISHOP, EQUIP_TYPE_STAFF},
+      {JOB_NIGHT_LORD, EQUIP_TYPE_CLAW},
   };
 
   std::printf(
