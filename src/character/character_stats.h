@@ -102,6 +102,10 @@ struct DerivedStats {
   // Share added to the meso a kill yields (0.20 == +20%). Summed across the
   // passives granting it.
   double meso_pct = 0.0;
+  // Share added to how long every buff the character raises stays up (0.50 ==
+  // half again). Summed, and read only by AddBuffs -- the wait for the next
+  // cast is untouched.
+  double buff_duration_pct = 0.0;
   // Share added to damage against a boss and nothing else. Summed, and summed
   // again with the equipment's own -- see OffenseStatsFor. Nothing in the game
   // is a boss yet, so nothing reads it.

@@ -1423,7 +1423,7 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, panel_focus_);
-  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 11u);  // 10 stats and the row
+  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 12u);  // 11 stats and the row
 }
 
 // The block is what a job fills in, so a Beginner's tab ends at the AP rows --
@@ -1452,8 +1452,8 @@ TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
   CharacterPanel panel(first, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"Attack", "Magic Attack", "Attack Speed",
-                                      "Defense", "Elemental Resist",
-                                      "Status Resist", "View All Stats"}));
+                                      "Elemental Resist", "Status Resist",
+                                      "Defense", "View All Stats"}));
 
   CharacterInstance second = MakeSpearman(rng_);
   CharacterPanel later(second, panel_focus_);

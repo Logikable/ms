@@ -105,20 +105,18 @@ std::vector<StatLine> CombatStatLines(
         {"Critical Rate", Percent(kBaseCritRate + derived.crit_rate)});
     lines.push_back(
         {"Critical Damage", Percent(kBaseCritDamage + derived.crit_dmg)});
+    // Under the crit pair because it qualifies neither: what it lengthens is
+    // whatever the character keeps up, which no other row here shows.
+    lines.push_back({"Buff Duration", Percent(derived.buff_duration_pct)});
   }
   lines.push_back(
       {"Attack Speed",
        AttackSpeedText(character.proto().job(), character.equipped(),
                        derived.attack_speed_bonus)});
-  // Split like the primary stats: what the character's own stats buy, then
-  // everything worn, granted or multiplied on top of it.
-  lines.push_back(
-      {"Defense",
-       TotalWithBreakdown(derived.base_def, derived.def - derived.base_def)});
-  // Last, because nothing reads either of them yet -- no mob inflicts a status
-  // or an element. They are here so a player who spent SP on Endure can see
-  // what they bought. Shortened to seat the 16-column label: "Elemental
-  // Resistance" is 20 and would be cut mid-word.
+  // Nothing reads either of these yet -- no mob inflicts a status or an
+  // element. They are here so a player who spent SP on Endure can see what
+  // they bought. Shortened to seat the 16-column label: "Elemental Resistance"
+  // is 20 and would be cut mid-word.
   lines.push_back({"Elemental Resist", Percent(derived.elemental_resistance)});
   lines.push_back({"Status Resist", std::to_string(static_cast<int>(
                                         derived.status_resistance))});
@@ -128,6 +126,14 @@ std::vector<StatLine> CombatStatLines(
     lines.push_back({"Meso Drop Rate", Percent(derived.meso_pct)});
     lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
   }
+  // Bottom of the list, and so the first row a short terminal drops: DEF stops
+  // paying once it reaches a share of the attacking monster's attack, and a
+  // levelled character passed that long ago. Split like the primary stats --
+  // what their own stats buy, then everything worn, granted or multiplied on
+  // top.
+  lines.push_back(
+      {"Defense",
+       TotalWithBreakdown(derived.base_def, derived.def - derived.base_def)});
   return lines;
 }
 

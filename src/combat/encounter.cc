@@ -617,17 +617,19 @@ int AttackNamed(const std::vector<AttackOption>& attacks,
 void AddBuffs(const CharacterInstance& character,
               const std::map<std::string, Skill>& skills,
               const std::vector<const Skill*>& buff_skills, double speed_factor,
-              CombatParams& params) {
+              double buff_duration_pct, CombatParams& params) {
   int bonus = BonusSkillLevels(character, skills);
   for (const Skill* skill : buff_skills) {
     int level = EffectiveSkillLevel(character, *skill, bonus);
     const Buff& buff = skill->buff();
     BuffOption option;
     option.name = skill->name();
+    // Buff Duration lengthens the buff and not the wait below it, which is why
+    // a percentage that grants nothing on its own is worth having.
     option.duration_seconds =
         (buff.duration_seconds() +
          buff.duration_seconds_per_level() * (level - 1)) *
-        speed_factor;
+        (1.0 + buff_duration_pct) * speed_factor;
     option.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
     option.cooldown_reduction_seconds =
         buff.cooldown_reduction_seconds() * speed_factor;
@@ -772,7 +774,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
   if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {
     buff_skills.resize(kMaxBuffWindows);
   }
-  AddBuffs(state.character, state.skills, buff_skills, speed_factor, params);
+  AddBuffs(state.character, state.skills, buff_skills, speed_factor,
+           derived.buff_duration_pct, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
   TagBuffGatedPulses(buff_skills, params);
   params.active = true;

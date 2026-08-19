@@ -287,6 +287,14 @@ message SkillEffect {
   // Sums across its sources, and the second lever in the game to pay in
   // something other than a fight -- exp_pct above is the first.
   double meso_pct = 121;
+  // The I/L Arch Mage's. Share added to how long every buff the character
+  // raises stays up (0.50 == half again), summed across its sources. It
+  // lengthens the buff and leaves the wait for the next one alone, which is
+  // the whole of what it buys.
+  //
+  // Only a Buff has a duration to lengthen, so this reaches exactly the skills
+  // that could not be folded in as permanent -- see the Buff message.
+  double buff_duration_pct = 125;
 
   // The Hermit's. Shadow Partner. A shadow copies every line the character's
   // swing lands and strikes again for this share of one (0.70 == 70%), so a

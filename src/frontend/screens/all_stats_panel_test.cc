@@ -78,12 +78,12 @@ TEST_F(AllStatsPanelTest, PairsTheStatsTwoToARow) {
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Boss Damage").find("Ignore DEF"),
             std::string::npos);
-  // The two defensive pairs. Additional EXP is the odd thirteenth and sits
-  // alone under them, which is where the one row about the climb belongs.
-  EXPECT_NE(RowWith(panel.Render(), "Attack Speed").find("Defense"),
+  EXPECT_NE(RowWith(panel.Render(), "Buff Duration").find("Attack Speed"),
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Elemental Resist").find("Status Resist"),
             std::string::npos);
+  // Defense is the odd fifteenth and sits alone at the foot, which is where
+  // the stat that stopped paying long ago belongs.
 }
 
 TEST_F(AllStatsPanelTest, ShowsTheHeadingAndNothingSpendable) {
@@ -145,10 +145,12 @@ TEST_F(AllStatsPanelTest, ALongDefenseKeepsTheColumn) {
       << "the value the case is built on changed: " << defense;
   ASSERT_FALSE(other.empty());
 
-  // Every value ends in the same column, so the last non-blank column of a
-  // row carrying two stats is the same wherever you look.
-  EXPECT_EQ(defense.find_last_not_of(' '), other.find_last_not_of(' '))
-      << "[" << defense << "] against [" << other << "]";
+  // Defense sits alone at the foot, so its value ends where the FIRST column's
+  // values end. A value that broke out of its column would run past this.
+  EXPECT_EQ(defense.find_last_not_of(' '), AllStatsPanel::kColumnWidth - 2)
+      << "[" << defense << "]";
+  EXPECT_EQ(other.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
+      << "[" << other << "]";
 }
 
 }  // namespace

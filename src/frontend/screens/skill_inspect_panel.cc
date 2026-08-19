@@ -79,6 +79,7 @@ const PercentLever kPercentLevers[] = {
     {"Heal", &SkillEffect::heal_pct, kPlus, " HP"},
     {"Heal per Attack", &SkillEffect::hp_recover_pct, kPlus, " HP"},
     {"Elemental Resist", &SkillEffect::elemental_resistance, kPlus, ""},
+    {"Buff Duration", &SkillEffect::buff_duration_pct, kPlus, ""},
     // The one lever a skill can take away instead of grant: Reckless Hunt
     // sells DEF for damage, and a row that hid the price would be a lie.
     {"Defense", &SkillEffect::def_pct, kSigned, ""},

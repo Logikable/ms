@@ -839,6 +839,43 @@ TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
                    params.attacks[0].damage_per_hit[0]);
 }
 
+// Buff Mastery's lever lengthens the buff and leaves the wait alone, which is
+// the whole of what it buys: a buff up longer without coming round sooner.
+TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {
+  Skill resonance;
+  resonance.set_name("Dark Resonance");
+  resonance.set_kind(SKILL_KIND_ACTIVE);
+  resonance.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  resonance.set_max_level(30);
+  resonance.set_cooldown_seconds(70.0);
+  Buff* buff = resonance.mutable_buff();
+  buff->set_duration_seconds(30.0);
+  buff->mutable_base()->set_final_dmg_pct(0.50);
+
+  Skill mastery;
+  mastery.set_name("Buff Mastery");
+  mastery.set_kind(SKILL_KIND_PASSIVE);
+  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mastery.set_max_level(10);
+  mastery.mutable_base()->set_buff_duration_pct(0.05);
+  mastery.mutable_per_level()->set_buff_duration_pct(0.05);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"dark_resonance", resonance}, {"buff_mastery", mastery}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 11);
+  ASSERT_TRUE(state.character.LearnSkill(resonance, 1));
+  ASSERT_TRUE(state.character.LearnSkill(mastery, 10));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_DOUBLE_EQ(params.buffs[0].duration_seconds, 45.0 * factor);
+  EXPECT_DOUBLE_EQ(params.buffs[0].cooldown_seconds, 70.0 * factor);
+}
+
 // Puncture's shape: the buff hangs off an ATTACK, so it is laid by that swing
 // rather than raised on a wait of its own. The fight needs to know which swing
 // lays it, and that has to be the swing's index in the attack list.
