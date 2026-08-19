@@ -183,6 +183,11 @@ message SkillEffect {
   // (0.02 == 2%). GMS states it as a chance of a fixed amount; the expectation
   // is what an expected-damage fight can use, so the two are multiplied out
   // here. Unlike heal_pct this costs no swing -- it rides the attack.
+  //
+  // On an ATTACK it rides THAT swing alone, as ied_pct and the other swing
+  // levers do: Angel Ray heals the Bishop as it lands and Big Bang does not.
+  // On a passive it follows the character, which is Lord of Darkness's shape.
+  // See WithoutSwingLevers.
   double hp_recover_pct = 105;
   // Shield Mastery's, in both books that carry one -- the Bandit's and the
   // White Knight's. Percentage added to the whole of the character's DEF, worn

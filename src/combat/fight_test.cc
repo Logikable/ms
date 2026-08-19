@@ -1224,6 +1224,22 @@ TEST(CombatSimTest, RecoveryOnAttackRidesTheSwing) {
   EXPECT_LE(sim.player_hp(), 100);
 }
 
+// A swing can heal on its own account, and what it heals lands on top of what
+// the character recovers on any swing at all: Angel Ray pays both.
+TEST(CombatSimTest, ASwingsOwnRecoveryPaysBesideTheCharacters) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/20.0);
+  params.hp_recover_pct = 0.05;
+  params.attacks[0].hp_recover_pct = 0.05;
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 90);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 80);
+}
+
 // Nothing to hit is nothing to heal off. A cleared map already gives the pool
 // back on the beat, and a swing at empty air must not pay twice for it.
 TEST(CombatSimTest, RecoveryOnAttackPaysNothingOnAnEmptyMap) {

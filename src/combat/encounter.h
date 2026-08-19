@@ -137,6 +137,11 @@ struct AttackOption {
   // the Cleric's Heal. An option carrying this deals no damage at all, and the
   // fight picks it by need rather than by rate -- see CombatSim::HealToCast.
   double heal_fraction = 0.0;
+  // Share of the pool a landed swing of THIS attack puts back, on top of
+  // whatever the character's passives recover on any swing. 0 for all of them
+  // bar Angel Ray, which heals the Bishop as it lands. Costs no swing, unlike
+  // heal_fraction above -- the damage still goes out.
+  double hp_recover_pct = 0.0;
   // The bigger swing that takes the PLACE of every empowered_every'th swing of
   // this one, and how often that is. Null and 0 for every attack but the one
   // the Sniper's Empowered Arrows names. Shared rather than owned outright

@@ -41,11 +41,13 @@ constexpr double kMobHitIntervalSeconds = 1.5;
 // enduring it rather than only by killing fast enough to keep clearing it.
 constexpr double kBeatHealFraction = 0.10;
 
-// Strips everything that rides the character's own swing -- both Final
-// Attacks and the burn a swing leaves. Anything on a clock of its own (a
+// Strips everything that rides the character's own swing -- the recovery it
+// pays, its Final Attacks and the burn it leaves. Anything on a clock of its
+// own (a
 // summon, a wound, a form standing in for a pulse) sets none of them off, and
 // neither does a cast that deals no damage.
 void ClearSwingRiders(AttackOption& attack) {
+  attack.hp_recover_pct = 0.0;
   attack.final_attack_damage.clear();
   attack.final_attack_rolls.clear();
   attack.single_final_attack_damage.clear();
@@ -112,6 +114,13 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     attack.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
     attack.heal_fraction =
         skill->base().heal_pct() + skill->per_level().heal_pct() * (level - 1);
+    // An ATTACK's recovery is its own swing's, exactly as its ignored defence
+    // is. Read here rather than off the character, who was handed everything
+    // but this -- see WithoutSwingLevers.
+    if (skill->kind() == SKILL_KIND_ATTACK) {
+      attack.hp_recover_pct = skill->base().hp_recover_pct() +
+                              skill->per_level().hp_recover_pct() * (level - 1);
+    }
   }
   OffenseStats offense = OffenseStatsFor(
       proto.job(), proto.level(), proto.allocated_stats(), equipped, weapon,

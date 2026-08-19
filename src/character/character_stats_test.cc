@@ -1420,6 +1420,7 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   effect.set_boss_pct(0.30);
   effect.set_crit_rate(0.20);
   effect.set_final_dmg_pct(0.10);
+  effect.set_hp_recover_pct(0.08);
   effect.set_attack(20);
   effect.set_damage_pct(0.05);
 
@@ -1428,6 +1429,7 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   EXPECT_DOUBLE_EQ(swing.boss_pct(), 0.30);
   EXPECT_DOUBLE_EQ(swing.crit_rate(), 0.20);
   EXPECT_DOUBLE_EQ(swing.final_dmg_pct(), 0.10);
+  EXPECT_DOUBLE_EQ(swing.hp_recover_pct(), 0.08);
   EXPECT_EQ(swing.attack(), 0);
   EXPECT_DOUBLE_EQ(swing.damage_pct(), 0.0);
 
@@ -1436,6 +1438,7 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   EXPECT_DOUBLE_EQ(kept.boss_pct(), 0.0);
   EXPECT_DOUBLE_EQ(kept.crit_rate(), 0.0);
   EXPECT_DOUBLE_EQ(kept.final_dmg_pct(), 0.0);
+  EXPECT_DOUBLE_EQ(kept.hp_recover_pct(), 0.0);
   EXPECT_EQ(kept.attack(), 20);
   EXPECT_DOUBLE_EQ(kept.damage_pct(), 0.05);
 }

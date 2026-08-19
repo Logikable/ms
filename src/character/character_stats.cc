@@ -413,6 +413,8 @@ int FoldPercent(int flat, double pct) {
 // it lands and Dark Impale, swung a moment later, does not. Snipe's certain
 // critical is the third of them, and Mist Eruption's final damage the fourth:
 // GMS pays that for the mists the cast set off, which is a fact about the cast.
+// The fifth is not damage at all -- Angel Ray heals the Bishop as it lands,
+// and the swing beside it does nothing of the kind.
 //
 // Only a swing keeps them. A skill on its own clock is not one the character
 // chose, and GMS writes these on a summon only under "[Passive Effects]",
@@ -424,12 +426,13 @@ SkillEffect WithoutSwingLevers(const SkillEffect& effect) {
   kept.clear_boss_pct();
   kept.clear_crit_rate();
   kept.clear_final_dmg_pct();
+  kept.clear_hp_recover_pct();
   return kept;
 }
 
 // The other half, for the skill page, which heads the two apart so a player
 // can see which numbers leave with the swing. Written beside the function it
-// is the complement of: the two must name the same four levers, and apart they
+// is the complement of: the two must name the same levers, and apart they
 // would drift.
 SkillEffect SwingLeversOf(const SkillEffect& effect) {
   SkillEffect swing;
@@ -437,6 +440,7 @@ SkillEffect SwingLeversOf(const SkillEffect& effect) {
   swing.set_boss_pct(effect.boss_pct());
   swing.set_crit_rate(effect.crit_rate());
   swing.set_final_dmg_pct(effect.final_dmg_pct());
+  swing.set_hp_recover_pct(effect.hp_recover_pct());
   return swing;
 }
 

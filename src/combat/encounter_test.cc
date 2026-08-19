@@ -579,6 +579,37 @@ TEST(ComputeCombatParamsTest, AFinalAttackCanStrikeOneEnemyOnly) {
                    swing.single_final_attack_rolls[0].damage[0] * 0.60);
 }
 
+// Angel Ray's shape: an attack that heals as it lands. The recovery is that
+// swing's own, so it reaches the option rather than the character -- a Bishop
+// swinging Big Bang instead heals for nothing.
+TEST(ComputeCombatParamsTest, AnAttacksRecoveryRidesItsOwnSwing) {
+  Skill ray;
+  ray.set_name("Angel Ray");
+  ray.set_kind(SKILL_KIND_ATTACK);
+  ray.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  ray.set_max_level(30);
+  ray.set_base_delay_ms(660);
+  ray.mutable_base()->set_skill_pct(0.80);
+  ray.mutable_base()->set_hp_recover_pct(0.03);
+  ray.mutable_per_level()->set_hp_recover_pct(0.01);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"angel_ray", ray}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(ray, 3));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  EXPECT_EQ(params.attacks[1].name, "Angel Ray");
+  EXPECT_DOUBLE_EQ(params.attacks[1].hp_recover_pct, 0.05);
+  // The bare poke stands beside it and heals for nothing, and neither does the
+  // character: what the skill grants never left the swing.
+  EXPECT_DOUBLE_EQ(params.attacks[0].hp_recover_pct, 0.0);
+  EXPECT_DOUBLE_EQ(params.hp_recover_pct, 0.0);
+}
+
 // A cast with no lever behind it would take a swing and give nothing back, so
 // it is not offered at all.
 TEST(ComputeCombatParamsTest, ACastWithNothingBehindItIsNoOption) {

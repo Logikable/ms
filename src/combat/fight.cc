@@ -745,14 +745,17 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
         std::min(static_cast<double>(params.max_player_hp),
                  player_hp_ + attack->heal_fraction * params.max_player_hp);
   } else {
-    Strike(FormToLand(empowered_count_,
-                      static_cast<int>(Attacks(params).size()), swung,
-                      *attack));
+    const AttackOption& landed =
+        FormToLand(empowered_count_, static_cast<int>(Attacks(params).size()),
+                   swung, *attack);
+    Strike(landed);
     // Recovery rides the hit, so a cast does not earn it and neither does a
-    // swing at nothing.
-    player_hp_ =
-        std::min(static_cast<double>(params.max_player_hp),
-                 player_hp_ + params.hp_recover_pct * params.max_player_hp);
+    // swing at nothing. What landed pays it rather than what was aimed, and
+    // the swing's own is added to the character's: Angel Ray heals as it
+    // lands, on top of whatever any passive recovers.
+    double recovered = params.hp_recover_pct + landed.hp_recover_pct;
+    player_hp_ = std::min(static_cast<double>(params.max_player_hp),
+                          player_hp_ + recovered * params.max_player_hp);
     // Credited after the strike, so the volley lands on what the swing left
     // standing rather than on mobs it was about to kill anyway. A healing cast
     // credits nothing: it is not an attack.
