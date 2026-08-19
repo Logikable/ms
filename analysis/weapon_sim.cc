@@ -52,6 +52,14 @@ ABSL_FLAG(int, enemies, 1,
           "How many mobs stand together. 1 compares weapons, which is what "
           "the table is for; a larger crowd asks a different question -- what "
           "a wide skill is worth once there is something to be wide against.");
+ABSL_FLAG(bool, boss, false,
+          "Fight a boss instead of an ordinary monster: boss damage counts, "
+          "a swing's bonus against normal monsters does not, and elemental "
+          "damage is halved. Nothing in the shipped catalog is one yet.");
+ABSL_FLAG(int, boss_pdr, 0,
+          "Percent of the mob's physical defence, which every Ignore DEF "
+          "lever in the game is measured against. 0 is the shipped catalog, "
+          "where all of them cancel nothing.");
 
 namespace ms {
 namespace {
@@ -198,6 +206,8 @@ Catalogs LoadCatalogs(int level) {
   dummy.set_name("Dummy");
   dummy.set_level(level);
   dummy.set_max_hp(1);
+  dummy.set_boss(absl::GetFlag(FLAGS_boss));
+  dummy.set_pdr(absl::GetFlag(FLAGS_boss_pdr));
   c.mobs[kDummyMob] = dummy;
 
   MapData map;
