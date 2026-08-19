@@ -119,11 +119,15 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
           static_cast<int>(attack.single_final_attack_damage.size())) {
     total += attack.single_final_attack_damage[queue_[0].type];
   }
-  // The whole of the burn this swing would light, on everything it reaches. It
-  // is counted in full: what actually ticks depends on how long the monster
-  // lives, and the chooser has no way to know that before it swings.
+  // The burn this swing would light, charged at the rate it can sustain rather
+  // than in full: relighting it buys no more ticks, so what the swing is worth
+  // is the seconds before it comes round again, capped by the burn's own life.
+  // How long the monster lives thins it further, and the chooser cannot know
+  // that before it swings.
   if (attack.dot_interval_seconds > 0.0) {
-    double ticks = attack.dot_duration_seconds / attack.dot_interval_seconds;
+    double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
+    double ticks = std::min(attack.dot_duration_seconds, cadence) /
+                   attack.dot_interval_seconds;
     for (int j = 0; j < hit; ++j) {
       int type = queue_[j].type;
       if (type < static_cast<int>(attack.dot_damage.size())) {

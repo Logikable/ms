@@ -145,6 +145,7 @@ LevelUpGain LevelUpGainFor(Job job) {
     case JOB_FIRE_POISON_MAGE:
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
       return {12, 48};
     default:
       return {36, 24};
@@ -182,6 +183,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_FIRE_POISON_MAGE:
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
       return EQUIP_JOB_CATEGORY_MAGICIAN;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -272,6 +274,7 @@ JobAdvancement FirstAdvancement(Job job) {
     case JOB_FIRE_POISON_MAGE:
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
       return JOB_ADVANCEMENT_MAGICIAN;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -313,6 +316,7 @@ JobAdvancement SecondAdvancement(Job job) {
       return JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD;
     case JOB_FIRE_POISON_WIZARD:
     case JOB_FIRE_POISON_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
       return JOB_ADVANCEMENT_FIRE_POISON_WIZARD;
     case JOB_CLERIC:
     case JOB_PRIEST:
@@ -350,6 +354,7 @@ JobAdvancement ThirdAdvancement(Job job) {
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
       return JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE;
     case JOB_FIRE_POISON_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
       return JOB_ADVANCEMENT_FIRE_POISON_MAGE;
     case JOB_PRIEST:
       return JOB_ADVANCEMENT_PRIEST;
@@ -378,6 +383,8 @@ JobAdvancement FourthAdvancement(Job job) {
       return JOB_ADVANCEMENT_MARKSMAN;
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
       return JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE;
+    case JOB_FIRE_POISON_ARCH_MAGE:
+      return JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE;
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
   }
@@ -465,6 +472,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_MARKSMAN;
     case JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE:
       return JOB_ICE_LIGHTNING_ARCH_MAGE;
+    case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE:
+      return JOB_FIRE_POISON_ARCH_MAGE;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -570,6 +579,7 @@ std::vector<EquipType> ExpectedWeapons(Job job) {
     case JOB_ICE_LIGHTNING_MAGE:
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
       return {EQUIP_TYPE_STAFF};
     case JOB_ASSASSIN:
     case JOB_HERMIT:
@@ -639,6 +649,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_FIRE_POISON_MAGE:
     case JOB_PRIEST:
     case JOB_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_FIRE_POISON_ARCH_MAGE:
       return STAT_FIELD_INT;
     case JOB_ROGUE:
     case JOB_ASSASSIN:
@@ -725,6 +736,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 4 && job == JOB_ICE_LIGHTNING_MAGE) {
     return {JOB_ICE_LIGHTNING_ARCH_MAGE};
   }
+  if (stage == 4 && job == JOB_FIRE_POISON_MAGE) {
+    return {JOB_FIRE_POISON_ARCH_MAGE};
+  }
   return {};
 }
 
@@ -763,6 +777,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_BOW_MASTER:
     case JOB_ADVANCEMENT_MARKSMAN:
     case JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE:
+    case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE:
       return 4;
     default:
       return 0;

@@ -153,6 +153,36 @@ TEST(CombatSimTest, AFinalAttackRollsPerEnemyAndPaysItsAverage) {
   EXPECT_NEAR(kills[1] / kills[0], 1.0, 0.01);
 }
 
+// A burn is worth what it can sustain, not what one lighting of it comes to:
+// a swing that relights it every second buys one tick a second however long
+// the burn would have lasted. Priced in full it would look thirty times its
+// worth and the fight would swing it over something five times better.
+TEST(CombatSimTest, ABurnIsWeighedAtTheRateItCanBeRelit) {
+  Mob mob = MakeMob("Snail", 100);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 100.0, 40)});
+  // Beside the hard swing, a feeble one leaving a burn that would last half a
+  // minute. Relit every second it is worth 10 a second, not 300 a swing.
+  AttackOption smoulder = params.attacks[0];
+  smoulder.name = "Smoulder";
+  smoulder.damage_per_hit.assign(1, 10.0);
+  smoulder.dot_slot = 0;
+  smoulder.dot_damage.assign(1, 10.0);
+  smoulder.dot_interval_seconds = 1.0;
+  smoulder.dot_duration_seconds = 30.0;
+  params.dot_count = 1;
+  params.attacks.push_back(std::move(smoulder));
+
+  CombatSim sim;
+  int64_t killed = 0;
+  for (int step = 0; step < 30; ++step) {
+    sim.Advance(params, 1.0);
+    killed += sim.kills_this_step()[0];
+  }
+  // The hard swing kills one a second; the smoulder would manage one every
+  // five. Anything near the latter means the burn was priced at its whole life.
+  EXPECT_GT(killed, 20);
+}
+
 // A burn ticks on its own clock for as long as it was lit for, and then stops
 // -- it is not a second attack that runs forever.
 TEST(CombatSimTest, ABurnTicksForItsDurationAndNoLonger) {

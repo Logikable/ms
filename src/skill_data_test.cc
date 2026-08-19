@@ -581,7 +581,8 @@ constexpr int kSmallestMasterLevelPastIt = 10;
 //
 // Infinity is ours rather than GMS's: it is the largest single lever any book
 // grants, and two free levels of it were not worth handing over.
-const char* const kHeldToTheirMasterLevel[] = {"enchanted_quiver", "infinity"};
+const char* const kHeldToTheirMasterLevel[] = {"enchanted_quiver", "infinity",
+                                               "fire_poison_infinity"};
 
 bool GmsHoldsItToTheMasterLevel(const std::string& stem) {
   for (const char* held : kHeldToTheirMasterLevel) {
