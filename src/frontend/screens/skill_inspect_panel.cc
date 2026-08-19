@@ -713,6 +713,28 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
       rows.push_back(std::move(row));
     }
   }
+  // The strike the swing sets off beside itself. Its wait rides the damage row
+  // rather than taking one of its own, and its reach is stated only where it
+  // is not the swing's -- see the Enemies Hit row above.
+  if (skill.has_side_strike()) {
+    const SideStrike& side = skill.side_strike();
+    double per_hit =
+        side.base().skill_pct() + side.per_level().skill_pct() * (level - 1);
+    std::string text = SwingText(per_hit, side.lines());
+    if (side.max_enemies() > 0 && side.max_enemies() != skill.max_enemies()) {
+      text += ", " + std::to_string(side.max_enemies()) + " enemies";
+    }
+    text += " every " + FormatNumber(side.cooldown_seconds()) + "s";
+    for (ftxui::Element& row : WrappedEffectRows(side.label(), text)) {
+      rows.push_back(std::move(row));
+    }
+    double normal = side.base().normal_skill_pct() +
+                    side.per_level().normal_skill_pct() * (level - 1);
+    if (normal > 0.0) {
+      rows.push_back(EffectRow(side.label() + " Normal",
+                               SwingText(per_hit + normal, side.lines())));
+    }
+  }
   // Each own-clock half's damage, under the swing's own so they read as one
   // skill with several ways of hurting things. Every one names itself, under
   // the same name its reach row above carries.

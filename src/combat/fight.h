@@ -332,6 +332,10 @@ class CombatSim {
   // params.attacks. 0 for a swing that is ready, which is all of them for a
   // character holding no cooldown skill.
   std::vector<double> cooldown_left_;
+  // The same for the strike a swing sets off beside itself, parallel to the
+  // same list. Held apart because the swing is still there while its strike is
+  // waiting -- a Night Lord keeps throwing Showdown between shurikens.
+  std::vector<double> side_cooldown_left_;
 
   // Shuffles each batch of arriving mobs so they are fought in mixed order
   // rather than one whole type at a time (see TopUp). Default-seeded, so a sim

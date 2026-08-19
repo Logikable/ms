@@ -165,6 +165,12 @@ struct AttackOption {
   // of the ordinary strike for whichever of them came due. Only Divine
   // Judgment sets it.
   bool brands_enemies = false;
+  // The second attack this swing sets off, on the wait its own
+  // cooldown_seconds states. Null for every attack but Showdown, whose
+  // shuriken goes out once in five seconds with whatever swing lit it. Shared
+  // rather than owned outright for the reason `empowered` is: an AttackOption
+  // is copied freely and the strike never changes.
+  std::shared_ptr<const AttackOption> side;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
   // own. Puncture's wound is the case it exists for: what ticks is the wound,

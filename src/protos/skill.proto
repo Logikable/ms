@@ -506,6 +506,28 @@ message SwingHit {
   int32 lines = 4;
 }
 
+// A second attack the same swing sets off, on a wait of its own. Showdown's
+// shuriken is the case it exists for: the talisman lands, and once every five
+// seconds a dark shuriken goes with it and hunts down its own six enemies.
+//
+// Not an AutoMode, which fires on its own clock whatever the character is
+// swinging -- what makes this different is that a Night Lord holding Quad Star
+// never sets it off. The wait is real time, so a faster swing does not buy
+// more of them; what a swing is worth counts it at the rate it can sustain.
+//
+// It reaches its own enemies and lands its own strikes, and it is not the
+// character's swing: no Final Attack follows it and no burn rides it.
+message SideStrike {
+  SkillEffect base = 1;
+  SkillEffect per_level = 2;
+  // What the skill page calls it, over its own damage row.
+  string label = 3;
+  // 0 for a strike that reaches as far as the swing that set it off.
+  int32 max_enemies = 4;
+  int32 lines = 5;
+  double cooldown_seconds = 6;
+}
+
 // A stronger version of a skill's attack, landed in place of every Nth
 // ordinary one. Empowered Arrows is the case it exists for: the Sniper's
 // Piercing Arrow is upgraded to an Empowered Piercing Arrow every fourth shot.
@@ -829,6 +851,10 @@ message Skill {
   // The F/P Arch Mage's. The burn this swing leaves on everything it reached.
   // See Dot.
   Dot dot = 113;
+
+  // The second attack this swing sets off, on a wait of its own. Only
+  // Showdown's shuriken.
+  SideStrike side_strike = 114;
   // The Paladin's. Strikes and reach this skill hands to skills it names.
   // Repeated, unlike boosts_skill_name above, because Greater Vessel of Light
   // strengthens two of them and grants each a different thing. See SkillBoost.

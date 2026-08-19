@@ -137,6 +137,22 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
       }
     }
   }
+  // The strike this swing sets off is worth what it lands, spread over the
+  // swings that go out while it is waiting: at a wait of five seconds and a
+  // swing of one, a fifth of it rides each. The chooser has to say so, or a
+  // swing would be weighed as though it set the strike off every time.
+  //
+  // Held aside rather than added, because it rides the swing whichever form
+  // that swing took -- the averaging below is between the two forms, and this
+  // is outside it.
+  double side = 0.0;
+  if (attack.side != nullptr) {
+    double every =
+        std::max(attack.side->cooldown_seconds, attack.swing_seconds);
+    if (every > 0.0) {
+      side = SwingDamage(*attack.side) * attack.swing_seconds / every;
+    }
+  }
   // A swing with an empowered form lands it once in every N, so what the
   // attack is worth per swing is the average of the two. The rate has to say
   // so, or the attack would be weighed on the weaker of the two things it
@@ -145,7 +161,7 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
     if (!attack.brands_enemies) {
       total +=
           (SwingDamage(*attack.empowered) - total) / attack.empowered_every;
-      return total;
+      return total + side;
     }
     // Marking instead, every mob the swing reaches comes due once in every N
     // rather than the swing doing so, and takes the whole form on top of its
@@ -160,7 +176,7 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
       }
     }
   }
-  return total;
+  return total + side;
 }
 
 int CombatSim::BestAttack(const CombatParams& params) const {
@@ -246,6 +262,10 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
   // land, where a summon with nothing to hit has simply not fired.
   cooldown_left_.resize(Attacks(params).size(), 0.0);
   for (double& left : cooldown_left_) {
+    left = std::max(0.0, left - dt);
+  }
+  side_cooldown_left_.resize(Attacks(params).size(), 0.0);
+  for (double& left : side_cooldown_left_) {
     left = std::max(0.0, left - dt);
   }
 }
@@ -764,6 +784,14 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
         FormToLand(empowered_count_, static_cast<int>(Attacks(params).size()),
                    swung, *attack);
     Strike(landed);
+    // The strike this swing sets off beside itself, where its own wait has
+    // run out. Read off the aimed attack rather than off what landed: the
+    // strike belongs to the skill, not to the form standing in for it this
+    // time. It goes out after the swing, so it lands on what the swing left.
+    if (attack->side != nullptr && side_cooldown_left_[swung] <= 0.0) {
+      Strike(*attack->side);
+      side_cooldown_left_[swung] = attack->side->cooldown_seconds;
+    }
     // Recovery rides the hit, so a cast does not earn it and neither does a
     // swing at nothing. What landed pays it rather than what was aimed, and
     // the swing's own is added to the character's: Angel Ray heals as it

@@ -303,6 +303,24 @@ TEST(SkillDataTest, EveryAutoModeSaysWhenItFiresAndForHowMuch) {
   }
 }
 
+// The strike a swing sets off beside itself needs all three of the things that
+// make it one: damage, a wait, and a row to sit on. With no wait it would go
+// out on every swing, which is what extra_hit already is.
+TEST(SkillDataTest, EverySideStrikeSaysWhenItFiresAndForHowMuch) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (!entry.second.has_side_strike()) {
+      continue;
+    }
+    const SideStrike& side = entry.second.side_strike();
+    EXPECT_GT(side.cooldown_seconds(), 0.0)
+        << entry.first << "'s side strike would go out on every swing";
+    EXPECT_GT(side.base().skill_pct(), 0.0)
+        << entry.first << "'s side strike would go out for nothing";
+    EXPECT_FALSE(side.label().empty())
+        << entry.first << "'s side strike has no row to sit on";
+  }
+}
+
 // A timed buff is worth nothing without the two halves that make it one: a
 // stretch it stands for, and a wait for the next one. A buff with no wait
 // would simply be a passive written the hard way.

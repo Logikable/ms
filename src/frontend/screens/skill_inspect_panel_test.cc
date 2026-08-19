@@ -1079,6 +1079,34 @@ TEST_F(SkillInspectPanelTest, ReadsADotAsOneRow) {
   EXPECT_NE(poison.find("3 times"), std::string::npos);
 }
 
+// The strike a swing sets off reads as a swing of its own: what one strike is
+// worth, times its count, and how often it goes out. Its bargain against an
+// ordinary monster follows, exactly as the swing's own does.
+TEST_F(SkillInspectPanelTest, ReadsASideStrikeWithItsWait) {
+  Skill skill;
+  skill.set_name("Showdown");
+  skill.set_kind(SKILL_KIND_ATTACK);
+  skill.set_job_advancement(JOB_ADVANCEMENT_HERMIT);
+  skill.set_max_level(30);
+  skill.set_description("Provoke the enemies around you.");
+  skill.set_max_enemies(6);
+  skill.set_lines(2);
+  skill.mutable_base()->set_skill_pct(3.73);
+  skill.mutable_per_level()->set_skill_pct(0.08);
+  SideStrike* side = skill.mutable_side_strike();
+  side->set_label("Shuriken");
+  side->set_lines(6);
+  side->set_cooldown_seconds(5.0);
+  side->mutable_base()->set_skill_pct(0.09);
+  side->mutable_per_level()->set_skill_pct(0.0051724);
+  side->mutable_base()->set_normal_skill_pct(2.00);
+
+  std::string card = RenderAt(skill, 30);
+  EXPECT_NE(card.find("Shuriken          24% x6 = 144%"), std::string::npos);
+  EXPECT_NE(card.find("every 5s"), std::string::npos);
+  EXPECT_NE(card.find("Shuriken Normal   224% x6 = 1344%"), std::string::npos);
+}
+
 // Neither half of Final Attack says anything alone, so they share a line.
 TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
   Skill skill;

@@ -42,12 +42,12 @@ constexpr double kMobHitIntervalSeconds = 1.5;
 constexpr double kBeatHealFraction = 0.10;
 
 // Strips everything that rides the character's own swing -- the recovery it
-// pays, its Final Attacks and the burn it leaves. Anything on a clock of its
-// own (a
-// summon, a wound, a form standing in for a pulse) sets none of them off, and
-// neither does a cast that deals no damage.
+// pays, its Final Attacks, the burns it leaves and the strike it sets off.
+// Anything on a clock of its own (a summon, a wound, a form standing in for a
+// pulse) sets none of them off, and neither does a cast that deals no damage.
 void ClearSwingRiders(AttackOption& attack) {
   attack.hp_recover_pct = 0.0;
+  attack.side = nullptr;
   attack.final_attack_damage.clear();
   attack.final_attack_rolls.clear();
   attack.single_final_attack_damage.clear();
@@ -287,6 +287,29 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   }
   if (attack.single_final_attack_rolls.empty()) {
     attack.single_final_attack_damage.clear();
+  }
+  // The strike this swing sets off on a wait of its own, priced as a swing in
+  // its own right: its own reach, its own strikes, its own bargain against an
+  // ordinary monster. It is not the character's swing, so nothing rides it.
+  if (skill != nullptr && skill->has_side_strike()) {
+    const SideStrike& side = skill->side_strike();
+    OffenseStats stats = offense;
+    stats.skill_pct =
+        side.base().skill_pct() + side.per_level().skill_pct() * (level - 1);
+    stats.normal_skill_pct = side.base().normal_skill_pct() +
+                             side.per_level().normal_skill_pct() * (level - 1);
+    stats.lines = std::max(1, side.lines());
+    stats.mirror_lines = stats.lines;
+    AttackOption strike;
+    strike.name = side.label().empty() ? attack.name : side.label();
+    strike.max_enemies =
+        side.max_enemies() > 0 ? side.max_enemies() : attack.max_enemies;
+    strike.cooldown_seconds = side.cooldown_seconds() * speed_factor;
+    for (const CombatType& type : types) {
+      strike.damage_per_hit.push_back(ExpectedAttackDamage(stats, *type.mob));
+    }
+    strike.groups.push_back({strike.damage_per_hit, RollsFor(stats)});
+    attack.side = std::make_shared<const AttackOption>(std::move(strike));
   }
   return attack;
 }

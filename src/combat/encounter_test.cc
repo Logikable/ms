@@ -1121,6 +1121,53 @@ TEST(ComputeCombatParamsTest, APassivesBurnRidesEverySwing) {
   EXPECT_GT(swing.dots[1].damage[0], swing.dots[0].damage[0]);
 }
 
+// Showdown's shuriken: a second attack the swing sets off, with its own reach,
+// its own strikes and a wait of its own. Nothing rides it -- it is not the
+// character's swing -- and a skill on its own clock never carries one.
+TEST(ComputeCombatParamsTest, ASwingCanSetOffAStrikeOnAWaitOfItsOwn) {
+  Skill showdown;
+  showdown.set_name("Showdown");
+  showdown.set_kind(SKILL_KIND_ATTACK);
+  showdown.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  showdown.set_max_level(30);
+  showdown.set_base_delay_ms(780);
+  showdown.set_max_enemies(6);
+  showdown.set_lines(2);
+  showdown.mutable_base()->set_skill_pct(3.73);
+  SideStrike* side = showdown.mutable_side_strike();
+  side->set_label("Shuriken");
+  side->set_lines(6);
+  side->set_cooldown_seconds(5.0);
+  side->mutable_base()->set_skill_pct(0.09);
+  side->mutable_base()->set_normal_skill_pct(2.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"showdown", showdown}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(showdown, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  ASSERT_EQ(params.attacks.size(), 2u);
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_NE(swing.side, nullptr);
+  EXPECT_EQ(swing.side->name, "Shuriken");
+  // Said nothing about its reach, so it goes as wide as the swing that lit it.
+  EXPECT_EQ(swing.side->max_enemies, 6);
+  EXPECT_DOUBLE_EQ(swing.side->cooldown_seconds, 5.0 * factor);
+  // Six lines of 209% against the swing's two of 373%: the strike is priced on
+  // its own multiplier, and no mob here is a boss so it takes the whole of the
+  // bonus against an ordinary monster.
+  EXPECT_NEAR(swing.side->damage_per_hit[0] / (swing.damage_per_hit[0] / 2.0),
+              6.0 * 2.09 / 3.73, 0.02);
+  // The strike is nobody's swing, so the swing's own riders are not on it.
+  EXPECT_TRUE(swing.side->final_attack_rolls.empty());
+  EXPECT_TRUE(swing.side->dots.empty());
+  EXPECT_EQ(params.attacks[0].side, nullptr);
+}
+
 // Puncture's shape: the buff hangs off an ATTACK, so it is laid by that swing
 // rather than raised on a wait of its own. The fight needs to know which swing
 // lays it, and that has to be the swing's index in the attack list.

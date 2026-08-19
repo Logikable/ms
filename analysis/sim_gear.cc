@@ -212,6 +212,17 @@ double CrowdDamage(const AttackOption& attack, int enemies) {
             : (CrowdDamage(*attack.empowered, enemies) - damage) /
                   attack.empowered_every;
   }
+  // The strike the swing sets off, spread over the swings that go out while it
+  // is waiting -- and outside the averaging above, because it rides the swing
+  // whichever form that swing took.
+  if (attack.side != nullptr) {
+    double every =
+        std::max(attack.side->cooldown_seconds, attack.swing_seconds);
+    if (every > 0.0) {
+      damage +=
+          CrowdDamage(*attack.side, enemies) * attack.swing_seconds / every;
+    }
+  }
   return damage;
 }
 

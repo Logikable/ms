@@ -238,6 +238,28 @@ TEST(CombatSimTest, ABurnDoesNotStackWithItself) {
   EXPECT_NEAR(left[0], left[1], 100.0 / 100000.0 + 1e-9);
 }
 
+// A strike the swing sets off waits out its own clock: a swing a second and a
+// wait of five buys one strike in five, not one a swing. And it goes out only
+// with the swing that carries it -- the other swing sets nothing off.
+TEST(CombatSimTest, ASideStrikeGoesOutOnItsOwnWait) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 0.0, 1)});
+  AttackOption strike;
+  strike.max_enemies = 1;
+  strike.damage_per_hit.assign(1, 1000.0);
+  strike.cooldown_seconds = 5.0;
+  params.attacks[0].side = std::make_shared<const AttackOption>(strike);
+
+  CombatSim sim;
+  for (int step = 0; step < 100; ++step) {
+    sim.Advance(params, 0.5);
+  }
+  // Fifty seconds of one-second swings: ten strikes at a wait of five, and the
+  // swing itself deals nothing.
+  double taken = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  EXPECT_NEAR(taken, 10.0 * 1000.0, 1000.0);
+}
+
 // A poison piles helpings up to its limit and no further, each ticking for the
 // whole damage. Three of them are worth three times one, and the swings after
 // the third buy nothing but the duration.
