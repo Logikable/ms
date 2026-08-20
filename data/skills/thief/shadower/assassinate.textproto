@@ -1,0 +1,30 @@
+# GMS's own figures: 180+3x% six times, then a finishing blow of 340+5x% six
+# times on the same enemy. The blow is 50% harder for spending the Murderous
+# Intent buff, and a Shadower always has one to spend -- so the buff is not
+# modelled and its final damage rides the whole skill instead.
+#
+# 1200ms is both presses: 660 for the strike and 540 for the blow, which is one
+# swing here.
+name: "Assassinate"
+skill_order: 1
+description:
+  "Attack an enemy's vital points over and over, then strike a finishing "
+  "blow. Targets the enemy with the most HP left first."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 1200
+max_enemies: 1
+lines: 6
+base {
+  skill_pct: 1.83
+  final_dmg_pct: 0.50
+}
+per_level { skill_pct: 0.03 }
+extra_hit {
+  label: "Finishing Blow"
+  lines: 6
+  base { skill_pct: 3.45 }
+  per_level { skill_pct: 0.05 }
+}

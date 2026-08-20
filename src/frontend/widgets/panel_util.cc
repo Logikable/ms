@@ -565,6 +565,8 @@ std::string JobName(Job job) {
       return "Bishop";
     case JOB_NIGHT_LORD:
       return "Night Lord";
+    case JOB_SHADOWER:
+      return "Shadower";
     default:
       return "Unknown";
   }

@@ -1,0 +1,24 @@
+# GMS's own figures: 190+2x% six times on eight enemies, 4+2*floor(x/3)% final
+# damage, and Pick Pocket's drop rate halved for this skill alone. The final
+# damage walks evenly to GMS's 24% and is the character's for good -- GMS
+# writes it under "[Passive Effects]", so it follows a Shadower onto
+# Assassinate.
+name: "Cruel Stab"
+skill_order: 2
+description:
+  "Inflict a brutal stab with the dagger. It shakes fewer mesos loose than "
+  "your other attacks. Permanently increases Final Damage."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+max_level: 30
+exceeds_master_level: true
+base_delay_ms: 660
+max_enemies: 8
+lines: 6
+base {
+  skill_pct: 1.92
+  meso_drop_cut: 0.50
+}
+per_level { skill_pct: 0.02 }
+passive { final_dmg_pct: 0.008 }
+passive_per_level { final_dmg_pct: 0.008 }

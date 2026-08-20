@@ -440,13 +440,14 @@ TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
 }
 
 // A stage whose branches are unwritten has nothing to offer, and the character
-// must not be told otherwise. Every 3rd job exists now, so the 4th is what
-// this asks about -- and the Chief Bandit's is the last one still unwritten.
+// must not be told otherwise. Every branch is written down to its 4th job now,
+// so what this asks about is the 5th, which nothing reaches.
 TEST_F(AdvanceJobTest, NoAdvancementWithNoJobsBehindIt) {
   CharacterInstance c = MakeCharacter(rng_, /*level=*/100);
   c.AdvanceJob(JOB_ROGUE);
   c.AdvanceJob(JOB_BANDIT);
   c.AdvanceJob(JOB_CHIEF_BANDIT);
+  c.AdvanceJob(JOB_SHADOWER);
   EXPECT_FALSE(c.CanAdvanceJob());
 }
 
@@ -517,8 +518,8 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_HERMIT}));
   EXPECT_EQ(JobChoicesForStage(JOB_BANDIT, 3),
             (std::vector<Job>{JOB_CHIEF_BANDIT}));
-  // The 4th narrows no further either, and six of the ten are written -- a
-  // branch with nothing on the far side offers nothing.
+  // The 4th narrows no further either, and all ten are written now. Nothing
+  // is written past one, so a 4th job is offered nothing at all.
   EXPECT_EQ(JobChoicesForStage(JOB_BERSERKER, 4),
             (std::vector<Job>{JOB_DARK_KNIGHT}));
   EXPECT_EQ(JobChoicesForStage(JOB_WHITE_KNIGHT, 4),
@@ -532,7 +533,8 @@ TEST(JobChoicesTest, AThirdAdvancementOffersOneJob) {
             (std::vector<Job>{JOB_ICE_LIGHTNING_ARCH_MAGE}));
   EXPECT_EQ(JobChoicesForStage(JOB_HERMIT, 4),
             (std::vector<Job>{JOB_NIGHT_LORD}));
-  EXPECT_TRUE(JobChoicesForStage(JOB_CHIEF_BANDIT, 4).empty());
+  EXPECT_EQ(JobChoicesForStage(JOB_CHIEF_BANDIT, 4),
+            (std::vector<Job>{JOB_SHADOWER}));
   EXPECT_TRUE(JobChoicesForStage(JOB_DARK_KNIGHT, 5).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_PALADIN, 5).empty());
   EXPECT_TRUE(JobChoicesForStage(JOB_BEGINNER, 0).empty());

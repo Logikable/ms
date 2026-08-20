@@ -1,0 +1,28 @@
+# GMS pays 2*ceil(x/3)% critical damage and ceil(x/3)% off what a hit costs
+# over 30 levels, for 30 seconds against a 120-second wait. Ten levels here at
+# 2% and 1% apiece, which lands on both of GMS's master figures.
+#
+# The shelter for the party goes, there being no party, and so does the
+# immunity: what is left is the pair of numbers the Shadower keeps for
+# themselves. The second is the first thing in the game to buff a defence.
+name: "Smokescreen"
+skill_order: 6
+description:
+  "Drop a smokescreen at your feet. Inside it you strike more savagely and "
+  "the enemies around you land their blows more softly."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+max_level: 10
+exceeds_master_level: true
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 30.0
+  base {
+    crit_dmg: 0.02
+    damage_taken_pct: 0.01
+  }
+  per_level {
+    crit_dmg: 0.02
+    damage_taken_pct: 0.01
+  }
+}

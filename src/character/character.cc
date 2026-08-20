@@ -193,6 +193,7 @@ EquipJobCategory JobToCategory(Job job) {
     case JOB_HERMIT:
     case JOB_CHIEF_BANDIT:
     case JOB_NIGHT_LORD:
+    case JOB_SHADOWER:
       return EQUIP_JOB_CATEGORY_THIEF;
     default:
       return EQUIP_JOB_CATEGORY_UNSPECIFIED;
@@ -286,6 +287,7 @@ JobAdvancement FirstAdvancement(Job job) {
     case JOB_HERMIT:
     case JOB_CHIEF_BANDIT:
     case JOB_NIGHT_LORD:
+    case JOB_SHADOWER:
       return JOB_ADVANCEMENT_ROGUE;
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
@@ -333,6 +335,7 @@ JobAdvancement SecondAdvancement(Job job) {
       return JOB_ADVANCEMENT_ASSASSIN;
     case JOB_BANDIT:
     case JOB_CHIEF_BANDIT:
+    case JOB_SHADOWER:
       return JOB_ADVANCEMENT_BANDIT;
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
@@ -370,14 +373,14 @@ JobAdvancement ThirdAdvancement(Job job) {
     case JOB_NIGHT_LORD:
       return JOB_ADVANCEMENT_HERMIT;
     case JOB_CHIEF_BANDIT:
+    case JOB_SHADOWER:
       return JOB_ADVANCEMENT_CHIEF_BANDIT;
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
   }
 }
 
-// The 4th job books. One per 3rd job when they are all written; nine of the
-// ten are.
+// The 4th job books. One per 3rd job, and all ten are written now.
 JobAdvancement FourthAdvancement(Job job) {
   switch (job) {
     case JOB_DARK_KNIGHT:
@@ -398,6 +401,8 @@ JobAdvancement FourthAdvancement(Job job) {
       return JOB_ADVANCEMENT_BISHOP;
     case JOB_NIGHT_LORD:
       return JOB_ADVANCEMENT_NIGHT_LORD;
+    case JOB_SHADOWER:
+      return JOB_ADVANCEMENT_SHADOWER;
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
   }
@@ -491,6 +496,8 @@ Job JobForAdvancement(JobAdvancement advancement) {
       return JOB_BISHOP;
     case JOB_ADVANCEMENT_NIGHT_LORD:
       return JOB_NIGHT_LORD;
+    case JOB_ADVANCEMENT_SHADOWER:
+      return JOB_SHADOWER;
     default:
       return JOB_UNSPECIFIED;
   }
@@ -545,6 +552,7 @@ std::vector<std::string> StarterEquipsFor(Job job) {
       return {"all_souls_charm"};
     case JOB_BANDIT:
     case JOB_CHIEF_BANDIT:
+    case JOB_SHADOWER:
       return {"hidden_shadow"};
     default:
       return {};
@@ -606,6 +614,7 @@ std::vector<EquipType> ExpectedWeapons(Job job) {
       return {EQUIP_TYPE_CLAW};
     case JOB_BANDIT:
     case JOB_CHIEF_BANDIT:
+    case JOB_SHADOWER:
       return {EQUIP_TYPE_DAGGER};
     default:
       return {};
@@ -678,6 +687,7 @@ StatField PrimaryStatField(Job job) {
     case JOB_HERMIT:
     case JOB_CHIEF_BANDIT:
     case JOB_NIGHT_LORD:
+    case JOB_SHADOWER:
       return STAT_FIELD_LUK;
     default:
       return STAT_FIELD_UNSPECIFIED;
@@ -737,9 +747,8 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 3 && job == JOB_BANDIT) {
     return {JOB_CHIEF_BANDIT};
   }
-  // The 4th advancement narrows no further either. Nine of the ten are
-  // written; every other 3rd job stays at the top of its line, and an
-  // advancement with nothing on the far side of it is not offered at all.
+  // The 4th advancement narrows no further either, and all ten are written.
+  // Nothing is written past one, so a 4th job is offered nothing at all.
   if (stage == 4 && job == JOB_BERSERKER) {
     return {JOB_DARK_KNIGHT};
   }
@@ -766,6 +775,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   }
   if (stage == 4 && job == JOB_HERMIT) {
     return {JOB_NIGHT_LORD};
+  }
+  if (stage == 4 && job == JOB_CHIEF_BANDIT) {
+    return {JOB_SHADOWER};
   }
   return {};
 }
@@ -808,6 +820,7 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE:
     case JOB_ADVANCEMENT_BISHOP:
     case JOB_ADVANCEMENT_NIGHT_LORD:
+    case JOB_ADVANCEMENT_SHADOWER:
       return 4;
     default:
       return 0;

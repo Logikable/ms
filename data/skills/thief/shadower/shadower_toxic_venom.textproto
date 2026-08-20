@@ -1,0 +1,30 @@
+# GMS's own figures: a 30+2x% chance and 110+5x% a second, stacking
+# 2+floor(x/6) times -- the Night Lord's numbers exactly. Only the duration is
+# written differently, 5+floor(x/3) seconds against their flat 8, and both
+# reach 8 at master. Durations are flat at the master level's here, so the two
+# files are the same file.
+name: "Toxic Venom"
+skill_order: 9
+description:
+  "Sharpens the poison on your dagger. It takes hold more often, hurts more, "
+  "and piles up on what is already poisoned."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+max_level: 10
+exceeds_master_level: true
+supersedes_skill_name: "Venom"
+required_skill {
+  skill_name: "Venom"
+  level: 10
+}
+dot {
+  interval_seconds: 1.0
+  duration_seconds: 8.0
+  lines: 1
+  chance: 0.32
+  chance_per_level: 0.02
+  max_stacks: 2.1666667
+  max_stacks_per_level: 0.1666667
+  base { skill_pct: 1.15 }
+  per_level { skill_pct: 0.05 }
+}

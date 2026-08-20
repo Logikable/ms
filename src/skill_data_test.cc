@@ -613,9 +613,11 @@ constexpr int kSmallestMasterLevelPastIt = 10;
 // rather than weakening it to a direction that catches nothing.
 //
 // Infinity is ours rather than GMS's: it is the largest single lever any book
-// grants, and two free levels of it were not worth handing over.
+// grants, and two free levels of it were not worth handing over. Blood Money
+// is GMS's own -- it says so on the skill.
 const char* const kHeldToTheirMasterLevel[] = {
-    "enchanted_quiver", "infinity", "fire_poison_infinity", "bishop_infinity"};
+    "enchanted_quiver", "infinity", "fire_poison_infinity", "bishop_infinity",
+    "blood_money"};
 
 bool GmsHoldsItToTheMasterLevel(const std::string& stem) {
   for (const char* held : kHeldToTheirMasterLevel) {
@@ -686,10 +688,12 @@ TEST(SkillDataTest, EveryBoostNamesASkillTheSameCharacterCanHold) {
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     bool named = !skill.boosts_skill_name().empty();
-    // A skill pays a boost either way it can: a percentage on every swing of
-    // the named skill, or a bigger swing standing in for every Nth. Divine
-    // Judgment pays only the second -- its whole effect is the detonation.
-    bool percent = skill.base().boosted_skill_pct() > 0.0;
+    // A skill pays a boost any way it can: a percentage on every swing of the
+    // named skill, boss damage on it, or a bigger swing standing in for every
+    // Nth. Divine Judgment pays only the last -- its whole effect is the
+    // detonation -- and Blood Money only the middle one.
+    bool percent = skill.base().boosted_skill_pct() > 0.0 ||
+                   skill.base().boosted_boss_pct() > 0.0;
     bool form = skill.empowered_form_size() > 0;
     EXPECT_FALSE(percent && !named)
         << entry.first << " pays a boost with nowhere to send it";

@@ -1,0 +1,27 @@
+# The book's mastery skill, on the ladder every 4th job's climbs: 51% at level
+# 1 to 70% at 20. GMS pays 10+x attack and 5+floor(x/3)% critical damage over
+# 30 levels; twenty here, so the attack lands a point a level and the critical
+# damage walks GMS's own 5% to 15% over the levels this book gives it.
+name: "Dagger Expert"
+skill_order: 10
+description:
+  "Master the dagger. Your strikes land closer to their hardest and hurt more "
+  "when they land true."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+max_level: 20
+exceeds_master_level: true
+required_skill {
+  skill_name: "Dagger Mastery"
+  level: 10
+}
+base {
+  mastery: 0.51
+  attack: 21
+  crit_dmg: 0.05
+}
+per_level {
+  mastery: 0.01
+  attack: 1
+  crit_dmg: 0.0052631579
+}
