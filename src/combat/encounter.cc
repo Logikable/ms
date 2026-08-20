@@ -52,6 +52,11 @@ void ClearSwingRiders(AttackOption& attack) {
   attack.hp_recover_pct = 0.0;
   attack.side = nullptr;
   attack.procs.clear();
+  // A summon leaves the ice it makes -- Elquines freezes what it touches -- but
+  // never spends the pile. GMS says as much of the other one: the lightning orb
+  // attacks without consuming freezing stacks.
+  attack.freeze_spends = false;
+  attack.freeze_fd_per_stack = 0.0;
   attack.final_attack_damage.clear();
   attack.final_attack_rolls.clear();
   attack.single_final_attack_damage.clear();
@@ -131,6 +136,33 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
 // the bare poke, which hits one target for the character's plain 100% swing.
 // `equipped` is everything the character wears plus everything their passives
 // grant, already summed -- the two are indistinguishable to the damage chain.
+// What this swing does with the character's Freeze Stacks. An ice swing leaves
+// one per line and a lightning swing spends one per line; both take the
+// critical damage a held stack grants, since a frozen enemy is frozen whichever
+// element is hitting it.
+//
+// That critical damage is turned into the share it adds to the swing's MEAN
+// damage, which is the only shape the fight can multiply by. Crit rolls per
+// line and its bonus is normalised away, so a bigger crit_dmg in the rolls
+// would change how the swing varies and not what it averages.
+void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
+                     const OffenseStats& offense, AttackOption& attack) {
+  if (derived.freeze.cap <= 0 || skill == nullptr) {
+    return;
+  }
+  double rate = std::min(1.0, offense.crit_rate + kBaseCritRate);
+  double crit = offense.crit_dmg + kBaseCritDamage;
+  attack.freeze_crit_gain =
+      rate * derived.freeze.crit_dmg_per_stack / (1.0 + rate * crit);
+  if (HasTag(skill, SKILL_TAG_ICE)) {
+    attack.freeze_build = attack.lines;
+  }
+  if (HasTag(skill, SKILL_TAG_LIGHTNING)) {
+    attack.freeze_spends = true;
+    attack.freeze_fd_per_stack = derived.freeze.final_dmg_pct_per_stack;
+  }
+}
+
 AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
                        EquipType weapon, const Skill* skill, int level,
                        const std::vector<CombatType>& types,
@@ -180,6 +212,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   for (const SwingProc& proc : derived.procs) {
     attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});
   }
+  AddFreezeStacks(skill, derived, offense, attack);
   // Some swings open with a harder hit on a single enemy before spreading --
   // GMS's "strikes one, then detonates in place". Same character, same weapon,
   // the skill's other multiplier: only the target count differs, and that is
@@ -940,6 +973,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
       speed_factor > 0.0 ? derived.regen_pct_per_second / speed_factor : 0.0;
   params.revive_cooldown_seconds =
       derived.revive_cooldown_seconds * speed_factor;
+  params.freeze_cap = derived.freeze.cap;
 
   // What the character brings to being hit is the same whichever mob is
   // hitting them, so it is resolved once and asked per type.

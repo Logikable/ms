@@ -165,6 +165,21 @@ class CombatSim {
   // chances it rolled. Returned rather than paid here because a strike knows
   // nothing about the pool -- see Proc.
   double RollProcs(const AttackOption& attack, int hit);
+  // What the Freeze Stacks the character is holding multiply `attack` by: the
+  // critical damage every stack grants, and the final damage a lightning swing
+  // takes for the ones it is about to spend. 1.0 for everyone holding none.
+  double FreezeBoost(const AttackOption& attack) const;
+  // What the stacks `attack` would LEAVE are worth: the final damage they will
+  // hand the best lightning swing on offer. Priced into the rate the way a side
+  // strike's damage is, because a chooser reading only this swing would never
+  // build anything -- an ice swing is worth less than the lightning one it
+  // makes room for, right up until the pile is spent.
+  double FreezeCredit(const CombatParams& params,
+                      const AttackOption& attack) const;
+  // Moves the pile on for a landed attack: an ice one leaves a stack per line,
+  // a lightning one spends a stack per line. After the strike, so a swing is
+  // paid for the stacks it went in holding.
+  void CreditFreeze(const CombatParams& params, const AttackOption& attack);
   // Lands one attack on the front of the queue: the first max_enemies mobs
   // each take their own type's damage, one of them also takes the opening hit,
   // and the dead are counted and leave. A swing and a skill on its own clock
@@ -362,6 +377,11 @@ class CombatSim {
   // same list. Held apart because the swing is still there while its strike is
   // waiting -- a Night Lord keeps throwing Showdown between shurikens.
   std::vector<double> side_cooldown_left_;
+
+  // Freeze Stacks the character is holding. Belongs to them rather than to the
+  // map, like the buff clocks and unlike the queue, so it survives walking
+  // somewhere else. 0 for everyone who holds none.
+  int freeze_stacks_ = 0;
 
   // Shuffles each batch of arriving mobs so they are fought in mixed order
   // rather than one whole type at a time (see TopUp). Default-seeded, so a sim

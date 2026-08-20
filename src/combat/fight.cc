@@ -223,7 +223,13 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     }
     // Per second, not per swing: a skill that hits half again as hard but takes
     // twice as long is worse, and only the rate says so.
-    double rate = SwingDamage(attack) / attack.swing_seconds;
+    //
+    // An ice swing is also paid for the pile it leaves, or the chooser would
+    // take the harder lightning swing every time and the pile would never
+    // exist -- see FreezeCredit.
+    double rate = (SwingDamage(attack) * FreezeBoost(attack) +
+                   FreezeCredit(params, attack)) /
+                  attack.swing_seconds;
     if (rate > best_rate) {
       best_rate = rate;
       best = i;
@@ -297,6 +303,9 @@ double CombatSim::Strike(const AttackOption& attack) {
   // behind slide into the window next time.
   int hit = std::min(std::max(1, attack.max_enemies),
                      static_cast<int>(queue_.size()));
+  // Read before anything lands and before the pile moves, so the swing is paid
+  // for the stacks it went in holding.
+  double freeze = FreezeBoost(attack);
   // Picked before anything lands, so the opening hit chooses by the HP the
   // mobs went into the swing with rather than what the spread left them on.
   std::vector<int> lead = LeadTargets(attack, hit);
@@ -309,11 +318,11 @@ double CombatSim::Strike(const AttackOption& attack) {
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
-    queue_[j].hp -= DamageToMob(attack, j) * gain;
+    queue_[j].hp -= DamageToMob(attack, j) * gain * freeze;
   }
   for (int j : lead) {
     queue_[j].hp -= attack.lead_damage[queue_[j].type] *
-                    RollFactor(attack.lead_rolls, rng_);
+                    RollFactor(attack.lead_rolls, rng_) * freeze;
   }
   // A Final Attack rolls separately against every enemy the swing reached, so
   // in expectation each of them takes it.
@@ -321,7 +330,8 @@ double CombatSim::Strike(const AttackOption& attack) {
     for (int j = 0; j < hit; ++j) {
       queue_[j].hp -=
           RolledFinalAttack(attack.final_attack_rolls,
-                            attack.final_attack_damage, queue_[j].type);
+                            attack.final_attack_damage, queue_[j].type) *
+          freeze;
     }
   }
   // Blizzard's rolls once for the swing and falls on one enemy, whatever the
@@ -330,7 +340,8 @@ double CombatSim::Strike(const AttackOption& attack) {
   if (hit > 0 && !attack.single_final_attack_damage.empty()) {
     queue_[0].hp -=
         RolledFinalAttack(attack.single_final_attack_rolls,
-                          attack.single_final_attack_damage, queue_[0].type);
+                          attack.single_final_attack_damage, queue_[0].type) *
+        freeze;
   }
   double recovered = RollProcs(attack, hit);
   // Marked before the dead are cleared, so the indices the swing reached are
@@ -352,15 +363,63 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   if (hit <= 0) {
     return recovered;
   }
+  double boost = FreezeBoost(attack);
   for (const ProcRoll& proc : attack.procs) {
     std::bernoulli_distribution fires(proc.chance);
     if (!fires(rng_)) {
       continue;
     }
-    queue_[0].hp -= RolledDamage(attack, queue_[0].type) * proc.damage_pct;
+    queue_[0].hp -=
+        RolledDamage(attack, queue_[0].type) * proc.damage_pct * boost;
     recovered += proc.hp_recover_pct;
   }
   return recovered;
+}
+
+double CombatSim::FreezeBoost(const AttackOption& attack) const {
+  if (freeze_stacks_ <= 0) {
+    return 1.0;
+  }
+  // The two multiply rather than sum: critical damage is folded into the swing
+  // and final damage is the last thing applied to it, which is where every
+  // other pair of the two meets.
+  double crit = 1.0 + attack.freeze_crit_gain * freeze_stacks_;
+  double spent = attack.freeze_spends
+                     ? 1.0 + attack.freeze_fd_per_stack * freeze_stacks_
+                     : 1.0;
+  return crit * spent;
+}
+
+double CombatSim::FreezeCredit(const CombatParams& params,
+                               const AttackOption& attack) const {
+  int room = std::min(attack.freeze_build, params.freeze_cap - freeze_stacks_);
+  if (room <= 0) {
+    return 0.0;
+  }
+  // What one more stack would be worth to the swing that will spend it. The
+  // best of them, since that is the one the chooser will reach for once the
+  // pile is deep enough.
+  double best = 0.0;
+  for (const AttackOption& other : Attacks(params)) {
+    if (!other.freeze_spends || other.swing_seconds <= 0.0) {
+      continue;
+    }
+    best = std::max(best, SwingDamage(other) * other.freeze_fd_per_stack);
+  }
+  return best * room;
+}
+
+void CombatSim::CreditFreeze(const CombatParams& params,
+                             const AttackOption& attack) {
+  if (params.freeze_cap <= 0) {
+    return;
+  }
+  if (attack.freeze_build > 0) {
+    freeze_stacks_ =
+        std::min(params.freeze_cap, freeze_stacks_ + attack.freeze_build);
+  } else if (attack.freeze_spends) {
+    freeze_stacks_ = std::max(0, freeze_stacks_ - std::max(1, attack.lines));
+  }
 }
 
 void CombatSim::Reap() {
@@ -797,8 +856,12 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     auto_phase_[i] += dt;
     if (auto_phase_[i] >= cast.interval_seconds) {
       auto_phase_[i] -= cast.interval_seconds;
-      Strike(FormToLand(auto_empowered_count_, static_cast<int>(casts.size()),
-                        i, cast));
+      const AttackOption& landed = FormToLand(
+          auto_empowered_count_, static_cast<int>(casts.size()), i, cast);
+      Strike(landed);
+      // A summon leaves the ice it makes: Elquines freezes what it touches. It
+      // never spends the pile -- ClearSwingRiders sees to that.
+      CreditFreeze(params, landed);
     }
   }
 }
@@ -868,6 +931,7 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
         FormToLand(empowered_count_, static_cast<int>(Attacks(params).size()),
                    swung, *attack);
     double proc_recovered = Strike(landed);
+    CreditFreeze(params, landed);
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the
     // strike belongs to the skill, not to the form standing in for it this

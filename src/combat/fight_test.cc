@@ -2426,5 +2426,78 @@ TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.64, 1e-9);
 }
 
+// Freezing Crush's shape: an ice swing leaves a stack per line, a lightning
+// swing spends one per line and hits harder for every stack it went in
+// holding. The lightning swing is the harder of the two on its own, so the
+// chooser would take it every time and the pile would never exist -- what
+// makes it build is the credit an ice swing gets for the stacks it leaves.
+void GiveFreezeStacks(CombatParams& params, int cap) {
+  params.freeze_cap = cap;
+  AttackOption ice = MakeSkill("Cold Beam", 10.0, /*cooldown=*/0.0);
+  ice.lines = 2;
+  ice.freeze_build = 2;
+  params.attacks.push_back(std::move(ice));
+  AttackOption bolt = MakeSkill("Thunder Bolt", 11.0, /*cooldown=*/0.0);
+  bolt.lines = 2;
+  bolt.freeze_spends = true;
+  bolt.freeze_fd_per_stack = 0.5;
+  params.attacks.push_back(std::move(bolt));
+}
+
+TEST(CombatSimTest, TheIceSwingBuildsThePileTheLightningSwingSpends) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/2);
+
+  // Ice first: 10 of its own, plus the two stacks it leaves, which are worth
+  // half of the lightning swing apiece.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.attack_name(), "Thunder Bolt");  // aimed next, pile full
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
+  // Lightning next, at 11 doubled by the two stacks it spends.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.968, 1e-9);
+  // And back, because the pile is empty again.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.958, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.936, 1e-9);
+}
+
+TEST(CombatSimTest, WithNoPileToBuildTheHarderSwingSimplyWins) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/0);
+
+  for (int step = 0; step < 4; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.attack_name(), "Thunder Bolt");
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.956, 1e-9);  // 11 four times
+}
+
+// The critical damage a held stack grants rides EVERY swing, ice and lightning
+// alike: a frozen enemy is frozen whichever element is hitting it.
+TEST(CombatSimTest, AHeldStackLiftsTheIceSwingItCameFrom) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/4);
+  // No lightning swing at all, so nothing ever spends what the ice leaves.
+  params.attacks.pop_back();
+  params.attacks[1].freeze_crit_gain = 0.25;
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);  // 10, nothing held yet
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.975, 1e-9);  // 10 x 1.5, two held
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.955, 1e-9);  // 10 x 2.0, four held
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.935, 1e-9);  // capped, so no more
+}
+
 }  // namespace
 }  // namespace ms

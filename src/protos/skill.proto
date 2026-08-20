@@ -41,6 +41,11 @@ enum SkillTag {
   // two swings GMS marks with it. Nothing reads it yet: what reads it in GMS
   // is a 4th job skill, far above this game's cap.
   SKILL_TAG_SWORDSMANSHIP = 4;
+  // The elements an I/L magician alternates between. Freezing Crush reads the
+  // pair: an ice swing leaves Freeze Stacks behind it and a lightning swing
+  // spends them, so the attacks say which of the two they are.
+  SKILL_TAG_ICE = 5;
+  SKILL_TAG_LIGHTNING = 6;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we
@@ -368,6 +373,11 @@ message SkillEffect {
   // does, and a skill page calling that skill empty would be saying the game
   // has no plans for it. The boss that needs it is what it waits for.
   bool cures_conditions = 108;
+  // The I/L Magician's. Freezing Crush. What one Freeze Stack the character is
+  // holding is worth: critical damage on any swing they make, and final damage
+  // on the lightning swing that spends it. See Skill.freeze_stack_cap.
+  double crit_dmg_per_freeze_stack = 109;
+  double final_dmg_pct_per_freeze_stack = 110;
 }
 
 // A second attack the same skill makes, on its own clock, beside the swing it
@@ -939,4 +949,10 @@ message Skill {
   // SkillEffect::attack_per_combo_orb and final_dmg_pct_per_combo_orb.
   int32 combo_orbs = 100;
   double combo_orbs_per_level = 101;
+  // The I/L Magician's. Freeze Stacks the character can hold at once, and so
+  // whether they hold any at all: 0 says the mechanism is not learned. An ice
+  // swing leaves one per line and a lightning swing spends one per line, and
+  // what a held stack is worth is on the same skill -- see
+  // SkillEffect::crit_dmg_per_freeze_stack.
+  int32 freeze_stack_cap = 102;
 }

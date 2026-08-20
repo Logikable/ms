@@ -563,6 +563,62 @@ TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   }
 }
 
+// A pile of Freeze Stacks and what one is worth live on the same skill, so
+// either half without the other is a skill that says something and grants
+// nothing. The pile is worth nothing either without an ice swing to build it
+// and a lightning one to spend it, and both must reach the same character.
+TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    bool prices_stacks = skill.base().crit_dmg_per_freeze_stack() > 0.0 ||
+                         skill.base().final_dmg_pct_per_freeze_stack() > 0.0;
+    EXPECT_EQ(prices_stacks, skill.freeze_stack_cap() > 0)
+        << entry.first
+        << " states one half of Freezing Crush and not the other";
+    if (!prices_stacks) {
+      continue;
+    }
+    bool ice = false;
+    bool lightning = false;
+    for (Job job : jobs) {
+      std::set<JobAdvancement> books = BooksFor(job);
+      if (books.count(skill.job_advancement()) == 0) {
+        continue;
+      }
+      for (const std::pair<const std::string, Skill>& other : skills) {
+        if (books.count(other.second.job_advancement()) == 0) {
+          continue;
+        }
+        for (int i = 0; i < other.second.tags_size(); ++i) {
+          ice = ice || other.second.tags(i) == SKILL_TAG_ICE;
+          lightning = lightning || other.second.tags(i) == SKILL_TAG_LIGHTNING;
+        }
+      }
+    }
+    EXPECT_TRUE(ice) << entry.first << " has no ice swing to build the pile";
+    EXPECT_TRUE(lightning) << entry.first
+                           << " has no lightning swing to spend the pile";
+  }
+}
+
+// An element is a mark on a SWING: it says what that swing does to the pile of
+// Freeze Stacks, and a passive does nothing to it either way.
+TEST(SkillDataTest, OnlyASwingCarriesAnElement) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    for (int i = 0; i < skill.tags_size(); ++i) {
+      if (skill.tags(i) != SKILL_TAG_ICE &&
+          skill.tags(i) != SKILL_TAG_LIGHTNING) {
+        continue;
+      }
+      EXPECT_TRUE(DealsDamage(skill.kind()))
+          << entry.first << " is marked with an element but never attacks";
+    }
+  }
+}
+
 // A per-orb bargain is worth the orbs times the bargain, so one without the
 // other is a skill that says something and grants nothing. The two halves need
 // not be the same skill -- Combo Synergy prices the orbs Combo Attack hands

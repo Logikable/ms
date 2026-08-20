@@ -349,10 +349,56 @@ int SwingToLay(const CombatParams& params, const BuffClocks& c,
   return -1;
 }
 
+// What the Freeze Stacks held multiply a swing by, and what the stacks a swing
+// would LEAVE are worth to the one that will spend them. Both mirror
+// CombatSim's -- see FreezeBoost and FreezeCredit for why the credit is needed
+// at all.
+double FreezeBoost(const AttackOption& attack, int stacks) {
+  if (stacks <= 0) {
+    return 1.0;
+  }
+  double spent =
+      attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
+  return (1.0 + attack.freeze_crit_gain * stacks) * spent;
+}
+
+double FreezeCredit(const std::vector<AttackOption>& attacks,
+                    const AttackOption& attack, int stacks, int cap,
+                    int enemies) {
+  int room = std::min(attack.freeze_build, cap - stacks);
+  if (room <= 0) {
+    return 0.0;
+  }
+  double best = 0.0;
+  for (const AttackOption& other : attacks) {
+    if (!other.freeze_spends || other.swing_seconds <= 0.0) {
+      continue;
+    }
+    best =
+        std::max(best, CrowdDamage(other, enemies) * other.freeze_fd_per_stack);
+  }
+  return best * room;
+}
+
+// Moves the pile on for a landed attack, as CombatSim::CreditFreeze does.
+int CreditFreeze(const AttackOption& attack, int stacks, int cap) {
+  if (cap <= 0) {
+    return stacks;
+  }
+  if (attack.freeze_build > 0) {
+    return std::min(cap, stacks + attack.freeze_build);
+  }
+  if (attack.freeze_spends) {
+    return std::max(0, stacks - std::max(1, attack.lines));
+  }
+  return stacks;
+}
+
 // The swing landing the most per second of the ones off cooldown, or -1 when
 // none is. A cast is not among them: it deals no damage.
 int BestSwing(const std::vector<AttackOption>& attacks,
-              const std::vector<double>& cooldown, int enemies) {
+              const std::vector<double>& cooldown, int enemies, int stacks,
+              int cap) {
   int pick = -1;
   double best_rate = -1.0;
   for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
@@ -361,7 +407,9 @@ int BestSwing(const std::vector<AttackOption>& attacks,
         attack.heal_fraction > 0.0) {
       continue;
     }
-    double rate = CrowdDamage(attack, enemies) / attack.swing_seconds;
+    double rate = (CrowdDamage(attack, enemies) * FreezeBoost(attack, stacks) +
+                   FreezeCredit(attacks, attack, stacks, cap, enemies)) /
+                  attack.swing_seconds;
     if (rate > best_rate) {
       best_rate = rate;
       pick = i;
@@ -379,6 +427,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
   BuffClocks clocks;
   Sequence played;
   played.damage_by_attack.assign(params.attacks.size(), 0.0);
+  int freeze = 0;
   double phase = 0.0;
   int pick = -1;  // the swing being wound up, held until it lands
   for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
@@ -390,7 +439,8 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     if (pick <= 0) {
       pick = SwingToLay(params, clocks, cooldown);
       if (pick < 0) {
-        pick = BestSwing(params.Attacks(clocks.mask), cooldown, enemies);
+        pick = BestSwing(params.Attacks(clocks.mask), cooldown, enemies, freeze,
+                         params.freeze_cap);
       }
     }
     if (pick < 0) {
@@ -404,7 +454,10 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
       continue;
     }
     phase -= swung.swing_seconds;
-    double landed = CrowdDamage(swung, enemies);
+    // Read before the pile moves, so the swing is paid for the stacks it went
+    // in holding.
+    double landed = CrowdDamage(swung, enemies) * FreezeBoost(swung, freeze);
+    freeze = CreditFreeze(swung, freeze, params.freeze_cap);
     played.damage += landed;
     played.damage_by_attack[pick] += landed;
     played.seconds += swung.swing_seconds;

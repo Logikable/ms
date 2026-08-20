@@ -11,6 +11,7 @@ description:
   "Summon Elquines to fight beside you. Its attacks freeze what they touch, "
   "and learning to call it permanently increases your Mastery."
 kind: SKILL_KIND_AUTO_ATTACK
+tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 20
 exceeds_master_level: true

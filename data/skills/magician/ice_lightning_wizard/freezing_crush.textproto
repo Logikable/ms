@@ -1,18 +1,24 @@
-# GMS stacks this on frozen enemies and spends the stacks on a lightning
-# attack. Nothing here freezes, and the alternation the stacks reward happens
-# anyway, so the reward is simply permanent: the critical damage and the final
-# damage the stacked-up version would have been worth.
+# The wizard's own rhythm: an ice swing leaves a Freeze Stack for every line it
+# lands, and a lightning swing spends one per line for the final damage they
+# were worth. GMS's own numbers -- 1% of each per stack at master, over a pile
+# five deep.
+#
+# The critical damage rides every swing, since a frozen enemy is frozen whichever
+# element is hitting it. Only the final damage is bought with the stacks.
 name: "Freezing Crush"
 skill_order: 2
-description: "Increases Critical Damage and Final Damage."
+description:
+  "Freezes enemies your ice attacks reach. Increases Critical Damage while "
+  "they are frozen, and your lightning attacks spend the ice for Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 10
+freeze_stack_cap: 5
 base {
-  crit_dmg: 0.005
-  final_dmg_pct: 0.005
+  crit_dmg_per_freeze_stack: 0.001
+  final_dmg_pct_per_freeze_stack: 0.001
 }
 per_level {
-  crit_dmg: 0.005
-  final_dmg_pct: 0.005
+  crit_dmg_per_freeze_stack: 0.001
+  final_dmg_pct_per_freeze_stack: 0.001
 }

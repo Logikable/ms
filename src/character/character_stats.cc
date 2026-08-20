@@ -99,6 +99,8 @@ struct PassiveTotals {
   std::vector<CharacterDot> dots;
   // The chances a passive gives every swing to land harder on one enemy.
   std::vector<SwingProc> procs;
+  // What a Freeze Stack is worth, and how many the character holds.
+  FreezeStacks freeze;
   // Pick Pocket's chance and Meso Explosion's damage, which live on two
   // different skills and are worth nothing apart -- totalled here and paired
   // once the fold is done.
@@ -280,6 +282,26 @@ void AddProc(const Skill& skill, int level, PassiveTotals& totals) {
   totals.procs.push_back(rolled);
 }
 
+// Folds Freezing Crush in. The cap and what a stack is worth live on the one
+// skill, so they are read together; a second skill granting any would leave
+// the deeper pile and the better stack standing rather than summing two.
+void AddFreezeStacks(const Skill& skill, int level, PassiveTotals& totals) {
+  if (skill.freeze_stack_cap() <= 0) {
+    return;
+  }
+  const SkillEffect& base = skill.base();
+  const SkillEffect& per = skill.per_level();
+  totals.freeze.cap = std::max(totals.freeze.cap, skill.freeze_stack_cap());
+  totals.freeze.crit_dmg_per_stack =
+      std::max(totals.freeze.crit_dmg_per_stack,
+               base.crit_dmg_per_freeze_stack() +
+                   per.crit_dmg_per_freeze_stack() * (level - 1));
+  totals.freeze.final_dmg_pct_per_stack =
+      std::max(totals.freeze.final_dmg_pct_per_stack,
+               base.final_dmg_pct_per_freeze_stack() +
+                   per.final_dmg_pct_per_freeze_stack() * (level - 1));
+}
+
 // Notes Meso Explosion down. Recorded rather than folded: Meso Mastery's
 // points land on each of its lines, the two skills fold in catalog order, and
 // so the pair cannot be settled until every passive is in. See
@@ -322,6 +344,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   }
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
   AddProc(skill, level, totals);
+  AddFreezeStacks(skill, level, totals);
   // A burn on a PASSIVE belongs to the character rather than to one swing: the
   // poison stays on the claw, so everything the claw hits takes it. One on an
   // attack is that swing's own, and one on a summon is its pulses' -- both are
@@ -676,6 +699,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.final_attacks = passives.final_attacks;
   stats.dots = passives.dots;
   stats.procs = passives.procs;
+  stats.freeze = passives.freeze;
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one

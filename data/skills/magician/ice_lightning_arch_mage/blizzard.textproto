@@ -12,6 +12,7 @@ description:
   "Call down a storm of ice spears over the whole room. Afterwards every "
   "attack you make may bring a smaller blizzard down on a single enemy."
 kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 30
 exceeds_master_level: true

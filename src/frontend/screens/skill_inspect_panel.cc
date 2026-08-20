@@ -66,6 +66,10 @@ const PercentLever kPercentLevers[] = {
     {"Ignore DEF", &SkillEffect::ied_pct, kPlus, ""},
     {"Final Damage", &SkillEffect::final_dmg_pct_per_combo_orb, kPlus,
      " per Combo Orb"},
+    {"Critical Damage", &SkillEffect::crit_dmg_per_freeze_stack, kPlus,
+     " per Freeze Stack"},
+    {"Final Damage", &SkillEffect::final_dmg_pct_per_freeze_stack, kPlus,
+     " per Freeze Stack"},
     {"Critical Rate", &SkillEffect::crit_rate, kPlus, ""},
     {"Critical Damage", &SkillEffect::crit_dmg, kPlus, ""},
     {"Mastery", &SkillEffect::mastery, kBare, ""},
@@ -424,10 +428,33 @@ std::vector<ftxui::Element> EmpoweredRows(const Skill& skill) {
 }
 
 // Everything about a skill that reads the same at every level.
+// Which element a swing is, for the pair a Freezing Crush wizard alternates
+// between. Only these two tags reach the page: the rest mark a family nothing
+// in this game reads yet.
+std::vector<ftxui::Element> ElementRows(const Skill& skill) {
+  for (int i = 0; i < skill.tags_size(); ++i) {
+    if (skill.tags(i) == SKILL_TAG_ICE) {
+      return {EffectRow("Element", "Ice")};
+    }
+    if (skill.tags(i) == SKILL_TAG_LIGHTNING) {
+      return {EffectRow("Element", "Lightning")};
+    }
+  }
+  return {};
+}
+
 std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   std::vector<ftxui::Element> rows = RequirementRows(skill);
   Append(ReplacesRows(skill), rows);
+  Append(ElementRows(skill), rows);
   Append(ReachRows(skill), rows);
+  // How deep the pile of Freeze Stacks the skill grants goes. Stated here
+  // rather than at the level because the cap never climbs -- what a point buys
+  // is what one stack is worth.
+  if (skill.freeze_stack_cap() > 0) {
+    rows.push_back(EffectRow(
+        "Freeze Stacks", "Up to " + std::to_string(skill.freeze_stack_cap())));
+  }
   // A ring that never grows is stated once here. One that does is a thing a
   // point buys, so it reads at the level instead -- the same split the
   // cooldown takes, and for the same reason.

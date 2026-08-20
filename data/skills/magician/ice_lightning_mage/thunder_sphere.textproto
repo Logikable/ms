@@ -13,6 +13,7 @@ description:
   "current at nearby enemies on its own. It cuts deeper into anything that is "
   "not a boss."
 kind: SKILL_KIND_AUTO_ATTACK
+tags: SKILL_TAG_LIGHTNING
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 20
 max_enemies: 6

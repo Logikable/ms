@@ -1,8 +1,9 @@
 # GMS's own skill, poison and all: 130+5x% six times, and the cloud keeps
 # eating at whatever it touched for the rest of its life.
 #
-# Same cooldown as Flame Orb, so the two trade the swing evenly. Its animation
-# is the longer of the pair, which is what keeps it from simply winning.
+# The longer animation of the pair, and the burn is what pays for it: the
+# chooser prices a burn at the rate the swing can sustain, so which of the two
+# it reaches for is settled by that sum rather than by a cooldown.
 name: "Poison Breath"
 skill_order: 3
 description:
@@ -14,7 +15,6 @@ max_level: 10
 base_delay_ms: 780
 max_enemies: 6
 lines: 6
-cooldown_seconds: 0.5
 base { skill_pct: 1.35 }
 per_level { skill_pct: 0.05 }
 dot {

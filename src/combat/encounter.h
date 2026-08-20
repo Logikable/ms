@@ -97,8 +97,8 @@ struct AttackOption {
   std::string name = "Attack";  // shown on the charge bar
   int max_enemies = 1;          // front-of-queue mobs one swing reaches
   // Strikes one swing of it lands on one enemy. Read by the things that count
-  // hits rather than swings -- a buff charged by landing them, rather than by
-  // a clock.
+  // hits rather than swings -- a buff charged by landing them, and the Freeze
+  // Stacks an elemental swing leaves or spends.
   int lines = 1;
   // What this swing gains for every enemy it has already gone through, as a
   // fraction -- compounding, so the k'th enemy it reaches takes (1 + this)^k.
@@ -193,6 +193,17 @@ struct AttackOption {
   // anything on a clock of its own -- what GMS rolls is the character
   // attacking.
   std::vector<ProcRoll> procs;
+  // What this swing does with the character's Freeze Stacks: an ice swing
+  // leaves `freeze_build` of them, a lightning swing spends one per line and
+  // takes `freeze_fd_per_stack` of final damage for each it went in holding.
+  // Both are 0 for every swing of every other character.
+  int freeze_build = 0;
+  bool freeze_spends = false;
+  double freeze_fd_per_stack = 0.0;
+  // What one HELD stack adds to this swing's damage as a share, through the
+  // critical damage Freezing Crush grants. Linear in the stacks held, since
+  // what a stack really adds is critical damage rather than damage.
+  double freeze_crit_gain = 0.0;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
   // own. Puncture's wound is the case it exists for: what ticks is the wound,
@@ -286,6 +297,9 @@ struct CombatParams {
   // How many distinct burns the character can leave, and so how many slots a
   // monster needs. 0 for everyone who leaves none.
   int dot_count = 0;
+  // Freeze Stacks the character can hold at once. 0 for everyone who holds
+  // none, which switches the whole mechanism off.
+  int freeze_cap = 0;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

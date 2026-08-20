@@ -12,6 +12,7 @@ description:
   "Throw an orb of ice that rolls through the room, firing shards at "
   "everything near it until it melts."
 kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 30
 exceeds_master_level: true

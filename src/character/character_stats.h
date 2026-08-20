@@ -70,6 +70,15 @@ struct SwingProc {
   double hp_recover_pct = 0.0;
 };
 
+// The Freezing Crush ladder: what one Freeze Stack is worth, and how many the
+// character can hold. A cap of 0 says they hold none, which is everyone but an
+// I/L magician.
+struct FreezeStacks {
+  double crit_dmg_per_stack = 0.0;
+  double final_dmg_pct_per_stack = 0.0;
+  int cap = 0;
+};
+
 struct DerivedStats {
   int max_hp = 0;
   int max_mp = 0;
@@ -161,6 +170,8 @@ struct DerivedStats {
   // The chances their passives give every swing to land harder on one enemy.
   // Empty for everyone but a Sniper.
   std::vector<SwingProc> procs;
+  // What a Freeze Stack buys them, and how many they hold.
+  FreezeStacks freeze;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;
