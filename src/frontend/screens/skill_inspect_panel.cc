@@ -789,6 +789,16 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
       rows.push_back(std::move(row));
     }
   }
+  // The same sentence for the boss damage it hands over, which is a different
+  // grant to the same skill rather than more of the one above.
+  double boss = PercentAt(skill, &SkillEffect::boosted_boss_pct, level);
+  if (boss > 0.0 && !skill.boosts_skill_name().empty()) {
+    for (ftxui::Element& row : WrappedEffectRows(
+             "Boosts", skill.boosts_skill_name() + " +" + FormatPercent(boss) +
+                           " Boss Damage")) {
+      rows.push_back(std::move(row));
+    }
+  }
   // The same sentence for what it hands another skill that is not damage: a
   // strike on every swing, a wider reach, or both. One row per skill named,
   // because two skills granted different things cannot share a row.
