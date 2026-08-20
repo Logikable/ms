@@ -20,9 +20,9 @@ max_enemies: 1
 lines: 14
 base {
   skill_pct: 0.80
-  hp_recover_pct: 0.03
+  hp_recover_pct: 0.022
 }
 per_level {
   skill_pct: 0.05
-  hp_recover_pct: 0.0017241379
+  hp_recover_pct: 0.002
 }

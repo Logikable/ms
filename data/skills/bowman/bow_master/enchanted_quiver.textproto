@@ -18,10 +18,10 @@ supersedes_skill_name: "Quiver Cartridge"
 base {
   final_attack_chance: 0.33
   final_attack_pct: 2.24
-  final_dmg_pct: 0.01
+  final_dmg_pct: 0.015
 }
 per_level {
   final_attack_chance: 0.03
   final_attack_pct: 0.04
-  final_dmg_pct: 0.00556
+  final_dmg_pct: 0.005
 }

@@ -5,5 +5,5 @@ kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 30
 exceeds_master_level: true
-base { ap_stat_pct: 0.01 }
-per_level { ap_stat_pct: 0.00483 }
+base { ap_stat_pct: 0.005 }
+per_level { ap_stat_pct: 0.005 }

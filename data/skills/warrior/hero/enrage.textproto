@@ -16,10 +16,10 @@ required_skill {
   level: 20
 }
 base {
-  final_dmg_pct: 0.10
-  crit_dmg: 0.10
+  final_dmg_pct: 0.105
+  crit_dmg: 0.0985
 }
 per_level {
-  final_dmg_pct: 0.00517
-  crit_dmg: 0.00345
+  final_dmg_pct: 0.005
+  crit_dmg: 0.0035
 }

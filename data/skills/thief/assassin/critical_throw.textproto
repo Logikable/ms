@@ -16,9 +16,9 @@ required_skill {
 }
 base {
   crit_rate: 0.21
-  crit_dmg: 0.00167
+  crit_dmg: 0.0065
 }
 per_level {
   crit_rate: 0.01
-  crit_dmg: 0.00167
+  crit_dmg: 0.0015
 }

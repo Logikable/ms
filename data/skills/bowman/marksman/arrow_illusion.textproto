@@ -21,10 +21,10 @@ exceeds_master_level: true
 max_enemies: 6
 cast_interval_seconds: 3.0
 base {
-  skill_pct: 1.13
-  ied_pct: 0.01
+  skill_pct: 1.05
+  ied_pct: 0.015
 }
 per_level {
-  skill_pct: 0.0458
-  ied_pct: 0.01526
+  skill_pct: 0.05
+  ied_pct: 0.015
 }

@@ -19,9 +19,9 @@ max_enemies: 6
 lines: 10
 base {
   skill_pct: 1.33
-  crit_rate: 0.11
+  crit_rate: 0.105
 }
 per_level {
   skill_pct: 0.03
-  crit_rate: 0.004828
+  crit_rate: 0.005
 }

@@ -35,7 +35,7 @@ base {
   def: 115
   crit_rate: 0.115
   crit_dmg: 0.105
-  ied_pct: 0.16
+  ied_pct: 0.167
   final_dmg_pct: 0.16
 }
 per_level {
@@ -43,7 +43,7 @@ per_level {
   def: 15
   crit_rate: 0.015
   crit_dmg: 0.005
-  ied_pct: 0.00737
+  ied_pct: 0.007
   final_dmg_pct: 0.01
 }
 weapon_bonus {

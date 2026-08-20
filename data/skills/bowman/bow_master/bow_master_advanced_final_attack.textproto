@@ -1,7 +1,8 @@
 # GMS states the whole of the Final Attack rather than a delta over the
 # Hunter's, so this supersedes it. The base has to clear 40% for that: Final
 # Attack: Bow already reaches it, and a level-1 buy that fired less often would
-# be a point spent going backwards. GMS starts at 41% for the same reason.
+# be a point spent going backwards. GMS starts at 41%, and this at 41.5% for
+# the same reason -- half a point over it, so the ladder climbs by a clean 1.5%.
 #
 # The bow it demands is the Hunter's, so the pair lapse together: a Bow Master
 # holding something neither will fire off keeps neither.
@@ -22,11 +23,11 @@ required_skill {
 }
 base {
   attack: 1
-  final_attack_chance: 0.41
-  final_attack_pct: 1.52
+  final_attack_chance: 0.415
+  final_attack_pct: 1.53
 }
 per_level {
   attack: 1
-  final_attack_chance: 0.01526
-  final_attack_pct: 0.03053
+  final_attack_chance: 0.015
+  final_attack_pct: 0.03
 }

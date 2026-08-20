@@ -32,10 +32,10 @@ required_skill {
   level: 10
 }
 base {
-  final_dmg_pct_per_combo_orb: 0.06
+  final_dmg_pct_per_combo_orb: 0.062
   mastery: 0.51
 }
 per_level {
-  final_dmg_pct_per_combo_orb: 0.00211
+  final_dmg_pct_per_combo_orb: 0.002
   mastery: 0.01
 }

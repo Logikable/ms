@@ -17,14 +17,14 @@ exceeds_master_level: true
 base_delay_ms: 660
 max_enemies: 1
 lines: 15
-cooldown_seconds: 20.0
-cooldown_seconds_per_level: -0.526316
-base { skill_pct: 1.15 }
-per_level { skill_pct: 0.045789 }
+cooldown_seconds: 19.5
+cooldown_seconds_per_level: -0.5
+base { skill_pct: 1.165 }
+per_level { skill_pct: 0.045 }
 dot {
   interval_seconds: 1.0
   duration_seconds: 30.0
   lines: 1
-  base { skill_pct: 1.13 }
-  per_level { skill_pct: 0.045789 }
+  base { skill_pct: 1.145 }
+  per_level { skill_pct: 0.045 }
 }

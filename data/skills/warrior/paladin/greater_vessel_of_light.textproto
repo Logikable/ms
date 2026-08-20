@@ -23,11 +23,11 @@ job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 10
 exceeds_master_level: true
 base {
-  damage_pct: 0.10
+  damage_pct: 0.105
   attack: 11
 }
 per_level {
-  damage_pct: 0.00556
+  damage_pct: 0.005
   attack: 1
 }
 boost {

@@ -32,15 +32,15 @@ base {
 }
 per_level { skill_pct: 0.03 }
 buff {
-  duration_seconds: 45.0
-  duration_seconds_per_level: 0.51724
-  base { damage_pct: 0.11 }
-  per_level { damage_pct: 0.00483 }
+  duration_seconds: 45.5
+  duration_seconds_per_level: 0.5
+  base { damage_pct: 0.105 }
+  per_level { damage_pct: 0.005 }
   pulse {
     label: "Wound"
     cast_interval_seconds: 2.0
     lines: 1
-    base { skill_pct: 0.3276 }
-    per_level { skill_pct: 0.0456 }
+    base { skill_pct: 0.345 }
+    per_level { skill_pct: 0.045 }
   }
 }

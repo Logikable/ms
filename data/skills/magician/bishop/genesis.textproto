@@ -18,10 +18,10 @@ max_enemies: 15
 lines: 10
 cooldown_seconds: 30.0
 base {
-  skill_pct: 1.79
-  crit_rate: 0.05
+  skill_pct: 1.815
+  crit_rate: 0.048
 }
 per_level {
-  skill_pct: 0.0763158
-  crit_rate: 0.0078947
+  skill_pct: 0.075
+  crit_rate: 0.008
 }

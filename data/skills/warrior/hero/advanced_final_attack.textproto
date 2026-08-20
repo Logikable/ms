@@ -25,11 +25,11 @@ required_skill {
 }
 base {
   attack: 1
-  final_attack_chance: 0.46
+  final_attack_chance: 0.455
   final_attack_pct: 3.36
 }
 per_level {
   attack: 1
-  final_attack_chance: 0.00483
+  final_attack_chance: 0.005
   final_attack_pct: 0.06
 }

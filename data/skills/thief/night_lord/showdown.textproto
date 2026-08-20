@@ -21,19 +21,19 @@ max_enemies: 6
 lines: 2
 base {
   skill_pct: 3.73
-  exp_pct: 0.01
+  exp_pct: 0.0065
 }
 per_level {
   skill_pct: 0.08
-  exp_pct: 0.0013793103
+  exp_pct: 0.0015
 }
 side_strike {
   label: "Shuriken"
   lines: 6
   cooldown_seconds: 5.0
   base {
-    skill_pct: 0.09
+    skill_pct: 0.095
     normal_skill_pct: 2.00
   }
-  per_level { skill_pct: 0.0051724138 }
+  per_level { skill_pct: 0.005 }
 }

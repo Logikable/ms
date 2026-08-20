@@ -20,19 +20,19 @@ cooldown_seconds: 70.0
 base { ied_pct: 0.01 }
 per_level { ied_pct: 0.01 }
 buff {
-  duration_seconds: 15.0
-  duration_seconds_per_level: 0.51724
+  duration_seconds: 15.5
+  duration_seconds_per_level: 0.5
   cooldown_reduction_seconds: 0.35
   base {
     heal_pct: 0.13
-    final_dmg_pct: 0.02
-    ied_pct: 0.01
-    boss_pct: 0.06
+    final_dmg_pct: 0.022
+    ied_pct: 0.013
+    boss_pct: 0.063
   }
   per_level {
     heal_pct: 0.03
-    final_dmg_pct: 0.00207
-    ied_pct: 0.0031
-    boss_pct: 0.0031
+    final_dmg_pct: 0.002
+    ied_pct: 0.003
+    boss_pct: 0.003
   }
 }

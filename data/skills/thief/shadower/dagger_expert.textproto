@@ -18,10 +18,10 @@ required_skill {
 base {
   mastery: 0.51
   attack: 21
-  crit_dmg: 0.05
+  crit_dmg: 0.055
 }
 per_level {
   mastery: 0.01
   attack: 1
-  crit_dmg: 0.0052631579
+  crit_dmg: 0.005
 }

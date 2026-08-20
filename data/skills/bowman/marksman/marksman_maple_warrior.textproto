@@ -1,5 +1,5 @@
 # The shared skill, on the same ladder every other book's copy climbs: GMS's
-# ceil(L/2)% walked as a line, 1% at level 1 and 15% at 30. See
+# own L/2%: half a point a level, 15% at 30. See
 # SkillEffect.ap_stat_pct.
 name: "Maple Warrior"
 skill_order: 6
@@ -8,5 +8,5 @@ kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 30
 exceeds_master_level: true
-base { ap_stat_pct: 0.01 }
-per_level { ap_stat_pct: 0.00483 }
+base { ap_stat_pct: 0.005 }
+per_level { ap_stat_pct: 0.005 }

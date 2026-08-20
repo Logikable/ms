@@ -10,6 +10,10 @@
 # Snipes precede every empowered one, so the mark is always standing when the
 # empowered shot lands.
 #
+# Empowered Snipe's ignored defence climbs to the 25% Snipe itself reaches. It
+# used to carry Snipe's own ladder, which is written over thirty levels and only
+# got twenty here, so the empowered shot ignored less than the ordinary one.
+#
 # It supersedes nothing, and needs to: Empowered Arrows aims both its halves at
 # Piercing Arrow, which Piercing Arrow II has already taken the place of, so it
 # goes quiet on its own the moment the swing it names stops being swung.
@@ -29,11 +33,11 @@ required_skill {
 }
 base {
   final_dmg_pct: 0.006
-  ied_pct: 0.0152
+  ied_pct: 0.019
 }
 per_level {
   final_dmg_pct: 0.006
-  ied_pct: 0.0152
+  ied_pct: 0.015
 }
 empowered_form {
   skill_name: "Piercing Arrow II"
@@ -56,12 +60,12 @@ empowered_form {
   lines: 10
   base {
     skill_pct: 3.80
-    ied_pct: 0.07
+    ied_pct: 0.06
     crit_rate: 1.0
   }
   per_level {
     skill_pct: 0.06
-    ied_pct: 0.0062
+    ied_pct: 0.01
   }
   extra_hit {
     label: "Marked Target"

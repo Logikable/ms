@@ -27,16 +27,16 @@ max_enemies: 12
 lines: 20
 cooldown_seconds: 10.0
 base {
-  skill_pct: 0.96
+  skill_pct: 0.965
   ied_pct: 0.40
   final_dmg_pct: 0.20
 }
-per_level { skill_pct: 0.015263 }
+per_level { skill_pct: 0.015 }
 boosts_skill_name: "Poison Mist"
 empowered_form {
   skill_name: "Poison Mist"
   casts_per_trigger: 1
   lines: 1
-  base { skill_pct: 2.71 }
-  per_level { skill_pct: 0.01526 }
+  base { skill_pct: 2.715 }
+  per_level { skill_pct: 0.015 }
 }
