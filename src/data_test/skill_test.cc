@@ -359,6 +359,13 @@ TEST(SkillDataTest, EveryBuffStandsForAWhileAndWaitsForTheNextOne) {
     if (skill.kind() == SKILL_KIND_ATTACK) {
       continue;
     }
+    // The other way of waiting: a count of landed hits rather than seconds.
+    // Nothing counts while it stands, so it cannot be permanent either.
+    if (skill.buff().charge_lines() > 0) {
+      EXPECT_EQ(skill.cooldown_seconds(), 0.0)
+          << entry.first << "'s buff waits on hits and on a clock at once";
+      continue;
+    }
     EXPECT_GT(skill.cooldown_seconds(), 0.0)
         << entry.first << "'s buff would never be waited for";
     EXPECT_GT(skill.cooldown_seconds(), skill.buff().duration_seconds())

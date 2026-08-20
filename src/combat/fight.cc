@@ -117,6 +117,15 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
           static_cast<int>(attack.single_final_attack_damage.size())) {
     total += attack.single_final_attack_damage[queue_[0].type];
   }
+  // A chance that lands on one enemy, so it is charged once however many the
+  // swing reached -- and it is a share of what that one was taking anyway.
+  if (hit > 0 &&
+      queue_[0].type < static_cast<int>(attack.damage_per_hit.size())) {
+    for (const ProcRoll& proc : attack.procs) {
+      total +=
+          attack.damage_per_hit[queue_[0].type] * proc.chance * proc.damage_pct;
+    }
+  }
   return total;
 }
 
@@ -282,7 +291,7 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
   }
 }
 
-void CombatSim::Strike(const AttackOption& attack) {
+double CombatSim::Strike(const AttackOption& attack) {
   // One strike hits the front mobs at once; each takes its own type's damage.
   // Overkill on any of them is wasted. Dead mobs leave the queue and the ones
   // behind slide into the window next time.
@@ -323,10 +332,35 @@ void CombatSim::Strike(const AttackOption& attack) {
         RolledFinalAttack(attack.single_final_attack_rolls,
                           attack.single_final_attack_damage, queue_[0].type);
   }
+  double recovered = RollProcs(attack, hit);
   // Marked before the dead are cleared, so the indices the swing reached are
   // still the ones the mark is written to.
   ApplyDots(attack, hit);
   Reap();
+  return recovered;
+}
+
+// A chance rolled once for the whole swing, as GMS rolls it once per attack.
+// What it adds is a share of what one enemy was already taking, so it is a
+// second helping of the swing rather than a hit of its own -- and it rolls its
+// own crit and mastery, being a separate landing.
+//
+// It falls on the front of the queue. Nothing here has a position, so no enemy
+// is nearer than another; the same reason Blizzard's single strike picks it.
+double CombatSim::RollProcs(const AttackOption& attack, int hit) {
+  double recovered = 0.0;
+  if (hit <= 0) {
+    return recovered;
+  }
+  for (const ProcRoll& proc : attack.procs) {
+    std::bernoulli_distribution fires(proc.chance);
+    if (!fires(rng_)) {
+      continue;
+    }
+    queue_[0].hp -= RolledDamage(attack, queue_[0].type) * proc.damage_pct;
+    recovered += proc.hp_recover_pct;
+  }
+  return recovered;
 }
 
 void CombatSim::Reap() {
@@ -642,6 +676,14 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
   int count = static_cast<int>(params.buffs.size());
   buff_left_.resize(count, 0.0);
   buff_cooldown_left_.resize(count, 0.0);
+  // Seeded with each buff's full count rather than with nothing, or one
+  // charged by hits would go up before a single hit had landed.
+  if (static_cast<int>(buff_charge_left_.size()) != count) {
+    buff_charge_left_.resize(count);
+    for (int i = 0; i < count; ++i) {
+      buff_charge_left_[i] = params.buffs[i].charge_lines;
+    }
+  }
   buff_mask_ = 0;
   for (int i = 0; i < count; ++i) {
     const BuffOption& buff = params.buffs[i];
@@ -654,11 +696,14 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     //
     // A buff its own swing lays is not raised here at all: it waits for that
     // swing to land. See LayBuffs.
-    if (buff.laid_by_attack < 0 && buff_left_[i] <= 0.0 &&
-        buff_cooldown_left_[i] <= 0.0 && !queue_.empty() &&
-        buff.duration_seconds > 0.0) {
+    // What it is waiting on: a wait in seconds, or a count of landed hits.
+    bool ready = buff.charge_lines > 0 ? buff_charge_left_[i] <= 0.0
+                                       : buff_cooldown_left_[i] <= 0.0;
+    if (buff.laid_by_attack < 0 && buff_left_[i] <= 0.0 && ready &&
+        !queue_.empty() && buff.duration_seconds > 0.0) {
       buff_left_[i] = buff.duration_seconds;
       buff_cooldown_left_[i] = buff.cooldown_seconds;
+      buff_charge_left_[i] = buff.charge_lines;
       player_hp_ =
           std::min(static_cast<double>(params.max_player_hp),
                    player_hp_ + buff.heal_fraction * params.max_player_hp);
@@ -715,8 +760,18 @@ int CombatSim::BuffToLay(const CombatParams& params) const {
   return -1;
 }
 
-void CombatSim::CreditBuffs(const CombatParams& params, double weight) {
+void CombatSim::CreditBuffs(const CombatParams& params, double weight,
+                            int lines) {
   for (int i = 0; i < static_cast<int>(buff_cooldown_left_.size()); ++i) {
+    // A buff counting hits is charged by what the swing landed, and only while
+    // it is down: GMS stops counting for as long as the window stands, so what
+    // its uptime is worth is bounded however fast the character fires.
+    if (params.buffs[i].charge_lines > 0) {
+      if (buff_left_[i] <= 0.0) {
+        buff_charge_left_[i] = std::max(0.0, buff_charge_left_[i] - lines);
+      }
+      continue;
+    }
     buff_cooldown_left_[i] =
         std::max(0.0, buff_cooldown_left_[i] -
                           params.buffs[i].cooldown_reduction_seconds * weight);
@@ -812,7 +867,7 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     const AttackOption& landed =
         FormToLand(empowered_count_, static_cast<int>(Attacks(params).size()),
                    swung, *attack);
-    Strike(landed);
+    double proc_recovered = Strike(landed);
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the
     // strike belongs to the skill, not to the form standing in for it this
@@ -825,7 +880,8 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     // swing at nothing. What landed pays it rather than what was aimed, and
     // the swing's own is added to the character's: Angel Ray heals as it
     // lands, on top of whatever any passive recovers.
-    double recovered = params.hp_recover_pct + landed.hp_recover_pct;
+    double recovered =
+        params.hp_recover_pct + landed.hp_recover_pct + proc_recovered;
     player_hp_ = std::min(static_cast<double>(params.max_player_hp),
                           player_hp_ + recovered * params.max_player_hp);
     // Credited after the strike, so the volley lands on what the swing left
@@ -834,7 +890,7 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     CreditSwing(params, attack->count_weight);
     // Attacking is what brings a buff round sooner, so the same swing that
     // credits the volleys credits the buffs. A cast credits neither.
-    CreditBuffs(params, attack->count_weight);
+    CreditBuffs(params, attack->count_weight, landed.lines);
     LayBuffs(params, swung);
   }
   if (attack->cooldown_seconds > 0.0) {

@@ -97,6 +97,8 @@ struct PassiveTotals {
   std::vector<FinalAttackSource> final_attacks;
   // The burns a passive leaves on every swing, likewise.
   std::vector<CharacterDot> dots;
+  // The chances a passive gives every swing to land harder on one enemy.
+  std::vector<SwingProc> procs;
   // Pick Pocket's chance and Meso Explosion's damage, which live on two
   // different skills and are worth nothing apart -- totalled here and paired
   // once the fold is done.
@@ -261,6 +263,23 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& base,
   totals.final_attacks.push_back(source);
 }
 
+// Folds one skill's chance to land harder on a single enemy in. Split from
+// AddEffect for the reason AddFinalAttack is: what is rolled belongs to the
+// skill rather than to the level's levers.
+void AddProc(const Skill& skill, int level, PassiveTotals& totals) {
+  const Proc& proc = skill.proc();
+  SwingProc rolled;
+  rolled.chance = proc.chance() + proc.chance_per_level() * (level - 1);
+  if (rolled.chance <= 0.0) {
+    return;
+  }
+  rolled.damage_pct =
+      proc.base().damage_pct() + proc.per_level().damage_pct() * (level - 1);
+  rolled.hp_recover_pct = proc.base().hp_recover_pct() +
+                          proc.per_level().hp_recover_pct() * (level - 1);
+  totals.procs.push_back(rolled);
+}
+
 // Notes Meso Explosion down. Recorded rather than folded: Meso Mastery's
 // points land on each of its lines, the two skills fold in catalog order, and
 // so the pair cannot be settled until every passive is in. See
@@ -302,6 +321,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
     }
   }
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
+  AddProc(skill, level, totals);
   // A burn on a PASSIVE belongs to the character rather than to one swing: the
   // poison stays on the claw, so everything the claw hits takes it. One on an
   // attack is that swing's own, and one on a summon is its pulses' -- both are
@@ -655,6 +675,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.mastery = passives.mastery;
   stats.final_attacks = passives.final_attacks;
   stats.dots = passives.dots;
+  stats.procs = passives.procs;
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one

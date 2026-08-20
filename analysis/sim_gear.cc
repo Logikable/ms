@@ -216,6 +216,11 @@ double CrowdDamage(const AttackOption& attack, int enemies) {
   if (!attack.single_final_attack_damage.empty()) {
     damage += attack.single_final_attack_damage[0];
   }
+  // A chance that lands on one enemy, and worth a share of what that one was
+  // taking anyway -- so it is charged once however wide the swing is.
+  for (const ProcRoll& proc : attack.procs) {
+    damage += per * proc.chance * proc.damage_pct;
+  }
   // The burns this swing lights, charged at the rate they can actually
   // sustain. Relighting one buys no more ticks, so what a swing is worth is
   // the seconds before the same swing comes round again, capped by how long
@@ -272,8 +277,20 @@ struct BuffClocks {
   std::vector<double> left;
   std::vector<double> cooldown;
   std::vector<double> standing;  // seconds each has spent up over the run
+  // Lines still to land before each buff bought with hits goes up.
+  std::vector<double> charge;
   int mask = 0;
 };
+
+// Takes a landed swing's lines off every buff bought with them, and only while
+// that buff is down -- the same rule CombatSim::CreditBuffs follows.
+void ChargeBuffs(const CombatParams& params, int lines, BuffClocks& c) {
+  for (int i = 0; i < static_cast<int>(c.charge.size()); ++i) {
+    if (params.buffs[i].charge_lines > 0 && c.left[i] <= 0.0) {
+      c.charge[i] = std::max(0.0, c.charge[i] - lines);
+    }
+  }
+}
 
 // Winds every buff's clocks on by one step and puts up any that has come round
 // on its own. A buff its own swing lays is left alone here -- see LayBuff.
@@ -281,15 +298,24 @@ void RunBuffClocks(const CombatParams& params, double step, BuffClocks& c) {
   c.left.resize(params.buffs.size(), 0.0);
   c.cooldown.resize(params.buffs.size(), 0.0);
   c.standing.resize(params.buffs.size(), 0.0);
+  if (c.charge.size() != params.buffs.size()) {
+    c.charge.resize(params.buffs.size());
+    for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+      c.charge[i] = params.buffs[i].charge_lines;
+    }
+  }
   c.mask = 0;
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
     const BuffOption& buff = params.buffs[i];
     c.left[i] = std::max(0.0, c.left[i] - step);
     c.cooldown[i] = std::max(0.0, c.cooldown[i] - step);
-    if (buff.laid_by_attack < 0 && c.left[i] <= 0.0 && c.cooldown[i] <= 0.0 &&
+    bool ready =
+        buff.charge_lines > 0 ? c.charge[i] <= 0.0 : c.cooldown[i] <= 0.0;
+    if (buff.laid_by_attack < 0 && c.left[i] <= 0.0 && ready &&
         buff.duration_seconds > 0.0) {
       c.left[i] = buff.duration_seconds;
       c.cooldown[i] = buff.cooldown_seconds;
+      c.charge[i] = buff.charge_lines;
     }
     if (c.left[i] > 0.0) {
       c.mask |= 1 << i;
@@ -385,6 +411,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     ++swings[pick];
     cooldown[pick] = swung.cooldown_seconds;
     LayBuff(params, pick, clocks);
+    ChargeBuffs(params, swung.lines, clocks);
     pick = -1;
   }
   for (int i = 0; i < static_cast<int>(swings.size()); ++i) {

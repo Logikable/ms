@@ -161,11 +161,19 @@ class CombatSim {
   // being fought. Leaves the swing clock alone, since whether a top-up should
   // interrupt the swing depends on why it happened.
   void TopUp(const CombatParams& params);
+  // The share of the player's pool a landed `attack` puts back through the
+  // chances it rolled. Returned rather than paid here because a strike knows
+  // nothing about the pool -- see Proc.
+  double RollProcs(const AttackOption& attack, int hit);
   // Lands one attack on the front of the queue: the first max_enemies mobs
   // each take their own type's damage, one of them also takes the opening hit,
   // and the dead are counted and leave. A swing and a skill on its own clock
   // are the same thing here.
-  void Strike(const AttackOption& attack);
+  //
+  // Returns the share of the player's pool the chances it rolled put back, 0
+  // for every attack that rolls none. Reported rather than paid, because the
+  // pool is the caller's business -- exactly as the kills are.
+  double Strike(const AttackOption& attack);
   // The order a swing that gains as it travels goes through the `hit` mobs it
   // reached, drawn fresh each swing: nothing here has a position, so which
   // enemy an arrow meets first is arbitrary and drawing it keeps the gain from
@@ -266,7 +274,9 @@ class CombatSim {
   // Takes what a landed swing is worth off the wait for each buff's next
   // cast. `weight` is what that swing counted for, the same share
   // CreditSwing uses -- a rapid swing must not pay a whole attack's worth.
-  void CreditBuffs(const CombatParams& params, double weight);
+  // `lines` is what it landed, for the buffs charged by hits rather than by
+  // seconds -- and those count nothing while they are standing.
+  void CreditBuffs(const CombatParams& params, double weight, int lines);
   // Puts up every buff the swing at index `swung` lays. Nothing for the
   // swings that lay none, which is all of them bar Puncture.
   void LayBuffs(const CombatParams& params, int swung);
@@ -318,6 +328,10 @@ class CombatSim {
   // rather than to the mobs in front of them.
   std::vector<double> buff_left_;
   std::vector<double> buff_cooldown_left_;
+  // Lines still to land before each buff charged by hits goes up, parallel to
+  // the pair above. Held at its full count for every buff on a clock, which
+  // never reads it.
+  std::vector<double> buff_charge_left_;
   // Which buffs are standing, as the bitmask CombatParams indexes its damage
   // tables by. Worked out once a step, at the top.
   int buff_mask_ = 0;

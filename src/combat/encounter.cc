@@ -51,6 +51,7 @@ constexpr double kBeatHealFraction = 0.10;
 void ClearSwingRiders(AttackOption& attack) {
   attack.hp_recover_pct = 0.0;
   attack.side = nullptr;
+  attack.procs.clear();
   attack.final_attack_damage.clear();
   attack.final_attack_rolls.clear();
   attack.single_final_attack_damage.clear();
@@ -174,6 +175,10 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   attack.groups.push_back({attack.damage_per_hit, RollsFor(offense)});
   if (skill != nullptr) {
     attack.pierce_gain_pct = skill->pierce_gain_pct();
+    attack.lines = SkillLinesAt(*skill, level);
+  }
+  for (const SwingProc& proc : derived.procs) {
+    attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});
   }
   // Some swings open with a harder hit on a single enemy before spreading --
   // GMS's "strikes one, then detonates in place". Same character, same weapon,
@@ -815,6 +820,10 @@ void AddBuffs(const CharacterInstance& character,
                               buff.per_level().damage_taken_pct() * (level - 1);
     option.cooldown_reduction_seconds =
         buff.cooldown_reduction_seconds() * speed_factor;
+    // Lines rather than seconds, so the pacing band leaves it alone: what it
+    // measures is how fast the character lands hits, which is already
+    // stretched.
+    option.charge_lines = buff.charge_lines();
     option.heal_fraction =
         buff.base().heal_pct() + buff.per_level().heal_pct() * (level - 1);
     // A buff hanging off an ATTACK is laid by that swing rather than raised on

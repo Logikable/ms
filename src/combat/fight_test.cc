@@ -2359,5 +2359,72 @@ TEST(CombatSimTest, ABuffHealsTheShareItPromisesWhenItGoesUp) {
   EXPECT_EQ(sim.player_hp(), 30);
 }
 
+// Mortal Blow's shape: a chance rolled once for the whole swing that lands a
+// share of it again on ONE enemy, and hands a slice of the pool back when it
+// does. Certain and doubled, so the roll cannot hide behind the noise.
+TEST(CombatSimTest, AChanceCanLandOneEnemyHarderAndPayTheHitBack) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatParams params =
+      MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 4)}, /*reach=*/2);
+  GivePlayerHp(params, 100, /*interval=*/1000.0, /*damage=*/0.0);
+  CombatSim plain;
+  plain.Advance(params, 1.0);
+  // Two enemies, ten apiece, averaged into the one bar the pair share.
+  ASSERT_EQ(plain.engaged_groups().size(), 1u);
+  ASSERT_NEAR(plain.engaged_groups()[0].hp_fraction, 0.99, 1e-9);
+
+  params.attacks[0].procs.push_back(
+      {/*chance=*/1.0, /*damage_pct=*/1.0, /*hp_recover_pct=*/0.25});
+  CombatSim rolled;
+  rolled.Advance(params, 1.0);
+  // The front one takes its ten twice over; the one behind it takes ten still.
+  ASSERT_EQ(rolled.engaged_groups().size(), 1u);
+  EXPECT_NEAR(rolled.engaged_groups()[0].hp_fraction, 0.985, 1e-9);
+  EXPECT_EQ(rolled.player_hp(), 100);  // already full, so the quarter is capped
+
+  GivePlayerHp(params, 100, /*interval=*/0.5, /*damage=*/50.0);
+  CombatSim healed;
+  healed.Advance(params, 1.0);
+  // Fifty taken, then twenty-five put back by the swing that landed.
+  EXPECT_EQ(healed.player_hp(), 75);
+}
+
+// A buff bought with landed hits rather than with a wait: it goes up on the
+// hit that finishes the count, and nothing counts while it stands -- so its
+// uptime is what the character's firing rate buys and no more.
+TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  BuffOption buff;
+  buff.name = "Mortal Blow";
+  buff.duration_seconds = 2.0;
+  buff.charge_lines = 3;
+  params.buffs.push_back(std::move(buff));
+  AttackSet set;
+  set.attacks = params.attacks;
+  set.attacks[0].damage_per_hit[0] = 100.0;
+  params.buffed.push_back(std::move(set));
+
+  // Three swings to charge it, each landing the plain ten.
+  for (int step = 0; step < 3; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.97, 1e-9);
+  // It stands now, and the next two swings land under it.
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.87, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.77, 1e-9);
+  // Those two landed while it stood, so neither counted toward the next one:
+  // three more plain swings are owed before it comes back.
+  for (int step = 0; step < 3; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.74, 1e-9);
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.64, 1e-9);
+}
+
 }  // namespace
 }  // namespace ms

@@ -78,6 +78,15 @@ struct FinalAttackRoll {
   SwingRolls rolls;            // how that hit itself varies
 };
 
+// One chance a swing has to land harder on one of the enemies it reached, and
+// what firing it hands the character back. Rolled once for the whole swing --
+// see the Proc message.
+struct ProcRoll {
+  double chance = 0.0;
+  double damage_pct = 0.0;  // share added to what that one enemy takes
+  double hp_recover_pct = 0.0;
+};
+
 // One thing the character could spend a swing on: the bare poke, a learned
 // attack skill, or a cast that does something else with the swing entirely.
 // Which one is best depends on how many mobs are actually in front of the
@@ -87,6 +96,10 @@ struct FinalAttackRoll {
 struct AttackOption {
   std::string name = "Attack";  // shown on the charge bar
   int max_enemies = 1;          // front-of-queue mobs one swing reaches
+  // Strikes one swing of it lands on one enemy. Read by the things that count
+  // hits rather than swings -- a buff charged by landing them, rather than by
+  // a clock.
+  int lines = 1;
   // What this swing gains for every enemy it has already gone through, as a
   // fraction -- compounding, so the k'th enemy it reaches takes (1 + this)^k.
   // 0 for a swing that hits everything it reaches alike, which is all of them
@@ -175,6 +188,11 @@ struct AttackOption {
   // rather than owned outright for the reason `empowered` is: an AttackOption
   // is copied freely and the strike never changes.
   std::shared_ptr<const AttackOption> side;
+  // The chances this swing has to land harder on one of the enemies it
+  // reached. Empty for every character but a Sniper, and stripped from
+  // anything on a clock of its own -- what GMS rolls is the character
+  // attacking.
+  std::vector<ProcRoll> procs;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
   // own. Puncture's wound is the case it exists for: what ticks is the wound,
@@ -211,6 +229,10 @@ struct BuffOption {
   double damage_taken_pct = 0.0;
   // Share of the pool the cast puts back at once (1.00 == all of it).
   double heal_fraction = 0.0;
+  // Lines the character has to land before this goes up, instead of a wait in
+  // seconds. 0 for a buff on a clock, which is every other one. See
+  // Buff::charge_lines.
+  int charge_lines = 0;
   // Index into AttackSet::attacks of the swing that lays this buff, or -1 for
   // one the character raises on its own wait. A buff hanging off an ATTACK is
   // inseparable from the swing that delivers it -- Puncture's wound is left by

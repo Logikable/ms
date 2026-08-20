@@ -1,22 +1,24 @@
-# GMS rolls an L% chance of L*2% more damage and 1% of the pool back. Both are
-# stated here as what one swing is worth, the way every chance in this game is:
-# 2% of damage and a hundredth of a percent of HP a level.
+# GMS's own: "a L% chance when attacking to deal 2L% increased damage to an
+# enemy. 1% Max HP & MP recovered when triggered." Rolled once per swing rather
+# than once per line -- "when attacking" is the attack, and per line the
+# recovery would be worth the swing's line count of times as much.
 #
-# The damage is plain %Damage rather than final damage -- GMS files it beside
-# Marksmanship, which sums with it.
-#
-# The MP half of the recovery is dropped: there is no MP pool to fill.
+# The damage is a share of what that one enemy was already taking, so a harder
+# swing carries a harder proc. The MP half of the recovery is dropped: there is
+# no MP pool to fill.
 name: "Mortal Blow"
 skill_order: 5
-description: "Permanently increases your Damage, and puts HP back as you hit."
+description:
+  "Gives every attack a chance to hit one enemy harder and put HP back."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 10
-base {
-  damage_pct: 0.002
-  hp_recover_pct: 0.0001
-}
-per_level {
-  damage_pct: 0.002
-  hp_recover_pct: 0.0001
+proc {
+  chance: 0.01
+  chance_per_level: 0.01
+  base {
+    damage_pct: 0.02
+    hp_recover_pct: 0.01
+  }
+  per_level { damage_pct: 0.02 }
 }

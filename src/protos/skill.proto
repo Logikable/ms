@@ -455,6 +455,36 @@ message Buff {
   // What the buff bleeds while it stands. Unset for every buff that only
   // grants levers, which is all of them but Puncture's wound.
   BuffPulse pulse = 6;
+  // Lines the character has to land before this goes up, instead of a wait in
+  // seconds. Mortal Blow is what it exists for: GMS counts the hits a Ranger
+  // lands and pays them a window once the count comes round. Lines landed
+  // while it stands do not count, so its uptime is what their firing rate
+  // buys. 0 for a buff that waits on a clock, which is every other one.
+  int32 charge_lines = 7;
+}
+
+// A chance a swing has to land harder on one of the enemies it reached, and
+// what firing it hands the character back. Mortal Blow is what it exists for:
+// GMS's "a 10% chance when attacking to deal 20% increased damage to an enemy,
+// recovering 1% of Max HP".
+//
+// Rolled ONCE for the whole swing rather than once per line, because GMS words
+// it "when attacking" -- and per line the recovery would be worth a swing's
+// line count of times as much.
+//
+// The damage is a share of what that one enemy was already taking, unlike a
+// Final Attack, which is an extra hit worth its own percent whatever set it
+// off. So a harder swing carries a harder proc, which is what "increased
+// damage" means.
+//
+// Read at the same learned level as the skill carrying it.
+message Proc {
+  // damage_pct is the share added to that enemy's damage; hp_recover_pct is
+  // the share of the pool put back. Nothing else here is read.
+  SkillEffect base = 1;
+  SkillEffect per_level = 2;
+  double chance = 3;
+  double chance_per_level = 4;
 }
 
 // A burn a swing leaves on the enemies it reached: damage on a clock of its
@@ -893,6 +923,9 @@ message Skill {
   // ask for one, and data/equip/secondary now ships thirty of them, so a
   // character without one in hand is granted nothing -- see SkillGearMet.
   bool requires_secondary = 40;
+  // The chance this passive gives every swing to land harder on one enemy.
+  // Unset for all but Mortal Blow -- see Proc.
+  Proc proc = 41;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and

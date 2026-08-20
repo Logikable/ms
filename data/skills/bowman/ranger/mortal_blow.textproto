@@ -1,10 +1,21 @@
-# GMS builds this up over thirty hits and lets it lapse after five seconds.
-# Here it is simply on, like every other buff in this game.
+# GMS counts the hits a Ranger lands and pays them a window when the count comes
+# round: "if the direct skill attacks hit 30 times, damage increases by 3L+5%
+# for 5 sec." Hits are LINES, which is why a fast multi-line swing holds it up
+# and a slow one barely sees it.
+#
+# Nothing counts while the window stands, so its uptime is bounded however hard
+# the character fires: five seconds in every five plus the time thirty more
+# lines take.
 name: "Mortal Blow"
 skill_order: 5
-description: "Permanently increases your Damage."
+description:
+  "Every thirty hits you land, your damage rises for a few seconds."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 10
-base { damage_pct: 0.08 }
-per_level { damage_pct: 0.03 }
+buff {
+  base { damage_pct: 0.08 }
+  per_level { damage_pct: 0.03 }
+  duration_seconds: 5.0
+  charge_lines: 30
+}

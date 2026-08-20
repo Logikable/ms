@@ -59,6 +59,17 @@ struct CharacterDot {
   int level = 1;
 };
 
+// One chance the character carries for a swing to land harder on a single
+// enemy, from a passive rather than from the swing. Rolled once per swing --
+// see the Proc message.
+struct SwingProc {
+  double chance = 0.0;
+  // Share ADDED to what that one enemy was already taking, so a harder swing
+  // carries a harder proc.
+  double damage_pct = 0.0;
+  double hp_recover_pct = 0.0;
+};
+
 struct DerivedStats {
   int max_hp = 0;
   int max_mp = 0;
@@ -147,6 +158,9 @@ struct DerivedStats {
   // The burns the character's passives leave on every swing they choose.
   // Empty for everyone holding no such skill, which is everyone but a rogue.
   std::vector<CharacterDot> dots;
+  // The chances their passives give every swing to land harder on one enemy.
+  // Empty for everyone but a Sniper.
+  std::vector<SwingProc> procs;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;

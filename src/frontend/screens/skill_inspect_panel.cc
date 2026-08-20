@@ -730,6 +730,32 @@ std::string DotText(const Dot& dot, int level) {
   return text;
 }
 
+// The chance every swing has to land harder on one enemy. Its chance and what
+// it pays are one fact, exactly as a Final Attack's are, so they share a line
+// -- and the recovery it hands back takes a line of its own, being what the
+// player gets rather than what the enemy takes.
+std::vector<ftxui::Element> ProcRows(const Skill& skill, int level) {
+  std::vector<ftxui::Element> rows;
+  const Proc& proc = skill.proc();
+  double chance = proc.chance() + proc.chance_per_level() * (level - 1);
+  if (chance <= 0.0) {
+    return rows;
+  }
+  double damage =
+      proc.base().damage_pct() + proc.per_level().damage_pct() * (level - 1);
+  Append(WrappedEffectRows("Chance to Crush", FormatPercent(chance) + " for +" +
+                                                  FormatPercent(damage) +
+                                                  " Damage, one enemy"),
+         rows);
+  double heal = proc.base().hp_recover_pct() +
+                proc.per_level().hp_recover_pct() * (level - 1);
+  if (heal > 0.0) {
+    rows.push_back(
+        EffectRow("Heal on Crush", "+" + FormatPercent(heal) + " HP"));
+  }
+  return rows;
+}
+
 // The burn the swing leaves, and the strike it sets off beside itself.
 std::vector<ftxui::Element> SwingRiderRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
@@ -885,11 +911,17 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
   if (buff.duration_seconds() <= 0.0) {
     return rows;
   }
+  // A buff bought with landed hits says so in its heading: that count is the
+  // whole of what it costs, and there is no Cooldown row to carry it.
+  std::string charge =
+      buff.charge_lines() > 0
+          ? " every " + std::to_string(buff.charge_lines()) + " hits"
+          : "";
   rows.push_back(SectionRow(
       "Active for " +
           FormatNumber(buff.duration_seconds() +
                        buff.duration_seconds_per_level() * (level - 1)) +
-          "s",
+          "s" + charge,
       kOrange));
   // The heal is handed over once, when the buff goes up -- so it is stated on
   // its own rather than among the levers that hold for as long as it stands.
@@ -951,6 +983,11 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
     }
   } else {
     permanent = LeverRows(skill.base(), skill.per_level(), level, "");
+  }
+  // What a chance pays lands with the permanent half: nothing about it lapses,
+  // and a passive that only ever fires sometimes is a passive still.
+  for (ftxui::Element& row : ProcRows(skill, level)) {
+    permanent.push_back(std::move(row));
   }
   if (!swing.empty()) {
     rows.push_back(SectionRow("This Attack Only", kOrange));
