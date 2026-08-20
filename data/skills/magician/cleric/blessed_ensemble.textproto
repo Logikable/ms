@@ -1,14 +1,17 @@
 # One level in GMS, worth 3% final damage for every Cleric in the party
-# besides yourself. There is no party here, so the 3% is simply granted,
-# spread over ten levels at a third of a point each.
-#
-# The bonus EXP the other half of the skill grants is left out. It would pay
-# the player for something the game has no way to do.
+# besides yourself, and 20% bonus EXP for each of them. There is no party
+# here, so both are simply granted, spread over ten levels.
 name: "Blessed Ensemble"
 skill_order: 2
-description: "Blessings increase your Final Damage."
+description: "Blessings increase your Final Damage and the EXP you earn."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10
-base { final_dmg_pct: 0.003 }
-per_level { final_dmg_pct: 0.003 }
+base {
+  final_dmg_pct: 0.003
+  exp_pct: 0.02
+}
+per_level {
+  final_dmg_pct: 0.003
+  exp_pct: 0.02
+}
