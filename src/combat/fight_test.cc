@@ -2156,13 +2156,15 @@ TEST(CombatSimTest, APactCatchesAgainOnceItsWaitIsOut) {
 // as hard. Its table is the same attacks with bigger numbers in them, which is
 // the shape ComputeCombatParams really builds.
 void GiveBuff(CombatParams& params, double duration, double cooldown,
-              double factor, double heal = 0.0, double reduction = 0.0) {
+              double factor, double heal = 0.0, double reduction = 0.0,
+              double soften = 0.0) {
   BuffOption buff;
   buff.name = "Dark Resonance";
   buff.duration_seconds = duration;
   buff.cooldown_seconds = cooldown;
   buff.heal_fraction = heal;
   buff.cooldown_reduction_seconds = reduction;
+  buff.damage_taken_pct = soften;
   params.buffs.push_back(std::move(buff));
   AttackSet set;
   set.attacks = params.attacks;
@@ -2174,6 +2176,29 @@ void GiveBuff(CombatParams& params, double duration, double cooldown,
     }
   }
   params.buffed.push_back(std::move(set));
+}
+
+// Smokescreen's shape: a buff that costs the mob rather than paying the
+// player. What it cancels lapses with it, so the hit after it is the whole
+// hit again.
+TEST(CombatSimTest, ABuffCanSoftenTheHitsWhileItStands) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  GiveBuff(params, /*duration=*/2.0, /*cooldown=*/10.0, /*factor=*/1.0,
+           /*heal=*/0.0, /*reduction=*/0.0, /*soften=*/0.5);
+
+  // The buff answers this hit with its heal rather than softening it: it goes
+  // up after the blow has landed, which is the order the whole step runs in.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 90);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 85);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 80);
+  sim.Advance(params, 1.0);  // lapsed, and the wait is still running
+  EXPECT_EQ(sim.player_hp(), 70);
 }
 
 // Puncture's shape: a weaker swing that leaves a wound, and a harder one the

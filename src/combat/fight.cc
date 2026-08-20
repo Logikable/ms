@@ -548,6 +548,22 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
   hit_phase_ = 0.0;
 }
 
+// What is left of an incoming hit once the buffs standing have taken their
+// share. They multiply rather than sum, the way every other reduction in the
+// game does: two halves leave a quarter of the hit, not none of it.
+//
+// The buffs standing are the ones the step opened with: a smokescreen dropped
+// after the blow landed does not take that blow back. See Advance.
+double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
+  double factor = 1.0;
+  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+    if ((buff_mask_ & (1 << i)) != 0) {
+      factor *= 1.0 - params.buffs[i].damage_taken_pct;
+    }
+  }
+  return std::max(0.0, factor);
+}
+
 void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
   // Only the mob at the front hits back, however many are on the map -- see
   // fight.h. It swings first, so the last one standing still lands its hit on
@@ -562,7 +578,8 @@ void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
     return;
   }
   hit_phase_ -= params.hit_seconds;
-  double taken = params.types[queue_.front().type].damage_to_player;
+  double taken = params.types[queue_.front().type].damage_to_player *
+                 BuffDamageTakenFactor(params);
   player_hp_ = std::max(0.0, player_hp_ - taken);
   died_this_step_ = player_hp_ <= 0.0 && !Revive(params);
   Reflect(params, taken);

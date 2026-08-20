@@ -239,6 +239,8 @@ class CombatSim {
   void RespawnBeat(const CombatParams& params, double dt);
   // Lets the engaged mob hit the player, on its own clock.
   void TakeMobHit(const CombatParams& params, double dt);
+  // What is left of a hit once the buffs standing have taken their share.
+  double BuffDamageTakenFactor(const CombatParams& params) const;
   // Whether a passive brings the player back from the hit that just emptied
   // them. Asked only of a player who has hit 0: true when they hold such a
   // skill and its wait has run out, in which case the pool is full again by

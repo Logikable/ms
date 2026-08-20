@@ -777,6 +777,8 @@ void AddBuffs(const CharacterInstance& character,
          buff.duration_seconds_per_level() * (level - 1)) *
         (1.0 + buff_duration_pct) * speed_factor;
     option.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
+    option.damage_taken_pct = buff.base().damage_taken_pct() +
+                              buff.per_level().damage_taken_pct() * (level - 1);
     option.cooldown_reduction_seconds =
         buff.cooldown_reduction_seconds() * speed_factor;
     option.heal_fraction =
@@ -908,8 +910,9 @@ CombatParams ComputeCombatParams(const GameState& state) {
     return params;
   }
   // The character as they stand, then one table for every combination of
-  // buffs they can have up. What being hit costs them is read off the
-  // unbuffed stats alone: nothing yet buffs a pool or a defence.
+  // buffs they can have up. What being hit costs them is read off the unbuffed
+  // stats: nothing yet buffs a pool, and the one buff that softens a hit takes
+  // its share off the hit itself -- see BuffOption.damage_taken_pct.
   AttackSet base =
       BuildAttackSet(state, derived, weapon, speed_factor, params.types);
   params.attacks = std::move(base.attacks);

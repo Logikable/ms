@@ -200,6 +200,11 @@ struct BuffOption {
   double cooldown_seconds = 0.0;
   // Seconds a landed swing takes off the wait for the next cast.
   double cooldown_reduction_seconds = 0.0;
+  // Share of every hit the player takes that this buff cancels while it
+  // stands (0.10 == a tenth of it). Smokescreen alone, and the first thing in
+  // the game to buff a defence rather than an attack. Multiplies with what the
+  // character already cancels, as every reduction does.
+  double damage_taken_pct = 0.0;
   // Share of the pool the cast puts back at once (1.00 == all of it).
   double heal_fraction = 0.0;
   // Index into AttackSet::attacks of the swing that lays this buff, or -1 for
