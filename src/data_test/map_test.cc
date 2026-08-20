@@ -98,7 +98,7 @@ TEST(MapDataTest, EveryDropNamesAnItem) {
 // The tops are staggered rather than shared. The better the piece, the longer
 // it stays worth finding, so the cape is still turning up thirty levels past
 // where the top has stopped.
-TEST(MapDataTest, EveryMobInAPiecesReachDropsItsShareOfTheFrozenSet) {
+TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
   struct Piece {
     const char* stem;
     int band_low;   // first mob level that drops it

@@ -1,6 +1,7 @@
 # GMS reads the damage-over-time effects on nearby enemies and pays final
-# damage for each of them. Nothing here burns or poisons over time, so there is
-# nothing to count -- what is left is the final damage, held permanently.
+# damage for each of them. Burns are real here now, but nothing reports how
+# many are alight on what a swing can reach, so what is left is the final
+# damage, held permanently.
 name: "Elemental Drain"
 skill_order: 2
 description: "Permanently increases your Final Damage."

@@ -1,6 +1,6 @@
-# Sends 15+7x% of a hit to the MP pool instead of the HP pool. Nothing attacks
-# the character yet, so the lever is carried and never read -- the skill is here
-# because Magic Armor is built on it and a magician without it reads wrong.
+# Sends 15+7x% of a hit to the MP pool instead of the HP pool. Nothing here
+# tracks MP, so it lands as plain reduction alongside damage_taken_pct -- which
+# is real now that monsters hit back.
 name: "Magic Guard"
 skill_order: 2
 description:

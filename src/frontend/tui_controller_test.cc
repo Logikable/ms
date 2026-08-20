@@ -570,7 +570,7 @@ TEST_F(TuiControllerTest, EscapeLeavesTheSkillInspectScreen) {
 // The arrows scroll the card rather than leaving the screen, and every card
 // opens at its head however far down the last one was read.
 TEST_F(TuiControllerTest,
-       TheArrowsScrollTheSkillCardAndAFreshOneStartsAtTheTop) {
+       AFreshSkillCardStartsAtTheTop) {
   Skill skill = SlashBlast();
   ASSERT_TRUE(state_->character.LearnSkill(skill, 3));
   controller_->OpenSkillInspect(skill);
@@ -837,7 +837,7 @@ TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
 }
 
 TEST_F(TuiControllerTest,
-       ReturnInScrollSelectAppliesScrollAndGoesToScrollResult) {
+       ScrollSelectAppliesAndShowsTheResult) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -880,7 +880,7 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
 }
 
 TEST_F(TuiControllerTest,
-       NoSlotsRemainingGoesToScrollResultWithNoSlotsOutcome) {
+       NoSlotsShowsTheNoSlotsOutcome) {
   sword_.set_upgrade_slots(0);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
@@ -899,7 +899,7 @@ TEST_F(TuiControllerTest,
 }
 
 TEST_F(TuiControllerTest,
-       ReturnToItemMenuAfterScrollingEnablesStarForceWhenSlotsDepleted) {
+       StarForceOpensOnceTheSlotsAreSpent) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   sword_.set_upgrade_slots(1);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1213,7 +1213,7 @@ TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
 }
 
 TEST_F(TuiControllerTest,
-       BagScrollNoSlotsGoesToScrollResultWithNoSlotsOutcome) {
+       BagScrollWithNoSlotsShowsThatOutcome) {
   sword_.set_upgrade_slots(0);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;

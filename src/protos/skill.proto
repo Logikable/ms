@@ -886,9 +886,9 @@ message Skill {
   // swing is worth no more of it than a narrow one.
   bool final_attack_single_enemy = 39;
 
-  // Whether this skill needs the secondary slot filled. Nothing in the catalog
-  // fills it yet, so a skill asking for one is learnable and grants nothing --
-  // which is what Shield Mastery does until secondaries are written.
+  // Whether this skill needs the secondary slot filled. Both Shield Masteries
+  // ask for one, and data/equip/secondary now ships thirty of them, so a
+  // character without one in hand is granted nothing -- see SkillGearMet.
   bool requires_secondary = 40;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with

@@ -204,7 +204,7 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
 // by display name and a character keeps every book they climbed through. What
 // it may not do is name a book the same character could never hold, which is
 // what would leave a skill permanently unbuyable.
-TEST(SkillDataTest, EveryRequirementNamesASkillTheSameCharacterCanHold) {
+TEST(SkillDataTest, EveryRequirementNamesAHoldableSkill) {
   std::map<std::string, Skill> skills = LoadSkills();
   std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
   for (const std::pair<const std::string, Skill>& entry : skills) {
@@ -688,7 +688,7 @@ TEST(SkillDataTest, APassiveCarriesNoSwingsDamage) {
 // A skill naming another one has to name one that exists, and the two halves
 // of the bargain have to both be there: a name with no damage behind it grants
 // nothing, and damage with no name has nowhere to go.
-TEST(SkillDataTest, EveryBoostNamesASkillTheSameCharacterCanHold) {
+TEST(SkillDataTest, EveryBoostNamesAHoldableSkill) {
   std::map<std::string, Skill> skills = LoadSkills();
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
@@ -717,7 +717,7 @@ TEST(SkillDataTest, EveryBoostNamesASkillTheSameCharacterCanHold) {
 
 // The same rule for the structural half of a boost: strikes and reach handed
 // to a skill nobody holding this one can learn are strikes nobody ever swings.
-TEST(SkillDataTest, EverySkillBoostNamesASkillTheSameCharacterCanHold) {
+TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
   std::map<std::string, Skill> skills = LoadSkills();
   int checked = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
@@ -754,7 +754,7 @@ TEST(SkillDataTest, EverySkillBoostNamesASkillTheSameCharacterCanHold) {
 // skill stops paying at all -- so it may only name a skill the same character
 // can hold, and never itself. A self-reference would leave a book that
 // silently teaches nothing.
-TEST(SkillDataTest, EverySupersededSkillIsOneTheSameCharacterCanHold) {
+TEST(SkillDataTest, EverySupersededSkillIsHoldable) {
   std::map<std::string, Skill> skills = LoadSkills();
   int checked = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {

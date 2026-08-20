@@ -362,7 +362,7 @@ TEST(CombatSimTest, ASingleEnemyFinalAttackDoesNotScaleWithTheReach) {
 // plain damage, and each one after takes 15% more than the last, compounding.
 // Six of them and the last takes 1.15^5 -- twice the first, which is the
 // doubling GMS names beside the 15%.
-TEST(CombatSimTest, APiercingSwingCompoundsThroughTheEnemiesItReaches) {
+TEST(CombatSimTest, APiercingSwingCompoundsAsItGoes) {
   std::vector<Mob> mobs;
   for (int i = 0; i < 6; ++i) {
     mobs.push_back(MakeMob("M" + std::to_string(i), 10000));

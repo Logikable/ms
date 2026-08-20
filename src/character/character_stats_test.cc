@@ -873,7 +873,7 @@ TEST_F(DerivedStatsTest, StatsFromPassivesBuyDefToo) {
 // The percentage takes the whole pile -- what the stats buy, what is worn and
 // what a skill grants flat -- and leaves the base half of the pair alone,
 // which is what the stats page reads to show the two.
-TEST_F(DerivedStatsTest, DefPercentTakesTheWholePileAndLeavesBaseDefAlone) {
+TEST_F(DerivedStatsTest, DefPercentLeavesBaseDefAlone) {
   CharacterInstance c = MakeStatCharacter(rng_, 100, 0, 0, 0);
   EquipArmor(c, /*max_hp=*/0, /*def=*/30);
   Skill mastery = IronBody();
@@ -1008,7 +1008,7 @@ TEST_F(DerivedStatsTest, LevelWithBonusNeedsNoCharacter) {
 // Two rules the bonus has to hold at once for a skill NOT marked for the 4th
 // job's: it never carries the skill past its master level, and it never raises
 // the skill handing it out.
-TEST_F(DerivedStatsTest, BonusLevelsStopAtTheMasterLevelAndSkipTheirOwnSkill) {
+TEST_F(DerivedStatsTest, BonusLevelsStopAtTheTopAndSkipTheirOwn) {
   CharacterInstance c = MakeCharacter(rng_, 100, 0);
   Skill iron_body = IronBody();
   Skill orders = CombatOrders();
@@ -1525,7 +1525,7 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
 // Pick Pocket knocks the meso loose and Meso Explosion throws it, so neither
 // is worth anything without the other -- and Meso Mastery's points land on a
 // line of the throw, whichever order the catalog folds the three in.
-TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocketAndTakesItsBoost) {
+TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill pocket;
   pocket.set_name("Pick Pocket");
@@ -2016,7 +2016,7 @@ Skill DarkResonance() {
 // The whole reason a buff cannot be a multiplier over a finished damage
 // number: what it grants meets what the character already has the way two
 // skills meet, and two sources of ignored defence combine rather than sum.
-TEST_F(DerivedStatsTest, ABuffCombinesWithThePermanentHalfRatherThanSumming) {
+TEST_F(DerivedStatsTest, ABuffCombinesWithThePermanentHalf) {
   CharacterInstance c = MakeCharacter(rng_, 100, 100);
   Skill resonance = DarkResonance();
   std::map<std::string, Skill> skills = {{"dark_resonance", resonance}};

@@ -77,31 +77,17 @@ std::string HeldWeaponName(const CharacterInstance& character);
 bool EquipByName(CharacterInstance& character, const std::string& name);
 
 // Buys and wears the best gear the character can hold: the weapon, the
-// ammunition it draws from, and their branch's off-hand.
+// ammunition it draws from, and their branch's off-hand. Both shelves are
+// shopped, the Frozen tier included.
 //
-// Which weapon it is comes out of a measurement, not a list: the top rung of
-// every ladder they can hold is tried on and swung at a mob of their own
-// level, and the one that hits hardest is bought. Only the top of each ladder
-// is tried, because within a type the tiers only climb.
+// Which weapon comes out of a measurement rather than a list -- the top rung
+// of every ladder they can hold is swung at a mob of their own level, and the
+// hardest hitter is bought. Asked afresh every time, because the answer moves
+// as the book behind the weapon fills.
 //
-// Asked afresh every time, because the answer moves: the weapon a Fighter
-// wants at 30 is not the one they want once the book behind it is full, and a
-// choice frozen at the advancement would hold them to the wrong one for
-// thirty levels.
-//
-// Only the weapon is measured. Ammunition and off-hands are owned by one
-// branch apiece and carry plain stats, so for those there is nothing to
-// choose between -- only a tier to reach.
-//
-// The try-ons are free and the winner is paid for, which is how a player
-// shops: looking at the shelf costs nothing, and only one weapon goes home.
-// `budget` weighs the price against what the character has -- a sim measuring
-// the climb wants it, since affording the weapon is part of what it measures;
-// a sim asking whether a build can hold a map does not.
-//
-// Both shelves are shopped. The Frozen tier is paid for in the tokens the
-// fights dropped, so under a budget it is reached by farming rather than by
-// saving, and without one it is simply the top rung.
+// `budget` weighs the price against the purse: a sim measuring the climb wants
+// it, since affording the weapon is part of what it measures; one asking
+// whether a build can hold a map does not.
 void Outfit(GameState& state, bool budget);
 
 // Puts everything worn at its ceiling: every upgrade slot filled with the

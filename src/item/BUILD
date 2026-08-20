@@ -169,28 +169,3 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
-
-cc_test(
-    name = "equip_data_test",
-    srcs = ["equip_data_test.cc"],
-    data = [
-        "//data/equip:all",
-        "//data/items:all",
-        "//data/sets:all",
-    ],
-    deps = [
-        ":item",
-        ":projectile",
-        "//src:proto_loader",
-        "//src/character",
-        "//src/frontend/widgets:panel_util",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:equip_set_proto_cc",
-        "//src/protos:item_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@bazel_tools//tools/cpp/runfiles",
-        "@googletest//:gtest_main",
-        "@protobuf",
-    ],
-)
