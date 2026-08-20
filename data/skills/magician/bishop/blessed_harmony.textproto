@@ -1,12 +1,14 @@
 # GMS masters this at 1 for +10% final damage, replacing the Cleric's Blessed
 # Ensemble. Ten levels here at 1% apiece, so the book still has a rung to
 # climb and the total is GMS's own.
+#
+# It does not pass its master level. GMS masters this at 1 and does not mark it
+# for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Blessed Harmony"
 skill_order: 11
 description: "Your blessings permanently increase your Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 10
-exceeds_master_level: true
 base { final_dmg_pct: 0.01 }
 per_level { final_dmg_pct: 0.01 }

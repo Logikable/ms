@@ -3,6 +3,7 @@
 # the game has none yet -- so it ships as the swing a Paladin reaches for when
 # there is one thing left standing.
 #
+# GMS's own ladder, 250+3x%, so a maxed Blast strikes for 340% ten times.
 name: "Blast"
 skill_order: 2
 description:
@@ -15,5 +16,5 @@ tags: SKILL_TAG_HOLY_POWER
 base_delay_ms: 660
 max_enemies: 3
 lines: 10
-base { skill_pct: 2.18 }
+base { skill_pct: 2.53 }
 per_level { skill_pct: 0.03 }

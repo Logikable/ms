@@ -34,7 +34,7 @@ base {
   mastery: 0.51
   def: 115
   crit_rate: 0.115
-  crit_dmg: 0.105
+  crit_dmg: 0.125
   ied_pct: 0.167
   final_dmg_pct: 0.16
 }

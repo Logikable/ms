@@ -2,12 +2,14 @@
 # damage while an enemy is frozen, final damage as a lightning spell spends a
 # stack -- and nothing here counts stacks or freezes anything, so what is left
 # is the final damage it comes to.
+#
+# It does not pass its master level. GMS masters this at 1 and does not mark it
+# for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Frost Clutch"
 skill_order: 9
 description: "A tightening grip of frost permanently increases your Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 10
-exceeds_master_level: true
 base { final_dmg_pct: 0.005 }
 per_level { final_dmg_pct: 0.005 }

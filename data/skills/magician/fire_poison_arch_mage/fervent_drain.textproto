@@ -1,11 +1,13 @@
 # GMS words it as lifting Elemental Drain, the 2nd job passive of the same
 # name. It lands in the same place either way: more Final Damage, always on.
+#
+# It does not pass its master level. GMS masters this at 1 and does not mark it
+# for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Fervent Drain"
 skill_order: 10
 description: "Draining the elements harder permanently increases your Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 10
-exceeds_master_level: true
 base { final_dmg_pct: 0.005 }
 per_level { final_dmg_pct: 0.005 }

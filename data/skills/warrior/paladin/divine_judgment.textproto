@@ -4,9 +4,10 @@
 # and a monster that dies at four brands is worth none -- which is the reading
 # a passive for bossing wants.
 #
-# At master level the detonation is 5500% against Blast's own 3355%, so a Blast
-# that sets one off lands two and a half times what the four before it did --
-# and it is the number to trim first if the Paladin outgrows the Dark Knight.
+# GMS's own ladder, 502+4x%. At master level the detonation is 6220% against
+# Blast's own 3400%, so a Blast that sets one off lands nearly twice what the
+# four before it did -- and it is the number to trim first if the Paladin
+# outgrows the Dark Knight.
 #
 # Its 20% ignored defence is the point of the skill. It rides the swing alone,
 # which is what an ied_pct on an attack means -- see WithoutSwingLevers.
@@ -29,7 +30,7 @@ empowered_form {
   brands_each_enemy: true
   lines: 10
   base {
-    skill_pct: 4.34
+    skill_pct: 5.06
     ied_pct: 0.20
   }
   per_level { skill_pct: 0.04 }

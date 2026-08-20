@@ -615,9 +615,14 @@ constexpr int kSmallestMasterLevelPastIt = 10;
 // Infinity is ours rather than GMS's: it is the largest single lever any book
 // grants, and two free levels of it were not worth handing over. Blood Money
 // is GMS's own -- it says so on the skill.
+//
+// The last three are GMS master-level-1 passives, stretched to ten rungs here
+// so the book has something to climb. GMS states one number for each and does
+// not mark them, so there is no level above the top for a grant to reach.
 const char* const kHeldToTheirMasterLevel[] = {
-    "enchanted_quiver", "infinity", "fire_poison_infinity", "bishop_infinity",
-    "blood_money"};
+    "enchanted_quiver", "infinity",    "fire_poison_infinity",
+    "bishop_infinity",  "blood_money", "blessed_harmony",
+    "fervent_drain",    "frost_clutch"};
 
 bool GmsHoldsItToTheMasterLevel(const std::string& stem) {
   for (const char* held : kHeldToTheirMasterLevel) {
