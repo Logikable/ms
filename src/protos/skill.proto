@@ -49,11 +49,17 @@ enum SkillTag {
 // are fractions (0.10 == +10%).
 //
 // Numbered in two blocks. Everything up to 99 is a lever any job could want;
-// from 100 up is a lever exactly one job line's book grants, parked out of the
+// from 100 up is one that exactly one job line's book grants, parked out of the
 // way so a new class does not thread its one-off through the middle of the
-// general ones. Nothing here is ever serialized -- the catalog loads from
-// textproto by field NAME and the save refers to skills by display name -- so
-// these numbers are free to move, unlike character.proto's.
+// general ones.
+//
+// The test is the MECHANISM, not whose book happens to state it today. Boss
+// damage belongs above because any book could pay it and gear already does; a
+// Combo Orb belongs below because nothing but a warrior counts them.
+//
+// Nothing here is ever serialized -- the catalog loads from textproto by field
+// NAME and the save refers to skills by display name -- so these numbers are
+// free to move, unlike character.proto's.
 message SkillEffect {
   // Primary stats, exactly as a worn item grants them.
   int32 str = 1;
@@ -126,7 +132,7 @@ message SkillEffect {
   // rather than to the level -- see Skill.follows_skill_tag.
   double final_attack_chance = 18;
   double final_attack_pct = 19;
-  int32 final_attack_lines = 127;
+  int32 final_attack_lines = 32;
 
   int32 def = 20;                // flat weapon DEF
   double damage_taken_pct = 21;  // share of incoming damage cancelled
@@ -154,60 +160,94 @@ message SkillEffect {
   // things by them. See WithoutSwingLevers.
   double ied_pct = 23;
 
-  // --- From here down, one job line apiece. See the message comment. ---
-
-  // The Cleric's. Share of the HP pool one cast of this skill puts back (1.00
-  // == all of it). The one lever spent during a fight rather than folded into
-  // the stat line: the character casts it in place of a swing when they are
-  // low, and the fight is what reads it. See CombatSim::HealToCast.
-  double heal_pct = 100;
-  // The Rogue's. Damage multiplier of the harder opening hit some swings land
-  // on a single enemy before spreading -- GMS's "strikes one, then detonates
-  // in place". Read with Skill.lead_lines, and 0 for the swings that land once.
-  double lead_pct = 101;
-  // The Fighter's. Attack per Combo Orb the character is carrying, for a skill
-  // that surrounds them with orbs. The orbs are assumed full, so what this is
-  // worth is this times the orbs the character has -- stated per orb rather
-  // than as the product because a later skill raises the count and only the
-  // count. See Skill.combo_orbs.
-  int32 attack_per_combo_orb = 102;
-  // The Crusader's, and the same bargain per orb as the field above.
-  double final_dmg_pct_per_combo_orb = 108;
-  // The Crusader's. Damage percentage this attack ADDS against anything that
-  // is not a boss, per line, exactly as skill_pct is per line -- so a 180%
-  // swing carrying 180% here lands 360% on an ordinary monster. GMS states it
-  // as percentage POINTS on the skill for that reason, and it is Beam Blade's
-  // whole identity. Not the equipment's boss damage in mirror image: that one
-  // is a share of the character's damage, and this is a share of one swing's.
-  double normal_skill_pct = 109;
-  // The Magician's. Share of incoming damage that comes out of MP rather than
-  // HP. Nothing tracks MP, so it lands as plain reduction alongside
-  // damage_taken_pct.
-  double damage_to_mp_pct = 103;
-  // The Fighter's. Share of a hit taken that is dealt straight back to whatever
-  // landed it (1.20 == 120% of the damage received). Measured against what the
-  // character actually loses, so their own defences cut the reflection with it.
-  double damage_reflect_pct = 104;
-  // The Berserker's. Expected share of the HP pool a landed swing puts back
-  // (0.02 == 2%). GMS states it as a chance of a fixed amount; the expectation
-  // is what an expected-damage fight can use, so the two are multiplied out
-  // here. Unlike heal_pct this costs no swing -- it rides the attack.
+  // Share added to the character's damage against a boss and nothing else (0.10
+  // == +10%). Sums with what gear grants, the two being the same quantity from
+  // two places.
+  //
+  // Ships dead, like the resistances below: no mob in the game sets `boss`.
+  // The stats page shows it so a player can see what their points and their
+  // gear bought, which is more than the equipment's own half ever got.
+  //
+  // Rides one swing or the character by the same rule ied_pct does: Heaven's
+  // Hammer hits a boss 30% harder and hands nothing to the swing after it.
+  double boss_pct = 27;
+  // Damage percentage this attack ADDS against anything that is not a boss, per
+  // line, exactly as skill_pct is per line -- so a 180% swing carrying 180%
+  // here lands 360% on an ordinary monster. GMS states it as percentage POINTS
+  // on the skill for that reason, and it is Beam Blade's whole identity. Not
+  // the equipment's boss damage in mirror image: that one is a share of the
+  // character's damage, and this is a share of one swing's.
+  double normal_skill_pct = 28;
+  // Maple Warrior. Share of what AP bought that this skill grants back as flat
+  // stat, stat by stat (0.15 == 15%): 1000 points of STR and 100 of DEX become
+  // 150 and 10. Rounded down, as GMS rounds it.
+  //
+  // Only what AP bought counts. A ring's STR and another skill's STR are not
+  // multiplied by this, which is why it reads the allocation rather than the
+  // total -- and what it grants IS a grant like theirs, so a percentage over
+  // the character's stats would lift this too.
+  double ap_stat_pct = 29;
+  // Damage this skill adds to the ONE skill named by Skill.boosts_skill_name,
+  // per line, exactly as skill_pct is per line -- so 70% here on a 178% three-
+  // line swing makes it 248% three times.
+  //
+  // Not damage_pct, which lifts everything the character swings. GMS states
+  // this in percentage POINTS on the named skill for that reason.
+  double boosted_skill_pct = 30;
+  // Boss damage handed to that same named skill, rather than to the character.
+  // Blood Money is what it exists for: GMS pays Meso Explosion 10+x% against a
+  // boss and pays the Shadower nothing, so a thrown meso hits a boss harder
+  // and every swing of theirs is unchanged.
+  double boosted_boss_pct = 31;
+  // Strikes added to every multi-line swing the character makes -- Bolt
+  // Surplus's "+1 attack to all multi-hit skills". Summed across its sources,
+  // of which there is one.
+  //
+  // GMS says it skips summons, 5th job common skills and "certain skills", and
+  // every one of those falls out of what a swing is here: a summon fires on its
+  // own clock rather than being swung, and a Final Attack is a lever with no
+  // line count to add to. What is left is exactly the attacks the character
+  // chooses between, an empowered form among them.
+  //
+  // A swing that lands once is left alone. GMS grants this to multi-hit skills,
+  // and a single strike doubling would be the largest lever in the game.
+  int32 bonus_attack_lines = 33;
+  // Expected share of the HP pool a landed swing puts back (0.02 == 2%). GMS
+  // states it as a chance of a fixed amount; the expectation is what an
+  // expected-damage fight can use, so the two are multiplied out here. Unlike
+  // heal_pct this costs no swing -- it rides the attack.
   //
   // On an ATTACK it rides THAT swing alone, as ied_pct and the other swing
   // levers do: Angel Ray heals the Bishop as it lands and Big Bang does not.
   // On a passive it follows the character, which is Lord of Darkness's shape.
   // See WithoutSwingLevers.
-  double hp_recover_pct = 105;
-  // Shield Mastery's, in both books that carry one -- the Bandit's and the
-  // White Knight's. Percentage added to the whole of the character's DEF, worn
-  // and granted and bought with AP alike, and the last thing to land on it.
-  // Ships dead by design: DEF stops paying at a share of the attacking
-  // monster's own attack, and a character has passed that cap on their stats
-  // alone long before a skill grants any. See DerivedStats::def.
-  double def_pct = 110;
-  // The White Knight's. Levels this skill adds to every other skill the
-  // character has already learned, held to each one's master level. It never
-  // raises the skill granting it, and never teaches one that is unlearned.
+  double hp_recover_pct = 34;
+
+  // Share of the HP pool one cast of this skill puts back (1.00 == all of it).
+  // The one lever spent during a fight rather than folded into the stat line:
+  // the character casts it in place of a swing when they are low, and the fight
+  // is what reads it. See CombatSim::HealToCast.
+  double heal_pct = 35;
+  // Damage multiplier of the harder opening hit some swings land on a single
+  // enemy before spreading -- GMS's "strikes one, then detonates in place".
+  // Read with Skill.lead_lines, and 0 for the swings that land once.
+  double lead_pct = 36;
+
+  // Shadow Partner. A shadow copies every line the character's swing lands and
+  // strikes again for this share of one (0.70 == 70%), so a three-line swing
+  // lands three real lines and three shadow ones.
+  //
+  // Carried as lines rather than folded into a multiplier, which comes to the
+  // same damage: what the player is buying is a second set of hits, and a page
+  // that says so is worth the field. Summed across sources, of which there is
+  // one.
+  //
+  // The shadow copies SWINGS. It does not copy a summon's pulse or a Final
+  // Attack -- the same line those two are already drawn on in encounter.cc.
+  double mirror_line_pct = 37;
+  // Levels this skill adds to every other skill the character has already
+  // learned, held to each one's master level. It never raises the skill
+  // granting it, and never teaches one that is unlearned.
   //
   // A double for a lever counted in whole levels, because GMS climbs it in a
   // step -- one level for most of the ladder and two at the top -- which
@@ -216,54 +256,73 @@ message SkillEffect {
   //
   // A skill marked Skill.exceeds_master_level takes these levels past its own
   // master level; every other skill stops there.
-  double skill_level_bonus = 111;
-  // The Ranger's. Damage this skill adds to the ONE skill named by
-  // Skill.boosts_skill_name, per line, exactly as skill_pct is per line -- so
-  // 70% here on a 178% three-line swing makes it 248% three times.
+  double skill_level_bonus = 38;
+  // Share added to how long every buff the character raises stays up (0.50 ==
+  // half again), summed across its sources. It lengthens the buff and leaves
+  // the wait for the next one alone, which is the whole of what it buys.
   //
-  // Not damage_pct, which lifts everything the character swings. GMS states
-  // this in percentage POINTS on the named skill for that reason.
-  double boosted_skill_pct = 112;
-  // Boss damage handed to that same named skill, rather than to the character.
-  // Blood Money is what it exists for: GMS pays Meso Explosion 10+x% against a
-  // boss and pays the Shadower nothing, so a thrown meso hits a boss harder
-  // and every swing of theirs is unchanged.
-  double boosted_boss_pct = 129;
-  // The Priest's. Extra EXP every kill yields, as a fraction of what the mob
-  // was already worth (0.50 == half again). Summed across the passives
-  // granting it, and the only lever in the game that pays in something other
-  // than a fight -- what it buys is the time to the next level.
-  double exp_pct = 113;
-  // The Priest's. Share of the HP pool one pulse of a fountain puts back, and
-  // how many seconds apart the pulses are. Both are read together and only
-  // together: what reaches the fight is the rate, so two sources would add
-  // their rates rather than their pulses.
+  // Only a Buff has a duration to lengthen, so this reaches exactly the skills
+  // that could not be folded in as permanent -- see the Buff message.
+  double buff_duration_pct = 39;
+  // Share of the HP pool one pulse of a fountain puts back, and how many
+  // seconds apart the pulses are. Both are read together and only together:
+  // what reaches the fight is the rate, so two sources would add their rates
+  // rather than their pulses.
   //
   // Unlike heal_pct this costs no swing and asks for nothing -- the fountain
   // stands there whether the character is winning or losing. The interval
   // climbs the ladder downwards, so per_level is negative.
-  double regen_pct = 114;
-  double regen_interval_seconds = 115;
-  // The Bishop's. Total INT that buys one more helping of regen_pct above, so
-  // at 2500 a character with 5000 INT is poured three times what the fountain
-  // states. Holy Water is what it exists for -- GMS's "HP Recovery is
-  // increased by 5% per 2500 INT".
+  double regen_pct = 40;
+  double regen_interval_seconds = 41;
+  // Total INT that buys one more helping of regen_pct above, so at 2500 a
+  // character with 5000 INT is poured three times what the fountain states.
+  // Holy Water is what it exists for -- GMS's "HP Recovery is increased by 5%
+  // per 2500 INT".
   //
   // The whole of the character's INT counts, their skills' grants included, so
   // it is folded where the total is finally known rather than where the pulse
   // is read. 0 for a fountain that pours the same however clever they are.
-  double regen_int_step = 126;
-  // The Hermit's. Share added to the character's damage against a boss and
-  // nothing else (0.10 == +10%). Sums with what gear grants, the two being the
-  // same quantity from two places.
-  //
-  // Ships dead, like the resistances below: no mob in the game sets `boss`.
-  // The stats page shows it so a player can see what their points and their
-  // gear bought, which is more than the equipment's own half ever got.
-  //
-  // Rides one swing or the character by the same rule ied_pct does: Heaven's
-  // Hammer hits a boss 30% harder and hands nothing to the swing after it.
-  double boss_pct = 117;
+  double regen_int_step = 42;
+  // Extra EXP every kill yields, as a fraction of what the mob was already
+  // worth (0.50 == half again). Summed across the passives granting it, and the
+  // only lever in the game that pays in something other than a fight -- what it
+  // buys is the time to the next level.
+  double exp_pct = 43;
+  // Share added to the meso a kill yields (0.20 == +20%). Sums across its
+  // sources, and the second lever in the game to pay in something other than a
+  // fight -- exp_pct above is the first.
+  double meso_pct = 44;
+  // Shield Mastery's, in both books that carry one -- the Bandit's and the
+  // White Knight's. Percentage added to the whole of the character's DEF, worn
+  // and granted and bought with AP alike, and the last thing to land on it.
+  // Ships dead by design: DEF stops paying at a share of the attacking
+  // monster's own attack, and a character has passed that cap on their stats
+  // alone long before a skill grants any. See DerivedStats::def.
+  double def_pct = 45;
+  // Resistance to abnormal statuses, on GMS's own scale rather than as a
+  // fraction, and to elemental damage as a fraction. Nothing in this game
+  // inflicts a status or an element, so nothing reads either -- they are here
+  // to keep the wiki's figures with the skill, and the stats page shows them so
+  // the player can see what they bought.
+  double status_resistance = 46;
+  double elemental_resistance = 47;
+  // --- From here down, one job line apiece. See the message comment. ---
+  // The Fighter's. Attack per Combo Orb the character is carrying, for a skill
+  // that surrounds them with orbs. The orbs are assumed full, so what this is
+  // worth is this times the orbs the character has -- stated per orb rather
+  // than as the product because a later skill raises the count and only the
+  // count. See Skill.combo_orbs.
+  int32 attack_per_combo_orb = 100;
+  // The Crusader's, and the same bargain per orb as the field above.
+  double final_dmg_pct_per_combo_orb = 101;
+  // The Magician's. Share of incoming damage that comes out of MP rather than
+  // HP. Nothing tracks MP, so it lands as plain reduction alongside
+  // damage_taken_pct.
+  double damage_to_mp_pct = 102;
+  // The Fighter's. Share of a hit taken that is dealt straight back to whatever
+  // landed it (1.20 == 120% of the damage received). Measured against what the
+  // character actually loses, so their own defences cut the reflection with it.
+  double damage_reflect_pct = 103;
   // The Chief Bandit's. Pick Pocket. Chance a meso falls out of an enemy,
   // rolled once per LINE the swing lands on them (0.30 == 30%) -- so a
   // four-line swing across eight enemies rolls thirty-two times. GMS states
@@ -274,7 +333,7 @@ message SkillEffect {
   // Only the character's own swings drop them, and only the ones they chose to
   // swing -- not a summon's pulse, not a Final Attack, not a shadow's copy,
   // and not a skill on a clock of its own.
-  double meso_drop_chance = 119;
+  double meso_drop_chance = 104;
   // The share of that chance one SWING gives up (0.50 == it shakes coins loose
   // half as often). GMS halves Pick Pocket for Cruel Stab, which would
   // otherwise pay a Shadower more for mobbing than for anything else they do.
@@ -286,14 +345,14 @@ message SkillEffect {
   //
   // Neither of its neighbours: meso_drop_chance above is what grants the
   // chance, and meso_pct below is what a KILL pays into the purse.
-  double meso_drop_cut = 128;
+  double meso_drop_cut = 105;
   // The Chief Bandit's. Meso Explosion. What ONE LINE of a thrown meso deals
   // (1.00 == 100%); the skill's `lines` says how many a meso is worth.
   //
   // Nothing is spent to throw them. They are the mesos on the ground that Pick
   // Pocket knocked loose, never the ones in the player's purse, so what the
   // pair really trades is coins the character would never have picked up.
-  double meso_hit_pct = 120;
+  double meso_hit_pct = 106;
   // The Dark Knight's. Final Pact. Seconds a character waits between one
   // revival and the next; anything above 0 says the skill revives them at all.
   // A hit that would kill them fills the pool back up instead, and the fight
@@ -303,66 +362,12 @@ message SkillEffect {
   // GMS pact shortens its own wait as it is levelled, and this one walks 1103
   // seconds down to 900. Two skills granting it would leave the shorter wait
   // standing rather than adding two chances.
-  double revive_cooldown_seconds = 123;
-  // The Dark Knight's. Maple Warrior. Share of what AP bought that this skill
-  // grants back as flat stat, stat by stat (0.15 == 15%): 1000 points of STR
-  // and 100 of DEX become 150 and 10. Rounded down, as GMS rounds it.
-  //
-  // Only what AP bought counts. A ring's STR and another skill's STR are not
-  // multiplied by this, which is why it reads the allocation rather than the
-  // total -- and what it grants IS a grant like theirs, so a percentage over
-  // the character's stats would lift this too.
-  double ap_stat_pct = 122;
-  // The Marksman's. Strikes added to every multi-line swing the character makes
-  // -- Bolt Surplus's "+1 attack to all multi-hit skills". Summed across its
-  // sources, of which there is one.
-  //
-  // GMS says it skips summons, 5th job common skills and "certain skills", and
-  // every one of those falls out of what a swing is here: a summon fires on its
-  // own clock rather than being swung, and a Final Attack is a lever with no
-  // line count to add to. What is left is exactly the attacks the character
-  // chooses between, an empowered form among them.
-  //
-  // A swing that lands once is left alone. GMS grants this to multi-hit skills,
-  // and a single strike doubling would be the largest lever in the game.
-  int32 bonus_attack_lines = 124;
-  // The Chief Bandit's. Share added to the meso a kill yields (0.20 == +20%).
-  // Sums across its sources, and the second lever in the game to pay in
-  // something other than a fight -- exp_pct above is the first.
-  double meso_pct = 121;
-  // The I/L Arch Mage's. Share added to how long every buff the character
-  // raises stays up (0.50 == half again), summed across its sources. It
-  // lengthens the buff and leaves the wait for the next one alone, which is
-  // the whole of what it buys.
-  //
-  // Only a Buff has a duration to lengthen, so this reaches exactly the skills
-  // that could not be folded in as permanent -- see the Buff message.
-  double buff_duration_pct = 125;
-
-  // The Hermit's. Shadow Partner. A shadow copies every line the character's
-  // swing lands and strikes again for this share of one (0.70 == 70%), so a
-  // three-line swing lands three real lines and three shadow ones.
-  //
-  // Carried as lines rather than folded into a multiplier, which comes to the
-  // same damage: what the player is buying is a second set of hits, and a page
-  // that says so is worth the field. Summed across sources, of which there is
-  // one.
-  //
-  // The shadow copies SWINGS. It does not copy a summon's pulse or a Final
-  // Attack -- the same line those two are already drawn on in encounter.cc.
-  double mirror_line_pct = 118;
+  double revive_cooldown_seconds = 107;
   // The Priest's. Lifts every abnormal condition on the character. Nothing
   // inflicts one yet, so nothing reads it -- but it is the whole of what Dispel
   // does, and a skill page calling that skill empty would be saying the game
   // has no plans for it. The boss that needs it is what it waits for.
-  bool cures_conditions = 116;
-  // The Berserker's. Resistance to abnormal statuses, on GMS's own scale rather
-  // than as a fraction, and to elemental damage as a fraction. Nothing in this
-  // game inflicts a status or an element, so nothing reads either -- they are
-  // here to keep the wiki's figures with the skill, and the stats page shows
-  // them so the player can see what they bought.
-  double status_resistance = 106;
-  double elemental_resistance = 107;
+  bool cures_conditions = 108;
 }
 
 // A second attack the same skill makes, on its own clock, beside the swing it
@@ -663,8 +668,8 @@ message SkillRequirement {
 // by its display `name`. The effect at learned level L is base + per_level *
 // (L - 1), so `base` is the level-1 value and `per_level` the increment beyond.
 //
-// Numbered in the same two blocks as SkillEffect: general up to 99, one job
-// line's own from 100 up.
+// Numbered in the same two blocks as SkillEffect, by the same test: a general
+// mechanism up to 99, one job line's own from 100 up.
 message Skill {
   string name = 1;
   SkillKind kind = 2;
@@ -716,8 +721,8 @@ message Skill {
   //
   // Read only on an attack. Every other kind of skill keeps everything it
   // grants already, so a second block would say nothing.
-  SkillEffect passive = 115;
-  SkillEffect passive_per_level = 116;
+  SkillEffect passive = 26;
+  SkillEffect passive_per_level = 27;
   // What the skill grants on top of `base` with particular weapons in hand.
   repeated WeaponBonus weapon_bonus = 13;
 
@@ -807,35 +812,85 @@ message Skill {
   // further. See kLevelsPastMasterLevel.
   bool exceeds_master_level = 22;
 
-  // --- From here down, one job line apiece. See the message comment. ---
+  // What this skill grants for a while when it goes up, on the wait
+  // cooldown_seconds states. See Buff. The heal a cast hands over at once is
+  // the buff's own heal_pct.
+  Buff buff = 28;
+  // The burn this swing leaves on everything it reached. See Dot.
+  Dot dot = 29;
+  // The bigger swing this skill puts in the place of every Nth swing of the one
+  // it names. Several, because the Marksman's Greater Empowered Arrows upgrades
+  // two different swings off one ladder. See EmpoweredForm.
+  repeated EmpoweredForm empowered_form = 30;
+  // A second hit this swing lands at the same moment, priced on its own. See
+  // SwingHit.
+  repeated SwingHit extra_hit = 31;
 
-  // The Page's. Whether this skill needs the secondary slot filled. Nothing in
-  // the catalog fills it yet, so a skill asking for one is learnable and grants
-  // nothing -- which is what Shield Mastery does until secondaries are written.
-  bool requires_secondary = 100;
-  // The Rogue's. How many times the opening hit strikes, on the enemies it
-  // picks. Damage is SkillEffect.lead_pct per line, exactly as `lines` reads
-  // skill_pct. Unset/0 is treated as 1, and means nothing without a lead_pct.
-  int32 lead_lines = 101;
-  // The I/L Arch Mage's. Whether this skill's Final Attack strikes ONE of the
-  // enemies the swing reached rather than each of them. Blizzard's passive is
-  // what it exists for -- GMS says "a chance to strike a single enemy" where
-  // every other Final Attack in the game follows the swing onto all of them,
-  // and read the ordinary way it would pay six times over on a six-enemy
-  // swing.
+  // The second attack this swing sets off, on a wait of its own. Only
+  // Showdown's shuriken.
+  SideStrike side_strike = 32;
+  // What this skill also does on its own clock, beside being the swing it
+  // already is. See AutoMode.
+  repeated AutoMode auto_mode = 33;
+  // Strikes and reach this skill hands to skills it names. Repeated, unlike
+  // boosts_skill_name above, because Greater Vessel of Light strengthens two of
+  // them and grants each a different thing. See SkillBoost.
+  repeated SkillBoost boost = 34;
+  // Another skill this one strengthens, by display name. What it adds is
+  // SkillEffect::boosted_skill_pct, or an empowered_form below, or both --
+  // Speed Mirage empowers Wind Arrow, and nothing else in the game reaches
+  // across to a second skill by name.
   //
-  // The roll happens once for the whole swing, not once per enemy, so a wide
-  // swing is worth no more of it than a narrow one.
-  bool final_attack_single_enemy = 112;
-  // The Marksman's. How many of the enemies the swing reached the opening hit
-  // lands on, healthiest first. Unset/0 is treated as 1, which is the Rogue's
-  // shape -- "strikes one, then detonates in place".
+  // The name rather than a tag, because the grant is to one skill rather than
+  // to a family -- follows_skill_tag is the other shape, and the right one
+  // whenever more than one swing is meant.
+  //
+  // Empty on a skill carrying an empowered_form means that form upgrades this
+  // skill's own attack. See EmpoweredForm.
+  string boosts_skill_name = 35;
+  // A skill this one takes the place of, by display name: once both are learned
+  // the named skill grants nothing at all. GMS says "boosted to" rather than
+  // "increased by" when it means this -- Advanced Combo's final damage per orb
+  // replaces Combo Synergy's, and Advanced Final Attack states the whole of the
+  // Final Attack it supersedes rather than a delta.
+  //
+  // Only for a skill whose whole grant is the one being replaced. Where two
+  // skills merely overlap, the lever settles it on its own: two masteries are
+  // already the better of the two, so a 4th job mastery skill outbids Weapon
+  // Mastery without superseding it -- and must not, since Weapon Mastery pays
+  // attack speed and critical rate beside it.
+  //
+  // The superseded skill stays learned and keeps its page. What it stops doing
+  // is paying.
+  string supersedes_skill_name = 36;
+  // How many times the opening hit strikes, on the enemies it picks. Damage is
+  // SkillEffect.lead_pct per line, exactly as `lines` reads skill_pct. Unset/0
+  // is treated as 1, and means nothing without a lead_pct.
+  int32 lead_lines = 37;
+  // How many of the enemies the swing reached the opening hit lands on,
+  // healthiest first. Unset/0 is treated as 1, which is the Rogue's shape --
+  // "strikes one, then detonates in place".
   //
   // Above 1 it stops being an opening hit and becomes the part of a swing that
   // reaches fewer enemies than the rest of it: Piercing Arrow II's fragment
   // bounces off the first enemy onto two of the eight the arrow went through.
   // The same field either way, because the fight does the same thing with it.
-  int32 lead_enemies = 111;
+  int32 lead_enemies = 38;
+  // Whether this skill's Final Attack strikes ONE of the enemies the swing
+  // reached rather than each of them. Blizzard's passive is what it exists for
+  // -- GMS says "a chance to strike a single enemy" where every other Final
+  // Attack in the game follows the swing onto all of them, and read the
+  // ordinary way it would pay six times over on a six-enemy swing.
+  //
+  // The roll happens once for the whole swing, not once per enemy, so a wide
+  // swing is worth no more of it than a narrow one.
+  bool final_attack_single_enemy = 39;
+
+  // Whether this skill needs the secondary slot filled. Nothing in the catalog
+  // fills it yet, so a skill asking for one is learnable and grants nothing --
+  // which is what Shield Mastery does until secondaries are written.
+  bool requires_secondary = 40;
+  // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and
   // `lines_per_level` are, so 0.25 is one more orb every fourth level. A
@@ -846,59 +901,6 @@ message Skill {
   //
   // Meaningless without something reading it -- see
   // SkillEffect::attack_per_combo_orb and final_dmg_pct_per_combo_orb.
-  int32 combo_orbs = 102;
-  double combo_orbs_per_level = 110;
-  // The Ranger's. Another skill this one strengthens, by display name. What it
-  // adds is SkillEffect::boosted_skill_pct, or an empowered_form below, or
-  // both -- Speed Mirage empowers Wind Arrow, and nothing else in the game
-  // reaches across to a second skill by name.
-  //
-  // The name rather than a tag, because the grant is to one skill rather than
-  // to a family -- follows_skill_tag is the other shape, and the right one
-  // whenever more than one swing is meant.
-  //
-  // Empty on a skill carrying an empowered_form means that form upgrades this
-  // skill's own attack. See EmpoweredForm.
-  string boosts_skill_name = 103;
-  // The Ranger's. What this skill also does on its own clock, beside being the
-  // swing it already is. See AutoMode.
-  repeated AutoMode auto_mode = 104;
-  // The Sniper's. The bigger swing this skill puts in the place of every Nth
-  // swing of the one it names. Several, because the Marksman's Greater
-  // Empowered Arrows upgrades two different swings off one ladder. See
-  // EmpoweredForm.
-  repeated EmpoweredForm empowered_form = 105;
-  // The Dark Knight's. What this skill grants for a while when it goes up, on
-  // the wait cooldown_seconds states. See Buff. The heal a cast hands over at
-  // once is the buff's own heal_pct.
-  Buff buff = 106;
-  // The Paladin's. A second hit this swing lands at the same moment, priced on
-  // its own. See SwingHit.
-  repeated SwingHit extra_hit = 108;
-  // The F/P Arch Mage's. The burn this swing leaves on everything it reached.
-  // See Dot.
-  Dot dot = 113;
-
-  // The second attack this swing sets off, on a wait of its own. Only
-  // Showdown's shuriken.
-  SideStrike side_strike = 114;
-  // The Paladin's. Strikes and reach this skill hands to skills it names.
-  // Repeated, unlike boosts_skill_name above, because Greater Vessel of Light
-  // strengthens two of them and grants each a different thing. See SkillBoost.
-  repeated SkillBoost boost = 107;
-  // The Hero's. A skill this one takes the place of, by display name: once
-  // both are learned the named skill grants nothing at all. GMS says "boosted
-  // to" rather than "increased by" when it means this -- Advanced Combo's
-  // final damage per orb replaces Combo Synergy's, and Advanced Final Attack
-  // states the whole of the Final Attack it supersedes rather than a delta.
-  //
-  // Only for a skill whose whole grant is the one being replaced. Where two
-  // skills merely overlap, the lever settles it on its own: two masteries are
-  // already the better of the two, so a 4th job mastery skill outbids Weapon
-  // Mastery without superseding it -- and must not, since Weapon Mastery pays
-  // attack speed and critical rate beside it.
-  //
-  // The superseded skill stays learned and keeps its page. What it stops doing
-  // is paying.
-  string supersedes_skill_name = 109;
+  int32 combo_orbs = 100;
+  double combo_orbs_per_level = 101;
 }
