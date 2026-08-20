@@ -694,6 +694,53 @@ StatField PrimaryStatField(Job job) {
   }
 }
 
+// One job leading to the next, for the two advancements that narrow rather
+// than fork.
+struct Successor {
+  Job from;
+  Job to;
+};
+
+// The 3rd advancement: one branch per 2nd job, so the picker offers a single
+// choice rather than a set.
+constexpr Successor kThirdJobs[] = {
+    {JOB_SPEARMAN, JOB_BERSERKER},
+    {JOB_FIGHTER, JOB_CRUSADER},
+    {JOB_PAGE, JOB_WHITE_KNIGHT},
+    {JOB_HUNTER, JOB_RANGER},
+    {JOB_CROSSBOWMAN, JOB_SNIPER},
+    {JOB_ICE_LIGHTNING_WIZARD, JOB_ICE_LIGHTNING_MAGE},
+    {JOB_FIRE_POISON_WIZARD, JOB_FIRE_POISON_MAGE},
+    {JOB_CLERIC, JOB_PRIEST},
+    {JOB_ASSASSIN, JOB_HERMIT},
+    {JOB_BANDIT, JOB_CHIEF_BANDIT},
+};
+
+// The 4th, and all ten are written. Nothing is written past one, so a 4th job
+// is offered nothing at all.
+constexpr Successor kFourthJobs[] = {
+    {JOB_BERSERKER, JOB_DARK_KNIGHT},
+    {JOB_WHITE_KNIGHT, JOB_PALADIN},
+    {JOB_CRUSADER, JOB_HERO},
+    {JOB_RANGER, JOB_BOW_MASTER},
+    {JOB_SNIPER, JOB_MARKSMAN},
+    {JOB_ICE_LIGHTNING_MAGE, JOB_ICE_LIGHTNING_ARCH_MAGE},
+    {JOB_FIRE_POISON_MAGE, JOB_FIRE_POISON_ARCH_MAGE},
+    {JOB_PRIEST, JOB_BISHOP},
+    {JOB_HERMIT, JOB_NIGHT_LORD},
+    {JOB_CHIEF_BANDIT, JOB_SHADOWER},
+};
+
+// The single job `table` leads on to from `job`, or nothing.
+std::vector<Job> Successors(const Successor* table, int count, Job job) {
+  for (int i = 0; i < count; ++i) {
+    if (table[i].from == job) {
+      return {table[i].to};
+    }
+  }
+  return {};
+}
+
 std::vector<Job> JobChoicesForStage(Job job, int stage) {
   // The four explorer branches, ordered by the stat each one lives on, so the
   // list reads down STR/DEX/INT/LUK the same way the stat panel does. A
@@ -715,69 +762,15 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
   if (stage == 2 && job == JOB_ROGUE) {
     return {JOB_ASSASSIN, JOB_BANDIT};
   }
-  // The 3rd advancement narrows instead of forking: one branch per 2nd job,
-  // so the picker offers a single choice rather than a set.
-  if (stage == 3 && job == JOB_SPEARMAN) {
-    return {JOB_BERSERKER};
+  if (stage == 3) {
+    return Successors(kThirdJobs,
+                      static_cast<int>(sizeof(kThirdJobs) / sizeof(Successor)),
+                      job);
   }
-  if (stage == 3 && job == JOB_FIGHTER) {
-    return {JOB_CRUSADER};
-  }
-  if (stage == 3 && job == JOB_PAGE) {
-    return {JOB_WHITE_KNIGHT};
-  }
-  if (stage == 3 && job == JOB_HUNTER) {
-    return {JOB_RANGER};
-  }
-  if (stage == 3 && job == JOB_CROSSBOWMAN) {
-    return {JOB_SNIPER};
-  }
-  if (stage == 3 && job == JOB_ICE_LIGHTNING_WIZARD) {
-    return {JOB_ICE_LIGHTNING_MAGE};
-  }
-  if (stage == 3 && job == JOB_FIRE_POISON_WIZARD) {
-    return {JOB_FIRE_POISON_MAGE};
-  }
-  if (stage == 3 && job == JOB_CLERIC) {
-    return {JOB_PRIEST};
-  }
-  if (stage == 3 && job == JOB_ASSASSIN) {
-    return {JOB_HERMIT};
-  }
-  if (stage == 3 && job == JOB_BANDIT) {
-    return {JOB_CHIEF_BANDIT};
-  }
-  // The 4th advancement narrows no further either, and all ten are written.
-  // Nothing is written past one, so a 4th job is offered nothing at all.
-  if (stage == 4 && job == JOB_BERSERKER) {
-    return {JOB_DARK_KNIGHT};
-  }
-  if (stage == 4 && job == JOB_WHITE_KNIGHT) {
-    return {JOB_PALADIN};
-  }
-  if (stage == 4 && job == JOB_CRUSADER) {
-    return {JOB_HERO};
-  }
-  if (stage == 4 && job == JOB_RANGER) {
-    return {JOB_BOW_MASTER};
-  }
-  if (stage == 4 && job == JOB_SNIPER) {
-    return {JOB_MARKSMAN};
-  }
-  if (stage == 4 && job == JOB_ICE_LIGHTNING_MAGE) {
-    return {JOB_ICE_LIGHTNING_ARCH_MAGE};
-  }
-  if (stage == 4 && job == JOB_FIRE_POISON_MAGE) {
-    return {JOB_FIRE_POISON_ARCH_MAGE};
-  }
-  if (stage == 4 && job == JOB_PRIEST) {
-    return {JOB_BISHOP};
-  }
-  if (stage == 4 && job == JOB_HERMIT) {
-    return {JOB_NIGHT_LORD};
-  }
-  if (stage == 4 && job == JOB_CHIEF_BANDIT) {
-    return {JOB_SHADOWER};
+  if (stage == 4) {
+    return Successors(kFourthJobs,
+                      static_cast<int>(sizeof(kFourthJobs) / sizeof(Successor)),
+                      job);
   }
   return {};
 }

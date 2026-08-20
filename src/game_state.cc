@@ -56,6 +56,9 @@ constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO;
 //
 // Two weapons means the better one by //analysis:weapon_sim, but a Rogue gets
 // all three: which of the dagger and the claw is held decides what they swing.
+//
+// Long, and stays long: it is one table with a row per job, and the switch
+// without a default is what makes a new job a compiler warning here.
 std::vector<std::string> WorkbenchGearFor(Job job) {
   switch (job) {
     // The 1st jobs, at level 30.

@@ -59,6 +59,47 @@ bool StarForcePanel::OnCancel() const {
   return cancel_selected_ || !Affordable();
 }
 
+// One row per stat the next star adds, labels padded to a common width so the
+// column of numbers lines up under a centred heading.
+std::vector<ftxui::Element> StatGainRows(const EquipStats& before,
+                                         const EquipStats& after) {
+  std::vector<ftxui::Element> rows;
+  int label_w = 0;
+  for (const DisplayStat& stat : kDisplayStats) {
+    if (stat.GetFrom(after) - stat.GetFrom(before) > 0) {
+      label_w = std::max(label_w, static_cast<int>(strlen(stat.label)));
+    }
+  }
+  for (const DisplayStat& stat : kDisplayStats) {
+    int delta = stat.GetFrom(after) - stat.GetFrom(before);
+    if (delta > 0) {
+      rows.push_back(CenteredRow(PadTo(stat.label, label_w) + "  +" +
+                                 std::to_string(delta)));
+    }
+  }
+  return rows;
+}
+
+// The three ways the attempt can land. Padded to a common width so centring
+// aligns the label column and the number column together.
+std::vector<ftxui::Element> OddsRows(const StarForceRate& rate) {
+  std::string success = FormatRate(rate.success);
+  std::string fail = FormatRate(10000 - rate.success - rate.destroy);
+  std::string destroy = rate.destroy > 0 ? FormatRate(rate.destroy) : "";
+  int width =
+      static_cast<int>(std::max({success.size(), fail.size(), destroy.size()}));
+  std::vector<ftxui::Element> rows;
+  rows.push_back(CenteredRow("Success  " + PadTo(success, width)) |
+                 ftxui::color(kGreen));
+  rows.push_back(CenteredRow("Fail     " + PadTo(fail, width)) |
+                 ftxui::color(kMutedYellow));
+  if (rate.destroy > 0) {
+    rows.push_back(CenteredRow("Destroy  " + PadTo(destroy, width)) |
+                   ftxui::color(kRed));
+  }
+  return rows;
+}
+
 ftxui::Element StarForcePanel::Render() const {
   if (item_ == nullptr) {
     return ThemedWindow(" Star Force ", EmptyState("no item"));
@@ -78,19 +119,6 @@ ftxui::Element StarForcePanel::Render() const {
                         }));
   }
 
-  StarForceRate rate = EquipInstance::RateAt(stars);
-  int fail = 10000 - rate.success - rate.destroy;
-
-  // Pad all rate strings to the same width so centring aligns both columns.
-  std::string success_str = FormatRate(rate.success);
-  std::string fail_str = FormatRate(fail);
-  std::string destroy_str = rate.destroy > 0 ? FormatRate(rate.destroy) : "";
-  int rate_w = static_cast<int>(
-      std::max({success_str.size(), fail_str.size(), destroy_str.size()}));
-
-  EquipStats before = item_->StarForceStatGains(stars);
-  EquipStats after = item_->StarForceStatGains(stars + 1);
-
   std::vector<ftxui::Element> rows;
   // The name and the star it is going for are one heading, so no rule between
   // them: what the rules separate is the heading, the stats, the odds and the
@@ -100,29 +128,14 @@ ftxui::Element StarForcePanel::Render() const {
       std::to_string(stars) + "★ → " + std::to_string(stars + 1) + "★";
   rows.push_back(CenteredRow(arrow));
   rows.push_back(ThemedSeparator());
-  int label_w = 0;
-  for (const DisplayStat& stat : kDisplayStats) {
-    if (stat.GetFrom(after) - stat.GetFrom(before) > 0) {
-      label_w = std::max(label_w, static_cast<int>(strlen(stat.label)));
-    }
-  }
-  for (const DisplayStat& stat : kDisplayStats) {
-    int delta = stat.GetFrom(after) - stat.GetFrom(before);
-    if (delta > 0) {
-      std::string line =
-          PadTo(stat.label, label_w) + "  +" + std::to_string(delta);
-      rows.push_back(CenteredRow(line));
-    }
+  for (ftxui::Element& row :
+       StatGainRows(item_->StarForceStatGains(stars),
+                    item_->StarForceStatGains(stars + 1))) {
+    rows.push_back(std::move(row));
   }
   rows.push_back(ThemedSeparator());
-  auto RateRow = [&rows, &rate_w](const std::string& label,
-                                  const std::string& val, ftxui::Color c) {
-    rows.push_back(CenteredRow(label + PadTo(val, rate_w)) | ftxui::color(c));
-  };
-  RateRow("Success  ", success_str, kGreen);
-  RateRow("Fail     ", fail_str, kMutedYellow);
-  if (rate.destroy > 0) {
-    RateRow("Destroy  ", destroy_str, kRed);
+  for (ftxui::Element& row : OddsRows(EquipInstance::RateAt(stars))) {
+    rows.push_back(std::move(row));
   }
   rows.push_back(ThemedSeparator());
   // What the attempt takes, charged whichever of the three ways it lands. Its

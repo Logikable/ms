@@ -40,6 +40,15 @@ namespace {
 class TuiControllerTest : public testing::Test {
  protected:
   void SetUp() override {
+    MakeState();
+    SeedCharacter();
+    MakePanels();
+  }
+
+  // The catalogs these tests run on: small enough to state here rather than
+  // load out of data/, and every entry is here because some test below needs
+  // it to exist before a panel is built.
+  void MakeState() {
     sword_.set_name("Sword");
     sword_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     sword_.set_upgrade_slots(3);
@@ -90,7 +99,10 @@ class TuiControllerTest : public testing::Test {
     state_ = std::make_unique<GameState>(
         std::move(equips), std::move(scrolls), std::move(items),
         std::map<std::string, Mob>{}, std::map<std::string, MapData>{});
+  }
 
+  // A Swordman with enough SP to spend and standing at scrolling's gate.
+  void SeedCharacter() {
     state_->character.AdvanceJob(JOB_SWORDMAN);
     // The starting character stands at its advancement with no SP yet; these
     // tests spend SP, so they level far enough to have some of their own.
@@ -104,6 +116,10 @@ class TuiControllerTest : public testing::Test {
     // level, so 60 of it is exactly level 30). Stated rather than relied on:
     // either number can move without the other.
     LevelTo(UnlockLevel(Feature::kScrolling));
+  }
+
+  // Every panel the controller drives, and the controller over them.
+  void MakePanels() {
     char_panel_ = std::make_unique<CharacterPanel>(
         state_->character, panel_focus_, state_->skills);
     equip_panel_ =

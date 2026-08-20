@@ -90,9 +90,7 @@ std::vector<int> CombatSim::LeadTargets(const AttackOption& attack,
 // What one swing of `attack` would land on the queue as it stands: its own
 // damage to each mob it reaches, the opening hit on one of them, and the Final
 // Attack that follows it onto every one of them.
-double CombatSim::SwingDamage(const AttackOption& attack) const {
-  int reach = std::max(1, attack.max_enemies);
-  int hit = std::min(reach, static_cast<int>(queue_.size()));
+double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
   double total = 0.0;
   for (int j = 0; j < hit; ++j) {
     int type = queue_[j].type;
@@ -119,11 +117,16 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
           static_cast<int>(attack.single_final_attack_damage.size())) {
     total += attack.single_final_attack_damage[queue_[0].type];
   }
-  // The burn this swing would light, charged at the rate it can sustain rather
-  // than in full: relighting it buys no more ticks, so what the swing is worth
-  // is the seconds before it comes round again, capped by the burn's own life.
-  // How long the monster lives thins it further, and the chooser cannot know
-  // that before it swings.
+  return total;
+}
+
+// A burn is charged at the rate the swing can sustain rather than in full:
+// relighting it buys no more ticks, so what the swing is worth is the seconds
+// before it comes round again, capped by the burn's own life. How long the
+// monster lives thins it further, and the chooser cannot know that before it
+// swings.
+double CombatSim::BurnDamage(const AttackOption& attack, int hit) const {
+  double total = 0.0;
   for (const DotApplication& burn : attack.dots) {
     double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
     double ticks =
@@ -137,22 +140,31 @@ double CombatSim::SwingDamage(const AttackOption& attack) const {
       }
     }
   }
-  // The strike this swing sets off is worth what it lands, spread over the
-  // swings that go out while it is waiting: at a wait of five seconds and a
-  // swing of one, a fifth of it rides each. The chooser has to say so, or a
-  // swing would be weighed as though it set the strike off every time.
-  //
-  // Held aside rather than added, because it rides the swing whichever form
-  // that swing took -- the averaging below is between the two forms, and this
-  // is outside it.
-  double side = 0.0;
-  if (attack.side != nullptr) {
-    double every =
-        std::max(attack.side->cooldown_seconds, attack.swing_seconds);
-    if (every > 0.0) {
-      side = SwingDamage(*attack.side) * attack.swing_seconds / every;
-    }
+  return total;
+}
+
+// At a wait of five seconds and a swing of one, a fifth of the strike rides
+// each swing. The chooser has to say so, or a swing would be weighed as though
+// it set the strike off every time.
+double CombatSim::SideStrikeDamage(const AttackOption& attack) const {
+  if (attack.side == nullptr) {
+    return 0.0;
   }
+  double every = std::max(attack.side->cooldown_seconds, attack.swing_seconds);
+  if (every <= 0.0) {
+    return 0.0;
+  }
+  return SwingDamage(*attack.side) * attack.swing_seconds / every;
+}
+
+double CombatSim::SwingDamage(const AttackOption& attack) const {
+  int hit = std::min(std::max(1, attack.max_enemies),
+                     static_cast<int>(queue_.size()));
+  double total = StrikeDamage(attack, hit) + BurnDamage(attack, hit);
+  // The side strike is held aside rather than added, because it rides the
+  // swing whichever form that swing took -- the averaging below is between the
+  // two forms, and this is outside it.
+  double side = SideStrikeDamage(attack);
   // A swing with an empowered form lands it once in every N, so what the
   // attack is worth per swing is the average of the two. The rate has to say
   // so, or the attack would be weighed on the weaker of the two things it

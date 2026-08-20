@@ -177,6 +177,16 @@ class CombatSim {
   // them as lead_enemies: a hit that big is worth least where it overkills, and
   // GMS aims the same shape at the highest-HP target for the same reason.
   std::vector<int> LeadTargets(const AttackOption& attack, int hit) const;
+  // What `attack`'s own strikes land on the first `hit` mobs of the queue: its
+  // lines, the gain an arrow makes as it pierces, its opening hit and both
+  // Final Attack banks.
+  double StrikeDamage(const AttackOption& attack, int hit) const;
+  // What the burns `attack` lights are worth, charged at the rate the swing
+  // can sustain rather than in full.
+  double BurnDamage(const AttackOption& attack, int hit) const;
+  // What the strike `attack` sets off is worth per swing, spread over the
+  // swings that go out while it waits. 0 for an attack that sets none off.
+  double SideStrikeDamage(const AttackOption& attack) const;
   // What one swing of `attack` would land on the queue as it stands, the
   // opening hit and Final Attack included. An attack with an empowered form is
   // averaged over the run of swings that form takes its place in.

@@ -316,8 +316,20 @@ std::string CooldownText(const Skill& skill, int level) {
 // No row here counts seconds. The pacing band stretches every duration in the
 // game alike, so a figure the player could hold a stopwatch to would not be
 // the one printed -- and none of them is a choice they make anyway.
-std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
-  std::vector<ftxui::Element> rows = RequirementRows(skill);
+// Appends `from` to `into`. The row builders here all return vectors, and a
+// row is a move rather than a copy.
+void Append(std::vector<ftxui::Element> from,
+            std::vector<ftxui::Element>& into) {
+  for (ftxui::Element& row : from) {
+    into.push_back(std::move(row));
+  }
+}
+
+// How far the swing reaches and how often it lands, its own-clock halves
+// included. Reach and rate share a row where a skill has both: the two
+// together are the shape of it.
+std::vector<ftxui::Element> ReachRows(const Skill& skill) {
+  std::vector<ftxui::Element> rows;
   // A skill with a clock of its own states it where it states its reach: the
   // two together are the shape of it, and a row holding only a number of
   // seconds is a row spent on bookkeeping.
@@ -354,18 +366,13 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
         EffectRow(mode.label(), ReachText(std::max(1, mode.max_enemies()),
                                           mode.cast_interval_seconds())));
   }
-  // A ring that never grows is stated once here. One that does is a thing a
-  // point buys, so it reads at the level instead -- the same split the
-  // cooldown takes, and for the same reason.
-  if (skill.combo_orbs() > 0 && skill.combo_orbs_per_level() <= 0.0) {
-    rows.push_back(EffectRow("Combo Orbs", std::to_string(skill.combo_orbs())));
-  }
-  // The one clock the player can feel, because they set it: their own
-  // attacking. It is a count of swings rather than a duration.
-  if (skill.attacks_per_cast() > 0) {
-    rows.push_back(EffectRow(
-        "Fires Every", std::to_string(skill.attacks_per_cast()) + " Attacks"));
-  }
+  return rows;
+}
+
+// Which attack this skill upgrades, how often, and how far the upgraded swing
+// carries when that is not the swing it stands in for.
+std::vector<ftxui::Element> EmpoweredRows(const Skill& skill) {
+  std::vector<ftxui::Element> rows;
   // A skill that upgrades an attack says which attack and how often. Its reach
   // is stated too, unlike a turret's: this one is wider than the attack it
   // stands in for, so leaving it out would understate the upgrade. An empty
@@ -379,10 +386,8 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
     std::string how = form.casts_per_trigger() == 1
                           ? ""
                           : "Every " + Ordinal(form.casts_per_trigger()) + " ";
-    for (ftxui::Element& row :
-         WrappedEffectRows("Empowers", how + EmpoweredTarget(skill, form))) {
-      rows.push_back(std::move(row));
-    }
+    Append(WrappedEffectRows("Empowers", how + EmpoweredTarget(skill, form)),
+           rows);
     // A mark on each enemy is a different promise from a count on the swing --
     // five that one enemy took, rather than five swings -- and only a row of
     // its own says which of the two the number above is.
@@ -398,6 +403,26 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
           EffectRow("Empowered Enemies", std::to_string(form.max_enemies())));
     }
   }
+  return rows;
+}
+
+// Everything about a skill that reads the same at every level.
+std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
+  std::vector<ftxui::Element> rows = RequirementRows(skill);
+  Append(ReachRows(skill), rows);
+  // A ring that never grows is stated once here. One that does is a thing a
+  // point buys, so it reads at the level instead -- the same split the
+  // cooldown takes, and for the same reason.
+  if (skill.combo_orbs() > 0 && skill.combo_orbs_per_level() <= 0.0) {
+    rows.push_back(EffectRow("Combo Orbs", std::to_string(skill.combo_orbs())));
+  }
+  // The one clock the player can feel, because they set it: their own
+  // attacking. It is a count of swings rather than a duration.
+  if (skill.attacks_per_cast() > 0) {
+    rows.push_back(EffectRow(
+        "Fires Every", std::to_string(skill.attacks_per_cast()) + " Attacks"));
+  }
+  Append(EmpoweredRows(skill), rows);
   // How long the player swings something else for afterwards, which is what a
   // skill this much better than the usual swing costs. A wait that shortens as
   // the skill is taught is not invariant, so it waits for the level block.
@@ -685,16 +710,12 @@ std::string DotText(const Dot& dot, int level) {
   return text;
 }
 
-// What lands beside the swing rather than as part of it, and what the skill
-// hands to another skill in the book.
-std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
+// The burn the swing leaves, and the strike it sets off beside itself.
+std::vector<ftxui::Element> SwingRiderRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
   // Under the swing's own damage, since it is what that swing left behind.
   if (skill.dot().interval_seconds() > 0.0) {
-    for (ftxui::Element& row :
-         WrappedEffectRows("DoT", DotText(skill.dot(), level))) {
-      rows.push_back(std::move(row));
-    }
+    Append(WrappedEffectRows("DoT", DotText(skill.dot(), level)), rows);
   }
   // Final Attack's chance and its damage are one fact, not two levers: neither
   // half says anything on its own, so they share a line.
@@ -712,9 +733,7 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
         SwingText(PercentAt(skill, &SkillEffect::final_attack_pct, level),
                   strikes) +
         reach;
-    for (ftxui::Element& row : WrappedEffectRows("Final Attack", text)) {
-      rows.push_back(std::move(row));
-    }
+    Append(WrappedEffectRows("Final Attack", text), rows);
   }
   // The strike the swing sets off beside itself. Its wait rides the damage row
   // rather than taking one of its own, and its reach is stated only where it
@@ -728,9 +747,7 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
       text += ", " + std::to_string(side.max_enemies()) + " enemies";
     }
     text += " every " + FormatNumber(side.cooldown_seconds()) + "s";
-    for (ftxui::Element& row : WrappedEffectRows(side.label(), text)) {
-      rows.push_back(std::move(row));
-    }
+    Append(WrappedEffectRows(side.label(), text), rows);
     double normal = side.base().normal_skill_pct() +
                     side.per_level().normal_skill_pct() * (level - 1);
     if (normal > 0.0) {
@@ -738,6 +755,13 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
                                SwingText(per_hit + normal, side.lines())));
     }
   }
+  return rows;
+}
+
+// The damage of every half that fights on a clock of its own, and of every
+// swing this skill puts in the place of another.
+std::vector<ftxui::Element> OwnClockRows(const Skill& skill, int level) {
+  std::vector<ftxui::Element> rows;
   // Each own-clock half's damage, under the swing's own so they read as one
   // skill with several ways of hurting things. Every one names itself, under
   // the same name its reach row above carries.
@@ -774,30 +798,31 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
     }
     // What the upgraded swing lands beside itself, under the swing it belongs
     // to -- the explosion at the end of an arrow's flight, the mark it spends.
-    for (ftxui::Element& row : SwingHitRows(form.extra_hit(), level)) {
-      rows.push_back(std::move(row));
-    }
+    Append(SwingHitRows(form.extra_hit(), level), rows);
   }
+  return rows;
+}
+
+// What this skill hands to another skill in the book, one sentence a grant.
+std::vector<ftxui::Element> BoostRows(const Skill& skill, int level) {
+  std::vector<ftxui::Element> rows;
   // What this skill hands another one. Named in the value rather than used as
   // the label, so a long skill name wraps instead of being cut to the label
   // column -- and so the row reads as a sentence about somewhere else.
   double boost = PercentAt(skill, &SkillEffect::boosted_skill_pct, level);
   if (boost > 0.0 && !skill.boosts_skill_name().empty()) {
-    for (ftxui::Element& row :
-         WrappedEffectRows("Boosts", skill.boosts_skill_name() + " +" +
-                                         FormatPercent(boost))) {
-      rows.push_back(std::move(row));
-    }
+    Append(WrappedEffectRows("Boosts", skill.boosts_skill_name() + " +" +
+                                           FormatPercent(boost)),
+           rows);
   }
   // The same sentence for the boss damage it hands over, which is a different
   // grant to the same skill rather than more of the one above.
   double boss = PercentAt(skill, &SkillEffect::boosted_boss_pct, level);
   if (boss > 0.0 && !skill.boosts_skill_name().empty()) {
-    for (ftxui::Element& row : WrappedEffectRows(
-             "Boosts", skill.boosts_skill_name() + " +" + FormatPercent(boss) +
-                           " Boss Damage")) {
-      rows.push_back(std::move(row));
-    }
+    Append(
+        WrappedEffectRows("Boosts", skill.boosts_skill_name() + " +" +
+                                        FormatPercent(boss) + " Boss Damage"),
+        rows);
   }
   // The same sentence for what it hands another skill that is not damage: a
   // strike on every swing, a wider reach, or both. One row per skill named,
@@ -807,11 +832,19 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
     if (gains.empty()) {
       continue;
     }
-    for (ftxui::Element& row :
-         WrappedEffectRows("Boosts", granted.skill_name() + " " + gains)) {
-      rows.push_back(std::move(row));
-    }
+    Append(WrappedEffectRows("Boosts", granted.skill_name() + " " + gains),
+           rows);
   }
+  return rows;
+}
+
+// Everything that lands beside the swing rather than as part of it, and what
+// the skill hands to another skill in the book.
+std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
+  std::vector<ftxui::Element> rows;
+  Append(SwingRiderRows(skill, level), rows);
+  Append(OwnClockRows(skill, level), rows);
+  Append(BoostRows(skill, level), rows);
   return rows;
 }
 
