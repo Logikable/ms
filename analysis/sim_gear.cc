@@ -226,7 +226,11 @@ double CrowdDamage(const AttackOption& attack, int enemies) {
     if (burn.interval_seconds <= 0.0 || burn.damage.empty()) {
       continue;
     }
-    double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
+    // An attack on its own clock is paced by that clock and by nothing else:
+    // a summon has no swing time and no cooldown, and reading only those two
+    // would charge its burn nothing at all.
+    double cadence = std::max({attack.swing_seconds, attack.cooldown_seconds,
+                               attack.interval_seconds});
     double burning = std::min(burn.duration_seconds, cadence);
     damage +=
         burn.damage[0] * hit * burning * burn.chance / burn.interval_seconds;

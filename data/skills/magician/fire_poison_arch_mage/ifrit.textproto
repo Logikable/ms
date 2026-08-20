@@ -1,9 +1,6 @@
-# GMS strikes 90+2x% three times and burns for 50+3x% a second for two, on top
-# of the mastery every magician summon grants. The burn is flattened into the
-# strike rather than modelled: two seconds of it would be gone before the next
-# pulse, and a mark that short is only arithmetic.
-#
-# So one line of 150% plus the 2 x 140% the burn came to, at its top level.
+# GMS's own summon: 90+2x% three times, and a burn of 50+3x% a second for two
+# on whatever it touched. Twenty levels here against GMS's thirty, so both
+# ladders are steeper and both end where GMS ends.
 name: "Ifrit"
 skill_order: 6
 description:
@@ -18,13 +15,19 @@ required_skill {
   level: 10
 }
 max_enemies: 3
-lines: 1
+lines: 3
 cast_interval_seconds: 3.0
 base {
-  skill_pct: 1.83
+  skill_pct: 0.93
   mastery: 0.51
 }
 per_level {
-  skill_pct: 0.13
+  skill_pct: 0.03
   mastery: 0.01
+}
+dot {
+  base { skill_pct: 0.45 }
+  per_level { skill_pct: 0.05 }
+  interval_seconds: 1.0
+  duration_seconds: 2.0
 }

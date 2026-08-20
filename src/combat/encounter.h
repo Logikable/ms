@@ -61,6 +61,10 @@ struct DotApplication {
   // applied it -- and the numbering is the same in every buffed set, so a slot
   // the fight is holding means the same thing however the buffs come and go.
   int slot = -1;
+  // Whether the CHARACTER carries this burn rather than the attack stating it.
+  // The poison on a rogue's claw rides their own swings and nothing else; a
+  // burn a skill states is that skill's own, and a summon leaves it.
+  bool carried = false;
 };
 
 // One Final Attack following a swing: a chance, rolled once per enemy the

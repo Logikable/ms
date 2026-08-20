@@ -42,9 +42,12 @@ constexpr double kMobHitIntervalSeconds = 1.5;
 constexpr double kBeatHealFraction = 0.10;
 
 // Strips everything that rides the character's own swing -- the recovery it
-// pays, its Final Attacks, the burns it leaves and the strike it sets off.
+// pays, its Final Attacks, the poison it carries and the strike it sets off.
 // Anything on a clock of its own (a summon, a wound, a form standing in for a
 // pulse) sets none of them off, and neither does a cast that deals no damage.
+//
+// A burn the SKILL states is not one of them: Ifrit's flames burn what they
+// touch whoever is swinging. Only what the character carries is dropped.
 void ClearSwingRiders(AttackOption& attack) {
   attack.hp_recover_pct = 0.0;
   attack.side = nullptr;
@@ -52,7 +55,10 @@ void ClearSwingRiders(AttackOption& attack) {
   attack.final_attack_rolls.clear();
   attack.single_final_attack_damage.clear();
   attack.single_final_attack_rolls.clear();
-  attack.dots.clear();
+  attack.dots.erase(
+      std::remove_if(attack.dots.begin(), attack.dots.end(),
+                     [](const DotApplication& burn) { return burn.carried; }),
+      attack.dots.end());
 }
 
 // Whether `skill` is marked with `tag`. Null -- the bare poke -- carries none.
@@ -249,6 +255,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   for (const CharacterDot& carried : derived.dots) {
     attack.dots.push_back(
         BurnFor(carried.dot, follow, carried.level, types, speed_factor));
+    attack.dots.back().carried = true;
   }
   if (skill != nullptr && skill->dot().interval_seconds() > 0.0) {
     attack.dots.push_back(
@@ -715,17 +722,41 @@ int AttackSpeedStageFor(const GameState& state, const EquipPrototype& weapon,
 // rather than any one swing. Numbered by attack order, which is the same in
 // every buffed set, so a slot the fight is holding means the same thing
 // however the buffs come and go.
+//
+// Every kind of attack is numbered, not only the swings: a summon leaves its
+// own burn, and one with no slot is one the fight silently drops.
 void NumberDots(AttackSet& set, int shared) {
   int next = shared;
-  for (AttackOption& attack : set.attacks) {
-    for (int i = 0; i < static_cast<int>(attack.dots.size()); ++i) {
-      // The character's own burns lead every swing's list and are the same
-      // burn wherever they were applied from, so each keeps the slot its
-      // place gives it. Whatever follows is one swing's own and gets a slot
-      // nothing else writes.
-      attack.dots[i].slot = i < shared ? i : next++;
+  std::vector<std::vector<AttackOption>*> lists = {
+      &set.attacks, &set.auto_attacks, &set.triggered_attacks};
+  for (std::vector<AttackOption>* list : lists) {
+    for (AttackOption& attack : *list) {
+      // A carried burn is the same burn wherever it was applied from, so it
+      // keeps the slot its place among the character's gives it. An attack's
+      // own gets a slot nothing else writes.
+      int carried = 0;
+      for (DotApplication& burn : attack.dots) {
+        burn.slot = burn.carried ? carried++ : next++;
+      }
     }
   }
+}
+
+// How many slots a monster needs to carry every burn this character can leave.
+// Every list is walked: a summon's burn marks a monster exactly as a swing's
+// does.
+int DotSlotsNeeded(const CombatParams& params) {
+  int slots = 0;
+  const std::vector<const std::vector<AttackOption>*> lists = {
+      &params.attacks, &params.auto_attacks, &params.triggered_attacks};
+  for (const std::vector<AttackOption>* list : lists) {
+    for (const AttackOption& attack : *list) {
+      for (const DotApplication& burn : attack.dots) {
+        slots = std::max(slots, burn.slot + 1);
+      }
+    }
+  }
+  return slots;
 }
 
 AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
@@ -921,11 +952,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.attacks = std::move(base.attacks);
   params.auto_attacks = std::move(base.auto_attacks);
   params.triggered_attacks = std::move(base.triggered_attacks);
-  for (const AttackOption& attack : params.attacks) {
-    for (const DotApplication& burn : attack.dots) {
-      params.dot_count = std::max(params.dot_count, burn.slot + 1);
-    }
-  }
+  params.dot_count = DotSlotsNeeded(params);
   std::vector<const Skill*> buff_skills =
       BuffSkillsFor(state.character, state.skills);
   if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {

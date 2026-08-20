@@ -1134,7 +1134,7 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
   ASSERT_EQ(swing.name, "Flame Sweep");
   ASSERT_EQ(swing.dots.size(), 1u);
   EXPECT_EQ(swing.dots[0].slot, 0);
-  EXPECT_EQ(params.dot_count, 1);
+  EXPECT_EQ(params.dot_count, 2);
   ASSERT_EQ(swing.dots[0].damage.size(), 1u);
   EXPECT_DOUBLE_EQ(swing.dots[0].interval_seconds, 1.0 * factor);
   EXPECT_DOUBLE_EQ(swing.dots[0].duration_seconds, 5.0 * factor);
@@ -1146,9 +1146,13 @@ TEST(ComputeCombatParamsTest, ASwingCanLeaveABurn) {
   EXPECT_NEAR(swing.dots[0].damage[0] / (swing.damage_per_hit[0] / 7.0), 1.2,
               0.02);
 
+  // A summon states its own burn and leaves it: what a clock of its own drops
+  // is the poison the CHARACTER carries, not the mark the skill itself makes.
+  // It writes a slot of its own, so the two burns never overwrite each other.
   ASSERT_EQ(params.auto_attacks.size(), 1u);
   EXPECT_EQ(params.auto_attacks[0].name, "Ifrit");
-  EXPECT_TRUE(params.auto_attacks[0].dots.empty());
+  ASSERT_EQ(params.auto_attacks[0].dots.size(), 1u);
+  EXPECT_EQ(params.auto_attacks[0].dots[0].slot, 1);
 
   // A poison is rolled for and piles up, on the ladder GMS's own walks: two
   // helpings through level 5, three through 11, four at 12. Read a level at a
