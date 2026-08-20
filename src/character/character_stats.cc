@@ -104,6 +104,9 @@ struct PassiveTotals {
   // Per line until FoldMesoExplosion multiplies the count in.
   double meso_hit_pct = 0.0;
   int meso_lines = 1;
+  // Boss damage a thrown meso carries, once FoldMesoExplosion has cashed in
+  // what the skills naming Meso Explosion granted it.
+  double meso_boss_pct = 0.0;
   std::string meso_skill;
   double meso_pct = 0.0;
   double buff_duration_pct = 0.0;
@@ -117,6 +120,9 @@ struct PassiveTotals {
   // Damage added to one named skill apiece. Summed per name, so two passives
   // strengthening the same swing both count.
   std::map<std::string, double> skill_pct_bonus;
+  // Boss damage added to one named skill apiece, the same way. Only a thrown
+  // meso reads it -- see FoldMesoExplosion.
+  std::map<std::string, double> skill_boss_pct;
   double damage_pct = 0.0;
   double boss_pct = 0.0;
   double mirror_line_pct = 0.0;
@@ -285,8 +291,15 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   // behind them -- and which skill is strengthened is written on the skill.
   double boost = skill.base().boosted_skill_pct() +
                  skill.per_level().boosted_skill_pct() * (level - 1);
-  if (boost > 0.0 && !skill.boosts_skill_name().empty()) {
-    totals.skill_pct_bonus[skill.boosts_skill_name()] += boost;
+  double boss = skill.base().boosted_boss_pct() +
+                skill.per_level().boosted_boss_pct() * (level - 1);
+  if (!skill.boosts_skill_name().empty()) {
+    if (boost > 0.0) {
+      totals.skill_pct_bonus[skill.boosts_skill_name()] += boost;
+    }
+    if (boss > 0.0) {
+      totals.skill_boss_pct[skill.boosts_skill_name()] += boss;
+    }
   }
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
   // A burn on a PASSIVE belongs to the character rather than to one swing: the
@@ -328,6 +341,11 @@ void FoldMesoExplosion(PassiveTotals& totals) {
     totals.meso_hit_pct += boost->second;
   }
   totals.meso_hit_pct *= totals.meso_lines;
+  std::map<std::string, double>::const_iterator boss =
+      totals.skill_boss_pct.find(totals.meso_skill);
+  if (boss != totals.skill_boss_pct.end()) {
+    totals.meso_boss_pct = boss->second;
+  }
 }
 
 void FoldComboOrbs(PassiveTotals& totals) {
@@ -645,6 +663,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     FinalAttackSource meso;
     meso.chance = passives.meso_drop_chance;
     meso.damage_pct = passives.meso_hit_pct;
+    meso.boss_pct = passives.meso_boss_pct;
     meso.per_line = true;
     stats.final_attacks.push_back(meso);
   }

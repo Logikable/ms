@@ -224,6 +224,11 @@ message SkillEffect {
   // Not damage_pct, which lifts everything the character swings. GMS states
   // this in percentage POINTS on the named skill for that reason.
   double boosted_skill_pct = 112;
+  // Boss damage handed to that same named skill, rather than to the character.
+  // Blood Money is what it exists for: GMS pays Meso Explosion 10+x% against a
+  // boss and pays the Shadower nothing, so a thrown meso hits a boss harder
+  // and every swing of theirs is unchanged.
+  double boosted_boss_pct = 129;
   // The Priest's. Extra EXP every kill yields, as a fraction of what the mob
   // was already worth (0.50 == half again). Summed across the passives
   // granting it, and the only lever in the game that pays in something other

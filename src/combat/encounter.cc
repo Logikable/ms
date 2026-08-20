@@ -256,6 +256,8 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // What this swing keeps of the character's chance to shake a coin loose.
   // Cruel Stab alone gives any of it up -- see SkillEffect.meso_drop_cut.
   double meso_kept = 1.0;
+  // What the character's own boss damage is, before a source adds to it.
+  double carried_boss_pct = follow.boss_pct;
   if (skill != nullptr) {
     meso_kept -= skill->base().meso_drop_cut() +
                  skill->per_level().meso_drop_cut() * (level - 1);
@@ -270,6 +272,10 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     // A meso is the one source a swing can shake fewer of loose; nothing cuts
     // a Final Attack, which follows the swing whatever it was.
     roll.chance = source.per_line ? source.chance * meso_kept : source.chance;
+    // Boss damage of its own, on top of the character's: Blood Money brands
+    // the coins rather than the Shadower. Set every time round, since the last
+    // source to carry any would otherwise hand it to the next one.
+    follow.boss_pct = carried_boss_pct + source.boss_pct;
     roll.count = source.per_line ? swing_lines : 1;
     follow.skill_pct = source.damage_pct;
     // Its own strikes, not the swing's: a Night Lord's mark throws three stars

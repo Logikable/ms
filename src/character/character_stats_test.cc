@@ -1573,6 +1573,27 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocketAndTakesItsBoost) {
   EXPECT_NEAR(derived.final_attacks[0].damage_pct, 2 * 1.20, 1e-9);
   EXPECT_TRUE(derived.final_attacks[0].per_line);
   EXPECT_NEAR(derived.meso_pct, 0.20, 1e-9);
+  // Nothing has branded the coins, so they hit a boss for what the character
+  // does.
+  EXPECT_NEAR(derived.final_attacks[0].boss_pct, 0.0, 1e-9);
+
+  // Blood Money brands them. Its boss damage lands on the throw and not on the
+  // Shadower, so the stat line is untouched.
+  Skill money;
+  money.set_name("Blood Money");
+  money.set_kind(SKILL_KIND_PASSIVE);
+  money.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  money.set_max_level(20);
+  money.set_boosts_skill_name("Meso Explosion");
+  money.mutable_base()->set_boosted_boss_pct(0.11);
+  money.mutable_per_level()->set_boosted_boss_pct(0.01);
+  skills["money"] = money;
+  ASSERT_TRUE(c.LearnSkill(money, 20));
+  DerivedStats branded = DerivedStatsFor(c, skills);
+
+  ASSERT_EQ(branded.final_attacks.size(), 1u);
+  EXPECT_NEAR(branded.final_attacks[0].boss_pct, 0.30, 1e-9);
+  EXPECT_NEAR(branded.boss_pct, 0.0, 1e-9);
 }
 
 TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {

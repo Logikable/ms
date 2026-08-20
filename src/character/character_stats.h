@@ -40,6 +40,9 @@ struct FinalAttackSource {
   // loose by Pick Pocket is the first, and on a four-line swing that is four
   // times the source.
   bool per_line = false;
+  // Boss damage this source alone carries, on top of the character's. Only a
+  // thrown meso has any: see SkillEffect.boosted_boss_pct.
+  double boss_pct = 0.0;
   // Whether the whole swing rolls this ONCE and lands it on a single enemy.
   // Blizzard's passive alone; every other source follows the swing onto every
   // enemy it reached. Never set with per_line -- one counts enemies down to

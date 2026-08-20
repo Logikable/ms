@@ -497,6 +497,65 @@ TEST(ComputeCombatParamsTest, ASwingCanShakeFewerMesosLoose) {
   EXPECT_NEAR(swing.final_attack_rolls[0].chance, 0.10, 1e-9);
 }
 
+// Blood Money brands the coins rather than the Shadower: the throw hits a boss
+// harder and every swing that knocked it loose is worth exactly what it was.
+TEST(ComputeCombatParamsTest, ABrandedMesoHitsABossHarder) {
+  Skill pocket;
+  pocket.set_name("Pick Pocket");
+  pocket.set_kind(SKILL_KIND_PASSIVE);
+  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  pocket.set_max_level(10);
+  pocket.mutable_base()->set_meso_drop_chance(0.30);
+  Skill explosion;
+  explosion.set_name("Meso Explosion");
+  explosion.set_kind(SKILL_KIND_PASSIVE);
+  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  explosion.set_max_level(20);
+  explosion.set_lines(2);
+  explosion.mutable_base()->set_meso_hit_pct(1.00);
+  Skill money;
+  money.set_name("Blood Money");
+  money.set_kind(SKILL_KIND_PASSIVE);
+  money.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  money.set_max_level(20);
+  money.set_boosts_skill_name("Meso Explosion");
+  money.mutable_base()->set_boosted_boss_pct(0.50);
+
+  Mob snail = MakeMob("Snail", 15);
+  snail.set_boss(true);
+  std::map<std::string, Skill> book = {{"pick_pocket", pocket},
+                                       {"meso_explosion", explosion}};
+  GameState bare({}, {}, {}, {{"snail", snail}}, {{"field", TwoSnailMap()}},
+                 book);
+  bare.current_map = "field";
+  EquipSword(bare);
+  GrantFirstJobSp(bare, 4);
+  ASSERT_TRUE(bare.character.LearnSkill(pocket, 1));
+  ASSERT_TRUE(bare.character.LearnSkill(explosion, 1));
+
+  book["blood_money"] = money;
+  GameState branded({}, {}, {}, {{"snail", snail}}, {{"field", TwoSnailMap()}},
+                    book);
+  branded.current_map = "field";
+  EquipSword(branded);
+  GrantFirstJobSp(branded, 5);
+  ASSERT_TRUE(branded.character.LearnSkill(pocket, 1));
+  ASSERT_TRUE(branded.character.LearnSkill(explosion, 1));
+  ASSERT_TRUE(branded.character.LearnSkill(money, 1));
+
+  CombatParams bare_params = ComputeCombatParams(bare);
+  CombatParams paid_params = ComputeCombatParams(branded);
+  ASSERT_EQ(bare_params.attacks.size(), 1u);
+  const AttackOption& plain = bare_params.attacks[0];
+  const AttackOption& paid = paid_params.attacks[0];
+  ASSERT_FALSE(plain.final_attack_damage.empty());
+  ASSERT_FALSE(paid.final_attack_damage.empty());
+  EXPECT_NEAR(paid.final_attack_damage[0] / plain.final_attack_damage[0], 1.50,
+              1e-9);
+  // The swing itself is untouched.
+  EXPECT_NEAR(paid.damage_per_hit[0], plain.damage_per_hit[0], 1e-9);
+}
+
 // Nothing but a skill saying so gives a swing an opening hit.
 TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
   Skill slash;
