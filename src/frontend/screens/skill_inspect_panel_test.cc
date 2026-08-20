@@ -802,6 +802,16 @@ TEST_F(SkillInspectPanelTest, TheHealingRowsNameWhatTheyAreAShareOf) {
   EXPECT_NE(rendered.find("Heal              +23% HP"), std::string::npos);
 }
 
+// A skill that states the whole of an earlier one says which, or the two read
+// as though they stack.
+TEST_F(SkillInspectPanelTest, ASupersedingSkillNamesWhatItReplaces) {
+  Skill skill = MakeIronBody();
+  EXPECT_EQ(RenderAt(skill, 1).find("Replaces"), std::string::npos);
+  skill.set_supersedes_skill_name("Vessel of Light");
+  EXPECT_NE(RenderAt(skill, 1).find("Replaces          Vessel of Light"),
+            std::string::npos);
+}
+
 // A lever below a tenth of a percent gets a second decimal rather than a row
 // reading "0%": Mortal Blow puts back a hundredth of a percent a swing at its
 // first level, and the point still bought something.

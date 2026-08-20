@@ -277,6 +277,16 @@ std::vector<ftxui::Element> RequirementRows(const Skill& skill) {
   return rows;
 }
 
+// What this skill takes over from, for the handful that state the whole of an
+// earlier skill rather than a delta over it. Without the row the two read as
+// though they stack, and a player would count the older one twice.
+std::vector<ftxui::Element> ReplacesRows(const Skill& skill) {
+  if (skill.supersedes_skill_name().empty()) {
+    return {};
+  }
+  return WrappedEffectRows("Replaces", skill.supersedes_skill_name());
+}
+
 // A plain number, to one decimal, with a whole number left whole. The same
 // rounding FormatPercent does and for the same reason.
 std::string FormatNumber(double value, int decimals = 1) {
@@ -416,6 +426,7 @@ std::vector<ftxui::Element> EmpoweredRows(const Skill& skill) {
 // Everything about a skill that reads the same at every level.
 std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
   std::vector<ftxui::Element> rows = RequirementRows(skill);
+  Append(ReplacesRows(skill), rows);
   Append(ReachRows(skill), rows);
   // A ring that never grows is stated once here. One that does is a thing a
   // point buys, so it reads at the level instead -- the same split the
