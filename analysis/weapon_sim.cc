@@ -3,16 +3,20 @@
  *
  * The character is grown the way a player gets there -- every AP on the primary
  * stat, every SP on whatever it will buy -- so what is compared is a finished
- * build rather than a stat line typed in by hand. DPS is measured against a
- * lone mob of the character's own level on an otherwise empty map, so it is the
- * character and the weapon being compared and nothing else: no crowd for a wide
- * skill to take advantage of, no spawn cap to hide a difference behind.
+ * build rather than a stat line typed in by hand. By default DPS is measured
+ * against a lone mob of the character's own level on an otherwise empty map, so
+ * it is the character and the weapon being compared and nothing else: no crowd
+ * for a wide skill to take advantage of, no spawn cap to hide a difference
+ * behind. --enemies and --boss ask the other two questions, and the header
+ * says which of the three was asked.
  *
  * Not a test. Tests pin behaviour that must not change; this prints numbers to
  * look at while deciding what the behaviour should be.
  *
  *   bazelisk run //analysis:weapon_sim
  *   bazelisk run //analysis:weapon_sim -- --level=40
+ *   bazelisk run //analysis:weapon_sim -- --level=140 --enemies=8
+ *   bazelisk run //analysis:weapon_sim -- --level=140 --boss --boss_pdr=40
  */
 #include <algorithm>
 #include <cstdint>
@@ -613,13 +617,24 @@ void Run(int level) {
       {JOB_SHADOWER, EQUIP_TYPE_DAGGER},
   };
 
+  // The header names the fight the flags asked for. A table read a week later
+  // is worth nothing if it does not say what was being hit.
+  char crowd[64];
+  if (absl::GetFlag(FLAGS_boss)) {
+    std::snprintf(crowd, sizeof(crowd), "a boss holding %d%% PDR",
+                  absl::GetFlag(FLAGS_boss_pdr));
+  } else {
+    int enemies = absl::GetFlag(FLAGS_enemies);
+    std::snprintf(crowd, sizeof(crowd), "%d mob%s of the same level", enemies,
+                  enemies == 1 ? "" : "s");
+  }
   std::printf(
       "Level %d, all AP in the job's primary stat, every skill maxed. DPS is "
-      "one mob of the same level, at 1x speed.\n\n",
-      level);
-  std::printf("%-12s  %-18s  %6s  %8s  %-16s  %5s\n", "job", "weapon", "CP",
+      "against %s, at 1x speed.\n\n",
+      level, crowd);
+  std::printf("%-13s  %-22s  %7s  %12s  %-18s  %5s\n", "job", "weapon", "CP",
               "DPS", "swing", "sec");
-  std::printf("%s\n", std::string(72, '-').c_str());
+  std::printf("%s\n", std::string(85, '-').c_str());
   for (const Build& build : kBuilds) {
     Result result = Measure(catalogs, level, build);
     std::string key = BestOfType(catalogs, build.weapon, level);
@@ -631,7 +646,7 @@ void Run(int level) {
     // here rather than widened there.
     std::string power =
         result.combat_power > 0 ? std::to_string(result.combat_power) : "-";
-    std::printf("%-12s  %-18s  %6s  %8.1f  %-16s  %5.2f\n",
+    std::printf("%-13s  %-22s  %7s  %12.1f  %-18s  %5.2f\n",
                 BranchName(build.job).c_str(), weapon.c_str(), power.c_str(),
                 result.dps, result.swing.c_str(), result.swing_seconds);
     if (absl::GetFlag(FLAGS_detail)) {
