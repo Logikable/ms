@@ -1,10 +1,9 @@
-#include "src/embedded_data.h"
-
 #include <gtest/gtest.h>
 
 #include <map>
 #include <string>
 
+#include "src/embedded_data.h"
 #include "src/item/item.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"

@@ -569,8 +569,7 @@ TEST_F(TuiControllerTest, EscapeLeavesTheSkillInspectScreen) {
 
 // The arrows scroll the card rather than leaving the screen, and every card
 // opens at its head however far down the last one was read.
-TEST_F(TuiControllerTest,
-       AFreshSkillCardStartsAtTheTop) {
+TEST_F(TuiControllerTest, AFreshSkillCardStartsAtTheTop) {
   Skill skill = SlashBlast();
   ASSERT_TRUE(state_->character.LearnSkill(skill, 3));
   controller_->OpenSkillInspect(skill);
@@ -836,8 +835,7 @@ TEST_F(TuiControllerTest, EscapeInScrollSelectGoesToItemMenu) {
   EXPECT_EQ(controller_->screen(), kItemMenu);
 }
 
-TEST_F(TuiControllerTest,
-       ScrollSelectAppliesAndShowsTheResult) {
+TEST_F(TuiControllerTest, ScrollSelectAppliesAndShowsTheResult) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -879,8 +877,7 @@ TEST_F(TuiControllerTest, ScrollResultStoresOutcome) {
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
 }
 
-TEST_F(TuiControllerTest,
-       NoSlotsShowsTheNoSlotsOutcome) {
+TEST_F(TuiControllerTest, NoSlotsShowsTheNoSlotsOutcome) {
   sword_.set_upgrade_slots(0);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
@@ -898,8 +895,7 @@ TEST_F(TuiControllerTest,
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
 }
 
-TEST_F(TuiControllerTest,
-       StarForceOpensOnceTheSlotsAreSpent) {
+TEST_F(TuiControllerTest, StarForceOpensOnceTheSlotsAreSpent) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   sword_.set_upgrade_slots(1);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1212,8 +1208,7 @@ TEST_F(TuiControllerTest, BagScrollResultStoresOutcome) {
   EXPECT_EQ(controller_->scroll_result().scroll_name, "Test Scroll");
 }
 
-TEST_F(TuiControllerTest,
-       BagScrollWithNoSlotsShowsThatOutcome) {
+TEST_F(TuiControllerTest, BagScrollWithNoSlotsShowsThatOutcome) {
   sword_.set_upgrade_slots(0);
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
