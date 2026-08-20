@@ -480,8 +480,11 @@ message Dot {
   // Seconds between ticks. Never scaled by attack speed -- nothing on its own
   // clock is.
   double interval_seconds = 4;
-  // Seconds it burns for, from the swing that lit it.
+  // Seconds it burns for, from the swing that lit it, on the same
+  // base + per_level * (L - 1) ladder every other number here climbs. GMS
+  // lengthens several of its poisons as they are levelled.
   double duration_seconds = 5;
+  double duration_seconds_per_level = 11;
   int32 lines = 6;
   // Chance it takes hold on each enemy the swing reached (0.30 == 30%). 0 is
   // certainty, which is what a burn a swing simply leaves wants -- only the

@@ -691,9 +691,11 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
 std::string DotText(const Dot& dot, int level) {
   double per_tick =
       dot.base().skill_pct() + dot.per_level().skill_pct() * (level - 1);
+  double burns_for =
+      dot.duration_seconds() + dot.duration_seconds_per_level() * (level - 1);
   std::string text = SwingText(per_tick, dot.lines()) + " every " +
                      FormatNumber(dot.interval_seconds(), 2) + "s for " +
-                     FormatNumber(dot.duration_seconds()) + "s";
+                     FormatNumber(burns_for) + "s";
   // What a poison the character carries has and a burn a swing leaves does
   // not: it is rolled for, and it piles up. Both are silent on the burns that
   // simply take hold once.

@@ -105,7 +105,10 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
   }
   application.rolls = RollsFor(burn);
   application.interval_seconds = dot.interval_seconds() * speed_factor;
-  application.duration_seconds = dot.duration_seconds() * speed_factor;
+  application.duration_seconds =
+      (dot.duration_seconds() +
+       dot.duration_seconds_per_level() * (level - 1)) *
+      speed_factor;
   double chance = dot.chance() + dot.chance_per_level() * (level - 1);
   // Nothing said is certainty, which is what a burn a swing simply leaves
   // wants. Only a poison the character carries is rolled for.

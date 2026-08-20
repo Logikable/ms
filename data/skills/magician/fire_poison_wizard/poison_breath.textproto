@@ -1,7 +1,5 @@
-# GMS deals 130+5x% six times and then poisons for a while on top. The poison
-# goes, as every effect over time here does. The hit is cut with it, from
-# GMS's 180% at its top level to 105%: six lines of GMS's own figure would be
-# 1080% a swing against Flame Orb's 602%, and the pair has to trade evenly.
+# GMS's own skill, poison and all: 130+5x% six times, and the cloud keeps
+# eating at whatever it touched for the rest of its life.
 #
 # Same cooldown as Flame Orb, so the two trade the swing evenly. Its animation
 # is the longer of the pair, which is what keeps it from simply winning.
@@ -17,5 +15,12 @@ base_delay_ms: 780
 max_enemies: 6
 lines: 6
 cooldown_seconds: 0.5
-base { skill_pct: 0.69 }
-per_level { skill_pct: 0.04 }
+base { skill_pct: 1.35 }
+per_level { skill_pct: 0.05 }
+dot {
+  base { skill_pct: 0.33 }
+  per_level { skill_pct: 0.03 }
+  interval_seconds: 1.0
+  duration_seconds: 5.5
+  duration_seconds_per_level: 0.5
+}
