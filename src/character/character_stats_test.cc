@@ -1469,6 +1469,24 @@ TEST_F(DerivedStatsTest, AnAttacksOwnSwingLeversStayOffTheStatLine) {
   EXPECT_NEAR(folded.final_dmg_pct, 0.20, 1e-9);
 }
 
+// The half an attack states apart is the half it keeps, whatever the lever:
+// Cruel Stab's final damage follows the Shadower onto Assassinate, where the
+// 50% Assassinate states for itself does not follow them back.
+TEST_F(DerivedStatsTest, AnAttacksKeptHalfReachesTheStatLine) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill stab = Marksmanship();
+  stab.set_name("Cruel Stab");
+  stab.set_kind(SKILL_KIND_ATTACK);
+  stab.mutable_base()->set_final_dmg_pct(0.50);
+  stab.mutable_passive()->set_final_dmg_pct(0.05);
+  stab.mutable_passive_per_level()->set_final_dmg_pct(0.01);
+  std::map<std::string, Skill> skills = {{"cruel_stab", stab}};
+  ASSERT_TRUE(c.LearnSkill(stab, 20));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.final_dmg_pct, 0.24, 1e-9);
+}
+
 // The two halves together are the whole effect: what one takes the other
 // leaves, and neither invents a lever. The skill page heads them apart, so a
 // lever falling through both cracks would go unstated as well as unpaid.

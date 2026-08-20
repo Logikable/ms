@@ -691,6 +691,16 @@ message Skill {
 
   SkillEffect base = 11;
   SkillEffect per_level = 12;
+  // Levers an ATTACK keeps for good, beside the ones above that ride only the
+  // swing stating them. Cruel Stab is what it exists for: GMS writes its final
+  // damage under "[Passive Effects]", which is the character's and follows
+  // them onto every other swing, and the lever-by-lever split in
+  // WithoutSwingLevers cannot tell that from Assassinate's, which does not.
+  //
+  // Read only on an attack. Every other kind of skill keeps everything it
+  // grants already, so a second block would say nothing.
+  SkillEffect passive = 115;
+  SkillEffect passive_per_level = 116;
   // What the skill grants on top of `base` with particular weapons in hand.
   repeated WeaponBonus weapon_bonus = 13;
 

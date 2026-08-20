@@ -264,6 +264,21 @@ TEST(SkillDataTest, EveryBookIsNumberedOneThroughItsSize) {
   }
 }
 
+// Only an attack splits what it grants, so a kept half on anything else is a
+// half nobody reads -- every other kind keeps the whole of `base` already.
+TEST(SkillDataTest, OnlyAnAttackStatesAKeptHalf) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.kind() == SKILL_KIND_ATTACK) {
+      continue;
+    }
+    EXPECT_FALSE(skill.has_passive())
+        << entry.first << " states a kept half nothing will read";
+    EXPECT_FALSE(skill.has_passive_per_level())
+        << entry.first << " states a kept half nothing will read";
+  }
+}
+
 // An auto-attack naming no clock never fires, so a skill that means to be one
 // and forgets to say when is a skill that silently does nothing. There are two
 // clocks it can name -- seconds passed, or swings landed -- and it needs one.

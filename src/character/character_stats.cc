@@ -275,6 +275,9 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   if (skill.kind() == SKILL_KIND_ATTACK) {
     AddEffect(WithoutSwingLevers(skill.base()),
               WithoutSwingLevers(skill.per_level()), level, totals);
+    // The half an attack states apart because it keeps it: no lever of this
+    // one leaves with the swing. See Skill.passive.
+    AddEffect(skill.passive(), skill.passive_per_level(), level, totals);
   } else {
     AddEffect(skill.base(), skill.per_level(), level, totals);
   }

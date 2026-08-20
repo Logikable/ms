@@ -877,6 +877,12 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
                       SwingLeversOf(skill.per_level()), level, "");
     permanent = LeverRows(WithoutSwingLevers(skill.base()),
                           WithoutSwingLevers(skill.per_level()), level, "");
+    // The half the attack states apart, under the same heading: what it keeps
+    // is what it keeps, however the skill chose to write it.
+    for (ftxui::Element& row :
+         LeverRows(skill.passive(), skill.passive_per_level(), level, "")) {
+      permanent.push_back(std::move(row));
+    }
   } else {
     permanent = LeverRows(skill.base(), skill.per_level(), level, "");
   }
