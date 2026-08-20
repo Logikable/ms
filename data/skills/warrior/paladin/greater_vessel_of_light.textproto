@@ -1,18 +1,15 @@
-# GMS says this OVERRIDES Vessel of Light rather than stacking with it, which
-# nothing here can express: every source of damage sums. So what it grants is
-# the DIFFERENCE -- Vessel of Light maxed is 10% damage and 40 attack, and the
-# two together come to the 25% and 60 GMS's override reaches. A Paladin who
-# never finished the 2nd job skill gets less than GMS would give them, which is
-# the price of the reading and is small.
+# GMS says this OVERRIDES Vessel of Light, and now something can say so: it
+# supersedes it and states the whole of what a Paladin holds rather than the
+# difference. Its first level already clears the 2nd job skill's last, so the
+# point that buys it is never a point spent going backwards.
 #
-# Its HP recovery is dropped, as the user asked; the status resistance and the
-# damage taken are already the whole of what Vessel of Light grants, so this
-# adds nothing to either. Both figures below are per Light Charge times the
-# five charges a Paladin holds, exactly as Vessel of Light folds them.
+# Its HP recovery is dropped, as the user asked. GMS holds the damage at 25%
+# and the attack at 60 past level 10; the ladder here walks a little past both
+# under Combat Orders, which is the price of climbing them at all.
 #
 # The strikes and the reach are the rest of the skill and the reason SkillBoost
 # exists: a strike each to Divine Charge and Blast, and two more enemies for
-# Divine Charge by the sixth level -- GMS's ceil(L/5).
+# Divine Charge by the tenth level -- GMS's ceil(L/5).
 name: "Greater Vessel of Light"
 skill_order: 8
 description:
@@ -22,9 +19,12 @@ kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 10
 exceeds_master_level: true
+supersedes_skill_name: "Vessel of Light"
 base {
-  damage_pct: 0.105
-  attack: 11
+  damage_pct: 0.205
+  attack: 51
+  damage_taken_pct: 0.10
+  status_resistance: 10.0
 }
 per_level {
   damage_pct: 0.005
