@@ -26,7 +26,13 @@ namespace ms {
 // Which riders count per enemy and which count once is the whole of what an
 // enemy count changes: a Final Attack that falls on one enemy is worth the
 // same against twelve, and a burn is worth twelve times as much.
-double CrowdDamage(const AttackOption& attack, int enemies);
+//
+// `charge_burns` false leaves the burns out entirely, for a caller keeping its
+// own burn clocks and landing their ticks as they fall due -- see PlaySwings.
+// True charges them at the rate the swing can sustain, which is right for
+// anything relit on a clock of its own and for measuring a swing on its own.
+double CrowdDamage(const AttackOption& attack, int enemies,
+                   bool charge_burns = true);
 
 // The same against a lone mob, which is what a weapon comparison wants.
 double SoloDamage(const AttackOption& attack);

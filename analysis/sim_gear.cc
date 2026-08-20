@@ -191,7 +191,7 @@ double MeasureRate(GameState& state) {
 
 }  // namespace
 
-double CrowdDamage(const AttackOption& attack, int enemies) {
+double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
   if (attack.damage_per_hit.empty()) {
     return 0.0;
   }
@@ -228,7 +228,7 @@ double CrowdDamage(const AttackOption& attack, int enemies) {
   // as it lands; one on a long wait keeps burning through it. One helping
   // apiece, for the reason CombatSim::SwingDamage charges one.
   for (const DotApplication& burn : attack.dots) {
-    if (burn.interval_seconds <= 0.0 || burn.damage.empty()) {
+    if (!charge_burns || burn.interval_seconds <= 0.0 || burn.damage.empty()) {
       continue;
     }
     // An attack on its own clock is paced by that clock and by nothing else:
@@ -246,8 +246,9 @@ double CrowdDamage(const AttackOption& attack, int enemies) {
     // readings CombatSim::SwingDamage takes.
     damage +=
         attack.brands_enemies
-            ? CrowdDamage(*attack.empowered, enemies) / attack.empowered_every
-            : (CrowdDamage(*attack.empowered, enemies) - damage) /
+            ? CrowdDamage(*attack.empowered, enemies, charge_burns) /
+                  attack.empowered_every
+            : (CrowdDamage(*attack.empowered, enemies, charge_burns) - damage) /
                   attack.empowered_every;
   }
   // The strike the swing sets off, spread over the swings that go out while it
@@ -257,8 +258,8 @@ double CrowdDamage(const AttackOption& attack, int enemies) {
     double every =
         std::max(attack.side->cooldown_seconds, attack.swing_seconds);
     if (every > 0.0) {
-      damage +=
-          CrowdDamage(*attack.side, enemies) * attack.swing_seconds / every;
+      damage += CrowdDamage(*attack.side, enemies, charge_burns) *
+                attack.swing_seconds / every;
     }
   }
   return damage;
@@ -394,11 +395,104 @@ int CreditFreeze(const AttackOption& attack, int stacks, int cap) {
   return stacks;
 }
 
+// One burn the run is keeping on the enemies in front of it. sim_gear has no
+// queue, so a single clock stands for the whole group a swing reaches -- the
+// reading it already takes of everything else a swing lands.
+struct Burn {
+  double left = 0.0;
+  // Helpings on them. Fractional, because a burn that takes hold half the time
+  // is modelled by half a helping rather than by rolling for it.
+  double stacks = 0.0;
+  double damage = 0.0;  // one helping, one tick, over every enemy reached
+  double interval = 0.0;
+  int lit_by = -1;  // swing that last relit it, so its ticks are credited home
+};
+
+// A clock per burn slot the character can leave, whichever swing leaves it.
+std::vector<Burn> BurnSlots(const CombatParams& params) {
+  int slots = params.dot_count;
+  for (const AttackOption& attack : params.attacks) {
+    for (const DotApplication& burn : attack.dots) {
+      slots = std::max(slots, burn.slot + 1);
+    }
+  }
+  return std::vector<Burn>(std::max(0, slots));
+}
+
+// What relighting the burns `attack` carries is worth over the seconds before
+// it could come round again -- the mirror of CombatSim::BurnCredit, and needed
+// for the same reason: burning that was coming anyway is not this swing's to
+// claim, and a chooser told otherwise never swings anything else.
+double BurnCredit(const AttackOption& attack, int enemies,
+                  const std::vector<Burn>& held) {
+  int hit = std::min(std::max(1, attack.max_enemies), std::max(1, enemies));
+  double cadence = std::max(
+      {attack.swing_seconds, attack.cooldown_seconds, attack.interval_seconds});
+  double total = 0.0;
+  for (const DotApplication& burn : attack.dots) {
+    if (burn.slot < 0 || burn.slot >= static_cast<int>(held.size()) ||
+        burn.interval_seconds <= 0.0 || burn.damage.empty()) {
+      continue;
+    }
+    const Burn& on = held[burn.slot];
+    double lit = std::min(burn.duration_seconds, cadence);
+    double gained = on.stacks * (lit - std::min(on.left, cadence));
+    gained += std::min(1.0, burn.max_stacks - on.stacks) * lit;
+    total +=
+        burn.damage[0] * hit * burn.chance * gained / burn.interval_seconds;
+  }
+  return total;
+}
+
+// Puts every burn the landed swing carries on the group, in expectation: one
+// that takes hold half the time adds half a helping and carries the clock half
+// the way to a full duration.
+void LightBurns(const AttackOption& attack, int enemies, int swung,
+                std::vector<Burn>& held) {
+  int hit = std::min(std::max(1, attack.max_enemies), std::max(1, enemies));
+  for (const DotApplication& burn : attack.dots) {
+    if (burn.slot < 0 || burn.slot >= static_cast<int>(held.size()) ||
+        burn.interval_seconds <= 0.0 || burn.damage.empty()) {
+      continue;
+    }
+    Burn& on = held[burn.slot];
+    on.stacks = std::min<double>(burn.max_stacks, on.stacks + burn.chance);
+    on.left =
+        burn.chance * burn.duration_seconds + (1.0 - burn.chance) * on.left;
+    on.damage = burn.damage[0] * hit;
+    on.interval = burn.interval_seconds;
+    on.lit_by = swung;
+  }
+}
+
+// Lands the ticks the step is owed and drops a pile whose seconds ran out. The
+// ticks are spread over the step rather than landed whole: at a hundredth of a
+// second against an interval of one the difference is arithmetic, and the run
+// is long.
+void RunBurns(double step, std::vector<Burn>& held, Sequence& played) {
+  for (Burn& on : held) {
+    if (on.left <= 0.0 || on.interval <= 0.0) {
+      continue;
+    }
+    double spent = std::min(step, on.left);
+    on.left -= spent;
+    double dealt = on.damage * on.stacks * spent / on.interval;
+    played.damage += dealt;
+    if (on.lit_by >= 0 &&
+        on.lit_by < static_cast<int>(played.damage_by_attack.size())) {
+      played.damage_by_attack[on.lit_by] += dealt;
+    }
+    if (on.left <= 0.0) {
+      on.stacks = 0.0;
+    }
+  }
+}
+
 // The swing landing the most per second of the ones off cooldown, or -1 when
 // none is. A cast is not among them: it deals no damage.
 int BestSwing(const std::vector<AttackOption>& attacks,
               const std::vector<double>& cooldown, int enemies, int stacks,
-              int cap) {
+              int cap, const std::vector<Burn>& held) {
   int pick = -1;
   double best_rate = -1.0;
   for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
@@ -407,9 +501,11 @@ int BestSwing(const std::vector<AttackOption>& attacks,
         attack.heal_fraction > 0.0) {
       continue;
     }
-    double rate = (CrowdDamage(attack, enemies) * FreezeBoost(attack, stacks) +
-                   FreezeCredit(attacks, attack, stacks, cap, enemies)) /
-                  attack.swing_seconds;
+    double rate =
+        (CrowdDamage(attack, enemies, false) * FreezeBoost(attack, stacks) +
+         BurnCredit(attack, enemies, held) +
+         FreezeCredit(attacks, attack, stacks, cap, enemies)) /
+        attack.swing_seconds;
     if (rate > best_rate) {
       best_rate = rate;
       pick = i;
@@ -425,6 +521,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
   std::vector<double> cooldown(params.attacks.size(), 0.0);
   std::vector<int> swings(params.attacks.size(), 0);
   BuffClocks clocks;
+  std::vector<Burn> burning = BurnSlots(params);
   Sequence played;
   played.damage_by_attack.assign(params.attacks.size(), 0.0);
   int freeze = 0;
@@ -432,6 +529,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
   int pick = -1;  // the swing being wound up, held until it lands
   for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
     RunBuffClocks(params, kStep, clocks);
+    RunBurns(kStep, burning, played);
     for (double& left : cooldown) {
       left = std::max(0.0, left - kStep);
     }
@@ -440,7 +538,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
       pick = SwingToLay(params, clocks, cooldown);
       if (pick < 0) {
         pick = BestSwing(params.Attacks(clocks.mask), cooldown, enemies, freeze,
-                         params.freeze_cap);
+                         params.freeze_cap, burning);
       }
     }
     if (pick < 0) {
@@ -456,7 +554,11 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     phase -= swung.swing_seconds;
     // Read before the pile moves, so the swing is paid for the stacks it went
     // in holding.
-    double landed = CrowdDamage(swung, enemies) * FreezeBoost(swung, freeze);
+    // Burn out: the clocks land its ticks as they fall due, which is the whole
+    // point of keeping them.
+    double landed =
+        CrowdDamage(swung, enemies, false) * FreezeBoost(swung, freeze);
+    LightBurns(swung, enemies, pick, burning);
     freeze = CreditFreeze(swung, freeze, params.freeze_cap);
     played.damage += landed;
     played.damage_by_attack[pick] += landed;
