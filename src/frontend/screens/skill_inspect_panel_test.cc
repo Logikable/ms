@@ -802,6 +802,16 @@ TEST_F(SkillInspectPanelTest, TheHealingRowsNameWhatTheyAreAShareOf) {
   EXPECT_NE(rendered.find("Heal              +23% HP"), std::string::npos);
 }
 
+// A lever below a tenth of a percent gets a second decimal rather than a row
+// reading "0%": Mortal Blow puts back a hundredth of a percent a swing at its
+// first level, and the point still bought something.
+TEST_F(SkillInspectPanelTest, ATinyLeverKeepsASecondDecimal) {
+  Skill skill = MakeIronBody();
+  skill.mutable_base()->set_hp_recover_pct(0.0001);
+  EXPECT_NE(RenderAt(skill, 1).find("Heal per Attack   +0.01% HP"),
+            std::string::npos);
+}
+
 // Every other skill in the game has none, so the row must not appear at all.
 TEST_F(SkillInspectPanelTest, NoOpeningHitRowWithoutOne) {
   Skill skill = MakeLuckySeven();

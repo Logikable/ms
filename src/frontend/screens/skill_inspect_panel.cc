@@ -149,9 +149,16 @@ double PercentAt(const Skill& skill, double (SkillEffect::*fn)() const,
 // Rounds rather than truncates: summing a lever's per-level steps lands a hair
 // under the round figure (16 levels of +1% is 0.15999...), and a skill that
 // reads "15.9%" at the level its data says 16% is simply wrong.
+//
+// A lever too small for that decimal gets a second one. Mortal Blow puts back
+// a hundredth of a percent a swing at its first level, and "0%" would be a
+// page saying the point bought nothing.
 std::string FormatPercent(double frac) {
+  int places = frac != 0.0 && std::fabs(frac) < 0.0005 ? 2 : 1;
+  double scale = places == 2 ? 10000.0 : 1000.0;
   char buf[32];
-  snprintf(buf, sizeof(buf), "%.1f", std::round(frac * 1000.0) / 10.0);
+  snprintf(buf, sizeof(buf), "%.*f", places,
+           std::round(frac * scale) / (scale / 100.0));
   std::string s = buf;
   if (s.size() > 2 && s.compare(s.size() - 2, 2, ".0") == 0) {
     s.resize(s.size() - 2);

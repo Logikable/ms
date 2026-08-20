@@ -1,14 +1,22 @@
-# GMS rolls an L% chance of L*2% more damage, which comes to 2% at its master
-# level -- so 2% is what the flat lever reaches.
+# GMS rolls an L% chance of L*2% more damage and 1% of the pool back. Both are
+# stated here as what one swing is worth, the way every chance in this game is:
+# 2% of damage and a hundredth of a percent of HP a level.
 #
-# Both halves of the recovery are dropped. There is no MP pool to fill, and the
-# HP is 1% on a trigger that fires a tenth of the time -- a tenth of a percent
-# of the pool a swing, which every level below the last would print as "0%".
+# The damage is plain %Damage rather than final damage -- GMS files it beside
+# Marksmanship, which sums with it.
+#
+# The MP half of the recovery is dropped: there is no MP pool to fill.
 name: "Mortal Blow"
 skill_order: 5
-description: "Permanently increases your Damage."
+description: "Permanently increases your Damage, and puts HP back as you hit."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 10
-base { damage_pct: 0.002 }
-per_level { damage_pct: 0.002 }
+base {
+  damage_pct: 0.002
+  hp_recover_pct: 0.0001
+}
+per_level {
+  damage_pct: 0.002
+  hp_recover_pct: 0.0001
+}
