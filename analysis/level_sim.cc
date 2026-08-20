@@ -41,6 +41,7 @@
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
 #include "analysis/parallel.h"
+#include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
@@ -210,6 +211,22 @@ void LearnEverything(GameState& state) {
   }
 }
 
+// Follows the purse and adds up only what goes into it. The balance is no
+// answer on its own -- a climb that has just bought a weapon looks poor -- so
+// what the table reports is everything the character was ever paid.
+struct Purse {
+  int64_t earned = 0;
+  int64_t held = 0;
+
+  void Note(const CharacterInstance& character) {
+    int64_t now = character.meso();
+    if (now > held) {
+      earned += now - held;
+    }
+    held = now;
+  }
+};
+
 // Sells the Etc tab, skipping what will not sell. A token is the one Etc item
 // worth keeping: it sells for nothing and buys the Frozen tier.
 void SellDrops(CharacterInstance& character) {
@@ -287,7 +304,8 @@ void PickMap(GameState& state, const std::vector<std::string>& candidates,
 // then the drops turned into meso, then the weapon that meso buys, and only
 // then the choice of where to take it.
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
-            const std::vector<std::string>& maps, int beats, double step) {
+            const std::vector<std::string>& maps, int beats, double step,
+            Purse& purse) {
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
@@ -303,6 +321,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   SpendPoints(state.character);
   LearnEverything(state);
   SellDrops(state.character);
+  purse.Note(state.character);
   Outfit(state, /*budget=*/true);
   PickMap(state, maps, beats, step);
 }
@@ -332,6 +351,8 @@ constexpr int kNumFrozenTokens = 2;
 struct Climb {
   // Playtime in seconds at each milestone, or -1 for one never reached.
   double milestone_seconds[kNumMilestones];
+  // Meso the character had been paid, all told, by each milestone.
+  int64_t milestone_meso[kNumMilestones] = {0};
   // The level each Frozen piece first dropped at, or 0 for one that never
   // did. The rates are set so that all four arrive before the level cap --
   // this is the check on that, farmed rather than argued.
@@ -409,7 +430,8 @@ Climb Play(const Catalogs& catalogs, Job branch,
   for (int i = 0; i < kNumMilestones; ++i) {
     climb.milestone_seconds[i] = -1.0;
   }
-  Retool(state, path, &taken, maps, beats, step);
+  Purse purse;
+  Retool(state, path, &taken, maps, beats, step, purse);
 
   int level = state.character.proto().level();
   double seconds = 0.0;
@@ -424,6 +446,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
   while (level < kTrialLevelCap && seconds < give_up) {
     AdvanceCombat(state, sim, params, step);
     NoteTokenChances(params, sim, climb);
+    purse.Note(state.character);
     seconds += step;
     if (sim.died_this_step()) {
       // Dying sends them home, where there is nothing to fight.
@@ -441,9 +464,10 @@ Climb Play(const Catalogs& catalogs, Job branch,
     for (int i = 0; i < kNumMilestones; ++i) {
       if (level >= kMilestones[i] && climb.milestone_seconds[i] < 0.0) {
         climb.milestone_seconds[i] = seconds;
+        climb.milestone_meso[i] = purse.earned;
       }
     }
-    Retool(state, path, &taken, maps, beats, step);
+    Retool(state, path, &taken, maps, beats, step, purse);
     params = ComputeCombatParams(state);
     stint = {level, 0.0, state.current_map, HeldWeaponName(state.character)};
   }
@@ -522,6 +546,91 @@ void PrintTokenOdds(const Job* branches, const std::vector<Climb>& climbs,
   }
 }
 
+// Playtime to each milestone, one row a branch.
+void PrintPlaytime(const Catalogs& catalogs, const std::vector<Job>& branches,
+                   const std::vector<Climb>& climbs) {
+  std::printf(
+      "Playtime to each level, played at the best map the character survives "
+      "and the best weapon the shop will sell them.\n\n");
+  std::printf("%-13s", "branch");
+  for (int level : kMilestones) {
+    std::printf("  %8s", ("Lv" + std::to_string(level)).c_str());
+  }
+  std::printf("\n%s\n", std::string(13 + 10 * kNumMilestones, '-').c_str());
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    std::printf("%-13s", BranchName(branches[i]).c_str());
+    for (int m = 0; m < kNumMilestones; ++m) {
+      std::printf("  %8s", Clock(climbs[i].milestone_seconds[m]).c_str());
+    }
+    std::printf("\n");
+    if (absl::GetFlag(FLAGS_detail)) {
+      PrintDetail(catalogs, climbs[i]);
+    }
+  }
+}
+
+// Everything the climb was paid by each milestone. Income, not the balance:
+// what the shop took is spent on the weapon that made the rest of it faster.
+void PrintMeso(const std::vector<Job>& branches,
+               const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nMeso earned by each level -- kills and the Etc tab together, before "
+      "the shop takes any of it.\n\n");
+  std::printf("%-13s", "branch");
+  for (int level : kMilestones) {
+    std::printf("  %8s", ("Lv" + std::to_string(level)).c_str());
+  }
+  std::printf("\n%s\n", std::string(13 + 10 * kNumMilestones, '-').c_str());
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    std::printf("%-13s", BranchName(branches[i]).c_str());
+    for (int m = 0; m < kNumMilestones; ++m) {
+      char money[16];
+      FormatShort(static_cast<double>(climbs[i].milestone_meso[m]), money,
+                  sizeof(money));
+      std::printf("  %8s", climbs[i].milestone_seconds[m] < 0.0 ? "-" : money);
+    }
+    std::printf("\n");
+  }
+}
+
+// Where the Frozen Set came from, for the branches that climb far enough to
+// see it.
+void PrintFrozenDrops(const std::vector<Job>& branches,
+                      const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nThe level each Frozen piece first dropped at, and each token first "
+      "fell, for the branches\nthat take their 3rd advancement. A dash is a "
+      "climb that reached the cap without it.\n\n");
+  std::printf("%-13s", "branch");
+  for (const char* piece : kFrozenPieces) {
+    std::printf("  %8s", piece + std::strlen("Frozen "));
+  }
+  for (const char* token : kFrozenTokens) {
+    std::printf("  %15s", token + std::strlen("Frozen "));
+  }
+  std::printf(
+      "\n%s\n",
+      std::string(13 + 10 * kNumFrozenPieces + 17 * kNumFrozenTokens, '-')
+          .c_str());
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    if (PathTo(branches[i]).size() < 3) {
+      continue;
+    }
+    std::printf("%-13s", BranchName(branches[i]).c_str());
+    for (int piece = 0; piece < kNumFrozenPieces; ++piece) {
+      int level = climbs[i].frozen_level[piece];
+      std::printf("  %8s",
+                  level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
+    }
+    for (int token = 0; token < kNumFrozenTokens; ++token) {
+      int level = climbs[i].token_level[token];
+      std::printf("  %15s",
+                  level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
+    }
+    std::printf("\n");
+  }
+}
+
 // The branches to climb: all of them, or the one --branch names. Dies on a
 // name no branch answers to rather than printing an empty table.
 std::vector<Job> BranchesToClimb(const Job* all, int count) {
@@ -579,15 +688,6 @@ void Run() {
   std::vector<Job> branches = BranchesToClimb(
       kEveryBranch, static_cast<int>(sizeof(kEveryBranch) / sizeof(Job)));
 
-  std::printf(
-      "Playtime to each level, played at the best map the character survives "
-      "and the best weapon the shop will sell them.\n\n");
-  std::printf("%-13s", "branch");
-  for (int level : kMilestones) {
-    std::printf("  %8s", ("Lv" + std::to_string(level)).c_str());
-  }
-  std::printf("\n%s\n", std::string(13 + 10 * kNumMilestones, '-').c_str());
-
   // Every branch climbs on its own character and its own copy of the
   // catalogs, so they all run at once. The rows are printed afterwards, in the
   // table's own order rather than the order the threads happened to finish.
@@ -596,16 +696,8 @@ void Run() {
   ParallelFor(count,
               [&](int i) { climbs[i] = Play(catalogs, branches[i], maps); });
 
-  for (int i = 0; i < count; ++i) {
-    std::printf("%-13s", BranchName(branches[i]).c_str());
-    for (int m = 0; m < kNumMilestones; ++m) {
-      std::printf("  %8s", Clock(climbs[i].milestone_seconds[m]).c_str());
-    }
-    std::printf("\n");
-    if (absl::GetFlag(FLAGS_detail)) {
-      PrintDetail(catalogs, climbs[i]);
-    }
-  }
+  PrintPlaytime(catalogs, branches, climbs);
+  PrintMeso(branches, climbs);
 
   // Third jobs only. A branch that stops at its 2nd job is scaffolding for the
   // playtime table above, not a player: the advancement is there at 60 and
@@ -613,38 +705,7 @@ void Run() {
   // differently -- a 2nd job finds the top two maps a coin flip against Sand
   // Dwarf and stays put, where a 3rd job is paid a third more for moving up,
   // and the cape only falls off the mobs up there.
-  std::printf(
-      "\nThe level each Frozen piece first dropped at, and each token first "
-      "fell, for the branches\nthat take their 3rd advancement. A dash is a "
-      "climb that reached the cap without it.\n\n");
-  std::printf("%-13s", "branch");
-  for (const char* piece : kFrozenPieces) {
-    std::printf("  %8s", piece + std::strlen("Frozen "));
-  }
-  for (const char* token : kFrozenTokens) {
-    std::printf("  %15s", token + std::strlen("Frozen "));
-  }
-  std::printf(
-      "\n%s\n",
-      std::string(13 + 10 * kNumFrozenPieces + 17 * kNumFrozenTokens, '-')
-          .c_str());
-  for (int i = 0; i < count; ++i) {
-    if (PathTo(branches[i]).size() < 3) {
-      continue;
-    }
-    std::printf("%-13s", BranchName(branches[i]).c_str());
-    for (int piece = 0; piece < kNumFrozenPieces; ++piece) {
-      int level = climbs[i].frozen_level[piece];
-      std::printf("  %8s",
-                  level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
-    }
-    for (int token = 0; token < kNumFrozenTokens; ++token) {
-      int level = climbs[i].token_level[token];
-      std::printf("  %15s",
-                  level == 0 ? "-" : ("Lv" + std::to_string(level)).c_str());
-    }
-    std::printf("\n");
-  }
+  PrintFrozenDrops(branches, climbs);
   PrintTokenOdds(branches.data(), climbs, count);
 }
 

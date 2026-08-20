@@ -96,6 +96,7 @@ cc_binary(
     srcs = ["level_sim.cc"],
     deps = [
         ":parallel",
+        ":sim_format",
         ":sim_gear",
         "//src:embedded_data",
         "//src:game_state",
