@@ -21,9 +21,14 @@
  * Not a test. Tests pin behaviour that must not change; this prints numbers to
  * look at while deciding what the behaviour should be.
  *
+ * The sweep climbs the branches that take a 4th advancement. The rest stop at
+ * their 2nd or 3rd job and were never built to reach the cap; --all_branches
+ * still climbs them, and --branch takes any one of them on its own.
+ *
  *   bazelisk run //analysis:level_sim
  *   bazelisk run //analysis:level_sim -- --detail
  *   bazelisk run //analysis:level_sim -- --branch=DARK_KNIGHT
+ *   bazelisk run //analysis:level_sim -- --all_branches
  */
 #include <algorithm>
 #include <cmath>
@@ -81,6 +86,11 @@ ABSL_FLAG(bool, detail, false,
 // time and hide a real change under the noise. Move it to see how much of a
 // number is the seed and how much is the game.
 ABSL_FLAG(int, seed, 20260813, "The random stream every climb draws from.");
+ABSL_FLAG(bool, all_branches, false,
+          "Climb the branches that stop at their 2nd or 3rd job as well. They "
+          "were never meant to reach the cap -- the advancement is there at "
+          "60 and at 100 -- so what they measure past that is a build nobody "
+          "plays, and they are the slowest rows in the sweep by far.");
 ABSL_FLAG(std::string, branch, "",
           "One branch to climb, as its Job enum name without the JOB_ prefix "
           "(DARK_KNIGHT). Empty climbs them all, which waits on the slowest "
@@ -631,12 +641,19 @@ void PrintFrozenDrops(const std::vector<Job>& branches,
   }
 }
 
-// The branches to climb: all of them, or the one --branch names. Dies on a
-// name no branch answers to rather than printing an empty table.
+// The branches to climb: the ones that take a 4th advancement, all of them
+// under --all_branches, or the one --branch names. Dies on a name no branch
+// answers to rather than printing an empty table.
 std::vector<Job> BranchesToClimb(const Job* all, int count) {
   std::string name = absl::AsciiStrToUpper(absl::GetFlag(FLAGS_branch));
   if (name.empty()) {
-    return std::vector<Job>(all, all + count);
+    std::vector<Job> wanted;
+    for (int i = 0; i < count; ++i) {
+      if (absl::GetFlag(FLAGS_all_branches) || PathTo(all[i]).size() >= 4) {
+        wanted.push_back(all[i]);
+      }
+    }
+    return wanted;
   }
   Job wanted = JOB_UNSPECIFIED;
   if (Job_Parse("JOB_" + name, &wanted)) {
