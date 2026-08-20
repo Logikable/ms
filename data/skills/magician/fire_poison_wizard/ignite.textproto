@@ -1,8 +1,7 @@
 # GMS leaves a wall of fire standing for a few seconds, striking on its own
 # clock. Nothing here lives on the ground, so it is what the wall is worth:
 # a Final Attack behind the fire spell that lit it, on GMS's own figures --
-# a (10+4x)% chance of three hits of (30+x)%, folded into the one percent a
-# Final Attack is stated as.
+# a (10+4x)% chance of three hits of (30+x)%, each rolling for itself.
 #
 # follows_skill_tag is what keeps it off Poison Breath, which is the whole
 # point of the skill.
@@ -16,9 +15,10 @@ max_level: 10
 follows_skill_tag: SKILL_TAG_FIRE
 base {
   final_attack_chance: 0.14
-  final_attack_pct: 0.93
+  final_attack_pct: 0.31
+  final_attack_lines: 3
 }
 per_level {
   final_attack_chance: 0.04
-  final_attack_pct: 0.03
+  final_attack_pct: 0.01
 }

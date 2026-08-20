@@ -1,5 +1,5 @@
-# Two hits of 60+x% apiece, folded into one percentage the way every final
-# attack here is -- see SkillEffect::final_attack_pct.
+# Two hits of 60+x% apiece, told apart rather than folded: each rolls its own
+# crit and its own mastery. See SkillEffect::final_attack_lines.
 name: "Final Attack"
 skill_order: 5
 description: "Grants a chance to deliver an additional hit after an attack."
@@ -16,9 +16,10 @@ required_skill {
 }
 base {
   final_attack_chance: 0.02
-  final_attack_pct: 1.22
+  final_attack_pct: 0.61
+  final_attack_lines: 2
 }
 per_level {
   final_attack_chance: 0.02
-  final_attack_pct: 0.02
+  final_attack_pct: 0.01
 }

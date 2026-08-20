@@ -1,7 +1,7 @@
 # GMS states the whole of the Final Attack here rather than a delta over the
 # Fighter's -- 45 + ceil(L/2)% for 110 + 2L%, three times -- so this supersedes
-# it rather than stacking on it. The three activations fold into the one
-# percent a Final Attack is stated as, the way a multi-hit one always has.
+# it rather than stacking on it. The three strikes are told apart, each rolling
+# its own crit and mastery.
 #
 # The weapons it demands are the Fighter's, so the pair lapse together: a Hero
 # holding something neither will fire off keeps neither.
@@ -26,10 +26,11 @@ required_skill {
 base {
   attack: 1
   final_attack_chance: 0.455
-  final_attack_pct: 3.36
+  final_attack_pct: 1.12
+  final_attack_lines: 3
 }
 per_level {
   attack: 1
   final_attack_chance: 0.005
-  final_attack_pct: 0.06
+  final_attack_pct: 0.02
 }

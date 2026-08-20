@@ -1,5 +1,5 @@
-# Chance is 2*L%; damage is two hits of (60+L)%, which is stated here as the
-# one number the pair is worth -- see SkillEffect::final_attack_pct.
+# Chance is 2*L%; damage is two hits of (60+L)%, told apart rather than folded
+# so each rolls its own crit and mastery -- see SkillEffect::final_attack_lines.
 name: "Final Attack"
 skill_order: 7
 description: "Grants a chance to deliver an additional hit after an attack."
@@ -14,9 +14,10 @@ required_skill {
 }
 base {
   final_attack_chance: 0.02
-  final_attack_pct: 1.22
+  final_attack_pct: 0.61
+  final_attack_lines: 2
 }
 per_level {
   final_attack_chance: 0.02
-  final_attack_pct: 0.02
+  final_attack_pct: 0.01
 }

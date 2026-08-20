@@ -4,6 +4,7 @@
 // that rots the moment a skill is added.
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <map>
 #include <memory>
@@ -64,6 +65,11 @@ std::set<JobAdvancement> BooksFor(Job job) {
 // message does not carry reads 0.
 double LeverValue(const SkillEffect& effect,
                   const google::protobuf::FieldDescriptor* field) {
+  // A Final Attack's percent is per strike, so on its own it says nothing
+  // about what one is worth: three of 112% beat one of 147%.
+  if (field->name() == "final_attack_pct") {
+    return effect.final_attack_pct() * std::max(1, effect.final_attack_lines());
+  }
   const google::protobuf::Reflection* reflection = effect.GetReflection();
   switch (field->cpp_type()) {
     case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
