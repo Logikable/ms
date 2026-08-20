@@ -86,6 +86,9 @@ const PercentLever kPercentLevers[] = {
     // Pick Pocket's, rolled once per line the swing lands -- see the note on
     // the field. Bare, because it is a chance rather than a gain.
     {"Meso Drop Chance", &SkillEffect::meso_drop_chance, kBare, ""},
+    // The share of that chance this swing gives up, which is a price and reads
+    // as one.
+    {"Meso Drop Chance", &SkillEffect::meso_drop_cut, kMinus, ""},
     // Last, and the only rows here that are not about a fight -- the same
     // place they take on the stats page, for the same reason.
     {"Meso Drop Rate", &SkillEffect::meso_pct, kPlus, ""},

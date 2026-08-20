@@ -446,6 +446,57 @@ TEST(ComputeCombatParamsTest, MesosDropPerLineAndOnlyFromWhatIsSwung) {
                    swing.final_attack_rolls[0].damage[0] * 0.30 * 4);
 }
 
+// A swing can give up part of the chance it shakes coins loose with, and only
+// that swing does: the poke beside it rolls the whole of Pick Pocket. A share
+// rather than a number of points, so it is half at every level of the skill
+// granting the chance.
+TEST(ComputeCombatParamsTest, ASwingCanShakeFewerMesosLoose) {
+  Skill stab;
+  stab.set_name("Cruel Stab");
+  stab.set_kind(SKILL_KIND_ATTACK);
+  stab.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  stab.set_max_level(30);
+  stab.set_max_enemies(8);
+  stab.set_lines(6);
+  stab.mutable_base()->set_skill_pct(1.92);
+  stab.mutable_base()->set_meso_drop_cut(0.50);
+  Skill pocket;
+  pocket.set_name("Pick Pocket");
+  pocket.set_kind(SKILL_KIND_PASSIVE);
+  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  pocket.set_max_level(10);
+  pocket.mutable_base()->set_meso_drop_chance(0.12);
+  pocket.mutable_per_level()->set_meso_drop_chance(0.02);
+  Skill explosion;
+  explosion.set_name("Meso Explosion");
+  explosion.set_kind(SKILL_KIND_PASSIVE);
+  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  explosion.set_max_level(20);
+  explosion.set_lines(2);
+  explosion.mutable_base()->set_meso_hit_pct(1.00);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"cruel_stab", stab},
+                   {"pick_pocket", pocket},
+                   {"meso_explosion", explosion}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 8);
+  ASSERT_TRUE(state.character.LearnSkill(stab, 1));
+  ASSERT_TRUE(state.character.LearnSkill(pocket, 5));
+  ASSERT_TRUE(state.character.LearnSkill(explosion, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 2u);
+  const AttackOption& poke = params.attacks[0];
+  const AttackOption& swing = params.attacks[1];
+  ASSERT_EQ(poke.final_attack_rolls.size(), 1u);
+  ASSERT_EQ(swing.final_attack_rolls.size(), 1u);
+  EXPECT_NEAR(poke.final_attack_rolls[0].chance, 0.20, 1e-9);
+  EXPECT_NEAR(swing.final_attack_rolls[0].chance, 0.10, 1e-9);
+}
+
 // Nothing but a skill saying so gives a swing an opening hit.
 TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
   Skill slash;

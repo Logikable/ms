@@ -270,6 +270,18 @@ message SkillEffect {
   // swing -- not a summon's pulse, not a Final Attack, not a shadow's copy,
   // and not a skill on a clock of its own.
   double meso_drop_chance = 119;
+  // The share of that chance one SWING gives up (0.50 == it shakes coins loose
+  // half as often). GMS halves Pick Pocket for Cruel Stab, which would
+  // otherwise pay a Shadower more for mobbing than for anything else they do.
+  //
+  // A share rather than a number of points, so it is exactly half at every
+  // level of Pick Pocket rather than only at the top of it. Read off the skill
+  // being swung and nowhere else -- it never folds into the character, and a
+  // skill that is not an attack states it for nobody.
+  //
+  // Neither of its neighbours: meso_drop_chance above is what grants the
+  // chance, and meso_pct below is what a KILL pays into the purse.
+  double meso_drop_cut = 128;
   // The Chief Bandit's. Meso Explosion. What ONE LINE of a thrown meso deals
   // (1.00 == 100%); the skill's `lines` says how many a meso is worth.
   //

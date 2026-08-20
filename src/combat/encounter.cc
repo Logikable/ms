@@ -253,13 +253,23 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   }
   attack.final_attack_damage.assign(types.size(), 0.0);
   attack.single_final_attack_damage.assign(types.size(), 0.0);
+  // What this swing keeps of the character's chance to shake a coin loose.
+  // Cruel Stab alone gives any of it up -- see SkillEffect.meso_drop_cut.
+  double meso_kept = 1.0;
+  if (skill != nullptr) {
+    meso_kept -= skill->base().meso_drop_cut() +
+                 skill->per_level().meso_drop_cut() * (level - 1);
+    meso_kept = std::max(0.0, meso_kept);
+  }
   for (const FinalAttackSource& source : derived.final_attacks) {
     if (source.required_tag != SKILL_TAG_UNSPECIFIED &&
         !HasTag(skill, source.required_tag)) {
       continue;
     }
     FinalAttackRoll roll;
-    roll.chance = source.chance;
+    // A meso is the one source a swing can shake fewer of loose; nothing cuts
+    // a Final Attack, which follows the swing whatever it was.
+    roll.chance = source.per_line ? source.chance * meso_kept : source.chance;
     roll.count = source.per_line ? swing_lines : 1;
     follow.skill_pct = source.damage_pct;
     // Its own strikes, not the swing's: a Night Lord's mark throws three stars
