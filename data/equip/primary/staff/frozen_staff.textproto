@@ -12,3 +12,6 @@ equip_slot: EQUIP_SLOT_PRIMARY_WEAPON
 set_family: "Frozen Weapon"
 token_item: "frozen_weapon_token"
 token_price: 1
+# Bought with a token, never with meso, so no shop price sets this. A
+# spare sells for what a piece of Frozen armour does.
+sell_price: 250000

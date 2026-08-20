@@ -13,3 +13,6 @@ unsupported_upgrades: UPGRADE_STAR_FORCE
 set_family: "Frozen Secondary"
 token_item: "frozen_secondary_token"
 token_price: 1
+# Bought with a token, never with meso, so no shop price sets this. A
+# spare sells for what a piece of Frozen armour does.
+sell_price: 250000
