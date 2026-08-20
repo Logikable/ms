@@ -191,6 +191,59 @@ TEST(CombatSimTest, ABurnIsWeighedAtTheRateItCanBeRelit) {
   EXPECT_GT(killed, 20);
 }
 
+// Relighting a burn on something already burning buys nothing, so the fight
+// leaves it alone and swings the harder thing until the burn nears its end.
+// Priced as though every lighting were the first, the feeble swing would go
+// out every time and the harder one would never be swung at all.
+TEST(CombatSimTest, ABurnAlreadyStandingIsNotWorthRelighting) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 300.0, 1)});
+  // A swing that deals nothing itself and leaves a burn worth 400 a tick for
+  // ten seconds: worth lighting, and worth nothing at all to light again.
+  AttackOption smoulder = params.attacks[0];
+  smoulder.name = "Smoulder";
+  smoulder.damage_per_hit.assign(1, 0.0);
+  smoulder.dots.push_back(MakeBurn(400.0, 1.0, 10.0));
+  params.dot_count = 1;
+  params.attacks.push_back(std::move(smoulder));
+
+  CombatSim sim;
+  for (int step = 0; step < 60; ++step) {
+    sim.Advance(params, 0.5);
+  }
+  double taken = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  // Thirty seconds of burning is 12000 whichever swing goes out, so anything
+  // above it is the harder swing landing in between.
+  EXPECT_GT(taken, 16000.0);
+}
+
+// A pile with room for another helping is still worth topping up, so the fight
+// keeps relighting until the pile is full and only then swings elsewhere.
+TEST(CombatSimTest, APileWithRoomIsStillWorthTopping) {
+  Mob mob = MakeMob("Snail", 1000000);
+  double taken[2] = {0.0, 0.0};
+  for (int run = 0; run < 2; ++run) {
+    CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 300.0, 1)});
+    AttackOption smoulder = params.attacks[0];
+    smoulder.name = "Smoulder";
+    smoulder.damage_per_hit.assign(1, 0.0);
+    DotApplication burn = MakeBurn(400.0, 1.0, 10.0);
+    burn.max_stacks = run == 0 ? 1 : 3;
+    smoulder.dots.push_back(burn);
+    params.dot_count = 1;
+    params.attacks.push_back(std::move(smoulder));
+
+    CombatSim sim;
+    for (int step = 0; step < 60; ++step) {
+      sim.Advance(params, 0.5);
+    }
+    taken[run] = (1.0 - sim.target_hp_fraction()) * 1000000.0;
+  }
+  // Three helpings burn for three times as much as one, and the fight only
+  // gets them by spending swings the single-helping run had no reason to.
+  EXPECT_GT(taken[1], taken[0] * 1.5);
+}
+
 // A burn ticks on its own clock for as long as it was lit for, and then stops
 // -- it is not a second attack that runs forever.
 TEST(CombatSimTest, ABurnTicksForItsDurationAndNoLonger) {

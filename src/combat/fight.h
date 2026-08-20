@@ -204,8 +204,13 @@ class CombatSim {
   // lines, the gain an arrow makes as it pierces, its opening hit and both
   // Final Attack banks.
   double StrikeDamage(const AttackOption& attack, int hit) const;
-  // What the burns `attack` lights are worth, charged at the rate the swing
-  // can sustain rather than in full.
+  // What relighting `burn` on `mob` buys over the next `cadence` seconds, on
+  // top of the burning that mob had coming anyway. 0 where it is already
+  // carrying a full pile with longer left than the window.
+  double BurnCredit(const DotApplication& burn, const QueuedMob& mob,
+                    double cadence) const;
+  // What the burns `attack` lights are worth, each charged at what relighting
+  // it buys rather than in full.
   double BurnDamage(const AttackOption& attack, int hit) const;
   // What the strike `attack` sets off is worth per swing, spread over the
   // swings that go out while it waits. 0 for an attack that sets none off.

@@ -129,24 +129,43 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
   return total;
 }
 
-// A burn is charged at the rate the swing can sustain rather than in full:
-// relighting it buys no more ticks, so what the swing is worth is the seconds
-// before it comes round again, capped by the burn's own life. How long the
+// What relighting a burn on one monster buys, over the seconds before the
+// swing carrying it could come round again: the burning it gains on top of
+// what the monster had coming anyway, plus a helping where the pile has room
+// for another. Nothing at all on a monster already carrying a full, fresh
+// pile, which is what sends the chooser elsewhere until the burn nears its end.
+double CombatSim::BurnCredit(const DotApplication& burn, const QueuedMob& mob,
+                             double cadence) const {
+  if (mob.type >= static_cast<int>(burn.damage.size())) {
+    return 0.0;
+  }
+  double left = 0.0;
+  int stacks = 0;
+  if (burn.slot >= 0 && burn.slot < static_cast<int>(mob.dots.size())) {
+    left = mob.dots[burn.slot].left_seconds;
+    stacks = mob.dots[burn.slot].stacks;
+  }
+  double lit = std::min(burn.duration_seconds, cadence);
+  double gained = stacks * (lit - std::min(left, cadence));
+  if (stacks < burn.max_stacks) {
+    gained += lit;
+  }
+  return burn.damage[mob.type] * burn.chance * gained / burn.interval_seconds;
+}
+
+// A burn is charged at what relighting it actually buys rather than in full,
+// and on a monster already burning that is little or nothing. How long the
 // monster lives thins it further, and the chooser cannot know that before it
 // swings.
 double CombatSim::BurnDamage(const AttackOption& attack, int hit) const {
   double total = 0.0;
+  double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
   for (const DotApplication& burn : attack.dots) {
-    double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
-    double ticks =
-        std::min(burn.duration_seconds, cadence) / burn.interval_seconds;
-    // One helping of it, however many the monster could carry: what a swing is
-    // worth is the burn it lights, not the pile the last few swings built.
+    if (burn.interval_seconds <= 0.0) {
+      continue;
+    }
     for (int j = 0; j < hit; ++j) {
-      int type = queue_[j].type;
-      if (type < static_cast<int>(burn.damage.size())) {
-        total += burn.damage[type] * ticks * burn.chance;
-      }
+      total += BurnCredit(burn, queue_[j], cadence);
     }
   }
   return total;
