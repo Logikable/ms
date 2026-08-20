@@ -113,6 +113,7 @@ struct PassiveTotals {
   double meso_boss_pct = 0.0;
   std::string meso_skill;
   double meso_pct = 0.0;
+  double item_drop_pct = 0.0;
   double buff_duration_pct = 0.0;
   // The shortest wait between revivals any passive grants, and 0 for the
   // characters no passive revives.
@@ -209,6 +210,8 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
   totals.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
   totals.meso_pct += base.meso_pct() + per.meso_pct() * (level - 1);
+  totals.item_drop_pct +=
+      base.item_drop_pct() + per.item_drop_pct() * (level - 1);
   totals.buff_duration_pct +=
       base.buff_duration_pct() + per.buff_duration_pct() * (level - 1);
   totals.meso_drop_chance +=
@@ -690,6 +693,10 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.damage_pct = passives.damage_pct;
   stats.boss_pct = passives.boss_pct;
   stats.meso_pct = passives.meso_pct;
+  // The worn share is whole percents and the granted share a fraction. They
+  // meet by summing, the way boss damage does in OffenseStatsFor.
+  stats.item_drop_pct =
+      passives.item_drop_pct + equipped.item_drop_rate() / 100.0;
   stats.buff_duration_pct = passives.buff_duration_pct;
   stats.mirror_line_pct = passives.mirror_line_pct;
   stats.bonus_attack_lines = passives.bonus_attack_lines;

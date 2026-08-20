@@ -36,6 +36,7 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   a.set_def(8);
   a.set_boss_damage(11);
   a.set_ignore_enemy_defense(12);
+  a.set_item_drop_rate(13);
 
   EquipStats b;
   b.set_str(10);
@@ -49,6 +50,7 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   b.set_def(80);
   b.set_boss_damage(110);
   b.set_ignore_enemy_defense(120);
+  b.set_item_drop_rate(130);
 
   const EquipStats sources[] = {a, b};
   EquipStats result = SumEquipStats(sources);
@@ -63,6 +65,7 @@ TEST(SumEquipStatsTest, AllFieldsAreSummed) {
   EXPECT_EQ(result.def(), 88);
   EXPECT_EQ(result.boss_damage(), 121);
   EXPECT_EQ(result.ignore_enemy_defense(), 132);
+  EXPECT_EQ(result.item_drop_rate(), 143);
 }
 
 TEST(SumEquipStatsTest, ThreeElementsAccumulate) {

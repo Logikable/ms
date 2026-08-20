@@ -1,5 +1,6 @@
 #include "src/combat/loot.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -8,10 +9,8 @@
 namespace ms {
 namespace {
 
-// Every mob has this base chance to drop meso on death. Item drop rate raises
-// it (deferred), so for now it is the flat expected fraction of kills yielding
-// meso.
-constexpr double kMesoDropChance = 0.60;
+// Chance a mob drops meso on death before any drop rate is added.
+constexpr double kBaseMesoDropChance = 0.60;
 
 // How far either side of the mean the multiplier is drawn. Every GMS band is
 // its mean plus or minus a fifth -- 2-20 runs 1.6 to 2.4, 91+ runs 6 to 9 --
@@ -52,13 +51,20 @@ double MeanMesoMultiplier(int mob_level) {
 
 }  // namespace
 
-double ExpectedMesoPerKill(const Mob& mob) {
+double MesoDropChance(double item_drop_pct) {
+  if (!std::isfinite(item_drop_pct) || item_drop_pct <= 0.0) {
+    return kBaseMesoDropChance;
+  }
+  return std::min(1.0, kBaseMesoDropChance * (1.0 + item_drop_pct));
+}
+
+double ExpectedMesoPerKill(const Mob& mob, double item_drop_pct) {
   int mob_level = mob.level();
   // A level-1 mob drops a flat 1 meso; all higher levels scale by the band
   // mean.
   double base_amount =
       mob_level <= 1 ? 1.0 : mob_level * MeanMesoMultiplier(mob_level);
-  return kHeroicMesoMultiplier * kMesoDropChance * base_amount;
+  return kHeroicMesoMultiplier * MesoDropChance(item_drop_pct) * base_amount;
 }
 
 int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng) {
@@ -77,13 +83,15 @@ int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng) {
   return dropped;
 }
 
-int64_t RollMeso(const Mob& mob, int64_t kills, std::mt19937& rng) {
+int64_t RollMeso(const Mob& mob, int64_t kills, double item_drop_pct,
+                 std::mt19937& rng) {
   if (kills <= 0) {
     return 0;
   }
   // The drop chance is one roll over the batch: which of these kills paid at
   // all is not a question anything downstream asks.
-  std::binomial_distribution<int64_t> paying(kills, kMesoDropChance);
+  std::binomial_distribution<int64_t> paying(kills,
+                                             MesoDropChance(item_drop_pct));
   int64_t drops = paying(rng);
   int mob_level = mob.level();
   if (mob_level <= 1) {

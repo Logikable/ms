@@ -53,8 +53,8 @@ TEST(RollMesoTest, AveragesTheExpectedAmount) {
   Mob mob;
   mob.set_level(70);
   std::mt19937 rng(2024);
-  int64_t total = RollMeso(mob, 200000, rng);
-  double expected = ExpectedMesoPerKill(mob) * 200000;
+  int64_t total = RollMeso(mob, 200000, 0.0, rng);
+  double expected = ExpectedMesoPerKill(mob, 0.0) * 200000;
   EXPECT_NEAR(total / expected, 1.0, 0.01);
 }
 
@@ -66,7 +66,7 @@ TEST(RollMesoTest, OneKillPaysInsideTheBandOrNothing) {
   std::mt19937 rng(5);
   bool paid_off_the_mean = false;
   for (int trial = 0; trial < 200; ++trial) {
-    int64_t meso = RollMeso(mob, 1, rng);
+    int64_t meso = RollMeso(mob, 1, 0.0, rng);
     if (meso == 0) {
       continue;  // the 40% of kills that pay nothing
     }
@@ -88,18 +88,56 @@ TEST(RollMesoTest, PaysSixKillsInTen) {
   int paid = 0;
   const int kKills = 20000;
   for (int i = 0; i < kKills; ++i) {
-    if (RollMeso(mob, 1, rng) > 0) {
+    if (RollMeso(mob, 1, 0.0, rng) > 0) {
       ++paid;
     }
   }
   EXPECT_NEAR(static_cast<double>(paid) / kKills, 0.60, 0.02);
 }
 
+// Drop rate buys a better chance of a drop, not a bigger one, and it stops
+// buying anything once every kill already pays.
+TEST(MesoDropChanceTest, RisesWithDropRateAndCapsAtEveryKill) {
+  EXPECT_DOUBLE_EQ(MesoDropChance(0.0), 0.60);
+  EXPECT_DOUBLE_EQ(MesoDropChance(0.50), 0.90);
+  EXPECT_DOUBLE_EQ(MesoDropChance(2.0), 1.0);
+  // A rate nothing granted, and one no arithmetic should have produced.
+  EXPECT_DOUBLE_EQ(MesoDropChance(-1.0), 0.60);
+  EXPECT_DOUBLE_EQ(MesoDropChance(std::numeric_limits<double>::quiet_NaN()),
+                   0.60);
+}
+
+TEST(RollMesoTest, DropRatePaysMoreKills) {
+  Mob mob;
+  mob.set_level(70);
+  std::mt19937 rng(9);
+  int paid = 0;
+  const int kKills = 20000;
+  for (int i = 0; i < kKills; ++i) {
+    if (RollMeso(mob, 1, 0.50, rng) > 0) {
+      ++paid;
+    }
+  }
+  EXPECT_NEAR(static_cast<double>(paid) / kKills, 0.90, 0.02);
+  // Capped, so every kill pays and none of them pays twice.
+  EXPECT_GT(RollMeso(mob, 500, 2.0, rng), 500 * 6.0 * 70 * 4.8);
+}
+
+// The chance moves and the amount does not: what a paying kill is worth is the
+// band's business, and drop rate has none of it.
+TEST(ExpectedMesoPerKillTest, DropRateScalesTheChanceOnly) {
+  Mob mob;
+  mob.set_level(70);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 0.50),
+                   ExpectedMesoPerKill(mob, 0.0) * 1.5);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 2.0), 6.0 * 1.0 * 70 * 6.0);
+}
+
 TEST(RollMesoTest, ALevelOneMobPaysAFlatMeso) {
   Mob mob;
   mob.set_level(1);
   std::mt19937 rng(11);
-  int64_t total = RollMeso(mob, 10000, rng);
+  int64_t total = RollMeso(mob, 10000, 0.0, rng);
   // 60% of kills, one meso each, at the Heroic world's 6x.
   EXPECT_NEAR(total, 36000, 1000);
 }
@@ -110,15 +148,15 @@ TEST(ExpectedMesoPerKillTest, LevelOneMobDropsFlatBase) {
   Mob mob;
   mob.set_level(1);
   // 0.60 drop chance * 1 flat meso.
-  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob), 6.0 * 0.60);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 0.0), 6.0 * 0.60);
 }
 
 TEST(ExpectedMesoPerKillTest, ScalesByLevelBandMean) {
   Mob mob;
   mob.set_level(10);
-  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob), 6.0 * 0.60 * 10 * 2.0);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 0.0), 6.0 * 0.60 * 10 * 2.0);
   mob.set_level(21);  // the next band up
-  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob), 6.0 * 0.60 * 21 * 2.5);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 0.0), 6.0 * 0.60 * 21 * 2.5);
 }
 
 }  // namespace

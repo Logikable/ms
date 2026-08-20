@@ -2045,5 +2045,32 @@ TEST_F(DerivedStatsTest, OnlyALearnedBuffIsOneTheCharacterCanPutUp) {
   EXPECT_EQ(buffs[0]->name(), "Dark Resonance");
 }
 
+// Drop rate arrives in two currencies -- whole percents on an equip, a
+// fraction on a passive -- and has to come out as one number.
+TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng, 10, 0);
+  EXPECT_NEAR(DerivedStatsFor(c, {}).item_drop_pct, 0.0, 1e-9);
+
+  EquipPrototype charm;
+  charm.set_name("Lucky Charm");
+  charm.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  charm.mutable_base_stats()->set_item_drop_rate(20);
+  c.PickUp(std::make_unique<EquipInstance>(charm));
+  ASSERT_TRUE(c.Equip(c.inventory().size() - 1));
+  EXPECT_NEAR(DerivedStatsFor(c, {}).item_drop_pct, 0.20, 1e-9);
+
+  Skill greed;
+  greed.set_name("Greed");
+  greed.set_kind(SKILL_KIND_PASSIVE);
+  greed.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  greed.set_max_level(10);
+  greed.mutable_base()->set_item_drop_pct(0.01);
+  greed.mutable_per_level()->set_item_drop_pct(0.01);
+  std::map<std::string, Skill> skills = {{"greed", greed}};
+  ASSERT_TRUE(c.LearnSkill(greed, 10));
+  EXPECT_NEAR(DerivedStatsFor(c, skills).item_drop_pct, 0.30, 1e-9);
+}
+
 }  // namespace
 }  // namespace ms

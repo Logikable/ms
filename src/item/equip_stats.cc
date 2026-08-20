@@ -20,6 +20,7 @@ EquipStats SumEquipStats(absl::Span<const EquipStats> sources) {
     result.set_boss_damage(result.boss_damage() + s.boss_damage());
     result.set_ignore_enemy_defense(result.ignore_enemy_defense() +
                                     s.ignore_enemy_defense());
+    result.set_item_drop_rate(result.item_drop_rate() + s.item_drop_rate());
   }
   return result;
 }

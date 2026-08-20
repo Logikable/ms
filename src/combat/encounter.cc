@@ -968,6 +968,7 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.hp_recover_pct = derived.hp_recover_pct;
   params.exp_pct = derived.exp_pct;
   params.meso_pct = derived.meso_pct;
+  params.item_drop_pct = derived.item_drop_pct;
   // The band stretches the interval between pulses, so it thins the rate.
   params.regen_pct_per_second =
       speed_factor > 0.0 ? derived.regen_pct_per_second / speed_factor : 0.0;

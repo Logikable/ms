@@ -145,9 +145,9 @@ TEST_F(AllStatsPanelTest, ALongDefenseKeepsTheColumn) {
       << "the value the case is built on changed: " << defense;
   ASSERT_FALSE(other.empty());
 
-  // Defense sits alone at the foot, so its value ends where the FIRST column's
-  // values end. A value that broke out of its column would run past this.
-  EXPECT_EQ(defense.find_last_not_of(' '), AllStatsPanel::kColumnWidth - 2)
+  // An even list pairs Defense into the second column, so its value ends where
+  // that column's values end. A value that broke out would run past this.
+  EXPECT_EQ(defense.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
       << "[" << defense << "]";
   EXPECT_EQ(other.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
       << "[" << other << "]";

@@ -475,10 +475,10 @@ TEST(EquipDataTest, EverySetTierIsReachable) {
 // one outside this list pays the player a bonus nothing tells them about, so
 // the card and this list move together -- see InspectPanel::EffectLines.
 const char* const kShownLevers[] = {
-    "str",        "dex",          "int",        "luk",        "def",
-    "attack",     "magic_attack", "attack_pct", "max_hp_pct", "max_mp_pct",
-    "damage_pct", "boss_pct",     "ied_pct",    "crit_rate",  "crit_dmg",
-    "meso_pct",   "exp_pct",
+    "str",        "dex",          "int",           "luk",        "def",
+    "attack",     "magic_attack", "attack_pct",    "max_hp_pct", "max_mp_pct",
+    "damage_pct", "boss_pct",     "ied_pct",       "crit_rate",  "crit_dmg",
+    "meso_pct",   "exp_pct",      "item_drop_pct",
 };
 
 TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {

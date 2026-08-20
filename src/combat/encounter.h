@@ -287,6 +287,10 @@ struct CombatParams {
   // Share added to the meso every kill yields, from the character's passives.
   // 0 for everyone but a Chief Bandit.
   double meso_pct = 0.0;
+  // Share added to how often a kill drops anything, from what the character
+  // wears and what their passives grant. Read by AwardCombatRewards, like
+  // exp_pct above: it raises the chance of a drop rather than the size of one.
+  double item_drop_pct = 0.0;
   // Share of the HP pool a fountain puts back every second, already stretched
   // by the pacing band. Runs whether or not the character is swinging.
   double regen_pct_per_second = 0.0;

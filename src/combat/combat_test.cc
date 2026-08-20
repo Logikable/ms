@@ -88,9 +88,10 @@ MapData HomeMap() {
 }
 
 // Equips a one-handed sword (100 weapon and magic attack) on the character.
-void EquipSword(GameState& state) {
+void EquipSword(GameState& state, int item_drop_rate = 0) {
   EquipPrototype sword;
   sword.set_name("Sword");
+  sword.mutable_base_stats()->set_item_drop_rate(item_drop_rate);
   sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
   sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
   sword.set_attack_speed(ATTACK_SPEED_AVERAGE);
@@ -328,7 +329,7 @@ double MesoPerKillAt(int level) {
 TEST(AdvanceCombatTest, TheLevelGapDoesNotChangeWhatAMobPays) {
   Mob mob;
   mob.set_level(20);
-  double expected = ExpectedMesoPerKill(mob);
+  double expected = ExpectedMesoPerKill(mob, 0.0);
   EXPECT_NEAR(MesoPerKillAt(20) / expected, 1.0, 0.05);
   EXPECT_NEAR(MesoPerKillAt(60) / expected, 1.0, 0.05);  // 40 levels over
   EXPECT_NEAR(MesoPerKillAt(5) / expected, 1.0, 0.05);   // 15 levels under
@@ -523,6 +524,39 @@ TEST(AdvanceCombatTest, SurvivableMapsDoNotSendThePlayerHome) {
   }
   EXPECT_TRUE(took_a_hit) << "the mobs have to be hurting them at all";
   EXPECT_EQ(state.current_map, "field");
+}
+
+// Drop rate reaches both halves of what a kill pays: the items the mob lists
+// and the meso it carries. A snail always drops its shell, so a rate past one
+// is the case that proves the whole part is paid outright.
+TEST(AdvanceCombatTest, DropRatePaysMoreItemsAndMoreMeso) {
+  Mob snail = SnailMob();
+  snail.set_level(20);  // level 1 pays a flat meso; a band pays by the level
+  std::map<std::string, ItemPrototype> items = {
+      {"green_snail_shell", GreenSnailShell()}};
+  std::map<std::string, Mob> mobs = {{"snail", snail}};
+  std::map<std::string, MapData> maps = {{"field", OneSnailMap()}};
+
+  GameState plain({}, {}, items, mobs, maps, {}, GameMode::kPlay,
+                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/17);
+  plain.current_map = "field";
+  EquipSword(plain);
+  Farm(plain, 20000.0);
+
+  GameState lucky({}, {}, items, mobs, maps, {}, GameMode::kPlay,
+                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/17);
+  lucky.current_map = "field";
+  EquipSword(lucky, 50);
+  Farm(lucky, 20000.0);
+
+  int64_t kills = EtcHeld(plain);
+  ASSERT_GT(kills, 100) << "too few kills to measure a rate against";
+  // Half again as many shells for the same body count, and the same share more
+  // of the kills paying meso.
+  EXPECT_NEAR(static_cast<double>(EtcHeld(lucky)) / kills, 1.5, 0.05);
+  EXPECT_NEAR(static_cast<double>(lucky.character.meso()) /
+                  static_cast<double>(plain.character.meso()),
+              1.5, 0.05);
 }
 
 }  // namespace

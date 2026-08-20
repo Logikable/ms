@@ -124,6 +124,7 @@ const PercentLever kPercentLevers[] = {
     {"Critical Rate", &SkillEffect::crit_rate},
     {"Critical Damage", &SkillEffect::crit_dmg},
     {"Meso Drop Rate", &SkillEffect::meso_pct},
+    {"Item Drop Rate", &SkillEffect::item_drop_pct},
     {"Additional EXP", &SkillEffect::exp_pct},
 };
 

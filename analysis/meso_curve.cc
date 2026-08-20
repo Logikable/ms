@@ -15,7 +15,9 @@ KillValue KillValueAt(int level, const MesoCurveParams& params) {
   mob.set_level(level);
   KillValue value;
   value.exp = GmsMobExpPerKill(level);
-  value.meso = ExpectedMesoPerKill(mob);
+  // No gear in the curve, so no drop rate either: it measures the economy a
+  // character meets rather than one a lucky drop improved.
+  value.meso = ExpectedMesoPerKill(mob, 0.0);
   value.etc = params.etc_per_kill * params.etc_price_per_level * level;
   return value;
 }

@@ -96,6 +96,7 @@ const PercentLever kPercentLevers[] = {
     // Last, and the only rows here that are not about a fight -- the same
     // place they take on the stats page, for the same reason.
     {"Meso Drop Rate", &SkillEffect::meso_pct, kPlus, ""},
+    {"Item Drop Rate", &SkillEffect::item_drop_pct, kPlus, ""},
     {"Additional EXP", &SkillEffect::exp_pct, kPlus, ""},
 };
 

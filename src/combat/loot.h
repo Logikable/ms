@@ -23,23 +23,29 @@
 
 namespace ms {
 
-// Expected meso one kill of `mob` yields: the 60% base drop chance times the
+// Share of kills that drop meso at all, for a character carrying
+// `item_drop_pct` extra drop rate. The base is 60%, raised by the rate and
+// capped at every kill: a drop that is already certain cannot be made more so.
+double MesoDropChance(double item_drop_pct);
+
+// Expected meso one kill of `mob` yields: the drop chance above times the
 // mob's level-banded amount, at the Heroic world's 6x rate. The character's own
 // meso bonus is applied by the caller, which is where the passives are already
-// resolved; item-drop-rate is still deferred.
+// resolved.
 //
 // The world rate belongs here and not in AddMeso, which pays out sales as
 // well: GMS multiplies what a monster drops, never what an NPC pays.
 //
 // What RollMeso averages, and the number the meso curve is drawn from. A sim
 // measuring the economy wants the mean rather than one sample of it.
-double ExpectedMesoPerKill(const Mob& mob);
+double ExpectedMesoPerKill(const Mob& mob, double item_drop_pct);
 
-// Meso `kills` of `mob` actually paid. Each kill takes the 60% drop chance,
-// and each drop is worth the mob's level times a multiplier drawn uniformly
-// across the band's range -- GMS gives every band its mean plus or minus a
-// fifth. The character's own meso bonus is applied by the caller, as above.
-int64_t RollMeso(const Mob& mob, int64_t kills, std::mt19937& rng);
+// Meso `kills` of `mob` actually paid. Each kill takes the drop chance, and
+// each drop is worth the mob's level times a multiplier drawn uniformly across
+// the band's range -- GMS gives every band its mean plus or minus a fifth. The
+// character's own meso bonus is applied by the caller, as above.
+int64_t RollMeso(const Mob& mob, int64_t kills, double item_drop_pct,
+                 std::mt19937& rng);
 
 // Items `kills` of a drop at `per_kill` each yielded. A rate below one is the
 // chance each kill takes; a rate above one pays its whole part every time and

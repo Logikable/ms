@@ -133,6 +133,11 @@ message EquipStats {
   // Percentage of enemy defense ignored (e.g. 10 = 10%). Read by
   // OffenseStatsFor and applied by ExpectedAttackDamage against the mob's PDR.
   int32 ignore_enemy_defense = 11;
+  // Percentage added to how often a kill drops anything (e.g. 20 = a fifth
+  // more often), meso included. Meets what the character's passives grant by
+  // summing -- see DerivedStats::item_drop_pct. No equip in the game grants
+  // it yet, so the field is live but nothing sets it.
+  int32 item_drop_rate = 12;
 }
 
 // Static definition of an item type. Loaded from data/ textprotos at startup;

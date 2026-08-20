@@ -143,6 +143,10 @@ struct DerivedStats {
   // Share added to the meso a kill yields (0.20 == +20%). Summed across the
   // passives granting it.
   double meso_pct = 0.0;
+  // Share added to how often a kill drops anything (0.20 == a fifth more
+  // often), meso included. What the passives grant plus what is worn, and read
+  // outside a fight like exp_pct -- see AwardCombatRewards.
+  double item_drop_pct = 0.0;
   // Share added to how long every buff the character raises stays up (0.50 ==
   // half again). Summed, and read only by AddBuffs -- the wait for the next
   // cast is untouched.

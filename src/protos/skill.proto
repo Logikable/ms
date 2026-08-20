@@ -297,20 +297,29 @@ message SkillEffect {
   // sources, and the second lever in the game to pay in something other than a
   // fight -- exp_pct above is the first.
   double meso_pct = 44;
+  // Share added to how often a kill drops anything at all (0.20 == a fifth
+  // more often), covering the items a mob lists and the meso it carries alike.
+  // Sums across its sources, and the third lever to pay in something other
+  // than a fight.
+  //
+  // It moves the CHANCE, where meso_pct above moves the amount. A drop that is
+  // already certain cannot be made more certain, so the chance is capped at
+  // one -- see MesoDropChance.
+  double item_drop_pct = 45;
   // Shield Mastery's, in both books that carry one -- the Bandit's and the
   // White Knight's. Percentage added to the whole of the character's DEF, worn
   // and granted and bought with AP alike, and the last thing to land on it.
   // Ships dead by design: DEF stops paying at a share of the attacking
   // monster's own attack, and a character has passed that cap on their stats
   // alone long before a skill grants any. See DerivedStats::def.
-  double def_pct = 45;
+  double def_pct = 46;
   // Resistance to abnormal statuses, on GMS's own scale rather than as a
   // fraction, and to elemental damage as a fraction. Nothing in this game
   // inflicts a status or an element, so nothing reads either -- they are here
   // to keep the wiki's figures with the skill, and the stats page shows them so
   // the player can see what they bought.
-  double status_resistance = 46;
-  double elemental_resistance = 47;
+  double status_resistance = 47;
+  double elemental_resistance = 48;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. Attack per Combo Orb the character is carrying, for a skill
   // that surrounds them with orbs. The orbs are assumed full, so what this is
