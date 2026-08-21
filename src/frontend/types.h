@@ -38,6 +38,8 @@ enum Screen : int {
   // Enter on the menu panel's Boss entry: pick a fight, then fight it.
   kBossSelect,
   kBossConfirm,
+  // Enter on a fight whose reset has not come round: a notice, not a question.
+  kBossCleared,
   kBossFight,
   kBossAbort,
   kShop,

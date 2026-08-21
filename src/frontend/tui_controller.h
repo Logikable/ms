@@ -33,6 +33,7 @@
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/amount_selector.h"
 #include "src/frontend/widgets/confirm_prompt.h"
+#include "src/frontend/widgets/continue_prompt.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -140,6 +141,14 @@ class TuiController {
   const std::string& boss_prompt_title() const {
     return boss_prompt_title_;
   }
+  // The notice shown when the highlighted fight has already been cleared, and
+  // when it comes back: "today" or "this week".
+  const ContinuePrompt& boss_cleared_prompt() const {
+    return boss_cleared_prompt_;
+  }
+  const std::string& boss_cleared_when() const {
+    return boss_cleared_when_;
+  }
   // The fight in progress, or null when the player is not in one.
   const BossRun* boss_run() const {
     return boss_run_.get();
@@ -235,6 +244,7 @@ class TuiController {
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnBossSelectEvent(ftxui::Event event);
   bool OnBossConfirmEvent(ftxui::Event event);
+  bool OnBossClearedEvent(ftxui::Event event);
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
   bool OnShopEvent(ftxui::Event event);
@@ -300,6 +310,8 @@ class TuiController {
   // under the player.
   ConfirmPrompt boss_prompt_;
   std::string boss_prompt_title_;
+  ContinuePrompt boss_cleared_prompt_;
+  std::string boss_cleared_when_;
   ConfirmPrompt boss_abort_prompt_;
   // The fight in progress, and which catalog entry it is being fought
   // against, so the clear can be recorded under the same names the reset

@@ -297,6 +297,10 @@ ftxui::Element TabBar(const std::vector<TabSpec>& tabs, int active,
 // Every button the player can land on is drawn with this.
 ftxui::Element ActionButton(const std::string& label, bool focused);
 
+// The [Continue] button, lit because it is the only thing to press. Every
+// one-button dialog draws this rather than its own button.
+ftxui::Element ContinueButton();
+
 // A row of two buttons, the doing one and the leaving one, spaced the way the
 // game spaces them everywhere it asks a question. `go_enabled` false dims the
 // left button, for an answer that cannot be given from where the player

@@ -676,7 +676,7 @@ ftxui::Element ResultWindow(const std::string& title,
     rows.push_back(std::move(row));
   }
   rows.push_back(AccentSeparator(accent));
-  rows.push_back(CenteredRow(ActionButton("Continue", /*focused=*/true)));
+  rows.push_back(CenteredRow(ContinueButton()));
   return AccentWindow(title, ftxui::vbox(std::move(rows)), accent);
 }
 
@@ -794,6 +794,10 @@ ftxui::Element ActionButton(const std::string& label, bool focused) {
     button = button | ftxui::inverted;
   }
   return button;
+}
+
+ftxui::Element ContinueButton() {
+  return ActionButton("Continue", /*focused=*/true);
 }
 
 ftxui::Element ButtonRow(const std::string& go, const std::string& leave,

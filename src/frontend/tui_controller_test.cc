@@ -2266,14 +2266,24 @@ TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
   EXPECT_EQ(controller_->screen(), kBossSelect);
 }
 
-// A fight already cleared this reset is not offered at all: the prompt would
-// only ask a question whose answer is no.
-TEST_F(TuiControllerTest, AClearedFightDoesNotOpenThePrompt) {
+// A fight already cleared this reset says when it comes back rather than
+// asking a question whose answer is no.
+TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   state_->character.RecordBossClear("zakum", "Normal",
                                     static_cast<int64_t>(std::time(nullptr)));
   controller_->OpenMenuEntry(MenuEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossCleared);
+  EXPECT_EQ(controller_->boss_prompt_title(), "Normal Zakum");
+  EXPECT_EQ(controller_->boss_cleared_when(), "today");
+  EXPECT_TRUE(controller_->boss_cleared_prompt().open());
+
+  // The notice holds the screen until it is dismissed.
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(controller_->screen(), kBossCleared);
+  controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_FALSE(controller_->boss_cleared_prompt().open());
 }
 
 TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {

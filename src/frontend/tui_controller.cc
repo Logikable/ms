@@ -254,6 +254,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnBossSelectEvent(event);
     case kBossConfirm:
       return OnBossConfirmEvent(event);
+    case kBossCleared:
+      return OnBossClearedEvent(event);
     case kBossFight:
       return OnBossFightEvent(event);
     case kBossAbort:
@@ -655,12 +657,19 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
-    // A fight already cleared this reset is not offered: the prompt would only
-    // ask a question whose answer is no.
+    boss_prompt_title_ = boss_select_panel_.selected_title();
+    // A fight already cleared this reset is not offered a question whose
+    // answer is no -- it says when it comes back instead.
     if (boss_select_panel_.selected_available()) {
-      boss_prompt_title_ = boss_select_panel_.selected_title();
       boss_prompt_.Open();
       screen_ = kBossConfirm;
+    } else if (boss_select_panel_.selected() != nullptr) {
+      boss_cleared_when_ =
+          boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
+              ? "this week"
+              : "today";
+      boss_cleared_prompt_.Open();
+      screen_ = kBossCleared;
     }
     return true;
   }
@@ -692,6 +701,13 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
   boss_run_ = std::make_unique<BossRun>(
       boss_run_key_, it->second, boss_select_panel_.selected_difficulty());
   screen_ = kBossFight;
+  return true;
+}
+
+bool TuiController::OnBossClearedEvent(ftxui::Event event) {
+  if (boss_cleared_prompt_.OnEvent(event)) {
+    screen_ = kBossSelect;
+  }
   return true;
 }
 

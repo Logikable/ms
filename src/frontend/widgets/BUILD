@@ -106,6 +106,29 @@ cc_test(
 )
 
 cc_library(
+    name = "continue_prompt",
+    srcs = ["continue_prompt.cc"],
+    hdrs = ["continue_prompt.h"],
+    deps = [
+        ":panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "continue_prompt_test",
+    srcs = ["continue_prompt_test.cc"],
+    deps = [
+        ":continue_prompt",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "amount_selector",
     srcs = ["amount_selector.cc"],
     hdrs = ["amount_selector.h"],
