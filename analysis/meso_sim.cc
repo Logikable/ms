@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
       ms::LoadTextProtoDir<ms::Mob>(runfiles->Rlocation("ms/data/mobs")),
       ms::LoadTextProtoDir<ms::MapData>(runfiles->Rlocation("ms/data/maps")),
       ms::LoadTextProtoDir<ms::Skill>(runfiles->Rlocation("ms/data/skills")),
-      ms::GameMode::kPlay, ms::JOB_ADVANCEMENT_UNSPECIFIED, kSimSeed);
+      ms::GameMode::kPlay, ms::TestOptions{}, kSimSeed);
 
   // The weapon under test. Kill speed should not change meso per level, so
   // running this with weapons orders of magnitude apart is the check.

@@ -152,7 +152,7 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
              const std::string& map, double seconds) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, kSimSeed);
+                  GameMode::kPlay, TestOptions{}, kSimSeed);
   GrowTo(state, level, path);
   // Geared before the fight rather than during it: nothing here changes the
   // character once the run starts, so what a player would have bought by now

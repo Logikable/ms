@@ -464,7 +464,7 @@ void RecordShares(const CombatParams& params, const Sequence& played,
 Result Measure(const Catalogs& catalogs, int level, const Build& build) {
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, kSimSeed);
+                  GameMode::kPlay, TestOptions{}, kSimSeed);
   GrowTo(state, level, PathTo(build.job));
   Result result;
   if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {

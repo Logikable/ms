@@ -74,7 +74,7 @@ class WorkbenchGearTest : public ::testing::Test {
 
   GameState Workbench(JobAdvancement advancement) {
     return GameState(equips_, scrolls_, items_, mobs_, maps_, skills_,
-                     GameMode::kTest, advancement);
+                     GameMode::kTest, TestOptions{advancement});
   }
 
   // The highest required level the catalog offers on `worn`'s own ladder among

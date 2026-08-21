@@ -161,7 +161,7 @@ TEST(AdvanceCombatTest, DropsEquipmentIntoTheEquipTab) {
 
   GameState state({{"frozen_top", top}}, {}, {}, {{"snail", mob}},
                   {{"field", OneSnailMap()}}, {}, GameMode::kPlay,
-                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/5);
+                  TestOptions{}, /*seed=*/5);
   state.current_map = "field";
   EquipSword(state);
 
@@ -198,7 +198,7 @@ TEST(AdvanceCombatTest, AFullEquipTabLosesTheDrop) {
 
   GameState state({{"frozen_top", top}}, {}, {}, {{"snail", mob}},
                   {{"field", OneSnailMap()}}, {}, GameMode::kPlay,
-                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/5);
+                  TestOptions{}, /*seed=*/5);
   state.current_map = "field";
   EquipSword(state);
   while (state.character.RoomFor(top) > 0) {
@@ -313,7 +313,7 @@ double MesoPerKillAt(int level) {
   mob.set_level(20);
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", mob}}, {{"field", OneSnailMap()}}, {},
-                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/3);
+                  GameMode::kPlay, TestOptions{}, /*seed=*/3);
   state.current_map = "field";
   LevelTo(state, level);
   EquipSword(state);
@@ -359,7 +359,7 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
   // it however little the bonus touches them.
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", OneSnailMap()}}, {},
-                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/9);
+                  GameMode::kPlay, TestOptions{}, /*seed=*/9);
   plain.current_map = "field";
   LevelTo(plain, kTrialLevelCap - 1);
   EquipSword(plain);
@@ -367,7 +367,7 @@ TEST(AdvanceCombatTest, TheExpMultiplierPaysExpAndNothingElse) {
 
   GameState boosted({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                     {{"snail", SnailMob()}}, {{"field", OneSnailMap()}}, {},
-                    GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/9);
+                    GameMode::kPlay, TestOptions{}, /*seed=*/9);
   boosted.current_map = "field";
   LevelTo(boosted, kTrialLevelCap - 1);
   boosted.exp_multiplier = 5;
@@ -398,8 +398,8 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
   // One seed across both runs, as above.
   GameState plain({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                   {{"snail", SnailMob()}}, {{"field", OneSnailMap()}},
-                  {{"holy_symbol", symbol}}, GameMode::kPlay,
-                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/9);
+                  {{"holy_symbol", symbol}}, GameMode::kPlay, TestOptions{},
+                  /*seed=*/9);
   plain.current_map = "field";
   LevelTo(plain, kTrialLevelCap - 1);
   EquipSword(plain);
@@ -408,8 +408,8 @@ TEST(AdvanceCombatTest, HolySymbolPaysExpAndNothingElse) {
 
   GameState blessed({}, {}, {{"green_snail_shell", GreenSnailShell()}},
                     {{"snail", SnailMob()}}, {{"field", OneSnailMap()}},
-                    {{"holy_symbol", symbol}}, GameMode::kPlay,
-                    JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/9);
+                    {{"holy_symbol", symbol}}, GameMode::kPlay, TestOptions{},
+                    /*seed=*/9);
   blessed.current_map = "field";
   LevelTo(blessed, kTrialLevelCap - 1);
   EquipSword(blessed);
@@ -444,8 +444,8 @@ TEST(AdvanceCombatTest, MesoMasteryPaysMesoAndNothingElse) {
     // Both passes roll from the same stream: the drops are rolled now, so a
     // purse twice the size has to come from the bonus rather than from luck.
     GameState state({}, {}, {}, {{"snail", mob}}, {{"field", OneSnailMap()}},
-                    {{"meso_mastery", mastery}}, GameMode::kPlay,
-                    JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/7);
+                    {{"meso_mastery", mastery}}, GameMode::kPlay, TestOptions{},
+                    /*seed=*/7);
     state.current_map = "field";
     LevelTo(state, 25);
     EquipSword(state);
@@ -537,14 +537,14 @@ TEST(AdvanceCombatTest, DropRatePaysMoreItemsAndMoreMeso) {
   std::map<std::string, Mob> mobs = {{"snail", snail}};
   std::map<std::string, MapData> maps = {{"field", OneSnailMap()}};
 
-  GameState plain({}, {}, items, mobs, maps, {}, GameMode::kPlay,
-                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/17);
+  GameState plain({}, {}, items, mobs, maps, {}, GameMode::kPlay, TestOptions{},
+                  /*seed=*/17);
   plain.current_map = "field";
   EquipSword(plain);
   Farm(plain, 20000.0);
 
-  GameState lucky({}, {}, items, mobs, maps, {}, GameMode::kPlay,
-                  JOB_ADVANCEMENT_UNSPECIFIED, /*seed=*/17);
+  GameState lucky({}, {}, items, mobs, maps, {}, GameMode::kPlay, TestOptions{},
+                  /*seed=*/17);
   lucky.current_map = "field";
   EquipSword(lucky, 50);
   Farm(lucky, 20000.0);

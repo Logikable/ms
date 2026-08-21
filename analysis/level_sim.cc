@@ -431,7 +431,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
 
   GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
                   catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, JOB_ADVANCEMENT_UNSPECIFIED,
+                  GameMode::kPlay, TestOptions{},
                   static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)));
   std::vector<Job> path = PathTo(branch);
   int taken = 0;

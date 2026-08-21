@@ -41,14 +41,45 @@ enum class GameMode {
   kTest,
 };
 
+// What state the workbench's gear arrives in, as --equips names it. Every
+// piece is treated the same: the tester is asking what a character at this
+// point of the ladder hits for, not what one lucky item does.
+enum class TestEquips {
+  // As it drops, slots unspent.
+  kClean,
+  // Every upgrade slot passed, with the trace that raises what the job fights
+  // with.
+  kScrolled,
+  // That, and starred to the item's cap.
+  kStarForced,
+};
+
+// What the workbench does with the book its job is standing in, as --skills
+// names it. The books behind it are bought either way: they are not what the
+// tester chose the job for.
+enum class TestSkills {
+  // Left unbought, with the SP in the pool.
+  kZero,
+  // Bought outright, to the last point.
+  kMax,
+};
+
+// The workbench's own settings, one per flag. kPlay ignores every one of them.
+//
+// `job` is --job: the advancement to start at the top of. Unset takes the
+// workbench's own job.
+struct TestOptions {
+  JobAdvancement job = JOB_ADVANCEMENT_UNSPECIFIED;
+  TestEquips equips = TestEquips::kClean;
+  TestSkills skills = TestSkills::kZero;
+};
+
 struct GameState {
   // Constructs the catalogs and puts the character, bag and map into the
   // state `mode` begins from. Anything the catalogs do not name is skipped, so
   // a state built for a test need not carry the game's data files.
   //
-  // `test_job` is --job, and applies to kTest alone: the advancement to start
-  // at the top of, with that job's SP left unspent for the tester. Unset takes
-  // the workbench's own job with its whole book already bought.
+  // `test` is the workbench's flags, and applies to kTest alone.
   //
   // `seed` fixes the random stream. The game leaves it unset and gets a
   // different one every time; a sim or a test passes one so that a run it
@@ -60,8 +91,7 @@ struct GameState {
             std::map<std::string, Mob> mobs,
             std::map<std::string, MapData> maps,
             std::map<std::string, Skill> skills = {},
-            GameMode mode = GameMode::kPlay,
-            JobAdvancement test_job = JOB_ADVANCEMENT_UNSPECIFIED,
+            GameMode mode = GameMode::kPlay, TestOptions test = {},
             std::optional<unsigned int> seed = std::nullopt);
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;

@@ -72,6 +72,7 @@ cc_library(
         "//src/character:exp_table",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/item:equip_stats",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

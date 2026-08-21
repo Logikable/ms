@@ -32,9 +32,17 @@ ABSL_FLAG(std::string, mode, "play",
 ABSL_FLAG(std::string, job, "",
           "Workbench only (--mode=test): a job advancement to start at the "
           "top of, such as 'hunter' or 'archer'. The character arrives at the "
-          "last level before their next advancement, with the AP spent and "
-          "the SP left to spend. Unset starts the workbench's own job with "
-          "its whole book already bought.");
+          "last level before their next advancement, with the AP spent. Unset "
+          "starts the workbench's own job.");
+ABSL_FLAG(std::string, equips, "clean",
+          "Workbench only (--mode=test): what state the character's gear "
+          "arrives in. 'clean' as it drops, 'scroll' with every upgrade slot "
+          "passed, or 'sf' with that and every star.");
+ABSL_FLAG(std::string, skills, "zero",
+          "Workbench only (--mode=test): what to do with the book the "
+          "character's job is standing in. 'zero' leaves it unbought with the "
+          "SP in the pool, 'max' buys the whole of it. The books behind it "
+          "are bought either way.");
 
 namespace {
 
@@ -72,13 +80,46 @@ std::vector<std::string> JobFlagNames() {
 // The advancement --job names, or UNSPECIFIED for the empty flag. Dies on
 // anything else rather than falling back on the default: a typo that started
 // the wrong job silently would cost more than it saved.
+// Dies on a workbench flag passed to a real game, so a tester who meant
+// --mode=test hears about it rather than playing on without what they asked
+// for.
+void RefuseOutsideTheWorkbench(const char* flag, ms::GameMode mode) {
+  if (mode != ms::GameMode::kTest) {
+    LOG(FATAL) << flag << " is for the workbench; pass --mode=test with it";
+  }
+}
+
+ms::TestEquips ParseEquips(const std::string& equips, ms::GameMode mode) {
+  if (equips == "clean") {
+    return ms::TestEquips::kClean;
+  }
+  RefuseOutsideTheWorkbench("--equips", mode);
+  if (equips == "scroll") {
+    return ms::TestEquips::kScrolled;
+  }
+  if (equips == "sf") {
+    return ms::TestEquips::kStarForced;
+  }
+  LOG(FATAL) << "Unknown --equips '" << equips
+             << "'; expected clean, scroll or sf";
+}
+
+ms::TestSkills ParseSkills(const std::string& skills, ms::GameMode mode) {
+  if (skills == "zero") {
+    return ms::TestSkills::kZero;
+  }
+  RefuseOutsideTheWorkbench("--skills", mode);
+  if (skills == "max") {
+    return ms::TestSkills::kMax;
+  }
+  LOG(FATAL) << "Unknown --skills '" << skills << "'; expected zero or max";
+}
+
 ms::JobAdvancement ParseJob(const std::string& job, ms::GameMode mode) {
   if (job.empty()) {
     return ms::JOB_ADVANCEMENT_UNSPECIFIED;
   }
-  if (mode != ms::GameMode::kTest) {
-    LOG(FATAL) << "--job is for the workbench; pass --mode=test with it";
-  }
+  RefuseOutsideTheWorkbench("--job", mode);
   ms::JobAdvancement value = ms::JOB_ADVANCEMENT_UNSPECIFIED;
   if (ms::JobAdvancement_Parse(kJobPrefix + absl::AsciiStrToUpper(job),
                                &value) &&
@@ -94,7 +135,10 @@ ms::JobAdvancement ParseJob(const std::string& job, ms::GameMode mode) {
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   ms::GameMode mode = ParseMode(absl::GetFlag(FLAGS_mode));
-  ms::JobAdvancement test_job = ParseJob(absl::GetFlag(FLAGS_job), mode);
+  ms::TestOptions test;
+  test.job = ParseJob(absl::GetFlag(FLAGS_job), mode);
+  test.equips = ParseEquips(absl::GetFlag(FLAGS_equips), mode);
+  test.skills = ParseSkills(absl::GetFlag(FLAGS_skills), mode);
 
   // The data is compiled in, so there is nothing to find on disk and nothing
   // beside the executable to lose.
@@ -117,7 +161,7 @@ int main(int argc, char** argv) {
 
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
                       std::move(mobs), std::move(maps), std::move(skills), mode,
-                      test_job);
+                      test);
   // Handed over after the state is built and before anything is loaded into
   // it: what a set pays is worked out from what is worn, and a save restores
   // the worn map through the same recompute.

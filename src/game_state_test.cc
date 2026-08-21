@@ -73,9 +73,11 @@ std::map<std::string, Skill> EveryStageBook() {
   return book;
 }
 
-GameState MakeTestModeStateWithSkills() {
+GameState MakeTestModeStateWithSkills(TestSkills skills = TestSkills::kZero) {
+  TestOptions test;
+  test.skills = skills;
   return GameState(SwordCatalog(), {}, {}, {}, {}, EveryStageBook(),
-                   GameMode::kTest);
+                   GameMode::kTest, test);
 }
 
 // The item catalog under the key test mode's seeding asks for, plus a currency
@@ -189,17 +191,122 @@ TEST(GameStateTest, TestModeStartsAtTheTopOfTheWrittenLine) {
   EXPECT_EQ(test.character.proto().ap(), 0);
 }
 
-TEST(GameStateTest, TestModeStartsWithEveryBookBought) {
+// --skills decides what becomes of the book the character is standing in. The
+// books behind it are bought either way: they are not what the tester picked
+// the job for.
+TEST(GameStateTest, SkillsZeroLeavesTheJobsOwnBookUnbought) {
   GameState state = MakeTestModeStateWithSkills();
-  EXPECT_EQ(state.character.sp(1), 0);
-  EXPECT_EQ(state.character.sp(2), 0);
-  EXPECT_EQ(state.character.sp(3), 0);
-  EXPECT_EQ(state.character.sp(4), 0);
+  int top = state.character.proto().job_stage();
+  for (int stage = 1; stage < top; ++stage) {
+    EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
+  }
+  EXPECT_GT(state.character.sp(top), 0);
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    int stage = StageForAdvancement(entry.second.job_advancement());
+    int expected = stage < top ? entry.second.max_level() : 0;
+    EXPECT_EQ(state.character.skill_level(entry.second), expected)
+        << entry.first << " at stage " << stage;
+  }
+}
+
+TEST(GameStateTest, SkillsMaxBuysEveryBookOutright) {
+  GameState state = MakeTestModeStateWithSkills(TestSkills::kMax);
+  for (int stage = 1; stage <= 4; ++stage) {
+    EXPECT_EQ(state.character.sp(stage), 0) << "stage " << stage;
+  }
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     EXPECT_EQ(state.character.skill_level(entry.second),
               entry.second.max_level())
         << entry.first << " is left part-bought";
   }
+}
+
+// --- --equips ---
+
+// The workbench's own level 30 warrior weapon, with slots to scroll and stars
+// to add. Keyed the way WorkbenchGearFor names it, or nothing is worn at all.
+std::map<std::string, EquipPrototype> GladiusCatalog() {
+  EquipPrototype gladius;
+  gladius.set_name("Gladius");
+  gladius.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  gladius.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  gladius.set_required_level(30);
+  gladius.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  gladius.set_upgrade_slots(7);
+  return {{"gladius", gladius}};
+}
+
+// Two traces a warrior's weapon takes, the long odds paying more. The
+// workbench passes every slot, so it should take the one that pays.
+std::map<std::string, Scroll> WarriorWeaponTraces() {
+  Scroll sure;
+  sure.set_name("100% STR");
+  sure.set_scroll_type(SCROLL_TYPE_STR);
+  sure.set_target(SCROLL_TARGET_WEAPON);
+  sure.set_tier(SCROLL_TIER_1);
+  sure.set_success_rate(100);
+  sure.mutable_stats()->set_attack(1);
+  sure.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  Scroll risky = sure;
+  risky.set_name("30% STR");
+  risky.set_success_rate(30);
+  risky.mutable_stats()->set_attack(5);
+  risky.mutable_stats()->set_str(3);
+  return {{"str_100", sure}, {"str_30", risky}};
+}
+
+GameState MakeEquipsState(TestEquips equips) {
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_SWORDMAN;
+  test.equips = equips;
+  return GameState(GladiusCatalog(), WarriorWeaponTraces(), {}, {}, {}, {},
+                   GameMode::kTest, test);
+}
+
+const Equip& WornWeapon(const GameState& state) {
+  return state.character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_state();
+}
+
+// The default: gear arrives as it drops, with its slots to spend and no stars.
+TEST(GameStateTest, EquipsCleanLeavesTheGearAsItDrops) {
+  GameState state = MakeEquipsState(TestEquips::kClean);
+  EXPECT_EQ(WornWeapon(state).remaining_upgrade_slots(), 7);
+  EXPECT_EQ(WornWeapon(state).scroll_successes(), 0);
+  EXPECT_EQ(WornWeapon(state).stars(), 0);
+}
+
+// Every slot passed, with the trace that pays the most -- and no stars, which
+// are the other flag's business.
+TEST(GameStateTest, EquipsScrollPassesEverySlotWithTheBiggestTrace) {
+  GameState state = MakeEquipsState(TestEquips::kScrolled);
+  const Equip& worn = WornWeapon(state);
+  EXPECT_EQ(worn.remaining_upgrade_slots(), 0);
+  EXPECT_EQ(worn.scroll_successes(), 7);
+  EXPECT_EQ(worn.scroll_stats().attack(), 35);
+  EXPECT_EQ(worn.scroll_stats().str(), 21);
+  EXPECT_EQ(worn.stars(), 0);
+}
+
+// The stars on top of the scrolling, up to what the item's own level allows.
+TEST(GameStateTest, EquipsSfStarsTheGearToItsCap) {
+  GameState state = MakeEquipsState(TestEquips::kStarForced);
+  const Equip& worn = WornWeapon(state);
+  EXPECT_EQ(worn.scroll_successes(), 7);
+  EXPECT_EQ(worn.stars(), EquipTabItem::MaxStarsForLevel(30));
+}
+
+// An item that refuses an upgrade path is left alone on it, however the flag
+// is set: the workbench does not get to overrule the data.
+TEST(GameStateTest, EquipsLeaveAnItemThatRefusesThePathAlone) {
+  std::map<std::string, EquipPrototype> catalog = GladiusCatalog();
+  catalog["gladius"].add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_SWORDMAN;
+  test.equips = TestEquips::kStarForced;
+  GameState state(catalog, WarriorWeaponTraces(), {}, {}, {}, {},
+                  GameMode::kTest, test);
+  EXPECT_EQ(WornWeapon(state).scroll_successes(), 7);
+  EXPECT_EQ(WornWeapon(state).stars(), 0);
 }
 
 // --- the --job workbench ---
@@ -249,7 +356,7 @@ std::map<std::string, Skill> BookFor(Job job) {
 GameState MakeChosenJobState(JobAdvancement advancement) {
   return GameState(BowCatalog(), {}, {}, {}, {},
                    BookFor(JobForAdvancement(advancement)), GameMode::kTest,
-                   advancement);
+                   TestOptions{advancement});
 }
 
 // --job stops at the top of the advancement it names, not at the workbench's

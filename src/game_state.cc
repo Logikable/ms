@@ -6,16 +6,19 @@
 #include <map>
 #include <memory>
 #include <random>
+#include <set>
 #include <string>
 #include <utility>
 
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/item/equip_instance.h"
+#include "src/item/equip_stats.h"
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
@@ -153,23 +156,105 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
   }
 }
 
+// The spell trace the workbench scrolls `proto` with: the one that raises the
+// stat this character fights with, at the longest odds it is written at. The
+// odds cost nothing here -- every slot passes -- so the biggest is the one to
+// take. Returns nullptr for an item nothing is written for, ammunition and
+// off-hands among them.
+const Scroll* BestScrollFor(const GameState& state,
+                            const EquipPrototype& proto) {
+  ScrollType wanted = SCROLL_TYPE_UNSPECIFIED;
+  switch (PrimaryStatField(state.character.proto().job())) {
+    case STAT_FIELD_STR:
+      wanted = SCROLL_TYPE_STR;
+      break;
+    case STAT_FIELD_DEX:
+      wanted = SCROLL_TYPE_DEX;
+      break;
+    case STAT_FIELD_INT:
+      wanted = SCROLL_TYPE_INT;
+      break;
+    case STAT_FIELD_LUK:
+      wanted = SCROLL_TYPE_LUK;
+      break;
+    default:
+      return nullptr;
+  }
+  ScrollTarget target = TargetForSlot(proto.equip_slot());
+  if (target == SCROLL_TARGET_UNSPECIFIED) {
+    return nullptr;
+  }
+  std::set<int> item_categories(proto.equip_job_categories().begin(),
+                                proto.equip_job_categories().end());
+  const Scroll* best = nullptr;
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    const Scroll& scroll = entry.second;
+    if (scroll.scroll_type() != wanted || scroll.target() != target ||
+        scroll.tier() != TierForLevel(proto.required_level())) {
+      continue;
+    }
+    bool fits = false;
+    for (int category : scroll.applicable_job_categories()) {
+      fits = fits || item_categories.count(category) > 0;
+    }
+    if (fits &&
+        (best == nullptr || scroll.success_rate() < best->success_rate())) {
+      best = &scroll;
+    }
+  }
+  return best;
+}
+
+// The state a piece of the workbench's gear arrives in: as it drops, with
+// every upgrade slot passed, or that and starred to the item's own cap.
+//
+// Written straight into the state rather than rolled through Scroll() and
+// StarForce(): the tester asked for the finished item, not for the odds.
+Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
+                    TestEquips equips) {
+  Equip built;
+  built.set_equip_name(proto.name());
+  built.set_remaining_upgrade_slots(proto.upgrade_slots());
+  if (equips == TestEquips::kClean) {
+    return built;
+  }
+  const Scroll* scroll = BestScrollFor(state, proto);
+  if (scroll != nullptr && Supports(proto, UPGRADE_SCROLL)) {
+    std::vector<EquipStats> passes(proto.upgrade_slots(), scroll->stats());
+    *built.mutable_scroll_stats() = SumEquipStats(passes);
+    built.set_scroll_successes(proto.upgrade_slots());
+    built.set_remaining_upgrade_slots(0);
+  }
+  // Stars go on an item with nothing left to scroll, which is the rule the
+  // upgrade screen holds to as well.
+  if (equips == TestEquips::kStarForced &&
+      built.remaining_upgrade_slots() == 0 &&
+      Supports(proto, UPGRADE_STAR_FORCE)) {
+    built.set_stars(EquipTabItem::MaxStarsForLevel(proto.required_level()));
+  }
+  return built;
+}
+
 // Puts a copy of the named equip in the bag, or does nothing if the catalog
 // has no such entry. Lets a GameState be built for a test without the game's
 // data files behind it.
-void GiveEquip(GameState& state, const std::string& name) {
+void GiveEquip(GameState& state, const std::string& name,
+               TestEquips equips = TestEquips::kClean) {
   std::map<std::string, EquipPrototype>::const_iterator it =
       state.equips.find(name);
   if (it == state.equips.end()) {
     return;
   }
-  state.character.PickUp(std::make_unique<EquipInstance>(it->second));
+  state.character.PickUp(std::make_unique<EquipInstance>(
+      it->second, UpgradedState(state, it->second, equips)));
 }
 
 // Puts each of `names` on, from the row it lands on, so a Rogue's three reach
 // three slots -- and whatever a later one displaces goes back to the bag for
 // the tester to swap in. A piece the character is too low to wear is handed
 // over anyway, and stays in the bag until they are.
-void WearAll(GameState& state, const std::vector<std::string>& names) {
+void WearAll(GameState& state, const std::vector<std::string>& names,
+             TestEquips equips) {
   for (const std::string& name : names) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         state.equips.find(name);
@@ -177,7 +262,7 @@ void WearAll(GameState& state, const std::vector<std::string>& names) {
       continue;
     }
     int row = static_cast<int>(state.character.inventory().size());
-    GiveEquip(state, name);
+    GiveEquip(state, name, equips);
     if (static_cast<int>(state.character.inventory().size()) > row &&
         state.character.MeetsLevel(it->second)) {
       state.character.Equip(row);
@@ -235,8 +320,8 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
 // Climbs to the top of `advancement`: the job it names, at the last level
 // before the next advancement would be offered, having taken every earlier
 // advancement on the way to it.
-void GrowToJob(GameState& state, JobAdvancement advancement,
-               int unspent_stage) {
+void GrowToJob(GameState& state, JobAdvancement advancement, int unspent_stage,
+               TestEquips equips) {
   Job job = JobForAdvancement(advancement);
   int stage = StageForAdvancement(advancement);
   std::vector<Job> path;
@@ -249,15 +334,15 @@ void GrowToJob(GameState& state, JobAdvancement advancement,
          unspent_stage);
   // The job's own gear, worn rather than carried, since there is no
   // advancement moment here to put it on at.
-  WearAll(state, WorkbenchGearFor(job));
+  WearAll(state, WorkbenchGearFor(job), equips);
   // The Frozen set on top, from the 3rd job up. It drops rather than sells, so
   // a workbench is the only character that will ever be seen in the whole of
   // it -- and every piece is inside a 3rd job's level 100, which is what makes
   // their four slots four. A 4th job adds the two the token shelf armed them
   // with above, for six.
   if (stage >= 3) {
-    WearAll(state, FrozenArmour());
-    WearAll(state, BossAccessories());
+    WearAll(state, FrozenArmour(), equips);
+    WearAll(state, BossAccessories(), equips);
   }
 }
 
@@ -316,7 +401,7 @@ void GiveUpgradeItems(GameState& state) {
 // The workbench. Everything here exists to reach a screen without playing up
 // to it. `chosen` is --job: unset takes kTestAdvancement and buys its whole
 // book, so the default workbench is finished rather than half-built.
-void SeedTest(GameState& state, JobAdvancement chosen) {
+void SeedTest(GameState& state, const TestOptions& test) {
   state.exp_multiplier = kTestExpMultiplier;
 
   // Enough to buy anything the shop stocks, several times over, so the buying
@@ -348,7 +433,7 @@ void SeedTest(GameState& state, JobAdvancement chosen) {
     }
   }
 
-  bool chose_job = chosen != JOB_ADVANCEMENT_UNSPECIFIED;
+  bool chose_job = test.job != JOB_ADVANCEMENT_UNSPECIFIED;
   if (!chose_job) {
     // The rungs below the default job's weapon, to swap between on the equip
     // screens. A job named by --job brings only its own. The first is worn
@@ -363,11 +448,15 @@ void SeedTest(GameState& state, JobAdvancement chosen) {
     GiveEquip(state, "machete");
   }
   GiveUpgradeItems(state);
-  // Only the book the chosen job is standing in is left unspent. The ones
-  // behind them are not what --job was asked for, and leaving those unbought
-  // would put the tester through two allocation screens to reach one.
-  GrowToJob(state, chose_job ? chosen : kTestAdvancement,
-            chose_job ? StageForAdvancement(chosen) : kSpendEveryStage);
+  // Only the book the job is standing in answers to --skills. The ones behind
+  // it are bought either way: they are not what the tester picked the job for,
+  // and leaving them unbought would put two allocation screens between them
+  // and the one they came for.
+  JobAdvancement advancement = chose_job ? test.job : kTestAdvancement;
+  GrowToJob(state, advancement,
+            test.skills == TestSkills::kZero ? StageForAdvancement(advancement)
+                                             : kSpendEveryStage,
+            test.equips);
 
   // The weakest hunting ground there is; the tester picks anywhere else from
   // the map select.
@@ -382,7 +471,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
                      std::map<std::string, Mob> mobs_arg,
                      std::map<std::string, MapData> maps_arg,
                      std::map<std::string, Skill> skills_arg, GameMode mode,
-                     JobAdvancement test_job, std::optional<unsigned int> seed)
+                     TestOptions test, std::optional<unsigned int> seed)
     : equips(std::move(equips_arg)),
       scrolls(std::move(scrolls_arg)),
       items(std::move(items_arg)),
@@ -398,7 +487,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       character(rng, MakeBaseBeginnerProto()),
       created_unix_seconds(static_cast<int64_t>(std::time(nullptr))) {
   if (mode == GameMode::kTest) {
-    SeedTest(*this, test_job);
+    SeedTest(*this, test);
   } else {
     SeedPlay(*this);
   }
