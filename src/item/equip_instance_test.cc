@@ -31,6 +31,21 @@ class EquipInstanceTest : public ::testing::Test {
     return e;
   }
 
+  // A piece of gear worn somewhere other than the hand. `str` is there so a
+  // test can tell the two stat rules apart: below 16★ a star raises the stats
+  // the job needs, above it the stats the item shows.
+  EquipPrototype MakeArmour(EquipSlot slot, int base_def = 0,
+                            int required_level = 0, int str = 0) {
+    EquipPrototype e;
+    e.set_name("Hat");
+    e.set_equip_slot(slot);
+    e.mutable_base_stats()->set_def(base_def);
+    e.mutable_base_stats()->set_str(str);
+    e.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+    e.set_required_level(required_level);
+    return e;
+  }
+
   ms::Scroll MakeScroll(int success_rate, int attack) {
     ms::Scroll s;
     s.set_success_rate(success_rate);
@@ -246,14 +261,87 @@ TEST_F(EquipInstanceTest, AMagicianWeaponGainsItsPrimaryStats) {
   EXPECT_EQ(gains.dex(), 0);
 }
 
-TEST_F(EquipInstanceTest, StarForceStatGainsWeaponHpMp) {
-  // kHpMpDeltas: {5,5,5,10,...}. At 4★: 5+5+5+10 = 25.
+// The weapon is the one item that gains both. GMS's cumulative table reads 25
+// at 4★ and 50 at 6★; the second is there because the 6th star is the one the
+// per-star deltas used to have wrong.
+TEST_F(EquipInstanceTest, AWeaponGainsMaxHpAndMaxMp) {
   Equip state;
   state.set_stars(4);
-  EquipInstance item(MakeWeapon(), state);
+  EquipInstance four(MakeWeapon(), state);
+  EXPECT_EQ(four.StarForceStatGains().max_hp(), 25);
+  EXPECT_EQ(four.StarForceStatGains().max_mp(), 25);
+  state.set_stars(6);
+  EquipInstance six(MakeWeapon(), state);
+  EXPECT_EQ(six.StarForceStatGains().max_hp(), 50);
+  EXPECT_EQ(six.StarForceStatGains().max_mp(), 50);
+}
+
+// Max HP is not the weapon's alone: it goes to every slot on GMS's Category A
+// list, which the armour a character wears is most of.
+TEST_F(EquipInstanceTest, CategoryAArmourGainsMaxHpButNoMp) {
+  Equip state;
+  state.set_stars(4);
+  for (EquipSlot slot : {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM,
+                         EQUIP_SLOT_CAPE, EQUIP_SLOT_RING, EQUIP_SLOT_PENDANT,
+                         EQUIP_SLOT_BELT, EQUIP_SLOT_SHOULDER}) {
+    EquipInstance item(MakeArmour(slot), state);
+    EquipStats gains = item.StarForceStatGains();
+    EXPECT_EQ(gains.max_hp(), 25) << EquipSlot_Name(slot);
+    EXPECT_EQ(gains.max_mp(), 0) << EquipSlot_Name(slot);
+  }
+}
+
+// And the accessories are not on that list, however many stars go into them.
+TEST_F(EquipInstanceTest, AnAccessoryGainsNoMaxHp) {
+  Equip state;
+  state.set_stars(10);
+  EquipInstance item(MakeArmour(EQUIP_SLOT_EYE_ACCESSORY, 100), state);
   EquipStats gains = item.StarForceStatGains();
-  EXPECT_EQ(gains.max_hp(), 25);
-  EXPECT_EQ(gains.max_mp(), 25);
+  EXPECT_EQ(gains.max_hp(), 0);
+  EXPECT_EQ(gains.max_mp(), 0);
+  EXPECT_GT(gains.def(), 0) << "it still gains the defense every star gives";
+}
+
+// Defense climbs by a twentieth of what the item already carries, the next
+// star's share taken from the last star's total.
+TEST_F(EquipInstanceTest, ArmourGainsDefenseThatCompounds) {
+  Equip state;
+  state.set_stars(1);
+  EXPECT_EQ(EquipInstance(MakeArmour(EQUIP_SLOT_HAT, 100), state)
+                .StarForceStatGains()
+                .def(),
+            6)
+      << "1 + a twentieth of 100";
+  state.set_stars(5);
+  EXPECT_EQ(EquipInstance(MakeArmour(EQUIP_SLOT_HAT, 100), state)
+                .StarForceStatGains()
+                .def(),
+            31)
+      << "6, 12, 18, 24, then 31: the fifth star's share is of 124, not 100";
+}
+
+// The weapon is the exception: its stars go into attack instead.
+TEST_F(EquipInstanceTest, AWeaponGainsNoDefense) {
+  Equip state;
+  state.set_stars(5);
+  EquipPrototype proto = MakeWeapon(100);
+  proto.mutable_base_stats()->set_def(100);
+  EXPECT_EQ(EquipInstance(proto, state).StarForceStatGains().def(), 0);
+}
+
+// GMS raises a scaled stat only where the item already shows one. A sword
+// carries no magic attack, so no number of stars gives it any.
+TEST_F(EquipInstanceTest, AStatTheItemDoesNotShowGainsNothing) {
+  Equip state;
+  state.set_stars(5);
+  EquipStats gains = EquipInstance(MakeWeapon(100), state).StarForceStatGains();
+  EXPECT_GT(gains.attack(), 0);
+  EXPECT_EQ(gains.magic_attack(), 0);
+  EXPECT_EQ(EquipInstance(MakeArmour(EQUIP_SLOT_HAT, 0), state)
+                .StarForceStatGains()
+                .def(),
+            0)
+      << "and an item with no defense gains none";
 }
 
 TEST_F(EquipInstanceTest, StarForceStatGainsWeaponAtkFormula) {
@@ -289,19 +377,31 @@ TEST_F(EquipInstanceTest, StarForceStatGainsMultiJobUnion) {
   EXPECT_EQ(gains.int_(), 0);
 }
 
-TEST_F(EquipInstanceTest, StarForceStatGainsHighStar) {
-  // Level 160 weapon at 16★. base_att=0.
-  // Low-star ATK: each gain = floor((0+sf_att)/50)+1 = 1 per star → sf_att=15.
-  // Low-star primary: sum(kPrimaryStatDeltas[0..14]) = 5*2+10*3 = 40 each.
-  // High-star entry at 16★: kHighStar160_199[0] = {13, 9}.
-  // Total: STR=DEX=53, ATK=24.
+// The two stat rules, in one item. A warrior weapon showing STR and no DEX
+// takes both up to 15★, because that is what the job needs -- and from 16★
+// only the STR it shows, which is where the high-star table takes over.
+TEST_F(EquipInstanceTest, PastFifteenOnlyTheStatsTheItemShowsClimb) {
   Equip state;
   state.set_stars(16);
-  EquipInstance item(MakeWeapon(0, EQUIP_JOB_CATEGORY_WARRIOR, 160), state);
+  EquipPrototype proto = MakeWeapon(100, EQUIP_JOB_CATEGORY_WARRIOR, 160);
+  proto.mutable_base_stats()->set_str(10);
+  EquipStats gains = EquipInstance(proto, state).StarForceStatGains();
+  EXPECT_EQ(gains.str(), 53) << "40 from the first 15 stars, then 13";
+  EXPECT_EQ(gains.dex(), 40) << "the job's, but never shown, so it stops at 15";
+  EXPECT_EQ(gains.attack(), 54) << "45 scaled, then a flat 9";
+}
+
+// Armour used to gain nothing at all past 15★. GMS gives it the same stat as
+// a weapon of its level and a flat attack of its own -- a bigger one, in fact.
+TEST_F(EquipInstanceTest, ArmourGainsStatAndAttackPastFifteen) {
+  Equip state;
+  state.set_stars(16);
+  EquipInstance item(MakeArmour(EQUIP_SLOT_HAT, 100, 150, /*str=*/10), state);
   EquipStats gains = item.StarForceStatGains();
-  EXPECT_EQ(gains.str(), 53);
-  EXPECT_EQ(gains.dex(), 53);
-  EXPECT_EQ(gains.attack(), 24);
+  EXPECT_EQ(gains.str(), 51) << "40 from the first 15 stars, then 11";
+  EXPECT_EQ(gains.attack(), 9) << "flat, and it shows none to begin with";
+  EXPECT_EQ(gains.magic_attack(), 9);
+  EXPECT_EQ(gains.def(), 119) << "defense stops climbing at 15★";
 }
 
 TEST_F(EquipInstanceTest, StatsIncludesStarForceGains) {

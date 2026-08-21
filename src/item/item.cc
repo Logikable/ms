@@ -10,55 +10,74 @@ namespace {
 constexpr int kUseDefaultMaxStack = 9999;
 constexpr int kEtcDefaultMaxStack = 200;
 
-// Per-star primary stat deltas for 1–15★ (index i = gain for i★→(i+1)★).
+// Per-star primary stat deltas for 1-15★ (index i = gain for i★→(i+1)★).
 constexpr int kPrimaryStatDeltas[15] = {
     2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 };
 
-// Per-star HP/MP deltas for 1–15★ weapons (same gain for both HP and MP).
-constexpr int kHpMpDeltas[15] = {
-    5, 5, 5, 10, 10, 10, 20, 20, 20, 25, 25, 25, 25, 25, 25,
+// Per-star Max HP over the same range, for the items GMS raises it on, and
+// per-star Max MP for a weapon, which climbs by the same amounts.
+constexpr int kMaxHpDeltas[15] = {
+    5, 5, 5, 10, 10, 15, 15, 20, 20, 25, 25, 25, 25, 25, 25,
 };
 
-// Stat and ATT gained by a weapon when reaching the given star level (16–30★),
-// by required level range. Index i = gain for (i+15)★→(i+16)★.
-struct WeaponHighStarEntry {
+// The share of what the item already carries that one star adds to a scaled
+// stat. Attack climbs by a fiftieth, defense by a twentieth.
+constexpr int kAttackPercent = 2;
+constexpr int kDefensePercent = 5;
+
+// Stat and attack gained on reaching a given star (16-30★), by the item's
+// required level. Index i = the gain for (i+15)★→(i+16)★.
+//
+// A weapon and everything else read different attack columns: at 20★ a Lv150
+// weapon takes +11 and a Lv150 hat +13. The stat column is shared, and runs
+// out at 23★ -- past there only attack climbs.
+//
+// GMS's own table stops at 25★. The rows past it continue the step the last
+// rows take: +1 an attempt on a weapon, +2 on everything else.
+struct HighStarEntry {
   int stat;
-  int att;
+  int weapon_att;
+  int other_att;
 };
 
-// Max stars for this range is 20★; entries 5–14 are padding.
-constexpr WeaponHighStarEntry kHighStar128_137[15] = {
-    {7, 6}, {7, 7}, {7, 7}, {7, 8}, {7, 9}, {0, 0}, {0, 0}, {0, 0},
-    {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
+// Max stars for this range is 20★; entries 5-14 are padding.
+constexpr HighStarEntry kHighStar128_137[15] = {
+    {7, 6, 7}, {7, 7, 8}, {7, 7, 9}, {7, 8, 10}, {7, 9, 11},
+    {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},  {0, 0, 0},
+    {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},  {0, 0, 0},
 };
-constexpr WeaponHighStarEntry kHighStar138_149[15] = {
-    {9, 7},  {9, 8},  {9, 8},  {9, 9},  {9, 10}, {9, 11}, {9, 12}, {0, 30},
-    {0, 31}, {0, 32}, {0, 33}, {0, 34}, {0, 35}, {0, 36}, {0, 37},
+constexpr HighStarEntry kHighStar138_149[15] = {
+    {9, 7, 8},   {9, 8, 9},   {9, 8, 10},  {9, 9, 11},  {9, 10, 12},
+    {9, 11, 13}, {9, 12, 15}, {0, 30, 17}, {0, 31, 19}, {0, 32, 21},
+    {0, 33, 23}, {0, 34, 25}, {0, 35, 27}, {0, 36, 29}, {0, 37, 31},
 };
-constexpr WeaponHighStarEntry kHighStar150_159[15] = {
-    {11, 8}, {11, 9}, {11, 9}, {11, 10}, {11, 11}, {11, 12}, {11, 13}, {0, 31},
-    {0, 32}, {0, 33}, {0, 34}, {0, 35},  {0, 36},  {0, 37},  {0, 38},
+constexpr HighStarEntry kHighStar150_159[15] = {
+    {11, 8, 9},   {11, 9, 10},  {11, 9, 11}, {11, 10, 12}, {11, 11, 13},
+    {11, 12, 14}, {11, 13, 16}, {0, 31, 18}, {0, 32, 20},  {0, 33, 22},
+    {0, 34, 24},  {0, 35, 26},  {0, 36, 28}, {0, 37, 30},  {0, 38, 32},
 };
-constexpr WeaponHighStarEntry kHighStar160_199[15] = {
-    {13, 9}, {13, 9}, {13, 10}, {13, 11}, {13, 12}, {13, 13}, {13, 14}, {0, 32},
-    {0, 33}, {0, 34}, {0, 35},  {0, 36},  {0, 37},  {0, 38},  {0, 39},
+constexpr HighStarEntry kHighStar160_199[15] = {
+    {13, 9, 10},  {13, 9, 11},  {13, 10, 12}, {13, 11, 13}, {13, 12, 14},
+    {13, 13, 15}, {13, 14, 17}, {0, 32, 19},  {0, 33, 21},  {0, 34, 23},
+    {0, 35, 25},  {0, 36, 27},  {0, 37, 29},  {0, 38, 31},  {0, 39, 33},
 };
-constexpr WeaponHighStarEntry kHighStar200_249[15] = {
-    {15, 13}, {15, 13}, {15, 14}, {15, 14}, {15, 15},
-    {15, 16}, {15, 17}, {0, 34},  {0, 35},  {0, 36},
-    {0, 37},  {0, 38},  {0, 39},  {0, 40},  {0, 41},
+constexpr HighStarEntry kHighStar200_249[15] = {
+    {15, 13, 12}, {15, 13, 13}, {15, 14, 14}, {15, 14, 15}, {15, 15, 16},
+    {15, 16, 17}, {15, 17, 19}, {0, 34, 21},  {0, 35, 23},  {0, 36, 25},
+    {0, 37, 27},  {0, 38, 29},  {0, 39, 31},  {0, 40, 33},  {0, 41, 35},
 };
-// 23–30★ entries are {0,0}: no star-forceable Lv250+ weapon exists in GMS.
+// The weapon column is zero from 23★ on: no star-forceable Lv250+ weapon
+// exists in GMS.
 // TODO: Superior equipment has a different stat table and a 15★ cap; handle
 // separately when Superior items are added.
-constexpr WeaponHighStarEntry kHighStar250Plus[15] = {
-    {17, 16}, {17, 16}, {17, 17}, {17, 17}, {17, 18},
-    {17, 19}, {17, 20}, {0, 0},   {0, 0},   {0, 0},
-    {0, 0},   {0, 0},   {0, 0},   {0, 0},   {0, 0},
+constexpr HighStarEntry kHighStar250Plus[15] = {
+    {17, 16, 14}, {17, 16, 15}, {17, 17, 16}, {17, 17, 17}, {17, 18, 18},
+    {17, 19, 19}, {17, 20, 21}, {0, 0, 23},   {0, 0, 25},   {0, 0, 27},
+    {0, 0, 29},   {0, 0, 31},   {0, 0, 33},   {0, 0, 35},   {0, 0, 37},
 };
 
-WeaponHighStarEntry WeaponHighStarGainAt(int required_level, int star_to) {
+HighStarEntry HighStarGainAt(int required_level, int star_to) {
   int idx = star_to - 16;
   if (required_level >= 250) {
     return kHighStar250Plus[idx];
@@ -78,10 +97,12 @@ WeaponHighStarEntry WeaponHighStarGainAt(int required_level, int star_to) {
   if (required_level >= 128) {
     return kHighStar128_137[idx];
   }
-  return {0, 0};
+  return {0, 0, 0};
 }
 
-// Flags indicating which primary stats a weapon gains per star force level.
+// Which of the four primary stats a star raises. Two rules pick them: below
+// 16★ it is the stats the item's job needs, above it the stats the item
+// already shows.
 struct StatFlags {
   bool str = false;
   bool dex = false;
@@ -118,6 +139,125 @@ StatFlags PrimaryStatFlags(const EquipPrototype& proto) {
     flags.luk |= j.luk;
   }
   return flags;
+}
+
+// GMS's "Category A": the slots whose stars raise Max HP. No overall, because
+// this game splits top and bottom and always will. No off hand either: GMS's
+// list names the shield, and ours holds a medallion or a book.
+bool RaisesMaxHp(EquipSlot slot) {
+  switch (slot) {
+    case EQUIP_SLOT_PRIMARY_WEAPON:
+    case EQUIP_SLOT_HAT:
+    case EQUIP_SLOT_TOP:
+    case EQUIP_SLOT_BOTTOM:
+    case EQUIP_SLOT_CAPE:
+    case EQUIP_SLOT_RING:
+    case EQUIP_SLOT_PENDANT:
+    case EQUIP_SLOT_BELT:
+    case EQUIP_SLOT_SHOULDER:
+      return true;
+    case EQUIP_SLOT_UNSPECIFIED:
+    case EQUIP_SLOT_PROJECTILE:
+    case EQUIP_SLOT_SECONDARY:
+    case EQUIP_SLOT_FACE_ACCESSORY:
+    case EQUIP_SLOT_EYE_ACCESSORY:
+      return false;
+  }
+  return false;
+}
+
+// The stats an item shows before any star, which is what GMS calls visible.
+StatFlags VisibleStatFlags(const EquipStats& shown) {
+  return {shown.str() > 0, shown.dex() > 0, shown.int_() > 0, shown.luk() > 0};
+}
+
+void AddToStats(EquipStats* gains, StatFlags flags, int delta) {
+  if (flags.str) {
+    gains->set_str(gains->str() + delta);
+  }
+  if (flags.dex) {
+    gains->set_dex(gains->dex() + delta);
+  }
+  if (flags.int_) {
+    gains->set_int_(gains->int_() + delta);
+  }
+  if (flags.luk) {
+    gains->set_luk(gains->luk() + delta);
+  }
+}
+
+// One attempt's worth of a scaled stat: GMS's 1 + RoundDown[stat x share],
+// taken from the drop's own stat plus what the stars have added so far, which
+// is what makes the gains compound. A stat the item does not show gains
+// nothing, however many stars go into it.
+int ScaledGain(int shown, int gained, int percent) {
+  if (shown <= 0) {
+    return 0;
+  }
+  return 1 + (shown + gained) * percent / 100;
+}
+
+// What one star is worked out against: the item's own facts, and the gains so
+// far, which the scaled stats take their next share from.
+struct StarForceRun {
+  EquipSlot slot;
+  bool is_weapon;
+  int required_level;
+  StatFlags job_stats;
+  StatFlags visible_stats;
+  int shown_att;
+  int shown_matt;
+  int shown_def;
+  EquipStats gains;
+};
+
+// One attempt in the 1-15★ range. The job's own stats climb by a flat amount;
+// attack and defense climb by a share of what the item already carries.
+void AddLowStar(int index, StarForceRun* run) {
+  EquipStats& gains = run->gains;
+  AddToStats(&gains, run->job_stats, kPrimaryStatDeltas[index]);
+  if (RaisesMaxHp(run->slot)) {
+    gains.set_max_hp(gains.max_hp() + kMaxHpDeltas[index]);
+  }
+  if (!run->is_weapon) {
+    gains.set_def(gains.def() +
+                  ScaledGain(run->shown_def, gains.def(), kDefensePercent));
+    return;
+  }
+  // The weapon is the only thing whose stars raise Max MP, and the only thing
+  // whose attack climbs at all this far down.
+  gains.set_max_mp(gains.max_mp() + kMaxHpDeltas[index]);
+  gains.set_attack(gains.attack() +
+                   ScaledGain(run->shown_att, gains.attack(), kAttackPercent));
+  gains.set_magic_attack(gains.magic_attack() + ScaledGain(run->shown_matt,
+                                                           gains.magic_attack(),
+                                                           kAttackPercent));
+}
+
+// One attempt at 16★ and up, where the table is by equipment level. Every stat
+// the item shows climbs, the job no longer deciding which, and armour starts
+// gaining flat attack of its own.
+void AddHighStar(int star_to, StarForceRun* run) {
+  HighStarEntry entry = HighStarGainAt(run->required_level, star_to);
+  EquipStats& gains = run->gains;
+  AddToStats(&gains, run->visible_stats, entry.stat);
+  if (run->is_weapon) {
+    if (run->shown_att > 0) {
+      gains.set_attack(gains.attack() + entry.weapon_att);
+    }
+    if (run->shown_matt > 0) {
+      gains.set_magic_attack(gains.magic_attack() + entry.weapon_att);
+    }
+    return;
+  }
+  // Armour gains this whether or not it shows any attack to begin with.
+  gains.set_attack(gains.attack() + entry.other_att);
+  gains.set_magic_attack(gains.magic_attack() + entry.other_att);
+  // Only the Lv250 band keeps climbing in defense past 15★.
+  if (run->required_level >= 250) {
+    gains.set_def(gains.def() +
+                  ScaledGain(run->shown_def, gains.def(), kDefensePercent));
+  }
 }
 
 // One pass over the catalog. Small enough that an index would cost more to
@@ -189,66 +329,32 @@ EquipStats EquipTabItem::StarForceStatGains(int stars) const {
   if (stars < 0) {
     stars = state_.stars();
   }
-  bool is_weapon = (prototype_.equip_slot() == EQUIP_SLOT_PRIMARY_WEAPON);
-  StatFlags flags = PrimaryStatFlags(prototype_);
-  int required_level = prototype_.required_level();
-  // base_att includes scrolled attack: the GMS formula scales each star's
-  // gain against the item's pre-SF total attack, not just the prototype base.
-  int base_att =
-      prototype_.base_stats().attack() + state_.scroll_stats().attack();
-  int base_matt = prototype_.base_stats().magic_attack() +
-                  state_.scroll_stats().magic_attack();
+  // What the item shows before any star: the drop's own stats and whatever
+  // scrolls passed. The star force gains are deliberately not in it -- each
+  // star's share is taken from these plus the gains so far, which the run
+  // carries as it goes.
+  const EquipStats shown_sources[] = {prototype_.base_stats(),
+                                      state_.scroll_stats()};
+  const EquipStats shown = SumEquipStats(shown_sources);
 
-  EquipStats gains;
-  int sf_att = 0;
-  int sf_matt = 0;
+  StarForceRun run;
+  run.slot = prototype_.equip_slot();
+  run.is_weapon = run.slot == EQUIP_SLOT_PRIMARY_WEAPON;
+  run.required_level = prototype_.required_level();
+  run.job_stats = PrimaryStatFlags(prototype_);
+  run.visible_stats = VisibleStatFlags(shown);
+  run.shown_att = shown.attack();
+  run.shown_matt = shown.magic_attack();
+  run.shown_def = shown.def();
 
   for (int s = 0; s < stars; ++s) {
     if (s < 15) {
-      int delta = kPrimaryStatDeltas[s];
-      if (flags.str) {
-        gains.set_str(gains.str() + delta);
-      }
-      if (flags.dex) {
-        gains.set_dex(gains.dex() + delta);
-      }
-      if (flags.int_) {
-        gains.set_int_(gains.int_() + delta);
-      }
-      if (flags.luk) {
-        gains.set_luk(gains.luk() + delta);
-      }
-      if (is_weapon) {
-        gains.set_max_hp(gains.max_hp() + kHpMpDeltas[s]);
-        gains.set_max_mp(gains.max_mp() + kHpMpDeltas[s]);
-        // sf_att feeds back into the next star's gain (cumulative).
-        sf_att += (base_att + sf_att) / 50 + 1;
-        sf_matt += (base_matt + sf_matt) / 50 + 1;
-      }
-    } else if (is_weapon) {
-      WeaponHighStarEntry entry = WeaponHighStarGainAt(required_level, s + 1);
-      if (flags.str) {
-        gains.set_str(gains.str() + entry.stat);
-      }
-      if (flags.dex) {
-        gains.set_dex(gains.dex() + entry.stat);
-      }
-      if (flags.int_) {
-        gains.set_int_(gains.int_() + entry.stat);
-      }
-      if (flags.luk) {
-        gains.set_luk(gains.luk() + entry.stat);
-      }
-      sf_att += entry.att;
-      sf_matt += entry.att;
+      AddLowStar(s, &run);
+    } else {
+      AddHighStar(s + 1, &run);
     }
   }
-
-  if (is_weapon) {
-    gains.set_attack(sf_att);
-    gains.set_magic_attack(sf_matt);
-  }
-  return gains;
+  return run.gains;
 }
 
 EquipStats EquipTabItem::stats() const {

@@ -77,13 +77,16 @@ class StackableItem : public Item {
 };
 
 // Base for items on the equip tab: active equips and traces of destroyed items.
-// Holds the shared prototype and per-instance state. StarForceStatGains() is
-// defined in equip_instance.cc alongside the star force tables.
+// Holds the shared prototype and per-instance state.
 class EquipTabItem : public Item {
  public:
-  // Returns stat gains contributed by star force levels alone (not
-  // base/scroll). Pass stars >= 0 to query a specific level; -1 (default) uses
-  // the item's current star count.
+  // What the stars alone add, the drop's own stats and its scrolls left out.
+  // Pass stars >= 0 to ask about a level the item has not reached; -1, the
+  // default, asks about the stars it has.
+  //
+  // What a star gives depends on where the item is worn: a weapon's attack and
+  // MP climb, everything else's defense does, and Max HP goes to the slots on
+  // GMS's Category A list.
   EquipStats StarForceStatGains(int stars = -1) const;
   // Sum of prototype base stats, scroll stats, and star force stat gains.
   EquipStats stats() const;
