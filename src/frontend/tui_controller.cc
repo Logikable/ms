@@ -666,11 +666,15 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
       return true;
     }
     boss_prompt_title_ = boss_select_panel_.selected_title();
-    // Three ways a fight is not offered, and each says why rather than doing
-    // nothing: a character with nothing to swing, a fight they have not
-    // levelled up to, and one still on its reset. Only what is left is worth
-    // asking a question about.
-    if (EquippedWeapon(state_) == nullptr) {
+    // Four ways a fight is not offered, and each says why rather than doing
+    // nothing: a fight that is not built yet, a character with nothing to
+    // swing, a fight they have not levelled up to, and one still on its reset.
+    // The unbuilt one leads, because none of the others is the reason. Only
+    // what is left is worth asking a question about.
+    if (boss_select_panel_.selected_coming_soon()) {
+      OpenNotice(kBossNotice, {boss_prompt_title_, "is coming soon!"},
+                 /*refusal=*/true);
+    } else if (EquippedWeapon(state_) == nullptr) {
       OpenNotice(kBossNotice, {"You have no weapon equipped!"},
                  /*refusal=*/true);
     } else if (!boss_select_panel_.selected_unlocked()) {

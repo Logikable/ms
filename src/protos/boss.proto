@@ -69,6 +69,10 @@ message BossDifficulty {
   // levels, and the hard mode of a fight already beaten is the usual next
   // thing a player is waiting for.
   int32 unlock_level = 7;
+  // A fight that is written down but not built yet. The screen lists it, dims
+  // it, and shows nothing but the HP of each phase -- there is no clock, no
+  // reset and no reward to state, because none of them has been decided.
+  bool coming_soon = 9;
 }
 
 // A boss and every difficulty it can be fought at. Loaded from data/bosses

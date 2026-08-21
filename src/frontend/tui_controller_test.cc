@@ -2355,6 +2355,25 @@ TEST_F(TuiControllerTest, ALockedFightNamesTheLevelItOpensAt) {
   EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
 }
 
+// A fight that is not built yet answers with that and nothing else -- not the
+// weapon, not the level, not the reset, none of which is the reason.
+TEST_F(TuiControllerTest, AComingSoonFightSaysSoAndStartsNothing) {
+  BossDifficulty* chaos = state_->bosses["zakum"].add_difficulties();
+  chaos->set_name("Chaos");
+  chaos->set_coming_soon(true);
+  Spawn* spawn = chaos->add_phases()->add_spawns();
+  spawn->set_mob("zakum");
+  spawn->set_count(1);
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossNotice);
+  EXPECT_TRUE(controller_->notice_is_refusal()) << "drawn in red";
+  EXPECT_EQ(controller_->notice_lines()[0], "Chaos Zakum");
+  EXPECT_EQ(controller_->notice_lines()[1], "is coming soon!");
+  EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
+}
+
 // A character holding nothing cannot fight: the fight used to start and then
 // give up on its own, which read as the screen closing for no reason.
 TEST_F(TuiControllerTest, AFightRefusesACharacterWithNoWeapon) {

@@ -65,6 +65,9 @@ class BossSelectPanel {
   // The level the highlighted difficulty opens at, 0 for one with no gate of
   // its own.
   int selected_unlock_level() const;
+  // Whether the highlighted fight is written down but not built yet. Such a
+  // fight is listed and readable but can never be entered.
+  bool selected_coming_soon() const;
   // How often the highlighted fight comes back, for a notice that has to say
   // when. RESET_PERIOD_UNSPECIFIED when there is no fight.
   ResetPeriod selected_reset() const;
@@ -72,6 +75,11 @@ class BossSelectPanel {
  private:
   ftxui::Element RenderBossList() const;
   ftxui::Element RenderDetail() const;
+  // Appends one HP row per phase. "HP" alone for a fight that is one monster
+  // standing there; a fight with phases numbers them, because then which HP
+  // it is matters.
+  void RenderPhaseHp(std::vector<ftxui::Element>& rows,
+                     const BossDifficulty& difficulty) const;
   // Appends the reward rows -- the clear's meso, then a name and a chance per
   // drop -- to the detail panel.
   void RenderRewards(std::vector<ftxui::Element>& rows,

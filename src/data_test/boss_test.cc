@@ -74,13 +74,17 @@ TEST(BossDataTest, EveryPhaseSpawnsAKnownMob) {
 }
 
 // A fight with no clock could not be lost, and one with no reset could be run
-// all day -- both of which the boss screen is built around not being true.
+// all day -- both of which the boss screen is built around not being true. A
+// fight that is not built yet is exempt: it states its HP and nothing else.
 TEST(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     EXPECT_FALSE(entry.second.name().empty()) << entry.first;
     EXPECT_GT(entry.second.difficulties_size(), 0) << entry.first;
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       EXPECT_FALSE(difficulty.name().empty()) << entry.first;
+      if (difficulty.coming_soon()) {
+        continue;
+      }
       EXPECT_GT(difficulty.time_limit_seconds(), 0)
           << entry.first << " " << difficulty.name();
       EXPECT_NE(difficulty.reset(), RESET_PERIOD_UNSPECIFIED)

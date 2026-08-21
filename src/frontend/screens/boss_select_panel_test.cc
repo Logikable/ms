@@ -424,5 +424,86 @@ TEST(BossSelectPanelTest, TheListSortsByTheLevelAFightOpensAt) {
   EXPECT_EQ(panel.selected_boss(), "balrog");
 }
 
+// Adds a Chaos difficulty to Zakum that is written down but not built, and
+// gives it a body big enough to need a 64-bit HP.
+BossDifficulty* AddChaosZakum(GameState& state) {
+  state.mobs["chaos_zakum"] = BossMob("Chaos Zakum", 180, 84000000000LL, 100);
+  BossDifficulty* chaos = state.bosses["zakum"].add_difficulties();
+  chaos->set_name("Chaos");
+  chaos->set_coming_soon(true);
+  AddPhase(chaos, "chaos_zakum", 1);
+  return chaos;
+}
+
+// The whole panel for a fight that is not built yet: the promise, a blank
+// line, the HP, and nothing that has not been decided.
+TEST(BossSelectPanelTest, AComingSoonFightShowsItsHpAndNothingElse) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  AddChaosZakum(state);
+  BossSelectPanel panel(state);
+  panel.ChangeDifficulty(1);
+  ASSERT_TRUE(panel.selected_coming_soon());
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("Coming soon!"), std::string::npos);
+  EXPECT_NE(out.find("84B"), std::string::npos) << "the HP still reads";
+  EXPECT_EQ(out.find("Time Limit"), std::string::npos);
+  EXPECT_EQ(out.find("Reset"), std::string::npos);
+  EXPECT_EQ(out.find("Rewards"), std::string::npos);
+  EXPECT_EQ(out.find("Available"), std::string::npos);
+  EXPECT_EQ(out.find("PDR"), std::string::npos);
+}
+
+// Gold says the fight is on its way rather than refused, which is why it is
+// not the red a shortfall gets.
+TEST(BossSelectPanelTest, TheComingSoonLineIsGold) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  AddChaosZakum(state);
+  BossSelectPanel panel(state);
+  panel.ChangeDifficulty(1);
+  EXPECT_EQ(RowColor(panel, "Coming soon!"), kYellow);
+}
+
+// The blank row is the point of the pair: it holds the HP off the promise so
+// the two do not read as one sentence.
+TEST(BossSelectPanelTest, ABlankRowSeparatesThePromiseFromTheHp) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  AddChaosZakum(state);
+  BossSelectPanel panel(state);
+  panel.ChangeDifficulty(1);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(24));
+  ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
+  int at = -1;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    if (Row(screen, y).find("Coming soon!") != std::string::npos) {
+      at = y;
+    }
+  }
+  ASSERT_GE(at, 0);
+  EXPECT_EQ(Row(screen, at + 1).find("HP"), std::string::npos)
+      << "a blank row comes between";
+  EXPECT_NE(Row(screen, at + 2).find("HP"), std::string::npos);
+}
+
+// Dim is the door, and this one does not open at any level.
+TEST(BossSelectPanelTest, AComingSoonFightIsDimAndNeverEnterable) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  AddChaosZakum(state);
+  LevelTo(state, 200);
+  BossSelectPanel panel(state);
+  EXPECT_FALSE(panel.selected_coming_soon()) << "Normal is built";
+  panel.ChangeDifficulty(1);
+  EXPECT_TRUE(panel.selected_coming_soon());
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(16));
+  ftxui::Render(screen, panel.Render());
+  EXPECT_NE(screen.ToString().find("\033[2m"), std::string::npos)
+      << "the difficulty cell is dimmed";
+}
+
 }  // namespace
 }  // namespace ms

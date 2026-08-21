@@ -215,6 +215,11 @@ int BossSelectPanel::selected_unlock_level() const {
   return difficulty == nullptr ? 0 : difficulty->unlock_level();
 }
 
+bool BossSelectPanel::selected_coming_soon() const {
+  const BossDifficulty* difficulty = selected();
+  return difficulty != nullptr && difficulty->coming_soon();
+}
+
 ResetPeriod BossSelectPanel::selected_reset() const {
   const BossDifficulty* difficulty = selected();
   return difficulty == nullptr ? RESET_PERIOD_UNSPECIFIED : difficulty->reset();
@@ -240,10 +245,12 @@ ftxui::Element BossSelectPanel::RenderBossList() const {
     if (i == selected_) {
       cell = std::move(cell) | ftxui::inverted;
     }
-    // Dim is the door: a fight the character has not levelled up to is still
-    // listed and still readable, and Enter on it says what it wants.
+    // Dim is the door: a fight the character has not levelled up to -- or one
+    // that is not built yet -- is still listed and still readable, and Enter
+    // on it says what it wants.
     if (difficulties_[i] < boss.difficulties_size() &&
-        !Unlocked(boss.difficulties(difficulties_[i]))) {
+        (!Unlocked(boss.difficulties(difficulties_[i])) ||
+         boss.difficulties(difficulties_[i]).coming_soon())) {
       cell = std::move(cell) | ftxui::dim;
     }
     int pad =
@@ -267,6 +274,16 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
     rows.push_back(EmptyState("empty"));
     return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));
   }
+  // A fight that is not built yet has none of the rest to state: no clock, no
+  // reset, no reward. What it can honestly show is how big it is, under a line
+  // saying why that is all there is.
+  if (difficulty->coming_soon()) {
+    rows.push_back(ftxui::text(PadRight(" Coming soon!", kDetailWidth)) |
+                   ftxui::color(kYellow));
+    rows.push_back(ftxui::text(std::string(kDetailWidth, ' ')));
+    RenderPhaseHp(rows, *difficulty);
+    return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));
+  }
   rows.push_back(
       DetailRow("Level", std::to_string(BossLevel(state_, *difficulty))));
   // Under the fight's own level, because the two together are what the player
@@ -281,15 +298,7 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
     }
     rows.push_back(std::move(row));
   }
-  // "HP" alone for a fight that is one monster standing there; a fight with
-  // phases numbers them, because then which HP it is matters.
-  for (int i = 0; i < difficulty->phases_size(); ++i) {
-    std::string label = difficulty->phases_size() > 1
-                            ? "P" + std::to_string(i + 1) + " HP"
-                            : "HP";
-    rows.push_back(DetailRow(
-        label, FormatCompact(PhaseHp(state_, difficulty->phases(i)))));
-  }
+  RenderPhaseHp(rows, *difficulty);
   rows.push_back(
       DetailRow("PDR", std::to_string(BossPdr(state_, *difficulty)) + "%"));
   rows.push_back(
@@ -310,6 +319,17 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
   rows.push_back(ftxui::text(" Rewards ") | ftxui::color(kTheme));
   RenderRewards(rows, *difficulty);
   return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));
+}
+
+void BossSelectPanel::RenderPhaseHp(std::vector<ftxui::Element>& rows,
+                                    const BossDifficulty& difficulty) const {
+  for (int i = 0; i < difficulty.phases_size(); ++i) {
+    std::string label = difficulty.phases_size() > 1
+                            ? "P" + std::to_string(i + 1) + " HP"
+                            : "HP";
+    rows.push_back(
+        DetailRow(label, FormatCompact(PhaseHp(state_, difficulty.phases(i)))));
+  }
 }
 
 std::string BossSelectPanel::RewardName(const MobDrop& drop) const {
