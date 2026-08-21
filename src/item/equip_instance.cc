@@ -77,6 +77,7 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_UNSPECIFIED:
     case EQUIP_SLOT_PROJECTILE:
     case EQUIP_SLOT_SECONDARY:
+    case EQUIP_SLOT_POCKET:
       return SCROLL_TARGET_UNSPECIFIED;
   }
   return SCROLL_TARGET_UNSPECIFIED;

@@ -161,6 +161,7 @@ bool RaisesMaxHp(EquipSlot slot) {
     case EQUIP_SLOT_SECONDARY:
     case EQUIP_SLOT_FACE_ACCESSORY:
     case EQUIP_SLOT_EYE_ACCESSORY:
+    case EQUIP_SLOT_POCKET:
       return false;
   }
   return false;

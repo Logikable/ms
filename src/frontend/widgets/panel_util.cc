@@ -439,6 +439,8 @@ std::string FormatSlot(EquipSlot slot) {
       return "Belt";
     case EQUIP_SLOT_SHOULDER:
       return "Shoulder";
+    case EQUIP_SLOT_POCKET:
+      return "Pocket";
     default:
       return "";
   }

@@ -1096,6 +1096,7 @@ TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_PENDANT), "Pendant");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_BELT), "Belt");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_SHOULDER), "Shoulder");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_POCKET), "Pocket");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
 }
 
