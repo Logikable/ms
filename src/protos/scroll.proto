@@ -45,6 +45,9 @@ enum ScrollTarget {
   SCROLL_TARGET_UNSPECIFIED = 0;
   SCROLL_TARGET_WEAPON = 1;
   SCROLL_TARGET_ARMOUR = 2;
+  // The face and eye accessories. GMS sells them their own traces, at their
+  // own prices; none are written here yet, so nothing is offered for one.
+  SCROLL_TARGET_ACCESSORY = 3;
 }
 
 // One Scroll represents a single, fully-specified scroll option,

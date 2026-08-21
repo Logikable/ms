@@ -65,6 +65,9 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_BOTTOM:
     case EQUIP_SLOT_CAPE:
       return SCROLL_TARGET_ARMOUR;
+    case EQUIP_SLOT_FACE_ACCESSORY:
+    case EQUIP_SLOT_EYE_ACCESSORY:
+      return SCROLL_TARGET_ACCESSORY;
     case EQUIP_SLOT_UNSPECIFIED:
     case EQUIP_SLOT_PROJECTILE:
     case EQUIP_SLOT_SECONDARY:

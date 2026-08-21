@@ -104,6 +104,15 @@ TEST(SpellTraceCostTest, AnUnsoldScrollFallsBackToItsFile) {
             SpellTraceCost(200, TraceCategory::kArmor, 15));
 }
 
+// The accessories have no column in the band table yet, so a scroll for one
+// keeps the price in its own file rather than being given away.
+TEST(SpellTraceCostTest, AnAccessoryScrollCarriesItsOwnPrice) {
+  Scroll scroll = StatScroll(SCROLL_TARGET_ACCESSORY, 100);
+  scroll.set_trace_cost(50);
+  EXPECT_EQ(TraceCost(scroll, 100), 50);
+  EXPECT_EQ(TraceCost(scroll, 110), 50);
+}
+
 // A stat scroll's own trace_cost is dead data. Leaving one in a file must not
 // change what the player pays, or the two prices drift apart unnoticed.
 TEST(SpellTraceCostTest, AStatScrollIgnoresItsWrittenPrice) {

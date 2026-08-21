@@ -90,6 +90,7 @@ TraceCategory CategoryFor(ScrollTarget target) {
       return TraceCategory::kArmor;
     case SCROLL_TARGET_WEAPON:
       return TraceCategory::kWeapon;
+    case SCROLL_TARGET_ACCESSORY:
     case SCROLL_TARGET_UNSPECIFIED:
       break;
   }
@@ -115,9 +116,11 @@ int SpellTraceCost(int required_level, TraceCategory category,
 }
 
 int TraceCost(const Scroll& scroll, int required_level) {
-  // A scroll that goes on no particular kind of equipment is not something GMS
-  // sells for traces -- the clean slate -- so there is no band to read.
-  if (scroll.target() == SCROLL_TARGET_UNSPECIFIED) {
+  // Targets the band table holds no column for: the clean slate, which goes on
+  // anything and is not sold for traces, and the accessories, whose own column
+  // is not written yet.
+  if (scroll.target() == SCROLL_TARGET_UNSPECIFIED ||
+      scroll.target() == SCROLL_TARGET_ACCESSORY) {
     return scroll.trace_cost();
   }
   int banded = SpellTraceCost(required_level, CategoryFor(scroll.target()),

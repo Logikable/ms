@@ -359,6 +359,11 @@ std::string FormatSlot(EquipSlot slot) {
       return "Bottom";
     case EQUIP_SLOT_CAPE:
       return "Cape";
+    // Short of the full "Face Accessory": the slot column is ten columns wide.
+    case EQUIP_SLOT_FACE_ACCESSORY:
+      return "Face";
+    case EQUIP_SLOT_EYE_ACCESSORY:
+      return "Eye";
     default:
       return "";
   }
