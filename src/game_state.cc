@@ -167,12 +167,19 @@ void GiveEquip(GameState& state, const std::string& name) {
 
 // Puts each of `names` on, from the row it lands on, so a Rogue's three reach
 // three slots -- and whatever a later one displaces goes back to the bag for
-// the tester to swap in.
+// the tester to swap in. A piece the character is too low to wear is handed
+// over anyway, and stays in the bag until they are.
 void WearAll(GameState& state, const std::vector<std::string>& names) {
   for (const std::string& name : names) {
+    std::map<std::string, EquipPrototype>::const_iterator it =
+        state.equips.find(name);
+    if (it == state.equips.end()) {
+      continue;
+    }
     int row = static_cast<int>(state.character.inventory().size());
     GiveEquip(state, name);
-    if (static_cast<int>(state.character.inventory().size()) > row) {
+    if (static_cast<int>(state.character.inventory().size()) > row &&
+        state.character.MeetsLevel(it->second)) {
       state.character.Equip(row);
     }
   }
@@ -181,6 +188,14 @@ void WearAll(GameState& state, const std::vector<std::string>& names) {
 // The only armour there is. Universal, so it fits whoever the workbench is.
 std::vector<std::string> FrozenArmour() {
   return {"frozen_hat", "frozen_top", "frozen_bottom", "frozen_cape"};
+}
+
+// What Zakum pays, which is the only thing that fills the two accessory slots.
+// A boss drop is a long way to walk for a screen, so the workbench starts in
+// it -- and the crystal asks for level 110, which a 3rd job standing at 100
+// carries rather than wears.
+std::vector<std::string> BossAccessories() {
+  return {"aquatic_letter_eye_accessory", "condensed_power_crystal"};
 }
 
 // Passed as `unspent_stage` to spend every point the climb earns.
@@ -242,6 +257,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement,
   // with above, for six.
   if (stage >= 3) {
     WearAll(state, FrozenArmour());
+    WearAll(state, BossAccessories());
   }
 }
 

@@ -161,6 +161,24 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
   }
 }
 
+// Zakum's two accessories fill the slots nothing else in the catalog does, and
+// a boss drop is a long walk for a tester. The eye piece asks for level 100
+// and the crystal for 110, so a 3rd job standing at 100 wears the one and
+// carries the other.
+TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatZakumDrops) {
+  GameState second = Workbench(JOB_ADVANCEMENT_BANDIT);
+  EXPECT_EQ(second.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 0u);
+  EXPECT_EQ(second.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 0u);
+
+  GameState third = Workbench(JOB_ADVANCEMENT_BERSERKER);
+  EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 1u);
+  EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 0u);
+
+  GameState fourth = Workbench(JOB_ADVANCEMENT_DARK_KNIGHT);
+  EXPECT_EQ(fourth.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 1u);
+  EXPECT_EQ(fourth.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 1u);
+}
+
 // The level the gear is checked against, so a change to the advancement levels
 // shows up here as itself rather than as a weapon that looks wrong.
 TEST_F(WorkbenchGearTest, EachJobStartsAtTheTopOfItsOwnBand) {
