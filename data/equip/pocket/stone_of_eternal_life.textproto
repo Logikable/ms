@@ -16,6 +16,6 @@ equip_slot: EQUIP_SLOT_POCKET
 # so the scroll refusal is the declaration rather than the slot count.
 unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
-# GMS refuses the sale outright. Nothing here can, so it sells for nothing --
-# which is what clears an unwanted copy out of the bag.
-sell_price: 0
+# GMS refuses the sale outright. Nothing here does, so a spare is worth what
+# the rest of a boss's accessories are worth, a little short of Horntail's.
+sell_price: 750000

@@ -1,0 +1,16 @@
+name: "Silver Blossom Ring"
+required_level: 110
+base_stats {
+  str: 5
+  dex: 5
+  int: 5
+  luk: 5
+  attack: 2
+  magic_attack: 2
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_RING
+upgrade_slots: 2
+# Dropped by Horntail, never stocked, so no shop price sets this. Twice what
+# Zakum's accessories fetch: it takes the longer fight to spare one.
+sell_price: 1000000

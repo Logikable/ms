@@ -1,0 +1,10 @@
+name: "Horntail's Head B"
+level: 160
+# The middle head, and the one that barely swings: GMS gives it a fifth of
+# what the heads either side of it hit for.
+attack: 2000
+max_hp: 490000000
+# The clear pays the EXP, not the eight bodies: see the boss file.
+exp: 0
+pdr: 40
+boss: true

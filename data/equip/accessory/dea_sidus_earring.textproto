@@ -1,0 +1,15 @@
+name: "Dea Sidus Earring"
+required_level: 130
+base_stats {
+  str: 5
+  dex: 5
+  int: 5
+  luk: 5
+  attack: 2
+  magic_attack: 2
+  def: 50
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_EARRINGS
+upgrade_slots: 6
+sell_price: 1000000

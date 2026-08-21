@@ -1,0 +1,13 @@
+name: "Horntail Necklace"
+required_level: 120
+base_stats {
+  str: 7
+  dex: 7
+  int: 7
+  luk: 7
+  def: 108
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_PENDANT
+upgrade_slots: 1
+sell_price: 1000000

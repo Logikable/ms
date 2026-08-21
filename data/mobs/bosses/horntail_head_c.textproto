@@ -1,0 +1,8 @@
+name: "Horntail's Head C"
+level: 160
+attack: 14500
+max_hp: 330000000
+# The clear pays the EXP, not the eight bodies: see the boss file.
+exp: 0
+pdr: 40
+boss: true
