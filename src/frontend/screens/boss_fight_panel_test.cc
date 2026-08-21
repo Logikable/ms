@@ -66,7 +66,8 @@ std::unique_ptr<GameState> MakeState(int arm_hp, int body_hp) {
 }
 
 std::string Render(const BossRun& run) {
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(90),
+  // Wide enough for the whole arena: three panels and the gaps between them.
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
                                                ftxui::Dimension::Fixed(30));
   ftxui::Render(screen, BossFightPanel(run));
   return screen.ToString();

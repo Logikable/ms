@@ -115,6 +115,7 @@ cc_test(
         "//src/character",
         "//src/combat:constants",
         "//src/combat:damage",
+        "//src/frontend/screens:boss_fight_panel",
         "//src/frontend/widgets:panel_util",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",

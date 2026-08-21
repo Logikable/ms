@@ -14,11 +14,7 @@
 namespace ms {
 namespace {
 
-// Wide enough for "Zakum's Arm" with room around it, and the same on both
-// sides so the two columns balance.
-constexpr int kMobPanelWidth = 20;
 constexpr int kMobPanelHeight = 3;
-constexpr int kPlayerPanelWidth = 20;
 // The gap between the player and the monsters flanking them. Fixed rather
 // than flexed: on a wide terminal a filler would push the arms out to the
 // edges of the screen, where they read as two separate lists rather than as
@@ -39,14 +35,14 @@ ftxui::Element MobBar(const BossSlot& slot) {
       ProgressBar(static_cast<float>(slot.hp_fraction), kRed,
                   std::to_string(Percent(slot.hp_fraction)) + "%");
   return ThemedWindow(" " + slot.name + " ", std::move(bar)) |
-         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kMobPanelWidth);
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
 // The room a bar took, once its monster has gone. The slot is not filled
 // again, so the bars beside it stay where the player watched them.
 ftxui::Element EmptySlot() {
   return ftxui::text("") |
-         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kMobPanelWidth) |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth) |
          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kMobPanelHeight);
 }
 
@@ -72,7 +68,7 @@ ftxui::Element PlayerPanel(const BossRun& run) {
   ftxui::Element bar =
       ProgressBar(static_cast<float>(run.attack_fraction()), kTheme, label);
   return ThemedWindow(" You ", std::move(bar)) |
-         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kPlayerPanelWidth);
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
 // The clock, in a box of its own under the heading.

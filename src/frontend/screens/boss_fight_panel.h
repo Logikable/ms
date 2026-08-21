@@ -16,6 +16,15 @@
 
 namespace ms {
 
+// How wide every panel in the arena is drawn: the monsters' bars and the
+// player's alike, so the ring is square whatever is standing in it.
+//
+// Sized off the longest thing that goes in one, which is the name of a swing
+// being charged -- with room to spare and a column of clearance each side.
+// A skill named past it is caught by a data test rather than by a player
+// watching half a name.
+inline constexpr int kBossPanelWidth = 32;
+
 // Seconds as mm:ss, rounded up so the clock reads 0:00 only when the time is
 // actually gone.
 std::string FightClock(double seconds_left);
