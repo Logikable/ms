@@ -21,7 +21,9 @@
 #include "src/frontend/panels/combat_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/screens/all_stats_panel.h"
+#include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
@@ -64,6 +66,8 @@ class Tui {
   ftxui::Element SkillLearnDialog();
   ftxui::Element JobAdvanceDialog();
   ftxui::Element QuitDialog();
+  // "Fight Normal Zakum?", floated over the boss screen.
+  ftxui::Element BossConfirmDialog();
   ftxui::Element RenderShopInspect();
   // The inspect screen for a row of the buy-back shelf: the item as the sale
   // left it, rebuilt from the shelf plus the catalog.
@@ -120,6 +124,7 @@ class Tui {
   // Main view panels (always constructed; rendered in kMain and kItemMenu).
   CharacterPanel char_panel_;
   CombatPanel combat_panel_;
+  MenuPanel menu_panel_;
   EquippedPanel equip_panel_;
   InventoryPanel inventory_panel_;
   ScrollPanel scroll_panel_;
@@ -131,6 +136,7 @@ class Tui {
   SellPanel sell_panel_;
   SellEquipPanel sell_equip_panel_;
   MapSelectPanel map_select_panel_;
+  BossSelectPanel boss_select_panel_;
   // The job's book, read before the advancement is taken.
   JobInspectPanel job_inspect_panel_;
   // Every stat on one screen, reached from the Character panel's last row.
@@ -146,6 +152,7 @@ class Tui {
   ftxui::Component inventory_component_;
   ftxui::Component char_component_;
   ftxui::Component combat_component_;
+  ftxui::Component menu_component_;
 };
 
 }  // namespace ms

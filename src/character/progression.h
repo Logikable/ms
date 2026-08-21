@@ -34,6 +34,11 @@ enum class Feature {
   // Tabs. Skills is the one gate that is not level alone -- see Unlocked.
   kSkills,
   kShop,
+  // The menu panel in the bottom-right corner, and the Boss entry on it. The
+  // menu takes the corner over from the hotkeys tip the level the tip
+  // retires, so the corner is never empty and never holds both.
+  kMenu,
+  kBoss,
   // The combat stat block on the Character panel, in two halves. Gated on the
   // advancement rather than the level: what fills those rows is a job's
   // passives and the gear a job can wear, so a Beginner has nothing to read

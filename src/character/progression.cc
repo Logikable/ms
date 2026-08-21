@@ -26,11 +26,18 @@ constexpr Unlock kUnlocks[] = {
     // Deliberately the same level as the bag: it is the bag that makes taking
     // something off possible, so move the two together if either changes.
     {Feature::kUnequip, 4},
+    // One past the bag, which is the last panel the hotkeys tip has to
+    // account for: the tip leaves the corner and the menu takes it over.
+    {Feature::kMenu, 5},
     {Feature::kSkills, 10},
     {Feature::kShop, 20},
     // Far enough out that a player meets it once the early game is behind
     // them, and far enough that the meso for spell traces is coming in.
     {Feature::kScrolling, 40},
+    // Zakum's own level. There is nothing else on the boss screen yet, so
+    // opening it any earlier would only show the player a fight they cannot
+    // take.
+    {Feature::kBoss, 110},
     // Held to the level of the gear it is for. The tiers below carry 5 and 8
     // star caps; the Frozen weapons a token buys at 120 are the first that
     // take 15, and now that an attempt is priced, opening the screen earlier
@@ -159,6 +166,10 @@ std::string FeatureName(Feature feature) {
       return "Skills";
     case Feature::kShop:
       return "the Shop";
+    case Feature::kMenu:
+      return "the Menu";
+    case Feature::kBoss:
+      return "Bosses";
     case Feature::kCombatStats:
       return "Combat Stats";
     case Feature::kDamageStats:
@@ -217,10 +228,9 @@ void FollowedToAction(Feature feature, CharacterInstance& character) {
 }
 
 int HotkeysTipRetireLevel() {
-  // One level past the bag, which is the last panel the tip has to account
-  // for. Derived rather than written out, so retuning the early game moves the
-  // tip along with the panels it describes.
-  return UnlockLevel(Feature::kBag) + 1;
+  // The level the menu panel takes the corner over at. Derived rather than
+  // written out, so the corner can never hold both or neither.
+  return UnlockLevel(Feature::kMenu);
 }
 
 bool HotkeysTipVisible(const CharacterInstance& character) {

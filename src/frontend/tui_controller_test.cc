@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ctime>
 #include <map>
 #include <memory>
 #include <string>
@@ -14,6 +15,8 @@
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
@@ -26,6 +29,7 @@
 #include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -99,6 +103,25 @@ class TuiControllerTest : public testing::Test {
     state_ = std::make_unique<GameState>(
         std::move(equips), std::move(scrolls), std::move(items),
         std::map<std::string, Mob>{}, std::map<std::string, MapData>{});
+    // Normal Zakum, so the boss screen has a fight on it. Seeded here rather
+    // than per test: BossSelectPanel fixes its list at construction, and the
+    // panels are built once for the fixture.
+    Mob arm;
+    arm.set_name("Zakum's Arm");
+    arm.set_level(110);
+    arm.set_max_hp(700000);
+    arm.set_boss(true);
+    state_->mobs["zakum_arm"] = arm;
+    Boss boss;
+    boss.set_name("Zakum");
+    BossDifficulty* normal = boss.add_difficulties();
+    normal->set_name("Normal");
+    normal->set_reset(RESET_PERIOD_DAILY);
+    normal->set_time_limit_seconds(300);
+    Spawn* spawn = normal->add_phases()->add_spawns();
+    spawn->set_mob("zakum_arm");
+    spawn->set_count(8);
+    state_->bosses["zakum"] = boss;
   }
 
   // A Swordman with enough SP to spend and standing at scrolling's gate.
@@ -134,6 +157,7 @@ class TuiControllerTest : public testing::Test {
     sell_panel_ = std::make_unique<SellPanel>();
     sell_equip_panel_ = std::make_unique<SellEquipPanel>();
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
+    boss_select_panel_ = std::make_unique<BossSelectPanel>(*state_);
     shop_panel_ = std::make_unique<ShopPanel>(state_->character, state_->equips,
                                               state_->items);
     buy_panel_ = std::make_unique<BuyPanel>();
@@ -141,8 +165,9 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *map_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, skill_inspect_panel_, panel_focus_);
+        *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -259,11 +284,13 @@ class TuiControllerTest : public testing::Test {
   // exist before it does -- rebuild both after touching state_->maps.
   void RebuildMapSelect() {
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
+    boss_select_panel_ = std::make_unique<BossSelectPanel>(*state_);
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *map_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, skill_inspect_panel_, panel_focus_);
+        *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -373,8 +400,9 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *map_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, skill_inspect_panel_, panel_focus_);
+        *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -401,6 +429,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<SellPanel> sell_panel_;
   std::unique_ptr<SellEquipPanel> sell_equip_panel_;
   std::unique_ptr<MapSelectPanel> map_select_panel_;
+  std::unique_ptr<BossSelectPanel> boss_select_panel_;
   std::unique_ptr<ShopPanel> shop_panel_;
   std::unique_ptr<BuyPanel> buy_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
@@ -413,12 +442,15 @@ class TuiControllerTest : public testing::Test {
 // --- Tab ---
 
 // Focus starts on the equipped panel and Tab runs clockwise through every
-// panel: equipped -> inventory -> combat -> character -> back to equipped. The
-// character panel is always focusable, so no panel is ever skipped.
+// panel: equipped -> inventory -> menu -> combat -> character -> back to
+// equipped. The character panel is always focusable, so no panel is ever
+// skipped.
 
 TEST_F(TuiControllerTest, TabWalksThePanelRing) {
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kInventoryPanel);
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(panel_focus_, kMenuPanel);
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(panel_focus_, kCombatPanel);
   controller_->OnEvent(ftxui::Event::Tab);
@@ -433,6 +465,8 @@ TEST_F(TuiControllerTest, ShiftTabWalksTheRingBackwards) {
   EXPECT_EQ(panel_focus_, kCharPanel);
   controller_->OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(panel_focus_, kCombatPanel);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_EQ(panel_focus_, kMenuPanel);
   controller_->OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(panel_focus_, kInventoryPanel);
   controller_->OnEvent(ftxui::Event::TabReverse);
@@ -2001,19 +2035,21 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   SellPanel sell;
   SellEquipPanel sell_equip;
   MapSelectPanel maps(fresh);
+  BossSelectPanel bosses(fresh);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, shop, buy, jobs, skill_card,
-                           focus);
+                           sell_equip, maps, bosses, shop, buy, jobs,
+                           skill_card, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
   EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
   EXPECT_FALSE(controller.PanelVisible(kEquipPanel));
   EXPECT_FALSE(controller.PanelVisible(kInventoryPanel));
+  EXPECT_FALSE(controller.PanelVisible(kMenuPanel));
 
   while (fresh.character.proto().level() < UnlockLevel(Feature::kEquipped)) {
     fresh.character.LevelUp();
@@ -2024,6 +2060,13 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
 
   fresh.character.LevelUp();
   EXPECT_TRUE(controller.PanelVisible(kInventoryPanel));
+  EXPECT_FALSE(controller.PanelVisible(kMenuPanel))
+      << "the corner menu waits for the hotkeys tip to retire";
+
+  fresh.character.LevelUp();
+  EXPECT_TRUE(controller.PanelVisible(kMenuPanel));
+  EXPECT_FALSE(HotkeysTipVisible(fresh.character))
+      << "the corner holds one or the other, never both";
 }
 
 // Tab rounds the panels that exist. At level 1 that is two of them, so it
@@ -2039,14 +2082,15 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   SellPanel sell;
   SellEquipPanel sell_equip;
   MapSelectPanel maps(fresh);
+  BossSelectPanel bosses(fresh);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, shop, buy, jobs, skill_card,
-                           focus);
+                           sell_equip, maps, bosses, shop, buy, jobs,
+                           skill_card, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
@@ -2068,14 +2112,15 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   SellPanel sell;
   SellEquipPanel sell_equip;
   MapSelectPanel maps(fresh);
+  BossSelectPanel bosses(fresh);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, shop, buy, jobs, skill_card,
-                           focus);
+                           sell_equip, maps, bosses, shop, buy, jobs,
+                           skill_card, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
@@ -2097,14 +2142,15 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   SellPanel sell;
   SellEquipPanel sell_equip;
   MapSelectPanel maps(fresh);
+  BossSelectPanel bosses(fresh);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   int focus = kEquipPanel;  // where the game starts
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, shop, buy, jobs, skill_card,
-                           focus);
+                           sell_equip, maps, bosses, shop, buy, jobs,
+                           skill_card, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));
@@ -2179,6 +2225,49 @@ TEST_F(TuiControllerTest, EscapeLeavesTheScreenNotTheGame) {
 
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_FALSE(controller_->quit_requested());
+}
+
+// --- the boss screen ---
+
+TEST_F(TuiControllerTest, TheBossEntryOpensTheBossScreenAndClearsItsGold) {
+  ASSERT_FALSE(state_->character.TabSeen(MenuPanel::boss_seen_key()));
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_TRUE(state_->character.TabSeen(MenuPanel::boss_seen_key()));
+}
+
+TEST_F(TuiControllerTest, SettingsHasNothingBehindItYet) {
+  controller_->OpenMenuEntry(MenuEntry::kSettings);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossConfirm);
+  EXPECT_EQ(controller_->boss_prompt_title(), "Normal Zakum");
+
+  // The prompt opens on Confirm, and Escape backs out to the list.
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+}
+
+// A fight already cleared this reset is not offered at all: the prompt would
+// only ask a question whose answer is no.
+TEST_F(TuiControllerTest, AClearedFightDoesNotOpenThePrompt) {
+  state_->character.RecordBossClear("zakum", "Normal",
+                                    static_cast<int64_t>(std::time(nullptr)));
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+}
+
+TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::Tab);  // would cycle focus in kMain
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 }  // namespace

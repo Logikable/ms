@@ -16,6 +16,8 @@
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -48,7 +50,8 @@ class TuiController {
                 ScrollPanel& scroll_panel, StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
                 SellEquipPanel& sell_equip_panel,
-                MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
+                MapSelectPanel& map_select_panel,
+                BossSelectPanel& boss_select_panel, ShopPanel& shop_panel,
                 BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
                 SkillInspectPanel& skill_inspect_panel, int& panel_focus);
 
@@ -78,6 +81,9 @@ class TuiController {
   void OpenJobAdvance(Job job);
   // Open the map selection screen, on the map being farmed.
   void OpenMapSelect();
+  // Enter on an entry of the corner menu. Boss opens the boss screen and
+  // clears the entry's gold; Settings has nothing behind it yet.
+  void OpenMenuEntry(MenuEntry entry);
 
   // The stat the pending AP allocation targets, and its amount selector, for
   // the dialog Tui floats over the main view.
@@ -122,6 +128,15 @@ class TuiController {
   // The prompt on the quit dialog, for the same reason.
   const ConfirmPrompt& quit_prompt() const {
     return quit_prompt_;
+  }
+
+  // The prompt asking whether to take the highlighted boss fight, and what it
+  // is asking about.
+  const ConfirmPrompt& boss_prompt() const {
+    return boss_prompt_;
+  }
+  const std::string& boss_prompt_title() const {
+    return boss_prompt_title_;
   }
 
   // True once the player has confirmed the quit dialog. The controller cannot
@@ -198,6 +213,8 @@ class TuiController {
   bool OnSellEvent(ftxui::Event event);
   bool OnSellEquipEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
+  bool OnBossSelectEvent(ftxui::Event event);
+  bool OnBossConfirmEvent(ftxui::Event event);
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
@@ -221,6 +238,7 @@ class TuiController {
   SellPanel& sell_panel_;
   SellEquipPanel& sell_equip_panel_;
   MapSelectPanel& map_select_panel_;
+  BossSelectPanel& boss_select_panel_;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
   ShopPanel& shop_panel_;
@@ -255,6 +273,11 @@ class TuiController {
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
   ConfirmPrompt job_advance_prompt_;
   ConfirmPrompt quit_prompt_;
+  // The boss confirmation, and the fight it is asking about. The title is
+  // held rather than re-read, so the dialog cannot change what it is asking
+  // under the player.
+  ConfirmPrompt boss_prompt_;
+  std::string boss_prompt_title_;
   bool quit_requested_ = false;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;

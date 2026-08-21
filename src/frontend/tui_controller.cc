@@ -30,9 +30,10 @@ TuiController::TuiController(
     InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
     StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
     SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
-    MapSelectPanel& map_select_panel, ShopPanel& shop_panel,
-    BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
-    SkillInspectPanel& skill_inspect_panel, int& panel_focus)
+    MapSelectPanel& map_select_panel, BossSelectPanel& boss_select_panel,
+    ShopPanel& shop_panel, BuyPanel& buy_panel,
+    JobInspectPanel& job_inspect_panel, SkillInspectPanel& skill_inspect_panel,
+    int& panel_focus)
     : state_(state),
       char_panel_(char_panel),
       equip_panel_(equip_panel),
@@ -43,6 +44,7 @@ TuiController::TuiController(
       sell_panel_(sell_panel),
       sell_equip_panel_(sell_equip_panel),
       map_select_panel_(map_select_panel),
+      boss_select_panel_(boss_select_panel),
       job_inspect_panel_(job_inspect_panel),
       skill_inspect_panel_(skill_inspect_panel),
       shop_panel_(shop_panel),
@@ -118,6 +120,16 @@ void TuiController::OpenJobAdvance(Job job) {
 void TuiController::OpenMapSelect() {
   screen_ = kMapSelect;
   map_select_panel_.Reset();
+}
+
+void TuiController::OpenMenuEntry(MenuEntry entry) {
+  if (entry != MenuEntry::kBoss) {
+    return;  // Settings has nothing behind it yet.
+  }
+  // Opening the screen is what the gold was leading to, so it stops here.
+  state_.character.MarkTabSeen(MenuPanel::boss_seen_key());
+  screen_ = kBossSelect;
+  boss_select_panel_.Reset();
 }
 
 ItemRef TuiController::SelectedItem() const {
@@ -232,6 +244,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSellEquipEvent(event);
     case kMapSelect:
       return OnMapSelectEvent(event);
+    case kBossSelect:
+      return OnBossSelectEvent(event);
+    case kBossConfirm:
+      return OnBossConfirmEvent(event);
     case kShop:
       return OnShopEvent(event);
     case kShopMenu:
@@ -254,6 +270,9 @@ bool TuiController::PanelVisible(int panel) const {
   }
   if (panel == kInventoryPanel) {
     return Unlocked(Feature::kBag, state_.character);
+  }
+  if (panel == kMenuPanel) {
+    return Unlocked(Feature::kMenu, state_.character);
   }
   return true;
 }
@@ -605,6 +624,51 @@ bool TuiController::OnMapSelectEvent(ftxui::Event event) {
     return true;
   }
   // Swallow everything else: this is a modal screen.
+  return true;
+}
+
+bool TuiController::OnBossSelectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    boss_select_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    boss_select_panel_.MoveCursor(1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    boss_select_panel_.ChangeDifficulty(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    boss_select_panel_.ChangeDifficulty(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    // A fight already cleared this reset is not offered: the prompt would only
+    // ask a question whose answer is no.
+    if (boss_select_panel_.selected_available()) {
+      boss_prompt_title_ = boss_select_panel_.selected_title();
+      boss_prompt_.Open();
+      screen_ = kBossConfirm;
+    }
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  return true;
+}
+
+bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
+  ConfirmChoice choice = boss_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kCancelled) {
+    screen_ = kBossSelect;
+  } else if (choice == ConfirmChoice::kConfirmed) {
+    // Nothing to enter yet: the fight screen is the next thing to land.
+    screen_ = kBossSelect;
+  }
   return true;
 }
 

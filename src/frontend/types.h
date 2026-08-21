@@ -35,6 +35,11 @@ enum Screen : int {
   // asks a yes/no question rather than for an amount.
   kSellEquip,
   kMapSelect,
+  // Enter on the menu panel's Boss entry: pick a fight, then fight it.
+  kBossSelect,
+  kBossConfirm,
+  kBossFight,
+  kBossAbort,
   kShop,
   kShopMenu,
   kShopInspect,
@@ -44,9 +49,9 @@ enum Screen : int {
   kQuit,
 };
 // Focusable panels of the main screen, in Tab order: clockwise from the
-// top-left corner of the layout (Character, Equipped, Inventory, Combat). The
-// values index Container::Tab's component list, so the two must stay in the
-// same order.
+// top-left corner of the layout (Character, Equipped, Inventory, Menu,
+// Combat). The values index Container::Tab's component list, so the two must
+// stay in the same order.
 enum Panel : int {
   // Not one of them: nobody is looking at a panel at all, because the screen
   // in front of the player is the shop, or map select, or a dialog over the
@@ -56,7 +61,8 @@ enum Panel : int {
   kCharPanel = 0,
   kEquipPanel = 1,
   kInventoryPanel = 2,
-  kCombatPanel = 3,
+  kMenuPanel = 3,
+  kCombatPanel = 4,
   kNumPanels
 };
 enum MenuItem : int {

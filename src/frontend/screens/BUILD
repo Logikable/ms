@@ -322,6 +322,39 @@ cc_test(
 )
 
 cc_library(
+    name = "boss_select_panel",
+    srcs = ["boss_select_panel.cc"],
+    hdrs = ["boss_select_panel.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character:boss_reset",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "boss_select_panel_test",
+    srcs = ["boss_select_panel_test.cc"],
+    deps = [
+        ":boss_select_panel",
+        "//src:game_state",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "map_select_panel",
     srcs = ["map_select_panel.cc"],
     hdrs = ["map_select_panel.h"],

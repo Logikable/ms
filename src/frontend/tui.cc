@@ -90,19 +90,21 @@ Tui::Tui(GameState& state, std::string save_path)
       last_combat_update_(std::chrono::steady_clock::now()),
       char_panel_(state.character, panel_focus_, state.skills),
       combat_panel_(state, combat_sim_, panel_focus_),
+      menu_panel_(state, panel_focus_),
       equip_panel_(state.character, panel_focus_),
       inventory_panel_(state.character, panel_focus_),
       scroll_panel_(state.character, state.scrolls),
       trace_recover_panel_(state.character),
       map_select_panel_(state),
+      boss_select_panel_(state),
       job_inspect_panel_(state.skills),
       all_stats_panel_(state.character, state.skills),
       shop_panel_(state.character, state.equips, state.items),
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
                   sell_panel_, sell_equip_panel_, map_select_panel_,
-                  shop_panel_, buy_panel_, job_inspect_panel_,
-                  skill_inspect_panel_, panel_focus_) {
+                  boss_select_panel_, shop_panel_, buy_panel_,
+                  job_inspect_panel_, skill_inspect_panel_, panel_focus_) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -123,12 +125,14 @@ void Tui::Run() {
       [this]() { controller_.OpenAllStats(); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
+  menu_component_ = menu_panel_.MakeComponent(
+      [this](MenuEntry entry) { controller_.OpenMenuEntry(entry); });
 
   // Order must match the Panel enum: panel_focus_ indexes this list.
-  ftxui::Component panels =
-      ftxui::Container::Tab({char_component_, equip_component_,
-                             inventory_component_, combat_component_},
-                            &panel_focus_);
+  ftxui::Component panels = ftxui::Container::Tab(
+      {char_component_, equip_component_, inventory_component_, menu_component_,
+       combat_component_},
+      &panel_focus_);
 
   ftxui::Component base = ftxui::Renderer(
       panels, [this]() -> ftxui::Element { return RenderFrame(); });
@@ -297,6 +301,16 @@ ftxui::Element Tui::QuitDialog() {
                           }));
 }
 
+ftxui::Element Tui::BossConfirmDialog() {
+  // Titleless, like the quit dialog: the question is the whole dialog.
+  return ThemedWindow(
+      "", ftxui::vbox({
+              CenteredRow("Fight " + controller_.boss_prompt_title() + "?"),
+              ThemedSeparator(),
+              CenteredRow(controller_.boss_prompt().Render()),
+          }));
+}
+
 ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
   if (entry.has_stack()) {
     const ItemPrototype* proto =
@@ -418,6 +432,13 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(sell_equip_panel_.Render());
     case kMapSelect:
       return ftxui::center(map_select_panel_.Render());
+    case kBossSelect:
+      return ftxui::center(boss_select_panel_.Render());
+    case kBossConfirm:
+      return ftxui::dbox({
+          ftxui::center(boss_select_panel_.Render()),
+          ftxui::center(BossConfirmDialog() | ftxui::clear_under),
+      });
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel puts it up itself.
     case kShop:
@@ -481,13 +502,19 @@ ftxui::Element Tui::RenderMain() {
   if (controller_.PanelVisible(kInventoryPanel)) {
     inventory = inventory_component_->Render();
   }
-  ftxui::Element hotkeys = nullptr;
+  // The corner holds the tip or the menu, never both: the menu arrives at the
+  // level the tip retires at.
+  ftxui::Element corner = nullptr;
+  bool corner_fills = false;
   if (HotkeysTipVisible(state_.character)) {
-    hotkeys = HotkeysPanel();
+    corner = HotkeysPanel();
+  } else if (controller_.PanelVisible(kMenuPanel)) {
+    corner = menu_component_->Render();
+    corner_fills = true;
   }
   ftxui::Element layout = MainLayout(
       char_panel_.Render(), combat_component_->Render(), std::move(equipped),
-      std::move(inventory), std::move(hotkeys), RenderExpBar());
+      std::move(inventory), std::move(corner), corner_fills, RenderExpBar());
   if (controller_.screen() == kJobMenu) {
     // Anchored to the job row the same way the bag's menu is anchored to an
     // item, and one row above it so the highlighted entry lands beside the job

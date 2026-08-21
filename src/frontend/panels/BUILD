@@ -113,6 +113,34 @@ cc_test(
 )
 
 cc_library(
+    name = "menu_panel",
+    srcs = ["menu_panel.cc"],
+    hdrs = ["menu_panel.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character:progression",
+        "//src/frontend:types",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "menu_panel_test",
+    srcs = ["menu_panel_test.cc"],
+    deps = [
+        ":menu_panel",
+        "//src:game_state",
+        "//src/frontend:types",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "combat_panel",
     srcs = ["combat_panel.cc"],
     hdrs = ["combat_panel.h"],
