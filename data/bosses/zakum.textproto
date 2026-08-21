@@ -5,6 +5,8 @@ difficulties {
   phases { spawns { mob: "zakum" count: 1 } }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300
+  # GMS opens Normal Zakum at 110, which is also the level his arms are.
+  unlock_level: 110
   # What GMS pays as an Intense Power Crystal, which is a drop nobody keeps:
   # five of them at the Heroic price, handed over as the meso they would fetch.
   meso: 3062500
