@@ -88,6 +88,35 @@ cc_test(
 )
 
 cc_library(
+    name = "boss_run",
+    srcs = ["boss_run.cc"],
+    hdrs = ["boss_run.h"],
+    deps = [
+        ":combat",
+        ":encounter",
+        ":fight",
+        "//src:game_state",
+        "//src/protos:boss_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "boss_run_test",
+    srcs = ["boss_run_test.cc"],
+    deps = [
+        ":boss_run",
+        ":encounter",
+        "//src:game_state",
+        "//src/character",
+        "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "encounter",
     srcs = ["encounter.cc"],
     hdrs = ["encounter.h"],

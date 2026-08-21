@@ -67,14 +67,19 @@ void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
     }
     const Mob& mob = *params.types[i].mob;
     exp_gained += kills[i] * mob.exp();
-    // The bonus multiplies the purse rather than each drop in it: a share of a
-    // sum is the share of its parts, and the passives are already resolved
-    // here.
-    int64_t meso = static_cast<int64_t>(
-        RollMeso(mob, kills[i], params.item_drop_pct, state.rng) *
-        (1.0 + params.meso_pct));
-    if (meso > 0) {
-      character.AddMeso(meso);
+    // A boss pays out of its own table and not out of its level band: what
+    // Zakum's eight arms are worth is a design decision, not a side effect of
+    // being level 110 monsters.
+    if (!mob.boss()) {
+      // The bonus multiplies the purse rather than each drop in it: a share of
+      // a sum is the share of its parts, and the passives are already resolved
+      // here.
+      int64_t meso = static_cast<int64_t>(
+          RollMeso(mob, kills[i], params.item_drop_pct, state.rng) *
+          (1.0 + params.meso_pct));
+      if (meso > 0) {
+        character.AddMeso(meso);
+      }
     }
     for (const MobDrop& drop : mob.drops()) {
       // Drop rate raises the rate itself. A rate past one is not capped the
