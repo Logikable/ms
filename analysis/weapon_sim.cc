@@ -31,6 +31,7 @@
 #include "absl/flags/parse.h"
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
+#include "analysis/sim_world.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
@@ -150,28 +151,13 @@ EquipPrototype Charm(Job job, int stat, int attack, int boss_pct) {
   return proto;
 }
 
-struct Catalogs {
-  std::map<std::string, EquipPrototype> equips;
-  std::map<std::string, Scroll> scrolls;
-  std::map<std::string, ItemPrototype> items;
-  std::map<std::string, Mob> mobs;
-  std::map<std::string, MapData> maps;
-  std::map<std::string, Skill> skills;
-};
-
-Catalogs LoadCatalogs(int level) {
-  Catalogs c;
-  c.equips = LoadTextProtoMap<EquipPrototype>(EmbeddedEquips());
-  c.scrolls = LoadTextProtoMap<Scroll>(EmbeddedScrolls());
-  c.items = LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
-  c.mobs = LoadTextProtoMap<Mob>(EmbeddedMobs());
-  c.maps = LoadTextProtoMap<MapData>(EmbeddedMaps());
-  c.skills = LoadTextProtoMap<Skill>(EmbeddedSkills());
-
-  // A mob of the character's own level, so the level multiplier lands where a
-  // player fighting their own tier would put it. No PDR and no boss flag: the
-  // whole shipped catalog is built that way, and both would scale every row
-  // alike anyway. Its HP is never read -- DPS does not depend on it.
+// The catalogs with the mob this sim measures against added: one of the
+// character's own level, so the level multiplier lands where a player fighting
+// their own tier would put it. No PDR and no boss flag unless the flags asked
+// -- the whole shipped catalog is built that way, and both would scale every
+// row alike anyway. Its HP is never read: DPS does not depend on it.
+Catalogs LoadCatalogsWithDummy(int level) {
+  Catalogs c = LoadCatalogs();
   Mob dummy;
   dummy.set_name("Dummy");
   dummy.set_level(level);
@@ -359,9 +345,7 @@ void RecordShares(const CombatParams& params, const Sequence& played,
 }
 
 Result Measure(const Catalogs& catalogs, int level, const Build& build) {
-  GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
-                  catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, TestOptions{}, kSimSeed);
+  GameState state = NewState(catalogs, kSimSeed);
   GrowTo(state, level, PathTo(build.job));
   Result result;
   if (!Wear(state, BestOfType(catalogs, build.weapon, level))) {
@@ -509,7 +493,7 @@ const Build kBuilds[] = {
 };
 
 void Run(int level) {
-  Catalogs catalogs = LoadCatalogs(level);
+  Catalogs catalogs = LoadCatalogsWithDummy(level);
 
   // The header names the fight the flags asked for. A table read a week later
   // is worth nothing if it does not say what was being hit.

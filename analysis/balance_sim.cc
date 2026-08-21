@@ -23,6 +23,7 @@
 #include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
+#include "analysis/sim_world.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
@@ -31,6 +32,7 @@
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/map_level.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -70,26 +72,6 @@ std::vector<int> SweptLevels() {
   return ParseLevels(absl::GetFlag(FLAGS_levels), "--levels");
 }
 
-struct Catalogs {
-  std::map<std::string, EquipPrototype> equips;
-  std::map<std::string, Scroll> scrolls;
-  std::map<std::string, ItemPrototype> items;
-  std::map<std::string, Mob> mobs;
-  std::map<std::string, MapData> maps;
-  std::map<std::string, Skill> skills;
-};
-
-Catalogs LoadCatalogs() {
-  Catalogs c;
-  c.equips = LoadTextProtoMap<EquipPrototype>(EmbeddedEquips());
-  c.scrolls = LoadTextProtoMap<Scroll>(EmbeddedScrolls());
-  c.items = LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
-  c.mobs = LoadTextProtoMap<Mob>(EmbeddedMobs());
-  c.maps = LoadTextProtoMap<MapData>(EmbeddedMaps());
-  c.skills = LoadTextProtoMap<Skill>(EmbeddedSkills());
-  return c;
-}
-
 // What one (level, map) pairing came to.
 struct Outcome {
   int64_t kills = 0;
@@ -103,9 +85,7 @@ struct Outcome {
 
 Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
              const std::string& map, double seconds) {
-  GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
-                  catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, TestOptions{}, kSimSeed);
+  GameState state = NewState(catalogs, kSimSeed);
   GrowTo(state, level, path);
   // Geared before the fight rather than during it: nothing here changes the
   // character once the run starts, so what a player would have bought by now
@@ -142,36 +122,10 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
   return outcome;
 }
 
-// The mean level of what a map spawns, weighted by how many of each -- the
-// same figure the map select sorts on, and the one worth reading a row
-// against.
-double MapLevel(const Catalogs& catalogs, const MapData& map) {
-  double total = 0.0;
-  double count = 0.0;
-  for (const Spawn& spawn : map.spawns()) {
-    std::map<std::string, Mob>::const_iterator it =
-        catalogs.mobs.find(spawn.mob());
-    if (it == catalogs.mobs.end()) {
-      continue;
-    }
-    total += it->second.level() * spawn.count();
-    count += spawn.count();
-  }
-  return count > 0.0 ? total / count : 0.0;
-}
-
 void Run(double seconds, Job branch) {
   Catalogs catalogs = LoadCatalogs();
   std::vector<Job> path = PathTo(branch);
-  // Maps in the order the player meets them, weakest first.
-  std::vector<std::pair<double, std::string>> maps;
-  for (const std::pair<const std::string, MapData>& entry : catalogs.maps) {
-    if (entry.second.spawns().empty()) {
-      continue;  // a town, with nothing to be killed by
-    }
-    maps.push_back({MapLevel(catalogs, entry.second), entry.first});
-  }
-  std::sort(maps.begin(), maps.end());
+  std::vector<std::string> maps = HuntingGrounds(catalogs);
 
   std::vector<int> levels = SweptLevels();
   std::printf("%-28s %5s", "map", "mobLv");
@@ -186,8 +140,8 @@ void Run(double seconds, Job branch) {
   int columns = static_cast<int>(levels.size());
   std::vector<std::string> cells(rows * columns);
   ParallelFor(rows * columns, [&](int i) {
-    Outcome outcome = Farm(catalogs, levels[i % columns], path,
-                           maps[i / columns].second, seconds);
+    Outcome outcome =
+        Farm(catalogs, levels[i % columns], path, maps[i / columns], seconds);
     char cell[32];
     if (outcome.death_seconds >= 0.0) {
       // Died: how long it took, and what they took with them.
@@ -204,9 +158,9 @@ void Run(double seconds, Job branch) {
   });
 
   for (int row = 0; row < rows; ++row) {
-    std::printf("%-28s %5.1f",
-                catalogs.maps.at(maps[row].second).name().c_str(),
-                maps[row].first);
+    const MapData& map = catalogs.maps.at(maps[row]);
+    std::printf("%-28s %5.1f", map.name().c_str(),
+                MapLevel(catalogs.mobs, map));
     for (int column = 0; column < columns; ++column) {
       std::printf("  %13s", cells[row * columns + column].c_str());
     }

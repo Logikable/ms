@@ -11,6 +11,7 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
+#include "src/map_level.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 
@@ -72,27 +73,11 @@ std::string BandLabel(int band) {
          std::to_string(kLevelBands[band].max);
 }
 
-// Mean mob level weighted by spawn count, rounded down: one number for how far
-// along a map is meant for. Weighting by count puts the number where the
-// player's time actually goes -- a couple of stragglers shouldn't pull a map's
-// number up away from the crowd that fills it. Both the list order and the
-// level column read this, so the list always runs low to high.
+// The map's level as the list shows it: rounded down, so a map reads as the
+// tier it belongs to. Both the list order and the level column read this, so
+// the list always runs low to high.
 int WeightedLevel(const GameState& state, const MapData& map) {
-  int levels = 0;
-  int spawned = 0;
-  for (const Spawn& spawn : map.spawns()) {
-    std::map<std::string, Mob>::const_iterator it =
-        state.mobs.find(spawn.mob());
-    if (it == state.mobs.end()) {
-      continue;  // Names no mob file defines are skipped.
-    }
-    levels += it->second.level() * spawn.count();
-    spawned += spawn.count();
-  }
-  if (spawned == 0) {
-    return 0;
-  }
-  return levels / spawned;  // Both positive, so this rounds down.
+  return static_cast<int>(MapLevel(state.mobs, map));
 }
 
 }  // namespace

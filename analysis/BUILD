@@ -26,6 +26,7 @@ sim_binary(
         ":parallel",
         ":sim_gear",
         ":sim_jobs",
+        ":sim_world",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -54,6 +55,7 @@ sim_binary(
     deps = [
         ":sim_gear",
         ":sim_jobs",
+        ":sim_world",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -84,8 +86,10 @@ sim_binary(
         ":sim_format",
         ":sim_gear",
         ":sim_jobs",
+        ":sim_world",
         "//src:embedded_data",
         "//src:game_state",
+        "//src:map_level",
         "//src:proto_loader",
         "//src/character",
         "//src/character:progression",
@@ -115,6 +119,7 @@ sim_binary(
         ":sim_format",
         ":sim_gear",
         ":sim_jobs",
+        ":sim_world",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -192,6 +197,25 @@ cc_library(
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
+    ],
+)
+
+cc_library(
+    name = "sim_world",
+    srcs = ["sim_world.cc"],
+    hdrs = ["sim_world.h"],
+    deps = [
+        "//src:embedded_data",
+        "//src:game_state",
+        "//src:map_level",
+        "//src:proto_loader",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
     ],
 )
 

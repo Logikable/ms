@@ -49,6 +49,7 @@
 #include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
+#include "analysis/sim_world.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/job_advancement.h"
@@ -105,26 +106,6 @@ namespace {
 constexpr int kMilestones[] = {10, 20, 30,  40,  50,  60,  70,
                                80, 90, 100, 110, 120, 130, 140};
 constexpr int kNumMilestones = sizeof(kMilestones) / sizeof(kMilestones[0]);
-
-struct Catalogs {
-  std::map<std::string, EquipPrototype> equips;
-  std::map<std::string, Scroll> scrolls;
-  std::map<std::string, ItemPrototype> items;
-  std::map<std::string, Mob> mobs;
-  std::map<std::string, MapData> maps;
-  std::map<std::string, Skill> skills;
-};
-
-Catalogs LoadCatalogs() {
-  Catalogs c;
-  c.equips = LoadTextProtoMap<EquipPrototype>(EmbeddedEquips());
-  c.scrolls = LoadTextProtoMap<Scroll>(EmbeddedScrolls());
-  c.items = LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
-  c.mobs = LoadTextProtoMap<Mob>(EmbeddedMobs());
-  c.maps = LoadTextProtoMap<MapData>(EmbeddedMaps());
-  c.skills = LoadTextProtoMap<Skill>(EmbeddedSkills());
-  return c;
-}
 
 // Spends everything the last level handed over.
 void SpendPoints(CharacterInstance& character) {
@@ -347,10 +328,8 @@ Climb Play(const Catalogs& catalogs, Job branch,
   int beats = absl::GetFlag(FLAGS_probe_beats);
   double give_up = absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
 
-  GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
-                  catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, TestOptions{},
-                  static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)));
+  GameState state =
+      NewState(catalogs, static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)));
   std::vector<Job> path = PathTo(branch);
   int taken = 0;
 
@@ -417,17 +396,6 @@ std::string Clock(double seconds) {
                   (minutes / 60) % 24);
   }
   return text;
-}
-
-// The maps worth offering the player: the ones with something on them.
-std::vector<std::string> HuntingGrounds(const Catalogs& catalogs) {
-  std::vector<std::string> maps;
-  for (const std::pair<const std::string, MapData>& entry : catalogs.maps) {
-    if (!entry.second.spawns().empty()) {
-      maps.push_back(entry.first);
-    }
-  }
-  return maps;
 }
 
 void PrintDetail(const Catalogs& catalogs, const Climb& climb) {
@@ -559,69 +527,29 @@ void PrintFrozenDrops(const std::vector<Job>& branches,
   }
 }
 
-// The branches to climb: the ones that take a 4th advancement, all of them
-// under --all_branches, or the one --branch names. Dies on a name no branch
-// answers to rather than printing an empty table.
-std::vector<Job> BranchesToClimb(const Job* all, int count) {
-  std::string name = absl::AsciiStrToUpper(absl::GetFlag(FLAGS_branch));
-  if (name.empty()) {
-    std::vector<Job> wanted;
-    for (int i = 0; i < count; ++i) {
-      if (absl::GetFlag(FLAGS_all_branches) || PathTo(all[i]).size() >= 4) {
-        wanted.push_back(all[i]);
-      }
-    }
-    return wanted;
+// The branches to climb: the ones that take a 4th advancement, or under
+// --all_branches every branch from the 2nd job up, or the one --branch names.
+// A 1st job is left out even then -- climbing to 140 without ever advancing
+// takes forty simulated days and answers nothing.
+std::vector<Job> BranchesToClimb() {
+  const std::string& name = absl::GetFlag(FLAGS_branch);
+  if (!name.empty()) {
+    return {ParseBranch(name)};
   }
-  Job wanted = JOB_UNSPECIFIED;
-  if (Job_Parse("JOB_" + name, &wanted)) {
-    for (int i = 0; i < count; ++i) {
-      if (all[i] == wanted) {
-        return {wanted};
-      }
+  int deepest = absl::GetFlag(FLAGS_all_branches) ? 2 : 4;
+  std::vector<Job> wanted;
+  for (Job branch : EveryBranch()) {
+    if (StageOf(branch) >= deepest) {
+      wanted.push_back(branch);
     }
   }
-  LOG(FATAL) << "Unknown --branch '" << absl::GetFlag(FLAGS_branch) << "'";
-  return {};
+  return wanted;
 }
 
 void Run() {
   Catalogs catalogs = LoadCatalogs();
   std::vector<std::string> maps = HuntingGrounds(catalogs);
-  const Job kEveryBranch[] = {
-      JOB_FIGHTER,
-      JOB_PAGE,
-      JOB_SPEARMAN,
-      JOB_HUNTER,
-      JOB_CROSSBOWMAN,
-      JOB_ICE_LIGHTNING_WIZARD,
-      JOB_FIRE_POISON_WIZARD,
-      JOB_CLERIC,
-      JOB_ASSASSIN,
-      JOB_BANDIT,
-      JOB_BERSERKER,
-      JOB_CRUSADER,
-      JOB_WHITE_KNIGHT,
-      JOB_RANGER,
-      JOB_SNIPER,
-      JOB_ICE_LIGHTNING_MAGE,
-      JOB_FIRE_POISON_MAGE,
-      JOB_PRIEST,
-      JOB_HERMIT,
-      JOB_CHIEF_BANDIT,
-      JOB_DARK_KNIGHT,
-      JOB_PALADIN,
-      JOB_HERO,
-      JOB_BOW_MASTER,
-      JOB_MARKSMAN,
-      JOB_ICE_LIGHTNING_ARCH_MAGE,
-      JOB_FIRE_POISON_ARCH_MAGE,
-      JOB_BISHOP,
-      JOB_NIGHT_LORD,
-      JOB_SHADOWER,
-  };
-  std::vector<Job> branches = BranchesToClimb(
-      kEveryBranch, static_cast<int>(sizeof(kEveryBranch) / sizeof(Job)));
+  std::vector<Job> branches = BranchesToClimb();
 
   // Every branch climbs on its own character and its own copy of the
   // catalogs, so they all run at once. The rows are printed afterwards, in the

@@ -36,6 +36,7 @@
 #include "analysis/parallel.h"
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
+#include "analysis/sim_world.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/combat/boss_run.h"
@@ -87,28 +88,6 @@ constexpr double kMeasureSeconds = 3600.0;
 // enough for a cooldown to land a dozen times, which is all the settling a
 // ranking needs.
 constexpr double kTrySeconds = 30.0;
-
-struct Catalogs {
-  std::map<std::string, EquipPrototype> equips;
-  std::map<std::string, Scroll> scrolls;
-  std::map<std::string, ItemPrototype> items;
-  std::map<std::string, Mob> mobs;
-  std::map<std::string, MapData> maps;
-  std::map<std::string, Skill> skills;
-  std::map<std::string, Boss> bosses;
-};
-
-Catalogs LoadCatalogs() {
-  Catalogs c;
-  c.equips = LoadTextProtoMap<EquipPrototype>(EmbeddedEquips());
-  c.scrolls = LoadTextProtoMap<Scroll>(EmbeddedScrolls());
-  c.items = LoadTextProtoMap<ItemPrototype>(EmbeddedItems());
-  c.mobs = LoadTextProtoMap<Mob>(EmbeddedMobs());
-  c.maps = LoadTextProtoMap<MapData>(EmbeddedMaps());
-  c.skills = LoadTextProtoMap<Skill>(EmbeddedSkills());
-  c.bosses = LoadTextProtoMap<Boss>(EmbeddedBosses());
-  return c;
-}
 
 // The difficulty --difficulty names, or the first. Dies rather than measuring
 // a fight nobody asked for.
@@ -331,9 +310,7 @@ EquipType WeaponFor(const Catalogs& catalogs, int level, Job branch) {
     }
     return type;
   }
-  GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
-                  catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, TestOptions{}, kSimSeed);
+  GameState state = NewState(catalogs, kSimSeed);
   GrowTo(state, level, PathTo(branch));
   Outfit(state, /*budget=*/false);
   return state.character.weapon_type();
@@ -344,9 +321,7 @@ EquipType WeaponFor(const Catalogs& catalogs, int level, Job branch) {
 // the limit still comes back with a time.
 Result Fight(const Catalogs& catalogs, int level, Job branch,
              const std::string& boss_key, int difficulty_index) {
-  GameState state(catalogs.equips, catalogs.scrolls, catalogs.items,
-                  catalogs.mobs, catalogs.maps, catalogs.skills,
-                  GameMode::kPlay, TestOptions{}, kSimSeed);
+  GameState state = NewState(catalogs, kSimSeed);
   state.bosses = catalogs.bosses;
   GrowTo(state, level, PathTo(branch), /*spend_sp=*/false);
 
