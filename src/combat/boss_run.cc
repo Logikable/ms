@@ -1,16 +1,38 @@
 #include "src/combat/boss_run.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "src/combat/combat.h"
 #include "src/combat/encounter.h"
+#include "src/combat/loot.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
+#include "src/protos/mob.pb.h"
 
 namespace ms {
+namespace {
+
+// What a drop is called, for the card that names what the fight paid. Empty
+// for a drop neither catalog knows, which is a drop nothing was granted for.
+std::string DropName(const GameState& state, const MobDrop& drop) {
+  if (!drop.equip().empty()) {
+    std::map<std::string, EquipPrototype>::const_iterator it =
+        state.equips.find(drop.equip());
+    return it == state.equips.end() ? "" : it->second.name();
+  }
+  std::map<std::string, ItemPrototype>::const_iterator it =
+      state.items.find(drop.item());
+  return it == state.items.end() ? "" : it->second.name();
+}
+
+}  // namespace
 
 BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index)
     : boss_key_(std::move(boss_key)),
@@ -116,11 +138,34 @@ void BossRun::RunPhase(GameState& state, double dt) {
     return;
   }
   if (phase_ + 1 >= phases_) {
+    PayReward(state, params.item_drop_pct);
     Finish(BossRunState::kWon);
     return;
   }
   state_ = BossRunState::kPhaseGap;
   hold_left_ = kBossPhaseGapSeconds;
+}
+
+void BossRun::PayReward(GameState& state, double item_drop_pct) {
+  const BossDifficulty* chosen = difficulty();
+  reward_.meso = chosen->meso();
+  if (reward_.meso > 0) {
+    state.character.AddMeso(reward_.meso);
+  }
+  for (const MobDrop& drop : chosen->drops()) {
+    // One roll for the fight, where a map rolls one per kill. Drop rate lifts
+    // the chance the same way it lifts a monster's.
+    int64_t rolled =
+        RollDrops(drop.per_kill() * (1.0 + item_drop_pct), 1, state.rng);
+    if (rolled <= 0) {
+      continue;
+    }
+    int64_t granted = GrantDrop(state, drop, rolled);
+    std::string name = DropName(state, drop);
+    if (granted > 0 && !name.empty()) {
+      reward_.items.push_back({std::move(name), granted});
+    }
+  }
 }
 
 void BossRun::Advance(GameState& state, double elapsed_seconds) {

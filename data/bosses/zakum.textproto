@@ -5,4 +5,19 @@ difficulties {
   phases { spawns { mob: "zakum" count: 1 } }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300
+  # What GMS pays as an Intense Power Crystal, which is a drop nobody keeps:
+  # five of them at the Heroic price, handed over as the meso they would fetch.
+  meso: 3062500
+  drops {
+    equip: "aquatic_letter_eye_accessory"
+    per_kill: 0.5
+  }
+  drops {
+    equip: "condensed_power_crystal"
+    per_kill: 0.5
+  }
+  drops {
+    item: "zakums_soul_shard"
+    per_kill: 1.0
+  }
 }

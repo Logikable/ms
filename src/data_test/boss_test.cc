@@ -10,6 +10,7 @@
 
 #include "src/proto_loader.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
@@ -37,6 +38,11 @@ std::map<std::string, Mob> LoadMobs() {
 std::map<std::string, ItemPrototype> LoadItems() {
   return LoadTextProtoDir<ItemPrototype>(
       TestRunfiles()->Rlocation("ms/data/items"));
+}
+
+std::map<std::string, EquipPrototype> LoadEquips() {
+  return LoadTextProtoDir<EquipPrototype>(
+      TestRunfiles()->Rlocation("ms/data/equip"));
 }
 
 TEST(BossDataTest, EveryPhaseSpawnsAKnownMob) {
@@ -81,18 +87,32 @@ TEST(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
   }
 }
 
+// A drop names one catalog or the other, and a name neither holds is granted
+// to nobody -- silently, since the reward path skips what it cannot find.
 TEST(BossDataTest, EveryDropNamesAnItem) {
   std::map<std::string, ItemPrototype> items = LoadItems();
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  int drops = 0;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       for (const MobDrop& drop : difficulty.drops()) {
-        EXPECT_GT(items.count(drop.item()), 0u)
-            << entry.first << " drops \"" << drop.item()
-            << "\", which no item file defines";
+        ++drops;
+        EXPECT_NE(drop.item().empty(), drop.equip().empty())
+            << entry.first << " has a drop that is not one item or one equip";
+        if (drop.equip().empty()) {
+          EXPECT_GT(items.count(drop.item()), 0u)
+              << entry.first << " drops \"" << drop.item()
+              << "\", which no item file defines";
+        } else {
+          EXPECT_GT(equips.count(drop.equip()), 0u)
+              << entry.first << " drops \"" << drop.equip()
+              << "\", which no equip file defines";
+        }
         EXPECT_GT(drop.per_kill(), 0.0) << entry.first;
       }
     }
   }
+  EXPECT_GT(drops, 0) << "no boss in the catalog drops anything";
 }
 
 // Zakum is the first boss and the one the screen was built against, so his
@@ -114,6 +134,14 @@ TEST(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   ASSERT_EQ(normal.phases(1).spawns_size(), 1);
   EXPECT_EQ(normal.phases(1).spawns(0).mob(), "zakum");
   EXPECT_EQ(normal.phases(1).spawns(0).count(), 1);
+  EXPECT_EQ(normal.meso(), 3062500);
+  ASSERT_EQ(normal.drops_size(), 3);
+  EXPECT_EQ(normal.drops(0).equip(), "aquatic_letter_eye_accessory");
+  EXPECT_EQ(normal.drops(0).per_kill(), 0.5);
+  EXPECT_EQ(normal.drops(1).equip(), "condensed_power_crystal");
+  EXPECT_EQ(normal.drops(1).per_kill(), 0.5);
+  EXPECT_EQ(normal.drops(2).item(), "zakums_soul_shard");
+  EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
 }  // namespace

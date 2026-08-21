@@ -18,37 +18,31 @@
 #include "src/protos/mob.pb.h"
 
 namespace ms {
-namespace {
 
-// Hands `count` copies of one rolled drop to the character. A drop names
-// either a stackable or an equip, so this asks which and takes the matching
-// path; a name neither catalog knows is skipped rather than guessed at.
-void GrantDrop(GameState& state, const MobDrop& drop, int64_t count) {
+int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count) {
   if (!drop.equip().empty()) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         state.equips.find(drop.equip());
     if (it == state.equips.end()) {
-      return;
+      return 0;
     }
     // One at a time: every copy is its own item with its own slots and stars,
     // and a full equip tab stops the rest of them.
     for (int64_t i = 0; i < count; ++i) {
       if (!state.character.PickUp(
               std::make_unique<EquipInstance>(it->second))) {
-        return;
+        return i;
       }
     }
-    return;
+    return count;
   }
   std::map<std::string, ItemPrototype>::const_iterator it =
       state.items.find(drop.item());
   if (it == state.items.end()) {
-    return;
+    return 0;
   }
-  state.character.AddStackable(it->second, static_cast<int>(count));
+  return state.character.AddStackable(it->second, static_cast<int>(count));
 }
-
-}  // namespace
 
 void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds) {
   AdvanceCombat(state, sim, ComputeCombatParams(state), elapsed_seconds);

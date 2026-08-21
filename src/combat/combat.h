@@ -9,9 +9,12 @@
 #ifndef MS_SRC_COMBAT_COMBAT_H_
 #define MS_SRC_COMBAT_COMBAT_H_
 
+#include <cstdint>
+
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/game_state.h"
+#include "src/protos/mob.pb.h"
 
 namespace ms {
 
@@ -31,6 +34,14 @@ void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds);
 // 0.1s spends almost all of its time here. See //analysis:level_sim.
 void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
                    double elapsed_seconds);
+
+// Hands `count` copies of one rolled drop to the character and returns how
+// many of them the bag had room for. A drop names either a stackable or an
+// equip, so this asks which and takes the matching path; a name neither
+// catalog knows is skipped rather than guessed at.
+//
+// Shared with the boss runs, which pay a cleared fight's table through it.
+int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count);
 
 }  // namespace ms
 

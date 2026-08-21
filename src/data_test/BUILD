@@ -28,12 +28,14 @@ cc_test(
     srcs = ["boss_test.cc"],
     data = [
         "//data/bosses:all",
+        "//data/equip:all",
         "//data/items:all",
         "//data/mobs:all",
     ],
     deps = [
         "//src:proto_loader",
         "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:mob_proto_cc",
         "@bazel_tools//tools/cpp/runfiles",

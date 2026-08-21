@@ -14,6 +14,7 @@
 #ifndef MS_SRC_COMBAT_BOSS_RUN_H_
 #define MS_SRC_COMBAT_BOSS_RUN_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,21 @@ inline constexpr double kBossPhaseGapSeconds = 2.0;
 // takes no hold at all: the player asked to leave, and there is nothing left
 // on screen for them to watch.
 inline constexpr double kBossEndHoldSeconds = 1.0;
+
+// One line of what a clear paid: an item's display name and how many of it
+// reached the bag.
+struct BossRewardItem {
+  std::string name;
+  int64_t count = 0;
+};
+
+// What a cleared fight paid. What actually landed, not what the table offers:
+// a drop can miss its roll, and a full bag loses one that hit, and the card
+// the player reads should not claim either of them.
+struct BossReward {
+  int64_t meso = 0;
+  std::vector<BossRewardItem> items;
+};
 
 // Where a run is up to. The three at the end are all ways of being finished,
 // held apart because the screen says a different thing about each.
@@ -104,6 +120,10 @@ class BossRun {
   int phase_count() const {
     return phases_;
   }
+  // What the fight paid. Empty until it is won.
+  const BossReward& reward() const {
+    return reward_;
+  }
   // What is left of the current phase, over what it started with. Every
   // monster in the phase counts toward it, so eight arms at half HP reads 50%.
   double phase_hp_fraction() const {
@@ -139,6 +159,10 @@ class BossRun {
   void ComputePhaseHp(const CombatParams& params);
   // Steps one phase of the fight forward, moving on when it empties.
   void RunPhase(GameState& state, double dt);
+  // Pays the difficulty's reward table, once, for a fight that was cleared,
+  // and records what landed. The drops roll against `item_drop_pct` the way a
+  // monster's do; the meso is flat.
+  void PayReward(GameState& state, double item_drop_pct);
   // Ends the run in `outcome`, holding the screen for the closing beat -- or
   // for nothing at all, if the run was given up.
   void Finish(BossRunState outcome);
@@ -159,6 +183,7 @@ class BossRun {
   double hold_left_ = 0.0;
   double phase_hp_fraction_ = 0.0;
   std::vector<BossSlot> slots_;
+  BossReward reward_;
   CombatSim sim_;
 };
 

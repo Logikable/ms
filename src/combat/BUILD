@@ -95,8 +95,13 @@ cc_library(
         ":combat",
         ":encounter",
         ":fight",
+        ":loot",
         "//src:game_state",
+        "//src/character",
         "//src/protos:boss_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:mob_proto_cc",
     ],
 )
 
@@ -111,6 +116,7 @@ cc_test(
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
         "//src/protos:mob_proto_cc",
         "@googletest//:gtest_main",
     ],

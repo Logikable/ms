@@ -28,6 +28,13 @@ message BossDifficulty {
   // Seconds the whole fight is allowed. Running out ends it with no clear.
   int32 time_limit_seconds = 4;
   repeated MobDrop drops = 5;
+  // Meso a clear pays, on top of whatever the drops are worth. Zakum's stands
+  // in for the Intense Power Crystal GMS drops and everyone sells at once.
+  //
+  // Flat: the character's Meso% does not touch it, so the rewards list can
+  // state one number and be right. The drops beside it do scale with Item
+  // Drop Rate, the way a monster's do.
+  int64 meso = 6;
 }
 
 // A boss and every difficulty it can be fought at. Loaded from data/bosses

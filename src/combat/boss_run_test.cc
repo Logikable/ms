@@ -9,6 +9,7 @@
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
 
 namespace ms {
@@ -41,10 +42,40 @@ Boss TwoPhaseBoss(int time_limit = 300) {
   return boss;
 }
 
+// The two things a rewarded fight can drop, by the keys its table names.
+std::map<std::string, ItemPrototype> DropItems() {
+  ItemPrototype shard;
+  shard.set_name("Zakum's Soul Shard");
+  shard.set_category(ITEM_CATEGORY_ETC);
+  shard.set_max_stack(100);
+  return {{"shard", shard}};
+}
+
+std::map<std::string, EquipPrototype> DropEquips() {
+  EquipPrototype mark;
+  mark.set_name("Condensed Power Crystal");
+  mark.set_equip_slot(EQUIP_SLOT_FACE_ACCESSORY);
+  return {{"mark", mark}};
+}
+
+// The same fight with something to pay: a fixed purse, a certain drop and one
+// that has to be rolled for.
+Boss RewardingBoss(double mark_chance = 0.5) {
+  Boss boss = TwoPhaseBoss();
+  BossDifficulty* normal = boss.mutable_difficulties(0);
+  normal->set_meso(3062500);
+  MobDrop* mark = normal->add_drops();
+  mark->set_equip("mark");
+  mark->set_per_kill(mark_chance);
+  MobDrop* shard = normal->add_drops();
+  shard->set_item("shard");
+  shard->set_per_kill(1.0);
+  return boss;
+}
+
 std::unique_ptr<GameState> MakeState(int arm_hp = 1, int body_hp = 1) {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
-      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
-      std::map<std::string, ItemPrototype>{},
+      DropEquips(), std::map<std::string, Scroll>{}, DropItems(),
       std::map<std::string, Mob>{{"arm", MakeMob("Zakum's Arm", arm_hp, 0)},
                                  {"body", MakeMob("Zakum", body_hp, 4750740)}},
       std::map<std::string, MapData>{});
@@ -183,6 +214,71 @@ TEST(BossRunTest, ADifficultyThatDoesNotExistIsOverBeforeItStarts) {
   EXPECT_EQ(run.state(), BossRunState::kAborted);
   run.Advance(*state, 1.0);
   EXPECT_TRUE(run.done());
+}
+
+// The whole point of the reward table: a clear pays it, and the run remembers
+// what it paid so the card can name it.
+TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/0.0);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_TRUE(run.won());
+  EXPECT_EQ(state->character.proto().meso(), 3062500);
+  EXPECT_EQ(run.reward().meso, 3062500);
+  ASSERT_EQ(run.reward().items.size(), 1u);
+  EXPECT_EQ(run.reward().items[0].name, "Zakum's Soul Shard");
+  EXPECT_EQ(run.reward().items[0].count, 1);
+  EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 1);
+}
+
+// Once, not once per phase and not once per beat held afterwards.
+TEST(BossRunTest, TheRewardIsPaidOnlyOnce) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = RewardingBoss(/*mark_chance=*/1.0);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+  for (int i = 0; i < 20; ++i) {
+    run.Advance(*state, 1.0);
+  }
+
+  EXPECT_EQ(state->character.proto().meso(), 3062500);
+  EXPECT_EQ(run.reward().items.size(), 2u);
+  EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 1);
+}
+
+TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = RewardingBoss(/*mark_chance=*/1.0);
+  boss.mutable_difficulties(0)->set_time_limit_seconds(5);
+  BossRun run("zakum", boss, 0);
+  RunToEnd(run, *state);
+
+  ASSERT_EQ(run.state(), BossRunState::kTimedOut);
+  EXPECT_EQ(state->character.proto().meso(), 0);
+  EXPECT_EQ(run.reward().meso, 0);
+  EXPECT_TRUE(run.reward().items.empty());
+}
+
+// A drop that misses its roll is not on the card. Over many runs it lands
+// about half the time, which is what the table asks for.
+TEST(BossRunTest, AChanceDropIsRolledFor) {
+  int landed = 0;
+  for (int i = 0; i < 200; ++i) {
+    std::unique_ptr<GameState> state = MakeState();
+    Boss boss = RewardingBoss(/*mark_chance=*/0.5);
+    BossRun run("zakum", boss, 0);
+    RunToEnd(run, *state);
+    ASSERT_TRUE(run.won());
+    // The shard is certain, so anything above one row is the accessory.
+    if (run.reward().items.size() == 2u) {
+      ++landed;
+      EXPECT_EQ(run.reward().items[0].name, "Condensed Power Crystal");
+    }
+  }
+  EXPECT_GT(landed, 60);
+  EXPECT_LT(landed, 140);
 }
 
 }  // namespace
