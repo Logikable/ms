@@ -450,9 +450,14 @@ ftxui::Element ShopPanel::RenderEquipRow(
       token == nullptr ? character_.meso() : character_.CountStackable(*token);
   ftxui::Element cost = CostCell(token, FormatWithCommas(price), price <= held);
   return ftxui::hbox({
-      ftxui::text(
-          cursor + ScrollingWindow(proto.name(), kNameWidth, elapsed) + "  " +
-          PadRight(FormatEquipType(proto.equip_type()), kTypeWidth) + "  "),
+      ftxui::text(cursor + ScrollingWindow(proto.name(), kNameWidth, elapsed) +
+                  "  " +
+                  // The type scrolls too: "Arrow for Crossbow" is wider than
+                  // the column, and a cut type reads as a different item. Only
+                  // here -- every other column in the game is written to fit.
+                  ScrollingWindow(FormatEquipType(proto.equip_type()),
+                                  kTypeWidth, elapsed) +
+                  "  "),
       std::move(level),
       std::move(cost),
       ftxui::text(" "),

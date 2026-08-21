@@ -2406,6 +2406,28 @@ TEST_F(TuiControllerTest, ConfirmingTheLeavePromptEndsTheFight) {
   EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), 0);
 }
 
+// The clock running out is the one ending the player might not have watched,
+// so it says so rather than dropping them back on the list.
+TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
+  // A monster the character cannot chew through inside the limit: the
+  // fixture's arms die to one poke, and a won fight is not this ending.
+  state_->mobs["zakum_arm"].set_max_hp(2000000000);
+  EnterFight();
+  controller_->AdvanceBossRun(kBossCountdownSeconds + 301.0);
+  ASSERT_NE(controller_->boss_run(), nullptr) << "the closing beat is running";
+  controller_->AdvanceBossRun(kBossEndHoldSeconds);
+  ASSERT_EQ(controller_->boss_run(), nullptr);
+  EXPECT_EQ(controller_->screen(), kBossNotice);
+  ASSERT_EQ(controller_->notice_lines().size(), 1u);
+  EXPECT_EQ(controller_->notice_lines()[0], "Out of time!");
+  EXPECT_FALSE(controller_->notice_is_refusal());
+  // Nothing was cleared, so the daily is still there.
+  EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), 0);
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+}
+
 TEST_F(TuiControllerTest, ClearingTheFightBanksTheDaily) {
   EnterFight();
   for (int i = 0; i < 20000 && controller_->in_boss_fight(); ++i) {

@@ -767,7 +767,14 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
     state_.character.RecordBossClear(boss_run_key_, boss_run_difficulty_,
                                      static_cast<int64_t>(std::time(nullptr)));
   }
+  // A fight that ran out of clock says so. A win needs no notice -- the last
+  // bar emptying is the news -- and an abort was the player's own doing.
+  bool timed_out = boss_run_->state() == BossRunState::kTimedOut;
   boss_run_.reset();
+  if (timed_out) {
+    OpenNotice(kBossNotice, {"Out of time!"}, /*refusal=*/false);
+    return;
+  }
   screen_ = kBossSelect;
 }
 
