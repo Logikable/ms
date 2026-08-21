@@ -1,0 +1,11 @@
+name: "100% LUK"
+success_rate: 100
+tier: SCROLL_TIER_1
+stats {
+  luk: 1
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_LUK
+target: SCROLL_TARGET_ACCESSORY

@@ -104,13 +104,24 @@ TEST(SpellTraceCostTest, AnUnsoldScrollFallsBackToItsFile) {
             SpellTraceCost(200, TraceCategory::kArmor, 15));
 }
 
-// The accessories have no column in the band table yet, so a scroll for one
-// keeps the price in its own file rather than being given away.
-TEST(SpellTraceCostTest, AnAccessoryScrollCarriesItsOwnPrice) {
+// The accessories have a column of GMS's own, between armour and weapons at
+// every level the game reaches.
+TEST(SpellTraceCostTest, AnAccessoryReadsItsOwnColumn) {
   Scroll scroll = StatScroll(SCROLL_TARGET_ACCESSORY, 100);
-  scroll.set_trace_cost(50);
-  EXPECT_EQ(TraceCost(scroll, 100), 50);
-  EXPECT_EQ(TraceCost(scroll, 110), 50);
+  scroll.set_trace_cost(9999);
+  EXPECT_EQ(TraceCost(scroll, 100), 18);
+  EXPECT_EQ(TraceCost(scroll, 110), 22);
+  // Between the two everywhere the game reaches. Not above it: GMS's own
+  // table puts the 150 band's accessories below its armour, and this is the
+  // wiki's figures rather than a rule of our own.
+  for (int level : {70, 100, 110, 140}) {
+    EXPECT_GE(SpellTraceCost(level, TraceCategory::kAccessory, 100),
+              SpellTraceCost(level, TraceCategory::kArmor, 100))
+        << "at level " << level;
+    EXPECT_LE(SpellTraceCost(level, TraceCategory::kAccessory, 100),
+              SpellTraceCost(level, TraceCategory::kWeapon, 100))
+        << "at level " << level;
+  }
 }
 
 // A stat scroll's own trace_cost is dead data. Leaving one in a file must not

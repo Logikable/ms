@@ -153,9 +153,61 @@ TEST_F(ScrollDataTest, EveryArmourScrollPaysHpAndDef) {
   EXPECT_GT(seen, 0);
 }
 
-// Which stat a job can put on its armour, from the wiki's own table. A missing
-// file shows up as a job with nothing to scroll at that tier.
-TEST_F(ScrollDataTest, EveryJobHasAnArmourScrollAtEveryTierAndRate) {
+// An accessory scroll pays the stat it was chosen for and nothing else: no HP
+// rider, no DEF, no attack. The armour shelf beside it bundles all three, so a
+// file copied from there arrives paying more than GMS sells.
+TEST_F(ScrollDataTest, EveryAccessoryScrollPaysOneThing) {
+  int seen = 0;
+  for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
+    const Scroll& scroll = entry.second;
+    if (scroll.target() != SCROLL_TARGET_ACCESSORY) {
+      continue;
+    }
+    ++seen;
+    const EquipStats& stats = scroll.stats();
+    EXPECT_EQ(stats.def(), 0) << entry.first << " pays defense";
+    EXPECT_EQ(stats.attack(), 0) << entry.first << " pays attack";
+    EXPECT_EQ(stats.magic_attack(), 0) << entry.first;
+    // The HP shelf is the one that pays HP, and it pays nothing else.
+    bool hp_scroll = scroll.scroll_type() == SCROLL_TYPE_HP;
+    EXPECT_EQ(stats.max_hp() > 0, hp_scroll) << entry.first;
+    EXPECT_EQ(stats.str() > 0 || stats.dex() > 0 || stats.int_() > 0 ||
+                  stats.luk() > 0,
+              !hp_scroll)
+        << entry.first;
+  }
+  EXPECT_GT(seen, 0);
+}
+
+// The HP shelf trades at fifty times the stat shelf beside it, rate for rate
+// and tier for tier. One figure to check rather than nine.
+TEST_F(ScrollDataTest, AnAccessoryHpScrollIsFiftyTimesItsStatScroll) {
+  int checked = 0;
+  for (const std::pair<const std::string, Scroll>& hp : scrolls_) {
+    if (hp.second.target() != SCROLL_TARGET_ACCESSORY ||
+        hp.second.scroll_type() != SCROLL_TYPE_HP) {
+      continue;
+    }
+    for (const std::pair<const std::string, Scroll>& stat : scrolls_) {
+      if (stat.second.target() != SCROLL_TARGET_ACCESSORY ||
+          stat.second.scroll_type() != SCROLL_TYPE_STR ||
+          stat.second.tier() != hp.second.tier() ||
+          stat.second.success_rate() != hp.second.success_rate()) {
+        continue;
+      }
+      ++checked;
+      EXPECT_EQ(hp.second.stats().max_hp(), stat.second.stats().str() * 50)
+          << hp.first;
+    }
+  }
+  EXPECT_EQ(checked, 9);
+}
+
+// Which stat a job can put on its gear, from the wiki's own table. A missing
+// file shows up as a job with nothing to scroll at that tier. Asked of the
+// armour and the accessory shelves alike: the two carry the same stats, and
+// the accessory one was written by copying this table.
+TEST_F(ScrollDataTest, EveryJobHasAScrollAtEveryTierAndRate) {
   struct JobStats {
     EquipJobCategory job;
     std::set<ScrollType> stats;
@@ -174,33 +226,37 @@ TEST_F(ScrollDataTest, EveryJobHasAnArmourScrollAtEveryTierAndRate) {
   };
   const ScrollTier kTiers[] = {SCROLL_TIER_1, SCROLL_TIER_2, SCROLL_TIER_3};
   const int kRates[] = {100, 70, 30};
+  const ScrollTarget kShelves[] = {SCROLL_TARGET_ARMOUR,
+                                   SCROLL_TARGET_ACCESSORY};
 
-  for (const JobStats& expected : kExpected) {
-    for (ScrollTier tier : kTiers) {
-      for (int rate : kRates) {
-        std::set<ScrollType> found;
-        for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
-          const Scroll& s = entry.second;
-          if (s.target() != SCROLL_TARGET_ARMOUR || s.tier() != tier ||
-              s.success_rate() != rate) {
-            continue;
-          }
-          for (int job : s.applicable_job_categories()) {
-            if (job == expected.job) {
-              found.insert(s.scroll_type());
+  for (ScrollTarget shelf : kShelves) {
+    for (const JobStats& expected : kExpected) {
+      for (ScrollTier tier : kTiers) {
+        for (int rate : kRates) {
+          std::set<ScrollType> found;
+          for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
+            const Scroll& s = entry.second;
+            if (s.target() != shelf || s.tier() != tier ||
+                s.success_rate() != rate) {
+              continue;
+            }
+            for (int job : s.applicable_job_categories()) {
+              if (job == expected.job) {
+                found.insert(s.scroll_type());
+              }
             }
           }
+          // All Stats rides along at 30% for every job, which is why the
+          // expectation is a subset check rather than an equality.
+          for (ScrollType stat : expected.stats) {
+            EXPECT_EQ(found.count(stat), 1u)
+                << "job " << expected.job << " has no " << stat << " " << shelf
+                << " scroll at tier " << tier << ", " << rate << "%";
+          }
+          EXPECT_EQ(found.count(SCROLL_TYPE_ALL_STATS), rate == 30 ? 1u : 0u)
+              << "job " << expected.job << " on shelf " << shelf << " at tier "
+              << tier << ", " << rate << "%";
         }
-        // All Stats rides along at 30% for every job, which is why the
-        // expectation is a subset check rather than an equality.
-        for (ScrollType stat : expected.stats) {
-          EXPECT_EQ(found.count(stat), 1u)
-              << "job " << expected.job << " has no " << stat
-              << " armour scroll at tier " << tier << ", " << rate << "%";
-        }
-        EXPECT_EQ(found.count(SCROLL_TYPE_ALL_STATS), rate == 30 ? 1u : 0u)
-            << "job " << expected.job << " at tier " << tier << ", " << rate
-            << "%";
       }
     }
   }
@@ -221,7 +277,9 @@ TEST_F(ScrollDataTest, AllStatsPaysLessPerStatThanASingleStatScroll) {
     EXPECT_EQ(s.str(), s.int_());
     EXPECT_EQ(s.str(), s.luk());
     for (const std::pair<const std::string, Scroll>& one : scrolls_) {
-      if (one.second.target() != SCROLL_TARGET_ARMOUR ||
+      // Against the single-stat scroll on the same shelf: an accessory scroll
+      // and a piece of armour are never offered for the same item.
+      if (one.second.target() != all.second.target() ||
           one.second.tier() != all.second.tier() ||
           one.second.scroll_type() != SCROLL_TYPE_STR) {
         continue;

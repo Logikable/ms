@@ -1,0 +1,10 @@
+name: "30% HP"
+success_rate: 30
+tier: SCROLL_TIER_2
+stats {
+  max_hp: 200
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_HP
+target: SCROLL_TARGET_ACCESSORY

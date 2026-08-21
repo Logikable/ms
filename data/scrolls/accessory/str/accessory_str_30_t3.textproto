@@ -1,0 +1,12 @@
+name: "30% STR"
+success_rate: 30
+tier: SCROLL_TIER_3
+stats {
+  str: 5
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_STR
+target: SCROLL_TARGET_ACCESSORY
