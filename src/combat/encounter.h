@@ -342,6 +342,12 @@ struct CombatParams {
   const std::vector<AttackOption>& TriggeredAttacks(int mask) const;
 };
 
+// The weapon the character is holding, or null for one holding nothing. A
+// fight needs one -- without it there is no swing and every encounter comes
+// back inactive -- so a screen that offers a fight asks this before it starts
+// one.
+const EquipPrototype* EquippedWeapon(const GameState& state);
+
 // Reads `state`'s current map/character into a CombatParams. active is false
 // (and types empty) when there is no current map, no equipped weapon, or no
 // loaded mobs.

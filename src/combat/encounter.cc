@@ -1002,8 +1002,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   TagBuffGatedPulses(buff_skills, params);
 }
 
-// The weapon the character is holding, or null for one holding nothing --
-// which is the whole reason a fight can be inactive.
+}  // namespace
+
 const EquipPrototype* EquippedWeapon(const GameState& state) {
   const std::map<EquipSlot, EquipInstance>& equipped =
       state.character.equipped();
@@ -1011,8 +1011,6 @@ const EquipPrototype* EquippedWeapon(const GameState& state) {
       equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
   return it == equipped.end() ? nullptr : &it->second.prototype();
 }
-
-}  // namespace
 
 std::string BossEncounterKey(const std::string& boss,
                              const std::string& difficulty, int phase) {

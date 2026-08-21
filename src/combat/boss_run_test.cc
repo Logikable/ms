@@ -159,15 +159,15 @@ TEST(BossRunTest, RunningOutOfTimeEndsTheFight) {
   EXPECT_EQ(run.phase(), 1);
 }
 
-TEST(BossRunTest, AbortingEndsItAfterTheClosingBeat) {
+// A win holds its last beat, but an abort does not: the player asked to leave
+// and there is nothing left to watch.
+TEST(BossRunTest, AbortingEndsItWithNoClosingBeat) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1);
   Boss boss = TwoPhaseBoss();
   BossRun run("zakum", boss, 0);
   run.Advance(*state, kBossCountdownSeconds);
   run.Abort();
   EXPECT_EQ(run.state(), BossRunState::kAborted);
-  EXPECT_FALSE(run.done());
-  run.Advance(*state, kBossEndHoldSeconds);
   EXPECT_TRUE(run.done());
 
   // A finished run does not step again.

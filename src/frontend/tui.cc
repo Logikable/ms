@@ -312,17 +312,18 @@ ftxui::Element Tui::BossConfirmDialog() {
           }));
 }
 
-ftxui::Element Tui::BossClearedDialog() {
-  // A notice rather than a question: the fight is on its reset, and the only
-  // thing to press says so.
-  return ThemedWindow("",
-                      ftxui::vbox({
-                          CenteredRow(controller_.boss_prompt_title()),
-                          CenteredRow("has already been killed " +
-                                      controller_.boss_cleared_when() + "."),
-                          ThemedSeparator(),
-                          CenteredRow(controller_.notice_prompt().Render()),
-                      }));
+ftxui::Element Tui::BossNoticeDialog() {
+  // A notice rather than a question: the fight cannot be taken, and the only
+  // thing to press says so. Red when the player is the reason -- nothing to
+  // swing with -- and theme blue when it is only the reset.
+  ftxui::Color accent = controller_.notice_is_refusal() ? kRed : kTheme;
+  ftxui::Elements rows;
+  for (const std::string& line : controller_.notice_lines()) {
+    rows.push_back(CenteredRow(line));
+  }
+  rows.push_back(AccentSeparator(accent));
+  rows.push_back(CenteredRow(controller_.notice_prompt().Render()));
+  return AccentWindow("", ftxui::vbox(std::move(rows)), accent);
 }
 
 ftxui::Element Tui::BossAbortDialog() {
@@ -483,10 +484,10 @@ ftxui::Element Tui::RenderScreen() {
           ftxui::center(boss_select_panel_.Render()),
           ftxui::center(BossConfirmDialog() | ftxui::clear_under),
       });
-    case kBossCleared:
+    case kBossNotice:
       return ftxui::dbox({
           ftxui::center(boss_select_panel_.Render()),
-          ftxui::center(BossClearedDialog() | ftxui::clear_under),
+          ftxui::center(BossNoticeDialog() | ftxui::clear_under),
       });
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel puts it up itself.

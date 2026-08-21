@@ -69,7 +69,7 @@ class Tui {
   // "Fight Normal Zakum?", floated over the boss screen.
   ftxui::Element BossConfirmDialog();
   // "Stop fighting Zakum?", floated over the fight.
-  ftxui::Element BossClearedDialog();
+  ftxui::Element BossNoticeDialog();
   ftxui::Element BossAbortDialog();
   // The fight screen, or the fight list if there is no fight.
   ftxui::Element RenderBossFight();

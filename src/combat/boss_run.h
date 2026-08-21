@@ -32,7 +32,9 @@ inline constexpr double kBossCountdownSeconds = 3.0;
 inline constexpr double kBossDeathHoldSeconds = 1.0;
 // The beat between a phase ending and the next arriving.
 inline constexpr double kBossPhaseGapSeconds = 2.0;
-// How long the finished fight is held before the screen goes back.
+// How long a finished fight is held before the screen goes back. An abort
+// takes no hold at all: the player asked to leave, and there is nothing left
+// on screen for them to watch.
 inline constexpr double kBossEndHoldSeconds = 1.0;
 
 // Where a run is up to. The three at the end are all ways of being finished,
@@ -71,8 +73,8 @@ class BossRun {
   // Steps the run by elapsed_seconds of real time, paying the character for
   // whatever died. Does nothing once the run is finished.
   void Advance(GameState& state, double elapsed_seconds);
-  // Gives up the run. The screen holds for a beat and then goes back, exactly
-  // as it does on a win.
+  // Gives up the run. The screen goes straight back rather than holding a
+  // beat: the player asked to leave.
   void Abort();
 
   BossRunState state() const {
@@ -137,7 +139,8 @@ class BossRun {
   void ComputePhaseHp(const CombatParams& params);
   // Steps one phase of the fight forward, moving on when it empties.
   void RunPhase(GameState& state, double dt);
-  // Ends the run in `outcome`, holding the screen for the closing beat.
+  // Ends the run in `outcome`, holding the screen for the closing beat -- or
+  // for nothing at all, if the run was given up.
   void Finish(BossRunState outcome);
 
   std::string boss_key_;

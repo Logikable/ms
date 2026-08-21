@@ -127,12 +127,16 @@ class TuiControllerTest : public testing::Test {
     state_->bosses["zakum"] = boss;
   }
 
-  // Takes the one fight in the catalog, so a test starts inside it. A weapon
-  // goes on first: a character holding nothing has no swing, and the fight
-  // gives up rather than watching them stand there.
-  void EnterFight() {
+  // A character holding nothing is refused the fight, so every boss test that
+  // means to get past the list arms itself first.
+  void HoldASword() {
     state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
     state_->character.Equip(state_->character.inventory().size() - 1);
+  }
+
+  // Takes the one fight in the catalog, so a test starts inside it.
+  void EnterFight() {
+    HoldASword();
     controller_->OpenMenuEntry(MenuEntry::kBoss);
     controller_->OnEvent(ftxui::Event::Return);
     controller_->OnEvent(ftxui::Event::Return);
@@ -2288,6 +2292,7 @@ TEST_F(TuiControllerTest, SettingsHasNothingBehindItYet) {
 }
 
 TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
+  HoldASword();
   controller_->OpenMenuEntry(MenuEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossConfirm);
@@ -2301,21 +2306,38 @@ TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {
 // A fight already cleared this reset says when it comes back rather than
 // asking a question whose answer is no.
 TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
+  HoldASword();
   state_->character.RecordBossClear("zakum", "Normal",
                                     static_cast<int64_t>(std::time(nullptr)));
   controller_->OpenMenuEntry(MenuEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
-  EXPECT_EQ(controller_->screen(), kBossCleared);
-  EXPECT_EQ(controller_->boss_prompt_title(), "Normal Zakum");
-  EXPECT_EQ(controller_->boss_cleared_when(), "today");
+  EXPECT_EQ(controller_->screen(), kBossNotice);
+  EXPECT_FALSE(controller_->notice_is_refusal()) << "the reset, not the player";
+  EXPECT_EQ(controller_->notice_lines()[0], "Normal Zakum");
+  EXPECT_EQ(controller_->notice_lines()[1], "has already been killed today.");
   EXPECT_TRUE(controller_->notice_prompt().open());
 
   // The notice holds the screen until it is dismissed.
   controller_->OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(controller_->screen(), kBossCleared);
+  EXPECT_EQ(controller_->screen(), kBossNotice);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
   EXPECT_FALSE(controller_->notice_prompt().open());
+}
+
+// A character holding nothing cannot fight: the fight used to start and then
+// give up on its own, which read as the screen closing for no reason.
+TEST_F(TuiControllerTest, AFightRefusesACharacterWithNoWeapon) {
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossNotice);
+  EXPECT_TRUE(controller_->notice_is_refusal()) << "drawn in red";
+  ASSERT_EQ(controller_->notice_lines().size(), 1u);
+  EXPECT_EQ(controller_->notice_lines()[0], "You have no weapon equipped!");
+  EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
 }
 
 TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {
@@ -2327,6 +2349,7 @@ TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {
 }
 
 TEST_F(TuiControllerTest, ConfirmingEntersTheFight) {
+  HoldASword();
   controller_->OpenMenuEntry(MenuEntry::kBoss);
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBossConfirm);
@@ -2374,8 +2397,8 @@ TEST_F(TuiControllerTest, ConfirmingTheLeavePromptEndsTheFight) {
   controller_->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(controller_->screen(), kBossFight);
 
-  // The closing beat plays, and then the screen goes back to the list.
-  controller_->AdvanceBossRun(kBossEndHoldSeconds);
+  // No closing beat on the way out: the next tick is already back at the list.
+  controller_->AdvanceBossRun(0.0);
   EXPECT_EQ(controller_->screen(), kBossSelect);
   EXPECT_EQ(controller_->boss_run(), nullptr);
   EXPECT_FALSE(controller_->in_boss_fight());

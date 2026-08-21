@@ -6,12 +6,15 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/job_advancement.h"
 #include "src/character/progression.h"
+#include "src/combat/encounter.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
@@ -254,8 +257,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnBossSelectEvent(event);
     case kBossConfirm:
       return OnBossConfirmEvent(event);
-    case kBossCleared:
-      return OnBossClearedEvent(event);
+    case kBossNotice:
+      return OnBossNoticeEvent(event);
     case kBossFight:
       return OnBossFightEvent(event);
     case kBossAbort:
@@ -657,18 +660,27 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
+    if (boss_select_panel_.selected() == nullptr) {
+      return true;
+    }
     boss_prompt_title_ = boss_select_panel_.selected_title();
-    // A fight already cleared this reset is not offered a question whose
-    // answer is no -- it says when it comes back instead.
-    if (boss_select_panel_.selected_available()) {
-      boss_prompt_.Open();
-      screen_ = kBossConfirm;
-    } else if (boss_select_panel_.selected() != nullptr) {
-      boss_cleared_when_ =
+    // Two ways a fight is not offered, and each says why rather than doing
+    // nothing: a character with nothing to swing, and a fight still on its
+    // reset. Only what is left is worth asking a question about.
+    if (EquippedWeapon(state_) == nullptr) {
+      OpenNotice(kBossNotice, {"You have no weapon equipped!"},
+                 /*refusal=*/true);
+    } else if (!boss_select_panel_.selected_available()) {
+      std::string when =
           boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
               ? "this week"
               : "today";
-      OpenNotice(kBossCleared);
+      OpenNotice(kBossNotice,
+                 {boss_prompt_title_, "has already been killed " + when + "."},
+                 /*refusal=*/false);
+    } else {
+      boss_prompt_.Open();
+      screen_ = kBossConfirm;
     }
     return true;
   }
@@ -703,7 +715,7 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
   return true;
 }
 
-bool TuiController::OnBossClearedEvent(ftxui::Event event) {
+bool TuiController::OnBossNoticeEvent(ftxui::Event event) {
   if (notice_prompt_.OnEvent(event)) {
     screen_ = kBossSelect;
   }
@@ -713,6 +725,13 @@ bool TuiController::OnBossClearedEvent(ftxui::Event event) {
 void TuiController::OpenNotice(Screen screen) {
   notice_prompt_.Open();
   screen_ = screen;
+}
+
+void TuiController::OpenNotice(Screen screen, std::vector<std::string> lines,
+                               bool refusal) {
+  notice_lines_ = std::move(lines);
+  notice_is_refusal_ = refusal;
+  OpenNotice(screen);
 }
 
 bool TuiController::OnBossFightEvent(ftxui::Event event) {

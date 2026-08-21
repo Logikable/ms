@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "src/combat/boss_run.h"
@@ -146,9 +147,13 @@ class TuiController {
   const ContinuePrompt& notice_prompt() const {
     return notice_prompt_;
   }
-  // When the fight the notice is about comes back: "today" or "this week".
-  const std::string& boss_cleared_when() const {
-    return boss_cleared_when_;
+  // What the notice says, a line at a time, and whether it is a refusal --
+  // which is drawn in red, the colour of a reason the player fell short of.
+  const std::vector<std::string>& notice_lines() const {
+    return notice_lines_;
+  }
+  bool notice_is_refusal() const {
+    return notice_is_refusal_;
   }
   // The fight in progress, or null when the player is not in one.
   const BossRun* boss_run() const {
@@ -245,10 +250,13 @@ class TuiController {
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnBossSelectEvent(ftxui::Event event);
   bool OnBossConfirmEvent(ftxui::Event event);
-  bool OnBossClearedEvent(ftxui::Event event);
+  bool OnBossNoticeEvent(ftxui::Event event);
   // Raises a one-button screen with its prompt open, so every screen dismissed
   // by [Continue] is opened the one way.
   void OpenNotice(Screen screen);
+  // The same for a screen that is nothing but a message: `lines` is what it
+  // says, and a refusal is drawn in red.
+  void OpenNotice(Screen screen, std::vector<std::string> lines, bool refusal);
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
   bool OnShopEvent(ftxui::Event event);
@@ -315,7 +323,8 @@ class TuiController {
   ConfirmPrompt boss_prompt_;
   std::string boss_prompt_title_;
   ContinuePrompt notice_prompt_;
-  std::string boss_cleared_when_;
+  std::vector<std::string> notice_lines_;
+  bool notice_is_refusal_ = false;
   ConfirmPrompt boss_abort_prompt_;
   // The fight in progress, and which catalog entry it is being fought
   // against, so the clear can be recorded under the same names the reset

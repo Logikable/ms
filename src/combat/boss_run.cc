@@ -54,7 +54,7 @@ void BossRun::Abort() {
 
 void BossRun::Finish(BossRunState outcome) {
   state_ = outcome;
-  hold_left_ = kBossEndHoldSeconds;
+  hold_left_ = outcome == BossRunState::kAborted ? 0.0 : kBossEndHoldSeconds;
 }
 
 void BossRun::SyncSlots(double dt) {
