@@ -58,6 +58,13 @@ class BossSelectPanel {
   // Whether the highlighted fight can be entered right now, which is to say
   // its last clear has expired.
   bool selected_available() const;
+  // Whether the character has reached the level the highlighted difficulty
+  // opens at. A locked fight can still be highlighted -- that is how the
+  // player reads the level it wants -- but not entered.
+  bool selected_unlocked() const;
+  // The level the highlighted difficulty opens at, 0 for one with no gate of
+  // its own.
+  int selected_unlock_level() const;
   // How often the highlighted fight comes back, for a notice that has to say
   // when. RESET_PERIOD_UNSPECIFIED when there is no fight.
   ResetPeriod selected_reset() const;
@@ -73,10 +80,15 @@ class BossSelectPanel {
   // neither does, which is a drop nothing would be granted for.
   std::string RewardName(const MobDrop& drop) const;
 
+  // Whether `character` has reached the level `difficulty` opens at.
+  bool Unlocked(const BossDifficulty& difficulty) const;
+
   const GameState& state_;
-  // Boss keys in display order: by the level they are fought at, then by name
-  // so equal fights hold a stable order. Fixed at construction, since the
-  // catalog is static data.
+  // Boss keys in display order: by the level they open at, then by the level
+  // they are fought at, then by name so equal fights hold a stable order. The
+  // unlock leads because that is the order a player meets them in, and two
+  // fights of the same level can open decades apart. Fixed at construction,
+  // since the catalog is static data.
   std::vector<std::string> bosses_;
   // The difficulty chosen for each, parallel to bosses_.
   std::vector<int> difficulties_;

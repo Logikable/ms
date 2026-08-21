@@ -2341,6 +2341,20 @@ TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   EXPECT_FALSE(controller_->notice_prompt().open());
 }
 
+// A fight the character has not levelled up to says the level it wants. The
+// difficulty is dim on the list, and this is what Enter on it answers.
+TEST_F(TuiControllerTest, ALockedFightNamesTheLevelItOpensAt) {
+  HoldASword();
+  state_->bosses["zakum"].mutable_difficulties(0)->set_unlock_level(130);
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossNotice);
+  EXPECT_TRUE(controller_->notice_is_refusal()) << "drawn in red";
+  EXPECT_EQ(controller_->notice_lines()[0], "Normal Zakum");
+  EXPECT_EQ(controller_->notice_lines()[1], "unlocks at level 130.");
+  EXPECT_EQ(controller_->boss_run(), nullptr) << "nothing was started";
+}
+
 // A character holding nothing cannot fight: the fight used to start and then
 // give up on its own, which read as the screen closing for no reason.
 TEST_F(TuiControllerTest, AFightRefusesACharacterWithNoWeapon) {

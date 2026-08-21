@@ -35,6 +35,14 @@ message BossDifficulty {
   // state one number and be right. The drops beside it do scale with Item
   // Drop Rate, the way a monster's do.
   int64 meso = 6;
+  // The level a character has to reach before this difficulty can be entered.
+  // Unset means the boss screen's own gate is the only one, which is what a
+  // fight a player meets on the day the screen opens wants.
+  //
+  // Per difficulty rather than per boss: a ladder's rungs open at different
+  // levels, and the hard mode of a fight already beaten is the usual next
+  // thing a player is waiting for.
+  int32 unlock_level = 7;
 }
 
 // A boss and every difficulty it can be fought at. Loaded from data/bosses

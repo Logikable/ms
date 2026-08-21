@@ -5,6 +5,7 @@
 #include <ctime>
 #include <map>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -120,17 +121,21 @@ int BossPdr(const GameState& state, const BossDifficulty& difficulty) {
 }  // namespace
 
 BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
-  std::vector<std::pair<std::pair<int, std::string>, std::string>> sorted;
+  // Keyed on the easiest difficulty, which is the one the cursor starts on and
+  // the one a player meets the fight through.
+  std::vector<std::tuple<int, int, std::string, std::string>> sorted;
   for (const std::pair<const std::string, Boss>& entry : state_.bosses) {
-    int level = entry.second.difficulties_size() > 0
-                    ? BossLevel(state_, entry.second.difficulties(0))
-                    : 0;
-    sorted.push_back({{level, entry.second.name()}, entry.first});
+    int unlock = 0;
+    int level = 0;
+    if (entry.second.difficulties_size() > 0) {
+      unlock = entry.second.difficulties(0).unlock_level();
+      level = BossLevel(state_, entry.second.difficulties(0));
+    }
+    sorted.push_back({unlock, level, entry.second.name(), entry.first});
   }
   std::sort(sorted.begin(), sorted.end());
-  for (const std::pair<std::pair<int, std::string>, std::string>& entry :
-       sorted) {
-    bosses_.push_back(entry.second);
+  for (const std::tuple<int, int, std::string, std::string>& entry : sorted) {
+    bosses_.push_back(std::get<3>(entry));
   }
   difficulties_.assign(bosses_.size(), 0);
 }
@@ -192,6 +197,20 @@ bool BossSelectPanel::selected_available() const {
                        static_cast<int64_t>(std::time(nullptr)));
 }
 
+bool BossSelectPanel::Unlocked(const BossDifficulty& difficulty) const {
+  return state_.character.proto().level() >= difficulty.unlock_level();
+}
+
+bool BossSelectPanel::selected_unlocked() const {
+  const BossDifficulty* difficulty = selected();
+  return difficulty == nullptr || Unlocked(*difficulty);
+}
+
+int BossSelectPanel::selected_unlock_level() const {
+  const BossDifficulty* difficulty = selected();
+  return difficulty == nullptr ? 0 : difficulty->unlock_level();
+}
+
 ResetPeriod BossSelectPanel::selected_reset() const {
   const BossDifficulty* difficulty = selected();
   return difficulty == nullptr ? RESET_PERIOD_UNSPECIFIED : difficulty->reset();
@@ -217,6 +236,12 @@ ftxui::Element BossSelectPanel::RenderBossList() const {
     if (i == selected_) {
       cell = std::move(cell) | ftxui::inverted;
     }
+    // Dim is the door: a fight the character has not levelled up to is still
+    // listed and still readable, and Enter on it says what it wants.
+    if (difficulties_[i] < boss.difficulties_size() &&
+        !Unlocked(boss.difficulties(difficulties_[i]))) {
+      cell = std::move(cell) | ftxui::dim;
+    }
     int pad =
         std::max(0, kDifficultyWidth - static_cast<int>(difficulty.size()));
     rows.push_back(ftxui::hbox({
@@ -240,6 +265,18 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
   }
   rows.push_back(
       DetailRow("Level", std::to_string(BossLevel(state_, *difficulty))));
+  // Under the fight's own level, because the two together are what the player
+  // is: what they are up against, and what it takes to stand there. Everything
+  // below is the fight's own.
+  if (difficulty->unlock_level() > 0) {
+    ftxui::Element row =
+        DetailRow("Unlock Level", std::to_string(difficulty->unlock_level()));
+    if (!Unlocked(*difficulty)) {
+      // Red is the reason: the one value the player falls short of.
+      row = std::move(row) | ftxui::color(kRed);
+    }
+    rows.push_back(std::move(row));
+  }
   for (int i = 0; i < difficulty->phases_size(); ++i) {
     rows.push_back(
         DetailRow("Phase " + std::to_string(i + 1),
@@ -250,7 +287,11 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
   rows.push_back(
       DetailRow("Time Limit", Clock(difficulty->time_limit_seconds())));
   rows.push_back(DetailRow("Reset", ResetName(difficulty->reset())));
-  if (!selected_available()) {
+  if (!Unlocked(*difficulty)) {
+    // Neither "Available" nor "Cleared" is true of a fight the character
+    // cannot enter at all, and the level above says what it is short of.
+    rows.push_back(DetailRow("Status", "Locked") | ftxui::color(kRed));
+  } else if (!selected_available()) {
     // Red is the reason: the one value the player falls short of. What they
     // are short of here is a reset, so it goes on the status and nowhere else.
     rows.push_back(DetailRow("Status", "Cleared") | ftxui::color(kRed));

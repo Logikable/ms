@@ -82,6 +82,14 @@ std::unique_ptr<GameState> WithBosses(bool two = false) {
   return state;
 }
 
+// Raises `state`'s character to `level`, for the fights that only open partway
+// up the ladder.
+void LevelTo(GameState& state, int level) {
+  while (state.character.proto().level() < level) {
+    state.character.LevelUp();
+  }
+}
+
 // The columns the panel actually takes, for asking whether a row inside it
 // pushed it wider.
 int Width(const BossSelectPanel& panel) {
@@ -273,6 +281,70 @@ TEST(BossSelectPanelTest, AnEmptyCatalogDrawsWithoutAFight) {
   panel.MoveCursor(1);
   panel.ChangeDifficulty(1);
   EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
+}
+
+// --- a difficulty that opens partway up the ladder ---
+
+// The row is under the fight's own level: what the player is up against, then
+// what it takes to stand there. Red while they are short of it.
+TEST(BossSelectPanelTest, ALockedFightNamesTheLevelItWants) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  state.bosses["zakum"].mutable_difficulties(0)->set_unlock_level(130);
+  BossSelectPanel panel(state);
+  EXPECT_NE(Render(panel).find("Unlock Level"), std::string::npos);
+  EXPECT_NE(Render(panel).find("130"), std::string::npos);
+  EXPECT_FALSE(panel.selected_unlocked());
+  EXPECT_EQ(panel.selected_unlock_level(), 130);
+}
+
+// Neither "Available" nor "Cleared" is true of a fight that cannot be entered
+// at all.
+TEST(BossSelectPanelTest, ALockedFightReadsLockedRatherThanAvailable) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  state.bosses["zakum"].mutable_difficulties(0)->set_unlock_level(130);
+  BossSelectPanel panel(state);
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("Locked"), std::string::npos);
+  EXPECT_EQ(out.find("Available"), std::string::npos);
+}
+
+// And the level opens it, row and all.
+TEST(BossSelectPanelTest, ReachingTheLevelUnlocksTheFight) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  state.bosses["zakum"].mutable_difficulties(0)->set_unlock_level(130);
+  LevelTo(state, 130);
+  BossSelectPanel panel(state);
+  EXPECT_TRUE(panel.selected_unlocked());
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("Unlock Level"), std::string::npos)
+      << "the row stays once passed -- it is a fact about the fight";
+  EXPECT_NE(out.find("Available"), std::string::npos);
+  EXPECT_EQ(out.find("Locked"), std::string::npos);
+}
+
+// A fight with no gate of its own says nothing at all, rather than carrying a
+// row reading 0.
+TEST(BossSelectPanelTest, AnUngatedFightHasNoUnlockRow) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  BossSelectPanel panel(*owner);
+  EXPECT_EQ(Render(panel).find("Unlock Level"), std::string::npos);
+}
+
+// The list is the ladder: a fight that opens later comes later, whatever its
+// name and whatever level it is fought at.
+TEST(BossSelectPanelTest, TheListSortsByTheLevelAFightOpensAt) {
+  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
+  GameState& state = *owner;
+  // Balrog is the lower-level fight, so without a gate it leads. Gating it
+  // past Zakum has to move it below.
+  state.bosses["balrog"].mutable_difficulties(0)->set_unlock_level(130);
+  BossSelectPanel panel(state);
+  EXPECT_EQ(panel.selected_boss(), "zakum");
+  panel.MoveCursor(1);
+  EXPECT_EQ(panel.selected_boss(), "balrog");
 }
 
 }  // namespace

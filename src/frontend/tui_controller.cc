@@ -666,12 +666,21 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
       return true;
     }
     boss_prompt_title_ = boss_select_panel_.selected_title();
-    // Two ways a fight is not offered, and each says why rather than doing
-    // nothing: a character with nothing to swing, and a fight still on its
-    // reset. Only what is left is worth asking a question about.
+    // Three ways a fight is not offered, and each says why rather than doing
+    // nothing: a character with nothing to swing, a fight they have not
+    // levelled up to, and one still on its reset. Only what is left is worth
+    // asking a question about.
     if (EquippedWeapon(state_) == nullptr) {
       OpenNotice(kBossNotice, {"You have no weapon equipped!"},
                  /*refusal=*/true);
+    } else if (!boss_select_panel_.selected_unlocked()) {
+      OpenNotice(
+          kBossNotice,
+          {boss_prompt_title_,
+           "unlocks at level " +
+               std::to_string(boss_select_panel_.selected_unlock_level()) +
+               "."},
+          /*refusal=*/true);
     } else if (!boss_select_panel_.selected_available()) {
       std::string when =
           boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
