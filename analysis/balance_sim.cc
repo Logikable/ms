@@ -22,6 +22,7 @@
 #include "analysis/parallel.h"
 #include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
+#include "analysis/sim_jobs.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
@@ -87,54 +88,6 @@ Catalogs LoadCatalogs() {
   c.maps = LoadTextProtoMap<MapData>(EmbeddedMaps());
   c.skills = LoadTextProtoMap<Skill>(EmbeddedSkills());
   return c;
-}
-
-// The advancements a branch is reached through, in order, so the sweep climbs
-// the same path a player does and collects each book's skills on the way. Read
-// off the game's own stage table rather than listed, so a new job joins by
-// existing -- which is how the Berserker's three-step path came for free.
-std::vector<Job> PathTo(Job branch) {
-  std::vector<Job> path;
-  for (int stage = 1;; ++stage) {
-    JobAdvancement advancement = AdvancementForJobStage(branch, stage);
-    if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
-      return path;
-    }
-    path.push_back(JobForAdvancement(advancement));
-  }
-}
-
-// The branch --job names. Dies on anything else rather than sweeping the wrong
-// character quietly.
-Job ParseBranch(const std::string& name) {
-  Job job = JOB_UNSPECIFIED;
-  if (!Job_Parse("JOB_" + absl::AsciiStrToUpper(name), &job) ||
-      PathTo(job).size() < 2) {
-    LOG(FATAL) << "Unknown --job '" << name << "'";
-  }
-  return job;
-}
-
-// Brings the character up to `level` the way a player gets there: each
-// advancement of `path` as it is offered, every AP on the primary stat, every
-// SP on whatever it will buy. Which skill goes first is the catalog's
-// arbitrary order, but a book costs exactly what its levels pay out, so the
-// end of a stage looks the same either way.
-void GrowTo(GameState& state, int level, const std::vector<Job>& path) {
-  CharacterInstance& character = state.character;
-  int taken = 0;
-  while (character.proto().level() < level) {
-    character.LevelUp();
-    if (character.CanAdvanceJob() && taken < static_cast<int>(path.size())) {
-      character.AdvanceJob(path[taken++]);
-    }
-    while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
-    }
-    for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      while (character.LearnSkill(entry.second)) {
-      }
-    }
-  }
 }
 
 // What one (level, map) pairing came to.
@@ -270,6 +223,6 @@ void Run(double seconds, Job branch) {
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   ms::Run(absl::GetFlag(FLAGS_minutes) * 60.0,
-          ms::ParseBranch(absl::GetFlag(FLAGS_job)));
+          ms::ParseBranch(absl::GetFlag(FLAGS_job), /*min_stage=*/2));
   return 0;
 }

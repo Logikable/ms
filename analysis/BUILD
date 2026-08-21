@@ -34,11 +34,55 @@ cc_binary(
     ],
 )
 
+cc_library(
+    name = "sim_jobs",
+    srcs = ["sim_jobs.cc"],
+    hdrs = ["sim_jobs.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character",
+        "//src/protos:character_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+cc_binary(
+    name = "boss_sim",
+    srcs = ["boss_sim.cc"],
+    deps = [
+        ":parallel",
+        ":sim_gear",
+        ":sim_jobs",
+        "//src:embedded_data",
+        "//src:game_state",
+        "//src:proto_loader",
+        "//src/character",
+        "//src/character:character_stats",
+        "//src/combat:boss_run",
+        "//src/combat:encounter",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
 cc_binary(
     name = "weapon_sim",
     srcs = ["weapon_sim.cc"],
     deps = [
         ":sim_gear",
+        ":sim_jobs",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -68,6 +112,7 @@ cc_binary(
         ":parallel",
         ":sim_format",
         ":sim_gear",
+        ":sim_jobs",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -98,6 +143,7 @@ cc_binary(
         ":parallel",
         ":sim_format",
         ":sim_gear",
+        ":sim_jobs",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",

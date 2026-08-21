@@ -30,6 +30,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "analysis/sim_gear.h"
+#include "analysis/sim_jobs.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
@@ -99,90 +100,6 @@ struct Build {
   Job job = JOB_UNSPECIFIED;
   EquipType weapon = EQUIP_TYPE_UNSPECIFIED;
 };
-
-// The 2nd-job branches by name. Spelled out here rather than borrowed from the
-// frontend's JobName, which a combat tool has no business reaching into.
-std::string BranchName(Job job) {
-  switch (job) {
-    case JOB_FIGHTER:
-      return "Fighter";
-    case JOB_PAGE:
-      return "Page";
-    case JOB_SPEARMAN:
-      return "Spearman";
-    case JOB_HUNTER:
-      return "Hunter";
-    case JOB_CROSSBOWMAN:
-      return "Crossbowman";
-    case JOB_ICE_LIGHTNING_WIZARD:
-      return "I/L Wizard";
-    case JOB_FIRE_POISON_WIZARD:
-      return "F/P Wizard";
-    case JOB_CLERIC:
-      return "Cleric";
-    case JOB_ASSASSIN:
-      return "Assassin";
-    case JOB_BANDIT:
-      return "Bandit";
-    case JOB_BERSERKER:
-      return "Berserker";
-    case JOB_CRUSADER:
-      return "Crusader";
-    case JOB_WHITE_KNIGHT:
-      return "White Knight";
-    case JOB_RANGER:
-      return "Ranger";
-    case JOB_SNIPER:
-      return "Sniper";
-    case JOB_ICE_LIGHTNING_MAGE:
-      return "I/L Mage";
-    case JOB_FIRE_POISON_MAGE:
-      return "F/P Mage";
-    case JOB_PRIEST:
-      return "Priest";
-    case JOB_HERMIT:
-      return "Hermit";
-    case JOB_CHIEF_BANDIT:
-      return "Chief Bandit";
-    case JOB_DARK_KNIGHT:
-      return "Dark Knight";
-    case JOB_PALADIN:
-      return "Paladin";
-    case JOB_HERO:
-      return "Hero";
-    case JOB_BOW_MASTER:
-      return "Bow Master";
-    case JOB_MARKSMAN:
-      return "Marksman";
-    case JOB_ICE_LIGHTNING_ARCH_MAGE:
-      return "I/L Arch Mage";
-    case JOB_FIRE_POISON_ARCH_MAGE:
-      return "F/P Arch Mage";
-    case JOB_NIGHT_LORD:
-      return "Night Lord";
-    case JOB_SHADOWER:
-      return "Shadower";
-    case JOB_BISHOP:
-      return "Bishop";
-    default:
-      return "?";
-  }
-}
-
-// The advancements a branch is reached through, in order, so the sweep climbs
-// the same path a player does and collects each book's skills on the way. Read
-// off the game's own stage table rather than listed, so a new job joins by
-// existing -- which is how the Berserker's three-step path came for free.
-std::vector<Job> PathTo(Job branch) {
-  std::vector<Job> path;
-  for (int stage = 1;; ++stage) {
-    JobAdvancement advancement = AdvancementForJobStage(branch, stage);
-    if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
-      return path;
-    }
-    path.push_back(JobForAdvancement(advancement));
-  }
-}
 
 // What the row's primary figure is called, so the detail line labels the stat
 // it actually holds rather than assuming a warrior's.
@@ -270,26 +187,6 @@ Catalogs LoadCatalogs(int level) {
   spawn->set_count(1);
   c.maps[kDummyMap] = map;
   return c;
-}
-
-// Brings the character up to `level` the way a player gets there: each
-// advancement of `path` as it is offered, every AP on the primary stat, every
-// SP on whatever it will buy.
-void GrowTo(GameState& state, int level, const std::vector<Job>& path) {
-  CharacterInstance& character = state.character;
-  int taken = 0;
-  while (character.proto().level() < level) {
-    character.LevelUp();
-    if (character.CanAdvanceJob() && taken < static_cast<int>(path.size())) {
-      character.AdvanceJob(path[taken++]);
-    }
-    while (character.AllocateStat(PrimaryStatField(character.proto().job()))) {
-    }
-    for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      while (character.LearnSkill(entry.second)) {
-      }
-    }
-  }
 }
 
 // Puts `key` on the character, in whichever slot its prototype names, dropping
