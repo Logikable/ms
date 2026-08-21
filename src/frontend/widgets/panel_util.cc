@@ -42,34 +42,51 @@ class AlwaysFocusableComponent : public ftxui::ComponentBase {
 // sit on top of it without the two fighting over the same characters. The
 // label takes one color over the fill and another past it; pass the same color
 // twice to hold it steady as the bar moves.
+//
+// One row per label line, every row filled the same: a bar of two lines is one
+// bar, not two stacked.
 class ProgressBarNode : public ftxui::Node {
  public:
-  ProgressBarNode(float frac, ftxui::Color fill, std::string label,
-                  ftxui::Color label_on_fill, ftxui::Color label_off_fill)
+  ProgressBarNode(float frac, ftxui::Color fill,
+                  std::vector<std::string> labels, ftxui::Color label_on_fill,
+                  ftxui::Color label_off_fill)
       : frac_(std::clamp(frac, 0.0f, 1.0f)),
         fill_(fill),
-        label_(std::move(label)),
+        labels_(std::move(labels)),
         label_on_fill_(label_on_fill),
         label_off_fill_(label_off_fill) {
+    if (labels_.empty()) {
+      labels_.push_back("");
+    }
   }
 
   void ComputeRequirement() override {
     requirement_.min_x = 1;
-    requirement_.min_y = 1;
+    requirement_.min_y = static_cast<int>(labels_.size());
   }
 
   void Render(ftxui::Screen& screen) override {
-    const int y = box_.y_min;
     const int width = box_.x_max - box_.x_min + 1;
     const int fill_end = box_.x_min + static_cast<int>(frac_ * width);
+    for (int row = 0; row < static_cast<int>(labels_.size()); ++row) {
+      const int y = box_.y_min + row;
+      if (y > box_.y_max) {
+        return;
+      }
+      RenderRow(screen, y, width, fill_end, labels_[row]);
+    }
+  }
 
+ private:
+  void RenderRow(ftxui::Screen& screen, int y, int width, int fill_end,
+                 const std::string& label) {
     for (int x = box_.x_min; x <= box_.x_max; ++x) {
       ftxui::Pixel& px = screen.PixelAt(x, y);
       px.character = " ";
       px.background_color = x < fill_end ? fill_ : kBarEmpty;
     }
 
-    const int label_len = static_cast<int>(label_.size());
+    const int label_len = static_cast<int>(label.size());
     const int label_x = box_.x_min + (width - label_len) / 2;
     for (int i = 0; i < label_len; ++i) {
       int x = label_x + i;
@@ -77,15 +94,14 @@ class ProgressBarNode : public ftxui::Node {
         continue;
       }
       ftxui::Pixel& px = screen.PixelAt(x, y);
-      px.character = std::string(1, label_[i]);
+      px.character = std::string(1, label[i]);
       px.foreground_color = x < fill_end ? label_on_fill_ : label_off_fill_;
     }
   }
 
- private:
   float frac_;
   ftxui::Color fill_;
-  std::string label_;
+  std::vector<std::string> labels_;
   ftxui::Color label_on_fill_;
   ftxui::Color label_off_fill_;
 };
@@ -707,14 +723,19 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label) {
-  return std::make_shared<ProgressBarNode>(
-      frac, fill, label, ftxui::Color::Black, ftxui::Color::White);
+  return ProgressBar(frac, fill, std::vector<std::string>{label});
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
                            const std::string& label, ftxui::Color label_color) {
-  return std::make_shared<ProgressBarNode>(frac, fill, label, label_color,
-                                           label_color);
+  return std::make_shared<ProgressBarNode>(
+      frac, fill, std::vector<std::string>{label}, label_color, label_color);
+}
+
+ftxui::Element ProgressBar(float frac, ftxui::Color fill,
+                           const std::vector<std::string>& labels) {
+  return std::make_shared<ProgressBarNode>(
+      frac, fill, labels, ftxui::Color::Black, ftxui::Color::White);
 }
 
 ftxui::Element Floating(ftxui::Element element) {

@@ -19,11 +19,16 @@ namespace ms {
 // How wide every panel in the arena is drawn: the monsters' bars and the
 // player's alike, so the ring is square whatever is standing in it.
 //
-// Sized off the longest thing that goes in one, which is the name of a swing
-// being charged -- with room to spare and a column of clearance each side.
-// A skill named past it is caught by a data test rather than by a player
-// watching half a name.
-inline constexpr int kBossPanelWidth = 32;
+// Narrow enough to keep the ring on one screen, since the name of a swing
+// being charged wraps over the player's two rows rather than setting the
+// width. What it has to hold on one line is the longest word in a skill name,
+// with a column of clearance each side. A name that outgrows the pair of rows
+// is caught by a data test rather than by a player watching half of it.
+inline constexpr int kBossPanelWidth = 20;
+
+// How many rows the player's bar is drawn over. Fixed, so the panel is the
+// same height whatever is being swung.
+inline constexpr int kPlayerBarRows = 2;
 
 // Seconds as mm:ss, rounded up so the clock reads 0:00 only when the time is
 // actually gone.

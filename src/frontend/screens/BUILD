@@ -347,6 +347,7 @@ cc_test(
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

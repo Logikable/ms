@@ -15,6 +15,9 @@ namespace ms {
 namespace {
 
 constexpr int kMobPanelHeight = 3;
+// The border a panel draws and the column of clearance it keeps inside it,
+// both sides: what a name laid on a bar has to fit inside.
+constexpr int kPanelClearance = 4;
 // The gap between the player and the monsters flanking them. Fixed rather
 // than flexed: on a wide terminal a filler would push the arms out to the
 // edges of the screen, where they read as two separate lists rather than as
@@ -57,6 +60,9 @@ ftxui::Element SlotColumn(const std::vector<BossSlot>& slots, int from,
 
 // The player's own panel: their name, then whatever they are winding up. No
 // HP -- nothing in a boss fight hits back yet.
+//
+// Two rows tall whatever the name needs, so a long one wraps instead of
+// widening the whole arena and the panel never changes height mid-fight.
 ftxui::Element PlayerPanel(const BossRun& run) {
   std::string label = run.attack_name();
   if (run.state() == BossRunState::kCountdown) {
@@ -65,8 +71,11 @@ ftxui::Element PlayerPanel(const BossRun& run) {
     label = std::to_string(
         static_cast<int>(std::ceil(std::max(0.0, run.countdown_left()))));
   }
+  std::vector<std::string> lines =
+      WrapBalanced(label, kBossPanelWidth - kPanelClearance);
+  lines.resize(kPlayerBarRows);
   ftxui::Element bar =
-      ProgressBar(static_cast<float>(run.attack_fraction()), kTheme, label);
+      ProgressBar(static_cast<float>(run.attack_fraction()), kTheme, lines);
   return ThemedWindow(" You ", std::move(bar)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }

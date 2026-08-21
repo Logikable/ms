@@ -158,31 +158,28 @@ TEST(SkillDataTest, EverySkillNamesItsKind) {
 }
 
 // The name of the swing being charged goes in the player's panel in a boss
-// fight, which is the narrowest place a skill name is drawn. A longer one is
-// half a name on screen, and the fix is the panel rather than the skill -- so
-// this fails where the width is decided.
+// fight, which is the narrowest place a skill name is drawn. It wraps over the
+// panel's rows; a name that needs one more of them is half a name on screen,
+// and the fix is the panel rather than the skill -- so this fails where the
+// width is decided.
 TEST(SkillDataTest, EverySwingsNameFitsTheBossFightPanel) {
   // The border, and the column of clearance every panel keeps inside it.
   const int kRoom = kBossPanelWidth - 4;
   int checked = 0;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (SpendsASwing(skill)) {
-      ++checked;
-      EXPECT_LE(static_cast<int>(skill.name().size()), kRoom)
-          << entry.first << " is too long for the arena";
+    if (!SpendsASwing(skill)) {
+      continue;
     }
-    // An empowered form is named for the swing it stands in for, so its name
-    // is the longer one -- see EmpoweredSkill, which builds it the same way.
-    for (const EmpoweredForm& form : skill.empowered_form()) {
-      std::string target = form.skill_name();
-      if (target.empty()) {
-        target = skill.boosts_skill_name().empty() ? skill.name()
-                                                   : skill.boosts_skill_name();
-      }
-      ++checked;
-      EXPECT_LE(static_cast<int>(target.size()) + 10, kRoom)
-          << "Empowered " << target << " is too long for the arena";
+    ++checked;
+    std::vector<std::string> lines = WrapBalanced(skill.name(), kRoom);
+    EXPECT_LE(static_cast<int>(lines.size()), kPlayerBarRows)
+        << entry.first << " takes more rows than the arena has";
+    // A word too long for the row is not wrapped at all: it overhangs, which
+    // is a name with its head and tail cut off.
+    for (const std::string& line : lines) {
+      EXPECT_LE(static_cast<int>(line.size()), kRoom)
+          << entry.first << " has a word too long for the arena";
     }
   }
   EXPECT_GT(checked, 0);

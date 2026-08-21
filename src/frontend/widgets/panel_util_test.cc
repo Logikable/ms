@@ -377,6 +377,20 @@ TEST(ProgressBarTest, EmptyLabelLeavesTheBarBlank) {
   EXPECT_EQ(screen.PixelAt(5, 0).character, " ");
 }
 
+// A label of several lines takes a row each, and every row is one bar: filled
+// to the same point, with its own line centred over it.
+TEST(ProgressBarTest, DrawsALineOfLabelPerRow) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(10),
+                                               ftxui::Dimension::Fixed(2));
+  ftxui::Render(
+      screen, ProgressBar(0.5f, kGreen, std::vector<std::string>{"AB", "CD"}));
+  EXPECT_EQ(screen.PixelAt(4, 0).character, "A");
+  EXPECT_EQ(screen.PixelAt(4, 1).character, "C");
+  EXPECT_EQ(screen.PixelAt(5, 1).character, "D");
+  EXPECT_EQ(screen.PixelAt(0, 1).background_color, kGreen);
+  EXPECT_EQ(screen.PixelAt(9, 1).background_color, kBarEmpty);
+}
+
 // --- ResultWindow ---
 
 // Renders a result window wide enough not to wrap and returns its rows, so the

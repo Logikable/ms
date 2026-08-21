@@ -17,6 +17,7 @@
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -46,13 +47,14 @@ Boss Zakum() {
   return boss;
 }
 
-std::unique_ptr<GameState> MakeState(int arm_hp, int body_hp) {
+std::unique_ptr<GameState> MakeState(int arm_hp, int body_hp,
+                                     std::map<std::string, Skill> skills = {}) {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
       std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
       std::map<std::string, ItemPrototype>{},
       std::map<std::string, Mob>{{"arm", BossMob("Zakum's Arm", arm_hp)},
                                  {"body", BossMob("Zakum", body_hp)}},
-      std::map<std::string, MapData>{});
+      std::map<std::string, MapData>{}, std::move(skills));
   EquipPrototype sword;
   sword.set_name("Sword");
   sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
@@ -152,6 +154,36 @@ TEST(BossFightPanelTest, TheCountdownShowsOnThePlayerPanel) {
   EXPECT_NE(Render(run).find("3"), std::string::npos);
   run.Advance(*state, 2.5);
   EXPECT_NE(Render(run).find("1"), std::string::npos);
+}
+
+// A name too long for one row wraps over the player's two rather than widening
+// the whole arena. "Midnight Carnival" is the longest swing in the game.
+TEST(BossFightPanelTest, ALongSwingNameWrapsOverThePlayersRows) {
+  Skill carnival;
+  carnival.set_name("Midnight Carnival");
+  carnival.set_kind(SKILL_KIND_ATTACK);
+  carnival.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  carnival.set_max_level(1);
+  carnival.set_max_enemies(6);
+  carnival.mutable_base()->set_skill_pct(5.0);
+  std::unique_ptr<GameState> state =
+      MakeState(1000000000, 1, {{"carnival", carnival}});
+  state->character.AdvanceJob(JOB_SWORDMAN);
+  // SP arrives with the levels, and only past level 10.
+  for (int i = 0; i < 12; ++i) {
+    state->character.LevelUp();
+  }
+  ASSERT_TRUE(state->character.LearnSkill(carnival, 1));
+
+  Boss boss = Zakum();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_EQ(run.attack_name(), "Midnight Carnival");
+
+  std::string out = Render(run);
+  EXPECT_NE(out.find("Midnight"), std::string::npos);
+  EXPECT_NE(out.find("Carnival"), std::string::npos);
+  EXPECT_EQ(out.find("Midnight Carnival"), std::string::npos);
 }
 
 // The body stands over the player rather than off to one side.
