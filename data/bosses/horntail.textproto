@@ -6,16 +6,16 @@ difficulties {
   # top of the arena and a row of clearance above.
   phases {
     spawns { mob: "horntail_left_head" count: 1 }
-    spots { x: 6 y: 1 }
+    spots { x: 7 y: 1 }
     player { x: 4 y: 1 }
-    arena_width: 9
+    arena_width: 10
     arena_height: 4
   }
   phases {
     spawns { mob: "horntail_right_head" count: 1 }
     spots { x: 1 y: 1 }
     player { x: 4 y: 1 }
-    arena_width: 9
+    arena_width: 10
     arena_height: 4
   }
   # The whole dragon at once, laid out the way his sprite is: three heads over

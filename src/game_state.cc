@@ -280,8 +280,12 @@ std::vector<std::string> FrozenArmour() {
 // workbench starts in it -- and the crystal asks for level 110, which a 3rd
 // job standing at 100 carries rather than wears.
 std::vector<std::string> BossAccessories() {
-  return {"aquatic_letter_eye_accessory", "condensed_power_crystal",
-          "stone_of_eternal_life"};
+  return {"aquatic_letter_eye_accessory",
+          "condensed_power_crystal",
+          "stone_of_eternal_life",
+          "silver_blossom_ring",
+          "horntail_necklace",
+          "dea_sidus_earring"};
 }
 
 // Passed as `unspent_stage` to spend every point the climb earns.
