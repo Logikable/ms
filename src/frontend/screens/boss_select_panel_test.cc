@@ -271,9 +271,10 @@ TEST(BossSelectPanelTest, TheListSortsByLevelAndTheCursorWraps) {
   EXPECT_EQ(panel.selected_boss(), "zakum");
 }
 
-// A difficulty is chosen per fight and remembered, so walking the list and
-// coming back does not put it back to the easiest.
-TEST(BossSelectPanelTest, DifficultyIsPerFightAndClampsToItsEnds) {
+// The column belongs to the grid, not to a fight: moving down the second
+// column stays in the second column. A fight with fewer difficulties than the
+// widest is the one exception, and it does not cost the column.
+TEST(BossSelectPanelTest, TheColumnIsHeldAcrossTheGridAndClampsToItsEnds) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
   BossSelectPanel panel(state);
@@ -284,13 +285,25 @@ TEST(BossSelectPanelTest, DifficultyIsPerFightAndClampsToItsEnds) {
   panel.ChangeDifficulty(1);
   EXPECT_EQ(panel.selected_difficulty(), 1);
 
+  // Zakum has only the one, so its row falls back to it ...
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected_title(), "Normal Zakum");
-  panel.ChangeDifficulty(-1);  // Zakum has only the one
   EXPECT_EQ(panel.selected_difficulty(), 0);
 
+  // ... and the column is still the second one on the way back.
   panel.MoveCursor(-1);
   EXPECT_EQ(panel.selected_title(), "Normal Balrog");
+  EXPECT_EQ(panel.selected_difficulty(), 1);
+
+  panel.ChangeDifficulty(-1);
+  EXPECT_EQ(panel.selected_title(), "Easy Balrog");
+  panel.ChangeDifficulty(-1);  // and a bottom
+  EXPECT_EQ(panel.selected_difficulty(), 0);
+
+  // Opening the screen starts over on the easiest.
+  panel.ChangeDifficulty(1);
+  panel.Reset();
+  EXPECT_EQ(panel.selected_title(), "Easy Balrog");
 }
 
 // Every difficulty a fight has stands on its row at once, and the cursor is

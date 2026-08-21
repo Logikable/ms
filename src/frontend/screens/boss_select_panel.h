@@ -4,9 +4,10 @@
  * highlighted -- its level, what each phase is holding, the defence it stands
  * behind, the clock, and how often it comes back.
  *
- * Up and Down move between fights, Left and Right between difficulties. A
- * difficulty is remembered per fight, so walking down the grid and back comes
- * back to the column that was chosen.
+ * Up and Down move between fights, Left and Right between difficulties. The
+ * column belongs to the grid rather than to a fight: leaving the cursor on
+ * Chaos and moving down lands on the next fight's Chaos, and only a fight with
+ * fewer difficulties than the widest pulls it back to its own last one.
  *
  * The panel is a view: it moves its own cursor and never writes to the game
  * state. The controller reads selected_boss() when the player confirms.
@@ -36,13 +37,14 @@ class BossSelectPanel {
  public:
   explicit BossSelectPanel(const GameState& state);
 
-  // Puts the cursor back on the first fight. Call when the screen opens.
+  // Puts the cursor back on the first fight's easiest difficulty. Call when
+  // the screen opens.
   void Reset();
   // Moves the cursor `delta` fights, coming out the other end.
   void MoveCursor(int delta);
-  // Moves `delta` difficulties within the highlighted fight, clamped to its
-  // ends -- there is no wrapping here, because a difficulty ladder has a top
-  // and a bottom the player should feel.
+  // Moves `delta` columns across the grid, clamped to its ends -- there is no
+  // wrapping here, because a difficulty ladder has a top and a bottom the
+  // player should feel.
   void ChangeDifficulty(int delta);
   ftxui::Element Render() const;
 
@@ -91,6 +93,12 @@ class BossSelectPanel {
   // neither does, which is a drop nothing would be granted for.
   std::string RewardName(const MobDrop& drop) const;
 
+  // Columns in the grid: what the fight with the most difficulties has.
+  int Columns() const;
+  // The difficulty `boss` is standing on: the grid's column, pulled back to
+  // the fight's own last one when it has fewer than the widest has.
+  int DifficultyAt(int boss) const;
+
   // Whether `character` has reached the level `difficulty` opens at.
   bool Unlocked(const BossDifficulty& difficulty) const;
 
@@ -101,8 +109,9 @@ class BossSelectPanel {
   // fights of the same level can open decades apart. Fixed at construction,
   // since the catalog is static data.
   std::vector<std::string> bosses_;
-  // The difficulty chosen for each, parallel to bosses_.
-  std::vector<int> difficulties_;
+  // The column the cursor is in, held across the whole grid so that moving up
+  // and down stays on the difficulty the player chose.
+  int column_ = 0;
   int selected_ = 0;
 };
 

@@ -141,24 +141,32 @@ BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
   for (const std::tuple<int, int, std::string, std::string>& entry : sorted) {
     bosses_.push_back(std::get<3>(entry));
   }
-  difficulties_.assign(bosses_.size(), 0);
 }
 
 void BossSelectPanel::Reset() {
   selected_ = 0;
+  column_ = 0;
 }
 
 void BossSelectPanel::MoveCursor(int delta) {
   selected_ = StepCursor(selected_, delta, static_cast<int>(bosses_.size()));
 }
 
-void BossSelectPanel::ChangeDifficulty(int delta) {
-  if (bosses_.empty()) {
-    return;
+int BossSelectPanel::Columns() const {
+  int columns = 0;
+  for (const std::string& key : bosses_) {
+    columns = std::max(columns, state_.bosses.at(key).difficulties_size());
   }
-  int count = state_.bosses.at(bosses_[selected_]).difficulties_size();
-  difficulties_[selected_] =
-      std::clamp(difficulties_[selected_] + delta, 0, std::max(0, count - 1));
+  return columns;
+}
+
+void BossSelectPanel::ChangeDifficulty(int delta) {
+  column_ = std::clamp(column_ + delta, 0, std::max(0, Columns() - 1));
+}
+
+int BossSelectPanel::DifficultyAt(int boss) const {
+  int count = state_.bosses.at(bosses_[boss]).difficulties_size();
+  return std::clamp(column_, 0, std::max(0, count - 1));
 }
 
 const std::string& BossSelectPanel::selected_boss() const {
@@ -167,7 +175,7 @@ const std::string& BossSelectPanel::selected_boss() const {
 }
 
 int BossSelectPanel::selected_difficulty() const {
-  return bosses_.empty() ? 0 : difficulties_[selected_];
+  return bosses_.empty() ? 0 : DifficultyAt(selected_);
 }
 
 const BossDifficulty* BossSelectPanel::selected() const {
@@ -175,7 +183,7 @@ const BossDifficulty* BossSelectPanel::selected() const {
     return nullptr;
   }
   const Boss& boss = state_.bosses.at(bosses_[selected_]);
-  int at = difficulties_[selected_];
+  int at = DifficultyAt(selected_);
   if (at < 0 || at >= boss.difficulties_size()) {
     return nullptr;
   }
@@ -234,7 +242,7 @@ ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
   ftxui::Element name = ftxui::text(difficulty.name());
   // The cursor is the lit cell rather than a caret on the row, since Left and
   // Right walk the row and Up and Down the column.
-  if (boss == selected_ && at == difficulties_[boss]) {
+  if (boss == selected_ && at == DifficultyAt(boss)) {
     name = std::move(name) | ftxui::inverted;
   }
   // Dim is the door: a fight the character has not levelled up to -- or one
@@ -250,10 +258,7 @@ ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
 }
 
 ftxui::Element BossSelectPanel::RenderBossList() const {
-  int columns = 0;
-  for (const std::string& key : bosses_) {
-    columns = std::max(columns, state_.bosses.at(key).difficulties_size());
-  }
+  int columns = Columns();
   std::vector<ftxui::Element> rows;
   rows.push_back(
       ftxui::text(" " + PadRight("Name", kBossNameWidth) +
