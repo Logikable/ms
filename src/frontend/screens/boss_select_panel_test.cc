@@ -22,7 +22,7 @@
 namespace ms {
 namespace {
 
-Mob BossMob(const std::string& name, int level, int max_hp, int pdr) {
+Mob BossMob(const std::string& name, int level, int64_t max_hp, int pdr) {
   Mob mob;
   mob.set_name(name);
   mob.set_level(level);

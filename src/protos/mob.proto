@@ -32,7 +32,7 @@ message Mob {
   string name = 1;
   int32 level = 2;
   int32 attack = 3;
-  int32 max_hp = 4;
+  int64 max_hp = 4;
   int64 exp = 5;
   // Items this mob can drop.
   repeated MobDrop drops = 6;
