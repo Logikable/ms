@@ -57,6 +57,51 @@ const BossDifficulty* BossRun::difficulty() const {
   return &boss_->difficulties(difficulty_index_);
 }
 
+const BossPhase* BossRun::current_phase() const {
+  const BossDifficulty* chosen = difficulty();
+  if (chosen == nullptr || phase_ < 0 || phase_ >= chosen->phases_size()) {
+    return nullptr;
+  }
+  return &chosen->phases(phase_);
+}
+
+ArenaSpot BossRun::player_spot() const {
+  const BossPhase* phase = current_phase();
+  return phase == nullptr ? ArenaSpot() : phase->player();
+}
+
+int BossRun::arena_width() const {
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr) {
+    return 0;
+  }
+  if (phase->arena_width() > 0) {
+    return phase->arena_width();
+  }
+  // Measured off what stands in it: every spot is two half-steps wide, so the
+  // rightmost one needs its own step and the one after it.
+  int width = phase->player().x() + 2;
+  for (const ArenaSpot& spot : phase->spots()) {
+    width = std::max(width, spot.x() + 2);
+  }
+  return width;
+}
+
+int BossRun::arena_height() const {
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr) {
+    return 0;
+  }
+  if (phase->arena_height() > 0) {
+    return phase->arena_height();
+  }
+  int height = phase->player().y() + 1;
+  for (const ArenaSpot& spot : phase->spots()) {
+    height = std::max(height, spot.y() + 1);
+  }
+  return height;
+}
+
 bool BossRun::done() const {
   switch (state_) {
     case BossRunState::kWon:
@@ -82,8 +127,16 @@ void BossRun::Finish(BossRunState outcome) {
 void BossRun::SyncSlots(double dt) {
   const std::vector<MobStatus>& roster = sim_.roster();
   if (slots_.empty()) {
+    const BossPhase* phase = current_phase();
     for (const MobStatus& mob : roster) {
-      slots_.push_back({mob.id, mob.name, mob.hp_fraction, true, true});
+      // A mob's type is its spawn's index, which is the index its spot is
+      // written at. A phase that named no spot for it stands it at the origin.
+      ArenaSpot spot;
+      if (phase != nullptr && mob.type < phase->spots_size()) {
+        spot = phase->spots(mob.type);
+      }
+      slots_.push_back(
+          {mob.id, mob.name, spot.x(), spot.y(), mob.hp_fraction, true, true});
     }
     return;
   }

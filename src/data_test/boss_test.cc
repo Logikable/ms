@@ -3,10 +3,12 @@
 // an empty fight until the clock ran out.
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "src/proto_loader.h"
 #include "src/protos/boss.pb.h"
@@ -128,9 +130,11 @@ TEST(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 300);
   ASSERT_EQ(normal.phases_size(), 2);
-  ASSERT_EQ(normal.phases(0).spawns_size(), 1);
-  EXPECT_EQ(normal.phases(0).spawns(0).mob(), "zakum_arm");
-  EXPECT_EQ(normal.phases(0).spawns(0).count(), 8);
+  ASSERT_EQ(normal.phases(0).spawns_size(), 8);
+  for (const Spawn& arm : normal.phases(0).spawns()) {
+    EXPECT_EQ(arm.mob(), "zakum_arm");
+    EXPECT_EQ(arm.count(), 1);
+  }
   ASSERT_EQ(normal.phases(1).spawns_size(), 1);
   EXPECT_EQ(normal.phases(1).spawns(0).mob(), "zakum");
   EXPECT_EQ(normal.phases(1).spawns(0).count(), 1);
@@ -142,6 +146,44 @@ TEST(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.drops(1).per_kill(), 0.5);
   EXPECT_EQ(normal.drops(2).item(), "zakums_soul_shard");
   EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
+}
+
+// Where the parts stand is data, and a spot that names nothing or overlaps its
+// neighbour is a bar drawn on top of another one.
+TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
+  // Panels are two steps wide, so two on one row need two steps between them.
+  const int kStepsPerPanel = 2;
+  int placed = 0;
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const BossPhase& phase : difficulty.phases()) {
+        std::string where = entry.first + " " + difficulty.name();
+        ASSERT_EQ(phase.spots_size(), phase.spawns_size())
+            << where << " does not stand every spawn somewhere";
+        std::map<int, std::vector<int>> rows;
+        for (int i = 0; i < phase.spots_size(); ++i) {
+          ++placed;
+          EXPECT_EQ(phase.spawns(i).count(), 1)
+              << where << " stands more than one monster in one spot";
+          EXPECT_LE(phase.spots(i).x() + kStepsPerPanel, phase.arena_width())
+              << where << " reaches past the right of its arena";
+          EXPECT_LT(phase.spots(i).y(), phase.arena_height())
+              << where << " reaches past the bottom of its arena";
+          rows[phase.spots(i).y()].push_back(phase.spots(i).x());
+        }
+        rows[phase.player().y()].push_back(phase.player().x());
+        for (std::pair<const int, std::vector<int>>& row : rows) {
+          std::sort(row.second.begin(), row.second.end());
+          for (std::size_t i = 1; i < row.second.size(); ++i) {
+            EXPECT_GE(row.second[i] - row.second[i - 1], kStepsPerPanel)
+                << entry.first << " " << difficulty.name()
+                << " overlaps two bars on row " << row.first;
+          }
+        }
+      }
+    }
+  }
+  EXPECT_GT(placed, 0);
 }
 
 }  // namespace

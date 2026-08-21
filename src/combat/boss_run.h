@@ -71,6 +71,9 @@ enum class BossRunState {
 struct BossSlot {
   int id = 0;
   std::string name;
+  // Where this one stands, from the phase that spawned it.
+  int x = 0;
+  int y = 0;
   double hp_fraction = 0.0;
   bool alive = true;
   // False once the dead bar's hold has run out. The slot stays in the list --
@@ -143,6 +146,13 @@ class BossRun {
   const std::vector<BossSlot>& slots() const {
     return slots_;
   }
+  // Where the player stands in the current phase, and how much room the arena
+  // holds around everyone. Width is in the half-panel steps a spot uses,
+  // height in rows; both are measured off the spots when the phase names
+  // neither.
+  ArenaSpot player_spot() const;
+  int arena_width() const;
+  int arena_height() const;
   // The swing being charged and how far along it is, for the player's bar.
   const std::string& attack_name() const {
     return sim_.attack_name();
@@ -153,6 +163,8 @@ class BossRun {
 
  private:
   const BossDifficulty* difficulty() const;
+  // The phase being fought, or null once the run is over.
+  const BossPhase* current_phase() const;
   // Rebuilds the bars from the fight's roster: what is still standing keeps
   // its bar, and what has gone starts fading in the slot it held.
   void SyncSlots(double dt);

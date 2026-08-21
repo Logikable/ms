@@ -33,12 +33,22 @@ Boss TwoPhaseBoss(int time_limit = 300) {
   normal->set_name("Normal");
   normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(time_limit);
-  Spawn* arms = normal->add_phases()->add_spawns();
-  arms->set_mob("arm");
-  arms->set_count(2);
-  Spawn* body = normal->add_phases()->add_spawns();
+  BossPhase* first = normal->add_phases();
+  for (int i = 0; i < 2; ++i) {
+    Spawn* arm = first->add_spawns();
+    arm->set_mob("arm");
+    arm->set_count(1);
+    first->add_spots()->set_x(i * 4);
+  }
+  first->mutable_player()->set_x(2);
+  first->mutable_player()->set_y(1);
+  BossPhase* second = normal->add_phases();
+  Spawn* body = second->add_spawns();
   body->set_mob("body");
   body->set_count(1);
+  second->add_spots()->set_x(2);
+  second->mutable_player()->set_x(2);
+  second->mutable_player()->set_y(1);
   return boss;
 }
 
@@ -134,6 +144,24 @@ TEST(BossRunTest, EveryArmGetsItsOwnBar) {
   EXPECT_TRUE(run.slots()[0].alive);
   EXPECT_NE(run.slots()[0].id, run.slots()[1].id);
   EXPECT_NEAR(run.phase_hp_fraction(), 1.0, 0.001);
+}
+
+// Each bar stands where its own spawn's spot says, and the arena is measured
+// off the spots when the phase asks for no room of its own.
+TEST(BossRunTest, EveryBarStandsWhereItsPhasePutsIt) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  ASSERT_EQ(run.slots().size(), 2u);
+  EXPECT_EQ(run.slots()[0].x, 0);
+  EXPECT_EQ(run.slots()[1].x, 4);
+  EXPECT_EQ(run.player_spot().x(), 2);
+  EXPECT_EQ(run.player_spot().y(), 1);
+  // Two steps to hold the rightmost bar, and a row under it for the player.
+  EXPECT_EQ(run.arena_width(), 6);
+  EXPECT_EQ(run.arena_height(), 2);
 }
 
 // A dead bar holds its slot for a beat and then leaves it empty: the arms

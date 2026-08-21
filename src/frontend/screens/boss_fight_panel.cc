@@ -14,15 +14,11 @@
 namespace ms {
 namespace {
 
-constexpr int kMobPanelHeight = 3;
 // The border a panel draws and the column of clearance it keeps inside it,
 // both sides: what a name laid on a bar has to fit inside.
 constexpr int kPanelClearance = 4;
-// The gap between the player and the monsters flanking them. Fixed rather
-// than flexed: on a wide terminal a filler would push the arms out to the
-// edges of the screen, where they read as two separate lists rather than as
-// what is standing around the player.
-constexpr int kArenaGap = 8;
+// The two rows of border a panel spends before it draws anything.
+constexpr int kPanelBorder = 2;
 
 // A whole percent, rounded down so a bar with anything left never reads 0.
 int Percent(double fraction) {
@@ -33,36 +29,39 @@ int Percent(double fraction) {
   return std::clamp(pct, 0, 100);
 }
 
-ftxui::Element MobBar(const BossSlot& slot) {
-  ftxui::Element bar =
-      ProgressBar(static_cast<float>(slot.hp_fraction), kRed,
-                  std::to_string(Percent(slot.hp_fraction)) + "%");
-  return ThemedWindow(" " + slot.name + " ", std::move(bar)) |
+std::vector<std::string> BarLines(const std::string& text, int rows) {
+  std::vector<std::string> lines =
+      WrapBalanced(text, kBossPanelWidth - kPanelClearance);
+  lines.resize(rows);
+  return lines;
+}
+
+// How many rows every monster bar in the phase takes: one, unless a name in it
+// needs two. One number for the whole phase, so the arena's rows stay square
+// and a part that dies cannot change the height of the row it stood in.
+int MobBarRows(const std::vector<BossSlot>& slots) {
+  int rows = 1;
+  for (const BossSlot& slot : slots) {
+    int needed = static_cast<int>(
+        WrapBalanced(slot.name, kBossPanelWidth - kPanelClearance).size());
+    rows = std::max(rows, std::min(needed, kMaxMobBarRows));
+  }
+  return rows;
+}
+
+// A monster's bar: what is left of it, with its name wrapped over the fill the
+// way the player's swing is. The percent goes in the title, where the name
+// will not fit and a number reads as a badge on the frame.
+ftxui::Element MobBar(const BossSlot& slot, int rows) {
+  ftxui::Element bar = ProgressBar(static_cast<float>(slot.hp_fraction), kRed,
+                                   BarLines(slot.name, rows));
+  return ThemedWindow(" " + std::to_string(Percent(slot.hp_fraction)) + "% ",
+                      std::move(bar)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
-// The room a bar took, once its monster has gone. The slot is not filled
-// again, so the bars beside it stay where the player watched them.
-ftxui::Element EmptySlot() {
-  return ftxui::text("") |
-         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth) |
-         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kMobPanelHeight);
-}
-
-ftxui::Element SlotColumn(const std::vector<BossSlot>& slots, int from,
-                          int to) {
-  ftxui::Elements column;
-  for (int i = from; i < to && i < static_cast<int>(slots.size()); ++i) {
-    column.push_back(slots[i].visible ? MobBar(slots[i]) : EmptySlot());
-  }
-  return ftxui::vbox(std::move(column));
-}
-
-// The player's own panel: their name, then whatever they are winding up. No
+// The player's own panel: whatever they are winding up, under their name. No
 // HP -- nothing in a boss fight hits back yet.
-//
-// Two rows tall whatever the name needs, so a long one wraps instead of
-// widening the whole arena and the panel never changes height mid-fight.
 ftxui::Element PlayerPanel(const BossRun& run) {
   std::string label = run.attack_name();
   if (run.state() == BossRunState::kCountdown) {
@@ -71,13 +70,65 @@ ftxui::Element PlayerPanel(const BossRun& run) {
     label = std::to_string(
         static_cast<int>(std::ceil(std::max(0.0, run.countdown_left()))));
   }
-  std::vector<std::string> lines =
-      WrapBalanced(label, kBossPanelWidth - kPanelClearance);
-  lines.resize(kPlayerBarRows);
-  ftxui::Element bar =
-      ProgressBar(static_cast<float>(run.attack_fraction()), kTheme, lines);
+  ftxui::Element bar = ProgressBar(static_cast<float>(run.attack_fraction()),
+                                   kTheme, BarLines(label, kPlayerBarRows));
   return ThemedWindow(" You ", std::move(bar)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
+}
+
+// One panel and the spot it stands in, while a row is being laid out.
+struct ArenaCell {
+  int x = 0;
+  ftxui::Element panel;
+};
+
+// One row of the arena: its panels in their columns, and empty space
+// everywhere else. Fixed height, so a row of short bars leaves the row below
+// it where it was.
+ftxui::Element ArenaRow(std::vector<ArenaCell> cells, int width, int height) {
+  std::sort(cells.begin(), cells.end(),
+            [](const ArenaCell& a, const ArenaCell& b) { return a.x < b.x; });
+  ftxui::Elements row;
+  int column = 0;
+  for (ArenaCell& cell : cells) {
+    int start = std::max(column, cell.x * kArenaStep);
+    if (start > column) {
+      row.push_back(ftxui::text(std::string(start - column, ' ')));
+    }
+    row.push_back(std::move(cell.panel));
+    column = start + kBossPanelWidth;
+  }
+  int columns = width * kArenaStep;
+  if (columns > column) {
+    row.push_back(ftxui::text(std::string(columns - column, ' ')));
+  }
+  return ftxui::hbox(std::move(row)) |
+         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, height);
+}
+
+// The arena: every bar of the phase in the spot the fight gave it, and the
+// player among them. Every row is the height of the tallest panel that could
+// stand in it, so the grid is square and nothing shifts as parts die.
+ftxui::Element Arena(const BossRun& run) {
+  const std::vector<BossSlot>& slots = run.slots();
+  int mob_rows = MobBarRows(slots);
+  int row_height = kPanelBorder + std::max(mob_rows, kPlayerBarRows);
+  int height = std::max(run.arena_height(), run.player_spot().y() + 1);
+  std::vector<std::vector<ArenaCell>> rows(height);
+  for (const BossSlot& slot : slots) {
+    if (!slot.visible || slot.y < 0 || slot.y >= height) {
+      continue;
+    }
+    rows[slot.y].push_back({slot.x, MobBar(slot, mob_rows)});
+  }
+  int player_row = std::clamp(run.player_spot().y(), 0, height - 1);
+  rows[player_row].push_back({run.player_spot().x(), PlayerPanel(run)});
+
+  ftxui::Elements arena;
+  for (std::vector<ArenaCell>& row : rows) {
+    arena.push_back(ArenaRow(std::move(row), run.arena_width(), row_height));
+  }
+  return ftxui::vbox(std::move(arena)) | ftxui::center;
 }
 
 // The clock, in a box of its own under the heading.
@@ -114,37 +165,12 @@ std::string FightHeading(const BossRun& run) {
 }
 
 ftxui::Element BossFightPanel(const BossRun& run) {
-  const std::vector<BossSlot>& slots = run.slots();
-  ftxui::Elements middle;
-  // One monster stands over the player rather than off to one side: Zakum's
-  // body is the fight, and the columns are for the arms that come in a crowd.
-  if (slots.size() == 1) {
-    middle.push_back(slots[0].visible ? MobBar(slots[0]) : EmptySlot());
-  }
-  middle.push_back(PlayerPanel(run));
-
-  int half = (static_cast<int>(slots.size()) + 1) / 2;
-  ftxui::Elements arena;
-  ftxui::Element gap = ftxui::text(std::string(kArenaGap, ' '));
-  if (slots.size() > 1) {
-    arena.push_back(SlotColumn(slots, 0, half));
-    arena.push_back(gap);
-  }
-  // Centred against the columns beside it, so the player stands in the middle
-  // of the ring rather than at the top of it.
-  arena.push_back(ftxui::vbox(
-      {ftxui::filler(), ftxui::vbox(std::move(middle)), ftxui::filler()}));
-  if (slots.size() > 1) {
-    arena.push_back(gap);
-    arena.push_back(SlotColumn(slots, half, static_cast<int>(slots.size())));
-  }
-
   return ftxui::vbox({
       ProgressBar(static_cast<float>(run.phase_hp_fraction()), kRed,
                   FightHeading(run)),
       ClockPanel(run),
       ftxui::filler(),
-      ftxui::hbox(std::move(arena)) | ftxui::center,
+      Arena(run),
       ftxui::filler(),
   });
 }

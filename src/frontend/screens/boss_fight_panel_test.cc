@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
@@ -38,12 +39,30 @@ Boss Zakum() {
   normal->set_name("Normal");
   normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
-  Spawn* arms = normal->add_phases()->add_spawns();
-  arms->set_mob("arm");
-  arms->set_count(8);
-  Spawn* body = normal->add_phases()->add_spawns();
-  body->set_mob("body");
-  body->set_count(1);
+  // The arms in two columns of four with the player between them, as the data
+  // file lays them out: one spawn each, since a spot belongs to one monster.
+  BossPhase* arms = normal->add_phases();
+  for (int i = 0; i < 8; ++i) {
+    Spawn* arm = arms->add_spawns();
+    arm->set_mob("arm");
+    arm->set_count(1);
+    ArenaSpot* spot = arms->add_spots();
+    spot->set_x(i < 4 ? 0 : 4);
+    spot->set_y(i % 4);
+  }
+  arms->mutable_player()->set_x(2);
+  arms->mutable_player()->set_y(1);
+  arms->set_arena_width(6);
+  arms->set_arena_height(4);
+  BossPhase* body = normal->add_phases();
+  Spawn* torso = body->add_spawns();
+  torso->set_mob("body");
+  torso->set_count(1);
+  body->add_spots()->set_x(2);
+  body->mutable_player()->set_x(2);
+  body->mutable_player()->set_y(1);
+  body->set_arena_width(6);
+  body->set_arena_height(2);
   return boss;
 }
 
@@ -65,6 +84,46 @@ std::unique_ptr<GameState> MakeState(int arm_hp, int body_hp,
   state->character.PickUp(std::make_unique<EquipInstance>(sword));
   state->character.Equip(0);
   return state;
+}
+
+// The screen as one string per row, one character per column. A border is
+// multi-byte, so it is written as a single '#': what these rows are read for
+// is which column something is in, and a byte offset is not that.
+std::vector<std::string> Rows(const BossRun& run) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+                                               ftxui::Dimension::Fixed(30));
+  ftxui::Render(screen, BossFightPanel(run));
+  std::vector<std::string> rows;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    std::string row;
+    for (int x = 0; x < screen.dimx(); ++x) {
+      const std::string& cell = screen.PixelAt(x, y).character;
+      row += cell.size() == 1 ? cell : "#";
+    }
+    rows.push_back(row);
+  }
+  return rows;
+}
+
+// The column `needle` starts in, or -1 if nothing holds it.
+int ColumnOf(const std::vector<std::string>& rows, const std::string& needle) {
+  for (const std::string& row : rows) {
+    std::size_t at = row.find(needle);
+    if (at != std::string::npos) {
+      return static_cast<int>(at);
+    }
+  }
+  return -1;
+}
+
+// The row `needle` is drawn on, or -1.
+int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
+  for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
+    if (rows[y].find(needle) != std::string::npos) {
+      return y;
+    }
+  }
+  return -1;
 }
 
 std::string Render(const BossRun& run) {
@@ -200,6 +259,68 @@ TEST(BossFightPanelTest, TheBodyIsDrawnAboveThePlayer) {
   std::string out = Render(run);
   EXPECT_NE(out.find("Zakum"), std::string::npos);
   EXPECT_LT(out.find(" Zakum "), out.find(" You "));
+}
+
+// A phase where two parts stand four half-steps apart, which is what the
+// spots in the data mean in columns.
+Boss TwoPartBoss() {
+  Boss boss;
+  boss.set_name("Horntail");
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_time_limit_seconds(300);
+  BossPhase* phase = normal->add_phases();
+  for (const std::string& mob : {"arm", "body"}) {
+    Spawn* spawn = phase->add_spawns();
+    spawn->set_mob(mob);
+    spawn->set_count(1);
+  }
+  phase->add_spots()->set_x(0);
+  phase->add_spots()->set_x(4);
+  phase->mutable_player()->set_x(2);
+  phase->mutable_player()->set_y(1);
+  phase->set_arena_width(6);
+  phase->set_arena_height(2);
+  return boss;
+}
+
+// The whole point of the spots: a part is drawn where the fight puts it, a
+// half-panel step at a time.
+TEST(BossFightPanelTest, EachPartStandsWhereItsSpotSays) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  // Names of the same length, so the two are centred in their panels alike
+  // and the columns between them are the panels' own.
+  state->mobs["arm"].set_name("Left Hand");
+  state->mobs["body"].set_name("Rite Hand");
+  Boss boss = TwoPartBoss();
+  BossRun run("horntail", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  std::vector<std::string> rows = Rows(run);
+  int left = ColumnOf(rows, "Left Hand");
+  int right = ColumnOf(rows, "Rite Hand");
+  ASSERT_GE(left, 0);
+  ASSERT_GE(right, 0);
+  // Both names are centred in panels of the same width, so the columns
+  // between them are the four steps the spots asked for.
+  EXPECT_EQ(right - left, 4 * kArenaStep);
+  // And the player stands under them rather than beside them.
+  EXPECT_GT(RowOf(rows, "You"), RowOf(rows, "Left Hand"));
+}
+
+// A part whose name is too long for one row gets two, and every bar in the
+// phase takes the same two so the arena's rows stay square.
+TEST(BossFightPanelTest, ALongPartNameWrapsOverTwoRows) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  state->mobs["arm"].set_name("Horntail's Left Head");
+  Boss boss = TwoPartBoss();
+  BossRun run("horntail", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  std::string out = Render(run);
+  EXPECT_NE(out.find("Horntail's"), std::string::npos);
+  EXPECT_NE(out.find("Left Head"), std::string::npos);
+  EXPECT_EQ(out.find("Horntail's Left Head"), std::string::npos);
 }
 
 }  // namespace

@@ -3,7 +3,13 @@ difficulties {
   name: "Normal"
   # One phase, one monster: she stands alone in the middle of the arena with
   # the player under her, and there is nothing else to kill.
-  phases { spawns { mob: "hilla" count: 1 } }
+  phases {
+    spawns { mob: "hilla" count: 1 }
+    spots { x: 2 y: 0 }
+    player { x: 2 y: 1 }
+    arena_width: 6
+    arena_height: 2
+  }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300
   unlock_level: 130

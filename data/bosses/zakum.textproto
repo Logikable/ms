@@ -1,8 +1,38 @@
 name: "Zakum"
 difficulties {
   name: "Normal"
-  phases { spawns { mob: "zakum_arm" count: 8 } }
-  phases { spawns { mob: "zakum" count: 1 } }
+  # The eight arms stand in two columns with the player between them, which is
+  # where the fight puts them: one spawn each, because a spot belongs to one
+  # monster.
+  phases {
+    spawns { mob: "zakum_arm" count: 1 }
+    spawns { mob: "zakum_arm" count: 1 }
+    spawns { mob: "zakum_arm" count: 1 }
+    spawns { mob: "zakum_arm" count: 1 }
+    spawns { mob: "zakum_arm" count: 1 }
+    spawns { mob: "zakum_arm" count: 1 }
+    spawns { mob: "zakum_arm" count: 1 }
+    spawns { mob: "zakum_arm" count: 1 }
+    spots { x: 0 y: 0 }
+    spots { x: 0 y: 1 }
+    spots { x: 0 y: 2 }
+    spots { x: 0 y: 3 }
+    spots { x: 4 y: 0 }
+    spots { x: 4 y: 1 }
+    spots { x: 4 y: 2 }
+    spots { x: 4 y: 3 }
+    player { x: 2 y: 1 }
+    arena_width: 6
+    arena_height: 4
+  }
+  # The body alone, standing over the player.
+  phases {
+    spawns { mob: "zakum" count: 1 }
+    spots { x: 2 y: 0 }
+    player { x: 2 y: 1 }
+    arena_width: 6
+    arena_height: 2
+  }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300
   # GMS opens Normal Zakum at 110, which is also the level his arms are.

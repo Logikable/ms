@@ -1,10 +1,11 @@
-/* The boss fight screen: one bar per monster around the player in the middle,
- * the fight's own HP bar across the top, and the clock under it.
+/* The boss fight screen: one bar per monster where the fight puts it, the
+ * player standing among them, the fight's own HP bar across the top and the
+ * clock under it.
  *
- * A view over a BossRun and nothing else. The run holds every clock and every
- * bar; this decides where they go. Which side of the player a bar sits on is
- * fixed when the phase starts, so a bar never moves while the fight is on --
- * a monster that dies leaves its slot empty rather than closing the gap.
+ * A view over a BossRun and nothing else. The run holds every clock, every bar
+ * and the spot each one stands in; this turns those spots into columns. A bar
+ * never moves while the fight is on -- a monster that dies leaves its slot
+ * empty rather than closing the gap.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_BOSS_FIGHT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_BOSS_FIGHT_PANEL_H_
@@ -17,18 +18,27 @@
 namespace ms {
 
 // How wide every panel in the arena is drawn: the monsters' bars and the
-// player's alike, so the ring is square whatever is standing in it.
+// player's alike, so the arena is a grid whatever is standing in it.
 //
-// Narrow enough to keep the ring on one screen, since the name of a swing
-// being charged wraps over the player's two rows rather than setting the
-// width. What it has to hold on one line is the longest word in a skill name,
-// with a column of clearance each side. A name that outgrows the pair of rows
-// is caught by a data test rather than by a player watching half of it.
-inline constexpr int kBossPanelWidth = 20;
+// Narrow, because a phase can hold ten of them across four rows and the whole
+// arena has to fit one screen. Names wrap over the bar's rows rather than
+// setting the width, so what a row must hold is the longest WORD in a name --
+// "Assassinate", and "Horntail's". A name that outgrows the pair of rows is
+// caught by a data test rather than by a player watching half of it.
+inline constexpr int kBossPanelWidth = 16;
 
-// How many rows the player's bar is drawn over. Fixed, so the panel is the
-// same height whatever is being swung.
+// How many rows the player's bar is drawn over. Fixed, unlike the monsters':
+// the name on it changes with every swing, and a panel that grew and shrank
+// mid-fight would move everything around it.
 inline constexpr int kPlayerBarRows = 2;
+
+// The most rows a monster's bar takes. A phase whose longest name needs both
+// gives both to every bar in it, so the arena's rows stay square.
+inline constexpr int kMaxMobBarRows = 2;
+
+// What one step of a spot's x is worth in columns: half a panel, plus the gap
+// two panels a whole step apart keep between them.
+inline constexpr int kArenaStep = kBossPanelWidth / 2 + 1;
 
 // Seconds as mm:ss, rounded up so the clock reads 0:00 only when the time is
 // actually gone.
