@@ -25,3 +25,16 @@ difficulties {
     per_kill: 0.5
   }
 }
+# Written down, not built: the same lone fight at the numbers GMS gives Hard.
+# Only the HP is stated, because nothing else is decided.
+difficulties {
+  name: "Hard"
+  phases {
+    spawns { mob: "hard_hilla" count: 1 }
+    spots { x: 3 y: 1 }
+    player { x: 3 y: 2 }
+    arena_width: 7
+    arena_height: 4
+  }
+  coming_soon: true
+}

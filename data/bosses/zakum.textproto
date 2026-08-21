@@ -53,3 +53,37 @@ difficulties {
     per_kill: 1.0
   }
 }
+# Written down, not built: the eight arms and the body again, at the numbers
+# GMS gives Chaos. Only the HP is stated, because nothing else is decided.
+difficulties {
+  name: "Chaos"
+  phases {
+    spawns { mob: "chaos_zakum_arm" count: 1 }
+    spawns { mob: "chaos_zakum_arm" count: 1 }
+    spawns { mob: "chaos_zakum_arm" count: 1 }
+    spawns { mob: "chaos_zakum_arm" count: 1 }
+    spawns { mob: "chaos_zakum_arm" count: 1 }
+    spawns { mob: "chaos_zakum_arm" count: 1 }
+    spawns { mob: "chaos_zakum_arm" count: 1 }
+    spawns { mob: "chaos_zakum_arm" count: 1 }
+    spots { x: 1 y: 1 }
+    spots { x: 1 y: 2 }
+    spots { x: 1 y: 3 }
+    spots { x: 1 y: 4 }
+    spots { x: 5 y: 1 }
+    spots { x: 5 y: 2 }
+    spots { x: 5 y: 3 }
+    spots { x: 5 y: 4 }
+    player { x: 3 y: 2 }
+    arena_width: 7
+    arena_height: 6
+  }
+  phases {
+    spawns { mob: "chaos_zakum" count: 1 }
+    spots { x: 3 y: 1 }
+    player { x: 3 y: 2 }
+    arena_width: 7
+    arena_height: 4
+  }
+  coming_soon: true
+}

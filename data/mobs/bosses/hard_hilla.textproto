@@ -1,0 +1,9 @@
+# A part of a fight that is not built yet: the boss screen reads its HP and
+# nothing else. See data/bosses.
+name: "Silver-Haired Hilla"
+level: 190
+attack: 20000
+max_hp: 16800000000
+exp: 0
+pdr: 100
+boss: true

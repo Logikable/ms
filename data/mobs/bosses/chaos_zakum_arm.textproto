@@ -1,0 +1,9 @@
+# A part of a fight that is not built yet: the boss screen reads its HP and
+# nothing else. See data/bosses.
+name: "Chaos Zakum Arm"
+level: 180
+attack: 2900
+max_hp: 10500000000
+exp: 0
+pdr: 50
+boss: true

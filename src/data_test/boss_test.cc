@@ -93,6 +93,68 @@ TEST(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
   }
 }
 
+// A fight that is not built yet must say nothing it has not decided: the
+// detail panel shows its HP alone, and a reward or a gate left in the file
+// would be a promise the screen never shows and the fight never keeps.
+TEST(BossDataTest, AComingSoonDifficultyStatesOnlyItsPhases) {
+  int coming_soon = 0;
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (!difficulty.coming_soon()) {
+        continue;
+      }
+      ++coming_soon;
+      std::string where = entry.first + " " + difficulty.name();
+      EXPECT_EQ(difficulty.time_limit_seconds(), 0) << where;
+      EXPECT_EQ(difficulty.reset(), RESET_PERIOD_UNSPECIFIED) << where;
+      EXPECT_EQ(difficulty.unlock_level(), 0) << where;
+      EXPECT_EQ(difficulty.meso(), 0) << where;
+      EXPECT_EQ(difficulty.exp(), 0) << where;
+      EXPECT_EQ(difficulty.drops_size(), 0) << where;
+    }
+  }
+  EXPECT_EQ(coming_soon, 3) << "Chaos Zakum, Chaos Horntail and Hard Hilla";
+}
+
+// The three fights the screen advertises but cannot yet run, at the HP GMS
+// gives them. A number here is read straight off the detail panel, so a typo
+// in the mob files is a wrong promise on screen.
+TEST(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
+  std::map<std::string, Mob> mobs = LoadMobs();
+  std::map<std::string, Boss> bosses = LoadBosses();
+  struct Expectation {
+    const char* boss;
+    const char* difficulty;
+    std::vector<int64_t> phase_hp;
+  };
+  const std::vector<Expectation> kExpected = {
+      {"zakum", "Chaos", {84000000000LL, 84000000000LL}},
+      {"hilla", "Hard", {16800000000LL}},
+      {"horntail", "Chaos", {3300000000LL, 3300000000LL, 20000000000LL}},
+  };
+  for (const Expectation& want : kExpected) {
+    ASSERT_GT(bosses.count(want.boss), 0u) << want.boss;
+    const BossDifficulty* found = nullptr;
+    for (const BossDifficulty& difficulty :
+         bosses.at(want.boss).difficulties()) {
+      if (difficulty.name() == want.difficulty) {
+        found = &difficulty;
+      }
+    }
+    ASSERT_NE(found, nullptr) << want.boss << " " << want.difficulty;
+    EXPECT_TRUE(found->coming_soon()) << want.boss;
+    ASSERT_EQ(found->phases_size(), static_cast<int>(want.phase_hp.size()));
+    for (int i = 0; i < found->phases_size(); ++i) {
+      int64_t hp = 0;
+      for (const Spawn& spawn : found->phases(i).spawns()) {
+        hp += spawn.count() * mobs.at(spawn.mob()).max_hp();
+      }
+      EXPECT_EQ(hp, want.phase_hp[i])
+          << want.boss << " " << want.difficulty << " phase " << i + 1;
+    }
+  }
+}
+
 // A drop names one catalog or the other, and a name neither holds is granted
 // to nobody -- silently, since the reward path skips what it cannot find.
 TEST(BossDataTest, EveryDropNamesAnItem) {
@@ -128,7 +190,7 @@ TEST(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   std::map<std::string, Boss> bosses = LoadBosses();
   ASSERT_GT(bosses.count("zakum"), 0u);
   const Boss& zakum = bosses.at("zakum");
-  ASSERT_EQ(zakum.difficulties_size(), 1);
+  ASSERT_GT(zakum.difficulties_size(), 0);
   const BossDifficulty& normal = zakum.difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);

@@ -1,0 +1,9 @@
+# A part of a fight that is not built yet: the boss screen reads its HP and
+# nothing else. See data/bosses.
+name: "Chaos Horntail's Head C"
+level: 160
+attack: 20900
+max_hp: 3300000000
+exp: 0
+pdr: 50
+boss: true
