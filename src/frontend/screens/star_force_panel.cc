@@ -5,6 +5,7 @@
 #include <cstring>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
@@ -32,9 +33,14 @@ std::string FormatRate(int hundredths) {
   return std::to_string(whole) + "." + frac_str + "%";
 }
 
-// Right-pads `s` with spaces to `width` characters.
-std::string PadTo(const std::string& s, int width) {
-  return s + std::string(width - static_cast<int>(s.size()), ' ');
+// One line of a two-column block: the label left-aligned in its column, the
+// number right-aligned in its own, and the pair centred together. Both widths
+// come from the whole block, so the numbers stand in one column however many
+// digits each of them has.
+ftxui::Element TwoColumnRow(const std::string& label, int label_width,
+                            const std::string& value, int value_width) {
+  return CenteredRow(PadRight(label, label_width) + "  " +
+                     PadLeft(value, value_width));
 }
 
 }  // namespace
@@ -59,42 +65,47 @@ bool StarForcePanel::OnCancel() const {
   return cancel_selected_ || !Affordable();
 }
 
-// One row per stat the next star adds, labels padded to a common width so the
-// column of numbers lines up under a centred heading.
+// One row per stat the next star adds, in two columns: the names down the
+// left of theirs, the gains against the right of theirs.
 std::vector<ftxui::Element> StatGainRows(const EquipStats& before,
                                          const EquipStats& after) {
-  std::vector<ftxui::Element> rows;
-  int label_w = 0;
-  for (const DisplayStat& stat : kDisplayStats) {
-    if (stat.GetFrom(after) - stat.GetFrom(before) > 0) {
-      label_w = std::max(label_w, static_cast<int>(strlen(stat.label)));
-    }
-  }
+  std::vector<std::pair<std::string, std::string>> gains;
+  int label_width = 0;
+  int value_width = 0;
   for (const DisplayStat& stat : kDisplayStats) {
     int delta = stat.GetFrom(after) - stat.GetFrom(before);
-    if (delta > 0) {
-      rows.push_back(CenteredRow(PadTo(stat.label, label_w) + "  +" +
-                                 std::to_string(delta)));
+    if (delta <= 0) {
+      continue;
     }
+    std::string value = "+" + std::to_string(delta);
+    label_width = std::max(label_width, static_cast<int>(strlen(stat.label)));
+    value_width = std::max(value_width, static_cast<int>(value.size()));
+    gains.push_back({stat.label, std::move(value)});
+  }
+  std::vector<ftxui::Element> rows;
+  for (const std::pair<std::string, std::string>& gain : gains) {
+    rows.push_back(
+        TwoColumnRow(gain.first, label_width, gain.second, value_width));
   }
   return rows;
 }
 
-// The three ways the attempt can land. Padded to a common width so centring
-// aligns the label column and the number column together.
+// The three ways the attempt can land, in the same two columns the stats
+// above them stand in.
 std::vector<ftxui::Element> OddsRows(const StarForceRate& rate) {
   std::string success = FormatRate(rate.success);
   std::string fail = FormatRate(10000 - rate.success - rate.destroy);
   std::string destroy = rate.destroy > 0 ? FormatRate(rate.destroy) : "";
-  int width =
+  constexpr int kLabelWidth = 7;  // "Destroy", the longest of the three
+  int value_width =
       static_cast<int>(std::max({success.size(), fail.size(), destroy.size()}));
   std::vector<ftxui::Element> rows;
-  rows.push_back(CenteredRow("Success  " + PadTo(success, width)) |
+  rows.push_back(TwoColumnRow("Success", kLabelWidth, success, value_width) |
                  ftxui::color(kGreen));
-  rows.push_back(CenteredRow("Fail     " + PadTo(fail, width)) |
+  rows.push_back(TwoColumnRow("Fail", kLabelWidth, fail, value_width) |
                  ftxui::color(kMutedYellow));
   if (rate.destroy > 0) {
-    rows.push_back(CenteredRow("Destroy  " + PadTo(destroy, width)) |
+    rows.push_back(TwoColumnRow("Destroy", kLabelWidth, destroy, value_width) |
                    ftxui::color(kRed));
   }
   return rows;

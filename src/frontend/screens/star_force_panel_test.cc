@@ -64,6 +64,27 @@ class StarForcePanelTest : public PanelTest {
     return ftxui::Pixel();
   }
 
+  // The column `needle` starts in, or -1 if nothing holds it. Read off the
+  // cells rather than the rendered string, which threads escape codes between
+  // them and cannot be counted through.
+  static int ColumnOf(StarForcePanel& panel, const std::string& needle) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Render(screen, panel.Render());
+    for (int y = 0; y < screen.dimy(); ++y) {
+      std::string row;
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const std::string& cell = screen.PixelAt(x, y).character;
+        row += cell.empty() ? " " : cell;
+      }
+      std::size_t at = row.find(needle);
+      if (at != std::string::npos) {
+        return static_cast<int>(at);
+      }
+    }
+    return -1;
+  }
+
   static std::string Render(StarForcePanel& panel) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                                  ftxui::Dimension::Fixed(20));
@@ -135,18 +156,41 @@ TEST_F(StarForcePanelTest, RenderFormatsSubPercentRateCorrectly) {
   EXPECT_NE(Render(panel).find("12.75%"), std::string::npos);
 }
 
+// At 15★ the three rates are 30%, 67.9% and 2.1%: the names down the left of
+// their column, the numbers against the right of theirs.
 TEST_F(StarForcePanelTest, RateRowsAlignWhenMixedDecimals) {
-  // At 15★: success=30% (no decimals), fail=67.9%, destroy=2.1% (both with
-  // decimals). All three rate strings must be padded to the same rendered width
-  // so hcenter places them at identical x offsets.
   EquipInstance item = MakeItem(/*required_level=*/138, /*stars=*/15);
   StarForcePanel panel;
   panel.SetItem(&item, kDeepPurse);
   std::string rendered = Render(panel);
-  // All three rate lines appear; spot-check exact padded strings.
-  EXPECT_NE(rendered.find("Success  30%  "), std::string::npos);
+  EXPECT_NE(rendered.find("Success    30%"), std::string::npos);
   EXPECT_NE(rendered.find("Fail     67.9%"), std::string::npos);
-  EXPECT_NE(rendered.find("Destroy  2.1% "), std::string::npos);
+  EXPECT_NE(rendered.find("Destroy   2.1%"), std::string::npos);
+}
+
+// A staff's next star adds a +3 to each stat and a +25 to HP and MP, which is
+// two columns of different widths: the names line up on the left, the gains on
+// the right, and neither row is longer than the other.
+TEST_F(StarForcePanelTest, StatRowsStandInTwoColumns) {
+  EquipPrototype proto;
+  proto.set_name("Frozen Staff");
+  proto.set_required_level(120);
+  proto.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  proto.set_equip_type(EQUIP_TYPE_STAFF);
+  Equip state;
+  state.set_stars(14);
+  EquipInstance item(proto, state);
+  StarForcePanel panel;
+  panel.SetItem(&item, kDeepPurse);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("STR   +3"), std::string::npos);
+  EXPECT_NE(rendered.find("HP   +25"), std::string::npos);
+  EXPECT_EQ(ColumnOf(panel, "STR"), ColumnOf(panel, "HP"))
+      << "the names start in one column";
+  // "+3" is two cells and "+25" three, so ending together puts the shorter
+  // one a cell further in.
+  EXPECT_EQ(ColumnOf(panel, "+3") + 2, ColumnOf(panel, "+25") + 3)
+      << "and the gains end in one column";
 }
 
 TEST_F(StarForcePanelTest, AtMaxStarsShowsMaxMessageNotRates) {
