@@ -9,12 +9,14 @@
 #ifndef MS_ANALYSIS_SIM_GEAR_H_
 #define MS_ANALYSIS_SIM_GEAR_H_
 
+#include <set>
 #include <string>
 #include <vector>
 
 #include "src/character/character.h"
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
+#include "src/protos/equip.pb.h"
 
 namespace ms {
 
@@ -95,6 +97,22 @@ bool EquipByName(CharacterInstance& character, const std::string& name);
 // it, since affording the weapon is part of what it measures; one asking
 // whether a build can hold a map does not.
 void Outfit(GameState& state, bool budget);
+
+// Outfit with the choice already made: the top rung of `type` the character
+// can hold, what it draws from, and their branch's off-hand. For a sim that
+// settles the weapon elsewhere -- measuring it needs a book, and a book is
+// not always bought by the time the weapon has to be in hand.
+void OutfitWeapon(GameState& state, EquipType type);
+
+// Wears the best of every slot the shop does not stock: the armour, the
+// accessories and the pocket, which in this game drop rather than sell. What
+// a player who had cleared everything would be standing in.
+//
+// `skip` names catalog keys to leave off, for a sim asking whether a fight can
+// be won without what only that fight pays -- a boss cannot be beaten in its
+// own drop. Within a slot the highest rung wins, the way a shop ladder is
+// climbed: there is nothing to measure while each slot holds one item.
+void OutfitDrops(GameState& state, const std::set<std::string>& skip = {});
 
 // Puts everything worn at its ceiling: every upgrade slot filled with the
 // scroll that measures best on the item, and stars up to the item's own
