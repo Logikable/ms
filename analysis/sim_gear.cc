@@ -797,14 +797,16 @@ bool WearMade(CharacterInstance& character, const EquipPrototype& proto,
   return character.Equip(character.inventory().size() - 1);
 }
 
-// Puts what is worn in `slot` at its ceiling under whichever scroll swings
-// hardest. Wearing none is a candidate too, and the first, so an item no
-// scroll helps keeps its slots.
-void UpgradeSlot(GameState& state, EquipSlot slot) {
+// Which scroll `slot` wants: the one the character measures best in, wearing
+// none included and first, so an item no scroll helps keeps its slots.
+//
+// Leaves the character wearing the last thing tried and the bag holding the
+// try-ons. FullyUpgrade puts both back.
+const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot) {
   std::map<EquipSlot, EquipInstance>::const_iterator it =
       state.character.equipped().find(slot);
   if (it == state.character.equipped().end()) {
-    return;
+    return nullptr;
   }
   EquipPrototype proto = it->second.prototype();
   std::vector<const Scroll*> candidates = ScrollsFor(state, proto);
@@ -821,22 +823,70 @@ void UpgradeSlot(GameState& state, EquipSlot slot) {
       best = candidate;
     }
   }
-  WearMade(state.character, proto, AtCeiling(proto, best));
+  return best;
 }
 
 }  // namespace
 
 void FullyUpgrade(GameState& state) {
-  std::vector<EquipSlot> worn;
+  std::map<EquipSlot, EquipPrototype> worn;
   for (const std::pair<const EquipSlot, EquipInstance>& entry :
        state.character.equipped()) {
-    worn.push_back(entry.first);
+    worn[entry.first] = entry.second.prototype();
   }
   std::string farming = OpenTryout(state);
-  for (EquipSlot slot : worn) {
-    UpgradeSlot(state, slot);
+  // The character as they arrived, which is what the ceilings are written
+  // into. Trying a scroll on means wearing it, and every try-on leaves its
+  // predecessor in the bag -- a sim that upgrades at every level would fill
+  // the bag with them. Restoring from the proto is the only eraser there is.
+  Character before = state.character.ToProto();
+  for (const std::pair<const EquipSlot, EquipPrototype>& entry : worn) {
+    const Scroll* scroll = BestScrollForSlot(state, entry.first);
+    (*before.mutable_equipped())[entry.first] = AtCeiling(entry.second, scroll);
   }
+  state.character.RestoreFrom(before, state.equips, state.items);
   CloseTryout(state, farming);
+}
+
+void OutfitWeapon(GameState& state, EquipType type) {
+  ClimbLadder(state, type, /*budget=*/false);
+  EquipType ammo = AmmoFor(type);
+  if (ammo != EQUIP_TYPE_UNSPECIFIED) {
+    ClimbLadder(state, ammo, /*budget=*/false);
+  }
+  const EquipPrototype* off_hand = BestSecondary(state, /*budget=*/false);
+  if (off_hand != nullptr) {
+    WearCopy(state.character, *off_hand);
+  }
+}
+
+// True for a slot the shop stocks and Outfit already climbed. Everything else
+// is a drop, and there is one ladder per slot rather than a choice of ladders.
+bool ShoppedSlot(EquipSlot slot) {
+  return slot == EQUIP_SLOT_PRIMARY_WEAPON || slot == EQUIP_SLOT_SECONDARY ||
+         slot == EQUIP_SLOT_PROJECTILE;
+}
+
+void OutfitDrops(GameState& state, const std::set<std::string>& skip) {
+  std::map<EquipSlot, const EquipPrototype*> best;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       state.equips) {
+    const EquipPrototype& proto = entry.second;
+    if (ShoppedSlot(proto.equip_slot()) || skip.count(entry.first) > 0 ||
+        !state.character.CanEquip(proto)) {
+      continue;
+    }
+    std::map<EquipSlot, const EquipPrototype*>::iterator held =
+        best.find(proto.equip_slot());
+    if (held == best.end()) {
+      best[proto.equip_slot()] = &proto;
+    } else if (proto.required_level() > held->second->required_level()) {
+      held->second = &proto;
+    }
+  }
+  for (const std::pair<const EquipSlot, const EquipPrototype*>& entry : best) {
+    WearCopy(state.character, *entry.second);
+  }
 }
 
 void Outfit(GameState& state, bool budget) {
