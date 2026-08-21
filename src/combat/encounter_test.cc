@@ -46,10 +46,10 @@ Mob MakeAttacker(const std::string& name, int max_hp, int attack, int level) {
 MapData TwoSnailMap() {
   MapData map;
   map.set_name("Snail Field");
-  MapData::Spawn* snail = map.add_spawns();
+  Spawn* snail = map.add_spawns();
   snail->set_mob("snail");
   snail->set_count(2);
-  MapData::Spawn* blue = map.add_spawns();
+  Spawn* blue = map.add_spawns();
   blue->set_mob("blue_snail");
   blue->set_count(4);
   return map;

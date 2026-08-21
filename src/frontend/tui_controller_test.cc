@@ -276,7 +276,7 @@ class TuiControllerTest : public testing::Test {
 
     MapData temple;
     temple.set_name("Temple");
-    MapData::Spawn* golems = temple.add_spawns();
+    Spawn* golems = temple.add_spawns();
     golems->set_mob("golem");
     golems->set_count(3);
     state_->maps["temple"] = temple;
@@ -298,12 +298,12 @@ class TuiControllerTest : public testing::Test {
 
     MapData field;
     field.set_name("Field");
-    MapData::Spawn* snails = field.add_spawns();
+    Spawn* snails = field.add_spawns();
     snails->set_mob("snail");
     snails->set_count(1);
     MapData cave;
     cave.set_name("Cave");
-    MapData::Spawn* mushrooms = cave.add_spawns();
+    Spawn* mushrooms = cave.add_spawns();
     mushrooms->set_mob("mushroom");
     mushrooms->set_count(1);
     state_->maps["field"] = field;

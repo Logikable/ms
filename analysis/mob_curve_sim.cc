@@ -103,7 +103,7 @@ void PrintMobs(const std::map<std::string, Mob>& mobs) {
 MapRow WeightMap(const MapData& map, const std::map<std::string, Mob>& mobs) {
   MapRow row;
   row.name = map.name();
-  for (const MapData::Spawn& spawn : map.spawns()) {
+  for (const Spawn& spawn : map.spawns()) {
     std::map<std::string, Mob>::const_iterator it = mobs.find(spawn.mob());
     if (it == mobs.end()) {
       continue;

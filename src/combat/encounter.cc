@@ -382,7 +382,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
 // player. Types the mob catalog does not know are skipped.
 void AddTypes(const GameState& state, const MapData& map,
               const DefenseStats& defense, CombatParams& params) {
-  for (const MapData::Spawn& spawn : map.spawns()) {
+  for (const Spawn& spawn : map.spawns()) {
     std::map<std::string, Mob>::const_iterator mob_it =
         state.mobs.find(spawn.mob());
     if (mob_it == state.mobs.end()) {

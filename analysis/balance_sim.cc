@@ -195,7 +195,7 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
 double MapLevel(const Catalogs& catalogs, const MapData& map) {
   double total = 0.0;
   double count = 0.0;
-  for (const MapData::Spawn& spawn : map.spawns()) {
+  for (const Spawn& spawn : map.spawns()) {
     std::map<std::string, Mob>::const_iterator it =
         catalogs.mobs.find(spawn.mob());
     if (it == catalogs.mobs.end()) {

@@ -18,6 +18,14 @@ message MobDrop {
   string equip = 3;
 }
 
+// A mob type and how many of it stand in one encounter. Shared by the maps,
+// where the count is a map's spawn points, and by the boss phases, where it is
+// how many come out at once.
+message Spawn {
+  string mob = 1;  // Mob data file, by filename stem.
+  int32 count = 2;
+}
+
 // Static definition of a monster type. Loaded from data/mobs textprotos at
 // startup; shared read-only across all spawns of the same type.
 message Mob {

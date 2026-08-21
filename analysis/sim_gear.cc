@@ -164,7 +164,7 @@ std::string OpenTryout(GameState& state) {
   state.mobs[kTryoutMob] = mob;
   MapData map;
   map.set_name("Tryout");
-  MapData::Spawn* spawn = map.add_spawns();
+  Spawn* spawn = map.add_spawns();
   spawn->set_mob(kTryoutMob);
   spawn->set_count(1);
   state.maps[kTryoutMap] = map;

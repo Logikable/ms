@@ -31,7 +31,7 @@ Mob SnailMob() {
 MapData SnailField() {
   MapData map;
   map.set_name("Snail Field");
-  MapData::Spawn* snail = map.add_spawns();
+  Spawn* snail = map.add_spawns();
   snail->set_mob("snail");
   snail->set_count(1);
   return map;
@@ -283,7 +283,7 @@ TEST(CombatPanelTest, HeightMatchesWhatItDraws) {
   slime.set_name("Slime");
   slime.set_level(2);
   MapData two_types = SnailField();
-  MapData::Spawn* second = two_types.add_spawns();
+  Spawn* second = two_types.add_spawns();
   second->set_mob("slime");
   second->set_count(1);
   // A swing that reaches both of them, or only the mob at the head of the

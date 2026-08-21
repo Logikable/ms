@@ -45,7 +45,7 @@ ItemPrototype GreenSnailShell() {
 MapData OneSnailMap() {
   MapData map;
   map.set_name("Snail Field");
-  MapData::Spawn* snail = map.add_spawns();
+  Spawn* snail = map.add_spawns();
   snail->set_mob("snail");
   snail->set_count(6);
   return map;
@@ -74,7 +74,7 @@ Mob OgreMob() {
 MapData OgreMap() {
   MapData map;
   map.set_name("Ogre Field");
-  MapData::Spawn* ogre = map.add_spawns();
+  Spawn* ogre = map.add_spawns();
   ogre->set_mob("ogre");
   ogre->set_count(1);
   return map;

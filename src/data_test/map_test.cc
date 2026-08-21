@@ -52,7 +52,7 @@ std::map<std::string, EquipPrototype> LoadEquips() {
 TEST(MapDataTest, EverySpawnNamesAMob) {
   std::map<std::string, Mob> mobs = LoadMobs();
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
-    for (const MapData::Spawn& spawn : entry.second.spawns()) {
+    for (const Spawn& spawn : entry.second.spawns()) {
       EXPECT_GT(mobs.count(spawn.mob()), 0u)
           << entry.first << " spawns \"" << spawn.mob() << "\", which no mob "
           << "file defines";

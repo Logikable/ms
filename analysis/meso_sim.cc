@@ -41,7 +41,7 @@ using bazel::tools::cpp::runfiles::Runfiles;
 int WeightedLevel(const ms::GameState& state, const ms::MapData& map) {
   int levels = 0;
   int spawned = 0;
-  for (const ms::MapData::Spawn& spawn : map.spawns()) {
+  for (const ms::Spawn& spawn : map.spawns()) {
     std::map<std::string, ms::Mob>::const_iterator it =
         state.mobs.find(spawn.mob());
     if (it == state.mobs.end()) {

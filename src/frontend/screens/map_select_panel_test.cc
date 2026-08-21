@@ -35,7 +35,7 @@ Mob MushroomMob() {
 constexpr int kPastEveryBand = 99;
 
 void AddSpawn(MapData* map, const std::string& mob, int count) {
-  MapData::Spawn* spawn = map->add_spawns();
+  Spawn* spawn = map->add_spawns();
   spawn->set_mob(mob);
   spawn->set_count(count);
 }

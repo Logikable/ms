@@ -265,7 +265,7 @@ Catalogs LoadCatalogs(int level) {
 
   MapData map;
   map.set_name("Dummy");
-  MapData::Spawn* spawn = map.add_spawns();
+  Spawn* spawn = map.add_spawns();
   spawn->set_mob(kDummyMob);
   spawn->set_count(1);
   c.maps[kDummyMap] = map;

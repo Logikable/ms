@@ -80,7 +80,7 @@ std::string BandLabel(int band) {
 int WeightedLevel(const GameState& state, const MapData& map) {
   int levels = 0;
   int spawned = 0;
-  for (const MapData::Spawn& spawn : map.spawns()) {
+  for (const Spawn& spawn : map.spawns()) {
     std::map<std::string, Mob>::const_iterator it =
         state.mobs.find(spawn.mob());
     if (it == state.mobs.end()) {
@@ -230,7 +230,7 @@ ftxui::Element MapSelectPanel::RenderMobTable() const {
   int shown = 0;
   if (!selected.empty()) {
     const MapData& map = state_.maps.at(selected);
-    for (const MapData::Spawn& spawn : map.spawns()) {
+    for (const Spawn& spawn : map.spawns()) {
       std::map<std::string, Mob>::const_iterator it =
           state_.mobs.find(spawn.mob());
       if (it == state_.mobs.end()) {
