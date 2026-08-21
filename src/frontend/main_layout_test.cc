@@ -47,6 +47,13 @@ class MainLayoutTest : public testing::Test {
                Panel("BAG", kRightWidth, bag_rows), nullptr);
   }
 
+  // The same two panels with the equipped one tall enough to argue over the
+  // column, which is what the half cap is there for.
+  void RenderTall(int equip_rows, int bag_rows) {
+    RenderWith(Panel("EQUIP", kRightWidth, equip_rows),
+               Panel("BAG", kRightWidth, bag_rows), nullptr);
+  }
+
   // The same layout with whichever right-column panels the test wants, so it
   // can pass null for one a character has not unlocked.
   void RenderWith(ftxui::Element equipped, ftxui::Element inventory,
@@ -197,22 +204,65 @@ TEST_F(MainLayoutTest, TheBagRunsDownBesideTheCombatPanel) {
   EXPECT_NE(Row(combat_row).find("BAG"), std::string::npos);
 }
 
-// Equipped is a fixed handful of slots and never takes the slack, however
-// little the bag beside it wants.
+// Equipped keeps its own height while it fits under the cap, however little
+// the bag beside it wants.
 TEST_F(MainLayoutTest, TheEquippedPanelKeepsItsOwnHeight) {
   Render(/*bag_rows=*/1);
   EXPECT_EQ(FirstRowWith("EQUIP"), 1);
   EXPECT_EQ(Cell(kLeftWidth, 2), "╰");
 }
 
-// And keeps it when the bag is overflowing, which is the case that costs it a
-// row if the bag is not the one thing marked shrinkable: ftxui then takes the
-// path that shares the overflow out across every panel in the column.
+// And keeps it when the bag is overflowing: what the bag cannot have is the
+// half of the column the cap holds for it, not a row off a panel that is
+// already well short of that.
 TEST_F(MainLayoutTest, AFullBagDoesNotSquashTheEquippedPanel) {
   Render(/*bag_rows=*/40);
   EXPECT_EQ(FirstRowWith("EQUIP"), 1);
   EXPECT_EQ(Cell(kLeftWidth, 2), "╰")
       << "the equipped panel gave up a row to the bag below it";
+}
+
+// --- the half cap ---
+
+// There are enough gear slots now to fill a column, so the equipped panel is
+// held to half of what the two panels have to share -- and the odd row of an
+// odd column falls to the bag, which is the panel the player works out of.
+TEST_F(MainLayoutTest, ATallEquippedPanelStopsAtHalfTheColumn) {
+  RenderTall(/*equip_rows=*/30, /*bag_rows=*/40);
+  EXPECT_EQ(FirstRowWith("EQUIP"), 1) << "still at the top of the column";
+  EXPECT_EQ(Cell(kLeftWidth, 13), "╰") << "14 rows of a 29-row column";
+  EXPECT_EQ(PanelTopBelow(kLeftWidth, 13), 14) << "the bag takes over here";
+  EXPECT_EQ(LowestPanelFoot(kLeftWidth), kScreenHeight - 2)
+      << "and the bag runs to the exp bar, 15 rows of it";
+}
+
+// The cap is on the room the pair has, not on the room the bag asks for: a
+// nearly empty bag does not hand its half back.
+TEST_F(MainLayoutTest, AnEmptyBagDoesNotLiftTheCap) {
+  RenderTall(/*equip_rows=*/30, /*bag_rows=*/3);
+  EXPECT_EQ(Cell(kLeftWidth, 13), "╰") << "the same 14 rows";
+  EXPECT_EQ(PanelTopBelow(kLeftWidth, 13), 14);
+  EXPECT_EQ(LowestPanelFoot(kLeftWidth), 18) << "a 5-row bag under it";
+}
+
+// What the short bag leaves over is blank, not a stretched panel.
+TEST_F(MainLayoutTest, TheRoomUnderAShortBagStaysBlank) {
+  RenderTall(/*equip_rows=*/30, /*bag_rows=*/3);
+  for (int y = 19; y < kScreenHeight - 1; ++y) {
+    EXPECT_EQ(Cell(kLeftWidth, y), " ")
+        << "the right column is painted on row " << y;
+  }
+}
+
+// The corner panel is not part of the pair, so the half is measured on the
+// column above it -- and the corner stays pinned to the foot.
+TEST_F(MainLayoutTest, TheCornerPanelIsNotHalvedWithThem) {
+  RenderWith(Panel("EQUIP", kRightWidth, 30), Panel("BAG", kRightWidth, 40),
+             Panel("KEYS", kRightWidth, 5));
+  EXPECT_EQ(Cell(kLeftWidth, 10), "╰") << "11 rows of the 22 left over";
+  EXPECT_EQ(PanelTopBelow(kLeftWidth, 10), 11);
+  EXPECT_EQ(LastRowWith("KEYS"), kScreenHeight - 3)
+      << "still pinned above the exp bar";
 }
 
 // The right column takes the width left over rather than its own, so the bag

@@ -1,10 +1,87 @@
 #include "src/frontend/main_layout.h"
 
+#include <algorithm>
+#include <memory>
 #include <utility>
 
 #include "ftxui/dom/elements.hpp"
+#include "ftxui/dom/node.hpp"
+#include "ftxui/dom/requirement.hpp"
+#include "ftxui/screen/box.hpp"
+#include "ftxui/screen/screen.hpp"
 
 namespace ms {
+namespace {
+
+// Two panels, one over the other, where the top one may never take more than
+// half the height they share -- rounded down, so the odd row falls to the
+// bottom panel. Neither is stretched past the height it asked for.
+//
+// It also grows to fill its column, which is what leaves the slack between the
+// bottom panel and whatever is pinned under it blank.
+class HalfAndRestNode : public ftxui::Node {
+ public:
+  HalfAndRestNode(ftxui::Element top, ftxui::Element bottom)
+      : ftxui::Node({std::move(top), std::move(bottom)}) {
+  }
+
+  void ComputeRequirement() override {
+    requirement_ = ftxui::Requirement();
+    int y = 0;
+    for (const ftxui::Element& child : children_) {
+      child->ComputeRequirement();
+      if (requirement_.focused.Prefer(child->requirement().focused)) {
+        requirement_.focused = child->requirement().focused;
+        requirement_.focused.box.Shift(0, y);
+      }
+      y += child->requirement().min_y;
+      requirement_.min_x =
+          std::max(requirement_.min_x, child->requirement().min_x);
+    }
+    requirement_.min_y = y;
+    requirement_.flex_grow_y = 1;
+    requirement_.flex_shrink_y = 1;
+  }
+
+  void SetBox(ftxui::Box box) override {
+    ftxui::Node::SetBox(box);
+    const int height = std::max(0, box.y_max - box.y_min + 1);
+    top_rows_ = std::min(children_[0]->requirement().min_y, height / 2);
+    bottom_rows_ =
+        std::min(children_[1]->requirement().min_y, height - top_rows_);
+
+    ftxui::Box top_box = box;
+    top_box.y_max = box.y_min + top_rows_ - 1;
+    children_[0]->SetBox(top_box);
+
+    ftxui::Box bottom_box = box;
+    bottom_box.y_min = box.y_min + top_rows_;
+    bottom_box.y_max = bottom_box.y_min + bottom_rows_ - 1;
+    children_[1]->SetBox(bottom_box);
+  }
+
+  void Render(ftxui::Screen& screen) override {
+    // A panel squeezed down to nothing is skipped rather than drawn: its box
+    // ends above where it starts, and a border asked to draw itself in one
+    // paints outside the space it was given.
+    if (top_rows_ > 0) {
+      children_[0]->Render(screen);
+    }
+    if (bottom_rows_ > 0) {
+      children_[1]->Render(screen);
+    }
+  }
+
+ private:
+  int top_rows_ = 0;
+  int bottom_rows_ = 0;
+};
+
+ftxui::Element HalfAndRest(ftxui::Element top, ftxui::Element bottom) {
+  return std::make_shared<HalfAndRestNode>(std::move(top), std::move(bottom));
+}
+
+}  // namespace
 
 ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
                           ftxui::Element equipped, ftxui::Element inventory,
@@ -22,21 +99,26 @@ ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
   }));
 
   ftxui::Elements right;
-  if (equipped != nullptr) {
+  // The pair takes the column between them, the equipped panel held to half of
+  // it: there are enough gear slots now to fill a screen, and the bag is the
+  // one of the two the player is working out of.
+  bool paired = equipped != nullptr && inventory != nullptr;
+  if (paired) {
+    right.push_back(HalfAndRest(std::move(equipped), std::move(inventory)));
+  } else if (equipped != nullptr) {
     right.push_back(std::move(equipped));
-  }
-  if (inventory != nullptr) {
+  } else if (inventory != nullptr) {
     // The bag shrinks but does not grow, so an empty tab is a few rows rather
-    // than a screen of blank. It is also the one shrinkable thing in the
-    // column, which is what stops ftxui squashing every panel here a share of
-    // the overflow instead.
+    // than a screen of blank.
     right.push_back(std::move(inventory) | ftxui::yflex_shrink);
   }
   if (corner != nullptr) {
-    // Pinned to the foot, the mirror of combat. The filler goes in whether or
-    // not anything is above it, or the corner would sit at the top of the
-    // screen until the equipped panel arrived and then jump to the bottom.
-    right.push_back(ftxui::filler());
+    // Pinned to the foot, the mirror of combat. Only where the pair is absent:
+    // the pair grows to fill the column itself, and a second thing to grow
+    // into the slack would take half of it away.
+    if (!paired) {
+      right.push_back(ftxui::filler());
+    }
     // Against a filler, or the corner takes the column's whole flexed width
     // and stretches across the screen.
     right.push_back(ftxui::hbox({ftxui::filler(), std::move(corner)}));
