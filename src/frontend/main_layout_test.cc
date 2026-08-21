@@ -50,13 +50,13 @@ class MainLayoutTest : public testing::Test {
   // The same layout with whichever right-column panels the test wants, so it
   // can pass null for one a character has not unlocked.
   void RenderWith(ftxui::Element equipped, ftxui::Element inventory,
-                  ftxui::Element corner, bool corner_fills = false) {
+                  ftxui::Element corner) {
     screen_ = ftxui::Screen::Create(ftxui::Dimension::Fixed(kScreenWidth),
                                     ftxui::Dimension::Fixed(kScreenHeight));
     ftxui::Element layout =
         MainLayout(Panel("CHAR", kLeftWidth, 8), Panel("COMBAT", kLeftWidth, 3),
                    std::move(equipped), std::move(inventory), std::move(corner),
-                   corner_fills, ftxui::text("EXPBAR"));
+                   ftxui::text("EXPBAR"));
     ftxui::Render(screen_, layout);
   }
 

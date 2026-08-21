@@ -312,6 +312,19 @@ ftxui::Element Tui::BossConfirmDialog() {
           }));
 }
 
+ftxui::Element Tui::BossClearedDialog() {
+  // A notice rather than a question: the fight is on its reset, and the only
+  // thing to press says so.
+  return ThemedWindow(
+      "", ftxui::vbox({
+              CenteredRow(controller_.boss_prompt_title()),
+              CenteredRow("has already been killed " +
+                          controller_.boss_cleared_when() + "."),
+              ThemedSeparator(),
+              CenteredRow(controller_.boss_cleared_prompt().Render()),
+          }));
+}
+
 ftxui::Element Tui::BossAbortDialog() {
   const BossRun* run = controller_.boss_run();
   return ThemedWindow(
@@ -470,6 +483,11 @@ ftxui::Element Tui::RenderScreen() {
           ftxui::center(boss_select_panel_.Render()),
           ftxui::center(BossConfirmDialog() | ftxui::clear_under),
       });
+    case kBossCleared:
+      return ftxui::dbox({
+          ftxui::center(boss_select_panel_.Render()),
+          ftxui::center(BossClearedDialog() | ftxui::clear_under),
+      });
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel puts it up itself.
     case kShop:
@@ -536,16 +554,14 @@ ftxui::Element Tui::RenderMain() {
   // The corner holds the tip or the menu, never both: the menu arrives at the
   // level the tip retires at.
   ftxui::Element corner = nullptr;
-  bool corner_fills = false;
   if (HotkeysTipVisible(state_.character)) {
     corner = HotkeysPanel();
   } else if (controller_.PanelVisible(kMenuPanel)) {
     corner = menu_component_->Render();
-    corner_fills = true;
   }
   ftxui::Element layout = MainLayout(
       char_panel_.Render(), combat_component_->Render(), std::move(equipped),
-      std::move(inventory), std::move(corner), corner_fills, RenderExpBar());
+      std::move(inventory), std::move(corner), RenderExpBar());
   if (controller_.screen() == kJobMenu) {
     // Anchored to the job row the same way the bag's menu is anchored to an
     // item, and one row above it so the highlighted entry lands beside the job

@@ -14,12 +14,11 @@ namespace ms {
 // leaving a gap, and with all three null there is no right column at all.
 //
 // `corner` is the hotkeys tip early on and the menu panel from level 5 --
-// never both, and `corner_fills` says which: the tip sizes itself to its own
-// longest line, and the menu spans the column.
+// never both. Either way it sizes itself to its own contents and sits against
+// the bottom-right corner.
 ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
                           ftxui::Element equipped, ftxui::Element inventory,
-                          ftxui::Element corner, bool corner_fills,
-                          ftxui::Element exp_bar);
+                          ftxui::Element corner, ftxui::Element exp_bar);
 
 }  // namespace ms
 

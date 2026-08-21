@@ -59,17 +59,18 @@ ftxui::Element MenuPanel::Render() const {
   row.push_back(ftxui::text(" "));
   for (int i = 0; i < static_cast<int>(entries.size()); ++i) {
     if (i > 0) {
-      // The entries are spread across the panel rather than bunched at one
-      // end: it is a wide row with very little in it, and a huddle in the
-      // corner reads as one label rather than as a choice.
-      row.push_back(ftxui::filler());
+      row.push_back(ftxui::text("  "));
     }
-    ftxui::Element button =
-        ActionButton(EntryLabel(entries[i]), focused && i == at);
+    // No brackets: the panel is small enough that the entries read as a menu
+    // on their own, and the cursor is the inverted one.
+    ftxui::Element button = ftxui::text(EntryLabel(entries[i]));
     if (entries[i] == MenuEntry::kBoss &&
         !state_.character.TabSeen(kBossSeenKey)) {
       // Gold until the player has been there once, the same way a new tab is.
       button = std::move(button) | ftxui::color(kYellow);
+    }
+    if (focused && i == at) {
+      button = std::move(button) | ftxui::inverted;
     }
     row.push_back(std::move(button));
   }

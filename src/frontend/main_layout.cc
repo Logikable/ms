@@ -8,8 +8,7 @@ namespace ms {
 
 ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
                           ftxui::Element equipped, ftxui::Element inventory,
-                          ftxui::Element corner, bool corner_fills,
-                          ftxui::Element exp_bar) {
+                          ftxui::Element corner, ftxui::Element exp_bar) {
   // Columns, not bare panels: an hbox hands every child the full height of the
   // row, which would drag a panel's bottom border away from its contents.
   ftxui::Elements columns;
@@ -38,13 +37,9 @@ ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
     // not anything is above it, or the corner would sit at the top of the
     // screen until the equipped panel arrived and then jump to the bottom.
     right.push_back(ftxui::filler());
-    if (corner_fills) {
-      right.push_back(std::move(corner));
-    } else {
-      // Against a filler, or the tip takes the column's whole flexed width and
-      // stretches across the screen.
-      right.push_back(ftxui::hbox({ftxui::filler(), std::move(corner)}));
-    }
+    // Against a filler, or the corner takes the column's whole flexed width
+    // and stretches across the screen.
+    right.push_back(ftxui::hbox({ftxui::filler(), std::move(corner)}));
   }
   if (!right.empty()) {
     columns.push_back(ftxui::vbox(std::move(right)) | ftxui::flex);

@@ -49,6 +49,24 @@ TEST(MenuPanelTest, SettingsHoldsTheCornerUntilBossArrives) {
   EXPECT_LT(later.find("Boss"), later.find("Settings"));
 }
 
+// The row is the entries and nothing else: no brackets, two columns between
+// them, and a column of clearance inside each border.
+TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
+  GameState state = EmptyState();
+  LevelTo(state, kBossLevel);
+  int focus = kMenuPanel;
+  MenuPanel panel(state, focus);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+                                               ftxui::Dimension::Fixed(3));
+  ftxui::Render(screen, ftxui::hbox({panel.Render(), ftxui::filler()}));
+  std::string row;
+  for (int x = 0; x < screen.dimx(); ++x) {
+    const std::string& cell = screen.PixelAt(x, 1).character;
+    row += cell.empty() ? " " : cell;
+  }
+  EXPECT_NE(row.find("│ Boss  Settings │"), std::string::npos);
+}
+
 TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
   GameState state = EmptyState();
   LevelTo(state, kBossLevel);
