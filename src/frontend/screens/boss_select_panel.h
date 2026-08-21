@@ -57,6 +57,9 @@ class BossSelectPanel {
   // Whether the highlighted fight can be entered right now, which is to say
   // its last clear has expired.
   bool selected_available() const;
+  // How often the highlighted fight comes back, for a notice that has to say
+  // when. RESET_PERIOD_UNSPECIFIED when there is no fight.
+  ResetPeriod selected_reset() const;
 
  private:
   ftxui::Element RenderBossList() const;

@@ -24,7 +24,8 @@ constexpr int kDifficultyWidth = 10;
 // breathe as a number gains a digit.
 constexpr int kLabelWidth = 12;
 constexpr int kValueWidth = 14;
-constexpr int kDetailWidth = kLabelWidth + kValueWidth + 1;
+// A column of clearance on each side, the way every panel here is padded.
+constexpr int kDetailWidth = kLabelWidth + kValueWidth + 2;
 
 std::string ResetName(ResetPeriod period) {
   switch (period) {
@@ -51,7 +52,7 @@ std::string Clock(int seconds) {
 
 ftxui::Element DetailRow(const std::string& label, const std::string& value) {
   return ftxui::text(" " + PadRight(label, kLabelWidth) +
-                     PadLeft(value, kValueWidth));
+                     PadLeft(value, kValueWidth) + " ");
 }
 
 }  // namespace
@@ -176,10 +177,15 @@ bool BossSelectPanel::selected_available() const {
                        static_cast<int64_t>(std::time(nullptr)));
 }
 
+ResetPeriod BossSelectPanel::selected_reset() const {
+  const BossDifficulty* difficulty = selected();
+  return difficulty == nullptr ? RESET_PERIOD_UNSPECIFIED : difficulty->reset();
+}
+
 ftxui::Element BossSelectPanel::RenderBossList() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(ftxui::text(" " + PadRight("Name", kBossNameWidth) +
-                             PadRight("Difficulty", kDifficultyWidth)));
+                             PadRight("Difficulty", kDifficultyWidth) + " "));
   rows.push_back(ThemedSeparator());
   if (bosses_.empty()) {
     rows.push_back(EmptyState("empty"));
@@ -190,10 +196,19 @@ ftxui::Element BossSelectPanel::RenderBossList() const {
     if (difficulties_[i] < boss.difficulties_size()) {
       difficulty = boss.difficulties(difficulties_[i]).name();
     }
-    std::string row = i == selected_ ? ">" : " ";
-    row += PadRight(boss.name(), kBossNameWidth) +
-           PadRight(difficulty, kDifficultyWidth);
-    rows.push_back(ftxui::text(row));
+    // The difficulty is the highlight rather than a caret on the row: Left
+    // and Right change it, so the lit cell is the one they act on.
+    ftxui::Element cell = ftxui::text(difficulty);
+    if (i == selected_) {
+      cell = std::move(cell) | ftxui::inverted;
+    }
+    int pad =
+        std::max(0, kDifficultyWidth - static_cast<int>(difficulty.size()));
+    rows.push_back(ftxui::hbox({
+        ftxui::text(" " + PadRight(boss.name(), kBossNameWidth)),
+        std::move(cell),
+        ftxui::text(std::string(pad + 1, ' ')),
+    }));
   }
   return ThemedWindow(" Bosses ", ftxui::vbox(std::move(rows)));
 }
@@ -225,10 +240,10 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
     // are short of here is a reset, so it goes on the status and nowhere else.
     rows.push_back(DetailRow("Status", "Cleared") | ftxui::color(kRed));
   } else {
-    rows.push_back(DetailRow("Status", "Available"));
+    rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
   }
   rows.push_back(ThemedSeparator());
-  rows.push_back(ftxui::text(" Drops") | ftxui::color(kTheme));
+  rows.push_back(ftxui::text(" Drops ") | ftxui::color(kTheme));
   if (difficulty->drops().empty()) {
     rows.push_back(EmptyState("empty"));
   }
@@ -236,7 +251,7 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
     std::map<std::string, ItemPrototype>::const_iterator it =
         state_.items.find(drop.item());
     if (it != state_.items.end()) {
-      rows.push_back(ftxui::text(" " + it->second.name()));
+      rows.push_back(ftxui::text(" " + it->second.name() + " "));
     }
   }
   return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));

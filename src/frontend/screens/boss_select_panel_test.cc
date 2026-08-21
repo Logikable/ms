@@ -90,6 +90,17 @@ std::string Render(const BossSelectPanel& panel) {
   return screen.ToString();
 }
 
+// One row of the last render as plain text, since ToString() threads escape
+// codes between the cells and a padding column cannot be seen through them.
+std::string Row(const ftxui::Screen& screen, int y) {
+  std::string row;
+  for (int x = 0; x < screen.dimx(); ++x) {
+    const std::string& cell = screen.PixelAt(x, y).character;
+    row += cell.empty() ? " " : cell;
+  }
+  return row;
+}
+
 TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
@@ -151,11 +162,35 @@ TEST(BossSelectPanelTest, DifficultyIsPerFightAndClampsToItsEnds) {
   EXPECT_EQ(panel.selected_title(), "Normal Balrog");
 }
 
+// The cursor is the lit difficulty rather than a caret: Left and Right act on
+// that cell. Both panels keep a column of clearance inside each border.
+TEST(BossSelectPanelTest, TheDifficultyIsTheHighlight) {
+  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
+  GameState& state = *owner;
+  BossSelectPanel panel(state);
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(16));
+  ftxui::Render(screen, panel.Render());
+  std::string out = screen.ToString();
+  EXPECT_EQ(out.find(">"), std::string::npos) << "no caret";
+  EXPECT_NE(out.find("\033[7mEasy"), std::string::npos)
+      << "the highlighted fight's difficulty is inverted";
+  std::string header = Row(screen, 1);
+  EXPECT_NE(header.find("│ Name"), std::string::npos)
+      << "a column of clearance";
+  EXPECT_NE(header.find("Difficulty │"), std::string::npos) << "on both sides";
+  EXPECT_NE(Row(screen, 3).find("Level"), std::string::npos);
+  EXPECT_NE(Row(screen, 3).find(" │"), std::string::npos)
+      << "the detail panel too";
+}
+
+// Green for a fight that can be taken, red for one waiting on its reset.
 TEST(BossSelectPanelTest, AClearedFightSaysSoAndIsNotAvailable) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
   BossSelectPanel panel(state);
   EXPECT_TRUE(panel.selected_available());
+  EXPECT_EQ(panel.selected_reset(), RESET_PERIOD_DAILY);
   EXPECT_NE(Render(panel).find("Available"), std::string::npos);
 
   state.character.RecordBossClear("zakum", "Normal",
