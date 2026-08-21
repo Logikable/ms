@@ -330,7 +330,11 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
   if (difficulty.meso() > 0) {
     rows.push_back(DetailRow("Meso", FormatWithCommas(difficulty.meso())));
   }
+  if (difficulty.exp() > 0) {
+    rows.push_back(DetailRow("EXP", FormatWithCommas(difficulty.exp())));
+  }
   int named = difficulty.meso() > 0 ? 1 : 0;
+  named += difficulty.exp() > 0 ? 1 : 0;
   for (const MobDrop& drop : difficulty.drops()) {
     std::string name = RewardName(drop);
     if (name.empty()) {

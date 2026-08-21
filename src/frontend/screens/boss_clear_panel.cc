@@ -33,6 +33,9 @@ ftxui::Element BossClearPanel(const std::string& title,
   if (reward.meso > 0) {
     rows.push_back(CenteredRow(FormatWithCommas(reward.meso) + " meso"));
   }
+  if (reward.exp > 0) {
+    rows.push_back(CenteredRow(FormatWithCommas(reward.exp) + " EXP"));
+  }
   for (const BossRewardItem& item : reward.items) {
     rows.push_back(CenteredRow(DropLine(item)));
   }

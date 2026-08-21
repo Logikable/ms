@@ -152,6 +152,10 @@ void BossRun::PayReward(GameState& state, double item_drop_pct) {
   if (reward_.meso > 0) {
     state.character.AddMeso(reward_.meso);
   }
+  reward_.exp = chosen->exp();
+  if (reward_.exp > 0) {
+    state.character.AddExp(reward_.exp);
+  }
   for (const MobDrop& drop : chosen->drops()) {
     // One roll for the fight, where a map rolls one per kill. Drop rate lifts
     // the chance the same way it lifts a monster's.

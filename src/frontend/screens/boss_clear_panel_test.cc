@@ -46,15 +46,17 @@ bool AnyRowHas(const ftxui::Screen& screen, const std::string& needle) {
 BossReward FullReward() {
   BossReward reward;
   reward.meso = 3062500;
+  reward.exp = 4611597;
   reward.items.push_back({"Condensed Power Crystal", 1});
   reward.items.push_back({"Zakum's Soul Shard", 3});
   return reward;
 }
 
-TEST(BossClearPanelTest, NamesTheFightTheMesoAndEveryDrop) {
+TEST(BossClearPanelTest, NamesTheFightTheMesoTheExpAndEveryDrop) {
   ftxui::Screen screen = RenderCard(FullReward());
   EXPECT_TRUE(AnyRowHas(screen, "Normal Zakum"));
   EXPECT_TRUE(AnyRowHas(screen, "3,062,500 meso"));
+  EXPECT_TRUE(AnyRowHas(screen, "4,611,597 EXP"));
   EXPECT_TRUE(AnyRowHas(screen, "Condensed Power Crystal"));
   EXPECT_TRUE(AnyRowHas(screen, "[ Continue ]"));
 }
@@ -74,6 +76,7 @@ TEST(BossClearPanelTest, AClearThatPaidNothingSaysSo) {
   EXPECT_TRUE(AnyRowHas(screen, "no rewards"));
   EXPECT_TRUE(AnyRowHas(screen, "[ Continue ]"));
   EXPECT_FALSE(AnyRowHas(screen, "meso"));
+  EXPECT_FALSE(AnyRowHas(screen, "EXP"));
 }
 
 }  // namespace

@@ -35,6 +35,11 @@ message BossDifficulty {
   // state one number and be right. The drops beside it do scale with Item
   // Drop Rate, the way a monster's do.
   int64 meso = 6;
+  // EXP a clear pays, over what the parts themselves are worth. Horntail's
+  // whole reward is here: GMS pays it for the clear rather than for the eight
+  // bodies, and says outright that no EXP boost touches it -- so this is flat,
+  // as the meso beside it is.
+  int64 exp = 8;
   // The level a character has to reach before this difficulty can be entered.
   // Unset means the boss screen's own gate is the only one, which is what a
   // fight a player meets on the day the screen opens wants.

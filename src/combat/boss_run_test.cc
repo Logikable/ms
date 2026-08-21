@@ -64,6 +64,7 @@ Boss RewardingBoss(double mark_chance = 0.5) {
   Boss boss = TwoPhaseBoss();
   BossDifficulty* normal = boss.mutable_difficulties(0);
   normal->set_meso(3062500);
+  normal->set_exp(4611597);
   MobDrop* mark = normal->add_drops();
   mark->set_equip("mark");
   mark->set_per_kill(mark_chance);
@@ -227,6 +228,7 @@ TEST(BossRunTest, AClearPaysTheMesoAndTheCertainDrop) {
   ASSERT_TRUE(run.won());
   EXPECT_EQ(state->character.proto().meso(), 3062500);
   EXPECT_EQ(run.reward().meso, 3062500);
+  EXPECT_EQ(run.reward().exp, 4611597);
   ASSERT_EQ(run.reward().items.size(), 1u);
   EXPECT_EQ(run.reward().items[0].name, "Zakum's Soul Shard");
   EXPECT_EQ(run.reward().items[0].count, 1);
@@ -258,6 +260,7 @@ TEST(BossRunTest, AFightThatRanOutOfTimePaysNothing) {
   ASSERT_EQ(run.state(), BossRunState::kTimedOut);
   EXPECT_EQ(state->character.proto().meso(), 0);
   EXPECT_EQ(run.reward().meso, 0);
+  EXPECT_EQ(run.reward().exp, 0);
   EXPECT_TRUE(run.reward().items.empty());
 }
 

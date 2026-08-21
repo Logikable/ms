@@ -50,6 +50,7 @@ struct BossRewardItem {
 // the player reads should not claim either of them.
 struct BossReward {
   int64_t meso = 0;
+  int64_t exp = 0;
   std::vector<BossRewardItem> items;
 };
 
@@ -161,7 +162,7 @@ class BossRun {
   void RunPhase(GameState& state, double dt);
   // Pays the difficulty's reward table, once, for a fight that was cleared,
   // and records what landed. The drops roll against `item_drop_pct` the way a
-  // monster's do; the meso is flat.
+  // monster's do; the meso and the EXP are flat.
   void PayReward(GameState& state, double item_drop_pct);
   // Ends the run in `outcome`, holding the screen for the closing beat -- or
   // for nothing at all, if the run was given up.
