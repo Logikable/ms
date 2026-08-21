@@ -163,6 +163,18 @@ class TuiController {
   const ConfirmPrompt& boss_abort_prompt() const {
     return boss_abort_prompt_;
   }
+  // The clear card: what was beaten, what it paid, and the button that
+  // dismisses it. Held on the controller rather than read off the run, which
+  // is gone by the time the card is up.
+  const std::string& boss_clear_title() const {
+    return boss_clear_title_;
+  }
+  const BossReward& boss_clear_reward() const {
+    return boss_clear_reward_;
+  }
+  const ContinuePrompt& boss_clear_prompt() const {
+    return boss_clear_prompt_;
+  }
   // Steps the fight in progress by elapsed_seconds, records the clear if it
   // ended in one, and takes the screen back to the fight list once the closing
   // beat is up. Does nothing without a fight, and nothing while the leave
@@ -259,6 +271,7 @@ class TuiController {
   void OpenNotice(Screen screen, std::vector<std::string> lines, bool refusal);
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
+  bool OnBossClearEvent(ftxui::Event event);
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
@@ -326,6 +339,10 @@ class TuiController {
   std::vector<std::string> notice_lines_;
   bool notice_is_refusal_ = false;
   ConfirmPrompt boss_abort_prompt_;
+  // What the clear card reads from, kept for as long as it is up.
+  std::string boss_clear_title_;
+  BossReward boss_clear_reward_;
+  ContinuePrompt boss_clear_prompt_;
   // The fight in progress, and which catalog entry it is being fought
   // against, so the clear can be recorded under the same names the reset
   // clock reads.

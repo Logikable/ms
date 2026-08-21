@@ -354,6 +354,31 @@ cc_test(
 )
 
 cc_library(
+    name = "boss_clear_panel",
+    srcs = ["boss_clear_panel.cc"],
+    hdrs = ["boss_clear_panel.h"],
+    deps = [
+        "//src/combat:boss_run",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "boss_clear_panel_test",
+    srcs = ["boss_clear_panel_test.cc"],
+    deps = [
+        ":boss_clear_panel",
+        "//src/combat:boss_run",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "boss_select_panel",
     srcs = ["boss_select_panel.cc"],
     hdrs = ["boss_select_panel.h"],

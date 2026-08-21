@@ -263,6 +263,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnBossFightEvent(event);
     case kBossAbort:
       return OnBossAbortEvent(event);
+    case kBossClear:
+      return OnBossClearEvent(event);
     case kShop:
       return OnShopEvent(event);
     case kShopMenu:
@@ -766,16 +768,31 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
   if (boss_run_->won()) {
     state_.character.RecordBossClear(boss_run_key_, boss_run_difficulty_,
                                      static_cast<int64_t>(std::time(nullptr)));
+    // Copied off the run before it goes: the card outlives it.
+    boss_clear_title_ = boss_run_->title();
+    boss_clear_reward_ = boss_run_->reward();
   }
-  // A fight that ran out of clock says so. A win needs no notice -- the last
-  // bar emptying is the news -- and an abort was the player's own doing.
-  bool timed_out = boss_run_->state() == BossRunState::kTimedOut;
+  // A fight that ran out of clock says so, and one that was cleared ends on
+  // its card. An abort was the player's own doing and needs neither.
+  BossRunState outcome = boss_run_->state();
   boss_run_.reset();
-  if (timed_out) {
+  if (outcome == BossRunState::kTimedOut) {
     OpenNotice(kBossNotice, {"Out of time!"}, /*refusal=*/false);
     return;
   }
+  if (outcome == BossRunState::kWon) {
+    boss_clear_prompt_.Open();
+    screen_ = kBossClear;
+    return;
+  }
   screen_ = kBossSelect;
+}
+
+bool TuiController::OnBossClearEvent(ftxui::Event event) {
+  if (boss_clear_prompt_.OnEvent(event)) {
+    screen_ = kBossSelect;
+  }
+  return true;
 }
 
 bool TuiController::OnShopEvent(ftxui::Event event) {

@@ -26,6 +26,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/hotkeys_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/screens/boss_clear_panel.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
@@ -488,6 +489,15 @@ ftxui::Element Tui::RenderScreen() {
       return ftxui::dbox({
           ftxui::center(boss_select_panel_.Render()),
           ftxui::center(BossNoticeDialog() | ftxui::clear_under),
+      });
+    case kBossClear:
+      return ftxui::dbox({
+          ftxui::center(boss_select_panel_.Render()),
+          ftxui::center(
+              BossClearPanel(controller_.boss_clear_title(),
+                             controller_.boss_clear_reward(),
+                             controller_.boss_clear_prompt().Render()) |
+              ftxui::clear_under),
       });
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel puts it up itself.

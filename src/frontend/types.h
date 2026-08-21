@@ -43,6 +43,9 @@ enum Screen : int {
   kBossNotice,
   kBossFight,
   kBossAbort,
+  // The card a cleared fight ends on: what it paid, and one button to leave
+  // it by.
+  kBossClear,
   kShop,
   kShopMenu,
   kShopInspect,

@@ -96,8 +96,14 @@ class TuiControllerTest : public testing::Test {
     token_.set_category(ITEM_CATEGORY_ETC);
     token_.set_currency_mark("●");
     token_.set_currency_color(CURRENCY_COLOR_ICE_BLUE);
+    // Something plain for a boss to drop, so the clear card has a row that is
+    // not a currency.
+    shard_.set_name("Zakum's Soul Shard");
+    shard_.set_category(ITEM_CATEGORY_ETC);
+    shard_.set_max_stack(100);
     std::map<std::string, ItemPrototype> items;
     items["weapon_token"] = token_;
+    items["zakums_soul_shard"] = shard_;
     std::map<std::string, Scroll> scrolls;
     scrolls["Test Scroll"] = scroll;
 
@@ -132,6 +138,13 @@ class TuiControllerTest : public testing::Test {
   void HoldASword() {
     state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
     state_->character.Equip(state_->character.inventory().size() - 1);
+  }
+
+  // Runs the fight in progress until it is over, however it ends.
+  void RunFightToEnd() {
+    for (int i = 0; i < 20000 && controller_->in_boss_fight(); ++i) {
+      controller_->AdvanceBossRun(0.1);
+    }
   }
 
   // Takes the one fight in the catalog, so a test starts inside it.
@@ -437,6 +450,7 @@ class TuiControllerTest : public testing::Test {
 
   EquipPrototype sword_;
   ItemPrototype token_;
+  ItemPrototype shard_;
   std::unique_ptr<GameState> state_;
   std::unique_ptr<CharacterPanel> char_panel_;
   std::unique_ptr<EquippedPanel> equip_panel_;
@@ -2430,11 +2444,32 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
 
 TEST_F(TuiControllerTest, ClearingTheFightBanksTheDaily) {
   EnterFight();
-  for (int i = 0; i < 20000 && controller_->in_boss_fight(); ++i) {
-    controller_->AdvanceBossRun(0.1);
-  }
-  EXPECT_EQ(controller_->screen(), kBossSelect);
+  RunFightToEnd();
+  EXPECT_EQ(controller_->screen(), kBossClear);
   EXPECT_GT(state_->character.BossClearedAt("zakum", "Normal"), 0);
+}
+
+// The card outlives the run it reports on, so what it says has to have been
+// copied off it rather than read back through a pointer that is now null.
+TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
+  BossDifficulty* normal = state_->bosses["zakum"].mutable_difficulties(0);
+  normal->set_meso(3062500);
+  MobDrop* shard = normal->add_drops();
+  shard->set_item("zakums_soul_shard");
+  shard->set_per_kill(1.0);
+  EnterFight();
+  RunFightToEnd();
+
+  ASSERT_EQ(controller_->screen(), kBossClear);
+  EXPECT_EQ(controller_->boss_run(), nullptr);
+  EXPECT_EQ(controller_->boss_clear_title(), "Normal Zakum");
+  EXPECT_EQ(controller_->boss_clear_reward().meso, 3062500);
+  ASSERT_EQ(controller_->boss_clear_reward().items.size(), 1u);
+  EXPECT_EQ(controller_->boss_clear_reward().items[0].name, shard_.name());
+  EXPECT_TRUE(controller_->boss_clear_prompt().open());
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
 }
 
 }  // namespace

@@ -186,6 +186,7 @@ cc_library(
         "//src/frontend/panels:inventory_panel",
         "//src/frontend/panels:menu_panel",
         "//src/frontend/screens:all_stats_panel",
+        "//src/frontend/screens:boss_clear_panel",
         "//src/frontend/screens:boss_fight_panel",
         "//src/frontend/screens:boss_select_panel",
         "//src/frontend/screens:buy_panel",
