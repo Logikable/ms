@@ -89,6 +89,12 @@ class BossRun {
   const std::string& title() const {
     return title_;
   }
+  // The boss alone, without its difficulty. What the player is asked about on
+  // the way out: they are leaving Zakum, and which Zakum it was is not the
+  // question.
+  const std::string& boss_name() const {
+    return boss_name_;
+  }
   // Which phase is being fought, counting from 1.
   int phase() const {
     return phase_ + 1;
@@ -138,6 +144,7 @@ class BossRun {
   const Boss* boss_ = nullptr;
   int difficulty_index_ = 0;
   std::string title_;
+  std::string boss_name_;
   int phases_ = 0;
 
   BossRunState state_ = BossRunState::kCountdown;

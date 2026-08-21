@@ -1,6 +1,10 @@
 #include "src/frontend/tui_controller.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <ctime>
+#include <map>
+#include <memory>
 #include <string>
 
 #include "ftxui/component/event.hpp"
@@ -10,6 +14,7 @@
 #include "src/character/progression.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
@@ -19,6 +24,7 @@
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
@@ -248,6 +254,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnBossSelectEvent(event);
     case kBossConfirm:
       return OnBossConfirmEvent(event);
+    case kBossFight:
+      return OnBossFightEvent(event);
+    case kBossAbort:
+      return OnBossAbortEvent(event);
     case kShop:
       return OnShopEvent(event);
     case kShopMenu:
@@ -665,11 +675,61 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
   ConfirmChoice choice = boss_prompt_.OnEvent(event);
   if (choice == ConfirmChoice::kCancelled) {
     screen_ = kBossSelect;
-  } else if (choice == ConfirmChoice::kConfirmed) {
-    // Nothing to enter yet: the fight screen is the next thing to land.
+    return true;
+  }
+  if (choice != ConfirmChoice::kConfirmed) {
+    return true;
+  }
+  boss_run_key_ = boss_select_panel_.selected_boss();
+  const BossDifficulty* difficulty = boss_select_panel_.selected();
+  std::map<std::string, Boss>::const_iterator it =
+      state_.bosses.find(boss_run_key_);
+  if (difficulty == nullptr || it == state_.bosses.end()) {
     screen_ = kBossSelect;
+    return true;
+  }
+  boss_run_difficulty_ = difficulty->name();
+  boss_run_ = std::make_unique<BossRun>(
+      boss_run_key_, it->second, boss_select_panel_.selected_difficulty());
+  screen_ = kBossFight;
+  return true;
+}
+
+bool TuiController::OnBossFightEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    boss_abort_prompt_.Open(/*cancel_selected=*/true);
+    screen_ = kBossAbort;
+  }
+  // Everything else is swallowed: the fight plays itself out, and there is
+  // nothing on this screen to move a cursor over.
+  return true;
+}
+
+bool TuiController::OnBossAbortEvent(ftxui::Event event) {
+  ConfirmChoice choice = boss_abort_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kConfirmed && boss_run_ != nullptr) {
+    boss_run_->Abort();
+  }
+  if (choice != ConfirmChoice::kPending) {
+    screen_ = kBossFight;
   }
   return true;
+}
+
+void TuiController::AdvanceBossRun(double elapsed_seconds) {
+  if (boss_run_ == nullptr || screen_ == kBossAbort) {
+    return;
+  }
+  boss_run_->Advance(state_, elapsed_seconds);
+  if (!boss_run_->done()) {
+    return;
+  }
+  if (boss_run_->won()) {
+    state_.character.RecordBossClear(boss_run_key_, boss_run_difficulty_,
+                                     static_cast<int64_t>(std::time(nullptr)));
+  }
+  boss_run_.reset();
+  screen_ = kBossSelect;
 }
 
 bool TuiController::OnShopEvent(ftxui::Event event) {

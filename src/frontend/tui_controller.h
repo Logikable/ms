@@ -9,9 +9,11 @@
 #ifndef MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 #define MS_SRC_FRONTEND_TUI_CONTROLLER_H_
 
+#include <memory>
 #include <string>
 
 #include "ftxui/component/event.hpp"
+#include "src/combat/boss_run.h"
 #include "src/frontend/item_ref.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
@@ -138,6 +140,24 @@ class TuiController {
   const std::string& boss_prompt_title() const {
     return boss_prompt_title_;
   }
+  // The fight in progress, or null when the player is not in one.
+  const BossRun* boss_run() const {
+    return boss_run_.get();
+  }
+  // The prompt asking whether to walk out of a fight.
+  const ConfirmPrompt& boss_abort_prompt() const {
+    return boss_abort_prompt_;
+  }
+  // Steps the fight in progress by elapsed_seconds, records the clear if it
+  // ended in one, and takes the screen back to the fight list once the closing
+  // beat is up. Does nothing without a fight, and nothing while the leave
+  // prompt is up -- the clock must not run out while the player is deciding.
+  void AdvanceBossRun(double elapsed_seconds);
+  // True while a fight owns the screen, which is when the map should not be
+  // farmed: the player is somewhere else.
+  bool in_boss_fight() const {
+    return boss_run_ != nullptr;
+  }
 
   // True once the player has confirmed the quit dialog. The controller cannot
   // close the terminal itself -- it does not own the ftxui screen -- so it
@@ -215,6 +235,8 @@ class TuiController {
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnBossSelectEvent(ftxui::Event event);
   bool OnBossConfirmEvent(ftxui::Event event);
+  bool OnBossFightEvent(ftxui::Event event);
+  bool OnBossAbortEvent(ftxui::Event event);
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
@@ -278,6 +300,13 @@ class TuiController {
   // under the player.
   ConfirmPrompt boss_prompt_;
   std::string boss_prompt_title_;
+  ConfirmPrompt boss_abort_prompt_;
+  // The fight in progress, and which catalog entry it is being fought
+  // against, so the clear can be recorded under the same names the reset
+  // clock reads.
+  std::unique_ptr<BossRun> boss_run_;
+  std::string boss_run_key_;
+  std::string boss_run_difficulty_;
   bool quit_requested_ = false;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;

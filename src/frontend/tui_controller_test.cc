@@ -12,6 +12,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
+#include "src/combat/boss_run.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
@@ -109,7 +110,9 @@ class TuiControllerTest : public testing::Test {
     Mob arm;
     arm.set_name("Zakum's Arm");
     arm.set_level(110);
-    arm.set_max_hp(700000);
+    // A single point of HP: these tests are about the screen the fight is on,
+    // not about how long one takes.
+    arm.set_max_hp(1);
     arm.set_boss(true);
     state_->mobs["zakum_arm"] = arm;
     Boss boss;
@@ -120,8 +123,19 @@ class TuiControllerTest : public testing::Test {
     normal->set_time_limit_seconds(300);
     Spawn* spawn = normal->add_phases()->add_spawns();
     spawn->set_mob("zakum_arm");
-    spawn->set_count(8);
+    spawn->set_count(2);
     state_->bosses["zakum"] = boss;
+  }
+
+  // Takes the one fight in the catalog, so a test starts inside it. A weapon
+  // goes on first: a character holding nothing has no swing, and the fight
+  // gives up rather than watching them stand there.
+  void EnterFight() {
+    state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+    state_->character.Equip(state_->character.inventory().size() - 1);
+    controller_->OpenMenuEntry(MenuEntry::kBoss);
+    controller_->OnEvent(ftxui::Event::Return);
+    controller_->OnEvent(ftxui::Event::Return);
   }
 
   // A Swordman with enough SP to spend and standing at scrolling's gate.
@@ -2268,6 +2282,72 @@ TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {
   EXPECT_EQ(controller_->screen(), kBossSelect);
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, ConfirmingEntersTheFight) {
+  controller_->OpenMenuEntry(MenuEntry::kBoss);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossConfirm);
+  controller_->OnEvent(ftxui::Event::Return);  // the prompt opens on Confirm
+
+  EXPECT_EQ(controller_->screen(), kBossFight);
+  ASSERT_NE(controller_->boss_run(), nullptr);
+  EXPECT_EQ(controller_->boss_run()->title(), "Normal Zakum");
+  EXPECT_TRUE(controller_->in_boss_fight());
+}
+
+// The fight is the whole screen, so nothing on it moves a cursor and nothing
+// leaks back to the main view.
+TEST_F(TuiControllerTest, TheFightSwallowsEverythingButEscape) {
+  EnterFight();
+  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(controller_->screen(), kBossFight);
+  EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
+TEST_F(TuiControllerTest, EscapeAsksBeforeLeavingAndTheClockStops) {
+  EnterFight();
+  controller_->AdvanceBossRun(kBossCountdownSeconds + 5.0);
+  double left = controller_->boss_run()->seconds_left();
+  ASSERT_LT(left, 300.0);
+
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kBossAbort);
+  // The clock must not run out while the player is deciding.
+  controller_->AdvanceBossRun(60.0);
+  EXPECT_DOUBLE_EQ(controller_->boss_run()->seconds_left(), left);
+
+  // The prompt opens on Cancel, so Enter goes back to the fight.
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kBossFight);
+  controller_->AdvanceBossRun(1.0);
+  EXPECT_LT(controller_->boss_run()->seconds_left(), left);
+}
+
+TEST_F(TuiControllerTest, ConfirmingTheLeavePromptEndsTheFight) {
+  EnterFight();
+  controller_->OnEvent(ftxui::Event::Escape);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // onto Confirm
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kBossFight);
+
+  // The closing beat plays, and then the screen goes back to the list.
+  controller_->AdvanceBossRun(kBossEndHoldSeconds);
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_EQ(controller_->boss_run(), nullptr);
+  EXPECT_FALSE(controller_->in_boss_fight());
+  // Walking out is not a clear, so the daily is still there.
+  EXPECT_EQ(state_->character.BossClearedAt("zakum", "Normal"), 0);
+}
+
+TEST_F(TuiControllerTest, ClearingTheFightBanksTheDaily) {
+  EnterFight();
+  for (int i = 0; i < 20000 && controller_->in_boss_fight(); ++i) {
+    controller_->AdvanceBossRun(0.1);
+  }
+  EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_GT(state_->character.BossClearedAt("zakum", "Normal"), 0);
 }
 
 }  // namespace

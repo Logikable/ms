@@ -80,7 +80,11 @@ TEST(BossRunTest, NothingHappensUntilTheCountdownIsUp) {
 
   run.Advance(*state, kBossCountdownSeconds - 0.5);
   EXPECT_EQ(run.state(), BossRunState::kCountdown);
-  EXPECT_TRUE(run.slots().empty());
+  // The monsters are already on screen, at full HP and with the clock unspent:
+  // the three seconds are for looking at what is about to be fought.
+  ASSERT_EQ(run.slots().size(), 2u);
+  EXPECT_DOUBLE_EQ(run.slots()[0].hp_fraction, 1.0);
+  EXPECT_DOUBLE_EQ(run.phase_hp_fraction(), 1.0);
   EXPECT_DOUBLE_EQ(run.seconds_left(), 300.0);
 
   run.Advance(*state, 0.5);

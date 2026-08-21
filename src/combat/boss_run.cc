@@ -22,6 +22,7 @@ BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index)
     return;
   }
   title_ = chosen->name() + " " + boss.name();
+  boss_name_ = boss.name();
   phases_ = chosen->phases_size();
   seconds_left_ = chosen->time_limit_seconds();
 }
@@ -128,6 +129,11 @@ void BossRun::Advance(GameState& state, double elapsed_seconds) {
   }
   double dt = std::max(0.0, elapsed_seconds);
   if (state_ == BossRunState::kCountdown) {
+    // The monsters are on screen before the count-in starts: what the player
+    // is about to fight is the whole point of being given three seconds.
+    if (slots_.empty()) {
+      RunPhase(state, 0.0);
+    }
     countdown_left_ -= dt;
     if (countdown_left_ > 0.0) {
       return;

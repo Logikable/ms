@@ -26,6 +26,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/hotkeys_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/tui_controller.h"
@@ -311,6 +312,33 @@ ftxui::Element Tui::BossConfirmDialog() {
           }));
 }
 
+ftxui::Element Tui::BossAbortDialog() {
+  const BossRun* run = controller_.boss_run();
+  return ThemedWindow(
+      "",
+      ftxui::vbox({
+          CenteredRow("Stop fighting " +
+                      (run == nullptr ? std::string("") : run->title()) + "?"),
+          ThemedSeparator(),
+          CenteredRow(controller_.boss_abort_prompt().Render()),
+      }));
+}
+
+ftxui::Element Tui::RenderBossFight() {
+  const BossRun* run = controller_.boss_run();
+  if (run == nullptr) {
+    return ftxui::center(boss_select_panel_.Render());
+  }
+  ftxui::Element fight = BossFightPanel(*run);
+  if (controller_.screen() != kBossAbort) {
+    return fight;
+  }
+  return ftxui::dbox({
+      std::move(fight),
+      ftxui::center(BossAbortDialog() | ftxui::clear_under),
+  });
+}
+
 ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
   if (entry.has_stack()) {
     const ItemPrototype* proto =
@@ -434,6 +462,9 @@ ftxui::Element Tui::RenderScreen() {
       return ftxui::center(map_select_panel_.Render());
     case kBossSelect:
       return ftxui::center(boss_select_panel_.Render());
+    case kBossFight:
+    case kBossAbort:
+      return RenderBossFight();
     case kBossConfirm:
       return ftxui::dbox({
           ftxui::center(boss_select_panel_.Render()),
@@ -583,7 +614,13 @@ void Tui::Tick() {
   // Every tick, rather than only at save time: the total then stays true
   // between saves, which is what anything wanting to show it will read.
   state_.playtime_seconds += elapsed.count();
-  AdvanceCombat(state_, combat_sim_, elapsed.count());
+  if (controller_.in_boss_fight()) {
+    // The map is not farmed while the player is somewhere else: EXP quietly
+    // arriving from a fight they cannot see is a strange thing to owe them.
+    controller_.AdvanceBossRun(elapsed.count());
+  } else {
+    AdvanceCombat(state_, combat_sim_, elapsed.count());
+  }
   // Ticked down before the new level is noticed, so a level-up landing on this
   // tick gets its full four seconds rather than one tick's worth less.
   celebration_.Advance(elapsed.count());

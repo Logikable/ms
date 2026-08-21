@@ -68,6 +68,10 @@ class Tui {
   ftxui::Element QuitDialog();
   // "Fight Normal Zakum?", floated over the boss screen.
   ftxui::Element BossConfirmDialog();
+  // "Stop fighting Zakum?", floated over the fight.
+  ftxui::Element BossAbortDialog();
+  // The fight screen, or the fight list if there is no fight.
+  ftxui::Element RenderBossFight();
   ftxui::Element RenderShopInspect();
   // The inspect screen for a row of the buy-back shelf: the item as the sale
   // left it, rebuilt from the shelf plus the catalog.
