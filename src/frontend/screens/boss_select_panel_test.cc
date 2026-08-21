@@ -98,7 +98,7 @@ int Width(const BossSelectPanel& panel) {
   return ftxui::Dimension::Fit(element).dimx;
 }
 
-std::string Render(const BossSelectPanel& panel, int height = 16) {
+std::string Render(const BossSelectPanel& panel, int height = 30) {
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(height));
@@ -146,9 +146,12 @@ TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
   std::string out = Render(panel);
   EXPECT_NE(out.find("Normal Zakum"), std::string::npos);
   EXPECT_NE(out.find("110"), std::string::npos);
-  // Phase 1 is all eight arms together, phase 2 the body.
-  EXPECT_NE(out.find("5,600,000"), std::string::npos);
-  EXPECT_NE(out.find("7,000,000"), std::string::npos);
+  // Phase 1 is all eight arms together, phase 2 the body, and a fight with
+  // two of them numbers them.
+  EXPECT_NE(out.find("P1 HP"), std::string::npos);
+  EXPECT_NE(out.find("5.6M"), std::string::npos);
+  EXPECT_NE(out.find("P2 HP"), std::string::npos);
+  EXPECT_NE(out.find("7M"), std::string::npos);
   EXPECT_NE(out.find("40%"), std::string::npos);
   EXPECT_NE(out.find("5:00"), std::string::npos);
   EXPECT_NE(out.find("Daily"), std::string::npos);
@@ -178,7 +181,7 @@ TEST(BossSelectPanelTest, TheRewardsListNamesTheMesoAndEveryDrop) {
   item_drop->set_per_kill(1.0);
 
   BossSelectPanel panel(state);
-  std::string out = Render(panel, 24);
+  std::string out = Render(panel);
   EXPECT_NE(out.find("3,062,500"), std::string::npos);
   EXPECT_NE(out.find("50%"), std::string::npos);
   // A name too long for the panel wraps rather than being cut, and the chance
@@ -209,6 +212,41 @@ TEST(BossSelectPanelTest, ALongRewardNameDoesNotWidenThePanel) {
   drop->set_per_kill(0.5);
   BossSelectPanel wide(state);
   EXPECT_EQ(Width(wide), narrow);
+}
+
+// One monster is just "HP": there is no other phase for the number to be
+// confused with.
+TEST(BossSelectPanelTest, AOnePhaseFightLabelsItsHpPlainly) {
+  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
+  GameState& state = *owner;
+  BossSelectPanel panel(state);  // Balrog sorts first: one phase.
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("HP"), std::string::npos);
+  EXPECT_EQ(out.find("P1 HP"), std::string::npos);
+}
+
+// Walking the list must not move the top of the screen, so the panel takes
+// the same rows whichever fight is under the cursor -- and the tallest fight
+// in the game has to fit in them.
+TEST(BossSelectPanelTest, TheScreenIsTheSameHeightForEveryFight) {
+  std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
+  GameState& state = *owner;
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  normal->set_meso(3062500);
+  ItemPrototype shard;
+  shard.set_name("Zakum's Soul Shard");
+  state.items["zakums_soul_shard"] = shard;
+  for (int i = 0; i < 4; ++i) {
+    MobDrop* drop = normal->add_drops();
+    drop->set_item("zakums_soul_shard");
+    drop->set_per_kill(1.0);
+  }
+  BossSelectPanel panel(state);
+  ftxui::Element zakum = panel.Render();
+  int first = ftxui::Dimension::Fit(zakum).dimy;
+  panel.MoveCursor(1);
+  ftxui::Element balrog = panel.Render();
+  EXPECT_EQ(ftxui::Dimension::Fit(balrog).dimy, first);
 }
 
 TEST(BossSelectPanelTest, PhaseHpAndLevelReadOffTheMobs) {

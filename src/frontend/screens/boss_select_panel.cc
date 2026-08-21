@@ -32,6 +32,10 @@ constexpr int kValueWidth = 14;
 constexpr int kNameIndent = 2;
 // A column of clearance on each side, the way every panel here is padded.
 constexpr int kDetailWidth = kLabelWidth + kValueWidth + 2;
+// The rows the screen always takes, whichever fight the cursor is on. Tall
+// enough for the longest detail panel in the game -- a test holds it there --
+// so the top of the screen never moves.
+constexpr int kScreenHeight = 24;
 
 std::string ResetName(ResetPeriod period) {
   switch (period) {
@@ -277,10 +281,14 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
     }
     rows.push_back(std::move(row));
   }
+  // "HP" alone for a fight that is one monster standing there; a fight with
+  // phases numbers them, because then which HP it is matters.
   for (int i = 0; i < difficulty->phases_size(); ++i) {
-    rows.push_back(
-        DetailRow("Phase " + std::to_string(i + 1),
-                  FormatWithCommas(PhaseHp(state_, difficulty->phases(i)))));
+    std::string label = difficulty->phases_size() > 1
+                            ? "P" + std::to_string(i + 1) + " HP"
+                            : "HP";
+    rows.push_back(DetailRow(
+        label, FormatCompact(PhaseHp(state_, difficulty->phases(i)))));
   }
   rows.push_back(
       DetailRow("PDR", std::to_string(BossPdr(state_, *difficulty)) + "%"));
@@ -350,7 +358,14 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
 }
 
 ftxui::Element BossSelectPanel::Render() const {
-  return ftxui::hbox({RenderBossList(), RenderDetail()});
+  // Held to a fixed height with the panels at the top of it, so that walking
+  // the list -- where one fight has more drops than the next -- moves the
+  // bottom of the panel and leaves its top where the eye left it.
+  return ftxui::vbox({
+             ftxui::hbox({RenderBossList(), RenderDetail()}),
+             ftxui::filler(),
+         }) |
+         ftxui::size(ftxui::HEIGHT, ftxui::GREATER_THAN, kScreenHeight);
 }
 
 }  // namespace ms
