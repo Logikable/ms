@@ -82,10 +82,10 @@ std::unique_ptr<GameState> WithBosses(bool two = false) {
   return state;
 }
 
-std::string Render(const BossSelectPanel& panel) {
+std::string Render(const BossSelectPanel& panel, int height = 16) {
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
-                                               ftxui::Dimension::Fixed(16));
+                                               ftxui::Dimension::Fixed(height));
   ftxui::Render(screen, element);
   return screen.ToString();
 }
@@ -116,6 +116,37 @@ TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
   EXPECT_NE(out.find("Daily"), std::string::npos);
   // Nothing drops yet, and an empty list says so and nothing else.
   EXPECT_NE(out.find("(empty)"), std::string::npos);
+}
+
+// The rewards a clear pays, which is what the player is choosing between when
+// there is more than one fight. An equip is named out of its own catalog: the
+// list read only the stackables before Zakum dropped anything.
+TEST(BossSelectPanelTest, TheRewardsListNamesTheMesoAndEveryDrop) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  EquipPrototype crystal;
+  crystal.set_name("Condensed Power Crystal");
+  state.equips["condensed_power_crystal"] = crystal;
+  ItemPrototype shard;
+  shard.set_name("Zakum's Soul Shard");
+  state.items["zakums_soul_shard"] = shard;
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  normal->set_meso(3062500);
+  MobDrop* equip_drop = normal->add_drops();
+  equip_drop->set_equip("condensed_power_crystal");
+  equip_drop->set_per_kill(0.5);
+  MobDrop* item_drop = normal->add_drops();
+  item_drop->set_item("zakums_soul_shard");
+  item_drop->set_per_kill(1.0);
+
+  BossSelectPanel panel(state);
+  std::string out = Render(panel, 24);
+  EXPECT_NE(out.find("3,062,500"), std::string::npos);
+  EXPECT_NE(out.find("Condensed Power Crystal"), std::string::npos);
+  EXPECT_NE(out.find("50%"), std::string::npos);
+  EXPECT_NE(out.find("Zakum's Soul Shard"), std::string::npos);
+  EXPECT_NE(out.find("100%"), std::string::npos);
+  EXPECT_EQ(out.find("(empty)"), std::string::npos);
 }
 
 TEST(BossSelectPanelTest, PhaseHpAndLevelReadOffTheMobs) {

@@ -21,6 +21,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/mob.pb.h"
 
 namespace ms {
 
@@ -64,6 +65,13 @@ class BossSelectPanel {
  private:
   ftxui::Element RenderBossList() const;
   ftxui::Element RenderDetail() const;
+  // Appends the reward rows -- the clear's meso, then a name and a chance per
+  // drop -- to the detail panel.
+  void RenderRewards(std::vector<ftxui::Element>& rows,
+                     const BossDifficulty& difficulty) const;
+  // What a drop is called, out of whichever catalog holds it. Empty for one
+  // neither does, which is a drop nothing would be granted for.
+  std::string RewardName(const MobDrop& drop) const;
 
   const GameState& state_;
   // Boss keys in display order: by the level they are fought at, then by name

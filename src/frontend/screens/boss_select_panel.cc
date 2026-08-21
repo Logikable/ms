@@ -13,6 +13,8 @@
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/equip.pb.h"
+#include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
 
 namespace ms {
@@ -48,6 +50,16 @@ std::string Clock(int seconds) {
     text += "0";
   }
   return text + std::to_string(rest);
+}
+
+// A drop rate as a whole percent. Rounded up off zero, so a rare drop reads
+// as a chance rather than as none at all.
+std::string DropChance(double per_kill) {
+  int pct = static_cast<int>(per_kill * 100.0);
+  if (pct == 0 && per_kill > 0.0) {
+    pct = 1;
+  }
+  return std::to_string(std::clamp(pct, 0, 100)) + "%";
 }
 
 ftxui::Element DetailRow(const std::string& label, const std::string& value) {
@@ -243,18 +255,44 @@ ftxui::Element BossSelectPanel::RenderDetail() const {
     rows.push_back(DetailRow("Status", "Available") | ftxui::color(kGreen));
   }
   rows.push_back(ThemedSeparator());
-  rows.push_back(ftxui::text(" Drops ") | ftxui::color(kTheme));
-  if (difficulty->drops().empty()) {
+  rows.push_back(ftxui::text(" Rewards ") | ftxui::color(kTheme));
+  RenderRewards(rows, *difficulty);
+  return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));
+}
+
+std::string BossSelectPanel::RewardName(const MobDrop& drop) const {
+  if (!drop.equip().empty()) {
+    std::map<std::string, EquipPrototype>::const_iterator it =
+        state_.equips.find(drop.equip());
+    return it == state_.equips.end() ? "" : it->second.name();
+  }
+  std::map<std::string, ItemPrototype>::const_iterator it =
+      state_.items.find(drop.item());
+  return it == state_.items.end() ? "" : it->second.name();
+}
+
+void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
+                                    const BossDifficulty& difficulty) const {
+  // The meso first: it is the one thing a clear always pays, and everything
+  // under it is a chance at something.
+  if (difficulty.meso() > 0) {
+    rows.push_back(DetailRow("Meso", FormatWithCommas(difficulty.meso())));
+  }
+  int named = difficulty.meso() > 0 ? 1 : 0;
+  for (const MobDrop& drop : difficulty.drops()) {
+    std::string name = RewardName(drop);
+    if (name.empty()) {
+      continue;
+    }
+    ++named;
+    // The name over two rows rather than cut to the label column: these are
+    // the longest names in the game, and half of one names nothing.
+    rows.push_back(ftxui::text(" " + name + " "));
+    rows.push_back(DetailRow("", DropChance(drop.per_kill())));
+  }
+  if (named == 0) {
     rows.push_back(EmptyState("empty"));
   }
-  for (const MobDrop& drop : difficulty->drops()) {
-    std::map<std::string, ItemPrototype>::const_iterator it =
-        state_.items.find(drop.item());
-    if (it != state_.items.end()) {
-      rows.push_back(ftxui::text(" " + it->second.name() + " "));
-    }
-  }
-  return ThemedWindow(" Fight ", ftxui::vbox(std::move(rows)));
 }
 
 ftxui::Element BossSelectPanel::Render() const {
