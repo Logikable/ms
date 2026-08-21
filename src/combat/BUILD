@@ -99,11 +99,13 @@ cc_library(
         "//src/character:character_stats",
         "//src/character:progression",
         "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:skill_proto_cc",
+        "@protobuf",
     ],
 )
 
@@ -117,6 +119,7 @@ cc_test(
         "//src/character:character_stats",
         "//src/character:progression",
         "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",

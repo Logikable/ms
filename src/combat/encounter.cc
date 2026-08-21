@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "google/protobuf/repeated_ptr_field.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
@@ -378,11 +379,12 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   return attack;
 }
 
-// The mob types this map spawns, each with what one of its hits costs the
-// player. Types the mob catalog does not know are skipped.
-void AddTypes(const GameState& state, const MapData& map,
+// The mob types `spawns` puts in front of the player, each with what one of
+// its hits costs them. Types the mob catalog does not know are skipped.
+void AddTypes(const GameState& state,
+              const google::protobuf::RepeatedPtrField<Spawn>& spawns,
               const DefenseStats& defense, CombatParams& params) {
-  for (const Spawn& spawn : map.spawns()) {
+  for (const Spawn& spawn : spawns) {
     std::map<std::string, Mob>::const_iterator mob_it =
         state.mobs.find(spawn.mob());
     if (mob_it == state.mobs.end()) {
@@ -941,26 +943,24 @@ const std::vector<AttackOption>& CombatParams::TriggeredAttacks(
   return buffed[mask - 1].triggered_attacks;
 }
 
-CombatParams ComputeCombatParams(const GameState& state) {
-  CombatParams params;
-  params.encounter = state.current_map;
-  std::map<std::string, MapData>::const_iterator map_it =
-      state.maps.find(state.current_map);
-  const std::map<EquipSlot, EquipInstance>& equipped =
-      state.character.equipped();
-  std::map<EquipSlot, EquipInstance>::const_iterator weapon_it =
-      equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
-  if (map_it == state.maps.end() || weapon_it == equipped.end()) {
-    return params;
-  }
-  const EquipPrototype& weapon = weapon_it->second.prototype();
+namespace {
 
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
-  // The pace the whole encounter runs at, and the only thing here that asks
-  // the character's level directly: the game stretches out as they climb.
-  double speed_factor = GameSpeedFactor(state.character.proto().level());
-  params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
-  params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
+// What the character brings to being hit, which is the same whichever mob is
+// hitting them.
+DefenseStats DefenseFor(const GameState& state, const DerivedStats& derived) {
+  DefenseStats defense;
+  defense.level = state.character.proto().level();
+  defense.def = derived.def;
+  defense.damage_taken_pct = derived.damage_taken_pct;
+  defense.dodge_chance = derived.dodge_chance;
+  return defense;
+}
+
+// Everything about the character that does not depend on what is in front of
+// them: their pool, what their passives pay, and the clocks the band stretches.
+// The two intervals are left to the caller -- a boss fight runs off neither.
+void AddPacing(const GameState& state, const DerivedStats& derived,
+               double speed_factor, CombatParams& params) {
   params.max_player_hp = derived.max_hp;
   params.player_level = state.character.proto().level();
   params.beat_heal_fraction = kBeatHealFraction;
@@ -975,22 +975,16 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.revive_cooldown_seconds =
       derived.revive_cooldown_seconds * speed_factor;
   params.freeze_cap = derived.freeze.cap;
+}
 
-  // What the character brings to being hit is the same whichever mob is
-  // hitting them, so it is resolved once and asked per type.
-  DefenseStats defense;
-  defense.level = state.character.proto().level();
-  defense.def = derived.def;
-  defense.damage_taken_pct = derived.damage_taken_pct;
-  defense.dodge_chance = derived.dodge_chance;
-  AddTypes(state, map_it->second, defense, params);
-  if (params.types.empty()) {
-    return params;
-  }
-  // The character as they stand, then one table for every combination of
-  // buffs they can have up. What being hit costs them is read off the unbuffed
-  // stats: nothing yet buffs a pool, and the one buff that softens a hit takes
-  // its share off the hit itself -- see BuffOption.damage_taken_pct.
+// Every attack the character can swing at the types already in `params`: as
+// they stand, and then one table per combination of buffs they can put up.
+// What being hit costs them is read off the unbuffed stats -- nothing yet
+// buffs a pool, and the one buff that softens a hit takes its share off the
+// hit itself; see BuffOption.damage_taken_pct.
+void AddAttacks(const GameState& state, const DerivedStats& derived,
+                const EquipPrototype& weapon, double speed_factor,
+                CombatParams& params) {
   AttackSet base =
       BuildAttackSet(state, derived, weapon, speed_factor, params.types);
   params.attacks = std::move(base.attacks);
@@ -1006,6 +1000,76 @@ CombatParams ComputeCombatParams(const GameState& state) {
            derived.buff_duration_pct, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
   TagBuffGatedPulses(buff_skills, params);
+}
+
+// The weapon the character is holding, or null for one holding nothing --
+// which is the whole reason a fight can be inactive.
+const EquipPrototype* EquippedWeapon(const GameState& state) {
+  const std::map<EquipSlot, EquipInstance>& equipped =
+      state.character.equipped();
+  std::map<EquipSlot, EquipInstance>::const_iterator it =
+      equipped.find(EQUIP_SLOT_PRIMARY_WEAPON);
+  return it == equipped.end() ? nullptr : &it->second.prototype();
+}
+
+}  // namespace
+
+std::string BossEncounterKey(const std::string& boss,
+                             const std::string& difficulty, int phase) {
+  return "boss:" + boss + ":" + difficulty + ":" + std::to_string(phase);
+}
+
+CombatParams ComputeCombatParams(const GameState& state) {
+  CombatParams params;
+  params.encounter = state.current_map;
+  std::map<std::string, MapData>::const_iterator map_it =
+      state.maps.find(state.current_map);
+  const EquipPrototype* weapon = EquippedWeapon(state);
+  if (map_it == state.maps.end() || weapon == nullptr) {
+    return params;
+  }
+
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  // The pace the whole encounter runs at, and the only thing here that asks
+  // the character's level directly: the game stretches out as they climb.
+  double speed_factor = GameSpeedFactor(state.character.proto().level());
+  params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
+  params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
+  AddPacing(state, derived, speed_factor, params);
+  AddTypes(state, map_it->second.spawns(), DefenseFor(state, derived), params);
+  if (params.types.empty()) {
+    return params;
+  }
+  AddAttacks(state, derived, *weapon, speed_factor, params);
+  params.active = true;
+  return params;
+}
+
+CombatParams ComputeBossParams(const GameState& state,
+                               const std::string& boss_key,
+                               const BossDifficulty& difficulty, int phase) {
+  CombatParams params;
+  if (phase < 0 || phase >= difficulty.phases_size()) {
+    return params;
+  }
+  params.encounter = BossEncounterKey(boss_key, difficulty.name(), phase);
+  const EquipPrototype* weapon = EquippedWeapon(state);
+  if (weapon == nullptr) {
+    return params;
+  }
+
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  // A boss fight runs in real time whatever the character's level: the pacing
+  // band stretches an idle map out so it can be left alone, and a fight the
+  // player is sitting and watching wants neither the stretch nor a beat.
+  // Both intervals stay at 0 -- nothing respawns, and nothing hits back yet.
+  AddPacing(state, derived, 1.0, params);
+  AddTypes(state, difficulty.phases(phase).spawns(), DefenseFor(state, derived),
+           params);
+  if (params.types.empty()) {
+    return params;
+  }
+  AddAttacks(state, derived, *weapon, 1.0, params);
   params.active = true;
   return params;
 }

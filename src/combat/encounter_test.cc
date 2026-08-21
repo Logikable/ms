@@ -11,6 +11,7 @@
 #include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -2233,6 +2234,82 @@ TEST(ComputeCombatParamsTest, TheCharactersDefenseReducesWhatMobsDo) {
 
   EXPECT_LT(ComputeCombatParams(armoured).types[0].damage_to_player,
             ComputeCombatParams(bare).types[0].damage_to_player);
+}
+
+// Two phases, so a test can watch one turn over into the next.
+BossDifficulty NormalTwoPhase() {
+  BossDifficulty difficulty;
+  difficulty.set_name("Normal");
+  difficulty.set_time_limit_seconds(300);
+  Spawn* arms = difficulty.add_phases()->add_spawns();
+  arms->set_mob("arm");
+  arms->set_count(8);
+  Spawn* body = difficulty.add_phases()->add_spawns();
+  body->set_mob("body");
+  body->set_count(1);
+  return difficulty;
+}
+
+// A boss fight runs in real time however high the character has climbed, and
+// against neither clock the farming loop is paced by.
+TEST(ComputeBossParamsTest, RunsRealTimeWithNoRespawnAndNoIncomingHits) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeAttacker("Zakum's Arm", 700000, 2200, 110)},
+                   {"body", MakeAttacker("Zakum", 7000000, 9300, 110)}},
+                  {});
+  EquipSword(state);
+  BossDifficulty normal = NormalTwoPhase();
+
+  CombatParams params = ComputeBossParams(state, "zakum", normal, 0);
+  ASSERT_TRUE(params.active);
+  EXPECT_DOUBLE_EQ(params.respawn_seconds, 0.0);
+  EXPECT_DOUBLE_EQ(params.hit_seconds, 0.0);
+  ASSERT_EQ(params.types.size(), 1u);
+  EXPECT_EQ(params.types[0].mob->name(), "Zakum's Arm");
+  EXPECT_EQ(params.types[0].simultaneous, 8);
+  // The same swing on the same weapon, but unstretched: the map's is the
+  // boss's times the pacing band the character has climbed into.
+  MapData field;
+  Spawn* spawn = field.add_spawns();
+  spawn->set_mob("arm");
+  spawn->set_count(1);
+  state.maps["field"] = field;
+  state.current_map = "field";
+  CombatParams mapped = ComputeCombatParams(state);
+  double speed = GameSpeedFactor(state.character.proto().level());
+  EXPECT_DOUBLE_EQ(mapped.attacks.front().swing_seconds,
+                   params.attacks.front().swing_seconds * speed);
+  EXPECT_GT(params.attacks.front().damage_per_hit[0], 0.0);
+}
+
+TEST(ComputeBossParamsTest, EveryPhaseIsItsOwnEncounter) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)}},
+                  {});
+  EquipSword(state);
+  BossDifficulty normal = NormalTwoPhase();
+
+  CombatParams first = ComputeBossParams(state, "zakum", normal, 0);
+  CombatParams second = ComputeBossParams(state, "zakum", normal, 1);
+  EXPECT_NE(first.encounter, second.encounter);
+  EXPECT_EQ(first.encounter, BossEncounterKey("zakum", "Normal", 0));
+  ASSERT_EQ(second.types.size(), 1u);
+  EXPECT_EQ(second.types[0].mob->name(), "Zakum");
+  EXPECT_EQ(second.types[0].simultaneous, 1);
+}
+
+TEST(ComputeBossParamsTest, InactivePastTheLastPhaseAndWithoutAWeapon) {
+  GameState state({}, {}, {}, {{"arm", MakeMob("Zakum's Arm", 700000)}}, {});
+  BossDifficulty normal = NormalTwoPhase();
+  EXPECT_FALSE(ComputeBossParams(state, "zakum", normal, 0).active);
+  EquipSword(state);
+  EXPECT_TRUE(ComputeBossParams(state, "zakum", normal, 0).active);
+  EXPECT_FALSE(ComputeBossParams(state, "zakum", normal, 2).active);
+  EXPECT_FALSE(ComputeBossParams(state, "zakum", normal, -1).active);
+  // Phase 1 names a mob this catalog does not hold, so there is nothing there
+  // to fight.
+  EXPECT_FALSE(ComputeBossParams(state, "zakum", normal, 1).active);
 }
 
 }  // namespace

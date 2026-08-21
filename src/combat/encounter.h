@@ -17,6 +17,7 @@
 
 #include "src/combat/damage.h"
 #include "src/game_state.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
 
 namespace ms {
@@ -345,6 +346,21 @@ struct CombatParams {
 // (and types empty) when there is no current map, no equipped weapon, or no
 // loaded mobs.
 CombatParams ComputeCombatParams(const GameState& state);
+
+// The same for one phase of one boss difficulty. Nothing respawns and nothing
+// hits back, and the whole fight runs in real time rather than at the pacing
+// band's stretch: a boss is watched, not left alone. active is false for a
+// phase out of range, a character holding no weapon, or spawns the mob catalog
+// does not know.
+CombatParams ComputeBossParams(const GameState& state,
+                               const std::string& boss_key,
+                               const BossDifficulty& difficulty, int phase);
+
+// What CombatParams::encounter holds for one phase of a boss fight. Distinct
+// per phase, which is what makes the fight rebuild its roster when one turns
+// over, and distinct from every map name.
+std::string BossEncounterKey(const std::string& boss,
+                             const std::string& difficulty, int phase);
 
 }  // namespace ms
 
