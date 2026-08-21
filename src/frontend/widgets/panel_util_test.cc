@@ -87,6 +87,32 @@ TEST(FormatWithCommasTest, HandlesNegative) {
   EXPECT_EQ(FormatWithCommas(-12345), "-12,345");
 }
 
+// --- FormatCompact ---
+
+TEST(FormatCompactTest, WritesOutAnythingUnderTwoMillion) {
+  EXPECT_EQ(FormatCompact(0), "0");
+  EXPECT_EQ(FormatCompact(700000), "700,000");
+  EXPECT_EQ(FormatCompact(1999999), "1,999,999");
+}
+
+TEST(FormatCompactTest, ThreeDigitsAndNoTrailingZeros) {
+  EXPECT_EQ(FormatCompact(5600000), "5.6M");
+  EXPECT_EQ(FormatCompact(7000000), "7M");
+  EXPECT_EQ(FormatCompact(12300000), "12.3M");
+  EXPECT_EQ(FormatCompact(500000000), "500M");
+  EXPECT_EQ(FormatCompact(-5600000), "-5.6M");
+}
+
+// A unit is only taken up at two thousand of the one below, so the number
+// keeps the unit a reader can weigh it in.
+TEST(FormatCompactTest, ClimbsAUnitAtTwoThousandOfTheLast) {
+  EXPECT_EQ(FormatCompact(1570000000LL), "1570M");
+  EXPECT_EQ(FormatCompact(2340000000LL), "2.34B");
+  EXPECT_EQ(FormatCompact(1570000000000LL), "1570B");
+  EXPECT_EQ(FormatCompact(2340000000000LL), "2.34T");
+  EXPECT_EQ(FormatCompact(2340000000000000LL), "2.34Q");
+}
+
 // --- FormatMeso ---
 
 TEST(FormatMesoTest, PrefixesIndicatorAndFormatsValue) {

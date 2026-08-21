@@ -99,6 +99,13 @@ std::vector<std::string> WrapBalanced(const std::string& text, int width,
 // "1,234,567"). Handles negatives.
 std::string FormatWithCommas(int64_t n);
 
+// Formats a big number short: "5.6M", "500M", "1570M", "2.34B". A unit is
+// only taken up once the value reaches two thousand of the one below it, so a
+// number keeps the unit a reader can still weigh it in -- 1570M rather than
+// 1.57B. The units are M, B, T and Q; anything under two million is written
+// out with commas.
+std::string FormatCompact(int64_t n);
+
 // Formats a meso amount as the coin indicator followed by the comma-separated
 // value (e.g. "🪙 1,234,567"). Use everywhere meso is shown.
 std::string FormatMeso(int64_t meso);

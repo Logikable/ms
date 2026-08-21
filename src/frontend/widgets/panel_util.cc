@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -275,6 +276,40 @@ std::string FormatWithCommas(int64_t n) {
     pos -= 3;
   }
   return n < 0 ? "-" + digits : digits;
+}
+
+std::string FormatCompact(int64_t n) {
+  struct Unit {
+    int64_t scale;
+    const char* suffix;
+  };
+  static const Unit kUnits[] = {
+      {1000000000000000LL, "Q"},
+      {1000000000000LL, "T"},
+      {1000000000LL, "B"},
+      {1000000LL, "M"},
+  };
+  int64_t magnitude = n < 0 ? -n : n;
+  for (const Unit& unit : kUnits) {
+    if (magnitude < 2 * unit.scale) {
+      continue;
+    }
+    double value = static_cast<double>(magnitude) / unit.scale;
+    // Three digits of it, wherever the point falls, and no trailing zeros: a
+    // column of numbers is read for its size, not its last decimal.
+    int decimals = value >= 100.0 ? 0 : (value >= 10.0 ? 1 : 2);
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%.*f", decimals, value);
+    std::string text = buf;
+    if (text.find('.') != std::string::npos) {
+      text.erase(text.find_last_not_of('0') + 1);
+      if (text.back() == '.') {
+        text.pop_back();
+      }
+    }
+    return (n < 0 ? "-" : "") + text + unit.suffix;
+  }
+  return FormatWithCommas(n);
 }
 
 std::string FormatMeso(int64_t meso) {
