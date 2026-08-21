@@ -516,6 +516,87 @@ TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
   EXPECT_EQ(panel.cursor_row(), first + 1);
 }
 
+// --- scrolling a panel with more gear than room ---
+
+// A character wearing one item in every slot, each named after its slot so a
+// row can be told from the rows around it.
+CharacterInstance MakeFullyGeared(std::mt19937& rng) {
+  const EquipSlot kSlots[] = {
+      EQUIP_SLOT_PRIMARY_WEAPON,
+      EQUIP_SLOT_PROJECTILE,
+      EQUIP_SLOT_SECONDARY,
+      EQUIP_SLOT_HAT,
+      EQUIP_SLOT_TOP,
+      EQUIP_SLOT_BOTTOM,
+      EQUIP_SLOT_CAPE,
+      EQUIP_SLOT_FACE_ACCESSORY,
+      EQUIP_SLOT_EYE_ACCESSORY,
+  };
+  Character proto;
+  proto.set_job(JOB_SWORDMAN);
+  CharacterInstance geared(rng, std::move(proto));
+  for (EquipSlot slot : kSlots) {
+    EquipPrototype item;
+    item.set_name("Gear" + std::to_string(static_cast<int>(slot)));
+    item.set_equip_slot(slot);
+    geared.PickUp(std::make_unique<EquipInstance>(item));
+    geared.Equip(0);
+  }
+  return geared;
+}
+
+// The panel rendered into a screen `rows` tall, which is what the half cap
+// hands it on a real terminal: fewer rows than it has gear.
+std::string RenderShort(ftxui::Component component, int rows) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
+                                               ftxui::Dimension::Fixed(rows));
+  ftxui::Render(screen, component->Render());
+  return screen.ToString();
+}
+
+// Five list rows for nine items: the ones past the bottom wait their turn
+// rather than pushing the panel past the room it was given.
+TEST_F(EquippedPanelTest, AShortPanelShowsWhatFits) {
+  CharacterInstance geared = MakeFullyGeared(rng_);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(geared, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  std::string rendered = RenderShort(comp, 10);
+  EXPECT_NE(rendered.find("Gear1"), std::string::npos) << "the first row";
+  EXPECT_EQ(rendered.find("Gear9"), std::string::npos) << "the last one";
+}
+
+// And the list follows the cursor down to them, which is the whole point of
+// capping the panel rather than letting it run off the screen.
+TEST_F(EquippedPanelTest, AShortPanelScrollsToTheCursor) {
+  CharacterInstance geared = MakeFullyGeared(rng_);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(geared, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  RenderShort(comp, 10);
+  for (int i = 0; i < 8; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_EQ(panel.selected(), 8) << "not on the last row";
+  std::string rendered = RenderShort(comp, 10);
+  EXPECT_NE(rendered.find("> Gear9"), std::string::npos)
+      << "the cursor walked off the bottom of the panel";
+  EXPECT_EQ(rendered.find("Gear1 "), std::string::npos)
+      << "the first row should have scrolled away";
+}
+
+// The bar is only there while there is something to scroll to.
+TEST_F(EquippedPanelTest, TheScrollBarShowsOnlyOnAShortPanel) {
+  CharacterInstance geared = MakeFullyGeared(rng_);
+  panel_focus_ = kEquipPanel;
+  EquippedPanel panel(geared, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  EXPECT_NE(RenderShort(comp, 10).find("\u2503"), std::string::npos)
+      << "no scroll bar on a panel with more gear than room";
+  EXPECT_EQ(RenderShort(comp, 20).find("\u2503"), std::string::npos)
+      << "a scroll bar on a panel with room for everything";
+}
+
 // --- level-gated menu entries ---
 
 // Taking something off needs somewhere to put it, and the bag is not open

@@ -249,7 +249,12 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
                           ftxui::text(kColumnHeader),
                           ftxui::text(kColumnHeader2),
                           PanelSeparator(highlighted_),
-                          menu->Render(),
+                          // Only the items scroll; the two header rows and the
+                          // rule stay put. ftxui::Menu marks its selected
+                          // entry, which is what the frame scrolls to, so the
+                          // cursor cannot walk out of view.
+                          menu->Render() | ftxui::vscroll_indicator |
+                              ftxui::yframe | ftxui::flex,
                       }),
                       PanelAccent(highlighted_), focused);
 }
