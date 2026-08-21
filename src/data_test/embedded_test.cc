@@ -6,6 +6,7 @@
 #include "src/embedded_data.h"
 #include "src/item/item.h"
 #include "src/proto_loader.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -58,6 +59,11 @@ TEST(EmbeddedDataTest, MapsParse) {
       LoadTextProtoMap<MapData>(EmbeddedMaps());
   // The map a new character starts on: without it, play mode has nowhere to be.
   EXPECT_TRUE(maps.count("maple_island") > 0);
+}
+
+TEST(EmbeddedDataTest, BossesParse) {
+  std::map<std::string, Boss> bosses = LoadTextProtoMap<Boss>(EmbeddedBosses());
+  EXPECT_TRUE(bosses.count("zakum") > 0);
 }
 
 TEST(EmbeddedDataTest, MobsParse) {

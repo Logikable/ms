@@ -14,6 +14,7 @@
 #include <string>
 
 #include "src/character/character.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -71,6 +72,10 @@ struct GameState {
   std::map<std::string, Mob> mobs;
   std::map<std::string, MapData> maps;
   std::map<std::string, Skill> skills;
+  // The bosses that can be fought, by data file stem. Filled in after
+  // construction rather than passed to it: nothing the constructor seeds
+  // depends on them, and a boss is not somewhere a new character stands.
+  std::map<std::string, Boss> bosses;
   std::mt19937 rng;
   CharacterInstance character;
 

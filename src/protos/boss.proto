@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package ms;
+
+import "src/protos/mob.proto";
+
+// How often a boss can be cleared again. The clock turns over at 4am local
+// time; see src/character/boss_reset.h.
+enum ResetPeriod {
+  RESET_PERIOD_UNSPECIFIED = 0;
+  RESET_PERIOD_DAILY = 1;
+  RESET_PERIOD_WEEKLY = 2;
+}
+
+// One stage of a boss fight. The next begins when the last mob of this one
+// dies, so a phase is over rather than on a clock.
+message BossPhase {
+  repeated Spawn spawns = 1;
+}
+
+// One difficulty of one boss: what the player fights, how long they have, how
+// often they may come back, and what it pays.
+message BossDifficulty {
+  string name = 1;  // "Normal"
+  // Fought in order. Phase 1 of Zakum is his eight arms at once.
+  repeated BossPhase phases = 2;
+  ResetPeriod reset = 3;
+  // Seconds the whole fight is allowed. Running out ends it with no clear.
+  int32 time_limit_seconds = 4;
+  repeated MobDrop drops = 5;
+}
+
+// A boss and every difficulty it can be fought at. Loaded from data/bosses
+// textprotos at startup. No level here: it is read off the mobs the phases
+// spawn, so the two can never disagree.
+message Boss {
+  string name = 1;
+  repeated BossDifficulty difficulties = 2;
+}

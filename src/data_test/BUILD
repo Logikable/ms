@@ -12,12 +12,31 @@ cc_test(
         "//src:embedded_data",
         "//src:proto_loader",
         "//src/item",
+        "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
         "//src/protos:skill_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "boss_test",
+    srcs = ["boss_test.cc"],
+    data = [
+        "//data/bosses:all",
+        "//data/items:all",
+        "//data/mobs:all",
+    ],
+    deps = [
+        "//src:proto_loader",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@bazel_tools//tools/cpp/runfiles",
         "@googletest//:gtest_main",
     ],
 )

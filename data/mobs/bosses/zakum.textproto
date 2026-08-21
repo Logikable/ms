@@ -1,0 +1,7 @@
+name: "Zakum"
+level: 110
+attack: 9300
+max_hp: 7000000
+exp: 4750740
+pdr: 40
+boss: true

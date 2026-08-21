@@ -7,6 +7,7 @@
 
 #include "absl/log/log.h"
 #include "google/protobuf/text_format.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
@@ -70,6 +71,7 @@ std::map<std::string, T> LoadTextProtoMap(
 // here in the .cc rather than in the header.
 template std::map<std::string, EquipPrototype> LoadTextProtoDir<EquipPrototype>(
     const std::string&);
+template std::map<std::string, Boss> LoadTextProtoDir<Boss>(const std::string&);
 template std::map<std::string, Scroll> LoadTextProtoDir<Scroll>(
     const std::string&);
 template std::map<std::string, Mob> LoadTextProtoDir<Mob>(const std::string&);
@@ -83,6 +85,8 @@ template std::map<std::string, EquipSet> LoadTextProtoDir<EquipSet>(
     const std::string&);
 
 template std::map<std::string, EquipPrototype> LoadTextProtoMap<EquipPrototype>(
+    const std::map<std::string, std::string>&);
+template std::map<std::string, Boss> LoadTextProtoMap<Boss>(
     const std::map<std::string, std::string>&);
 template std::map<std::string, Scroll> LoadTextProtoMap<Scroll>(
     const std::map<std::string, std::string>&);

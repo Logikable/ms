@@ -115,6 +115,9 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
 
   int checked = 0;
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
+    if (entry.second.boss()) {
+      continue;  // a boss drops its own table, not its band's
+    }
     int level = entry.second.level();
     std::map<std::string, double> rates;
     for (const MobDrop& drop : entry.second.drops()) {
@@ -162,6 +165,9 @@ TEST(MapDataTest, OnlyTheTokenBandDropsBothFrozenTokens) {
 
   int checked = 0;
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
+    if (entry.second.boss()) {
+      continue;  // as above: a boss is not part of the band's table
+    }
     int level = entry.second.level();
     std::map<std::string, double> rates;
     for (const MobDrop& drop : entry.second.drops()) {
@@ -214,13 +220,17 @@ TEST(MapDataTest, EveryEtcDropIsWorthSomething) {
 }
 
 // A mob with no HP dies to nothing and one with no EXP pays for nothing;
-// either would make a map that looks farmable and is not.
+// either would make a map that looks farmable and is not. A boss is exempt
+// from the EXP half: Zakum's arms are worth nothing in GMS either, and what
+// the fight pays is the body at the end of it.
 TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
     EXPECT_GT(entry.second.level(), 0) << entry.first;
     EXPECT_GT(entry.second.max_hp(), 0) << entry.first;
-    EXPECT_GT(entry.second.exp(), 0) << entry.first;
     EXPECT_FALSE(entry.second.name().empty()) << entry.first;
+    if (!entry.second.boss()) {
+      EXPECT_GT(entry.second.exp(), 0) << entry.first;
+    }
   }
 }
 

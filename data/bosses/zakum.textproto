@@ -1,0 +1,8 @@
+name: "Zakum"
+difficulties {
+  name: "Normal"
+  phases { spawns { mob: "zakum_arm" count: 8 } }
+  phases { spawns { mob: "zakum" count: 1 } }
+  reset: RESET_PERIOD_DAILY
+  time_limit_seconds: 300
+}

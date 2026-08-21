@@ -1,0 +1,7 @@
+name: "Zakum's Arm"
+level: 110
+attack: 2200
+max_hp: 700000
+exp: 0
+pdr: 40
+boss: true

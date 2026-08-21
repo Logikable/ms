@@ -8,6 +8,7 @@ package(default_visibility = ["//visibility:public"])
 embedded_data(
     name = "embedded_data",
     groups = {
+        "//data/bosses:all": "EmbeddedBosses",
         "//data/equip:all": "EmbeddedEquips",
         "//data/items:all": "EmbeddedItems",
         "//data/maps:all": "EmbeddedMaps",
@@ -23,6 +24,7 @@ cc_library(
     srcs = ["proto_loader.cc"],
     hdrs = ["proto_loader.h"],
     deps = [
+        "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",
         "//src/protos:item_proto_cc",
@@ -70,6 +72,7 @@ cc_library(
         "//src/character:exp_table",
         "//src/item",
         "//src/item:equip_instance",
+        "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
@@ -88,6 +91,7 @@ _MAIN_DEPS = [
     "//src/frontend:tui",
     "//src/item",
     "//src/item:equip_instance",
+    "//src/protos:boss_proto_cc",
     "//src/protos:character_proto_cc",
     "//src/protos:equip_proto_cc",
     "//src/protos:equip_set_proto_cc",

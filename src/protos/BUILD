@@ -39,6 +39,17 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "boss_proto",
+    srcs = ["boss.proto"],
+    deps = [":mob_proto"],
+)
+
+cc_proto_library(
+    name = "boss_proto_cc",
+    deps = [":boss_proto"],
+)
+
+proto_library(
     name = "map_proto",
     srcs = ["map.proto"],
     deps = [":mob_proto"],
