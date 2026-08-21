@@ -94,6 +94,7 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   saved->character.PickUp(std::make_unique<EquipInstance>(sword_));
   saved->character.AddStackable(shell_, 17);
   saved->character.ToggleScrollPin("2:1:30");
+  saved->character.RecordBossClear("zakum", "Normal", 1755000000);
   saved->current_map = "lith";
   ASSERT_TRUE(SaveGameToFile(*saved, path_));
 
@@ -109,6 +110,10 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   // A pinned scroll is a standing preference, so it rides the save.
   EXPECT_TRUE(loaded->character.ScrollPinned("2:1:30"));
   EXPECT_FALSE(loaded->character.ScrollPinned("2:1:70"));
+  // A boss clear is what holds the daily back, so losing it on a restart
+  // would hand the player another run.
+  EXPECT_EQ(loaded->character.BossClearedAt("zakum", "Normal"), 1755000000);
+  EXPECT_EQ(loaded->character.BossClearedAt("zakum", "Chaos"), 0);
   EXPECT_EQ(loaded->current_map, "lith");
 }
 

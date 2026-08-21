@@ -220,6 +220,21 @@ message Character {
   // so selling 300 of something in two goes leaves two rows and buying them
   // back is two purchases. Oldest falls off the end.
   repeated BuyBackEntry buy_backs = 15;
+
+  // Boss clears this character is holding against the reset clock, one entry
+  // per boss and difficulty. What is stored is the moment of the clear; when
+  // it expires is worked out from the difficulty's reset period, so retuning
+  // a boss from daily to weekly takes effect on the clears already banked.
+  repeated BossClear boss_clears = 17;
+}
+
+// One boss cleared at one difficulty, and when. Named by the data file stem
+// and the difficulty's own name, the way every other catalog reference in a
+// save is made.
+message BossClear {
+  string boss = 1;
+  string difficulty = 2;
+  int64 cleared_unix_seconds = 3;
 }
 
 // One stack on the Use or Etc tab. Carries the catalog key and a count, not

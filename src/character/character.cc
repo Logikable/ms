@@ -868,6 +868,31 @@ void CharacterInstance::MarkTabSeen(const std::string& key) {
   character_.add_seen_tabs(key);
 }
 
+int64_t CharacterInstance::BossClearedAt(const std::string& boss,
+                                         const std::string& difficulty) const {
+  for (const BossClear& clear : character_.boss_clears()) {
+    if (clear.boss() == boss && clear.difficulty() == difficulty) {
+      return clear.cleared_unix_seconds();
+    }
+  }
+  return 0;
+}
+
+void CharacterInstance::RecordBossClear(const std::string& boss,
+                                        const std::string& difficulty,
+                                        int64_t now) {
+  for (BossClear& clear : *character_.mutable_boss_clears()) {
+    if (clear.boss() == boss && clear.difficulty() == difficulty) {
+      clear.set_cleared_unix_seconds(now);
+      return;
+    }
+  }
+  BossClear* added = character_.add_boss_clears();
+  added->set_boss(boss);
+  added->set_difficulty(difficulty);
+  added->set_cleared_unix_seconds(now);
+}
+
 bool CharacterInstance::ScrollPinned(const std::string& key) const {
   const google::protobuf::RepeatedPtrField<std::string>& pinned =
       character_.pinned_scrolls();

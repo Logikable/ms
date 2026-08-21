@@ -25,6 +25,25 @@ cc_library(
 )
 
 cc_library(
+    name = "boss_reset",
+    srcs = ["boss_reset.cc"],
+    hdrs = ["boss_reset.h"],
+    deps = ["//src/protos:boss_proto_cc"],
+)
+
+cc_test(
+    name = "boss_reset_test",
+    srcs = ["boss_reset_test.cc"],
+    deps = [
+        ":boss_reset",
+        ":character",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "character_stats",
     srcs = ["character_stats.cc"],
     hdrs = ["character_stats.h"],

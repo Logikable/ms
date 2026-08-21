@@ -109,6 +109,14 @@ class CharacterInstance {
   bool TabSeen(const std::string& key) const;
   // Records that they have. Marking a tab already marked does nothing.
   void MarkTabSeen(const std::string& key);
+  // When this character last cleared `boss` at `difficulty`, as a Unix time,
+  // or 0 for never. Whether that clear has expired is the reset clock's
+  // question -- see boss_reset.h.
+  int64_t BossClearedAt(const std::string& boss,
+                        const std::string& difficulty) const;
+  // Records a clear at `now`, replacing any earlier one for the same pair.
+  void RecordBossClear(const std::string& boss, const std::string& difficulty,
+                       int64_t now);
   // Whether the scroll recorded under `key` is pinned to the top of the scroll
   // list. As with the tabs above, the keys are the frontend's -- the character
   // keeps the record because it is the player's own and rides the save.
