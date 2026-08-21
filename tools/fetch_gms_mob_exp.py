@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regenerates analysis/gms_mob_exp.cc from the MapleStory wiki.
 
-The game's own mobs stop at level 60, so meso_curve_sim has nothing to read
+The game's own mobs stop at level 60, so economy_sim has nothing to read
 above that. This pulls GMS's real per-level mob EXP off the wiki's
 "Monster/Level N - M" stat tables and writes it out as a C++ table, so the
 sim itself stays hermetic and needs no network.
@@ -79,7 +79,7 @@ def curve(mobs):
 
     The upper quartile of the level's field mobs, because a player picks the
     best map open to them rather than the average one. That choice is what
-    calibrates this against the engine: it holds meso_curve_sim within a few
+    calibrates this against the engine: it holds the curve within a few
     percent of what //analysis:level_sim earns over the range the game can
     actually be played across.
     """
@@ -116,7 +116,7 @@ def emit(values):
 //
 // EXP one kill of a level-appropriate GMS field mob yields, by level, read off
 // the MapleStory wiki's "Monster/Level N - M" stat tables. The game's own mobs
-// stop at 60; this is what meso_curve_sim reads above that.
+// stop at 60; this is what economy_sim reads above that.
 #include "analysis/gms_mob_exp.h"
 
 namespace ms {

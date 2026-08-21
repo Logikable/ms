@@ -2,7 +2,7 @@
 //
 // EXP one kill of a level-appropriate GMS field mob yields, by level, read off
 // the MapleStory wiki's "Monster/Level N - M" stat tables. The game's own mobs
-// stop at 60; this is what meso_curve_sim reads above that.
+// stop at 60; this is what economy_sim reads above that.
 #include "analysis/gms_mob_exp.h"
 
 namespace ms {

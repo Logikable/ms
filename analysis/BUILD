@@ -167,18 +167,6 @@ cc_library(
     hdrs = ["gms_mob_exp.h"],
 )
 
-sim_binary(
-    name = "meso_curve_sim",
-    srcs = ["meso_curve_sim.cc"],
-    deps = [
-        ":meso_curve",
-        ":sim_format",
-        "//src/character:exp_table",
-        "@abseil-cpp//absl/flags:flag",
-        "@abseil-cpp//absl/flags:parse",
-    ],
-)
-
 cc_library(
     name = "sim_gear",
     srcs = ["sim_gear.cc"],
@@ -248,19 +236,33 @@ cc_library(
 )
 
 sim_binary(
-    name = "scroll_cost_sim",
-    srcs = ["scroll_cost_sim.cc"],
+    name = "economy_sim",
+    srcs = ["economy_sim.cc"],
     deps = [
         ":meso_curve",
         ":sim_format",
+        ":star_force_curve",
         "//src:embedded_data",
         "//src:proto_loader",
+        "//src/character:exp_table",
+        "//src/item",
         "//src/item:equip_instance",
         "//src/item:spell_trace_cost",
+        "//src/item:star_force_cost",
         "//src/protos:equip_proto_cc",
         "//src/protos:scroll_proto_cc",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",
+    ],
+)
+
+cc_library(
+    name = "star_force_curve",
+    srcs = ["star_force_curve.cc"],
+    hdrs = ["star_force_curve.h"],
+    deps = [
+        "//src/item:equip_instance",
+        "//src/item:star_force_cost",
     ],
 )

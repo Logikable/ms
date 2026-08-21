@@ -4,8 +4,8 @@
  * The engine can only answer this up to the level cap, because that is where
  * the maps stop. This is the closed form that carries it the rest of the way:
  * the game's own EXP table and loot formulas, paired with GMS's real mob EXP
- * per level. Shared by meso_curve_sim, which prints it, and scroll_cost_sim,
- * which prices against it.
+ * per level. Read by economy_sim, which prints it and prices both upgrade
+ * systems against it.
  */
 #ifndef MS_ANALYSIS_MESO_CURVE_H_
 #define MS_ANALYSIS_MESO_CURVE_H_

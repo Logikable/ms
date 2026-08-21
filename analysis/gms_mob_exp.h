@@ -1,7 +1,7 @@
 /* GMS's real per-level mob EXP, for the levels the game has no mobs for.
  *
  * The map ladder stops at level 60, so nothing in //data can say what a level
- * 150 kill is worth. meso_curve_sim needs that to project the economy past
+ * 150 kill is worth. economy_sim needs that to project the economy past
  * the cap. Regenerate with tools/fetch_gms_mob_exp.py.
  */
 #ifndef MS_ANALYSIS_GMS_MOB_EXP_H_

@@ -105,7 +105,7 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
     // TODO: golden hammers will not work against this. The cap counts the
     // prototype's slots, so a hammer slot added to the instance cannot be
     // bought back once it fails -- the cap has to come from the instance's own
-    // total once hammers exist. //analysis:scroll_cost_sim prices the job
+    // total once hammers exist. //analysis:economy_sim prices the job
     // assuming they do.
     int cap = prototype_.upgrade_slots() - state_.scroll_successes();
     if (state_.remaining_upgrade_slots() >= cap) {

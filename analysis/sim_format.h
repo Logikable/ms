@@ -7,8 +7,9 @@
 
 namespace ms {
 
-// Writes `value` as 1.23k / 4.56M / 7.89B. Meso reads in the hundreds of
-// millions by the end, which no column width survives.
+// Writes `value` as 1.23k / 4.56M / 7.89B, up to Q. Meso reads in the hundreds
+// of millions by the end, and a star force run past 20 in the quadrillions,
+// which no column width survives.
 void FormatShort(double value, char* out, int size);
 
 // Parses "40,110,200" into levels, checking each is inside the EXP table.
