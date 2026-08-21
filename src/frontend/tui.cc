@@ -315,14 +315,14 @@ ftxui::Element Tui::BossConfirmDialog() {
 ftxui::Element Tui::BossClearedDialog() {
   // A notice rather than a question: the fight is on its reset, and the only
   // thing to press says so.
-  return ThemedWindow(
-      "", ftxui::vbox({
-              CenteredRow(controller_.boss_prompt_title()),
-              CenteredRow("has already been killed " +
-                          controller_.boss_cleared_when() + "."),
-              ThemedSeparator(),
-              CenteredRow(controller_.boss_cleared_prompt().Render()),
-          }));
+  return ThemedWindow("",
+                      ftxui::vbox({
+                          CenteredRow(controller_.boss_prompt_title()),
+                          CenteredRow("has already been killed " +
+                                      controller_.boss_cleared_when() + "."),
+                          ThemedSeparator(),
+                          CenteredRow(controller_.notice_prompt().Render()),
+                      }));
 }
 
 ftxui::Element Tui::BossAbortDialog() {

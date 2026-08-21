@@ -1507,6 +1507,38 @@ void StepToSell(TuiController& controller) {
   controller.OnEvent(ftxui::Event::ArrowUp);
 }
 
+// The whole of trace recovery from the bag, which nothing else covers: the
+// menu entry, the confirm, and the [Continue] that closes the result.
+TEST_F(TuiControllerTest, RecoveringATraceEndsOnAResultThatCloses) {
+  Equip destroyed;
+  destroyed.set_equip_name(sword_.name());
+  destroyed.set_scroll_successes(2);
+  destroyed.mutable_scroll_stats()->set_attack(5);
+  state_->character.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+
+  // A trace offers Inspect and Recover and nothing else, so the entry is
+  // walked to rather than counted to.
+  controller_->OpenInventoryMenu();
+  for (int i = 0; i < 8 && inventory_panel_->menu().selected() != kMenuRecover;
+       ++i) {
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
+  ASSERT_EQ(inventory_panel_->menu().selected(), kMenuRecover);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kTraceRecover);
+
+  controller_->OnEvent(ftxui::Event::Return);  // open the confirm bar
+  controller_->OnEvent(ftxui::Event::Return);  // confirm
+  ASSERT_EQ(controller_->screen(), kTraceRecoverResult);
+  EXPECT_TRUE(controller_->notice_prompt().open());
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(controller_->notice_prompt().open());
+}
+
 TEST_F(TuiControllerTest, BagSellOpensTheSellDialog) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
@@ -2276,14 +2308,14 @@ TEST_F(TuiControllerTest, AClearedFightSaysWhenItComesBack) {
   EXPECT_EQ(controller_->screen(), kBossCleared);
   EXPECT_EQ(controller_->boss_prompt_title(), "Normal Zakum");
   EXPECT_EQ(controller_->boss_cleared_when(), "today");
-  EXPECT_TRUE(controller_->boss_cleared_prompt().open());
+  EXPECT_TRUE(controller_->notice_prompt().open());
 
   // The notice holds the screen until it is dismissed.
   controller_->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(controller_->screen(), kBossCleared);
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
-  EXPECT_FALSE(controller_->boss_cleared_prompt().open());
+  EXPECT_FALSE(controller_->notice_prompt().open());
 }
 
 TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {

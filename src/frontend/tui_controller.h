@@ -141,11 +141,12 @@ class TuiController {
   const std::string& boss_prompt_title() const {
     return boss_prompt_title_;
   }
-  // The notice shown when the highlighted fight has already been cleared, and
-  // when it comes back: "today" or "this week".
-  const ContinuePrompt& boss_cleared_prompt() const {
-    return boss_cleared_prompt_;
+  // The [Continue] every one-button screen is dismissed by -- a scroll or star
+  // force result, and the notice that a fight is still on its reset.
+  const ContinuePrompt& notice_prompt() const {
+    return notice_prompt_;
   }
+  // When the fight the notice is about comes back: "today" or "this week".
   const std::string& boss_cleared_when() const {
     return boss_cleared_when_;
   }
@@ -245,6 +246,9 @@ class TuiController {
   bool OnBossSelectEvent(ftxui::Event event);
   bool OnBossConfirmEvent(ftxui::Event event);
   bool OnBossClearedEvent(ftxui::Event event);
+  // Raises a one-button screen with its prompt open, so every screen dismissed
+  // by [Continue] is opened the one way.
+  void OpenNotice(Screen screen);
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
   bool OnShopEvent(ftxui::Event event);
@@ -310,7 +314,7 @@ class TuiController {
   // under the player.
   ConfirmPrompt boss_prompt_;
   std::string boss_prompt_title_;
-  ContinuePrompt boss_cleared_prompt_;
+  ContinuePrompt notice_prompt_;
   std::string boss_cleared_when_;
   ConfirmPrompt boss_abort_prompt_;
   // The fight in progress, and which catalog entry it is being fought

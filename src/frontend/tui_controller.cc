@@ -382,7 +382,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     if (no_slots) {
       scroll_result_ = {kScrollNoSlots, item->prototype().name(), scroll.name(),
                         remaining, scroll.scroll_category()};
-      screen_ = kScrollResult;
+      OpenNotice(kScrollResult);
       return true;
     }
     scroll_panel_.OpenConfirm();
@@ -403,13 +403,13 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
         item ? item->equip_state().remaining_upgrade_slots() : 0;
     scroll_result_ = {outcome, equip_name, scroll.name(), slots_remaining,
                       scroll.scroll_category()};
-    screen_ = kScrollResult;
+    OpenNotice(kScrollResult);
   }
   return true;
 }
 
 bool TuiController::OnScrollResultEvent(ftxui::Event event) {
-  if (IsBack(event) || IsForward(event)) {
+  if (notice_prompt_.OnEvent(event)) {
     screen_ = kScrollSelect;
   }
   return true;
@@ -557,13 +557,13 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
     StarForceOutcome outcome = StarForceItem(state_.character, star_force_ref_);
     int stars_after = stars_before + (outcome == kStarForceSuccess ? 1 : 0);
     star_force_result_ = {outcome, equip_name, stars_before, stars_after};
-    screen_ = kStarForceResult;
+    OpenNotice(kStarForceResult);
   }
   return true;
 }
 
 bool TuiController::OnStarForceResultEvent(ftxui::Event event) {
-  if (IsBack(event) || IsForward(event)) {
+  if (notice_prompt_.OnEvent(event)) {
     screen_ =
         star_force_result_.outcome == kStarForceDestroy ? kMain : kStarForce;
   }
@@ -590,13 +590,13 @@ bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
     int stars_recovered =
         state_.character.RecoverTrace(trace_index_, base_index);
     trace_recovery_result_ = {equip_name, stars_recovered};
-    screen_ = kTraceRecoverResult;
+    OpenNotice(kTraceRecoverResult);
   }
   return true;
 }
 
 bool TuiController::OnTraceRecoverResultEvent(ftxui::Event event) {
-  if (IsBack(event) || IsForward(event)) {
+  if (notice_prompt_.OnEvent(event)) {
     screen_ = kMain;
   }
   return true;
@@ -668,8 +668,7 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
           boss_select_panel_.selected_reset() == RESET_PERIOD_WEEKLY
               ? "this week"
               : "today";
-      boss_cleared_prompt_.Open();
-      screen_ = kBossCleared;
+      OpenNotice(kBossCleared);
     }
     return true;
   }
@@ -705,10 +704,15 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnBossClearedEvent(ftxui::Event event) {
-  if (boss_cleared_prompt_.OnEvent(event)) {
+  if (notice_prompt_.OnEvent(event)) {
     screen_ = kBossSelect;
   }
   return true;
+}
+
+void TuiController::OpenNotice(Screen screen) {
+  notice_prompt_.Open();
+  screen_ = screen;
 }
 
 bool TuiController::OnBossFightEvent(ftxui::Event event) {
