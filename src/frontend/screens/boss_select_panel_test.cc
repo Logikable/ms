@@ -82,6 +82,13 @@ std::unique_ptr<GameState> WithBosses(bool two = false) {
   return state;
 }
 
+// The columns the panel actually takes, for asking whether a row inside it
+// pushed it wider.
+int Width(const BossSelectPanel& panel) {
+  ftxui::Element element = panel.Render();
+  return ftxui::Dimension::Fit(element).dimx;
+}
+
 std::string Render(const BossSelectPanel& panel, int height = 16) {
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
@@ -142,11 +149,35 @@ TEST(BossSelectPanelTest, TheRewardsListNamesTheMesoAndEveryDrop) {
   BossSelectPanel panel(state);
   std::string out = Render(panel, 24);
   EXPECT_NE(out.find("3,062,500"), std::string::npos);
-  EXPECT_NE(out.find("Condensed Power Crystal"), std::string::npos);
   EXPECT_NE(out.find("50%"), std::string::npos);
+  // A name too long for the panel wraps rather than being cut, and the chance
+  // rides the last line of it. One that fits keeps its own row whole.
+  EXPECT_NE(out.find("Condensed"), std::string::npos);
+  EXPECT_NE(out.find("Power Crystal"), std::string::npos);
+  EXPECT_EQ(out.find("Condensed Power Crystal"), std::string::npos);
   EXPECT_NE(out.find("Zakum's Soul Shard"), std::string::npos);
   EXPECT_NE(out.find("100%"), std::string::npos);
   EXPECT_EQ(out.find("(empty)"), std::string::npos);
+}
+
+// The names are the longest strings on this screen, and a row that ran past
+// the label and value columns used to push the whole panel wider than the
+// detail rows it stands among.
+TEST(BossSelectPanelTest, ALongRewardNameDoesNotWidenThePanel) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  EquipPrototype crystal;
+  crystal.set_name("Aquatic Letter Eye Accessory");
+  state.equips["aquatic_letter_eye_accessory"] = crystal;
+  BossSelectPanel bare(state);
+  int narrow = Width(bare);
+
+  BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
+  MobDrop* drop = normal->add_drops();
+  drop->set_equip("aquatic_letter_eye_accessory");
+  drop->set_per_kill(0.5);
+  BossSelectPanel wide(state);
+  EXPECT_EQ(Width(wide), narrow);
 }
 
 TEST(BossSelectPanelTest, PhaseHpAndLevelReadOffTheMobs) {

@@ -285,10 +285,20 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
       continue;
     }
     ++named;
-    // The name over two rows rather than cut to the label column: these are
-    // the longest names in the game, and half of one names nothing.
-    rows.push_back(ftxui::text(" " + name + " "));
-    rows.push_back(DetailRow("", DropChance(drop.per_kill())));
+    // Wrapped rather than cut, and rather than let the panel grow: these are
+    // the longest names in the game, and half of one names nothing. The
+    // chance sits on the last line of the name, where a one-line name puts it
+    // in the same column every other value on this panel stands in.
+    std::string chance = DropChance(drop.per_kill());
+    int width = kDetailWidth - 2;
+    std::vector<std::string> lines =
+        WrapBalanced(name, width, static_cast<int>(chance.size()) + 1);
+    for (int i = 0; i + 1 < static_cast<int>(lines.size()); ++i) {
+      rows.push_back(ftxui::text(" " + PadRight(lines[i], width) + " "));
+    }
+    rows.push_back(ftxui::text(
+        " " + PadRight(lines.back(), width - static_cast<int>(chance.size())) +
+        chance + " "));
   }
   if (named == 0) {
     rows.push_back(EmptyState("empty"));

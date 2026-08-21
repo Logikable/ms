@@ -1081,6 +1081,32 @@ TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
 }
 
+// The whole point of balancing: a name that has to break should break near the
+// middle rather than leaving one word alone on the second line.
+TEST(WrapBalancedTest, BreaksNearTheMiddle) {
+  EXPECT_EQ(WrapBalanced("Aquatic Letter Eye Accessory", 26, 4),
+            (std::vector<std::string>{"Aquatic Letter", "Eye Accessory"}));
+  EXPECT_EQ(WrapBalanced("Condensed Power Crystal", 26, 4),
+            (std::vector<std::string>{"Condensed", "Power Crystal"}));
+}
+
+// Fewest lines first, and the tail is what the last line has to leave free.
+// "Zakum's Soul Shard" fits on one line; ask for room beside it and it stops.
+TEST(WrapBalancedTest, TheTailIsOnlyChargedToTheLastLine) {
+  EXPECT_EQ(WrapBalanced("Zakum's Soul Shard", 26, 5),
+            (std::vector<std::string>{"Zakum's Soul Shard"}));
+  EXPECT_EQ(WrapBalanced("Zakum's Soul Shard", 26, 12),
+            (std::vector<std::string>{"Zakum's", "Soul Shard"}));
+}
+
+// A word with nowhere to fit runs over rather than being cut, and nothing at
+// all is one empty line rather than none.
+TEST(WrapBalancedTest, AWordTooLongKeepsItsOwnLine) {
+  EXPECT_EQ(WrapBalanced("Supercalifragilistic sword", 10, 0),
+            (std::vector<std::string>{"Supercalifragilistic", "sword"}));
+  EXPECT_EQ(WrapBalanced("", 10, 0), (std::vector<std::string>{""}));
+}
+
 TEST(FormatEquipSetTest, NamesEverySet) {
   EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_FROZEN), "Frozen Set");
   EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_BOSS_ACCESSORY),

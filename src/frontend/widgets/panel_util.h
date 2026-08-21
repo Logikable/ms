@@ -83,6 +83,16 @@ std::string PadRight(const std::string& s, int width);
 // off a number that outgrew its column would quietly show the wrong one.
 std::string PadLeft(const std::string& s, int width);
 
+// Breaks `text` into as few lines as fit `width` columns, balanced so the
+// lines come out near enough the same length: "Aquatic Letter" over "Eye
+// Accessory" rather than as much as fits and one word left over.
+//
+// `tail` is what the LAST line leaves free, for a value that sits beside it --
+// a rate, a price. A word too long for the line gets one to itself and runs
+// over rather than being cut: half a name names nothing.
+std::vector<std::string> WrapBalanced(const std::string& text, int width,
+                                      int tail = 0);
+
 // Formats an integer with thousands-separator commas (e.g. 1234567 ->
 // "1,234,567"). Handles negatives.
 std::string FormatWithCommas(int64_t n);

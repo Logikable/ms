@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <set>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -200,6 +201,52 @@ std::string PadLeft(const std::string& s, int width) {
     return s;
   }
   return std::string(width - s.size(), ' ') + s;
+}
+
+std::vector<std::string> WrapBalanced(const std::string& text, int width,
+                                      int tail) {
+  std::vector<std::string> words;
+  std::istringstream stream(text);
+  std::string word;
+  while (stream >> word) {
+    words.push_back(word);
+  }
+  if (words.empty()) {
+    return {""};
+  }
+  // best[i] is the cost of laying out the words from i on: the lines it takes,
+  // then the longest of them. Fewest lines wins first, and the balance is
+  // settled among the layouts that take the same number.
+  int count = static_cast<int>(words.size());
+  std::vector<std::pair<int, int>> best(count + 1, {0, 0});
+  std::vector<int> next(count + 1, count);
+  for (int i = count - 1; i >= 0; --i) {
+    best[i] = {count + 1, 0};
+    int line = 0;
+    for (int j = i; j < count; ++j) {
+      line += static_cast<int>(words[j].size()) + (j > i ? 1 : 0);
+      // The last line of all is the one that shares its row with the value.
+      int room = j + 1 == count ? width - tail : width;
+      if (line > room && j > i) {
+        break;
+      }
+      std::pair<int, int> cost = {best[j + 1].first + 1,
+                                  std::max(line, best[j + 1].second)};
+      if (cost < best[i]) {
+        best[i] = cost;
+        next[i] = j + 1;
+      }
+    }
+  }
+  std::vector<std::string> lines;
+  for (int i = 0; i < count; i = next[i]) {
+    std::string line = words[i];
+    for (int j = i + 1; j < next[i]; ++j) {
+      line += " " + words[j];
+    }
+    lines.push_back(std::move(line));
+  }
+  return lines;
 }
 
 std::string FormatWithCommas(int64_t n) {
