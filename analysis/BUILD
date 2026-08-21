@@ -5,36 +5,6 @@ load(":sim.bzl", "sim_binary")
 # prints numbers to look at while deciding what the behaviour should be.
 # They live outside //src so a tuning tool is never mistaken for the game.
 
-sim_binary(
-    name = "meso_sim",
-    srcs = ["meso_sim.cc"],
-    data = [
-        "//data/equip:all",
-        "//data/items:all",
-        "//data/maps:all",
-        "//data/mobs:all",
-        "//data/scrolls:all",
-        "//data/skills:all",
-    ],
-    deps = [
-        "//src:game_state",
-        "//src:proto_loader",
-        "//src/character",
-        "//src/combat",
-        "//src/combat:encounter",
-        "//src/item:equip_instance",
-        "//src/protos:character_proto_cc",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:item_proto_cc",
-        "//src/protos:map_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "//src/protos:scroll_proto_cc",
-        "//src/protos:skill_proto_cc",
-        "@abseil-cpp//absl/log",
-        "@bazel_tools//tools/cpp/runfiles",
-    ],
-)
-
 cc_library(
     name = "sim_jobs",
     srcs = ["sim_jobs.cc"],

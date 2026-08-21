@@ -80,8 +80,8 @@ def curve(mobs):
     The upper quartile of the level's field mobs, because a player picks the
     best map open to them rather than the average one. That choice is what
     calibrates this against the engine: it holds meso_curve_sim within a few
-    percent of //analysis:meso_sim over the whole 1-60 range the game can
-    actually check.
+    percent of what //analysis:level_sim earns over the range the game can
+    actually be played across.
     """
     by_level = {}
     for level, hp, exp in mobs:

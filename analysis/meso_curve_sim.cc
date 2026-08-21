@@ -1,12 +1,12 @@
 /* Reports the meso a player holds on reaching each milestone level, across the
  * whole 1-300 range.
  *
- * meso_sim drives the real engine and so can only reach the level cap, which
+ * A climb driven through the real engine can only reach the level cap, which
  * is where the game's maps stop. This prints the closed form that carries it
  * further -- see analysis/meso_curve.h for the model.
  *
- * The 1-60 block it prints is the check: it should sit within a few percent of
- * what //analysis:meso_sim measures by playing.
+ * The block of played levels it prints is the check: it should sit within a
+ * few percent of the meso //analysis:level_sim earns on the way up.
  *
  * Scratch analysis tool, not part of the game.
  */
@@ -48,12 +48,12 @@ void PrintMilestones(const ms::MesoCurve& curve) {
 }
 
 // The only levels the game can be played across, so the only place the model
-// can be held against something measured. Compare with //analysis:meso_sim.
+// can be held against something measured. These are level_sim's own
+// milestones, so the two tables line up row for row.
 void PrintEngineCheck(const ms::MesoCurve& curve) {
-  printf("\nthe range //analysis:meso_sim can check by playing\n");
-  const int kChecks[] = {5, 10, 15, 20, 25, 30, 40, 50, 60};
-  for (int i = 0; i < 9; ++i) {
-    printf("%6d %18.0f\n", kChecks[i], curve.Total(kChecks[i]));
+  printf("\nthe range //analysis:level_sim can check by playing\n");
+  for (int level = 10; level <= 140; level += 10) {
+    printf("%6d %18.0f\n", level, curve.Total(level));
   }
 }
 
