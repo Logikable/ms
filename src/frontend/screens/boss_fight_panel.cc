@@ -14,6 +14,7 @@
 #include "src/combat/boss_run.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/protos/boss.pb.h"
 
 namespace ms {
 namespace {
@@ -78,6 +79,19 @@ ftxui::Element PlayerPanel(const BossRun& run) {
                                    kTheme, BarLines(label, kPlayerBarRows));
   return ThemedWindow(" You ", std::move(bar)) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
+}
+
+// Somewhere the player may stand and is not. Dim and unframed, the size of a
+// bar so the arena's cells stay square: what it says is that the walk goes
+// this far, not that anything is standing here.
+ftxui::Element EmptySpot(int rows) {
+  return ftxui::vbox({
+             ftxui::filler(),
+             ftxui::text("· · ·") | ftxui::center | ftxui::dim,
+             ftxui::filler(),
+         }) |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth) |
+         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows);
 }
 
 // One panel and the cell it stands in.
@@ -188,10 +202,20 @@ ftxui::Element Arena(const BossRun& run) {
                      ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
     cells.push_back({slot.x, slot.y});
   }
+  ArenaSpot standing = run.player_spot();
+  for (const ArenaSpot& spot : run.player_spots()) {
+    if (spot.x() == standing.x() && spot.y() == standing.y()) {
+      continue;
+    }
+    if (spot.y() < 0 || spot.y() >= height) {
+      continue;
+    }
+    panels.push_back(EmptySpot(rows));
+    cells.push_back({spot.x(), spot.y()});
+  }
   panels.push_back(PlayerPanel(run) |
                    ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
-  cells.push_back({run.player_spot().x(),
-                   std::clamp(run.player_spot().y(), 0, height - 1)});
+  cells.push_back({standing.x(), std::clamp(standing.y(), 0, height - 1)});
   return std::make_shared<ArenaNode>(std::move(panels), std::move(cells),
                                      run.arena_width(), height);
 }

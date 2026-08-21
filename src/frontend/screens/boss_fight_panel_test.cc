@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
@@ -32,6 +33,15 @@ Mob BossMob(const std::string& name, int max_hp) {
   return mob;
 }
 
+// The places a phase lets the player stand, as (x, y) pairs.
+void AddSpots(BossPhase* phase, const std::vector<std::pair<int, int>>& spots) {
+  for (const std::pair<int, int>& spot : spots) {
+    ArenaSpot* at = phase->add_player_spots();
+    at->set_x(spot.first);
+    at->set_y(spot.second);
+  }
+}
+
 Boss Zakum() {
   Boss boss;
   boss.set_name("Zakum");
@@ -39,19 +49,21 @@ Boss Zakum() {
   normal->set_name("Normal");
   normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
-  // The arms in two columns of four with the player between them, as the data
-  // file lays them out: one spawn each, since a spot belongs to one monster.
+  // The arms in two columns of four down the middle, with the player's floor
+  // under them and a ledge over each end, as the data file lays them out: one
+  // spawn each, since a spot belongs to one monster.
   BossPhase* arms = normal->add_phases();
   for (int i = 0; i < 8; ++i) {
     Spawn* arm = arms->add_spawns();
     arm->set_mob("arm");
     arm->set_count(1);
     ArenaSpot* spot = arms->add_spots();
-    spot->set_x(i < 4 ? 1 : 5);
+    spot->set_x(i < 4 ? 2 : 4);
     spot->set_y(1 + i % 4);
   }
+  AddSpots(arms, {{0, 3}, {6, 3}, {0, 5}, {3, 5}, {6, 5}});
   arms->mutable_player()->set_x(3);
-  arms->mutable_player()->set_y(2);
+  arms->mutable_player()->set_y(5);
   arms->set_arena_width(7);
   arms->set_arena_height(6);
   BossPhase* body = normal->add_phases();
@@ -60,9 +72,10 @@ Boss Zakum() {
   torso->set_count(1);
   ArenaSpot* torso_spot = body->add_spots();
   torso_spot->set_x(3);
-  torso_spot->set_y(1);
+  torso_spot->set_y(2);
+  AddSpots(body, {{0, 3}, {3, 3}, {6, 3}});
   body->mutable_player()->set_x(3);
-  body->mutable_player()->set_y(2);
+  body->mutable_player()->set_y(3);
   body->set_arena_width(7);
   body->set_arena_height(4);
   return boss;
@@ -344,6 +357,39 @@ TEST(BossFightPanelTest, ALongPartNameWrapsOverTwoRows) {
   EXPECT_NE(out.find("Horntail's"), std::string::npos);
   EXPECT_NE(out.find("Left Head"), std::string::npos);
   EXPECT_EQ(out.find("Horntail's Left Head"), std::string::npos);
+}
+
+// How many places to stand are drawn empty. The player is on one of them, so
+// a five-spot phase marks four.
+int MarkedSpots(const BossRun& run) {
+  std::string out = Render(run);
+  int found = 0;
+  for (std::size_t at = out.find("· · ·"); at != std::string::npos;
+       at = out.find("· · ·", at + 1)) {
+    ++found;
+  }
+  return found;
+}
+
+// The walk is drawn: every spot the player is not on is marked, and the one
+// they are on holds their panel instead.
+TEST(BossFightPanelTest, TheSpotsThePlayerIsNotOnAreMarked) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss = Zakum();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  EXPECT_EQ(MarkedSpots(run), 4);
+
+  int middle = ColumnOf(Rows(run), "You");
+  run.MovePlayer(-1, 0);
+  int left = ColumnOf(Rows(run), "You");
+  EXPECT_LT(left, middle) << "the player walked, and their panel with them";
+  EXPECT_EQ(MarkedSpots(run), 4) << "the spot they left is marked now";
+
+  // Up the ledge, which is a row the player was not on a moment ago.
+  int floor = RowOf(Rows(run), "You");
+  run.MovePlayer(0, -1);
+  EXPECT_LT(RowOf(Rows(run), "You"), floor);
 }
 
 }  // namespace

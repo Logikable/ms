@@ -756,9 +756,22 @@ bool TuiController::OnBossFightEvent(ftxui::Event event) {
   if (IsBack(event)) {
     boss_abort_prompt_.Open(/*cancel_selected=*/true);
     screen_ = kBossAbort;
+    return true;
   }
-  // Everything else is swallowed: the fight plays itself out, and there is
-  // nothing on this screen to move a cursor over.
+  // The arrows walk the player between the phase's spots. The swing is not
+  // theirs to aim: what they choose is where to stand.
+  if (boss_run_ != nullptr) {
+    if (event == ftxui::Event::ArrowLeft) {
+      boss_run_->MovePlayer(-1, 0);
+    } else if (event == ftxui::Event::ArrowRight) {
+      boss_run_->MovePlayer(1, 0);
+    } else if (event == ftxui::Event::ArrowUp) {
+      boss_run_->MovePlayer(0, -1);
+    } else if (event == ftxui::Event::ArrowDown) {
+      boss_run_->MovePlayer(0, 1);
+    }
+  }
+  // Everything else is swallowed: the fight plays itself out.
   return true;
 }
 

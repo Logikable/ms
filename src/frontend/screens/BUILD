@@ -329,6 +329,7 @@ cc_library(
         "//src/combat:boss_run",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",
+        "//src/protos:boss_proto_cc",
         "@ftxui//:dom",
     ],
 )

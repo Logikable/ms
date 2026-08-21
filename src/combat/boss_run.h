@@ -163,6 +163,9 @@ class BossRun {
   // around everyone. Both are measured off the spots when the
   // phase names neither, which leaves the arena no margin.
   ArenaSpot player_spot() const;
+  // Everywhere the player may stand this phase, the spot they are on
+  // included. Empty for a phase that named none.
+  std::vector<ArenaSpot> player_spots() const;
   int arena_width() const;
   int arena_height() const;
   // The swing being charged and how far along it is, for the player's bar.

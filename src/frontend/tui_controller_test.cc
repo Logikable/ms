@@ -2412,14 +2412,41 @@ TEST_F(TuiControllerTest, ConfirmingEntersTheFight) {
   EXPECT_TRUE(controller_->in_boss_fight());
 }
 
-// The fight is the whole screen, so nothing on it moves a cursor and nothing
-// leaks back to the main view.
+// The fight is the whole screen: nothing on it reaches the panels behind, and
+// a fight with nowhere to walk swallows the arrows too.
 TEST_F(TuiControllerTest, TheFightSwallowsEverythingButEscape) {
   EnterFight();
   controller_->OnEvent(ftxui::Event::Tab);
   controller_->OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(controller_->screen(), kBossFight);
   EXPECT_EQ(panel_focus_, kEquipPanel);
+}
+
+// The one thing the player decides during a fight: where they are standing.
+TEST_F(TuiControllerTest, TheArrowsWalkThePlayerAroundTheArena) {
+  BossPhase* phase =
+      state_->bosses["zakum"].mutable_difficulties(0)->mutable_phases(0);
+  const int kSpots[3][2] = {{0, 1}, {3, 1}, {6, 1}};
+  for (const int (&spot)[2] : kSpots) {
+    ArenaSpot* at = phase->add_player_spots();
+    at->set_x(spot[0]);
+    at->set_y(spot[1]);
+  }
+  phase->mutable_player()->set_x(3);
+  phase->mutable_player()->set_y(1);
+  EnterFight();
+  ASSERT_NE(controller_->boss_run(), nullptr);
+  ASSERT_EQ(controller_->boss_run()->player_spot().x(), 3);
+
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_EQ(controller_->boss_run()->player_spot().x(), 0);
+  controller_->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_EQ(controller_->boss_run()->player_spot().x(), 3);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(controller_->boss_run()->player_spot().x(), 3)
+      << "nothing above the floor to climb to";
+  EXPECT_EQ(controller_->screen(), kBossFight);
+  EXPECT_EQ(panel_focus_, kEquipPanel) << "and nothing leaked behind it";
 }
 
 TEST_F(TuiControllerTest, EscapeAsksBeforeLeavingAndTheClockStops) {

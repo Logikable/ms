@@ -138,6 +138,15 @@ ArenaSpot BossRun::player_spot() const {
   return phase->player_spots(player_at_);
 }
 
+std::vector<ArenaSpot> BossRun::player_spots() const {
+  const BossPhase* phase = current_phase();
+  if (phase == nullptr) {
+    return {};
+  }
+  return std::vector<ArenaSpot>(phase->player_spots().begin(),
+                                phase->player_spots().end());
+}
+
 int BossRun::arena_width() const {
   const BossPhase* phase = current_phase();
   if (phase == nullptr) {
