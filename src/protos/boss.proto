@@ -30,7 +30,14 @@ message BossPhase {
   // a spot is one monster, since two sharing an index would stand in the same
   // place; see src/data_test/boss_test.cc.
   repeated ArenaSpot spots = 2;
+  // Where the player starts. One of `player_spots` when the phase names any.
   ArenaSpot player = 3;
+  // Everywhere the player may stand, this one included. A press moves to the
+  // nearest of these strictly that way, so which arrow leads where is the
+  // shape of the list rather than anything written down; see
+  // NextPlayerSpot in src/combat/boss_run.h. A phase that names none stands
+  // the player where `player` says and leaves them there.
+  repeated ArenaSpot player_spots = 6;
   // How many cells the arena holds. The room left over is shared out among
   // the gaps, so these decide the margins as much as the spacing: a part in
   // the last cell stands against the edge of the screen. Unset is measured off

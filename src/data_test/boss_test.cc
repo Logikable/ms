@@ -235,7 +235,12 @@ TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
               << where << " reaches past the bottom of its arena";
           rows[phase.spots(i).y()].push_back(phase.spots(i).x());
         }
-        rows[phase.player().y()].push_back(phase.player().x());
+        for (const ArenaSpot& spot : phase.player_spots()) {
+          rows[spot.y()].push_back(spot.x());
+        }
+        if (phase.player_spots_size() == 0) {
+          rows[phase.player().y()].push_back(phase.player().x());
+        }
         for (std::pair<const int, std::vector<int>>& row : rows) {
           std::sort(row.second.begin(), row.second.end());
           for (std::size_t i = 1; i < row.second.size(); ++i) {
@@ -248,6 +253,43 @@ TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
     }
   }
   EXPECT_GT(placed, 0);
+}
+
+// The player has to start somewhere they are allowed to stand, or the first
+// arrow they press teleports them across the arena.
+TEST(BossDataTest, EveryPhaseStartsThePlayerOnASpotTheyMayStandOn) {
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const BossPhase& phase : difficulty.phases()) {
+        if (phase.player_spots_size() == 0) {
+          continue;  // Nowhere to move to: the phase stands them and is done.
+        }
+        std::string where = entry.first + " " + difficulty.name();
+        bool found = false;
+        for (const ArenaSpot& spot : phase.player_spots()) {
+          EXPECT_LT(spot.x(), phase.arena_width())
+              << where << " stands the player past the right of its arena";
+          EXPECT_LT(spot.y(), phase.arena_height())
+              << where << " stands the player past the bottom of its arena";
+          found = found || (spot.x() == phase.player().x() &&
+                            spot.y() == phase.player().y());
+        }
+        EXPECT_TRUE(found) << where << " starts the player off its own spots";
+      }
+    }
+  }
+}
+
+// Zakum's arena is the one the movement was designed against: five places to
+// stand in the arms, three under the body.
+TEST(BossDataTest, ZakumOffersFiveSpotsThenThree) {
+  std::map<std::string, Boss> bosses = LoadBosses();
+  ASSERT_GT(bosses.count("zakum"), 0u);
+  for (const BossDifficulty& difficulty : bosses.at("zakum").difficulties()) {
+    ASSERT_EQ(difficulty.phases_size(), 2) << difficulty.name();
+    EXPECT_EQ(difficulty.phases(0).player_spots_size(), 5) << difficulty.name();
+    EXPECT_EQ(difficulty.phases(1).player_spots_size(), 3) << difficulty.name();
+  }
 }
 
 }  // namespace
