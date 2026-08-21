@@ -34,6 +34,39 @@ std::string DropName(const GameState& state, const MobDrop& drop) {
 
 }  // namespace
 
+int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy) {
+  if (from < 0 || from >= phase.player_spots_size()) {
+    return from;
+  }
+  const ArenaSpot& at = phase.player_spots(from);
+  int best = from;
+  int best_along = 0;
+  int best_across = 0;
+  bool tied = false;
+  for (int i = 0; i < phase.player_spots_size(); ++i) {
+    const ArenaSpot& spot = phase.player_spots(i);
+    int step_x = spot.x() - at.x();
+    int step_y = spot.y() - at.y();
+    // How far the spot lies the way the arrow points, and how far off that
+    // line. Only one of dx and dy is ever set, so each is one term.
+    int along = step_x * dx + step_y * dy;
+    int across = std::abs(step_x * dy) + std::abs(step_y * dx);
+    if (along <= 0) {
+      continue;
+    }
+    if (best == from || along < best_along ||
+        (along == best_along && across < best_across)) {
+      best = i;
+      best_along = along;
+      best_across = across;
+      tied = false;
+      continue;
+    }
+    tied = tied || (along == best_along && across == best_across);
+  }
+  return tied ? from : best;
+}
+
 BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index)
     : boss_key_(std::move(boss_key)),
       boss_(&boss),
@@ -47,6 +80,35 @@ BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index)
   boss_name_ = boss.name();
   phases_ = chosen->phases_size();
   seconds_left_ = chosen->time_limit_seconds();
+  StandPlayerAtStart();
+}
+
+void BossRun::StandPlayerAtStart() {
+  const BossPhase* phase = current_phase();
+  player_at_ = -1;
+  if (phase == nullptr) {
+    return;
+  }
+  for (int i = 0; i < phase->player_spots_size(); ++i) {
+    if (phase->player_spots(i).x() == phase->player().x() &&
+        phase->player_spots(i).y() == phase->player().y()) {
+      player_at_ = i;
+      return;
+    }
+  }
+  // A phase whose start is not among its spots still has to stand the player
+  // somewhere they can walk from; a data test keeps the two in step.
+  player_at_ = phase->player_spots_size() > 0 ? 0 : -1;
+}
+
+void BossRun::MovePlayer(int dx, int dy) {
+  if (done() || player_at_ < 0) {
+    return;
+  }
+  const BossPhase* phase = current_phase();
+  if (phase != nullptr) {
+    player_at_ = NextPlayerSpot(*phase, player_at_, dx, dy);
+  }
 }
 
 const BossDifficulty* BossRun::difficulty() const {
@@ -67,7 +129,13 @@ const BossPhase* BossRun::current_phase() const {
 
 ArenaSpot BossRun::player_spot() const {
   const BossPhase* phase = current_phase();
-  return phase == nullptr ? ArenaSpot() : phase->player();
+  if (phase == nullptr) {
+    return ArenaSpot();
+  }
+  if (player_at_ < 0 || player_at_ >= phase->player_spots_size()) {
+    return phase->player();
+  }
+  return phase->player_spots(player_at_);
 }
 
 int BossRun::arena_width() const {
@@ -84,6 +152,9 @@ int BossRun::arena_width() const {
   for (const ArenaSpot& spot : phase->spots()) {
     width = std::max(width, spot.x() + 1);
   }
+  for (const ArenaSpot& spot : phase->player_spots()) {
+    width = std::max(width, spot.x() + 1);
+  }
   return width;
 }
 
@@ -97,6 +168,9 @@ int BossRun::arena_height() const {
   }
   int height = phase->player().y() + 1;
   for (const ArenaSpot& spot : phase->spots()) {
+    height = std::max(height, spot.y() + 1);
+  }
+  for (const ArenaSpot& spot : phase->player_spots()) {
     height = std::max(height, spot.y() + 1);
   }
   return height;
@@ -261,6 +335,7 @@ void BossRun::Advance(GameState& state, double elapsed_seconds) {
       }
       ++phase_;
       slots_.clear();
+      StandPlayerAtStart();
       state_ = BossRunState::kFighting;
       RunPhase(state, -hold_left_);
       return;

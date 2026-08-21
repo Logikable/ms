@@ -83,6 +83,14 @@ struct BossSlot {
   double dead_for = 0.0;
 };
 
+// Which of `phase`'s player spots a press moves to, as an index into
+// `player_spots`. The nearest spot strictly that way wins, measured along the
+// direction pressed; two the same distance along it are settled by whichever
+// is nearer across it. `from` is returned when nothing lies that way, or when
+// two spots are as good as each other -- a press with no one answer moves
+// nobody.
+int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy);
+
 class BossRun {
  public:
   // `boss` is owned by the GameState and must outlive the run. `difficulty` is
@@ -96,6 +104,10 @@ class BossRun {
   // Gives up the run. The screen goes straight back rather than holding a
   // beat: the player asked to leave.
   void Abort();
+  // Walks the player one spot in the direction pressed, which is one of the
+  // four unit vectors. Does nothing once the fight is over, or in a phase that
+  // named nowhere else to stand.
+  void MovePlayer(int dx, int dy);
 
   BossRunState state() const {
     return state_;
@@ -146,8 +158,9 @@ class BossRun {
   const std::vector<BossSlot>& slots() const {
     return slots_;
   }
-  // Where the player stands in the current phase, and how many cells the
-  // arena holds around everyone. Both are measured off the spots when the
+  // Where the player stands in the current phase -- where they have walked
+  // to, not where the phase put them -- and how many cells the arena holds
+  // around everyone. Both are measured off the spots when the
   // phase names neither, which leaves the arena no margin.
   ArenaSpot player_spot() const;
   int arena_width() const;
@@ -178,6 +191,9 @@ class BossRun {
   // Ends the run in `outcome`, holding the screen for the closing beat -- or
   // for nothing at all, if the run was given up.
   void Finish(BossRunState outcome);
+  // Stands the player where the current phase starts them. Every phase is its
+  // own arena, so where they walked to in the last one means nothing here.
+  void StandPlayerAtStart();
 
   std::string boss_key_;
   const Boss* boss_ = nullptr;
@@ -194,6 +210,9 @@ class BossRun {
   // the pause at the end before the screen goes back.
   double hold_left_ = 0.0;
   double phase_hp_fraction_ = 0.0;
+  // Which of the phase's player spots they stand on. -1 for a phase that named
+  // none, whose player never leaves the spot it wrote down.
+  int player_at_ = -1;
   std::vector<BossSlot> slots_;
   BossReward reward_;
   CombatSim sim_;

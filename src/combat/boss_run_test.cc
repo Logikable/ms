@@ -110,6 +110,126 @@ void RunToEnd(BossRun& run, GameState& state, double step = 0.1,
   }
 }
 
+// Zakum's own arena: the arms down the middle, a floor of three under them
+// and a ledge over each end.
+BossPhase ZakumArenaPhase() {
+  BossPhase phase;
+  phase.set_arena_width(7);
+  phase.set_arena_height(6);
+  const int kSpots[5][2] = {{0, 3}, {6, 3}, {0, 5}, {3, 5}, {6, 5}};
+  for (const int (&spot)[2] : kSpots) {
+    ArenaSpot* at = phase.add_player_spots();
+    at->set_x(spot[0]);
+    at->set_y(spot[1]);
+  }
+  phase.mutable_player()->set_x(3);
+  phase.mutable_player()->set_y(5);
+  return phase;
+}
+
+// Indices into ZakumArenaPhase's spots, in the order it writes them.
+constexpr int kLedgeLeft = 0;
+constexpr int kLedgeRight = 1;
+constexpr int kFloorLeft = 2;
+constexpr int kFloorMiddle = 3;
+constexpr int kFloorRight = 4;
+
+// The same arena, as a fight that can be walked around in.
+Boss WalkableBoss() {
+  Boss boss = TwoPhaseBoss();
+  BossDifficulty* normal = boss.mutable_difficulties(0);
+  BossPhase arena = ZakumArenaPhase();
+  for (int i = 0; i < normal->phases_size(); ++i) {
+    BossPhase* phase = normal->mutable_phases(i);
+    *phase->mutable_player_spots() = arena.player_spots();
+    *phase->mutable_player() = arena.player();
+    phase->set_arena_width(arena.arena_width());
+    phase->set_arena_height(arena.arena_height());
+  }
+  return boss;
+}
+
+// Left and right walk the floor, and a press with nothing that way stays put.
+TEST(BossRunTest, TheFloorWalksLeftAndRightAndStopsAtItsEnds) {
+  BossPhase phase = ZakumArenaPhase();
+  EXPECT_EQ(NextPlayerSpot(phase, kFloorMiddle, -1, 0), kFloorLeft);
+  EXPECT_EQ(NextPlayerSpot(phase, kFloorLeft, -1, 0), kFloorLeft);
+  EXPECT_EQ(NextPlayerSpot(phase, kFloorMiddle, 1, 0), kFloorRight);
+  EXPECT_EQ(NextPlayerSpot(phase, kFloorRight, 1, 0), kFloorRight);
+}
+
+// The ledge over each end is up from the floor beneath it and down again.
+TEST(BossRunTest, TheLedgesAreUpFromTheFloorTheyStandOver) {
+  BossPhase phase = ZakumArenaPhase();
+  EXPECT_EQ(NextPlayerSpot(phase, kFloorLeft, 0, -1), kLedgeLeft);
+  EXPECT_EQ(NextPlayerSpot(phase, kLedgeLeft, 0, 1), kFloorLeft);
+  EXPECT_EQ(NextPlayerSpot(phase, kFloorRight, 0, -1), kLedgeRight);
+  EXPECT_EQ(NextPlayerSpot(phase, kLedgeRight, 0, 1), kFloorRight);
+  EXPECT_EQ(NextPlayerSpot(phase, kLedgeLeft, 0, -1), kLedgeLeft)
+      << "nothing over the ledge";
+}
+
+// Stepping off a ledge inward is the middle of the floor: it is nearer that
+// way than the ledge across the arena, and the arms stand between them.
+TEST(BossRunTest, LeavingALedgeSidewaysLandsInTheMiddle) {
+  BossPhase phase = ZakumArenaPhase();
+  EXPECT_EQ(NextPlayerSpot(phase, kLedgeLeft, 1, 0), kFloorMiddle);
+  EXPECT_EQ(NextPlayerSpot(phase, kLedgeRight, -1, 0), kFloorMiddle);
+  EXPECT_EQ(NextPlayerSpot(phase, kLedgeLeft, -1, 0), kLedgeLeft);
+}
+
+// The two ledges are as far from the middle of the floor as each other, and a
+// press with no one answer moves nobody.
+TEST(BossRunTest, APressWithTwoAnswersMovesNobody) {
+  EXPECT_EQ(NextPlayerSpot(ZakumArenaPhase(), kFloorMiddle, 0, -1),
+            kFloorMiddle);
+}
+
+// The run walks the player, and every phase starts them where it says --
+// where they walked to in the last one was in a different arena.
+TEST(BossRunTest, WalkingIsRememberedWithinAPhaseAndResetByTheNext) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = WalkableBoss();
+  BossRun run("zakum", boss, 0);
+  EXPECT_EQ(run.player_spot().x(), 3);
+  run.MovePlayer(-1, 0);
+  EXPECT_EQ(run.player_spot().x(), 0);
+  EXPECT_EQ(run.player_spot().y(), 5);
+  run.MovePlayer(0, -1);
+  EXPECT_EQ(run.player_spot().y(), 3) << "the ledge, and still there";
+
+  RunToEnd(run, *state);
+  EXPECT_TRUE(run.won());
+  // Phase 2 stood them back in the middle of its own floor on the way in.
+  EXPECT_EQ(run.player_spot().x(), 3);
+  EXPECT_EQ(run.player_spot().y(), 5);
+}
+
+// A phase that names nowhere to stand keeps the player where it put them.
+TEST(BossRunTest, AFightWithNoSpotsDoesNotWalk) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = TwoPhaseBoss();
+  BossRun run("zakum", boss, 0);
+  run.MovePlayer(-1, 0);
+  EXPECT_EQ(run.player_spot().x(), 2);
+  EXPECT_EQ(run.player_spot().y(), 1);
+}
+
+// The arena is measured off everywhere the player may stand as well as the
+// bars, so a phase that asks for no room of its own still holds all of it.
+TEST(BossRunTest, TheArenaHoldsEverySpotThePlayerMayStandOn) {
+  std::unique_ptr<GameState> state = MakeState();
+  Boss boss = TwoPhaseBoss();
+  BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
+  *phase->add_player_spots() = phase->player();
+  ArenaSpot* far = phase->add_player_spots();
+  far->set_x(8);
+  far->set_y(3);
+  BossRun run("zakum", boss, 0);
+  EXPECT_EQ(run.arena_width(), 9);
+  EXPECT_EQ(run.arena_height(), 4);
+}
+
 TEST(BossRunTest, NothingHappensUntilTheCountdownIsUp) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = TwoPhaseBoss();
