@@ -272,6 +272,9 @@ class TuiController {
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
   bool OnBossClearEvent(ftxui::Event event);
+  // Drops the finished run and goes back to the fight list. What every panel a
+  // fight ends on is dismissed by.
+  void LeaveBossRun();
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);

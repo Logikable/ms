@@ -719,7 +719,10 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
 
 bool TuiController::OnBossNoticeEvent(ftxui::Event event) {
   if (notice_prompt_.OnEvent(event)) {
-    screen_ = kBossSelect;
+    // The run is null for a notice raised instead of a fight -- no weapon, or
+    // a daily already taken -- and holds a finished one for a fight that ran
+    // out of clock.
+    LeaveBossRun();
   }
   return true;
 }
@@ -758,7 +761,10 @@ bool TuiController::OnBossAbortEvent(ftxui::Event event) {
 }
 
 void TuiController::AdvanceBossRun(double elapsed_seconds) {
-  if (boss_run_ == nullptr || screen_ == kBossAbort) {
+  // Only the fight screen runs the clock. The leave prompt stops it while the
+  // player decides, and so does whatever the fight ended on -- the run is kept
+  // until they press the button, so the arena stays behind the panel.
+  if (boss_run_ == nullptr || screen_ != kBossFight) {
     return;
   }
   boss_run_->Advance(state_, elapsed_seconds);
@@ -768,31 +774,34 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
   if (boss_run_->won()) {
     state_.character.RecordBossClear(boss_run_key_, boss_run_difficulty_,
                                      static_cast<int64_t>(std::time(nullptr)));
-    // Copied off the run before it goes: the card outlives it.
+    // Copied off the run rather than read back through it: the card is still
+    // up when the run goes.
     boss_clear_title_ = boss_run_->title();
     boss_clear_reward_ = boss_run_->reward();
-  }
-  // A fight that ran out of clock says so, and one that was cleared ends on
-  // its card. An abort was the player's own doing and needs neither.
-  BossRunState outcome = boss_run_->state();
-  boss_run_.reset();
-  if (outcome == BossRunState::kTimedOut) {
-    OpenNotice(kBossNotice, {"Out of time!"}, /*refusal=*/false);
-    return;
-  }
-  if (outcome == BossRunState::kWon) {
     boss_clear_prompt_.Open();
     screen_ = kBossClear;
     return;
   }
+  if (boss_run_->state() == BossRunState::kTimedOut) {
+    OpenNotice(kBossNotice, {"Out of time!"}, /*refusal=*/false);
+    return;
+  }
+  // Nothing to dismiss on the way out of an abort: the player asked to leave,
+  // and telling them they left is not news.
+  boss_run_.reset();
   screen_ = kBossSelect;
 }
 
 bool TuiController::OnBossClearEvent(ftxui::Event event) {
   if (boss_clear_prompt_.OnEvent(event)) {
-    screen_ = kBossSelect;
+    LeaveBossRun();
   }
   return true;
+}
+
+void TuiController::LeaveBossRun() {
+  boss_run_.reset();
+  screen_ = kBossSelect;
 }
 
 bool TuiController::OnShopEvent(ftxui::Event event) {

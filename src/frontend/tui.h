@@ -73,6 +73,8 @@ class Tui {
   ftxui::Element BossAbortDialog();
   // The fight screen, or the fight list if there is no fight.
   ftxui::Element RenderBossFight();
+  // The dialog standing over the arena, or null while the fight is on.
+  ftxui::Element BossFightOverlay();
   ftxui::Element RenderShopInspect();
   // The inspect screen for a row of the buy-back shelf: the item as the sale
   // left it, rebuilt from the shelf plus the catalog.

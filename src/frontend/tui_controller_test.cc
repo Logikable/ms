@@ -140,9 +140,11 @@ class TuiControllerTest : public testing::Test {
     state_->character.Equip(state_->character.inventory().size() - 1);
   }
 
-  // Runs the fight in progress until it is over, however it ends.
+  // Runs the fight in progress until it is over, however it ends. The run
+  // outlives the fight -- it is held behind whatever panel ended it -- so this
+  // waits on the screen rather than on in_boss_fight().
   void RunFightToEnd() {
-    for (int i = 0; i < 20000 && controller_->in_boss_fight(); ++i) {
+    for (int i = 0; i < 20000 && controller_->screen() == kBossFight; ++i) {
       controller_->AdvanceBossRun(0.1);
     }
   }
@@ -2352,6 +2354,8 @@ TEST_F(TuiControllerTest, AFightRefusesACharacterWithNoWeapon) {
 
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_EQ(controller_->boss_run(), nullptr);
+  EXPECT_FALSE(controller_->in_boss_fight());
 }
 
 TEST_F(TuiControllerTest, EscapeLeavesTheBossScreen) {
@@ -2430,7 +2434,11 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
   controller_->AdvanceBossRun(kBossCountdownSeconds + 301.0);
   ASSERT_NE(controller_->boss_run(), nullptr) << "the closing beat is running";
   controller_->AdvanceBossRun(kBossEndHoldSeconds);
-  ASSERT_EQ(controller_->boss_run(), nullptr);
+  EXPECT_EQ(controller_->screen(), kBossNotice);
+  // Held until the notice is dismissed, so the arena stands behind it, and
+  // the clock is stopped: a fight already lost cannot be lost again.
+  EXPECT_NE(controller_->boss_run(), nullptr);
+  controller_->AdvanceBossRun(10.0);
   EXPECT_EQ(controller_->screen(), kBossNotice);
   ASSERT_EQ(controller_->notice_lines().size(), 1u);
   EXPECT_EQ(controller_->notice_lines()[0], "Out of time!");
@@ -2440,6 +2448,8 @@ TEST_F(TuiControllerTest, RunningOutOfTimeSaysSo) {
 
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_EQ(controller_->boss_run(), nullptr);
+  EXPECT_FALSE(controller_->in_boss_fight());
 }
 
 TEST_F(TuiControllerTest, ClearingTheFightBanksTheDaily) {
@@ -2461,7 +2471,9 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
   RunFightToEnd();
 
   ASSERT_EQ(controller_->screen(), kBossClear);
-  EXPECT_EQ(controller_->boss_run(), nullptr);
+  // The run is kept while the card is up: the arena the player just cleared
+  // is what the card stands over.
+  EXPECT_NE(controller_->boss_run(), nullptr);
   EXPECT_EQ(controller_->boss_clear_title(), "Normal Zakum");
   EXPECT_EQ(controller_->boss_clear_reward().meso, 3062500);
   ASSERT_EQ(controller_->boss_clear_reward().items.size(), 1u);
@@ -2470,6 +2482,8 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
 
   controller_->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(controller_->screen(), kBossSelect);
+  EXPECT_EQ(controller_->boss_run(), nullptr);
+  EXPECT_FALSE(controller_->in_boss_fight());
 }
 
 }  // namespace

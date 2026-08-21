@@ -339,18 +339,38 @@ ftxui::Element Tui::BossAbortDialog() {
       }));
 }
 
+// What stands over the arena, if anything: the leave prompt, or whatever the
+// fight ended on. Null while the fight is still being fought.
+ftxui::Element Tui::BossFightOverlay() {
+  switch (controller_.screen()) {
+    case kBossAbort:
+      return BossAbortDialog();
+    case kBossNotice:
+      return BossNoticeDialog();
+    case kBossClear:
+      return BossClearPanel(controller_.boss_clear_title(),
+                            controller_.boss_clear_reward(),
+                            controller_.boss_clear_prompt().Render());
+    default:
+      return nullptr;
+  }
+}
+
 ftxui::Element Tui::RenderBossFight() {
   const BossRun* run = controller_.boss_run();
   if (run == nullptr) {
     return ftxui::center(boss_select_panel_.Render());
   }
+  // Whatever the fight ended on stands over the arena, so the player sees the
+  // fight they just finished rather than the list they are going back to.
   ftxui::Element fight = BossFightPanel(*run);
-  if (controller_.screen() != kBossAbort) {
+  ftxui::Element overlay = BossFightOverlay();
+  if (overlay == nullptr) {
     return fight;
   }
   return ftxui::dbox({
       std::move(fight),
-      ftxui::center(BossAbortDialog() | ftxui::clear_under),
+      ftxui::center(std::move(overlay) | ftxui::clear_under),
   });
 }
 
@@ -479,25 +499,23 @@ ftxui::Element Tui::RenderScreen() {
       return ftxui::center(boss_select_panel_.Render());
     case kBossFight:
     case kBossAbort:
+    case kBossClear:
       return RenderBossFight();
     case kBossConfirm:
       return ftxui::dbox({
           ftxui::center(boss_select_panel_.Render()),
           ftxui::center(BossConfirmDialog() | ftxui::clear_under),
       });
+    // Over the arena for a fight that ran out of clock, and over the list for
+    // a notice raised instead of a fight -- no weapon, or a daily already
+    // taken. Which one it is shows in whether a run is still held.
     case kBossNotice:
+      if (controller_.boss_run() != nullptr) {
+        return RenderBossFight();
+      }
       return ftxui::dbox({
           ftxui::center(boss_select_panel_.Render()),
           ftxui::center(BossNoticeDialog() | ftxui::clear_under),
-      });
-    case kBossClear:
-      return ftxui::dbox({
-          ftxui::center(boss_select_panel_.Render()),
-          ftxui::center(
-              BossClearPanel(controller_.boss_clear_title(),
-                             controller_.boss_clear_reward(),
-                             controller_.boss_clear_prompt().Render()) |
-              ftxui::clear_under),
       });
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel puts it up itself.
