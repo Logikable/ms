@@ -403,6 +403,12 @@ TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_EYE_ACCESSORY), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_SECONDARY), SCROLL_TARGET_UNSPECIFIED);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_PROJECTILE), SCROLL_TARGET_UNSPECIFIED);
+  // The slots nothing is worn in yet. The shoulderpad takes armour scrolls
+  // rather than the accessory ones it is worn beside, as it does in GMS.
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_SHOULDER), SCROLL_TARGET_ARMOUR);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_RING), SCROLL_TARGET_ACCESSORY);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_PENDANT), SCROLL_TARGET_ACCESSORY);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_BELT), SCROLL_TARGET_ACCESSORY);
 }
 
 }  // namespace

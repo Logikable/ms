@@ -431,6 +431,14 @@ std::string FormatSlot(EquipSlot slot) {
       return "Face";
     case EQUIP_SLOT_EYE_ACCESSORY:
       return "Eye";
+    case EQUIP_SLOT_RING:
+      return "Ring";
+    case EQUIP_SLOT_PENDANT:
+      return "Pendant";
+    case EQUIP_SLOT_BELT:
+      return "Belt";
+    case EQUIP_SLOT_SHOULDER:
+      return "Shoulder";
     default:
       return "";
   }

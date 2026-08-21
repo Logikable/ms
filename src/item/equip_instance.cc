@@ -64,9 +64,15 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_TOP:
     case EQUIP_SLOT_BOTTOM:
     case EQUIP_SLOT_CAPE:
+    // GMS's spell traces count the shoulderpad with the armour rather than
+    // with the accessories it is worn beside.
+    case EQUIP_SLOT_SHOULDER:
       return SCROLL_TARGET_ARMOUR;
     case EQUIP_SLOT_FACE_ACCESSORY:
     case EQUIP_SLOT_EYE_ACCESSORY:
+    case EQUIP_SLOT_RING:
+    case EQUIP_SLOT_PENDANT:
+    case EQUIP_SLOT_BELT:
       return SCROLL_TARGET_ACCESSORY;
     case EQUIP_SLOT_UNSPECIFIED:
     case EQUIP_SLOT_PROJECTILE:

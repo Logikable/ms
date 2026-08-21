@@ -1092,6 +1092,10 @@ TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_CAPE), "Cape");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_FACE_ACCESSORY), "Face");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_EYE_ACCESSORY), "Eye");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_RING), "Ring");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_PENDANT), "Pendant");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_BELT), "Belt");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_SHOULDER), "Shoulder");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
 }
 

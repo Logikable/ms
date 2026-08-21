@@ -97,6 +97,16 @@ enum EquipSlot {
   // the Equipped panel lists them below the armour rather than beside the hat.
   EQUIP_SLOT_FACE_ACCESSORY = 8;
   EQUIP_SLOT_EYE_ACCESSORY = 9;
+
+  // Nothing is worn in any of these yet. They are here because star force
+  // treats the ring, the pendant, the belt and the shoulderpad as armour a
+  // character's Max HP climbs with, and that rule is easier to write once
+  // against the whole list than to remember on the day each slot is filled.
+  // The ring and the pendant arrive with Horntail.
+  EQUIP_SLOT_RING = 10;
+  EQUIP_SLOT_PENDANT = 11;
+  EQUIP_SLOT_BELT = 12;
+  EQUIP_SLOT_SHOULDER = 13;
 }
 
 // A way an item can be made stronger after it drops. Listed on a prototype
