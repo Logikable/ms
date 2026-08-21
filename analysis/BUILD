@@ -1,10 +1,11 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load(":sim.bzl", "sim_binary")
 
 # Sims, not tests. Tests pin behaviour that must not change; each of these
 # prints numbers to look at while deciding what the behaviour should be.
 # They live outside //src so a tuning tool is never mistaken for the game.
 
-cc_binary(
+sim_binary(
     name = "meso_sim",
     srcs = ["meso_sim.cc"],
     data = [
@@ -48,7 +49,7 @@ cc_library(
     ],
 )
 
-cc_binary(
+sim_binary(
     name = "boss_sim",
     srcs = ["boss_sim.cc"],
     deps = [
@@ -77,7 +78,7 @@ cc_binary(
     ],
 )
 
-cc_binary(
+sim_binary(
     name = "weapon_sim",
     srcs = ["weapon_sim.cc"],
     deps = [
@@ -105,7 +106,7 @@ cc_binary(
     ],
 )
 
-cc_binary(
+sim_binary(
     name = "balance_sim",
     srcs = ["balance_sim.cc"],
     deps = [
@@ -136,7 +137,7 @@ cc_binary(
     ],
 )
 
-cc_binary(
+sim_binary(
     name = "level_sim",
     srcs = ["level_sim.cc"],
     deps = [
@@ -171,7 +172,7 @@ cc_binary(
     ],
 )
 
-cc_binary(
+sim_binary(
     name = "mob_curve_sim",
     srcs = ["mob_curve_sim.cc"],
     deps = [
@@ -191,7 +192,7 @@ cc_library(
     hdrs = ["gms_mob_exp.h"],
 )
 
-cc_binary(
+sim_binary(
     name = "meso_curve_sim",
     srcs = ["meso_curve_sim.cc"],
     deps = [
@@ -252,7 +253,7 @@ cc_library(
     ],
 )
 
-cc_binary(
+sim_binary(
     name = "scroll_cost_sim",
     srcs = ["scroll_cost_sim.cc"],
     deps = [
