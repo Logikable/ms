@@ -51,7 +51,10 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy) {
     // line. Only one of dx and dy is ever set, so each is one term.
     int along = step_x * dx + step_y * dy;
     int across = std::abs(step_x * dy) + std::abs(step_y * dx);
-    if (along <= 0) {
+    // Further across the arrow than along it is not that way at all: without
+    // this, Right in Horntail's top corner would fetch the spot under his
+    // tail, which is nearer along the arrow than the far corner is.
+    if (along <= 0 || across > along) {
       continue;
     }
     if (best == from || along < best_along ||

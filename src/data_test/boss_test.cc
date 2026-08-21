@@ -280,15 +280,26 @@ TEST(BossDataTest, EveryPhaseStartsThePlayerOnASpotTheyMayStandOn) {
   }
 }
 
-// Zakum's arena is the one the movement was designed against: five places to
-// stand in the arms, three under the body.
-TEST(BossDataTest, ZakumOffersFiveSpotsThenThree) {
+// How much room each fight gives the player is a design decision, so the
+// count per phase is pinned: five among Zakum's arms and three under his
+// body, four around each of Horntail's heads and six around the dragon, three
+// on Hilla's floor. Every difficulty of a boss is laid out alike.
+TEST(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
+  std::map<std::string, std::vector<int>> expected = {
+      {"zakum", {5, 3}}, {"hilla", {3}}, {"horntail", {4, 4, 6}}};
   std::map<std::string, Boss> bosses = LoadBosses();
-  ASSERT_GT(bosses.count("zakum"), 0u);
-  for (const BossDifficulty& difficulty : bosses.at("zakum").difficulties()) {
-    ASSERT_EQ(difficulty.phases_size(), 2) << difficulty.name();
-    EXPECT_EQ(difficulty.phases(0).player_spots_size(), 5) << difficulty.name();
-    EXPECT_EQ(difficulty.phases(1).player_spots_size(), 3) << difficulty.name();
+  for (const std::pair<const std::string, std::vector<int>>& want : expected) {
+    ASSERT_GT(bosses.count(want.first), 0u) << want.first;
+    for (const BossDifficulty& difficulty :
+         bosses.at(want.first).difficulties()) {
+      std::string where = want.first + " " + difficulty.name();
+      ASSERT_EQ(difficulty.phases_size(), static_cast<int>(want.second.size()))
+          << where;
+      for (int i = 0; i < difficulty.phases_size(); ++i) {
+        EXPECT_EQ(difficulty.phases(i).player_spots_size(), want.second[i])
+            << where << " phase " << i + 1;
+      }
+    }
   }
 }
 

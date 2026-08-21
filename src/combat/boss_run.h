@@ -86,9 +86,10 @@ struct BossSlot {
 // Which of `phase`'s player spots a press moves to, as an index into
 // `player_spots`. The nearest spot strictly that way wins, measured along the
 // direction pressed; two the same distance along it are settled by whichever
-// is nearer across it. `from` is returned when nothing lies that way, or when
-// two spots are as good as each other -- a press with no one answer moves
-// nobody.
+// is nearer across it. A spot further across the arrow than along it is not
+// that way at all and is passed over. `from` is returned when nothing lies
+// that way, or when two spots are as good as each other -- a press with no one
+// answer moves nobody.
 int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy);
 
 class BossRun {

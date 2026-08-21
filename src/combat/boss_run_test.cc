@@ -178,6 +178,40 @@ TEST(BossRunTest, LeavingALedgeSidewaysLandsInTheMiddle) {
   EXPECT_EQ(NextPlayerSpot(phase, kLedgeLeft, -1, 0), kLedgeLeft);
 }
 
+// Horntail's arena: six spots down the two edges, around a dragon that fills
+// the middle.
+BossPhase HorntailArenaPhase() {
+  BossPhase phase;
+  phase.set_arena_width(9);
+  phase.set_arena_height(6);
+  const int kSpots[6][2] = {{0, 0}, {8, 0}, {0, 2}, {8, 2}, {0, 4}, {8, 4}};
+  for (const int (&spot)[2] : kSpots) {
+    ArenaSpot* at = phase.add_player_spots();
+    at->set_x(spot[0]);
+    at->set_y(spot[1]);
+  }
+  phase.mutable_player()->set_x(0);
+  phase.mutable_player()->set_y(4);
+  return phase;
+}
+
+// A corner behaves like a corner: across the top is the far top corner, not
+// the spot under the tail, which is nearer along the arrow but nowhere near
+// the way it points.
+TEST(BossRunTest, APressIgnoresWhatIsFurtherAcrossThanAlong) {
+  BossPhase phase = HorntailArenaPhase();
+  constexpr int kTopLeft = 0;
+  constexpr int kTopRight = 1;
+  constexpr int kMiddleLeft = 2;
+  constexpr int kBottomLeft = 4;
+  constexpr int kBottomRight = 5;
+  EXPECT_EQ(NextPlayerSpot(phase, kTopLeft, 1, 0), kTopRight);
+  EXPECT_EQ(NextPlayerSpot(phase, kBottomLeft, 1, 0), kBottomRight);
+  EXPECT_EQ(NextPlayerSpot(phase, kTopLeft, 0, 1), kMiddleLeft)
+      << "down the edge one spot at a time";
+  EXPECT_EQ(NextPlayerSpot(phase, kMiddleLeft, 0, 1), kBottomLeft);
+}
+
 // The two ledges are as far from the middle of the floor as each other, and a
 // press with no one answer moves nobody.
 TEST(BossRunTest, APressWithTwoAnswersMovesNobody) {

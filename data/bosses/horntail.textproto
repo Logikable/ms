@@ -7,14 +7,25 @@ difficulties {
   phases {
     spawns { mob: "horntail_left_head" count: 1 }
     spots { x: 8 y: 0 }
+    # Under the head or across from it, at either end of the arena's height:
+    # the far pair stands most of the way across the floor from the corner.
     player { x: 6 y: 0 }
+    player_spots { x: 6 y: 0 }
+    player_spots { x: 3 y: 0 }
+    player_spots { x: 6 y: 4 }
+    player_spots { x: 3 y: 4 }
     arena_width: 9
     arena_height: 6
   }
   phases {
     spawns { mob: "horntail_right_head" count: 1 }
     spots { x: 0 y: 0 }
+    # The same four, mirrored: this head stands in the other corner.
     player { x: 2 y: 0 }
+    player_spots { x: 2 y: 0 }
+    player_spots { x: 5 y: 0 }
+    player_spots { x: 2 y: 4 }
+    player_spots { x: 5 y: 4 }
     arena_width: 9
     arena_height: 6
   }
@@ -38,7 +49,15 @@ difficulties {
     spots { x: 7 y: 2 }
     spots { x: 4 y: 4 }
     spots { x: 6 y: 4 }
+    # Down both edges of the arena, level with the heads, the hands and the
+    # legs: the dragon fills the middle, so the player goes around him.
     player { x: 0 y: 4 }
+    player_spots { x: 0 y: 0 }
+    player_spots { x: 8 y: 0 }
+    player_spots { x: 0 y: 2 }
+    player_spots { x: 8 y: 2 }
+    player_spots { x: 0 y: 4 }
+    player_spots { x: 8 y: 4 }
     arena_width: 9
     arena_height: 6
   }
@@ -78,14 +97,25 @@ difficulties {
   phases {
     spawns { mob: "chaos_horntail_left_head" count: 1 }
     spots { x: 8 y: 0 }
+    # Under the head or across from it, at either end of the arena's height:
+    # the far pair stands most of the way across the floor from the corner.
     player { x: 6 y: 0 }
+    player_spots { x: 6 y: 0 }
+    player_spots { x: 3 y: 0 }
+    player_spots { x: 6 y: 4 }
+    player_spots { x: 3 y: 4 }
     arena_width: 9
     arena_height: 6
   }
   phases {
     spawns { mob: "chaos_horntail_right_head" count: 1 }
     spots { x: 0 y: 0 }
+    # The same four, mirrored: this head stands in the other corner.
     player { x: 2 y: 0 }
+    player_spots { x: 2 y: 0 }
+    player_spots { x: 5 y: 0 }
+    player_spots { x: 2 y: 4 }
+    player_spots { x: 5 y: 4 }
     arena_width: 9
     arena_height: 6
   }
@@ -106,7 +136,15 @@ difficulties {
     spots { x: 7 y: 2 }
     spots { x: 4 y: 4 }
     spots { x: 6 y: 4 }
+    # Down both edges of the arena, level with the heads, the hands and the
+    # legs: the dragon fills the middle, so the player goes around him.
     player { x: 0 y: 4 }
+    player_spots { x: 0 y: 0 }
+    player_spots { x: 8 y: 0 }
+    player_spots { x: 0 y: 2 }
+    player_spots { x: 8 y: 2 }
+    player_spots { x: 0 y: 4 }
+    player_spots { x: 8 y: 4 }
     arena_width: 9
     arena_height: 6
   }

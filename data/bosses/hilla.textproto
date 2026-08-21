@@ -6,7 +6,11 @@ difficulties {
   phases {
     spawns { mob: "hilla" count: 1 }
     spots { x: 3 y: 1 }
+    # The floor she stands over, walked end to end.
     player { x: 3 y: 2 }
+    player_spots { x: 0 y: 2 }
+    player_spots { x: 3 y: 2 }
+    player_spots { x: 6 y: 2 }
     arena_width: 7
     arena_height: 4
   }
@@ -32,7 +36,11 @@ difficulties {
   phases {
     spawns { mob: "hard_hilla" count: 1 }
     spots { x: 3 y: 1 }
+    # The floor she stands over, walked end to end.
     player { x: 3 y: 2 }
+    player_spots { x: 0 y: 2 }
+    player_spots { x: 3 y: 2 }
+    player_spots { x: 6 y: 2 }
     arena_width: 7
     arena_height: 4
   }
