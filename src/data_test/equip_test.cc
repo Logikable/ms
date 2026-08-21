@@ -501,6 +501,29 @@ TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {
   EXPECT_GT(checked, 0) << "no set tiers in the catalog to check";
 }
 
+// The accessories are boss rewards, and a boss is fought by everybody. One
+// written for a branch would be a piece of the set that a whole class can
+// never wear, and the set has no second route to that slot.
+TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
+  int seen = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_slot() != EQUIP_SLOT_FACE_ACCESSORY &&
+        proto.equip_slot() != EQUIP_SLOT_EYE_ACCESSORY) {
+      continue;
+    }
+    ++seen;
+    ASSERT_EQ(proto.equip_job_categories_size(), 1) << entry.first;
+    EXPECT_EQ(proto.equip_job_categories(0), EQUIP_JOB_CATEGORY_UNIVERSAL)
+        << entry.first << " is not worn by every job";
+    EXPECT_GT(proto.upgrade_slots(), 0) << entry.first << " has no slots";
+    EXPECT_TRUE(Supports(proto, UPGRADE_SCROLL)) << entry.first;
+    EXPECT_TRUE(Supports(proto, UPGRADE_STAR_FORCE)) << entry.first;
+  }
+  EXPECT_GT(seen, 0) << "no accessories in the catalog to check";
+}
+
 // A slot or a type added without a display name shows up as a blank column in
 // the bag, which reads as a broken item rather than a missing label.
 TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {

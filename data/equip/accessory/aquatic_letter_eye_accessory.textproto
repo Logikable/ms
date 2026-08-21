@@ -1,0 +1,17 @@
+name: "Aquatic Letter Eye Accessory"
+required_level: 100
+base_stats {
+  str: 6
+  dex: 6
+  int: 6
+  luk: 6
+  attack: 1
+  magic_attack: 1
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_EYE_ACCESSORY
+upgrade_slots: 3
+# Dropped by Zakum, never stocked, so no shop price sets this. Twice what a
+# piece of Frozen armour pays: it takes a boss to spare one.
+sell_price: 500000
