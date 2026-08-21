@@ -457,18 +457,64 @@ TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
   EXPECT_GT(checked, 0) << "no sets in the catalog to check";
 }
 
-// Tiers are read as "at least this many pieces", so one asking for more pieces
-// than the set has is a bonus nobody can reach, and one asking for none pays
-// everybody. Both are data mistakes rather than states the model handles.
+// Tiers are read as "at least this many pieces", so one asking for more than
+// the finished set will ever hold is a bonus nobody can reach, and one asking
+// for none pays everybody. Both are data mistakes rather than states the model
+// handles. Asked against the finished set rather than the members written so
+// far: a set can pay at nine pieces while two of them exist.
 TEST(EquipDataTest, EverySetTierIsReachable) {
   for (const std::pair<const std::string, EquipSet>& entry : LoadSets()) {
+    int complete = entry.second.complete_pieces();
+    EXPECT_GE(complete, entry.second.members_size())
+        << entry.first << " spans fewer slots than it already names";
     for (const EquipSetTier& tier : entry.second.tiers()) {
       EXPECT_GT(tier.pieces(), 1)
           << entry.first << " pays a tier for wearing one piece";
-      EXPECT_LE(tier.pieces(), entry.second.members_size())
-          << entry.first << " has a tier past the pieces the set holds";
+      EXPECT_LE(tier.pieces(), complete)
+          << entry.first << " has a tier past the pieces the set will hold";
     }
   }
+}
+
+// The wiki states a set twice: what each tier adds, which is what the data
+// holds, and what the whole is worth once it is on. Pinned against the second
+// column, because adding the first one up is exactly where a typo hides.
+TEST(EquipDataTest, TheBossAccessorySetAddsUpToItsWikiTotals) {
+  const EquipSet* set = nullptr;
+  std::map<std::string, EquipSet> sets = LoadSets();
+  for (const std::pair<const std::string, EquipSet>& entry : sets) {
+    if (entry.second.name() == EQUIP_SET_NAME_BOSS_ACCESSORY) {
+      set = &entry.second;
+    }
+  }
+  ASSERT_NE(set, nullptr);
+  const int kStat[] = {10, 20, 30, 45};
+  const int kAttack[] = {5, 10, 20, 30};
+  const int kDef[] = {60, 120, 200, 300};
+  ASSERT_EQ(set->tiers_size(), 4);
+  int stat = 0;
+  int attack = 0;
+  int def = 0;
+  for (int i = 0; i < set->tiers_size(); ++i) {
+    const SkillEffect& effect = set->tiers(i).effect();
+    stat += effect.str();
+    attack += effect.attack();
+    def += effect.def();
+    EXPECT_EQ(stat, kStat[i]) << "at " << set->tiers(i).pieces() << " pieces";
+    EXPECT_EQ(attack, kAttack[i]) << "at " << set->tiers(i).pieces();
+    EXPECT_EQ(def, kDef[i]) << "at " << set->tiers(i).pieces();
+    // All four stats climb together, and magic attack shadows attack.
+    EXPECT_EQ(effect.dex(), effect.str());
+    EXPECT_EQ(effect.int_(), effect.str());
+    EXPECT_EQ(effect.luk(), effect.str());
+    EXPECT_EQ(effect.magic_attack(), effect.attack());
+  }
+  // The pools stop climbing at five pieces; the two damage levers arrive once
+  // each, at seven and at nine.
+  EXPECT_DOUBLE_EQ(set->tiers(1).effect().max_hp_pct(), 0.05);
+  EXPECT_DOUBLE_EQ(set->tiers(2).effect().max_hp_pct(), 0.0);
+  EXPECT_DOUBLE_EQ(set->tiers(2).effect().ied_pct(), 0.10);
+  EXPECT_DOUBLE_EQ(set->tiers(3).effect().boss_pct(), 0.10);
 }
 
 // The levers the inspect screen's set card writes a row for. A tier that pulls

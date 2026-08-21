@@ -338,6 +338,8 @@ std::string FormatEquipSet(EquipSetName set) {
   switch (set) {
     case EQUIP_SET_NAME_FROZEN:
       return "Frozen Set";
+    case EQUIP_SET_NAME_BOSS_ACCESSORY:
+      return "Boss Accessory Set";
     default:
       return "";
   }

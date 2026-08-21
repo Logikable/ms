@@ -1,0 +1,67 @@
+name: EQUIP_SET_NAME_BOSS_ACCESSORY
+# Nine slots in GMS: two eye accessories and two earrings among them, plus a
+# ring, a pendant and a belt. Two of them have an item here, so no tier pays
+# yet -- the rest arrive with the bosses that drop them.
+complete_pieces: 9
+members {
+  slot: EQUIP_SLOT_FACE_ACCESSORY
+  name: "Condensed Power Crystal"
+}
+members {
+  slot: EQUIP_SLOT_EYE_ACCESSORY
+  name: "Aquatic Letter Eye Accessory"
+}
+tiers {
+  pieces: 3
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    max_hp_pct: 0.05
+    max_mp_pct: 0.05
+    attack: 5
+    magic_attack: 5
+    def: 60
+  }
+}
+tiers {
+  pieces: 5
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    max_hp_pct: 0.05
+    max_mp_pct: 0.05
+    attack: 5
+    magic_attack: 5
+    def: 60
+  }
+}
+tiers {
+  pieces: 7
+  effect {
+    str: 10
+    dex: 10
+    int: 10
+    luk: 10
+    attack: 10
+    magic_attack: 10
+    def: 80
+    ied_pct: 0.10
+  }
+}
+tiers {
+  pieces: 9
+  effect {
+    str: 15
+    dex: 15
+    int: 15
+    luk: 15
+    attack: 10
+    magic_attack: 10
+    def: 100
+    boss_pct: 0.10
+  }
+}

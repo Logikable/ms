@@ -1083,6 +1083,8 @@ TEST(FormatSlotTest, NamesEverySlot) {
 
 TEST(FormatEquipSetTest, NamesEverySet) {
   EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_FROZEN), "Frozen Set");
+  EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_BOSS_ACCESSORY),
+            "Boss Accessory Set");
   EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_UNSPECIFIED), "");
 }
 

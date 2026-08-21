@@ -11,6 +11,7 @@ import "src/protos/skill.proto";
 enum EquipSetName {
   EQUIP_SET_NAME_UNSPECIFIED = 0;
   EQUIP_SET_NAME_FROZEN = 1;
+  EQUIP_SET_NAME_BOSS_ACCESSORY = 2;
 }
 
 // What wearing several pieces of one set is worth. Each tier is a SkillEffect
@@ -48,4 +49,9 @@ message EquipSet {
   // together. Written that way so a tier states what it adds rather than
   // restating everything below it.
   repeated EquipSetTier tiers = 3;
+  // How many slots the set spans once every piece of it is written. The tiers
+  // are read against this rather than against the members above, because a set
+  // arrives before all of its pieces do: the Boss Accessory Set pays at three,
+  // five, seven and nine, and two of its nine slots hold an item today.
+  int32 complete_pieces = 4;
 }

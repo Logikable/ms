@@ -1,4 +1,5 @@
 name: EQUIP_SET_NAME_FROZEN
+complete_pieces: 6
 # In the order the inspect screen lists them, which is the order they are worn
 # in rather than the order they drop in.
 members {
