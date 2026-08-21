@@ -258,12 +258,18 @@ struct BuffOption {
 // A snapshot of the current encounter's combat parameters.
 struct CombatParams {
   bool active = false;  // false when not farming (no map/weapon/mobs)
-  // The map these params describe. The fight watches this to know when it is
-  // playing out a different encounter than the one it holds a roster for.
-  std::string map;
-  double respawn_seconds = 0.0;  // time between full-roster respawn beats
-  double hit_seconds = 0.0;      // time between mob hits on the player
-  int max_player_hp = 0;         // what a full heal fills the player back to
+  // What these params describe: a map's name while farming, and one phase of
+  // a boss fight otherwise. The fight watches it to know when it is playing
+  // out a different encounter than the one it holds a roster for, so a phase
+  // turning over rebuilds the roster exactly as walking to another map does.
+  std::string encounter;
+  // Time between full-roster respawn beats. 0 for an encounter that never
+  // refills -- a boss fight is the roster it opened with.
+  double respawn_seconds = 0.0;
+  // Time between mob hits on the player. 0 for an encounter whose monsters do
+  // not hit back, which is every boss fight for now.
+  double hit_seconds = 0.0;
+  int max_player_hp = 0;  // what a full heal fills the player back to
   // The character's level. The fight watches it for the level-up fill, which
   // cannot be read off max_player_hp: a skill point, a scroll or a swapped hat
   // all widen the pool too, and none of them is a reason to be healed.

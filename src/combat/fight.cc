@@ -47,7 +47,11 @@ void CombatSim::TopUp(const CombatParams& params) {
   int first_new = static_cast<int>(queue_.size());
   for (int i = 0; i < static_cast<int>(params.types.size()); ++i) {
     for (int k = standing[i]; k < params.types[i].simultaneous; ++k) {
-      queue_.push_back({i, static_cast<double>(params.types[i].mob->max_hp())});
+      QueuedMob arrival;
+      arrival.type = i;
+      arrival.hp = params.types[i].mob->max_hp();
+      arrival.id = next_mob_id_++;
+      queue_.push_back(std::move(arrival));
     }
   }
   // Interleave the newcomers so a swing does not face one whole type at a
@@ -605,6 +609,7 @@ int CombatSim::player_hp() const {
 void CombatSim::GoIdle() {
   initialized_ = false;
   respawning_ = false;
+  roster_.clear();
   target_name_.clear();
   target_level_ = 0;
   target_hp_fraction_ = 0.0;
@@ -625,13 +630,14 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   // The queue holds indices into the map's types, and its HP values are that
   // map's mobs'. Carried to another map, both would describe the wrong
   // monsters.
-  if (initialized_ && map_ == params.map) {
+  if (initialized_ && encounter_ == params.encounter) {
     return;
   }
-  map_ = params.map;
+  encounter_ = params.encounter;
   respawn_phase_ = 0.0;
   attack_phase_ = 0.0;
   hit_phase_ = 0.0;
+  next_mob_id_ = 0;
   auto_phase_.assign(params.auto_attacks.size(), 0.0);
   auto_empowered_count_.assign(params.auto_attacks.size(), 0);
   cooldown_left_.assign(params.attacks.size(), 0.0);
@@ -648,6 +654,9 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
 }
 
 void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
+  if (params.respawn_seconds <= 0.0) {
+    return;  // nothing more is coming: see CombatParams::respawn_seconds
+  }
   respawn_phase_ += dt;
   if (respawn_phase_ < params.respawn_seconds) {
     return;
@@ -1004,8 +1013,19 @@ void CombatSim::MergeEngagedWindow(const CombatParams& params) {
   }
 }
 
+void CombatSim::PublishRoster(const CombatParams& params) {
+  roster_.clear();
+  for (const QueuedMob& queued : queue_) {
+    const Mob& mob = *params.types[queued.type].mob;
+    double frac =
+        mob.max_hp() > 0 ? std::clamp(queued.hp / mob.max_hp(), 0.0, 1.0) : 0.0;
+    roster_.push_back({queued.id, queued.type, mob.name(), frac});
+  }
+}
+
 void CombatSim::PublishTarget(const CombatParams& params) {
   engaged_groups_.clear();
+  PublishRoster(params);
   respawning_ = queue_.empty();
   if (queue_.empty()) {
     target_name_.clear();

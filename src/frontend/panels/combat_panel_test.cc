@@ -183,7 +183,7 @@ TEST(CombatPanelTest, ThePlayersHpBarFallsAsTheyAreHit) {
   attack.swing_seconds = 10.0;
   CombatParams params;
   params.active = true;
-  params.map = "field";
+  params.encounter = "field";
   params.respawn_seconds = 1000.0;
   params.hit_seconds = 1.0;
   params.max_player_hp = 50;
@@ -223,7 +223,7 @@ TEST(CombatPanelTest, MergesEngagedMobsIntoOneBar) {
   attack.swing_seconds = 1.0;
   CombatParams params;
   params.active = true;
-  params.map = "field";
+  params.encounter = "field";
   params.respawn_seconds = 100.0;
   params.types = {type};
   params.attacks = {attack};

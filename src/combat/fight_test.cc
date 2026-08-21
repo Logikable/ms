@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -44,7 +45,7 @@ CombatParams MakeParams(double swing, double respawn,
                         const std::string& map = "field") {
   CombatParams params;
   params.active = true;
-  params.map = map;
+  params.encounter = map;
   params.respawn_seconds = respawn;
   AttackOption attack;
   attack.max_enemies = reach;
@@ -2550,6 +2551,65 @@ TEST(CombatSimTest, AHeldStackLiftsTheIceSwingItCameFrom) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.955, 1e-9);  // 10 x 2.0, four held
   sim.Advance(params, 1.0);
   EXPECT_NEAR(sim.target_hp_fraction(), 0.935, 1e-9);  // capped, so no more
+}
+
+// A boss fight is the roster it opened with: nothing refills, and an emptied
+// queue stays empty however long the fight runs on.
+TEST(CombatSimTest, NoRespawnSecondsMeansNothingComesBack) {
+  Mob mob = MakeMob("Arm", 10);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&mob, 100.0, 2)});
+  CombatSim sim;
+  for (int i = 0; i < 100; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_TRUE(sim.respawning());
+  EXPECT_TRUE(sim.roster().empty());
+}
+
+// The roster is one entry per mob rather than the merged window, and each
+// entry keeps its id as the ones beside it die -- what pins one of Zakum's
+// arms to one panel.
+TEST(CombatSimTest, TheRosterHoldsEveryMobAndKeepsItsIds) {
+  Mob mob = MakeMob("Arm", 100, 110);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&mob, 60.0, 3)});
+  CombatSim sim;
+  sim.Advance(params, 0.0);
+  ASSERT_EQ(sim.roster().size(), 3u);
+  EXPECT_EQ(sim.roster()[0].name, "Arm");
+  EXPECT_DOUBLE_EQ(sim.roster()[1].hp_fraction, 1.0);
+  std::vector<int> ids;
+  for (const MobStatus& status : sim.roster()) {
+    ids.push_back(status.id);
+  }
+  EXPECT_EQ(std::set<int>(ids.begin(), ids.end()).size(), 3u);
+
+  // Two swings kill the front mob and a third wounds the next; the survivors
+  // keep the ids they had.
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_EQ(sim.roster().size(), 2u);
+  EXPECT_EQ(sim.roster()[0].id, ids[1]);
+  EXPECT_EQ(sim.roster()[1].id, ids[2]);
+  EXPECT_LT(sim.roster()[0].hp_fraction, 1.0);
+  EXPECT_DOUBLE_EQ(sim.roster()[1].hp_fraction, 1.0);
+}
+
+// The encounter name is what the fight watches to know it is somewhere else,
+// so a boss phase turning over rebuilds the roster the way a map change does.
+TEST(CombatSimTest, ANewEncounterNameRefillsTheQueue) {
+  Mob arm = MakeMob("Arm", 100);
+  Mob body = MakeMob("Body", 500);
+  CombatParams first = MakeParams(1.0, 0.0, {MakeType(&arm, 1000.0, 1)});
+  CombatSim sim;
+  sim.Advance(first, 1.0);
+  EXPECT_TRUE(sim.roster().empty());
+
+  CombatParams second =
+      MakeParams(1.0, 0.0, {MakeType(&body, 10.0, 1)}, 1, "phase2");
+  sim.Advance(second, 0.0);
+  ASSERT_EQ(sim.roster().size(), 1u);
+  EXPECT_EQ(sim.roster()[0].name, "Body");
 }
 
 }  // namespace

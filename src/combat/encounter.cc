@@ -943,7 +943,7 @@ const std::vector<AttackOption>& CombatParams::TriggeredAttacks(
 
 CombatParams ComputeCombatParams(const GameState& state) {
   CombatParams params;
-  params.map = state.current_map;
+  params.encounter = state.current_map;
   std::map<std::string, MapData>::const_iterator map_it =
       state.maps.find(state.current_map);
   const std::map<EquipSlot, EquipInstance>& equipped =
