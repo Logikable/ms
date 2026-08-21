@@ -12,6 +12,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 20
+required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true
 base_delay_ms: 660
 max_enemies: 10

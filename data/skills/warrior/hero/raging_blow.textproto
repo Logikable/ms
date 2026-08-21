@@ -15,6 +15,10 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
 job_advancement: JOB_ADVANCEMENT_HERO
 max_level: 30
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
 exceeds_master_level: true
 base_delay_ms: 660
 max_enemies: 8

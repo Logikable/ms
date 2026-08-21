@@ -18,6 +18,10 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 30
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
 exceeds_master_level: true
 required_skill {
   skill_name: "Divine Charge"

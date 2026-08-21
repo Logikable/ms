@@ -7,6 +7,10 @@ description: "Zip forward in a flash, cutting the enemies in your path."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 9
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
 base_delay_ms: 630
 cooldown_seconds: 4.0
 max_enemies: 6

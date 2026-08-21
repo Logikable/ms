@@ -11,6 +11,7 @@ description: "Attack multiple enemies with holy arrows."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10
+required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 870
 max_enemies: 4
 lines: 3

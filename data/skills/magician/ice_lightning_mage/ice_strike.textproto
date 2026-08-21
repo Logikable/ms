@@ -12,6 +12,7 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 20
+required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 840
 max_enemies: 8
 lines: 4

@@ -6,6 +6,7 @@ description: "Fire multiple arrows that fly like the wind."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 20
+required_equip_type: EQUIP_TYPE_BOW
 base_delay_ms: 810
 max_enemies: 6
 lines: 3

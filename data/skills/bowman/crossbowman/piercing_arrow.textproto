@@ -11,6 +11,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20
+required_equip_type: EQUIP_TYPE_CROSSBOW
 base_delay_ms: 780
 max_enemies: 6
 lines: 4

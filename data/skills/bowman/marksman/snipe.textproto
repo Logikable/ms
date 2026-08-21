@@ -13,6 +13,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 30
+required_equip_type: EQUIP_TYPE_CROSSBOW
 exceeds_master_level: true
 base_delay_ms: 660
 max_enemies: 1

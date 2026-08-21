@@ -10,6 +10,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_PRIEST
 max_level: 20
+required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 900
 max_enemies: 6
 lines: 4

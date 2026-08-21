@@ -17,6 +17,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_BOW_MASTER
 max_level: 30
+required_equip_type: EQUIP_TYPE_BOW
 exceeds_master_level: true
 base_delay_ms: 120
 fixed_delay: true

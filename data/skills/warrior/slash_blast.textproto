@@ -6,6 +6,14 @@ description: "Attack nearby enemies all at once."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_SPEAR
+required_equip_type: EQUIP_TYPE_POLEARM
 base_delay_ms: 750
 max_enemies: 6
 base { skill_pct: 1.83 }

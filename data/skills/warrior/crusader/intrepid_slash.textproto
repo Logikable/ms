@@ -7,6 +7,10 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
 base_delay_ms: 810
 max_enemies: 6
 lines: 3

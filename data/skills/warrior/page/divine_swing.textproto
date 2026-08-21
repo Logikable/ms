@@ -7,6 +7,10 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 20
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
 base_delay_ms: 840
 max_enemies: 6
 lines: 4

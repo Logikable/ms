@@ -10,6 +10,7 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_LIGHTNING
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 10
+required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 810
 max_enemies: 6
 lines: 3

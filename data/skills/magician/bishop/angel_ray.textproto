@@ -14,6 +14,7 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_BENEVOLENCE
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 30
+required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true
 base_delay_ms: 660
 max_enemies: 1

@@ -15,6 +15,7 @@ kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 30
+required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true
 base_delay_ms: 900
 max_enemies: 15

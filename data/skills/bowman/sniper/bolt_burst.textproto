@@ -10,6 +10,7 @@ description: "Fire arrows in all directions, striking the enemies around you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 20
+required_equip_type: EQUIP_TYPE_CROSSBOW
 base_delay_ms: 660
 cooldown_seconds: 7.0
 max_enemies: 8

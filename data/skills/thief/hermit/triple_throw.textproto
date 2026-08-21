@@ -15,6 +15,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 20
+required_equip_type: EQUIP_TYPE_CLAW
 base_delay_ms: 630
 max_enemies: 1
 lines: 3

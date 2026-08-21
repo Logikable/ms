@@ -13,6 +13,7 @@ description:
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 20
+required_equip_type: EQUIP_TYPE_BOW
 base_delay_ms: 120
 fixed_delay: true
 max_enemies: 4

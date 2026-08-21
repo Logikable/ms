@@ -516,6 +516,119 @@ TEST(SkillDataTest, EveryWeaponASkillDemandsHasAName) {
 
 // A bonus for a weapon the skill itself will not work with can never be read:
 // the skill lapses whole before the bonus is ever reached.
+// Every attack names the weapons it is swung with. The starter Sword and Long
+// Sword are holdable by every class, so an ungated attack is a magician
+// casting Energy Bolt with a longsword -- and, within a class, a Fighter
+// swinging Brandish off a spear.
+TEST(SkillDataTest, EveryAttackNamesTheWeaponsItNeeds) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (entry.second.kind() != SKILL_KIND_ATTACK) {
+      continue;
+    }
+    EXPECT_GT(entry.second.required_equip_type_size(), 0)
+        << entry.first << " can be swung with anything the class can hold";
+  }
+}
+
+// What each book's attacks are swung with. Written out rather than derived:
+// which weapons a line masters is a decision, and a book added without one
+// fails here until somebody makes it. The rogue's first book is the one that
+// holds two sets -- Double Stab is a dagger and Lucky Seven a claw, which is
+// the whole reason the branch exists.
+struct BookWeapons {
+  JobAdvancement book;
+  std::set<EquipType> weapons;
+};
+
+const std::set<EquipType> kSwordAxe = {
+    EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD,
+    EQUIP_TYPE_ONE_HANDED_AXE, EQUIP_TYPE_TWO_HANDED_AXE};
+const std::set<EquipType> kSwordBlunt = {
+    EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD,
+    EQUIP_TYPE_ONE_HANDED_BLUNT, EQUIP_TYPE_TWO_HANDED_BLUNT};
+const std::set<EquipType> kSpears = {EQUIP_TYPE_SPEAR, EQUIP_TYPE_POLEARM};
+
+std::vector<BookWeapons> ExpectedBookWeapons() {
+  std::set<EquipType> every_warrior = kSwordAxe;
+  every_warrior.insert(kSwordBlunt.begin(), kSwordBlunt.end());
+  every_warrior.insert(kSpears.begin(), kSpears.end());
+  return {
+      {JOB_ADVANCEMENT_SWORDMAN, every_warrior},
+      {JOB_ADVANCEMENT_FIGHTER, kSwordAxe},
+      {JOB_ADVANCEMENT_CRUSADER, kSwordAxe},
+      {JOB_ADVANCEMENT_HERO, kSwordAxe},
+      {JOB_ADVANCEMENT_PAGE, kSwordBlunt},
+      {JOB_ADVANCEMENT_WHITE_KNIGHT, kSwordBlunt},
+      {JOB_ADVANCEMENT_PALADIN, kSwordBlunt},
+      {JOB_ADVANCEMENT_SPEARMAN, kSpears},
+      {JOB_ADVANCEMENT_BERSERKER, kSpears},
+      {JOB_ADVANCEMENT_DARK_KNIGHT, kSpears},
+      {JOB_ADVANCEMENT_ARCHER, {EQUIP_TYPE_BOW, EQUIP_TYPE_CROSSBOW}},
+      {JOB_ADVANCEMENT_HUNTER, {EQUIP_TYPE_BOW}},
+      {JOB_ADVANCEMENT_RANGER, {EQUIP_TYPE_BOW}},
+      {JOB_ADVANCEMENT_BOW_MASTER, {EQUIP_TYPE_BOW}},
+      {JOB_ADVANCEMENT_CROSSBOWMAN, {EQUIP_TYPE_CROSSBOW}},
+      {JOB_ADVANCEMENT_SNIPER, {EQUIP_TYPE_CROSSBOW}},
+      {JOB_ADVANCEMENT_MARKSMAN, {EQUIP_TYPE_CROSSBOW}},
+      {JOB_ADVANCEMENT_ROGUE, {EQUIP_TYPE_DAGGER, EQUIP_TYPE_CLAW}},
+      {JOB_ADVANCEMENT_ASSASSIN, {EQUIP_TYPE_CLAW}},
+      {JOB_ADVANCEMENT_HERMIT, {EQUIP_TYPE_CLAW}},
+      {JOB_ADVANCEMENT_NIGHT_LORD, {EQUIP_TYPE_CLAW}},
+      {JOB_ADVANCEMENT_BANDIT, {EQUIP_TYPE_DAGGER}},
+      {JOB_ADVANCEMENT_CHIEF_BANDIT, {EQUIP_TYPE_DAGGER}},
+      {JOB_ADVANCEMENT_SHADOWER, {EQUIP_TYPE_DAGGER}},
+      {JOB_ADVANCEMENT_MAGICIAN, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_FIRE_POISON_WIZARD, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_FIRE_POISON_MAGE, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_CLERIC, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_PRIEST, {EQUIP_TYPE_STAFF}},
+      {JOB_ADVANCEMENT_BISHOP, {EQUIP_TYPE_STAFF}},
+  };
+}
+
+// A line masters what it masters: every attack in a book is swung with the
+// book's own weapons, and nothing else in the class will swing it. A book
+// whose attacks disagree with the table above is a mapping mistake.
+TEST(SkillDataTest, EveryAttackIsSwungWithItsBooksWeapons) {
+  std::map<JobAdvancement, std::set<EquipType>> expected;
+  for (const BookWeapons& book : ExpectedBookWeapons()) {
+    expected[book.book] = book.weapons;
+  }
+  std::set<JobAdvancement> seen;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.kind() != SKILL_KIND_ATTACK) {
+      continue;
+    }
+    seen.insert(skill.job_advancement());
+    std::map<JobAdvancement, std::set<EquipType>>::const_iterator it =
+        expected.find(skill.job_advancement());
+    ASSERT_NE(it, expected.end())
+        << entry.first << "'s book names no weapons in this test";
+    std::set<EquipType> weapons = WeaponLists(skill).front();
+    // The rogue's book splits, so each of its attacks takes one of its two.
+    if (skill.job_advancement() == JOB_ADVANCEMENT_ROGUE) {
+      EXPECT_EQ(weapons.size(), 1u) << entry.first;
+      for (EquipType type : weapons) {
+        EXPECT_GT(it->second.count(type), 0u) << entry.first;
+      }
+      continue;
+    }
+    EXPECT_EQ(weapons, it->second)
+        << entry.first << " is not swung with its book's weapons";
+  }
+  // Every book named above must still hold attacks, or the table is carrying
+  // a line that no longer exists.
+  for (const BookWeapons& book : ExpectedBookWeapons()) {
+    EXPECT_GT(seen.count(book.book), 0u)
+        << JobAdvancement_Name(book.book) << " has no attacks left";
+  }
+}
+
 TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;

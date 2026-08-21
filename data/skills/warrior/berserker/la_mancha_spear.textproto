@@ -6,6 +6,8 @@ description: "Spin your spear to attack the enemies in front of you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20
+required_equip_type: EQUIP_TYPE_SPEAR
+required_equip_type: EQUIP_TYPE_POLEARM
 base_delay_ms: 810
 max_enemies: 10
 lines: 4
