@@ -88,10 +88,12 @@ std::string PadLeft(const std::string& s, int width);
 // Accessory" rather than as much as fits and one word left over.
 //
 // `tail` is what the LAST line leaves free, for a value that sits beside it --
-// a rate, a price. A word too long for the line gets one to itself and runs
+// a rate, a price. `indent` is the margin every line after the first is
+// returned with, which is what makes a wrapped name read as one name rather
+// than as two rows. A word too long for the line gets one to itself and runs
 // over rather than being cut: half a name names nothing.
 std::vector<std::string> WrapBalanced(const std::string& text, int width,
-                                      int tail = 0);
+                                      int tail = 0, int indent = 0);
 
 // Formats an integer with thousands-separator commas (e.g. 1234567 ->
 // "1,234,567"). Handles negatives.

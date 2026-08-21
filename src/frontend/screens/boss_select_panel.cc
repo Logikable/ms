@@ -26,6 +26,9 @@ constexpr int kDifficultyWidth = 10;
 // breathe as a number gains a digit.
 constexpr int kLabelWidth = 12;
 constexpr int kValueWidth = 14;
+// What the rest of a wrapped name is set in from its first line, so the two
+// rows read as one name.
+constexpr int kNameIndent = 2;
 // A column of clearance on each side, the way every panel here is padded.
 constexpr int kDetailWidth = kLabelWidth + kValueWidth + 2;
 
@@ -291,8 +294,8 @@ void BossSelectPanel::RenderRewards(std::vector<ftxui::Element>& rows,
     // in the same column every other value on this panel stands in.
     std::string chance = DropChance(drop.per_kill());
     int width = kDetailWidth - 2;
-    std::vector<std::string> lines =
-        WrapBalanced(name, width, static_cast<int>(chance.size()) + 1);
+    std::vector<std::string> lines = WrapBalanced(
+        name, width, static_cast<int>(chance.size()) + 1, kNameIndent);
     for (int i = 0; i + 1 < static_cast<int>(lines.size()); ++i) {
       rows.push_back(ftxui::text(" " + PadRight(lines[i], width) + " "));
     }

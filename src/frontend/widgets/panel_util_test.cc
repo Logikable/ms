@@ -1101,6 +1101,18 @@ TEST(WrapBalancedTest, TheTailIsOnlyChargedToTheLastLine) {
 
 // A word with nowhere to fit runs over rather than being cut, and nothing at
 // all is one empty line rather than none.
+// The margin is what makes two rows read as one name. It is charged to the
+// lines that carry it, so the balance is of what ends up on screen.
+TEST(WrapBalancedTest, EveryLineButTheFirstCarriesTheMargin) {
+  EXPECT_EQ(WrapBalanced("Aquatic Letter Eye Accessory", 26, 4, 2),
+            (std::vector<std::string>{"Aquatic Letter", "  Eye Accessory"}));
+  EXPECT_EQ(WrapBalanced("Zakum's Soul Shard", 26, 5, 2),
+            (std::vector<std::string>{"Zakum's Soul Shard"}));
+  // Room for "Beginner Sword" and the margin, but not for both at once.
+  EXPECT_EQ(WrapBalanced("A Beginner Sword", 14, 0, 2),
+            (std::vector<std::string>{"A Beginner", "  Sword"}));
+}
+
 TEST(WrapBalancedTest, AWordTooLongKeepsItsOwnLine) {
   EXPECT_EQ(WrapBalanced("Supercalifragilistic sword", 10, 0),
             (std::vector<std::string>{"Supercalifragilistic", "sword"}));

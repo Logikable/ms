@@ -204,7 +204,7 @@ std::string PadLeft(const std::string& s, int width) {
 }
 
 std::vector<std::string> WrapBalanced(const std::string& text, int width,
-                                      int tail) {
+                                      int tail, int indent) {
   std::vector<std::string> words;
   std::istringstream stream(text);
   std::string word;
@@ -222,7 +222,9 @@ std::vector<std::string> WrapBalanced(const std::string& text, int width,
   std::vector<int> next(count + 1, count);
   for (int i = count - 1; i >= 0; --i) {
     best[i] = {count + 1, 0};
-    int line = 0;
+    // Every line but the first carries the margin, and a line starting at any
+    // word but the first is never the first line.
+    int line = i > 0 ? indent : 0;
     for (int j = i; j < count; ++j) {
       line += static_cast<int>(words[j].size()) + (j > i ? 1 : 0);
       // The last line of all is the one that shares its row with the value.
@@ -240,7 +242,7 @@ std::vector<std::string> WrapBalanced(const std::string& text, int width,
   }
   std::vector<std::string> lines;
   for (int i = 0; i < count; i = next[i]) {
-    std::string line = words[i];
+    std::string line = (i > 0 ? std::string(indent, ' ') : "") + words[i];
     for (int j = i + 1; j < next[i]; ++j) {
       line += " " + words[j];
     }
