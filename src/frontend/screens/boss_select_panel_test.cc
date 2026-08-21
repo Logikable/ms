@@ -293,9 +293,10 @@ TEST(BossSelectPanelTest, DifficultyIsPerFightAndClampsToItsEnds) {
   EXPECT_EQ(panel.selected_title(), "Normal Balrog");
 }
 
-// The cursor is the lit difficulty rather than a caret: Left and Right act on
-// that cell. Both panels keep a column of clearance inside each border.
-TEST(BossSelectPanelTest, TheDifficultyIsTheHighlight) {
+// Every difficulty a fight has stands on its row at once, and the cursor is
+// the lit cell rather than a caret. Both panels keep a column of clearance
+// inside each border.
+TEST(BossSelectPanelTest, TheGridShowsEveryDifficultyAndLightsTheChosenOne) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
   BossSelectPanel panel(state);
@@ -304,13 +305,24 @@ TEST(BossSelectPanelTest, TheDifficultyIsTheHighlight) {
   ftxui::Render(screen, panel.Render());
   std::string out = screen.ToString();
   EXPECT_EQ(out.find(">"), std::string::npos) << "no caret";
+  std::string balrog = Row(screen, 3);
+  EXPECT_NE(balrog.find("Easy"), std::string::npos);
+  EXPECT_NE(balrog.find("Normal"), std::string::npos)
+      << "both columns stand there, whichever is chosen";
   EXPECT_NE(out.find("\033[7mEasy"), std::string::npos)
-      << "the highlighted fight's difficulty is inverted";
+      << "the chosen cell is inverted";
+  panel.ChangeDifficulty(1);
+  ftxui::Screen moved = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                              ftxui::Dimension::Fixed(16));
+  ftxui::Render(moved, panel.Render());
+  out = moved.ToString();
+  EXPECT_EQ(out.find("\033[7mEasy"), std::string::npos);
+  EXPECT_NE(out.find("\033[7mNormal"), std::string::npos)
+      << "Right lights the next column instead of replacing the name";
   std::string header = Row(screen, 1);
   EXPECT_NE(header.find("│ Name"), std::string::npos)
       << "a column of clearance";
-  EXPECT_NE(header.find("Difficulty │"), std::string::npos) << "on both sides";
-  EXPECT_NE(Row(screen, 3).find("Level"), std::string::npos);
+  EXPECT_NE(header.find(" │"), std::string::npos) << "on both sides";
   EXPECT_NE(Row(screen, 3).find(" │"), std::string::npos)
       << "the detail panel too";
 }

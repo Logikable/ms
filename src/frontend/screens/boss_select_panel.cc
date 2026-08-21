@@ -225,41 +225,52 @@ ResetPeriod BossSelectPanel::selected_reset() const {
   return difficulty == nullptr ? RESET_PERIOD_UNSPECIFIED : difficulty->reset();
 }
 
+ftxui::Element BossSelectPanel::RenderDifficultyCell(int boss, int at) const {
+  const Boss& fight = state_.bosses.at(bosses_[boss]);
+  if (at >= fight.difficulties_size()) {
+    return ftxui::text(std::string(kDifficultyWidth, ' '));
+  }
+  const BossDifficulty& difficulty = fight.difficulties(at);
+  ftxui::Element name = ftxui::text(difficulty.name());
+  // The cursor is the lit cell rather than a caret on the row, since Left and
+  // Right walk the row and Up and Down the column.
+  if (boss == selected_ && at == difficulties_[boss]) {
+    name = std::move(name) | ftxui::inverted;
+  }
+  // Dim is the door: a fight the character has not levelled up to -- or one
+  // that is not built yet -- is still listed and still readable, and Enter on
+  // it says what it wants. Every cell answers for itself, so Normal can be
+  // open while Chaos beside it is not.
+  if (!Unlocked(difficulty) || difficulty.coming_soon()) {
+    name = std::move(name) | ftxui::dim;
+  }
+  int pad = std::max(
+      0, kDifficultyWidth - static_cast<int>(difficulty.name().size()));
+  return ftxui::hbox({std::move(name), ftxui::text(std::string(pad, ' '))});
+}
+
 ftxui::Element BossSelectPanel::RenderBossList() const {
+  int columns = 0;
+  for (const std::string& key : bosses_) {
+    columns = std::max(columns, state_.bosses.at(key).difficulties_size());
+  }
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(" " + PadRight("Name", kBossNameWidth) +
-                             PadRight("Difficulty", kDifficultyWidth) + " "));
+  rows.push_back(
+      ftxui::text(" " + PadRight("Name", kBossNameWidth) +
+                  PadRight("Difficulty", columns * kDifficultyWidth) + " "));
   rows.push_back(ThemedSeparator());
   if (bosses_.empty()) {
     rows.push_back(EmptyState("empty"));
   }
   for (int i = 0; i < static_cast<int>(bosses_.size()); ++i) {
-    const Boss& boss = state_.bosses.at(bosses_[i]);
-    std::string difficulty;
-    if (difficulties_[i] < boss.difficulties_size()) {
-      difficulty = boss.difficulties(difficulties_[i]).name();
+    std::vector<ftxui::Element> cells;
+    cells.push_back(ftxui::text(
+        " " + PadRight(state_.bosses.at(bosses_[i]).name(), kBossNameWidth)));
+    for (int at = 0; at < columns; ++at) {
+      cells.push_back(RenderDifficultyCell(i, at));
     }
-    // The difficulty is the highlight rather than a caret on the row: Left
-    // and Right change it, so the lit cell is the one they act on.
-    ftxui::Element cell = ftxui::text(difficulty);
-    if (i == selected_) {
-      cell = std::move(cell) | ftxui::inverted;
-    }
-    // Dim is the door: a fight the character has not levelled up to -- or one
-    // that is not built yet -- is still listed and still readable, and Enter
-    // on it says what it wants.
-    if (difficulties_[i] < boss.difficulties_size() &&
-        (!Unlocked(boss.difficulties(difficulties_[i])) ||
-         boss.difficulties(difficulties_[i]).coming_soon())) {
-      cell = std::move(cell) | ftxui::dim;
-    }
-    int pad =
-        std::max(0, kDifficultyWidth - static_cast<int>(difficulty.size()));
-    rows.push_back(ftxui::hbox({
-        ftxui::text(" " + PadRight(boss.name(), kBossNameWidth)),
-        std::move(cell),
-        ftxui::text(std::string(pad + 1, ' ')),
-    }));
+    cells.push_back(ftxui::text(" "));
+    rows.push_back(ftxui::hbox(std::move(cells)));
   }
   return ThemedWindow(" Bosses ", ftxui::vbox(std::move(rows)));
 }

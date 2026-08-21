@@ -1,12 +1,12 @@
-/* BossSelectPanel is the screen for picking a boss fight. The left half lists
- * the fights, one per row, with the difficulty the cursor has chosen for each;
- * the right half describes whichever is highlighted -- its level, what each
- * phase is holding, the defence it stands behind, the clock, and how often it
- * comes back.
+/* BossSelectPanel is the screen for picking a boss fight. The left half is a
+ * grid: one row per fight, one column per difficulty, so every fight in the
+ * game can be read at once. The right half describes whichever cell is
+ * highlighted -- its level, what each phase is holding, the defence it stands
+ * behind, the clock, and how often it comes back.
  *
  * Up and Down move between fights, Left and Right between difficulties. A
- * difficulty is remembered per fight, so walking down the list and back comes
- * back to the one that was chosen.
+ * difficulty is remembered per fight, so walking down the grid and back comes
+ * back to the column that was chosen.
  *
  * The panel is a view: it moves its own cursor and never writes to the game
  * state. The controller reads selected_boss() when the player confirms.
@@ -74,6 +74,9 @@ class BossSelectPanel {
 
  private:
   ftxui::Element RenderBossList() const;
+  // One cell of the difficulty grid, padded to its column. Blank for a fight
+  // with fewer difficulties than the widest one has.
+  ftxui::Element RenderDifficultyCell(int boss, int at) const;
   ftxui::Element RenderDetail() const;
   // Appends one HP row per phase. "HP" alone for a fight that is one monster
   // standing there; a fight with phases numbers them, because then which HP
