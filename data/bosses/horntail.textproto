@@ -2,21 +2,21 @@ name: "Horntail"
 difficulties {
   name: "Normal"
   # Two heads fought one at a time before the dragon himself, as in GMS. Each
-  # stands in the corner its name says, with the player between them at the
-  # top of the arena and a row of clearance above.
+  # stands against the edge its name says, at the top of the arena with the
+  # player out in the middle.
   phases {
     spawns { mob: "horntail_left_head" count: 1 }
-    spots { x: 7 y: 1 }
-    player { x: 4 y: 1 }
-    arena_width: 10
-    arena_height: 4
+    spots { x: 8 y: 0 }
+    player { x: 4 y: 0 }
+    arena_width: 9
+    arena_height: 6
   }
   phases {
     spawns { mob: "horntail_right_head" count: 1 }
-    spots { x: 1 y: 1 }
-    player { x: 4 y: 1 }
-    arena_width: 10
-    arena_height: 4
+    spots { x: 0 y: 0 }
+    player { x: 4 y: 0 }
+    arena_width: 9
+    arena_height: 6
   }
   # The whole dragon at once, laid out the way his sprite is: three heads over
   # a pair of hands and the wings, the legs and the tail beneath them, and the
@@ -30,17 +30,17 @@ difficulties {
     spawns { mob: "horntail_right_hand" count: 1 }
     spawns { mob: "horntail_legs" count: 1 }
     spawns { mob: "horntail_tails" count: 1 }
-    spots { x: 2 y: 1 }
-    spots { x: 4 y: 1 }
-    spots { x: 6 y: 1 }
+    spots { x: 2 y: 0 }
+    spots { x: 4 y: 0 }
+    spots { x: 6 y: 0 }
     spots { x: 1 y: 2 }
     spots { x: 4 y: 2 }
     spots { x: 7 y: 2 }
-    spots { x: 4 y: 3 }
-    spots { x: 6 y: 3 }
-    player { x: 0 y: 3 }
+    spots { x: 4 y: 4 }
+    spots { x: 6 y: 4 }
+    player { x: 0 y: 4 }
     arena_width: 9
-    arena_height: 4
+    arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
   # Twice what the other two allow, and still out of reach at the level he

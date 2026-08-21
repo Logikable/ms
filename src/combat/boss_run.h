@@ -146,10 +146,9 @@ class BossRun {
   const std::vector<BossSlot>& slots() const {
     return slots_;
   }
-  // Where the player stands in the current phase, and how much room the arena
-  // holds around everyone. Width is in the half-panel steps a spot uses,
-  // height in rows; both are measured off the spots when the phase names
-  // neither.
+  // Where the player stands in the current phase, and how many cells the
+  // arena holds around everyone. Both are measured off the spots when the
+  // phase names neither, which leaves the arena no margin.
   ArenaSpot player_spot() const;
   int arena_width() const;
   int arena_height() const;

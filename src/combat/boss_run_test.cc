@@ -159,8 +159,9 @@ TEST(BossRunTest, EveryBarStandsWhereItsPhasePutsIt) {
   EXPECT_EQ(run.slots()[1].x, 4);
   EXPECT_EQ(run.player_spot().x(), 2);
   EXPECT_EQ(run.player_spot().y(), 1);
-  // Two steps to hold the rightmost bar, and a row under it for the player.
-  EXPECT_EQ(run.arena_width(), 6);
+  // No margin: the arena is the cell furthest right, and the row under it the
+  // player stands in.
+  EXPECT_EQ(run.arena_width(), 5);
   EXPECT_EQ(run.arena_height(), 2);
 }
 

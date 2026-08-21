@@ -2,11 +2,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "ftxui/dom/node.hpp"
+#include "ftxui/screen/box.hpp"
 #include "src/combat/boss_run.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
@@ -76,59 +80,120 @@ ftxui::Element PlayerPanel(const BossRun& run) {
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
-// One panel and the spot it stands in, while a row is being laid out.
+// One panel and the cell it stands in.
 struct ArenaCell {
   int x = 0;
-  ftxui::Element panel;
+  int y = 0;
 };
 
-// One row of the arena: its panels in their columns, and empty space
-// everywhere else. Fixed height, so a row of short bars leaves the row below
-// it where it was.
-ftxui::Element ArenaRow(std::vector<ArenaCell> cells, int width, int height) {
-  std::sort(cells.begin(), cells.end(),
-            [](const ArenaCell& a, const ArenaCell& b) { return a.x < b.x; });
-  ftxui::Elements row;
-  int column = 0;
-  for (ArenaCell& cell : cells) {
-    int start = std::max(column, cell.x * kArenaStep);
-    if (start > column) {
-      row.push_back(ftxui::text(std::string(start - column, ' ')));
-    }
-    row.push_back(std::move(cell.panel));
-    column = start + kBossPanelWidth;
+// The arena's own layout: the panels handed to it are spread over whatever box
+// it is given, each one centred in its cell of an `columns` x `rows` grid.
+//
+// A grid rather than a row of stretched gaps, because the cells have to line
+// up DOWN the screen as well as across it: Zakum's arms stand four to a side
+// with the player between them, and a row of two would otherwise share out its
+// spare room differently from a row of three.
+//
+// Panels keep the size they asked for. Where the cells are too narrow to hold
+// them apart the panels are pushed right, in order, so they touch rather than
+// overlap -- a bar half-drawn over another one names neither.
+class ArenaNode : public ftxui::Node {
+ public:
+  ArenaNode(ftxui::Elements panels, std::vector<ArenaCell> cells, int columns,
+            int rows)
+      : ftxui::Node(std::move(panels)),
+        cells_(std::move(cells)),
+        columns_(std::max(1, columns)),
+        rows_(std::max(1, rows)) {
   }
-  int columns = width * kArenaStep;
-  if (columns > column) {
-    row.push_back(ftxui::text(std::string(columns - column, ' ')));
-  }
-  return ftxui::hbox(std::move(row)) |
-         ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, height);
-}
 
-// The arena: every bar of the phase in the spot the fight gave it, and the
-// player among them. Every row is the height of the tallest panel that could
-// stand in it, so the grid is square and nothing shifts as parts die.
+  void ComputeRequirement() override {
+    requirement_ = ftxui::Requirement();
+    std::map<int, int> row_width;
+    int tallest = 0;
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+      children_[i]->ComputeRequirement();
+      row_width[cells_[i].y] += children_[i]->requirement().min_x;
+      tallest = std::max(tallest, children_[i]->requirement().min_y);
+    }
+    for (const std::pair<const int, int>& row : row_width) {
+      requirement_.min_x = std::max(requirement_.min_x, row.second);
+    }
+    requirement_.min_y = tallest * static_cast<int>(row_width.size());
+    // It is the arena: it takes the room it is offered rather than the room
+    // its bars happen to need.
+    requirement_.flex_grow_x = 1;
+    requirement_.flex_grow_y = 1;
+  }
+
+  void SetBox(ftxui::Box box) override {
+    ftxui::Node::SetBox(box);
+    std::map<int, std::vector<std::size_t>> by_row;
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+      by_row[cells_[i].y].push_back(i);
+    }
+    for (std::pair<const int, std::vector<std::size_t>>& row : by_row) {
+      PlaceRow(box, row.first, row.second);
+    }
+  }
+
+ private:
+  // Where a cell's centre falls, as a share of the box it is drawn in.
+  static int CentreOf(int cell, int cells, int low, int high) {
+    double span = static_cast<double>(high - low + 1) / cells;
+    return low + static_cast<int>((cell + 0.5) * span);
+  }
+
+  void PlaceRow(ftxui::Box box, int y, std::vector<std::size_t> row) {
+    std::sort(row.begin(), row.end(), [this](std::size_t a, std::size_t b) {
+      return cells_[a].x < cells_[b].x;
+    });
+    int height = children_[row.front()]->requirement().min_y;
+    int top = CentreOf(y, rows_, box.y_min, box.y_max) - height / 2;
+    top = std::clamp(top, box.y_min, std::max(box.y_min, box.y_max - height));
+    // Filled from the left: the first panel takes its own place, and each one
+    // after it stands where the cell asks or against its neighbour.
+    int taken = box.x_min;
+    for (std::size_t i : row) {
+      int width = children_[i]->requirement().min_x;
+      int left =
+          CentreOf(cells_[i].x, columns_, box.x_min, box.x_max) - width / 2;
+      left =
+          std::max(std::clamp(left, box.x_min, box.x_max - width + 1), taken);
+      children_[i]->SetBox({left, left + width - 1, top, top + height - 1});
+      taken = left + width;
+    }
+  }
+
+  std::vector<ArenaCell> cells_;
+  int columns_ = 1;
+  int rows_ = 1;
+};
+
+// The arena: every bar of the phase in the cell the fight gave it, and the
+// player among them, spread over the whole of the screen under the clock.
 ftxui::Element Arena(const BossRun& run) {
   const std::vector<BossSlot>& slots = run.slots();
-  int mob_rows = MobBarRows(slots);
-  int row_height = kPanelBorder + std::max(mob_rows, kPlayerBarRows);
+  // One height for every panel in the phase, monsters and player alike, so a
+  // row of bars sits on one line however many rows their names took.
+  int rows = kPanelBorder + std::max(MobBarRows(slots), kPlayerBarRows);
   int height = std::max(run.arena_height(), run.player_spot().y() + 1);
-  std::vector<std::vector<ArenaCell>> rows(height);
+  ftxui::Elements panels;
+  std::vector<ArenaCell> cells;
   for (const BossSlot& slot : slots) {
     if (!slot.visible || slot.y < 0 || slot.y >= height) {
       continue;
     }
-    rows[slot.y].push_back({slot.x, MobBar(slot, mob_rows)});
+    panels.push_back(MobBar(slot, MobBarRows(slots)) |
+                     ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
+    cells.push_back({slot.x, slot.y});
   }
-  int player_row = std::clamp(run.player_spot().y(), 0, height - 1);
-  rows[player_row].push_back({run.player_spot().x(), PlayerPanel(run)});
-
-  ftxui::Elements arena;
-  for (std::vector<ArenaCell>& row : rows) {
-    arena.push_back(ArenaRow(std::move(row), run.arena_width(), row_height));
-  }
-  return ftxui::vbox(std::move(arena)) | ftxui::center;
+  panels.push_back(PlayerPanel(run) |
+                   ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
+  cells.push_back({run.player_spot().x(),
+                   std::clamp(run.player_spot().y(), 0, height - 1)});
+  return std::make_shared<ArenaNode>(std::move(panels), std::move(cells),
+                                     run.arena_width(), height);
 }
 
 // The clock, in a box of its own under the heading.
@@ -165,13 +230,14 @@ std::string FightHeading(const BossRun& run) {
 }
 
 ftxui::Element BossFightPanel(const BossRun& run) {
+  // The arena takes everything under the clock: what it does with the room is
+  // the phase's own business, and a fight drawn small in the middle of a wide
+  // screen is not what standing in an arena looks like.
   return ftxui::vbox({
       ProgressBar(static_cast<float>(run.phase_hp_fraction()), kRed,
                   FightHeading(run)),
       ClockPanel(run),
-      ftxui::filler(),
-      Arena(run),
-      ftxui::filler(),
+      Arena(run) | ftxui::flex,
   });
 }
 

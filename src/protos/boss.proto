@@ -12,10 +12,11 @@ enum ResetPeriod {
   RESET_PERIOD_WEEKLY = 2;
 }
 
-// Where one bar stands in the arena. `x` is in half-panel steps from the left
-// edge, so a part can lean off centre without a column of its own; `y` is a
-// row. The dragon's legs are under his wings because his sprite puts them
-// there, and the numbers here are what says so.
+// Where one bar stands in the arena: a cell on a grid `arena_width` cells
+// across and `arena_height` down. Nothing here is a column count -- the arena
+// stretches to the screen it is drawn on, and what these say is which bars sit
+// further apart than which. The dragon's legs are under his wings because his
+// sprite puts them there, and the numbers here are what says so.
 message ArenaSpot {
   int32 x = 1;
   int32 y = 2;
@@ -30,9 +31,10 @@ message BossPhase {
   // place; see src/data_test/boss_test.cc.
   repeated ArenaSpot spots = 2;
   ArenaSpot player = 3;
-  // How much room the arena keeps, in the same units the spots use. Unset
-  // means it is measured off the spots themselves, which is a phase that wants
-  // no margin: what these buy is the empty corner a part is placed against.
+  // How many cells the arena holds. The room left over is shared out among
+  // the gaps, so these decide the margins as much as the spacing: a part in
+  // the last cell stands against the edge of the screen. Unset is measured off
+  // the spots themselves, which is a phase that wants no margin at all.
   int32 arena_width = 4;
   int32 arena_height = 5;
 }

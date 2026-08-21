@@ -148,11 +148,9 @@ TEST(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
-// Where the parts stand is data, and a spot that names nothing or overlaps its
-// neighbour is a bar drawn on top of another one.
+// Where the parts stand is data, and two of them in one cell is a bar drawn on
+// top of another one.
 TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
-  // Panels are two steps wide, so two on one row need two steps between them.
-  const int kStepsPerPanel = 2;
   int placed = 0;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
@@ -165,7 +163,7 @@ TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
           ++placed;
           EXPECT_EQ(phase.spawns(i).count(), 1)
               << where << " stands more than one monster in one spot";
-          EXPECT_LE(phase.spots(i).x() + kStepsPerPanel, phase.arena_width())
+          EXPECT_LT(phase.spots(i).x(), phase.arena_width())
               << where << " reaches past the right of its arena";
           EXPECT_LT(phase.spots(i).y(), phase.arena_height())
               << where << " reaches past the bottom of its arena";
@@ -175,7 +173,7 @@ TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
         for (std::pair<const int, std::vector<int>>& row : rows) {
           std::sort(row.second.begin(), row.second.end());
           for (std::size_t i = 1; i < row.second.size(); ++i) {
-            EXPECT_GE(row.second[i] - row.second[i - 1], kStepsPerPanel)
+            EXPECT_GT(row.second[i], row.second[i - 1])
                 << entry.first << " " << difficulty.name()
                 << " overlaps two bars on row " << row.first;
           }

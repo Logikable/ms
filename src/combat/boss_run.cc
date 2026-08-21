@@ -78,11 +78,11 @@ int BossRun::arena_width() const {
   if (phase->arena_width() > 0) {
     return phase->arena_width();
   }
-  // Measured off what stands in it: every spot is two half-steps wide, so the
-  // rightmost one needs its own step and the one after it.
-  int width = phase->player().x() + 2;
+  // Measured off what stands in it: the arena is as wide as the cell furthest
+  // to the right, and no wider, which leaves it no margin.
+  int width = phase->player().x() + 1;
   for (const ArenaSpot& spot : phase->spots()) {
-    width = std::max(width, spot.x() + 2);
+    width = std::max(width, spot.x() + 1);
   }
   return width;
 }

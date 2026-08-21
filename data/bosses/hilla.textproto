@@ -5,10 +5,10 @@ difficulties {
   # the player under her, and there is nothing else to kill.
   phases {
     spawns { mob: "hilla" count: 1 }
-    spots { x: 2 y: 0 }
-    player { x: 2 y: 1 }
-    arena_width: 6
-    arena_height: 2
+    spots { x: 3 y: 1 }
+    player { x: 3 y: 2 }
+    arena_width: 7
+    arena_height: 4
   }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300

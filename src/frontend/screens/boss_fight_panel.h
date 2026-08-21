@@ -3,9 +3,11 @@
  * clock under it.
  *
  * A view over a BossRun and nothing else. The run holds every clock, every bar
- * and the spot each one stands in; this turns those spots into columns. A bar
- * never moves while the fight is on -- a monster that dies leaves its slot
- * empty rather than closing the gap.
+ * and the cell each one stands in; this spreads those cells over the screen it
+ * is given. The bars keep their size and the gaps between them take whatever
+ * is left, so the same fight fills a wide terminal and still fits a narrow
+ * one. A bar never moves while the fight is on -- a monster that dies leaves
+ * its slot empty rather than closing the gap.
  */
 #ifndef MS_SRC_FRONTEND_SCREENS_BOSS_FIGHT_PANEL_H_
 #define MS_SRC_FRONTEND_SCREENS_BOSS_FIGHT_PANEL_H_
@@ -35,10 +37,6 @@ inline constexpr int kPlayerBarRows = 2;
 // The most rows a monster's bar takes. A phase whose longest name needs both
 // gives both to every bar in it, so the arena's rows stay square.
 inline constexpr int kMaxMobBarRows = 2;
-
-// What one step of a spot's x is worth in columns: half a panel, plus the gap
-// two panels a whole step apart keep between them.
-inline constexpr int kArenaStep = kBossPanelWidth / 2 + 1;
 
 // Seconds as mm:ss, rounded up so the clock reads 0:00 only when the time is
 // actually gone.

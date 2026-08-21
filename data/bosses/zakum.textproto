@@ -13,25 +13,25 @@ difficulties {
     spawns { mob: "zakum_arm" count: 1 }
     spawns { mob: "zakum_arm" count: 1 }
     spawns { mob: "zakum_arm" count: 1 }
-    spots { x: 0 y: 0 }
-    spots { x: 0 y: 1 }
-    spots { x: 0 y: 2 }
-    spots { x: 0 y: 3 }
-    spots { x: 4 y: 0 }
-    spots { x: 4 y: 1 }
-    spots { x: 4 y: 2 }
-    spots { x: 4 y: 3 }
-    player { x: 2 y: 1 }
-    arena_width: 6
-    arena_height: 4
+    spots { x: 1 y: 1 }
+    spots { x: 1 y: 2 }
+    spots { x: 1 y: 3 }
+    spots { x: 1 y: 4 }
+    spots { x: 5 y: 1 }
+    spots { x: 5 y: 2 }
+    spots { x: 5 y: 3 }
+    spots { x: 5 y: 4 }
+    player { x: 3 y: 2 }
+    arena_width: 7
+    arena_height: 6
   }
   # The body alone, standing over the player.
   phases {
     spawns { mob: "zakum" count: 1 }
-    spots { x: 2 y: 0 }
-    player { x: 2 y: 1 }
-    arena_width: 6
-    arena_height: 2
+    spots { x: 3 y: 1 }
+    player { x: 3 y: 2 }
+    arena_width: 7
+    arena_height: 4
   }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300

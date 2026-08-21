@@ -47,22 +47,24 @@ Boss Zakum() {
     arm->set_mob("arm");
     arm->set_count(1);
     ArenaSpot* spot = arms->add_spots();
-    spot->set_x(i < 4 ? 0 : 4);
-    spot->set_y(i % 4);
+    spot->set_x(i < 4 ? 1 : 5);
+    spot->set_y(1 + i % 4);
   }
-  arms->mutable_player()->set_x(2);
-  arms->mutable_player()->set_y(1);
-  arms->set_arena_width(6);
-  arms->set_arena_height(4);
+  arms->mutable_player()->set_x(3);
+  arms->mutable_player()->set_y(2);
+  arms->set_arena_width(7);
+  arms->set_arena_height(6);
   BossPhase* body = normal->add_phases();
   Spawn* torso = body->add_spawns();
   torso->set_mob("body");
   torso->set_count(1);
-  body->add_spots()->set_x(2);
-  body->mutable_player()->set_x(2);
-  body->mutable_player()->set_y(1);
-  body->set_arena_width(6);
-  body->set_arena_height(2);
+  ArenaSpot* torso_spot = body->add_spots();
+  torso_spot->set_x(3);
+  torso_spot->set_y(1);
+  body->mutable_player()->set_x(3);
+  body->mutable_player()->set_y(2);
+  body->set_arena_width(7);
+  body->set_arena_height(4);
   return boss;
 }
 
@@ -89,8 +91,8 @@ std::unique_ptr<GameState> MakeState(int arm_hp, int body_hp,
 // The screen as one string per row, one character per column. A border is
 // multi-byte, so it is written as a single '#': what these rows are read for
 // is which column something is in, and a byte offset is not that.
-std::vector<std::string> Rows(const BossRun& run) {
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(120),
+std::vector<std::string> Rows(const BossRun& run, int width = 120) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
                                                ftxui::Dimension::Fixed(30));
   ftxui::Render(screen, BossFightPanel(run));
   std::vector<std::string> rows;
@@ -261,8 +263,8 @@ TEST(BossFightPanelTest, TheBodyIsDrawnAboveThePlayer) {
   EXPECT_LT(out.find(" Zakum "), out.find(" You "));
 }
 
-// A phase where two parts stand four half-steps apart, which is what the
-// spots in the data mean in columns.
+// A phase where two parts stand four cells apart, with a cell of margin to
+// the right of the second and none to the left of the first.
 Boss TwoPartBoss() {
   Boss boss;
   boss.set_name("Horntail");
@@ -284,8 +286,8 @@ Boss TwoPartBoss() {
   return boss;
 }
 
-// The whole point of the spots: a part is drawn where the fight puts it, a
-// half-panel step at a time.
+// The whole point of the spots: a part is drawn where the fight puts it, in
+// the order and on the row the phase asked for.
 TEST(BossFightPanelTest, EachPartStandsWhereItsSpotSays) {
   std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
   // Names of the same length, so the two are centred in their panels alike
@@ -301,11 +303,32 @@ TEST(BossFightPanelTest, EachPartStandsWhereItsSpotSays) {
   int right = ColumnOf(rows, "Rite Hand");
   ASSERT_GE(left, 0);
   ASSERT_GE(right, 0);
-  // Both names are centred in panels of the same width, so the columns
-  // between them are the four steps the spots asked for.
-  EXPECT_EQ(right - left, 4 * kArenaStep);
+  EXPECT_LT(left, right);
+  // The one in the first cell stands against the edge; the one in the last
+  // but one keeps the cell of margin the arena asked for.
+  EXPECT_LT(left, kBossPanelWidth);
+  EXPECT_GT(right + kBossPanelWidth, 100);
   // And the player stands under them rather than beside them.
   EXPECT_GT(RowOf(rows, "You"), RowOf(rows, "Left Hand"));
+}
+
+// The arena is the screen it is drawn on: the bars keep their size and the
+// space between them takes the rest, so a wider terminal spreads the fight
+// out rather than leaving it in a huddle in the middle.
+TEST(BossFightPanelTest, TheArenaSpreadsToFillTheScreen) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  state->mobs["arm"].set_name("Left Hand");
+  state->mobs["body"].set_name("Rite Hand");
+  Boss boss = TwoPartBoss();
+  BossRun run("horntail", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  int narrow = ColumnOf(Rows(run, 100), "Rite Hand") -
+               ColumnOf(Rows(run, 100), "Left Hand");
+  int wide = ColumnOf(Rows(run, 180), "Rite Hand") -
+             ColumnOf(Rows(run, 180), "Left Hand");
+  EXPECT_GT(wide, narrow);
+  EXPECT_GT(wide - narrow, 50) << "the whole 80 columns went into the gaps";
 }
 
 // A part whose name is too long for one row gets two, and every bar in the
