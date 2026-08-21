@@ -1,7 +1,8 @@
 name: EQUIP_SET_NAME_BOSS_ACCESSORY
 # Nine slots in GMS: two eye accessories and two earrings among them, plus a
-# ring, a pendant and a belt. Two of them have an item here, so no tier pays
-# yet -- the rest arrive with the bosses that drop them.
+# ring, a pendant, a belt, a shoulderpad and a pocket. Three of them have an
+# item here, so the first tier pays once all three are worn -- the rest arrive
+# with the bosses that drop them.
 complete_pieces: 9
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -10,6 +11,10 @@ members {
 members {
   slot: EQUIP_SLOT_EYE_ACCESSORY
   name: "Aquatic Letter Eye Accessory"
+}
+members {
+  slot: EQUIP_SLOT_POCKET
+  name: "Stone of Eternal Life"
 }
 tiers {
   pieces: 3

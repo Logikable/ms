@@ -1,0 +1,21 @@
+name: "Stone of Eternal Life"
+# The only equip in the game with no level on it. A boss reward is kept from
+# the day it drops, and Hilla is a long way past anything it would gate.
+required_level: 0
+base_stats {
+  str: 3
+  dex: 3
+  int: 3
+  luk: 3
+  attack: 3
+  magic_attack: 3
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_POCKET
+# Neither path is open to it, as in GMS. It carries no upgrade slots either,
+# so the scroll refusal is the declaration rather than the slot count.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+# GMS refuses the sale outright. Nothing here can, so it sells for nothing --
+# which is what clears an unwanted copy out of the bag.
+sell_price: 0

@@ -275,12 +275,13 @@ std::vector<std::string> FrozenArmour() {
   return {"frozen_hat", "frozen_top", "frozen_bottom", "frozen_cape"};
 }
 
-// What Zakum pays, which is the only thing that fills the two accessory slots.
-// A boss drop is a long way to walk for a screen, so the workbench starts in
-// it -- and the crystal asks for level 110, which a 3rd job standing at 100
-// carries rather than wears.
+// What the bosses pay, which is the only thing that fills the accessory and
+// pocket slots. A boss drop is a long way to walk for a screen, so the
+// workbench starts in it -- and the crystal asks for level 110, which a 3rd
+// job standing at 100 carries rather than wears.
 std::vector<std::string> BossAccessories() {
-  return {"aquatic_letter_eye_accessory", "condensed_power_crystal"};
+  return {"aquatic_letter_eye_accessory", "condensed_power_crystal",
+          "stone_of_eternal_life"};
 }
 
 // Passed as `unspent_stage` to spend every point the climb earns.

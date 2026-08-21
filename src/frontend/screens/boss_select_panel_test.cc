@@ -10,6 +10,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/widgets/colors.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -103,6 +104,28 @@ std::string Render(const BossSelectPanel& panel, int height = 16) {
                                                ftxui::Dimension::Fixed(height));
   ftxui::Render(screen, element);
   return screen.ToString();
+}
+
+// The colour the first character of the row holding `needle` is drawn in.
+// Read off the pixel, because ToString() is where colour goes to die: a red
+// row and a white one produce the same string.
+ftxui::Color RowColor(const BossSelectPanel& panel, const std::string& needle) {
+  ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
+                                               ftxui::Dimension::Fixed(24));
+  ftxui::Render(screen, element);
+  for (int y = 0; y < screen.dimy(); ++y) {
+    std::string row;
+    for (int x = 0; x < screen.dimx(); ++x) {
+      const std::string& cell = screen.PixelAt(x, y).character;
+      row += cell.empty() ? " " : cell;
+    }
+    size_t at = row.find(needle);
+    if (at != std::string::npos) {
+      return screen.PixelAt(static_cast<int>(at), y).foreground_color;
+    }
+  }
+  return ftxui::Color::Default;
 }
 
 // One row of the last render as plain text, since ToString() threads escape
@@ -308,6 +331,22 @@ TEST(BossSelectPanelTest, ALockedFightReadsLockedRatherThanAvailable) {
   std::string out = Render(panel);
   EXPECT_NE(out.find("Locked"), std::string::npos);
   EXPECT_EQ(out.find("Available"), std::string::npos);
+}
+
+// Red is the reason: the one value the player falls short of. Both cells that
+// name it go red, and neither is red once the level is reached.
+TEST(BossSelectPanelTest, TheLevelAndTheStatusGoRedWhileItIsOutOfReach) {
+  std::unique_ptr<GameState> owner = WithBosses();
+  GameState& state = *owner;
+  state.bosses["zakum"].mutable_difficulties(0)->set_unlock_level(130);
+  BossSelectPanel locked(state);
+  EXPECT_EQ(RowColor(locked, "Unlock Level"), kRed);
+  EXPECT_EQ(RowColor(locked, "Locked"), kRed);
+
+  LevelTo(state, 130);
+  BossSelectPanel open(state);
+  EXPECT_NE(RowColor(open, "Unlock Level"), kRed)
+      << "a level already reached is not something to warn about";
 }
 
 // And the level opens it, row and all.

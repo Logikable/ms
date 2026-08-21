@@ -402,6 +402,7 @@ cc_test(
     deps = [
         ":boss_select_panel",
         "//src:game_state",
+        "//src/frontend/widgets:colors",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

@@ -1,0 +1,7 @@
+name: "Hilla"
+level: 110
+attack: 5000
+max_hp: 500000000
+exp: 5820000
+pdr: 50
+boss: true
