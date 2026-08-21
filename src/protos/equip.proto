@@ -110,6 +110,10 @@ enum EquipSlot {
   // Worn rather than carried, and the one slot with no level on it at all:
   // what goes here is a boss reward a character keeps from the day it drops.
   EQUIP_SLOT_POCKET = 14;
+  // Last rather than beside the other accessories, for the same reason the
+  // accessories sit below the armour: a save names a worn item by this number,
+  // so a slot can be added but never moved. Horntail's earring fills it.
+  EQUIP_SLOT_EARRINGS = 15;
 }
 
 // A way an item can be made stronger after it drops. Listed on a prototype

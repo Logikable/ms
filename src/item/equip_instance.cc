@@ -73,6 +73,7 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_RING:
     case EQUIP_SLOT_PENDANT:
     case EQUIP_SLOT_BELT:
+    case EQUIP_SLOT_EARRINGS:
       return SCROLL_TARGET_ACCESSORY;
     case EQUIP_SLOT_UNSPECIFIED:
     case EQUIP_SLOT_PROJECTILE:

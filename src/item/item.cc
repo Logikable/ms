@@ -162,6 +162,9 @@ bool RaisesMaxHp(EquipSlot slot) {
     case EQUIP_SLOT_FACE_ACCESSORY:
     case EQUIP_SLOT_EYE_ACCESSORY:
     case EQUIP_SLOT_POCKET:
+    // GMS's list names the ring, the pendant, the belt and the shoulderpad
+    // among the accessories, and stops there.
+    case EQUIP_SLOT_EARRINGS:
       return false;
   }
   return false;

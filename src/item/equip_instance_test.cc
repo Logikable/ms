@@ -295,11 +295,13 @@ TEST_F(EquipInstanceTest, CategoryAArmourGainsMaxHpButNoMp) {
 TEST_F(EquipInstanceTest, AnAccessoryGainsNoMaxHp) {
   Equip state;
   state.set_stars(10);
-  EquipInstance item(MakeArmour(EQUIP_SLOT_EYE_ACCESSORY, 100), state);
-  EquipStats gains = item.StarForceStatGains();
-  EXPECT_EQ(gains.max_hp(), 0);
-  EXPECT_EQ(gains.max_mp(), 0);
-  EXPECT_GT(gains.def(), 0) << "it still gains the defense every star gives";
+  for (EquipSlot slot : {EQUIP_SLOT_EYE_ACCESSORY, EQUIP_SLOT_EARRINGS}) {
+    EquipInstance item(MakeArmour(slot, 100), state);
+    EquipStats gains = item.StarForceStatGains();
+    EXPECT_EQ(gains.max_hp(), 0) << EquipSlot_Name(slot);
+    EXPECT_EQ(gains.max_mp(), 0) << EquipSlot_Name(slot);
+    EXPECT_GT(gains.def(), 0) << "it still gains the defense every star gives";
+  }
 }
 
 // Defense climbs by a twentieth of what the item already carries, the next
@@ -509,6 +511,7 @@ TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_RING), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_PENDANT), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_BELT), SCROLL_TARGET_ACCESSORY);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_EARRINGS), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_POCKET), SCROLL_TARGET_UNSPECIFIED);
 }
 
