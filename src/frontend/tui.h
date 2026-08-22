@@ -3,10 +3,10 @@
  * blocks until the player leaves. Screen-state logic lives in TuiController;
  * Tui handles the ftxui component tree and rendering.
  *
- * Tui is also what decides when the game is written to disk, because it is
- * what owns the loop the player is leaving: it saves on the way out of Run()
- * however that happened -- the quit dialog, Ctrl+C, or a closed window -- and
- * every kAutosaveInterval in between.
+ * Two pieces of session bookkeeping ride along, because the loop is what
+ * knows the player has left: SavePolicy writes the game on the way out of
+ * Run() however that happened -- the quit dialog, Ctrl+C, a closed window --
+ * and ProgressWatcher spots the level and job changes a card is raised for.
  */
 #ifndef MS_SRC_FRONTEND_TUI_H_
 #define MS_SRC_FRONTEND_TUI_H_
@@ -24,6 +24,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/progress_watcher.h"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
@@ -42,13 +43,9 @@
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
+#include "src/save.h"
 
 namespace ms {
-
-// How long the game goes between automatic saves. Short enough that closing
-// the window costs a player almost nothing, long enough that a few-kilobyte
-// write is nowhere near the 300ms combat tick in cost.
-constexpr std::chrono::seconds kAutosaveInterval(30);
 
 class Tui {
  public:
@@ -102,20 +99,9 @@ class Tui {
   // playtime the session is accruing. Both come off one reading of a
   // monotonic clock, so they cannot disagree about how long a tick was.
   void Tick();
-  // Writes the game to save_path_. No-op when saving is off. Failures are
-  // logged and swallowed: a save that cannot be written is not a reason to
-  // take the game down, and the previous save is still there.
-  void Save();
-  // Save(), but only once kAutosaveInterval has passed since the last one.
-  void AutosaveIfDue();
-  // Notices a level or a job that has changed since the last look and starts
-  // the matching celebration. Polled rather than pushed: the character has no
-  // way to call back, and polling catches every route to a new level -- combat
-  // EXP, the debug Level-Up item, an advancement -- with one piece of code.
-  //
-  // Called after events as well as after ticks, because combat levels a
-  // character during a tick while advancement and the Level-Up item happen
-  // during an event.
+  // Raises the card for whatever the watcher noticed. Called after events as
+  // well as after ticks, because combat levels a character during a tick while
+  // an advancement and the Level-Up item happen during an event.
   void NoticeProgress();
   // The panel the player is looking at, or kNoPanel when the main screen is
   // not what is in front of them. panel_focus_ still names a panel while the
@@ -125,16 +111,10 @@ class Tui {
   bool OnEvent(ftxui::Event event);
 
   GameState& state_;
-  // Where the game is written, or empty when saving is off.
-  std::string save_path_;
+  SavePolicy save_policy_;
+  ProgressWatcher progress_watcher_;
   // The card and the lit panels, or nothing most of the time.
   Celebration celebration_;
-  // What the character was at the last look, for spotting a change. Seeded
-  // from the loaded save, so launching into a level 13 character is not itself
-  // a level-up.
-  int last_level_seen_;
-  Job last_job_seen_;
-  std::chrono::steady_clock::time_point last_save_;
   // The live fight: stepped by the ticker, read by the combat panel.
   CombatSim combat_sim_;
   std::chrono::steady_clock::time_point last_combat_update_;

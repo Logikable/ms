@@ -194,8 +194,8 @@ const EquipInstance* TuiController::scroll_item() const {
 // key here means leaving the game, there being nothing left to back out of.
 bool TuiController::OnMainViewEvent(ftxui::Event event) {
   if (IsBack(event)) {
-    // Opened on Cancel: nothing in this game is saved, so a stray Enter behind
-    // an accidental Escape would cost the whole session.
+    // Opened on Cancel: leaving is not what an accidental Escape means, and a
+    // stray Enter behind one should not end the session.
     quit_prompt_.Open(/*cancel_selected=*/true);
     screen_ = kQuit;
     return true;

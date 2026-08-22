@@ -1,11 +1,13 @@
 #include "src/save.h"
 
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <system_error>
+#include <utility>
 
 #include "absl/log/log.h"
 #include "src/game_state.h"
@@ -138,6 +140,32 @@ LoadResult LoadGameFromFile(GameState& state, const std::string& path) {
   // frontend reads as the default bindings.
   state.keybinds = save.keybinds();
   return {LoadStatus::kLoaded, ""};
+}
+
+SavePolicy::SavePolicy(std::string path,
+                       std::chrono::steady_clock::time_point now)
+    : path_(std::move(path)), last_save_(now) {
+}
+
+bool SavePolicy::Save(const GameState& state,
+                      std::chrono::steady_clock::time_point now) {
+  if (path_.empty()) {
+    return false;
+  }
+  last_save_ = now;
+  if (!SaveGameToFile(state, path_)) {
+    LOG(ERROR) << "Could not save the game to " << path_;
+    return false;
+  }
+  return true;
+}
+
+bool SavePolicy::AutosaveIfDue(const GameState& state,
+                               std::chrono::steady_clock::time_point now) {
+  if (path_.empty() || now - last_save_ < kAutosaveInterval) {
+    return false;
+  }
+  return Save(state, now);
 }
 
 }  // namespace ms

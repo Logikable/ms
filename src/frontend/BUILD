@@ -193,6 +193,27 @@ cc_test(
 )
 
 cc_library(
+    name = "progress_watcher",
+    srcs = ["progress_watcher.cc"],
+    hdrs = ["progress_watcher.h"],
+    deps = [
+        "//src/character",
+        "//src/protos:character_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "progress_watcher_test",
+    srcs = ["progress_watcher_test.cc"],
+    deps = [
+        ":progress_watcher",
+        "//src/character",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "tui",
     srcs = ["tui.cc"],
     hdrs = ["tui.h"],
@@ -200,6 +221,7 @@ cc_library(
         ":celebration",
         ":keybinds",
         ":main_layout",
+        ":progress_watcher",
         ":tui_controller",
         "//src:game_state",
         "//src:save",

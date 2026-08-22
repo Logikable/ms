@@ -86,10 +86,8 @@ void HandleClosingSignals() {
 
 Tui::Tui(GameState& state, std::string save_path)
     : state_(state),
-      save_path_(std::move(save_path)),
-      last_level_seen_(state.character.proto().level()),
-      last_job_seen_(state.character.proto().job()),
-      last_save_(std::chrono::steady_clock::now()),
+      save_policy_(std::move(save_path), std::chrono::steady_clock::now()),
+      progress_watcher_(state.character.proto()),
       last_combat_update_(std::chrono::steady_clock::now()),
       keys_(&state.keybinds),
       char_panel_(state.character, panel_focus_, state.skills),
@@ -193,7 +191,7 @@ void Tui::Run() {
       std::this_thread::sleep_for(kMarqueeStep);
       screen.Post([this, &screen]() {
         Tick();
-        AutosaveIfDue();
+        save_policy_.AutosaveIfDue(state_, std::chrono::steady_clock::now());
         // Posted here rather than acted on in the handler: this runs on the
         // loop thread, where ending the loop and writing a file are both
         // things it is safe to do.
@@ -210,27 +208,7 @@ void Tui::Run() {
   ticker.join();
   // Every way out of the loop ends here -- the quit dialog, Ctrl+C, a closed
   // window -- so this is the one place the last save has to be written.
-  Save();
-}
-
-void Tui::Save() {
-  if (save_path_.empty()) {
-    return;
-  }
-  last_save_ = std::chrono::steady_clock::now();
-  if (!SaveGameToFile(state_, save_path_)) {
-    LOG(ERROR) << "Could not save the game to " << save_path_;
-  }
-}
-
-void Tui::AutosaveIfDue() {
-  if (save_path_.empty()) {
-    return;
-  }
-  if (std::chrono::steady_clock::now() - last_save_ < kAutosaveInterval) {
-    return;
-  }
-  Save();
+  save_policy_.Save(state_, std::chrono::steady_clock::now());
 }
 
 ftxui::Element Tui::RenderFrame() {
@@ -742,28 +720,19 @@ Panel Tui::FocusedPanel() const {
 }
 
 void Tui::NoticeProgress() {
-  const Character& character = state_.character.proto();
-  // The advancement is checked first and wins: it is the larger news, and
-  // reaching the level that offers one does not itself take it, so the two
-  // cannot be describing the same moment.
-  if (character.job() != last_job_seen_) {
-    celebration_.BeginAdvancement(last_job_seen_, character.job(),
-                                  FocusedPanel());
-    last_job_seen_ = character.job();
-    last_level_seen_ = character.level();
-    return;
+  Progress progress = progress_watcher_.Notice(state_.character.proto());
+  switch (progress.kind) {
+    case kJobAdvanced:
+      celebration_.BeginAdvancement(progress.from_job, progress.to_job,
+                                    FocusedPanel());
+      return;
+    case kLevelGained:
+      celebration_.BeginLevelUp(progress.from_level, progress.to_level,
+                                progress.ap, progress.sp, FocusedPanel());
+      return;
+    case kNothingNoticed:
+      return;
   }
-  if (character.level() > last_level_seen_) {
-    LevelGains gains = GainsForLevels(last_level_seen_, character.level());
-    // A Beginner's SP is real but unreachable -- the skills tab belongs to a
-    // job -- so the card does not mention what they cannot go and spend.
-    int sp = character.job() == JOB_BEGINNER ? 0 : gains.sp;
-    celebration_.BeginLevelUp(last_level_seen_, character.level(), gains.ap, sp,
-                              FocusedPanel());
-  }
-  // Assigned rather than only raised, so a level that somehow went down does
-  // not leave the next real level-up reporting a climb it did not make.
-  last_level_seen_ = character.level();
 }
 
 bool Tui::OnEvent(ftxui::Event event) {

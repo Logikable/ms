@@ -13,6 +13,7 @@
 #ifndef MS_SRC_SAVE_H_
 #define MS_SRC_SAVE_H_
 
+#include <chrono>
 #include <string>
 
 #include "src/game_state.h"
@@ -56,6 +57,39 @@ bool SaveGameToFile(const GameState& state, const std::string& path);
 // Reads `path` into `state`, resolving items against the catalogs it already
 // holds. Leaves `state` alone unless the status is kLoaded.
 LoadResult LoadGameFromFile(GameState& state, const std::string& path);
+
+// How long a session goes between automatic saves. Short enough that closing
+// the window costs a player almost nothing, long enough that a few-kilobyte
+// write is nowhere near the 300ms combat tick in cost.
+constexpr std::chrono::seconds kAutosaveInterval(30);
+
+// When a session writes its save. Held by whoever owns the loop the player is
+// leaving, which is the only thing that knows they have left.
+class SavePolicy {
+ public:
+  // `path` is where the game is written; empty turns saving off, which is how
+  // the workbench avoids ever touching a player's file. `now` starts the
+  // autosave clock, so the first one is due a whole interval in.
+  SavePolicy(std::string path, std::chrono::steady_clock::time_point now);
+
+  // Writes the game, whatever the clock says. Returns whether anything was
+  // written: a failure is logged and swallowed, since a save that cannot be
+  // written is not a reason to take the game down and the previous one is
+  // still there.
+  bool Save(const GameState& state, std::chrono::steady_clock::time_point now);
+
+  // Save(), but only once kAutosaveInterval has passed since the last one.
+  bool AutosaveIfDue(const GameState& state,
+                     std::chrono::steady_clock::time_point now);
+
+  bool saving() const {
+    return !path_.empty();
+  }
+
+ private:
+  std::string path_;
+  std::chrono::steady_clock::time_point last_save_;
+};
 
 }  // namespace ms
 

@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cstdint>
 #include <ctime>
 #include <filesystem>
@@ -344,6 +345,77 @@ TEST_F(SaveTest, AFailedWriteLeavesThePreviousSaveIntact) {
   std::unique_ptr<GameState> loaded = MakeState();
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
   EXPECT_EQ(loaded->character.meso(), 999) << "the old save, not a ruined one";
+}
+
+// --- SavePolicy ---
+
+using Clock = std::chrono::steady_clock;
+
+// An empty path turns saving off entirely, which is what keeps the workbench
+// off a player's file.
+TEST_F(SaveTest, NoPathWritesNothingAtAll) {
+  std::unique_ptr<GameState> state = MakeState();
+  Clock::time_point start = Clock::now();
+  SavePolicy policy("", start);
+  EXPECT_FALSE(policy.saving());
+  EXPECT_FALSE(policy.Save(*state, start));
+  EXPECT_FALSE(policy.AutosaveIfDue(*state, start + kAutosaveInterval * 10));
+  EXPECT_FALSE(std::filesystem::exists(path_));
+}
+
+TEST_F(SaveTest, SaveWritesWhateverTheClockSays) {
+  std::unique_ptr<GameState> state = MakeState();
+  state->character.AddMeso(4242);
+  SavePolicy policy(path_, Clock::now());
+  ASSERT_TRUE(policy.saving());
+  ASSERT_TRUE(policy.Save(*state, Clock::now()));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.meso(), 4242);
+}
+
+// The autosave clock starts at construction, so the first one is a whole
+// interval in rather than on the first tick.
+TEST_F(SaveTest, AutosaveWaitsOutTheWholeInterval) {
+  std::unique_ptr<GameState> state = MakeState();
+  Clock::time_point start = Clock::now();
+  SavePolicy policy(path_, start);
+
+  EXPECT_FALSE(policy.AutosaveIfDue(*state, start));
+  EXPECT_FALSE(policy.AutosaveIfDue(
+      *state, start + kAutosaveInterval - Clock::duration(1)));
+  EXPECT_FALSE(std::filesystem::exists(path_));
+
+  EXPECT_TRUE(policy.AutosaveIfDue(*state, start + kAutosaveInterval));
+  EXPECT_TRUE(std::filesystem::exists(path_));
+}
+
+// Every write restarts the wait, the ones asked for outside the clock
+// included -- a save on the way out is not a reason to write again a moment
+// later.
+TEST_F(SaveTest, EveryWriteRestartsTheWait) {
+  std::unique_ptr<GameState> state = MakeState();
+  Clock::time_point start = Clock::now();
+  SavePolicy policy(path_, start);
+
+  ASSERT_TRUE(policy.AutosaveIfDue(*state, start + kAutosaveInterval));
+  EXPECT_FALSE(policy.AutosaveIfDue(
+      *state, start + kAutosaveInterval * 2 - Clock::duration(1)));
+  EXPECT_TRUE(policy.AutosaveIfDue(*state, start + kAutosaveInterval * 2));
+
+  policy.Save(*state, start + kAutosaveInterval * 2 + kAutosaveInterval / 2);
+  EXPECT_FALSE(policy.AutosaveIfDue(*state, start + kAutosaveInterval * 3));
+}
+
+// A write that cannot start is logged and swallowed: the game does not come
+// down over it, and the previous save is still there.
+TEST_F(SaveTest, AFailedWriteIsReportedAndSurvived) {
+  std::unique_ptr<GameState> state = MakeState();
+  SavePolicy policy(path_, Clock::now());
+  std::filesystem::create_directory(dir_ / "ms.save.writing");
+  EXPECT_FALSE(policy.Save(*state, Clock::now()));
+  std::filesystem::remove(dir_ / "ms.save.writing");
 }
 
 }  // namespace
