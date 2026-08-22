@@ -70,6 +70,7 @@
 #include "src/combat/combat.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
+#include "src/combat/loot.h"
 #include "src/embedded_data.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -118,6 +119,18 @@ ABSL_FLAG(int, scroll_rate, 100,
           "Success rate of the scrolls bought, as a whole percent. A lower "
           "rate pays more per slot it lands and wastes the rest, which on a "
           "drop-only piece is a slot nothing gets back.");
+ABSL_FLAG(bool, endgame, true,
+          "Print what the days after the cap add up to: the best money map "
+          "farmed and the dailies run, with the purse still spending.");
+ABSL_FLAG(double, endgame_days, 7.0,
+          "Days played at the cap for the endgame section.");
+ABSL_FLAG(bool, dailies, true,
+          "Run each unlocked boss once a day, on the climb and after it. A "
+          "run that misses the limit pays nothing and still costs the whole "
+          "of it, which is what trying too early spends.");
+ABSL_FLAG(int, runs, 1,
+          "Climbs per branch, each on its own seed. Drops are rolled, so one "
+          "climb says almost nothing about whether a set completes.");
 ABSL_FLAG(std::string, branch, "",
           "One branch to climb, as its Job enum name without the JOB_ prefix "
           "(DARK_KNIGHT). Empty climbs them all, which waits on the slowest "
@@ -203,8 +216,28 @@ void SellDrops(CharacterInstance& character) {
 // What a map came to over the probe.
 struct Probe {
   double exp_per_second = 0.0;
+  double meso_per_second = 0.0;
   bool died = false;
 };
+
+// What one kill of `mob` is worth in meso: what it drops, plus what its Etc
+// drops fetch, which the climb sells at every level. The character's own meso
+// bonus is left out -- it multiplies every map alike, and this is only ever
+// read to rank them.
+double MesoPerKill(const GameState& state, const Mob& mob) {
+  double meso = ExpectedMesoPerKill(mob, /*item_drop_pct=*/0.0);
+  for (const MobDrop& drop : mob.drops()) {
+    if (!drop.has_item()) {
+      continue;
+    }
+    std::map<std::string, ItemPrototype>::const_iterator it =
+        state.items.find(drop.item());
+    if (it != state.items.end()) {
+      meso += drop.per_kill() * it->second.sell_price();
+    }
+  }
+  return meso;
+}
 
 // Plays `map` out for a few respawn beats with the character exactly as they
 // stand, and reports what it pays. Nothing is banked -- the fight is run
@@ -224,12 +257,14 @@ Probe ProbeMap(GameState& state, const std::string& map, int beats,
   }
   double horizon = beats * params.respawn_seconds;
   double exp = 0.0;
+  double meso = 0.0;
   CombatSim sim;
   for (double elapsed = 0.0; elapsed < horizon; elapsed += step) {
     sim.Advance(params, step);
     const std::vector<int64_t>& kills = sim.kills_this_step();
     for (int i = 0; i < static_cast<int>(params.types.size()); ++i) {
       exp += kills[i] * params.types[i].mob->exp();
+      meso += kills[i] * MesoPerKill(state, *params.types[i].mob);
     }
     if (sim.died_this_step()) {
       probe.died = true;
@@ -237,27 +272,41 @@ Probe ProbeMap(GameState& state, const std::string& map, int beats,
     }
   }
   probe.exp_per_second = exp / horizon;
+  probe.meso_per_second = meso / horizon;
   return probe;
 }
 
-// Moves the character to whichever map pays the most EXP a second of the ones
-// they survive. Leaves them where they are if every map kills them, which the
-// give-up clock then catches.
-void PickMap(GameState& state, const std::vector<std::string>& candidates,
-             int beats, double step) {
+// Moves the character to whichever map pays the most of what they are farming
+// for, of the ones they survive. Leaves them where they are if every map kills
+// them, which the give-up clock then catches.
+void PickMapFor(GameState& state, const std::vector<std::string>& candidates,
+                int beats, double step, bool for_meso) {
   std::string best;
   double best_rate = 0.0;
   for (const std::string& map : candidates) {
     Probe probe = ProbeMap(state, map, beats, step);
-    if (probe.died || probe.exp_per_second <= best_rate) {
+    double rate = for_meso ? probe.meso_per_second : probe.exp_per_second;
+    if (probe.died || rate <= best_rate) {
       continue;
     }
-    best_rate = probe.exp_per_second;
+    best_rate = rate;
     best = map;
   }
   if (!best.empty()) {
     state.current_map = best;
   }
+}
+
+// Climbing: the most EXP a second.
+void PickMap(GameState& state, const std::vector<std::string>& candidates,
+             int beats, double step) {
+  PickMapFor(state, candidates, beats, step, /*for_meso=*/false);
+}
+
+// At the cap, where there is no EXP left to earn: the most meso a second.
+void PickMoneyMap(GameState& state, const std::vector<std::string>& candidates,
+                  int beats, double step) {
+  PickMapFor(state, candidates, beats, step, /*for_meso=*/true);
 }
 
 // Everything the player does on levelling up, in the order that makes each
@@ -293,6 +342,19 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   purse.Note(state.character);
   PickMap(state, maps, beats, step);
 }
+
+// What one boss's dailies came to over a run.
+struct BossLog {
+  std::string name;
+  int unlock_level = 0;
+  int attempts = 0;
+  int clears = 0;
+  // The level the first try was taken at, which is not the unlock level: a
+  // reset comes round once a day, and a climb can pass several levels inside
+  // one.
+  int first_attempt_level = 0;
+  int first_clear_level = 0;  // 0 for a boss never beaten
+};
 
 // One level of one branch's climb, for --detail.
 struct Stint {
@@ -333,6 +395,17 @@ struct Climb {
   // was first complete at. 0 for a climb that reached the cap without it.
   int ten_star_level = 0;
   int frozen_set_level = 0;
+  // What the dailies came to, by boss key, in the order they unlock.
+  std::map<std::string, BossLog> bosses;
+  // Where the endgame left off: the days played past the cap, what they paid,
+  // and what the character was standing in at the end of them.
+  double endgame_seconds = 0.0;
+  int64_t endgame_earned = 0;
+  int64_t endgame_spent = 0;
+  int endgame_stars = 0;
+  int endgame_frozen = 0;
+  int endgame_boss_set = 0;
+  std::string money_map;
   // The level each Frozen piece first dropped at, or 0 for one that never
   // did. The rates are set so that all four arrive before the level cap --
   // this is the check on that, farmed rather than argued.
@@ -421,60 +494,210 @@ void NoteMilestones(const GameState& state, int level, double seconds,
   }
 }
 
-Climb Play(const Catalogs& catalogs, Job branch,
-           const std::vector<std::string>& maps) {
-  double step = absl::GetFlag(FLAGS_step);
-  int beats = absl::GetFlag(FLAGS_probe_beats);
-  double give_up = absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
+// Seconds in a day, which is what a daily reset waits out. The game is idle,
+// so a day of playtime is a day.
+constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
 
-  GameState state =
-      NewState(catalogs, static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)));
-  std::vector<Job> path = PathTo(branch);
-  int taken = 0;
-
-  Climb climb;
-  for (int i = 0; i < kNumMilestones; ++i) {
-    climb.milestone_seconds[i] = -1.0;
+// The fights open to `level`, by boss key and difficulty, lowest unlock
+// first. Only the difficulties the game has actually built: one marked coming
+// soon is a shell with nothing in it but HP.
+std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
+                                                        int level) {
+  std::vector<std::pair<int, std::pair<std::string, int>>> open;
+  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
+    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
+      const BossDifficulty& difficulty = entry.second.difficulties(i);
+      if (difficulty.coming_soon() || difficulty.unlock_level() > level) {
+        continue;
+      }
+      open.push_back({difficulty.unlock_level(), {entry.first, i}});
+    }
   }
-  Purse purse;
-  GearPlan plan;
-  plan.star_target = absl::GetFlag(FLAGS_star_target);
-  plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
-  GearShopper shopper(plan);
-  Retool(state, path, &taken, maps, beats, step, purse, shopper);
+  std::sort(open.begin(), open.end());
+  std::vector<std::pair<std::string, int>> fights;
+  for (const std::pair<int, std::pair<std::string, int>>& entry : open) {
+    fights.push_back(entry.second);
+  }
+  return fights;
+}
 
-  int level = state.character.proto().level();
+// Runs every open fight once and reports what they took off the clock. A run
+// that misses the limit pays nothing and still costs the whole of it.
+double RunDailies(GameState& state, int level, Climb& climb) {
+  double spent = 0.0;
+  for (const std::pair<std::string, int>& fight :
+       UnlockedBosses(state, level)) {
+    const BossDifficulty& difficulty =
+        state.bosses[fight.first].difficulties(fight.second);
+    BossLog& log = climb.bosses[fight.first];
+    if (log.attempts == 0) {
+      log.name = state.bosses[fight.first].name();
+      log.unlock_level = difficulty.unlock_level();
+      log.first_attempt_level = level;
+    }
+    ++log.attempts;
+    BossOutcome outcome = FightBoss(state, fight.first, fight.second);
+    if (outcome.won) {
+      ++log.clears;
+      spent += outcome.seconds;
+      if (log.first_clear_level == 0) {
+        log.first_clear_level = level;
+      }
+    } else {
+      spent += state.bosses[fight.first]
+                   .difficulties(fight.second)
+                   .time_limit_seconds();
+    }
+  }
+  return spent;
+}
+
+// Everything one run of one branch carries while it is played. Held together
+// because the two halves -- the climb and the days after it -- differ only in
+// what they are farming for and when they stop.
+struct Session {
+  GameState& state;
+  const std::vector<std::string>& maps;
+  std::vector<Job> path;
+  int taken = 0;
+  Purse purse;
+  GearShopper shopper;
+  Climb& climb;
+  double step = 0.5;
+  int beats = 4;
+  // Playtime so far, and when the next reset falls due.
   double seconds = 0.0;
+  double next_daily = kDaySeconds;
+};
+
+// Runs the dailies if one is due, and puts what they dropped on. Returns
+// whether anything happened, since the fight parameters have to be rebuilt
+// when it did.
+bool MaybeDailies(Session& run, int level) {
+  if (!absl::GetFlag(FLAGS_dailies) || run.seconds < run.next_daily) {
+    return false;
+  }
+  run.next_daily += kDaySeconds;
+  run.seconds += RunDailies(run.state, level, run.climb);
+  WearBestFromBag(run.state.character);
+  run.purse.Note(run.state.character);
+  run.shopper.Spend(run.state);
+  run.purse.Note(run.state.character);
+  return true;
+}
+
+// Plays the character forward to the level cap, or until the give-up clock
+// runs out.
+void ClimbToCap(Session& run) {
+  double give_up = absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
+  Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
+         run.purse, run.shopper);
+
+  int level = run.state.character.proto().level();
   double level_began = 0.0;
-  Stint stint = {level, 0.0, state.current_map,
-                 HeldWeaponName(state.character)};
+  Stint stint = {level, 0.0, run.state.current_map,
+                 HeldWeaponName(run.state.character)};
   CombatSim sim;
   // Built once and reused until something changes it. Nothing in a fight moves
   // between two steps of the same level on the same map, and rebuilding it
   // every step is where this sim used to spend almost all of its time.
-  CombatParams params = ComputeCombatParams(state);
-  while (level < kTrialLevelCap && seconds < give_up) {
-    AdvanceCombat(state, sim, params, step);
-    NoteTokenChances(params, sim, climb);
-    purse.Note(state.character);
-    seconds += step;
-    if (sim.died_this_step()) {
-      // Dying sends them home, where there is nothing to fight.
-      PickMap(state, maps, beats, step);
-      params = ComputeCombatParams(state);
+  CombatParams params = ComputeCombatParams(run.state);
+  while (level < kTrialLevelCap && run.seconds < give_up) {
+    AdvanceCombat(run.state, sim, params, run.step);
+    NoteTokenChances(params, sim, run.climb);
+    run.purse.Note(run.state.character);
+    run.seconds += run.step;
+    if (MaybeDailies(run, level) || sim.died_this_step()) {
+      // Dying sends them home, where there is nothing to fight, and a fight
+      // fought elsewhere leaves the map behind unchosen either way.
+      PickMap(run.state, run.maps, run.beats, run.step);
+      params = ComputeCombatParams(run.state);
     }
-    if (state.character.proto().level() == level) {
+    if (run.state.character.proto().level() == level) {
       continue;
     }
-    stint.seconds = seconds - level_began;
-    climb.stints.push_back(stint);
-    level_began = seconds;
-    level = state.character.proto().level();
-    NoteFrozenDrops(state, level, climb);
-    Retool(state, path, &taken, maps, beats, step, purse, shopper);
-    NoteMilestones(state, level, seconds, purse, climb);
-    params = ComputeCombatParams(state);
-    stint = {level, 0.0, state.current_map, HeldWeaponName(state.character)};
+    stint.seconds = run.seconds - level_began;
+    run.climb.stints.push_back(stint);
+    level_began = run.seconds;
+    level = run.state.character.proto().level();
+    NoteFrozenDrops(run.state, level, run.climb);
+    Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
+           run.purse, run.shopper);
+    NoteMilestones(run.state, level, run.seconds, run.purse, run.climb);
+    params = ComputeCombatParams(run.state);
+    stint = {level, 0.0, run.state.current_map,
+             HeldWeaponName(run.state.character)};
+  }
+}
+
+// Plays the days after the cap: the map that pays the most meso a second
+// rather than the most EXP, the dailies as they fall due, and the purse still
+// spending on whatever it can now afford.
+void FarmAtCap(Session& run) {
+  double began = run.seconds;
+  double horizon = began + absl::GetFlag(FLAGS_endgame_days) * kDaySeconds;
+  int level = run.state.character.proto().level();
+  int64_t earned_at_cap = run.purse.earned;
+  int64_t spent_at_cap = run.purse.spent;
+
+  PickMoneyMap(run.state, run.maps, run.beats, run.step);
+  run.climb.money_map = run.state.current_map;
+  CombatSim sim;
+  CombatParams params = ComputeCombatParams(run.state);
+  // Retooled on the clock rather than on levelling up, since nothing levels
+  // any more: often enough that a star bought is felt, rarely enough that the
+  // measurement behind it is not the whole cost of the section.
+  double next_retool = run.seconds + kDaySeconds / 24.0;
+  while (run.seconds < horizon) {
+    AdvanceCombat(run.state, sim, params, run.step);
+    run.purse.Note(run.state.character);
+    run.seconds += run.step;
+    bool fought = MaybeDailies(run, level);
+    if (run.seconds >= next_retool) {
+      next_retool += kDaySeconds / 24.0;
+      WearBestFromBag(run.state.character);
+      Outfit(run.state, /*budget=*/true);
+      run.shopper.Spend(run.state);
+      run.purse.Note(run.state.character);
+      PickMoneyMap(run.state, run.maps, run.beats, run.step);
+      run.climb.money_map = run.state.current_map;
+      fought = true;
+    }
+    if (fought || sim.died_this_step()) {
+      params = ComputeCombatParams(run.state);
+    }
+  }
+  std::pair<int, int> weapon = WeaponUpgrades(run.state);
+  run.climb.endgame_seconds = run.seconds - began;
+  run.climb.endgame_earned = run.purse.earned - earned_at_cap;
+  run.climb.endgame_spent = run.purse.spent - spent_at_cap;
+  run.climb.endgame_stars = weapon.first;
+  run.climb.endgame_frozen = PiecesWorn(run.state, "frozen");
+  run.climb.endgame_boss_set = PiecesWorn(run.state, "boss_accessory");
+}
+
+Climb Play(const Catalogs& catalogs, Job branch,
+           const std::vector<std::string>& maps, unsigned int seed) {
+  GameState state = NewState(catalogs, seed);
+  // A plain field rather than something the constructor takes, so a sim that
+  // fights one has to say so. This one runs the dailies.
+  state.bosses = catalogs.bosses;
+  Climb climb;
+  for (int i = 0; i < kNumMilestones; ++i) {
+    climb.milestone_seconds[i] = -1.0;
+  }
+  GearPlan plan;
+  plan.star_target = absl::GetFlag(FLAGS_star_target);
+  plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
+
+  Session run = {state, maps, PathTo(branch), 0, Purse(), GearShopper(plan),
+                 climb};
+  run.step = absl::GetFlag(FLAGS_step);
+  run.beats = absl::GetFlag(FLAGS_probe_beats);
+  ClimbToCap(run);
+  if (absl::GetFlag(FLAGS_endgame) &&
+      state.character.proto().level() >= kTrialLevelCap) {
+    FarmAtCap(run);
   }
   return climb;
 }
@@ -693,25 +916,125 @@ std::vector<Job> BranchesToClimb() {
   return wanted;
 }
 
+// The run of a branch the tables read: the one whose climb to the cap took
+// the middling time. An average of several climbs is a climb nobody played,
+// and the tables are meant to read as one character's.
+int TypicalRun(const std::vector<Climb>& runs) {
+  std::vector<std::pair<double, int>> by_time;
+  for (int i = 0; i < static_cast<int>(runs.size()); ++i) {
+    by_time.push_back({runs[i].milestone_seconds[kNumMilestones - 1], i});
+  }
+  std::sort(by_time.begin(), by_time.end());
+  return by_time[by_time.size() / 2].second;
+}
+
+// One line: how many of `runs` met a target, and where the typical one met it.
+void PrintTarget(const std::string& label, int met, int total,
+                 const std::string& typical) {
+  std::printf("  %-46s %2d/%-2d runs   %s\n", label.c_str(), met, total,
+              typical.c_str());
+}
+
+// Whether the character can be paid for the gear the cap asks of them, stated
+// against the targets rather than left in the tables to be read off.
+void PrintTargets(const std::vector<Job>& branches,
+                  const std::vector<std::vector<Climb>>& runs) {
+  int star_target = absl::GetFlag(FLAGS_star_target);
+  std::printf(
+      "\nWhat each branch reached, over every run of it. The last column is "
+      "the typical run --\nthe one whose climb to the cap took the middling "
+      "time.\n");
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    const std::vector<Climb>& all = runs[i];
+    const Climb& typical = all[TypicalRun(all)];
+    int total = static_cast<int>(all.size());
+    std::printf("\n%s\n", BranchName(branches[i]).c_str());
+
+    int ten_star = 0;
+    int frozen = 0;
+    for (const Climb& climb : all) {
+      ten_star += climb.ten_star_level > 0 ? 1 : 0;
+      frozen += climb.frozen_set_level > 0 ? 1 : 0;
+    }
+    PrintTarget("weapon at 10 stars by the cap", ten_star, total,
+                typical.ten_star_level == 0
+                    ? "never"
+                    : "Lv" + std::to_string(typical.ten_star_level));
+    PrintTarget(
+        "Frozen Set complete by the cap", frozen, total,
+        typical.frozen_set_level == 0
+            ? std::to_string(typical.milestone_frozen[kNumMilestones - 1]) +
+                  " of 6"
+            : "Lv" + std::to_string(typical.frozen_set_level));
+
+    // A boss beaten on the day it opened is the question; one beaten later is
+    // a player who came back, which every branch manages eventually.
+    for (const std::pair<const std::string, BossLog>& entry : typical.bosses) {
+      int beaten = 0;
+      for (const Climb& climb : all) {
+        std::map<std::string, BossLog>::const_iterator log =
+            climb.bosses.find(entry.first);
+        beaten += log != climb.bosses.end() && log->second.clears > 0 ? 1 : 0;
+      }
+      std::string when =
+          entry.second.first_clear_level == 0
+              ? "never, " + std::to_string(entry.second.attempts) + " tries"
+              : "Lv" + std::to_string(entry.second.first_clear_level) + ", " +
+                    std::to_string(entry.second.clears) + " of " +
+                    std::to_string(entry.second.attempts);
+      PrintTarget(entry.second.name + " (opens Lv" +
+                      std::to_string(entry.second.unlock_level) +
+                      ", first try Lv" +
+                      std::to_string(entry.second.first_attempt_level) + ")",
+                  beaten, total, when);
+    }
+    if (typical.endgame_seconds > 0.0) {
+      char earned[16];
+      FormatShort(static_cast<double>(typical.endgame_earned), earned,
+                  sizeof(earned));
+      std::printf(
+          "  %-46s %-12s %d* weapon, %d of 6 Frozen, %d Boss acc.\n",
+          ("after " + Clock(typical.endgame_seconds) + " at the cap").c_str(),
+          (std::string(earned) + " earned").c_str(), typical.endgame_stars,
+          typical.endgame_frozen, typical.endgame_boss_set);
+      std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
+      if (typical.endgame_stars < star_target) {
+        std::printf("  %-46s short of %d* by %d\n", "  weapon", star_target,
+                    star_target - typical.endgame_stars);
+      }
+    }
+  }
+}
+
 void Run() {
   Catalogs catalogs = LoadCatalogs();
   std::vector<std::string> maps = HuntingGrounds(catalogs);
   std::vector<Job> branches = BranchesToClimb();
+  int per_branch = std::max(1, absl::GetFlag(FLAGS_runs));
 
-  // Every branch climbs on its own character and its own copy of the
-  // catalogs, so they all run at once. The rows are printed afterwards, in the
-  // table's own order rather than the order the threads happened to finish.
+  // Every run climbs on its own character, so they all go at once. The rows
+  // are printed afterwards, in the table's own order rather than the order the
+  // threads happened to finish.
   int count = static_cast<int>(branches.size());
-  std::vector<Climb> climbs(count);
-  ParallelFor(count,
-              [&](int i) { climbs[i] = Play(catalogs, branches[i], maps); });
+  std::vector<std::vector<Climb>> runs(count, std::vector<Climb>(per_branch));
+  ParallelFor(count * per_branch, [&](int i) {
+    unsigned int seed =
+        static_cast<unsigned int>(absl::GetFlag(FLAGS_seed)) + i / count;
+    runs[i % count][i / count] =
+        Play(catalogs, branches[i % count], maps, seed);
+  });
+
+  std::vector<Climb> typical;
+  for (int i = 0; i < count; ++i) {
+    typical.push_back(runs[i][TypicalRun(runs[i])]);
+  }
 
   if (absl::GetFlag(FLAGS_playtime)) {
-    PrintPlaytime(catalogs, branches, climbs);
-    PrintMeso(branches, climbs);
+    PrintPlaytime(catalogs, branches, typical);
+    PrintMeso(branches, typical);
   }
   if (absl::GetFlag(FLAGS_ledger)) {
-    PrintLedger(branches, climbs);
+    PrintLedger(branches, typical);
   }
 
   // Third jobs only. A branch that stops at its 2nd job is scaffolding for the
@@ -720,8 +1043,9 @@ void Run() {
   // differently -- a 2nd job finds the top two maps a coin flip against Sand
   // Dwarf and stays put, where a 3rd job is paid a third more for moving up,
   // and the cape only falls off the mobs up there.
-  PrintFrozenDrops(branches, climbs);
-  PrintTokenOdds(branches.data(), climbs, count);
+  PrintFrozenDrops(branches, typical);
+  PrintTokenOdds(branches.data(), typical, count);
+  PrintTargets(branches, runs);
 }
 
 }  // namespace

@@ -163,6 +163,7 @@ sim_binary(
         "//src/combat",
         "//src/combat:encounter",
         "//src/combat:fight",
+        "//src/combat:loot",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:shop",
