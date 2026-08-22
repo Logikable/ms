@@ -471,9 +471,9 @@ ftxui::Element InspectPanel::StatLine(const std::string& label, int base,
   if (scroll == 0 && sf == 0) {
     return ftxui::text(" " + label + "  +" + std::to_string(total) + " ");
   }
-  // Breakdown: base in default color, scroll in amber, SF in periwinkle.
+  // Breakdown: base in default color, scroll in periwinkle, SF in gold.
   const ftxui::Color kScrollColor = kPurple;
-  const ftxui::Color kSfColor = kOrange;
+  const ftxui::Color kSfColor = kGold;
   std::vector<ftxui::Element> parts;
   parts.push_back(
       ftxui::text(" " + label + "  +" + std::to_string(total) + " ("));

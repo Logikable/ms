@@ -372,9 +372,9 @@ ftxui::Element AccentWindow(const std::string& title, ftxui::Element content,
 
 // Wraps content in a bordered window with the game's steel-blue theme color on
 // the border and title. Content foreground is set to white; explicitly colored
-// elements (gold stars, amber SF, etc.) and ThemedSeparator override it. Pass
-// focused=true to invert the title into a solid chip, marking the panel that
-// currently holds focus.
+// elements (gold stars, gold SF, and so on) and ThemedSeparator override it.
+// Pass focused=true to invert the title into a solid chip, marking the panel
+// that currently holds focus.
 ftxui::Element ThemedWindow(const std::string& title, ftxui::Element content,
                             bool focused = false);
 

@@ -950,7 +950,7 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
           FormatNumber(buff.duration_seconds() +
                        buff.duration_seconds_per_level() * (level - 1)) +
           "s" + charge,
-      kOrange));
+      kGold));
   // The heal is handed over once, when the buff goes up -- so it is stated on
   // its own rather than among the levers that hold for as long as it stands.
   SkillEffect base = buff.base();
@@ -1018,7 +1018,7 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
     permanent.push_back(std::move(row));
   }
   if (!swing.empty()) {
-    rows.push_back(SectionRow("This Attack Only", kOrange));
+    rows.push_back(SectionRow("This Attack Only", kGold));
     for (ftxui::Element& row : swing) {
       rows.push_back(std::move(row));
     }

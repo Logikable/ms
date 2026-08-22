@@ -290,7 +290,7 @@ class ShopPanelTest : public testing::Test {
       // Unpriced, so the Etc shelf never shows it.
       {"shell", MakeStackable("Snail Shell", 0, 200)},
       {"weapon_token", MakeToken("Weapon Token", CURRENCY_COLOR_ICE_BLUE)},
-      {"secondary_token", MakeToken("Secondary Token", CURRENCY_COLOR_AMBER)},
+      {"secondary_token", MakeToken("Secondary Token", CURRENCY_COLOR_ORANGE)},
   };
 };
 

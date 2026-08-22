@@ -74,7 +74,7 @@ class InspectPanel {
   // Returns "Stage N (name)" or empty string if unspecified.
   static std::string FormatAttackSpeed(AttackSpeed speed);
   // Returns a colored hbox with the stat line, or nullptr if all are zero.
-  // Total and base are default color; scroll is amber; SF is periwinkle.
+  // Total and base are default color; scroll is periwinkle; SF is gold.
   static ftxui::Element StatLine(const std::string& label, int base, int scroll,
                                  int sf = 0);
   // `count` stars from `from`, in groups of 5: filled (★) up to `stars`, empty

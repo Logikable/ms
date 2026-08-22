@@ -1400,7 +1400,7 @@ TEST_F(SkillInspectPanelTest, HeadsTheTwoHalvesInTheSkillListsColors) {
   resonance.mutable_buff()->mutable_base()->set_final_dmg_pct(0.02);
   SkillInspectPanel panel;
   panel.SetSkill(&resonance, 1, 0);
-  EXPECT_EQ(LabelColor(panel.Render(), "Active for 15s"), kOrange);
+  EXPECT_EQ(LabelColor(panel.Render(), "Active for 15s"), kGold);
   EXPECT_EQ(LabelColor(panel.Render(), "Passive"), kGreen);
 }
 
@@ -1440,7 +1440,7 @@ TEST_F(SkillInspectPanelTest, HeadsWhatRidesTheSwingApartFromWhatIsKept) {
 
   SkillInspectPanel panel;
   panel.SetSkill(&mist, 1, 0);
-  EXPECT_EQ(LabelColor(panel.Render(), "This Attack Only"), kOrange);
+  EXPECT_EQ(LabelColor(panel.Render(), "This Attack Only"), kGold);
 
   Skill aim = MakeIronBody();
   aim.mutable_base()->set_ied_pct(0.02);

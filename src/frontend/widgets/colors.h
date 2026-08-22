@@ -37,16 +37,18 @@ inline const ftxui::Color kYellow = ftxui::Color::RGB(255, 210, 50);
 inline const ftxui::Color kGray = ftxui::Color::RGB(100, 100, 100);
 
 // Stat source breakdown in the inspect panel, and a skill list's auto-attack
-// tag. Far enough from the orange beside it that the two tags cannot be read
-// as shades of each other.
+// tag. Far enough from the gold beside it that the two tags cannot be read as
+// shades of each other.
 inline const ftxui::Color kPurple = ftxui::Color::RGB(173, 163, 255);
-// A skill list's attack tag.
-inline const ftxui::Color kOrange = ftxui::Color::RGB(255, 198, 50);
+// A skill list's attack tag, and the Star Force share of a stat.
+inline const ftxui::Color kGold = ftxui::Color::RGB(255, 198, 50);
+// A critical damage line, and the mark an off-hand's price is asked in. Well
+// clear of the gold above: a crit has to be told apart from a plain line at a
+// glance, and the two marks from each other.
+inline const ftxui::Color kOrange = ftxui::Color::RGB(240, 140, 60);
 
-// The marks a shop price is asked in. Ice blue buys a weapon and amber an
-// off-hand, whichever tier of gear the mark's own shape belongs to.
+// A plain damage line, and the mark a weapon's price is asked in.
 inline const ftxui::Color kIceBlue = ftxui::Color::RGB(120, 195, 235);
-inline const ftxui::Color kAmber = ftxui::Color::RGB(240, 180, 80);
 
 // Star Force outcome rates.
 inline const ftxui::Color kGreen = ftxui::Color::RGB(100, 175, 100);

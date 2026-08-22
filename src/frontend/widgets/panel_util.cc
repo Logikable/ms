@@ -407,8 +407,8 @@ ftxui::Color MarkColor(CurrencyColor color) {
   switch (color) {
     case CURRENCY_COLOR_ICE_BLUE:
       return kIceBlue;
-    case CURRENCY_COLOR_AMBER:
-      return kAmber;
+    case CURRENCY_COLOR_ORANGE:
+      return kOrange;
     default:
       return kTheme;
   }
@@ -422,7 +422,7 @@ KindTag TagFor(const Skill& skill) {
   switch (skill.kind()) {
     case SKILL_KIND_ATTACK:
     case SKILL_KIND_ACTIVE:
-      return {"A:  ", kOrange};
+      return {"A:  ", kGold};
     case SKILL_KIND_AUTO_ATTACK:
       // Purple rather than another yellow: an auto-attack is not a shade of
       // active, and two tags a step apart in the same hue read as one.

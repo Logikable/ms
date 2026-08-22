@@ -10,3 +10,4 @@ compile_commands.json
 # Local AI-assistant workflow files (kept out of the public repo)
 AGENTS.md
 CLAUDE.md
+.claude/

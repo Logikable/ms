@@ -25,7 +25,7 @@ enum ItemEffect {
 enum CurrencyColor {
   CURRENCY_COLOR_UNSPECIFIED = 0;
   CURRENCY_COLOR_ICE_BLUE = 1;
-  CURRENCY_COLOR_AMBER = 2;
+  CURRENCY_COLOR_ORANGE = 2;
 }
 
 // Static definition of a stackable item type. Loaded from data/items textprotos
