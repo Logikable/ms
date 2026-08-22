@@ -121,7 +121,7 @@ Tui::Tui(GameState& state, std::string save_path)
   trace_inspect_panel_.UseCharacter(state.character);
 }
 
-void Tui::Run() {
+void Tui::BuildComponents() {
   equip_component_ =
       equip_panel_.MakeComponent([this]() { controller_.OpenEquipMenu(); });
   inventory_component_ = inventory_panel_.MakeComponent(
@@ -136,7 +136,9 @@ void Tui::Run() {
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
   menu_component_ = menu_panel_.MakeComponent(
       [this](MenuEntry entry) { controller_.OpenMenuEntry(entry); });
+}
 
+ftxui::Component Tui::MakeRoot(ftxui::ScreenInteractive& screen) {
   // Order must match the Panel enum: panel_focus_ indexes this list.
   ftxui::Component panels = ftxui::Container::Tab(
       {char_component_, equip_component_, inventory_component_, menu_component_,
@@ -145,9 +147,6 @@ void Tui::Run() {
 
   ftxui::Component base = ftxui::Renderer(
       panels, [this]() -> ftxui::Element { return RenderFrame(); });
-
-  ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
-  HandleClosingSignals();
 
   ftxui::Component handler =
       ftxui::CatchEvent(base, [this, &screen](ftxui::Event event) -> bool {
@@ -172,8 +171,15 @@ void Tui::Run() {
       });
   // Outside everything, so the whole tree -- ftxui's own menus included --
   // hears the game's keys rather than the terminal's.
-  ftxui::Component root = TranslateKeys(
-      handler, keys_, [this]() { return controller_.capturing_key(); });
+  return TranslateKeys(handler, keys_,
+                       [this]() { return controller_.capturing_key(); });
+}
+
+void Tui::Run() {
+  BuildComponents();
+  ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
+  HandleClosingSignals();
+  ftxui::Component root = MakeRoot(screen);
 
   // Drive the idle game: wake periodically, advance combat on the loop thread
   // (so state mutation stays single-threaded), and redraw.

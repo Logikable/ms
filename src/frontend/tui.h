@@ -15,6 +15,7 @@
 #include <string>
 
 #include "ftxui/component/component.hpp"
+#include "ftxui/component/screen_interactive.hpp"
 #include "src/combat/fight.h"
 #include "src/frontend/celebration.h"
 #include "src/frontend/keybinds.h"
@@ -57,6 +58,11 @@ class Tui {
   void Run();
 
  private:
+  // Wires each main-view panel to the controller call its Enter makes.
+  void BuildComponents();
+  // The component tree Run() drives: the panel ring, the renderer, the event
+  // handler that can end the loop, and the key map outside all of it.
+  ftxui::Component MakeRoot(ftxui::ScreenInteractive& screen);
   // The whole frame: the screen the player is on, with a celebration card
   // floated over it when one is up.
   ftxui::Element RenderFrame();
