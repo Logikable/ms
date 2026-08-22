@@ -42,16 +42,18 @@ TEST(AmountSelectorTest, DefaultsToMax) {
   EXPECT_EQ(sel.value(), 10);
 }
 
-// Digits append, Backspace drops the last one, and a value over the max is held
-// at it. Zero is reachable, which is why the confirm can be refused.
-TEST(AmountSelectorTest, TheTextboxEditsByDigitAndBackspace) {
+// Digits append, Delete drops the last one, and a value over the max is held
+// at it. Zero is reachable, which is why the confirm can be refused. Backspace
+// does the same for a player who has taken it off Cancel; with it bound there,
+// it never reaches the textbox.
+TEST(AmountSelectorTest, TheTextboxEditsByDigitAndDelete) {
   AmountSelector sel;
   sel.Reset(100);
   Clear(&sel);
   sel.OnEvent(ftxui::Event::Character('2'));
   sel.OnEvent(ftxui::Event::Character('5'));
   EXPECT_EQ(sel.value(), 25);
-  sel.OnEvent(ftxui::Event::Backspace);
+  sel.OnEvent(ftxui::Event::Delete);
   EXPECT_EQ(sel.value(), 2);
   sel.OnEvent(ftxui::Event::Backspace);
   EXPECT_EQ(sel.value(), 0);

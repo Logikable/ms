@@ -20,6 +20,7 @@
 #include "src/character/exp_table.h"
 #include "src/character/progression.h"
 #include "src/combat/combat.h"
+#include "src/frontend/keybinds.h"
 #include "src/frontend/main_layout.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/combat_panel.h"
@@ -90,6 +91,7 @@ Tui::Tui(GameState& state, std::string save_path)
       last_job_seen_(state.character.proto().job()),
       last_save_(std::chrono::steady_clock::now()),
       last_combat_update_(std::chrono::steady_clock::now()),
+      keys_(&state.keybinds),
       char_panel_(state.character, panel_focus_, state.skills),
       combat_panel_(state, combat_sim_, panel_focus_),
       menu_panel_(state, panel_focus_),
@@ -142,7 +144,7 @@ void Tui::Run() {
   ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
   HandleClosingSignals();
 
-  ftxui::Component root =
+  ftxui::Component handler =
       ftxui::CatchEvent(base, [this, &screen](ftxui::Event event) -> bool {
         if (event.is_mouse()) {
           return true;
@@ -163,6 +165,9 @@ void Tui::Run() {
         }
         return handled;
       });
+  // Outside everything, so the whole tree -- ftxui's own menus included --
+  // hears the game's keys rather than the terminal's.
+  ftxui::Component root = TranslateKeys(handler, keys_, nullptr);
 
   // Drive the idle game: wake periodically, advance combat on the loop thread
   // (so state mutation stays single-threaded), and redraw.

@@ -190,6 +190,7 @@ cc_library(
     hdrs = ["tui.h"],
     deps = [
         ":celebration",
+        ":keybinds",
         ":main_layout",
         ":tui_controller",
         "//src:game_state",

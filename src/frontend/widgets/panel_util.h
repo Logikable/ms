@@ -21,14 +21,15 @@
 
 namespace ms {
 
-// True for any "go back" key (Escape or Backspace).
+// True for the "go back" key. Every key the player has bound to Cancel --
+// Backspace among them, unless they took it off -- arrives here as Escape.
 inline bool IsBack(const ftxui::Event& e) {
-  return e == ftxui::Event::Escape || e == ftxui::Event::Backspace;
+  return e == ftxui::Event::Escape;
 }
 
-// True for any "confirm / advance" key (Enter or Space).
+// True for the "confirm / advance" key, Space included the same way.
 inline bool IsForward(const ftxui::Event& e) {
-  return e == ftxui::Event::Return || e == ftxui::Event::Character(' ');
+  return e == ftxui::Event::Return;
 }
 
 // Wraps `child` so it always reports itself focusable, forwarding rendering

@@ -2,8 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <string>
 
+#include "ftxui/component/component.hpp"
+#include "ftxui/component/component_base.hpp"
 #include "ftxui/component/event.hpp"
 #include "src/protos/keybinds.pb.h"
 
@@ -138,6 +141,47 @@ TEST(KeyMapTest, ASaveCannotBindOneKeyToTwoActions) {
   KeyMap keys(&binds);
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 1), "W");
   EXPECT_EQ(keys.Label(KEY_ACTION_DOWN, 1), "");
+}
+
+// Records the last key it was handed, standing in for the component tree.
+class KeySpy : public ftxui::ComponentBase {
+ public:
+  bool OnEvent(ftxui::Event event) override {
+    last = event;
+    return true;
+  }
+
+  ftxui::Event last = ftxui::Event::Custom;
+};
+
+TEST(TranslateKeysTest, TheTreeHearsTheGamesKeys) {
+  Keybinds binds;
+  KeyMap keys(&binds);
+  keys.Bind(KEY_ACTION_UP, 1, ftxui::Event::w);
+  std::shared_ptr<KeySpy> spy = std::make_shared<KeySpy>();
+
+  ftxui::Component wrapped = TranslateKeys(spy, keys, nullptr);
+  wrapped->OnEvent(ftxui::Event::w);
+  EXPECT_EQ(spy->last, ftxui::Event::ArrowUp);
+  wrapped->OnEvent(ftxui::Event::q);
+  EXPECT_EQ(spy->last, ftxui::Event::q);
+}
+
+// While a slot waits for a key, the raw one has to get through -- otherwise a
+// bound key could never be rebound.
+TEST(TranslateKeysTest, CapturingLetsTheRawKeyThrough) {
+  Keybinds binds;
+  KeyMap keys(&binds);
+  bool capturing = true;
+  std::shared_ptr<KeySpy> spy = std::make_shared<KeySpy>();
+
+  ftxui::Component wrapped =
+      TranslateKeys(spy, keys, [&capturing]() { return capturing; });
+  wrapped->OnEvent(ftxui::Event::Character(' '));
+  EXPECT_EQ(spy->last, ftxui::Event::Character(' '));
+  capturing = false;
+  wrapped->OnEvent(ftxui::Event::Character(' '));
+  EXPECT_EQ(spy->last, ftxui::Event::Return);
 }
 
 }  // namespace
