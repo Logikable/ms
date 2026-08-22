@@ -1196,18 +1196,60 @@ TEST(CombatSimTest, TheEngagedMobHitsBackOnItsOwnClock) {
 }
 
 // Holy Fountain: healing on a clock of its own, costing no swing and asking
-// for no hit. It runs against the damage coming in rather than instead of it.
-TEST(CombatSimTest, AFountainHealsWhileTheMobIsStillHitting) {
+// for no hit. It runs against the damage coming in rather than instead of it,
+// and it arrives in pulses -- nothing until the interval is up, then the whole
+// helping at once.
+TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
-  params.regen_pct_per_second = 0.04;  // 4 HP a second against 10 a hit
+  params.regen_pulses = {{0.20, 5.0}};  // 20 HP every 5s against 10 a hit
 
+  // Four hits in, the fountain has poured nothing: the pulse is not owed until
+  // its interval is up. A rate would have paid 16 HP by here.
+  for (int i = 0; i < 4; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.player_hp(), 60);
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 94);
+  EXPECT_EQ(sim.player_hp(), 70);
+}
+
+// One step wider than the interval owes every pulse it covered, the way a burn
+// ticks for each one it outlasted.
+TEST(CombatSimTest, AFountainPoursEveryPulseAWideStepCovered) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 1000, /*interval=*/1.0, /*damage=*/100.0);
+  params.regen_pulses = {{0.02, 2.0}};  // 20 HP every 2s
+
+  sim.Advance(params, 2.0);  // one hit, one pulse
+  EXPECT_EQ(sim.player_hp(), 920);
+  sim.Advance(params, 6.0);  // one hit again, but three pulses
+  EXPECT_EQ(sim.player_hp(), 880);
+}
+
+// Two fountains on two clocks, which is what a Bishop carries. Neither waits
+// on the other, and a step both come due on pays both.
+TEST(CombatSimTest, TwoFountainsPourOnSeparateClocks) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 1000, /*interval=*/1.0, /*damage=*/100.0);
+  params.regen_pulses = {{0.02, 2.0}, {0.03, 3.0}};
+
+  for (int i = 0; i < 2; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.player_hp(), 820);  // the 2s one, alone
   sim.Advance(params, 1.0);
-  EXPECT_EQ(sim.player_hp(), 88);
+  EXPECT_EQ(sim.player_hp(), 750);  // the 3s one, alone
+  for (int i = 0; i < 3; ++i) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_EQ(sim.player_hp(), 520);  // both, on the same step
 }
 
 // It stops at the pool rather than running past it, the way every other heal
@@ -1217,7 +1259,7 @@ TEST(CombatSimTest, AFountainNeverFillsPastTheHpPool) {
   CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 100, /*interval=*/1000.0, /*damage=*/10.0);
-  params.regen_pct_per_second = 0.50;
+  params.regen_pulses = {{0.50, 1.0}};
 
   sim.Advance(params, 10.0);
   EXPECT_EQ(sim.player_hp(), 100);
@@ -1515,9 +1557,9 @@ TEST(CombatSimTest, AWiderPoolAtTheSameLevelDoesNotHeal) {
 }
 
 // And a pool that shrank -- an unequipped hat -- takes the player down with
-// it, rather than leaving them holding HP their stats do not give them. The
-// step's regen already clamps to the pool whether or not there is any regen to
-// apply, so this needs no code of its own; it needs a test saying so.
+// it, rather than leaving them holding HP their stats do not give them. It
+// holds for a character with no fountain at all: the clamp belongs to the
+// pool, not to the healing.
 TEST(CombatSimTest, ANarrowerPoolTakesTheOverflowWithIt) {
   Mob snail = MakeMob("Snail", 1000);
   CombatSim sim;

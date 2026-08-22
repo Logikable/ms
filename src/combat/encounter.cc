@@ -971,9 +971,13 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
   params.exp_pct = derived.exp_pct;
   params.meso_pct = derived.meso_pct;
   params.item_drop_pct = derived.item_drop_pct;
-  // The band stretches the interval between pulses, so it thins the rate.
-  params.regen_pct_per_second =
-      speed_factor > 0.0 ? derived.regen_pct_per_second / speed_factor : 0.0;
+  // The band stretches the interval between pulses, the way it stretches every
+  // other clock in the fight. The helping each one pours is untouched.
+  params.regen_pulses.clear();
+  for (const RegenPulse& pulse : derived.regen_pulses) {
+    params.regen_pulses.push_back(
+        {pulse.pct, pulse.interval_seconds * speed_factor});
+  }
   params.revive_cooldown_seconds =
       derived.revive_cooldown_seconds * speed_factor;
   params.freeze_cap = derived.freeze.cap;

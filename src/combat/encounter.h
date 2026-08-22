@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "src/character/character_stats.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
@@ -303,9 +304,10 @@ struct CombatParams {
   // wears and what their passives grant. Read by AwardCombatRewards, like
   // exp_pct above: it raises the chance of a drop rather than the size of one.
   double item_drop_pct = 0.0;
-  // Share of the HP pool a fountain puts back every second, already stretched
-  // by the pacing band. Runs whether or not the character is swinging.
-  double regen_pct_per_second = 0.0;
+  // The fountains the character carries, their intervals already stretched by
+  // the pacing band. Each runs on its own clock, whether or not the character
+  // is swinging.
+  std::vector<RegenPulse> regen_pulses;
   // Seconds between one revival and the next, game-scaled. Above 0 for a
   // character whose passives revive them: the hit that would have killed them
   // fills the pool instead, and the wait starts over. 0 for everyone else.

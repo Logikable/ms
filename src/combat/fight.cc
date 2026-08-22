@@ -582,6 +582,24 @@ void CombatSim::RunDots(double dt) {
   }
 }
 
+void CombatSim::RunRegen(const CombatParams& params, double dt) {
+  regen_phase_.resize(params.regen_pulses.size(), 0.0);
+  for (int i = 0; i < static_cast<int>(params.regen_pulses.size()); ++i) {
+    const RegenPulse& pulse = params.regen_pulses[i];
+    if (pulse.interval_seconds <= 0.0) {
+      continue;
+    }
+    regen_phase_[i] += dt;
+    // A while rather than an if: a step wider than the interval owes every
+    // pulse it covered, the way a burn ticks for each one it outlasted.
+    while (regen_phase_[i] >= pulse.interval_seconds) {
+      regen_phase_[i] -= pulse.interval_seconds;
+      player_hp_ = std::min(static_cast<double>(params.max_player_hp),
+                            player_hp_ + pulse.pct * params.max_player_hp);
+    }
+  }
+}
+
 double CombatSim::RolledDamage(const AttackOption& attack, int type,
                                const Landing& landing) {
   if (attack.groups.empty()) {
@@ -686,6 +704,7 @@ void CombatSim::GoIdle() {
   player_level_ = 0;
   hit_phase_ = 0.0;
   auto_phase_.clear();
+  regen_phase_.clear();
   cooldown_left_.clear();
   aimed_ = -1;
 }
@@ -705,9 +724,9 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   auto_phase_.assign(params.auto_attacks.size(), 0.0);
   auto_empowered_count_.assign(params.auto_attacks.size(), 0);
   cooldown_left_.assign(params.attacks.size(), 0.0);
-  // The buff clocks are deliberately left alone: they belong to the character
-  // rather than to the map, and walking somewhere else neither takes a buff
-  // away nor hands one back early.
+  // The buff and fountain clocks are deliberately left alone: they belong to
+  // the character rather than to the map, and walking somewhere else neither
+  // takes a buff away nor hands back a pulse early.
   // Another map's attacks were another map's indices, and nothing here is
   // part-way through a swing at it any more.
   aimed_ = -1;
@@ -1135,6 +1154,9 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   if (params.player_level != player_level_) {
     player_hp_ = params.max_player_hp;
   }
+  // A pool that shrank -- an unequipped hat -- takes the player down with it,
+  // rather than leaving them holding HP their stats do not give them.
+  player_hp_ = std::min(player_hp_, static_cast<double>(params.max_player_hp));
 
   // Before the hit that may need it, so a wait that runs out this step is one
   // the player has the benefit of.
@@ -1146,9 +1168,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunBuffs(params, dt);
   // After the hit and before the swing, so a fountain is worth something on
   // the step it was needed rather than only on the next one.
-  player_hp_ = std::min(
-      static_cast<double>(params.max_player_hp),
-      player_hp_ + params.regen_pct_per_second * params.max_player_hp * dt);
+  RunRegen(params, dt);
   RunAutoCasts(params, dt);
   // After the summons and before the swing, so a burn lit last step has landed
   // its ticks before this step's swing decides what is worth hitting.

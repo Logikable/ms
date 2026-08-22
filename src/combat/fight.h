@@ -248,6 +248,10 @@ class CombatSim {
   // due. Only the mobs actually burning cost anything here.
   void RunDots(double dt);
 
+  // Runs every fountain forward by dt, pouring whatever pulses come due. Each
+  // fills to the pool and no further, and none of them needs a mob on the map.
+  void RunRegen(const CombatParams& params, double dt);
+
   // Brings the queue back up to a full roster, adding only what each type is
   // missing: a respawn puts new monsters on the map, it does not heal the one
   // being fought. Leaves the swing clock alone, since whether a top-up should
@@ -459,6 +463,10 @@ class CombatSim {
   // Seconds into each auto-attack's next cast, parallel to
   // params.auto_attacks. Runs only while there is something to hit.
   std::vector<double> auto_phase_;
+  // Seconds into each fountain's next pulse, parallel to params.regen_pulses.
+  // Starts at 0, so the first pulse falls one interval in rather than free on
+  // the step the fight opened.
+  std::vector<double> regen_phase_;
   // Swings credited toward each triggered attack's next cast, parallel to
   // params.triggered_attacks. Fractional, since a swing can be worth less than
   // a whole one.
