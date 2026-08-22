@@ -76,6 +76,17 @@ class MultiSellTest : public PanelTest {
     return "";
   }
 
+  // The screen row the window's top border lands on.
+  int TopRow(MultiSellPanel& panel) {
+    std::vector<std::string> rows = ScreenRows(panel);
+    for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
+      if (rows[y].find("Multi-Sell") != std::string::npos) {
+        return y;
+      }
+    }
+    return -1;
+  }
+
   void Press(MultiSellPanel& panel, ftxui::Event event, int times = 1) {
     for (int i = 0; i < times; ++i) {
       panel.OnEvent(event);
@@ -124,6 +135,21 @@ TEST_F(MultiSellTest, TheBasketRunsAcrossTabs) {
   Press(panel, ftxui::Event::ArrowDown);
   Press(panel, ftxui::Event::Return);
   EXPECT_EQ(panel.Total(), 1000 + 200 + 21);
+}
+
+TEST_F(MultiSellTest, TheWindowStandsAtTheSameHeightOnEveryTab) {
+  GiveEquip("Sword", 1000);
+  GiveStack("Red Potion", ITEM_CATEGORY_USE, 50, 4);
+  MultiSellPanel panel(c_);
+  panel.Reset(kEquipTab, 0);
+  int top = TopRow(panel);
+  EXPECT_GE(top, 0);
+  // A tab with one row and a tab with none leave the box the size it was.
+  Press(panel, ftxui::Event::ArrowUp);
+  Press(panel, ftxui::Event::ArrowRight);
+  EXPECT_EQ(TopRow(panel), top);
+  Press(panel, ftxui::Event::ArrowRight);
+  EXPECT_EQ(TopRow(panel), top);
 }
 
 TEST_F(MultiSellTest, ACurrencyStackCannotBeMarked) {

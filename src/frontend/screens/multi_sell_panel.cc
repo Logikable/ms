@@ -25,6 +25,10 @@ constexpr int kPriceWidth = 11;
 constexpr int kEquipRowWidth = 71;
 // Both columns keep a space inside the border, as every panel does.
 constexpr int kContentWidth = kMarkWidth + kEquipRowWidth + 2 + kPriceWidth + 1;
+// The window is centred, so a box that shrank to a short tab's contents would
+// hang at a different height on every tab. It is held to one size instead, and
+// a tab with few rows leaves the space below them empty.
+constexpr int kContentHeight = 30;
 
 // The price cell: two columns of separator, the value right-aligned, and a
 // column of clearance inside the border. It sits at a fixed offset rather than
@@ -368,7 +372,7 @@ ftxui::Element MultiSellPanel::Render() {
               zone_ == kZoneButtons && cancel_focused_, !basket_.empty())}) |
               ftxui::hcenter,
       }) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth) |
-          ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 30));
+          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kContentHeight));
 }
 
 ftxui::Element MultiSellPanel::RenderConfirm() const {
