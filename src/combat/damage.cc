@@ -217,26 +217,45 @@ SwingRolls RollsFor(const OffenseStats& offense) {
   return rolls;
 }
 
-double RollFactor(const SwingRolls& rolls, std::mt19937& rng) {
+double RollFactor(const SwingRolls& rolls, std::mt19937& rng,
+                  std::vector<LineRoll>* lines) {
+  if (lines != nullptr) {
+    lines->clear();
+  }
   double effective_lines = rolls.lines + rolls.mirror_lines * rolls.mirror_pct;
   double mean =
       (1.0 + rolls.mastery) / 2.0 * (1.0 + rolls.crit_rate * rolls.crit_dmg);
   if (effective_lines <= 0.0 || mean <= 0.0) {
+    // Nothing rolled, so the landing is one line carrying the whole of it.
+    if (lines != nullptr) {
+      lines->push_back({1.0, false});
+    }
     return 1.0;
   }
   std::uniform_real_distribution<double> spread(rolls.mastery, 1.0);
   std::bernoulli_distribution crits(rolls.crit_rate);
+  double scale = 1.0 / (effective_lines * mean);
   double total = 0.0;
   for (int i = 0; i < rolls.lines; ++i) {
-    total += spread(rng) * (crits(rng) ? 1.0 + rolls.crit_dmg : 1.0);
+    bool crit = crits(rng);
+    double line = spread(rng) * (crit ? 1.0 + rolls.crit_dmg : 1.0);
+    total += line;
+    if (lines != nullptr) {
+      lines->push_back({line * scale, crit});
+    }
   }
   // The shadow's copies roll on their own rather than sharing the swing's: it
   // is a second set of hits, and GMS rolls every hit.
   for (int i = 0; i < rolls.mirror_lines; ++i) {
-    total += rolls.mirror_pct * spread(rng) *
-             (crits(rng) ? 1.0 + rolls.crit_dmg : 1.0);
+    bool crit = crits(rng);
+    double line =
+        rolls.mirror_pct * spread(rng) * (crit ? 1.0 + rolls.crit_dmg : 1.0);
+    total += line;
+    if (lines != nullptr) {
+      lines->push_back({line * scale, crit});
+    }
   }
-  return total / (effective_lines * mean);
+  return total * scale;
 }
 
 double CombineIgnoredDefense(double a, double b) {

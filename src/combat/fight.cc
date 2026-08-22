@@ -337,34 +337,42 @@ double CombatSim::Strike(const AttackOption& attack) {
   // hits the queue as it stands, which is the same thing for damage that does
   // not escalate.
   std::vector<int> order = PierceOrder(attack, hit);
+  // Before anything lands, so every way this swing reaches one monster files
+  // its lines under the one event -- the strike, the opening hit and whatever
+  // follows them are one landing to the player watching.
+  OpenLandings(hit);
   for (int step = 0; step < hit; ++step) {
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
-    queue_[j].hp -= DamageToMob(attack, j) * gain * freeze;
+    queue_[j].hp -=
+        DamageToMob(attack, j, LandingAt(j, gain * freeze)) * gain * freeze;
   }
   for (int j : lead) {
-    queue_[j].hp -= attack.lead_damage[queue_[j].type] *
-                    RollFactor(attack.lead_rolls, rng_) * freeze;
+    double damage = attack.lead_damage[queue_[j].type] *
+                    RollFactor(attack.lead_rolls, rng_, LineSink());
+    RecordRolls(LandingAt(j, freeze),
+                attack.lead_damage[queue_[j].type] * freeze);
+    queue_[j].hp -= damage * freeze;
   }
   // A Final Attack rolls separately against every enemy the swing reached, so
   // in expectation each of them takes it.
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
-      queue_[j].hp -=
-          RolledFinalAttack(attack.final_attack_rolls,
-                            attack.final_attack_damage, queue_[j].type) *
-          freeze;
+      queue_[j].hp -= RolledFinalAttack(attack.final_attack_rolls,
+                                        attack.final_attack_damage,
+                                        queue_[j].type, LandingAt(j, freeze)) *
+                      freeze;
     }
   }
   // Blizzard's rolls once for the swing and falls on one enemy, whatever the
   // swing reached. The first in the queue is as good as any: nothing here has
   // a position, so no enemy is nearer than another.
   if (hit > 0 && !attack.single_final_attack_damage.empty()) {
-    queue_[0].hp -=
-        RolledFinalAttack(attack.single_final_attack_rolls,
-                          attack.single_final_attack_damage, queue_[0].type) *
-        freeze;
+    queue_[0].hp -= RolledFinalAttack(attack.single_final_attack_rolls,
+                                      attack.single_final_attack_damage,
+                                      queue_[0].type, LandingAt(0, freeze)) *
+                    freeze;
   }
   double recovered = RollProcs(attack, hit);
   // Marked before the dead are cleared, so the indices the swing reached are
@@ -392,8 +400,9 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
     if (!fires(rng_)) {
       continue;
     }
-    queue_[0].hp -=
-        RolledDamage(attack, queue_[0].type) * proc.damage_pct * boost;
+    queue_[0].hp -= RolledDamage(attack, queue_[0].type,
+                                 LandingAt(0, proc.damage_pct * boost)) *
+                    proc.damage_pct * boost;
     recovered += proc.hp_recover_pct;
   }
   return recovered;
@@ -443,6 +452,47 @@ void CombatSim::CreditFreeze(const CombatParams& params,
   } else if (attack.freeze_spends) {
     freeze_stacks_ = std::max(0, freeze_stacks_ - std::max(1, attack.lines));
   }
+}
+
+void CombatSim::OpenLandings(int hit) {
+  if (!record_lines_) {
+    return;
+  }
+  landing_event_.assign(queue_.size(), 0);
+  for (int j = 0; j < hit && j < static_cast<int>(queue_.size()); ++j) {
+    landing_event_[j] = ++next_damage_event_;
+  }
+}
+
+Landing CombatSim::LandingAt(int index, double scale) const {
+  if (!record_lines_) {
+    return {0, 0, scale};
+  }
+  int event = index < static_cast<int>(landing_event_.size())
+                  ? landing_event_[index]
+                  : 0;
+  return {queue_[index].id, event, scale};
+}
+
+void CombatSim::RecordLine(const Landing& landing, double damage, bool crit) {
+  if (!record_lines_) {
+    return;
+  }
+  damage_lines_this_step_.push_back(
+      {landing.mob_id, landing.event, damage, crit});
+}
+
+void CombatSim::RecordRolls(const Landing& landing, double damage) {
+  if (!record_lines_) {
+    return;
+  }
+  for (const LineRoll& roll : line_rolls_) {
+    RecordLine(landing, damage * roll.share, roll.crit);
+  }
+}
+
+std::vector<LineRoll>* CombatSim::LineSink() {
+  return record_lines_ ? &line_rolls_ : nullptr;
 }
 
 void CombatSim::Reap() {
@@ -511,7 +561,10 @@ void CombatSim::RunDots(double dt) {
         dot.phase -= dot.interval_seconds;
         // Every helping ticks for the whole damage, and each rolls its own.
         for (int i = 0; i < dot.stacks; ++i) {
-          mob.hp -= dot.damage * RollFactor(dot.rolls, rng_);
+          mob.hp -= dot.damage * RollFactor(dot.rolls, rng_, LineSink());
+          // A tick is its own landing: it falls on its own clock, between the
+          // swings rather than with one.
+          RecordRolls({mob.id, ++next_damage_event_, 1.0}, dot.damage);
         }
         burned = true;
       }
@@ -525,14 +578,17 @@ void CombatSim::RunDots(double dt) {
   }
 }
 
-double CombatSim::RolledDamage(const AttackOption& attack, int type) {
+double CombatSim::RolledDamage(const AttackOption& attack, int type,
+                               const Landing& landing) {
   if (attack.groups.empty()) {
+    RecordLine(landing, attack.damage_per_hit[type] * landing.scale, false);
     return attack.damage_per_hit[type];
   }
   double total = 0.0;
   for (const HitGroup& group : attack.groups) {
     if (type < static_cast<int>(group.damage.size())) {
-      total += group.damage[type] * RollFactor(group.rolls, rng_);
+      total += group.damage[type] * RollFactor(group.rolls, rng_, LineSink());
+      RecordRolls(landing, group.damage[type] * landing.scale);
     }
   }
   return total;
@@ -540,8 +596,9 @@ double CombatSim::RolledDamage(const AttackOption& attack, int type) {
 
 double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
                                     const std::vector<double>& expected,
-                                    int type) {
+                                    int type, const Landing& landing) {
   if (sources.empty()) {
+    RecordLine(landing, expected[type] * landing.scale, false);
     return expected[type];
   }
   double total = 0.0;
@@ -558,16 +615,19 @@ double CombatSim::RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
     for (int roll = 0; roll < source.count; ++roll) {
       int hits = certain + (lands(rng_) ? 1 : 0);
       for (int hit = 0; hit < hits; ++hit) {
-        total += source.damage[type] * RollFactor(source.rolls, rng_);
+        total +=
+            source.damage[type] * RollFactor(source.rolls, rng_, LineSink());
+        RecordRolls(landing, source.damage[type] * landing.scale);
       }
     }
   }
   return total;
 }
 
-double CombatSim::DamageToMob(const AttackOption& attack, int index) {
+double CombatSim::DamageToMob(const AttackOption& attack, int index,
+                              const Landing& landing) {
   int type = queue_[index].type;
-  double ordinary = RolledDamage(attack, type);
+  double ordinary = RolledDamage(attack, type, landing);
   if (!attack.brands_enemies || attack.empowered == nullptr ||
       attack.empowered_every <= 0) {
     return ordinary;
@@ -580,7 +640,7 @@ double CombatSim::DamageToMob(const AttackOption& attack, int index) {
   queue_[index].brand = 0;
   // On top of the strike that set it off, not instead of it: a mark going off
   // is its own event, where an empowered swing IS the swing.
-  return ordinary + RolledDamage(*attack.empowered, type);
+  return ordinary + RolledDamage(*attack.empowered, type, landing);
 }
 
 const AttackOption& CombatSim::FormToLand(std::vector<int>& counts, int size,
@@ -1051,6 +1111,8 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   active_ = params.active;
   kills_this_step_.assign(params.types.size(), 0);
   died_this_step_ = false;
+  record_lines_ = params.record_damage_lines;
+  damage_lines_this_step_.clear();
   if (!CanFight(params)) {
     GoIdle();
     return;

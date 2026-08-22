@@ -9,6 +9,7 @@
 #include <map>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -77,13 +78,26 @@ struct SwingRolls {
 // the swing lands.
 SwingRolls RollsFor(const OffenseStats& offense);
 
+// One line of a swing as it landed: the share of the swing's expected damage
+// it carried, and whether it was critical. For a caller drawing the lines one
+// number apiece rather than only applying their total.
+struct LineRoll {
+  double share = 0.0;
+  bool crit = false;
+};
+
 // One landing's share of the mean: the per-line rolls summed, over what they
 // average to. Exactly 1.0 when nothing rolls, so damage times this is damage.
 //
 // A factor rather than a damage because the expected damage is already worked
 // out and cached -- multiplying keeps the two agreeing in expectation by
 // construction, and every reader that wants the average keeps reading it.
-double RollFactor(const SwingRolls& rolls, std::mt19937& rng);
+//
+// `lines`, where one is given, is emptied and filled with a share per line.
+// Those shares sum to what this returns, so what the player is shown adding up
+// and what the monster loses cannot disagree.
+double RollFactor(const SwingRolls& rolls, std::mt19937& rng,
+                  std::vector<LineRoll>* lines = nullptr);
 
 // How two shares of ignored monster DEF meet: in reverse, so what is left of
 // the armour is the product of what each share leaves standing. 30% and 40%

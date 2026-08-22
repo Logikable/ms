@@ -2612,5 +2612,122 @@ TEST(CombatSimTest, ANewEncounterNameRefillsTheQueue) {
   EXPECT_EQ(sim.roster()[0].name, "Body");
 }
 
+// The record is off unless it is asked for: the sims step the fight millions
+// of times and draw none of it.
+TEST(CombatSimTest, NothingIsRecordedUnlessItIsAskedFor) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_TRUE(sim.damage_lines_this_step().empty());
+}
+
+// The whole contract of the record: one line per hit, all of one swing on one
+// monster under one event, against the monster that actually took it, and
+// summing to what that monster lost.
+TEST(CombatSimTest, ASwingIsRecordedLineByLine) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
+  params.record_damage_lines = true;
+  HitGroup group;
+  group.damage = {25.0};
+  group.rolls.lines = 4;
+  group.rolls.mastery = 0.4;
+  group.rolls.crit_rate = 0.5;
+  group.rolls.crit_dmg = 1.0;
+  params.attacks[0].groups.push_back(group);
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  double before = sim.target_hp_fraction();
+  sim.Advance(params, 1.0);
+
+  const std::vector<DamageLine>& lines = sim.damage_lines_this_step();
+  ASSERT_EQ(lines.size(), 4u);
+  ASSERT_EQ(sim.roster().size(), 1u);
+  double total = 0.0;
+  for (const DamageLine& line : lines) {
+    EXPECT_EQ(line.mob_id, sim.roster()[0].id);
+    EXPECT_EQ(line.event, lines[0].event);
+    EXPECT_GT(line.damage, 0.0);
+    total += line.damage;
+  }
+  EXPECT_NEAR(total, (before - sim.target_hp_fraction()) * mob.max_hp(), 1e-6);
+}
+
+// Two monsters, one swing: each keeps its own stack, so the numbers can be
+// drawn where the damage landed.
+TEST(CombatSimTest, EachMonsterOfASwingGetsItsOwnEvent) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 2)}, 2);
+  params.record_damage_lines = true;
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);
+
+  const std::vector<DamageLine>& lines = sim.damage_lines_this_step();
+  ASSERT_EQ(lines.size(), 2u);
+  EXPECT_NE(lines[0].mob_id, lines[1].mob_id);
+  EXPECT_NE(lines[0].event, lines[1].event);
+}
+
+// A crit is told apart from a plain line, which is the only thing the colour
+// of a number depends on.
+TEST(CombatSimTest, ACritIsRecordedAsOne) {
+  Mob mob = MakeMob("Snail", 100000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
+  params.record_damage_lines = true;
+  HitGroup group;
+  group.damage = {25.0};
+  group.rolls.lines = 8;
+  group.rolls.mastery = 1.0;
+  group.rolls.crit_rate = 0.5;
+  group.rolls.crit_dmg = 1.0;
+  params.attacks[0].groups.push_back(group);
+
+  CombatSim sim;
+  bool crit_seen = false;
+  bool plain_seen = false;
+  for (int step = 0; step < 20; ++step) {
+    sim.Advance(params, 1.0);
+    for (const DamageLine& line : sim.damage_lines_this_step()) {
+      crit_seen = crit_seen || line.crit;
+      plain_seen = plain_seen || !line.crit;
+      // Nothing spreads, so a plain line is the swing's 25 over its eight
+      // lines and the half-again the crit rate already averaged in, and a
+      // crit is exactly twice that.
+      double plain = 25.0 / (8 * 1.5);
+      EXPECT_NEAR(line.damage, line.crit ? 2 * plain : plain, 1e-9);
+    }
+  }
+  EXPECT_TRUE(crit_seen);
+  EXPECT_TRUE(plain_seen);
+}
+
+// A burn ticks between the swings rather than with one, so it is its own
+// landing and gets its own stack of numbers.
+TEST(CombatSimTest, ABurnTickIsItsOwnEvent) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
+  params.record_damage_lines = true;
+  params.dot_count = 1;
+  DotApplication burn;
+  burn.damage = {40.0};
+  burn.interval_seconds = 0.25;
+  burn.duration_seconds = 10.0;
+  burn.slot = 0;
+  params.attacks[0].dots.push_back(burn);
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);  // the swing lights it
+  sim.Advance(params, 0.6);  // two ticks, no swing
+
+  const std::vector<DamageLine>& lines = sim.damage_lines_this_step();
+  ASSERT_EQ(lines.size(), 2u);
+  EXPECT_NE(lines[0].event, lines[1].event);
+  EXPECT_DOUBLE_EQ(lines[0].damage, 40.0);
+  EXPECT_DOUBLE_EQ(lines[1].damage, 40.0);
+}
+
 }  // namespace
 }  // namespace ms

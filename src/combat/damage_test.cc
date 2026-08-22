@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <map>
 #include <random>
+#include <vector>
 
 #include "src/character/character.h"
 #include "src/combat/constants.h"
@@ -699,6 +700,45 @@ TEST(RollFactorTest, AveragesToOne) {
     total += RollFactor(rolls, rng);
   }
   EXPECT_NEAR(total / kRuns, 1.0, 0.005);
+}
+
+// The lines a caller is handed are the landing broken up: one per hit the
+// swing and its shadow made, summing to the factor the monster loses.
+TEST(RollFactorTest, TheLinesSumToTheFactor) {
+  SwingRolls rolls;
+  rolls.lines = 5;
+  rolls.mirror_lines = 5;
+  rolls.mirror_pct = 0.5;
+  rolls.mastery = 0.3;
+  rolls.crit_rate = 0.5;
+  rolls.crit_dmg = 1.0;
+  std::mt19937 rng(99);
+  std::vector<LineRoll> lines;
+  bool crit_seen = false;
+  bool plain_seen = false;
+  for (int i = 0; i < 200; ++i) {
+    double factor = RollFactor(rolls, rng, &lines);
+    ASSERT_EQ(lines.size(), 10u);
+    double total = 0.0;
+    for (const LineRoll& line : lines) {
+      total += line.share;
+      crit_seen = crit_seen || line.crit;
+      plain_seen = plain_seen || !line.crit;
+    }
+    EXPECT_NEAR(total, factor, 1e-12);
+  }
+  EXPECT_TRUE(crit_seen);
+  EXPECT_TRUE(plain_seen);
+}
+
+// A swing that rolls nothing still landed once, so it has a line to draw.
+TEST(RollFactorTest, ASwingThatRollsNothingIsOneLine) {
+  std::mt19937 rng(3);
+  std::vector<LineRoll> lines = {{9.0, true}};
+  EXPECT_DOUBLE_EQ(RollFactor(SwingRolls(), rng, &lines), 1.0);
+  ASSERT_EQ(lines.size(), 1u);
+  EXPECT_DOUBLE_EQ(lines[0].share, 1.0);
+  EXPECT_FALSE(lines[0].crit);
 }
 
 // A caller filling in nothing gets no variance, which is what lets an attack

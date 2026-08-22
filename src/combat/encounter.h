@@ -311,6 +311,10 @@ struct CombatParams {
   // Freeze Stacks the character can hold at once. 0 for everyone who holds
   // none, which switches the whole mechanism off.
   int freeze_cap = 0;
+  // Whether the fight should record every line it lands, for a caller drawing
+  // the damage as numbers. The boss screen asks for it; the map does not, and
+  // neither do the sims, which step the fight millions of times.
+  bool record_damage_lines = false;
   std::vector<CombatType> types;  // in map order
   // Every attack available, the bare poke first. Never empty while active.
   std::vector<AttackOption> attacks;

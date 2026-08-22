@@ -44,6 +44,28 @@ struct MobStatus {
   double hp_fraction = 0.0;
 };
 
+// One line of damage as it landed on one monster, for a caller drawing the
+// fight rather than only stepping it. `event` is shared by every line one
+// attack put on that monster, so an eight-line swing reads as one stack of
+// eight rather than eight stacks of one.
+struct DamageLine {
+  int mob_id = 0;
+  int event = 0;
+  double damage = 0.0;
+  bool crit = false;
+};
+
+// Where a landing is being filed and what scales it, for that record: the
+// monster it fell on, the event it belongs to, and whatever multiplies it
+// after the roll -- the Freeze Stacks the swing spent, what an arrow gained as
+// it travelled. Passed even by a fight that is not recording, which files
+// nothing whatever it is handed.
+struct Landing {
+  int mob_id = 0;
+  int event = 0;
+  double scale = 1.0;
+};
+
 // One HP bar for the combat panel: a mob type in the engaged window (the front
 // mobs the next swing hits), with its members merged into an average HP
 // fraction and a count.
@@ -126,6 +148,12 @@ class CombatSim {
   const std::vector<MobStatus>& roster() const {
     return roster_;
   }
+  // Every line landed during the most recent Advance, in the order they
+  // landed. Empty unless the params asked for the record -- see
+  // CombatParams::record_damage_lines.
+  const std::vector<DamageLine>& damage_lines_this_step() const {
+    return damage_lines_this_step_;
+  }
 
  private:
   // One burn on one monster: how long it has left, how far into the current
@@ -162,6 +190,22 @@ class CombatSim {
     // for a character who burns anything, which is the F/P Arch Mage alone.
     std::vector<MobDot> dots;
   };
+
+  // Gives every one of the front `hit` mobs its own event, so the lines one
+  // attack puts on one monster group together however many ways the swing
+  // reaches it. Nothing for a fight that is not recording.
+  void OpenLandings(int hit);
+  // Where the landing on the mob at queue index `index` is filed, scaled by
+  // `scale`. The event is the one OpenLandings gave that mob.
+  Landing LandingAt(int index, double scale) const;
+  // Files one line of `damage`, already scaled, against `landing`.
+  void RecordLine(const Landing& landing, double damage, bool crit);
+  // Files what the last RollFactor put in `line_rolls_` as a landing of
+  // `damage`, each line taking its own share of it.
+  void RecordRolls(const Landing& landing, double damage);
+  // Where a roll should write its per-line shares: the scratch buffer, or
+  // nowhere at all when nobody is reading the record.
+  std::vector<LineRoll>* LineSink();
 
   // Brings out the dead: counts every mob the queue is holding at or below no
   // HP and drops it. Shared by the swing and the burn, since a burn kills the
@@ -251,17 +295,20 @@ class CombatSim {
   // Only that form is the mark's business -- everything else is answered
   // before the swing lands, by FormToLand. Advances the mark, so it is called
   // once per mob per landed swing.
-  double DamageToMob(const AttackOption& attack, int index);
+  double DamageToMob(const AttackOption& attack, int index,
+                     const Landing& landing);
   // What `attack` lands on one mob of `type` this time: each of its hit blocks
   // at its own roll. The plain expected damage for an attack carrying no
   // blocks, which is every one built by hand rather than by the encounter.
-  double RolledDamage(const AttackOption& attack, int type);
+  double RolledDamage(const AttackOption& attack, int type,
+                      const Landing& landing);
   // What a bank of Final Attack sources lands on one mob of `type` this time:
   // a roll per source, per line where the source rides them. `expected` is the
   // plain expected damage, landed where there are no sources to roll -- which
   // is every attack built by hand rather than by the encounter.
   double RolledFinalAttack(const std::vector<FinalAttackRoll>& sources,
-                           const std::vector<double>& expected, int type);
+                           const std::vector<double>& expected, int type,
+                           const Landing& landing);
   // Index into params.attacks of the healing cast to spend this swing on, or
   // -1 for none: the player is not low enough, has nothing to fight, or holds
   // no such skill. A cleared map heals on the beat for free, so a cast there
@@ -434,6 +481,19 @@ class CombatSim {
   // -1 with nothing aimed.
   int aimed_ = -1;
   std::vector<int64_t> kills_this_step_;
+  // Whether the lines are being recorded at all, from the params. Off for the
+  // sims, which step the fight millions of times and draw none of it.
+  bool record_lines_ = false;
+  // Stamped onto each landing and never reused within a step, which is as long
+  // as anything holds one.
+  int next_damage_event_ = 0;
+  // The event each queued mob's lines are filed under for the landing being
+  // worked out, parallel to the queue.
+  std::vector<int> landing_event_;
+  std::vector<DamageLine> damage_lines_this_step_;
+  // Where RollFactor writes its per-line shares, reused every roll so a
+  // recording fight allocates once rather than once a line.
+  std::vector<LineRoll> line_rolls_;
   bool died_this_step_ = false;
   std::vector<EngagedGroup> engaged_groups_;
   std::vector<MobStatus> roster_;
