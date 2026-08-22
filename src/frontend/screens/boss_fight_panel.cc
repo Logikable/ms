@@ -201,7 +201,8 @@ bool Overlaps(const ftxui::Box& a, const ftxui::Box& b) {
 class ArenaNode : public ftxui::Node {
  public:
   ArenaNode(ftxui::Elements panels, std::vector<ArenaCell> cells, int columns,
-            int rows, std::size_t mobs, std::vector<ArenaStack> stacks)
+            int rows, std::size_t mobs, std::vector<ArenaStack> stacks,
+            ftxui::Element clock)
       : ftxui::Node(std::move(panels)),
         cells_(std::move(cells)),
         columns_(std::max(1, columns)),
@@ -212,6 +213,10 @@ class ArenaNode : public ftxui::Node {
     for (const ArenaStack& stack : stacks_) {
       children_.push_back(stack.node);
     }
+    // Last, so it is drawn over anything that reached its rows: the clock is
+    // the one thing on this screen that must always be readable.
+    clock_ = children_.size();
+    children_.push_back(std::move(clock));
   }
 
   void ComputeRequirement() override {
@@ -230,7 +235,8 @@ class ArenaNode : public ftxui::Node {
     for (const std::pair<const int, int>& row : row_width) {
       requirement_.min_x = std::max(requirement_.min_x, row.second);
     }
-    requirement_.min_y = tallest * static_cast<int>(row_width.size());
+    requirement_.min_y = tallest * static_cast<int>(row_width.size()) +
+                         children_[clock_]->requirement().min_y;
     // It is the arena: it takes the room it is offered rather than the room
     // its bars happen to need.
     requirement_.flex_grow_x = 1;
@@ -239,15 +245,20 @@ class ArenaNode : public ftxui::Node {
 
   void SetBox(ftxui::Box box) override {
     ftxui::Node::SetBox(box);
+    ftxui::Box clock = PlaceClock(box);
+    // The bars are laid out under the clock, as they were when it sat in a row
+    // of its own. Only the numbers reach up into its rows.
+    ftxui::Box body = box;
+    body.y_min = std::min(clock.y_max + 1, box.y_max);
     std::map<int, std::vector<std::size_t>> by_row;
     for (std::size_t i = 0; i < panels_; ++i) {
       by_row[cells_[i].y].push_back(i);
     }
     panel_box_.assign(panels_, ftxui::Box());
     for (std::pair<const int, std::vector<std::size_t>>& row : by_row) {
-      PlaceRow(box, row.first, row.second);
+      PlaceRow(body, row.first, row.second);
     }
-    PlaceStacks(box);
+    PlaceStacks(box, clock);
   }
 
  private:
@@ -261,6 +272,20 @@ class ArenaNode : public ftxui::Node {
   static int CentreOf(int cell, int cells, int low, int high) {
     double span = static_cast<double>(high - low + 1) / cells;
     return low + static_cast<int>((cell + 0.5) * span);
+  }
+
+  // Stands the clock across the top of the arena, centred. Its box is handed
+  // back so nothing is placed under it: a stack may share its rows, but not a
+  // cell of the clock itself, border included.
+  ftxui::Box PlaceClock(ftxui::Box box) {
+    const ftxui::Element& clock = children_[clock_];
+    int width = std::min(clock->requirement().min_x, box.x_max - box.x_min + 1);
+    int height =
+        std::min(clock->requirement().min_y, box.y_max - box.y_min + 1);
+    int left = box.x_min + (box.x_max - box.x_min + 1 - width) / 2;
+    ftxui::Box at = {left, left + width - 1, box.y_min, box.y_min + height - 1};
+    clock->SetBox(at);
+    return at;
   }
 
   void PlaceRow(ftxui::Box box, int y, std::vector<std::size_t> row) {
@@ -287,12 +312,13 @@ class ArenaNode : public ftxui::Node {
 
   // Stands the stacks: the swings over their own monsters first, since that
   // space is theirs, then everything else in what is left beside the bars.
-  void PlaceStacks(ftxui::Box box) {
+  void PlaceStacks(ftxui::Box box, ftxui::Box clock) {
     std::vector<ftxui::Box> taken;
-    taken.reserve(panels_ + stacks_.size());
+    taken.reserve(panels_ + stacks_.size() + 1);
     for (std::size_t i = 0; i < panels_; ++i) {
       taken.push_back(panel_box_[i]);
     }
+    taken.push_back(clock);
     for (const ArenaStack& stack : stacks_) {
       if (stack.swing) {
         PlaceSwing(box, stack, taken);
@@ -423,8 +449,10 @@ class ArenaNode : public ftxui::Node {
   std::vector<ArenaCell> cells_;
   int columns_ = 1;
   int rows_ = 1;
-  // How many of the children are panels. The stacks follow them.
+  // How many of the children are panels. The stacks follow them, and the clock
+  // is the last child of all.
   std::size_t panels_ = 0;
+  std::size_t clock_ = 0;
   // How many of those panels are monster bars. They come first, so a swing's
   // reserved column is one of the first `mobs_` boxes.
   std::size_t mobs_ = 0;
@@ -434,8 +462,15 @@ class ArenaNode : public ftxui::Node {
   std::vector<ArenaStack> stacks_;
 };
 
-// The arena: every bar of the phase in the cell the fight gave it, and the
-// player among them, spread over the whole of the screen under the clock.
+// The clock, which the arena stands across its own top row rather than taking
+// a strip of the screen for.
+ftxui::Element ClockPanel(const BossRun& run) {
+  return ThemedWindow("", CenteredRow(FightClock(run.seconds_left())));
+}
+
+// The arena: every bar of the phase in the cell the fight gave it, the player
+// among them, and the clock over them all, spread over the whole of the
+// screen under the heading.
 ftxui::Element Arena(const BossRun& run) {
   const std::vector<BossSlot>& slots = run.slots();
   // One height for every panel in the phase, monsters and player alike, so a
@@ -486,13 +521,7 @@ ftxui::Element Arena(const BossRun& run) {
   }
   return std::make_shared<ArenaNode>(std::move(panels), std::move(cells),
                                      run.arena_width(), height, mobs,
-                                     std::move(stacks));
-}
-
-// The clock, in a box of its own under the heading.
-ftxui::Element ClockPanel(const BossRun& run) {
-  return ThemedWindow("", CenteredRow(FightClock(run.seconds_left()))) |
-         ftxui::center;
+                                     std::move(stacks), ClockPanel(run));
 }
 
 }  // namespace
@@ -523,13 +552,12 @@ std::string FightHeading(const BossRun& run) {
 }
 
 ftxui::Element BossFightPanel(const BossRun& run) {
-  // The arena takes everything under the clock: what it does with the room is
-  // the phase's own business, and a fight drawn small in the middle of a wide
-  // screen is not what standing in an arena looks like.
+  // The arena takes everything under the heading, the clock included: what it
+  // does with the room is the phase's own business, and a fight drawn small in
+  // the middle of a wide screen is not what standing in an arena looks like.
   return ftxui::vbox({
       ProgressBar(static_cast<float>(run.phase_hp_fraction()), kRed,
                   FightHeading(run)),
-      ClockPanel(run),
       Arena(run) | ftxui::flex,
   });
 }

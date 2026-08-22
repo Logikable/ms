@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cctype>
 #include <map>
 #include <memory>
 #include <set>
@@ -10,6 +11,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "ftxui/screen/box.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/boss_run.h"
 #include "src/frontend/widgets/colors.h"
@@ -625,6 +627,81 @@ TEST(BossFightPanelTest, ANumberNeverSitsOnABar) {
 
 // Blue for a plain line and orange for a critical one, which is the whole of
 // what a number's colour says.
+// Where the clock is drawn, as {left, right, top, bottom} in screen cells.
+// Found by its own text: nothing else on the screen holds a digit, a colon
+// and a digit in a row.
+ftxui::Box ClockBox(const std::vector<std::string>& rows) {
+  for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
+    for (int x = 1; x + 1 < static_cast<int>(rows[y].size()); ++x) {
+      if (rows[y][x] != ':' || !isdigit(rows[y][x - 1]) ||
+          !isdigit(rows[y][x + 1])) {
+        continue;
+      }
+      std::size_t left = rows[y].rfind('#', x);
+      std::size_t right = rows[y].find('#', x);
+      EXPECT_NE(left, std::string::npos);
+      EXPECT_NE(right, std::string::npos);
+      return {static_cast<int>(left), static_cast<int>(right), y - 1, y + 1};
+    }
+  }
+  return {-1, -1, -1, -1};
+}
+
+// How many numbers are drawn on the clock's rows, having checked that not one
+// of them touches the clock itself.
+int NumbersBesideTheClock(const ftxui::Screen& screen) {
+  ftxui::Box clock = ClockBox(RowsOf(screen));
+  EXPECT_GE(clock.x_min, 0) << "the clock was not found";
+  int beside = 0;
+  for (const DrawnNumber& number : DrawnNumbers(screen)) {
+    if (number.row < clock.y_min || number.row > clock.y_max) {
+      continue;
+    }
+    ++beside;
+    int last = number.column + static_cast<int>(number.text.size()) - 1;
+    EXPECT_TRUE(last < clock.x_min || number.column > clock.x_max)
+        << number.text << " is drawn on the clock";
+  }
+  return beside;
+}
+
+// The clock stands inside the arena rather than on a strip of its own: a stack
+// may use its rows, and may not touch one cell of it.
+TEST(BossFightPanelTest, NumbersShareTheClocksRowsButNotItsBox) {
+  // Zakum's arms stand either side of the clock, so their numbers climb past
+  // it into its rows.
+  std::unique_ptr<GameState> state = EightLineState();
+  Boss zakum = Zakum();
+  BossRun run("zakum", zakum, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_TRUE(RunUntilLine(run, *state, false));
+  EXPECT_GT(NumbersBesideTheClock(RenderScreen(run)), 0)
+      << "no number reached the clock's rows";
+
+  // A bar directly under the clock, in an arena one cell wide: its stack
+  // reaches the clock head on, and every cell of the clock survives it.
+  std::unique_ptr<GameState> under = EightLineState();
+  Boss column = ColumnBoss();
+  BossRun below("zakum", column, 0);
+  below.Advance(*under, kBossCountdownSeconds);
+  ASSERT_TRUE(RunUntilLine(below, *under, false));
+  std::vector<std::string> rows = RowsOf(RenderScreen(below, 120, 18));
+  ftxui::Box clock = ClockBox(rows);
+  ASSERT_GE(clock.x_min, 0);
+  int width = clock.x_max - clock.x_min + 1;
+  EXPECT_EQ(rows[clock.y_min].substr(clock.x_min, width),
+            std::string(width, '#'))
+      << "the clock's top border";
+  EXPECT_EQ(rows[clock.y_max].substr(clock.x_min, width),
+            std::string(width, '#'))
+      << "the clock's bottom border";
+  std::string middle = rows[clock.y_min + 1].substr(clock.x_min, width);
+  EXPECT_EQ(middle.front(), '#');
+  EXPECT_EQ(middle.back(), '#');
+  EXPECT_EQ(middle.substr(1, width - 2),
+            " " + FightClock(below.seconds_left()) + " ");
+}
+
 TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
   for (bool crit : {false, true}) {
     std::unique_ptr<GameState> state = EightLineState();
