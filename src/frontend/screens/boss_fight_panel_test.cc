@@ -35,7 +35,8 @@ Mob BossMob(const std::string& name, int max_hp) {
   return mob;
 }
 
-// The places a phase lets the player stand, as (x, y) pairs.
+// The places a phase lets the player stand, as (x, y) pairs, the first being
+// where they start.
 void AddSpots(BossPhase* phase, const std::vector<std::pair<int, int>>& spots) {
   for (const std::pair<int, int>& spot : spots) {
     ArenaSpot* at = phase->add_player_spots();
@@ -61,9 +62,7 @@ Boss Zakum() {
     spot->set_x(i < 4 ? 2 : 4);
     spot->set_y(1 + i % 4);
   }
-  AddSpots(arms, {{0, 3}, {6, 3}, {0, 5}, {3, 5}, {6, 5}});
-  arms->mutable_player()->set_x(3);
-  arms->mutable_player()->set_y(5);
+  AddSpots(arms, {{3, 5}, {0, 3}, {6, 3}, {0, 5}, {6, 5}});
   arms->set_arena_width(7);
   arms->set_arena_height(6);
   BossPhase* body = normal->add_phases();
@@ -72,9 +71,7 @@ Boss Zakum() {
   ArenaSpot* torso_spot = torso->add_spots();
   torso_spot->set_x(3);
   torso_spot->set_y(2);
-  AddSpots(body, {{0, 3}, {3, 3}, {6, 3}});
-  body->mutable_player()->set_x(3);
-  body->mutable_player()->set_y(3);
+  AddSpots(body, {{3, 3}, {0, 3}, {6, 3}});
   body->set_arena_width(7);
   body->set_arena_height(4);
   return boss;
@@ -95,8 +92,7 @@ Boss OneArmBoss() {
   ArenaSpot* spot = arm->add_spots();
   spot->set_x(0);
   spot->set_y(1);
-  phase->mutable_player()->set_x(0);
-  phase->mutable_player()->set_y(2);
+  AddSpots(phase, {{0, 2}});
   phase->set_arena_width(1);
   phase->set_arena_height(3);
   return boss;
@@ -120,8 +116,7 @@ Boss ColumnBoss() {
     spot->set_x(0);
     spot->set_y(i);
   }
-  phase->mutable_player()->set_x(0);
-  phase->mutable_player()->set_y(2);
+  AddSpots(phase, {{0, 2}});
   phase->set_arena_width(1);
   phase->set_arena_height(3);
   return boss;
@@ -456,8 +451,7 @@ Boss TwoPartBoss() {
     spawn->add_spots()->set_x(x);
     x += 4;
   }
-  phase->mutable_player()->set_x(2);
-  phase->mutable_player()->set_y(1);
+  AddSpots(phase, {{2, 1}});
   phase->set_arena_width(6);
   phase->set_arena_height(2);
   return boss;

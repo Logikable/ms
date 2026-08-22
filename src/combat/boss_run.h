@@ -200,9 +200,9 @@ class BossRun {
     return damage_stacks_;
   }
   // Where the player stands in the current phase -- where they have walked
-  // to, not where the phase put them -- and how many cells the arena holds
-  // around everyone. Both are measured off the spots when the
-  // phase names neither, which leaves the arena no margin.
+  // to, not where the phase started them -- and how many cells the arena
+  // holds around everyone. The size is measured off the spots when the phase
+  // names neither, which leaves the arena no margin.
   ArenaSpot player_spot() const;
   // Everywhere the player may stand this phase, the spot they are on
   // included. Empty for a phase that named none.
@@ -245,7 +245,7 @@ class BossRun {
   // Ends the run in `outcome`, holding the screen for the closing beat -- or
   // for nothing at all, if the run was given up.
   void Finish(BossRunState outcome);
-  // Stands the player where the current phase starts them. Every phase is its
+  // Stands the player on the first of the phase's spots. Every phase is its
   // own arena, so where they walked to in the last one means nothing here.
   void StandPlayerAtStart();
 
@@ -265,7 +265,7 @@ class BossRun {
   double hold_left_ = 0.0;
   double phase_hp_fraction_ = 0.0;
   // Which of the phase's player spots they stand on. -1 for a phase that named
-  // none, whose player never leaves the spot it wrote down.
+  // none, whose player stands at the origin and never moves.
   int player_at_ = -1;
   std::vector<BossSlot> slots_;
   std::vector<DamageStack> damage_stacks_;

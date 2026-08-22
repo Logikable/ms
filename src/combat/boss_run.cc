@@ -37,8 +37,6 @@ std::string DropName(const GameState& state, const MobDrop& drop) {
 // that names none is measured to.
 ArenaSpot ArenaExtent(const BossPhase& phase) {
   ArenaSpot extent;
-  extent.set_x(phase.player().x() + 1);
-  extent.set_y(phase.player().y() + 1);
   for (const Spawn& spawn : phase.spawns()) {
     for (const ArenaSpot& spot : spawn.spots()) {
       extent.set_x(std::max(extent.x(), spot.x() + 1));
@@ -108,20 +106,7 @@ BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index)
 
 void BossRun::StandPlayerAtStart() {
   const BossPhase* phase = current_phase();
-  player_at_ = -1;
-  if (phase == nullptr) {
-    return;
-  }
-  for (int i = 0; i < phase->player_spots_size(); ++i) {
-    if (phase->player_spots(i).x() == phase->player().x() &&
-        phase->player_spots(i).y() == phase->player().y()) {
-      player_at_ = i;
-      return;
-    }
-  }
-  // A phase whose start is not among its spots still has to stand the player
-  // somewhere they can walk from; a data test keeps the two in step.
-  player_at_ = phase->player_spots_size() > 0 ? 0 : -1;
+  player_at_ = phase != nullptr && phase->player_spots_size() > 0 ? 0 : -1;
 }
 
 void BossRun::MovePlayer(int dx, int dy) {
@@ -156,7 +141,7 @@ ArenaSpot BossRun::player_spot() const {
     return ArenaSpot();
   }
   if (player_at_ < 0 || player_at_ >= phase->player_spots_size()) {
-    return phase->player();
+    return ArenaSpot();
   }
   return phase->player_spots(player_at_);
 }

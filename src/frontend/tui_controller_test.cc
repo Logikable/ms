@@ -2426,14 +2426,13 @@ TEST_F(TuiControllerTest, TheFightSwallowsEverythingButEscape) {
 TEST_F(TuiControllerTest, TheArrowsWalkThePlayerAroundTheArena) {
   BossPhase* phase =
       state_->bosses["zakum"].mutable_difficulties(0)->mutable_phases(0);
-  const int kSpots[3][2] = {{0, 1}, {3, 1}, {6, 1}};
+  // The middle of the floor first: that is where the phase starts them.
+  const int kSpots[3][2] = {{3, 1}, {0, 1}, {6, 1}};
   for (const int (&spot)[2] : kSpots) {
     ArenaSpot* at = phase->add_player_spots();
     at->set_x(spot[0]);
     at->set_y(spot[1]);
   }
-  phase->mutable_player()->set_x(3);
-  phase->mutable_player()->set_y(1);
   EnterFight();
   ASSERT_NE(controller_->boss_run(), nullptr);
   ASSERT_EQ(controller_->boss_run()->player_spot().x(), 3);

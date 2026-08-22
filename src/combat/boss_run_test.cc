@@ -39,14 +39,16 @@ Boss TwoPhaseBoss(int time_limit = 300) {
   for (int i = 0; i < 2; ++i) {
     arms->add_spots()->set_x(i * 4);
   }
-  first->mutable_player()->set_x(2);
-  first->mutable_player()->set_y(1);
+  ArenaSpot* first_stand = first->add_player_spots();
+  first_stand->set_x(2);
+  first_stand->set_y(1);
   BossPhase* second = normal->add_phases();
   Spawn* body = second->add_spawns();
   body->set_mob("body");
   body->add_spots()->set_x(2);
-  second->mutable_player()->set_x(2);
-  second->mutable_player()->set_y(1);
+  ArenaSpot* second_stand = second->add_player_spots();
+  second_stand->set_x(2);
+  second_stand->set_y(1);
   return boss;
 }
 
@@ -114,22 +116,21 @@ BossPhase ZakumArenaPhase() {
   BossPhase phase;
   phase.set_arena_width(7);
   phase.set_arena_height(6);
-  const int kSpots[5][2] = {{0, 3}, {6, 3}, {0, 5}, {3, 5}, {6, 5}};
+  // The floor's middle first: that is where the phase starts them.
+  const int kSpots[5][2] = {{3, 5}, {0, 3}, {6, 3}, {0, 5}, {6, 5}};
   for (const int (&spot)[2] : kSpots) {
     ArenaSpot* at = phase.add_player_spots();
     at->set_x(spot[0]);
     at->set_y(spot[1]);
   }
-  phase.mutable_player()->set_x(3);
-  phase.mutable_player()->set_y(5);
   return phase;
 }
 
 // Indices into ZakumArenaPhase's spots, in the order it writes them.
-constexpr int kLedgeLeft = 0;
-constexpr int kLedgeRight = 1;
-constexpr int kFloorLeft = 2;
-constexpr int kFloorMiddle = 3;
+constexpr int kFloorMiddle = 0;
+constexpr int kLedgeLeft = 1;
+constexpr int kLedgeRight = 2;
+constexpr int kFloorLeft = 3;
 constexpr int kFloorRight = 4;
 
 // The same arena, as a fight that can be walked around in.
@@ -140,7 +141,6 @@ Boss WalkableBoss() {
   for (int i = 0; i < normal->phases_size(); ++i) {
     BossPhase* phase = normal->mutable_phases(i);
     *phase->mutable_player_spots() = arena.player_spots();
-    *phase->mutable_player() = arena.player();
     phase->set_arena_width(arena.arena_width());
     phase->set_arena_height(arena.arena_height());
   }
@@ -182,14 +182,13 @@ BossPhase HorntailArenaPhase() {
   BossPhase phase;
   phase.set_arena_width(9);
   phase.set_arena_height(6);
-  const int kSpots[6][2] = {{0, 0}, {8, 0}, {0, 2}, {8, 2}, {0, 4}, {8, 4}};
+  // The bottom-left corner first: that is where the phase starts them.
+  const int kSpots[6][2] = {{0, 4}, {0, 0}, {8, 0}, {0, 2}, {8, 2}, {8, 4}};
   for (const int (&spot)[2] : kSpots) {
     ArenaSpot* at = phase.add_player_spots();
     at->set_x(spot[0]);
     at->set_y(spot[1]);
   }
-  phase.mutable_player()->set_x(0);
-  phase.mutable_player()->set_y(4);
   return phase;
 }
 
@@ -198,10 +197,10 @@ BossPhase HorntailArenaPhase() {
 // the way it points.
 TEST(BossRunTest, APressIgnoresWhatIsFurtherAcrossThanAlong) {
   BossPhase phase = HorntailArenaPhase();
-  constexpr int kTopLeft = 0;
-  constexpr int kTopRight = 1;
-  constexpr int kMiddleLeft = 2;
-  constexpr int kBottomLeft = 4;
+  constexpr int kBottomLeft = 0;
+  constexpr int kTopLeft = 1;
+  constexpr int kTopRight = 2;
+  constexpr int kMiddleLeft = 3;
   constexpr int kBottomRight = 5;
   EXPECT_EQ(NextPlayerSpot(phase, kTopLeft, 1, 0), kTopRight);
   EXPECT_EQ(NextPlayerSpot(phase, kBottomLeft, 1, 0), kBottomRight);
@@ -253,7 +252,6 @@ TEST(BossRunTest, TheArenaHoldsEverySpotThePlayerMayStandOn) {
   std::unique_ptr<GameState> state = MakeState();
   Boss boss = TwoPhaseBoss();
   BossPhase* phase = boss.mutable_difficulties(0)->mutable_phases(0);
-  *phase->add_player_spots() = phase->player();
   ArenaSpot* far = phase->add_player_spots();
   far->set_x(8);
   far->set_y(3);

@@ -240,9 +240,6 @@ TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
         for (const ArenaSpot& spot : phase.player_spots()) {
           rows[spot.y()].push_back(spot.x());
         }
-        if (phase.player_spots_size() == 0) {
-          rows[phase.player().y()].push_back(phase.player().x());
-        }
         for (std::pair<const int, std::vector<int>>& row : rows) {
           std::sort(row.second.begin(), row.second.end());
           for (std::size_t i = 1; i < row.second.size(); ++i) {
@@ -257,26 +254,21 @@ TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
   EXPECT_GT(placed, 0);
 }
 
-// The player has to start somewhere they are allowed to stand, or the first
-// arrow they press teleports them across the arena.
-TEST(BossDataTest, EveryPhaseStartsThePlayerOnASpotTheyMayStandOn) {
+// A phase with nowhere to stand starts the player at the origin, on top of
+// whatever is drawn there.
+TEST(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       for (const BossPhase& phase : difficulty.phases()) {
-        if (phase.player_spots_size() == 0) {
-          continue;  // Nowhere to move to: the phase stands them and is done.
-        }
         std::string where = entry.first + " " + difficulty.name();
-        bool found = false;
+        EXPECT_GT(phase.player_spots_size(), 0)
+            << where << " gives the player nowhere to stand";
         for (const ArenaSpot& spot : phase.player_spots()) {
           EXPECT_LT(spot.x(), phase.arena_width())
               << where << " stands the player past the right of its arena";
           EXPECT_LT(spot.y(), phase.arena_height())
               << where << " stands the player past the bottom of its arena";
-          found = found || (spot.x() == phase.player().x() &&
-                            spot.y() == phase.player().y());
         }
-        EXPECT_TRUE(found) << where << " starts the player off its own spots";
       }
     }
   }

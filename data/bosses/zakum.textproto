@@ -18,11 +18,10 @@ difficulties {
     }
     # The floor of the arena and the two ledges over its ends, which is where
     # the map puts them. The arms stand between the lanes rather than in them.
-    player { x: 3 y: 5 }
+    player_spots { x: 3 y: 5 }
     player_spots { x: 0 y: 3 }
     player_spots { x: 6 y: 3 }
     player_spots { x: 0 y: 5 }
-    player_spots { x: 3 y: 5 }
     player_spots { x: 6 y: 5 }
     arena_width: 7
     arena_height: 6
@@ -34,9 +33,8 @@ difficulties {
       spots { x: 3 y: 2 }
     }
     # No ledges: the body fills the arena and the floor is all there is.
-    player { x: 3 y: 3 }
-    player_spots { x: 0 y: 3 }
     player_spots { x: 3 y: 3 }
+    player_spots { x: 0 y: 3 }
     player_spots { x: 6 y: 3 }
     arena_width: 7
     arena_height: 4
@@ -79,11 +77,10 @@ difficulties {
     }
     # The floor of the arena and the two ledges over its ends, which is where
     # the map puts them. The arms stand between the lanes rather than in them.
-    player { x: 3 y: 5 }
+    player_spots { x: 3 y: 5 }
     player_spots { x: 0 y: 3 }
     player_spots { x: 6 y: 3 }
     player_spots { x: 0 y: 5 }
-    player_spots { x: 3 y: 5 }
     player_spots { x: 6 y: 5 }
     arena_width: 7
     arena_height: 6
@@ -94,9 +91,8 @@ difficulties {
       spots { x: 3 y: 2 }
     }
     # No ledges: the body fills the arena and the floor is all there is.
-    player { x: 3 y: 3 }
-    player_spots { x: 0 y: 3 }
     player_spots { x: 3 y: 3 }
+    player_spots { x: 0 y: 3 }
     player_spots { x: 6 y: 3 }
     arena_width: 7
     arena_height: 4
