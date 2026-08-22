@@ -20,17 +20,18 @@ constexpr int kTabs[] = {kEquipTab, kUseTab, kEtcTab};
 // The mark column on the left, headed "Sell", and the price column on the
 // right. The equip list is the widest thing on the screen, so the window is
 // sized by it and every tab keeps the price under the same column.
-constexpr int kMarkWidth = 4;
+constexpr int kMarkWidth = 6;
 constexpr int kPriceWidth = 11;
 constexpr int kEquipRowWidth = 71;
-constexpr int kContentWidth = kMarkWidth + kEquipRowWidth + 2 + kPriceWidth;
+// Both columns keep a space inside the border, as every panel does.
+constexpr int kContentWidth = kMarkWidth + kEquipRowWidth + 2 + kPriceWidth + 1;
 
-// A right-aligned cell pushed to the end of the row, whatever the row's own
-// width is: the Equip and stack lists differ by half the screen, and a price
-// that moved between tabs would read as a different column.
+// The price cell: two columns of separator, the value right-aligned, and a
+// column of clearance inside the border. It sits at a fixed offset rather than
+// at the row's right edge -- the scrolling frame gives a row fewer columns
+// than the header beside it, so an edge is not a column two lists can share.
 ftxui::Element TailCell(const std::string& text) {
-  return ftxui::hbox(
-      {ftxui::filler(), ftxui::text(PadLeft(text, kPriceWidth))});
+  return ftxui::text("  " + PadLeft(text, kPriceWidth) + " ");
 }
 
 }  // namespace
@@ -258,7 +259,7 @@ bool MultiSellPanel::OnEvent(ftxui::Event event) {
 
 ftxui::Element MultiSellPanel::MarkCell(int row) const {
   bool marked = basket_.For(active_tab_).count(row) > 0;
-  return ftxui::text(marked ? "  ✓ " : "    ") | ftxui::color(kTheme);
+  return ftxui::text(marked ? "   ✓  " : "      ") | ftxui::color(kTheme);
 }
 
 ftxui::Element MultiSellPanel::PriceCell(int row) const {
@@ -288,6 +289,7 @@ ftxui::Element MultiSellPanel::RenderHeader() const {
           ftxui::text(FormatMeso(character_.meso())) | ftxui::color(kTheme),
           ftxui::text("   "),
           std::move(total),
+          ftxui::text(" "),
       }),
       ThemedSeparator(),
   });
@@ -298,15 +300,16 @@ ftxui::Element MultiSellPanel::RenderEquipTab() {
   std::vector<ftxui::Element> list;
   for (int i = 0; i < static_cast<int>(rows_.size()); ++i) {
     bool on_cursor = zone_ == kZoneList && i == selected_;
-    ftxui::Element row =
-        RenderEquipRow(rows_[i], on_cursor, MarkCell(i), PriceCell(i));
+    ftxui::Element row = RenderEquipRow(rows_[i], on_cursor, MarkCell(i),
+                                        PriceCell(i), kEquipRowWidth);
     if (i == selected_) {
       row = std::move(row) | ftxui::focus;
     }
     list.push_back(std::move(row));
   }
   return ftxui::vbox({
-      EquipHeader(ftxui::text(PadRight("Sell", kMarkWidth)), TailCell("Price")),
+      EquipHeader(ftxui::text(PadRight(" Sell", kMarkWidth)), TailCell("Price"),
+                  kEquipRowWidth),
       EquipSubHeader(kMarkWidth),
       ThemedSeparator(),
       ftxui::vbox(std::move(list)) | ftxui::vscroll_indicator | ftxui::yframe |
@@ -324,14 +327,15 @@ ftxui::Element MultiSellPanel::RenderStackTab() {
         stacks[i], on_cursor,
         i == selected_ ? name_clock_.Elapsed()
                        : std::chrono::steady_clock::duration::zero(),
-        MarkCell(i), PriceCell(i));
+        MarkCell(i), PriceCell(i), kEquipRowWidth);
     if (i == selected_) {
       row = std::move(row) | ftxui::focus;
     }
     list.push_back(std::move(row));
   }
   return ftxui::vbox({
-      StackHeader(ftxui::text(PadRight("Sell", kMarkWidth)), TailCell("Price")),
+      StackHeader(ftxui::text(PadRight(" Sell", kMarkWidth)), TailCell("Price"),
+                  kEquipRowWidth),
       ThemedSeparator(),
       ftxui::vbox(std::move(list)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::flex,

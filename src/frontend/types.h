@@ -31,6 +31,9 @@ enum Screen : int {
   kTraceRecover,
   kTraceRecoverResult,
   kSell,
+  // Sell many items in one go: the bag with a mark down every row. Reached
+  // from Multi-Sell, which sits under Sell on both item menus.
+  kMultiSell,
   // The equip tab's counterpart to kSell. Equipment does not stack, so it
   // asks a yes/no question rather than for an amount.
   kSellEquip,
@@ -81,9 +84,10 @@ enum MenuItem : int {
   kMenuScroll = 2,
   kMenuStarForce = 3,
   kMenuRecover = 4,
-  // Second to last, above Close. It is the one entry on this menu that
-  // destroys the item, so it does not sit where the cursor lands.
+  // The two that part with the item, above Close. Neither sits where the
+  // cursor lands: they are the entries on this menu there is no undoing.
   kMenuSell = 5,
+  kMenuMultiSell = 6,
 };
 // Entries of the job context menu, on Enter in the Advance tab. Advance sits
 // under Inspect for the same reason Sell sits low on the item menu: it is the
@@ -98,7 +102,8 @@ enum StackMenuItem : int {
   kStackInspect = 0,
   kStackUse = 1,
   kStackSell = 2,
-  kStackClose = 3,
+  kStackMultiSell = 3,
+  kStackClose = 4,
 };
 struct ScrollResult {
   ScrollOutcome outcome;

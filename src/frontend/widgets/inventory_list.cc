@@ -31,14 +31,17 @@ constexpr int kJobEnd = 60;
 
 // The row's cells hboxed together, with whichever affixes the caller brought.
 ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
-                   ftxui::Element tail) {
+                   ftxui::Element tail, int body_width) {
+  ftxui::Element body = ftxui::hbox(std::move(cells));
+  if (body_width > 0) {
+    body =
+        std::move(body) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, body_width);
+  }
   std::vector<ftxui::Element> row;
   if (lead != nullptr) {
     row.push_back(std::move(lead));
   }
-  for (ftxui::Element& cell : cells) {
-    row.push_back(std::move(cell));
-  }
+  row.push_back(std::move(body));
   if (tail != nullptr) {
     row.push_back(std::move(tail));
   }
@@ -83,8 +86,10 @@ std::vector<InventoryRowState> BuildEquipRows(
   return rows;
 }
 
-ftxui::Element EquipHeader(ftxui::Element lead, ftxui::Element tail) {
-  return Row(std::move(lead), {ftxui::text(kColumnHeader)}, std::move(tail));
+ftxui::Element EquipHeader(ftxui::Element lead, ftxui::Element tail,
+                           int body_width) {
+  return Row(std::move(lead), {ftxui::text(kColumnHeader)}, std::move(tail),
+             body_width);
 }
 
 ftxui::Element EquipSubHeader(int lead_width) {
@@ -93,7 +98,8 @@ ftxui::Element EquipSubHeader(int lead_width) {
 }
 
 ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
-                              ftxui::Element lead, ftxui::Element tail) {
+                              ftxui::Element lead, ftxui::Element tail,
+                              int body_width) {
   std::string cursor = on_cursor ? "> " : "  ";
   const std::string& label = row.label;
   // A row nothing can be done with: too low for it, the wrong class for it, or
@@ -118,26 +124,29 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
     return Row(std::move(lead),
                {ftxui::text(cursor), std::move(name), std::move(slot),
                 std::move(lv), std::move(job), std::move(rest)},
-               std::move(tail));
+               std::move(tail), body_width);
   }
-  return Row(std::move(lead), {ftxui::text(cursor + label)}, std::move(tail));
+  return Row(std::move(lead), {ftxui::text(cursor + label)}, std::move(tail),
+             body_width);
 }
 
-ftxui::Element StackHeader(ftxui::Element lead, ftxui::Element tail) {
+ftxui::Element StackHeader(ftxui::Element lead, ftxui::Element tail,
+                           int body_width) {
   return Row(std::move(lead),
              {ftxui::text("  " + PadRight("Name", kItemNameWidth) +
                           PadRight("Quantity", 10))},
-             std::move(tail));
+             std::move(tail), body_width);
 }
 
 ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
                               std::chrono::steady_clock::duration elapsed,
-                              ftxui::Element lead, ftxui::Element tail) {
+                              ftxui::Element lead, ftxui::Element tail,
+                              int body_width) {
   std::string cursor = on_cursor ? "> " : "  ";
   std::string text = cursor +
                      ScrollingWindow(stack.name(), kItemNameWidth, elapsed) +
                      PadRight(std::to_string(stack.count()), 10);
-  return Row(std::move(lead), {ftxui::text(text)}, std::move(tail));
+  return Row(std::move(lead), {ftxui::text(text)}, std::move(tail), body_width);
 }
 
 }  // namespace ms

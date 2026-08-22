@@ -39,11 +39,11 @@ TuiController::TuiController(
     InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
     StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
     SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
-    MapSelectPanel& map_select_panel, BossSelectPanel& boss_select_panel,
-    ShopPanel& shop_panel, BuyPanel& buy_panel,
-    JobInspectPanel& job_inspect_panel, SkillInspectPanel& skill_inspect_panel,
-    MenuPanel& menu_panel, KeybindsPanel& keybinds_panel, KeyMap& keys,
-    int& panel_focus)
+    MultiSellPanel& multi_sell_panel, MapSelectPanel& map_select_panel,
+    BossSelectPanel& boss_select_panel, ShopPanel& shop_panel,
+    BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
+    SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
+    KeybindsPanel& keybinds_panel, KeyMap& keys, int& panel_focus)
     : state_(state),
       char_panel_(char_panel),
       equip_panel_(equip_panel),
@@ -53,6 +53,7 @@ TuiController::TuiController(
       trace_recover_panel_(trace_recover_panel),
       sell_panel_(sell_panel),
       sell_equip_panel_(sell_equip_panel),
+      multi_sell_panel_(multi_sell_panel),
       map_select_panel_(map_select_panel),
       boss_select_panel_(boss_select_panel),
       job_inspect_panel_(job_inspect_panel),
@@ -263,6 +264,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSellEvent(event);
     case kSellEquip:
       return OnSellEquipEvent(event);
+    case kMultiSell:
+      return OnMultiSellEvent(event);
     case kMapSelect:
       return OnMapSelectEvent(event);
     case kBossSelect:
@@ -348,6 +351,12 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
                         sell_equip_index_) == nullptr;
     int price = is_trace ? 0 : item.prototype().sell_price();
     sell_equip_panel_.Reset(item.name(), price);
+  }
+  if (next == kMultiSell) {
+    int tab = inventory_panel_.active_tab();
+    multi_sell_panel_.Reset(tab, tab == kEquipTab
+                                     ? inventory_panel_.selected()
+                                     : inventory_panel_.selected_stack());
   }
   if (next == kSell) {
     sell_category_ = inventory_panel_.active_category();
@@ -1115,6 +1124,17 @@ bool TuiController::OnSellEquipEvent(ftxui::Event event) {
     state_.character.SellEquip(sell_equip_index_);
   }
   screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnMultiSellEvent(ftxui::Event event) {
+  multi_sell_panel_.OnEvent(event);
+  if (multi_sell_panel_.TakeConfirmed()) {
+    SellBasket(state_.character, multi_sell_panel_.basket());
+    screen_ = kMain;
+  } else if (multi_sell_panel_.TakeCancelled()) {
+    screen_ = kMain;
+  }
   return true;
 }
 

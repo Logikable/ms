@@ -20,6 +20,7 @@
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
+#include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -189,6 +190,7 @@ class TuiControllerTest : public testing::Test {
         std::make_unique<TraceRecoverPanel>(state_->character);
     sell_panel_ = std::make_unique<SellPanel>();
     sell_equip_panel_ = std::make_unique<SellEquipPanel>();
+    multi_sell_panel_ = std::make_unique<MultiSellPanel>(state_->character);
     map_select_panel_ = std::make_unique<MapSelectPanel>(*state_);
     boss_select_panel_ = std::make_unique<BossSelectPanel>(*state_);
     shop_panel_ = std::make_unique<ShopPanel>(state_->character, state_->equips,
@@ -201,9 +203,10 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
-        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        *menu_panel_, *keybinds_panel_, *keys_, panel_focus_);
+        *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
+        *boss_select_panel_, *shop_panel_, *buy_panel_, *job_inspect_panel_,
+        skill_inspect_panel_, *menu_panel_, *keybinds_panel_, *keys_,
+        panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -331,9 +334,10 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
-        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        *menu_panel_, *keybinds_panel_, *keys_, panel_focus_);
+        *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
+        *boss_select_panel_, *shop_panel_, *buy_panel_, *job_inspect_panel_,
+        skill_inspect_panel_, *menu_panel_, *keybinds_panel_, *keys_,
+        panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -443,9 +447,10 @@ class TuiControllerTest : public testing::Test {
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
-        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        *menu_panel_, *keybinds_panel_, *keys_, panel_focus_);
+        *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
+        *boss_select_panel_, *shop_panel_, *buy_panel_, *job_inspect_panel_,
+        skill_inspect_panel_, *menu_panel_, *keybinds_panel_, *keys_,
+        panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -472,6 +477,7 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<TraceRecoverPanel> trace_recover_panel_;
   std::unique_ptr<SellPanel> sell_panel_;
   std::unique_ptr<SellEquipPanel> sell_equip_panel_;
+  std::unique_ptr<MultiSellPanel> multi_sell_panel_;
   std::unique_ptr<MapSelectPanel> map_select_panel_;
   std::unique_ptr<BossSelectPanel> boss_select_panel_;
   std::unique_ptr<ShopPanel> shop_panel_;
@@ -1532,10 +1538,17 @@ TEST_F(TuiControllerTest, MovingFocusDoesNotRepointAnOpenModal) {
 
 // --- Sell via bag panel ---
 
-// Sell sits second to last, so two steps up the menu's ring reach it from
-// wherever the cursor opened -- past Close, which is never hidden. Counting
+// Sell sits third from last -- above Multi-Sell and Close -- so three steps
+// up the menu's ring reach it from wherever the cursor opened. Counting
 // downwards would land somewhere else the moment a gated entry is missing.
 void StepToSell(TuiController& controller) {
+  for (int i = 0; i < 3; ++i) {
+    controller.OnEvent(ftxui::Event::ArrowUp);
+  }
+}
+
+// Multi-Sell sits directly under Sell, so it is one step nearer the bottom.
+void StepToMultiSell(TuiController& controller) {
   controller.OnEvent(ftxui::Event::ArrowUp);
   controller.OnEvent(ftxui::Event::ArrowUp);
 }
@@ -1672,6 +1685,87 @@ TEST_F(TuiControllerTest, BagSellTakesTheSelectedRow) {
   ASSERT_EQ(state_->character.inventory().size(), 1);
   EXPECT_EQ(state_->character.inventory()[0].name(), "Sword");
   EXPECT_EQ(state_->character.meso(), 40);
+}
+
+// --- multi-sell ---
+
+TEST_F(TuiControllerTest, MultiSellOpensOnTheRowItWasCalledFrom) {
+  EquipPrototype dagger;
+  dagger.set_name("Dagger");
+  dagger.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  dagger.set_sell_price(40);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.PickUp(std::make_unique<EquipInstance>(dagger));
+  panel_focus_ = kInventoryPanel;
+  RenderInventoryPanel();
+
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // into the list
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);  // onto the dagger
+  controller_->OpenInventoryMenu();
+  StepToMultiSell(*controller_);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMultiSell);
+  EXPECT_EQ(controller_->multi_sell_basket().equips, std::set<int>({1}));
+}
+
+TEST_F(TuiControllerTest, MultiSellConfirmedSellsEverythingMarked) {
+  sword_.set_sell_price(900);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+  RenderInventoryPanel();
+
+  controller_->OpenInventoryMenu();
+  StepToMultiSell(*controller_);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // onto the second row
+  controller_->OnEvent(ftxui::Event::Return);     // mark it too
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // onto the buttons
+  controller_->OnEvent(ftxui::Event::Return);     // open the dialog
+  controller_->OnEvent(ftxui::Event::ArrowLeft);  // it opens on Cancel
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.inventory().size(), 0);
+  EXPECT_EQ(state_->character.meso(), 1800);
+}
+
+TEST_F(TuiControllerTest, MultiSellEscapeKeepsEverything) {
+  sword_.set_sell_price(900);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+
+  controller_->OpenInventoryMenu();
+  StepToMultiSell(*controller_);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(state_->character.inventory().size(), 1);
+  EXPECT_EQ(state_->character.meso(), 0);
+}
+
+// The Use tab's menu leads to the same screen, opened on that tab.
+TEST_F(TuiControllerTest, MultiSellOpensFromAStackToo) {
+  ItemPrototype potion;
+  potion.set_name("Red Potion");
+  potion.set_category(ITEM_CATEGORY_USE);
+  potion.set_sell_price(50);
+  state_->character.AddStackable(potion, 4);
+  panel_focus_ = kInventoryPanel;
+  RenderInventoryPanel();
+
+  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // onto Use
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);   // onto the stack
+  controller_->OpenInventoryMenu();
+  // The stack menu is one entry shorter: Inspect, Use, Sell, Multi-Sell,
+  // Close, with Use hidden on Etc alone.
+  StepToMultiSell(*controller_);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kMultiSell);
+  EXPECT_EQ(controller_->multi_sell_basket().use, std::set<int>({0}));
 }
 
 // --- shop ---
@@ -2113,6 +2207,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   SellEquipPanel sell_equip;
+  MultiSellPanel multi_sell(fresh.character);
   MapSelectPanel maps(fresh);
   BossSelectPanel bosses(fresh);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
@@ -2124,8 +2219,8 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   KeyMap keys(&fresh.keybinds);
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, bosses, shop, buy, jobs,
-                           skill_card, menu, keybinds, keys, focus);
+                           sell_equip, multi_sell, maps, bosses, shop, buy,
+                           jobs, skill_card, menu, keybinds, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
   EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
@@ -2163,6 +2258,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   SellEquipPanel sell_equip;
+  MultiSellPanel multi_sell(fresh.character);
   MapSelectPanel maps(fresh);
   BossSelectPanel bosses(fresh);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
@@ -2174,8 +2270,8 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   KeyMap keys(&fresh.keybinds);
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, bosses, shop, buy, jobs,
-                           skill_card, menu, keybinds, keys, focus);
+                           sell_equip, multi_sell, maps, bosses, shop, buy,
+                           jobs, skill_card, menu, keybinds, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
@@ -2196,6 +2292,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   SellEquipPanel sell_equip;
+  MultiSellPanel multi_sell(fresh.character);
   MapSelectPanel maps(fresh);
   BossSelectPanel bosses(fresh);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
@@ -2207,8 +2304,8 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   KeyMap keys(&fresh.keybinds);
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, bosses, shop, buy, jobs,
-                           skill_card, menu, keybinds, keys, focus);
+                           sell_equip, multi_sell, maps, bosses, shop, buy,
+                           jobs, skill_card, menu, keybinds, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
@@ -2229,6 +2326,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   TraceRecoverPanel trace(fresh.character);
   SellPanel sell;
   SellEquipPanel sell_equip;
+  MultiSellPanel multi_sell(fresh.character);
   MapSelectPanel maps(fresh);
   BossSelectPanel bosses(fresh);
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
@@ -2240,8 +2338,8 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   KeyMap keys(&fresh.keybinds);
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, maps, bosses, shop, buy, jobs,
-                           skill_card, menu, keybinds, keys, focus);
+                           sell_equip, multi_sell, maps, bosses, shop, buy,
+                           jobs, skill_card, menu, keybinds, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));

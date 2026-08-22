@@ -116,8 +116,8 @@ InventoryPanel::InventoryPanel(CharacterInstance& character, int& panel_focus)
     : character_(character),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Sell",
-             "Close"}),
-      sell_menu_({"Inspect", "Use", "Sell", "Close"}) {
+             "Multi-Sell", "Close"}),
+      sell_menu_({"Inspect", "Use", "Sell", "Multi-Sell", "Close"}) {
 }
 
 ItemMenu& InventoryPanel::menu() {
@@ -228,10 +228,17 @@ void InventoryPanel::OpenStackMenu() {
   if (category == ITEM_CATEGORY_ETC) {
     sell_menu_.Hide(kStackUse);
   }
+  // Multi-Sell arrives with the shop: it sells across the whole bag, and the
+  // shelf a mis-sale is undone at is the shop's. Selling one stack has never
+  // waited for it.
+  if (!Unlocked(Feature::kShop, character_)) {
+    sell_menu_.Hide(kStackMultiSell);
+  }
   const std::vector<StackableItem>& stacks = character_.stackables(category);
   if (selected_stack_ >= static_cast<int>(stacks.size())) {
     sell_menu_.Disable(kStackUse);
     sell_menu_.Disable(kStackSell);
+    sell_menu_.Disable(kStackMultiSell);
     return;
   }
   const ItemPrototype& proto = stacks[selected_stack_].prototype();
@@ -240,6 +247,8 @@ void InventoryPanel::OpenStackMenu() {
   if (proto.effect() == ITEM_EFFECT_UNSPECIFIED) {
     sell_menu_.Disable(kStackUse);
   }
+  // Multi-Sell stands whatever this row is worth: it leads to a screen where
+  // the player picks the rows themselves.
   if (proto.sell_price() <= 0) {
     sell_menu_.Disable(kStackSell);
   }
@@ -267,6 +276,7 @@ void InventoryPanel::OpenEquipMenu() {
   // opened.
   if (!Unlocked(Feature::kShop, character_)) {
     menu_.Hide(kMenuSell);
+    menu_.Hide(kMenuMultiSell);
   }
   // An upgrade the item refuses outright is not drawn either. What it refuses
   // is the prototype's answer, so armour and weapons carry the same entries
@@ -338,6 +348,9 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
       if (sell_menu_.selected() == kStackSell) {
         return kSell;
       }
+      if (sell_menu_.selected() == kStackMultiSell) {
+        return kMultiSell;
+      }
       return kMain;
     }
     return kItemMenu;
@@ -379,6 +392,9 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
     }
     if (menu_.selected() == kMenuSell) {
       return kSellEquip;
+    }
+    if (menu_.selected() == kMenuMultiSell) {
+      return kMultiSell;
     }
     return kMain;
   }

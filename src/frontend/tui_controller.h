@@ -26,6 +26,7 @@
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
+#include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -56,6 +57,7 @@ class TuiController {
                 ScrollPanel& scroll_panel, StarForcePanel& star_force_panel,
                 TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
                 SellEquipPanel& sell_equip_panel,
+                MultiSellPanel& multi_sell_panel,
                 MapSelectPanel& map_select_panel,
                 BossSelectPanel& boss_select_panel, ShopPanel& shop_panel,
                 BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
@@ -206,6 +208,11 @@ class TuiController {
   Screen screen() const {
     return screen_;
   }
+  // What the Multi-Sell screen has marked. The screen owns the basket; this is
+  // how a caller reads it without reaching through to the panel.
+  const SaleBasket& multi_sell_basket() const {
+    return multi_sell_panel_.basket();
+  }
   const ScrollResult& scroll_result() const {
     return scroll_result_;
   }
@@ -266,6 +273,7 @@ class TuiController {
   bool OnTraceRecoverResultEvent(ftxui::Event event);
   bool OnSellEvent(ftxui::Event event);
   bool OnSellEquipEvent(ftxui::Event event);
+  bool OnMultiSellEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnBossSelectEvent(ftxui::Event event);
   bool OnBossConfirmEvent(ftxui::Event event);
@@ -312,6 +320,7 @@ class TuiController {
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
   SellEquipPanel& sell_equip_panel_;
+  MultiSellPanel& multi_sell_panel_;
   MapSelectPanel& map_select_panel_;
   BossSelectPanel& boss_select_panel_;
   JobInspectPanel& job_inspect_panel_;

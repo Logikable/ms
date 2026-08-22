@@ -502,6 +502,55 @@ TEST_F(InventoryPanelTest, SellArrivesWithTheShop) {
   EXPECT_NE(std::count(after.begin(), after.end(), kMenuSell), 0);
 }
 
+// Multi-Sell sits under Sell on both menus and waits for the same shop, the
+// shelf a mis-sale is undone at being the shop's.
+TEST_F(InventoryPanelTest, MultiSellSitsUnderSellOnBothMenus) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  LevelTo(UnlockLevel(Feature::kShop) - 1);
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kMenuMultiSell), 0);
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  panel.OpenMenu();
+  before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kStackMultiSell), 0);
+
+  LevelTo(UnlockLevel(Feature::kShop));
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kStackMultiSell), 0);
+  // The stack's Sell is disabled for a worthless item, and Multi-Sell is not:
+  // the screen it opens is where the player picks the rows themselves.
+  c_.AddStackable(MakeStackable("Junk", ITEM_CATEGORY_ETC, 0), 5);
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Use -> Etc
+  panel.OpenMenu();
+  after = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(after.begin(), after.end(), kStackSell), 0);
+  EXPECT_NE(std::count(after.begin(), after.end(), kStackMultiSell), 0);
+}
+
+TEST_F(InventoryPanelTest, MultiSellLeadsToItsScreen) {
+  LevelTo(UnlockLevel(Feature::kShop));
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.AddStackable(MakeStackable("Red Potion", ITEM_CATEGORY_USE, 7), 5);
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  ScrollPanel sp(c_, {});
+  panel.OpenMenu();
+  panel.menu().Up();  // Close
+  panel.menu().Up();  // Multi-Sell
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMultiSell);
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  panel.OpenMenu();
+  panel.menu().Up();
+  panel.menu().Up();
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, sp), kMultiSell);
+}
+
 // Once it is there it is there for everything: no item and no state of one
 // refuses it. Selling is the only way anything leaves the bag, so an item it
 // skipped would be an item the player cannot get rid of.

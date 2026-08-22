@@ -104,13 +104,14 @@ Tui::Tui(GameState& state, std::string save_path)
       job_inspect_panel_(state.skills),
       keybinds_panel_(keys_),
       all_stats_panel_(state.character, state.skills),
+      multi_sell_panel_(state.character),
       shop_panel_(state.character, state.equips, state.items),
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
-                  sell_panel_, sell_equip_panel_, map_select_panel_,
-                  boss_select_panel_, shop_panel_, buy_panel_,
-                  job_inspect_panel_, skill_inspect_panel_, menu_panel_,
-                  keybinds_panel_, keys_, panel_focus_) {
+                  sell_panel_, sell_equip_panel_, multi_sell_panel_,
+                  map_select_panel_, boss_select_panel_, shop_panel_,
+                  buy_panel_, job_inspect_panel_, skill_inspect_panel_,
+                  menu_panel_, keybinds_panel_, keys_, panel_focus_) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -499,6 +500,17 @@ ftxui::Element Tui::RenderScroll() {
                       inspect_panel_.RenderItemOnly() | ftxui::flex});
 }
 
+ftxui::Element Tui::RenderMultiSell() {
+  ftxui::Element screen = ftxui::center(multi_sell_panel_.Render());
+  if (!multi_sell_panel_.confirming()) {
+    return screen;
+  }
+  return ftxui::dbox({
+      std::move(screen),
+      ftxui::center(multi_sell_panel_.RenderConfirm() | ftxui::clear_under),
+  });
+}
+
 ftxui::Element Tui::RenderScreen() {
   switch (controller_.screen()) {
     // Dialogs float over the main view, so what they are about stays visible
@@ -515,6 +527,9 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(sell_panel_.Render());
     case kSellEquip:
       return OverMain(sell_equip_panel_.Render());
+    // The dialog is the panel's own, so the screen it belongs to is one state.
+    case kMultiSell:
+      return RenderMultiSell();
     case kMapSelect:
       return ftxui::center(map_select_panel_.Render());
     case kSettingsMenu:

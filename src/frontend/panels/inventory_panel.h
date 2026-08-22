@@ -65,6 +65,11 @@ class InventoryPanel {
   // The active Use/Etc tab's item category, or ITEM_CATEGORY_UNSPECIFIED on the
   // Equip tab.
   ItemCategory active_category() const;
+  // Which tab is open, as an InventoryTab. The Multi-Sell screen opens on it,
+  // and on whichever row the cursor stands on there.
+  int active_tab() const {
+    return active_tab_;
+  }
   // The selected stack row on the active Use/Etc tab.
   int selected_stack() const {
     return selected_stack_;

@@ -30,6 +30,7 @@
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
+#include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -58,6 +59,8 @@ class Tui {
   // The whole frame: the screen the player is on, with a celebration card
   // floated over it when one is up.
   ftxui::Element RenderFrame();
+  // The Multi-Sell screen, with its "Are you sure?" dialog over the list.
+  ftxui::Element RenderMultiSell();
   // Whichever screen the controller is showing, celebration aside.
   ftxui::Element RenderScreen();
   ftxui::Element RenderMain();
@@ -150,6 +153,7 @@ class Tui {
   TraceRecoverPanel trace_recover_panel_;
   SellPanel sell_panel_;
   SellEquipPanel sell_equip_panel_;
+  MultiSellPanel multi_sell_panel_;
   MapSelectPanel map_select_panel_;
   BossSelectPanel boss_select_panel_;
   // The job's book, read before the advancement is taken.

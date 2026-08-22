@@ -4,6 +4,10 @@
  *
  * Every row and header takes a `lead` and a `tail`: columns the caller adds on
  * either side, for Multi-Sell's sale mark and price. The bag passes neither.
+ *
+ * `body_width` holds the row's own cells to that many columns, so a tail lands
+ * under the same letters on every list however long the row itself came out.
+ * Zero leaves the cells at their natural width.
  */
 #ifndef MS_SRC_FRONTEND_WIDGETS_INVENTORY_LIST_H_
 #define MS_SRC_FRONTEND_WIDGETS_INVENTORY_LIST_H_
@@ -54,7 +58,7 @@ std::vector<InventoryRowState> BuildEquipRows(
 // column's "Pass/Left/Restore" and nothing else, so it takes the lead column's
 // width rather than the column itself.
 ftxui::Element EquipHeader(ftxui::Element lead = nullptr,
-                           ftxui::Element tail = nullptr);
+                           ftxui::Element tail = nullptr, int body_width = 0);
 ftxui::Element EquipSubHeader(int lead_width = 0);
 
 // One Equip row with its cursor caret, drawn dim with the cell that says why
@@ -62,15 +66,17 @@ ftxui::Element EquipSubHeader(int lead_width = 0);
 // `tail` may be null for a list with no column on that side.
 ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
                               ftxui::Element lead = nullptr,
-                              ftxui::Element tail = nullptr);
+                              ftxui::Element tail = nullptr,
+                              int body_width = 0);
 
 // The header over a Use or Etc list, and one row of one.
 ftxui::Element StackHeader(ftxui::Element lead = nullptr,
-                           ftxui::Element tail = nullptr);
+                           ftxui::Element tail = nullptr, int body_width = 0);
 ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
                               std::chrono::steady_clock::duration elapsed,
                               ftxui::Element lead = nullptr,
-                              ftxui::Element tail = nullptr);
+                              ftxui::Element tail = nullptr,
+                              int body_width = 0);
 
 }  // namespace ms
 
