@@ -113,6 +113,21 @@ TEST(FormatCompactTest, ClimbsAUnitAtTwoThousandOfTheLast) {
   EXPECT_EQ(FormatCompact(2340000000000000LL), "2.34Q");
 }
 
+// --- DropChance ---
+
+TEST(DropChanceTest, TrimsToTheDecimalsTheRateNeeds) {
+  EXPECT_EQ(DropChance(1.0), "100%");
+  EXPECT_EQ(DropChance(0.4), "40%");
+  EXPECT_EQ(DropChance(0.1), "10%");
+  EXPECT_EQ(DropChance(0.00025), "0.025%");
+  EXPECT_EQ(DropChance(0.0001), "0.01%");
+}
+
+TEST(DropChanceTest, KeepsATinyRateAChance) {
+  EXPECT_EQ(DropChance(0.0000001), "<0.001%");
+  EXPECT_EQ(DropChance(0.0), "0%");
+}
+
 // --- FormatMeso ---
 
 TEST(FormatMesoTest, PrefixesIndicatorAndFormatsValue) {

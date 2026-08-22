@@ -61,16 +61,6 @@ std::string Clock(int seconds) {
   return text + std::to_string(rest);
 }
 
-// A drop rate as a whole percent. Rounded up off zero, so a rare drop reads
-// as a chance rather than as none at all.
-std::string DropChance(double per_kill) {
-  int pct = static_cast<int>(per_kill * 100.0);
-  if (pct == 0 && per_kill > 0.0) {
-    pct = 1;
-  }
-  return std::to_string(std::clamp(pct, 0, 100)) + "%";
-}
-
 ftxui::Element DetailRow(const std::string& label, const std::string& value) {
   return ftxui::text(" " + PadRight(label, kLabelWidth) +
                      PadLeft(value, kValueWidth) + " ");

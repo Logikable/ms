@@ -159,5 +159,16 @@ TEST(ExpectedMesoPerKillTest, ScalesByLevelBandMean) {
   EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 0.0), 6.0 * 0.60 * 21 * 2.5);
 }
 
+// What the inspect panel shows as a mob's meso, which is the amount a drop is
+// worth rather than the per-kill mean -- the 60% is a row of its own there.
+TEST(MeanMesoPerDropTest, LeavesTheDropChanceOut) {
+  Mob mob;
+  mob.set_level(10);
+  EXPECT_DOUBLE_EQ(MeanMesoPerDrop(mob), 6.0 * 10 * 2.0);
+  EXPECT_DOUBLE_EQ(ExpectedMesoPerKill(mob, 0.0), 0.60 * MeanMesoPerDrop(mob));
+  mob.set_level(1);
+  EXPECT_DOUBLE_EQ(MeanMesoPerDrop(mob), 6.0);
+}
+
 }  // namespace
 }  // namespace ms

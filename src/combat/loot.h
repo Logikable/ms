@@ -28,6 +28,12 @@ namespace ms {
 // capped at every kill: a drop that is already certain cannot be made more so.
 double MesoDropChance(double item_drop_pct);
 
+// What one meso drop off `mob` is worth on average: its level times the band's
+// mean multiplier, at the Heroic world's 6x rate. This is the amount, not the
+// per-kill expectation -- the 60% chance of a drop at all is MesoDropChance,
+// and a panel showing both would count it twice.
+double MeanMesoPerDrop(const Mob& mob);
+
 // Expected meso one kill of `mob` yields: the drop chance above times the
 // mob's level-banded amount, at the Heroic world's 6x rate. The character's own
 // meso bonus is applied by the caller, which is where the passives are already

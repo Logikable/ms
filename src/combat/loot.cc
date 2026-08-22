@@ -58,13 +58,17 @@ double MesoDropChance(double item_drop_pct) {
   return std::min(1.0, kBaseMesoDropChance * (1.0 + item_drop_pct));
 }
 
-double ExpectedMesoPerKill(const Mob& mob, double item_drop_pct) {
+double MeanMesoPerDrop(const Mob& mob) {
   int mob_level = mob.level();
   // A level-1 mob drops a flat 1 meso; all higher levels scale by the band
   // mean.
   double base_amount =
       mob_level <= 1 ? 1.0 : mob_level * MeanMesoMultiplier(mob_level);
-  return kHeroicMesoMultiplier * MesoDropChance(item_drop_pct) * base_amount;
+  return kHeroicMesoMultiplier * base_amount;
+}
+
+double ExpectedMesoPerKill(const Mob& mob, double item_drop_pct) {
+  return MesoDropChance(item_drop_pct) * MeanMesoPerDrop(mob);
 }
 
 int64_t RollDrops(double per_kill, int64_t kills, std::mt19937& rng) {

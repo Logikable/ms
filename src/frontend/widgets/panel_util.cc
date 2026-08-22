@@ -268,6 +268,23 @@ std::vector<std::string> WrapBalanced(const std::string& text, int width,
   return lines;
 }
 
+std::string DropChance(double per_kill) {
+  double pct = std::clamp(per_kill, 0.0, 1.0) * 100.0;
+  if (pct > 0.0 && pct < 0.001) {
+    return "<0.001%";
+  }
+  char buffer[32];
+  std::snprintf(buffer, sizeof(buffer), "%.3f", pct);
+  std::string text(buffer);
+  // Trailing zeros carry no information here, and the point with nothing
+  // after it carries less.
+  text.erase(text.find_last_not_of('0') + 1);
+  if (!text.empty() && text.back() == '.') {
+    text.pop_back();
+  }
+  return text + "%";
+}
+
 std::string FormatWithCommas(int64_t n) {
   std::string digits = std::to_string(n < 0 ? -n : n);
   int pos = static_cast<int>(digits.size()) - 3;
