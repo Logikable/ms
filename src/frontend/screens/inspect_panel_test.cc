@@ -124,27 +124,21 @@ TEST_F(InspectPanelTest, NullItemShowsPlaceholder) {
   EXPECT_NE(Render(panel).find("(no item)"), std::string::npos);
 }
 
-TEST_F(InspectPanelTest, ShowsItemName) {
+TEST_F(InspectPanelTest, ShowsTheItemsOwnFields) {
   sword_.set_name("Iron Sword");
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("Iron Sword"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, ShowsLevel) {
   sword_.set_required_level(30);
+  sword_.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  sword_.set_attack_speed(ATTACK_SPEED_AVERAGE);
   EquipInstance item(sword_);
   InspectPanel panel;
   panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("Req Lev: 30"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, ShowsJobCategory) {
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("Warrior"), std::string::npos);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Iron Sword"), std::string::npos);
+  EXPECT_NE(rendered.find("Req Lev: 30"), std::string::npos);
+  EXPECT_NE(rendered.find("Warrior"), std::string::npos);
+  EXPECT_NE(rendered.find("Type: One-Handed Sword"), std::string::npos);
+  EXPECT_NE(rendered.find("Attack Speed: Stage 4 (Average)"),
+            std::string::npos);
 }
 
 TEST_F(InspectPanelTest, IneligibleJobsStillRendered) {
@@ -170,23 +164,6 @@ TEST_F(InspectPanelTest, UniversalShowsAllJobGroups) {
   EXPECT_NE(rendered.find("Magician"), std::string::npos);
   EXPECT_NE(rendered.find("Thief"), std::string::npos);
   EXPECT_NE(rendered.find("Pirate"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, ShowsEquipType) {
-  sword_.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("Type: One-Handed Sword"), std::string::npos);
-}
-
-TEST_F(InspectPanelTest, ShowsAttackSpeedStage) {
-  sword_.set_attack_speed(ATTACK_SPEED_AVERAGE);
-  EquipInstance item(sword_);
-  InspectPanel panel;
-  panel.SetItem(&item);
-  EXPECT_NE(Render(panel).find("Attack Speed: Stage 4 (Average)"),
-            std::string::npos);
 }
 
 TEST_F(InspectPanelTest, ShowsBaseStat) {

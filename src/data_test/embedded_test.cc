@@ -54,33 +54,14 @@ TEST(EmbeddedDataTest, SpellTracesCannotBeSold) {
   EXPECT_GT(items["spell_trace"].shop_price(), 0);
 }
 
-TEST(EmbeddedDataTest, MapsParse) {
-  std::map<std::string, MapData> maps =
-      LoadTextProtoMap<MapData>(EmbeddedMaps());
+TEST(EmbeddedDataTest, EveryOtherCatalogParses) {
   // The map a new character starts on: without it, play mode has nowhere to be.
-  EXPECT_TRUE(maps.count("maple_island") > 0);
-}
-
-TEST(EmbeddedDataTest, BossesParse) {
-  std::map<std::string, Boss> bosses = LoadTextProtoMap<Boss>(EmbeddedBosses());
-  EXPECT_TRUE(bosses.count("zakum") > 0);
-}
-
-TEST(EmbeddedDataTest, MobsParse) {
-  std::map<std::string, Mob> mobs = LoadTextProtoMap<Mob>(EmbeddedMobs());
-  EXPECT_FALSE(mobs.empty());
-}
-
-TEST(EmbeddedDataTest, ScrollsParse) {
-  std::map<std::string, Scroll> scrolls =
-      LoadTextProtoMap<Scroll>(EmbeddedScrolls());
-  EXPECT_FALSE(scrolls.empty());
-}
-
-TEST(EmbeddedDataTest, SkillsParse) {
-  std::map<std::string, Skill> skills =
-      LoadTextProtoMap<Skill>(EmbeddedSkills());
-  EXPECT_FALSE(skills.empty());
+  EXPECT_TRUE(LoadTextProtoMap<MapData>(EmbeddedMaps()).count("maple_island") >
+              0);
+  EXPECT_TRUE(LoadTextProtoMap<Boss>(EmbeddedBosses()).count("zakum") > 0);
+  EXPECT_FALSE(LoadTextProtoMap<Mob>(EmbeddedMobs()).empty());
+  EXPECT_FALSE(LoadTextProtoMap<Scroll>(EmbeddedScrolls()).empty());
+  EXPECT_FALSE(LoadTextProtoMap<Skill>(EmbeddedSkills()).empty());
 }
 
 }  // namespace

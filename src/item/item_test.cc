@@ -86,28 +86,20 @@ TEST_F(StackableItemTest, ExposesNameCountAndPrototype) {
   EXPECT_EQ(stack.prototype().category(), ITEM_CATEGORY_ETC);
 }
 
-TEST_F(StackableItemTest, MaxStackUsesExplicitValueWhenSet) {
-  ItemPrototype proto = MakeShell();
-  proto.set_max_stack(50);
-  StackableItem stack(proto, 1);
-  EXPECT_EQ(stack.max_stack(), 50);
-}
+// An explicit max_stack wins; a blank one falls back to the category's, and a
+// blank category to a stack of one.
+TEST_F(StackableItemTest, MaxStackTakesTheItemsOrItsCategorys) {
+  ItemPrototype explicit_stack = MakeShell();
+  explicit_stack.set_max_stack(50);
+  EXPECT_EQ(StackableItem(explicit_stack, 1).max_stack(), 50);
 
-TEST_F(StackableItemTest, MaxStackEtcDefaultWhenBlank) {
-  StackableItem stack(MakeShell(), 1);
-  EXPECT_EQ(stack.max_stack(), 200);
-}
+  EXPECT_EQ(StackableItem(MakeShell(), 1).max_stack(), 200);
 
-TEST_F(StackableItemTest, MaxStackUseDefaultWhenBlank) {
-  ItemPrototype proto;
-  proto.set_category(ITEM_CATEGORY_USE);
-  StackableItem stack(proto, 1);
-  EXPECT_EQ(stack.max_stack(), 9999);
-}
+  ItemPrototype use;
+  use.set_category(ITEM_CATEGORY_USE);
+  EXPECT_EQ(StackableItem(use, 1).max_stack(), 9999);
 
-TEST_F(StackableItemTest, MaxStackUnspecifiedCategoryFallsBackToOne) {
-  StackableItem stack(ItemPrototype(), 1);
-  EXPECT_EQ(stack.max_stack(), 1);
+  EXPECT_EQ(StackableItem(ItemPrototype(), 1).max_stack(), 1);
 }
 
 }  // namespace

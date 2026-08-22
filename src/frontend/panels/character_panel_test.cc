@@ -231,14 +231,11 @@ bool IsInverted(ftxui::Component comp, const std::string& needle) {
   return !mask.empty() && mask[0] == '1';
 }
 
-TEST_F(CharacterPanelTest, ShowsLevel) {
+TEST_F(CharacterPanelTest, ShowsTheLevelAndJob) {
   CharacterPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find("Lv  1"), std::string::npos);
-}
-
-TEST_F(CharacterPanelTest, ShowsJobName) {
-  CharacterPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find("Beginner"), std::string::npos);
+  std::string drawn = RenderElement(panel.Render());
+  EXPECT_NE(drawn.find("Lv  1"), std::string::npos);
+  EXPECT_NE(drawn.find("Beginner"), std::string::npos);
 }
 
 // A level-10 Beginner, standing at the advancement it has not taken.
@@ -249,15 +246,14 @@ CharacterInstance MakePendingBeginner(std::mt19937& rng) {
   return CharacterInstance(rng, std::move(proto));
 }
 
-TEST_F(CharacterPanelTest, HidesTheAdvanceTabWithNothingPending) {
-  CharacterPanel panel(c_, panel_focus_);  // c_ is level 1
-  EXPECT_EQ(RenderElement(panel.Render()).find("Advance"), std::string::npos);
-}
+TEST_F(CharacterPanelTest, TheAdvanceTabAppearsOnlyWithOnePending) {
+  CharacterPanel level_one(c_, panel_focus_);  // c_ is level 1
+  EXPECT_EQ(RenderElement(level_one.Render()).find("Advance"),
+            std::string::npos);
 
-TEST_F(CharacterPanelTest, ShowsTheAdvanceTabWhenOneIsPending) {
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel panel(c, panel_focus_);
-  EXPECT_NE(RenderElement(panel.Render()).find("Advance"), std::string::npos);
+  CharacterPanel pending(c, panel_focus_);
+  EXPECT_NE(RenderElement(pending.Render()).find("Advance"), std::string::npos);
 }
 
 // The tab is gone the moment the choice is made, and the cursor cannot be

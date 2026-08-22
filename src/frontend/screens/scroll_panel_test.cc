@@ -103,26 +103,15 @@ class ScrollPanelTest : public PanelTest {
   ScrollPanel panel_{c_, scrolls_};
 };
 
-TEST_F(ScrollPanelTest, DefaultSelectionIsZero) {
+// AAA is SCROLL_TYPE_ATT (1) and ZZZ is SCROLL_TYPE_DEX (4), so the type sort
+// opens on AAA despite its longer odds.
+TEST_F(ScrollPanelTest, OpensOnTheFirstScrollAndNamesItsOddsAndStat) {
   EXPECT_EQ(panel_.selected(), 0);
-}
-
-TEST_F(ScrollPanelTest, SelectedScrollSortsByTypeThenRate) {
-  // AAA is SCROLL_TYPE_ATT (1), ZZZ is SCROLL_TYPE_DEX (4).
-  // Type sort puts AAA first despite its longer odds.
   EXPECT_EQ(panel_.selected_scroll().name(), "AAA Scroll");
-}
-
-TEST_F(ScrollPanelTest, RenderShowsScrollName) {
-  EXPECT_NE(Render(panel_).find("AAA Scroll"), std::string::npos);
-}
-
-TEST_F(ScrollPanelTest, RenderShowsSuccessRate) {
-  EXPECT_NE(Render(panel_).find("30%"), std::string::npos);
-}
-
-TEST_F(ScrollPanelTest, RenderShowsStat) {
-  EXPECT_NE(Render(panel_).find("+5 ATT"), std::string::npos);
+  std::string drawn = Render(panel_);
+  EXPECT_NE(drawn.find("AAA Scroll"), std::string::npos);
+  EXPECT_NE(drawn.find("30%"), std::string::npos);
+  EXPECT_NE(drawn.find("+5 ATT"), std::string::npos);
 }
 
 // The armour scroll that raises all four stats. Four cells saying the same
@@ -154,30 +143,16 @@ TEST_F(ScrollPanelTest, StatsThatDisagreeStayApart) {
   EXPECT_NE(Render(panel).find("+2 STR"), std::string::npos);
 }
 
-TEST_F(ScrollPanelTest, ArrowDownMovesSelection) {
+// The list is the whole screen, with no tab bar over it, so the ends meet.
+TEST_F(ScrollPanelTest, TheCursorWalksTheListAsARing) {
   Render(panel_);  // populate entries_ so the menu knows its size
   panel_.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel_.selected(), 1);
-}
-
-// The list is the whole screen, with no tab bar over it, so the ends meet.
-TEST_F(ScrollPanelTest, ArrowUpFromTheFirstScrollWrapsToTheLast) {
-  Render(panel_);
-  panel_.OnEvent(ftxui::Event::ArrowUp);
-  EXPECT_EQ(panel_.selected(), 1);
-}
-
-TEST_F(ScrollPanelTest, ArrowDownFromTheLastScrollWrapsToTheFirst) {
-  Render(panel_);
-  panel_.OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
   panel_.OnEvent(ftxui::Event::ArrowDown);
   EXPECT_EQ(panel_.selected(), 0);
-}
-
-TEST_F(ScrollPanelTest, ArrowDownSelectsTheSecondScroll) {
-  Render(panel_);
-  panel_.OnEvent(ftxui::Event::ArrowDown);
-  EXPECT_EQ(panel_.selected_scroll().name(), "ZZZ Scroll");
+  panel_.OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(panel_.selected(), 1);
 }
 
 TEST_F(ScrollPanelTest, SetFilterChangesSelectedScroll) {

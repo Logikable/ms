@@ -423,14 +423,9 @@ TEST_F(AdvanceJobTest, GrantsNoStartingSp) {
 
 // --- CanAdvanceJob / JobChoicesForStage ---
 
-TEST_F(AdvanceJobTest, EligibleAtLevelTen) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
-  EXPECT_TRUE(c.CanAdvanceJob());
-}
-
-TEST_F(AdvanceJobTest, NotEligibleBelowLevelTen) {
-  CharacterInstance c = MakeCharacter(rng_, /*level=*/9);
-  EXPECT_FALSE(c.CanAdvanceJob());
+TEST_F(AdvanceJobTest, OpensAtLevelTenAndNotBefore) {
+  EXPECT_FALSE(MakeCharacter(rng_, /*level=*/9).CanAdvanceJob());
+  EXPECT_TRUE(MakeCharacter(rng_, /*level=*/10).CanAdvanceJob());
 }
 
 TEST_F(AdvanceJobTest, NothingPendingOnceAdvanced) {
@@ -1649,15 +1644,12 @@ TEST_F(EquipTest, DisplacedItemTakesVacatedPosition) {
   EXPECT_EQ(c_.inventory()[1].prototype().name(), "Bow");
 }
 
-TEST_F(EquipTest, ReturnsFalseForUnspecifiedSlotOnPrototype) {
+TEST_F(EquipTest, RefusesAnEmptyIndexOrAnItemWithNoSlot) {
+  EXPECT_FALSE(c_.Equip(0));  // nothing in the bag
   EquipPrototype proto;
   proto.set_name("Unknown");
   // equip_slot intentionally left unspecified
   c_.PickUp(std::make_unique<EquipInstance>(proto));
-  EXPECT_FALSE(c_.Equip(0));
-}
-
-TEST_F(EquipTest, ReturnsFalseForOutOfBoundsIndex) {
   EXPECT_FALSE(c_.Equip(0));
 }
 
@@ -1672,11 +1664,8 @@ TEST_F(UnequipTest, MovesItemToInventory) {
   EXPECT_EQ(c_.inventory()[0].prototype().name(), "Sword");
 }
 
-TEST_F(UnequipTest, ReturnsFalseForUnspecifiedSlot) {
+TEST_F(UnequipTest, RefusesAnUnnamedOrAnEmptySlot) {
   EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_UNSPECIFIED));
-}
-
-TEST_F(UnequipTest, ReturnsFalseForUnoccupiedSlot) {
   EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_PRIMARY_WEAPON));
 }
 

@@ -18,19 +18,10 @@ namespace {
 
 // --- PadRight ---
 
-TEST(PadRightTest, PadsShortStringWithSpaces) {
+TEST(PadRightTest, PadsOrTruncatesToTheWidth) {
   EXPECT_EQ(PadRight("hi", 5), "hi   ");
-}
-
-TEST(PadRightTest, ExactWidthUnchanged) {
   EXPECT_EQ(PadRight("hello", 5), "hello");
-}
-
-TEST(PadRightTest, TruncatesLongString) {
   EXPECT_EQ(PadRight("toolong", 4), "tool");
-}
-
-TEST(PadRightTest, EmptyStringProducesAllSpaces) {
   EXPECT_EQ(PadRight("", 3), "   ");
 }
 
@@ -136,29 +127,19 @@ TEST(FormatMesoTest, PrefixesIndicatorAndFormatsValue) {
 
 // --- AppendStat ---
 
-TEST(AppendStatTest, ZeroValueIsNoOp) {
-  std::string out;
-  AppendStat(out, 0, "ATT");
-  EXPECT_TRUE(out.empty());
-}
-
-TEST(AppendStatTest, NegativeValueIsNoOp) {
-  std::string out;
-  AppendStat(out, -1, "ATT");
-  EXPECT_TRUE(out.empty());
-}
-
-TEST(AppendStatTest, AppendsLabelAndValue) {
+TEST(AppendStatTest, WritesAStatAndSeparatesTheNext) {
   std::string out;
   AppendStat(out, 5, "ATT");
   EXPECT_EQ(out, "+5 ATT");
+  AppendStat(out, 7, "DEX");
+  EXPECT_EQ(out, "+5 ATT  +7 DEX");
 }
 
-TEST(AppendStatTest, AddsSeparatorBetweenStats) {
+TEST(AppendStatTest, NothingPositiveWritesNothing) {
   std::string out;
-  AppendStat(out, 3, "STR");
-  AppendStat(out, 7, "DEX");
-  EXPECT_EQ(out, "+3 STR  +7 DEX");
+  AppendStat(out, 0, "ATT");
+  AppendStat(out, -1, "DEX");
+  EXPECT_TRUE(out.empty());
 }
 
 TEST(AppendStatTest, SkipsZeroInMiddle) {
@@ -290,26 +271,15 @@ TEST(FormatItemEntryTest, ReadsTheScrollCountsOffTheItem) {
 
 // --- FormatJobCategories ---
 
-TEST(FormatJobCategoriesTest, EmptyCategoriesReturnsAll) {
+TEST(FormatJobCategoriesTest, NamesThemOrSaysAll) {
   EquipPrototype proto;
   EXPECT_EQ(FormatJobCategories(proto), "All");
-}
-
-TEST(FormatJobCategoriesTest, UniversalReturnsAll) {
-  EquipPrototype proto;
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
   EXPECT_EQ(FormatJobCategories(proto), "All");
-}
 
-TEST(FormatJobCategoriesTest, SingleCategory) {
-  EquipPrototype proto;
+  proto.clear_equip_job_categories();
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   EXPECT_EQ(FormatJobCategories(proto), "Warrior");
-}
-
-TEST(FormatJobCategoriesTest, MultipleCategories) {
-  EquipPrototype proto;
-  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
   proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_THIEF);
   EXPECT_EQ(FormatJobCategories(proto), "Warrior/Thief");
 }

@@ -276,11 +276,18 @@ TEST_F(InventoryPanelTest, ShowsEmptyWhenBagIsEmpty) {
             std::string::npos);
 }
 
-TEST_F(InventoryPanelTest, ShowsItemName) {
+// sword_ is a level 10 warrior weapon, so one row carries every column.
+TEST_F(InventoryPanelTest, ARowNamesTheItemAndItsColumns) {
+  sword_.set_upgrade_slots(7);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   InventoryPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Sword"),
-            std::string::npos);
+  std::string drawn = RenderComponent(panel.MakeComponent([]() {}));
+  EXPECT_NE(drawn.find("Sword"), std::string::npos);
+  EXPECT_NE(drawn.find("Weapon"), std::string::npos);
+  EXPECT_NE(drawn.find("Lv10"), std::string::npos);
+  EXPECT_NE(drawn.find("Warrior"), std::string::npos);
+  // Fresh item: 0 pass, 7 left, 0 restores.
+  EXPECT_NE(drawn.find("0/7/0"), std::string::npos);
 }
 
 // A row whose item cannot be worn dims whole -- the same answer the skills tab
@@ -361,37 +368,6 @@ TEST_F(InventoryPanelTest, ShowsColumnHeader) {
   EXPECT_NE(rendered.find("Name"), std::string::npos);
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
   EXPECT_NE(rendered.find("Scrolls"), std::string::npos);
-}
-
-TEST_F(InventoryPanelTest, ShowsEquipSlotName) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  InventoryPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Weapon"),
-            std::string::npos);
-}
-
-TEST_F(InventoryPanelTest, ShowsSlotsRemaining) {
-  sword_.set_upgrade_slots(7);
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  InventoryPanel panel(c_, panel_focus_);
-  // Fresh item: 0 pass, 7 left, 0 restores.
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("0/7/0"),
-            std::string::npos);
-}
-
-TEST_F(InventoryPanelTest, ShowsItemLevel) {
-  c_.PickUp(std::make_unique<EquipInstance>(sword_));
-  InventoryPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Lv10"),
-            std::string::npos);
-}
-
-TEST_F(InventoryPanelTest, ShowsWarriorJobCategory) {
-  c_.PickUp(std::make_unique<EquipInstance>(
-      sword_));  // sword_ has EQUIP_JOB_CATEGORY_WARRIOR
-  InventoryPanel panel(c_, panel_focus_);
-  EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Warrior"),
-            std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, ShowsAllForUniversalItem) {

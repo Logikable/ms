@@ -145,24 +145,15 @@ TEST_F(EquipInstanceTest, StarForceAtMaxReturnsFailWithoutChange) {
   EXPECT_EQ(item.stars(), 5);
 }
 
-TEST_F(EquipInstanceTest, CanStarForceReturnsFalseAtMax) {
-  EquipPrototype proto = MakeEquip(0);
-  Equip state;
-  state.set_stars(5);
-  EquipInstance item(proto, state);
-  EXPECT_FALSE(item.CanStarForce());
-}
+// Star force wants every slot scrolled and a star still to come.
+TEST_F(EquipInstanceTest, CanStarForceUntilTheStarsRunOut) {
+  EXPECT_TRUE(EquipInstance(MakeEquip(0)).CanStarForce());
 
-TEST_F(EquipInstanceTest, CanStarForceTrueBeforeMax) {
-  EquipPrototype proto = MakeEquip(0);
-  EquipInstance item(proto);
-  EXPECT_TRUE(item.CanStarForce());
-}
+  Equip maxed;
+  maxed.set_stars(5);
+  EXPECT_FALSE(EquipInstance(MakeEquip(0), maxed).CanStarForce());
 
-TEST_F(EquipInstanceTest, CannotStarForceWithSlotsRemaining) {
-  EquipPrototype proto = MakeEquip(/*upgrade_slots=*/7);
-  EquipInstance item(proto);
-  EXPECT_FALSE(item.CanStarForce());
+  EXPECT_FALSE(EquipInstance(MakeEquip(/*upgrade_slots=*/7)).CanStarForce());
 }
 
 TEST_F(EquipInstanceTest, StarForceFailsWithSlotsRemaining) {
