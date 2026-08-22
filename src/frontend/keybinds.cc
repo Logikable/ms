@@ -287,6 +287,10 @@ std::string KeyMap::Label(KeyAction action, int slot) const {
   return catalog_.LabelOf(row->keys(slot));
 }
 
+std::string KeyMap::LabelOf(const ftxui::Event& key) const {
+  return catalog_.LabelOf(catalog_.IdOf(key));
+}
+
 ftxui::Event KeyMap::Translate(const ftxui::Event& key) const {
   if (key.is_mouse()) {
     return key;

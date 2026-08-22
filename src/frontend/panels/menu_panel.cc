@@ -26,6 +26,14 @@ std::string EntryLabel(MenuEntry entry) {
   return "";
 }
 
+std::string SettingsEntryLabel(SettingsEntry entry) {
+  switch (entry) {
+    case SettingsEntry::kKeybinds:
+      return "Keybinds";
+  }
+  return "";
+}
+
 }  // namespace
 
 MenuPanel::MenuPanel(const GameState& state, int& panel_focus)
@@ -51,6 +59,59 @@ void MenuPanel::MoveCursor(int delta) {
   cursor_ = StepCursor(cursor_, delta, static_cast<int>(Entries().size()));
 }
 
+std::vector<SettingsEntry> MenuPanel::SettingsEntries() const {
+  return {SettingsEntry::kKeybinds};
+}
+
+void MenuPanel::OpenSettings() {
+  settings_open_ = true;
+  settings_cursor_ = -1;
+}
+
+void MenuPanel::CloseSettings() {
+  settings_open_ = false;
+  settings_cursor_ = -1;
+}
+
+void MenuPanel::MoveSettingsCursor(int delta) {
+  // The box stands above the menu row, so the ring runs from the row up
+  // through the entries and back round. Stop 0 is the row itself.
+  int count = static_cast<int>(SettingsEntries().size());
+  int at = 0;
+  if (settings_cursor_ >= 0) {
+    at = count - settings_cursor_;
+  }
+  at = StepCursor(at, delta, count + 1);
+  settings_cursor_ = -1;
+  if (at > 0) {
+    settings_cursor_ = count - at;
+  }
+}
+
+SettingsEntry MenuPanel::selected_settings_entry() const {
+  std::vector<SettingsEntry> entries = SettingsEntries();
+  int at =
+      std::clamp(settings_cursor_, 0, static_cast<int>(entries.size()) - 1);
+  return entries[at];
+}
+
+ftxui::Element MenuPanel::RenderSettingsBox() const {
+  std::vector<SettingsEntry> entries = SettingsEntries();
+  ftxui::Elements rows;
+  for (int i = 0; i < static_cast<int>(entries.size()); ++i) {
+    ftxui::Element row =
+        ftxui::text(" " + SettingsEntryLabel(entries[i]) + " ");
+    if (i == settings_cursor_) {
+      row = std::move(row) | ftxui::inverted;
+    }
+    rows.push_back(std::move(row));
+  }
+  // Cleared under, so the box covers the interior of whatever it stands on
+  // rather than letting the panel below show through it.
+  return ThemedWindow(" Settings ", ftxui::vbox(std::move(rows))) |
+         ftxui::clear_under;
+}
+
 ftxui::Element MenuPanel::Render() const {
   std::vector<MenuEntry> entries = Entries();
   bool focused = panel_focus_ == kMenuPanel;
@@ -69,7 +130,9 @@ ftxui::Element MenuPanel::Render() const {
       // Gold until the player has been there once, the same way a new tab is.
       button = std::move(button) | ftxui::color(kYellow);
     }
-    if (focused && i == at) {
+    // The cursor is in one place at a time: with the box open and the cursor
+    // in it, the entry it came from stops being the highlighted one.
+    if (focused && i == at && settings_cursor_ < 0) {
       button = std::move(button) | ftxui::inverted;
     }
     row.push_back(std::move(button));

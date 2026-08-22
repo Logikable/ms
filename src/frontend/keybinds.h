@@ -85,6 +85,9 @@ class KeyMap {
 
   // The label of the key in `slot`, or empty when the slot is open.
   std::string Label(KeyAction action, int slot) const;
+  // The label of a key, whether or not it is bound. Empty for a key the game
+  // has no name for.
+  std::string LabelOf(const ftxui::Event& key) const;
   // Rewrites a bound key to the event the game reads it as. Anything unbound
   // comes back as it arrived.
   ftxui::Event Translate(const ftxui::Event& key) const;

@@ -27,6 +27,11 @@ enum class MenuEntry {
   kSettings,
 };
 
+// What the Settings box holds, top to bottom.
+enum class SettingsEntry {
+  kKeybinds,
+};
+
 class MenuPanel {
  public:
   // Rows the panel takes on screen, borders included.
@@ -43,6 +48,24 @@ class MenuPanel {
   // on_open fires when the player presses Enter with the panel focused.
   ftxui::Component MakeComponent(std::function<void(MenuEntry)> on_open);
 
+  // The Settings box: the entries Settings opens, in a box that stands on the
+  // panel and draws over whatever is behind it. It opens with the cursor still
+  // on the menu row below, which is what the player presses Up to leave.
+  void OpenSettings();
+  void CloseSettings();
+  bool settings_open() const {
+    return settings_open_;
+  }
+  // Moves the cursor `delta` stops up the box. The menu row is a stop of the
+  // same ring, so the cursor comes back out of the box the way it went in.
+  void MoveSettingsCursor(int delta);
+  // The entry the cursor is on, or -1 while it is still on the menu row.
+  int settings_cursor() const {
+    return settings_cursor_;
+  }
+  SettingsEntry selected_settings_entry() const;
+  ftxui::Element RenderSettingsBox() const;
+
   // The save key that latches the Boss entry's gold, so it stops being new
   // once the player has opened the screen it leads to.
   static const char* boss_seen_key() {
@@ -56,8 +79,14 @@ class MenuPanel {
   // one arrives on a level-up, which the panel is never told about.
   std::vector<MenuEntry> Entries() const;
 
+  // Entries of the Settings box, top to bottom.
+  std::vector<SettingsEntry> SettingsEntries() const;
+
   const GameState& state_;
   int& panel_focus_;
+  bool settings_open_ = false;
+  // Which entry of the box the cursor is on, or -1 for the menu row below it.
+  int settings_cursor_ = -1;
   // Which entry the cursor is on, as an index into Entries(). An index rather
   // than a MenuEntry, so the cursor follows the row as entries arrive to its
   // left: reaching 110 slides it onto Boss, which is the gold one and the

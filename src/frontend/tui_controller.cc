@@ -42,6 +42,7 @@ TuiController::TuiController(
     MapSelectPanel& map_select_panel, BossSelectPanel& boss_select_panel,
     ShopPanel& shop_panel, BuyPanel& buy_panel,
     JobInspectPanel& job_inspect_panel, SkillInspectPanel& skill_inspect_panel,
+    MenuPanel& menu_panel, KeybindsPanel& keybinds_panel, KeyMap& keys,
     int& panel_focus)
     : state_(state),
       char_panel_(char_panel),
@@ -56,6 +57,9 @@ TuiController::TuiController(
       boss_select_panel_(boss_select_panel),
       job_inspect_panel_(job_inspect_panel),
       skill_inspect_panel_(skill_inspect_panel),
+      menu_panel_(menu_panel),
+      keybinds_panel_(keybinds_panel),
+      keys_(keys),
       shop_panel_(shop_panel),
       buy_panel_(buy_panel),
       panel_focus_(panel_focus) {
@@ -131,9 +135,17 @@ void TuiController::OpenMapSelect() {
   map_select_panel_.Reset();
 }
 
+bool TuiController::capturing_key() const {
+  return screen_ == kKeybinds && keybinds_panel_.capturing();
+}
+
 void TuiController::OpenMenuEntry(MenuEntry entry) {
-  if (entry != MenuEntry::kBoss) {
-    return;  // Settings has nothing behind it yet.
+  if (entry == MenuEntry::kSettings) {
+    // The box opens with the cursor still on the entry below it, which is what
+    // the player presses Up to leave.
+    menu_panel_.OpenSettings();
+    screen_ = kSettingsMenu;
+    return;
   }
   // Opening the screen is what the gold was leading to, so it stops here.
   state_.character.MarkTabSeen(MenuPanel::boss_seen_key());
@@ -273,6 +285,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnShopInspectEvent(event);
     case kShopBuy:
       return OnShopBuyEvent(event);
+    case kSettingsMenu:
+      return OnSettingsMenuEvent(event);
+    case kKeybinds:
+      return OnKeybindsEvent(event);
     case kQuit:
       return OnQuitEvent(event);
     case kMain:
@@ -828,6 +844,107 @@ bool TuiController::OnBossClearEvent(ftxui::Event event) {
 void TuiController::LeaveBossRun() {
   boss_run_.reset();
   screen_ = kBossSelect;
+}
+
+// The Settings box. Modal, like every other menu that stands over the main
+// view: nothing behind it hears a key while it is up.
+bool TuiController::OnSettingsMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    menu_panel_.MoveSettingsCursor(1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    menu_panel_.MoveSettingsCursor(-1);
+    return true;
+  }
+  if (IsBack(event)) {
+    menu_panel_.CloseSettings();
+    screen_ = kMain;
+    return true;
+  }
+  if (IsForward(event) && menu_panel_.settings_cursor() >= 0) {
+    switch (menu_panel_.selected_settings_entry()) {
+      case SettingsEntry::kKeybinds:
+        keybinds_panel_.Reset();
+        screen_ = kKeybinds;
+        break;
+    }
+  }
+  return true;
+}
+
+void TuiController::LeaveKeybinds() {
+  // Back to the box it was opened from, which is still standing where the
+  // player left it.
+  screen_ = kSettingsMenu;
+}
+
+void TuiController::TakeCapturedKey(const ftxui::Event& key) {
+  // The ticker posts a redraw several times a second, and a mouse can move
+  // over the terminal. Neither is somebody pressing a key.
+  if (key == ftxui::Event::Custom || key.is_mouse() ||
+      key.is_cursor_position() || key.is_cursor_shape()) {
+    return;
+  }
+  keybinds_panel_.StopCapture();
+  KeyAction action = keybinds_panel_.selected_action();
+  int slot = keybinds_panel_.selected_slot();
+  switch (keys_.Bind(action, slot, key)) {
+    case BindOutcome::kBound:
+      break;
+    case BindOutcome::kReserved:
+      keybinds_panel_.ShowRefusal(keys_.LabelOf(key) + " belongs to " +
+                                  KeyActionName(keys_.ReservedFor(key)) +
+                                  " and cannot move.");
+      break;
+    case BindOutcome::kUnsupported:
+      keybinds_panel_.ShowRefusal("That key cannot be bound.");
+      break;
+  }
+}
+
+bool TuiController::OnKeybindsEvent(ftxui::Event event) {
+  if (keybinds_panel_.capturing()) {
+    TakeCapturedKey(event);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    keybinds_panel_.MoveRow(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    keybinds_panel_.MoveRow(1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    keybinds_panel_.MoveSlot(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    keybinds_panel_.MoveSlot(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    if (keybinds_panel_.on_close()) {
+      LeaveKeybinds();
+      return true;
+    }
+    keybinds_panel_.StartCapture();
+    return true;
+  }
+  if (IsBack(event)) {
+    // Escape clears the key under the cursor. With nothing there to clear --
+    // an empty slot, or the Close button -- it is the way out instead.
+    KeyAction action = keybinds_panel_.selected_action();
+    int slot = keybinds_panel_.selected_slot();
+    if (keybinds_panel_.on_close() || keys_.Label(action, slot).empty()) {
+      LeaveKeybinds();
+      return true;
+    }
+    keys_.Unbind(action, slot);
+    return true;
+  }
+  return true;
 }
 
 bool TuiController::OnShopEvent(ftxui::Event event) {

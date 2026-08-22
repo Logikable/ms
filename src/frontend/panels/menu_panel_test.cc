@@ -114,5 +114,42 @@ TEST(MenuPanelTest, BossIsGoldUntilItHasBeenOpened) {
   EXPECT_NE(gold, after.PixelAt(2, 1).foreground_color);
 }
 
+TEST(MenuPanelTest, SettingsOpensABoxOverTheCorner) {
+  GameState state = EmptyState();
+  int focus = kMenuPanel;
+  MenuPanel panel(state, focus);
+  EXPECT_FALSE(panel.settings_open());
+  panel.OpenSettings();
+  EXPECT_TRUE(panel.settings_open());
+  EXPECT_EQ(panel.settings_cursor(), -1);
+
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
+                                               ftxui::Dimension::Fixed(4));
+  ftxui::Render(screen, panel.RenderSettingsBox());
+  std::string box = screen.ToString();
+  EXPECT_NE(box.find("Settings"), std::string::npos);
+  EXPECT_NE(box.find("Keybinds"), std::string::npos);
+}
+
+// The box stands above the menu row, so Up walks into it and Down comes back
+// out. The entry the box was opened from gives up the cursor while it holds it.
+TEST(MenuPanelTest, TheBoxAndTheMenuRowShareOneCursor) {
+  GameState state = EmptyState();
+  int focus = kMenuPanel;
+  MenuPanel panel(state, focus);
+  panel.OpenSettings();
+  panel.MoveSettingsCursor(1);
+  EXPECT_EQ(panel.settings_cursor(), 0);
+  EXPECT_EQ(panel.selected_settings_entry(), SettingsEntry::kKeybinds);
+  panel.MoveSettingsCursor(1);
+  EXPECT_EQ(panel.settings_cursor(), -1);
+
+  panel.MoveSettingsCursor(-1);
+  EXPECT_EQ(panel.settings_cursor(), 0);
+  panel.CloseSettings();
+  EXPECT_FALSE(panel.settings_open());
+  EXPECT_EQ(panel.settings_cursor(), -1);
+}
+
 }  // namespace
 }  // namespace ms

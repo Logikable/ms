@@ -16,6 +16,7 @@
 #include "ftxui/component/event.hpp"
 #include "src/combat/boss_run.h"
 #include "src/frontend/item_ref.h"
+#include "src/frontend/keybinds.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
@@ -23,6 +24,7 @@
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
+#include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
@@ -57,7 +59,8 @@ class TuiController {
                 MapSelectPanel& map_select_panel,
                 BossSelectPanel& boss_select_panel, ShopPanel& shop_panel,
                 BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
-                SkillInspectPanel& skill_inspect_panel, int& panel_focus);
+                SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
+                KeybindsPanel& keybinds_panel, KeyMap& keys, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
@@ -86,8 +89,12 @@ class TuiController {
   // Open the map selection screen, on the map being farmed.
   void OpenMapSelect();
   // Enter on an entry of the corner menu. Boss opens the boss screen and
-  // clears the entry's gold; Settings has nothing behind it yet.
+  // clears the entry's gold; Settings opens its box over the corner.
   void OpenMenuEntry(MenuEntry entry);
+
+  // True while a keybind slot is waiting for the key it will take, which is
+  // when a key must reach the game as the player pressed it.
+  bool capturing_key() const;
 
   // The stat the pending AP allocation targets, and its amount selector, for
   // the dialog Tui floats over the main view.
@@ -275,6 +282,14 @@ class TuiController {
   // Drops the finished run and goes back to the fight list. What every panel a
   // fight ends on is dismissed by.
   void LeaveBossRun();
+  bool OnSettingsMenuEvent(ftxui::Event event);
+  bool OnKeybindsEvent(ftxui::Event event);
+  // Puts the captured key in the waiting slot, or says why it could not go
+  // there. Ignores what is not a key at all -- the ticker's own redraw among
+  // them -- so the slot goes on waiting for one.
+  void TakeCapturedKey(const ftxui::Event& key);
+  // Leaves the Keybinds screen for the box it was opened from.
+  void LeaveKeybinds();
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
@@ -301,6 +316,9 @@ class TuiController {
   BossSelectPanel& boss_select_panel_;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
+  MenuPanel& menu_panel_;
+  KeybindsPanel& keybinds_panel_;
+  KeyMap& keys_;
   ShopPanel& shop_panel_;
   BuyPanel& buy_panel_;
   // Catalog key of the item the buy dialog is open on, so the purchase reads

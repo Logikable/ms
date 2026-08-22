@@ -50,6 +50,10 @@ enum Screen : int {
   kShopMenu,
   kShopInspect,
   kShopBuy,
+  // Enter on the menu panel's Settings entry: a box over the corner, and the
+  // one screen it opens.
+  kSettingsMenu,
+  kKeybinds,
   // Escape on the main screen. Last because it is the one screen reachable
   // from the main view rather than from something on it.
   kQuit,

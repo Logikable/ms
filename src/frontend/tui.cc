@@ -102,13 +102,15 @@ Tui::Tui(GameState& state, std::string save_path)
       map_select_panel_(state),
       boss_select_panel_(state),
       job_inspect_panel_(state.skills),
+      keybinds_panel_(keys_),
       all_stats_panel_(state.character, state.skills),
       shop_panel_(state.character, state.equips, state.items),
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
                   sell_panel_, sell_equip_panel_, map_select_panel_,
                   boss_select_panel_, shop_panel_, buy_panel_,
-                  job_inspect_panel_, skill_inspect_panel_, panel_focus_) {
+                  job_inspect_panel_, skill_inspect_panel_, menu_panel_,
+                  keybinds_panel_, keys_, panel_focus_) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -167,7 +169,8 @@ void Tui::Run() {
       });
   // Outside everything, so the whole tree -- ftxui's own menus included --
   // hears the game's keys rather than the terminal's.
-  ftxui::Component root = TranslateKeys(handler, keys_, nullptr);
+  ftxui::Component root = TranslateKeys(
+      handler, keys_, [this]() { return controller_.capturing_key(); });
 
   // Drive the idle game: wake periodically, advance combat on the loop thread
   // (so state mutation stays single-threaded), and redraw.
@@ -306,6 +309,20 @@ ftxui::Element Tui::QuitDialog() {
                               ThemedSeparator(),
                               CenteredRow(controller_.quit_prompt().Render()),
                           }));
+}
+
+ftxui::Element Tui::RenderSettingsBox() {
+  // The exp bar, which the corner menu sits one row above.
+  constexpr int kExpBarRows = 1;
+  return ftxui::dbox({
+      RenderMain(),
+      ftxui::vbox({
+          ftxui::filler(),
+          ftxui::hbox({ftxui::filler(), menu_panel_.RenderSettingsBox()}),
+          ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,
+                                        MenuPanel::kHeight + kExpBarRows),
+      }),
+  });
 }
 
 ftxui::Element Tui::BossConfirmDialog() {
@@ -500,6 +517,10 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(sell_equip_panel_.Render());
     case kMapSelect:
       return ftxui::center(map_select_panel_.Render());
+    case kSettingsMenu:
+      return RenderSettingsBox();
+    case kKeybinds:
+      return ftxui::center(keybinds_panel_.Render());
     case kBossSelect:
       return ftxui::center(boss_select_panel_.Render());
     case kBossFight:

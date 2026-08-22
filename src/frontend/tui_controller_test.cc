@@ -195,18 +195,28 @@ class TuiControllerTest : public testing::Test {
                                               state_->items);
     buy_panel_ = std::make_unique<BuyPanel>();
     job_inspect_panel_ = std::make_unique<JobInspectPanel>(state_->skills);
+    menu_panel_ = std::make_unique<MenuPanel>(*state_, panel_focus_);
+    keys_ = std::make_unique<KeyMap>(&state_->keybinds);
+    keybinds_panel_ = std::make_unique<KeybindsPanel>(*keys_);
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
         *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        panel_focus_);
+        *menu_panel_, *keybinds_panel_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
     // The inventory component drives tab switching and opens the context menu.
     inventory_component_ = inventory_panel_->MakeComponent(
         [this]() { controller_->OpenInventoryMenu(); });
+  }
+
+  // Opens the Keybinds screen the way a player does, from the Settings box.
+  void OpenKeybinds() {
+    controller_->OpenMenuEntry(MenuEntry::kSettings);
+    controller_->OnEvent(ftxui::Event::ArrowUp);
+    controller_->OnEvent(ftxui::Event::Return);
   }
 
   // Levels the character to `level`. The item menu's entries are level-gated
@@ -323,7 +333,7 @@ class TuiControllerTest : public testing::Test {
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
         *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        panel_focus_);
+        *menu_panel_, *keybinds_panel_, *keys_, panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -435,7 +445,7 @@ class TuiControllerTest : public testing::Test {
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *map_select_panel_, *boss_select_panel_,
         *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
-        panel_focus_);
+        *menu_panel_, *keybinds_panel_, *keys_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -468,6 +478,9 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<BuyPanel> buy_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
   SkillInspectPanel skill_inspect_panel_;
+  std::unique_ptr<MenuPanel> menu_panel_;
+  std::unique_ptr<KeyMap> keys_;
+  std::unique_ptr<KeybindsPanel> keybinds_panel_;
   std::unique_ptr<TuiController> controller_;
   ftxui::Component equip_component_;
   ftxui::Component inventory_component_;
@@ -2107,9 +2120,12 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
+  MenuPanel menu(fresh, focus);
+  KeyMap keys(&fresh.keybinds);
+  KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
                            sell_equip, maps, bosses, shop, buy, jobs,
-                           skill_card, focus);
+                           skill_card, menu, keybinds, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
   EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
@@ -2154,9 +2170,12 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
+  MenuPanel menu(fresh, focus);
+  KeyMap keys(&fresh.keybinds);
+  KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
                            sell_equip, maps, bosses, shop, buy, jobs,
-                           skill_card, focus);
+                           skill_card, menu, keybinds, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
@@ -2184,9 +2203,12 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
+  MenuPanel menu(fresh, focus);
+  KeyMap keys(&fresh.keybinds);
+  KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
                            sell_equip, maps, bosses, shop, buy, jobs,
-                           skill_card, focus);
+                           skill_card, menu, keybinds, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
@@ -2214,9 +2236,12 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
   int focus = kEquipPanel;  // where the game starts
+  MenuPanel menu(fresh, focus);
+  KeyMap keys(&fresh.keybinds);
+  KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
                            sell_equip, maps, bosses, shop, buy, jobs,
-                           skill_card, focus);
+                           skill_card, menu, keybinds, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));
@@ -2302,9 +2327,78 @@ TEST_F(TuiControllerTest, TheBossEntryOpensTheBossScreenAndClearsItsGold) {
   EXPECT_TRUE(state_->character.TabSeen(MenuPanel::boss_seen_key()));
 }
 
-TEST_F(TuiControllerTest, SettingsHasNothingBehindItYet) {
+// --- settings and keybinds ---
+
+TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
   controller_->OpenMenuEntry(MenuEntry::kSettings);
+  EXPECT_EQ(controller_->screen(), kSettingsMenu);
+  EXPECT_TRUE(menu_panel_->settings_open());
+  // The cursor is still on the menu row until the player walks up into it.
+  EXPECT_EQ(menu_panel_->settings_cursor(), -1);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_EQ(menu_panel_->settings_cursor(), 0);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(menu_panel_->settings_cursor(), -1);
+  // Escape puts the box away.
+  controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(menu_panel_->settings_open());
+}
+
+TEST_F(TuiControllerTest, KeybindsOpensFromTheBoxAndComesBackToIt) {
+  controller_->OpenMenuEntry(MenuEntry::kSettings);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kKeybinds);
+  // Escape on a slot with nothing in it goes back to the box, which is still
+  // standing where it was left.
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kSettingsMenu);
+  EXPECT_TRUE(menu_panel_->settings_open());
+}
+
+TEST_F(TuiControllerTest, EnterOnASlotTakesTheNextKeyPressed) {
+  OpenKeybinds();
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(controller_->capturing_key());
+  // The ticker's redraw is not somebody pressing a key.
+  controller_->OnEvent(ftxui::Event::Custom);
+  EXPECT_TRUE(controller_->capturing_key());
+  controller_->OnEvent(ftxui::Event::w);
+  EXPECT_FALSE(controller_->capturing_key());
+  EXPECT_EQ(keys_->Label(KEY_ACTION_UP, 1), "W");
+  EXPECT_EQ(keys_->Translate(ftxui::Event::w), ftxui::Event::ArrowUp);
+}
+
+TEST_F(TuiControllerTest, EscapeClearsASlotAndThenLeaves) {
+  OpenKeybinds();
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::w);
+  ASSERT_EQ(keys_->Label(KEY_ACTION_UP, 1), "W");
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(keys_->Label(KEY_ACTION_UP, 1), "");
+  EXPECT_EQ(controller_->screen(), kKeybinds);
+  // Nothing left to clear, so the same key is the way out.
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kSettingsMenu);
+}
+
+TEST_F(TuiControllerTest, AReservedKeyIsRefused) {
+  OpenKeybinds();
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_FALSE(controller_->capturing_key());
+  EXPECT_EQ(keys_->Label(KEY_ACTION_UP, 1), "");
+  // The screen stayed put: the refusal is a message, not a way out.
+  EXPECT_EQ(controller_->screen(), kKeybinds);
+}
+
+TEST_F(TuiControllerTest, TheCloseButtonLeavesTheScreen) {
+  OpenKeybinds();
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_TRUE(keybinds_panel_->on_close());
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kSettingsMenu);
 }
 
 TEST_F(TuiControllerTest, EnterOnAFightAsksBeforeTakingIt) {

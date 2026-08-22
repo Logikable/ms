@@ -28,6 +28,7 @@
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
+#include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
@@ -67,6 +68,8 @@ class Tui {
   ftxui::Element SkillLearnDialog();
   ftxui::Element JobAdvanceDialog();
   ftxui::Element QuitDialog();
+  // The Settings box, standing on the corner menu it opened from.
+  ftxui::Element RenderSettingsBox();
   // "Fight Normal Zakum?", floated over the boss screen.
   ftxui::Element BossConfirmDialog();
   // "Stop fighting Zakum?", floated over the fight.
@@ -151,6 +154,8 @@ class Tui {
   BossSelectPanel boss_select_panel_;
   // The job's book, read before the advancement is taken.
   JobInspectPanel job_inspect_panel_;
+  // The keys, on a screen of their own, reached from the Settings box.
+  KeybindsPanel keybinds_panel_;
   // Every stat on one screen, reached from the Character panel's last row.
   AllStatsPanel all_stats_panel_;
   ShopPanel shop_panel_;
