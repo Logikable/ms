@@ -101,12 +101,13 @@ struct ArenaCell {
 };
 
 // A stack of damage numbers, drawn straight onto the screen rather than built
-// out of rows: how many of them fit is not known until the arena has placed
-// everything else, and SetBox runs after the rows would have been built.
+// out of rows: which of them there is room for is not known until the arena
+// has placed everything else, and SetBox runs after the rows would have been
+// built.
 //
-// A stack given less room than it has numbers keeps the rows NEAREST the
-// monster, so what the player loses is the far end of the stack rather than
-// the end that says which monster it belongs to.
+// The box is the whole stack's worth of rows, its n'th number on its n'th row,
+// and the arena says which of those rows to draw. So a row with a bar in it
+// costs that one number and leaves the rest where they were.
 class DamageStackNode : public ftxui::Node {
  public:
   explicit DamageStackNode(const DamageStack& stack) {
@@ -116,10 +117,10 @@ class DamageStackNode : public ftxui::Node {
     }
   }
 
-  // Whether the rows to keep are at the bottom of the stack. True for a stack
-  // standing over its monster, whose bottom row is the one nearest it.
-  void KeepBottom(bool keep) {
-    keep_bottom_ = keep;
+  // Which of the numbers to draw, one flag per row. Nothing until the arena
+  // has said, so a stack it never placed draws nothing.
+  void DrawRows(std::vector<bool> rows) {
+    drawn_ = std::move(rows);
   }
 
   void ComputeRequirement() override {
@@ -128,14 +129,14 @@ class DamageStackNode : public ftxui::Node {
   }
 
   void Render(ftxui::Screen& screen) override {
-    int rows = std::min(box_.y_max - box_.y_min + 1,
-                        static_cast<int>(numbers_.size()));
-    if (rows <= 0 || box_.x_max < box_.x_min) {
+    if (box_.x_max < box_.x_min) {
       return;
     }
-    int first = keep_bottom_ ? static_cast<int>(numbers_.size()) - rows : 0;
-    for (int row = 0; row < rows; ++row) {
-      DrawRow(screen, box_.y_min + row, numbers_[first + row]);
+    for (std::size_t row = 0; row < numbers_.size(); ++row) {
+      if (row >= drawn_.size() || !drawn_[row]) {
+        continue;
+      }
+      DrawRow(screen, box_.y_min + static_cast<int>(row), numbers_[row]);
     }
   }
 
@@ -161,23 +162,25 @@ class DamageStackNode : public ftxui::Node {
   }
 
   std::vector<Number> numbers_;
+  std::vector<bool> drawn_;
   int width_ = 1;
-  bool keep_bottom_ = false;
 };
 
 // One stack and the panel it belongs beside.
 struct ArenaStack {
   std::size_t owner = 0;  // index into the arena's panels
-  int preference = 0;     // which side of that panel to try first
+  // Whether this is the character's own swing. The swing always stands over
+  // its monster; nothing else may.
+  bool swing = false;
+  int preference = 0;  // which side of that panel to try first
   std::shared_ptr<DamageStackNode> node;
 };
 
-// The sides of a bar a stack can stand on, in the order the arena tries them.
-// A stack's own preference rotates the list, so two stacks landing on one
-// monster do not both reach for the same side first.
-enum class Side { kAbove, kBelow, kLeft, kRight };
-constexpr Side kSides[] = {Side::kAbove, Side::kBelow, Side::kLeft,
-                           Side::kRight};
+// The sides of a bar a stack that is not the swing can stand on, in the order
+// the arena tries them. A stack's own preference rotates the list, so two
+// landing on one monster do not both reach for the same side first.
+enum class Side { kBelow, kLeft, kRight };
+constexpr Side kSides[] = {Side::kBelow, Side::kLeft, Side::kRight};
 
 bool Overlaps(const ftxui::Box& a, const ftxui::Box& b) {
   return a.x_min <= b.x_max && b.x_min <= a.x_max && a.y_min <= b.y_max &&
@@ -198,12 +201,13 @@ bool Overlaps(const ftxui::Box& a, const ftxui::Box& b) {
 class ArenaNode : public ftxui::Node {
  public:
   ArenaNode(ftxui::Elements panels, std::vector<ArenaCell> cells, int columns,
-            int rows, std::vector<ArenaStack> stacks)
+            int rows, std::size_t mobs, std::vector<ArenaStack> stacks)
       : ftxui::Node(std::move(panels)),
         cells_(std::move(cells)),
         columns_(std::max(1, columns)),
         rows_(std::max(1, rows)),
         panels_(children_.size()),
+        mobs_(mobs),
         stacks_(std::move(stacks)) {
     for (const ArenaStack& stack : stacks_) {
       children_.push_back(stack.node);
@@ -247,11 +251,10 @@ class ArenaNode : public ftxui::Node {
   }
 
  private:
-  // Where a stack could stand, and how much of it would show there.
+  // Where a stack could stand, and how many of its rows would show there.
   struct Spot {
     ftxui::Box box;
     int rows = 0;
-    bool keep_bottom = false;
   };
 
   // Where a cell's centre falls, as a share of the box it is drawn in.
@@ -282,78 +285,137 @@ class ArenaNode : public ftxui::Node {
     }
   }
 
-  // Stands each stack beside the bar that took it, oldest first, in the first
-  // free space its own preference reaches for. A stack that fits nowhere whole
-  // takes the side that shows the most of it.
+  // Stands the stacks: the swings over their own monsters first, since that
+  // space is theirs, then everything else in what is left beside the bars.
   void PlaceStacks(ftxui::Box box) {
-    std::vector<ftxui::Box> taken = panel_box_;
+    std::vector<ftxui::Box> taken;
     taken.reserve(panels_ + stacks_.size());
+    for (std::size_t i = 0; i < panels_; ++i) {
+      taken.push_back(panel_box_[i]);
+    }
     for (const ArenaStack& stack : stacks_) {
-      Spot best;
-      for (int i = 0; i < 4; ++i) {
-        Side side = kSides[(stack.preference + i) % 4];
-        Spot spot = SpotOn(side, panel_box_[stack.owner],
-                           stack.node->requirement(), box, taken);
-        if (spot.rows > best.rows) {
-          best = spot;
-        }
-        if (best.rows == stack.node->requirement().min_y) {
-          break;
-        }
+      if (stack.swing) {
+        PlaceSwing(box, stack, taken);
       }
-      stack.node->KeepBottom(best.keep_bottom);
-      stack.node->SetBox(best.box);
-      if (best.rows > 0) {
-        taken.push_back(best.box);
+    }
+    // The columns over a monster's bar are its swing's, whether or not one is
+    // holding numbers just now. Kept clear rather than merely given up first,
+    // so a summon's stack does not jump aside the moment a swing lands.
+    std::vector<ftxui::Box> reserved = taken;
+    for (std::size_t i = 0; i < mobs_; ++i) {
+      reserved.push_back({panel_box_[i].x_min, panel_box_[i].x_max, box.y_min,
+                          panel_box_[i].y_min - 1});
+    }
+    for (const ArenaStack& stack : stacks_) {
+      if (!stack.swing) {
+        PlaceBeside(box, stack, taken, reserved);
       }
     }
   }
 
+  // Stands the character's swing over the monster it hit, centred, its bottom
+  // row against the bar. A row of it that falls outside the arena or onto
+  // something else is simply not drawn -- the stack does not slide out of the
+  // way, because a swing's numbers belong over the thing they were dealt to.
+  void PlaceSwing(ftxui::Box arena, const ArenaStack& stack,
+                  std::vector<ftxui::Box>& taken) {
+    ftxui::Box owner = panel_box_[stack.owner];
+    int width = stack.node->requirement().min_x;
+    int height = stack.node->requirement().min_y;
+    int left = owner.x_min + (owner.x_max - owner.x_min + 1 - width) / 2;
+    left = std::clamp(left, arena.x_min,
+                      std::max(arena.x_min, arena.x_max - width + 1));
+    int top = owner.y_min - height;
+    std::vector<bool> drawn(height, false);
+    for (int row = 0; row < height; ++row) {
+      ftxui::Box line = {left, left + width - 1, top + row, top + row};
+      if (line.y_min < arena.y_min || Blocked(line, taken)) {
+        continue;
+      }
+      drawn[row] = true;
+      taken.push_back(line);
+    }
+    stack.node->DrawRows(std::move(drawn));
+    stack.node->SetBox({left, left + width - 1, top, top + height - 1});
+  }
+
+  // Stands everything that is not the swing in the first free space its own
+  // preference reaches for. One that fits nowhere whole takes the side showing
+  // the most of it.
+  void PlaceBeside(ftxui::Box arena, const ArenaStack& stack,
+                   std::vector<ftxui::Box>& taken,
+                   const std::vector<ftxui::Box>& reserved) {
+    std::vector<ftxui::Box> blocked = reserved;
+    blocked.insert(blocked.end(), taken.begin() + panels_, taken.end());
+    Spot best;
+    int sides = static_cast<int>(std::size(kSides));
+    for (int i = 0; i < sides; ++i) {
+      Side side = kSides[(stack.preference + i) % sides];
+      Spot spot = SpotOn(side, panel_box_[stack.owner],
+                         stack.node->requirement(), arena, blocked);
+      if (spot.rows > best.rows) {
+        best = spot;
+      }
+      if (best.rows == stack.node->requirement().min_y) {
+        break;
+      }
+    }
+    int height = stack.node->requirement().min_y;
+    std::vector<bool> drawn(height, false);
+    for (int row = 0; row < best.rows; ++row) {
+      drawn[row] = true;
+    }
+    stack.node->DrawRows(std::move(drawn));
+    stack.node->SetBox({best.box.x_min, best.box.x_max, best.box.y_min,
+                        best.box.y_min + height - 1});
+    if (best.rows > 0) {
+      taken.push_back(best.box);
+    }
+  }
+
+  static bool Blocked(ftxui::Box candidate,
+                      const std::vector<ftxui::Box>& taken) {
+    for (const ftxui::Box& other : taken) {
+      if (Overlaps(candidate, other)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // The room `side` of `owner` offers a stack of the size `want` asks for,
-  // inside `arena` and clear of everything in `taken`. Rows are dropped from
+  // inside `arena` and clear of everything in `blocked`. Rows are dropped from
   // the far end until what is left fits, so a cramped side shows the numbers
   // nearest the monster rather than nothing.
   static Spot SpotOn(Side side, ftxui::Box owner, ftxui::Requirement want,
-                     ftxui::Box arena, const std::vector<ftxui::Box>& taken) {
+                     ftxui::Box arena, const std::vector<ftxui::Box>& blocked) {
     Spot spot;
-    spot.keep_bottom = side == Side::kAbove;
     int width = want.min_x;
     int height = want.min_y;
     int left = side == Side::kLeft ? owner.x_min - width
                : side == Side::kRight
                    ? owner.x_max + 1
                    : owner.x_min + (owner.x_max - owner.x_min + 1 - width) / 2;
-    int top = side == Side::kAbove ? owner.y_min - height
-              : side == Side::kBelow
+    int top = side == Side::kBelow
                   ? owner.y_max + 1
                   : owner.y_min + (owner.y_max - owner.y_min + 1 - height) / 2;
-    if (side != Side::kAbove && side != Side::kBelow) {
+    if (side != Side::kBelow &&
+        (left < arena.x_min || left + width - 1 > arena.x_max)) {
       // Sideways, the width is what the arena has to hold: a stack that runs
       // off the edge names a number the player cannot read.
-      if (left < arena.x_min || left + width - 1 > arena.x_max) {
-        return spot;
-      }
-      top = std::clamp(top, arena.y_min, arena.y_max - height + 1);
+      return spot;
     }
     left = std::clamp(left, arena.x_min,
                       std::max(arena.x_min, arena.x_max - width + 1));
+    top = std::max(top, arena.y_min);
     for (int rows = height; rows >= 1; --rows) {
-      // Dropped from the far end, which is the top of a stack standing over
-      // its monster and the bottom of every other.
-      int y_min = spot.keep_bottom ? top + (height - rows) : top;
-      ftxui::Box candidate = {left, left + width - 1, y_min, y_min + rows - 1};
-      if (candidate.y_min < arena.y_min || candidate.y_max > arena.y_max) {
+      ftxui::Box candidate = {left, left + width - 1, top, top + rows - 1};
+      if (candidate.y_max > arena.y_max || Blocked(candidate, blocked)) {
         continue;
       }
-      bool blocked = false;
-      for (const ftxui::Box& other : taken) {
-        blocked = blocked || Overlaps(candidate, other);
-      }
-      if (!blocked) {
-        spot.box = candidate;
-        spot.rows = rows;
-        return spot;
-      }
+      spot.box = candidate;
+      spot.rows = rows;
+      return spot;
     }
     return spot;
   }
@@ -363,6 +425,9 @@ class ArenaNode : public ftxui::Node {
   int rows_ = 1;
   // How many of the children are panels. The stacks follow them.
   std::size_t panels_ = 0;
+  // How many of those panels are monster bars. They come first, so a swing's
+  // reserved column is one of the first `mobs_` boxes.
+  std::size_t mobs_ = 0;
   // Where each panel was put, kept because a Node does not hand its box back
   // and the stacks have to be placed clear of them.
   std::vector<ftxui::Box> panel_box_;
@@ -389,6 +454,9 @@ ftxui::Element Arena(const BossRun& run) {
                      ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
     cells.push_back({slot.x, slot.y});
   }
+  // The monster bars come first, and the arena counts on it: the column over
+  // each of them is kept clear for that monster's swing.
+  std::size_t mobs = panels.size();
   ArenaSpot standing = run.player_spot();
   for (const ArenaSpot& spot : run.player_spots()) {
     if (spot.x() == standing.x() && spot.y() == standing.y()) {
@@ -412,11 +480,12 @@ ftxui::Element Arena(const BossRun& run) {
     if (it == panel_of_slot.end() || stack.lines.empty()) {
       continue;
     }
-    stacks.push_back({it->second, stack.preference,
+    stacks.push_back({it->second, stack.source.origin == DamageOrigin::kSwing,
+                      stack.preference,
                       std::make_shared<DamageStackNode>(stack)});
   }
   return std::make_shared<ArenaNode>(std::move(panels), std::move(cells),
-                                     run.arena_width(), height,
+                                     run.arena_width(), height, mobs,
                                      std::move(stacks));
 }
 
