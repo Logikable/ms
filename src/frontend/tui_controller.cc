@@ -862,6 +862,20 @@ bool TuiController::OnSettingsMenuEvent(ftxui::Event event) {
     screen_ = kMain;
     return true;
   }
+  // Left and Right still belong to the menu row underneath. Walking off the
+  // entry the box hangs from puts the box away with it.
+  bool sideways =
+      event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight;
+  if (sideways && menu_panel_.settings_cursor() < 0) {
+    menu_panel_.CloseSettings();
+    screen_ = kMain;
+    int step = -1;
+    if (event == ftxui::Event::ArrowRight) {
+      step = 1;
+    }
+    menu_panel_.MoveCursor(step);
+    return true;
+  }
   if (IsForward(event) && menu_panel_.settings_cursor() >= 0) {
     switch (menu_panel_.selected_settings_entry()) {
       case SettingsEntry::kKeybinds:

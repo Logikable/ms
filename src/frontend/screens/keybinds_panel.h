@@ -32,8 +32,9 @@ class KeybindsPanel {
   // Moves the cursor `delta` rows, coming out the other end. The Close button
   // is the row past the last action.
   void MoveRow(int delta);
-  // Moves the cursor `delta` slots along its row, past the locked one and out
-  // the other end. Does nothing on the Close button.
+  // Moves the cursor `delta` slots along its row, past the locked one and
+  // stopping at the ends -- a row is short enough to see, so a cursor that
+  // came out the other end would read as a jump. Does nothing on Close.
   void MoveSlot(int delta);
   ftxui::Element Render() const;
 

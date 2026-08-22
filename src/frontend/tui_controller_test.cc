@@ -2345,6 +2345,29 @@ TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
   EXPECT_FALSE(menu_panel_->settings_open());
 }
 
+// The box hangs off the Settings entry, so walking the menu row off it takes
+// the box away too.
+TEST_F(TuiControllerTest, WalkingOffSettingsClosesItsBox) {
+  LevelTo(UnlockLevel(Feature::kBoss));
+  // Boss arrives to the left of Settings and takes the cursor with it.
+  menu_panel_->MoveCursor(1);
+  ASSERT_EQ(menu_panel_->selected(), MenuEntry::kSettings);
+  controller_->OpenMenuEntry(MenuEntry::kSettings);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_FALSE(menu_panel_->settings_open());
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_EQ(menu_panel_->selected(), MenuEntry::kBoss);
+}
+
+// Inside the box the row below is not what the keys are moving on.
+TEST_F(TuiControllerTest, LeftInsideTheBoxDoesNothing) {
+  controller_->OpenMenuEntry(MenuEntry::kSettings);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  controller_->OnEvent(ftxui::Event::ArrowLeft);
+  EXPECT_TRUE(menu_panel_->settings_open());
+  EXPECT_EQ(menu_panel_->settings_cursor(), 0);
+}
+
 TEST_F(TuiControllerTest, KeybindsOpensFromTheBoxAndComesBackToIt) {
   controller_->OpenMenuEntry(MenuEntry::kSettings);
   controller_->OnEvent(ftxui::Event::ArrowUp);

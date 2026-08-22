@@ -29,21 +29,23 @@ TEST(KeybindsPanelTest, ListsEveryActionAndItsKeys) {
   EXPECT_NE(out.find("Move Up"), std::string::npos);
   EXPECT_NE(out.find("Previous Panel"), std::string::npos);
   EXPECT_NE(out.find("Shift+Tab"), std::string::npos);
-  EXPECT_NE(out.find("Space"), std::string::npos);
   EXPECT_NE(out.find("Close"), std::string::npos);
   EXPECT_NE(out.find("Enter to rebind"), std::string::npos);
   EXPECT_NE(out.find("Esc to unbind"), std::string::npos);
 }
 
-TEST(KeybindsPanelTest, TheCursorStepsOverTheLockedSlot) {
+// The locked slot is not a stop, and neither end of the row rolls over.
+TEST(KeybindsPanelTest, TheCursorStepsOverTheLockedSlotAndStopsAtTheEnds) {
   Keybinds binds;
   KeyMap keys(&binds);
   KeybindsPanel panel(keys);
   EXPECT_EQ(panel.selected_slot(), 1);
   panel.MoveSlot(-1);
+  EXPECT_EQ(panel.selected_slot(), 1);
+  panel.MoveSlot(1);
   EXPECT_EQ(panel.selected_slot(), 2);
   panel.MoveSlot(1);
-  EXPECT_EQ(panel.selected_slot(), 1);
+  EXPECT_EQ(panel.selected_slot(), 2);
 }
 
 TEST(KeybindsPanelTest, RowsRingThroughTheCloseButton) {

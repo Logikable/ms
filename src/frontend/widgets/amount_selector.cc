@@ -167,9 +167,8 @@ bool AmountSelector::OnEvent(ftxui::Event event) {
   }
   // The value is editable only while the textbox is selected.
   if (focus_ == kQty) {
-    // Delete rather than Backspace, which the player has bound to Cancel and
-    // which therefore never reaches this far. Backspace still works for a
-    // player who has taken it off Cancel.
+    // Either key drops a digit. Backspace stops reaching this far if the
+    // player binds it to Cancel, which is why Delete does the job too.
     if (event == ftxui::Event::Delete || event == ftxui::Event::Backspace) {
       value_ /= 10;
       return true;

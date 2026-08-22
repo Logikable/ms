@@ -46,8 +46,8 @@ void KeybindsPanel::MoveSlot(int delta) {
   if (on_close()) {
     return;
   }
-  // Slot 0 is locked, so the row is a ring of the two the player owns.
-  slot_ = 1 + StepCursor(slot_ - 1, delta, kKeySlots - 1);
+  // Slot 0 is locked, so the two after it are what the cursor walks between.
+  slot_ = std::clamp(slot_ + delta, 1, kKeySlots - 1);
 }
 
 KeyAction KeybindsPanel::selected_action() const {

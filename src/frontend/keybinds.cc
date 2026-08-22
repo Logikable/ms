@@ -12,13 +12,6 @@
 namespace ms {
 namespace {
 
-// The two keys the game has always taken alongside Enter and Escape. They
-// arrive as the second slot of their action rather than as an alias buried in
-// the panels, which is what makes them unbindable elsewhere and droppable
-// here.
-const ftxui::Event kConfirmAlias = ftxui::Event::Character(' ');
-const ftxui::Event kCancelAlias = ftxui::Event::Backspace;
-
 // Rewrites `child`'s keys through the map. See TranslateKeys.
 class KeyTranslator : public ftxui::ComponentBase {
  public:
@@ -200,14 +193,10 @@ ftxui::Event KeyMap::CanonicalEvent(KeyAction action) {
 }
 
 ftxui::Event KeyMap::DefaultKey(KeyAction action, int slot) {
+  // Only the locked slot ships with a key. The other two are the player's,
+  // empty until they put something in them.
   if (slot == 0) {
     return CanonicalEvent(action);
-  }
-  if (slot == 1 && action == KEY_ACTION_CONFIRM) {
-    return kConfirmAlias;
-  }
-  if (slot == 1 && action == KEY_ACTION_CANCEL) {
-    return kCancelAlias;
   }
   return ftxui::Event::Custom;
 }
@@ -225,19 +214,18 @@ void KeyMap::Normalize() {
   // A save carries only what the player set, and may carry nothing at all.
   // What comes out is one row per action, in order, three slots apiece.
   Keybinds ordered;
-  bool fresh = binds_->binds_size() == 0;
   for (int i = 0; i < kKeyActionCount; ++i) {
     KeyAction action = kKeyActions[i];
     Keybind* row = ordered.add_binds();
     row->set_action(action);
     Keybind* saved = Row(action);
-    for (int slot = 0; slot < kKeySlots; ++slot) {
-      std::string id = catalog_.IdOf(DefaultKey(action, slot));
-      if (!fresh && slot > 0) {
-        id = "";
-        if (saved != nullptr && slot < saved->keys_size()) {
-          id = saved->keys(slot);
-        }
+    // The locked slot is the game's own key; the two after it are whatever
+    // the save carries, which for a new character is nothing.
+    row->add_keys(catalog_.IdOf(DefaultKey(action, 0)));
+    for (int slot = 1; slot < kKeySlots; ++slot) {
+      std::string id;
+      if (saved != nullptr && slot < saved->keys_size()) {
+        id = saved->keys(slot);
       }
       row->add_keys(id);
     }

@@ -42,10 +42,9 @@ TEST(AmountSelectorTest, DefaultsToMax) {
   EXPECT_EQ(sel.value(), 10);
 }
 
-// Digits append, Delete drops the last one, and a value over the max is held
-// at it. Zero is reachable, which is why the confirm can be refused. Backspace
-// does the same for a player who has taken it off Cancel; with it bound there,
-// it never reaches the textbox.
+// Digits append, either delete key drops the last one, and a value over the
+// max is held at it. Zero is reachable, which is why the confirm can be
+// refused.
 TEST(AmountSelectorTest, TheTextboxEditsByDigitAndDelete) {
   AmountSelector sel;
   sel.Reset(100);

@@ -18,10 +18,11 @@ TEST(KeyMapTest, DefaultsBindTheKeysTheGameShippedWith) {
   KeyMap keys(&binds);
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 0), "↑");
   EXPECT_EQ(keys.Label(KEY_ACTION_CONFIRM, 0), "Enter");
-  EXPECT_EQ(keys.Label(KEY_ACTION_CONFIRM, 1), "Space");
-  EXPECT_EQ(keys.Label(KEY_ACTION_CANCEL, 1), "Backspace");
   EXPECT_EQ(keys.Label(KEY_ACTION_PREV_PANEL, 0), "Shift+Tab");
+  // Only the locked slot ships with a key.
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 1), "");
+  EXPECT_EQ(keys.Label(KEY_ACTION_CONFIRM, 1), "");
+  EXPECT_EQ(keys.Label(KEY_ACTION_CANCEL, 1), "");
 }
 
 TEST(KeyMapTest, ABoundKeyArrivesAsItsActionsEvent) {
@@ -30,9 +31,12 @@ TEST(KeyMapTest, ABoundKeyArrivesAsItsActionsEvent) {
   EXPECT_EQ(keys.Bind(KEY_ACTION_UP, 1, ftxui::Event::w), BindOutcome::kBound);
   EXPECT_EQ(keys.Translate(ftxui::Event::w), ftxui::Event::ArrowUp);
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 1), "W");
-  // The default aliases go through the same door.
+  // Space is a key like any other: it does nothing until the player puts it
+  // somewhere.
+  EXPECT_EQ(keys.Translate(ftxui::Event::Character(' ')),
+            ftxui::Event::Character(' '));
+  keys.Bind(KEY_ACTION_CONFIRM, 1, ftxui::Event::Character(' '));
   EXPECT_EQ(keys.Translate(ftxui::Event::Character(' ')), ftxui::Event::Return);
-  EXPECT_EQ(keys.Translate(ftxui::Event::Backspace), ftxui::Event::Escape);
   // An unbound key is left alone.
   EXPECT_EQ(keys.Translate(ftxui::Event::q), ftxui::Event::q);
 }
@@ -77,6 +81,7 @@ TEST(KeyMapTest, AKeyTheGameHasNoNameForIsRefused) {
 TEST(KeyMapTest, UnbindingOpensTheSlot) {
   Keybinds binds;
   KeyMap keys(&binds);
+  keys.Bind(KEY_ACTION_CONFIRM, 1, ftxui::Event::Character(' '));
   keys.Unbind(KEY_ACTION_CONFIRM, 1);
   EXPECT_EQ(keys.Label(KEY_ACTION_CONFIRM, 1), "");
   EXPECT_EQ(keys.Translate(ftxui::Event::Character(' ')),
@@ -106,11 +111,11 @@ TEST(KeyMapTest, ASaveKeepsWhatThePlayerBound) {
   {
     KeyMap keys(&binds);
     keys.Bind(KEY_ACTION_UP, 1, ftxui::Event::w);
-    keys.Unbind(KEY_ACTION_CONFIRM, 1);
+    keys.Bind(KEY_ACTION_CONFIRM, 2, ftxui::Event::Character(' '));
   }
   KeyMap reloaded(&binds);
   EXPECT_EQ(reloaded.Label(KEY_ACTION_UP, 1), "W");
-  EXPECT_EQ(reloaded.Label(KEY_ACTION_CONFIRM, 1), "");
+  EXPECT_EQ(reloaded.Label(KEY_ACTION_CONFIRM, 2), "Space");
   EXPECT_EQ(reloaded.Translate(ftxui::Event::w), ftxui::Event::ArrowUp);
 }
 
@@ -172,6 +177,7 @@ TEST(TranslateKeysTest, TheTreeHearsTheGamesKeys) {
 TEST(TranslateKeysTest, CapturingLetsTheRawKeyThrough) {
   Keybinds binds;
   KeyMap keys(&binds);
+  keys.Bind(KEY_ACTION_CONFIRM, 1, ftxui::Event::Character(' '));
   bool capturing = true;
   std::shared_ptr<KeySpy> spy = std::make_shared<KeySpy>();
 
