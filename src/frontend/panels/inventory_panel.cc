@@ -102,7 +102,7 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
     rows.push_back(std::move(row));
   }
   return ftxui::vbox({
-      StackHeader("", ""),
+      StackHeader(),
       PanelSeparator(highlighted),
       // Only the rows scroll; the header and its rule stay put.
       ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator | ftxui::yframe |
@@ -396,8 +396,8 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
   }
   selected_ = std::min(selected_, character_.inventory().size() - 1);
   return ftxui::vbox({
-      EquipHeader("", ""),
-      EquipSubHeader(""),
+      EquipHeader(),
+      EquipSubHeader(),
       PanelSeparator(highlighted_),
       // Only the items scroll; the two header rows and the rule stay put.
       // ftxui::Menu marks its selected entry, which is what the frame scrolls

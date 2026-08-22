@@ -83,12 +83,12 @@ std::vector<InventoryRowState> BuildEquipRows(
   return rows;
 }
 
-ftxui::Element EquipHeader(const std::string& lead, const std::string& tail) {
-  return ftxui::text(lead + kColumnHeader + tail);
+ftxui::Element EquipHeader(ftxui::Element lead, ftxui::Element tail) {
+  return Row(std::move(lead), {ftxui::text(kColumnHeader)}, std::move(tail));
 }
 
-ftxui::Element EquipSubHeader(const std::string& lead) {
-  return ftxui::text(std::string(lead.size() + kScrollColumn, ' ') +
+ftxui::Element EquipSubHeader(int lead_width) {
+  return ftxui::text(std::string(lead_width + kScrollColumn, ' ') +
                      "Pass/Left/Restore");
 }
 
@@ -123,9 +123,11 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
   return Row(std::move(lead), {ftxui::text(cursor + label)}, std::move(tail));
 }
 
-ftxui::Element StackHeader(const std::string& lead, const std::string& tail) {
-  return ftxui::text(lead + "  " + PadRight("Name", kItemNameWidth) +
-                     PadRight("Quantity", 10) + tail);
+ftxui::Element StackHeader(ftxui::Element lead, ftxui::Element tail) {
+  return Row(std::move(lead),
+             {ftxui::text("  " + PadRight("Name", kItemNameWidth) +
+                          PadRight("Quantity", 10))},
+             std::move(tail));
 }
 
 ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,

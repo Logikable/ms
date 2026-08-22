@@ -51,9 +51,11 @@ std::vector<InventoryRowState> BuildEquipRows(
     std::chrono::steady_clock::duration elapsed);
 
 // The two header rows over an Equip list. The second carries the scroll
-// column's "Pass/Left/Restore" and nothing else.
-ftxui::Element EquipHeader(const std::string& lead, const std::string& tail);
-ftxui::Element EquipSubHeader(const std::string& lead);
+// column's "Pass/Left/Restore" and nothing else, so it takes the lead column's
+// width rather than the column itself.
+ftxui::Element EquipHeader(ftxui::Element lead = nullptr,
+                           ftxui::Element tail = nullptr);
+ftxui::Element EquipSubHeader(int lead_width = 0);
 
 // One Equip row with its cursor caret, drawn dim with the cell that says why
 // left bright and red when nothing can be done with the item. `lead` and
@@ -63,7 +65,8 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
                               ftxui::Element tail = nullptr);
 
 // The header over a Use or Etc list, and one row of one.
-ftxui::Element StackHeader(const std::string& lead, const std::string& tail);
+ftxui::Element StackHeader(ftxui::Element lead = nullptr,
+                           ftxui::Element tail = nullptr);
 ftxui::Element RenderStackRow(const StackableItem& stack, bool on_cursor,
                               std::chrono::steady_clock::duration elapsed,
                               ftxui::Element lead = nullptr,

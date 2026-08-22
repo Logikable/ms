@@ -261,6 +261,37 @@ cc_test(
 )
 
 cc_library(
+    name = "multi_sell_panel",
+    srcs = ["multi_sell_panel.cc"],
+    hdrs = ["multi_sell_panel.h"],
+    deps = [
+        "//src/character",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:inventory_list",
+        "//src/frontend/widgets:marquee",
+        "//src/frontend/widgets:panel_util",
+        "//src/item",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "multi_sell_panel_test",
+    srcs = ["multi_sell_panel_test.cc"],
+    deps = [
+        ":multi_sell_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "//src/item:equip_instance",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "sell_equip_panel",
     srcs = ["sell_equip_panel.cc"],
     hdrs = ["sell_equip_panel.h"],

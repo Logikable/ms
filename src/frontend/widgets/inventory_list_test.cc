@@ -60,8 +60,12 @@ TEST_F(InventoryListTest, AffixColumnsRideEitherSideOfARow) {
   EXPECT_EQ(text.find("**"), 0u);
   EXPECT_NE(text.find("!!"), std::string::npos);
   // The headers make the same room, so the columns line up over the rows.
-  EXPECT_EQ(RenderElement(EquipHeader("**", "!!")).find("**"), 0u);
-  EXPECT_EQ(RenderElement(StackHeader("**", "!!")).find("**"), 0u);
+  EXPECT_EQ(RenderElement(EquipHeader(ftxui::text("**"), ftxui::text("!!")))
+                .find("**"),
+            0u);
+  EXPECT_EQ(RenderElement(StackHeader(ftxui::text("**"), ftxui::text("!!")))
+                .find("**"),
+            0u);
 }
 
 TEST_F(InventoryListTest, StackRowsNameTheirCount) {
