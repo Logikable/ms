@@ -1,7 +1,6 @@
-# 35 + floor(L/2)% and 6 + L%, straight from GMS. The ignored defence ships
-# dead: no monster in this game sets any, so every share of it cancels nothing.
-# Written out anyway -- the figure belongs with the skill, and the stats page
-# shows the row. The final damage is the half that pays.
+# 35 + floor(L/2)% and 6 + L%, straight from GMS. The ignored defence pays
+# against a boss and nowhere else: no map mob sets any physical defence, so a
+# player farming sees only the final damage.
 name: "Armor Break"
 skill_order: 10
 description:

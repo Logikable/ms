@@ -1,6 +1,5 @@
-# 20 + L% straight from GMS. Ships dead: no monster in this game sets any
-# physical defence, so every share of it ignored cancels nothing. Written out
-# anyway -- the figure belongs with the skill, and the stats page shows the row.
+# 20 + L% straight from GMS. It pays against a boss and nowhere else: no map
+# mob sets any physical defence for a share of it to cancel.
 name: "Combat Mastery"
 skill_order: 5
 description:

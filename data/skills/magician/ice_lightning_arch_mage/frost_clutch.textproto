@@ -1,7 +1,6 @@
-# One lever, flat. GMS hangs this on Freezing Crush's ice stacks -- critical
-# damage while an enemy is frozen, final damage as a lightning spell spends a
-# stack -- and nothing here counts stacks or freezes anything, so what is left
-# is the final damage it comes to.
+# One lever, flat: the final damage it comes to. GMS hangs this on Freezing
+# Crush's ice stacks, which the engine now counts -- so the per-stack shape is
+# open, and this file has not been rewritten to it.
 #
 # It does not pass its master level. GMS masters this at 1 and does not mark it
 # for Combat Orders, so there is no level above the top for a grant to reach.

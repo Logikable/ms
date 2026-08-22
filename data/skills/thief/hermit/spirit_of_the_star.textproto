@@ -2,8 +2,8 @@
 # lets a thief attack without spending throwing stars is already true here --
 # stars are worn, not consumed.
 #
-# The boss damage ships dead: no mob in the game is a boss. It is on the stats
-# page so the points can be seen.
+# The boss damage lands in a boss fight and nowhere else, so a player farming
+# sees it only on the stats page.
 name: "Spirit of the Star"
 skill_order: 5
 description:

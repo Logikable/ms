@@ -1,7 +1,7 @@
 # The one attack in the game that pays MORE against a boss, where every other
-# bonus of the shape pays against ordinary monsters. It ships dead: no mob sets
-# `boss`, so the 30% buys nothing today and the skill is tuned on the eight
-# strikes across fifteen enemies, which is what it really does.
+# bonus of the shape pays against ordinary monsters. The 30% lands in a boss
+# fight; on a map the skill is the eight strikes across fifteen enemies, which
+# is what it is tuned on.
 #
 # Its wait is the first in the game to shorten as the skill is taught -- GMS's
 # 30 - floor(L/2), walked as a line to the same 15 seconds at master level.

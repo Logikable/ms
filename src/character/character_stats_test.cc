@@ -1519,9 +1519,6 @@ TEST_F(DerivedStatsTest, TheSwingLeversAndTheRestPartitionAnEffect) {
   EXPECT_DOUBLE_EQ(kept.damage_pct(), 0.05);
 }
 
-// Boss damage sums across the passives granting it, like plain damage and
-// unlike IED. Nothing reads it -- no mob in the game is a boss -- so the fold
-// and the stats page are the whole of what a player sees for their points.
 // Pick Pocket knocks the meso loose and Meso Explosion throws it, so neither
 // is worth anything without the other -- and Meso Mastery's points land on a
 // line of the throw, whichever order the catalog folds the three in.
@@ -1596,6 +1593,8 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   EXPECT_NEAR(branded.boss_pct, 0.0, 1e-9);
 }
 
+// Boss damage sums across the passives granting it, like plain damage and
+// unlike IED, which each swing keeps to itself.
 TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill spirit;

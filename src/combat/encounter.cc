@@ -134,10 +134,6 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
   return application;
 }
 
-// One attack's damage against every mob type on the map. `skill` is null for
-// the bare poke, which hits one target for the character's plain 100% swing.
-// `equipped` is everything the character wears plus everything their passives
-// grant, already summed -- the two are indistinguishable to the damage chain.
 // What this swing does with the character's Freeze Stacks. An ice swing leaves
 // one per line and a lightning swing spends one per line; both take the
 // critical damage a held stack grants, since a frozen enemy is frozen whichever
@@ -165,6 +161,10 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
   }
 }
 
+// One attack's damage against every mob type on the map. `skill` is null for
+// the bare poke, which hits one target for the character's plain 100% swing.
+// `equipped` is everything the character wears plus everything their passives
+// grant, already summed -- the two are indistinguishable to the damage chain.
 AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
                        EquipType weapon, const Skill* skill, int level,
                        const std::vector<CombatType>& types,
