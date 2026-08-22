@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 
+#include "src/character/exp_table.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/proto_loader.h"
@@ -151,23 +152,26 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
   EXPECT_GT(checked, 0) << "no mob in the catalog drops the set";
 }
 
-// The Frozen tokens buy the last two pieces of the same set, and drop from the
-// band the weapons they buy are worn in -- 1/4,000, one flat rate, with
-// nothing above 120. A player past the band who still wants one goes back down
-// for it, the way they would for any other drop they walked past.
+// The Frozen tokens buy the last two pieces of the same set, and drop from
+// the band the weapons they buy are worn in onwards -- 1/4,000 through the
+// 101-120 band they belong to, then a thinner 1/10,000 from 121 to the level
+// cap so a player who climbed past the band is not sent back down for one.
+// Nothing above the cap drops them.
 //
 // The rate is set by the fastest character rather than the average one: the
 // band is a window, and whoever crosses it quickest buys the fewest chances.
 // //analysis:progression_sim counts those kills -- 17k for a Dark Knight
 // against 120k for a Crusader -- and at 1/4,000 even the shortest crossing
 // comes away empty about one climb in eighty.
-TEST(MapDataTest, OnlyTheTokenBandDropsBothFrozenTokens) {
+TEST(MapDataTest, TheFrozenTokensDropInTwoBands) {
   constexpr int kBandLow = 101;
   constexpr int kBandHigh = 120;
   constexpr double kInBand = 0.00025;
+  constexpr double kPastBand = 0.0001;
   const char* kTokens[] = {"frozen_weapon_token", "frozen_secondary_token"};
 
-  int checked = 0;
+  int in_band = 0;
+  int past_band = 0;
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
     if (entry.second.boss()) {
       continue;  // as above: a boss is not part of the band's table
@@ -179,22 +183,29 @@ TEST(MapDataTest, OnlyTheTokenBandDropsBothFrozenTokens) {
         rates[drop.item()] = drop.per_kill();
       }
     }
-    double expected = level >= kBandLow && level <= kBandHigh ? kInBand : 0.0;
+    double expected = 0.0;
+    if (level >= kBandLow && level <= kBandHigh) {
+      expected = kInBand;
+    } else if (level > kBandHigh && level <= kTrialLevelCap) {
+      expected = kPastBand;
+    }
     for (const char* token : kTokens) {
       if (expected == 0.0) {
         EXPECT_EQ(rates.count(token), 0u)
             << entry.first << " (Lv" << level << ") drops " << token
-            << ", which belongs to mobs " << kBandLow << " to " << kBandHigh;
+            << ", which belongs to mobs " << kBandLow << " to "
+            << kTrialLevelCap;
         continue;
       }
-      ++checked;
+      expected == kInBand ? ++in_band : ++past_band;
       ASSERT_EQ(rates.count(token), 1u)
           << entry.first << " (Lv" << level << ") does not drop " << token;
       EXPECT_DOUBLE_EQ(rates[token], expected)
           << entry.first << " drops " << token << " at the wrong rate";
     }
   }
-  EXPECT_GT(checked, 0) << "no mob in the catalog drops a token";
+  EXPECT_GT(in_band, 0) << "no mob in the band drops a token";
+  EXPECT_GT(past_band, 0) << "no mob past the band drops a token";
 }
 
 // An Etc drop is worth picking up only for what it sells for, and a price of

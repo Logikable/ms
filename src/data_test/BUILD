@@ -56,6 +56,7 @@ cc_test(
     deps = [
         "//src:proto_loader",
         "//src:spawn",
+        "//src/character:exp_table",
         "//src/frontend/screens:mob_inspect_panel",
         "//src/frontend/widgets:panel_util",
         "//src/protos:equip_proto_cc",
