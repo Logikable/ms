@@ -54,6 +54,27 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "spawn_test",
+    srcs = ["spawn_test.cc"],
+    deps = [
+        ":spawn",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "map_level_test",
+    srcs = ["map_level_test.cc"],
+    deps = [
+        ":map_level",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "save",
     srcs = ["save.cc"],
