@@ -826,7 +826,13 @@ const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
       candidates.push_back(scroll);
     }
   }
-  candidates.insert(candidates.begin(), nullptr);
+  // Wearing none is a candidate only where the slots are worth keeping. An
+  // item that takes stars has to spend every slot before it can hold one, so
+  // declining a scroll worth almost nothing there costs it the stars as well
+  // -- and the stars are worth more than any scroll on the item.
+  if (!Supports(proto, UPGRADE_STAR_FORCE)) {
+    candidates.insert(candidates.begin(), nullptr);
+  }
   const Scroll* best = nullptr;
   double best_rate = -1.0;
   for (const Scroll* candidate : candidates) {

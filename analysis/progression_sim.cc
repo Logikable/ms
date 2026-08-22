@@ -584,8 +584,13 @@ std::pair<int, int> PiecesFinished(const GameState& state, int target) {
   for (const std::pair<const EquipSlot, EquipInstance>& entry :
        state.character.equipped()) {
     const EquipInstance& item = entry.second;
-    int stars = std::min(target, item.max_stars());
-    bool takes_scroll = item.prototype().upgrade_slots() > 0;
+    // max_stars() is the level's ceiling and says nothing about whether the
+    // item takes stars at all, so ask before believing it.
+    int stars = Supports(item.prototype(), UPGRADE_STAR_FORCE)
+                    ? std::min(target, item.max_stars())
+                    : 0;
+    bool takes_scroll = Supports(item.prototype(), UPGRADE_SCROLL) &&
+                        item.prototype().upgrade_slots() > 0;
     if (!takes_scroll && stars == 0) {
       continue;  // an off-hand or a pocket, which takes neither
     }
