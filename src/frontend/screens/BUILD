@@ -3,6 +3,33 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "keybinds_panel",
+    srcs = ["keybinds_panel.cc"],
+    hdrs = ["keybinds_panel.h"],
+    deps = [
+        "//src/frontend:keybinds",
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:keybinds_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+    ],
+)
+
+cc_test(
+    name = "keybinds_panel_test",
+    srcs = ["keybinds_panel_test.cc"],
+    deps = [
+        ":keybinds_panel",
+        "//src/frontend:keybinds",
+        "//src/protos:keybinds_proto_cc",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "inspect_panel",
     srcs = ["inspect_panel.cc"],
     hdrs = ["inspect_panel.h"],
