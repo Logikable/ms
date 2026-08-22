@@ -20,6 +20,23 @@ cc_library(
 )
 
 cc_library(
+    name = "gear_plan",
+    srcs = ["gear_plan.cc"],
+    hdrs = ["gear_plan.h"],
+    deps = [
+        ":sim_gear",
+        "//src:game_state",
+        "//src/item",
+        "//src/item:equip_instance",
+        "//src/item:spell_trace_cost",
+        "//src/item:star_force_cost",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:scroll_proto_cc",
+    ],
+)
+
+cc_library(
     name = "sim_boss",
     srcs = ["sim_boss.cc"],
     hdrs = ["sim_boss.h"],

@@ -9,6 +9,7 @@
 #ifndef MS_ANALYSIS_SIM_GEAR_H_
 #define MS_ANALYSIS_SIM_GEAR_H_
 
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -16,7 +17,9 @@
 #include "src/character/character.h"
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/scroll.pb.h"
 
 namespace ms {
 
@@ -122,7 +125,20 @@ void OutfitDrops(GameState& state, const std::set<std::string>& skip = {});
 // Which scroll is best is measured rather than listed, for the reason Outfit
 // measures the weapon: a thief's weapon takes three 15% traces that differ
 // only in which stat rides the attack, and only a swing says which.
-void FullyUpgrade(GameState& state);
+//
+// `star_cap` holds every item below its own maximum, for a ceiling a player
+// would actually stop at -- past 15 an attempt can destroy the item, and a
+// piece only one boss drops has no second copy to reach for.
+void FullyUpgrade(GameState& state, int star_cap = kMaxStarForce);
+
+// Which scroll each worn slot wants: the one the character measures best in
+// when it fills every slot of the item, chosen from those the item takes that
+// succeed `success_rate` of the time. A slot no scroll helps is absent.
+//
+// Restores the character afterwards, so asking wears nothing and buys
+// nothing.
+std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
+                                                 int success_rate);
 
 }  // namespace ms
 

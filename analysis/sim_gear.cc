@@ -763,9 +763,10 @@ std::vector<const Scroll*> ScrollsFor(const GameState& state,
 }
 
 // `proto` as a player who kept at it would leave it: every slot spent on
-// `scroll` and every star landed. A null scroll leaves the slots unspent,
-// which is what an item taking none gets.
-Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll) {
+// `scroll` and every star up to `star_cap` landed. A null scroll leaves the
+// slots unspent, which is what an item taking none gets.
+Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll,
+                int star_cap) {
   Equip state;
   state.set_equip_name(proto.name());
   int slots = proto.upgrade_slots();
@@ -781,7 +782,8 @@ Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll) {
   }
   if (Supports(proto, UPGRADE_STAR_FORCE) &&
       state.remaining_upgrade_slots() == 0) {
-    state.set_stars(EquipTabItem::MaxStarsForLevel(proto.required_level()));
+    state.set_stars(std::min(
+        star_cap, EquipTabItem::MaxStarsForLevel(proto.required_level())));
   }
   return state;
 }
@@ -800,21 +802,32 @@ bool WearMade(CharacterInstance& character, const EquipPrototype& proto,
 // Which scroll `slot` wants: the one the character measures best in, wearing
 // none included and first, so an item no scroll helps keeps its slots.
 //
+// `success_rate` narrows the field to the scrolls that land that often; 0
+// takes them all. A budgeted player picks a rate before they pick a stat --
+// a 30% trace wastes seven slots out of ten on a piece one boss drops.
+//
 // Leaves the character wearing the last thing tried and the bag holding the
-// try-ons. FullyUpgrade puts both back.
-const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot) {
+// try-ons. The caller puts both back.
+const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
+                                int success_rate) {
   std::map<EquipSlot, EquipInstance>::const_iterator it =
       state.character.equipped().find(slot);
   if (it == state.character.equipped().end()) {
     return nullptr;
   }
   EquipPrototype proto = it->second.prototype();
-  std::vector<const Scroll*> candidates = ScrollsFor(state, proto);
+  std::vector<const Scroll*> candidates;
+  for (const Scroll* scroll : ScrollsFor(state, proto)) {
+    if (success_rate == 0 || scroll->success_rate() == success_rate) {
+      candidates.push_back(scroll);
+    }
+  }
   candidates.insert(candidates.begin(), nullptr);
   const Scroll* best = nullptr;
   double best_rate = -1.0;
   for (const Scroll* candidate : candidates) {
-    if (!WearMade(state.character, proto, AtCeiling(proto, candidate))) {
+    if (!WearMade(state.character, proto,
+                  AtCeiling(proto, candidate, kMaxStarForce))) {
       continue;
     }
     double rate = MeasureRate(state);
@@ -828,7 +841,7 @@ const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot) {
 
 }  // namespace
 
-void FullyUpgrade(GameState& state) {
+void FullyUpgrade(GameState& state, int star_cap) {
   std::map<EquipSlot, EquipPrototype> worn;
   for (const std::pair<const EquipSlot, EquipInstance>& entry :
        state.character.equipped()) {
@@ -841,11 +854,36 @@ void FullyUpgrade(GameState& state) {
   // the bag with them. Restoring from the proto is the only eraser there is.
   Character before = state.character.ToProto();
   for (const std::pair<const EquipSlot, EquipPrototype>& entry : worn) {
-    const Scroll* scroll = BestScrollForSlot(state, entry.first);
-    (*before.mutable_equipped())[entry.first] = AtCeiling(entry.second, scroll);
+    const Scroll* scroll =
+        BestScrollForSlot(state, entry.first, /*success_rate=*/0);
+    (*before.mutable_equipped())[entry.first] =
+        AtCeiling(entry.second, scroll, star_cap);
   }
   state.character.RestoreFrom(before, state.equips, state.items);
   CloseTryout(state, farming);
+}
+
+std::map<EquipSlot, const Scroll*> ChooseScrolls(GameState& state,
+                                                 int success_rate) {
+  std::vector<EquipSlot> worn;
+  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+       state.character.equipped()) {
+    worn.push_back(entry.first);
+  }
+  std::string farming = OpenTryout(state);
+  Character before = state.character.ToProto();
+  std::map<EquipSlot, const Scroll*> chosen;
+  for (EquipSlot slot : worn) {
+    const Scroll* scroll = BestScrollForSlot(state, slot, success_rate);
+    // Every try-on left its predecessor in the bag, and restoring from the
+    // proto is the only eraser there is -- see FullyUpgrade.
+    state.character.RestoreFrom(before, state.equips, state.items);
+    if (scroll != nullptr) {
+      chosen[slot] = scroll;
+    }
+  }
+  CloseTryout(state, farming);
+  return chosen;
 }
 
 void OutfitWeapon(GameState& state, EquipType type) {
