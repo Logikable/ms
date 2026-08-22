@@ -26,6 +26,18 @@
 
 namespace ms {
 
+// What an AP stat reads with nothing spent on it, and the STR a fresh Beginner
+// carries instead of it. The nine between them is AP the game handed the
+// character at creation and spent on their behalf, so it counts as spent.
+inline constexpr int kBaseStat = 4;
+inline constexpr int kBeginnerStr = 13;
+
+// Every AP the game has ever handed a character at `level` holding
+// `job_stage` advancements, spent and unspent together. AP is only ever moved
+// between the pool and the stats, never destroyed, so a save whose books do
+// not come to this has drifted -- see CharacterInstance::ReconcileAp.
+int ExpectedTotalAp(int level, int job_stage);
+
 // The highest job stage the game has an advancement level for. A stage with no
 // branches written yet still counts -- AdvancementForJobStage simply answers
 // JOB_ADVANCEMENT_UNSPECIFIED for it -- so anything walking every stage a job
@@ -339,6 +351,13 @@ class CharacterInstance {
   void RestoreFrom(const Character& saved,
                    const std::map<std::string, EquipPrototype>& equips,
                    const std::map<std::string, ItemPrototype>& items);
+
+  // Puts the character's AP back on its books and returns what it was off by,
+  // zero when it already balanced. Short, and the difference arrives as
+  // unspent AP; long, and it comes out of the pool first and off the stats
+  // after, the primary last. Called on loading a save, where a character grown
+  // under an older set of rules is the thing that can be off.
+  int ReconcileAp();
 
   // Sum of stats from all currently equipped items. Updated automatically by
   // Equip, Unequip, and ScrollEquipped.

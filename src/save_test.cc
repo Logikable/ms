@@ -119,6 +119,30 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   EXPECT_EQ(loaded->current_map, "lith");
 }
 
+// AP is only ever moved between the pool and the stats, so a save whose books
+// do not add up was written under older rules. Loading puts them back rather
+// than handing the player a character short of what they earned.
+TEST_F(SaveTest, ASaveWithTheWrongApIsPutBackOnItsBooks) {
+  std::unique_ptr<GameState> saved = MakeState();
+  for (int i = 0; i < 9; ++i) {
+    saved->character.LevelUp();
+  }
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  // Rewritten as a file that recorded none of the AP those levels paid.
+  SaveGame on_disk;
+  ASSERT_TRUE(on_disk.ParseFromString(ReadRaw(path_)));
+  ASSERT_EQ(on_disk.character().ap(), 45);
+  on_disk.mutable_character()->set_ap(0);
+  std::string bytes;
+  ASSERT_TRUE(on_disk.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.proto().ap(), 45);
+}
+
 TEST_F(SaveTest, SavingTwiceReplacesRatherThanAppends) {
   std::unique_ptr<GameState> state = MakeState();
   state->character.AddMeso(5);

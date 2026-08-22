@@ -128,6 +128,9 @@ LoadResult LoadGameFromFile(GameState& state, const std::string& path) {
   }
 
   state.character.RestoreFrom(save.character(), state.equips, state.items);
+  // A save written under an older set of AP rules is the one thing that can
+  // arrive with its books unbalanced, so this is the door to check at.
+  state.character.ReconcileAp();
   state.current_map = save.current_map();
   state.playtime_seconds = static_cast<double>(save.playtime_seconds());
   // Left alone when the save has no creation time to give -- one written

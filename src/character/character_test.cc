@@ -2576,5 +2576,121 @@ TEST_F(SeenTabsTest, SurvivesARoundTripThroughTheProto) {
       << "each advancement is its own key";
 }
 
+// --- ReconcileAp ---
+
+// A save's proto, with the four AP stats where the file left them. Level and
+// job stage say what the audit should expect; the stats say what it finds.
+Character SavedProto(int level, int job_stage, Job job, int ap, int str,
+                     int dex) {
+  Character proto;
+  proto.set_level(level);
+  proto.set_job_stage(job_stage);
+  proto.set_job(job);
+  proto.set_ap(ap);
+  proto.mutable_allocated_stats()->set_str(str);
+  proto.mutable_allocated_stats()->set_dex(dex);
+  proto.mutable_allocated_stats()->set_int_(kBaseStat);
+  proto.mutable_allocated_stats()->set_luk(kBaseStat);
+  return proto;
+}
+
+// The level-1 Beginner the game really starts from. ExpectedTotalAp counts the
+// free STR as AP already spent, so a fixture built on a bare proto would come
+// out short by nine and prove nothing.
+CharacterInstance MakeFreshBeginner(std::mt19937& rng, int ap = 0) {
+  return CharacterInstance(
+      rng, SavedProto(1, 0, JOB_BEGINNER, ap, kBeginnerStr, kBaseStat));
+}
+
+class ReconcileApTest : public CharacterTest {};
+
+// The one that keeps the audit honest: whatever the granting rules are, a
+// character grown under them balances at every step. If a 5th job pays AP on a
+// rule ExpectedTotalAp does not know, this fails here rather than every save
+// quietly being "corrected" against a stale one.
+TEST_F(ReconcileApTest, ACharacterTheGameGrewNeverNeedsCorrecting) {
+  const std::vector<Job> kPath = {JOB_SWORDMAN, JOB_FIGHTER, JOB_CRUSADER,
+                                  JOB_HERO};
+  CharacterInstance c = MakeFreshBeginner(rng_);
+  ASSERT_EQ(c.ReconcileAp(), 0) << "at level 1";
+  size_t taken = 0;
+  for (int level = 2; level <= 140; ++level) {
+    c.LevelUp();
+    if (c.CanAdvanceJob() && taken < kPath.size()) {
+      c.AdvanceJob(kPath[taken]);
+      if (c.proto().job_stage() == 1) {
+        c.ResetStatsForJob(kPath[0]);
+      }
+      ++taken;
+    }
+    // Spending has to leave the books alone too -- the audit reads the stats,
+    // not just the pool.
+    c.AllocateStat(STAT_FIELD_STR, 3);
+    ASSERT_EQ(c.ReconcileAp(), 0) << "at level " << level;
+  }
+  EXPECT_EQ(c.proto().job_stage(), 4);
+}
+
+TEST_F(ReconcileApTest, ASaveThatIsShortIsHandedTheDifferenceLoose) {
+  CharacterInstance c(
+      rng_, SavedProto(10, 0, JOB_BEGINNER, /*ap=*/0, kBeginnerStr, kBaseStat));
+  // 5 per level over levels 2-10, none of which the save recorded.
+  EXPECT_EQ(c.ReconcileAp(), 45);
+  EXPECT_EQ(c.proto().ap(), 45);
+  EXPECT_EQ(c.proto().allocated_stats().str(), kBeginnerStr);
+  EXPECT_EQ(c.ReconcileAp(), 0) << "correcting twice is a no-op";
+}
+
+// The pool goes first, so a character who had spent nothing keeps every stat
+// they did buy.
+TEST_F(ReconcileApTest, TooMuchComesOffThePoolBeforeTheStats) {
+  CharacterInstance c = MakeFreshBeginner(rng_, /*ap=*/100);
+  EXPECT_EQ(c.ReconcileAp(), -100);
+  EXPECT_EQ(c.proto().ap(), 0);
+  EXPECT_EQ(c.proto().allocated_stats().str(), kBeginnerStr);
+}
+
+// Past the pool it comes off the stats, and the primary is asked last: a
+// warrior stripped of STR is a character the player cannot play.
+TEST_F(ReconcileApTest, PastThePoolItComesOffTheStatsPrimaryLast) {
+  // Held: 96 over base in STR and 46 in DEX, against the 54 a level-10 1st job
+  // has ever been handed.
+  CharacterInstance c(rng_, SavedProto(10, 1, JOB_SWORDMAN, /*ap=*/0,
+                                       /*str=*/100, /*dex=*/50));
+  EXPECT_EQ(c.ReconcileAp(), -88);
+  EXPECT_EQ(c.proto().allocated_stats().dex(), kBaseStat);
+  EXPECT_EQ(c.proto().allocated_stats().str(), 58);
+  EXPECT_EQ(c.proto().ap(), 0);
+  EXPECT_EQ(c.ReconcileAp(), 0);
+}
+
+// A stat drains to its base and stops there, and what is still owed carries on
+// to the next one rather than pushing the first below it.
+TEST_F(ReconcileApTest, AStatDrainsToItsBaseAndNoFurther) {
+  Character proto = SavedProto(1, 0, JOB_BEGINNER, /*ap=*/0, /*str=*/10,
+                               /*dex=*/10);
+  proto.mutable_allocated_stats()->set_int_(10);
+  proto.mutable_allocated_stats()->set_luk(10);
+  // 6 over base in each of the four, against the 9 a level-1 Beginner holds.
+  // STR is the Beginner's primary, so it is the one left alone.
+  CharacterInstance c(rng_, std::move(proto));
+  EXPECT_EQ(c.ReconcileAp(), -15);
+  const AllocatedStats& s = c.proto().allocated_stats();
+  EXPECT_EQ(s.dex(), kBaseStat);
+  EXPECT_EQ(s.int_(), kBaseStat);
+  EXPECT_EQ(s.luk(), 7);
+  EXPECT_EQ(s.str(), 10) << "nothing was owed by the time it was reached";
+  EXPECT_EQ(c.ReconcileAp(), 0);
+}
+
+// The 5 AP the 3rd and the 4th advancement pay are on the books too, so a save
+// holding them must not read as ten too many.
+TEST_F(ReconcileApTest, TheAdvancementBonusesCount) {
+  int at_second = 5 * 99 + kBeginnerStr - kBaseStat;
+  EXPECT_EQ(ExpectedTotalAp(/*level=*/100, /*job_stage=*/2), at_second);
+  EXPECT_EQ(ExpectedTotalAp(/*level=*/100, /*job_stage=*/3), at_second + 5);
+  EXPECT_EQ(ExpectedTotalAp(/*level=*/100, /*job_stage=*/4), at_second + 10);
+}
+
 }  // namespace
 }  // namespace ms

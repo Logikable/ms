@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/log.h"
 #include "absl/types/span.h"
 #include "src/character/exp_table.h"
 #include "src/item/equip_instance.h"
@@ -30,17 +31,31 @@ constexpr int kSpPerLevel = 3;
 // What levels 101-140 pay instead, so the 4th job's book comes to 200.
 constexpr int kFourthJobSpPerLevel = 5;
 
-// What a stat reads with nothing spent on it, and what a job's primary stat is
-// worth on advancing into it. A fresh Beginner carries 13 in STR against 4
-// elsewhere; the primary climbs to 25 at the advancement, and the AP that pays
-// for the difference comes out of the pool. See ResetStatsForJob.
-constexpr int kBaseStat = 4;
+// What a job's primary stat is worth on advancing into it: it climbs to here
+// from kBaseStat, and the AP that pays for the difference comes out of the
+// pool. See ResetStatsForJob.
 constexpr int kAdvancementPrimaryStat = 25;
 
 // The four stats AP buys, which are the ones an advancement redistributes.
 // HP and MP live in the same message but are granted by leveling.
 constexpr StatField kApStatFields[] = {STAT_FIELD_STR, STAT_FIELD_DEX,
                                        STAT_FIELD_INT, STAT_FIELD_LUK};
+
+// The stats to take AP back off, in the order they should give it up: the
+// primary last, because a character stripped of it is one the player cannot
+// play, and the rest are cheaper to lose.
+std::vector<StatField> StripOrder(StatField primary) {
+  std::vector<StatField> order;
+  for (StatField field : kApStatFields) {
+    if (field != primary) {
+      order.push_back(field);
+    }
+  }
+  if (primary != STAT_FIELD_UNSPECIFIED) {
+    order.push_back(primary);
+  }
+  return order;
+}
 
 int ApStatValue(const AllocatedStats& stats, StatField field) {
   switch (field) {
@@ -90,6 +105,13 @@ int SpStageForLevel(int level) {
     }
   }
   return stage;
+}
+
+// Whether advancing INTO `stage` hands over AP. The 3rd and the 4th do. Both
+// AdvanceJob and ExpectedTotalAp ask this rather than spelling the stages out,
+// so a save can never be "corrected" against a rule the game stopped using.
+bool AdvancementGrantsAp(int stage) {
+  return stage == 3 || stage == 4;
 }
 
 // SP a level-up pays. Every book costs exactly what its own levels hand over:
@@ -513,6 +535,18 @@ int NextAdvancementLevel(int stage) {
   return kAdvancementLevels[stage];
 }
 
+int ExpectedTotalAp(int level, int job_stage) {
+  // The Beginner's free STR is granted as a stat rather than as AP, so it is
+  // on the books from level 1 as something already spent.
+  int total = kApPerLevel * std::max(0, level - 1) + kBeginnerStr - kBaseStat;
+  for (int stage = 1; stage <= job_stage; ++stage) {
+    if (AdvancementGrantsAp(stage)) {
+      total += kApJobAdvancementBonus;
+    }
+  }
+  return total;
+}
+
 std::vector<std::string> StarterEquipsFor(Job job) {
   // One weapon per 1st job, at the level it happens, so an advancement is
   // playable straight away, plus whatever that weapon draws from. The Rogue
@@ -933,7 +967,7 @@ void CharacterInstance::AdvanceJob(Job next_job) {
   int stage = character_.job_stage() + 1;
   character_.set_job_stage(stage);
   character_.set_job(next_job);
-  if (stage == 3 || stage == 4) {
+  if (AdvancementGrantsAp(stage)) {
     character_.set_ap(character_.ap() + kApJobAdvancementBonus);
   }
   // Each advancement opens a new skill set, so it comes with SP for that stage.
@@ -958,6 +992,48 @@ void CharacterInstance::ResetStatsForJob(Job job) {
     pool -= kAdvancementPrimaryStat - kBaseStat;
   }
   character_.set_ap(std::max(0, pool));
+}
+
+int CharacterInstance::ReconcileAp() {
+  AllocatedStats* stats = character_.mutable_allocated_stats();
+  int held = character_.ap();
+  for (StatField field : kApStatFields) {
+    held += ApStatValue(*stats, field) - kBaseStat;
+  }
+  int delta =
+      ExpectedTotalAp(character_.level(), character_.job_stage()) - held;
+  if (delta == 0) {
+    return 0;
+  }
+  // Logged even though it is fixed: a character whose books do not balance is
+  // either a save from older rules or a bug in the granting, and the second
+  // one is invisible if this quietly tidies up after it.
+  LOG(WARNING) << "Character AP is off by " << delta << " at level "
+               << character_.level() << ", job stage " << character_.job_stage()
+               << "; correcting";
+  if (delta > 0) {
+    character_.set_ap(character_.ap() + delta);
+    return delta;
+  }
+  // Owed back. The pool goes first, so a character who had spent nothing keeps
+  // every stat they did buy.
+  int owed = -delta;
+  int from_pool = std::min(owed, character_.ap());
+  character_.set_ap(character_.ap() - from_pool);
+  owed -= from_pool;
+  for (StatField field : StripOrder(PrimaryStatField(character_.job()))) {
+    if (owed == 0) {
+      break;
+    }
+    int spent = std::max(0, ApStatValue(*stats, field) - kBaseStat);
+    int take = std::min(owed, spent);
+    SetApStat(stats, field, ApStatValue(*stats, field) - take);
+    owed -= take;
+  }
+  // Anything still owed had nowhere to come from: every stat is at its base
+  // and the pool is empty, which is a fresh character's worth and the closest
+  // to right this can get.
+  return delta;
 }
 
 bool CharacterInstance::CanAdvanceJob() const {

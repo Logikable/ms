@@ -31,10 +31,10 @@ Character MakeBaseBeginnerProto() {
   proto.set_level(1);
   proto.set_job(JOB_BEGINNER);
   proto.set_ap(0);
-  proto.mutable_allocated_stats()->set_str(13);
-  proto.mutable_allocated_stats()->set_dex(4);
-  proto.mutable_allocated_stats()->set_int_(4);
-  proto.mutable_allocated_stats()->set_luk(4);
+  proto.mutable_allocated_stats()->set_str(kBeginnerStr);
+  proto.mutable_allocated_stats()->set_dex(kBaseStat);
+  proto.mutable_allocated_stats()->set_int_(kBaseStat);
+  proto.mutable_allocated_stats()->set_luk(kBaseStat);
   proto.mutable_allocated_stats()->set_hp(50);
   proto.mutable_allocated_stats()->set_mp(15);
   return proto;
