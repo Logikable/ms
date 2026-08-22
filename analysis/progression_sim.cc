@@ -405,6 +405,11 @@ struct Climb {
   int endgame_stars = 0;
   int endgame_frozen = 0;
   int endgame_boss_set = 0;
+  // Pieces worn that take upgrades at all, and how many of them are finished:
+  // every slot spent and the stars up to the plan's target or the item's own
+  // ceiling, whichever is lower.
+  int endgame_pieces = 0;
+  int endgame_finished = 0;
   std::string money_map;
   // The level each Frozen piece first dropped at, or 0 for one that never
   // did. The rates are set so that all four arrive before the level cap --
@@ -570,6 +575,29 @@ struct Session {
   double next_daily = kDaySeconds;
 };
 
+// How many worn pieces take upgrades, and how many of them are finished at
+// `target`: every slot spent, and the stars up to that or the item's own
+// ceiling, whichever is lower.
+std::pair<int, int> PiecesFinished(const GameState& state, int target) {
+  int pieces = 0;
+  int finished = 0;
+  for (const std::pair<const EquipSlot, EquipInstance>& entry :
+       state.character.equipped()) {
+    const EquipInstance& item = entry.second;
+    int stars = std::min(target, item.max_stars());
+    bool takes_scroll = item.prototype().upgrade_slots() > 0;
+    if (!takes_scroll && stars == 0) {
+      continue;  // an off-hand or a pocket, which takes neither
+    }
+    ++pieces;
+    if (item.equip_state().remaining_upgrade_slots() == 0 &&
+        item.stars() >= stars) {
+      ++finished;
+    }
+  }
+  return {pieces, finished};
+}
+
 // Runs the dailies if one is due, and puts what they dropped on. Returns
 // whether anything happened, since the fight parameters have to be rebuilt
 // when it did.
@@ -674,6 +702,10 @@ void FarmAtCap(Session& run) {
   run.climb.endgame_stars = weapon.first;
   run.climb.endgame_frozen = PiecesWorn(run.state, "frozen");
   run.climb.endgame_boss_set = PiecesWorn(run.state, "boss_accessory");
+  std::pair<int, int> finished =
+      PiecesFinished(run.state, absl::GetFlag(FLAGS_star_target));
+  run.climb.endgame_pieces = finished.first;
+  run.climb.endgame_finished = finished.second;
 }
 
 Climb Play(const Catalogs& catalogs, Job branch,
@@ -997,11 +1029,13 @@ void PrintTargets(const std::vector<Job>& branches,
           ("after " + Clock(typical.endgame_seconds) + " at the cap").c_str(),
           (std::string(earned) + " earned").c_str(), typical.endgame_stars,
           typical.endgame_frozen, typical.endgame_boss_set);
+      char spent[16];
+      FormatShort(static_cast<double>(typical.endgame_spent), spent,
+                  sizeof(spent));
+      std::printf("  %-46s %-12s %d of %d pieces finished at %d*\n",
+                  "  spent on gear", spent, typical.endgame_finished,
+                  typical.endgame_pieces, star_target);
       std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
-      if (typical.endgame_stars < star_target) {
-        std::printf("  %-46s short of %d* by %d\n", "  weapon", star_target,
-                    star_target - typical.endgame_stars);
-      }
     }
   }
 }
