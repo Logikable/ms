@@ -12,6 +12,7 @@
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/inventory_list.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
@@ -20,32 +21,6 @@
 
 namespace ms {
 namespace {
-
-enum InventoryTab : int {
-  kEquipTab = 0,
-  kUseTab = 1,
-  kEtcTab = 2,
-  // Not a list of anything the player owns -- it is the door to the shop, and
-  // sits last because it is the only tab that leaves this panel.
-  kShopTab = 3,
-  kNumInventoryTabs = 4,
-};
-
-// Two leading spaces match the "  " / "> " cursor added by the entry transform.
-constexpr char kColumnHeader[] =
-    "  Name                      "  // 2 cursor + 26 name
-    "  Equip Slot"                  // 2 sep + 10 slot
-    "  Level  Job          "        // 2 sep + 20 info
-    "  Scrolls";                    // 2 sep + label
-// Sub-header row: 64 spaces align "Pass/Left/Restore" under the scroll column.
-constexpr char kColumnHeader2[] =
-    "                              "  // 30
-    "                              "  // 30
-    "    "                            // 4 → 64 total
-    "Pass/Left/Restore";
-
-constexpr const char* kTabLabels[kNumInventoryTabs] = {"Equip", "Use", "Etc",
-                                                       "Shop"};
 
 // The seen-key `tab` announces itself under, or "" for a tab with nothing to
 // announce. Use and Etc have been there since the first frame of the game.
@@ -76,7 +51,8 @@ ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
     if (tab == active_tab) {
       active = static_cast<int>(specs.size());
     }
-    specs.push_back({kTabLabels[tab], !key.empty() && !character.TabSeen(key)});
+    specs.push_back(
+        {kInventoryTabLabels[tab], !key.empty() && !character.TabSeen(key)});
   }
   ftxui::Element tab_row = ftxui::dbox({
       // No width limit: the bag's four tabs are a fixed set, and every one of
@@ -109,17 +85,11 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
   }
   std::vector<ftxui::Element> rows;
   for (int i = 0; i < static_cast<int>(stacks.size()); ++i) {
-    std::string cursor = "  ";
-    if (focused && i == selected) {
-      cursor = "> ";
-    }
-    ftxui::Element row = ftxui::text(
-        cursor +
-        ScrollingWindow(stacks[i].name(), kItemNameWidth,
-                        i == selected
-                            ? elapsed
-                            : std::chrono::steady_clock::duration::zero()) +
-        std::to_string(stacks[i].count()));
+    // The cursor shows only while the list holds focus, but the selected row
+    // is marked either way -- see below.
+    ftxui::Element row = RenderStackRow(
+        stacks[i], focused && i == selected,
+        i == selected ? elapsed : std::chrono::steady_clock::duration::zero());
     if (i == selected) {
       // What the frame scrolls to. These rows are plain text rather than an
       // ftxui::Menu, so nothing else marks the cursor and the list would
@@ -132,7 +102,7 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
     rows.push_back(std::move(row));
   }
   return ftxui::vbox({
-      ftxui::text("  " + PadRight("Name", 26) + "Quantity"),
+      StackHeader("", ""),
       PanelSeparator(highlighted),
       // Only the rows scroll; the header and its rule stay put.
       ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator | ftxui::yframe |
@@ -200,13 +170,7 @@ bool InventoryPanel::on_stackable_tab() const {
 }
 
 ItemCategory InventoryPanel::active_category() const {
-  if (active_tab_ == kUseTab) {
-    return ITEM_CATEGORY_USE;
-  }
-  if (active_tab_ == kEtcTab) {
-    return ITEM_CATEGORY_ETC;
-  }
-  return ITEM_CATEGORY_UNSPECIFIED;
+  return TabCategory(active_tab_);
 }
 
 bool InventoryPanel::on_shop_tab() const {
@@ -221,9 +185,7 @@ bool InventoryPanel::ActiveTabEmpty() const {
     // Nothing of the player's to descend into; Enter leaves for the shop.
     return true;
   }
-  ItemCategory category =
-      active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
-  return character_.stackables(category).empty();
+  return character_.stackables(TabCategory(active_tab_)).empty();
 }
 
 int InventoryPanel::ListCount() const {
@@ -260,8 +222,7 @@ void InventoryPanel::MoveCursor(int delta) {
 // The Use/Etc {Sell, Close} menu, for whatever stack the cursor is on.
 void InventoryPanel::OpenStackMenu() {
   sell_menu_.Reset();
-  ItemCategory category =
-      active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
+  ItemCategory category = TabCategory(active_tab_);
   // Nothing on the Etc tab is usable, so the entry is not there at all -- Etc
   // is where drops and quest pieces sit, not where anything is drunk.
   if (category == ITEM_CATEGORY_ETC) {
@@ -425,35 +386,18 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
 }
 
 ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
-  rows_.clear();
+  rows_ = BuildEquipRows(character_, selected_, name_clock_.Elapsed());
   entries_.clear();
-  for (int i = 0; i < character_.inventory().size(); ++i) {
-    const EquipTabItem& item = character_.inventory()[i];
-    const EquipPrototype& proto = item.prototype();
-    int level = proto.required_level() > 0 ? proto.required_level() : 1;
-    std::string info = "Lv" + PadRight(std::to_string(level), 3) + "  " +
-                       FormatJobCategories(proto);
-    InventoryRowState row;
-    // Only the selected row's name slides; the rest sit at their heads.
-    row.label = FormatItemEntry(
-        item.name(), proto.equip_slot(), info, proto, item.equip_state(),
-        i == selected_ ? name_clock_.Elapsed()
-                       : std::chrono::steady_clock::duration::zero());
-    row.is_trace = character_.inventory().equip_instance(i) == nullptr;
-    row.level_ok = character_.MeetsLevel(proto);
-    row.job_ok = character_.MeetsJob(proto);
+  for (const InventoryRowState& row : rows_) {
     entries_.push_back(row.label);
-    rows_.push_back(std::move(row));
-  }
-  if (!entries_.empty()) {
-    selected_ = std::min(selected_, character_.inventory().size() - 1);
   }
   if (entries_.empty()) {
     return ftxui::vbox({EmptyState("empty", /*gutter=*/2), ftxui::filler()});
   }
+  selected_ = std::min(selected_, character_.inventory().size() - 1);
   return ftxui::vbox({
-      ftxui::text(kColumnHeader),
-      ftxui::text(kColumnHeader2),
+      EquipHeader("", ""),
+      EquipSubHeader(""),
       PanelSeparator(highlighted_),
       // Only the items scroll; the two header rows and the rule stay put.
       // ftxui::Menu marks its selected entry, which is what the frame scrolls
@@ -483,9 +427,8 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
     body =
         ftxui::vbox({CenteredRow("Hit Enter to open Shop"), ftxui::filler()});
   } else if (active_tab_ == kUseTab || active_tab_ == kEtcTab) {
-    ItemCategory category =
-        active_tab_ == kUseTab ? ITEM_CATEGORY_USE : ITEM_CATEGORY_ETC;
-    const std::vector<StackableItem>& stacks = character_.stackables(category);
+    const std::vector<StackableItem>& stacks =
+        character_.stackables(TabCategory(active_tab_));
     // Keep the cursor in range as stacks are sold off.
     selected_stack_ = std::min(
         selected_stack_, std::max(0, static_cast<int>(stacks.size()) - 1));
@@ -507,7 +450,6 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
 }
 
 ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
-  const std::string& lbl = state.label;
   int idx = state.index;
   // Drawn from the panel's own cursor rather than ftxui's focused entry, which
   // moves only when the Menu handles the key itself. The two jumps the panel
@@ -519,43 +461,16 @@ ftxui::Element InventoryPanel::RenderRow(const ftxui::EntryState& state) {
   // not while the cursor is up on the tab bar.
   bool on_cursor =
       idx == selected_ && zone_ == kZoneList && panel_focus_ == kInventoryPanel;
-  std::string cursor = on_cursor ? "> " : "  ";
-  // Records where the highlighted row landed, so the item menu can open beside
-  // it. Applied to whichever row is built below, so it follows the row rather
-  // than one way of drawing it.
-  ftxui::Decorator mark = [](ftxui::Element e) { return e; };
+  if (idx < 0 || idx >= static_cast<int>(rows_.size())) {
+    return ftxui::text((on_cursor ? "> " : "  ") + state.label);
+  }
+  ftxui::Element row = RenderEquipRow(rows_[idx], on_cursor);
   if (idx == selected_) {
-    mark = ftxui::reflect(cursor_box_);
+    // Records where the highlighted row landed, so the item menu can open
+    // beside it.
+    row = std::move(row) | ftxui::reflect(cursor_box_);
   }
-  if (idx < 0 || idx >= static_cast<int>(rows_.size()) ||
-      static_cast<int>(lbl.size()) < 60) {
-    return ftxui::text(cursor + lbl) | mark;
-  }
-  const InventoryRowState& row = rows_[idx];
-  // A row nothing can be done with: too low for it, the wrong class for it, or
-  // a trace, which is a record of an item rather than one. Dimmed whole, the
-  // way the skills tab dims a skill that cannot be learned -- one answer for
-  // "this row's action is shut", in both lists (colors.h).
-  bool blocked = !row.level_ok || !row.job_ok || row.is_trace;
-  if (!blocked) {
-    return ftxui::text(cursor + lbl) | mark;
-  }
-  // Byte offsets into the label built by RenderEquipList:
-  // name(26) | slot and padding(14) | level(7) | job(13) | rest
-  //
-  // The cell that says WHY stays bright and red while the rest of the row
-  // dims. Dimming it too would mute the one thing on the row worth reading.
-  ftxui::Element name_elem = ftxui::text(lbl.substr(0, 26)) | ftxui::dim;
-  ftxui::Element slot_elem = ftxui::text(lbl.substr(26, 14)) | ftxui::dim;
-  ftxui::Element lv_elem = ftxui::text(lbl.substr(40, 7));
-  lv_elem = row.level_ok ? lv_elem | ftxui::dim : lv_elem | ftxui::color(kRed);
-  ftxui::Element job_elem = ftxui::text(lbl.substr(47, 13));
-  job_elem = row.job_ok ? job_elem | ftxui::dim : job_elem | ftxui::color(kRed);
-  ftxui::Element rest = ftxui::text(lbl.substr(60)) | ftxui::dim;
-  // The caret stays bright: it is the cursor, not part of the row.
-  return ftxui::hbox({ftxui::text(cursor), name_elem, slot_elem, lv_elem,
-                      job_elem, rest}) |
-         mark;
+  return row;
 }
 
 bool InventoryPanel::OnTabBarEvent(const ftxui::Event& event,

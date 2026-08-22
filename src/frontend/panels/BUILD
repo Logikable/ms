@@ -85,6 +85,7 @@ cc_library(
         "//src/frontend:types",
         "//src/frontend/screens:scroll_panel",
         "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:inventory_list",
         "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",

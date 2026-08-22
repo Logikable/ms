@@ -25,19 +25,13 @@
 #include "src/character/character.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/inventory_list.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
 namespace ms {
-
-struct InventoryRowState {
-  std::string label;
-  bool is_trace;
-  bool level_ok;
-  bool job_ok;
-};
 
 class InventoryPanel {
  public:

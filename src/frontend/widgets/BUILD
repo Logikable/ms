@@ -44,6 +44,35 @@ cc_library(
 )
 
 cc_library(
+    name = "inventory_list",
+    srcs = ["inventory_list.cc"],
+    hdrs = ["inventory_list.h"],
+    deps = [
+        ":colors",
+        ":marquee",
+        ":panel_util",
+        "//src/character",
+        "//src/item",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "inventory_list_test",
+    srcs = ["inventory_list_test.cc"],
+    deps = [
+        ":inventory_list",
+        ":panel_test_base",
+        "//src/item:equip_instance",
+        "@ftxui//:dom",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "stat_rows",
     srcs = ["stat_rows.cc"],
     hdrs = ["stat_rows.h"],
