@@ -117,12 +117,13 @@ TEST(BossDataTest, AComingSoonDifficultyStatesOnlyItsPhases) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(coming_soon, 3) << "Chaos Zakum, Chaos Horntail and Hard Hilla";
+  EXPECT_EQ(coming_soon, 4)
+      << "Chaos Zakum, Chaos Horntail, Hard Hilla and Normal Magnus";
 }
 
-// The three fights the screen advertises but cannot yet run, at the HP GMS
-// gives them. A number here is read straight off the detail panel, so a typo
-// in the mob files is a wrong promise on screen.
+// The fights the screen advertises but cannot yet run, at the HP GMS gives
+// them. A number here is read straight off the detail panel, so a typo in the
+// mob files is a wrong promise on screen.
 TEST(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
   std::map<std::string, Mob> mobs = LoadMobs();
   std::map<std::string, Boss> bosses = LoadBosses();
@@ -135,6 +136,7 @@ TEST(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
       {"zakum", "Chaos", {84000000000LL, 84000000000LL}},
       {"hilla", "Hard", {16800000000LL}},
       {"horntail", "Chaos", {3300000000LL, 3300000000LL, 20000000000LL}},
+      {"magnus", "Normal", {6000000000LL}},
   };
   for (const Expectation& want : kExpected) {
     ASSERT_GT(bosses.count(want.boss), 0u) << want.boss;

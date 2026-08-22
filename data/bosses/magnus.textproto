@@ -1,0 +1,17 @@
+name: "Magnus"
+# Written down, not built: one body alone in the middle of his arena, at the
+# numbers GMS gives Normal. Only the HP is stated, because nothing else is
+# decided.
+difficulties {
+  name: "Normal"
+  phases {
+    spawns { mob: "magnus" spots { x: 3 y: 1 } }
+    # The floor he stands over, walked end to end.
+    player_spots { x: 3 y: 2 }
+    player_spots { x: 0 y: 2 }
+    player_spots { x: 6 y: 2 }
+    arena_width: 7
+    arena_height: 4
+  }
+  coming_soon: true
+}

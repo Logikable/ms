@@ -1,0 +1,9 @@
+# A part of a fight that is not built yet: the boss screen reads its HP and
+# nothing else. See data/bosses.
+name: "Magnus"
+level: 130
+attack: 22000
+max_hp: 6000000000
+exp: 0
+pdr: 50
+boss: true
