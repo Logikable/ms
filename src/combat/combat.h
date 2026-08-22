@@ -31,7 +31,7 @@ void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds);
 // walks every skill and prices every attack against every mob on the map, and
 // none of that changes between two steps of the same fight. The game itself
 // has no use for this -- it ticks 3 times a second -- but a sim stepping at
-// 0.1s spends almost all of its time here. See //analysis:level_sim.
+// 0.1s spends almost all of its time here. See //analysis:progression_sim.
 void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
                    double elapsed_seconds);
 

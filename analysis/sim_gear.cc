@@ -905,6 +905,33 @@ bool ShoppedSlot(EquipSlot slot) {
          slot == EQUIP_SLOT_PROJECTILE;
 }
 
+void WearBestFromBag(CharacterInstance& character) {
+  // Restarted after every change: equipping shuffles the bag, since whatever
+  // is displaced goes back into it.
+  bool moved = true;
+  while (moved) {
+    moved = false;
+    const InventoryInstance& bag = character.inventory();
+    for (int i = 0; i < bag.size(); ++i) {
+      const EquipPrototype& proto = bag[i].prototype();
+      if (bag[i].is_trace() || ShoppedSlot(proto.equip_slot()) ||
+          !character.CanEquip(proto)) {
+        continue;
+      }
+      std::map<EquipSlot, EquipInstance>::const_iterator worn =
+          character.equipped().find(proto.equip_slot());
+      if (worn != character.equipped().end() &&
+          worn->second.prototype().required_level() >= proto.required_level()) {
+        continue;
+      }
+      if (character.Equip(i)) {
+        moved = true;
+        break;
+      }
+    }
+  }
+}
+
 void OutfitDrops(GameState& state, const std::set<std::string>& skip) {
   std::map<EquipSlot, const EquipPrototype*> best;
   for (const std::pair<const std::string, EquipPrototype>& entry :

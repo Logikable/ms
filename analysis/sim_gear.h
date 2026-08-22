@@ -117,6 +117,16 @@ void OutfitWeapon(GameState& state, EquipType type);
 // climbed: there is nothing to measure while each slot holds one item.
 void OutfitDrops(GameState& state, const std::set<std::string>& skip = {});
 
+// Wears the best of what the bag is already holding, in the slots the shop
+// does not stock -- the armour, the accessories and the pocket, which drop
+// rather than sell. A piece is put on when its slot is empty or when it
+// outranks what is in it, so a second copy of what is worn never displaces the
+// scrolls and stars on the first.
+//
+// The drop half of Outfit: that one shops, this one opens the bag. A sim
+// playing a climb forward needs both, since a player wears what falls.
+void WearBestFromBag(CharacterInstance& character);
+
 // Puts everything worn at its ceiling: every upgrade slot filled with the
 // scroll that measures best on the item, and stars up to the item's own
 // maximum. Nothing is rolled and nothing is paid for -- a sim asking what a

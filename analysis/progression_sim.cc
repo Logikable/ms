@@ -1,7 +1,9 @@
-/* How long a character takes to climb from level 1 to the trial cap, branch by
- * branch. The real engine, run forward: the same AdvanceCombat the frontend
- * ticks, paid out at the same rate, so what it reports is playtime rather than
- * an estimate of it.
+/* What a character reaches by the level cap: how long the climb takes, what it
+ * paid them, and what they are standing in when they get there.
+ *
+ * The real engine, run forward: the same AdvanceCombat the frontend ticks,
+ * paid out at the same rate, so what it reports is playtime rather than an
+ * estimate of it.
  *
  * The one thing the engine cannot supply is what the player does between
  * fights, so the sweep plays them:
@@ -10,6 +12,7 @@
  *   - the whole Etc tab sold at each level;
  *   - the best weapon they can hold and pay for, bought the level it comes
  *     within reach, with the type of it measured rather than assumed;
+ *   - what is left of the purse spent on scrolls and stars, the weapon first;
  *   - and the map that pays the most EXP a second of the ones they live on,
  *     re-chosen at every level.
  *
@@ -18,6 +21,14 @@
  * kills them is not a candidate. It makes this an attentive player's clock --
  * a floor on how long the climb takes rather than an average of it.
  *
+ * Two sections, each on its own flag.
+ *
+ *   --playtime  how long each branch takes to each level, and what it earned
+ *               on the way. The climb alone.
+ *   --ledger    what the purse went on and what the character has to show for
+ *               it: the weapon's slots and stars, and how much of each set is
+ *               on their back.
+ *
  * Not a test. Tests pin behaviour that must not change; this prints numbers to
  * look at while deciding what the behaviour should be.
  *
@@ -25,10 +36,10 @@
  * their 2nd or 3rd job and were never built to reach the cap; --all_branches
  * still climbs them, and --branch takes any one of them on its own.
  *
- *   bazelisk run //analysis:level_sim
- *   bazelisk run //analysis:level_sim -- --detail
- *   bazelisk run //analysis:level_sim -- --branch=DARK_KNIGHT
- *   bazelisk run //analysis:level_sim -- --all_branches
+ *   bazelisk run //analysis:progression_sim
+ *   bazelisk run //analysis:progression_sim -- --detail
+ *   bazelisk run //analysis:progression_sim -- --branch=DARK_KNIGHT
+ *   bazelisk run //analysis:progression_sim -- --all_branches
  */
 #include <algorithm>
 #include <cmath>
@@ -45,7 +56,9 @@
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
+#include "analysis/gear_plan.h"
 #include "analysis/parallel.h"
+#include "analysis/sim_boss.h"
 #include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
@@ -65,6 +78,7 @@
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -93,6 +107,17 @@ ABSL_FLAG(bool, all_branches, false,
           "were never meant to reach the cap -- the advancement is there at "
           "60 and at 100 -- so what they measure past that is a build nobody "
           "plays, and they are the slowest rows in the sweep by far.");
+ABSL_FLAG(bool, playtime, true, "Print how long the climb takes.");
+ABSL_FLAG(bool, ledger, true,
+          "Print what the climb spent and what it is wearing at the cap.");
+ABSL_FLAG(int, star_target, 15,
+          "Stars each piece is taken to, held down to its own maximum. 15 is "
+          "the last star an attempt cannot destroy the item at, which is "
+          "where a player wearing pieces one boss drops stops.");
+ABSL_FLAG(int, scroll_rate, 100,
+          "Success rate of the scrolls bought, as a whole percent. A lower "
+          "rate pays more per slot it lands and wastes the rest, which on a "
+          "drop-only piece is a slot nothing gets back.");
 ABSL_FLAG(std::string, branch, "",
           "One branch to climb, as its Job enum name without the JOB_ prefix "
           "(DARK_KNIGHT). Empty climbs them all, which waits on the slowest "
@@ -120,21 +145,48 @@ void LearnEverything(GameState& state) {
   }
 }
 
-// Follows the purse and adds up only what goes into it. The balance is no
-// answer on its own -- a climb that has just bought a weapon looks poor -- so
-// what the table reports is everything the character was ever paid.
+// Follows the purse and adds up each direction on its own. The balance is no
+// answer by itself -- a climb that has just bought a weapon looks poor -- so
+// the tables report everything the character was ever paid and everything the
+// shop ever took, and the difference is what they are holding.
 struct Purse {
   int64_t earned = 0;
+  int64_t spent = 0;
   int64_t held = 0;
 
   void Note(const CharacterInstance& character) {
     int64_t now = character.meso();
     if (now > held) {
       earned += now - held;
+    } else {
+      spent += held - now;
     }
     held = now;
   }
 };
+
+// Pieces of the set filed under `key` the character has on, 0 for a set the
+// catalog does not hold.
+int PiecesWorn(const GameState& state, const std::string& key) {
+  std::map<std::string, EquipSet>::const_iterator it =
+      state.character.equip_sets().find(key);
+  if (it == state.character.equip_sets().end()) {
+    return 0;
+  }
+  return state.character.PiecesWornOf(it->second);
+}
+
+// The weapon's stars, and the upgrade slots still open in it. -1 apiece for
+// bare hands, which reads as a row with nothing in it rather than as zero.
+std::pair<int, int> WeaponUpgrades(const GameState& state) {
+  std::map<EquipSlot, EquipInstance>::const_iterator it =
+      state.character.equipped().find(EQUIP_SLOT_PRIMARY_WEAPON);
+  if (it == state.character.equipped().end()) {
+    return {-1, -1};
+  }
+  return {it->second.stars(),
+          it->second.equip_state().remaining_upgrade_slots()};
+}
 
 // Sells the Etc tab, skipping what will not sell. A token is the one Etc item
 // worth keeping: it sells for nothing and buys the Frozen tier.
@@ -214,7 +266,7 @@ void PickMap(GameState& state, const std::vector<std::string>& candidates,
 // then the choice of where to take it.
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
-            Purse& purse) {
+            Purse& purse, GearShopper& shopper) {
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
@@ -231,7 +283,14 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   LearnEverything(state);
   SellDrops(state.character);
   purse.Note(state.character);
+  // What fell goes on before what is bought, so the weapon measurement is
+  // taken with the rest of the outfit already in place.
+  WearBestFromBag(state.character);
   Outfit(state, /*budget=*/true);
+  // After the weapon, because a scroll on last tier's weapon is meso that
+  // buys nothing: the next one displaces it slots and stars and all.
+  shopper.Spend(state);
+  purse.Note(state.character);
   PickMap(state, maps, beats, step);
 }
 
@@ -260,8 +319,20 @@ constexpr int kNumFrozenTokens = 2;
 struct Climb {
   // Playtime in seconds at each milestone, or -1 for one never reached.
   double milestone_seconds[kNumMilestones];
-  // Meso the character had been paid, all told, by each milestone.
+  // Meso the character had been paid, all told, by each milestone, and what
+  // the shop had taken back off them.
   int64_t milestone_meso[kNumMilestones] = {0};
+  int64_t milestone_spent[kNumMilestones] = {0};
+  // What they were standing in at each milestone: the weapon's stars and the
+  // slots still open in it, and how much of each set was on their back.
+  int milestone_stars[kNumMilestones] = {0};
+  int milestone_slots[kNumMilestones] = {0};
+  int milestone_frozen[kNumMilestones] = {0};
+  int milestone_boss_set[kNumMilestones] = {0};
+  // The level the weapon first held ten stars at, and the level the Frozen Set
+  // was first complete at. 0 for a climb that reached the cap without it.
+  int ten_star_level = 0;
+  int frozen_set_level = 0;
   // The level each Frozen piece first dropped at, or 0 for one that never
   // did. The rates are set so that all four arrive before the level cap --
   // this is the check on that, farmed rather than argued.
@@ -322,6 +393,34 @@ void NoteFrozenDrops(const GameState& state, int level, Climb& climb) {
   }
 }
 
+// Writes down the playtime, the purse and what the character is wearing, at
+// every milestone this level has just reached. Read after the level's
+// shopping, so a milestone says what they walked away from it in rather than
+// what they arrived in.
+void NoteMilestones(const GameState& state, int level, double seconds,
+                    const Purse& purse, Climb& climb) {
+  std::pair<int, int> weapon = WeaponUpgrades(state);
+  int frozen = PiecesWorn(state, "frozen");
+  if (climb.ten_star_level == 0 && weapon.first >= 10) {
+    climb.ten_star_level = level;
+  }
+  if (climb.frozen_set_level == 0 && frozen >= 6) {
+    climb.frozen_set_level = level;
+  }
+  for (int i = 0; i < kNumMilestones; ++i) {
+    if (level < kMilestones[i] || climb.milestone_seconds[i] >= 0.0) {
+      continue;
+    }
+    climb.milestone_seconds[i] = seconds;
+    climb.milestone_meso[i] = purse.earned;
+    climb.milestone_spent[i] = purse.spent;
+    climb.milestone_stars[i] = weapon.first;
+    climb.milestone_slots[i] = weapon.second;
+    climb.milestone_frozen[i] = frozen;
+    climb.milestone_boss_set[i] = PiecesWorn(state, "boss_accessory");
+  }
+}
+
 Climb Play(const Catalogs& catalogs, Job branch,
            const std::vector<std::string>& maps) {
   double step = absl::GetFlag(FLAGS_step);
@@ -338,7 +437,11 @@ Climb Play(const Catalogs& catalogs, Job branch,
     climb.milestone_seconds[i] = -1.0;
   }
   Purse purse;
-  Retool(state, path, &taken, maps, beats, step, purse);
+  GearPlan plan;
+  plan.star_target = absl::GetFlag(FLAGS_star_target);
+  plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
+  GearShopper shopper(plan);
+  Retool(state, path, &taken, maps, beats, step, purse, shopper);
 
   int level = state.character.proto().level();
   double seconds = 0.0;
@@ -368,13 +471,8 @@ Climb Play(const Catalogs& catalogs, Job branch,
     level_began = seconds;
     level = state.character.proto().level();
     NoteFrozenDrops(state, level, climb);
-    for (int i = 0; i < kNumMilestones; ++i) {
-      if (level >= kMilestones[i] && climb.milestone_seconds[i] < 0.0) {
-        climb.milestone_seconds[i] = seconds;
-        climb.milestone_meso[i] = purse.earned;
-      }
-    }
-    Retool(state, path, &taken, maps, beats, step, purse);
+    Retool(state, path, &taken, maps, beats, step, purse, shopper);
+    NoteMilestones(state, level, seconds, purse, climb);
     params = ComputeCombatParams(state);
     stint = {level, 0.0, state.current_map, HeldWeaponName(state.character)};
   }
@@ -527,6 +625,55 @@ void PrintFrozenDrops(const std::vector<Job>& branches,
   }
 }
 
+// One row of the ledger: what the branch had earned and spent by `level`, and
+// what it was standing in when it left.
+void PrintLedgerRow(const Climb& climb, int m) {
+  char earned[16];
+  char spent[16];
+  FormatShort(static_cast<double>(climb.milestone_meso[m]), earned,
+              sizeof(earned));
+  FormatShort(static_cast<double>(climb.milestone_spent[m]), spent,
+              sizeof(spent));
+  char weapon[16];
+  if (climb.milestone_stars[m] < 0) {
+    std::snprintf(weapon, sizeof(weapon), "%s", "-");
+  } else {
+    std::snprintf(weapon, sizeof(weapon), "%d*/%d open",
+                  climb.milestone_stars[m], climb.milestone_slots[m]);
+  }
+  std::printf("  %5d  %9s  %9s  %13s  %8d  %10d\n", kMilestones[m], earned,
+              spent, weapon, climb.milestone_frozen[m],
+              climb.milestone_boss_set[m]);
+}
+
+// What the purse went on and what the branch has to show for it.
+void PrintLedger(const std::vector<Job>& branches,
+                 const std::vector<Climb>& climbs) {
+  std::printf(
+      "\nWhat each climb earned, what the shop took back, and what they were "
+      "standing in when they\nleft the level. The weapon column is its stars "
+      "and the upgrade slots still open in it.\n");
+  for (int i = 0; i < static_cast<int>(branches.size()); ++i) {
+    std::printf("\n%s\n", BranchName(branches[i]).c_str());
+    std::printf("  %5s  %9s  %9s  %13s  %8s  %10s\n", "level", "earned",
+                "spent", "weapon", "Frozen", "Boss acc.");
+    std::printf("  %s\n", std::string(62, '-').c_str());
+    for (int m = 0; m < kNumMilestones; ++m) {
+      if (climbs[i].milestone_seconds[m] >= 0.0) {
+        PrintLedgerRow(climbs[i], m);
+      }
+    }
+    std::printf(
+        "  weapon reached 10 stars: %s      Frozen Set complete: %s\n",
+        climbs[i].ten_star_level == 0
+            ? "never"
+            : ("Lv" + std::to_string(climbs[i].ten_star_level)).c_str(),
+        climbs[i].frozen_set_level == 0
+            ? "never"
+            : ("Lv" + std::to_string(climbs[i].frozen_set_level)).c_str());
+  }
+}
+
 // The branches to climb: the ones that take a 4th advancement, or under
 // --all_branches every branch from the 2nd job up, or the one --branch names.
 // A 1st job is left out even then -- climbing to 140 without ever advancing
@@ -559,8 +706,13 @@ void Run() {
   ParallelFor(count,
               [&](int i) { climbs[i] = Play(catalogs, branches[i], maps); });
 
-  PrintPlaytime(catalogs, branches, climbs);
-  PrintMeso(branches, climbs);
+  if (absl::GetFlag(FLAGS_playtime)) {
+    PrintPlaytime(catalogs, branches, climbs);
+    PrintMeso(branches, climbs);
+  }
+  if (absl::GetFlag(FLAGS_ledger)) {
+    PrintLedger(branches, climbs);
+  }
 
   // Third jobs only. A branch that stops at its 2nd job is scaffolding for the
   // playtime table above, not a player: the advancement is there at 60 and

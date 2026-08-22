@@ -158,9 +158,9 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
 //
 // The rate is set by the fastest character rather than the average one: the
 // band is a window, and whoever crosses it quickest buys the fewest chances.
-// //analysis:level_sim counts those kills -- 17k for a Dark Knight against
-// 120k for a Crusader -- and at 1/4,000 even the shortest crossing comes away
-// empty about one climb in eighty.
+// //analysis:progression_sim counts those kills -- 17k for a Dark Knight
+// against 120k for a Crusader -- and at 1/4,000 even the shortest crossing
+// comes away empty about one climb in eighty.
 TEST(MapDataTest, OnlyTheTokenBandDropsBothFrozenTokens) {
   constexpr int kBandLow = 101;
   constexpr int kBandHigh = 120;

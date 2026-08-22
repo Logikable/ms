@@ -8,7 +8,7 @@
  *             where the maps stop; this is the closed form that carries it the
  *             rest of the way (analysis/meso_curve.h). The block of played
  *             levels is the check: it should sit within a few percent of the
- *             meso //analysis:level_sim earns on the way up.
+ *             meso //analysis:progression_sim earns on the way up.
  *   --traces  what scrolling a weapon costs. The trace prices are GMS's
  *             (src/item/spell_trace_cost.h); what this adds is how many
  *             scrolls a job actually takes and whether the player has the
@@ -90,10 +90,10 @@ void PrintMilestones(const ms::MesoCurve& curve) {
 }
 
 // The only levels the game can be played across, so the only place the model
-// can be held against something measured. These are level_sim's own
+// can be held against something measured. These are progression_sim's own
 // milestones, so the two tables line up row for row.
 void PrintEngineCheck(const ms::MesoCurve& curve) {
-  printf("\nthe range //analysis:level_sim can check by playing\n");
+  printf("\nthe range //analysis:progression_sim can check by playing\n");
   for (int level = 10; level <= 140; level += 10) {
     printf("%6d %18.0f\n", level, curve.Total(level));
   }

@@ -143,10 +143,12 @@ sim_binary(
 )
 
 sim_binary(
-    name = "level_sim",
-    srcs = ["level_sim.cc"],
+    name = "progression_sim",
+    srcs = ["progression_sim.cc"],
     deps = [
+        ":gear_plan",
         ":parallel",
+        ":sim_boss",
         ":sim_format",
         ":sim_gear",
         ":sim_jobs",

@@ -52,7 +52,9 @@ const Scroll* GearShopper::ScrollFor(GameState& state, EquipSlot slot) {
   if (item == nullptr) {
     return nullptr;
   }
-  const std::string& name = item->prototype().name();
+  // By value: the measurement below puts the character back together from a
+  // proto, and every EquipInstance in the map goes with it.
+  std::string name = item->prototype().name();
   std::map<std::string, const Scroll*>::const_iterator held =
       chosen_.find(name);
   if (held != chosen_.end()) {
@@ -83,11 +85,13 @@ bool GearShopper::FillSlots(GameState& state, EquipSlot slot,
     if (item == nullptr || item->equip_state().remaining_upgrade_slots() <= 0) {
       return true;
     }
+    // Read out before the measurement, for the reason ScrollFor copies a name.
+    int required_level = item->prototype().required_level();
     const Scroll* scroll = ScrollFor(state, slot);
     if (scroll == nullptr) {
       return true;  // nothing this item takes is worth wearing
     }
-    int traces = TraceCost(*scroll, item->prototype().required_level());
+    int traces = TraceCost(*scroll, required_level);
     int64_t cost = static_cast<int64_t>(traces) * trace->shop_price();
     if (cost > state.character.meso()) {
       return false;
