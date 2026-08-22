@@ -10,6 +10,11 @@
  * bar is a cursor stop above the first map -- the same shape the bag and the
  * shop use. Left and Right belong to the bar and do nothing in the list.
  *
+ * Enter opens a context menu on the highlighted map -- Move, Inspect, Close --
+ * anchored to its row, the way the shop's is. The panel puts the menu up
+ * itself, because a centred window has no fixed place on screen to hang one
+ * from.
+ *
  * Travel is free: every map is always selectable, with no adjacency or unlock
  * gating. The panel is a view -- it moves its own cursor but never writes to
  * the game state; the controller reads selected_map() when the player confirms.
@@ -20,7 +25,10 @@
 #include <string>
 #include <vector>
 
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/types.h"
+#include "src/frontend/widgets/item_menu.h"
 #include "src/game_state.h"
 
 namespace ms {
@@ -44,6 +52,17 @@ class MapSelectPanel {
   // Key into GameState::maps of the highlighted map; empty when there are none.
   std::string selected_map() const;
 
+  // Opens the context menu over the highlighted map, stepping the cursor off
+  // the band bar onto it. Does nothing on a band holding no maps.
+  void OpenMenu();
+  bool menu_open() const;
+  // Drives the context menu and says what should be on screen afterwards:
+  // kMapMenu while it stays up, kMobInspect for Inspect, kMapSelect once it
+  // closes, and kMain for Move -- the caller is what actually changes the map,
+  // since the panel never writes to the game state. The menu closes itself on
+  // the way out, so the screen it opens is not drawn with it still standing.
+  Screen OnMenuEvent(ftxui::Event event);
+
  private:
   // Where the cursor stands: 0 is the chip bar, then one stop per map.
   int CursorStop() const;
@@ -51,6 +70,8 @@ class MapSelectPanel {
   ftxui::Element RenderBandBar() const;
   ftxui::Element RenderMapList() const;
   ftxui::Element RenderMobTable() const;
+  // The row the context menu opens on, measured from the top of the window.
+  int MenuRow() const;
 
   const GameState& state_;
   // Map keys per level band, each band in display order: lowest weighted level
@@ -63,6 +84,8 @@ class MapSelectPanel {
   int selected_ = 0;
   enum Zone { kZoneTabs, kZoneList };
   Zone zone_ = kZoneList;
+  ItemMenu menu_;
+  bool menu_open_ = false;
 };
 
 }  // namespace ms

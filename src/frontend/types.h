@@ -38,6 +38,11 @@ enum Screen : int {
   // asks a yes/no question rather than for an amount.
   kSellEquip,
   kMapSelect,
+  // Enter on a map: go there, read what stands there, or walk away.
+  kMapMenu,
+  // The bestiary, from that menu: the map's mobs and everything known about
+  // whichever one the cursor is on.
+  kMobInspect,
   // Enter on the menu panel's Boss entry: pick a fight, then fight it.
   kBossSelect,
   kBossConfirm,
@@ -92,6 +97,13 @@ enum MenuItem : int {
 // Entries of the job context menu, on Enter in the Advance tab. Advance sits
 // under Inspect for the same reason Sell sits low on the item menu: it is the
 // entry there is no coming back from, so it is not where the cursor lands.
+// Entries of the map context menu, on Enter in the map list. Move leads: it is
+// what the list is for, and Inspect is the detour.
+enum MapMenuItem : int {
+  kMapMenuMove = 0,
+  kMapMenuInspect = 1,
+  kMapMenuClose = 2,
+};
 enum JobMenuItem : int {
   kJobMenuInspect = 0,
   kJobMenuAdvance = 1,

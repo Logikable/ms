@@ -100,6 +100,7 @@ Tui::Tui(GameState& state, std::string save_path)
       scroll_panel_(state.character, state.scrolls),
       trace_recover_panel_(state.character),
       map_select_panel_(state),
+      mob_inspect_panel_(state),
       boss_select_panel_(state),
       job_inspect_panel_(state.skills),
       keybinds_panel_(keys_),
@@ -109,9 +110,10 @@ Tui::Tui(GameState& state, std::string save_path)
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
                   sell_panel_, sell_equip_panel_, multi_sell_panel_,
-                  map_select_panel_, boss_select_panel_, shop_panel_,
-                  buy_panel_, job_inspect_panel_, skill_inspect_panel_,
-                  menu_panel_, keybinds_panel_, keys_, panel_focus_) {
+                  map_select_panel_, mob_inspect_panel_, boss_select_panel_,
+                  shop_panel_, buy_panel_, job_inspect_panel_,
+                  skill_inspect_panel_, menu_panel_, keybinds_panel_, keys_,
+                  panel_focus_) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -530,8 +532,13 @@ ftxui::Element Tui::RenderScreen() {
     // The dialog is the panel's own, so the screen it belongs to is one state.
     case kMultiSell:
       return RenderMultiSell();
+    // kMapMenu draws the same thing: the menu is anchored to a row of the
+    // list, so the panel puts it up itself.
     case kMapSelect:
+    case kMapMenu:
       return ftxui::center(map_select_panel_.Render());
+    case kMobInspect:
+      return ftxui::center(mob_inspect_panel_.Render());
     case kSettingsMenu:
       return RenderSettingsBox();
     case kKeybinds:

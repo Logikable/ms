@@ -40,10 +40,11 @@ TuiController::TuiController(
     StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
     SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
     MultiSellPanel& multi_sell_panel, MapSelectPanel& map_select_panel,
-    BossSelectPanel& boss_select_panel, ShopPanel& shop_panel,
-    BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
-    SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
-    KeybindsPanel& keybinds_panel, KeyMap& keys, int& panel_focus)
+    MobInspectPanel& mob_inspect_panel, BossSelectPanel& boss_select_panel,
+    ShopPanel& shop_panel, BuyPanel& buy_panel,
+    JobInspectPanel& job_inspect_panel, SkillInspectPanel& skill_inspect_panel,
+    MenuPanel& menu_panel, KeybindsPanel& keybinds_panel, KeyMap& keys,
+    int& panel_focus)
     : state_(state),
       char_panel_(char_panel),
       equip_panel_(equip_panel),
@@ -55,6 +56,7 @@ TuiController::TuiController(
       sell_equip_panel_(sell_equip_panel),
       multi_sell_panel_(multi_sell_panel),
       map_select_panel_(map_select_panel),
+      mob_inspect_panel_(mob_inspect_panel),
       boss_select_panel_(boss_select_panel),
       job_inspect_panel_(job_inspect_panel),
       skill_inspect_panel_(skill_inspect_panel),
@@ -268,6 +270,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnMultiSellEvent(event);
     case kMapSelect:
       return OnMapSelectEvent(event);
+    case kMapMenu:
+      return OnMapMenuEvent(event);
+    case kMobInspect:
+      return OnMobInspectEvent(event);
     case kBossSelect:
       return OnBossSelectEvent(event);
     case kBossConfirm:
@@ -652,17 +658,51 @@ bool TuiController::OnMapSelectEvent(ftxui::Event event) {
     return true;
   }
   if (IsForward(event)) {
-    // Travel is free, so the highlighted map is always a legal destination.
-    // The fight restarts on its own once it sees the new map.
-    std::string map = map_select_panel_.selected_map();
-    if (!map.empty()) {
-      state_.current_map = map;
+    // The menu decides what happens to the map: going there is one of three
+    // things the player might want with it.
+    map_select_panel_.OpenMenu();
+    if (map_select_panel_.menu_open()) {
+      screen_ = kMapMenu;
     }
-    screen_ = kMain;
     return true;
   }
   if (IsBack(event)) {
     screen_ = kMain;
+    return true;
+  }
+  // Swallow everything else: this is a modal screen.
+  return true;
+}
+
+bool TuiController::OnMapMenuEvent(ftxui::Event event) {
+  Screen next = map_select_panel_.OnMenuEvent(event);
+  if (next == kMain) {
+    // Move. Travel is free, so the highlighted map is always a legal
+    // destination, and the fight restarts on its own once it sees the new one.
+    std::string map = map_select_panel_.selected_map();
+    if (!map.empty()) {
+      state_.current_map = map;
+    }
+  } else if (next == kMobInspect) {
+    mob_inspect_panel_.SetMap(map_select_panel_.selected_map());
+  }
+  screen_ = next;
+  return true;
+}
+
+bool TuiController::OnMobInspectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    mob_inspect_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    mob_inspect_panel_.MoveCursor(1);
+    return true;
+  }
+  // Back to the list it was opened from, so a player reading round a band's
+  // mobs is not sent home between each one.
+  if (IsBack(event) || IsForward(event)) {
+    screen_ = kMapSelect;
     return true;
   }
   // Swallow everything else: this is a modal screen.

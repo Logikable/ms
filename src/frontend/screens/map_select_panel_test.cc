@@ -5,10 +5,12 @@
 #include <sstream>
 #include <string>
 
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/color.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -620,6 +622,59 @@ TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
 
   EXPECT_EQ(panel.selected_map(), "deep_cave");
   EXPECT_NE(Render(panel).find("Deep Cave"), std::string::npos);
+}
+
+// --- The map context menu ---
+
+TEST(MapSelectPanelTest, TheMenuOpensOverTheListAndSaysWhatItOffers) {
+  GameState state = ThreeMaps();
+  MapSelectPanel panel(state);
+  panel.Reset();
+  EXPECT_FALSE(panel.menu_open());
+
+  panel.OpenMenu();
+  ASSERT_TRUE(panel.menu_open());
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Move"), std::string::npos);
+  EXPECT_NE(rendered.find("Inspect"), std::string::npos);
+  EXPECT_NE(rendered.find("Close"), std::string::npos);
+  // The list is still behind it: the menu is about a map the player can see.
+  EXPECT_NE(rendered.find("Green Field"), std::string::npos);
+}
+
+TEST(MapSelectPanelTest, TheMenuSaysWhichEntryWasTaken) {
+  GameState state = ThreeMaps();
+  MapSelectPanel panel(state);
+  panel.Reset();
+
+  panel.OpenMenu();
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kMain);  // Move leads
+  EXPECT_FALSE(panel.menu_open());
+
+  panel.OpenMenu();
+  panel.OnMenuEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kMobInspect);
+
+  panel.OpenMenu();
+  panel.OnMenuEvent(ftxui::Event::ArrowUp);  // the ring, onto Close
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return), kMapSelect);
+
+  panel.OpenMenu();
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Escape), kMapSelect);
+  EXPECT_FALSE(panel.menu_open());
+}
+
+// Opened from the chip bar, the menu brings the cursor down onto the map it is
+// about -- otherwise it would float over a row with no cursor on it.
+TEST(MapSelectPanelTest, OpeningFromTheBarStepsOntoTheMap) {
+  GameState state = ThreeMaps();
+  MapSelectPanel panel(state);
+  panel.Reset();
+  GoToTheBar(&panel);
+
+  panel.OpenMenu();
+  ASSERT_TRUE(panel.menu_open());
+  EXPECT_NE(Render(panel).find("> Green Field"), std::string::npos);
 }
 
 TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {

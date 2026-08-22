@@ -167,7 +167,13 @@ void MobInspectPanel::RenderDrops(std::vector<ftxui::Element>& rows,
 ftxui::Element MobInspectPanel::RenderInfo() const {
   std::string selected = selected_mob();
   if (selected.empty()) {
-    return ThemedWindow(" Mob ", EmptyState("empty"));
+    // Padded out to the width a described mob fills, so a map standing nothing
+    // does not draw a window a fraction of the size of the one beside it.
+    return ThemedWindow(" Mob ",
+                        ftxui::hbox({
+                            EmptyState("empty"),
+                            ftxui::text(std::string(kFlavourWidth, ' ')),
+                        }));
   }
   const Mob& mob = state_.mobs.at(selected);
   std::vector<ftxui::Element> rows;

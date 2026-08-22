@@ -7,8 +7,11 @@
 #include <utility>
 #include <vector>
 
+#include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/game_state.h"
 #include "src/map_level.h"
@@ -83,7 +86,8 @@ int WeightedLevel(const GameState& state, const MapData& map) {
 
 }  // namespace
 
-MapSelectPanel::MapSelectPanel(const GameState& state) : state_(state) {
+MapSelectPanel::MapSelectPanel(const GameState& state)
+    : state_(state), menu_({"Move", "Inspect", "Close"}) {
   // Sort by weighted level, then by name so equal maps hold a stable order,
   // then deal each map onto its band -- which keeps every band sorted too.
   std::vector<std::pair<std::pair<int, std::string>, std::string>> sorted;
@@ -101,6 +105,7 @@ MapSelectPanel::MapSelectPanel(const GameState& state) : state_(state) {
 
 void MapSelectPanel::Reset() {
   zone_ = kZoneList;
+  menu_open_ = false;
   for (int band = 0; band < kBandCount; ++band) {
     for (int i = 0; i < static_cast<int>(pages_[band].size()); ++i) {
       if (pages_[band][i] == state_.current_map) {
@@ -150,6 +155,57 @@ std::string MapSelectPanel::selected_map() const {
     return "";
   }
   return pages_[page_][selected_];
+}
+
+void MapSelectPanel::OpenMenu() {
+  if (selected_map().empty()) {
+    return;
+  }
+  // Opened from the chip bar, the menu is about the map the band is standing
+  // on, so the cursor steps onto it: a menu floating over an unmarked row
+  // reads as a menu for no map at all.
+  zone_ = kZoneList;
+  menu_.Reset();
+  menu_open_ = true;
+}
+
+bool MapSelectPanel::menu_open() const {
+  return menu_open_;
+}
+
+Screen MapSelectPanel::OnMenuEvent(ftxui::Event event) {
+  if (IsBack(event)) {
+    menu_open_ = false;
+    return kMapSelect;
+  }
+  if (event == ftxui::Event::ArrowUp) {
+    menu_.Up();
+    return kMapMenu;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    menu_.Down();
+    return kMapMenu;
+  }
+  if (IsForward(event)) {
+    menu_open_ = false;
+    if (menu_.selected() == kMapMenuMove) {
+      return kMain;
+    }
+    if (menu_.selected() == kMapMenuInspect) {
+      return kMobInspect;
+    }
+    return kMapSelect;
+  }
+  // Swallow everything else: the menu is modal over the list.
+  return kMapMenu;
+}
+
+int MapSelectPanel::MenuRow() const {
+  // +5 rows: the window's top border, the band bar, its separator, the column
+  // header and its own separator. One row back from there, so the entry
+  // standing highlighted lands beside the map rather than below it.
+  constexpr int kFirstMapRow = 5;
+  return kFirstMapRow + selected_ - 1;
 }
 
 // The bands as a chip bar, the game's one tab style. The chips go white while
@@ -237,7 +293,19 @@ ftxui::Element MapSelectPanel::RenderMobTable() const {
 }
 
 ftxui::Element MapSelectPanel::Render() const {
-  return ftxui::hbox({RenderMapList(), RenderMobTable()});
+  ftxui::Element screen = ftxui::hbox({RenderMapList(), RenderMobTable()});
+  if (!menu_open_) {
+    return screen;
+  }
+  // Anchored inside the panel rather than on the terminal, because the screen
+  // is centred and so has no fixed place to measure from. kMenuCol clears the
+  // border and the name column, so the menu covers the level rather than which
+  // map it is about.
+  constexpr int kMenuCol = 2 + kMapNameWidth;
+  return ftxui::dbox({
+      std::move(screen),
+      Floating(menu_.Render(MenuRow(), kMenuCol)),
+  });
 }
 
 }  // namespace ms

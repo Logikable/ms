@@ -26,6 +26,7 @@
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
+#include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
@@ -59,6 +60,7 @@ class TuiController {
                 SellEquipPanel& sell_equip_panel,
                 MultiSellPanel& multi_sell_panel,
                 MapSelectPanel& map_select_panel,
+                MobInspectPanel& mob_inspect_panel,
                 BossSelectPanel& boss_select_panel, ShopPanel& shop_panel,
                 BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
                 SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
@@ -275,6 +277,8 @@ class TuiController {
   bool OnSellEquipEvent(ftxui::Event event);
   bool OnMultiSellEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
+  bool OnMapMenuEvent(ftxui::Event event);
+  bool OnMobInspectEvent(ftxui::Event event);
   bool OnBossSelectEvent(ftxui::Event event);
   bool OnBossConfirmEvent(ftxui::Event event);
   bool OnBossNoticeEvent(ftxui::Event event);
@@ -322,6 +326,7 @@ class TuiController {
   SellEquipPanel& sell_equip_panel_;
   MultiSellPanel& multi_sell_panel_;
   MapSelectPanel& map_select_panel_;
+  MobInspectPanel& mob_inspect_panel_;
   BossSelectPanel& boss_select_panel_;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;

@@ -30,6 +30,7 @@
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
+#include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
@@ -155,6 +156,7 @@ class Tui {
   SellEquipPanel sell_equip_panel_;
   MultiSellPanel multi_sell_panel_;
   MapSelectPanel map_select_panel_;
+  MobInspectPanel mob_inspect_panel_;
   BossSelectPanel boss_select_panel_;
   // The job's book, read before the advancement is taken.
   JobInspectPanel job_inspect_panel_;
