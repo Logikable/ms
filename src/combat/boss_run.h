@@ -58,13 +58,19 @@ struct DamageNumber {
 struct DamageStack {
   // The slot that took it, by the id a slot keeps for its whole life.
   int mob_id = 0;
+  // What did it. One monster holds at most one stack per source: a landing
+  // takes the place of whatever that source last left there, however much
+  // life it had. So the character's swing is one stack that keeps being
+  // rewritten, and a skill they switch to rewrites it too.
+  DamageSource source;
   std::vector<DamageNumber> lines;
   // Seconds it has been on screen. Real ones: it is an animation, and the
   // game's pacing band has no business stretching it.
   double age = 0.0;
   // Which side of the bar the arena should try first, drawn when the stack was
   // made. Drawn once rather than per frame, or a stack that has not changed
-  // would move every time it was redrawn.
+  // would move every time it was redrawn. Unread for the swing, which always
+  // stands over its monster.
   int preference = 0;
 };
 
@@ -219,6 +225,9 @@ class BossRun {
   void AgeDamageStacks(double dt);
   // Turns what the fight just landed into stacks, one per attack per monster.
   void CollectDamageStacks();
+  // Puts `stack` on screen in place of whatever its source last left on the
+  // same monster.
+  void Replace(DamageStack stack);
   // Rebuilds the bars from the fight's roster: what is still standing keeps
   // its bar, and what has gone starts fading in the slot it held.
   void SyncSlots(double dt);

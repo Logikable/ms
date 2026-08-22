@@ -223,6 +223,20 @@ void BossRun::AgeDamageStacks(double dt) {
   damage_stacks_ = std::move(live);
 }
 
+void BossRun::Replace(DamageStack stack) {
+  // What this source last left on this monster goes, whatever life it had:
+  // two lots of numbers from one source read as one stack that cannot make up
+  // its mind.
+  damage_stacks_.erase(
+      std::remove_if(damage_stacks_.begin(), damage_stacks_.end(),
+                     [&stack](const DamageStack& old) {
+                       return old.mob_id == stack.mob_id &&
+                              old.source == stack.source;
+                     }),
+      damage_stacks_.end());
+  damage_stacks_.push_back(std::move(stack));
+}
+
 void BossRun::CollectDamageStacks() {
   const std::vector<DamageLine>& lines = sim_.damage_lines_this_step();
   // The lines of one landing arrive together, so a run of them under one event
@@ -232,6 +246,7 @@ void BossRun::CollectDamageStacks() {
   for (std::size_t i = 0; i < lines.size();) {
     DamageStack stack;
     stack.mob_id = lines[i].mob_id;
+    stack.source = lines[i].source;
     stack.preference = side(rng_);
     int event = lines[i].event;
     for (; i < lines.size() && lines[i].event == event; ++i) {
@@ -240,7 +255,7 @@ void BossRun::CollectDamageStacks() {
       int64_t damage = static_cast<int64_t>(std::llround(lines[i].damage));
       stack.lines.push_back({std::max<int64_t>(1, damage), lines[i].crit});
     }
-    damage_stacks_.push_back(std::move(stack));
+    Replace(std::move(stack));
   }
   if (static_cast<int>(damage_stacks_.size()) > kMaxDamageStacks) {
     damage_stacks_.erase(

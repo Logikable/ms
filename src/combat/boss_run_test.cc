@@ -487,6 +487,33 @@ TEST(BossRunTest, ASwingLeavesAStackOnWhatItHit) {
   }
 }
 
+// One monster holds one stack per source: the swing keeps rewriting its own
+// numbers rather than piling a second lot beside them.
+TEST(BossRunTest, ASwingReplacesItsOwnNumbers) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds + 1.0);
+  ASSERT_EQ(run.damage_stacks().size(), 1u);
+
+  // Three seconds of swinging, which is several swings inside one stack's life:
+  // without the rule they would pile up beside each other.
+  int landed = 0;
+  double age = run.damage_stacks()[0].age;
+  for (int step = 0; step < 60; ++step) {
+    run.Advance(*state, 0.05);
+    ASSERT_LE(run.damage_stacks().size(), 1u) << "at step " << step;
+    if (run.damage_stacks().empty()) {
+      age = kDamageStackSeconds;
+      continue;
+    }
+    // A stack younger than the one before it is a fresh one in its place.
+    landed += run.damage_stacks()[0].age < age ? 1 : 0;
+    age = run.damage_stacks()[0].age;
+  }
+  EXPECT_GT(landed, 1) << "several swings landed";
+}
+
 // The numbers are an animation: they age off on their own, whether or not
 // anything else is happening.
 TEST(BossRunTest, AStackFadesAfterItsTime) {
