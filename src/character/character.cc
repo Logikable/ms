@@ -549,12 +549,8 @@ std::vector<std::string> StarterEquipsFor(Job job) {
     case JOB_CLERIC:
       return {"white_gold_book_strophe"};
     case JOB_ASSASSIN:
-    case JOB_HERMIT:
-    case JOB_NIGHT_LORD:
       return {"all_souls_charm"};
     case JOB_BANDIT:
-    case JOB_CHIEF_BANDIT:
-    case JOB_SHADOWER:
       return {"hidden_shadow"};
     default:
       return {};

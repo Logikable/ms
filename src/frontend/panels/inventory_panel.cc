@@ -8,6 +8,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/character.h"
 #include "src/character/progression.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
@@ -24,13 +25,16 @@ namespace {
 
 // The seen-key `tab` announces itself under, or "" for a tab with nothing to
 // announce. Use and Etc have been there since the first frame of the game.
-// Equip has one key per advancement, because that is when something arrives
-// in it: a weapon at the 1st, an off-hand at the 2nd.
+// Equip has one key per advancement that hands something over -- a weapon at
+// the 1st, an off-hand at the 2nd -- and none for the ones that do not, so the
+// tab stays quiet at the 3rd and 4th rather than sending the player to look at
+// a bag nothing arrived in.
 std::string TabKey(int tab, const CharacterInstance& character) {
   if (tab == kShopTab) {
     return kShopTabKey;
   }
-  if (tab == kEquipTab && character.proto().job_stage() > 0) {
+  if (tab == kEquipTab && character.proto().job_stage() > 0 &&
+      !StarterEquipsFor(character.proto().job()).empty()) {
     return EquipGiftTabKey(character.proto().job_stage());
   }
   return "";

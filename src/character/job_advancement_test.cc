@@ -46,14 +46,26 @@ struct Advanceable {
 // character.cc's kAdvancementLevels. A stage with no branches written yet
 // simply contributes nothing.
 std::vector<Advanceable> AdvanceableJobs() {
-  const int kLevelForStage[] = {0, 10, 30};
+  const int kLevelForStage[] = {0, 10, 30, 60, 100};
   std::vector<Advanceable> jobs;
   for (Job from :
        {JOB_BEGINNER, JOB_SWORDMAN, JOB_ARCHER, JOB_MAGICIAN, JOB_ROGUE}) {
-    for (int stage = 1; stage <= 2; ++stage) {
+    for (int stage = 1; stage <= 4; ++stage) {
       for (Job job : JobChoicesForStage(from, stage)) {
         jobs.push_back({job, kLevelForStage[stage], stage});
       }
+    }
+  }
+  return jobs;
+}
+
+// The advancements that hand something over: the 1st and the 2nd. Everything
+// above them is bought.
+std::vector<Advanceable> GiftedJobs() {
+  std::vector<Advanceable> jobs;
+  for (const Advanceable& entry : AdvanceableJobs()) {
+    if (entry.stage <= 2) {
+      jobs.push_back(entry);
     }
   }
   return jobs;
@@ -63,7 +75,7 @@ std::vector<Advanceable> AdvanceableJobs() {
 // system ties them to the files on disk -- renaming a textproto would leave a
 // job silently advancing empty-handed.
 TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
-  for (const Advanceable& entry : AdvanceableJobs()) {
+  for (const Advanceable& entry : GiftedJobs()) {
     std::vector<std::string> names = StarterEquipsFor(entry.job);
     EXPECT_FALSE(names.empty())
         << Job_Name(entry.job) << " advances with nothing";
@@ -79,7 +91,7 @@ TEST_F(JobAdvancementTest, EveryStarterEquipExistsInTheCatalog) {
 // buy away. The off-hand is different -- the advancement is what opens that
 // slot, and nothing else would ever put anything in it.
 TEST_F(JobAdvancementTest, ASecondJobIsHandedItsOffHandAndNoWeapon) {
-  for (const Advanceable& entry : AdvanceableJobs()) {
+  for (const Advanceable& entry : GiftedJobs()) {
     if (entry.stage == 1) {
       continue;
     }
@@ -120,7 +132,7 @@ const std::map<Job, std::multiset<EquipType>>& ExpectedStarterTypes() {
 // full set of the wrong class's, or the wrong branch's, and every other test
 // here would pass.
 TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnGear) {
-  for (const Advanceable& entry : AdvanceableJobs()) {
+  for (const Advanceable& entry : GiftedJobs()) {
     std::multiset<EquipType> actual;
     for (const std::string& name : StarterEquipsFor(entry.job)) {
       actual.insert(state_.equips.at(name).equip_type());
@@ -134,7 +146,7 @@ TEST_F(JobAdvancementTest, EachJobStartsWithItsOwnGear) {
 // wear": either drift would hand over something weaker than the tier, or
 // something that cannot be held at all.
 TEST_F(JobAdvancementTest, StarterEquipsAreTheirTiers) {
-  for (const Advanceable& entry : AdvanceableJobs()) {
+  for (const Advanceable& entry : GiftedJobs()) {
     for (const std::string& name : StarterEquipsFor(entry.job)) {
       EXPECT_EQ(state_.equips.at(name).required_level(), entry.level)
           << name << " is not level " << entry.level << " gear";
@@ -192,6 +204,19 @@ TEST_F(JobAdvancementTest, StarterGearLandsInTheBag) {
                 .prototype()
                 .name(),
             state_.equips.at("sword").name());
+}
+
+// A 3rd or 4th job opens no slot and unlocks no tier, so it hands over
+// nothing -- and the bag's Equip tab reads this to decide whether an
+// advancement is worth sending the player to look.
+TEST_F(JobAdvancementTest, ThirdAndFourthAdvancementsHandOverNothing) {
+  for (const Advanceable& entry : AdvanceableJobs()) {
+    if (entry.stage <= 2) {
+      continue;
+    }
+    EXPECT_TRUE(StarterEquipsFor(entry.job).empty())
+        << Job_Name(entry.job) << " is handed gear it should have bought";
+  }
 }
 
 TEST_F(JobAdvancementTest, ARogueIsHandedBothWeaponsAndTheStars) {

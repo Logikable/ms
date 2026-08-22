@@ -128,6 +128,28 @@ class InventoryPanelTest : public PanelTest {
   int tab_selector_ = 0;
 };
 
+// The Equip tab goes gold to say something arrived in it, so it may only do
+// that at an advancement that hands something over: the 1st and the 2nd. It
+// used to light at every stage, sending a 3rd or 4th job to an empty bag.
+TEST_F(InventoryPanelTest, TheEquipTabOnlyLightsForAnAdvancementThatGives) {
+  InventoryPanel panel(c_, panel_focus_);
+  ftxui::Component root = panel.MakeComponent([]() {});
+  c_.AdvanceJob(JOB_SWORDMAN);
+  EXPECT_EQ(LabelColor(root->Render(), "Equip"), kYellow);
+  c_.MarkTabSeen(EquipGiftTabKey(c_.proto().job_stage()));
+  EXPECT_EQ(LabelColor(root->Render(), "Equip"), kTheme);
+
+  c_.AdvanceJob(JOB_FIGHTER);
+  EXPECT_EQ(LabelColor(root->Render(), "Equip"), kYellow);
+  c_.MarkTabSeen(EquipGiftTabKey(c_.proto().job_stage()));
+
+  // The 3rd and the 4th open no slot and unlock no tier.
+  c_.AdvanceJob(JOB_CRUSADER);
+  EXPECT_EQ(LabelColor(root->Render(), "Equip"), kTheme);
+  c_.AdvanceJob(JOB_HERO);
+  EXPECT_EQ(LabelColor(root->Render(), "Equip"), kTheme);
+}
+
 // Container::Tab drops keys aimed at a child that reports itself unfocusable,
 // and the equip Menu says exactly that when the bag is empty -- which used to
 // take the tab bar down with it, leaving a new character unable to reach the
