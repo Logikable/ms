@@ -23,7 +23,7 @@ namespace {
 // What a drop is called, for the card that names what the fight paid. Empty
 // for a drop neither catalog knows, which is a drop nothing was granted for.
 std::string DropName(const GameState& state, const MobDrop& drop) {
-  if (!drop.equip().empty()) {
+  if (drop.has_equip()) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         state.equips.find(drop.equip());
     return it == state.equips.end() ? "" : it->second.name();

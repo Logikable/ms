@@ -27,15 +27,17 @@ message EquipSetTier {
 // One slot of a set and what fills it.
 message EquipSetMember {
   EquipSlot slot = 1;
-  // The piece, by display name -- the way a save names what it holds, because
-  // the character carries prototypes rather than the catalog keys they were
-  // loaded under. Empty when the slot takes any one of a family instead.
-  string name = 2;
-  // What fills the slot when no single item does: a set's weapon belongs to
-  // one class, so there is one per class rather than one item. The inspect
-  // screen reads it as "Choose 1 <family>". A member with a family and no name
-  // counts toward nothing until the items are written.
-  string family = 3;
+  oneof fills {
+    // The piece, by display name -- the way a save names what it holds,
+    // because the character carries prototypes rather than the catalog keys
+    // they were loaded under.
+    string name = 2;
+    // What fills the slot when no single item does: a set's weapon belongs to
+    // one class, so there is one per class rather than one item. The inspect
+    // screen reads it as "Choose 1 <family>", and counts toward nothing until
+    // the items are written.
+    string family = 3;
+  }
 }
 
 // A family of equipment that pays for being worn together. Loaded from

@@ -155,9 +155,10 @@ message Inventory {
 // its scrolls, its spent slots, its trace flag -- because the price it sold
 // for never paid for any of that.
 message BuyBackEntry {
-  // Exactly one of these is set.
-  Equip equip = 1;
-  StackableStack stack = 2;
+  oneof sold {
+    Equip equip = 1;
+    StackableStack stack = 2;
+  }
   // What one copy sold for. The whole of an equip's price; a stackable row is
   // worth this times its count, and buying part of one costs this each.
   int64 unit_price = 3;

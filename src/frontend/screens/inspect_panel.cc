@@ -249,7 +249,7 @@ const EquipSet* InspectPanel::SetOfItem() const {
   for (const std::pair<const std::string, EquipSet>& entry :
        character_->equip_sets()) {
     for (const EquipSetMember& member : entry.second.members()) {
-      if (!member.name().empty() && member.name() == name) {
+      if (member.has_name() && member.name() == name) {
         return &entry.second;
       }
       if (!family.empty() && member.family() == family) {
@@ -270,8 +270,8 @@ ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
     // while it is empty -- a weapon belongs to a class, so the set cannot name
     // it outright.
     std::string worn_of_family = character_->WornOfFamily(member.family());
-    bool on = member.name().empty() ? !worn_of_family.empty()
-                                    : character_->IsWearing(member.name());
+    bool on = member.has_family() ? !worn_of_family.empty()
+                                  : character_->IsWearing(member.name());
     std::string fills = member.name();
     if (fills.empty()) {
       fills = on ? worn_of_family : "Choose 1 " + member.family();

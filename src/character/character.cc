@@ -1110,8 +1110,8 @@ int CharacterInstance::PiecesWornOf(const EquipSet& set) const {
   for (const EquipSetMember& member : set.members()) {
     // A member names either the one item that fills it or the family any of
     // several items fill. Both count the same once one is on.
-    bool on = member.name().empty() ? !WornOfFamily(member.family()).empty()
-                                    : IsWearing(member.name());
+    bool on = member.has_family() ? !WornOfFamily(member.family()).empty()
+                                  : IsWearing(member.name());
     if (on) {
       ++worn;
     }

@@ -20,7 +20,7 @@
 namespace ms {
 
 int64_t GrantDrop(GameState& state, const MobDrop& drop, int64_t count) {
-  if (!drop.equip().empty()) {
+  if (drop.has_equip()) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         state.equips.find(drop.equip());
     if (it == state.equips.end()) {

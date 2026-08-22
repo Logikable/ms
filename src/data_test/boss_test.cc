@@ -169,9 +169,9 @@ TEST(BossDataTest, EveryDropNamesAnItem) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       for (const MobDrop& drop : difficulty.drops()) {
         ++drops;
-        EXPECT_NE(drop.item().empty(), drop.equip().empty())
-            << entry.first << " has a drop that is not one item or one equip";
-        if (drop.equip().empty()) {
+        EXPECT_NE(drop.drop_case(), MobDrop::DROP_NOT_SET)
+            << entry.first << " has a drop that names nothing";
+        if (!drop.has_equip()) {
           EXPECT_GT(items.count(drop.item()), 0u)
               << entry.first << " drops \"" << drop.item()
               << "\", which no item file defines";

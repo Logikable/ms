@@ -141,7 +141,7 @@ int Pdr(const Catalogs& catalogs, const BossDifficulty& difficulty) {
 std::set<std::string> OwnDrops(const BossDifficulty& difficulty) {
   std::set<std::string> keys;
   for (const MobDrop& drop : difficulty.drops()) {
-    if (!drop.equip().empty()) {
+    if (drop.has_equip()) {
       keys.insert(drop.equip());
     }
   }

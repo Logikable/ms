@@ -350,7 +350,7 @@ void BossSelectPanel::RenderPhaseHp(std::vector<ftxui::Element>& rows,
 }
 
 std::string BossSelectPanel::RewardName(const MobDrop& drop) const {
-  if (!drop.equip().empty()) {
+  if (drop.has_equip()) {
     std::map<std::string, EquipPrototype>::const_iterator it =
         state_.equips.find(drop.equip());
     return it == state_.equips.end() ? "" : it->second.name();

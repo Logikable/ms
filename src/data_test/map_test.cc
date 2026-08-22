@@ -72,11 +72,9 @@ TEST(MapDataTest, EveryDropNamesAnItem) {
   std::map<std::string, EquipPrototype> equips = LoadEquips();
   for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
     for (const MobDrop& drop : entry.second.drops()) {
-      // A drop names one catalog or the other, never both and never neither.
-      if (!drop.equip().empty()) {
-        EXPECT_TRUE(drop.item().empty())
-            << entry.first << " drops \"" << drop.equip()
-            << "\" as both an equip and a stackable";
+      EXPECT_NE(drop.drop_case(), MobDrop::DROP_NOT_SET)
+          << entry.first << " has a drop that names nothing";
+      if (drop.has_equip()) {
         EXPECT_GT(equips.count(drop.equip()), 0u)
             << entry.first << " drops \"" << drop.equip()
             << "\", which no equip file defines";
@@ -124,7 +122,7 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
     int level = entry.second.level();
     std::map<std::string, double> rates;
     for (const MobDrop& drop : entry.second.drops()) {
-      if (!drop.equip().empty()) {
+      if (drop.has_equip()) {
         rates[drop.equip()] = drop.per_kill();
       }
     }
@@ -174,7 +172,7 @@ TEST(MapDataTest, OnlyTheTokenBandDropsBothFrozenTokens) {
     int level = entry.second.level();
     std::map<std::string, double> rates;
     for (const MobDrop& drop : entry.second.drops()) {
-      if (!drop.item().empty()) {
+      if (drop.has_item()) {
         rates[drop.item()] = drop.per_kill();
       }
     }
