@@ -15,6 +15,7 @@
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/keybinds.pb.h"
 #include "src/protos/save.pb.h"
 
 namespace ms {
@@ -155,6 +156,22 @@ TEST_F(SaveTest, WritesAndReadsBackPlaytimeAndCreationTime) {
 
 // A fresh character is created now, not at the epoch -- the state stamps
 // itself, so there is a real date to show before the first save is written.
+TEST_F(SaveTest, WritesAndReadsBackKeybinds) {
+  std::unique_ptr<GameState> saved = MakeState();
+  Keybind* row = saved->keybinds.add_binds();
+  row->set_action(KEY_ACTION_UP);
+  row->add_keys("Up");
+  row->add_keys("W");
+  row->add_keys("");
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  ASSERT_EQ(loaded->keybinds.binds_size(), 1);
+  EXPECT_EQ(loaded->keybinds.binds(0).action(), KEY_ACTION_UP);
+  EXPECT_EQ(loaded->keybinds.binds(0).keys(1), "W");
+}
+
 TEST_F(SaveTest, ANewStateIsStampedWithTheCurrentTime) {
   std::int64_t before = static_cast<std::int64_t>(std::time(nullptr));
   std::unique_ptr<GameState> state = MakeState();

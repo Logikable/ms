@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package ms;
+
+// What a key press does, as the game reads it. Every key the player presses is
+// rewritten to one of these before any screen sees it, so a panel compares
+// against the action rather than against a key.
+enum KeyAction {
+  KEY_ACTION_UNSPECIFIED = 0;
+  KEY_ACTION_UP = 1;
+  KEY_ACTION_DOWN = 2;
+  KEY_ACTION_LEFT = 3;
+  KEY_ACTION_RIGHT = 4;
+  KEY_ACTION_CONFIRM = 5;
+  KEY_ACTION_CANCEL = 6;
+  KEY_ACTION_NEXT_PANEL = 7;
+  KEY_ACTION_PREV_PANEL = 8;
+}
+
+// One action and the keys that trigger it, in slot order. A key is stored by
+// the name the Keybinds screen knows it under -- "A", "Ctrl+A", "Page Down" --
+// so a save says what it means without the terminal's own bytes in it. A name
+// this build does not know is dropped on load, and an empty slot is an empty
+// string.
+message Keybind {
+  KeyAction action = 1;
+  repeated string keys = 2;
+}
+
+// Every binding the player has. The first key of every action is fixed, so a
+// save that has lost one still leaves the game playable.
+message Keybinds {
+  repeated Keybind binds = 1;
+}

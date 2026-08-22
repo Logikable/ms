@@ -3,6 +3,7 @@ syntax = "proto3";
 package ms;
 
 import "src/protos/character.proto";
+import "src/protos/keybinds.proto";
 
 // A player's saved game: everything a launch needs to put them back where they
 // left off. Written as binary proto rather than text -- not as protection, but
@@ -34,4 +35,8 @@ message SaveGame {
   // disk; the running total is kept as a double so that accumulating it a
   // fraction of a second at a time does not truncate away most of it.
   int64 playtime_seconds = 5;
+
+  // What the player has bound their keys to. A save written before the field
+  // existed loads as the default bindings.
+  Keybinds keybinds = 6;
 }

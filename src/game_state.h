@@ -17,6 +17,7 @@
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
+#include "src/protos/keybinds.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
@@ -128,6 +129,10 @@ struct GameState {
   // frontend's tick from a monotonic clock, so changing the system time or
   // crossing a daylight-saving boundary neither grants nor takes playtime.
   double playtime_seconds = 0.0;
+
+  // What the player has bound their keys to. Held as the proto the save
+  // carries; the frontend's KeyMap reads and writes it.
+  Keybinds keybinds;
 };
 
 }  // namespace ms

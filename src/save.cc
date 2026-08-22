@@ -60,6 +60,7 @@ bool SaveGameToFile(const GameState& state, const std::string& path) {
   save.set_current_map(state.current_map);
   save.set_created_unix_seconds(state.created_unix_seconds);
   save.set_playtime_seconds(static_cast<int64_t>(state.playtime_seconds));
+  *save.mutable_keybinds() = state.keybinds;
 
   std::string bytes;
   if (!save.SerializeToString(&bytes)) {
@@ -133,6 +134,9 @@ LoadResult LoadGameFromFile(GameState& state, const std::string& path) {
   if (save.created_unix_seconds() != 0) {
     state.created_unix_seconds = save.created_unix_seconds();
   }
+  // A save from before the field existed carries nothing here, which the
+  // frontend reads as the default bindings.
+  state.keybinds = save.keybinds();
   return {LoadStatus::kLoaded, ""};
 }
 

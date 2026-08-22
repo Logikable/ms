@@ -39,6 +39,16 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "keybinds_proto",
+    srcs = ["keybinds.proto"],
+)
+
+cc_proto_library(
+    name = "keybinds_proto_cc",
+    deps = [":keybinds_proto"],
+)
+
+proto_library(
     name = "boss_proto",
     srcs = ["boss.proto"],
     deps = [":mob_proto"],
@@ -111,7 +121,10 @@ cc_proto_library(
 proto_library(
     name = "save_proto",
     srcs = ["save.proto"],
-    deps = [":character_proto"],
+    deps = [
+        ":character_proto",
+        ":keybinds_proto",
+    ],
 )
 
 cc_proto_library(

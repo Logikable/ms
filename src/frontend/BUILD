@@ -34,6 +34,27 @@ cc_test(
 )
 
 cc_library(
+    name = "keybinds",
+    srcs = ["keybinds.cc"],
+    hdrs = ["keybinds.h"],
+    deps = [
+        "//src/protos:keybinds_proto_cc",
+        "@ftxui//:component",
+    ],
+)
+
+cc_test(
+    name = "keybinds_test",
+    srcs = ["keybinds_test.cc"],
+    deps = [
+        ":keybinds",
+        "//src/protos:keybinds_proto_cc",
+        "@ftxui//:component",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "tui_controller",
     srcs = ["tui_controller.cc"],
     hdrs = ["tui_controller.h"],
