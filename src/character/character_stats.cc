@@ -49,12 +49,12 @@ bool GrantsSkillLevels(const Skill& skill) {
   return skill.base().skill_level_bonus() > 0.0;
 }
 
-// A fountain whose pour grows with the character's INT: the rate one helping
-// comes to, and the INT that buys another. Held per skill rather than summed,
-// because two granting different steps cannot share one -- and what the total
-// INT is cannot be known until every passive has been read.
-struct IntScaledRegen {
-  double pct_per_second = 0.0;
+// A fountain as its own skill wrote it, before the character's INT has had
+// its say. The step is the INT that buys one more helping, 0 for a pour that
+// does not grow -- kept here because what the total INT is cannot be known
+// until every passive has been read.
+struct RawRegen {
+  RegenPulse pulse;
   double int_step = 0.0;
 };
 
@@ -87,9 +87,8 @@ struct PassiveTotals {
   double mastery = 0.0;
   double hp_recover_pct = 0.0;
   double exp_pct = 0.0;
-  double regen_pct_per_second = 0.0;
-  // Holy Water's: the extra helpings its INT buys, one entry per skill.
-  std::vector<IntScaledRegen> int_scaled_regen;
+  // One entry per skill granting a fountain, in catalog order.
+  std::vector<RawRegen> regen;
   double status_resistance = 0.0;
   double elemental_resistance = 0.0;
   // One per skill granting one, in catalog order. Two that follow the same
@@ -187,21 +186,14 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.hp_recover_pct +=
       base.hp_recover_pct() + per.hp_recover_pct() * (level - 1);
   totals.exp_pct += base.exp_pct() + per.exp_pct() * (level - 1);
-  // What reaches the fight is the rate, so the pulse and its interval are read
-  // together here and never separately.
+  // The pulse and its interval stay apart all the way to the fight, which
+  // pours on the clock rather than smearing it over the seconds between.
   double regen_interval = base.regen_interval_seconds() +
                           per.regen_interval_seconds() * (level - 1);
-  if (regen_interval > 0.0) {
-    double rate =
-        (base.regen_pct() + per.regen_pct() * (level - 1)) / regen_interval;
-    totals.regen_pct_per_second += rate;
-    // A fountain that pours harder for a clever character. The rate is
-    // recorded a second time here, because what the INT buys is more of the
-    // same helping -- see DerivedStatsFor.
+  double regen_pct = base.regen_pct() + per.regen_pct() * (level - 1);
+  if (regen_interval > 0.0 && regen_pct > 0.0) {
     double step = base.regen_int_step() + per.regen_int_step() * (level - 1);
-    if (step > 0.0) {
-      totals.int_scaled_regen.push_back(IntScaledRegen{rate, step});
-    }
+    totals.regen.push_back(RawRegen{{regen_pct, regen_interval}, step});
   }
   totals.status_resistance +=
       base.status_resistance() + per.status_resistance() * (level - 1);
@@ -678,15 +670,18 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.hp_recover_pct = passives.hp_recover_pct;
   stats.revive_cooldown_seconds = passives.revive_cooldown_seconds;
   stats.exp_pct = passives.exp_pct;
-  // A fountain pours one more helping per whole step of INT, so Holy Water is
-  // worth twice its stated rate at 2500 and three times it at 5000. Charged
-  // against the character's WHOLE INT -- what a ring grants and what Maple
-  // Warrior grants back count the same as what AP bought.
+  // A fountain pours one more helping per whole step of INT, so Holy Water
+  // puts back twice its stated share at 2500 and three times it at 5000. The
+  // helping grows; the clock does not. Charged against the character's WHOLE
+  // INT -- what a ring grants and what Maple Warrior grants back count the
+  // same as what AP bought.
   int total_int = allocated.int_() + equipped.int_() + passives.int_;
-  stats.regen_pct_per_second = passives.regen_pct_per_second;
-  for (const IntScaledRegen& source : passives.int_scaled_regen) {
-    stats.regen_pct_per_second +=
-        source.pct_per_second * std::floor(total_int / source.int_step);
+  for (const RawRegen& source : passives.regen) {
+    RegenPulse pulse = source.pulse;
+    if (source.int_step > 0.0) {
+      pulse.pct *= 1.0 + std::floor(total_int / source.int_step);
+    }
+    stats.regen_pulses.push_back(pulse);
   }
   stats.status_resistance = passives.status_resistance;
   stats.elemental_resistance = passives.elemental_resistance;

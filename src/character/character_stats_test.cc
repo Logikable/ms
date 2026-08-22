@@ -1617,10 +1617,9 @@ TEST_F(DerivedStatsTest, BossDamageSumsAcrossPassives) {
   EXPECT_NEAR(DerivedStatsFor(c, skills).boss_pct, 0.15, 1e-9);
 }
 
-// Holy Fountain states a pulse and a wait. What the fight can use is neither
-// on its own -- both halves move with the level, and only their quotient says
-// what a point bought.
-TEST_F(DerivedStatsTest, AFountainFoldsToARatePerSecond) {
+// Holy Fountain states a pulse and a wait, and both halves move with the
+// level. They reach the fight apart, so it can pour on the clock.
+TEST_F(DerivedStatsTest, AFountainKeepsItsPulseAndItsInterval) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill fountain;
   fountain.set_name("Holy Fountain");
@@ -1634,11 +1633,16 @@ TEST_F(DerivedStatsTest, AFountainFoldsToARatePerSecond) {
   std::map<std::string, Skill> skills = {{"holy_fountain", fountain}};
 
   ASSERT_TRUE(c.LearnSkill(fountain, 1));
-  EXPECT_NEAR(DerivedStatsFor(c, skills).regen_pct_per_second, 0.13 / 7.5,
-              1e-9);
+  std::vector<RegenPulse> pulses = DerivedStatsFor(c, skills).regen_pulses;
+  ASSERT_EQ(pulses.size(), 1);
+  EXPECT_NEAR(pulses[0].pct, 0.13, 1e-9);
+  EXPECT_NEAR(pulses[0].interval_seconds, 7.5, 1e-9);
+
   ASSERT_TRUE(c.LearnSkill(fountain, 9));  // up to its master level
-  EXPECT_NEAR(DerivedStatsFor(c, skills).regen_pct_per_second, 0.40 / 3.0,
-              1e-9);
+  pulses = DerivedStatsFor(c, skills).regen_pulses;
+  ASSERT_EQ(pulses.size(), 1);
+  EXPECT_NEAR(pulses[0].pct, 0.40, 1e-9);
+  EXPECT_NEAR(pulses[0].interval_seconds, 3.0, 1e-9);
 }
 
 // Holy Water's shape: the same pulse again for every whole step of INT the
@@ -1665,25 +1669,60 @@ TEST_F(DerivedStatsTest, AFountainCanPourHarderForACleverCharacter) {
 
   CharacterInstance dim = MakeStatCharacter(rng_, 0, 0, 2499, 0);
   ASSERT_TRUE(dim.LearnSkill(water, 10));
-  EXPECT_NEAR(DerivedStatsFor(dim, skills).regen_pct_per_second, 0.05 / 10.0,
-              1e-9);
+  std::vector<RegenPulse> pulses = DerivedStatsFor(dim, skills).regen_pulses;
+  ASSERT_EQ(pulses.size(), 1);
+  EXPECT_NEAR(pulses[0].pct, 0.05, 1e-9);
 
+  // The helping grows and the clock does not, so a clever character is healed
+  // in bigger pulses rather than more frequent ones.
   CharacterInstance clever = MakeStatCharacter(rng_, 0, 0, 5000, 0);
   ASSERT_TRUE(clever.LearnSkill(water, 10));
-  EXPECT_NEAR(DerivedStatsFor(clever, skills).regen_pct_per_second,
-              3.0 * 0.05 / 10.0, 1e-9);
+  pulses = DerivedStatsFor(clever, skills).regen_pulses;
+  ASSERT_EQ(pulses.size(), 1);
+  EXPECT_NEAR(pulses[0].pct, 3.0 * 0.05, 1e-9);
+  EXPECT_NEAR(pulses[0].interval_seconds, 10.0, 1e-9);
 
   // The last 1000 points come from a skill rather than from AP, and buy the
   // same helping: a fold reading the allocation alone would stop at two.
   CharacterInstance granted = MakeStatCharacter(rng_, 0, 0, 4000, 0);
   ASSERT_TRUE(granted.LearnSkill(water, 10));
   ASSERT_TRUE(granted.LearnSkill(wisdom, 1));
-  EXPECT_NEAR(DerivedStatsFor(granted, skills).regen_pct_per_second,
-              3.0 * 0.05 / 10.0, 1e-9);
+  pulses = DerivedStatsFor(granted, skills).regen_pulses;
+  ASSERT_EQ(pulses.size(), 1);
+  EXPECT_NEAR(pulses[0].pct, 3.0 * 0.05, 1e-9);
 }
 
-// A fountain with no wait between its pulses would divide by nothing, so it
-// grants nothing rather than an infinity.
+// A Bishop carries three, on three different clocks. They stay apart rather
+// than summing into one, since no single interval could describe them.
+TEST_F(DerivedStatsTest, TwoFountainsKeepTheirOwnClocks) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill fountain;
+  fountain.set_name("Holy Fountain");
+  fountain.set_kind(SKILL_KIND_PASSIVE);
+  fountain.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  fountain.set_max_level(10);
+  fountain.mutable_base()->set_regen_pct(0.13);
+  fountain.mutable_base()->set_regen_interval_seconds(7.5);
+  Skill infinity;
+  infinity.set_name("Infinity");
+  infinity.set_kind(SKILL_KIND_PASSIVE);
+  infinity.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  infinity.set_max_level(10);
+  infinity.mutable_base()->set_regen_pct(0.10);
+  infinity.mutable_base()->set_regen_interval_seconds(5.0);
+  std::map<std::string, Skill> skills = {{"holy_fountain", fountain},
+                                         {"infinity", infinity}};
+
+  ASSERT_TRUE(c.LearnSkill(fountain, 1));
+  ASSERT_TRUE(c.LearnSkill(infinity, 1));
+  std::vector<RegenPulse> pulses = DerivedStatsFor(c, skills).regen_pulses;
+  ASSERT_EQ(pulses.size(), 2);
+  EXPECT_NEAR(pulses[0].interval_seconds, 7.5, 1e-9);
+  EXPECT_NEAR(pulses[1].interval_seconds, 5.0, 1e-9);
+}
+
+// A fountain with no wait between its pulses says nothing about when to pour,
+// so it grants nothing.
 TEST_F(DerivedStatsTest, AFountainWithNoIntervalGrantsNothing) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill fountain;
@@ -1695,7 +1734,7 @@ TEST_F(DerivedStatsTest, AFountainWithNoIntervalGrantsNothing) {
   std::map<std::string, Skill> skills = {{"holy_fountain", fountain}};
   ASSERT_TRUE(c.LearnSkill(fountain, 1));
 
-  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).regen_pct_per_second, 0.0);
+  EXPECT_TRUE(DerivedStatsFor(c, skills).regen_pulses.empty());
 }
 
 // High Wisdom grants the magician's own stat. It reaches the stat line like

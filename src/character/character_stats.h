@@ -79,6 +79,14 @@ struct FreezeStacks {
   int cap = 0;
 };
 
+// One fountain's pour: the share of the HP pool it puts back, and how far
+// apart its pulses fall. Held per skill rather than summed, because two
+// pouring on different clocks cannot share one.
+struct RegenPulse {
+  double pct = 0.0;
+  double interval_seconds = 0.0;
+};
+
 struct DerivedStats {
   int max_hp = 0;
   int max_mp = 0;
@@ -120,10 +128,10 @@ struct DerivedStats {
   // Extra EXP every kill yields, summed. Unlike everything else here it is
   // read outside a fight -- see AwardCombatRewards.
   double exp_pct = 0.0;
-  // Share of the HP pool a fountain puts back every second: one pulse divided
-  // by how far apart the pulses are, summed across whatever grants it. Costs
-  // no swing and needs no hit, unlike hp_recover_pct above.
-  double regen_pct_per_second = 0.0;
+  // The fountains the character carries, one per skill granting one. Each
+  // pours on its own clock. Costs no swing and needs no hit, unlike
+  // hp_recover_pct above.
+  std::vector<RegenPulse> regen_pulses;
   // Resistance to abnormal statuses and to elemental damage. Nothing inflicts
   // either, so these reach the stats page and go no further.
   double status_resistance = 0.0;
