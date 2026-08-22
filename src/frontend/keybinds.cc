@@ -119,10 +119,13 @@ void KeyCatalog::AddLetters() {
     std::string ctrl(1, static_cast<char>(lower - 'a' + 1));
     if (lower != 'c') {
       Add(ctrl, "Ctrl" + upper, "Ctrl+" + upper);
-      Add("\x1b" + ctrl, "CtrlAlt" + upper, "Ctrl+Alt+" + upper);
+      // Two modifiers are written as their initials, in Ctrl-Shift-Alt order:
+      // spelling both out gives one key a label wider than the column it
+      // shares with two others.
+      Add("\x1b" + ctrl, "CtrlAlt" + upper, "CA+" + upper);
     }
     Add("\x1b" + std::string(1, lower), "Alt" + upper, "Alt+" + upper);
-    Add("\x1b" + upper, "AltShift" + upper, "Alt+Shift+" + upper);
+    Add("\x1b" + upper, "AltShift" + upper, "SA+" + upper);
   }
 }
 

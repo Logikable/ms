@@ -96,11 +96,14 @@ TEST(KeyMapTest, ModifiersAndLettersReadAsTheyArePrinted) {
   keys.Bind(KEY_ACTION_LEFT, 1, ftxui::Event::AltA);
   keys.Bind(KEY_ACTION_RIGHT, 1, ftxui::Event::CtrlAltA);
   keys.Bind(KEY_ACTION_CONFIRM, 2, ftxui::Event::a);
+  keys.Bind(KEY_ACTION_NEXT_PANEL, 1, ftxui::Event::Special("\x1bG"));
   EXPECT_EQ(keys.Label(KEY_ACTION_UP, 1), "Shift+A");
   EXPECT_EQ(keys.Label(KEY_ACTION_DOWN, 1), "Ctrl+A");
   EXPECT_EQ(keys.Label(KEY_ACTION_LEFT, 1), "Alt+A");
-  EXPECT_EQ(keys.Label(KEY_ACTION_RIGHT, 1), "Ctrl+Alt+A");
+  // Two modifiers are their initials, in Ctrl-Shift-Alt order.
+  EXPECT_EQ(keys.Label(KEY_ACTION_RIGHT, 1), "CA+A");
   EXPECT_EQ(keys.Label(KEY_ACTION_CONFIRM, 2), "A");
+  EXPECT_EQ(keys.Label(KEY_ACTION_NEXT_PANEL, 1), "SA+G");
   // Each of those is a key of its own.
   EXPECT_EQ(keys.Translate(ftxui::Event::A), ftxui::Event::ArrowUp);
   EXPECT_EQ(keys.Translate(ftxui::Event::a), ftxui::Event::Return);
