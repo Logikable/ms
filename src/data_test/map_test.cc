@@ -4,11 +4,14 @@
 // less than it looks like it should, and nothing says so.
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "src/frontend/screens/mob_inspect_panel.h"
+#include "src/frontend/widgets/panel_util.h"
 #include "src/proto_loader.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -249,6 +252,10 @@ TEST(MapDataTest, EveryMapMobIsDescribed) {
       EXPECT_FALSE(it->second.description().empty())
           << spawn.mob() << ", spawned by " << entry.first
           << ", has nothing to read on the inspect screen";
+      EXPECT_LE(WrapBalanced(it->second.description(), kFlavourWidth).size(),
+                static_cast<size_t>(kFlavourLines))
+          << spawn.mob() << "'s blurb overruns the block the inspect screen "
+          << "keeps for it, which would push its stats down the panel";
     }
   }
 }

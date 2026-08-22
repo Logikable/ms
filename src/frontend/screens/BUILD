@@ -477,6 +477,40 @@ cc_test(
 )
 
 cc_library(
+    name = "mob_inspect_panel",
+    srcs = ["mob_inspect_panel.cc"],
+    hdrs = ["mob_inspect_panel.h"],
+    deps = [
+        "//src:game_state",
+        "//src:spawn",
+        "//src/combat:loot",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_util",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "mob_inspect_panel_test",
+    srcs = ["mob_inspect_panel_test.cc"],
+    deps = [
+        ":mob_inspect_panel",
+        "//src:game_state",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "map_select_panel",
     srcs = ["map_select_panel.cc"],
     hdrs = ["map_select_panel.h"],
