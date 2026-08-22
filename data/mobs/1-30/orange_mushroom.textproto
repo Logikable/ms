@@ -4,3 +4,4 @@ attack: 41
 max_hp: 125
 exp: 17
 drops { item: "orange_mushroom_caps" per_kill: 0.4 }
+description: "They bounce from place to place in search for new food to eat. Unfortunately for them, they're quite delicious, and they often end up as an ingredient in Mushroom Candy and Mushroom Stew."

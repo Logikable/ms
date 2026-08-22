@@ -235,5 +235,23 @@ TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
   }
 }
 
+// Every mob a map spawns is inspectable, and the inspect screen leads with its
+// bestiary blurb. The wiki writes none for Onyx Stonegar, and inventing one
+// would put words in the game's mouth that no source stands behind.
+TEST(MapDataTest, EveryMapMobIsDescribed) {
+  std::map<std::string, Mob> mobs = LoadMobs();
+  for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
+    for (const Spawn& spawn : entry.second.spawns()) {
+      std::map<std::string, Mob>::const_iterator it = mobs.find(spawn.mob());
+      if (it == mobs.end() || spawn.mob() == "onyx_stonegar") {
+        continue;
+      }
+      EXPECT_FALSE(it->second.description().empty())
+          << spawn.mob() << ", spawned by " << entry.first
+          << ", has nothing to read on the inspect screen";
+    }
+  }
+}
+
 }  // namespace
 }  // namespace ms

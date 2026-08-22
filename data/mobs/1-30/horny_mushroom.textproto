@@ -4,3 +4,4 @@ attack: 51
 max_hp: 175
 exp: 21
 drops { item: "horny_mushroom_cap" per_kill: 0.4 }
+description: "This mushroom monster's cap is covered with horns, hence the name. It is now believed that Green Mushrooms that eat certain herbs lose their poisons and grow horns."

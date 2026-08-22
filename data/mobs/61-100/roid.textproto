@@ -8,3 +8,4 @@ drops { equip: "frozen_top" per_kill: 0.0001 }
 drops { equip: "frozen_bottom" per_kill: 0.0001 }
 drops { equip: "frozen_hat" per_kill: 0.0001 }
 drops { equip: "frozen_cape" per_kill: 0.00025 }
+description: "A robot built by Magatian alchemists. Don't let its size deceive you, as its tiny intricate components work together to boost its power greatly."

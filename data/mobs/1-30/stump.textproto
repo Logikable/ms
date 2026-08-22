@@ -4,3 +4,4 @@ attack: 87
 max_hp: 375
 exp: 35
 drops { item: "tree_branch" per_kill: 0.4 }
+description: "A moving tree stump monster found in North Rocky Mountain. The single eyeball embedded in the center of its body is quite unsettling."

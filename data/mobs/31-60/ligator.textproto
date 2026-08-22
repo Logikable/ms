@@ -4,3 +4,4 @@ attack: 246
 max_hp: 5040
 exp: 139
 drops { item: "ligator_skin" per_kill: 0.4 }
+description: "This green, crocodile-like monster commonly inhabits swamps. Ligator Skin is tough and durable, making it a highly sought after crafting material for adventurers' equipment."

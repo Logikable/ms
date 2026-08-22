@@ -4,3 +4,4 @@ attack: 333
 max_hp: 11000
 exp: 233
 drops { item: "wooden_board" per_kill: 0.4 }
+description: "This goblin-like creature, who wears a wooden plank over its face, delights in startling people. Most likely, the construction site's evil ambient magic created this creature."

@@ -4,3 +4,4 @@ attack: 94
 max_hp: 405
 exp: 44
 drops { item: "firewood" per_kill: 0.4 }
+description: "A Stump with an axe embedded in its head. Its bark is even tougher than that of a regular Stump. There are many legends surrounding the Axe Stump."

@@ -4,3 +4,4 @@ attack: 3
 max_hp: 20
 exp: 4
 drops { item: "blue_snail_shell" per_kill: 0.4 }
+description: "This blue variant of the garden-variety Snail also makes its home on Maple Island and Victoria Island. The real question, however, is...why did it turn blue?"

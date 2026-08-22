@@ -4,3 +4,4 @@ attack: 76
 max_hp: 300
 exp: 30
 drops { item: "mixed_block" per_kill: 0.4 }
+description: "Formed from the mutated remains of Stone Golems and Dark Stone Golems, these strange constructs have the strength of both. It seems they are still drawn to guard the temples of their predecessors."

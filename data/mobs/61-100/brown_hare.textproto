@@ -7,3 +7,4 @@ drops { item: "carrot" per_kill: 0.4 }
 drops { equip: "frozen_top" per_kill: 0.0001 }
 drops { equip: "frozen_bottom" per_kill: 0.0001 }
 drops { equip: "frozen_hat" per_kill: 0.00025 }
+description: "A male Desert Rabbit found, as the name implies, in deserts. Its staple foods are the clovers and carrots that grow around oases. Desert nomads of old used to raise them as beloved pets."

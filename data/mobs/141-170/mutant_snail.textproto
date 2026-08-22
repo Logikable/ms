@@ -7,3 +7,4 @@ attack: 5514
 max_hp: 3675000
 exp: 16158
 drops { item: "mutant_snail_shell" per_kill: 0.4 }
+description: "This monster dwells near the ruins of Future Henesys. The Black Mage's influence has twisted both its form and demeanor. It appears as a blue snail riding atop an enlarged red snail."

@@ -56,4 +56,8 @@ message Mob {
   int32 pdr = 7;
   // True for bosses: they take 0.5x elemental base and are subject to boss%.
   bool boss = 8;
+  // What the bestiary says about it, adapted from the wiki's own archive
+  // entry. Empty for a mob the wiki writes nothing about; the inspect panel
+  // then shows no blurb at all rather than a made-up one.
+  string description = 9;
 }

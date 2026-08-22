@@ -4,3 +4,4 @@ attack: 2750
 max_hp: 915750
 exp: 6369
 drops { item: "blue_cloth" per_kill: 0.4 }
+description: "They serve Rhinne, the Goddess of Time. To keep their own hearts clear of regrets, they wear special blank-faced masks, which suppress all emotions."

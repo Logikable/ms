@@ -6,3 +6,4 @@ attack: 3591
 max_hp: 1748500
 exp: 9389
 drops { item: "broken_horn" per_kill: 0.4 }
+description: "A group of skeletons that belong to the dragon family. Skelegons can be found roaming around the dragon nests, unaware that they have died and have become Undeads."

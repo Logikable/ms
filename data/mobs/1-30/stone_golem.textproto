@@ -4,3 +4,4 @@ attack: 64
 max_hp: 250
 exp: 26
 drops { item: "stone_golem_rubble" per_kill: 0.4 }
+description: "A mass of animated rock that moves around a central core. These constructs were once found in the forests near dungeons, but over time they've moved south and are now found around Henesys."

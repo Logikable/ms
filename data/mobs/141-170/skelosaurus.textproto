@@ -5,3 +5,4 @@ attack: 4263
 max_hp: 2251300
 exp: 11608
 drops { item: "old_neck_bone" per_kill: 0.4 }
+description: "A group of skeletons that belong to the dragon family. Looking at the cane that they hold in one hand, they are suspected to have been a group of old veteran dragons."
