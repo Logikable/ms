@@ -467,5 +467,60 @@ TEST(BossRunTest, AChanceDropIsRolledFor) {
   EXPECT_LT(landed, 140);
 }
 
+// A landing on a monster leaves one stack against that monster, and nothing
+// is left against a monster nothing hit.
+TEST(BossRunTest, ASwingLeavesAStackOnWhatItHit) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossRun run("zakum", boss, 0);
+  EXPECT_TRUE(run.damage_stacks().empty()) << "nothing has swung yet";
+
+  run.Advance(*state, kBossCountdownSeconds + 1.0);
+  ASSERT_FALSE(run.damage_stacks().empty());
+  ASSERT_FALSE(run.slots().empty());
+  for (const DamageStack& stack : run.damage_stacks()) {
+    EXPECT_EQ(stack.mob_id, run.slots()[0].id) << "one arm was in reach";
+    EXPECT_FALSE(stack.lines.empty());
+    for (const DamageNumber& line : stack.lines) {
+      EXPECT_GE(line.damage, 1);
+    }
+  }
+}
+
+// The numbers are an animation: they age off on their own, whether or not
+// anything else is happening.
+TEST(BossRunTest, AStackFadesAfterItsTime) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1);
+  Boss boss = TwoPhaseBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds + 1.0);
+  ASSERT_FALSE(run.damage_stacks().empty());
+
+  run.Advance(*state, kDamageStackSeconds);
+  for (const DamageStack& stack : run.damage_stacks()) {
+    EXPECT_LT(stack.age, kDamageStackSeconds);
+  }
+}
+
+// A phase turning over takes the numbers with it: the ids they name belong to
+// the encounter that handed them out, and the arena is a different one.
+TEST(BossRunTest, APhaseChangeClearsTheNumbers) {
+  std::unique_ptr<GameState> state = MakeState(1, 1000000);
+  Boss boss = TwoPhaseBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  for (int i = 0; i < 200 && run.phase() == 1; ++i) {
+    run.Advance(*state, 0.1);
+  }
+  ASSERT_EQ(run.phase(), 2);
+
+  // Whatever is on screen belongs to the phase being fought. The arms left
+  // numbers, and none of them survived the turnover.
+  ASSERT_FALSE(run.slots().empty());
+  for (const DamageStack& stack : run.damage_stacks()) {
+    EXPECT_EQ(stack.mob_id, run.slots()[0].id);
+  }
+}
+
 }  // namespace
 }  // namespace ms

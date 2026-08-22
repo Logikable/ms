@@ -1068,6 +1068,8 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
   AddAttacks(state, derived, *weapon, 1.0, params);
+  // The boss screen draws every line as a number, which the map does not.
+  params.record_damage_lines = true;
   params.active = true;
   return params;
 }

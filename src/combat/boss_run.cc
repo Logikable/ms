@@ -1,6 +1,7 @@
 #include "src/combat/boss_run.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <map>
 #include <string>
@@ -210,6 +211,45 @@ void BossRun::Finish(BossRunState outcome) {
   hold_left_ = outcome == BossRunState::kAborted ? 0.0 : kBossEndHoldSeconds;
 }
 
+void BossRun::AgeDamageStacks(double dt) {
+  std::vector<DamageStack> live;
+  live.reserve(damage_stacks_.size());
+  for (DamageStack& stack : damage_stacks_) {
+    stack.age += dt;
+    if (stack.age < kDamageStackSeconds) {
+      live.push_back(std::move(stack));
+    }
+  }
+  damage_stacks_ = std::move(live);
+}
+
+void BossRun::CollectDamageStacks() {
+  const std::vector<DamageLine>& lines = sim_.damage_lines_this_step();
+  // The lines of one landing arrive together, so a run of them under one event
+  // is the stack. Nothing here sorts: the order they landed in is the order
+  // they are read down the screen.
+  std::uniform_int_distribution<int> side(0, 3);
+  for (std::size_t i = 0; i < lines.size();) {
+    DamageStack stack;
+    stack.mob_id = lines[i].mob_id;
+    stack.preference = side(rng_);
+    int event = lines[i].event;
+    for (; i < lines.size() && lines[i].event == event; ++i) {
+      // Rounded up off zero: a line that landed at all is worth a 1 rather
+      // than a number that says nothing happened.
+      int64_t damage = static_cast<int64_t>(std::llround(lines[i].damage));
+      stack.lines.push_back({std::max<int64_t>(1, damage), lines[i].crit});
+    }
+    damage_stacks_.push_back(std::move(stack));
+  }
+  if (static_cast<int>(damage_stacks_.size()) > kMaxDamageStacks) {
+    damage_stacks_.erase(
+        damage_stacks_.begin(),
+        damage_stacks_.begin() +
+            (static_cast<int>(damage_stacks_.size()) - kMaxDamageStacks));
+  }
+}
+
 void BossRun::SyncSlots(double dt) {
   const std::vector<MobStatus>& roster = sim_.roster();
   if (slots_.empty()) {
@@ -267,6 +307,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
     return;
   }
   AdvanceCombat(state, sim_, params, dt);
+  CollectDamageStacks();
   SyncSlots(dt);
   ComputePhaseHp(params);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
@@ -316,6 +357,10 @@ void BossRun::Advance(GameState& state, double elapsed_seconds) {
     return;
   }
   double dt = std::max(0.0, elapsed_seconds);
+  // Ahead of everything, and whatever the run is doing: the numbers left by
+  // the swing that ended a phase should fade out over the gap rather than
+  // hang there until the next phase lands one.
+  AgeDamageStacks(dt);
   if (state_ == BossRunState::kCountdown) {
     // The monsters are on screen before the count-in starts: what the player
     // is about to fight is the whole point of being given three seconds.
@@ -347,6 +392,9 @@ void BossRun::Advance(GameState& state, double elapsed_seconds) {
       }
       ++phase_;
       slots_.clear();
+      // A monster id means nothing outside the encounter that handed it out,
+      // and the arena is a different one anyway.
+      damage_stacks_.clear();
       StandPlayerAtStart();
       state_ = BossRunState::kFighting;
       RunPhase(state, -hold_left_);

@@ -15,6 +15,7 @@
 #define MS_SRC_COMBAT_BOSS_RUN_H_
 
 #include <cstdint>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -37,6 +38,35 @@ inline constexpr double kBossPhaseGapSeconds = 2.0;
 // takes no hold at all: the player asked to leave, and there is nothing left
 // on screen for them to watch.
 inline constexpr double kBossEndHoldSeconds = 1.0;
+
+// How long a stack of damage numbers stays on screen.
+inline constexpr double kDamageStackSeconds = 0.9;
+// The most stacks held at once. A generous ceiling on a phase of ten bars,
+// there so a fight cannot grow the list without bound if one is ever drawn
+// slower than the swings arrive. The oldest go first.
+inline constexpr int kMaxDamageStacks = 64;
+
+// One number a landing left behind.
+struct DamageNumber {
+  int64_t damage = 0;
+  bool crit = false;
+};
+
+// One stack of numbers: what one attack landed on one monster, in the order
+// the lines landed. A stack is drawn whole or not at all -- what a cramped
+// corner costs is the rows furthest from the monster, not the stack.
+struct DamageStack {
+  // The slot that took it, by the id a slot keeps for its whole life.
+  int mob_id = 0;
+  std::vector<DamageNumber> lines;
+  // Seconds it has been on screen. Real ones: it is an animation, and the
+  // game's pacing band has no business stretching it.
+  double age = 0.0;
+  // Which side of the bar the arena should try first, drawn when the stack was
+  // made. Drawn once rather than per frame, or a stack that has not changed
+  // would move every time it was redrawn.
+  int preference = 0;
+};
 
 // One line of what a clear paid: an item's display name and how many of it
 // reached the bag.
@@ -159,6 +189,10 @@ class BossRun {
   const std::vector<BossSlot>& slots() const {
     return slots_;
   }
+  // The damage numbers still on screen, oldest first.
+  const std::vector<DamageStack>& damage_stacks() const {
+    return damage_stacks_;
+  }
   // Where the player stands in the current phase -- where they have walked
   // to, not where the phase put them -- and how many cells the arena holds
   // around everyone. Both are measured off the spots when the
@@ -181,6 +215,10 @@ class BossRun {
   const BossDifficulty* difficulty() const;
   // The phase being fought, or null once the run is over.
   const BossPhase* current_phase() const;
+  // Ages the stacks of numbers by dt and drops the ones whose time is up.
+  void AgeDamageStacks(double dt);
+  // Turns what the fight just landed into stacks, one per attack per monster.
+  void CollectDamageStacks();
   // Rebuilds the bars from the fight's roster: what is still standing keeps
   // its bar, and what has gone starts fading in the slot it held.
   void SyncSlots(double dt);
@@ -218,6 +256,10 @@ class BossRun {
   // none, whose player never leaves the spot it wrote down.
   int player_at_ = -1;
   std::vector<BossSlot> slots_;
+  std::vector<DamageStack> damage_stacks_;
+  // Picks which side of a bar each stack asks for. Default-seeded, so a run
+  // plays out the same way twice and a test can say where a stack went.
+  std::mt19937 rng_;
   BossReward reward_;
   CombatSim sim_;
 };
