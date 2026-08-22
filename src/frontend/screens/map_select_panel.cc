@@ -14,6 +14,7 @@
 #include "src/map_level.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/spawn.h"
 
 namespace ms {
 namespace {
@@ -224,7 +225,7 @@ ftxui::Element MapSelectPanel::RenderMobTable() const {
       const Mob& mob = it->second;
       std::string row = " " + PadRight(mob.name(), kMobNameWidth);
       row += PadRight(std::to_string(mob.level()), kLevelWidth);
-      row += PadRight(std::to_string(spawn.count()), kCountWidth);
+      row += PadRight(std::to_string(SpawnCount(spawn)), kCountWidth);
       rows.push_back(ftxui::text(row));
       ++shown;
     }

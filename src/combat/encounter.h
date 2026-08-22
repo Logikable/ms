@@ -28,6 +28,11 @@ namespace ms {
 struct CombatType {
   const Mob* mob = nullptr;
   int simultaneous = 0;  // how many spawn at once (spawn_count / type count)
+  // Where each of them stands, for a boss arena that drew them a place. Empty
+  // on a map. Carried here rather than read back off the phase because a
+  // spawn whose mob the catalog does not hold never becomes a type, and an
+  // index into the phase would slide every part after it onto the wrong cell.
+  std::vector<ArenaSpot> spots;
   // Expected damage one hit from this mob does to the player, already through
   // their DEF. Held per type rather than per mob because every member of a
   // type hits alike.

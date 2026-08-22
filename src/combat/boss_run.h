@@ -228,6 +228,9 @@ class BossRun {
   // Puts `stack` on screen in place of whatever its source last left on the
   // same monster.
   void Replace(DamageStack stack);
+  // Draws a bar per monster of a phase just started, each on the spot its
+  // spawn named for it.
+  void FillSlots(const CombatParams& params);
   // Rebuilds the bars from the fight's roster: what is still standing keeps
   // its bar, and what has gone starts fading in the slot it held.
   void SyncSlots(double dt);

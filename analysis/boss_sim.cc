@@ -52,6 +52,7 @@
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/spawn.h"
 
 ABSL_FLAG(std::string, boss, "hilla", "Which fight, by data file stem.");
 ABSL_FLAG(std::string, difficulty, "",
@@ -112,7 +113,7 @@ int64_t TotalHp(const Catalogs& catalogs, const BossDifficulty& difficulty) {
       std::map<std::string, Mob>::const_iterator it =
           catalogs.mobs.find(spawn.mob());
       if (it != catalogs.mobs.end()) {
-        hp += static_cast<int64_t>(spawn.count()) * it->second.max_hp();
+        hp += static_cast<int64_t>(SpawnCount(spawn)) * it->second.max_hp();
       }
     }
   }
@@ -158,7 +159,7 @@ int ObjectivePhase(const Catalogs& catalogs, const BossDifficulty& difficulty) {
       std::map<std::string, Mob>::const_iterator it =
           catalogs.mobs.find(spawn.mob());
       if (it != catalogs.mobs.end()) {
-        hp += static_cast<int64_t>(spawn.count()) * it->second.max_hp();
+        hp += static_cast<int64_t>(SpawnCount(spawn)) * it->second.max_hp();
       }
     }
     if (hp > most) {
@@ -179,7 +180,7 @@ double Rate(const GameState& state, const std::string& boss_key,
   }
   int enemies = 0;
   for (const Spawn& spawn : difficulty.phases(phase).spawns()) {
-    enemies += spawn.count();
+    enemies += SpawnCount(spawn);
   }
   Sequence played = PlaySwings(params, kTrySeconds, std::max(1, enemies));
   double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;

@@ -34,19 +34,17 @@ Boss TwoPhaseBoss(int time_limit = 300) {
   normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(time_limit);
   BossPhase* first = normal->add_phases();
+  Spawn* arms = first->add_spawns();
+  arms->set_mob("arm");
   for (int i = 0; i < 2; ++i) {
-    Spawn* arm = first->add_spawns();
-    arm->set_mob("arm");
-    arm->set_count(1);
-    first->add_spots()->set_x(i * 4);
+    arms->add_spots()->set_x(i * 4);
   }
   first->mutable_player()->set_x(2);
   first->mutable_player()->set_y(1);
   BossPhase* second = normal->add_phases();
   Spawn* body = second->add_spawns();
   body->set_mob("body");
-  body->set_count(1);
-  second->add_spots()->set_x(2);
+  body->add_spots()->set_x(2);
   second->mutable_player()->set_x(2);
   second->mutable_player()->set_y(1);
   return boss;

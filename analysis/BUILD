@@ -30,6 +30,7 @@ sim_binary(
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
+        "//src:spawn",
         "//src/character",
         "//src/character:character_stats",
         "//src/combat:boss_run",
@@ -153,6 +154,7 @@ sim_binary(
     deps = [
         "//src:embedded_data",
         "//src:proto_loader",
+        "//src:spawn",
         "//src/combat:constants",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",

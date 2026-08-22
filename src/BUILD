@@ -38,10 +38,17 @@ cc_library(
 )
 
 cc_library(
+    name = "spawn",
+    hdrs = ["spawn.h"],
+    deps = ["//src/protos:mob_proto_cc"],
+)
+
+cc_library(
     name = "map_level",
     srcs = ["map_level.cc"],
     hdrs = ["map_level.h"],
     deps = [
+        "//src:spawn",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
     ],

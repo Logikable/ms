@@ -33,6 +33,7 @@
 #include "src/proto_loader.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/spawn.h"
 
 ABSL_FLAG(bool, mobs, true, "Print the per-mob ladder.");
 ABSL_FLAG(bool, maps, true, "Print the per-map table.");
@@ -108,11 +109,11 @@ MapRow WeightMap(const MapData& map, const std::map<std::string, Mob>& mobs) {
     if (it == mobs.end()) {
       continue;
     }
-    row.spawns += spawn.count();
-    row.level += it->second.level() * spawn.count();
-    row.hp += it->second.max_hp() * spawn.count();
-    row.exp += it->second.exp() * spawn.count();
-    row.attack += it->second.attack() * spawn.count();
+    row.spawns += SpawnCount(spawn);
+    row.level += it->second.level() * SpawnCount(spawn);
+    row.hp += it->second.max_hp() * SpawnCount(spawn);
+    row.exp += it->second.exp() * SpawnCount(spawn);
+    row.attack += it->second.attack() * SpawnCount(spawn);
   }
   if (row.spawns > 0) {
     row.level /= row.spawns;

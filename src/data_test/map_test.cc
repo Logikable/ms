@@ -58,6 +58,9 @@ TEST(MapDataTest, EverySpawnNamesAMob) {
           << "file defines";
       EXPECT_GT(spawn.count(), 0)
           << entry.first << " spawns " << spawn.mob() << " zero times";
+      EXPECT_EQ(spawn.spots_size(), 0)
+          << entry.first << " stands " << spawn.mob()
+          << " on a spot, which only a boss arena has";
     }
   }
 }

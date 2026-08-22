@@ -12,24 +12,11 @@ enum ResetPeriod {
   RESET_PERIOD_WEEKLY = 2;
 }
 
-// Where one bar stands in the arena: a cell on a grid `arena_width` cells
-// across and `arena_height` down. Nothing here is a column count -- the arena
-// stretches to the screen it is drawn on, and what these say is which bars sit
-// further apart than which. The dragon's legs are under his wings because his
-// sprite puts them there, and the numbers here are what says so.
-message ArenaSpot {
-  int32 x = 1;
-  int32 y = 2;
-}
-
 // One stage of a boss fight. The next begins when the last mob of this one
 // dies, so a phase is over rather than on a clock.
 message BossPhase {
+  // What the phase fights, each spawn naming where its monsters stand.
   repeated Spawn spawns = 1;
-  // Where each spawn stands, one per spawn and in the same order. A spawn with
-  // a spot is one monster, since two sharing an index would stand in the same
-  // place; see src/data_test/boss_test.cc.
-  repeated ArenaSpot spots = 2;
   // Where the player starts. One of `player_spots` when the phase names any.
   ArenaSpot player = 3;
   // Everywhere the player may stand, this one included. A press moves to the

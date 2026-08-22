@@ -15,6 +15,7 @@
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/spawn.h"
 #include "tools/cpp/runfiles/runfiles.h"
 
 namespace ms {
@@ -62,8 +63,11 @@ TEST(BossDataTest, EveryPhaseSpawnsAKnownMob) {
           ASSERT_GT(mobs.count(spawn.mob()), 0u)
               << entry.first << " spawns \"" << spawn.mob()
               << "\", which no mob file defines";
-          EXPECT_GT(spawn.count(), 0)
+          EXPECT_GT(SpawnCount(spawn), 0)
               << entry.first << " spawns " << spawn.mob() << " zero times";
+          EXPECT_EQ(spawn.count(), 0)
+              << entry.first << " counts " << spawn.mob()
+              << " twice: a boss spawn is counted by its spots";
           EXPECT_TRUE(mobs.at(spawn.mob()).boss())
               << spawn.mob() << " is fought as a boss but is not marked one";
         }
@@ -147,7 +151,7 @@ TEST(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
     for (int i = 0; i < found->phases_size(); ++i) {
       int64_t hp = 0;
       for (const Spawn& spawn : found->phases(i).spawns()) {
-        hp += spawn.count() * mobs.at(spawn.mob()).max_hp();
+        hp += SpawnCount(spawn) * mobs.at(spawn.mob()).max_hp();
       }
       EXPECT_EQ(hp, want.phase_hp[i])
           << want.boss << " " << want.difficulty << " phase " << i + 1;
@@ -196,14 +200,12 @@ TEST(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
   EXPECT_EQ(normal.time_limit_seconds(), 300);
   ASSERT_EQ(normal.phases_size(), 2);
-  ASSERT_EQ(normal.phases(0).spawns_size(), 8);
-  for (const Spawn& arm : normal.phases(0).spawns()) {
-    EXPECT_EQ(arm.mob(), "zakum_arm");
-    EXPECT_EQ(arm.count(), 1);
-  }
+  ASSERT_EQ(normal.phases(0).spawns_size(), 1);
+  EXPECT_EQ(normal.phases(0).spawns(0).mob(), "zakum_arm");
+  EXPECT_EQ(SpawnCount(normal.phases(0).spawns(0)), 8);
   ASSERT_EQ(normal.phases(1).spawns_size(), 1);
   EXPECT_EQ(normal.phases(1).spawns(0).mob(), "zakum");
-  EXPECT_EQ(normal.phases(1).spawns(0).count(), 1);
+  EXPECT_EQ(SpawnCount(normal.phases(1).spawns(0)), 1);
   EXPECT_EQ(normal.meso(), 3062500);
   ASSERT_EQ(normal.drops_size(), 3);
   EXPECT_EQ(normal.drops(0).equip(), "aquatic_letter_eye_accessory");
@@ -222,18 +224,18 @@ TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       for (const BossPhase& phase : difficulty.phases()) {
         std::string where = entry.first + " " + difficulty.name();
-        ASSERT_EQ(phase.spots_size(), phase.spawns_size())
-            << where << " does not stand every spawn somewhere";
         std::map<int, std::vector<int>> rows;
-        for (int i = 0; i < phase.spots_size(); ++i) {
-          ++placed;
-          EXPECT_EQ(phase.spawns(i).count(), 1)
-              << where << " stands more than one monster in one spot";
-          EXPECT_LT(phase.spots(i).x(), phase.arena_width())
-              << where << " reaches past the right of its arena";
-          EXPECT_LT(phase.spots(i).y(), phase.arena_height())
-              << where << " reaches past the bottom of its arena";
-          rows[phase.spots(i).y()].push_back(phase.spots(i).x());
+        for (const Spawn& spawn : phase.spawns()) {
+          EXPECT_GT(spawn.spots_size(), 0)
+              << where << " does not stand " << spawn.mob() << " anywhere";
+          for (const ArenaSpot& spot : spawn.spots()) {
+            ++placed;
+            EXPECT_LT(spot.x(), phase.arena_width())
+                << where << " reaches past the right of its arena";
+            EXPECT_LT(spot.y(), phase.arena_height())
+                << where << " reaches past the bottom of its arena";
+            rows[spot.y()].push_back(spot.x());
+          }
         }
         for (const ArenaSpot& spot : phase.player_spots()) {
           rows[spot.y()].push_back(spot.x());

@@ -387,6 +387,7 @@ cc_library(
     hdrs = ["boss_select_panel.h"],
     deps = [
         "//src:game_state",
+        "//src:spawn",
         "//src/character:boss_reset",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",
@@ -424,6 +425,7 @@ cc_library(
     deps = [
         "//src:game_state",
         "//src:map_level",
+        "//src:spawn",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",
         "//src/protos:map_proto_cc",

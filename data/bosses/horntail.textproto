@@ -5,8 +5,7 @@ difficulties {
   # stands against the edge its name says, at the top of the arena, with the
   # player out at that same end of it rather than back in the middle.
   phases {
-    spawns { mob: "horntail_left_head" count: 1 }
-    spots { x: 8 y: 0 }
+    spawns { mob: "horntail_left_head" spots { x: 8 y: 0 } }
     # Under the head or across from it, at either end of the arena's height:
     # the far pair stands most of the way across the floor from the corner.
     player { x: 6 y: 0 }
@@ -18,8 +17,7 @@ difficulties {
     arena_height: 6
   }
   phases {
-    spawns { mob: "horntail_right_head" count: 1 }
-    spots { x: 0 y: 0 }
+    spawns { mob: "horntail_right_head" spots { x: 0 y: 0 } }
     # The same four, mirrored: this head stands in the other corner.
     player { x: 2 y: 0 }
     player_spots { x: 2 y: 0 }
@@ -33,22 +31,14 @@ difficulties {
   # a pair of hands and the wings, the legs and the tail beneath them, and the
   # player on the floor to the left of all of it.
   phases {
-    spawns { mob: "horntail_head_a" count: 1 }
-    spawns { mob: "horntail_head_b" count: 1 }
-    spawns { mob: "horntail_head_c" count: 1 }
-    spawns { mob: "horntail_left_hand" count: 1 }
-    spawns { mob: "horntail_wings" count: 1 }
-    spawns { mob: "horntail_right_hand" count: 1 }
-    spawns { mob: "horntail_legs" count: 1 }
-    spawns { mob: "horntail_tails" count: 1 }
-    spots { x: 2 y: 0 }
-    spots { x: 4 y: 0 }
-    spots { x: 6 y: 0 }
-    spots { x: 1 y: 2 }
-    spots { x: 4 y: 2 }
-    spots { x: 7 y: 2 }
-    spots { x: 4 y: 4 }
-    spots { x: 6 y: 4 }
+    spawns { mob: "horntail_head_a" spots { x: 2 y: 0 } }
+    spawns { mob: "horntail_head_b" spots { x: 4 y: 0 } }
+    spawns { mob: "horntail_head_c" spots { x: 6 y: 0 } }
+    spawns { mob: "horntail_left_hand" spots { x: 1 y: 2 } }
+    spawns { mob: "horntail_wings" spots { x: 4 y: 2 } }
+    spawns { mob: "horntail_right_hand" spots { x: 7 y: 2 } }
+    spawns { mob: "horntail_legs" spots { x: 4 y: 4 } }
+    spawns { mob: "horntail_tails" spots { x: 6 y: 4 } }
     # Down both edges of the arena, level with the heads, the hands and the
     # legs: the dragon fills the middle, so the player goes around him.
     player { x: 0 y: 4 }
@@ -95,8 +85,7 @@ difficulties {
 difficulties {
   name: "Chaos"
   phases {
-    spawns { mob: "chaos_horntail_left_head" count: 1 }
-    spots { x: 8 y: 0 }
+    spawns { mob: "chaos_horntail_left_head" spots { x: 8 y: 0 } }
     # Under the head or across from it, at either end of the arena's height:
     # the far pair stands most of the way across the floor from the corner.
     player { x: 6 y: 0 }
@@ -108,8 +97,7 @@ difficulties {
     arena_height: 6
   }
   phases {
-    spawns { mob: "chaos_horntail_right_head" count: 1 }
-    spots { x: 0 y: 0 }
+    spawns { mob: "chaos_horntail_right_head" spots { x: 0 y: 0 } }
     # The same four, mirrored: this head stands in the other corner.
     player { x: 2 y: 0 }
     player_spots { x: 2 y: 0 }
@@ -120,22 +108,14 @@ difficulties {
     arena_height: 6
   }
   phases {
-    spawns { mob: "chaos_horntail_head_a" count: 1 }
-    spawns { mob: "chaos_horntail_head_b" count: 1 }
-    spawns { mob: "chaos_horntail_head_c" count: 1 }
-    spawns { mob: "chaos_horntail_left_hand" count: 1 }
-    spawns { mob: "chaos_horntail_wings" count: 1 }
-    spawns { mob: "chaos_horntail_right_hand" count: 1 }
-    spawns { mob: "chaos_horntail_legs" count: 1 }
-    spawns { mob: "chaos_horntail_tails" count: 1 }
-    spots { x: 2 y: 0 }
-    spots { x: 4 y: 0 }
-    spots { x: 6 y: 0 }
-    spots { x: 1 y: 2 }
-    spots { x: 4 y: 2 }
-    spots { x: 7 y: 2 }
-    spots { x: 4 y: 4 }
-    spots { x: 6 y: 4 }
+    spawns { mob: "chaos_horntail_head_a" spots { x: 2 y: 0 } }
+    spawns { mob: "chaos_horntail_head_b" spots { x: 4 y: 0 } }
+    spawns { mob: "chaos_horntail_head_c" spots { x: 6 y: 0 } }
+    spawns { mob: "chaos_horntail_left_hand" spots { x: 1 y: 2 } }
+    spawns { mob: "chaos_horntail_wings" spots { x: 4 y: 2 } }
+    spawns { mob: "chaos_horntail_right_hand" spots { x: 7 y: 2 } }
+    spawns { mob: "chaos_horntail_legs" spots { x: 4 y: 4 } }
+    spawns { mob: "chaos_horntail_tails" spots { x: 6 y: 4 } }
     # Down both edges of the arena, level with the heads, the hands and the
     # legs: the dragon fills the middle, so the player goes around him.
     player { x: 0 y: 4 }

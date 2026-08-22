@@ -130,6 +130,7 @@ cc_library(
         ":constants",
         ":damage",
         "//src:game_state",
+        "//src:spawn",
         "//src/character",
         "//src/character:character_stats",
         "//src/character:progression",

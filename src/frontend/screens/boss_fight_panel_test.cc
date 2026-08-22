@@ -52,14 +52,12 @@ Boss Zakum() {
   normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
   // The arms in two columns of four down the middle, with the player's floor
-  // under them and a ledge over each end, as the data file lays them out: one
-  // spawn each, since a spot belongs to one monster.
+  // under them and a ledge over each end, as the data file lays them out.
   BossPhase* arms = normal->add_phases();
+  Spawn* arm = arms->add_spawns();
+  arm->set_mob("arm");
   for (int i = 0; i < 8; ++i) {
-    Spawn* arm = arms->add_spawns();
-    arm->set_mob("arm");
-    arm->set_count(1);
-    ArenaSpot* spot = arms->add_spots();
+    ArenaSpot* spot = arm->add_spots();
     spot->set_x(i < 4 ? 2 : 4);
     spot->set_y(1 + i % 4);
   }
@@ -71,8 +69,7 @@ Boss Zakum() {
   BossPhase* body = normal->add_phases();
   Spawn* torso = body->add_spawns();
   torso->set_mob("body");
-  torso->set_count(1);
-  ArenaSpot* torso_spot = body->add_spots();
+  ArenaSpot* torso_spot = torso->add_spots();
   torso_spot->set_x(3);
   torso_spot->set_y(2);
   AddSpots(body, {{0, 3}, {3, 3}, {6, 3}});
@@ -95,8 +92,7 @@ Boss OneArmBoss() {
   BossPhase* phase = normal->add_phases();
   Spawn* arm = phase->add_spawns();
   arm->set_mob("arm");
-  arm->set_count(1);
-  ArenaSpot* spot = phase->add_spots();
+  ArenaSpot* spot = arm->add_spots();
   spot->set_x(0);
   spot->set_y(1);
   phase->mutable_player()->set_x(0);
@@ -117,11 +113,10 @@ Boss ColumnBoss() {
   normal->set_reset(RESET_PERIOD_DAILY);
   normal->set_time_limit_seconds(300);
   BossPhase* phase = normal->add_phases();
+  Spawn* arms = phase->add_spawns();
+  arms->set_mob("arm");
   for (int i = 0; i < 2; ++i) {
-    Spawn* arm = phase->add_spawns();
-    arm->set_mob("arm");
-    arm->set_count(1);
-    ArenaSpot* spot = phase->add_spots();
+    ArenaSpot* spot = arms->add_spots();
     spot->set_x(0);
     spot->set_y(i);
   }
@@ -454,13 +449,13 @@ Boss TwoPartBoss() {
   normal->set_name("Normal");
   normal->set_time_limit_seconds(300);
   BossPhase* phase = normal->add_phases();
+  int x = 0;
   for (const std::string& mob : {"arm", "body"}) {
     Spawn* spawn = phase->add_spawns();
     spawn->set_mob(mob);
-    spawn->set_count(1);
+    spawn->add_spots()->set_x(x);
+    x += 4;
   }
-  phase->add_spots()->set_x(0);
-  phase->add_spots()->set_x(4);
   phase->mutable_player()->set_x(2);
   phase->mutable_player()->set_y(1);
   phase->set_arena_width(6);

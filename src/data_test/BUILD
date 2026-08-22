@@ -34,6 +34,7 @@ cc_test(
     ],
     deps = [
         "//src:proto_loader",
+        "//src:spawn",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
@@ -54,6 +55,7 @@ cc_test(
     ],
     deps = [
         "//src:proto_loader",
+        "//src:spawn",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",

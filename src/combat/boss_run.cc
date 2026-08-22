@@ -33,6 +33,25 @@ std::string DropName(const GameState& state, const MobDrop& drop) {
   return it == state.items.end() ? "" : it->second.name();
 }
 
+// How far out anyone stands on each axis, counted in cells: the size an arena
+// that names none is measured to.
+ArenaSpot ArenaExtent(const BossPhase& phase) {
+  ArenaSpot extent;
+  extent.set_x(phase.player().x() + 1);
+  extent.set_y(phase.player().y() + 1);
+  for (const Spawn& spawn : phase.spawns()) {
+    for (const ArenaSpot& spot : spawn.spots()) {
+      extent.set_x(std::max(extent.x(), spot.x() + 1));
+      extent.set_y(std::max(extent.y(), spot.y() + 1));
+    }
+  }
+  for (const ArenaSpot& spot : phase.player_spots()) {
+    extent.set_x(std::max(extent.x(), spot.x() + 1));
+    extent.set_y(std::max(extent.y(), spot.y() + 1));
+  }
+  return extent;
+}
+
 }  // namespace
 
 int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy) {
@@ -156,19 +175,10 @@ int BossRun::arena_width() const {
   if (phase == nullptr) {
     return 0;
   }
-  if (phase->arena_width() > 0) {
-    return phase->arena_width();
-  }
-  // Measured off what stands in it: the arena is as wide as the cell furthest
-  // to the right, and no wider, which leaves it no margin.
-  int width = phase->player().x() + 1;
-  for (const ArenaSpot& spot : phase->spots()) {
-    width = std::max(width, spot.x() + 1);
-  }
-  for (const ArenaSpot& spot : phase->player_spots()) {
-    width = std::max(width, spot.x() + 1);
-  }
-  return width;
+  // Measured off what stands in it when the phase says nothing: as wide as the
+  // cell furthest to the right and no wider, which leaves it no margin.
+  return phase->arena_width() > 0 ? phase->arena_width()
+                                  : ArenaExtent(*phase).x();
 }
 
 int BossRun::arena_height() const {
@@ -176,17 +186,8 @@ int BossRun::arena_height() const {
   if (phase == nullptr) {
     return 0;
   }
-  if (phase->arena_height() > 0) {
-    return phase->arena_height();
-  }
-  int height = phase->player().y() + 1;
-  for (const ArenaSpot& spot : phase->spots()) {
-    height = std::max(height, spot.y() + 1);
-  }
-  for (const ArenaSpot& spot : phase->player_spots()) {
-    height = std::max(height, spot.y() + 1);
-  }
-  return height;
+  return phase->arena_height() > 0 ? phase->arena_height()
+                                   : ArenaExtent(*phase).y();
 }
 
 bool BossRun::done() const {
@@ -265,22 +266,26 @@ void BossRun::CollectDamageStacks() {
   }
 }
 
+void BossRun::FillSlots(const CombatParams& params) {
+  // A type's spots are handed out in the order its monsters come off the
+  // roster. They are all the same monster, so which one takes which is only
+  // ever a question about identical bars. A type with no spots stands at the
+  // origin, which is a fight nobody drew an arena for.
+  std::vector<int> placed(params.types.size(), 0);
+  for (const MobStatus& mob : sim_.roster()) {
+    const std::vector<ArenaSpot>& spots = params.types[mob.type].spots;
+    int taken = placed[mob.type]++;
+    ArenaSpot spot;
+    if (taken < static_cast<int>(spots.size())) {
+      spot = spots[taken];
+    }
+    slots_.push_back(
+        {mob.id, mob.name, spot.x(), spot.y(), mob.hp_fraction, true, true});
+  }
+}
+
 void BossRun::SyncSlots(double dt) {
   const std::vector<MobStatus>& roster = sim_.roster();
-  if (slots_.empty()) {
-    const BossPhase* phase = current_phase();
-    for (const MobStatus& mob : roster) {
-      // A mob's type is its spawn's index, which is the index its spot is
-      // written at. A phase that named no spot for it stands it at the origin.
-      ArenaSpot spot;
-      if (phase != nullptr && mob.type < phase->spots_size()) {
-        spot = phase->spots(mob.type);
-      }
-      slots_.push_back(
-          {mob.id, mob.name, spot.x(), spot.y(), mob.hp_fraction, true, true});
-    }
-    return;
-  }
   for (BossSlot& slot : slots_) {
     std::vector<MobStatus>::const_iterator it =
         std::find_if(roster.begin(), roster.end(),
@@ -323,7 +328,11 @@ void BossRun::RunPhase(GameState& state, double dt) {
   }
   AdvanceCombat(state, sim_, params, dt);
   CollectDamageStacks();
-  SyncSlots(dt);
+  if (slots_.empty()) {
+    FillSlots(params);
+  } else {
+    SyncSlots(dt);
+  }
   ComputePhaseHp(params);
   seconds_left_ = std::max(0.0, seconds_left_ - dt);
   if (!sim_.roster().empty()) {

@@ -21,6 +21,7 @@
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/skill.pb.h"
+#include "src/spawn.h"
 
 namespace ms {
 namespace {
@@ -392,7 +393,8 @@ void AddTypes(const GameState& state,
     }
     CombatType type;
     type.mob = &mob_it->second;
-    type.simultaneous = spawn.count();
+    type.simultaneous = SpawnCount(spawn);
+    type.spots.assign(spawn.spots().begin(), spawn.spots().end());
     type.damage_to_player = ExpectedDamageTaken(defense, *type.mob);
     params.types.push_back(std::move(type));
   }

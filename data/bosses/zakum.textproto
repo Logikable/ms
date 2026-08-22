@@ -1,26 +1,21 @@
 name: "Zakum"
 difficulties {
   name: "Normal"
-  # The eight arms stand in two columns down the middle of the arena, one
-  # spawn each because a spot belongs to one monster. The lanes on either side
-  # of them are the player's, who fights from the floor or from a ledge.
+  # The eight arms stand in two columns down the middle of the arena, a spot
+  # apiece. The lanes on either side of them are the player's, who fights from
+  # the floor or from a ledge.
   phases {
-    spawns { mob: "zakum_arm" count: 1 }
-    spawns { mob: "zakum_arm" count: 1 }
-    spawns { mob: "zakum_arm" count: 1 }
-    spawns { mob: "zakum_arm" count: 1 }
-    spawns { mob: "zakum_arm" count: 1 }
-    spawns { mob: "zakum_arm" count: 1 }
-    spawns { mob: "zakum_arm" count: 1 }
-    spawns { mob: "zakum_arm" count: 1 }
-    spots { x: 2 y: 1 }
-    spots { x: 2 y: 2 }
-    spots { x: 2 y: 3 }
-    spots { x: 2 y: 4 }
-    spots { x: 4 y: 1 }
-    spots { x: 4 y: 2 }
-    spots { x: 4 y: 3 }
-    spots { x: 4 y: 4 }
+    spawns {
+      mob: "zakum_arm"
+      spots { x: 2 y: 1 }
+      spots { x: 2 y: 2 }
+      spots { x: 2 y: 3 }
+      spots { x: 2 y: 4 }
+      spots { x: 4 y: 1 }
+      spots { x: 4 y: 2 }
+      spots { x: 4 y: 3 }
+      spots { x: 4 y: 4 }
+    }
     # The floor of the arena and the two ledges over its ends, which is where
     # the map puts them. The arms stand between the lanes rather than in them.
     player { x: 3 y: 5 }
@@ -34,8 +29,10 @@ difficulties {
   }
   # The body alone, low over the floor the player crosses.
   phases {
-    spawns { mob: "zakum" count: 1 }
-    spots { x: 3 y: 2 }
+    spawns {
+      mob: "zakum"
+      spots { x: 3 y: 2 }
+    }
     # No ledges: the body fills the arena and the floor is all there is.
     player { x: 3 y: 3 }
     player_spots { x: 0 y: 3 }
@@ -69,22 +66,17 @@ difficulties {
 difficulties {
   name: "Chaos"
   phases {
-    spawns { mob: "chaos_zakum_arm" count: 1 }
-    spawns { mob: "chaos_zakum_arm" count: 1 }
-    spawns { mob: "chaos_zakum_arm" count: 1 }
-    spawns { mob: "chaos_zakum_arm" count: 1 }
-    spawns { mob: "chaos_zakum_arm" count: 1 }
-    spawns { mob: "chaos_zakum_arm" count: 1 }
-    spawns { mob: "chaos_zakum_arm" count: 1 }
-    spawns { mob: "chaos_zakum_arm" count: 1 }
-    spots { x: 2 y: 1 }
-    spots { x: 2 y: 2 }
-    spots { x: 2 y: 3 }
-    spots { x: 2 y: 4 }
-    spots { x: 4 y: 1 }
-    spots { x: 4 y: 2 }
-    spots { x: 4 y: 3 }
-    spots { x: 4 y: 4 }
+    spawns {
+      mob: "chaos_zakum_arm"
+      spots { x: 2 y: 1 }
+      spots { x: 2 y: 2 }
+      spots { x: 2 y: 3 }
+      spots { x: 2 y: 4 }
+      spots { x: 4 y: 1 }
+      spots { x: 4 y: 2 }
+      spots { x: 4 y: 3 }
+      spots { x: 4 y: 4 }
+    }
     # The floor of the arena and the two ledges over its ends, which is where
     # the map puts them. The arms stand between the lanes rather than in them.
     player { x: 3 y: 5 }
@@ -97,8 +89,10 @@ difficulties {
     arena_height: 6
   }
   phases {
-    spawns { mob: "chaos_zakum" count: 1 }
-    spots { x: 3 y: 2 }
+    spawns {
+      mob: "chaos_zakum"
+      spots { x: 3 y: 2 }
+    }
     # No ledges: the body fills the arena and the floor is all there is.
     player { x: 3 y: 3 }
     player_spots { x: 0 y: 3 }

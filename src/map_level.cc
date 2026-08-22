@@ -5,6 +5,7 @@
 
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/spawn.h"
 
 namespace ms {
 
@@ -16,8 +17,8 @@ double MapLevel(const std::map<std::string, Mob>& mobs, const MapData& map) {
     if (it == mobs.end()) {
       continue;
     }
-    levels += it->second.level() * spawn.count();
-    spawned += spawn.count();
+    levels += it->second.level() * SpawnCount(spawn);
+    spawned += SpawnCount(spawn);
   }
   return spawned == 0.0 ? 0.0 : levels / spawned;
 }

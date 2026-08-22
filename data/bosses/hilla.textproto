@@ -4,8 +4,7 @@ difficulties {
   # One phase, one monster: she stands alone in the middle of the arena with
   # the player under her, and there is nothing else to kill.
   phases {
-    spawns { mob: "hilla" count: 1 }
-    spots { x: 3 y: 1 }
+    spawns { mob: "hilla" spots { x: 3 y: 1 } }
     # The floor she stands over, walked end to end.
     player { x: 3 y: 2 }
     player_spots { x: 0 y: 2 }
@@ -34,8 +33,7 @@ difficulties {
 difficulties {
   name: "Hard"
   phases {
-    spawns { mob: "hard_hilla" count: 1 }
-    spots { x: 3 y: 1 }
+    spawns { mob: "hard_hilla" spots { x: 3 y: 1 } }
     # The floor she stands over, walked end to end.
     player { x: 3 y: 2 }
     player_spots { x: 0 y: 2 }
