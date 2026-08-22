@@ -53,8 +53,9 @@ ABSL_FLAG(double, trace_meso, 5000.0, "Meso one spell trace costs.");
 ABSL_FLAG(std::string, weapons, "40,70,100,140",
           "Weapon levels to scroll and to star force.");
 ABSL_FLAG(int, slots, 7,
-          "Upgrade slots on those weapons. Every weapon in data/equip has 7. "
-          "No golden hammer is assumed.");
+          "Upgrade slots on those weapons. Every weapon the game hands out "
+          "has 7; only the workbench's own level 150 sword has 8. No golden "
+          "hammer is assumed.");
 ABSL_FLAG(std::string, fifteen_equip, "fafnir_mistilteinn",
           "Data file stem of the weapon scrolled at 15%.");
 ABSL_FLAG(int, hammers, 2,

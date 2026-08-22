@@ -18,10 +18,9 @@ members {
   slot: EQUIP_SLOT_CAPE
   name: "Frozen Cape"
 }
-# The weapon and the secondary are not written yet: no monster in the game is
-# above level 98, and a weapon here belongs to one class rather than to all of
-# them. Named as families so the set can state what it is waiting for; the last
-# two tiers are what they will pay when those arrive.
+# Named as families rather than by name: a weapon here belongs to one class,
+# so there is one per class rather than one item. Both shelves are bought with
+# the tokens the level 101-140 mobs drop.
 members {
   slot: EQUIP_SLOT_PRIMARY_WEAPON
   family: "Frozen Weapon"
