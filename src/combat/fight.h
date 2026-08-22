@@ -44,6 +44,31 @@ struct MobStatus {
   double hp_fraction = 0.0;
 };
 
+// What did the damage, for a caller drawing it. The character's own SWING is
+// one source however many skills they swing, so a new swing takes the place of
+// the last whatever it was. Everything else is a source apiece, held apart so
+// a summon's numbers never take the place of a burn's.
+enum class DamageOrigin {
+  kSwing,
+  kOwnClock,    // a summon, or a skill on a clock of its own
+  kSwingClock,  // a skill fired by swings landed rather than by seconds
+  kSideStrike,  // the strike a swing sets off beside itself
+  kBurn,
+};
+
+struct DamageSource {
+  DamageOrigin origin = DamageOrigin::kSwing;
+  // Which one, where the origin has more than one: which summon, which burn's
+  // slot. 0 for the swing, which is one source.
+  int index = 0;
+};
+
+// Two lines from the same source on the same monster belong to the same stack
+// of numbers.
+inline bool operator==(const DamageSource& a, const DamageSource& b) {
+  return a.origin == b.origin && a.index == b.index;
+}
+
 // One line of damage as it landed on one monster, for a caller drawing the
 // fight rather than only stepping it. `event` is shared by every line one
 // attack put on that monster, so an eight-line swing reads as one stack of
@@ -51,18 +76,20 @@ struct MobStatus {
 struct DamageLine {
   int mob_id = 0;
   int event = 0;
+  DamageSource source;
   double damage = 0.0;
   bool crit = false;
 };
 
 // Where a landing is being filed and what scales it, for that record: the
-// monster it fell on, the event it belongs to, and whatever multiplies it
-// after the roll -- the Freeze Stacks the swing spent, what an arrow gained as
-// it travelled. Passed even by a fight that is not recording, which files
-// nothing whatever it is handed.
+// monster it fell on, the event it belongs to, what did it, and whatever
+// multiplies it after the roll -- the Freeze Stacks the swing spent, what an
+// arrow gained as it travelled. Passed even by a fight that is not recording,
+// which files nothing whatever it is handed.
 struct Landing {
   int mob_id = 0;
   int event = 0;
+  DamageSource source;
   double scale = 1.0;
 };
 
@@ -191,10 +218,11 @@ class CombatSim {
     std::vector<MobDot> dots;
   };
 
-  // Gives every one of the front `hit` mobs its own event, so the lines one
-  // attack puts on one monster group together however many ways the swing
-  // reaches it. Nothing for a fight that is not recording.
-  void OpenLandings(int hit);
+  // Opens the landing about to happen: gives every one of the front `hit` mobs
+  // its own event, so the lines one attack puts on one monster group together
+  // however many ways the swing reaches it, and remembers what is doing the
+  // damage. Nothing for a fight that is not recording.
+  void OpenLandings(int hit, DamageSource source);
   // Where the landing on the mob at queue index `index` is filed, scaled by
   // `scale`. The event is the one OpenLandings gave that mob.
   Landing LandingAt(int index, double scale) const;
@@ -252,7 +280,7 @@ class CombatSim {
   // Returns the share of the player's pool the chances it rolled put back, 0
   // for every attack that rolls none. Reported rather than paid, because the
   // pool is the caller's business -- exactly as the kills are.
-  double Strike(const AttackOption& attack);
+  double Strike(const AttackOption& attack, DamageSource source);
   // The order a swing that gains as it travels goes through the `hit` mobs it
   // reached, drawn fresh each swing: nothing here has a position, so which
   // enemy an arrow meets first is arbitrary and drawing it keeps the gain from
@@ -488,8 +516,9 @@ class CombatSim {
   // as anything holds one.
   int next_damage_event_ = 0;
   // The event each queued mob's lines are filed under for the landing being
-  // worked out, parallel to the queue.
+  // worked out, parallel to the queue, and what is doing the damage.
   std::vector<int> landing_event_;
+  DamageSource landing_source_;
   std::vector<DamageLine> damage_lines_this_step_;
   // Where RollFactor writes its per-line shares, reused every roll so a
   // recording fight allocates once rather than once a line.

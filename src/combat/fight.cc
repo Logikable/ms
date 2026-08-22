@@ -320,7 +320,7 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
   }
 }
 
-double CombatSim::Strike(const AttackOption& attack) {
+double CombatSim::Strike(const AttackOption& attack, DamageSource source) {
   // One strike hits the front mobs at once; each takes its own type's damage.
   // Overkill on any of them is wasted. Dead mobs leave the queue and the ones
   // behind slide into the window next time.
@@ -340,7 +340,7 @@ double CombatSim::Strike(const AttackOption& attack) {
   // Before anything lands, so every way this swing reaches one monster files
   // its lines under the one event -- the strike, the opening hit and whatever
   // follows them are one landing to the player watching.
-  OpenLandings(hit);
+  OpenLandings(hit, source);
   for (int step = 0; step < hit; ++step) {
     int j = order.empty() ? step : order[step];
     double gain =
@@ -454,10 +454,11 @@ void CombatSim::CreditFreeze(const CombatParams& params,
   }
 }
 
-void CombatSim::OpenLandings(int hit) {
+void CombatSim::OpenLandings(int hit, DamageSource source) {
   if (!record_lines_) {
     return;
   }
+  landing_source_ = source;
   landing_event_.assign(queue_.size(), 0);
   for (int j = 0; j < hit && j < static_cast<int>(queue_.size()); ++j) {
     landing_event_[j] = ++next_damage_event_;
@@ -466,12 +467,12 @@ void CombatSim::OpenLandings(int hit) {
 
 Landing CombatSim::LandingAt(int index, double scale) const {
   if (!record_lines_) {
-    return {0, 0, scale};
+    return {0, 0, {}, scale};
   }
   int event = index < static_cast<int>(landing_event_.size())
                   ? landing_event_[index]
                   : 0;
-  return {queue_[index].id, event, scale};
+  return {queue_[index].id, event, landing_source_, scale};
 }
 
 void CombatSim::RecordLine(const Landing& landing, double damage, bool crit) {
@@ -479,7 +480,7 @@ void CombatSim::RecordLine(const Landing& landing, double damage, bool crit) {
     return;
   }
   damage_lines_this_step_.push_back(
-      {landing.mob_id, landing.event, damage, crit});
+      {landing.mob_id, landing.event, landing.source, damage, crit});
 }
 
 void CombatSim::RecordRolls(const Landing& landing, double damage) {
@@ -548,7 +549,8 @@ void CombatSim::ApplyDots(const AttackOption& attack, int hit) {
 void CombatSim::RunDots(double dt) {
   bool burned = false;
   for (QueuedMob& mob : queue_) {
-    for (MobDot& dot : mob.dots) {
+    for (int slot = 0; slot < static_cast<int>(mob.dots.size()); ++slot) {
+      MobDot& dot = mob.dots[slot];
       if (dot.left_seconds <= 0.0 || dot.interval_seconds <= 0.0) {
         continue;
       }
@@ -564,7 +566,9 @@ void CombatSim::RunDots(double dt) {
           mob.hp -= dot.damage * RollFactor(dot.rolls, rng_, LineSink());
           // A tick is its own landing: it falls on its own clock, between the
           // swings rather than with one.
-          RecordRolls({mob.id, ++next_damage_event_, 1.0}, dot.damage);
+          RecordRolls(
+              {mob.id, ++next_damage_event_, {DamageOrigin::kBurn, slot}, 1.0},
+              dot.damage);
         }
         burned = true;
       }
@@ -946,7 +950,7 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
       auto_phase_[i] -= cast.interval_seconds;
       const AttackOption& landed = FormToLand(
           auto_empowered_count_, static_cast<int>(casts.size()), i, cast);
-      Strike(landed);
+      Strike(landed, {DamageOrigin::kOwnClock, i});
       // A summon leaves the ice it makes: Elquines freezes what it touches. It
       // never spends the pile -- ClearSwingRiders sees to that.
       CreditFreeze(params, landed);
@@ -970,7 +974,7 @@ void CombatSim::CreditSwing(const CombatParams& params, double weight) {
     // would fire one swing late every time.
     while (trigger_count_[i] + kCountEpsilon >= cast.attacks_per_cast) {
       trigger_count_[i] -= cast.attacks_per_cast;
-      Strike(cast);
+      Strike(cast, {DamageOrigin::kSwingClock, i});
     }
   }
 }
@@ -1018,14 +1022,14 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     const AttackOption& landed =
         FormToLand(empowered_count_, static_cast<int>(Attacks(params).size()),
                    swung, *attack);
-    double proc_recovered = Strike(landed);
+    double proc_recovered = Strike(landed, {DamageOrigin::kSwing, 0});
     CreditFreeze(params, landed);
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the
     // strike belongs to the skill, not to the form standing in for it this
     // time. It goes out after the swing, so it lands on what the swing left.
     if (attack->side != nullptr && side_cooldown_left_[swung] <= 0.0) {
-      Strike(*attack->side);
+      Strike(*attack->side, {DamageOrigin::kSideStrike, swung});
       side_cooldown_left_[swung] = attack->side->cooldown_seconds;
     }
     // Recovery rides the hit, so a cast does not earn it and neither does a

@@ -2704,6 +2704,43 @@ TEST(CombatSimTest, ACritIsRecordedAsOne) {
   EXPECT_TRUE(plain_seen);
 }
 
+// What did the damage rides every line, so a caller drawing them can tell a
+// swing from what fires beside it.
+TEST(CombatSimTest, EveryLineSaysWhatDidIt) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
+  params.record_damage_lines = true;
+  params.dot_count = 1;
+  DotApplication burn;
+  burn.damage = {40.0};
+  burn.interval_seconds = 0.25;
+  burn.duration_seconds = 10.0;
+  burn.slot = 0;
+  params.attacks[0].dots.push_back(burn);
+  AttackOption summon;
+  summon.name = "Summon";
+  summon.interval_seconds = 0.5;
+  summon.damage_per_hit = {10.0};
+  params.auto_attacks.push_back(summon);
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);  // the swing lights the burn
+  sim.Advance(params, 1.0);  // and everything lands together
+
+  bool swing = false;
+  bool own_clock = false;
+  bool burned = false;
+  for (const DamageLine& line : sim.damage_lines_this_step()) {
+    swing = swing || line.source == DamageSource{DamageOrigin::kSwing, 0};
+    own_clock =
+        own_clock || line.source == DamageSource{DamageOrigin::kOwnClock, 0};
+    burned = burned || line.source == DamageSource{DamageOrigin::kBurn, 0};
+  }
+  EXPECT_TRUE(swing);
+  EXPECT_TRUE(own_clock);
+  EXPECT_TRUE(burned);
+}
+
 // A burn ticks between the swings rather than with one, so it is its own
 // landing and gets its own stack of numbers.
 TEST(CombatSimTest, ABurnTickIsItsOwnEvent) {
