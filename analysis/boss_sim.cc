@@ -34,12 +34,12 @@
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
 #include "analysis/parallel.h"
+#include "analysis/sim_boss.h"
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
-#include "src/combat/boss_run.h"
 #include "src/combat/encounter.h"
 #include "src/embedded_data.h"
 #include "src/game_state.h"
@@ -77,10 +77,6 @@ namespace {
 // would print a table that moved a little each time.
 constexpr unsigned int kSimSeed = 20260821;
 
-// The step the fight is walked in: the frame the game draws at, so a swing
-// lands on the same tick it would land on in front of a player.
-constexpr double kStepSeconds = 1.0 / 60.0;
-
 // The clock the measurement runs against, in place of the fight's own. Long
 // enough that even a build with no business here finishes and reports a time.
 constexpr double kMeasureSeconds = 3600.0;
@@ -89,86 +85,6 @@ constexpr double kMeasureSeconds = 3600.0;
 // enough for a cooldown to land a dozen times, which is all the settling a
 // ranking needs.
 constexpr double kTrySeconds = 30.0;
-
-// The difficulty --difficulty names, or the first. Dies rather than measuring
-// a fight nobody asked for.
-int DifficultyIndex(const Boss& boss, const std::string& name) {
-  if (name.empty()) {
-    return 0;
-  }
-  for (int i = 0; i < boss.difficulties_size(); ++i) {
-    if (boss.difficulties(i).name() == name) {
-      return i;
-    }
-  }
-  LOG(FATAL) << "Unknown --difficulty '" << name << "'";
-  return 0;
-}
-
-// Everything the fight is holding, over all its phases.
-int64_t TotalHp(const Catalogs& catalogs, const BossDifficulty& difficulty) {
-  int64_t hp = 0;
-  for (const BossPhase& phase : difficulty.phases()) {
-    for (const Spawn& spawn : phase.spawns()) {
-      std::map<std::string, Mob>::const_iterator it =
-          catalogs.mobs.find(spawn.mob());
-      if (it != catalogs.mobs.end()) {
-        hp += static_cast<int64_t>(SpawnCount(spawn)) * it->second.max_hp();
-      }
-    }
-  }
-  return hp;
-}
-
-// The stiffest defence anything in the fight stands behind, for the header:
-// it is what every Ignore DEF lever in the books is worth here.
-int Pdr(const Catalogs& catalogs, const BossDifficulty& difficulty) {
-  int pdr = 0;
-  for (const BossPhase& phase : difficulty.phases()) {
-    for (const Spawn& spawn : phase.spawns()) {
-      std::map<std::string, Mob>::const_iterator it =
-          catalogs.mobs.find(spawn.mob());
-      if (it != catalogs.mobs.end()) {
-        pdr = std::max(pdr, it->second.pdr());
-      }
-    }
-  }
-  return pdr;
-}
-
-// What the difficulty pays, as catalog keys. Left off the character: a fight
-// cannot be beaten in gear only that fight hands out.
-std::set<std::string> OwnDrops(const BossDifficulty& difficulty) {
-  std::set<std::string> keys;
-  for (const MobDrop& drop : difficulty.drops()) {
-    if (drop.has_equip()) {
-      keys.insert(drop.equip());
-    }
-  }
-  return keys;
-}
-
-// The phase the book is spent to beat: the one holding the most HP. A fight
-// is decided against its heaviest phase, and Zakum's arms are not it.
-int ObjectivePhase(const Catalogs& catalogs, const BossDifficulty& difficulty) {
-  int best = 0;
-  int64_t most = -1;
-  for (int i = 0; i < difficulty.phases_size(); ++i) {
-    int64_t hp = 0;
-    for (const Spawn& spawn : difficulty.phases(i).spawns()) {
-      std::map<std::string, Mob>::const_iterator it =
-          catalogs.mobs.find(spawn.mob());
-      if (it != catalogs.mobs.end()) {
-        hp += static_cast<int64_t>(SpawnCount(spawn)) * it->second.max_hp();
-      }
-    }
-    if (hp > most) {
-      most = hp;
-      best = i;
-    }
-  }
-  return best;
-}
 
 // What the character takes off this phase a second, swings and own-clock
 // pulses together. The figure every choice below is ranked by.
@@ -329,9 +245,9 @@ Result Fight(const Catalogs& catalogs, int level, Job branch,
   Boss& boss = state.bosses[boss_key];
   BossDifficulty* difficulty = boss.mutable_difficulties(difficulty_index);
   OutfitWeapon(state, WeaponFor(catalogs, level, branch));
-  OutfitDrops(state, OwnDrops(*difficulty));
+  OutfitDrops(state, BossOwnDrops(*difficulty));
   FullyUpgrade(state);
-  int phase = ObjectivePhase(catalogs, *difficulty);
+  int phase = BossObjectivePhase(catalogs.mobs, *difficulty);
   SpendSp(state, boss_key, *difficulty, phase);
   // Again, now that the book is spent: which trace an item wants is measured
   // on a swing, and the swing has changed under it.
@@ -359,14 +275,8 @@ Result Fight(const Catalogs& catalogs, int level, Job branch,
       PassiveOffenseFor(derived)));
   result.swing = MainSwing(state, boss_key, *difficulty);
 
-  difficulty->set_time_limit_seconds(static_cast<int>(kMeasureSeconds));
-  BossRun run(boss_key, boss, difficulty_index);
-  while (!run.done()) {
-    run.Advance(state, kStepSeconds);
-  }
-  if (run.won()) {
-    result.kill_seconds = kMeasureSeconds - run.seconds_left();
-  }
+  result.kill_seconds =
+      FightBoss(state, boss_key, difficulty_index, kMeasureSeconds).seconds;
   return result;
 }
 
@@ -397,7 +307,11 @@ void Run() {
     LOG(FATAL) << "Unknown --boss '" << boss_key << "'";
   }
   const Boss& boss = found->second;
-  int index = DifficultyIndex(boss, absl::GetFlag(FLAGS_difficulty));
+  int index = BossDifficultyIndex(boss, absl::GetFlag(FLAGS_difficulty));
+  if (index < 0) {
+    LOG(FATAL) << "Unknown --difficulty '" << absl::GetFlag(FLAGS_difficulty)
+               << "'";
+  }
   const BossDifficulty& difficulty = boss.difficulties(index);
   int limit = difficulty.time_limit_seconds();
   int level = absl::GetFlag(FLAGS_level);
@@ -417,9 +331,9 @@ void Run() {
       "the best the game holds -- less what this fight is the only source "
       "of.\n\n",
       difficulty.name().c_str(), boss.name().c_str(), level,
-      static_cast<long long>(TotalHp(catalogs, difficulty)),
+      static_cast<long long>(BossTotalHp(catalogs.mobs, difficulty)),
       difficulty.phases_size(), difficulty.phases_size() == 1 ? "" : "s",
-      Pdr(catalogs, difficulty), Clock(limit).c_str());
+      BossPdr(catalogs.mobs, difficulty), Clock(limit).c_str());
   std::printf("%-15s  %-24s  %8s  %-20s  %8s  %9s  %s\n", "job", "weapon", "CP",
               "swing", "kill", "HP/s", "");
   std::printf("%s\n", std::string(104, '-').c_str());
@@ -427,9 +341,10 @@ void Run() {
     const Result& result = results[i];
     std::string kill =
         result.kill_seconds > 0.0 ? Clock(result.kill_seconds) : "never";
-    double rate = result.kill_seconds > 0.0
-                      ? TotalHp(catalogs, difficulty) / result.kill_seconds
-                      : 0.0;
+    double rate =
+        result.kill_seconds > 0.0
+            ? BossTotalHp(catalogs.mobs, difficulty) / result.kill_seconds
+            : 0.0;
     bool cleared = result.kill_seconds > 0.0 && result.kill_seconds <= limit;
     std::printf("%-15s  %-24s  %8d  %-20s  %8s  %9.0f  %s\n",
                 BranchName(branches[i]).c_str(), result.weapon.c_str(),

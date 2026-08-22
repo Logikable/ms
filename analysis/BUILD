@@ -19,11 +19,25 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "sim_boss",
+    srcs = ["sim_boss.cc"],
+    hdrs = ["sim_boss.h"],
+    deps = [
+        "//src:game_state",
+        "//src:spawn",
+        "//src/combat:boss_run",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+    ],
+)
+
 sim_binary(
     name = "boss_sim",
     srcs = ["boss_sim.cc"],
     deps = [
         ":parallel",
+        ":sim_boss",
         ":sim_gear",
         ":sim_jobs",
         ":sim_world",
@@ -33,7 +47,6 @@ sim_binary(
         "//src:spawn",
         "//src/character",
         "//src/character:character_stats",
-        "//src/combat:boss_run",
         "//src/combat:encounter",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
