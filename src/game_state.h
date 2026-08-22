@@ -16,6 +16,7 @@
 #include "src/character/character.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/keybinds.pb.h"
 #include "src/protos/map.pb.h"
@@ -86,6 +87,12 @@ struct GameState {
   // different one every time; a sim or a test passes one so that a run it
   // repeats pays what it paid last time -- rewards are rolled, and two runs of
   // the same fight otherwise disagree.
+  //
+  // `sets` is handed to the character once the seeding has dressed them, since
+  // what a set pays is worked out from what is worn. It is a constructor
+  // argument and not something the caller does afterwards because the state
+  // cannot be named before it is returned -- a caller who forgot would get a
+  // character standing in a full set and paid nothing for it.
   GameState(std::map<std::string, EquipPrototype> equips,
             std::map<std::string, Scroll> scrolls,
             std::map<std::string, ItemPrototype> items,
@@ -93,7 +100,8 @@ struct GameState {
             std::map<std::string, MapData> maps,
             std::map<std::string, Skill> skills = {},
             GameMode mode = GameMode::kPlay, TestOptions test = {},
-            std::optional<unsigned int> seed = std::nullopt);
+            std::optional<unsigned int> seed = std::nullopt,
+            std::map<std::string, EquipSet> sets = {});
   GameState(const GameState&) = delete;
   GameState& operator=(const GameState&) = delete;
 

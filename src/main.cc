@@ -161,11 +161,7 @@ int main(int argc, char** argv) {
 
   ms::GameState state(std::move(equips), std::move(scrolls), std::move(items),
                       std::move(mobs), std::move(maps), std::move(skills), mode,
-                      test);
-  // Handed over after the state is built and before anything is loaded into
-  // it: what a set pays is worked out from what is worn, and a save restores
-  // the worn map through the same recompute.
-  state.character.UseEquipSets(std::move(sets));
+                      test, std::nullopt, std::move(sets));
   state.bosses = std::move(bosses);
 
   // The workbench neither reads nor writes a save: it starts from its known

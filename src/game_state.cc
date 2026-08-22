@@ -476,7 +476,8 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
                      std::map<std::string, Mob> mobs_arg,
                      std::map<std::string, MapData> maps_arg,
                      std::map<std::string, Skill> skills_arg, GameMode mode,
-                     TestOptions test, std::optional<unsigned int> seed)
+                     TestOptions test, std::optional<unsigned int> seed,
+                     std::map<std::string, EquipSet> sets)
     : equips(std::move(equips_arg)),
       scrolls(std::move(scrolls_arg)),
       items(std::move(items_arg)),
@@ -496,6 +497,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
   } else {
     SeedPlay(*this);
   }
+  character.UseEquipSets(std::move(sets));
 }
 
 }  // namespace ms

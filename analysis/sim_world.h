@@ -14,6 +14,7 @@
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
+#include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
@@ -33,6 +34,7 @@ struct Catalogs {
   std::map<std::string, MapData> maps;
   std::map<std::string, Skill> skills;
   std::map<std::string, Boss> bosses;
+  std::map<std::string, EquipSet> sets;
 };
 
 Catalogs LoadCatalogs();
@@ -40,6 +42,10 @@ Catalogs LoadCatalogs();
 // A fresh level 1 character in a world built from `catalogs`. `seed` fixes the
 // random stream: rewards are rolled, so an unseeded sweep would print a table
 // that moved a little each run and hide a real change under the noise.
+//
+// Carries the sets as well, so a sim measures the same character the game
+// draws: what a set pays is most of what the last tier of gear is worth. The
+// bosses are a plain field, and a sim that fights one assigns them itself.
 GameState NewState(const Catalogs& catalogs, unsigned int seed);
 
 // The maps worth fighting on: the ones with something on them, in the order a

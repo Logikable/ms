@@ -22,13 +22,14 @@ Catalogs LoadCatalogs() {
   c.maps = LoadTextProtoMap<MapData>(EmbeddedMaps());
   c.skills = LoadTextProtoMap<Skill>(EmbeddedSkills());
   c.bosses = LoadTextProtoMap<Boss>(EmbeddedBosses());
+  c.sets = LoadTextProtoMap<EquipSet>(EmbeddedSets());
   return c;
 }
 
 GameState NewState(const Catalogs& catalogs, unsigned int seed) {
   return GameState(catalogs.equips, catalogs.scrolls, catalogs.items,
                    catalogs.mobs, catalogs.maps, catalogs.skills,
-                   GameMode::kPlay, TestOptions{}, seed);
+                   GameMode::kPlay, TestOptions{}, seed, catalogs.sets);
 }
 
 std::vector<std::string> HuntingGrounds(const Catalogs& catalogs) {
