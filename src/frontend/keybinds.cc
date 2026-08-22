@@ -250,7 +250,8 @@ void KeyMap::Normalize() {
   for (int i = 0; i < binds_->binds_size(); ++i) {
     Keybind* row = binds_->mutable_binds(i);
     for (int slot = 0; slot < kKeySlots; ++slot) {
-      const std::string& id = row->keys(slot);
+      // A copy: the row is written to below.
+      std::string id = row->keys(slot);
       if (id.empty()) {
         continue;
       }
