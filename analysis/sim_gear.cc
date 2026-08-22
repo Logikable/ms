@@ -634,7 +634,12 @@ EquipType MeasureBestType(GameState& state, bool budget) {
       state.character.inventory().room() < static_cast<int>(ladders.size())) {
     return EQUIP_TYPE_UNSPECIFIED;
   }
-  std::string held = HeldWeaponName(state.character);
+  // The character as they arrived. Every try-on wears a fresh copy and leaves
+  // the one it displaced in the bag, and restoring from the proto is the only
+  // eraser there is -- see FullyUpgrade. Without it a sweep that measures at
+  // every level fills the bag with the weapons it did not buy, and the guard
+  // above then quietly stops the character shopping for good.
+  Character before = state.character.ToProto();
 
   // The weapon already in their hands is a candidate too, and the first one,
   // so a tie keeps it. Without this the shelf can talk them out of a weapon
@@ -675,10 +680,9 @@ EquipType MeasureBestType(GameState& state, bool budget) {
   }
 
   CloseTryout(state, farming);
-  // Everything tried on comes back off. What the character wears is what they
+  // Everything tried on goes with it. What the character wears is what they
   // paid for, which is Buy's business below.
-  state.character.Unequip(EQUIP_SLOT_PROJECTILE);
-  EquipByName(state.character, held);
+  state.character.RestoreFrom(before, state.equips, state.items);
   return winner;
 }
 
