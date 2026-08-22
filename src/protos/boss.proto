@@ -22,13 +22,13 @@ message BossPhase {
   // leads where is the shape of the list rather than anything written down;
   // see NextPlayerSpot in src/combat/boss_run.h. Only the order of the first
   // matters -- the rest is read as a shape.
-  repeated ArenaSpot player_spots = 6;
+  repeated ArenaSpot player_spots = 2;
   // How many cells the arena holds. The room left over is shared out among
   // the gaps, so these decide the margins as much as the spacing: a part in
   // the last cell stands against the edge of the screen. Unset is measured off
   // the spots themselves, which is a phase that wants no margin at all.
-  int32 arena_width = 4;
-  int32 arena_height = 5;
+  int32 arena_width = 3;
+  int32 arena_height = 4;
 }
 
 // One difficulty of one boss: what the player fights, how long they have, how
@@ -52,7 +52,7 @@ message BossDifficulty {
   // whole reward is here: GMS pays it for the clear rather than for the eight
   // bodies, and says outright that no EXP boost touches it -- so this is flat,
   // as the meso beside it is.
-  int64 exp = 8;
+  int64 exp = 7;
   // The level a character has to reach before this difficulty can be entered.
   // Unset means the boss screen's own gate is the only one, which is what a
   // fight a player meets on the day the screen opens wants.
@@ -60,7 +60,7 @@ message BossDifficulty {
   // Per difficulty rather than per boss: a ladder's rungs open at different
   // levels, and the hard mode of a fight already beaten is the usual next
   // thing a player is waiting for.
-  int32 unlock_level = 7;
+  int32 unlock_level = 8;
   // A fight that is written down but not built yet. The screen lists it, dims
   // it, and shows nothing but the HP of each phase -- there is no clock, no
   // reset and no reward to state, because none of them has been decided.

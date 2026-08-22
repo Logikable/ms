@@ -9,12 +9,12 @@ message MobDrop {
   // than a drop they can be told about.
   oneof drop {
     string item = 1;   // an ItemPrototype
-    string equip = 3;  // an EquipPrototype
+    string equip = 2;  // an EquipPrototype
   }
   // Chance each kill takes, e.g. 0.4 for a 40% chance or 0.00025 for one in
   // four thousand. Rolled per kill; a rate above one pays its whole part
   // outright and rolls the rest.
-  double per_kill = 2;
+  double per_kill = 3;
 }
 
 // Where one monster stands in a boss arena: a cell on a grid `arena_width`
