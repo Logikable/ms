@@ -11,6 +11,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/boss_run.h"
+#include "src/frontend/widgets/colors.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
@@ -81,6 +82,29 @@ Boss Zakum() {
   return boss;
 }
 
+// One arm in a column of its own, with the player under it and nothing to
+// either side: an arena where a stack can only stand over its monster.
+Boss OneArmBoss() {
+  Boss boss;
+  boss.set_name("Zakum");
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_reset(RESET_PERIOD_DAILY);
+  normal->set_time_limit_seconds(300);
+  BossPhase* phase = normal->add_phases();
+  Spawn* arm = phase->add_spawns();
+  arm->set_mob("arm");
+  arm->set_count(1);
+  ArenaSpot* spot = phase->add_spots();
+  spot->set_x(0);
+  spot->set_y(1);
+  phase->mutable_player()->set_x(0);
+  phase->mutable_player()->set_y(2);
+  phase->set_arena_width(1);
+  phase->set_arena_height(3);
+  return boss;
+}
+
 std::unique_ptr<GameState> MakeState(int arm_hp, int body_hp,
                                      std::map<std::string, Skill> skills = {}) {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
@@ -139,6 +163,80 @@ int RowOf(const std::vector<std::string>& rows, const std::string& needle) {
     }
   }
   return -1;
+}
+
+// A character holding a swing that lands eight times on one enemy, so a stack
+// has enough numbers in it to be crowded out of a corner.
+std::unique_ptr<GameState> EightLineState() {
+  Skill flurry;
+  flurry.set_name("Flurry");
+  flurry.set_kind(SKILL_KIND_ATTACK);
+  flurry.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  flurry.set_max_level(1);
+  flurry.set_max_enemies(1);
+  flurry.set_lines(8);
+  // Slower than a stack's life, so only one is ever on screen.
+  flurry.set_base_delay_ms(2000);
+  flurry.mutable_base()->set_skill_pct(5.0);
+  std::unique_ptr<GameState> state =
+      MakeState(1000000000, 1, {{"flurry", flurry}});
+  state->character.AdvanceJob(JOB_SWORDMAN);
+  // Up to the arms' own level: forty levels under a monster the whole chain
+  // floors at a point of damage, and every swing would tie with the poke.
+  for (int i = 0; i < 110; ++i) {
+    state->character.LevelUp();
+  }
+  EXPECT_TRUE(state->character.LearnSkill(flurry, 1));
+  return state;
+}
+
+// The screen itself, for a test that reads colours rather than characters.
+ftxui::Screen RenderScreen(const BossRun& run, int width = 120,
+                           int height = 30) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
+                                               ftxui::Dimension::Fixed(height));
+  ftxui::Render(screen, BossFightPanel(run));
+  return screen;
+}
+
+// Every number the arena actually drew, top to bottom: runs of neighbouring
+// cells in a damage number's own colours, read straight off the screen.
+std::vector<std::string> DrawnNumbers(const ftxui::Screen& screen) {
+  std::vector<std::string> drawn;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    std::string number;
+    for (int x = 0; x <= screen.dimx(); ++x) {
+      const ftxui::Pixel* px =
+          x < screen.dimx() ? &screen.PixelAt(x, y) : nullptr;
+      bool digit = px != nullptr && (px->foreground_color == kIceBlue ||
+                                     px->foreground_color == kOrange);
+      if (digit) {
+        number += px->character;
+        continue;
+      }
+      if (!number.empty()) {
+        drawn.push_back(number);
+        number.clear();
+      }
+    }
+  }
+  return drawn;
+}
+
+// Steps the fight until a stack holding a critical line -- or a plain one --
+// is on screen, and says whether it found one.
+bool RunUntilLine(BossRun& run, GameState& state, bool crit) {
+  for (int step = 0; step < 2000; ++step) {
+    run.Advance(state, 0.05);
+    for (const DamageStack& stack : run.damage_stacks()) {
+      for (const DamageNumber& line : stack.lines) {
+        if (line.crit == crit) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 std::string Render(const BossRun& run) {
@@ -390,6 +488,128 @@ TEST(BossFightPanelTest, TheSpotsThePlayerIsNotOnAreMarked) {
   int floor = RowOf(Rows(run), "You");
   run.MovePlayer(0, -1);
   EXPECT_LT(RowOf(Rows(run), "You"), floor);
+}
+
+// A swing that lands puts its number on screen, beside the bar that took it
+// and written plainly -- no commas, whatever the number.
+TEST(BossFightPanelTest, ALandedSwingDrawsItsNumber) {
+  std::unique_ptr<GameState> state = EightLineState();
+  Boss boss = Zakum();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_TRUE(RunUntilLine(run, *state, false));
+  ASSERT_FALSE(run.damage_stacks().empty());
+
+  std::vector<std::string> rows = Rows(run);
+  const DamageStack& stack = run.damage_stacks().front();
+  std::cerr << "ATTACK=" << run.attack_name()
+            << " stacks=" << run.damage_stacks().size()
+            << " lines=" << stack.lines.size() << "\n";
+  for (const DamageNumber& line : stack.lines) {
+    EXPECT_NE(RowOf(rows, std::to_string(line.damage)), -1)
+        << "the whole stack fits a wide screen";
+  }
+  for (const std::string& row : rows) {
+    EXPECT_EQ(row.find(","), std::string::npos) << "no commas anywhere";
+  }
+}
+
+// The numbers stand clear of the bars, on a screen cramped enough that a
+// stack placed carelessly would land on one. Every cell of a bar carries the
+// fill's own background, so a number sitting on one is caught by its
+// background rather than by hunting for the name it covered.
+TEST(BossFightPanelTest, ANumberNeverSitsOnABar) {
+  std::unique_ptr<GameState> state = EightLineState();
+  Boss boss = Zakum();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_TRUE(RunUntilLine(run, *state, false));
+
+  ftxui::Screen screen = RenderScreen(run, 70, 14);
+  int drawn = 0;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x < screen.dimx(); ++x) {
+      const ftxui::Pixel& px = screen.PixelAt(x, y);
+      if (px.foreground_color != kIceBlue && px.foreground_color != kOrange) {
+        continue;
+      }
+      ++drawn;
+      EXPECT_NE(px.background_color, kRed) << "on an arm's fill";
+      EXPECT_NE(px.background_color, kBarEmpty) << "on an arm's empty bar";
+    }
+  }
+  EXPECT_GT(drawn, 0) << "something was drawn to be tested";
+}
+
+// Blue for a plain line and orange for a critical one, which is the whole of
+// what a number's colour says.
+TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
+  for (bool crit : {false, true}) {
+    std::unique_ptr<GameState> state = EightLineState();
+    Boss boss = Zakum();
+    BossRun run("zakum", boss, 0);
+    run.Advance(*state, kBossCountdownSeconds);
+    ASSERT_TRUE(RunUntilLine(run, *state, crit)) << "crit: " << crit;
+
+    ftxui::Screen screen = RenderScreen(run);
+    int coloured = 0;
+    for (int y = 0; y < screen.dimy(); ++y) {
+      for (int x = 0; x < screen.dimx(); ++x) {
+        const ftxui::Pixel& px = screen.PixelAt(x, y);
+        if (px.foreground_color == (crit ? kOrange : kIceBlue)) {
+          EXPECT_GE(px.character[0], '0');
+          EXPECT_LE(px.character[0], '9');
+          ++coloured;
+        }
+      }
+    }
+    EXPECT_GT(coloured, 0) << "crit: " << crit;
+  }
+}
+
+// The wide screen draws every number of every stack, which is what the
+// cramped case below is measured against.
+TEST(BossFightPanelTest, AWideArenaDrawsEveryNumber) {
+  std::unique_ptr<GameState> state = EightLineState();
+  Boss boss = Zakum();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_TRUE(RunUntilLine(run, *state, false));
+
+  std::vector<std::string> want;
+  for (const DamageStack& stack : run.damage_stacks()) {
+    for (const DamageNumber& line : stack.lines) {
+      want.push_back(std::to_string(line.damage));
+    }
+  }
+  std::vector<std::string> drawn = DrawnNumbers(RenderScreen(run));
+  std::sort(want.begin(), want.end());
+  std::sort(drawn.begin(), drawn.end());
+  EXPECT_EQ(drawn, want);
+}
+
+// A stack with less room than it has numbers keeps the rows NEAREST the
+// monster: standing over a bar with four rows of headroom, an eight-line
+// swing shows its last four numbers and drops the first four.
+TEST(BossFightPanelTest, ACrampedStackKeepsTheRowsNearestTheMonster) {
+  std::unique_ptr<GameState> state = EightLineState();
+  Boss boss = OneArmBoss();
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+  ASSERT_TRUE(RunUntilLine(run, *state, false));
+  ASSERT_EQ(run.damage_stacks().size(), 1u);
+  const DamageStack& stack = run.damage_stacks().front();
+  ASSERT_EQ(stack.lines.size(), 8u);
+
+  // Barely wider than a bar, so there is no room either side of it: over the
+  // arm is the only way, and the player stands under it.
+  std::vector<std::string> drawn = DrawnNumbers(RenderScreen(run, 18, 16));
+  ASSERT_FALSE(drawn.empty());
+  ASSERT_LT(drawn.size(), stack.lines.size());
+  for (std::size_t i = 0; i < drawn.size(); ++i) {
+    std::size_t line = stack.lines.size() - drawn.size() + i;
+    EXPECT_EQ(drawn[i], std::to_string(stack.lines[line].damage));
+  }
 }
 
 }  // namespace

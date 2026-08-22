@@ -341,6 +341,7 @@ cc_test(
         ":boss_fight_panel",
         "//src:game_state",
         "//src/combat:boss_run",
+        "//src/frontend/widgets:colors",
         "//src/item:equip_instance",
         "//src/protos:boss_proto_cc",
         "//src/protos:equip_proto_cc",

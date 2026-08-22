@@ -731,6 +731,26 @@ TEST(RollFactorTest, TheLinesSumToTheFactor) {
   EXPECT_TRUE(plain_seen);
 }
 
+// Every character carries a shadow's worth of copies and almost none of them
+// has a shadow. Those copies land nothing, so there is nothing to draw for
+// them -- but they are still rolled, or the fight would play out differently
+// for everyone.
+TEST(RollFactorTest, ShadowCopiesWorthNothingAreNotDrawn) {
+  SwingRolls rolls;
+  rolls.lines = 3;
+  rolls.mirror_lines = 3;
+  rolls.mirror_pct = 0.0;
+  rolls.mastery = 0.5;
+  std::mt19937 with_sink(5);
+  std::mt19937 without(5);
+  std::vector<LineRoll> lines;
+  for (int i = 0; i < 20; ++i) {
+    EXPECT_DOUBLE_EQ(RollFactor(rolls, with_sink, &lines),
+                     RollFactor(rolls, without));
+    EXPECT_EQ(lines.size(), 3u);
+  }
+}
+
 // A swing that rolls nothing still landed once, so it has a line to draw.
 TEST(RollFactorTest, ASwingThatRollsNothingIsOneLine) {
   std::mt19937 rng(3);

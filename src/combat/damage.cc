@@ -236,11 +236,15 @@ double RollFactor(const SwingRolls& rolls, std::mt19937& rng,
   std::bernoulli_distribution crits(rolls.crit_rate);
   double scale = 1.0 / (effective_lines * mean);
   double total = 0.0;
+  // A line worth nothing is not drawn, though it is still rolled: every
+  // character carries a shadow's worth of copies and almost none of them has a
+  // shadow, and the rolls those copies spend have to keep being spent or the
+  // fight would play out differently for everyone.
   for (int i = 0; i < rolls.lines; ++i) {
     bool crit = crits(rng);
     double line = spread(rng) * (crit ? 1.0 + rolls.crit_dmg : 1.0);
     total += line;
-    if (lines != nullptr) {
+    if (lines != nullptr && line > 0.0) {
       lines->push_back({line * scale, crit});
     }
   }
@@ -251,7 +255,7 @@ double RollFactor(const SwingRolls& rolls, std::mt19937& rng,
     double line =
         rolls.mirror_pct * spread(rng) * (crit ? 1.0 + rolls.crit_dmg : 1.0);
     total += line;
-    if (lines != nullptr) {
+    if (lines != nullptr && line > 0.0) {
       lines->push_back({line * scale, crit});
     }
   }
