@@ -76,6 +76,9 @@ void SetApStat(AllocatedStats* stats, StatField field, int value) {
 // SP goes to the highest stage whose threshold it has passed: levels 11-30
 // feed stage 1, 31-60 feed stage 2, and so on.
 constexpr int kAdvancementLevels[] = {10, 30, 60, 100, 200, 260};
+static_assert(sizeof(kAdvancementLevels) / sizeof(kAdvancementLevels[0]) ==
+                  kMaxJobStage,
+              "kMaxJobStage must name the last stage there is a level for");
 
 // The job stage a level-up's SP feeds -- the count of advancement thresholds
 // the level has passed. 0 at level 10 and below, before 1st-job SP starts.
@@ -504,8 +507,7 @@ Job JobForAdvancement(JobAdvancement advancement) {
 }
 
 int NextAdvancementLevel(int stage) {
-  if (stage < 0 || stage >= static_cast<int>(sizeof(kAdvancementLevels) /
-                                             sizeof(kAdvancementLevels[0]))) {
+  if (stage < 0 || stage >= kMaxJobStage) {
     return 0;
   }
   return kAdvancementLevels[stage];
@@ -967,8 +969,7 @@ bool CharacterInstance::CanAdvanceJob() const {
   // advancement with no choices defined is not offered -- that is what stops
   // this from claiming a 2nd job exists before the jobs behind it do.
   int stage = character_.job_stage();
-  if (stage >= static_cast<int>(sizeof(kAdvancementLevels) /
-                                sizeof(kAdvancementLevels[0]))) {
+  if (stage >= kMaxJobStage) {
     return false;
   }
   return character_.level() >= kAdvancementLevels[stage] &&

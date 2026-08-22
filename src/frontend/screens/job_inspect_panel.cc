@@ -44,8 +44,10 @@ constexpr int kJobClockStride = 100;
 // JobForAdvancement. Walked rather than switched, because every stage of a job
 // answers AdvancementForJobStage and only one of them names this job back: a
 // Fighter is at the Swordman's advancement in stage 1 and their own in stage 2.
+// Every stage has to be asked: stopping short leaves the jobs above with no
+// book at all.
 JobAdvancement AdvancementOf(Job job) {
-  for (int stage = 1; stage <= 3; ++stage) {
+  for (int stage = 1; stage <= kMaxJobStage; ++stage) {
     JobAdvancement advancement = AdvancementForJobStage(job, stage);
     if (advancement != JOB_ADVANCEMENT_UNSPECIFIED &&
         JobForAdvancement(advancement) == job) {

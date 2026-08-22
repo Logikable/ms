@@ -60,6 +60,7 @@ class JobInspectPanelTest : public PanelTest {
          MakeSkill("Divine Swing", JOB_ADVANCEMENT_PAGE, 1, 20)},
         {"slash_blast",
          MakeSkill("Slash Blast", JOB_ADVANCEMENT_SWORDMAN, 1, 20)},
+        {"puncture", MakeSkill("Puncture", JOB_ADVANCEMENT_HERO, 1, 30)},
     };
   }
 
@@ -185,6 +186,17 @@ TEST_F(JobInspectPanelTest, ANewJobStartsTheCursorOver) {
   panel.SetJob(JOB_PAGE);
   ASSERT_NE(panel.selected_skill(), nullptr);
   EXPECT_EQ(panel.selected_skill()->name(), "Divine Swing");
+}
+
+// The 4th job is the last stage a job can sit at, and asking only about the
+// stages below it left every one of these pages blank.
+TEST_F(JobInspectPanelTest, AFourthJobListsItsOwnBook) {
+  JobInspectPanel panel = PanelOn(JOB_HERO);
+  ASSERT_NE(panel.selected_skill(), nullptr);
+  EXPECT_EQ(panel.selected_skill()->name(), "Puncture");
+  std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(rendered.find("Puncture"), std::string::npos);
+  EXPECT_EQ(rendered.find("(empty)"), std::string::npos);
 }
 
 TEST_F(JobInspectPanelTest, AJobWithNoBookSaysSoRatherThanCrashing) {

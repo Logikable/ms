@@ -26,6 +26,12 @@
 
 namespace ms {
 
+// The highest job stage the game has an advancement level for. A stage with no
+// branches written yet still counts -- AdvancementForJobStage simply answers
+// JOB_ADVANCEMENT_UNSPECIFIED for it -- so anything walking every stage a job
+// could be at walks to here and keeps working when the next one lands.
+inline constexpr int kMaxJobStage = 6;
+
 // The advancement a job is at once it reaches `stage` (1 = 1st job). Returns
 // JOB_ADVANCEMENT_UNSPECIFIED for a stage the job hasn't defined yet.
 JobAdvancement AdvancementForJobStage(Job job, int stage);
