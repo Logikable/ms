@@ -24,6 +24,6 @@ dot {
   interval_seconds: 1.0
   duration_seconds: 5.0
   lines: 1
-  base { skill_pct: 1.24000 }
-  per_level { skill_pct: 0.04000 }
+  base { skill_pct: 1.24 }
+  per_level { skill_pct: 0.04 }
 }
