@@ -50,7 +50,7 @@ Boss Zakum() {
   return boss;
 }
 
-// A second boss, lower level, to check the list sorts by the level fought at.
+// A second boss, smaller, to check the list sorts by how much there is to kill.
 Boss Balrog() {
   Boss boss;
   boss.set_name("Balrog");
@@ -435,18 +435,20 @@ TEST(BossSelectPanelTest, AnUngatedFightHasNoUnlockRow) {
   EXPECT_EQ(Render(panel).find("Unlock Level"), std::string::npos);
 }
 
-// The list is the ladder: a fight that opens later comes later, whatever its
-// name and whatever level it is fought at.
-TEST(BossSelectPanelTest, TheListSortsByTheLevelAFightOpensAt) {
+// The list is the ladder, and its rung is how much there is to kill on the
+// easiest difficulty -- whatever the fight is named and whatever gate it
+// carries.
+TEST(BossSelectPanelTest, TheListSortsByTheHpOfTheEasiestDifficulty) {
   std::unique_ptr<GameState> owner = WithBosses(/*two=*/true);
   GameState& state = *owner;
-  // Balrog is the lower-level fight, so without a gate it leads. Gating it
-  // past Zakum has to move it below.
-  state.bosses["balrog"].mutable_difficulties(0)->set_unlock_level(130);
-  BossSelectPanel panel(state);
-  EXPECT_EQ(panel.selected_boss(), "zakum");
-  panel.MoveCursor(1);
-  EXPECT_EQ(panel.selected_boss(), "balrog");
+  BossSelectPanel small(state);
+  EXPECT_EQ(small.selected_boss(), "balrog") << "100k against Zakum's 12.6M";
+  // Growing him past Zakum's arms and body together has to move him below.
+  state.mobs["balrog"].set_max_hp(20000000);
+  BossSelectPanel big(state);
+  EXPECT_EQ(big.selected_boss(), "zakum");
+  big.MoveCursor(1);
+  EXPECT_EQ(big.selected_boss(), "balrog");
 }
 
 // Adds a Chaos difficulty to Zakum that is written down but not built, and

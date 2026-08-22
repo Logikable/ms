@@ -80,6 +80,14 @@ int64_t PhaseHp(const GameState& state, const BossPhase& phase) {
   return hp;
 }
 
+int64_t BossHp(const GameState& state, const BossDifficulty& difficulty) {
+  int64_t hp = 0;
+  for (const BossPhase& phase : difficulty.phases()) {
+    hp += PhaseHp(state, phase);
+  }
+  return hp;
+}
+
 int BossLevel(const GameState& state, const BossDifficulty& difficulty) {
   int level = 0;
   for (const BossPhase& phase : difficulty.phases()) {
@@ -116,21 +124,21 @@ int BossPdr(const GameState& state, const BossDifficulty& difficulty) {
 }  // namespace
 
 BossSelectPanel::BossSelectPanel(const GameState& state) : state_(state) {
-  // Keyed on the easiest difficulty, which is the one the cursor starts on and
-  // the one a player meets the fight through.
-  std::vector<std::tuple<int, int, std::string, std::string>> sorted;
+  // How much there is to kill, on the easiest difficulty -- the one the cursor
+  // starts on and the one a player meets the fight through. HP rather than a
+  // level or a gate, because it is the one measure every fight states,
+  // including the ones that are not built yet and so state nothing else.
+  std::vector<std::tuple<int64_t, std::string, std::string>> sorted;
   for (const std::pair<const std::string, Boss>& entry : state_.bosses) {
-    int unlock = 0;
-    int level = 0;
+    int64_t hp = 0;
     if (entry.second.difficulties_size() > 0) {
-      unlock = entry.second.difficulties(0).unlock_level();
-      level = BossLevel(state_, entry.second.difficulties(0));
+      hp = BossHp(state_, entry.second.difficulties(0));
     }
-    sorted.push_back({unlock, level, entry.second.name(), entry.first});
+    sorted.push_back({hp, entry.second.name(), entry.first});
   }
   std::sort(sorted.begin(), sorted.end());
-  for (const std::tuple<int, int, std::string, std::string>& entry : sorted) {
-    bosses_.push_back(std::get<3>(entry));
+  for (const std::tuple<int64_t, std::string, std::string>& entry : sorted) {
+    bosses_.push_back(std::get<2>(entry));
   }
 }
 
