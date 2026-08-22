@@ -158,13 +158,11 @@ std::string MapSelectPanel::selected_map() const {
 }
 
 void MapSelectPanel::OpenMenu() {
-  if (selected_map().empty()) {
+  if (zone_ != kZoneList || selected_map().empty()) {
+    // Nothing to open a menu on: the cursor is on the band bar, which stands
+    // on no map.
     return;
   }
-  // Opened from the chip bar, the menu is about the map the band is standing
-  // on, so the cursor steps onto it: a menu floating over an unmarked row
-  // reads as a menu for no map at all.
-  zone_ = kZoneList;
   menu_.Reset();
   menu_open_ = true;
 }

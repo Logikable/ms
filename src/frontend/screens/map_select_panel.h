@@ -52,8 +52,8 @@ class MapSelectPanel {
   // Key into GameState::maps of the highlighted map; empty when there are none.
   std::string selected_map() const;
 
-  // Opens the context menu over the highlighted map, stepping the cursor off
-  // the band bar onto it. Does nothing on a band holding no maps.
+  // Opens the context menu over the highlighted map. Does nothing while the
+  // cursor is on the band bar, which stands on no map.
   void OpenMenu();
   bool menu_open() const;
   // Drives the context menu and says what should be on screen afterwards:

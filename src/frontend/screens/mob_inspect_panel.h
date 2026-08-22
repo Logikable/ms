@@ -6,8 +6,10 @@
  *
  * The blurb at the top is held to a fixed four lines whether the mob has one
  * or not, so the numbers under it stand still as the cursor walks the list.
- * Below the drops the panel is free to grow: that is the end of it, and
- * nothing the eye is holding its place in moves when it does.
+ * Under the rule it splits in two: the stats on the left, where a label and a
+ * number need little room, and the drops on the right, where a name does. Both
+ * columns are free to grow downwards -- that is the end of the panel, and
+ * nothing the eye is holding its place in moves when they do.
  *
  * The panel is a view. The controller tells it which map to list and moves its
  * cursor; it never writes to the game state.
@@ -51,10 +53,11 @@ class MobInspectPanel {
   ftxui::Element RenderInfo() const;
   // The blurb, padded out to kFlavourLines rows.
   void RenderFlavour(std::vector<ftxui::Element>& rows, const Mob& mob) const;
-  // Level, HP, EXP, Attack, and what one meso drop is worth.
-  void RenderStats(std::vector<ftxui::Element>& rows, const Mob& mob) const;
-  // The meso's own chance first, then a name and a chance per drop.
-  void RenderDrops(std::vector<ftxui::Element>& rows, const Mob& mob) const;
+  // The left column: Level, HP, EXP, Attack, and what one meso drop is worth.
+  ftxui::Element RenderStats(const Mob& mob) const;
+  // The right column: the meso's own chance first, then a name and a chance
+  // per drop.
+  ftxui::Element RenderDrops(const Mob& mob) const;
 
   const GameState& state_;
   std::string map_;

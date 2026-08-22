@@ -2199,8 +2199,8 @@ TEST_F(TuiControllerTest, LeftAndRightInTheMapListDoNothing) {
   EXPECT_EQ(map_select_panel_->selected_map(), "field");
 }
 
-// Enter reaches the band's map from the chip bar too, stepping the cursor onto
-// it rather than opening a menu over a row nothing marks.
+// Enter belongs to the list. On the bar it does nothing -- the bar stands on
+// no map, so a menu there would be about nothing.
 TEST_F(TuiControllerTest, EnterTravelsToAMapOnAnotherBand) {
   LoadTwoMaps();
   AddMapOnTheSecondBand();
@@ -2209,6 +2209,10 @@ TEST_F(TuiControllerTest, EnterTravelsToAMapOnAnotherBand) {
   controller_->OpenMapSelect();
   controller_->OnEvent(ftxui::Event::ArrowUp);  // onto the chip bar
   controller_->OnEvent(ftxui::Event::ArrowRight);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMapSelect);
+
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // into the band's list
   controller_->OnEvent(ftxui::Event::Return);
   controller_->OnEvent(ftxui::Event::Return);
 

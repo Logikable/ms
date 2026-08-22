@@ -664,17 +664,16 @@ TEST(MapSelectPanelTest, TheMenuSaysWhichEntryWasTaken) {
   EXPECT_FALSE(panel.menu_open());
 }
 
-// Opened from the chip bar, the menu brings the cursor down onto the map it is
-// about -- otherwise it would float over a row with no cursor on it.
-TEST(MapSelectPanelTest, OpeningFromTheBarStepsOntoTheMap) {
+// The bar stands on no map, so there is nothing there to open a menu about.
+TEST(MapSelectPanelTest, TheBarOpensNoMenu) {
   GameState state = ThreeMaps();
   MapSelectPanel panel(state);
   panel.Reset();
   GoToTheBar(&panel);
 
   panel.OpenMenu();
-  ASSERT_TRUE(panel.menu_open());
-  EXPECT_NE(Render(panel).find("> Green Field"), std::string::npos);
+  EXPECT_FALSE(panel.menu_open());
+  EXPECT_EQ(Render(panel).find("Inspect"), std::string::npos);
 }
 
 TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {

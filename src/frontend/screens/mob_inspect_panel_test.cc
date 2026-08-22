@@ -130,6 +130,24 @@ TEST(MobInspectPanelTest, ShowsTheStatsAndTheDropsWithTheirChances) {
   EXPECT_NE(out.find("0.025%"), std::string::npos);
 }
 
+// Under the rule the panel is two columns, so the first stat and the first
+// drop stand on one line.
+TEST(MobInspectPanelTest, StatsAndDropsShareTheirRows) {
+  GameState state = OneMap();
+  MobInspectPanel panel(state);
+  panel.SetMap("green_field");
+  std::istringstream rendered(Render(panel));
+  std::string line;
+  bool shared = false;
+  while (std::getline(rendered, line)) {
+    if (line.find("Level") != std::string::npos &&
+        line.find("60%") != std::string::npos) {
+      shared = true;
+    }
+  }
+  EXPECT_TRUE(shared);
+}
+
 // The blurb is what the flavour block is for, and a mob with none still
 // spends the rows so the stats under it do not walk up the panel.
 TEST(MobInspectPanelTest, FlavourBlockIsTheSameHeightEitherWay) {

@@ -26,24 +26,43 @@ constexpr int kMobNameWidth = 22;
 constexpr int kLevelWidth = 4;
 constexpr int kCountWidth = 6;
 
-// The info rows are a label and a right-aligned value, so the panel does not
-// breathe as a number gains a digit. Together they come to the width the blurb
-// is set in, which is what makes this panel wider than the rest: a sentence
-// needs more room than a stat does.
-constexpr int kLabelWidth = 18;
-constexpr int kValueWidth = kFlavourWidth - kLabelWidth;
+// The stats column. Both halves are a label and a right-aligned value, so the
+// panel does not breathe as a number gains a digit. "Attack" is the longest
+// label the game has and 4,624,800 the longest HP, so each column carries what
+// it needs and a space over.
+constexpr int kLabelWidth = 7;
+constexpr int kValueWidth = 10;
+
+// The drops column, the wider of the two: the longest drop name is 22 columns
+// ("Frozen Secondary Token") and the longest chance six ("0.025%").
+constexpr int kDropNameWidth = 24;
+constexpr int kChanceWidth = 6;
+
+// What each column comes to with its column of clearance on either side. The
+// two of them and the rule between fill the width the blurb is set in, which
+// is what makes this panel wider than the rest: a sentence needs more room
+// than a stat does.
+constexpr int kStatColumnWidth = 2 + kLabelWidth + kValueWidth;
+constexpr int kDropColumnWidth = 2 + kDropNameWidth + kChanceWidth;
+static_assert(kStatColumnWidth + 1 + kDropColumnWidth == kFlavourWidth + 2);
 
 // What the rest of a wrapped drop name is set in from its first line, so the
 // two rows read as one name.
 constexpr int kNameIndent = 2;
 
 // The rows the screen always takes. Tall enough for the mob carrying the most
-// drops, so walking the list never moves the top of the panel.
-constexpr int kScreenHeight = 22;
+// drops -- four lines of blurb, a rule, and seven rows of drops inside a
+// border -- so walking the list never moves the top of the panel.
+constexpr int kScreenHeight = 16;
 
 ftxui::Element InfoRow(const std::string& label, const std::string& value) {
   return ftxui::text(" " + PadRight(label, kLabelWidth) +
                      PadLeft(value, kValueWidth) + " ");
+}
+
+ftxui::Element DropRow(const std::string& name, const std::string& chance) {
+  return ftxui::text(" " + PadRight(name, kDropNameWidth) +
+                     PadLeft(chance, kChanceWidth) + " ");
 }
 
 }  // namespace
@@ -115,24 +134,25 @@ void MobInspectPanel::RenderFlavour(std::vector<ftxui::Element>& rows,
   }
 }
 
-void MobInspectPanel::RenderStats(std::vector<ftxui::Element>& rows,
-                                  const Mob& mob) const {
+ftxui::Element MobInspectPanel::RenderStats(const Mob& mob) const {
+  std::vector<ftxui::Element> rows;
   rows.push_back(InfoRow("Level", std::to_string(mob.level())));
   rows.push_back(InfoRow("HP", FormatWithCommas(mob.max_hp())));
   rows.push_back(InfoRow("EXP", FormatWithCommas(mob.exp())));
   rows.push_back(InfoRow("Attack", FormatWithCommas(mob.attack())));
-  // What one drop is worth, to be read with the chance of one in the list
-  // below. The character's own meso and drop rate are left out: this panel
+  // What one drop is worth, to be read with the chance of one in the column
+  // beside it. The character's own meso and drop rate are left out: this panel
   // describes the monster, not the player standing over it.
   rows.push_back(InfoRow("Meso", FormatWithCommas(static_cast<int64_t>(
                                      std::llround(MeanMesoPerDrop(mob))))));
+  return ftxui::vbox(std::move(rows));
 }
 
-void MobInspectPanel::RenderDrops(std::vector<ftxui::Element>& rows,
-                                  const Mob& mob) const {
+ftxui::Element MobInspectPanel::RenderDrops(const Mob& mob) const {
+  std::vector<ftxui::Element> rows;
   // Meso leads: it is the one thing most kills pay, and everything under it
   // is a chance at a particular item.
-  rows.push_back(InfoRow("Meso", DropChance(MesoDropChance(0.0))));
+  rows.push_back(DropRow("Meso", DropChance(MesoDropChance(0.0))));
   for (const MobDrop& drop : mob.drops()) {
     std::string name;
     if (drop.has_equip()) {
@@ -148,20 +168,15 @@ void MobInspectPanel::RenderDrops(std::vector<ftxui::Element>& rows,
       continue;  // a drop nothing would be granted for
     }
     // Wrapped rather than cut: half a name names nothing. The chance sits on
-    // the last line, in the column every other value here stands in.
-    std::string chance = DropChance(drop.per_kill());
-    std::vector<std::string> lines = WrapBalanced(
-        name, kFlavourWidth, static_cast<int>(chance.size()) + 1, kNameIndent);
+    // the last line, in the column every other chance here stands in.
+    std::vector<std::string> lines =
+        WrapBalanced(name, kDropNameWidth, /*tail=*/0, kNameIndent);
     for (int i = 0; i + 1 < static_cast<int>(lines.size()); ++i) {
-      rows.push_back(
-          ftxui::text(" " + PadRight(lines[i], kFlavourWidth) + " "));
+      rows.push_back(DropRow(lines[i], ""));
     }
-    rows.push_back(
-        ftxui::text(" " +
-                    PadRight(lines.back(),
-                             kFlavourWidth - static_cast<int>(chance.size())) +
-                    chance + " "));
+    rows.push_back(DropRow(lines.back(), DropChance(drop.per_kill())));
   }
+  return ftxui::vbox(std::move(rows));
 }
 
 ftxui::Element MobInspectPanel::RenderInfo() const {
@@ -179,9 +194,13 @@ ftxui::Element MobInspectPanel::RenderInfo() const {
   std::vector<ftxui::Element> rows;
   RenderFlavour(rows, mob);
   rows.push_back(ThemedSeparator());
-  RenderStats(rows, mob);
-  rows.push_back(ThemedSeparator());
-  RenderDrops(rows, mob);
+  // The rule between the columns is the same one that runs across the panel:
+  // ftxui stands it on end inside an hbox.
+  rows.push_back(ftxui::hbox({
+      RenderStats(mob),
+      ThemedSeparator(),
+      RenderDrops(mob),
+  }));
   return ThemedWindow(" " + mob.name() + " ", ftxui::vbox(std::move(rows)));
 }
 
