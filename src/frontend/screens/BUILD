@@ -3,6 +3,32 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "analysis_panel",
+    srcs = ["analysis_panel.cc"],
+    hdrs = ["analysis_panel.h"],
+    deps = [
+        "//src:game_state",
+        "//src/character:progression",
+        "//src/combat:battle_analysis",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "analysis_panel_test",
+    srcs = ["analysis_panel_test.cc"],
+    deps = [
+        ":analysis_panel",
+        "//src:game_state",
+        "//src/combat:battle_analysis",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "keybinds_panel",
     srcs = ["keybinds_panel.cc"],
     hdrs = ["keybinds_panel.h"],

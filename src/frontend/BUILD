@@ -242,6 +242,7 @@ cc_library(
         "//src/frontend/panels:menu_panel",
         "//src/frontend/panels:offline_popup_panel",
         "//src/frontend/screens:all_stats_panel",
+        "//src/frontend/screens:analysis_panel",
         "//src/frontend/screens:boss_clear_panel",
         "//src/frontend/screens:boss_fight_panel",
         "//src/frontend/screens:boss_select_panel",

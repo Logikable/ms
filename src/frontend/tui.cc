@@ -103,6 +103,7 @@ Tui::Tui(GameState& state, std::string save_path)
       char_panel_(state.character, state.account, panel_focus_, state.skills),
       combat_panel_(state, combat_sim_, panel_focus_),
       menu_panel_(state, analysis_, panel_focus_),
+      analysis_panel_(state, analysis_),
       equip_panel_(state.character, state.account, panel_focus_),
       inventory_panel_(state.character, state.account, panel_focus_),
       scroll_panel_(state.character, state.scrolls),
@@ -532,7 +533,7 @@ ftxui::Element Tui::RenderScreen() {
     case kMenuBox:
       return RenderMenuBox();
     case kAnalysis:
-      return RenderMain();
+      return OverMain(analysis_panel_.Render());
     case kKeybinds:
       return ftxui::center(keybinds_panel_.Render());
     case kBossSelect:

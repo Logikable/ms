@@ -28,6 +28,7 @@
 #include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/progress_watcher.h"
 #include "src/frontend/screens/all_stats_panel.h"
+#include "src/frontend/screens/analysis_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
@@ -139,6 +140,7 @@ class Tui {
   CharacterPanel char_panel_;
   CombatPanel combat_panel_;
   MenuPanel menu_panel_;
+  AnalysisPanel analysis_panel_;
   EquippedPanel equip_panel_;
   InventoryPanel inventory_panel_;
   ScrollPanel scroll_panel_;
