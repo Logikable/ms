@@ -853,6 +853,33 @@ TEST_F(SkillInspectPanelTest, ShowsTheFactsThatHoldAtEveryLevel) {
   EXPECT_NE(rendered.find("Claw"), std::string::npos);
 }
 
+// The scroll bar's column is part of the card, so a section rule crosses it.
+// Stopping at the text's edge left a notch a column short of the border.
+TEST_F(SkillInspectPanelTest, ASectionRuleReachesTheBorder) {
+  Skill skill = MakeIronBody();
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 5, 0);
+  ftxui::Element card = panel.Render();
+  // Drawn at the card's own width rather than the test screen's: a window
+  // stretched to fill the screen stretches its rules with it, which hides
+  // exactly the gap this is looking for.
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
+  ftxui::Render(screen, card);
+  // Read off the pixel grid rather than ToString, which carries the card's
+  // color escapes and makes every line a different length in bytes.
+  int rules = 0;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    if (screen.PixelAt(0, y).character != "\u251c") {
+      continue;
+    }
+    ++rules;
+    EXPECT_EQ(screen.PixelAt(screen.dimx() - 2, y).character, "\u2500")
+        << "row " << y << " stops short of the border";
+    EXPECT_EQ(screen.PixelAt(screen.dimx() - 1, y).character, "\u2524");
+  }
+  EXPECT_GT(rules, 0) << "the card rules off its sections";
+}
+
 // Two weapons with names as long as "One-Handed Sword" run past the value
 // column, and a requirement cut off mid-weapon says the wrong thing.
 TEST_F(SkillInspectPanelTest, ALongWeaponListWrapsRatherThanClipping) {

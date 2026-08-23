@@ -956,9 +956,10 @@ ftxui::Element ButtonRow(const std::string& go, const std::string& leave,
   });
 }
 
-ftxui::Element ScrollBar(int total, int first_visible, int visible) {
+std::vector<ftxui::Element> ScrollBarCells(int total, int first_visible,
+                                           int visible) {
   if (visible <= 0 || total <= visible) {
-    return ftxui::text("");
+    return {};
   }
   // Counted in half rows, so the thumb can start and end halfway down a cell.
   // This is ftxui's own arithmetic, kept so the bar matches the bag's.
@@ -970,6 +971,15 @@ ftxui::Element ScrollBar(int total, int first_visible, int visible) {
     bool bottom = start <= 2 * row + 1 && 2 * row + 1 <= start + size;
     const char* glyph = top ? (bottom ? "┃" : "╹") : (bottom ? "╻" : " ");
     cells.push_back(ftxui::text(glyph));
+  }
+  return cells;
+}
+
+ftxui::Element ScrollBar(int total, int first_visible, int visible) {
+  std::vector<ftxui::Element> cells =
+      ScrollBarCells(total, first_visible, visible);
+  if (cells.empty()) {
+    return ftxui::text("");
   }
   return ftxui::vbox(std::move(cells));
 }

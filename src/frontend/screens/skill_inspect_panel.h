@@ -66,10 +66,18 @@ class SkillInspectPanel {
   ftxui::Element Render() const;
 
  private:
+  // One row of the card. `separator` rules off a section, and is drawn across
+  // the scroll bar's column as well as the text -- a rule that stops a column
+  // short of the border reads as a gap in the card.
+  struct CardRow {
+    ftxui::Element element;
+    bool separator = false;
+  };
+
   // Every row of the card, in order, borders aside. Render draws a window of
   // these and ScrollBy counts them: both have to agree on how tall the card
   // is, so neither gets its own copy of the layout.
-  std::vector<ftxui::Element> BuildRows() const;
+  std::vector<CardRow> BuildRows() const;
   // How many of `total` rows fit inside the border, given the row budget. All
   // of them when there is no budget.
   int VisibleRows(int total) const;

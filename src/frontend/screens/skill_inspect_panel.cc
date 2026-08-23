@@ -1122,23 +1122,28 @@ void SkillInspectPanel::SetSkill(const Skill* skill, int learned, int bonus,
   levels_ = levels;
 }
 
-std::vector<ftxui::Element> SkillInspectPanel::BuildRows() const {
-  std::vector<ftxui::Element> rows;
-  rows.push_back(CenteredRow(skill_->name()));
-  rows.push_back(
-      CenteredRow("Max Level: " + std::to_string(skill_->max_level())));
+std::vector<SkillInspectPanel::CardRow> SkillInspectPanel::BuildRows() const {
+  std::vector<CardRow> rows;
+  auto text_row = [&rows](ftxui::Element row) {
+    rows.push_back({std::move(row), /*separator=*/false});
+  };
+  auto rule = [&rows]() {
+    rows.push_back({ThemedSeparator(), /*separator=*/true});
+  };
+  text_row(CenteredRow(skill_->name()));
+  text_row(CenteredRow("Max Level: " + std::to_string(skill_->max_level())));
 
-  rows.push_back(ThemedSeparator());
+  rule();
   for (const std::string& line :
        WrapText(skill_->description(), kContentWidth - 2)) {
-    rows.push_back(ftxui::text(" " + line));
+    text_row(ftxui::text(" " + line));
   }
 
   std::vector<ftxui::Element> invariant = InvariantRows(*skill_);
   if (!invariant.empty()) {
-    rows.push_back(ThemedSeparator());
+    rule();
     for (ftxui::Element& row : invariant) {
-      rows.push_back(std::move(row));
+      text_row(std::move(row));
     }
   }
 
@@ -1162,15 +1167,15 @@ std::vector<ftxui::Element> SkillInspectPanel::BuildRows() const {
     has_second = level_ < skill_->max_level() && second > first;
   }
   if (first > 0) {
-    rows.push_back(ThemedSeparator());
+    rule();
     for (ftxui::Element& row : LevelBlock(*skill_, first)) {
-      rows.push_back(std::move(row));
+      text_row(std::move(row));
     }
   }
   if (has_second) {
-    rows.push_back(ThemedSeparator());
+    rule();
     for (ftxui::Element& row : LevelBlock(*skill_, second)) {
-      rows.push_back(std::move(row));
+      text_row(std::move(row));
     }
   }
   return rows;
@@ -1199,29 +1204,44 @@ ftxui::Element SkillInspectPanel::Render() const {
     return ThemedWindow(" Skill ", EmptyState("no skill"));
   }
 
-  std::vector<ftxui::Element> rows = BuildRows();
+  std::vector<CardRow> rows = BuildRows();
   int total = static_cast<int>(rows.size());
   int visible = VisibleRows(total);
   // Clamped here as well as in ScrollBy: the terminal can be made taller under
   // a card already scrolled to its foot, which leaves the old offset too far
   // down for the window it now has.
   int offset = std::max(0, std::min(offset_, total - visible));
-  std::vector<ftxui::Element> shown(rows.begin() + offset,
-                                    rows.begin() + offset + visible);
+
+  // Laid out a row at a time rather than as a column of text beside a column
+  // of bar. A separator is then a child of the card's own vbox and stretches
+  // the whole way across it; nested in the narrower text column it stopped a
+  // column short of the border and read as a notch.
+  //
+  // The bar's column is held open whether or not there is anything to scroll,
+  // so a card does not change width the moment it outgrows the terminal.
+  std::vector<ftxui::Element> cells = ScrollBarCells(total, offset, visible);
+  std::vector<ftxui::Element> lines;
+  for (int row = 0; row < visible; ++row) {
+    CardRow& card_row = rows[offset + row];
+    if (card_row.separator) {
+      lines.push_back(std::move(card_row.element) |
+                      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth));
+      continue;
+    }
+    ftxui::Element cell =
+        cells.empty() ? ftxui::text(" ") : std::move(cells[row]);
+    lines.push_back(ftxui::hbox({
+        std::move(card_row.element) |
+            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth),
+        std::move(cell) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
+    }));
+  }
 
   std::string title = " Passive ";
   if (IsActive(*skill_)) {
     title = " Active ";
   }
-  // The bar's column is held open whether or not there is anything to scroll,
-  // so a card does not change width the moment it outgrows the terminal.
-  return ThemedWindow(
-      title, ftxui::hbox({
-                 ftxui::vbox(std::move(shown)) |
-                     ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth),
-                 ScrollBar(total, offset, visible) |
-                     ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
-             }));
+  return ThemedWindow(title, ftxui::vbox(std::move(lines)));
 }
 
 int TallestPreviewCardRows(const std::vector<const Skill*>& skills) {

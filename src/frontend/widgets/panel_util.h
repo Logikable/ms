@@ -361,6 +361,12 @@ ftxui::Element ButtonRow(const std::string& go, const std::string& leave,
 // where something else has to know which row is on screen.
 ftxui::Element ScrollBar(int total, int first_visible, int visible);
 
+// The same bar a row at a time, for a panel that has to lay each row out
+// itself -- one whose full-width separators would otherwise stop short of the
+// bar's column. Empty when the whole list fits, exactly as ScrollBar is.
+std::vector<ftxui::Element> ScrollBarCells(int total, int first_visible,
+                                           int visible);
+
 // Where a cursor lands after stepping `delta` places in a ring of `stops`,
 // coming out the other end rather than stopping. Every list walks with this --
 // if you are writing `std::max(0, sel - 1)`, write this instead.
