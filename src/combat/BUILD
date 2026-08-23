@@ -216,28 +216,3 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
-
-cc_library(
-    name = "idle_rate",
-    srcs = ["idle_rate.cc"],
-    hdrs = ["idle_rate.h"],
-    deps = [
-        ":constants",
-        ":damage",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:mob_proto_cc",
-    ],
-)
-
-cc_test(
-    name = "idle_rate_test",
-    srcs = ["idle_rate_test.cc"],
-    deps = [
-        ":constants",
-        ":damage",
-        ":idle_rate",
-        "//src/protos:equip_proto_cc",
-        "//src/protos:mob_proto_cc",
-        "@googletest//:gtest_main",
-    ],
-)
