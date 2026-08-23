@@ -82,6 +82,10 @@ class MenuPanel {
   int box_cursor() const {
     return box_cursor_;
   }
+  // Columns between the right edge of the open box and the right edge of the
+  // panel. RenderBox() already carries it; a caller wanting to place the box
+  // itself asks here.
+  int BoxRightMargin() const;
   SettingsEntry selected_settings_entry() const;
   AnalysisEntry selected_analysis_entry() const;
   ftxui::Element RenderBox() const;
@@ -102,6 +106,9 @@ class MenuPanel {
   // What `entry`'s box holds, top to bottom. Empty for an entry that opens a
   // screen instead of a box.
   std::vector<std::string> BoxEntries(MenuEntry entry) const;
+
+  // Columns the open box takes, borders included.
+  int BoxWidth() const;
 
   const GameState& state_;
   const BattleAnalysis& analysis_;

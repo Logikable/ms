@@ -26,7 +26,7 @@ AnalysisSample Tick(double seconds, double damage, int64_t kills, int64_t meso,
 TEST(BattleAnalysisTest, StartsStoppedAndEmpty) {
   BattleAnalysis analysis;
   EXPECT_EQ(analysis.state(), AnalysisState::kStopped);
-  EXPECT_FALSE(analysis.started());
+  EXPECT_FALSE(analysis.stops_on_press());
   EXPECT_EQ(analysis.seconds(), 0.0);
   EXPECT_EQ(analysis.damage_per_second(), 0);
   EXPECT_EQ(analysis.meso_per_hour(), 0);
@@ -37,7 +37,7 @@ TEST(BattleAnalysisTest, WaitsForTheBeatToStart) {
   BattleAnalysis analysis;
   analysis.Start();
   EXPECT_EQ(analysis.state(), AnalysisState::kWaitingToStart);
-  EXPECT_TRUE(analysis.started());
+  EXPECT_TRUE(analysis.stops_on_press());
 
   analysis.Advance(Tick(1.0, 500.0, 3, 400, 90));
   EXPECT_EQ(analysis.state(), AnalysisState::kWaitingToStart);
@@ -92,7 +92,8 @@ TEST(BattleAnalysisTest, WaitsForTheBeatToStop) {
   analysis.Advance(Tick(1.0, 100.0, 1, 10, 5));
   analysis.Stop();
   EXPECT_EQ(analysis.state(), AnalysisState::kWaitingToStop);
-  EXPECT_TRUE(analysis.started());
+  // The entry reads Start again, so one more press takes the stop back.
+  EXPECT_FALSE(analysis.stops_on_press());
 
   analysis.Advance(Tick(1.0, 100.0, 1, 10, 5));
   EXPECT_EQ(analysis.state(), AnalysisState::kWaitingToStop);
@@ -111,6 +112,39 @@ TEST(BattleAnalysisTest, WaitsForTheBeatToStop) {
   analysis.Advance(Beat(60.0));
   EXPECT_EQ(analysis.seconds(), 3.0);
   EXPECT_EQ(analysis.kills(), 3);
+}
+
+// A stop hit by mistake is taken back: the measurement carries on with
+// everything it had.
+TEST(BattleAnalysisTest, StartTakesBackAPendingStop) {
+  BattleAnalysis analysis;
+  analysis.Start();
+  analysis.Advance(Beat(0.0));
+  analysis.Advance(Tick(1.0, 100.0, 1, 10, 5));
+  analysis.Stop();
+  ASSERT_EQ(analysis.state(), AnalysisState::kWaitingToStop);
+
+  analysis.Start();
+  EXPECT_EQ(analysis.state(), AnalysisState::kRunning);
+  EXPECT_EQ(analysis.kills(), 1);
+  EXPECT_EQ(analysis.seconds(), 1.0);
+
+  // The beat it was waiting for is a cycle now, not the end.
+  analysis.Advance(Beat(1.0));
+  EXPECT_EQ(analysis.state(), AnalysisState::kRunning);
+  EXPECT_EQ(analysis.cycles(), 1);
+}
+
+// Start on a measurement already running leaves it alone rather than throwing
+// away what it has.
+TEST(BattleAnalysisTest, StartWhileRunningKeepsTheMeasurement) {
+  BattleAnalysis analysis;
+  analysis.Start();
+  analysis.Advance(Beat(0.0));
+  analysis.Advance(Tick(1.0, 100.0, 1, 10, 5));
+  analysis.Start();
+  EXPECT_EQ(analysis.state(), AnalysisState::kRunning);
+  EXPECT_EQ(analysis.kills(), 1);
 }
 
 // Pressing Stop before the first beat puts the tool away rather than leaving

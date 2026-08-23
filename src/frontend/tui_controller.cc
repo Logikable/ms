@@ -987,7 +987,7 @@ void TuiController::OpenAnalysisEntry(AnalysisEntry entry) {
   }
   // The box stays open on Start and Stop: the entry it was pressed on has
   // just become the other one, and the player can read that where they are.
-  if (analysis_.started()) {
+  if (analysis_.stops_on_press()) {
     analysis_.Stop();
   } else {
     analysis_.Start();

@@ -57,7 +57,7 @@ TEST(AnalysisPanelTest, ItDrawsTheTenRowsAndTheirRates) {
 
   EXPECT_NE(out.find("Battle Analysis"), std::string::npos);
   EXPECT_NE(out.find("00:01:00"), std::string::npos);
-  EXPECT_NE(out.find("Cycles"), std::string::npos);
+  EXPECT_NE(out.find("Respawn Cycles"), std::string::npos);
   EXPECT_NE(out.find("Damage Dealt"), std::string::npos);
   EXPECT_NE(out.find("60,000"), std::string::npos);
   EXPECT_NE(out.find("DPS"), std::string::npos);

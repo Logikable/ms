@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
@@ -176,6 +178,10 @@ TEST(MenuPanelTest, TheAnalysisEntryReadsStopWhileItRuns) {
   std::string running = RenderBox(panel);
   EXPECT_NE(running.find("Stop"), std::string::npos);
   EXPECT_EQ(running.find("Start"), std::string::npos);
+
+  // With a stop pending it reads Start again: one more press takes it back.
+  analysis.Stop();
+  EXPECT_NE(RenderBox(panel).find("Start"), std::string::npos);
 }
 
 // The box stands above the menu row, so Up walks into it and Down comes back
@@ -215,6 +221,74 @@ TEST(MenuPanelTest, TheAnalysisBoxWalksBothOfItsRows) {
   EXPECT_EQ(panel.selected_analysis_entry(), AnalysisEntry::kStartStop);
   panel.MoveBoxCursor(1);
   EXPECT_EQ(panel.box_cursor(), -1);
+}
+
+// The column `text` first appears in, drawn flush right the way the corner
+// lays the menu and its box out, or -1. Columns rather than bytes: the borders
+// around the menu are multi-byte, so an offset into a rendered row is not a
+// column.
+int ColumnOf(ftxui::Element element, const std::string& text) {
+  constexpr int kWidth = 60;
+  constexpr int kHeight = 6;
+  ftxui::Screen screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(kWidth), ftxui::Dimension::Fixed(kHeight));
+  ftxui::Render(screen, ftxui::hbox({ftxui::filler(), std::move(element)}));
+  for (int y = 0; y < kHeight; ++y) {
+    for (int x = 0; x < kWidth; ++x) {
+      std::string got;
+      for (int i = x; i < kWidth && got.size() < text.size(); ++i) {
+        const std::string& cell = screen.PixelAt(i, y).character;
+        got += cell.empty() ? " " : cell;
+      }
+      if (got == text) {
+        return x;
+      }
+    }
+  }
+  return -1;
+}
+
+// The column the open box's left border stands in.
+int BoxColumn(const MenuPanel& panel) {
+  return ColumnOf(panel.RenderBox(), "╭");
+}
+
+// The column `word` starts at on the menu row.
+int WordColumn(const MenuPanel& panel, const std::string& word) {
+  return ColumnOf(panel.Render(), word);
+}
+
+// The box drops from the word that opened it, not from the corner of the
+// screen: its left border stands in the word's first column.
+TEST(MenuPanelTest, TheBoxStandsOverTheWordThatOpenedIt) {
+  GameState state = EmptyState();
+  LevelTo(state, kBossLevel);
+  BattleAnalysis analysis;
+  int focus = kMenuPanel;
+  MenuPanel panel(state, analysis, focus);
+
+  OpenBoxOn(panel, MenuEntry::kAnalysis);
+  int word = WordColumn(panel, "Analysis");
+  ASSERT_GE(word, 0);
+  EXPECT_EQ(BoxColumn(panel), word);
+}
+
+// A box on the last entry would hang off the right of the screen, so it is
+// pulled back to the edge rather than being cut in half.
+TEST(MenuPanelTest, TheLastEntrysBoxStopsAtTheEdge) {
+  GameState state = EmptyState();
+  LevelTo(state, kBossLevel);
+  BattleAnalysis analysis;
+  int focus = kMenuPanel;
+  MenuPanel panel(state, analysis, focus);
+
+  OpenBoxOn(panel, MenuEntry::kSettings);
+  EXPECT_EQ(panel.BoxRightMargin(), 0);
+  int word = WordColumn(panel, "Settings");
+  ASSERT_GE(word, 0);
+  // Still over the word, only not started at its first column.
+  EXPECT_LE(BoxColumn(panel), word);
+  EXPECT_GT(BoxColumn(panel), 0);
 }
 
 }  // namespace

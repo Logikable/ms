@@ -74,7 +74,7 @@ ftxui::Element AnalysisPanel::Render() const {
   // is doing, and these ten say what it found.
   std::vector<std::pair<std::string, std::string>> found = {
       {"Time", FormatClock(analysis_.seconds())},
-      {"Cycles", FormatWithCommas(analysis_.cycles())},
+      {"Respawn Cycles", FormatWithCommas(analysis_.cycles())},
       {"Damage Dealt", FormatWithCommas(analysis_.damage())},
       {"DPS", FormatWithCommas(analysis_.damage_per_second())},
       {"Mobs Killed", FormatWithCommas(analysis_.kills())},

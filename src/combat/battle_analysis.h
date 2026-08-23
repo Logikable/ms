@@ -46,7 +46,9 @@ struct AnalysisSample {
 class BattleAnalysis {
  public:
   // Arms the tool. The next beat starts the measurement, and clears whatever
-  // the last one left behind.
+  // the last one left behind. Pressed while a stop is pending, it takes that
+  // stop back and the measurement carries on -- a stop hit by mistake costs
+  // the player nothing.
   void Start();
   // Stops it on the next beat. Pressed before the first one has arrived, it
   // puts the tool away instead: there is no measurement to round off.
@@ -55,9 +57,12 @@ class BattleAnalysis {
   AnalysisState state() const {
     return state_;
   }
-  // Whether the entry the player presses reads Stop rather than Start.
-  bool started() const {
-    return state_ != AnalysisState::kStopped;
+  // Whether working the tool now stops it rather than starts it. The entry the
+  // player presses is labelled from this, so it always names what pressing it
+  // does -- including during a pending stop, where it reads Start again.
+  bool stops_on_press() const {
+    return state_ == AnalysisState::kWaitingToStart ||
+           state_ == AnalysisState::kRunning;
   }
 
   // Folds one tick in. Ignored while the tool is stopped.

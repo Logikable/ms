@@ -2701,6 +2701,24 @@ TEST_F(TuiControllerTest, TheAnalysisBoxStartsAndStopsTheTool) {
   EXPECT_EQ(analysis_.state(), AnalysisState::kStopped);
 }
 
+// A stop pressed by mistake is taken back by pressing the same row again.
+TEST_F(TuiControllerTest, TheAnalysisEntryTakesBackAPendingStop) {
+  AnalysisSample beat;
+  beat.respawned = true;
+  analysis_.Start();
+  analysis_.Advance(beat);
+  ASSERT_EQ(analysis_.state(), AnalysisState::kRunning);
+
+  controller_->OpenMenuEntry(MenuEntry::kAnalysis);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(analysis_.state(), AnalysisState::kWaitingToStop);
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(analysis_.state(), AnalysisState::kRunning);
+}
+
 TEST_F(TuiControllerTest, ViewOpensTheAnalysisOverlayAndBackClosesIt) {
   controller_->OpenMenuEntry(MenuEntry::kAnalysis);
   controller_->OnEvent(ftxui::Event::ArrowUp);

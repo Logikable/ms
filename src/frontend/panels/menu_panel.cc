@@ -28,6 +28,9 @@ std::string EntryLabel(MenuEntry entry) {
   return "";
 }
 
+// Columns between two entries on the row.
+constexpr int kEntryGap = 2;
+
 }  // namespace
 
 MenuPanel::MenuPanel(const GameState& state, const BattleAnalysis& analysis,
@@ -60,7 +63,7 @@ std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
     case MenuEntry::kBoss:
       return {};  // Boss opens its screen rather than a box.
     case MenuEntry::kAnalysis:
-      return {analysis_.started() ? "Stop" : "Start", "View"};
+      return {analysis_.stops_on_press() ? "Stop" : "Start", "View"};
     case MenuEntry::kSettings:
       return {"Keybinds"};
   }
@@ -102,6 +105,34 @@ AnalysisEntry MenuPanel::selected_analysis_entry() const {
   return box_cursor_ <= 0 ? AnalysisEntry::kStartStop : AnalysisEntry::kView;
 }
 
+int MenuPanel::BoxWidth() const {
+  // What ThemedWindow will size itself to: the wider of its title and its
+  // widest row, plus the two borders.
+  int widest = static_cast<int>(EntryLabel(box_entry_).size()) + 2;
+  for (const std::string& entry : BoxEntries(box_entry_)) {
+    widest = std::max(widest, static_cast<int>(entry.size()) + 2);
+  }
+  return widest + 2;
+}
+
+int MenuPanel::BoxRightMargin() const {
+  std::vector<MenuEntry> entries = Entries();
+  // Where the word starts, and how wide the panel around it is. Both counted
+  // from the panel's left border, which is where the row is laid out from.
+  int word = 0;
+  int at = 2;  // past the border and the column of clearance inside it
+  for (const MenuEntry& entry : entries) {
+    if (entry == box_entry_) {
+      word = at;
+    }
+    at += static_cast<int>(EntryLabel(entry).size()) + kEntryGap;
+  }
+  int panel_width = at - kEntryGap + 2;
+  // The panel is flush with the right of the screen, so a box that would hang
+  // off the edge is pulled back to it rather than being cut in half.
+  return std::max(panel_width - word - BoxWidth(), 0);
+}
+
 ftxui::Element MenuPanel::RenderBox() const {
   std::vector<std::string> entries = BoxEntries(box_entry_);
   ftxui::Elements rows;
@@ -114,9 +145,16 @@ ftxui::Element MenuPanel::RenderBox() const {
   }
   // Cleared under, so the box covers the interior of whatever it stands on
   // rather than letting the panel below show through it.
-  return ThemedWindow(" " + EntryLabel(box_entry_) + " ",
-                      ftxui::vbox(std::move(rows))) |
-         ftxui::clear_under;
+  ftxui::Element box = ThemedWindow(" " + EntryLabel(box_entry_) + " ",
+                                    ftxui::vbox(std::move(rows))) |
+                       ftxui::clear_under;
+  // The margin stands the box over the word that raised it. A filler rather
+  // than blanks: nothing behind the box should be painted over.
+  return ftxui::hbox({
+      std::move(box),
+      ftxui::filler() |
+          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, BoxRightMargin()),
+  });
 }
 
 ftxui::Element MenuPanel::Render() const {

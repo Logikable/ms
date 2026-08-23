@@ -20,6 +20,13 @@ void BattleAnalysis::Reset() {
 }
 
 void BattleAnalysis::Start() {
+  if (state_ == AnalysisState::kWaitingToStop) {
+    state_ = AnalysisState::kRunning;  // the stop is taken back
+    return;
+  }
+  if (state_ == AnalysisState::kRunning) {
+    return;
+  }
   state_ = AnalysisState::kWaitingToStart;
   Reset();
 }
