@@ -111,7 +111,10 @@ void Server::Step(std::chrono::steady_clock::time_point now,
 
 void Server::DropFinished(std::chrono::steady_clock::time_point now) {
   for (const std::unique_ptr<Session>& session : sessions_) {
-    if (session->socket.valid() && session->greeted &&
+    // A connection that never said hello is timed out like any other: a
+    // socket opened and left silent is the one way a session could otherwise
+    // be held forever.
+    if (session->socket.valid() &&
         now - session->last_heard > kSessionTimeout) {
       LOG(INFO) << "Session " << session->id << " went quiet";
       session->socket.Close();

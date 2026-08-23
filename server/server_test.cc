@@ -244,6 +244,16 @@ TEST_F(ServerTest, DropsASessionThatGoesQuiet) {
   EXPECT_TRUE(StepUntil([&]() { return server_->session_count() == 0; }));
 }
 
+TEST_F(ServerTest, DropsAConnectionThatNeverSpoke) {
+  TestClient client;
+  ASSERT_TRUE(client.Open(port_));
+  ASSERT_TRUE(StepUntil([&]() { return server_->session_count() == 1; }));
+
+  // Nothing was ever said on it, so nothing but the clock can end it.
+  now_ += kSessionTimeout + seconds(1);
+  EXPECT_TRUE(StepUntil([&]() { return server_->session_count() == 0; }));
+}
+
 TEST_F(ServerTest, SendsEveryoneAwayWhenDraining) {
   Welcome welcome;
   std::unique_ptr<TestClient> client = Greeted("Dagger", &welcome);
