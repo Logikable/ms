@@ -867,6 +867,24 @@ TEST_F(LearnSkillTest, RejectsASkillWithNoAdvancement) {
 
 // --- Advancement mapping ---
 
+TEST(UsernameTest, StartsOnTheInvitationAndTakesAName) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng);
+  EXPECT_EQ(c.username(), kDefaultUsername);
+  c.SetUsername("Logikable");
+  EXPECT_EQ(c.username(), "Logikable");
+}
+
+// Nothing should be able to leave a character nameless: the panel reads an
+// empty entry as "keep what you had", and so does this.
+TEST(UsernameTest, AnEmptyNameIsIgnored) {
+  std::mt19937 rng(1);
+  CharacterInstance c = MakeCharacter(rng);
+  c.SetUsername("Logikable");
+  c.SetUsername("");
+  EXPECT_EQ(c.username(), "Logikable");
+}
+
 TEST(AdvancementMappingTest, FirstStageMapsToEachJobsFirstAdvancement) {
   EXPECT_EQ(AdvancementForJobStage(JOB_SWORDMAN, 1), JOB_ADVANCEMENT_SWORDMAN);
   EXPECT_EQ(AdvancementForJobStage(JOB_ARCHER, 1), JOB_ADVANCEMENT_ARCHER);

@@ -32,6 +32,15 @@ namespace ms {
 inline constexpr int kBaseStat = 4;
 inline constexpr int kBeginnerStr = 13;
 
+// What a character is called before the player names one, which doubles as the
+// invitation to. Every character carries it: a save from before the field was
+// written comes forward with it rather than with a blank row.
+inline constexpr char kDefaultUsername[] = "Set Username";
+
+// The longest name the player may set, GMS's own limit. The Character panel is
+// a fixed width, so a name is capped rather than allowed to widen it.
+inline constexpr int kMaxUsernameLength = 12;
+
 // Every AP the game has ever handed a character at `level` holding
 // `job_stage` advancements, spent and unspent together. AP is only ever moved
 // between the pool and the stats, never destroyed, so a save whose books do
@@ -294,6 +303,15 @@ class CharacterInstance {
   // valid, compatible inventory slots. Returns the recovery star count.
   int RecoverTrace(int trace_index, int base_item_index);
 
+  // The player's name for this character. Never empty: a character built or
+  // loaded without one answers kDefaultUsername.
+  const std::string& username() const {
+    return character_.name();
+  }
+  // Names the character. Silently ignores an empty name -- the panel treats
+  // one as "leave it alone", and nothing else should be able to clear it.
+  void SetUsername(const std::string& name);
+
   const Character& proto() const {
     return character_;
   }
@@ -405,6 +423,9 @@ class CharacterInstance {
   int PiecesWornOf(const EquipSet& set) const;
 
  private:
+  // Gives a nameless character kDefaultUsername. Both doors a Character comes
+  // in through call it, which is what makes username() never empty.
+  void EnsureUsername();
   // Spends one star force attempt's price, or returns false and spends
   // nothing. Both StarForce entry points call it before they roll.
   bool PayForStarForce(const EquipInstance& item);

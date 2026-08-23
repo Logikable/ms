@@ -28,6 +28,7 @@ namespace {
 // The level-1 Beginner every character starts from, before any leveling.
 Character MakeBaseBeginnerProto() {
   Character proto;
+  proto.set_name(kDefaultUsername);
   proto.set_level(1);
   proto.set_job(JOB_BEGINNER);
   proto.set_ap(0);

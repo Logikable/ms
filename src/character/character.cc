@@ -867,6 +867,13 @@ LevelGains GainsForLevels(int from_level, int to_level) {
 
 CharacterInstance::CharacterInstance(std::mt19937& rng, Character character)
     : rng_(rng), character_(std::move(character)) {
+  EnsureUsername();
+}
+
+void CharacterInstance::EnsureUsername() {
+  if (character_.name().empty()) {
+    character_.set_name(kDefaultUsername);
+  }
 }
 
 void CharacterInstance::LevelUp() {
@@ -1779,10 +1786,19 @@ Character CharacterInstance::ToProto() const {
   return saved;
 }
 
+void CharacterInstance::SetUsername(const std::string& name) {
+  if (name.empty()) {
+    return;
+  }
+  character_.set_name(name);
+}
+
 void CharacterInstance::RestoreFrom(
     const Character& saved, const std::map<std::string, EquipPrototype>& equips,
     const std::map<std::string, ItemPrototype>& items) {
   character_ = saved;
+  // A save written before characters had names.
+  EnsureUsername();
   // The item fields are the live containers' business from here; leaving
   // copies behind would let the two drift and ToProto pick the stale one.
   character_.clear_inventory();

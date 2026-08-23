@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 
+#include "src/character/character.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
@@ -117,6 +118,32 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   EXPECT_EQ(loaded->character.BossClearedAt("zakum", "Normal"), 1755000000);
   EXPECT_EQ(loaded->character.BossClearedAt("zakum", "Chaos"), 0);
   EXPECT_EQ(loaded->current_map, "lith");
+}
+
+TEST_F(SaveTest, WritesAndReadsBackTheUsername) {
+  std::unique_ptr<GameState> saved = MakeState();
+  EXPECT_EQ(saved->character.username(), kDefaultUsername);
+  saved->character.SetUsername("Logikable");
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.username(), "Logikable");
+}
+
+// A save written before characters had names. It comes forward with the
+// invitation to set one rather than with a blank row.
+TEST_F(SaveTest, ASaveWithNoNameLoadsWithTheDefault) {
+  SaveGame old;
+  old.set_format_version(kSaveFormatVersion);
+  old.mutable_character()->set_level(1);
+  std::string bytes;
+  ASSERT_TRUE(old.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.username(), kDefaultUsername);
 }
 
 // AP is only ever moved between the pool and the stats, so a save whose books

@@ -165,6 +165,10 @@ message BuyBackEntry {
 }
 
 message Character {
+  // What the player calls this character, alphanumeric and at most
+  // kMaxUsernameLength. Never empty once saved: an unnamed character carries
+  // kDefaultUsername, the row's own invitation to set one. Multiplayer will
+  // introduce the player by this.
   string name = 1;
   int32 level = 2;
   // EXP accumulated toward the next level. Always < ExpToNextLevel(level).
