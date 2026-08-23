@@ -8,7 +8,7 @@
 name: "Holy Water"
 skill_order: 4
 description:
-  "Summons a chalice of holy water nearby that restores your HP on its own."
+  "Summons a chalice of holy water nearby that restores your HP over time."
 kind: SKILL_KIND_PASSIVE
 tags: SKILL_TAG_BENEVOLENCE
 job_advancement: JOB_ADVANCEMENT_BISHOP
