@@ -96,11 +96,15 @@ class CharacterPanel {
   }
 
  private:
-  // Fixed rows of the Stats tab: the window's two borders, the two heading
-  // rows, the rule under them, the tab bar, its rule, HP, MP, the four AP
-  // stats, and the rule above the extras. Everything else on the tab is an
-  // extra stat or the View All Stats row.
-  static constexpr int kStatsTabFixedRows = 14;
+  // Fixed rows of the Stats tab: the window's two borders, the three heading
+  // rows (name, level and job, combat power), the rule under them, the tab
+  // bar, its rule, HP, MP, the four AP stats, and the rule above the extras.
+  // Everything else on the tab is an extra stat or the View All Stats row.
+  //
+  // A heading row added without this counted a row too few overruns the budget
+  // and pushes the combat panel's last mob bar off a short terminal --
+  // ThePanelFitsInsideItsRowBudget is the test that says so.
+  static constexpr int kStatsTabFixedRows = 15;
 
   // Whether the border is currently lit gold. Not part of the panel's own
   // state machine -- it is set from outside and read by Render.

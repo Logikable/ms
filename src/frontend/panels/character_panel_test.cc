@@ -11,6 +11,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/node.hpp"
+#include "ftxui/dom/requirement.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
@@ -1402,12 +1403,21 @@ std::vector<std::string> ExtrasShown(ftxui::Element element) {
   return labels;
 }
 
+// The rows the panel asks for, borders included -- the height MainLayout
+// stacks it at, and so what the combat panel below it has to fit around.
+// Read from the requirement rather than off the screen: a window fills the box
+// it is given, so rendering the panel alone measures the screen instead.
+int PanelHeight(ftxui::Element element) {
+  element->ComputeRequirement();
+  return element->requirement().min_y;
+}
+
 TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
-  // 14 rows of chrome and stats above, then four rows for the extras: three
+  // 15 rows of chrome and stats above, then four rows for the extras: three
   // stats and the row that leads to the rest of them.
-  panel.SetMaxRows(18);
+  panel.SetMaxRows(19);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"Attack", "Magic Attack", "Damage",
                                       "View All Stats"}));
@@ -1417,12 +1427,41 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   // Room for nothing but the way out, and then for less than that.
-  panel.SetMaxRows(15);
+  panel.SetMaxRows(16);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"View All Stats"}));
   panel.SetMaxRows(4);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"View All Stats"}));
+}
+
+// What the budget is for: the combat panel sits under this one, and a panel
+// that draws past its budget pushes the mob bars off a short terminal. So the
+// measure is the height drawn, not which stats were dropped to reach it -- a
+// heading row added without kStatsTabFixedRows following it passes every test
+// above and still overruns by one, which is how the name row shipped.
+TEST_F(CharacterPanelTest, ThePanelFitsInsideItsRowBudget) {
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  int natural = PanelHeight(panel.Render());
+  EXPECT_EQ(natural, 27) << "chrome, the AP stats, 11 extras and the way out";
+  // From the tightest budget the chrome fits in, up past the height the panel
+  // wants: it takes every row it is given and not one more.
+  for (int budget = 16; budget <= natural + 2; ++budget) {
+    panel.SetMaxRows(budget);
+    EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
+        << "at a budget of " << budget;
+  }
+}
+
+// A Beginner's tab ends at the AP rows, so there is nothing for a budget to
+// drop -- but the chrome above those rows is the same chrome, and a heading
+// row counted wrong shows up here as a panel that has grown.
+TEST_F(CharacterPanelTest, ABeginnerPanelIsTheChromeAndTheApRows) {
+  CharacterPanel panel(c_, account_, panel_focus_);
+  EXPECT_EQ(PanelHeight(panel.Render()), 14);
+  panel.SetMaxRows(14);
+  EXPECT_EQ(PanelHeight(panel.Render()), 14);
 }
 
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
