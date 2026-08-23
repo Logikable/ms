@@ -4,7 +4,8 @@ attack: 2312
 max_hp: 627320
 exp: 4658
 drops { item: "red_shell" per_kill: 0.4 }
+drops { equip: "frozen_hat" per_kill: 0.0001 }
 drops { equip: "frozen_cape" per_kill: 0.0001 }
-drops { item: "frozen_weapon_token" per_kill: 0.0001 }
-drops { item: "frozen_secondary_token" per_kill: 0.0001 }
+drops { item: "frozen_weapon_token" per_kill: 0.00025 }
+drops { item: "frozen_secondary_token" per_kill: 0.00025 }
 description: "A dragon monster that can be found in the Dragon Forest. It is quick to bow down to anyone of superior power, which explains its role as the loyal servant to Horntail."

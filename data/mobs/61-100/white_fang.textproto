@@ -4,7 +4,6 @@ attack: 537
 max_hp: 54000
 exp: 780
 drops { item: "white_fang_tail" per_kill: 0.4 }
-drops { equip: "frozen_top" per_kill: 0.0001 }
-drops { equip: "frozen_bottom" per_kill: 0.0001 }
-drops { equip: "frozen_hat" per_kill: 0.00025 }
+drops { equip: "frozen_top" per_kill: 0.00025 }
+drops { equip: "frozen_bottom" per_kill: 0.00025 }
 description: "Wolf monsters that appear near El Nath. They're a popular target amongst hunters, who seek to harvest the thick pelts that allow White Fangs to survive in the icy climate of El Nath."

@@ -11,4 +11,6 @@ attack: 3391
 max_hp: 1612800
 exp: 8748
 drops { item: "egg_shell" per_kill: 0.4 }
+drops { item: "frozen_weapon_token" per_kill: 0.0001 }
+drops { item: "frozen_secondary_token" per_kill: 0.0001 }
 description: "A group of young dragons that live in the nest. The Jr. Newties cannot leave their nests, but they have the power to attack using a sound wave at a distance."

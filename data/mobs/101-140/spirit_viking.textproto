@@ -4,8 +4,7 @@ attack: 1626
 max_hp: 437235
 exp: 3510
 drops { item: "viking_sail" per_kill: 0.4 }
+drops { equip: "frozen_bottom" per_kill: 0.0001 }
 drops { equip: "frozen_hat" per_kill: 0.0001 }
-drops { equip: "frozen_cape" per_kill: 0.0001 }
-drops { item: "frozen_weapon_token" per_kill: 0.00025 }
-drops { item: "frozen_secondary_token" per_kill: 0.00025 }
+drops { equip: "frozen_cape" per_kill: 0.00025 }
 description: "Like Tick-Tock and Tick, it is a being from a Subspace Crevasse. Desiring to return to their original world, they indiscriminately attack any being that interferes with the flow of time."

@@ -5,7 +5,6 @@ max_hp: 122000
 exp: 1522
 drops { item: "moss_snail_shell" per_kill: 0.4 }
 drops { equip: "frozen_top" per_kill: 0.0001 }
-drops { equip: "frozen_bottom" per_kill: 0.0001 }
-drops { equip: "frozen_hat" per_kill: 0.0001 }
-drops { equip: "frozen_cape" per_kill: 0.00025 }
+drops { equip: "frozen_bottom" per_kill: 0.00025 }
+drops { equip: "frozen_hat" per_kill: 0.00025 }
 description: "An ancient snail that can be found in Ellin Forest. Not only is it much bigger than its blue and red counterparts, this edition of snail also comes with razor-sharp teeth."

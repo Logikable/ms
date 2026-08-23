@@ -4,4 +4,6 @@ attack: 3025
 max_hp: 1134300
 exp: 7594
 drops { item: "red_cloth" per_kill: 0.4 }
+drops { item: "frozen_weapon_token" per_kill: 0.0001 }
+drops { item: "frozen_secondary_token" per_kill: 0.0001 }
 description: "The Oblivion Monks stand, appropriately enough, upon the Road to Oblivion. They serve Rhinne, the Goddess of Time. Because they have lost all their memories of the past, they wear frowny masks."

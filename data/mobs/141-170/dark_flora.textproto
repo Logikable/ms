@@ -7,4 +7,6 @@ attack: 4645
 max_hp: 2824600
 exp: 12878
 drops { item: "dark_flora_petal" per_kill: 0.4 }
+drops { item: "frozen_weapon_token" per_kill: 0.0001 }
+drops { item: "frozen_secondary_token" per_kill: 0.0001 }
 description: "Found to the east of the expedition site, this purple flower has flammable seeds that it ignites to launch fire attacks. In this area, purple seems to be a symbol of strength."
