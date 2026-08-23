@@ -363,6 +363,13 @@ int CharacterPanel::ExtraStatsShown(int total) const {
   return std::max(0, std::min(total, max_rows_ - kStatsTabFixedRows - 1));
 }
 
+bool CharacterPanel::ShowsExtrasRule() const {
+  // The rule is the first thing the extras block gives up. A budget with no
+  // room for it is one row shorter than the panel's chrome, which is the row
+  // the combat panel below needs on a 24-row terminal.
+  return max_rows_ <= 0 || max_rows_ >= kStatsTabFixedRows + 1;
+}
+
 ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const Character& p = character_.proto();
   const AllocatedStats& a = p.allocated_stats();
@@ -387,7 +394,9 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   if (!ShowsCombatStats()) {
     return ftxui::vbox(std::move(rows));
   }
-  rows.push_back(PanelSeparator(highlighted_));
+  if (ShowsExtrasRule()) {
+    rows.push_back(PanelSeparator(highlighted_));
+  }
   std::vector<StatLine> extras =
       PanelExtraStatLines(character_, account_, skills_);
   int shown = ExtraStatsShown(static_cast<int>(extras.size()));

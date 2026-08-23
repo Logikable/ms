@@ -1423,6 +1423,18 @@ TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
                                       "View All Stats"}));
 }
 
+// 24 rows is the terminal to fit: one goes to the exp bar and eight to a
+// combat panel showing a mob bar and the respawn beat, which leaves this
+// panel exactly its floor.
+TEST_F(CharacterPanelTest, TheFloorLeavesTheCombatPanelItsRows) {
+  CharacterInstance c = MakeSpearman(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel.SetMaxRows(24 - 1 - 8);
+  EXPECT_EQ(PanelHeight(panel.Render()), 15);
+  EXPECT_EQ(ExtrasShown(panel.Render()),
+            (std::vector<std::string>{"View All Stats"}));
+}
+
 TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
@@ -1446,8 +1458,9 @@ TEST_F(CharacterPanelTest, ThePanelFitsInsideItsRowBudget) {
   int natural = PanelHeight(panel.Render());
   EXPECT_EQ(natural, 27) << "chrome, the AP stats, 11 extras and the way out";
   // From the tightest budget the chrome fits in, up past the height the panel
-  // wants: it takes every row it is given and not one more.
-  for (int budget = 16; budget <= natural + 2; ++budget) {
+  // wants: it takes every row it is given and not one more. 15 is the floor --
+  // the chrome and the way out, with the rule above the extras given up.
+  for (int budget = 15; budget <= natural + 2; ++budget) {
     panel.SetMaxRows(budget);
     EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
         << "at a budget of " << budget;

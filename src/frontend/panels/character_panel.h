@@ -103,7 +103,8 @@ class CharacterPanel {
   //
   // A heading row added without this counted a row too few overruns the budget
   // and pushes the combat panel's last mob bar off a short terminal --
-  // ThePanelFitsInsideItsRowBudget is the test that says so.
+  // ThePanelFitsInsideItsRowBudget is the test that says so. The rule itself
+  // goes when the budget cannot pay for it: see ShowsExtrasRule.
   static constexpr int kStatsTabFixedRows = 15;
 
   // Whether the border is currently lit gold. Not part of the panel's own
@@ -235,6 +236,9 @@ class CharacterPanel {
   // the View All Stats row under them has been paid for. All of them when no
   // budget is set.
   int ExtraStatsShown(int total) const;
+  // Whether the rule above the extra stats is drawn. It is dropped at the
+  // tightest budgets, where nothing follows it but the way out.
+  bool ShowsExtrasRule() const;
   // The MP row with unspent AP right-aligned as "N AP".
   ftxui::Element MpRow(int mp, int ap) const;
   // Renders one allocatable stat row: label/value on the left, a [+] button on
