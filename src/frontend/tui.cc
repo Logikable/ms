@@ -64,6 +64,15 @@ int ExpPctDecimals(int level) {
   return 4;
 }
 
+// Every kill the step recorded, whatever stood on the map.
+int64_t TotalKills(const CombatSim& sim) {
+  int64_t total = 0;
+  for (int64_t kills : sim.kills_this_step()) {
+    total += kills;
+  }
+  return total;
+}
+
 // Raised by a signal asking the game to close: Ctrl+C, a killed process, or a
 // terminal that went away. A handler may do almost nothing safely, so it does
 // exactly one thing -- sets this -- and the loop notices on its next tick and
@@ -93,7 +102,7 @@ Tui::Tui(GameState& state, std::string save_path)
       keys_(state.account.mutable_keybinds()),
       char_panel_(state.character, state.account, panel_focus_, state.skills),
       combat_panel_(state, combat_sim_, panel_focus_),
-      menu_panel_(state, panel_focus_),
+      menu_panel_(state, analysis_, panel_focus_),
       equip_panel_(state.character, state.account, panel_focus_),
       inventory_panel_(state.character, state.account, panel_focus_),
       scroll_panel_(state.character, state.scrolls),
@@ -111,8 +120,8 @@ Tui::Tui(GameState& state, std::string save_path)
                   sell_panel_, sell_equip_panel_, multi_sell_panel_,
                   map_select_panel_, mob_inspect_panel_, boss_select_panel_,
                   shop_panel_, buy_panel_, job_inspect_panel_,
-                  skill_inspect_panel_, menu_panel_, keybinds_panel_, keys_,
-                  panel_focus_) {
+                  skill_inspect_panel_, menu_panel_, keybinds_panel_, analysis_,
+                  keys_, panel_focus_) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -295,14 +304,14 @@ ftxui::Element Tui::QuitDialog() {
                       controller_.quit_prompt().Render());
 }
 
-ftxui::Element Tui::RenderSettingsBox() {
+ftxui::Element Tui::RenderMenuBox() {
   // The exp bar, which the corner menu sits one row above.
   constexpr int kExpBarRows = 1;
   return ftxui::dbox({
       RenderMain(),
       ftxui::vbox({
           ftxui::filler(),
-          ftxui::hbox({ftxui::filler(), menu_panel_.RenderSettingsBox()}),
+          ftxui::hbox({ftxui::filler(), menu_panel_.RenderBox()}),
           ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,
                                         MenuPanel::kHeight + kExpBarRows),
       }),
@@ -520,8 +529,10 @@ ftxui::Element Tui::RenderScreen() {
       return ftxui::center(map_select_panel_.Render());
     case kMobInspect:
       return ftxui::center(mob_inspect_panel_.Render());
-    case kSettingsMenu:
-      return RenderSettingsBox();
+    case kMenuBox:
+      return RenderMenuBox();
+    case kAnalysis:
+      return RenderMain();
     case kKeybinds:
       return ftxui::center(keybinds_panel_.Render());
     case kBossSelect:
@@ -691,9 +702,18 @@ void Tui::Tick() {
   if (controller_.in_boss_fight()) {
     // The map is not farmed while the player is somewhere else: EXP quietly
     // arriving from a fight they cannot see is a strange thing to owe them.
+    // The analysis is not fed either, so its clock stops with the farming.
     controller_.AdvanceBossRun(elapsed.count());
   } else {
-    AdvanceCombat(state_, combat_sim_, elapsed.count());
+    RewardTally tally = AdvanceCombat(state_, combat_sim_, elapsed.count());
+    AnalysisSample sample;
+    sample.seconds = elapsed.count();
+    sample.respawned = combat_sim_.respawned_this_step();
+    sample.damage = combat_sim_.damage_this_step();
+    sample.kills = TotalKills(combat_sim_);
+    sample.meso = tally.meso;
+    sample.exp = tally.exp;
+    analysis_.Advance(sample);
   }
   // Ticked down before the new level is noticed, so a level-up landing on this
   // tick gets its full four seconds rather than one tick's worth less.

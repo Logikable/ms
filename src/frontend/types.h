@@ -58,10 +58,13 @@ enum Screen : int {
   kShopMenu,
   kShopInspect,
   kShopBuy,
-  // Enter on the menu panel's Settings entry: a box over the corner, and the
-  // one screen it opens.
-  kSettingsMenu,
+  // Enter on a menu panel entry that lists what it leads to: a box over the
+  // corner, and the screens it opens.
+  kMenuBox,
   kKeybinds,
+  // Battle Analysis, from that box: what the stretch being measured is worth,
+  // over the main screen it is being measured on.
+  kAnalysis,
   // The card a returning player is met with: what their character earned while
   // the game was closed. Raised at launch and dismissed with one key.
   kOffline,

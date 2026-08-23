@@ -20,24 +20,19 @@ std::string EntryLabel(MenuEntry entry) {
   switch (entry) {
     case MenuEntry::kBoss:
       return "Boss";
+    case MenuEntry::kAnalysis:
+      return "Analysis";
     case MenuEntry::kSettings:
       return "Settings";
   }
   return "";
 }
 
-std::string SettingsEntryLabel(SettingsEntry entry) {
-  switch (entry) {
-    case SettingsEntry::kKeybinds:
-      return "Keybinds";
-  }
-  return "";
-}
-
 }  // namespace
 
-MenuPanel::MenuPanel(const GameState& state, int& panel_focus)
-    : state_(state), panel_focus_(panel_focus) {
+MenuPanel::MenuPanel(const GameState& state, const BattleAnalysis& analysis,
+                     int& panel_focus)
+    : state_(state), analysis_(analysis), panel_focus_(panel_focus) {
 }
 
 std::vector<MenuEntry> MenuPanel::Entries() const {
@@ -45,6 +40,7 @@ std::vector<MenuEntry> MenuPanel::Entries() const {
   if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kBoss);
   }
+  entries.push_back(MenuEntry::kAnalysis);
   entries.push_back(MenuEntry::kSettings);
   return entries;
 }
@@ -59,56 +55,67 @@ void MenuPanel::MoveCursor(int delta) {
   cursor_ = StepCursor(cursor_, delta, static_cast<int>(Entries().size()));
 }
 
-std::vector<SettingsEntry> MenuPanel::SettingsEntries() const {
-  return {SettingsEntry::kKeybinds};
+std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
+  switch (entry) {
+    case MenuEntry::kBoss:
+      return {};  // Boss opens its screen rather than a box.
+    case MenuEntry::kAnalysis:
+      return {analysis_.started() ? "Stop" : "Start", "View"};
+    case MenuEntry::kSettings:
+      return {"Keybinds"};
+  }
+  return {};
 }
 
-void MenuPanel::OpenSettings() {
-  settings_open_ = true;
-  settings_cursor_ = -1;
+void MenuPanel::OpenBox(MenuEntry entry) {
+  box_open_ = true;
+  box_entry_ = entry;
+  box_cursor_ = -1;
 }
 
-void MenuPanel::CloseSettings() {
-  settings_open_ = false;
-  settings_cursor_ = -1;
+void MenuPanel::CloseBox() {
+  box_open_ = false;
+  box_cursor_ = -1;
 }
 
-void MenuPanel::MoveSettingsCursor(int delta) {
+void MenuPanel::MoveBoxCursor(int delta) {
   // The box stands above the menu row, so the ring runs from the row up
   // through the entries and back round. Stop 0 is the row itself.
-  int count = static_cast<int>(SettingsEntries().size());
+  int count = static_cast<int>(BoxEntries(box_entry_).size());
   int at = 0;
-  if (settings_cursor_ >= 0) {
-    at = count - settings_cursor_;
+  if (box_cursor_ >= 0) {
+    at = count - box_cursor_;
   }
   at = StepCursor(at, delta, count + 1);
-  settings_cursor_ = -1;
+  box_cursor_ = -1;
   if (at > 0) {
-    settings_cursor_ = count - at;
+    box_cursor_ = count - at;
   }
 }
 
 SettingsEntry MenuPanel::selected_settings_entry() const {
-  std::vector<SettingsEntry> entries = SettingsEntries();
-  int at =
-      std::clamp(settings_cursor_, 0, static_cast<int>(entries.size()) - 1);
-  return entries[at];
+  // One entry, so the cursor cannot be on anything else.
+  return SettingsEntry::kKeybinds;
 }
 
-ftxui::Element MenuPanel::RenderSettingsBox() const {
-  std::vector<SettingsEntry> entries = SettingsEntries();
+AnalysisEntry MenuPanel::selected_analysis_entry() const {
+  return box_cursor_ <= 0 ? AnalysisEntry::kStartStop : AnalysisEntry::kView;
+}
+
+ftxui::Element MenuPanel::RenderBox() const {
+  std::vector<std::string> entries = BoxEntries(box_entry_);
   ftxui::Elements rows;
   for (int i = 0; i < static_cast<int>(entries.size()); ++i) {
-    ftxui::Element row =
-        ftxui::text(" " + SettingsEntryLabel(entries[i]) + " ");
-    if (i == settings_cursor_) {
+    ftxui::Element row = ftxui::text(" " + entries[i] + " ");
+    if (i == box_cursor_) {
       row = std::move(row) | ftxui::inverted;
     }
     rows.push_back(std::move(row));
   }
   // Cleared under, so the box covers the interior of whatever it stands on
   // rather than letting the panel below show through it.
-  return ThemedWindow(" Settings ", ftxui::vbox(std::move(rows))) |
+  return ThemedWindow(" " + EntryLabel(box_entry_) + " ",
+                      ftxui::vbox(std::move(rows))) |
          ftxui::clear_under;
 }
 
@@ -131,7 +138,7 @@ ftxui::Element MenuPanel::Render() const {
     }
     // The cursor is in one place at a time: with the box open and the cursor
     // in it, the entry it came from stops being the highlighted one.
-    if (focused && i == at && settings_cursor_ < 0) {
+    if (focused && i == at && box_cursor_ < 0) {
       button = std::move(button) | ftxui::inverted;
     }
     row.push_back(std::move(button));

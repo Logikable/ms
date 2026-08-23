@@ -43,8 +43,8 @@ TuiController::TuiController(
     MobInspectPanel& mob_inspect_panel, BossSelectPanel& boss_select_panel,
     ShopPanel& shop_panel, BuyPanel& buy_panel,
     JobInspectPanel& job_inspect_panel, SkillInspectPanel& skill_inspect_panel,
-    MenuPanel& menu_panel, KeybindsPanel& keybinds_panel, KeyMap& keys,
-    int& panel_focus)
+    MenuPanel& menu_panel, KeybindsPanel& keybinds_panel,
+    BattleAnalysis& analysis, KeyMap& keys, int& panel_focus)
     : state_(state),
       char_panel_(char_panel),
       equip_panel_(equip_panel),
@@ -62,6 +62,7 @@ TuiController::TuiController(
       skill_inspect_panel_(skill_inspect_panel),
       menu_panel_(menu_panel),
       keybinds_panel_(keybinds_panel),
+      analysis_(analysis),
       keys_(keys),
       shop_panel_(shop_panel),
       buy_panel_(buy_panel),
@@ -146,11 +147,11 @@ bool TuiController::capturing_key() const {
 }
 
 void TuiController::OpenMenuEntry(MenuEntry entry) {
-  if (entry == MenuEntry::kSettings) {
+  if (entry != MenuEntry::kBoss) {
     // The box opens with the cursor still on the entry below it, which is what
     // the player presses Up to leave.
-    menu_panel_.OpenSettings();
-    screen_ = kSettingsMenu;
+    menu_panel_.OpenBox(entry);
+    screen_ = kMenuBox;
     return;
   }
   // Opening the screen is what the gold was leading to, so it stops here.
@@ -304,8 +305,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnShopInspectEvent(event);
     case kShopBuy:
       return OnShopBuyEvent(event);
-    case kSettingsMenu:
-      return OnSettingsMenuEvent(event);
+    case kMenuBox:
+      return OnMenuBoxEvent(event);
+    case kAnalysis:
+      return OnAnalysisEvent(event);
     case kKeybinds:
       return OnKeybindsEvent(event);
     case kOffline:
@@ -923,19 +926,19 @@ void TuiController::LeaveBossRun() {
   screen_ = kBossSelect;
 }
 
-// The Settings box. Modal, like every other menu that stands over the main
-// view: nothing behind it hears a key while it is up.
-bool TuiController::OnSettingsMenuEvent(ftxui::Event event) {
+// The box a menu entry raised. Modal, like every other menu that stands over
+// the main view: nothing behind it hears a key while it is up.
+bool TuiController::OnMenuBoxEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
-    menu_panel_.MoveSettingsCursor(1);
+    menu_panel_.MoveBoxCursor(1);
     return true;
   }
   if (event == ftxui::Event::ArrowDown) {
-    menu_panel_.MoveSettingsCursor(-1);
+    menu_panel_.MoveBoxCursor(-1);
     return true;
   }
   if (IsBack(event)) {
-    menu_panel_.CloseSettings();
+    menu_panel_.CloseBox();
     screen_ = kMain;
     return true;
   }
@@ -943,8 +946,8 @@ bool TuiController::OnSettingsMenuEvent(ftxui::Event event) {
   // entry the box hangs from puts the box away with it.
   bool sideways =
       event == ftxui::Event::ArrowLeft || event == ftxui::Event::ArrowRight;
-  if (sideways && menu_panel_.settings_cursor() < 0) {
-    menu_panel_.CloseSettings();
+  if (sideways && menu_panel_.box_cursor() < 0) {
+    menu_panel_.CloseBox();
     screen_ = kMain;
     int step = -1;
     if (event == ftxui::Event::ArrowRight) {
@@ -953,21 +956,57 @@ bool TuiController::OnSettingsMenuEvent(ftxui::Event event) {
     menu_panel_.MoveCursor(step);
     return true;
   }
-  if (IsForward(event) && menu_panel_.settings_cursor() >= 0) {
-    switch (menu_panel_.selected_settings_entry()) {
-      case SettingsEntry::kKeybinds:
-        keybinds_panel_.Reset();
-        screen_ = kKeybinds;
-        break;
-    }
+  if (IsForward(event) && menu_panel_.box_cursor() >= 0) {
+    OpenBoxEntry();
   }
   return true;
+}
+
+void TuiController::OpenBoxEntry() {
+  switch (menu_panel_.box_entry()) {
+    case MenuEntry::kBoss:
+      return;  // Boss raises no box.
+    case MenuEntry::kAnalysis:
+      OpenAnalysisEntry(menu_panel_.selected_analysis_entry());
+      return;
+    case MenuEntry::kSettings:
+      switch (menu_panel_.selected_settings_entry()) {
+        case SettingsEntry::kKeybinds:
+          keybinds_panel_.Reset();
+          screen_ = kKeybinds;
+          return;
+      }
+      return;
+  }
+}
+
+void TuiController::OpenAnalysisEntry(AnalysisEntry entry) {
+  if (entry == AnalysisEntry::kView) {
+    screen_ = kAnalysis;
+    return;
+  }
+  // The box stays open on Start and Stop: the entry it was pressed on has
+  // just become the other one, and the player can read that where they are.
+  if (analysis_.started()) {
+    analysis_.Stop();
+  } else {
+    analysis_.Start();
+  }
 }
 
 void TuiController::LeaveKeybinds() {
   // Back to the box it was opened from, which is still standing where the
   // player left it.
-  screen_ = kSettingsMenu;
+  screen_ = kMenuBox;
+}
+
+// The Battle Analysis overlay reads the tool and does nothing to it, so any
+// key that means "back" is all it answers to.
+bool TuiController::OnAnalysisEvent(ftxui::Event event) {
+  if (IsBack(event) || IsForward(event)) {
+    screen_ = kMenuBox;
+  }
+  return true;
 }
 
 void TuiController::TakeCapturedKey(const ftxui::Event& key) {

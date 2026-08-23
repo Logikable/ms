@@ -16,6 +16,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
+#include "src/combat/battle_analysis.h"
 #include "src/combat/fight.h"
 #include "src/combat/offline.h"
 #include "src/frontend/celebration.h"
@@ -80,8 +81,8 @@ class Tui {
   ftxui::Element SkillLearnDialog();
   ftxui::Element JobAdvanceDialog();
   ftxui::Element QuitDialog();
-  // The Settings box, standing on the corner menu it opened from.
-  ftxui::Element RenderSettingsBox();
+  // The box a menu entry raised, standing on the corner menu it opened from.
+  ftxui::Element RenderMenuBox();
   // "Fight Normal Zakum?", floated over the boss screen.
   ftxui::Element BossConfirmDialog();
   // "Stop fighting Zakum?", floated over the fight.
@@ -122,6 +123,9 @@ class Tui {
   Celebration celebration_;
   // The live fight: stepped by the ticker, read by the combat panel.
   CombatSim combat_sim_;
+  // What the Battle Analysis tool has measured. Fed by the ticker, and only
+  // while the map is the fight in front of the player.
+  BattleAnalysis analysis_;
   std::chrono::steady_clock::time_point last_combat_update_;
   // Shared with equip_panel_, inventory_panel_, and Container::Tab; mutated by
   // controller_ (Tab) and panels (Equip/Unequip actions).

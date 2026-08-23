@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
+#include "src/combat/battle_analysis.h"
 #include "src/combat/boss_run.h"
 #include "src/combat/offline.h"
 #include "src/frontend/item_ref.h"
@@ -69,7 +70,8 @@ class TuiController {
                 BossSelectPanel& boss_select_panel, ShopPanel& shop_panel,
                 BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
                 SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
-                KeybindsPanel& keybinds_panel, KeyMap& keys, int& panel_focus);
+                KeybindsPanel& keybinds_panel, BattleAnalysis& analysis,
+                KeyMap& keys, int& panel_focus);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
@@ -316,7 +318,12 @@ class TuiController {
   // Drops the finished run and goes back to the fight list. What every panel a
   // fight ends on is dismissed by.
   void LeaveBossRun();
-  bool OnSettingsMenuEvent(ftxui::Event event);
+  bool OnMenuBoxEvent(ftxui::Event event);
+  // Enter on a row of the open box: whatever that entry of that box leads to.
+  void OpenBoxEntry();
+  // Start and Stop toggle the tool; View raises its overlay.
+  void OpenAnalysisEntry(AnalysisEntry entry);
+  bool OnAnalysisEvent(ftxui::Event event);
   bool OnKeybindsEvent(ftxui::Event event);
   // Puts the captured key in the waiting slot, or says why it could not go
   // there. Ignores what is not a key at all -- the ticker's own redraw among
@@ -354,6 +361,9 @@ class TuiController {
   SkillInspectPanel& skill_inspect_panel_;
   MenuPanel& menu_panel_;
   KeybindsPanel& keybinds_panel_;
+  // The measurement the Analysis entry starts and stops. Owned by the session,
+  // not by the controller: it outlives every screen it is read from.
+  BattleAnalysis& analysis_;
   KeyMap& keys_;
   ShopPanel& shop_panel_;
   BuyPanel& buy_panel_;

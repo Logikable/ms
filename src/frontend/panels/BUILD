@@ -121,6 +121,7 @@ cc_library(
     deps = [
         "//src:game_state",
         "//src/character:progression",
+        "//src/combat:battle_analysis",
         "//src/frontend:types",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",
@@ -135,6 +136,7 @@ cc_test(
     deps = [
         ":menu_panel",
         "//src:game_state",
+        "//src/combat:battle_analysis",
         "//src/frontend:types",
         "@ftxui//:dom",
         "@ftxui//:screen",
