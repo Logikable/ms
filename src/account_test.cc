@@ -34,6 +34,16 @@ TEST(AccountTest, ProgressOnlyClimbs) {
   EXPECT_EQ(account.max_job_stage(), 3);
 }
 
+TEST(AccountTest, KeepsWhatTheServerIssued) {
+  AccountInstance account;
+  EXPECT_TRUE(account.multiplayer_account_id().empty());
+  EXPECT_TRUE(account.multiplayer_token().empty());
+
+  account.SetMultiplayerAccount("abc123", "a-token");
+  EXPECT_EQ(account.multiplayer_account_id(), "abc123");
+  EXPECT_EQ(account.multiplayer_token(), "a-token");
+}
+
 TEST(AccountTest, WrapsTheProtoItWasGiven) {
   Account proto;
   proto.set_max_level(30);

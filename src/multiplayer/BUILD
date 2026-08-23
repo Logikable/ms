@@ -38,9 +38,32 @@ cc_test(
     srcs = ["client_test.cc"],
     deps = [
         ":client",
-        "//server",
+        "//server:test_server",
         "//src/net:socket",
-        "//src/protos:boss_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "session",
+    srcs = ["session.cc"],
+    hdrs = ["session.h"],
+    deps = [
+        ":client",
+        "//src:game_state",
+        "//src/character",
+        "//src/protos:multiplayer_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "session_test",
+    srcs = ["session_test.cc"],
+    deps = [
+        ":session",
+        "//server:test_server",
+        "//src:game_state",
         "//src/protos:multiplayer_proto_cc",
         "@googletest//:gtest_main",
     ],

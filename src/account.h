@@ -50,6 +50,19 @@ class AccountInstance {
     return account_.max_job_stage();
   }
 
+  // What the multiplayer server calls this player, and the token that proves
+  // it. Empty until they have connected once.
+  const std::string& multiplayer_account_id() const {
+    return account_.multiplayer_account_id();
+  }
+  const std::string& multiplayer_token() const {
+    return account_.multiplayer_token();
+  }
+  // Keeps what the server issued, so the next connection comes back as the
+  // same player.
+  void SetMultiplayerAccount(const std::string& account_id,
+                             const std::string& token);
+
   // Raises the two watermarks to take in a character who has reached `level`
   // and `job_stage`. They only ever climb: an account does not forget a
   // feature it has opened.

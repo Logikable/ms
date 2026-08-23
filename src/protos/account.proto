@@ -27,6 +27,16 @@ message Account {
   int32 max_level = 2;
   int32 max_job_stage = 3;
 
+  // What the multiplayer server calls this player, and the token that proves
+  // the account is theirs. Both are the server's to issue: it hands them out
+  // on the first connection and they are sent back on every one after.
+  //
+  // Account-wide rather than per character, because it is the player the
+  // server knows. Which character they bring to a party is a different
+  // question, answered every time they connect.
+  string multiplayer_account_id = 5;
+  string multiplayer_token = 6;
+
   // Things the player has been shown once and need not be shown again: tabs
   // opened, gold trails walked. The keys are the frontend's -- see
   // panel_util.h and progression.cc -- and this only keeps the record.

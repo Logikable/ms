@@ -247,6 +247,17 @@ TEST_F(SaveTest, WritesAndReadsBackKeybinds) {
   EXPECT_EQ(loaded->account.keybinds().binds(0).keys(1), "W");
 }
 
+TEST_F(SaveTest, WritesAndReadsBackTheMultiplayerAccount) {
+  std::unique_ptr<GameState> saved = MakeState();
+  saved->account.SetMultiplayerAccount("0123456789abcdef", "a-token");
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->account.multiplayer_account_id(), "0123456789abcdef");
+  EXPECT_EQ(loaded->account.multiplayer_token(), "a-token");
+}
+
 TEST_F(SaveTest, ANewStateIsStampedWithTheCurrentTime) {
   std::int64_t before = static_cast<std::int64_t>(std::time(nullptr));
   std::unique_ptr<GameState> state = MakeState();

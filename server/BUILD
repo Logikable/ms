@@ -67,6 +67,18 @@ cc_binary(
     ],
 )
 
+# The server on a loopback port, for tests on either side of the connection.
+cc_library(
+    name = "test_server",
+    testonly = True,
+    hdrs = ["test_server.h"],
+    deps = [
+        ":server",
+        "//src/net:socket",
+        "//src/protos:boss_proto_cc",
+    ],
+)
+
 # A headless client for driving a running server by hand. It lives here
 # rather than beside the game because it is a tool for the server, not
 # something a player runs.

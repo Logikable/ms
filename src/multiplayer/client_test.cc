@@ -2,19 +2,14 @@
 
 #include <gtest/gtest.h>
 
-#include <atomic>
 #include <chrono>
 #include <functional>
-#include <map>
-#include <memory>
 #include <optional>
 #include <string>
 #include <thread>
-#include <utility>
 
-#include "server/server.h"
+#include "server/test_server.h"
 #include "src/net/socket.h"
-#include "src/protos/boss.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
@@ -23,60 +18,6 @@ namespace {
 using ::std::chrono::milliseconds;
 
 constexpr milliseconds kPatience(4000);
-constexpr milliseconds kServerStep(5);
-
-std::map<std::string, Boss> Bosses() {
-  std::map<std::string, Boss> bosses;
-  Boss& zakum = bosses["zakum"];
-  zakum.set_name("Zakum");
-  zakum.add_difficulties()->set_name("Normal");
-  return bosses;
-}
-
-// A real server on the loopback, stepped on a thread of its own. Only that
-// thread touches it, which is the one rule the server has.
-class TestServer {
- public:
-  bool Start() {
-    if (!StartSockets()) {
-      return false;
-    }
-    std::optional<Socket> listener = Listen(0);
-    if (!listener.has_value()) {
-      return false;
-    }
-    port_ = LocalPort(*listener);
-    running_ = true;
-    thread_ = std::thread([this, socket = std::move(*listener)]() mutable {
-      Server server(std::move(socket), bosses_, 3);
-      while (running_) {
-        server.Step(std::chrono::steady_clock::now(), kServerStep);
-      }
-    });
-    return true;
-  }
-
-  void Stop() {
-    running_ = false;
-    if (thread_.joinable()) {
-      thread_.join();
-    }
-  }
-
-  ~TestServer() {
-    Stop();
-  }
-
-  int port() const {
-    return port_;
-  }
-
- private:
-  std::map<std::string, Boss> bosses_ = Bosses();
-  std::atomic<bool> running_{false};
-  int port_ = 0;
-  std::thread thread_;
-};
 
 PlayerInfo Player(const std::string& name, const std::string& account_id = "") {
   PlayerInfo player;

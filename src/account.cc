@@ -25,6 +25,12 @@ void AccountInstance::MarkSeen(const std::string& key) {
   account_.add_seen_keys(key);
 }
 
+void AccountInstance::SetMultiplayerAccount(const std::string& account_id,
+                                            const std::string& token) {
+  account_.set_multiplayer_account_id(account_id);
+  account_.set_multiplayer_token(token);
+}
+
 void AccountInstance::RecordProgress(int level, int job_stage) {
   account_.set_max_level(std::max(account_.max_level(), level));
   account_.set_max_job_stage(std::max(account_.max_job_stage(), job_stage));
