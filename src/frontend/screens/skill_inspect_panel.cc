@@ -18,15 +18,17 @@
 namespace ms {
 namespace {
 
-// Chars inside the window border. Wide enough that no requirement wraps: the
-// panel stands on its own in the middle of the screen, so the only cost of the
-// room is the room itself.
-constexpr int kContentWidth = 44;
+// Chars inside the window border. Descriptions carry GMS's own sentences at
+// their own length, so the card is wide enough to read them a clause at a
+// time. The binding constraint is the job inspect screen, which sets this card
+// beside the 33-wide book: 35 + 61 of a 100-column terminal.
+constexpr int kContentWidth = 58;
 // Effect rows indent past the one-space border gutter, so they read as
 // belonging to the "Level N" heading above them.
 constexpr int kEffectIndent = 3;
-// Seats "Required Weapon", the longest label, with a gap after it.
-constexpr int kEffectLabelWidth = 18;
+// Seats "Boosts Piercing Arrow", the longest label, with a gap after it. The
+// fixed labels are all shorter; the boost rows are what sets this.
+constexpr int kEffectLabelWidth = 23;
 // What is left for an effect row's value once the indent and label are paid.
 constexpr int kValueWidth = kContentWidth - kEffectIndent - kEffectLabelWidth;
 
@@ -205,10 +207,49 @@ ftxui::Element EffectRow(const std::string& label, const std::string& value) {
                      PadRight(label, kEffectLabelWidth) + value);
 }
 
+// Breaks a " / " separated list across lines without splitting an entry: the
+// separator ends the line it falls on. "One-Handed Sword / Two-Handed Axe"
+// broken between the words says the wrong weapon, so the list is packed by
+// entry rather than by word.
+std::vector<std::string> WrapList(const std::string& text, int width) {
+  const std::string kSeparator = " / ";
+  std::vector<std::string> lines;
+  std::string line;
+  size_t i = 0;
+  while (i <= text.size()) {
+    size_t end = text.find(kSeparator, i);
+    std::string entry =
+        text.substr(i, end == std::string::npos ? std::string::npos : end - i);
+    bool last = end == std::string::npos;
+    std::string piece = last ? entry : entry + " /";
+    if (!line.empty() &&
+        static_cast<int>(line.size() + 1 + piece.size()) > width) {
+      lines.push_back(line);
+      line.clear();
+    }
+    if (!line.empty()) {
+      line += " ";
+    }
+    line += piece;
+    if (last) {
+      break;
+    }
+    i = end + kSeparator.size();
+  }
+  if (!line.empty()) {
+    lines.push_back(line);
+  }
+  return lines;
+}
+
 // Breaks `text` into lines that fit `width`, splitting only between words. A
 // word longer than the column is left whole and allowed to overhang rather
 // than being cut in half, which no description here comes close to needing.
+// A list breaks by entry instead; see WrapList.
 std::vector<std::string> WrapText(const std::string& text, int width) {
+  if (text.find(" / ") != std::string::npos) {
+    return WrapList(text, width);
+  }
   std::vector<std::string> lines;
   std::string line;
   size_t i = 0;
@@ -880,23 +921,21 @@ std::vector<ftxui::Element> OwnClockRows(const Skill& skill, int level) {
 // What this skill hands to another skill in the book, one sentence a grant.
 std::vector<ftxui::Element> BoostRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
-  // What this skill hands another one. Named in the value rather than used as
-  // the label, so a long skill name wraps instead of being cut to the label
-  // column -- and so the row reads as a sentence about somewhere else.
+  // The skill it boosts belongs in the label: the label says what is boosted
+  // and the value by how much, which is the shape every other row here has.
   double boost = PercentAt(skill, &SkillEffect::boosted_skill_pct, level);
   if (boost > 0.0 && !skill.boosts_skill_name().empty()) {
-    Append(WrappedEffectRows("Boosts", skill.boosts_skill_name() + " +" +
-                                           FormatPercent(boost)),
+    Append(WrappedEffectRows("Boosts " + skill.boosts_skill_name(),
+                             "+" + FormatPercent(boost)),
            rows);
   }
   // The same sentence for the boss damage it hands over, which is a different
   // grant to the same skill rather than more of the one above.
   double boss = PercentAt(skill, &SkillEffect::boosted_boss_pct, level);
   if (boss > 0.0 && !skill.boosts_skill_name().empty()) {
-    Append(
-        WrappedEffectRows("Boosts", skill.boosts_skill_name() + " +" +
-                                        FormatPercent(boss) + " Boss Damage"),
-        rows);
+    Append(WrappedEffectRows("Boosts " + skill.boosts_skill_name(),
+                             "+" + FormatPercent(boss) + " Boss Damage"),
+           rows);
   }
   // The same sentence for what it hands another skill that is not damage: a
   // strike on every swing, a wider reach, or both. One row per skill named,
@@ -906,8 +945,7 @@ std::vector<ftxui::Element> BoostRows(const Skill& skill, int level) {
     if (gains.empty()) {
       continue;
     }
-    Append(WrappedEffectRows("Boosts", granted.skill_name() + " " + gains),
-           rows);
+    Append(WrappedEffectRows("Boosts " + granted.skill_name(), gains), rows);
   }
   return rows;
 }
