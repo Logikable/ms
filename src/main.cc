@@ -1,5 +1,7 @@
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <map>
 #include <string>
 #include <vector>
@@ -9,6 +11,7 @@
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_join.h"
+#include "src/combat/offline.h"
 #include "src/embedded_data.h"
 #include "src/frontend/tui.h"
 #include "src/game_state.h"
@@ -167,6 +170,7 @@ int main(int argc, char** argv) {
   // The workbench neither reads nor writes a save: it starts from its known
   // state every run, and must never be able to overwrite a real character.
   std::string save_path;
+  ms::OfflineReport offline;
   if (mode == ms::GameMode::kPlay) {
     save_path = ms::SavePathFor(argv[0]);
     ms::LoadResult load = ms::LoadGameFromFile(state, save_path);
@@ -183,8 +187,17 @@ int main(int argc, char** argv) {
                    load.message.c_str());
       return 1;
     }
+    // Before the TUI is built, so the character the first frame draws is the
+    // one the absence already paid, and the level-up cards do not go up for
+    // levels the welcome-back card is about to report.
+    offline = ms::ApplyOfflineProgress(
+        state,
+        ms::AbsenceSeconds(state.last_seen_unix_seconds,
+                           static_cast<std::int64_t>(std::time(nullptr))));
   }
 
-  ms::Tui(state, save_path).Run();
+  ms::Tui tui(state, save_path);
+  tui.ShowOfflineReport(offline);
+  tui.Run();
   return 0;
 }

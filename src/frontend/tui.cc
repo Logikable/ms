@@ -27,6 +27,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/hotkeys_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/panels/offline_popup_panel.h"
 #include "src/frontend/screens/boss_clear_panel.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -328,6 +329,10 @@ ftxui::Element Tui::BossNoticeDialog() {
                       accent);
 }
 
+void Tui::ShowOfflineReport(OfflineReport report) {
+  controller_.OpenOfflineReport(std::move(report));
+}
+
 ftxui::Element Tui::BossAbortDialog() {
   const BossRun* run = controller_.boss_run();
   return DialogWindow(
@@ -498,6 +503,9 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(JobAdvanceDialog());
     case kQuit:
       return OverMain(QuitDialog());
+    case kOffline:
+      return OverMain(OfflinePopupPanel(controller_.offline_report(),
+                                        controller_.offline_prompt().Render()));
     case kSell:
       return OverMain(sell_panel_.Render());
     case kSellEquip:

@@ -308,6 +308,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSettingsMenuEvent(event);
     case kKeybinds:
       return OnKeybindsEvent(event);
+    case kOffline:
+      return OnOfflineEvent(event);
     case kQuit:
       return OnQuitEvent(event);
     case kMain:
@@ -891,6 +893,22 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
   // and telling them they left is not news.
   boss_run_.reset();
   screen_ = kBossSelect;
+}
+
+void TuiController::OpenOfflineReport(OfflineReport report) {
+  if (!report.farmed || report.absence < kOfflineNoticeSeconds) {
+    return;
+  }
+  offline_report_ = std::move(report);
+  offline_prompt_.Open();
+  screen_ = kOffline;
+}
+
+bool TuiController::OnOfflineEvent(ftxui::Event event) {
+  if (offline_prompt_.OnEvent(event)) {
+    screen_ = kMain;
+  }
+  return true;
 }
 
 bool TuiController::OnBossClearEvent(ftxui::Event event) {

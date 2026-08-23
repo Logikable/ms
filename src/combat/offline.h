@@ -44,7 +44,11 @@ constexpr double kOfflineStepSeconds = 0.1;
 // failure, just a player who left standing in town.
 struct OfflineReport {
   bool farmed = false;
-  double seconds = 0.0;  // the absence credited, which death can cut short
+  // How long the game was closed, and how much of that was actually farmed.
+  // The two differ only when the character fell partway through: what they
+  // were paid stops there, but they were still away the whole time.
+  double absence = 0.0;
+  double seconds = 0.0;
   int64_t kills = 0;
   int start_level = 0;
   int end_level = 0;

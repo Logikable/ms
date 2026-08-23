@@ -213,6 +213,32 @@ cc_test(
 )
 
 cc_library(
+    name = "offline_popup_panel",
+    srcs = ["offline_popup_panel.cc"],
+    hdrs = ["offline_popup_panel.h"],
+    deps = [
+        "//src/combat",
+        "//src/combat:offline",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "offline_popup_panel_test",
+    srcs = ["offline_popup_panel_test.cc"],
+    deps = [
+        ":offline_popup_panel",
+        "//src/combat:offline",
+        "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "advancement_popup_panel",
     srcs = ["advancement_popup_panel.cc"],
     hdrs = ["advancement_popup_panel.h"],

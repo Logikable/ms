@@ -83,6 +83,7 @@ double AbsenceSeconds(int64_t last_seen_unix_seconds,
 
 OfflineReport ApplyOfflineProgress(GameState& state, double seconds) {
   OfflineReport report;
+  report.absence = std::max(0.0, seconds);
   report.start_level = state.character.proto().level();
   report.end_level = report.start_level;
   if (seconds <= 0.0) {

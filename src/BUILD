@@ -130,6 +130,7 @@ _MAIN_DEPS = [
     ":save",
     ":game_state",
     ":proto_loader",
+    "//src/combat:offline",
     "//src/frontend:tui",
     "//src/item",
     "//src/item:equip_instance",

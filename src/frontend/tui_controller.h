@@ -15,6 +15,7 @@
 
 #include "ftxui/component/event.hpp"
 #include "src/combat/boss_run.h"
+#include "src/combat/offline.h"
 #include "src/frontend/item_ref.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/panels/character_panel.h"
@@ -48,6 +49,10 @@
 #include "src/protos/skill.pb.h"
 
 namespace ms {
+
+// An absence shorter than this raises no card. A player who restarted the game
+// a minute after closing it does not need to be told what that minute paid.
+inline constexpr double kOfflineNoticeSeconds = 60.0;
 
 class TuiController {
  public:
@@ -188,6 +193,20 @@ class TuiController {
   const ContinuePrompt& boss_clear_prompt() const {
     return boss_clear_prompt_;
   }
+  // What the player earned while the game was closed, and the button that
+  // dismisses the card showing it.
+  const OfflineReport& offline_report() const {
+    return offline_report_;
+  }
+  const ContinuePrompt& offline_prompt() const {
+    return offline_prompt_;
+  }
+  // Raises that card over the main view. Called once at launch, before the
+  // player has touched anything: they should see what they were paid before
+  // they see the game. A report not worth a card -- too short an absence, or a
+  // player who logged off in town -- raises nothing.
+  void OpenOfflineReport(OfflineReport report);
+
   // Steps the fight in progress by elapsed_seconds, records the clear if it
   // ended in one, and takes the screen back to the fight list once the closing
   // beat is up. Does nothing without a fight, and nothing while the leave
@@ -293,6 +312,7 @@ class TuiController {
   bool OnBossFightEvent(ftxui::Event event);
   bool OnBossAbortEvent(ftxui::Event event);
   bool OnBossClearEvent(ftxui::Event event);
+  bool OnOfflineEvent(ftxui::Event event);
   // Drops the finished run and goes back to the fight list. What every panel a
   // fight ends on is dismissed by.
   void LeaveBossRun();
@@ -377,6 +397,8 @@ class TuiController {
   bool notice_is_refusal_ = false;
   ConfirmPrompt boss_abort_prompt_;
   // What the clear card reads from, kept for as long as it is up.
+  OfflineReport offline_report_;
+  ContinuePrompt offline_prompt_;
   std::string boss_clear_title_;
   BossReward boss_clear_reward_;
   ContinuePrompt boss_clear_prompt_;

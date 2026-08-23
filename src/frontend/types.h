@@ -62,6 +62,9 @@ enum Screen : int {
   // one screen it opens.
   kSettingsMenu,
   kKeybinds,
+  // The card a returning player is met with: what their character earned while
+  // the game was closed. Raised at launch and dismissed with one key.
+  kOffline,
   // Escape on the main screen. Last because it is the one screen reachable
   // from the main view rather than from something on it.
   kQuit,

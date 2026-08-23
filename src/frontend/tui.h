@@ -17,6 +17,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
 #include "src/combat/fight.h"
+#include "src/combat/offline.h"
 #include "src/frontend/celebration.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/panels/character_panel.h"
@@ -52,6 +53,10 @@ class Tui {
   // `save_path` is where the game is written; empty turns saving off, which
   // is how the workbench avoids ever touching a player's file.
   explicit Tui(GameState& state, std::string save_path = "");
+  // Raises the card showing what the character earned while the game was
+  // closed. Called before Run(), so the first thing the player sees is what
+  // they came back to; a report not worth a card raises nothing.
+  void ShowOfflineReport(OfflineReport report);
   void Run();
 
  private:

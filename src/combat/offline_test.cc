@@ -124,6 +124,7 @@ TEST(OfflineTest, PaysForTimeAway) {
   EXPECT_EQ(state->character.proto().level(), report.end_level);
   EXPECT_FALSE(report.died);
   EXPECT_DOUBLE_EQ(report.seconds, 3600.0);
+  EXPECT_DOUBLE_EQ(report.absence, 3600.0);
 }
 
 // An absence inside the sample is not scaled at all: the whole of it is
@@ -188,6 +189,8 @@ TEST(OfflineTest, DyingCutsTheAbsenceShortAndSendsThePlayerHome) {
 
   EXPECT_TRUE(report.died);
   EXPECT_LT(report.seconds, 3600.0);
+  EXPECT_DOUBLE_EQ(report.absence, 3600.0)
+      << "the whole absence, however far into it the fall came";
   EXPECT_EQ(state.current_map, kHomeMap);
 }
 

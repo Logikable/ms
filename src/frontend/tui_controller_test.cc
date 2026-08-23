@@ -13,6 +13,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
 #include "src/combat/boss_run.h"
+#include "src/combat/offline.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
@@ -2425,6 +2426,52 @@ TEST_F(TuiControllerTest, StackInspectShowsTheItemsDescription) {
   controller_->OnEvent(ftxui::Event::Escape);
   EXPECT_EQ(controller_->screen(), kMain);
   EXPECT_EQ(controller_->item_inspect_item(), nullptr);
+}
+
+// --- the welcome-back card ---
+
+namespace {
+
+// An hour away with something to show for it.
+OfflineReport PaidReport() {
+  OfflineReport report;
+  report.farmed = true;
+  report.absence = 3600.0;
+  report.seconds = 3600.0;
+  report.kills = 100;
+  return report;
+}
+
+}  // namespace
+
+TEST_F(TuiControllerTest, TheOfflineCardStandsOverTheMainViewUntilDismissed) {
+  controller_->OpenOfflineReport(PaidReport());
+  ASSERT_EQ(controller_->screen(), kOffline);
+  EXPECT_EQ(controller_->offline_report().kills, 100);
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// A player who restarted the game a minute after closing it is shown nothing.
+TEST_F(TuiControllerTest, TooShortAnAbsenceRaisesNoCard) {
+  OfflineReport report = PaidReport();
+  report.absence = kOfflineNoticeSeconds - 1.0;
+
+  controller_->OpenOfflineReport(report);
+
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// Nor is one raised for a player who logged off in town: there is nothing to
+// tell them.
+TEST_F(TuiControllerTest, NothingFarmedRaisesNoCard) {
+  OfflineReport report = PaidReport();
+  report.farmed = false;
+
+  controller_->OpenOfflineReport(report);
+
+  EXPECT_EQ(controller_->screen(), kMain);
 }
 
 // --- quitting ---
