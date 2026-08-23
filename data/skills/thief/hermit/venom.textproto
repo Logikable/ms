@@ -5,8 +5,8 @@
 name: "Venom"
 skill_order: 7
 description:
-  "Coat your claw in poison for good, so the enemies you hit take damage "
-  "over time."
+  "Poison is permanently applied to your Claw, giving all your attacks the "
+  "chance to Poison enemies."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 10

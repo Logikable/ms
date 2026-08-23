@@ -4,7 +4,7 @@
 name: "Marksmanship"
 skill_order: 8
 description:
-  "Ignores a portion of enemy DEF when you attack. Permanently increases your "
+  "When attacking, ignores a portion of enemy DEF. Permanently increases your "
   "Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SNIPER

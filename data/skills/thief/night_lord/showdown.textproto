@@ -10,8 +10,9 @@
 name: "Showdown"
 skill_order: 2
 description:
-  "Throw a talisman that provokes the enemies around you. It bursts into a "
-  "dark shuriken that hunts them down, and what it marks pays out more EXP."
+  "Attacks enemies and provokes them. Provoked enemies grant more EXP. When "
+  "the talisman explodes, it creates a dark shuriken, which then pursues and "
+  "attacks nearby enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
 max_level: 30

@@ -4,8 +4,8 @@
 name: "Armor Break"
 skill_order: 10
 description:
-  "Your arrows find the gaps in a monster's guard, ignoring part of its "
-  "Defense. Also permanently increases Final Damage."
+  "Pierces the enemy's defenses with the sharpness of a bowman that sees "
+  "through the enemy's weakness, and increases Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BOW_MASTER
 max_level: 10

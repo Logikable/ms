@@ -15,9 +15,8 @@
 name: "High Paladin"
 skill_order: 7
 description:
-  "Your long service permanently increases Weapon Mastery, DEF, Critical Rate, "
-  "Critical Damage, Ignore Defense and Final Damage, with more still for the "
-  "weapon in your hands."
+  "Increases Weapon Mastery, DEF, Critical Rate, Critical Damage, Ignore "
+  "Defense, and Final Damage through your extensive experience as a Paladin."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 20

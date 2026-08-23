@@ -9,8 +9,9 @@
 name: "Blizzard"
 skill_order: 2
 description:
-  "Call down a storm of ice spears over the whole room. Afterwards every "
-  "attack you make may bring a smaller blizzard down on a single enemy."
+  "Summon spears of ice from the sky, showering multiple enemies with a nasty "
+  "blizzard. Upon attacking, permanently grants a chance to damage a single "
+  "enemy with a Blizzard."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE

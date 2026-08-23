@@ -2,8 +2,7 @@
 # mob sets any physical defence for a share of it to cancel.
 name: "Combat Mastery"
 skill_order: 5
-description:
-  "Your blows find the gaps in a monster's guard, ignoring part of its Defense."
+description: "Ignores a portion of a monster's defense while attacking."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 max_level: 30

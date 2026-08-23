@@ -6,9 +6,7 @@
 # out, and a fight paid in expected damage has no clock to charge it against.
 name: "HP Recovery"
 skill_order: 2
-description:
-  "Instantly recovers your HP, cast in place of an attack when you are badly "
-  "hurt."
+description: "Instantly recovers your HP."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 10

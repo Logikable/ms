@@ -8,8 +8,8 @@
 name: "Heaven's Hammer"
 skill_order: 4
 description:
-  "Slam an enormous hammer into the ground, damaging everything around you. "
-  "Strikes bosses harder still."
+  "Slam a large hammer into the ground, dealing damage to multiple enemies. "
+  "You deal additional damage to bosses."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 30

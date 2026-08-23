@@ -14,8 +14,9 @@
 name: "Divine Judgment"
 skill_order: 3
 description:
-  "Marks enemies struck by Blast with a Divine Brand. At full stacks the brand "
-  "detonates, dealing damage that ignores some of the enemy's Defense."
+  "Marks enemies struck by your Blast skill with a Divine Brand. Upon "
+  "reaching the max number of stacks, the Divine Brands detonate, inflicting "
+  "additional damage that ignores some of the enemy's Defense."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 30

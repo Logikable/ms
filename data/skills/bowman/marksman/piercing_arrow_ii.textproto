@@ -8,9 +8,8 @@
 name: "Piercing Arrow II"
 skill_order: 1
 description:
-  "Fire an arrow through the enemies in front of you. Its damage grows with "
-  "every enemy it has already pierced, and a fragment breaks off the first "
-  "one it strikes."
+  "Enhances Piercing Arrow. Upon striking the first foe, your Piercing Arrow "
+  "now fragments, dealing damage to additional enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 30

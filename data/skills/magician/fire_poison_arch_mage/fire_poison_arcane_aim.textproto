@@ -1,8 +1,6 @@
 name: "Arcane Aim"
 skill_order: 9
-description:
-  "Taking careful aim permanently increases your Damage and ignores a portion "
-  "of enemy DEF."
+description: "Ignores a portion of enemy DEF when attacking."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 20

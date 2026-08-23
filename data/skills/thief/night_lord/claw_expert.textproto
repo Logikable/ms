@@ -4,9 +4,7 @@
 # damage is flat at what GMS reaches.
 name: "Claw Expert"
 skill_order: 10
-description:
-  "Master the claw. Your throwing stars land closer to their hardest and hurt "
-  "more when they land true."
+description: "Increases Claw Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
 max_level: 20

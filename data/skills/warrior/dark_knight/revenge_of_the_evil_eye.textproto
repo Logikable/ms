@@ -10,8 +10,8 @@
 name: "Revenge of the Evil Eye"
 skill_order: 6
 description:
-  "Your Evil Eye counterattacks the enemies you strike, and its shout grows "
-  "stronger still."
+  "An Evil Eye counterattacks the enemy. Your deepened connection with the "
+  "Evil Eye enhances Evil Eye Shock."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 max_level: 30

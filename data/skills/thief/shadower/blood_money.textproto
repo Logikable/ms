@@ -9,9 +9,8 @@
 name: "Blood Money"
 skill_order: 3
 description:
-  "Brand the coins you shake loose with an assassin's mark, so a boss takes "
-  "more from every meso you fling. Permanently increases LUK and Critical "
-  "Damage."
+  "Drops coins branded with an Assassin's Mark. Enhances Meso Explosion. "
+  "Permanently increases LUK and Critical Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 20

@@ -9,8 +9,9 @@
 name: "Raging Blow"
 skill_order: 1
 description:
-  "Slash several times at the enemies in front of you. The last two strikes "
-  "always land as critical hits, and Beam Blade cuts deeper for it."
+  "Instantly slash several times to slice multiple enemies in front of you. "
+  "The final two blows will always be critical hits. Additionally enhances "
+  "Beam Blade."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
 job_advancement: JOB_ADVANCEMENT_HERO

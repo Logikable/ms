@@ -7,8 +7,8 @@
 name: "Flame Sweep"
 skill_order: 1
 description:
-  "A fire attack. Sweep the room in front of you with flame, and leave what "
-  "it touches burning."
+  "A fire-attribute attack. Sweep the area in front of you with a powerful "
+  "flame. Enemies struck by the flame are burned and take continuous damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE

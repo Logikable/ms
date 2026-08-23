@@ -10,9 +10,7 @@
 # skill whose whole line is 200%.
 name: "Meso Explosion"
 skill_order: 2
-description:
-  "Fling the mesos your attacks knock loose back at the enemy that dropped "
-  "them."
+description: "Fling Mesos, dropped by Pick Pocket, to damage enemies."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 20

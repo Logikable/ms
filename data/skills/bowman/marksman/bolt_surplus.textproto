@@ -8,8 +8,7 @@
 name: "Bolt Surplus"
 skill_order: 9
 description:
-  "Loose one more bolt with every shot that already fires several, and hit "
-  "harder with all of them."
+  "Increases the number of attacks for all multi-hit skills and Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 10

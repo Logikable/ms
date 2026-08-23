@@ -2,8 +2,7 @@
 name: "Illusion Step"
 skill_order: 8
 description:
-  "Moving too fast to be followed permanently increases DEX, grants a chance "
-  "to dodge enemy attacks, and reduces the damage you take."
+  "Greatly increases your DEX and Avoidability, and reduces damage taken."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 10

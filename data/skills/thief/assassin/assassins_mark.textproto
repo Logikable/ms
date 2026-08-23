@@ -11,8 +11,9 @@
 name: "Assassin's Mark"
 skill_order: 2
 description:
-  "Has a chance to mark an enemy when you attack. Throwing stars form on a "
-  "marked enemy and strike it again."
+  "Has a chance to tag the enemy with the assassin's mark when attacking. The "
+  "next attack on a marked enemy will cause throwing stars to form on that "
+  "enemy and attack other enemies nearby."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ASSASSIN
 max_level: 10

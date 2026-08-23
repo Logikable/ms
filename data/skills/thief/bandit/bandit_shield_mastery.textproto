@@ -10,8 +10,8 @@
 name: "Shield Mastery"
 skill_order: 8
 description:
-  "While something is equipped in your secondary slot, increases DEF and "
-  "Attack Power and reduces the damage you take."
+  "Increases DEF and Attack Power when a secondary weapon is equipped, and "
+  "reduces damage taken."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 10

@@ -6,8 +6,7 @@
 name: "Toxic Venom"
 skill_order: 9
 description:
-  "Sharpens the poison on your dagger. It takes hold more often, hurts more, "
-  "and piles up on what is already poisoned."
+  "Increases Venom's poison chance and permanently increases poison damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 10

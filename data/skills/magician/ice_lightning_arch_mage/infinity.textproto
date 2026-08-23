@@ -7,9 +7,7 @@
 # twenty levels walked evenly reach the same 91%.
 name: "Infinity"
 skill_order: 4
-description:
-  "A bolstered spirit permanently increases your Final Damage and steadily "
-  "restores your HP."
+description: "Bolsters the spirit to enhance your magic and recover HP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 20

@@ -10,8 +10,10 @@
 name: "Speed Mirage"
 skill_order: 2
 description:
-  "Fire arrows fast enough to leave afterimages behind. Each one fires an "
-  "enemy-seeking arrow that damages everything it pierces on the way."
+  "Fire arrows fast enough to leave afterimages. After striking enemies with "
+  "enough arrow-based attacks, creates afterimages that fire enemy-seeking "
+  "arrows before vanishing. These arrows target a single enemy in front of "
+  "the afterimage and damage any foes pierced on the way to the target."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 20

@@ -6,9 +6,7 @@
 # own while that one goes on paying its attack speed.
 name: "Crossbow Expert"
 skill_order: 7
-description:
-  "Your long service permanently increases Crossbow Mastery, Attack Power and "
-  "Critical Damage."
+description: "Increases Crossbow Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 20

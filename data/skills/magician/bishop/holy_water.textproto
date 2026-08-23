@@ -8,8 +8,7 @@
 name: "Holy Water"
 skill_order: 4
 description:
-  "A chalice of holy water stands beside you and restores your HP on its own. "
-  "It pours more the wiser you are."
+  "Summons a chalice of holy water nearby that restores your HP on its own."
 kind: SKILL_KIND_PASSIVE
 tags: SKILL_TAG_BENEVOLENCE
 job_advancement: JOB_ADVANCEMENT_BISHOP

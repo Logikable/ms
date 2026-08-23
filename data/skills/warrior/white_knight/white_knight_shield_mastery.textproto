@@ -8,8 +8,8 @@
 name: "Shield Mastery"
 skill_order: 5
 description:
-  "While something is equipped in your secondary slot, increases DEF, Attack "
-  "Power, Elemental Resistance and Status Resistance."
+  "Increases Elemental Resistance, Abnormal Status Resistance, DEF, and "
+  "Attack Power when a secondary weapon is equipped."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 20

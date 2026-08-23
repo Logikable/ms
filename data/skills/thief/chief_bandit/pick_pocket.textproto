@@ -10,9 +10,7 @@
 # meso is ammunition for Meso Explosion, which spends it.
 name: "Pick Pocket"
 skill_order: 4
-description:
-  "Shake mesos loose from the enemies you strike. Every hit you land has a "
-  "chance to knock one free."
+description: "Causes Mesos to drop when you attack with your skills."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 10

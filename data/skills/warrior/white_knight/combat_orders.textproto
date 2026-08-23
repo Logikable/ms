@@ -11,8 +11,9 @@
 name: "Combat Orders"
 skill_order: 3
 description:
-  "Grants bonus levels to your other skills, up to the highest each one can be "
-  "taught."
+  "Grants bonus skill levels to your skills. 4th job skills that have already "
+  "reached the master level can be raised further; other skills can only be "
+  "increased to master level."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 10

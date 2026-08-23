@@ -5,9 +5,7 @@
 # having a position. Worth +46% on a full six and nothing at all on one mob.
 name: "Piercing Arrow"
 skill_order: 1
-description:
-  "Fire an arrow through the enemies in front of you. Its damage grows with "
-  "every enemy it has already pierced."
+description: "Fire an arrow. Its effect increases with each enemy it hits."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20

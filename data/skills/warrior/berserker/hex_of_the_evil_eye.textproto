@@ -6,7 +6,7 @@
 # warrior weapon carries any, so it would be a row of zeroes.
 name: "Hex of the Evil Eye"
 skill_order: 4
-description: "Your Evil Eye increases your Attack Power, DEF and Critical Rate."
+description: "Your Evil Eye buffs you."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20

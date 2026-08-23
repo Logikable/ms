@@ -20,9 +20,10 @@
 name: "Greater Empowered Arrows"
 skill_order: 3
 description:
-  "Upgrades your Empowered Arrows. Every fourth Piercing Arrow II and every "
-  "fourth Snipe is fired empowered, and the empowered shot spends the mark "
-  "Snipe left."
+  "Enhances the strength of your Empowered Arrows. Empowered Piercing Arrow "
+  "is enhanced to Empowered Piercing Arrow II, and Empowered Arrows can also "
+  "be used during Snipe. Permanently increases Final Damage and Ignore "
+  "Defense."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 20

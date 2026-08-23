@@ -5,8 +5,8 @@
 name: "Night Lord's Mark"
 skill_order: 3
 description:
-  "Sharpens the assassin's mark. It lands more often, and three throwing "
-  "stars form on the marked enemy instead of two."
+  "Further enhances the assassin's mark, increasing the probability of "
+  "leaving a mark, the damage, and the number of throwing stars."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
 max_level: 10

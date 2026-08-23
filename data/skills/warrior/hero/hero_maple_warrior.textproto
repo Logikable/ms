@@ -2,7 +2,7 @@
 # an added stat and how the ladder is walked.
 name: "Maple Warrior"
 skill_order: 3
-description: "Increases every stat you have spent AP on."
+description: "The Goddess of Maple World's grace increases your stats."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 max_level: 30

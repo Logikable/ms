@@ -8,8 +8,9 @@
 name: "Chain Lightning"
 skill_order: 1
 description:
-  "Strike with a high-voltage lightning attack that finds several enemies at "
-  "once and crits far more often than your other spells."
+  "Attack the target with a high-voltage lightning-attribute attack with a "
+  "high critical rate. Chain Lightning can chain attack targets near the "
+  "target."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_LIGHTNING
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE

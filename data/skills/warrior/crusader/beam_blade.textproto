@@ -6,9 +6,7 @@
 # Flash Blade's animation, which is the same dash it is a bigger version of.
 name: "Beam Blade"
 skill_order: 2
-description:
-  "Launch blades that tear your enemies apart, and cut deeper into anything "
-  "that is not a boss."
+description: "Launch out blades that tear your enemies apart."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20

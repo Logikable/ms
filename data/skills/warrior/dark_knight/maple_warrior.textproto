@@ -7,7 +7,7 @@
 # second of the two levels Combat Orders reaches past the top.
 name: "Maple Warrior"
 skill_order: 5
-description: "Increases every stat you have spent AP on."
+description: "The Goddess of Maple World's grace increases your stats."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 max_level: 30

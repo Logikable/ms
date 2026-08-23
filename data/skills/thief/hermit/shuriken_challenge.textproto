@@ -2,9 +2,7 @@
 # 800ms is the animation's own, from the frame data.
 name: "Shuriken Challenge"
 skill_order: 2
-description:
-  "Summon a huge shadow-powered shuriken that tears through the enemies "
-  "around you."
+description: "Summon a large shadow-powered shuriken to annihilate enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 20

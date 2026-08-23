@@ -7,8 +7,8 @@
 name: "Genesis"
 skill_order: 3
 description:
-  "A holy ray of light shines down over the whole room, and strikes far more "
-  "often for a critical than your other spells."
+  "A holy ray of light shines down from the sky, dealing tremendous holy "
+  "damage."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 20

@@ -3,9 +3,7 @@
 # The freeze is dropped, as Phoenix's stun was.
 name: "Frostprey"
 skill_order: 2
-description:
-  "Summons a Frostprey that deals ice damage to nearby enemies on its own. "
-  "Permanently increases DEF."
+description: "Summons a Frostprey that attacks on its own. Also increases DEF."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 10

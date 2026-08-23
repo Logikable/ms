@@ -5,9 +5,7 @@
 # but the swing keeps the shape the player bought. See mirror_line_pct.
 name: "Shadow Partner"
 skill_order: 4
-description:
-  "Summon a shadow that copies your attacks. Every strike you land is struck "
-  "again for a share of its damage."
+description: "Summons a shadow partner that mimics the summoner."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 20

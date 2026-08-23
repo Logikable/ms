@@ -8,8 +8,9 @@
 name: "Smokescreen"
 skill_order: 6
 description:
-  "Drop a smokescreen at your feet. Inside it you strike more savagely and "
-  "the enemies around you land their blows more softly."
+  "Drop a Smokescreen near you. You will take less damage for the duration. "
+  "In addition, enemies inside the Smokescreen will take more critical "
+  "damage."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 10

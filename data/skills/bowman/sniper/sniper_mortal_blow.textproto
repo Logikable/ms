@@ -8,8 +8,7 @@
 # no MP pool to fill.
 name: "Mortal Blow"
 skill_order: 5
-description:
-  "Gives every attack a chance to hit one enemy harder and put HP back."
+description: "Chance to deal additional damage to an enemy and recover HP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 10

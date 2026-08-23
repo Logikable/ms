@@ -3,7 +3,7 @@
 # are worth a whole strike rather than a rounding.
 name: "Dark Impale"
 skill_order: 2
-description: "Launch rapid spear thrusts at the enemies in front of you."
+description: "Launch rapid spear thrusts on multiple enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 max_level: 30

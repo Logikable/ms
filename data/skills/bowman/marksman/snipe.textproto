@@ -8,8 +8,9 @@
 name: "Snipe"
 skill_order: 2
 description:
-  "Take careful aim and fire a single devastating shot, ignoring much of the "
-  "enemy's defense. The shot marks what it hits."
+  "Fire a carefully-aimed shot that inflicts massive damage. Marks the "
+  "target, causing future Empowered Snipe attacks against it to deal "
+  "additional damage."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 30

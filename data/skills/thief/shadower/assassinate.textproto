@@ -8,8 +8,8 @@
 name: "Assassinate"
 skill_order: 1
 description:
-  "Attack an enemy's vital points over and over, then strike a finishing "
-  "blow. Targets the enemy with the most HP left first."
+  "Attack an enemy's vital points over and over to deal tremendous damage, "
+  "then strike a finishing blow."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 30

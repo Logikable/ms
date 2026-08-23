@@ -1,6 +1,6 @@
 name: "Maple Warrior"
 skill_order: 7
-description: "Increases every stat you have spent AP on."
+description: "The Goddess of Maple World's grace increases your stats."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 30

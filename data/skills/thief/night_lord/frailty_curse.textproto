@@ -3,7 +3,8 @@
 # whole skill -- 1% a level over 20, where GMS pays 5+ceil(x/2)% over 30.
 name: "Frailty Curse"
 skill_order: 5
-description: "Curse your enemies with frailty, so bosses take more from you."
+description:
+  "Summons a barrier around you. Allows you to deal more damage to bosses."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
 max_level: 20

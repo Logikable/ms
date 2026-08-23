@@ -3,9 +3,7 @@
 # ladders are steeper and both end where GMS ends.
 name: "Ifrit"
 skill_order: 6
-description:
-  "Summon an ifrit to fight beside you. Its flames burn what they touch, and "
-  "learning to call it permanently increases your Mastery."
+description: "Summon a fire ifrit. Permanently increases mastery."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 20

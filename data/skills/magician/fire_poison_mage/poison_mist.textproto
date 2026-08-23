@@ -7,8 +7,8 @@
 name: "Poison Mist"
 skill_order: 2
 description:
-  "Surrounds you with a poisonous fog that deals poison damage to nearby "
-  "enemies on its own."
+  "Creates a poisonous fog around you, dealing poison damage to all enemies "
+  "nearby on its own."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_MAGE
 max_level: 20

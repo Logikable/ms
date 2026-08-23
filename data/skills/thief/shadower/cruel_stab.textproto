@@ -6,8 +6,8 @@
 name: "Cruel Stab"
 skill_order: 2
 description:
-  "Inflict a brutal stab with the dagger. It shakes fewer mesos loose than "
-  "your other attacks. Permanently increases Final Damage."
+  "Inflict a brutal stab with the dagger. Pick Pocket's Meso drop rate is "
+  "halved for this skill. Permanently increases Final Damage."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 30

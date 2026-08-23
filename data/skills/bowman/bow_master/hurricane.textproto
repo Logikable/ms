@@ -12,8 +12,7 @@
 name: "Hurricane"
 skill_order: 1
 description:
-  "Launch a tremendous volley of arrows, like a catastrophic rainstorm. Also "
-  "permanently strengthens Arrow Stream."
+  "Launch a tremendous volley of arrows, like a catastrophic rainstorm."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_BOW_MASTER
 max_level: 30

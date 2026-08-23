@@ -6,7 +6,7 @@
 # for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Frost Clutch"
 skill_order: 9
-description: "A tightening grip of frost permanently increases your Final Damage."
+description: "Increases the effect of Freezing Crush."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 10

@@ -5,7 +5,7 @@
 # for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Fervent Drain"
 skill_order: 10
-description: "Draining the elements harder permanently increases your Final Damage."
+description: "Increases the effect of Elemental Drain."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 10

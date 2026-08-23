@@ -9,8 +9,7 @@
 name: "Enchanted Quiver"
 skill_order: 4
 description:
-  "Equips a specialized arrowhead that strikes far more often and far harder. "
-  "Also permanently increases Final Damage."
+  "Equips specialized arrowheads. Also permanently increases Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BOW_MASTER
 max_level: 10

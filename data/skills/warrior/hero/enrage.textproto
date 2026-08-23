@@ -5,8 +5,7 @@
 name: "Enrage"
 skill_order: 7
 description:
-  "Your rage gathers in your combo orbs. Permanently increases Final Damage "
-  "and Critical Damage."
+  "Focuses your rage into your combo orbs to deal powerful damage to enemies."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 max_level: 30

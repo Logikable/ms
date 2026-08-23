@@ -9,9 +9,8 @@
 name: "Thunder Sphere"
 skill_order: 2
 description:
-  "Summons an orb of condensed lightning that discharges a high-voltage "
-  "current at nearby enemies on its own. It cuts deeper into anything that is "
-  "not a boss."
+  "Summon an orb of condensed lightning. The orb discharges a high-voltage "
+  "current at nearby enemies to deal lightning-based damage."
 kind: SKILL_KIND_AUTO_ATTACK
 tags: SKILL_TAG_LIGHTNING
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE

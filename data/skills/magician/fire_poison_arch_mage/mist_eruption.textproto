@@ -12,8 +12,9 @@
 name: "Mist Eruption"
 skill_order: 2
 description:
-  "Set off the poison hanging around you all at once, dealing heavy damage. "
-  "Also permanently strengthens Poison Mist."
+  "Permanently increases Poison Mist's continuous damage. Upon using the "
+  "skill, nearby Poison Mists explode, dealing fatal poison damage to "
+  "enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 20

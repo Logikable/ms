@@ -4,8 +4,7 @@
 name: "Shadow Shifter"
 skill_order: 8
 description:
-  "Leaves a wooden doll in your place. It has a chance to take an incoming "
-  "hit for you."
+  "Grants a chance to summon a wooden doll to take damage in your place."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 10

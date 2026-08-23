@@ -4,8 +4,8 @@
 name: "Shadower Instinct"
 skill_order: 7
 description:
-  "Awaken a Shadower's merciless instincts, permanently increasing your ATT, "
-  "Final Damage and Ignore Defense."
+  "Awakens your merciless Shadower's instincts, increasing your Attack, Final "
+  "Damage, and Ignore Defense."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 10

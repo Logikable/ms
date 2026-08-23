@@ -12,8 +12,7 @@
 name: "Empowered Arrows"
 skill_order: 1
 description:
-  "Empowers Piercing Arrow as you use it. Every fourth shot is upgraded to an "
-  "Empowered Piercing Arrow."
+  "Empowers certain attack skills as you use them. Enhances Piercing Arrow."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 20

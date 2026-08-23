@@ -3,9 +3,7 @@
 # lets it, and two free levels of this were not worth handing over.
 name: "Infinity"
 skill_order: 5
-description:
-  "A bolstered spirit permanently increases your Final Damage and steadily "
-  "restores your HP."
+description: "Bolsters the spirit to enhance your magic and recover HP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 20

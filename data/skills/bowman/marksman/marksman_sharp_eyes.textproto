@@ -2,8 +2,8 @@
 name: "Sharp Eyes"
 skill_order: 5
 description:
-  "Lets you find an enemy's weak spot, permanently increasing Critical Rate "
-  "and Critical Damage."
+  "Grants the ability to locate an enemy's weak spot to deal fatal damage to "
+  "that enemy."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 20

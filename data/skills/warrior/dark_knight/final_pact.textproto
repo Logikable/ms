@@ -6,8 +6,8 @@
 name: "Final Pact"
 skill_order: 4
 description:
-  "Your dark contract keeps you alive when your HP reaches 0. Permanently "
-  "increases Final Damage, Critical Rate and Critical Damage."
+  "When your HP reaches 0, your dark contract keeps you alive. Permanently "
+  "increases Final Damage, Critical Rate, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 max_level: 30

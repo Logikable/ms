@@ -5,9 +5,7 @@
 # two rather than the sum, so this simply outbids the Hunter's 50% on its own.
 name: "Bow Expert"
 skill_order: 7
-description:
-  "Your long service permanently increases Bow Mastery, Attack Power and "
-  "Critical Damage."
+description: "Increases Bow Mastery, Attack Power, and Critical Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BOW_MASTER
 max_level: 20

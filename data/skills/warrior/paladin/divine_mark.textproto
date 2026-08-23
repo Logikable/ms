@@ -12,9 +12,10 @@
 name: "Divine Mark"
 skill_order: 1
 description:
-  "Summon a greater hammer of light, and leave a brand behind that explodes "
-  "over a wide area. The explosion strikes ordinary monsters harder. "
-  "Permanently strengthens Divine Charge."
+  "Allows you to summon a more powerful holy hammer. Enhances the damage and "
+  "range of Divine Charge. When Divine Mark is used, a brand of light appears "
+  "at the target location, detonating after a set period and striking enemies "
+  "in a wide area. This explosion deals additional damage to normal enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 30

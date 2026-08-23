@@ -6,8 +6,8 @@
 name: "Flame Orb"
 skill_order: 1
 description:
-  "A fire-attribute attack. Create and throw a burning orb at the enemies in "
-  "front of you."
+  "A fire-attribute attack. Create and throw a burning orb at multiple "
+  "enemies."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD

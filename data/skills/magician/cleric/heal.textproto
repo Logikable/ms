@@ -11,8 +11,7 @@
 # shortens are all still absent, as is the cooldown itself.
 name: "Heal"
 skill_order: 3
-description:
-  "Restores your HP, cast in place of an attack when you are badly hurt."
+description: "Restores your HP."
 kind: SKILL_KIND_ACTIVE
 tags: SKILL_TAG_BENEVOLENCE
 job_advancement: JOB_ADVANCEMENT_CLERIC

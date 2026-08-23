@@ -9,8 +9,8 @@
 name: "Frozen Orb"
 skill_order: 3
 description:
-  "Throw an orb of ice that rolls through the room, firing shards at "
-  "everything near it until it melts."
+  "Create and throw a Frozen Orb that fires ice shards everywhere to deal ice "
+  "damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE

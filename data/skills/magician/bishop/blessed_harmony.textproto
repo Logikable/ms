@@ -6,7 +6,7 @@
 # for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Blessed Harmony"
 skill_order: 11
-description: "Your blessings permanently increase your Final Damage."
+description: "Increases the effect of Blessed Ensemble."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 10

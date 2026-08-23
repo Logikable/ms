@@ -12,8 +12,8 @@
 name: "Arrow Illusion"
 skill_order: 4
 description:
-  "Plant an illusion of yourself that looses arrows at nearby enemies on its "
-  "own. Ignores a portion of enemy DEF permanently."
+  "Summons an arrow illusion that damages enemies on its own. Also increases "
+  "Ignore Defense permanently."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 20

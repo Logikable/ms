@@ -7,9 +7,7 @@
 # There is nothing to swap here, so what is left is the one arrowhead, levelled.
 name: "Quiver Cartridge"
 skill_order: 2
-description:
-  "Fits a special arrowhead that grants a chance to strike again after an "
-  "attack."
+description: "Uses a special arrowhead."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 10

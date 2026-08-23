@@ -13,8 +13,9 @@
 name: "Greater Vessel of Light"
 skill_order: 8
 description:
-  "The light within you grows greater still. Increases Damage and Attack "
-  "Power, and strengthens Divine Charge and Blast."
+  "Empowers Vessel of Light to its limit with your mastery. Increases Divine "
+  "Charge's max number of targets and the attack count of both Divine Charge "
+  "and Blast."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 10

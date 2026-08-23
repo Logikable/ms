@@ -2,7 +2,7 @@
 name: "Last Man Standing"
 skill_order: 10
 description:
-  "An indomitable mind permanently increases the damage you deal."
+  "Increases the attack's power by training your strong, indomitable mind."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 10

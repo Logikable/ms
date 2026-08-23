@@ -6,8 +6,7 @@
 # to divide nine, and 7.5 is the nearest start to eight that does.
 name: "Holy Fountain"
 skill_order: 3
-description:
-  "A holy fountain stands beside you and restores your HP on its own."
+description: "Summons a Holy Fountain that restores your HP on its own."
 kind: SKILL_KIND_PASSIVE
 tags: SKILL_TAG_BENEVOLENCE
 job_advancement: JOB_ADVANCEMENT_PRIEST

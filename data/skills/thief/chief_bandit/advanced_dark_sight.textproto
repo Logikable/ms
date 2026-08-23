@@ -4,7 +4,7 @@
 # the character is never asked to earn it.
 name: "Advanced Dark Sight"
 skill_order: 6
-description: "Hone your stealth until every strike out of the dark lands harder."
+description: "Hones your stealth technique, increasing Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 5

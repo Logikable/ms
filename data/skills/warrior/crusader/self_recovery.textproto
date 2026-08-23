@@ -7,7 +7,7 @@
 # on GMS's 4 seconds exactly rather than near it.
 name: "Self Recovery"
 skill_order: 4
-description: "Recovers your HP on its own, a little at a time."
+description: "Regularly recovers some HP, even in combat."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CRUSADER
 max_level: 20

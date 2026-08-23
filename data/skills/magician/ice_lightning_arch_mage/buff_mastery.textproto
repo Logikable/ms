@@ -8,8 +8,8 @@
 name: "Buff Mastery"
 skill_order: 7
 description:
-  "Permanently increases your Magic ATT and keeps every buff you raise "
-  "standing for longer."
+  "Permanently increases Magic ATT and increases the duration of all buffs on "
+  "you."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 10

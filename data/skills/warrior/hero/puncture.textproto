@@ -12,8 +12,9 @@
 name: "Puncture"
 skill_order: 2
 description:
-  "Drive your sword down into the enemies in front of you, leaving a wound "
-  "that bleeds. A wounded enemy takes more damage from everything."
+  "Pour your swordsman's spirit into a forward-downward strike, leaving a "
+  "wound on your enemy that deals continuous damage. While taking continuous "
+  "damage, the enemy will also take more damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
 job_advancement: JOB_ADVANCEMENT_HERO

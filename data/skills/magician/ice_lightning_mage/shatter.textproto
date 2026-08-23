@@ -4,7 +4,7 @@
 # points over are what the twenty levels are spread across.
 name: "Shatter"
 skill_order: 4
-description: "Ignores a portion of enemy DEF when you attack."
+description: "When attacking, ignores a portion of the enemy's defenses."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 20

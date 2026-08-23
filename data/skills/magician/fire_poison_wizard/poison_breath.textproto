@@ -7,8 +7,8 @@
 name: "Poison Breath"
 skill_order: 3
 description:
-  "A poison-attribute attack. Conjure a cloud of poison over the enemies in "
-  "front of you."
+  "Conjure a poison-attribute cloud, inflicting fatal damage to enemies. The "
+  "enemies will take additional periodic damage."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 10

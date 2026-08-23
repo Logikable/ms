@@ -9,7 +9,7 @@
 name: "Mortal Blow"
 skill_order: 5
 description:
-  "Every thirty hits you land, your damage rises for a few seconds."
+  "If the attack hits a certain number of times, the damage increases."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 10

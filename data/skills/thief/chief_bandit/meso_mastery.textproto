@@ -7,8 +7,8 @@
 name: "Meso Mastery"
 skill_order: 8
 description:
-  "Learn the worth of what you take: your attacks hit harder, enemies drop "
-  "more mesos, and each meso you fling hits harder."
+  "Increases Attack Power, amount of Mesos that drop, and Meso Explosion's "
+  "damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 10

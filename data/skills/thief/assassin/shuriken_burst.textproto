@@ -9,8 +9,8 @@
 name: "Shuriken Burst"
 skill_order: 1
 description:
-  "Throw exploding shuriken that detonate on the first enemy they strike and "
-  "ricochet to those nearby."
+  "Throw exploding shurikens that ricochet to nearby enemies on hit. "
+  "Shurikens detonate when they hit their first enemy."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_ASSASSIN
 max_level: 20

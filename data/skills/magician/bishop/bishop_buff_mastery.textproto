@@ -11,8 +11,8 @@
 name: "Buff Mastery"
 skill_order: 9
 description:
-  "Permanently increases your Magic ATT and Final Damage, and keeps every "
-  "buff you raise standing for longer."
+  "Permanently increases Magic ATT and Final Damage and increases the "
+  "duration of all buffs on you."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 10

@@ -7,8 +7,7 @@
 name: "Flame Haze"
 skill_order: 4
 description:
-  "Wrap one enemy in burning mist, striking it hard and leaving it to burn "
-  "for a long while."
+  "Surrounds enemies with burning poisonous mist, dealing continuous damage."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_FIRE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE

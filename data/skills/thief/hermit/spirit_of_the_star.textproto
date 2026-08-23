@@ -6,8 +6,7 @@
 # sees it only on the stats page.
 name: "Spirit of the Star"
 skill_order: 5
-description:
-  "Permanently increases your Attack Power and the damage you deal to bosses."
+description: "Increases Attack Power and Boss Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 10

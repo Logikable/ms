@@ -8,7 +8,8 @@
 name: "Ignite"
 skill_order: 6
 description:
-  "Grants your fire spells a chance to strike again with a wall of fire."
+  "Grants Fire magic a chance to create a wall of fire at the target "
+  "location."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 10

@@ -3,8 +3,8 @@
 name: "Venom"
 skill_order: 7
 description:
-  "Coat your dagger in poison for good, so the enemies you hit take damage "
-  "over time."
+  "Permanently coats your dagger with venom, giving all your attacks the "
+  "chance to Poison enemies."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 10

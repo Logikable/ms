@@ -8,8 +8,8 @@
 name: "Elquines"
 skill_order: 5
 description:
-  "Summon Elquines to fight beside you. Its attacks freeze what they touch, "
-  "and learning to call it permanently increases your Mastery."
+  "Summon Elquines. Elquines can attack multiple enemies at once. Attacks "
+  "from Elquines freeze enemies. Permanently increases Spell Mastery."
 kind: SKILL_KIND_AUTO_ATTACK
 tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE

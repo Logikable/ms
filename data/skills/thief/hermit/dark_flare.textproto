@@ -7,8 +7,8 @@
 name: "Dark Flare"
 skill_order: 3
 description:
-  "Hang a great shuriken of dark energy beside you that strikes nearby "
-  "enemies on its own."
+  "Release dark energy to summon a large shuriken that attacks enemies "
+  "nearby."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 20

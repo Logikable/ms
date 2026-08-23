@@ -4,9 +4,7 @@
 # swing of the character's.
 name: "Shadow Partner"
 skill_order: 5
-description:
-  "Summon a shadow that copies your attacks. Every strike you land is struck "
-  "again for a share of its damage."
+description: "Summon a shadow partner that mimics the summoner."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 20

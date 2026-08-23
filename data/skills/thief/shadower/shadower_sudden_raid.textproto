@@ -4,9 +4,7 @@
 # every other duration in the game is.
 name: "Sudden Raid"
 skill_order: 4
-description:
-  "Call in a horde of friends to raid the enemies around you. What they leave "
-  "behind keeps burning."
+description: "Call in a horde of friends to attack enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 30

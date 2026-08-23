@@ -8,8 +8,9 @@
 name: "Freezing Crush"
 skill_order: 2
 description:
-  "Freezes enemies your ice attacks reach. Increases Critical Damage while "
-  "they are frozen, and your lightning attacks spend the ice for Final Damage."
+  "Grants bonus Critical Damage when attacking Frozen enemies. Bonus "
+  "increases per stack of skill. Using lightning-based attacks against Frozen "
+  "targets consumes stacks and increases Final Damage for each stack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 10

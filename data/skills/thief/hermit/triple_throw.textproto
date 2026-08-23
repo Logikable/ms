@@ -9,9 +9,7 @@
 # loses on one enemy as well as on eight.
 name: "Triple Throw"
 skill_order: 1
-description:
-  "Throw three throwing stars at once. They strike the enemy with the most HP "
-  "left first."
+description: "Throw several throwing stars simultaneously."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 20

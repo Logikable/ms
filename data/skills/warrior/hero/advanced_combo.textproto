@@ -14,8 +14,8 @@
 name: "Advanced Combo"
 skill_order: 4
 description:
-  "Your combo rings wider and pays better. Increases the Final Damage each "
-  "Combo Orb is worth, how many you carry, and your Weapon Mastery."
+  "Increases the Final Damage dealt per Combo Orb and enables you to gain "
+  "more orbs. Additionally increases mastery."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 max_level: 20

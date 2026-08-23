@@ -3,9 +3,7 @@
 # bosses and Showdown for everything else. 660ms is the animation's own.
 name: "Quad Star"
 skill_order: 1
-description:
-  "Throw four throwing stars at once. They strike the enemy with the most HP "
-  "left first."
+description: "Masterfully unleash four throwing stars."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
 max_level: 30
