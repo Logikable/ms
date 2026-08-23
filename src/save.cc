@@ -1,6 +1,8 @@
 #include "src/save.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
@@ -9,10 +11,13 @@
 #include <string>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 #include "absl/log/log.h"
+#include "src/account.h"
 #include "src/game_state.h"
 #include "src/protos/save.pb.h"
+#include "src/save_migration.h"
 
 namespace ms {
 namespace {
@@ -43,6 +48,91 @@ bool FlushToDisk(std::ofstream& out, const std::string& path) {
   return true;
 }
 
+// The played character as the save holds them, with the two clocks and the
+// map that are theirs alone.
+CharacterSave ActiveCharacterSave(const GameState& state) {
+  CharacterSave slot;
+  *slot.mutable_character() = state.character.ToProto();
+  slot.set_current_map(state.current_map);
+  slot.set_created_unix_seconds(state.created_unix_seconds);
+  slot.set_playtime_seconds(static_cast<int64_t>(state.playtime_seconds));
+  return slot;
+}
+
+// Puts every character on the account into `save`, the played one back in the
+// slot they came from. The others were never unpacked, so they go out exactly
+// as they came in.
+void WriteCharacters(const GameState& state, SaveGame& save) {
+  const std::vector<CharacterSave>& others = state.inactive_characters;
+  int slot =
+      std::clamp(state.active_character, 0, static_cast<int>(others.size()));
+  for (int i = 0; i < slot; ++i) {
+    *save.add_characters() = others[i];
+  }
+  *save.add_characters() = ActiveCharacterSave(state);
+  for (std::size_t i = slot; i < others.size(); ++i) {
+    *save.add_characters() = others[i];
+  }
+  save.set_active_character(slot);
+}
+
+// The account as the file should carry it: what the session holds, with the
+// played character's climb folded in. The watermark is what the characters in
+// the file have reached, and this is the only place that knows the one being
+// played has moved.
+AccountInstance AccountToWrite(const GameState& state) {
+  AccountInstance account(state.account.proto());
+  account.RecordProgress(state.character.proto().level(),
+                         state.character.proto().job_stage());
+  return account;
+}
+
+// The slot the save says is being played, or the first if it says something
+// out of range -- a hand-edited file, or one whose active character was
+// deleted by a build that could do that.
+int ActiveSlot(const SaveGame& save) {
+  int slot = save.active_character();
+  return slot >= 0 && slot < save.characters_size() ? slot : 0;
+}
+
+// Loads the account, and raises its unlocks to take in every character in the
+// file. The watermark is written on save, so this only matters for a file
+// that predates it or was edited by hand -- but it costs one pass and keeps
+// the account's promise: what any character opened stays open.
+void LoadAccount(const SaveGame& save, GameState& state) {
+  state.account = AccountInstance(save.account());
+  for (const CharacterSave& slot : save.characters()) {
+    state.account.RecordProgress(slot.character().level(),
+                                 slot.character().job_stage());
+  }
+}
+
+// Loads the active character into play and keeps the rest as they arrived.
+void LoadCharacters(const SaveGame& save, GameState& state) {
+  int slot = ActiveSlot(save);
+  const CharacterSave& active = save.characters(slot);
+  state.character.RestoreFrom(active.character(), state.equips, state.items);
+  // A save written under an older set of AP rules is the one thing that can
+  // arrive with its books unbalanced, so this is the door to check at.
+  state.character.ReconcileAp();
+  state.current_map = active.current_map();
+  state.playtime_seconds = static_cast<double>(active.playtime_seconds());
+  // Left alone when the save has no creation time to give -- one written
+  // before the field existed. The state was stamped when it was built, so
+  // holding on to that reads as "created now" rather than as the epoch.
+  if (active.created_unix_seconds() != 0) {
+    state.created_unix_seconds = active.created_unix_seconds();
+  }
+
+  state.active_character = slot;
+  state.inactive_characters.clear();
+  for (int i = 0; i < save.characters_size(); ++i) {
+    if (i != slot) {
+      state.inactive_characters.push_back(save.characters(i));
+    }
+  }
+}
+
 }  // namespace
 
 std::string SavePathFor(const std::string& argv0) {
@@ -59,14 +149,11 @@ std::string SavePathFor(const std::string& argv0) {
 bool SaveGameToFile(const GameState& state, const std::string& path) {
   SaveGame save;
   save.set_format_version(kSaveFormatVersion);
-  *save.mutable_character() = state.character.ToProto();
-  save.set_current_map(state.current_map);
-  save.set_created_unix_seconds(state.created_unix_seconds);
-  save.set_playtime_seconds(static_cast<int64_t>(state.playtime_seconds));
+  WriteCharacters(state, save);
+  *save.mutable_account() = AccountToWrite(state).proto();
   // Stamped here rather than carried from the state: what this field means is
   // when the file was written, and only the write knows that.
   save.set_last_seen_unix_seconds(static_cast<int64_t>(std::time(nullptr)));
-  *save.mutable_keybinds() = state.keybinds;
 
   std::string bytes;
   if (!save.SerializeToString(&bytes)) {
@@ -130,23 +217,18 @@ LoadResult LoadGameFromFile(GameState& state, const std::string& path) {
         LoadStatus::kFromTheFuture,
         "The save file was written by a newer version of the game: " + path};
   }
-
-  state.character.RestoreFrom(save.character(), state.equips, state.items);
-  // A save written under an older set of AP rules is the one thing that can
-  // arrive with its books unbalanced, so this is the door to check at.
-  state.character.ReconcileAp();
-  state.current_map = save.current_map();
-  state.playtime_seconds = static_cast<double>(save.playtime_seconds());
-  // Left alone when the save has no creation time to give -- one written
-  // before the field existed. The state was stamped when it was built, so
-  // holding on to that reads as "created now" rather than as the epoch.
-  if (save.created_unix_seconds() != 0) {
-    state.created_unix_seconds = save.created_unix_seconds();
+  if (!UpgradeSave(save.format_version(), bytes, save)) {
+    return {LoadStatus::kUnreadable,
+            "The save file is damaged and cannot be read: " + path};
   }
+  if (save.characters().empty()) {
+    return {LoadStatus::kUnreadable,
+            "The save file holds no characters: " + path};
+  }
+
+  LoadAccount(save, state);
+  LoadCharacters(save, state);
   state.last_seen_unix_seconds = save.last_seen_unix_seconds();
-  // A save from before the field existed carries nothing here, which the
-  // frontend reads as the default bindings.
-  state.keybinds = save.keybinds();
   return {LoadStatus::kLoaded, ""};
 }
 

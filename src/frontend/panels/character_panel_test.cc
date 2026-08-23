@@ -232,7 +232,7 @@ bool IsInverted(ftxui::Component comp, const std::string& needle) {
 }
 
 TEST_F(CharacterPanelTest, ShowsTheLevelAndJob) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterPanel panel(c_, account_, panel_focus_);
   std::string drawn = RenderElement(panel.Render());
   EXPECT_NE(drawn.find("Lv  1"), std::string::npos);
   EXPECT_NE(drawn.find("Beginner"), std::string::npos);
@@ -247,12 +247,12 @@ CharacterInstance MakePendingBeginner(std::mt19937& rng) {
 }
 
 TEST_F(CharacterPanelTest, TheAdvanceTabAppearsOnlyWithOnePending) {
-  CharacterPanel level_one(c_, panel_focus_);  // c_ is level 1
+  CharacterPanel level_one(c_, account_, panel_focus_);  // c_ is level 1
   EXPECT_EQ(RenderElement(level_one.Render()).find("Advance"),
             std::string::npos);
 
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel pending(c, panel_focus_);
+  CharacterPanel pending(c, account_, panel_focus_);
   EXPECT_NE(RenderElement(pending.Render()).find("Advance"), std::string::npos);
 }
 
@@ -260,7 +260,7 @@ TEST_F(CharacterPanelTest, TheAdvanceTabAppearsOnlyWithOnePending) {
 // left standing on it.
 TEST_F(CharacterPanelTest, DropsTheAdvanceTabOnceTheJobIsPicked) {
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills -> Advance
@@ -279,7 +279,7 @@ TEST_F(CharacterPanelTest, DropsTheAdvanceTabOnceTheJobIsPicked) {
 // skill rows rather than on the bar the player was looking at.
 TEST_F(CharacterPanelTest, AdvancingLeavesTheCursorOnTheTabBar) {
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   // A pending Beginner's bar is Stats and Advance: no Skills until they pick.
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
@@ -296,7 +296,7 @@ TEST_F(CharacterPanelTest, AdvancingLeavesTheCursorOnTheTabBar) {
 // holding the cursor means.
 TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsContentOneKeyAway) {
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
   comp->OnEvent(ftxui::Event::ArrowDown);   // into the job list
@@ -308,7 +308,7 @@ TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsContentOneKeyAway) {
 
 TEST_F(CharacterPanelTest, AdvanceTabListsTheFourJobs) {
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);
   comp->OnEvent(ftxui::Event::ArrowRight);
@@ -321,7 +321,7 @@ TEST_F(CharacterPanelTest, AdvanceTabListsTheFourJobs) {
 
 TEST_F(CharacterPanelTest, EnterOnAJobAsksToAdvanceIntoIt) {
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   Job chosen = JOB_UNSPECIFIED;
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, [](const Skill&) {},
@@ -340,7 +340,7 @@ TEST_F(CharacterPanelTest, EnterOnAJobAsksToAdvanceIntoIt) {
 // job on offer rather than doing nothing.
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastJob) {
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   Job chosen = JOB_UNSPECIFIED;
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, [](const Skill&) {},
@@ -354,7 +354,7 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastJob) {
 
 TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
   CharacterInstance c = MakePendingBeginner(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   Job chosen = JOB_UNSPECIFIED;
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, [](const Skill&) {},
@@ -375,7 +375,7 @@ TEST_F(CharacterPanelTest, AdvanceTabUpFromTheTopReturnsToTheTabBar) {
 // TheSkillsTabArrivesWithTheAdvancement below is what tests the job condition,
 // by standing a Beginner at the gate's level.
 TEST_F(CharacterPanelTest, ANewCharacterHasOnlyTheStatsTab) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("Stats"), std::string::npos);
   EXPECT_EQ(rendered.find("Skills"), std::string::npos);
@@ -383,19 +383,19 @@ TEST_F(CharacterPanelTest, ANewCharacterHasOnlyTheStatsTab) {
 
 TEST_F(CharacterPanelTest, TheSkillsTabArrivesWithTheAdvancement) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
-  ASSERT_EQ(
-      RenderElement(CharacterPanel(c, panel_focus_).Render()).find("Skills"),
-      std::string::npos)
+  ASSERT_EQ(RenderElement(CharacterPanel(c, account_, panel_focus_).Render())
+                .find("Skills"),
+            std::string::npos)
       << "level 10 is not enough on its own";
 
   c.AdvanceJob(JOB_SWORDMAN);
-  EXPECT_NE(
-      RenderElement(CharacterPanel(c, panel_focus_).Render()).find("Skills"),
-      std::string::npos);
+  EXPECT_NE(RenderElement(CharacterPanel(c, account_, panel_focus_).Render())
+                .find("Skills"),
+            std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, StatsTabIsShownByDefault) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterPanel panel(c_, account_, panel_focus_);
   EXPECT_NE(RenderElement(panel.Render()).find("HP:"), std::string::npos);
 }
 
@@ -422,7 +422,7 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
   CharacterInstance c(rng_, std::move(proto));
   ASSERT_TRUE(c.LearnSkill(iron_body, 3));
 
-  CharacterPanel panel(c, panel_focus_, catalog);
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   EXPECT_NE(RenderElement(panel.Render()).find("HP: 103"), std::string::npos);
   // All 30 of it granted: this character has no STR to buy any of their own.
   EXPECT_EQ(StatValue(panel.Render(), "Defense"), "(0+30) 30");
@@ -441,7 +441,7 @@ TEST_F(CharacterPanelTest, ALongDefenseKeepsTheRowWidth) {
   c.PickUp(std::make_unique<EquipInstance>(armour));
   c.Equip(0);
 
-  CharacterPanel panel(c, panel_focus_, {});
+  CharacterPanel panel(c, account_, panel_focus_, {});
   std::vector<std::string> rows = PanelRows(panel.Render());
   std::string defense;
   std::string other;
@@ -476,7 +476,7 @@ TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
   c.Equip(0);
 
   // 4 * 1000 STR * 500 ATT / 100 = 20000, halved toward the mastery floor.
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   EXPECT_NE(RenderElement(panel.Render()).find("Combat Power 12,210"),
             std::string::npos);
 }
@@ -497,7 +497,7 @@ TEST_F(CharacterPanelTest, CombatPowerShortensItsLabelPastSixFigures) {
   c.Equip(0);
 
   // Past 999,999 the words go and the number stays.
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("CP 1,221,0"), std::string::npos);
   EXPECT_EQ(rendered.find("Combat Power"), std::string::npos);
@@ -506,7 +506,8 @@ TEST_F(CharacterPanelTest, CombatPowerShortensItsLabelPastSixFigures) {
 TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
   // A Warrior, because a Beginner has only the one tab to sit on.
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
-  CharacterPanel panel(c, panel_focus_);  // panel_focus_ == kCharPanel
+  CharacterPanel panel(c, account_,
+                       panel_focus_);  // panel_focus_ == kCharPanel
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 
@@ -519,7 +520,7 @@ TEST_F(CharacterPanelTest, ArrowKeysSwitchTabs) {
 
 TEST_F(CharacterPanelTest, StatsTabShowsPlusButtons) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("[+]"), std::string::npos);
@@ -528,13 +529,13 @@ TEST_F(CharacterPanelTest, StatsTabShowsPlusButtons) {
 
 TEST_F(CharacterPanelTest, ShowsAvailableApInTheMpRow) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   EXPECT_NE(RenderElement(panel.Render()).find("5 AP"), std::string::npos);
 }
 
 TEST_F(CharacterPanelTest, DownFromTabBarThenEnterAllocatesStr) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
   ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR row
@@ -544,7 +545,7 @@ TEST_F(CharacterPanelTest, DownFromTabBarThenEnterAllocatesStr) {
 
 TEST_F(CharacterPanelTest, DownMovesTheCursorToTheNextStat) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
   ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
@@ -555,7 +556,7 @@ TEST_F(CharacterPanelTest, DownMovesTheCursorToTheNextStat) {
 
 TEST_F(CharacterPanelTest, UpFromStrReturnsToTheTabBar) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   bool fired = false;
   ftxui::Component comp = panel.MakeComponent([&](StatField) { fired = true; });
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
@@ -573,7 +574,7 @@ TEST_F(CharacterPanelTest, UpFromStrReturnsToTheTabBar) {
 // cursor is standing.
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnViewAllStats) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent(
@@ -587,7 +588,7 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnViewAllStats) {
 
 TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheTabBar) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
   int opened = 0;
   ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; },
@@ -609,7 +610,7 @@ TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheTabBar) {
 
 TEST_F(CharacterPanelTest, ViewAllStatsOpensWithNoApToSpend) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   bool opened = false;
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, {}, {}, {}, [&] { opened = true; });
@@ -621,7 +622,7 @@ TEST_F(CharacterPanelTest, ViewAllStatsOpensWithNoApToSpend) {
 
 TEST_F(CharacterPanelTest, EnterWithoutApDoesNotAllocate) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   bool fired = false;
   ftxui::Component comp = panel.MakeComponent([&](StatField) { fired = true; });
   comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
@@ -634,7 +635,7 @@ TEST_F(CharacterPanelTest, NoApStillEntersTheStatRows) {
   // descends regardless. Prove the cursor left the tab bar: Right no longer
   // switches tabs, because Left/Right belong to the bar alone.
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowDown);   // tab bar -> STR row
   comp->OnEvent(ftxui::Event::ArrowRight);  // on the rows: does nothing
@@ -644,7 +645,7 @@ TEST_F(CharacterPanelTest, NoApStillEntersTheStatRows) {
 // Right has nowhere to go on a Beginner's one-tab bar, so the stats stay put
 // rather than the cursor landing on a tab that is not drawn.
 TEST_F(CharacterPanelTest, RightStaysOnStatsForABeginner) {
-  CharacterPanel panel(c_, panel_focus_);  // c_ is a stage-0 Beginner
+  CharacterPanel panel(c_, account_, panel_focus_);  // c_ is a stage-0 Beginner
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
@@ -653,7 +654,7 @@ TEST_F(CharacterPanelTest, RightStaysOnStatsForABeginner) {
 TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
   c.AdvanceJob(JOB_SWORDMAN);  // job_stage 1
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
@@ -664,7 +665,7 @@ TEST_F(CharacterPanelTest, WarriorSkillsTabShowsAdvancementTabAndSp) {
 TEST_F(CharacterPanelTest, SkillsAdvBarUpReturnsToOuterTabs) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
   c.AdvanceJob(JOB_SWORDMAN);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // outer tabs: Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // enter the advancement bar
@@ -675,7 +676,7 @@ TEST_F(CharacterPanelTest, SkillsAdvBarUpReturnsToOuterTabs) {
 
 TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
@@ -690,7 +691,7 @@ TEST_F(CharacterPanelTest, SkillsTabListsTheStagesSkills) {
 // the order they earned them, and the newest one is a Right away.
 TEST_F(CharacterPanelTest, TheSkillsTabOpensOnTheFirstBook) {
   CharacterInstance c = MakeSpearman(rng_);
-  CharacterPanel panel(c, panel_focus_, TwoStageCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, TwoStageCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
@@ -704,7 +705,7 @@ TEST_F(CharacterPanelTest, TheSkillsTabOpensOnTheFirstBook) {
 // never get back down onto their first book.
 TEST_F(CharacterPanelTest, TheAdvancementBarKeepsThePageItWasLeftOn) {
   CharacterInstance c = MakeSpearman(rng_);
-  CharacterPanel panel(c, panel_focus_, TwoStageCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, TwoStageCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
@@ -738,7 +739,7 @@ TEST_F(CharacterPanelTest, TheListFollowsSkillOrderAndNotKind) {
   }
 
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, catalog);
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
@@ -769,14 +770,14 @@ std::map<std::string, Skill> WordyCatalog() {
 // out -- which is what "Final Attack: Crossbow" did to the whole main screen.
 TEST_F(CharacterPanelTest, ALongSkillNameDoesNotWidenThePanel) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, WordyCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, WordyCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
   // The width the panel asks its layout for, which is what a long name used to
   // inflate. Held against a book whose names all fit: the two must agree.
   ftxui::Element wordy = panel.Render();
-  CharacterPanel narrow(c, panel_focus_, SkillCatalog());
+  CharacterPanel narrow(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component narrow_comp = narrow.MakeComponent([](StatField) {});
   narrow_comp->OnEvent(ftxui::Event::ArrowRight);
   ftxui::Element brief = narrow.Render();
@@ -790,7 +791,7 @@ TEST_F(CharacterPanelTest, ALongSkillNameDoesNotWidenThePanel) {
 // arrives by selecting the row; see the marquee's own tests for the slide.
 TEST_F(CharacterPanelTest, AnUnselectedLongNameIsCutToItsColumn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, WordyCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, WordyCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
@@ -812,7 +813,7 @@ TEST_F(CharacterPanelTest, NamesAndLevelsStayColumnsWhateverTheNameLength) {
   catalog["rush"] = brief;
 
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, catalog);
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
@@ -864,7 +865,7 @@ CharacterInstance MakeLender(std::mt19937& rng, int slash_blast) {
 // after it -- GMS prints a 10 with two lent as "12 (+2)", not "10 (+2)".
 TEST_F(CharacterPanelTest, ALentLevelIsCountedInAndThenNamed) {
   CharacterInstance c = MakeLender(rng_, /*slash_blast=*/10);
-  CharacterPanel panel(c, panel_focus_, LendingCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, LendingCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
@@ -877,7 +878,7 @@ TEST_F(CharacterPanelTest, ALentLevelIsCountedInAndThenNamed) {
 // itself.
 TEST_F(CharacterPanelTest, NothingIsLentToTheUnlearnedOrToTheLender) {
   CharacterInstance c = MakeLender(rng_, /*slash_blast=*/0);
-  CharacterPanel panel(c, panel_focus_, LendingCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, LendingCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
@@ -896,13 +897,13 @@ TEST_F(CharacterPanelTest, NothingIsLentToTheUnlearnedOrToTheLender) {
 // and the first point spent widens it and narrows the names beside it.
 TEST_F(CharacterPanelTest, TheLevelColumnIsAsWideAsThePageNeeds) {
   CharacterInstance closed = MakeLender(rng_, /*slash_blast=*/0);
-  CharacterPanel thin(closed, panel_focus_, LendingCatalog());
+  CharacterPanel thin(closed, account_, panel_focus_, LendingCatalog());
   ftxui::Component thin_comp = thin.MakeComponent([](StatField) {});
   thin_comp->OnEvent(ftxui::Event::ArrowRight);
   ftxui::Screen thin_screen = RenderToScreen(thin_comp);
 
   CharacterInstance opened = MakeLender(rng_, /*slash_blast=*/1);
-  CharacterPanel wide(opened, panel_focus_, LendingCatalog());
+  CharacterPanel wide(opened, account_, panel_focus_, LendingCatalog());
   ftxui::Component wide_comp = wide.MakeComponent([](StatField) {});
   wide_comp->OnEvent(ftxui::Event::ArrowRight);
   ftxui::Screen wide_screen = RenderToScreen(wide_comp);
@@ -920,7 +921,7 @@ TEST_F(CharacterPanelTest, TheLevelColumnIsAsWideAsThePageNeeds) {
 // level instead of trailing off after it.
 TEST_F(CharacterPanelTest, TheLevelIsRightAlignedInItsColumn) {
   CharacterInstance c = MakeLender(rng_, /*slash_blast=*/1);
-  CharacterPanel panel(c, panel_focus_, LendingCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, LendingCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);
 
@@ -938,12 +939,12 @@ TEST_F(CharacterPanelTest, TheLevelIsRightAlignedInItsColumn) {
 // lend levels; everyone else gets the room for their skill names instead.
 TEST_F(CharacterPanelTest, OnlyALenderPaysForTheLentColumn) {
   CharacterInstance lender = MakeLender(rng_, /*slash_blast=*/10);
-  CharacterPanel wide(lender, panel_focus_, LendingCatalog());
+  CharacterPanel wide(lender, account_, panel_focus_, LendingCatalog());
   ftxui::Component wide_comp = wide.MakeComponent([](StatField) {});
   wide_comp->OnEvent(ftxui::Event::ArrowRight);
 
   CharacterInstance plain = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel narrow(plain, panel_focus_, SkillCatalog());
+  CharacterPanel narrow(plain, account_, panel_focus_, SkillCatalog());
   ftxui::Component narrow_comp = narrow.MakeComponent([](StatField) {});
   narrow_comp->OnEvent(ftxui::Event::ArrowRight);
 
@@ -985,7 +986,7 @@ std::map<std::string, Skill> AllKindsCatalog() {
 // still line up; a kind-less skill gets the blanks rather than a wrong tag.
 TEST_F(CharacterPanelTest, EachSkillRowOpensWithItsKindTag) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, AllKindsCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, AllKindsCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
 
@@ -1007,7 +1008,7 @@ TEST_F(CharacterPanelTest, EachSkillRowOpensWithItsKindTag) {
 // the skill, so the cursor covers the name and stops there at both ends.
 TEST_F(CharacterPanelTest, TheHighlightLeavesTheTagAlone) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, AllKindsCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, AllKindsCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
@@ -1058,7 +1059,7 @@ TEST_F(CharacterPanelTest, ASkillIsListedUnderTheOneItWaitsOn) {
   catalog["d_endure"] = endure;
 
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, catalog);
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   std::string rendered = RenderComponent(comp);
@@ -1085,7 +1086,7 @@ TEST_F(CharacterPanelTest, AnOffPageRequirementStillListsItsSkill) {
   catalog["spear_sweep"] = gated;
 
   CharacterInstance c = MakeSpearman(rng_);
-  CharacterPanel panel(c, panel_focus_, catalog);
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
@@ -1097,7 +1098,7 @@ TEST_F(CharacterPanelTest, AnOffPageRequirementStillListsItsSkill) {
 
 TEST_F(CharacterPanelTest, DownIntoSkillRowsThenEnterFiresLearn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   std::string learned;
   ftxui::Component comp = panel.MakeComponent(
       [](StatField) {}, [&](const Skill& s) { learned = s.name(); });
@@ -1111,7 +1112,7 @@ TEST_F(CharacterPanelTest, DownIntoSkillRowsThenEnterFiresLearn) {
 
 TEST_F(CharacterPanelTest, DownIntoSkillRowsLandsOnTheNameNotThePlus) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   bool learned = false;
   std::string inspected;
   ftxui::Component comp = panel.MakeComponent(
@@ -1129,7 +1130,7 @@ TEST_F(CharacterPanelTest, DownIntoSkillRowsLandsOnTheNameNotThePlus) {
 // put -- walking to the [+] and back must not strand the row on the wrong one.
 TEST_F(CharacterPanelTest, LeftAndRightWalkBetweenTheTwoColumns) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   bool learned = false;
   bool inspected = false;
   ftxui::Component comp = panel.MakeComponent(
@@ -1149,7 +1150,7 @@ TEST_F(CharacterPanelTest, LeftAndRightWalkBetweenTheTwoColumns) {
 // one -- two highlights at once would read as two cursors.
 TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
@@ -1167,7 +1168,7 @@ TEST_F(CharacterPanelTest, TheHighlightFollowsTheSelectedColumn) {
 // level beside it is a fact about the row, not a second thing to press.
 TEST_F(CharacterPanelTest, TheHighlightStopsAtTheEndOfTheName) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
@@ -1189,7 +1190,7 @@ TEST_F(CharacterPanelTest, InspectIsNotGatedBySpOrMaxLevel) {
   proto.set_job_stage(1);
   (*proto.mutable_skill_levels())["Slash Blast"] = 20;  // maxed, and 0 SP
   CharacterInstance c(rng_, std::move(proto));
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   std::string inspected;
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, [](const Skill&) {}, [](Job) {},
@@ -1203,7 +1204,7 @@ TEST_F(CharacterPanelTest, InspectIsNotGatedBySpOrMaxLevel) {
 
 TEST_F(CharacterPanelTest, NoSpEntersTheSkillRowsButEnterDoesNothing) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   bool fired = false;
   ftxui::Component comp = panel.MakeComponent(
       [](StatField) {}, [&](const Skill&) { fired = true; });
@@ -1229,7 +1230,7 @@ TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
   (*proto.mutable_sp_by_stage())[1] = 5;
   (*proto.mutable_skill_levels())["Slash Blast"] = 20;  // already maxed
   CharacterInstance c(rng_, std::move(proto));
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   bool fired = false;
   ftxui::Component comp = panel.MakeComponent(
       [](StatField) {}, [&](const Skill&) { fired = true; });
@@ -1245,7 +1246,7 @@ TEST_F(CharacterPanelTest, EnterOnAMaxedSkillDoesNotFireLearn) {
 
 TEST_F(CharacterPanelTest, UpFromSkillRowsReturnsToTheAdvancementBar) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
@@ -1261,7 +1262,7 @@ TEST_F(CharacterPanelTest, UpFromSkillRowsReturnsToTheAdvancementBar) {
 // bottom.
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastSkill) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   bool fired = false;
   ftxui::Component comp = panel.MakeComponent(
       [](StatField) {}, [&fired](const Skill&) { fired = true; });
@@ -1275,7 +1276,7 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastSkill) {
 
 TEST_F(CharacterPanelTest, DownFromTheLastSkillReturnsToTheBar) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
@@ -1294,7 +1295,8 @@ TEST_F(CharacterPanelTest, DownFromTheLastSkillReturnsToTheBar) {
 TEST_F(CharacterPanelTest, DownFromTheAdvBarSkipsAnEmptySkillList) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
   c.AdvanceJob(JOB_SWORDMAN);
-  CharacterPanel panel(c, panel_focus_);  // no catalog: no skills at all
+  CharacterPanel panel(c, account_,
+                       panel_focus_);  // no catalog: no skills at all
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
@@ -1309,7 +1311,7 @@ TEST_F(CharacterPanelTest, DownFromTheAdvBarSkipsAnEmptySkillList) {
 // spending SP down a list does not have to re-cross to the [+] on every row.
 TEST_F(CharacterPanelTest, WalkingBetweenSkillRowsKeepsTheColumn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel panel(c, panel_focus_, TwoSkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, TwoSkillCatalog());
   bool learned = false;
   ftxui::Component comp = panel.MakeComponent(
       [](StatField) {}, [&learned](const Skill&) { learned = true; });
@@ -1324,7 +1326,7 @@ TEST_F(CharacterPanelTest, WalkingBetweenSkillRowsKeepsTheColumn) {
 
 TEST_F(CharacterPanelTest, SpendingTheLastSpLeavesTheCursorOnTheRows) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/1);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   bool fired = false;
   ftxui::Component comp = panel.MakeComponent(
       [](StatField) {}, [&](const Skill&) { fired = true; });
@@ -1346,7 +1348,7 @@ TEST_F(CharacterPanelTest, ShowsEquipAttackFromEquippedItem) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0);
   c.PickUp(std::make_unique<EquipInstance>(sword_));
   c.Equip(0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   EXPECT_EQ(StatValue(panel.Render(), "Attack"), "10");
 }
 
@@ -1354,7 +1356,7 @@ TEST_F(CharacterPanelTest, ShowsStrWithBreakdownWhenGearContributes) {
   sword_.mutable_base_stats()->set_str(5);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterPanel panel(c_, account_, panel_focus_);
   // base AP STR is 0 for the test character; gear adds 5; total = 5.
   EXPECT_NE(RenderElement(panel.Render()).find("STR: 5 (0+5)"),
             std::string::npos);
@@ -1402,7 +1404,7 @@ std::vector<std::string> ExtrasShown(ftxui::Element element) {
 
 TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
   CharacterInstance c = MakeSpearman(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   // 14 rows of chrome and stats above, then four rows for the extras: three
   // stats and the row that leads to the rest of them.
   panel.SetMaxRows(18);
@@ -1413,7 +1415,7 @@ TEST_F(CharacterPanelTest, ARowBudgetDropsTheLeastImportantStatsFirst) {
 
 TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
   CharacterInstance c = MakeSpearman(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   // Room for nothing but the way out, and then for less than that.
   panel.SetMaxRows(15);
   EXPECT_EQ(ExtrasShown(panel.Render()),
@@ -1425,7 +1427,7 @@ TEST_F(CharacterPanelTest, TheViewAllStatsRowIsTheLastToGo) {
 
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   CharacterInstance c = MakeSpearman(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()).size(), 12u);  // 11 stats and the row
 }
 
@@ -1433,7 +1435,7 @@ TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
 
 TEST_F(CharacterPanelTest, TheNameRowStartsOnTheInvitation) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   EXPECT_TRUE(OnScreen(comp, kDefaultUsername));
   EXPECT_TRUE(IsDim(comp, kDefaultUsername))
@@ -1442,7 +1444,7 @@ TEST_F(CharacterPanelTest, TheNameRowStartsOnTheInvitation) {
 
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheName) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   EXPECT_FALSE(IsInverted(comp, kDefaultUsername));
   comp->OnEvent(ftxui::Event::ArrowUp);
@@ -1453,7 +1455,7 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheName) {
 // round to its first stop.
 TEST_F(CharacterPanelTest, DownOffTheBottomLandsOnTheName) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   // The tab bar, four AP stats and View All Stats, then round to the name.
   for (int i = 0; i < 6; ++i) {
@@ -1464,7 +1466,7 @@ TEST_F(CharacterPanelTest, DownOffTheBottomLandsOnTheName) {
 
 TEST_F(CharacterPanelTest, TypingANameAndPressingEnterKeepsIt) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowUp);  // onto the name
   comp->OnEvent(ftxui::Event::Return);   // open the field
@@ -1480,7 +1482,7 @@ TEST_F(CharacterPanelTest, TypingANameAndPressingEnterKeepsIt) {
 TEST_F(CharacterPanelTest, EscapeLeavesTheOldName) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   c.SetUsername("Logikable");
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowUp);
   comp->OnEvent(ftxui::Event::Return);
@@ -1493,7 +1495,7 @@ TEST_F(CharacterPanelTest, EscapeLeavesTheOldName) {
 TEST_F(CharacterPanelTest, EnterOnAnEmptyFieldLeavesTheOldName) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
   c.SetUsername("Logikable");
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowUp);
   comp->OnEvent(ftxui::Event::Return);  // open
@@ -1505,7 +1507,7 @@ TEST_F(CharacterPanelTest, EnterOnAnEmptyFieldLeavesTheOldName) {
 TEST_F(CharacterPanelTest, AnArrowOutOfTheFieldLeavesTheNameAndMoves) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   c.SetUsername("Logikable");
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   StatField field = STAT_FIELD_UNSPECIFIED;
   ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
   comp->OnEvent(ftxui::Event::ArrowUp);
@@ -1523,7 +1525,7 @@ TEST_F(CharacterPanelTest, AnArrowOutOfTheFieldLeavesTheNameAndMoves) {
 // be eaten by a field the player never opened.
 TEST_F(CharacterPanelTest, TheNameTakesKeysOnlyWhileTheFieldIsOpen) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowUp);  // onto the name
   comp->OnEvent(ftxui::Event::Character('x'));
@@ -1536,7 +1538,7 @@ TEST_F(CharacterPanelTest, TheNameTakesKeysOnlyWhileTheFieldIsOpen) {
 // the bar land on LUK instead, and Enter there spends the point.
 TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   EXPECT_TRUE(ExtrasShown(panel.Render()).empty());
 
   StatField field = STAT_FIELD_UNSPECIFIED;
@@ -1555,14 +1557,14 @@ TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
 // three that pay out on nothing the player has met before then.
 TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
   CharacterInstance first = MakeWarrior(rng_, /*sp=*/0);
-  CharacterPanel panel(first, panel_focus_);
+  CharacterPanel panel(first, account_, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"Attack", "Magic Attack", "Attack Speed",
                                       "Elemental Resist", "Status Resist",
                                       "Defense", "View All Stats"}));
 
   CharacterInstance second = MakeSpearman(rng_);
-  CharacterPanel later(second, panel_focus_);
+  CharacterPanel later(second, account_, panel_focus_);
   std::vector<std::string> shown = ExtrasShown(later.Render());
   EXPECT_NE(std::find(shown.begin(), shown.end(), "Critical Rate"),
             shown.end());
@@ -1574,7 +1576,7 @@ TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
   third_proto.set_job(JOB_BERSERKER);
   third_proto.set_job_stage(3);
   CharacterInstance third(rng_, std::move(third_proto));
-  CharacterPanel last(third, panel_focus_);
+  CharacterPanel last(third, account_, panel_focus_);
   std::vector<std::string> late = ExtrasShown(last.Render());
   for (const char* label : {"Boss Damage", "Ignore DEF", "Additional EXP"}) {
     EXPECT_NE(std::find(late.begin(), late.end(), label), late.end()) << label;
@@ -1590,7 +1592,7 @@ TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {
   CharacterInstance c = MakeSpearman(rng_);
   ASSERT_TRUE(c.LearnSkill(levers, 1));
 
-  CharacterPanel panel(c, panel_focus_, catalog);
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   EXPECT_EQ(StatValue(panel.Render(), "Damage"), "7.50%");
   EXPECT_EQ(StatValue(panel.Render(), "Final Damage"), "5.00%");
   // The base 5% and 35% every character carries, with the skill's on top.
@@ -1602,7 +1604,7 @@ TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {
 // with read what they are born with.
 TEST_F(CharacterPanelTest, TheLeversReadZeroButCritReadsItsBase) {
   CharacterInstance c = MakeSpearman(rng_);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   EXPECT_EQ(StatValue(panel.Render(), "Damage"), "0.00%");
   EXPECT_EQ(StatValue(panel.Render(), "Final Damage"), "0.00%");
   EXPECT_EQ(StatValue(panel.Render(), "Critical Rate"), "5.00%");
@@ -1617,7 +1619,7 @@ TEST_F(CharacterPanelTest, AttackSpeedNamesTheStageTheWeaponIsSwungAt) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/1);
   ASSERT_TRUE(c.LearnSkill(levers, 1));
 
-  CharacterPanel panel(c, panel_focus_, catalog);
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   EXPECT_EQ(StatValue(panel.Render(), "Attack Speed"), "-");
 
   c.PickUp(std::make_unique<EquipInstance>(sword_));
@@ -1635,7 +1637,7 @@ TEST_F(CharacterPanelTest, AttackSpeedStopsAtTheFastestStage) {
   c.PickUp(std::make_unique<EquipInstance>(sword_));
   c.Equip(0);
 
-  CharacterPanel panel(c, panel_focus_, catalog);
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   EXPECT_EQ(StatValue(panel.Render(), "Attack Speed"), "Fastest 3");
 }
 
@@ -1659,7 +1661,7 @@ TEST_F(CharacterPanelTest, StressTestStatRowWidth) {
   gear.mutable_base_stats()->set_luk(998699);
   c.PickUp(std::make_unique<EquipInstance>(gear));
   c.Equip(0);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   std::string rendered = RenderElement(panel.Render());
   EXPECT_NE(rendered.find("STR: 999 (4+995)"), std::string::npos);
   EXPECT_NE(rendered.find("DEX: 9999 (4+9995)"), std::string::npos);
@@ -1673,7 +1675,7 @@ TEST_F(CharacterPanelTest, StressTestStatRowWidth) {
 // what says where to look for it. This panel is where the AP a level paid out
 // is spent, so it is the one lit on every level-up.
 TEST_F(CharacterPanelTest, LightsItsBorderGoldWhenHighlighted) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterPanel panel(c_, account_, panel_focus_);
   ASSERT_EQ(BorderColor(panel.Render()), kTheme);
   panel.SetHighlighted(true);
   EXPECT_EQ(BorderColor(panel.Render()), kYellow);
@@ -1682,7 +1684,7 @@ TEST_F(CharacterPanelTest, LightsItsBorderGoldWhenHighlighted) {
 // The panel keeps no clock: whoever lit it is the one that puts it out, and
 // the border has to actually go back.
 TEST_F(CharacterPanelTest, ClearingTheHighlightRestoresTheTheme) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterPanel panel(c_, account_, panel_focus_);
   panel.SetHighlighted(true);
   panel.SetHighlighted(false);
   EXPECT_EQ(BorderColor(panel.Render()), kTheme);
@@ -1692,7 +1694,7 @@ TEST_F(CharacterPanelTest, ClearingTheHighlightRestoresTheTheme) {
 // title, under the tab bar, and between the allocated stats and the derived
 // ones. A gold box around steel-blue seams is not a lit panel.
 TEST_F(CharacterPanelTest, LightsItsInnerRulesGoldToo) {
-  CharacterPanel panel(c_, panel_focus_);
+  CharacterPanel panel(c_, account_, panel_focus_);
   ASSERT_EQ(InnerRuleColor(panel.Render()), kTheme);
   panel.SetHighlighted(true);
   EXPECT_EQ(InnerRuleColor(panel.Render()), kYellow);
@@ -1713,7 +1715,7 @@ TEST_F(CharacterPanelTest, LightsItsInnerRulesGoldToo) {
 TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsTabUngilded) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
   ASSERT_TRUE(c.CanAdvanceJob());
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([](StatField) {});
   panel_focus_ = kCharPanel;
   component->OnEvent(ftxui::Event::ArrowRight);  // onto Advance
@@ -1738,21 +1740,21 @@ TEST_F(CharacterPanelTest, AdvancingLeavesTheSkillsTabUngilded) {
 TEST_F(CharacterPanelTest, ANewAdvanceTabIsWrittenInGold) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
   ASSERT_TRUE(c.CanAdvanceJob()) << "the tab has to be on the bar at all";
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   panel_focus_ = kInventoryPanel;
   EXPECT_EQ(LabelColor(panel.Render(), "Advance"), kYellow);
 }
 
 TEST_F(CharacterPanelTest, OpeningTheAdvanceTabClearsItsGold) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([](StatField) {});
   panel_focus_ = kCharPanel;
   component->OnEvent(ftxui::Event::ArrowRight);
 
   panel_focus_ = kInventoryPanel;
   EXPECT_EQ(LabelColor(panel.Render(), "Advance"), kTheme);
-  EXPECT_TRUE(c.TabSeen(AdvanceTabKey(1)))
+  EXPECT_TRUE(account_.Seen(AdvanceTabKey(1)))
       << "recorded against the stage being advanced into, so the next "
          "advancement is news again";
 }
@@ -1763,17 +1765,17 @@ TEST_F(CharacterPanelTest, OpeningTheAdvanceTabClearsItsGold) {
 // Equip tab is the one it actually catches.
 TEST_F(CharacterPanelTest, MarkingTheActiveTabReadsIt) {
   CharacterInstance c = MakeCharacter(/*level=*/10);
-  CharacterPanel panel(c, panel_focus_);
+  CharacterPanel panel(c, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([](StatField) {});
   panel_focus_ = kCharPanel;
   component->OnEvent(ftxui::Event::ArrowRight);
-  ASSERT_TRUE(c.TabSeen(AdvanceTabKey(1)));
+  ASSERT_TRUE(account_.Seen(AdvanceTabKey(1)));
 
   // Stats has nothing to announce, so marking it records nothing rather than
-  // recording the empty key -- which TabSeen would then answer yes to.
+  // recording the empty key -- which Seen would then answer yes to.
   component->OnEvent(ftxui::Event::ArrowLeft);
   panel.MarkActiveTabSeen();
-  EXPECT_FALSE(c.TabSeen(""));
+  EXPECT_FALSE(account_.Seen(""));
 }
 
 // --- skills waiting on another skill ---
@@ -1800,7 +1802,7 @@ std::map<std::string, Skill> GatedCatalog() {
 // the points.
 TEST_F(CharacterPanelTest, ASkillWaitingOnAnotherDimsItsWholeRow) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/20);
-  CharacterPanel panel(c, panel_focus_, GatedCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, GatedCatalog());
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, [](const Skill&) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
@@ -1816,7 +1818,7 @@ TEST_F(CharacterPanelTest, MeetingTheRequirementUndimsTheRow) {
   (*proto.mutable_sp_by_stage())[1] = 20;
   (*proto.mutable_skill_levels())["Slash Blast"] = 3;
   CharacterInstance c(rng_, std::move(proto));
-  CharacterPanel panel(c, panel_focus_, GatedCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, GatedCatalog());
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, [](const Skill&) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills
@@ -1827,7 +1829,7 @@ TEST_F(CharacterPanelTest, MeetingTheRequirementUndimsTheRow) {
 // An ordinary skill with SP behind it must not be dimmed by the check.
 TEST_F(CharacterPanelTest, ASkillDemandingNothingIsNotDimmed) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/20);
-  CharacterPanel panel(c, panel_focus_, SkillCatalog());
+  CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, [](const Skill&) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Skills

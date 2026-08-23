@@ -12,6 +12,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -149,6 +150,9 @@ class PanelTest : public testing::Test {
 
   std::mt19937 rng_{0};
   CharacterInstance c_ = MakeCharacter();
+  // The account every panel under test shares. Empty, so the unlocks a test
+  // asks about are the character's own climb.
+  AccountInstance account_;
   EquipPrototype sword_;
   int panel_focus_ = 0;
 };

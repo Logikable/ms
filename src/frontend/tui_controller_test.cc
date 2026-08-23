@@ -180,11 +180,11 @@ class TuiControllerTest : public testing::Test {
   // Every panel the controller drives, and the controller over them.
   void MakePanels() {
     char_panel_ = std::make_unique<CharacterPanel>(
-        state_->character, panel_focus_, state_->skills);
-    equip_panel_ =
-        std::make_unique<EquippedPanel>(state_->character, panel_focus_);
-    inventory_panel_ =
-        std::make_unique<InventoryPanel>(state_->character, panel_focus_);
+        state_->character, state_->account, panel_focus_, state_->skills);
+    equip_panel_ = std::make_unique<EquippedPanel>(
+        state_->character, state_->account, panel_focus_);
+    inventory_panel_ = std::make_unique<InventoryPanel>(
+        state_->character, state_->account, panel_focus_);
     scroll_panel_ =
         std::make_unique<ScrollPanel>(state_->character, state_->scrolls);
     star_force_panel_ = std::make_unique<StarForcePanel>();
@@ -201,7 +201,7 @@ class TuiControllerTest : public testing::Test {
     buy_panel_ = std::make_unique<BuyPanel>();
     job_inspect_panel_ = std::make_unique<JobInspectPanel>(state_->skills);
     menu_panel_ = std::make_unique<MenuPanel>(*state_, panel_focus_);
-    keys_ = std::make_unique<KeyMap>(&state_->keybinds);
+    keys_ = std::make_unique<KeyMap>(state_->account.mutable_keybinds());
     keybinds_panel_ = std::make_unique<KeybindsPanel>(*keys_);
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
@@ -536,11 +536,11 @@ TEST_F(TuiControllerTest, ShiftTabWalksTheRingBackwards) {
 // could only be cleared by arrowing away from the tab and back onto it.
 TEST_F(TuiControllerTest, ArrivingOnAPanelReadsTheTabLeftOpenOnIt) {
   int stage = state_->character.proto().job_stage();
-  ASSERT_FALSE(state_->character.TabSeen(EquipGiftTabKey(stage)));
+  ASSERT_FALSE(state_->account.Seen(EquipGiftTabKey(stage)));
 
   controller_->OnEvent(ftxui::Event::Tab);
   ASSERT_EQ(panel_focus_, kInventoryPanel);
-  EXPECT_TRUE(state_->character.TabSeen(EquipGiftTabKey(stage)));
+  EXPECT_TRUE(state_->account.Seen(EquipGiftTabKey(stage)));
 }
 
 // Which is what it is for: undoing a Tab that went one panel too far.
@@ -2253,9 +2253,10 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   GameState fresh({}, {}, {}, {}, {});
   ASSERT_EQ(fresh.character.proto().level(), 1);
 
-  CharacterPanel chars(fresh.character, panel_focus_, fresh.skills);
-  EquippedPanel equip(fresh.character, panel_focus_);
-  InventoryPanel bag(fresh.character, panel_focus_);
+  CharacterPanel chars(fresh.character, fresh.account, panel_focus_,
+                       fresh.skills);
+  EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
+  InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
   ScrollPanel scroll(fresh.character, {});
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
@@ -2271,7 +2272,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
   MenuPanel menu(fresh, focus);
-  KeyMap keys(&fresh.keybinds);
+  KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
                            sell_equip, multi_sell, maps, mobs, bosses, shop,
@@ -2305,9 +2306,10 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
 // cannot leave the player pressing Tab at a panel that is not on screen.
 TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   GameState fresh({}, {}, {}, {}, {});
-  CharacterPanel chars(fresh.character, panel_focus_, fresh.skills);
-  EquippedPanel equip(fresh.character, panel_focus_);
-  InventoryPanel bag(fresh.character, panel_focus_);
+  CharacterPanel chars(fresh.character, fresh.account, panel_focus_,
+                       fresh.skills);
+  EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
+  InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
   ScrollPanel scroll(fresh.character, {});
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
@@ -2323,7 +2325,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
   MenuPanel menu(fresh, focus);
-  KeyMap keys(&fresh.keybinds);
+  KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
                            sell_equip, multi_sell, maps, mobs, bosses, shop,
@@ -2340,9 +2342,10 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
 // the modulo negative.
 TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   GameState fresh({}, {}, {}, {}, {});
-  CharacterPanel chars(fresh.character, panel_focus_, fresh.skills);
-  EquippedPanel equip(fresh.character, panel_focus_);
-  InventoryPanel bag(fresh.character, panel_focus_);
+  CharacterPanel chars(fresh.character, fresh.account, panel_focus_,
+                       fresh.skills);
+  EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
+  InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
   ScrollPanel scroll(fresh.character, {});
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
@@ -2358,7 +2361,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   SkillInspectPanel skill_card;
   int focus = kCharPanel;
   MenuPanel menu(fresh, focus);
-  KeyMap keys(&fresh.keybinds);
+  KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
                            sell_equip, multi_sell, maps, mobs, bosses, shop,
@@ -2375,9 +2378,10 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
 // on a panel the player cannot see.
 TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   GameState fresh({}, {}, {}, {}, {});
-  CharacterPanel chars(fresh.character, panel_focus_, fresh.skills);
-  EquippedPanel equip(fresh.character, panel_focus_);
-  InventoryPanel bag(fresh.character, panel_focus_);
+  CharacterPanel chars(fresh.character, fresh.account, panel_focus_,
+                       fresh.skills);
+  EquippedPanel equip(fresh.character, fresh.account, panel_focus_);
+  InventoryPanel bag(fresh.character, fresh.account, panel_focus_);
   ScrollPanel scroll(fresh.character, {});
   StarForcePanel star;
   TraceRecoverPanel trace(fresh.character);
@@ -2393,7 +2397,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   SkillInspectPanel skill_card;
   int focus = kEquipPanel;  // where the game starts
   MenuPanel menu(fresh, focus);
-  KeyMap keys(&fresh.keybinds);
+  KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
                            sell_equip, multi_sell, maps, mobs, bosses, shop,
@@ -2523,10 +2527,10 @@ TEST_F(TuiControllerTest, EscapeLeavesTheScreenNotTheGame) {
 // --- the boss screen ---
 
 TEST_F(TuiControllerTest, TheBossEntryOpensTheBossScreenAndClearsItsGold) {
-  ASSERT_FALSE(state_->character.TabSeen(MenuPanel::boss_seen_key()));
+  ASSERT_FALSE(state_->account.Seen(MenuPanel::boss_seen_key()));
   controller_->OpenMenuEntry(MenuEntry::kBoss);
   EXPECT_EQ(controller_->screen(), kBossSelect);
-  EXPECT_TRUE(state_->character.TabSeen(MenuPanel::boss_seen_key()));
+  EXPECT_TRUE(state_->account.Seen(MenuPanel::boss_seen_key()));
 }
 
 // --- settings and keybinds ---

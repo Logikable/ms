@@ -22,6 +22,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/text_field.h"
@@ -39,8 +40,8 @@ class CharacterPanel {
   // `skills` is the loaded skill catalog (keyed by file stem); the Skills tab
   // lists the entries whose stage matches the selected advancement tab. It is
   // copied because the catalog is fixed after load.
-  explicit CharacterPanel(CharacterInstance& character, int& panel_focus,
-                          std::map<std::string, Skill> skills = {});
+  CharacterPanel(CharacterInstance& character, AccountInstance& account,
+                 int& panel_focus, std::map<std::string, Skill> skills = {});
   ftxui::Element Render() const;
 
   // The rows the panel may take, borders included. Anything past this and the
@@ -238,9 +239,10 @@ class CharacterPanel {
   ftxui::Element AllocRow(const std::string& label, int base, int bonus,
                           int index, bool content_focused) const;
 
-  // Not const: opening a tab is recorded on the character, so the panel
-  // writes as well as reads.
   CharacterInstance& character_;
+  // Not const: opening a tab is recorded on the account, so the panel writes
+  // as well as reads.
+  AccountInstance& account_;
   std::map<std::string, Skill> skills_;
   int& panel_focus_;
   int active_tab_ = 0;     // index into VisibleTabs(): the selected tab

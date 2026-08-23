@@ -15,6 +15,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/screen/box.hpp"
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
@@ -26,7 +27,8 @@ namespace ms {
 
 class EquippedPanel {
  public:
-  EquippedPanel(CharacterInstance& character, int& panel_focus);
+  EquippedPanel(CharacterInstance& character, AccountInstance& account,
+                int& panel_focus);
   ftxui::Component MakeComponent(std::function<void()> on_enter);
   void OpenMenu();
   // Handles Up/Down/Escape/Return for the item context menu and executes the
@@ -71,6 +73,8 @@ class EquippedPanel {
   ftxui::Element RenderContent(ftxui::Component menu);
 
   CharacterInstance& character_;
+  // Not const: walking a gold trail is recorded on the account.
+  AccountInstance& account_;
   int& panel_focus_;
   int selected_ = 0;
   // When the selection last moved, for sliding a long name under its column.

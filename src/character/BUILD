@@ -65,6 +65,7 @@ cc_library(
     deps = [
         ":character",
         ":exp_table",
+        "//src:account",
         "//src/protos:character_proto_cc",
         "@abseil-cpp//absl/log",
     ],
@@ -77,6 +78,7 @@ cc_test(
         ":character",
         ":exp_table",
         ":progression",
+        "//src:account",
         "//src/protos:character_proto_cc",
         "@googletest//:gtest_main",
     ],

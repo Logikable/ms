@@ -35,8 +35,10 @@ constexpr char kColumnHeader2[] =
 
 }  // namespace
 
-EquippedPanel::EquippedPanel(CharacterInstance& character, int& panel_focus)
+EquippedPanel::EquippedPanel(CharacterInstance& character,
+                             AccountInstance& account, int& panel_focus)
     : character_(character),
+      account_(account),
       panel_focus_(panel_focus),
       menu_({"Unequip", "Inspect", "Scroll", "Star Force", "Close"}) {
 }
@@ -45,7 +47,7 @@ void EquippedPanel::OpenMenu() {
   // Opening the menu on the worn weapon is the trail's first step walked: the
   // player looked, and what they were being sent to look at is on screen.
   if (selected_slot() == EQUIP_SLOT_PRIMARY_WEAPON) {
-    FollowedToWeapon(character_);
+    FollowedToWeapon(character_, account_);
   }
   menu_.Reset();
   // Entries the player has not reached yet are not drawn at all, ahead of any
@@ -81,10 +83,10 @@ void EquippedPanel::OpenMenu() {
   // Gold on an upgrade the player has been handed but never used, which is
   // where the trail from the level-up card ends. Last, so it lands on the
   // entries as they finally stand.
-  if (LeadToAction(Feature::kScrolling, character_)) {
+  if (LeadToAction(Feature::kScrolling, character_, account_)) {
     menu_.Highlight(kMenuScroll);
   }
-  if (LeadToAction(Feature::kStarForce, character_)) {
+  if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kMenuStarForce);
   }
 }
@@ -113,14 +115,14 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
     if (menu_.selected() == kMenuScroll) {
       // Followed whether or not there is a scroll to show: they pressed the
       // entry, which is what the gold was asking them to do.
-      FollowedToAction(Feature::kScrolling, character_);
+      FollowedToAction(Feature::kScrolling, account_);
       if (scroll_panel.SetFilterForPrototype(
               character_.equipped().at(selected_slot()).prototype())) {
         return kScrollSelect;
       }
     }
     if (menu_.selected() == kMenuStarForce) {
-      FollowedToAction(Feature::kStarForce, character_);
+      FollowedToAction(Feature::kStarForce, account_);
       return kStarForce;
     }
     return kMain;
@@ -212,7 +214,7 @@ void EquippedPanel::RebuildRows() {
   led_.clear();
   // Asked once for the whole list rather than per row: it is a fact about the
   // character, and only the worn weapon's row acts on it.
-  bool lead = LeadToWeapon(character_);
+  bool lead = LeadToWeapon(character_, account_);
   for (const std::pair<const EquipSlot, EquipInstance>& kv :
        character_.equipped()) {
     const EquipInstance& item = kv.second;

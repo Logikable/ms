@@ -21,9 +21,10 @@
 
 namespace ms {
 
-// The format this build writes, and the newest it can read. See
-// SaveGame.format_version.
-constexpr int kSaveFormatVersion = 1;
+// The format this build writes, and the newest it can read. An older one is
+// read by upgrading it -- see save_migration.h. See SaveGame.format_version
+// for what each version holds.
+constexpr int kSaveFormatVersion = 2;
 
 // Where the save file lives: alongside the running executable. `argv0` is the
 // program path as the OS gave it. Falls back to the working directory when
@@ -35,8 +36,9 @@ std::string SavePathFor(const std::string& argv0);
 enum class LoadStatus {
   kLoaded,
   kMissing,
-  // The file is there but is not a save, or is truncated -- a write from a
-  // build that died before rename, a wrong file with the right name, an edit.
+  // The file is there but is not a save, is truncated, or carries no
+  // character -- a write from a build that died before rename, a wrong file
+  // with the right name, an edit.
   kUnreadable,
   // Written by a newer build than this one. Refused rather than read, since
   // the fields it uses may not mean here what they meant there.
@@ -55,7 +57,9 @@ struct LoadResult {
 bool SaveGameToFile(const GameState& state, const std::string& path);
 
 // Reads `path` into `state`, resolving items against the catalogs it already
-// holds. Leaves `state` alone unless the status is kLoaded.
+// holds. The character in the save's active slot becomes the one being
+// played; the rest ride along untouched so that the next write keeps them.
+// Leaves `state` alone unless the status is kLoaded.
 LoadResult LoadGameFromFile(GameState& state, const std::string& path);
 
 // How long a session goes between automatic saves. Short enough that closing

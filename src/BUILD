@@ -76,11 +76,45 @@ cc_test(
 )
 
 cc_library(
+    name = "account",
+    srcs = ["account.cc"],
+    hdrs = ["account.h"],
+    deps = [
+        "//src/protos:account_proto_cc",
+        "//src/protos:keybinds_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "account_test",
+    srcs = ["account_test.cc"],
+    deps = [
+        ":account",
+        "//src/protos:account_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "save_migration",
+    srcs = ["save_migration.cc"],
+    hdrs = ["save_migration.h"],
+    deps = [
+        "//src/protos:account_proto_cc",
+        "//src/protos:character_proto_cc",
+        "//src/protos:save_proto_cc",
+        "@protobuf",
+    ],
+)
+
+cc_library(
     name = "save",
     srcs = ["save.cc"],
     hdrs = ["save.h"],
     deps = [
+        ":account",
         ":game_state",
+        ":save_migration",
         "//src/protos:save_proto_cc",
         "@abseil-cpp//absl/log",
     ],
@@ -108,6 +142,7 @@ cc_library(
     srcs = ["game_state.cc"],
     hdrs = ["game_state.h"],
     deps = [
+        ":account",
         "//src/character",
         "//src/character:exp_table",
         "//src/item",
@@ -117,9 +152,9 @@ cc_library(
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
-        "//src/protos:keybinds_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
+        "//src/protos:save_proto_cc",
         "//src/protos:scroll_proto_cc",
         "//src/protos:skill_proto_cc",
     ],

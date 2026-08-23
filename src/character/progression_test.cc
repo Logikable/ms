@@ -4,6 +4,7 @@
 
 #include <random>
 
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/protos/character.pb.h"
@@ -29,6 +30,7 @@ class ProgressionTest : public testing::Test {
   }
 
   std::mt19937 rng_{0};
+  AccountInstance account_;
 };
 
 // --- Unlocked ---
@@ -141,26 +143,26 @@ TEST_F(ProgressionTest, EveryFeatureHasAName) {
 
 TEST_F(ProgressionTest, NothingIsLedBeforeTheUpgradeOpens) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling) - 1);
-  EXPECT_FALSE(LeadToWeapon(c));
-  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c));
+  EXPECT_FALSE(LeadToWeapon(c, account_));
+  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c, account_));
 }
 
 TEST_F(ProgressionTest, TheUpgradeThatOpensLightsBothSignposts) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
-  EXPECT_TRUE(LeadToWeapon(c));
-  EXPECT_TRUE(LeadToAction(Feature::kScrolling, c));
+  EXPECT_TRUE(LeadToWeapon(c, account_));
+  EXPECT_TRUE(LeadToAction(Feature::kScrolling, c, account_));
 }
 
 // Two steps, and each is walked past on its own: opening the menu answers the
 // weapon's gold, and only pressing the entry answers the entry's.
 TEST_F(ProgressionTest, EachStepGoesOutOnItsOwn) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
-  FollowedToWeapon(c);
-  EXPECT_FALSE(LeadToWeapon(c));
-  EXPECT_TRUE(LeadToAction(Feature::kScrolling, c));
+  FollowedToWeapon(c, account_);
+  EXPECT_FALSE(LeadToWeapon(c, account_));
+  EXPECT_TRUE(LeadToAction(Feature::kScrolling, c, account_));
 
-  FollowedToAction(Feature::kScrolling, c);
-  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c));
+  FollowedToAction(Feature::kScrolling, account_);
+  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c, account_));
 }
 
 // The whole reason each upgrade keeps its own keys: a player led to scrolling
@@ -170,16 +172,17 @@ TEST_F(ProgressionTest, EachStepGoesOutOnItsOwn) {
 // that matters.
 TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kScrolling));
-  FollowedToWeapon(c);
-  FollowedToAction(Feature::kScrolling, c);
-  ASSERT_FALSE(LeadToWeapon(c));
+  FollowedToWeapon(c, account_);
+  FollowedToAction(Feature::kScrolling, account_);
+  ASSERT_FALSE(LeadToWeapon(c, account_));
 
   while (c.proto().level() < UnlockLevel(Feature::kStarForce)) {
     c.LevelUp();
   }
-  EXPECT_TRUE(LeadToAction(Feature::kStarForce, c));
-  EXPECT_FALSE(LeadToWeapon(c)) << "star force lit the weapon as well";
-  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c))
+  EXPECT_TRUE(LeadToAction(Feature::kStarForce, c, account_));
+  EXPECT_FALSE(LeadToWeapon(c, account_))
+      << "star force lit the weapon as well";
+  EXPECT_FALSE(LeadToAction(Feature::kScrolling, c, account_))
       << "the one already followed stays followed";
 }
 
@@ -188,10 +191,10 @@ TEST_F(ProgressionTest, TheNextUpgradeLightsTheTrailAgain) {
 // star force adds nothing to it either way.
 TEST_F(ProgressionTest, AnUnwalkedFirstStepOutlastsTheNextUpgrade) {
   CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kStarForce));
-  EXPECT_TRUE(LeadToWeapon(c));
-  FollowedToWeapon(c);
-  EXPECT_FALSE(LeadToWeapon(c));
-  EXPECT_TRUE(LeadToAction(Feature::kStarForce, c))
+  EXPECT_TRUE(LeadToWeapon(c, account_));
+  FollowedToWeapon(c, account_);
+  EXPECT_FALSE(LeadToWeapon(c, account_));
+  EXPECT_TRUE(LeadToAction(Feature::kStarForce, c, account_))
       << "opening the menu is not pressing the entry";
 }
 
@@ -199,8 +202,8 @@ TEST_F(ProgressionTest, AnUnwalkedFirstStepOutlastsTheNextUpgrade) {
 // not being led to.
 TEST_F(ProgressionTest, AFeatureWithoutATrailIsNeverGold) {
   CharacterInstance c = MakeCharacter(kTrialLevelCap);
-  EXPECT_FALSE(LeadToAction(Feature::kShop, c));
-  EXPECT_FALSE(LeadToAction(Feature::kBag, c));
+  EXPECT_FALSE(LeadToAction(Feature::kShop, c, account_));
+  EXPECT_FALSE(LeadToAction(Feature::kBag, c, account_));
 }
 
 // Taking something off needs somewhere to put it, so the two move together.

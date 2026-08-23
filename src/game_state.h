@@ -12,15 +12,17 @@
 #include <optional>
 #include <random>
 #include <string>
+#include <vector>
 
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
-#include "src/protos/keybinds.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
+#include "src/protos/save.pb.h"
 #include "src/protos/scroll.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -116,7 +118,20 @@ struct GameState {
   // depends on them, and a boss is not somewhere a new character stands.
   std::map<std::string, Boss> bosses;
   std::mt19937 rng;
+
+  // The character being played. The others on the account are inert until a
+  // character select exists to swap one in.
   CharacterInstance character;
+
+  // What every character on the account shares: bindings, unlocks, and what
+  // the player has been shown. See //src/account.h.
+  AccountInstance account;
+
+  // Which slot of the save the played character came from, and the characters
+  // in the other slots. Held so that saving keeps them: nothing in a session
+  // reads a character that is not being played.
+  int active_character = 0;
+  std::vector<CharacterSave> inactive_characters;
 
   // What every EXP award from combat is multiplied by. kTest gets a standing
   // bonus so the workbench can climb the level ladder in a sitting rather than
@@ -138,14 +153,11 @@ struct GameState {
   // measured from -- see //src/combat:offline.
   int64_t last_seen_unix_seconds = 0;
 
-  // Total seconds with the game open, across every session. Accumulated by the
-  // frontend's tick from a monotonic clock, so changing the system time or
-  // crossing a daylight-saving boundary neither grants nor takes playtime.
+  // Total seconds with this character in play, across every session.
+  // Accumulated by the frontend's tick from a monotonic clock, so changing the
+  // system time or crossing a daylight-saving boundary neither grants nor takes
+  // playtime.
   double playtime_seconds = 0.0;
-
-  // What the player has bound their keys to. Held as the proto the save
-  // carries; the frontend's KeyMap reads and writes it.
-  Keybinds keybinds;
 };
 
 }  // namespace ms

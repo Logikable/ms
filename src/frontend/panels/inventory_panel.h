@@ -22,6 +22,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/screen/box.hpp"
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
@@ -35,7 +36,8 @@ namespace ms {
 
 class InventoryPanel {
  public:
-  InventoryPanel(CharacterInstance& character, int& panel_focus);
+  InventoryPanel(CharacterInstance& character, AccountInstance& account,
+                 int& panel_focus);
   ftxui::Component MakeComponent(std::function<void()> on_enter);
   void OpenMenu();
   // Handles Up/Down/Escape/Return for the item context menu and executes the
@@ -137,6 +139,9 @@ class InventoryPanel {
   void StepTab(int direction);
 
   CharacterInstance& character_;
+  // Not const: opening a tab and walking a gold trail are the account's to
+  // record, so the panel writes as well as reads.
+  AccountInstance& account_;
   int& panel_focus_;
   Zone zone_ = kZoneTabs;  // which focus zone holds the cursor
   // Written by ftxui::reflect on the highlighted row each render.

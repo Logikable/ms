@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "absl/log/log.h"
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/protos/character.pb.h"
@@ -191,38 +192,41 @@ std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level) {
   return opened;
 }
 
-bool LeadToWeapon(const CharacterInstance& character) {
+bool LeadToWeapon(const CharacterInstance& character,
+                  const AccountInstance& account) {
   for (const Led& led : kLedUpgrades) {
     if (led.from_weapon && Unlocked(led.feature, character) &&
-        !character.TabSeen(WeaponLeadKey(led.slug))) {
+        !account.Seen(WeaponLeadKey(led.slug))) {
       return true;
     }
   }
   return false;
 }
 
-void FollowedToWeapon(CharacterInstance& character) {
+void FollowedToWeapon(const CharacterInstance& character,
+                      AccountInstance& account) {
   for (const Led& led : kLedUpgrades) {
     if (led.from_weapon && Unlocked(led.feature, character)) {
-      character.MarkTabSeen(WeaponLeadKey(led.slug));
+      account.MarkSeen(WeaponLeadKey(led.slug));
     }
   }
 }
 
-bool LeadToAction(Feature feature, const CharacterInstance& character) {
+bool LeadToAction(Feature feature, const CharacterInstance& character,
+                  const AccountInstance& account) {
   for (const Led& led : kLedUpgrades) {
     if (led.feature == feature) {
       return Unlocked(feature, character) &&
-             !character.TabSeen(ActionLeadKey(led.slug));
+             !account.Seen(ActionLeadKey(led.slug));
     }
   }
   return false;
 }
 
-void FollowedToAction(Feature feature, CharacterInstance& character) {
+void FollowedToAction(Feature feature, AccountInstance& account) {
   for (const Led& led : kLedUpgrades) {
     if (led.feature == feature) {
-      character.MarkTabSeen(ActionLeadKey(led.slug));
+      account.MarkSeen(ActionLeadKey(led.slug));
     }
   }
 }

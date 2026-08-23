@@ -141,9 +141,11 @@ std::pair<int, int> AllocStatValues(StatField field, const AllocatedStats& a,
 
 }  // namespace
 
-CharacterPanel::CharacterPanel(CharacterInstance& character, int& panel_focus,
+CharacterPanel::CharacterPanel(CharacterInstance& character,
+                               AccountInstance& account, int& panel_focus,
                                std::map<std::string, Skill> skills)
     : character_(character),
+      account_(account),
       skills_(std::move(skills)),
       panel_focus_(panel_focus) {
 }
@@ -312,7 +314,7 @@ std::string CharacterPanel::TabKey(Tab tab) const {
 void CharacterPanel::MarkActiveTabSeen() {
   std::string key = TabKey(ActiveTab());
   if (!key.empty()) {
-    character_.MarkTabSeen(key);
+    account_.MarkSeen(key);
   }
 }
 
@@ -333,8 +335,7 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
     if (tabs[i] == ActiveTab()) {
       active = i;
     }
-    specs.push_back(
-        {kTabLabels[tabs[i]], !key.empty() && !character_.TabSeen(key)});
+    specs.push_back({kTabLabels[tabs[i]], !key.empty() && !account_.Seen(key)});
   }
   // The panel is only kContentWidth wide and the tabs are already most of it,
   // so this is the bar most likely to need the scroll.

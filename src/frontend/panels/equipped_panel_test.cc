@@ -71,7 +71,7 @@ class EquippedPanelTest : public PanelTest {
     character.Equip(0);
     EXPECT_EQ(character.equip_stats().attack(), 45) << ammo_name << " counted";
 
-    EquippedPanel panel(character, panel_focus_);
+    EquippedPanel panel(character, account_, panel_focus_);
     return RenderComponent(panel.MakeComponent([]() {}));
   }
 
@@ -92,7 +92,7 @@ std::string LineWith(const std::string& rendered, const std::string& needle) {
 }
 
 TEST_F(EquippedPanelTest, ShowsEmptyWhenNothingEquipped) {
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("(empty)"),
             std::string::npos);
 }
@@ -100,7 +100,7 @@ TEST_F(EquippedPanelTest, ShowsEmptyWhenNothingEquipped) {
 TEST_F(EquippedPanelTest, ShowsEquippedItemName) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Sword"),
             std::string::npos);
 }
@@ -128,7 +128,7 @@ TEST_F(EquippedPanelTest, ShowsMagicAttackForEveryMagician) {
     mage.PickUp(std::make_unique<EquipInstance>(staff));
     mage.Equip(0);
 
-    EquippedPanel panel(mage, panel_focus_);
+    EquippedPanel panel(mage, account_, panel_focus_);
     std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
     EXPECT_NE(rendered.find("+35 MATT"), std::string::npos) << Job_Name(job);
     EXPECT_EQ(rendered.find("+26 ATT"), std::string::npos) << Job_Name(job);
@@ -148,7 +148,7 @@ TEST_F(EquippedPanelTest, ShowsWeaponAttackForEveryoneElse) {
   warrior.PickUp(std::make_unique<EquipInstance>(staff));
   warrior.Equip(0);
 
-  EquippedPanel panel(warrior, panel_focus_);
+  EquippedPanel panel(warrior, account_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("+26 ATT"),
             std::string::npos);
 }
@@ -168,7 +168,7 @@ TEST_F(EquippedPanelTest, ShowsAttackAheadOfTheMainStat) {
   rogue.PickUp(std::make_unique<EquipInstance>(claw));
   rogue.Equip(0);
 
-  EquippedPanel panel(rogue, panel_focus_);
+  EquippedPanel panel(rogue, account_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_LT(rendered.find("+18 ATT"), rendered.find("+3 LUK"));
 }
@@ -189,7 +189,7 @@ TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
   CharacterInstance warrior(rng_, std::move(warrior_proto));
   warrior.PickUp(std::make_unique<EquipInstance>(hat));
   warrior.Equip(0);
-  EquippedPanel warrior_panel(warrior, panel_focus_);
+  EquippedPanel warrior_panel(warrior, account_, panel_focus_);
   std::string worn_by_warrior =
       RenderComponent(warrior_panel.MakeComponent([]() {}));
   EXPECT_NE(worn_by_warrior.find("+4 STR"), std::string::npos);
@@ -200,7 +200,7 @@ TEST_F(EquippedPanelTest, MainStatColumnFollowsTheWearersJob) {
   CharacterInstance archer(rng_, std::move(archer_proto));
   archer.PickUp(std::make_unique<EquipInstance>(hat));
   archer.Equip(0);
-  EquippedPanel archer_panel(archer, panel_focus_);
+  EquippedPanel archer_panel(archer, account_, panel_focus_);
   std::string worn_by_archer =
       RenderComponent(archer_panel.MakeComponent([]() {}));
   EXPECT_NE(worn_by_archer.find("+6 DEX"), std::string::npos);
@@ -224,7 +224,7 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   c_.PickUp(std::make_unique<EquipInstance>(stars));
   c_.Equip(0);
 
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   // The slot list is built during render, which is the order the app runs in:
   // the menu opens on a row the player is already looking at.
   RenderComponent(panel.MakeComponent([]() {}));
@@ -265,7 +265,7 @@ TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   panel_focus_ = kEquipPanel;
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("> Sword"),
             std::string::npos);
 }
@@ -283,7 +283,7 @@ TEST_F(EquippedPanelTest, TheScrollColumnReadsADashWithoutSlots) {
   c_.Equip(0);
   c_.Equip(0);
 
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(LineWith(rendered, "Sword").find("0/7/0"), std::string::npos);
   EXPECT_EQ(LineWith(rendered, "Subi").find("/"), std::string::npos);
@@ -292,7 +292,7 @@ TEST_F(EquippedPanelTest, TheScrollColumnReadsADashWithoutSlots) {
 TEST_F(EquippedPanelTest, ShowsColumnHeader) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Name"), std::string::npos);
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
@@ -302,7 +302,7 @@ TEST_F(EquippedPanelTest, ShowsColumnHeader) {
 TEST_F(EquippedPanelTest, ShowsEquipSlotName) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   EXPECT_NE(RenderComponent(panel.MakeComponent([]() {})).find("Weapon"),
             std::string::npos);
 }
@@ -310,13 +310,13 @@ TEST_F(EquippedPanelTest, ShowsEquipSlotName) {
 TEST_F(EquippedPanelTest, SelectedSlotReturnsEquippedSlot) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_PRIMARY_WEAPON);
 }
 
 TEST_F(EquippedPanelTest, SelectedSlotReturnsUnspecifiedWhenEmpty) {
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   EXPECT_EQ(panel.selected_slot(), EQUIP_SLOT_UNSPECIFIED);
 }
 
@@ -345,7 +345,7 @@ class EquippedPanelRingTest : public EquippedPanelTest {
     c_.Equip(0);
     c_.PickUp(std::make_unique<EquipInstance>(MakeStars()));
     c_.Equip(0);
-    panel_ = std::make_unique<EquippedPanel>(c_, panel_focus_);
+    panel_ = std::make_unique<EquippedPanel>(c_, account_, panel_focus_);
     comp_ = panel_->MakeComponent([]() {});
     // Fills the entry list the menu walks and the wrap measures itself
     // against; nothing has drawn this panel yet.
@@ -387,7 +387,7 @@ TEST_F(EquippedPanelRingTest, WalksTheListNormallyInTheMiddle) {
 // soon as the list is empty. Nothing here reads a key today, but a panel that
 // silently stops being dispatched to is a trap for whatever does next.
 TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   ASSERT_TRUE(c_.equipped().empty());
   EXPECT_TRUE(comp->Focusable());
@@ -397,7 +397,7 @@ TEST_F(EquippedPanelTest, StaysFocusableWithNothingEquipped) {
 // would move its index anyway, putting selected() at -1, which selected_slot()
 // would then read past the front of an empty slot list.
 TEST_F(EquippedPanelTest, ArrowsDoNothingWithNothingEquipped) {
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
   ASSERT_TRUE(c_.equipped().empty());
@@ -414,7 +414,7 @@ TEST_F(EquippedPanelTest, ArrowsDoNothingWithNothingEquipped) {
 // Scroll action would look up with std::map::at and throw on.
 TEST_F(EquippedPanelTest, SpaceOpensNoMenuWithNothingEquipped) {
   bool opened = false;
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
   comp->OnEvent(ftxui::Event::Character(' '));
   EXPECT_FALSE(opened);
@@ -424,7 +424,7 @@ TEST_F(EquippedPanelTest, SpaceOpensTheMenuOnAWornItem) {
   bool opened = false;
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([&opened]() { opened = true; });
   comp->OnEvent(ftxui::Event::Character(' '));
   EXPECT_TRUE(opened);
@@ -470,7 +470,7 @@ int RowWithCursor(const ftxui::Screen& screen) {
 TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;
-  EquippedPanel panel(rogue, panel_focus_);
+  EquippedPanel panel(rogue, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                ftxui::Dimension::Fixed(20));
@@ -488,7 +488,7 @@ TEST_F(EquippedPanelTest, CursorRowIsTheRowTheCursorWasDrawnOn) {
 TEST_F(EquippedPanelTest, TheCursorFollowsTheSelectionAroundTheRing) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;
-  EquippedPanel panel(rogue, panel_focus_);
+  EquippedPanel panel(rogue, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
   int top = panel.cursor_row();
@@ -507,7 +507,7 @@ TEST_F(EquippedPanelTest, TheCursorFollowsTheSelectionAroundTheRing) {
 TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
   CharacterInstance rogue = MakeRogueWithTwoItems(rng_);
   panel_focus_ = kEquipPanel;
-  EquippedPanel panel(rogue, panel_focus_);
+  EquippedPanel panel(rogue, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
   int first = panel.cursor_row();
@@ -559,7 +559,7 @@ std::string RenderShort(ftxui::Component component, int rows) {
 TEST_F(EquippedPanelTest, AShortPanelShowsWhatFits) {
   CharacterInstance geared = MakeFullyGeared(rng_);
   panel_focus_ = kEquipPanel;
-  EquippedPanel panel(geared, panel_focus_);
+  EquippedPanel panel(geared, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   std::string rendered = RenderShort(comp, 10);
   EXPECT_NE(rendered.find("Gear1"), std::string::npos) << "the first row";
@@ -571,7 +571,7 @@ TEST_F(EquippedPanelTest, AShortPanelShowsWhatFits) {
 TEST_F(EquippedPanelTest, AShortPanelScrollsToTheCursor) {
   CharacterInstance geared = MakeFullyGeared(rng_);
   panel_focus_ = kEquipPanel;
-  EquippedPanel panel(geared, panel_focus_);
+  EquippedPanel panel(geared, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderShort(comp, 10);
   for (int i = 0; i < 8; ++i) {
@@ -589,7 +589,7 @@ TEST_F(EquippedPanelTest, AShortPanelScrollsToTheCursor) {
 TEST_F(EquippedPanelTest, TheScrollBarShowsOnlyOnAShortPanel) {
   CharacterInstance geared = MakeFullyGeared(rng_);
   panel_focus_ = kEquipPanel;
-  EquippedPanel panel(geared, panel_focus_);
+  EquippedPanel panel(geared, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   EXPECT_NE(RenderShort(comp, 10).find("\u2503"), std::string::npos)
       << "no scroll bar on a panel with more gear than room";
@@ -604,7 +604,7 @@ TEST_F(EquippedPanelTest, TheScrollBarShowsOnlyOnAShortPanel) {
 TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
 
   LevelTo(UnlockLevel(Feature::kBag) - 1);
@@ -635,7 +635,7 @@ TEST_F(EquippedPanelTest, TheWornWeaponsNameGoesGoldForANewUpgrade) {
   c_.Equip(0);
   c_.PickUp(std::make_unique<EquipInstance>(stars));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   EXPECT_EQ(LabelColor(comp->Render(), "Sword"), kYellow);
   EXPECT_NE(LabelColor(comp->Render(), "Weapon"), kYellow)
@@ -649,7 +649,7 @@ TEST_F(EquippedPanelTest, NoGoldOnTheWeaponBeforeAnythingOpens) {
   LevelTo(UnlockLevel(Feature::kScrolling) - 1);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   EXPECT_NE(LabelColor(panel.MakeComponent([]() {})->Render(), "Sword"),
             kYellow);
 }
@@ -660,7 +660,7 @@ TEST_F(EquippedPanelTest, OpeningTheMenuPutsTheWeaponsGoldOut) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component comp = panel.MakeComponent([]() {});
   RenderComponent(comp);
   ASSERT_EQ(LabelColor(comp->Render(), "Sword"), kYellow);
@@ -675,7 +675,7 @@ TEST_F(EquippedPanelTest, ANewUpgradeIsGoldOnTheMenu) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
   panel.OpenMenu();
   EXPECT_EQ(LabelColor(panel.menu().Render(0, 0), "Scroll"), kYellow);
@@ -687,7 +687,7 @@ TEST_F(EquippedPanelTest, PressingTheUpgradePutsItsGoldOut) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ScrollPanel sp(c_, {});
   RenderComponent(panel.MakeComponent([]() {}));
   panel.OpenMenu();
@@ -711,7 +711,7 @@ TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
   spent.set_remaining_upgrade_slots(0);
   c_.PickUp(std::make_unique<EquipInstance>(sword_, spent));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ScrollPanel sp(c_, {});
   ftxui::Component comp = panel.MakeComponent([]() {});
 
@@ -744,7 +744,7 @@ TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
   spent.set_remaining_upgrade_slots(0);
   c_.PickUp(std::make_unique<EquipInstance>(sword_, spent));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
 
   LevelTo(UnlockLevel(Feature::kScrolling));
@@ -768,7 +768,7 @@ TEST_F(EquippedPanelTest, StarForceGreysWhileSlotsRemain) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
   LevelTo(UnlockLevel(Feature::kStarForce));
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   RenderComponent(panel.MakeComponent([]() {}));
   panel.OpenMenu();
 
@@ -788,7 +788,7 @@ TEST_F(EquippedPanelTest, StarForceGreysWhileSlotsRemain) {
 // This panel arrives at level 3, and a card across the screen does
 // not say where to look. The gold border is what points at it.
 TEST_F(EquippedPanelTest, LightsItsBorderGoldWhenHighlighted) {
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   ASSERT_EQ(BorderColor(component->Render()), kTheme);
   panel.SetHighlighted(true);
@@ -802,7 +802,7 @@ TEST_F(EquippedPanelTest, LightsItsBorderGoldWhenHighlighted) {
 TEST_F(EquippedPanelTest, LightsItsInnerRuleGoldToo) {
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.Equip(0);
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   ASSERT_EQ(InnerRuleColor(component->Render()), kTheme);
   panel.SetHighlighted(true);
@@ -814,7 +814,7 @@ TEST_F(EquippedPanelTest, LightsItsInnerRuleGoldToo) {
 // An empty panel takes a different path through Render, and level 3 is exactly
 // when this one is most likely to be empty.
 TEST_F(EquippedPanelTest, LightsUpEvenWithNothingEquipped) {
-  EquippedPanel panel(c_, panel_focus_);
+  EquippedPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   ASSERT_NE(RenderComponent(component).find("(empty)"), std::string::npos);
   panel.SetHighlighted(true);

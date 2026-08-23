@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "src/character/character.h"
 #include "src/game_state.h"
@@ -67,6 +68,28 @@ class SaveTest : public testing::Test {
   void WriteRaw(const std::string& path, const std::string& bytes) {
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
     out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+  }
+
+  // Writes `save` as the file a version 1 build would have left, whatever it
+  // was carrying.
+  void WriteV1(SaveGameV1 save) {
+    save.set_format_version(1);
+    std::string bytes;
+    ASSERT_TRUE(save.SerializeToString(&bytes));
+    WriteRaw(path_, bytes);
+  }
+
+  // A version 1 character with `keys` in seen_tabs, which was field 14. The
+  // field is reserved now, so the only way to write one is the way the wire
+  // held it.
+  static Character WithSeenTabs(const std::vector<std::string>& keys) {
+    Character character;
+    for (const std::string& key : keys) {
+      character.GetReflection()
+          ->MutableUnknownFields(&character)
+          ->AddLengthDelimited(14, key);
+    }
+    return character;
   }
 
   EquipPrototype sword_;
@@ -136,7 +159,7 @@ TEST_F(SaveTest, WritesAndReadsBackTheUsername) {
 TEST_F(SaveTest, ASaveWithNoNameLoadsWithTheDefault) {
   SaveGame old;
   old.set_format_version(kSaveFormatVersion);
-  old.mutable_character()->set_level(1);
+  old.add_characters()->mutable_character()->set_level(1);
   std::string bytes;
   ASSERT_TRUE(old.SerializeToString(&bytes));
   WriteRaw(path_, bytes);
@@ -159,8 +182,8 @@ TEST_F(SaveTest, ASaveWithTheWrongApIsPutBackOnItsBooks) {
   // Rewritten as a file that recorded none of the AP those levels paid.
   SaveGame on_disk;
   ASSERT_TRUE(on_disk.ParseFromString(ReadRaw(path_)));
-  ASSERT_EQ(on_disk.character().ap(), 45);
-  on_disk.mutable_character()->set_ap(0);
+  ASSERT_EQ(on_disk.characters(0).character().ap(), 45);
+  on_disk.mutable_characters(0)->mutable_character()->set_ap(0);
   std::string bytes;
   ASSERT_TRUE(on_disk.SerializeToString(&bytes));
   WriteRaw(path_, bytes);
@@ -210,7 +233,7 @@ TEST_F(SaveTest, WritesAndReadsBackPlaytimeAndCreationTime) {
 // itself, so there is a real date to show before the first save is written.
 TEST_F(SaveTest, WritesAndReadsBackKeybinds) {
   std::unique_ptr<GameState> saved = MakeState();
-  Keybind* row = saved->keybinds.add_binds();
+  Keybind* row = saved->account.mutable_keybinds()->add_binds();
   row->set_action(KEY_ACTION_UP);
   row->add_keys("Up");
   row->add_keys("W");
@@ -219,9 +242,9 @@ TEST_F(SaveTest, WritesAndReadsBackKeybinds) {
 
   std::unique_ptr<GameState> loaded = MakeState();
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
-  ASSERT_EQ(loaded->keybinds.binds_size(), 1);
-  EXPECT_EQ(loaded->keybinds.binds(0).action(), KEY_ACTION_UP);
-  EXPECT_EQ(loaded->keybinds.binds(0).keys(1), "W");
+  ASSERT_EQ(loaded->account.keybinds().binds_size(), 1);
+  EXPECT_EQ(loaded->account.keybinds().binds(0).action(), KEY_ACTION_UP);
+  EXPECT_EQ(loaded->account.keybinds().binds(0).keys(1), "W");
 }
 
 TEST_F(SaveTest, ANewStateIsStampedWithTheCurrentTime) {
@@ -237,11 +260,7 @@ TEST_F(SaveTest, ANewStateIsStampedWithTheCurrentTime) {
 // The shape of a save written before either field existed: neither is set, so
 // playtime starts from nothing and the creation time falls back to now.
 TEST_F(SaveTest, AnOldSaveLoadsWithZeroPlaytime) {
-  SaveGame old;
-  old.set_format_version(kSaveFormatVersion);
-  std::string bytes;
-  ASSERT_TRUE(old.SerializeToString(&bytes));
-  WriteRaw(path_, bytes);
+  WriteV1(SaveGameV1());
 
   std::int64_t before = static_cast<std::int64_t>(std::time(nullptr));
   std::unique_ptr<GameState> loaded = MakeState();
@@ -305,11 +324,7 @@ TEST_F(SaveTest, TheSaveStampsWhenItWasWritten) {
 // A save written before the field existed has no stamp, which credits no
 // absence rather than one measured from the epoch.
 TEST_F(SaveTest, AnOldSaveHasNoLastSeenStamp) {
-  SaveGame old;
-  old.set_format_version(kSaveFormatVersion);
-  std::string bytes;
-  ASSERT_TRUE(old.SerializeToString(&bytes));
-  WriteRaw(path_, bytes);
+  WriteV1(SaveGameV1());
 
   std::unique_ptr<GameState> loaded = MakeState();
   ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
@@ -326,6 +341,194 @@ TEST_F(SaveTest, ARefusedLoadLeavesPlaytimeAlone) {
   ASSERT_EQ(LoadGameFromFile(*state, path_).status, LoadStatus::kUnreadable);
   EXPECT_EQ(state->playtime_seconds, 1234.0);
   EXPECT_EQ(state->created_unix_seconds, 1600000000);
+}
+
+// --- more than one character ---
+
+// The characters a session is not playing are never unpacked, so the write has
+// to put them back exactly as they arrived, in the slots they came from.
+TEST_F(SaveTest, TheCharactersNotBeingPlayedSurviveASave) {
+  std::unique_ptr<GameState> state = MakeState();
+  state->character.SetUsername("Second");
+  state->active_character = 1;
+  CharacterSave first;
+  first.mutable_character()->set_name("First");
+  first.mutable_character()->set_level(42);
+  first.set_current_map("lith");
+  state->inactive_characters.push_back(first);
+  ASSERT_TRUE(SaveGameToFile(*state, path_));
+
+  SaveGame on_disk;
+  ASSERT_TRUE(on_disk.ParseFromString(ReadRaw(path_)));
+  ASSERT_EQ(on_disk.characters_size(), 2);
+  EXPECT_EQ(on_disk.characters(0).character().name(), "First");
+  EXPECT_EQ(on_disk.characters(0).current_map(), "lith");
+  EXPECT_EQ(on_disk.characters(1).character().name(), "Second");
+  EXPECT_EQ(on_disk.active_character(), 1);
+}
+
+TEST_F(SaveTest, TheActiveSlotIsTheOneLoaded) {
+  std::unique_ptr<GameState> saved = MakeState();
+  saved->character.SetUsername("Second");
+  saved->character.AddMeso(90);
+  saved->active_character = 1;
+  CharacterSave first;
+  first.mutable_character()->set_name("First");
+  first.set_playtime_seconds(1200);
+  saved->inactive_characters.push_back(first);
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.username(), "Second");
+  EXPECT_EQ(loaded->character.meso(), 90);
+  EXPECT_EQ(loaded->active_character, 1);
+  ASSERT_EQ(loaded->inactive_characters.size(), 1u);
+  EXPECT_EQ(loaded->inactive_characters[0].character().name(), "First");
+  EXPECT_EQ(loaded->playtime_seconds, 0.0) << "the played character's clock";
+}
+
+// A hand-edited file, or one whose active slot was deleted. The first
+// character is a better answer than refusing to load the save at all.
+TEST_F(SaveTest, AnActiveSlotOutOfRangeLoadsTheFirst) {
+  SaveGame save;
+  save.set_format_version(kSaveFormatVersion);
+  save.add_characters()->mutable_character()->set_name("First");
+  save.set_active_character(7);
+  std::string bytes;
+  ASSERT_TRUE(save.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.username(), "First");
+  EXPECT_EQ(loaded->active_character, 0);
+}
+
+// A save with an account and no characters is not a save this build wrote.
+TEST_F(SaveTest, ASaveWithNoCharactersIsRefused) {
+  SaveGame save;
+  save.set_format_version(kSaveFormatVersion);
+  save.mutable_account()->set_max_level(30);
+  std::string bytes;
+  ASSERT_TRUE(save.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> state = MakeState();
+  EXPECT_EQ(LoadGameFromFile(*state, path_).status, LoadStatus::kUnreadable);
+}
+
+// --- what the account keeps ---
+
+TEST_F(SaveTest, WritesAndReadsBackTheSeenKeys) {
+  std::unique_ptr<GameState> saved = MakeState();
+  saved->account.MarkSeen("shop");
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_TRUE(loaded->account.Seen("shop"));
+  EXPECT_FALSE(loaded->account.Seen("skills"));
+}
+
+// The watermark is what a second character inherits, so the write has to fold
+// in how far the played character has climbed since the file was last read.
+TEST_F(SaveTest, TheWriteRecordsTheClimbOnTheAccount) {
+  std::unique_ptr<GameState> saved = MakeState();
+  for (int i = 0; i < 20; ++i) {
+    saved->character.LevelUp();
+  }
+  saved->character.AdvanceJob(JOB_SWORDMAN);
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->account.max_level(), 21);
+  EXPECT_EQ(loaded->account.max_job_stage(), 1);
+}
+
+// A character the player is not on still counts: the account opened what they
+// opened, whichever of them did it.
+TEST_F(SaveTest, TheUnlocksTakeInEveryCharacterInTheFile) {
+  std::unique_ptr<GameState> saved = MakeState();
+  CharacterSave veteran;
+  veteran.mutable_character()->set_level(120);
+  veteran.mutable_character()->set_job_stage(3);
+  saved->inactive_characters.push_back(veteran);
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->account.max_level(), 120);
+  EXPECT_EQ(loaded->account.max_job_stage(), 3);
+}
+
+// --- reading a version 1 save ---
+
+TEST_F(SaveTest, AVersion1SaveLoadsAsTheOneCharacter) {
+  SaveGameV1 old;
+  old.mutable_character()->set_name("Only");
+  old.mutable_character()->set_level(45);
+  old.mutable_character()->set_meso(5000);
+  old.set_current_map("lith");
+  old.set_created_unix_seconds(1500000000);
+  old.set_playtime_seconds(3600);
+  old.set_last_seen_unix_seconds(1700000000);
+  WriteV1(old);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.username(), "Only");
+  EXPECT_EQ(loaded->character.meso(), 5000);
+  EXPECT_EQ(loaded->current_map, "lith");
+  EXPECT_EQ(loaded->created_unix_seconds, 1500000000);
+  EXPECT_EQ(loaded->playtime_seconds, 3600.0);
+  EXPECT_EQ(loaded->last_seen_unix_seconds, 1700000000);
+  EXPECT_EQ(loaded->active_character, 0);
+  EXPECT_TRUE(loaded->inactive_characters.empty());
+}
+
+// The three things that moved to the account. The keys were the character's in
+// version 1, and a player who has walked a gold trail once has walked it.
+TEST_F(SaveTest, AVersion1SaveMovesItsAccountStateOff) {
+  SaveGameV1 old;
+  *old.mutable_character() = WithSeenTabs({"shop", "lead_action:scrolling"});
+  old.mutable_character()->set_level(75);
+  old.mutable_character()->set_job_stage(2);
+  Keybind* row = old.mutable_keybinds()->add_binds();
+  row->set_action(KEY_ACTION_UP);
+  row->add_keys("W");
+  WriteV1(old);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_TRUE(loaded->account.Seen("shop"));
+  EXPECT_TRUE(loaded->account.Seen("lead_action:scrolling"));
+  EXPECT_FALSE(loaded->account.Seen("skills"));
+  ASSERT_EQ(loaded->account.keybinds().binds_size(), 1);
+  EXPECT_EQ(loaded->account.keybinds().binds(0).keys(0), "W");
+  EXPECT_EQ(loaded->account.max_level(), 75)
+      << "the account inherits what the one character opened";
+  EXPECT_EQ(loaded->account.max_job_stage(), 2);
+}
+
+// Loading an old save and saving again writes the new format, and the upgrade
+// is not run a second time.
+TEST_F(SaveTest, AnUpgradedSaveIsWrittenBackAtTheNewVersion) {
+  SaveGameV1 old;
+  old.mutable_character()->set_name("Only");
+  old.mutable_character()->set_level(45);
+  WriteV1(old);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  ASSERT_TRUE(SaveGameToFile(*loaded, path_));
+
+  SaveGame on_disk;
+  ASSERT_TRUE(on_disk.ParseFromString(ReadRaw(path_)));
+  EXPECT_EQ(on_disk.format_version(), kSaveFormatVersion);
+  ASSERT_EQ(on_disk.characters_size(), 1);
+  EXPECT_EQ(on_disk.characters(0).character().name(), "Only");
 }
 
 // --- the file layer's failure modes ---

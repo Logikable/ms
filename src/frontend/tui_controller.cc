@@ -154,7 +154,7 @@ void TuiController::OpenMenuEntry(MenuEntry entry) {
     return;
   }
   // Opening the screen is what the gold was leading to, so it stops here.
-  state_.character.MarkTabSeen(MenuPanel::boss_seen_key());
+  state_.account.MarkSeen(MenuPanel::boss_seen_key());
   screen_ = kBossSelect;
   boss_select_panel_.Reset();
 }

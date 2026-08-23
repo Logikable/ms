@@ -208,12 +208,6 @@ message Character {
   // within a tab is the order the player sees.
   repeated StackableStack stacks = 13;
 
-  // Tabs the player has opened at least once, by the keys in panel_util.h. A
-  // tab that has appeared but never been opened is drawn gold to say it is
-  // new, and this is what stops it saying so forever -- and what stops it
-  // starting over every time the game is launched.
-  repeated string seen_tabs = 14;
-
   // Scrolls the player has pinned to the top of the scroll list, by the keys
   // ScrollPinKey builds. A pin names a stat and a rate on one kind of
   // equipment, not one scroll file, so it holds as the character outgrows a
@@ -231,6 +225,11 @@ message Character {
   // it expires is worked out from the difficulty's reset period, so retuning
   // a boss from daily to weekly takes effect on the clears already banked.
   repeated BossClear boss_clears = 17;
+
+  // Tabs opened and gold trails walked, which the account keeps as of format
+  // version 2: what the player has been shown once is shown to all of their
+  // characters. See Account.seen_keys.
+  reserved 14;
 }
 
 // One boss cleared at one difficulty, and when. Named by the data file stem

@@ -49,6 +49,17 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "account_proto",
+    srcs = ["account.proto"],
+    deps = [":keybinds_proto"],
+)
+
+cc_proto_library(
+    name = "account_proto_cc",
+    deps = [":account_proto"],
+)
+
+proto_library(
     name = "boss_proto",
     srcs = ["boss.proto"],
     deps = [":mob_proto"],
@@ -122,6 +133,7 @@ proto_library(
     name = "save_proto",
     srcs = ["save.proto"],
     deps = [
+        ":account_proto",
         ":character_proto",
         ":keybinds_proto",
     ],

@@ -125,8 +125,7 @@ ftxui::Element MenuPanel::Render() const {
     // No brackets: the panel is small enough that the entries read as a menu
     // on their own, and the cursor is the inverted one.
     ftxui::Element button = ftxui::text(EntryLabel(entries[i]));
-    if (entries[i] == MenuEntry::kBoss &&
-        !state_.character.TabSeen(kBossSeenKey)) {
+    if (entries[i] == MenuEntry::kBoss && !state_.account.Seen(kBossSeenKey)) {
       // Gold until the player has been there once, the same way a new tab is.
       button = std::move(button) | ftxui::color(kYellow);
     }

@@ -8,6 +8,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
 #include "src/frontend/screens/scroll_panel.h"
@@ -46,17 +47,17 @@ std::string TabKey(int tab, const CharacterInstance& character) {
 ftxui::Element RenderTabBar(const std::vector<int>& tabs, int active_tab,
                             int64_t meso, bool row_selected,
                             const CharacterInstance& character,
-                            bool highlighted) {
+                            const AccountInstance& account, bool highlighted) {
   std::vector<TabSpec> specs;
   int active = 0;
   for (int tab : tabs) {
-    // Asking TabSeen("") would answer no and leave those tabs gold forever.
+    // Asking Seen("") would answer no and leave those tabs gold forever.
     std::string key = TabKey(tab, character);
     if (tab == active_tab) {
       active = static_cast<int>(specs.size());
     }
     specs.push_back(
-        {kInventoryTabLabels[tab], !key.empty() && !character.TabSeen(key)});
+        {kInventoryTabLabels[tab], !key.empty() && !account.Seen(key)});
   }
   ftxui::Element tab_row = ftxui::dbox({
       // No width limit: the bag's four tabs are a fixed set, and every one of
@@ -116,8 +117,10 @@ ftxui::Element RenderStackList(const std::vector<StackableItem>& stacks,
 
 }  // namespace
 
-InventoryPanel::InventoryPanel(CharacterInstance& character, int& panel_focus)
+InventoryPanel::InventoryPanel(CharacterInstance& character,
+                               AccountInstance& account, int& panel_focus)
     : character_(character),
+      account_(account),
       panel_focus_(panel_focus),
       menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Sell",
              "Multi-Sell", "Close"}),
@@ -165,7 +168,7 @@ void InventoryPanel::StepTab(int direction) {
 void InventoryPanel::MarkActiveTabSeen() {
   std::string key = TabKey(active_tab_, character_);
   if (!key.empty()) {
-    character_.MarkTabSeen(key);
+    account_.MarkSeen(key);
   }
 }
 
@@ -310,10 +313,10 @@ void InventoryPanel::OpenEquipMenu() {
   // Gold on an upgrade the player has been handed but never used, which is
   // where the trail from the level-up card ends. Last, so it lands on the
   // entries as they finally stand.
-  if (LeadToAction(Feature::kScrolling, character_)) {
+  if (LeadToAction(Feature::kScrolling, character_, account_)) {
     menu_.Highlight(kMenuScroll);
   }
-  if (LeadToAction(Feature::kStarForce, character_)) {
+  if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kMenuStarForce);
   }
 }
@@ -381,14 +384,14 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
     if (menu_.selected() == kMenuScroll) {
       // Followed whether or not there is a scroll to show: they pressed the
       // entry, which is what the gold was asking them to do.
-      FollowedToAction(Feature::kScrolling, character_);
+      FollowedToAction(Feature::kScrolling, account_);
       if (scroll_panel.SetFilterForPrototype(
               character_.inventory()[selected_].prototype())) {
         return kScrollSelect;
       }
     }
     if (menu_.selected() == kMenuStarForce) {
-      FollowedToAction(Feature::kStarForce, character_);
+      FollowedToAction(Feature::kStarForce, account_);
       return kStarForce;
     }
     if (menu_.selected() == kMenuRecover) {
@@ -464,7 +467,7 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
       " Inventory ",
       ftxui::vbox({RenderTabBar(VisibleTabs(), active_tab_, character_.meso(),
                                 focused && zone_ == kZoneTabs, character_,
-                                highlighted_),
+                                account_, highlighted_),
                    std::move(body) | ftxui::flex}),
       PanelAccent(highlighted_), focused);
 }

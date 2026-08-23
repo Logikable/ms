@@ -228,6 +228,7 @@ cc_library(
     testonly = True,
     hdrs = ["panel_test_base.h"],
     deps = [
+        "//src:account",
         "//src/character",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",

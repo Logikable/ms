@@ -130,12 +130,6 @@ class CharacterInstance {
   // Not bounded by kTrialLevelCap: the cap is on what can be earned, and this
   // is how a level is granted outright.
   void LevelUp();
-  // Whether the player has ever opened the tab recorded under `key`. The keys
-  // themselves are the frontend's (panel_util.h); the character only keeps the
-  // record, because it is the character's progress and rides the save.
-  bool TabSeen(const std::string& key) const;
-  // Records that they have. Marking a tab already marked does nothing.
-  void MarkTabSeen(const std::string& key);
   // When this character last cleared `boss` at `difficulty`, as a Unix time,
   // or 0 for never. Whether that clear has expired is the reset clock's
   // question -- see boss_reset.h.
@@ -145,8 +139,9 @@ class CharacterInstance {
   void RecordBossClear(const std::string& boss, const std::string& difficulty,
                        int64_t now);
   // Whether the scroll recorded under `key` is pinned to the top of the scroll
-  // list. As with the tabs above, the keys are the frontend's -- the character
-  // keeps the record because it is the player's own and rides the save.
+  // list. The keys are the frontend's; the character keeps the record because
+  // which stats are worth chasing is this character's business, not the
+  // account's.
   bool ScrollPinned(const std::string& key) const;
   // Pins it if it is loose, loosens it if it is pinned.
   void ToggleScrollPin(const std::string& key);

@@ -894,19 +894,6 @@ void CharacterInstance::LevelUp() {
   }
 }
 
-bool CharacterInstance::TabSeen(const std::string& key) const {
-  const google::protobuf::RepeatedPtrField<std::string>& seen =
-      character_.seen_tabs();
-  return std::find(seen.begin(), seen.end(), key) != seen.end();
-}
-
-void CharacterInstance::MarkTabSeen(const std::string& key) {
-  if (TabSeen(key)) {
-    return;
-  }
-  character_.add_seen_tabs(key);
-}
-
 int64_t CharacterInstance::BossClearedAt(const std::string& boss,
                                          const std::string& difficulty) const {
   for (const BossClear& clear : character_.boss_clears()) {

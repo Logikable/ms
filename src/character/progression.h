@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "src/account.h"
 #include "src/character/character.h"
 
 namespace ms {
@@ -76,30 +77,36 @@ std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level);
  * The card names it, and then two signposts stand until they are walked past:
  * the equipped weapon's name is gold until the player opens its item menu, and
  * the entry on that menu is gold until they press Enter on it. Each step
- * latches in the character's seen-key list, so it survives a restart and never
+ * latches in the account's seen-key list, so it survives a restart and never
  * comes back.
  *
  * One pair of steps per upgrade, which is what makes the trail run again when
  * the next one arrives rather than being spent on the first. Not every upgrade
  * takes both steps: star force arrives long after the item menu stopped being
  * news, so its trail is the entry alone.
+ *
+ * The latches are the account's: a player who has been led to star force once
+ * is not led there again by their next character.
  */
 
 // Whether the equipped weapon's name should be gold: something that starts at
 // the weapon has opened, and the player has not gone and looked at it.
-bool LeadToWeapon(const CharacterInstance& character);
+bool LeadToWeapon(const CharacterInstance& character,
+                  const AccountInstance& account);
 
 // Records that they did. Puts out the weapon step of every upgrade open right
 // now -- they opened the menu, and all of it was in front of them -- but not
 // of one that has yet to arrive.
-void FollowedToWeapon(CharacterInstance& character);
+void FollowedToWeapon(const CharacterInstance& character,
+                      AccountInstance& account);
 
 // Whether `feature`'s entry on an item menu should be gold. False for a
 // feature with no trail of its own.
-bool LeadToAction(Feature feature, const CharacterInstance& character);
+bool LeadToAction(Feature feature, const CharacterInstance& character,
+                  const AccountInstance& account);
 
 // Records that the player pressed Enter on that entry, wherever they did it.
-void FollowedToAction(Feature feature, CharacterInstance& character);
+void FollowedToAction(Feature feature, AccountInstance& account);
 
 // The level the hotkeys tip stops being drawn at. Not a Feature: the enum
 // above is for things that open and stay open, and this is the one thing that

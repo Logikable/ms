@@ -107,7 +107,7 @@ TEST(MenuPanelTest, BossIsGoldUntilItHasBeenOpened) {
   ftxui::Render(screen, panel.Render());
   ftxui::Color gold = screen.PixelAt(2, 1).foreground_color;
 
-  state.character.MarkTabSeen(MenuPanel::boss_seen_key());
+  state.account.MarkSeen(MenuPanel::boss_seen_key());
   ftxui::Screen after = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
                                               ftxui::Dimension::Fixed(3));
   ftxui::Render(after, panel.Render());

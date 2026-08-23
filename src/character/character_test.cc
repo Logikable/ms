@@ -2555,45 +2555,6 @@ TEST_F(SaveRoundTripTest, ReSavingALoadedCharacterGivesTheSameSave) {
   EXPECT_EQ(second.level(), first.level());
 }
 
-// --- seen tabs ---
-
-class SeenTabsTest : public CharacterTest {
- protected:
-  CharacterInstance c_ = MakeCharacter(rng_);
-};
-
-TEST_F(SeenTabsTest, NothingHasBeenSeenToBeginWith) {
-  EXPECT_FALSE(c_.TabSeen("shop"));
-}
-
-TEST_F(SeenTabsTest, MarkingATabIsRemembered) {
-  c_.MarkTabSeen("shop");
-  EXPECT_TRUE(c_.TabSeen("shop"));
-  EXPECT_FALSE(c_.TabSeen("skills")) << "and only that tab";
-}
-
-// Marking is idempotent. Every arrow key onto the tab runs through here, so a
-// list that grew an entry each time would fill the save with duplicates.
-TEST_F(SeenTabsTest, MarkingTwiceRecordsItOnce) {
-  c_.MarkTabSeen("shop");
-  c_.MarkTabSeen("shop");
-  EXPECT_EQ(c_.proto().seen_tabs_size(), 1);
-}
-
-// The record rides the character proto, which is what the save round-trips --
-// otherwise every tab would go gold again on the next launch.
-TEST_F(SeenTabsTest, SurvivesARoundTripThroughTheProto) {
-  c_.MarkTabSeen("skills");
-  c_.MarkTabSeen("advance:2");
-
-  CharacterInstance restored = MakeCharacter(rng_);
-  restored.RestoreFrom(c_.ToProto(), {}, {});
-  EXPECT_TRUE(restored.TabSeen("skills"));
-  EXPECT_TRUE(restored.TabSeen("advance:2"));
-  EXPECT_FALSE(restored.TabSeen("advance:1"))
-      << "each advancement is its own key";
-}
-
 // --- ReconcileAp ---
 
 // A save's proto, with the four AP stats where the file left them. Level and
