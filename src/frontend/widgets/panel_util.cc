@@ -943,8 +943,8 @@ ftxui::Element ActionButton(const std::string& label, bool focused) {
   return button;
 }
 
-ftxui::Element ContinueButton() {
-  return ActionButton("Continue", /*focused=*/true);
+ftxui::Element ContinueButton(const std::string& label) {
+  return ActionButton(label, /*focused=*/true);
 }
 
 ftxui::Element ButtonRow(const std::string& go, const std::string& leave,

@@ -14,14 +14,11 @@
 #include <string>
 #include <vector>
 
+#include "src/multiplayer/protocol.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
-
-// The most players in one party. Hilla's arena has three places to stand, and
-// a party has to fit the smallest arena it can be taken into.
-inline constexpr int kMaxPartySize = 3;
 
 // What an ask came to. A refusal carries a reason for the client to act on and
 // a sentence fit to show the player.

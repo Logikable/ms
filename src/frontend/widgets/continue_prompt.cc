@@ -1,5 +1,7 @@
 #include "src/frontend/widgets/continue_prompt.h"
 
+#include <string>
+
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/panel_util.h"
@@ -27,8 +29,8 @@ bool ContinuePrompt::OnEvent(ftxui::Event event) {
   return false;
 }
 
-ftxui::Element ContinuePrompt::Render() const {
-  return ContinueButton();
+ftxui::Element ContinuePrompt::Render(const std::string& label) const {
+  return ContinueButton(label);
 }
 
 ftxui::Element ContinuePrompt::RenderWindow() const {

@@ -537,6 +537,36 @@ cc_test(
 )
 
 cc_library(
+    name = "party_select_panel",
+    srcs = ["party_select_panel.cc"],
+    hdrs = ["party_select_panel.h"],
+    deps = [
+        "//src/character",
+        "//src/frontend:types",
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:item_menu",
+        "//src/frontend/widgets:panel_util",
+        "//src/multiplayer:client",
+        "//src/multiplayer:protocol",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "party_select_panel_test",
+    srcs = ["party_select_panel_test.cc"],
+    deps = [
+        ":party_select_panel",
+        "//src/frontend:types",
+        "//src/multiplayer:client",
+        "//src/protos:multiplayer_proto_cc",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "map_select_panel",
     srcs = ["map_select_panel.cc"],
     hdrs = ["map_select_panel.h"],

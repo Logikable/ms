@@ -110,6 +110,13 @@ enum MapMenuItem : int {
   kMapMenuInspect = 1,
   kMapMenuClose = 2,
 };
+// Entries of the party member menu, on Enter in the party list. Only the
+// party leader raises it.
+enum PartyMenuItem : int {
+  kPartyMenuKick = 0,
+  kPartyMenuPromote = 1,
+  kPartyMenuClose = 2,
+};
 enum JobMenuItem : int {
   kJobMenuInspect = 0,
   kJobMenuAdvance = 1,

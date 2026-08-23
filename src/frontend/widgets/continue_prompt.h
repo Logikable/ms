@@ -9,6 +9,8 @@
 #ifndef MS_SRC_FRONTEND_WIDGETS_CONTINUE_PROMPT_H_
 #define MS_SRC_FRONTEND_WIDGETS_CONTINUE_PROMPT_H_
 
+#include <string>
+
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
 
@@ -28,8 +30,10 @@ class ContinuePrompt {
   // True when the event dismissed the prompt, which closes it. Everything else
   // is swallowed while it is open.
   bool OnEvent(ftxui::Event event);
-  // The bare button, for a caller placing it inside its own window.
-  ftxui::Element Render() const;
+  // The bare button, for a caller placing it inside its own window. `label`
+  // names it for a dialog the player is closing rather than reading on
+  // through.
+  ftxui::Element Render(const std::string& label = "Continue") const;
   // The button centered in a titleless window, for standing on its own.
   ftxui::Element RenderWindow() const;
 

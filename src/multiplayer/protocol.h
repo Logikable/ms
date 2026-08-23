@@ -41,6 +41,10 @@ inline std::string DefaultServerAddress() {
   return std::string(kServerHost) + ":" + std::to_string(kServerPort);
 }
 
+// The most players in one party. Hilla's arena has three places to stand, and
+// a party has to fit the smallest arena it can be taken into.
+inline constexpr int kMaxPartySize = 3;
+
 // How often a client that has nothing to say says it anyway.
 inline constexpr std::chrono::seconds kHeartbeatInterval(5);
 // How long the server waits on a session that has gone quiet. Three
