@@ -46,6 +46,9 @@ difficulties {
   # What GMS pays as an Intense Power Crystal, which is a drop nobody keeps:
   # five of them at the Heroic price, handed over as the meso they would fetch.
   meso: 3062500
+  # Paid for the clear rather than for the body that ends it, as every boss's
+  # EXP is: flat, and no EXP bonus touches it.
+  exp: 4750740
   drops {
     equip: "aquatic_letter_eye_accessory"
     per_kill: 0.5

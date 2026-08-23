@@ -155,14 +155,16 @@ TEST(BossSelectPanelTest, TheDetailPanelDescribesTheFight) {
   EXPECT_NE(out.find("40%"), std::string::npos);
   EXPECT_NE(out.find("5:00"), std::string::npos);
   EXPECT_NE(out.find("Daily"), std::string::npos);
-  // Nothing drops yet, and an empty list says so and nothing else.
+  // Nothing drops yet, and an empty list says so and nothing else. A fight
+  // paying no EXP has no row for it rather than a row reading zero.
   EXPECT_NE(out.find("(empty)"), std::string::npos);
+  EXPECT_EQ(out.find("EXP"), std::string::npos);
 }
 
 // The rewards a clear pays, which is what the player is choosing between when
 // there is more than one fight. An equip is named out of its own catalog: the
 // list read only the stackables before Zakum dropped anything.
-TEST(BossSelectPanelTest, TheRewardsListNamesTheMesoAndEveryDrop) {
+TEST(BossSelectPanelTest, TheRewardsListNamesWhatAClearPays) {
   std::unique_ptr<GameState> owner = WithBosses();
   GameState& state = *owner;
   EquipPrototype crystal;
@@ -173,6 +175,7 @@ TEST(BossSelectPanelTest, TheRewardsListNamesTheMesoAndEveryDrop) {
   state.items["zakums_soul_shard"] = shard;
   BossDifficulty* normal = state.bosses["zakum"].mutable_difficulties(0);
   normal->set_meso(3062500);
+  normal->set_exp(4750740);
   MobDrop* equip_drop = normal->add_drops();
   equip_drop->set_equip("condensed_power_crystal");
   equip_drop->set_per_kill(0.5);
@@ -183,6 +186,8 @@ TEST(BossSelectPanelTest, TheRewardsListNamesTheMesoAndEveryDrop) {
   BossSelectPanel panel(state);
   std::string out = Render(panel);
   EXPECT_NE(out.find("3,062,500"), std::string::npos);
+  EXPECT_NE(out.find("EXP"), std::string::npos);
+  EXPECT_NE(out.find("4,750,740"), std::string::npos);
   EXPECT_NE(out.find("50%"), std::string::npos);
   // A name too long for the panel wraps rather than being cut, and the chance
   // rides the last line of it. One that fits keeps its own row whole.

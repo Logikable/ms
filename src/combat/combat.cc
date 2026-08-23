@@ -101,11 +101,12 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
       continue;
     }
     const Mob& mob = *params.types[i].mob;
-    exp_gained += kills[i] * mob.exp();
     // A boss pays out of its own table and not out of its level band: what
     // Zakum's eight arms are worth is a design decision, not a side effect of
-    // being level 110 monsters.
+    // being level 110 monsters. Its EXP and meso are the fight's, paid once
+    // for the clear, so a body killed here is worth neither.
     if (!mob.boss()) {
+      exp_gained += kills[i] * mob.exp();
       // The bonus multiplies the purse rather than each drop in it: a share of
       // a sum is the share of its parts, and the passives are already resolved
       // here.

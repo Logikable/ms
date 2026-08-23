@@ -97,6 +97,31 @@ TEST(BossDataTest, EveryDifficultyIsNamedClockedAndReset) {
   }
 }
 
+// EXP and meso belong to the fight, not to the body that ends it: the clear
+// pays them once, flat, and the reward path ignores whatever a boss mob
+// carries. A number left on the mob is a payout nobody ever receives.
+TEST(BossDataTest, EveryBuiltFightPaysFromItsOwnTable) {
+  std::map<std::string, Mob> mobs = LoadMobs();
+  for (const std::pair<const std::string, Mob>& entry : mobs) {
+    if (!entry.second.boss()) {
+      continue;
+    }
+    EXPECT_EQ(entry.second.exp(), 0)
+        << entry.first << " carries EXP a boss fight never pays out";
+  }
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (difficulty.coming_soon()) {
+        continue;
+      }
+      EXPECT_GT(difficulty.exp(), 0)
+          << entry.first << " " << difficulty.name() << " pays no EXP";
+      EXPECT_GT(difficulty.meso(), 0)
+          << entry.first << " " << difficulty.name() << " pays no meso";
+    }
+  }
+}
+
 // A fight that is not built yet must say nothing it has not decided: the
 // detail panel shows its HP alone, and a reward or a gate left in the file
 // would be a promise the screen never shows and the fight never keeps.

@@ -18,6 +18,9 @@ difficulties {
   # What GMS pays as an Intense Power Crystal, the same drop nobody keeps that
   # Zakum's meso stands in for: five of them at the price her level fetches.
   meso: 4000000
+  # Paid for the clear, flat and untouched by any EXP bonus, as Zakum's and
+  # Horntail's are.
+  exp: 5820000
   drops {
     item: "hillas_soul_shard"
     per_kill: 1.0

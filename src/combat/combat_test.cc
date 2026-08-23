@@ -148,6 +148,28 @@ TEST(AwardCombatRewardsTest, PaysABatchOfKillsAndTalliesThem) {
   EXPECT_EQ(tally.items[0].discarded, 0);
 }
 
+// A boss is paid for out of its fight's own table, so the body itself is
+// worth neither EXP nor meso however much its mob proto still carries. Its
+// drops are its own and still fall.
+TEST(AwardCombatRewardsTest, ABossBodyPaysNoExpOrMeso) {
+  Mob boss = SnailMob();
+  boss.set_boss(true);
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", boss}}, {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatParams params = ComputeCombatParams(state);
+
+  RewardTally tally = AwardCombatRewards(state, params, {1000});
+
+  EXPECT_EQ(tally.exp, 0);
+  EXPECT_EQ(state.character.proto().exp(), 0);
+  EXPECT_EQ(tally.meso, 0);
+  EXPECT_EQ(state.character.meso(), 0);
+  ASSERT_EQ(tally.items.size(), 1u);
+  EXPECT_EQ(tally.items[0].count, 1000);
+}
+
 // A full bag throws the rest away, and the tally says how many.
 TEST(AwardCombatRewardsTest, WhatTheBagCannotHoldIsCountedAsDiscarded) {
   GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
