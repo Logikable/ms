@@ -84,10 +84,10 @@ std::map<std::string, Boss> Bosses() {
   return bosses;
 }
 
-// What a client asks for when it wants that fight.
+// What a client asks for when it wants a party of its own.
 ClientMessage CreatePartyMessage() {
   ClientMessage message;
-  message.mutable_create_party()->set_boss_key("zakum");
+  message.mutable_create_party();
   return message;
 }
 
@@ -289,7 +289,7 @@ TEST_F(ServerTest, PutsAPartyInFrontOfEverybody) {
   first->Send(CreatePartyMessage());
   ServerMessage state = AwaitKind(*first, ServerMessage::kPartyState);
   ASSERT_EQ(state.party_state().party().members_size(), 1);
-  EXPECT_EQ(state.party_state().party().members(0).name(), "Dagger");
+  EXPECT_EQ(state.party_state().party().members(0).player().name(), "Dagger");
   std::string party_id = state.party_state().party().id();
 
   ServerMessage listing = AwaitKind(*second, ServerMessage::kPartyList);
@@ -306,17 +306,44 @@ TEST_F(ServerTest, PutsAPartyInFrontOfEverybody) {
   EXPECT_EQ(changed.party_state().party().members_size(), 2);
 }
 
-TEST_F(ServerTest, RefusesAPartyItCannotMake) {
+TEST_F(ServerTest, RefusesAFightItCannotRun) {
   Welcome welcome;
   std::unique_ptr<TestClient> client = Greeted("Dagger", &welcome);
+  client->Send(CreatePartyMessage());
+  AwaitKind(*client, ServerMessage::kPartyState);
 
-  ClientMessage message;
-  message.mutable_create_party()->set_boss_key("balrog");
-  client->Send(message);
+  ClientMessage start;
+  start.mutable_start_fight()->set_boss_key("balrog");
+  client->Send(start);
 
   ServerMessage refused = AwaitKind(*client, ServerMessage::kRefused);
   EXPECT_EQ(refused.refused().reason(), Refused::REASON_UNKNOWN_BOSS);
   EXPECT_FALSE(refused.refused().message().empty());
+}
+
+TEST_F(ServerTest, TellsAPlayerTheyWereRemoved) {
+  Welcome leader_welcome;
+  std::unique_ptr<TestClient> leader = Greeted("Dagger", &leader_welcome);
+  Welcome member_welcome;
+  std::unique_ptr<TestClient> member = Greeted("Wand", &member_welcome);
+
+  leader->Send(CreatePartyMessage());
+  ServerMessage made = AwaitKind(*leader, ServerMessage::kPartyState);
+  ClientMessage join;
+  join.mutable_join_party()->set_party_id(made.party_state().party().id());
+  member->Send(join);
+  AwaitKind(*member, ServerMessage::kPartyState);
+
+  ClientMessage kick;
+  kick.mutable_kick_member()->set_account_id(member_welcome.account_id());
+  leader->Send(kick);
+
+  // The state says they are in nothing; the event says why.
+  ServerMessage state = AwaitKind(*member, ServerMessage::kPartyState);
+  EXPECT_TRUE(state.party_state().party().id().empty());
+  ServerMessage event = AwaitKind(*member, ServerMessage::kPartyEvent);
+  EXPECT_EQ(event.party_event().kind(), PartyEvent::KICKED);
+  EXPECT_FALSE(event.party_event().message().empty());
 }
 
 TEST_F(ServerTest, CutsALongNameDown) {
@@ -329,7 +356,8 @@ TEST_F(ServerTest, CutsALongNameDown) {
   client.Send(CreatePartyMessage());
   ServerMessage state = AwaitKind(client, ServerMessage::kPartyState);
   ASSERT_EQ(state.party_state().party().members_size(), 1);
-  EXPECT_EQ(state.party_state().party().members(0).name(), "A Very Long ");
+  EXPECT_EQ(state.party_state().party().members(0).player().name(),
+            "A Very Long ");
 }
 
 TEST_F(ServerTest, TakesAPartyWithThePlayerWhoLeft) {

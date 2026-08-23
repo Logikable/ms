@@ -32,18 +32,24 @@ message PlayerInfo {
   JobAdvancement job = 4;
 }
 
-// A party waiting in the lobby: who is in it, and what they mean to fight.
+// One player's place in a party.
+message PartyMember {
+  PlayerInfo player = 1;
+  // Whether they have said they are ready. Cleared for everyone whenever the
+  // party's membership or its leader changes, so nobody is carried into a
+  // fight on a promise they made about a different party. The leader is
+  // always ready and this is not set for them.
+  bool ready = 2;
+}
+
+// A party waiting in the lobby. It is people and nothing else: the fight is
+// named when the leader starts one.
 message Party {
   string id = 1;
-  // Which fight, as a key into the boss catalog and an index into its
-  // difficulties.
-  string boss_key = 2;
-  int32 difficulty_index = 3;
-  PartyMode mode = 4;
   // Whose party it is. The leader starts the fight; when they leave, the
   // player who joined first takes it over.
-  string leader_account_id = 5;
-  repeated PlayerInfo members = 6;
+  string leader_account_id = 2;
+  repeated PartyMember members = 3;
 }
 
 // The first thing a client sends. Carries the character as they stand, since
@@ -62,11 +68,7 @@ message UpdatePlayer {
   PlayerInfo player = 1;
 }
 
-message CreateParty {
-  string boss_key = 1;
-  int32 difficulty_index = 2;
-  PartyMode mode = 3;
-}
+message CreateParty {}
 
 message JoinParty {
   string party_id = 1;
@@ -75,7 +77,26 @@ message JoinParty {
 message LeaveParty {}
 
 // Leader only. The party leaves the lobby list and the fight begins.
-message StartFight {}
+message StartFight {
+  // Which fight, as a key into the boss catalog and an index into its
+  // difficulties.
+  string boss_key = 1;
+  int32 difficulty_index = 2;
+  PartyMode mode = 3;
+}
+
+message SetReady {
+  bool ready = 1;
+}
+
+// Leader only. Both name a member by the account they play under.
+message KickMember {
+  string account_id = 1;
+}
+
+message PromoteMember {
+  string account_id = 1;
+}
 
 // The heartbeat. A session that goes quiet for kSessionTimeout is dropped.
 message Ping {}
@@ -89,6 +110,9 @@ message ClientMessage {
     StartFight start_fight = 5;
     Ping ping = 6;
     UpdatePlayer update_player = 7;
+    SetReady set_ready = 8;
+    KickMember kick_member = 9;
+    PromoteMember promote_member = 10;
   }
 }
 
@@ -135,6 +159,8 @@ message Refused {
     REASON_DRAINING = 8;
     // The character is below the level the fight opens at.
     REASON_LEVEL_TOO_LOW = 9;
+    // A kick or a promotion named somebody who is not in the party.
+    REASON_NOT_A_MEMBER = 10;
   }
   Reason reason = 1;
   string message = 2;
@@ -152,6 +178,20 @@ message PartyState {
   Party party = 1;
 }
 
+// Something that happened to this player's standing in a party, which the
+// state after it cannot say on its own: being kicked and walking out both
+// arrive as no party at all.
+message PartyEvent {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KICKED = 1;
+    PROMOTED = 2;
+  }
+  Kind kind = 1;
+  // Written to be shown to the player as it stands.
+  string message = 2;
+}
+
 message Pong {}
 
 message ServerMessage {
@@ -162,5 +202,6 @@ message ServerMessage {
     PartyList party_list = 4;
     PartyState party_state = 5;
     Pong pong = 6;
+    PartyEvent party_event = 7;
   }
 }

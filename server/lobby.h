@@ -31,17 +31,31 @@ struct LobbyResult {
   std::string message;
 };
 
+// A player who has to be told something the party state cannot say on its
+// own, and what to tell them.
+struct LobbyEvent {
+  std::string account_id;
+  PartyEvent event;
+};
+
 class Lobby {
  public:
   // `bosses` is the fight catalog, owned by the caller and outliving the
   // lobby. `seed` fixes the stream party ids are drawn from.
   Lobby(const std::map<std::string, Boss>& bosses, unsigned int seed);
 
-  LobbyResult Create(const PlayerInfo& player, const CreateParty& request);
+  LobbyResult Create(const PlayerInfo& player);
   LobbyResult Join(const PlayerInfo& player, const std::string& party_id);
   LobbyResult Leave(const std::string& account_id);
-  // Takes the party out of the list and into its fight. Leader only.
-  LobbyResult Start(const std::string& account_id);
+  // Says whether this player is ready to fight. The leader is always ready
+  // and asking for them is refused.
+  LobbyResult SetReady(const std::string& account_id, bool ready);
+  // Leader only. `target` is the member's account.
+  LobbyResult Kick(const std::string& account_id, const std::string& target);
+  LobbyResult Promote(const std::string& account_id, const std::string& target);
+  // Takes the party out of the list and into the fight `request` names.
+  // Leader only, and refused unless every member may fight it.
+  LobbyResult Start(const std::string& account_id, const StartFight& request);
 
   // Takes a character's new level or name into whatever party they are in.
   // Nothing to do for a player who is in none.
@@ -61,6 +75,10 @@ class Lobby {
   // taking. A player who has left is in here too: what they need telling is
   // that they are in nothing.
   std::vector<std::string> TakeChanged();
+  // What individual players have to be told, cleared by the taking. Separate
+  // from the above because being kicked and walking out leave the same state
+  // behind, and only the one who was kicked needs the difference.
+  std::vector<LobbyEvent> TakeEvents();
   // Whether the public list has changed since it was last taken.
   bool TakeListingChanged();
 
@@ -79,9 +97,17 @@ class Lobby {
   // The party `account_id` is in, or null.
   Record* Find(const std::string& account_id);
   const Record* Find(const std::string& account_id) const;
-  // Whether `player` may fight what `request` names, and why not.
-  LobbyResult CheckFight(const PlayerInfo& player, const std::string& boss_key,
-                         int difficulty_index) const;
+  // Whether every member of `party` may fight what `request` names, and why
+  // not. Names whoever falls short, since the leader asking is not
+  // necessarily the one who does.
+  LobbyResult CheckFight(const Party& party, const StartFight& request) const;
+  // Drops the member `account_id` from `party` and hands the party on if they
+  // were leading it. Records who was promoted. Returns false when that left
+  // the party empty, which is when the caller has to erase it.
+  bool Remove(Party& party, const std::string& account_id);
+  // Notes that `account_id` has to be told `kind`.
+  void NoteEvent(const std::string& account_id, PartyEvent::Kind kind,
+                 const std::string& message);
   // Marks everyone in `party` as needing telling.
   void NoteChanged(const Party& party);
   std::string NewPartyId();
@@ -96,6 +122,7 @@ class Lobby {
   // rather than a search through every party.
   std::map<std::string, std::string> party_of_;
   std::vector<std::string> changed_;
+  std::vector<LobbyEvent> events_;
   bool listing_changed_ = false;
   std::mt19937 rng_;
 };

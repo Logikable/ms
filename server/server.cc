@@ -144,6 +144,17 @@ void Server::PublishLobby() {
     *state.mutable_party_state()->mutable_party() = lobby_.StateFor(account);
     Send(*session, state);
   }
+  // After the states, so a player reads what happened to them against the
+  // party they are in now rather than the one they were in.
+  for (const LobbyEvent& event : lobby_.TakeEvents()) {
+    Session* session = FindSession(event.account_id);
+    if (session == nullptr) {
+      continue;
+    }
+    ServerMessage message;
+    *message.mutable_party_event() = event.event;
+    Send(*session, message);
+  }
   if (!lobby_.TakeListingChanged()) {
     return;
   }
@@ -285,7 +296,7 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
       lobby_.UpdatePlayer(session.player);
       return;
     case ClientMessage::kCreateParty:
-      result = lobby_.Create(session.player, message.create_party());
+      result = lobby_.Create(session.player);
       break;
     case ClientMessage::kJoinParty:
       result = lobby_.Join(session.player, message.join_party().party_id());
@@ -294,7 +305,18 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
       result = lobby_.Leave(session.account_id);
       break;
     case ClientMessage::kStartFight:
-      result = lobby_.Start(session.account_id);
+      result = lobby_.Start(session.account_id, message.start_fight());
+      break;
+    case ClientMessage::kSetReady:
+      result = lobby_.SetReady(session.account_id, message.set_ready().ready());
+      break;
+    case ClientMessage::kKickMember:
+      result =
+          lobby_.Kick(session.account_id, message.kick_member().account_id());
+      break;
+    case ClientMessage::kPromoteMember:
+      result = lobby_.Promote(session.account_id,
+                              message.promote_member().account_id());
       break;
     default:
       Reject(session, Rejected::REASON_MALFORMED, "Unknown message.");

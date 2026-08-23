@@ -41,33 +41,41 @@ const BossDifficulty* FindDifficulty(const std::map<std::string, Boss>& bosses,
   return &boss->second.difficulties(index);
 }
 
+// The member playing under `account_id`, or null.
+PartyMember* FindMember(Party& party, const std::string& account_id) {
+  for (PartyMember& member : *party.mutable_members()) {
+    if (member.player().account_id() == account_id) {
+      return &member;
+    }
+  }
+  return nullptr;
+}
+
+// Puts everyone back to unready. Called whenever the party's membership or
+// its leader changes: a promise made about a different party is not one to
+// carry into a fight.
+void ClearReady(Party& party) {
+  for (PartyMember& member : *party.mutable_members()) {
+    member.set_ready(false);
+  }
+}
+
 }  // namespace
 
 Lobby::Lobby(const std::map<std::string, Boss>& bosses, unsigned int seed)
     : bosses_(bosses), rng_(seed) {
 }
 
-LobbyResult Lobby::Create(const PlayerInfo& player,
-                          const CreateParty& request) {
+LobbyResult Lobby::Create(const PlayerInfo& player) {
   if (Find(player.account_id()) != nullptr) {
     return Refusal(Refused::REASON_ALREADY_IN_PARTY,
                    "Leave your party before making another.");
   }
-  LobbyResult allowed =
-      CheckFight(player, request.boss_key(), request.difficulty_index());
-  if (!allowed.ok) {
-    return allowed;
-  }
 
   Record record;
   record.party.set_id(NewPartyId());
-  record.party.set_boss_key(request.boss_key());
-  record.party.set_difficulty_index(request.difficulty_index());
-  record.party.set_mode(request.mode() == PARTY_MODE_UNSPECIFIED
-                            ? PARTY_MODE_SHARED
-                            : request.mode());
   record.party.set_leader_account_id(player.account_id());
-  *record.party.add_members() = player;
+  *record.party.add_members()->mutable_player() = player;
 
   const std::string& id = record.party.id();
   party_of_[player.account_id()] = id;
@@ -95,13 +103,9 @@ LobbyResult Lobby::Join(const PlayerInfo& player, const std::string& party_id) {
   if (record.party.members_size() >= kMaxPartySize) {
     return Refusal(Refused::REASON_PARTY_FULL, "That party is full.");
   }
-  LobbyResult allowed = CheckFight(player, record.party.boss_key(),
-                                   record.party.difficulty_index());
-  if (!allowed.ok) {
-    return allowed;
-  }
 
-  *record.party.add_members() = player;
+  *record.party.add_members()->mutable_player() = player;
+  ClearReady(record.party);
   party_of_[player.account_id()] = party_id;
   NoteChanged(record.party);
   listing_changed_ = true;
@@ -118,27 +122,83 @@ LobbyResult Lobby::Leave(const std::string& account_id) {
   NoteChanged(record->party);
   party_of_.erase(account_id);
 
-  Party& party = record->party;
-  for (int i = 0; i < party.members_size(); ++i) {
-    if (party.members(i).account_id() == account_id) {
-      party.mutable_members()->DeleteSubrange(i, 1);
-      break;
-    }
-  }
-  std::string id = party.id();
-  if (party.members_size() == 0) {
+  std::string id = record->party.id();
+  if (!Remove(record->party, account_id)) {
     parties_.erase(id);
     order_.erase(std::remove(order_.begin(), order_.end(), id), order_.end());
-  } else if (party.leader_account_id() == account_id) {
-    // The one who joined first takes it over, so a party outlives whoever
-    // happened to make it.
-    party.set_leader_account_id(party.members(0).account_id());
   }
   listing_changed_ = true;
   return Done();
 }
 
-LobbyResult Lobby::Start(const std::string& account_id) {
+LobbyResult Lobby::SetReady(const std::string& account_id, bool ready) {
+  Record* record = Find(account_id);
+  if (record == nullptr) {
+    return Refusal(Refused::REASON_NOT_IN_PARTY, "You are not in a party.");
+  }
+  if (record->party.leader_account_id() == account_id) {
+    return Refusal(Refused::REASON_NOT_A_MEMBER,
+                   "The party leader is always ready.");
+  }
+  FindMember(record->party, account_id)->set_ready(ready);
+  NoteChanged(record->party);
+  return Done();
+}
+
+LobbyResult Lobby::Kick(const std::string& account_id,
+                        const std::string& target) {
+  Record* record = Find(account_id);
+  if (record == nullptr) {
+    return Refusal(Refused::REASON_NOT_IN_PARTY, "You are not in a party.");
+  }
+  if (record->party.leader_account_id() != account_id) {
+    return Refusal(Refused::REASON_NOT_LEADER,
+                   "Only the party leader can remove somebody.");
+  }
+  if (target == account_id) {
+    return Refusal(Refused::REASON_NOT_A_MEMBER,
+                   "Leave the party rather than removing yourself.");
+  }
+  if (FindMember(record->party, target) == nullptr) {
+    return Refusal(Refused::REASON_NOT_A_MEMBER, "They are not in your party.");
+  }
+
+  // The one being removed is told before they are, so they hear it as a
+  // member rather than as somebody the party no longer knows.
+  NoteChanged(record->party);
+  NoteEvent(target, PartyEvent::KICKED, "You were removed from the party.");
+  party_of_.erase(target);
+  Remove(record->party, target);
+  listing_changed_ = true;
+  return Done();
+}
+
+LobbyResult Lobby::Promote(const std::string& account_id,
+                           const std::string& target) {
+  Record* record = Find(account_id);
+  if (record == nullptr) {
+    return Refusal(Refused::REASON_NOT_IN_PARTY, "You are not in a party.");
+  }
+  if (record->party.leader_account_id() != account_id) {
+    return Refusal(Refused::REASON_NOT_LEADER,
+                   "Only the party leader can hand the party on.");
+  }
+  if (target == account_id) {
+    return Refusal(Refused::REASON_NOT_A_MEMBER, "You already lead the party.");
+  }
+  if (FindMember(record->party, target) == nullptr) {
+    return Refusal(Refused::REASON_NOT_A_MEMBER, "They are not in your party.");
+  }
+
+  record->party.set_leader_account_id(target);
+  ClearReady(record->party);
+  NoteChanged(record->party);
+  NoteEvent(target, PartyEvent::PROMOTED, "You are now the party leader.");
+  return Done();
+}
+
+LobbyResult Lobby::Start(const std::string& account_id,
+                         const StartFight& request) {
   Record* record = Find(account_id);
   if (record == nullptr) {
     return Refusal(Refused::REASON_NOT_IN_PARTY, "You are not in a party.");
@@ -151,6 +211,10 @@ LobbyResult Lobby::Start(const std::string& account_id) {
     return Refusal(Refused::REASON_FIGHT_STARTED,
                    "The fight has already started.");
   }
+  LobbyResult allowed = CheckFight(record->party, request);
+  if (!allowed.ok) {
+    return allowed;
+  }
   record->started = true;
   NoteChanged(record->party);
   listing_changed_ = true;
@@ -162,14 +226,13 @@ void Lobby::UpdatePlayer(const PlayerInfo& player) {
   if (record == nullptr) {
     return;
   }
-  for (PlayerInfo& member : *record->party.mutable_members()) {
-    if (member.account_id() == player.account_id()) {
-      member = player;
-      NoteChanged(record->party);
-      listing_changed_ = true;
-      return;
-    }
+  PartyMember* member = FindMember(record->party, player.account_id());
+  if (member == nullptr) {
+    return;
   }
+  *member->mutable_player() = player;
+  NoteChanged(record->party);
+  listing_changed_ = true;
 }
 
 void Lobby::Disconnect(const std::string& account_id) {
@@ -200,6 +263,12 @@ std::vector<std::string> Lobby::TakeChanged() {
   return taken;
 }
 
+std::vector<LobbyEvent> Lobby::TakeEvents() {
+  std::vector<LobbyEvent> taken;
+  taken.swap(events_);
+  return taken;
+}
+
 bool Lobby::TakeListingChanged() {
   bool changed = listing_changed_;
   listing_changed_ = false;
@@ -227,11 +296,10 @@ const Lobby::Record* Lobby::Find(const std::string& account_id) const {
   return found == parties_.end() ? nullptr : &found->second;
 }
 
-LobbyResult Lobby::CheckFight(const PlayerInfo& player,
-                              const std::string& boss_key,
-                              int difficulty_index) const {
+LobbyResult Lobby::CheckFight(const Party& party,
+                              const StartFight& request) const {
   const BossDifficulty* difficulty =
-      FindDifficulty(bosses_, boss_key, difficulty_index);
+      FindDifficulty(bosses_, request.boss_key(), request.difficulty_index());
   if (difficulty == nullptr) {
     return Refusal(Refused::REASON_UNKNOWN_BOSS,
                    "This server does not know that fight.");
@@ -239,17 +307,49 @@ LobbyResult Lobby::CheckFight(const PlayerInfo& player,
   if (difficulty->coming_soon()) {
     return Refusal(Refused::REASON_UNKNOWN_BOSS, "That fight is not open.");
   }
-  if (player.level() < difficulty->unlock_level()) {
-    return Refusal(Refused::REASON_LEVEL_TOO_LOW,
-                   absl::StrCat("Level ", difficulty->unlock_level(),
-                                " is needed for that fight."));
+  for (const PartyMember& member : party.members()) {
+    if (member.player().level() < difficulty->unlock_level()) {
+      return Refusal(Refused::REASON_LEVEL_TOO_LOW,
+                     absl::StrCat(member.player().name(), " is not level ",
+                                  difficulty->unlock_level(), " yet."));
+    }
   }
   return Done();
 }
 
+bool Lobby::Remove(Party& party, const std::string& account_id) {
+  for (int i = 0; i < party.members_size(); ++i) {
+    if (party.members(i).player().account_id() == account_id) {
+      party.mutable_members()->DeleteSubrange(i, 1);
+      break;
+    }
+  }
+  if (party.members_size() == 0) {
+    return false;
+  }
+  ClearReady(party);
+  if (party.leader_account_id() == account_id) {
+    // The one who joined first takes it over, so a party outlives whoever
+    // happened to make it.
+    const std::string& heir = party.members(0).player().account_id();
+    party.set_leader_account_id(heir);
+    NoteEvent(heir, PartyEvent::PROMOTED, "You are now the party leader.");
+  }
+  return true;
+}
+
+void Lobby::NoteEvent(const std::string& account_id, PartyEvent::Kind kind,
+                      const std::string& message) {
+  LobbyEvent event;
+  event.account_id = account_id;
+  event.event.set_kind(kind);
+  event.event.set_message(message);
+  events_.push_back(event);
+}
+
 void Lobby::NoteChanged(const Party& party) {
-  for (const PlayerInfo& member : party.members()) {
-    changed_.push_back(member.account_id());
+  for (const PartyMember& member : party.members()) {
+    changed_.push_back(member.player().account_id());
   }
 }
 

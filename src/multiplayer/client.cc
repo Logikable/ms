@@ -107,12 +107,9 @@ MultiplayerSnapshot MultiplayerClient::Snapshot() const {
   return snapshot_;
 }
 
-void MultiplayerClient::CreateParty(const std::string& boss_key,
-                                    int difficulty_index, PartyMode mode) {
+void MultiplayerClient::CreateParty() {
   ClientMessage message;
-  message.mutable_create_party()->set_boss_key(boss_key);
-  message.mutable_create_party()->set_difficulty_index(difficulty_index);
-  message.mutable_create_party()->set_mode(mode);
+  message.mutable_create_party();
   Ask(message);
 }
 
@@ -128,9 +125,30 @@ void MultiplayerClient::LeaveParty() {
   Ask(message);
 }
 
-void MultiplayerClient::StartFight() {
+void MultiplayerClient::SetReady(bool ready) {
   ClientMessage message;
-  message.mutable_start_fight();
+  message.mutable_set_ready()->set_ready(ready);
+  Ask(message);
+}
+
+void MultiplayerClient::Kick(const std::string& account_id) {
+  ClientMessage message;
+  message.mutable_kick_member()->set_account_id(account_id);
+  Ask(message);
+}
+
+void MultiplayerClient::Promote(const std::string& account_id) {
+  ClientMessage message;
+  message.mutable_promote_member()->set_account_id(account_id);
+  Ask(message);
+}
+
+void MultiplayerClient::StartFight(const std::string& boss_key,
+                                   int difficulty_index, PartyMode mode) {
+  ClientMessage message;
+  message.mutable_start_fight()->set_boss_key(boss_key);
+  message.mutable_start_fight()->set_difficulty_index(difficulty_index);
+  message.mutable_start_fight()->set_mode(mode);
   Ask(message);
 }
 
@@ -262,6 +280,14 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
       return;
     case ServerMessage::kRefused:
       snapshot_.notice = message.refused().message();
+      snapshot_.notice_is_refusal = true;
+      ++snapshot_.notice_serial;
+      return;
+    case ServerMessage::kPartyEvent:
+      // Down the same channel as a refusal: both are the server speaking to
+      // this player alone, and one screen shows either.
+      snapshot_.notice = message.party_event().message();
+      snapshot_.notice_is_refusal = false;
       ++snapshot_.notice_serial;
       return;
     case ServerMessage::kRejected:

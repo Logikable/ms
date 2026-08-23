@@ -93,13 +93,13 @@ TEST_F(SessionTest, IntroducesTheCharacterBeingPlayed) {
   session.Start(*state_);
   ASSERT_TRUE(WaitUntilConnected(session));
 
-  session.client().CreateParty("zakum", 0, PARTY_MODE_SHARED);
+  session.client().CreateParty();
   ASSERT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.party.members_size() == 1;
   }));
   MultiplayerSnapshot snapshot = session.Snapshot();
-  EXPECT_EQ(snapshot.party.members(0).name(), "Dagger");
-  EXPECT_EQ(snapshot.party.members(0).level(),
+  EXPECT_EQ(snapshot.party.members(0).player().name(), "Dagger");
+  EXPECT_EQ(snapshot.party.members(0).player().level(),
             state_->character.proto().level());
 }
 
@@ -107,7 +107,7 @@ TEST_F(SessionTest, TellsTheLobbyAboutANewName) {
   MultiplayerSession session = MakeSession();
   session.Start(*state_);
   ASSERT_TRUE(WaitUntilConnected(session));
-  session.client().CreateParty("zakum", 0, PARTY_MODE_SHARED);
+  session.client().CreateParty();
   ASSERT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.party.members_size() == 1;
   }));
@@ -115,7 +115,7 @@ TEST_F(SessionTest, TellsTheLobbyAboutANewName) {
   state_->character.SetUsername("Wand");
   EXPECT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.party.members_size() == 1 &&
-           snapshot.party.members(0).name() == "Wand";
+           snapshot.party.members(0).player().name() == "Wand";
   }));
 }
 

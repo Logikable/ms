@@ -26,12 +26,15 @@ ABSL_FLAG(int, level, 140, "The level to arrive at.");
 ABSL_FLAG(std::string, account, "", "An account id to come back as.");
 ABSL_FLAG(std::string, token, "", "The token that proves that account.");
 ABSL_FLAG(std::string, action, "watch",
-          "What to do once connected: watch, create, join, leave or start.");
-ABSL_FLAG(std::string, boss, "zakum", "Which boss --action=create names.");
+          "What to do once connected: watch, create, join, leave, ready, "
+          "unready, kick, promote or start.");
+ABSL_FLAG(std::string, boss, "zakum", "Which boss --action=start names.");
 ABSL_FLAG(int, difficulty, 0, "Which difficulty of it.");
 ABSL_FLAG(std::string, mode, "shared",
-          "How --action=create shares the drops: shared or solo.");
+          "How --action=start shares the drops: shared or solo.");
 ABSL_FLAG(std::string, party, "", "Which party --action=join names.");
+ABSL_FLAG(std::string, target, "",
+          "Whose account --action=kick or --action=promote names.");
 ABSL_FLAG(int, seconds, 10, "How long to watch for. 0 watches forever.");
 
 namespace {
@@ -53,16 +56,15 @@ const char* StateName(ms::ConnectionState state) {
 }
 
 std::string PartyLine(const ms::Party& party) {
-  std::string line =
-      party.id() + "  " + party.boss_key() + " #" +
-      std::to_string(party.difficulty_index()) + "  " +
-      (party.mode() == ms::PARTY_MODE_SOLO_TOGETHER ? "solo-together"
-                                                    : "shared");
-  for (const ms::PlayerInfo& member : party.members()) {
-    line += "\n    " + member.name() + " (Lv" + std::to_string(member.level()) +
+  std::string line = party.id();
+  for (const ms::PartyMember& member : party.members()) {
+    const ms::PlayerInfo& player = member.player();
+    line += "\n    " + player.name() + " (Lv" + std::to_string(player.level()) +
             ")";
-    if (member.account_id() == party.leader_account_id()) {
+    if (player.account_id() == party.leader_account_id()) {
       line += " [leader]";
+    } else if (member.ready()) {
+      line += " [ready]";
     }
   }
   return line;
@@ -78,7 +80,7 @@ std::string Describe(const ms::MultiplayerSnapshot& snapshot) {
   text += "\n  account: " + snapshot.account_id;
   text += "\n  token: " + snapshot.token;
   if (!snapshot.notice.empty()) {
-    text += "\n  refused: " + snapshot.notice;
+    text += "\n  notice: " + snapshot.notice;
   }
   text += "\n  in party: ";
   text += snapshot.party.id().empty() ? "(none)" : PartyLine(snapshot.party);
@@ -102,9 +104,7 @@ bool Act(ms::MultiplayerClient& client, const std::string& action) {
     return true;
   }
   if (action == "create") {
-    client.CreateParty(absl::GetFlag(FLAGS_boss),
-                       absl::GetFlag(FLAGS_difficulty),
-                       ParseMode(absl::GetFlag(FLAGS_mode)));
+    client.CreateParty();
     return true;
   }
   if (action == "join") {
@@ -115,8 +115,22 @@ bool Act(ms::MultiplayerClient& client, const std::string& action) {
     client.LeaveParty();
     return true;
   }
+  if (action == "ready" || action == "unready") {
+    client.SetReady(action == "ready");
+    return true;
+  }
+  if (action == "kick") {
+    client.Kick(absl::GetFlag(FLAGS_target));
+    return true;
+  }
+  if (action == "promote") {
+    client.Promote(absl::GetFlag(FLAGS_target));
+    return true;
+  }
   if (action == "start") {
-    client.StartFight();
+    client.StartFight(absl::GetFlag(FLAGS_boss),
+                      absl::GetFlag(FLAGS_difficulty),
+                      ParseMode(absl::GetFlag(FLAGS_mode)));
     return true;
   }
   return false;

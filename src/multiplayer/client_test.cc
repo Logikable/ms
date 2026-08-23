@@ -93,11 +93,10 @@ TEST_F(ClientTest, MakesAPartyEveryoneCanSee) {
   guest.Start(Player("Wand"), "");
   ASSERT_TRUE(WaitUntilConnected(guest));
 
-  host.CreateParty("zakum", 0, PARTY_MODE_SHARED);
+  host.CreateParty();
   ASSERT_TRUE(WaitFor(host, [](const MultiplayerSnapshot& snapshot) {
     return !snapshot.party.id().empty();
   }));
-  EXPECT_EQ(host.Snapshot().party.boss_key(), "zakum");
 
   ASSERT_TRUE(WaitFor(guest, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.parties.parties_size() == 1;
@@ -125,7 +124,7 @@ TEST_F(ClientTest, ShowsAPartyWhoItsMembersAreNow) {
   guest.Start(Player("Wand"), "");
   ASSERT_TRUE(WaitUntilConnected(guest));
 
-  host.CreateParty("zakum", 0, PARTY_MODE_SHARED);
+  host.CreateParty();
   ASSERT_TRUE(WaitFor(guest, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.parties.parties_size() == 1;
   }));
@@ -139,7 +138,7 @@ TEST_F(ClientTest, ShowsAPartyWhoItsMembersAreNow) {
   guest.SetPlayer(levelled);
   EXPECT_TRUE(WaitFor(host, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.party.members_size() == 2 &&
-           snapshot.party.members(1).level() == 200;
+           snapshot.party.members(1).player().level() == 200;
   }));
 }
 
@@ -148,11 +147,13 @@ TEST_F(ClientTest, PassesOnWhatTheServerWouldNotDo) {
   client.Start(Player("Dagger"), "");
   ASSERT_TRUE(WaitUntilConnected(client));
 
-  client.CreateParty("balrog", 0, PARTY_MODE_SHARED);
+  // Leaving a party the player is not in.
+  client.LeaveParty();
   ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.notice_serial == 1;
   }));
   EXPECT_FALSE(client.Snapshot().notice.empty());
+  EXPECT_TRUE(client.Snapshot().notice_is_refusal);
   EXPECT_TRUE(client.Snapshot().party.id().empty());
 }
 

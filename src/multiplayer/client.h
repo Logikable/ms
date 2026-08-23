@@ -61,11 +61,14 @@ struct MultiplayerSnapshot {
   PartyList parties;
   // The party this player is in. No id means they are in none.
   Party party;
-  // The last thing the server would not do, and a number that climbs with
-  // each one -- which is how a screen tells a new refusal from the one it has
-  // already shown.
+  // The last thing the server had to say to this player alone: an action it
+  // would not take, or something that happened to their place in a party. The
+  // serial climbs with each one, which is how a screen tells a new notice
+  // from the one it has already shown.
   std::string notice;
   int64_t notice_serial = 0;
+  // Whether that notice is a refusal, which is drawn as one.
+  bool notice_is_refusal = false;
 };
 
 class MultiplayerClient {
@@ -92,11 +95,14 @@ class MultiplayerClient {
 
   // Asks, queued for the connection thread to send. Each of them is answered
   // by the state in a later snapshot, or by a notice in one.
-  void CreateParty(const std::string& boss_key, int difficulty_index,
-                   PartyMode mode);
+  void CreateParty();
   void JoinParty(const std::string& party_id);
   void LeaveParty();
-  void StartFight();
+  void SetReady(bool ready);
+  void Kick(const std::string& account_id);
+  void Promote(const std::string& account_id);
+  void StartFight(const std::string& boss_key, int difficulty_index,
+                  PartyMode mode);
 
  private:
   // The thread's whole life: connect, talk, reconnect.
