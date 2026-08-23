@@ -24,14 +24,8 @@ constexpr char kColumnHeader[] =
     "  Name                      "  // 2 cursor + 26 name
     "  Equip Slot"                  // 2 sep + 10 slot
     "  Stats               "        // 2 sep + 20 info (10 atk + 10 main)
-    "  Scrolls";                    // 2 sep + label
-
-// Sub-header row: 64 spaces align "Pass/Left/Restore" under the scroll column.
-constexpr char kColumnHeader2[] =
-    "                              "  // 30
-    "                              "  // 30
-    "    "                            // 4 → 64 total
-    "Pass/Left/Restore";
+    "  Scroll"                      // 2 sep + 6 scroll
+    "  Star Force";                 // 2 sep + label
 
 }  // namespace
 
@@ -249,12 +243,11 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   return AccentWindow(" Equipped ",
                       ftxui::vbox({
                           ftxui::text(kColumnHeader),
-                          ftxui::text(kColumnHeader2),
                           PanelSeparator(highlighted_),
-                          // Only the items scroll; the two header rows and the
-                          // rule stay put. ftxui::Menu marks its selected
-                          // entry, which is what the frame scrolls to, so the
-                          // cursor cannot walk out of view.
+                          // Only the items scroll; the header row and the rule
+                          // stay put. ftxui::Menu marks its selected entry,
+                          // which is what the frame scrolls to, so the cursor
+                          // cannot walk out of view.
                           menu->Render() | ftxui::vscroll_indicator |
                               ftxui::yframe | ftxui::flex,
                       }),

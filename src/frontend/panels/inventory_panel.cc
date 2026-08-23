@@ -420,9 +420,8 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
   selected_ = std::min(selected_, character_.inventory().size() - 1);
   return ftxui::vbox({
       EquipHeader(),
-      EquipSubHeader(),
       PanelSeparator(highlighted_),
-      // Only the items scroll; the two header rows and the rule stay put.
+      // Only the items scroll; the header row and the rule stay put.
       // ftxui::Menu marks its selected entry, which is what the frame scrolls
       // to, so the cursor cannot walk out of view.
       menu->Render() | ftxui::vscroll_indicator | ftxui::yframe | ftxui::flex,

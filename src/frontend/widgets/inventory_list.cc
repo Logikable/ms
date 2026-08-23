@@ -18,9 +18,8 @@ constexpr char kColumnHeader[] =
     "  Name                      "  // 2 cursor + 26 name
     "  Equip Slot"                  // 2 sep + 10 slot
     "  Level  Job          "        // 2 sep + 20 info
-    "  Scrolls";                    // 2 sep + label
-// Aligns "Pass/Left/Restore" under the scroll column.
-constexpr int kScrollColumn = 64;
+    "  Scroll"                      // 2 sep + 6 scroll
+    "  Star Force";                 // 2 sep + label
 
 // Byte offsets into an Equip row's label:
 // name(26) | slot and padding(14) | level(7) | job(13) | rest
@@ -90,11 +89,6 @@ ftxui::Element EquipHeader(ftxui::Element lead, ftxui::Element tail,
                            int body_width) {
   return Row(std::move(lead), {ftxui::text(kColumnHeader)}, std::move(tail),
              body_width);
-}
-
-ftxui::Element EquipSubHeader(int lead_width) {
-  return ftxui::text(std::string(lead_width + kScrollColumn, ' ') +
-                     "Pass/Left/Restore");
 }
 
 ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,

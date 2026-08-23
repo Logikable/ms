@@ -22,7 +22,7 @@ constexpr int kTabs[] = {kEquipTab, kUseTab, kEtcTab};
 // sized by it and every tab keeps the price under the same column.
 constexpr int kMarkWidth = 6;
 constexpr int kPriceWidth = 11;
-constexpr int kEquipRowWidth = 71;
+constexpr int kEquipRowWidth = 82;
 // Both columns keep a space inside the border, as every panel does.
 constexpr int kContentWidth = kMarkWidth + kEquipRowWidth + 2 + kPriceWidth + 1;
 // The window is centred, so a box that shrank to a short tab's contents would
@@ -314,7 +314,6 @@ ftxui::Element MultiSellPanel::RenderEquipTab() {
   return ftxui::vbox({
       EquipHeader(ftxui::text(PadRight(" Sell", kMarkWidth)), TailCell("Price"),
                   kEquipRowWidth),
-      EquipSubHeader(kMarkWidth),
       ThemedSeparator(),
       ftxui::vbox(std::move(list)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::flex,

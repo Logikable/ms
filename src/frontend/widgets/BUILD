@@ -32,6 +32,7 @@ cc_library(
     deps = [
         ":colors",
         ":marquee",
+        "//src/item",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",

@@ -19,6 +19,11 @@
 
 namespace ms {
 
+// Wide enough for the widest list a panel draws. The game runs wider still;
+// a screen that clipped a column would fail tests over something no player
+// ever sees.
+constexpr int kTestScreenWidth = 100;
+
 // Shared fixture for panel tests. Provides c_ (level-1 Beginner character)
 // and sword_ (primary weapon slot, required level 10, Warrior only).
 class PanelTest : public testing::Test {
@@ -32,8 +37,8 @@ class PanelTest : public testing::Test {
   }
 
   static std::string RenderElement(ftxui::Element element) {
-    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Screen screen = ftxui::Screen::Create(
+        ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, element);
     return screen.ToString();
   }
@@ -109,8 +114,8 @@ class PanelTest : public testing::Test {
   // ask what the screen says; use RenderComponent only when the styling is
   // what is being asserted.
   static std::string RenderComponentText(ftxui::Component component) {
-    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Screen screen = ftxui::Screen::Create(
+        ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, component->Render());
     std::string out;
     for (int y = 0; y < screen.dimy(); ++y) {
@@ -124,8 +129,8 @@ class PanelTest : public testing::Test {
   }
 
   static std::string RenderComponent(ftxui::Component component) {
-    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                                 ftxui::Dimension::Fixed(20));
+    ftxui::Screen screen = ftxui::Screen::Create(
+        ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(20));
     ftxui::Render(screen, component->Render());
     return screen.ToString();
   }

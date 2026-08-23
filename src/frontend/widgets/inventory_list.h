@@ -54,12 +54,9 @@ std::vector<InventoryRowState> BuildEquipRows(
     const CharacterInstance& character, int selected,
     std::chrono::steady_clock::duration elapsed);
 
-// The two header rows over an Equip list. The second carries the scroll
-// column's "Pass/Left/Restore" and nothing else, so it takes the lead column's
-// width rather than the column itself.
+// The header row over an Equip list.
 ftxui::Element EquipHeader(ftxui::Element lead = nullptr,
                            ftxui::Element tail = nullptr, int body_width = 0);
-ftxui::Element EquipSubHeader(int lead_width = 0);
 
 // One Equip row with its cursor caret, drawn dim with the cell that says why
 // left bright and red when nothing can be done with the item. `lead` and

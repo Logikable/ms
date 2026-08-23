@@ -270,13 +270,14 @@ TEST_F(EquippedPanelTest, ShowsSelectionCursorByDefault) {
             std::string::npos);
 }
 
-// The Scrolls column is a ledger of slots, so an item with none says so
-// instead of reading three zeroes -- the same row the bag draws for it.
-TEST_F(EquippedPanelTest, TheScrollColumnReadsADashWithoutSlots) {
+// An upgrade the item refuses says so with a dash instead of a zero, which
+// would read as an upgrade standing ready -- the same row the bag draws.
+TEST_F(EquippedPanelTest, TheUpgradeColumnsReadADashWhenRefused) {
   EquipPrototype stars;
   stars.set_name("Subi Throwing-Stars");
   stars.set_equip_slot(EQUIP_SLOT_PROJECTILE);
   stars.add_unsupported_upgrades(UPGRADE_SCROLL);
+  stars.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
   sword_.set_upgrade_slots(7);
   c_.PickUp(std::make_unique<EquipInstance>(sword_));
   c_.PickUp(std::make_unique<EquipInstance>(stars));
@@ -285,8 +286,10 @@ TEST_F(EquippedPanelTest, TheScrollColumnReadsADashWithoutSlots) {
 
   EquippedPanel panel(c_, account_, panel_focus_);
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
-  EXPECT_NE(LineWith(rendered, "Sword").find("0/7/0"), std::string::npos);
-  EXPECT_EQ(LineWith(rendered, "Subi").find("/"), std::string::npos);
+  EXPECT_NE(LineWith(rendered, "Sword").find("+0"), std::string::npos);
+  EXPECT_NE(LineWith(rendered, "Sword").find("0\u2605"), std::string::npos);
+  EXPECT_EQ(LineWith(rendered, "Subi").find("+"), std::string::npos);
+  EXPECT_EQ(LineWith(rendered, "Subi").find("\u2605"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, ShowsColumnHeader) {
@@ -296,7 +299,8 @@ TEST_F(EquippedPanelTest, ShowsColumnHeader) {
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Name"), std::string::npos);
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
-  EXPECT_NE(rendered.find("Scrolls"), std::string::npos);
+  EXPECT_NE(rendered.find("Scroll"), std::string::npos);
+  EXPECT_NE(rendered.find("Star Force"), std::string::npos);
 }
 
 TEST_F(EquippedPanelTest, ShowsEquipSlotName) {

@@ -308,8 +308,9 @@ TEST_F(InventoryPanelTest, ARowNamesTheItemAndItsColumns) {
   EXPECT_NE(drawn.find("Weapon"), std::string::npos);
   EXPECT_NE(drawn.find("Lv10"), std::string::npos);
   EXPECT_NE(drawn.find("Warrior"), std::string::npos);
-  // Fresh item: 0 pass, 7 left, 0 restores.
-  EXPECT_NE(drawn.find("0/7/0"), std::string::npos);
+  // Fresh item: nothing passed, no stars.
+  EXPECT_NE(drawn.find("+0"), std::string::npos);
+  EXPECT_NE(drawn.find("0\u2605"), std::string::npos);
 }
 
 // A row whose item cannot be worn dims whole -- the same answer the skills tab
@@ -389,7 +390,8 @@ TEST_F(InventoryPanelTest, ShowsColumnHeader) {
   std::string rendered = RenderComponent(panel.MakeComponent([]() {}));
   EXPECT_NE(rendered.find("Name"), std::string::npos);
   EXPECT_NE(rendered.find("Equip Slot"), std::string::npos);
-  EXPECT_NE(rendered.find("Scrolls"), std::string::npos);
+  EXPECT_NE(rendered.find("Scroll"), std::string::npos);
+  EXPECT_NE(rendered.find("Star Force"), std::string::npos);
 }
 
 TEST_F(InventoryPanelTest, ShowsAllForUniversalItem) {
