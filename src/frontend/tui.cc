@@ -765,6 +765,13 @@ Panel Tui::FocusedPanel() const {
 }
 
 void Tui::NoticeProgress() {
+  // A level earned from a boss waits for the player to walk out of the fight.
+  // The card would otherwise land on top of the clear card and cover the
+  // reward it was earned from. The watcher is not asked at all, so the level
+  // is still there to be noticed on the way out.
+  if (controller_.in_boss_fight()) {
+    return;
+  }
   Progress progress = progress_watcher_.Notice(state_.character.proto());
   switch (progress.kind) {
     case kJobAdvanced:
