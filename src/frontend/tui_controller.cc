@@ -139,6 +139,9 @@ void TuiController::OpenMapSelect() {
 }
 
 bool TuiController::capturing_key() const {
+  if (char_panel_.editing_username()) {
+    return true;
+  }
   return screen_ == kKeybinds && keybinds_panel_.capturing();
 }
 

@@ -2548,6 +2548,19 @@ TEST_F(TuiControllerTest, EnterOnASlotTakesTheNextKeyPressed) {
   EXPECT_EQ(keys_->Translate(ftxui::Event::w), ftxui::Event::ArrowUp);
 }
 
+// The name field takes letters, so while it is open a key has to arrive as
+// the player pressed it rather than as whatever action it is bound to.
+TEST_F(TuiControllerTest, AnOpenNameFieldWantsTheRawKeys) {
+  ftxui::Component chars = char_panel_->MakeComponent([](StatField) {});
+  panel_focus_ = kCharPanel;
+  EXPECT_FALSE(controller_->capturing_key());
+  chars->OnEvent(ftxui::Event::ArrowUp);  // onto the username row
+  chars->OnEvent(ftxui::Event::Return);   // open the field
+  EXPECT_TRUE(controller_->capturing_key());
+  chars->OnEvent(ftxui::Event::Escape);
+  EXPECT_FALSE(controller_->capturing_key());
+}
+
 TEST_F(TuiControllerTest, EscapeClearsASlotAndThenLeaves) {
   OpenKeybinds();
   controller_->OnEvent(ftxui::Event::Return);

@@ -96,8 +96,10 @@ class TuiController {
   // clears the entry's gold; Settings opens its box over the corner.
   void OpenMenuEntry(MenuEntry entry);
 
-  // True while a keybind slot is waiting for the key it will take, which is
-  // when a key must reach the game as the player pressed it.
+  // True while a key must reach the game as the player pressed it rather than
+  // as the action it is bound to: a keybind slot waiting for the key it will
+  // take, or a text field waiting for a letter. Every action's first key is
+  // locked, so Enter, Escape and the arrows still work while it is true.
   bool capturing_key() const;
 
   // The stat the pending AP allocation targets, and its amount selector, for
