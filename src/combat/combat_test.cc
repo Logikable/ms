@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "src/character/exp_table.h"
+#include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/combat/loot.h"
 #include "src/game_state.h"
@@ -121,6 +122,69 @@ void Farm(GameState& state, double seconds) {
   for (double elapsed = 0.0; elapsed < seconds; elapsed += 1.0) {
     AdvanceCombat(state, sim, 1.0);
   }
+}
+
+// --- AwardCombatRewards ---
+
+// Paying a batch of kills in one call is what offline progress does with
+// hours of them. The tally is what a caller shows the player.
+TEST(AwardCombatRewardsTest, PaysABatchOfKillsAndTalliesThem) {
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatParams params = ComputeCombatParams(state);
+
+  RewardTally tally = AwardCombatRewards(state, params, {1000});
+
+  EXPECT_EQ(tally.exp, 3000);
+  EXPECT_GT(tally.meso, 0);
+  EXPECT_EQ(state.character.meso(), tally.meso);
+  ASSERT_EQ(tally.items.size(), 1u);
+  EXPECT_EQ(tally.items[0].name, "Green Snail Shell");
+  // Counted in units, not stacks: a thousand kills of a certain drop is a
+  // thousand shells however many stacks they were put into.
+  EXPECT_EQ(tally.items[0].count, 1000);
+  EXPECT_EQ(tally.items[0].discarded, 0);
+}
+
+// A full bag throws the rest away, and the tally says how many.
+TEST(AwardCombatRewardsTest, WhatTheBagCannotHoldIsCountedAsDiscarded) {
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}}, {{"field", OneSnailMap()}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatParams params = ComputeCombatParams(state);
+
+  // Far more than 128 slots of the item's max stack can hold.
+  int64_t kills = 100000000;
+  RewardTally tally = AwardCombatRewards(state, params, {kills});
+
+  ASSERT_EQ(tally.items.size(), 1u);
+  EXPECT_GT(tally.items[0].discarded, 0);
+  EXPECT_EQ(tally.items[0].count + tally.items[0].discarded, kills);
+}
+
+// Two mob types dropping the same item read as one line, not two.
+TEST(AwardCombatRewardsTest, OneLinePerItemAcrossMobTypes) {
+  Mob slime = SnailMob();
+  slime.set_name("Slime");
+  MapData map = OneSnailMap();
+  Spawn* second = map.add_spawns();
+  second->set_mob("slime");
+  second->set_count(6);
+
+  GameState state({}, {}, {{"green_snail_shell", GreenSnailShell()}},
+                  {{"snail", SnailMob()}, {"slime", slime}}, {{"field", map}});
+  state.current_map = "field";
+  EquipSword(state);
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.types.size(), 2u);
+
+  RewardTally tally = AwardCombatRewards(state, params, {10, 10});
+
+  ASSERT_EQ(tally.items.size(), 1u);
+  EXPECT_EQ(tally.items[0].count, 20);
 }
 
 TEST(AdvanceCombatTest, GrantsExpWhileFarming) {

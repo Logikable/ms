@@ -73,6 +73,7 @@ cc_test(
     srcs = ["combat_test.cc"],
     deps = [
         ":combat",
+        ":encounter",
         ":fight",
         ":loot",
         "//src:game_state",

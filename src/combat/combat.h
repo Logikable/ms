@@ -10,6 +10,8 @@
 #define MS_SRC_COMBAT_COMBAT_H_
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
@@ -34,6 +36,36 @@ void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds);
 // 0.1s spends almost all of its time here. See //analysis:progression_sim.
 void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
                    double elapsed_seconds);
+
+// One item a stretch of fighting yielded, for a caller reporting it. `count`
+// is in units rather than stacks -- fifty full stacks of a drop read as ten
+// thousand of it, which is what the player wants to know they picked up.
+struct RewardItem {
+  std::string name;
+  int64_t count = 0;
+  // How many of those the bag had no room for and were thrown away.
+  int64_t discarded = 0;
+};
+
+// What a stretch of fighting paid: the EXP, the meso, and the items. Filled
+// by AwardCombatRewards for whoever wants to show it; the live tick, which
+// shows nothing, drops it on the floor.
+struct RewardTally {
+  int64_t exp = 0;
+  int64_t meso = 0;
+  std::vector<RewardItem> items;  // in the order the drop tables list them
+};
+
+// Pays `kills` of each of `params`' mob types -- their EXP, their meso, their
+// drops -- and returns what was handed over. `kills` is indexed to match
+// params.types.
+//
+// Shared by the live tick, which pays for one step, and offline progress,
+// which pays for hours in one call. The rolls are batched either way (see
+// loot.h), so paying for a million kills at once costs no more than paying
+// for one and gives the same distribution.
+RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
+                               const std::vector<int64_t>& kills);
 
 // Hands `count` copies of one rolled drop to the character and returns how
 // many of them the bag had room for. A drop names either a stackable or an
