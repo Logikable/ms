@@ -22,7 +22,9 @@
 #include <string>
 #include <vector>
 
+#include "server/lobby.h"
 #include "src/net/socket.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
@@ -33,9 +35,11 @@ inline constexpr int kMaxSessions = 64;
 
 class Server {
  public:
-  // `listener` must be an open listening socket. `seed` fixes the stream the
-  // account ids are drawn from, so a test can say what it will be handed.
-  explicit Server(Socket listener, unsigned int seed = std::random_device()());
+  // `listener` must be an open listening socket. `bosses` is the fight
+  // catalog, owned by the caller and outliving the server. `seed` fixes the
+  // stream ids are drawn from, so a test can say what it will be handed.
+  Server(Socket listener, const std::map<std::string, Boss>& bosses,
+         unsigned int seed = std::random_device()());
 
   // One pass of the loop: wait up to `timeout` for a socket to be ready, take
   // what has arrived, send what is queued, and then let go of whatever the
@@ -76,6 +80,15 @@ class Server {
     std::chrono::steady_clock::time_point last_heard;
   };
 
+  // Closes the sessions the last pass finished with, telling the lobby about
+  // anyone who has gone, and drops the ones that have been quiet too long.
+  void DropFinished(std::chrono::steady_clock::time_point now);
+  // Sends everyone whatever the lobby changed: their own party to the players
+  // it moved, and the open list to everybody once it has.
+  void PublishLobby();
+  // The session `account_id` is playing on, or null if they have gone.
+  Session* FindSession(const std::string& account_id);
+
   // Takes whatever connections are waiting, up to kMaxSessions.
   void AcceptWaiting(std::chrono::steady_clock::time_point now);
   // Reads `session`, handling every whole message that has arrived. Returns
@@ -87,6 +100,8 @@ class Server {
   // Acts on one message from `session`.
   void Handle(Session& session, const ClientMessage& message);
   void HandleHello(Session& session, const Hello& hello);
+  // Answers one lobby ask, refusing it on the connection it came from.
+  void HandleLobby(Session& session, const ClientMessage& message);
 
   // Queues `message` for `session`.
   void Send(Session& session, const ServerMessage& message);
@@ -97,14 +112,16 @@ class Server {
   void Reject(Session& session, Rejected::Reason reason,
               const std::string& message);
 
+  // Queues the open party list for `session` alone, which is what a player
+  // arriving needs before anything changes.
+  void SendListing(Session& session);
+
   // The account `hello` claims, or a fresh one. Empty when the token does not
   // go with the id, which is the one way a Hello is turned away for anything
   // but its version.
   std::string ResolveAccount(const Hello& hello, std::string& token);
-  // A new id or token: hex, drawn from the server's own stream.
-  std::string NewId(int characters);
-
   Socket listener_;
+  Lobby lobby_;
   std::vector<std::unique_ptr<Session>> sessions_;
   int64_t next_session_id_ = 1;
   // Every account the server has seen since it started, and the token that

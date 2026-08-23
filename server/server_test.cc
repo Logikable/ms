@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -11,6 +12,7 @@
 
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
+#include "src/protos/boss.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
@@ -73,6 +75,22 @@ class TestClient {
   bool closed_ = false;
 };
 
+// One fight for the parties in these tests to name.
+std::map<std::string, Boss> Bosses() {
+  std::map<std::string, Boss> bosses;
+  Boss& zakum = bosses["zakum"];
+  zakum.set_name("Zakum");
+  zakum.add_difficulties()->set_name("Normal");
+  return bosses;
+}
+
+// What a client asks for when it wants that fight.
+ClientMessage CreatePartyMessage() {
+  ClientMessage message;
+  message.mutable_create_party()->set_boss_key("zakum");
+  return message;
+}
+
 class ServerTest : public ::testing::Test {
  protected:
   void SetUp() override {
@@ -80,7 +98,7 @@ class ServerTest : public ::testing::Test {
     std::optional<Socket> listener = Listen(0);
     ASSERT_TRUE(listener.has_value());
     port_ = LocalPort(*listener);
-    server_ = std::make_unique<Server>(std::move(*listener), 7);
+    server_ = std::make_unique<Server>(std::move(*listener), bosses_, 7);
   }
 
   // Runs the server until `ready` says the test can go on. False means it
@@ -104,18 +122,28 @@ class ServerTest : public ::testing::Test {
     return message;
   }
 
-  // A client that has been welcomed, with `welcome` filled in.
+  // Runs the server until `client` has a message of `kind`, passing over
+  // whatever else arrives first.
+  ServerMessage AwaitKind(TestClient& client, ServerMessage::KindCase kind) {
+    ServerMessage message;
+    EXPECT_TRUE(StepUntil(
+        [&]() { return client.Take(message) && message.kind_case() == kind; }));
+    return message;
+  }
+
+  // A client that has been welcomed and has read the list that came with it,
+  // so that the next list it sees is one something changed.
   std::unique_ptr<TestClient> Greeted(const std::string& name,
                                       Welcome* welcome) {
     std::unique_ptr<TestClient> client = std::make_unique<TestClient>();
     EXPECT_TRUE(client->Open(port_));
     client->SayHello(name);
-    ServerMessage message = Await(*client);
-    EXPECT_EQ(message.kind_case(), ServerMessage::kWelcome);
-    *welcome = message.welcome();
+    *welcome = AwaitKind(*client, ServerMessage::kWelcome).welcome();
+    AwaitKind(*client, ServerMessage::kPartyList);
     return client;
   }
 
+  std::map<std::string, Boss> bosses_ = Bosses();
   int port_ = 0;
   std::unique_ptr<Server> server_;
   // The clock the server is stepped against, moved by the tests that care.
@@ -203,7 +231,8 @@ TEST_F(ServerTest, AnswersAHeartbeat) {
   ClientMessage ping;
   ping.mutable_ping();
   client->Send(ping);
-  EXPECT_EQ(Await(*client).kind_case(), ServerMessage::kPong);
+  EXPECT_EQ(AwaitKind(*client, ServerMessage::kPong).kind_case(),
+            ServerMessage::kPong);
 }
 
 TEST_F(ServerTest, DropsASessionThatGoesQuiet) {
@@ -220,14 +249,93 @@ TEST_F(ServerTest, SendsEveryoneAwayWhenDraining) {
   std::unique_ptr<TestClient> client = Greeted("Dagger", &welcome);
 
   server_->Drain();
-  ServerMessage message = Await(*client);
-  ASSERT_EQ(message.kind_case(), ServerMessage::kRejected);
+  ServerMessage message = AwaitKind(*client, ServerMessage::kRejected);
   EXPECT_EQ(message.rejected().reason(), Rejected::REASON_MAINTENANCE);
   EXPECT_TRUE(StepUntil([&]() { return server_->drained(); }));
 
   // Nobody new is taken on while it is going down.
   TestClient late;
   EXPECT_FALSE(late.Open(port_));
+}
+
+TEST_F(ServerTest, ShowsTheListToAPlayerArriving) {
+  TestClient client;
+  ASSERT_TRUE(client.Open(port_));
+  client.SayHello("Dagger");
+
+  // The welcome is followed by what there is to join, so a player arriving
+  // has the lobby without asking for it.
+  AwaitKind(client, ServerMessage::kWelcome);
+  ServerMessage listing = AwaitKind(client, ServerMessage::kPartyList);
+  EXPECT_EQ(listing.party_list().parties_size(), 0);
+}
+
+TEST_F(ServerTest, PutsAPartyInFrontOfEverybody) {
+  Welcome first_welcome;
+  std::unique_ptr<TestClient> first = Greeted("Dagger", &first_welcome);
+  Welcome second_welcome;
+  std::unique_ptr<TestClient> second = Greeted("Wand", &second_welcome);
+
+  first->Send(CreatePartyMessage());
+  ServerMessage state = AwaitKind(*first, ServerMessage::kPartyState);
+  ASSERT_EQ(state.party_state().party().members_size(), 1);
+  EXPECT_EQ(state.party_state().party().members(0).name(), "Dagger");
+  std::string party_id = state.party_state().party().id();
+
+  ServerMessage listing = AwaitKind(*second, ServerMessage::kPartyList);
+  ASSERT_EQ(listing.party_list().parties_size(), 1);
+  EXPECT_EQ(listing.party_list().parties(0).id(), party_id);
+
+  ClientMessage join;
+  join.mutable_join_party()->set_party_id(party_id);
+  second->Send(join);
+  ServerMessage joined = AwaitKind(*second, ServerMessage::kPartyState);
+  EXPECT_EQ(joined.party_state().party().members_size(), 2);
+  // The one who made it is told as well.
+  ServerMessage changed = AwaitKind(*first, ServerMessage::kPartyState);
+  EXPECT_EQ(changed.party_state().party().members_size(), 2);
+}
+
+TEST_F(ServerTest, RefusesAPartyItCannotMake) {
+  Welcome welcome;
+  std::unique_ptr<TestClient> client = Greeted("Dagger", &welcome);
+
+  ClientMessage message;
+  message.mutable_create_party()->set_boss_key("balrog");
+  client->Send(message);
+
+  ServerMessage refused = AwaitKind(*client, ServerMessage::kRefused);
+  EXPECT_EQ(refused.refused().reason(), Refused::REASON_UNKNOWN_BOSS);
+  EXPECT_FALSE(refused.refused().message().empty());
+}
+
+TEST_F(ServerTest, CutsALongNameDown) {
+  TestClient client;
+  ASSERT_TRUE(client.Open(port_));
+  client.SayHello("A Very Long Name Indeed");
+  ASSERT_EQ(AwaitKind(client, ServerMessage::kWelcome).kind_case(),
+            ServerMessage::kWelcome);
+
+  client.Send(CreatePartyMessage());
+  ServerMessage state = AwaitKind(client, ServerMessage::kPartyState);
+  ASSERT_EQ(state.party_state().party().members_size(), 1);
+  EXPECT_EQ(state.party_state().party().members(0).name(), "A Very Long ");
+}
+
+TEST_F(ServerTest, TakesAPartyWithThePlayerWhoLeft) {
+  Welcome first_welcome;
+  std::unique_ptr<TestClient> first = Greeted("Dagger", &first_welcome);
+  Welcome second_welcome;
+  std::unique_ptr<TestClient> second = Greeted("Wand", &second_welcome);
+
+  first->Send(CreatePartyMessage());
+  ASSERT_EQ(
+      AwaitKind(*second, ServerMessage::kPartyList).party_list().parties_size(),
+      1);
+
+  first.reset();
+  ServerMessage listing = AwaitKind(*second, ServerMessage::kPartyList);
+  EXPECT_EQ(listing.party_list().parties_size(), 0);
 }
 
 }  // namespace

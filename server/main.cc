@@ -1,4 +1,5 @@
 #include <csignal>
+#include <map>
 #include <optional>
 #include <string>
 #include <utility>
@@ -8,8 +9,11 @@
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
 #include "server/server.h"
+#include "src/embedded_data.h"
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
+#include "src/proto_loader.h"
+#include "src/protos/boss.pb.h"
 
 ABSL_FLAG(int, port, ms::kServerPort, "The port to listen on.");
 
@@ -42,7 +46,11 @@ int main(int argc, char** argv) {
     LOG(ERROR) << "Could not listen on port " << port;
     return 1;
   }
-  ms::Server server(std::move(*listener));
+  // The fight catalog, compiled in exactly as the game's is: the server has
+  // to know what a party means by "Normal Zakum" to let them at it.
+  std::map<std::string, ms::Boss> bosses =
+      ms::LoadTextProtoMap<ms::Boss>(ms::EmbeddedBosses());
+  ms::Server server(std::move(*listener), bosses);
   LOG(INFO) << "Listening on port " << port << ", protocol version "
             << ms::kMultiplayerVersion;
 

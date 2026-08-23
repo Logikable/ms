@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "absl/log/log.h"
+#include "server/ids.h"
+#include "server/lobby.h"
 #include "src/character/character.h"
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
@@ -44,8 +46,9 @@ std::string DisplayName(const std::string& name) {
 
 }  // namespace
 
-Server::Server(Socket listener, unsigned int seed)
-    : listener_(std::move(listener)), rng_(seed) {
+Server::Server(Socket listener, const std::map<std::string, Boss>& bosses,
+               unsigned int seed)
+    : listener_(std::move(listener)), lobby_(bosses, seed), rng_(seed) {
 }
 
 void Server::Step(std::chrono::steady_clock::time_point now,
@@ -79,24 +82,34 @@ void Server::Step(std::chrono::steady_clock::time_point now,
   size_t polled = targets.size() - next;
   for (size_t i = 0; i < polled; ++i) {
     Session& session = *sessions_[i];
-    const PollTarget& target = targets[next + i];
-    bool live = true;
-    if (target.readable || target.closed) {
-      live = ReadSession(session, now);
-    }
-    if (live && (target.writable || !session.outgoing.empty())) {
-      live = WriteSession(session);
-    }
-    if (!live) {
-      session.socket.Close();
+    if (targets[next + i].readable || targets[next + i].closed) {
+      if (!ReadSession(session, now)) {
+        session.socket.Close();
+      }
     }
   }
+  // Before the writes, so that whatever the reads changed goes out in the
+  // same pass rather than a poll later.
+  PublishLobby();
+  for (const std::unique_ptr<Session>& session : sessions_) {
+    if (session->socket.valid() && !session->outgoing.empty() &&
+        !WriteSession(*session)) {
+      session->socket.Close();
+    }
+  }
+  DropFinished(now);
+}
 
+void Server::DropFinished(std::chrono::steady_clock::time_point now) {
   for (const std::unique_ptr<Session>& session : sessions_) {
     if (session->socket.valid() && session->greeted &&
         now - session->last_heard > kSessionTimeout) {
       LOG(INFO) << "Session " << session->id << " went quiet";
       session->socket.Close();
+    }
+    if (!session->socket.valid() && !session->account_id.empty()) {
+      lobby_.Disconnect(session->account_id);
+      session->account_id.clear();
     }
   }
   sessions_.erase(std::remove_if(sessions_.begin(), sessions_.end(),
@@ -104,6 +117,41 @@ void Server::Step(std::chrono::steady_clock::time_point now,
                                    return !session->socket.valid();
                                  }),
                   sessions_.end());
+  // A player leaving changes what the others can see, and the sessions left
+  // to tell are the ones still here.
+  PublishLobby();
+}
+
+void Server::PublishLobby() {
+  for (const std::string& account : lobby_.TakeChanged()) {
+    Session* session = FindSession(account);
+    if (session == nullptr) {
+      continue;
+    }
+    ServerMessage state;
+    *state.mutable_party_state()->mutable_party() = lobby_.StateFor(account);
+    Send(*session, state);
+  }
+  if (!lobby_.TakeListingChanged()) {
+    return;
+  }
+  ServerMessage listing;
+  *listing.mutable_party_list() = lobby_.Listed();
+  for (const std::unique_ptr<Session>& session : sessions_) {
+    if (session->greeted && !session->closing && session->socket.valid()) {
+      Send(*session, listing);
+    }
+  }
+}
+
+Server::Session* Server::FindSession(const std::string& account_id) {
+  for (const std::unique_ptr<Session>& session : sessions_) {
+    if (session->socket.valid() && !session->closing &&
+        session->account_id == account_id) {
+      return session.get();
+    }
+  }
+  return nullptr;
 }
 
 void Server::Drain() {
@@ -202,10 +250,36 @@ void Server::Handle(Session& session, const ClientMessage& message) {
     case ClientMessage::kHello:
       Reject(session, Rejected::REASON_MALFORMED, "Already greeted.");
       return;
-    default:
-      // The lobby lands in the commit after this one.
-      Refuse(session, Refused::REASON_UNSPECIFIED, "Parties are not open.");
+    case ClientMessage::KIND_NOT_SET:
+      Reject(session, Rejected::REASON_MALFORMED, "Empty message.");
       return;
+    default:
+      HandleLobby(session, message);
+      return;
+  }
+}
+
+void Server::HandleLobby(Session& session, const ClientMessage& message) {
+  LobbyResult result;
+  switch (message.kind_case()) {
+    case ClientMessage::kCreateParty:
+      result = lobby_.Create(session.player, message.create_party());
+      break;
+    case ClientMessage::kJoinParty:
+      result = lobby_.Join(session.player, message.join_party().party_id());
+      break;
+    case ClientMessage::kLeaveParty:
+      result = lobby_.Leave(session.account_id);
+      break;
+    case ClientMessage::kStartFight:
+      result = lobby_.Start(session.account_id);
+      break;
+    default:
+      Reject(session, Rejected::REASON_MALFORMED, "Unknown message.");
+      return;
+  }
+  if (!result.ok) {
+    Refuse(session, result.reason, result.message);
   }
 }
 
@@ -235,8 +309,15 @@ void Server::HandleHello(Session& session, const Hello& hello) {
   welcome.mutable_welcome()->set_account_id(account);
   welcome.mutable_welcome()->set_token(token);
   Send(session, welcome);
+  SendListing(session);
   LOG(INFO) << "Session " << session.id << " is " << session.player.name()
             << " (" << account << "), level " << session.player.level();
+}
+
+void Server::SendListing(Session& session) {
+  ServerMessage listing;
+  *listing.mutable_party_list() = lobby_.Listed();
+  Send(session, listing);
 }
 
 void Server::Send(Session& session, const ServerMessage& message) {
@@ -270,8 +351,8 @@ void Server::Reject(Session& session, Rejected::Reason reason,
 std::string Server::ResolveAccount(const Hello& hello, std::string& token) {
   const std::string& claimed = hello.player().account_id();
   if (claimed.empty()) {
-    std::string account = NewId(kAccountIdCharacters);
-    token = NewId(kTokenCharacters);
+    std::string account = RandomHexId(rng_, kAccountIdCharacters);
+    token = RandomHexId(rng_, kTokenCharacters);
     tokens_[account] = token;
     return account;
   }
@@ -279,7 +360,8 @@ std::string Server::ResolveAccount(const Hello& hello, std::string& token) {
   if (known == tokens_.end()) {
     // An account from before a restart. Adopting it costs nothing and keeps
     // the player's identity across an update.
-    token = hello.token().empty() ? NewId(kTokenCharacters) : hello.token();
+    token = hello.token().empty() ? RandomHexId(rng_, kTokenCharacters)
+                                  : hello.token();
     tokens_[claimed] = token;
     return claimed;
   }
@@ -288,17 +370,6 @@ std::string Server::ResolveAccount(const Hello& hello, std::string& token) {
   }
   token = known->second;
   return claimed;
-}
-
-std::string Server::NewId(int characters) {
-  constexpr char kDigits[] = "0123456789abcdef";
-  std::uniform_int_distribution<int> digit(0, 15);
-  std::string id;
-  id.reserve(characters);
-  for (int i = 0; i < characters; ++i) {
-    id.push_back(kDigits[digit(rng_)]);
-  }
-  return id;
 }
 
 }  // namespace ms
