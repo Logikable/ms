@@ -17,3 +17,31 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "client",
+    srcs = ["client.cc"],
+    hdrs = ["client.h"],
+    deps = [
+        ":protocol",
+        "//src/net:socket",
+        "//src/protos:multiplayer_proto_cc",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+# The client against the real server: the one test that proves both ends of
+# the protocol agree. It is the only thing under //src that depends on the
+# server, and only because a test may.
+cc_test(
+    name = "client_test",
+    srcs = ["client_test.cc"],
+    deps = [
+        ":client",
+        "//server",
+        "//src/net:socket",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)

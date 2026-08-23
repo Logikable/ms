@@ -67,6 +67,23 @@ cc_binary(
     ],
 )
 
+# A headless client for driving a running server by hand. It lives here
+# rather than beside the game because it is a tool for the server, not
+# something a player runs.
+cc_binary(
+    name = "probe",
+    srcs = ["probe.cc"],
+    deps = [
+        "//src/multiplayer:client",
+        "//src/multiplayer:protocol",
+        "//src/protos:multiplayer_proto_cc",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:initialize",
+    ],
+)
+
 cc_test(
     name = "server_test",
     srcs = ["server_test.cc"],

@@ -1,0 +1,222 @@
+#include "src/multiplayer/client.h"
+
+#include <gtest/gtest.h>
+
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <thread>
+#include <utility>
+
+#include "server/server.h"
+#include "src/net/socket.h"
+#include "src/protos/boss.pb.h"
+#include "src/protos/multiplayer.pb.h"
+
+namespace ms {
+namespace {
+
+using ::std::chrono::milliseconds;
+
+constexpr milliseconds kPatience(4000);
+constexpr milliseconds kServerStep(5);
+
+std::map<std::string, Boss> Bosses() {
+  std::map<std::string, Boss> bosses;
+  Boss& zakum = bosses["zakum"];
+  zakum.set_name("Zakum");
+  zakum.add_difficulties()->set_name("Normal");
+  return bosses;
+}
+
+// A real server on the loopback, stepped on a thread of its own. Only that
+// thread touches it, which is the one rule the server has.
+class TestServer {
+ public:
+  bool Start() {
+    if (!StartSockets()) {
+      return false;
+    }
+    std::optional<Socket> listener = Listen(0);
+    if (!listener.has_value()) {
+      return false;
+    }
+    port_ = LocalPort(*listener);
+    running_ = true;
+    thread_ = std::thread([this, socket = std::move(*listener)]() mutable {
+      Server server(std::move(socket), bosses_, 3);
+      while (running_) {
+        server.Step(std::chrono::steady_clock::now(), kServerStep);
+      }
+    });
+    return true;
+  }
+
+  void Stop() {
+    running_ = false;
+    if (thread_.joinable()) {
+      thread_.join();
+    }
+  }
+
+  ~TestServer() {
+    Stop();
+  }
+
+  int port() const {
+    return port_;
+  }
+
+ private:
+  std::map<std::string, Boss> bosses_ = Bosses();
+  std::atomic<bool> running_{false};
+  int port_ = 0;
+  std::thread thread_;
+};
+
+PlayerInfo Player(const std::string& name, const std::string& account_id = "") {
+  PlayerInfo player;
+  player.set_name(name);
+  player.set_level(140);
+  player.set_account_id(account_id);
+  return player;
+}
+
+// Waits for the client to reach the state the test is after.
+bool WaitFor(const MultiplayerClient& client,
+             const std::function<bool(const MultiplayerSnapshot&)>& ready) {
+  std::chrono::steady_clock::time_point deadline =
+      std::chrono::steady_clock::now() + kPatience;
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (ready(client.Snapshot())) {
+      return true;
+    }
+    std::this_thread::sleep_for(milliseconds(2));
+  }
+  return false;
+}
+
+bool WaitUntilConnected(const MultiplayerClient& client) {
+  return WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.state == ConnectionState::kConnected;
+  });
+}
+
+class ClientTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    ASSERT_TRUE(server_.Start());
+  }
+
+  TestServer server_;
+};
+
+TEST_F(ClientTest, ConnectsAndIsWelcomed) {
+  MultiplayerClient client("127.0.0.1", server_.port());
+  client.Start(Player("Dagger"), "");
+
+  ASSERT_TRUE(WaitUntilConnected(client));
+  MultiplayerSnapshot snapshot = client.Snapshot();
+  EXPECT_FALSE(snapshot.account_id.empty());
+  EXPECT_FALSE(snapshot.token.empty());
+  EXPECT_TRUE(snapshot.message.empty());
+  EXPECT_EQ(snapshot.parties.parties_size(), 0);
+}
+
+TEST_F(ClientTest, ComesBackAsTheSameAccount) {
+  std::string account;
+  std::string token;
+  {
+    MultiplayerClient first("127.0.0.1", server_.port());
+    first.Start(Player("Dagger"), "");
+    ASSERT_TRUE(WaitUntilConnected(first));
+    account = first.Snapshot().account_id;
+    token = first.Snapshot().token;
+  }
+
+  MultiplayerClient second("127.0.0.1", server_.port());
+  second.Start(Player("Dagger", account), token);
+  ASSERT_TRUE(WaitUntilConnected(second));
+  EXPECT_EQ(second.Snapshot().account_id, account);
+}
+
+TEST_F(ClientTest, MakesAPartyEveryoneCanSee) {
+  MultiplayerClient host("127.0.0.1", server_.port());
+  host.Start(Player("Dagger"), "");
+  ASSERT_TRUE(WaitUntilConnected(host));
+  MultiplayerClient guest("127.0.0.1", server_.port());
+  guest.Start(Player("Wand"), "");
+  ASSERT_TRUE(WaitUntilConnected(guest));
+
+  host.CreateParty("zakum", 0, PARTY_MODE_SHARED);
+  ASSERT_TRUE(WaitFor(host, [](const MultiplayerSnapshot& snapshot) {
+    return !snapshot.party.id().empty();
+  }));
+  EXPECT_EQ(host.Snapshot().party.boss_key(), "zakum");
+
+  ASSERT_TRUE(WaitFor(guest, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.parties.parties_size() == 1;
+  }));
+  std::string party_id = guest.Snapshot().parties.parties(0).id();
+  guest.JoinParty(party_id);
+  ASSERT_TRUE(WaitFor(guest, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 2;
+  }));
+
+  guest.LeaveParty();
+  ASSERT_TRUE(WaitFor(guest, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.id().empty();
+  }));
+  EXPECT_TRUE(WaitFor(host, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 1;
+  }));
+}
+
+TEST_F(ClientTest, PassesOnWhatTheServerWouldNotDo) {
+  MultiplayerClient client("127.0.0.1", server_.port());
+  client.Start(Player("Dagger"), "");
+  ASSERT_TRUE(WaitUntilConnected(client));
+
+  client.CreateParty("balrog", 0, PARTY_MODE_SHARED);
+  ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.notice_serial == 1;
+  }));
+  EXPECT_FALSE(client.Snapshot().notice.empty());
+  EXPECT_TRUE(client.Snapshot().party.id().empty());
+}
+
+TEST_F(ClientTest, KeepsTryingWhenNobodyAnswers) {
+  // A port that was listening and is not any more.
+  std::optional<Socket> listener = Listen(0);
+  ASSERT_TRUE(listener.has_value());
+  int dead_port = LocalPort(*listener);
+  listener->Close();
+
+  MultiplayerClient client("127.0.0.1", dead_port);
+  client.Start(Player("Dagger"), "");
+  ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.state == ConnectionState::kUnavailable;
+  }));
+  EXPECT_FALSE(client.Snapshot().message.empty());
+}
+
+TEST_F(ClientTest, StopsWhenToldToUpdate) {
+  MultiplayerClient client("127.0.0.1", server_.port(),
+                           kMultiplayerVersion + 1);
+  client.Start(Player("Dagger"), "");
+
+  ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.state == ConnectionState::kRefused;
+  }));
+  EXPECT_FALSE(client.Snapshot().message.empty());
+  // It stays refused rather than going round again.
+  std::this_thread::sleep_for(milliseconds(100));
+  EXPECT_EQ(client.Snapshot().state, ConnectionState::kRefused);
+}
+
+}  // namespace
+}  // namespace ms

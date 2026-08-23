@@ -34,6 +34,13 @@ constexpr char kMaintenanceMessage[] =
 constexpr int kAccountIdCharacters = 16;
 constexpr int kTokenCharacters = 32;
 
+// A second stream out of one seed. The lobby draws party ids and the server
+// draws account ids; seeded alike, the two hand out the same strings, which
+// reads as a bug even though it is not.
+unsigned int OtherStream(unsigned int seed) {
+  return seed ^ 0x9e3779b9u;
+}
+
 // The name a player is shown under when they send one that cannot be used.
 constexpr char kFallbackName[] = "Adventurer";
 
@@ -48,7 +55,9 @@ std::string DisplayName(const std::string& name) {
 
 Server::Server(Socket listener, const std::map<std::string, Boss>& bosses,
                unsigned int seed)
-    : listener_(std::move(listener)), lobby_(bosses, seed), rng_(seed) {
+    : listener_(std::move(listener)),
+      lobby_(bosses, OtherStream(seed)),
+      rng_(seed) {
 }
 
 void Server::Step(std::chrono::steady_clock::time_point now,
