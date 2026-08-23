@@ -143,3 +143,14 @@ cc_proto_library(
     name = "save_proto_cc",
     deps = [":save_proto"],
 )
+
+proto_library(
+    name = "multiplayer_proto",
+    srcs = ["multiplayer.proto"],
+    deps = [":character_proto"],
+)
+
+cc_proto_library(
+    name = "multiplayer_proto_cc",
+    deps = [":multiplayer_proto"],
+)
