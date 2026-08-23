@@ -35,6 +35,21 @@ cc_test(
 )
 
 cc_library(
+    name = "battle_analysis",
+    srcs = ["battle_analysis.cc"],
+    hdrs = ["battle_analysis.h"],
+)
+
+cc_test(
+    name = "battle_analysis_test",
+    srcs = ["battle_analysis_test.cc"],
+    deps = [
+        ":battle_analysis",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "loot",
     srcs = ["loot.cc"],
     hdrs = ["loot.h"],
