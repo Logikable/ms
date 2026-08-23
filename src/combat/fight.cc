@@ -345,34 +345,34 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source) {
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
-    queue_[j].hp -=
-        DamageToMob(attack, j, LandingAt(j, gain * freeze)) * gain * freeze;
+    Hurt(queue_[j],
+         DamageToMob(attack, j, LandingAt(j, gain * freeze)) * gain * freeze);
   }
   for (int j : lead) {
     double damage = attack.lead_damage[queue_[j].type] *
                     RollFactor(attack.lead_rolls, rng_, LineSink());
     RecordRolls(LandingAt(j, freeze),
                 attack.lead_damage[queue_[j].type] * freeze);
-    queue_[j].hp -= damage * freeze;
+    Hurt(queue_[j], damage * freeze);
   }
   // A Final Attack rolls separately against every enemy the swing reached, so
   // in expectation each of them takes it.
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
-      queue_[j].hp -= RolledFinalAttack(attack.final_attack_rolls,
+      Hurt(queue_[j], RolledFinalAttack(attack.final_attack_rolls,
                                         attack.final_attack_damage,
                                         queue_[j].type, LandingAt(j, freeze)) *
-                      freeze;
+                          freeze);
     }
   }
   // Blizzard's rolls once for the swing and falls on one enemy, whatever the
   // swing reached. The first in the queue is as good as any: nothing here has
   // a position, so no enemy is nearer than another.
   if (hit > 0 && !attack.single_final_attack_damage.empty()) {
-    queue_[0].hp -= RolledFinalAttack(attack.single_final_attack_rolls,
+    Hurt(queue_[0], RolledFinalAttack(attack.single_final_attack_rolls,
                                       attack.single_final_attack_damage,
                                       queue_[0].type, LandingAt(0, freeze)) *
-                    freeze;
+                        freeze);
   }
   double recovered = RollProcs(attack, hit);
   // Marked before the dead are cleared, so the indices the swing reached are
@@ -400,9 +400,9 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
     if (!fires(rng_)) {
       continue;
     }
-    queue_[0].hp -= RolledDamage(attack, queue_[0].type,
+    Hurt(queue_[0], RolledDamage(attack, queue_[0].type,
                                  LandingAt(0, proc.damage_pct * boost)) *
-                    proc.damage_pct * boost;
+                        proc.damage_pct * boost);
     recovered += proc.hp_recover_pct;
   }
   return recovered;
@@ -496,6 +496,11 @@ std::vector<LineRoll>* CombatSim::LineSink() {
   return record_lines_ ? &line_rolls_ : nullptr;
 }
 
+void CombatSim::Hurt(QueuedMob& mob, double damage) {
+  mob.hp -= damage;
+  damage_this_step_ += damage;
+}
+
 void CombatSim::Reap() {
   std::vector<QueuedMob> survivors;
   survivors.reserve(queue_.size());
@@ -563,7 +568,7 @@ void CombatSim::RunDots(double dt) {
         dot.phase -= dot.interval_seconds;
         // Every helping ticks for the whole damage, and each rolls its own.
         for (int i = 0; i < dot.stacks; ++i) {
-          mob.hp -= dot.damage * RollFactor(dot.rolls, rng_, LineSink());
+          Hurt(mob, dot.damage * RollFactor(dot.rolls, rng_, LineSink()));
           // A tick is its own landing: it falls on its own clock, between the
           // swings rather than with one.
           RecordRolls(
@@ -745,6 +750,7 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
     return;
   }
   respawn_phase_ -= params.respawn_seconds;
+  respawned_this_step_ = true;
   bool was_idle = queue_.empty();
   TopUp(params);
   // Every beat hands back a slice of the pool, cleared map or not. It is the
@@ -819,7 +825,7 @@ void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
     return;
   }
   QueuedMob& front = queue_.front();
-  front.hp -= params.damage_reflect_pct * damage_taken;
+  Hurt(front, params.damage_reflect_pct * damage_taken);
   if (front.hp > 0.0) {
     return;
   }
@@ -1147,6 +1153,8 @@ void CombatSim::PublishTarget(const CombatParams& params) {
 void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   active_ = params.active;
   kills_this_step_.assign(params.types.size(), 0);
+  damage_this_step_ = 0.0;
+  respawned_this_step_ = false;
   died_this_step_ = false;
   record_lines_ = params.record_damage_lines;
   damage_lines_this_step_.clear();

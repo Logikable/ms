@@ -2845,5 +2845,56 @@ TEST(CombatSimTest, ABurnTickIsItsOwnEvent) {
   EXPECT_DOUBLE_EQ(lines[1].damage, 40.0);
 }
 
+// Damage is counted whether or not the lines are being recorded, and it counts
+// what the swing rolled rather than what the mob had left.
+TEST(CombatSimTest, DamageThisStepCountsOverkill) {
+  Mob mob = MakeMob("Snail", 10);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 250.0, 1)});
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 250.0);
+  EXPECT_EQ(sim.kills_this_step()[0], 1);
+
+  // A step that swings at nothing does no damage, and the count does not
+  // carry over from the step that did.
+  sim.Advance(params, 0.1);
+  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 0.0);
+}
+
+// A burn ticking between swings is damage the character dealt.
+TEST(CombatSimTest, DamageThisStepCountsBurnTicks) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&mob, 25.0, 1)});
+  params.dot_count = 1;
+  DotApplication burn;
+  burn.damage = {40.0};
+  burn.interval_seconds = 0.25;
+  burn.duration_seconds = 10.0;
+  burn.slot = 0;
+  params.attacks[0].dots.push_back(burn);
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);  // the swing lights it
+  sim.Advance(params, 0.6);  // two ticks, no swing
+  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 80.0);
+}
+
+// The beat is flagged on the step it comes round, and on no other.
+TEST(CombatSimTest, TheRespawnBeatIsFlaggedOnItsStep) {
+  Mob mob = MakeMob("Snail", 100);
+  CombatParams params = MakeParams(1.0, 2.0, {MakeType(&mob, 10.0, 1)});
+
+  CombatSim sim;
+  sim.Advance(params, 0.5);
+  EXPECT_FALSE(sim.respawned_this_step());
+  sim.Advance(params, 1.0);
+  EXPECT_FALSE(sim.respawned_this_step());
+  sim.Advance(params, 1.0);
+  EXPECT_TRUE(sim.respawned_this_step());
+  sim.Advance(params, 0.5);
+  EXPECT_FALSE(sim.respawned_this_step());
+}
+
 }  // namespace
 }  // namespace ms

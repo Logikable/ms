@@ -20,23 +20,6 @@
 
 namespace ms {
 
-// Advances `sim` by elapsed_seconds on `state`'s current map and grants the
-// rewards for every mob it killed: their EXP, their drops, and their meso.
-// No-op without a current map or an equipped weapon.
-void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds);
-
-// The same, against params already built. `params` must be what
-// ComputeCombatParams would return for `state` right now, so a caller has to
-// rebuild them whenever the character or the map changes.
-//
-// For a caller stepping far faster than the game's tick: building the params
-// walks every skill and prices every attack against every mob on the map, and
-// none of that changes between two steps of the same fight. The game itself
-// has no use for this -- it ticks 3 times a second -- but a sim stepping at
-// 0.1s spends almost all of its time here. See //analysis:progression_sim.
-void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
-                   double elapsed_seconds);
-
 // One item a stretch of fighting yielded, for a caller reporting it. `count`
 // is in units rather than stacks -- fifty full stacks of a drop read as ten
 // thousand of it, which is what the player wants to know they picked up.
@@ -48,13 +31,32 @@ struct RewardItem {
 };
 
 // What a stretch of fighting paid: the EXP, the meso, and the items. Filled
-// by AwardCombatRewards for whoever wants to show it; the live tick, which
-// shows nothing, drops it on the floor.
+// by AwardCombatRewards for whoever wants to show it; a caller with nothing to
+// show drops it on the floor.
 struct RewardTally {
   int64_t exp = 0;
   int64_t meso = 0;
   std::vector<RewardItem> items;  // in the order the drop tables list them
 };
+
+// Advances `sim` by elapsed_seconds on `state`'s current map and grants the
+// rewards for every mob it killed: their EXP, their drops, and their meso.
+// Returns what that step paid, for a caller measuring the map. No-op without a
+// current map or an equipped weapon.
+RewardTally AdvanceCombat(GameState& state, CombatSim& sim,
+                          double elapsed_seconds);
+
+// The same, against params already built. `params` must be what
+// ComputeCombatParams would return for `state` right now, so a caller has to
+// rebuild them whenever the character or the map changes.
+//
+// For a caller stepping far faster than the game's tick: building the params
+// walks every skill and prices every attack against every mob on the map, and
+// none of that changes between two steps of the same fight. The game itself
+// has no use for this -- it ticks 3 times a second -- but a sim stepping at
+// 0.1s spends almost all of its time here. See //analysis:progression_sim.
+RewardTally AdvanceCombat(GameState& state, CombatSim& sim,
+                          const CombatParams& params, double elapsed_seconds);
 
 // Pays `kills` of each of `params`' mob types -- their EXP, their meso, their
 // drops -- and returns what was handed over. `kills` is indexed to match

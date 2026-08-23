@@ -144,14 +144,15 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
   return tally;
 }
 
-void AdvanceCombat(GameState& state, CombatSim& sim, double elapsed_seconds) {
-  AdvanceCombat(state, sim, ComputeCombatParams(state), elapsed_seconds);
+RewardTally AdvanceCombat(GameState& state, CombatSim& sim,
+                          double elapsed_seconds) {
+  return AdvanceCombat(state, sim, ComputeCombatParams(state), elapsed_seconds);
 }
 
-void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
-                   double elapsed_seconds) {
+RewardTally AdvanceCombat(GameState& state, CombatSim& sim,
+                          const CombatParams& params, double elapsed_seconds) {
   sim.Advance(params, elapsed_seconds);
-  AwardCombatRewards(state, params, sim.kills_this_step());
+  RewardTally tally = AwardCombatRewards(state, params, sim.kills_this_step());
   if (sim.died_this_step()) {
     // Dying costs the trip home and nothing else -- no EXP, no meso. The
     // kills already banked above stand: they happened. Moving the map is all
@@ -159,6 +160,7 @@ void AdvanceCombat(GameState& state, CombatSim& sim, const CombatParams& params,
     // somewhere new (see fight.h).
     state.current_map = kHomeMap;
   }
+  return tally;
 }
 
 }  // namespace ms

@@ -164,6 +164,17 @@ class CombatSim {
   const std::vector<int64_t>& kills_this_step() const {
     return kills_this_step_;
   }
+  // Damage the character dealt during the most recent Advance. Every point a
+  // line rolled counts, overkill included: this is what the player would have
+  // watched fly off the monsters, not what the monsters had left to give.
+  double damage_this_step() const {
+    return damage_this_step_;
+  }
+  // True on the step a respawn beat came round, whether or not it had anything
+  // to put on the map. The one clock in the fight a watcher can align to.
+  bool respawned_this_step() const {
+    return respawned_this_step_;
+  }
   // The engaged window as HP bars, one per distinct type the next swing will
   // hit, in the order they appear in the queue. Empty while
   // respawning/inactive.
@@ -429,6 +440,9 @@ class CombatSim {
   // One swing landing: the strike and everything that rides on it. Leaves the
   // next swing aimed.
   void LandSwing(const CombatParams& params, const AttackOption& attack);
+  // Takes `damage` off `mob` and counts it toward the step's total. Every way
+  // the character does damage goes through here.
+  void Hurt(QueuedMob& mob, double damage);
   // Refreshes the target and the engaged window for the panel to draw.
   void PublishTarget(const CombatParams& params);
   void MergeEngagedWindow(const CombatParams& params);
@@ -520,6 +534,8 @@ class CombatSim {
   // -1 with nothing aimed.
   int aimed_ = -1;
   std::vector<int64_t> kills_this_step_;
+  double damage_this_step_ = 0.0;
+  bool respawned_this_step_ = false;
   // Whether the lines are being recorded at all, from the params. Off for the
   // sims, which step the fight millions of times and draw none of it.
   bool record_lines_ = false;
