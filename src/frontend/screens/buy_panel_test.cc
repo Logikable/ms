@@ -264,7 +264,7 @@ ItemPrototype WeaponToken() {
   token.set_name("Frozen Weapon Token");
   token.set_category(ITEM_CATEGORY_ETC);
   token.set_currency_mark("●");
-  token.set_currency_color(CURRENCY_COLOR_ICE_BLUE);
+  token.set_currency_color(CURRENCY_COLOR_THEME);
   return token;
 }
 
@@ -294,9 +294,9 @@ TEST(BuyPanelTest, AnUnaffordableTokenTotalReddensTheNumberOnly) {
               /*owned=*/0, &token);
   EXPECT_EQ(panel.quantity(), 0) << "nothing to buy it with";
   EXPECT_EQ(CellColor(panel, "Total:", "0"), kRed);
-  EXPECT_EQ(CellColor(panel, "Total:", "●"), kIceBlue)
+  EXPECT_EQ(CellColor(panel, "Total:", "●"), kTheme)
       << "the mark is the currency, not the reason";
-  EXPECT_EQ(CellColor(panel, "each", "●"), kIceBlue);
+  EXPECT_EQ(CellColor(panel, "each", "●"), kTheme);
 }
 
 }  // namespace

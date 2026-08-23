@@ -29,7 +29,8 @@ namespace ms {
  * not collide in practice.
  */
 
-// Identity color: borders, separators, panel titles, structural labels.
+// Identity color: borders, separators, panel titles, structural labels. Also
+// a plain damage line, and the mark a weapon's price is asked in.
 inline const ftxui::Color kTheme = ftxui::Color::RGB(100, 150, 200);
 
 // Star bar in the inspect panel.
@@ -46,9 +47,6 @@ inline const ftxui::Color kGold = ftxui::Color::RGB(255, 198, 50);
 // clear of the gold above: a crit has to be told apart from a plain line at a
 // glance, and the two marks from each other.
 inline const ftxui::Color kOrange = ftxui::Color::RGB(240, 140, 60);
-
-// A plain damage line, and the mark a weapon's price is asked in.
-inline const ftxui::Color kIceBlue = ftxui::Color::RGB(120, 195, 235);
 
 // Star Force outcome rates.
 inline const ftxui::Color kGreen = ftxui::Color::RGB(100, 175, 100);

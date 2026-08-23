@@ -248,7 +248,16 @@ struct DrawnNumber {
   std::string text;
   int row = 0;
   int column = 0;
+  bool crit = false;
 };
+
+// Whether this cell is a digit in a damage number's colours. A panel's own
+// title is written in the same blue, so a run of digits a percent sign closes
+// is that title's, not a swing's.
+bool NumberCell(const ftxui::Pixel& px) {
+  return px.character.size() == 1 && isdigit(px.character[0]) &&
+         (px.foreground_color == kTheme || px.foreground_color == kOrange);
+}
 
 std::vector<DrawnNumber> DrawnNumbers(const ftxui::Screen& screen) {
   std::vector<DrawnNumber> drawn;
@@ -257,20 +266,19 @@ std::vector<DrawnNumber> DrawnNumbers(const ftxui::Screen& screen) {
     for (int x = 0; x <= screen.dimx(); ++x) {
       const ftxui::Pixel* px =
           x < screen.dimx() ? &screen.PixelAt(x, y) : nullptr;
-      bool digit = px != nullptr && (px->foreground_color == kIceBlue ||
-                                     px->foreground_color == kOrange);
-      if (digit) {
+      if (px != nullptr && NumberCell(*px)) {
         if (number.text.empty()) {
           number.row = y;
           number.column = x;
+          number.crit = px->foreground_color == kOrange;
         }
         number.text += px->character;
         continue;
       }
-      if (!number.text.empty()) {
+      if (!number.text.empty() && (px == nullptr || px->character != "%")) {
         drawn.push_back(number);
-        number = DrawnNumber();
       }
+      number = DrawnNumber();
     }
   }
   return drawn;
@@ -614,7 +622,7 @@ TEST(BossFightPanelTest, ANumberNeverSitsOnABar) {
   for (int y = 0; y < screen.dimy(); ++y) {
     for (int x = 0; x < screen.dimx(); ++x) {
       const ftxui::Pixel& px = screen.PixelAt(x, y);
-      if (px.foreground_color != kIceBlue && px.foreground_color != kOrange) {
+      if (!NumberCell(px)) {
         continue;
       }
       ++drawn;
@@ -625,8 +633,6 @@ TEST(BossFightPanelTest, ANumberNeverSitsOnABar) {
   EXPECT_GT(drawn, 0) << "something was drawn to be tested";
 }
 
-// Blue for a plain line and orange for a critical one, which is the whole of
-// what a number's colour says.
 // Where the clock is drawn, as {left, right, top, bottom} in screen cells.
 // Found by its own text: nothing else on the screen holds a digit, a colon
 // and a digit in a row.
@@ -702,6 +708,8 @@ TEST(BossFightPanelTest, NumbersShareTheClocksRowsButNotItsBox) {
             " " + FightClock(below.seconds_left()) + " ");
 }
 
+// Orange for a critical line and the theme blue for a plain one, which is the
+// whole of what a number's colour says.
 TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
   for (bool crit : {false, true}) {
     std::unique_ptr<GameState> state = EightLineState();
@@ -709,20 +717,17 @@ TEST(BossFightPanelTest, ACriticalLineIsOrangeAndAPlainOneIsBlue) {
     BossRun run("zakum", boss, 0);
     run.Advance(*state, kBossCountdownSeconds);
     ASSERT_TRUE(RunUntilLine(run, *state, crit)) << "crit: " << crit;
+    ASSERT_EQ(run.damage_stacks().size(), 1u);
+    const DamageStack& stack = run.damage_stacks().front();
 
-    ftxui::Screen screen = RenderScreen(run, 60, 40);
-    int coloured = 0;
-    for (int y = 0; y < screen.dimy(); ++y) {
-      for (int x = 0; x < screen.dimx(); ++x) {
-        const ftxui::Pixel& px = screen.PixelAt(x, y);
-        if (px.foreground_color == (crit ? kOrange : kIceBlue)) {
-          EXPECT_GE(px.character[0], '0');
-          EXPECT_LE(px.character[0], '9');
-          ++coloured;
-        }
-      }
+    std::vector<DrawnNumber> drawn = DrawnNumbers(RenderScreen(run, 60, 40));
+    ASSERT_EQ(drawn.size(), stack.lines.size());
+    int matched = 0;
+    for (std::size_t i = 0; i < drawn.size(); ++i) {
+      EXPECT_EQ(drawn[i].crit, stack.lines[i].crit) << drawn[i].text;
+      matched += stack.lines[i].crit == crit ? 1 : 0;
     }
-    EXPECT_GT(coloured, 0) << "crit: " << crit;
+    EXPECT_GT(matched, 0) << "crit: " << crit;
   }
 }
 

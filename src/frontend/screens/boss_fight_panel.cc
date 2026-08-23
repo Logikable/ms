@@ -156,7 +156,7 @@ class DamageStackNode : public ftxui::Node {
       }
       ftxui::Pixel& px = screen.PixelAt(x, y);
       px.character = std::string(1, number.text[i]);
-      px.foreground_color = number.crit ? kOrange : kIceBlue;
+      px.foreground_color = number.crit ? kOrange : kTheme;
       px.bold = number.crit;
     }
   }

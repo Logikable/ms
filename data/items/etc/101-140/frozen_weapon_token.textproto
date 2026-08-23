@@ -6,4 +6,4 @@ description:
   "A shard of everlasting ice, cold to hold. The shop trades one for any "
   "Frozen weapon."
 currency_mark: "●"
-currency_color: CURRENCY_COLOR_ICE_BLUE
+currency_color: CURRENCY_COLOR_THEME

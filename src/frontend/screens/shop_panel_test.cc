@@ -289,7 +289,7 @@ class ShopPanelTest : public testing::Test {
       {"spell_trace", MakeStackable("Spell Trace", 5000, 30000)},
       // Unpriced, so the Etc shelf never shows it.
       {"shell", MakeStackable("Snail Shell", 0, 200)},
-      {"weapon_token", MakeToken("Weapon Token", CURRENCY_COLOR_ICE_BLUE)},
+      {"weapon_token", MakeToken("Weapon Token", CURRENCY_COLOR_THEME)},
       {"secondary_token", MakeToken("Secondary Token", CURRENCY_COLOR_ORANGE)},
   };
 };
@@ -1040,7 +1040,7 @@ TEST_F(ShopPanelTest, APriceNoTokenCanMeetIsRed) {
   ShopPanel panel(poor, equips_, items_);
   OpenTokenShelf(panel, kShopWeaponTab);
   EXPECT_EQ(CellColor(panel, "Frozen Axe", "9"), kRed);
-  EXPECT_EQ(CellColor(panel, "Frozen Axe", "●"), kIceBlue)
+  EXPECT_EQ(CellColor(panel, "Frozen Axe", "●"), kTheme)
       << "the mark is the currency, not the reason";
 
   CharacterInstance rich = MakeCharacter(100000, 130, JOB_FIGHTER, 2);

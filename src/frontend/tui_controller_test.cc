@@ -98,7 +98,7 @@ class TuiControllerTest : public testing::Test {
     token_.set_name("Weapon Token");
     token_.set_category(ITEM_CATEGORY_ETC);
     token_.set_currency_mark("●");
-    token_.set_currency_color(CURRENCY_COLOR_ICE_BLUE);
+    token_.set_currency_color(CURRENCY_COLOR_THEME);
     // Something plain for a boss to drop, so the clear card has a row that is
     // not a currency.
     shard_.set_name("Zakum's Soul Shard");

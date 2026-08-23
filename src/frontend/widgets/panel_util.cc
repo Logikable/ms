@@ -424,8 +424,8 @@ std::vector<const Skill*> SkillsForAdvancement(
 
 ftxui::Color MarkColor(CurrencyColor color) {
   switch (color) {
-    case CURRENCY_COLOR_ICE_BLUE:
-      return kIceBlue;
+    case CURRENCY_COLOR_THEME:
+      return kTheme;
     case CURRENCY_COLOR_ORANGE:
       return kOrange;
     default:

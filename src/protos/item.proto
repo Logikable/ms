@@ -24,7 +24,7 @@ enum ItemEffect {
 // player reads both off one glyph without a legend.
 enum CurrencyColor {
   CURRENCY_COLOR_UNSPECIFIED = 0;
-  CURRENCY_COLOR_ICE_BLUE = 1;
+  CURRENCY_COLOR_THEME = 1;
   CURRENCY_COLOR_ORANGE = 2;
 }
 
