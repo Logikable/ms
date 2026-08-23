@@ -97,6 +97,10 @@ class PartySelectPanel {
  private:
   // Rows the list holds, which is one per party or one per member.
   int ListRows() const;
+  // Where the cursor stands, folded back into the ring. The list shrinks
+  // under it -- a member leaves, a party fills up -- and a cursor left past
+  // the end would swallow the keypress that should have moved it.
+  int Cursor() const;
   // The buttons under the list, left to right, for the state the panel is in.
   std::vector<PartyButton> Buttons() const;
   // Whether the cursor is on the button row rather than in the list.

@@ -256,5 +256,25 @@ TEST_F(PartySelectPanelTest, TheLeadersOwnRowOffersNeither) {
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
 }
 
+TEST_F(PartySelectPanelTest, TheListShrinkingUnderTheCursorMovesIt) {
+  MultiplayerSnapshot snapshot = Connected();
+  snapshot.party = PartyOf(3);
+  Show(snapshot);
+  // Down past all three members onto the buttons.
+  for (int i = 0; i < 3; ++i) {
+    panel_.MoveCursor(1);
+  }
+  ASSERT_EQ(panel_.Chosen(), PartyAction::kLeave);
+
+  // Two of them leave while the cursor is down there. Up has to reach the one
+  // member left rather than being swallowed by a cursor past the end.
+  snapshot.party = PartyOf(1);
+  panel_.SetSnapshot(snapshot);
+  EXPECT_EQ(panel_.Chosen(), PartyAction::kLeave);
+  panel_.MoveCursor(-1);
+  EXPECT_EQ(panel_.Chosen(), PartyAction::kMemberMenu);
+  EXPECT_EQ(panel_.selected_member(), "me");
+}
+
 }  // namespace
 }  // namespace ms

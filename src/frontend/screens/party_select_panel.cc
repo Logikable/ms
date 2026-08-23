@@ -24,6 +24,7 @@ constexpr int kCapacityWidth = 8;
 constexpr int kNameWidth = kMaxUsernameLength + 2;
 constexpr int kLevelWidth = 7;
 constexpr int kJobWidth = 15;
+constexpr int kReadyWidth = 5;
 
 // The cursor's column, and the crown's beside it.
 constexpr char kCursorHere[] = "> ";
@@ -31,9 +32,10 @@ constexpr char kCursorAway[] = "  ";
 constexpr char kCrown[] = "♛ ";
 constexpr char kNoCrown[] = "  ";
 
-// The mark beside a member who has said they are ready, in the Ready column.
+// The mark beside a member who has said they are ready, in the Ready column,
+// with the panel's column of clearance after it.
 ftxui::Element ReadyCell(bool ready) {
-  return ftxui::text(ready ? "  ✓  " : "     ") | ftxui::color(kTheme);
+  return ftxui::text(ready ? "  ✓   " : "      ") | ftxui::color(kTheme);
 }
 
 }  // namespace
@@ -109,14 +111,18 @@ std::vector<PartyButton> PartySelectPanel::Buttons() const {
   return buttons;
 }
 
+int PartySelectPanel::Cursor() const {
+  return std::clamp(cursor_, 0, ListRows());
+}
+
 bool PartySelectPanel::on_buttons() const {
-  return cursor_ >= ListRows();
+  return Cursor() >= ListRows();
 }
 
 void PartySelectPanel::MoveCursor(int delta) {
   // The buttons are the last stop of the ring, so Down off the last row lands
   // on them and Down again comes back to the top of the list.
-  cursor_ = StepCursor(cursor_, delta, ListRows() + 1);
+  cursor_ = StepCursor(Cursor(), delta, ListRows() + 1);
 }
 
 void PartySelectPanel::MoveButton(int delta) {
@@ -142,24 +148,24 @@ PartyAction PartySelectPanel::Chosen() const {
 
 std::string PartySelectPanel::selected_party_id() const {
   std::vector<const Party*> open = OpenParties();
-  if (in_party() || on_buttons() || cursor_ >= static_cast<int>(open.size())) {
+  if (in_party() || on_buttons()) {
     return "";
   }
-  return open[cursor_]->id();
+  return open[Cursor()]->id();
 }
 
 std::string PartySelectPanel::selected_member() const {
   if (!in_party() || on_buttons()) {
     return "";
   }
-  return snapshot_.party.members(cursor_).player().account_id();
+  return snapshot_.party.members(Cursor()).player().account_id();
 }
 
 std::string PartySelectPanel::selected_member_name() const {
   if (!in_party() || on_buttons()) {
     return "";
   }
-  return snapshot_.party.members(cursor_).player().name();
+  return snapshot_.party.members(Cursor()).player().name();
 }
 
 void PartySelectPanel::OpenMenu() {
@@ -207,7 +213,8 @@ ftxui::Element PartySelectPanel::RenderPartyList() const {
         leader = &member;
       }
     }
-    std::string row = !on_buttons() && i == cursor_ ? kCursorHere : kCursorAway;
+    std::string row =
+        !on_buttons() && i == Cursor() ? kCursorHere : kCursorAway;
     row += PadRight(leader == nullptr ? "" : leader->player().name(),
                     kLeaderWidth);
     row += std::to_string(open[i]->members_size()) + "/" +
@@ -233,7 +240,7 @@ ftxui::Element PartySelectPanel::RenderMembers() const {
     text += PadRight(std::to_string(player.level()), kLevelWidth);
     text += PadRight(ShortJobName(JobForAdvancement(player.job())), kJobWidth);
     rows.push_back(ftxui::hbox({
-        ftxui::text(!on_buttons() && i == cursor_ ? kCursorHere : kCursorAway),
+        ftxui::text(!on_buttons() && i == Cursor() ? kCursorHere : kCursorAway),
         ftxui::text(leader ? kCrown : kNoCrown) | ftxui::color(kYellow),
         ftxui::text(text),
         ReadyCell(leader || member.ready()),
@@ -244,13 +251,17 @@ ftxui::Element PartySelectPanel::RenderMembers() const {
 
 ftxui::Element PartySelectPanel::RenderButtons() const {
   std::vector<PartyButton> buttons = Buttons();
+  // A column of clearance either side, since the button row is the widest
+  // thing here and would otherwise set a window with no margin inside it.
   ftxui::Elements row;
+  row.push_back(ftxui::text(" "));
   for (int i = 0; i < static_cast<int>(buttons.size()); ++i) {
     if (i > 0) {
       row.push_back(ftxui::text("  "));
     }
     row.push_back(ActionButton(buttons[i].label, on_buttons() && i == button_));
   }
+  row.push_back(ftxui::text(" "));
   return ftxui::hbox(std::move(row)) | ftxui::hcenter;
 }
 
@@ -259,7 +270,7 @@ int PartySelectPanel::MenuRow() const {
   // One row back from there, so the entry standing highlighted lands beside
   // the member rather than below them.
   constexpr int kFirstMemberRow = 3;
-  return kFirstMemberRow + cursor_ - 1;
+  return kFirstMemberRow + Cursor() - 1;
 }
 
 ftxui::Element PartySelectPanel::Render() const {
