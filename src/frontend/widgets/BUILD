@@ -122,6 +122,26 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "text_field",
+    srcs = ["text_field.cc"],
+    hdrs = ["text_field.h"],
+    deps = [
+        ":panel_util",
+        "@ftxui//:component",
+    ],
+)
+
+cc_test(
+    name = "text_field_test",
+    srcs = ["text_field_test.cc"],
+    deps = [
+        ":text_field",
+        "@ftxui//:component",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "confirm_prompt_test",
     srcs = ["confirm_prompt_test.cc"],
