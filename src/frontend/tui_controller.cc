@@ -196,6 +196,13 @@ const EquipInstance* TuiController::scroll_item() const {
 // Keys on the main view, once every screen above it has had its say. A back
 // key here means leaving the game, there being nothing left to back out of.
 bool TuiController::OnMainViewEvent(ftxui::Event event) {
+  // An open name field is the one thing on the main view that owns every key
+  // it can be handed: Escape leaves the field rather than the game, and Tab
+  // must not carry focus off a panel that is mid-edit. The panel swallows the
+  // lot -- this only declines them so they reach it.
+  if (char_panel_.editing_username()) {
+    return false;
+  }
   if (IsBack(event)) {
     // Opened on Cancel: leaving is not what an accidental Escape means, and a
     // stray Enter behind one should not end the session.

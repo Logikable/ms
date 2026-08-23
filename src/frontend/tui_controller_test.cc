@@ -2561,6 +2561,33 @@ TEST_F(TuiControllerTest, AnOpenNameFieldWantsTheRawKeys) {
   EXPECT_FALSE(controller_->capturing_key());
 }
 
+// Escape on the main view asks whether to quit, so an open field has to keep
+// it: backing out of a field is not backing out of the game.
+TEST_F(TuiControllerTest, EscapeLeavesTheNameFieldRatherThanTheGame) {
+  ftxui::Component chars = char_panel_->MakeComponent([](StatField) {});
+  panel_focus_ = kCharPanel;
+  chars->OnEvent(ftxui::Event::ArrowUp);
+  chars->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(controller_->capturing_key());
+
+  EXPECT_FALSE(controller_->OnEvent(ftxui::Event::Escape));
+  EXPECT_EQ(controller_->screen(), kMain) << "no quit prompt";
+  chars->OnEvent(ftxui::Event::Escape);
+  EXPECT_FALSE(controller_->capturing_key());
+}
+
+// Tab would carry focus off a panel mid-edit, leaving a field open that no
+// key can reach -- and every rebound key dead behind it.
+TEST_F(TuiControllerTest, TabDoesNotLeaveAnOpenNameFieldBehind) {
+  ftxui::Component chars = char_panel_->MakeComponent([](StatField) {});
+  panel_focus_ = kCharPanel;
+  chars->OnEvent(ftxui::Event::ArrowUp);
+  chars->OnEvent(ftxui::Event::Return);
+
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_EQ(panel_focus_, kCharPanel);
+}
+
 TEST_F(TuiControllerTest, EscapeClearsASlotAndThenLeaves) {
   OpenKeybinds();
   controller_->OnEvent(ftxui::Event::Return);
