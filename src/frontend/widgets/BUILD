@@ -78,6 +78,7 @@ cc_library(
     hdrs = ["stat_rows.h"],
     deps = [
         ":panel_util",
+        "//src:account",
         "//src/character",
         "//src/character:character_stats",
         "//src/character:progression",

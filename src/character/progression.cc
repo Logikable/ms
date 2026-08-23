@@ -1,5 +1,6 @@
 #include "src/character/progression.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -133,19 +134,24 @@ int UnlockLevel(Feature feature) {
              << " has no unlock level";
 }
 
-bool Unlocked(Feature feature, const CharacterInstance& character) {
+bool Unlocked(Feature feature, const CharacterInstance& character,
+              const AccountInstance& account) {
   for (const StageUnlock& unlock : kStageUnlocks) {
     if (unlock.feature == feature) {
-      return character.proto().job_stage() >= unlock.stage;
+      int stage =
+          std::max(character.proto().job_stage(), account.max_job_stage());
+      return stage >= unlock.stage;
     }
   }
-  if (character.proto().level() < UnlockLevel(feature)) {
+  int level = std::max(character.proto().level(), account.max_level());
+  if (level < UnlockLevel(feature)) {
     return false;
   }
   if (feature == Feature::kSkills) {
-    // A Beginner reaching level 10 is being offered an advancement, not
-    // skills: the skill sets belong to the jobs, so the tab has nothing to
-    // show until one is chosen.
+    // The one condition the account cannot answer for: a Beginner reaching
+    // level 10 is being offered an advancement, not skills. The skill sets
+    // belong to the jobs, so the tab has nothing to show until this character
+    // chooses one.
     return character.proto().job() != JOB_BEGINNER;
   }
   return true;
@@ -181,11 +187,13 @@ std::string FeatureName(Feature feature) {
   LOG(FATAL) << "Feature " << static_cast<int>(feature) << " has no name";
 }
 
-std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level) {
+std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level,
+                                             int account_level) {
   std::vector<Feature> opened;
+  int from = std::max(from_level, account_level);
   for (Feature feature : kUpgrades) {
     int level = UnlockLevel(feature);
-    if (from_level < level && level <= to_level) {
+    if (from < level && level <= to_level) {
       opened.push_back(feature);
     }
   }
@@ -195,7 +203,7 @@ std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level) {
 bool LeadToWeapon(const CharacterInstance& character,
                   const AccountInstance& account) {
   for (const Led& led : kLedUpgrades) {
-    if (led.from_weapon && Unlocked(led.feature, character) &&
+    if (led.from_weapon && Unlocked(led.feature, character, account) &&
         !account.Seen(WeaponLeadKey(led.slug))) {
       return true;
     }
@@ -206,7 +214,7 @@ bool LeadToWeapon(const CharacterInstance& character,
 void FollowedToWeapon(const CharacterInstance& character,
                       AccountInstance& account) {
   for (const Led& led : kLedUpgrades) {
-    if (led.from_weapon && Unlocked(led.feature, character)) {
+    if (led.from_weapon && Unlocked(led.feature, character, account)) {
       account.MarkSeen(WeaponLeadKey(led.slug));
     }
   }
@@ -216,7 +224,7 @@ bool LeadToAction(Feature feature, const CharacterInstance& character,
                   const AccountInstance& account) {
   for (const Led& led : kLedUpgrades) {
     if (led.feature == feature) {
-      return Unlocked(feature, character) &&
+      return Unlocked(feature, character, account) &&
              !account.Seen(ActionLeadKey(led.slug));
     }
   }
@@ -237,8 +245,10 @@ int HotkeysTipRetireLevel() {
   return UnlockLevel(Feature::kMenu);
 }
 
-bool HotkeysTipVisible(const CharacterInstance& character) {
-  return character.proto().level() < HotkeysTipRetireLevel();
+bool HotkeysTipVisible(const CharacterInstance& character,
+                       const AccountInstance& account) {
+  int level = std::max(character.proto().level(), account.max_level());
+  return level < HotkeysTipRetireLevel();
 }
 
 double GameSpeedFactor(int level) {

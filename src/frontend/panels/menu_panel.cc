@@ -42,7 +42,7 @@ MenuPanel::MenuPanel(const GameState& state, int& panel_focus)
 
 std::vector<MenuEntry> MenuPanel::Entries() const {
   std::vector<MenuEntry> entries;
-  if (Unlocked(Feature::kBoss, state_.character)) {
+  if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kBoss);
   }
   entries.push_back(MenuEntry::kSettings);

@@ -40,8 +40,12 @@ class Celebration {
   //
   // A span rather than one level: a single tick can carry a character past
   // several thresholds, and the span is what decides which panels are lit.
+  //
+  // `account_level` is the furthest any character on the account has reached.
+  // A climb over ground it has covered still pays AP, but it opens nothing:
+  // those panels have been on screen since this character was made.
   void BeginLevelUp(int from_level, int to_level, int ap, int sp,
-                    Panel focused);
+                    int account_level, Panel focused);
 
   // Starts the advancement card, replacing a level-up still on screen: it is
   // the larger news, and stacking the two would make the player wait.

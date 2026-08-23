@@ -2298,7 +2298,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
 
   fresh.character.LevelUp();
   EXPECT_TRUE(controller.PanelVisible(kMenuPanel));
-  EXPECT_FALSE(HotkeysTipVisible(fresh.character))
+  EXPECT_FALSE(HotkeysTipVisible(fresh.character, fresh.account))
       << "the corner holds one or the other, never both";
 }
 

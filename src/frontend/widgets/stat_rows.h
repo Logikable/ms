@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "src/account.h"
 #include "src/character/character.h"
 #include "src/protos/skill.pb.h"
 
@@ -32,11 +33,14 @@ std::vector<StatLine> ExtraStatLines(
     const std::map<std::string, Skill>& skills);
 
 // The same list as the Character panel shows it, which is less of it early on:
-// empty until the first job advancement, and without the four percent rows
-// until the second. The panel is one column on a busy screen, so it earns its
-// numbers; the All Stats screen is where all of them always are.
+// empty until a first job advancement, and without the four percent rows until
+// a second. The panel is one column on a busy screen, so it earns its numbers;
+// the All Stats screen is where all of them always are.
+//
+// The advancement can be any character's on `account`, which is what opens the
+// rows for a second character from level 1.
 std::vector<StatLine> PanelExtraStatLines(
-    const CharacterInstance& character,
+    const CharacterInstance& character, const AccountInstance& account,
     const std::map<std::string, Skill>& skills);
 
 // The pools and the four AP stats: HP, MP, STR, INT, DEX, LUK. That order

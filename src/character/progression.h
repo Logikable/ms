@@ -1,9 +1,14 @@
-/* What a character's level buys them: which parts of the game are open, and
- * how fast the idle clock runs.
+/* What a level buys: which parts of the game are open, and how fast the idle
+ * clock runs.
  *
  * Both are one table apiece rather than a condition spread across the panels
  * that honour them, so the whole shape of the early game can be read -- and
  * retuned -- in one place.
+ *
+ * A feature opens for the account, not for the character: the level asked of
+ * is the higher of the one being played and the furthest any character on the
+ * account has reached. A player who has been through the early game once does
+ * not walk their next character through it again.
  */
 #ifndef MS_SRC_CHARACTER_PROGRESSION_H_
 #define MS_SRC_CHARACTER_PROGRESSION_H_
@@ -16,8 +21,8 @@
 
 namespace ms {
 
-// Parts of the game held back from a new character and handed over as they
-// level. A locked feature is not shown at all: no greyed menu entry, no empty
+// Parts of the game held back from a new account and handed over as it
+// levels. A locked feature is not shown at all: no greyed menu entry, no empty
 // panel. The player meets each one at the point it first has something to do.
 enum class Feature {
   // The panels down the right of the main screen. Equipped comes first
@@ -43,16 +48,19 @@ enum class Feature {
   // The combat stat block on the Character panel, in two halves. Gated on the
   // advancement rather than the level: what fills those rows is a job's
   // passives and the gear a job can wear, so a Beginner has nothing to read
-  // there however high they climb. Only the panel is held back -- the All
-  // Stats screen behind it lists everything, and the first half is what opens
-  // the way to it.
+  // there however high they climb -- unless another character on the account
+  // advanced, which opens the rows for all of them. Only the panel is held
+  // back: the All Stats screen behind it lists everything, and the first half
+  // is what opens the way to it.
   kCombatStats,
   kDamageStats,
   kAdvancedStats,
 };
 
-// Whether `character` has reached `feature` yet.
-bool Unlocked(Feature feature, const CharacterInstance& character);
+// Whether `feature` is open: either `character` has reached it or another
+// character on `account` did.
+bool Unlocked(Feature feature, const CharacterInstance& character,
+              const AccountInstance& account);
 
 // The earliest level `feature` can open at. Several carry a second condition
 // on top of it -- Skills wants a job, and the stat block wants an advancement,
@@ -67,10 +75,15 @@ std::string FeatureName(Feature feature);
 // they arrive. Asked of the span rather than of the level landed on, because
 // one idle stretch can carry a character past several thresholds.
 //
+// `account_level` is the furthest any character on the account has reached.
+// Ground it has already covered opens nothing: the upgrade is not news to the
+// player a second time, and it was never locked for this character.
+//
 // Only the item-menu upgrades. A panel or a tab lights itself gold when it
 // arrives; these are actions two keypresses deep in a menu with nothing of
 // their own to light, so the level-up card says their names instead.
-std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level);
+std::vector<Feature> UpgradesUnlockedBetween(int from_level, int to_level,
+                                             int account_level);
 
 /* The gold trail that leads a player to a newly unlocked upgrade.
  *
@@ -114,8 +127,11 @@ void FollowedToAction(Feature feature, AccountInstance& account);
 int HotkeysTipRetireLevel();
 
 // Whether the hotkeys tip still has a place on screen. It teaches the controls
-// while the game is small enough that there is nothing else to learn.
-bool HotkeysTipVisible(const CharacterInstance& character);
+// while the game is small enough that there is nothing else to learn, so a
+// returning player's next character never sees it: the menu has already taken
+// the corner.
+bool HotkeysTipVisible(const CharacterInstance& character,
+                       const AccountInstance& account);
 
 // How many times slower than GMS the game runs at `level`. The one global
 // pacing knob, and the reason it lives here: it is not a constant. The game

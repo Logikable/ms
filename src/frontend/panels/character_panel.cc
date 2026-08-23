@@ -175,7 +175,7 @@ std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
   std::vector<Tab> tabs = {kTabStats};
   // Skills belong to a job, so the tab waits for one: a Beginner standing at
   // level 10 is being offered an advancement, not a skill list.
-  if (Unlocked(Feature::kSkills, character_)) {
+  if (Unlocked(Feature::kSkills, character_, account_)) {
     tabs.push_back(kTabSkills);
   }
   // The Advance tab exists only while there is an advancement to take, so it
@@ -388,7 +388,8 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
     return ftxui::vbox(std::move(rows));
   }
   rows.push_back(PanelSeparator(highlighted_));
-  std::vector<StatLine> extras = PanelExtraStatLines(character_, skills_);
+  std::vector<StatLine> extras =
+      PanelExtraStatLines(character_, account_, skills_);
   int shown = ExtraStatsShown(static_cast<int>(extras.size()));
   for (int i = 0; i < shown; ++i) {
     rows.push_back(StatRow(extras[i].label, extras[i].value));
@@ -707,7 +708,7 @@ bool CharacterPanel::OnViewAllStatsRow() const {
 }
 
 bool CharacterPanel::ShowsCombatStats() const {
-  return Unlocked(Feature::kCombatStats, character_);
+  return Unlocked(Feature::kCombatStats, character_, account_);
 }
 
 bool CharacterPanel::OnSkillsTabEvent(

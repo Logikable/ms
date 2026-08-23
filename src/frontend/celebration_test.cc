@@ -35,8 +35,11 @@ class CelebrationTest : public testing::Test {
   // Starts a level-up with the player looking somewhere that is never lit, so
   // every panel the celebration touches is one they have to go and visit.
   // Tests about the timed half say where the player is standing explicitly.
+  //
+  // On a fresh account, so the climb is this player's first over that ground.
   void BeginAway(int from_level, int to_level, int ap = 5, int sp = 3) {
-    celebration_.BeginLevelUp(from_level, to_level, ap, sp, kCombatPanel);
+    celebration_.BeginLevelUp(from_level, to_level, ap, sp,
+                              /*account_level=*/0, kCombatPanel);
   }
 
   Celebration celebration_;
@@ -137,6 +140,17 @@ TEST_F(CelebrationTest, AClimbStartingOnAnUnlockDoesNotRelightIt) {
   EXPECT_FALSE(celebration_.Lights(kEquipPanel));
 }
 
+// A second character's panels were on screen from level 1, so the level that
+// would have opened them points at nothing.
+TEST_F(CelebrationTest, ASecondCharacterIsSentToNoPanel) {
+  int level = UnlockLevel(Feature::kBag);
+  celebration_.BeginLevelUp(level - 1, level, /*ap=*/5, /*sp=*/3,
+                            /*account_level=*/140, kCombatPanel);
+  EXPECT_FALSE(celebration_.Lights(kInventoryPanel));
+  EXPECT_FALSE(celebration_.Lights(kEquipPanel));
+  EXPECT_TRUE(celebration_.Lights(kCharPanel)) << "the AP is still theirs";
+}
+
 // Scrolling and star force live in an item menu, with no panel of their own to
 // go gold, so the card has to name them or a player never learns they arrived.
 TEST_F(CelebrationTest, TheCardNamesAnUpgradeTheClimbOpened) {
@@ -195,7 +209,7 @@ TEST_F(CelebrationTest, GoldOnAPanelYouWereNotOnOutlivesTheCard) {
 // And the other half: a panel already in front of them has been seen by the
 // time the card names it, so it fades on the clock like the card does.
 TEST_F(CelebrationTest, GoldOnThePanelYouAreOnFadesWithTheCard) {
-  celebration_.BeginLevelUp(12, 13, 5, 3, kCharPanel);
+  celebration_.BeginLevelUp(12, 13, 5, 3, /*account_level=*/0, kCharPanel);
   celebration_.Advance(kCelebrationSeconds - 0.3);
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
   celebration_.Advance(0.3);
@@ -205,7 +219,7 @@ TEST_F(CelebrationTest, GoldOnThePanelYouAreOnFadesWithTheCard) {
 // Walking away before the four seconds are up does not turn a panel that was
 // seen back into one that is waiting to be.
 TEST_F(CelebrationTest, LeavingAPanelDoesNotRearmItsGold) {
-  celebration_.BeginLevelUp(12, 13, 5, 3, kCharPanel);
+  celebration_.BeginLevelUp(12, 13, 5, 3, /*account_level=*/0, kCharPanel);
   celebration_.Visit(kCombatPanel);
   celebration_.Advance(kCelebrationSeconds);
   EXPECT_FALSE(celebration_.Lights(kCharPanel));
@@ -257,7 +271,7 @@ TEST_F(CelebrationTest, DismissingTheCardLeavesTheGoldAlone) {
 // with it: four seconds of gold is four seconds whether or not the card is
 // still sitting on top of it.
 TEST_F(CelebrationTest, DismissingTheCardKeepsTheGlow) {
-  celebration_.BeginLevelUp(12, 13, 5, 3, kCharPanel);
+  celebration_.BeginLevelUp(12, 13, 5, 3, /*account_level=*/0, kCharPanel);
   celebration_.Dismiss();
   celebration_.Advance(kCelebrationSeconds - 0.3);
   EXPECT_TRUE(celebration_.Lights(kCharPanel));
@@ -268,7 +282,7 @@ TEST_F(CelebrationTest, DismissingTheCardKeepsTheGlow) {
 // --- which card ---
 
 TEST_F(CelebrationTest, ALevelUpRendersTheLevelUpCard) {
-  celebration_.BeginLevelUp(12, 15, 15, 9, kCombatPanel);
+  celebration_.BeginLevelUp(12, 15, 15, 9, /*account_level=*/0, kCombatPanel);
   celebration_.Advance(0.3);
   std::string text = CardText(celebration_);
   EXPECT_NE(text.find("Level Up"), std::string::npos);

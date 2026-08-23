@@ -150,14 +150,14 @@ std::vector<StatLine> ExtraStatLines(
 }
 
 std::vector<StatLine> PanelExtraStatLines(
-    const CharacterInstance& character,
+    const CharacterInstance& character, const AccountInstance& account,
     const std::map<std::string, Skill>& skills) {
-  if (!Unlocked(Feature::kCombatStats, character)) {
+  if (!Unlocked(Feature::kCombatStats, character, account)) {
     return {};
   }
   return CombatStatLines(character, skills,
-                         Unlocked(Feature::kDamageStats, character),
-                         Unlocked(Feature::kAdvancedStats, character));
+                         Unlocked(Feature::kDamageStats, character, account),
+                         Unlocked(Feature::kAdvancedStats, character, account));
 }
 
 std::vector<StatLine> MainStatLines(

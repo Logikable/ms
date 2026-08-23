@@ -612,7 +612,7 @@ ftxui::Element Tui::RenderMain() {
   // The corner holds the tip or the menu, never both: the menu arrives at the
   // level the tip retires at.
   ftxui::Element corner = nullptr;
-  if (HotkeysTipVisible(state_.character)) {
+  if (HotkeysTipVisible(state_.character, state_.account)) {
     corner = HotkeysPanel();
   } else if (controller_.PanelVisible(kMenuPanel)) {
     corner = menu_component_->Render();
@@ -725,7 +725,8 @@ void Tui::NoticeProgress() {
       return;
     case kLevelGained:
       celebration_.BeginLevelUp(progress.from_level, progress.to_level,
-                                progress.ap, progress.sp, FocusedPanel());
+                                progress.ap, progress.sp,
+                                state_.account.max_level(), FocusedPanel());
       return;
     case kNothingNoticed:
       return;

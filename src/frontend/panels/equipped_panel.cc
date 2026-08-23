@@ -54,13 +54,13 @@ void EquippedPanel::OpenMenu() {
   // question about this particular item: a character who has just been handed
   // this panel has no bag to unequip into yet, and asking about scrolls means
   // nothing to them for a long while after that.
-  if (!Unlocked(Feature::kUnequip, character_)) {
+  if (!Unlocked(Feature::kUnequip, character_, account_)) {
     menu_.Hide(kMenuAction);
   }
-  if (!Unlocked(Feature::kScrolling, character_)) {
+  if (!Unlocked(Feature::kScrolling, character_, account_)) {
     menu_.Hide(kMenuScroll);
   }
-  if (!Unlocked(Feature::kStarForce, character_)) {
+  if (!Unlocked(Feature::kStarForce, character_, account_)) {
     menu_.Hide(kMenuStarForce);
   }
   EquipSlot slot = selected_slot();

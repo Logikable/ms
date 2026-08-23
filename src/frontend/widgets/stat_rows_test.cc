@@ -66,6 +66,7 @@ class StatRowsTest : public testing::Test {
   }
 
   std::mt19937 rng_{0};
+  AccountInstance account_;
 };
 
 TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
@@ -92,12 +93,12 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   proto.set_level(60);  // high enough that only the job can be holding it back
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
-  EXPECT_TRUE(PanelExtraStatLines(beginner, {}).empty());
+  EXPECT_TRUE(PanelExtraStatLines(beginner, account_, {}).empty());
   EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 16u);
 
   CharacterInstance first = MakeWarrior();
   std::vector<std::string> labels;
-  for (const StatLine& line : PanelExtraStatLines(first, {})) {
+  for (const StatLine& line : PanelExtraStatLines(first, account_, {})) {
     labels.push_back(line.label);
   }
   EXPECT_EQ(labels, (std::vector<std::string>{
@@ -111,14 +112,14 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   second_proto.set_job(JOB_SPEARMAN);
   second_proto.set_job_stage(2);
   CharacterInstance second(rng_, std::move(second_proto));
-  EXPECT_EQ(PanelExtraStatLines(second, {}).size(), 11u);
+  EXPECT_EQ(PanelExtraStatLines(second, account_, {}).size(), 11u);
 
   Character third_proto;
   third_proto.set_level(70);
   third_proto.set_job(JOB_BERSERKER);
   third_proto.set_job_stage(3);
   CharacterInstance third(rng_, std::move(third_proto));
-  EXPECT_EQ(PanelExtraStatLines(third, {}).size(), 16u);
+  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 16u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {

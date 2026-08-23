@@ -27,7 +27,7 @@ void Celebration::Light(Panel panel, Panel focused) {
 }
 
 void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
-                               Panel focused) {
+                               int account_level, Panel focused) {
   kind_ = Kind::kLevelUp;
   card_seconds_ = kCelebrationSeconds;
   glow_seconds_ = kCelebrationSeconds;
@@ -36,7 +36,8 @@ void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
   ap_ = ap;
   sp_ = sp;
   unlocks_.clear();
-  for (Feature feature : UpgradesUnlockedBetween(from_level, to_level)) {
+  for (Feature feature :
+       UpgradesUnlockedBetween(from_level, to_level, account_level)) {
     unlocks_.push_back(FeatureName(feature));
   }
 
@@ -46,11 +47,13 @@ void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
   Light(kCharPanel, focused);
   // And whichever panels this climb opened. Asked of the unlock table rather
   // than written as levels 3 and 4, because those have moved before and the
-  // celebration should follow them.
-  if (CrossedInto(UnlockLevel(Feature::kEquipped), from_level, to_level)) {
+  // celebration should follow them. Measured from what the account had
+  // already opened, so a second character lights nothing.
+  int from = std::max(from_level, account_level);
+  if (CrossedInto(UnlockLevel(Feature::kEquipped), from, to_level)) {
     Light(kEquipPanel, focused);
   }
-  if (CrossedInto(UnlockLevel(Feature::kBag), from_level, to_level)) {
+  if (CrossedInto(UnlockLevel(Feature::kBag), from, to_level)) {
     Light(kInventoryPanel, focused);
   }
 }

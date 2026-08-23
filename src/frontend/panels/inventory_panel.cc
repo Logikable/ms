@@ -139,7 +139,7 @@ std::vector<int> InventoryPanel::VisibleTabs() const {
   // The shop is a place in the world rather than a page of the bag, and it is
   // not open to a character who has nothing to spend and nothing to spend it
   // on. Until then the bar simply ends at Etc.
-  if (Unlocked(Feature::kShop, character_)) {
+  if (Unlocked(Feature::kShop, character_, account_)) {
     tabs.push_back(kShopTab);
   }
   return tabs;
@@ -238,7 +238,7 @@ void InventoryPanel::OpenStackMenu() {
   // Multi-Sell arrives with the shop: it sells across the whole bag, and the
   // shelf a mis-sale is undone at is the shop's. Selling one stack has never
   // waited for it.
-  if (!Unlocked(Feature::kShop, character_)) {
+  if (!Unlocked(Feature::kShop, character_, account_)) {
     sell_menu_.Hide(kStackMultiSell);
   }
   const std::vector<StackableItem>& stacks = character_.stackables(category);
@@ -267,10 +267,10 @@ void InventoryPanel::OpenEquipMenu() {
   // What the player has not reached yet is not drawn at all. This comes first:
   // what is hidden here is what they cannot do to any item, and what is
   // disabled below is what this item cannot do.
-  if (!Unlocked(Feature::kScrolling, character_)) {
+  if (!Unlocked(Feature::kScrolling, character_, account_)) {
     menu_.Hide(kMenuScroll);
   }
-  if (!Unlocked(Feature::kStarForce, character_)) {
+  if (!Unlocked(Feature::kStarForce, character_, account_)) {
     menu_.Hide(kMenuStarForce);
   }
   // Recovery has no level of its own: owning a trace already means an item
@@ -281,7 +281,7 @@ void InventoryPanel::OpenEquipMenu() {
   // gold on it when it does: the gold trail is for an upgrade the player is
   // being sent to find, and the Shop tab lighting up already says this one
   // opened.
-  if (!Unlocked(Feature::kShop, character_)) {
+  if (!Unlocked(Feature::kShop, character_, account_)) {
     menu_.Hide(kMenuSell);
     menu_.Hide(kMenuMultiSell);
   }

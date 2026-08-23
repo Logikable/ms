@@ -968,7 +968,7 @@ void Outfit(GameState& state, bool budget) {
   // Nothing is for sale before the shop opens, so there is nothing to choose
   // between and nothing to climb -- the character keeps what the game gave
   // them, as a player that early does.
-  if (!Unlocked(Feature::kShop, state.character)) {
+  if (!Unlocked(Feature::kShop, state.character, state.account)) {
     return;
   }
   EquipType type = MeasureBestType(state, budget);

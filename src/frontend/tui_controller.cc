@@ -320,13 +320,13 @@ bool TuiController::OnEvent(ftxui::Event event) {
 
 bool TuiController::PanelVisible(int panel) const {
   if (panel == kEquipPanel) {
-    return Unlocked(Feature::kEquipped, state_.character);
+    return Unlocked(Feature::kEquipped, state_.character, state_.account);
   }
   if (panel == kInventoryPanel) {
-    return Unlocked(Feature::kBag, state_.character);
+    return Unlocked(Feature::kBag, state_.character, state_.account);
   }
   if (panel == kMenuPanel) {
-    return Unlocked(Feature::kMenu, state_.character);
+    return Unlocked(Feature::kMenu, state_.character, state_.account);
   }
   return true;
 }
