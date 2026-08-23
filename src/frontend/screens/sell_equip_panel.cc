@@ -19,14 +19,13 @@ void SellEquipPanel::Reset(const std::string& item_name, int price) {
 }
 
 ftxui::Element SellEquipPanel::Render() const {
-  return ThemedWindow(" Sell ",
-                      ftxui::vbox({
+  return DialogWindow(" Sell ",
+                      {
                           CenteredRow(item_name_),
                           ThemedSeparator(),
                           CenteredRow("Sell for " + FormatMeso(price_)),
-                          ThemedSeparator(),
-                          confirm_.Render() | ftxui::hcenter,
-                      }));
+                      },
+                      confirm_.Render());
 }
 
 ConfirmChoice SellEquipPanel::OnEvent(ftxui::Event event) {

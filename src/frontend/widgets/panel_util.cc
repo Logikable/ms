@@ -821,6 +821,15 @@ ftxui::Element ResultWindow(const std::string& title,
   return AccentWindow(title, ftxui::vbox(std::move(rows)), accent);
 }
 
+ftxui::Element DialogWindow(const std::string& title,
+                            std::vector<ftxui::Element> body,
+                            ftxui::Element buttons, ftxui::Color accent) {
+  std::vector<ftxui::Element> rows = std::move(body);
+  rows.push_back(AccentSeparator(accent));
+  rows.push_back(CenteredRow(std::move(buttons)));
+  return AccentWindow(title, ftxui::vbox(std::move(rows)), accent);
+}
+
 ftxui::Element EmptyState(const std::string& what, int gutter) {
   return ftxui::text(std::string(gutter, ' ') + "(" + what + ")");
 }

@@ -1157,5 +1157,27 @@ TEST(FormatEquipSetTest, NamesEverySet) {
   EXPECT_EQ(FormatEquipSet(EQUIP_SET_NAME_UNSPECIFIED), "");
 }
 
+// --- DialogWindow ---
+
+// The point of the helper: whatever the body is, a rule stands between it and
+// the buttons, so no dialog can be written without one.
+TEST(DialogWindowTest, RulesBetweenTheBodyAndTheButtons) {
+  ftxui::Screen screen =
+      RenderSized(DialogWindow(" Ask ", {CenteredRow("Are you sure?")},
+                               ActionButton("OK", true)),
+                  20, 5);
+  EXPECT_EQ(ScreenRow(screen, 1), "│  Are you sure?   │");
+  EXPECT_EQ(ScreenRow(screen, 2), "├──────────────────┤");
+  EXPECT_EQ(ScreenRow(screen, 3), "│       [OK]       │");
+}
+
+TEST(DialogWindowTest, TheAccentColoursTheRuleAndTheBorder) {
+  ftxui::Screen screen = RenderSized(
+      DialogWindow("", {CenteredRow("Gone")}, ActionButton("OK", false), kRed),
+      20, 5);
+  EXPECT_EQ(screen.PixelAt(0, 0).foreground_color, kRed);
+  EXPECT_EQ(screen.PixelAt(5, 2).foreground_color, kRed);
+}
+
 }  // namespace
 }  // namespace ms

@@ -428,16 +428,14 @@ ftxui::Element ScrollPanel::RenderConfirm() const {
   // Three blocks with a rule between each: what is going on what, what it does
   // and what it costs, and the answer. The middle block is the only one the
   // player reads twice.
-  return ThemedWindow(
-      " Confirm ",
-      ftxui::vbox({
-          CenteredRow(what),
-          ThemedSeparator(),
-          CenteredRow(effect),
-          std::move(money_row),
-          ThemedSeparator(),
-          ConfirmButtons(confirm_.focus(), affordable) | ftxui::hcenter,
-      }));
+  return DialogWindow(" Confirm ",
+                      {
+                          CenteredRow(what),
+                          ThemedSeparator(),
+                          CenteredRow(effect),
+                          std::move(money_row),
+                      },
+                      ConfirmButtons(confirm_.focus(), affordable));
 }
 
 ftxui::Element ScrollPanel::RenderResult(const ScrollResult& r) const {

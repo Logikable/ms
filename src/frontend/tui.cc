@@ -277,25 +277,21 @@ ftxui::Element Tui::SkillLearnDialog() {
 }
 
 ftxui::Element Tui::JobAdvanceDialog() {
-  return ThemedWindow(
+  return DialogWindow(
       " Job Advancement ",
-      ftxui::vbox({
+      {
           CenteredRow("Advance to " + JobName(controller_.job_advance_job()) +
                       "?"),
           CenteredRow("This action is irreversible."),
-          ThemedSeparator(),
-          CenteredRow(controller_.job_advance_prompt().Render()),
-      }));
+      },
+      controller_.job_advance_prompt().Render());
 }
 
 ftxui::Element Tui::QuitDialog() {
   // Titleless: the question is the whole dialog, and a " Quit Game " chip over
   // a "Quit Game?" row would ask it twice.
-  return ThemedWindow("", ftxui::vbox({
-                              CenteredRow("Quit Game?"),
-                              ThemedSeparator(),
-                              CenteredRow(controller_.quit_prompt().Render()),
-                          }));
+  return DialogWindow("", {CenteredRow("Quit Game?")},
+                      controller_.quit_prompt().Render());
 }
 
 ftxui::Element Tui::RenderSettingsBox() {
@@ -314,12 +310,9 @@ ftxui::Element Tui::RenderSettingsBox() {
 
 ftxui::Element Tui::BossConfirmDialog() {
   // Titleless, like the quit dialog: the question is the whole dialog.
-  return ThemedWindow(
-      "", ftxui::vbox({
-              CenteredRow("Fight " + controller_.boss_prompt_title() + "?"),
-              ThemedSeparator(),
-              CenteredRow(controller_.boss_prompt().Render()),
-          }));
+  return DialogWindow(
+      "", {CenteredRow("Fight " + controller_.boss_prompt_title() + "?")},
+      controller_.boss_prompt().Render());
 }
 
 ftxui::Element Tui::BossNoticeDialog() {
@@ -331,21 +324,17 @@ ftxui::Element Tui::BossNoticeDialog() {
   for (const std::string& line : controller_.notice_lines()) {
     rows.push_back(CenteredRow(line));
   }
-  rows.push_back(AccentSeparator(accent));
-  rows.push_back(CenteredRow(controller_.notice_prompt().Render()));
-  return AccentWindow("", ftxui::vbox(std::move(rows)), accent);
+  return DialogWindow("", std::move(rows), controller_.notice_prompt().Render(),
+                      accent);
 }
 
 ftxui::Element Tui::BossAbortDialog() {
   const BossRun* run = controller_.boss_run();
-  return ThemedWindow(
+  return DialogWindow(
       "",
-      ftxui::vbox({
-          CenteredRow("Stop fighting " +
-                      (run == nullptr ? std::string("") : run->title()) + "?"),
-          ThemedSeparator(),
-          CenteredRow(controller_.boss_abort_prompt().Render()),
-      }));
+      {CenteredRow("Stop fighting " +
+                   (run == nullptr ? std::string("") : run->title()) + "?")},
+      controller_.boss_abort_prompt().Render());
 }
 
 // What stands over the arena, if anything: the leave prompt, or whatever the

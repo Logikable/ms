@@ -272,6 +272,17 @@ ftxui::Element ResultWindow(const std::string& title,
                             std::vector<ftxui::Element> body,
                             ftxui::Color accent = kTheme);
 
+// A modal question: `body` over a rule, then `buttons`. The counterpart of
+// ResultWindow -- every dialog that asks something is built from this, so no
+// one of them can be written without the rule over its answer.
+//
+// `accent` colours the border and the rule, for a question the player should
+// read before answering.
+ftxui::Element DialogWindow(const std::string& title,
+                            std::vector<ftxui::Element> body,
+                            ftxui::Element buttons,
+                            ftxui::Color accent = kTheme);
+
 // The one way a panel says it has nothing to show: " (empty)". Use a specific
 // reason ("no matching items") only where it tells the player something they
 // could not already see. `gutter` lines the row up with the list's cursor

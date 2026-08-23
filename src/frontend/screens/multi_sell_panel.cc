@@ -376,14 +376,13 @@ ftxui::Element MultiSellPanel::Render() {
 }
 
 ftxui::Element MultiSellPanel::RenderConfirm() const {
-  return ThemedWindow(
+  return DialogWindow(
       " Confirm Sale ",
-      ftxui::vbox({
+      {
           CenteredRow("Are you sure?"),
           CenteredRow(ftxui::text(FormatMeso(Total())) | ftxui::color(kGold)),
-          ftxui::text(""),
-          CenteredRow(confirm_.Render()),
-      }));
+      },
+      confirm_.Render());
 }
 
 }  // namespace ms
