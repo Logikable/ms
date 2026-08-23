@@ -92,11 +92,26 @@ void HandleClosingSignals() {
 #endif
 }
 
+// The host and port in `server`, which is "host:port". Nothing for an empty
+// one, or for a port that is not a number.
+std::unique_ptr<MultiplayerSession> MakeSession(const std::string& server) {
+  size_t colon = server.rfind(':');
+  if (colon == std::string::npos) {
+    return nullptr;
+  }
+  int port = std::atoi(server.c_str() + colon + 1);
+  if (port <= 0) {
+    return nullptr;
+  }
+  return std::make_unique<MultiplayerSession>(server.substr(0, colon), port);
+}
+
 }  // namespace
 
-Tui::Tui(GameState& state, std::string save_path)
+Tui::Tui(GameState& state, std::string save_path, std::string server)
     : state_(state),
       save_policy_(std::move(save_path), std::chrono::steady_clock::now()),
+      multiplayer_(MakeSession(server)),
       progress_watcher_(state.character.proto()),
       last_combat_update_(std::chrono::steady_clock::now()),
       keys_(state.account.mutable_keybinds()),
@@ -186,6 +201,9 @@ ftxui::Component Tui::MakeRoot(ftxui::ScreenInteractive& screen) {
 
 void Tui::Run() {
   BuildComponents();
+  if (multiplayer_ != nullptr) {
+    multiplayer_->Start(state_);
+  }
   ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
   HandleClosingSignals();
   ftxui::Component root = MakeRoot(screen);
@@ -217,6 +235,12 @@ void Tui::Run() {
   screen.Loop(root);
   running = false;
   ticker.join();
+  // Before the save, so that an account the server issued this session is in
+  // the file the player comes back to.
+  if (multiplayer_ != nullptr) {
+    multiplayer_->Advance(state_);
+    multiplayer_->Stop();
+  }
   // Every way out of the loop ends here -- the quit dialog, Ctrl+C, a closed
   // window -- so this is the one place the last save has to be written.
   save_policy_.Save(state_, std::chrono::steady_clock::now());
@@ -715,6 +739,9 @@ void Tui::Tick() {
     sample.meso = tally.meso;
     sample.exp = tally.exp;
     analysis_.Advance(sample);
+  }
+  if (multiplayer_ != nullptr) {
+    multiplayer_->Advance(state_);
   }
   // Ticked down before the new level is noticed, so a level-up landing on this
   // tick gets its full four seconds rather than one tick's worth less.

@@ -5,7 +5,10 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "protocol",
     hdrs = ["protocol.h"],
-    deps = ["//src/net:frame"],
+    deps = [
+        "//src:build_config",
+        "//src/net:frame",
+    ],
 )
 
 cc_test(

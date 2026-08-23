@@ -268,6 +268,7 @@ cc_library(
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/item:equip_instance",
+        "//src/multiplayer:session",
         "//src/protos:character_proto_cc",
         "//src/protos:skill_proto_cc",
         "@ftxui//:component",

@@ -6,6 +6,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/log/globals.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
 #include "server/server.h"
@@ -37,6 +38,9 @@ constexpr std::chrono::milliseconds kStepTimeout(100);
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
+  // The log is the only thing this process says, and journald reads it off
+  // stderr. Without this, absl keeps everything below a warning to itself.
+  absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
   if (!ms::StartSockets()) {
     return 1;
   }

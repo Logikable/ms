@@ -10,13 +10,16 @@
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
+#include "src/build_config.h"
 #include "src/combat/offline.h"
 #include "src/embedded_data.h"
 #include "src/frontend/tui.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/item/item.h"
+#include "src/multiplayer/protocol.h"
 #include "src/proto_loader.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
@@ -41,6 +44,10 @@ ABSL_FLAG(std::string, equips, "clean",
           "Workbench only (--mode=test): what state the character's gear "
           "arrives in. 'clean' as it drops, 'scroll' with every upgrade slot "
           "passed, or 'sf' with that and every star.");
+ABSL_FLAG(std::string, server, ms::DefaultServerAddress(),
+          "Where the multiplayer server is, as host:port. Empty plays alone, "
+          "which is what a build made without multiplayer does whatever this "
+          "says. The workbench never connects either.");
 ABSL_FLAG(std::string, skills, "zero",
           "Workbench only (--mode=test): what to do with the book the "
           "character's job is standing in. 'zero' leaves it unbought with the "
@@ -196,7 +203,13 @@ int main(int argc, char** argv) {
                            static_cast<std::int64_t>(std::time(nullptr))));
   }
 
-  ms::Tui tui(state, save_path);
+  // The workbench never connects: it is a character built to exercise the
+  // screens, and the lobby is not the place for one.
+  std::string server;
+  if (mode == ms::GameMode::kPlay) {
+    server = absl::GetFlag(FLAGS_server);
+  }
+  ms::Tui tui(state, save_path, server);
   tui.ShowOfflineReport(offline);
   tui.Run();
   return 0;

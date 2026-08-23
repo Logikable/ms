@@ -1,0 +1,24 @@
+# The server as it runs on the box, as a systemd user unit:
+#
+#   ~/.config/systemd/user/ms-server.service
+#
+# It is put there by tools/deploy_server.sh. The user needs lingering turned
+# on -- `sudo loginctl enable-linger <user>` -- or the service stops when the
+# last login session ends.
+
+[Unit]
+Description=MapleStory idle game server
+After=network-online.target
+
+[Service]
+ExecStart=%h/ms/ms_server --port=21711
+Restart=always
+RestartSec=2
+# SIGTERM means drain: the server stops taking connections and plays out the
+# fights already running. The wait is longer than the longest boss clock, so
+# an update never cuts a party's fight short.
+KillSignal=SIGTERM
+TimeoutStopSec=360
+
+[Install]
+WantedBy=default.target

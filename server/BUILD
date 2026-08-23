@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("//tools:release.bzl", "release_binary")
 
 # The multiplayer server. It lives outside //src for the same reason the sims
 # do: it is not the game a player runs.
@@ -63,6 +64,7 @@ cc_binary(
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:globals",
         "@abseil-cpp//absl/log:initialize",
     ],
 )
@@ -94,6 +96,20 @@ cc_binary(
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:initialize",
     ],
+)
+
+# What tools/deploy_server.sh sends: optimised and statically linked, so the
+# box's glibc need not match the machine that built it.
+release_binary(
+    name = "ms_server_static",
+    binary = ":ms_server",
+    platform = "//release:linux_x86_64",
+)
+
+release_binary(
+    name = "probe_static",
+    binary = ":probe",
+    platform = "//release:linux_x86_64",
 )
 
 cc_test(

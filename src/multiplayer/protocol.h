@@ -9,6 +9,7 @@
 #include <chrono>
 #include <string>
 
+#include "src/build_config.h"
 #include "src/net/frame.h"
 
 namespace ms {
@@ -20,9 +21,25 @@ namespace ms {
 // turned away and told to update.
 inline constexpr int kMultiplayerVersion = 1;
 
-// Where the server runs. The client's --server flag overrides both.
+// Where the server runs. The client's --server flag overrides both. A build
+// made without multiplayer carries no address at all -- there is nothing in
+// it that would connect, and a single-player game has no business shipping
+// somebody's home address.
+#ifdef MS_MULTIPLAYER_OFF
+inline constexpr char kServerHost[] = "";
+#else
 inline constexpr char kServerHost[] = "68.42.95.210";
+#endif
 inline constexpr int kServerPort = 21711;
+
+// The two of them as the --server flag spells it. Empty in a build without
+// multiplayer, which is what makes that build play alone.
+inline std::string DefaultServerAddress() {
+  if (!kMultiplayerEnabled) {
+    return "";
+  }
+  return std::string(kServerHost) + ":" + std::to_string(kServerPort);
+}
 
 // How often a client that has nothing to say says it anyway.
 inline constexpr std::chrono::seconds kHeartbeatInterval(5);

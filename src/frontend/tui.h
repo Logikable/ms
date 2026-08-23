@@ -12,6 +12,7 @@
 #define MS_SRC_FRONTEND_TUI_H_
 
 #include <chrono>
+#include <memory>
 #include <string>
 
 #include "ftxui/component/component.hpp"
@@ -46,6 +47,7 @@
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/game_state.h"
+#include "src/multiplayer/session.h"
 #include "src/save.h"
 
 namespace ms {
@@ -54,7 +56,10 @@ class Tui {
  public:
   // `save_path` is where the game is written; empty turns saving off, which
   // is how the workbench avoids ever touching a player's file.
-  explicit Tui(GameState& state, std::string save_path = "");
+  //
+  // `server` is the multiplayer server as host:port; empty plays alone. The
+  // connection is opened for the whole session and closed on the way out.
+  Tui(GameState& state, std::string save_path = "", std::string server = "");
   // Raises the card showing what the character earned while the game was
   // closed. Called before Run(), so the first thing the player sees is what
   // they came back to; a report not worth a card raises nothing.
@@ -119,6 +124,8 @@ class Tui {
 
   GameState& state_;
   SavePolicy save_policy_;
+  // The connection to the other players, or null for a game played alone.
+  std::unique_ptr<MultiplayerSession> multiplayer_;
   ProgressWatcher progress_watcher_;
   // The card and the lit panels, or nothing most of the time.
   Celebration celebration_;

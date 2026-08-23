@@ -19,6 +19,26 @@ embedded_data(
     },
 )
 
+# The one switch a single-player build is made with:
+#
+#   bazelisk build --define=multiplayer=off //src:ms
+#
+# Every multiplayer entry point asks kMultiplayerEnabled, so a build made this
+# way has no party screens and opens no connection.
+config_setting(
+    name = "multiplayer_off",
+    values = {"define": "multiplayer=off"},
+)
+
+cc_library(
+    name = "build_config",
+    hdrs = ["build_config.h"],
+    defines = select({
+        ":multiplayer_off": ["MS_MULTIPLAYER_OFF"],
+        "//conditions:default": [],
+    }),
+)
+
 cc_library(
     name = "proto_loader",
     srcs = ["proto_loader.cc"],
@@ -161,6 +181,7 @@ cc_library(
 )
 
 _MAIN_DEPS = [
+    ":build_config",
     ":embedded_data",
     ":save",
     ":game_state",
@@ -169,6 +190,7 @@ _MAIN_DEPS = [
     "//src/frontend:tui",
     "//src/item",
     "//src/item:equip_instance",
+    "//src/multiplayer:protocol",
     "//src/protos:boss_proto_cc",
     "//src/protos:character_proto_cc",
     "//src/protos:equip_proto_cc",
