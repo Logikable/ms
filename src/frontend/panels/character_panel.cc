@@ -35,6 +35,22 @@ std::string Centered(const std::string& s) {
   return PadRight(std::string(pad, ' ') + s, kContentWidth);
 }
 
+// A centred row whose text alone carries the decorator, for a row the cursor
+// can land on. Not CenteredRow: every row of this panel is padded to
+// kContentWidth, and a flexed row would centre itself in whatever width the
+// window came out at instead. The padding is separate text so that inverting
+// the label does not invert the whole row with it.
+ftxui::Element CenteredCell(const std::string& label,
+                            const ftxui::Decorator& decorator) {
+  int pad = std::max(0, (kContentWidth - static_cast<int>(label.size())) / 2);
+  int rest = std::max(0, kContentWidth - pad - static_cast<int>(label.size()));
+  return ftxui::hbox({
+      ftxui::text(std::string(pad, ' ')),
+      ftxui::text(label) | decorator,
+      ftxui::text(std::string(rest, ' ')),
+  });
+}
+
 // The outer tab labels, indexed by CharacterPanel::Tab.
 const char* kTabLabels[] = {"Stats", "Skills", "Advance"};
 
@@ -178,8 +194,9 @@ CharacterPanel::Tab CharacterPanel::ActiveTab() const {
 
 CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
   switch (zone_) {
+    case kZoneUsername:
     case kZoneTabs:
-      return kZoneTabs;
+      return zone_;
     case kZoneStatRows:
       return ActiveTab() == kTabStats ? zone_ : kZoneTabs;
     case kZoneAdvTabs:
@@ -192,57 +209,66 @@ CharacterPanel::Zone CharacterPanel::EffectiveZone() const {
 }
 
 int CharacterPanel::RingStops() const {
+  // The username row is stop 0 of every tab, and the tab bar stop 1, which is
+  // what puts the name one step up from the bar and one step down off the
+  // bottom row -- neither is a rule of its own.
   if (ActiveTab() == kTabStats) {
-    // The tab bar, the four AP stats, and the View All Stats row under them --
-    // which is not there while there are no combat stats for it to lead to.
-    return 1 + kNumAllocStats + (ShowsCombatStats() ? 1 : 0);
+    // The two of them, the four AP stats, and the View All Stats row under
+    // them -- which is not there while there are no combat stats to lead to.
+    return 2 + kNumAllocStats + (ShowsCombatStats() ? 1 : 0);
   }
   if (ActiveTab() == kTabAdvance) {
-    return 1 + static_cast<int>(
+    return 2 + static_cast<int>(
                    JobChoicesForStage(character_.proto().job(),
                                       character_.proto().job_stage() + 1)
                        .size());
   }
   if (character_.proto().job_stage() == 0) {
     // A Beginner's Skills tab has no advancement bar to stand on, let alone
-    // skills under it. One stop, and the arrows have nowhere to take anybody.
-    return 1;
+    // skills under it. The name and the bar, and nothing below them.
+    return 2;
   }
-  return 2 + static_cast<int>(SkillsForStage(skill_tab_ + 1).size());
+  return 3 + static_cast<int>(SkillsForStage(skill_tab_ + 1).size());
 }
 
 int CharacterPanel::CursorStop() const {
   switch (EffectiveZone()) {
-    case kZoneTabs:
+    case kZoneUsername:
       return 0;
-    case kZoneStatRows:
-      return stat_sel_ + 1;
-    case kZoneJobRows:
-      return job_sel_ + 1;
-    case kZoneAdvTabs:
+    case kZoneTabs:
       return 1;
+    case kZoneStatRows:
+      return stat_sel_ + 2;
+    case kZoneJobRows:
+      return job_sel_ + 2;
+    case kZoneAdvTabs:
+      return 2;
     case kZoneSkillRows:
-      return skill_sel_ + 2;
+      return skill_sel_ + 3;
   }
   return 0;
 }
 
 void CharacterPanel::SetCursorStop(int stop) {
   if (stop == 0) {
+    zone_ = kZoneUsername;
+    return;
+  }
+  if (stop == 1) {
     zone_ = kZoneTabs;
     return;
   }
   if (ActiveTab() == kTabStats) {
     zone_ = kZoneStatRows;
-    stat_sel_ = stop - 1;
+    stat_sel_ = stop - 2;
     return;
   }
   if (ActiveTab() == kTabAdvance) {
     zone_ = kZoneJobRows;
-    job_sel_ = stop - 1;
+    job_sel_ = stop - 2;
     return;
   }
-  if (stop == 1) {
+  if (stop == 2) {
     zone_ = kZoneAdvTabs;
     return;
   }
@@ -253,10 +279,10 @@ void CharacterPanel::SetCursorStop(int stop) {
     skill_col_ = kColName;
   }
   zone_ = kZoneSkillRows;
-  if (skill_sel_ != stop - 2) {
+  if (skill_sel_ != stop - 3) {
     RestartNameScroll();
   }
-  skill_sel_ = stop - 2;
+  skill_sel_ = stop - 3;
 }
 
 void CharacterPanel::RestartNameScroll() {
@@ -370,22 +396,9 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   // it opens -- and the cursor reaches it by walking off the foot of the
   // stats. It is the last row to go, not the first.
   //
-  // Centred by hand and not with CenteredRow: every row of this panel is
-  // padded to kContentWidth, and a flexed row would centre itself in whatever
-  // width the window came out at instead. Only the label inverts, so the
-  // padding either side of it cannot be part of the same text.
-  const std::string kViewAll = "View All Stats";
-  int pad = (kContentWidth - static_cast<int>(kViewAll.size())) / 2;
-  ftxui::Element view_all = ftxui::text(kViewAll);
-  if (content_focused && stat_sel_ == kNumAllocStats) {
-    view_all = view_all | ftxui::inverted;
-  }
-  rows.push_back(ftxui::hbox({
-      ftxui::text(std::string(pad, ' ')),
-      std::move(view_all),
-      ftxui::text(std::string(
-          kContentWidth - pad - static_cast<int>(kViewAll.size()), ' ')),
-  }));
+  bool selected = content_focused && stat_sel_ == kNumAllocStats;
+  rows.push_back(CenteredCell("View All Stats",
+                              selected ? ftxui::inverted : ftxui::nothing));
   return ftxui::vbox(std::move(rows));
 }
 
@@ -540,6 +553,20 @@ ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
   return ftxui::vbox(std::move(rows));
 }
 
+ftxui::Element CharacterPanel::RenderUsername(bool row_selected) const {
+  if (username_field_.editing()) {
+    // A caret after what has been typed, so an empty field is still a field
+    // rather than a blank row.
+    return CenteredCell(username_field_.text() + "_", ftxui::inverted);
+  }
+  const std::string& name = character_.username();
+  if (name == kDefaultUsername && !row_selected) {
+    // Dim while it is still the invitation: it is not a name yet.
+    return CenteredCell(name, ftxui::dim);
+  }
+  return CenteredCell(name, row_selected ? ftxui::inverted : ftxui::nothing);
+}
+
 ftxui::Element CharacterPanel::Render() const {
   const Character& p = character_.proto();
 
@@ -554,6 +581,7 @@ ftxui::Element CharacterPanel::Render() const {
   bool focused = panel_focus_ == kCharPanel;
   Zone zone = EffectiveZone();
   bool tab_row_selected = focused && zone == kZoneTabs;
+  bool name_row_selected = focused && zone == kZoneUsername;
   ftxui::Element content;
   if (ActiveTab() == kTabSkills) {
     content = RenderSkillsTab(focused && zone == kZoneAdvTabs,
@@ -566,6 +594,7 @@ ftxui::Element CharacterPanel::Render() const {
 
   return AccentWindow(" Character ",
                       ftxui::vbox({
+                          RenderUsername(name_row_selected),
                           ftxui::text(title),
                           ftxui::text(power),
                           PanelSeparator(highlighted_),
@@ -574,6 +603,32 @@ ftxui::Element CharacterPanel::Render() const {
                           content,
                       }),
                       PanelAccent(highlighted_), focused);
+}
+
+bool CharacterPanel::OnUsernameEvent(const ftxui::Event& event) {
+  if (username_field_.editing()) {
+    TextEntry entry = username_field_.OnEvent(event);
+    if (entry == TextEntry::kCommitted) {
+      character_.SetUsername(username_field_.text());
+      return true;
+    }
+    // Up and Down leave the old name and then move, the way they would have
+    // had the field never been open. Escape only closes it.
+    if (entry == TextEntry::kCancelled &&
+        (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+      MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    }
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  if (IsForward(event)) {
+    username_field_.BeginEdit();
+    return true;
+  }
+  return false;
 }
 
 bool CharacterPanel::OnTabsEvent(const ftxui::Event& event) {
@@ -749,6 +804,9 @@ ftxui::Component CharacterPanel::MakeComponent(
         zone_ = EffectiveZone();
         // Route by zone: the shared tab bar, else the active tab's content
         // (only Stats reaches kZoneStatRows, only Skills the skill zones).
+        if (zone_ == kZoneUsername) {
+          return OnUsernameEvent(event);
+        }
         if (zone_ == kZoneTabs) {
           return OnTabsEvent(event);
         }

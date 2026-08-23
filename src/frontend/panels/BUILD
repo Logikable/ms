@@ -16,6 +16,7 @@ cc_library(
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
         "//src/frontend/widgets:stat_rows",
+        "//src/frontend/widgets:text_field",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",

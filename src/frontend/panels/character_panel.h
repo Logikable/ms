@@ -1,11 +1,11 @@
-/* The character pane: a "Lv X <job>" title, a Stats/Skills tab bar, and the
- * selected tab's content. Stats shows the base stats and the combat stats,
- * equipment and learned passives included. Skills shows one page per job
- * advancement, its SP and its skills. A third Advance tab appears only while
- * an advancement is pending.
+/* The character pane: the player's name, a "Lv X <job>" title, a Stats/Skills
+ * tab bar, and the selected tab's content. Stats shows the base stats and the
+ * combat stats, equipment and learned passives included. Skills shows one page
+ * per job advancement, its SP and its skills. A third Advance tab appears only
+ * while an advancement is pending.
  *
  * Focus moves top to bottom through zones, Down descending and Up ascending,
- * with the outer tab bar as the top zone -- the only place Left/Right switch
+ * with the username row as the top zone -- the only place Left/Right switch
  * tabs. What each zone does with a key is in the OnXEvent handlers below.
  * Running out of AP or SP gates the spend alone: every row stays reachable,
  * since they are worth reading either way.
@@ -24,6 +24,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/text_field.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -78,6 +79,13 @@ class CharacterPanel {
     return job_cursor_box_.y_min;
   }
 
+  // True while the name field is taking keys. Tui asks so the player's own
+  // letters reach the field instead of being rewritten to the actions they
+  // are bound to -- see TranslateKeys.
+  bool editing_username() const {
+    return username_field_.editing();
+  }
+
   // Lights the panel's border gold, to send the player's eye here while a
   // level-up or advancement is being celebrated -- this is where the AP, SP
   // and job the moment handed over are spent. The panel keeps no clock of its
@@ -107,6 +115,7 @@ class CharacterPanel {
   // enters the active tab's first content zone: the stat rows on Stats, the
   // advancement tab bar on Skills, from which Down descends to the skill rows.
   enum Zone {
+    kZoneUsername,
     kZoneTabs,
     kZoneStatRows,
     kZoneAdvTabs,
@@ -122,6 +131,7 @@ class CharacterPanel {
   // returns whether it consumed the event. OnTabsEvent drives the shared outer
   // tab bar (kZoneTabs); the other two own their tab's content zones -- the
   // stat rows for Stats, the advancement bar and skill rows for Skills.
+  bool OnUsernameEvent(const ftxui::Event& event);
   bool OnTabsEvent(const ftxui::Event& event);
   bool OnStatsTabEvent(const ftxui::Event& event,
                        const std::function<void(StatField)>& on_allocate,
@@ -175,6 +185,9 @@ class CharacterPanel {
   void RestartNameScroll();
   // Renders the Stats/Skills tab bar. When row_selected the active tab is drawn
   // white (the tab bar holds focus); otherwise it keeps the theme highlight.
+  // The name row at the top of the panel: the username, inverted while the
+  // cursor rests on it, or what is being typed while the field is open.
+  ftxui::Element RenderUsername(bool row_selected) const;
   ftxui::Element RenderTabBar(bool row_selected) const;
   ftxui::Element RenderStatsTab(bool content_focused) const;
   // Renders the Skills tab: the advancement tab bar (I/II/... for unlocked
@@ -240,6 +253,7 @@ class CharacterPanel {
   std::chrono::steady_clock::time_point skill_selected_at_ =
       std::chrono::steady_clock::now();
   int job_sel_ = 0;  // selected Advance-tab job row
+  TextField username_field_{kMaxUsernameLength};
   // Written by ftxui::reflect on the selected job row each render.
   mutable ftxui::Box job_cursor_box_;
 };

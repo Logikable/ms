@@ -346,7 +346,8 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastJob) {
       panel.MakeComponent([](StatField) {}, [](const Skill&) {},
                           [&chosen](Job job) { chosen = job; });
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Advance
-  comp->OnEvent(ftxui::Event::ArrowUp);     // tab bar -> the last job
+  comp->OnEvent(ftxui::Event::ArrowUp);     // tab bar -> the username row
+  comp->OnEvent(ftxui::Event::ArrowUp);     // username -> the last job
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(chosen, JOB_ROGUE) << "the last of the four on offer";
 }
@@ -577,7 +578,8 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnViewAllStats) {
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent(
       [&](StatField f) { field = f; }, {}, {}, {}, [&] { opened = true; });
-  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the username row
+  comp->OnEvent(ftxui::Event::ArrowUp);  // username -> View All Stats
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(opened);
   EXPECT_EQ(field, STAT_FIELD_UNSPECIFIED);
@@ -600,7 +602,7 @@ TEST_F(CharacterPanelTest, DownFromLukReachesViewAllStatsThenTheTabBar) {
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(opened, 1);
 
-  comp->OnEvent(ftxui::Event::ArrowDown);  // View All Stats -> tab bar
+  comp->OnEvent(ftxui::Event::ArrowDown);  // View All Stats -> the username
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(opened, 1);
 }
@@ -611,7 +613,8 @@ TEST_F(CharacterPanelTest, ViewAllStatsOpensWithNoApToSpend) {
   bool opened = false;
   ftxui::Component comp =
       panel.MakeComponent([](StatField) {}, {}, {}, {}, [&] { opened = true; });
-  comp->OnEvent(ftxui::Event::ArrowUp);  // tab bar -> View All Stats
+  comp->OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the username row
+  comp->OnEvent(ftxui::Event::ArrowUp);  // username -> View All Stats
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(opened);
 }
@@ -1253,8 +1256,9 @@ TEST_F(CharacterPanelTest, UpFromSkillRowsReturnsToTheAdvancementBar) {
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
-// The Skills tab's ring is three deep: the outer tab bar, the advancement bar
-// under it, then the skills. Up off the top of it arrives at the bottom.
+// The Skills tab's ring is four deep: the username row, the outer tab bar, the
+// advancement bar under it, then the skills. Up off the top arrives at the
+// bottom.
 TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastSkill) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel panel(c, panel_focus_, SkillCatalog());
@@ -1262,7 +1266,8 @@ TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheLastSkill) {
   ftxui::Component comp = panel.MakeComponent(
       [](StatField) {}, [&fired](const Skill&) { fired = true; });
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
-  comp->OnEvent(ftxui::Event::ArrowUp);     // tab bar -> the last skill row
+  comp->OnEvent(ftxui::Event::ArrowUp);     // tab bar -> the username row
+  comp->OnEvent(ftxui::Event::ArrowUp);     // username -> the last skill row
   comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_TRUE(fired) << "Enter learns only from a skill row";
@@ -1275,16 +1280,17 @@ TEST_F(CharacterPanelTest, DownFromTheLastSkillReturnsToTheBar) {
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
   comp->OnEvent(ftxui::Event::ArrowDown);   // the one skill row
-  comp->OnEvent(ftxui::Event::ArrowDown);   // off the bottom -> outer tab bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // off the bottom -> the username
+  comp->OnEvent(ftxui::Event::ArrowDown);   // username -> outer tab bar
   // Left switches outer tabs only from the bar, so Stats coming back is where
   // the cursor went.
   comp->OnEvent(ftxui::Event::ArrowLeft);
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
 
-// A stage with no skills is a ring of two: the outer bar and the advancement
-// bar. Down from the advancement bar carries on round rather than descending
-// into a list that is not there.
+// A stage with no skills is a ring of three: the username row, the outer bar
+// and the advancement bar. Down from the advancement bar carries on round
+// rather than descending into a list that is not there.
 TEST_F(CharacterPanelTest, DownFromTheAdvBarSkipsAnEmptySkillList) {
   CharacterInstance c = MakeCharacter(/*level=*/10, /*ap=*/0);
   c.AdvanceJob(JOB_SWORDMAN);
@@ -1292,7 +1298,8 @@ TEST_F(CharacterPanelTest, DownFromTheAdvBarSkipsAnEmptySkillList) {
   ftxui::Component comp = panel.MakeComponent([](StatField) {});
   comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
   comp->OnEvent(ftxui::Event::ArrowDown);   // advancement bar
-  comp->OnEvent(ftxui::Event::ArrowDown);   // -> outer tab bar, not a row
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the username, not a row
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> outer tab bar
   comp->OnEvent(ftxui::Event::ArrowLeft);   // outer tabs: Skills -> Stats
   EXPECT_NE(RenderComponent(comp).find("HP:"), std::string::npos);
 }
@@ -1422,9 +1429,111 @@ TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   EXPECT_EQ(ExtrasShown(panel.Render()).size(), 12u);  // 11 stats and the row
 }
 
+// --- The username row ---
+
+TEST_F(CharacterPanelTest, TheNameRowStartsOnTheInvitation) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  EXPECT_TRUE(OnScreen(comp, kDefaultUsername));
+  EXPECT_TRUE(IsDim(comp, kDefaultUsername))
+      << "dim while it is an invitation rather than a name";
+}
+
+TEST_F(CharacterPanelTest, UpFromTheTabBarLandsOnTheName) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  EXPECT_FALSE(IsInverted(comp, kDefaultUsername));
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
+}
+
+// The other way onto the row: off the bottom of the panel, the ring coming
+// round to its first stop.
+TEST_F(CharacterPanelTest, DownOffTheBottomLandsOnTheName) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/0, /*ap=*/5);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  // The tab bar, four AP stats and View All Stats, then round to the name.
+  for (int i = 0; i < 6; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+  }
+  EXPECT_TRUE(IsInverted(comp, kDefaultUsername));
+}
+
+TEST_F(CharacterPanelTest, TypingANameAndPressingEnterKeepsIt) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowUp);  // onto the name
+  comp->OnEvent(ftxui::Event::Return);   // open the field
+  EXPECT_FALSE(OnScreen(comp, kDefaultUsername)) << "the field opens empty";
+  for (char ch : std::string("Sean99")) {
+    comp->OnEvent(ftxui::Event::Character(ch));
+  }
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(c.username(), "Sean99");
+  EXPECT_TRUE(OnScreen(comp, "Sean99"));
+}
+
+TEST_F(CharacterPanelTest, EscapeLeavesTheOldName) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  c.SetUsername("Logikable");
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::Return);
+  comp->OnEvent(ftxui::Event::Character('x'));
+  comp->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(c.username(), "Logikable");
+  EXPECT_TRUE(IsInverted(comp, "Logikable")) << "and the cursor stays put";
+}
+
+TEST_F(CharacterPanelTest, EnterOnAnEmptyFieldLeavesTheOldName) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  c.SetUsername("Logikable");
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::Return);  // open
+  comp->OnEvent(ftxui::Event::Return);  // nothing typed
+  EXPECT_EQ(c.username(), "Logikable");
+}
+
+// An arrow out of the field abandons the edit and moves in the same keystroke.
+TEST_F(CharacterPanelTest, AnArrowOutOfTheFieldLeavesTheNameAndMoves) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
+  c.SetUsername("Logikable");
+  CharacterPanel panel(c, panel_focus_);
+  StatField field = STAT_FIELD_UNSPECIFIED;
+  ftxui::Component comp = panel.MakeComponent([&](StatField f) { field = f; });
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::Return);
+  comp->OnEvent(ftxui::Event::Character('x'));
+  comp->OnEvent(ftxui::Event::ArrowDown);  // abandon, and on to the tab bar
+  EXPECT_EQ(c.username(), "Logikable");
+  EXPECT_FALSE(IsInverted(comp, "Logikable"));
+  comp->OnEvent(ftxui::Event::ArrowDown);  // tab bar -> STR
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(field, STAT_FIELD_STR) << "the cursor moved off the name";
+}
+
+// The row is a stop like any other, so the keys that walk the panel must not
+// be eaten by a field the player never opened.
+TEST_F(CharacterPanelTest, TheNameTakesKeysOnlyWhileTheFieldIsOpen) {
+  CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/0);
+  CharacterPanel panel(c, panel_focus_);
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowUp);  // onto the name
+  comp->OnEvent(ftxui::Event::Character('x'));
+  EXPECT_EQ(c.username(), kDefaultUsername);
+  EXPECT_TRUE(OnScreen(comp, kDefaultUsername));
+}
+
 // The block is what a job fills in, so a Beginner's tab ends at the AP rows --
-// and the way through to the All Stats screen ends with it. Up off the bar
-// lands on LUK instead, and Enter there spends the point.
+// and the way through to the All Stats screen ends with it. Two steps up off
+// the bar land on LUK instead, and Enter there spends the point.
 TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
   CharacterInstance c = MakeCharacter(/*level=*/1, /*ap=*/5);
   CharacterPanel panel(c, panel_focus_);
@@ -1434,7 +1543,8 @@ TEST_F(CharacterPanelTest, ABeginnerHasNoCombatStatsAndNoWayToTheScreen) {
   bool opened = false;
   ftxui::Component comp = panel.MakeComponent(
       [&](StatField f) { field = f; }, {}, {}, {}, [&] { opened = true; });
-  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::ArrowUp);  // tab bar -> the username row
+  comp->OnEvent(ftxui::Event::ArrowUp);  // username -> LUK
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(opened);
   EXPECT_EQ(field, STAT_FIELD_LUK);
