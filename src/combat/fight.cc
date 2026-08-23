@@ -965,7 +965,9 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
       continue;
     }
     auto_phase_[i] += dt;
-    if (auto_phase_[i] >= cast.interval_seconds) {
+    // As in RunSwing and RunDots: a step wider than the interval owes every
+    // cast it covered.
+    while (auto_phase_[i] >= cast.interval_seconds) {
       auto_phase_[i] -= cast.interval_seconds;
       const AttackOption& landed = FormToLand(
           auto_empowered_count_, static_cast<int>(casts.size()), i, cast);
@@ -1020,36 +1022,48 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
 void CombatSim::RunSwing(const CombatParams& params, double dt) {
   // Aimed against the queue as it stands, so the charge bar names the swing
   // that is really coming. Only the poke is re-aimed as mobs die out from
-  // under it; a skill winding up is committed to. Aimed again after the
-  // strike, because the queue just moved and the commitment is discharged.
+  // under it; a skill winding up is committed to.
   const AttackOption* attack = AimSwing(params);
   if (attack == nullptr) {
     return;
   }
   attack_phase_ += dt;
-  if (attack_phase_ < attack->swing_seconds) {
-    return;
+  // A while rather than an if: a step wider than the swing owes every swing it
+  // covered, the way a burn ticks for each interval it outlasted. A 120ms
+  // key-down skill under a 150ms frame otherwise loses one swing in five and
+  // leaves the charge bar pinned full, since the phase never falls back under
+  // one swing.
+  while (attack != nullptr && attack->swing_seconds > 0.0 &&
+         attack_phase_ >= attack->swing_seconds) {
+    attack_phase_ -= attack->swing_seconds;
+    LandSwing(params, *attack);
+    // Aimed afresh by the landing, because the queue just moved and the
+    // commitment is discharged.
+    attack = aimed_ >= 0 ? &Attacks(params)[aimed_] : nullptr;
   }
-  attack_phase_ -= attack->swing_seconds;
+}
+
+void CombatSim::LandSwing(const CombatParams& params,
+                          const AttackOption& attack) {
   // Read before the strike, because aiming again below moves it.
   int swung = aimed_;
-  if (attack->heal_fraction > 0.0) {
+  if (attack.heal_fraction > 0.0) {
     player_hp_ =
         std::min(static_cast<double>(params.max_player_hp),
-                 player_hp_ + attack->heal_fraction * params.max_player_hp);
+                 player_hp_ + attack.heal_fraction * params.max_player_hp);
   } else {
     const AttackOption& landed =
         FormToLand(empowered_count_, static_cast<int>(Attacks(params).size()),
-                   swung, *attack);
+                   swung, attack);
     double proc_recovered = Strike(landed, {DamageOrigin::kSwing, 0});
     CreditFreeze(params, landed);
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the
     // strike belongs to the skill, not to the form standing in for it this
     // time. It goes out after the swing, so it lands on what the swing left.
-    if (attack->side != nullptr && side_cooldown_left_[swung] <= 0.0) {
-      Strike(*attack->side, {DamageOrigin::kSideStrike, swung});
-      side_cooldown_left_[swung] = attack->side->cooldown_seconds;
+    if (attack.side != nullptr && side_cooldown_left_[swung] <= 0.0) {
+      Strike(*attack.side, {DamageOrigin::kSideStrike, swung});
+      side_cooldown_left_[swung] = attack.side->cooldown_seconds;
     }
     // Recovery rides the hit, so a cast does not earn it and neither does a
     // swing at nothing. What landed pays it rather than what was aimed, and
@@ -1062,14 +1076,14 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
     // Credited after the strike, so the volley lands on what the swing left
     // standing rather than on mobs it was about to kill anyway. A healing cast
     // credits nothing: it is not an attack.
-    CreditSwing(params, attack->count_weight);
+    CreditSwing(params, attack.count_weight);
     // Attacking is what brings a buff round sooner, so the same swing that
     // credits the volleys credits the buffs. A cast credits neither.
-    CreditBuffs(params, attack->count_weight, landed.lines);
+    CreditBuffs(params, attack.count_weight, landed.lines);
     LayBuffs(params, swung);
   }
-  if (attack->cooldown_seconds > 0.0) {
-    cooldown_left_[swung] = attack->cooldown_seconds;
+  if (attack.cooldown_seconds > 0.0) {
+    cooldown_left_[swung] = attack.cooldown_seconds;
   }
   aimed_ = -1;  // the swing landed, so the next one is chosen afresh
   AimSwing(params);

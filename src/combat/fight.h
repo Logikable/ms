@@ -424,8 +424,11 @@ class CombatSim {
   // Points the next swing at the queue as it stands, naming it for the charge
   // bar. Returns what it picked, or null with nothing to hit.
   const AttackOption* AimSwing(const CombatParams& params);
-  // Charges the swing and lands it when it comes round.
+  // Charges the swing and lands every one the step comes round for.
   void RunSwing(const CombatParams& params, double dt);
+  // One swing landing: the strike and everything that rides on it. Leaves the
+  // next swing aimed.
+  void LandSwing(const CombatParams& params, const AttackOption& attack);
   // Refreshes the target and the engaged window for the panel to draw.
   void PublishTarget(const CombatParams& params);
   void MergeEngagedWindow(const CombatParams& params);

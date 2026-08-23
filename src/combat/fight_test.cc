@@ -609,6 +609,43 @@ TEST(CombatSimTest, ChargesAttackBarThenLandsAHit) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.6, 1e-9);  // 10 - 4 = 6
 }
 
+// A step wider than the swing lands every swing it covered, rather than one
+// and a growing residue. The residue used to pin the charge bar full: a 120ms
+// key-down skill under the TUI's 150ms frame gave back 120ms of the 150 it
+// took, so the phase climbed past a whole swing and stayed there.
+TEST(CombatSimTest, AStepWiderThanTheSwingLandsEverySwingItCovers) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(0.6, 100.0, {MakeType(&snail, 1.0, 1)});
+  // A 120ms key-down skill beside the bare poke, worth more per second so the
+  // chooser takes it. The poke stays the slow one, since it is what the step
+  // is clamped against.
+  AttackOption fast = params.attacks.front();
+  fast.swing_seconds = 0.12;
+  fast.damage_per_hit[0] = 10.0;
+  params.attacks.push_back(std::move(fast));
+
+  sim.Advance(params, 0.15);  // one swing lands, 30ms carries
+  EXPECT_NEAR(sim.attack_fraction(), 0.25, 1e-9);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);
+
+  sim.Advance(params, 0.6);  // the 30ms plus 600ms is five more
+  EXPECT_NEAR(sim.attack_fraction(), 0.25, 1e-9);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.94, 1e-9);
+}
+
+// Same rule for a skill on its own clock, which RunDots and RunRegen already
+// followed.
+TEST(CombatSimTest, AStepWiderThanTheIntervalFiresEveryCastItCovers) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 100.0, {MakeType(&snail, 0.0, 1)});
+  AddAutoAttack(params, /*interval=*/0.2, /*damage=*/10.0);
+
+  sim.Advance(params, 1.0);  // five casts, not one
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.95, 1e-9);
+}
+
 TEST(CombatSimTest, KillingTheLastMobEntersRespawning) {
   Mob snail = MakeMob("Snail", 10);
   CombatSim sim;
