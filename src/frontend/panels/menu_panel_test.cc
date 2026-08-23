@@ -248,9 +248,13 @@ int ColumnOf(ftxui::Element element, const std::string& text) {
   return -1;
 }
 
-// The column the open box's left border stands in.
+// The columns the open box's two top corners stand in.
 int BoxColumn(const MenuPanel& panel) {
   return ColumnOf(panel.RenderBox(), "╭");
+}
+
+int BoxRightColumn(const MenuPanel& panel) {
+  return ColumnOf(panel.RenderBox(), "╮");
 }
 
 // The column `word` starts at on the menu row.
@@ -258,9 +262,10 @@ int WordColumn(const MenuPanel& panel, const std::string& word) {
   return ColumnOf(panel.Render(), word);
 }
 
-// The box drops from the word that opened it, not from the corner of the
-// screen: its left border stands in the word's first column.
-TEST(MenuPanelTest, TheBoxStandsOverTheWordThatOpenedIt) {
+// The box drops from the word that opened it rather than from the corner of
+// the screen, and being wider than the word it hangs off both sides of it
+// evenly.
+TEST(MenuPanelTest, TheBoxIsCentredOnTheWordThatOpenedIt) {
   GameState state = EmptyState();
   LevelTo(state, kBossLevel);
   BattleAnalysis analysis;
@@ -270,7 +275,14 @@ TEST(MenuPanelTest, TheBoxStandsOverTheWordThatOpenedIt) {
   OpenBoxOn(panel, MenuEntry::kAnalysis);
   int word = WordColumn(panel, "Analysis");
   ASSERT_GE(word, 0);
-  EXPECT_EQ(BoxColumn(panel), word);
+  int word_end = word + static_cast<int>(std::string("Analysis").size()) - 1;
+  int box = BoxColumn(panel);
+  int box_end = BoxRightColumn(panel);
+  ASSERT_GT(box_end, box);
+  EXPECT_LT(box, word);
+  EXPECT_GT(box_end, word_end);
+  // Same centre, to the column: the two overhangs match.
+  EXPECT_EQ(box + box_end, word + word_end);
 }
 
 // A box on the last entry would hang off the right of the screen, so it is
@@ -286,8 +298,8 @@ TEST(MenuPanelTest, TheLastEntrysBoxStopsAtTheEdge) {
   EXPECT_EQ(panel.BoxRightMargin(), 0);
   int word = WordColumn(panel, "Settings");
   ASSERT_GE(word, 0);
-  // Still over the word, only not started at its first column.
-  EXPECT_LE(BoxColumn(panel), word);
+  // Still over the word, only pushed left of centre by the edge.
+  EXPECT_LT(BoxColumn(panel), word);
   EXPECT_GT(BoxColumn(panel), 0);
 }
 

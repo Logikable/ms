@@ -117,20 +117,27 @@ int MenuPanel::BoxWidth() const {
 
 int MenuPanel::BoxRightMargin() const {
   std::vector<MenuEntry> entries = Entries();
-  // Where the word starts, and how wide the panel around it is. Both counted
-  // from the panel's left border, which is where the row is laid out from.
+  // Where the word starts and how wide it is, and how wide the panel around it
+  // is. All counted from the panel's left border, which the row is laid out
+  // from.
   int word = 0;
+  int label = 0;
   int at = 2;  // past the border and the column of clearance inside it
   for (const MenuEntry& entry : entries) {
+    int width = static_cast<int>(EntryLabel(entry).size());
     if (entry == box_entry_) {
       word = at;
+      label = width;
     }
-    at += static_cast<int>(EntryLabel(entry).size()) + kEntryGap;
+    at += width + kEntryGap;
   }
   int panel_width = at - kEntryGap + 2;
+  // The box is wider than the word, so it hangs off both sides of it evenly
+  // rather than starting where the word does.
+  int left = word + (label - BoxWidth()) / 2;
   // The panel is flush with the right of the screen, so a box that would hang
   // off the edge is pulled back to it rather than being cut in half.
-  return std::max(panel_width - word - BoxWidth(), 0);
+  return std::max(panel_width - left - BoxWidth(), 0);
 }
 
 ftxui::Element MenuPanel::RenderBox() const {
