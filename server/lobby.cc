@@ -157,6 +157,21 @@ LobbyResult Lobby::Start(const std::string& account_id) {
   return Done();
 }
 
+void Lobby::UpdatePlayer(const PlayerInfo& player) {
+  Record* record = Find(player.account_id());
+  if (record == nullptr) {
+    return;
+  }
+  for (PlayerInfo& member : *record->party.mutable_members()) {
+    if (member.account_id() == player.account_id()) {
+      member = player;
+      NoteChanged(record->party);
+      listing_changed_ = true;
+      return;
+    }
+  }
+}
+
 void Lobby::Disconnect(const std::string& account_id) {
   Leave(account_id);
 }

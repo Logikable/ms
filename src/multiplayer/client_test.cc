@@ -176,6 +176,32 @@ TEST_F(ClientTest, MakesAPartyEveryoneCanSee) {
   }));
 }
 
+TEST_F(ClientTest, ShowsAPartyWhoItsMembersAreNow) {
+  MultiplayerClient host("127.0.0.1", server_.port());
+  host.Start(Player("Dagger"), "");
+  ASSERT_TRUE(WaitUntilConnected(host));
+  MultiplayerClient guest("127.0.0.1", server_.port());
+  guest.Start(Player("Wand"), "");
+  ASSERT_TRUE(WaitUntilConnected(guest));
+
+  host.CreateParty("zakum", 0, PARTY_MODE_SHARED);
+  ASSERT_TRUE(WaitFor(guest, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.parties.parties_size() == 1;
+  }));
+  guest.JoinParty(guest.Snapshot().parties.parties(0).id());
+  ASSERT_TRUE(WaitFor(host, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 2;
+  }));
+
+  PlayerInfo levelled = Player("Wand", guest.Snapshot().account_id);
+  levelled.set_level(200);
+  guest.SetPlayer(levelled);
+  EXPECT_TRUE(WaitFor(host, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 2 &&
+           snapshot.party.members(1).level() == 200;
+  }));
+}
+
 TEST_F(ClientTest, PassesOnWhatTheServerWouldNotDo) {
   MultiplayerClient client("127.0.0.1", server_.port());
   client.Start(Player("Dagger"), "");

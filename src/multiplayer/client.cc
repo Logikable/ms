@@ -91,8 +91,15 @@ void MultiplayerClient::Stop() {
 }
 
 void MultiplayerClient::SetPlayer(const PlayerInfo& player) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  player_ = player;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    player_ = player;
+  }
+  // Told to the server as well as kept for the next Hello, so a party the
+  // player is already in shows them as they are now.
+  ClientMessage message;
+  *message.mutable_update_player()->mutable_player() = player;
+  Ask(message);
 }
 
 MultiplayerSnapshot MultiplayerClient::Snapshot() const {

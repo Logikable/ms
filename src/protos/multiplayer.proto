@@ -56,6 +56,12 @@ message Hello {
   PlayerInfo player = 3;
 }
 
+// The character as they stand now, sent when they level or take a new name.
+// Without it a party would show who its members were when they joined.
+message UpdatePlayer {
+  PlayerInfo player = 1;
+}
+
 message CreateParty {
   string boss_key = 1;
   int32 difficulty_index = 2;
@@ -82,6 +88,7 @@ message ClientMessage {
     LeaveParty leave_party = 4;
     StartFight start_fight = 5;
     Ping ping = 6;
+    UpdatePlayer update_player = 7;
   }
 }
 

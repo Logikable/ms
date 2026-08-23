@@ -84,8 +84,8 @@ class MultiplayerClient {
   // Stops the thread and closes the connection. Called by the destructor.
   void Stop();
 
-  // The character as the lobby should see them. Sent on the next connection
-  // rather than immediately: what a party is shown is who joined it.
+  // The character as the lobby should see them: sent now if there is a
+  // connection, and again with the next Hello.
   void SetPlayer(const PlayerInfo& player);
 
   MultiplayerSnapshot Snapshot() const;

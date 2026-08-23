@@ -102,6 +102,9 @@ class Server {
   void HandleHello(Session& session, const Hello& hello);
   // Answers one lobby ask, refusing it on the connection it came from.
   void HandleLobby(Session& session, const ClientMessage& message);
+  // Takes the character a client sent, under the account and the name the
+  // server allows rather than the ones it was handed.
+  void SetPlayer(Session& session, const PlayerInfo& player);
 
   // Queues `message` for `session`.
   void Send(Session& session, const ServerMessage& message);

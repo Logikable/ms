@@ -43,6 +43,10 @@ class Lobby {
   // Takes the party out of the list and into its fight. Leader only.
   LobbyResult Start(const std::string& account_id);
 
+  // Takes a character's new level or name into whatever party they are in.
+  // Nothing to do for a player who is in none.
+  void UpdatePlayer(const PlayerInfo& player);
+
   // Drops a player who has gone, leaving whatever party they were in the way
   // Leave would. Quiet about a player who was in none.
   void Disconnect(const std::string& account_id);

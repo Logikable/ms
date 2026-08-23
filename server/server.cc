@@ -268,9 +268,19 @@ void Server::Handle(Session& session, const ClientMessage& message) {
   }
 }
 
+void Server::SetPlayer(Session& session, const PlayerInfo& player) {
+  session.player = player;
+  session.player.set_account_id(session.account_id);
+  session.player.set_name(DisplayName(player.name()));
+}
+
 void Server::HandleLobby(Session& session, const ClientMessage& message) {
   LobbyResult result;
   switch (message.kind_case()) {
+    case ClientMessage::kUpdatePlayer:
+      SetPlayer(session, message.update_player().player());
+      lobby_.UpdatePlayer(session.player);
+      return;
     case ClientMessage::kCreateParty:
       result = lobby_.Create(session.player, message.create_party());
       break;
@@ -310,9 +320,7 @@ void Server::HandleHello(Session& session, const Hello& hello) {
   }
   session.greeted = true;
   session.account_id = account;
-  session.player = hello.player();
-  session.player.set_account_id(account);
-  session.player.set_name(DisplayName(hello.player().name()));
+  SetPlayer(session, hello.player());
 
   ServerMessage welcome;
   welcome.mutable_welcome()->set_account_id(account);

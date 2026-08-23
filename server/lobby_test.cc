@@ -200,6 +200,23 @@ TEST_F(LobbyTest, TheLastOutClosesTheParty) {
   EXPECT_EQ(lobby_.Listed().parties_size(), 0);
 }
 
+TEST_F(LobbyTest, TakesANewLevelIntoTheParty) {
+  ASSERT_TRUE(lobby_.Create(Player("one", 140), Fight("zakum")).ok);
+  ASSERT_TRUE(lobby_.Join(Player("two", 140), OnlyListed().id()).ok);
+  lobby_.TakeChanged();
+  lobby_.TakeListingChanged();
+
+  lobby_.UpdatePlayer(Player("two", 141));
+  EXPECT_EQ(OnlyListed().members(1).level(), 141);
+  EXPECT_EQ(lobby_.TakeChanged(), std::vector<std::string>({"one", "two"}));
+  EXPECT_TRUE(lobby_.TakeListingChanged());
+
+  // A player in no party has nowhere to be updated.
+  lobby_.UpdatePlayer(Player("three", 30));
+  EXPECT_TRUE(lobby_.TakeChanged().empty());
+  EXPECT_FALSE(lobby_.TakeListingChanged());
+}
+
 TEST_F(LobbyTest, LosingAPlayerIsLeaving) {
   ASSERT_TRUE(lobby_.Create(Player("one", 140), Fight("zakum")).ok);
   ASSERT_TRUE(lobby_.Join(Player("two", 140), OnlyListed().id()).ok);
