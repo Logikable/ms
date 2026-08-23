@@ -391,14 +391,17 @@ ftxui::Element Tui::BossConfirmDialog() {
 ftxui::Element Tui::BossNoticeDialog() {
   // A notice rather than a question: the fight cannot be taken, and the only
   // thing to press says so. Red when the player is the reason -- nothing to
-  // swing with -- and theme blue when it is only the reset.
-  ftxui::Color accent = controller_.notice_is_refusal() ? kRed : kTheme;
+  // swing with -- and theme blue when it is only the reset. A refusal is a
+  // dead end, so its button closes rather than continuing.
+  bool refused = controller_.notice_is_refusal();
   ftxui::Elements rows;
   for (const std::string& line : controller_.notice_lines()) {
     rows.push_back(CenteredRow(line));
   }
-  return DialogWindow("", std::move(rows), controller_.notice_prompt().Render(),
-                      accent);
+  return DialogWindow(
+      "", std::move(rows),
+      controller_.notice_prompt().Render(refused ? "Close" : "Continue"),
+      refused ? kRed : kTheme);
 }
 
 void Tui::ShowOfflineReport(OfflineReport report) {
