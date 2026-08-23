@@ -47,7 +47,8 @@ ABSL_FLAG(std::string, equips, "clean",
 ABSL_FLAG(std::string, server, ms::DefaultServerAddress(),
           "Where the multiplayer server is, as host:port. Empty plays alone, "
           "which is what a build made without multiplayer does whatever this "
-          "says. The workbench never connects either.");
+          "says. The workbench connects only to a server named here, never to "
+          "the one the game ships with.");
 ABSL_FLAG(std::string, skills, "zero",
           "Workbench only (--mode=test): what to do with the book the "
           "character's job is standing in. 'zero' leaves it unbought with the "
@@ -203,11 +204,13 @@ int main(int argc, char** argv) {
                            static_cast<std::int64_t>(std::time(nullptr))));
   }
 
-  // The workbench never connects: it is a character built to exercise the
-  // screens, and the lobby is not the place for one.
-  std::string server;
-  if (mode == ms::GameMode::kPlay) {
-    server = absl::GetFlag(FLAGS_server);
+  // The workbench reaches a server it was pointed at and no other. The party
+  // screens are screens like any other and it should be able to exercise
+  // them, but a character built to try things out has no business turning up
+  // in the lobby everybody else is in.
+  std::string server = absl::GetFlag(FLAGS_server);
+  if (mode != ms::GameMode::kPlay && server == ms::DefaultServerAddress()) {
+    server.clear();
   }
   ms::Tui tui(state, save_path, server);
   tui.ShowOfflineReport(offline);
