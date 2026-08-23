@@ -133,6 +133,11 @@ struct GameState {
   // a zero. A load overwrites it only when the save carries one.
   int64_t created_unix_seconds;
 
+  // When the game was last written to disk, as seconds since the Unix epoch,
+  // or 0 for a character that has never been saved. What offline progress is
+  // measured from -- see //src/combat:offline.
+  int64_t last_seen_unix_seconds = 0;
+
   // Total seconds with the game open, across every session. Accumulated by the
   // frontend's tick from a monotonic clock, so changing the system time or
   // crossing a daylight-saving boundary neither grants nor takes playtime.

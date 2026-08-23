@@ -286,6 +286,36 @@ TEST_F(SaveTest, PlaytimeAccumulatesAcrossSessions) {
   EXPECT_EQ(third->playtime_seconds, 690.0);
 }
 
+// The write stamps itself, so what comes back is when the file was written
+// rather than anything the state was carrying. This is the clock offline
+// progress is measured from.
+TEST_F(SaveTest, TheSaveStampsWhenItWasWritten) {
+  std::unique_ptr<GameState> saved = MakeState();
+  saved->last_seen_unix_seconds = 1500000000;  // overwritten by the write
+  std::int64_t before = static_cast<std::int64_t>(std::time(nullptr));
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+  std::int64_t after = static_cast<std::int64_t>(std::time(nullptr));
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_GE(loaded->last_seen_unix_seconds, before);
+  EXPECT_LE(loaded->last_seen_unix_seconds, after);
+}
+
+// A save written before the field existed has no stamp, which credits no
+// absence rather than one measured from the epoch.
+TEST_F(SaveTest, AnOldSaveHasNoLastSeenStamp) {
+  SaveGame old;
+  old.set_format_version(kSaveFormatVersion);
+  std::string bytes;
+  ASSERT_TRUE(old.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> loaded = MakeState();
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->last_seen_unix_seconds, 0);
+}
+
 // A refused load must not leave a half-applied playtime behind it either.
 TEST_F(SaveTest, ARefusedLoadLeavesPlaytimeAlone) {
   WriteRaw(path_, "not a save");

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -62,6 +63,9 @@ bool SaveGameToFile(const GameState& state, const std::string& path) {
   save.set_current_map(state.current_map);
   save.set_created_unix_seconds(state.created_unix_seconds);
   save.set_playtime_seconds(static_cast<int64_t>(state.playtime_seconds));
+  // Stamped here rather than carried from the state: what this field means is
+  // when the file was written, and only the write knows that.
+  save.set_last_seen_unix_seconds(static_cast<int64_t>(std::time(nullptr)));
   *save.mutable_keybinds() = state.keybinds;
 
   std::string bytes;
@@ -139,6 +143,7 @@ LoadResult LoadGameFromFile(GameState& state, const std::string& path) {
   if (save.created_unix_seconds() != 0) {
     state.created_unix_seconds = save.created_unix_seconds();
   }
+  state.last_seen_unix_seconds = save.last_seen_unix_seconds();
   // A save from before the field existed carries nothing here, which the
   // frontend reads as the default bindings.
   state.keybinds = save.keybinds();

@@ -39,4 +39,12 @@ message SaveGame {
   // What the player has bound their keys to. A save written before the field
   // existed loads as the default bindings.
   Keybinds keybinds = 6;
+
+  // When this save was written, as seconds since the Unix epoch. The clock
+  // offline progress is measured against: the next launch pays the player for
+  // the gap between this and the moment they come back. Wall clock because it
+  // has to survive the process ending, which is the one thing a monotonic
+  // clock cannot do. Zero -- a save written before the field existed -- credits
+  // no absence at all.
+  int64 last_seen_unix_seconds = 7;
 }
