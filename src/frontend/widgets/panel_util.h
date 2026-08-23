@@ -212,14 +212,16 @@ std::string ItemNameCell(const std::string& name,
                              std::chrono::steady_clock::duration::zero());
 
 // Formats a single item list entry: name (kItemNameWidth cols), slot (10
-// cols), info (padded to 20 cols), successful scrolls, and star force level.
-// Pass -1 for either upgrade to render "-" (use for an item that refuses it).
+// cols), info (padded to 20 cols), scrolls as "+pass/slots", and star force
+// level. Pass -1 for either upgrade to render "-" (use for an item that
+// refuses it).
 //
 // `elapsed` is how long this row has been the selected one, which is what
 // slides a name too long for the column. Zero -- the default, and what every
 // unselected row passes -- shows the head of the name and holds it there.
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
-                            const std::string& info, int scroll_pass, int stars,
+                            const std::string& info, int scroll_pass,
+                            int scroll_slots, int stars,
                             std::chrono::steady_clock::duration elapsed =
                                 std::chrono::steady_clock::duration::zero());
 

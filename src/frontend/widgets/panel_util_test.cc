@@ -197,20 +197,20 @@ TEST(TagForTest, EveryKindGetsAFourColumnTag) {
 
 TEST(FormatItemEntryTest, ContainsNameSlotInfoAndUpgrades) {
   std::string entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 12);
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12);
   EXPECT_NE(entry.find("Sword"), std::string::npos);
   EXPECT_NE(entry.find("Weapon"), std::string::npos);
   EXPECT_NE(entry.find("+7 ATT"), std::string::npos);
-  EXPECT_NE(entry.find("+3"), std::string::npos);
+  EXPECT_NE(entry.find("+3/7"), std::string::npos);
   EXPECT_NE(entry.find("12\u2605"), std::string::npos);
 }
 
 // Short and long info strings put the upgrade columns at the same offset.
 TEST(FormatItemEntryTest, InfoColumnPaddedForAlignment) {
   std::string short_entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "A", 3, 12);
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "A", 3, 7, 12);
   std::string long_entry = FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON,
-                                           "A longer info", 3, 12);
+                                           "A longer info", 3, 7, 12);
   EXPECT_EQ(short_entry.find("12\u2605"), long_entry.find("12\u2605"));
 }
 
@@ -221,11 +221,11 @@ TEST(FormatItemEntryTest, InfoColumnPaddedForAlignment) {
 TEST(FormatItemEntryTest, ALongNameIsCutAndThenSlides) {
   const char* kWordy = "Fafnir Mistilteinn Trace Of Old";  // 31 columns
   std::string still =
-      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 12);
+      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12);
   EXPECT_EQ(still.substr(0, kItemNameWidth), "Fafnir Mistilteinn Trace O");
 
   std::string slid =
-      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 12,
+      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12,
                       kMarqueePause + kMarqueeStep);
   EXPECT_EQ(slid.substr(0, kItemNameWidth), "fnir Mistilteinn Trace Of ");
   // The columns after the name do not move with it.
@@ -236,15 +236,15 @@ TEST(FormatItemEntryTest, ALongNameIsCutAndThenSlides) {
 // stays a list rather than shuffling under the cursor.
 TEST(FormatItemEntryTest, AShortNameNeverMoves) {
   std::string still =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 12);
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12);
   std::string later = FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON,
-                                      "+7 ATT", 3, 12, kMarqueePause * 10);
+                                      "+7 ATT", 3, 7, 12, kMarqueePause * 10);
   EXPECT_EQ(still, later);
 }
 
 TEST(FormatItemEntryTest, AnUpgradeTheItemRefusesShowsDash) {
   std::string entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", -1, -1);
+      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", -1, 0, -1);
   EXPECT_NE(entry.find("-"), std::string::npos);
   EXPECT_EQ(entry.find("+"), std::string::npos);
   EXPECT_EQ(entry.find("\u2605"), std::string::npos);
@@ -261,7 +261,7 @@ TEST(FormatItemEntryTest, ReadsBothUpgradesOffTheItem) {
   state.set_stars(12);
   std::string entry =
       FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", proto, state);
-  EXPECT_NE(entry.find("+3"), std::string::npos);
+  EXPECT_NE(entry.find("+3/7"), std::string::npos);
   EXPECT_NE(entry.find("12\u2605"), std::string::npos);
 
   proto.set_upgrade_slots(0);

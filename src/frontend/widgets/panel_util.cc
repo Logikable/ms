@@ -754,10 +754,15 @@ std::string ItemNameCell(const std::string& name,
 }
 
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
-                            const std::string& info, int scroll_pass, int stars,
+                            const std::string& info, int scroll_pass,
+                            int scroll_slots, int stars,
                             std::chrono::steady_clock::duration elapsed) {
-  std::string scrolls =
-      scroll_pass < 0 ? "-" : "+" + std::to_string(scroll_pass);
+  // The slot count rides along so a row says how far the item can still go,
+  // not only how far it has come.
+  std::string scrolls = scroll_pass < 0
+                            ? "-"
+                            : "+" + std::to_string(scroll_pass) + "/" +
+                                  std::to_string(scroll_slots);
   std::string star_force = stars < 0 ? "-" : std::to_string(stars) + "\u2605";
   return ItemNameCell(name, elapsed) + "  " +
          PadRight(FormatSlot(slot), kSlotWidth) + "  " +
@@ -773,7 +778,8 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
   // like a ledger standing ready to be spent.
   int pass = proto.upgrade_slots() > 0 ? state.scroll_successes() : -1;
   int stars = Supports(proto, UPGRADE_STAR_FORCE) ? state.stars() : -1;
-  return FormatItemEntry(name, slot, info, pass, stars, elapsed);
+  return FormatItemEntry(name, slot, info, pass, proto.upgrade_slots(), stars,
+                         elapsed);
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,
