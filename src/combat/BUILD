@@ -124,6 +124,37 @@ cc_test(
 )
 
 cc_library(
+    name = "offline",
+    srcs = ["offline.cc"],
+    hdrs = ["offline.h"],
+    deps = [
+        ":combat",
+        ":encounter",
+        ":fight",
+        "//src:game_state",
+        "//src/character",
+        "//src/protos:map_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "offline_test",
+    srcs = ["offline_test.cc"],
+    deps = [
+        ":combat",
+        ":encounter",
+        ":offline",
+        "//src:game_state",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:item_proto_cc",
+        "//src/protos:map_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "encounter",
     srcs = ["encounter.cc"],
     hdrs = ["encounter.h"],
