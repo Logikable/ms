@@ -4,8 +4,8 @@
 name: "Enveloping Darkness"
 skill_order: 9
 description:
-  "Wrap yourself in darkness, permanently increasing Max HP, Abnormal Status "
-  "Resistance and Elemental Resistance."
+  "Cloaks yourself in darkness, increasing Max HP, Abnormal Status Resistance "
+  "and Elemental Resistance permanently."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 5

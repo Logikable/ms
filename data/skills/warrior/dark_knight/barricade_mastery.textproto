@@ -6,8 +6,8 @@
 name: "Barricade Mastery"
 skill_order: 7
 description:
-  "Improves Spear and Polearm Mastery to their human limits, and increases "
-  "Attack Power and Critical Damage."
+  "Improves Spear and Polearm Mastery to their human limits. Increases "
+  "Critical Damage and Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 max_level: 20

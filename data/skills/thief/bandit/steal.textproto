@@ -4,7 +4,7 @@
 # ladder.
 name: "Steal"
 skill_order: 3
-description: "Permanently increases your Attack Power."
+description: "Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 10

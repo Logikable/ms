@@ -3,7 +3,7 @@
 # in the book.
 name: "Element Amplification"
 skill_order: 8
-description: "Permanently increases the Damage of your magic skills."
+description: "Increases the Damage of your magic skills."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 10

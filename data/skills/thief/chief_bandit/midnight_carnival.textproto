@@ -7,7 +7,7 @@
 # Dash's total. 750ms is Midnight Carnival's own, from the frame data.
 name: "Midnight Carnival"
 skill_order: 1
-description: "Overwhelm the enemies around you with supersonic slashes."
+description: "Overwhelm enemies with supersonic slashes."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 20

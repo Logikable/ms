@@ -2,7 +2,8 @@
 # crit and its own mastery. See SkillEffect::final_attack_lines.
 name: "Final Attack"
 skill_order: 5
-description: "Grants a chance to deliver an additional hit after an attack."
+description:
+  "Chance to deal an additional hit after landing a direct attack skill."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 20

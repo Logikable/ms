@@ -3,8 +3,7 @@
 name: "Expert Throwing Star Handling"
 skill_order: 8
 description:
-  "The Thief's secret technique, which increases Final Damage and Critical "
-  "Rate."
+  "The Thief's secret technique increases Final Damage and Critical Rate."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 10

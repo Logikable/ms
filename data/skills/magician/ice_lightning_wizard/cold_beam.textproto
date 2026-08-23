@@ -5,7 +5,7 @@
 # the whole reason to cast the weaker of the two -- see Freezing Crush.
 name: "Cold Beam"
 skill_order: 1
-description: "An ice-attribute attack. Grow sharp ice crystals in front of you."
+description: "An ice-attribute attack. Grow sharp ice crystals in front."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD

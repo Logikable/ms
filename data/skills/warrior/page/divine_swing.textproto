@@ -3,7 +3,7 @@
 name: "Divine Swing"
 skill_order: 1
 description:
-  "Swing a large hammer conjured from light at the enemies around you."
+  "Swing a large hammer conjured from light, damaging nearby enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_PAGE
 max_level: 20

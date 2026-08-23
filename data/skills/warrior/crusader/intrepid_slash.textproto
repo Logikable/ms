@@ -2,7 +2,7 @@
 # out of, one line longer.
 name: "Intrepid Slash"
 skill_order: 1
-description: "Deal consecutive attacks to the enemies in front of you."
+description: "Deal consecutive attacks to multiple enemies in front of you."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_SWORDSMANSHIP
 job_advancement: JOB_ADVANCEMENT_CRUSADER

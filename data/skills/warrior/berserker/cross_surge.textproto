@@ -8,7 +8,7 @@
 # fight that heals a tenth of the pool on every beat never sits there.
 name: "Cross Surge"
 skill_order: 2
-description: "Permanently increases your Final Damage."
+description: "Increases Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20

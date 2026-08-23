@@ -2,7 +2,7 @@
 # pays for the Crossbowman having no Quiver Cartridge to buy.
 name: "Soul Arrow: Crossbow"
 skill_order: 3
-description: "Permanently increases your Attack Power."
+description: "Increases Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
 max_level: 20

@@ -8,8 +8,8 @@
 name: "Arrow Blaster"
 skill_order: 1
 description:
-  "Shoot arrows at a high angle, and set up an Arrow Blaster that fires arrows "
-  "on its own."
+  "Shoot an arrow at a high angle, and set up an Arrow Blaster which fires "
+  "arrows automatically."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_RANGER
 max_level: 20

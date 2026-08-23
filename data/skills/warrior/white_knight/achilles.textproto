@@ -4,7 +4,8 @@
 name: "Achilles"
 skill_order: 6
 description:
-  "Permanently increases your defenses so you take less damage from enemies."
+  "Permanently increases your defensive abilities so you take less damage "
+  "from enemies."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 20

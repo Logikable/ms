@@ -5,8 +5,7 @@
 # The Bandit's only attack, so it carries no cooldown.
 name: "Savage Blow"
 skill_order: 1
-description:
-  "Deal very quick consecutive attacks to the enemies in front of you."
+description: "Deal very quick consecutive attacks to the enemy in front."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 20

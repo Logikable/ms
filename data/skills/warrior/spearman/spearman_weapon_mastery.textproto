@@ -1,8 +1,6 @@
 name: "Weapon Mastery"
 skill_order: 5
-description:
-  "Increases Spear and Polearm Mastery. A spear increases Attack Speed and "
-  "Damage further."
+description: "Increases Spear and Polearm Mastery."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 10

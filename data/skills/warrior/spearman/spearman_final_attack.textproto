@@ -2,7 +2,8 @@
 # so each rolls its own crit and mastery -- see SkillEffect::final_attack_lines.
 name: "Final Attack"
 skill_order: 7
-description: "Grants a chance to deliver an additional hit after an attack."
+description:
+  "Grants a chance to deliver an additional hit after a direct skill attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 20

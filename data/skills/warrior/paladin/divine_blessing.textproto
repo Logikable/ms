@@ -7,7 +7,7 @@
 # on the 20% GMS reaches.
 name: "Divine Blessing"
 skill_order: 5
-description: "A holy blessing permanently increases your Final Damage."
+description: "A holy blessing increases your Final Damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 20

@@ -1,7 +1,6 @@
 name: "Physical Training"
 skill_order: 8
-description:
-  "Permanently increases STR and DEX through sheer physical training."
+description: "Increases STR and DEX through sheer physical training."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SPEARMAN
 max_level: 5

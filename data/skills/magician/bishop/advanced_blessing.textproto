@@ -8,8 +8,7 @@
 name: "Advanced Blessing"
 skill_order: 7
 description:
-  "Greatly increases your Attack Power, Magic ATT, DEF, Max HP and Max MP, in "
-  "place of Bless."
+  "Greatly increases your Attack Power, Magic ATT, DEF, Max HP, and Max MP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 10

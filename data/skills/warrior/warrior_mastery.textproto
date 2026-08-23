@@ -4,7 +4,7 @@
 # than handing over most of the value with the first point.
 name: "Warrior Mastery"
 skill_order: 3
-description: "Trains up your warrior basics to permanently increase Max HP."
+description: "Trains up your warrior basics to increase Max HP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SWORDMAN
 max_level: 20

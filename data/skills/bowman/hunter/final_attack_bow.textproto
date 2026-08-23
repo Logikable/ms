@@ -3,7 +3,8 @@
 # ends a hair under the top of the staircase and is never more than 2.5% out.
 name: "Final Attack: Bow"
 skill_order: 6
-description: "Grants a chance to deliver an additional hit after an attack."
+description:
+  "Chance to deal an additional hit after landing a direct attack skill."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 20

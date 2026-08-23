@@ -4,7 +4,7 @@
 # pays before level 10.
 name: "Dark Harmony"
 skill_order: 7
-description: "Become one with the darkness, and deal more damage for it."
+description: "Become one with the darkness to deal more damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
 max_level: 10

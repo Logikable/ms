@@ -7,7 +7,8 @@
 name: "Blast"
 skill_order: 2
 description:
-  "Call upon the full divine might of the Paladin to deal a powerful blow."
+  "Call upon the full divine might of the Paladin to deal a powerful blow to "
+  "your enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_PALADIN
 max_level: 30

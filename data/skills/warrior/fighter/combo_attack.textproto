@@ -4,8 +4,7 @@
 # count and nothing else.
 name: "Combo Attack"
 skill_order: 3
-description:
-  "Combo Orbs circle you as you fight. Every orb increases your Attack Power."
+description: "Grants a chance to add each attack to the Combo Orb."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 1
