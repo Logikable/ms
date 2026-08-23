@@ -34,16 +34,16 @@ std::string CombatPanel::MapName() const {
 
 int CombatPanel::Height() const {
   // Border, map row, rule, then either the "Not fighting" line or the two
-  // bars the player always has and one per mob type they are up against.
+  // bars the player always has, one per mob type they are up against, and the
+  // respawn beat under them.
   int rows = 2 + 1 + 1;
   if (!sim_.active()) {
     return rows + 1;
   }
   rows += 2;
-  if (sim_.respawning()) {
-    return rows + 1;
-  }
-  return rows + static_cast<int>(sim_.engaged_groups().size());
+  rows +=
+      sim_.respawning() ? 1 : static_cast<int>(sim_.engaged_groups().size());
+  return rows + (sim_.respawns() ? 1 : 0);
 }
 
 ftxui::Element CombatPanel::Render() const {
@@ -111,6 +111,13 @@ ftxui::Element CombatPanel::Render() const {
       rows.push_back(ProgressBar(static_cast<float>(group.hp_fraction), kRed,
                                  label, ftxui::Color::White));
     }
+  }
+  // The respawn beat closes the panel, under whatever it is about to refill.
+  // Orange because the other three bars are already spoken for, and it is the
+  // one clock here that belongs to the map rather than to a combatant.
+  if (sim_.respawns()) {
+    rows.push_back(ProgressBar(static_cast<float>(sim_.respawn_fraction()),
+                               kOrange, "Respawn", ftxui::Color::White));
   }
 
   return ThemedWindow(" Combat ", ftxui::vbox(std::move(rows)), focused);

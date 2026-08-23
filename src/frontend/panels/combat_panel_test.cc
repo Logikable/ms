@@ -59,7 +59,7 @@ ftxui::Screen RenderScreen(const GameState& state, const CombatSim& sim,
   CombatPanel panel(state, sim, panel_focus);
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(60),
-                                               ftxui::Dimension::Fixed(7));
+                                               ftxui::Dimension::Fixed(10));
   ftxui::Render(screen, element);
   return screen;
 }
@@ -245,6 +245,66 @@ TEST(CombatPanelTest, ShowsRespawningOnceTheRosterIsClear) {
   ASSERT_TRUE(sim.respawning());
 
   EXPECT_NE(RenderPanel(state, sim).find("Respawning"), std::string::npos);
+}
+
+TEST(CombatPanelTest, ShowsTheRespawnBeatUnderTheMobs) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailField()}});
+  state.current_map = "field";
+  EquipSword(state);
+  // A mob too fat to die, so the bar under it is the beat's and not the
+  // "Respawning..." line the cleared map would put there.
+  Mob ogre = SnailMob();
+  ogre.set_name("Ogre");
+  ogre.set_max_hp(1000000);
+  CombatType type;
+  type.mob = &ogre;
+  type.simultaneous = 1;
+  AttackOption attack;
+  attack.damage_per_hit = {4.0};
+  attack.swing_seconds = 1.0;
+  CombatParams params;
+  params.active = true;
+  params.encounter = "field";
+  params.respawn_seconds = 8.0;
+  params.max_player_hp = 100;
+  params.types = {type};
+  params.attacks = {attack};
+  CombatSim sim;
+  // Two steps, because Advance clamps one to a single swing.
+  sim.Advance(params, 1.0);
+  sim.Advance(params, 1.0);
+
+  ASSERT_FALSE(sim.respawning());
+  EXPECT_NE(RenderPanel(state, sim).find("Respawn"), std::string::npos);
+  EXPECT_NEAR(sim.respawn_fraction(), 0.25, 0.001);
+}
+
+// A boss has no beat, so the panel has no bar for one.
+TEST(CombatPanelTest, HidesTheRespawnBarWhenNothingRespawns) {
+  GameState state({}, {}, {}, {{"snail", SnailMob()}},
+                  {{"field", SnailField()}});
+  state.current_map = "field";
+  EquipSword(state);
+  Mob snail = SnailMob();
+  snail.set_max_hp(1000000);
+  CombatType type;
+  type.mob = &snail;
+  type.simultaneous = 1;
+  AttackOption attack;
+  attack.damage_per_hit = {4.0};
+  attack.swing_seconds = 1.0;
+  CombatParams params;
+  params.active = true;
+  params.encounter = "field";
+  params.respawn_seconds = 0.0;
+  params.types = {type};
+  params.attacks = {attack};
+  CombatSim sim;
+  sim.Advance(params, 0.1);
+
+  EXPECT_FALSE(sim.respawns());
+  EXPECT_EQ(RenderPanel(state, sim).find("Respawn"), std::string::npos);
 }
 
 // The rows the panel actually draws, so Height() is checked against the panel

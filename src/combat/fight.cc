@@ -708,6 +708,8 @@ void CombatSim::GoIdle() {
   player_max_hp_ = 0;
   player_level_ = 0;
   hit_phase_ = 0.0;
+  respawn_fraction_ = 0.0;
+  respawns_ = false;
   auto_phase_.clear();
   regen_phase_.clear();
   cooldown_left_.clear();
@@ -1204,6 +1206,10 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
       params.max_player_hp > 0
           ? std::clamp(player_hp_ / params.max_player_hp, 0.0, 1.0)
           : 0.0;
+  respawns_ = params.respawn_seconds > 0.0;
+  respawn_fraction_ =
+      respawns_ ? std::clamp(respawn_phase_ / params.respawn_seconds, 0.0, 1.0)
+                : 0.0;
   PublishTarget(params);
 }
 

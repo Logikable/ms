@@ -170,6 +170,15 @@ class CombatSim {
   double damage_this_step() const {
     return damage_this_step_;
   }
+  // Progress toward the next respawn beat as a fraction in [0, 1]. Stays 0
+  // for an encounter that never respawns -- see respawns().
+  double respawn_fraction() const {
+    return respawn_fraction_;
+  }
+  // Whether the encounter has a respawn beat at all. A boss does not.
+  bool respawns() const {
+    return respawns_;
+  }
   // True on the step a respawn beat came round, whether or not it had anything
   // to put on the map. The one clock in the fight a watcher can align to.
   bool respawned_this_step() const {
@@ -536,6 +545,10 @@ class CombatSim {
   std::vector<int64_t> kills_this_step_;
   double damage_this_step_ = 0.0;
   bool respawned_this_step_ = false;
+  // The respawn clock as the panel reads it: how far into the cycle, and
+  // whether there is a cycle to be into.
+  double respawn_fraction_ = 0.0;
+  bool respawns_ = false;
   // Whether the lines are being recorded at all, from the params. Off for the
   // sims, which step the fight millions of times and draw none of it.
   bool record_lines_ = false;
