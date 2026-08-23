@@ -119,6 +119,7 @@ cc_library(
     srcs = ["menu_panel.cc"],
     hdrs = ["menu_panel.h"],
     deps = [
+        "//src:build_config",
         "//src:game_state",
         "//src/character:progression",
         "//src/combat:battle_analysis",

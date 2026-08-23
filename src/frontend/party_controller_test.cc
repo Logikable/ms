@@ -1,0 +1,370 @@
+// The controller's party screen, driven against a real server on the
+// loopback. Everything here needs two ends of a connection to be worth
+// anything: what the screen does is send an ask and draw what comes back.
+
+#include <gtest/gtest.h>
+
+#include <chrono>
+#include <functional>
+#include <map>
+#include <memory>
+#include <string>
+#include <thread>
+
+#include "ftxui/component/event.hpp"
+#include "server/test_server.h"
+#include "src/character/progression.h"
+#include "src/frontend/keybinds.h"
+#include "src/frontend/panels/character_panel.h"
+#include "src/frontend/panels/equipped_panel.h"
+#include "src/frontend/panels/inventory_panel.h"
+#include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/screens/party_select_panel.h"
+#include "src/frontend/tui_controller.h"
+#include "src/frontend/types.h"
+#include "src/game_state.h"
+#include "src/multiplayer/session.h"
+
+namespace ms {
+namespace {
+
+constexpr std::chrono::milliseconds kPatience(4000);
+
+std::unique_ptr<GameState> MakeState() {
+  std::unique_ptr<GameState> state = std::make_unique<GameState>(
+      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
+      std::map<std::string, ItemPrototype>{}, std::map<std::string, Mob>{},
+      std::map<std::string, MapData>{});
+  // One fight for the boss screen to have something to refuse, matching the
+  // server's own catalog.
+  state->bosses = TestBosses();
+  return state;
+}
+
+// One player: their character, their connection, and the controller they
+// drive it from. Everything a party needs two of.
+struct Client {
+  explicit Client(const std::string& name, int port)
+      : state(MakeState()), session("127.0.0.1", port) {
+    state->character.SetUsername(name);
+    while (state->character.proto().level() < UnlockLevel(Feature::kBoss)) {
+      state->character.LevelUp();
+    }
+    Build();
+  }
+
+  void Build() {
+    char_panel = std::make_unique<CharacterPanel>(
+        state->character, state->account, focus, state->skills);
+    equip_panel = std::make_unique<EquippedPanel>(state->character,
+                                                  state->account, focus);
+    inventory_panel = std::make_unique<InventoryPanel>(state->character,
+                                                       state->account, focus);
+    scroll_panel =
+        std::make_unique<ScrollPanel>(state->character, state->scrolls);
+    trace_recover_panel = std::make_unique<TraceRecoverPanel>(state->character);
+    multi_sell_panel = std::make_unique<MultiSellPanel>(state->character);
+    map_select_panel = std::make_unique<MapSelectPanel>(*state);
+    mob_inspect_panel = std::make_unique<MobInspectPanel>(*state);
+    boss_select_panel = std::make_unique<BossSelectPanel>(*state);
+    shop_panel = std::make_unique<ShopPanel>(state->character, state->equips,
+                                             state->items);
+    job_inspect_panel = std::make_unique<JobInspectPanel>(state->skills);
+    menu_panel = std::make_unique<MenuPanel>(*state, analysis, focus);
+    keys = std::make_unique<KeyMap>(state->account.mutable_keybinds());
+    keybinds_panel = std::make_unique<KeybindsPanel>(*keys);
+    controller = std::make_unique<TuiController>(
+        *state, *char_panel, *equip_panel, *inventory_panel, *scroll_panel,
+        star_force_panel, *trace_recover_panel, sell_panel, sell_equip_panel,
+        *multi_sell_panel, *map_select_panel, *mob_inspect_panel,
+        *boss_select_panel, party_panel, *shop_panel, buy_panel,
+        *job_inspect_panel, skill_inspect_panel, *menu_panel, *keybinds_panel,
+        analysis, *keys, focus, &session);
+  }
+
+  // One turn of the game's loop: the connection, then the screen.
+  void Tick() {
+    session.Advance(*state);
+    controller->AdvanceParty();
+  }
+
+  std::unique_ptr<GameState> state;
+  MultiplayerSession session;
+  int focus = kCharPanel;
+  BattleAnalysis analysis;
+  PartySelectPanel party_panel;
+  StarForcePanel star_force_panel;
+  SellPanel sell_panel;
+  SellEquipPanel sell_equip_panel;
+  BuyPanel buy_panel;
+  SkillInspectPanel skill_inspect_panel;
+  std::unique_ptr<CharacterPanel> char_panel;
+  std::unique_ptr<EquippedPanel> equip_panel;
+  std::unique_ptr<InventoryPanel> inventory_panel;
+  std::unique_ptr<ScrollPanel> scroll_panel;
+  std::unique_ptr<TraceRecoverPanel> trace_recover_panel;
+  std::unique_ptr<MultiSellPanel> multi_sell_panel;
+  std::unique_ptr<MapSelectPanel> map_select_panel;
+  std::unique_ptr<MobInspectPanel> mob_inspect_panel;
+  std::unique_ptr<BossSelectPanel> boss_select_panel;
+  std::unique_ptr<ShopPanel> shop_panel;
+  std::unique_ptr<JobInspectPanel> job_inspect_panel;
+  std::unique_ptr<MenuPanel> menu_panel;
+  std::unique_ptr<KeyMap> keys;
+  std::unique_ptr<KeybindsPanel> keybinds_panel;
+  std::unique_ptr<TuiController> controller;
+};
+
+class PartyControllerTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    ASSERT_TRUE(server_.Start());
+  }
+
+  std::unique_ptr<Client> Connect(const std::string& name) {
+    std::unique_ptr<Client> client =
+        std::make_unique<Client>(name, server_.port());
+    client->session.Start(*client->state);
+    EXPECT_TRUE(WaitFor({client.get()}, [&]() {
+      return client->session.Snapshot().state == ConnectionState::kConnected;
+    }));
+    return client;
+  }
+
+  // Ticks every client until `ready`, so both ends of a party keep moving.
+  bool WaitFor(const std::vector<Client*>& clients,
+               const std::function<bool()>& ready) {
+    std::chrono::steady_clock::time_point deadline =
+        std::chrono::steady_clock::now() + kPatience;
+    while (std::chrono::steady_clock::now() < deadline) {
+      for (Client* client : clients) {
+        client->Tick();
+      }
+      if (ready()) {
+        return true;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    return false;
+  }
+
+  // Opens the party screen the way a player does.
+  void OpenParty(Client& client) {
+    client.controller->OpenMenuEntry(MenuEntry::kParty);
+    ASSERT_EQ(client.controller->screen(), kPartySelect);
+  }
+
+  // `leader` makes a party and `guest` joins it. Both are left on the party
+  // screen with the cursor at the top of the list.
+  void MakeParty(Client& leader, Client& guest) {
+    OpenParty(leader);
+    leader.controller->OnEvent(ftxui::Event::ArrowDown);
+    leader.controller->OnEvent(ftxui::Event::Return);
+    ASSERT_TRUE(WaitFor({&leader, &guest},
+                        [&]() { return leader.party_panel.in_party(); }));
+
+    OpenParty(guest);
+    guest.controller->OnEvent(ftxui::Event::Return);
+    ASSERT_TRUE(WaitFor({&leader, &guest}, [&]() {
+      return guest.party_panel.in_party() &&
+             leader.session.Snapshot().party.members_size() == 2;
+    }));
+  }
+
+  TestServer server_;
+};
+
+TEST_F(PartyControllerTest, MakesAPartyAndJoinsIt) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  EXPECT_TRUE(leader->party_panel.is_leader());
+  EXPECT_FALSE(guest->party_panel.is_leader());
+  EXPECT_EQ(guest->session.Snapshot().party.members(0).player().name(),
+            "Dagger");
+}
+
+TEST_F(PartyControllerTest, AMemberSaysTheyAreReady) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  // Down past the two members onto the buttons, where Ready leads.
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(guest->party_panel.Chosen(), PartyAction::kReady);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(WaitFor({leader.get(), guest.get()},
+                      [&]() { return guest->party_panel.ready(); }));
+
+  guest->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(WaitFor({leader.get(), guest.get()},
+                      [&]() { return !guest->party_panel.ready(); }));
+}
+
+TEST_F(PartyControllerTest, TheLeaderKicksAMember) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  // Enter on the second member raises the menu; Kick is where it opens.
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(leader->controller->screen(), kPartyMenu);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
+  EXPECT_NE(leader->controller->party_prompt_question().find("Wand"),
+            std::string::npos);
+
+  // The question opens on Cancel, so Confirm takes a step to reach.
+  leader->controller->OnEvent(ftxui::Event::ArrowLeft);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(leader->controller->screen(), kPartySelect);
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
+                      [&]() { return !guest->party_panel.in_party(); }));
+
+  // The one removed is told so, wherever they were standing.
+  EXPECT_TRUE(guest->controller->party_notice_prompt().open());
+  EXPECT_FALSE(guest->controller->party_notice().empty());
+  EXPECT_FALSE(guest->controller->party_notice_is_refusal());
+}
+
+TEST_F(PartyControllerTest, CancellingAKickLeavesThePartyAlone) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
+  // The cursor is on Cancel, so Enter is the answer that changes nothing.
+  leader->controller->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(leader->controller->screen(), kPartySelect);
+  leader->Tick();
+  guest->Tick();
+  EXPECT_TRUE(guest->party_panel.in_party());
+}
+
+TEST_F(PartyControllerTest, TheLeaderHandsThePartyOn) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  // Down one entry of the menu, from Kick to Promote.
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
+  EXPECT_NE(leader->controller->party_prompt_question().find("leader"),
+            std::string::npos);
+  leader->controller->OnEvent(ftxui::Event::ArrowLeft);
+  leader->controller->OnEvent(ftxui::Event::Return);
+
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
+                      [&]() { return guest->party_panel.is_leader(); }));
+  EXPECT_FALSE(leader->party_panel.is_leader());
+  EXPECT_TRUE(guest->controller->party_notice_prompt().open());
+}
+
+TEST_F(PartyControllerTest, TheLeaderLeavesAndThePartyGoesOn) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  // Down past both members onto Leave Party, which is where the leader's
+  // buttons open.
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(leader->party_panel.Chosen(), PartyAction::kLeave);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
+  leader->controller->OnEvent(ftxui::Event::ArrowLeft);
+  leader->controller->OnEvent(ftxui::Event::Return);
+
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
+                      [&]() { return guest->party_panel.is_leader(); }));
+  EXPECT_FALSE(leader->party_panel.in_party());
+}
+
+TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  // The one being removed is looking at the shop, not the party screen.
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(guest->controller->screen(), kMain);
+
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::ArrowLeft);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    return guest->controller->party_notice_prompt().open();
+  }));
+
+  // Anything the player presses goes to the notice and no further.
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_TRUE(guest->controller->party_notice_prompt().open());
+  guest->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(guest->controller->party_notice_prompt().open());
+  EXPECT_EQ(guest->controller->screen(), kMain);
+}
+
+TEST_F(PartyControllerTest, AMemberCannotTakeAFightOfTheirOwn) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+  guest->controller->OnEvent(ftxui::Event::Escape);
+
+  guest->controller->OpenMenuEntry(MenuEntry::kBoss);
+  ASSERT_EQ(guest->controller->screen(), kBossSelect);
+  guest->controller->OnEvent(ftxui::Event::Return);
+
+  ASSERT_EQ(guest->controller->screen(), kBossNotice);
+  ASSERT_EQ(guest->controller->notice_lines().size(), 1u);
+  EXPECT_EQ(guest->controller->notice_lines()[0], "You are not the leader.");
+  EXPECT_TRUE(guest->controller->notice_is_refusal());
+
+  // The leader is refused for whatever else is wrong -- these characters
+  // carry no weapon -- but never for whose party it is.
+  leader->controller->OnEvent(ftxui::Event::Escape);
+  leader->controller->OpenMenuEntry(MenuEntry::kBoss);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(leader->controller->notice_lines().size(), 1u);
+  EXPECT_EQ(leader->controller->notice_lines()[0],
+            "You have no weapon equipped!");
+}
+
+TEST_F(PartyControllerTest, LosingTheServerClosesThePartyScreen) {
+  std::unique_ptr<Client> client = Connect("Dagger");
+  OpenParty(*client);
+
+  server_.Stop();
+  ASSERT_TRUE(WaitFor({client.get()}, [&]() {
+    return client->controller->party_notice_prompt().open();
+  }));
+
+  // Turned out of the screen, so closing the notice lands somewhere real.
+  EXPECT_EQ(client->controller->screen(), kMain);
+  EXPECT_TRUE(client->controller->party_notice_is_refusal());
+}
+
+TEST_F(PartyControllerTest, TheEntrySaysSoWhenThereIsNoConnection) {
+  Client client("Dagger", server_.port());
+  // Never started, so there is no connection to open a lobby with.
+  client.controller->OpenMenuEntry(MenuEntry::kParty);
+
+  EXPECT_EQ(client.controller->screen(), kMain);
+  EXPECT_TRUE(client.controller->party_notice_prompt().open());
+  EXPECT_TRUE(client.controller->party_notice_is_refusal());
+  EXPECT_FALSE(client.controller->party_notice().empty());
+}
+
+}  // namespace
+}  // namespace ms

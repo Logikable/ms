@@ -30,6 +30,7 @@
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
+#include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -44,12 +45,16 @@
 #include "src/frontend/widgets/item_menu.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/multiplayer/session.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/skill.pb.h"
 
 namespace ms {
+
+// What a party question is asking about, so answering Yes knows what to do.
+enum class PartyAsk { kNone, kKick, kPromote, kLeave };
 
 // An absence shorter than this raises no card. A player who restarted the game
 // a minute after closing it does not need to be told what that minute paid.
@@ -59,19 +64,18 @@ class TuiController {
  public:
   // panel_focus is a reference shared with panel components and
   // Container::Tab; the controller mutates it as focus changes.
-  TuiController(GameState& state, CharacterPanel& char_panel,
-                EquippedPanel& equip_panel, InventoryPanel& inventory_panel,
-                ScrollPanel& scroll_panel, StarForcePanel& star_force_panel,
-                TraceRecoverPanel& trace_recover_panel, SellPanel& sell_panel,
-                SellEquipPanel& sell_equip_panel,
-                MultiSellPanel& multi_sell_panel,
-                MapSelectPanel& map_select_panel,
-                MobInspectPanel& mob_inspect_panel,
-                BossSelectPanel& boss_select_panel, ShopPanel& shop_panel,
-                BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
-                SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
-                KeybindsPanel& keybinds_panel, BattleAnalysis& analysis,
-                KeyMap& keys, int& panel_focus);
+  TuiController(
+      GameState& state, CharacterPanel& char_panel, EquippedPanel& equip_panel,
+      InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
+      StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
+      SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
+      MultiSellPanel& multi_sell_panel, MapSelectPanel& map_select_panel,
+      MobInspectPanel& mob_inspect_panel, BossSelectPanel& boss_select_panel,
+      PartySelectPanel& party_select_panel, ShopPanel& shop_panel,
+      BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
+      SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
+      KeybindsPanel& keybinds_panel, BattleAnalysis& analysis, KeyMap& keys,
+      int& panel_focus, MultiplayerSession* multiplayer = nullptr);
 
   // Open the equip or bag context menu. Called from MakeComponent callbacks.
   void OpenEquipMenu();
@@ -102,6 +106,32 @@ class TuiController {
   // Enter on an entry of the corner menu. Boss opens the boss screen and
   // clears the entry's gold; Settings opens its box over the corner.
   void OpenMenuEntry(MenuEntry entry);
+
+  // Keeps the party screen in step with the connection: hands the panel the
+  // lobby as it stands, raises whatever the server has said since the last
+  // call, and turns the player out of the party screen if the connection
+  // goes. Called every tick.
+  void AdvanceParty();
+
+  // The word from the server floated over whatever the player is looking at:
+  // an action it would not take, something that happened to their party, or
+  // the connection going away. A refusal is drawn in red.
+  const ContinuePrompt& party_notice_prompt() const {
+    return party_notice_prompt_;
+  }
+  const std::string& party_notice() const {
+    return party_notice_;
+  }
+  bool party_notice_is_refusal() const {
+    return party_notice_is_refusal_;
+  }
+  // The question a party action asks before it is taken, and what it asks.
+  const ConfirmPrompt& party_prompt() const {
+    return party_prompt_;
+  }
+  const std::string& party_prompt_question() const {
+    return party_prompt_question_;
+  }
 
   // True while a key must reach the game as the player pressed it rather than
   // as the action it is bound to: a keybind slot waiting for the key it will
@@ -302,6 +332,20 @@ class TuiController {
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnMapMenuEvent(ftxui::Event event);
   bool OnMobInspectEvent(ftxui::Event event);
+  bool OnPartySelectEvent(ftxui::Event event);
+  bool OnPartyMenuEvent(ftxui::Event event);
+  bool OnPartyConfirmEvent(ftxui::Event event);
+  // Does what the cursor is on, which is either an ask sent straight to the
+  // server or a question raised first.
+  void TakePartyAction(PartyAction action);
+  // Raises `question` over the party screen; PartyConfirmed() is what a Yes
+  // runs.
+  void AskAboutParty(PartyAsk ask, const std::string& question);
+  void PartyConfirmed();
+  // Floats `message` over whatever is on screen. A refusal is drawn in red.
+  void RaisePartyNotice(const std::string& message, bool refusal);
+  // The lobby as it stands, or nothing at all for a game played alone.
+  MultiplayerSnapshot Lobby() const;
   bool OnBossSelectEvent(ftxui::Event event);
   bool OnBossConfirmEvent(ftxui::Event event);
   bool OnBossNoticeEvent(ftxui::Event event);
@@ -357,6 +401,7 @@ class TuiController {
   MapSelectPanel& map_select_panel_;
   MobInspectPanel& mob_inspect_panel_;
   BossSelectPanel& boss_select_panel_;
+  PartySelectPanel& party_select_panel_;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
   MenuPanel& menu_panel_;
@@ -406,6 +451,19 @@ class TuiController {
   std::vector<std::string> notice_lines_;
   bool notice_is_refusal_ = false;
   ConfirmPrompt boss_abort_prompt_;
+  // The connection, or null for a game played alone.
+  MultiplayerSession* multiplayer_ = nullptr;
+  // The pending party action and who it is about, held so a cursor that moved
+  // under the question cannot answer a different one.
+  PartyAsk party_ask_ = PartyAsk::kNone;
+  std::string party_target_;
+  ConfirmPrompt party_prompt_;
+  std::string party_prompt_question_;
+  ContinuePrompt party_notice_prompt_;
+  std::string party_notice_;
+  bool party_notice_is_refusal_ = false;
+  // The serial of the last notice raised, so one is shown once.
+  int64_t party_notice_seen_ = 0;
   // What the clear card reads from, kept for as long as it is up.
   OfflineReport offline_report_;
   ContinuePrompt offline_prompt_;

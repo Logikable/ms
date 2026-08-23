@@ -7,7 +7,8 @@
  *
  * Entries arrive as the character reaches them, and the row is laid out from
  * the right: Settings holds the corner from the start so the panel is never an
- * empty box, Analysis sits to its left, and Boss arrives left of both at 110.
+ * empty box, Analysis sits to its left, and Boss and Party arrive left of both
+ * at 110. A build with no multiplayer in it has no Party entry at all.
  *
  * An entry either opens a screen -- Boss does -- or opens a box that stands on
  * the corner and lists what it leads to. There is one box, whichever entry
@@ -30,6 +31,7 @@ namespace ms {
 // What the menu can open. Ordered as they are drawn, left to right.
 enum class MenuEntry {
   kBoss,
+  kParty,
   kAnalysis,
   kSettings,
 };

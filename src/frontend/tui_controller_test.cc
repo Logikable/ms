@@ -23,6 +23,7 @@
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
+#include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -207,9 +208,9 @@ class TuiControllerTest : public testing::Test {
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
-        *mob_inspect_panel_, *boss_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, skill_inspect_panel_, *menu_panel_,
-        *keybinds_panel_, analysis_, *keys_, panel_focus_);
+        *mob_inspect_panel_, *boss_select_panel_, party_select_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -339,9 +340,9 @@ class TuiControllerTest : public testing::Test {
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
-        *mob_inspect_panel_, *boss_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, skill_inspect_panel_, *menu_panel_,
-        *keybinds_panel_, analysis_, *keys_, panel_focus_);
+        *mob_inspect_panel_, *boss_select_panel_, party_select_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -452,9 +453,9 @@ class TuiControllerTest : public testing::Test {
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
         *star_force_panel_, *trace_recover_panel_, *sell_panel_,
         *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
-        *mob_inspect_panel_, *boss_select_panel_, *shop_panel_, *buy_panel_,
-        *job_inspect_panel_, skill_inspect_panel_, *menu_panel_,
-        *keybinds_panel_, analysis_, *keys_, panel_focus_);
+        *mob_inspect_panel_, *boss_select_panel_, party_select_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -485,6 +486,9 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<MapSelectPanel> map_select_panel_;
   std::unique_ptr<MobInspectPanel> mob_inspect_panel_;
   std::unique_ptr<BossSelectPanel> boss_select_panel_;
+  // Not a pointer: it takes nothing to build, and there is no connection in
+  // these tests for it to draw.
+  PartySelectPanel party_select_panel_;
   std::unique_ptr<ShopPanel> shop_panel_;
   std::unique_ptr<BuyPanel> buy_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
@@ -2267,6 +2271,7 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   MapSelectPanel maps(fresh);
   MobInspectPanel mobs(fresh);
   BossSelectPanel bosses(fresh);
+  PartySelectPanel party;
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
@@ -2277,9 +2282,9 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, multi_sell, maps, mobs, bosses, shop,
-                           buy, jobs, skill_card, menu, keybinds, analysis,
-                           keys, focus);
+                           sell_equip, multi_sell, maps, mobs, bosses, party,
+                           shop, buy, jobs, skill_card, menu, keybinds,
+                           analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
   EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
@@ -2322,6 +2327,7 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   MapSelectPanel maps(fresh);
   MobInspectPanel mobs(fresh);
   BossSelectPanel bosses(fresh);
+  PartySelectPanel party;
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
@@ -2332,9 +2338,9 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, multi_sell, maps, mobs, bosses, shop,
-                           buy, jobs, skill_card, menu, keybinds, analysis,
-                           keys, focus);
+                           sell_equip, multi_sell, maps, mobs, bosses, party,
+                           shop, buy, jobs, skill_card, menu, keybinds,
+                           analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
@@ -2360,6 +2366,7 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   MapSelectPanel maps(fresh);
   MobInspectPanel mobs(fresh);
   BossSelectPanel bosses(fresh);
+  PartySelectPanel party;
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
@@ -2370,9 +2377,9 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, multi_sell, maps, mobs, bosses, shop,
-                           buy, jobs, skill_card, menu, keybinds, analysis,
-                           keys, focus);
+                           sell_equip, multi_sell, maps, mobs, bosses, party,
+                           shop, buy, jobs, skill_card, menu, keybinds,
+                           analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
@@ -2398,6 +2405,7 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   MapSelectPanel maps(fresh);
   MobInspectPanel mobs(fresh);
   BossSelectPanel bosses(fresh);
+  PartySelectPanel party;
   ShopPanel shop(fresh.character, fresh.equips, fresh.items);
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
@@ -2408,9 +2416,9 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
   TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, multi_sell, maps, mobs, bosses, shop,
-                           buy, jobs, skill_card, menu, keybinds, analysis,
-                           keys, focus);
+                           sell_equip, multi_sell, maps, mobs, bosses, party,
+                           shop, buy, jobs, skill_card, menu, keybinds,
+                           analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));
@@ -2564,8 +2572,9 @@ TEST_F(TuiControllerTest, SettingsOpensItsBoxOverTheCorner) {
 // the box away too.
 TEST_F(TuiControllerTest, WalkingOffSettingsClosesItsBox) {
   LevelTo(UnlockLevel(Feature::kBoss));
-  // Boss arrives to the left of the rest and takes the cursor with it.
-  menu_panel_->MoveCursor(2);
+  // Boss and Party arrive to the left of the rest and take the cursor with
+  // them.
+  menu_panel_->MoveCursor(3);
   ASSERT_EQ(menu_panel_->selected(), MenuEntry::kSettings);
   controller_->OpenMenuEntry(MenuEntry::kSettings);
   controller_->OnEvent(ftxui::Event::ArrowLeft);

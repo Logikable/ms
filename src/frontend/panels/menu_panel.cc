@@ -8,6 +8,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/build_config.h"
 #include "src/character/progression.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
@@ -20,6 +21,8 @@ std::string EntryLabel(MenuEntry entry) {
   switch (entry) {
     case MenuEntry::kBoss:
       return "Boss";
+    case MenuEntry::kParty:
+      return "Party";
     case MenuEntry::kAnalysis:
       return "Analysis";
     case MenuEntry::kSettings:
@@ -42,6 +45,11 @@ std::vector<MenuEntry> MenuPanel::Entries() const {
   std::vector<MenuEntry> entries;
   if (Unlocked(Feature::kBoss, state_.character, state_.account)) {
     entries.push_back(MenuEntry::kBoss);
+    // Bossing is what a party is for so far, and a build that plays alone has
+    // nobody to make one with.
+    if (kMultiplayerEnabled) {
+      entries.push_back(MenuEntry::kParty);
+    }
   }
   entries.push_back(MenuEntry::kAnalysis);
   entries.push_back(MenuEntry::kSettings);
@@ -60,8 +68,10 @@ void MenuPanel::MoveCursor(int delta) {
 
 std::vector<std::string> MenuPanel::BoxEntries(MenuEntry entry) const {
   switch (entry) {
+    // Both open a screen rather than a box.
     case MenuEntry::kBoss:
-      return {};  // Boss opens its screen rather than a box.
+    case MenuEntry::kParty:
+      return {};
     case MenuEntry::kAnalysis:
       return {analysis_.stops_on_press() ? "Stop" : "Start", "View"};
     case MenuEntry::kSettings:

@@ -43,6 +43,14 @@ enum Screen : int {
   // The bestiary, from that menu: the map's mobs and everything known about
   // whichever one the cursor is on.
   kMobInspect,
+  // Enter on the menu panel's Party entry: the parties open to be joined, or
+  // the one the player is in.
+  kPartySelect,
+  // The leader's Enter on a member: kick them, hand the party on, or walk
+  // away.
+  kPartyMenu,
+  // The question one of those asks, and the one leaving a party asks.
+  kPartyConfirm,
   // Enter on the menu panel's Boss entry: pick a fight, then fight it.
   kBossSelect,
   kBossConfirm,

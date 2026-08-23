@@ -84,7 +84,7 @@ TEST(MenuPanelTest, TheEntriesSitTwoColumnsApart) {
     const std::string& cell = screen.PixelAt(x, 1).character;
     row += cell.empty() ? " " : cell;
   }
-  EXPECT_NE(row.find("│ Boss  Analysis  Settings │"), std::string::npos);
+  EXPECT_NE(row.find("│ Boss  Party  Analysis  Settings │"), std::string::npos);
 }
 
 TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
@@ -94,6 +94,8 @@ TEST(MenuPanelTest, TheCursorWrapsAndPicksAnEntry) {
   int focus = kMenuPanel;
   MenuPanel panel(state, analysis, focus);
   EXPECT_EQ(panel.selected(), MenuEntry::kBoss);
+  panel.MoveCursor(1);
+  EXPECT_EQ(panel.selected(), MenuEntry::kParty);
   panel.MoveCursor(1);
   EXPECT_EQ(panel.selected(), MenuEntry::kAnalysis);
   panel.MoveCursor(1);

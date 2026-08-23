@@ -126,6 +126,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
       map_select_panel_(state),
       mob_inspect_panel_(state),
       boss_select_panel_(state),
+      party_select_panel_(),
       job_inspect_panel_(state.skills),
       keybinds_panel_(keys_),
       all_stats_panel_(state.character, state.skills),
@@ -135,9 +136,10 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
                   sell_panel_, sell_equip_panel_, multi_sell_panel_,
                   map_select_panel_, mob_inspect_panel_, boss_select_panel_,
-                  shop_panel_, buy_panel_, job_inspect_panel_,
-                  skill_inspect_panel_, menu_panel_, keybinds_panel_, analysis_,
-                  keys_, panel_focus_) {
+                  party_select_panel_, shop_panel_, buy_panel_,
+                  job_inspect_panel_, skill_inspect_panel_, menu_panel_,
+                  keybinds_panel_, analysis_, keys_, panel_focus_,
+                  multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
   // being paid depends on what is worn.
@@ -255,6 +257,14 @@ ftxui::Element Tui::RenderFrame() {
   inventory_panel_.SetHighlighted(celebration_.Lights(kInventoryPanel));
 
   ftxui::Element frame = RenderScreen();
+  if (controller_.party_notice_prompt().open()) {
+    // Over whatever the player is looking at: the server does not wait for
+    // them to be on the party screen before removing them from a party.
+    frame = ftxui::dbox({
+        std::move(frame),
+        ftxui::center(PartyNoticeDialog() | ftxui::clear_under),
+    });
+  }
   if (!celebration_.card_visible()) {
     return frame;
   }
@@ -340,6 +350,34 @@ ftxui::Element Tui::RenderMenuBox() {
           ftxui::filler() | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,
                                         MenuPanel::kHeight + kExpBarRows),
       }),
+  });
+}
+
+ftxui::Element Tui::PartyConfirmDialog() {
+  // Titleless, like the quit dialog: the question is the whole dialog.
+  return DialogWindow("", {CenteredRow(controller_.party_prompt_question())},
+                      controller_.party_prompt().Render());
+}
+
+ftxui::Element Tui::PartyNoticeDialog() {
+  // Red when the server would not do something or the connection has gone,
+  // theme blue for a party that changed under the player.
+  ftxui::Color accent = controller_.party_notice_is_refusal() ? kRed : kTheme;
+  return DialogWindow("", {CenteredRow(controller_.party_notice())},
+                      controller_.party_notice_prompt().Render("Close"),
+                      accent);
+}
+
+ftxui::Element Tui::RenderParty() {
+  // kPartyMenu draws the same thing: the menu is anchored to a row of the
+  // list, so the panel puts it up itself.
+  ftxui::Element screen = ftxui::center(party_select_panel_.Render());
+  if (controller_.screen() != kPartyConfirm) {
+    return screen;
+  }
+  return ftxui::dbox({
+      std::move(screen),
+      ftxui::center(PartyConfirmDialog() | ftxui::clear_under),
   });
 }
 
@@ -560,6 +598,10 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(analysis_panel_.Render());
     case kKeybinds:
       return ftxui::center(keybinds_panel_.Render());
+    case kPartySelect:
+    case kPartyMenu:
+    case kPartyConfirm:
+      return RenderParty();
     case kBossSelect:
       return ftxui::center(boss_select_panel_.Render());
     case kBossFight:
@@ -743,6 +785,7 @@ void Tui::Tick() {
   if (multiplayer_ != nullptr) {
     multiplayer_->Advance(state_);
   }
+  controller_.AdvanceParty();
   // Ticked down before the new level is noticed, so a level-up landing on this
   // tick gets its full four seconds rather than one tick's worth less.
   celebration_.Advance(elapsed.count());

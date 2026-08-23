@@ -38,6 +38,7 @@
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
+#include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
 #include "src/frontend/screens/sell_panel.h"
@@ -89,6 +90,12 @@ class Tui {
   ftxui::Element QuitDialog();
   // The box a menu entry raised, standing on the corner menu it opened from.
   ftxui::Element RenderMenuBox();
+  // The party screen, with its member menu or its question over it.
+  ftxui::Element RenderParty();
+  // "Kick Bree from the party?", floated over the party screen.
+  ftxui::Element PartyConfirmDialog();
+  // What the server had to say, floated over whatever screen is up.
+  ftxui::Element PartyNoticeDialog();
   // "Fight Normal Zakum?", floated over the boss screen.
   ftxui::Element BossConfirmDialog();
   // "Stop fighting Zakum?", floated over the fight.
@@ -162,6 +169,7 @@ class Tui {
   MapSelectPanel map_select_panel_;
   MobInspectPanel mob_inspect_panel_;
   BossSelectPanel boss_select_panel_;
+  PartySelectPanel party_select_panel_;
   // The job's book, read before the advancement is taken.
   JobInspectPanel job_inspect_panel_;
   // The keys, on a screen of their own, reached from the Settings box.

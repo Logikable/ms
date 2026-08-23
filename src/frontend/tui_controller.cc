@@ -41,10 +41,11 @@ TuiController::TuiController(
     SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
     MultiSellPanel& multi_sell_panel, MapSelectPanel& map_select_panel,
     MobInspectPanel& mob_inspect_panel, BossSelectPanel& boss_select_panel,
-    ShopPanel& shop_panel, BuyPanel& buy_panel,
-    JobInspectPanel& job_inspect_panel, SkillInspectPanel& skill_inspect_panel,
-    MenuPanel& menu_panel, KeybindsPanel& keybinds_panel,
-    BattleAnalysis& analysis, KeyMap& keys, int& panel_focus)
+    PartySelectPanel& party_select_panel, ShopPanel& shop_panel,
+    BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
+    SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
+    KeybindsPanel& keybinds_panel, BattleAnalysis& analysis, KeyMap& keys,
+    int& panel_focus, MultiplayerSession* multiplayer)
     : state_(state),
       char_panel_(char_panel),
       equip_panel_(equip_panel),
@@ -58,6 +59,7 @@ TuiController::TuiController(
       map_select_panel_(map_select_panel),
       mob_inspect_panel_(mob_inspect_panel),
       boss_select_panel_(boss_select_panel),
+      party_select_panel_(party_select_panel),
       job_inspect_panel_(job_inspect_panel),
       skill_inspect_panel_(skill_inspect_panel),
       menu_panel_(menu_panel),
@@ -66,7 +68,8 @@ TuiController::TuiController(
       keys_(keys),
       shop_panel_(shop_panel),
       buy_panel_(buy_panel),
-      panel_focus_(panel_focus) {
+      panel_focus_(panel_focus),
+      multiplayer_(multiplayer) {
 }
 
 void TuiController::OpenEquipMenu() {
@@ -147,6 +150,19 @@ bool TuiController::capturing_key() const {
 }
 
 void TuiController::OpenMenuEntry(MenuEntry entry) {
+  if (entry == MenuEntry::kParty) {
+    MultiplayerSnapshot lobby = Lobby();
+    if (lobby.state != ConnectionState::kConnected) {
+      RaisePartyNotice(
+          lobby.message.empty() ? "Could not reach the server." : lobby.message,
+          /*refusal=*/true);
+      return;
+    }
+    party_select_panel_.SetSnapshot(lobby);
+    party_select_panel_.Reset();
+    screen_ = kPartySelect;
+    return;
+  }
   if (entry != MenuEntry::kBoss) {
     // The box opens with the cursor still on the entry below it, which is what
     // the player presses Up to leave.
@@ -239,6 +255,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
   // equipped panel, which a level 1 character has not unlocked. Settled before
   // dispatch so a key never reaches a panel that is not drawn.
   EnsureFocusIsVisible();
+  // The notice floats over whatever is on screen, so it takes keys before the
+  // screen under it gets a look.
+  if (party_notice_prompt_.open()) {
+    party_notice_prompt_.OnEvent(event);
+    return true;
+  }
   switch (screen_) {
     case kItemMenu:
       return OnItemMenuEvent(event);
@@ -285,6 +307,12 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnMapMenuEvent(event);
     case kMobInspect:
       return OnMobInspectEvent(event);
+    case kPartySelect:
+      return OnPartySelectEvent(event);
+    case kPartyMenu:
+      return OnPartyMenuEvent(event);
+    case kPartyConfirm:
+      return OnPartyConfirmEvent(event);
     case kBossSelect:
       return OnBossSelectEvent(event);
     case kBossConfirm:
@@ -724,6 +752,164 @@ bool TuiController::OnMobInspectEvent(ftxui::Event event) {
   return true;
 }
 
+MultiplayerSnapshot TuiController::Lobby() const {
+  return multiplayer_ == nullptr ? MultiplayerSnapshot()
+                                 : multiplayer_->Snapshot();
+}
+
+void TuiController::RaisePartyNotice(const std::string& message, bool refusal) {
+  party_notice_ = message;
+  party_notice_is_refusal_ = refusal;
+  party_notice_prompt_.Open();
+}
+
+void TuiController::AdvanceParty() {
+  MultiplayerSnapshot lobby = Lobby();
+  party_select_panel_.SetSnapshot(lobby);
+  // The connection going away turns the player out of the party screen: there
+  // is no lobby left to show them, and Close should land them somewhere real.
+  bool on_party_screen = screen_ == kPartySelect || screen_ == kPartyMenu ||
+                         screen_ == kPartyConfirm;
+  if (on_party_screen && lobby.state != ConnectionState::kConnected) {
+    screen_ = kMain;
+    party_select_panel_.CloseMenu();
+    party_prompt_.Close();
+    RaisePartyNotice(
+        lobby.message.empty() ? "Lost the connection." : lobby.message,
+        /*refusal=*/true);
+    return;
+  }
+  if (lobby.notice_serial == party_notice_seen_) {
+    return;
+  }
+  party_notice_seen_ = lobby.notice_serial;
+  RaisePartyNotice(lobby.notice, lobby.notice_is_refusal);
+}
+
+void TuiController::AskAboutParty(PartyAsk ask, const std::string& question) {
+  party_ask_ = ask;
+  party_target_ = party_select_panel_.selected_member();
+  party_prompt_question_ = question;
+  party_prompt_.Open(/*cancel_selected=*/true);
+  screen_ = kPartyConfirm;
+}
+
+void TuiController::TakePartyAction(PartyAction action) {
+  switch (action) {
+    case PartyAction::kNone:
+      return;
+    case PartyAction::kClose:
+      screen_ = kMain;
+      return;
+    case PartyAction::kMemberMenu:
+      party_select_panel_.OpenMenu();
+      screen_ = kPartyMenu;
+      return;
+    case PartyAction::kLeave:
+      AskAboutParty(PartyAsk::kLeave, "Leave the party?");
+      return;
+    case PartyAction::kCreate:
+      multiplayer_->client().CreateParty();
+      return;
+    case PartyAction::kJoin:
+      multiplayer_->client().JoinParty(party_select_panel_.selected_party_id());
+      return;
+    case PartyAction::kReady:
+      multiplayer_->client().SetReady(true);
+      return;
+    case PartyAction::kUnready:
+      multiplayer_->client().SetReady(false);
+      return;
+  }
+}
+
+void TuiController::PartyConfirmed() {
+  switch (party_ask_) {
+    case PartyAsk::kNone:
+      break;
+    case PartyAsk::kKick:
+      multiplayer_->client().Kick(party_target_);
+      break;
+    case PartyAsk::kPromote:
+      multiplayer_->client().Promote(party_target_);
+      break;
+    case PartyAsk::kLeave:
+      multiplayer_->client().LeaveParty();
+      break;
+  }
+  party_ask_ = PartyAsk::kNone;
+}
+
+bool TuiController::OnPartySelectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    party_select_panel_.MoveCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    party_select_panel_.MoveCursor(1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowLeft) {
+    party_select_panel_.MoveButton(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    party_select_panel_.MoveButton(1);
+    return true;
+  }
+  if (IsForward(event)) {
+    TakePartyAction(party_select_panel_.Chosen());
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  return true;
+}
+
+bool TuiController::OnPartyMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    party_select_panel_.MoveMenuCursor(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    party_select_panel_.MoveMenuCursor(1);
+    return true;
+  }
+  if (IsBack(event)) {
+    party_select_panel_.CloseMenu();
+    screen_ = kPartySelect;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;
+  }
+  int chosen = party_select_panel_.menu_selected();
+  std::string name = party_select_panel_.selected_member_name();
+  party_select_panel_.CloseMenu();
+  screen_ = kPartySelect;
+  if (chosen == kPartyMenuKick) {
+    AskAboutParty(PartyAsk::kKick, "Kick " + name + " from the party?");
+  } else if (chosen == kPartyMenuPromote) {
+    AskAboutParty(PartyAsk::kPromote, "Promote " + name + " to party leader?");
+  }
+  return true;
+}
+
+bool TuiController::OnPartyConfirmEvent(ftxui::Event event) {
+  ConfirmChoice choice = party_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    PartyConfirmed();
+  }
+  party_ask_ = PartyAsk::kNone;
+  screen_ = kPartySelect;
+  return true;
+}
+
 bool TuiController::OnBossSelectEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
     boss_select_panel_.MoveCursor(-1);
@@ -746,12 +932,19 @@ bool TuiController::OnBossSelectEvent(ftxui::Event event) {
       return true;
     }
     boss_prompt_title_ = boss_select_panel_.selected_title();
-    // Four ways a fight is not offered, and each says why rather than doing
-    // nothing: a fight that is not built yet, a character with nothing to
-    // swing, a fight they have not levelled up to, and one still on its reset.
-    // The unbuilt one leads, because none of the others is the reason. Only
-    // what is left is worth asking a question about.
-    if (boss_select_panel_.selected_coming_soon()) {
+    MultiplayerSnapshot lobby = Lobby();
+    bool led_by_somebody_else =
+        !lobby.party.id().empty() &&
+        lobby.party.leader_account_id() != lobby.account_id;
+    // Five ways a fight is not offered, and each says why rather than doing
+    // nothing: a party somebody else leads, a fight that is not built yet, a
+    // character with nothing to swing, a fight they have not levelled up to,
+    // and one still on its reset. Whose party it is leads, because it is about
+    // the player rather than the fight they picked. Only what is left is worth
+    // asking a question about.
+    if (led_by_somebody_else) {
+      OpenNotice(kBossNotice, {"You are not the leader."}, /*refusal=*/true);
+    } else if (boss_select_panel_.selected_coming_soon()) {
       OpenNotice(kBossNotice, {boss_prompt_title_, "is coming soon!"},
                  /*refusal=*/true);
     } else if (EquippedWeapon(state_) == nullptr) {
