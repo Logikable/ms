@@ -14,6 +14,7 @@
 #include "ftxui/screen/box.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/boss_run.h"
+#include "src/combat/test_authority.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -558,6 +559,63 @@ TEST(BossFightPanelTest, TheSpotsThePlayerIsNotOnAreMarked) {
   int floor = RowOf(Rows(run), "You");
   run.MovePlayer(0, -1);
   EXPECT_LT(RowOf(Rows(run), "You"), floor);
+}
+
+// A party's fight: the whole of Zakum's arena with three people in it, this
+// player on the floor and the other two on the ledges.
+std::unique_ptr<TestAuthority> PartyOfThree() {
+  std::unique_ptr<TestAuthority> authority = std::make_unique<TestAuthority>(8);
+  authority->fight_.players.resize(3);
+  authority->fight_.players[0].name = "Dagger";
+  authority->fight_.players[0].spot = 0;
+  authority->fight_.players[1].name = "Wand";
+  authority->fight_.players[1].spot = 1;
+  authority->fight_.players[2].name = "Claw";
+  authority->fight_.players[2].spot = 2;
+  return authority;
+}
+
+TEST(BossFightPanelTest, EverybodyInThePartyStandsInTheArena) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss = Zakum();
+  std::unique_ptr<TestAuthority> authority = PartyOfThree();
+  BossRun run("zakum", boss, 0, authority.get());
+  run.Advance(*state, 0.1);
+
+  std::vector<std::string> rows = Rows(run);
+  // This player is not named, and everybody else is.
+  EXPECT_NE(RowOf(rows, "You"), -1);
+  EXPECT_NE(RowOf(rows, "Wand"), -1);
+  EXPECT_NE(RowOf(rows, "Claw"), -1);
+  EXPECT_EQ(RowOf(rows, "Dagger"), -1);
+  // Five spots, three of them stood on.
+  EXPECT_EQ(MarkedSpots(run), 2);
+  // The two on the ledges are drawn above the one on the floor.
+  EXPECT_LT(RowOf(rows, "Wand"), RowOf(rows, "You"));
+}
+
+// Their numbers are drawn in their own faint colours, so a fight with three
+// people in it still reads as the player's own.
+TEST(BossFightPanelTest, APartyMembersNumbersAreDrawnFaint) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss = Zakum();
+  std::unique_ptr<TestAuthority> authority = PartyOfThree();
+  BossRun run("zakum", boss, 0, authority.get());
+  run.Advance(*state, 0.1);
+  authority->OtherLanded(0, 4242);
+  run.Advance(*state, 0.1);
+
+  ftxui::Screen screen = RenderScreen(run, 60, 40);
+  int faint = 0;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x < screen.dimx(); ++x) {
+      const ftxui::Pixel& px = screen.PixelAt(x, y);
+      if (px.character == "4" && px.foreground_color == kFaintTheme) {
+        ++faint;
+      }
+    }
+  }
+  EXPECT_EQ(faint, 2) << "4242 holds two of them";
 }
 
 // A swing puts its numbers over the monster it hit, all of them where there is

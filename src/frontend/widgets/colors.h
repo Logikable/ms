@@ -56,6 +56,12 @@ inline const ftxui::Color kMutedYellow = ftxui::Color::RGB(185, 155, 70);
 // a price out of reach, the Star Force destroy rate. See the note above.
 inline const ftxui::Color kRed = ftxui::Color::RGB(185, 70, 70);
 
+// A party member's damage numbers and charge bar, plain and critical. Half the
+// strength of the pair above, so a fight with three people in it still reads
+// as the player's own: their numbers are the bright ones.
+inline const ftxui::Color kFaintTheme = ftxui::Color::RGB(55, 80, 110);
+inline const ftxui::Color kFaintOrange = ftxui::Color::RGB(125, 75, 35);
+
 // Unfilled remainder of any progress bar (EXP, attack charge, mob HP).
 inline const ftxui::Color kBarEmpty = ftxui::Color::RGB(20, 35, 55);
 

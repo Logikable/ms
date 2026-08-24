@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "src/combat/fight_authority.h"
+#include "src/combat/test_authority.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/boss.pb.h"
@@ -548,67 +548,10 @@ TEST(BossRunTest, APhaseChangeClearsTheNumbers) {
   }
 }
 
-// A shared fight the test writes by hand, standing in for the server. It
-// keeps whatever the run reported so a test can read it back.
-class FakeAuthority : public FightAuthority {
- public:
-  explicit FakeAuthority(int slots) {
-    fight_.hp_fractions.assign(slots, 1.0);
-    fight_.state = BossRunState::kFighting;
-    fight_.self = 0;
-    fight_.players.resize(2);
-    fight_.players[0].name = "Dagger";
-    fight_.players[0].spot = 0;
-    fight_.players[1].name = "Wand";
-    fight_.players[1].spot = 1;
-  }
-
-  void Report(int phase, const std::vector<SharedLine>& lines, int spot,
-              const std::string& attack_name, double attack_fraction) override {
-    reported_phase_ = phase;
-    reported_spot_ = spot;
-    reported_attack_ = attack_name;
-    reported_fraction_ = attack_fraction;
-    for (const SharedLine& line : lines) {
-      reported_.push_back(line);
-    }
-  }
-
-  bool Fetch(SharedFight& fight) override {
-    if (!open_) {
-      return false;
-    }
-    fight = fight_;
-    fight_.lines.clear();
-    return true;
-  }
-
-  // What the party's other player just landed on the monster in `slot`.
-  void OtherLanded(int slot, int64_t damage) {
-    SharedLine line;
-    line.owner = 1;
-    line.slot = slot;
-    line.event = ++event_;
-    line.damage = damage;
-    fight_.lines.push_back(line);
-  }
-
-  SharedFight fight_;
-  bool open_ = true;
-  int reported_phase_ = -1;
-  int reported_spot_ = -1;
-  std::string reported_attack_;
-  double reported_fraction_ = 0.0;
-  std::vector<SharedLine> reported_;
-
- private:
-  int event_ = 0;
-};
-
 TEST(BossRunTest, AFollowedRunWaitsToBeToldAnything) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();
-  FakeAuthority authority(2);
+  TestAuthority authority(2);
   authority.open_ = false;
   BossRun run("zakum", boss, 0, &authority);
 
@@ -621,7 +564,7 @@ TEST(BossRunTest, AFollowedRunWaitsToBeToldAnything) {
 TEST(BossRunTest, AFollowedRunTakesTheClockAndThePhaseItIsGiven) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();
-  FakeAuthority authority(2);
+  TestAuthority authority(2);
   authority.fight_.seconds_left = 42.0;
   BossRun run("zakum", boss, 0, &authority);
   run.Advance(*state, 0.1);
@@ -644,7 +587,7 @@ TEST(BossRunTest, AFollowedRunTakesTheClockAndThePhaseItIsGiven) {
 TEST(BossRunTest, AFollowedRunReportsWhatItLanded) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();
-  FakeAuthority authority(2);
+  TestAuthority authority(2);
   BossRun run("zakum", boss, 0, &authority);
   for (int i = 0; i < 40 && authority.reported_.empty(); ++i) {
     run.Advance(*state, 0.1);
@@ -673,7 +616,7 @@ TEST(BossRunTest, AFollowedRunReportsWhatItLanded) {
 TEST(BossRunTest, TheSharedRosterSaysWhatIsLeft) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();
-  FakeAuthority authority(2);
+  TestAuthority authority(2);
   BossRun run("zakum", boss, 0, &authority);
   run.Advance(*state, 0.1);
   ASSERT_EQ(run.slots().size(), 2u);
@@ -691,7 +634,7 @@ TEST(BossRunTest, TheSharedRosterSaysWhatIsLeft) {
 TEST(BossRunTest, EverybodysNumbersAreDrawnAndHeldApart) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = TwoPhaseBoss();
-  FakeAuthority authority(2);
+  TestAuthority authority(2);
   BossRun run("zakum", boss, 0, &authority);
   // Far enough in that this player has landed a swing of their own.
   for (int i = 0; i < 40 && run.damage_stacks().empty(); ++i) {
@@ -731,7 +674,7 @@ TEST(BossRunTest, EverybodysNumbersAreDrawnAndHeldApart) {
 TEST(BossRunTest, AWalkPassesOverSomebodyElsesSpot) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = WalkableBoss();
-  FakeAuthority authority(2);
+  TestAuthority authority(2);
   authority.fight_.players[1].spot = kFloorRight;
   BossRun run("zakum", boss, 0, &authority);
   run.Advance(*state, 0.1);
@@ -748,7 +691,7 @@ TEST(BossRunTest, AWalkPassesOverSomebodyElsesSpot) {
 TEST(BossRunTest, ASharedClearPaysEachOfThemAShare) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);
-  FakeAuthority authority(2);
+  TestAuthority authority(2);
   authority.fight_.share_count = 2;
   BossRun run("zakum", boss, 0, &authority);
   run.Advance(*state, 0.1);

@@ -14,6 +14,7 @@
 #include "src/combat/boss_run.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/protos/boss.pb.h"
 
 namespace ms {
@@ -65,20 +66,35 @@ ftxui::Element MobBar(const BossSlot& slot, int rows) {
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
-// The player's own panel: whatever they are winding up, under their name. No
-// HP -- nothing in a boss fight hits back yet.
-ftxui::Element PlayerPanel(const BossRun& run) {
-  std::string label = run.attack_name();
-  if (run.state() == BossRunState::kCountdown) {
+// One player's panel: whatever they are winding up, under their name. No HP --
+// nothing in a boss fight hits back yet. `self` is the player at this screen,
+// whose panel is the bright one and the one the count-in stands on.
+ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
+                           bool self) {
+  std::string label = member.attack_name;
+  if (self && run.state() == BossRunState::kCountdown) {
     // The count-in stands where the swing name will: it is the one thing on
     // screen that is about to change, so it belongs where the eye already is.
     label = std::to_string(
         static_cast<int>(std::ceil(std::max(0.0, run.countdown_left()))));
   }
-  ftxui::Element bar = ProgressBar(static_cast<float>(run.attack_fraction()),
-                                   kTheme, BarLines(label, kPlayerBarRows));
-  return ThemedWindow(" You ", std::move(bar)) |
-         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
+  ftxui::Color accent = self ? kTheme : kFaintTheme;
+  ftxui::Element bar = ProgressBar(static_cast<float>(member.attack_fraction),
+                                   accent, BarLines(label, kPlayerBarRows));
+  // Their name, cut to what the frame holds. Everybody else is named; the
+  // player themselves is not, since they know.
+  std::string title =
+      self ? "You"
+           : ColumnWindow(member.name, 0, kBossPanelWidth - kPanelClearance);
+  ftxui::Element panel =
+      AccentWindow(" " + title + " ", std::move(bar), accent) |
+      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
+  if (!member.present) {
+    // Their client has gone. They are still standing there and still on the
+    // reward split, but nothing more is coming from them.
+    return panel | ftxui::dim;
+  }
+  return panel;
 }
 
 // Somewhere the player may stand and is not. Dim and unframed, the size of a
@@ -92,6 +108,17 @@ ftxui::Element EmptySpot(int rows) {
          }) |
          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth) |
          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows);
+}
+
+// Whether somebody is standing on the spot at `index`, which is what makes it
+// not one of the empty ones.
+bool Stood(const std::vector<FightMember>& members, int index) {
+  for (const FightMember& member : members) {
+    if (member.spot == index) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // One panel and the cell it stands in.
@@ -110,7 +137,9 @@ struct ArenaCell {
 // costs that one number and leaves the rest where they were.
 class DamageStackNode : public ftxui::Node {
  public:
-  explicit DamageStackNode(const DamageStack& stack) {
+  // `faint` is a party member's stack rather than the player's own, which is
+  // drawn well under it.
+  DamageStackNode(const DamageStack& stack, bool faint) : faint_(faint) {
     for (const DamageNumber& line : stack.lines) {
       numbers_.push_back({std::to_string(line.damage), line.crit});
       width_ = std::max(width_, static_cast<int>(numbers_.back().text.size()));
@@ -156,19 +185,24 @@ class DamageStackNode : public ftxui::Node {
       }
       ftxui::Pixel& px = screen.PixelAt(x, y);
       px.character = std::string(1, number.text[i]);
-      px.foreground_color = number.crit ? kOrange : kTheme;
-      px.bold = number.crit;
+      if (faint_) {
+        px.foreground_color = number.crit ? kFaintOrange : kFaintTheme;
+      } else {
+        px.foreground_color = number.crit ? kOrange : kTheme;
+      }
+      px.bold = number.crit && !faint_;
     }
   }
 
   std::vector<Number> numbers_;
   std::vector<bool> drawn_;
   int width_ = 1;
+  bool faint_ = false;
 };
 
 // One stack and the panel it belongs beside.
 struct ArenaStack {
-  std::size_t owner = 0;  // index into the arena's panels
+  std::size_t owner = 0;  // index into the arena's panels: the monster it hit
   // Whether this is the character's own swing. The swing always stands over
   // its monster; nothing else may.
   bool swing = false;
@@ -319,9 +353,11 @@ class ArenaNode : public ftxui::Node {
       taken.push_back(panel_box_[i]);
     }
     taken.push_back(clock);
-    for (const ArenaStack& stack : stacks_) {
-      if (stack.swing) {
-        PlaceSwing(box, stack, taken);
+    // Newest first, so where three players' swings all want the column over
+    // one monster the freshest numbers get it and the older ones give way.
+    for (std::size_t i = stacks_.size(); i > 0; --i) {
+      if (stacks_[i - 1].swing) {
+        PlaceSwing(box, stacks_[i - 1], taken);
       }
     }
     // The columns over a monster's bar are its swing's, whether or not one is
@@ -492,20 +528,27 @@ ftxui::Element Arena(const BossRun& run) {
   // The monster bars come first, and the arena counts on it: the column over
   // each of them is kept clear for that monster's swing.
   std::size_t mobs = panels.size();
-  ArenaSpot standing = run.player_spot();
-  for (const ArenaSpot& spot : run.player_spots()) {
-    if (spot.x() == standing.x() && spot.y() == standing.y()) {
-      continue;
-    }
-    if (spot.y() < 0 || spot.y() >= height) {
+  std::vector<ArenaSpot> spots = run.player_spots();
+  const std::vector<FightMember>& members = run.members();
+  for (int i = 0; i < static_cast<int>(spots.size()); ++i) {
+    if (Stood(members, i) || spots[i].y() < 0 || spots[i].y() >= height) {
       continue;
     }
     panels.push_back(EmptySpot(rows));
-    cells.push_back({spot.x(), spot.y()});
+    cells.push_back({spots[i].x(), spots[i].y()});
   }
-  panels.push_back(PlayerPanel(run) |
-                   ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
-  cells.push_back({standing.x(), std::clamp(standing.y(), 0, height - 1)});
+  // The player at this screen is the first of them, and is drawn last so that
+  // a panel pushed aside for room is somebody else's.
+  for (std::size_t i = members.size(); i > 0; --i) {
+    const FightMember& member = members[i - 1];
+    ArenaSpot standing;
+    if (member.spot >= 0 && member.spot < static_cast<int>(spots.size())) {
+      standing = spots[member.spot];
+    }
+    panels.push_back(MemberPanel(run, member, i == 1) |
+                     ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, rows));
+    cells.push_back({standing.x(), std::clamp(standing.y(), 0, height - 1)});
+  }
   // After the panels, so a stack is placed knowing where every bar stands --
   // including the one whose monster it belongs to.
   std::vector<ArenaStack> stacks;
@@ -515,9 +558,10 @@ ftxui::Element Arena(const BossRun& run) {
     if (it == panel_of_slot.end() || stack.lines.empty()) {
       continue;
     }
-    stacks.push_back({it->second, stack.source.origin == DamageOrigin::kSwing,
-                      stack.preference,
-                      std::make_shared<DamageStackNode>(stack)});
+    stacks.push_back(
+        {it->second, stack.source.origin == DamageOrigin::kSwing,
+         stack.preference,
+         std::make_shared<DamageStackNode>(stack, stack.owner > 0)});
   }
   return std::make_shared<ArenaNode>(std::move(panels), std::move(cells),
                                      run.arena_width(), height, mobs,

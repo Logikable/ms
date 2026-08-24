@@ -114,6 +114,15 @@ cc_library(
     deps = [":fight"],
 )
 
+# A shared fight a test drives by hand, for both ends of one: the run that
+# follows it and the panel that draws it.
+cc_library(
+    name = "test_authority",
+    testonly = True,
+    hdrs = ["test_authority.h"],
+    deps = [":fight_authority"],
+)
+
 cc_library(
     name = "boss_run",
     srcs = ["boss_run.cc"],
@@ -140,6 +149,7 @@ cc_test(
     deps = [
         ":boss_run",
         ":encounter",
+        ":test_authority",
         "//src:game_state",
         "//src/character",
         "//src/item:equip_instance",
