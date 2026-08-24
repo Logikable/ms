@@ -103,6 +103,17 @@ class MultiplayerClient {
   void Promote(const std::string& account_id);
   void StartFight(const std::string& boss_key, int difficulty_index,
                   PartyMode mode);
+  // What this client's fight has landed, where its player is standing, and
+  // what they are winding up. Sent every step of a fight rather than queued
+  // as an ask: a report that waited would land on a roster that had moved on.
+  void SendFightUpdate(const FightUpdate& update);
+  // Walks out of the fight in progress.
+  void LeaveFight();
+
+  // Every fight message the server has sent since the last call, in order.
+  // Taken rather than read off the snapshot because the lines in them are
+  // drawn once and would be lost by a frame that saw two.
+  std::vector<ServerMessage> TakeFightMessages();
 
  private:
   // The thread's whole life: connect, talk, reconnect.
@@ -138,6 +149,8 @@ class MultiplayerClient {
   MultiplayerSnapshot snapshot_;
   PlayerInfo player_;
   std::vector<ClientMessage> queued_;
+  // What the server has said about the fight and nobody has read yet.
+  std::vector<ServerMessage> fight_;
 };
 
 }  // namespace ms

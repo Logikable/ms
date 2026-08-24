@@ -152,6 +152,25 @@ void MultiplayerClient::StartFight(const std::string& boss_key,
   Ask(message);
 }
 
+void MultiplayerClient::SendFightUpdate(const FightUpdate& update) {
+  ClientMessage message;
+  *message.mutable_fight_update() = update;
+  Ask(message);
+}
+
+void MultiplayerClient::LeaveFight() {
+  ClientMessage message;
+  message.mutable_leave_fight();
+  Ask(message);
+}
+
+std::vector<ServerMessage> MultiplayerClient::TakeFightMessages() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  std::vector<ServerMessage> taken;
+  taken.swap(fight_);
+  return taken;
+}
+
 void MultiplayerClient::Run() {
   StartSockets();
   std::chrono::seconds wait = kFirstRetry;
@@ -300,6 +319,13 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
               : ConnectionState::kRefused;
       keep = false;
       return;
+    case ServerMessage::kFightState:
+    case ServerMessage::kFightEnded:
+      // Kept whole rather than folded into the snapshot: a fight state carries
+      // the numbers everybody else landed, and a frame that read two snapshots
+      // would draw one of them and lose the other.
+      fight_.push_back(message);
+      return;
     case ServerMessage::kPong:
     case ServerMessage::KIND_NOT_SET:
       return;
@@ -336,6 +362,8 @@ void MultiplayerClient::ForgetLobby() {
   std::lock_guard<std::mutex> lock(mutex_);
   snapshot_.parties.Clear();
   snapshot_.party.Clear();
+  // A fight does not survive the connection that was watching it.
+  fight_.clear();
 }
 
 }  // namespace ms

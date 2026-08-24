@@ -49,6 +49,30 @@ cc_test(
 )
 
 cc_library(
+    name = "party_fight",
+    srcs = ["party_fight.cc"],
+    hdrs = ["party_fight.h"],
+    deps = [
+        ":client",
+        "//src/combat:fight_authority",
+        "//src/protos:multiplayer_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "party_fight_test",
+    srcs = ["party_fight_test.cc"],
+    deps = [
+        ":client",
+        ":party_fight",
+        "//server:test_server",
+        "//src/combat:fight_authority",
+        "//src/protos:multiplayer_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "session",
     srcs = ["session.cc"],
     hdrs = ["session.h"],

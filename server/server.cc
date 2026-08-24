@@ -501,6 +501,14 @@ void Server::Handle(Session& session, const ClientMessage& message) {
       // Ten of these a second per player. Nothing is logged for them.
       HandleFightUpdate(session, message.fight_update());
       return;
+    case ClientMessage::kLeaveFight: {
+      PartyFight* fight = FightOf(session.account_id);
+      if (fight != nullptr) {
+        LOG(INFO) << Describe(session) << " walks out of the fight";
+        fight->Disconnect(session.account_id);
+      }
+      return;
+    }
     case ClientMessage::KIND_NOT_SET:
       Reject(session, Rejected::REASON_MALFORMED, "Empty message.");
       return;

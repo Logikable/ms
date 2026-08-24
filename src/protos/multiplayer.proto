@@ -208,6 +208,11 @@ message FightEnded {
   int32 share_count = 2;
 }
 
+// Walking out of a fight in progress. The player is dropped from it exactly as
+// a client that went would be: they deal no more damage, they are paid
+// nothing, and the fight goes on for whoever is left.
+message LeaveFight {}
+
 // The heartbeat. A session that goes quiet for kSessionTimeout is dropped.
 message Ping {}
 
@@ -224,6 +229,7 @@ message ClientMessage {
     KickMember kick_member = 9;
     PromoteMember promote_member = 10;
     FightUpdate fight_update = 11;
+    LeaveFight leave_fight = 12;
   }
 }
 
