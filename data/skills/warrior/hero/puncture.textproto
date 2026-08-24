@@ -9,6 +9,12 @@
 #
 # So the swing itself is one a Hero rarely spends -- Raging Blow lands harder
 # once the wound is up -- which is the shape GMS has: puncture, then hold.
+#
+# The party's share of the wound is a flat grant rather than a mark on the
+# monster, because the Hero's own share already is: both are read off the
+# character, and the wound stands for all but a moment of the fight. GMS pays
+# an ally ceil(x/3)% where the Hero takes 10+ceil(x/2)% -- 10% against 25% at
+# master.
 name: "Puncture"
 skill_order: 2
 description:
@@ -36,6 +42,8 @@ base {
   normal_skill_pct: 0.50
 }
 per_level { skill_pct: 0.03 }
+ally_base { damage_pct: 0.013 }
+ally_per_level { damage_pct: 0.003 }
 buff {
   duration_seconds: 45.5
   duration_seconds_per_level: 0.5

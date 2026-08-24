@@ -2153,6 +2153,27 @@ TEST_F(DerivedStatsTest, AllyGrantReachesOnlyWhoeverLacksTheSkill) {
   EXPECT_EQ(DerivedStatsFor(other, skills, {}, party).skill_stats.attack(), 15);
 }
 
+// Angel Ray's shape: an attack's own recovery leaves with the swing, but the
+// share it hands the party is a passive and has to survive that stripping.
+TEST_F(DerivedStatsTest, AnAttacksAllyHalfPaysAsAPassive) {
+  Skill ray = Bless();
+  ray.set_name("Angel Ray");
+  ray.set_kind(SKILL_KIND_ATTACK);
+  ray.mutable_base()->set_hp_recover_pct(0.08);
+  ray.mutable_ally_base()->set_hp_recover_pct(0.08);
+  ray.clear_per_level();
+  ray.clear_ally_per_level();
+  std::map<std::string, Skill> skills = {{"ray", ray}};
+  CharacterInstance caster = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(caster.LearnSkill(ray, 10));
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(caster, skills).hp_recover_pct, 0.0);
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(plain, skills, {}, party).hp_recover_pct,
+                   0.08);
+}
+
 // Hex of the Evil Eye's shape: the party gets half of what the caster does.
 TEST_F(DerivedStatsTest, AllyHalfNeedNotMatchTheCastersOwn) {
   Skill hex = Bless();

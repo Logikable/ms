@@ -1102,11 +1102,23 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
 // yet. Dispel is out for a duller reason: what it cures is a display-only
 // lever, so an ally half of it would grant a row and nothing else.
 const char* const kPartySkills[] = {
-    "Absolute Zero Aura", "Advanced Blessing",   "Bless",
-    "Blessed Ensemble",   "Blessed Harmony",     "Combat Orders",
-    "Divine Protection",  "Hex of the Evil Eye", "Holy Fountain",
-    "Holy Symbol",        "Holy Water",          "Meditation",
-    "Parashock Guard",    "Sharp Eyes",          "Spirit Blade",
+    "Absolute Zero Aura",
+    "Advanced Blessing",
+    "Angel Ray",
+    "Bless",
+    "Blessed Ensemble",
+    "Blessed Harmony",
+    "Combat Orders",
+    "Divine Protection",
+    "Hex of the Evil Eye",
+    "Holy Fountain",
+    "Holy Symbol",
+    "Holy Water",
+    "Meditation",
+    "Parashock Guard",
+    "Puncture",
+    "Sharp Eyes",
+    "Spirit Blade",
 };
 
 TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
