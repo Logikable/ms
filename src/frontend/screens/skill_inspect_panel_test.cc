@@ -1491,6 +1491,44 @@ TEST_F(SkillInspectPanelTest, ASkillWithOneHalfIsNotHeadedAtAll) {
   }
 }
 
+// What a skill holds over the party is its own section: those are not the
+// reader's numbers, and a page that mixed them into the passive half would be
+// claiming the reader gets both.
+TEST_F(SkillInspectPanelTest, WhatThePartyGetsIsHeadedApart) {
+  Skill bless = MakeIronBody();
+  bless.set_name("Bless");
+  bless.mutable_ally_base()->set_attack(6);
+  bless.mutable_ally_per_level()->set_attack(1);
+
+  std::vector<std::string> lines = Lines(RenderAt(bless, 10));
+  int party = -1;
+  int attack = -1;
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (lines[i].find("Your Party") != std::string::npos) {
+      party = i;
+    }
+    if (lines[i].find("ATT") != std::string::npos) {
+      attack = i;
+    }
+  }
+  EXPECT_GT(party, 0);
+  EXPECT_GT(attack, party) << "the party's attack sits under its heading";
+  // And a skill with nothing to give raises no heading at all.
+  EXPECT_EQ(RenderAt(MakeIronBody(), 10).find("Your Party"), std::string::npos);
+}
+
+// Parashock Guard pays its caster only for shielding somebody. A player
+// maxing it alone sees nothing move, so the heading over its own half has to
+// say why -- and it says so even on a page with no other section on it.
+TEST_F(SkillInspectPanelTest, ASkillNeedingAPartySaysSoOverItsOwnHalf) {
+  Skill guard = MakeIronBody();
+  guard.set_name("Parashock Guard");
+  guard.set_requires_party(true);
+
+  EXPECT_NE(RenderAt(guard, 10).find("Passive, in a Party"), std::string::npos);
+  EXPECT_EQ(RenderAt(MakeIronBody(), 10).find("in a Party"), std::string::npos);
+}
+
 // --- Scrolling a card too tall for the terminal ---
 
 // A rendered row as the plain text it says. The colour escapes, the window

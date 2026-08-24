@@ -1065,11 +1065,26 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   for (ftxui::Element& row : buff) {
     rows.push_back(std::move(row));
   }
-  if (!permanent.empty() && (!buff.empty() || !swing.empty())) {
-    rows.push_back(SectionRow("Passive", kGreen));
+  // A skill paid only for shielding somebody heads its own half whatever else
+  // is on the page: a player maxing it alone and seeing nothing move has to
+  // be able to read why here.
+  std::vector<ftxui::Element> ally =
+      LeverRows(skill.ally_base(), skill.ally_per_level(), level, "");
+  if (!permanent.empty() && (!buff.empty() || !swing.empty() ||
+                             skill.requires_party() || !ally.empty())) {
+    rows.push_back(SectionRow(
+        skill.requires_party() ? "Passive, in a Party" : "Passive", kGreen));
   }
   for (ftxui::Element& row : permanent) {
     rows.push_back(std::move(row));
+  }
+  // What everybody else in the party gets, in the colour the party screens
+  // are drawn in. Its own section: these are not the reader's numbers.
+  if (!ally.empty()) {
+    rows.push_back(SectionRow("Your Party", kTheme));
+    for (ftxui::Element& row : ally) {
+      rows.push_back(std::move(row));
+    }
   }
   // A wait that shortens as the skill is taught is one of the things a point
   // buys, so it is read at the level like the rest. The waits that never move
