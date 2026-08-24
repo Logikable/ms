@@ -62,7 +62,8 @@ class Lobby {
   // Leave would. Quiet about a player who was in none.
   void Disconnect(const std::string& account_id);
 
-  // Every party open to be joined, in the order they were made.
+  // Every party open to be joined, in the order they were made. Without the
+  // members' sheets: what the listing draws is a leader and a capacity.
   PartyList Listed() const;
   // The party `account_id` is in. One with no id means they are in none,
   // which is what a player who has left, or was never in one, is sent.

@@ -13,14 +13,20 @@
 
 #include <string>
 
+#include "src/character/character.h"
 #include "src/game_state.h"
 #include "src/multiplayer/client.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
 
-// The character in `state` as the lobby should see them, under the account the
-// save is carrying.
+// The character as everyone else may see them: their stats, what they are
+// wearing, and the passives behind both, with the bag, the purse and the
+// buy-back shelf cleared.
+Character PublicSheet(const CharacterInstance& character);
+
+// The character in `state` as the lobby should see them, sheet included, under
+// the account the save is carrying.
 PlayerInfo PlayerFor(const GameState& state);
 
 class MultiplayerSession {

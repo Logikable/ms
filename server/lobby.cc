@@ -243,8 +243,17 @@ PartyList Lobby::Listed() const {
   PartyList list;
   for (const std::string& id : order_) {
     std::map<std::string, Record>::const_iterator found = parties_.find(id);
-    if (found != parties_.end() && !found->second.started) {
-      *list.add_parties() = found->second.party;
+    if (found == parties_.end() || found->second.started) {
+      continue;
+    }
+    Party* listed = list.add_parties();
+    *listed = found->second.party;
+    // The listing goes to everyone connected whenever any party changes, and
+    // it draws a leader's name and a capacity. Carrying every member's whole
+    // sheet through that would be a save's worth of message per keystroke in
+    // the lobby; a sheet is for the party you are in, and rides its state.
+    for (PartyMember& member : *listed->mutable_members()) {
+      member.mutable_player()->clear_sheet();
     }
   }
   return list;

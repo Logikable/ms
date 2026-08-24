@@ -30,6 +30,19 @@ message PlayerInfo {
   string name = 2;
   int32 level = 3;
   JobAdvancement job = 4;
+
+  // The character as the Inspect screen draws them: their stats, what they are
+  // wearing, and the passives behind both. Built by PublicSheet in
+  // //src/multiplayer:session, which clears everything a party has no business
+  // with -- the bag, the purse, the buy-back shelf.
+  //
+  // Sent whole rather than as a table of figures so that the screen showing it
+  // runs the same stat code the owner's own panels do, and the two cannot
+  // drift. Its items are named rather than described, so it only means
+  // anything to a client holding the same catalogs -- which is what the
+  // protocol version covers. The lobby listing strips it: it rides the party
+  // state, where the party is three people, not every open party.
+  Character sheet = 5;
 }
 
 // One player's place in a party.

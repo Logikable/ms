@@ -357,5 +357,19 @@ TEST_F(LobbyTest, TheKickedPlayerIsToldAsAMember) {
   EXPECT_EQ(lobby_.TakeChanged(), std::vector<std::string>({"one", "two"}));
 }
 
+// The listing goes out to everyone whenever any party changes, and it draws a
+// leader and a capacity. A sheet is for the party you are in.
+TEST_F(LobbyTest, TheListingCarriesNoSheets) {
+  PlayerInfo player = Player("one", 140);
+  player.mutable_sheet()->set_name("one");
+  player.mutable_sheet()->set_level(140);
+  ASSERT_TRUE(lobby_.Create(player).ok);
+
+  ASSERT_EQ(OnlyListed().members_size(), 1);
+  EXPECT_FALSE(OnlyListed().members(0).player().has_sheet());
+  // The party the player is in keeps it: that is where Inspect reads from.
+  EXPECT_TRUE(lobby_.StateFor("one").members(0).player().has_sheet());
+}
+
 }  // namespace
 }  // namespace ms

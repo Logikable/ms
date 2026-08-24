@@ -11,12 +11,25 @@
 
 #include "server/test_server.h"
 #include "src/game_state.h"
+#include "src/item/equip_instance.h"
+#include "src/protos/equip.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
 namespace {
 
 constexpr std::chrono::milliseconds kPatience(4000);
+
+// A weapon for a character to be seen wearing.
+EquipPrototype MakeSword() {
+  EquipPrototype sword;
+  sword.set_name("Iron Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  sword.mutable_base_stats()->set_attack(30);
+  sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  return sword;
+}
 
 // A state with no catalogs: nothing here reads an item or a map.
 std::unique_ptr<GameState> MakeState() {
@@ -116,6 +129,43 @@ TEST_F(SessionTest, TellsTheLobbyAboutANewName) {
   EXPECT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
     return snapshot.party.members_size() == 1 &&
            snapshot.party.members(0).player().name() == "Wand";
+  }));
+}
+
+// The sheet is what the Inspect screen draws a party member from. What it
+// leaves behind is everything a party has no business with.
+TEST_F(SessionTest, TheSheetCarriesTheCharacterAndNotTheirBelongings) {
+  state_->character.AddExp(50);
+  state_->character.AddMeso(1'000'000);
+  state_->character.PickUp(std::make_unique<EquipInstance>(MakeSword()));
+  state_->character.Equip(0);
+  state_->character.PickUp(std::make_unique<EquipInstance>(MakeSword()));
+
+  Character sheet = PublicSheet(state_->character);
+  EXPECT_EQ(sheet.name(), "Dagger");
+  EXPECT_EQ(sheet.level(), state_->character.proto().level());
+  EXPECT_EQ(sheet.equipped_size(), 1);
+  EXPECT_EQ(sheet.inventory().equip_tab_size(), 0);
+  EXPECT_EQ(sheet.meso(), 0);
+  EXPECT_EQ(sheet.exp(), 0);
+}
+
+// A re-scrolled weapon changes what the Inspect screen draws and nothing the
+// lobby list does. The update has to go out regardless.
+TEST_F(SessionTest, TellsTheLobbyAboutNewGear) {
+  MultiplayerSession session = MakeSession();
+  session.Start(*state_);
+  ASSERT_TRUE(WaitUntilConnected(session));
+  session.client().CreateParty();
+  ASSERT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 1;
+  }));
+
+  state_->character.PickUp(std::make_unique<EquipInstance>(MakeSword()));
+  state_->character.Equip(0);
+  EXPECT_TRUE(WaitFor(session, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.party.members_size() == 1 &&
+           snapshot.party.members(0).player().sheet().equipped_size() == 1;
   }));
 }
 
