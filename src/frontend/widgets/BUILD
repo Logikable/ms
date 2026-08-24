@@ -11,10 +11,26 @@ cc_library(
 )
 
 cc_library(
+    name = "text_columns",
+    srcs = ["text_columns.cc"],
+    hdrs = ["text_columns.h"],
+    deps = ["@ftxui//:screen"],
+)
+
+cc_test(
+    name = "text_columns_test",
+    srcs = ["text_columns_test.cc"],
+    deps = [
+        ":text_columns",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "marquee",
     srcs = ["marquee.cc"],
     hdrs = ["marquee.h"],
-    deps = ["@ftxui//:screen"],
+    deps = [":text_columns"],
 )
 
 cc_test(
@@ -34,6 +50,7 @@ cc_library(
     deps = [
         ":colors",
         ":marquee",
+        ":text_columns",
         "//src/character:job_name",
         "//src/item",
         "//src/protos:character_proto_cc",
