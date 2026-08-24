@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <utility>
 
@@ -203,20 +202,25 @@ TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
 }
 
 // Every mob a map spawns is inspectable, and the inspect screen leads with its
-// bestiary blurb. A handful have no blurb to lead with: the wiki writes an
-// archive entry for neither Onyx Stonegar nor any Arcane River monster, and
-// inventing one would put words in the game's mouth that no source stands
-// behind. The panel shows an empty block for those rather than a made-up one.
+// bestiary blurb. Two things are exempt, and the panel shows an empty block
+// for both rather than a made-up one:
+//
+// Arcane River, which is everything past level 200. The wiki writes those
+// monsters no archive entry and gives them no named Etc drop either -- their
+// leftovers are one shared pool -- so the whole era arrives blurbless and
+// empty-handed rather than a mob at a time.
+//
+// Onyx Stonegar, the one straggler below that line the wiki also says nothing
+// about. Inventing text for either would put words in the game's mouth that
+// no source stands behind.
 TEST(MapDataTest, EveryMapMobIsDescribed) {
-  const std::set<std::string> kUnwritten = {
-      "onyx_stonegar",    "raging_erda",   "soulful_erda",
-      "bighorn_pinedeer", "orange_piabee", "bunshroom",
-  };
+  constexpr int kArcaneRiver = 200;  // the last level the wiki writes about
   std::map<std::string, Mob> mobs = LoadMobs();
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
     for (const Spawn& spawn : entry.second.spawns()) {
       std::map<std::string, Mob>::const_iterator it = mobs.find(spawn.mob());
-      if (it == mobs.end() || kUnwritten.count(spawn.mob()) > 0) {
+      if (it == mobs.end() || it->second.level() > kArcaneRiver ||
+          spawn.mob() == "onyx_stonegar") {
         continue;
       }
       EXPECT_FALSE(it->second.description().empty())
