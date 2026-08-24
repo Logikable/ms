@@ -9,6 +9,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/progression.h"
 #include "src/frontend/screens/scroll_panel.h"
+#include "src/frontend/widgets/equipped_list.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
@@ -17,17 +18,6 @@
 #include "src/protos/equip.pb.h"
 
 namespace ms {
-namespace {
-
-// Two leading spaces match the "  " / "> " cursor added by the entry transform.
-constexpr char kColumnHeader[] =
-    "  Name                      "  // 2 cursor + 26 name
-    "  Equip Slot"                  // 2 sep + 10 slot
-    "  Stats               "        // 2 sep + 20 info (10 atk + 10 main)
-    "  Scroll"                      // 2 sep + 6 scroll
-    "  Star Force";                 // 2 sep + label
-
-}  // namespace
 
 EquippedPanel::EquippedPanel(CharacterInstance& character,
                              AccountInstance& account, int& panel_focus)
@@ -165,38 +155,6 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
   return row;
 }
 
-std::string EquippedPanel::RowInfo(const EquipStats& stats) const {
-  // One column for the stat this job's damage is built on -- the same question
-  // the character panel and the AP reset ask, so asked in the same place
-  // rather than switched over jobs here.
-  Job job = character_.proto().job();
-  StatField primary = PrimaryStatField(job);
-  const DisplayStat* main = DisplayStatFor(primary);
-  std::string main_str;
-  if (main != nullptr && main->GetFrom(stats) > 0) {
-    main_str = "+" + std::to_string(main->GetFrom(stats)) + " " + main->label;
-  }
-  // Room for one attack figure, so show the one this job swings with. A wand
-  // carries both, and a magician's weapon attack never reaches the damage
-  // chain.
-  //
-  // Asked of the stat this job builds on rather than listed job by job: every
-  // INT job is a magician, so a new magician branch reads right the day it is
-  // added instead of the day someone remembers this list.
-  std::string atk_str;
-  bool magic = primary == STAT_FIELD_INT;
-  if (!magic && stats.attack() > 0) {
-    atk_str = "+" + std::to_string(stats.attack()) + " ATT";
-  } else if (stats.magic_attack() > 0) {
-    atk_str = "+" + std::to_string(stats.magic_attack()) + " MATT";
-  } else if (stats.attack() > 0) {
-    atk_str = "+" + std::to_string(stats.attack()) + " ATT";
-  }
-  // Attack leads: it is the number that decides a weapon, and the main stat
-  // qualifies it.
-  return PadRight(atk_str, 10) + PadRight(main_str, 10);
-}
-
 void EquippedPanel::RebuildRows() {
   // The menu writes selected_ behind this panel's back, so a move is noticed
   // here rather than hooked at the keypress.
@@ -209,22 +167,13 @@ void EquippedPanel::RebuildRows() {
   // Asked once for the whole list rather than per row: it is a fact about the
   // character, and only the worn weapon's row acts on it.
   bool lead = LeadToWeapon(character_, account_);
-  for (const std::pair<const EquipSlot, EquipInstance>& kv :
-       character_.equipped()) {
-    const EquipInstance& item = kv.second;
-    slots_.push_back(kv.first);
-    inactive_.push_back(!character_.AttackCounts(item.prototype()));
-    // Only the selected row's name slides; the rest sit at their heads.
-    bool selected = static_cast<int>(entries_.size()) == selected_;
-    std::chrono::steady_clock::duration elapsed =
-        selected ? name_clock_.Elapsed()
-                 : std::chrono::steady_clock::duration::zero();
-    name_bytes_.push_back(static_cast<int>(
-        ItemNameCell(item.prototype().name(), elapsed).size()));
-    led_.push_back(lead && kv.first == EQUIP_SLOT_PRIMARY_WEAPON);
-    entries_.push_back(FormatItemEntry(item.prototype().name(), kv.first,
-                                       RowInfo(item.stats()), item.prototype(),
-                                       item.equip_state(), elapsed));
+  for (const EquippedRow& row :
+       EquippedRows(character_, selected_, name_clock_.Elapsed())) {
+    slots_.push_back(row.slot);
+    inactive_.push_back(row.inactive);
+    name_bytes_.push_back(row.name_bytes);
+    led_.push_back(lead && row.slot == EQUIP_SLOT_PRIMARY_WEAPON);
+    entries_.push_back(row.text);
   }
   if (!entries_.empty()) {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
@@ -242,7 +191,7 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   }
   return AccentWindow(" Equipped ",
                       ftxui::vbox({
-                          ftxui::text(kColumnHeader),
+                          ftxui::text(kEquippedHeader),
                           PanelSeparator(highlighted_),
                           // Only the items scroll; the header row and the rule
                           // stay put. ftxui::Menu marks its selected entry,

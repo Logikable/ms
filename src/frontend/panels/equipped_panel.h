@@ -64,9 +64,6 @@ class EquippedPanel {
   // One row of the list, with the cursor and a dim pass over anything worn
   // that is doing nothing. The ftxui::Menu's row transform.
   ftxui::Element RenderRow(const ftxui::EntryState& state);
-  // The stat column of one row: the attack this job swings with, then the stat
-  // its damage is built on.
-  std::string RowInfo(const EquipStats& stats) const;
   // Refills entries_/slots_/inactive_ from what is worn.
   void RebuildRows();
   // The titled window around the list, or around "empty".

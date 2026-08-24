@@ -75,6 +75,30 @@ cc_test(
 )
 
 cc_library(
+    name = "equipped_list",
+    srcs = ["equipped_list.cc"],
+    hdrs = ["equipped_list.h"],
+    deps = [
+        ":panel_util",
+        "//src/character",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "equipped_list_test",
+    srcs = ["equipped_list_test.cc"],
+    deps = [
+        ":equipped_list",
+        ":panel_test_base",
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "stat_rows",
     srcs = ["stat_rows.cc"],
     hdrs = ["stat_rows.h"],

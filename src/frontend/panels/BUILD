@@ -49,6 +49,7 @@ cc_library(
         "//src/character:progression",
         "//src/frontend:types",
         "//src/frontend/screens:scroll_panel",
+        "//src/frontend/widgets:equipped_list",
         "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
