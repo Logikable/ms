@@ -1,0 +1,7 @@
+name: "Advanced Knight C"
+level: 180
+attack: 9574
+max_hp: 6868800
+exp: 27574
+drops { item: "thunder_pendant" per_kill: 0.4 }
+description: "The future Cygnus Knights who attacked Henesys alongside the Fallen Cygnus. They are dressed similarly to Hawkeye, the Chief Knight of Lightning."

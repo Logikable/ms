@@ -1,0 +1,2 @@
+name: "Knights' Chamber 1"
+spawns { mob: "advanced_knight_a" count: 30 }

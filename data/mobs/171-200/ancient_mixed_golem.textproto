@@ -1,0 +1,7 @@
+name: "Ancient Mixed Golem"
+level: 198
+attack: 11760
+max_hp: 13955200
+exp: 64640
+drops { item: "ancient_rubble" per_kill: 0.4 }
+description: "A monster born from the restless spirit of a fallen Perion warrior. Formed from the black stone of Perion itself, it has lost all reason, leaving behind only the obsession to protect Perion."

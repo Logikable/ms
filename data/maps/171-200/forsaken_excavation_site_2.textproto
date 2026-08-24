@@ -1,0 +1,2 @@
+name: "Forsaken Excavation Site 2"
+spawns { mob: "sinister_rocky_mask" count: 32 }

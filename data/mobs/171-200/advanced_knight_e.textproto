@@ -1,0 +1,7 @@
+name: "Advanced Knight E"
+level: 184
+attack: 10695
+max_hp: 8259400
+exp: 32568
+drops { item: "dawn_pendant" per_kill: 0.4 }
+description: "The future Cygnus Knights who attacked Henesys alongside the Fallen Cygnus. They are dressed similarly to Mihile, the Chief Knight of Light."

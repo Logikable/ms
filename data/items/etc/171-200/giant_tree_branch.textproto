@@ -1,0 +1,4 @@
+name: "Giant Tree Branch"
+category: ITEM_CATEGORY_ETC
+sell_price: 380
+description: "A really big branch from a tree."

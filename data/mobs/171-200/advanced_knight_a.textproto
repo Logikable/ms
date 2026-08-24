@@ -1,0 +1,7 @@
+name: "Advanced Knight A"
+level: 177
+attack: 9116
+max_hp: 6270000
+exp: 25550
+drops { item: "night_pendant" per_kill: 0.4 }
+description: "The future Cygnus Knights who attacked Henesys alongside the Fallen Cygnus. They are dressed similarly to Eckhart, the Chief Knight of Darkness."

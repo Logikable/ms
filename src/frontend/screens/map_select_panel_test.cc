@@ -97,10 +97,17 @@ Mob MonkMob() {
   return mob;
 }
 
+Mob KnightMob() {
+  Mob mob;
+  mob.set_name("Official Knight C");
+  mob.set_level(172);
+  return mob;
+}
+
 // One map on every band, so a test can page across the whole list: Green
 // (level 1) and Horny (level 8) on the 1-10 band, then Temple (15) on 11-30,
-// Cave (40) on 31-60, Meadow (86) on 61-100, Nest (106) on 101-140 and Road
-// (141) on 141-170, each alone on its own.
+// Cave (40) on 31-60, Meadow (86) on 61-100, Nest (106) on 101-140, Road
+// (141) on 141-170 and District (172) on 171-200, each alone on its own.
 // **Adding a band to kLevelBands means adding a map here**, or paging to the
 // end lands on an empty band and the tests below say nothing.
 GameState EveryBand() {
@@ -125,6 +132,9 @@ GameState EveryBand() {
   MapData road;
   road.set_name("Road");
   AddSpawn(&road, "monk", 3);
+  MapData district;
+  district.set_name("District");
+  AddSpawn(&district, "knight", 3);
   return GameState({}, {}, {},
                    {{"snail", SnailMob()},
                     {"mushroom", MushroomMob()},
@@ -132,14 +142,16 @@ GameState EveryBand() {
                     {"drake", DrakeMob()},
                     {"hare", HareMob()},
                     {"harp", HarpMob()},
-                    {"monk", MonkMob()}},
+                    {"monk", MonkMob()},
+                    {"knight", KnightMob()}},
                    {{"green_field", green},
                     {"horny_field", horny},
                     {"temple", temple},
                     {"cave", cave},
                     {"meadow", meadow},
                     {"nest", nest},
-                    {"road", road}});
+                    {"road", road},
+                    {"district", district}});
 }
 
 std::string Render(const MapSelectPanel& panel) {
@@ -603,14 +615,14 @@ TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
   EXPECT_EQ(panel.selected_map(), "green_field");
 
   panel.ChangePage(kPastEveryBand);
-  EXPECT_EQ(panel.selected_map(), "road");
+  EXPECT_EQ(panel.selected_map(), "district");
 }
 
 TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {
-  // Nothing holds level 200 yet; it must not fall out of the list for that.
+  // Nothing holds level 300 yet; it must not fall out of the list for that.
   Mob balrog;
   balrog.set_name("Balrog");
-  balrog.set_level(200);
+  balrog.set_level(300);
   MapData cave;
   cave.set_name("Deep Cave");
   AddSpawn(&cave, "balrog", 5);
