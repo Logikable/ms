@@ -175,6 +175,10 @@ class Tui {
   BossSelectPanel boss_select_panel_;
   PartySelectPanel party_select_panel_;
   PartyInspectPanel party_inspect_panel_;
+  // The card for an item worn by a party member. Its own panel rather than
+  // inspect_panel_: a set card counts the pieces the wearer has on, and the
+  // wearer here is somebody else.
+  InspectPanel party_item_panel_;
   // The job's book, read before the advancement is taken.
   JobInspectPanel job_inspect_panel_;
   // The keys, on a screen of their own, reached from the Settings box.

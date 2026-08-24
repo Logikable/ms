@@ -146,6 +146,7 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
   // being paid depends on what is worn.
   inspect_panel_.UseCharacter(state.character);
   trace_inspect_panel_.UseCharacter(state.character);
+  party_item_panel_.UseCharacter(party_inspect_panel_.character());
 }
 
 void Tui::BuildComponents() {
@@ -383,19 +384,15 @@ ftxui::Element Tui::RenderParty() {
 }
 
 ftxui::Element Tui::RenderPartyInspect() {
-  party_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
-  ftxui::Element screen = Standalone(party_inspect_panel_.Render());
-  if (controller_.screen() != kPartyItemInspect) {
-    return screen;
+  // The item gets a screen of its own, the way the player's own items do: the
+  // sheet it came off is a screen already, and a card over it was two screens
+  // to read at once.
+  if (controller_.screen() == kPartyItemInspect) {
+    party_item_panel_.SetItem(party_inspect_panel_.selected_item());
+    return Standalone(party_item_panel_.Render());
   }
-  // The item's own card over the sheet it came off, the way the player's own
-  // items are read. Only the card: the sheet behind it is already a screen.
-  inspect_panel_.SetItem(party_inspect_panel_.selected_item());
-  inspect_panel_.UseCharacter(party_inspect_panel_.character());
-  return ftxui::dbox({
-      std::move(screen),
-      ftxui::center(inspect_panel_.RenderItemOnly() | ftxui::clear_under),
-  });
+  party_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  return Standalone(party_inspect_panel_.Render());
 }
 
 ftxui::Element Tui::BossConfirmDialog() {
