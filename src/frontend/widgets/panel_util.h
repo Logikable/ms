@@ -11,6 +11,7 @@
 #include "ftxui/component/component_base.hpp"
 #include "ftxui/component/event.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/job_name.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/protos/character.pb.h"
@@ -178,20 +179,6 @@ bool IsActive(const Skill& skill);
 // Returns "All" for universal items or a slash-separated list of job category
 // names (e.g. "Warrior/Thief"). Also returns "All" when the list is empty.
 std::string FormatJobCategories(const EquipPrototype& proto);
-
-// Returns the display name for a job (e.g. "Swordman"), or "Unknown" for a job
-// not yet given a name. The full name: use it where the job is being chosen or
-// confirmed, and ShortJobName everywhere else.
-std::string JobName(Job job);
-
-// The same name shortened where the full one is too wide to live in a column
-// -- "I/L Wizard" for the Ice/Lightning Wizard. Every other job is already as
-// short as it gets and answers its own name.
-//
-// This is the default for showing a job. The two places that spell it out in
-// full are the advancement picker and the dialog confirming the choice: what
-// the player is picking between deserves its whole name, once.
-std::string ShortJobName(Job job);
 
 // Returns the short display label for an AP stat field (e.g. "STR"), or "" for
 // STAT_FIELD_UNSPECIFIED.

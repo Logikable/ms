@@ -359,6 +359,19 @@ GameState MakeChosenJobState(JobAdvancement advancement) {
                    TestOptions{advancement});
 }
 
+// A workbench character is named after its job, so several of them in a party
+// are told apart. The slash of "I/L Arch Mage" is not a name character.
+TEST(GameStateTest, TheWorkbenchNamesACharacterAfterItsJob) {
+  EXPECT_EQ(MakeChosenJobState(JOB_ADVANCEMENT_HUNTER).character.username(),
+            "Hunter");
+  GameState mage = GameState(
+      BowCatalog(), {}, {}, {}, {}, BookFor(JOB_ICE_LIGHTNING_ARCH_MAGE),
+      GameMode::kTest, TestOptions{JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE});
+  EXPECT_EQ(mage.character.username(), "IL Arch Mage");
+  EXPECT_LE(static_cast<int>(mage.character.username().size()),
+            kMaxUsernameLength);
+}
+
 // --job stops at the top of the advancement it names, not at the workbench's
 // own: an archer is the last level before the 2nd job, a hunter the last
 // before the 3rd.

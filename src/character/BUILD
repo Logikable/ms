@@ -25,6 +25,13 @@ cc_library(
 )
 
 cc_library(
+    name = "job_name",
+    srcs = ["job_name.cc"],
+    hdrs = ["job_name.h"],
+    deps = ["//src/protos:character_proto_cc"],
+)
+
+cc_library(
     name = "boss_reset",
     srcs = ["boss_reset.cc"],
     hdrs = ["boss_reset.h"],

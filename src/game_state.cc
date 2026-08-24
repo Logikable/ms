@@ -1,6 +1,7 @@
 #include "src/game_state.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <ctime>
 #include <map>
@@ -12,6 +13,7 @@
 
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
+#include "src/character/job_name.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/item.h"
@@ -404,6 +406,18 @@ void GiveUpgradeItems(GameState& state) {
   state.character.PickUp(std::make_unique<EquipInstance>(fafnir->second));
 }
 
+// `advancement`'s job name as a username: letters, digits and spaces only, so
+// "I/L Arch Mage" arrives as "IL Arch Mage".
+std::string UsernameFor(JobAdvancement advancement) {
+  std::string name;
+  for (char c : ShortJobName(JobForAdvancement(advancement))) {
+    if (std::isalnum(static_cast<unsigned char>(c)) || c == ' ') {
+      name += c;
+    }
+  }
+  return name.substr(0, kMaxUsernameLength);
+}
+
 // The workbench. Everything here exists to reach a screen without playing up
 // to it. `chosen` is --job: unset takes kTestAdvancement and buys its whole
 // book, so the default workbench is finished rather than half-built.
@@ -459,6 +473,9 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // and leaving them unbought would put two allocation screens between them
   // and the one they came for.
   JobAdvancement advancement = chose_job ? test.job : kTestAdvancement;
+  // Named after the job it was built for, so several workbenches in a party
+  // are told apart without anybody typing a name.
+  state.character.SetUsername(UsernameFor(advancement));
   GrowToJob(state, advancement,
             test.skills == TestSkills::kZero ? StageForAdvancement(advancement)
                                              : kSpendEveryStage,

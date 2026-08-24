@@ -165,6 +165,7 @@ cc_library(
         ":account",
         "//src/character",
         "//src/character:exp_table",
+        "//src/character:job_name",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:equip_stats",
