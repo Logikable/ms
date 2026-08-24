@@ -107,6 +107,11 @@ class CharacterPanel {
   // goes when the budget cannot pay for it: see ShowsExtrasRule.
   static constexpr int kStatsTabFixedRows = 15;
 
+  // The same for the Skills tab: the two borders, the three heading rows, the
+  // rule under them, the tab bar, its rule, the advancement bar and the rule
+  // under that. Everything else on the tab is a skill row.
+  static constexpr int kSkillsTabFixedRows = 10;
+
   // Whether the border is currently lit gold. Not part of the panel's own
   // state machine -- it is set from outside and read by Render.
   bool highlighted_ = false;
@@ -229,9 +234,16 @@ class CharacterPanel {
   // the selected row while the skill rows hold focus -- the tag is not one of
   // them. The [+] is dimmed when the skill is maxed or its stage has no SP;
   // the name never dims, since it can always be read.
+  // `row_width` is what the row lays out in: the content width, or one less
+  // while the scroll bar is holding a column beside it.
   ftxui::Element RenderSkillRow(const Skill& skill, int index,
-                                const LevelColumn& column,
-                                bool rows_focused) const;
+                                const LevelColumn& column, bool rows_focused,
+                                int row_width) const;
+  // How many skill rows the row budget leaves room for, of the `total` on the
+  // page. All of them when no budget is set, and never fewer than one.
+  int SkillRowsShown(int total) const;
+  // The first skill row of the window, chosen so the selected one is in it.
+  int FirstSkillRow(int total, int visible) const;
   // How many of the `total` extra stats the row budget leaves room for, once
   // the View All Stats row under them has been paid for. All of them when no
   // budget is set.

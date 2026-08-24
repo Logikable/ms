@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <map>
 #include <memory>
 #include <string>
@@ -1481,6 +1482,87 @@ TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()).size(), 12u);  // 11 stats and the row
+}
+
+// --- The Skills tab's row budget ---
+
+// A book of `count` stage-1 skills, named so their order reads off the panel.
+std::map<std::string, Skill> BookOf(int count) {
+  std::map<std::string, Skill> catalog;
+  for (int i = 1; i <= count; ++i) {
+    Skill skill;
+    char name[16];
+    std::snprintf(name, sizeof(name), "Skill %02d", i);
+    skill.set_name(name);
+    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    skill.set_max_level(20);
+    skill.set_skill_order(i);
+    catalog[name] = skill;
+  }
+  return catalog;
+}
+
+// The panel on its Skills tab, with the cursor down on the skill rows.
+ftxui::Component OnSkillRows(CharacterPanel& panel) {
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> advancement bar
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the skill rows
+  return comp;
+}
+
+// Whether the scroll bar is drawn: any of the three glyphs it is made of.
+bool HasScrollBar(const std::string& rendered) {
+  return rendered.find("\u2503") != std::string::npos ||
+         rendered.find("\u2579") != std::string::npos ||
+         rendered.find("\u257b") != std::string::npos;
+}
+
+// The Bishop case: an eleven-skill book on a short terminal used to draw
+// straight through the combat panel below it.
+TEST_F(CharacterPanelTest, TheSkillsTabFitsInsideItsRowBudget) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
+  ftxui::Component comp = OnSkillRows(panel);
+  int natural = PanelHeight(panel.Render());
+  EXPECT_EQ(natural, 21) << "ten rows of chrome and eleven skills";
+  for (int budget = 11; budget <= natural + 2; ++budget) {
+    panel.SetMaxRows(budget);
+    EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
+        << "at a budget of " << budget;
+  }
+}
+
+// The window follows the cursor rather than sitting at the head of the book:
+// every skill has to be reachable, budget or no budget.
+TEST_F(CharacterPanelTest, TheSkillListScrollsToTheSelectedSkill) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, account_, panel_focus_, BookOf(11));
+  panel.SetMaxRows(14);  // room for four skills
+  ftxui::Component comp = OnSkillRows(panel);
+  std::string rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Skill 01"), std::string::npos);
+  EXPECT_EQ(rendered.find("Skill 05"), std::string::npos) << "past the window";
+  EXPECT_TRUE(HasScrollBar(rendered)) << "a book longer than its window";
+
+  for (int i = 0; i < 10; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowDown);
+  }
+  rendered = RenderComponent(comp);
+  EXPECT_NE(rendered.find("Skill 11"), std::string::npos)
+      << "the cursor walked off the bottom of the panel";
+  EXPECT_EQ(rendered.find("Skill 01"), std::string::npos)
+      << "the head of the book should have scrolled away";
+}
+
+// And there is no bar over a book that fits, nor a column taken off the names
+// to hold one.
+TEST_F(CharacterPanelTest, NoScrollBarOverABookThatFits) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, account_, panel_focus_, BookOf(4));
+  ftxui::Component comp = OnSkillRows(panel);
+  panel.SetMaxRows(14);
+  EXPECT_FALSE(HasScrollBar(RenderComponent(comp)));
 }
 
 // --- The username row ---

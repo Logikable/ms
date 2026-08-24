@@ -118,8 +118,10 @@ std::string SkillLevelText(const CharacterInstance& character,
   return text;
 }
 
-int SkillNameWidth(int level_width) {
-  return kContentWidth - 1 - kSkillTagWidth - level_width - kSkillPlusWidth - 1;
+// `row_width` is what the row has to lay out in, which is one short of the
+// content width while the scroll bar holds a column.
+int SkillNameWidth(int level_width, int row_width) {
+  return row_width - 1 - kSkillTagWidth - level_width - kSkillPlusWidth - 1;
 }
 
 // The base (AP-allocated) and gear-bonus values for one allocatable stat.
@@ -454,7 +456,8 @@ std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
 
 ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
                                               const LevelColumn& column,
-                                              bool rows_focused) const {
+                                              bool rows_focused,
+                                              int row_width) const {
   int learned = character_.skill_level(skill);
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = learned >= skill.max_level();
@@ -479,7 +482,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // A name too long for the column slides under it while the row is selected,
   // and sits cut when it is not. The column is a fixed width either way, which
   // is what keeps a long name from widening the whole panel.
-  int name_width = SkillNameWidth(column.width);
+  int name_width = SkillNameWidth(column.width, row_width);
   std::string window = ScrollingWindow(
       skill.name(), name_width,
       selected ? std::chrono::steady_clock::now() - skill_selected_at_
@@ -523,6 +526,23 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   });
 }
 
+int CharacterPanel::SkillRowsShown(int total) const {
+  if (max_rows_ <= 0) {
+    return total;
+  }
+  // At least one row however small the budget: a page cut to nothing says
+  // less than a page cut short, and the cursor has to have somewhere to be.
+  return std::max(1, std::min(total, max_rows_ - kSkillsTabFixedRows));
+}
+
+int CharacterPanel::FirstSkillRow(int total, int visible) const {
+  // Anchored on the selection rather than kept as an offset of its own: the
+  // window only moves when the cursor walks off it, so a book that fits sits
+  // still and one that does not follows the cursor down.
+  int first = std::max(0, skill_sel_ - visible + 1);
+  return std::min(first, std::max(0, total - visible));
+}
+
 ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
                                                bool rows_focused) const {
   int stages = character_.proto().job_stage();
@@ -537,11 +557,28 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   if (skills.empty()) {
     rows.push_back(ftxui::text(PadRight(" No skills yet.", kContentWidth)) |
                    ftxui::dim);
-  } else {
-    LevelColumn column = MeasureLevelColumn(skills);
-    for (int i = 0; i < static_cast<int>(skills.size()); ++i) {
-      rows.push_back(RenderSkillRow(*skills[i], i, column, rows_focused));
+    return ftxui::vbox(std::move(rows));
+  }
+  int total = static_cast<int>(skills.size());
+  int visible = SkillRowsShown(total);
+  int first = FirstSkillRow(total, visible);
+  // Empty while the whole book fits, and then the rows keep their full width.
+  // The level column is measured over the whole book rather than the window,
+  // so scrolling does not shuffle the names sideways.
+  std::vector<ftxui::Element> cells = ScrollBarCells(total, first, visible);
+  int row_width = cells.empty() ? kContentWidth : kContentWidth - 1;
+  LevelColumn column = MeasureLevelColumn(skills);
+  for (int i = 0; i < visible; ++i) {
+    ftxui::Element row = RenderSkillRow(*skills[first + i], first + i, column,
+                                        rows_focused, row_width);
+    if (cells.empty()) {
+      rows.push_back(std::move(row));
+      continue;
     }
+    rows.push_back(ftxui::hbox({
+        std::move(row) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, row_width),
+        std::move(cells[i]) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
+    }));
   }
   return ftxui::vbox(std::move(rows));
 }
