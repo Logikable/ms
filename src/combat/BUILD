@@ -109,6 +109,12 @@ cc_library(
 )
 
 cc_library(
+    name = "fight_authority",
+    hdrs = ["fight_authority.h"],
+    deps = [":fight"],
+)
+
+cc_library(
     name = "boss_run",
     srcs = ["boss_run.cc"],
     hdrs = ["boss_run.h"],
@@ -117,6 +123,7 @@ cc_library(
         ":combat",
         ":encounter",
         ":fight",
+        ":fight_authority",
         ":loot",
         "//src:game_state",
         "//src/character",

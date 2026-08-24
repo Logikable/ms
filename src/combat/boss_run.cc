@@ -53,6 +53,11 @@ ArenaSpot ArenaExtent(const BossPhase& phase) {
 }  // namespace
 
 int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy) {
+  return NextPlayerSpot(phase, from, dx, dy, {});
+}
+
+int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
+                   const std::vector<int>& taken) {
   if (from < 0 || from >= phase.player_spots_size()) {
     return from;
   }
@@ -62,6 +67,9 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy) {
   int best_across = 0;
   bool tied = false;
   for (int i = 0; i < phase.player_spots_size(); ++i) {
+    if (std::find(taken.begin(), taken.end(), i) != taken.end()) {
+      continue;
+    }
     const ArenaSpot& spot = phase.player_spots(i);
     int step_x = spot.x() - at.x();
     int step_y = spot.y() - at.y();
@@ -88,10 +96,12 @@ int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy) {
   return tied ? from : best;
 }
 
-BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index)
+BossRun::BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
+                 FightAuthority* authority)
     : boss_key_(std::move(boss_key)),
       boss_(&boss),
-      difficulty_index_(difficulty_index) {
+      difficulty_index_(difficulty_index),
+      authority_(authority) {
   const BossDifficulty* chosen = difficulty();
   if (chosen == nullptr) {
     state_ = BossRunState::kAborted;
@@ -114,9 +124,35 @@ void BossRun::MovePlayer(int dx, int dy) {
     return;
   }
   const BossPhase* phase = current_phase();
-  if (phase != nullptr) {
-    player_at_ = NextPlayerSpot(*phase, player_at_, dx, dy);
+  if (phase == nullptr) {
+    return;
   }
+  // Walked here and told to the server afterwards, rather than asked for and
+  // waited on: a step across the arena is worth nothing if it stutters.
+  player_at_ = NextPlayerSpot(*phase, player_at_, dx, dy, TakenSpots());
+  if (!members_.empty()) {
+    members_[0].spot = player_at_;
+  }
+}
+
+std::vector<int> BossRun::TakenSpots() const {
+  std::vector<int> taken;
+  for (std::size_t i = 1; i < members_.size(); ++i) {
+    if (members_[i].present && members_[i].spot >= 0) {
+      taken.push_back(members_[i].spot);
+    }
+  }
+  return taken;
+}
+
+void BossRun::StandSelf() {
+  if (members_.empty()) {
+    members_.resize(1);
+  }
+  // Always the first of them, so a stack this player landed is the one with
+  // owner 0.
+  members_[0] = {"", player_at_, sim_.attack_name(), sim_.attack_fraction(),
+                 true};
 }
 
 const BossDifficulty* BossRun::difficulty() const {
@@ -217,6 +253,7 @@ void BossRun::Replace(DamageStack stack) {
       std::remove_if(damage_stacks_.begin(), damage_stacks_.end(),
                      [&stack](const DamageStack& old) {
                        return old.mob_id == stack.mob_id &&
+                              old.owner == stack.owner &&
                               old.source == stack.source;
                      }),
       damage_stacks_.end());
@@ -229,17 +266,27 @@ void BossRun::CollectDamageStacks() {
   // is the stack. Nothing here sorts: the order they landed in is the order
   // they are read down the screen.
   std::uniform_int_distribution<int> side(0, 3);
+  landed_.clear();
   for (std::size_t i = 0; i < lines.size();) {
     DamageStack stack;
     stack.mob_id = lines[i].mob_id;
     stack.source = lines[i].source;
     stack.preference = side(rng_);
     int event = lines[i].event;
+    std::map<int, int>::const_iterator slot = slot_of_mob_.find(stack.mob_id);
     for (; i < lines.size() && lines[i].event == event; ++i) {
       // Rounded up off zero: a line that landed at all is worth a 1 rather
       // than a number that says nothing happened.
       int64_t damage = static_cast<int64_t>(std::llround(lines[i].damage));
-      stack.lines.push_back({std::max<int64_t>(1, damage), lines[i].crit});
+      damage = std::max<int64_t>(1, damage);
+      stack.lines.push_back({damage, lines[i].crit});
+      if (authority_ == nullptr || slot == slot_of_mob_.end()) {
+        continue;
+      }
+      // The same number, so what the shared roster loses is what its players
+      // watched come off it.
+      landed_.push_back(
+          {0, slot->second, event, stack.source, damage, lines[i].crit});
     }
     Replace(std::move(stack));
   }
@@ -257,12 +304,28 @@ void BossRun::FillSlots(const CombatParams& params) {
   // ever a question about identical bars. A type with no spots stands at the
   // origin, which is a fight nobody drew an arena for.
   std::vector<int> placed(params.types.size(), 0);
+  // Where each type's monsters begin in the phase's roster. A slot is that
+  // number, and it is the same on every client -- the queue the monsters come
+  // off is shuffled per client and is not.
+  std::vector<int> first(params.types.size(), 0);
+  int counted = 0;
+  for (std::size_t i = 0; i < params.types.size(); ++i) {
+    first[i] = counted;
+    counted += params.types[i].simultaneous;
+  }
+  slot_of_mob_.clear();
+  mob_of_slot_.assign(counted, 0);
   for (const MobStatus& mob : sim_.roster()) {
     const std::vector<ArenaSpot>& spots = params.types[mob.type].spots;
     int taken = placed[mob.type]++;
     ArenaSpot spot;
     if (taken < static_cast<int>(spots.size())) {
       spot = spots[taken];
+    }
+    int slot = first[mob.type] + taken;
+    if (slot < counted) {
+      slot_of_mob_[mob.id] = slot;
+      mob_of_slot_[slot] = mob.id;
     }
     slots_.push_back(
         {mob.id, mob.name, spot.x(), spot.y(), mob.hp_fraction, true, true});
@@ -337,7 +400,11 @@ void BossRun::RunPhase(GameState& state, double dt) {
 
 void BossRun::PayReward(GameState& state, double item_drop_pct) {
   const BossDifficulty* chosen = difficulty();
-  reward_.meso = chosen->meso();
+  // A party splits the purse and the odds and nothing else. The EXP is what
+  // the fight is worth to a character, and three people beating a boss have
+  // each beaten it.
+  double share = 1.0 / std::max(1, share_count_);
+  reward_.meso = static_cast<int64_t>(chosen->meso() * share);
   if (reward_.meso > 0) {
     state.character.AddMeso(reward_.meso);
   }
@@ -348,8 +415,8 @@ void BossRun::PayReward(GameState& state, double item_drop_pct) {
   for (const MobDrop& drop : chosen->drops()) {
     // One roll for the fight, where a map rolls one per kill. Drop rate lifts
     // the chance the same way it lifts a monster's.
-    int64_t rolled =
-        RollDrops(drop.per_kill() * (1.0 + item_drop_pct), 1, state.rng);
+    int64_t rolled = RollDrops(drop.per_kill() * share * (1.0 + item_drop_pct),
+                               1, state.rng);
     if (rolled <= 0) {
       continue;
     }
@@ -361,11 +428,156 @@ void BossRun::PayReward(GameState& state, double item_drop_pct) {
   }
 }
 
+void BossRun::AdvanceShared(GameState& state, double dt) {
+  AgeDamageStacks(dt);
+  SharedFight shared;
+  if (!authority_->Fetch(shared)) {
+    // Nothing has arrived. A run with an authority decides nothing itself, so
+    // it waits rather than counting itself in.
+    return;
+  }
+  bool paid = state_ == BossRunState::kWon;
+  TakeShared(shared);
+  if (state_ == BossRunState::kFighting) {
+    RunSharedPhase(state, dt, shared);
+  } else {
+    SyncSlots(dt);
+  }
+  AddSharedStacks(shared.lines);
+  StandSelf();
+  if (state_ == BossRunState::kWon && !paid) {
+    PayReward(state, item_drop_pct_);
+  }
+  switch (state_) {
+    case BossRunState::kWon:
+    case BossRunState::kTimedOut:
+    case BossRunState::kAborted:
+      hold_left_ = std::max(0.0, hold_left_ - dt);
+      return;
+    default:
+      return;
+  }
+}
+
+void BossRun::TakeShared(const SharedFight& shared) {
+  if (shared.phase != phase_) {
+    phase_ = shared.phase;
+    slots_.clear();
+    // A monster id means nothing outside the encounter that handed it out, and
+    // the arena is a different one anyway.
+    damage_stacks_.clear();
+    // Where everyone stands in a new phase is the server's to say.
+    player_at_ = -1;
+  }
+  if (state_ != shared.state) {
+    state_ = shared.state;
+    if (done() || state_ == BossRunState::kWon ||
+        state_ == BossRunState::kTimedOut) {
+      hold_left_ = kBossEndHoldSeconds;
+    }
+  }
+  seconds_left_ = shared.seconds_left;
+  countdown_left_ = shared.countdown_left;
+  if (shared.share_count > 0) {
+    share_count_ = shared.share_count;
+  }
+  // This player first, so a stack landed by them is the one with owner 0.
+  members_.assign(1, FightMember());
+  member_of_player_.assign(shared.players.size(), 0);
+  int stood = player_at_;
+  for (std::size_t i = 0; i < shared.players.size(); ++i) {
+    const SharedPlayer& player = shared.players[i];
+    if (static_cast<int>(i) == shared.self) {
+      stood = player.spot;
+      continue;
+    }
+    member_of_player_[i] = static_cast<int>(members_.size());
+    members_.push_back({player.name, player.spot, player.attack_name,
+                        player.attack_fraction, player.present});
+  }
+  // Where this player stands is theirs to say: they walked there without
+  // waiting to be told. The server's answer is taken for a phase they have not
+  // stood in yet, and when somebody else turns out to be standing where they
+  // think they are.
+  const std::vector<int> taken = TakenSpots();
+  if (player_at_ < 0 ||
+      std::find(taken.begin(), taken.end(), player_at_) != taken.end()) {
+    player_at_ = stood;
+  }
+}
+
+void BossRun::RunSharedPhase(GameState& state, double dt,
+                             const SharedFight& shared) {
+  CombatParams params =
+      ComputeBossParams(state, boss_key_, *difficulty(), phase_);
+  if (!params.active) {
+    // Nothing to swing with, or a phase the catalogs do not hold. They can
+    // still watch the party fight it.
+    SyncSlots(dt);
+    return;
+  }
+  item_drop_pct_ = params.item_drop_pct;
+  AdvanceCombat(state, sim_, params, dt);
+  if (slots_.empty()) {
+    FillSlots(params);
+  }
+  CollectDamageStacks();
+  authority_->Report(phase_, landed_, player_at_, sim_.attack_name(),
+                     sim_.attack_fraction());
+  // The shared roster is what everybody is hitting, so it decides what is
+  // left. This copy of it may run ahead of the party's, never behind.
+  std::map<int, double> said;
+  for (std::size_t slot = 0;
+       slot < shared.hp_fractions.size() && slot < mob_of_slot_.size();
+       ++slot) {
+    said[mob_of_slot_[slot]] = shared.hp_fractions[slot];
+  }
+  sim_.ClampRoster(params, said);
+  SyncSlots(dt);
+  ComputePhaseHp(params);
+}
+
+void BossRun::AddSharedStacks(const std::vector<SharedLine>& lines) {
+  std::uniform_int_distribution<int> side(0, 3);
+  for (std::size_t i = 0; i < lines.size();) {
+    const SharedLine& first = lines[i];
+    DamageStack stack;
+    stack.owner =
+        first.owner >= 0 &&
+                first.owner < static_cast<int>(member_of_player_.size())
+            ? member_of_player_[first.owner]
+            : 0;
+    stack.source = first.source;
+    stack.preference = side(rng_);
+    bool placed =
+        first.slot >= 0 && first.slot < static_cast<int>(mob_of_slot_.size());
+    stack.mob_id = placed ? mob_of_slot_[first.slot] : 0;
+    for (; i < lines.size() && lines[i].event == first.event &&
+           lines[i].owner == first.owner && lines[i].slot == first.slot;
+         ++i) {
+      stack.lines.push_back({lines[i].damage, lines[i].crit});
+    }
+    // A monster this client has already buried has nowhere left to hold them.
+    if (placed && stack.owner > 0) {
+      Replace(std::move(stack));
+    }
+  }
+}
+
 void BossRun::Advance(GameState& state, double elapsed_seconds) {
   if (done() || difficulty() == nullptr) {
     return;
   }
   double dt = std::max(0.0, elapsed_seconds);
+  if (authority_ != nullptr) {
+    AdvanceShared(state, dt);
+    return;
+  }
+  RunAlone(state, dt);
+  StandSelf();
+}
+
+void BossRun::RunAlone(GameState& state, double dt) {
   // Ahead of everything, and whatever the run is doing: the numbers left by
   // the swing that ended a phase should fade out over the gap rather than
   // hang there until the next phase lands one.

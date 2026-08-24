@@ -15,6 +15,7 @@
 #define MS_SRC_COMBAT_BOSS_RUN_H_
 
 #include <cstdint>
+#include <map>
 #include <random>
 #include <string>
 #include <vector>
@@ -22,6 +23,7 @@
 #include "src/combat/boss_timing.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
+#include "src/combat/fight_authority.h"
 #include "src/game_state.h"
 #include "src/protos/boss.pb.h"
 
@@ -50,9 +52,13 @@ struct DamageNumber {
 struct DamageStack {
   // The slot that took it, by the id a slot keeps for its whole life.
   int mob_id = 0;
-  // What did it. One monster holds at most one stack per source: a landing
-  // takes the place of whatever that source last left there, however much
-  // life it had. So the character's swing is one stack that keeps being
+  // Who landed it, as an index into the run's members. 0 is the player at
+  // this screen, who is always the first of them: everybody else's numbers
+  // are drawn dim.
+  int owner = 0;
+  // What did it. One monster holds at most one stack per player per source: a
+  // landing takes the place of whatever that source last left there, however
+  // much life it had. So the character's swing is one stack that keeps being
   // rewritten, and a skill they switch to rewrites it too.
   DamageSource source;
   std::vector<DamageNumber> lines;
@@ -82,17 +88,6 @@ struct BossReward {
   std::vector<BossRewardItem> items;
 };
 
-// Where a run is up to. The three at the end are all ways of being finished,
-// held apart because the screen says a different thing about each.
-enum class BossRunState {
-  kCountdown,
-  kFighting,
-  kPhaseGap,
-  kWon,
-  kTimedOut,
-  kAborted,
-};
-
 // One monster's bar. A slot is made when the phase starts and never reused:
 // once its monster is dead it fades and then leaves the space empty, so the
 // bars beside it never move.
@@ -111,6 +106,21 @@ struct BossSlot {
   double dead_for = 0.0;
 };
 
+// One player of a fight, as the arena draws them: where they stand and what
+// they are winding up. A fight taken alone has one of these.
+struct FightMember {
+  // Empty for the player at this screen, who is always the first of them.
+  std::string name;
+  // Which of the phase's player spots they stand on, or -1 in a phase that
+  // named none.
+  int spot = -1;
+  std::string attack_name;
+  double attack_fraction = 0.0;
+  // False once their client has gone. They swing no more and are paid
+  // nothing, and the fight goes on without them.
+  bool present = true;
+};
+
 // Which of `phase`'s player spots a press moves to, as an index into
 // `player_spots`. The nearest spot strictly that way wins, measured along the
 // direction pressed; two the same distance along it are settled by whichever
@@ -118,6 +128,12 @@ struct BossSlot {
 // that way at all and is passed over. `from` is returned when nothing lies
 // that way, or when two spots are as good as each other -- a press with no one
 // answer moves nobody.
+//
+// Spots in `taken` are passed over as though they were not there at all: a
+// party member standing on one is not somewhere to walk to, and the walk goes
+// on to whatever is behind them.
+int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy,
+                   const std::vector<int>& taken);
 int NextPlayerSpot(const BossPhase& phase, int from, int dx, int dy);
 
 class BossRun {
@@ -125,7 +141,12 @@ class BossRun {
   // `boss` is owned by the GameState and must outlive the run. `difficulty` is
   // an index into its difficulties; an invalid one makes a run that is over
   // before it starts.
-  BossRun(std::string boss_key, const Boss& boss, int difficulty_index);
+  //
+  // `authority` is the party's shared fight, and must outlive the run too.
+  // Null fights the boss alone, which is every run that decides its own
+  // phases, its own clock and what its monsters have left.
+  BossRun(std::string boss_key, const Boss& boss, int difficulty_index,
+          FightAuthority* authority = nullptr);
 
   // Steps the run by elapsed_seconds of real time, paying the character for
   // whatever died. Does nothing once the run is finished.
@@ -191,6 +212,16 @@ class BossRun {
   const std::vector<DamageStack>& damage_stacks() const {
     return damage_stacks_;
   }
+  // Everyone fighting it, the player at this screen first. One member for a
+  // fight taken alone.
+  const std::vector<FightMember>& members() const {
+    return members_;
+  }
+  // How many the reward is split between: everyone who was in the fight when
+  // it began, and 1 for one taken alone.
+  int share_count() const {
+    return share_count_;
+  }
   // Where the player stands in the current phase -- where they have walked
   // to, not where the phase started them -- and how many cells the arena
   // holds around everyone. The size is measured off the spots when the phase
@@ -232,8 +263,29 @@ class BossRun {
   void RunPhase(GameState& state, double dt);
   // Pays the difficulty's reward table, once, for a fight that was cleared,
   // and records what landed. The drops roll against `item_drop_pct` the way a
-  // monster's do; the meso and the EXP are flat.
+  // monster's do, at odds and for meso divided by share_count_; the EXP is
+  // flat and whole for everyone.
   void PayReward(GameState& state, double item_drop_pct);
+  // One step of a fight the party shares: take what the server has, swing
+  // locally, report what that landed, and draw everyone else's.
+  void AdvanceShared(GameState& state, double dt);
+  // Takes the phase, the clock and where everyone is standing.
+  void TakeShared(const SharedFight& shared);
+  // Steps the local fight against the shared roster: this player's own swings
+  // land, the roster is brought down to what the server says is left, and
+  // what was landed is reported back.
+  void RunSharedPhase(GameState& state, double dt, const SharedFight& shared);
+  // Draws what everybody else landed. A line naming a monster this client has
+  // already buried is dropped: there is nowhere left to put it.
+  void AddSharedStacks(const std::vector<SharedLine>& lines);
+  // Steps a fight taken alone: its own count-in, its own phases, its own
+  // clock.
+  void RunAlone(GameState& state, double dt);
+  // Stands this player at the front of the members, where a stack they landed
+  // has owner 0.
+  void StandSelf();
+  // The spots somebody else is standing on, which a walk passes over.
+  std::vector<int> TakenSpots() const;
   // Ends the run in `outcome`, holding the screen for the closing beat -- or
   // for nothing at all, if the run was given up.
   void Finish(BossRunState outcome);
@@ -261,6 +313,25 @@ class BossRun {
   int player_at_ = -1;
   std::vector<BossSlot> slots_;
   std::vector<DamageStack> damage_stacks_;
+  // The party's shared fight, or null for a boss taken alone.
+  FightAuthority* authority_ = nullptr;
+  std::vector<FightMember> members_;
+  int share_count_ = 1;
+  // Which slot of the phase each monster stands in, and the monster in each
+  // slot. A monster's id is this client's own; a slot is the same number on
+  // every client, which is what damage is reported and read against.
+  std::map<int, int> slot_of_mob_;
+  std::vector<int> mob_of_slot_;
+  // Which member each of the shared fight's players is, since this player is
+  // held first and the server holds them in party order.
+  std::vector<int> member_of_player_;
+  // What this run landed on the last step, in the shape the report takes.
+  // Rounded as the numbers on screen are, so what the party's roster loses is
+  // what its players watched.
+  std::vector<SharedLine> landed_;
+  // What the last step's params said drop rate was, for a clear that is
+  // declared on a step this run computed nothing.
+  double item_drop_pct_ = 0.0;
   // Picks which side of a bar each stack asks for. Default-seeded, so a run
   // plays out the same way twice and a test can say where a stack went.
   std::mt19937 rng_;

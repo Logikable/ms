@@ -25,6 +25,7 @@
 #define MS_SRC_COMBAT_FIGHT_H_
 
 #include <cstdint>
+#include <map>
 #include <random>
 #include <string>
 #include <vector>
@@ -109,6 +110,14 @@ class CombatSim {
   // gaps are clamped to one swing, so a long stall costs progress rather than
   // paying out a burst of kills the player never watched.
   void Advance(const CombatParams& params, double elapsed_seconds);
+
+  // Takes the monsters `hp_by_id` names down to the share of their pool it
+  // says they have left, and clears away whatever that killed. Downward only:
+  // this is for a fight whose roster is kept somewhere else and hit by more
+  // than one player, where a local copy may run ahead of the shared one but
+  // never behind it. A monster it does not name is left alone.
+  void ClampRoster(const CombatParams& params,
+                   const std::map<int, double>& hp_by_id);
 
   // True while a valid encounter is being fought.
   bool active() const {

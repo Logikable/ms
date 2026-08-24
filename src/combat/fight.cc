@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 #include "src/combat/encounter.h"
 #include "src/protos/mob.pb.h"
@@ -499,6 +500,23 @@ std::vector<LineRoll>* CombatSim::LineSink() {
 void CombatSim::Hurt(QueuedMob& mob, double damage) {
   mob.hp -= damage;
   damage_this_step_ += damage;
+}
+
+void CombatSim::ClampRoster(const CombatParams& params,
+                            const std::map<int, double>& hp_by_id) {
+  for (QueuedMob& mob : queue_) {
+    std::map<int, double>::const_iterator said = hp_by_id.find(mob.id);
+    if (said == hp_by_id.end() ||
+        mob.type >= static_cast<int>(params.types.size())) {
+      continue;
+    }
+    mob.hp =
+        std::min(mob.hp, said->second * params.types[mob.type].mob->max_hp());
+  }
+  Reap();
+  // The roster a caller reads is a copy, taken when the step ended. Nothing
+  // here went through a step, so it is taken again.
+  PublishRoster(params);
 }
 
 void CombatSim::Reap() {
