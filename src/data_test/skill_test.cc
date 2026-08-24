@@ -1070,5 +1070,67 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
   EXPECT_GT(checked, 0) << "no 4th job mastery skill in the catalog";
 }
 
+// The skills GMS gives to a party, by display name, with the two Meditations
+// and the two Sharp Eyes counted once. Written out rather than derived,
+// because what this is checking is the audit itself: a skill dropped from the
+// data keeps its ally half only if somebody notices, and the wiki is the only
+// thing that says it ever had one.
+//
+// The four GMS party skills NOT here are event-driven -- Heal and Holy Magic
+// Shell are casts, Angel Ray's heal rides each hit, and Smokescreen is a
+// timed buff -- and nothing carries a caster's actions to an ally's fight
+// yet. Dispel is out for a duller reason: what it cures is a display-only
+// lever, so an ally half of it would grant a row and nothing else.
+const char* const kPartySkills[] = {
+    "Absolute Zero Aura",  "Advanced Blessing", "Bless",
+    "Blessed Ensemble",    "Combat Orders",     "Divine Protection",
+    "Hex of the Evil Eye", "Holy Fountain",     "Holy Symbol",
+    "Holy Water",          "Meditation",        "Parashock Guard",
+    "Sharp Eyes",          "Spirit Blade",
+};
+
+TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
+  std::set<std::string> want(std::begin(kPartySkills), std::end(kPartySkills));
+  std::set<std::string> found;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.has_ally_base() && !skill.has_ally_per_level()) {
+      continue;
+    }
+    EXPECT_GT(want.count(skill.name()), 0u)
+        << entry.first << " grants a party half no audit knows about";
+    found.insert(skill.name());
+  }
+  EXPECT_EQ(found, want);
+}
+
+// Parashock Guard is the only skill whose own half waits on a party, and its
+// ally half has to be there too -- a skill that needs company and gives it
+// nothing is a lever nobody would ever raise.
+TEST(SkillDataTest, ASkillNeedingAPartyAlsoGivesItSomething) {
+  int checked = 0;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.requires_party()) {
+      continue;
+    }
+    ++checked;
+    EXPECT_TRUE(skill.has_ally_base()) << entry.first;
+  }
+  EXPECT_EQ(checked, 1) << "Parashock Guard, and nothing else so far";
+}
+
+// Two allies holding one buff are one buff. The exception pays for the company
+// kept rather than standing over it, and there is exactly one.
+TEST(SkillDataTest, OnlyBlessedEnsembleStacksAcrossAParty) {
+  std::vector<std::string> stacking;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (entry.second.ally_effect_stacks()) {
+      stacking.push_back(entry.second.name());
+    }
+  }
+  EXPECT_EQ(stacking, std::vector<std::string>{"Blessed Ensemble"});
+}
+
 }  // namespace
 }  // namespace ms

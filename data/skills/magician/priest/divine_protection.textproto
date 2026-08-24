@@ -18,3 +18,11 @@ per_level {
   status_resistance: 2
   elemental_resistance: 0.02
 }
+ally_base {
+  status_resistance: 2
+  elemental_resistance: 0.02
+}
+ally_per_level {
+  status_resistance: 2
+  elemental_resistance: 0.02
+}

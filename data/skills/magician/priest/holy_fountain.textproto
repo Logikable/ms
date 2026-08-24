@@ -1,12 +1,13 @@
 # GMS's 10+3x% of the pool a drink, out of a fountain the party walks up to.
-# Nobody walks anywhere here, so it simply pours: the same amount, on a wait
-# that shortens by half a second a level.
+# Nobody walks anywhere here, so it simply pours -- for the Priest and for
+# everybody beside them, on a wait that shortens by half a second a level.
 #
 # Half seconds rather than whole ones because the drop from level 1 to 10 has
 # to divide nine, and 7.5 is the nearest start to eight that does.
 name: "Holy Fountain"
 skill_order: 3
-description: "Summons a Holy Fountain that restores your HP on its own."
+description:
+  "Summons a Holy Fountain that restores party members' HP on its own."
 kind: SKILL_KIND_PASSIVE
 tags: SKILL_TAG_BENEVOLENCE
 job_advancement: JOB_ADVANCEMENT_PRIEST
@@ -16,6 +17,14 @@ base {
   regen_interval_seconds: 7.5
 }
 per_level {
+  regen_pct: 0.03
+  regen_interval_seconds: -0.5
+}
+ally_base {
+  regen_pct: 0.13
+  regen_interval_seconds: 7.5
+}
+ally_per_level {
   regen_pct: 0.03
   regen_interval_seconds: -0.5
 }

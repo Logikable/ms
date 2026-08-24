@@ -1,12 +1,15 @@
 # GMS re-applies this every 24-4*floor(L/4) seconds for 20+4L, so it is up
 # almost always -- and there is no buff timer here anyway, so it simply is.
-# Party members get half; there are no party members.
+#
+# Party members get half, as GMS states, rounded down where the lever is a
+# whole number. The DEF loses nine points at the top of its ladder for it,
+# which no character will ever feel: DEF caps long before that.
 #
 # The magic attack GMS grants alongside the weapon attack is dropped: no
 # warrior weapon carries any, so it would be a row of zeroes.
 name: "Hex of the Evil Eye"
 skill_order: 4
-description: "Your Evil Eye buffs you."
+description: "Your Evil Eye buffs you and your party members."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20
@@ -19,4 +22,14 @@ per_level {
   attack: 2
   def: 25
   crit_rate: 0.005
+}
+ally_base {
+  attack: 1
+  def: 12
+  crit_rate: 0.0025
+}
+ally_per_level {
+  attack: 1
+  def: 12
+  crit_rate: 0.0025
 }

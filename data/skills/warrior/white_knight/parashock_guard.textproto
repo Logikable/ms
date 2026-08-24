@@ -1,11 +1,21 @@
-# GMS shields the party and leaves the caster out of it, so all this game keeps
-# is the attack the caster gets for holding the guard up. Twenty levels rather
-# than GMS's ten, at a point apiece, ending on the same +20.
+# GMS shields the party and leaves the caster out of it: the allies take
+# 10+x% less, and the caster is paid 2x attack for holding the guard up. Both
+# halves are here, and both need somebody to shield -- a White Knight standing
+# alone is granted nothing. See Skill.requires_party.
+#
+# Twenty levels rather than GMS's ten, a point apiece on both ladders, ending
+# on GMS's own pair. Only the level-1 values move: GMS's tenth level is this
+# one's twentieth, and the rungs below it are new.
 name: "Parashock Guard"
 skill_order: 4
-description: "Increases your Attack Power."
+description:
+  "Reduces the damage nearby party members receive. Increases your Attack "
+  "Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
 max_level: 20
+requires_party: true
 base { attack: 1 }
 per_level { attack: 1 }
+ally_base { damage_taken_pct: 0.01 }
+ally_per_level { damage_taken_pct: 0.01 }

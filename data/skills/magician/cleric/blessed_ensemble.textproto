@@ -1,17 +1,22 @@
-# One level in GMS, worth 3% final damage for every Cleric in the party
-# besides yourself, and 20% bonus EXP for each of them. There is no party
-# here, so both are simply granted, spread over ten levels.
+# One level in GMS, worth 3% final damage and 20% bonus EXP for every Cleric
+# in the party besides yourself. Ten levels here for both, so the book has a
+# ladder to climb.
+#
+# The final damage is the Cleric's own, as GMS pays it. The EXP is not: GMS
+# says "your own effects do not apply to you", so it is granted outward and
+# nowhere else, and a Cleric hunting alone earns nothing from it. It is the one
+# grant in the game that stacks -- what it pays for is the company kept, not a
+# buff standing over the party. See Skill.ally_effect_stacks.
 name: "Blessed Ensemble"
 skill_order: 2
-description: "Blessings increase your Final Damage and the EXP you earn."
+description:
+  "Blessings increase your Final Damage, and the EXP earned by the Clerics "
+  "beside you."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10
-base {
-  final_dmg_pct: 0.003
-  exp_pct: 0.02
-}
-per_level {
-  final_dmg_pct: 0.003
-  exp_pct: 0.02
-}
+ally_effect_stacks: true
+base { final_dmg_pct: 0.003 }
+per_level { final_dmg_pct: 0.003 }
+ally_base { exp_pct: 0.02 }
+ally_per_level { exp_pct: 0.02 }

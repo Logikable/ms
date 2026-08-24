@@ -1,5 +1,6 @@
-# GMS grants this for eighty seconds at a time and to the whole party; here it
-# is permanent and the character's own, like every other buff in this game.
+# GMS grants this for eighty seconds at a time and to the whole party. Nothing
+# runs out here, so it simply stands -- over the White Knight and over
+# everybody beside them.
 #
 # One level for most of the ladder and two at the top, which is a step rather
 # than a slope -- so per_level carries a ninth, written to as many digits as it
@@ -11,7 +12,8 @@
 name: "Combat Orders"
 skill_order: 3
 description:
-  "Grants bonus skill levels to your skills. 4th job skills that have already "
+  "Grants bonus skill levels to the skills of all party members, including "
+  "yourself. 4th job skills that have already "
   "reached the master level can be raised further; other skills can only be "
   "increased to master level."
 kind: SKILL_KIND_PASSIVE
@@ -23,3 +25,5 @@ required_skill {
 }
 base { skill_level_bonus: 1.0 }
 per_level { skill_level_bonus: 0.11111111111 }
+ally_base { skill_level_bonus: 1.0 }
+ally_per_level { skill_level_bonus: 0.11111111111 }

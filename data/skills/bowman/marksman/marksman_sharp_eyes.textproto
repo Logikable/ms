@@ -2,8 +2,8 @@
 name: "Sharp Eyes"
 skill_order: 5
 description:
-  "Grants the ability to locate an enemy's weak spot to deal fatal damage to "
-  "that enemy."
+  "Grants party members the ability to locate an enemy's weak spot to deal "
+  "fatal damage to that enemy."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_MARKSMAN
 max_level: 20
@@ -13,6 +13,14 @@ base {
   crit_dmg: 0.0075
 }
 per_level {
+  crit_rate: 0.01
+  crit_dmg: 0.0075
+}
+ally_base {
+  crit_rate: 0.01
+  crit_dmg: 0.0075
+}
+ally_per_level {
   crit_rate: 0.01
   crit_dmg: 0.0075
 }

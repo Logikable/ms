@@ -4,11 +4,13 @@
 #
 # It replaces Bless rather than stacking with it, which is what GMS means by
 # "can be stacked with other buff skills, excluding Bless". Every lever it
-# starts at clears what Bless ends at.
+# starts at clears what Bless ends at, and the replacement holds over the whole
+# party: a Cleric standing beside a Bishop stops casting.
 name: "Advanced Blessing"
 skill_order: 7
 description:
-  "Greatly increases your Attack Power, Magic ATT, DEF, Max HP, and Max MP."
+  "Greatly increases nearby party members' Attack Power, Magic ATT, DEF, Max "
+  "HP, and Max MP."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 10
@@ -26,6 +28,20 @@ base {
   max_mp: 525
 }
 per_level {
+  attack: 1
+  magic_attack: 1
+  def: 8
+  max_hp: 25
+  max_mp: 25
+}
+ally_base {
+  attack: 21
+  magic_attack: 21
+  def: 478
+  max_hp: 525
+  max_mp: 525
+}
+ally_per_level {
   attack: 1
   magic_attack: 1
   def: 8

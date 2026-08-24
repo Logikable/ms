@@ -1,11 +1,14 @@
-# GMS runs this for 80 + 6*L seconds off an MP cost, and buffs the party with
-# it. There is no MP to spend and no party to buff, so what is left is a
-# permanent buff on the one character.
+# GMS runs this for 80 + 6*L seconds off an MP cost. There is no MP to spend
+# and nothing runs out, so it simply stands.
+#
+# The attack is the party's, as GMS writes it -- "Attack Power of Party Members
+# Including Yourself". The shelter and the reflection are the Fighter's alone.
 name: "Spirit Blade"
 skill_order: 4
 description:
-  "The sword and the spirit are united to improve your Attack Power and "
-  "reflect a multiple of the damage that you receive."
+  "The sword and the spirit are united to improve the Attack Power of party "
+  "members including yourself, and reflect a multiple of the damage that you "
+  "receive."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
 max_level: 20
@@ -19,3 +22,5 @@ per_level {
   damage_taken_pct: 0.01
   damage_reflect_pct: 0.2
 }
+ally_base { attack: 11 }
+ally_per_level { attack: 1 }

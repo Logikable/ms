@@ -1,14 +1,20 @@
 # GMS fills a chalice off Angel Ray's hits and party members drink from it for
 # 5% of the pool, +5% per 2500 INT. Nobody walks up to anything here, so it
-# simply pours: the same 5% at its master level, on a ten-second wait, and the
-# same helping again for every 2500 INT the Bishop carries.
+# simply pours, for the Bishop and for everybody beside them: the same 5% at
+# its master level, on a ten-second wait, and the same helping again for every
+# 2500 INT the Bishop carries.
+#
+# The party's share is charged against the DRINKER's INT rather than the
+# Bishop's, the fold knowing only the character it is folding for. A helping
+# out of somebody else's chalice is worth what your own wisdom makes of it.
 #
 # The first lever in the game charged against a stat rather than a level, and
 # the reason a Bishop's INT is worth more than its damage says.
 name: "Holy Water"
 skill_order: 4
 description:
-  "Summons a chalice of holy water nearby that restores your HP over time."
+  "Summons a chalice of holy water nearby that restores party members' HP "
+  "over time."
 kind: SKILL_KIND_PASSIVE
 tags: SKILL_TAG_BENEVOLENCE
 job_advancement: JOB_ADVANCEMENT_BISHOP
@@ -20,3 +26,9 @@ base {
   regen_int_step: 2500
 }
 per_level { regen_pct: 0.005 }
+ally_base {
+  regen_pct: 0.005
+  regen_interval_seconds: 10.0
+  regen_int_step: 2500
+}
+ally_per_level { regen_pct: 0.005 }

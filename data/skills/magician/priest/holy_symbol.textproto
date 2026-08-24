@@ -1,14 +1,18 @@
 # GMS's 20+ceil(3x)/2 %, which runs from 21.5% at level 1 to 50% at 20 -- a
-# clean point and a half a level. The party half and the duration are dropped:
-# there is one character here and nothing to re-cast.
+# clean point and a half a level. The duration is dropped, there being nothing
+# to re-cast; the party half is GMS's own, less the halving for standing away
+# from the caster, which needs a position nothing here has.
 #
 # What it buys is the climb rather than the swing. Blessed Ensemble pays into
 # the same total, and the two simply add.
 name: "Holy Symbol"
 skill_order: 6
-description: "Allows you to gain additional EXP while hunting."
+description:
+  "Allows all nearby party members to gain additional EXP while hunting."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PRIEST
 max_level: 20
 base { exp_pct: 0.215 }
 per_level { exp_pct: 0.015 }
+ally_base { exp_pct: 0.215 }
+ally_per_level { exp_pct: 0.015 }
