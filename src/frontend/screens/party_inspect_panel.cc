@@ -1,0 +1,104 @@
+#include "src/frontend/screens/party_inspect_panel.h"
+
+#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "ftxui/dom/elements.hpp"
+#include "src/frontend/screens/all_stats_panel.h"
+#include "src/frontend/widgets/equipped_list.h"
+#include "src/frontend/widgets/panel_util.h"
+
+namespace ms {
+namespace {
+
+constexpr char kCursorHere[] = "> ";
+constexpr char kCursorAway[] = "  ";
+
+}  // namespace
+
+PartyInspectPanel::PartyInspectPanel(GameState& state)
+    : state_(state), character_(state.rng, Character()) {
+}
+
+void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
+  character_.RestoreFrom(player.sheet(), state_.equips, state_.items);
+  character_.UseEquipSets(state_.equip_sets);
+  Reset();
+}
+
+void PartyInspectPanel::Reset() {
+  cursor_ = 0;
+}
+
+int PartyInspectPanel::ItemCount() const {
+  return static_cast<int>(character_.equipped().size());
+}
+
+void PartyInspectPanel::MoveCursor(int delta) {
+  cursor_ = StepCursor(cursor_, delta, ItemCount());
+}
+
+const EquipInstance* PartyInspectPanel::selected_item() const {
+  int at = 0;
+  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+       character_.equipped()) {
+    if (at++ == cursor_) {
+      return &kv.second;
+    }
+  }
+  return nullptr;
+}
+
+int PartyInspectPanel::VisibleRows(int items) const {
+  int room = max_rows_ > 0 ? max_rows_ - kFixedRows : kListRows;
+  return std::clamp(items, 1,
+                    std::max(kLeastListRows, std::min(room, kListRows)));
+}
+
+ftxui::Element PartyInspectPanel::RenderEquipped() const {
+  std::vector<EquippedRow> rows =
+      EquippedRows(character_, cursor_, name_clock_.Elapsed());
+  if (rows.empty()) {
+    return EmptyState("empty");
+  }
+  std::vector<ftxui::Element> drawn;
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    bool on_cursor = i == cursor_;
+    ftxui::Element row =
+        ftxui::text((on_cursor ? kCursorHere : kCursorAway) + rows[i].text);
+    if (rows[i].inactive) {
+      // Worn but contributing nothing, the same as on the player's own list.
+      row |= ftxui::dim;
+    }
+    if (on_cursor) {
+      // The row the frame scrolls to, so the cursor cannot walk out of view.
+      row |= ftxui::focus;
+    }
+    drawn.push_back(std::move(row));
+  }
+  return ftxui::vbox({
+      ftxui::text(kEquippedHeader),
+      ThemedSeparator(),
+      ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
+          ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,
+                      VisibleRows(static_cast<int>(rows.size()))),
+  });
+}
+
+ftxui::Element PartyInspectPanel::Render() const {
+  // The sheet is drawn by the screen the member reads their own stats on, so
+  // the two cannot disagree about what a number is or what it is called.
+  AllStatsPanel stats(character_, state_.skills);
+  ftxui::Element sheet = ftxui::vbox({stats.RenderBody() | ftxui::center}) |
+                         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
+  ftxui::Element worn =
+      RenderEquipped() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
+  return ftxui::vbox({
+      ThemedWindow(" Character ", std::move(sheet)),
+      ThemedWindow(" Equipped ", std::move(worn)),
+  });
+}
+
+}  // namespace ms

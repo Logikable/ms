@@ -502,6 +502,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
       mobs(std::move(mobs_arg)),
       maps(std::move(maps_arg)),
       skills(std::move(skills_arg)),
+      equip_sets(std::move(sets)),
       rng(seed.has_value() ? *seed : std::random_device{}()),
       // Both modes start at level 1. The workbench used to start at 10,
       // standing at its first advancement, but the game reveals itself a
@@ -515,7 +516,7 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
   } else {
     SeedPlay(*this);
   }
-  character.UseEquipSets(std::move(sets));
+  character.UseEquipSets(equip_sets);
 }
 
 }  // namespace ms

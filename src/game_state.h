@@ -113,6 +113,10 @@ struct GameState {
   std::map<std::string, Mob> mobs;
   std::map<std::string, MapData> maps;
   std::map<std::string, Skill> skills;
+  // The equipment sets and what each tier of one pays. Kept rather than only
+  // handed to the character, because a party member's sheet has to be rebuilt
+  // against them to be inspected.
+  std::map<std::string, EquipSet> equip_sets;
   // The bosses that can be fought, by data file stem. Filled in after
   // construction rather than passed to it: nothing the constructor seeds
   // depends on them, and a boss is not somewhere a new character stands.

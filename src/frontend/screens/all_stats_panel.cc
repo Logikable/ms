@@ -46,23 +46,25 @@ ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
   return ftxui::vbox(std::move(rows));
 }
 
-ftxui::Element AllStatsPanel::Render() const {
+ftxui::Element AllStatsPanel::RenderBody() const {
   const Character& p = character_.proto();
   // The same heading the Character panel carries, name row included, so the
   // screen behind it reads as the same character rather than as a table of
   // numbers.
   std::string lvl = PadLeft(std::to_string(p.level()), 3);
-  return ThemedWindow(" Character ",
-                      ftxui::vbox({
-                          CenteredRow(character_.username()),
-                          CenteredRow("Lv" + lvl + " " + ShortJobName(p.job())),
-                          CenteredRow(CombatPowerText(
-                              CharacterCombatPower(character_, skills_))),
-                          ThemedSeparator(),
-                          Pairs(MainStatLines(character_, skills_)),
-                          ThemedSeparator(),
-                          Pairs(ExtraStatLines(character_, skills_)),
-                      }));
+  return ftxui::vbox({
+      CenteredRow(character_.username()),
+      CenteredRow("Lv" + lvl + " " + ShortJobName(p.job())),
+      CenteredRow(CombatPowerText(CharacterCombatPower(character_, skills_))),
+      ThemedSeparator(),
+      Pairs(MainStatLines(character_, skills_)),
+      ThemedSeparator(),
+      Pairs(ExtraStatLines(character_, skills_)),
+  });
+}
+
+ftxui::Element AllStatsPanel::Render() const {
+  return ThemedWindow(" Character ", RenderBody());
 }
 
 }  // namespace ms

@@ -537,6 +537,38 @@ cc_test(
 )
 
 cc_library(
+    name = "party_inspect_panel",
+    srcs = ["party_inspect_panel.cc"],
+    hdrs = ["party_inspect_panel.h"],
+    deps = [
+        ":all_stats_panel",
+        "//src:game_state",
+        "//src/character",
+        "//src/frontend/widgets:equipped_list",
+        "//src/frontend/widgets:marquee",
+        "//src/frontend/widgets:panel_util",
+        "//src/item:equip_instance",
+        "//src/protos:multiplayer_proto_cc",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "party_inspect_panel_test",
+    srcs = ["party_inspect_panel_test.cc"],
+    deps = [
+        ":party_inspect_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "//src/frontend/widgets:stat_rows",
+        "//src/item:equip_instance",
+        "//src/protos:equip_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
+        "@ftxui//:dom",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "party_select_panel",
     srcs = ["party_select_panel.cc"],
     hdrs = ["party_select_panel.h"],
