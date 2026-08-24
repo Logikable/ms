@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
@@ -24,7 +25,11 @@ constexpr int kCapacityWidth = 8;
 constexpr int kNameWidth = kMaxUsernameLength + 2;
 constexpr int kLevelWidth = 7;
 constexpr int kJobWidth = 15;
-constexpr int kReadyWidth = 5;
+
+// The window is one size whatever the lobby holds. A party made or broken
+// under the cursor would otherwise move the buttons out from under it.
+constexpr int kContentWidth = 56;
+constexpr int kListRows = 8;
 
 // The cursor's column, and the crown's beside it.
 constexpr char kCursorHere[] = "> ";
@@ -36,6 +41,18 @@ constexpr char kNoCrown[] = "  ";
 // with the panel's column of clearance after it.
 ftxui::Element ReadyCell(bool ready) {
   return ftxui::text(ready ? "  ✓   " : "      ") | ftxui::color(kTheme);
+}
+
+// Marks the row the frame scrolls to, which is the one holding the cursor.
+ftxui::Element Focused(ftxui::Element row, bool on_cursor) {
+  return on_cursor ? std::move(row) | ftxui::focus : std::move(row);
+}
+
+// The rows of a list, held to kListRows however many there are. A longer list
+// scrolls to the row the cursor is on.
+ftxui::Element ScrollingList(std::vector<ftxui::Element> rows) {
+  return ftxui::vbox(std::move(rows)) | ftxui::vscroll_indicator |
+         ftxui::yframe | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, kListRows);
 }
 
 }  // namespace
@@ -199,9 +216,6 @@ int PartySelectPanel::menu_selected() const {
 
 ftxui::Element PartySelectPanel::RenderPartyList() const {
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text("  " + PadRight("Leader", kLeaderWidth) +
-                             PadRight("Capacity", kCapacityWidth)));
-  rows.push_back(ThemedSeparator());
   std::vector<const Party*> open = OpenParties();
   if (open.empty()) {
     rows.push_back(EmptyState("empty"));
@@ -219,17 +233,18 @@ ftxui::Element PartySelectPanel::RenderPartyList() const {
                     kLeaderWidth);
     row += std::to_string(open[i]->members_size()) + "/" +
            std::to_string(kMaxPartySize);
-    rows.push_back(ftxui::text(row));
+    rows.push_back(Focused(ftxui::text(row), !on_buttons() && i == Cursor()));
   }
-  return ftxui::vbox(std::move(rows));
+  return ftxui::vbox({
+      ftxui::text("  " + PadRight("Leader", kLeaderWidth) +
+                  PadRight("Capacity", kCapacityWidth)),
+      ThemedSeparator(),
+      ScrollingList(std::move(rows)),
+  });
 }
 
 ftxui::Element PartySelectPanel::RenderMembers() const {
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(
-      std::string("    ") + PadRight("Name", kNameWidth) +
-      PadRight("Level", kLevelWidth) + PadRight("Job", kJobWidth) + "Ready"));
-  rows.push_back(ThemedSeparator());
   for (int i = 0; i < snapshot_.party.members_size(); ++i) {
     const PartyMember& member = snapshot_.party.members(i);
     const PlayerInfo& player = member.player();
@@ -239,14 +254,23 @@ ftxui::Element PartySelectPanel::RenderMembers() const {
     std::string text = PadRight(player.name(), kNameWidth);
     text += PadRight(std::to_string(player.level()), kLevelWidth);
     text += PadRight(ShortJobName(JobForAdvancement(player.job())), kJobWidth);
-    rows.push_back(ftxui::hbox({
-        ftxui::text(!on_buttons() && i == Cursor() ? kCursorHere : kCursorAway),
-        ftxui::text(leader ? kCrown : kNoCrown) | ftxui::color(kYellow),
-        ftxui::text(text),
-        ReadyCell(leader || member.ready()),
-    }));
+    bool on_cursor = !on_buttons() && i == Cursor();
+    rows.push_back(Focused(
+        ftxui::hbox({
+            ftxui::text(on_cursor ? kCursorHere : kCursorAway),
+            ftxui::text(leader ? kCrown : kNoCrown) | ftxui::color(kYellow),
+            ftxui::text(text),
+            ReadyCell(leader || member.ready()),
+        }),
+        on_cursor));
   }
-  return ftxui::vbox(std::move(rows));
+  return ftxui::vbox({
+      ftxui::text(std::string("    ") + PadRight("Name", kNameWidth) +
+                  PadRight("Level", kLevelWidth) + PadRight("Job", kJobWidth) +
+                  "Ready"),
+      ThemedSeparator(),
+      ScrollingList(std::move(rows)),
+  });
 }
 
 ftxui::Element PartySelectPanel::RenderButtons() const {
@@ -275,11 +299,14 @@ int PartySelectPanel::MenuRow() const {
 
 ftxui::Element PartySelectPanel::Render() const {
   ftxui::Element list = in_party() ? RenderMembers() : RenderPartyList();
-  ftxui::Element window = ThemedWindow(" Party ", ftxui::vbox({
-                                                      std::move(list),
-                                                      ThemedSeparator(),
-                                                      RenderButtons(),
-                                                  }));
+  ftxui::Element body = ftxui::vbox({
+                            std::move(list),
+                            ThemedSeparator(),
+                            RenderButtons(),
+                        }) |
+                        ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
+  ftxui::Element window =
+      ThemedWindow(in_party() ? " Party " : " Party List ", std::move(body));
   if (!menu_open_) {
     return window;
   }

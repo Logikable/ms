@@ -2,7 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <sstream>
 #include <string>
+#include <utility>
 
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
@@ -55,7 +58,9 @@ MultiplayerSnapshot Connected() {
 std::string Render(const PartySelectPanel& panel) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
                                                ftxui::Dimension::Fixed(20));
-  ftxui::Element element = panel.Render();
+  // Centred, as the Tui draws it: a window fills its box, and center is what
+  // holds it to its content.
+  ftxui::Element element = ftxui::center(panel.Render());
   ftxui::Render(screen, element);
   std::string out;
   for (int y = 0; y < screen.dimy(); ++y) {
@@ -66,6 +71,24 @@ std::string Render(const PartySelectPanel& panel) {
     out += '\n';
   }
   return out;
+}
+
+// The box of everything the panel drew, as width by height.
+std::pair<int, int> BoxOf(const PartySelectPanel& panel) {
+  std::string screen = Render(panel);
+  int width = 0;
+  int height = 0;
+  std::stringstream lines(screen);
+  std::string line;
+  for (int y = 0; std::getline(lines, line); ++y) {
+    std::size_t last = line.find_last_not_of(' ');
+    if (last == std::string::npos) {
+      continue;
+    }
+    width = std::max(width, static_cast<int>(last) + 1);
+    height = y + 1;
+  }
+  return {width, height};
 }
 
 class PartySelectPanelTest : public ::testing::Test {
@@ -254,6 +277,26 @@ TEST_F(PartySelectPanelTest, TheLeadersOwnRowOffersNeither) {
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
+}
+
+TEST_F(PartySelectPanelTest, TheWindowIsOneSizeInEveryState) {
+  MultiplayerSnapshot snapshot = Connected();
+  Show(snapshot);
+  std::pair<int, int> empty = BoxOf(panel_);
+
+  // More parties than the list can show, so the frame scrolls rather than the
+  // window growing.
+  for (int i = 0; i < 12; ++i) {
+    snapshot.parties.add_parties()->set_id("p" + std::to_string(i));
+  }
+  Show(snapshot);
+  EXPECT_EQ(BoxOf(panel_), empty);
+  EXPECT_NE(Render(panel_).find("Party List"), std::string::npos);
+
+  snapshot.party = PartyOf(3);
+  Show(snapshot);
+  EXPECT_EQ(BoxOf(panel_), empty);
+  EXPECT_EQ(Render(panel_).find("Party List"), std::string::npos);
 }
 
 TEST_F(PartySelectPanelTest, TheListShrinkingUnderTheCursorMovesIt) {
