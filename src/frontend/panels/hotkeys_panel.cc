@@ -10,11 +10,9 @@ namespace ms {
 namespace {
 
 // Rows are written out at their natural length rather than padded to a fixed
-// width. PadRight counts bytes, and the arrows are three bytes apiece, so it
-// would pad this panel eight columns short and truncate the longest line
-// through the middle of a glyph. Letting the window size itself to its content
-// costs nothing here: unlike the panels above it, this one has no sibling to
-// line its columns up with.
+// width. Letting the window size itself to its content costs nothing here:
+// unlike the panels above it, this one has no sibling to line its columns up
+// with.
 ftxui::Element Row(const std::string& text) {
   return ftxui::text(" " + text);
 }

@@ -11,6 +11,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/item.h"
 #include "src/item/shop.h"
 #include "src/protos/equip.pb.h"
@@ -29,12 +30,6 @@ constexpr int kTypeWidth = 16;
 constexpr int kLevelWidth = 7;
 constexpr int kCostWidth = 12;
 
-// Screen columns the meso coin takes. It is four bytes long, which is what
-// PadLeft would count, so a cost cell is aligned by hand instead -- see
-// CostCell. A token's mark is one column, not two.
-constexpr int kCoinWidth = 2;
-constexpr int kTokenMarkWidth = 1;
-
 // Stock rows on screen at once. Deep enough to hold most of a warrior's list --
 // the longest any class has -- and short enough that the window still clears
 // the bottom of a modest terminal.
@@ -51,19 +46,15 @@ constexpr int kNameClockTabStride = 4096;
 constexpr int kContentWidth =
     2 + kNameWidth + 2 + kTypeWidth + 2 + kLevelWidth + kCostWidth + 1 + 1;
 
-// A "<mark> <text>" cell, right-aligned in kCostWidth screen columns. Aligned
-// in columns rather than in bytes -- a coin is two columns and four bytes, a
-// token's mark one column and three -- so the cell is the same width whatever
-// the number in it.
-std::string MarkedCell(const std::string& mark, int mark_width,
-                       const std::string& text) {
-  int columns = mark_width + 1 + static_cast<int>(text.size());
-  return std::string(std::max(0, kCostWidth - columns), ' ') + mark + " " +
-         text;
+// A "<mark> <text>" cell, right-aligned in kCostWidth screen columns. A coin
+// is two columns and a token's mark one, which is what PadLeft counts, so the
+// cell is the same width whatever the number in it.
+std::string MarkedCell(const std::string& mark, const std::string& text) {
+  return PadLeft(mark + " " + text, kCostWidth);
 }
 
 std::string CoinCell(const std::string& text) {
-  return MarkedCell("🪙", kCoinWidth, text);
+  return MarkedCell("🪙", text);
 }
 
 // The cost cell of one row. The mark keeps its own colour whatever the price
@@ -79,7 +70,9 @@ ftxui::Element CostCell(const ItemPrototype* token, const std::string& text,
   if (!affordable) {
     amount = std::move(amount) | ftxui::color(kRed);
   }
-  int columns = kTokenMarkWidth + 1 + static_cast<int>(text.size());
+  // Padded by hand rather than by MarkedCell: the mark is its own element so
+  // it can keep its own colour.
+  int columns = TextColumns(token->currency_mark() + " " + text);
   return ftxui::hbox({
       ftxui::text(std::string(std::max(0, kCostWidth - columns), ' ')),
       ftxui::text(token->currency_mark()) |
@@ -90,9 +83,9 @@ ftxui::Element CostCell(const ItemPrototype* token, const std::string& text,
 
 // Two leading spaces match the "  " / "> " cursor on the rows below.
 ftxui::Element ColumnHeader(const ItemPrototype* token) {
-  std::string cost = token == nullptr ? CoinCell("Cost")
-                                      : MarkedCell(token->currency_mark(),
-                                                   kTokenMarkWidth, "Cost");
+  std::string cost = token == nullptr
+                         ? CoinCell("Cost")
+                         : MarkedCell(token->currency_mark(), "Cost");
   return ftxui::text("  " + PadRight("Name", kNameWidth) + "  " +
                      PadRight("Type", kTypeWidth) + "  " +
                      PadRight("Level", kLevelWidth) + cost);

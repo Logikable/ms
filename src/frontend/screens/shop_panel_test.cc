@@ -211,6 +211,37 @@ class ShopPanelTest : public testing::Test {
     return ftxui::Color::Default;
   }
 
+  // The column the last drawn character of the row holding `row_needle` sits
+  // in. What asks whether two cells are right-aligned with each other: a coin
+  // and a token mark are different numbers of bytes and different numbers of
+  // columns, so nothing in the row's text answers it.
+  int RightEdgeOf(const ShopPanel& panel, const std::string& row_needle) {
+    ftxui::Element element = panel.Render();
+    ftxui::Screen screen = ftxui::Screen::Create(
+        ftxui::Dimension::Fit(element), ftxui::Dimension::Fit(element));
+    ftxui::Render(screen, element);
+    for (int y = 0; y < screen.dimy(); ++y) {
+      std::string row;
+      for (int x = 0; x < screen.dimx(); ++x) {
+        std::string ch = screen.PixelAt(x, y).character;
+        row += ch.empty() ? " " : ch;
+      }
+      if (row.find(row_needle) == std::string::npos) {
+        continue;
+      }
+      // Past the border and the scroll bar's column, both of which are drawn
+      // whatever the cost cell says.
+      for (int x = screen.dimx() - 1; x >= 0; --x) {
+        const std::string& ch = screen.PixelAt(x, y).character;
+        if (!ch.empty() && ch != " " && ch != "│" && ch != "┃" && ch != "╹") {
+          return x;
+        }
+      }
+    }
+    ADD_FAILURE() << "no row holding '" << row_needle << "'";
+    return -1;
+  }
+
   CharacterInstance MakeCharacter(int64_t meso, int level = 1,
                                   Job job = JOB_SWORDMAN, int stage = 1) {
     Character proto;
@@ -1031,6 +1062,23 @@ TEST_F(ShopPanelTest, TheCounterCountsWhatTheShelfIsPaidIn) {
   OpenTokenShelf(panel, kShopWeaponTab);
   EXPECT_EQ(Render(panel).find("34,567"), std::string::npos);
   EXPECT_GE(IndexWith(ScreenRows(panel), "● 3"), 0);
+}
+
+// The Cost column is right-aligned in screen columns, so the header, a meso
+// price and a token price all end in the same place -- though a coin is two
+// columns of four bytes and a token's mark one column of three.
+TEST_F(ShopPanelTest, EveryCostCellEndsInTheSameColumn) {
+  CharacterInstance c = MakeCharacter(100000, 120, JOB_FIGHTER, /*stage=*/2);
+  ShopPanel meso(c, equips_, items_);
+  int header = RightEdgeOf(meso, "Cost");
+  EXPECT_GT(header, 0);
+  EXPECT_EQ(RightEdgeOf(meso, "Long Sword"), header);
+
+  ShopPanel tokens(c, equips_, items_);
+  OpenTokenShelf(tokens, kShopWeaponTab);
+  EXPECT_EQ(RightEdgeOf(tokens, "Cost"), header);
+  ASSERT_NE(tokens.selected_item(), nullptr);
+  EXPECT_EQ(RightEdgeOf(tokens, tokens.selected_item()->name()), header);
 }
 
 // Red is the reason: a token price the player cannot meet reddens, and the

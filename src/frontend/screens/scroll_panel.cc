@@ -49,15 +49,10 @@ enum MenuEntry { kEntryScroll, kEntryPin, kEntryClose };
 // Where the menu hangs: past the Name column, so it covers the stats rather
 // than the names the player is choosing between.
 constexpr int kMenuCol = 1 + 2 + kNameWidth + 2;
-// The cost cell, right-aligned in kCostWidth columns.
-//
-// PadLeft counts bytes and the scroll glyph is four of them for two columns,
-// so the padding is worked out from the display width by hand. Getting this
-// wrong shows up as a Cost column that does not line up with its header.
+// The cost cell, right-aligned in kCostWidth columns. The scroll glyph is two
+// of them, which is what PadLeft counts.
 std::string CostCell(int traces) {
-  std::string digits = std::to_string(traces);
-  int shown = static_cast<int>(digits.size()) + 3;  // space + a two-column 📜
-  return std::string(std::max(0, kCostWidth - shown), ' ') + digits + " 📜";
+  return PadLeft(std::to_string(traces) + " 📜", kCostWidth);
 }
 
 // Two leading spaces match the "  " / "> " cursor the menu prepends to entries.

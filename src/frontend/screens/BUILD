@@ -381,6 +381,7 @@ cc_library(
         "//src/frontend/widgets:item_menu",
         "//src/frontend/widgets:marquee",
         "//src/frontend/widgets:panel_util",
+        "//src/frontend/widgets:text_columns",
         "//src/item",
         "//src/item:shop",
         "//src/protos:equip_proto_cc",

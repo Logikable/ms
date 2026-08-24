@@ -257,8 +257,7 @@ ftxui::Element PartySelectPanel::RenderMembers() const {
     const PartyMember& member = snapshot_.party.members(i);
     const PlayerInfo& player = member.player();
     bool leader = player.account_id() == snapshot_.party.leader_account_id();
-    // The crown and the mark are their own cells: PadRight counts bytes, and
-    // both of them are wider than one.
+    // The crown and the mark are their own cells so each can keep its colour.
     std::string text = PadRight(player.name(), kNameWidth);
     text += PadRight(std::to_string(player.level()), kLevelWidth);
     text += PadRight(ShortJobName(JobForAdvancement(player.job())), kJobWidth);
