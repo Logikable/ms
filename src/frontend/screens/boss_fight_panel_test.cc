@@ -594,6 +594,26 @@ TEST(BossFightPanelTest, EverybodyInThePartyStandsInTheArena) {
   EXPECT_LT(RowOf(rows, "Wand"), RowOf(rows, "You"));
 }
 
+TEST(BossFightPanelTest, APlayerWhoLeavesLeavesAnEmptySpot) {
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1000000000);
+  Boss boss = Zakum();
+  std::unique_ptr<TestAuthority> authority = PartyOfThree();
+  BossRun run("zakum", boss, 0, authority.get());
+  run.Advance(*state, 0.1);
+  ASSERT_NE(RowOf(Rows(run), "Wand"), -1);
+
+  authority->fight_.players[1].present = false;
+  run.Advance(*state, 0.1);
+
+  // Their panel goes, the rest of the party stays, and the spot they stood on
+  // is one of the empty ones again.
+  std::vector<std::string> rows = Rows(run);
+  EXPECT_EQ(RowOf(rows, "Wand"), -1);
+  EXPECT_NE(RowOf(rows, "You"), -1);
+  EXPECT_NE(RowOf(rows, "Claw"), -1);
+  EXPECT_EQ(MarkedSpots(run), 3);
+}
+
 // Their numbers are drawn in their own faint colours, so a fight with three
 // people in it still reads as the player's own.
 TEST(BossFightPanelTest, APartyMembersNumbersAreDrawnFaint) {

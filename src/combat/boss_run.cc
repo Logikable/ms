@@ -138,7 +138,7 @@ void BossRun::MovePlayer(int dx, int dy) {
 std::vector<int> BossRun::TakenSpots() const {
   std::vector<int> taken;
   for (std::size_t i = 1; i < members_.size(); ++i) {
-    if (members_[i].present && members_[i].spot >= 0) {
+    if (members_[i].spot >= 0) {
       taken.push_back(members_[i].spot);
     }
   }
@@ -151,8 +151,7 @@ void BossRun::StandSelf() {
   }
   // Always the first of them, so a stack this player landed is the one with
   // owner 0.
-  members_[0] = {"", player_at_, sim_.attack_name(), sim_.attack_fraction(),
-                 true};
+  members_[0] = {"", player_at_, sim_.attack_name(), sim_.attack_fraction()};
 }
 
 const BossDifficulty* BossRun::difficulty() const {
@@ -491,9 +490,16 @@ void BossRun::TakeShared(const SharedFight& shared) {
       stood = player.spot;
       continue;
     }
+    if (!player.present) {
+      // Their client has gone. The arena loses their panel and their spot is
+      // somewhere to walk to again; they are still on the reward split. What
+      // they landed before they went is left at member 0, which is where a
+      // stack is dropped rather than drawn.
+      continue;
+    }
     member_of_player_[i] = static_cast<int>(members_.size());
-    members_.push_back({player.name, player.spot, player.attack_name,
-                        player.attack_fraction, player.present});
+    members_.push_back(
+        {player.name, player.spot, player.attack_name, player.attack_fraction});
   }
   // Where this player stands is theirs to say: they walked there without
   // waiting to be told. The server's answer is taken for a phase they have not

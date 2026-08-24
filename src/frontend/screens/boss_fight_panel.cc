@@ -86,15 +86,8 @@ ftxui::Element MemberPanel(const BossRun& run, const FightMember& member,
   std::string title =
       self ? "You"
            : ColumnWindow(member.name, 0, kBossPanelWidth - kPanelClearance);
-  ftxui::Element panel =
-      AccentWindow(" " + title + " ", std::move(bar), accent) |
-      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
-  if (!member.present) {
-    // Their client has gone. They are still standing there and still on the
-    // reward split, but nothing more is coming from them.
-    return panel | ftxui::dim;
-  }
-  return panel;
+  return AccentWindow(" " + title + " ", std::move(bar), accent) |
+         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kBossPanelWidth);
 }
 
 // Somewhere the player may stand and is not. Dim and unframed, the size of a

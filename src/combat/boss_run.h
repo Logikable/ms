@@ -107,7 +107,9 @@ struct BossSlot {
 };
 
 // One player of a fight, as the arena draws them: where they stand and what
-// they are winding up. A fight taken alone has one of these.
+// they are winding up. A fight taken alone has one of these. Somebody whose
+// client has gone is not one: the fight goes on without them, and so does the
+// arena.
 struct FightMember {
   // Empty for the player at this screen, who is always the first of them.
   std::string name;
@@ -116,9 +118,6 @@ struct FightMember {
   int spot = -1;
   std::string attack_name;
   double attack_fraction = 0.0;
-  // False once their client has gone. They swing no more and are paid
-  // nothing, and the fight goes on without them.
-  bool present = true;
 };
 
 // Which of `phase`'s player spots a press moves to, as an index into

@@ -688,6 +688,29 @@ TEST(BossRunTest, AWalkPassesOverSomebodyElsesSpot) {
   EXPECT_EQ(run.members()[0].spot, kFloorMiddle);
 }
 
+TEST(BossRunTest, APlayerWhoLeavesGoesFromTheArena) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
+  Boss boss = WalkableBoss();
+  TestAuthority authority(2);
+  authority.fight_.players[1].spot = kFloorRight;
+  BossRun run("zakum", boss, 0, &authority);
+  run.Advance(*state, 0.1);
+  ASSERT_EQ(run.members().size(), 2u);
+
+  authority.fight_.players[1].present = false;
+  authority.OtherLanded(0, 1234);
+  run.Advance(*state, 0.1);
+
+  // Their panel goes, nothing more of theirs is drawn, and the spot they
+  // stood on is somewhere to walk to again.
+  ASSERT_EQ(run.members().size(), 1u);
+  for (const DamageStack& stack : run.damage_stacks()) {
+    EXPECT_EQ(stack.owner, 0);
+  }
+  run.MovePlayer(1, 0);
+  EXPECT_EQ(run.members()[0].spot, kFloorRight);
+}
+
 TEST(BossRunTest, ASharedClearPaysEachOfThemAShare) {
   std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
   Boss boss = RewardingBoss(/*mark_chance=*/0.0);

@@ -534,16 +534,12 @@ TEST_F(PartyControllerTest, OneWalkingOutLeavesTheFightToTheOther) {
       {leader.get(), guest.get()},
       [&]() { return guest->controller->screen() == kBossSelect; }, 0.02));
   EXPECT_EQ(guest->controller->boss_run(), nullptr);
-  // The one still in it fights on, and sees that the other has gone.
+  // The one still in it fights on, and the other's panel goes.
   ASSERT_NE(leader->controller->boss_run(), nullptr);
   EXPECT_EQ(leader->controller->screen(), kBossFight);
   ASSERT_TRUE(WaitFor(
       {leader.get(), guest.get()},
-      [&]() {
-        const std::vector<FightMember>& party =
-            leader->controller->boss_run()->members();
-        return party.size() == 2 && !party[1].present;
-      },
+      [&]() { return leader->controller->boss_run()->members().size() == 1; },
       0.02));
 }
 
