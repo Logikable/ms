@@ -1,12 +1,14 @@
 #include "server/lobby.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
 #include "absl/strings/str_cat.h"
 #include "server/ids.h"
+#include "src/character/boss_reset.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
@@ -39,6 +41,18 @@ const BossDifficulty* FindDifficulty(const std::map<std::string, Boss>& bosses,
     return nullptr;
   }
   return &boss->second.difficulties(index);
+}
+
+// Whether `player` is holding a clear of this fight that has not expired by
+// `now`. A boss with no reset period is one there is nothing to hold back.
+bool ClearedAt(const PlayerInfo& player, const std::string& boss_key,
+               const std::string& difficulty, ResetPeriod reset, int64_t now) {
+  for (const BossClear& clear : player.boss_clears()) {
+    if (clear.boss() == boss_key && clear.difficulty() == difficulty) {
+      return !BossAvailable(clear.cleared_unix_seconds(), reset, now);
+    }
+  }
+  return false;
 }
 
 // The member playing under `account_id`, or null.
@@ -198,7 +212,7 @@ LobbyResult Lobby::Promote(const std::string& account_id,
 }
 
 LobbyResult Lobby::Start(const std::string& account_id,
-                         const StartFight& request) {
+                         const StartFight& request, int64_t now) {
   Record* record = Find(account_id);
   if (record == nullptr) {
     return Refusal(Refused::REASON_NOT_IN_PARTY, "You are not in a party.");
@@ -211,7 +225,7 @@ LobbyResult Lobby::Start(const std::string& account_id,
     return Refusal(Refused::REASON_FIGHT_STARTED,
                    "The fight has already started.");
   }
-  LobbyResult allowed = CheckFight(record->party, request);
+  LobbyResult allowed = CheckFight(record->party, request, now);
   if (!allowed.ok) {
     return allowed;
   }
@@ -254,6 +268,7 @@ PartyList Lobby::Listed() const {
     // the lobby; a sheet is for the party you are in, and rides its state.
     for (PartyMember& member : *listed->mutable_members()) {
       member.mutable_player()->clear_sheet();
+      member.mutable_player()->clear_boss_clears();
     }
   }
   return list;
@@ -305,8 +320,8 @@ const Lobby::Record* Lobby::Find(const std::string& account_id) const {
   return found == parties_.end() ? nullptr : &found->second;
 }
 
-LobbyResult Lobby::CheckFight(const Party& party,
-                              const StartFight& request) const {
+LobbyResult Lobby::CheckFight(const Party& party, const StartFight& request,
+                              int64_t now) const {
   const BossDifficulty* difficulty =
       FindDifficulty(bosses_, request.boss_key(), request.difficulty_index());
   if (difficulty == nullptr) {
@@ -316,11 +331,30 @@ LobbyResult Lobby::CheckFight(const Party& party,
   if (difficulty->coming_soon()) {
     return Refusal(Refused::REASON_UNKNOWN_BOSS, "That fight is not open.");
   }
+  // Three passes rather than one, so the leader is told the first thing that
+  // stands in the party's way rather than whatever the first member's row
+  // happens to be short of.
   for (const PartyMember& member : party.members()) {
     if (member.player().level() < difficulty->unlock_level()) {
       return Refusal(Refused::REASON_LEVEL_TOO_LOW,
-                     absl::StrCat(member.player().name(), " is not level ",
-                                  difficulty->unlock_level(), " yet."));
+                     "Someone doesn't meet the level requirement.");
+    }
+  }
+  for (const PartyMember& member : party.members()) {
+    if (!ClearedAt(member.player(), request.boss_key(), difficulty->name(),
+                   difficulty->reset(), now)) {
+      continue;
+    }
+    std::string when =
+        difficulty->reset() == RESET_PERIOD_WEEKLY ? "this week" : "today";
+    return Refusal(Refused::REASON_ALREADY_CLEARED,
+                   absl::StrCat("Someone has already cleared ", when, "."));
+  }
+  for (const PartyMember& member : party.members()) {
+    // The leader is ready by leading, and nothing is stored for them.
+    if (!member.ready() &&
+        member.player().account_id() != party.leader_account_id()) {
+      return Refusal(Refused::REASON_NOT_READY, "Someone is not ready.");
     }
   }
   return Done();

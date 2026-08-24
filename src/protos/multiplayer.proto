@@ -43,6 +43,12 @@ message PlayerInfo {
   // protocol version covers. The lobby listing strips it: it rides the party
   // state, where the party is three people, not every open party.
   Character sheet = 5;
+
+  // The boss clears this character is holding against the reset clock. Sent
+  // apart from the sheet, which strips them: what a party member may see of
+  // somebody is one question, and what the server has to know before it lets
+  // a party at a daily is another. Stripped from the listing with the sheet.
+  repeated BossClear boss_clears = 6;
 }
 
 // One player's place in a party.
@@ -174,6 +180,10 @@ message Refused {
     REASON_LEVEL_TOO_LOW = 9;
     // A kick or a promotion named somebody who is not in the party.
     REASON_NOT_A_MEMBER = 10;
+    // Somebody in the party has already taken this fight's reward.
+    REASON_ALREADY_CLEARED = 11;
+    // Somebody in the party has not said they are ready.
+    REASON_NOT_READY = 12;
   }
   Reason reason = 1;
   string message = 2;

@@ -39,6 +39,7 @@ cc_library(
     hdrs = ["lobby.h"],
     deps = [
         ":ids",
+        "//src/character:boss_reset",
         "//src/multiplayer:protocol",
         "//src/protos:boss_proto_cc",
         "//src/protos:multiplayer_proto_cc",

@@ -39,6 +39,9 @@ PlayerInfo PlayerFor(const GameState& state) {
   player.set_job(AdvancementForJobStage(state.character.proto().job(),
                                         state.character.proto().job_stage()));
   *player.mutable_sheet() = PublicSheet(state.character);
+  // Beside the sheet rather than in it: the server checks these before it
+  // lets a party at a boss on a reset clock, and PublicSheet strips them.
+  *player.mutable_boss_clears() = state.character.proto().boss_clears();
   return player;
 }
 
