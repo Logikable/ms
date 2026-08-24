@@ -13,6 +13,7 @@ unsupported_upgrades: UPGRADE_STAR_FORCE
 set_family: "Frozen Secondary"
 token_item: "frozen_secondary_token"
 token_price: 1
-# Bought with a token, never with meso, so no shop price sets this. A
-# spare sells for what a piece of Frozen armour does.
-sell_price: 250000
+# Bought with a token, never with meso, so no shop price sets this. A spare
+# sells for what the boss accessories of its own level band do, which is what
+# the Lv120 end of the shop curve would have charged.
+sell_price: 1000000
