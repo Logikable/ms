@@ -48,6 +48,7 @@ cc_test(
     srcs = ["keybinds_test.cc"],
     deps = [
         ":keybinds",
+        "//src/frontend/widgets:text_field",
         "//src/protos:keybinds_proto_cc",
         "@ftxui//:component",
         "@googletest//:gtest_main",

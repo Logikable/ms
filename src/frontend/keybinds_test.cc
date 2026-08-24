@@ -8,6 +8,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/component_base.hpp"
 #include "ftxui/component/event.hpp"
+#include "src/frontend/widgets/text_field.h"
 #include "src/protos/keybinds.pb.h"
 
 namespace ms {
@@ -191,6 +192,40 @@ TEST(TranslateKeysTest, CapturingLetsTheRawKeyThrough) {
   capturing = false;
   wrapped->OnEvent(ftxui::Event::Character(' '));
   EXPECT_EQ(spy->last, ftxui::Event::Return);
+}
+
+// Types into a TextField, standing in for the name row of the character panel.
+class FieldSpy : public ftxui::ComponentBase {
+ public:
+  bool OnEvent(ftxui::Event event) override {
+    field.OnEvent(event);
+    return true;
+  }
+
+  TextField field{12};
+};
+
+// A player who binds Space to Confirm must still be able to put a space in
+// their name: while the field is open the key arrives as it was pressed.
+TEST(TranslateKeysTest, SpaceBoundToConfirmStillTypesASpace) {
+  Keybinds binds;
+  KeyMap keys(&binds);
+  keys.Bind(KEY_ACTION_CONFIRM, 1, ftxui::Event::Character(' '));
+  std::shared_ptr<FieldSpy> spy = std::make_shared<FieldSpy>();
+  spy->field.BeginEdit();
+
+  ftxui::Component wrapped =
+      TranslateKeys(spy, keys, [&spy]() { return spy->field.editing(); });
+  for (char c : std::string("IL Arch Mage")) {
+    wrapped->OnEvent(ftxui::Event::Character(c));
+  }
+  EXPECT_EQ(spy->field.text(), "IL Arch Mage");
+  EXPECT_TRUE(spy->field.editing()) << "no space committed the name";
+
+  // Once the field is shut, the same key is Confirm again.
+  spy->field.EndEdit();
+  wrapped->OnEvent(ftxui::Event::Character(' '));
+  EXPECT_EQ(spy->field.text(), "");
 }
 
 }  // namespace

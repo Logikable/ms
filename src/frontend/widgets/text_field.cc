@@ -1,5 +1,7 @@
 #include "src/frontend/widgets/text_field.h"
 
+#include <string>
+
 #include "ftxui/component/event.hpp"
 #include "src/frontend/widgets/panel_util.h"
 
@@ -9,6 +11,13 @@ namespace {
 bool IsAlphanumeric(char c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
          (c >= '0' && c <= '9');
+}
+
+// `text` without the spaces on its end. A name is padded into fixed-width
+// columns, where a trailing space is a space nobody typed.
+std::string Trimmed(const std::string& text) {
+  std::size_t last = text.find_last_not_of(' ');
+  return last == std::string::npos ? "" : text.substr(0, last + 1);
 }
 
 }  // namespace
@@ -35,6 +44,7 @@ TextEntry TextField::OnEvent(const ftxui::Event& event) {
   if (IsForward(event)) {
     // Committing hands the caller the buffer, so the edit ends after it is
     // read rather than here.
+    text_ = Trimmed(text_);
     if (text_.empty()) {
       EndEdit();
       return TextEntry::kCancelled;
@@ -48,10 +58,16 @@ TextEntry TextField::OnEvent(const ftxui::Event& event) {
     }
     return TextEntry::kPending;
   }
-  if (event.is_character() && event.character().size() == 1 &&
-      IsAlphanumeric(event.character()[0]) &&
-      static_cast<int>(text_.size()) < max_length_) {
-    text_ += event.character();
+  if (!event.is_character() || event.character().size() != 1 ||
+      static_cast<int>(text_.size()) >= max_length_) {
+    return TextEntry::kPending;
+  }
+  char typed = event.character()[0];
+  // A space is only a space between two other characters: one typed first
+  // would let a name hide behind the column it is padded into.
+  bool space = typed == ' ' && !text_.empty();
+  if (IsAlphanumeric(typed) || space) {
+    text_ += typed;
   }
   return TextEntry::kPending;
 }

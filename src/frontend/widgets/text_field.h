@@ -48,9 +48,10 @@ class TextField {
     return text_;
   }
 
-  // Handles one key. Only alphanumeric characters are taken -- a name is
+  // Handles one key. Only letters, digits and spaces are taken -- a name is
   // shown in fixed-width rows and read back by other players, so punctuation
-  // and spacing that could disguise one are not on offer. Backspace and
+  // that could disguise one is not on offer. A space needs a character before
+  // it, and the spaces on the end of a commit are dropped. Backspace and
   // Delete both erase, since a player who has bound Backspace to Cancel would
   // otherwise have no way to.
   //

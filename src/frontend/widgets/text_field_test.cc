@@ -58,11 +58,26 @@ TEST(TextFieldTest, AnArrowThrowsAwayWhatWasTyped) {
   EXPECT_EQ(field.text(), "");
 }
 
-TEST(TextFieldTest, TakesOnlyAlphanumericCharacters) {
+TEST(TextFieldTest, TakesOnlyLettersDigitsAndSpaces) {
   TextField field(12);
   field.BeginEdit();
   Type(field, "a B-9_!.z");
-  EXPECT_EQ(field.text(), "aB9z");
+  EXPECT_EQ(field.text(), "a B9z");
+}
+
+TEST(TextFieldTest, ASpaceNeedsACharacterBeforeIt) {
+  TextField field(12);
+  field.BeginEdit();
+  Type(field, "  IL Arch");
+  EXPECT_EQ(field.text(), "IL Arch");
+}
+
+TEST(TextFieldTest, CommittingDropsTheSpacesOnTheEnd) {
+  TextField field(12);
+  field.BeginEdit();
+  Type(field, "IL Arch  ");
+  EXPECT_EQ(field.OnEvent(ftxui::Event::Return), TextEntry::kCommitted);
+  EXPECT_EQ(field.text(), "IL Arch");
 }
 
 // Backspace reaches the field only when the player has not bound it to Cancel,
