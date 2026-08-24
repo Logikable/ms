@@ -5,6 +5,7 @@ level: 150
 attack: 3913
 max_hp: 1983500
 exp: 10440
+pdr: 10
 drops { item: "destroyed_nest" per_kill: 0.4 }
 drops { item: "frozen_weapon_token" per_kill: 0.0001 }
 drops { item: "frozen_secondary_token" per_kill: 0.0001 }

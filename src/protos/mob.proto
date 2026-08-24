@@ -52,7 +52,10 @@ message Mob {
   // Items this mob can drop.
   repeated MobDrop drops = 6;
   // Physical defense rate as a whole percent (PDR); reduces incoming damage
-  // unless the attacker ignores it. Snails are 0. Mirrors EquipStats percents.
+  // unless the attacker ignores it. Mirrors EquipStats percents. Every
+  // monster in the game carries at least the regular 10, snails included, so
+  // that IED is worth something everywhere rather than only against a boss;
+  // the bosses set their own, higher.
   int32 pdr = 7;
   // True for bosses: they take 0.5x elemental base and are subject to boss%.
   bool boss = 8;

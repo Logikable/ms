@@ -3,6 +3,7 @@ level: 115
 attack: 1555
 max_hp: 377625
 exp: 3148
+pdr: 10
 drops { item: "cog" per_kill: 0.4 }
 drops { equip: "frozen_bottom" per_kill: 0.0001 }
 drops { equip: "frozen_hat" per_kill: 0.0001 }

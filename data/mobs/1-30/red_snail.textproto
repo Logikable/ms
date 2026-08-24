@@ -3,5 +3,6 @@ level: 5
 attack: 15
 max_hp: 50
 exp: 8
+pdr: 10
 drops { item: "red_snail_shell" per_kill: 0.4 }
 description: "Local folklore holds that Blue Snails turn red after they complete a Job Advancement, but nobody has been able to find a Snail Job Trainer to confirm if this is true."

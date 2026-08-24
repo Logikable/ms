@@ -3,5 +3,6 @@ level: 65
 attack: 350
 max_hp: 15000
 exp: 289
+pdr: 10
 drops { item: "charm_of_the_undead" per_kill: 0.4 }
 description: "A mushroom monster revived by attaching a Charm of the Undead to mushrooms that adventurers defeated prior. Opinions vary on who revived these mushrooms and for what purpose."

@@ -3,6 +3,7 @@ level: 103
 attack: 969
 max_hp: 150520
 exp: 1789
+pdr: 10
 drops { item: "beetles_horn" per_kill: 0.4 }
 drops { equip: "frozen_top" per_kill: 0.0001 }
 drops { equip: "frozen_bottom" per_kill: 0.0001 }

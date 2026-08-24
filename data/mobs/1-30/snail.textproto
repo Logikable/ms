@@ -3,5 +3,6 @@ level: 1
 attack: 2
 max_hp: 15
 exp: 3
+pdr: 10
 drops { item: "green_snail_shell" per_kill: 0.4 }
 description: "A small, weak creature native to Maple Island and Victoria Island. They used to be so common that there was a saying: \"As common as snails.\" You don't see them as much these days."

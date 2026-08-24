@@ -3,5 +3,6 @@ level: 28
 attack: 100
 max_hp: 720
 exp: 53
+pdr: 10
 drops { item: "cold_eye_tail" per_kill: 0.4 }
 description: "Even after Evil Eyes moved their main habitat to the surface, some of them instead retreated deep underground. In places without even a trace of light, their bodies faded and turned white."

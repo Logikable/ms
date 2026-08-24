@@ -3,5 +3,6 @@ level: 190
 attack: 10192
 max_hp: 10541200
 exp: 50419
+pdr: 10
 drops { item: "giant_tree_branch" per_kill: 0.4 }
 description: "This monster dwells near the ruins of Future Twilight Perion. The arrows embedded in its body are remnants of fallen Perion warriors."

@@ -3,5 +3,6 @@ level: 35
 attack: 163
 max_hp: 2800
 exp: 95
+pdr: 10
 drops { item: "fragmented_ore" per_kill: 0.4 }
 description: "Big Boulder Munchers that live around Ore Trail. Their name seems to come from the fact that they eat rocks, but who exactly came up with a name that's so oddly straightforward?"

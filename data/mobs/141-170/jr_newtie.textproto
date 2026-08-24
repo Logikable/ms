@@ -10,6 +10,7 @@ level: 145
 attack: 3391
 max_hp: 1612800
 exp: 8748
+pdr: 10
 drops { item: "egg_shell" per_kill: 0.4 }
 drops { item: "frozen_weapon_token" per_kill: 0.0001 }
 drops { item: "frozen_secondary_token" per_kill: 0.0001 }

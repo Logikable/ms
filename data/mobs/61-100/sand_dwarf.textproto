@@ -3,6 +3,7 @@ level: 90
 attack: 715
 max_hp: 90000
 exp: 1188
+pdr: 10
 drops { item: "empty_sack" per_kill: 0.4 }
 drops { equip: "frozen_top" per_kill: 0.00025 }
 drops { equip: "frozen_bottom" per_kill: 0.00025 }

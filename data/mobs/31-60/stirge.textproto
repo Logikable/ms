@@ -3,5 +3,6 @@ level: 43
 attack: 257
 max_hp: 4400
 exp: 127
+pdr: 10
 drops { item: "stirge_wing" per_kill: 0.4 }
 description: "This bat-like monster flies around inside the subway, preferring the darkness over sunlight. It darts around with such quick, erratic movements that it makes me dizzy just watching them!"

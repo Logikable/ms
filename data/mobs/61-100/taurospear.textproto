@@ -3,6 +3,7 @@ level: 70
 attack: 409
 max_hp: 20000
 exp: 355
+pdr: 10
 drops { item: "taurospear_horn" per_kill: 0.4 }
 drops { equip: "frozen_top" per_kill: 0.00025 }
 description: "A monster that guards the temple deep within the Sleepywood Dungeon at the center of Victoria Island. Some adventurers consider it even more of a threat than Jr. Balrog."

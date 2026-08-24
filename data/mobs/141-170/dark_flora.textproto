@@ -6,6 +6,7 @@ level: 156
 attack: 4645
 max_hp: 2824600
 exp: 12878
+pdr: 10
 drops { item: "dark_flora_petal" per_kill: 0.4 }
 drops { item: "frozen_weapon_token" per_kill: 0.0001 }
 drops { item: "frozen_secondary_token" per_kill: 0.0001 }

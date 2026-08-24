@@ -3,5 +3,6 @@ level: 3
 attack: 6
 max_hp: 25
 exp: 5
+pdr: 10
 drops { item: "mushroom_spore" per_kill: 0.4 }
 description: "This small mushroom monster is often found in grassy areas. Weak by the standards of most monsters, it keeps itself alive with its speed."

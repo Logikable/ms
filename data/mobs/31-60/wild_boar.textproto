@@ -3,5 +3,6 @@ level: 55
 attack: 346
 max_hp: 8000
 exp: 187
+pdr: 10
 drops { item: "wild_boar_tooth" per_kill: 0.4 }
 description: "Angered by the discrimination between regular pigs and Ribbon Pigs, certain pigs gathered here in Perion."

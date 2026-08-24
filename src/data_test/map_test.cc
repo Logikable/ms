@@ -186,6 +186,25 @@ TEST(MapDataTest, EveryEtcDropIsWorthSomething) {
   }
 }
 
+// Armour is not optional. Every monster carries at least the regular 10% PDR
+// and the bosses carry more, which is what keeps IED worth buying against the
+// things the player actually farms rather than only on a boss night. A mob
+// file that forgets the line reads as armourless and nothing else says so --
+// the damage math just quietly pays out 11% more against it.
+TEST(MapDataTest, EveryMobWearsAtLeastTheRegularArmour) {
+  constexpr int kRegularPdr = 10;
+  for (const std::pair<const std::string, Mob>& entry : LoadMobs()) {
+    EXPECT_GE(entry.second.pdr(), kRegularPdr)
+        << entry.first << " has no armour on it";
+    if (!entry.second.boss()) {
+      EXPECT_EQ(entry.second.pdr(), kRegularPdr)
+          << entry.first << " is not a boss, so it wears the regular armour "
+          << "and nothing else -- a monster the player cannot see the defense "
+          << "of should not have its own";
+    }
+  }
+}
+
 // A mob with no HP dies to nothing and one with no EXP pays for nothing;
 // either would make a map that looks farmable and is not. A boss is exempt
 // from the EXP half: Zakum's arms are worth nothing in GMS either, and what
