@@ -205,7 +205,7 @@ TEST_F(MultiSellTest, ConfirmDoesNothingWithAnEmptyBasket) {
   EXPECT_FALSE(panel.TakeConfirmed());
 }
 
-TEST_F(MultiSellTest, TheDialogOpensOnCancelAndConfirmsFromTheLeft) {
+TEST_F(MultiSellTest, TheDialogOpensOnConfirm) {
   GiveEquip("Sword", 1000);
   MultiSellPanel panel(c_);
   panel.Reset(kEquipTab, 0);
@@ -216,8 +216,9 @@ TEST_F(MultiSellTest, TheDialogOpensOnCancelAndConfirmsFromTheLeft) {
   EXPECT_FALSE(panel.confirming());
   EXPECT_FALSE(panel.TakeConfirmed());
   EXPECT_FALSE(panel.TakeCancelled());
+  // Enter on the button row opens it again, and Enter answers it: the cursor
+  // is already on Confirm.
   Press(panel, ftxui::Event::Return);
-  Press(panel, ftxui::Event::ArrowLeft);
   Press(panel, ftxui::Event::Return);
   EXPECT_TRUE(panel.TakeConfirmed());
 }

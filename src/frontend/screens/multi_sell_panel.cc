@@ -251,9 +251,10 @@ bool MultiSellPanel::OnEvent(ftxui::Event event) {
       if (cancel_focused_) {
         cancelled_ = true;
       } else if (!basket_.empty()) {
-        // Cancel is where the cursor lands: the dialog is the last stop
-        // before a bagful of items is gone.
-        confirm_.Open(/*cancel_selected=*/true);
+        // Confirm is where the cursor lands. The player marked every row in
+        // the basket themselves, so the dialog is a last look rather than a
+        // question they have not already answered.
+        confirm_.Open();
       }
     }
     return true;
