@@ -16,6 +16,7 @@
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
@@ -372,6 +373,29 @@ TEST_F(ServerTest, LogsEveryAction) {
   EXPECT_TRUE(StepUntil([&]() {
     return log.Saw("Wand (" + member_welcome.account_id() + ") disconnected");
   }));
+}
+
+TEST_F(ServerTest, LogsWhatAnUpdateChanged) {
+  LogSpy log;
+  Welcome welcome;
+  std::unique_ptr<TestClient> client = Greeted("Dagger", &welcome);
+
+  ClientMessage renamed;
+  PlayerInfo* player = renamed.mutable_update_player()->mutable_player();
+  player->set_name("Blade");
+  client->Send(renamed);
+  EXPECT_TRUE(StepUntil([&]() {
+    return log.Saw("Dagger (" + welcome.account_id() + ") is now named Blade");
+  }));
+
+  ClientMessage advanced;
+  player = advanced.mutable_update_player()->mutable_player();
+  player->set_name("Blade");
+  player->set_level(60);
+  player->set_job(JOB_ADVANCEMENT_CRUSADER);
+  client->Send(advanced);
+  EXPECT_TRUE(StepUntil(
+      [&]() { return log.Saw("is now level 60 and advances to Crusader"); }));
 }
 
 TEST_F(ServerTest, RefusesAFightItCannotRun) {

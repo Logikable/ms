@@ -13,9 +13,11 @@
 
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "server/ids.h"
 #include "server/lobby.h"
 #include "src/character/character.h"
+#include "src/character/job_name.h"
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/multiplayer.pb.h"
@@ -41,12 +43,40 @@ unsigned int OtherStream(unsigned int seed) {
   return seed ^ 0x9e3779b9u;
 }
 
+// The name a player is shown under when they send one that cannot be used.
+constexpr char kFallbackName[] = "Adventurer";
+
+// `name` as the lobby will show it: trimmed to the length a character name is
+// allowed, and never empty.
+std::string DisplayName(const std::string& name) {
+  std::string trimmed = name.substr(0, kMaxUsernameLength);
+  return trimmed.empty() ? kFallbackName : trimmed;
+}
+
+// What an update changed, as a line for the log. A client sends one whenever
+// the name, level or job it last told the server has moved.
+std::string Became(const PlayerInfo& before, const PlayerInfo& after) {
+  std::vector<std::string> changes;
+  std::string name = DisplayName(after.name());
+  if (name != before.name()) {
+    changes.push_back(absl::StrCat("is now named ", name));
+  }
+  if (after.level() != before.level()) {
+    changes.push_back(absl::StrCat("is now level ", after.level()));
+  }
+  if (after.job() != before.job()) {
+    changes.push_back(absl::StrCat(
+        "advances to ", ShortJobName(JobForAdvancement(after.job()))));
+  }
+  if (changes.empty()) {
+    return "updates nothing";
+  }
+  return absl::StrJoin(changes, " and ");
+}
+
 // What a lobby message asked for, as a line for the log.
 std::string AskedFor(const ClientMessage& message) {
   switch (message.kind_case()) {
-    case ClientMessage::kUpdatePlayer:
-      return absl::StrCat("is now level ",
-                          message.update_player().player().level());
     case ClientMessage::kCreateParty:
       return "creates a party";
     case ClientMessage::kJoinParty:
@@ -66,16 +96,6 @@ std::string AskedFor(const ClientMessage& message) {
     default:
       return "sends something unknown";
   }
-}
-
-// The name a player is shown under when they send one that cannot be used.
-constexpr char kFallbackName[] = "Adventurer";
-
-// `name` as the lobby will show it: trimmed to the length a character name is
-// allowed, and never empty.
-std::string DisplayName(const std::string& name) {
-  std::string trimmed = name.substr(0, kMaxUsernameLength);
-  return trimmed.empty() ? kFallbackName : trimmed;
 }
 
 }  // namespace
@@ -326,14 +346,17 @@ void Server::SetPlayer(Session& session, const PlayerInfo& player) {
 }
 
 void Server::HandleLobby(Session& session, const ClientMessage& message) {
+  if (message.kind_case() == ClientMessage::kUpdatePlayer) {
+    // Logged before the change lands, so a rename names both sides of it.
+    LOG(INFO) << Describe(session) << " "
+              << Became(session.player, message.update_player().player());
+    SetPlayer(session, message.update_player().player());
+    lobby_.UpdatePlayer(session.player);
+    return;
+  }
   std::string asked = AskedFor(message);
   LobbyResult result;
   switch (message.kind_case()) {
-    case ClientMessage::kUpdatePlayer:
-      SetPlayer(session, message.update_player().player());
-      lobby_.UpdatePlayer(session.player);
-      LOG(INFO) << Describe(session) << " " << asked;
-      return;
     case ClientMessage::kCreateParty:
       result = lobby_.Create(session.player);
       break;
