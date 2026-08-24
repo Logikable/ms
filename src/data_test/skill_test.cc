@@ -82,16 +82,17 @@ double LeverValue(const SkillEffect& effect,
   }
 }
 
-// A skill's levers at `level`, on the ladder every reader climbs:
+// One pair of blocks at `level`, on the ladder every reader climbs:
 // base + per_level * (L - 1).
-SkillEffect EffectAt(const Skill& skill, int level) {
-  SkillEffect at = skill.base();
+SkillEffect EffectFrom(const SkillEffect& base, const SkillEffect& per,
+                       int level) {
+  SkillEffect at = base;
   const google::protobuf::Descriptor* levers = SkillEffect::descriptor();
   const google::protobuf::Reflection* reflection = at.GetReflection();
   for (int i = 0; i < levers->field_count(); ++i) {
     const google::protobuf::FieldDescriptor* field = levers->field(i);
-    double climbed = LeverValue(skill.base(), field) +
-                     LeverValue(skill.per_level(), field) * (level - 1);
+    double climbed =
+        LeverValue(base, field) + LeverValue(per, field) * (level - 1);
     if (field->cpp_type() ==
         google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE) {
       reflection->SetDouble(&at, field, climbed);
@@ -101,6 +102,16 @@ SkillEffect EffectAt(const Skill& skill, int level) {
     }
   }
   return at;
+}
+
+// What the skill is worth to the character holding it, and what it is worth to
+// everybody beside them.
+SkillEffect EffectAt(const Skill& skill, int level) {
+  return EffectFrom(skill.base(), skill.per_level(), level);
+}
+
+SkillEffect AllyEffectAt(const Skill& skill, int level) {
+  return EffectFrom(skill.ally_base(), skill.ally_per_level(), level);
 }
 
 // Whether some one job holds both `skill`'s book and the book of a skill
@@ -1004,18 +1015,27 @@ TEST(SkillDataTest, ASupersedingSkillIsNeverWorseAtLevelOne) {
         continue;
       }
       ++checked;
-      SkillEffect replaced = EffectAt(other.second, other.second.max_level());
-      SkillEffect replacing = EffectAt(skill, 1);
-      for (int i = 0; i < levers->field_count(); ++i) {
-        const google::protobuf::FieldDescriptor* field = levers->field(i);
-        double was = LeverValue(replaced, field);
-        double now = LeverValue(replacing, field);
-        if (was <= 0.0) {
-          continue;
+      // Both halves, and the party's for the same reason as the character's:
+      // a Bishop's first point in Blessed Harmony must not cost their party
+      // the EXP the Ensemble under it was handing out.
+      const SkillEffect replaced_pair[] = {
+          EffectAt(other.second, other.second.max_level()),
+          AllyEffectAt(other.second, other.second.max_level())};
+      const SkillEffect replacing_pair[] = {EffectAt(skill, 1),
+                                            AllyEffectAt(skill, 1)};
+      const char* const kHalf[] = {"", "the party's "};
+      for (int half = 0; half < 2; ++half) {
+        for (int i = 0; i < levers->field_count(); ++i) {
+          const google::protobuf::FieldDescriptor* field = levers->field(i);
+          double was = LeverValue(replaced_pair[half], field);
+          double now = LeverValue(replacing_pair[half], field);
+          if (was <= 0.0) {
+            continue;
+          }
+          EXPECT_GE(now, was) << entry.first << " supersedes " << other.first
+                              << " but pays " << now << " of " << kHalf[half]
+                              << field->name() << " where it paid " << was;
         }
-        EXPECT_GE(now, was)
-            << entry.first << " supersedes " << other.first << " but pays "
-            << now << " of " << field->name() << " where it paid " << was;
       }
     }
   }
@@ -1082,11 +1102,11 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
 // yet. Dispel is out for a duller reason: what it cures is a display-only
 // lever, so an ally half of it would grant a row and nothing else.
 const char* const kPartySkills[] = {
-    "Absolute Zero Aura",  "Advanced Blessing", "Bless",
-    "Blessed Ensemble",    "Combat Orders",     "Divine Protection",
-    "Hex of the Evil Eye", "Holy Fountain",     "Holy Symbol",
-    "Holy Water",          "Meditation",        "Parashock Guard",
-    "Sharp Eyes",          "Spirit Blade",
+    "Absolute Zero Aura", "Advanced Blessing",   "Bless",
+    "Blessed Ensemble",   "Blessed Harmony",     "Combat Orders",
+    "Divine Protection",  "Hex of the Evil Eye", "Holy Fountain",
+    "Holy Symbol",        "Holy Water",          "Meditation",
+    "Parashock Guard",    "Sharp Eyes",          "Spirit Blade",
 };
 
 TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
@@ -1120,16 +1140,18 @@ TEST(SkillDataTest, ASkillNeedingAPartyAlsoGivesItSomething) {
   EXPECT_EQ(checked, 1) << "Parashock Guard, and nothing else so far";
 }
 
-// Two allies holding one buff are one buff. The exception pays for the company
-// kept rather than standing over it, and there is exactly one.
-TEST(SkillDataTest, OnlyBlessedEnsembleStacksAcrossAParty) {
-  std::vector<std::string> stacking;
+// Two allies holding one buff are one buff. What stacks instead pays for the
+// company kept, and only the Cleric's line does: Blessed Ensemble, and the
+// Blessed Harmony that states the whole of it.
+TEST(SkillDataTest, OnlyTheClericsLineStacksAcrossAParty) {
+  std::set<std::string> stacking;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     if (entry.second.ally_effect_stacks()) {
-      stacking.push_back(entry.second.name());
+      stacking.insert(entry.second.name());
     }
   }
-  EXPECT_EQ(stacking, std::vector<std::string>{"Blessed Ensemble"});
+  EXPECT_EQ(stacking,
+            (std::set<std::string>{"Blessed Ensemble", "Blessed Harmony"}));
 }
 
 }  // namespace

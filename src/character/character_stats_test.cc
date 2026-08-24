@@ -2209,6 +2209,28 @@ TEST_F(DerivedStatsTest, AnAllysSupersessionReachesTheWholeParty) {
       << "the Bishop's alone, the Cleric's put out";
 }
 
+// An ally hands out what their own book left standing: a Bishop's Advanced
+// Blessing rather than the Bless underneath it, however many levels they
+// bought in the older skill.
+TEST_F(DerivedStatsTest, AnAllyHandsOutOnlyWhatTheirOwnBookLeftStanding) {
+  Skill bless = Bless();
+  Skill advanced = Bless();
+  advanced.set_name("Advanced Blessing");
+  advanced.set_supersedes_skill_name("Bless");
+  advanced.mutable_base()->set_attack(21);
+  advanced.mutable_ally_base()->set_attack(21);
+  std::map<std::string, Skill> skills = {{"bless", bless},
+                                         {"advanced", advanced}};
+  CharacterInstance bishop = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(bishop.LearnSkill(bless, 10));
+  ASSERT_TRUE(bishop.LearnSkill(advanced, 10));
+
+  std::vector<CharacterInstance> party = PartyOf(std::move(bishop));
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+  EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 30)
+      << "the Advanced Blessing alone, not both";
+}
+
 // Blessed Ensemble is not a buff: it pays for the company kept, so two allies
 // holding it both pay.
 TEST_F(DerivedStatsTest, AStackingGrantPaysOncePerAlly) {
@@ -2232,6 +2254,37 @@ TEST_F(DerivedStatsTest, AStackingGrantPaysOncePerAlly) {
   ASSERT_TRUE(third.LearnSkill(ensemble, 10));
   EXPECT_NEAR(DerivedStatsFor(third, skills, {}, party).exp_pct, 0.40, 1e-9)
       << "their own pays them nothing; the two beside them pay 20% each";
+}
+
+// A stacking grant answers to neither rule that thins the rest: the Bishop
+// replacing their own Ensemble with Harmony still pays, and so does the Cleric
+// beside them whose Ensemble the Bishop's book never touched.
+TEST_F(DerivedStatsTest, AStackingGrantIsNotThinnedBySupersession) {
+  Skill ensemble;
+  ensemble.set_name("Blessed Ensemble");
+  ensemble.set_kind(SKILL_KIND_PASSIVE);
+  ensemble.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  ensemble.set_max_level(10);
+  ensemble.set_ally_effect_stacks(true);
+  ensemble.mutable_ally_base()->set_exp_pct(0.20);
+  Skill harmony = ensemble;
+  harmony.set_name("Blessed Harmony");
+  harmony.set_supersedes_skill_name("Blessed Ensemble");
+  std::map<std::string, Skill> skills = {{"ensemble", ensemble},
+                                         {"harmony", harmony}};
+
+  CharacterInstance bishop = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(bishop.LearnSkill(ensemble, 1));
+  ASSERT_TRUE(bishop.LearnSkill(harmony, 1));
+  CharacterInstance cleric = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(cleric.LearnSkill(ensemble, 1));
+  std::vector<CharacterInstance> party;
+  party.push_back(std::move(bishop));
+  party.push_back(std::move(cleric));
+
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+  EXPECT_NEAR(DerivedStatsFor(plain, skills, {}, party).exp_pct, 0.40, 1e-9)
+      << "the Bishop pays once, not twice, and the Cleric still pays";
 }
 
 // Two allies with the same buff are one buff, at the better of the two levels.

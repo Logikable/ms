@@ -443,9 +443,14 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
   std::set<std::string> superseded;
   for (const CharacterInstance& ally : allies) {
     int bonus = BonusSkillLevels(ally, skills);
+    std::set<std::string> theirs = SupersededSkillNames(ally, skills, bonus);
     for (const std::pair<const std::string, Skill>& entry : skills) {
       const Skill& skill = entry.second;
-      if (!GrantsToAllies(skill) || !GrantsAnything(ally, skill, bonus)) {
+      // An Advanced X states the whole of the X it replaces, its party half
+      // included -- so a Bishop hands out Blessed Harmony and not the Blessed
+      // Ensemble under it.
+      if (theirs.count(skill.name()) > 0 || !GrantsToAllies(skill) ||
+          !GrantsAnything(ally, skill, bonus)) {
         continue;
       }
       int level = EffectiveSkillLevel(ally, skill, bonus);
@@ -455,10 +460,12 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
         best[skill.name()] = AllyGrant{&skill, level};
       }
     }
-    for (const std::string& name : SupersededSkillNames(ally, skills, bonus)) {
-      superseded.insert(name);
-    }
+    superseded.insert(theirs.begin(), theirs.end());
   }
+  // A stacking grant answers to neither rule below. It is not a buff standing
+  // over the party -- it pays for the company kept, so a second Cleric is a
+  // second payment, and a Bishop's book replacing their own copy does not
+  // reach the Cleric's.
   std::vector<AllyGrant> grants = std::move(stacking);
   for (const std::pair<const std::string, AllyGrant>& entry : best) {
     // A buff does not stack with itself: a character casting Bless already has

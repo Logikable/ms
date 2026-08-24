@@ -1,14 +1,26 @@
 # GMS masters this at 1 for +10% final damage, replacing the Cleric's Blessed
-# Ensemble. Ten levels here at 1% apiece, so the book still has a rung to
-# climb and the total is GMS's own.
+# Ensemble rather than adding to it -- a Bishop's line is 10%, not 13%. Ten
+# levels here, half a point apiece, so the book has a ladder to climb and the
+# total is GMS's own. It starts at 5.5% rather than anywhere lower because the
+# first point must clear the 3% the Ensemble ends at, or it buys a loss.
+#
+# It states the whole of what it replaces, so the EXP the Ensemble held over
+# the party is written again here -- flat at its full 20%, for the same reason
+# and because GMS raises only the damage. What the Bishop supersedes is the
+# skill, not the company they keep, so it stacks as the Ensemble did.
 #
 # It does not pass its master level. GMS masters this at 1 and does not mark it
 # for Combat Orders, so there is no level above the top for a grant to reach.
 name: "Blessed Harmony"
 skill_order: 11
-description: "Increases the effect of Blessed Ensemble."
+description:
+  "Increases the effect of Blessed Ensemble on your Final Damage, and on the "
+  "EXP earned by the Clerics beside you."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BISHOP
 max_level: 10
-base { final_dmg_pct: 0.01 }
-per_level { final_dmg_pct: 0.01 }
+supersedes_skill_name: "Blessed Ensemble"
+ally_effect_stacks: true
+base { final_dmg_pct: 0.055 }
+per_level { final_dmg_pct: 0.005 }
+ally_base { exp_pct: 0.20 }
