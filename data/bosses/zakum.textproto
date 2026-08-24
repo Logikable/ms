@@ -36,6 +36,8 @@ difficulties {
     player_spots { x: 3 y: 3 }
     player_spots { x: 0 y: 3 }
     player_spots { x: 6 y: 3 }
+    player_spots { x: 1 y: 3 }
+    player_spots { x: 5 y: 3 }
     arena_width: 7
     arena_height: 4
   }
@@ -97,6 +99,8 @@ difficulties {
     player_spots { x: 3 y: 3 }
     player_spots { x: 0 y: 3 }
     player_spots { x: 6 y: 3 }
+    player_spots { x: 1 y: 3 }
+    player_spots { x: 5 y: 3 }
     arena_width: 7
     arena_height: 4
   }

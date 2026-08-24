@@ -6,22 +6,26 @@ difficulties {
   # player out at that same end of it rather than back in the middle.
   phases {
     spawns { mob: "horntail_left_head" spots { x: 8 y: 0 } }
-    # Under the head or across from it, at either end of the arena's height:
-    # the far pair stands most of the way across the floor from the corner.
+    # Three along the top and three along the bottom, running from under the
+    # head out across the floor.
     player_spots { x: 6 y: 0 }
     player_spots { x: 3 y: 0 }
     player_spots { x: 6 y: 4 }
     player_spots { x: 3 y: 4 }
+    player_spots { x: 5 y: 0 }
+    player_spots { x: 5 y: 4 }
     arena_width: 9
     arena_height: 6
   }
   phases {
     spawns { mob: "horntail_right_head" spots { x: 0 y: 0 } }
-    # The same four, mirrored: this head stands in the other corner.
+    # The same six, mirrored: this head stands in the other corner.
     player_spots { x: 2 y: 0 }
     player_spots { x: 5 y: 0 }
     player_spots { x: 2 y: 4 }
     player_spots { x: 5 y: 4 }
+    player_spots { x: 3 y: 0 }
+    player_spots { x: 3 y: 4 }
     arena_width: 9
     arena_height: 6
   }
@@ -83,22 +87,26 @@ difficulties {
   name: "Chaos"
   phases {
     spawns { mob: "chaos_horntail_left_head" spots { x: 8 y: 0 } }
-    # Under the head or across from it, at either end of the arena's height:
-    # the far pair stands most of the way across the floor from the corner.
+    # Three along the top and three along the bottom, running from under the
+    # head out across the floor.
     player_spots { x: 6 y: 0 }
     player_spots { x: 3 y: 0 }
     player_spots { x: 6 y: 4 }
     player_spots { x: 3 y: 4 }
+    player_spots { x: 5 y: 0 }
+    player_spots { x: 5 y: 4 }
     arena_width: 9
     arena_height: 6
   }
   phases {
     spawns { mob: "chaos_horntail_right_head" spots { x: 0 y: 0 } }
-    # The same four, mirrored: this head stands in the other corner.
+    # The same six, mirrored: this head stands in the other corner.
     player_spots { x: 2 y: 0 }
     player_spots { x: 5 y: 0 }
     player_spots { x: 2 y: 4 }
     player_spots { x: 5 y: 4 }
+    player_spots { x: 3 y: 0 }
+    player_spots { x: 3 y: 4 }
     arena_width: 9
     arena_height: 6
   }

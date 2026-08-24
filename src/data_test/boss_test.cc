@@ -302,12 +302,14 @@ TEST(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 }
 
 // How much room each fight gives the player is a design decision, so the
-// count per phase is pinned: five among Zakum's arms and three under his
-// body, four around each of Horntail's heads and six around the dragon, three
-// on Hilla's floor. Every difficulty of a boss is laid out alike.
+// count per phase is pinned: five among Zakum's arms and five under his body,
+// six around each of Horntail's heads and six around the dragon, five on
+// Hilla's floor. Every difficulty of a boss is laid out alike, and every phase
+// holds more than a full party, so a party of three always has somewhere left
+// to walk.
 TEST(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {5, 3}}, {"hilla", {3}}, {"horntail", {4, 4, 6}}};
+      {"zakum", {5, 5}}, {"hilla", {5}}, {"horntail", {6, 6, 6}}};
   std::map<std::string, Boss> bosses = LoadBosses();
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses.count(want.first), 0u) << want.first;
