@@ -9,9 +9,9 @@ difficulties {
     # Three along the top and three along the bottom, running from under the
     # head out across the floor.
     player_spots { x: 6 y: 0 }
-    player_spots { x: 3 y: 0 }
+    player_spots { x: 4 y: 0 }
     player_spots { x: 6 y: 4 }
-    player_spots { x: 3 y: 4 }
+    player_spots { x: 4 y: 4 }
     player_spots { x: 5 y: 0 }
     player_spots { x: 5 y: 4 }
     arena_width: 9
@@ -21,9 +21,9 @@ difficulties {
     spawns { mob: "horntail_right_head" spots { x: 0 y: 0 } }
     # The same six, mirrored: this head stands in the other corner.
     player_spots { x: 2 y: 0 }
-    player_spots { x: 5 y: 0 }
+    player_spots { x: 4 y: 0 }
     player_spots { x: 2 y: 4 }
-    player_spots { x: 5 y: 4 }
+    player_spots { x: 4 y: 4 }
     player_spots { x: 3 y: 0 }
     player_spots { x: 3 y: 4 }
     arena_width: 9
@@ -90,9 +90,9 @@ difficulties {
     # Three along the top and three along the bottom, running from under the
     # head out across the floor.
     player_spots { x: 6 y: 0 }
-    player_spots { x: 3 y: 0 }
+    player_spots { x: 4 y: 0 }
     player_spots { x: 6 y: 4 }
-    player_spots { x: 3 y: 4 }
+    player_spots { x: 4 y: 4 }
     player_spots { x: 5 y: 0 }
     player_spots { x: 5 y: 4 }
     arena_width: 9
@@ -102,9 +102,9 @@ difficulties {
     spawns { mob: "chaos_horntail_right_head" spots { x: 0 y: 0 } }
     # The same six, mirrored: this head stands in the other corner.
     player_spots { x: 2 y: 0 }
-    player_spots { x: 5 y: 0 }
+    player_spots { x: 4 y: 0 }
     player_spots { x: 2 y: 4 }
-    player_spots { x: 5 y: 4 }
+    player_spots { x: 4 y: 4 }
     player_spots { x: 3 y: 0 }
     player_spots { x: 3 y: 4 }
     arena_width: 9
