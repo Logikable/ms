@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "src/combat/boss_timing.h"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
 #include "src/game_state.h"
@@ -26,18 +27,9 @@
 
 namespace ms {
 
-// The pause before the fight starts, so the player can see what they are up
-// against before anything moves.
-inline constexpr double kBossCountdownSeconds = 3.0;
 // How long a dead monster's bar stays on screen. Its slot is not filled again
 // -- the player watched it die there.
 inline constexpr double kBossDeathHoldSeconds = 1.0;
-// The beat between a phase ending and the next arriving.
-inline constexpr double kBossPhaseGapSeconds = 2.0;
-// How long a finished fight is held before the screen goes back. An abort
-// takes no hold at all: the player asked to leave, and there is nothing left
-// on screen for them to watch.
-inline constexpr double kBossEndHoldSeconds = 1.0;
 
 // How long a stack of damage numbers stays on screen.
 inline constexpr double kDamageStackSeconds = 0.9;

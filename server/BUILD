@@ -47,6 +47,32 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "fight",
+    srcs = ["fight.cc"],
+    hdrs = ["fight.h"],
+    deps = [
+        "//src:spawn",
+        "//src/combat:boss_timing",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "fight_test",
+    srcs = ["fight_test.cc"],
+    deps = [
+        ":fight",
+        "//src/combat:boss_timing",
+        "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
+        "//src/protos:multiplayer_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "lobby_test",
     srcs = ["lobby_test.cc"],

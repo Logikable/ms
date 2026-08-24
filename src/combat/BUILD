@@ -104,10 +104,16 @@ cc_test(
 )
 
 cc_library(
+    name = "boss_timing",
+    hdrs = ["boss_timing.h"],
+)
+
+cc_library(
     name = "boss_run",
     srcs = ["boss_run.cc"],
     hdrs = ["boss_run.h"],
     deps = [
+        ":boss_timing",
         ":combat",
         ":encounter",
         ":fight",
