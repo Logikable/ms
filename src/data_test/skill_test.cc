@@ -1102,22 +1102,14 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
 // yet. Dispel is out for a duller reason: what it cures is a display-only
 // lever, so an ally half of it would grant a row and nothing else.
 const char* const kPartySkills[] = {
-    "Absolute Zero Aura",
-    "Advanced Blessing",
-    "Angel Ray",
-    "Bless",
-    "Blessed Ensemble",
-    "Blessed Harmony",
-    "Combat Orders",
-    "Hex of the Evil Eye",
-    "Holy Fountain",
-    "Holy Symbol",
-    "Holy Water",
-    "Meditation",
-    "Parashock Guard",
-    "Puncture",
-    "Sharp Eyes",
-    "Spirit Blade",
+    "Absolute Zero Aura", "Advanced Blessing",
+    "Angel Ray",          "Bless",
+    "Blessed Ensemble",   "Blessed Harmony",
+    "Combat Orders",      "Hex of the Evil Eye",
+    "Holy Fountain",      "Holy Symbol",
+    "Holy Water",         "Meditation",
+    "Parashock Guard",    "Puncture",
+    "Sharp Eyes",         "Spirit Blade",
 };
 
 TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
@@ -1133,6 +1125,26 @@ TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
     found.insert(skill.name());
   }
   EXPECT_EQ(found, want);
+}
+
+// A description has to match the grant: a skill the party feels says so, and
+// one that says so grants it. Two skills are excused, and GMS excuses both.
+// Puncture's party clause lives in its readout rather than its flavour text.
+// Blessed Harmony hands out nothing of its own -- it restates the Ensemble it
+// replaces, and names it, and the Ensemble's own page says what that is worth.
+// Either way the card's Your Party row still carries the number.
+TEST(SkillDataTest, ADescriptionSaysWhetherThePartyIsReached) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.name() == "Puncture" || skill.name() == "Blessed Harmony") {
+      continue;
+    }
+    bool reaches = skill.has_ally_base() || skill.has_ally_per_level() ||
+                   skill.requires_party();
+    bool says = skill.description().find("party") != std::string::npos;
+    EXPECT_EQ(reaches, says)
+        << entry.first << ": \"" << skill.description() << "\"";
+  }
 }
 
 // Parashock Guard is the only skill whose own half waits on a party, and its

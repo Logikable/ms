@@ -10,8 +10,9 @@
 name: "Blessed Ensemble"
 skill_order: 2
 description:
-  "Blessings increase your Final Damage, and the EXP earned by the Clerics "
-  "beside you."
+  "Blessings increase your Final Damage. Obtains additional EXP based on the "
+  "number of Clerics, Priests, Bishops in the party. Your own effects do not "
+  "apply to you."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CLERIC
 max_level: 10
