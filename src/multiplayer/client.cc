@@ -23,8 +23,8 @@ constexpr std::chrono::seconds kConnectTimeout(5);
 // Stop() is answered promptly and the heartbeat is never late.
 constexpr std::chrono::milliseconds kPumpTimeout(50);
 
-constexpr char kUnreachableMessage[] = "Cannot reach the server. Trying again.";
-constexpr char kLostMessage[] = "Lost the connection. Trying again.";
+constexpr char kUnreachableMessage[] = "Cannot reach the server.";
+constexpr char kLostMessage[] = "Lost connection.";
 
 // Pushes the whole of `outgoing`, waiting on a socket that fills up. Only the
 // Hello goes out this way: everything after it rides the connection's own

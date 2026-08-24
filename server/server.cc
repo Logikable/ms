@@ -25,8 +25,7 @@ namespace {
 // What a player is told when their build is not the server's.
 constexpr char kUpdateMessage[] =
     "This version of the game cannot play with others. Update it to join.";
-constexpr char kMaintenanceMessage[] =
-    "The server is being updated. Try again in a minute.";
+constexpr char kMaintenanceMessage[] = "The server went down.";
 
 // Characters in an account id and in the token that proves it. The id is
 // short enough to read in a log line; the token is long enough that guessing
