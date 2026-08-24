@@ -3,8 +3,8 @@
  *
  * One thread runs the whole thing. Every socket is non-blocking and one poll
  * covers all of them, so a session that stops reading slows nobody down, and
- * the fight simulation that lands later can step in the same pass without
- * anything having to be made thread-safe.
+ * the fights step in the same pass without anything having to be made
+ * thread-safe.
  *
  * Accounts live in memory. The server hands out an id and a token to a player
  * it has never seen, and adopts one it does not recognise -- so a restart
@@ -22,9 +22,11 @@
 #include <string>
 #include <vector>
 
+#include "server/fight.h"
 #include "server/lobby.h"
 #include "src/net/socket.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/mob.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
@@ -35,10 +37,12 @@ inline constexpr int kMaxSessions = 64;
 
 class Server {
  public:
-  // `listener` must be an open listening socket. `bosses` is the fight
-  // catalog, owned by the caller and outliving the server. `seed` fixes the
+  // `listener` must be an open listening socket. `bosses` and `mobs` are the
+  // catalogs, owned by the caller and outliving the server: the fights a party
+  // may ask for, and the monsters those fights stand up. `seed` fixes the
   // stream ids are drawn from, so a test can say what it will be handed.
   Server(Socket listener, const std::map<std::string, Boss>& bosses,
+         const std::map<std::string, Mob>& mobs,
          unsigned int seed = std::random_device()());
 
   // One pass of the loop: wait up to `timeout` for a socket to be ready, take
@@ -55,6 +59,10 @@ class Server {
 
   // Connections that have said hello and not yet gone.
   int player_count() const;
+  // Fights being fought right now.
+  int fight_count() const {
+    return static_cast<int>(fights_.size());
+  }
   // Connections at all, handshake or no.
   int session_count() const {
     return static_cast<int>(sessions_.size());
@@ -90,6 +98,25 @@ class Server {
   // Sends everyone whatever the lobby changed: their own party to the players
   // it moved, and the open list to everybody once it has.
   void PublishLobby();
+
+  // Stands up the fight a party has just been let into.
+  void OpenFight(const std::string& account_id, const StartFight& request);
+  // Runs every fight's clock on. Before the reads, so a report that arrives
+  // in the same pass as the end of the count-in still lands.
+  void StepFights(std::chrono::steady_clock::time_point now);
+  // Sends each party what its fight looks like, on the beat, and lets go of
+  // the ones that have finished.
+  void PublishFights(std::chrono::steady_clock::time_point now);
+  // Sends everyone in `fight` the state of it, and takes the lines it has just
+  // passed on.
+  void PublishFight(PartyFight& fight);
+  // Tells everyone still in `fight` how it ended and hands the party back to
+  // the lobby.
+  void CloseFight(const std::string& party_id, const PartyFight& fight);
+  // The fight `account_id` is in, or null.
+  PartyFight* FightOf(const std::string& account_id);
+  // Takes what one client's fight has landed.
+  void HandleFightUpdate(Session& session, const FightUpdate& update);
   // The session `account_id` is playing on, or null if they have gone.
   Session* FindSession(const std::string& account_id);
 
@@ -128,7 +155,17 @@ class Server {
   // but its version.
   std::string ResolveAccount(const Hello& hello, std::string& token);
   Socket listener_;
+  const std::map<std::string, Boss>* bosses_ = nullptr;
+  const std::map<std::string, Mob>* mobs_ = nullptr;
   Lobby lobby_;
+  // The fights being fought, by the party fighting each one. A party has at
+  // most one, and it is not in the lobby list while it lasts.
+  std::map<std::string, std::unique_ptr<PartyFight>> fights_;
+  // When the last pass ran and when the next fight broadcast is due. A fight
+  // is stepped by real time, and told to its party ten times a second rather
+  // than every time a socket wakes the loop.
+  std::chrono::steady_clock::time_point stepped_at_;
+  std::chrono::steady_clock::time_point publish_fights_at_;
   std::vector<std::unique_ptr<Session>> sessions_;
   int64_t next_session_id_ = 1;
   // Every account the server has seen since it started, and the token that

@@ -18,6 +18,7 @@
 #include "src/net/socket.h"
 #include "src/proto_loader.h"
 #include "src/protos/boss.pb.h"
+#include "src/protos/mob.pb.h"
 
 ABSL_FLAG(int, port, ms::kServerPort, "The port to listen on.");
 ABSL_FLAG(std::string, log_dir, "",
@@ -74,7 +75,11 @@ int main(int argc, char** argv) {
   // to know what a party means by "Normal Zakum" to let them at it.
   std::map<std::string, ms::Boss> bosses =
       ms::LoadTextProtoMap<ms::Boss>(ms::EmbeddedBosses());
-  ms::Server server(std::move(*listener), bosses);
+  // The monsters those fights stand up, for the HP the shared roster is made
+  // of. Nothing else about a monster is the server's business.
+  std::map<std::string, ms::Mob> mobs =
+      ms::LoadTextProtoMap<ms::Mob>(ms::EmbeddedMobs());
+  ms::Server server(std::move(*listener), bosses, mobs);
   LOG(INFO) << "Listening on port " << port << ", protocol version "
             << ms::kMultiplayerVersion;
 

@@ -82,6 +82,46 @@ std::string Became(const PlayerInfo& before, const PlayerInfo& after) {
   return absl::StrJoin(changes, " and ");
 }
 
+// How often a fight is told to the party fighting it. Ten times a second: a
+// bar and a damage number are watched, not aimed at.
+constexpr std::chrono::milliseconds kFightPublishInterval(100);
+
+// The fight's own state as the wire spells it. Only the three it can be in
+// while it runs; the ways of being over ride FightEnded.
+FightState::Stage StageOf(PartyFightState state) {
+  switch (state) {
+    case PartyFightState::kCountdown:
+      return FightState::COUNTDOWN;
+    case PartyFightState::kPhaseGap:
+      return FightState::PHASE_GAP;
+    default:
+      return FightState::FIGHTING;
+  }
+}
+
+FightEnded::Outcome OutcomeOf(PartyFightState state) {
+  switch (state) {
+    case PartyFightState::kWon:
+      return FightEnded::CLEARED;
+    case PartyFightState::kTimedOut:
+      return FightEnded::TIMED_OUT;
+    default:
+      return FightEnded::ABANDONED;
+  }
+}
+
+// How a finished fight reads in the log.
+std::string Became(PartyFightState state) {
+  switch (state) {
+    case PartyFightState::kWon:
+      return "cleared";
+    case PartyFightState::kTimedOut:
+      return "ran out of time on";
+    default:
+      return "abandoned";
+  }
+}
+
 // What a lobby message asked for, as a line for the log.
 std::string AskedFor(const ClientMessage& message) {
   switch (message.kind_case()) {
@@ -109,8 +149,10 @@ std::string AskedFor(const ClientMessage& message) {
 }  // namespace
 
 Server::Server(Socket listener, const std::map<std::string, Boss>& bosses,
-               unsigned int seed)
+               const std::map<std::string, Mob>& mobs, unsigned int seed)
     : listener_(std::move(listener)),
+      bosses_(&bosses),
+      mobs_(&mobs),
       lobby_(bosses, OtherStream(seed)),
       rng_(seed) {
 }
@@ -134,6 +176,10 @@ void Server::Step(std::chrono::steady_clock::time_point now,
   }
   Poll(targets, timeout);
 
+  // Ahead of the reads, so a report that arrives in the same pass as the end
+  // of the count-in lands rather than falling into a fight that has not
+  // started yet.
+  StepFights(now);
   size_t next = 0;
   if (listener_.valid()) {
     if (targets[0].readable) {
@@ -154,6 +200,7 @@ void Server::Step(std::chrono::steady_clock::time_point now,
   }
   // Before the writes, so that whatever the reads changed goes out in the
   // same pass rather than a poll later.
+  PublishFights(now);
   PublishLobby();
   for (const std::unique_ptr<Session>& session : sessions_) {
     if (session->socket.valid() && !session->outgoing.empty() &&
@@ -176,6 +223,10 @@ void Server::DropFinished(std::chrono::steady_clock::time_point now) {
     }
     if (!session->socket.valid() && !session->account_id.empty()) {
       LOG(INFO) << Describe(*session) << " disconnected";
+      PartyFight* fight = FightOf(session->account_id);
+      if (fight != nullptr) {
+        fight->Disconnect(session->account_id);
+      }
       lobby_.Disconnect(session->account_id);
       session->account_id.clear();
     }
@@ -188,6 +239,122 @@ void Server::DropFinished(std::chrono::steady_clock::time_point now) {
   // A player leaving changes what the others can see, and the sessions left
   // to tell are the ones still here.
   PublishLobby();
+}
+
+void Server::OpenFight(const std::string& account_id,
+                       const StartFight& request) {
+  Party party = lobby_.StateFor(account_id);
+  std::map<std::string, Boss>::const_iterator boss =
+      bosses_->find(request.boss_key());
+  if (party.id().empty() || boss == bosses_->end()) {
+    return;
+  }
+  fights_[party.id()] =
+      std::make_unique<PartyFight>(request.boss_key(), boss->second,
+                                   request.difficulty_index(), *mobs_, party);
+  // The first state a client sees is how it learns the fight has begun, so it
+  // goes out now rather than on the next broadcast beat.
+  PublishFight(*fights_[party.id()]);
+}
+
+PartyFight* Server::FightOf(const std::string& account_id) {
+  std::string party_id = lobby_.StateFor(account_id).id();
+  if (party_id.empty()) {
+    return nullptr;
+  }
+  std::map<std::string, std::unique_ptr<PartyFight>>::iterator found =
+      fights_.find(party_id);
+  return found == fights_.end() ? nullptr : found->second.get();
+}
+
+void Server::HandleFightUpdate(Session& session, const FightUpdate& update) {
+  PartyFight* fight = FightOf(session.account_id);
+  if (fight != nullptr) {
+    fight->Report(session.account_id, update);
+  }
+}
+
+void Server::StepFights(std::chrono::steady_clock::time_point now) {
+  double dt = std::chrono::duration<double>(now - stepped_at_).count();
+  // The first pass has no last one to measure from.
+  if (stepped_at_ == std::chrono::steady_clock::time_point()) {
+    dt = 0.0;
+  }
+  stepped_at_ = now;
+  for (std::pair<const std::string, std::unique_ptr<PartyFight>>& entry :
+       fights_) {
+    entry.second->Advance(dt);
+  }
+}
+
+void Server::PublishFights(std::chrono::steady_clock::time_point now) {
+  bool beat = now >= publish_fights_at_;
+  if (beat) {
+    publish_fights_at_ = now + kFightPublishInterval;
+  }
+  std::vector<std::string> finished;
+  for (std::pair<const std::string, std::unique_ptr<PartyFight>>& entry :
+       fights_) {
+    if (beat) {
+      PublishFight(*entry.second);
+    }
+    if (entry.second->done()) {
+      finished.push_back(entry.first);
+    }
+  }
+  for (const std::string& party_id : finished) {
+    CloseFight(party_id, *fights_[party_id]);
+    fights_.erase(party_id);
+  }
+}
+
+void Server::PublishFight(PartyFight& fight) {
+  ServerMessage message;
+  FightState* state = message.mutable_fight_state();
+  state->set_boss_key(fight.boss_key());
+  state->set_difficulty_index(fight.difficulty_index());
+  state->set_stage(StageOf(fight.state()));
+  state->set_phase(fight.phase());
+  state->set_seconds_left(fight.seconds_left());
+  state->set_countdown_left(fight.countdown_left());
+  for (double hp : fight.hp_fractions()) {
+    state->add_hp_fractions(hp);
+  }
+  for (const FightPlayer& player : fight.players()) {
+    FightPlayerState* drawn = state->add_players();
+    drawn->set_account_id(player.account_id);
+    drawn->set_name(player.name);
+    drawn->set_spot(player.spot);
+    drawn->set_present(player.present);
+    drawn->set_attack_name(player.attack_name);
+    drawn->set_attack_fraction(player.attack_fraction);
+    for (const FightDamage& line : player.lines) {
+      *drawn->add_lines() = line;
+    }
+  }
+  for (const FightPlayer& player : fight.players()) {
+    Session* session = FindSession(player.account_id);
+    if (session != nullptr && !session->closing) {
+      Send(*session, message);
+    }
+  }
+  fight.TakeLines();
+}
+
+void Server::CloseFight(const std::string& party_id, const PartyFight& fight) {
+  LOG(INFO) << "Party " << party_id << " " << Became(fight.state()) << " "
+            << fight.boss_key();
+  ServerMessage message;
+  FightEnded* ended = message.mutable_fight_ended();
+  ended->set_outcome(OutcomeOf(fight.state()));
+  ended->set_share_count(fight.share_count());
+  for (const FightPlayer& player : fight.players()) {
+    Session* session = FindSession(player.account_id);
+    if (player.present && session != nullptr && !session->closing) {
+      Send(*session, message);
+    }
+  }
+  lobby_.FinishFight(party_id);
 }
 
 void Server::PublishLobby() {
@@ -330,6 +497,10 @@ void Server::Handle(Session& session, const ClientMessage& message) {
     case ClientMessage::kHello:
       Reject(session, Rejected::REASON_MALFORMED, "Already greeted.");
       return;
+    case ClientMessage::kFightUpdate:
+      // Ten of these a second per player. Nothing is logged for them.
+      HandleFightUpdate(session, message.fight_update());
+      return;
     case ClientMessage::KIND_NOT_SET:
       Reject(session, Rejected::REASON_MALFORMED, "Empty message.");
       return;
@@ -400,6 +571,9 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
     return;
   }
   LOG(INFO) << Describe(session) << " " << asked;
+  if (message.kind_case() == ClientMessage::kStartFight) {
+    OpenFight(session.account_id, message.start_fight());
+  }
 }
 
 void Server::HandleHello(Session& session, const Hello& hello) {

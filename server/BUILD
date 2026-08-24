@@ -89,6 +89,7 @@ cc_library(
     srcs = ["server.cc"],
     hdrs = ["server.h"],
     deps = [
+        ":fight",
         ":ids",
         ":lobby",
         "//src/character",
@@ -96,6 +97,7 @@ cc_library(
         "//src/multiplayer:protocol",
         "//src/net:socket",
         "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
         "//src/protos:multiplayer_proto_cc",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/strings",
@@ -113,6 +115,7 @@ cc_binary(
         "//src/multiplayer:protocol",
         "//src/net:socket",
         "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",
@@ -131,6 +134,7 @@ cc_library(
         ":server",
         "//src/net:socket",
         "//src/protos:boss_proto_cc",
+        "//src/protos:mob_proto_cc",
     ],
 )
 
@@ -176,6 +180,7 @@ cc_test(
         "//src/net:socket",
         "//src/protos:boss_proto_cc",
         "//src/protos:character_proto_cc",
+        "//src/protos:mob_proto_cc",
         "//src/protos:multiplayer_proto_cc",
         "@abseil-cpp//absl/log:log_entry",
         "@abseil-cpp//absl/log:log_sink",

@@ -47,6 +47,14 @@ struct FightPlayer {
   // False once their client has gone. They stop dealing damage and are paid
   // nothing, and the fight goes on without them.
   bool present = true;
+  // What they are winding up, for the bar over their panel on everyone else's
+  // screen.
+  std::string attack_name;
+  double attack_fraction = 0.0;
+  // What they have landed since the last broadcast took these away. Held here
+  // rather than in the fight's own state because it is a relay: the server
+  // passes it on and forgets it.
+  std::vector<FightDamage> lines;
 };
 
 class PartyFight {
@@ -60,6 +68,16 @@ class PartyFight {
   // Steps the countdown, the clock and the beats between phases by
   // elapsed_seconds of real time. Does nothing once the fight is over.
   void Advance(double elapsed_seconds);
+
+  // Takes one client's report: what it landed comes off the roster and is
+  // held for the other players to watch, and its player's spot and swing are
+  // taken as they stand. Damage from a phase that has moved on is dropped;
+  // where the player is standing is taken either way.
+  void Report(const std::string& account_id, const FightUpdate& update);
+
+  // Empties every player's line buffer. Called by the broadcast that has just
+  // taken them.
+  void TakeLines();
 
   // Takes `damage` off the monster standing in `slot`. Damage from a player
   // who has gone, for a slot the phase does not hold, or landed while nothing

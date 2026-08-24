@@ -58,6 +58,10 @@ class Lobby {
   LobbyResult Start(const std::string& account_id, const StartFight& request,
                     int64_t now);
 
+  // Puts a party whose fight is over back in the list. Everyone's ready goes
+  // with it: what they said yes to was that fight.
+  void FinishFight(const std::string& party_id);
+
   // Takes a character's new level or name into whatever party they are in.
   // Nothing to do for a player who is in none.
   void UpdatePlayer(const PlayerInfo& player);

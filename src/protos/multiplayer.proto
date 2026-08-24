@@ -117,6 +117,97 @@ message PromoteMember {
   string account_id = 1;
 }
 
+// One line of damage as it landed, named by the monster it fell on rather
+// than by anything the client made up: `slot` is a place in the phase's
+// roster, counted in the order the phase spawns its monsters, so both ends
+// mean the same monster by the same number.
+//
+// The damage is the whole number the player watched fly off, which is also
+// what comes off the shared roster. What is drawn and what the boss loses
+// cannot drift apart if they are the same figure.
+message FightDamage {
+  int32 slot = 1;
+  // Shared by every line one attack put on one monster, so a swing of eight
+  // reads as one stack of eight rather than eight stacks of one.
+  int32 event = 2;
+  // What did it, as DamageOrigin and the index inside it -- which summon,
+  // which burn. One monster holds at most one stack per player per source.
+  int32 origin = 3;
+  int32 source_index = 4;
+  int64 damage = 5;
+  bool crit = 6;
+}
+
+// What one client's fight has landed since it last spoke, and what its player
+// is doing. Sent while a fight is on and at no other time.
+message FightUpdate {
+  repeated FightDamage lines = 1;
+  // Which phase these landed in. A report that crosses a phase change is
+  // dropped rather than taken off the next phase's roster.
+  int32 phase = 2;
+  // Which of the phase's player spots this player has walked to. The client
+  // walks first and the server says whether the spot was free.
+  int32 spot = 3;
+  // The swing being charged and how far along it is, for the bar over this
+  // player's panel on everyone else's screen.
+  string attack_name = 4;
+  double attack_fraction = 5;
+}
+
+// One player as the rest of the party sees them mid-fight.
+message FightPlayerState {
+  string account_id = 1;
+  string name = 2;
+  int32 spot = 3;
+  // False once their client has gone. They deal no more damage and are paid
+  // nothing, and the fight goes on without them.
+  bool present = 4;
+  string attack_name = 5;
+  double attack_fraction = 6;
+  // What they have landed since the last of these. A client skips its own:
+  // it drew those numbers when it landed them.
+  repeated FightDamage lines = 7;
+}
+
+// The fight as the server has it, sent to everyone in it about ten times a
+// second. The first one a client receives is how it learns the fight has
+// begun.
+message FightState {
+  // What the fight is doing. The ways of being over are in FightEnded.
+  enum Stage {
+    STAGE_UNSPECIFIED = 0;
+    COUNTDOWN = 1;
+    FIGHTING = 2;
+    PHASE_GAP = 3;
+  }
+  string boss_key = 1;
+  int32 difficulty_index = 2;
+  Stage stage = 3;
+  // Counting from 0, as the difficulty's phases are.
+  int32 phase = 4;
+  double seconds_left = 5;
+  double countdown_left = 6;
+  // What every monster of the phase has left, one per slot.
+  repeated double hp_fractions = 7;
+  repeated FightPlayerState players = 8;
+}
+
+// The fight is over. What it paid is worked out by each client for itself:
+// the meso and the drop odds are split by `share_count`, and the EXP is not.
+message FightEnded {
+  enum Outcome {
+    OUTCOME_UNSPECIFIED = 0;
+    CLEARED = 1;
+    TIMED_OUT = 2;
+    // Every client left. Nobody is paid and nobody's entry is spent.
+    ABANDONED = 3;
+  }
+  Outcome outcome = 1;
+  // How many players the fight started with, which is what a clear is split
+  // by. A player who leaves does not make the rest richer.
+  int32 share_count = 2;
+}
+
 // The heartbeat. A session that goes quiet for kSessionTimeout is dropped.
 message Ping {}
 
@@ -132,6 +223,7 @@ message ClientMessage {
     SetReady set_ready = 8;
     KickMember kick_member = 9;
     PromoteMember promote_member = 10;
+    FightUpdate fight_update = 11;
   }
 }
 
@@ -226,5 +318,7 @@ message ServerMessage {
     PartyState party_state = 5;
     Pong pong = 6;
     PartyEvent party_event = 7;
+    FightState fight_state = 8;
+    FightEnded fight_ended = 9;
   }
 }

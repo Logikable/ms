@@ -107,6 +107,41 @@ TEST_F(FightTest, EverybodyHitsTheOneRoster) {
   EXPECT_EQ(fight_.hp_fractions()[1], 1.0);
 }
 
+TEST_F(FightTest, AReportLandsWalksAndWindsUp) {
+  CountIn();
+  FightUpdate update;
+  update.set_spot(3);
+  update.set_attack_name("Blizzard");
+  update.set_attack_fraction(0.5);
+  FightDamage* line = update.add_lines();
+  line->set_slot(0);
+  line->set_damage(50);
+
+  fight_.Report("one", update);
+  EXPECT_EQ(fight_.hp_fractions()[0], 0.5);
+  EXPECT_EQ(fight_.players()[0].spot, 3);
+  EXPECT_EQ(fight_.players()[0].attack_name, "Blizzard");
+  EXPECT_EQ(fight_.players()[0].attack_fraction, 0.5);
+  // Held for the other players to watch until the broadcast takes them.
+  EXPECT_EQ(fight_.players()[0].lines.size(), 1u);
+  fight_.TakeLines();
+  EXPECT_TRUE(fight_.players()[0].lines.empty());
+}
+
+TEST_F(FightTest, AReportFromAPhaseThatHasMovedOnLandsNothing) {
+  CountIn();
+  FightUpdate update;
+  update.set_phase(1);
+  update.set_spot(3);
+  update.add_lines()->set_damage(50);
+
+  fight_.Report("one", update);
+  EXPECT_EQ(fight_.hp_fractions()[0], 1.0);
+  EXPECT_TRUE(fight_.players()[0].lines.empty());
+  // Where they are standing is theirs to say whatever the numbers did.
+  EXPECT_EQ(fight_.players()[0].spot, 3);
+}
+
 TEST_F(FightTest, DropsDamageItCannotPlace) {
   CountIn();
 

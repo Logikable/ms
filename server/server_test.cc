@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -17,6 +18,7 @@
 #include "src/net/socket.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/character.pb.h"
+#include "src/protos/mob.pb.h"
 #include "src/protos/multiplayer.pb.h"
 
 namespace ms {
@@ -80,12 +82,32 @@ class TestClient {
 };
 
 // One fight for the parties in these tests to name.
+// One fight, of one monster with 1000 HP, in a room with three places to
+// stand.
+constexpr int64_t kMobHp = 1000;
+
 std::map<std::string, Boss> Bosses() {
   std::map<std::string, Boss> bosses;
   Boss& zakum = bosses["zakum"];
   zakum.set_name("Zakum");
-  zakum.add_difficulties()->set_name("Normal");
+  BossDifficulty* normal = zakum.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_time_limit_seconds(300);
+  BossPhase* phase = normal->add_phases();
+  Spawn* spawn = phase->add_spawns();
+  spawn->set_mob("zakum");
+  spawn->add_spots()->set_x(1);
+  for (int i = 0; i < 3; ++i) {
+    phase->add_player_spots()->set_x(i);
+  }
   return bosses;
+}
+
+std::map<std::string, Mob> Mobs() {
+  std::map<std::string, Mob> mobs;
+  mobs["zakum"].set_name("Zakum");
+  mobs["zakum"].set_max_hp(kMobHp);
+  return mobs;
 }
 
 // What a client asks for when it wants a party of its own.
@@ -125,7 +147,7 @@ class ServerTest : public ::testing::Test {
     std::optional<Socket> listener = Listen(0);
     ASSERT_TRUE(listener.has_value());
     port_ = LocalPort(*listener);
-    server_ = std::make_unique<Server>(std::move(*listener), bosses_, 7);
+    server_ = std::make_unique<Server>(std::move(*listener), bosses_, mobs_, 7);
   }
 
   // Runs the server until `ready` says the test can go on. False means it
@@ -171,6 +193,7 @@ class ServerTest : public ::testing::Test {
   }
 
   std::map<std::string, Boss> bosses_ = Bosses();
+  std::map<std::string, Mob> mobs_ = Mobs();
   int port_ = 0;
   std::unique_ptr<Server> server_;
   // The clock the server is stepped against, moved by the tests that care.
@@ -411,6 +434,171 @@ TEST_F(ServerTest, RefusesAFightItCannotRun) {
   ServerMessage refused = AwaitKind(*client, ServerMessage::kRefused);
   EXPECT_EQ(refused.refused().reason(), Refused::REASON_UNKNOWN_BOSS);
   EXPECT_FALSE(refused.refused().message().empty());
+}
+
+// A party of two in a fight, with both clients holding nothing unread.
+class FightTest : public ServerTest {
+ protected:
+  void SetUp() override {
+    ServerTest::SetUp();
+    leader_ = Greeted("Dagger", &leader_welcome_);
+    member_ = Greeted("Wand", &member_welcome_);
+    leader_->Send(CreatePartyMessage());
+    std::string party_id = AwaitKind(*leader_, ServerMessage::kPartyState)
+                               .party_state()
+                               .party()
+                               .id();
+    ClientMessage join;
+    join.mutable_join_party()->set_party_id(party_id);
+    member_->Send(join);
+    AwaitKind(*member_, ServerMessage::kPartyState);
+    ClientMessage ready;
+    ready.mutable_set_ready()->set_ready(true);
+    member_->Send(ready);
+    AwaitKind(*member_, ServerMessage::kPartyState);
+
+    ClientMessage start;
+    start.mutable_start_fight()->set_boss_key("zakum");
+    leader_->Send(start);
+  }
+
+  // Runs the server on a clock that keeps moving, which is what a fight needs:
+  // its beats come round on the clock rather than on the sockets. Bounded, so
+  // a fight cannot run the session timeout out from under its own clients.
+  bool TickUntil(const std::function<bool()>& ready) {
+    for (int pass = 0; pass < 400; ++pass) {
+      now_ += milliseconds(20);
+      server_->Step(now_, milliseconds(1));
+      if (ready()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // The next fight state `client` is sent that `ready` accepts.
+  FightState AwaitFight(TestClient& client,
+                        const std::function<bool(const FightState&)>& ready) {
+    FightState found;
+    ServerMessage message;
+    EXPECT_TRUE(TickUntil([&]() {
+      if (!client.Take(message) ||
+          message.kind_case() != ServerMessage::kFightState ||
+          !ready(message.fight_state())) {
+        return false;
+      }
+      found = message.fight_state();
+      return true;
+    }));
+    return found;
+  }
+
+  // The next fight state at all, whatever it says.
+  FightState AwaitFight(TestClient& client) {
+    return AwaitFight(client, [](const FightState&) { return true; });
+  }
+
+  FightEnded AwaitEnd(TestClient& client) {
+    FightEnded found;
+    ServerMessage message;
+    EXPECT_TRUE(TickUntil([&]() {
+      if (!client.Take(message) ||
+          message.kind_case() != ServerMessage::kFightEnded) {
+        return false;
+      }
+      found = message.fight_ended();
+      return true;
+    }));
+    return found;
+  }
+
+  // What one client says it landed on the only monster in the fight.
+  ClientMessage Landed(int64_t damage) {
+    ClientMessage message;
+    FightUpdate* update = message.mutable_fight_update();
+    update->set_attack_name("Blizzard");
+    update->set_attack_fraction(0.25);
+    FightDamage* line = update->add_lines();
+    line->set_damage(damage);
+    return message;
+  }
+
+  // Both clients past the count-in, holding nothing unread about the fight.
+  void CountIn() {
+    AwaitFight(*leader_, [](const FightState& state) {
+      return state.stage() == FightState::FIGHTING;
+    });
+    AwaitFight(*member_, [](const FightState& state) {
+      return state.stage() == FightState::FIGHTING;
+    });
+  }
+
+  Welcome leader_welcome_;
+  Welcome member_welcome_;
+  std::unique_ptr<TestClient> leader_;
+  std::unique_ptr<TestClient> member_;
+};
+
+TEST_F(FightTest, EveryoneIsToldTheFightHasBegun) {
+  FightState state = AwaitFight(*member_);
+
+  EXPECT_EQ(state.boss_key(), "zakum");
+  ASSERT_EQ(state.hp_fractions_size(), 1);
+  EXPECT_EQ(state.hp_fractions(0), 1.0);
+  ASSERT_EQ(state.players_size(), 2);
+  // One spot each, in the order the party holds them.
+  EXPECT_EQ(state.players(0).spot(), 0);
+  EXPECT_EQ(state.players(1).spot(), 1);
+  EXPECT_TRUE(state.players(0).present());
+  EXPECT_EQ(server_->fight_count(), 1);
+}
+
+TEST_F(FightTest, WhatOnePlayerLandsTheOtherWatches) {
+  CountIn();
+  leader_->Send(Landed(250));
+
+  FightState state = AwaitFight(*member_, [](const FightState& drawn) {
+    return drawn.players_size() > 0 && drawn.players(0).lines_size() > 0;
+  });
+  EXPECT_EQ(state.hp_fractions(0), 0.75);
+  EXPECT_EQ(state.players(0).lines(0).damage(), 250);
+  EXPECT_EQ(state.players(0).attack_name(), "Blizzard");
+
+  // Passed on once, not on every broadcast after it.
+  state = AwaitFight(*member_);
+  EXPECT_EQ(state.players(0).lines_size(), 0);
+  EXPECT_EQ(state.hp_fractions(0), 0.75);
+}
+
+TEST_F(FightTest, AClearEndsTheFightAndGivesThePartyBack) {
+  CountIn();
+  leader_->Send(Landed(kMobHp / 2));
+  member_->Send(Landed(kMobHp / 2));
+
+  FightEnded ended = AwaitEnd(*leader_);
+  EXPECT_EQ(ended.outcome(), FightEnded::CLEARED);
+  // Both of them were there when it started, so a clear is halves.
+  EXPECT_EQ(ended.share_count(), 2);
+  AwaitEnd(*member_);
+  EXPECT_EQ(server_->fight_count(), 0);
+
+  // The party is open again, and nobody's readiness carried over.
+  ServerMessage listed = AwaitKind(*leader_, ServerMessage::kPartyList);
+  ASSERT_EQ(listed.party_list().parties_size(), 1);
+  ASSERT_EQ(listed.party_list().parties(0).members_size(), 2);
+  for (const PartyMember& member : listed.party_list().parties(0).members()) {
+    EXPECT_FALSE(member.ready());
+  }
+}
+
+TEST_F(FightTest, TheLastClientOutAbandonsTheFight) {
+  CountIn();
+  member_.reset();
+  EXPECT_TRUE(TickUntil([&]() { return server_->player_count() == 1; }));
+  EXPECT_EQ(server_->fight_count(), 1);
+
+  leader_.reset();
+  EXPECT_TRUE(TickUntil([&]() { return server_->fight_count() == 0; }));
 }
 
 TEST_F(ServerTest, TellsAPlayerTheyWereRemoved) {

@@ -96,6 +96,7 @@ void PartyFight::EnterPhase(int phase) {
   int spots = current->player_spots_size();
   for (int i = 0; i < static_cast<int>(players_.size()); ++i) {
     players_[i].spot = spots > 0 ? std::min(i, spots - 1) : -1;
+    players_[i].lines.clear();
   }
 }
 
@@ -144,6 +145,32 @@ void PartyFight::Hit(const std::string& account_id, int slot, double damage) {
   }
   hp_[slot] = std::max(0.0, hp_[slot] - damage);
   hp_fractions_[slot] = max_hp_[slot] > 0.0 ? hp_[slot] / max_hp_[slot] : 0.0;
+}
+
+void PartyFight::Report(const std::string& account_id,
+                        const FightUpdate& update) {
+  FightPlayer* player = Find(account_id);
+  if (player == nullptr || !player->present) {
+    return;
+  }
+  player->attack_name = update.attack_name();
+  player->attack_fraction = update.attack_fraction();
+  MoveTo(account_id, update.spot());
+  if (update.phase() != phase_) {
+    // A report that crossed a phase change names monsters that are gone. Its
+    // numbers would land on whatever took their slots.
+    return;
+  }
+  for (const FightDamage& line : update.lines()) {
+    Hit(account_id, line.slot(), static_cast<double>(line.damage()));
+    player->lines.push_back(line);
+  }
+}
+
+void PartyFight::TakeLines() {
+  for (FightPlayer& player : players_) {
+    player.lines.clear();
+  }
 }
 
 bool PartyFight::MoveTo(const std::string& account_id, int spot) {

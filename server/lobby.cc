@@ -235,6 +235,17 @@ LobbyResult Lobby::Start(const std::string& account_id,
   return Done();
 }
 
+void Lobby::FinishFight(const std::string& party_id) {
+  std::map<std::string, Record>::iterator found = parties_.find(party_id);
+  if (found == parties_.end() || !found->second.started) {
+    return;
+  }
+  found->second.started = false;
+  ClearReady(found->second.party);
+  NoteChanged(found->second.party);
+  listing_changed_ = true;
+}
+
 void Lobby::UpdatePlayer(const PlayerInfo& player) {
   Record* record = Find(player.account_id());
   if (record == nullptr) {
