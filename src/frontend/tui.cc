@@ -786,6 +786,13 @@ void Tui::Tick() {
   // Every tick, rather than only at save time: the total then stays true
   // between saves, which is what anything wanting to show it will read.
   state_.playtime_seconds += elapsed.count();
+  // Ahead of the fight, so a run steps against what the server has just said
+  // rather than a tick's worth of stale roster -- and so a fight the party
+  // has begun opens its screen on the tick it arrives.
+  if (multiplayer_ != nullptr) {
+    multiplayer_->Advance(state_);
+  }
+  controller_.AdvanceParty();
   if (controller_.in_boss_fight()) {
     // The map is not farmed while the player is somewhere else: EXP quietly
     // arriving from a fight they cannot see is a strange thing to owe them.
@@ -802,10 +809,6 @@ void Tui::Tick() {
     sample.exp = tally.exp;
     analysis_.Advance(sample);
   }
-  if (multiplayer_ != nullptr) {
-    multiplayer_->Advance(state_);
-  }
-  controller_.AdvanceParty();
   // Ticked down before the new level is noticed, so a level-up landing on this
   // tick gets its full four seconds rather than one tick's worth less.
   celebration_.Advance(elapsed.count());

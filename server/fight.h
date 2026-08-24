@@ -62,8 +62,15 @@ class PartyFight {
   // `boss` and `mobs` are the catalogs, owned by the caller and outliving the
   // fight. `difficulty_index` is an index into the boss's difficulties; an
   // invalid one makes a fight that is over before it starts.
-  PartyFight(std::string boss_key, const Boss& boss, int difficulty_index,
-             const std::map<std::string, Mob>& mobs, const Party& party);
+  PartyFight(std::string id, std::string boss_key, const Boss& boss,
+             int difficulty_index, const std::map<std::string, Mob>& mobs,
+             const Party& party);
+
+  // What this fight is called, which is the party's id and a number. A client
+  // that walked out of one tells it from the party's next fight by this.
+  const std::string& id() const {
+    return id_;
+  }
 
   // Steps the countdown, the clock and the beats between phases by
   // elapsed_seconds of real time. Does nothing once the fight is over.
@@ -149,6 +156,7 @@ class PartyFight {
   // Whether anything is still standing.
   bool AnyoneAlive() const;
 
+  std::string id_;
   std::string boss_key_;
   const Boss* boss_ = nullptr;
   int difficulty_index_ = 0;

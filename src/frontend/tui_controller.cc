@@ -72,6 +72,10 @@ TuiController::TuiController(
       buy_panel_(buy_panel),
       panel_focus_(panel_focus),
       multiplayer_(multiplayer) {
+  if (multiplayer_ != nullptr) {
+    party_fight_ =
+        std::make_unique<PartyFightAuthority>(multiplayer_->client());
+  }
 }
 
 void TuiController::OpenEquipMenu() {
@@ -787,11 +791,65 @@ void TuiController::AdvanceParty() {
     return;
   }
   RefreshPartyInspect(lobby);
+  AdvancePartyFight(lobby);
   if (lobby.notice_serial == party_notice_seen_) {
     return;
   }
   party_notice_seen_ = lobby.notice_serial;
   RaisePartyNotice(lobby.notice, lobby.notice_is_refusal);
+}
+
+void TuiController::AdvancePartyFight(const MultiplayerSnapshot& lobby) {
+  if (party_fight_ == nullptr) {
+    return;
+  }
+  party_fight_->Advance(lobby.account_id);
+  if (!party_fight_->fighting()) {
+    return;
+  }
+  if (lobby.state != ConnectionState::kConnected) {
+    // Nothing more is coming, and a fight nobody can hear the end of is not
+    // one to keep watching. Whoever is left fights on without them.
+    if (boss_run_ != nullptr && in_party_fight()) {
+      boss_run_->Abort();
+    }
+    party_fight_->Forget();
+    return;
+  }
+  if (boss_run_ == nullptr) {
+    OpenPartyFight();
+  }
+}
+
+void TuiController::OpenPartyFight() {
+  std::map<std::string, Boss>::const_iterator it =
+      state_.bosses.find(party_fight_->boss_key());
+  int index = party_fight_->difficulty_index();
+  if (it == state_.bosses.end() || index < 0 ||
+      index >= it->second.difficulties_size()) {
+    // A fight this build does not hold. Nothing can be drawn for it.
+    party_fight_->Forget();
+    return;
+  }
+  boss_run_key_ = party_fight_->boss_key();
+  boss_run_difficulty_ = it->second.difficulties(index).name();
+  boss_run_ = std::make_unique<BossRun>(boss_run_key_, it->second, index,
+                                        party_fight_.get());
+  // Whatever they were doing, they are in a fight now.
+  party_select_panel_.CloseMenu();
+  party_prompt_.Close();
+  screen_ = kBossFight;
+}
+
+bool TuiController::in_party_fight() const {
+  return party_fight_ != nullptr && party_fight_->fighting();
+}
+
+void TuiController::DropBossRun() {
+  boss_run_.reset();
+  if (party_fight_ != nullptr) {
+    party_fight_->Forget();
+  }
 }
 
 void TuiController::RefreshPartyInspect(const MultiplayerSnapshot& lobby) {
@@ -1072,6 +1130,16 @@ bool TuiController::OnBossConfirmEvent(ftxui::Event event) {
     return true;
   }
   boss_run_difficulty_ = difficulty->name();
+  if (party_fight_ != nullptr && Lobby().party.members_size() >= 2) {
+    // A party fights it together: the server checks every member, keeps the
+    // one roster they all hit, and stands them all in the arena. Alone, or in
+    // a party of one, it is the run below and no network at all.
+    multiplayer_->client().StartFight(boss_run_key_,
+                                      boss_select_panel_.selected_difficulty(),
+                                      PARTY_MODE_SHARED);
+    screen_ = kBossSelect;
+    return true;
+  }
   boss_run_ = std::make_unique<BossRun>(
       boss_run_key_, it->second, boss_select_panel_.selected_difficulty());
   screen_ = kBossFight;
@@ -1126,6 +1194,11 @@ bool TuiController::OnBossFightEvent(ftxui::Event event) {
 bool TuiController::OnBossAbortEvent(ftxui::Event event) {
   ConfirmChoice choice = boss_abort_prompt_.OnEvent(event);
   if (choice == ConfirmChoice::kConfirmed && boss_run_ != nullptr) {
+    if (in_party_fight()) {
+      // Walked out of the party's fight, which goes on without them: they
+      // deal no more damage and are paid nothing.
+      party_fight_->Leave();
+    }
     boss_run_->Abort();
   }
   if (choice != ConfirmChoice::kPending) {
@@ -1138,7 +1211,13 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
   // Only the fight screen runs the clock. The leave prompt stops it while the
   // player decides, and so does whatever the fight ended on -- the run is kept
   // until they press the button, so the arena stays behind the panel.
-  if (boss_run_ == nullptr || screen_ != kBossFight) {
+  if (boss_run_ == nullptr) {
+    return;
+  }
+  // Only the fight screen runs the clock, and the leave prompt stops it -- but
+  // not in a party's fight, where the others are still swinging and a question
+  // this player is answering must not cost them.
+  if (screen_ != kBossFight && !(screen_ == kBossAbort && in_party_fight())) {
     return;
   }
   boss_run_->Advance(state_, elapsed_seconds);
@@ -1162,7 +1241,7 @@ void TuiController::AdvanceBossRun(double elapsed_seconds) {
   }
   // Nothing to dismiss on the way out of an abort: the player asked to leave,
   // and telling them they left is not news.
-  boss_run_.reset();
+  DropBossRun();
   screen_ = kBossSelect;
 }
 
@@ -1190,7 +1269,7 @@ bool TuiController::OnBossClearEvent(ftxui::Event event) {
 }
 
 void TuiController::LeaveBossRun() {
-  boss_run_.reset();
+  DropBossRun();
   screen_ = kBossSelect;
 }
 

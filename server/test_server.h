@@ -23,10 +23,11 @@
 
 namespace ms {
 
-// The one monster a test's fights are made of: 1000 HP, so a client that
-// swings at all takes a visible bite out of it.
+// The one monster a test's fights are made of. Deep enough that a client
+// swinging at it for a few seconds cannot finish it, so a test can watch a
+// fight in progress rather than only its end.
 inline constexpr char kTestMob[] = "zakum";
-inline constexpr int64_t kTestMobHp = 1000;
+inline constexpr int64_t kTestMobHp = 100000000;
 
 // One fight for a test's parties to name: Normal Zakum, open at any level,
 // one monster standing in a room with three places to stand.

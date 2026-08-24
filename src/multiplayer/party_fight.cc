@@ -50,12 +50,18 @@ PartyFightAuthority::PartyFightAuthority(MultiplayerClient& client)
     : client_(&client) {
 }
 
+void PartyFightAuthority::Leave() {
+  left_ = fight_id_;
+  client_->LeaveFight();
+}
+
 void PartyFightAuthority::Forget() {
   fight_ = SharedFight();
   fighting_ = false;
   told_ = false;
   boss_key_.clear();
   difficulty_index_ = 0;
+  fight_id_.clear();
 }
 
 void PartyFightAuthority::Advance(const std::string& account_id) {
@@ -70,6 +76,10 @@ void PartyFightAuthority::Advance(const std::string& account_id) {
 
 void PartyFightAuthority::TakeState(const FightState& state,
                                     const std::string& account_id) {
+  if (!left_.empty() && state.fight_id() == left_) {
+    return;
+  }
+  fight_id_ = state.fight_id();
   fighting_ = true;
   told_ = true;
   boss_key_ = state.boss_key();
@@ -80,6 +90,9 @@ void PartyFightAuthority::TakeState(const FightState& state,
   fight_.countdown_left = state.countdown_left();
   fight_.hp_fractions.assign(state.hp_fractions().begin(),
                              state.hp_fractions().end());
+  // Everyone the fight began with is in here, gone or not, which is what a
+  // clear is split by. FightEnded says the same number again at the end.
+  fight_.share_count = state.players_size();
   fight_.players.clear();
   fight_.self = -1;
   for (int i = 0; i < state.players_size(); ++i) {

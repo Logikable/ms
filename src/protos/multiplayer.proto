@@ -180,6 +180,9 @@ message FightState {
     FIGHTING = 2;
     PHASE_GAP = 3;
   }
+  // Which fight this is, so a client that walked out of one can tell a state
+  // still in flight from the party's next fight.
+  string fight_id = 9;
   string boss_key = 1;
   int32 difficulty_index = 2;
   Stage stage = 3;

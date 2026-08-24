@@ -14,6 +14,7 @@
 #include "ftxui/component/event.hpp"
 #include "server/test_server.h"
 #include "src/character/progression.h"
+#include "src/combat/boss_run.h"
 #include "src/frontend/keybinds.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/panels/equipped_panel.h"
@@ -50,9 +51,9 @@ std::unique_ptr<GameState> MakeState() {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
       std::map<std::string, EquipPrototype>{{"iron_sword", Sword()}},
       std::map<std::string, Scroll>{}, std::map<std::string, ItemPrototype>{},
-      std::map<std::string, Mob>{}, std::map<std::string, MapData>{});
-  // One fight for the boss screen to have something to refuse, matching the
-  // server's own catalog.
+      TestMobs(), std::map<std::string, MapData>{});
+  // The same fight the server holds, since both ends have to mean the same
+  // thing by its name.
   state->bosses = TestBosses();
   return state;
 }
@@ -99,10 +100,19 @@ struct Client {
         *keybinds_panel, analysis, *keys, focus, &session);
   }
 
-  // One turn of the game's loop: the connection, then the screen.
-  void Tick() {
+  // One turn of the game's loop: the connection, then the screen, then
+  // whatever fight the screen is showing.
+  void Tick(double seconds = 0.0) {
     session.Advance(*state);
     controller->AdvanceParty();
+    controller->AdvanceBossRun(seconds);
+  }
+
+  // Puts a weapon in their hands, without which there is nothing to swing.
+  void Arm() {
+    state->character.PickUp(
+        std::make_unique<EquipInstance>(state->equips.at("iron_sword")));
+    state->character.Equip(0);
   }
 
   std::unique_ptr<GameState> state;
@@ -150,13 +160,14 @@ class PartyControllerTest : public ::testing::Test {
   }
 
   // Ticks every client until `ready`, so both ends of a party keep moving.
+  // `seconds` is what each tick is worth to a fight on screen.
   bool WaitFor(const std::vector<Client*>& clients,
-               const std::function<bool()>& ready) {
+               const std::function<bool()>& ready, double seconds = 0.0) {
     std::chrono::steady_clock::time_point deadline =
         std::chrono::steady_clock::now() + kPatience;
     while (std::chrono::steady_clock::now() < deadline) {
       for (Client* client : clients) {
-        client->Tick();
+        client->Tick(seconds);
       }
       if (ready()) {
         return true;
@@ -436,6 +447,104 @@ TEST_F(PartyControllerTest, AMemberCannotTakeAFightOfTheirOwn) {
   ASSERT_EQ(leader->controller->notice_lines().size(), 1u);
   EXPECT_EQ(leader->controller->notice_lines()[0],
             "You have no weapon equipped!");
+}
+
+// The whole flow: the leader picks a fight, the server checks the party, and
+// everybody lands in the arena together.
+TEST_F(PartyControllerTest, TheLeaderTakesThePartyIntoAFight) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  leader->Arm();
+  guest->Arm();
+  MakeParty(*leader, *guest);
+  guest->session.client().SetReady(true);
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    const Party& party = leader->session.Snapshot().party;
+    return party.members_size() == 2 && party.members(1).ready();
+  }));
+
+  leader->controller->OnEvent(ftxui::Event::Escape);
+  leader->controller->OpenMenuEntry(MenuEntry::kBoss);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(leader->controller->screen(), kBossConfirm);
+  leader->controller->OnEvent(ftxui::Event::Return);
+
+  // Both of them, wherever they were: the guest never left the party screen.
+  ASSERT_TRUE(WaitFor(
+      {leader.get(), guest.get()},
+      [&]() {
+        return leader->controller->screen() == kBossFight &&
+               guest->controller->screen() == kBossFight;
+      },
+      0.02));
+  ASSERT_NE(guest->controller->boss_run(), nullptr);
+  const std::vector<FightMember>& members =
+      guest->controller->boss_run()->members();
+  ASSERT_EQ(members.size(), 2u);
+  // This player is not named on their own screen, and the other one is.
+  EXPECT_TRUE(members[0].name.empty());
+  EXPECT_EQ(members[1].name, "Dagger");
+  EXPECT_EQ(guest->controller->boss_run()->share_count(), 2);
+
+  // What the leader lands is drawn on the guest's screen, faint and theirs.
+  ASSERT_TRUE(WaitFor(
+      {leader.get(), guest.get()},
+      [&]() {
+        for (const DamageStack& stack :
+             guest->controller->boss_run()->damage_stacks()) {
+          if (stack.owner != 0) {
+            return true;
+          }
+        }
+        return false;
+      },
+      0.02));
+
+  // And the monster they are both hitting is one monster.
+  EXPECT_LT(guest->controller->boss_run()->phase_hp_fraction(), 1.0);
+}
+
+// Walking out leaves the fight to whoever is left in it.
+TEST_F(PartyControllerTest, OneWalkingOutLeavesTheFightToTheOther) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  leader->Arm();
+  guest->Arm();
+  MakeParty(*leader, *guest);
+  guest->session.client().SetReady(true);
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    const Party& party = leader->session.Snapshot().party;
+    return party.members_size() == 2 && party.members(1).ready();
+  }));
+  leader->controller->OnEvent(ftxui::Event::Escape);
+  leader->controller->OpenMenuEntry(MenuEntry::kBoss);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(WaitFor(
+      {leader.get(), guest.get()},
+      [&]() { return guest->controller->screen() == kBossFight; }, 0.02));
+
+  // Escape raises the question, and the prompt opens on Cancel.
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(guest->controller->screen(), kBossAbort);
+  guest->controller->OnEvent(ftxui::Event::ArrowLeft);
+  guest->controller->OnEvent(ftxui::Event::Return);
+
+  ASSERT_TRUE(WaitFor(
+      {leader.get(), guest.get()},
+      [&]() { return guest->controller->screen() == kBossSelect; }, 0.02));
+  EXPECT_EQ(guest->controller->boss_run(), nullptr);
+  // The one still in it fights on, and sees that the other has gone.
+  ASSERT_NE(leader->controller->boss_run(), nullptr);
+  EXPECT_EQ(leader->controller->screen(), kBossFight);
+  ASSERT_TRUE(WaitFor(
+      {leader.get(), guest.get()},
+      [&]() {
+        const std::vector<FightMember>& party =
+            leader->controller->boss_run()->members();
+        return party.size() == 2 && !party[1].present;
+      },
+      0.02));
 }
 
 TEST_F(PartyControllerTest, LosingTheServerClosesThePartyScreen) {

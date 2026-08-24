@@ -40,6 +40,10 @@ class PartyFightAuthority : public FightAuthority {
   int difficulty_index() const {
     return difficulty_index_;
   }
+  // Walks this player out of the fight. Nothing more about it is listened to,
+  // however long the last of it takes to arrive, and the party's next fight
+  // is a different one by its name.
+  void Leave();
   // Puts it back to no fight at all, for a screen that has finished with one.
   void Forget();
 
@@ -59,6 +63,10 @@ class PartyFightAuthority : public FightAuthority {
   bool told_ = false;
   std::string boss_key_;
   int difficulty_index_ = 0;
+  std::string fight_id_;
+  // The fight this player walked out of, whose last words are still on the
+  // way.
+  std::string left_;
 };
 
 }  // namespace ms

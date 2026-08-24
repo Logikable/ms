@@ -13,11 +13,12 @@
 
 namespace ms {
 
-PartyFight::PartyFight(std::string boss_key, const Boss& boss,
+PartyFight::PartyFight(std::string id, std::string boss_key, const Boss& boss,
                        int difficulty_index,
                        const std::map<std::string, Mob>& mobs,
                        const Party& party)
-    : boss_key_(std::move(boss_key)),
+    : id_(std::move(id)),
+      boss_key_(std::move(boss_key)),
       boss_(&boss),
       difficulty_index_(difficulty_index),
       mobs_(&mobs) {

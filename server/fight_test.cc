@@ -63,7 +63,7 @@ class FightTest : public ::testing::Test {
   FightTest()
       : boss_(TwoPhases()),
         mobs_(Mobs()),
-        fight_("zakum", boss_, 0, mobs_, PartyOf(3)) {
+        fight_("p1-1", "zakum", boss_, 0, mobs_, PartyOf(3)) {
   }
 
   // Runs the countdown out, which is where every test that lands a hit
@@ -224,10 +224,10 @@ TEST_F(FightTest, TheLastOneOutAbandonsTheFight) {
 
 TEST_F(FightTest, AFightWithNothingToKillIsNoFight) {
   std::map<std::string, Mob> empty;
-  PartyFight fight("zakum", boss_, 0, empty, PartyOf(1));
+  PartyFight fight("p1-1", "zakum", boss_, 0, empty, PartyOf(1));
   EXPECT_EQ(fight.state(), PartyFightState::kAbandoned);
 
-  PartyFight unknown("zakum", boss_, 4, mobs_, PartyOf(1));
+  PartyFight unknown("p1-2", "zakum", boss_, 4, mobs_, PartyOf(1));
   EXPECT_EQ(unknown.state(), PartyFightState::kAbandoned);
 }
 

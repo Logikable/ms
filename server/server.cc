@@ -249,9 +249,12 @@ void Server::OpenFight(const std::string& account_id,
   if (party.id().empty() || boss == bosses_->end()) {
     return;
   }
-  fights_[party.id()] =
-      std::make_unique<PartyFight>(request.boss_key(), boss->second,
-                                   request.difficulty_index(), *mobs_, party);
+  // Named for the party and the number of the fight, so a client that walked
+  // out of one can tell a state still in flight from the party's next.
+  std::string id = absl::StrCat(party.id(), "-", next_fight_id_++);
+  fights_[party.id()] = std::make_unique<PartyFight>(
+      std::move(id), request.boss_key(), boss->second,
+      request.difficulty_index(), *mobs_, party);
   // The first state a client sees is how it learns the fight has begun, so it
   // goes out now rather than on the next broadcast beat.
   PublishFight(*fights_[party.id()]);
@@ -311,6 +314,7 @@ void Server::PublishFights(std::chrono::steady_clock::time_point now) {
 void Server::PublishFight(PartyFight& fight) {
   ServerMessage message;
   FightState* state = message.mutable_fight_state();
+  state->set_fight_id(fight.id());
   state->set_boss_key(fight.boss_key());
   state->set_difficulty_index(fight.difficulty_index());
   state->set_stage(StageOf(fight.state()));
@@ -334,7 +338,9 @@ void Server::PublishFight(PartyFight& fight) {
   }
   for (const FightPlayer& player : fight.players()) {
     Session* session = FindSession(player.account_id);
-    if (session != nullptr && !session->closing) {
+    // A player who has gone is sent nothing more about a fight they are no
+    // longer in.
+    if (player.present && session != nullptr && !session->closing) {
       Send(*session, message);
     }
   }

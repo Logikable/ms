@@ -46,6 +46,7 @@
 #include "src/frontend/widgets/item_menu.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/multiplayer/party_fight.h"
 #include "src/multiplayer/session.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -109,10 +110,11 @@ class TuiController {
   // clears the entry's gold; Settings opens its box over the corner.
   void OpenMenuEntry(MenuEntry entry);
 
-  // Keeps the party screen in step with the connection: hands the panel the
-  // lobby as it stands, raises whatever the server has said since the last
-  // call, and turns the player out of the party screen if the connection
-  // goes. Called every tick.
+  // Keeps the party screen and the party's fight in step with the connection:
+  // hands the panel the lobby as it stands, raises whatever the server has
+  // said since the last call, opens the fight screen the moment the party is
+  // let into one, and turns the player out of both if the connection goes.
+  // Called every tick, before the fight is stepped.
   void AdvanceParty();
 
   // The word from the server floated over whatever the player is looking at:
@@ -354,6 +356,16 @@ class TuiController {
   void PartyConfirmed();
   // Floats `message` over whatever is on screen. A refusal is drawn in red.
   void RaisePartyNotice(const std::string& message, bool refusal);
+  // Takes what the server has said about the party's fight and stands the
+  // player in one that has just begun.
+  void AdvancePartyFight(const MultiplayerSnapshot& lobby);
+  // Opens the fight screen on the fight the party has been let into. Whatever
+  // the player was doing, they are in it now.
+  void OpenPartyFight();
+  // Whether the fight on screen is the party's rather than one taken alone.
+  bool in_party_fight() const;
+  // Lets go of the finished run, and of the fight behind it.
+  void DropBossRun();
   // The lobby as it stands, or nothing at all for a game played alone.
   MultiplayerSnapshot Lobby() const;
   bool OnBossSelectEvent(ftxui::Event event);
@@ -490,6 +502,8 @@ class TuiController {
   std::unique_ptr<BossRun> boss_run_;
   std::string boss_run_key_;
   std::string boss_run_difficulty_;
+  // The party's fight, which the run follows. Null for a game played alone.
+  std::unique_ptr<PartyFightAuthority> party_fight_;
   bool quit_requested_ = false;
   ScrollResult scroll_result_;
   StarForceResult star_force_result_;
