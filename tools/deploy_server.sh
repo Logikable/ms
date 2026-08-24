@@ -28,7 +28,7 @@ PROBE_BIN=$(bazelisk cquery --output=files //server:probe_static \
 echo "Sending the server to $REMOTE"
 # Without lingering the service stops when the last login session ends, which
 # means the deploy that started it also ends it.
-$SSH 'mkdir -p ~/ms ~/.config/systemd/user && loginctl enable-linger'
+$SSH 'mkdir -p ~/ms ~/ms/logs ~/.config/systemd/user && loginctl enable-linger'
 scp -q -P "$SSH_PORT" "$SERVER_BIN" "$REMOTE:ms/ms_server.new"
 scp -q -P "$SSH_PORT" "$PROBE_BIN" "$REMOTE:ms/probe.new"
 scp -q -P "$SSH_PORT" server/ms-server.service \
@@ -45,3 +45,4 @@ $SSH 'set -e
   systemctl --user is-active ms-server'
 
 echo "Running. Its log:  ssh -p $SSH_PORT $REMOTE journalctl --user -u ms-server -f"
+echo "Every run is also kept in ~/ms/logs on the box."

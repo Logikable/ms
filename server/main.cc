@@ -1,5 +1,6 @@
 #include <csignal>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -9,6 +10,8 @@
 #include "absl/log/globals.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
+#include "absl/log/log_sink_registry.h"
+#include "server/log_file.h"
 #include "server/server.h"
 #include "src/embedded_data.h"
 #include "src/multiplayer/protocol.h"
@@ -17,6 +20,10 @@
 #include "src/protos/boss.pb.h"
 
 ABSL_FLAG(int, port, ms::kServerPort, "The port to listen on.");
+ABSL_FLAG(std::string, log_dir, "",
+          "A directory to keep the log in. One file per run, named for the "
+          "moment it started, and nothing is ever removed. Unset logs to "
+          "stderr alone.");
 
 namespace {
 
@@ -41,6 +48,19 @@ int main(int argc, char** argv) {
   // The log is the only thing this process says, and journald reads it off
   // stderr. Without this, absl keeps everything below a warning to itself.
   absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
+  // Kept for the life of the process: the sink has to outlive every line
+  // logged through it.
+  std::unique_ptr<ms::FileLogSink> log_file;
+  std::string log_dir = absl::GetFlag(FLAGS_log_dir);
+  if (!log_dir.empty()) {
+    log_file = std::make_unique<ms::FileLogSink>(log_dir);
+    if (log_file->ok()) {
+      absl::AddLogSink(log_file.get());
+      LOG(INFO) << "Logging to " << log_file->path();
+    } else {
+      LOG(ERROR) << "Could not open a log file in " << log_dir;
+    }
+  }
   if (!ms::StartSockets()) {
     return 1;
   }

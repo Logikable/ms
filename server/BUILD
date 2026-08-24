@@ -13,6 +13,27 @@ cc_library(
 )
 
 cc_library(
+    name = "log_file",
+    srcs = ["log_file.cc"],
+    hdrs = ["log_file.h"],
+    deps = [
+        "@abseil-cpp//absl/log:log_entry",
+        "@abseil-cpp//absl/log:log_sink",
+    ],
+)
+
+cc_test(
+    name = "log_file_test",
+    srcs = ["log_file_test.cc"],
+    deps = [
+        ":log_file",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:log_sink_registry",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "lobby",
     srcs = ["lobby.cc"],
     hdrs = ["lobby.h"],
@@ -49,6 +70,7 @@ cc_library(
         "//src/protos:boss_proto_cc",
         "//src/protos:multiplayer_proto_cc",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -56,6 +78,7 @@ cc_binary(
     name = "ms_server",
     srcs = ["main.cc"],
     deps = [
+        ":log_file",
         ":server",
         "//src:embedded_data",
         "//src:proto_loader",
@@ -67,6 +90,7 @@ cc_binary(
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:globals",
         "@abseil-cpp//absl/log:initialize",
+        "@abseil-cpp//absl/log:log_sink_registry",
     ],
 )
 
@@ -124,6 +148,9 @@ cc_test(
         "//src/net:socket",
         "//src/protos:boss_proto_cc",
         "//src/protos:multiplayer_proto_cc",
+        "@abseil-cpp//absl/log:log_entry",
+        "@abseil-cpp//absl/log:log_sink",
+        "@abseil-cpp//absl/log:log_sink_registry",
         "@googletest//:gtest_main",
     ],
 )

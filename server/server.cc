@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "absl/log/log.h"
+#include "absl/strings/str_cat.h"
 #include "server/ids.h"
 #include "server/lobby.h"
 #include "src/character/character.h"
@@ -38,6 +39,33 @@ constexpr int kTokenCharacters = 32;
 // reads as a bug even though it is not.
 unsigned int OtherStream(unsigned int seed) {
   return seed ^ 0x9e3779b9u;
+}
+
+// What a lobby message asked for, as a line for the log.
+std::string AskedFor(const ClientMessage& message) {
+  switch (message.kind_case()) {
+    case ClientMessage::kUpdatePlayer:
+      return absl::StrCat("is now level ",
+                          message.update_player().player().level());
+    case ClientMessage::kCreateParty:
+      return "creates a party";
+    case ClientMessage::kJoinParty:
+      return absl::StrCat("joins party ", message.join_party().party_id());
+    case ClientMessage::kLeaveParty:
+      return "leaves the party";
+    case ClientMessage::kStartFight:
+      return absl::StrCat("starts ", message.start_fight().boss_key(),
+                          " difficulty ",
+                          message.start_fight().difficulty_index());
+    case ClientMessage::kSetReady:
+      return message.set_ready().ready() ? "is ready" : "is not ready";
+    case ClientMessage::kKickMember:
+      return absl::StrCat("kicks ", message.kick_member().account_id());
+    case ClientMessage::kPromoteMember:
+      return absl::StrCat("promotes ", message.promote_member().account_id());
+    default:
+      return "sends something unknown";
+  }
 }
 
 // The name a player is shown under when they send one that cannot be used.
@@ -119,6 +147,7 @@ void Server::DropFinished(std::chrono::steady_clock::time_point now) {
       session->socket.Close();
     }
     if (!session->socket.valid() && !session->account_id.empty()) {
+      LOG(INFO) << Describe(*session) << " disconnected";
       lobby_.Disconnect(session->account_id);
       session->account_id.clear();
     }
@@ -216,6 +245,7 @@ void Server::AcceptWaiting(std::chrono::steady_clock::time_point now) {
     session->socket = std::move(*accepted);
     session->id = next_session_id_++;
     session->last_heard = now;
+    LOG(INFO) << "Session " << session->id << " connected";
     sessions_.push_back(std::move(session));
   }
 }
@@ -281,6 +311,14 @@ void Server::Handle(Session& session, const ClientMessage& message) {
   }
 }
 
+std::string Server::Describe(const Session& session) const {
+  if (session.account_id.empty()) {
+    return absl::StrCat("Session ", session.id);
+  }
+  return absl::StrCat("Session ", session.id, " ", session.player.name(), " (",
+                      session.account_id, ")");
+}
+
 void Server::SetPlayer(Session& session, const PlayerInfo& player) {
   session.player = player;
   session.player.set_account_id(session.account_id);
@@ -288,11 +326,13 @@ void Server::SetPlayer(Session& session, const PlayerInfo& player) {
 }
 
 void Server::HandleLobby(Session& session, const ClientMessage& message) {
+  std::string asked = AskedFor(message);
   LobbyResult result;
   switch (message.kind_case()) {
     case ClientMessage::kUpdatePlayer:
       SetPlayer(session, message.update_player().player());
       lobby_.UpdatePlayer(session.player);
+      LOG(INFO) << Describe(session) << " " << asked;
       return;
     case ClientMessage::kCreateParty:
       result = lobby_.Create(session.player);
@@ -322,8 +362,12 @@ void Server::HandleLobby(Session& session, const ClientMessage& message) {
       return;
   }
   if (!result.ok) {
+    LOG(INFO) << Describe(session) << " " << asked << ": refused, "
+              << result.message;
     Refuse(session, result.reason, result.message);
+    return;
   }
+  LOG(INFO) << Describe(session) << " " << asked;
 }
 
 void Server::HandleHello(Session& session, const Hello& hello) {
@@ -351,8 +395,8 @@ void Server::HandleHello(Session& session, const Hello& hello) {
   welcome.mutable_welcome()->set_token(token);
   Send(session, welcome);
   SendListing(session);
-  LOG(INFO) << "Session " << session.id << " is " << session.player.name()
-            << " (" << account << "), level " << session.player.level();
+  LOG(INFO) << Describe(session) << " arrived at level "
+            << session.player.level();
 }
 
 void Server::SendListing(Session& session) {
@@ -380,6 +424,7 @@ void Server::Reject(Session& session, Rejected::Reason reason,
   if (session.closing) {
     return;
   }
+  LOG(INFO) << Describe(session) << " turned away: " << message;
   ServerMessage rejection;
   rejection.mutable_rejected()->set_reason(reason);
   rejection.mutable_rejected()->set_server_protocol_version(

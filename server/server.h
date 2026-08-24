@@ -80,6 +80,10 @@ class Server {
     std::chrono::steady_clock::time_point last_heard;
   };
 
+  // How a session is named in the log: its number, and the player at it once
+  // one has said hello.
+  std::string Describe(const Session& session) const;
+
   // Closes the sessions the last pass finished with, telling the lobby about
   // anyone who has gone, and drops the ones that have been quiet too long.
   void DropFinished(std::chrono::steady_clock::time_point now);

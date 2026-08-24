@@ -10,6 +10,9 @@
 #include <string>
 #include <utility>
 
+#include "absl/log/log_entry.h"
+#include "absl/log/log_sink.h"
+#include "absl/log/log_sink_registry.h"
 #include "src/multiplayer/protocol.h"
 #include "src/net/socket.h"
 #include "src/protos/boss.pb.h"
@@ -90,6 +93,29 @@ ClientMessage CreatePartyMessage() {
   message.mutable_create_party();
   return message;
 }
+
+// Collects what the server logged, so a test can read it back.
+class LogSpy : public absl::LogSink {
+ public:
+  LogSpy() {
+    absl::AddLogSink(this);
+  }
+  ~LogSpy() override {
+    absl::RemoveLogSink(this);
+  }
+
+  void Send(const absl::LogEntry& entry) override {
+    lines_ += std::string(entry.text_message());
+    lines_ += '\n';
+  }
+
+  bool Saw(const std::string& text) const {
+    return lines_.find(text) != std::string::npos;
+  }
+
+ private:
+  std::string lines_;
+};
 
 class ServerTest : public ::testing::Test {
  protected:
@@ -304,6 +330,48 @@ TEST_F(ServerTest, PutsAPartyInFrontOfEverybody) {
   // The one who made it is told as well.
   ServerMessage changed = AwaitKind(*first, ServerMessage::kPartyState);
   EXPECT_EQ(changed.party_state().party().members_size(), 2);
+}
+
+// Everything a player does reaches the log, named for who did it, whether the
+// lobby allowed it or not.
+TEST_F(ServerTest, LogsEveryAction) {
+  LogSpy log;
+  Welcome leader_welcome;
+  std::unique_ptr<TestClient> leader = Greeted("Dagger", &leader_welcome);
+  Welcome member_welcome;
+  std::unique_ptr<TestClient> member = Greeted("Wand", &member_welcome);
+
+  leader->Send(CreatePartyMessage());
+  ServerMessage state = AwaitKind(*leader, ServerMessage::kPartyState);
+  std::string party_id = state.party_state().party().id();
+
+  ClientMessage join;
+  join.mutable_join_party()->set_party_id(party_id);
+  member->Send(join);
+  AwaitKind(*member, ServerMessage::kPartyState);
+
+  ClientMessage ready;
+  ready.mutable_set_ready()->set_ready(true);
+  member->Send(ready);
+  AwaitKind(*member, ServerMessage::kPartyState);
+
+  // A member cannot kick, so this one is refused and says so.
+  ClientMessage kick;
+  kick.mutable_kick_member()->set_account_id(leader_welcome.account_id());
+  member->Send(kick);
+  AwaitKind(*member, ServerMessage::kRefused);
+
+  EXPECT_TRUE(log.Saw("connected"));
+  EXPECT_TRUE(log.Saw("Dagger (" + leader_welcome.account_id() + ")"));
+  EXPECT_TRUE(log.Saw("creates a party"));
+  EXPECT_TRUE(log.Saw("joins party " + party_id));
+  EXPECT_TRUE(log.Saw("is ready"));
+  EXPECT_TRUE(log.Saw("kicks " + leader_welcome.account_id() + ": refused"));
+
+  member.reset();
+  EXPECT_TRUE(StepUntil([&]() {
+    return log.Saw("Wand (" + member_welcome.account_id() + ") disconnected");
+  }));
 }
 
 TEST_F(ServerTest, RefusesAFightItCannotRun) {

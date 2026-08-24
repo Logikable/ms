@@ -11,7 +11,7 @@ Description=MapleStory idle game server
 After=network-online.target
 
 [Service]
-ExecStart=%h/ms/ms_server --port=21711
+ExecStart=%h/ms/ms_server --port=21711 --log_dir=%h/ms/logs
 Restart=always
 RestartSec=2
 # SIGTERM means drain: the server stops taking connections and plays out the
