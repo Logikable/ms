@@ -4,6 +4,9 @@
 #
 # Both levers are dead by design -- nothing inflicts a status or carries an
 # element -- and are here so the stats page can show what the SP bought.
+#
+# Nothing here reaches the party. GMS's only party clause is a cooldown Dispel
+# shortens, and the resistances are stated for the caster alone.
 name: "Divine Protection"
 skill_order: 5
 description: "Permanently increases Status Resistance and Elemental Resistance."
@@ -15,14 +18,6 @@ base {
   elemental_resistance: 0.02
 }
 per_level {
-  status_resistance: 2
-  elemental_resistance: 0.02
-}
-ally_base {
-  status_resistance: 2
-  elemental_resistance: 0.02
-}
-ally_per_level {
   status_resistance: 2
   elemental_resistance: 0.02
 }

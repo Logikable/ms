@@ -1109,7 +1109,6 @@ const char* const kPartySkills[] = {
     "Blessed Ensemble",
     "Blessed Harmony",
     "Combat Orders",
-    "Divine Protection",
     "Hex of the Evil Eye",
     "Holy Fountain",
     "Holy Symbol",
