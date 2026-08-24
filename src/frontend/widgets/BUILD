@@ -14,6 +14,7 @@ cc_library(
     name = "marquee",
     srcs = ["marquee.cc"],
     hdrs = ["marquee.h"],
+    deps = ["@ftxui//:screen"],
 )
 
 cc_test(
@@ -21,6 +22,7 @@ cc_test(
     srcs = ["marquee_test.cc"],
     deps = [
         ":marquee",
+        "@ftxui//:screen",
         "@googletest//:gtest_main",
     ],
 )

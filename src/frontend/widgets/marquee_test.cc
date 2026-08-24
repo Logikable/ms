@@ -5,6 +5,8 @@
 #include <chrono>
 #include <string>
 
+#include "ftxui/screen/string.hpp"
+
 namespace ms {
 namespace {
 
@@ -75,6 +77,38 @@ TEST(MarqueeTest, ItStartsOverAfterTheTailPause) {
 TEST(MarqueeTest, TheWindowIsAlwaysFullWidth) {
   for (int ms = 0; ms < 20000; ms += 50) {
     EXPECT_EQ(static_cast<int>(At(milliseconds(ms)).size()), kWidth) << ms;
+  }
+}
+
+// A name in bytes is not a name in columns. Cutting "Emeraude" at ten bytes
+// takes nine columns of it, and cutting it mid-character takes a character
+// nothing can draw.
+constexpr char kAccented[] = "\u00c9meraude Sabre";
+
+TEST(MarqueeTest, AMultibyteNameIsCutByColumns) {
+  EXPECT_EQ(ScrollingWindow(kAccented, 10, milliseconds(0)), "\u00c9meraude S");
+  EXPECT_EQ(ScrollingWindow(kAccented, 10, kMarqueePause), "meraude Sa");
+  // Short enough to sit still is asked in columns too, so the padding is not
+  // a column short.
+  EXPECT_EQ(ScrollingWindow(kAccented, 16, milliseconds(0)),
+            "\u00c9meraude Sabre  ");
+}
+
+// A fullwidth character is two columns of one character, so an edge can fall
+// inside it. It gives up the column it cannot fill rather than being cut in
+// half or pushing the row a column wide.
+constexpr char kFullwidth[] = "\u9752\u9f8d\u5043\u6708\u5200";
+
+TEST(MarqueeTest, AFullwidthNameKeepsItsColumns) {
+  EXPECT_EQ(ScrollingWindow(kFullwidth, 7, milliseconds(0)),
+            "\u9752\u9f8d\u5043 ");
+  EXPECT_EQ(ScrollingWindow(kFullwidth, 7, kMarqueePause),
+            " \u9f8d\u5043\u6708");
+  for (int ms = 0; ms < 20000; ms += 50) {
+    EXPECT_EQ(
+        ftxui::string_width(ScrollingWindow(kFullwidth, 7, milliseconds(ms))),
+        7)
+        << ms;
   }
 }
 

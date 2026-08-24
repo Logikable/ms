@@ -3,10 +3,67 @@
 #include <algorithm>
 #include <chrono>
 #include <string>
+#include <utility>
+#include <vector>
+
+#include "ftxui/screen/string.hpp"
 
 namespace ms {
 
 namespace {
+
+// One character of a name and the columns it takes. A name is walked a glyph
+// at a time rather than a byte at a time: a byte is not a column, and half a
+// multibyte character is not a character.
+struct Glyph {
+  std::string text;
+  int columns;
+};
+
+std::vector<Glyph> Glyphs(const std::string& text) {
+  std::vector<Glyph> glyphs;
+  // ftxui follows a fullwidth glyph with an empty one, which is its second
+  // column rather than another character.
+  for (std::string& piece : ftxui::Utf8ToGlyphs(text)) {
+    if (piece.empty()) {
+      if (!glyphs.empty()) {
+        ++glyphs.back().columns;
+      }
+      continue;
+    }
+    glyphs.push_back({std::move(piece), 1});
+  }
+  return glyphs;
+}
+
+int Columns(const std::vector<Glyph>& glyphs) {
+  int columns = 0;
+  for (const Glyph& glyph : glyphs) {
+    columns += glyph.columns;
+  }
+  return columns;
+}
+
+// `count` columns of `glyphs`, starting at column `from`. A fullwidth glyph
+// the edge of the window falls inside is drawn as a space for the column that
+// fits, so the window is always exactly as wide as it was asked to be.
+std::string Window(const std::vector<Glyph>& glyphs, int from, int count) {
+  std::string out;
+  int at = 0;
+  for (const Glyph& glyph : glyphs) {
+    int start = at;
+    at += glyph.columns;
+    if (at <= from || start >= from + count) {
+      continue;
+    }
+    if (start >= from && at <= from + count) {
+      out += glyph.text;
+      continue;
+    }
+    out.append(std::min(at, from + count) - std::max(start, from), ' ');
+  }
+  return out;
+}
 
 // How far into the name the window has slid, given how long the row has been
 // selected.
@@ -53,11 +110,12 @@ std::string ScrollingWindow(const std::string& text, int width,
   if (width <= 0) {
     return "";
   }
-  int length = static_cast<int>(text.size());
-  if (length <= width) {
-    return text + std::string(width - length, ' ');
+  std::vector<Glyph> glyphs = Glyphs(text);
+  int columns = Columns(glyphs);
+  if (columns <= width) {
+    return text + std::string(width - columns, ' ');
   }
-  return text.substr(OffsetAt(length - width, elapsed), width);
+  return Window(glyphs, OffsetAt(columns - width, elapsed), width);
 }
 
 }  // namespace ms
