@@ -92,10 +92,12 @@ TEST_F(AllStatsPanelTest, ShowsTheHeadingAndNothingSpendable) {
   proto.set_job(JOB_ICE_LIGHTNING_WIZARD);
   proto.set_job_stage(2);
   proto.set_ap(5);
+  proto.set_name("Frostbite");
   CharacterInstance c(rng_, std::move(proto));
 
   AllStatsPanel panel(c, {});
   std::string rendered = RenderElement(panel.Render());
+  EXPECT_NE(rendered.find("Frostbite"), std::string::npos);
   EXPECT_NE(rendered.find("Lv 60 I/L Wizard"), std::string::npos);
   EXPECT_NE(rendered.find("Combat Power"), std::string::npos);
   // This screen is for reading: no AP to spend and nothing to spend it on.

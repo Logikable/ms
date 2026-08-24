@@ -1,4 +1,5 @@
-/* Every stat the character has, on one screen, two to a row.
+/* Every stat the character has, on one screen, two to a row, under the same
+ * name, level and combat power heading the Character panel carries.
  *
  * The Character panel shows as many of them as the terminal leaves room for
  * and stops; this is where the rest of them are. Nothing here is spendable --

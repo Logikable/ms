@@ -48,11 +48,13 @@ ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
 
 ftxui::Element AllStatsPanel::Render() const {
   const Character& p = character_.proto();
-  // The same heading the Character panel carries, so the screen behind it
-  // reads as the same character rather than as a table of numbers.
+  // The same heading the Character panel carries, name row included, so the
+  // screen behind it reads as the same character rather than as a table of
+  // numbers.
   std::string lvl = PadLeft(std::to_string(p.level()), 3);
   return ThemedWindow(" Character ",
                       ftxui::vbox({
+                          CenteredRow(character_.username()),
                           CenteredRow("Lv" + lvl + " " + ShortJobName(p.job())),
                           CenteredRow(CombatPowerText(
                               CharacterCombatPower(character_, skills_))),
