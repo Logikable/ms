@@ -17,6 +17,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "ftxui/screen/string.hpp"
 #include "src/frontend/widgets/colors.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -209,17 +210,15 @@ const DisplayStat* DisplayStatFor(StatField field) {
 }
 
 std::string PadRight(const std::string& s, int width) {
-  if (static_cast<int>(s.size()) >= width) {
-    return s.substr(0, width);
-  }
-  return s + std::string(width - static_cast<int>(s.size()), ' ');
+  return ColumnWindow(s, 0, width);
 }
 
 std::string PadLeft(const std::string& s, int width) {
-  if (static_cast<int>(s.size()) >= width) {
+  int columns = TextColumns(s);
+  if (columns >= width) {
     return s;
   }
-  return std::string(width - s.size(), ' ') + s;
+  return std::string(width - columns, ' ') + s;
 }
 
 std::vector<std::string> WrapBalanced(const std::string& text, int width,

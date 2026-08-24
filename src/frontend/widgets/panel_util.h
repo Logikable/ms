@@ -77,12 +77,15 @@ inline const DisplayStat kDisplayStats[] = {
 // own switch over the four stats.
 const DisplayStat* DisplayStatFor(StatField field);
 
-// Pads s to width with trailing spaces, or truncates if longer.
+// Pads s to `width` screen columns with trailing spaces, or cuts it to them if
+// it is longer. Columns rather than bytes, so a name with a multibyte
+// character in it lines up with the ones above it; see text_columns.h.
 std::string PadRight(const std::string& s, int width);
 
-// Pads s to width with LEADING spaces, right-aligning it in the column.
-// Unlike PadRight this never truncates: it is for numbers, and dropping digits
-// off a number that outgrew its column would quietly show the wrong one.
+// Pads s to `width` screen columns with LEADING spaces, right-aligning it in
+// the column. Unlike PadRight this never cuts: it is for numbers, and dropping
+// digits off a number that outgrew its column would quietly show the wrong
+// one.
 std::string PadLeft(const std::string& s, int width);
 
 // Breaks `text` into as few lines as fit `width` columns, balanced so the

@@ -25,6 +25,14 @@ TEST(PadRightTest, PadsOrTruncatesToTheWidth) {
   EXPECT_EQ(PadRight("", 3), "   ");
 }
 
+// Both pads count columns, so a row with a multibyte cell in it still lines up
+// with the rows around it. The cell above is the same width on screen.
+TEST(PadRightTest, PadsInColumnsNotBytes) {
+  EXPECT_EQ(PadRight("📜", 4), "📜  ");
+  EXPECT_EQ(PadRight("Émeraude", 9), "Émeraude ");
+  EXPECT_EQ(PadLeft("📜", 4), "  📜");
+}
+
 // --- DisplayStatFor ---
 
 TEST(DisplayStatForTest, FindsTheEntryTheFieldNames) {
