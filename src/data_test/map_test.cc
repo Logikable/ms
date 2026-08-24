@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -202,14 +203,20 @@ TEST(MapDataTest, EveryMobCanBeFoughtAndIsWorthFighting) {
 }
 
 // Every mob a map spawns is inspectable, and the inspect screen leads with its
-// bestiary blurb. The wiki writes none for Onyx Stonegar, and inventing one
-// would put words in the game's mouth that no source stands behind.
+// bestiary blurb. A handful have no blurb to lead with: the wiki writes an
+// archive entry for neither Onyx Stonegar nor any Arcane River monster, and
+// inventing one would put words in the game's mouth that no source stands
+// behind. The panel shows an empty block for those rather than a made-up one.
 TEST(MapDataTest, EveryMapMobIsDescribed) {
+  const std::set<std::string> kUnwritten = {
+      "onyx_stonegar",    "raging_erda",   "soulful_erda",
+      "bighorn_pinedeer", "orange_piabee", "bunshroom",
+  };
   std::map<std::string, Mob> mobs = LoadMobs();
   for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
     for (const Spawn& spawn : entry.second.spawns()) {
       std::map<std::string, Mob>::const_iterator it = mobs.find(spawn.mob());
-      if (it == mobs.end() || spawn.mob() == "onyx_stonegar") {
+      if (it == mobs.end() || kUnwritten.count(spawn.mob()) > 0) {
         continue;
       }
       EXPECT_FALSE(it->second.description().empty())

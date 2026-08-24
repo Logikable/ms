@@ -1,0 +1,2 @@
+name: "Weathered Land of Rage"
+spawns { mob: "raging_erda" count: 33 }

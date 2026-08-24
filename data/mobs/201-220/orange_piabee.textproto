@@ -1,0 +1,8 @@
+# The wiki's Yum Yum Island entry writes this one's attack as "10%", plainly
+# a stray edit. 14,513 is the figure on its own Quest entry, and it is what
+# the ladder's 112.5 per level asks for at 215.
+name: "Orange Piabee"
+level: 215
+attack: 14513
+max_hp: 136530000
+exp: 278138

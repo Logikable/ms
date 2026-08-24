@@ -1,0 +1,2 @@
+name: "Mottled Forest 1"
+spawns { mob: "bighorn_pinedeer" count: 34 }

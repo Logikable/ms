@@ -104,10 +104,18 @@ Mob KnightMob() {
   return mob;
 }
 
+Mob ErdaMob() {
+  Mob mob;
+  mob.set_name("Raging Erda");
+  mob.set_level(201);
+  return mob;
+}
+
 // One map on every band, so a test can page across the whole list: Green
 // (level 1) and Horny (level 8) on the 1-10 band, then Temple (15) on 11-30,
 // Cave (40) on 31-60, Meadow (86) on 61-100, Nest (106) on 101-140, Road
-// (141) on 141-170 and District (172) on 171-200, each alone on its own.
+// (141) on 141-170, District (172) on 171-200 and Zone (201) on 201-220,
+// each alone on its own.
 // **Adding a band to kLevelBands means adding a map here**, or paging to the
 // end lands on an empty band and the tests below say nothing.
 GameState EveryBand() {
@@ -135,6 +143,9 @@ GameState EveryBand() {
   MapData district;
   district.set_name("District");
   AddSpawn(&district, "knight", 3);
+  MapData zone;
+  zone.set_name("Zone");
+  AddSpawn(&zone, "erda", 3);
   return GameState({}, {}, {},
                    {{"snail", SnailMob()},
                     {"mushroom", MushroomMob()},
@@ -143,7 +154,8 @@ GameState EveryBand() {
                     {"hare", HareMob()},
                     {"harp", HarpMob()},
                     {"monk", MonkMob()},
-                    {"knight", KnightMob()}},
+                    {"knight", KnightMob()},
+                    {"erda", ErdaMob()}},
                    {{"green_field", green},
                     {"horny_field", horny},
                     {"temple", temple},
@@ -151,7 +163,8 @@ GameState EveryBand() {
                     {"meadow", meadow},
                     {"nest", nest},
                     {"road", road},
-                    {"district", district}});
+                    {"district", district},
+                    {"zone", zone}});
 }
 
 std::string Render(const MapSelectPanel& panel) {
@@ -615,7 +628,7 @@ TEST(MapSelectPanelTest, PagingStopsAtBothEndsOfTheBands) {
   EXPECT_EQ(panel.selected_map(), "green_field");
 
   panel.ChangePage(kPastEveryBand);
-  EXPECT_EQ(panel.selected_map(), "district");
+  EXPECT_EQ(panel.selected_map(), "zone");
 }
 
 TEST(MapSelectPanelTest, MapsPastTheLastBandShowOnIt) {

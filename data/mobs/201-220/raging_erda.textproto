@@ -1,0 +1,8 @@
+# The first Arcane River mob, and where the ladder changes era: 3.3x the HP
+# of the Lv198 golem three levels below it. GMS's own number -- Arcane Force
+# is what pays for it there, and we do not model it yet.
+name: "Raging Erda"
+level: 201
+attack: 12938
+max_hp: 46056000
+exp: 101389
