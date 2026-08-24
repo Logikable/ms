@@ -46,9 +46,14 @@ enum Screen : int {
   // Enter on the menu panel's Party entry: the parties open to be joined, or
   // the one the player is in.
   kPartySelect,
-  // The leader's Enter on a member: kick them, hand the party on, or walk
-  // away.
+  // Enter on a member: read them, and for the leader kick them or hand the
+  // party on.
   kPartyMenu,
+  // The member behind Inspect: their stats, and what they are wearing.
+  kPartyInspect,
+  // Enter on one of those worn items: its card, the same one the player's own
+  // items get.
+  kPartyItemInspect,
   // The question one of those asks, and the one leaving a party asks.
   kPartyConfirm,
   // Enter on the menu panel's Boss entry: pick a fight, then fight it.
@@ -118,12 +123,14 @@ enum MapMenuItem : int {
   kMapMenuInspect = 1,
   kMapMenuClose = 2,
 };
-// Entries of the party member menu, on Enter in the party list. Only the
-// party leader raises it.
+// Entries of the party member menu, on Enter in the party list. Anyone may
+// raise it to read a member; only the leader is offered the two that act on
+// one, and for everybody else they are not on the menu at all.
 enum PartyMenuItem : int {
-  kPartyMenuKick = 0,
-  kPartyMenuPromote = 1,
-  kPartyMenuClose = 2,
+  kPartyMenuInspect = 0,
+  kPartyMenuKick = 1,
+  kPartyMenuPromote = 2,
+  kPartyMenuClose = 3,
 };
 enum JobMenuItem : int {
   kJobMenuInspect = 0,

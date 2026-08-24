@@ -130,15 +130,16 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
       job_inspect_panel_(state.skills),
       keybinds_panel_(keys_),
       all_stats_panel_(state.character, state.skills),
+      party_inspect_panel_(state),
       multi_sell_panel_(state.character),
       shop_panel_(state.character, state.equips, state.items),
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
                   scroll_panel_, star_force_panel_, trace_recover_panel_,
                   sell_panel_, sell_equip_panel_, multi_sell_panel_,
                   map_select_panel_, mob_inspect_panel_, boss_select_panel_,
-                  party_select_panel_, shop_panel_, buy_panel_,
-                  job_inspect_panel_, skill_inspect_panel_, menu_panel_,
-                  keybinds_panel_, analysis_, keys_, panel_focus_,
+                  party_select_panel_, party_inspect_panel_, shop_panel_,
+                  buy_panel_, job_inspect_panel_, skill_inspect_panel_,
+                  menu_panel_, keybinds_panel_, analysis_, keys_, panel_focus_,
                   multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
@@ -381,6 +382,22 @@ ftxui::Element Tui::RenderParty() {
   });
 }
 
+ftxui::Element Tui::RenderPartyInspect() {
+  party_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+  ftxui::Element screen = Standalone(party_inspect_panel_.Render());
+  if (controller_.screen() != kPartyItemInspect) {
+    return screen;
+  }
+  // The item's own card over the sheet it came off, the way the player's own
+  // items are read. Only the card: the sheet behind it is already a screen.
+  inspect_panel_.SetItem(party_inspect_panel_.selected_item());
+  inspect_panel_.UseCharacter(party_inspect_panel_.character());
+  return ftxui::dbox({
+      std::move(screen),
+      ftxui::center(inspect_panel_.RenderItemOnly() | ftxui::clear_under),
+  });
+}
+
 ftxui::Element Tui::BossConfirmDialog() {
   // Titleless, like the quit dialog: the question is the whole dialog.
   return DialogWindow(
@@ -605,6 +622,9 @@ ftxui::Element Tui::RenderScreen() {
     case kPartyMenu:
     case kPartyConfirm:
       return RenderParty();
+    case kPartyInspect:
+    case kPartyItemInspect:
+      return RenderPartyInspect();
     case kBossSelect:
       return ftxui::center(boss_select_panel_.Render());
     case kBossFight:

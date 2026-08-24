@@ -229,18 +229,32 @@ TEST_F(PartySelectPanelTest, AMemberReadiesAndUnreadies) {
   EXPECT_NE(Render(panel_).find("[Unready]"), std::string::npos);
 }
 
-TEST_F(PartySelectPanelTest, OnlyTheLeaderActsOnAMember) {
+TEST_F(PartySelectPanelTest, AMemberIsOfferedInspectAndNothingElse) {
   MultiplayerSnapshot snapshot = Connected();
   snapshot.party = PartyOf(2);
   snapshot.party.set_leader_account_id("two");
   Show(snapshot);
 
-  // A member may move the cursor down the list; Enter does nothing there.
-  EXPECT_EQ(panel_.Chosen(), PartyAction::kNone);
+  // Everyone may raise the menu on a member; what is on it is the question.
+  EXPECT_EQ(panel_.Chosen(), PartyAction::kMemberMenu);
   EXPECT_EQ(panel_.selected_member(), "me");
   panel_.MoveCursor(1);
   EXPECT_EQ(panel_.selected_member(), "two");
-  EXPECT_EQ(panel_.Chosen(), PartyAction::kNone);
+  ASSERT_EQ(panel_.Chosen(), PartyAction::kMemberMenu);
+
+  panel_.OpenMenu();
+  EXPECT_EQ(panel_.menu_selected(), kPartyMenuInspect);
+  std::string screen = Render(panel_);
+  EXPECT_NE(screen.find("Inspect"), std::string::npos);
+  // Hidden rather than dimmed: they are not this player's to take.
+  EXPECT_EQ(screen.find("Kick"), std::string::npos);
+  EXPECT_EQ(screen.find("Promote"), std::string::npos);
+
+  // Two entries left, so Down lands on Close and Down again comes back.
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPartyMenuInspect);
 }
 
 TEST_F(PartySelectPanelTest, TheLeaderRaisesAMenuOnAMember) {
@@ -255,11 +269,15 @@ TEST_F(PartySelectPanelTest, TheLeaderRaisesAMenuOnAMember) {
 
   panel_.OpenMenu();
   EXPECT_TRUE(panel_.menu_open());
-  EXPECT_EQ(panel_.menu_selected(), kPartyMenuKick);
+  // Inspect leads for the leader too: reading a member is what everyone does.
+  EXPECT_EQ(panel_.menu_selected(), kPartyMenuInspect);
   std::string screen = Render(panel_);
+  EXPECT_NE(screen.find("Inspect"), std::string::npos);
   EXPECT_NE(screen.find("Kick"), std::string::npos);
   EXPECT_NE(screen.find("Promote"), std::string::npos);
 
+  panel_.MoveMenuCursor(1);
+  EXPECT_EQ(panel_.menu_selected(), kPartyMenuKick);
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuPromote);
   panel_.CloseMenu();
@@ -273,8 +291,12 @@ TEST_F(PartySelectPanelTest, TheLeadersOwnRowOffersNeither) {
 
   ASSERT_EQ(panel_.selected_member(), "me");
   panel_.OpenMenu();
-  // Both dimmed, so the cursor skips past them onto Close and stays there.
-  EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
+  // The leader may still read themselves, so the cursor rests on Inspect and
+  // Down skips the two dimmed entries onto Close.
+  EXPECT_EQ(panel_.menu_selected(), kPartyMenuInspect);
+  std::string screen = Render(panel_);
+  EXPECT_NE(screen.find("Kick"), std::string::npos);
+  EXPECT_NE(screen.find("Promote"), std::string::npos);
   panel_.MoveMenuCursor(1);
   EXPECT_EQ(panel_.menu_selected(), kPartyMenuClose);
 }

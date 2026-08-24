@@ -57,7 +57,8 @@ ftxui::Element ScrollingList(std::vector<ftxui::Element> rows) {
 
 }  // namespace
 
-PartySelectPanel::PartySelectPanel() : menu_({"Kick", "Promote", "Close"}) {
+PartySelectPanel::PartySelectPanel()
+    : menu_({"Inspect", "Kick", "Promote", "Close"}) {
 }
 
 void PartySelectPanel::SetSnapshot(const MultiplayerSnapshot& snapshot) {
@@ -159,8 +160,9 @@ PartyAction PartySelectPanel::Chosen() const {
   if (!in_party()) {
     return PartyAction::kJoin;
   }
-  // A member's row. Only the leader has anything to do with one.
-  return is_leader() ? PartyAction::kMemberMenu : PartyAction::kNone;
+  // A member's row. Everyone may read whoever is on it; what else the menu
+  // offers is the leader's business, and OpenMenu decides that.
+  return PartyAction::kMemberMenu;
 }
 
 std::string PartySelectPanel::selected_party_id() const {
@@ -188,14 +190,20 @@ std::string PartySelectPanel::selected_member_name() const {
 void PartySelectPanel::OpenMenu() {
   menu_open_ = true;
   menu_.Reset();
+  if (!is_leader()) {
+    // Hidden rather than dimmed: a member has not been handed these and never
+    // will be on this party, so a greyed row would advertise nothing.
+    menu_.Hide(kPartyMenuKick);
+    menu_.Hide(kPartyMenuPromote);
+    return;
+  }
   if (selected_member() != snapshot_.account_id) {
     return;
   }
   // The leader's own row. Both actions stay visible and dimmed, so the menu
-  // reads the same wherever it is raised.
+  // reads the same wherever the leader raises it.
   menu_.Disable(kPartyMenuKick);
   menu_.Disable(kPartyMenuPromote);
-  menu_.Down();
 }
 
 void PartySelectPanel::CloseMenu() {

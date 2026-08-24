@@ -38,6 +38,7 @@
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
+#include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
@@ -92,6 +93,9 @@ class Tui {
   ftxui::Element RenderMenuBox();
   // The party screen, with its member menu or its question over it.
   ftxui::Element RenderParty();
+  // The member behind Inspect, with their item's card over it when the player
+  // has pressed Enter on a row.
+  ftxui::Element RenderPartyInspect();
   // "Kick Bree from the party?", floated over the party screen.
   ftxui::Element PartyConfirmDialog();
   // What the server had to say, floated over whatever screen is up.
@@ -170,6 +174,7 @@ class Tui {
   MobInspectPanel mob_inspect_panel_;
   BossSelectPanel boss_select_panel_;
   PartySelectPanel party_select_panel_;
+  PartyInspectPanel party_inspect_panel_;
   // The job's book, read before the advancement is taken.
   JobInspectPanel job_inspect_panel_;
   // The keys, on a screen of their own, reached from the Settings box.

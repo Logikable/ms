@@ -9,9 +9,8 @@
  *
  * The cursor walks the list and then the row of buttons under it, all one
  * ring, and Left and Right move between the buttons only once it is down
- * there. The leader may press Enter on a member for a menu -- Kick, Promote,
- * Close -- anchored to that row; everyone else may move the cursor and nothing
- * more.
+ * there. Enter on a member raises a menu anchored to that row: Inspect and
+ * Close for anyone, with Kick and Promote for the leader.
  *
  * The panel is a view. It draws whatever snapshot it was last handed and never
  * asks the connection for anything: the controller reads what the cursor is on
@@ -31,11 +30,9 @@ namespace ms {
 
 // What pressing Enter where the cursor stands would do.
 enum class PartyAction {
-  // Nothing: a member's row, for a player who is not the leader.
-  kNone,
   // A party's row, out of a party.
   kJoin,
-  // A member's row, for the leader.
+  // A member's row. What the menu it raises offers depends on who is asking.
   kMemberMenu,
   kCreate,
   kReady,
@@ -83,8 +80,9 @@ class PartySelectPanel {
   std::string selected_member() const;
   std::string selected_member_name() const;
 
-  // The member menu, which only the leader raises. On the leader's own row
-  // Kick and Promote are dimmed: there is nobody there to do either to.
+  // The member menu. A player who is not the leader is offered Inspect and
+  // Close alone; the leader also gets Kick and Promote, dimmed on their own
+  // row because there is nobody there to do either to.
   void OpenMenu();
   void CloseMenu();
   bool menu_open() const {

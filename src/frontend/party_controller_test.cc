@@ -19,10 +19,12 @@
 #include "src/frontend/panels/equipped_panel.h"
 #include "src/frontend/panels/inventory_panel.h"
 #include "src/frontend/panels/menu_panel.h"
+#include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/tui_controller.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
+#include "src/item/equip_instance.h"
 #include "src/multiplayer/session.h"
 
 namespace ms {
@@ -30,11 +32,25 @@ namespace {
 
 constexpr std::chrono::milliseconds kPatience(4000);
 
+// One weapon in the catalog, so a member has something to be seen wearing --
+// a sheet names its items and the reader resolves them against their own
+// catalogs, so both ends need it. Not keyed "sword": that is the one a new
+// character is seeded with, and these tests want a character carrying nothing.
+EquipPrototype Sword() {
+  EquipPrototype sword;
+  sword.set_name("Iron Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  sword.mutable_base_stats()->set_attack(30);
+  sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  return sword;
+}
+
 std::unique_ptr<GameState> MakeState() {
   std::unique_ptr<GameState> state = std::make_unique<GameState>(
-      std::map<std::string, EquipPrototype>{}, std::map<std::string, Scroll>{},
-      std::map<std::string, ItemPrototype>{}, std::map<std::string, Mob>{},
-      std::map<std::string, MapData>{});
+      std::map<std::string, EquipPrototype>{{"iron_sword", Sword()}},
+      std::map<std::string, Scroll>{}, std::map<std::string, ItemPrototype>{},
+      std::map<std::string, Mob>{}, std::map<std::string, MapData>{});
   // One fight for the boss screen to have something to refuse, matching the
   // server's own catalog.
   state->bosses = TestBosses();
@@ -67,6 +83,7 @@ struct Client {
     map_select_panel = std::make_unique<MapSelectPanel>(*state);
     mob_inspect_panel = std::make_unique<MobInspectPanel>(*state);
     boss_select_panel = std::make_unique<BossSelectPanel>(*state);
+    party_inspect_panel = std::make_unique<PartyInspectPanel>(*state);
     shop_panel = std::make_unique<ShopPanel>(state->character, state->equips,
                                              state->items);
     job_inspect_panel = std::make_unique<JobInspectPanel>(state->skills);
@@ -77,9 +94,9 @@ struct Client {
         *state, *char_panel, *equip_panel, *inventory_panel, *scroll_panel,
         star_force_panel, *trace_recover_panel, sell_panel, sell_equip_panel,
         *multi_sell_panel, *map_select_panel, *mob_inspect_panel,
-        *boss_select_panel, party_panel, *shop_panel, buy_panel,
-        *job_inspect_panel, skill_inspect_panel, *menu_panel, *keybinds_panel,
-        analysis, *keys, focus, &session);
+        *boss_select_panel, party_panel, *party_inspect_panel, *shop_panel,
+        buy_panel, *job_inspect_panel, skill_inspect_panel, *menu_panel,
+        *keybinds_panel, analysis, *keys, focus, &session);
   }
 
   // One turn of the game's loop: the connection, then the screen.
@@ -107,6 +124,7 @@ struct Client {
   std::unique_ptr<MapSelectPanel> map_select_panel;
   std::unique_ptr<MobInspectPanel> mob_inspect_panel;
   std::unique_ptr<BossSelectPanel> boss_select_panel;
+  std::unique_ptr<PartyInspectPanel> party_inspect_panel;
   std::unique_ptr<ShopPanel> shop_panel;
   std::unique_ptr<JobInspectPanel> job_inspect_panel;
   std::unique_ptr<MenuPanel> menu_panel;
@@ -208,10 +226,12 @@ TEST_F(PartyControllerTest, TheLeaderKicksAMember) {
   std::unique_ptr<Client> guest = Connect("Wand");
   MakeParty(*leader, *guest);
 
-  // Enter on the second member raises the menu; Kick is where it opens.
+  // Enter on the second member raises the menu, which opens on Inspect; Kick
+  // is the entry under it.
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(leader->controller->screen(), kPartyMenu);
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
   EXPECT_NE(leader->controller->party_prompt_question().find("Wand"),
@@ -237,6 +257,7 @@ TEST_F(PartyControllerTest, CancellingAKickLeavesThePartyAlone) {
 
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
   // The cursor is on Cancel, so Enter is the answer that changes nothing.
@@ -255,7 +276,8 @@ TEST_F(PartyControllerTest, TheLeaderHandsThePartyOn) {
 
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
-  // Down one entry of the menu, from Kick to Promote.
+  // Down two entries of the menu, from Inspect past Kick to Promote.
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_EQ(leader->controller->screen(), kPartyConfirm);
@@ -301,6 +323,7 @@ TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
 
   leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
   leader->controller->OnEvent(ftxui::Event::Return);
   leader->controller->OnEvent(ftxui::Event::ArrowLeft);
   leader->controller->OnEvent(ftxui::Event::Return);
@@ -314,6 +337,80 @@ TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
   guest->controller->OnEvent(ftxui::Event::Return);
   EXPECT_FALSE(guest->controller->party_notice_prompt().open());
   EXPECT_EQ(guest->controller->screen(), kMain);
+}
+
+// A member reads another member: their sheet arrives with the party state, so
+// the screen has everything it needs the moment it opens.
+TEST_F(PartyControllerTest, AMemberInspectsAnother) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  // The leader picks up a weapon, which reaches the guest with the party
+  // state rather than being asked for.
+  leader->state->character.PickUp(std::make_unique<EquipInstance>(Sword()));
+  leader->state->character.Equip(0);
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    return guest->party_panel.in_party() && guest->session.Snapshot()
+                                                    .party.members(0)
+                                                    .player()
+                                                    .sheet()
+                                                    .equipped_size() == 1;
+  }));
+
+  // The guest, who leads nothing, on the leader's row: Inspect is the entry
+  // the menu opens on.
+  ASSERT_FALSE(guest->party_panel.is_leader());
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kPartyMenu);
+  ASSERT_EQ(guest->party_panel.menu_selected(), kPartyMenuInspect);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+
+  // The leader as they read themselves, rebuilt from the sheet they sent.
+  EXPECT_EQ(guest->party_inspect_panel->character().username(), "Dagger");
+  EXPECT_EQ(guest->party_inspect_panel->character().proto().level(),
+            leader->state->character.proto().level());
+
+  // Enter on a worn item opens its card, off the panel's cursor rather than a
+  // pointer held across a tick that may rebuild the member.
+  ASSERT_NE(guest->party_inspect_panel->selected_item(), nullptr);
+  EXPECT_EQ(guest->party_inspect_panel->selected_item()->prototype().name(),
+            "Iron Sword");
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(guest->controller->screen(), kPartyItemInspect);
+  guest->Tick();
+  EXPECT_EQ(guest->controller->screen(), kPartyItemInspect);
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  ASSERT_EQ(guest->controller->screen(), kPartyInspect);
+
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(guest->controller->screen(), kPartySelect);
+}
+
+// The screen has nothing to draw once the member walks out of the party.
+TEST_F(PartyControllerTest, TheMemberLeavingClosesTheInspectScreen) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  MakeParty(*leader, *guest);
+
+  leader->controller->OnEvent(ftxui::Event::ArrowDown);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(leader->controller->screen(), kPartyInspect);
+  EXPECT_EQ(leader->party_inspect_panel->character().username(), "Wand");
+
+  // The guest walks out: down past both members onto Leave Party, then Yes.
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);
+  guest->controller->OnEvent(ftxui::Event::ArrowDown);
+  guest->controller->OnEvent(ftxui::Event::ArrowRight);
+  ASSERT_EQ(guest->party_panel.Chosen(), PartyAction::kLeave);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  guest->controller->OnEvent(ftxui::Event::ArrowLeft);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    return leader->controller->screen() == kPartySelect;
+  }));
 }
 
 TEST_F(PartyControllerTest, AMemberCannotTakeAFightOfTheirOwn) {

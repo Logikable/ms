@@ -30,6 +30,7 @@
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
+#include "src/frontend/screens/party_inspect_panel.h"
 #include "src/frontend/screens/party_select_panel.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/screens/sell_equip_panel.h"
@@ -71,7 +72,8 @@ class TuiController {
       SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
       MultiSellPanel& multi_sell_panel, MapSelectPanel& map_select_panel,
       MobInspectPanel& mob_inspect_panel, BossSelectPanel& boss_select_panel,
-      PartySelectPanel& party_select_panel, ShopPanel& shop_panel,
+      PartySelectPanel& party_select_panel,
+      PartyInspectPanel& party_inspect_panel, ShopPanel& shop_panel,
       BuyPanel& buy_panel, JobInspectPanel& job_inspect_panel,
       SkillInspectPanel& skill_inspect_panel, MenuPanel& menu_panel,
       KeybindsPanel& keybinds_panel, BattleAnalysis& analysis, KeyMap& keys,
@@ -334,7 +336,15 @@ class TuiController {
   bool OnMobInspectEvent(ftxui::Event event);
   bool OnPartySelectEvent(ftxui::Event event);
   bool OnPartyMenuEvent(ftxui::Event event);
+  bool OnPartyInspectEvent(ftxui::Event event);
+  bool OnPartyItemInspectEvent(ftxui::Event event);
   bool OnPartyConfirmEvent(ftxui::Event event);
+  // Opens the inspect screen on the member playing under `account_id`. Does
+  // nothing for a member who has gone since the menu was raised.
+  void OpenPartyInspect(const std::string& account_id);
+  // Keeps the inspect screen on what the lobby last said, and turns the
+  // player out of it when the member they are reading leaves.
+  void RefreshPartyInspect(const MultiplayerSnapshot& lobby);
   // Does what the cursor is on, which is either an ask sent straight to the
   // server or a question raised first.
   void TakePartyAction(PartyAction action);
@@ -402,6 +412,10 @@ class TuiController {
   MobInspectPanel& mob_inspect_panel_;
   BossSelectPanel& boss_select_panel_;
   PartySelectPanel& party_select_panel_;
+  PartyInspectPanel& party_inspect_panel_;
+  // The member the inspect screen is reading, so the lobby's next word about
+  // them lands on it.
+  std::string party_inspect_account_;
   JobInspectPanel& job_inspect_panel_;
   SkillInspectPanel& skill_inspect_panel_;
   MenuPanel& menu_panel_;

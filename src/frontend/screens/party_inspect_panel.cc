@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "google/protobuf/util/message_differencer.h"
 #include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/widgets/equipped_list.h"
 #include "src/frontend/widgets/panel_util.h"
@@ -23,9 +24,20 @@ PartyInspectPanel::PartyInspectPanel(GameState& state)
 }
 
 void PartyInspectPanel::SetPlayer(const PlayerInfo& player) {
+  if (google::protobuf::util::MessageDifferencer::Equals(player, shown_)) {
+    return;
+  }
+  bool same_member = player.account_id() == shown_.account_id();
+  shown_ = player;
   character_.RestoreFrom(player.sheet(), state_.equips, state_.items);
   character_.UseEquipSets(state_.equip_sets);
-  Reset();
+  if (!same_member) {
+    Reset();
+    return;
+  }
+  // They changed under the cursor -- took off a hat, or a whole set. Held
+  // where it was rather than thrown back to the top.
+  cursor_ = std::clamp(cursor_, 0, std::max(0, ItemCount() - 1));
 }
 
 void PartyInspectPanel::Reset() {

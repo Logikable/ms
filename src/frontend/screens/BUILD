@@ -550,6 +550,7 @@ cc_library(
         "//src/item:equip_instance",
         "//src/protos:multiplayer_proto_cc",
         "@ftxui//:dom",
+        "@protobuf",
     ],
 )
 

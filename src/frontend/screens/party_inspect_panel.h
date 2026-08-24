@@ -46,6 +46,11 @@ class PartyInspectPanel {
 
   // Points the panel at a party member. An item their build has and this one
   // does not is dropped, the way a save loaded against changed catalogs is.
+  //
+  // Called every tick with whatever the lobby last said, so a member levelling
+  // or re-gearing under the reader shows it. A player who has not changed is
+  // not rebuilt, and the cursor only goes back to the top when the panel is
+  // pointed at somebody else.
   void SetPlayer(const PlayerInfo& player);
   // Puts the cursor on the first worn item. Call when the screen opens.
   void Reset();
@@ -78,6 +83,9 @@ class PartyInspectPanel {
   // The member, rebuilt from their sheet. Held rather than rebuilt per frame:
   // a sheet arrives when something about them changes, not every tick.
   CharacterInstance character_;
+  // The member as the lobby last described them, so a tick that changed
+  // nothing does not rebuild them.
+  PlayerInfo shown_;
   int cursor_ = 0;
   // See SetMaxRows. Zero is "as many as it takes".
   int max_rows_ = 0;
