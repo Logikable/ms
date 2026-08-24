@@ -49,6 +49,12 @@ bool GrantsSkillLevels(const Skill& skill) {
   return skill.base().skill_level_bonus() > 0.0;
 }
 
+// Whether this skill gives the rest of the party anything. See
+// Skill.ally_base.
+bool GrantsToAllies(const Skill& skill) {
+  return skill.has_ally_base() || skill.has_ally_per_level();
+}
+
 // A fountain as its own skill wrote it, before the character's INT has had
 // its say. The step is the INT that buys one more helping, 0 for a pour that
 // does not grow -- kept here because what the total INT is cannot be known
@@ -416,14 +422,65 @@ bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
          EffectiveSkillLevel(character, skill, bonus) > 0;
 }
 
+// One skill an ally is holding over the party, and the level their book has
+// it at.
+struct AllyGrant {
+  const Skill* skill = nullptr;
+  int level = 0;
+};
+
+// What the rest of the party is holding over this character. Gathered whole
+// before anything folds, because both rules that thin the list -- the buff
+// rule and the party's supersessions -- need every ally read first.
+//
+// An ally's own Combat Orders lifts what they grant, but a level the party
+// granted THEM does not. See DerivedStatsFor.
+std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
+                                   const std::map<std::string, Skill>& skills,
+                                   absl::Span<const CharacterInstance> allies) {
+  std::map<std::string, AllyGrant> best;
+  std::vector<AllyGrant> stacking;
+  std::set<std::string> superseded;
+  for (const CharacterInstance& ally : allies) {
+    int bonus = BonusSkillLevels(ally, skills);
+    for (const std::pair<const std::string, Skill>& entry : skills) {
+      const Skill& skill = entry.second;
+      if (!GrantsToAllies(skill) || !GrantsAnything(ally, skill, bonus)) {
+        continue;
+      }
+      int level = EffectiveSkillLevel(ally, skill, bonus);
+      if (skill.ally_effect_stacks()) {
+        stacking.push_back(AllyGrant{&skill, level});
+      } else if (best[skill.name()].level < level) {
+        best[skill.name()] = AllyGrant{&skill, level};
+      }
+    }
+    for (const std::string& name : SupersededSkillNames(ally, skills, bonus)) {
+      superseded.insert(name);
+    }
+  }
+  std::vector<AllyGrant> grants = std::move(stacking);
+  for (const std::pair<const std::string, AllyGrant>& entry : best) {
+    // A buff does not stack with itself: a character casting Bless already has
+    // it folded in and takes nothing from the Cleric beside them.
+    if (superseded.count(entry.first) > 0 ||
+        character.skill_level(*entry.second.skill) > 0) {
+      continue;
+    }
+    grants.push_back(entry.second);
+  }
+  return grants;
+}
+
 // Sums every passive the character has learned. HP has to know its whole flat
 // total before any percentage lands on it, so nothing is folded here.
 PassiveTotals LearnedPassives(const CharacterInstance& character,
                               const std::map<std::string, Skill>& skills,
-                              absl::Span<const Skill* const> buffs_up) {
+                              absl::Span<const Skill* const> buffs_up,
+                              absl::Span<const CharacterInstance> allies) {
   PassiveTotals totals;
   EquipType weapon = character.weapon_type();
-  int bonus = BonusSkillLevels(character, skills);
+  int bonus = BonusSkillLevels(character, skills, allies);
   std::set<std::string> superseded =
       SupersededSkillNames(character, skills, bonus);
   for (const std::pair<const std::string, Skill>& entry : skills) {
@@ -432,6 +489,12 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
     // so the two must never both pay. The skill keeps its level and its page;
     // what it loses is its levers. See Skill.supersedes_skill_name.
     if (superseded.count(skill.name()) > 0) {
+      continue;
+    }
+    // Parashock Guard alone: GMS pays the caster for shielding somebody, so a
+    // character standing alone is paid nothing. Read here rather than in
+    // GrantsAnything because a skill lying idle still supersedes.
+    if (skill.requires_party() && allies.empty()) {
       continue;
     }
     // Every kind is read, not only the passives: GMS hangs permanent grants off
@@ -458,6 +521,12 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   for (const Skill* skill : buffs_up) {
     AddEffect(skill->buff().base(), skill->buff().per_level(),
               EffectiveSkillLevel(character, *skill, bonus), totals);
+  }
+  // What the party is holding over them, at the level its caster has it. The
+  // same door again, and for the same reason.
+  for (const AllyGrant& grant : PartyGrants(character, skills, allies)) {
+    AddEffect(grant.skill->ally_base(), grant.skill->ally_per_level(),
+              grant.level, totals);
   }
   FoldMesoExplosion(totals);
   FoldComboOrbs(totals);
@@ -545,7 +614,8 @@ bool SkillAllowsWeapon(const Skill& skill, EquipType weapon) {
 }
 
 int BonusSkillLevels(const CharacterInstance& character,
-                     const std::map<std::string, Skill>& skills) {
+                     const std::map<std::string, Skill>& skills,
+                     absl::Span<const CharacterInstance> allies) {
   double bonus = 0.0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
@@ -557,6 +627,24 @@ int BonusSkillLevels(const CharacterInstance& character,
     if (level > 0) {
       bonus += skill.base().skill_level_bonus() +
                skill.per_level().skill_level_bonus() * (level - 1);
+    }
+  }
+  // What the party is holding out, if the character has none of their own --
+  // the buff rule PartyGrants keeps. Read at the ally's LEARNED level: a skill
+  // that hands levels out never receives them, so nothing here can loop.
+  if (bonus <= 0.0) {
+    for (const CharacterInstance& ally : allies) {
+      for (const std::pair<const std::string, Skill>& entry : skills) {
+        const Skill& skill = entry.second;
+        int level = ally.skill_level(skill);
+        if (!GrantsToAllies(skill) || level <= 0 ||
+            !ally.HasAdvancement(skill.job_advancement())) {
+          continue;
+        }
+        bonus = std::max(bonus, skill.ally_base().skill_level_bonus() +
+                                    skill.ally_per_level().skill_level_bonus() *
+                                        (level - 1));
+      }
     }
   }
   // Floored, and nudged first: the per-level step is a fraction that cannot be
@@ -624,11 +712,12 @@ std::vector<const Skill*> BuffSkillsFor(
 
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
-                             absl::Span<const Skill* const> buffs_up) {
+                             absl::Span<const Skill* const> buffs_up,
+                             absl::Span<const CharacterInstance> allies) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats();
-  PassiveTotals passives = LearnedPassives(character, skills, buffs_up);
+  PassiveTotals passives = LearnedPassives(character, skills, buffs_up, allies);
   FoldApStats(allocated, passives);
 
   DerivedStats stats;

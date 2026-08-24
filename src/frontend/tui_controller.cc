@@ -817,11 +817,27 @@ void TuiController::AdvancePartyFight(const MultiplayerSnapshot& lobby) {
     return;
   }
   if (boss_run_ == nullptr) {
-    OpenPartyFight();
+    OpenPartyFight(lobby);
   }
 }
 
-void TuiController::OpenPartyFight() {
+void TuiController::SeatParty(const MultiplayerSnapshot& lobby) {
+  state_.party.clear();
+  for (const PartyMember& member : lobby.party.members()) {
+    if (member.player().account_id() == lobby.account_id) {
+      continue;
+    }
+    // A sheet names its items rather than describing them, so it is rebuilt
+    // against this build's catalogs -- the same way the inspect screen reads
+    // one, and the same way a save is loaded.
+    CharacterInstance ally(state_.rng, Character());
+    ally.RestoreFrom(member.player().sheet(), state_.equips, state_.items);
+    ally.UseEquipSets(state_.equip_sets);
+    state_.party.push_back(std::move(ally));
+  }
+}
+
+void TuiController::OpenPartyFight(const MultiplayerSnapshot& lobby) {
   std::map<std::string, Boss>::const_iterator it =
       state_.bosses.find(party_fight_->boss_key());
   int index = party_fight_->difficulty_index();
@@ -833,6 +849,9 @@ void TuiController::OpenPartyFight() {
   }
   boss_run_key_ = party_fight_->boss_key();
   boss_run_difficulty_ = it->second.difficulties(index).name();
+  // Before the run: it works the character's damage out once, and the party
+  // is part of what the character is worth for as long as the fight lasts.
+  SeatParty(lobby);
   boss_run_ = std::make_unique<BossRun>(boss_run_key_, it->second, index,
                                         party_fight_.get());
   // Whatever they were doing, they are in a fight now.
@@ -847,6 +866,9 @@ bool TuiController::in_party_fight() const {
 
 void TuiController::DropBossRun() {
   boss_run_.reset();
+  // The party's skills reach this character for the fight and no longer: what
+  // they farm afterwards, they farm alone.
+  state_.party.clear();
   if (party_fight_ != nullptr) {
     party_fight_->Forget();
   }

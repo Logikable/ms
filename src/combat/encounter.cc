@@ -914,8 +914,8 @@ void AddBuffedSets(const GameState& state,
         up.push_back(buff_skills[i]);
       }
     }
-    DerivedStats derived =
-        DerivedStatsFor(state.character, state.skills, absl::MakeConstSpan(up));
+    DerivedStats derived = DerivedStatsFor(
+        state.character, state.skills, absl::MakeConstSpan(up), state.party);
     params.buffed.push_back(
         BuildAttackSet(state, derived, weapon, speed_factor, params.types));
   }
@@ -1033,7 +1033,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
     return params;
   }
 
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  DerivedStats derived =
+      DerivedStatsFor(state.character, state.skills, {}, state.party);
   // The pace the whole encounter runs at, and the only thing here that asks
   // the character's level directly: the game stretches out as they climb.
   double speed_factor = GameSpeedFactor(state.character.proto().level());
@@ -1062,7 +1063,8 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
 
-  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  DerivedStats derived =
+      DerivedStatsFor(state.character, state.skills, {}, state.party);
   // A boss fight runs in real time whatever the character's level: the pacing
   // band stretches an idle map out so it can be left alone, and a fight the
   // player is sitting and watching wants neither the stretch nor a beat.

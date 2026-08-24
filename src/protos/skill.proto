@@ -945,6 +945,32 @@ message Skill {
   // The chance this passive gives every swing to land harder on one enemy.
   // Unset for all but Mortal Blow -- see Proc.
   Proc proc = 41;
+
+  // What every OTHER member of the party gets out of this skill, read at the
+  // caster's level exactly as `base` and `per_level` are. Empty for a skill
+  // nobody else benefits from, which is most of them.
+  //
+  // Held apart from `base` rather than shared with it because the two halves
+  // rarely match: Hex of the Evil Eye pays an ally half of what it pays the
+  // caster, and Parashock Guard's two halves have nothing in common at all.
+  // Where they do match, the file simply says the same thing twice.
+  //
+  // Read at the ally's own effective level and no further: a level the party
+  // granted them does not then raise what they grant back. One pass, or two
+  // characters holding Combat Orders would lift each other in a circle.
+  SkillEffect ally_base = 42;
+  SkillEffect ally_per_level = 43;
+  // Whether the skill's own effect needs somebody else in the party. False for
+  // every skill but Parashock Guard, which GMS pays the caster only while it
+  // is shielding an ally -- so alone it grants nothing.
+  bool requires_party = 44;
+  // Whether two allies both carrying this skill each pay. False is the buff
+  // rule and the default: one Sharp Eyes stands over the party however many
+  // archers cast it, and the better of the two is what everyone gets.
+  //
+  // True only for Blessed Ensemble, which is not a buff at all -- it pays for
+  // the company kept, and GMS states it per Cleric in the party.
+  bool ally_effect_stacks = 45;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and

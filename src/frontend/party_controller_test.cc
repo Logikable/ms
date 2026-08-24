@@ -504,6 +504,46 @@ TEST_F(PartyControllerTest, TheLeaderTakesThePartyIntoAFight) {
   EXPECT_LT(guest->controller->boss_run()->phase_hp_fraction(), 1.0);
 }
 
+// The rest of the party is seated in the GameState for the length of the
+// fight, so that what their skills hold over this character is folded into its
+// stats -- and taken out again when the fight is done. See GameState::party.
+TEST_F(PartyControllerTest, ThePartyIsSeatedForTheFightAndNoLonger) {
+  std::unique_ptr<Client> leader = Connect("Dagger");
+  std::unique_ptr<Client> guest = Connect("Wand");
+  leader->Arm();
+  guest->Arm();
+  MakeParty(*leader, *guest);
+  guest->session.client().SetReady(true);
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    const Party& party = leader->session.Snapshot().party;
+    return party.members_size() == 2 && party.members(1).ready();
+  }));
+  // Standing in a party is not being in a fight, and buys nothing yet.
+  EXPECT_TRUE(guest->state->party.empty());
+
+  leader->controller->OnEvent(ftxui::Event::Escape);
+  leader->controller->OpenMenuEntry(MenuEntry::kBoss);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  leader->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(WaitFor(
+      {leader.get(), guest.get()},
+      [&]() { return guest->controller->screen() == kBossFight; }, 0.02));
+
+  // Everybody but themselves, rebuilt from the sheets they sent.
+  ASSERT_EQ(guest->state->party.size(), 1u);
+  EXPECT_EQ(guest->state->party[0].username(), "Dagger");
+  ASSERT_EQ(leader->state->party.size(), 1u);
+  EXPECT_EQ(leader->state->party[0].username(), "Wand");
+
+  guest->controller->OnEvent(ftxui::Event::Escape);
+  guest->controller->OnEvent(ftxui::Event::ArrowLeft);
+  guest->controller->OnEvent(ftxui::Event::Return);
+  ASSERT_TRUE(WaitFor(
+      {leader.get(), guest.get()},
+      [&]() { return guest->controller->screen() == kBossSelect; }, 0.02));
+  EXPECT_TRUE(guest->state->party.empty());
+}
+
 // Walking out leaves the fight to whoever is left in it.
 TEST_F(PartyControllerTest, OneWalkingOutLeavesTheFightToTheOther) {
   std::unique_ptr<Client> leader = Connect("Dagger");

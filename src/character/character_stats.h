@@ -221,9 +221,13 @@ inline constexpr int kLevelsPastMasterLevel = 2;
 
 // Levels every skill the character has learned gains from a skill that grants
 // them -- Combat Orders, and nothing else so far. 0 for a character without
-// one, which is every character but a White Knight.
+// one and without an ally holding one.
+//
+// `allies` is the rest of the party; see DerivedStatsFor. A White Knight
+// ignores an ally's Combat Orders and keeps their own, by the rule there.
 int BonusSkillLevels(const CharacterInstance& character,
-                     const std::map<std::string, Skill>& skills);
+                     const std::map<std::string, Skill>& skills,
+                     absl::Span<const CharacterInstance> allies = {});
 
 // `learned` lifted by `bonus`, held to the master level -- or to
 // kLevelsPastMasterLevel above it for a skill marked exceeds_master_level,
@@ -278,9 +282,26 @@ std::vector<const Skill*> BuffSkillsFor(
 // BuffSkillsFor gives: each one's levers fold in as a source of its own, so
 // they meet the character's permanent ones exactly as another skill's would.
 // Empty is the character as they are between casts.
+//
+// `allies` is everybody else in the party. Each of their skills carrying an
+// ally half (see Skill.ally_base) folds in through the same door, read at that
+// ally's own level. Two rules keep it honest:
+//
+//   - An ally's grant reaches only a character who does not carry the skill
+//     themselves. A buff does not stack with itself, and their own copy is
+//     folded in already -- so two Clerics in a party each keep their own
+//     Bless rather than taking the better of the two. Blessed Ensemble is
+//     exempt, being a bonus for the company kept; see ally_effect_stacks.
+//   - What one ally supersedes, the whole party loses. A Bishop's Advanced
+//     Blessing puts out a Cleric's Bless for everyone, which is what GMS
+//     means by the two not stacking.
+//
+// Empty is a character playing alone, which is every character outside a
+// party fight.
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
-                             absl::Span<const Skill* const> buffs_up = {});
+                             absl::Span<const Skill* const> buffs_up = {},
+                             absl::Span<const CharacterInstance> allies = {});
 
 // The offensive half of the derived stats, in the shape combat/damage.h asks
 // for them. One place to keep in step with DerivedStats, rather than every

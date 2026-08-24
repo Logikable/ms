@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "src/item/equip_instance.h"
 #include "src/proto_loader.h"
@@ -2108,6 +2109,167 @@ TEST_F(DerivedStatsTest, DropRateSumsWornAndGranted) {
   std::map<std::string, Skill> skills = {{"greed", greed}};
   ASSERT_TRUE(c.LearnSkill(greed, 10));
   EXPECT_NEAR(DerivedStatsFor(c, skills).item_drop_pct, 0.30, 1e-9);
+}
+
+// --- the party ---
+
+// Bless's shape: what the caster keeps and what they hold over the party are
+// the same thing, which is the common case.
+Skill Bless() {
+  Skill skill;
+  skill.set_name("Bless");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(10);
+  skill.mutable_base()->set_attack(6);
+  skill.mutable_per_level()->set_attack(1);
+  *skill.mutable_ally_base() = skill.base();
+  *skill.mutable_ally_per_level() = skill.per_level();
+  return skill;
+}
+
+// A party of one caster, built for the span DerivedStatsFor takes.
+std::vector<CharacterInstance> PartyOf(CharacterInstance ally) {
+  std::vector<CharacterInstance> party;
+  party.push_back(std::move(ally));
+  return party;
+}
+
+TEST_F(DerivedStatsTest, AllyGrantReachesOnlyWhoeverLacksTheSkill) {
+  Skill bless = Bless();
+  std::map<std::string, Skill> skills = {{"bless", bless}};
+  CharacterInstance caster = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(caster.LearnSkill(bless, 10));
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+  EXPECT_EQ(DerivedStatsFor(plain, skills).skill_stats.attack(), 0);
+  EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 15);
+
+  // A second caster keeps their own rather than taking both: a buff does not
+  // stack with itself.
+  CharacterInstance other = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(other.LearnSkill(bless, 10));
+  EXPECT_EQ(DerivedStatsFor(other, skills, {}, party).skill_stats.attack(), 15);
+}
+
+// Hex of the Evil Eye's shape: the party gets half of what the caster does.
+TEST_F(DerivedStatsTest, AllyHalfNeedNotMatchTheCastersOwn) {
+  Skill hex = Bless();
+  hex.set_name("Hex of the Evil Eye");
+  hex.mutable_ally_base()->set_attack(3);
+  hex.mutable_ally_per_level()->set_attack(0);
+  std::map<std::string, Skill> skills = {{"hex", hex}};
+  CharacterInstance caster = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(caster.LearnSkill(hex, 10));
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+
+  EXPECT_EQ(DerivedStatsFor(caster, skills).skill_stats.attack(), 15);
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+  EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 3);
+}
+
+// Parashock Guard's shape: the caster is paid for shielding somebody, so alone
+// they are paid nothing.
+TEST_F(DerivedStatsTest, RequiresPartyGrantsNothingAlone) {
+  Skill guard = Bless();
+  guard.set_name("Parashock Guard");
+  guard.set_requires_party(true);
+  std::map<std::string, Skill> skills = {{"guard", guard}};
+  CharacterInstance caster = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(caster.LearnSkill(guard, 10));
+
+  EXPECT_EQ(DerivedStatsFor(caster, skills).skill_stats.attack(), 0);
+  std::vector<CharacterInstance> party = PartyOf(MakeCharacter(rng_, 100, 0));
+  EXPECT_EQ(DerivedStatsFor(caster, skills, {}, party).skill_stats.attack(),
+            15);
+}
+
+// What one ally supersedes, the whole party loses -- a Bishop's Advanced
+// Blessing puts out the Cleric's Bless standing beside it.
+TEST_F(DerivedStatsTest, AnAllysSupersessionReachesTheWholeParty) {
+  Skill bless = Bless();
+  Skill advanced = Bless();
+  advanced.set_name("Advanced Blessing");
+  advanced.set_supersedes_skill_name("Bless");
+  advanced.mutable_base()->set_attack(21);
+  advanced.mutable_ally_base()->set_attack(21);
+  std::map<std::string, Skill> skills = {{"bless", bless},
+                                         {"advanced", advanced}};
+  CharacterInstance cleric = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(cleric.LearnSkill(bless, 10));
+  CharacterInstance bishop = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(bishop.LearnSkill(advanced, 10));
+
+  std::vector<CharacterInstance> party;
+  party.push_back(std::move(cleric));
+  party.push_back(std::move(bishop));
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+  EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 30)
+      << "the Bishop's alone, the Cleric's put out";
+}
+
+// Blessed Ensemble is not a buff: it pays for the company kept, so two allies
+// holding it both pay.
+TEST_F(DerivedStatsTest, AStackingGrantPaysOncePerAlly) {
+  Skill ensemble;
+  ensemble.set_name("Blessed Ensemble");
+  ensemble.set_kind(SKILL_KIND_PASSIVE);
+  ensemble.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  ensemble.set_max_level(10);
+  ensemble.set_ally_effect_stacks(true);
+  ensemble.mutable_ally_base()->set_exp_pct(0.02);
+  ensemble.mutable_ally_per_level()->set_exp_pct(0.02);
+  std::map<std::string, Skill> skills = {{"ensemble", ensemble}};
+
+  std::vector<CharacterInstance> party;
+  for (int i = 0; i < 2; ++i) {
+    CharacterInstance cleric = MakeCharacter(rng_, 100, 0);
+    ASSERT_TRUE(cleric.LearnSkill(ensemble, 10));
+    party.push_back(std::move(cleric));
+  }
+  CharacterInstance third = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(third.LearnSkill(ensemble, 10));
+  EXPECT_NEAR(DerivedStatsFor(third, skills, {}, party).exp_pct, 0.40, 1e-9)
+      << "their own pays them nothing; the two beside them pay 20% each";
+}
+
+// Two allies with the same buff are one buff, at the better of the two levels.
+TEST_F(DerivedStatsTest, TheBetterOfTwoAlliesGrantsStands) {
+  Skill bless = Bless();
+  std::map<std::string, Skill> skills = {{"bless", bless}};
+  std::vector<CharacterInstance> party;
+  for (int level : {4, 10}) {
+    CharacterInstance cleric = MakeCharacter(rng_, 100, 0);
+    ASSERT_TRUE(cleric.LearnSkill(bless, level));
+    party.push_back(std::move(cleric));
+  }
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+  EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).skill_stats.attack(), 15);
+}
+
+// Combat Orders reaches the party the same way, and the ally's own copy is
+// what sets how many levels they hand out.
+TEST_F(DerivedStatsTest, AnAllysCombatOrdersRaisesTheSkillsItReaches) {
+  Skill iron_body = IronBody();
+  Skill orders = CombatOrders();
+  *orders.mutable_ally_base() = orders.base();
+  *orders.mutable_ally_per_level() = orders.per_level();
+  std::map<std::string, Skill> skills = {{"iron_body", iron_body},
+                                         {"combat_orders", orders}};
+  CharacterInstance knight = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(knight.LearnSkill(orders, 10));
+  std::vector<CharacterInstance> party = PartyOf(std::move(knight));
+
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(plain.LearnSkill(iron_body, 18));
+  EXPECT_EQ(BonusSkillLevels(plain, skills, party), 2);
+  EXPECT_EQ(DerivedStatsFor(plain, skills, {}, party).def, 200);
+
+  // A White Knight keeps their own rather than adding the party's.
+  CharacterInstance other = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(other.LearnSkill(orders, 1));
+  EXPECT_EQ(BonusSkillLevels(other, skills, party), 1);
 }
 
 }  // namespace

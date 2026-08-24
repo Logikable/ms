@@ -361,7 +361,11 @@ class TuiController {
   void AdvancePartyFight(const MultiplayerSnapshot& lobby);
   // Opens the fight screen on the fight the party has been let into. Whatever
   // the player was doing, they are in it now.
-  void OpenPartyFight();
+  void OpenPartyFight(const MultiplayerSnapshot& lobby);
+  // Rebuilds the rest of the party into the GameState, so that what their
+  // skills hold over this character is folded into its stats for the fight.
+  // See GameState::party.
+  void SeatParty(const MultiplayerSnapshot& lobby);
   // Whether the fight on screen is the party's rather than one taken alone.
   bool in_party_fight() const;
   // Lets go of the finished run, and of the fight behind it.

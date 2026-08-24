@@ -162,6 +162,14 @@ struct GameState {
   // system time or crossing a daylight-saving boundary neither grants nor takes
   // playtime.
   double playtime_seconds = 0.0;
+
+  // Everybody else in the party, rebuilt from the sheets they sent, for the
+  // skills of theirs that reach this character -- see DerivedStatsFor.
+  //
+  // Filled only while a party fight is on, and emptied when it ends: a party
+  // stands in the lobby while its members farm alone, and nothing farmed is
+  // shared yet. Whatever reads it need not ask which it is.
+  std::vector<CharacterInstance> party;
 };
 
 }  // namespace ms
