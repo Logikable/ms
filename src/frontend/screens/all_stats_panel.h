@@ -31,12 +31,10 @@ class AllStatsPanel {
   AllStatsPanel(const CharacterInstance& character,
                 const std::map<std::string, Skill>& skills);
   ftxui::Element Render() const;
-  // The heading and the stat columns with no window around them. What a
-  // screen that frames them itself asks for -- Party Inspect draws a member's
-  // sheet in a window sized to the Equipped list under it.
-  ftxui::Element RenderBody() const;
 
  private:
+  // The heading and the stat columns, with no window around them.
+  ftxui::Element RenderBody() const;
   // `lines` laid out two to a row, in the order they arrive. An odd row's
   // second half is left blank rather than pulling the next row up.
   static ftxui::Element Pairs(const std::vector<StatLine>& lines);

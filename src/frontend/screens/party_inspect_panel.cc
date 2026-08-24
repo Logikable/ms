@@ -101,14 +101,18 @@ ftxui::Element PartyInspectPanel::RenderEquipped() const {
 
 ftxui::Element PartyInspectPanel::Render() const {
   // The sheet is drawn by the screen the member reads their own stats on, so
-  // the two cannot disagree about what a number is or what it is called.
+  // the two cannot disagree about what a number is or what it is called --
+  // window and all, at the width it keeps everywhere else.
   AllStatsPanel stats(character_, state_.skills);
-  ftxui::Element sheet = ftxui::vbox({stats.RenderBody() | ftxui::center}) |
-                         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
+  ftxui::Element sheet =
+      stats.Render() |
+      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, AllStatsPanel::kTotalWidth);
   ftxui::Element worn =
       RenderEquipped() | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth);
+  // A vbox stretches its children, so the narrower window is held to its width
+  // and centred over the wider one by hand.
   return ftxui::vbox({
-      ThemedWindow(" Character ", std::move(sheet)),
+      ftxui::hbox({ftxui::filler(), std::move(sheet), ftxui::filler()}),
       ThemedWindow(" Equipped ", std::move(worn)),
   });
 }

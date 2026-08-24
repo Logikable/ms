@@ -558,6 +558,7 @@ cc_test(
     name = "party_inspect_panel_test",
     srcs = ["party_inspect_panel_test.cc"],
     deps = [
+        ":all_stats_panel",
         ":party_inspect_panel",
         "//src/frontend/widgets:panel_test_base",
         "//src/frontend/widgets:stat_rows",

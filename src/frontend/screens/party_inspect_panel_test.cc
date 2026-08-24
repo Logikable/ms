@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/frontend/screens/all_stats_panel.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/frontend/widgets/stat_rows.h"
 #include "src/item/equip_instance.h"
@@ -35,6 +36,22 @@ EquipPrototype Hat() {
   hat.mutable_base_stats()->set_def(20);
   hat.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
   return hat;
+}
+
+// The columns row `y` runs between, or {-1, -1} for a blank one.
+std::pair<int, int> RowSpan(const ftxui::Screen& screen, int y) {
+  std::pair<int, int> span = {-1, -1};
+  for (int x = 0; x < screen.dimx(); ++x) {
+    const std::string& glyph = screen.PixelAt(x, y).character;
+    if (glyph.empty() || glyph == " ") {
+      continue;
+    }
+    if (span.first < 0) {
+      span.first = x;
+    }
+    span.second = x;
+  }
+  return span;
 }
 
 // A piece of armour in `slot`, for filling out a list longer than the screen.
@@ -105,26 +122,32 @@ class PartyInspectPanelTest : public PanelTest {
   }
 
   // The whole screen, which is taller than the shared fixture's 20 rows.
+  // Wrapped in fillers the way Tui puts a standalone screen up, so the panel
+  // keeps the width and height it asks for instead of being stretched to the
+  // terminal's.
+  static ftxui::Screen Draw(const PartyInspectPanel& panel, int rows = 40) {
+    ftxui::Screen screen =
+        ftxui::Screen::Create(ftxui::Dimension::Fixed(kTestScreenWidth),
+                              ftxui::Dimension::Fixed(rows));
+    ftxui::Render(screen, ftxui::hbox({
+                              ftxui::filler(),
+                              ftxui::vbox({panel.Render(), ftxui::filler()}),
+                              ftxui::filler(),
+                          }));
+    return screen;
+  }
+
   static std::string Screen(const PartyInspectPanel& panel) {
-    ftxui::Screen screen = ftxui::Screen::Create(
-        ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(40));
-    ftxui::Render(screen, panel.Render());
-    return screen.ToString();
+    return Draw(panel).ToString();
   }
 
   // How many rows the screen actually takes, drawn with room to spare.
   static int Height(const PartyInspectPanel& panel) {
-    ftxui::Screen screen = ftxui::Screen::Create(
-        ftxui::Dimension::Fixed(kTestScreenWidth), ftxui::Dimension::Fixed(60));
-    ftxui::Render(screen, panel.Render());
+    ftxui::Screen screen = Draw(panel, /*rows=*/60);
     int rows = 0;
     for (int y = 0; y < screen.dimy(); ++y) {
-      for (int x = 0; x < screen.dimx(); ++x) {
-        if (!screen.PixelAt(x, y).character.empty() &&
-            screen.PixelAt(x, y).character != " ") {
-          rows = y + 1;
-          break;
-        }
+      if (RowSpan(screen, y).first >= 0) {
+        rows = y + 1;
       }
     }
     return rows;
@@ -150,6 +173,31 @@ TEST_F(PartyInspectPanelTest, DrawsTheMemberFromTheirSheet) {
   EXPECT_GT(panel.character().proto().level(), 1);
   EXPECT_GT(theirs, 0);
   EXPECT_EQ(CharacterCombatPower(panel.character(), state_.skills), theirs);
+}
+
+// The stat window is the width it is everywhere else in the game, not the
+// width of the item list under it, and it sits centred over that list.
+TEST_F(PartyInspectPanelTest, TheStatWindowKeepsItsOwnWidth) {
+  PartyInspectPanel panel(state_);
+  panel.SetPlayer(Member("Bree", {Sword(), Hat()}));
+
+  ftxui::Screen screen = Draw(panel);
+  std::pair<int, int> stats = RowSpan(screen, 0);
+  EXPECT_EQ(stats.second - stats.first + 1, AllStatsPanel::kTotalWidth);
+
+  // The widest row on the screen is the item list's border, two columns out
+  // from the width its rows are held to.
+  std::pair<int, int> worn = {screen.dimx(), -1};
+  for (int y = 1; y < screen.dimy(); ++y) {
+    std::pair<int, int> row = RowSpan(screen, y);
+    if (row.first < 0) {
+      continue;
+    }
+    worn.first = std::min(worn.first, row.first);
+    worn.second = std::max(worn.second, row.second);
+  }
+  EXPECT_EQ(worn.second - worn.first + 1, PartyInspectPanel::kContentWidth + 2);
+  EXPECT_EQ(stats.first - worn.first, worn.second - stats.second);
 }
 
 TEST_F(PartyInspectPanelTest, TheCursorWalksTheWornItemsAndWraps) {

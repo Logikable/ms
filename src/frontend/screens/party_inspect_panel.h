@@ -1,10 +1,10 @@
 /* PartyInspectPanel reads a party member: the sheet they sent, drawn the way
  * they see it themselves.
  *
- * Two windows, one over the other. The top is the All Stats screen's own
- * heading and stat columns, so the numbers a member is shown and the numbers
- * they see cannot come from two places. The bottom is what they are wearing,
- * with a cursor the player walks; Enter on a row opens the item's card.
+ * Two windows, one over the other. The top is the All Stats screen itself, so
+ * the numbers a member is shown and the numbers they see cannot come from two
+ * places. The bottom is what they are wearing, with a cursor the player walks;
+ * Enter on a row opens the item's card on a screen of its own.
  *
  * The panel rebuilds the member's character from their sheet against this
  * build's own catalogs -- a sheet names its items rather than describing them.
@@ -27,7 +27,7 @@ namespace ms {
 class PartyInspectPanel {
  public:
   // The Equipped row is the widest thing on the screen, so it sets the width
-  // and the stat columns are centred over it.
+  // of the screen; the stat window keeps its own and is centred over it.
   static constexpr int kContentWidth = 82;
   // How many worn items show at once when the terminal is not the constraint.
   // A full set of gear is longer than this and the frame scrolls to the
