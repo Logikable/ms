@@ -401,16 +401,14 @@ TEST_F(CharacterPanelTest, StatsTabIsShownByDefault) {
   EXPECT_NE(RenderElement(panel.Render()).find("HP:"), std::string::npos);
 }
 
-TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
-  // Iron Body at level 3: DEF +30, Max HP +3%.
+TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHp) {
+  // Iron Body at level 3: Max HP +3%.
   Skill iron_body;
   iron_body.set_name("Iron Body");
   iron_body.set_kind(SKILL_KIND_PASSIVE);
   iron_body.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   iron_body.set_max_level(20);
-  iron_body.mutable_base()->set_def(10);
   iron_body.mutable_base()->set_max_hp_pct(0.01);
-  iron_body.mutable_per_level()->set_def(10);
   iron_body.mutable_per_level()->set_max_hp_pct(0.01);
   std::map<std::string, Skill> catalog;
   catalog["iron_body"] = iron_body;
@@ -426,40 +424,52 @@ TEST_F(CharacterPanelTest, StatsTabCountsLearnedPassivesIntoHpAndDef) {
 
   CharacterPanel panel(c, account_, panel_focus_, catalog);
   EXPECT_NE(RenderElement(panel.Render()).find("HP: 103"), std::string::npos);
-  // All 30 of it granted: this character has no STR to buy any of their own.
-  EXPECT_EQ(StatValue(panel.Render(), "Defense"), "(0+30) 30");
 }
 
-// Defense is the one stat written "(base+bonus) total", so it is the only one
-// that can outgrow its value column. When it did, it ran into the gutter and
-// took the row -- and the panel -- wider than every other row.
-TEST_F(CharacterPanelTest, ALongDefenseKeepsTheRowWidth) {
-  CharacterInstance c = MakeWarrior(rng_, 0);
-  EquipPrototype armour;
-  armour.set_name("Plate");
-  armour.set_equip_slot(EQUIP_SLOT_TOP);
-  armour.mutable_base_stats()->set_def(123456);
-  armour.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  c.PickUp(std::make_unique<EquipInstance>(armour));
+// Attack is written "(base+bonus) total", so it can outgrow its value column.
+// When it did, it ran into the gutter and took the row -- and the panel --
+// wider than every other row.
+TEST_F(CharacterPanelTest, ALongValueKeepsTheRowWidth) {
+  Skill marks;
+  marks.set_name("Marksmanship");
+  marks.set_kind(SKILL_KIND_PASSIVE);
+  marks.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  marks.set_max_level(1);
+  marks.mutable_base()->set_attack_pct(1.0);
+  std::map<std::string, Skill> catalog = {{"marksmanship", marks}};
+
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  (*proto.mutable_sp_by_stage())[1] = 1;
+  CharacterInstance c(rng_, std::move(proto));
+  ASSERT_TRUE(c.LearnSkill(marks, 1));
+
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.mutable_base_stats()->set_attack(123456);
+  sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
   c.Equip(0);
 
-  CharacterPanel panel(c, account_, panel_focus_, {});
+  CharacterPanel panel(c, account_, panel_focus_, catalog);
   std::vector<std::string> rows = PanelRows(panel.Render());
-  std::string defense;
+  std::string attack;
   std::string other;
   for (const std::string& row : rows) {
-    if (row.find("(0+123456) 123456") != std::string::npos) {
-      defense = row;
+    if (row.find("(123456+123456) 246912") != std::string::npos) {
+      attack = row;
     }
-    if (row.find("Critical Rate") != std::string::npos ||
-        row.find("Attack Speed") != std::string::npos) {
+    if (row.find("Attack Speed") != std::string::npos) {
       other = row;
     }
   }
-  ASSERT_FALSE(defense.empty()) << "the Defense row did not render as expected";
+  ASSERT_FALSE(attack.empty()) << "the Attack row did not render as expected";
   ASSERT_FALSE(other.empty());
-  EXPECT_EQ(defense.find_last_not_of(' '), other.find_last_not_of(' '))
-      << "[" << defense << "] against [" << other << "]";
+  EXPECT_EQ(attack.find_last_not_of(' '), other.find_last_not_of(' '))
+      << "[" << attack << "] against [" << other << "]";
 }
 
 TEST_F(CharacterPanelTest, ShowsCombatPowerWithThousandsSeparators) {
@@ -1457,7 +1467,7 @@ TEST_F(CharacterPanelTest, ThePanelFitsInsideItsRowBudget) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
   int natural = PanelHeight(panel.Render());
-  EXPECT_EQ(natural, 27) << "chrome, the AP stats, 11 extras and the way out";
+  EXPECT_EQ(natural, 24) << "chrome, the AP stats, 8 extras and the way out";
   // From the tightest budget the chrome fits in, up past the height the panel
   // wants: it takes every row it is given and not one more. 15 is the floor --
   // the chrome and the way out, with the rule above the extras given up.
@@ -1481,7 +1491,7 @@ TEST_F(CharacterPanelTest, ABeginnerPanelIsTheChromeAndTheApRows) {
 TEST_F(CharacterPanelTest, NoBudgetShowsEveryStat) {
   CharacterInstance c = MakeSpearman(rng_);
   CharacterPanel panel(c, account_, panel_focus_);
-  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 12u);  // 11 stats and the row
+  EXPECT_EQ(ExtrasShown(panel.Render()).size(), 9u);  // 8 stats and the row
 }
 
 // --- The Skills tab's row budget ---
@@ -1694,8 +1704,7 @@ TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
   CharacterPanel panel(first, account_, panel_focus_);
   EXPECT_EQ(ExtrasShown(panel.Render()),
             (std::vector<std::string>{"Attack", "Magic Attack", "Attack Speed",
-                                      "Elemental Resist", "Status Resist",
-                                      "Defense", "View All Stats"}));
+                                      "View All Stats"}));
 
   CharacterInstance second = MakeSpearman(rng_);
   CharacterPanel later(second, account_, panel_focus_);
@@ -1712,11 +1721,36 @@ TEST_F(CharacterPanelTest, EachAdvancementOpensTheStatBlockFurther) {
   CharacterInstance third(rng_, std::move(third_proto));
   CharacterPanel last(third, account_, panel_focus_);
   std::vector<std::string> late = ExtrasShown(last.Render());
-  for (const char* label : {"Boss Damage", "Ignore DEF", "Additional EXP"}) {
+  for (const char* label :
+       {"Boss Damage", "Ignore DEF", "Additional EXP", "Arcane Force"}) {
     EXPECT_NE(std::find(late.begin(), late.end(), label), late.end()) << label;
   }
   // And the row nobody asked for is gone from both.
   EXPECT_EQ(std::find(late.begin(), late.end(), "Dodge Chance"), late.end());
+}
+
+// The stat every Arcane River map measures the character against, at the foot
+// of the block and under the rule that separates it from the swing.
+TEST_F(CharacterPanelTest, ShowsTheArcaneForceTheWornSymbolsCome) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance c(rng_, std::move(proto));
+  CharacterPanel bare(c, account_, panel_focus_);
+  EXPECT_EQ(StatValue(bare.Render(), "Arcane Force"), "0");
+
+  EquipPrototype symbol;
+  symbol.set_name("Arcane Symbol: Vanishing Journey");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  symbol.mutable_arcane_symbol()->set_meso_cost_base(8);
+  Equip state;
+  state.set_symbol_level(8);
+  c.PickUp(std::make_unique<EquipInstance>(symbol, state));
+  ASSERT_TRUE(c.Equip(0));
+
+  CharacterPanel worn(c, account_, panel_focus_);
+  EXPECT_EQ(StatValue(worn.Render(), "Arcane Force"), "100");
 }
 
 TEST_F(CharacterPanelTest, ShowsTheDamageLeversAsPercentages) {

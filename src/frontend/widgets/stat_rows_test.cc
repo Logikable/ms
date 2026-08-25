@@ -39,6 +39,30 @@ class StatRowsTest : public testing::Test {
     return CharacterInstance(rng_, std::move(proto));
   }
 
+  // A passive that scales the whole of the character's attack, up or down.
+  Skill AttackPercentSkill(double share) {
+    Skill skill;
+    skill.set_name("Marksmanship");
+    skill.set_kind(SKILL_KIND_PASSIVE);
+    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    skill.set_max_level(1);
+    skill.mutable_base()->set_attack_pct(share);
+    return skill;
+  }
+
+  std::map<std::string, Skill> SkillMap(double share) {
+    return {{"marksmanship", AttackPercentSkill(share)}};
+  }
+
+  void EquipBow(CharacterInstance& c) {
+    EquipPrototype bow;
+    bow.set_name("Bow");
+    bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+    bow.mutable_base_stats()->set_attack(80);
+    c.PickUp(std::make_unique<EquipInstance>(bow));
+    c.Equip(0);
+  }
+
   // A passive granting one of every lever the extra stats report.
   Skill Levers() {
     Skill skill;
@@ -78,12 +102,15 @@ TEST_F(StatRowsTest, TheExtrasAreInPriorityOrder) {
   }
   // The Character panel drops the tail of this list on a short terminal, and
   // the All Stats screen pairs it two to a row. Both depend on this order.
-  EXPECT_EQ(labels, (std::vector<std::string>{
-                        "Attack", "Magic Attack", "Damage", "Final Damage",
-                        "Boss Damage", "Ignore DEF", "Critical Rate",
-                        "Critical Damage", "Buff Duration", "Attack Speed",
-                        "Elemental Resist", "Status Resist", "Meso Drop Rate",
-                        "Item Drop Rate", "Additional EXP", "Defense"}));
+  // The empty label is the rule between the combat stats and the three that
+  // are not about a fight.
+  EXPECT_EQ(labels,
+            (std::vector<std::string>{
+                "Attack", "Magic Attack", "Damage", "Final Damage",
+                "Boss Damage", "Ignore DEF", "Critical Rate", "Critical Damage",
+                "Buff Duration", "Attack Speed", "", "Meso Drop Rate",
+                "Item Drop Rate", "Additional EXP", "Arcane Force"}));
+  EXPECT_TRUE(lines[10].rule) << "the empty row is the rule, not a blank stat";
 }
 
 // The panel's list is the same one, opened up by the advancements. The All
@@ -94,32 +121,31 @@ TEST_F(StatRowsTest, ThePanelsListOpensUpWithEachAdvancement) {
   proto.set_job(JOB_BEGINNER);
   CharacterInstance beginner(rng_, std::move(proto));
   EXPECT_TRUE(PanelExtraStatLines(beginner, account_, {}).empty());
-  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 16u);
+  EXPECT_EQ(ExtraStatLines(beginner, {}).size(), 15u);
 
   CharacterInstance first = MakeWarrior();
   std::vector<std::string> labels;
   for (const StatLine& line : PanelExtraStatLines(first, account_, {})) {
     labels.push_back(line.label);
   }
-  EXPECT_EQ(labels, (std::vector<std::string>{
-                        "Attack", "Magic Attack", "Attack Speed",
-                        "Elemental Resist", "Status Resist", "Defense"}));
+  EXPECT_EQ(labels, (std::vector<std::string>{"Attack", "Magic Attack",
+                                              "Attack Speed"}));
 
-  // The second opens the percent block, but not the five that pay out on
-  // something the player has not met yet.
+  // The second opens the percent block, but not the rows that pay out on
+  // something the player has not met yet -- nor the rule over them.
   Character second_proto;
   second_proto.set_level(35);
   second_proto.set_job(JOB_SPEARMAN);
   second_proto.set_job_stage(2);
   CharacterInstance second(rng_, std::move(second_proto));
-  EXPECT_EQ(PanelExtraStatLines(second, account_, {}).size(), 11u);
+  EXPECT_EQ(PanelExtraStatLines(second, account_, {}).size(), 8u);
 
   Character third_proto;
   third_proto.set_level(70);
   third_proto.set_job(JOB_BERSERKER);
   third_proto.set_job_stage(3);
   CharacterInstance third(rng_, std::move(third_proto));
-  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 16u);
+  EXPECT_EQ(PanelExtraStatLines(third, account_, {}).size(), 15u);
 }
 
 TEST_F(StatRowsTest, TheDamageLeversReadAsPercentages) {
@@ -216,47 +242,27 @@ TEST_F(StatRowsTest, TheMainStatsPairUpForTheTwoColumnScreen) {
   EXPECT_EQ(ValueOf(lines, "LUK"), "0");
 }
 
-// A skill that takes DEF away rather than granting it: the row has to say so,
-// or the player reads a smaller number with nothing explaining it.
-TEST_F(StatRowsTest, ALostStatReadsAsASubtraction) {
-  Skill reckless;
-  reckless.set_name("Reckless Hunt");
-  reckless.set_kind(SKILL_KIND_PASSIVE);
-  reckless.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  reckless.set_max_level(1);
-  reckless.mutable_base()->set_def_pct(-0.25);
-  std::map<std::string, Skill> skills = {{"reckless", reckless}};
-  CharacterInstance c = MakeWarrior();
-  ASSERT_TRUE(c.LearnSkill(reckless, 1));
+// The Attack row shows the split, so the player can see a percentage land
+// rather than only the number it left them. A skill can take attack away as
+// well as add it, and the sign belongs in the breakdown: a smaller number with
+// nothing explaining it reads as a bug.
+TEST_F(StatRowsTest, AttackShowsWhatAPercentageDidToIt) {
+  CharacterInstance up = MakeWarrior();
+  ASSERT_TRUE(up.LearnSkill(AttackPercentSkill(0.25), 1));
+  EquipBow(up);
+  EXPECT_EQ(ValueOf(ExtraStatLines(up, SkillMap(0.25)), "Attack"),
+            "(80+20) 100");
 
-  // 40 STR buys 60 DEF, and a quarter of it goes.
-  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Defense"), "(60-15) 45");
+  CharacterInstance down = MakeWarrior();
+  ASSERT_TRUE(down.LearnSkill(AttackPercentSkill(-0.25), 1));
+  EquipBow(down);
+  EXPECT_EQ(ValueOf(ExtraStatLines(down, SkillMap(-0.25)), "Attack"),
+            "(80-20) 60");
+
   // The same row with nothing taken or added stays a plain total.
   CharacterInstance bare = MakeWarrior();
-  EXPECT_EQ(ValueOf(ExtraStatLines(bare, {}), "Defense"), "60");
-}
-
-// Marksmanship's percentage over a worn weapon, read off the row that has to
-// show the player it landed.
-TEST_F(StatRowsTest, AttackShowsWhatAPercentageAddedToIt) {
-  Skill marks;
-  marks.set_name("Marksmanship");
-  marks.set_kind(SKILL_KIND_PASSIVE);
-  marks.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
-  marks.set_max_level(1);
-  marks.mutable_base()->set_attack_pct(0.25);
-  std::map<std::string, Skill> skills = {{"marksmanship", marks}};
-  CharacterInstance c = MakeWarrior();
-  ASSERT_TRUE(c.LearnSkill(marks, 1));
-
-  EquipPrototype bow;
-  bow.set_name("Bow");
-  bow.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
-  bow.mutable_base_stats()->set_attack(80);
-  c.PickUp(std::make_unique<EquipInstance>(bow));
-  c.Equip(0);
-
-  EXPECT_EQ(ValueOf(ExtraStatLines(c, skills), "Attack"), "(80+20) 100");
+  EquipBow(bare);
+  EXPECT_EQ(ValueOf(ExtraStatLines(bare, {}), "Attack"), "80");
 }
 
 TEST(CombatPowerTextTest, SpellsItOutUntilSevenFigures) {

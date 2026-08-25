@@ -69,9 +69,9 @@ std::vector<StatLine> CombatStatLines(
     bool with_advanced) {
   DerivedStats derived = DerivedStatsFor(character, skills);
   const EquipStats e = TotalEquipStats(character, derived);
-  // Split like DEF: what the character wears and was granted, then whatever a
-  // percentage added on top. Read off the unscaled sum rather than held as a
-  // stat, because the split exists only for this row.
+  // What the character wears and was granted, then whatever a percentage added
+  // on top. Read off the unscaled sum rather than held as a stat, because the
+  // split exists only for this row.
   int flat_attack =
       character.equip_stats().attack() + derived.skill_stats.attack();
   int flat_magic = character.equip_stats().magic_attack() +
@@ -113,30 +113,18 @@ std::vector<StatLine> CombatStatLines(
       {"Attack Speed",
        AttackSpeedText(character.proto().job(), character.equipped(),
                        derived.attack_speed_bonus)});
-  // Nothing reads either of these yet -- no mob inflicts a status or an
-  // element. They are here so a player who spent SP on Endure can see what
-  // they bought. Shortened to seat the 16-column label: "Elemental Resistance"
-  // is 20 and would be cut mid-word.
-  lines.push_back({"Elemental Resist", Percent(derived.elemental_resistance)});
-  lines.push_back({"Status Resist", std::to_string(static_cast<int>(
-                                        derived.status_resistance))});
-  // Last of all, the three rows that are not about a fight at all: what they
-  // buy is the purse and the climb rather than the swing. Meso Drop Rate is
-  // the size of a drop and Item Drop Rate the odds of one, so they read as a
-  // pair and sit together.
+  // Under a rule, because none of these is about the swing: the first three
+  // buy the purse and the climb, and the last is the toll Arcane River takes
+  // for letting a character hurt what lives there. Meso Drop Rate is the size
+  // of a drop and Item Drop Rate the odds of one, so they read as a pair and
+  // sit together.
   if (with_advanced) {
+    lines.push_back(StatRule());
     lines.push_back({"Meso Drop Rate", Percent(derived.meso_pct)});
     lines.push_back({"Item Drop Rate", Percent(derived.item_drop_pct)});
     lines.push_back({"Additional EXP", Percent(derived.exp_pct)});
+    lines.push_back({"Arcane Force", std::to_string(character.arcane_force())});
   }
-  // Bottom of the list, and so the first row a short terminal drops: DEF stops
-  // paying once it reaches a share of the attacking monster's attack, and a
-  // levelled character passed that long ago. Split like the primary stats --
-  // what their own stats buy, then everything worn, granted or multiplied on
-  // top.
-  lines.push_back(
-      {"Defense",
-       TotalWithBreakdown(derived.base_def, derived.def - derived.base_def)});
   return lines;
 }
 

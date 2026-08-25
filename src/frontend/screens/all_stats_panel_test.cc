@@ -80,10 +80,14 @@ TEST_F(AllStatsPanelTest, PairsTheStatsTwoToARow) {
             std::string::npos);
   EXPECT_NE(RowWith(panel.Render(), "Buff Duration").find("Attack Speed"),
             std::string::npos);
-  EXPECT_NE(RowWith(panel.Render(), "Elemental Resist").find("Status Resist"),
+  EXPECT_NE(RowWith(panel.Render(), "Meso Drop Rate").find("Item Drop Rate"),
             std::string::npos);
-  // Defense is the odd fifteenth and sits alone at the foot, which is where
-  // the stat that stopped paying long ago belongs.
+  EXPECT_NE(RowWith(panel.Render(), "Additional EXP").find("Arcane Force"),
+            std::string::npos);
+  // The rule breaks the pairing too: Meso Drop Rate opens the group under it
+  // in the left column rather than filling the gap Attack Speed left.
+  EXPECT_LT(RowWith(panel.Render(), "Meso Drop Rate").find("Meso Drop Rate"),
+            static_cast<size_t>(AllStatsPanel::kColumnWidth));
 }
 
 TEST_F(AllStatsPanelTest, ShowsTheHeadingAndNothingSpendable) {
@@ -119,38 +123,51 @@ TEST_F(AllStatsPanelTest, AnAddedToStatCarriesItsBreakdown) {
 // that can outgrow a value column -- and when it did, it ran into the gutter
 // and a column past every other value on the screen. The gap before a value
 // gives way now, not the column.
-TEST_F(AllStatsPanelTest, ALongDefenseKeepsTheColumn) {
-  CharacterInstance c = MakeWarrior();
-  EquipPrototype armour;
-  armour.set_name("Plate");
-  armour.set_equip_slot(EQUIP_SLOT_TOP);
-  // Chosen to write "(60+940) 1000": one character past the value column.
-  armour.mutable_base_stats()->set_def(940);
-  armour.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
-  c.PickUp(std::make_unique<EquipInstance>(armour));
+TEST_F(AllStatsPanelTest, ALongValueKeepsTheColumn) {
+  Character proto;
+  proto.set_level(15);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  (*proto.mutable_sp_by_stage())[1] = 1;
+  CharacterInstance c(rng_, std::move(proto));
+  Skill marks;
+  marks.set_name("Marksmanship");
+  marks.set_kind(SKILL_KIND_PASSIVE);
+  marks.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  marks.set_max_level(1);
+  marks.mutable_base()->set_attack_pct(0.25);
+  std::map<std::string, Skill> skills = {{"marksmanship", marks}};
+  ASSERT_TRUE(c.LearnSkill(marks, 1));
+
+  EquipPrototype wand;
+  wand.set_name("Wand");
+  wand.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  // Chosen to write "(800+200) 1000", which fills the column to its edge.
+  wand.mutable_base_stats()->set_magic_attack(800);
+  c.PickUp(std::make_unique<EquipInstance>(wand));
   c.Equip(0);
 
-  AllStatsPanel panel(c, {});
+  AllStatsPanel panel(c, skills);
   std::vector<std::string> rows = Rows(panel.Render());
-  std::string defense;
+  std::string magic;
   std::string other;
   for (const std::string& row : rows) {
-    if (row.find("Defense") != std::string::npos) {
-      defense = row;
+    if (row.find("Magic Attack") != std::string::npos) {
+      magic = row;
     }
     if (row.find("Critical Rate") != std::string::npos) {
       other = row;
     }
   }
-  ASSERT_FALSE(defense.empty());
-  ASSERT_NE(defense.find("(60+940) 1000"), std::string::npos)
-      << "the value the case is built on changed: " << defense;
+  ASSERT_FALSE(magic.empty());
+  ASSERT_NE(magic.find("(800+200) 1000"), std::string::npos)
+      << "the value the case is built on changed: " << magic;
   ASSERT_FALSE(other.empty());
 
-  // An even list pairs Defense into the second column, so its value ends where
-  // that column's values end. A value that broke out would run past this.
-  EXPECT_EQ(defense.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
-      << "[" << defense << "]";
+  // Magic Attack pairs into the second column, so its value ends where that
+  // column's values end. A value that broke out would run past this.
+  EXPECT_EQ(magic.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
+      << "[" << magic << "]";
   EXPECT_EQ(other.find_last_not_of(' '), 2 * AllStatsPanel::kColumnWidth - 2)
       << "[" << other << "]";
 }

@@ -20,10 +20,22 @@ namespace ms {
 // One stat as it is shown: what it is called, and its value already written
 // out. The value is a string because these columns hold percentages, stage
 // names and plain counts side by side.
+//
+// A line with `rule` set is not a stat at all but the break between two groups
+// of them. Held in the list rather than left to each screen so that both draw
+// it in the same place; what it looks like is theirs to decide.
 struct StatLine {
   std::string label;
   std::string value;
+  bool rule = false;
 };
+
+// The break between the combat stats and the three that are not about a fight.
+inline StatLine StatRule() {
+  StatLine line;
+  line.rule = true;
+  return line;
+}
 
 // The combat stats, **most important first**. Every one the character has, so
 // this is the All Stats screen's list. A new stat goes where it belongs in

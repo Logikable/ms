@@ -402,7 +402,16 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   std::vector<StatLine> extras =
       PanelExtraStatLines(character_, account_, skills_);
   int shown = ExtraStatsShown(static_cast<int>(extras.size()));
+  // A rule with nothing under it reads as a row that failed to draw, so the
+  // cut takes it too rather than leaving it on the end.
+  while (shown > 0 && extras[shown - 1].rule) {
+    --shown;
+  }
   for (int i = 0; i < shown; ++i) {
+    if (extras[i].rule) {
+      rows.push_back(PanelSeparator(highlighted_));
+      continue;
+    }
     rows.push_back(StatRow(extras[i].label, extras[i].value));
   }
   // Closes the block, because whatever did not fit above it is on the screen

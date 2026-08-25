@@ -15,10 +15,10 @@ namespace {
 // squares off a row with an odd number of stats in it.
 //
 // The value's RIGHT edge is what is fixed, and the gap before it gives way --
-// not the label's width. Defense is the one stat written "(base+bonus) total",
-// so it is the only one that outgrows a value column, and padding the label to
-// a fixed 16 left it nothing to give: the value ran into the gutter and out
-// past every other value on the screen.
+// not the label's width. Attack is written "(base+bonus) total", so it can
+// outgrow a value column, and padding the label to a fixed 16 left it nothing
+// to give: the value ran into the gutter and out past every other value on the
+// screen.
 std::string ColumnText(const StatLine& line) {
   if (line.label.empty()) {
     return std::string(AllStatsPanel::kColumnWidth, ' ');
@@ -39,9 +39,20 @@ AllStatsPanel::AllStatsPanel(const CharacterInstance& character,
 
 ftxui::Element AllStatsPanel::Pairs(const std::vector<StatLine>& lines) {
   std::vector<ftxui::Element> rows;
-  for (size_t i = 0; i < lines.size(); i += 2) {
-    StatLine right = i + 1 < lines.size() ? lines[i + 1] : StatLine();
+  // A rule breaks the pairing as well as the list: the group under it starts
+  // in the left column, rather than filling the gap the group above left.
+  for (size_t i = 0; i < lines.size();) {
+    if (lines[i].rule) {
+      rows.push_back(ThemedSeparator());
+      ++i;
+      continue;
+    }
+    StatLine right;
+    if (i + 1 < lines.size() && !lines[i + 1].rule) {
+      right = lines[i + 1];
+    }
     rows.push_back(ftxui::text(ColumnText(lines[i]) + ColumnText(right)));
+    i += right.label.empty() ? 1 : 2;
   }
   return ftxui::vbox(std::move(rows));
 }
