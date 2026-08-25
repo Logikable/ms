@@ -114,6 +114,19 @@ enum EquipSlot {
   // accessories sit below the armour: a save names a worn item by this number,
   // so a slot can be added but never moved. Horntail's earring fills it.
   EQUIP_SLOT_EARRINGS = 15;
+
+  // One slot per Arcane River area, because a character wears one symbol from
+  // each and the six do not compete. A slot apiece is what says so: the worn
+  // map already allows one item per slot, and nothing else has to enforce it.
+  //
+  // Numbered in the order the areas open, which is the order the Symbols tab
+  // lists them in.
+  EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY = 16;
+  EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND = 17;
+  EQUIP_SLOT_SYMBOL_LACHELEIN = 18;
+  EQUIP_SLOT_SYMBOL_ARCANA = 19;
+  EQUIP_SLOT_SYMBOL_MORASS = 20;
+  EQUIP_SLOT_SYMBOL_ESFERA = 21;
 }
 
 // A way an item can be made stronger after it drops. Listed on a prototype
@@ -163,6 +176,15 @@ message EquipStats {
   int32 item_drop_rate = 12;
 }
 
+// What an Arcane Symbol needs beyond an ordinary equip. Only the six symbols
+// carry it, so its presence is what tells one from a piece of gear.
+message ArcaneSymbolInfo {
+  // The leading term of what a level-up costs: 10,000 x floor[(this + 0.1 x
+  // level) x duplicates]. Rises by area, from 8 in Vanishing Journey to 18 in
+  // Esfera, which is what makes a late symbol the expensive one to raise.
+  int32 meso_cost_base = 1;
+}
+
 // Static definition of an item type. Loaded from data/ textprotos at startup;
 // shared read-only across all EquipInstances of the same item type.
 message EquipPrototype {
@@ -201,6 +223,11 @@ message EquipPrototype {
   // one class, so the set cannot name it. Empty for an item in no set, and for
   // one the set names outright.
   string set_family = 14;
+  // Set on the six Arcane Symbols and on nothing else. An item carrying it
+  // levels by absorbing duplicates rather than by scrolls or stars, and what
+  // it grants comes from its level and the wearer's job -- so its base_stats
+  // are empty and SymbolStatsFor answers for it instead.
+  ArcaneSymbolInfo arcane_symbol = 15;
 }
 
 // Per-instance mutable state for a single drop of equipment. Persisted in the
@@ -213,4 +240,11 @@ message Equip {
   EquipStats scroll_stats = 4;
   int32 stars = 5;
   bool trace = 6;
+  // An Arcane Symbol's own ladder, and zero on everything else. The level a
+  // fresh copy drops at is 1, which SymbolLevel reads off the zero here rather
+  // than every drop having to write it.
+  int32 symbol_level = 7;
+  // Duplicates absorbed toward the next level. Survives a level-up: what is
+  // left over after the ladder's price is paid carries into the next rung.
+  int32 symbol_exp = 8;
 }

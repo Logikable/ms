@@ -585,6 +585,38 @@ TEST(EquipDataTest, EveryItemsSlotAndTypeHaveNames) {
   }
 }
 
+// The six Arcane Symbols, one per Arcane River area. Each wears in a slot of
+// its own -- which is what lets a character carry all six at once and no more
+// than one of each -- and none of them is an item the upgrade paths touch.
+TEST(EquipDataTest, EverySymbolIsUniversalAndWearsItsOwnSlot) {
+  std::set<EquipSlot> slots;
+  std::set<int> costs;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (!proto.has_arcane_symbol()) {
+      continue;
+    }
+    EXPECT_TRUE(slots.insert(proto.equip_slot()).second)
+        << entry.first << " shares a slot with another symbol";
+    costs.insert(proto.arcane_symbol().meso_cost_base());
+    EXPECT_EQ(proto.required_level(), 200) << entry.first;
+    EXPECT_EQ(proto.equip_job_categories_size(), 1) << entry.first;
+    EXPECT_EQ(proto.equip_job_categories(0), EQUIP_JOB_CATEGORY_UNIVERSAL)
+        << entry.first << " is not open to every job";
+    EXPECT_EQ(proto.sell_price(), 0) << entry.first << " sells for meso";
+    EXPECT_EQ(proto.upgrade_slots(), 0) << entry.first;
+    EXPECT_FALSE(Supports(proto, UPGRADE_SCROLL)) << entry.first;
+    EXPECT_FALSE(Supports(proto, UPGRADE_STAR_FORCE)) << entry.first;
+    EXPECT_TRUE(proto.base_stats().SerializeAsString().empty())
+        << entry.first << " carries flat stats; a symbol's come from its level";
+  }
+  EXPECT_EQ(slots.size(), 6u) << "the six Arcane River areas are not all here";
+  // The ladder GMS charges by area, 8 through 18: six areas, six prices, and a
+  // repeat would mean two files were copied from one.
+  EXPECT_EQ(costs.size(), 6u) << "two symbols level up at the same price";
+}
+
 // A stack has no stats, so its description is the whole of what inspecting one
 // tells the player. Without it the card is a name over an empty box.
 TEST(EquipDataTest, EveryStackableDescribesItself) {

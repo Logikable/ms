@@ -165,6 +165,13 @@ bool RaisesMaxHp(EquipSlot slot) {
     // GMS's list names the ring, the pendant, the belt and the shoulderpad
     // among the accessories, and stops there.
     case EQUIP_SLOT_EARRINGS:
+    // A symbol takes no stars at all, so no category can claim it.
+    case EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY:
+    case EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND:
+    case EQUIP_SLOT_SYMBOL_LACHELEIN:
+    case EQUIP_SLOT_SYMBOL_ARCANA:
+    case EQUIP_SLOT_SYMBOL_MORASS:
+    case EQUIP_SLOT_SYMBOL_ESFERA:
       return false;
   }
   return false;
