@@ -61,6 +61,7 @@ cc_library(
     hdrs = ["inspect_panel.h"],
     deps = [
         "//src/character",
+        "//src/character:arcane_force",
         "//src/frontend/widgets:panel_util",
         "//src/item",
         "//src/protos:equip_proto_cc",
@@ -77,6 +78,7 @@ cc_test(
     deps = [
         ":inspect_panel",
         "//src/character",
+        "//src/character:arcane_force",
         "//src/frontend/widgets:panel_test_base",
         "//src/protos:equip_set_proto_cc",
         "//src/protos:item_proto_cc",

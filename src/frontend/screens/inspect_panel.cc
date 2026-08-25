@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/arcane_force.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -53,6 +54,15 @@ const JobCategoryEntry kJobCategories[] = {
 
 constexpr int kJobCategoryCount =
     static_cast<int>(sizeof(kJobCategories) / sizeof(kJobCategories[0]));
+
+// A symbol card's label column. Wide enough for "Level", which is the longest
+// of the four, with a space after it.
+constexpr int kSymbolLabelWidth = 8;
+
+// One label-and-value row of a symbol's card, both columns left-aligned.
+ftxui::Element SymbolRow(const std::string& label, const std::string& value) {
+  return ftxui::text(" " + PadRight(label, kSymbolLabelWidth) + value + " ");
+}
 
 // The columns `rows` would take if nothing squeezed them. What the panel asks
 // before deciding whether folding a row would buy it anything.
@@ -225,7 +235,38 @@ ftxui::Element InspectPanel::RenderItemOnly() const {
   if (item_ == nullptr) {
     return ThemedWindow(" Inspect ", EmptyState("no item"));
   }
+  if (IsArcaneSymbol(item_->prototype())) {
+    return ThemedWindow(" Inspect ", RenderSymbol());
+  }
   return ThemedWindow(" Inspect ", RenderEquip());
+}
+
+ftxui::Element InspectPanel::RenderSymbol() const {
+  const Equip& state = item_->equip_state();
+  int level = SymbolLevel(state);
+  int needed = SymbolExpToNextLevel(level);
+  std::vector<ftxui::Element> rows = {
+      CenteredRow(item_->name()),
+      ThemedSeparator(),
+      SymbolRow("Level", std::to_string(level)),
+      SymbolRow("EXP", needed == 0 ? "MAX"
+                                   : std::to_string(state.symbol_exp()) +
+                                         " / " + std::to_string(needed)),
+  };
+  // The stat a symbol grants is the wearer's own, so a card with nobody behind
+  // it shows the force alone rather than guessing at a job.
+  if (character_ != nullptr) {
+    StatField primary = PrimaryStatField(character_->proto().job());
+    const DisplayStat* stat = DisplayStatFor(primary);
+    if (stat != nullptr) {
+      rows.push_back(SymbolRow(
+          stat->label,
+          "+" + std::to_string(stat->GetFrom(SymbolStatsFor(primary, level)))));
+    }
+  }
+  rows.push_back(
+      SymbolRow("AF", "+" + std::to_string(SymbolArcaneForce(level))));
+  return ftxui::vbox(std::move(rows));
 }
 
 ftxui::Element InspectPanel::Render() const {

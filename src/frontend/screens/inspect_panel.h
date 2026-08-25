@@ -52,6 +52,10 @@ class InspectPanel {
   // the two screens cannot drift apart in their framing.
   ftxui::Element RenderEquip() const;
   ftxui::Element RenderStackable() const;
+  // An Arcane Symbol's card. Its own body rather than the equip one: what a
+  // symbol grants comes from its level and the wearer's job, so none of the
+  // rows an equip carries has anything to say about it.
+  ftxui::Element RenderSymbol() const;
   // The equip body in parts. The rows an item cannot fold are built first and
   // measured; the two that can -- the star bar and the job categories -- are
   // then folded onto two lines each if leaving them on one is what would make

@@ -10,6 +10,7 @@
 
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/item.h"
@@ -677,6 +678,79 @@ TEST_F(InspectPanelTest, TheCardIsOneWidthWhateverTheSetHolds) {
   c_.UseEquipSets(small);
 
   EXPECT_EQ(NaturalWidth(panel), wide);
+}
+
+// --- Arcane Symbols ---
+
+EquipPrototype SymbolProto() {
+  EquipPrototype proto;
+  proto.set_name("Arcane Symbol: Vanishing Journey");
+  proto.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  proto.set_required_level(200);
+  proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  proto.add_unsupported_upgrades(UPGRADE_SCROLL);
+  proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+  proto.mutable_arcane_symbol()->set_meso_cost_base(8);
+  return proto;
+}
+
+// A symbol grants nothing an equip's rows could show, so it gets a card of its
+// own: where its level stands, and what that level is worth.
+TEST_F(InspectPanelTest, ASymbolCardIsItsLevelExpStatAndForce) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_HERO);
+  proto.set_job_stage(4);
+  CharacterInstance hero(rng_, std::move(proto));
+
+  Equip state;
+  state.set_symbol_level(8);
+  state.set_symbol_exp(12);
+  EquipInstance symbol(SymbolProto(), state);
+
+  InspectPanel panel;
+  panel.UseCharacter(hero);
+  panel.SetItem(&symbol);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Level   8"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("EXP     12 / 75"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("STR     +1000"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("AF      +100"), std::string::npos) << rendered;
+  // None of the equip card's rows: a symbol takes no scrolls and no stars.
+  EXPECT_EQ(rendered.find("Successful Scroll"), std::string::npos);
+  EXPECT_EQ(rendered.find("★"), std::string::npos);
+}
+
+// The stat a symbol grants is the wearer's own, so a magician reads INT off
+// the same item a warrior reads STR off.
+TEST_F(InspectPanelTest, TheSymbolStatFollowsTheWearer) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_BISHOP);
+  proto.set_job_stage(4);
+  CharacterInstance bishop(rng_, std::move(proto));
+
+  EquipInstance symbol(SymbolProto());
+  InspectPanel panel;
+  panel.UseCharacter(bishop);
+  panel.SetItem(&symbol);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("INT     +300"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("AF      +30"), std::string::npos) << rendered;
+}
+
+// A maxed symbol has no next level to be along, so the row says so rather than
+// showing a bar that can never fill.
+TEST_F(InspectPanelTest, AMaxedSymbolReadsMax) {
+  Equip state;
+  state.set_symbol_level(kMaxSymbolLevel);
+  EquipInstance symbol(SymbolProto(), state);
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetItem(&symbol);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("EXP     MAX"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("AF      +220"), std::string::npos) << rendered;
 }
 
 }  // namespace
