@@ -27,10 +27,14 @@ namespace {
 // the rows is wider than they are, so this column is free up to that.
 constexpr int kMapNameWidth = 34;
 constexpr int kLevelWidth = 4;
+// The Arcane Force a map asks for. Blank on every map outside Arcane River,
+// which asks for none -- an empty cell says nothing is wanted, where a "-"
+// would say the map refuses something.
+constexpr int kArcaneWidth = 4;
 
 // What a map row comes to, cursor included. The band bar is held to this, so
 // the window is sized by the maps in it rather than by the tabs over them.
-constexpr int kMapRowWidth = 2 + kMapNameWidth + kLevelWidth;
+constexpr int kMapRowWidth = 2 + kMapNameWidth + kLevelWidth + kArcaneWidth;
 
 // Column widths of the mob table. Mob names top out at 19 ("Muddy Swamp
 // Monster"); the column is wider than that because the map's name stands over
@@ -83,6 +87,22 @@ std::string BandLabel(int band) {
 // the list always runs low to high.
 int WeightedLevel(const GameState& state, const MapData& map) {
   return static_cast<int>(MapLevel(state.mobs, map));
+}
+
+// The Arcane Force cell of a map row: what the map asks for, red where the
+// character does not carry it. Red on the cell rather than dim on the row,
+// because a map short of force can still be farmed -- it is a penalty, not a
+// locked door.
+ftxui::Element ArcaneCell(const GameState& state, const MapData& map) {
+  if (map.arcane_force() == 0) {
+    return ftxui::text(std::string(kArcaneWidth, ' '));
+  }
+  ftxui::Element cell =
+      ftxui::text(PadRight(std::to_string(map.arcane_force()), kArcaneWidth));
+  if (state.character.arcane_force() < map.arcane_force()) {
+    cell = std::move(cell) | ftxui::color(kRed);
+  }
+  return cell;
 }
 
 }  // namespace
@@ -224,7 +244,8 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
   rows.push_back(RenderBandBar());
   rows.push_back(ThemedSeparator());
   rows.push_back(ftxui::text("  " + PadRight("Name", kMapNameWidth) +
-                             PadRight("Lv", kLevelWidth)));
+                             PadRight("Lv", kLevelWidth) +
+                             PadRight("AF", kArcaneWidth)));
   rows.push_back(ThemedSeparator());
   const std::vector<std::string>& page = pages_[page_];
   if (page.empty()) {
@@ -235,7 +256,7 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
     std::string row = zone_ == kZoneList && i == selected_ ? "> " : "  ";
     row += PadRight(map.name(), kMapNameWidth);
     row += PadRight(std::to_string(WeightedLevel(state_, map)), kLevelWidth);
-    rows.push_back(ftxui::text(row));
+    rows.push_back(ftxui::hbox({ftxui::text(row), ArcaneCell(state_, map)}));
   }
   // Every band fills out to the height of the biggest one. The panel is
   // centered, so a band holding fewer maps than its neighbor would otherwise

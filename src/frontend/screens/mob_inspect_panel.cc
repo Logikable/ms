@@ -2,12 +2,14 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/character/arcane_force.h"
 #include "src/combat/loot.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_util.h"
@@ -65,6 +67,22 @@ ftxui::Element DropRow(const std::string& name, const std::string& chance) {
                      PadLeft(chance, kChanceWidth) + " ");
 }
 
+// The share of the character's damage that lands, as a whole percentage: the
+// Arcane Force table's steps are all round, so there is never a fraction to
+// lose.
+std::string DealtText(double factor) {
+  return std::to_string(static_cast<int>(std::llround(factor * 100.0))) + "%";
+}
+
+// What the monster's hit is multiplied by. Written as a multiplier rather than
+// a percentage because it goes above one, and "280%" of a hit reads as a share
+// of it.
+std::string TakenText(double factor) {
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%.1fx", factor);
+  return buf;
+}
+
 }  // namespace
 
 MobInspectPanel::MobInspectPanel(const GameState& state) : state_(state) {
@@ -96,8 +114,38 @@ std::string MobInspectPanel::selected_mob() const {
   return mobs_[selected_].first;
 }
 
+// What Arcane River takes for letting the character hurt what lives here: the
+// force the map asks for against what they carry, and the two multipliers that
+// come of it. Two rows, and none at all outside Arcane River -- every other
+// map asks for nothing and takes nothing.
+void MobInspectPanel::RenderArcaneForce(
+    std::vector<ftxui::Element>& rows) const {
+  std::map<std::string, MapData>::const_iterator it = state_.maps.find(map_);
+  if (it == state_.maps.end() || it->second.arcane_force() == 0) {
+    return;
+  }
+  int required = it->second.arcane_force();
+  int owned = state_.character.arcane_force();
+  ftxui::Element carried = ftxui::text(std::to_string(owned));
+  if (owned < required) {
+    carried = std::move(carried) | ftxui::color(kRed);
+  }
+  rows.push_back(ftxui::hbox({
+      ftxui::text("  " + PadRight("Arcane Force", kMobNameWidth)),
+      std::move(carried),
+      ftxui::text(" / " + std::to_string(required)),
+  }));
+  ArcaneFactors factors = ArcaneFactorsFor(owned, required);
+  rows.push_back(ftxui::text(
+      "  " +
+      PadRight("Damage " + DealtText(factors.damage_dealt), kMobNameWidth) +
+      "Taken " + TakenText(factors.damage_taken)));
+  rows.push_back(ThemedSeparator());
+}
+
 ftxui::Element MobInspectPanel::RenderMobList() const {
   std::vector<ftxui::Element> rows;
+  RenderArcaneForce(rows);
   rows.push_back(ftxui::text("  " + PadRight("Name", kMobNameWidth) +
                              PadRight("Lv", kLevelWidth) +
                              PadRight("Count", kCountWidth)));

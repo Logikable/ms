@@ -710,5 +710,42 @@ TEST(MapSelectPanelTest, HandlesAWorldWithNoMaps) {
   EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
 }
 
+// A map inside Arcane River, whose mobs put it in the last band.
+GameState ArcaneMaps() {
+  Mob erda;
+  erda.set_name("Raging Erda");
+  erda.set_level(201);
+  MapData rage;
+  rage.set_name("Weathered Land of Rage");
+  AddSpawn(&rage, "erda", 33);
+  // 130 rather than a rounder number: the band chips read "11-30" and
+  // "101-140", and a test looking for the cell must not find one of those.
+  rage.set_arcane_force(130);
+  MapData plain;
+  plain.set_name("Green Field");
+  AddSpawn(&plain, "snail", 4);
+  return GameState({}, {}, {}, {{"erda", erda}, {"snail", SnailMob()}},
+                   {{"rage", rage}, {"green_field", plain}});
+}
+
+// The column says what each map asks for and leaves the rest blank: an empty
+// cell says nothing is wanted, where a dash would say the map refuses
+// something.
+TEST(MapSelectPanelTest, TheArcaneForceColumnIsBlankOutsideArcaneRiver) {
+  GameState state = ArcaneMaps();
+  MapSelectPanel panel(state);
+  panel.Reset();
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("AF"), std::string::npos) << rendered;
+  // The first band holds the plain map, whose row names no force.
+  EXPECT_EQ(rendered.find("130"), std::string::npos) << rendered;
+
+  GoToTheBar(&panel);
+  panel.ChangePage(kPastEveryBand);
+  rendered = Render(panel);
+  EXPECT_NE(rendered.find("Weathered Land of Rage"), std::string::npos);
+  EXPECT_NE(rendered.find("130"), std::string::npos) << rendered;
+}
+
 }  // namespace
 }  // namespace ms

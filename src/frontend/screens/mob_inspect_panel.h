@@ -50,6 +50,9 @@ class MobInspectPanel {
 
  private:
   ftxui::Element RenderMobList() const;
+  // The map's Arcane Force requirement, what the character carries against it,
+  // and what the pair does to the fight. Adds nothing outside Arcane River.
+  void RenderArcaneForce(std::vector<ftxui::Element>& rows) const;
   ftxui::Element RenderInfo() const;
   // The blurb, padded out to kFlavourLines rows.
   void RenderFlavour(std::vector<ftxui::Element>& rows, const Mob& mob) const;

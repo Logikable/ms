@@ -200,5 +200,42 @@ TEST(MobInspectPanelTest, AMapNobodyKnowsDrawsAnEmptyPanel) {
   EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
 }
 
+// An Arcane River map, which takes a toll for letting the character hurt what
+// lives there.
+GameState ArcaneMap() {
+  Mob erda;
+  erda.set_name("Raging Erda");
+  erda.set_level(201);
+  MapData rage;
+  rage.set_name("Weathered Land of Rage");
+  AddSpawn(&rage, "erda", 33);
+  rage.set_arcane_force(100);
+  return GameState({}, {}, {}, {{"erda", erda}}, {{"rage", rage}});
+}
+
+// A character short of the requirement is told what it costs them: 30 of 100
+// is 30% met, which the table pays at 60% dealt and 1.8x taken.
+TEST(MobInspectPanelTest, TheArcaneForceTollIsSpeltOut) {
+  GameState state = ArcaneMap();
+  MobInspectPanel panel(state);
+  panel.SetMap("rage");
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Arcane Force"), std::string::npos) << rendered;
+  // The carried figure is coloured red where it falls short, so it and the
+  // requirement are separated by escape codes rather than sitting in one run.
+  EXPECT_NE(rendered.find(" / 100"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Damage 10%"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("Taken 2.8x"), std::string::npos) << rendered;
+}
+
+// Every other map asks for nothing and takes nothing, so the rows are not
+// there at all rather than reading 1x against a requirement of zero.
+TEST(MobInspectPanelTest, NoArcaneRowsOutsideArcaneRiver) {
+  GameState state = OneMap();
+  MobInspectPanel panel(state);
+  panel.SetMap("green_field");
+  EXPECT_EQ(Render(panel).find("Arcane Force"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

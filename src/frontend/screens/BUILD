@@ -564,6 +564,7 @@ cc_library(
     deps = [
         "//src:game_state",
         "//src:spawn",
+        "//src/character:arcane_force",
         "//src/combat:loot",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_util",
@@ -663,6 +664,7 @@ cc_library(
         "//src:game_state",
         "//src:map_level",
         "//src:spawn",
+        "//src/character:arcane_force",
         "//src/frontend:types",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:item_menu",
