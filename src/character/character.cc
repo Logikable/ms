@@ -9,6 +9,7 @@
 
 #include "absl/log/log.h"
 #include "absl/types/span.h"
+#include "src/character/arcane_force.h"
 #include "src/character/exp_table.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
@@ -966,6 +967,9 @@ void CharacterInstance::AdvanceJob(Job next_job) {
   }
   // Each advancement opens a new skill set, so it comes with SP for that stage.
   (*character_.mutable_sp_by_stage())[stage] += JobAdvancementSpBonus(next_job);
+  // A worn Arcane Symbol grants the wearer's primary stat, and the job just
+  // changed which one that is.
+  RecomputeEquipStats();
 }
 
 void CharacterInstance::ResetStatsForJob(Job job) {
@@ -1207,7 +1211,18 @@ void CharacterInstance::RecomputeEquipStats() {
   // equipment becomes stats, so that the damage chain, combat power and the
   // stat panel cannot come to different conclusions about the same stars.
   std::vector<EquipStats> list;
+  arcane_force_ = 0;
   for (const std::pair<const EquipSlot, EquipInstance>& kv : equipped_) {
+    // A symbol's stats are not on its prototype: what it grants is its level
+    // in the wearer's own primary stat, so it is worked out here rather than
+    // read. Its Arcane Force is totalled in the same pass, since both come
+    // off the same worn symbol.
+    if (IsArcaneSymbol(kv.second.prototype())) {
+      int level = SymbolLevel(kv.second.equip_state());
+      arcane_force_ += SymbolArcaneForce(level);
+      list.push_back(SymbolStatsFor(PrimaryStatField(character_.job()), level));
+      continue;
+    }
     EquipStats stats = kv.second.stats();
     if (!AttackCounts(kv.second.prototype())) {
       stats.set_attack(0);

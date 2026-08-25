@@ -7,6 +7,7 @@ cc_library(
     srcs = ["character.cc"],
     hdrs = ["character.h"],
     deps = [
+        ":arcane_force",
         ":exp_table",
         "//src/item:equip_instance",
         "//src/item:equip_stats",
@@ -21,6 +22,25 @@ cc_library(
         "//src/protos:skill_proto_cc",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "arcane_force",
+    srcs = ["arcane_force.cc"],
+    hdrs = ["arcane_force.h"],
+    deps = [
+        "//src/protos:character_proto_cc",
+        "//src/protos:equip_proto_cc",
+    ],
+)
+
+cc_test(
+    name = "arcane_force_test",
+    srcs = ["arcane_force_test.cc"],
+    deps = [
+        ":arcane_force",
+        "@googletest//:gtest_main",
     ],
 )
 

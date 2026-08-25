@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "src/character/arcane_force.h"
 #include "src/character/exp_table.h"
 #include "src/item/equip_instance.h"
 #include "src/item/inventory.h"
@@ -2669,6 +2670,67 @@ TEST_F(ReconcileApTest, TheAdvancementBonusesCount) {
   EXPECT_EQ(ExpectedTotalAp(/*level=*/100, /*job_stage=*/2), at_second);
   EXPECT_EQ(ExpectedTotalAp(/*level=*/100, /*job_stage=*/3), at_second + 5);
   EXPECT_EQ(ExpectedTotalAp(/*level=*/100, /*job_stage=*/4), at_second + 10);
+}
+
+// --- Arcane Symbols ---
+
+CharacterInstance MakeHero(std::mt19937& rng, Job job = JOB_HERO) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(job);
+  proto.set_job_stage(job == JOB_HERO ? 4 : 3);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+class SymbolTest : public CharacterTest {
+ protected:
+  // The area only decides the slot, so one helper covers all six.
+  EquipPrototype Symbol(EquipSlot slot) {
+    EquipPrototype proto;
+    proto.set_name("Symbol");
+    proto.set_equip_slot(slot);
+    proto.mutable_arcane_symbol()->set_meso_cost_base(8);
+    return proto;
+  }
+  void Wear(CharacterInstance& c, const EquipPrototype& proto, int level) {
+    Equip state;
+    state.set_symbol_level(level);
+    c.PickUp(std::make_unique<EquipInstance>(proto, state));
+    ASSERT_TRUE(c.Equip(0));
+  }
+};
+
+TEST_F(SymbolTest, WornSymbolsGrantForceAndThePrimaryStat) {
+  CharacterInstance c_ = MakeHero(rng_);
+  Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 8);
+  EXPECT_EQ(c_.arcane_force(), 100);
+  EXPECT_EQ(c_.equip_stats().str(), 1000);
+  EXPECT_EQ(c_.equip_stats().dex(), 0);
+
+  // A second area is a second slot, so the two add rather than displace.
+  Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND), 1);
+  EXPECT_EQ(c_.arcane_force(), 130);
+  EXPECT_EQ(c_.equip_stats().str(), 1300);
+}
+
+TEST_F(SymbolTest, TakingOneOffTakesItsForceWithIt) {
+  CharacterInstance c_ = MakeHero(rng_);
+  Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 5);
+  ASSERT_EQ(c_.arcane_force(), 70);
+  ASSERT_TRUE(c_.Unequip(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
+  EXPECT_EQ(c_.arcane_force(), 0);
+  EXPECT_EQ(c_.equip_stats().str(), 0);
+}
+
+// What a symbol grants follows the wearer, so advancing moves the whole of it
+// onto the new job's stat.
+TEST_F(SymbolTest, TheGrantFollowsTheJob) {
+  CharacterInstance c_ = MakeHero(rng_, JOB_CLERIC);
+  Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 1);
+  ASSERT_EQ(c_.equip_stats().int_(), 300) << "a Cleric swings on INT";
+  c_.AdvanceJob(JOB_HERO);
+  EXPECT_EQ(c_.equip_stats().int_(), 0);
+  EXPECT_EQ(c_.equip_stats().str(), 300) << "and a Hero on STR";
 }
 
 }  // namespace

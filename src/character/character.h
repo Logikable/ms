@@ -377,6 +377,12 @@ class CharacterInstance {
   const EquipStats& equip_stats() const {
     return equip_stats_;
   }
+  // Arcane Force the worn Arcane Symbols come to. What every Arcane River map
+  // measures the character against -- see ArcaneFactorsFor. Zero for anyone
+  // wearing none, which is everyone below level 200.
+  int arcane_force() const {
+    return arcane_force_;
+  }
   // Whether an item of this type contributes its attack, given what is
   // equipped right now. Throwing stars arm a claw and nothing else; every
   // other item always counts. equip_stats() applies this itself -- it is
@@ -435,7 +441,8 @@ class CharacterInstance {
   bool BuyBackStack(int index, const BuyBackEntry& entry, int count,
                     const std::map<std::string, ItemPrototype>& items);
 
-  // Recomputes equip_stats_ and set_bonuses_ from the current equipped map.
+  // Recomputes equip_stats_, arcane_force_ and set_bonuses_ from the current
+  // equipped map.
   void RecomputeEquipStats();
   // Rebuilds set_bonuses_: every tier of every known set that the worn pieces
   // reach. Cumulative, so a four-piece set contributes both its tiers.
@@ -452,6 +459,7 @@ class CharacterInstance {
   std::vector<StackableItem> use_items_;
   std::vector<StackableItem> etc_items_;
   EquipStats equip_stats_;
+  int arcane_force_ = 0;
   std::map<std::string, EquipSet> equip_sets_;
   std::vector<SkillEffect> set_bonuses_;
 };
