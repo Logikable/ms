@@ -2990,5 +2990,37 @@ TEST_F(TuiControllerTest, TheClearCardNamesTheFightAndWhatItPaid) {
   EXPECT_FALSE(controller_->in_boss_fight());
 }
 
+// The debug Level-Up item is used from the item menu, and a level gained hands
+// things over out of the catalogs. Without this the character reaches Arcane
+// River with nothing to fight it with.
+TEST_F(TuiControllerTest, LevellingFromTheItemMenuStillGrantsTheSymbol) {
+  EquipPrototype symbol;
+  symbol.set_name("Arcane Symbol: Vanishing Journey");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  symbol.mutable_arcane_symbol()->set_meso_cost_base(8);
+  state_->equips["symbol_vanishing_journey"] = symbol;
+
+  ItemPrototype level_up;
+  level_up.set_name("Level-Up");
+  level_up.set_category(ITEM_CATEGORY_USE);
+  level_up.set_effect(ITEM_EFFECT_LEVEL_UP);
+  state_->character.AddStackable(level_up, 1);
+  LevelTo(199);
+  ASSERT_EQ(state_->character.inventory().size(), 0);
+
+  // On the Use tab, cursor on the one stack, with the {Inspect, Use, ...} menu
+  // open at Use.
+  panel_focus_ = kInventoryPanel;
+  inventory_component_->OnEvent(ftxui::Event::ArrowRight);  // Equip -> Use
+  inventory_component_->OnEvent(ftxui::Event::ArrowDown);   // bar -> the stack
+  inventory_component_->OnEvent(ftxui::Event::Return);      // the stack menu
+  controller_->OnEvent(ftxui::Event::ArrowDown);            // Inspect -> Use
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.proto().level(), 200);
+  ASSERT_EQ(state_->character.inventory().size(), 1);
+  EXPECT_EQ(state_->character.inventory()[0].prototype().name(),
+            "Arcane Symbol: Vanishing Journey");
+}
+
 }  // namespace
 }  // namespace ms
