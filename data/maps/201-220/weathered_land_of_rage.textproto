@@ -1,2 +1,5 @@
 name: "Weathered Land of Rage"
 spawns { mob: "raging_erda" count: 33 }
+# Vanishing Journey opens at the Lake of Oblivion, and a level-1
+# symbol is exactly what it asks.
+arcane_force: 30

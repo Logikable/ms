@@ -9,6 +9,7 @@
 
 #include "absl/types/span.h"
 #include "google/protobuf/repeated_ptr_field.h"
+#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/progression.h"
@@ -955,6 +956,7 @@ DefenseStats DefenseFor(const GameState& state, const DerivedStats& derived) {
   defense.def = derived.def;
   defense.damage_taken_pct = derived.damage_taken_pct;
   defense.dodge_chance = derived.dodge_chance;
+  defense.arcane_taken = derived.arcane_taken_factor;
   return defense;
 }
 
@@ -1035,6 +1037,14 @@ CombatParams ComputeCombatParams(const GameState& state) {
 
   DerivedStats derived =
       DerivedStatsFor(state.character, state.skills, {}, state.party);
+  // What the map's Arcane Force requirement does to both sides of the fight.
+  // Written onto derived because that is the one struct every damage builder
+  // below already carries -- the requirement is the map's, not the
+  // character's, and neither of them alone can answer it.
+  ArcaneFactors arcane = ArcaneFactorsFor(state.character.arcane_force(),
+                                          map_it->second.arcane_force());
+  derived.arcane_damage_factor = arcane.damage_dealt;
+  derived.arcane_taken_factor = arcane.damage_taken;
   // The pace the whole encounter runs at, and the only thing here that asks
   // the character's level directly: the game stretches out as they climb.
   double speed_factor = GameSpeedFactor(state.character.proto().level());

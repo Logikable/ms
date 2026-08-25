@@ -1,2 +1,4 @@
 name: "Spirit Zone"
 spawns { mob: "soulful_erda" count: 33 }
+# The Extinction Zone, one step up the Vanishing Journey ladder.
+arcane_force: 40

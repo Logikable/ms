@@ -55,6 +55,10 @@ struct OffenseStats {
   // GMS's leading weapon constant; see WeaponConstant. 1.0 is the identity a
   // bare stat line carries, not a value any real weapon has.
   double weapon_constant = 1.0;
+  // What the map's Arcane Force requirement leaves of the swing. See
+  // PassiveOffense::arcane_pct; it lands last of all, after the level
+  // multiplier, because it scales the whole hit rather than any part of it.
+  double arcane_pct = 1.0;
 };
 
 // The part of a swing that varies from one landing to the next, pulled out of
@@ -186,6 +190,11 @@ struct PassiveOffense {
   // Only the entry matching the skill being swung is read, and most characters
   // carry none -- see SkillEffect::boosted_skill_pct.
   std::map<std::string, double> skill_pct_bonus;
+  // What the map's Arcane Force requirement leaves of the swing: 1 everywhere
+  // outside Arcane River, a tenth against a map the character has no force
+  // for, half again against one they have half again over. A multiplier
+  // rather than a share, which is why it defaults to 1 and not 0.
+  double arcane_pct = 1.0;
 };
 
 // Builds OffenseStats from a character's job, level and summed stats. The job
@@ -230,6 +239,11 @@ struct DefenseStats {
   // to the same thing over enough hits, and enough hits is all this function
   // ever reports -- see DerivedStats::dodge_chance.
   double dodge_chance = 0.0;
+  // What the map's Arcane Force requirement does to the monster's hit: 1
+  // outside Arcane River, up to 2.8 against a map the character has no force
+  // for, and 0 against one they have half again over -- which the damage floor
+  // turns into GMS's 1 damage.
+  double arcane_taken = 1.0;
 };
 
 // Expected damage of one hit from `mob` -- min and max rolls averaged, no RNG.

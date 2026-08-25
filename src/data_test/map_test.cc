@@ -253,5 +253,33 @@ TEST(MapDataTest, EveryMapMobIsDescribed) {
   }
 }
 
+// Arcane River is the one place a map asks for Arcane Force, and every map
+// there asks. A map past level 200 that named none would let a character with
+// no symbols farm it at full damage, which is the whole of what the stat is
+// for.
+TEST(MapDataTest, EveryArcaneRiverMapNamesItsRequirement) {
+  constexpr int kArcaneRiverLevel = 200;
+  std::map<std::string, Mob> mobs = LoadMobs();
+  int checked = 0;
+  for (const std::pair<const std::string, MapData>& entry : LoadMaps()) {
+    bool arcane_river = false;
+    for (const Spawn& spawn : entry.second.spawns()) {
+      std::map<std::string, Mob>::const_iterator mob = mobs.find(spawn.mob());
+      if (mob != mobs.end() && mob->second.level() >= kArcaneRiverLevel) {
+        arcane_river = true;
+      }
+    }
+    if (!arcane_river) {
+      EXPECT_EQ(entry.second.arcane_force(), 0)
+          << entry.first << " asks for Arcane Force outside Arcane River";
+      continue;
+    }
+    ++checked;
+    EXPECT_GT(entry.second.arcane_force(), 0)
+        << entry.first << " is in Arcane River and asks for no force";
+  }
+  EXPECT_GT(checked, 0) << "no Arcane River maps in the catalog to check";
+}
+
 }  // namespace
 }  // namespace ms

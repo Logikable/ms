@@ -202,6 +202,7 @@ cc_library(
         "//src:game_state",
         "//src:spawn",
         "//src/character",
+        "//src/character:arcane_force",
         "//src/character:character_stats",
         "//src/character:progression",
         "//src/item:equip_instance",

@@ -12,4 +12,9 @@ message MapData {
   // cap: a player who clears instantly tops out at (total count) / 7.56 kills
   // per second.
   repeated Spawn spawns = 2;
+  // Arcane Force this map asks for. How much of it the character carries
+  // scales both what they deal here and what they take, from a tenth against
+  // 2.8x at the bottom to half again against nothing at the top -- see
+  // ArcaneFactorsFor. Unset outside Arcane River, which asks for none.
+  int32 arcane_force = 3;
 }

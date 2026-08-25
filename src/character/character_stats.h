@@ -197,6 +197,13 @@ struct DerivedStats {
   // because what it scales includes the weapon in their hand -- see
   // TotalEquipStats.
   double attack_pct = 0.0;
+  // What the map's Arcane Force requirement leaves of the character's damage,
+  // and what it does to the monster's. Not derived from the character at all
+  // -- DerivedStatsFor leaves both at the identity, and ComputeCombatParams
+  // writes them once the map is known. They live here so that the one struct
+  // every damage builder already carries is the one that says it.
+  double arcane_damage_factor = 1.0;
+  double arcane_taken_factor = 1.0;
   // What the passives grant, in the shape of a worn item because that is how
   // they behave: sum it with equip_stats() and hand the total wherever
   // equipment stats go. It is the only way a skill's primary stat reaches the

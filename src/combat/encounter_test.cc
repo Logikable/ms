@@ -2236,6 +2236,91 @@ TEST(ComputeCombatParamsTest, TheCharactersDefenseReducesWhatMobsDo) {
             ComputeCombatParams(bare).types[0].damage_to_player);
 }
 
+// A map inside Arcane River, which asks for Arcane Force before it will let
+// the character fight properly.
+MapData ArcaneMap(int required) {
+  MapData map = TwoSnailMap();
+  map.set_arcane_force(required);
+  return map;
+}
+
+// A worn symbol at `level`, which is 10 Arcane Force a level plus 20.
+void EquipSymbol(GameState& state, int level) {
+  EquipPrototype symbol;
+  symbol.set_name("Arcane Symbol: Vanishing Journey");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  symbol.mutable_arcane_symbol()->set_meso_cost_base(8);
+  Equip state_proto;
+  state_proto.set_symbol_level(level);
+  state.character.PickUp(std::make_unique<EquipInstance>(symbol, state_proto));
+  state.character.Equip(0);
+}
+
+// Both sides of the fight move together: a character short of the requirement
+// deals a fraction and takes a multiple, and one over it deals more and takes
+// almost nothing.
+TEST(ComputeCombatParamsTest, ArcaneForceScalesBothSidesOfTheFight) {
+  GameState met({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                {{"field", ArcaneMap(30)}});
+  met.current_map = "field";
+  EquipSword(met);
+  EquipSymbol(met, /*level=*/1);  // 30 force, exactly what the map asks
+
+  GameState short_of({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                     {{"field", ArcaneMap(300)}});
+  short_of.current_map = "field";
+  EquipSword(short_of);
+  EquipSymbol(short_of, /*level=*/1);  // 30 of 300, a tenth of the way
+
+  CombatParams full = ComputeCombatParams(met);
+  CombatParams starved = ComputeCombatParams(short_of);
+  ASSERT_FALSE(full.attacks.empty());
+  ASSERT_FALSE(starved.attacks.empty());
+  // 10% met deals 30% and takes 2.4x; meeting it deals and takes the whole.
+  EXPECT_NEAR(starved.attacks[0].damage_per_hit[0],
+              full.attacks[0].damage_per_hit[0] * 0.30, 1e-6);
+  EXPECT_NEAR(starved.types[0].damage_to_player,
+              full.types[0].damage_to_player * 2.4, 1e-6);
+}
+
+// Half again over the requirement is GMS's ceiling: 150% dealt, and a monster
+// reduced to the 1 damage the floor insists on.
+TEST(ComputeCombatParamsTest, ArcaneForceOverTheRequirementCapsOut) {
+  GameState state({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                  {{"field", ArcaneMap(30)}});
+  state.current_map = "field";
+  EquipSword(state);
+  EquipSymbol(state, /*level=*/3);  // 50 force against 30 asked
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_FALSE(params.attacks.empty());
+  EXPECT_DOUBLE_EQ(params.types[0].damage_to_player, 1.0)
+      << "the floor GMS leaves a monster that can no longer hurt them";
+}
+
+// A map outside Arcane River asks for nothing, which has to read as no
+// requirement rather than as a requirement met by nobody -- the difference
+// between fighting normally and dealing a tenth of your damage everywhere.
+TEST(ComputeCombatParamsTest, AMapAskingForNoForceIsUntouched) {
+  GameState plain({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                  {{"field", TwoSnailMap()}});
+  plain.current_map = "field";
+  EquipSword(plain);
+  EquipSymbol(plain, /*level=*/1);
+
+  GameState arcane({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                   {{"field", ArcaneMap(30)}});
+  arcane.current_map = "field";
+  EquipSword(arcane);
+  EquipSymbol(arcane, /*level=*/1);
+
+  CombatParams a = ComputeCombatParams(plain);
+  CombatParams b = ComputeCombatParams(arcane);
+  EXPECT_DOUBLE_EQ(a.types[0].damage_to_player, b.types[0].damage_to_player);
+  EXPECT_DOUBLE_EQ(a.attacks[0].damage_per_hit[0],
+                   b.attacks[0].damage_per_hit[0]);
+}
+
 // Two phases, so a test can watch one turn over into the next.
 BossDifficulty NormalTwoPhase() {
   BossDifficulty difficulty;

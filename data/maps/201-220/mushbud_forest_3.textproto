@@ -1,3 +1,5 @@
 name: "Mushbud Forest 3"
 spawns { mob: "orange_piabee" count: 17 }
 spawns { mob: "bunshroom" count: 17 }
+# Yum Yum Island's Mushbird Forest.
+arcane_force: 130

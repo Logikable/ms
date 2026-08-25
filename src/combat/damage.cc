@@ -357,6 +357,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
   offense.crit_dmg = passives.crit_dmg;
   offense.damage_pct = passives.damage_pct;
   offense.final_dmg_pct = passives.final_dmg_pct;
+  offense.arcane_pct = passives.arcane_pct;
   // The line's own base, plus whatever the best mastery skill grants on top.
   offense.mastery = BaseMastery(job) + passives.mastery;
   // Primary/secondary stat by job; unknown jobs fall through to 0, matching
@@ -518,7 +519,7 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   if (level_mult <= 0.0) {
     return 1.0;  // 40+ levels under the mob: output is floored to 1 damage.
   }
-  return damage * level_mult;
+  return damage * level_mult * offense.arcane_pct;
 }
 
 double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
@@ -535,6 +536,9 @@ double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
   // Reduction from skills and gear lands after the whole defense formula, and
   // multiplies rather than adds -- see DerivedStats::damage_taken_pct.
   damage *= 1.0 - defense.damage_taken_pct;
+  // Inside the floor, so a character half again over the requirement takes the
+  // 1 damage GMS gives them rather than none at all.
+  damage *= defense.arcane_taken;
   // A dodge takes the whole hit away rather than a share of it, so it lands
   // outside the floor: a character who dodges everything takes nothing, where
   // reduction alone always leaves the 1 damage GMS insists on.

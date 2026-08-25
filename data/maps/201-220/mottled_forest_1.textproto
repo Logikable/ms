@@ -1,2 +1,5 @@
 name: "Mottled Forest 1"
 spawns { mob: "bighorn_pinedeer" count: 34 }
+# Chu Chu Island's Five-Color Hill, and a jump: nothing short of a
+# level-8 symbol meets it.
+arcane_force: 100

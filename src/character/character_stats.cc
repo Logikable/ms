@@ -828,6 +828,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.final_dmg_pct = derived.final_dmg_pct;
   passives.ied = derived.ied;
   passives.skill_pct_bonus = derived.skill_pct_bonus;
+  passives.arcane_pct = derived.arcane_damage_factor;
   return passives;
 }
 
