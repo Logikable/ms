@@ -728,22 +728,22 @@ GameState ArcaneMaps() {
                    {{"rage", rage}, {"green_field", plain}});
 }
 
-// The column says what each map asks for and leaves the rest blank: an empty
-// cell says nothing is wanted, where a dash would say the map refuses
-// something.
-TEST(MapSelectPanelTest, TheArcaneForceColumnIsBlankOutsideArcaneRiver) {
+// The column only stands over bands that want force. Outside Arcane River no
+// map asks for any, so the header would head a column of blanks.
+TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
   GameState state = ArcaneMaps();
   MapSelectPanel panel(state);
   panel.Reset();
   std::string rendered = Render(panel);
-  EXPECT_NE(rendered.find("AF"), std::string::npos) << rendered;
-  // The first band holds the plain map, whose row names no force.
+  // The first band holds the plain map, which names no force.
+  EXPECT_EQ(rendered.find("AF"), std::string::npos) << rendered;
   EXPECT_EQ(rendered.find("130"), std::string::npos) << rendered;
 
   GoToTheBar(&panel);
   panel.ChangePage(kPastEveryBand);
   rendered = Render(panel);
   EXPECT_NE(rendered.find("Weathered Land of Rage"), std::string::npos);
+  EXPECT_NE(rendered.find("AF"), std::string::npos) << rendered;
   EXPECT_NE(rendered.find("130"), std::string::npos) << rendered;
 }
 

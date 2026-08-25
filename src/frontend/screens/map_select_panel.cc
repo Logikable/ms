@@ -239,15 +239,31 @@ ftxui::Element MapSelectPanel::RenderBandBar() const {
   return TabBar(bands, page_, /*row_focused=*/zone_ == kZoneTabs, kMapRowWidth);
 }
 
+// Whether the band on screen holds a map that asks for Arcane Force. Outside
+// Arcane River none does, and a column of blanks under an "AF" header only
+// asks the player what it is for.
+bool MapSelectPanel::PageWantsArcaneForce() const {
+  for (const std::string& key : pages_[page_]) {
+    if (state_.maps.at(key).arcane_force() > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 ftxui::Element MapSelectPanel::RenderMapList() const {
   std::vector<ftxui::Element> rows;
   rows.push_back(RenderBandBar());
   rows.push_back(ThemedSeparator());
-  rows.push_back(ftxui::text("  " + PadRight("Name", kMapNameWidth) +
-                             PadRight("Lv", kLevelWidth) +
-                             PadRight("AF", kArcaneWidth)));
-  rows.push_back(ThemedSeparator());
   const std::vector<std::string>& page = pages_[page_];
+  bool arcane = PageWantsArcaneForce();
+  std::string header =
+      "  " + PadRight("Name", kMapNameWidth) + PadRight("Lv", kLevelWidth);
+  if (arcane) {
+    header += PadRight("AF", kArcaneWidth);
+  }
+  rows.push_back(ftxui::text(header));
+  rows.push_back(ThemedSeparator());
   if (page.empty()) {
     rows.push_back(EmptyState("empty"));
   }
@@ -256,6 +272,10 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
     std::string row = zone_ == kZoneList && i == selected_ ? "> " : "  ";
     row += PadRight(map.name(), kMapNameWidth);
     row += PadRight(std::to_string(WeightedLevel(state_, map)), kLevelWidth);
+    if (!arcane) {
+      rows.push_back(ftxui::text(row));
+      continue;
+    }
     rows.push_back(ftxui::hbox({ftxui::text(row), ArcaneCell(state_, map)}));
   }
   // Every band fills out to the height of the biggest one. The panel is
