@@ -17,9 +17,10 @@
 
 namespace ms {
 
-// The column header over the list. The two leading spaces are the cursor
+// The column header over each list. The two leading spaces are the cursor
 // column the rows carry.
 extern const char kEquippedHeader[];
+extern const char kSymbolHeader[];
 
 // One worn item as a row.
 struct EquippedRow {
@@ -35,11 +36,21 @@ struct EquippedRow {
   bool inactive = false;
 };
 
-// The rows for what `character` is wearing. Only the row at `selected` slides
-// a name too long for its column, and `elapsed` is how long it has been the
-// selected one; pass -1 and zero for a list whose names all sit at their
-// heads.
+// The rows for the gear `character` is wearing. Arcane Symbols are left out:
+// they wear in slots of their own and have nothing to say in these columns --
+// see SymbolRows.
+//
+// Only the row at `selected` slides a name too long for its column, and
+// `elapsed` is how long it has been the selected one; pass -1 and zero for a
+// list whose names all sit at their heads.
 std::vector<EquippedRow> EquippedRows(
+    const CharacterInstance& character, int selected,
+    std::chrono::steady_clock::duration elapsed);
+
+// The rows for the Arcane Symbols `character` is wearing, in the order their
+// areas open. Empty until the first one is put on, which is the whole of what
+// the Symbols tab shows before then.
+std::vector<EquippedRow> SymbolRows(
     const CharacterInstance& character, int selected,
     std::chrono::steady_clock::duration elapsed);
 

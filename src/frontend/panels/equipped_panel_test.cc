@@ -825,5 +825,119 @@ TEST_F(EquippedPanelTest, LightsUpEvenWithNothingEquipped) {
   EXPECT_EQ(BorderColor(component->Render()), kYellow);
 }
 
+// --- The Symbols tab ---
+
+class SymbolTabTest : public EquippedPanelTest {
+ protected:
+  // A character in Arcane River, which is what puts the second tab on the bar.
+  CharacterInstance Traveller() {
+    Character proto;
+    proto.set_level(200);
+    proto.set_job(JOB_HERO);
+    proto.set_job_stage(4);
+    return CharacterInstance(rng_, std::move(proto));
+  }
+
+  void WearSymbol(CharacterInstance& c, const std::string& name, EquipSlot slot,
+                  int level, int exp) {
+    EquipPrototype proto;
+    proto.set_name(name);
+    proto.set_equip_slot(slot);
+    proto.mutable_arcane_symbol()->set_meso_cost_base(8);
+    Equip state;
+    state.set_symbol_level(level);
+    state.set_symbol_exp(exp);
+    c.PickUp(std::make_unique<EquipInstance>(proto, state));
+    ASSERT_TRUE(c.Equip(0));
+  }
+};
+
+// Below Arcane River there is nothing a symbol tab could hold, so the bar is
+// not drawn at all and the panel reads exactly as it always did.
+TEST_F(SymbolTabTest, NoBarBeforeArcaneRiver) {
+  EquippedPanel panel(c_, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  EXPECT_EQ(RenderComponent(component).find("Symbols"), std::string::npos);
+}
+
+TEST_F(SymbolTabTest, TheTabArrivesWithArcaneRiver) {
+  CharacterInstance c = Traveller();
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  std::string rendered = RenderComponent(component);
+  EXPECT_NE(rendered.find("Gear"), std::string::npos);
+  EXPECT_NE(rendered.find("Symbols"), std::string::npos);
+}
+
+// A worn symbol reads its level, how far along the next one it is, and what it
+// is worth -- in that order, which is the order the player levels it by.
+TEST_F(SymbolTabTest, ASymbolRowIsItsLevelExpAndForce) {
+  CharacterInstance c = Traveller();
+  WearSymbol(c, "Arcane Symbol: Vanishing Journey",
+             EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/8, /*exp=*/12);
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  // Down off the bar, then Right onto Symbols.
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  std::string rendered = RenderComponent(component);
+  EXPECT_NE(rendered.find("Vanishing Journey"), std::string::npos);
+  EXPECT_NE(rendered.find("12/75"), std::string::npos) << rendered;
+  EXPECT_NE(rendered.find("+100"), std::string::npos) << rendered;
+}
+
+// Worn symbols are on their own tab, so neither list shows the other's items.
+TEST_F(SymbolTabTest, TheTwoListsDoNotShareItems) {
+  CharacterInstance c = Traveller();
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  ASSERT_TRUE(c.Equip(0));
+  WearSymbol(c, "Arcane Symbol: Vanishing Journey",
+             EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/0);
+
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  std::string gear = RenderComponent(component);
+  EXPECT_NE(gear.find("Sword"), std::string::npos);
+  EXPECT_EQ(gear.find("Vanishing Journey"), std::string::npos);
+
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  std::string symbols = RenderComponent(component);
+  EXPECT_NE(symbols.find("Vanishing Journey"), std::string::npos);
+  EXPECT_EQ(symbols.find("Sword"), std::string::npos);
+}
+
+// The tab is there from the moment Arcane River opens, and empty until the
+// player puts their first symbol on.
+TEST_F(SymbolTabTest, TheTabIsEmptyUntilASymbolIsWorn) {
+  CharacterInstance c = Traveller();
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  EXPECT_NE(RenderComponent(component).find("(empty)"), std::string::npos);
+}
+
+// The symbol menu offers only what a symbol can be put through: it takes no
+// scrolls and no stars.
+TEST_F(SymbolTabTest, TheSymbolMenuLeavesTheUpgradesOff) {
+  CharacterInstance c = Traveller();
+  WearSymbol(c, "Arcane Symbol: Vanishing Journey",
+             EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/0);
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  panel.OpenMenu();
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_NE(rendered.find("Unequip"), std::string::npos);
+  EXPECT_NE(rendered.find("Inspect"), std::string::npos);
+  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
+  EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace ms

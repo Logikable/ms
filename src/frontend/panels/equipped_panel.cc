@@ -1,6 +1,7 @@
 #include "src/frontend/panels/equipped_panel.h"
 
 #include <algorithm>
+#include <chrono>
 #include <functional>
 #include <string>
 #include <vector>
@@ -18,16 +19,89 @@
 #include "src/protos/equip.pb.h"
 
 namespace ms {
+namespace {
+
+const char* const kTabLabels[] = {"Gear", "Symbols"};
+
+}  // namespace
 
 EquippedPanel::EquippedPanel(CharacterInstance& character,
                              AccountInstance& account, int& panel_focus)
     : character_(character),
       account_(account),
       panel_focus_(panel_focus),
-      menu_({"Unequip", "Inspect", "Scroll", "Star Force", "Close"}) {
+      menu_({"Unequip", "Inspect", "Scroll", "Star Force", "Close"}),
+      symbol_menu_({"Unequip", "Inspect", "Close"}) {
+}
+
+ItemMenu& EquippedPanel::menu() {
+  return active_tab_ == kSymbolTab ? symbol_menu_ : menu_;
+}
+
+std::vector<int> EquippedPanel::VisibleTabs() const {
+  std::vector<int> tabs = {kGearTab};
+  // Symbols arrives with Arcane River. Before then there is nothing that could
+  // ever go in it, and a tab that can only be empty is not a tab.
+  if (Unlocked(Feature::kSymbols, character_, account_)) {
+    tabs.push_back(kSymbolTab);
+  }
+  return tabs;
+}
+
+void EquippedPanel::StepTab(int direction) {
+  std::vector<int> tabs = VisibleTabs();
+  std::vector<int>::iterator at =
+      std::find(tabs.begin(), tabs.end(), active_tab_);
+  if (at == tabs.end()) {
+    active_tab_ = kGearTab;
+    return;
+  }
+  int next = static_cast<int>(at - tabs.begin()) + direction;
+  if (next < 0 || next >= static_cast<int>(tabs.size())) {
+    return;  // the ends of the bar are walls, not wrapping points
+  }
+  active_tab_ = tabs[next];
+  selected_ = 0;
+}
+
+int EquippedPanel::ListCount() const {
+  std::chrono::steady_clock::duration none =
+      std::chrono::steady_clock::duration::zero();
+  return static_cast<int>(active_tab_ == kSymbolTab
+                              ? SymbolRows(character_, -1, none).size()
+                              : EquippedRows(character_, -1, none).size());
+}
+
+bool EquippedPanel::HasTabBar() const {
+  return VisibleTabs().size() > 1;
+}
+
+int EquippedPanel::CursorStop() const {
+  return zone_ == kZoneTabs ? 0 : selected_ + 1;
+}
+
+void EquippedPanel::MoveCursor(int delta) {
+  int count = ListCount();
+  if (!HasTabBar()) {
+    // No bar to step onto, so the list is a ring on its own.
+    zone_ = kZoneList;
+    selected_ = StepCursor(selected_, delta, count);
+    return;
+  }
+  int next = StepCursor(CursorStop(), delta, 1 + count);
+  if (next == 0) {
+    zone_ = kZoneTabs;
+    return;
+  }
+  zone_ = kZoneList;
+  selected_ = next - 1;
 }
 
 void EquippedPanel::OpenMenu() {
+  if (active_tab_ == kSymbolTab) {
+    symbol_menu_.Reset();
+    return;
+  }
   // Opening the menu on the worn weapon is the trail's first step walked: the
   // player looked, and what they were being sent to look at is on screen.
   if (selected_slot() == EQUIP_SLOT_PRIMARY_WEAPON) {
@@ -77,41 +151,47 @@ void EquippedPanel::OpenMenu() {
 
 Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
                                   ScrollPanel& scroll_panel) {
+  ItemMenu& open = menu();
   if (IsBack(event)) {
     return kMain;
   }
   if (event == ftxui::Event::ArrowUp) {
-    menu_.Up();
+    open.Up();
     return kItemMenu;
   }
   if (event == ftxui::Event::ArrowDown) {
-    menu_.Down();
+    open.Down();
     return kItemMenu;
   }
-  if (IsForward(event)) {
-    if (menu_.selected() == kMenuAction) {
-      character_.Unequip(selected_slot());
-      return kMain;
-    }
-    if (menu_.selected() == kMenuInspect) {
-      return kInspect;
-    }
-    if (menu_.selected() == kMenuScroll) {
-      // Followed whether or not there is a scroll to show: they pressed the
-      // entry, which is what the gold was asking them to do.
-      FollowedToAction(Feature::kScrolling, account_);
-      if (scroll_panel.SetFilterForPrototype(
-              character_.equipped().at(selected_slot()).prototype())) {
-        return kScrollSelect;
-      }
-    }
-    if (menu_.selected() == kMenuStarForce) {
-      FollowedToAction(Feature::kStarForce, account_);
-      return kStarForce;
-    }
+  if (!IsForward(event)) {
+    return kItemMenu;
+  }
+  // Unequip and Inspect are the first two entries of both menus, so neither
+  // has to ask which one is open.
+  if (open.selected() == kMenuAction) {
+    character_.Unequip(selected_slot());
     return kMain;
   }
-  return kItemMenu;
+  if (open.selected() == kMenuInspect) {
+    return kInspect;
+  }
+  if (active_tab_ == kSymbolTab) {
+    return kMain;
+  }
+  if (open.selected() == kMenuScroll) {
+    // Followed whether or not there is a scroll to show: they pressed the
+    // entry, which is what the gold was asking them to do.
+    FollowedToAction(Feature::kScrolling, account_);
+    if (scroll_panel.SetFilterForPrototype(
+            character_.equipped().at(selected_slot()).prototype())) {
+      return kScrollSelect;
+    }
+  }
+  if (open.selected() == kMenuStarForce) {
+    FollowedToAction(Feature::kStarForce, account_);
+    return kStarForce;
+  }
+  return kMain;
 }
 
 EquipSlot EquippedPanel::selected_slot() const {
@@ -124,10 +204,11 @@ EquipSlot EquippedPanel::selected_slot() const {
 ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
   int idx = state.index;
   // Drawn from selected_, not from state.focused. The Menu keeps its own idea
-  // of the current row, and WrappingList turns the ring by writing selected_
-  // itself -- a move the Menu never sees. The two then disagree, and the caret
-  // points at the row the player left while Enter acts on the one they are on.
-  bool on_cursor = idx == selected_ && panel_focus_ == kEquipPanel;
+  // of the current row, and the panel moves the cursor itself -- a move the
+  // Menu never sees. The two then disagree, and the caret points at the row
+  // the player left while Enter acts on the one they are on.
+  bool on_cursor =
+      idx == selected_ && zone_ == kZoneList && panel_focus_ == kEquipPanel;
   std::string cursor = on_cursor ? "> " : "  ";
   ftxui::Element row = ftxui::text(cursor + state.label);
   if (idx >= 0 && idx < static_cast<int>(led_.size()) && led_[idx]) {
@@ -155,6 +236,10 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
   return row;
 }
 
+const char* EquippedPanel::Header() const {
+  return active_tab_ == kSymbolTab ? kSymbolHeader : kEquippedHeader;
+}
+
 void EquippedPanel::RebuildRows() {
   // The menu writes selected_ behind this panel's back, so a move is noticed
   // here rather than hooked at the keypress.
@@ -167,8 +252,11 @@ void EquippedPanel::RebuildRows() {
   // Asked once for the whole list rather than per row: it is a fact about the
   // character, and only the worn weapon's row acts on it.
   bool lead = LeadToWeapon(character_, account_);
-  for (const EquippedRow& row :
-       EquippedRows(character_, selected_, name_clock_.Elapsed())) {
+  std::vector<EquippedRow> rows =
+      active_tab_ == kSymbolTab
+          ? SymbolRows(character_, selected_, name_clock_.Elapsed())
+          : EquippedRows(character_, selected_, name_clock_.Elapsed());
+  for (const EquippedRow& row : rows) {
     slots_.push_back(row.slot);
     inactive_.push_back(row.inactive);
     name_bytes_.push_back(row.name_bytes);
@@ -177,7 +265,24 @@ void EquippedPanel::RebuildRows() {
   }
   if (!entries_.empty()) {
     selected_ = std::min(selected_, static_cast<int>(entries_.size()) - 1);
+  } else if (HasTabBar()) {
+    // Nothing to stand on. The bar is the only stop left, and leaving the
+    // cursor in the list would make both arrow keys do nothing.
+    zone_ = kZoneTabs;
   }
+}
+
+ftxui::Element EquippedPanel::RenderTabBar(bool row_selected) const {
+  std::vector<TabSpec> specs;
+  int active = 0;
+  for (int tab : VisibleTabs()) {
+    if (tab == active_tab_) {
+      active = static_cast<int>(specs.size());
+    }
+    specs.push_back({kTabLabels[tab]});
+  }
+  // No width limit: two chips fit several times over in a row this wide.
+  return TabBar(specs, active, row_selected, /*width=*/0);
 }
 
 ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
@@ -185,22 +290,66 @@ ftxui::Element EquippedPanel::RenderContent(ftxui::Component menu) {
   // whatever the item menu did.
   RebuildRows();
   bool focused = panel_focus_ == kEquipPanel;
+  std::vector<ftxui::Element> rows;
+  // The bar is drawn only once there is a second tab to reach: one chip over a
+  // list says nothing the window title has not already said.
+  if (HasTabBar()) {
+    rows.push_back(RenderTabBar(focused && zone_ == kZoneTabs));
+    rows.push_back(PanelSeparator(highlighted_));
+  }
   if (entries_.empty()) {
-    return AccentWindow(" Equipped ", EmptyState("empty"),
+    rows.push_back(EmptyState("empty"));
+    return AccentWindow(" Equipped ", ftxui::vbox(std::move(rows)),
                         PanelAccent(highlighted_), focused);
   }
-  return AccentWindow(" Equipped ",
-                      ftxui::vbox({
-                          ftxui::text(kEquippedHeader),
-                          PanelSeparator(highlighted_),
-                          // Only the items scroll; the header row and the rule
-                          // stay put. ftxui::Menu marks its selected entry,
-                          // which is what the frame scrolls to, so the cursor
-                          // cannot walk out of view.
-                          menu->Render() | ftxui::vscroll_indicator |
-                              ftxui::yframe | ftxui::flex,
-                      }),
+  rows.push_back(ftxui::text(Header()));
+  rows.push_back(PanelSeparator(highlighted_));
+  // Only the items scroll; the header row and the rule stay put.
+  // ftxui::Menu marks its selected entry, which is what the frame scrolls to,
+  // so the cursor cannot walk out of view.
+  rows.push_back(menu->Render() | ftxui::vscroll_indicator | ftxui::yframe |
+                 ftxui::flex);
+  return AccentWindow(" Equipped ", ftxui::vbox(std::move(rows)),
                       PanelAccent(highlighted_), focused);
+}
+
+bool EquippedPanel::OnTabBarEvent(const ftxui::Event& event) {
+  if (event == ftxui::Event::ArrowLeft) {
+    StepTab(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowRight) {
+    StepTab(+1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
+    MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
+  // Swallow the rest, or it leaks to the hidden Menu and silently moves its
+  // selection while the bar holds focus.
+  return true;
+}
+
+bool EquippedPanel::OnListEvent(const ftxui::Event& event,
+                                const std::function<void()>& on_enter) {
+  // Take the two ends of the list and leave everything between them to the
+  // ftxui::Menu, which scrolls the view to follow its own cursor and would
+  // stop doing so if its keys were taken away.
+  bool up = event == ftxui::Event::ArrowUp;
+  bool down = event == ftxui::Event::ArrowDown;
+  int count = ListCount();
+  if ((up && selected_ == 0) || (down && selected_ >= count - 1)) {
+    MoveCursor(up ? -1 : 1);
+    return true;
+  }
+  if (event == ftxui::Event::Character(' ')) {
+    if (count > 0) {
+      on_enter();
+    }
+    return true;
+  }
+  return false;
 }
 
 ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
@@ -211,11 +360,7 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   opt.entries_option.transform = [this](ftxui::EntryState state) {
     return RenderRow(state);
   };
-  // Wrapped so the list is a ring: there is no tab bar over this panel, so Up
-  // off the top row has nowhere to go but the bottom one.
-  ftxui::Component menu =
-      WrappingList(ftxui::Menu(&entries_, &selected_, opt), selected_,
-                   [this]() { return static_cast<int>(entries_.size()); });
+  ftxui::Component menu = ftxui::Menu(&entries_, &selected_, opt);
   // Focusable whether or not anything is worn. Container::Tab asks its active
   // panel whether it is focusable and drops every key when the answer is no,
   // and an ftxui::Menu says no on an empty list -- which would leave this
@@ -223,16 +368,10 @@ ftxui::Component EquippedPanel::MakeComponent(std::function<void()> on_enter) {
   ftxui::Component renderer = AlwaysFocusable(ftxui::Renderer(
       menu, [this, menu]() -> ftxui::Element { return RenderContent(menu); }));
   return ftxui::CatchEvent(renderer, [this, on_enter](ftxui::Event event) {
-    if (event != ftxui::Event::Character(' ')) {
-      return false;
+    if (zone_ == kZoneTabs) {
+      return OnTabBarEvent(event);
     }
-    // With nothing worn there is no item to act on, and the menu would open on
-    // EQUIP_SLOT_UNSPECIFIED -- a slot the map has no entry for. Swallowed
-    // rather than passed on, as on an empty tab of the bag.
-    if (!character_.equipped().empty()) {
-      on_enter();
-    }
-    return true;
+    return OnListEvent(event, on_enter);
   });
 }
 

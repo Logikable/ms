@@ -98,8 +98,10 @@ cc_library(
     srcs = ["equipped_list.cc"],
     hdrs = ["equipped_list.h"],
     deps = [
+        ":marquee",
         ":panel_util",
         "//src/character",
+        "//src/character:arcane_force",
         "//src/item:equip_instance",
         "//src/protos:equip_proto_cc",
     ],

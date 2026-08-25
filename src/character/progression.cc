@@ -45,6 +45,9 @@ constexpr Unlock kUnlocks[] = {
     // take 15, and now that an attempt is priced, opening the screen earlier
     // only offers the player a bill for a star that is barely worth having.
     {Feature::kStarForce, 120},
+    // Arcane River opens at 200, and it opens with a symbol handed over -- so
+    // the tab arrives with something to put in it.
+    {Feature::kSymbols, 200},
 };
 
 // What an advancement opens rather than a level, and which one opens it: 1 is
@@ -177,6 +180,8 @@ std::string FeatureName(Feature feature) {
       return "the Menu";
     case Feature::kBoss:
       return "Bosses";
+    case Feature::kSymbols:
+      return "Arcane Symbols";
     case Feature::kCombatStats:
       return "Combat Stats";
     case Feature::kDamageStats:

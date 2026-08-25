@@ -45,6 +45,10 @@ enum class Feature {
   // retires, so the corner is never empty and never holds both.
   kMenu,
   kBoss,
+  // The Symbols tab of the Equipped panel. Arcane River's own level: below it
+  // there is no symbol to be had, and a tab that can only ever be empty is
+  // worse than no tab.
+  kSymbols,
   // The combat stat block on the Character panel, in two halves. Gated on the
   // advancement rather than the level: what fills those rows is a job's
   // passives and the gear a job can wear, so a Beginner has nothing to read

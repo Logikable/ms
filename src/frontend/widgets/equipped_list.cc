@@ -4,11 +4,22 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/arcane_force.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
 
 namespace ms {
 namespace {
+
+// A symbol list's columns. The name gets more room than an item list's 26
+// because every symbol is called "Arcane Symbol: <area>", and 26 cuts the
+// longest of them mid-word -- there are only three columns after it to pay
+// for the room. The other two are sized to the widest they hold: level 20,
+// and the 372/372 the last rung asks for.
+constexpr int kSymbolNameWidth = 32;
+constexpr int kSymbolLevelWidth = 3;
+constexpr int kSymbolExpWidth = 7;
 
 // The stat column of one row: the attack this job swings with, then the stat
 // its damage is built on.
@@ -44,6 +55,16 @@ std::string RowInfo(const CharacterInstance& character,
   return PadRight(atk_str, 10) + PadRight(main_str, 10);
 }
 
+// How far along its next level a symbol is, or "MAX" for one that has no next
+// level to be along.
+std::string SymbolExpCell(const Equip& state) {
+  int needed = SymbolExpToNextLevel(SymbolLevel(state));
+  if (needed == 0) {
+    return "MAX";
+  }
+  return std::to_string(state.symbol_exp()) + "/" + std::to_string(needed);
+}
+
 }  // namespace
 
 const char kEquippedHeader[] =
@@ -53,6 +74,12 @@ const char kEquippedHeader[] =
     "  Scroll"                      // 2 sep + 6 scroll
     "  Star Force";                 // 2 sep + label
 
+const char kSymbolHeader[] =
+    "  Name                            "  // 2 cursor + 32 name
+    "  Lv "                               // 2 sep + 3 level
+    "  EXP    "                           // 2 sep + 7 exp
+    "  AF";                               // 2 sep + label
+
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
     std::chrono::steady_clock::duration elapsed) {
@@ -60,6 +87,9 @@ std::vector<EquippedRow> EquippedRows(
   for (const std::pair<const EquipSlot, EquipInstance>& kv :
        character.equipped()) {
     const EquipInstance& item = kv.second;
+    if (IsArcaneSymbol(item.prototype())) {
+      continue;
+    }
     // Only the selected row's name slides; the rest sit at their heads.
     std::chrono::steady_clock::duration slide =
         static_cast<int>(rows.size()) == selected
@@ -73,6 +103,38 @@ std::vector<EquippedRow> EquippedRows(
     row.text = FormatItemEntry(item.prototype().name(), kv.first,
                                RowInfo(character, item.stats()),
                                item.prototype(), item.equip_state(), slide);
+    rows.push_back(std::move(row));
+  }
+  return rows;
+}
+
+std::vector<EquippedRow> SymbolRows(
+    const CharacterInstance& character, int selected,
+    std::chrono::steady_clock::duration elapsed) {
+  std::vector<EquippedRow> rows;
+  // The worn map is keyed by slot, and the symbol slots are numbered in the
+  // order their areas open -- so walking it is already the order to list them.
+  for (const std::pair<const EquipSlot, EquipInstance>& kv :
+       character.equipped()) {
+    const EquipInstance& item = kv.second;
+    if (!IsArcaneSymbol(item.prototype())) {
+      continue;
+    }
+    std::chrono::steady_clock::duration slide =
+        static_cast<int>(rows.size()) == selected
+            ? elapsed
+            : std::chrono::steady_clock::duration::zero();
+    const Equip& state = item.equip_state();
+    int level = SymbolLevel(state);
+    std::string name =
+        ScrollingWindow(item.prototype().name(), kSymbolNameWidth, slide);
+    EquippedRow row;
+    row.slot = kv.first;
+    row.name_bytes = static_cast<int>(name.size());
+    row.text = name + "  " +
+               PadRight(std::to_string(level), kSymbolLevelWidth) + "  " +
+               PadRight(SymbolExpCell(state), kSymbolExpWidth) + "  +" +
+               std::to_string(SymbolArcaneForce(level));
     rows.push_back(std::move(row));
   }
   return rows;
