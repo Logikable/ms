@@ -24,14 +24,31 @@
 namespace ms {
 namespace {
 
+// No context menu in the game has anywhere near this many entries, so a walk
+// that takes this many steps is walking in circles.
+constexpr int kMenuWalkLimit = 32;
+
 class EquippedPanelTest : public PanelTest {
  protected:
+  // Walks the menu to `entry`, or gives up once it has been all the way round.
+  // Bounded on purpose: an entry that is not reachable is a test failure, not
+  // a reason to spin.
+  static bool StepTo(ItemMenu& menu, int entry) {
+    for (int step = 0; step < kMenuWalkLimit; ++step) {
+      if (menu.selected() == entry) {
+        return true;
+      }
+      menu.Down();
+    }
+    return false;
+  }
+
   // Every entry the player can actually land on, in the order Down walks them.
   // Disabled entries are skipped rather than merely dimmed, so what this does
   // not contain is what the menu does not offer.
   std::vector<int> ReachableMenuEntries(ItemMenu& menu) {
     std::vector<int> seen{menu.selected()};
-    for (;;) {
+    for (int step = 0; step < kMenuWalkLimit; ++step) {
       menu.Down();
       // The walk ends where it started, the list being a ring. Watching for a
       // cursor that stopped moving instead would never end -- except on a menu
@@ -41,6 +58,7 @@ class EquippedPanelTest : public PanelTest {
       }
       seen.push_back(menu.selected());
     }
+    return seen;
   }
 
   // The Equipped panel of a `job` wearing a 45-attack weapon and a 25-attack
@@ -231,9 +249,11 @@ TEST_F(EquippedPanelTest, WornThrowingStarsOfferNoScrollOrStarForce) {
   panel.OpenMenu();
   ASSERT_EQ(panel.selected_slot(), EQUIP_SLOT_PROJECTILE);
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuScroll), 0);
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0);
-  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuInspect), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kGearMenuScroll), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kGearMenuStarForce),
+            0);
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kGearMenuInspect),
+            0);
   // Gone from the menu rather than greyed on it: ReachableMenuEntries cannot
   // tell those two apart, so the rendered menu is asked as well.
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
@@ -614,14 +634,14 @@ TEST_F(EquippedPanelTest, UnequipWaitsForTheBag) {
   LevelTo(UnlockLevel(Feature::kBag) - 1);
   panel.OpenMenu();
   std::vector<int> before = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(before.begin(), before.end(), kMenuAction), 0);
+  EXPECT_EQ(std::count(before.begin(), before.end(), kGearMenuUnequip), 0);
   EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Unequip"),
             std::string::npos);
 
   LevelTo(UnlockLevel(Feature::kBag));
   panel.OpenMenu();
   std::vector<int> after = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(after.begin(), after.end(), kMenuAction), 0);
+  EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuUnequip), 0);
 }
 
 // --- the gold trail to a new upgrade ---
@@ -695,9 +715,7 @@ TEST_F(EquippedPanelTest, PressingTheUpgradePutsItsGoldOut) {
   ScrollPanel sp(c_, {});
   RenderComponent(panel.MakeComponent([]() {}));
   panel.OpenMenu();
-  while (panel.menu().selected() != kMenuScroll) {
-    panel.menu().Down();
-  }
+  ASSERT_TRUE(StepTo(panel.menu(), kGearMenuScroll));
   panel.OnMenuEvent(ftxui::Event::Return, sp);
 
   panel.OpenMenu();
@@ -724,9 +742,7 @@ TEST_F(EquippedPanelTest, StarForceIsGoldOnTheMenuAlone) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   RenderComponent(comp);
   panel.OpenMenu();
-  while (panel.menu().selected() != kMenuScroll) {
-    panel.menu().Down();
-  }
+  ASSERT_TRUE(StepTo(panel.menu(), kGearMenuScroll));
   panel.OnMenuEvent(ftxui::Event::Return, sp);
 
   LevelTo(UnlockLevel(Feature::kStarForce));
@@ -754,14 +770,15 @@ TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
   LevelTo(UnlockLevel(Feature::kScrolling));
   panel.OpenMenu();
   std::vector<int> scrolling = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(scrolling.begin(), scrolling.end(), kMenuScroll), 0);
-  EXPECT_EQ(std::count(scrolling.begin(), scrolling.end(), kMenuStarForce), 0);
+  EXPECT_NE(std::count(scrolling.begin(), scrolling.end(), kGearMenuScroll), 0);
+  EXPECT_EQ(std::count(scrolling.begin(), scrolling.end(), kGearMenuStarForce),
+            0);
 
   LevelTo(UnlockLevel(Feature::kStarForce));
   panel.OpenMenu();
   std::vector<int> star_force = ReachableMenuEntries(panel.menu());
-  EXPECT_NE(std::count(star_force.begin(), star_force.end(), kMenuStarForce),
-            0);
+  EXPECT_NE(
+      std::count(star_force.begin(), star_force.end(), kGearMenuStarForce), 0);
 }
 
 // Every item that takes stars at all carries the entry, greyed until its
@@ -777,7 +794,8 @@ TEST_F(EquippedPanelTest, StarForceGreysWhileSlotsRemain) {
   panel.OpenMenu();
 
   std::vector<int> reachable = ReachableMenuEntries(panel.menu());
-  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuStarForce), 0)
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kGearMenuStarForce),
+            0)
       << "an unspent item let the player onto the entry";
   std::string rendered = RenderElement(panel.menu().Render(0, 0));
   EXPECT_NE(rendered.find("Star Force"), std::string::npos)

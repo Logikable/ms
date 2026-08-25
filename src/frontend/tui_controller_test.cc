@@ -1024,7 +1024,7 @@ TEST_F(TuiControllerTest, StarForceOpensOnceTheSlotsAreSpent) {
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
   controller_->OnEvent(ftxui::Event::ArrowDown);  // Star Force
-  EXPECT_EQ(equip_panel_->menu().selected(), kMenuStarForce);
+  EXPECT_EQ(equip_panel_->menu().selected(), kGearMenuStarForce);
 }
 
 TEST_F(TuiControllerTest, EnterOnAResultReturnsToSelect) {

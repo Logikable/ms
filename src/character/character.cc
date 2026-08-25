@@ -1232,6 +1232,47 @@ void CharacterInstance::RecomputeEquipStats() {
   equip_stats_ = SumEquipStats(absl::MakeSpan(list));
 }
 
+int CharacterInstance::SpareSymbols(EquipSlot slot) const {
+  int count = 0;
+  for (int i = 0; i < inventory_.size(); ++i) {
+    const EquipInstance* spare = inventory_.equip_instance(i);
+    if (spare != nullptr && IsArcaneSymbol(spare->prototype()) &&
+        spare->prototype().equip_slot() == slot) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+int CharacterInstance::CombineSymbols(EquipSlot slot, int count) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (count <= 0 || it == equipped_.end() ||
+      !IsArcaneSymbol(it->second.prototype())) {
+    return 0;
+  }
+  ms::Equip state = it->second.equip_state();
+  int taken = 0;
+  // Backwards, so removing one does not slide the ones still to be looked at.
+  for (int i = inventory_.size() - 1; i >= 0 && taken < count; --i) {
+    const EquipInstance* spare = inventory_.equip_instance(i);
+    if (spare == nullptr || !IsArcaneSymbol(spare->prototype()) ||
+        spare->prototype().equip_slot() != slot) {
+      continue;
+    }
+    // A copy is worth one, plus whatever it had banked itself: what a
+    // sacrificed symbol carries is added rather than lost. Nothing can level a
+    // symbol sitting in the bag, so today that second term is always zero.
+    state.set_symbol_exp(state.symbol_exp() + 1 +
+                         spare->equip_state().symbol_exp());
+    inventory_.remove_equip(i);
+    ++taken;
+  }
+  if (taken > 0) {
+    it->second = EquipInstance(it->second.prototype(), state);
+  }
+  return taken;
+}
+
 bool CharacterInstance::LevelUpSymbol(EquipSlot slot) {
   std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
   if (it == equipped_.end() || !IsArcaneSymbol(it->second.prototype())) {

@@ -601,6 +601,8 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(sell_equip_panel_.Render());
     case kSymbolLevel:
       return OverMain(controller_.symbol_level_panel().Render());
+    case kSymbolCombine:
+      return OverMain(controller_.symbol_combine_panel().Render());
     // The dialog is the panel's own, so the screen it belongs to is one state.
     case kMultiSell:
       return RenderMultiSell();

@@ -9,6 +9,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/account.h"
+#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/progression.h"
 #include "src/frontend/screens/scroll_panel.h"
@@ -122,8 +123,8 @@ InventoryPanel::InventoryPanel(CharacterInstance& character,
     : character_(character),
       account_(account),
       panel_focus_(panel_focus),
-      menu_({"Equip", "Inspect", "Scroll", "Star Force", "Recover", "Sell",
-             "Multi-Sell", "Close"}),
+      menu_({"Equip", "Inspect", "Combine", "Scroll", "Star Force", "Recover",
+             "Sell", "Multi-Sell", "Close"}),
       sell_menu_({"Inspect", "Use", "Sell", "Multi-Sell", "Close"}) {
 }
 
@@ -261,6 +262,22 @@ void InventoryPanel::OpenStackMenu() {
   }
 }
 
+// What the Equip tab's menu offers on a spare Arcane Symbol. Neither upgrade
+// path touches one, and Equip and Combine trade places: only one of each area
+// is ever worn, so a second copy has nowhere to go but into the first.
+void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
+  menu_.Hide(kMenuScroll);
+  menu_.Hide(kMenuStarForce);
+  if (character_.equipped().count(symbol.prototype().equip_slot()) > 0) {
+    menu_.Hide(kMenuAction);
+  } else {
+    menu_.Hide(kMenuCombine);
+    if (!character_.CanEquip(symbol.prototype())) {
+      menu_.Disable(kMenuAction);
+    }
+  }
+}
+
 // The Equip tab's menu, for the item or trace the cursor is on.
 void InventoryPanel::OpenEquipMenu() {
   menu_.Reset();
@@ -292,11 +309,17 @@ void InventoryPanel::OpenEquipMenu() {
   if (eq == nullptr) {
     // Traces can only be inspected or recovered.
     menu_.Disable(kMenuAction);
+    menu_.Hide(kMenuCombine);
     menu_.Hide(kMenuScroll);
     menu_.Hide(kMenuStarForce);
     return;
   }
   menu_.Hide(kMenuRecover);  // live items cannot be recovered
+  if (IsArcaneSymbol(eq->prototype())) {
+    OpenSymbolMenu(*eq);
+    return;
+  }
+  menu_.Hide(kMenuCombine);
   if (!character_.CanEquip(eq->prototype())) {
     menu_.Disable(kMenuAction);
   }
@@ -380,6 +403,9 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
     }
     if (menu_.selected() == kMenuInspect) {
       return kInspect;
+    }
+    if (menu_.selected() == kMenuCombine) {
+      return kSymbolCombine;
     }
     if (menu_.selected() == kMenuScroll) {
       // Followed whether or not there is a scroll to show: they pressed the

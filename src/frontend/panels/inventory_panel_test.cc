@@ -31,7 +31,10 @@ class InventoryPanelTest : public PanelTest {
   // not contain is what the menu does not offer.
   std::vector<int> ReachableMenuEntries(ItemMenu& menu) {
     std::vector<int> seen{menu.selected()};
-    for (;;) {
+    // Bounded on purpose: no menu in the game has anywhere near this many
+    // entries, so a walk that takes this many steps is walking in circles --
+    // and an unbounded one turns a wrong constant into a hung test.
+    for (int step = 0; step < 32; ++step) {
       menu.Down();
       // The walk ends where it started, the list being a ring. Watching for a
       // cursor that stopped moving instead would never end -- except on a menu
@@ -41,6 +44,19 @@ class InventoryPanelTest : public PanelTest {
       }
       seen.push_back(menu.selected());
     }
+    return seen;
+  }
+
+  // Walks the menu to `entry`, or gives up once it has been all the way round.
+  // Bounded for the same reason ReachableMenuEntries is.
+  static bool StepTo(ItemMenu& menu, int entry) {
+    for (int step = 0; step < 32; ++step) {
+      if (menu.selected() == entry) {
+        return true;
+      }
+      menu.Down();
+    }
+    return false;
   }
 
   EquipPrototype MakeThrowingStars() {
@@ -1356,6 +1372,95 @@ TEST_F(InventoryPanelTest, AnOpenedShopTabStaysQuietForANewPanel) {
   InventoryPanel panel(c_, account_, panel_focus_);
   ftxui::Component component = panel.MakeComponent([]() {});
   EXPECT_EQ(LabelColor(component->Render(), "Shop"), kTheme);
+}
+
+// --- Spare Arcane Symbols on the equip tab ---
+
+class SpareSymbolTest : public InventoryPanelTest {
+ protected:
+  EquipPrototype Symbol() {
+    EquipPrototype proto;
+    proto.set_name("Arcane Symbol: Vanishing Journey");
+    proto.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+    proto.set_required_level(200);
+    proto.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+    proto.add_unsupported_upgrades(UPGRADE_SCROLL);
+    proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
+    proto.mutable_arcane_symbol()->set_meso_cost_base(8);
+    return proto;
+  }
+
+  CharacterInstance Traveller() {
+    Character proto;
+    proto.set_level(200);
+    proto.set_job(JOB_HERO);
+    proto.set_job_stage(4);
+    return CharacterInstance(rng_, std::move(proto));
+  }
+};
+
+// The first copy goes on; every one after it is fed to what is already worn.
+// Only one of each area is ever equipped, so the two entries trade places
+// rather than both standing there.
+TEST_F(SpareSymbolTest, EquipAndCombineTradePlaces) {
+  CharacterInstance c = Traveller();
+  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  InventoryPanel first(c, account_, panel_focus_);
+  first.MakeComponent([]() {});
+  first.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(first.menu());
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
+
+  ASSERT_TRUE(c.Equip(0));
+  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  InventoryPanel second(c, account_, panel_focus_);
+  second.MakeComponent([]() {});
+  second.OpenMenu();
+  reachable = ReachableMenuEntries(second.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
+}
+
+// Neither upgrade path touches a symbol, so neither is on its menu at all.
+TEST_F(SpareSymbolTest, ASpareOffersNoScrollOrStarForce) {
+  CharacterInstance c = Traveller();
+  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  InventoryPanel panel(c, account_, panel_focus_);
+  panel.MakeComponent([]() {});
+  panel.OpenMenu();
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_EQ(rendered.find("Scroll"), std::string::npos);
+  EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
+}
+
+// Combine leads to the dialog that asks how many to feed in.
+TEST_F(SpareSymbolTest, CombineOpensTheDialog) {
+  CharacterInstance c = Traveller();
+  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  ASSERT_TRUE(c.Equip(0));
+  c.PickUp(std::make_unique<EquipInstance>(Symbol()));
+  InventoryPanel panel(c, account_, panel_focus_);
+  panel.MakeComponent([]() {});
+  panel.OpenMenu();
+  ASSERT_TRUE(StepTo(panel.menu(), kMenuCombine));
+  ScrollPanel scrolls(c, {});
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, scrolls), kSymbolCombine);
+}
+
+// Ordinary gear never offers it, whatever else its menu holds.
+TEST_F(SpareSymbolTest, GearNeverOffersCombine) {
+  CharacterInstance c = Traveller();
+  EquipPrototype sword;
+  sword.set_name("Sword");
+  sword.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  sword.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c.PickUp(std::make_unique<EquipInstance>(sword));
+  InventoryPanel panel(c, account_, panel_focus_);
+  panel.MakeComponent([]() {});
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
 }
 
 }  // namespace

@@ -39,6 +39,8 @@ enum Screen : int {
   kSellEquip,
   // Level Up on the Symbols tab: what the next rung costs, and the question.
   kSymbolLevel,
+  // Combine on a spare symbol in the bag: how many to feed the worn one.
+  kSymbolCombine,
   kMapSelect,
   // Enter on a map: go there, read what stands there, or walk away.
   kMapMenu,
@@ -107,13 +109,27 @@ enum Panel : int {
 enum MenuItem : int {
   kMenuAction = 0,
   kMenuInspect = 1,
-  kMenuScroll = 2,
-  kMenuStarForce = 3,
-  kMenuRecover = 4,
+  // An Arcane Symbol's own action, and the only entry here no other item ever
+  // shows. It trades places with Equip: a spare goes on while that area's slot
+  // is empty, and is fed to what is already worn once it is not.
+  kMenuCombine = 2,
+  kMenuScroll = 3,
+  kMenuStarForce = 4,
+  kMenuRecover = 5,
   // The two that part with the item, above Close. Neither sits where the
   // cursor lands: they are the entries on this menu there is no undoing.
-  kMenuSell = 5,
-  kMenuMultiSell = 6,
+  kMenuSell = 6,
+  kMenuMultiSell = 7,
+};
+// Entries of the worn-gear context menu, on Enter in the Equipped panel's Gear
+// tab. Shorter than the bag's: nothing worn is sold or combined, and only a
+// bag item can be a trace to recover.
+enum GearMenuItem : int {
+  kGearMenuUnequip = 0,
+  kGearMenuInspect = 1,
+  kGearMenuScroll = 2,
+  kGearMenuStarForce = 3,
+  kGearMenuClose = 4,
 };
 // Entries of the Arcane Symbol context menu, on Enter in the Symbols tab. The
 // first two share their places with the item menu's, so the two branches that

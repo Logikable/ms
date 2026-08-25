@@ -2724,6 +2724,59 @@ TEST_F(SymbolTest, TakingOneOffTakesItsForceWithIt) {
 
 // What a symbol grants follows the wearer, so advancing moves the whole of it
 // onto the new job's stat.
+TEST_F(SymbolTest, CombiningSpendsSparesIntoTheWornSymbol) {
+  CharacterInstance c_ = MakeHero(rng_);
+  EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  Wear(c_, proto, /*level=*/1);
+  for (int i = 0; i < 5; ++i) {
+    c_.PickUp(std::make_unique<EquipInstance>(proto));
+  }
+  // A spare of another area is not a spare of this one.
+  c_.PickUp(std::make_unique<EquipInstance>(
+      Symbol(EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND)));
+  EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 5);
+
+  EXPECT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 3), 3);
+  EXPECT_EQ(c_.equipped()
+                .at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)
+                .equip_state()
+                .symbol_exp(),
+            3);
+  EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 2);
+  EXPECT_EQ(c_.inventory().size(), 3) << "the Chu Chu spare was left alone";
+
+  // Asking for more than there are takes what there is.
+  EXPECT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 99), 2);
+  EXPECT_EQ(c_.SpareSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 0);
+}
+
+// A sacrificed symbol is worth one plus whatever it had banked, so nothing is
+// lost. Nothing can level a symbol in the bag today, which is what makes this
+// the rule rather than the behaviour.
+TEST_F(SymbolTest, ASpareCarriesItsOwnExpAcross) {
+  CharacterInstance c_ = MakeHero(rng_);
+  EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  Wear(c_, proto, /*level=*/1);
+  Equip banked;
+  banked.set_symbol_exp(4);
+  c_.PickUp(std::make_unique<EquipInstance>(proto, banked));
+
+  ASSERT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 1), 1);
+  EXPECT_EQ(c_.equipped()
+                .at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)
+                .equip_state()
+                .symbol_exp(),
+            5);
+}
+
+TEST_F(SymbolTest, CombiningIntoAnEmptySlotTakesNothing) {
+  CharacterInstance c_ = MakeHero(rng_);
+  c_.PickUp(std::make_unique<EquipInstance>(
+      Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY)));
+  EXPECT_EQ(c_.CombineSymbols(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, 1), 0);
+  EXPECT_EQ(c_.inventory().size(), 1);
+}
+
 TEST_F(SymbolTest, LevellingChargesTheMesoAndMovesTheForce) {
   CharacterInstance c_ = MakeHero(rng_);
   c_.AddMeso(10'000'000);

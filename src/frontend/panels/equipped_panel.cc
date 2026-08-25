@@ -124,13 +124,13 @@ void EquippedPanel::OpenMenu() {
   // this panel has no bag to unequip into yet, and asking about scrolls means
   // nothing to them for a long while after that.
   if (!Unlocked(Feature::kUnequip, character_, account_)) {
-    menu_.Hide(kMenuAction);
+    menu_.Hide(kGearMenuUnequip);
   }
   if (!Unlocked(Feature::kScrolling, character_, account_)) {
-    menu_.Hide(kMenuScroll);
+    menu_.Hide(kGearMenuScroll);
   }
   if (!Unlocked(Feature::kStarForce, character_, account_)) {
-    menu_.Hide(kMenuStarForce);
+    menu_.Hide(kGearMenuStarForce);
   }
   EquipSlot slot = selected_slot();
   if (slot != EQUIP_SLOT_UNSPECIFIED) {
@@ -139,24 +139,24 @@ void EquippedPanel::OpenMenu() {
     // row, and everything else keeps one. So a weapon and a piece of armour
     // carry the same two entries however far along either of them is.
     if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
-      menu_.Hide(kMenuScroll);
+      menu_.Hide(kGearMenuScroll);
     }
     if (!Supports(item.prototype(), UPGRADE_STAR_FORCE)) {
-      menu_.Hide(kMenuStarForce);
+      menu_.Hide(kGearMenuStarForce);
     } else if (!item.CanStarForce()) {
       // Greyed, not gone: stars come after the slots are spent, and a row that
       // stands there dim is how the player learns the order.
-      menu_.Disable(kMenuStarForce);
+      menu_.Disable(kGearMenuStarForce);
     }
   }
   // Gold on an upgrade the player has been handed but never used, which is
   // where the trail from the level-up card ends. Last, so it lands on the
   // entries as they finally stand.
   if (LeadToAction(Feature::kScrolling, character_, account_)) {
-    menu_.Highlight(kMenuScroll);
+    menu_.Highlight(kGearMenuScroll);
   }
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
-    menu_.Highlight(kMenuStarForce);
+    menu_.Highlight(kGearMenuStarForce);
   }
 }
 
@@ -179,17 +179,17 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
   }
   // Unequip and Inspect are the first two entries of both menus, so neither
   // has to ask which one is open.
-  if (open.selected() == kMenuAction) {
+  if (open.selected() == kGearMenuUnequip) {
     character_.Unequip(selected_slot());
     return kMain;
   }
-  if (open.selected() == kMenuInspect) {
+  if (open.selected() == kGearMenuInspect) {
     return kInspect;
   }
   if (active_tab_ == kSymbolTab) {
     return open.selected() == kSymbolMenuLevelUp ? kSymbolLevel : kMain;
   }
-  if (open.selected() == kMenuScroll) {
+  if (open.selected() == kGearMenuScroll) {
     // Followed whether or not there is a scroll to show: they pressed the
     // entry, which is what the gold was asking them to do.
     FollowedToAction(Feature::kScrolling, account_);
@@ -198,7 +198,7 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
       return kScrollSelect;
     }
   }
-  if (open.selected() == kMenuStarForce) {
+  if (open.selected() == kGearMenuStarForce) {
     FollowedToAction(Feature::kStarForce, account_);
     return kStarForce;
   }

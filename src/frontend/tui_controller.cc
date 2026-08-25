@@ -308,6 +308,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSellEquipEvent(event);
     case kSymbolLevel:
       return OnSymbolLevelEvent(event);
+    case kSymbolCombine:
+      return OnSymbolCombineEvent(event);
     case kMultiSell:
       return OnMultiSellEvent(event);
     case kMapSelect:
@@ -415,13 +417,25 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     sell_equip_panel_.Reset(item.name(), price);
   }
   if (next == kSymbolLevel) {
-    symbol_level_slot_ = equip_panel_.selected_slot();
-    const EquipInstance& symbol =
-        state_.character.equipped().at(symbol_level_slot_);
+    symbol_slot_ = equip_panel_.selected_slot();
+    const EquipInstance& symbol = state_.character.equipped().at(symbol_slot_);
     int level = SymbolLevel(symbol.equip_state());
     symbol_level_panel_.Reset(symbol.prototype().name(), level,
                               SymbolLevelUpCost(symbol.prototype(), level),
                               state_.character.meso());
+  }
+  if (next == kSymbolCombine) {
+    // Keyed off the spare's own slot: what it can be fed to is the symbol of
+    // its area, whichever bag row the cursor happened to be on.
+    symbol_slot_ = state_.character.inventory()[inventory_panel_.selected()]
+                       .prototype()
+                       .equip_slot();
+    const EquipInstance& worn = state_.character.equipped().at(symbol_slot_);
+    int level = SymbolLevel(worn.equip_state());
+    symbol_combine_panel_.Reset(worn.prototype().name(), level,
+                                worn.equip_state().symbol_exp(),
+                                SymbolExpToNextLevel(level),
+                                state_.character.SpareSymbols(symbol_slot_));
   }
   if (next == kMultiSell) {
     int tab = inventory_panel_.active_tab();
@@ -1621,9 +1635,21 @@ bool TuiController::OnSymbolLevelEvent(ftxui::Event event) {
     return true;
   }
   if (choice == ConfirmChoice::kConfirmed) {
-    state_.character.LevelUpSymbol(symbol_level_slot_);
+    state_.character.LevelUpSymbol(symbol_slot_);
   }
   screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnSymbolCombineEvent(ftxui::Event event) {
+  symbol_combine_panel_.OnEvent(event);
+  if (symbol_combine_panel_.TakeConfirmed()) {
+    state_.character.CombineSymbols(symbol_slot_,
+                                    symbol_combine_panel_.quantity());
+    screen_ = kMain;
+  } else if (symbol_combine_panel_.TakeCancelled()) {
+    screen_ = kMain;
+  }
   return true;
 }
 

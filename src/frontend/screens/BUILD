@@ -318,6 +318,30 @@ cc_test(
 )
 
 cc_library(
+    name = "symbol_combine_panel",
+    srcs = ["symbol_combine_panel.cc"],
+    hdrs = ["symbol_combine_panel.h"],
+    deps = [
+        "//src/frontend/widgets:amount_selector",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "symbol_combine_panel_test",
+    srcs = ["symbol_combine_panel_test.cc"],
+    deps = [
+        ":symbol_combine_panel",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "symbol_level_panel",
     srcs = ["symbol_level_panel.cc"],
     hdrs = ["symbol_level_panel.h"],

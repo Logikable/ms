@@ -377,6 +377,16 @@ class CharacterInstance {
   const EquipStats& equip_stats() const {
     return equip_stats_;
   }
+  // Spare copies of the Arcane Symbol for `slot` sitting in the equip bag.
+  // Traces do not count, as they never do -- see CountOwned.
+  int SpareSymbols(EquipSlot slot) const;
+  // Absorbs up to `count` of those spares into the symbol worn in `slot`, each
+  // worth one EXP plus whatever it had banked itself, and throws them away.
+  // Returns how many it took, which is 0 if that slot holds no symbol.
+  //
+  // What the EXP buys is not bought here: raising the level is a step of its
+  // own, and it is paid for in meso -- see LevelUpSymbol.
+  int CombineSymbols(EquipSlot slot, int count);
   // Raises the Arcane Symbol worn in `slot` one level, charging the meso the
   // rung costs and carrying any excess EXP into the next one. Returns false
   // and takes nothing unless the slot holds a symbol that has taken its

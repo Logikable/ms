@@ -29,6 +29,7 @@
 #include "src/frontend/widgets/inventory_list.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/marquee.h"
+#include "src/item/equip_instance.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 
@@ -103,6 +104,9 @@ class InventoryPanel {
   // What OpenMenu opens, by tab.
   void OpenStackMenu();
   void OpenEquipMenu();
+  // The Equip tab's menu on a spare Arcane Symbol, which offers a different
+  // set from every other item.
+  void OpenSymbolMenu(const EquipInstance& symbol);
   // Wraps the active tab's body in the titled window with the tab bar on top.
   ftxui::Element RenderContent(ftxui::Component menu);
   // One row of the Equip list, with the cursor and whatever the row has to say
