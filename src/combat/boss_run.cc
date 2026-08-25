@@ -409,7 +409,9 @@ void BossRun::PayReward(GameState& state, double item_drop_pct) {
   }
   reward_.exp = chosen->exp();
   if (reward_.exp > 0) {
+    int before = state.character.proto().level();
     state.character.AddExp(reward_.exp);
+    GrantLevelRewards(state, before, state.character.proto().level());
   }
   for (const MobDrop& drop : chosen->drops()) {
     // One roll for the fight, where a map rolls one per kill. Drop rate lifts

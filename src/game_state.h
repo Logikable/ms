@@ -172,6 +172,16 @@ struct GameState {
   std::vector<CharacterInstance> party;
 };
 
+// Hands over whatever climbing from `from_level` to `to_level` grants out of
+// the catalogs. Reaching 200 is handed a Vanishing Journey Arcane Symbol,
+// which is the only one so far and the whole reason this exists: the character
+// cannot give themselves an item they have never heard of.
+//
+// A span rather than a level, because one idle stretch can carry a character
+// past several -- the same shape UpgradesUnlockedBetween has, and for the same
+// reason.
+void GrantLevelRewards(GameState& state, int from_level, int to_level);
+
 }  // namespace ms
 
 #endif  // MS_SRC_GAME_STATE_H_

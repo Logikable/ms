@@ -140,7 +140,9 @@ RewardTally AwardCombatRewards(GameState& state, const CombatParams& params,
     // bonus is still worth 1 -- the same rounding every other reward takes.
     tally.exp = static_cast<int64_t>(exp_gained * (1.0 + params.exp_pct)) *
                 state.exp_multiplier;
+    int before = character.proto().level();
     character.AddExp(tally.exp);
+    GrantLevelRewards(state, before, character.proto().level());
   }
   return tally;
 }

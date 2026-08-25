@@ -616,5 +616,44 @@ TEST(GameStateTest, PlayModeEarnsPlainExp) {
   EXPECT_EQ(MakePlayModeState().exp_multiplier, 1);
 }
 
+// A catalog holding the symbol level 200 hands over, under the key
+// GrantLevelRewards looks it up by.
+std::map<std::string, EquipPrototype> SymbolCatalog() {
+  EquipPrototype symbol;
+  symbol.set_name("Arcane Symbol: Vanishing Journey");
+  symbol.set_equip_slot(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  symbol.mutable_arcane_symbol()->set_meso_cost_base(8);
+  return {{"symbol_vanishing_journey", symbol}};
+}
+
+TEST(GrantLevelRewardsTest, ReachingTwoHundredHandsOverTheFirstSymbol) {
+  GameState state(SymbolCatalog(), {}, {}, {}, {});
+  GrantLevelRewards(state, 199, 200);
+  ASSERT_EQ(state.character.inventory().size(), 1);
+  EXPECT_EQ(state.character.inventory()[0].prototype().name(),
+            "Arcane Symbol: Vanishing Journey");
+}
+
+// One idle stretch can carry a character clean past the level, and the symbol
+// still has to land.
+TEST(GrantLevelRewardsTest, ASpanThatSkipsTheLevelStillGrantsIt) {
+  GameState state(SymbolCatalog(), {}, {}, {}, {});
+  GrantLevelRewards(state, 195, 210);
+  EXPECT_EQ(state.character.inventory().size(), 1);
+}
+
+TEST(GrantLevelRewardsTest, NoSecondCopyForClimbingPastItAgain) {
+  GameState state(SymbolCatalog(), {}, {}, {}, {});
+  GrantLevelRewards(state, 200, 205);
+  GrantLevelRewards(state, 205, 210);
+  EXPECT_EQ(state.character.inventory().size(), 0);
+}
+
+TEST(GrantLevelRewardsTest, NothingBelowTwoHundred) {
+  GameState state(SymbolCatalog(), {}, {}, {}, {});
+  GrantLevelRewards(state, 1, 199);
+  EXPECT_EQ(state.character.inventory().size(), 0);
+}
+
 }  // namespace
 }  // namespace ms

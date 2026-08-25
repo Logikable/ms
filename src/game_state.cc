@@ -294,6 +294,12 @@ std::vector<std::string> BossAccessories() {
 // Passed as `unspent_stage` to spend every point the climb earns.
 constexpr int kSpendEveryStage = 0;
 
+// Arcane River opens at 200, and it opens with a symbol in hand: without one
+// the first map there would take the full penalty, which is a wall rather than
+// an introduction.
+constexpr int kArcaneRiverLevel = 200;
+constexpr char kStarterSymbol[] = "symbol_vanishing_journey";
+
 // Climbs to `level` the way a player gets there, taking each advancement in
 // `path` as it is offered. Thirty hours of grinding, handed over.
 //
@@ -306,7 +312,9 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
   CharacterInstance& character = state.character;
   int taken = 0;
   while (character.proto().level() < level) {
+    int before = character.proto().level();
     character.LevelUp();
+    GrantLevelRewards(state, before, character.proto().level());
     if (character.CanAdvanceJob() && taken < static_cast<int>(path.size())) {
       character.AdvanceJob(path[taken++]);
     }
@@ -517,6 +525,18 @@ GameState::GameState(std::map<std::string, EquipPrototype> equips_arg,
     SeedPlay(*this);
   }
   character.UseEquipSets(equip_sets);
+}
+
+void GrantLevelRewards(GameState& state, int from_level, int to_level) {
+  if (from_level >= kArcaneRiverLevel || to_level < kArcaneRiverLevel) {
+    return;
+  }
+  std::map<std::string, EquipPrototype>::const_iterator symbol =
+      state.equips.find(kStarterSymbol);
+  if (symbol == state.equips.end()) {
+    return;
+  }
+  state.character.PickUp(std::make_unique<EquipInstance>(symbol->second));
 }
 
 }  // namespace ms

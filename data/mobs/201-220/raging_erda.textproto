@@ -1,9 +1,13 @@
 # The first Arcane River mob, and where the ladder changes era: 3.3x the HP
-# of the Lv198 golem three levels below it. GMS's own number -- Arcane Force
-# is what pays for it there, and we do not model it yet.
+# of the Lv198 golem three levels below it. GMS's own number, and Arcane Force
+# is what pays for it -- see the map's own requirement.
 name: "Raging Erda"
 level: 201
 attack: 12938
 max_hp: 46056000
 exp: 101389
 pdr: 10
+# The area's Arcane Symbol, at the rate GMS drops one: near enough to never
+# that the dailies are what really level a symbol. A duplicate is worth one
+# EXP toward the next rung -- see arcane_force.h.
+drops { equip: "symbol_vanishing_journey" per_kill: 0.0001 }
