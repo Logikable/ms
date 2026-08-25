@@ -37,6 +37,8 @@ enum Screen : int {
   // The equip tab's counterpart to kSell. Equipment does not stack, so it
   // asks a yes/no question rather than for an amount.
   kSellEquip,
+  // Level Up on the Symbols tab: what the next rung costs, and the question.
+  kSymbolLevel,
   kMapSelect,
   // Enter on a map: go there, read what stands there, or walk away.
   kMapMenu,
@@ -112,6 +114,15 @@ enum MenuItem : int {
   // cursor lands: they are the entries on this menu there is no undoing.
   kMenuSell = 5,
   kMenuMultiSell = 6,
+};
+// Entries of the Arcane Symbol context menu, on Enter in the Symbols tab. The
+// first two share their places with the item menu's, so the two branches that
+// unequip and inspect need not ask which menu is open.
+enum SymbolMenuItem : int {
+  kSymbolMenuUnequip = 0,
+  kSymbolMenuInspect = 1,
+  kSymbolMenuLevelUp = 2,
+  kSymbolMenuClose = 3,
 };
 // Entries of the job context menu, on Enter in the Advance tab. Advance sits
 // under Inspect for the same reason Sell sits low on the item menu: it is the

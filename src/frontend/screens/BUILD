@@ -318,6 +318,32 @@ cc_test(
 )
 
 cc_library(
+    name = "symbol_level_panel",
+    srcs = ["symbol_level_panel.cc"],
+    hdrs = ["symbol_level_panel.h"],
+    deps = [
+        "//src/frontend/widgets:colors",
+        "//src/frontend/widgets:confirm_prompt",
+        "//src/frontend/widgets:panel_util",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "symbol_level_panel_test",
+    srcs = ["symbol_level_panel_test.cc"],
+    deps = [
+        ":symbol_level_panel",
+        "//src/frontend/widgets:panel_test_base",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "sell_equip_panel",
     srcs = ["sell_equip_panel.cc"],
     hdrs = ["sell_equip_panel.h"],

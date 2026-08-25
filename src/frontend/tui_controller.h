@@ -38,6 +38,7 @@
 #include "src/frontend/screens/shop_panel.h"
 #include "src/frontend/screens/skill_inspect_panel.h"
 #include "src/frontend/screens/star_force_panel.h"
+#include "src/frontend/screens/symbol_level_panel.h"
 #include "src/frontend/screens/trace_recover_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/amount_selector.h"
@@ -181,6 +182,12 @@ class TuiController {
   // The job menu, for the overlay Tui floats beside the job's row.
   const ItemMenu& job_menu() const {
     return job_menu_;
+  }
+
+  // The Level Up dialog for an Arcane Symbol. Owned rather than handed in:
+  // it carries no game state, only what Reset was told to say.
+  const SymbolLevelPanel& symbol_level_panel() const {
+    return symbol_level_panel_;
   }
 
   // The prompt on the quit dialog, for the same reason.
@@ -332,6 +339,7 @@ class TuiController {
   bool OnTraceRecoverResultEvent(ftxui::Event event);
   bool OnSellEvent(ftxui::Event event);
   bool OnSellEquipEvent(ftxui::Event event);
+  bool OnSymbolLevelEvent(ftxui::Event event);
   bool OnMultiSellEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
   bool OnMapMenuEvent(ftxui::Event event);
@@ -470,6 +478,10 @@ class TuiController {
   Skill skill_inspect_;
   Job job_advance_ = JOB_UNSPECIFIED;
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
+  SymbolLevelPanel symbol_level_panel_;
+  // The worn symbol the Level Up dialog is asking about. Held so the answer
+  // acts on what was asked, whatever the cursor did in the meantime.
+  EquipSlot symbol_level_slot_ = EQUIP_SLOT_UNSPECIFIED;
   ConfirmPrompt job_advance_prompt_;
   ConfirmPrompt quit_prompt_;
   // The boss confirmation, and the fight it is asking about. The title is

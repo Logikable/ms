@@ -1232,6 +1232,30 @@ void CharacterInstance::RecomputeEquipStats() {
   equip_stats_ = SumEquipStats(absl::MakeSpan(list));
 }
 
+bool CharacterInstance::LevelUpSymbol(EquipSlot slot) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end() || !IsArcaneSymbol(it->second.prototype())) {
+    return false;
+  }
+  ms::Equip state = it->second.equip_state();
+  if (!SymbolCanLevelUp(state)) {
+    return false;
+  }
+  int64_t cost = SymbolLevelUpCost(it->second.prototype(), SymbolLevel(state));
+  if (character_.meso() < cost) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - cost);
+  ms::LevelUpSymbol(state);
+  // Rebuilt rather than written through: an item's state is its own, and a
+  // symbol's ladder is the one thing outside it that moves.
+  it->second = EquipInstance(it->second.prototype(), state);
+  // The level is what a symbol's force and stats are read off, so both have
+  // just moved.
+  RecomputeEquipStats();
+  return true;
+}
+
 bool CharacterInstance::PickUp(std::unique_ptr<EquipTabItem> item) {
   if (inventory_.full()) {
     return false;

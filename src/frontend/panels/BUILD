@@ -46,6 +46,7 @@ cc_library(
     hdrs = ["equipped_panel.h"],
     deps = [
         "//src/character",
+        "//src/character:arcane_force",
         "//src/character:progression",
         "//src/frontend:types",
         "//src/frontend/screens:scroll_panel",

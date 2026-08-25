@@ -939,5 +939,50 @@ TEST_F(SymbolTabTest, TheSymbolMenuLeavesTheUpgradesOff) {
   EXPECT_EQ(rendered.find("Star Force"), std::string::npos);
 }
 
+// Level Up is greyed until the duplicates are in, which is how the player
+// learns that combining comes first. Reachable once they are.
+TEST_F(SymbolTabTest, LevelUpWaitsForTheDuplicates) {
+  CharacterInstance waiting = Traveller();
+  WearSymbol(waiting, "Arcane Symbol: Vanishing Journey",
+             EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/11);
+  EquippedPanel panel(waiting, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::find(reachable.begin(), reachable.end(), kSymbolMenuLevelUp),
+            reachable.end());
+
+  CharacterInstance ready = Traveller();
+  WearSymbol(ready, "Arcane Symbol: Vanishing Journey",
+             EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/12);
+  EquippedPanel open(ready, account_, panel_focus_);
+  ftxui::Component ready_component = open.MakeComponent([]() {});
+  ready_component->OnEvent(ftxui::Event::ArrowUp);
+  ready_component->OnEvent(ftxui::Event::ArrowRight);
+  open.OpenMenu();
+  reachable = ReachableMenuEntries(open.menu());
+  EXPECT_NE(std::find(reachable.begin(), reachable.end(), kSymbolMenuLevelUp),
+            reachable.end());
+}
+
+// Pressing it leads to the dialog that asks for the meso.
+TEST_F(SymbolTabTest, LevelUpOpensTheDialog) {
+  CharacterInstance c = Traveller();
+  WearSymbol(c, "Arcane Symbol: Vanishing Journey",
+             EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY, /*level=*/1, /*exp=*/12);
+  EquippedPanel panel(c, account_, panel_focus_);
+  ftxui::Component component = panel.MakeComponent([]() {});
+  component->OnEvent(ftxui::Event::ArrowUp);
+  component->OnEvent(ftxui::Event::ArrowRight);
+  panel.OpenMenu();
+  panel.menu().Down();
+  panel.menu().Down();
+  ASSERT_EQ(panel.menu().selected(), kSymbolMenuLevelUp);
+  ScrollPanel scrolls(c, {});
+  EXPECT_EQ(panel.OnMenuEvent(ftxui::Event::Return, scrolls), kSymbolLevel);
+}
+
 }  // namespace
 }  // namespace ms

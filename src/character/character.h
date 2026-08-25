@@ -377,6 +377,11 @@ class CharacterInstance {
   const EquipStats& equip_stats() const {
     return equip_stats_;
   }
+  // Raises the Arcane Symbol worn in `slot` one level, charging the meso the
+  // rung costs and carrying any excess EXP into the next one. Returns false
+  // and takes nothing unless the slot holds a symbol that has taken its
+  // duplicates and the purse covers the price.
+  bool LevelUpSymbol(EquipSlot slot);
   // Arcane Force the worn Arcane Symbols come to. What every Arcane River map
   // measures the character against -- see ArcaneFactorsFor. Zero for anyone
   // wearing none, which is everyone below level 200.

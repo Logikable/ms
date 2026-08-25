@@ -14,6 +14,7 @@
 #ifndef MS_SRC_FRONTEND_PANELS_EQUIPPED_PANEL_H_
 #define MS_SRC_FRONTEND_PANELS_EQUIPPED_PANEL_H_
 
+#include <chrono>
 #include <functional>
 #include <string>
 #include <vector>
@@ -25,6 +26,7 @@
 #include "src/character/character.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/equipped_list.h"
 #include "src/frontend/widgets/item_menu.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/protos/equip.pb.h"
@@ -95,9 +97,12 @@ class EquippedPanel {
   void MoveCursor(int delta);
   // Where the cursor stands in that ring: 0 on the bar, the row plus one below.
   int CursorStop() const;
-  // Rows the active tab has right now. Asked of the character rather than of
+  // The active tab's rows as they stand. Asked of the character rather than of
   // the last render, so a keypress that arrives before the first one still
-  // finds the list that is really there.
+  // finds the list that is really there. `slide` is what the selected row's
+  // name is sliding by; zero holds every name at its head.
+  std::vector<EquippedRow> Rows(
+      std::chrono::steady_clock::duration slide) const;
   int ListCount() const;
   // Whether the bar is a stop in the ring, which it is only once there is a
   // second tab to reach. With one tab the list wraps on itself, as it did
@@ -120,7 +125,6 @@ class EquippedPanel {
   SelectionClock name_clock_;
   bool highlighted_ = false;
   std::vector<std::string> entries_;
-  std::vector<EquipSlot> slots_;
   // Parallel to entries_: the byte length of each row's name cell, so a row
   // can be drawn with its name coloured apart from the columns after it.
   std::vector<int> name_bytes_;

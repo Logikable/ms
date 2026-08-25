@@ -2724,6 +2724,59 @@ TEST_F(SymbolTest, TakingOneOffTakesItsForceWithIt) {
 
 // What a symbol grants follows the wearer, so advancing moves the whole of it
 // onto the new job's stat.
+TEST_F(SymbolTest, LevellingChargesTheMesoAndMovesTheForce) {
+  CharacterInstance c_ = MakeHero(rng_);
+  c_.AddMeso(10'000'000);
+  EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+  Equip state;
+  state.set_symbol_level(1);
+  state.set_symbol_exp(20);  // 12 buys the rung, 8 carries over
+  c_.PickUp(std::make_unique<EquipInstance>(proto, state));
+  ASSERT_TRUE(c_.Equip(0));
+  ASSERT_EQ(c_.arcane_force(), 30);
+
+  ASSERT_TRUE(c_.LevelUpSymbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
+  EXPECT_EQ(c_.proto().meso(), 10'000'000 - 970'000);
+  EXPECT_EQ(c_.arcane_force(), 40);
+  EXPECT_EQ(c_.equip_stats().str(), 400);
+  const Equip& after =
+      c_.equipped().at(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY).equip_state();
+  EXPECT_EQ(after.symbol_level(), 2);
+  EXPECT_EQ(after.symbol_exp(), 8);
+}
+
+TEST_F(SymbolTest, LevellingRefusesWhatItCannotPayFor) {
+  CharacterInstance c_ = MakeHero(rng_);
+  EquipPrototype proto = Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY);
+
+  // The duplicates are in, but the purse is empty.
+  Equip ready;
+  ready.set_symbol_level(1);
+  ready.set_symbol_exp(20);
+  c_.PickUp(std::make_unique<EquipInstance>(proto, ready));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_FALSE(c_.LevelUpSymbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
+
+  // The purse is full, but the duplicates are not.
+  c_.AddMeso(10'000'000);
+  ASSERT_TRUE(c_.Unequip(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
+  Equip waiting;
+  waiting.set_symbol_level(1);
+  waiting.set_symbol_exp(11);
+  c_.PickUp(std::make_unique<EquipInstance>(proto, waiting));
+  ASSERT_TRUE(c_.Equip(1));
+  EXPECT_FALSE(c_.LevelUpSymbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY));
+  EXPECT_EQ(c_.proto().meso(), 10'000'000) << "nothing was taken";
+
+  // And a slot holding gear rather than a symbol is not a rung at all.
+  EquipPrototype axe;
+  axe.set_name("Axe");
+  axe.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
+  c_.PickUp(std::make_unique<EquipInstance>(axe));
+  ASSERT_TRUE(c_.Equip(c_.inventory().size() - 1));
+  EXPECT_FALSE(c_.LevelUpSymbol(EQUIP_SLOT_PRIMARY_WEAPON));
+}
+
 TEST_F(SymbolTest, TheGrantFollowsTheJob) {
   CharacterInstance c_ = MakeHero(rng_, JOB_CLERIC);
   Wear(c_, Symbol(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY), 1);

@@ -8,6 +8,7 @@
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
+#include "src/character/arcane_force.h"
 #include "src/character/progression.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/widgets/equipped_list.h"
@@ -31,7 +32,7 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
       account_(account),
       panel_focus_(panel_focus),
       menu_({"Unequip", "Inspect", "Scroll", "Star Force", "Close"}),
-      symbol_menu_({"Unequip", "Inspect", "Close"}) {
+      symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
 }
 
 ItemMenu& EquippedPanel::menu() {
@@ -64,12 +65,15 @@ void EquippedPanel::StepTab(int direction) {
   selected_ = 0;
 }
 
+std::vector<EquippedRow> EquippedPanel::Rows(
+    std::chrono::steady_clock::duration slide) const {
+  return active_tab_ == kSymbolTab ? SymbolRows(character_, selected_, slide)
+                                   : EquippedRows(character_, selected_, slide);
+}
+
 int EquippedPanel::ListCount() const {
-  std::chrono::steady_clock::duration none =
-      std::chrono::steady_clock::duration::zero();
-  return static_cast<int>(active_tab_ == kSymbolTab
-                              ? SymbolRows(character_, -1, none).size()
-                              : EquippedRows(character_, -1, none).size());
+  return static_cast<int>(
+      Rows(std::chrono::steady_clock::duration::zero()).size());
 }
 
 bool EquippedPanel::HasTabBar() const {
@@ -100,6 +104,13 @@ void EquippedPanel::MoveCursor(int delta) {
 void EquippedPanel::OpenMenu() {
   if (active_tab_ == kSymbolTab) {
     symbol_menu_.Reset();
+    EquipSlot slot = selected_slot();
+    // Greyed until the duplicates are in: the entry standing there dim is how
+    // the player learns that combining comes first.
+    if (slot == EQUIP_SLOT_UNSPECIFIED ||
+        !SymbolCanLevelUp(character_.equipped().at(slot).equip_state())) {
+      symbol_menu_.Disable(kSymbolMenuLevelUp);
+    }
     return;
   }
   // Opening the menu on the worn weapon is the trail's first step walked: the
@@ -176,7 +187,7 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
     return kInspect;
   }
   if (active_tab_ == kSymbolTab) {
-    return kMain;
+    return open.selected() == kSymbolMenuLevelUp ? kSymbolLevel : kMain;
   }
   if (open.selected() == kMenuScroll) {
     // Followed whether or not there is a scroll to show: they pressed the
@@ -195,10 +206,12 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
 }
 
 EquipSlot EquippedPanel::selected_slot() const {
-  if (selected_ >= static_cast<int>(slots_.size())) {
+  std::vector<EquippedRow> rows =
+      Rows(std::chrono::steady_clock::duration::zero());
+  if (selected_ < 0 || selected_ >= static_cast<int>(rows.size())) {
     return EQUIP_SLOT_UNSPECIFIED;
   }
-  return slots_[selected_];
+  return rows[selected_].slot;
 }
 
 ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
@@ -245,19 +258,13 @@ void EquippedPanel::RebuildRows() {
   // here rather than hooked at the keypress.
   name_clock_.Follow(selected_);
   entries_.clear();
-  slots_.clear();
   inactive_.clear();
   name_bytes_.clear();
   led_.clear();
   // Asked once for the whole list rather than per row: it is a fact about the
   // character, and only the worn weapon's row acts on it.
   bool lead = LeadToWeapon(character_, account_);
-  std::vector<EquippedRow> rows =
-      active_tab_ == kSymbolTab
-          ? SymbolRows(character_, selected_, name_clock_.Elapsed())
-          : EquippedRows(character_, selected_, name_clock_.Elapsed());
-  for (const EquippedRow& row : rows) {
-    slots_.push_back(row.slot);
+  for (const EquippedRow& row : Rows(name_clock_.Elapsed())) {
     inactive_.push_back(row.inactive);
     name_bytes_.push_back(row.name_bytes);
     led_.push_back(lead && row.slot == EQUIP_SLOT_PRIMARY_WEAPON);

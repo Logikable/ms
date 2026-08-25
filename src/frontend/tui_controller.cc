@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "ftxui/component/event.hpp"
+#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/character/job_advancement.h"
@@ -305,6 +306,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSellEvent(event);
     case kSellEquip:
       return OnSellEquipEvent(event);
+    case kSymbolLevel:
+      return OnSymbolLevelEvent(event);
     case kMultiSell:
       return OnMultiSellEvent(event);
     case kMapSelect:
@@ -410,6 +413,15 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
                         sell_equip_index_) == nullptr;
     int price = is_trace ? 0 : item.prototype().sell_price();
     sell_equip_panel_.Reset(item.name(), price);
+  }
+  if (next == kSymbolLevel) {
+    symbol_level_slot_ = equip_panel_.selected_slot();
+    const EquipInstance& symbol =
+        state_.character.equipped().at(symbol_level_slot_);
+    int level = SymbolLevel(symbol.equip_state());
+    symbol_level_panel_.Reset(symbol.prototype().name(), level,
+                              SymbolLevelUpCost(symbol.prototype(), level),
+                              state_.character.meso());
   }
   if (next == kMultiSell) {
     int tab = inventory_panel_.active_tab();
@@ -1598,6 +1610,18 @@ bool TuiController::OnSellEquipEvent(ftxui::Event event) {
   }
   if (choice == ConfirmChoice::kConfirmed) {
     state_.character.SellEquip(sell_equip_index_);
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnSymbolLevelEvent(ftxui::Event event) {
+  ConfirmChoice choice = symbol_level_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    state_.character.LevelUpSymbol(symbol_level_slot_);
   }
   screen_ = kMain;
   return true;
