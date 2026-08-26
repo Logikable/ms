@@ -219,10 +219,18 @@ TEST_F(LevelUpTest, EachBandPaysExactlyWhatItsBookCosts) {
   EXPECT_EQ(c.sp(4), 0) << "level 100 is the last of the 3rd job's band";
 
   for (int i = 0; i < 40; ++i) {
-    c.LevelUp();  // levels 101..140, the cap
+    c.LevelUp();  // levels 101..140
   }
   EXPECT_EQ(c.proto().level(), 140);
   EXPECT_EQ(c.sp(4), 200) << "40 levels at five, and the book costs the lot";
+
+  for (int i = 0; i < 60; ++i) {
+    c.LevelUp();  // levels 141..200
+  }
+  EXPECT_EQ(c.proto().level(), 200);
+  EXPECT_EQ(c.sp(4), 200)
+      << "the book is bought out; the levels above pay none";
+  EXPECT_EQ(c.proto().ap(), 5 * 190) << "AP keeps coming either way";
 }
 
 TEST_F(LevelUpTest, TheFourthJobPaysFiveALevel) {

@@ -10,9 +10,9 @@ constexpr int kMaxLevel = 300;
 // Where this release stops handing out EXP: the levels above are in the table
 // and out of reach. It sits at the top of the map ladder, because a character
 // who cannot be paid past the last map has nothing left to do -- so move it
-// with the content, as it moved 30 -> 60 with the 2nd jobs and 100 -> 140 with
-// the Frozen tier the tokens buy.
-constexpr int kTrialLevelCap = 140;
+// with the content, as it moved 30 -> 60 with the 2nd jobs and 140 -> 200 with
+// the maps through Arcane River's first stretch.
+constexpr int kTrialLevelCap = 200;
 
 // Returns EXP required to advance from `level` to `level + 1`.
 // Returns 0 for level < 1 or level >= kMaxLevel.

@@ -31,6 +31,10 @@ constexpr int kApJobAdvancementBonus = 5;
 constexpr int kSpPerLevel = 3;
 // What levels 101-140 pay instead, so the 4th job's book comes to 200.
 constexpr int kFourthJobSpPerLevel = 5;
+// The last level that pays SP at all. The 4th job's band runs to the 5th
+// advancement, but its book is bought out 60 levels short of that, so the
+// levels above pay in HP, MP and AP alone until there is a book for them.
+constexpr int kLastSpLevel = 140;
 
 // What a job's primary stat is worth on advancing into it: it climbs to here
 // from kBaseStat, and the AP that pays for the difference comes out of the
@@ -118,10 +122,11 @@ bool AdvancementGrantsAp(int stage) {
 // SP a level-up pays. Every book costs exactly what its own levels hand over:
 // 60 for 11-30, 90 for 31-60, 120 for 61-100, and 200 for 101-140 -- the 4th
 // job pays five a level rather than three, which is the whole of what makes
-// its book bigger.
+// its book bigger. Past kLastSpLevel there is no book left to buy, so nothing
+// is paid.
 int SpForLevel(int level) {
   int stage = SpStageForLevel(level);
-  if (stage < 1) {
+  if (stage < 1 || level > kLastSpLevel) {
     return 0;
   }
   return stage < 4 ? kSpPerLevel : kFourthJobSpPerLevel;

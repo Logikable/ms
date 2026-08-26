@@ -45,7 +45,7 @@ Character MakeBaseBeginnerProto() {
 
 // How many Level-Up items the workbench opens with. Enough to carry the
 // character it starts as past every gate in the unlock table, and to keep
-// earning AP and SP past kTrialLevelCap, since LevelUp is not bounded by it.
+// earning AP past kTrialLevelCap, since LevelUp is not bounded by it.
 constexpr int kTestLevelUpItems = 199;
 
 // Where the workbench's character stands when --job says nothing: the top of
