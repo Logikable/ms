@@ -1271,6 +1271,19 @@ TEST_F(SkillInspectPanelTest, RulesTheRequirementOffFromTheDescription) {
 TEST_F(SkillInspectPanelTest, NoRequirementRowWhenThereIsNone) {
   EXPECT_EQ(RenderAt(MakeIronBody(), 1).find("Required Skill"),
             std::string::npos);
+  EXPECT_EQ(RenderAt(MakeIronBody(), 1).find("Required Level"),
+            std::string::npos);
+}
+
+// A Hyper Skill's gate is a level rather than a skill below it, and the title
+// says where the point that bought it came from.
+TEST_F(SkillInspectPanelTest, AHyperSkillNamesItsLevelAndItself) {
+  Skill skill = MakeIronBody();
+  skill.set_hyper(true);
+  skill.set_required_level(165);
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_NE(rendered.find("Required Level         165"), std::string::npos);
+  EXPECT_NE(rendered.find("Hyper Passive"), std::string::npos);
 }
 
 // A weapon in hand and a skill already learned are the same kind of claim, so

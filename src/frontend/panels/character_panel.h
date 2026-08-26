@@ -201,19 +201,34 @@ class CharacterPanel {
   ftxui::Element RenderUsername(bool row_selected) const;
   ftxui::Element RenderTabBar(bool row_selected) const;
   ftxui::Element RenderStatsTab(bool content_focused) const;
-  // Renders the Skills tab: the advancement tab bar (I/II/... for unlocked
-  // stages) with SP right-aligned, then the selected stage's skill rows.
-  // bar_focused draws the active advancement tab white; rows_focused highlights
-  // the selected skill's [+]. A stage-0 Beginner has neither.
+  // Renders the Skills tab: the page bar (I/II/... for unlocked stages, then H
+  // for the Hyper Skills) with that page's SP right-aligned, then its skill
+  // rows. bar_focused draws the active page white; rows_focused highlights the
+  // selected skill's [+]. A stage-0 Beginner has neither.
   ftxui::Element RenderSkillsTab(bool bar_focused, bool rows_focused) const;
   // Renders the Advance tab: the jobs on offer, one per row, the selected one
   // marked with a caret while the list holds focus.
   ftxui::Element RenderAdvanceTab(bool content_focused) const;
-  // The advancement tab bar: one chip per unlocked stage (1..stages), the
-  // selected one highlighted, with that stage's "N SP" right-aligned.
-  ftxui::Element RenderAdvTabBar(int stages, bool bar_focused) const;
-  // The skills of the given job stage, in catalog order. Empty if none.
-  std::vector<const Skill*> SkillsForStage(int stage) const;
+  // The page bar: one chip per page, the selected one highlighted, with the
+  // points that page is bought with right-aligned.
+  ftxui::Element RenderAdvTabBar(bool bar_focused) const;
+  // How many pages the Skills tab offers: one per advancement taken, and the
+  // Hyper page after them once the character has reached it.
+  int SkillPages() const;
+  // Whether the Hyper page is one of them, which it is once a Hyper Skill of
+  // this character's own book has come within reach of their level. Before
+  // that the page could only ever be a list of things they cannot have.
+  bool HasHyperPage() const;
+  // Whether page `page` (0-based, as skill_tab_ is) is the Hyper page.
+  bool IsHyperPage(int page) const;
+  // The skills of page `page`, in the order it lists them. Empty if none.
+  std::vector<const Skill*> SkillsForPage(int page) const;
+  // The points `skill` is bought with: the Hyper pool for a Hyper Skill, and
+  // its job stage's for every other.
+  int SpFor(const Skill& skill) const;
+  // Whether the character may not learn `skill` yet -- a skill below it still
+  // to be taught, or a level still to be reached.
+  bool SkillLocked(const Skill& skill) const;
   // How the level column is drawn for one page of skills.
   struct LevelColumn {
     // The levels this character's book lends every skill they have opened.
@@ -268,8 +283,8 @@ class CharacterPanel {
   int active_tab_ = 0;     // index into VisibleTabs(): the selected tab
   Zone zone_ = kZoneTabs;  // which focus zone holds the cursor
   int stat_sel_ = 0;       // selected Stats-content row (0-3 = STR/DEX/INT/LUK)
-  int skill_tab_ = 0;      // selected advancement tab (0-based stage index)
-  int skill_sel_ = 0;      // selected skill row within the current stage
+  int skill_tab_ = 0;      // selected page: a 0-based stage index, then Hyper
+  int skill_sel_ = 0;      // selected skill row within the current page
   SkillCol skill_col_ = kColName;  // selected column of that row
   // When the selected skill row last changed, for the name scroll.
   std::chrono::steady_clock::time_point skill_selected_at_ =

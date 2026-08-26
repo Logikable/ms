@@ -91,6 +91,42 @@ std::map<std::string, Skill> TwoStageCatalog() {
   return catalog;
 }
 
+// A Dark Knight at `level` with a point of Hyper SP and nothing else.
+CharacterInstance MakeDarkKnight(std::mt19937& rng, int level) {
+  Character proto;
+  proto.set_level(level);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(4);
+  proto.set_hyper_sp(1);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// A Dark Knight's 4th book and one Hyper Skill over it, opening at 150.
+std::map<std::string, Skill> HyperCatalog() {
+  std::map<std::string, Skill> catalog;
+  Skill impale;
+  impale.set_name("Dark Impale");
+  impale.set_kind(SKILL_KIND_ATTACK);
+  impale.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT);
+  impale.set_max_level(30);
+  catalog["dark_impale"] = impale;
+
+  Skill reinforce;
+  reinforce.set_name("Gungnir's Reinforce");
+  reinforce.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT);
+  reinforce.set_max_level(1);
+  reinforce.set_hyper(true);
+  reinforce.set_required_level(150);
+  catalog["gungnirs_reinforce"] = reinforce;
+
+  // A second one further up the ladder, for the rows a level still holds shut.
+  Skill guardbreak = reinforce;
+  guardbreak.set_name("Gungnir's Guardbreak");
+  guardbreak.set_required_level(165);
+  catalog["gungnirs_guardbreak"] = guardbreak;
+  return catalog;
+}
+
 // Two stage-1 skills, for a list long enough to walk down.
 std::map<std::string, Skill> TwoSkillCatalog() {
   std::map<std::string, Skill> catalog = SkillCatalog();
@@ -710,6 +746,75 @@ TEST_F(CharacterPanelTest, TheSkillsTabOpensOnTheFirstBook) {
   std::string rendered = RenderComponent(comp);
   EXPECT_NE(rendered.find("Slash Blast"), std::string::npos);
   EXPECT_EQ(rendered.find("Spear Sweep"), std::string::npos);
+}
+
+// --- the Hyper page ---
+
+// The H chip sits after the numerals, and the page behind it holds the Hyper
+// Skills rather than the 4th book they upgrade.
+TEST_F(CharacterPanelTest, TheHyperPageComesAfterTheAdvancements) {
+  CharacterInstance c = MakeDarkKnight(rng_, /*level=*/150);
+  CharacterPanel panel(c, account_, panel_focus_, HyperCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  EXPECT_NE(RenderComponent(comp).find(" H "), std::string::npos);
+  for (int i = 0; i < 3; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // page I -> IV
+  }
+  std::string book = RenderComponent(comp);
+  EXPECT_NE(book.find("Dark Impale"), std::string::npos);
+  EXPECT_EQ(book.find("Gungnir's Reinforce"), std::string::npos)
+      << "a hyper is not listed among the book it upgrades";
+
+  comp->OnEvent(ftxui::Event::ArrowRight);  // IV -> H
+  std::string hyper = RenderComponent(comp);
+  EXPECT_NE(hyper.find("Gungnir's Reinforce"), std::string::npos);
+  EXPECT_EQ(hyper.find("Dark Impale"), std::string::npos);
+  EXPECT_NE(hyper.find("1 SP"), std::string::npos) << "the Hyper pool";
+}
+
+// A hyper above the character's level is on the page but shut: the [+] does
+// nothing, and the point stays in the pool.
+TEST_F(CharacterPanelTest, AHyperAboveItsLevelCannotBeBought) {
+  CharacterInstance c = MakeDarkKnight(rng_, /*level=*/150);
+  CharacterPanel panel(c, account_, panel_focus_, HyperCatalog());
+  bool learned = false;
+  ftxui::Component comp = panel.MakeComponent(
+      [](StatField) {}, [&](const Skill&) { learned = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  for (int i = 0; i < 4; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // page I -> H
+  }
+  comp->OnEvent(ftxui::Event::ArrowDown);   // page bar -> skill rows
+  comp->OnEvent(ftxui::Event::ArrowRight);  // name -> [+]
+  // Guardbreak is listed second: skill_order is unset on both, so they fall in
+  // catalog order and "gungnirs_guardbreak" sorts first.
+  ASSERT_NE(RenderComponent(comp).find("Gungnir's Guardbreak"),
+            std::string::npos);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(learned) << "level 165 is still ahead of them";
+  // The one they have reached still buys.
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(learned);
+}
+
+// Nothing on it is within reach yet, so there is no chip: a page that could
+// only ever list what the player cannot have says less than no page.
+TEST_F(CharacterPanelTest, TheHyperPageWaitsForTheFirstSkillOnIt) {
+  CharacterInstance c = MakeDarkKnight(rng_, /*level=*/149);
+  CharacterPanel panel(c, account_, panel_focus_, HyperCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowDown);   // outer tabs -> page bar
+  EXPECT_EQ(RenderComponent(comp).find(" H "), std::string::npos);
+  for (int i = 0; i < 6; ++i) {
+    comp->OnEvent(ftxui::Event::ArrowRight);  // and Right cannot reach one
+  }
+  EXPECT_EQ(RenderComponent(comp).find("Gungnir's Reinforce"),
+            std::string::npos);
 }
 
 // And it stays where the player left it. Down out of the tab bar used to snap

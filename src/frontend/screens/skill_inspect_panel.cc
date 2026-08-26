@@ -310,6 +310,12 @@ std::vector<ftxui::Element> RequirementRows(const Skill& skill) {
            "Required Weapon", RequiredWeapons(skill.required_equip_type()))) {
     rows.push_back(std::move(row));
   }
+  // The level a Hyper Skill opens at, which is the gate it carries in place of
+  // a skill below it.
+  if (skill.required_level() > 0) {
+    rows.push_back(
+        EffectRow("Required Level", std::to_string(skill.required_level())));
+  }
   if (!skill.has_required_skill()) {
     return rows;
   }
@@ -1262,9 +1268,11 @@ ftxui::Element SkillInspectPanel::Render() const {
     }));
   }
 
-  std::string title = " Passive ";
-  if (IsActive(*skill_)) {
-    title = " Active ";
+  // What the skill is, and -- for the one kind bought from a pool of its own --
+  // where it came from, since nothing else on the card would say.
+  std::string title = IsActive(*skill_) ? " Active " : " Passive ";
+  if (skill_->hyper()) {
+    title = " Hyper" + title;
   }
   return ThemedWindow(title, ftxui::vbox(std::move(lines)));
 }

@@ -394,13 +394,15 @@ std::string FormatWeaponList(const std::vector<EquipType>& types) {
 }
 
 std::vector<const Skill*> SkillsForAdvancement(
-    const std::map<std::string, Skill>& catalog, JobAdvancement advancement) {
+    const std::map<std::string, Skill>& catalog, JobAdvancement advancement,
+    bool hyper) {
   std::vector<const Skill*> result;
   if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
     return result;
   }
   for (const std::pair<const std::string, Skill>& entry : catalog) {
-    if (entry.second.job_advancement() == advancement) {
+    if (entry.second.job_advancement() == advancement &&
+        entry.second.hyper() == hyper) {
       result.push_back(&entry.second);
     }
   }

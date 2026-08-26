@@ -232,7 +232,7 @@ int CharacterPanel::RingStops() const {
     // skills under it. The name and the bar, and nothing below them.
     return 2;
   }
-  return 3 + static_cast<int>(SkillsForStage(skill_tab_ + 1).size());
+  return 3 + static_cast<int>(SkillsForPage(skill_tab_).size());
 }
 
 int CharacterPanel::CursorStop() const {
@@ -424,20 +424,22 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   return ftxui::vbox(std::move(rows));
 }
 
-ftxui::Element CharacterPanel::RenderAdvTabBar(int stages,
-                                               bool bar_focused) const {
-  // One chip per unlocked stage, in the shared tab style. The selected stage's
-  // SP is right-aligned on the same row, reading like the AP counter.
+ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
+  // One chip per page, in the shared tab style: the stages by their numeral,
+  // and the Hyper page by an H, which is what GMS calls it. The selected
+  // page's points are right-aligned on the same row, reading like the AP
+  // counter.
   std::vector<TabSpec> specs;
-  for (int stage = 1; stage <= stages; ++stage) {
-    specs.push_back({kStageNumerals[stage]});
+  for (int page = 0; page < SkillPages(); ++page) {
+    specs.push_back({IsHyperPage(page) ? "H" : kStageNumerals[page + 1]});
   }
   // The SP counter shares the row, so the bar gets what is left of it.
   std::vector<ftxui::Element> row;
   row.push_back(TabBar(specs, skill_tab_, bar_focused, kContentWidth - kSpCol));
   row.push_back(ftxui::filler());
-  row.push_back(
-      ftxui::text(std::to_string(character_.sp(skill_tab_ + 1)) + " SP "));
+  int points = IsHyperPage(skill_tab_) ? character_.hyper_sp()
+                                       : character_.sp(skill_tab_ + 1);
+  row.push_back(ftxui::text(std::to_string(points) + " SP "));
   return ftxui::hbox(std::move(row));
 }
 
@@ -455,12 +457,50 @@ CharacterPanel::LevelColumn CharacterPanel::MeasureLevelColumn(
   return column;
 }
 
-std::vector<const Skill*> CharacterPanel::SkillsForStage(int stage) const {
-  // A stage's page shows exactly the skills of the advancement this character's
-  // job is at there -- so a Swordman never sees an Archer's skills, and vice
-  // versa. An unreached or undefined advancement has no skills.
+bool CharacterPanel::HasHyperPage() const {
+  // The lowest level any of this character's Hyper Skills opens at. Asked of
+  // the catalog rather than written as a number, so the page arrives the level
+  // the first skill on it does however the data moves.
+  for (const Skill* skill : SkillsForAdvancement(
+           skills_,
+           AdvancementForJobStage(character_.proto().job(),
+                                  character_.proto().job_stage()),
+           /*hyper=*/true)) {
+    if (character_.proto().level() >= skill->required_level()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+int CharacterPanel::SkillPages() const {
+  return character_.proto().job_stage() + (HasHyperPage() ? 1 : 0);
+}
+
+bool CharacterPanel::IsHyperPage(int page) const {
+  return HasHyperPage() && page == character_.proto().job_stage();
+}
+
+std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
+  // A page shows exactly the skills of the advancement this character's job is
+  // at -- so a Swordman never sees an Archer's skills, and vice versa. An
+  // unreached or undefined advancement has none. The Hyper page hangs off the
+  // advancement the character is at now, which is the book its skills upgrade.
+  int stage = IsHyperPage(page) ? character_.proto().job_stage() : page + 1;
   return SkillsForAdvancement(
-      skills_, AdvancementForJobStage(character_.proto().job(), stage));
+      skills_, AdvancementForJobStage(character_.proto().job(), stage),
+      IsHyperPage(page));
+}
+
+int CharacterPanel::SpFor(const Skill& skill) const {
+  return skill.hyper()
+             ? character_.hyper_sp()
+             : character_.sp(StageForAdvancement(skill.job_advancement()));
+}
+
+bool CharacterPanel::SkillLocked(const Skill& skill) const {
+  return !character_.MeetsSkillRequirement(skill) ||
+         character_.proto().level() < skill.required_level();
 }
 
 ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
@@ -470,12 +510,12 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   int learned = character_.skill_level(skill);
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = learned >= skill.max_level();
-  bool has_sp = character_.sp(StageForAdvancement(skill.job_advancement())) > 0;
-  // A skill still waiting on another one is not a skill this character has
-  // yet, so the whole row dims -- name included. Running out of SP dims the
-  // [+] alone, because that is a thing about the moment rather than about the
-  // skill.
-  bool locked = !character_.MeetsSkillRequirement(skill);
+  bool has_sp = SpFor(skill) > 0;
+  // A skill still waiting on another one, or on a level, is not a skill this
+  // character has yet, so the whole row dims -- name included. Running out of
+  // SP dims the [+] alone, because that is a thing about the moment rather
+  // than about the skill.
+  bool locked = SkillLocked(skill);
 
   KindTag tag = TagFor(skill);
   ftxui::Element tag_text = ftxui::text(tag.text) | ftxui::color(tag.color);
@@ -554,15 +594,14 @@ int CharacterPanel::FirstSkillRow(int total, int visible) const {
 
 ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
                                                bool rows_focused) const {
-  int stages = character_.proto().job_stage();
-  if (stages == 0) {
+  if (character_.proto().job_stage() == 0) {
     return ftxui::text(PadRight(" No advancements yet.", kContentWidth)) |
            ftxui::dim;
   }
   std::vector<ftxui::Element> rows;
-  rows.push_back(RenderAdvTabBar(stages, bar_focused));
+  rows.push_back(RenderAdvTabBar(bar_focused));
   rows.push_back(PanelSeparator(highlighted_));
-  std::vector<const Skill*> skills = SkillsForStage(skill_tab_ + 1);
+  std::vector<const Skill*> skills = SkillsForPage(skill_tab_);
   if (skills.empty()) {
     rows.push_back(ftxui::text(PadRight(" No skills yet.", kContentWidth)) |
                    ftxui::dim);
@@ -786,7 +825,7 @@ bool CharacterPanel::OnSkillsTabEvent(
       return true;
     }
     if (event == ftxui::Event::ArrowRight) {
-      if (skill_tab_ < character_.proto().job_stage() - 1) {
+      if (skill_tab_ < SkillPages() - 1) {
         skill_tab_++;
         RestartNameScroll();
       }
@@ -798,7 +837,7 @@ bool CharacterPanel::OnSkillsTabEvent(
   // bar and Down off the bottom carries on round to the outer tab bar.
   // Left/Right pick the column, which is what the Enter below acts on --
   // switching advancement tabs belongs to the bar above.
-  std::vector<const Skill*> skills = SkillsForStage(skill_tab_ + 1);
+  std::vector<const Skill*> skills = SkillsForPage(skill_tab_);
   if (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown) {
     MoveCursor(event == ftxui::Event::ArrowUp ? -1 : 1);
     return true;
@@ -827,8 +866,7 @@ bool CharacterPanel::OnSkillsTabEvent(
       return true;
     }
     bool maxed = character_.skill_level(skill) >= skill.max_level();
-    int stage = StageForAdvancement(skill.job_advancement());
-    if (on_learn && !maxed && character_.sp(stage) > 0) {
+    if (on_learn && !maxed && !SkillLocked(skill) && SpFor(skill) > 0) {
       on_learn(skill);
     }
     return true;
