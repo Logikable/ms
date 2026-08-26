@@ -117,6 +117,10 @@ const PercentLever kNumberLevers[] = {
     // else on the page says the skill revives at all. No sign, and it
     // SHORTENS as the skill is levelled.
     {"Revives Every", &SkillEffect::revive_cooldown_seconds, kBare, "s"},
+    // What comes off that wait. Named for the clock rather than for the
+    // revival, because the skill stating it does not revive anybody -- it
+    // shortens the wait of the pact that does.
+    {"Revive Cooldown", &SkillEffect::revive_cooldown_cut_seconds, kMinus, "s"},
 };
 
 struct FlatLever {
@@ -738,7 +742,12 @@ std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
     if (value <= 0.0) {
       continue;
     }
-    std::string sign = lever.sign == kBare ? "" : "+";
+    std::string sign = "+";
+    if (lever.sign == kBare) {
+      sign = "";
+    } else if (lever.sign == kMinus) {
+      sign = "-";
+    }
     rows.push_back(EffectRow(lever.label,
                              sign + FormatNumber(value) + lever.unit + suffix));
   }

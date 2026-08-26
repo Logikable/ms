@@ -2053,6 +2053,27 @@ TEST_F(DerivedStatsTest, TwoPactsLeaveTheShorterWaitStanding) {
   EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 300.0);
 }
 
+// The cut sums where the wait itself does not, and is taken off whichever
+// pact is left standing. A character holding only the cut is revived by
+// nothing, so the wait stays at nothing.
+TEST_F(DerivedStatsTest, TheReviveCutComesOffTheShortestPact) {
+  CharacterInstance c = MakeCharacter(rng_, 100, 100);
+  Skill pact = FinalPact();
+  Skill hyper = FinalPact();
+  hyper.set_name("Final Pact - Reduce Cooldown");
+  hyper.set_max_level(1);
+  hyper.clear_base();
+  hyper.clear_per_level();
+  hyper.mutable_base()->set_revive_cooldown_cut_seconds(150);
+  std::map<std::string, Skill> skills = {{"final_pact", pact},
+                                         {"reduce", hyper}};
+  ASSERT_TRUE(c.LearnSkill(hyper, 1));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 0.0);
+
+  ASSERT_TRUE(c.LearnSkill(pact, 30));
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, skills).revive_cooldown_seconds, 750.0);
+}
+
 // --- timed buffs ---
 
 // Dark Resonance's shape: ignored defence for good, and more of it for a

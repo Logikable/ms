@@ -121,8 +121,10 @@ struct PassiveTotals {
   double item_drop_pct = 0.0;
   double buff_duration_pct = 0.0;
   // The shortest wait between revivals any passive grants, and 0 for the
-  // characters no passive revives.
+  // characters no passive revives. What the book takes off it is summed apart
+  // and subtracted once the shortest is known.
   double revive_cooldown_seconds = 0.0;
+  double revive_cooldown_cut = 0.0;
   // Share of what AP bought that comes back as flat stat. Summed, and cashed
   // in against the allocation once every passive is read -- see
   // DerivedStatsFor.
@@ -231,6 +233,11 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
                        revive < totals.revive_cooldown_seconds)) {
     totals.revive_cooldown_seconds = revive;
   }
+  // What comes OFF that wait sums, unlike the wait itself: it is a quantity of
+  // seconds rather than a choice between clocks. Cashed in once every passive
+  // is read -- see DerivedStatsFor.
+  totals.revive_cooldown_cut += base.revive_cooldown_cut_seconds() +
+                                per.revive_cooldown_cut_seconds() * (level - 1);
   totals.attack_speed += base.attack_speed() + per.attack_speed() * (level - 1);
   totals.ied = CombineIgnoredDefense(
       totals.ied, base.ied_pct() + per.ied_pct() * (level - 1));
@@ -766,7 +773,13 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.crit_rate = passives.crit_rate;
   stats.crit_dmg = passives.crit_dmg;
   stats.hp_recover_pct = passives.hp_recover_pct;
-  stats.revive_cooldown_seconds = passives.revive_cooldown_seconds;
+  // A pact that came back at once would read as no pact at all -- 0 is what
+  // says a character is never revived -- so the cut stops a second short.
+  stats.revive_cooldown_seconds =
+      passives.revive_cooldown_seconds > 0.0
+          ? std::max(1.0, passives.revive_cooldown_seconds -
+                              passives.revive_cooldown_cut)
+          : 0.0;
   stats.exp_pct = passives.exp_pct;
   // A fountain pours one more helping per whole step of INT, so Holy Water
   // puts back twice its stated share at 2500 and three times it at 5000. The

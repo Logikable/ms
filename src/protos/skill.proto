@@ -373,6 +373,15 @@ message SkillEffect {
   // seconds down to 900. Two skills granting it would leave the shorter wait
   // standing rather than adding two chances.
   double revive_cooldown_seconds = 107;
+  // Seconds off that wait, summed across the skills granting it and taken
+  // once the shortest pact above has been chosen. The Dark Knight's Final
+  // Pact - Reduce Cooldown is the only one: GMS shortens the wait by defeating
+  // enemies after a revival, which this game has no window to count, so the
+  // hyper simply pays the seconds.
+  //
+  // Never to nothing: a wait of 0 is what says a character is not revived at
+  // all, so the cut stops a second short of it.
+  double revive_cooldown_cut_seconds = 111;
   // The Priest's. Lifts every abnormal condition on the character. Nothing
   // inflicts one yet, so nothing reads it -- but it is the whole of what Dispel
   // does, and a skill page calling that skill empty would be saying the game
