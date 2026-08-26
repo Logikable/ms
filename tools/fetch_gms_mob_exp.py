@@ -8,7 +8,7 @@ sim itself stays hermetic and needs no network.
 
     python3 tools/fetch_gms_mob_exp.py
 
-Bare curl only -- the wiki answers 403 to a browser user agent.
+Fetched with plain curl; see tools/wikifetch.sh for what each wiki wants.
 """
 
 import json
