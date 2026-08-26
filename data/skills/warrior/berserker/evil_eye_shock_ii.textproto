@@ -6,6 +6,9 @@
 # So the first three points really are a downgrade -- a level 1 here is 139%
 # against a maxed Evil Eye Shock's 150%, and GMS ships that wart. The stun and
 # the 12-second clock are the base skill's own and are not modelled twice.
+#
+# The aura heal is restated because this supersedes the skill stating it, and
+# flat because it is the EYE's: a louder shout does not heal harder.
 name: "Evil Eye Shock II"
 skill_order: 4
 description: "Empowers Evil Eye Shock, increasing its damage."
@@ -20,5 +23,9 @@ required_skill {
 max_enemies: 10
 lines: 6
 cast_interval_seconds: 12.0
-base { skill_pct: 1.39 }
+base {
+  skill_pct: 1.39
+  regen_hp: 24
+  regen_interval_seconds: 24.0
+}
 per_level { skill_pct: 0.04 }

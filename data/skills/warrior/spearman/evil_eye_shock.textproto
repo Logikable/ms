@@ -1,6 +1,13 @@
 # GMS puts this on a 12-second cooldown, which for a skill worth firing every
 # time it comes back is the same thing as a cast interval -- so that is what it
 # becomes here. The stun it also lands is not modelled.
+#
+# The aura heal belongs to the EYE rather than to the shout, and GMS hangs it
+# off a separate one-point Evil Eye skill this book does not have. It lands
+# here instead, and is restated on both tiers above -- a superseded skill stops
+# paying, so a Dark Knight would otherwise lose the eye by upgrading it. 24 HP
+# every 24 seconds is nothing to a character with a pool, which is the whole
+# reason Evil Eye - Aura Reinforce exists.
 name: "Evil Eye Shock"
 skill_order: 2
 description: "Your Evil Eye shouts, damaging nearby enemies on its own."
@@ -10,5 +17,12 @@ max_level: 10
 max_enemies: 10
 lines: 6
 cast_interval_seconds: 12.0
-base { skill_pct: 1.23 }
-per_level { skill_pct: 0.03 }
+base {
+  skill_pct: 1.23
+  regen_hp: 6
+  regen_interval_seconds: 24.0
+}
+per_level {
+  skill_pct: 0.03
+  regen_hp: 2
+}

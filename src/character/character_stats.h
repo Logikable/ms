@@ -84,6 +84,9 @@ struct FreezeStacks {
 // pouring on different clocks cannot share one.
 struct RegenPulse {
   double pct = 0.0;
+  // The flat half of the same pulse, poured beside the share. See
+  // SkillEffect::regen_hp.
+  int hp = 0;
   double interval_seconds = 0.0;
 };
 

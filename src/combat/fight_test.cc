@@ -1241,7 +1241,7 @@ TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
-  params.regen_pulses = {{0.20, 5.0}};  // 20 HP every 5s against 10 a hit
+  params.regen_pulses = {{0.20, 0, 5.0}};  // 20 HP every 5s against 10 a hit
 
   // Four hits in, the fountain has poured nothing: the pulse is not owed until
   // its interval is up. A rate would have paid 16 HP by here.
@@ -1253,6 +1253,19 @@ TEST(CombatSimTest, AFountainPoursOnItsOwnClock) {
   EXPECT_EQ(sim.player_hp(), 70);
 }
 
+// The Evil Eye's aura, which pours a flat amount rather than a share of the
+// pool -- and pours it beside the share where a fountain states both.
+TEST(CombatSimTest, AFountainPoursItsFlatHalfToo) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 1000, /*interval=*/1.0, /*damage=*/100.0);
+  params.regen_pulses = {{0.02, 24, 2.0}};  // 24 HP and 20 more every 2s
+
+  sim.Advance(params, 2.0);
+  EXPECT_EQ(sim.player_hp(), 944);
+}
+
 // One step wider than the interval owes every pulse it covered, the way a burn
 // ticks for each one it outlasted.
 TEST(CombatSimTest, AFountainPoursEveryPulseAWideStepCovered) {
@@ -1260,7 +1273,7 @@ TEST(CombatSimTest, AFountainPoursEveryPulseAWideStepCovered) {
   CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 1000, /*interval=*/1.0, /*damage=*/100.0);
-  params.regen_pulses = {{0.02, 2.0}};  // 20 HP every 2s
+  params.regen_pulses = {{0.02, 0, 2.0}};  // 20 HP every 2s
 
   sim.Advance(params, 2.0);  // one hit, one pulse
   EXPECT_EQ(sim.player_hp(), 920);
@@ -1275,7 +1288,7 @@ TEST(CombatSimTest, TwoFountainsPourOnSeparateClocks) {
   CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 1000, /*interval=*/1.0, /*damage=*/100.0);
-  params.regen_pulses = {{0.02, 2.0}, {0.03, 3.0}};
+  params.regen_pulses = {{0.02, 0, 2.0}, {0.03, 0, 3.0}};
 
   for (int i = 0; i < 2; ++i) {
     sim.Advance(params, 1.0);
@@ -1296,7 +1309,7 @@ TEST(CombatSimTest, AFountainNeverFillsPastTheHpPool) {
   CombatSim sim;
   CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
   GivePlayerHp(params, 100, /*interval=*/1000.0, /*damage=*/10.0);
-  params.regen_pulses = {{0.50, 1.0}};
+  params.regen_pulses = {{0.50, 0, 1.0}};
 
   sim.Advance(params, 10.0);
   EXPECT_EQ(sim.player_hp(), 100);

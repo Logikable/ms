@@ -10,6 +10,9 @@
 #
 # The auras reach 3 enemies where the volley reaches 10, so they cannot be one
 # attack: four auras of five strikes are 20 lines on the three.
+#
+# The aura heal is restated for the reason Evil Eye Shock II restates it: this
+# supersedes that, and the eye heals whatever it is shouting.
 name: "Revenge of the Evil Eye"
 skill_order: 6
 description:
@@ -27,7 +30,11 @@ required_skill {
 max_enemies: 10
 lines: 7
 cast_interval_seconds: 5.0
-base { skill_pct: 1.35 }
+base {
+  skill_pct: 1.35
+  regen_hp: 24
+  regen_interval_seconds: 24.0
+}
 per_level { skill_pct: 0.06 }
 auto_mode {
   label: "Shock III"

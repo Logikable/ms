@@ -267,7 +267,15 @@ message SkillEffect {
   // climbs the ladder downwards, so per_level is negative.
   double regen_pct = 40;
   double regen_interval_seconds = 41;
-  // Total INT that buys one more helping of regen_pct above, so at 2500 a
+  // A pulse poured in flat HP rather than as a share of the pool, on the same
+  // clock and read with it. The Evil Eye's aura is what it exists for: GMS
+  // heals a flat 20 HP every 24 seconds, which is nothing to a character with
+  // a pool -- and is exactly what its Hyper Skill exists to replace.
+  //
+  // Set beside regen_pct or instead of it. Either half is enough to make a
+  // fountain, and one pouring both pours both.
+  int32 regen_hp = 49;
+  // Total INT that buys one more helping of the pulse above, so at 2500 a
   // character with 5000 INT is poured three times what the fountain states.
   // Holy Water is what it exists for -- GMS's "HP Recovery is increased by 5%
   // per 2500 INT".

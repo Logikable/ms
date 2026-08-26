@@ -978,7 +978,7 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
   params.regen_pulses.clear();
   for (const RegenPulse& pulse : derived.regen_pulses) {
     params.regen_pulses.push_back(
-        {pulse.pct, pulse.interval_seconds * speed_factor});
+        {pulse.pct, pulse.hp, pulse.interval_seconds * speed_factor});
   }
   params.revive_cooldown_seconds =
       derived.revive_cooldown_seconds * speed_factor;

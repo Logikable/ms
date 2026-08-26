@@ -194,9 +194,11 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   double regen_interval = base.regen_interval_seconds() +
                           per.regen_interval_seconds() * (level - 1);
   double regen_pct = base.regen_pct() + per.regen_pct() * (level - 1);
-  if (regen_interval > 0.0 && regen_pct > 0.0) {
+  int regen_hp = base.regen_hp() + per.regen_hp() * (level - 1);
+  if (regen_interval > 0.0 && (regen_pct > 0.0 || regen_hp > 0)) {
     double step = base.regen_int_step() + per.regen_int_step() * (level - 1);
-    totals.regen.push_back(RawRegen{{regen_pct, regen_interval}, step});
+    totals.regen.push_back(
+        RawRegen{{regen_pct, regen_hp, regen_interval}, step});
   }
   totals.status_resistance +=
       base.status_resistance() + per.status_resistance() * (level - 1);
@@ -775,7 +777,9 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   for (const RawRegen& source : passives.regen) {
     RegenPulse pulse = source.pulse;
     if (source.int_step > 0.0) {
-      pulse.pct *= 1.0 + std::floor(total_int / source.int_step);
+      double helpings = 1.0 + std::floor(total_int / source.int_step);
+      pulse.pct *= helpings;
+      pulse.hp = static_cast<int>(pulse.hp * helpings);
     }
     stats.regen_pulses.push_back(pulse);
   }

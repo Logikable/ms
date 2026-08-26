@@ -153,6 +153,11 @@ double PercentAt(const Skill& skill, double (SkillEffect::*fn)() const,
   return (skill.base().*fn)() + (skill.per_level().*fn)() * (level - 1);
 }
 
+// The same, for a lever counted in whole numbers.
+int FlatAt(const Skill& skill, int (SkillEffect::*fn)() const, int level) {
+  return (skill.base().*fn)() + (skill.per_level().*fn)() * (level - 1);
+}
+
 // A fraction as a percentage, to one decimal, with a whole number left whole.
 // Rounds rather than truncates: summing a lever's per-level steps lands a hair
 // under the round figure (16 levels of +1% is 0.15999...), and a skill that
@@ -751,11 +756,20 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   // the pulse grows and the wait between pulses shortens together, so a page
   // showing only the pulse would understate every point after the first.
   double regen = PercentAt(skill, &SkillEffect::regen_pct, level);
+  int regen_hp = FlatAt(skill, &SkillEffect::regen_hp, level);
   double regen_interval =
       PercentAt(skill, &SkillEffect::regen_interval_seconds, level);
-  if (regen > 0.0 && regen_interval > 0.0) {
-    std::string text =
-        FormatPercent(regen) + " every " + FormatNumber(regen_interval) + "s";
+  if ((regen > 0.0 || regen_hp > 0) && regen_interval > 0.0) {
+    // A fountain pouring both states both, the flat half first: it is the one
+    // the player can hold against their pool.
+    std::string poured;
+    if (regen_hp > 0) {
+      poured = std::to_string(regen_hp) + " HP";
+    }
+    if (regen > 0.0) {
+      poured += (poured.empty() ? "" : " and ") + FormatPercent(regen);
+    }
+    std::string text = poured + " every " + FormatNumber(regen_interval) + "s";
     // Holy Water pours one more helping per step of INT, which is most of
     // what a Bishop's points buy. Stated with the pulse rather than as a row
     // of its own: alone it would read as a share of the pool.

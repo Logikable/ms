@@ -617,8 +617,9 @@ void CombatSim::RunRegen(const CombatParams& params, double dt) {
     // pulse it covered, the way a burn ticks for each one it outlasted.
     while (regen_phase_[i] >= pulse.interval_seconds) {
       regen_phase_[i] -= pulse.interval_seconds;
-      player_hp_ = std::min(static_cast<double>(params.max_player_hp),
-                            player_hp_ + pulse.pct * params.max_player_hp);
+      player_hp_ =
+          std::min(static_cast<double>(params.max_player_hp),
+                   player_hp_ + pulse.hp + pulse.pct * params.max_player_hp);
     }
   }
 }
