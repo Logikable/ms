@@ -650,7 +650,7 @@ TEST(OffenseStatsForTest, EachIedSourceOnlyTakesAShareOfWhatIsLeft) {
   EXPECT_GT(two - one, three - two);
 }
 
-TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsMultiplier) {
+TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   Skill wind;
   wind.set_name("Wind Arrow");
   wind.set_kind(SKILL_KIND_ATTACK);
@@ -660,20 +660,38 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsMultiplier) {
   other.set_name("Arrow Blaster");
 
   PassiveOffense passives;
-  passives.skill_pct_bonus["Wind Arrow"] = 0.70;
+  passives.boss_pct = 0.10;
+  passives.ied = 0.20;
+  passives.final_dmg_pct = 0.10;
+  SkillBonus& bonus = passives.skill_bonus["Wind Arrow"];
+  bonus.skill_pct = 0.70;
+  bonus.boss_pct = 0.30;
+  bonus.ied = 0.20;
+  bonus.crit_rate = 0.20;
+  bonus.final_dmg_pct = 0.15;
 
-  // Added to the multiplier, so it is worth its value once per line: three
-  // lines of 178% become three of 248%.
   OffenseStats boosted =
       OffenseStatsFor(JOB_ARCHER, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_BOW, &wind, 1, passives);
-  EXPECT_DOUBLE_EQ(boosted.skill_pct, 2.48);
-  EXPECT_EQ(boosted.lines, 3);
-
   OffenseStats untouched =
       OffenseStatsFor(JOB_ARCHER, 1, AllocatedStats(), EquipStats(),
                       EQUIP_TYPE_BOW, &other, 1, passives);
+
+  // Damage is added to the multiplier, so it is worth its value once per line:
+  // three lines of 178% become three of 248%.
+  EXPECT_DOUBLE_EQ(boosted.skill_pct, 2.48);
+  EXPECT_EQ(boosted.lines, 3);
+  // Each of the rest meets what the character brought the way two sources of
+  // it always meet.
+  EXPECT_DOUBLE_EQ(boosted.boss_pct, untouched.boss_pct + 0.30);
+  EXPECT_DOUBLE_EQ(boosted.ied, CombineIgnoredDefense(untouched.ied, 0.20));
+  EXPECT_DOUBLE_EQ(boosted.crit_rate, untouched.crit_rate + 0.20);
+  EXPECT_DOUBLE_EQ(boosted.final_dmg_pct,
+                   (1.0 + untouched.final_dmg_pct) * 1.15 - 1.0);
+  // The skill it does not name keeps every one of them.
   EXPECT_DOUBLE_EQ(untouched.skill_pct, 1.78);
+  EXPECT_DOUBLE_EQ(untouched.boss_pct, 0.10);
+  EXPECT_DOUBLE_EQ(untouched.ied, 0.20);
 }
 
 // The mastery a bare character of `job` swings at, holding `passives`.

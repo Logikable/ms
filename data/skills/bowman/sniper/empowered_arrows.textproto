@@ -21,8 +21,11 @@ required_skill {
   level: 20
 }
 boosts_skill_name: "Piercing Arrow"
-base { boosted_skill_pct: 1.02 }
-per_level { boosted_skill_pct: 0.02 }
+boost {
+  skill_name: "Piercing Arrow"
+  effect { skill_pct: 1.02 }
+  effect_per_level { skill_pct: 0.02 }
+}
 empowered_form {
   casts_per_trigger: 4
   max_enemies: 8

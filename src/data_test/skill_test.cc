@@ -907,38 +907,43 @@ TEST(SkillDataTest, APassiveCarriesNoSwingsDamage) {
   }
 }
 
-// A skill naming another one has to name one that exists, and the two halves
-// of the bargain have to both be there: a name with no damage behind it grants
-// nothing, and damage with no name has nowhere to go.
-TEST(SkillDataTest, EveryBoostNamesAHoldableSkill) {
+// The name an empowered form aims at has to be one the same character can
+// learn, and it may only be set where there is a form to aim: a name with
+// nothing behind it upgrades nothing.
+TEST(SkillDataTest, EveryEmpoweredTargetIsHoldable) {
   std::map<std::string, Skill> skills = LoadSkills();
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    bool named = !skill.boosts_skill_name().empty();
-    // A skill pays a boost any way it can: a percentage on every swing of the
-    // named skill, boss damage on it, or a bigger swing standing in for every
-    // Nth. Divine Judgment pays only the last -- its whole effect is the
-    // detonation -- and Blood Money only the middle one.
-    bool percent = skill.base().boosted_skill_pct() > 0.0 ||
-                   skill.base().boosted_boss_pct() > 0.0;
-    bool form = skill.empowered_form_size() > 0;
-    EXPECT_FALSE(percent && !named)
-        << entry.first << " pays a boost with nowhere to send it";
-    // An empty name with a form is the skill upgrading its own attack, which
-    // is what Creeping Toxin does. An empty name with neither is nothing.
-    EXPECT_FALSE(named && !percent && !form)
-        << entry.first << " names a skill it hands nothing to";
-    if (!named) {
+    if (skill.boosts_skill_name().empty()) {
       continue;
     }
+    EXPECT_GT(skill.empowered_form_size(), 0)
+        << entry.first << " names a skill it hands no empowered form";
     EXPECT_TRUE(SameCharacterCanHold(skills, skill, skill.boosts_skill_name()))
-        << entry.first << " boosts \"" << skill.boosts_skill_name()
+        << entry.first << " empowers \"" << skill.boosts_skill_name()
         << "\", which no character holding it can learn";
   }
 }
 
-// The same rule for the structural half of a boost: strikes and reach handed
-// to a skill nobody holding this one can learn are strikes nobody ever swings.
+// The levers a SkillBoost::effect is read for. Anything else written there is
+// data nothing will ever apply -- see SkillBoost::effect.
+bool BoostEffectIsSupported(const SkillEffect& effect, std::string& unread) {
+  static const std::set<std::string> kRead = {
+      "skill_pct", "boss_pct", "ied_pct", "crit_rate", "final_dmg_pct"};
+  std::vector<const google::protobuf::FieldDescriptor*> set;
+  effect.GetReflection()->ListFields(effect, &set);
+  for (const google::protobuf::FieldDescriptor* field : set) {
+    std::string name(field->name());
+    if (kRead.find(name) == kRead.end()) {
+      unread = name;
+      return false;
+    }
+  }
+  return true;
+}
+
+// A boost has to name a skill the same character can hold, and hand it
+// something: strikes, reach, a clock, or a lever that skill alone carries.
 TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
   std::map<std::string, Skill> skills = LoadSkills();
   int checked = 0;
@@ -948,9 +953,19 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           << entry.first << " grants strikes to nobody";
       EXPECT_TRUE(boost.lines() > 0 || boost.max_enemies() > 0 ||
                   boost.max_enemies_per_level() > 0.0 ||
-                  boost.attacks_per_cast() > 0)
+                  boost.attacks_per_cast() > 0 || boost.has_effect())
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
+      // A per-level step with no level-1 value behind it is half a lever.
+      EXPECT_FALSE(boost.has_effect_per_level() && !boost.has_effect())
+          << entry.first << " climbs a lever it never grants";
+      std::string unread;
+      EXPECT_TRUE(BoostEffectIsSupported(boost.effect(), unread))
+          << entry.first << " boosts " << boost.skill_name() << " with "
+          << unread << ", which no swing reads";
+      EXPECT_TRUE(BoostEffectIsSupported(boost.effect_per_level(), unread))
+          << entry.first << " climbs " << boost.skill_name() << "'s " << unread
+          << ", which no swing reads";
       ++checked;
       EXPECT_TRUE(
           SameCharacterCanHold(skills, entry.second, boost.skill_name()))

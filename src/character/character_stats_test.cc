@@ -1381,9 +1381,10 @@ Skill SpeedMirage() {
   skill.set_kind(SKILL_KIND_PASSIVE);
   skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   skill.set_max_level(20);
-  skill.set_boosts_skill_name("Wind Arrow");
-  skill.mutable_base()->set_boosted_skill_pct(0.51);
-  skill.mutable_per_level()->set_boosted_skill_pct(0.01);
+  SkillBoost* boost = skill.add_boost();
+  boost->set_skill_name("Wind Arrow");
+  boost->mutable_effect()->set_skill_pct(0.51);
+  boost->mutable_effect_per_level()->set_skill_pct(0.01);
   return skill;
 }
 
@@ -1394,9 +1395,9 @@ TEST_F(DerivedStatsTest, ABoostReachesOnlyTheSkillItNames) {
   ASSERT_TRUE(c.LearnSkill(mirage, 20));
 
   DerivedStats stats = DerivedStatsFor(c, skills);
-  ASSERT_EQ(stats.skill_pct_bonus.size(), 1u);
-  EXPECT_NEAR(stats.skill_pct_bonus.at("Wind Arrow"), 0.70, 1e-9);
-  EXPECT_EQ(stats.skill_pct_bonus.count("Piercing Arrow"), 0u);
+  ASSERT_EQ(stats.skill_bonus.size(), 1u);
+  EXPECT_NEAR(stats.skill_bonus.at("Wind Arrow").skill_pct, 0.70, 1e-9);
+  EXPECT_EQ(stats.skill_bonus.count("Piercing Arrow"), 0u);
   // It is not plain damage: everything else the character swings is untouched.
   EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
 }
@@ -1411,8 +1412,8 @@ TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
   ASSERT_TRUE(c.LearnSkill(first, 20));
   ASSERT_TRUE(c.LearnSkill(second, 20));
 
-  EXPECT_NEAR(DerivedStatsFor(c, skills).skill_pct_bonus.at("Wind Arrow"), 1.40,
-              1e-9);
+  EXPECT_NEAR(DerivedStatsFor(c, skills).skill_bonus.at("Wind Arrow").skill_pct,
+              1.40, 1e-9);
 }
 
 TEST_F(DerivedStatsTest, IgnoredDefenceClimbsWithItsLevel) {
@@ -1547,9 +1548,10 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   mastery.set_kind(SKILL_KIND_PASSIVE);
   mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   mastery.set_max_level(10);
-  mastery.set_boosts_skill_name("Meso Explosion");
-  mastery.mutable_base()->set_boosted_skill_pct(0.02);
-  mastery.mutable_per_level()->set_boosted_skill_pct(0.02);
+  SkillBoost* mastery_boost = mastery.add_boost();
+  mastery_boost->set_skill_name("Meso Explosion");
+  mastery_boost->mutable_effect()->set_skill_pct(0.02);
+  mastery_boost->mutable_effect_per_level()->set_skill_pct(0.02);
   mastery.mutable_base()->set_meso_pct(0.02);
   mastery.mutable_per_level()->set_meso_pct(0.02);
 
@@ -1582,9 +1584,10 @@ TEST_F(DerivedStatsTest, MesoExplosionPairsWithPickPocket) {
   money.set_kind(SKILL_KIND_PASSIVE);
   money.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   money.set_max_level(20);
-  money.set_boosts_skill_name("Meso Explosion");
-  money.mutable_base()->set_boosted_boss_pct(0.11);
-  money.mutable_per_level()->set_boosted_boss_pct(0.01);
+  SkillBoost* money_boost = money.add_boost();
+  money_boost->set_skill_name("Meso Explosion");
+  money_boost->mutable_effect()->set_boss_pct(0.11);
+  money_boost->mutable_effect_per_level()->set_boss_pct(0.01);
   skills["money"] = money;
   ASSERT_TRUE(c.LearnSkill(money, 20));
   DerivedStats branded = DerivedStatsFor(c, skills);

@@ -302,13 +302,18 @@ TEST_F(SkillInspectPanelTest, SaysHowManyAttacksSetASkillOff) {
 // on that skill's own page could tell the player where the damage came from.
 TEST_F(SkillInspectPanelTest, ABoostNamesTheSkillItReachesAcrossTo) {
   Skill mirage = MakeIronBody();
-  mirage.set_boosts_skill_name("Wind Arrow");
-  mirage.mutable_base()->set_boosted_skill_pct(0.70);
-  EXPECT_NE(RenderAt(mirage, 1).find("Boosts Wind Arrow      +70%"),
+  SkillBoost* boost = mirage.add_boost();
+  boost->set_skill_name("Wind Arrow");
+  boost->mutable_effect()->set_skill_pct(0.70);
+  EXPECT_NE(RenderAt(mirage, 1).find("Boosts Wind Arrow      +70% Damage"),
             std::string::npos);
-  // Half a bargain writes no row: a name with no damage behind it.
+  // Every lever the boost carries is named, since one row holds them all.
+  boost->mutable_effect()->set_ied_pct(0.20);
+  EXPECT_NE(RenderAt(mirage, 1).find("+70% Damage, +20% Ignore DEF"),
+            std::string::npos);
+  // Half a bargain writes no row: a name with nothing behind it.
   Skill bare = MakeIronBody();
-  bare.set_boosts_skill_name("Wind Arrow");
+  bare.add_boost()->set_skill_name("Wind Arrow");
   EXPECT_EQ(RenderAt(bare, 1).find("Boosts Wind Arrow"), std::string::npos);
 }
 
@@ -553,7 +558,9 @@ TEST_F(SkillInspectPanelTest, APiercingSwingStatesItsGainBesideItsReach) {
 TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   Skill arrows = MakeIronBody();
   arrows.set_boosts_skill_name("Piercing Arrow");
-  arrows.mutable_base()->set_boosted_skill_pct(1.02);
+  SkillBoost* boost = arrows.add_boost();
+  boost->set_skill_name("Piercing Arrow");
+  boost->mutable_effect()->set_skill_pct(1.02);
   EmpoweredForm* form = arrows.add_empowered_form();
   form->set_casts_per_trigger(4);
   form->set_max_enemies(8);
@@ -566,7 +573,8 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   EXPECT_NE(rendered.find("Empowered Enemies      8"), std::string::npos);
   EXPECT_NE(rendered.find("Empowered Damage       203% x6 = 1218%"),
             std::string::npos);
-  EXPECT_NE(rendered.find("Boosts Piercing Arrow  +102%"), std::string::npos);
+  EXPECT_NE(rendered.find("Boosts Piercing Arrow  +102% Damage"),
+            std::string::npos);
   // Counted on the swing, which is the ordinary reading and needs no row.
   EXPECT_EQ(rendered.find("Marks"), std::string::npos);
   // A skill that upgrades nothing says nothing about upgrading.

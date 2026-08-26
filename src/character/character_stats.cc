@@ -127,12 +127,9 @@ struct PassiveTotals {
   // in against the allocation once every passive is read -- see
   // DerivedStatsFor.
   double ap_stat_pct = 0.0;
-  // Damage added to one named skill apiece. Summed per name, so two passives
-  // strengthening the same swing both count.
-  std::map<std::string, double> skill_pct_bonus;
-  // Boss damage added to one named skill apiece, the same way. Only a thrown
-  // meso reads it -- see FoldMesoExplosion.
-  std::map<std::string, double> skill_boss_pct;
+  // What the book hands one named skill apiece. Summed per name, so two
+  // passives strengthening the same swing both count.
+  std::map<std::string, SkillBonus> skill_bonus;
   double damage_pct = 0.0;
   double boss_pct = 0.0;
   double mirror_line_pct = 0.0;
@@ -318,6 +315,25 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
   totals.meso_lines = SkillLinesAt(skill, level);
 }
 
+// Notes down what `skill` hands other skills by name. Kept out of AddEffect,
+// which is handed levers with no skill behind them: which skill is
+// strengthened is written on the boost, not on the lever.
+void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
+  for (const SkillBoost& boost : skill.boost()) {
+    const SkillEffect& base = boost.effect();
+    const SkillEffect& per = boost.effect_per_level();
+    SkillBonus& into = totals.skill_bonus[boost.skill_name()];
+    into.skill_pct += base.skill_pct() + per.skill_pct() * (level - 1);
+    into.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
+    into.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
+    // The two that do not sum, for the reason they never do.
+    into.ied = CombineIgnoredDefense(
+        into.ied, base.ied_pct() + per.ied_pct() * (level - 1));
+    double fd = base.final_dmg_pct() + per.final_dmg_pct() * (level - 1);
+    into.final_dmg_pct = (1.0 + into.final_dmg_pct) * (1.0 + fd) - 1.0;
+  }
+}
+
 void AddPassive(const Skill& skill, int level, EquipType weapon,
                 PassiveTotals& totals) {
   if (skill.kind() == SKILL_KIND_ATTACK) {
@@ -329,20 +345,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   } else {
     AddEffect(skill.base(), skill.per_level(), level, totals);
   }
-  // Folded here rather than in AddEffect, which is handed levers with no skill
-  // behind them -- and which skill is strengthened is written on the skill.
-  double boost = skill.base().boosted_skill_pct() +
-                 skill.per_level().boosted_skill_pct() * (level - 1);
-  double boss = skill.base().boosted_boss_pct() +
-                skill.per_level().boosted_boss_pct() * (level - 1);
-  if (!skill.boosts_skill_name().empty()) {
-    if (boost > 0.0) {
-      totals.skill_pct_bonus[skill.boosts_skill_name()] += boost;
-    }
-    if (boss > 0.0) {
-      totals.skill_boss_pct[skill.boosts_skill_name()] += boss;
-    }
-  }
+  AddSkillBonuses(skill, level, totals);
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
   AddProc(skill, level, totals);
   AddFreezeStacks(skill, level, totals);
@@ -379,17 +382,13 @@ void FoldMesoExplosion(PassiveTotals& totals) {
   if (totals.meso_hit_pct <= 0.0) {
     return;
   }
-  std::map<std::string, double>::const_iterator boost =
-      totals.skill_pct_bonus.find(totals.meso_skill);
-  if (boost != totals.skill_pct_bonus.end()) {
-    totals.meso_hit_pct += boost->second;
+  std::map<std::string, SkillBonus>::const_iterator boost =
+      totals.skill_bonus.find(totals.meso_skill);
+  if (boost != totals.skill_bonus.end()) {
+    totals.meso_hit_pct += boost->second.skill_pct;
+    totals.meso_boss_pct = boost->second.boss_pct;
   }
   totals.meso_hit_pct *= totals.meso_lines;
-  std::map<std::string, double>::const_iterator boss =
-      totals.skill_boss_pct.find(totals.meso_skill);
-  if (boss != totals.skill_boss_pct.end()) {
-    totals.meso_boss_pct = boss->second;
-  }
 }
 
 void FoldComboOrbs(PassiveTotals& totals) {
@@ -812,7 +811,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   }
   stats.attack_speed_bonus = passives.attack_speed;
   stats.attack_pct = passives.attack_pct;
-  stats.skill_pct_bonus = passives.skill_pct_bonus;
+  stats.skill_bonus = passives.skill_bonus;
   return stats;
 }
 
@@ -827,7 +826,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.bonus_attack_lines = derived.bonus_attack_lines;
   passives.final_dmg_pct = derived.final_dmg_pct;
   passives.ied = derived.ied;
-  passives.skill_pct_bonus = derived.skill_pct_bonus;
+  passives.skill_bonus = derived.skill_bonus;
   passives.arcane_pct = derived.arcane_damage_factor;
   return passives;
 }

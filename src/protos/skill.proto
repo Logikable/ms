@@ -192,18 +192,6 @@ message SkillEffect {
   // total -- and what it grants IS a grant like theirs, so a percentage over
   // the character's stats would lift this too.
   double ap_stat_pct = 29;
-  // Damage this skill adds to the ONE skill named by Skill.boosts_skill_name,
-  // per line, exactly as skill_pct is per line -- so 70% here on a 178% three-
-  // line swing makes it 248% three times.
-  //
-  // Not damage_pct, which lifts everything the character swings. GMS states
-  // this in percentage POINTS on the named skill for that reason.
-  double boosted_skill_pct = 30;
-  // Boss damage handed to that same named skill, rather than to the character.
-  // Blood Money is what it exists for: GMS pays Meso Explosion 10+x% against a
-  // boss and pays the Shadower nothing, so a thrown meso hits a boss harder
-  // and every swing of theirs is unchanged.
-  double boosted_boss_pct = 31;
   // Strikes added to every multi-line swing the character makes -- Bolt
   // Surplus's "+1 attack to all multi-hit skills". Summed across its sources,
   // of which there is one.
@@ -673,19 +661,15 @@ message WeaponBonus {
   SkillEffect effect = 2;
 }
 
-// What one skill hands another by name, beyond damage. Greater Vessel of Light
-// is the case it exists for: it adds a strike to Divine Charge and to Blast,
-// and widens Divine Charge alone.
+// What one skill hands another by name. Two kinds of grant: the structural
+// ones -- strikes, reach, the clock -- and `effect`, a lever aimed at that one
+// skill rather than at the character. Greater Vessel of Light is the first
+// (a strike to Divine Charge and to Blast, and reach to Divine Charge alone);
+// a Hyper Skill's Reinforce is the second.
 //
-// Damage is deliberately not here. A percentage added to a named skill climbs
-// with the level, so it is a lever and lives in SkillEffect as
-// boosted_skill_pct beside the others. What is here is structural -- strikes
-// and reach -- which no lever can express, because a SkillEffect has no notion
-// of a target.
-//
-// Applied to a COPY of the target before its attack is built, so the damage
-// chain, the line count and the reach all see one skill that already carries
-// them. Read at the granting skill's own learned level.
+// The structure is folded into a COPY of the target before its attack is
+// built, so the damage chain, the line count and the reach all see one skill
+// that already carries them. Read at the granting skill's own learned level.
 message SkillBoost {
   string skill_name = 1;
   // Strikes added to every swing of the named skill. Flat: every GMS bonus of
@@ -702,6 +686,23 @@ message SkillBoost {
   // but Speed Mirage II's wants. Where two of them name one skill the faster
   // clock stands, since neither is a quantity that can be summed.
   int32 attacks_per_cast = 5;
+  // Levers the named skill alone carries, on top of its own. Five are read --
+  // skill_pct, boss_pct, ied_pct, crit_rate and final_dmg_pct -- and each
+  // meets the target's own the way two sources of it always meet: damage and
+  // boss damage sum, ignored defence combines in reverse, final damage
+  // multiplies. A lever outside those five is silently dropped, which
+  // //src/data_test:skill_test refuses.
+  //
+  // Not folded into the copy above, because these are not the target's own:
+  // ignored defence would sum where it must combine, and the fold happens
+  // before the damage chain knows what it is hitting. They ride the SWING --
+  // a boost aimed at a passive grants nothing, so a lever meant for the
+  // character belongs in the granting skill's own `base`.
+  //
+  // Read at the granting skill's learned level, as `base` and `per_level` are:
+  // see effect_per_level.
+  SkillEffect effect = 6;
+  SkillEffect effect_per_level = 7;
 }
 
 // A skill that has to be learned to a level before another can be bought at
@@ -884,14 +885,13 @@ message Skill {
   // What this skill also does on its own clock, beside being the swing it
   // already is. See AutoMode.
   repeated AutoMode auto_mode = 33;
-  // Strikes and reach this skill hands to skills it names. Repeated, unlike
-  // boosts_skill_name above, because Greater Vessel of Light strengthens two of
-  // them and grants each a different thing. See SkillBoost.
+  // What this skill hands to skills it names: strikes, reach, and levers that
+  // one skill alone carries. Repeated because Greater Vessel of Light
+  // strengthens two of them and grants each a different thing. See SkillBoost.
   repeated SkillBoost boost = 34;
-  // Another skill this one strengthens, by display name. What it adds is
-  // SkillEffect::boosted_skill_pct, or an empowered_form below, or both --
-  // Speed Mirage empowers Wind Arrow, and nothing else in the game reaches
-  // across to a second skill by name.
+  // The skill this one's empowered_form upgrades, by display name -- Speed
+  // Mirage empowers Wind Arrow. Only a form with no target of its own reads
+  // it; a lever aimed at a named skill is a SkillBoost instead.
   //
   // The name rather than a tag, because the grant is to one skill rather than
   // to a family -- follows_skill_tag is the other shape, and the right one

@@ -21,9 +21,9 @@ exceeds_master_level: true
 base_delay_ms: 120
 fixed_delay: true
 hits_per_attack_count: 7
-boosts_skill_name: "Arrow Stream"
-base {
-  skill_pct: 2.63
-  boosted_skill_pct: 0.50
-}
+base { skill_pct: 2.63 }
 per_level { skill_pct: 0.03 }
+boost {
+  skill_name: "Arrow Stream"
+  effect { skill_pct: 0.50 }
+}

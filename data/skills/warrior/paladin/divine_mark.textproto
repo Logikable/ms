@@ -33,15 +33,13 @@ base_delay_ms: 660
 cooldown_seconds: 7.0
 max_enemies: 10
 lines: 7
-base {
-  skill_pct: 3.04
-  boosted_skill_pct: 0.42
+base { skill_pct: 3.04 }
+per_level { skill_pct: 0.04 }
+boost {
+  skill_name: "Divine Charge"
+  effect { skill_pct: 0.42 }
+  effect_per_level { skill_pct: 0.02 }
 }
-per_level {
-  skill_pct: 0.04
-  boosted_skill_pct: 0.02
-}
-boosts_skill_name: "Divine Charge"
 extra_hit {
   label: "Explosion"
   lines: 5

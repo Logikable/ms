@@ -20,6 +20,10 @@ max_level: 20
 max_enemies: 5
 lines: 4
 attacks_per_cast: 4
-boosts_skill_name: "Wind Arrow"
-base { skill_pct: 3.25 boosted_skill_pct: 0.51 }
-per_level { skill_pct: 0.05 boosted_skill_pct: 0.01 }
+base { skill_pct: 3.25 }
+per_level { skill_pct: 0.05 }
+boost {
+  skill_name: "Wind Arrow"
+  effect { skill_pct: 0.51 }
+  effect_per_level { skill_pct: 0.01 }
+}

@@ -282,10 +282,10 @@ void RecordBook(const GameState& state, const DerivedStats& derived,
     // A swing another skill strengthens is worth more per line than its own
     // data says, and the line printing it has to agree with the damage beside
     // it.
-    std::map<std::string, double>::const_iterator boost =
-        derived.skill_pct_bonus.find(swing);
-    if (boost != derived.skill_pct_bonus.end()) {
-      result->skill_pct += boost->second;
+    std::map<std::string, SkillBonus>::const_iterator boost =
+        derived.skill_bonus.find(swing);
+    if (boost != derived.skill_bonus.end()) {
+      result->skill_pct += boost->second.skill_pct;
     }
     result->lines =
         SkillLinesAt(entry.second, learned) + BoostedLines(state, swing);

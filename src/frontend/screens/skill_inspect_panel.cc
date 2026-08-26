@@ -584,6 +584,31 @@ std::string BoostText(const SkillBoost& boost, int level) {
     }
     gains += "every " + std::to_string(boost.attacks_per_cast()) + " attacks";
   }
+  // The levers the boost hands that skill alone, named because a sentence
+  // granting two of them cannot leave either unsaid. In the order the effect
+  // rows above use.
+  struct BoostLever {
+    const char* label;
+    double (SkillEffect::*fn)() const;
+  };
+  const BoostLever kBoostLevers[] = {
+      {"Damage", &SkillEffect::skill_pct},
+      {"Final Damage", &SkillEffect::final_dmg_pct},
+      {"Boss Damage", &SkillEffect::boss_pct},
+      {"Ignore DEF", &SkillEffect::ied_pct},
+      {"Critical Rate", &SkillEffect::crit_rate},
+  };
+  for (const BoostLever& lever : kBoostLevers) {
+    double value = (boost.effect().*lever.fn)() +
+                   (boost.effect_per_level().*lever.fn)() * (level - 1);
+    if (value <= 0.0) {
+      continue;
+    }
+    if (!gains.empty()) {
+      gains += ", ";
+    }
+    gains += "+" + FormatPercent(value) + " " + lever.label;
+  }
   return gains;
 }
 
@@ -923,23 +948,8 @@ std::vector<ftxui::Element> BoostRows(const Skill& skill, int level) {
   std::vector<ftxui::Element> rows;
   // The skill it boosts belongs in the label: the label says what is boosted
   // and the value by how much, which is the shape every other row here has.
-  double boost = PercentAt(skill, &SkillEffect::boosted_skill_pct, level);
-  if (boost > 0.0 && !skill.boosts_skill_name().empty()) {
-    Append(WrappedEffectRows("Boosts " + skill.boosts_skill_name(),
-                             "+" + FormatPercent(boost)),
-           rows);
-  }
-  // The same sentence for the boss damage it hands over, which is a different
-  // grant to the same skill rather than more of the one above.
-  double boss = PercentAt(skill, &SkillEffect::boosted_boss_pct, level);
-  if (boss > 0.0 && !skill.boosts_skill_name().empty()) {
-    Append(WrappedEffectRows("Boosts " + skill.boosts_skill_name(),
-                             "+" + FormatPercent(boss) + " Boss Damage"),
-           rows);
-  }
-  // The same sentence for what it hands another skill that is not damage: a
-  // strike on every swing, a wider reach, or both. One row per skill named,
-  // because two skills granted different things cannot share a row.
+  // One row per skill named, because two skills granted different things
+  // cannot share a row.
   for (const SkillBoost& granted : skill.boost()) {
     std::string gains = BoostText(granted, level);
     if (gains.empty()) {

@@ -519,8 +519,9 @@ TEST(ComputeCombatParamsTest, ABrandedMesoHitsABossHarder) {
   money.set_kind(SKILL_KIND_PASSIVE);
   money.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   money.set_max_level(20);
-  money.set_boosts_skill_name("Meso Explosion");
-  money.mutable_base()->set_boosted_boss_pct(0.50);
+  SkillBoost* brand = money.add_boost();
+  brand->set_skill_name("Meso Explosion");
+  brand->mutable_effect()->set_boss_pct(0.50);
 
   Mob snail = MakeMob("Snail", 15);
   snail.set_boss(true);

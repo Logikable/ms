@@ -12,14 +12,16 @@ description:
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 10
-boosts_skill_name: "Meso Explosion"
 base {
   attack: 2
   meso_pct: 0.02
-  boosted_skill_pct: 0.02
 }
 per_level {
   attack: 2
   meso_pct: 0.02
-  boosted_skill_pct: 0.02
+}
+boost {
+  skill_name: "Meso Explosion"
+  effect { skill_pct: 0.02 }
+  effect_per_level { skill_pct: 0.02 }
 }

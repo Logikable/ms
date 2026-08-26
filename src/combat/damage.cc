@@ -438,13 +438,20 @@ OffenseStats OffenseStatsFor(Job job, int level,
     offense.normal_skill_pct =
         attack_skill->base().normal_skill_pct() +
         attack_skill->per_level().normal_skill_pct() * (attack_level - 1);
-    // A passive elsewhere in the book can name this skill and make it hit
-    // harder. Added to the multiplier rather than beside it, so it is worth
-    // its value once per line -- which is how GMS states it.
-    std::map<std::string, double>::const_iterator boost =
-        passives.skill_pct_bonus.find(attack_skill->name());
-    if (boost != passives.skill_pct_bonus.end()) {
-      offense.skill_pct += boost->second;
+    // What the rest of the book hands this skill by name. Each lever meets the
+    // swing's own the way two of it always meet, so the block reads like the
+    // one below it -- damage added to the multiplier rather than beside it, so
+    // it is worth its value once per line, which is how GMS states it.
+    std::map<std::string, SkillBonus>::const_iterator boost =
+        passives.skill_bonus.find(attack_skill->name());
+    if (boost != passives.skill_bonus.end()) {
+      const SkillBonus& bonus = boost->second;
+      offense.skill_pct += bonus.skill_pct;
+      offense.boss_pct += bonus.boss_pct;
+      offense.ied = CombineIgnoredDefense(offense.ied, bonus.ied);
+      offense.crit_rate += bonus.crit_rate;
+      offense.final_dmg_pct =
+          (1.0 + offense.final_dmg_pct) * (1.0 + bonus.final_dmg_pct) - 1.0;
     }
     // Ignored defence, boss damage, critical rate and final damage written on
     // an ATTACK ride that attack alone. GMS states them on the skill --

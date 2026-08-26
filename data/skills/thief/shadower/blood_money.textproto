@@ -1,6 +1,6 @@
 # GMS's own figures: 10+x% boss damage on Meso Explosion, x% critical damage,
 # and ceil(x/2) LUK. The boss damage brands the coins rather than the Shadower,
-# which is what boosted_boss_pct is for.
+# which is what a boost aimed at Meso Explosion is for.
 #
 # A passive here, and a toggle in GMS that swaps places with Pick Pocket for
 # the same 30% chance -- so what it replaces is what it grants, and nothing
@@ -14,7 +14,6 @@ description:
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 20
-boosts_skill_name: "Meso Explosion"
 required_skill {
   skill_name: "Meso Explosion"
   level: 1
@@ -22,9 +21,10 @@ required_skill {
 base {
   luk: 10
   crit_dmg: 0.01
-  boosted_boss_pct: 0.11
 }
-per_level {
-  crit_dmg: 0.01
-  boosted_boss_pct: 0.01
+per_level { crit_dmg: 0.01 }
+boost {
+  skill_name: "Meso Explosion"
+  effect { boss_pct: 0.11 }
+  effect_per_level { boss_pct: 0.01 }
 }

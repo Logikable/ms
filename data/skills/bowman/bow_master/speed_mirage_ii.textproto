@@ -12,11 +12,10 @@ kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_BOW_MASTER
 max_level: 20
 exceeds_master_level: true
-boosts_skill_name: "Speed Mirage"
 boost {
   skill_name: "Speed Mirage"
   lines: 12
   attacks_per_cast: 7
+  effect { skill_pct: 0.82 }
+  effect_per_level { skill_pct: 0.02 }
 }
-base { boosted_skill_pct: 0.82 }
-per_level { boosted_skill_pct: 0.02 }

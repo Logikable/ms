@@ -158,6 +158,25 @@ int ComboOrbsAt(const Skill& skill, int level);
 // and a wait that shortens as the skill is taught has to shorten in both.
 double CooldownAt(const Skill& skill, int level);
 
+// What one skill in the character's book hands ONE other skill by name, summed
+// across every skill granting it. Only the swing being priced reads its own
+// entry, so none of this follows the character onto their next attack --
+// see SkillBoost::effect.
+struct SkillBonus {
+  // Damage per line, added to the target's own skill_pct exactly as GMS states
+  // it: percentage POINTS on the named skill, worth their value once per line.
+  double skill_pct = 0.0;
+  // Boss damage, summed with the target's own and the character's -- all three
+  // are shares of the same damage.
+  double boss_pct = 0.0;
+  // Ignored defence, combined in reverse with the target's own rather than
+  // summed: two sources of 20% leave 64% of the monster's DEF, not 60%.
+  double ied = 0.0;
+  double crit_rate = 0.0;
+  // Final damage, which multiplies into the target's own.
+  double final_dmg_pct = 0.0;
+};
+
 // What a character's learned passives add to every swing, whichever attack
 // they end up choosing. Kept together rather than passed one at a time: the
 // list grows with each job book, and none of it depends on the target.
@@ -186,10 +205,10 @@ struct PassiveOffense {
   // Share of the monster's DEF the passives ignore, already combined across
   // them. Meets the gear's share in reverse, the same way they combined.
   double ied = 0.0;
-  // Extra damage per line for particular attack skills, keyed by display name.
-  // Only the entry matching the skill being swung is read, and most characters
-  // carry none -- see SkillEffect::boosted_skill_pct.
-  std::map<std::string, double> skill_pct_bonus;
+  // What the book hands particular skills, keyed by display name. Only the
+  // entry matching the skill being swung is read, and most characters carry
+  // none.
+  std::map<std::string, SkillBonus> skill_bonus;
   // What the map's Arcane Force requirement leaves of the swing: 1 everywhere
   // outside Arcane River, a tenth against a map the character has no force
   // for, half again against one they have half again over. A multiplier

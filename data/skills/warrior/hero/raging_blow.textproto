@@ -24,14 +24,12 @@ exceeds_master_level: true
 base_delay_ms: 660
 max_enemies: 8
 lines: 2
-boosts_skill_name: "Beam Blade"
-base {
-  skill_pct: 2.71
-  boosted_skill_pct: 0.41
-}
-per_level {
-  skill_pct: 0.04
-  boosted_skill_pct: 0.01
+base { skill_pct: 2.71 }
+per_level { skill_pct: 0.04 }
+boost {
+  skill_name: "Beam Blade"
+  effect { skill_pct: 0.41 }
+  effect_per_level { skill_pct: 0.01 }
 }
 extra_hit {
   label: "Critical Hits"
