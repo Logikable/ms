@@ -1,19 +1,18 @@
-# Not a replacement for Evil Eye Shock. GMS reads as one -- it repeats the base
-# skill's whole description -- but KMS calls it a "강화판이자 추가타 패시브", an
-# enhancement AND an additional-hit passive: the base scream still lands, and
-# this is a second volley fired with it. Which is why a level 1 of this is
-# worth less than a maxed Evil Eye Shock and is still worth buying.
+# Replaces Evil Eye Shock rather than joining it. There is only ever one shout:
+# GMS's client gives this skill no hitbox and no animation of its own, only a
+# restatement of the base skill's whole parameter set, and Grandis Library
+# types it an "Upgraded Passive" whose effect is "increases %Damage of attack".
 #
-# So it is an auto attack of its own on the same clock. The 2 seconds GMS also
-# takes off the base skill's cooldown are not modelled -- one skill cannot
-# reach into another here, and the stun is already left out for its own
-# reasons.
+# So the first three points really are a downgrade -- a level 1 here is 139%
+# against a maxed Evil Eye Shock's 150%, and GMS ships that wart. The stun and
+# the 12-second clock are the base skill's own and are not modelled twice.
 name: "Evil Eye Shock II"
 skill_order: 3
 description: "Empowers Evil Eye Shock, increasing its damage."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_BERSERKER
 max_level: 20
+supersedes_skill_name: "Evil Eye Shock"
 required_skill {
   skill_name: "Evil Eye Shock"
   level: 10

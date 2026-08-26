@@ -3,10 +3,13 @@
 # attacking is simply its own clock -- and Evil Eye Shock III lands a volley
 # every 10 seconds with four auras of darkness behind it.
 #
+# Shock III is the top of the one shout, so this supersedes Evil Eye Shock II,
+# which already supersedes the first. GMS states it as a permanent damage
+# increase to Evil Eye Shock, and the clock it takes over shortens from 12
+# seconds to 10.
+#
 # The auras reach 3 enemies where the volley reaches 10, so they cannot be one
-# attack: four auras of five strikes are 20 lines on the three. And this does
-# not replace Evil Eye Shock or its second, exactly as that one did not replace
-# the first -- all three shout.
+# attack: four auras of five strikes are 20 lines on the three.
 name: "Revenge of the Evil Eye"
 skill_order: 6
 description:
@@ -16,6 +19,7 @@ kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 max_level: 30
 exceeds_master_level: true
+supersedes_skill_name: "Evil Eye Shock II"
 required_skill {
   skill_name: "Evil Eye Shock II"
   level: 20

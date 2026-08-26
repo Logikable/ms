@@ -1060,6 +1060,16 @@ TEST(SkillDataTest, EverySupersededSkillIsHoldable) {
   EXPECT_GT(checked, 0) << "no skill in the catalog supersedes another";
 }
 
+// The one book where GMS itself spends points going backwards, by file stem.
+// Evil Eye Shock II opens at 139% against a maxed Evil Eye Shock's 150%, so
+// its first three points are a downgrade. That is GMS's own ladder and the
+// skill is meant to be maxed; the value is recorded rather than corrected.
+const std::set<std::string>& SupersedesBelowWhatItReplaces() {
+  static const std::set<std::string>* kStems =
+      new std::set<std::string>{"evil_eye_shock_ii"};
+  return *kStems;
+}
+
 // A superseding skill states the whole of what it replaces, so its FIRST level
 // has to clear the replaced skill's LAST one on every lever they share. The
 // point that buys it is otherwise a point spent going backwards, and nothing
@@ -1072,7 +1082,8 @@ TEST(SkillDataTest, ASupersedingSkillIsNeverWorseAtLevelOne) {
   int checked = 0;
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    if (skill.supersedes_skill_name().empty()) {
+    if (skill.supersedes_skill_name().empty() ||
+        SupersedesBelowWhatItReplaces().count(entry.first) > 0) {
       continue;
     }
     for (const std::pair<const std::string, Skill>& other : skills) {
@@ -1094,6 +1105,15 @@ TEST(SkillDataTest, ASupersedingSkillIsNeverWorseAtLevelOne) {
           const google::protobuf::FieldDescriptor* field = levers->field(i);
           double was = LeverValue(replaced_pair[half], field);
           double now = LeverValue(replacing_pair[half], field);
+          // The half that takes over may be an own-clock mode rather than the
+          // skill's own block: Revenge of the Evil Eye's `base` is its
+          // counterattack, and the Evil Eye Shock III replacing the shout is
+          // one of its modes. An ally never reads a mode, so only this half.
+          if (half == 0) {
+            for (const AutoMode& mode : skill.auto_mode()) {
+              now = std::max(now, LeverValue(mode.base(), field));
+            }
+          }
           if (was <= 0.0) {
             continue;
           }
@@ -1240,6 +1260,27 @@ TEST(SkillDataTest, OnlyTheClericsLineStacksAcrossAParty) {
   }
   EXPECT_EQ(stacking,
             (std::set<std::string>{"Blessed Ensemble", "Blessed Harmony"}));
+}
+
+// The Evil Eye shouts once, however far the book is taught. GMS gives Evil Eye
+// Shock II no attack of its own -- it restates the base skill's whole readout
+// and raises its damage -- and Revenge of the Evil Eye does the same again as
+// Evil Eye Shock III, shortening the clock from 12 seconds to 10. Three
+// stacking volleys is the reading this data was first written under, and this
+// pins the correction.
+TEST(SkillDataTest, TheEvilEyeShoutsOnce) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  EXPECT_EQ(skills.at("evil_eye_shock_ii").supersedes_skill_name(),
+            "Evil Eye Shock");
+  EXPECT_EQ(skills.at("revenge_of_the_evil_eye").supersedes_skill_name(),
+            "Evil Eye Shock II");
+  // The base keeps its own clock; the top of the chain takes two seconds off.
+  EXPECT_EQ(skills.at("evil_eye_shock").cast_interval_seconds(), 12.0);
+  EXPECT_EQ(skills.at("evil_eye_shock_ii").cast_interval_seconds(), 12.0);
+  const Skill& revenge = skills.at("revenge_of_the_evil_eye");
+  ASSERT_EQ(revenge.auto_mode_size(), 2);
+  EXPECT_EQ(revenge.auto_mode(0).label(), "Shock III");
+  EXPECT_EQ(revenge.auto_mode(0).cast_interval_seconds(), 10.0);
 }
 
 }  // namespace
