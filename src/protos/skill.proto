@@ -479,6 +479,19 @@ message Buff {
   // What the buff bleeds while it stands. Unset for every buff that only
   // grants levers, which is all of them but Puncture's wound.
   BuffPulse pulse = 6;
+  // Whether one of these stands over the whole party however many raise it.
+  // Epic Adventure is what it exists for: every Explorer has it, it does not
+  // stack with itself, and a party casts it in turn rather than all at once.
+  //
+  // The caster's own wait is untouched -- the page still states it. What
+  // changes is how often the buff comes ROUND on them, since a partner's cast
+  // covers them too: a party of N takes N turns to come back to the same
+  // player, so the buff is up N times as often as one caster could manage.
+  //
+  // Only a party member holding the skill is covered. That is the whole of the
+  // faction rule GMS states -- a Cygnus Knight will never learn an Explorer's
+  // Epic Adventure, so nothing has to ask what class anybody is.
+  bool party_shared = 8;
   // Lines the character has to land before this goes up, instead of a wait in
   // seconds. Mortal Blow is what it exists for: GMS counts the hits a Ranger
   // lands and pays them a window once the count comes round. Lines landed

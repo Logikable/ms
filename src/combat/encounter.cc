@@ -835,10 +835,25 @@ int AttackNamed(const std::vector<AttackOption>& attacks,
   return -1;
 }
 
+// How many of the party raise `skill`, the character among them. What a
+// party-shared buff divides its wait by -- see Buff::party_shared.
+int PartyHolders(const CharacterInstance& character,
+                 absl::Span<const CharacterInstance> party,
+                 const Skill& skill) {
+  int holders = 1;
+  for (const CharacterInstance& ally : party) {
+    if (ally.skill_level(skill) > 0) {
+      ++holders;
+    }
+  }
+  return holders;
+}
+
 // What the fight needs to run each buff's clock, at the level it is learned.
 // The levers are not here: those are folded into the tables below.
 void AddBuffs(const CharacterInstance& character,
               const std::map<std::string, Skill>& skills,
+              absl::Span<const CharacterInstance> party,
               const std::vector<const Skill*>& buff_skills, double speed_factor,
               double buff_duration_pct, CombatParams& params) {
   int bonus = BonusSkillLevels(character, skills);
@@ -854,6 +869,12 @@ void AddBuffs(const CharacterInstance& character,
          buff.duration_seconds_per_level() * (level - 1)) *
         (1.0 + buff_duration_pct) * speed_factor;
     option.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
+    // A party takes turns raising a shared buff, so it comes round on this
+    // character as often as the party between them can cast it. Their own wait
+    // is untouched: what shortens is the gap they spend without it.
+    if (buff.party_shared()) {
+      option.cooldown_seconds /= PartyHolders(character, party, *skill);
+    }
     option.damage_taken_pct = buff.base().damage_taken_pct() +
                               buff.per_level().damage_taken_pct() * (level - 1);
     option.cooldown_reduction_seconds =
@@ -1008,8 +1029,8 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {
     buff_skills.resize(kMaxBuffWindows);
   }
-  AddBuffs(state.character, state.skills, buff_skills, speed_factor,
-           derived.buff_duration_pct, params);
+  AddBuffs(state.character, state.skills, absl::MakeConstSpan(state.party),
+           buff_skills, speed_factor, derived.buff_duration_pct, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
   TagBuffGatedPulses(buff_skills, params);
 }

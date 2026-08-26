@@ -1054,6 +1054,48 @@ TEST(ComputeCombatParamsTest, ABuffGetsADamageTableOfItsOwn) {
                    params.attacks[0].damage_per_hit[0]);
 }
 
+// Epic Adventure's shape: one buff over the whole party, raised in turn. The
+// caster's own wait is untouched -- what shortens is the gap they spend
+// without it, because a partner's cast covers them too.
+TEST(ComputeCombatParamsTest, APartySharedBuffComesRoundOncePerHolder) {
+  Skill epic;
+  epic.set_name("Epic Adventure");
+  epic.set_kind(SKILL_KIND_ACTIVE);
+  epic.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  epic.set_max_level(1);
+  epic.set_base_delay_ms(900);
+  epic.set_cooldown_seconds(120.0);
+  Buff* buff = epic.mutable_buff();
+  buff->set_duration_seconds(60.0);
+  buff->set_party_shared(true);
+  buff->mutable_base()->set_damage_pct(0.10);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"epic_adventure", epic}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(epic, 1));
+  double factor = GameSpeedFactor(state.character.proto().level());
+
+  ASSERT_EQ(ComputeCombatParams(state).buffs.size(), 1u);
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).buffs[0].cooldown_seconds,
+                   120.0 * factor);
+
+  // A partner holding it takes every second turn, so it is up twice as often.
+  std::mt19937 rng(1);
+  Character ally = state.character.proto();
+  state.party.emplace_back(rng, ally);
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).buffs[0].cooldown_seconds,
+                   60.0 * factor);
+
+  // One who never learned it covers nobody.
+  ally.mutable_skill_levels()->clear();
+  state.party.emplace_back(rng, ally);
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).buffs[0].cooldown_seconds,
+                   60.0 * factor);
+}
+
 // Buff Mastery's lever lengthens the buff and leaves the wait alone, which is
 // the whole of what it buys: a buff up longer without coming round sooner.
 TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {
