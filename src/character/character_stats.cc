@@ -324,6 +324,7 @@ void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
     const SkillEffect& per = boost.effect_per_level();
     SkillBonus& into = totals.skill_bonus[boost.skill_name()];
     into.skill_pct += base.skill_pct() + per.skill_pct() * (level - 1);
+    into.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
     into.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
     into.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
     // The two that do not sum, for the reason they never do.

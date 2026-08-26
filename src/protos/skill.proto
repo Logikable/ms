@@ -686,12 +686,18 @@ message SkillBoost {
   // but Speed Mirage II's wants. Where two of them name one skill the faster
   // clock stands, since neither is a quantity that can be summed.
   int32 attacks_per_cast = 5;
-  // Levers the named skill alone carries, on top of its own. Five are read --
-  // skill_pct, boss_pct, ied_pct, crit_rate and final_dmg_pct -- and each
-  // meets the target's own the way two sources of it always meet: damage and
-  // boss damage sum, ignored defence combines in reverse, final damage
-  // multiplies. A lever outside those five is silently dropped, which
+  // Levers the named skill alone carries, on top of its own. Six are read --
+  // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate and final_dmg_pct --
+  // and each meets the target's own the way two sources of it always meet:
+  // damage and boss damage sum, ignored defence combines in reverse, final
+  // damage multiplies. A lever outside those six is silently dropped, which
   // //src/data_test:skill_test refuses.
+  //
+  // The two damages are not the same bargain. skill_pct is percentage POINTS
+  // on the target's own multiplier, worth its value once per line; damage_pct
+  // is a share of the character's damage that only this swing collects, and
+  // sums with what their gear and passives already pay. A Hyper Skill's
+  // Reinforce is the second -- GMS writes it "Damage: +20%".
   //
   // Not folded into the copy above, because these are not the target's own:
   // ignored defence would sum where it must combine, and the fold happens

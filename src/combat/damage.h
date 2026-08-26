@@ -166,6 +166,10 @@ struct SkillBonus {
   // Damage per line, added to the target's own skill_pct exactly as GMS states
   // it: percentage POINTS on the named skill, worth their value once per line.
   double skill_pct = 0.0;
+  // Plain % damage this swing alone collects, summed into the share the
+  // character's gear and passives already pay. The other damage a boost can
+  // grant, and the one a Hyper Skill's Reinforce is -- see SkillBoost::effect.
+  double damage_pct = 0.0;
   // Boss damage, summed with the target's own and the character's -- all three
   // are shares of the same damage.
   double boss_pct = 0.0;

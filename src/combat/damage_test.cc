@@ -665,6 +665,7 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   passives.final_dmg_pct = 0.10;
   SkillBonus& bonus = passives.skill_bonus["Wind Arrow"];
   bonus.skill_pct = 0.70;
+  bonus.damage_pct = 1.50;
   bonus.boss_pct = 0.30;
   bonus.ied = 0.20;
   bonus.crit_rate = 0.20;
@@ -683,6 +684,7 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
   EXPECT_EQ(boosted.lines, 3);
   // Each of the rest meets what the character brought the way two sources of
   // it always meet.
+  EXPECT_DOUBLE_EQ(boosted.damage_pct, untouched.damage_pct + 1.50);
   EXPECT_DOUBLE_EQ(boosted.boss_pct, untouched.boss_pct + 0.30);
   EXPECT_DOUBLE_EQ(boosted.ied, CombineIgnoredDefense(untouched.ied, 0.20));
   EXPECT_DOUBLE_EQ(boosted.crit_rate, untouched.crit_rate + 0.20);
@@ -690,6 +692,7 @@ TEST(OffenseStatsForTest, ANamedBoostRaisesOnlyThatSkillsLevers) {
                    (1.0 + untouched.final_dmg_pct) * 1.15 - 1.0);
   // The skill it does not name keeps every one of them.
   EXPECT_DOUBLE_EQ(untouched.skill_pct, 1.78);
+  EXPECT_DOUBLE_EQ(untouched.damage_pct, 0.0);
   EXPECT_DOUBLE_EQ(untouched.boss_pct, 0.10);
   EXPECT_DOUBLE_EQ(untouched.ied, 0.20);
 }

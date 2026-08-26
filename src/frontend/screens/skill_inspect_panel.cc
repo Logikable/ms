@@ -612,6 +612,10 @@ std::string BoostText(const SkillBoost& boost, int level) {
   };
   const BoostLever kBoostLevers[] = {
       {"Damage", &SkillEffect::skill_pct},
+      // Told apart from the row above because the two are different bargains:
+      // that one is points on the skill's own multiplier, this one a share of
+      // the character's damage. See SkillBoost::effect.
+      {"Total Damage", &SkillEffect::damage_pct},
       {"Final Damage", &SkillEffect::final_dmg_pct},
       {"Boss Damage", &SkillEffect::boss_pct},
       {"Ignore DEF", &SkillEffect::ied_pct},

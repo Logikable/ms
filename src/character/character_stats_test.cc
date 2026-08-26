@@ -1402,6 +1402,26 @@ TEST_F(DerivedStatsTest, ABoostReachesOnlyTheSkillItNames) {
   EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
 }
 
+// The other damage a boost can grant: a share of the character's own, which
+// only the named skill collects. See SkillBoost::effect.
+TEST_F(DerivedStatsTest, ABoostsPlainDamageStaysWithItsSkill) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill reinforce = SpeedMirage();
+  reinforce.set_name("Wind Arrow - Reinforce");
+  reinforce.set_max_level(1);
+  SkillBoost* boost = reinforce.mutable_boost(0);
+  boost->clear_effect_per_level();
+  boost->mutable_effect()->clear_skill_pct();
+  boost->mutable_effect()->set_damage_pct(1.50);
+  std::map<std::string, Skill> skills = {{"reinforce", reinforce}};
+  ASSERT_TRUE(c.LearnSkill(reinforce, 1));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.skill_bonus.at("Wind Arrow").damage_pct, 1.50, 1e-9);
+  EXPECT_DOUBLE_EQ(stats.skill_bonus.at("Wind Arrow").skill_pct, 0.0);
+  EXPECT_DOUBLE_EQ(stats.damage_pct, 0.0);
+}
+
 TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
   CharacterInstance c = MakeCharacter(rng_, 15, 100);
   Skill first = SpeedMirage();

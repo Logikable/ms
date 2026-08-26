@@ -447,6 +447,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
     if (boost != passives.skill_bonus.end()) {
       const SkillBonus& bonus = boost->second;
       offense.skill_pct += bonus.skill_pct;
+      offense.damage_pct += bonus.damage_pct;
       offense.boss_pct += bonus.boss_pct;
       offense.ied = CombineIgnoredDefense(offense.ied, bonus.ied);
       offense.crit_rate += bonus.crit_rate;
