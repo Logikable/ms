@@ -1,7 +1,9 @@
 name: "Magnus"
 # Written down, not built: one body alone in the middle of his arena, at the
 # numbers GMS gives Normal. Only the HP is stated, because nothing else is
-# decided.
+# decided -- except the clock, which is 900 seconds: half again what Horntail
+# allows, for a body twice his size. A fight that is not built states no time
+# limit, so the number waits here until it can be set.
 difficulties {
   name: "Normal"
   phases {
