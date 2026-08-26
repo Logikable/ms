@@ -1,0 +1,20 @@
+# GMS states no clock for this, and there is none in the data to find: the
+# summon's attack info carries a hit count and a reach but no interval, so the
+# cadence is a constant the client holds for the whole family of old summons.
+# Fiel's measurements put that at 3030ms, and the two other summons of the
+# family still animate in 1170ms against it -- the animation was never the
+# cycle. Rounded to 3 seconds, which is what a 2009 measurement supports.
+#
+# One enemy and one strike, which is what makes it a modest skill: the eye
+# roams and picks its own target rather than joining the shout.
+name: "Evil Eye of Domination"
+skill_order: 3
+description: "Your Evil Eye roams freely, attacking nearby enemies."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_BERSERKER
+max_level: 10
+max_enemies: 1
+lines: 1
+cast_interval_seconds: 3.0
+base { skill_pct: 1.56 }
+per_level { skill_pct: 0.06 }

@@ -7,7 +7,7 @@
 # against a maxed Evil Eye Shock's 150%, and GMS ships that wart. The stun and
 # the 12-second clock are the base skill's own and are not modelled twice.
 name: "Evil Eye Shock II"
-skill_order: 3
+skill_order: 4
 description: "Empowers Evil Eye Shock, increasing its damage."
 kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_BERSERKER
