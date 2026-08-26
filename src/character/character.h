@@ -389,6 +389,18 @@ class CharacterInstance {
   // under an older set of rules is the thing that can be off.
   int ReconcileAp();
 
+  // Puts the character's learned skills back inside their books and returns
+  // how many points had to move. A skill taught past a max_level the data has
+  // since lowered is cut to that max, and every point it gives up is spent
+  // again on a random skill of the SAME book that can still take one -- below
+  // its own max, its requirement met, its level reached.
+  //
+  // Same book because that is what keeps the SP ledger straight: those points
+  // came out of one stage's pool, which never moves. A book whose total is the
+  // SP its levels pay always has somewhere to put them, so the pool is only
+  // the last resort. Called on loading a save, beside ReconcileAp.
+  int ReconcileSkills(const std::map<std::string, Skill>& skills);
+
   // Sum of stats from all currently equipped items. Updated automatically by
   // Equip, Unequip, and ScrollEquipped.
   const EquipStats& equip_stats() const {

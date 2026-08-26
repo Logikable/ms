@@ -48,7 +48,8 @@ class SaveTest : public testing::Test {
 
   // A state carrying the catalogs a save refers to by name. Built for tests,
   // so it does not need the game's data files.
-  std::unique_ptr<GameState> MakeState() {
+  std::unique_ptr<GameState> MakeState(
+      std::map<std::string, Skill> skills = {}) {
     // Keyed by data-file stem like the real catalogs, not by display name --
     // a save refers to items by the name the player sees, and a fixture that
     // conflated the two would hide a lookup against the wrong key.
@@ -56,7 +57,8 @@ class SaveTest : public testing::Test {
     std::map<std::string, ItemPrototype> items{{"green_snail_shell", shell_}};
     return std::make_unique<GameState>(equips, std::map<std::string, Scroll>{},
                                        items, std::map<std::string, Mob>{},
-                                       std::map<std::string, MapData>{});
+                                       std::map<std::string, MapData>{},
+                                       std::move(skills));
   }
 
   std::string ReadRaw(const std::string& path) {
@@ -711,6 +713,40 @@ TEST_F(SaveTest, AFailedWriteIsReportedAndSurvived) {
   std::filesystem::create_directory(dir_ / "ms.save.writing");
   EXPECT_FALSE(policy.Save(*state, Clock::now()));
   std::filesystem::remove(dir_ / "ms.save.writing");
+}
+
+// The skills' own door, beside the AP one above. A book whose maximums have
+// come down since the save was written is put back inside them, and the levels
+// it takes off are spent again rather than lost.
+TEST_F(SaveTest, ASaveTaughtPastAMaximumIsPutBackInsideItsBook) {
+  std::map<std::string, Skill> skills;
+  for (const std::pair<std::string, int> entry :
+       {std::pair<std::string, int>{"Slash Blast", 10},
+        std::pair<std::string, int>{"Iron Body", 20}}) {
+    Skill& skill = skills[entry.first];
+    skill.set_name(entry.first);
+    skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+    skill.set_max_level(entry.second);
+  }
+  std::unique_ptr<GameState> saved = MakeState(skills);
+  saved->character.AdvanceJob(JOB_SWORDMAN);
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  // Rewritten as a save from when Slash Blast still went to 20.
+  SaveGame on_disk;
+  ASSERT_TRUE(on_disk.ParseFromString(ReadRaw(path_)));
+  (*on_disk.mutable_characters(0)
+        ->mutable_character()
+        ->mutable_skill_levels())["Slash Blast"] = 20;
+  std::string bytes;
+  ASSERT_TRUE(on_disk.SerializeToString(&bytes));
+  WriteRaw(path_, bytes);
+
+  std::unique_ptr<GameState> loaded = MakeState(skills);
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_EQ(loaded->character.skill_level(skills.at("Slash Blast")), 10);
+  EXPECT_EQ(loaded->character.skill_level(skills.at("Iron Body")), 10)
+      << "the ten it gave up went nowhere";
 }
 
 }  // namespace

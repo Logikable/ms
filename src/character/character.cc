@@ -1,8 +1,10 @@
 #include "src/character/character.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <map>
 #include <memory>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1063,6 +1065,76 @@ int CharacterInstance::ReconcileAp() {
   // and the pool is empty, which is a fresh character's worth and the closest
   // to right this can get.
   return delta;
+}
+
+namespace {
+
+// Every skill of `book`'s own book the character could still put one point
+// into: below its own max, its requirement met, its level reached. Asked once
+// per point, so a skill that the point before it has just unlocked joins the
+// list rather than being missed.
+std::vector<const Skill*> TakersIn(const CharacterInstance& character,
+                                   const std::map<std::string, Skill>& skills,
+                                   const Skill& book) {
+  std::vector<const Skill*> takers;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.job_advancement() != book.job_advancement() ||
+        skill.hyper() != book.hyper() ||
+        character.skill_level(skill) >= skill.max_level() ||
+        character.proto().level() < skill.required_level() ||
+        !character.MeetsSkillRequirement(skill)) {
+      continue;
+    }
+    takers.push_back(&skill);
+  }
+  return takers;
+}
+
+}  // namespace
+
+int CharacterInstance::ReconcileSkills(
+    const std::map<std::string, Skill>& skills) {
+  int moved = 0;
+  // Walked over the catalog rather than over the learned levels, because a
+  // display name repeats across branches -- two Endures, ten Maple Warriors --
+  // and the book the character holds is what says which one they learned.
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& taught = entry.second;
+    if (!HasAdvancement(taught.job_advancement())) {
+      continue;
+    }
+    int spare = skill_level(taught) - taught.max_level();
+    if (spare <= 0) {
+      continue;
+    }
+    // Logged even though it is fixed, for the reason ReconcileAp logs: a book
+    // that no longer fits is either a save from older data or a bug in the
+    // granting, and the second is invisible if this quietly tidies up.
+    LOG(WARNING) << taught.name() << " is taught to " << skill_level(taught)
+                 << " of a maximum " << taught.max_level()
+                 << "; cutting it back and re-spending " << spare;
+    (*character_.mutable_skill_levels())[taught.name()] = taught.max_level();
+    moved += spare;
+    for (; spare > 0; --spare) {
+      std::vector<const Skill*> takers = TakersIn(*this, skills, taught);
+      if (takers.empty()) {
+        // Nowhere in the book to put it. A book costs exactly what its levels
+        // pay out, so there always should be -- the point goes back to the
+        // pool that bought it rather than being lost.
+        if (taught.hyper()) {
+          character_.set_hyper_sp(character_.hyper_sp() + 1);
+        } else {
+          (*character_.mutable_sp_by_stage())[StageForAdvancement(
+              taught.job_advancement())] += 1;
+        }
+        continue;
+      }
+      std::uniform_int_distribution<std::size_t> pick(0, takers.size() - 1);
+      (*character_.mutable_skill_levels())[takers[pick(rng_)]->name()] += 1;
+    }
+  }
+  return moved;
 }
 
 bool CharacterInstance::CanAdvanceJob() const {

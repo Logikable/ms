@@ -2909,5 +2909,139 @@ TEST_F(SymbolTest, TheGrantFollowsTheJob) {
   EXPECT_EQ(c_.equip_stats().str(), 300) << "and a Hero on STR";
 }
 
+// --- ReconcileSkills ---
+
+// A character of `job` at `stage` with `levels` already learned, and `sp` left
+// in the stage's pool. Level 30 so nothing is held back by required_level.
+CharacterInstance MakeCharacterWithSkills(
+    std::mt19937& rng, Job job, int stage,
+    const std::map<std::string, int>& levels, int sp = 0) {
+  Character proto;
+  proto.set_job(job);
+  proto.set_job_stage(stage);
+  proto.set_level(30);
+  (*proto.mutable_sp_by_stage())[stage] = sp;
+  for (const std::pair<const std::string, int>& entry : levels) {
+    (*proto.mutable_skill_levels())[entry.first] = entry.second;
+  }
+  return CharacterInstance(rng, std::move(proto));
+}
+
+// A book of one advancement, keyed by name as the catalog is by stem -- near
+// enough here, since nothing in these tests has two names to tell apart.
+void AddBook(std::map<std::string, Skill>& skills, JobAdvancement advancement,
+             const std::vector<std::pair<std::string, int>>& maxes) {
+  for (const std::pair<std::string, int>& entry : maxes) {
+    skills[entry.first] = MakeSkill(entry.first, advancement, entry.second);
+  }
+}
+
+// What every skill in `skills` adds up to for this character, which is the SP
+// the books have swallowed and must not change.
+int TotalLearned(const CharacterInstance& c,
+                 const std::map<std::string, Skill>& skills) {
+  int total = 0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    total += c.skill_level(entry.second);
+  }
+  return total;
+}
+
+class ReconcileSkillsTest : public CharacterTest {};
+
+TEST_F(ReconcileSkillsTest, ABookThatFitsIsLeftAlone) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 10}, {"Guard", 20}});
+  CharacterInstance c = MakeCharacterWithSkills(rng_, JOB_SWORDMAN, 1,
+                                                {{"Slash", 10}, {"Guard", 3}});
+  EXPECT_EQ(c.ReconcileSkills(skills), 0);
+  EXPECT_EQ(c.skill_level(skills.at("Slash")), 10);
+  EXPECT_EQ(c.skill_level(skills.at("Guard")), 3);
+}
+
+// The whole point: the level comes down, the points do not disappear, and the
+// pool that bought them never moves.
+TEST_F(ReconcileSkillsTest, PointsPastTheMaxAreSpentAgainInTheSameBook) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_SWORDMAN,
+          {{"Slash", 10}, {"Guard", 20}, {"Rage", 20}, {"Focus", 20}});
+  CharacterInstance c = MakeCharacterWithSkills(
+      rng_, JOB_SWORDMAN, 1, {{"Slash", 40}, {"Guard", 0}, {"Rage", 0}}, 7);
+  int before = TotalLearned(c, skills);
+
+  EXPECT_EQ(c.ReconcileSkills(skills), 30);
+  EXPECT_EQ(c.skill_level(skills.at("Slash")), 10);
+  EXPECT_EQ(TotalLearned(c, skills), before) << "points were lost or invented";
+  EXPECT_EQ(c.sp(1), 7) << "the pool already paid for them";
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    EXPECT_LE(c.skill_level(entry.second), entry.second.max_level())
+        << entry.first << " was overfilled in its turn";
+  }
+  // The seed is fixed, so this is a spread rather than a coin toss: thirty
+  // points drawn over three takers reach all three.
+  EXPECT_GT(c.skill_level(skills.at("Guard")), 0);
+  EXPECT_GT(c.skill_level(skills.at("Rage")), 0);
+  EXPECT_GT(c.skill_level(skills.at("Focus")), 0);
+}
+
+// A point belongs to the pool that bought it, so it may only be spent on the
+// book that pool buys -- otherwise a Fighter's stage-2 SP would quietly pay
+// for stage-1 levels and neither book would add up again.
+TEST_F(ReconcileSkillsTest, AnotherBooksSkillIsNeverATaker) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 10}, {"Guard", 20}});
+  AddBook(skills, JOB_ADVANCEMENT_FIGHTER, {{"Rage", 20}});
+  CharacterInstance c =
+      MakeCharacterWithSkills(rng_, JOB_FIGHTER, 2, {{"Slash", 15}});
+
+  EXPECT_EQ(c.ReconcileSkills(skills), 5);
+  EXPECT_EQ(c.skill_level(skills.at("Guard")), 5);
+  EXPECT_EQ(c.skill_level(skills.at("Rage")), 0);
+}
+
+// Drawn one point at a time, so a skill the points before it have just
+// unlocked joins the draw. Nothing else here can take one, which makes the
+// order the test asserts the only order there is.
+TEST_F(ReconcileSkillsTest, ASkillTheseVeryPointsUnlockCanTakeThem) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 10}, {"Gate", 5}});
+  Skill& gated = skills["Gated"] =
+      MakeSkill("Gated", JOB_ADVANCEMENT_SWORDMAN, 20);
+  gated.mutable_required_skill()->set_skill_name("Gate");
+  gated.mutable_required_skill()->set_level(5);
+  CharacterInstance c =
+      MakeCharacterWithSkills(rng_, JOB_SWORDMAN, 1, {{"Slash", 18}});
+
+  EXPECT_EQ(c.ReconcileSkills(skills), 8);
+  EXPECT_EQ(c.skill_level(skills.at("Gate")), 5) << "the only taker at first";
+  EXPECT_EQ(c.skill_level(skills.at("Gated")), 3) << "and the taker after";
+}
+
+// A book costs exactly what its levels pay out, so this should never happen.
+// If it does, the point is worth more back in the pool than lost.
+TEST_F(ReconcileSkillsTest, WithNoTakerThePointsGoBackToThePool) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_SWORDMAN, {{"Slash", 10}});
+  CharacterInstance c =
+      MakeCharacterWithSkills(rng_, JOB_SWORDMAN, 1, {{"Slash", 13}}, 2);
+
+  EXPECT_EQ(c.ReconcileSkills(skills), 3);
+  EXPECT_EQ(c.skill_level(skills.at("Slash")), 10);
+  EXPECT_EQ(c.sp(1), 5);
+}
+
+// A book the character has not reached is not theirs to rebalance: a Swordman
+// carrying a Fighter's name in their save is a save to leave alone, not one to
+// spend a Fighter's points out of.
+TEST_F(ReconcileSkillsTest, ABookTheCharacterCannotHoldIsNotTouched) {
+  std::map<std::string, Skill> skills;
+  AddBook(skills, JOB_ADVANCEMENT_FIGHTER, {{"Rage", 10}, {"Guard", 20}});
+  CharacterInstance c =
+      MakeCharacterWithSkills(rng_, JOB_SWORDMAN, 1, {{"Rage", 15}});
+
+  EXPECT_EQ(c.ReconcileSkills(skills), 0);
+  EXPECT_EQ(c.skill_level(skills.at("Rage")), 15);
+}
+
 }  // namespace
 }  // namespace ms

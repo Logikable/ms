@@ -8,6 +8,7 @@
 #include <cmath>
 #include <map>
 #include <memory>
+#include <random>
 #include <set>
 #include <string>
 #include <utility>
@@ -19,6 +20,7 @@
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/proto_loader.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 #include "tools/cpp/runfiles/runfiles.h"
@@ -1281,6 +1283,31 @@ TEST(SkillDataTest, TheEvilEyeShoutsOnce) {
   ASSERT_EQ(revenge.auto_mode_size(), 2);
   EXPECT_EQ(revenge.auto_mode(0).label(), "Shock III");
   EXPECT_EQ(revenge.auto_mode(0).cast_interval_seconds(), 10.0);
+}
+
+// The save this reconcile was written for. A Berserker who had maxed the old
+// book carried Lord of Darkness at 20; the book now stops it at 10 and spends
+// the ten it gives up on the Evil Eye of Domination that took its place. Every
+// other skill in the book is already at its own max, so there is exactly one
+// taker and the draw has nothing to choose between.
+TEST(SkillDataTest, AMaxedBerserkerBookRebalancesOntoDomination) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  Character proto;
+  proto.set_job(JOB_BERSERKER);
+  proto.set_job_stage(3);
+  proto.set_level(100);
+  // The old book, as a save from before Domination existed holds it.
+  for (const char* name :
+       {"La Mancha Spear", "Cross Surge", "Evil Eye Shock II",
+        "Hex of the Evil Eye", "Lord of Darkness", "Endure"}) {
+    (*proto.mutable_skill_levels())[name] = 20;
+  }
+  std::mt19937 rng(0);
+  CharacterInstance berserker(rng, std::move(proto));
+
+  EXPECT_EQ(berserker.ReconcileSkills(skills), 10);
+  EXPECT_EQ(berserker.skill_level(skills.at("lord_of_darkness")), 10);
+  EXPECT_EQ(berserker.skill_level(skills.at("evil_eye_of_domination")), 10);
 }
 
 }  // namespace
