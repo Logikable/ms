@@ -2366,6 +2366,60 @@ TEST(CombatSimTest, ABuffCanSoftenTheHitsWhileItStands) {
   EXPECT_EQ(sim.player_hp(), 70);
 }
 
+// Smokescreen over a party: the Shadower's clock rather than the reader's,
+// and no swing of theirs spent raising it. It softens the same way their own
+// buff would and lapses the same way, so the hit after it is whole again.
+TEST(CombatSimTest, APartysBuffSoftensTheHitsAndCostsNoSwing) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/10.0);
+  BuffOption ally;
+  ally.name = "Smokescreen";
+  ally.duration_seconds = 2.0;
+  ally.cooldown_seconds = 4.0;
+  ally.damage_taken_pct = 0.5;
+  params.ally_buffs.push_back(std::move(ally));
+
+  // Up after this step's blow has landed, as the character's own buffs are --
+  // and the swing still lands, because nobody here cast anything.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 90);
+  EXPECT_EQ(sim.damage_this_step(), 1.0);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 85);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 80);
+  sim.Advance(params, 1.0);  // lapsed, and the caster's wait still running
+  EXPECT_EQ(sim.player_hp(), 70);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 60);  // the wait closes, and it goes up again
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 55);
+}
+
+// Two shelters are not one shelter twice over: the party's and the
+// character's own multiply, the way every reduction in the game does.
+TEST(CombatSimTest, APartysBuffMultipliesWithTheCharactersOwn) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/20.0);
+  GiveBuff(params, /*duration=*/10.0, /*cooldown=*/60.0, /*factor=*/1.0,
+           /*heal=*/0.0, /*reduction=*/0.0, /*soften=*/0.5);
+  BuffOption ally;
+  ally.name = "Smokescreen";
+  ally.duration_seconds = 10.0;
+  ally.cooldown_seconds = 60.0;
+  ally.damage_taken_pct = 0.5;
+  params.ally_buffs.push_back(std::move(ally));
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 80);  // both go up behind this blow
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 75);  // a quarter of the hit, not none of it
+}
+
 // Puncture's shape: a weaker swing that leaves a wound, and a harder one the
 // fight would otherwise never put down. The buff is laid by the weak swing
 // rather than raised on a wait, and while it stands every swing hits `factor`

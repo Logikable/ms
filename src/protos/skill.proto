@@ -498,6 +498,16 @@ message Buff {
   // while it stands do not count, so its uptime is what their firing rate
   // buys. 0 for a buff that waits on a clock, which is every other one.
   int32 charge_lines = 7;
+  // What everybody ELSE in the party gets while this stands, read at the
+  // caster's level. Smokescreen alone: GMS shelters the party under it, and
+  // this hands them a share off what a hit costs instead.
+  //
+  // Apart from Skill.ally_base, which grants for good. A buff's party half
+  // comes and goes on the caster's clock, so it reaches an ally as a window of
+  // their own rather than as a passive -- and a 30-second buff behind a
+  // 120-second wait folded in as a passive would pay four times over.
+  SkillEffect ally_base = 9;
+  SkillEffect ally_per_level = 10;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

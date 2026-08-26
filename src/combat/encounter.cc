@@ -899,6 +899,34 @@ void AddBuffs(const CharacterInstance& character,
   }
 }
 
+// The buffs the rest of the party puts up over this character, on their
+// casters' clocks and at their casters' levels. What they grant never reaches
+// a damage table: all a party buff can hand over is a share off what a hit
+// costs, and the fight takes that off the hit itself.
+//
+// The caster's own Buff Duration is not read -- what the party hands over is a
+// level, not a character -- so a Shadower who lengthened their own smokescreen
+// still covers the party for the plain thirty seconds.
+void AddAllyBuffs(const GameState& state, double speed_factor,
+                  CombatParams& params) {
+  for (const AllyGrant& grant : AllyBuffsFor(
+           state.character, state.skills, absl::MakeConstSpan(state.party))) {
+    const Buff& buff = grant.skill->buff();
+    BuffOption option;
+    option.name = grant.skill->name();
+    option.duration_seconds =
+        (buff.duration_seconds() +
+         buff.duration_seconds_per_level() * (grant.level - 1)) *
+        speed_factor;
+    option.cooldown_seconds =
+        CooldownAt(*grant.skill, grant.level) * speed_factor;
+    option.damage_taken_pct =
+        buff.ally_base().damage_taken_pct() +
+        buff.ally_per_level().damage_taken_pct() * (grant.level - 1);
+    params.ally_buffs.push_back(std::move(option));
+  }
+}
+
 // Points each bleeding buff's pulse at the buff it belongs to, in the base set
 // and in every buffed one alike -- the fight reads whichever set the mask
 // names, so a tag on one of them would come and go with the buffs.
@@ -1031,6 +1059,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   }
   AddBuffs(state.character, state.skills, absl::MakeConstSpan(state.party),
            buff_skills, speed_factor, derived.buff_duration_pct, params);
+  AddAllyBuffs(state, speed_factor, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
   TagBuffGatedPulses(buff_skills, params);
 }

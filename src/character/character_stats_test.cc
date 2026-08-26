@@ -2197,6 +2197,64 @@ TEST_F(DerivedStatsTest, AllyGrantReachesOnlyWhoeverLacksTheSkill) {
   EXPECT_EQ(DerivedStatsFor(other, skills, {}, party).skill_stats.attack(), 15);
 }
 
+// Smokescreen's shape: the party half lives inside the BUFF, so it reaches an
+// ally as a window of their own rather than folding in as a passive. What
+// DerivedStatsFor is asked here is the negative -- nothing permanent -- and
+// AllyBuffsFor is what hands the fight the window.
+Skill Smokescreen() {
+  Skill skill;
+  skill.set_name("Smokescreen");
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(10);
+  skill.set_cooldown_seconds(120.0);
+  Buff& buff = *skill.mutable_buff();
+  buff.set_duration_seconds(30.0);
+  buff.mutable_base()->set_damage_taken_pct(0.01);
+  buff.mutable_per_level()->set_damage_taken_pct(0.01);
+  buff.mutable_ally_base()->set_damage_taken_pct(0.01);
+  buff.mutable_ally_per_level()->set_damage_taken_pct(0.01);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, ABuffsPartyHalfIsAWindowRatherThanAPassive) {
+  Skill smoke = Smokescreen();
+  std::map<std::string, Skill> skills = {{"smokescreen", smoke}};
+  CharacterInstance caster = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(caster.LearnSkill(smoke, 10));
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+
+  // Nothing permanent, either way round: the caster's own half is a buff too.
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(plain, skills, {}, party).damage_taken_pct,
+                   0.0);
+  std::vector<AllyGrant> buffs = AllyBuffsFor(plain, skills, party);
+  ASSERT_EQ(buffs.size(), 1u);
+  EXPECT_EQ(buffs[0].skill->name(), "Smokescreen");
+  EXPECT_EQ(buffs[0].level, 10);
+}
+
+// The two rules that thin a permanent grant thin a buff's window the same
+// way: a Shadower takes nothing from the Shadower beside them, and nobody
+// takes anything from an ally who never learned it.
+TEST_F(DerivedStatsTest, APartyBuffReachesOnlyWhoeverLacksTheSkill) {
+  Skill smoke = Smokescreen();
+  std::map<std::string, Skill> skills = {{"smokescreen", smoke}};
+  CharacterInstance plain = MakeCharacter(rng_, 100, 0);
+  CharacterInstance holder = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(holder.LearnSkill(smoke, 10));
+  CharacterInstance caster = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(caster.LearnSkill(smoke, 10));
+  std::vector<CharacterInstance> party = PartyOf(std::move(caster));
+
+  EXPECT_TRUE(AllyBuffsFor(plain, skills, {}).empty());
+  // An ally who never learned it holds nothing over anybody.
+  EXPECT_TRUE(AllyBuffsFor(plain, skills, PartyOf(MakeCharacter(rng_, 100, 0)))
+                  .empty());
+  EXPECT_TRUE(AllyBuffsFor(holder, skills, party).empty());
+  EXPECT_EQ(AllyBuffsFor(plain, skills, party).size(), 1u);
+}
+
 // Angel Ray's shape: an attack's own recovery leaves with the swing, but the
 // share it hands the party is a passive and has to survive that stripping.
 TEST_F(DerivedStatsTest, AnAttacksAllyHalfPaysAsAPassive) {

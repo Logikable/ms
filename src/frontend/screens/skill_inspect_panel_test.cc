@@ -1566,6 +1566,40 @@ TEST_F(SkillInspectPanelTest, WhatThePartyGetsIsHeadedApart) {
   EXPECT_EQ(RenderAt(MakeIronBody(), 10).find("Your Party"), std::string::npos);
 }
 
+// Smokescreen's party half lapses with the buff, so it is read under the
+// buff's own heading rather than at the foot of the card, where it would look
+// like something the party keeps.
+TEST_F(SkillInspectPanelTest, ABuffsPartyHalfSitsUnderTheBuff) {
+  Skill smoke = MakeIronBody();
+  smoke.set_name("Smokescreen");
+  Buff* buff = smoke.mutable_buff();
+  buff->set_duration_seconds(30.0);
+  buff->mutable_base()->set_crit_dmg(0.02);
+  buff->mutable_ally_base()->set_damage_taken_pct(0.01);
+  buff->mutable_ally_per_level()->set_damage_taken_pct(0.01);
+
+  // The first of each: the card states every level the reader can see, so the
+  // rows below all repeat further down it.
+  std::vector<std::string> lines = Lines(RenderAt(smoke, 10));
+  int active = -1;
+  int party = -1;
+  int taken = -1;
+  for (int i = static_cast<int>(lines.size()) - 1; i >= 0; --i) {
+    if (lines[i].find("Active for") != std::string::npos) {
+      active = i;
+    }
+    if (lines[i].find("Your Party") != std::string::npos) {
+      party = i;
+    }
+    if (lines[i].find("Damage Taken") != std::string::npos) {
+      taken = i;
+    }
+  }
+  EXPECT_GT(active, 0);
+  EXPECT_GT(party, active) << "the party's share belongs to the buff";
+  EXPECT_GT(taken, party) << "and sits under its own heading";
+}
+
 // Parashock Guard pays its caster only for shielding somebody. A player
 // maxing it alone sees nothing move, so the heading over its own half has to
 // say why -- and it says so even on a page with no other section on it.

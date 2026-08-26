@@ -1195,11 +1195,11 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
 // data keeps its ally half only if somebody notices, and the wiki is the only
 // thing that says it ever had one.
 //
-// The four GMS party skills NOT here are event-driven -- Heal and Holy Magic
-// Shell are casts, Angel Ray's heal rides each hit, and Smokescreen is a
-// timed buff -- and nothing carries a caster's actions to an ally's fight
-// yet. Dispel is out for a duller reason: what it cures is a display-only
-// lever, so an ally half of it would grant a row and nothing else.
+// The three GMS party skills NOT here are casts -- Heal and Holy Magic Shell
+// are raised on somebody, and Angel Ray's healing rides each hit -- and
+// nothing carries a caster's actions to an ally's fight yet. Dispel is out for
+// a duller reason: what it cures is a display-only lever, so an ally half of
+// it would grant a row and nothing else.
 const char* const kPartySkills[] = {
     "Absolute Zero Aura", "Advanced Blessing",
     "Angel Ray",          "Bless",
@@ -1208,7 +1208,8 @@ const char* const kPartySkills[] = {
     "Holy Fountain",      "Holy Symbol",
     "Holy Water",         "Meditation",
     "Parashock Guard",    "Puncture",
-    "Sharp Eyes",         "Spirit Blade",
+    "Sharp Eyes",         "Smokescreen",
+    "Spirit Blade",
 };
 
 TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
@@ -1216,7 +1217,8 @@ TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
   std::set<std::string> found;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
-    if (!skill.has_ally_base() && !skill.has_ally_per_level()) {
+    if (!skill.has_ally_base() && !skill.has_ally_per_level() &&
+        !skill.buff().has_ally_base() && !skill.buff().has_ally_per_level()) {
       continue;
     }
     EXPECT_GT(want.count(skill.name()), 0u)
@@ -1227,13 +1229,14 @@ TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
 }
 
 // A description has to match the grant: a skill the party feels says so, and
-// one that says so grants it. Three ways of reaching them count -- a half held
-// for allies, a demand for company, and a buff that stands over the whole
-// party however many raise it. Two skills are excused, and GMS excuses both.
-// Puncture's party clause lives in its readout rather than its flavour text.
-// Blessed Harmony hands out nothing of its own -- it restates the Ensemble it
-// replaces, and names it, and the Ensemble's own page says what that is worth.
-// Either way the card's Your Party row still carries the number.
+// one that says so grants it. Four ways of reaching them count -- a half held
+// for allies, the same again inside a buff, a demand for company, and a buff
+// that stands over the whole party however many raise it. Two skills are
+// excused, and GMS excuses both. Puncture's party clause lives in its readout
+// rather than its flavour text. Blessed Harmony hands out nothing of its own --
+// it restates the Ensemble it replaces, and names it, and the Ensemble's own
+// page says what that is worth. Either way the card's Your Party row still
+// carries the number.
 TEST(SkillDataTest, ADescriptionSaysWhetherThePartyIsReached) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
@@ -1241,6 +1244,8 @@ TEST(SkillDataTest, ADescriptionSaysWhetherThePartyIsReached) {
       continue;
     }
     bool reaches = skill.has_ally_base() || skill.has_ally_per_level() ||
+                   skill.buff().has_ally_base() ||
+                   skill.buff().has_ally_per_level() ||
                    skill.requires_party() || skill.buff().party_shared();
     bool says = skill.description().find("party") != std::string::npos;
     EXPECT_EQ(reaches, says)

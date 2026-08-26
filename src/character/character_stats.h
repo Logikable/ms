@@ -284,6 +284,22 @@ std::vector<const Skill*> BuffSkillsFor(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills);
 
+// One skill an ally is holding over the party, and the level their book has it
+// at. What it grants is read at that level, not at the reader's.
+struct AllyGrant {
+  const Skill* skill = nullptr;
+  int level = 0;
+};
+
+// The timed buffs the rest of the party puts up over this character: every
+// ally skill whose BUFF carries a party half (Buff.ally_base), thinned by the
+// two rules DerivedStatsFor states below. What it grants is not folded in here
+// either -- an ally's buff is up only while their clock says so, so the fight
+// runs a window of its own for each one. See CombatParams::ally_buffs.
+std::vector<AllyGrant> AllyBuffsFor(const CharacterInstance& character,
+                                    const std::map<std::string, Skill>& skills,
+                                    absl::Span<const CharacterInstance> allies);
+
 // `skills` is the loaded skill catalog; every passive in it the character has
 // learned contributes its level's effect. Attack skills are ignored -- their
 // lever is damage, which OffenseStatsFor handles.

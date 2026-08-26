@@ -1096,6 +1096,51 @@ TEST(ComputeCombatParamsTest, APartySharedBuffComesRoundOncePerHolder) {
                    60.0 * factor);
 }
 
+// Smokescreen's shape: an ally's buff stands over this character on the
+// caster's clock, at the caster's level, and never touches a damage table --
+// all it can hand over is a share off what a hit costs.
+TEST(ComputeCombatParamsTest, APartysBuffComesInOnItsCastersClock) {
+  Skill smoke;
+  smoke.set_name("Smokescreen");
+  smoke.set_kind(SKILL_KIND_ACTIVE);
+  smoke.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  smoke.set_max_level(10);
+  smoke.set_base_delay_ms(720);
+  smoke.set_cooldown_seconds(120.0);
+  Buff* buff = smoke.mutable_buff();
+  buff->set_duration_seconds(30.0);
+  buff->mutable_base()->set_damage_taken_pct(0.01);
+  buff->mutable_per_level()->set_damage_taken_pct(0.01);
+  buff->mutable_ally_base()->set_damage_taken_pct(0.01);
+  buff->mutable_ally_per_level()->set_damage_taken_pct(0.01);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"smokescreen", smoke}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 0);
+  double factor = GameSpeedFactor(state.character.proto().level());
+  EXPECT_TRUE(ComputeCombatParams(state).ally_buffs.empty());
+
+  // The party member holds it; the character reading these params does not.
+  std::mt19937 rng(1);
+  Character ally = state.character.proto();
+  (*ally.mutable_skill_levels())["Smokescreen"] = 8;
+  state.party.emplace_back(rng, ally);
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.ally_buffs.size(), 1u);
+  EXPECT_EQ(params.ally_buffs[0].name, "Smokescreen");
+  EXPECT_DOUBLE_EQ(params.ally_buffs[0].duration_seconds, 30.0 * factor);
+  EXPECT_DOUBLE_EQ(params.ally_buffs[0].cooldown_seconds, 120.0 * factor);
+  // Their level, not the reader's: eight points is 8% off a hit.
+  EXPECT_NEAR(params.ally_buffs[0].damage_taken_pct, 0.08, 1e-9);
+  // Nothing of it reaches the damage tables, so the reader who never learned
+  // it still has no buffs of their own.
+  EXPECT_TRUE(params.buffs.empty());
+  EXPECT_TRUE(params.buffed.empty());
+}
+
 // Buff Mastery's lever lengthens the buff and leaves the wait alone, which is
 // the whole of what it buys: a buff up longer without coming round sooner.
 TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {

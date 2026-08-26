@@ -1073,6 +1073,17 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
                   pulse.lines()) +
             " every " + FormatNumber(pulse.cast_interval_seconds(), 2) + "s"));
   }
+  // What everybody else in the party gets while it stands, in the colour the
+  // party screens are drawn in. Under the buff's own heading rather than at
+  // the foot of the card, because these lapse with it. See Buff.ally_base.
+  std::vector<ftxui::Element> ally =
+      LeverRows(buff.ally_base(), buff.ally_per_level(), level, "");
+  if (!ally.empty()) {
+    rows.push_back(SectionRow("Your Party", kTheme));
+    for (ftxui::Element& row : ally) {
+      rows.push_back(std::move(row));
+    }
+  }
   return rows;
 }
 

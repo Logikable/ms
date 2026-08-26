@@ -264,6 +264,8 @@ struct BuffOption {
   // one the character raises on its own wait. A buff hanging off an ATTACK is
   // inseparable from the swing that delivers it -- Puncture's wound is left by
   // puncturing something -- so the fight has to spend a swing to put it up.
+  // Always -1 for a party buff: what lays that is an ally's cast, which this
+  // fight never sees.
   //
   // An index rather than a name, because the attacks are the same in the same
   // order in every buffed set: one index stays good however the buffs come and
@@ -353,6 +355,15 @@ struct CombatParams {
   // which are up, less one -- the three lists above are the set for none of
   // them. Empty when nothing grants a buff.
   std::vector<AttackSet> buffed;
+  // The buffs the REST OF THE PARTY puts up over this character, on their
+  // casters' clocks. Kept apart from `buffs` above because that vector's index
+  // is the bitmask into `buffed`, and a party buff has no attack set of its
+  // own: all it can grant is a share off what a hit costs, which the fight
+  // takes off the hit rather than folding into a damage table.
+  //
+  // Empty outside a party fight, which is everywhere but a boss fought
+  // together. See AllyBuffsFor.
+  std::vector<BuffOption> ally_buffs;
 
   // The three lists above as they stand with `mask`'s buffs up. Out of range
   // reads as none of them, so a fight one step behind a change in what the

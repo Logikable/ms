@@ -419,6 +419,11 @@ class CombatSim {
   // come round, and works out which are standing this step. Before the
   // attacks, so a buff that goes up now is one this step's swing has.
   void RunBuffs(const CombatParams& params, double dt);
+  // Runs the buffs the party puts up over the character, on their casters'
+  // clocks. Apart from RunBuffs because none of these has an attack set: what
+  // a party buff grants is taken off the hit, so nothing here touches the
+  // damage-table mask, and nothing here costs the character a swing.
+  void RunAllyBuffs(const CombatParams& params, double dt);
   // Takes what a landed swing is worth off the wait for each buff's next
   // cast. `weight` is what that swing counted for, the same share
   // CreditSwing uses -- a rapid swing must not pay a whole attack's worth.
@@ -491,6 +496,11 @@ class CombatSim {
   // Which buffs are standing, as the bitmask CombatParams indexes its damage
   // tables by. Worked out once a step, at the top.
   int buff_mask_ = 0;
+  // The same pair again for the party's buffs, parallel to
+  // params.ally_buffs. No mask beside them: a party buff has no damage table,
+  // so what is standing is read straight off the seconds left.
+  std::vector<double> ally_buff_left_;
+  std::vector<double> ally_buff_cooldown_left_;
   // Seconds left before a passive will revive the player again. Counts down
   // wherever the character is, since what it measures is the pact rather than
   // the fight, and stays at 0 for everyone who holds no such skill.

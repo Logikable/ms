@@ -42,6 +42,13 @@ bool ListAllowsWeapon(const google::protobuf::RepeatedField<int>& types,
   return false;
 }
 
+// Whether this skill's timed buff stands over the party as well as over the
+// caster. Smokescreen alone. See Buff.ally_base.
+bool GrantsBuffToAllies(const Skill& skill) {
+  return skill.buff().duration_seconds() > 0.0 &&
+         (skill.buff().has_ally_base() || skill.buff().has_ally_per_level());
+}
+
 // Whether this is the skill that raises other skills' levels. Asked of the
 // data rather than of the name, so the rule that it does not raise itself
 // holds for any later skill written the same way.
@@ -49,10 +56,11 @@ bool GrantsSkillLevels(const Skill& skill) {
   return skill.base().skill_level_bonus() > 0.0;
 }
 
-// Whether this skill gives the rest of the party anything. See
-// Skill.ally_base.
+// Whether this skill gives the rest of the party anything -- for good, or for
+// as long as its buff stands. See Skill.ally_base and Buff.ally_base.
 bool GrantsToAllies(const Skill& skill) {
-  return skill.has_ally_base() || skill.has_ally_per_level();
+  return skill.has_ally_base() || skill.has_ally_per_level() ||
+         GrantsBuffToAllies(skill);
 }
 
 // A fountain as its own skill wrote it, before the character's INT has had
@@ -431,13 +439,6 @@ bool GrantsAnything(const CharacterInstance& character, const Skill& skill,
          EffectiveSkillLevel(character, skill, bonus) > 0;
 }
 
-// One skill an ally is holding over the party, and the level their book has
-// it at.
-struct AllyGrant {
-  const Skill* skill = nullptr;
-  int level = 0;
-};
-
 // What the rest of the party is holding over this character. Gathered whole
 // before anything folds, because both rules that thin the list -- the buff
 // rule and the party's supersessions -- need every ally read first.
@@ -722,6 +723,19 @@ std::vector<const Skill*> BuffSkillsFor(
       continue;
     }
     buffs.push_back(&skill);
+  }
+  return buffs;
+}
+
+std::vector<AllyGrant> AllyBuffsFor(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills,
+    absl::Span<const CharacterInstance> allies) {
+  std::vector<AllyGrant> buffs;
+  for (const AllyGrant& grant : PartyGrants(character, skills, allies)) {
+    if (GrantsBuffToAllies(*grant.skill)) {
+      buffs.push_back(grant);
+    }
   }
   return buffs;
 }

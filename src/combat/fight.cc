@@ -804,6 +804,13 @@ double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
       factor *= 1.0 - params.buffs[i].damage_taken_pct;
     }
   }
+  // A party's buff is one more reduction and multiplies like the rest: a
+  // Shadower's smokescreen over a Shadower's own is not twice the shelter.
+  for (int i = 0; i < static_cast<int>(ally_buff_left_.size()); ++i) {
+    if (ally_buff_left_[i] > 0.0) {
+      factor *= 1.0 - params.ally_buffs[i].damage_taken_pct;
+    }
+  }
   return std::max(0.0, factor);
 }
 
@@ -910,6 +917,27 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     }
     if (buff_left_[i] > 0.0) {
       buff_mask_ |= 1 << i;
+    }
+  }
+}
+
+void CombatSim::RunAllyBuffs(const CombatParams& params, double dt) {
+  int count = static_cast<int>(params.ally_buffs.size());
+  ally_buff_left_.resize(count, 0.0);
+  ally_buff_cooldown_left_.resize(count, 0.0);
+  for (int i = 0; i < count; ++i) {
+    const BuffOption& buff = params.ally_buffs[i];
+    ally_buff_left_[i] = std::max(0.0, ally_buff_left_[i] - dt);
+    ally_buff_cooldown_left_[i] =
+        std::max(0.0, ally_buff_cooldown_left_[i] - dt);
+    // The same rule the character's own buffs go up under: the moment it comes
+    // round, and only with something to fight. What the ally is doing between
+    // casts is not modelled -- they are in the same fight, so they raise it
+    // when it is worth raising.
+    if (ally_buff_left_[i] <= 0.0 && ally_buff_cooldown_left_[i] <= 0.0 &&
+        !queue_.empty() && buff.duration_seconds > 0.0) {
+      ally_buff_left_[i] = buff.duration_seconds;
+      ally_buff_cooldown_left_[i] = buff.cooldown_seconds;
     }
   }
 }
@@ -1212,6 +1240,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // After the hit, so a buff going up now answers it with its heal, and
   // before everything that attacks, so this step swings with it.
   RunBuffs(params, dt);
+  RunAllyBuffs(params, dt);
   // After the hit and before the swing, so a fountain is worth something on
   // the step it was needed rather than only on the next one.
   RunRegen(params, dt);
