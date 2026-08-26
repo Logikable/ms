@@ -8,6 +8,11 @@
 # and plays out whatever fights are running -- so an update never cuts a
 # party's fight short. The binary is statically linked, so the box's glibc
 # need not match the machine that built it.
+#
+# The deploy is not finished until a client built from this tree can get in.
+# A server left behind by a skipped deploy turns every client away with
+# "This version of the game cannot play with others", and the only place that
+# shows is the server's own log -- so the check runs here, every time.
 set -euo pipefail
 
 HOST=${MS_SERVER_HOST:-68.42.95.210}
@@ -43,6 +48,20 @@ $SSH 'set -e
   systemctl --user enable --now ms-server
   sleep 1
   systemctl --user is-active ms-server'
+
+# Built for this machine rather than the box: the question is whether the
+# server accepts the client this tree produces, so it has to be asked by one.
+bazelisk build //server:probe
+echo "Asking the server whether this build can play"
+if ! bazelisk run -- //server:probe --action=check --host="$HOST" \
+    --port="${MS_SERVER_PORT:-21711}" --seconds=15; then
+  echo
+  echo "DEPLOY FAILED: the server will not take a client built from this tree."
+  echo "The versions above have to match. Both come from kMultiplayerVersion"
+  echo "in src/multiplayer/protocol.h, so a mismatch means the box is running"
+  echo "an older build than this one -- deploy again, or check what landed."
+  exit 1
+fi
 
 echo "Running. Its log:  ssh -p $SSH_PORT $REMOTE journalctl --user -u ms-server -f"
 echo "Every run is also kept in ~/ms/logs on the box."

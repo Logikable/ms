@@ -26,8 +26,8 @@ ABSL_FLAG(int, level, 140, "The level to arrive at.");
 ABSL_FLAG(std::string, account, "", "An account id to come back as.");
 ABSL_FLAG(std::string, token, "", "The token that proves that account.");
 ABSL_FLAG(std::string, action, "watch",
-          "What to do once connected: watch, create, join, leave, ready, "
-          "unready, kick, promote or start.");
+          "What to do once connected: check, watch, create, join, leave, "
+          "ready, unready, kick, promote or start.");
 ABSL_FLAG(std::string, boss, "zakum", "Which boss --action=start names.");
 ABSL_FLAG(int, difficulty, 0, "Which difficulty of it.");
 ABSL_FLAG(std::string, mode, "shared",
@@ -136,6 +136,38 @@ bool Act(ms::MultiplayerClient& client, const std::string& action) {
   return false;
 }
 
+// Waits for the connection to settle and says whether this build can play
+// against the server as it is now. The version the two disagree on is the
+// whole point: a server left behind by a deploy turns every client away, and
+// nothing else in the game says so out loud.
+//
+// Returns a process exit code: 0 only once the server has welcomed us.
+int CheckServer(ms::MultiplayerClient& client, int seconds) {
+  std::chrono::steady_clock::time_point deadline =
+      std::chrono::steady_clock::now() + std::chrono::seconds(seconds);
+  while (std::chrono::steady_clock::now() < deadline) {
+    ms::MultiplayerSnapshot snapshot = client.Snapshot();
+    if (snapshot.state == ms::ConnectionState::kConnected) {
+      std::printf("ok: the server took a client built from version %d\n",
+                  ms::kMultiplayerVersion);
+      return 0;
+    }
+    if (snapshot.state == ms::ConnectionState::kRefused) {
+      std::printf("REFUSED: %s\n", snapshot.message.c_str());
+      std::printf("  this build speaks version %d", ms::kMultiplayerVersion);
+      if (snapshot.server_protocol_version != 0) {
+        std::printf(", the server speaks %d", snapshot.server_protocol_version);
+      }
+      std::printf("\n");
+      return 1;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+  std::printf("UNREACHABLE: no answer in %ds (state %s)\n", seconds,
+              StateName(client.Snapshot().state));
+  return 1;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -151,9 +183,13 @@ int main(int argc, char** argv) {
                                absl::GetFlag(FLAGS_port));
   client.Start(player, absl::GetFlag(FLAGS_token));
 
+  std::string action = absl::GetFlag(FLAGS_action);
+  if (action == "check") {
+    return CheckServer(client, absl::GetFlag(FLAGS_seconds));
+  }
+
   // The ask is queued straight away; the client sends it as soon as it is
   // welcomed.
-  std::string action = absl::GetFlag(FLAGS_action);
   if (!Act(client, action)) {
     LOG(ERROR) << "Unknown --action '" << action << "'";
     return 1;

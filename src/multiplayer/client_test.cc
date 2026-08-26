@@ -181,9 +181,23 @@ TEST_F(ClientTest, StopsWhenToldToUpdate) {
     return snapshot.state == ConnectionState::kRefused;
   }));
   EXPECT_FALSE(client.Snapshot().message.empty());
+  // The server's own version comes back with the refusal, which is what
+  // names the mismatch -- the deploy check has nothing else to report.
+  EXPECT_EQ(client.Snapshot().server_protocol_version, kMultiplayerVersion);
   // It stays refused rather than going round again.
   std::this_thread::sleep_for(milliseconds(100));
   EXPECT_EQ(client.Snapshot().state, ConnectionState::kRefused);
+}
+
+TEST_F(ClientTest, SaysNothingAboutAVersionUntilTheServerRefuses) {
+  MultiplayerClient client("127.0.0.1", server_.port());
+  client.Start(Player("Dagger"), "");
+
+  ASSERT_TRUE(WaitFor(client, [](const MultiplayerSnapshot& snapshot) {
+    return snapshot.state == ConnectionState::kConnected;
+  }));
+  EXPECT_EQ(client.Snapshot().server_protocol_version, 0)
+      << "a welcome carries no version to report";
 }
 
 }  // namespace

@@ -313,6 +313,8 @@ void MultiplayerClient::Handle(const ServerMessage& message, bool& keep) {
       // Maintenance passes; the other reasons do not, and retrying would only
       // be turned away again.
       snapshot_.message = message.rejected().message();
+      snapshot_.server_protocol_version =
+          message.rejected().server_protocol_version();
       snapshot_.state =
           message.rejected().reason() == Rejected::REASON_MAINTENANCE
               ? ConnectionState::kUnavailable

@@ -69,6 +69,9 @@ struct MultiplayerSnapshot {
   int64_t notice_serial = 0;
   // Whether that notice is a refusal, which is drawn as one.
   bool notice_is_refusal = false;
+  // The version the server is built from, which it sends only when turning
+  // this build away. 0 until it has said, which is every other state.
+  int server_protocol_version = 0;
 };
 
 class MultiplayerClient {
