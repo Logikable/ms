@@ -824,6 +824,27 @@ TEST_F(TuiControllerTest, ConfirmSpendsEveryPointWhenSpIsWhatBinds) {
   EXPECT_EQ(state_->character.sp(1), 0);
 }
 
+// The learn screen counts out the pool the skill is actually bought from. It
+// read the job stage's, so a Hyper Skill opened it with nothing to spend and
+// the point could never be handed over.
+TEST_F(TuiControllerTest, ConfirmSpendsTheHyperPoolOnAHyperSkill) {
+  while (state_->character.proto().level() < 140) {
+    state_->character.LevelUp();
+  }
+  ASSERT_EQ(state_->character.hyper_sp(), 1);
+  Skill skill = SlashBlast();
+  skill.set_name("Dark Thirst");
+  skill.set_hyper(true);
+  skill.set_required_level(140);
+  skill.set_max_level(1);
+
+  controller_->OpenSkillLearn(skill);
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // textbox -> [Confirm]
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(state_->character.skill_level(skill), 1);
+  EXPECT_EQ(state_->character.hyper_sp(), 0);
+}
+
 TEST_F(TuiControllerTest, EscapeInSkillLearnLearnsNothing) {
   Skill skill = SlashBlast();
   controller_->OpenSkillLearn(skill);

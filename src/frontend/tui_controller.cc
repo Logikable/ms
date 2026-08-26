@@ -103,8 +103,7 @@ void TuiController::OpenApAllocate(StatField field) {
 void TuiController::OpenSkillLearn(const Skill& skill) {
   skill_learn_ = skill;
   int room = skill.max_level() - state_.character.skill_level(skill);
-  int stage = StageForAdvancement(skill.job_advancement());
-  sp_selector_.Reset(std::min(state_.character.sp(stage), room));
+  sp_selector_.Reset(std::min(state_.character.SpFor(skill), room));
   screen_ = kSkillLearn;
 }
 

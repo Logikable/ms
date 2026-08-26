@@ -12,6 +12,7 @@
 #include "src/character/character_stats.h"
 #include "src/combat/damage.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
 
@@ -203,8 +204,13 @@ std::string EmpoweredTarget(const Skill& skill, const EmpoweredForm& form) {
 }
 
 ftxui::Element EffectRow(const std::string& label, const std::string& value) {
-  return ftxui::text(std::string(kEffectIndent, ' ') +
-                     PadRight(label, kEffectLabelWidth) + value);
+  // Padded rather than cut when the label overruns its column, so a row that
+  // has one to itself keeps the whole of it. WrappedEffectRows is what gives
+  // it that row.
+  std::string head = TextColumns(label) > kEffectLabelWidth
+                         ? label
+                         : PadRight(label, kEffectLabelWidth);
+  return ftxui::text(std::string(kEffectIndent, ' ') + head + value);
 }
 
 // Breaks a " / " separated list across lines without splitting an entry: the
@@ -283,6 +289,13 @@ std::vector<ftxui::Element> WrappedEffectRows(const std::string& label,
                                               const std::string& value) {
   std::vector<ftxui::Element> rows;
   std::string current = label;
+  // A label too wide for its column takes a row to itself rather than being
+  // cut: what it names is a skill, and half a skill's name is not one. The
+  // value then reads under it, in the column it always sits in.
+  if (TextColumns(label) > kEffectLabelWidth) {
+    rows.push_back(EffectRow(label, ""));
+    current.clear();
+  }
   for (const std::string& line : WrapText(value, kValueWidth)) {
     rows.push_back(EffectRow(current, line));
     current.clear();

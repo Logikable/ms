@@ -223,9 +223,6 @@ class CharacterPanel {
   bool IsHyperPage(int page) const;
   // The skills of page `page`, in the order it lists them. Empty if none.
   std::vector<const Skill*> SkillsForPage(int page) const;
-  // The points `skill` is bought with: the Hyper pool for a Hyper Skill, and
-  // its job stage's for every other.
-  int SpFor(const Skill& skill) const;
   // Whether the character may not learn `skill` yet -- a skill below it still
   // to be taught, or a level still to be reached.
   bool SkillLocked(const Skill& skill) const;

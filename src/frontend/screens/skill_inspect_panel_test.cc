@@ -1275,6 +1275,20 @@ TEST_F(SkillInspectPanelTest, NoRequirementRowWhenThereIsNone) {
             std::string::npos);
 }
 
+// A label too wide for its column takes a row of its own rather than being cut
+// into the value beside it -- what it names is a skill, and half a skill's
+// name is not one.
+TEST_F(SkillInspectPanelTest, ALongBoostLabelKeepsItsWholeName) {
+  Skill skill = MakeIronBody();
+  SkillBoost* boost = skill.add_boost();
+  boost->set_skill_name("Gungnir's Descent");
+  boost->mutable_effect()->set_skill_pct(0.20);
+  std::string rendered = RenderAt(skill, 1);
+  EXPECT_NE(rendered.find("Boosts Gungnir's Descent"), std::string::npos);
+  EXPECT_EQ(rendered.find("Descent+20%"), std::string::npos)
+      << "the value ran into the name";
+}
+
 // A Hyper Skill's gate is a level rather than a skill below it, and the title
 // says where the point that bought it came from.
 TEST_F(SkillInspectPanelTest, AHyperSkillNamesItsLevelAndItself) {

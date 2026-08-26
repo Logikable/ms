@@ -492,12 +492,6 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
       IsHyperPage(page));
 }
 
-int CharacterPanel::SpFor(const Skill& skill) const {
-  return skill.hyper()
-             ? character_.hyper_sp()
-             : character_.sp(StageForAdvancement(skill.job_advancement()));
-}
-
 bool CharacterPanel::SkillLocked(const Skill& skill) const {
   return !character_.MeetsSkillRequirement(skill) ||
          character_.proto().level() < skill.required_level();
@@ -510,7 +504,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   int learned = character_.skill_level(skill);
   bool selected = rows_focused && skill_sel_ == index;
   bool maxed = learned >= skill.max_level();
-  bool has_sp = SpFor(skill) > 0;
+  bool has_sp = character_.SpFor(skill) > 0;
   // A skill still waiting on another one, or on a level, is not a skill this
   // character has yet, so the whole row dims -- name included. Running out of
   // SP dims the [+] alone, because that is a thing about the moment rather
@@ -866,7 +860,8 @@ bool CharacterPanel::OnSkillsTabEvent(
       return true;
     }
     bool maxed = character_.skill_level(skill) >= skill.max_level();
-    if (on_learn && !maxed && !SkillLocked(skill) && SpFor(skill) > 0) {
+    if (on_learn && !maxed && !SkillLocked(skill) &&
+        character_.SpFor(skill) > 0) {
       on_learn(skill);
     }
     return true;

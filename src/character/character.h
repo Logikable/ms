@@ -341,6 +341,14 @@ class CharacterInstance {
   int hyper_sp() const {
     return character_.hyper_sp();
   }
+  // The points `skill` is bought with: the Hyper pool for a Hyper Skill, and
+  // its job stage's for every other. Asked here so the panel offering the
+  // skill, the screen counting out the points and LearnSkill itself cannot
+  // disagree about which pool is being spent.
+  int SpFor(const Skill& skill) const {
+    return skill.hyper() ? hyper_sp()
+                         : sp(StageForAdvancement(skill.job_advancement()));
+  }
   // The character's learned level in `skill` (0 = unlearned).
   int skill_level(const Skill& skill) const {
     return character_.skill_levels().contains(skill.name())

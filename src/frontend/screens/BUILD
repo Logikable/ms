@@ -147,6 +147,7 @@ cc_library(
         "//src/character:character_stats",
         "//src/combat:damage",
         "//src/frontend/widgets:panel_util",
+        "//src/frontend/widgets:text_columns",
         "//src/protos:equip_proto_cc",
         "//src/protos:skill_proto_cc",
         "@ftxui//:dom",

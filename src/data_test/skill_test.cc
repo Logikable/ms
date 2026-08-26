@@ -34,6 +34,17 @@ using bazel::tools::cpp::runfiles::Runfiles;
 // job's 101-140 pay 5 a level, so its book is 200.
 constexpr int kSpByStage[] = {0, 60, 90, 120, 200};
 
+// What a job's Hyper page costs, and so how many Hyper Skills it holds: one
+// point at level 140 and every fifth level to 195, each buying one skill
+// outright. A page short of twelve leaves a point that can never be spent.
+constexpr int kHyperSkillsPerJob = 12;
+// The rungs those points arrive on, which are the only levels a Hyper Skill
+// may open at: unlocking between two of them is a skill that waits for a point
+// it could have spent.
+constexpr int kFirstHyperLevel = 140;
+constexpr int kLastHyperLevel = 195;
+constexpr int kHyperLevelStep = 5;
+
 // Every value of an enum bar its UNSPECIFIED zero, taken from the descriptor
 // rather than listed: a hardcoded list is one a new job joins only when
 // somebody remembers to add it, and a job nobody remembers is a job whose book
@@ -222,6 +233,11 @@ TEST(SkillDataTest, EverySkillDescribesItself) {
 TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   std::map<int, int> cost_by_advancement;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    // A Hyper Skill is bought from a pool of its own -- see the page's own
+    // test below.
+    if (entry.second.hyper()) {
+      continue;
+    }
     cost_by_advancement[entry.second.job_advancement()] +=
         entry.second.max_level();
   }
@@ -288,25 +304,59 @@ TEST(SkillDataTest, EveryRequirementNamesAHoldableSkill) {
 // number or repeats one has two skills the player cannot tell apart the
 // position of -- and a book that leaves it unset piles up at the top.
 TEST(SkillDataTest, EveryBookIsNumberedOneThroughItsSize) {
-  std::map<int, std::map<int, std::string>> by_advancement;
+  // Keyed by the PAIR: a Hyper page and the book it upgrades name the same
+  // advancement but are two lists, so each is numbered from one.
+  std::map<std::pair<int, bool>, std::map<int, std::string>> by_advancement;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     int order = entry.second.skill_order();
     EXPECT_GT(order, 0) << entry.first << " has no place in its book";
     std::pair<std::map<int, std::string>::iterator, bool> added =
-        by_advancement[entry.second.job_advancement()].insert(
-            {order, entry.first});
+        by_advancement[{entry.second.job_advancement(), entry.second.hyper()}]
+            .insert({order, entry.first});
     EXPECT_TRUE(added.second)
         << entry.first << " and " << added.first->second << " both sit at "
         << order << " of advancement " << entry.second.job_advancement();
   }
-  for (const std::pair<const int, std::map<int, std::string>>& book :
-       by_advancement) {
+  for (const std::pair<const std::pair<int, bool>, std::map<int, std::string>>&
+           book : by_advancement) {
     int expected = 1;
     for (const std::pair<const int, std::string>& entry : book.second) {
       EXPECT_EQ(entry.first, expected)
-          << entry.second << " leaves a gap in advancement " << book.first;
+          << entry.second << " leaves a gap in advancement "
+          << book.first.first;
       ++expected;
     }
+  }
+}
+
+// The Hyper page is a whole page or no page: a job with some of its twelve
+// written would leave a point with nothing to buy, and a hyper hanging off an
+// advancement that is not the 4th is one no page ever draws.
+TEST(SkillDataTest, EveryHyperPageIsWholeAndOpensOnARung) {
+  std::map<int, int> hypers_by_advancement;
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.hyper()) {
+      EXPECT_EQ(skill.required_level(), 0)
+          << entry.first << " gates on a level nothing but a hyper carries";
+      continue;
+    }
+    ++hypers_by_advancement[skill.job_advancement()];
+    EXPECT_EQ(skill.max_level(), 1)
+        << entry.first << " is bought with one point and must cost one";
+    EXPECT_EQ(StageForAdvancement(skill.job_advancement()), 4)
+        << entry.first << " hangs off a book with no Hyper page";
+    EXPECT_GE(skill.required_level(), kFirstHyperLevel) << entry.first;
+    EXPECT_LE(skill.required_level(), kLastHyperLevel) << entry.first;
+    EXPECT_EQ((skill.required_level() - kFirstHyperLevel) % kHyperLevelStep, 0)
+        << entry.first << " opens at " << skill.required_level()
+        << ", between two of the levels that pay a point";
+  }
+  for (const std::pair<const int, int>& entry : hypers_by_advancement) {
+    EXPECT_EQ(entry.second, kHyperSkillsPerJob)
+        << "advancement " << entry.first << " has " << entry.second
+        << " Hyper Skills against the " << kHyperSkillsPerJob
+        << " its points buy";
   }
 }
 

@@ -1157,18 +1157,15 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   // A Hyper Skill is bought out of the character's own pool. Everything above
   // holds for it too: it names the advancement whose book it belongs to, so a
   // Paladin cannot buy a Dark Knight's.
+  if (amount > SpFor(skill)) {
+    return false;
+  }
   if (skill.hyper()) {
-    if (amount > character_.hyper_sp()) {
-      return false;
-    }
     character_.set_hyper_sp(character_.hyper_sp() - amount);
     (*character_.mutable_skill_levels())[skill.name()] += amount;
     return true;
   }
   int stage = StageForAdvancement(skill.job_advancement());
-  if (amount > sp(stage)) {
-    return false;
-  }
   (*character_.mutable_skill_levels())[skill.name()] += amount;
   (*character_.mutable_sp_by_stage())[stage] -= amount;
   return true;
