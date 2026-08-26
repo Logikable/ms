@@ -2324,6 +2324,25 @@ void GiveBuff(CombatParams& params, double duration, double cooldown,
   params.buffed.push_back(std::move(set));
 }
 
+// A cast is time the character is not swinging in: raising the buff takes its
+// animation off the swing they were charging, so the step it goes up on lands
+// one swing fewer.
+TEST(CombatSimTest, RaisingABuffCostsTheSwingItsAnimation) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&snail, 10.0, 1)});
+  GiveBuff(params, /*duration=*/10.0, /*cooldown=*/60.0, /*factor=*/1.0);
+  params.buffs[0].cast_seconds = 0.6;
+
+  // A second of a one-second swing, less the six-tenths the cast took: the
+  // swing the step would have landed is still four-tenths short.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.damage_this_step(), 0.0);
+  // It carries, so the swing the cast held up lands on the step after.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.damage_this_step(), 10.0);
+}
+
 // Smokescreen's shape: a buff that costs the mob rather than paying the
 // player. What it cancels lapses with it, so the hit after it is the whole
 // hit again.

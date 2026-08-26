@@ -901,6 +901,9 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
       buff_left_[i] = buff.duration_seconds;
       buff_cooldown_left_[i] = buff.cooldown_seconds;
       buff_charge_left_[i] = buff.charge_lines;
+      // Raising it costs the character its animation, taken off the swing they
+      // were charging: a buff is cast instead of attacking, not alongside it.
+      attack_phase_ -= buff.cast_seconds;
       player_hp_ =
           std::min(static_cast<double>(params.max_player_hp),
                    player_hp_ + buff.heal_fraction * params.max_player_hp);

@@ -15,6 +15,7 @@ kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 10
 exceeds_master_level: true
+base_delay_ms: 720
 cooldown_seconds: 120.0
 buff {
   duration_seconds: 30.0

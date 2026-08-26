@@ -864,11 +864,15 @@ void AddBuffs(const CharacterInstance& character,
     option.charge_lines = buff.charge_lines();
     option.heal_fraction =
         buff.base().heal_pct() + buff.per_level().heal_pct() * (level - 1);
+    // What raising it costs. A buff a swing lays is paid for by that swing, so
+    // it is charged nothing here -- see BuffOption::cast_seconds.
+    option.cast_seconds = skill->base_delay_ms() / 1000.0 * speed_factor;
     // A buff hanging off an ATTACK is laid by that swing rather than raised on
     // a wait: what leaves the wound is puncturing something. See
     // BuffOption::laid_by_attack.
     if (skill->kind() == SKILL_KIND_ATTACK) {
       option.laid_by_attack = AttackNamed(params.attacks, skill->name());
+      option.cast_seconds = 0.0;
     }
     params.buffs.push_back(std::move(option));
   }

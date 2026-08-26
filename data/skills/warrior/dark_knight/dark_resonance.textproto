@@ -16,6 +16,7 @@ kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 max_level: 30
 exceeds_master_level: true
+base_delay_ms: 960
 cooldown_seconds: 70.0
 base { ied_pct: 0.01 }
 per_level { ied_pct: 0.01 }

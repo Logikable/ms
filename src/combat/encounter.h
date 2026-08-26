@@ -247,6 +247,15 @@ struct BuffOption {
   double damage_taken_pct = 0.0;
   // Share of the pool the cast puts back at once (1.00 == all of it).
   double heal_fraction = 0.0;
+  // Seconds raising this costs the character: the animation is time they are
+  // not swinging in, taken off the swing they were charging. 0 for a buff with
+  // no cast of its own -- one a swing lays, and one a passive charges by
+  // landing lines.
+  //
+  // Not scaled by the weapon's attack speed. A booster hurries a swing, not
+  // the arm-raise of a buff, which is the same line every other clock in the
+  // game is on the far side of.
+  double cast_seconds = 0.0;
   // Lines the character has to land before this goes up, instead of a wait in
   // seconds. 0 for a buff on a clock, which is every other one. See
   // Buff::charge_lines.

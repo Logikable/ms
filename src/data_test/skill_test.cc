@@ -149,11 +149,18 @@ bool SameCharacterCanHold(const std::map<std::string, Skill>& skills,
 }
 
 // Whether the character swings this skill: an attack, or a cast they spend a
-// swing on. A skill that only puts a buff up is cast on its own clock and
-// takes no swing, so nothing ever asks how long its animation is.
+// swing on. A skill that only puts a buff up is raised on its own clock and
+// never takes the swing's place, so it is never the swing being named.
 bool SpendsASwing(const Skill& skill) {
   return skill.kind() == SKILL_KIND_ATTACK ||
          (skill.kind() == SKILL_KIND_ACTIVE && skill.base().heal_pct() > 0.0);
+}
+
+// Whether the character stands there casting it: everything they press. A
+// buff's animation costs them the time even though it takes no swing -- see
+// BuffOption::cast_seconds -- so it has to say how long it is.
+bool HasACastAnimation(const Skill& skill) {
+  return skill.kind() == SKILL_KIND_ATTACK || skill.kind() == SKILL_KIND_ACTIVE;
 }
 
 std::map<std::string, Skill> LoadSkills() {
@@ -518,14 +525,13 @@ TEST(SkillDataTest, NoSkillNamesBothClocks) {
   }
 }
 
-// Anything spending a swing takes as long as its own animation, so it has to
-// say how long that is -- the attacks, and the casts that spend a swing on
-// something else. Nothing else does: the delay of a skill on its own clock is
-// its cast interval, a passive is never swung at all, and a skill that only
-// puts a buff up costs the character no swing either.
+// Anything the character presses takes as long as its own animation, so it has
+// to say how long that is -- the attacks, and the casts, buff and heal alike.
+// Nothing else does: the delay of a skill on its own clock is its cast
+// interval, and a passive is never cast at all.
 TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    if (!SpendsASwing(entry.second)) {
+    if (!HasACastAnimation(entry.second)) {
       EXPECT_EQ(entry.second.base_delay_ms(), 0)
           << entry.first << " sets a swing delay it will never be asked for";
       continue;
