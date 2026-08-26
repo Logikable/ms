@@ -65,7 +65,9 @@ std::vector<Enum> EveryValueOf(const google::protobuf::EnumDescriptor* desc) {
 // The books one job holds: their own and every one they climbed through.
 std::set<JobAdvancement> BooksFor(Job job) {
   std::set<JobAdvancement> books;
-  for (int stage = 1; stage <= 4; ++stage) {
+  // To 5, not 4: a 5th job skill is written and named by the books below it
+  // even though no character reaches the stage that buys it.
+  for (int stage = 1; stage <= 5; ++stage) {
     JobAdvancement advancement = AdvancementForJobStage(job, stage);
     if (advancement != JOB_ADVANCEMENT_UNSPECIFIED) {
       books.insert(advancement);
@@ -261,9 +263,12 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   for (const std::pair<const int, int>& entry : cost_by_advancement) {
     int stage = StageForAdvancement(static_cast<JobAdvancement>(entry.first));
     ASSERT_GT(stage, 0) << "advancement " << entry.first << " has no stage";
-    ASSERT_LT(stage,
-              static_cast<int>(sizeof(kSpByStage) / sizeof(kSpByStage[0])))
-        << "stage " << stage << " has no SP figure to be held to";
+    // A stage past the SP table is one whose levels pay nothing yet: the 5th
+    // job's band is undecided, so its book is not held to a total. Everything
+    // below it is.
+    if (stage >= static_cast<int>(sizeof(kSpByStage) / sizeof(kSpByStage[0]))) {
+      continue;
+    }
     EXPECT_EQ(entry.second, kSpByStage[stage])
         << "advancement " << entry.first << " costs " << entry.second
         << " against the " << kSpByStage[stage] << " its levels pay out";

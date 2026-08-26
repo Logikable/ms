@@ -1,0 +1,25 @@
+# The first 5th job skill written, and the only one: nothing reaches the stage
+# that buys it -- a character's job_stage stops at 4 -- so it is unbuyable and
+# its page never draws. It is here because Evil Eye - Reinforce names it, and a
+# boost may only name a skill the catalog holds.
+#
+# GMS gates it on Evil Eye of Domination being up, which is permanent here, and
+# spends 1000 MP, which this game has nothing to spend. What is left is the
+# shout itself: an eye that appears every 20 seconds and hits ten enemies six
+# times, ignoring a fifth of their defence.
+name: "Radiant Evil"
+skill_order: 1
+description:
+  "The Evil Eye reveals itself and blasts nearby enemies. Only usable while "
+  "Evil Eye of Domination is active."
+kind: SKILL_KIND_AUTO_ATTACK
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT_V
+max_level: 30
+max_enemies: 10
+lines: 6
+cast_interval_seconds: 20.0
+base {
+  skill_pct: 1.15
+  ied_pct: 0.20
+}
+per_level { skill_pct: 0.05 }

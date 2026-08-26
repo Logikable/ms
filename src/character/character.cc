@@ -460,6 +460,18 @@ JobAdvancement FourthAdvancement(Job job) {
   }
 }
 
+// The 5th advancement, which no character has taken: reaching one is not a job
+// change, so a Dark Knight stays a Dark Knight and simply opens another book.
+// Written for the jobs whose 5th job skills exist, and empty for the rest.
+JobAdvancement FifthAdvancement(Job job) {
+  switch (job) {
+    case JOB_DARK_KNIGHT:
+      return JOB_ADVANCEMENT_DARK_KNIGHT_V;
+    default:
+      return JOB_ADVANCEMENT_UNSPECIFIED;
+  }
+}
+
 }  // namespace
 
 JobAdvancement AdvancementForJobStage(Job job, int stage) {
@@ -475,6 +487,8 @@ JobAdvancement AdvancementForJobStage(Job job, int stage) {
       return ThirdAdvancement(job);
     case 4:
       return FourthAdvancement(job);
+    case 5:
+      return FifthAdvancement(job);
     default:
       return JOB_ADVANCEMENT_UNSPECIFIED;
   }
@@ -531,6 +545,7 @@ Job JobForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_CHIEF_BANDIT:
       return JOB_CHIEF_BANDIT;
     case JOB_ADVANCEMENT_DARK_KNIGHT:
+    case JOB_ADVANCEMENT_DARK_KNIGHT_V:
       return JOB_DARK_KNIGHT;
     case JOB_ADVANCEMENT_PALADIN:
       return JOB_PALADIN;
@@ -836,7 +851,7 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
 }
 
 int StageForAdvancement(JobAdvancement advancement) {
-  static_assert(JobAdvancement_ARRAYSIZE == 35,
+  static_assert(JobAdvancement_ARRAYSIZE == 36,
                 "a new advancement needs its stage here");
   switch (advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
@@ -877,6 +892,8 @@ int StageForAdvancement(JobAdvancement advancement) {
     case JOB_ADVANCEMENT_NIGHT_LORD:
     case JOB_ADVANCEMENT_SHADOWER:
       return 4;
+    case JOB_ADVANCEMENT_DARK_KNIGHT_V:
+      return 5;
     default:
       return 0;
   }
