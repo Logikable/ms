@@ -90,6 +90,11 @@ int Height(const MobInspectPanel& panel) {
   return ftxui::Dimension::Fit(element).dimy;
 }
 
+int Width(const MobInspectPanel& panel) {
+  ftxui::Element element = panel.Render();
+  return ftxui::Dimension::Fit(element).dimx;
+}
+
 TEST(MobInspectPanelTest, ListsTheMapsMobsAndOpensOnTheFirst) {
   GameState state = OneMap();
   MobInspectPanel panel(state);
@@ -190,6 +195,24 @@ TEST(MobInspectPanelTest, HoldsOneHeightAcrossTheList) {
   int first = Height(panel);
   panel.MoveCursor(1);
   EXPECT_EQ(Height(panel), first);
+}
+
+// Arcane River HP runs to eleven digits, which spelled out would push the
+// stats column past its width and carry the drops beside it along.
+TEST(MobInspectPanelTest, WritesAHugeHpCompactlyAndKeepsItsWidth) {
+  GameState state = OneMap();
+  int narrow;
+  {
+    MobInspectPanel panel(state);
+    panel.SetMap("green_field");
+    narrow = Width(panel);
+  }
+  state.mobs["snail"].set_max_hp(99999999999LL);
+  MobInspectPanel panel(state);
+  panel.SetMap("green_field");
+  std::string out = Render(panel);
+  EXPECT_NE(out.find("100B"), std::string::npos) << out;
+  EXPECT_EQ(Width(panel), narrow);
 }
 
 TEST(MobInspectPanelTest, AMapNobodyKnowsDrawsAnEmptyPanel) {

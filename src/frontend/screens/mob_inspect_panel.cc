@@ -30,8 +30,9 @@ constexpr int kCountWidth = 6;
 
 // The stats column. Both halves are a label and a right-aligned value, so the
 // panel does not breathe as a number gains a digit. "Attack" is the longest
-// label the game has and 4,624,800 the longest HP, so each column carries what
-// it needs and a space over.
+// label the game has, and the widest value is a number just under the compact
+// form's threshold ("1,999,999"), so each column carries what it needs and a
+// space over.
 constexpr int kLabelWidth = 7;
 constexpr int kValueWidth = 10;
 
@@ -185,7 +186,10 @@ void MobInspectPanel::RenderFlavour(std::vector<ftxui::Element>& rows,
 ftxui::Element MobInspectPanel::RenderStats(const Mob& mob) const {
   std::vector<ftxui::Element> rows;
   rows.push_back(InfoRow("Level", std::to_string(mob.level())));
-  rows.push_back(InfoRow("HP", FormatWithCommas(mob.max_hp())));
+  // HP compactly: Arcane River runs to eleven digits, which would overrun the
+  // column, and a monster's health is read for its size rather than its last
+  // digit. Anything under a couple of million still reads out in full.
+  rows.push_back(InfoRow("HP", FormatCompact(mob.max_hp())));
   rows.push_back(InfoRow("EXP", FormatWithCommas(mob.exp())));
   rows.push_back(InfoRow("Attack", FormatWithCommas(mob.attack())));
   // What one drop is worth, to be read with the chance of one in the column
