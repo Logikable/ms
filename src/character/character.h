@@ -109,6 +109,9 @@ std::vector<Job> JobChoicesForStage(Job job, int stage);
 struct LevelGains {
   int ap = 0;
   int sp = 0;
+  // Hyper SP, which is its own pool rather than a stage of the one above --
+  // see Character::hyper_sp.
+  int hyper_sp = 0;
 };
 
 // What climbing from `from_level` to `to_level` hands over. A span rather than
@@ -165,9 +168,11 @@ class CharacterInstance {
   bool CanAdvanceJob() const;
   // Returns false if `field` is unspecified or `amount` exceeds available AP.
   bool AllocateStat(StatField field, int amount = 1);
-  // Spends `amount` of the skill's job-stage SP to raise its learned level by
-  // that much. Returns false if `amount` <= 0, that stage has less SP than
-  // `amount`, or it would raise the level past skill.max_level().
+  // Spends `amount` SP to raise the skill's learned level by that much -- the
+  // Hyper SP pool for a Hyper Skill, and the skill's job-stage SP for every
+  // other. Returns false if `amount` <= 0, the pool has less than `amount`,
+  // the character is below skill.required_level(), or it would raise the level
+  // past skill.max_level().
   bool LearnSkill(const Skill& skill, int amount = 1);
   // Returns true if the character meets the level and job requirements to
   // equip the item described by `proto`.
@@ -331,6 +336,10 @@ class CharacterInstance {
     return character_.sp_by_stage().contains(stage)
                ? character_.sp_by_stage().at(stage)
                : 0;
+  }
+  // Available Hyper SP, which no stage holds -- see Character::hyper_sp.
+  int hyper_sp() const {
+    return character_.hyper_sp();
   }
   // The character's learned level in `skill` (0 = unlearned).
   int skill_level(const Skill& skill) const {

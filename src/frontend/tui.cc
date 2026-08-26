@@ -850,7 +850,7 @@ void Tui::NoticeProgress() {
       return;
     case kLevelGained:
       celebration_.BeginLevelUp(progress.from_level, progress.to_level,
-                                progress.ap, progress.sp,
+                                progress.ap, progress.sp, progress.hyper_sp,
                                 state_.account.max_level(), FocusedPanel());
       return;
     case kNothingNoticed:

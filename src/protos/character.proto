@@ -199,6 +199,12 @@ message Character {
   // band's top level stops its SP whether or not the advancement was taken.
   map<int32, int32> sp_by_stage = 11;
 
+  // Available Hyper SP: a pool of its own, spent only on Hyper Skills. Not a
+  // stage of the map above, which is banded by advancement level -- these are
+  // earned one every five levels from 140 to 195, a band that spans the 4th
+  // job's own and would be a stage the game does not have.
+  int32 hyper_sp = 18;
+
   // Learned skill levels, keyed by the skill's display name (Skill.name).
   // Absent or zero means unlearned. Raised by spending that stage's SP.
   map<string, int32> skill_levels = 12;

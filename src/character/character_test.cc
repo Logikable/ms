@@ -242,6 +242,36 @@ TEST_F(LevelUpTest, TheFourthJobPaysFiveALevel) {
   EXPECT_EQ(c.sp(3), 0) << "the 3rd job's band is closed behind them";
 }
 
+// The Hyper SP ladder: one point at 140 and every fifth level to 195, and
+// nothing before or after. Twelve in all, which is one per Hyper Skill.
+TEST_F(LevelUpTest, PaysOneHyperSpEveryFifthLevelFrom140To195) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/139);
+  c.LevelUp();  // 140, the first rung
+  EXPECT_EQ(c.hyper_sp(), 1);
+  c.LevelUp();  // 141, between rungs
+  EXPECT_EQ(c.hyper_sp(), 1);
+  for (int i = 0; i < 4; ++i) {
+    c.LevelUp();  // 142..145, the second rung
+  }
+  EXPECT_EQ(c.hyper_sp(), 2);
+  while (c.proto().level() < 195) {
+    c.LevelUp();
+  }
+  EXPECT_EQ(c.hyper_sp(), 12) << "one for each of a job's twelve Hyper Skills";
+  while (c.proto().level() < 200) {
+    c.LevelUp();
+  }
+  EXPECT_EQ(c.hyper_sp(), 12) << "195 is the last rung";
+}
+
+TEST_F(LevelUpTest, PaysNoHyperSpBelowOneForty) {
+  CharacterInstance c = MakeCharacter(rng_, /*level=*/134);
+  for (int i = 0; i < 5; ++i) {
+    c.LevelUp();  // 135..139, one of them a multiple of five
+  }
+  EXPECT_EQ(c.hyper_sp(), 0);
+}
+
 TEST_F(LevelUpTest, EveryFirstJobReachesTheSameSixty) {
   // No job is handed a head start; the pools are identical.
   CharacterInstance c = MakeCharacter(rng_, /*level=*/10);
@@ -275,7 +305,7 @@ class GainsForLevelsTest : public CharacterTest {
          c.proto().sp_by_stage()) {
       sp_after += pool.second;
     }
-    return {c.proto().ap() - ap_before, sp_after - sp_before};
+    return {c.proto().ap() - ap_before, sp_after - sp_before, c.hyper_sp()};
   }
 };
 
@@ -317,8 +347,8 @@ TEST_F(GainsForLevelsTest, ASpanThatGoesNowhereGrantsNothing) {
 // player the wrong number.
 TEST_F(GainsForLevelsTest, AgreesWithLevellingUpForReal) {
   const std::pair<int, int> spans[] = {
-      {1, 2},   {1, 10}, {10, 11},  {10, 30},
-      {29, 32}, {1, 40}, {99, 104}, {100, 140},
+      {1, 2},  {1, 10},   {10, 11},   {10, 30},   {29, 32},
+      {1, 40}, {99, 104}, {100, 140}, {139, 146}, {140, 200},
   };
   for (const std::pair<int, int>& span : spans) {
     LevelGains predicted = GainsForLevels(span.first, span.second);
@@ -327,6 +357,8 @@ TEST_F(GainsForLevelsTest, AgreesWithLevellingUpForReal) {
         << "AP for levels " << span.first << " -> " << span.second;
     EXPECT_EQ(predicted.sp, actual.sp)
         << "SP for levels " << span.first << " -> " << span.second;
+    EXPECT_EQ(predicted.hyper_sp, actual.hyper_sp)
+        << "Hyper SP for levels " << span.first << " -> " << span.second;
   }
 }
 
@@ -662,6 +694,72 @@ TEST_F(CharacterTest, MeetingTheRequirementOpensTheSkill) {
 TEST_F(CharacterTest, ASkillDemandingNothingIsAlwaysOpen) {
   CharacterInstance c = MakeSpearman(rng_, 20);
   EXPECT_TRUE(c.MeetsSkillRequirement(MakeGateSkill()));
+}
+
+// --- Hyper Skills ---
+
+// A Dark Knight's, at the level GMS opens it: one point, from a pool of its
+// own, and not before the level on the skill.
+Skill MakeHyperSkill(int required_level = 150) {
+  Skill skill;
+  skill.set_name("Gungnir's Descent - Reinforce");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_DARK_KNIGHT);
+  skill.set_max_level(1);
+  skill.set_hyper(true);
+  skill.set_required_level(required_level);
+  return skill;
+}
+
+// A Dark Knight at `level` holding `hyper_sp`, and no stage SP at all: a
+// Hyper Skill must not be reachable out of the 4th job's pool.
+CharacterInstance MakeDarkKnight(std::mt19937& rng, int level, int hyper_sp) {
+  Character proto;
+  proto.set_level(level);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(4);
+  proto.set_hyper_sp(hyper_sp);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+TEST_F(LearnSkillTest, AHyperSkillSpendsTheHyperPool) {
+  CharacterInstance c = MakeDarkKnight(rng_, /*level=*/150, /*hyper_sp=*/2);
+  ASSERT_TRUE(c.LearnSkill(MakeHyperSkill()));
+  EXPECT_EQ(c.skill_level(MakeHyperSkill()), 1);
+  EXPECT_EQ(c.hyper_sp(), 1);
+  EXPECT_EQ(c.sp(4), 0) << "no stage paid for it";
+  // One point is the whole of it: max_level is 1.
+  EXPECT_FALSE(c.LearnSkill(MakeHyperSkill()));
+  EXPECT_EQ(c.hyper_sp(), 1);
+}
+
+TEST_F(LearnSkillTest, AHyperSkillIsShutBelowItsLevel) {
+  CharacterInstance c = MakeDarkKnight(rng_, /*level=*/149, /*hyper_sp=*/2);
+  EXPECT_FALSE(c.LearnSkill(MakeHyperSkill()));
+  EXPECT_EQ(c.hyper_sp(), 2) << "and the point is not taken either";
+}
+
+TEST_F(LearnSkillTest, AHyperSkillNeedsAPointOfItsOwnKind) {
+  Character proto;
+  proto.set_level(150);
+  proto.set_job(JOB_DARK_KNIGHT);
+  proto.set_job_stage(4);
+  (*proto.mutable_sp_by_stage())[4] = 200;
+  CharacterInstance c(rng_, std::move(proto));
+  EXPECT_FALSE(c.LearnSkill(MakeHyperSkill()))
+      << "the 4th job's book cannot buy a hyper";
+}
+
+// The advancement on a hyper is the book it belongs to, and it gates the same
+// way every other skill's does.
+TEST_F(LearnSkillTest, AHyperSkillBelongsToItsOwnJob) {
+  Character proto;
+  proto.set_level(150);
+  proto.set_job(JOB_PALADIN);
+  proto.set_job_stage(4);
+  proto.set_hyper_sp(2);
+  CharacterInstance paladin(rng_, std::move(proto));
+  EXPECT_FALSE(paladin.LearnSkill(MakeHyperSkill()));
 }
 
 // --- ResetStatsForJob ---

@@ -23,12 +23,13 @@ namespace ms {
 // Always five rows inside the border, so it is one shape the player learns
 // rather than a box that grows with the news.
 //
-// `ap` and `sp` are totals for the whole climb. A total of zero is left off --
-// "+0 SP" on a card celebrating something reads as a slight.
+// `ap`, `sp` and `hyper_sp` are totals for the whole climb. A total of zero is
+// left off -- "+0 SP" on a card celebrating something reads as a slight.
 //
 // `unlocks` names anything the climb opened, in gold, sharing the body with the
 // gains rather than added below them.
 ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
+                                 int hyper_sp = 0,
                                  const std::vector<std::string>& unlocks = {});
 
 }  // namespace ms

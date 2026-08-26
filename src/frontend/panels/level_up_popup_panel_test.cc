@@ -16,9 +16,9 @@ namespace {
 // The card rendered at its natural size, read off cell by cell. Not
 // Screen::ToString -- that threads colour escapes through every row, so a row
 // does not read as the line the player sees.
-ftxui::Screen RenderCard(int from, int to, int ap, int sp,
+ftxui::Screen RenderCard(int from, int to, int ap, int sp, int hyper_sp = 0,
                          const std::vector<std::string>& unlocks = {}) {
-  ftxui::Element card = LevelUpPopupPanel(from, to, ap, sp, unlocks);
+  ftxui::Element card = LevelUpPopupPanel(from, to, ap, sp, hyper_sp, unlocks);
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fit(card));
   ftxui::Render(screen, card);
   return screen;
@@ -78,13 +78,20 @@ TEST(LevelUpPopupPanelTest, ReportsTheWholeClimbNotJustTheLastLevel) {
   EXPECT_TRUE(AnyRowHas(screen, "+15 AP"));
 }
 
-TEST(LevelUpPopupPanelTest, ShowsApAboveSp) {
-  ftxui::Screen screen = RenderCard(12, 13, 5, 3);
+TEST(LevelUpPopupPanelTest, ShowsApAboveSpAboveHyperSp) {
+  ftxui::Screen screen = RenderCard(139, 140, 5, 5, 1);
   int ap_row = RowIndexOf(screen, "+5 AP");
-  int sp_row = RowIndexOf(screen, "+3 SP");
+  int sp_row = RowIndexOf(screen, "+5 SP");
+  int hyper_row = RowIndexOf(screen, "+1 Hyper SP");
   ASSERT_GE(ap_row, 0);
   ASSERT_GE(sp_row, 0);
+  ASSERT_GE(hyper_row, 0);
   EXPECT_LT(ap_row, sp_row) << "AP is spent first, so it is listed first";
+  EXPECT_LT(sp_row, hyper_row) << "the pool the SP is not a stage of";
+  // Three gains fill the body exactly, so the card is its usual height.
+  EXPECT_EQ(screen.dimy(), RenderCard(12, 13, 5, 3).dimy());
+  // And the levels between the rungs pay none of it.
+  EXPECT_FALSE(AnyRowHas(RenderCard(141, 142, 5, 0), "Hyper"));
 }
 
 // What a Beginner sees: SP is granted by level but unreachable until they
@@ -155,7 +162,7 @@ TEST(LevelUpPopupPanelTest, TheRuleInsideItIsGoldToo) {
 // The one line on the card the player has never seen before, so it is the one
 // line drawn gold against the white.
 TEST(LevelUpPopupPanelTest, AnnouncesAnUnlockInGold) {
-  ftxui::Screen screen = RenderCard(39, 40, 5, 3, {"Scrolling"});
+  ftxui::Screen screen = RenderCard(39, 40, 5, 3, 0, {"Scrolling"});
   EXPECT_TRUE(AnyRowHas(screen, "Unlocked Scrolling!"));
   EXPECT_EQ(ColorOf(screen, "Unlocked"), kYellow);
   EXPECT_NE(ColorOf(screen, "+5 AP"), kYellow) << "the gains stay white";
@@ -164,12 +171,12 @@ TEST(LevelUpPopupPanelTest, AnnouncesAnUnlockInGold) {
 // The announcement shares the body with the gains rather than being stacked
 // under it, so the card that opened something is the same size as every other.
 TEST(LevelUpPopupPanelTest, AnUnlockDoesNotGrowTheCard) {
-  EXPECT_EQ(RenderCard(39, 40, 5, 3, {"Scrolling"}).dimy(),
+  EXPECT_EQ(RenderCard(39, 40, 5, 3, 0, {"Scrolling"}).dimy(),
             RenderCard(39, 40, 5, 3).dimy());
 }
 
 TEST(LevelUpPopupPanelTest, AnnouncesUnlocksBelowTheGains) {
-  ftxui::Screen screen = RenderCard(39, 40, 5, 3, {"Scrolling"});
+  ftxui::Screen screen = RenderCard(39, 40, 5, 3, 0, {"Scrolling"});
   EXPECT_GT(RowIndexOf(screen, "Unlocked"), RowIndexOf(screen, "+3 SP"));
 }
 

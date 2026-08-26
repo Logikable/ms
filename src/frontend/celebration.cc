@@ -27,7 +27,7 @@ void Celebration::Light(Panel panel, Panel focused) {
 }
 
 void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
-                               int account_level, Panel focused) {
+                               int hyper_sp, int account_level, Panel focused) {
   kind_ = Kind::kLevelUp;
   card_seconds_ = kCelebrationSeconds;
   glow_seconds_ = kCelebrationSeconds;
@@ -35,6 +35,7 @@ void Celebration::BeginLevelUp(int from_level, int to_level, int ap, int sp,
   to_level_ = to_level;
   ap_ = ap;
   sp_ = sp;
+  hyper_sp_ = hyper_sp;
   unlocks_.clear();
   for (Feature feature :
        UpgradesUnlockedBetween(from_level, to_level, account_level)) {
@@ -121,7 +122,8 @@ ftxui::Element Celebration::Render() const {
   if (kind_ == Kind::kAdvancement) {
     return AdvancementPopupPanel(from_job_, to_job_);
   }
-  return LevelUpPopupPanel(from_level_, to_level_, ap_, sp_, unlocks_);
+  return LevelUpPopupPanel(from_level_, to_level_, ap_, sp_, hyper_sp_,
+                           unlocks_);
 }
 
 }  // namespace ms

@@ -35,8 +35,8 @@ class Celebration {
   enum class Kind { kNone, kLevelUp, kAdvancement, kDeath };
 
   // Starts the level-up card for a climb from `from_level` to `to_level`,
-  // paying `ap` and `sp` in total. `focused` is the panel the player is on, or
-  // kNoPanel if they are off the main screen.
+  // paying `ap`, `sp` and `hyper_sp` in total. `focused` is the panel the
+  // player is on, or kNoPanel if they are off the main screen.
   //
   // A span rather than one level: a single tick can carry a character past
   // several thresholds, and the span is what decides which panels are lit.
@@ -44,7 +44,7 @@ class Celebration {
   // `account_level` is the furthest any character on the account has reached.
   // A climb over ground it has covered still pays AP, but it opens nothing:
   // those panels have been on screen since this character was made.
-  void BeginLevelUp(int from_level, int to_level, int ap, int sp,
+  void BeginLevelUp(int from_level, int to_level, int ap, int sp, int hyper_sp,
                     int account_level, Panel focused);
 
   // Starts the advancement card, replacing a level-up still on screen: it is
@@ -120,6 +120,7 @@ class Celebration {
   int to_level_ = 0;
   int ap_ = 0;
   int sp_ = 0;
+  int hyper_sp_ = 0;
   // Worked out when the climb happens, for the same reason the glow is: the
   // character no longer knows which levels it came through.
   std::vector<std::string> unlocks_;

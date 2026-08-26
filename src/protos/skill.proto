@@ -971,6 +971,18 @@ message Skill {
   // True only for Blessed Ensemble, which is not a buff at all -- it pays for
   // the company kept, and GMS states it per Cleric in the party.
   bool ally_effect_stacks = 45;
+  // Whether this is a Hyper Skill: bought with the character's own pool of
+  // Hyper SP rather than their job stage's, listed on a page of its own, and
+  // gated on required_level rather than on a skill below it.
+  //
+  // It still names the 4th-job advancement it belongs to, so a character's
+  // book is one question either way. What that makes skill_order distinct
+  // within is the PAIR -- an advancement and this flag -- since a hyper page
+  // and a 4th job page are two lists.
+  bool hyper = 46;
+  // The level the skill unlocks at. 0 is every skill whose advancement is the
+  // whole gate, which is all of them but a hyper.
+  int32 required_level = 47;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and

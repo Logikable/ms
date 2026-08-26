@@ -33,8 +33,16 @@ constexpr int kSpPerLevel = 3;
 constexpr int kFourthJobSpPerLevel = 5;
 // The last level that pays SP at all. The 4th job's band runs to the 5th
 // advancement, but its book is bought out 60 levels short of that, so the
-// levels above pay in HP, MP and AP alone until there is a book for them.
+// levels above pay in Hyper SP, HP, MP and AP.
 constexpr int kLastSpLevel = 140;
+
+// The Hyper SP ladder: one point at 140 and every fifth level after it, up to
+// 195. Twelve points in all, which is one for each of a job's twelve Hyper
+// Skills -- so the choice the page asks for is the ORDER they are taken in,
+// the unlock levels being clustered rather than one to a point.
+constexpr int kFirstHyperSpLevel = 140;
+constexpr int kLastHyperSpLevel = 195;
+constexpr int kHyperSpLevelStep = 5;
 
 // What a job's primary stat is worth on advancing into it: it climbs to here
 // from kBaseStat, and the AP that pays for the difference comes out of the
@@ -130,6 +138,14 @@ int SpForLevel(int level) {
     return 0;
   }
   return stage < 4 ? kSpPerLevel : kFourthJobSpPerLevel;
+}
+
+// Hyper SP a level-up pays: one on each rung of the ladder, nothing between.
+int HyperSpForLevel(int level) {
+  if (level < kFirstHyperSpLevel || level > kLastHyperSpLevel) {
+    return 0;
+  }
+  return (level - kFirstHyperSpLevel) % kHyperSpLevelStep == 0 ? 1 : 0;
 }
 
 // SP granted for completing an advancement into `job`. Every book is built to
@@ -873,6 +889,7 @@ LevelGains GainsForLevels(int from_level, int to_level) {
   for (int level = from_level + 1; level <= to_level; ++level) {
     gains.ap += kApPerLevel;
     gains.sp += SpForLevel(level);
+    gains.hyper_sp += HyperSpForLevel(level);
   }
   return gains;
 }
@@ -904,6 +921,9 @@ void CharacterInstance::LevelUp() {
     (*character_.mutable_sp_by_stage())[stage] +=
         SpForLevel(character_.level());
   }
+  // Its own pool, on its own ladder: a Hyper Skill is not any stage's.
+  character_.set_hyper_sp(character_.hyper_sp() +
+                          HyperSpForLevel(character_.level()));
 }
 
 int64_t CharacterInstance::BossClearedAt(const std::string& boss,
@@ -1128,11 +1148,25 @@ bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (!MeetsSkillRequirement(skill)) {
     return false;
   }
-  int stage = StageForAdvancement(skill.job_advancement());
-  if (amount > sp(stage)) {
+  if (character_.level() < skill.required_level()) {
     return false;
   }
   if (skill_level(skill) + amount > skill.max_level()) {
+    return false;
+  }
+  // A Hyper Skill is bought out of the character's own pool. Everything above
+  // holds for it too: it names the advancement whose book it belongs to, so a
+  // Paladin cannot buy a Dark Knight's.
+  if (skill.hyper()) {
+    if (amount > character_.hyper_sp()) {
+      return false;
+    }
+    character_.set_hyper_sp(character_.hyper_sp() - amount);
+    (*character_.mutable_skill_levels())[skill.name()] += amount;
+    return true;
+  }
+  int stage = StageForAdvancement(skill.job_advancement());
+  if (amount > sp(stage)) {
     return false;
   }
   (*character_.mutable_skill_levels())[skill.name()] += amount;

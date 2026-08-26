@@ -1,6 +1,7 @@
 #include "src/frontend/panels/level_up_popup_panel.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
@@ -29,16 +30,18 @@ ftxui::Element GainRow(int amount, const std::string& label) {
 }  // namespace
 
 ftxui::Element LevelUpPopupPanel(int from_level, int to_level, int ap, int sp,
+                                 int hyper_sp,
                                  const std::vector<std::string>& unlocks) {
-  // AP above SP, in the order the character panel spends them.
+  // AP above SP, in the order the character panel spends them, and the Hyper
+  // SP under the SP it is not a stage of.
   std::vector<ftxui::Element> body;
-  ftxui::Element ap_row = GainRow(ap, "AP");
-  if (ap_row != nullptr) {
-    body.push_back(std::move(ap_row));
-  }
-  ftxui::Element sp_row = GainRow(sp, "SP");
-  if (sp_row != nullptr) {
-    body.push_back(std::move(sp_row));
+  const std::pair<int, const char*> kGains[] = {
+      {ap, "AP"}, {sp, "SP"}, {hyper_sp, "Hyper SP"}};
+  for (const std::pair<int, const char*>& gain : kGains) {
+    ftxui::Element row = GainRow(gain.first, gain.second);
+    if (row != nullptr) {
+      body.push_back(std::move(row));
+    }
   }
   // Below what the level paid, and gold against the card's white: a point of
   // AP is the same news every level, and this is not.

@@ -28,6 +28,7 @@ struct Progress {
   // but unreachable -- the skills tab belongs to a job.
   int ap = 0;
   int sp = 0;
+  int hyper_sp = 0;
   Job from_job = JOB_UNSPECIFIED;
   Job to_job = JOB_UNSPECIFIED;
 };

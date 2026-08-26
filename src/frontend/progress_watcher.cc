@@ -29,6 +29,7 @@ Progress ProgressWatcher::Notice(const Character& character) {
     progress.to_level = character.level();
     progress.ap = gains.ap;
     progress.sp = character.job() == JOB_BEGINNER ? 0 : gains.sp;
+    progress.hyper_sp = gains.hyper_sp;
   }
   // Assigned rather than only raised, so a level that somehow went down does
   // not leave the next real level-up reporting a climb it did not make.
