@@ -1365,8 +1365,11 @@ bool TuiController::OnMenuBoxEvent(ftxui::Event event) {
 
 void TuiController::OpenBoxEntry() {
   switch (menu_panel_.box_entry()) {
+    // Neither raises a box: both open a screen straight from the menu, so
+    // there is nothing here to open.
     case MenuEntry::kBoss:
-      return;  // Boss raises no box.
+    case MenuEntry::kParty:
+      return;
     case MenuEntry::kAnalysis:
       OpenAnalysisEntry(menu_panel_.selected_analysis_entry());
       return;
