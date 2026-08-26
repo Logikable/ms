@@ -151,6 +151,7 @@ struct LevelUpGain {
 };
 
 LevelUpGain LevelUpGainFor(Job job) {
+  static_assert(Job_ARRAYSIZE == 36, "a new job needs its HP/MP gains here");
   switch (job) {
     case JOB_SWORDMAN:
     case JOB_FIGHTER:
@@ -180,6 +181,7 @@ LevelUpGain LevelUpGainFor(Job job) {
 }
 
 EquipJobCategory JobToCategory(Job job) {
+  static_assert(Job_ARRAYSIZE == 36, "a new job needs its equip category here");
   switch (job) {
     case JOB_BEGINNER:
       return EQUIP_JOB_CATEGORY_BEGINNER;
@@ -276,6 +278,7 @@ std::unique_ptr<EquipTabItem> RestoreEquipItem(
 // The four beginner books. Every job in a line answers to the one it grew
 // out of, however far along the line it is.
 JobAdvancement FirstAdvancement(Job job) {
+  static_assert(Job_ARRAYSIZE == 36, "a new job needs its beginner book here");
   switch (job) {
     case JOB_SWORDMAN:
     case JOB_FIGHTER:
@@ -682,6 +685,7 @@ JobAdvancement AdvancementForSecondary(EquipType type) {
 }
 
 StatField PrimaryStatField(Job job) {
+  static_assert(Job_ARRAYSIZE == 36, "a new job needs its primary stat here");
   switch (job) {
     case JOB_BEGINNER:
     case JOB_SWORDMAN:
@@ -809,6 +813,8 @@ std::vector<Job> JobChoicesForStage(Job job, int stage) {
 }
 
 int StageForAdvancement(JobAdvancement advancement) {
+  static_assert(JobAdvancement_ARRAYSIZE == 35,
+                "a new advancement needs its stage here");
   switch (advancement) {
     case JOB_ADVANCEMENT_SWORDMAN:
     case JOB_ADVANCEMENT_ARCHER:

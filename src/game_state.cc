@@ -63,9 +63,11 @@ constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO;
 // Two weapons means the better one by //analysis:weapon_sim, but a Rogue gets
 // all three: which of the dagger and the claw is held decides what they swing.
 //
-// Long, and stays long: it is one table with a row per job, and the switch
-// without a default is what makes a new job a compiler warning here.
+// Long, and stays long: one row per job. The static_assert is the tripwire --
+// Clang cannot check the switch itself, because -Wswitch over a proto enum
+// demands the two DO_NOT_USE sentinels as well.
 std::vector<std::string> WorkbenchGearFor(Job job) {
+  static_assert(Job_ARRAYSIZE == 36, "a new job needs a row in this table");
   switch (job) {
     // The 1st jobs, at level 30.
     case JOB_SWORDMAN:
