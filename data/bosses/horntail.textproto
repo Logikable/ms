@@ -57,7 +57,7 @@ difficulties {
   # opens at: the field kills him in 10 to 29 minutes on the gear of the day.
   # What the clock is for is the player who comes back twenty levels later.
   time_limit_seconds: 600
-  unlock_level: 140
+  unlock_level: 150
   # Five Intense Power Crystals at what his level fetches, as Zakum's and
   # Hilla's meso is.
   meso: 5062500
