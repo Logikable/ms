@@ -167,6 +167,11 @@ GameState EveryBand() {
                     {"zone", zone}});
 }
 
+int Width(const MapSelectPanel& panel) {
+  ftxui::Element element = panel.Render();
+  return ftxui::Dimension::Fit(element).dimx;
+}
+
 std::string Render(const MapSelectPanel& panel) {
   ftxui::Element element = ftxui::hbox({panel.Render(), ftxui::filler()});
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(100),
@@ -738,13 +743,17 @@ TEST(MapSelectPanelTest, TheArcaneForceColumnFollowsTheBand) {
   // The first band holds the plain map, which names no force.
   EXPECT_EQ(rendered.find("AF"), std::string::npos) << rendered;
   EXPECT_EQ(rendered.find("130"), std::string::npos) << rendered;
+  int plain_width = Width(panel);
 
   GoToTheBar(&panel);
   panel.ChangePage(kPastEveryBand);
-  rendered = Render(panel);
-  EXPECT_NE(rendered.find("Weathered Land of Rage"), std::string::npos);
-  EXPECT_NE(rendered.find("AF"), std::string::npos) << rendered;
-  EXPECT_NE(rendered.find("130"), std::string::npos) << rendered;
+  std::string arcane = Render(panel);
+  EXPECT_NE(arcane.find("Weathered Land of Rage"), std::string::npos);
+  EXPECT_NE(arcane.find("AF"), std::string::npos) << arcane;
+  EXPECT_NE(arcane.find("130"), std::string::npos) << arcane;
+  // The column holds its width without its header, so the window does not
+  // walk sideways as the player pages.
+  EXPECT_EQ(Width(panel), plain_width);
 }
 
 }  // namespace

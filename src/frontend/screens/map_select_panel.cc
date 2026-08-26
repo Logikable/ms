@@ -256,13 +256,14 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
   rows.push_back(RenderBandBar());
   rows.push_back(ThemedSeparator());
   const std::vector<std::string>& page = pages_[page_];
-  bool arcane = PageWantsArcaneForce();
-  std::string header =
-      "  " + PadRight("Name", kMapNameWidth) + PadRight("Lv", kLevelWidth);
-  if (arcane) {
-    header += PadRight("AF", kArcaneWidth);
-  }
-  rows.push_back(ftxui::text(header));
+  // The cells are blank on a band no Arcane River map reaches, so the header
+  // comes off with them. The column keeps its width either way, which holds
+  // the window still as the player pages.
+  std::string arcane_header = PageWantsArcaneForce()
+                                  ? PadRight("AF", kArcaneWidth)
+                                  : std::string(kArcaneWidth, ' ');
+  rows.push_back(ftxui::text("  " + PadRight("Name", kMapNameWidth) +
+                             PadRight("Lv", kLevelWidth) + arcane_header));
   rows.push_back(ThemedSeparator());
   if (page.empty()) {
     rows.push_back(EmptyState("empty"));
@@ -272,10 +273,6 @@ ftxui::Element MapSelectPanel::RenderMapList() const {
     std::string row = zone_ == kZoneList && i == selected_ ? "> " : "  ";
     row += PadRight(map.name(), kMapNameWidth);
     row += PadRight(std::to_string(WeightedLevel(state_, map)), kLevelWidth);
-    if (!arcane) {
-      rows.push_back(ftxui::text(row));
-      continue;
-    }
     rows.push_back(ftxui::hbox({ftxui::text(row), ArcaneCell(state_, map)}));
   }
   // Every band fills out to the height of the biggest one. The panel is
