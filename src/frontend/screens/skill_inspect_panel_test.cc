@@ -1469,6 +1469,20 @@ TEST_F(SkillInspectPanelTest, HeadsTheTwoHalvesInTheSkillListsColors) {
   EXPECT_EQ(LabelColor(panel.Render(), "Passive"), kGreen);
 }
 
+// A shared buff grants the party nothing of its own -- everyone raises the
+// same one in turn -- so the heading is where the page has to say so.
+TEST_F(SkillInspectPanelTest, ASharedBuffSaysSoInItsHeading) {
+  Skill epic = MakeIronBody();
+  epic.set_kind(SKILL_KIND_ACTIVE);
+  epic.mutable_buff()->set_duration_seconds(60.0);
+  epic.mutable_buff()->mutable_base()->set_damage_pct(0.10);
+  EXPECT_EQ(RenderAt(epic, 1).find("shared with your party"),
+            std::string::npos);
+  epic.mutable_buff()->set_party_shared(true);
+  EXPECT_NE(RenderAt(epic, 1).find("Active for 60s, shared with your party"),
+            std::string::npos);
+}
+
 // An attack's ignored defence is true only while that swing is in the air; the
 // ATT it grants is the character's for good. Unheaded the two rows read alike.
 // The same levers on a passive ARE the character's, so nothing heads them.

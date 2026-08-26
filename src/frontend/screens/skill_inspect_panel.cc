@@ -1039,11 +1039,14 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
       buff.charge_lines() > 0
           ? " every " + std::to_string(buff.charge_lines()) + " hits"
           : "";
+  // A shared buff says so here rather than in a Your Party section: it grants
+  // the party nothing of its own -- everyone raises the same one in turn.
+  std::string shared = buff.party_shared() ? ", shared with your party" : "";
   rows.push_back(SectionRow(
       "Active for " +
           FormatNumber(buff.duration_seconds() +
                        buff.duration_seconds_per_level() * (level - 1)) +
-          "s" + charge,
+          "s" + charge + shared,
       kGold));
   // The heal is handed over once, when the buff goes up -- so it is stated on
   // its own rather than among the levers that hold for as long as it stands.
