@@ -187,6 +187,7 @@ _MAIN_DEPS = [
     ":save",
     ":game_state",
     ":proto_loader",
+    "//src/character:exp_table",
     "//src/combat:offline",
     "//src/frontend:tui",
     "//src/item",

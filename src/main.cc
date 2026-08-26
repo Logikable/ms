@@ -13,6 +13,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "src/build_config.h"
+#include "src/character/exp_table.h"
 #include "src/combat/offline.h"
 #include "src/embedded_data.h"
 #include "src/frontend/tui.h"
@@ -40,6 +41,10 @@ ABSL_FLAG(std::string, job, "",
           "top of, such as 'hunter' or 'archer'. The character arrives at the "
           "last level before their next advancement, with the AP spent. Unset "
           "starts the workbench's own job.");
+ABSL_FLAG(int32_t, level, 0,
+          "Workbench only (--mode=test): the level to arrive at, instead of "
+          "the top of the job's own band. Never below the level the job is "
+          "taken at, and never above the trial's ceiling.");
 ABSL_FLAG(std::string, equips, "clean",
           "Workbench only (--mode=test): what state the character's gear "
           "arrives in. 'clean' as it drops, 'scroll' with every upgrade slot "
@@ -126,6 +131,26 @@ ms::TestSkills ParseSkills(const std::string& skills, ms::GameMode mode) {
   LOG(FATAL) << "Unknown --skills '" << skills << "'; expected zero or max";
 }
 
+// The level the workbench arrives at. 0 leaves it to the job, which is the
+// top of its own band. The bounds are checked here rather than in the seeding
+// so the tester is told what they asked for is out of reach, rather than
+// quietly given something else.
+int ParseLevel(int level, ms::JobAdvancement job, ms::GameMode mode) {
+  if (level == 0) {
+    return 0;
+  }
+  RefuseOutsideTheWorkbench("--level", mode);
+  int floor = ms::NextAdvancementLevel(
+      ms::StageForAdvancement(
+          job == ms::JOB_ADVANCEMENT_UNSPECIFIED ? ms::kTestAdvancement : job) -
+      1);
+  if (level < floor || level > ms::kTrialLevelCap) {
+    LOG(FATAL) << "--level " << level << " is outside " << floor << ".."
+               << ms::kTrialLevelCap << " for that job";
+  }
+  return level;
+}
+
 ms::JobAdvancement ParseJob(const std::string& job, ms::GameMode mode) {
   if (job.empty()) {
     return ms::JOB_ADVANCEMENT_UNSPECIFIED;
@@ -148,6 +173,7 @@ int main(int argc, char** argv) {
   ms::GameMode mode = ParseMode(absl::GetFlag(FLAGS_mode));
   ms::TestOptions test;
   test.job = ParseJob(absl::GetFlag(FLAGS_job), mode);
+  test.level = ParseLevel(absl::GetFlag(FLAGS_level), test.job, mode);
   test.equips = ParseEquips(absl::GetFlag(FLAGS_equips), mode);
   test.skills = ParseSkills(absl::GetFlag(FLAGS_skills), mode);
 

@@ -48,13 +48,6 @@ Character MakeBaseBeginnerProto() {
 // earning AP past kTrialLevelCap, since LevelUp is not bounded by it.
 constexpr int kTestLevelUpItems = 199;
 
-// Where the workbench's character stands when --job says nothing: the top of
-// the Hero line as far as it is written, holding the whole of what this game
-// has to hand out. It moves up with the line rather than staying put -- a
-// workbench with an advancement still waiting is one the tester has to finish
-// before they can look at anything.
-constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO;
-
 // Everything the workbench dresses a job in: the best of each thing it carries
 // that its starting level can wear. Advancing hands over gear for the level it
 // happens at, and the workbench starts at the TOP of an advancement, so a level
@@ -335,11 +328,11 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
   }
 }
 
-// Climbs to the top of `advancement`: the job it names, at the last level
-// before the next advancement would be offered, having taken every earlier
-// advancement on the way to it.
-void GrowToJob(GameState& state, JobAdvancement advancement, int unspent_stage,
-               TestEquips equips) {
+// Climbs into `advancement`: the job it names, having taken every earlier
+// advancement on the way to it. `level` is where the climb stops, or 0 for the
+// last level before the next advancement would be offered.
+void GrowToJob(GameState& state, JobAdvancement advancement, int level,
+               int unspent_stage, TestEquips equips) {
   Job job = JobForAdvancement(advancement);
   int stage = StageForAdvancement(advancement);
   std::vector<Job> path;
@@ -348,8 +341,10 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int unspent_stage,
   }
   // Held to the cap: the 5th advancement's level is above it, so the 4th job
   // stops where the EXP table does rather than climbing past the end.
-  GrowTo(state, std::min(NextAdvancementLevel(stage), kTrialLevelCap), path,
-         unspent_stage);
+  GrowTo(
+      state,
+      level > 0 ? level : std::min(NextAdvancementLevel(stage), kTrialLevelCap),
+      path, unspent_stage);
   // The job's own gear, worn rather than carried, since there is no
   // advancement moment here to put it on at.
   WearAll(state, WorkbenchGearFor(job), equips);
@@ -486,7 +481,7 @@ void SeedTest(GameState& state, const TestOptions& test) {
   // Named after the job it was built for, so several workbenches in a party
   // are told apart without anybody typing a name.
   state.character.SetUsername(UsernameFor(advancement));
-  GrowToJob(state, advancement,
+  GrowToJob(state, advancement, test.level,
             test.skills == TestSkills::kZero ? StageForAdvancement(advancement)
                                              : kSpendEveryStage,
             test.equips);

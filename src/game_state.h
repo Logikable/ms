@@ -68,12 +68,23 @@ enum class TestSkills {
   kMax,
 };
 
+// Where the workbench's character stands when --job says nothing: the top of
+// the Hero line as far as it is written, holding the whole of what this game
+// has to hand out. It moves up with the line rather than staying put -- a
+// workbench with an advancement still waiting is one the tester has to finish
+// before they can look at anything.
+inline constexpr JobAdvancement kTestAdvancement = JOB_ADVANCEMENT_HERO;
+
 // The workbench's own settings, one per flag. kPlay ignores every one of them.
 //
 // `job` is --job: the advancement to start at the top of. Unset takes the
 // workbench's own job.
+//
+// `level` is --level: the level to arrive at. 0 leaves it to the job, which is
+// the top of that job's own band.
 struct TestOptions {
   JobAdvancement job = JOB_ADVANCEMENT_UNSPECIFIED;
+  int level = 0;
   TestEquips equips = TestEquips::kClean;
   TestSkills skills = TestSkills::kZero;
 };

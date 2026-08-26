@@ -386,6 +386,21 @@ TEST(GameStateTest, ChosenJobStartsAtTheTopOfThatAdvancement) {
   EXPECT_EQ(hunter.character.proto().job_stage(), 2);
 }
 
+// --level stops the climb where the tester asked rather than at the top of the
+// band, which is how a workbench is put in front of a screen that only opens
+// part-way up an advancement.
+TEST(GameStateTest, ChosenLevelStopsTheClimbWhereItWasAsked) {
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_HUNTER;
+  test.level = 45;
+  GameState state(BowCatalog(), {}, {}, {}, {}, BookFor(JOB_HUNTER),
+                  GameMode::kTest, test);
+  EXPECT_EQ(state.character.proto().level(), 45);
+  EXPECT_EQ(state.character.proto().job(), JOB_HUNTER)
+      << "the advancements below it are still taken on the way";
+  EXPECT_EQ(state.character.proto().ap(), 0) << "and the AP is still spent";
+}
+
 // The AP is spent: which stats to raise is never the question a tester is
 // asking. Only the chosen job's own book is left, since the books behind it
 // are not what was asked for either.
