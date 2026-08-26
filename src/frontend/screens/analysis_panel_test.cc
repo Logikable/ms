@@ -104,7 +104,7 @@ TEST(AnalysisPanelTest, TheSlowdownRowFollowsTheLevel) {
   EXPECT_NE(Render(panel).find("Game Slowdown Factor"), std::string::npos);
   EXPECT_NE(Render(panel).find("2x"), std::string::npos);
 
-  while (state.character.proto().level() < 100) {
+  while (state.character.proto().level() < 140) {
     state.character.LevelUp();
   }
   EXPECT_NE(Render(panel).find("10x"), std::string::npos);

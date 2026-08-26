@@ -323,11 +323,12 @@ TEST_F(ProgressionTest, TheFirstBandIsTheFastestTheGameEverRuns) {
 TEST_F(ProgressionTest, EachBandStartsOnTheLevelItNames) {
   EXPECT_DOUBLE_EQ(GameSpeedFactor(10), 3.0);
   EXPECT_DOUBLE_EQ(GameSpeedFactor(29), 3.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(30), 5.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(59), 5.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(60), 8.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(99), 8.0);
-  EXPECT_DOUBLE_EQ(GameSpeedFactor(100), 10.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(30), 4.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(59), 4.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(60), 6.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(99), 6.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(100), 8.0);
+  EXPECT_DOUBLE_EQ(GameSpeedFactor(139), 8.0);
   EXPECT_DOUBLE_EQ(GameSpeedFactor(140), 10.0);
 }
 

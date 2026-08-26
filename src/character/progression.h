@@ -140,7 +140,7 @@ bool HotkeysTipVisible(const CharacterInstance& character,
 // How many times slower than GMS the game runs at `level`. The one global
 // pacing knob, and the reason it lives here: it is not a constant. The game
 // stretches out as the player climbs, from twice GMS's clock at the start to
-// five times that by level 100.
+// five times that by level 140.
 //
 // Everything with a duration is multiplied by it -- swing intervals, the
 // respawn beat, and so the kill rate and everything paid out per kill.
