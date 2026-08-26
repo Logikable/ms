@@ -32,12 +32,6 @@ namespace {
 // chasing the border would leave it a screen away from its own label.
 constexpr int kStatsWidth = kLeftColumnMin - 2;
 
-// A row held to the Stats tab's alignment, so what it right-aligns lands
-// under the row above rather than at the panel's edge.
-ftxui::Element StatsAligned(ftxui::Element row) {
-  return std::move(row) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStatsWidth);
-}
-
 // One line of the panel's heading block, centred over the content width.
 std::string Centered(const std::string& s, int width) {
   int pad = std::max(0, (width - static_cast<int>(s.size())) / 2);
@@ -364,6 +358,22 @@ ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
   }));
 }
 
+ftxui::Element CharacterPanel::StatsAligned(ftxui::Element row) const {
+  // Centred in the panel, with the slack split between the two sides. The
+  // block does not spread with the panel, so left against the border it would
+  // sit with a third of a wide panel blank beside it.
+  //
+  // The padding is text rather than filler(): a row that right-aligns
+  // something ends in a filler of its own, and two of them would share the
+  // slack between them and drag the column off its neighbours'.
+  int slack = std::max(0, ContentWidth() - kStatsWidth);
+  return ftxui::hbox({
+      ftxui::text(std::string(slack / 2, ' ')),
+      std::move(row) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStatsWidth),
+      ftxui::text(std::string(slack - slack / 2, ' ')),
+  });
+}
+
 int CharacterPanel::ExtraStatsShown(int total) const {
   if (max_rows_ <= 0) {
     return total;
@@ -421,7 +431,7 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
       rows.push_back(PanelSeparator(highlighted_));
       continue;
     }
-    rows.push_back(StatRow(extras[i].label, extras[i].value));
+    rows.push_back(StatsAligned(StatRow(extras[i].label, extras[i].value)));
   }
   // Closes the block, because whatever did not fit above it is on the screen
   // it opens -- and the cursor reaches it by walking off the foot of the
