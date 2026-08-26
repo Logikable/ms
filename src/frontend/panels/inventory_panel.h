@@ -24,6 +24,7 @@
 #include "ftxui/screen/box.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/inventory_list.h"
@@ -55,6 +56,13 @@ class InventoryPanel {
   // behind, which is right: opening the menu does not move the list.
   int cursor_row() const {
     return cursor_box_.y_min;
+  }
+  // The columns the panel may take, borders included -- its column's width,
+  // which the layout works out from the terminal's. What a wide terminal
+  // brings goes to the Equip tab's name column; the stack tabs, whose rows
+  // are a name and a count, keep theirs.
+  void SetWidth(int width) {
+    width_ = width;
   }
   int selected() const {
     return selected_;
@@ -96,6 +104,14 @@ class InventoryPanel {
   // Whether the border is currently lit gold. Set from outside, read by the
   // render; no part of the panel's own state machine.
   bool highlighted_ = false;
+  // See SetWidth.
+  int width_ = kRightColumnMin;
+
+  // The columns the Equip tab's name cell gets, which is whatever the cells
+  // after it leave of the panel's width.
+  int NameWidth() const {
+    return ItemNameWidthFor(width_ - 2);
+  }
 
   // The two vertical focus zones: the Equip/Use/Etc tab bar on top, the active
   // tab's item list below. Down descends into the list, Up ascends back.

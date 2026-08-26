@@ -13,13 +13,14 @@
 #include <vector>
 
 #include "src/character/character.h"
+#include "src/frontend/widgets/panel_util.h"
 #include "src/protos/equip.pb.h"
 
 namespace ms {
 
 // The column header over each list. The two leading spaces are the cursor
-// column the rows carry.
-extern const char kEquippedHeader[];
+// column the rows carry, and `name_width` is the room the rows give a name.
+std::string EquippedHeader(int name_width = kItemNameWidth);
 extern const char kSymbolHeader[];
 
 // One worn item as a row.
@@ -42,10 +43,12 @@ struct EquippedRow {
 //
 // Only the row at `selected` slides a name too long for its column, and
 // `elapsed` is how long it has been the selected one; pass -1 and zero for a
-// list whose names all sit at their heads.
+// list whose names all sit at their heads. `name_width` is the name column a
+// wide panel hands out -- see ItemNameWidthFor.
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed);
+    std::chrono::steady_clock::duration elapsed,
+    int name_width = kItemNameWidth);
 
 // The rows for the Arcane Symbols `character` is wearing, in the order their
 // areas open. Empty until the first one is put on, which is the whole of what

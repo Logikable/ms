@@ -67,8 +67,13 @@ void EquippedPanel::StepTab(int direction) {
 
 std::vector<EquippedRow> EquippedPanel::Rows(
     std::chrono::steady_clock::duration slide) const {
-  return active_tab_ == kSymbolTab ? SymbolRows(character_, selected_, slide)
-                                   : EquippedRows(character_, selected_, slide);
+  return active_tab_ == kSymbolTab
+             ? SymbolRows(character_, selected_, slide)
+             : EquippedRows(character_, selected_, slide, NameWidth());
+}
+
+int EquippedPanel::NameWidth() const {
+  return ItemNameWidthFor(width_ - 2);
 }
 
 int EquippedPanel::ListCount() const {
@@ -249,8 +254,9 @@ ftxui::Element EquippedPanel::RenderRow(const ftxui::EntryState& state) {
   return row;
 }
 
-const char* EquippedPanel::Header() const {
-  return active_tab_ == kSymbolTab ? kSymbolHeader : kEquippedHeader;
+std::string EquippedPanel::Header() const {
+  return active_tab_ == kSymbolTab ? kSymbolHeader
+                                   : EquippedHeader(NameWidth());
 }
 
 void EquippedPanel::RebuildRows() {

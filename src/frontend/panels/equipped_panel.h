@@ -24,6 +24,7 @@
 #include "ftxui/screen/box.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/screens/scroll_panel.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/equipped_list.h"
@@ -76,6 +77,13 @@ class EquippedPanel {
     highlighted_ = highlighted;
   }
 
+  // The columns the panel may take, borders included -- its column's width,
+  // which the layout works out from the terminal's. What a wide terminal
+  // brings goes to the name column, up to the longest name the game ships.
+  void SetWidth(int width) {
+    width_ = width;
+  }
+
  private:
   // Which focus zone holds the cursor. The bar is a stop in the same ring as
   // the rows, so one pair of keys walks the whole panel.
@@ -112,12 +120,17 @@ class EquippedPanel {
   bool OnListEvent(const ftxui::Event& event,
                    const std::function<void()>& on_enter);
   // The header row over the active tab's columns.
-  const char* Header() const;
+  std::string Header() const;
+  // The columns the name cell gets, which is whatever the cells after it
+  // leave of the panel's width.
+  int NameWidth() const;
 
   CharacterInstance& character_;
   // Not const: walking a gold trail is recorded on the account.
   AccountInstance& account_;
   int& panel_focus_;
+  // See SetWidth.
+  int width_ = kRightColumnMin;
   int active_tab_ = kGearTab;
   Zone zone_ = kZoneList;
   int selected_ = 0;

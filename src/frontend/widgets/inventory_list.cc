@@ -14,19 +14,20 @@ namespace ms {
 namespace {
 
 // Two leading spaces match the "  " / "> " cursor the rows open with.
-constexpr char kColumnHeader[] =
-    "  Name                      "  // 2 cursor + 26 name
-    "  Equip Slot"                  // 2 sep + 10 slot
-    "  Level  Job          "        // 2 sep + 20 info
-    "  Scroll"                      // 2 sep + 6 scroll
-    "  Star Force";                 // 2 sep + label
+std::string ColumnHeader(int name_width) {
+  return "  " + PadRight("Name", name_width) +  // cursor + name
+         "  Equip Slot"                         // 2 sep + 10 slot
+         "  Level  Job          "               // 2 sep + 20 info
+         "  Scroll"                             // 2 sep + 6 scroll
+         "  Star Force";                        // 2 sep + label
+}
 
-// Byte offsets into an Equip row's label:
-// name(26) | slot and padding(14) | level(7) | job(13) | rest
-constexpr int kNameEnd = 26;
-constexpr int kSlotEnd = 40;
-constexpr int kLevelEnd = 47;
-constexpr int kJobEnd = 60;
+// Byte spans of an Equip row's cells, measured from the end of its name:
+// the slot cell with its separators, then the level and job halves of the
+// info column. The name's own length is on the row -- see name_bytes.
+constexpr int kSlotSpan = 14;
+constexpr int kLevelSpan = 7;
+constexpr int kJobSpan = 13;
 
 // The row's cells hboxed together, with whichever affixes the caller brought.
 ftxui::Element Row(ftxui::Element lead, std::vector<ftxui::Element> cells,
@@ -64,7 +65,7 @@ ItemCategory TabCategory(int tab) {
 
 std::vector<InventoryRowState> BuildEquipRows(
     const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed) {
+    std::chrono::steady_clock::duration elapsed, int name_width) {
   std::vector<InventoryRowState> rows;
   for (int i = 0; i < character.inventory().size(); ++i) {
     const EquipTabItem& item = character.inventory()[i];
@@ -74,9 +75,12 @@ std::vector<InventoryRowState> BuildEquipRows(
                        FormatJobCategories(proto);
     InventoryRowState row;
     // Only the selected row's name slides; the rest sit at their heads.
-    row.label = FormatItemEntry(
-        item.name(), proto.equip_slot(), info, proto, item.equip_state(),
-        i == selected ? elapsed : std::chrono::steady_clock::duration::zero());
+    std::chrono::steady_clock::duration slide =
+        i == selected ? elapsed : std::chrono::steady_clock::duration::zero();
+    row.name_bytes =
+        static_cast<int>(ItemNameCell(item.name(), slide, name_width).size());
+    row.label = FormatItemEntry(item.name(), proto.equip_slot(), info, proto,
+                                item.equip_state(), slide, name_width);
     row.is_trace = character.inventory().equip_instance(i) == nullptr;
     row.level_ok = character.MeetsLevel(proto);
     row.job_ok = character.MeetsJob(proto);
@@ -86,9 +90,9 @@ std::vector<InventoryRowState> BuildEquipRows(
 }
 
 ftxui::Element EquipHeader(ftxui::Element lead, ftxui::Element tail,
-                           int body_width) {
-  return Row(std::move(lead), {ftxui::text(kColumnHeader)}, std::move(tail),
-             body_width);
+                           int body_width, int name_width) {
+  return Row(std::move(lead), {ftxui::text(ColumnHeader(name_width))},
+             std::move(tail), body_width);
 }
 
 ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
@@ -101,19 +105,21 @@ ftxui::Element RenderEquipRow(const InventoryRowState& row, bool on_cursor,
   // way the skills tab dims a skill that cannot be learned -- one answer for
   // "this row's action is shut", in both lists (colors.h).
   bool blocked = !row.level_ok || !row.job_ok || row.is_trace;
-  if (blocked && static_cast<int>(label.size()) >= kJobEnd) {
+  int slot_end = row.name_bytes + kSlotSpan;
+  int level_end = slot_end + kLevelSpan;
+  int job_end = level_end + kJobSpan;
+  if (blocked && static_cast<int>(label.size()) >= job_end) {
     // The cell that says WHY stays bright and red while the rest of the row
     // dims. Dimming it too would mute the one thing on the row worth reading.
-    ftxui::Element name = ftxui::text(label.substr(0, kNameEnd)) | ftxui::dim;
+    ftxui::Element name =
+        ftxui::text(label.substr(0, row.name_bytes)) | ftxui::dim;
     ftxui::Element slot =
-        ftxui::text(label.substr(kNameEnd, kSlotEnd - kNameEnd)) | ftxui::dim;
-    ftxui::Element lv =
-        ftxui::text(label.substr(kSlotEnd, kLevelEnd - kSlotEnd));
+        ftxui::text(label.substr(row.name_bytes, kSlotSpan)) | ftxui::dim;
+    ftxui::Element lv = ftxui::text(label.substr(slot_end, kLevelSpan));
     lv = row.level_ok ? lv | ftxui::dim : lv | ftxui::color(kRed);
-    ftxui::Element job =
-        ftxui::text(label.substr(kLevelEnd, kJobEnd - kLevelEnd));
+    ftxui::Element job = ftxui::text(label.substr(level_end, kJobSpan));
     job = row.job_ok ? job | ftxui::dim : job | ftxui::color(kRed);
-    ftxui::Element rest = ftxui::text(label.substr(kJobEnd)) | ftxui::dim;
+    ftxui::Element rest = ftxui::text(label.substr(job_end)) | ftxui::dim;
     // The caret stays bright: it is the cursor, not part of the row.
     return Row(std::move(lead),
                {ftxui::text(cursor), std::move(name), std::move(slot),

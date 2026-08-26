@@ -67,12 +67,13 @@ std::string SymbolExpCell(const Equip& state) {
 
 }  // namespace
 
-const char kEquippedHeader[] =
-    "  Name                      "  // 2 cursor + 26 name
-    "  Equip Slot"                  // 2 sep + 10 slot
-    "  Stats               "        // 2 sep + 20 info (10 atk + 10 main)
-    "  Scroll"                      // 2 sep + 6 scroll
-    "  Star Force";                 // 2 sep + label
+std::string EquippedHeader(int name_width) {
+  return "  " + PadRight("Name", name_width) +  // cursor + name
+         "  Equip Slot"                         // 2 sep + 10 slot
+         "  Stats               "               // 2 sep + 20 info
+         "  Scroll"                             // 2 sep + 6 scroll
+         "  Star Force";                        // 2 sep + label
+}
 
 const char kSymbolHeader[] =
     "  Name                            "  // 2 cursor + 32 name
@@ -82,7 +83,7 @@ const char kSymbolHeader[] =
 
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed) {
+    std::chrono::steady_clock::duration elapsed, int name_width) {
   std::vector<EquippedRow> rows;
   for (const std::pair<const EquipSlot, EquipInstance>& kv :
        character.equipped()) {
@@ -98,11 +99,11 @@ std::vector<EquippedRow> EquippedRows(
     EquippedRow row;
     row.slot = kv.first;
     row.inactive = !character.AttackCounts(item.prototype());
-    row.name_bytes =
-        static_cast<int>(ItemNameCell(item.prototype().name(), slide).size());
-    row.text = FormatItemEntry(item.prototype().name(), kv.first,
-                               RowInfo(character, item.stats()),
-                               item.prototype(), item.equip_state(), slide);
+    row.name_bytes = static_cast<int>(
+        ItemNameCell(item.prototype().name(), slide, name_width).size());
+    row.text = FormatItemEntry(
+        item.prototype().name(), kv.first, RowInfo(character, item.stats()),
+        item.prototype(), item.equip_state(), slide, name_width);
     rows.push_back(std::move(row));
   }
   return rows;

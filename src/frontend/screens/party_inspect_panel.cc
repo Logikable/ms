@@ -91,7 +91,7 @@ ftxui::Element PartyInspectPanel::RenderEquipped() const {
     drawn.push_back(std::move(row));
   }
   return ftxui::vbox({
-      ftxui::text(kEquippedHeader),
+      ftxui::text(EquippedHeader()),
       ThemedSeparator(),
       ftxui::vbox(std::move(drawn)) | ftxui::vscroll_indicator | ftxui::yframe |
           ftxui::size(ftxui::HEIGHT, ftxui::EQUAL,

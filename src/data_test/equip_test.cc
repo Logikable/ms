@@ -17,6 +17,7 @@
 #include "google/protobuf/message.h"
 #include "src/character/character.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/item.h"
 #include "src/item/projectile.h"
 #include "src/proto_loader.h"
@@ -49,6 +50,21 @@ std::map<std::string, ItemPrototype> LoadItems() {
 // A projectile is ammunition, not a weapon a player invests in. Asserted over
 // the whole catalog because the refusal has to be written on each one: nothing
 // derives it from the slot, deliberately, since a later one may well differ.
+// The name column an item list grows to on a wide terminal is chosen for the
+// longest name the game ships -- a trace's " Trace" included, since a trace
+// is drawn in the same lists. A longer one arriving has to move that number
+// rather than sit cut on every screen.
+TEST(EquipDataTest, EveryItemNameFitsTheWidestNameColumn) {
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    EXPECT_LE(TextColumns(entry.second.name() + " Trace"), kItemNameMax)
+        << entry.first;
+  }
+  for (const std::pair<const std::string, ItemPrototype>& entry : LoadItems()) {
+    EXPECT_LE(TextColumns(entry.second.name()), kItemNameMax) << entry.first;
+  }
+}
+
 TEST(EquipDataTest, ProjectilesTakeNoUpgrades) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :

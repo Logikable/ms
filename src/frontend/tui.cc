@@ -709,6 +709,8 @@ ftxui::Element Tui::RenderMain() {
                             controller_.PanelVisible(kInventoryPanel));
   char_panel_.SetWidth(widths.left);
   combat_panel_.SetWidth(widths.left);
+  equip_panel_.SetWidth(widths.right);
+  inventory_panel_.SetWidth(widths.right);
   // A panel the character has not unlocked is not drawn at all, and the layout
   // closes up around it. Rendering is skipped rather than hidden afterwards:
   // an undrawn panel has nothing to say about a game it is not part of yet.

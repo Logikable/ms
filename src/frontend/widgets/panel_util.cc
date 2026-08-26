@@ -662,15 +662,21 @@ std::string StatFieldName(StatField field) {
   }
 }
 
+int ItemNameWidthFor(int width) {
+  return std::clamp(width - kItemListFixedWidth, kItemNameWidth, kItemNameMax);
+}
+
 std::string ItemNameCell(const std::string& name,
-                         std::chrono::steady_clock::duration elapsed) {
-  return ScrollingWindow(name, kItemNameWidth, elapsed);
+                         std::chrono::steady_clock::duration elapsed,
+                         int name_width) {
+  return ScrollingWindow(name, name_width, elapsed);
 }
 
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info, int scroll_pass,
                             int scroll_slots, int stars,
-                            std::chrono::steady_clock::duration elapsed) {
+                            std::chrono::steady_clock::duration elapsed,
+                            int name_width) {
   // The slot count rides along so a row says how far the item can still go,
   // not only how far it has come.
   std::string scrolls = scroll_pass < 0
@@ -678,7 +684,7 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             : "+" + std::to_string(scroll_pass) + "/" +
                                   std::to_string(scroll_slots);
   std::string star_force = stars < 0 ? "-" : std::to_string(stars) + "\u2605";
-  return ItemNameCell(name, elapsed) + "  " +
+  return ItemNameCell(name, elapsed, name_width) + "  " +
          PadRight(FormatSlot(slot), kSlotWidth) + "  " +
          PadRight(info, kInfoWidth) + "  " + PadRight(scrolls, kScrollWidth) +
          "  " + star_force;
@@ -687,13 +693,14 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
 std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                             const std::string& info,
                             const EquipPrototype& proto, const Equip& state,
-                            std::chrono::steady_clock::duration elapsed) {
+                            std::chrono::steady_clock::duration elapsed,
+                            int name_width) {
   // An upgrade the item refuses outright reads "-": a zero there would look
   // like a ledger standing ready to be spent.
   int pass = proto.upgrade_slots() > 0 ? state.scroll_successes() : -1;
   int stars = Supports(proto, UPGRADE_STAR_FORCE) ? state.stars() : -1;
   return FormatItemEntry(name, slot, info, pass, proto.upgrade_slots(), stars,
-                         elapsed);
+                         elapsed, name_width);
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,

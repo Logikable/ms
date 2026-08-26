@@ -85,6 +85,7 @@ cc_test(
     name = "inventory_list_test",
     srcs = ["inventory_list_test.cc"],
     deps = [
+        ":colors",
         ":inventory_list",
         ":panel_test_base",
         "//src/frontend:panel_widths",

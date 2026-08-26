@@ -19,8 +19,10 @@ namespace {
 
 class EquippedListTest : public PanelTest {
  protected:
-  // The rows for a character of `job` wearing `item`.
-  std::vector<EquippedRow> RowsWearing(Job job, const EquipPrototype& item) {
+  // The rows for a character of `job` wearing `item`, in a name column
+  // `name_width` wide.
+  std::vector<EquippedRow> RowsWearing(Job job, const EquipPrototype& item,
+                                       int name_width = kItemNameWidth) {
     Character proto;
     proto.set_level(60);
     proto.set_job(job);
@@ -29,7 +31,8 @@ class EquippedListTest : public PanelTest {
     c.PickUp(std::make_unique<EquipInstance>(item));
     c.Equip(0);
     return EquippedRows(c, /*selected=*/-1,
-                        std::chrono::steady_clock::duration::zero());
+                        std::chrono::steady_clock::duration::zero(),
+                        name_width);
   }
 
   EquipPrototype Weapon(EquipType type) {
@@ -98,11 +101,33 @@ TEST_F(EquippedListTest, IsEmptyWithNothingWorn) {
       EquippedRows(c, -1, std::chrono::steady_clock::duration::zero()).empty());
 }
 
+// The name column grows with the panel, and the header over it with the rows.
+TEST_F(EquippedListTest, AWideNameColumnHoldsTheWholeName) {
+  EquipPrototype wordy = Weapon(EQUIP_TYPE_ONE_HANDED_SWORD);
+  wordy.set_name("Metallic Blue Book (Antistrophe)");
+
+  std::vector<EquippedRow> narrow = RowsWearing(JOB_FIGHTER, wordy);
+  std::vector<EquippedRow> wide = RowsWearing(JOB_FIGHTER, wordy, kItemNameMax);
+  ASSERT_EQ(narrow.size(), 1u);
+  ASSERT_EQ(wide.size(), 1u);
+  EXPECT_EQ(narrow[0].text.find("Metallic Blue Book (Antistrophe)"),
+            std::string::npos)
+      << "the narrow column cuts it, which is what this compares against";
+  EXPECT_NE(wide[0].text.find("Metallic Blue Book (Antistrophe)"),
+            std::string::npos);
+  EXPECT_EQ(wide[0].name_bytes - narrow[0].name_bytes,
+            kItemNameMax - kItemNameWidth);
+  // The header moves over with them, so the columns still name themselves.
+  EXPECT_EQ(
+      TextColumns(EquippedHeader(kItemNameMax)) - TextColumns(EquippedHeader()),
+      kItemNameMax - kItemNameWidth);
+}
+
 // The right column's minimum width in panel_widths.h is this header plus its
 // border, so a column added here has to move that number rather than quietly
 // run off the edge of a narrow terminal.
 TEST_F(EquippedListTest, TheHeadersFitTheRightColumnMinimum) {
-  EXPECT_EQ(TextColumns(kEquippedHeader) + 2, kRightColumnMin);
+  EXPECT_EQ(TextColumns(EquippedHeader()) + 2, kRightColumnMin);
   EXPECT_LE(TextColumns(kSymbolHeader) + 2, kRightColumnMin);
 }
 

@@ -240,6 +240,33 @@ TEST(FormatItemEntryTest, ALongNameIsCutAndThenSlides) {
   EXPECT_EQ(still.substr(kItemNameWidth), slid.substr(kItemNameWidth));
 }
 
+// A wide panel hands the name column the room its other cells do not want,
+// and a wider name column is all a wider row is.
+TEST(FormatItemEntryTest, AWiderColumnHoldsMoreOfTheName) {
+  const char* kWordy = "Fafnir Mistilteinn Trace Of Old";  // 31 columns
+  std::string narrow =
+      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12);
+  std::string wide = FormatItemEntry(
+      kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12,
+      std::chrono::steady_clock::duration::zero(), kItemNameMax);
+  EXPECT_EQ(wide.substr(0, kItemNameMax),
+            "Fafnir Mistilteinn Trace Of Old       ");
+  // Everything after the name is the same row, moved over.
+  EXPECT_EQ(narrow.substr(kItemNameWidth), wide.substr(kItemNameMax));
+}
+
+// The column follows the panel's width between the two ends of its range,
+// and stops at both.
+TEST(ItemNameWidthForTest, GrowsWithThePanelAndStopsAtBothEnds) {
+  EXPECT_EQ(ItemNameWidthFor(kItemListFixedWidth + kItemNameWidth),
+            kItemNameWidth);
+  EXPECT_EQ(ItemNameWidthFor(10), kItemNameWidth) << "never below its own";
+  EXPECT_EQ(ItemNameWidthFor(kItemListFixedWidth + kItemNameWidth + 5),
+            kItemNameWidth + 5);
+  EXPECT_EQ(ItemNameWidthFor(500), kItemNameMax)
+      << "and never past the longest name there is";
+}
+
 // A name that fits is padded to the column and never moves, so a list of them
 // stays a list rather than shuffling under the cursor.
 TEST(FormatItemEntryTest, AShortNameNeverMoves) {

@@ -143,6 +143,7 @@ cc_test(
         "//src:proto_loader",
         "//src/character",
         "//src/frontend/widgets:panel_util",
+        "//src/frontend/widgets:text_columns",
         "//src/item",
         "//src/item:projectile",
         "//src/protos:character_proto_cc",

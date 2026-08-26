@@ -435,7 +435,8 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
 }
 
 ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
-  rows_ = BuildEquipRows(character_, selected_, name_clock_.Elapsed());
+  rows_ =
+      BuildEquipRows(character_, selected_, name_clock_.Elapsed(), NameWidth());
   entries_.clear();
   for (const InventoryRowState& row : rows_) {
     entries_.push_back(row.label);
@@ -445,7 +446,7 @@ ftxui::Element InventoryPanel::RenderEquipList(ftxui::Component menu) {
   }
   selected_ = std::min(selected_, character_.inventory().size() - 1);
   return ftxui::vbox({
-      EquipHeader(),
+      EquipHeader(nullptr, nullptr, /*body_width=*/0, NameWidth()),
       PanelSeparator(highlighted_),
       // Only the items scroll; the header row and the rule stay put.
       // ftxui::Menu marks its selected entry, which is what the frame scrolls

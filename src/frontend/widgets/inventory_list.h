@@ -18,6 +18,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/frontend/widgets/panel_util.h"
 #include "src/item/item.h"
 #include "src/protos/item.pb.h"
 
@@ -43,6 +44,10 @@ ItemCategory TabCategory(int tab);
 // One Equip row: its text, and the three things that can shut it.
 struct InventoryRowState {
   std::string label;
+  // The byte length of the name cell, which is where the row's other columns
+  // start. A name may hold multibyte characters, so its column width is no
+  // guide to its length.
+  int name_bytes = 0;
   bool is_trace;
   bool level_ok;
   bool job_ok;
@@ -50,13 +55,17 @@ struct InventoryRowState {
 
 // One row per item on the equip tab. `selected` names the row whose name
 // slides under its column, and `elapsed` how long it has been selected.
+// `name_width` is the name column a wide panel hands out -- see
+// ItemNameWidthFor.
 std::vector<InventoryRowState> BuildEquipRows(
     const CharacterInstance& character, int selected,
-    std::chrono::steady_clock::duration elapsed);
+    std::chrono::steady_clock::duration elapsed,
+    int name_width = kItemNameWidth);
 
-// The header row over an Equip list.
+// The header row over an Equip list, over a name column `name_width` wide.
 ftxui::Element EquipHeader(ftxui::Element lead = nullptr,
-                           ftxui::Element tail = nullptr, int body_width = 0);
+                           ftxui::Element tail = nullptr, int body_width = 0,
+                           int name_width = kItemNameWidth);
 
 // One Equip row with its cursor caret, drawn dim with the cell that says why
 // left bright and red when nothing can be done with the item. `lead` and
