@@ -265,10 +265,6 @@ double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
   return damage;
 }
 
-double SoloDamage(const AttackOption& attack) {
-  return CrowdDamage(attack, 1);
-}
-
 namespace {
 
 // The buff clocks a run of swings carries, mirroring CombatSim's: seconds each

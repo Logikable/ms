@@ -1819,6 +1819,29 @@ class StarForceTraceTest : public CharacterTest {
     proto_.set_equip_slot(EQUIP_SLOT_PRIMARY_WEAPON);
     proto_.set_required_level(138);
   }
+
+  // A character holding one 19-star Sword, starred until it blew up. 19 stars
+  // is past the safeguard, so a destroy comes along well inside 100 tries.
+  CharacterInstance WithDestroyedItem(bool equipped) {
+    Equip state;
+    state.set_stars(19);
+    CharacterInstance c = MakeRichCharacter(rng_);
+    c.PickUp(std::make_unique<EquipInstance>(proto_, state));
+    if (equipped) {
+      c.Equip(0);
+    }
+    for (int i = 0; i < 100; ++i) {
+      StarForceOutcome result =
+          equipped ? c.StarForceEquipped(EQUIP_SLOT_PRIMARY_WEAPON)
+                   : c.StarForceInventory(0);
+      if (result == kStarForceDestroy) {
+        return c;
+      }
+    }
+    ADD_FAILURE() << "100 attempts at 19 stars destroyed nothing";
+    return c;
+  }
+
   EquipPrototype proto_;
 };
 
@@ -1827,86 +1850,27 @@ TEST_F(StarForceTraceTest, NoTracesInitially) {
   EXPECT_TRUE(c.traces().empty());
 }
 
-TEST_F(StarForceTraceTest, DestroyedEquippedItemSavesTrace) {
-  Equip state;
-  state.set_stars(19);
-  CharacterInstance c = MakeRichCharacter(rng_);
-  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
-  c.Equip(0);
-  bool saw_destroy = false;
-  for (int i = 0; i < 100 && !saw_destroy; ++i) {
-    if (c.StarForceEquipped(EQUIP_SLOT_PRIMARY_WEAPON) == kStarForceDestroy) {
-      saw_destroy = true;
-    }
-  }
-  ASSERT_TRUE(saw_destroy);
-  ASSERT_EQ(c.traces().size(), 1u);
-  EXPECT_EQ(c.traces()[0]->prototype().name(), "Sword");
-  EXPECT_GE(c.traces()[0]->equip_state().stars(), 19);
+TEST_F(StarForceTraceTest, ADestroyedItemLeavesATraceWhereverItWas) {
+  CharacterInstance equipped = WithDestroyedItem(true);
+  ASSERT_EQ(equipped.traces().size(), 1u);
+  EXPECT_EQ(equipped.traces()[0]->prototype().name(), "Sword");
+  EXPECT_GE(equipped.traces()[0]->equip_state().stars(), 19);
+
+  CharacterInstance bagged = WithDestroyedItem(false);
+  ASSERT_EQ(bagged.traces().size(), 1u);
+  EXPECT_EQ(bagged.traces()[0]->prototype().name(), "Sword");
 }
 
-TEST_F(StarForceTraceTest, DestroyedInventoryItemSavesTrace) {
-  Equip state;
-  state.set_stars(19);
-  CharacterInstance c = MakeRichCharacter(rng_);
-  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
-  bool saw_destroy = false;
-  for (int i = 0; i < 100 && !saw_destroy; ++i) {
-    if (c.StarForceInventory(0) == kStarForceDestroy) {
-      saw_destroy = true;
-    }
-  }
-  ASSERT_TRUE(saw_destroy);
-  ASSERT_EQ(c.traces().size(), 1u);
-  EXPECT_EQ(c.traces()[0]->prototype().name(), "Sword");
-}
-
-TEST_F(StarForceTraceTest, EquipTraceInInventoryReturnsFalse) {
-  Equip state;
-  state.set_stars(19);
-  CharacterInstance c = MakeRichCharacter(rng_);
-  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
-  bool saw_destroy = false;
-  for (int i = 0; i < 100 && !saw_destroy; ++i) {
-    if (c.StarForceInventory(0) == kStarForceDestroy) {
-      saw_destroy = true;
-    }
-  }
-  ASSERT_TRUE(saw_destroy);
+// A trace is a receipt, not an item: it stays in the bag and refuses every
+// upgrade the equip it stands for would have taken.
+TEST_F(StarForceTraceTest, ATraceRefusesEveryUpgradeAndCannotBeWorn) {
+  CharacterInstance c = WithDestroyedItem(false);
   ASSERT_EQ(c.inventory().size(), 1);
-  // Dynamic cast to EquipInstance fails; Equip() must return false.
-  EXPECT_FALSE(c.Equip(0));
-}
 
-TEST_F(StarForceTraceTest, ScrollInventoryOnTraceReturnsFail) {
-  Equip state;
-  state.set_stars(19);
-  CharacterInstance c = MakeRichCharacter(rng_);
-  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
-  bool saw_destroy = false;
-  for (int i = 0; i < 100 && !saw_destroy; ++i) {
-    if (c.StarForceInventory(0) == kStarForceDestroy) {
-      saw_destroy = true;
-    }
-  }
-  ASSERT_TRUE(saw_destroy);
+  EXPECT_FALSE(c.Equip(0)) << "a trace is not an EquipInstance";
   Scroll scroll;
   scroll.set_success_rate(100);
   EXPECT_EQ(c.ScrollInventory(0, scroll), kScrollFail);
-}
-
-TEST_F(StarForceTraceTest, StarForceInventoryOnTraceReturnsFail) {
-  Equip state;
-  state.set_stars(19);
-  CharacterInstance c = MakeRichCharacter(rng_);
-  c.PickUp(std::make_unique<EquipInstance>(proto_, state));
-  bool saw_destroy = false;
-  for (int i = 0; i < 100 && !saw_destroy; ++i) {
-    if (c.StarForceInventory(0) == kStarForceDestroy) {
-      saw_destroy = true;
-    }
-  }
-  ASSERT_TRUE(saw_destroy);
   EXPECT_EQ(c.StarForceInventory(0), kStarForceFail);
 }
 

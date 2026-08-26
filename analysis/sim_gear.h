@@ -39,9 +39,6 @@ namespace ms {
 double CrowdDamage(const AttackOption& attack, int enemies,
                    bool charge_burns = true);
 
-// The same against a lone mob, which is what a weapon comparison wants.
-double SoloDamage(const AttackOption& attack);
-
 // What a run of swings came to.
 struct Sequence {
   double damage = 0.0;

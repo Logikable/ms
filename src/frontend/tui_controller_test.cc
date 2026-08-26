@@ -1380,7 +1380,7 @@ TEST_F(TuiControllerTest, CancelInStarForceGoesToMain) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
-TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
+TEST_F(TuiControllerTest, ConfirmingAStarForceOpensTheResultNamingTheEquip) {
   LevelTo(UnlockLevel(Feature::kStarForce));
   PickUpScrolledSword();
   state_->character.Equip(0);
@@ -1395,22 +1395,6 @@ TEST_F(TuiControllerTest, EnterInStarForceGoesToStarForceResult) {
   controller_->OnEvent(ftxui::Event::Return);  // confirm
 
   EXPECT_EQ(controller_->screen(), kStarForceResult);
-}
-
-TEST_F(TuiControllerTest, TheResultKeepsTheNameAndStars) {
-  LevelTo(UnlockLevel(Feature::kStarForce));
-  PickUpScrolledSword();
-  state_->character.Equip(0);
-  RenderEquipPanel();
-
-  controller_->OpenEquipMenu();
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::ArrowDown);
-  controller_->OnEvent(ftxui::Event::Return);  // enter kStarForce
-  controller_->OnEvent(ftxui::Event::Return);  // open confirm bar
-  controller_->OnEvent(ftxui::Event::Return);  // confirm
-
   EXPECT_EQ(controller_->star_force_result().equip_name, "Sword");
   EXPECT_EQ(controller_->star_force_result().stars_before, 0);
 }
