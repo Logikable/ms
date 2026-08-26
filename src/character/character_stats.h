@@ -289,7 +289,16 @@ std::vector<const Skill*> BuffSkillsFor(
 struct AllyGrant {
   const Skill* skill = nullptr;
   int level = 0;
+  // Whoever is holding it. Their book sets the level above, and their Buff
+  // Duration sets how long a buff of theirs stands -- see BuffDurationPctFor.
+  const CharacterInstance* caster = nullptr;
 };
+
+// The share Buff Duration adds to every buff this character raises. Read off
+// the CASTER's book rather than the reader's: GMS times a party buff by
+// whoever cast it, so one cast stands the same length over everybody under it.
+double BuffDurationPctFor(const CharacterInstance& character,
+                          const std::map<std::string, Skill>& skills);
 
 // The timed buffs the rest of the party puts up over this character: every
 // ally skill whose BUFF carries a party half (Buff.ally_base), thinned by the

@@ -1141,6 +1141,56 @@ TEST(ComputeCombatParamsTest, APartysBuffComesInOnItsCastersClock) {
   EXPECT_TRUE(params.buffed.empty());
 }
 
+// A party buff is timed by whoever cast it: the caster's Buff Duration
+// lengthens it, and the reader's does nothing to it.
+TEST(ComputeCombatParamsTest, APartysBuffTakesItsCastersBuffDuration) {
+  Skill smoke;
+  smoke.set_name("Smokescreen");
+  smoke.set_kind(SKILL_KIND_ACTIVE);
+  smoke.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  smoke.set_max_level(10);
+  smoke.set_cooldown_seconds(120.0);
+  Buff* buff = smoke.mutable_buff();
+  buff->set_duration_seconds(30.0);
+  buff->mutable_ally_base()->set_damage_taken_pct(0.01);
+  buff->mutable_ally_per_level()->set_damage_taken_pct(0.01);
+
+  Skill mastery;
+  mastery.set_name("Buff Mastery");
+  mastery.set_kind(SKILL_KIND_PASSIVE);
+  mastery.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mastery.set_max_level(10);
+  mastery.mutable_base()->set_buff_duration_pct(0.05);
+  mastery.mutable_per_level()->set_buff_duration_pct(0.05);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"smokescreen", smoke}, {"buff_mastery", mastery}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 18);
+  double factor = GameSpeedFactor(state.character.proto().level());
+
+  // The ally holds both: their fifty percent stretches the cloud to 45s.
+  std::mt19937 rng(1);
+  Character ally = state.character.proto();
+  (*ally.mutable_skill_levels())["Smokescreen"] = 8;
+  (*ally.mutable_skill_levels())["Buff Mastery"] = 10;
+  state.party.emplace_back(rng, ally);
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.ally_buffs.size(), 1u);
+  EXPECT_DOUBLE_EQ(params.ally_buffs[0].duration_seconds, 45.0 * factor);
+  // The wait is untouched, as it is for a buff of one's own.
+  EXPECT_DOUBLE_EQ(params.ally_buffs[0].cooldown_seconds, 120.0 * factor);
+
+  // The reader's own Buff Duration is not what times somebody else's cast.
+  ASSERT_TRUE(state.character.LearnSkill(mastery, 10));
+  params = ComputeCombatParams(state);
+  ASSERT_EQ(params.ally_buffs.size(), 1u);
+  EXPECT_DOUBLE_EQ(params.ally_buffs[0].duration_seconds, 45.0 * factor);
+}
+
 // Buff Mastery's lever lengthens the buff and leaves the wait alone, which is
 // the whole of what it buys: a buff up longer without coming round sooner.
 TEST(ComputeCombatParamsTest, BuffDurationLengthensTheBuffAndNotTheWait) {

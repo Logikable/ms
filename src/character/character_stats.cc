@@ -465,9 +465,9 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
       }
       int level = EffectiveSkillLevel(ally, skill, bonus);
       if (skill.ally_effect_stacks()) {
-        stacking.push_back(AllyGrant{&skill, level});
+        stacking.push_back(AllyGrant{&skill, level, &ally});
       } else if (best[skill.name()].level < level) {
-        best[skill.name()] = AllyGrant{&skill, level};
+        best[skill.name()] = AllyGrant{&skill, level, &ally};
       }
     }
     superseded.insert(theirs.begin(), theirs.end());
@@ -725,6 +725,11 @@ std::vector<const Skill*> BuffSkillsFor(
     buffs.push_back(&skill);
   }
   return buffs;
+}
+
+double BuffDurationPctFor(const CharacterInstance& character,
+                          const std::map<std::string, Skill>& skills) {
+  return LearnedPassives(character, skills, {}, {}).buff_duration_pct;
 }
 
 std::vector<AllyGrant> AllyBuffsFor(

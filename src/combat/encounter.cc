@@ -904,9 +904,8 @@ void AddBuffs(const CharacterInstance& character,
 // a damage table: all a party buff can hand over is a share off what a hit
 // costs, and the fight takes that off the hit itself.
 //
-// The caster's own Buff Duration is not read -- what the party hands over is a
-// level, not a character -- so a Shadower who lengthened their own smokescreen
-// still covers the party for the plain thirty seconds.
+// A caster's Buff Duration lengthens their half of the cast and the party's
+// alike: one cloud, one clock, however many are standing in it.
 void AddAllyBuffs(const GameState& state, double speed_factor,
                   CombatParams& params) {
   for (const AllyGrant& grant : AllyBuffsFor(
@@ -914,10 +913,13 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
     const Buff& buff = grant.skill->buff();
     BuffOption option;
     option.name = grant.skill->name();
+    // The CASTER's Buff Duration, not the reader's: one cast stands the same
+    // length over everybody under it. See BuffDurationPctFor.
+    double buff_duration_pct = BuffDurationPctFor(*grant.caster, state.skills);
     option.duration_seconds =
         (buff.duration_seconds() +
          buff.duration_seconds_per_level() * (grant.level - 1)) *
-        speed_factor;
+        (1.0 + buff_duration_pct) * speed_factor;
     option.cooldown_seconds =
         CooldownAt(*grant.skill, grant.level) * speed_factor;
     option.damage_taken_pct =
