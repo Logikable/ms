@@ -24,6 +24,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/account.h"
 #include "src/character/character.h"
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/text_field.h"
 #include "src/protos/character.pb.h"
@@ -33,9 +34,10 @@ namespace ms {
 
 class CharacterPanel {
  public:
-  // Wide enough to seat the Stats-tab [+]/[Max] allocation buttons; also the
-  // width CombatPanel derives from, so keep it roomy for its map row.
-  static constexpr int kTotalWidth = 35;
+  // The columns a skill row leaves its name, given the level column beside it
+  // and the row's own width. Public because the shipped names are held
+  // against it: a name too long for the widest panel is a name half drawn.
+  static int SkillNameWidth(int level_width, int row_width);
 
   // `skills` is the loaded skill catalog (keyed by file stem); the Skills tab
   // lists the entries whose stage matches the selected advancement tab. It is
@@ -52,6 +54,16 @@ class CharacterPanel {
   // size they choose, and only Tui knows what else is sharing the column.
   void SetMaxRows(int rows) {
     max_rows_ = rows;
+  }
+  // The columns the panel may take, borders included -- its column's width,
+  // which the layout works out from the terminal's. The extra a wide terminal
+  // brings goes to the Skills tab's name column, which is what a long Hyper
+  // Skill name needs; the Stats tab keeps its own alignment either way.
+  //
+  // Set from the layout rather than read from the terminal here, for the same
+  // reason as SetMaxRows: a test draws the panel at whatever size it likes.
+  void SetWidth(int width) {
+    width_ = width;
   }
   // What Enter does, by where it lands: on_allocate on a stat's [+] with AP to
   // spend, on_learn on a skill's [+] with SP, on_advance on a job (which
@@ -117,6 +129,13 @@ class CharacterPanel {
   bool highlighted_ = false;
   // See SetMaxRows. Zero is "as many as it takes".
   int max_rows_ = 0;
+  // See SetWidth, and panel_widths.h for where the number comes from.
+  int width_ = kLeftColumnMin;
+
+  // Columns inside the window's border.
+  int ContentWidth() const {
+    return width_ - 2;
+  }
 
   // The panel's tabs, in bar order. Advance is only on the bar while an
   // advancement is pending, so these are not indices into it -- VisibleTabs().

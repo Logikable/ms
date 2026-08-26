@@ -14,6 +14,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/dom/requirement.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
@@ -148,7 +149,7 @@ std::vector<std::string> PanelRows(ftxui::Element element) {
   std::vector<std::string> rows;
   for (int y = 0; y < screen.dimy(); ++y) {
     std::string row;
-    for (int x = 1; x < CharacterPanel::kTotalWidth - 1; ++x) {
+    for (int x = 1; x < kLeftColumnMin - 1; ++x) {
       const std::string& cell = screen.PixelAt(x, y).character;
       row += cell.empty() ? " " : cell;
     }
@@ -901,7 +902,7 @@ TEST_F(CharacterPanelTest, ALongSkillNameDoesNotWidenThePanel) {
 
   EXPECT_EQ(ftxui::Dimension::Fit(wordy).dimx,
             ftxui::Dimension::Fit(brief).dimx);
-  EXPECT_LE(ftxui::Dimension::Fit(wordy).dimx, CharacterPanel::kTotalWidth);
+  EXPECT_LE(ftxui::Dimension::Fit(wordy).dimx, kLeftColumnMin);
 }
 
 // A row nobody is looking at shows the head of its name and stops. The rest
@@ -914,6 +915,42 @@ TEST_F(CharacterPanelTest, AnUnselectedLongNameIsCutToItsColumn) {
 
   EXPECT_TRUE(OnScreen(comp, "Final Attack: Crossbo"));
   EXPECT_FALSE(OnScreen(comp, "Final Attack: Crossbow"));
+}
+
+// ...and on a terminal with room for it, the same name is whole: the column a
+// wide screen buys goes to the names, which is what it was bought for.
+TEST_F(CharacterPanelTest, AWideColumnHoldsTheWholeName) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel panel(c, account_, panel_focus_, WordyCatalog());
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  panel.SetWidth(kLeftColumnMax);
+
+  EXPECT_TRUE(OnScreen(comp, "Final Attack: Crossbow"));
+  ftxui::Element card = panel.Render();
+  EXPECT_EQ(ftxui::Dimension::Fit(card).dimx, kLeftColumnMax)
+      << "and the panel takes the width it was given, no more";
+}
+
+// The Stats tab does not spread with the panel: a value chasing the border
+// would leave its own label a column away at the other end of the row.
+TEST_F(CharacterPanelTest, TheStatsTabKeepsItsAlignmentWhenWide) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  CharacterPanel narrow(c, account_, panel_focus_, SkillCatalog());
+  CharacterPanel wide(c, account_, panel_focus_, SkillCatalog());
+  wide.SetWidth(kLeftColumnMax);
+
+  ftxui::Screen narrow_screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(80), ftxui::Dimension::Fixed(20));
+  ftxui::Render(narrow_screen, narrow.Render());
+  ftxui::Screen wide_screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(80), ftxui::Dimension::Fixed(20));
+  ftxui::Render(wide_screen, wide.Render());
+
+  EXPECT_EQ(FindCell(wide_screen, "AP").first,
+            FindCell(narrow_screen, "AP").first);
+  EXPECT_EQ(FindCell(wide_screen, "[+]").first,
+            FindCell(narrow_screen, "[+]").first);
 }
 
 // The name column is a fixed width rather than each name's own, so the levels
@@ -1074,7 +1111,7 @@ TEST_F(CharacterPanelTest, OnlyALenderPaysForTheLentColumn) {
   ASSERT_GE(plain_level, 0);
   EXPECT_LT(lent, plain_level) << "the lender's names give up the room";
   ftxui::Element card = wide.Render();
-  EXPECT_LE(ftxui::Dimension::Fit(card).dimx, CharacterPanel::kTotalWidth)
+  EXPECT_LE(ftxui::Dimension::Fit(card).dimx, kLeftColumnMin)
       << "and the panel itself does not widen for them";
 }
 

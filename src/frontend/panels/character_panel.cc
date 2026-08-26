@@ -27,23 +27,32 @@
 namespace ms {
 namespace {
 
-constexpr int kContentWidth = 33;  // chars inside the window border
+// The Stats tab lays out in these columns however wide the panel is: the
+// extra a wide terminal brings goes to the Skills tab, and a stat's value
+// chasing the border would leave it a screen away from its own label.
+constexpr int kStatsWidth = kLeftColumnMin - 2;
+
+// A row held to the Stats tab's alignment, so what it right-aligns lands
+// under the row above rather than at the panel's edge.
+ftxui::Element StatsAligned(ftxui::Element row) {
+  return std::move(row) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStatsWidth);
+}
 
 // One line of the panel's heading block, centred over the content width.
-std::string Centered(const std::string& s) {
-  int pad = std::max(0, (kContentWidth - static_cast<int>(s.size())) / 2);
-  return PadRight(std::string(pad, ' ') + s, kContentWidth);
+std::string Centered(const std::string& s, int width) {
+  int pad = std::max(0, (width - static_cast<int>(s.size())) / 2);
+  return PadRight(std::string(pad, ' ') + s, width);
 }
 
 // A centred row whose text alone carries the decorator, for a row the cursor
 // can land on. Not CenteredRow: every row of this panel is padded to
-// kContentWidth, and a flexed row would centre itself in whatever width the
+// its width, and a flexed row would centre itself in whatever width the
 // window came out at instead. The padding is separate text so that inverting
 // the label does not invert the whole row with it.
 ftxui::Element CenteredCell(const std::string& label,
-                            const ftxui::Decorator& decorator) {
-  int pad = std::max(0, (kContentWidth - static_cast<int>(label.size())) / 2);
-  int rest = std::max(0, kContentWidth - pad - static_cast<int>(label.size()));
+                            const ftxui::Decorator& decorator, int width) {
+  int pad = std::max(0, (width - static_cast<int>(label.size())) / 2);
+  int rest = std::max(0, width - pad - static_cast<int>(label.size()));
   return ftxui::hbox({
       ftxui::text(std::string(pad, ' ')),
       ftxui::text(label) | decorator,
@@ -83,7 +92,7 @@ constexpr int kNumAllocStats = sizeof(kAllocStats) / sizeof(kAllocStats[0]);
 // Defense -- the one stat written "(base+bonus) total" -- then runs a column
 // past every other value in the panel.
 ftxui::Element StatRow(const std::string& label, const std::string& value) {
-  int gap = kContentWidth - 2 - static_cast<int>(value.size());
+  int gap = kStatsWidth - 2 - static_cast<int>(value.size());
   return ftxui::text(" " + PadRight(label, std::max(0, gap)) + value + " ");
 }
 
@@ -97,7 +106,7 @@ std::string StatText(const std::string& label, int base, int bonus) {
 }
 
 // The skill row's columns. Every one is a fixed width, so the row comes to
-// exactly kContentWidth and a long name slides inside its column instead of
+// exactly the row's width and a long name slides inside its column instead of
 // pushing the panel wider -- which is what a name like "Final Attack:
 // Crossbow" used to do to the whole Character panel.
 //
@@ -116,12 +125,6 @@ std::string SkillLevelText(const CharacterInstance& character,
     text += " (+" + std::to_string(level - learned) + ")";
   }
   return text;
-}
-
-// `row_width` is what the row has to lay out in, which is one short of the
-// content width while the scroll bar holds a column.
-int SkillNameWidth(int level_width, int row_width) {
-  return row_width - 1 - kSkillTagWidth - level_width - kSkillPlusWidth - 1;
 }
 
 // The base (AP-allocated) and gear-bonus values for one allocatable stat.
@@ -152,6 +155,12 @@ CharacterPanel::CharacterPanel(CharacterInstance& character,
       panel_focus_(panel_focus) {
 }
 
+// `row_width` is what the row has to lay out in, which is one short of the
+// content width while the scroll bar holds a column.
+int CharacterPanel::SkillNameWidth(int level_width, int row_width) {
+  return row_width - 1 - kSkillTagWidth - level_width - kSkillPlusWidth - 1;
+}
+
 ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
                                         int bonus, int index,
                                         bool content_focused) const {
@@ -165,12 +174,12 @@ ftxui::Element CharacterPanel::AllocRow(const std::string& label, int base,
   } else if (character_.proto().ap() == 0) {
     plus = plus | ftxui::dim;
   }
-  return ftxui::hbox({
+  return StatsAligned(ftxui::hbox({
       ftxui::text(" " + StatText(label, base, bonus)),
       ftxui::filler(),
       plus,
       ftxui::text(" "),
-  });
+  }));
 }
 
 std::vector<CharacterPanel::Tab> CharacterPanel::VisibleTabs() const {
@@ -339,20 +348,20 @@ ftxui::Element CharacterPanel::RenderTabBar(bool row_selected) const {
     }
     specs.push_back({kTabLabels[tabs[i]], !key.empty() && !account_.Seen(key)});
   }
-  // The panel is only kContentWidth wide and the tabs are already most of it,
-  // so this is the bar most likely to need the scroll.
+  // The tabs are most of a narrow panel's width, so this is the bar most
+  // likely to need the scroll.
   return ftxui::hbox(
-      {TabBar(specs, active, row_selected, kContentWidth), ftxui::filler()});
+      {TabBar(specs, active, row_selected, ContentWidth()), ftxui::filler()});
 }
 
 // The MP display row with the character's unspent AP right-aligned, so the
 // player can see how much there is to spend on the [+] rows below.
 ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
-  return ftxui::hbox({
+  return StatsAligned(ftxui::hbox({
       ftxui::text(" MP: " + std::to_string(mp)),
       ftxui::filler(),
       ftxui::text(std::to_string(ap) + " AP "),
-  });
+  }));
 }
 
 int CharacterPanel::ExtraStatsShown(int total) const {
@@ -383,8 +392,8 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   const EquipStats e = TotalEquipStats(character_, derived);
 
   std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(
-      PadRight(" HP: " + std::to_string(derived.max_hp), kContentWidth)));
+  rows.push_back(StatsAligned(ftxui::text(
+      PadRight(" HP: " + std::to_string(derived.max_hp), kStatsWidth))));
   rows.push_back(MpRow(derived.max_mp, p.ap()));
   for (int i = 0; i < kNumAllocStats; ++i) {
     std::pair<int, int> v = AllocStatValues(kAllocStats[i].field, a, e);
@@ -420,7 +429,8 @@ ftxui::Element CharacterPanel::RenderStatsTab(bool content_focused) const {
   //
   bool selected = content_focused && stat_sel_ == kNumAllocStats;
   rows.push_back(CenteredCell("View All Stats",
-                              selected ? ftxui::inverted : ftxui::nothing));
+                              selected ? ftxui::inverted : ftxui::nothing,
+                              ContentWidth()));
   return ftxui::vbox(std::move(rows));
 }
 
@@ -435,7 +445,8 @@ ftxui::Element CharacterPanel::RenderAdvTabBar(bool bar_focused) const {
   }
   // The SP counter shares the row, so the bar gets what is left of it.
   std::vector<ftxui::Element> row;
-  row.push_back(TabBar(specs, skill_tab_, bar_focused, kContentWidth - kSpCol));
+  row.push_back(
+      TabBar(specs, skill_tab_, bar_focused, ContentWidth() - kSpCol));
   row.push_back(ftxui::filler());
   int points = IsHyperPage(skill_tab_) ? character_.hyper_sp()
                                        : character_.sp(skill_tab_ + 1);
@@ -589,7 +600,7 @@ int CharacterPanel::FirstSkillRow(int total, int visible) const {
 ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
                                                bool rows_focused) const {
   if (character_.proto().job_stage() == 0) {
-    return ftxui::text(PadRight(" No advancements yet.", kContentWidth)) |
+    return ftxui::text(PadRight(" No advancements yet.", ContentWidth())) |
            ftxui::dim;
   }
   std::vector<ftxui::Element> rows;
@@ -597,7 +608,7 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   rows.push_back(PanelSeparator(highlighted_));
   std::vector<const Skill*> skills = SkillsForPage(skill_tab_);
   if (skills.empty()) {
-    rows.push_back(ftxui::text(PadRight(" No skills yet.", kContentWidth)) |
+    rows.push_back(ftxui::text(PadRight(" No skills yet.", ContentWidth())) |
                    ftxui::dim);
     return ftxui::vbox(std::move(rows));
   }
@@ -608,7 +619,7 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
   // The level column is measured over the whole book rather than the window,
   // so scrolling does not shuffle the names sideways.
   std::vector<ftxui::Element> cells = ScrollBarCells(total, first, visible);
-  int row_width = cells.empty() ? kContentWidth : kContentWidth - 1;
+  int row_width = cells.empty() ? ContentWidth() : ContentWidth() - 1;
   LevelColumn column = MeasureLevelColumn(skills);
   for (int i = 0; i < visible; ++i) {
     ftxui::Element row = RenderSkillRow(*skills[first + i], first + i, column,
@@ -634,7 +645,7 @@ ftxui::Element CharacterPanel::RenderAdvanceTab(bool content_focused) const {
     // spend here, only one of four things to become.
     std::string cursor = content_focused && job_sel_ == i ? " > " : "   ";
     ftxui::Element row =
-        ftxui::text(PadRight(cursor + JobName(jobs[i]), kContentWidth));
+        ftxui::text(PadRight(cursor + JobName(jobs[i]), ContentWidth()));
     if (job_sel_ == i) {
       row = std::move(row) | ftxui::reflect(job_cursor_box_);
     }
@@ -647,14 +658,16 @@ ftxui::Element CharacterPanel::RenderUsername(bool row_selected) const {
   if (username_field_.editing()) {
     // A caret after what has been typed, so an empty field is still a field
     // rather than a blank row.
-    return CenteredCell(username_field_.text() + "_", ftxui::inverted);
+    return CenteredCell(username_field_.text() + "_", ftxui::inverted,
+                        ContentWidth());
   }
   const std::string& name = character_.username();
   if (name == kDefaultUsername && !row_selected) {
     // Dim while it is still the invitation: it is not a name yet.
-    return CenteredCell(name, ftxui::dim);
+    return CenteredCell(name, ftxui::dim, ContentWidth());
   }
-  return CenteredCell(name, row_selected ? ftxui::inverted : ftxui::nothing);
+  return CenteredCell(name, row_selected ? ftxui::inverted : ftxui::nothing,
+                      ContentWidth());
 }
 
 ftxui::Element CharacterPanel::Render() const {
@@ -663,10 +676,12 @@ ftxui::Element CharacterPanel::Render() const {
   // Right-aligned in three columns so the job name doesn't shuffle sideways
   // as the character levels past 9 and 99.
   std::string lvl = PadLeft(std::to_string(p.level()), 3);
-  std::string title = Centered("Lv" + lvl + " " + ShortJobName(p.job()));
+  std::string title =
+      Centered("Lv" + lvl + " " + ShortJobName(p.job()), ContentWidth());
 
   std::string power =
-      Centered(CombatPowerText(CharacterCombatPower(character_, skills_)));
+      Centered(CombatPowerText(CharacterCombatPower(character_, skills_)),
+               ContentWidth());
 
   bool focused = panel_focus_ == kCharPanel;
   Zone zone = EffectiveZone();

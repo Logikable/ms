@@ -87,6 +87,7 @@ cc_test(
     deps = [
         ":inventory_list",
         ":panel_test_base",
+        "//src/frontend:panel_widths",
         "//src/item:equip_instance",
         "@ftxui//:dom",
         "@googletest//:gtest_main",
@@ -113,6 +114,8 @@ cc_test(
     deps = [
         ":equipped_list",
         ":panel_test_base",
+        ":text_columns",
+        "//src/frontend:panel_widths",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "@googletest//:gtest_main",

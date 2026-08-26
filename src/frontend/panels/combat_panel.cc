@@ -61,7 +61,7 @@ ftxui::Element CombatPanel::Render() const {
   name_clock_.Follow(static_cast<int>(key));
   ftxui::Element header = ftxui::text(
       (focused ? "> " : "  ") +
-      ScrollingWindow(MapName(), kContentWidth - 2,
+      ScrollingWindow(MapName(), ContentWidth() - 2,
                       focused ? name_clock_.Elapsed()
                               : std::chrono::steady_clock::duration::zero()));
   if (focused) {

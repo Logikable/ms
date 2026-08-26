@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "ftxui/dom/elements.hpp"
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/widgets/panel_test_base.h"
 #include "src/item/equip_instance.h"
 
@@ -77,6 +78,15 @@ TEST_F(InventoryListTest, StackRowsNameTheirCount) {
       stack, /*on_cursor=*/true, std::chrono::steady_clock::duration::zero()));
   EXPECT_NE(text.find("> Red Potion"), std::string::npos);
   EXPECT_NE(text.find("42"), std::string::npos);
+}
+
+// The bag's lists carry the same columns as the equipped panel's, so they
+// share its minimum width -- see panel_widths.h.
+TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
+  ftxui::Element equips = EquipHeader();
+  ftxui::Element stacks = StackHeader();
+  EXPECT_LE(ftxui::Dimension::Fit(equips).dimx + 2, kRightColumnMin);
+  EXPECT_LE(ftxui::Dimension::Fit(stacks).dimx + 2, kRightColumnMin);
 }
 
 }  // namespace

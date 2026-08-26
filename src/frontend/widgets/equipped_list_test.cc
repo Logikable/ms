@@ -7,7 +7,9 @@
 #include <utility>
 #include <vector>
 
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/widgets/panel_test_base.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/item/equip_instance.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -94,6 +96,14 @@ TEST_F(EquippedListTest, IsEmptyWithNothingWorn) {
   CharacterInstance c = MakeCharacter();
   EXPECT_TRUE(
       EquippedRows(c, -1, std::chrono::steady_clock::duration::zero()).empty());
+}
+
+// The right column's minimum width in panel_widths.h is this header plus its
+// border, so a column added here has to move that number rather than quietly
+// run off the edge of a narrow terminal.
+TEST_F(EquippedListTest, TheHeadersFitTheRightColumnMinimum) {
+  EXPECT_EQ(TextColumns(kEquippedHeader) + 2, kRightColumnMin);
+  EXPECT_LE(TextColumns(kSymbolHeader) + 2, kRightColumnMin);
 }
 
 }  // namespace

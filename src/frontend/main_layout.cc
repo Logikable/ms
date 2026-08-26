@@ -83,20 +83,37 @@ ftxui::Element HalfAndRest(ftxui::Element top, ftxui::Element bottom) {
 
 }  // namespace
 
-ftxui::Element MainLayout(ftxui::Element character, ftxui::Element combat,
-                          ftxui::Element equipped, ftxui::Element inventory,
-                          ftxui::Element corner, ftxui::Element exp_bar) {
+MainWidths ComputeMainWidths(int terminal_width, bool has_right_column) {
+  int reserved = has_right_column ? kRightColumnMin : 0;
+  MainWidths widths;
+  widths.left =
+      std::clamp(terminal_width - reserved, kLeftColumnMin, kLeftColumnMax);
+  if (has_right_column) {
+    widths.right = std::max(0, terminal_width - widths.left);
+  }
+  return widths;
+}
+
+ftxui::Element MainLayout(MainWidths widths, ftxui::Element character,
+                          ftxui::Element combat, ftxui::Element equipped,
+                          ftxui::Element inventory, ftxui::Element corner,
+                          ftxui::Element exp_bar) {
   // Columns, not bare panels: an hbox hands every child the full height of the
   // row, which would drag a panel's bottom border away from its contents.
   ftxui::Elements columns;
+  // Pinned rather than left to the panels: the column is what fixes their
+  // width, and the two of them have to agree on one however wide the panel
+  // above happens to have drawn itself.
   columns.push_back(ftxui::vbox({
-      std::move(character),
-      // Pinned to the foot, so combat holds the bottom-left corner however
-      // tall the terminal is. It belongs in this column and not in a row of
-      // its own: as a row it capped the column beside it at its own top edge.
-      ftxui::filler(),
-      std::move(combat),
-  }));
+                        std::move(character),
+                        // Pinned to the foot, so combat holds the bottom-left
+                        // corner however tall the terminal is. It belongs in
+                        // this column and not in a row of its own: as a row it
+                        // capped the column beside it at its own top edge.
+                        ftxui::filler(),
+                        std::move(combat),
+                    }) |
+                    ftxui::size(ftxui::WIDTH, ftxui::EQUAL, widths.left));
 
   ftxui::Elements right;
   // The pair takes the column between them, the equipped panel held to half of

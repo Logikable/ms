@@ -17,7 +17,7 @@
 #include "ftxui/component/component.hpp"
 #include "ftxui/dom/elements.hpp"
 #include "src/combat/fight.h"
-#include "src/frontend/panels/character_panel.h"
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/widgets/marquee.h"
 #include "src/game_state.h"
 
@@ -25,27 +25,32 @@ namespace ms {
 
 class CombatPanel {
  public:
-  // Lines up with the character panel it sits under.
-  static constexpr int kTotalWidth = CharacterPanel::kTotalWidth;
-
   CombatPanel(const GameState& state, const CombatSim& sim, int& panel_focus);
   ftxui::Element Render() const;
   // Rows the panel takes on screen, borders included. It grows with the number
   // of mob types engaged, so whatever shares the column with it has to ask
   // rather than assume -- see MainLayout.
   int Height() const;
+  // The columns the panel may take, borders included. The same width the
+  // character panel above it is given -- they share a column -- and all it
+  // buys down here is room for a long map name. See CharacterPanel::SetWidth.
+  void SetWidth(int width) {
+    width_ = width;
+  }
   // on_travel fires when the player presses Enter with the panel focused.
   ftxui::Component MakeComponent(std::function<void()> on_travel);
 
  private:
-  // Width inside the window's border. Rows are padded to it, which is what
-  // fixes the panel at kTotalWidth -- so lay it out beside a filler(), not as a
-  // bare vbox child, which would stretch it to the full terminal.
-  static constexpr int kContentWidth = kTotalWidth - 2;
+  // Width inside the window's border, which the map row is padded to.
+  int ContentWidth() const {
+    return width_ - 2;
+  }
 
   // Display name of the map being farmed, or "-" when there is none.
   std::string MapName() const;
 
+  // See SetWidth.
+  int width_ = kLeftColumnMin;
   const GameState& state_;
   const CombatSim& sim_;
   int& panel_focus_;

@@ -17,8 +17,11 @@
 #include "src/character/character.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
+#include "src/frontend/panel_widths.h"
+#include "src/frontend/panels/character_panel.h"
 #include "src/frontend/screens/boss_fight_panel.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/text_columns.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -216,6 +219,29 @@ TEST(SkillDataTest, EverySwingsNameFitsTheBossFightPanel) {
     }
   }
   EXPECT_GT(checked, 0);
+}
+
+// The character panel's widest column is chosen for the longest name the game
+// ships, so a longer one arriving has to move that number rather than sit cut
+// on every terminal -- this is where it says so.
+TEST(SkillDataTest, EverySkillNameFitsTheWidestCharacterPanel) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  // The level column is measured over a whole book, so the widest level in
+  // the catalog is what any name might be sitting beside. Combat Orders lends
+  // at most two levels.
+  int level_width = 0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    std::string text = std::to_string(entry.second.max_level()) + " (+2)";
+    level_width = std::max(level_width, 1 + static_cast<int>(text.size()) + 1);
+  }
+  // A book long enough to scroll gives a column to the scroll bar, which is
+  // the case a long name has to fit.
+  int name_width =
+      CharacterPanel::SkillNameWidth(level_width, kLeftColumnMax - 2 - 1);
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    EXPECT_LE(TextColumns(entry.second.name()), name_width)
+        << entry.first << " is wider than the panel ever gets";
+  }
 }
 
 // A tag is read by rules outside the skill, so an unset one is a skill quietly

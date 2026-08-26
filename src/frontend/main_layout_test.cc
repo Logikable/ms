@@ -9,13 +9,13 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
+#include "src/frontend/panel_widths.h"
 
 namespace ms {
 namespace {
 
-// The width the two left-column panels share in the game. The layout does not
-// set it -- the panels bring their own -- but the stand-ins have to agree on
-// one or the column will not line up.
+// The width the test lays the left column out at, which the stand-in panels
+// are drawn to as well so their borders land where the column ends.
 constexpr int kLeftWidth = 35;
 constexpr int kScreenWidth = 100;
 constexpr int kScreenHeight = 30;
@@ -61,7 +61,8 @@ class MainLayoutTest : public testing::Test {
     screen_ = ftxui::Screen::Create(ftxui::Dimension::Fixed(kScreenWidth),
                                     ftxui::Dimension::Fixed(kScreenHeight));
     ftxui::Element layout =
-        MainLayout(Panel("CHAR", kLeftWidth, 8), Panel("COMBAT", kLeftWidth, 3),
+        MainLayout(MainWidths{kLeftWidth, kScreenWidth - kLeftWidth},
+                   Panel("CHAR", kLeftWidth, 8), Panel("COMBAT", kLeftWidth, 3),
                    std::move(equipped), std::move(inventory), std::move(corner),
                    ftxui::text("EXPBAR"));
     ftxui::Render(screen_, layout);
@@ -351,6 +352,50 @@ TEST_F(MainLayoutTest, TheRetiredTipLeavesNoGap) {
   EXPECT_EQ(FirstRowWith("KEYS"), -1);
   EXPECT_EQ(FirstRowWith("EQUIP"), 1) << "equipped still at the top";
   EXPECT_EQ(FirstRowWith("BAG"), 4) << "and the bag directly under it";
+}
+
+// --- the column widths ---
+
+// Room for everything: the left column takes its maximum and the bag gets the
+// rest, which is more than its own minimum.
+TEST(MainWidthsTest, AWideTerminalFillsBothColumns) {
+  MainWidths widths = ComputeMainWidths(200, /*has_right_column=*/true);
+  EXPECT_EQ(widths.left, kLeftColumnMax);
+  EXPECT_EQ(widths.right, 200 - kLeftColumnMax);
+}
+
+// The width both columns are first satisfied at, and one column short of it.
+TEST(MainWidthsTest, TheLeftColumnGrowsLast) {
+  int full = kLeftColumnMax + kRightColumnMin;
+  EXPECT_EQ(ComputeMainWidths(full, true).left, kLeftColumnMax);
+  EXPECT_EQ(ComputeMainWidths(full - 1, true).left, kLeftColumnMax - 1)
+      << "the column the bag needs is taken from the left one";
+  EXPECT_EQ(ComputeMainWidths(full - 1, true).right, kRightColumnMin);
+}
+
+// Below the pair's minimums the left column holds its own and the bag takes
+// what is left, however short of its minimum that is.
+TEST(MainWidthsTest, ANarrowTerminalSqueezesTheRightColumn) {
+  MainWidths widths = ComputeMainWidths(100, /*has_right_column=*/true);
+  EXPECT_EQ(widths.left, kLeftColumnMin);
+  EXPECT_EQ(widths.right, 100 - kLeftColumnMin);
+}
+
+// Narrower than the left column itself: it keeps its minimum and runs off the
+// edge rather than cutting into the stats.
+TEST(MainWidthsTest, ATinyTerminalKeepsTheLeftMinimum) {
+  MainWidths widths = ComputeMainWidths(20, /*has_right_column=*/true);
+  EXPECT_EQ(widths.left, kLeftColumnMin);
+  EXPECT_EQ(widths.right, 0);
+}
+
+// Before the equipped panel is unlocked there is nothing to reserve room for,
+// but the character panel still stops at its maximum rather than stretching
+// across the terminal.
+TEST(MainWidthsTest, NoRightColumnStillCapsTheLeftOne) {
+  MainWidths widths = ComputeMainWidths(200, /*has_right_column=*/false);
+  EXPECT_EQ(widths.left, kLeftColumnMax);
+  EXPECT_EQ(widths.right, 0);
 }
 
 }  // namespace

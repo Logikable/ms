@@ -182,10 +182,16 @@ cc_test(
 )
 
 cc_library(
+    name = "panel_widths",
+    hdrs = ["panel_widths.h"],
+)
+
+cc_library(
     name = "main_layout",
     srcs = ["main_layout.cc"],
     hdrs = ["main_layout.h"],
     deps = [
+        ":panel_widths",
         "@ftxui//:dom",
     ],
 )
@@ -195,6 +201,7 @@ cc_test(
     srcs = ["main_layout_test.cc"],
     deps = [
         ":main_layout",
+        ":panel_widths",
         "@ftxui//:dom",
         "@ftxui//:screen",
         "@googletest//:gtest_main",

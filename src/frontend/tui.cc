@@ -698,8 +698,17 @@ ftxui::Element Tui::RenderMain() {
   // is pinned to its foot. Without a budget the character panel takes the room
   // it wants and the mob bars are drawn off the bottom of a short terminal.
   // One row goes to the exp bar under both of them.
-  int left = ftxui::Terminal::Size().dimy - 1 - combat_panel_.Height();
-  char_panel_.SetMaxRows(left);
+  int rows = ftxui::Terminal::Size().dimy - 1 - combat_panel_.Height();
+  char_panel_.SetMaxRows(rows);
+  // Both columns follow the terminal's width, and the panels are told theirs
+  // before they draw: a panel sizes itself to its column, never the column to
+  // whatever the panel is displaying.
+  MainWidths widths =
+      ComputeMainWidths(ftxui::Terminal::Size().dimx,
+                        controller_.PanelVisible(kEquipPanel) ||
+                            controller_.PanelVisible(kInventoryPanel));
+  char_panel_.SetWidth(widths.left);
+  combat_panel_.SetWidth(widths.left);
   // A panel the character has not unlocked is not drawn at all, and the layout
   // closes up around it. Rendering is skipped rather than hidden afterwards:
   // an undrawn panel has nothing to say about a game it is not part of yet.
@@ -719,9 +728,10 @@ ftxui::Element Tui::RenderMain() {
   } else if (controller_.PanelVisible(kMenuPanel)) {
     corner = menu_component_->Render();
   }
-  ftxui::Element layout = MainLayout(
-      char_panel_.Render(), combat_component_->Render(), std::move(equipped),
-      std::move(inventory), std::move(corner), RenderExpBar());
+  ftxui::Element layout =
+      MainLayout(widths, char_panel_.Render(), combat_component_->Render(),
+                 std::move(equipped), std::move(inventory), std::move(corner),
+                 RenderExpBar());
   if (controller_.screen() == kJobMenu) {
     // Anchored to the job row the same way the bag's menu is anchored to an
     // item, and one row above it so the highlighted entry lands beside the job
@@ -753,11 +763,10 @@ ftxui::Element Tui::RenderMain() {
                                                : inventory_panel_.menu();
   // Offset past char panel border, menu cursor, name column, slot column, and
   // separators so the menu covers stats rather than item names.
-  constexpr int kMenuCol =
-      CharacterPanel::kTotalWidth + 1 + 2 + 18 + 2 + 10 + 2;
+  int menu_col = widths.left + 1 + 2 + 18 + 2 + 10 + 2;
   // Floated so a menu opened near the foot of the bag hangs off the panel
   // rather than being cut off at the edge of the terminal.
-  return ftxui::dbox({layout, Floating(menu.Render(menu_row, kMenuCol))});
+  return ftxui::dbox({layout, Floating(menu.Render(menu_row, menu_col))});
 }
 
 ftxui::Element Tui::RenderExpBar() {

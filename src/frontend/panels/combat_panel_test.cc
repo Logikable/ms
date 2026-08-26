@@ -9,6 +9,7 @@
 #include "ftxui/screen/screen.hpp"
 #include "src/combat/encounter.h"
 #include "src/combat/fight.h"
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -69,7 +70,7 @@ std::string RenderPanel(const GameState& state, const CombatSim& sim,
   return RenderScreen(state, sim, panel_focus).ToString();
 }
 
-TEST(CombatPanelTest, RendersExactlyKTotalWidthColumns) {
+TEST(CombatPanelTest, RendersItsColumnsWidth) {
   GameState state({}, {}, {}, {{"snail", SnailMob()}},
                   {{"field", SnailField()}});
   state.current_map = "field";
@@ -79,8 +80,8 @@ TEST(CombatPanelTest, RendersExactlyKTotalWidthColumns) {
   // The top border's closing corner lands on the last column, and nothing is
   // drawn past it.
   ftxui::Screen screen = RenderScreen(state, sim);
-  EXPECT_EQ(screen.PixelAt(CombatPanel::kTotalWidth - 1, 0).character, "╮");
-  EXPECT_NE(screen.PixelAt(CombatPanel::kTotalWidth, 0).character, "─");
+  EXPECT_EQ(screen.PixelAt(kLeftColumnMin - 1, 0).character, "╮");
+  EXPECT_NE(screen.PixelAt(kLeftColumnMin, 0).character, "─");
 }
 
 TEST(CombatPanelTest, NamesTheMapBeingFarmed) {
@@ -126,7 +127,7 @@ TEST(CombatPanelTest, ALongMapNameIsCutToItsRow) {
       << "the whole name fits, so this test proves nothing";
   EXPECT_NE(rendered.find(kLongest.substr(0, 31)), std::string::npos);
   // Still exactly as wide as it was, name or no name.
-  EXPECT_EQ(screen.PixelAt(CombatPanel::kTotalWidth - 1, 0).character, "╮");
+  EXPECT_EQ(screen.PixelAt(kLeftColumnMin - 1, 0).character, "╮");
 }
 
 TEST(CombatPanelTest, ReportsNotFightingWithoutAWeapon) {
