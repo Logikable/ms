@@ -1227,7 +1227,9 @@ TEST(SkillDataTest, EveryPartySkillReachesTheParty) {
 }
 
 // A description has to match the grant: a skill the party feels says so, and
-// one that says so grants it. Two skills are excused, and GMS excuses both.
+// one that says so grants it. Three ways of reaching them count -- a half held
+// for allies, a demand for company, and a buff that stands over the whole
+// party however many raise it. Two skills are excused, and GMS excuses both.
 // Puncture's party clause lives in its readout rather than its flavour text.
 // Blessed Harmony hands out nothing of its own -- it restates the Ensemble it
 // replaces, and names it, and the Ensemble's own page says what that is worth.
@@ -1239,7 +1241,7 @@ TEST(SkillDataTest, ADescriptionSaysWhetherThePartyIsReached) {
       continue;
     }
     bool reaches = skill.has_ally_base() || skill.has_ally_per_level() ||
-                   skill.requires_party();
+                   skill.requires_party() || skill.buff().party_shared();
     bool says = skill.description().find("party") != std::string::npos;
     EXPECT_EQ(reaches, says)
         << entry.first << ": \"" << skill.description() << "\"";

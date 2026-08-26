@@ -1,0 +1,17 @@
+# 960ms is the animation's own, from the frame data -- the longest swing in the
+# book, which is what a ten-second wait buys.
+name: "Nightshade Explosion"
+skill_order: 2
+description: "Gather the power of darkness and detonate it around you."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 160
+max_level: 1
+required_equip_type: EQUIP_TYPE_SPEAR
+required_equip_type: EQUIP_TYPE_POLEARM
+base_delay_ms: 960
+cooldown_seconds: 10.0
+max_enemies: 10
+lines: 10
+base { skill_pct: 4.00 }

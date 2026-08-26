@@ -1,0 +1,15 @@
+# Ignored defence combines in reverse wherever it meets, this one included:
+# against the skill's own 30% at master level it leaves 56% standing rather
+# than 50%.
+name: "Gungnir's Descent - Guardbreak"
+skill_order: 11
+description: "Gungnir's Descent ignores more of the enemy's defense."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 165
+max_level: 1
+boost {
+  skill_name: "Gungnir's Descent"
+  effect { ied_pct: 0.20 }
+}

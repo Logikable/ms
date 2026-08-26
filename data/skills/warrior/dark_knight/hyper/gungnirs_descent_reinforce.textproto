@@ -1,0 +1,15 @@
+# GMS writes it "Damage: +20%" -- the %Damage stat aimed at one swing, summing
+# with what the character already pays rather than adding points to the
+# skill's own multiplier.
+name: "Gungnir's Descent - Reinforce"
+skill_order: 10
+description: "Increases the damage of Gungnir's Descent."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Gungnir's Descent"
+  effect { damage_pct: 0.20 }
+}

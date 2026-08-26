@@ -1,0 +1,13 @@
+# GMS shortens the wait by defeating enemies after a revival. This game has no
+# window to count kills in, so the hyper simply pays the seconds -- 150 off a
+# pact that walks 1103 down to 900, which is a sixth of the wait at master
+# level.
+name: "Final Pact - Reduce Cooldown"
+skill_order: 8
+description: "Reduces the time you must wait between one revival and the next."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 165
+max_level: 1
+base { revive_cooldown_cut_seconds: 150 }

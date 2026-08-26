@@ -1,0 +1,11 @@
+# As with the pact's damage: a passive's critical rate is the character's
+# already, so the 20% lands here and adds to what they have.
+name: "Final Pact - Critical Chance"
+skill_order: 9
+description: "Increases the Critical Rate that Final Pact grants."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 180
+max_level: 1
+base { crit_rate: 0.20 }

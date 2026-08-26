@@ -1,0 +1,25 @@
+# 900ms is the animation's own, from the frame data.
+#
+# GMS restores the HP on a hit rather than on every hit, and states no chance;
+# the expectation is what an expected-damage fight can use, so it lands as a
+# share of the pool every swing puts back. What it really buys a Dark Knight
+# is the freedom to keep swinging while Final Pact's wait runs down.
+name: "Dark Thirst"
+skill_order: 1
+description:
+  "Awaken the thirst of darkness for a time, increasing Attack and restoring "
+  "HP with every attack."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 140
+max_level: 1
+base_delay_ms: 900
+cooldown_seconds: 60.0
+buff {
+  duration_seconds: 20.0
+  base {
+    attack: 50
+    hp_recover_pct: 0.09
+  }
+}

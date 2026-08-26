@@ -1,0 +1,27 @@
+# Every Explorer has this, and no two of them stack: the buff stands over the
+# party however many raise it, so a party takes turns and the wait between one
+# player's own casts is beside the point. That is Buff.party_shared, and it is
+# why nothing here is granted through ally_base -- a partner's cast covers this
+# character because they hold the skill themselves, which is the whole of the
+# faction rule GMS states.
+#
+# 990ms is the shout every Explorer party buff uses -- Combat Orders' own. The
+# frame data has no entry for this skill; that is its nearest measured
+# relative.
+name: "Epic Adventure"
+skill_order: 3
+description:
+  "Recall the adventures you have shared, increasing the damage of every "
+  "Explorer in your party for a time."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 190
+max_level: 1
+base_delay_ms: 990
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 60.0
+  party_shared: true
+  base { damage_pct: 0.10 }
+}

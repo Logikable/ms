@@ -1,0 +1,15 @@
+# The lever lands on the character rather than on Hex of the Evil Eye, which is
+# a passive and has nothing to boost: what Hex grants is already the
+# character's, and 30 more attack is the same 30 either way.
+#
+# GMS raises the magic attack beside it. Hex states none here -- no warrior
+# weapon carries any -- so there is nothing for this to raise.
+name: "Evil Eye - Hex Reinforce"
+skill_order: 5
+description: "Increases the Attack that Hex of the Evil Eye grants."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 150
+max_level: 1
+base { attack: 30 }

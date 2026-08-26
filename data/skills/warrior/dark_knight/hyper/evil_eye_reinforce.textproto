@@ -1,0 +1,37 @@
+# GMS writes this "Damage: +150%", which is the %Damage stat rather than points
+# on a multiplier -- so it sums with what the character's gear and passives
+# already pay, and only these five swings collect it.
+#
+# Five boosts because the eye shouts under five names across the line, and a
+# boost names one skill each. Revenge of the Evil Eye covers its own halves:
+# Shock III and the Dark Auras share their parent's display name. Radiant Evil
+# is a 5th job skill nothing reaches yet -- the boost simply never resolves
+# until something does.
+name: "Evil Eye - Reinforce"
+skill_order: 4
+description: "Increases the damage of every attack your Evil Eye makes."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
+hyper: true
+required_level: 140
+max_level: 1
+boost {
+  skill_name: "Evil Eye Shock"
+  effect { damage_pct: 1.50 }
+}
+boost {
+  skill_name: "Evil Eye Shock II"
+  effect { damage_pct: 1.50 }
+}
+boost {
+  skill_name: "Evil Eye of Domination"
+  effect { damage_pct: 1.50 }
+}
+boost {
+  skill_name: "Revenge of the Evil Eye"
+  effect { damage_pct: 1.50 }
+}
+boost {
+  skill_name: "Radiant Evil"
+  effect { damage_pct: 1.50 }
+}
