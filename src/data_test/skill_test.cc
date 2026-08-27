@@ -20,6 +20,8 @@
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/panels/character_panel.h"
 #include "src/frontend/screens/boss_fight_panel.h"
+#include "src/frontend/screens/job_inspect_panel.h"
+#include "src/frontend/screens/skill_inspect_panel.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/frontend/widgets/text_columns.h"
 #include "src/proto_loader.h"
@@ -789,6 +791,28 @@ TEST(SkillDataTest, EveryWeaponBonusIsForAWeaponTheSkillAccepts) {
 // The DEMAND only. A weapon bonus is the opposite thing: it exists to pay one
 // weapon and not another, which is why High Paladin's ignored defence is on
 // the blunt weapon alone.
+// The job inspect screen sets a skill card beside the 35-wide book, and the
+// card is now as wide as its widest label and value. No shipped skill may
+// widen it past what the narrowest terminal the game lays out at leaves.
+TEST(SkillDataTest, NoShippedCardOutgrowsTheJobInspectScreen) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  const int kRoom = kLeftColumnMin + kRightColumnMin - kJobInspectBookWidth;
+  std::string widest_name;
+  int widest = 0;
+  for (const auto& [stem, skill] : skills) {
+    SkillInspectPanel panel;
+    panel.SetSkill(&skill, 0, 0, SkillInspectPanel::kPreview);
+    ftxui::Element card = panel.Render();
+    card->ComputeRequirement();
+    if (card->requirement().min_x > widest) {
+      widest = card->requirement().min_x;
+      widest_name = skill.name();
+    }
+  }
+  EXPECT_LE(widest, kRoom) << widest_name << " asks for " << widest
+                           << " columns beside the book";
+}
+
 TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   const std::pair<EquipType, EquipType> kPairs[] = {
       {EQUIP_TYPE_ONE_HANDED_SWORD, EQUIP_TYPE_TWO_HANDED_SWORD},

@@ -22,7 +22,7 @@ namespace {
 // rather than in the middle of the screen, so the room it takes is room the
 // card does not get. Wide enough for the weapon row, which is the longest
 // thing here that cannot slide: names longer than the column left over do.
-constexpr int kContentWidth = 33;
+constexpr int kContentWidth = kJobInspectBookWidth - 2;
 
 // Seats " Weapon" with a gap after it. The row is the only labelled one on the
 // panel, so the label column exists for its sake alone.

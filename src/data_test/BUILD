@@ -122,6 +122,8 @@ cc_test(
         "//src/frontend:panel_widths",
         "//src/frontend/panels:character_panel",
         "//src/frontend/screens:boss_fight_panel",
+        "//src/frontend/screens:job_inspect_panel",
+        "//src/frontend/screens:skill_inspect_panel",
         "//src/frontend/widgets:panel_util",
         "//src/frontend/widgets:text_columns",
         "//src/protos:equip_proto_cc",

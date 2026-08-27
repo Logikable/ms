@@ -522,11 +522,16 @@ ftxui::Element Tui::RenderShopInspect() {
 // right, previewed at both ends of its levels: the player has spent no points
 // on it and has none to spend, so "one more point" would say nothing.
 ftxui::Element Tui::RenderJobInspect() {
+  // One size for the whole book: the card holds it whichever skill the cursor
+  // is on, so the screen does not shift under the reader.
+  PreviewCardSize card =
+      LargestPreviewCard(job_inspect_panel_.Skills(),
+                         ftxui::Terminal::Size().dimx - kJobInspectBookWidth);
   skill_inspect_panel_.SetSkill(job_inspect_panel_.selected_skill(), 0, 0,
                                 SkillInspectPanel::kPreview);
-  return Standalone(JobInspectScreen(
-      job_inspect_panel_.Render(), skill_inspect_panel_.Render(),
-      TallestPreviewCardRows(job_inspect_panel_.Skills())));
+  skill_inspect_panel_.SetWidthBounds(card.columns, card.columns);
+  return Standalone(JobInspectScreen(job_inspect_panel_.Render(),
+                                     skill_inspect_panel_.Render(), card.rows));
 }
 
 ftxui::Element Tui::RenderTraceRecover() {
@@ -681,6 +686,7 @@ ftxui::Element Tui::RenderScreen() {
                                     controller_.skill_inspect_level(),
                                     controller_.skill_inspect_bonus());
       skill_inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
+      skill_inspect_panel_.SetWidthBounds(0, ftxui::Terminal::Size().dimx);
       return Standalone(skill_inspect_panel_.Render());
     case kInspect:
     case kItemInspect:

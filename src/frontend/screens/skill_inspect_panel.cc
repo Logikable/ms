@@ -19,19 +19,22 @@
 namespace ms {
 namespace {
 
-// Chars inside the window border. Descriptions carry GMS's own sentences at
-// their own length, so the card is wide enough to read them a clause at a
-// time. The binding constraint is the job inspect screen, which sets this card
-// beside the 33-wide book: 35 + 61 of a 100-column terminal.
-constexpr int kContentWidth = 58;
+// The narrowest the card lays out at, inside its border. Descriptions carry
+// GMS's own sentences at their own length, so the card is wide enough to read
+// them a clause at a time; a skill whose rows want less than this still gets
+// it, and spends the slack on its value column.
+constexpr int kMinContentWidth = 58;
+// The border either side and the scroll bar's column, which the card holds
+// open whether or not there is anything to scroll.
+constexpr int kCardChrome = 3;
 // Effect rows indent past the one-space border gutter, so they read as
 // belonging to the "Level N" heading above them.
 constexpr int kEffectIndent = 3;
-// Seats "Boosts Piercing Arrow", the longest label, with a gap after it. The
-// fixed labels are all shorter; the boost rows are what sets this.
-constexpr int kEffectLabelWidth = 23;
-// What is left for an effect row's value once the indent and label are paid.
-constexpr int kValueWidth = kContentWidth - kEffectIndent - kEffectLabelWidth;
+// The gap between a label and its value.
+constexpr int kLabelGap = 2;
+// What a value keeps when a label is too wide for the card to seat them both.
+// Past this the label takes a row of its own instead.
+constexpr int kMinValueWidth = 8;
 
 // A percentage lever and how it reads to the player. Usually the sign is the
 // lever's direction rather than its stored value: a lever is stored positive,
@@ -1250,13 +1253,55 @@ std::vector<Row> CardRows(const Skill& skill, int level, int bonus,
   return rows;
 }
 
+// The widest label the rows carry, which is what the label column is cut to.
+int WidestLabel(const std::vector<Row>& rows) {
+  int widest = 0;
+  for (const Row& row : rows) {
+    if (row.kind == Row::kEffect) {
+      widest = std::max(widest, TextColumns(row.label));
+    }
+  }
+  return widest;
+}
+
+// The columns the card asks for: its indent, the widest label with a gap
+// after it, and the widest value, held to the floor a description reads at.
+int NaturalContentWidth(const std::vector<Row>& rows) {
+  int value = 0;
+  for (const Row& row : rows) {
+    if (row.kind == Row::kEffect) {
+      value = std::max(value, TextColumns(row.value));
+    }
+  }
+  return std::max(kMinContentWidth,
+                  kEffectIndent + WidestLabel(rows) + kLabelGap + value);
+}
+
+// The columns inside the border, from what the rows ask for and what the
+// screen holding the card allows. Both bounds are whole-card widths, and zero
+// means unbounded.
+int ContentWidth(const std::vector<Row>& rows, int min_card, int max_card) {
+  int content = NaturalContentWidth(rows);
+  if (min_card > 0) {
+    content = std::max(content, min_card - kCardChrome);
+  }
+  if (max_card > 0) {
+    content = std::min(content, max_card - kCardChrome);
+  }
+  return std::max(content, kEffectIndent + kMinValueWidth);
+}
+
 // The card's rows drawn into `content` columns. A value too long for its
 // column continues on the next line with the label left blank, rather than
 // being cut mid-word.
 std::vector<Line> LayOut(std::vector<Row> rows, int content) {
   const std::string indent(kEffectIndent, ' ');
-  int label_width = kEffectLabelWidth;
-  int value_width = content - kEffectIndent - label_width;
+  // Just enough for the widest label, unless the card is too narrow to seat
+  // that and a value worth reading -- then the long labels take their own row.
+  int label_width =
+      std::min(WidestLabel(rows) + kLabelGap,
+               std::max(1, content - kEffectIndent - kMinValueWidth));
+  int value_width = std::max(1, content - kEffectIndent - label_width);
   std::vector<Line> lines;
   for (Row& row : rows) {
     if (row.kind == Row::kRule) {
@@ -1313,8 +1358,9 @@ void SkillInspectPanel::ScrollBy(int delta) {
   if (skill_ == nullptr) {
     return;
   }
-  int total = static_cast<int>(
-      LayOut(CardRows(*skill_, level_, bonus_, levels_), kContentWidth).size());
+  std::vector<Row> rows = CardRows(*skill_, level_, bonus_, levels_);
+  int content = ContentWidth(rows, min_width_, max_width_);
+  int total = static_cast<int>(LayOut(std::move(rows), content).size());
   int last = total - VisibleRows(total);
   offset_ = std::max(0, std::min(offset_ + delta, last));
 }
@@ -1324,8 +1370,9 @@ ftxui::Element SkillInspectPanel::Render() const {
     return ThemedWindow(" Skill ", EmptyState("no skill"));
   }
 
-  std::vector<Line> rows =
-      LayOut(CardRows(*skill_, level_, bonus_, levels_), kContentWidth);
+  std::vector<Row> card = CardRows(*skill_, level_, bonus_, levels_);
+  int content = ContentWidth(card, min_width_, max_width_);
+  std::vector<Line> rows = LayOut(std::move(card), content);
   int total = static_cast<int>(rows.size());
   int visible = VisibleRows(total);
   // Clamped here as well as in ScrollBy: the terminal can be made taller under
@@ -1346,14 +1393,14 @@ ftxui::Element SkillInspectPanel::Render() const {
     Line& card_row = rows[offset + row];
     if (card_row.separator) {
       lines.push_back(std::move(card_row.element) |
-                      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth));
+                      ftxui::size(ftxui::WIDTH, ftxui::EQUAL, content));
       continue;
     }
     ftxui::Element cell =
         cells.empty() ? ftxui::text(" ") : std::move(cells[row]);
     lines.push_back(ftxui::hbox({
         std::move(card_row.element) |
-            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth),
+            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, content),
         std::move(cell) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
     }));
   }
@@ -1363,19 +1410,31 @@ ftxui::Element SkillInspectPanel::Render() const {
   return ThemedWindow(title, ftxui::vbox(std::move(lines)));
 }
 
-int TallestPreviewCardRows(const std::vector<const Skill*>& skills) {
-  int rows = 0;
+PreviewCardSize LargestPreviewCard(const std::vector<const Skill*>& skills,
+                                   int max_columns) {
+  PreviewCardSize size;
   SkillInspectPanel panel;
-  for (const Skill* skill : skills) {
-    if (skill == nullptr) {
-      continue;
+  // Two passes, because a card's height is a fact about the width it was laid
+  // out at: the widest card in the book sets the width, and every card is then
+  // measured again at that width to find the tallest.
+  panel.SetWidthBounds(0, max_columns);
+  for (int pass = 0; pass < 2; ++pass) {
+    for (const Skill* skill : skills) {
+      if (skill == nullptr) {
+        continue;
+      }
+      panel.SetSkill(skill, 0, 0, SkillInspectPanel::kPreview);
+      ftxui::Element card = panel.Render();
+      card->ComputeRequirement();
+      if (pass == 0) {
+        size.columns = std::max(size.columns, card->requirement().min_x);
+      } else {
+        size.rows = std::max(size.rows, card->requirement().min_y);
+      }
     }
-    panel.SetSkill(skill, 0, 0, SkillInspectPanel::kPreview);
-    ftxui::Element card = panel.Render();
-    card->ComputeRequirement();
-    rows = std::max(rows, card->requirement().min_y);
+    panel.SetWidthBounds(size.columns, size.columns);
   }
-  return rows;
+  return size;
 }
 
 }  // namespace ms

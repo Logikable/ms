@@ -53,6 +53,14 @@ class SkillInspectPanel {
   void SetMaxRows(int rows) {
     max_rows_ = rows;
   }
+  // The columns the card lays out in, borders and scroll bar included. Both
+  // default to zero, which measures the card from the skill and gives it what
+  // it asks for. A screen that must stand still while the cursor walks a book
+  // sets the two equal, to the widest card in it.
+  void SetWidthBounds(int min_columns, int max_columns) {
+    min_width_ = min_columns;
+    max_width_ = max_columns;
+  }
   // Moves the view `delta` rows, held to the card at both ends. There is no
   // selected row on this screen -- nothing to point at, only text to read --
   // so a key moves the page itself, and it does not wrap: coming out of the
@@ -75,15 +83,24 @@ class SkillInspectPanel {
   int bonus_ = 0;
   Levels levels_ = kLearned;
   int max_rows_ = 0;
+  int min_width_ = 0;
+  int max_width_ = 0;
   int offset_ = 0;
 };
 
-// The rows the tallest preview card of `skills` takes, borders included. What
-// a screen holding a card beside a list of skills asks before drawing it, so
-// the screen stands still while the cursor walks cards of different heights.
-// Measured rather than guessed: a card is as tall as its description and
-// whichever levers its skill happens to carry.
-int TallestPreviewCardRows(const std::vector<const Skill*>& skills);
+// The size of the largest preview card of `skills`, borders included.
+struct PreviewCardSize {
+  int rows = 0;
+  int columns = 0;
+};
+
+// What a screen holding a card beside a list of skills asks before drawing
+// any one of them, so the screen stands still while the cursor walks cards of
+// different shapes. Measured rather than guessed: a card is as wide as its
+// widest label and value and as tall as whichever levers its skill carries.
+// `max_columns` is the room the screen has for the card.
+PreviewCardSize LargestPreviewCard(const std::vector<const Skill*>& skills,
+                                   int max_columns);
 
 }  // namespace ms
 

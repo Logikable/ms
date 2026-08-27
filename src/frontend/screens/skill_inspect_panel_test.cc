@@ -15,6 +15,23 @@
 namespace ms {
 namespace {
 
+// Where a card row reads `label` and then `value`, whatever gap the card's
+// columns put between them, or npos. A test says what a row says; how wide
+// the label column came out is the card's business.
+size_t RowIn(const std::string& rendered, const std::string& label,
+             const std::string& value) {
+  for (size_t at = rendered.find(label); at != std::string::npos;
+       at = rendered.find(label, at + 1)) {
+    size_t after = at + label.size();
+    size_t gap = rendered.find_first_not_of(' ', after);
+    if (gap != std::string::npos && gap > after &&
+        rendered.compare(gap, value.size(), value) == 0) {
+      return at;
+    }
+  }
+  return std::string::npos;
+}
+
 class SkillInspectPanelTest : public PanelTest {
  protected:
   std::string RenderAt(const Skill& skill, int level, int bonus = 0) {
@@ -118,8 +135,7 @@ TEST_F(SkillInspectPanelTest, ReadsEveryLeverAtTheLearnedLevel) {
   EXPECT_NE(rendered.find("+50"), std::string::npos);    // DEF
   EXPECT_NE(rendered.find("+5%"), std::string::npos);    // Max HP
   EXPECT_NE(rendered.find("-2.5%"), std::string::npos);  // Damage Taken
-  EXPECT_NE(rendered.find("Max HP                 +625"), std::string::npos)
-      << rendered;
+  EXPECT_NE(RowIn(rendered, "Max HP", "+625"), std::string::npos) << rendered;
 }
 
 // Reckless Hunt sells DEF for damage. The price is half the skill, so the page
@@ -128,8 +144,7 @@ TEST_F(SkillInspectPanelTest, ShowsALeverTheSkillTakesAway) {
   Skill skill = MakeIronBody();
   skill.mutable_base()->set_def_pct(-0.07);
   skill.mutable_per_level()->set_def_pct(-0.02);
-  EXPECT_NE(RenderAt(skill, 3).find("Defense                -11%"),
-            std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(skill, 3), "Defense", "-11%"), std::string::npos);
 }
 
 TEST_F(SkillInspectPanelTest, ShowsWhatTheNextPointBuys) {
@@ -285,7 +300,7 @@ TEST_F(SkillInspectPanelTest, KeepsWhatTheWeaponMovesOffThePage) {
   EXPECT_EQ(rendered.find("0.66"), std::string::npos);
   EXPECT_EQ(rendered.find("Counts As"), std::string::npos);
   // The turret's own rate is stated: nothing the player holds moves it.
-  EXPECT_NE(rendered.find("Turret                 4 enemies every 0.21s"),
+  EXPECT_NE(RowIn(rendered, "Turret", "4 enemies every 0.21s"),
             std::string::npos);
 }
 
@@ -294,7 +309,7 @@ TEST_F(SkillInspectPanelTest, SaysHowManyAttacksSetASkillOff) {
   Skill mirage = MakeLuckySeven();
   mirage.set_kind(SKILL_KIND_AUTO_ATTACK);
   mirage.set_attacks_per_cast(4);
-  EXPECT_NE(RenderAt(mirage, 1).find("Fires Every            4 Attacks"),
+  EXPECT_NE(RowIn(RenderAt(mirage, 1), "Fires Every", "4 Attacks"),
             std::string::npos);
 }
 
@@ -305,7 +320,7 @@ TEST_F(SkillInspectPanelTest, ABoostNamesTheSkillItReachesAcrossTo) {
   SkillBoost* boost = mirage.add_boost();
   boost->set_skill_name("Wind Arrow");
   boost->mutable_effect()->set_skill_pct(0.70);
-  EXPECT_NE(RenderAt(mirage, 1).find("Boosts Wind Arrow      +70% Damage"),
+  EXPECT_NE(RowIn(RenderAt(mirage, 1), "Boosts Wind Arrow", "+70% Damage"),
             std::string::npos);
   // Every lever the boost carries is named, since one row holds them all.
   boost->mutable_effect()->set_ied_pct(0.20);
@@ -332,9 +347,9 @@ TEST_F(SkillInspectPanelTest, AnAutoModeStatesItsOwnHalfOfTheSkill) {
   turret->mutable_base()->set_skill_pct(0.66);
 
   std::string rendered = RenderAt(blaster, 1);
-  EXPECT_NE(rendered.find("Damage                 124%"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Damage", "124%"), std::string::npos);
   // Its damage sits under the swing's, named as its reach row above names it.
-  EXPECT_NE(rendered.find("Turret                 66%"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Turret", "66%"), std::string::npos);
   // A skill without one says nothing about a turret.
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Turret"), std::string::npos);
 }
@@ -348,7 +363,7 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
   phoenix.set_max_enemies(4);
   phoenix.set_cast_interval_seconds(1.71);
   std::string rendered = RenderAt(phoenix, 1);
-  EXPECT_NE(rendered.find("Attacks                4 enemies every 1.71s"),
+  EXPECT_NE(RowIn(rendered, "Attacks", "4 enemies every 1.71s"),
             std::string::npos);
   EXPECT_EQ(rendered.find("Enemies Hit"), std::string::npos);
 
@@ -358,9 +373,8 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
   blaster.set_max_enemies(4);
   blaster.set_base_delay_ms(120);
   blaster.set_fixed_delay(true);
-  EXPECT_NE(
-      RenderAt(blaster, 1).find("Attacks                4 enemies every 0.12s"),
-      std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(blaster, 1), "Attacks", "4 enemies every 0.12s"),
+            std::string::npos);
   // An ordinary swing's delay moves with the weapon, so the page states none.
   Skill swing = MakeLuckySeven();
   swing.set_base_delay_ms(660);
@@ -371,9 +385,9 @@ TEST_F(SkillInspectPanelTest, ASkillOnItsOwnClockStatesItWithItsReach) {
   Skill sphere = phoenix;
   sphere.set_max_enemies(1);
   sphere.set_cast_interval_seconds(2.0);
-  EXPECT_NE(RenderAt(sphere, 1).find("Attacks                1 enemy every 2s"),
+  EXPECT_NE(RowIn(RenderAt(sphere, 1), "Attacks", "1 enemy every 2s"),
             std::string::npos);
-  EXPECT_NE(RenderAt(MakeLuckySeven(), 1).find("Enemies Hit            5"),
+  EXPECT_NE(RowIn(RenderAt(MakeLuckySeven(), 1), "Enemies Hit", "5"),
             std::string::npos);
 }
 
@@ -392,11 +406,9 @@ TEST_F(SkillInspectPanelTest, StatesEachHitOfASwingThatLandsTwo) {
   blast->mutable_base()->set_normal_skill_pct(0.87);
 
   std::string rendered = RenderAt(mark, 1);
-  EXPECT_NE(rendered.find("Damage                 420% x7 = 2940%"),
-            std::string::npos);
-  EXPECT_NE(rendered.find("Explosion              290% x5 = 1450%"),
-            std::string::npos);
-  EXPECT_NE(rendered.find("Explosion Normal       377% x5 = 1885%"),
+  EXPECT_NE(RowIn(rendered, "Damage", "420% x7 = 2940%"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Explosion", "290% x5 = 1450%"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Explosion Normal", "377% x5 = 1885%"),
             std::string::npos);
   // The hammer carries no such bonus, so it gets no such row.
   EXPECT_EQ(rendered.find("Normal Monsters"), std::string::npos);
@@ -404,14 +416,12 @@ TEST_F(SkillInspectPanelTest, StatesEachHitOfASwingThatLandsTwo) {
   // A hit certain to crit says so on the same row, since the two halves of
   // Raging Blow are otherwise the same number printed twice.
   mark.mutable_extra_hit(0)->mutable_base()->set_crit_rate(1.00);
-  EXPECT_NE(
-      RenderAt(mark, 1).find("Explosion              290% x5 = 1450% (crit)"),
-      std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(mark, 1), "Explosion", "290% x5 = 1450% (crit)"),
+            std::string::npos);
   // A rate short of certainty prints the rate beside the damage rather than
   // instead of it.
   mark.mutable_extra_hit(0)->mutable_base()->set_crit_rate(0.20);
-  EXPECT_NE(RenderAt(mark, 1).find(
-                "Explosion              290% x5 = 1450% (20% crit)"),
+  EXPECT_NE(RowIn(RenderAt(mark, 1), "Explosion", "290% x5 = 1450% (20% crit)"),
             std::string::npos);
 }
 
@@ -431,10 +441,9 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   blast->set_lines(1);
 
   std::string rendered = RenderAt(vessel, 10);
-  EXPECT_NE(rendered.find("Boosts Divine Charge   +1 Strike, +2 Enemies"),
+  EXPECT_NE(RowIn(rendered, "Boosts Divine Charge", "+1 Strike, +2 Enemies"),
             std::string::npos);
-  EXPECT_NE(rendered.find("Boosts Blast           +1 Strike"),
-            std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Boosts Blast", "+1 Strike"), std::string::npos);
   // The reach climbs with the level; the strike does not.
   EXPECT_NE(RenderAt(vessel, 1).find("+1 Strike, +1 Enemy"), std::string::npos);
   // A skill granting neither writes no row.
@@ -449,8 +458,9 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   mirage->set_lines(12);
   mirage->set_attacks_per_cast(7);
   std::string clocked = RenderAt(second, 1);
-  EXPECT_NE(clocked.find("Boosts Speed Mirage    +12 Strikes, every 7 attacks"),
-            std::string::npos);
+  EXPECT_NE(
+      RowIn(clocked, "Boosts Speed Mirage", "+12 Strikes, every 7 attacks"),
+      std::string::npos);
 }
 
 // A wait that never moves is stated once above the divider; one that shortens
@@ -461,10 +471,8 @@ TEST_F(SkillInspectPanelTest, AShorteningWaitIsReadAtTheLevel) {
   hammer.set_max_level(30);
   hammer.set_cooldown_seconds(29.5);
   hammer.set_cooldown_seconds_per_level(-0.5);
-  EXPECT_NE(RenderAt(hammer, 1).find("Cooldown               29.5s"),
-            std::string::npos);
-  EXPECT_NE(RenderAt(hammer, 30).find("Cooldown               15s"),
-            std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(hammer, 1), "Cooldown", "29.5s"), std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(hammer, 30), "Cooldown", "15s"), std::string::npos);
 
   // Above the divider it would have to state one wait for all thirty levels,
   // so the row up there belongs to the skills whose wait really is invariant.
@@ -483,16 +491,15 @@ TEST_F(SkillInspectPanelTest, AGrowingRingOfOrbsIsReadAtTheLevel) {
   Skill advanced = MakeIronBody();
   advanced.set_combo_orbs(5);
   advanced.set_combo_orbs_per_level(0.26316);
-  EXPECT_NE(RenderAt(advanced, 1).find("Combo Orbs             5"),
-            std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(advanced, 1), "Combo Orbs", "5"), std::string::npos);
   std::string rendered = RenderAt(advanced, 20);
-  EXPECT_NE(rendered.find("Combo Orbs             10"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Combo Orbs", "10"), std::string::npos);
   EXPECT_LT(rendered.find("Level 20"), rendered.find("Combo Orbs"));
 
   Skill flat = MakeIronBody();
   flat.set_combo_orbs(5);
   std::string plain = RenderAt(flat, 5);
-  EXPECT_NE(plain.find("Combo Orbs             5"), std::string::npos);
+  EXPECT_NE(RowIn(plain, "Combo Orbs", "5"), std::string::npos);
   EXPECT_LT(plain.find("Combo Orbs"), plain.find("Level 5"));
 }
 
@@ -519,13 +526,13 @@ TEST_F(SkillInspectPanelTest, EachHalfStatesTheReachItHasRatherThanTheSkills) {
   auras->mutable_base()->set_skill_pct(2.20);
 
   std::string rendered = RenderAt(revenge, 1);
-  EXPECT_NE(rendered.find("Attacks                10 enemies every 5s"),
+  EXPECT_NE(RowIn(rendered, "Attacks", "10 enemies every 5s"),
             std::string::npos);
-  EXPECT_NE(rendered.find("Shock III              10 enemies every 10s"),
+  EXPECT_NE(RowIn(rendered, "Shock III", "10 enemies every 10s"),
             std::string::npos);
-  EXPECT_NE(rendered.find("Dark Auras             3 enemies every 10s"),
+  EXPECT_NE(RowIn(rendered, "Dark Auras", "3 enemies every 10s"),
             std::string::npos);
-  EXPECT_NE(rendered.find("Dark Auras             220% x20 = 4400%"),
+  EXPECT_NE(RowIn(rendered, "Dark Auras", "220% x20 = 4400%"),
             std::string::npos);
 }
 
@@ -541,13 +548,13 @@ TEST_F(SkillInspectPanelTest, APiercingSwingStatesItsGainBesideItsReach) {
   arrow.set_lines(4);
   arrow.set_pierce_gain_pct(0.15);
   arrow.mutable_base()->set_skill_pct(0.92);
-  EXPECT_NE(RenderAt(arrow, 1).find("Enemies Hit            6, +15% each"),
+  EXPECT_NE(RowIn(RenderAt(arrow, 1), "Enemies Hit", "6, +15% each"),
             std::string::npos);
 
   // A swing that hits everything it reaches alike says only how many.
   arrow.clear_pierce_gain_pct();
   std::string plain = RenderAt(arrow, 1);
-  EXPECT_NE(plain.find("Enemies Hit            6"), std::string::npos);
+  EXPECT_NE(RowIn(plain, "Enemies Hit", "6"), std::string::npos);
   EXPECT_EQ(plain.find("each"), std::string::npos);
 }
 
@@ -570,10 +577,10 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   std::string rendered = RenderAt(arrows, 1);
   EXPECT_NE(rendered.find("Every 4th"), std::string::npos);
   EXPECT_NE(rendered.find("Piercing Arrow"), std::string::npos);
-  EXPECT_NE(rendered.find("Empowered Enemies      8"), std::string::npos);
-  EXPECT_NE(rendered.find("Empowered Damage       203% x6 = 1218%"),
+  EXPECT_NE(RowIn(rendered, "Empowered Enemies", "8"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Empowered Damage", "203% x6 = 1218%"),
             std::string::npos);
-  EXPECT_NE(rendered.find("Boosts Piercing Arrow  +102% Damage"),
+  EXPECT_NE(RowIn(rendered, "Boosts Piercing Arrow", "+102% Damage"),
             std::string::npos);
   // Counted on the swing, which is the ordinary reading and needs no row.
   EXPECT_EQ(rendered.find("Marks"), std::string::npos);
@@ -608,18 +615,18 @@ TEST_F(SkillInspectPanelTest, NamesEachOfTwoEmpoweredSwings) {
   EXPECT_NE(rendered.find("Every 4th Piercing"), std::string::npos) << rendered;
   EXPECT_NE(rendered.find("Every 4th Snipe"), std::string::npos) << rendered;
   // Named by what each upgrades, not by the one label they would share.
-  EXPECT_NE(rendered.find("Piercing Arrow II      427% x6"), std::string::npos)
+  EXPECT_NE(RowIn(rendered, "Piercing Arrow II", "427% x6"), std::string::npos)
       << rendered;
-  EXPECT_NE(rendered.find("Snipe                  494% x10"), std::string::npos)
+  EXPECT_NE(RowIn(rendered, "Snipe", "494% x10"), std::string::npos)
       << rendered;
   EXPECT_EQ(rendered.find("Empowered Damage"), std::string::npos) << rendered;
   // The form's own second hit reads between the two swings: under the one it
   // belongs to, and above the one it does not.
-  EXPECT_LT(rendered.find("Piercing Arrow II      427%"),
-            rendered.find("Fragment               280%"))
+  EXPECT_LT(RowIn(rendered, "Piercing Arrow II", "427%"),
+            RowIn(rendered, "Fragment", "280%"))
       << rendered;
-  EXPECT_LT(rendered.find("Fragment               280%"),
-            rendered.find("Snipe                  494%"))
+  EXPECT_LT(RowIn(rendered, "Fragment", "280%"),
+            RowIn(rendered, "Snipe", "494%"))
       << rendered;
 }
 
@@ -638,8 +645,7 @@ TEST_F(SkillInspectPanelTest, StatesAFormThatMarksEachEnemy) {
 
   std::string rendered = RenderAt(judgment, 1);
   EXPECT_NE(rendered.find("Every 5th"), std::string::npos);
-  EXPECT_NE(rendered.find("Marks                  Each Enemy Hit"),
-            std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Marks", "Each Enemy Hit"), std::string::npos);
   EXPECT_EQ(rendered.find("Empowered Enemies"), std::string::npos)
       << "a form that marks enemies carries no reach of its own";
 }
@@ -655,9 +661,9 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAFountain) {
 
   // Both halves on one row: the pulse grows and the wait shortens together,
   // so either alone understates every point after the first.
-  EXPECT_NE(RenderAt(fountain, 1).find("HP Recovered           13% every 7.5s"),
+  EXPECT_NE(RowIn(RenderAt(fountain, 1), "HP Recovered", "13% every 7.5s"),
             std::string::npos);
-  EXPECT_NE(RenderAt(fountain, 10).find("HP Recovered           40% every 3s"),
+  EXPECT_NE(RowIn(RenderAt(fountain, 10), "HP Recovered", "40% every 3s"),
             std::string::npos);
   // A skill with no fountain says nothing about one.
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("HP Recovered"),
@@ -671,7 +677,7 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAFountain) {
   water.mutable_base()->set_regen_interval_seconds(10.0);
   water.mutable_base()->set_regen_int_step(2500);
   std::string rendered = RenderAt(water, 10);
-  EXPECT_NE(rendered.find("HP Recovered           5% every 10s, +5%"),
+  EXPECT_NE(RowIn(rendered, "HP Recovered", "5% every 10s, +5%"),
             std::string::npos)
       << rendered;
   EXPECT_NE(rendered.find("per 2500 INT"), std::string::npos) << rendered;
@@ -686,9 +692,9 @@ TEST_F(SkillInspectPanelTest, StatesTheExpASkillAdds) {
   symbol.mutable_base()->set_exp_pct(0.215);
   symbol.mutable_per_level()->set_exp_pct(0.015);
 
-  EXPECT_NE(RenderAt(symbol, 1).find("Additional EXP         +21.5%"),
+  EXPECT_NE(RowIn(RenderAt(symbol, 1), "Additional EXP", "+21.5%"),
             std::string::npos);
-  EXPECT_NE(RenderAt(symbol, 20).find("Additional EXP         +50%"),
+  EXPECT_NE(RowIn(RenderAt(symbol, 20), "Additional EXP", "+50%"),
             std::string::npos);
   EXPECT_EQ(RenderAt(symbol, 1).find("no effect"), std::string::npos);
 }
@@ -702,11 +708,10 @@ TEST_F(SkillInspectPanelTest, StatesWhatAShadowLineIsWorth) {
   partner.mutable_base()->set_mirror_line_pct(0.51);
   partner.mutable_per_level()->set_mirror_line_pct(0.01);
 
-  EXPECT_NE(RenderAt(partner, 1).find("Shadow Damage          51% of each hit"),
+  EXPECT_NE(RowIn(RenderAt(partner, 1), "Shadow Damage", "51% of each hit"),
             std::string::npos);
-  EXPECT_NE(
-      RenderAt(partner, 20).find("Shadow Damage          70% of each hit"),
-      std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(partner, 20), "Shadow Damage", "70% of each hit"),
+            std::string::npos);
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Shadow Damage"),
             std::string::npos);
 }
@@ -722,18 +727,17 @@ TEST_F(SkillInspectPanelTest, StatesWhatAMesoIsWorthAndHowOftenOneFalls) {
   explosion.mutable_base()->set_meso_hit_pct(0.43);
   explosion.mutable_per_level()->set_meso_hit_pct(0.03);
 
-  EXPECT_NE(RenderAt(explosion, 1).find("Damage per Meso        43% x2 = 86%"),
+  EXPECT_NE(RowIn(RenderAt(explosion, 1), "Damage per Meso", "43% x2 = 86%"),
             std::string::npos);
-  EXPECT_NE(
-      RenderAt(explosion, 20).find("Damage per Meso        100% x2 = 200%"),
-      std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(explosion, 20), "Damage per Meso", "100% x2 = 200%"),
+            std::string::npos);
 
   Skill pocket = MakeIronBody();
   pocket.clear_base();
   pocket.clear_per_level();
   pocket.mutable_base()->set_meso_drop_chance(0.12);
   pocket.mutable_per_level()->set_meso_drop_chance(0.02);
-  EXPECT_NE(RenderAt(pocket, 10).find("Meso Drop Chance       30%"),
+  EXPECT_NE(RowIn(RenderAt(pocket, 10), "Meso Drop Chance", "30%"),
             std::string::npos);
   EXPECT_EQ(RenderAt(pocket, 10).find("Damage per Meso"), std::string::npos);
 }
@@ -748,10 +752,9 @@ TEST_F(SkillInspectPanelTest, StatesWhatDispelCures) {
   dispel.mutable_base()->set_cures_conditions(true);
 
   std::string rendered = RenderAt(dispel, 1);
-  EXPECT_NE(rendered.find("Cures                  All Conditions"),
-            std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Cures", "All Conditions"), std::string::npos);
   EXPECT_EQ(rendered.find("no effect"), std::string::npos);
-  EXPECT_NE(RenderAt(dispel, 10).find("Cures                  All Conditions"),
+  EXPECT_NE(RowIn(RenderAt(dispel, 10), "Cures", "All Conditions"),
             std::string::npos);
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Cures"), std::string::npos);
 }
@@ -773,9 +776,9 @@ TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {
   // A form that states no reach of its own goes as far as the attack it stands
   // in for, so a row saying so twice is noise.
   EXPECT_EQ(rendered.find("Empowered Enemies"), std::string::npos);
-  EXPECT_NE(rendered.find("Empowered Damage       200% x4 = 800%"),
+  EXPECT_NE(RowIn(rendered, "Empowered Damage", "200% x4 = 800%"),
             std::string::npos);
-  EXPECT_NE(rendered.find("Empowered Normal       250% x4 = 1000%"),
+  EXPECT_NE(RowIn(rendered, "Empowered Normal", "250% x4 = 1000%"),
             std::string::npos);
 }
 
@@ -803,9 +806,8 @@ TEST_F(SkillInspectPanelTest, TheHealingRowsNameWhatTheyAreAShareOf) {
   skill.mutable_base()->set_hp_recover_pct(0.001);
   skill.mutable_base()->set_heal_pct(0.23);
   std::string rendered = RenderAt(skill, 1);
-  EXPECT_NE(rendered.find("Heal per Attack        +0.1% HP"),
-            std::string::npos);
-  EXPECT_NE(rendered.find("Heal                   +23% HP"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Heal per Attack", "+0.1% HP"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Heal", "+23% HP"), std::string::npos);
 }
 
 // A skill that states the whole of an earlier one says which, or the two read
@@ -814,7 +816,7 @@ TEST_F(SkillInspectPanelTest, ASupersedingSkillNamesWhatItReplaces) {
   Skill skill = MakeIronBody();
   EXPECT_EQ(RenderAt(skill, 1).find("Replaces"), std::string::npos);
   skill.set_supersedes_skill_name("Vessel of Light");
-  EXPECT_NE(RenderAt(skill, 1).find("Replaces               Vessel of Light"),
+  EXPECT_NE(RowIn(RenderAt(skill, 1), "Replaces", "Vessel of Light"),
             std::string::npos);
 }
 
@@ -824,7 +826,7 @@ TEST_F(SkillInspectPanelTest, ASupersedingSkillNamesWhatItReplaces) {
 TEST_F(SkillInspectPanelTest, ATinyLeverKeepsASecondDecimal) {
   Skill skill = MakeIronBody();
   skill.mutable_base()->set_hp_recover_pct(0.0001);
-  EXPECT_NE(RenderAt(skill, 1).find("Heal per Attack        +0.01% HP"),
+  EXPECT_NE(RowIn(RenderAt(skill, 1), "Heal per Attack", "+0.01% HP"),
             std::string::npos);
 }
 
@@ -888,17 +890,52 @@ TEST_F(SkillInspectPanelTest, ASectionRuleReachesTheBorder) {
   EXPECT_GT(rules, 0) << "the card rules off its sections";
 }
 
-// Two weapons with names as long as "One-Handed Sword" run past the value
-// column, and a requirement cut off mid-weapon says the wrong thing.
-TEST_F(SkillInspectPanelTest, ALongWeaponListWrapsRatherThanClipping) {
+// The columns the card lays out in, borders included.
+int CardColumns(const Skill& skill, int level) {
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, level, 0);
+  ftxui::Element card = panel.Render();
+  card->ComputeRequirement();
+  return card->requirement().min_x;
+}
+
+// The card is as wide as what the skill has to say and no wider. A skill with
+// little to say still gets the width GMS's sentences read at, and a value too
+// long for that widens the card rather than wrapping inside it.
+TEST_F(SkillInspectPanelTest, TheCardIsAsWideAsTheSkillNeeds) {
+  Skill skill = MakeIronBody();
+  int floor = CardColumns(skill, 5);
+  EXPECT_EQ(floor, 61) << "the floor a description reads at, plus the border "
+                          "and the scroll bar's column";
+
+  skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_AXE);
+  skill.add_required_equip_type(EQUIP_TYPE_SPEAR);
+  EXPECT_GT(CardColumns(skill, 5), floor);
+  EXPECT_NE(RowIn(RenderAt(skill, 5), "Required Weapon",
+                  "One-Handed Sword / Two-Handed Axe / Spear"),
+            std::string::npos);
+}
+
+// Two weapons with names as long as "One-Handed Sword" make a value longer
+// than most. The card widens to seat the pair where it has the room, and
+// where it does not it breaks the list between entries -- a requirement cut
+// off mid-weapon says the wrong weapon.
+TEST_F(SkillInspectPanelTest, ALongWeaponListIsSeatedOrWrappedWhole) {
   Skill skill = MakeIronBody();
   skill.add_required_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
   skill.add_required_equip_type(EQUIP_TYPE_TWO_HANDED_AXE);
-  std::string rendered = RenderAt(skill, 5);
-  EXPECT_NE(rendered.find("One-Handed Sword"), std::string::npos);
-  EXPECT_NE(rendered.find("Two-Handed Axe"), std::string::npos);
-  // Wrapped, so the whole list survives across two rows rather than one.
-  for (const std::string& line : Lines(rendered)) {
+  EXPECT_NE(RowIn(RenderAt(skill, 5), "Required Weapon",
+                  "One-Handed Sword / Two-Handed Axe"),
+            std::string::npos);
+
+  SkillInspectPanel panel;
+  panel.SetSkill(&skill, 5, 0);
+  panel.SetWidthBounds(0, 41);
+  std::string narrow = RenderElement(panel.Render());
+  EXPECT_NE(narrow.find("One-Handed Sword"), std::string::npos);
+  EXPECT_NE(narrow.find("Two-Handed Axe"), std::string::npos);
+  for (const std::string& line : Lines(narrow)) {
     EXPECT_EQ(line.find("One-Handed Sword / Two-Handed Axe"),
               std::string::npos);
   }
@@ -1092,8 +1129,7 @@ TEST_F(SkillInspectPanelTest, ReadsAFormOnEveryCastAsUnconditional) {
   form->mutable_base()->set_skill_pct(2.71);
 
   std::string rendered = RenderAt(skill, 1);
-  EXPECT_NE(rendered.find("Empowers               Poison Mist"),
-            std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Empowers", "Poison Mist"), std::string::npos);
   EXPECT_EQ(rendered.find("Every"), std::string::npos) << rendered;
 }
 
@@ -1117,9 +1153,8 @@ TEST_F(SkillInspectPanelTest, ReadsADotAsOneRow) {
   burn->mutable_base()->set_skill_pct(1.24);
   burn->mutable_per_level()->set_skill_pct(0.04);
 
-  EXPECT_NE(
-      RenderAt(skill, 30).find("DoT                    240% every 1s for 5s"),
-      std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(skill, 30), "DoT", "240% every 1s for 5s"),
+            std::string::npos);
 
   // A poison says the two things a burn a swing simply leaves has nothing to
   // say about: what it takes to land, and how deep it piles.
@@ -1128,9 +1163,8 @@ TEST_F(SkillInspectPanelTest, ReadsADotAsOneRow) {
   burn->set_max_stacks(2.1666667);
   burn->set_max_stacks_per_level(0.1666667);
   std::string poison = RenderAt(skill, 10);
-  EXPECT_NE(
-      poison.find("DoT                    50% chance of 160% every 1s for"),
-      std::string::npos);
+  EXPECT_NE(RowIn(poison, "DoT", "50% chance of 160% every 1s for"),
+            std::string::npos);
   EXPECT_NE(poison.find("5s, stacks 3 times"), std::string::npos);
 }
 
@@ -1157,10 +1191,9 @@ TEST_F(SkillInspectPanelTest, ReadsASideStrikeWithItsWait) {
   side->mutable_base()->set_normal_skill_pct(2.00);
 
   std::string card = RenderAt(skill, 30);
-  EXPECT_NE(card.find("Shuriken               24% x6 = 144%"),
-            std::string::npos);
+  EXPECT_NE(RowIn(card, "Shuriken", "24% x6 = 144%"), std::string::npos);
   EXPECT_NE(card.find("every 5s"), std::string::npos);
-  EXPECT_NE(card.find("Shuriken Normal        224% x6 = 1344%"),
+  EXPECT_NE(RowIn(card, "Shuriken Normal", "224% x6 = 1344%"),
             std::string::npos);
 }
 
@@ -1177,7 +1210,7 @@ TEST_F(SkillInspectPanelTest, ReadsFinalAttackAsOneFact) {
   skill.mutable_per_level()->set_final_attack_chance(0.02);
   skill.mutable_per_level()->set_final_attack_pct(0.02);
 
-  EXPECT_NE(RenderAt(skill, 20).find("Final Attack           40% for 160%"),
+  EXPECT_NE(RowIn(RenderAt(skill, 20), "Final Attack", "40% for 160%"),
             std::string::npos);
 
   // A mark that throws several stars reads them the way the swing above reads
@@ -1210,9 +1243,9 @@ TEST_F(SkillInspectPanelTest, ReadsTheNewStatLevers) {
   skill.mutable_base()->set_mastery(0.14);
 
   std::string out = RenderAt(skill, 1);
-  EXPECT_NE(out.find("STR                    +6"), std::string::npos);
-  EXPECT_NE(out.find("DEX                    +6"), std::string::npos);
-  EXPECT_NE(out.find("Mastery                14%"), std::string::npos);
+  EXPECT_NE(RowIn(out, "STR", "+6"), std::string::npos);
+  EXPECT_NE(RowIn(out, "DEX", "+6"), std::string::npos);
+  EXPECT_NE(RowIn(out, "Mastery", "14%"), std::string::npos);
 }
 
 // The wizard's pair: magic attack reads beside ATT, and critical damage
@@ -1228,8 +1261,8 @@ TEST_F(SkillInspectPanelTest, ReadsTheWizardsLevers) {
   skill.mutable_base()->set_magic_attack(3);
 
   std::string out = RenderAt(skill, 1);
-  EXPECT_NE(out.find("Critical Damage        +0.5%"), std::string::npos);
-  EXPECT_NE(out.find("MATT                   +3"), std::string::npos);
+  EXPECT_NE(RowIn(out, "Critical Damage", "+0.5%"), std::string::npos);
+  EXPECT_NE(RowIn(out, "MATT", "+3"), std::string::npos);
 }
 
 // Built from the requirement rather than from a sentence typed beside it, so
@@ -1240,7 +1273,7 @@ TEST_F(SkillInspectPanelTest, SpellsOutWhatMustBeLearnedFirst) {
   skill.mutable_required_skill()->set_skill_name("Iron Wall");
   skill.mutable_required_skill()->set_level(3);
 
-  EXPECT_NE(RenderAt(skill, 1).find("Required Skill         Iron Wall Lv. 3+"),
+  EXPECT_NE(RowIn(RenderAt(skill, 1), "Required Skill", "Iron Wall Lv. 3+"),
             std::string::npos);
 }
 
@@ -1297,7 +1330,7 @@ TEST_F(SkillInspectPanelTest, AHyperSkillNamesItsLevel) {
   skill.set_hyper(true);
   skill.set_required_level(165);
   std::string rendered = RenderAt(skill, 1);
-  EXPECT_NE(rendered.find("Required Level         165"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Required Level", "165"), std::string::npos);
   EXPECT_NE(rendered.find("Passive"), std::string::npos);
   EXPECT_EQ(rendered.find("Hyper"), std::string::npos);
 }
@@ -1331,23 +1364,33 @@ TEST_F(SkillInspectPanelTest, TheTwoRequirementsReadAlike) {
       << lines[prereq] << "]";
 }
 
-TEST_F(SkillInspectPanelTest, TheTallestCardIsTheTallestOfThem) {
+// The screen is sized from the whole book rather than from the card the
+// cursor happens to be on, so it stands still as the cursor walks it: no card
+// is larger than the size, one of them is exactly it, and the order they are
+// measured in cannot change the answer.
+TEST_F(SkillInspectPanelTest, TheLargestCardSizesThemAll) {
   Skill iron_body = MakeIronBody();
   Skill lucky_seven = MakeLuckySeven();
+  PreviewCardSize size = LargestPreviewCard({&iron_body, &lucky_seven}, 0);
+  PreviewCardSize reversed = LargestPreviewCard({&lucky_seven, &iron_body}, 0);
+  EXPECT_EQ(reversed.rows, size.rows);
+  EXPECT_EQ(reversed.columns, size.columns);
+
   SkillInspectPanel panel;
-  std::vector<int> heights;
+  panel.SetWidthBounds(size.columns, size.columns);
+  int tallest = 0;
   for (const Skill* skill : {&iron_body, &lucky_seven}) {
     panel.SetSkill(skill, 0, 0, SkillInspectPanel::kPreview);
     ftxui::Element card = panel.Render();
     card->ComputeRequirement();
-    heights.push_back(card->requirement().min_y);
+    EXPECT_EQ(card->requirement().min_x, size.columns);
+    EXPECT_LE(card->requirement().min_y, size.rows);
+    tallest = std::max(tallest, card->requirement().min_y);
   }
-  ASSERT_NE(heights[0], heights[1]) << "both cards are the same height";
+  EXPECT_EQ(tallest, size.rows);
 
-  int tallest = std::max(heights[0], heights[1]);
-  EXPECT_EQ(TallestPreviewCardRows({&iron_body, &lucky_seven}), tallest);
-  EXPECT_EQ(TallestPreviewCardRows({&lucky_seven, &iron_body}), tallest);
-  EXPECT_EQ(TallestPreviewCardRows({}), 0);
+  EXPECT_EQ(LargestPreviewCard({}, 0).rows, 0);
+  EXPECT_EQ(LargestPreviewCard({}, 0).columns, 0);
 }
 
 // The two Dark Knight levers a plain row could state wrongly: one is charged
@@ -1389,11 +1432,11 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfATimedBuff) {
   buff->mutable_base()->set_final_dmg_pct(0.02);
 
   std::string rendered = RenderAt(resonance, 11);
-  EXPECT_NE(rendered.find("Cooldown               70s, -0.35s per hit"),
+  EXPECT_NE(RowIn(rendered, "Cooldown", "70s, -0.35s per hit"),
             std::string::npos);
-  EXPECT_NE(rendered.find("Heal on Cast           +43% HP"), std::string::npos);
-  EXPECT_NE(rendered.find("Final Damage           +2%"), std::string::npos);
-  EXPECT_NE(rendered.find("Ignore DEF             +11%"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Heal on Cast", "+43% HP"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Final Damage", "+2%"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Ignore DEF", "+11%"), std::string::npos);
   // The heading says "while up" once, so no row repeats it.
   EXPECT_EQ(rendered.find("while up"), std::string::npos);
   EXPECT_EQ(rendered.find("Buff Duration"), std::string::npos);
@@ -1439,8 +1482,7 @@ TEST_F(SkillInspectPanelTest, AWoundReadsUnderTheWindowItBleedsIn) {
 
   std::string rendered = RenderAt(puncture, 11);
   // Its damage and its clock share a row, and its reach is the swing's own.
-  EXPECT_NE(rendered.find("Wound                  83% every 2s"),
-            std::string::npos)
+  EXPECT_NE(RowIn(rendered, "Wound", "83% every 2s"), std::string::npos)
       << rendered;
   std::vector<std::string> lines = Lines(rendered);
   int active = -1;
@@ -1526,7 +1568,7 @@ TEST_F(SkillInspectPanelTest, HeadsWhatRidesTheSwingApartFromWhatIsKept) {
   Skill aim = MakeIronBody();
   aim.mutable_base()->set_ied_pct(0.02);
   std::string rendered = RenderAt(aim, 1);
-  EXPECT_NE(rendered.find("Ignore DEF             +2%"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Ignore DEF", "+2%"), std::string::npos);
   EXPECT_EQ(rendered.find("This Attack Only"), std::string::npos) << rendered;
 }
 

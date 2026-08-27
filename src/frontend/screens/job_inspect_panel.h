@@ -21,6 +21,10 @@
 
 namespace ms {
 
+// The book's whole width, borders included. The screen beside it reads this to
+// know what room the skill card has.
+inline constexpr int kJobInspectBookWidth = 35;
+
 class JobInspectPanel {
  public:
   // `skills` is the loaded skill catalog (keyed by file stem). Copied because
