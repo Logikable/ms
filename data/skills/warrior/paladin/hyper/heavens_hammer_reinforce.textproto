@@ -1,0 +1,16 @@
+# GMS's "Damage: +20%" again. It lands on the boss damage the hammer already
+# carries the way two shares of the character's damage always meet -- one
+# multiplier, both sources inside it.
+name: "Heaven's Hammer - Reinforce"
+skill_order: 10
+description:
+  "Increases damage of Heaven's Hammer."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Heaven's Hammer"
+  effect { damage_pct: 0.20 }
+}

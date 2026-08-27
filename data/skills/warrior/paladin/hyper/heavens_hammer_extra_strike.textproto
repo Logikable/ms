@@ -1,0 +1,15 @@
+# Two strikes rather than one, which is GMS's own reading: the hammer is the
+# widest swing the Paladin has, and every enemy under it takes both.
+name: "Heaven's Hammer - Extra Strike"
+skill_order: 12
+description:
+  "Increases Heaven's Hammer's number of attacks."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 165
+max_level: 1
+boost {
+  skill_name: "Heaven's Hammer"
+  lines: 2
+}

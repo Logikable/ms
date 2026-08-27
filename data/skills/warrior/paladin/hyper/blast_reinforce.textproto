@@ -1,0 +1,15 @@
+# GMS's "Damage: +20%", read as it is everywhere else on this page: a share of
+# the character's damage that only Blast collects.
+name: "Blast - Reinforce"
+skill_order: 7
+description:
+  "Increases the damage of Blast."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 140
+max_level: 1
+boost {
+  skill_name: "Blast"
+  effect { damage_pct: 0.20 }
+}

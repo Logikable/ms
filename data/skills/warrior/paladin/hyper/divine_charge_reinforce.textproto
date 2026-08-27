@@ -1,0 +1,19 @@
+# GMS writes it "Damage: +20%" -- the %Damage stat aimed at one swing, summing
+# with what the character already pays rather than adding points to Divine
+# Charge's own multiplier.
+#
+# It reaches the White Knight's skill from the Paladin's page, which is where
+# the Paladin is still swinging it from.
+name: "Divine Charge - Reinforce"
+skill_order: 4
+description:
+  "Increases the damage of Divine Charge."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 140
+max_level: 1
+boost {
+  skill_name: "Divine Charge"
+  effect { damage_pct: 0.20 }
+}

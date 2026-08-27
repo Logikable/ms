@@ -1,0 +1,27 @@
+# Thirty seconds where nothing lands, once every five minutes. The whole of it
+# is damage_taken_pct at 1.00, which the fight takes off the hit itself rather
+# than off a damage table -- see BuffOption::damage_taken_pct.
+#
+# GMS lets a Paladin end it early and take back cooldown for the seconds it
+# gave up; nothing here would ever want to, the fight having no reason to drop
+# an invincibility it is not paying for.
+#
+# Its own animation is 900ms, and GMS bars an invincibility skill from a skill
+# sequence -- so this is one of the few casts that really would play it. It is
+# charged the sequence's flat 120ms all the same: one cast every 300 seconds
+# is not worth a way of saying so in the data.
+name: "Sacrosanctity"
+skill_order: 1
+description:
+  "Call upon the heavens to protect you from all attacks for a short time."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 140
+max_level: 1
+base_delay_ms: 120
+cooldown_seconds: 300.0
+buff {
+  duration_seconds: 30.0
+  base { damage_taken_pct: 1.00 }
+}

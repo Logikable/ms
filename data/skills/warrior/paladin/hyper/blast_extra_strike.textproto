@@ -1,0 +1,16 @@
+# The twelfth strike, counting the one Greater Vessel of Light grants. It does
+# not hurry Divine Judgment's brand: that counts SWINGS of Blast on each enemy,
+# not the strikes one swing lands.
+name: "Blast - Extra Strike"
+skill_order: 9
+description:
+  "Increases Blast's number of attacks."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 180
+max_level: 1
+boost {
+  skill_name: "Blast"
+  lines: 1
+}

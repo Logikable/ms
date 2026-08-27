@@ -1,0 +1,15 @@
+# Added to the character's own rate for this swing alone, so what it is worth
+# is the share of Divine Charge's lines it turns critical.
+name: "Divine Charge - Critical Chance"
+skill_order: 5
+description:
+  "Increases the Critical Rate of Divine Charge."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Divine Charge"
+  effect { crit_rate: 0.20 }
+}

@@ -1,0 +1,27 @@
+# The Paladin's map swing on a two-minute wait: 500% six times across fifteen
+# enemies, where Blast lands ten strikes into three. Against a boss it is worth
+# little -- one cast of it is 3000% every two minutes -- which is the trade GMS
+# makes too.
+#
+# 1320ms is the animation's own, from the frame data, and twice what a 4th job
+# swing usually costs. The stun it lands and the buffs it strips are dropped:
+# nothing in this game is stunned, and no monster here holds a buff.
+name: "Smite Shield"
+skill_order: 2
+description:
+  "Summons a hammer imbued with unyielding strength to strike down nearby "
+  "enemies."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 160
+max_level: 1
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
+required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
+base_delay_ms: 1320
+cooldown_seconds: 120.0
+max_enemies: 15
+lines: 6
+base { skill_pct: 5.00 }

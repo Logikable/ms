@@ -1,0 +1,16 @@
+# Worth the most of the three on this half of the page: Blast is the swing a
+# Paladin makes at a boss, and it lands ten lines a swing for the rate to
+# work on.
+name: "Blast - Critical Chance"
+skill_order: 8
+description:
+  "Increases Critical Rate of Blast."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_PALADIN
+hyper: true
+required_level: 165
+max_level: 1
+boost {
+  skill_name: "Blast"
+  effect { crit_rate: 0.20 }
+}
