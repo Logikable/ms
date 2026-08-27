@@ -209,6 +209,7 @@ cc_library(
     deps = [
         "//src:game_state",
         "//src/character",
+        "//src/character:arcane_force",
         "//src/character:progression",
         "//src/combat:encounter",
         "//src/item:equip_instance",

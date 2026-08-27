@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/character/arcane_force.h"
 #include "src/character/progression.h"
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
@@ -904,6 +905,15 @@ void OutfitWeapon(GameState& state, EquipType type) {
   }
 }
 
+// Whether the character has reached the map that hands `proto` over. A symbol
+// is not a drop off a ladder: one waits at each Arcane River checkpoint, so a
+// character standing at 200 has the first of the six and none of the rest.
+bool ReachedSymbolArea(const CharacterInstance& character,
+                       const EquipPrototype& proto) {
+  return !IsArcaneSymbol(proto) ||
+         character.proto().level() >= proto.arcane_symbol().area_level();
+}
+
 // True for a slot the shop stocks and Outfit already climbed. Everything else
 // is a drop, and there is one ladder per slot rather than a choice of ladders.
 bool ShoppedSlot(EquipSlot slot) {
@@ -921,7 +931,7 @@ void WearBestFromBag(CharacterInstance& character) {
     for (int i = 0; i < bag.size(); ++i) {
       const EquipPrototype& proto = bag[i].prototype();
       if (bag[i].is_trace() || ShoppedSlot(proto.equip_slot()) ||
-          !character.CanEquip(proto)) {
+          !ReachedSymbolArea(character, proto) || !character.CanEquip(proto)) {
         continue;
       }
       std::map<EquipSlot, EquipInstance>::const_iterator worn =
@@ -944,6 +954,7 @@ void OutfitDrops(GameState& state, const std::set<std::string>& skip) {
        state.equips) {
     const EquipPrototype& proto = entry.second;
     if (ShoppedSlot(proto.equip_slot()) || skip.count(entry.first) > 0 ||
+        !ReachedSymbolArea(state.character, proto) ||
         !state.character.CanEquip(proto)) {
       continue;
     }

@@ -183,6 +183,10 @@ message ArcaneSymbolInfo {
   // level) x duplicates]. Rises by area, from 8 in Vanishing Journey to 18 in
   // Esfera, which is what makes a late symbol the expensive one to raise.
   int32 meso_cost_base = 1;
+  // The level the area this symbol comes from opens at: 200 in Vanishing
+  // Journey up to 235 in Esfera. A player has one of these from the level
+  // they can first reach the map that hands it over.
+  int32 area_level = 2;
 }
 
 // Static definition of an item type. Loaded from data/ textprotos at startup;
