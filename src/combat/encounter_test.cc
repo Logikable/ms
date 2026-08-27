@@ -1739,6 +1739,52 @@ TEST(ComputeCombatParamsTest, APassiveHandsStrikesAndReachToSkillsItNames) {
   EXPECT_EQ(ComputeCombatParams(state).attacks[1].max_enemies, 10);
 }
 
+// Heaven's Hammer - Cooldown Cutter's shape: a passive that takes a share off
+// the wait of the skill it names, at every level that skill is taught.
+TEST(ComputeCombatParamsTest, ABoostCanShortenTheWaitOfTheSkillItNames) {
+  Skill hammer;
+  hammer.set_name("Heaven's Hammer");
+  hammer.set_kind(SKILL_KIND_ATTACK);
+  hammer.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hammer.set_max_level(30);
+  hammer.set_max_enemies(15);
+  hammer.set_lines(8);
+  hammer.set_cooldown_seconds(29.5);
+  hammer.set_cooldown_seconds_per_level(-0.5);
+  hammer.mutable_base()->set_skill_pct(4.46);
+  Skill hyper;
+  hyper.set_name("Heaven's Hammer - Cooldown Cutter");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Heaven's Hammer");
+  boost->set_cooldown_pct(0.30);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"hammer", hammer}, {"hyper", hyper}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 32);
+  ASSERT_TRUE(state.character.LearnSkill(hammer, 1));
+
+  double factor = GameSpeedFactor(state.character.proto().level());
+  CombatParams bare = ComputeCombatParams(state);
+  ASSERT_EQ(bare.attacks.size(), 2u);
+  EXPECT_DOUBLE_EQ(bare.attacks[1].cooldown_seconds, 29.5 * factor);
+
+  ASSERT_TRUE(state.character.LearnSkill(hyper, 1));
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).attacks[1].cooldown_seconds,
+                   29.5 * 0.7 * factor);
+
+  // The same share further up the ladder, where the skill's own wait is
+  // shorter: the cut is taken off the whole of it, not off its first level.
+  ASSERT_TRUE(state.character.LearnSkill(hammer, 29));
+  EXPECT_DOUBLE_EQ(ComputeCombatParams(state).attacks[1].cooldown_seconds,
+                   15.0 * 0.7 * factor);
+}
+
 // Creeping Toxin's shape: a summon that upgrades its own pulse rather than
 // another skill's swing, which is what an empty boosts_skill_name means.
 TEST(ComputeCombatParamsTest, ASummonCanUpgradeItsOwnPulse) {

@@ -1110,9 +1110,15 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           << entry.first << " grants strikes to nobody";
       EXPECT_TRUE(boost.lines() > 0 || boost.max_enemies() > 0 ||
                   boost.max_enemies_per_level() > 0.0 ||
-                  boost.attacks_per_cast() > 0 || boost.has_effect())
+                  boost.attacks_per_cast() > 0 || boost.cooldown_pct() > 0.0 ||
+                  boost.has_effect())
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
+      // A share of a wait, so a whole one would leave the skill with no wait
+      // at all and a figure above one would run it backwards.
+      EXPECT_LT(boost.cooldown_pct(), 1.0)
+          << entry.first << " takes the whole of " << boost.skill_name()
+          << "'s wait away";
       // A per-level step with no level-1 value behind it is half a lever.
       EXPECT_FALSE(boost.has_effect_per_level() && !boost.has_effect())
           << entry.first << " climbs a lever it never grants";
@@ -1128,15 +1134,21 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           SameCharacterCanHold(skills, entry.second, boost.skill_name()))
           << entry.first << " grants strikes to \"" << boost.skill_name()
           << "\", which no character holding it can learn";
-      // A clock handed to a skill that is not on one is a clock nothing reads.
-      if (boost.attacks_per_cast() > 0) {
-        for (const std::pair<const std::string, Skill>& target : skills) {
-          if (target.second.name() != boost.skill_name()) {
-            continue;
-          }
+      // A clock handed to a skill that is not on one is a clock nothing reads,
+      // and so is a share off a wait the named skill does not have.
+      for (const std::pair<const std::string, Skill>& target : skills) {
+        if (target.second.name() != boost.skill_name()) {
+          continue;
+        }
+        if (boost.attacks_per_cast() > 0) {
           EXPECT_GT(target.second.attacks_per_cast(), 0)
               << entry.first << " reclocks " << target.first
               << ", which is not clocked by swings landed";
+        }
+        if (boost.cooldown_pct() > 0.0) {
+          EXPECT_GT(target.second.cooldown_seconds(), 0.0)
+              << entry.first << " shortens " << target.first
+              << "'s wait, which it does not have";
         }
       }
     }

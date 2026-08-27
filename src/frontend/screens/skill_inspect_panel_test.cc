@@ -461,6 +461,16 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   EXPECT_NE(
       RowIn(clocked, "Boosts Speed Mirage", "+12 Strikes, every 7 attacks"),
       std::string::npos);
+
+  // A share off a wait reads as the share, the seconds it comes to being on
+  // the named skill's own page.
+  Skill cutter = MakeIronBody();
+  SkillBoost* hammer = cutter.add_boost();
+  hammer->set_skill_name("Heaven's Hammer");
+  hammer->set_cooldown_pct(0.30);
+  EXPECT_NE(
+      RowIn(RenderAt(cutter, 1), "Boosts Heaven's Hammer", "-30% Cooldown"),
+      std::string::npos);
 }
 
 // A wait that never moves is stated once above the divider; one that shortens

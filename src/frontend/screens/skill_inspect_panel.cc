@@ -592,8 +592,8 @@ std::string NormalMonsterText(const Skill& skill, int level) {
 }
 
 // What one skill hands another that is not damage, at `level`: strikes on
-// every swing, enemies on its reach, a faster clock, or several. "" when it
-// grants none of them.
+// every swing, enemies on its reach, a shorter wait, a faster clock, or
+// several. "" when it grants none of them.
 std::string BoostText(const SkillBoost& boost, int level) {
   // Read exactly as the line ladder is, so the level a skill widens at is the
   // level its data names.
@@ -613,6 +613,14 @@ std::string BoostText(const SkillBoost& boost, int level) {
     }
     gains +=
         "+" + std::to_string(enemies) + (enemies == 1 ? " Enemy" : " Enemies");
+  }
+  // The share off the wait, as GMS writes it -- the seconds it comes to are
+  // on the target's own page, which states its whole ladder.
+  if (boost.cooldown_pct() > 0.0) {
+    if (!gains.empty()) {
+      gains += ", ";
+    }
+    gains += "-" + FormatPercent(boost.cooldown_pct()) + " Cooldown";
   }
   // The new clock rather than the change to it: what replaces cannot be read
   // as a delta, and the target's own page states the same figure the same way.

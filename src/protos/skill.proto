@@ -746,6 +746,14 @@ message SkillBoost {
   // but Speed Mirage II's wants. Where two of them name one skill the faster
   // clock stands, since neither is a quantity that can be summed.
   int32 attacks_per_cast = 5;
+  // Share off the named skill's wait (0.30 == it comes back 30% sooner),
+  // taken off the whole ladder so the cut is the same share at every level
+  // the skill is taught. Heaven's Hammer - Cooldown Cutter is what it exists
+  // for -- GMS writes it "Cooldown: -30%".
+  //
+  // Combines in reverse, as ignored defence does: what two cuts leave is the
+  // product of what each leaves, so no pile of them ever reaches nothing.
+  double cooldown_pct = 8;
   // Levers the named skill alone carries, on top of its own. Seven are read --
   // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate, final_dmg_pct and
   // final_attack_chance -- and each meets the target's own the way two sources

@@ -508,11 +508,15 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
 }
 
 // What the rest of the book hands one skill: strikes added to every swing,
-// enemies added to its reach, and the clock it fires on.
+// enemies added to its reach, the clock it fires on, and the share off the
+// wait between its casts.
 struct SkillBoosts {
   int lines = 0;
   int max_enemies = 0;
   int attacks_per_cast = 0;
+  // What is LEFT of the wait, so two cuts combine in reverse the way two
+  // sources of ignored defence do. 1.0 is a skill nothing hurries.
+  double cooldown_left = 1.0;
 };
 
 // Every such grant in the character's book, summed and keyed by the skill it
@@ -543,6 +547,7 @@ std::map<std::string, SkillBoosts> BoostsByTarget(const GameState& state,
           boost.max_enemies() +
           static_cast<int>(std::floor(
               boost.max_enemies_per_level() * (learned - 1) + kEnemyEpsilon));
+      into.cooldown_left *= 1.0 - boost.cooldown_pct();
       // The clock replaces rather than sums, so the faster of two stands.
       if (boost.attacks_per_cast() > 0 &&
           (into.attacks_per_cast == 0 ||
@@ -573,6 +578,14 @@ const Skill& Boosted(const Skill& skill, int level,
                           it->second.max_enemies);
   if (it->second.attacks_per_cast > 0) {
     scratch.set_attacks_per_cast(it->second.attacks_per_cast);
+  }
+  // The whole ladder, so the wait is cut by the same share however far the
+  // skill is taught -- and CooldownAt reads the copy without knowing.
+  if (it->second.cooldown_left < 1.0) {
+    scratch.set_cooldown_seconds(skill.cooldown_seconds() *
+                                 it->second.cooldown_left);
+    scratch.set_cooldown_seconds_per_level(skill.cooldown_seconds_per_level() *
+                                           it->second.cooldown_left);
   }
   return scratch;
 }
