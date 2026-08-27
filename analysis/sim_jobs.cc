@@ -106,6 +106,15 @@ int StageOf(Job branch) {
   if (path.empty() || path.back() != branch) {
     return 0;
   }
+  // Where it is REACHED, not how long the path is. A line with a 5th job of
+  // its own names the same branch twice -- the Dark Knight is both the 4th
+  // rung and the 5th -- and counting the whole path would file that branch
+  // under a stage no level in the game has reached.
+  for (int stage = 0; stage < static_cast<int>(path.size()); ++stage) {
+    if (path[stage] == branch) {
+      return stage + 1;
+    }
+  }
   return static_cast<int>(path.size());
 }
 
