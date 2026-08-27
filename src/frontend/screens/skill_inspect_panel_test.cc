@@ -1289,15 +1289,17 @@ TEST_F(SkillInspectPanelTest, ALongBoostLabelKeepsItsWholeName) {
       << "the value ran into the name";
 }
 
-// A Hyper Skill's gate is a level rather than a skill below it, and the title
-// says where the point that bought it came from.
-TEST_F(SkillInspectPanelTest, AHyperSkillNamesItsLevelAndItself) {
+// A Hyper Skill's gate is a level rather than a skill below it. The title says
+// what the skill is and nothing else: where the point came from is the book's
+// business, not the card's.
+TEST_F(SkillInspectPanelTest, AHyperSkillNamesItsLevel) {
   Skill skill = MakeIronBody();
   skill.set_hyper(true);
   skill.set_required_level(165);
   std::string rendered = RenderAt(skill, 1);
   EXPECT_NE(rendered.find("Required Level         165"), std::string::npos);
-  EXPECT_NE(rendered.find("Hyper Passive"), std::string::npos);
+  EXPECT_NE(rendered.find("Passive"), std::string::npos);
+  EXPECT_EQ(rendered.find("Hyper"), std::string::npos);
 }
 
 // A weapon in hand and a skill already learned are the same kind of claim, so

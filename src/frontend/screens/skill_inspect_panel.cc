@@ -1322,12 +1322,8 @@ ftxui::Element SkillInspectPanel::Render() const {
     }));
   }
 
-  // What the skill is, and -- for the one kind bought from a pool of its own --
-  // where it came from, since nothing else on the card would say.
+  // What the skill is, which is the first thing worth knowing about it.
   std::string title = IsActive(*skill_) ? " Active " : " Passive ";
-  if (skill_->hyper()) {
-    title = " Hyper" + title;
-  }
   return ThemedWindow(title, ftxui::vbox(std::move(lines)));
 }
 
