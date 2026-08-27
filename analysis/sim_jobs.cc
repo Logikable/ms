@@ -139,13 +139,21 @@ std::vector<Job> BranchesAt(int level) {
       deepest = stage;
     }
   }
-  std::vector<Job> branches;
-  for (Job job : EveryBranch()) {
-    if (StageOf(job) == deepest) {
-      branches.push_back(job);
+  // Down from there to the deepest stage the game actually ships, so a level
+  // past the 5th job's own -- 200, where every hyper is bought -- measures the
+  // 4th jobs rather than the nobody who has advanced past them.
+  for (; deepest > 0; --deepest) {
+    std::vector<Job> branches;
+    for (Job job : EveryBranch()) {
+      if (StageOf(job) == deepest) {
+        branches.push_back(job);
+      }
+    }
+    if (!branches.empty()) {
+      return branches;
     }
   }
-  return branches;
+  return {};
 }
 
 Job ParseBranch(const std::string& name, int min_stage) {

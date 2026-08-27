@@ -39,7 +39,8 @@ std::vector<Job> EveryBranch();
 
 // The branches a character at `level` could be standing in: those of the
 // deepest stage the level has reached, since nobody at 130 is still a
-// Crusader.
+// Crusader. A level past every branch the game ships takes the deepest that
+// has any -- level 200 measures the 4th jobs, there being no 5th.
 std::vector<Job> BranchesAt(int level);
 
 // The branch `name` names, as --job spells it ("dark_knight"). Dies on
