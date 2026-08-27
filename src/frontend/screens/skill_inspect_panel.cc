@@ -520,10 +520,15 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
 // Which element a swing is, for the pair a Freezing Crush wizard alternates
 // between. Only these two tags reach the page: the rest mark a family nothing
 // in this game reads yet.
+// The element row, and the freeze riding it. How LONG the ice holds is not
+// printed for the reason no other clock is -- the pacing band stretches it --
+// but which ice swings freeze at all is a real difference between them, and
+// the one Frozen Orb is on the wrong side of.
 std::vector<Row> ElementRows(const Skill& skill) {
   for (int i = 0; i < skill.tags_size(); ++i) {
     if (skill.tags(i) == SKILL_TAG_ICE) {
-      return {EffectRow("Element", "Ice")};
+      return {EffectRow("Element",
+                        skill.freeze_seconds() > 0.0 ? "Ice, Freezes" : "Ice")};
     }
     if (skill.tags(i) == SKILL_TAG_LIGHTNING) {
       return {EffectRow("Element", "Lightning")};

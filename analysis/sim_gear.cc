@@ -350,25 +350,54 @@ int SwingToLay(const CombatParams& params, const BuffClocks& c,
 // What the Freeze Stacks held multiply a swing by, and what a deeper pile
 // would be worth to the swing that comes next. Both mirror CombatSim's -- see
 // FreezeBoost and FreezeCredit for why the credit is needed at all.
-double FreezeBoost(const AttackOption& attack, int stacks) {
+double FreezeBoost(const AttackOption& attack, int stacks, bool frozen) {
+  double storm = frozen ? 1.0 + attack.freeze_fd_when_frozen : 1.0;
   if (stacks <= 0) {
-    return 1.0;
+    return storm;
   }
   double spent =
       attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
   // The one mob sim_gear fights is the first type, which is what stands in for
   // the queue everywhere else here.
-  double shattered = attack.freeze_ied_gain.empty()
-                         ? 1.0
-                         : 1.0 + attack.freeze_ied_gain.front() * stacks;
-  return (1.0 + attack.freeze_crit_gain * stacks) * spent *
-         (1.0 + attack.freeze_matt_gain * stacks) *
-         (1.0 + attack.freeze_fd_when_frozen) * shattered;
+  double shattered = frozen && !attack.freeze_ied_gain.empty()
+                         ? 1.0 + attack.freeze_ied_gain.front() * stacks
+                         : 1.0;
+  double crit = frozen ? 1.0 + attack.freeze_crit_gain * stacks : 1.0;
+  return crit * spent * (1.0 + attack.freeze_matt_gain * stacks) * storm *
+         shattered;
+}
+
+// What the freeze `attack` would leave is worth over the seconds before it
+// could come round again -- CombatSim::FrozenCredit, over the one clock that
+// stands here for the whole group, exactly as a burn's does.
+double FrozenCredit(const std::vector<AttackOption>& attacks,
+                    const AttackOption& attack, int stacks, int enemies,
+                    double frozen_left) {
+  if (attack.freeze_seconds <= 0.0) {
+    return 0.0;
+  }
+  double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
+  double gained =
+      std::min(attack.freeze_seconds, cadence) - std::min(frozen_left, cadence);
+  if (gained <= 0.0) {
+    return 0.0;
+  }
+  double best = 0.0;
+  for (const AttackOption& other : attacks) {
+    if (other.swing_seconds <= 0.0) {
+      continue;
+    }
+    double gain =
+        FreezeBoost(other, stacks, true) - FreezeBoost(other, stacks, false);
+    best = std::max(best,
+                    CrowdDamage(other, enemies) * gain / other.swing_seconds);
+  }
+  return best * gained;
 }
 
 double FreezeCredit(const std::vector<AttackOption>& attacks,
                     const AttackOption& attack, int stacks, int cap,
-                    int enemies) {
+                    int enemies, bool frozen) {
   int room = std::min(attack.freeze_build, cap - stacks);
   if (room <= 0) {
     return 0.0;
@@ -378,8 +407,8 @@ double FreezeCredit(const std::vector<AttackOption>& attacks,
     if (other.swing_seconds <= 0.0) {
       continue;
     }
-    double gain =
-        FreezeBoost(other, stacks + room) - FreezeBoost(other, stacks);
+    double gain = FreezeBoost(other, stacks + room, frozen) -
+                  FreezeBoost(other, stacks, frozen);
     best = std::max(best, CrowdDamage(other, enemies) * gain);
   }
   return best;
@@ -492,11 +521,45 @@ void RunBurns(double step, std::vector<Burn>& held, Sequence& played) {
   }
 }
 
+// The ice a summon lays while the swings go on beside it. Its damage is priced
+// apart -- see OffClockRate -- but its freeze is not the summon's own: it
+// stands over everything the character swings, and Elquines pulsing every
+// three seconds against eight seconds of ice is what keeps a boss frozen for
+// the whole fight. Skipped by OffClockRate's arithmetic, so it is walked here.
+struct OwnClockIce {
+  double interval = 0.0;
+  double seconds = 0.0;
+  double phase = 0.0;
+};
+
+std::vector<OwnClockIce> OwnClockIceSources(const CombatParams& params) {
+  std::vector<OwnClockIce> sources;
+  for (const AttackOption& extra : params.auto_attacks) {
+    if (extra.freeze_seconds > 0.0 && extra.interval_seconds > 0.0) {
+      sources.push_back({extra.interval_seconds, extra.freeze_seconds, 0.0});
+    }
+  }
+  return sources;
+}
+
+// Runs those clocks on for `step`, returning the ice standing after it.
+double RunOwnClockIce(double step, std::vector<OwnClockIce>& sources,
+                      double frozen_left) {
+  for (OwnClockIce& source : sources) {
+    source.phase += step;
+    while (source.phase >= source.interval) {
+      source.phase -= source.interval;
+      frozen_left = std::max(frozen_left, source.seconds);
+    }
+  }
+  return frozen_left;
+}
+
 // The swing landing the most per second of the ones off cooldown, or -1 when
 // none is. A cast is not among them: it deals no damage.
 int BestSwing(const std::vector<AttackOption>& attacks,
               const std::vector<double>& cooldown, int enemies, int stacks,
-              int cap, const std::vector<Burn>& held) {
+              int cap, const std::vector<Burn>& held, double frozen_left) {
   int pick = -1;
   double best_rate = -1.0;
   for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
@@ -505,10 +568,13 @@ int BestSwing(const std::vector<AttackOption>& attacks,
         attack.heal_fraction > 0.0) {
       continue;
     }
+    bool frozen = frozen_left > 0.0;
     double rate =
-        (CrowdDamage(attack, enemies, false) * FreezeBoost(attack, stacks) +
+        (CrowdDamage(attack, enemies, false) *
+             FreezeBoost(attack, stacks, frozen) +
          BurnCredit(attack, enemies, held) +
-         FreezeCredit(attacks, attack, stacks, cap, enemies)) /
+         FreezeCredit(attacks, attack, stacks, cap, enemies, frozen) +
+         FrozenCredit(attacks, attack, stacks, enemies, frozen_left)) /
         attack.swing_seconds;
     if (rate > best_rate) {
       best_rate = rate;
@@ -526,14 +592,20 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
   std::vector<int> swings(params.attacks.size(), 0);
   BuffClocks clocks;
   std::vector<Burn> burning = BurnSlots(params);
+  std::vector<OwnClockIce> summoned_ice = OwnClockIceSources(params);
   Sequence played;
   played.damage_by_attack.assign(params.attacks.size(), 0.0);
   int freeze = 0;
+  // One clock for the whole group, as the burns have: the ice a swing lays
+  // falls on everything it reached.
+  double frozen_left = 0.0;
   double phase = 0.0;
   int pick = -1;  // the swing being wound up, held until it lands
   for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
     RunBuffClocks(params, kStep, clocks);
     RunBurns(kStep, burning, played);
+    frozen_left =
+        RunOwnClockIce(kStep, summoned_ice, std::max(0.0, frozen_left - kStep));
     for (double& left : cooldown) {
       left = std::max(0.0, left - kStep);
     }
@@ -542,7 +614,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
       pick = SwingToLay(params, clocks, cooldown);
       if (pick < 0) {
         pick = BestSwing(params.Attacks(clocks.mask), cooldown, enemies, freeze,
-                         params.FreezeCap(clocks.mask), burning);
+                         params.FreezeCap(clocks.mask), burning, frozen_left);
       }
     }
     if (pick < 0) {
@@ -563,9 +635,10 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     // in holding.
     // Burn out: the clocks land its ticks as they fall due, which is the whole
     // point of keeping them.
-    double landed =
-        CrowdDamage(swung, enemies, false) * FreezeBoost(swung, freeze);
+    double landed = CrowdDamage(swung, enemies, false) *
+                    FreezeBoost(swung, freeze, frozen_left > 0.0);
     LightBurns(swung, enemies, pick, burning);
+    frozen_left = std::max(frozen_left, swung.freeze_seconds);
     freeze = CreditFreeze(swung, freeze, params.FreezeCap(clocks.mask));
     played.damage += landed;
     played.damage_by_attack[pick] += landed;

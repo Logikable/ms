@@ -1130,4 +1130,13 @@ message Skill {
   // what a held stack is worth is on the same skill -- see
   // SkillEffect::crit_dmg_per_freeze_stack.
   int32 freeze_stack_cap = 102;
+  // The I/L Magician's other half, and the one that lives on the ENEMY: how
+  // long this swing leaves what it reached frozen. GMS states it per skill --
+  // Cold Beam and Ice Strike both freeze for 8 seconds -- and being frozen is
+  // what Storm Magic, Shatter and Freezing Crush's critical damage all ask
+  // about, where the pile above only says how MUCH they are worth.
+  //
+  // Not every ice swing freezes: GMS's Frozen Orb slows what it touches and
+  // freezes nothing, so this is stated rather than read off the element.
+  double freeze_seconds = 103;
 }

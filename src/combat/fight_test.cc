@@ -2698,16 +2698,21 @@ TEST(CombatSimTest, ABuffCanWaitOnLandedHitsRatherThanOnAClock) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.64, 1e-9);
 }
 
-// Freezing Crush's shape: an ice swing leaves a stack per line, a lightning
-// swing spends one per line and hits harder for every stack it went in
-// holding. The lightning swing is the harder of the two on its own, so the
-// chooser would take it every time and the pile would never exist -- what
-// makes it build is the credit an ice swing gets for the stacks it leaves.
+// Freezing Crush's shape: an ice swing leaves a stack per line AND four
+// seconds of ice on what it hit, and a lightning swing spends one stack per
+// line and hits harder for every stack it went in holding. The lightning swing
+// is the harder of the two on its own, so the chooser would take it every time
+// and neither the pile nor the ice would exist -- what makes it build is the
+// credit an ice swing gets for what it leaves behind.
+//
+// The two are separate questions: the pile says how much a stack is worth, the
+// ice says whether it is collected at all.
 void GiveFreezeStacks(CombatParams& params, int cap) {
   params.freeze_cap = cap;
   AttackOption ice = MakeSkill("Cold Beam", 10.0, /*cooldown=*/0.0);
   ice.lines = 2;
   ice.freeze_build = 2;
+  ice.freeze_seconds = 4.0;
   params.attacks.push_back(std::move(ice));
   AttackOption bolt = MakeSkill("Thunder Bolt", 11.0, /*cooldown=*/0.0);
   bolt.lines = 2;
@@ -2915,6 +2920,50 @@ TEST(CombatSimTest, ShattersDefenceRideIsPricedPerMobType) {
   sim.Advance(params, 1.0);  // two held: 15 on the armoured one, 10 on the bare
   EXPECT_NEAR(LeftOn(sim, "Armoured"), 0.975, 1e-9);
   EXPECT_NEAR(LeftOn(sim, "Bare"), 0.98, 1e-9);
+}
+
+// The ice is the permission and the pile is the amount: a character holding a
+// full pile against a monster no swing has frozen collects none of it.
+TEST(CombatSimTest, AStackIsWorthNothingOnAMonsterNothingFroze) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/4);
+  params.attacks.pop_back();  // no lightning swing, so the pile only grows
+  params.attacks[1].freeze_crit_gain = 0.25;
+  params.attacks[1].freeze_fd_when_frozen = 0.5;
+  params.attacks[1].freeze_seconds = 0.0;  // it makes stacks and no ice
+
+  CombatSim sim;
+  for (int step = 0; step < 4; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  // Four swings of a flat 10, however deep the pile got.
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.96, 1e-9);
+}
+
+// The ice outlives the swing that laid it: everything the character swings
+// afterwards collects on it until the monster thaws, which is the whole of the
+// alternation. Storm Magic rides the bare poke here for the same reason it
+// rides every swing -- it is the character's, not the skill's.
+TEST(CombatSimTest, TheIceOutlastsTheSwingThatLaidIt) {
+  Mob snail = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&snail, 10.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/4);
+  params.attacks.pop_back();  // no lightning swing to spend the pile
+  params.attacks[1].freeze_seconds = 2.5;
+  params.attacks[1].cooldown_seconds = 100.0;  // one cast, then the poke
+  params.attacks[0].freeze_fd_when_frozen = 1.0;
+  params.attacks[1].freeze_fd_when_frozen = 1.0;
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 10.0);  // ice, on a thawed monster
+  sim.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 20.0);  // the poke, on 1.5s of ice
+  sim.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 20.0);  // and on the last 0.5s
+  sim.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(sim.damage_this_step(), 10.0);  // thawed, so a flat poke
 }
 
 // The pile is deeper while the buff raising it stands, and the fight reads the

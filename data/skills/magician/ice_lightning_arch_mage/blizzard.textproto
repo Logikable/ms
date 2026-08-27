@@ -1,6 +1,7 @@
 # Two skills on one ladder: the roomwide swing on a 45-second wait, and a
 # Final Attack that follows everything else the character swings while it
-# recharges. The fight falls back on Chain Lightning in between, which is what
+# recharges. It freezes the room it lands on, as GMS says, for the eight
+# seconds the family freezes for -- GMS states no number of its own. The fight falls back on Chain Lightning in between, which is what
 # lets this one hit as hard as it does.
 #
 # The Final Attack falls on ONE enemy, as GMS states it. Every other Final
@@ -14,6 +15,7 @@ description:
   "enemy with a Blizzard."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
+freeze_seconds: 8.0
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 30
 required_equip_type: EQUIP_TYPE_STAFF

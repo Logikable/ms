@@ -1,13 +1,17 @@
 # Half of the wizard's pair. GMS runs it over 20 levels at 99+5x; here it is
 # the same climb in half the steps, ending where GMS ends.
 #
-# The ice half of the pair. What it leaves behind is Freeze Stacks, which is
-# the whole reason to cast the weaker of the two -- see Freezing Crush.
+# The ice half of the pair, and it leaves two things behind: Freeze Stacks on
+# the character, and eight seconds of freezing on what it hit. GMS states both.
+# The stacks say how much Freezing Crush and Shatter are worth; the freezing
+# says whether they are collected at all, and Storm Magic asks for nothing
+# else. Between them they are the whole reason to cast the weaker of the two.
 name: "Cold Beam"
 skill_order: 1
 description: "An ice-attribute attack. Grow sharp ice crystals in front."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
+freeze_seconds: 8.0
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_WIZARD
 max_level: 10
 required_equip_type: EQUIP_TYPE_STAFF

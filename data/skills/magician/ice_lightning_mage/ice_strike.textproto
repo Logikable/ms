@@ -1,6 +1,6 @@
-# GMS's own figures: 175+8x% four times over 20 levels, on eight enemies. The
-# freeze is dropped, as every freeze in this game is, and with it the cooldown
-# the pair below it carries -- nothing has to be kept alive for this one.
+# GMS's own figures: 175+8x% four times over 20 levels, on eight enemies, and
+# its eight seconds of freezing. The cooldown the pair below it carries is
+# dropped: nothing has to be kept alive for this one.
 #
 # 840ms is the animation's own, from the frame data: a beat slower than the
 # Cold Beam and Thunder Bolt it takes over from.
@@ -10,6 +10,7 @@ description:
   "Create an ice-attribute explosion near you that attacks nearby enemies."
 kind: SKILL_KIND_ATTACK
 tags: SKILL_TAG_ICE
+freeze_seconds: 8.0
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 20
 required_equip_type: EQUIP_TYPE_STAFF

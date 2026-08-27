@@ -254,12 +254,13 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     // Per second, not per swing: a skill that hits half again as hard but takes
     // twice as long is worse, and only the rate says so.
     //
-    // An ice swing is also paid for the pile it leaves, or the chooser would
-    // take the harder lightning swing every time and the pile would never
-    // exist -- see FreezeCredit.
-    double rate = (SwingDamage(attack) * FreezeBoost(attack, FrontType()) +
-                   FreezeCredit(params, attack)) /
-                  SwingSecondsAgainst(attack);
+    // An ice swing is also paid for the pile it leaves and for the freeze it
+    // lays, or the chooser would take the harder lightning swing every time
+    // and neither would ever exist -- see FreezeCredit and FrozenCredit.
+    double rate =
+        (SwingDamage(attack) * FreezeBoost(attack, FrontMob()) +
+         FreezeCredit(params, attack) + FrozenCredit(params, attack)) /
+        SwingSecondsAgainst(attack);
     if (rate > best_rate) {
       best_rate = rate;
       best = i;
@@ -359,7 +360,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
-    double freeze = FreezeBoost(attack, queue_[j].type);
+    double freeze = FreezeBoost(attack, queue_[j]);
     double damage =
         held > 0
             ? ChannelDamage(attack, queue_[j].type, held, LandingAt(j, freeze))
@@ -367,7 +368,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     Hurt(queue_[j], damage * freeze);
   }
   for (int j : lead) {
-    double freeze = FreezeBoost(attack, queue_[j].type);
+    double freeze = FreezeBoost(attack, queue_[j]);
     double damage = attack.lead_damage[queue_[j].type] *
                     RollFactor(attack.lead_rolls, rng_, LineSink());
     RecordRolls(LandingAt(j, freeze),
@@ -378,7 +379,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // in expectation each of them takes it.
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
-      double freeze = FreezeBoost(attack, queue_[j].type);
+      double freeze = FreezeBoost(attack, queue_[j]);
       Hurt(queue_[j], RolledFinalAttack(attack.final_attack_rolls,
                                         attack.final_attack_damage,
                                         queue_[j].type, LandingAt(j, freeze)) *
@@ -389,7 +390,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // swing reached. The first in the queue is as good as any: nothing here has
   // a position, so no enemy is nearer than another.
   if (hit > 0 && !attack.single_final_attack_damage.empty()) {
-    double freeze = FreezeBoost(attack, queue_[0].type);
+    double freeze = FreezeBoost(attack, queue_[0]);
     Hurt(queue_[0], RolledFinalAttack(attack.single_final_attack_rolls,
                                       attack.single_final_attack_damage,
                                       queue_[0].type, LandingAt(0, freeze)) *
@@ -399,6 +400,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // Marked before the dead are cleared, so the indices the swing reached are
   // still the ones the mark is written to.
   ApplyDots(attack, hit);
+  ApplyFreeze(attack, hit);
   Reap();
   return recovered;
 }
@@ -415,7 +417,7 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   if (hit <= 0) {
     return recovered;
   }
-  double boost = FreezeBoost(attack, queue_[0].type);
+  double boost = FreezeBoost(attack, queue_[0]);
   for (const ProcRoll& proc : attack.procs) {
     std::bernoulli_distribution fires(proc.chance);
     if (!fires(rng_)) {
@@ -429,42 +431,51 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   return recovered;
 }
 
-// What a pile that deep multiplies this swing by against a mob of `type`.
-// Taken as a stack count rather than off the character, so the chooser can ask
-// what a DEEPER pile would be worth -- see FreezeCredit.
+// What a pile that deep multiplies this swing by against a mob of `type` in
+// the state `frozen` says. Taken as a count and a flag rather than off the
+// character and the monster, so the chooser can ask what a DEEPER pile or a
+// FROZEN enemy would be worth -- see FreezeCredit and FrozenCredit.
 double CombatSim::BoostForStacks(const AttackOption& attack, int stacks,
-                                 int type) const {
+                                 int type, bool frozen) const {
+  // Storm Magic asks only that the enemy be frozen, so it stands over an empty
+  // pile -- it is the one factor here that is not priced per stack.
+  double storm = frozen ? 1.0 + attack.freeze_fd_when_frozen : 1.0;
   if (stacks <= 0) {
-    return 1.0;
+    return storm;
   }
   // The two multiply rather than sum: critical damage is folded into the swing
   // and final damage is the last thing applied to it, which is where every
   // other pair of the two meets.
-  double crit = 1.0 + attack.freeze_crit_gain * stacks;
+  double crit = frozen ? 1.0 + attack.freeze_crit_gain * stacks : 1.0;
+  // The stacks are spent whichever state the enemy ends in, so this one is the
+  // pile's alone -- GMS gates the critical damage on a frozen enemy and says
+  // nothing of the kind about the final damage the lightning swing takes.
   double spent =
       attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
   // Glacial Fury's magic attack is another factor again: it is attack rather
   // than damage, and lands under everything the swing already multiplies.
   double matt = 1.0 + attack.freeze_matt_gain * stacks;
-  // Storm Magic reads only that the pile stands, so it does not climb with it.
-  double frozen = 1.0 + attack.freeze_fd_when_frozen;
   // Shatter's is the one factor that differs mob by mob: what ignoring a
   // little more defence buys is that monster's own.
-  double shattered = type < static_cast<int>(attack.freeze_ied_gain.size())
-                         ? 1.0 + attack.freeze_ied_gain[type] * stacks
-                         : 1.0;
-  return crit * spent * matt * frozen * shattered;
+  double shattered =
+      frozen && type < static_cast<int>(attack.freeze_ied_gain.size())
+          ? 1.0 + attack.freeze_ied_gain[type] * stacks
+          : 1.0;
+  return crit * spent * matt * storm * shattered;
 }
 
-double CombatSim::FreezeBoost(const AttackOption& attack, int type) const {
-  return BoostForStacks(attack, freeze_stacks_, type);
+double CombatSim::FreezeBoost(const AttackOption& attack,
+                              const QueuedMob& mob) const {
+  return BoostForStacks(attack, freeze_stacks_, mob.type,
+                        mob.frozen_left_seconds > 0.0);
 }
 
-// The type at the front of the queue, which is the one a reader with no
-// particular enemy in mind takes -- nothing here has a position, so no monster
-// is nearer than another.
-int CombatSim::FrontType() const {
-  return queue_.empty() ? 0 : queue_.front().type;
+// The monster a reader with no particular enemy in mind takes -- nothing here
+// has a position, so none is nearer than another. A bare one where nothing is
+// standing, which reads as an unfrozen mob of the first type.
+const CombatSim::QueuedMob& CombatSim::FrontMob() const {
+  static const QueuedMob kNone;
+  return queue_.empty() ? kNone : queue_.front();
 }
 
 double CombatSim::PulseDamage(const AttackOption& attack, int type) const {
@@ -496,7 +507,7 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
   int wanted = hold.min_pulses;
   for (int j = 0; j < hit && j < static_cast<int>(queue_.size()); ++j) {
     int type = queue_[j].type;
-    double freeze = FreezeBoost(attack, type);
+    double freeze = FreezeBoost(attack, queue_[j]);
     double pulse = PulseDamage(attack, type) * freeze;
     if (pulse <= 0.0) {
       continue;
@@ -566,11 +577,49 @@ double CombatSim::FreezeCredit(const CombatParams& params,
     if (other.swing_seconds <= 0.0) {
       continue;
     }
-    double gain = BoostForStacks(other, deeper, FrontType()) -
-                  BoostForStacks(other, freeze_stacks_, FrontType());
+    const QueuedMob& front = FrontMob();
+    bool frozen = front.frozen_left_seconds > 0.0;
+    double gain = BoostForStacks(other, deeper, front.type, frozen) -
+                  BoostForStacks(other, freeze_stacks_, front.type, frozen);
     best = std::max(best, SwingDamage(other) * gain);
   }
   return best;
+}
+
+double CombatSim::FrozenRate(const CombatParams& params, int type) const {
+  double best = 0.0;
+  for (const AttackOption& other : Attacks(params)) {
+    if (other.swing_seconds <= 0.0 ||
+        type >= static_cast<int>(other.damage_per_hit.size())) {
+      continue;
+    }
+    double gain = BoostForStacks(other, freeze_stacks_, type, true) -
+                  BoostForStacks(other, freeze_stacks_, type, false);
+    best =
+        std::max(best, other.damage_per_hit[type] * gain / other.swing_seconds);
+  }
+  return best;
+}
+
+double CombatSim::FrozenCredit(const CombatParams& params,
+                               const AttackOption& attack) const {
+  if (attack.freeze_seconds <= 0.0) {
+    return 0.0;
+  }
+  // Only the seconds before this swing could come round again are worth
+  // anything: freeze past that will have been laid down a second time.
+  double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
+  double lays = std::min(attack.freeze_seconds, cadence);
+  int hit = std::min(std::max(1, attack.max_enemies),
+                     static_cast<int>(queue_.size()));
+  double credit = 0.0;
+  for (int j = 0; j < hit; ++j) {
+    double gained = lays - std::min(queue_[j].frozen_left_seconds, cadence);
+    if (gained > 0.0) {
+      credit += gained * FrozenRate(params, queue_[j].type);
+    }
+  }
+  return credit;
 }
 
 void CombatSim::CreditFreeze(const CombatParams& params,
@@ -697,6 +746,24 @@ void CombatSim::ApplyDots(const AttackOption& attack, int hit) {
       dot.damage = burn.damage[mob.type];
       dot.rolls = burn.rolls;
     }
+  }
+}
+
+void CombatSim::ApplyFreeze(const AttackOption& attack, int hit) {
+  if (attack.freeze_seconds <= 0.0) {
+    return;
+  }
+  for (int j = 0; j < hit; ++j) {
+    // Written over rather than added to: a monster frozen again is frozen for
+    // the full time from now, not for what was left plus the whole of it.
+    queue_[j].frozen_left_seconds =
+        std::max(queue_[j].frozen_left_seconds, attack.freeze_seconds);
+  }
+}
+
+void CombatSim::RunFreeze(double dt) {
+  for (QueuedMob& mob : queue_) {
+    mob.frozen_left_seconds = std::max(0.0, mob.frozen_left_seconds - dt);
   }
 }
 
@@ -1415,8 +1482,11 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   RunRegen(params, dt);
   RunAutoCasts(params, dt);
   // After the summons and before the swing, so a burn lit last step has landed
-  // its ticks before this step's swing decides what is worth hitting.
+  // its ticks before this step's swing decides what is worth hitting. The
+  // thaw runs with them, and for the same reason: a monster that came out of
+  // the ice this step is one this step's swing must see out of it.
   RunDots(dt);
+  RunFreeze(dt);
   RunCooldowns(params, dt);
   RunSwing(params, dt);
 

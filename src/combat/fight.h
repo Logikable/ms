@@ -245,6 +245,11 @@ class CombatSim {
     // The burns on it, one slot per source the character can leave. Sized only
     // for a character who burns anything, which is the F/P Arch Mage alone.
     std::vector<MobDot> dots;
+    // Seconds this monster stays frozen. Set by the ice swings that reach it
+    // and counted down between them; 0 for everything an I/L magician has not
+    // touched, which is every monster in the game facing anyone else. What
+    // being frozen is worth is the character's -- see BoostForStacks.
+    double frozen_left_seconds = 0.0;
   };
 
   // Opens the landing about to happen: gives every one of the front `hit` mobs
@@ -290,17 +295,40 @@ class CombatSim {
   // chances it rolled. Returned rather than paid here because a strike knows
   // nothing about the pool -- see Proc.
   double RollProcs(const AttackOption& attack, int hit);
-  // What a pile `stacks` deep multiplies `attack` by against a mob of `type`:
-  // the critical damage every stack grants, the final damage a lightning swing
-  // takes for the ones it is about to spend, Storm Magic's standing and the
-  // defence Shatter ignores -- the last of which is why the type is asked for.
-  // 1.0 for a pile of nothing.
-  double BoostForStacks(const AttackOption& attack, int stacks, int type) const;
-  // The same for the pile the character is holding right now.
-  double FreezeBoost(const AttackOption& attack, int type) const;
-  // The mob type at the front of the queue, for a reader with no particular
-  // enemy in mind. 0 with nothing standing.
-  int FrontType() const;
+  // What a pile `stacks` deep multiplies `attack` by against a mob of `type`
+  // that is or is not `frozen`. Two questions, not one: the pile says how much
+  // a stack is worth, and the freeze says whether it is collected at all.
+  //
+  // Riding the pile alone: the final damage a lightning swing takes for the
+  // stacks it spends, and the magic attack Glacial Fury pays an ice one.
+  // Needing the freeze as well: Freezing Crush's critical damage and the
+  // defence Shatter ignores, both per stack, and Storm Magic's final damage,
+  // which asks only that the enemy be frozen. `type` is asked for because
+  // Shatter's worth is that monster's own defence.
+  double BoostForStacks(const AttackOption& attack, int stacks, int type,
+                        bool frozen) const;
+  // The same against a monster in the queue, read as it stands right now.
+  double FreezeBoost(const AttackOption& attack, const QueuedMob& mob) const;
+  // Leaves this swing's freeze on every one of the front `hit` mobs. After the
+  // strike, as the burns are, so the swing itself is paid for the state the
+  // monsters went into it with.
+  void ApplyFreeze(const AttackOption& attack, int hit);
+  // Counts every frozen monster's seconds down. The monsters thaw; the pile
+  // the character holds is spent rather than timed, and is not touched here.
+  void RunFreeze(double dt);
+  // What the freeze this swing would leave is worth, on top of the damage it
+  // lands: the seconds it adds on each monster it reaches, at what a second of
+  // being frozen is worth to the swings that will be spent on it. Priced the
+  // way a relit burn is -- see BurnCredit -- and worth nothing against a
+  // monster already frozen for longer than this swing could come round again.
+  double FrozenCredit(const CombatParams& params,
+                      const AttackOption& attack) const;
+  // What one second of one frozen monster of `type` is worth: what the best
+  // swing on offer gains against it per second by its being frozen.
+  double FrozenRate(const CombatParams& params, int type) const;
+  // The mob at the front of the queue, for a reader with no particular enemy
+  // in mind. A bare unfrozen mob of type 0 with nothing standing.
+  const QueuedMob& FrontMob() const;
   // What the stacks `attack` would LEAVE are worth: everything a deeper pile
   // buys the best swing on offer. Priced into the rate the way a side strike's
   // damage is, because a chooser reading only this swing would never build

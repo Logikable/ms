@@ -941,6 +941,24 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
   }
 }
 
+// Freezing is an ice swing's alone. A lightning swing spends the ice rather
+// than making it, and a passive lands on nobody to freeze.
+TEST(SkillDataTest, OnlyAnIceSwingFreezes) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (skill.freeze_seconds() <= 0.0) {
+      continue;
+    }
+    bool ice = false;
+    for (int i = 0; i < skill.tags_size(); ++i) {
+      ice = ice || skill.tags(i) == SKILL_TAG_ICE;
+    }
+    EXPECT_TRUE(ice) << entry.first << " freezes without being ice";
+    EXPECT_TRUE(DealsDamage(skill.kind()))
+        << entry.first << " freezes what it never attacks";
+  }
+}
+
 // An element is a mark on a SWING: it says what that swing does to the pile of
 // Freeze Stacks, and a passive does nothing to it either way.
 TEST(SkillDataTest, OnlyASwingCarriesAnElement) {

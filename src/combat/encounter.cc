@@ -271,6 +271,10 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   attack.swing_seconds = SwingIntervalSeconds(delay_ms, stage) * speed_factor;
   if (skill != nullptr) {
     attack.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
+    // Game-scaled like every other duration: the pacing band stretches the ice
+    // exactly as far as it stretches the summon clock relaying it, so what a
+    // freeze covers is the same span of the fight it covers in GMS.
+    attack.freeze_seconds = skill->freeze_seconds() * speed_factor;
     attack.heal_fraction =
         skill->base().heal_pct() + skill->per_level().heal_pct() * (level - 1);
     // An ATTACK's recovery is its own swing's, exactly as its ignored defence

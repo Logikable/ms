@@ -238,6 +238,13 @@ struct AttackOption {
   // stands rather than climbing with it -- what GMS asks is only whether the
   // enemy is frozen. 0 for every character but an I/L magician.
   double freeze_fd_when_frozen = 0.0;
+  // Game-scaled seconds this swing leaves the enemies it reached frozen. 0 for
+  // every swing
+  // that freezes nothing, which is all of them but the I/L's ice -- and not
+  // even all of those: Frozen Orb slows what it touches and freezes none of
+  // it. A summon carries it like any other swing, since Elquines freezing what
+  // it touches is the whole reason the pair below stays lit.
+  double freeze_seconds = 0.0;
   // Shatter's, as the share one held stack adds to this swing against each mob
   // type -- parallel to damage_per_hit, and per type because what ignoring a
   // little more defence is worth is that mob's own. Empty for a character

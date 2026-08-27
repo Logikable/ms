@@ -2,6 +2,10 @@
 # every three seconds -- 3030ms in the client, and the same clock Ifrit and
 # Bahamut run on.
 #
+# It freezes what it touches, which GMS says in as many words and which is what
+# keeps a boss frozen the whole fight: three seconds between pulses against
+# eight seconds of ice. GMS states no duration for it, so it takes the family's.
+#
 # Its 70% mastery over the magician's own 25% reaches 95%, which is where
 # every 4th job mastery lands. Spell Mastery keeps its page and stops paying:
 # a character holds the better of two masteries, never their sum.
@@ -12,6 +16,7 @@ description:
   "from Elquines freeze enemies. Permanently increases Spell Mastery."
 kind: SKILL_KIND_AUTO_ATTACK
 tags: SKILL_TAG_ICE
+freeze_seconds: 8.0
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 20
 exceeds_master_level: true

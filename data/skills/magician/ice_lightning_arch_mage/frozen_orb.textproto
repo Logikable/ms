@@ -6,6 +6,10 @@
 #
 # Both numbers are read rather than guessed: Frozen Orb is a ball skill, so
 # the client states its rate in attackDelay and its lifetime in time.
+#
+# It freezes nothing. GMS says the orb SLOWS what it meets, where every other
+# ice skill in the book states a freeze duration -- so it builds the pile and
+# leaves the ice to the swings that make it.
 name: "Frozen Orb"
 skill_order: 3
 description:
