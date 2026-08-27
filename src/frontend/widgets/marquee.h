@@ -50,18 +50,23 @@ std::string ScrollingWindow(const std::string& text, int width,
 // the move is noticed by watching the index instead.
 class SelectionClock {
  public:
-  // Call once per render with whatever identifies the selected row: its index,
-  // or the index folded together with the page it is on, so that the same row
-  // of another page counts as a different row.
-  void Follow(int key);
+  // Call once per render with whatever identifies the selected row -- its
+  // index, or the index folded together with the page it is on, so that the
+  // same row of another page counts as a different row -- and whether that row
+  // is drawn as selected at all. A panel the cursor has left is not being
+  // read, so its clock holds at zero; focus coming back starts the name over
+  // from its head, as stepping onto a row does.
+  void Follow(int key, bool focused = true);
 
-  // Zero at the moment the selection arrived, growing from there. Pass it for
-  // the selected row and `duration::zero()` for the rest, which is what shows
-  // every other name from its head.
+  // Zero at the moment the selection arrived, growing from there, and zero
+  // for as long as the row is not selected. Pass it for the selected row and
+  // `duration::zero()` for the rest, which is what shows every other name
+  // from its head.
   std::chrono::steady_clock::duration Elapsed() const;
 
  private:
   int key_ = -1;
+  bool focused_ = true;
   std::chrono::steady_clock::time_point since_ =
       std::chrono::steady_clock::now();
 };

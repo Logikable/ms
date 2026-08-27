@@ -466,8 +466,10 @@ ftxui::Element InventoryPanel::RenderContent(ftxui::Component menu) {
   bool focused = panel_focus_ == kInventoryPanel;
   // The tab rides in the key beside the row, so the same row of another tab
   // counts as a different name and starts from its own head.
-  name_clock_.Follow(active_tab_ * kNameClockTabStride +
-                     (active_tab_ == kEquipTab ? selected_ : selected_stack_));
+  name_clock_.Follow(
+      active_tab_ * kNameClockTabStride +
+          (active_tab_ == kEquipTab ? selected_ : selected_stack_),
+      focused && zone_ == kZoneList);
   ftxui::Element body;
   if (active_tab_ == kShopTab) {
     // The shop is a screen of its own, so where the other tabs list what the

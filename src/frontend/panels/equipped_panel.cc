@@ -261,8 +261,10 @@ std::string EquippedPanel::Header() const {
 
 void EquippedPanel::RebuildRows() {
   // The menu writes selected_ behind this panel's back, so a move is noticed
-  // here rather than hooked at the keypress.
-  name_clock_.Follow(selected_);
+  // here rather than hooked at the keypress. A name slides only while the row
+  // is drawn as selected -- the same test the cursor is drawn under.
+  name_clock_.Follow(selected_,
+                     panel_focus_ == kEquipPanel && zone_ == kZoneList);
   entries_.clear();
   inactive_.clear();
   name_bytes_.clear();

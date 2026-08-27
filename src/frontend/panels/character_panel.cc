@@ -107,6 +107,10 @@ std::string StatText(const std::string& label, int base, int bonus) {
 //   " " + tag(4) + name + level + filler + "[+]" + " "
 constexpr int kSkillPlusWidth = 3;
 
+// Room for every row of a page, so that folding the page into the name
+// clock's key cannot land on the key another page's row already holds.
+constexpr int kSkillClockPageStride = 4096;
+
 // What a skill row prints for its level: what the skill is worth, and how much
 // of that its book lent. A skill nobody has opened is a bare 0 -- nothing is
 // lent to a skill that has not been bought.
@@ -286,14 +290,7 @@ void CharacterPanel::SetCursorStop(int stop) {
     skill_col_ = kColName;
   }
   zone_ = kZoneSkillRows;
-  if (skill_sel_ != stop - 3) {
-    RestartNameScroll();
-  }
   skill_sel_ = stop - 3;
-}
-
-void CharacterPanel::RestartNameScroll() {
-  skill_selected_at_ = std::chrono::steady_clock::now();
 }
 
 void CharacterPanel::MoveCursor(int delta) {
@@ -552,10 +549,10 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   // and sits cut when it is not. The column is a fixed width either way, which
   // is what keeps a long name from widening the whole panel.
   int name_width = SkillNameWidth(column.width, row_width);
-  std::string window = ScrollingWindow(
-      skill.name(), name_width,
-      selected ? std::chrono::steady_clock::now() - skill_selected_at_
-               : std::chrono::steady_clock::duration::zero());
+  std::string window =
+      ScrollingWindow(skill.name(), name_width,
+                      selected ? name_clock_.Elapsed()
+                               : std::chrono::steady_clock::duration::zero());
   // The padding a short name is given rides outside the cursor, so the
   // highlight still covers the name and stops -- a fixed-width bar would say
   // the empty column after a short name was part of what Enter opens.
@@ -627,6 +624,10 @@ ftxui::Element CharacterPanel::RenderSkillsTab(bool bar_focused,
                    ftxui::dim);
     return ftxui::vbox(std::move(rows));
   }
+  // The page rides in the key beside the row, so the same row of another page
+  // counts as a different skill and starts from its own head.
+  name_clock_.Follow(skill_tab_ * kSkillClockPageStride + skill_sel_,
+                     rows_focused);
   int total = static_cast<int>(skills.size());
   int visible = SkillRowsShown(total);
   int first = FirstSkillRow(total, visible);
@@ -844,14 +845,12 @@ bool CharacterPanel::OnSkillsTabEvent(
     if (event == ftxui::Event::ArrowLeft) {
       if (skill_tab_ > 0) {
         skill_tab_--;
-        RestartNameScroll();  // the same row on another page is another skill
       }
       return true;
     }
     if (event == ftxui::Event::ArrowRight) {
       if (skill_tab_ < SkillPages() - 1) {
         skill_tab_++;
-        RestartNameScroll();
       }
       return true;
     }

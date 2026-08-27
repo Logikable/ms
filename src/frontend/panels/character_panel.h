@@ -26,6 +26,7 @@
 #include "src/character/character.h"
 #include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
+#include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/text_field.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/skill.pb.h"
@@ -215,10 +216,6 @@ class CharacterPanel {
   // Down off the last row returns to the tab bar and Up off the tab bar goes
   // to the last row, and neither is a rule of its own.
   void MoveCursor(int delta);
-  // Sends the selected row's name back to its first character. Called
-  // wherever the selection moves, so a new row is read from the head rather
-  // than from wherever the last one had slid to.
-  void RestartNameScroll();
   // Renders the Stats/Skills tab bar. When row_selected the active tab is drawn
   // white (the tab bar holds focus); otherwise it keeps the theme highlight.
   // The name row at the top of the panel: the username, inverted while the
@@ -308,9 +305,9 @@ class CharacterPanel {
   int skill_tab_ = 0;      // selected page: a 0-based stage index, then Hyper
   int skill_sel_ = 0;      // selected skill row within the current page
   SkillCol skill_col_ = kColName;  // selected column of that row
-  // When the selected skill row last changed, for the name scroll.
-  std::chrono::steady_clock::time_point skill_selected_at_ =
-      std::chrono::steady_clock::now();
+  // How long the cursor has sat on the selected skill row, for the name
+  // scroll. Mutable because the render is what notices the row moved.
+  mutable SelectionClock name_clock_;
   int job_sel_ = 0;  // selected Advance-tab job row
   TextField username_field_{kMaxUsernameLength};
   // Written by ftxui::reflect on the selected job row each render.

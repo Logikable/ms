@@ -53,17 +53,12 @@ ftxui::Element CombatPanel::Render() const {
   // panel holds focus, as in the equip and inventory lists.
   bool focused = panel_focus_ == kCombatPanel;
   // The longest map name is a column wider than the row holds, so it slides
-  // under it while the panel holds focus. Focus rides in the key beside the
-  // map: arriving at the panel starts the name from its head, as stepping
-  // onto a row does everywhere else.
-  size_t key =
-      std::hash<std::string>{}(state_.current_map) * 2 + (focused ? 1 : 0);
-  name_clock_.Follow(static_cast<int>(key));
+  // under it while the panel holds focus.
+  name_clock_.Follow(
+      static_cast<int>(std::hash<std::string>{}(state_.current_map)), focused);
   ftxui::Element header = ftxui::text(
       (focused ? "> " : "  ") +
-      ScrollingWindow(MapName(), ContentWidth() - 2,
-                      focused ? name_clock_.Elapsed()
-                              : std::chrono::steady_clock::duration::zero()));
+      ScrollingWindow(MapName(), ContentWidth() - 2, name_clock_.Elapsed()));
   if (focused) {
     header = header | ftxui::focus;
   }

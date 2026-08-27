@@ -37,15 +37,19 @@ int OffsetAt(int steps, std::chrono::steady_clock::duration elapsed) {
 
 }  // namespace
 
-void SelectionClock::Follow(int key) {
-  if (key == key_) {
+void SelectionClock::Follow(int key, bool focused) {
+  if (key == key_ && focused == focused_) {
     return;
   }
   key_ = key;
+  focused_ = focused;
   since_ = std::chrono::steady_clock::now();
 }
 
 std::chrono::steady_clock::duration SelectionClock::Elapsed() const {
+  if (!focused_) {
+    return std::chrono::steady_clock::duration::zero();
+  }
   return std::chrono::steady_clock::now() - since_;
 }
 

@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <string>
+#include <thread>
 
 #include "ftxui/screen/string.hpp"
 
@@ -118,6 +119,38 @@ TEST(MarqueeTest, NoRoomAndNoTimeAreBothAnswerable) {
   EXPECT_EQ(ScrollingWindow(kLong, 0, milliseconds(5000)), "");
   EXPECT_EQ(ScrollingWindow(kLong, -3, milliseconds(5000)), "");
   EXPECT_EQ(At(milliseconds(-5000)), "Final Attack: Cro");
+}
+
+// A panel the cursor has left is not being read, so nothing on it slides --
+// however long the selection had been sitting there when focus went.
+TEST(SelectionClockTest, AnUnfocusedRowHoldsAtZero) {
+  SelectionClock clock;
+  clock.Follow(3);
+  std::this_thread::sleep_for(milliseconds(20));
+  EXPECT_GT(clock.Elapsed(), std::chrono::steady_clock::duration::zero());
+  clock.Follow(3, /*focused=*/false);
+  std::this_thread::sleep_for(milliseconds(20));
+  EXPECT_EQ(clock.Elapsed(), std::chrono::steady_clock::duration::zero());
+}
+
+// Focus coming back reads the name from its head, the way stepping onto a row
+// does: the player never arrives to find a name already halfway past.
+TEST(SelectionClockTest, FocusReturningStartsTheNameOver) {
+  SelectionClock clock;
+  clock.Follow(3);
+  std::this_thread::sleep_for(milliseconds(200));
+  clock.Follow(3, /*focused=*/false);
+  clock.Follow(3, /*focused=*/true);
+  EXPECT_LT(clock.Elapsed(), milliseconds(200));
+}
+
+// The selection moving is still what restarts a name, focus or not.
+TEST(SelectionClockTest, AMovedSelectionStartsOver) {
+  SelectionClock clock;
+  clock.Follow(3);
+  std::this_thread::sleep_for(milliseconds(200));
+  clock.Follow(4);
+  EXPECT_LT(clock.Elapsed(), milliseconds(200));
 }
 
 }  // namespace
