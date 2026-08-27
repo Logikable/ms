@@ -1,0 +1,14 @@
+# Eight enemies to nine. Flat, as every boost of this shape is.
+name: "Arrow Stream - Spread"
+skill_order: 8
+description:
+  "Increases the max number of monsters hit by Arrow Stream."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+hyper: true
+required_level: 165
+max_level: 1
+boost {
+  skill_name: "Arrow Stream"
+  max_enemies: 1
+}

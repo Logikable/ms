@@ -1,0 +1,15 @@
+# Hurricane alone, unlike the Reinforce above it: GMS aims this one at the
+# swing and leaves the blasters out.
+name: "Hurricane - Boss Rush"
+skill_order: 11
+description:
+  "Increases damage when attacking Boss Monsters with Hurricane."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+hyper: true
+required_level: 165
+max_level: 1
+boost {
+  skill_name: "Hurricane"
+  effect { boss_pct: 0.10 }
+}

@@ -1,0 +1,30 @@
+# 660ms is the animation's own, from the frame data. Twelve strikes across
+# twelve enemies every fifteen seconds, which is the widest thing the book has:
+# Arrow Stream reaches eight and Hurricane one.
+#
+# The 90 points ride skill_pct rather than damage_pct -- GMS writes "%p", which
+# is points on the skill's own multiplier and so worth its value once per line.
+# One boost covers both halves of Arrow Blaster: the turret carries its
+# parent's name, which is what the boost is keyed by.
+#
+# The speed it takes off what it hits is dropped; nothing here moves.
+name: "Gritty Gust"
+skill_order: 2
+description:
+  "Tear nearby enemies apart with a gust of wind. Also boosts Arrow Blaster "
+  "and Arrow Blaster turrets."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+hyper: true
+required_level: 160
+max_level: 1
+required_equip_type: EQUIP_TYPE_BOW
+base_delay_ms: 660
+cooldown_seconds: 15.0
+max_enemies: 12
+lines: 12
+base { skill_pct: 3.35 }
+boost {
+  skill_name: "Arrow Blaster"
+  effect { skill_pct: 0.90 }
+}

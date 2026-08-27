@@ -1,0 +1,18 @@
+# Two arrows a pulse for three quarters of the damage each: half again, and the
+# largest single thing on the page. Written as GMS states it -- a strike added
+# and a share taken off -- rather than folded into one multiplier, because what
+# the player is buying is the second arrow and the page should say so.
+name: "Hurricane - Split Attack"
+skill_order: 12
+description:
+  "Increases the number of attacks. Reduces the damage of Hurricane."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+hyper: true
+required_level: 190
+max_level: 1
+boost {
+  skill_name: "Hurricane"
+  lines: 1
+  effect { final_dmg_pct: -0.25 }
+}

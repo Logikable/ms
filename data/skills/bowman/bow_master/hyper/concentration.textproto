@@ -1,0 +1,23 @@
+# 120ms rather than the 540ms animation: a buff is raised from a skill
+# sequence, which paces every skill in it alike.
+#
+# Forty seconds of the two levers a Bow Master wants most against a boss, on a
+# wait twice as long -- so the fight spends a third of it holding this up.
+name: "Concentration"
+skill_order: 1
+description:
+  "Steel yourself for battle to increase damage."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+hyper: true
+required_level: 140
+max_level: 1
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 40.0
+  base {
+    attack: 50
+    boss_pct: 0.20
+  }
+}

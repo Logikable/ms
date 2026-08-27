@@ -1,0 +1,15 @@
+# GMS's "Damage: +20%", read as it is everywhere else on this page: a share of
+# the character's damage that only Arrow Stream collects.
+name: "Arrow Stream - Reinforce"
+skill_order: 7
+description:
+  "Increases Arrow Stream's damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BOW_MASTER
+hyper: true
+required_level: 140
+max_level: 1
+boost {
+  skill_name: "Arrow Stream"
+  effect { damage_pct: 0.20 }
+}

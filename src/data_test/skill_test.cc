@@ -1325,14 +1325,28 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
 // a duller reason: what it cures is a display-only lever, so an ally half of
 // it would grant a row and nothing else.
 const char* const kPartySkills[] = {
-    "Absolute Zero Aura", "Advanced Blessing",
-    "Angel Ray",          "Bless",
-    "Blessed Ensemble",   "Blessed Harmony",
-    "Combat Orders",      "Hex of the Evil Eye",
-    "Holy Fountain",      "Holy Symbol",
-    "Holy Water",         "Meditation",
-    "Parashock Guard",    "Puncture",
-    "Sharp Eyes",         "Smokescreen",
+    "Absolute Zero Aura",
+    "Advanced Blessing",
+    "Angel Ray",
+    "Bless",
+    "Blessed Ensemble",
+    "Blessed Harmony",
+    "Combat Orders",
+    "Hex of the Evil Eye",
+    "Holy Fountain",
+    "Holy Symbol",
+    "Holy Water",
+    "Meditation",
+    "Parashock Guard",
+    "Puncture",
+    "Sharp Eyes",
+    // The two Hyper Skills that reach the party through the buff they name.
+    // GMS stores their values on Sharp Eyes itself rather than as a modifier
+    // aimed at the caster's own damage, so what rides the buff reaches whoever
+    // the buff reaches.
+    "Sharp Eyes - Critical Chance",
+    "Sharp Eyes - Guardbreak",
+    "Smokescreen",
     "Spirit Blade",
 };
 

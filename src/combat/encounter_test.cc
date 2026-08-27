@@ -1009,6 +1009,66 @@ TEST(ComputeCombatParamsTest, AutoAttackSkillsLandOnTheirOwnList) {
                    12.0 * GameSpeedFactor(state.character.proto().level()));
 }
 
+// A boost naming a skill reaches the turret that skill leaves standing as well
+// as the volley: an own-clock half keeps its parent's name, and a boost is
+// keyed by name. Hurricane - Reinforce and Gritty Gust both rely on it -- GMS
+// aims each at Arrow Blaster and at the installed Arrow Blaster alike.
+TEST(ComputeCombatParamsTest, ABoostReachesBothHalvesOfTheSkillItNames) {
+  Skill blaster;
+  blaster.set_name("Arrow Blaster");
+  blaster.set_kind(SKILL_KIND_ATTACK);
+  blaster.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  blaster.set_max_level(20);
+  blaster.set_max_enemies(4);
+  blaster.mutable_base()->set_skill_pct(1.24);
+  AutoMode* turret = blaster.add_auto_mode();
+  turret->set_label("Turret");
+  turret->set_cast_interval_seconds(0.21);
+  turret->set_max_enemies(4);
+  turret->mutable_base()->set_skill_pct(0.66);
+
+  Skill hyper;
+  hyper.set_name("Gritty Gust");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Arrow Blaster");
+  boost->mutable_effect()->set_skill_pct(0.90);
+
+  GameState bare({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                 {{"field", TwoSnailMap()}}, {{"blaster", blaster}});
+  bare.current_map = "field";
+  EquipSword(bare);
+  GrantFirstJobSp(bare, 1);
+  ASSERT_TRUE(bare.character.LearnSkill(blaster, 1));
+
+  GameState boosted({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                    {{"field", TwoSnailMap()}},
+                    {{"blaster", blaster}, {"hyper", hyper}});
+  boosted.current_map = "field";
+  EquipSword(boosted);
+  GrantFirstJobSp(boosted, 2);
+  ASSERT_TRUE(boosted.character.LearnSkill(blaster, 1));
+  ASSERT_TRUE(boosted.character.LearnSkill(hyper, 1));
+
+  CombatParams before = ComputeCombatParams(bare);
+  CombatParams after = ComputeCombatParams(boosted);
+  // The volley: 124% to 214%, so the swing is worth a shade under twice what
+  // it was.
+  ASSERT_EQ(before.attacks.size(), 2u);
+  ASSERT_EQ(after.attacks.size(), 2u);
+  EXPECT_NEAR(
+      after.attacks[1].damage_per_hit[0] / before.attacks[1].damage_per_hit[0],
+      2.14 / 1.24, 1e-6);
+  // The turret standing behind it: 66% to 156%, off the same one boost.
+  ASSERT_EQ(before.auto_attacks.size(), 1u);
+  ASSERT_EQ(after.auto_attacks.size(), 1u);
+  EXPECT_NEAR(after.auto_attacks[0].damage_per_hit[0] /
+                  before.auto_attacks[0].damage_per_hit[0],
+              1.56 / 0.66, 1e-6);
+}
+
 // Revenge of the Evil Eye's shape: one skill that fires on its own clock AND
 // carries two more clocks behind it, each reaching a different number of
 // enemies -- which is why they cannot be folded into one attack.
