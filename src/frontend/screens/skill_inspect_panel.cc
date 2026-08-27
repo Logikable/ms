@@ -212,14 +212,30 @@ std::string EmpoweredTarget(const Skill& skill, const EmpoweredForm& form) {
                                            : skill.boosts_skill_name();
 }
 
-ftxui::Element EffectRow(const std::string& label, const std::string& value) {
-  // Padded rather than cut when the label overruns its column, so a row that
-  // has one to itself keeps the whole of it. WrappedEffectRows is what gives
-  // it that row.
-  std::string head = TextColumns(label) > kEffectLabelWidth
-                         ? label
-                         : PadRight(label, kEffectLabelWidth);
-  return ftxui::text(std::string(kEffectIndent, ' ') + head + value);
+// A row of the card before the card knows how wide it is. An effect row is
+// its label and what that label is worth, laid out once the widest of each is
+// known; everything else is already whole.
+struct Row {
+  enum Kind {
+    kEffect,  // label and value, in the card's two columns
+    kProse,   // one paragraph, wrapped to the card and indented a space
+    kWhole,   // an element that is its own row: a heading, an empty state
+    kRule,    // a section divider, drawn across the scroll bar as well
+  };
+  Kind kind = kEffect;
+  std::string label;
+  std::string value;
+  ftxui::Element element;
+};
+
+// An effect row. A value with nothing in it writes no row at all -- there is
+// nothing to say about a lever the skill does not carry.
+Row EffectRow(std::string label, std::string value) {
+  return {Row::kEffect, std::move(label), std::move(value), nullptr};
+}
+
+Row TextRow(ftxui::Element element) {
+  return {Row::kWhole, "", "", std::move(element)};
 }
 
 // Breaks a " / " separated list across lines without splitting an entry: the
@@ -291,27 +307,6 @@ std::vector<std::string> WrapText(const std::string& text, int width) {
   return lines;
 }
 
-// A label/value row whose value is allowed not to fit: it continues on the
-// next line with the label left blank, rather than being cut mid-word. An
-// empty value writes no row at all.
-std::vector<ftxui::Element> WrappedEffectRows(const std::string& label,
-                                              const std::string& value) {
-  std::vector<ftxui::Element> rows;
-  std::string current = label;
-  // A label too wide for its column takes a row to itself rather than being
-  // cut: what it names is a skill, and half a skill's name is not one. The
-  // value then reads under it, in the column it always sits in.
-  if (TextColumns(label) > kEffectLabelWidth) {
-    rows.push_back(EffectRow(label, ""));
-    current.clear();
-  }
-  for (const std::string& line : WrapText(value, kValueWidth)) {
-    rows.push_back(EffectRow(current, line));
-    current.clear();
-  }
-  return rows;
-}
-
 // The weapons a skill demands, as "Dagger" or "Sword / Axe". Empty when it can
 // be swung with anything, which is what most skills want.
 std::string RequiredWeapons(const google::protobuf::RepeatedField<int>& types) {
@@ -326,12 +321,10 @@ std::string RequiredWeapons(const google::protobuf::RepeatedField<int>& types) {
 // pair: a weapon in hand and a skill already learned are the same kind of
 // condition, so they are labelled and laid out alike instead of one sitting up
 // beside the description and the other down among the facts.
-std::vector<ftxui::Element> RequirementRows(const Skill& skill) {
-  std::vector<ftxui::Element> rows;
-  for (ftxui::Element& row : WrappedEffectRows(
-           "Required Weapon", RequiredWeapons(skill.required_equip_type()))) {
-    rows.push_back(std::move(row));
-  }
+std::vector<Row> RequirementRows(const Skill& skill) {
+  std::vector<Row> rows;
+  rows.push_back(EffectRow("Required Weapon",
+                           RequiredWeapons(skill.required_equip_type())));
   // The level a Hyper Skill opens at, which is the gate it carries in place of
   // a skill below it.
   if (skill.required_level() > 0) {
@@ -345,20 +338,18 @@ std::vector<ftxui::Element> RequirementRows(const Skill& skill) {
   // and the rule the skills tab enforces cannot drift apart.
   std::string required = skill.required_skill().skill_name() + " Lv. " +
                          std::to_string(skill.required_skill().level()) + "+";
-  for (ftxui::Element& row : WrappedEffectRows("Required Skill", required)) {
-    rows.push_back(std::move(row));
-  }
+  rows.push_back(EffectRow("Required Skill", required));
   return rows;
 }
 
 // What this skill takes over from, for the handful that state the whole of an
 // earlier skill rather than a delta over it. Without the row the two read as
 // though they stack, and a player would count the older one twice.
-std::vector<ftxui::Element> ReplacesRows(const Skill& skill) {
+std::vector<Row> ReplacesRows(const Skill& skill) {
   if (skill.supersedes_skill_name().empty()) {
     return {};
   }
-  return WrappedEffectRows("Replaces", skill.supersedes_skill_name());
+  return {EffectRow("Replaces", skill.supersedes_skill_name())};
 }
 
 // A plain number, to one decimal, with a whole number left whole. The same
@@ -409,18 +400,32 @@ std::string CooldownText(const Skill& skill, int level) {
 // the one printed -- and none of them is a choice they make anyway.
 // Appends `from` to `into`. The row builders here all return vectors, and a
 // row is a move rather than a copy.
-void Append(std::vector<ftxui::Element> from,
-            std::vector<ftxui::Element>& into) {
-  for (ftxui::Element& row : from) {
+void Append(std::vector<Row> from, std::vector<Row>& into) {
+  for (Row& row : from) {
     into.push_back(std::move(row));
   }
+}
+
+// `rows` with the silent ones dropped: an effect row with an empty value says
+// nothing about a lever the skill does not carry. Dropped here rather than at
+// layout so that a block of nothing but those still reads as empty, and takes
+// neither a divider nor a heading.
+std::vector<Row> Speaking(std::vector<Row> rows) {
+  std::vector<Row> kept;
+  for (Row& row : rows) {
+    if (row.kind == Row::kEffect && row.value.empty()) {
+      continue;
+    }
+    kept.push_back(std::move(row));
+  }
+  return kept;
 }
 
 // How far the swing reaches and how often it lands, its own-clock halves
 // included. Reach and rate share a row where a skill has both: the two
 // together are the shape of it.
-std::vector<ftxui::Element> ReachRows(const Skill& skill) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> ReachRows(const Skill& skill) {
+  std::vector<Row> rows;
   // A skill with a clock of its own states it where it states its reach: the
   // two together are the shape of it, and a row holding only a number of
   // seconds is a row spent on bookkeeping.
@@ -462,8 +467,8 @@ std::vector<ftxui::Element> ReachRows(const Skill& skill) {
 
 // Which attack this skill upgrades, how often, and how far the upgraded swing
 // carries when that is not the swing it stands in for.
-std::vector<ftxui::Element> EmpoweredRows(const Skill& skill) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> EmpoweredRows(const Skill& skill) {
+  std::vector<Row> rows;
   // A skill that upgrades an attack says which attack and how often. Its reach
   // is stated too, unlike a turret's: this one is wider than the attack it
   // stands in for, so leaving it out would understate the upgrade. An empty
@@ -477,8 +482,7 @@ std::vector<ftxui::Element> EmpoweredRows(const Skill& skill) {
     std::string how = form.casts_per_trigger() == 1
                           ? ""
                           : "Every " + Ordinal(form.casts_per_trigger()) + " ";
-    Append(WrappedEffectRows("Empowers", how + EmpoweredTarget(skill, form)),
-           rows);
+    rows.push_back(EffectRow("Empowers", how + EmpoweredTarget(skill, form)));
     // A mark on each enemy is a different promise from a count on the swing --
     // five that one enemy took, rather than five swings -- and only a row of
     // its own says which of the two the number above is.
@@ -501,7 +505,7 @@ std::vector<ftxui::Element> EmpoweredRows(const Skill& skill) {
 // Which element a swing is, for the pair a Freezing Crush wizard alternates
 // between. Only these two tags reach the page: the rest mark a family nothing
 // in this game reads yet.
-std::vector<ftxui::Element> ElementRows(const Skill& skill) {
+std::vector<Row> ElementRows(const Skill& skill) {
   for (int i = 0; i < skill.tags_size(); ++i) {
     if (skill.tags(i) == SKILL_TAG_ICE) {
       return {EffectRow("Element", "Ice")};
@@ -513,8 +517,8 @@ std::vector<ftxui::Element> ElementRows(const Skill& skill) {
   return {};
 }
 
-std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
-  std::vector<ftxui::Element> rows = RequirementRows(skill);
+std::vector<Row> InvariantRows(const Skill& skill) {
+  std::vector<Row> rows = RequirementRows(skill);
   Append(ReplacesRows(skill), rows);
   Append(ElementRows(skill), rows);
   Append(ReachRows(skill), rows);
@@ -545,7 +549,7 @@ std::vector<ftxui::Element> InvariantRows(const Skill& skill) {
       skill.cooldown_seconds_per_level() == 0.0) {
     rows.push_back(EffectRow("Cooldown", CooldownText(skill, 1)));
   }
-  return rows;
+  return Speaking(std::move(rows));
 }
 
 // A swing's damage: the per-strike percentage, how many strikes, and what the
@@ -667,9 +671,9 @@ std::string LeadText(const Skill& skill, int level) {
 // The damage rows for hits a swing lands beside its own: each on its own line,
 // with what it is worth against an ordinary monster under it where that
 // differs. Shared, because an empowered form lands them too.
-std::vector<ftxui::Element> SwingHitRows(
+std::vector<Row> SwingHitRows(
     const google::protobuf::RepeatedPtrField<SwingHit>& hits, int level) {
-  std::vector<ftxui::Element> rows;
+  std::vector<Row> rows;
   for (const SwingHit& hit : hits) {
     double per_hit =
         hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
@@ -685,9 +689,7 @@ std::vector<ftxui::Element> SwingHitRows(
     } else if (crit > 0.0) {
       text += " (" + FormatPercent(crit) + " crit)";
     }
-    for (ftxui::Element& row : WrappedEffectRows(hit.label(), text)) {
-      rows.push_back(std::move(row));
-    }
+    rows.push_back(EffectRow(hit.label(), text));
     double bonus = hit.base().normal_skill_pct() +
                    hit.per_level().normal_skill_pct() * (level - 1);
     if (bonus > 0.0) {
@@ -698,10 +700,9 @@ std::vector<ftxui::Element> SwingHitRows(
   return rows;
 }
 
-std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
-                                      const SkillEffect& per, int level,
-                                      const std::string& suffix) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> LeverRows(const SkillEffect& base, const SkillEffect& per,
+                           int level, const std::string& suffix) {
+  std::vector<Row> rows;
   for (const FlatLever& lever : kFlatLevers) {
     int value = (base.*lever.fn)() + (per.*lever.fn)() * (level - 1);
     if (value == 0) {
@@ -756,8 +757,8 @@ std::vector<ftxui::Element> LeverRows(const SkillEffect& base,
 
 // What the skill itself does when it goes off: its damage, its healing, and
 // the shapes a plain lever row cannot state.
-std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
   if (IsActive(skill) && PercentAt(skill, &SkillEffect::skill_pct, level) > 0) {
     rows.push_back(EffectRow("Damage", DamageText(skill, level)));
   }
@@ -787,9 +788,7 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
       text +=
           ", +" + FormatPercent(regen) + " per " + FormatNumber(step) + " INT";
     }
-    for (ftxui::Element& row : WrappedEffectRows("HP Recovered", text)) {
-      rows.push_back(std::move(row));
-    }
+    rows.push_back(EffectRow("HP Recovered", text));
   }
   // What one meso is worth thrown back, read the way every other swing on this
   // page is read: per line, times the count. Meso Mastery's points land on a
@@ -831,15 +830,12 @@ std::vector<ftxui::Element> OwnEffectRows(const Skill& skill, int level) {
   // The other hit the same swing lands, and its own reading against an
   // ordinary monster under it -- the pair reads exactly as the swing's own two
   // rows above, because that is what it is.
-  for (ftxui::Element& row : SwingHitRows(skill.extra_hit(), level)) {
+  for (Row& row : SwingHitRows(skill.extra_hit(), level)) {
     rows.push_back(std::move(row));
   }
   // Under the swing's own damage, because it is the extra the swing opens with
   // rather than a second attack.
-  for (ftxui::Element& row :
-       WrappedEffectRows("Opening Hit", LeadText(skill, level))) {
-    rows.push_back(std::move(row));
-  }
+  rows.push_back(EffectRow("Opening Hit", LeadText(skill, level)));
   return rows;
 }
 
@@ -874,8 +870,8 @@ std::string DotText(const Dot& dot, int level) {
 // it pays are one fact, exactly as a Final Attack's are, so they share a line
 // -- and the recovery it hands back takes a line of its own, being what the
 // player gets rather than what the enemy takes.
-std::vector<ftxui::Element> ProcRows(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> ProcRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
   const Proc& proc = skill.proc();
   double chance = proc.chance() + proc.chance_per_level() * (level - 1);
   if (chance <= 0.0) {
@@ -883,10 +879,9 @@ std::vector<ftxui::Element> ProcRows(const Skill& skill, int level) {
   }
   double damage =
       proc.base().damage_pct() + proc.per_level().damage_pct() * (level - 1);
-  Append(WrappedEffectRows("Chance to Crush", FormatPercent(chance) + " for +" +
+  rows.push_back(EffectRow("Chance to Crush", FormatPercent(chance) + " for +" +
                                                   FormatPercent(damage) +
-                                                  " Damage, one enemy"),
-         rows);
+                                                  " Damage, one enemy"));
   double heal = proc.base().hp_recover_pct() +
                 proc.per_level().hp_recover_pct() * (level - 1);
   if (heal > 0.0) {
@@ -897,11 +892,11 @@ std::vector<ftxui::Element> ProcRows(const Skill& skill, int level) {
 }
 
 // The burn the swing leaves, and the strike it sets off beside itself.
-std::vector<ftxui::Element> SwingRiderRows(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
   // Under the swing's own damage, since it is what that swing left behind.
   if (skill.dot().interval_seconds() > 0.0) {
-    Append(WrappedEffectRows("DoT", DotText(skill.dot(), level)), rows);
+    rows.push_back(EffectRow("DoT", DotText(skill.dot(), level)));
   }
   // Final Attack's chance and its damage are one fact, not two levers: neither
   // half says anything on its own, so they share a line.
@@ -919,7 +914,7 @@ std::vector<ftxui::Element> SwingRiderRows(const Skill& skill, int level) {
         SwingText(PercentAt(skill, &SkillEffect::final_attack_pct, level),
                   strikes) +
         reach;
-    Append(WrappedEffectRows("Final Attack", text), rows);
+    rows.push_back(EffectRow("Final Attack", text));
   }
   // The strike the swing sets off beside itself. Its wait rides the damage row
   // rather than taking one of its own, and its reach is stated only where it
@@ -933,7 +928,7 @@ std::vector<ftxui::Element> SwingRiderRows(const Skill& skill, int level) {
       text += ", " + std::to_string(side.max_enemies()) + " enemies";
     }
     text += " every " + FormatNumber(side.cooldown_seconds()) + "s";
-    Append(WrappedEffectRows(side.label(), text), rows);
+    rows.push_back(EffectRow(side.label(), text));
     double normal = side.base().normal_skill_pct() +
                     side.per_level().normal_skill_pct() * (level - 1);
     if (normal > 0.0) {
@@ -946,8 +941,8 @@ std::vector<ftxui::Element> SwingRiderRows(const Skill& skill, int level) {
 
 // The damage of every half that fights on a clock of its own, and of every
 // swing this skill puts in the place of another.
-std::vector<ftxui::Element> OwnClockRows(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> OwnClockRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
   // Each own-clock half's damage, under the swing's own so they read as one
   // skill with several ways of hurting things. Every one names itself, under
   // the same name its reach row above carries.
@@ -990,8 +985,8 @@ std::vector<ftxui::Element> OwnClockRows(const Skill& skill, int level) {
 }
 
 // What this skill hands to another skill in the book, one sentence a grant.
-std::vector<ftxui::Element> BoostRows(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> BoostRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
   // The skill it boosts belongs in the label: the label says what is boosted
   // and the value by how much, which is the shape every other row here has.
   // One row per skill named, because two skills granted different things
@@ -1001,15 +996,15 @@ std::vector<ftxui::Element> BoostRows(const Skill& skill, int level) {
     if (gains.empty()) {
       continue;
     }
-    Append(WrappedEffectRows("Boosts " + granted.skill_name(), gains), rows);
+    rows.push_back(EffectRow("Boosts " + granted.skill_name(), gains));
   }
   return rows;
 }
 
 // Everything that lands beside the swing rather than as part of it, and what
 // the skill hands to another skill in the book.
-std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> ExtraAttackRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
   Append(SwingRiderRows(skill, level), rows);
   Append(OwnClockRows(skill, level), rows);
   Append(BoostRows(skill, level), rows);
@@ -1020,15 +1015,15 @@ std::vector<ftxui::Element> ExtraAttackRows(const Skill& skill, int level) {
 // skill list's own tags for active and passive (panel_util's TagFor), so the
 // two halves are told apart here by the colours the player learned there.
 // Only the heading is coloured: a value that is always coloured says nothing.
-ftxui::Element SectionRow(const std::string& label, ftxui::Color color) {
-  return ftxui::text(" " + label) | ftxui::color(color);
+Row SectionRow(const std::string& label, ftxui::Color color) {
+  return TextRow(ftxui::text(" " + label) | ftxui::color(color));
 }
 
 // What a timed buff grants, headed by how long it stands. The wait for the
 // next one is the skill's own Cooldown row, above. No row here says "while
 // up" -- the heading says it once for all of them.
-std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
+std::vector<Row> BuffRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
   const Buff& buff = skill.buff();
   if (buff.duration_seconds() <= 0.0) {
     return rows;
@@ -1059,7 +1054,7 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
   }
   base.clear_heal_pct();
   per.clear_heal_pct();
-  for (ftxui::Element& row : LeverRows(base, per, level, "")) {
+  for (Row& row : LeverRows(base, per, level, "")) {
     rows.push_back(std::move(row));
   }
   // What the buff bleeds, on one row: its damage and its clock are one fact,
@@ -1076,11 +1071,11 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
   // What everybody else in the party gets while it stands, in the colour the
   // party screens are drawn in. Under the buff's own heading rather than at
   // the foot of the card, because these lapse with it. See Buff.ally_base.
-  std::vector<ftxui::Element> ally =
+  std::vector<Row> ally =
       LeverRows(buff.ally_base(), buff.ally_per_level(), level, "");
   if (!ally.empty()) {
     rows.push_back(SectionRow("Your Party", kTheme));
-    for (ftxui::Element& row : ally) {
+    for (Row& row : ally) {
       rows.push_back(std::move(row));
     }
   }
@@ -1089,12 +1084,12 @@ std::vector<ftxui::Element> BuffRows(const Skill& skill, int level) {
 
 // Everything the skill grants at `level`. Empty for a skill whose real effect
 // is something this game has no notion of.
-std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
-  for (ftxui::Element& row : OwnEffectRows(skill, level)) {
+std::vector<Row> EffectRows(const Skill& skill, int level) {
+  std::vector<Row> rows;
+  for (Row& row : OwnEffectRows(skill, level)) {
     rows.push_back(std::move(row));
   }
-  for (ftxui::Element& row : ExtraAttackRows(skill, level)) {
+  for (Row& row : ExtraAttackRows(skill, level)) {
     rows.push_back(std::move(row));
   }
   // A skill can grant three different things, and only one of them is the
@@ -1104,8 +1099,8 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   // meaning three things. A skill with one half alone needs no heading and
   // gets none.
   bool swings = skill.kind() == SKILL_KIND_ATTACK;
-  std::vector<ftxui::Element> swing;
-  std::vector<ftxui::Element> permanent;
+  std::vector<Row> swing;
+  std::vector<Row> permanent;
   if (swings) {
     swing = LeverRows(SwingLeversOf(skill.base()),
                       SwingLeversOf(skill.per_level()), level, "");
@@ -1113,7 +1108,7 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
                           WithoutSwingLevers(skill.per_level()), level, "");
     // The half the attack states apart, under the same heading: what it keeps
     // is what it keeps, however the skill chose to write it.
-    for (ftxui::Element& row :
+    for (Row& row :
          LeverRows(skill.passive(), skill.passive_per_level(), level, "")) {
       permanent.push_back(std::move(row));
     }
@@ -1122,37 +1117,37 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   }
   // What a chance pays lands with the permanent half: nothing about it lapses,
   // and a passive that only ever fires sometimes is a passive still.
-  for (ftxui::Element& row : ProcRows(skill, level)) {
+  for (Row& row : ProcRows(skill, level)) {
     permanent.push_back(std::move(row));
   }
   if (!swing.empty()) {
     rows.push_back(SectionRow("This Attack Only", kGold));
-    for (ftxui::Element& row : swing) {
+    for (Row& row : swing) {
       rows.push_back(std::move(row));
     }
   }
-  std::vector<ftxui::Element> buff = BuffRows(skill, level);
-  for (ftxui::Element& row : buff) {
+  std::vector<Row> buff = BuffRows(skill, level);
+  for (Row& row : buff) {
     rows.push_back(std::move(row));
   }
   // A skill paid only for shielding somebody heads its own half whatever else
   // is on the page: a player maxing it alone and seeing nothing move has to
   // be able to read why here.
-  std::vector<ftxui::Element> ally =
+  std::vector<Row> ally =
       LeverRows(skill.ally_base(), skill.ally_per_level(), level, "");
   if (!permanent.empty() && (!buff.empty() || !swing.empty() ||
                              skill.requires_party() || !ally.empty())) {
     rows.push_back(SectionRow(
         skill.requires_party() ? "Passive, in a Party" : "Passive", kGreen));
   }
-  for (ftxui::Element& row : permanent) {
+  for (Row& row : permanent) {
     rows.push_back(std::move(row));
   }
   // What everybody else in the party gets, in the colour the party screens
   // are drawn in. Its own section: these are not the reader's numbers.
   if (!ally.empty()) {
     rows.push_back(SectionRow("Your Party", kTheme));
-    for (ftxui::Element& row : ally) {
+    for (Row& row : ally) {
       rows.push_back(std::move(row));
     }
   }
@@ -1173,63 +1168,56 @@ std::vector<ftxui::Element> EffectRows(const Skill& skill, int level) {
   for (const WeaponBonus& bonus : skill.weapon_bonus()) {
     std::string suffix =
         " (" + RequiredWeapons(bonus.required_equip_type()) + ")";
-    for (ftxui::Element& row : LeverRows(
-             bonus.effect(), SkillEffect::default_instance(), 1, suffix)) {
+    for (Row& row : LeverRows(bonus.effect(), SkillEffect::default_instance(),
+                              1, suffix)) {
       rows.push_back(std::move(row));
     }
   }
-  return rows;
+  return Speaking(std::move(rows));
 }
 
 // One "Level N" heading and the effects under it.
-std::vector<ftxui::Element> LevelBlock(const Skill& skill, int level) {
-  std::vector<ftxui::Element> rows;
-  rows.push_back(ftxui::text(" Level " + std::to_string(level)));
-  std::vector<ftxui::Element> effects = EffectRows(skill, level);
+std::vector<Row> LevelBlock(const Skill& skill, int level) {
+  std::vector<Row> rows;
+  rows.push_back(TextRow(ftxui::text(" Level " + std::to_string(level))));
+  std::vector<Row> effects = EffectRows(skill, level);
   if (effects.empty()) {
     // A skill whose whole effect is unmodelled still has levels to spend on,
     // and saying so is better than a heading standing over nothing.
-    rows.push_back(EmptyState("no effect", kEffectIndent));
+    rows.push_back(TextRow(EmptyState("no effect", kEffectIndent)));
   }
-  for (ftxui::Element& row : effects) {
+  for (Row& row : effects) {
     rows.push_back(std::move(row));
   }
   return rows;
 }
 
-}  // namespace
+// One laid-out row of the card, ready to draw. `separator` rules off a
+// section, and is drawn across the scroll bar's column as well as the text --
+// a rule that stops a column short of the border reads as a gap in the card.
+struct Line {
+  ftxui::Element element;
+  bool separator = false;
+};
 
-void SkillInspectPanel::SetSkill(const Skill* skill, int learned, int bonus,
-                                 Levels levels) {
-  skill_ = skill;
-  level_ = learned;
-  bonus_ = bonus;
-  levels_ = levels;
-}
-
-std::vector<SkillInspectPanel::CardRow> SkillInspectPanel::BuildRows() const {
-  std::vector<CardRow> rows;
-  auto text_row = [&rows](ftxui::Element row) {
-    rows.push_back({std::move(row), /*separator=*/false});
-  };
+// Every row of the card, in order, borders aside and columns not yet decided.
+std::vector<Row> CardRows(const Skill& skill, int level, int bonus,
+                          SkillInspectPanel::Levels levels) {
+  std::vector<Row> rows;
   auto rule = [&rows]() {
-    rows.push_back({ThemedSeparator(), /*separator=*/true});
+    rows.push_back({Row::kRule, "", "", ThemedSeparator()});
   };
-  text_row(CenteredRow(skill_->name()));
-  text_row(CenteredRow("Max Level: " + std::to_string(skill_->max_level())));
+  rows.push_back(TextRow(CenteredRow(skill.name())));
+  rows.push_back(
+      TextRow(CenteredRow("Max Level: " + std::to_string(skill.max_level()))));
 
   rule();
-  for (const std::string& line :
-       WrapText(skill_->description(), kContentWidth - 2)) {
-    text_row(ftxui::text(" " + line));
-  }
+  rows.push_back({Row::kProse, "", skill.description(), nullptr});
 
-  std::vector<ftxui::Element> invariant = InvariantRows(*skill_);
+  std::vector<Row> invariant = InvariantRows(skill);
   if (!invariant.empty()) {
     rule();
-    for (ftxui::Element& row : invariant) {
-      text_row(std::move(row));
-    }
+    Append(std::move(invariant), rows);
   }
 
   // Two blocks, and which two is the whole of the difference between the
@@ -1242,28 +1230,74 @@ std::vector<SkillInspectPanel::CardRow> SkillInspectPanel::BuildRows() const {
   // point left to spend is the LEARNED level's business, which is why the two
   // are asked separately.
   int first = 1;
-  int second = skill_->max_level();
+  int second = skill.max_level();
   bool has_second = second > first;
-  if (levels_ == kLearned) {
-    first = LevelWithBonus(*skill_, level_, bonus_);
-    second = LevelWithBonus(*skill_, level_ + 1, bonus_);
+  if (levels == SkillInspectPanel::kLearned) {
+    first = LevelWithBonus(skill, level, bonus);
+    second = LevelWithBonus(skill, level + 1, bonus);
     // A point that buys nothing gets no block: the lent levels can already
     // have carried the skill to the ceiling the next one would reach.
-    has_second = level_ < skill_->max_level() && second > first;
+    has_second = level < skill.max_level() && second > first;
   }
   if (first > 0) {
     rule();
-    for (ftxui::Element& row : LevelBlock(*skill_, first)) {
-      text_row(std::move(row));
-    }
+    Append(LevelBlock(skill, first), rows);
   }
   if (has_second) {
     rule();
-    for (ftxui::Element& row : LevelBlock(*skill_, second)) {
-      text_row(std::move(row));
-    }
+    Append(LevelBlock(skill, second), rows);
   }
   return rows;
+}
+
+// The card's rows drawn into `content` columns. A value too long for its
+// column continues on the next line with the label left blank, rather than
+// being cut mid-word.
+std::vector<Line> LayOut(std::vector<Row> rows, int content) {
+  const std::string indent(kEffectIndent, ' ');
+  int label_width = kEffectLabelWidth;
+  int value_width = content - kEffectIndent - label_width;
+  std::vector<Line> lines;
+  for (Row& row : rows) {
+    if (row.kind == Row::kRule) {
+      lines.push_back({std::move(row.element), /*separator=*/true});
+      continue;
+    }
+    if (row.kind == Row::kWhole) {
+      lines.push_back({std::move(row.element), /*separator=*/false});
+      continue;
+    }
+    if (row.kind == Row::kProse) {
+      for (const std::string& line : WrapText(row.value, content - 2)) {
+        lines.push_back({ftxui::text(" " + line), /*separator=*/false});
+      }
+      continue;
+    }
+    std::string head = row.label;
+    // A label too wide for its column takes a row to itself rather than being
+    // cut: what it names is a skill, and half a skill's name is not one. The
+    // value then reads under it, in the column it always sits in.
+    if (TextColumns(head) > label_width) {
+      lines.push_back({ftxui::text(indent + head), /*separator=*/false});
+      head.clear();
+    }
+    for (const std::string& line : WrapText(row.value, value_width)) {
+      lines.push_back({ftxui::text(indent + PadRight(head, label_width) + line),
+                       /*separator=*/false});
+      head.clear();
+    }
+  }
+  return lines;
+}
+
+}  // namespace
+
+void SkillInspectPanel::SetSkill(const Skill* skill, int learned, int bonus,
+                                 Levels levels) {
+  skill_ = skill;
+  level_ = learned;
+  bonus_ = bonus;
+  levels_ = levels;
 }
 
 int SkillInspectPanel::VisibleRows(int total) const {
@@ -1279,7 +1313,8 @@ void SkillInspectPanel::ScrollBy(int delta) {
   if (skill_ == nullptr) {
     return;
   }
-  int total = static_cast<int>(BuildRows().size());
+  int total = static_cast<int>(
+      LayOut(CardRows(*skill_, level_, bonus_, levels_), kContentWidth).size());
   int last = total - VisibleRows(total);
   offset_ = std::max(0, std::min(offset_ + delta, last));
 }
@@ -1289,7 +1324,8 @@ ftxui::Element SkillInspectPanel::Render() const {
     return ThemedWindow(" Skill ", EmptyState("no skill"));
   }
 
-  std::vector<CardRow> rows = BuildRows();
+  std::vector<Line> rows =
+      LayOut(CardRows(*skill_, level_, bonus_, levels_), kContentWidth);
   int total = static_cast<int>(rows.size());
   int visible = VisibleRows(total);
   // Clamped here as well as in ScrollBy: the terminal can be made taller under
@@ -1307,7 +1343,7 @@ ftxui::Element SkillInspectPanel::Render() const {
   std::vector<ftxui::Element> cells = ScrollBarCells(total, offset, visible);
   std::vector<ftxui::Element> lines;
   for (int row = 0; row < visible; ++row) {
-    CardRow& card_row = rows[offset + row];
+    Line& card_row = rows[offset + row];
     if (card_row.separator) {
       lines.push_back(std::move(card_row.element) |
                       ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kContentWidth));
