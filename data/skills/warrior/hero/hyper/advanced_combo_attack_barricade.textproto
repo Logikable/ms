@@ -1,0 +1,17 @@
+# GMS calls this one Opportunity and pays a 20% chance of charging two orbs at
+# once. The ring is taken as full everywhere in this game, so that grant would
+# be worth nothing at all -- and rather than ship a row that does nothing and
+# says something else, it is renamed for the DEF it hands out instead.
+#
+# Which is also worth nothing, deliberately: DEF stops paying at a share of the
+# attacking monster's own attack, and a Hero has passed that cap on their stats
+# alone. See SkillEffect.def_pct, dead by the same design.
+name: "Combo Attack - Barricade"
+skill_order: 5
+description: "Increases the DEF granted by each Combo Orb."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+hyper: true
+required_level: 150
+max_level: 1
+base { def_per_combo_orb: 100 }

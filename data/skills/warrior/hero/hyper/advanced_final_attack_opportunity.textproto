@@ -1,0 +1,16 @@
+# Advanced Final Attack reaches 60% at master level, so this walks it to 75%.
+# The one lever a boost carries that never reaches a swing -- what it raises is
+# how often the extra hit lands, which belongs to the source rather than to the
+# attack that set it off.
+name: "Final Attack - Opportunity"
+skill_order: 9
+description: "Increases Advanced Final Attack's activation rate."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+hyper: true
+required_level: 180
+max_level: 1
+boost {
+  skill_name: "Advanced Final Attack"
+  effect { final_attack_chance: 0.15 }
+}

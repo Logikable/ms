@@ -1,0 +1,46 @@
+# The strikes ride the Hero's Swordsmanship swings in GMS. A Hero at this level
+# is swinging Raging Blow or Puncture, both of which carry that tag, so the
+# gate is always met and what is left is the clock.
+#
+# Two seconds is an estimate: GMS says only "periodically", and the client
+# keeps the interval somewhere the data does not reach. It has to land near
+# this -- the twelve ticks were shortened by 16% for not fitting inside the
+# thirty seconds, and at two seconds they finish with six to spare.
+#
+# What the cap really buys is that Buff Duration is worth nothing here. Twelve
+# ticks are twelve ticks however long the window is stretched.
+#
+# GMS also fills the combo ring on cast and holds the Hero against knockback.
+# The ring is taken as full everywhere in this game, and nothing knocks the
+# player back, so neither is written.
+name: "Cry Valhalla"
+skill_order: 1
+description:
+  "Calls upon the power of the ancients to defend you. Increases Attack "
+  "Power, Critical Rate and both resistances, and sends sword strikes at the "
+  "enemies around you."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+hyper: true
+required_level: 140
+max_level: 1
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 30.0
+  base {
+    attack: 50
+    crit_rate: 0.30
+    status_resistance: 100
+    elemental_resistance: 1.00
+  }
+  pulse {
+    label: "Sword Strikes"
+    cast_interval_seconds: 2.0
+    lines: 2
+    casts: 3
+    max_enemies: 6
+    max_pulses: 12
+    base { skill_pct: 5.20 }
+  }
+}

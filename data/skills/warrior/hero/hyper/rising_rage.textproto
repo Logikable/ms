@@ -1,0 +1,19 @@
+# 660ms is the animation's own, from the frame data -- the same as Raging Blow,
+# so what the ten-second wait buys is the damage rather than a slower swing.
+name: "Rising Rage"
+skill_order: 2
+description: "Suppresses your inner rage into a powerful energy sphere."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_HERO
+hyper: true
+required_level: 160
+max_level: 1
+required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
+required_equip_type: EQUIP_TYPE_ONE_HANDED_AXE
+required_equip_type: EQUIP_TYPE_TWO_HANDED_AXE
+base_delay_ms: 660
+cooldown_seconds: 10.0
+max_enemies: 10
+lines: 8
+base { skill_pct: 5.60 }

@@ -1,0 +1,16 @@
+# GMS writes it "Damage: +20%" -- the %Damage stat aimed at one swing, summing
+# with what the character already pays rather than adding points to Raging
+# Blow's own multiplier. Both halves of the swing collect it: the two certain
+# criticals are the same swing.
+name: "Raging Blow - Reinforce"
+skill_order: 10
+description: "Increases Raging Blow's damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_HERO
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Raging Blow"
+  effect { damage_pct: 0.20 }
+}
