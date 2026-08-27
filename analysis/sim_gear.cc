@@ -545,6 +545,9 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     // Read off the table for the buffs standing now: the same swing is worth
     // more under a buff, and which one it is was settled when it was aimed.
     const AttackOption& swung = params.Attacks(clocks.mask)[pick];
+    // A HELD swing is played to the end here. Nothing in this sim tracks what
+    // one enemy has left, so there is nothing to let go early for -- and a
+    // boss, which is what these numbers are for, is held to the end anyway.
     phase += kStep;
     if (phase < swung.swing_seconds) {
       continue;

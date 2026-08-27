@@ -217,6 +217,55 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
             params.attacks[0].damage_per_hit[0]);
 }
 
+// A held swing is built as a full hold: its damage is every pulse and the
+// strike it ends on, and its length is the pulses on their own clock. The
+// skill's own delay is the FLOOR under that -- the shortest the player can let
+// go -- and the pulses that fit inside it are the fewest a cast is worth.
+TEST(ComputeCombatParamsTest, AHeldSwingIsPricedAsAFullHold) {
+  Skill orb;
+  orb.set_name("Lightning Orb");
+  orb.set_kind(SKILL_KIND_ATTACK);
+  orb.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  orb.set_max_level(1);
+  orb.set_max_enemies(8);
+  orb.set_lines(15);
+  orb.set_base_delay_ms(960);
+  orb.mutable_base()->set_skill_pct(1.35);
+  Channel* channel = orb.mutable_channel();
+  channel->set_pulse_interval_ms(150);
+  channel->set_max_pulses(12);
+  channel->set_finish_delay_ms(200);
+  channel->set_damage_taken_pct(0.5);
+  channel->mutable_finish()->set_lines(15);
+  channel->mutable_finish()->mutable_base()->set_skill_pct(7.02);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"lightning_orb", orb}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(orb, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  int held = IndexOfAttack(params.attacks, "Lightning Orb");
+  ASSERT_GE(held, 0);
+  const AttackOption& attack = params.attacks[held];
+  double speed = GameSpeedFactor(state.character.proto().level());
+  EXPECT_EQ(attack.channel.pulses, 12);
+  EXPECT_EQ(attack.channel.min_pulses, 5);
+  EXPECT_DOUBLE_EQ(attack.channel.damage_taken_pct, 0.5);
+  EXPECT_DOUBLE_EQ(attack.channel.pulse_seconds, 0.15 * speed);
+  EXPECT_DOUBLE_EQ(attack.channel.finish_seconds, 0.2 * speed);
+  // Twelve pulses and the finish, which is longer than the floor.
+  EXPECT_DOUBLE_EQ(attack.swing_seconds, 2.0 * speed);
+  EXPECT_DOUBLE_EQ(HoldSeconds(attack.channel, 5), attack.channel.min_seconds);
+  // One pulse is the first block of lines; the whole hold is twelve of them
+  // plus the burst, which is what the swing is weighed at.
+  ASSERT_EQ(attack.groups.size(), 2u);
+  EXPECT_NEAR(attack.damage_per_hit[0],
+              12 * attack.groups[0].damage[0] + attack.groups[1].damage[0],
+              1e-6);
+}
+
 // Glacial Fury pays magic attack per Freeze Stack to ICE swings and to nothing
 // else, so the gain is written onto the ice swing alone -- and it is a share of
 // that swing, since damage is linear in the attack behind it.

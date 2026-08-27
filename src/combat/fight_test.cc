@@ -2771,6 +2771,77 @@ TEST(CombatSimTest, AHeldStackLiftsTheIceSwingItCameFrom) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.935, 1e-9);  // capped, so no more
 }
 
+// Lightning Orb's shape: a swing that is held, pulsing at 10 damage every
+// 0.15s for up to 12 pulses, and ending on a 50-damage burst that costs 0.2s.
+// The floor is 0.96s, which five pulses and the finish fit inside.
+AttackOption MakeHeldSwing() {
+  AttackOption orb = MakeSkill("Lightning Orb", 0.0, /*cooldown=*/0.0);
+  orb.channel.pulses = 12;
+  orb.channel.min_pulses = 5;
+  orb.channel.pulse_seconds = 0.15;
+  orb.channel.finish_seconds = 0.2;
+  orb.channel.min_seconds = 0.96;
+  orb.groups.push_back({{10.0}, SwingRolls{}});
+  orb.groups.push_back({{50.0}, SwingRolls{}});
+  orb.damage_per_hit = {12 * 10.0 + 50.0};
+  orb.swing_seconds = HoldSeconds(orb.channel, orb.channel.pulses);
+  return orb;
+}
+
+// Steps the fight in slices and totals what the character dealt. Advance
+// clamps one call to a single swing of the bare poke, so a hold longer than
+// that has to be walked rather than jumped.
+double RunFor(CombatSim& sim, const CombatParams& params, double seconds) {
+  double damage = 0.0;
+  for (double step = 0.0; step + 1e-9 < seconds; step += 0.01) {
+    sim.Advance(params, 0.01);
+    damage += sim.damage_this_step();
+  }
+  return damage;
+}
+
+// A boss is never within reach of the finish, so the orb is held to the end:
+// twelve pulses and the burst, over the whole two seconds.
+TEST(CombatSimTest, AHoldRunsToTheEndAgainstSomethingThatSurvivesIt) {
+  Mob boss = MakeMob("Zakum", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&boss, 0.0, 1)});
+  params.attacks.push_back(MakeHeldSwing());
+
+  CombatSim sim;
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 1.95), 0.0);  // still being held
+  EXPECT_EQ(sim.attack_name(), "Lightning Orb");
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.1), 170.0);  // 12 x 10, then 50
+}
+
+// Against something the burst alone nearly kills, the hold is let go at its
+// floor: five pulses and the finish, in 0.96s rather than 2s.
+TEST(CombatSimTest, AHoldIsLetGoOnceMorePulsesWouldBuyNothing) {
+  Mob snail = MakeMob("Snail", 60);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&snail, 0.0, 1)});
+  params.attacks.push_back(MakeHeldSwing());
+
+  CombatSim sim;
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.95), 0.0);
+  EXPECT_DOUBLE_EQ(RunFor(sim, params, 0.02), 100.0);  // 5 x 10, then 50
+  EXPECT_TRUE(sim.roster().empty());
+}
+
+// The hold is the shelter: what the player takes while the key is down is cut
+// by half, and back to full the moment the swing lands.
+TEST(CombatSimTest, AHoldShelttersThePlayerWhileItRuns) {
+  Mob biter = MakeMob("Biter", 1000000);
+  CombatParams params = MakeParams(1.0, 0.0, {MakeType(&biter, 0.0, 1)});
+  GivePlayerHp(params, 1000, /*interval=*/0.5, /*damage=*/100.0);
+  AttackOption orb = MakeHeldSwing();
+  orb.channel.damage_taken_pct = 0.5;
+  params.attacks.push_back(std::move(orb));
+
+  CombatSim sim;
+  // Three hits land inside the two-second hold, each halved.
+  RunFor(sim, params, 1.6);
+  EXPECT_EQ(sim.player_hp(), 1000 - 150);
+}
+
 // Glacial Fury's half of the pile: magic attack per held stack, and only an
 // ice swing collects it.
 TEST(CombatSimTest, GlacialFurysMagicAttackRidesTheIceSwingAlone) {

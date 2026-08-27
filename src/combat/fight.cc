@@ -97,10 +97,16 @@ std::vector<int> CombatSim::LeadTargets(const AttackOption& attack,
 // Attack that follows it onto every one of them.
 double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
   double total = 0.0;
+  // A hold is worth its pulses and its finish, and the pulses are only as many
+  // as the fight means to hold for -- weighing it at a full hold would price
+  // pulses that will land on nothing.
+  int pulses = ChannelPulses(attack, hit);
+  double dropped = pulses > 0 ? attack.channel.pulses - pulses : 0;
   for (int j = 0; j < hit; ++j) {
     int type = queue_[j].type;
     if (type < static_cast<int>(attack.damage_per_hit.size())) {
-      total += attack.damage_per_hit[type];
+      total +=
+          attack.damage_per_hit[type] - dropped * PulseDamage(attack, type);
     }
   }
   total *= PierceMean(attack.pierce_gain_pct, hit);
@@ -253,7 +259,7 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     // exist -- see FreezeCredit.
     double rate = (SwingDamage(attack) * FreezeBoost(attack) +
                    FreezeCredit(params, attack)) /
-                  attack.swing_seconds;
+                  SwingSecondsAgainst(attack);
     if (rate > best_rate) {
       best_rate = rate;
       best = i;
@@ -321,7 +327,8 @@ void CombatSim::RunCooldowns(const CombatParams& params, double dt) {
   }
 }
 
-double CombatSim::Strike(const AttackOption& attack, DamageSource source) {
+double CombatSim::Strike(const AttackOption& attack, DamageSource source,
+                         int pulses) {
   // One strike hits the front mobs at once; each takes its own type's damage.
   // Overkill on any of them is wasted. Dead mobs leave the queue and the ones
   // behind slide into the window next time.
@@ -342,12 +349,20 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source) {
   // its lines under the one event -- the strike, the opening hit and whatever
   // follows them are one landing to the player watching.
   OpenLandings(hit, source);
+  // A hold that was not timed by the swing clock decides here instead, which
+  // is what an attack on a clock of its own would want.
+  int held = attack.channel.pulses > 0
+                 ? (pulses >= 0 ? pulses : ChannelPulses(attack, hit))
+                 : 0;
   for (int step = 0; step < hit; ++step) {
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
-    Hurt(queue_[j],
-         DamageToMob(attack, j, LandingAt(j, gain * freeze)) * gain * freeze);
+    double damage =
+        held > 0
+            ? ChannelDamage(attack, queue_[j].type, held, LandingAt(j, freeze))
+            : DamageToMob(attack, j, LandingAt(j, gain * freeze)) * gain;
+    Hurt(queue_[j], damage * freeze);
   }
   for (int j : lead) {
     double damage = attack.lead_damage[queue_[j].type] *
@@ -424,6 +439,86 @@ double CombatSim::FreezeBoost(const AttackOption& attack) const {
   // than damage, and lands under everything the swing already multiplies.
   double matt = 1.0 + attack.freeze_matt_gain * freeze_stacks_;
   return crit * spent * matt;
+}
+
+double CombatSim::PulseDamage(const AttackOption& attack, int type) const {
+  if (attack.groups.empty() ||
+      type >= static_cast<int>(attack.groups.front().damage.size())) {
+    return 0.0;
+  }
+  return attack.groups.front().damage[type];
+}
+
+double CombatSim::FinishDamage(const AttackOption& attack, int type) const {
+  double total = 0.0;
+  for (std::size_t i = 1; i < attack.groups.size(); ++i) {
+    const HitGroup& group = attack.groups[i];
+    if (type < static_cast<int>(group.damage.size())) {
+      total += group.damage[type];
+    }
+  }
+  return total;
+}
+
+int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
+  const ChannelHold& hold = attack.channel;
+  if (hold.pulses <= 0) {
+    return 0;
+  }
+  // What the strike at the end will land anyway. The hold only has to bring
+  // them within its reach: pulses past that fall on something already dead.
+  double freeze = FreezeBoost(attack);
+  int wanted = hold.min_pulses;
+  for (int j = 0; j < hit && j < static_cast<int>(queue_.size()); ++j) {
+    int type = queue_[j].type;
+    double pulse = PulseDamage(attack, type) * freeze;
+    if (pulse <= 0.0) {
+      continue;
+    }
+    double left = queue_[j].hp - FinishDamage(attack, type) * freeze;
+    if (left <= 0.0) {
+      continue;
+    }
+    wanted = std::max(wanted, static_cast<int>(std::ceil(left / pulse)));
+  }
+  return std::clamp(wanted, hold.min_pulses, hold.pulses);
+}
+
+double CombatSim::SwingSecondsAgainst(const AttackOption& attack) const {
+  if (attack.channel.pulses <= 0) {
+    return attack.swing_seconds;
+  }
+  int hit = std::min(std::max(1, attack.max_enemies),
+                     static_cast<int>(queue_.size()));
+  return HoldSeconds(attack.channel, ChannelPulses(attack, hit));
+}
+
+double CombatSim::HeldSeconds(const AttackOption& attack) const {
+  if (attack.channel.pulses <= 0) {
+    return attack.swing_seconds;
+  }
+  return HoldSeconds(attack.channel, held_pulses_);
+}
+
+double CombatSim::ChannelDamage(const AttackOption& attack, int type,
+                                int pulses, const Landing& landing) {
+  double total = 0.0;
+  double pulse = PulseDamage(attack, type);
+  for (int i = 0; i < pulses; ++i) {
+    total += pulse * RollFactor(attack.groups.front().rolls, rng_, LineSink());
+    RecordRolls(landing, pulse * landing.scale);
+  }
+  // Everything past the first group is the strike the hold ends on, landed
+  // once however long the hold ran.
+  for (std::size_t i = 1; i < attack.groups.size(); ++i) {
+    const HitGroup& group = attack.groups[i];
+    if (type >= static_cast<int>(group.damage.size())) {
+      continue;
+    }
+    total += group.damage[type] * RollFactor(group.rolls, rng_, LineSink());
+    RecordRolls(landing, group.damage[type] * landing.scale);
+  }
+  return total;
 }
 
 double CombatSim::FreezeCredit(const CombatParams& params,
@@ -816,6 +911,12 @@ double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
       factor *= 1.0 - params.ally_buffs[i].damage_taken_pct;
     }
   }
+  // The shelter a HOLD is, which lasts exactly as long as the hold: the swing
+  // being charged is the key being held down.
+  const std::vector<AttackOption>& options = Attacks(params);
+  if (aimed_ >= 0 && aimed_ < static_cast<int>(options.size())) {
+    factor *= 1.0 - options[aimed_].channel.damage_taken_pct;
+  }
   return std::max(0.0, factor);
 }
 
@@ -1084,10 +1185,19 @@ void CombatSim::CreditSwing(const CombatParams& params, double weight) {
 }
 
 const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
+  int previous = aimed_;
   aimed_ = ChooseAttack(params);
   const AttackOption* attack = aimed_ >= 0 ? &Attacks(params)[aimed_] : nullptr;
   attack_name_ = attack != nullptr ? attack->name : "";
   if (attack != nullptr) {
+    // How long to hold is settled once, when the swing is first aimed. A hold
+    // already running is the player's key held down: the queue moving under it
+    // does not re-time it, and re-deciding every step would let it flicker.
+    if (aimed_ != previous) {
+      held_pulses_ =
+          ChannelPulses(*attack, std::min(std::max(1, attack->max_enemies),
+                                          static_cast<int>(queue_.size())));
+    }
     // A cast reaches nobody, so it leaves the window on whatever the last
     // swing set: the mob bars must not collapse for the length of the cast.
     if (attack->heal_fraction <= 0.0) {
@@ -1097,7 +1207,7 @@ const AttackOption* CombatSim::AimSwing(const CombatParams& params) {
     // no attack of its own to ask. A pick that changes mid-charge changes the
     // clock under it, which is the honest reading: the swing being charged is
     // the one that will land.
-    swing_seconds_ = attack->swing_seconds;
+    swing_seconds_ = HeldSeconds(*attack);
   }
   return attack;
 }
@@ -1117,8 +1227,8 @@ void CombatSim::RunSwing(const CombatParams& params, double dt) {
   // leaves the charge bar pinned full, since the phase never falls back under
   // one swing.
   while (attack != nullptr && attack->swing_seconds > 0.0 &&
-         attack_phase_ >= attack->swing_seconds) {
-    attack_phase_ -= attack->swing_seconds;
+         attack_phase_ >= HeldSeconds(*attack)) {
+    attack_phase_ -= HeldSeconds(*attack);
     LandSwing(params, *attack);
     // Aimed afresh by the landing, because the queue just moved and the
     // commitment is discharged.
@@ -1138,7 +1248,8 @@ void CombatSim::LandSwing(const CombatParams& params,
     const AttackOption& landed =
         FormToLand(empowered_count_, static_cast<int>(Attacks(params).size()),
                    swung, attack);
-    double proc_recovered = Strike(landed, {DamageOrigin::kSwing, 0});
+    double proc_recovered =
+        Strike(landed, {DamageOrigin::kSwing, 0}, held_pulses_);
     CreditFreeze(params, landed);
     // The strike this swing sets off beside itself, where its own wait has
     // run out. Read off the aimed attack rather than off what landed: the

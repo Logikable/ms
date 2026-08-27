@@ -785,8 +785,20 @@ std::vector<Row> LeverRows(const SkillEffect& base, const SkillEffect& per,
 // the shapes a plain lever row cannot state.
 std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   std::vector<Row> rows;
+  bool held = skill.channel().max_pulses() > 0;
   if (IsActive(skill) && PercentAt(skill, &SkillEffect::skill_pct, level) > 0) {
-    rows.push_back(EffectRow("Damage", DamageText(skill, level)));
+    // A hold's damage row is ONE pulse of it, so it says so: the swing lands
+    // that over and over, and a row reading as the whole thing would be out by
+    // its pulse count.
+    rows.push_back(EffectRow(held ? "Damage per Pulse" : "Damage",
+                             DamageText(skill, level)));
+  }
+  // How many pulses one hold is worth. A count rather than a clock, which is
+  // the half of the hold the player can act on -- they let go when it stops
+  // paying.
+  if (held) {
+    rows.push_back(EffectRow(
+        "Pulses", "Up to " + std::to_string(skill.channel().max_pulses())));
   }
   // A fountain states both halves. Neither alone says what a point bought:
   // the pulse grows and the wait between pulses shortens together, so a page
@@ -858,6 +870,20 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   // rows above, because that is what it is.
   for (Row& row : SwingHitRows(skill.extra_hit(), level)) {
     rows.push_back(std::move(row));
+  }
+  // The strike a hold ends on reads exactly as any other second hit, since
+  // that is what it is -- one landed once however long the hold ran.
+  if (held) {
+    google::protobuf::RepeatedPtrField<SwingHit> finish;
+    *finish.Add() = skill.channel().finish();
+    for (Row& row : SwingHitRows(finish, level)) {
+      rows.push_back(std::move(row));
+    }
+    if (skill.channel().damage_taken_pct() > 0.0) {
+      rows.push_back(
+          EffectRow("Damage Taken",
+                    "-" + FormatPercent(skill.channel().damage_taken_pct())));
+    }
   }
   // Under the swing's own damage, because it is the extra the swing opens with
   // rather than a second attack.

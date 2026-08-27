@@ -635,6 +635,34 @@ message SwingHit {
   int32 lines = 4;
 }
 
+// A swing the player HOLDS rather than presses: it pulses while the key is
+// down and ends on one bigger strike when they let go. Lightning Orb is what
+// it exists for -- an orb that zaps eight enemies every 150ms for up to two
+// seconds and then bursts.
+//
+// The pulse is the skill's own: its damage, its lines, its reach. What is here
+// is the clock the pulses fall on, how long the hold can run and what it ends
+// with. Skill.base_delay_ms is the SHORTEST hold rather than the whole swing,
+// and it alone is scaled by attack speed -- the pulse clock is the skill's own
+// rate, exactly as fixed_delay says of a key-down swing.
+//
+// The enemies are picked when the hold opens and never again. An orb that has
+// emptied its targets goes on zapping the space where they stood, so the fight
+// lets go the moment another pulse would buy nothing -- which is the whole
+// reason the hold has a length to decide at all.
+message Channel {
+  int32 pulse_interval_ms = 1;
+  // Pulses a full hold is worth. The hold runs no longer than these take.
+  int32 max_pulses = 2;
+  // The strike the hold ends on, read exactly as an extra_hit is: its own
+  // multiplier and its own lines, landed once however long the hold ran.
+  SwingHit finish = 3;
+  int32 finish_delay_ms = 4;
+  // Share of every hit the player takes that is cancelled while the key is
+  // held. The hold is the shelter, so it lasts exactly as long as the hold.
+  double damage_taken_pct = 5;
+}
+
 // A second attack the same swing sets off, on a wait of its own. Showdown's
 // shuriken is the case it exists for: the talisman lands, and once every five
 // seconds a dark shuriken goes with it and hunts down its own six enemies.
@@ -1031,6 +1059,8 @@ message Skill {
   // The chance this passive gives every swing to land harder on one enemy.
   // Unset for all but Mortal Blow -- see Proc.
   Proc proc = 41;
+  // The hold this swing is, if it is one. Only Lightning Orb -- see Channel.
+  Channel channel = 48;
 
   // What every OTHER member of the party gets out of this skill, read at the
   // caster's level exactly as `base` and `per_level` are. Empty for a skill

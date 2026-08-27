@@ -313,7 +313,33 @@ class CombatSim {
   // Returns the share of the player's pool the chances it rolled put back, 0
   // for every attack that rolls none. Reported rather than paid, because the
   // pool is the caller's business -- exactly as the kills are.
-  double Strike(const AttackOption& attack, DamageSource source);
+  // `pulses` is how long a HELD swing was held, in pulses; -1 lets the strike
+  // decide against the queue in front of it, which is what an attack on its
+  // own clock wants. Ignored by every swing that is not held.
+  double Strike(const AttackOption& attack, DamageSource source,
+                int pulses = -1);
+  // How long the orb is worth holding against the queue as it stands: pulses
+  // enough to bring every enemy it has locked onto within reach of the strike
+  // the hold ends on, and no more. It never re-targets, so a pulse landing
+  // after they are dead buys nothing. 0 for a swing that is not held.
+  int ChannelPulses(const AttackOption& attack, int hit) const;
+  // Seconds one swing of `attack` takes against the queue as it stands: its
+  // own for an ordinary swing, and for a held one only as long as it is worth
+  // holding.
+  double SwingSecondsAgainst(const AttackOption& attack) const;
+  // The same for the swing being wound up now, whose length was settled when
+  // it was aimed. A hold already running is not re-timed under the player.
+  double HeldSeconds(const AttackOption& attack) const;
+  // What one pulse of a held swing is worth against `type`, which is the
+  // swing's own first block of lines: a hold is that pulse over and over.
+  double PulseDamage(const AttackOption& attack, int type) const;
+  // What the strike a hold ends on is worth against `type`: everything past
+  // the swing's first block of lines, which is that strike and nothing else.
+  double FinishDamage(const AttackOption& attack, int type) const;
+  // What a hold of `pulses` lands on one mob of `type`: every pulse rolled on
+  // its own, and the strike it ends on landed once.
+  double ChannelDamage(const AttackOption& attack, int type, int pulses,
+                       const Landing& landing);
   // The order a swing that gains as it travels goes through the `hit` mobs it
   // reached, drawn fresh each swing: nothing here has a position, so which
   // enemy an arrow meets first is arbitrary and drawing it keeps the gain from
@@ -568,6 +594,10 @@ class CombatSim {
   // cooldown -- and, while it is charging, the swing that is committed to.
   // -1 with nothing aimed.
   int aimed_ = -1;
+  // Pulses the aimed swing will be held for, settled when it was aimed and
+  // kept until it lands: the orb the player is already holding is not re-timed
+  // under them as the queue moves. 0 whenever the aimed swing is not held.
+  int held_pulses_ = 0;
   std::vector<int64_t> kills_this_step_;
   double damage_this_step_ = 0.0;
   bool respawned_this_step_ = false;

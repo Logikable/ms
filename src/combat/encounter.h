@@ -48,6 +48,25 @@ struct HitGroup {
   SwingRolls rolls;
 };
 
+// A swing that is HELD: the clock its pulses fall on, how many of them a full
+// hold is worth, and the floor under the shortest one. The damage is in the
+// swing's own groups -- the first is one pulse, the rest are the strike the
+// hold ends on -- since a hold is that pulse landed over and over.
+//
+// `pulses` is 0 for every attack that is simply swung, which is all of them
+// but Lightning Orb. See Channel.
+struct ChannelHold {
+  int pulses = 0;
+  // The fewest a cast is committed to: the pulses that fit inside the floor
+  // below, which is the shortest the animation can run.
+  int min_pulses = 0;
+  double pulse_seconds = 0.0;
+  double finish_seconds = 0.0;
+  double min_seconds = 0.0;
+  // Share of every hit the player takes that the hold cancels while it runs.
+  double damage_taken_pct = 0.0;
+};
+
 // One burn a swing leaves on the enemies it reaches: what one tick is worth
 // per target type, the clock it burns on, and how it takes hold. A swing
 // carries one of these per source that marks what it hits. Game-scaled, like
@@ -228,7 +247,15 @@ struct AttackOption {
   // silent until the buff comes round again. 0 for a clock that never runs
   // out, which is every other one. See BuffPulse.max_pulses.
   int max_pulses = 0;
+  // The hold this swing is, for the one skill that is held. Its damage_per_hit
+  // above is a FULL hold, so an attack weighed without asking is weighed at
+  // what holding it to the end is worth.
+  ChannelHold channel;
 };
+
+// Seconds a hold of `pulses` takes: the pulses on their own clock and the
+// strike it ends on, never shorter than the animation's own floor.
+double HoldSeconds(const ChannelHold& hold, int pulses);
 
 // Everything the character can attack with, as it stands under one particular
 // set of buffs. The same attacks in the same order in every set -- what

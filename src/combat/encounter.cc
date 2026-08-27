@@ -170,6 +170,69 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
   }
 }
 
+// A second hit the same swing lands, priced on its own and summed into the
+// swing: its own multiplier, its own lines, its own critical rate on top of
+// what the character brought. The group it leaves behind is what makes it roll
+// separately -- see SwingHit.
+void AddSwingHit(const SwingHit& hit, const OffenseStats& offense, int level,
+                 const std::vector<CombatType>& types, AttackOption& attack) {
+  OffenseStats extra = offense;
+  extra.skill_pct =
+      hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
+  extra.normal_skill_pct = hit.base().normal_skill_pct() +
+                           hit.per_level().normal_skill_pct() * (level - 1);
+  extra.crit_rate +=
+      hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
+  extra.lines = std::max(1, hit.lines());
+  // The shadow copies it as it copies the rest of the swing. Reset here
+  // because the line count just changed under it.
+  extra.mirror_lines = extra.lines;
+  HitGroup group;
+  group.rolls = RollsFor(extra);
+  for (std::size_t i = 0; i < types.size(); ++i) {
+    group.damage.push_back(ExpectedAttackDamage(extra, *types[i].mob));
+    attack.damage_per_hit[i] += group.damage.back();
+  }
+  attack.groups.push_back(std::move(group));
+}
+
+// The hold a held swing is. What has been priced already is ONE pulse, so the
+// strike the hold ends on is added beside it and the swing's damage is then
+// restated as a full hold: every pulse of it, and the one finish.
+//
+// The floor is the animation's own, which is what base_delay_ms already became
+// -- the shortest the player can let go. The pulse clock is not scaled by
+// attack speed for the reason a key-down swing's is not: the rate belongs to
+// the skill.
+void AddChannel(const Skill& skill, const OffenseStats& offense, int level,
+                const std::vector<CombatType>& types, double speed_factor,
+                AttackOption& attack) {
+  const Channel& channel = skill.channel();
+  if (channel.max_pulses() <= 0 || channel.pulse_interval_ms() <= 0) {
+    return;
+  }
+  std::vector<double> pulse = attack.damage_per_hit;
+  AddSwingHit(channel.finish(), offense, level, types, attack);
+  ChannelHold& hold = attack.channel;
+  hold.pulses = channel.max_pulses();
+  hold.pulse_seconds = channel.pulse_interval_ms() / 1000.0 * speed_factor;
+  hold.finish_seconds = channel.finish_delay_ms() / 1000.0 * speed_factor;
+  hold.min_seconds = attack.swing_seconds;
+  hold.damage_taken_pct = channel.damage_taken_pct();
+  // The pulses that fit inside the floor, which is the fewest a cast can be
+  // let go after. At least one: a hold that landed no pulse at all would be a
+  // swing that does nothing but its finish.
+  hold.min_pulses =
+      std::clamp(static_cast<int>((hold.min_seconds - hold.finish_seconds) /
+                                  hold.pulse_seconds),
+                 1, hold.pulses);
+  for (std::size_t i = 0; i < pulse.size() && i < attack.damage_per_hit.size();
+       ++i) {
+    attack.damage_per_hit[i] += pulse[i] * (hold.pulses - 1);
+  }
+  attack.swing_seconds = HoldSeconds(hold, hold.pulses);
+}
+
 // One attack's damage against every mob type on the map. `skill` is null for
 // the bare poke, which hits one target for the character's plain 100% swing.
 // `equipped` is everything the character wears plus everything their passives
@@ -249,28 +312,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // priced on its own and the two are summed into the one swing.
   if (skill != nullptr) {
     for (const SwingHit& hit : skill->extra_hit()) {
-      OffenseStats extra = offense;
-      extra.skill_pct =
-          hit.base().skill_pct() + hit.per_level().skill_pct() * (level - 1);
-      extra.normal_skill_pct = hit.base().normal_skill_pct() +
-                               hit.per_level().normal_skill_pct() * (level - 1);
-      // A hit that crits harder than the rest of the swing. Added to what the
-      // character brought rather than replacing it, so 1.00 is certainty
-      // whatever they have bought -- see SwingHit.
-      extra.crit_rate +=
-          hit.base().crit_rate() + hit.per_level().crit_rate() * (level - 1);
-      extra.lines = std::max(1, hit.lines());
-      // The shadow copies it as it copies the rest of the swing. Reset here
-      // because the line count just changed under it.
-      extra.mirror_lines = extra.lines;
-      HitGroup group;
-      group.rolls = RollsFor(extra);
-      for (std::size_t i = 0; i < types.size(); ++i) {
-        group.damage.push_back(ExpectedAttackDamage(extra, *types[i].mob));
-        attack.damage_per_hit[i] += group.damage.back();
-      }
-      attack.groups.push_back(std::move(group));
+      AddSwingHit(hit, offense, level, types, attack);
     }
+    AddChannel(*skill, offense, level, types, speed_factor, attack);
   }
   // Final Attack rides the swing, not the skill: a plain hit worth its own
   // percent, so it starts from the bare stat line and takes neither the skill's
@@ -1008,6 +1052,11 @@ void AddBuffedSets(const GameState& state,
 }
 
 }  // namespace
+
+double HoldSeconds(const ChannelHold& hold, int pulses) {
+  return std::max(hold.min_seconds,
+                  pulses * hold.pulse_seconds + hold.finish_seconds);
+}
 
 const std::vector<AttackOption>& CombatParams::Attacks(int mask) const {
   if (mask <= 0 || mask > static_cast<int>(buffed.size())) {

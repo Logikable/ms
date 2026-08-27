@@ -506,6 +506,37 @@ TEST(SkillDataTest, EverySideStrikeSaysWhenItFiresAndForHowMuch) {
   }
 }
 
+// A held swing needs everything the hold is made of: a rate to pulse at, a
+// count to stop at, a floor to be let go after, and a strike to end on. Its
+// extra hits have to be that strike alone, since the fight reads everything
+// past the first block of lines as what the hold ended with.
+TEST(SkillDataTest, EveryHeldSwingSaysHowItPulsesAndWhatItEndsOn) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.has_channel()) {
+      continue;
+    }
+    const Channel& channel = skill.channel();
+    EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
+        << entry.first << " is held but is not a swing";
+    EXPECT_GT(channel.pulse_interval_ms(), 0)
+        << entry.first << " would pulse on no clock at all";
+    EXPECT_GT(channel.max_pulses(), 0)
+        << entry.first << "'s hold is worth no pulses";
+    EXPECT_GT(skill.base().skill_pct(), 0.0)
+        << entry.first << " would pulse for nothing";
+    EXPECT_GT(skill.base_delay_ms(), channel.finish_delay_ms())
+        << entry.first << " has no room to pulse inside its shortest hold";
+    EXPECT_GT(channel.finish().base().skill_pct(), 0.0)
+        << entry.first << "'s hold ends on nothing";
+    EXPECT_FALSE(channel.finish().label().empty())
+        << entry.first << "'s finish has no row to sit on";
+    EXPECT_EQ(skill.extra_hit_size(), 0)
+        << entry.first << " lands extra hits the fight would read as its "
+        << "finish";
+  }
+}
+
 // A timed buff is worth nothing without the two halves that make it one: a
 // stretch it stands for, and a wait for the next one. A buff with no wait
 // would simply be a passive written the hard way.
