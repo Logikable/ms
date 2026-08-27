@@ -961,35 +961,47 @@ TEST_F(CharacterPanelTest, AWideColumnHoldsTheWholeName) {
 
 // The Stats tab does not spread with the panel -- a value chasing the border
 // would leave its own label at the other end of the row -- so the room a wide
-// panel brings goes in front of the block, which stays against the panel's
-// right gutter.
-TEST_F(CharacterPanelTest, TheStatsBlockKeepsTheRightGutter) {
+// panel brings sits blank either side of the block.
+TEST_F(CharacterPanelTest, TheStatsBlockIsCentredInThePanel) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  CharacterPanel narrow(c, account_, panel_focus_, SkillCatalog());
-  CharacterPanel wide(c, account_, panel_focus_, SkillCatalog());
-  wide.SetWidth(kLeftColumnMax);
-
-  int slack = kLeftColumnMax - kLeftColumnMin;
-  EXPECT_EQ(FindCell(PanelScreen(wide, kLeftColumnMax), "HP:").first,
-            FindCell(PanelScreen(narrow, kLeftColumnMin), "HP:").first + slack)
-      << "the labels move over with the block";
-  EXPECT_EQ(RowEndOf(PanelScreen(wide, kLeftColumnMax), "[+]"),
-            kLeftColumnMax - 3)
-      << "and what the rows right-align keeps the gutter inside the border";
+  for (int width : {kLeftColumnMax, kLeftColumnMin + 1}) {
+    CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
+    panel.SetWidth(width);
+    ftxui::Screen screen = PanelScreen(panel, width);
+    // Both measured from inside the border: the blank in front of the block
+    // against the blank behind it.
+    int left = FindCell(screen, "HP:").first - 1;
+    int right = width - 2 - RowEndOf(screen, "[+]");
+    // An odd column falls to the left, so the right-hand column keeps the
+    // gutter it would have on the narrowest panel.
+    EXPECT_EQ(left - right, (width - kLeftColumnMin) % 2)
+        << "the block sits " << left << " in and " << right << " short at "
+        << width;
+  }
 }
 
-// The stat block is one block, and the panel is one panel: what the extra
-// stats right-align ends in the same column as the [+] of the rows above
-// them, and as the [+] of the Skills tab beside it.
-TEST_F(CharacterPanelTest, TheRightHandColumnsAllEndTogether) {
+// The stat block is one block: what the extra stats right-align ends in the
+// same column as the [+] of the rows above them, on any panel width.
+TEST_F(CharacterPanelTest, TheExtraStatsLineUpWithThePlusColumn) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
-  for (int width : {kLeftColumnMin, kLeftColumnMax}) {
+  for (int width : {kLeftColumnMin, kLeftColumnMin + 1, kLeftColumnMax}) {
     CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
     panel.SetWidth(width);
     ftxui::Screen stats = PanelScreen(panel, width);
     EXPECT_EQ(RowEndOf(stats, "[+]"), RowEndOf(stats, "Attack Speed"))
         << "the stat rows end apart at width " << width;
+  }
+}
 
+// And on a panel with a column or less to spare, the block lands in the
+// Skills tab's [+] column too -- the odd column of the centring goes to the
+// left so that it does.
+TEST_F(CharacterPanelTest, TheTabsRightColumnsAgreeOnANarrowPanel) {
+  CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
+  for (int width : {kLeftColumnMin, kLeftColumnMin + 1}) {
+    CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
+    panel.SetWidth(width);
+    ftxui::Screen stats = PanelScreen(panel, width);
     ftxui::Component comp = panel.MakeComponent([](StatField) {});
     comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
     ftxui::Screen skills = PanelScreen(panel, width);

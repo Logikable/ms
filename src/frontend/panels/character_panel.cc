@@ -359,19 +359,23 @@ ftxui::Element CharacterPanel::MpRow(int mp, int ap) const {
 }
 
 ftxui::Element CharacterPanel::StatsAligned(ftxui::Element row) const {
-  // The block does not spread with the panel -- a value chasing the border
-  // would leave its label at the other end of the row -- so the room a wide
-  // panel brings goes in front of it. Held against the panel's right gutter
-  // rather than centred: what these rows right-align is a column of the same
-  // panel as the Skills tab's [+], and the two have to agree.
+  // Centred in the panel: the block does not spread with the terminal -- a
+  // value chasing the border would leave its label at the other end of the
+  // row -- so the room a wide panel brings is blank either side of it.
+  //
+  // An odd column goes to the side the labels are on, which puts the block's
+  // right-hand column in the Skills tab's [+] column on the widths where the
+  // slack is a column or none. Wider than that the two part company, which is
+  // what centring costs.
   //
   // The padding is text rather than filler(): a row that right-aligns
   // something ends in a filler of its own, and two of them would share the
   // slack between them and drag the column off its neighbours'.
   int slack = std::max(0, ContentWidth() - kStatsWidth);
   return ftxui::hbox({
-      ftxui::text(std::string(slack, ' ')),
+      ftxui::text(std::string((slack + 1) / 2, ' ')),
       std::move(row) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStatsWidth),
+      ftxui::text(std::string(slack / 2, ' ')),
   });
 }
 
