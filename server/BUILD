@@ -54,6 +54,7 @@ cc_library(
     deps = [
         "//src:spawn",
         "//src/combat:boss_timing",
+        "//src/combat:loot",
         "//src/protos:boss_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:multiplayer_proto_cc",

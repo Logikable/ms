@@ -261,10 +261,15 @@ class BossRun {
   // Steps one phase of the fight forward, moving on when it empties.
   void RunPhase(GameState& state, double dt);
   // Pays the difficulty's reward table, once, for a fight that was cleared,
-  // and records what landed. The drops roll against `item_drop_pct` the way a
-  // monster's do, at odds and for meso divided by share_count_; the EXP is
-  // flat and whole for everyone.
-  void PayReward(GameState& state, double item_drop_pct);
+  // and records what landed. The meso is divided by share_count_ and the EXP
+  // is flat and whole for everyone; `awards` is what the drops came to.
+  void PayReward(GameState& state, const std::vector<SharedAward>& awards);
+  // The drops a fight taken alone pays: one roll each, against this
+  // character's own Item Drop Rate the way a monster's are. A party's are
+  // dealt by the authority instead, so that a certain drop is certain and a
+  // one-off falls to exactly one person.
+  std::vector<SharedAward> RollAwards(GameState& state,
+                                      double item_drop_pct) const;
   // One step of a fight the party shares: take what the server has, swing
   // locally, report what that landed, and draw everyone else's.
   void AdvanceShared(GameState& state, double dt);

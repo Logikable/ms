@@ -350,15 +350,20 @@ void Server::PublishFight(PartyFight& fight) {
 void Server::CloseFight(const std::string& party_id, const PartyFight& fight) {
   LOG(INFO) << "Party " << party_id << " " << Became(fight.state()) << " "
             << fight.boss_key();
-  ServerMessage message;
-  FightEnded* ended = message.mutable_fight_ended();
-  ended->set_outcome(OutcomeOf(fight.state()));
-  ended->set_share_count(fight.share_count());
   for (const FightPlayer& player : fight.players()) {
     Session* session = FindSession(player.account_id);
-    if (player.present && session != nullptr && !session->closing) {
-      Send(*session, message);
+    if (!player.present || session == nullptr || session->closing) {
+      continue;
     }
+    // A message each: the drops are dealt to one player apiece.
+    ServerMessage message;
+    FightEnded* ended = message.mutable_fight_ended();
+    ended->set_outcome(OutcomeOf(fight.state()));
+    ended->set_share_count(fight.share_count());
+    for (const FightAward& award : player.awards) {
+      *ended->add_awards() = award;
+    }
+    Send(*session, message);
   }
   lobby_.FinishFight(party_id);
 }

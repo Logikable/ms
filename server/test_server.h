@@ -28,6 +28,9 @@ namespace ms {
 // fight in progress rather than only its end.
 inline constexpr char kTestMob[] = "zakum";
 inline constexpr int64_t kTestMobHp = 100000000;
+// The one thing its clear drops, always, so a test can watch the server deal
+// a certain drop to exactly one player.
+inline constexpr char kTestDrop[] = "shard";
 
 // One fight for a test's parties to name: Normal Zakum, open at any level,
 // one monster standing in a room with three places to stand.
@@ -45,6 +48,9 @@ inline std::map<std::string, Boss> TestBosses() {
   for (int i = 0; i < 3; ++i) {
     phase->add_player_spots()->set_x(i);
   }
+  MobDrop* shard = normal->add_drops();
+  shard->set_item(kTestDrop);
+  shard->set_per_kill(1.0);
   return bosses;
 }
 

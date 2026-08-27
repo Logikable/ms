@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "src/combat/fight.h"
+#include "src/protos/mob.pb.h"
 
 namespace ms {
 
@@ -57,6 +58,13 @@ struct SharedPlayer {
   double attack_fraction = 0.0;
 };
 
+// One item a clear paid this player. `drop` names what fell; the roll behind
+// it has already happened, so its `per_kill` says nothing here.
+struct SharedAward {
+  MobDrop drop;
+  int64_t count = 0;
+};
+
 // The fight as its authority has it.
 struct SharedFight {
   BossRunState state = BossRunState::kCountdown;
@@ -74,19 +82,34 @@ struct SharedFight {
   // What everybody else has landed since the last read. The player's own
   // lines are not in here: they drew those as they landed them.
   std::vector<SharedLine> lines;
+  // What a clear paid this player. The authority deals the drops rather than
+  // each run rolling its own share of them, which is what makes a certain
+  // drop certain and a one-off fall to exactly one person. Empty until the
+  // fight is won.
+  std::vector<SharedAward> awards;
+};
+
+// What one run has to say for itself: what it landed since the last report,
+// where its player is standing, and what they are winding up.
+struct FightReport {
+  // The phase the lines landed in.
+  int phase = 0;
+  // Their `owner` means nothing here -- they are all this player's.
+  std::vector<SharedLine> lines;
+  int spot = 0;
+  std::string attack_name;
+  double attack_fraction = 0.0;
+  // This player's Item Drop Rate, which a clear rolls its drops against.
+  double item_drop_pct = 0.0;
 };
 
 class FightAuthority {
  public:
   virtual ~FightAuthority() = default;
 
-  // What this run has landed since the last report, where its player is
-  // standing, and what they are winding up. `phase` is the phase the lines
-  // landed in, and their `owner` means nothing here -- they are all this
-  // player's.
-  virtual void Report(int phase, const std::vector<SharedLine>& lines, int spot,
-                      const std::string& attack_name,
-                      double attack_fraction) = 0;
+  // What this run has landed since the last report, and how its player
+  // stands.
+  virtual void Report(const FightReport& report) = 0;
 
   // The fight as it stands. False while nothing has arrived, which is where
   // a run waits rather than deciding anything for itself.

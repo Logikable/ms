@@ -726,6 +726,52 @@ TEST(BossRunTest, ASharedClearPaysEachOfThemAShare) {
   // Half the purse, and the whole of the EXP.
   EXPECT_EQ(run.reward().meso, boss.difficulties(0).meso() / 2);
   EXPECT_EQ(run.reward().exp, boss.difficulties(0).exp());
+  // The drops are the authority's to deal. It dealt none, so none were paid,
+  // certain though the table says the shard is.
+  EXPECT_TRUE(run.reward().items.empty());
+}
+
+// A shared run rolls nothing: it pays what it was dealt, and every unit of it.
+TEST(BossRunTest, ASharedClearPaysTheDropsItWasDealt) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
+  Boss boss = RewardingBoss(/*mark_chance=*/1.0);
+  TestAuthority authority(2);
+  authority.fight_.share_count = 2;
+  SharedAward award;
+  award.drop.set_item("shard");
+  award.count = 3;
+  authority.fight_.awards.push_back(award);
+  BossRun run("zakum", boss, 0, &authority);
+  run.Advance(*state, 0.1);
+
+  authority.fight_.state = BossRunState::kWon;
+  run.Advance(*state, 0.1);
+  ASSERT_TRUE(run.won());
+  ASSERT_EQ(run.reward().items.size(), 1u);
+  EXPECT_EQ(run.reward().items[0].name, "Zakum's Soul Shard");
+  EXPECT_EQ(run.reward().items[0].count, 3);
+  EXPECT_EQ(state->character.CountStackable(DropItems().at("shard")), 3);
+  // The mark is certain in the table and was not dealt, so it was not paid.
+  EXPECT_EQ(state->character.CountOwned(DropEquips().at("mark")), 0);
+}
+
+// The run tells the authority its Item Drop Rate, because the clear rolls
+// against the best one in the party.
+TEST(BossRunTest, ASharedRunReportsItsDropRate) {
+  std::unique_ptr<GameState> state = MakeState(1000000, 1000000);
+  EquipPrototype hat;
+  hat.set_name("Lucky Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  hat.mutable_base_stats()->set_item_drop_rate(50);
+  state->character.PickUp(std::make_unique<EquipInstance>(hat));
+  state->character.Equip(0);
+
+  Boss boss = TwoPhaseBoss();
+  TestAuthority authority(2);
+  BossRun run("zakum", boss, 0, &authority);
+  run.Advance(*state, 0.1);
+
+  EXPECT_DOUBLE_EQ(authority.reported_drop_pct_, 0.5);
 }
 
 }  // namespace

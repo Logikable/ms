@@ -47,8 +47,7 @@ class PartyFightAuthority : public FightAuthority {
   // Puts it back to no fight at all, for a screen that has finished with one.
   void Forget();
 
-  void Report(int phase, const std::vector<SharedLine>& lines, int spot,
-              const std::string& attack_name, double attack_fraction) override;
+  void Report(const FightReport& report) override;
   bool Fetch(SharedFight& fight) override;
 
  private:

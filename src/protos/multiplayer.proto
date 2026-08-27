@@ -152,6 +152,10 @@ message FightUpdate {
   // player's panel on everyone else's screen.
   string attack_name = 4;
   double attack_fraction = 5;
+  // This player's Item Drop Rate, as a fraction. The clear rolls its drops
+  // against the best one in the party, the way a party brings one along for
+  // everybody.
+  double item_drop_pct = 6;
 }
 
 // One player as the rest of the party sees them mid-fight.
@@ -195,8 +199,19 @@ message FightState {
   repeated FightPlayerState players = 8;
 }
 
-// The fight is over. What it paid is worked out by each client for itself:
-// the meso and the drop odds are split by `share_count`, and the EXP is not.
+// One item a clear paid this player.
+message FightAward {
+  // What fell, by data file stem, as MobDrop names it.
+  oneof drop {
+    string item = 1;   // an ItemPrototype
+    string equip = 2;  // an EquipPrototype
+  }
+  int64 count = 3;
+}
+
+// The fight is over. The meso is split by `share_count` and the EXP is not,
+// both worked out by each client for itself; the drops are the server's to
+// deal, because only it can hand a thing that fell to exactly one player.
 message FightEnded {
   enum Outcome {
     OUTCOME_UNSPECIFIED = 0;
@@ -209,6 +224,11 @@ message FightEnded {
   // How many players the fight started with, which is what a clear is split
   // by. A player who leaves does not make the rest richer.
   int32 share_count = 2;
+  // What this player won. The server rolls each of the boss's drops once at
+  // its stated chance and gives what falls to a random player, so a drop that
+  // is certain is certain: rolling per player at a split chance can pay it to
+  // nobody.
+  repeated FightAward awards = 3;
 }
 
 // Walking out of a fight in progress. The player is dropped from it exactly as

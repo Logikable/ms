@@ -14,6 +14,7 @@
 #define MS_SERVER_FIGHT_H_
 
 #include <map>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -51,6 +52,11 @@ struct FightPlayer {
   // screen.
   std::string attack_name;
   double attack_fraction = 0.0;
+  // Their Item Drop Rate, as a fraction. The clear rolls against the best one
+  // in the party.
+  double item_drop_pct = 0.0;
+  // What a clear dealt them. Empty until the fight is won.
+  std::vector<FightAward> awards;
   // What they have landed since the last broadcast took these away. Held here
   // rather than in the fight's own state because it is a relay: the server
   // passes it on and forgets it.
@@ -149,8 +155,15 @@ class PartyFight {
   // of their own. Every phase is its own arena, so where a player walked to in
   // the last one means nothing here.
   void EnterPhase(int phase);
-  // Ends the fight in `outcome`, holding it for the closing beat.
+  // Ends the fight in `outcome`, holding it for the closing beat. A clear
+  // deals its drops on the way.
   void Finish(PartyFightState outcome);
+  // Rolls each of the difficulty's drops once, against the best Item Drop Rate
+  // anyone still here is carrying, and gives what falls to a player drawn at
+  // random. One roll for the party is what makes a certain drop certain -- a
+  // roll each at a split chance can pay it to nobody, and can pay a one-off
+  // twice.
+  void DealDrops();
   // Runs the clock and, when the roster empties, moves the fight on.
   void RunPhase(double dt);
   // Whether anything is still standing.
@@ -173,6 +186,7 @@ class PartyFight {
   double hold_left_ = 0.0;
   std::vector<double> hp_;
   std::vector<double> max_hp_;
+  std::mt19937 rng_{std::random_device{}()};
   std::vector<double> hp_fractions_;
   std::vector<FightPlayer> players_;
 };

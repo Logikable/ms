@@ -1,6 +1,7 @@
 #include "src/multiplayer/party_fight.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/combat/fight_authority.h"
@@ -119,6 +120,17 @@ void PartyFightAuthority::TakeEnd(const FightEnded& ended) {
   told_ = true;
   fight_.state = StateOf(ended.outcome());
   fight_.share_count = ended.share_count();
+  fight_.awards.clear();
+  for (const FightAward& award : ended.awards()) {
+    SharedAward won;
+    if (award.has_equip()) {
+      won.drop.set_equip(award.equip());
+    } else {
+      won.drop.set_item(award.item());
+    }
+    won.count = award.count();
+    fight_.awards.push_back(std::move(won));
+  }
 }
 
 bool PartyFightAuthority::Fetch(SharedFight& fight) {
@@ -131,16 +143,14 @@ bool PartyFightAuthority::Fetch(SharedFight& fight) {
   return true;
 }
 
-void PartyFightAuthority::Report(int phase,
-                                 const std::vector<SharedLine>& lines, int spot,
-                                 const std::string& attack_name,
-                                 double attack_fraction) {
+void PartyFightAuthority::Report(const FightReport& report) {
   FightUpdate update;
-  update.set_phase(phase);
-  update.set_spot(spot);
-  update.set_attack_name(attack_name);
-  update.set_attack_fraction(attack_fraction);
-  for (const SharedLine& line : lines) {
+  update.set_phase(report.phase);
+  update.set_spot(report.spot);
+  update.set_attack_name(report.attack_name);
+  update.set_attack_fraction(report.attack_fraction);
+  update.set_item_drop_pct(report.item_drop_pct);
+  for (const SharedLine& line : report.lines) {
     FightDamage* sent = update.add_lines();
     sent->set_slot(line.slot);
     sent->set_event(line.event);

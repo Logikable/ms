@@ -389,7 +389,7 @@ void BossRun::RunPhase(GameState& state, double dt) {
     return;
   }
   if (phase_ + 1 >= phases_) {
-    PayReward(state, params.item_drop_pct);
+    PayReward(state, RollAwards(state, params.item_drop_pct));
     Finish(BossRunState::kWon);
     return;
   }
@@ -397,11 +397,26 @@ void BossRun::RunPhase(GameState& state, double dt) {
   hold_left_ = kBossPhaseGapSeconds;
 }
 
-void BossRun::PayReward(GameState& state, double item_drop_pct) {
+std::vector<SharedAward> BossRun::RollAwards(GameState& state,
+                                             double item_drop_pct) const {
+  std::vector<SharedAward> awards;
+  for (const MobDrop& drop : difficulty()->drops()) {
+    // One roll for the fight, where a map rolls one per kill. Drop rate lifts
+    // the chance the same way it lifts a monster's.
+    int64_t rolled =
+        RollDrops(drop.per_kill() * (1.0 + item_drop_pct), 1, state.rng);
+    if (rolled > 0) {
+      awards.push_back({drop, rolled});
+    }
+  }
+  return awards;
+}
+
+void BossRun::PayReward(GameState& state,
+                        const std::vector<SharedAward>& awards) {
   const BossDifficulty* chosen = difficulty();
-  // A party splits the purse and the odds and nothing else. The EXP is what
-  // the fight is worth to a character, and three people beating a boss have
-  // each beaten it.
+  // A party splits the purse and nothing else. The EXP is what the fight is
+  // worth to a character, and three people beating a boss have each beaten it.
   double share = 1.0 / std::max(1, share_count_);
   reward_.meso = static_cast<int64_t>(chosen->meso() * share);
   if (reward_.meso > 0) {
@@ -413,16 +428,9 @@ void BossRun::PayReward(GameState& state, double item_drop_pct) {
     state.character.AddExp(reward_.exp);
     GrantLevelRewards(state, before, state.character.proto().level());
   }
-  for (const MobDrop& drop : chosen->drops()) {
-    // One roll for the fight, where a map rolls one per kill. Drop rate lifts
-    // the chance the same way it lifts a monster's.
-    int64_t rolled = RollDrops(drop.per_kill() * share * (1.0 + item_drop_pct),
-                               1, state.rng);
-    if (rolled <= 0) {
-      continue;
-    }
-    int64_t granted = GrantDrop(state, drop, rolled);
-    std::string name = DropName(state, drop);
+  for (const SharedAward& award : awards) {
+    int64_t granted = GrantDrop(state, award.drop, award.count);
+    std::string name = DropName(state, award.drop);
     if (granted > 0 && !name.empty()) {
       reward_.items.push_back({std::move(name), granted});
     }
@@ -447,7 +455,8 @@ void BossRun::AdvanceShared(GameState& state, double dt) {
   AddSharedStacks(shared.lines);
   StandSelf();
   if (state_ == BossRunState::kWon && !paid) {
-    PayReward(state, item_drop_pct_);
+    // The authority rolled these and said which of them are this player's.
+    PayReward(state, shared.awards);
   }
   switch (state_) {
     case BossRunState::kWon:
@@ -530,8 +539,8 @@ void BossRun::RunSharedPhase(GameState& state, double dt,
     FillSlots(params);
   }
   CollectDamageStacks();
-  authority_->Report(phase_, landed_, player_at_, sim_.attack_name(),
-                     sim_.attack_fraction());
+  authority_->Report({phase_, landed_, player_at_, sim_.attack_name(),
+                      sim_.attack_fraction(), item_drop_pct_});
   // The shared roster is what everybody is hitting, so it decides what is
   // left. This copy of it may run ahead of the party's, never behind.
   std::map<int, double> said;

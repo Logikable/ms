@@ -1,12 +1,14 @@
 #include "server/fight.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "src/combat/boss_timing.h"
+#include "src/combat/loot.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/spawn.h"
@@ -127,10 +129,53 @@ bool PartyFight::done() const {
 
 void PartyFight::Finish(PartyFightState outcome) {
   state_ = outcome;
+  if (outcome == PartyFightState::kWon) {
+    DealDrops();
+  }
   // An abandoned fight is held for nothing: there is nobody left to show it
   // to, and a drain waiting one out would wait for nobody.
   hold_left_ =
       outcome == PartyFightState::kAbandoned ? 0.0 : kBossEndHoldSeconds;
+}
+
+void PartyFight::DealDrops() {
+  const BossDifficulty* chosen = difficulty();
+  std::vector<FightPlayer*> paid;
+  double best_drop_pct = 0.0;
+  for (FightPlayer& player : players_) {
+    if (player.present) {
+      paid.push_back(&player);
+      best_drop_pct = std::max(best_drop_pct, player.item_drop_pct);
+    }
+  }
+  if (chosen == nullptr || paid.empty()) {
+    return;
+  }
+  std::uniform_int_distribution<size_t> who(0, paid.size() - 1);
+  std::vector<int64_t> won(paid.size());
+  for (const MobDrop& drop : chosen->drops()) {
+    // One roll for the fight, where a map rolls one per kill.
+    int64_t rolled =
+        RollDrops(drop.per_kill() * (1.0 + best_drop_pct), 1, rng_);
+    std::fill(won.begin(), won.end(), 0);
+    for (int64_t i = 0; i < rolled; ++i) {
+      // Each of them drawn for separately, so a drop that fell twice can fall
+      // to two different people.
+      ++won[who(rng_)];
+    }
+    for (size_t i = 0; i < paid.size(); ++i) {
+      if (won[i] == 0) {
+        continue;
+      }
+      FightAward& award = paid[i]->awards.emplace_back();
+      if (drop.has_equip()) {
+        award.set_equip(drop.equip());
+      } else {
+        award.set_item(drop.item());
+      }
+      award.set_count(won[i]);
+    }
+  }
 }
 
 void PartyFight::Hit(const std::string& account_id, int slot, double damage) {
@@ -156,6 +201,7 @@ void PartyFight::Report(const std::string& account_id,
   }
   player->attack_name = update.attack_name();
   player->attack_fraction = update.attack_fraction();
+  player->item_drop_pct = update.item_drop_pct();
   MoveTo(account_id, update.spot());
   if (update.phase() != phase_) {
     // A report that crossed a phase change names monsters that are gone. Its

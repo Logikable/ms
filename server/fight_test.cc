@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <map>
 #include <string>
 
@@ -56,6 +57,43 @@ Party PartyOf(int count) {
     player->set_name(names[i]);
   }
   return party;
+}
+
+// The same fight with something to drop: shards at `per_kill`, and a mark
+// that never falls.
+Boss Dropping(double per_kill) {
+  Boss boss = TwoPhases();
+  BossDifficulty* normal = boss.mutable_difficulties(0);
+  MobDrop* shard = normal->add_drops();
+  shard->set_item("shard");
+  shard->set_per_kill(per_kill);
+  MobDrop* mark = normal->add_drops();
+  mark->set_equip("mark");
+  mark->set_per_kill(0.0);
+  return boss;
+}
+
+// Kills everything in every phase, which is what wins a fight.
+void Clear(PartyFight& fight) {
+  fight.Advance(kBossCountdownSeconds);
+  while (!fight.over()) {
+    for (int slot = 0; slot < static_cast<int>(fight.hp_fractions().size());
+         ++slot) {
+      fight.Hit("one", slot, 1000);
+    }
+    fight.Advance(kBossPhaseGapSeconds);
+  }
+}
+
+// How many of everything the clear dealt, over the whole party.
+int64_t TotalAwards(const PartyFight& fight) {
+  int64_t total = 0;
+  for (const FightPlayer& player : fight.players()) {
+    for (const FightAward& award : player.awards) {
+      total += award.count();
+    }
+  }
+  return total;
 }
 
 class FightTest : public ::testing::Test {
@@ -205,7 +243,7 @@ TEST_F(FightTest, APlayerWhoGoesStopsHittingAndFreesTheirSpot) {
   EXPECT_EQ(fight_.hp_fractions()[0], 1.0);
   EXPECT_FALSE(fight_.players()[1].present);
   EXPECT_TRUE(fight_.MoveTo("one", 1));
-  // What the drops are split by is who came, not who stayed.
+  // What the meso is split by is who came, not who stayed.
   EXPECT_EQ(fight_.share_count(), 3);
   EXPECT_EQ(fight_.state(), PartyFightState::kFighting);
 }
@@ -229,6 +267,69 @@ TEST_F(FightTest, AFightWithNothingToKillIsNoFight) {
 
   PartyFight unknown("p1-2", "zakum", boss_, 4, mobs_, PartyOf(1));
   EXPECT_EQ(unknown.state(), PartyFightState::kAbandoned);
+}
+
+// One roll for the party, not one each at a split chance: a drop that always
+// falls always falls, and it falls to exactly one of them.
+TEST(FightDropsTest, ACertainDropIsDealtToExactlyOnePlayer) {
+  Boss boss = Dropping(1.0);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
+  Clear(fight);
+
+  ASSERT_EQ(fight.state(), PartyFightState::kWon);
+  int dealt = 0;
+  for (const FightPlayer& player : fight.players()) {
+    for (const FightAward& award : player.awards) {
+      ++dealt;
+      EXPECT_EQ(award.item(), "shard");
+      EXPECT_EQ(award.count(), 1);
+    }
+  }
+  // The mark's nothing chance dealt nobody anything.
+  EXPECT_EQ(dealt, 1);
+}
+
+// A rate above one pays its whole part, each unit drawn for on its own.
+TEST(FightDropsTest, EveryUnitOfARepeatedDropIsDealt) {
+  Boss boss = Dropping(3.0);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
+  Clear(fight);
+
+  EXPECT_EQ(TotalAwards(fight), 3);
+}
+
+// The party brings a drop rate along for everybody, so the roll takes the
+// best one anyone is carrying.
+TEST(FightDropsTest, TheBestDropRateInThePartyRollsTheDrops) {
+  Boss boss = Dropping(1.0);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
+  FightUpdate rich;
+  rich.set_item_drop_pct(2.0);
+  fight.Report("three", rich);
+  fight.Report("two", FightUpdate());
+  Clear(fight);
+
+  // Tripled by the one player carrying it, not left alone by the two who
+  // are not.
+  EXPECT_EQ(TotalAwards(fight), 3);
+}
+
+TEST(FightDropsTest, NothingIsDealtToAPlayerWhoHasGone) {
+  Boss boss = Dropping(1.0);
+  std::map<std::string, Mob> mobs = Mobs();
+  PartyFight fight("p1-1", "zakum", boss, 0, mobs, PartyOf(3));
+  fight.Advance(kBossCountdownSeconds);
+  fight.Disconnect("two");
+  fight.Disconnect("three");
+  Clear(fight);
+
+  ASSERT_EQ(fight.state(), PartyFightState::kWon);
+  ASSERT_EQ(fight.players()[0].awards.size(), 1u);
+  EXPECT_TRUE(fight.players()[1].awards.empty());
+  EXPECT_TRUE(fight.players()[2].awards.empty());
 }
 
 }  // namespace

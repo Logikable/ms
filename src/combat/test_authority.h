@@ -27,13 +27,13 @@ class TestAuthority : public FightAuthority {
     fight_.players[1].spot = 1;
   }
 
-  void Report(int phase, const std::vector<SharedLine>& lines, int spot,
-              const std::string& attack_name, double attack_fraction) override {
-    reported_phase_ = phase;
-    reported_spot_ = spot;
-    reported_attack_ = attack_name;
-    reported_fraction_ = attack_fraction;
-    for (const SharedLine& line : lines) {
+  void Report(const FightReport& report) override {
+    reported_phase_ = report.phase;
+    reported_spot_ = report.spot;
+    reported_attack_ = report.attack_name;
+    reported_fraction_ = report.attack_fraction;
+    reported_drop_pct_ = report.item_drop_pct;
+    for (const SharedLine& line : report.lines) {
       reported_.push_back(line);
     }
   }
@@ -63,6 +63,7 @@ class TestAuthority : public FightAuthority {
   int reported_spot_ = -1;
   std::string reported_attack_;
   double reported_fraction_ = 0.0;
+  double reported_drop_pct_ = 0.0;
   std::vector<SharedLine> reported_;
 
  private:

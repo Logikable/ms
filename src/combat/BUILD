@@ -111,7 +111,10 @@ cc_library(
 cc_library(
     name = "fight_authority",
     hdrs = ["fight_authority.h"],
-    deps = [":fight"],
+    deps = [
+        ":fight",
+        "//src/protos:mob_proto_cc",
+    ],
 )
 
 # A shared fight a test drives by hand, for both ends of one: the run that

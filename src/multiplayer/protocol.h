@@ -19,7 +19,7 @@ namespace ms {
 // two ends disagreeing about what that boss is would be worse than not
 // connecting. Bump it when either changes; a client that does not match is
 // turned away and told to update.
-inline constexpr int kMultiplayerVersion = 1;
+inline constexpr int kMultiplayerVersion = 2;
 
 // Where the server runs. The client's --server flag overrides both. A build
 // made without multiplayer carries no address at all -- there is nothing in

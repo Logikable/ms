@@ -125,7 +125,7 @@ TEST_F(PartyFightTest, WhatOneLandsTheOtherReadsBack) {
   line.source.index = 2;
   line.damage = kTestMobHp / 4;
   line.crit = true;
-  leader_->fight.Report(0, {line}, 0, "Blizzard", 0.5);
+  leader_->fight.Report({0, {line}, 0, "Blizzard", 0.5});
 
   SharedFight seen;
   ASSERT_TRUE(Await([&]() {
@@ -162,7 +162,7 @@ TEST_F(PartyFightTest, AClearIsToldToEveryone) {
   SharedLine line;
   line.slot = 0;
   line.damage = kTestMobHp;
-  leader_->fight.Report(0, {line}, 0, "Blizzard", 0.5);
+  leader_->fight.Report({0, {line}, 0, "Blizzard", 0.5});
 
   SharedFight ended;
   ASSERT_TRUE(Await([&]() {
@@ -174,6 +174,41 @@ TEST_F(PartyFightTest, AClearIsToldToEveryone) {
     return true;
   }));
   EXPECT_EQ(ended.share_count, 2);
+}
+
+// The server deals the drops, so what always falls always falls -- to exactly
+// one of them, never to both and never to neither.
+TEST_F(PartyFightTest, ACertainDropFallsToOneOfThem) {
+  ASSERT_TRUE(Await([&]() {
+    SharedFight fight;
+    return leader_->fight.Fetch(fight) &&
+           fight.state == BossRunState::kFighting;
+  }));
+
+  SharedLine line;
+  line.slot = 0;
+  line.damage = kTestMobHp;
+  leader_->fight.Report({0, {line}, 0, "Blizzard", 0.5});
+
+  SharedFight for_leader;
+  SharedFight for_member;
+  ASSERT_TRUE(Await([&]() {
+    SharedFight fight;
+    if (leader_->fight.Fetch(fight) && fight.state == BossRunState::kWon) {
+      for_leader = fight;
+    }
+    if (member_->fight.Fetch(fight) && fight.state == BossRunState::kWon) {
+      for_member = fight;
+    }
+    return for_leader.state == BossRunState::kWon &&
+           for_member.state == BossRunState::kWon;
+  }));
+
+  ASSERT_EQ(for_leader.awards.size() + for_member.awards.size(), 1u);
+  const SharedAward& won =
+      for_leader.awards.empty() ? for_member.awards[0] : for_leader.awards[0];
+  EXPECT_EQ(won.drop.item(), kTestDrop);
+  EXPECT_EQ(won.count, 1);
 }
 
 TEST_F(PartyFightTest, WalkingOutEndsItForWhoeverIsLeft) {
