@@ -1,5 +1,6 @@
-# 960ms is the animation's own, from the frame data -- the longest swing in the
-# book, which is what a ten-second wait buys.
+# 660ms is the animation's own, from the frame data. GMS shortened it from
+# 960ms with the rest of the Dark Knight's swings, so the ten-second wait now
+# buys a nuke that costs no more to throw than Gungnir's Descent.
 name: "Nightshade Explosion"
 skill_order: 2
 description: "Release your inner power to lay waste to nearby enemies."
@@ -10,7 +11,7 @@ required_level: 160
 max_level: 1
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM
-base_delay_ms: 960
+base_delay_ms: 660
 cooldown_seconds: 10.0
 max_enemies: 10
 lines: 10

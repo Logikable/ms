@@ -164,10 +164,23 @@ bool SpendsASwing(const Skill& skill) {
 }
 
 // Whether the character stands there casting it: everything they press. A
-// buff's animation costs them the time even though it takes no swing -- see
+// buff's cast costs them the time even though it takes no swing -- see
 // BuffOption::cast_seconds -- so it has to say how long it is.
 bool HasACastAnimation(const Skill& skill) {
   return skill.kind() == SKILL_KIND_ATTACK || skill.kind() == SKILL_KIND_ACTIVE;
+}
+
+// What raising a buff costs, whatever its animation would be. GMS paces a
+// skill sequence at a flat 120ms a skill, and a player puts their buffs up in
+// one -- so the animation only ever plays for the casts a sequence will not
+// take: a heal, and the invincibility skills GMS refuses to register.
+constexpr int kBuffCastMs = 120;
+
+// Whether the whole of what pressing it does is put a buff up. Told apart from
+// a heal by the same test SpendsASwing uses: a heal is cast in place of the
+// swing, where a buff goes up on a clock of its own.
+bool RaisesOnlyABuff(const Skill& skill) {
+  return skill.kind() == SKILL_KIND_ACTIVE && !SpendsASwing(skill);
 }
 
 std::map<std::string, Skill> LoadSkills() {
@@ -567,6 +580,14 @@ TEST(SkillDataTest, EverySwingSaysHowLongItTakes) {
     if (!HasACastAnimation(entry.second)) {
       EXPECT_EQ(entry.second.base_delay_ms(), 0)
           << entry.first << " sets a swing delay it will never be asked for";
+      continue;
+    }
+    // A buff is raised from a sequence, which paces every skill in it alike --
+    // so its own animation is never what it costs. See kBuffCastMs.
+    if (RaisesOnlyABuff(entry.second)) {
+      EXPECT_EQ(entry.second.base_delay_ms(), kBuffCastMs)
+          << entry.first << " charges its animation for a buff a sequence "
+          << "raises in " << kBuffCastMs << "ms";
       continue;
     }
     EXPECT_GT(entry.second.base_delay_ms(), 0)

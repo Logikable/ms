@@ -5,9 +5,9 @@
 # character because they hold the skill themselves, which is the whole of the
 # faction rule GMS states.
 #
-# 990ms is the shout every Explorer party buff uses -- Combat Orders' own. The
-# frame data has no entry for this skill; that is its nearest measured
-# relative.
+# GMS took this skill's cast action away outright, so the frame data has no
+# entry for it at all. What it costs is what raising any buff costs: the
+# 120ms a skill sequence paces its skills at.
 name: "Epic Adventure"
 skill_order: 3
 description:
@@ -18,7 +18,7 @@ job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true
 required_level: 190
 max_level: 1
-base_delay_ms: 990
+base_delay_ms: 120
 cooldown_seconds: 120.0
 buff {
   duration_seconds: 60.0
