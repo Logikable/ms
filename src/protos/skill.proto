@@ -452,6 +452,20 @@ message BuffPulse {
   // clock is.
   double cast_interval_seconds = 4;
   int32 lines = 5;
+  // Enemies one strike reaches. 0 leaves it the reach of the swing that laid
+  // the buff, which is what a wound wants: the mark is on what was hit.
+  int32 max_enemies = 6;
+  // Strikes one tick lands, each its own attack of `lines` lines against its
+  // own `max_enemies`. Cry Valhalla is what it exists for -- GMS has three
+  // sword strikes fall together, 60ms apart, which is one moment here. 0 reads
+  // as one, which is every other pulse.
+  int32 casts = 7;
+  // Ticks one raising of the buff is worth, after which it falls silent for
+  // the rest of the window. 0 is a pulse that ticks for as long as the buff
+  // stands, which is Puncture's wound. Cry Valhalla's twelve run out at 24
+  // seconds of a 30-second buff -- which is why lengthening the buff buys
+  // nothing.
+  int32 max_pulses = 8;
 }
 
 // A buff a skill puts up for a while, on a cooldown of its own: what it grants

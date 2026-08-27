@@ -906,6 +906,26 @@ TEST(SkillDataTest, OnlyASwingCarriesAnElement) {
   }
 }
 
+// A pulse is its clock and its damage together: everything else written on one
+// -- its reach, its strikes, the count it runs out at -- is read only where
+// there is a clock to read it on.
+TEST(SkillDataTest, EveryBuffPulseStatesTheClockItTicksOn) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const BuffPulse& pulse = entry.second.buff().pulse();
+    if (pulse.cast_interval_seconds() > 0.0) {
+      EXPECT_GT(pulse.base().skill_pct(), 0.0)
+          << entry.first << " ticks and deals nothing";
+      EXPECT_FALSE(pulse.label().empty())
+          << entry.first << " bleeds under no name";
+      continue;
+    }
+    EXPECT_EQ(pulse.lines(), 0) << entry.first << " strikes on no clock";
+    EXPECT_EQ(pulse.casts(), 0) << entry.first << " strikes on no clock";
+    EXPECT_EQ(pulse.max_enemies(), 0) << entry.first << " reaches on no clock";
+    EXPECT_EQ(pulse.max_pulses(), 0) << entry.first << " runs out of no clock";
+  }
+}
+
 // A per-orb bargain is worth the orbs times the bargain, so one without the
 // other is a skill that says something and grants nothing. The two halves need
 // not be the same skill -- Combo Synergy prices the orbs Combo Attack hands

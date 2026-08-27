@@ -217,6 +217,13 @@ struct AttackOption {
   // so it ticks only where one was left. Off-clock attacks only -- a swing is
   // chosen rather than fired.
   int needs_buff = -1;
+  // Strikes one due tick fires, each landing in full on its own. 1 for every
+  // clock but Cry Valhalla's, whose three sword strikes fall together.
+  int strikes_per_pulse = 1;
+  // Ticks one raising of the gating buff is worth, after which this falls
+  // silent until the buff comes round again. 0 for a clock that never runs
+  // out, which is every other one. See BuffPulse.max_pulses.
+  int max_pulses = 0;
 };
 
 // Everything the character can attack with, as it stands under one particular

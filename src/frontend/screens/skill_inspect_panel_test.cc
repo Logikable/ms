@@ -1499,6 +1499,32 @@ TEST_F(SkillInspectPanelTest, AWoundReadsUnderTheWindowItBleedsIn) {
   EXPECT_GT(wounded, active);
 }
 
+// A pulse reaching enemies of its own says so where every other own-clock half
+// does, and its damage row is then the damage alone -- so much, so many times,
+// so many strikes, and how many ticks the window is worth.
+TEST_F(SkillInspectPanelTest, APulseWithItsOwnReachStatesItBesideItsClock) {
+  Skill valhalla = MakeIronBody();
+  valhalla.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = valhalla.mutable_buff();
+  buff->set_duration_seconds(30.0);
+  buff->mutable_base()->set_attack(50);
+  BuffPulse* pulse = buff->mutable_pulse();
+  pulse->set_label("Sword Strikes");
+  pulse->set_cast_interval_seconds(2.0);
+  pulse->set_lines(2);
+  pulse->set_casts(3);
+  pulse->set_max_enemies(6);
+  pulse->set_max_pulses(12);
+  pulse->mutable_base()->set_skill_pct(5.20);
+
+  std::string rendered = RenderAt(valhalla, 1);
+  EXPECT_NE(RowIn(rendered, "Sword Strikes", "520% x2 x3 = 3120%, 12 times"),
+            std::string::npos)
+      << rendered;
+  EXPECT_NE(RowIn(rendered, "Attacks", "6 enemies every 2s"), std::string::npos)
+      << rendered;
+}
+
 // The skill list tells an active from a passive by colour; a skill that is
 // both has to tell its own halves apart the same way, or the colours mean one
 // thing in the book and another on the page.

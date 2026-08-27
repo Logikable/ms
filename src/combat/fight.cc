@@ -730,6 +730,7 @@ void CombatSim::GoIdle() {
   respawn_fraction_ = 0.0;
   respawns_ = false;
   auto_phase_.clear();
+  auto_pulses_.clear();
   regen_phase_.clear();
   cooldown_left_.clear();
   aimed_ = -1;
@@ -748,6 +749,7 @@ void CombatSim::BeginMapIfChanged(const CombatParams& params) {
   hit_phase_ = 0.0;
   next_mob_id_ = 0;
   auto_phase_.assign(params.auto_attacks.size(), 0.0);
+  auto_pulses_.assign(params.auto_attacks.size(), 0);
   auto_empowered_count_.assign(params.auto_attacks.size(), 0);
   cooldown_left_.assign(params.attacks.size(), 0.0);
   // The buff and fountain clocks are deliberately left alone: they belong to
@@ -1011,6 +1013,7 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
   // nothing to do on an empty map, and waiting there earns it no free cast.
   const std::vector<AttackOption>& casts = AutoAttacks(params);
   auto_phase_.resize(casts.size(), 0.0);
+  auto_pulses_.resize(casts.size(), 0);
   for (int i = 0; i < static_cast<int>(casts.size()); ++i) {
     const AttackOption& cast = casts[i];
     if (queue_.empty() || cast.interval_seconds <= 0.0) {
@@ -1018,8 +1021,15 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     }
     // A pulse that is really a wound waits for one to have been left. Its
     // phase is left alone rather than wound on, so it does not come due the
-    // instant the wound lands and then again a moment later.
+    // instant the wound lands and then again a moment later. What it has
+    // already spent of the window goes back with it: the count is per raising.
     if (cast.needs_buff >= 0 && (buff_mask_ & (1 << cast.needs_buff)) == 0) {
+      auto_pulses_[i] = 0;
+      continue;
+    }
+    // One that has spent its window falls silent for the rest of it, phase and
+    // all -- lengthening the buff behind it buys nothing.
+    if (cast.max_pulses > 0 && auto_pulses_[i] >= cast.max_pulses) {
       continue;
     }
     auto_phase_[i] += dt;
@@ -1027,12 +1037,20 @@ void CombatSim::RunAutoCasts(const CombatParams& params, double dt) {
     // cast it covered.
     while (auto_phase_[i] >= cast.interval_seconds) {
       auto_phase_[i] -= cast.interval_seconds;
+      ++auto_pulses_[i];
       const AttackOption& landed = FormToLand(
           auto_empowered_count_, static_cast<int>(casts.size()), i, cast);
-      Strike(landed, {DamageOrigin::kOwnClock, i});
+      // Every strike of the tick lands in full: three sword strikes 60ms apart
+      // are one moment here, and each is its own attack on its own enemies.
+      for (int strike = 0; strike < cast.strikes_per_pulse; ++strike) {
+        Strike(landed, {DamageOrigin::kOwnClock, i});
+      }
       // A summon leaves the ice it makes: Elquines freezes what it touches. It
       // never spends the pile -- ClearSwingRiders sees to that.
       CreditFreeze(params, landed);
+      if (cast.max_pulses > 0 && auto_pulses_[i] >= cast.max_pulses) {
+        break;
+      }
     }
   }
 }

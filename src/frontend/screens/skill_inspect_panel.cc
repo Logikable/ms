@@ -1064,16 +1064,39 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   for (Row& row : LeverRows(base, per, level, "")) {
     rows.push_back(std::move(row));
   }
-  // What the buff bleeds, on one row: its damage and its clock are one fact,
-  // and the enemies it reaches are the ones the swing above already states.
+  // What the buff bleeds. A pulse borrowing the swing's reach says its damage
+  // and its clock on one row -- the two are one fact, and the enemies are the
+  // ones the swing above already states. One reaching enemies of its own says
+  // so where every other own-clock half does, in an Attacks row, and keeps the
+  // damage row for the damage.
   const BuffPulse& pulse = buff.pulse();
   if (pulse.cast_interval_seconds() > 0.0) {
-    rows.push_back(EffectRow(
-        pulse.label(),
-        SwingText(pulse.base().skill_pct() +
-                      pulse.per_level().skill_pct() * (level - 1),
-                  pulse.lines()) +
-            " every " + FormatNumber(pulse.cast_interval_seconds(), 2) + "s"));
+    double per_hit =
+        pulse.base().skill_pct() + pulse.per_level().skill_pct() * (level - 1);
+    int strikes = std::max(1, pulse.casts());
+    std::string damage = SwingText(per_hit, pulse.lines());
+    if (strikes > 1) {
+      // Written in GMS's own order -- so much damage, so many times, so many
+      // strikes -- because the total alone hides which of the three moved.
+      damage = FormatPercent(per_hit) + " x" +
+               std::to_string(std::max(1, pulse.lines())) + " x" +
+               std::to_string(strikes) + " = " +
+               FormatPercent(per_hit * std::max(1, pulse.lines()) * strikes);
+    }
+    if (pulse.max_pulses() > 0) {
+      damage += ", " + std::to_string(pulse.max_pulses()) + " times";
+    }
+    if (pulse.max_enemies() > 0) {
+      rows.push_back(EffectRow(pulse.label(), damage));
+      rows.push_back(EffectRow(
+          "Attacks",
+          ReachText(pulse.max_enemies(), pulse.cast_interval_seconds())));
+    } else {
+      rows.push_back(EffectRow(
+          pulse.label(), damage + " every " +
+                             FormatNumber(pulse.cast_interval_seconds(), 2) +
+                             "s"));
+    }
   }
   // What everybody else in the party gets while it stands, in the colour the
   // party screens are drawn in. Under the buff's own heading rather than at

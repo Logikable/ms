@@ -1529,6 +1529,21 @@ TEST(ComputeCombatParamsTest, ABuffOnAnAttackIsLaidByThatSwing) {
   ASSERT_EQ(gated.buffed.size(), 1u);
   ASSERT_EQ(gated.buffed[0].auto_attacks.size(), 1u);
   EXPECT_EQ(gated.buffed[0].auto_attacks[0].needs_buff, 0);
+  // A wound borrowing the swing's reach lands once a tick and never runs out.
+  EXPECT_EQ(gated.auto_attacks[0].strikes_per_pulse, 1);
+  EXPECT_EQ(gated.auto_attacks[0].max_pulses, 0);
+
+  // Cry Valhalla's shape over the same field: its own reach, three strikes a
+  // tick, and a count that runs out inside the window.
+  tick->set_max_enemies(6);
+  tick->set_casts(3);
+  tick->set_max_pulses(12);
+  state.skills["puncture"] = puncture;
+  CombatParams capped = ComputeCombatParams(state);
+  ASSERT_EQ(capped.auto_attacks.size(), 1u);
+  EXPECT_EQ(capped.auto_attacks[0].max_enemies, 6);
+  EXPECT_EQ(capped.auto_attacks[0].strikes_per_pulse, 3);
+  EXPECT_EQ(capped.auto_attacks[0].max_pulses, 12);
 }
 
 // A character with no buff carries no tables at all: the cost of the

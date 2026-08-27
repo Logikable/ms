@@ -508,6 +508,10 @@ class CombatSim {
   // Seconds into each auto-attack's next cast, parallel to
   // params.auto_attacks. Runs only while there is something to hit.
   std::vector<double> auto_phase_;
+  // Ticks each has already spent of what one raising of its gating buff is
+  // worth, parallel to the same list. Zeroed while that buff is down, so the
+  // count is per window; untouched for a clock with no cap.
+  std::vector<int> auto_pulses_;
   // Seconds into each fountain's next pulse, parallel to params.regen_pulses.
   // Starts at 0, so the first pulse falls one interval in rather than free on
   // the step the fight opened.

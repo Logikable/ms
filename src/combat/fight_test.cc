@@ -2495,6 +2495,59 @@ TEST(CombatSimTest, APulseGatedOnABuffWaitsForItToBeLaid) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.9875, 1e-9);
 }
 
+// Cry Valhalla's shape: a pulse that lands several strikes at once and runs
+// out before the buff behind it does. Twelve strikes over four ticks here, at
+// three a tick -- and the fifth tick, still inside the window, lands nothing.
+TEST(CombatSimTest, ACappedPulseFallsSilentBeforeTheBuffLapses) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0);
+  params.auto_attacks[0].name = "Cry Valhalla";
+  params.auto_attacks[0].strikes_per_pulse = 3;
+  params.auto_attacks[0].max_pulses = 4;
+  GiveBuff(params, /*duration=*/8.0, /*cooldown=*/1000.0, /*factor=*/1.0);
+  params.auto_attacks[0].needs_buff = 0;
+  params.buffed[0].auto_attacks = params.auto_attacks;
+
+  // Three strikes of 100 a tick, four ticks: 1200 of the snail's 100000.
+  for (int step = 0; step < 4; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_NEAR(sim.target_hp_fraction(), 0.988, 1e-9);
+  // Four more seconds of a buff that is still up, and nothing more lands.
+  for (int step = 0; step < 4; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.988, 1e-9);
+}
+
+// The count is per raising, not per fight: the next window is worth the whole
+// twelve again.
+TEST(CombatSimTest, ACappedPulseIsWorthItsWholeCountAgainNextWindow) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1000.0, 1000.0, {MakeType(&snail, 10.0, 1)});
+  AddAutoAttack(params, /*interval=*/1.0, /*damage=*/100.0);
+  params.auto_attacks[0].name = "Cry Valhalla";
+  params.auto_attacks[0].strikes_per_pulse = 3;
+  params.auto_attacks[0].max_pulses = 2;
+  GiveBuff(params, /*duration=*/3.0, /*cooldown=*/6.0, /*factor=*/1.0);
+  params.auto_attacks[0].needs_buff = 0;
+  params.buffed[0].auto_attacks = params.auto_attacks;
+
+  // Two ticks of 300 while the first window stands, then nothing until it
+  // comes round on the seventh second and pays another two.
+  for (int step = 0; step < 6; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  ASSERT_NEAR(sim.target_hp_fraction(), 0.994, 1e-9);
+  for (int step = 0; step < 2; ++step) {
+    sim.Advance(params, 1.0);
+  }
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.988, 1e-9);
+}
+
 // The other half of the rule: a wound still standing is left alone. Nothing
 // re-lays it early, so the hard swing keeps every turn after the first.
 TEST(CombatSimTest, ABuffStillStandingIsNotLaidAgain) {

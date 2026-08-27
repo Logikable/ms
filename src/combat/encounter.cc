@@ -464,7 +464,8 @@ Skill BuffPulseSkill(const Skill& skill, const BuffPulse& pulse) {
   built.set_kind(SKILL_KIND_AUTO_ATTACK);
   *built.mutable_base() = pulse.base();
   *built.mutable_per_level() = pulse.per_level();
-  built.set_max_enemies(skill.max_enemies());
+  built.set_max_enemies(pulse.max_enemies() > 0 ? pulse.max_enemies()
+                                                : skill.max_enemies());
   built.set_lines(pulse.lines());
   return built;
 }
@@ -501,6 +502,8 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
   wound.swing_seconds = 0.0;
   ClearSwingRiders(wound);
   wound.interval_seconds = pulse.cast_interval_seconds() * speed_factor;
+  wound.strikes_per_pulse = std::max(1, pulse.casts());
+  wound.max_pulses = pulse.max_pulses();
   set.auto_attacks.push_back(std::move(wound));
 }
 
