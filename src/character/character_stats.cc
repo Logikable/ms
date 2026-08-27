@@ -314,13 +314,11 @@ void AddProc(const Skill& skill, int level, PassiveTotals& totals) {
   totals.procs.push_back(rolled);
 }
 
-// Folds Freezing Crush in. The cap and what a stack is worth live on the one
-// skill, so they are read together; a second skill granting any would leave
-// the deeper pile and the better stack standing rather than summing two.
+// Folds Freezing Crush in. Two skills granting any of it leave the deeper pile
+// and the better stack standing rather than summing two, which is what lets
+// Frost Clutch better a stack without naming a pile of its own. A character
+// holding no cap at all is emptied out again by FoldFreezeStacks.
 void AddFreezeStacks(const Skill& skill, int level, PassiveTotals& totals) {
-  if (skill.freeze_stack_cap() <= 0) {
-    return;
-  }
   const SkillEffect& base = skill.base();
   const SkillEffect& per = skill.per_level();
   totals.freeze.cap = std::max(totals.freeze.cap, skill.freeze_stack_cap());

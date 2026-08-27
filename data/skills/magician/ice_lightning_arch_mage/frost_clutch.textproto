@@ -1,6 +1,8 @@
-# One lever, flat: the final damage it comes to. GMS hangs this on Freezing
-# Crush's ice stacks, which the engine now counts -- so the per-stack shape is
-# open, and this file has not been rewritten to it.
+# GMS's Frost Clutch is one level and one number: the critical damage Freezing
+# Crush pays per stack goes from 1% to 2%. It supersedes rather than adds --
+# the fold keeps the better of two stacks, never their sum -- and the final
+# damage half stays Freezing Crush's 1%. Ten levels here rather than GMS's one,
+# walked evenly to that 2%.
 #
 # It does not pass its master level. GMS masters this at 1 and does not mark it
 # for Combat Orders, so there is no level above the top for a grant to reach.
@@ -10,5 +12,5 @@ description: "Increases the effect of Freezing Crush."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
 max_level: 10
-base { final_dmg_pct: 0.005 }
-per_level { final_dmg_pct: 0.005 }
+base { crit_dmg_per_freeze_stack: 0.002 }
+per_level { crit_dmg_per_freeze_stack: 0.002 }

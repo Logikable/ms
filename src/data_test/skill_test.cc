@@ -900,23 +900,20 @@ TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   }
 }
 
-// A pile of Freeze Stacks and what one is worth live on the same skill, so
-// either half without the other is a skill that says something and grants
-// nothing. The pile is worth nothing either without an ice swing to build it
-// and a lightning one to spend it, and both must reach the same character.
+// What a Freeze Stack is worth grants nothing without a pile to hold one, an
+// ice swing to build it and a lightning swing to spend it. The pile need not
+// be on the same skill -- Frost Clutch betters Freezing Crush's stack without
+// naming one -- but all four must reach the same character.
 TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
   std::map<std::string, Skill> skills = LoadSkills();
   std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
-    bool prices_stacks = skill.base().crit_dmg_per_freeze_stack() > 0.0 ||
-                         skill.base().final_dmg_pct_per_freeze_stack() > 0.0;
-    EXPECT_EQ(prices_stacks, skill.freeze_stack_cap() > 0)
-        << entry.first
-        << " states one half of Freezing Crush and not the other";
-    if (!prices_stacks) {
+    if (skill.base().crit_dmg_per_freeze_stack() <= 0.0 &&
+        skill.base().final_dmg_pct_per_freeze_stack() <= 0.0) {
       continue;
     }
+    bool pile = false;
     bool ice = false;
     bool lightning = false;
     for (Job job : jobs) {
@@ -928,12 +925,14 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
         if (books.count(other.second.job_advancement()) == 0) {
           continue;
         }
+        pile = pile || other.second.freeze_stack_cap() > 0;
         for (int i = 0; i < other.second.tags_size(); ++i) {
           ice = ice || other.second.tags(i) == SKILL_TAG_ICE;
           lightning = lightning || other.second.tags(i) == SKILL_TAG_LIGHTNING;
         }
       }
     }
+    EXPECT_TRUE(pile) << entry.first << " prices a stack of no pile";
     EXPECT_TRUE(ice) << entry.first << " has no ice swing to build the pile";
     EXPECT_TRUE(lightning) << entry.first
                            << " has no lightning swing to spend the pile";
