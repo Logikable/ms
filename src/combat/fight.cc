@@ -420,12 +420,15 @@ double CombatSim::FreezeBoost(const AttackOption& attack) const {
   double spent = attack.freeze_spends
                      ? 1.0 + attack.freeze_fd_per_stack * freeze_stacks_
                      : 1.0;
-  return crit * spent;
+  // Glacial Fury's magic attack is another factor again: it is attack rather
+  // than damage, and lands under everything the swing already multiplies.
+  double matt = 1.0 + attack.freeze_matt_gain * freeze_stacks_;
+  return crit * spent * matt;
 }
 
 double CombatSim::FreezeCredit(const CombatParams& params,
                                const AttackOption& attack) const {
-  int room = std::min(attack.freeze_build, params.freeze_cap - freeze_stacks_);
+  int room = std::min(attack.freeze_build, FreezeCap(params) - freeze_stacks_);
   if (room <= 0) {
     return 0.0;
   }
@@ -444,12 +447,12 @@ double CombatSim::FreezeCredit(const CombatParams& params,
 
 void CombatSim::CreditFreeze(const CombatParams& params,
                              const AttackOption& attack) {
-  if (params.freeze_cap <= 0) {
+  int cap = FreezeCap(params);
+  if (cap <= 0) {
     return;
   }
   if (attack.freeze_build > 0) {
-    freeze_stacks_ =
-        std::min(params.freeze_cap, freeze_stacks_ + attack.freeze_build);
+    freeze_stacks_ = std::min(cap, freeze_stacks_ + attack.freeze_build);
   } else if (attack.freeze_spends) {
     freeze_stacks_ = std::max(0, freeze_stacks_ - std::max(1, attack.lines));
   }
@@ -866,6 +869,10 @@ void CombatSim::Reflect(const CombatParams& params, double damage_taken) {
 const std::vector<AttackOption>& CombatSim::Attacks(
     const CombatParams& params) const {
   return params.Attacks(buff_mask_);
+}
+
+int CombatSim::FreezeCap(const CombatParams& params) const {
+  return params.FreezeCap(buff_mask_);
 }
 
 const std::vector<AttackOption>& CombatSim::AutoAttacks(

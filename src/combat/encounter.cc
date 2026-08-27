@@ -155,6 +155,14 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
       rate * derived.freeze.crit_dmg_per_stack / (1.0 + rate * crit);
   if (HasTag(skill, SKILL_TAG_ICE)) {
     attack.freeze_build = attack.lines;
+    // Glacial Fury's magic attack, as the share of this swing one held stack
+    // adds. Damage is linear in the attack behind it, so the two are the same
+    // thing said twice -- and it is a share here because that is what the
+    // fight can multiply a damage table by.
+    if (offense.attack > 0) {
+      attack.freeze_matt_gain =
+          derived.freeze.matt_per_stack / static_cast<double>(offense.attack);
+    }
   }
   if (HasTag(skill, SKILL_TAG_LIGHTNING)) {
     attack.freeze_spends = true;
@@ -834,6 +842,7 @@ AttackSet BuildAttackSet(const GameState& state, const DerivedStats& derived,
                     weapon.equip_type(), derived, attack_speed, speed_factor,
                     types, set);
   NumberDots(set, static_cast<int>(derived.dots.size()));
+  set.freeze_cap = derived.freeze.cap;
   return set;
 }
 
@@ -1020,6 +1029,13 @@ const std::vector<AttackOption>& CombatParams::TriggeredAttacks(
     return triggered_attacks;
   }
   return buffed[mask - 1].triggered_attacks;
+}
+
+int CombatParams::FreezeCap(int mask) const {
+  if (mask <= 0 || mask > static_cast<int>(buffed.size())) {
+    return freeze_cap;
+  }
+  return buffed[mask - 1].freeze_cap;
 }
 
 namespace {

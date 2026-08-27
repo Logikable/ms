@@ -422,6 +422,65 @@ TEST_F(DerivedStatsTest, IronBodyScalesWithItsLearnedLevel) {
   EXPECT_NEAR(stats.damage_taken_pct, 0.10, 1e-9);
 }
 
+// Freezing Crush, which is the whole mechanism: a cap, and what one stack of
+// it is worth.
+Skill FreezingCrush() {
+  Skill skill;
+  skill.set_name("Freezing Crush");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(1);
+  skill.set_freeze_stack_cap(5);
+  skill.mutable_base()->set_crit_dmg_per_freeze_stack(0.01);
+  return skill;
+}
+
+// Glacial Fury: a buff that deepens somebody else's pile and pays for it.
+Skill GlacialFury() {
+  Skill skill;
+  skill.set_name("Glacial Fury");
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(1);
+  skill.mutable_buff()->set_duration_seconds(20.0);
+  skill.mutable_buff()->mutable_base()->set_freeze_stack_cap_bonus(8);
+  skill.mutable_buff()->mutable_base()->set_magic_attack_per_freeze_stack(5);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, GlacialFuryDeepensThePileWhileItStands) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 0);
+  Skill crush = FreezingCrush();
+  Skill fury = GlacialFury();
+  std::map<std::string, Skill> skills = {{"freezing_crush", crush},
+                                         {"glacial_fury", fury}};
+  ASSERT_TRUE(c.LearnSkill(crush, 1));
+  ASSERT_TRUE(c.LearnSkill(fury, 1));
+
+  DerivedStats down = DerivedStatsFor(c, skills);
+  EXPECT_EQ(down.freeze.cap, 5);
+  EXPECT_EQ(down.freeze.matt_per_stack, 0);
+
+  const Skill* up[] = {&fury};
+  DerivedStats standing = DerivedStatsFor(c, skills, absl::MakeConstSpan(up));
+  EXPECT_EQ(standing.freeze.cap, 13);
+  EXPECT_EQ(standing.freeze.matt_per_stack, 5);
+}
+
+// The buff deepens a pile; it does not hand one over. A character who never
+// learned Freezing Crush holds no stacks for it to raise or to pay for.
+TEST_F(DerivedStatsTest, TheCapBonusGrantsNothingWithoutACap) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 0);
+  Skill fury = GlacialFury();
+  std::map<std::string, Skill> skills = {{"glacial_fury", fury}};
+  ASSERT_TRUE(c.LearnSkill(fury, 1));
+
+  const Skill* up[] = {&fury};
+  DerivedStats stats = DerivedStatsFor(c, skills, absl::MakeConstSpan(up));
+  EXPECT_EQ(stats.freeze.cap, 0);
+  EXPECT_EQ(stats.freeze.matt_per_stack, 0);
+}
+
 // Magic Guard as the data states it: 22% of a hit to MP, 7% more a level.
 Skill MagicGuard() {
   Skill skill;

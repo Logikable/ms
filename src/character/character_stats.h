@@ -84,6 +84,11 @@ struct FreezeStacks {
   double crit_dmg_per_stack = 0.0;
   double final_dmg_pct_per_stack = 0.0;
   int cap = 0;
+  // Magic attack one held stack is worth to an ice swing, which is Glacial
+  // Fury's. Left at 0 for a character holding the mechanism and nothing that
+  // pays for it, and folded away entirely for one holding no cap at all --
+  // there are no stacks to be paid for.
+  int matt_per_stack = 0;
 };
 
 // One fountain's pour: the share of the HP pool it puts back, and how far

@@ -144,6 +144,11 @@ const FlatLever kFlatLevers[] = {
     {"ATT", &SkillEffect::attack, "", false},
     {"MATT", &SkillEffect::magic_attack, "", false},
     {"ATT", &SkillEffect::attack_per_combo_orb, " per Combo Orb", false},
+    // Glacial Fury's pair. The magic attack is an ICE swing's alone, which the
+    // row says because nothing else on the page does.
+    {"Freeze Stacks", &SkillEffect::freeze_stack_cap_bonus, "", false},
+    {"Ice MATT", &SkillEffect::magic_attack_per_freeze_stack,
+     " per Freeze Stack", false},
     {"DEF", &SkillEffect::def_per_combo_orb, " per Combo Orb", false},
     {"STR", &SkillEffect::str, "", false},
     {"DEX", &SkillEffect::dex, "", false},

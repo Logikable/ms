@@ -398,6 +398,13 @@ message SkillEffect {
   // on the lightning swing that spends it. See Skill.freeze_stack_cap.
   double crit_dmg_per_freeze_stack = 109;
   double final_dmg_pct_per_freeze_stack = 110;
+  // Glacial Fury's, and the pile it deepens is Freezing Crush's: stacks added
+  // to the cap while this stands, and the magic attack each held stack is
+  // worth to an ice swing. Neither means anything without a cap to raise --
+  // the mechanism is Freezing Crush's, and a character who has not learned it
+  // holds no stacks to pay for.
+  int32 freeze_stack_cap_bonus = 114;
+  int32 magic_attack_per_freeze_stack = 115;
 }
 
 // A second attack the same skill makes, on its own clock, beside the swing it

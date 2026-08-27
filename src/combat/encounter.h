@@ -211,6 +211,10 @@ struct AttackOption {
   // critical damage Freezing Crush grants. Linear in the stacks held, since
   // what a stack really adds is critical damage rather than damage.
   double freeze_crit_gain = 0.0;
+  // The same for the magic attack Glacial Fury pays per stack, which only an
+  // ICE swing collects. 0 for every other swing and for a character without
+  // the buff up.
+  double freeze_matt_gain = 0.0;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
   // own. Puncture's wound is the case it exists for: what ticks is the wound,
@@ -234,6 +238,10 @@ struct AttackSet {
   std::vector<AttackOption> attacks;
   std::vector<AttackOption> auto_attacks;
   std::vector<AttackOption> triggered_attacks;
+  // Freeze Stacks the character can hold under these buffs. Here rather than
+  // on the params alone because Glacial Fury deepens the pile only while it
+  // stands, and a buff's whole effect is a set of its own.
+  int freeze_cap = 0;
 };
 
 // A buff the character puts up for a while, on a wait of its own. What it
@@ -378,6 +386,9 @@ struct CombatParams {
   const std::vector<AttackOption>& Attacks(int mask) const;
   const std::vector<AttackOption>& AutoAttacks(int mask) const;
   const std::vector<AttackOption>& TriggeredAttacks(int mask) const;
+  // How deep the pile of Freeze Stacks goes with `mask`'s buffs up. Out of
+  // range reads as none of them, exactly as the three above do.
+  int FreezeCap(int mask) const;
 };
 
 // The weapon the character is holding, or null for one holding nothing. A

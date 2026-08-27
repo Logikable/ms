@@ -441,6 +441,9 @@ class CombatSim {
       const CombatParams& params) const;
   const std::vector<AttackOption>& TriggeredAttacks(
       const CombatParams& params) const;
+  // How many Freeze Stacks the character can hold under those same buffs: the
+  // pile is deeper while Glacial Fury stands.
+  int FreezeCap(const CombatParams& params) const;
   // Fires the skills that attack on their own clock, before the swing is
   // aimed, so it is aimed at what they leave standing.
   void RunAutoCasts(const CombatParams& params, double dt);

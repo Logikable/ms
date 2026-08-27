@@ -115,6 +115,18 @@ Skill SpeedPassive(int stages) {
   return skill;
 }
 
+// Where a named swing sits among the options, or -1 for one the character
+// cannot swing.
+int IndexOfAttack(const std::vector<AttackOption>& attacks,
+                  const std::string& name) {
+  for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
+    if (attacks[i].name == name) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 TEST(ComputeCombatParamsTest, InactiveWithoutCurrentMap) {
   GameState state({}, {}, {}, {}, {});
   EquipSword(state);
@@ -203,6 +215,67 @@ TEST(ComputeCombatParamsTest, LearnedSkillsJoinTheBarePoke) {
   // 183% against the poke's 100%, on the same mob.
   EXPECT_GT(params.attacks[1].damage_per_hit[0],
             params.attacks[0].damage_per_hit[0]);
+}
+
+// Glacial Fury pays magic attack per Freeze Stack to ICE swings and to nothing
+// else, so the gain is written onto the ice swing alone -- and it is a share of
+// that swing, since damage is linear in the attack behind it.
+TEST(ComputeCombatParamsTest, OnlyAnIceSwingCollectsTheStackedMagicAttack) {
+  Skill crush;
+  crush.set_name("Freezing Crush");
+  crush.set_kind(SKILL_KIND_PASSIVE);
+  crush.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  crush.set_max_level(1);
+  crush.set_freeze_stack_cap(5);
+  Skill fury;
+  fury.set_name("Glacial Fury");
+  fury.set_kind(SKILL_KIND_ACTIVE);
+  fury.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  fury.set_max_level(1);
+  fury.set_cooldown_seconds(60.0);
+  fury.mutable_buff()->set_duration_seconds(20.0);
+  fury.mutable_buff()->mutable_base()->set_freeze_stack_cap_bonus(8);
+  fury.mutable_buff()->mutable_base()->set_magic_attack_per_freeze_stack(5);
+  Skill beam;
+  beam.set_name("Cold Beam");
+  beam.set_kind(SKILL_KIND_ATTACK);
+  beam.add_tags(SKILL_TAG_ICE);
+  beam.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  beam.set_max_level(1);
+  beam.mutable_base()->set_skill_pct(1.0);
+  Skill bolt = beam;
+  bolt.set_name("Thunder Bolt");
+  bolt.clear_tags();
+  bolt.add_tags(SKILL_TAG_LIGHTNING);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"cold_beam", beam},
+                   {"freezing_crush", crush},
+                   {"glacial_fury", fury},
+                   {"thunder_bolt", bolt}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 4);
+  ASSERT_TRUE(state.character.LearnSkill(crush, 1));
+  ASSERT_TRUE(state.character.LearnSkill(fury, 1));
+  ASSERT_TRUE(state.character.LearnSkill(beam, 1));
+  ASSERT_TRUE(state.character.LearnSkill(bolt, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  // Down, the buff pays nothing at all and the pile is Freezing Crush's own.
+  EXPECT_EQ(params.FreezeCap(0), 5);
+  int ice = IndexOfAttack(params.attacks, "Cold Beam");
+  int lightning = IndexOfAttack(params.attacks, "Thunder Bolt");
+  ASSERT_GE(ice, 0);
+  ASSERT_GE(lightning, 0);
+  EXPECT_DOUBLE_EQ(params.attacks[ice].freeze_matt_gain, 0.0);
+
+  // Up, the cap is 13 and the ice swing gains 5 magic attack a stack against
+  // whatever it is swinging with.
+  ASSERT_EQ(params.buffed.size(), 1u);
+  EXPECT_EQ(params.FreezeCap(1), 13);
+  EXPECT_GT(params.Attacks(1)[ice].freeze_matt_gain, 0.0);
+  EXPECT_DOUBLE_EQ(params.Attacks(1)[lightning].freeze_matt_gain, 0.0);
 }
 
 // A skill the book has replaced stops being an option to swing, not only a

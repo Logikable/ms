@@ -357,7 +357,8 @@ double FreezeBoost(const AttackOption& attack, int stacks) {
   }
   double spent =
       attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
-  return (1.0 + attack.freeze_crit_gain * stacks) * spent;
+  return (1.0 + attack.freeze_crit_gain * stacks) * spent *
+         (1.0 + attack.freeze_matt_gain * stacks);
 }
 
 double FreezeCredit(const std::vector<AttackOption>& attacks,
@@ -535,7 +536,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
       pick = SwingToLay(params, clocks, cooldown);
       if (pick < 0) {
         pick = BestSwing(params.Attacks(clocks.mask), cooldown, enemies, freeze,
-                         params.freeze_cap, burning);
+                         params.FreezeCap(clocks.mask), burning);
       }
     }
     if (pick < 0) {
@@ -556,7 +557,7 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     double landed =
         CrowdDamage(swung, enemies, false) * FreezeBoost(swung, freeze);
     LightBurns(swung, enemies, pick, burning);
-    freeze = CreditFreeze(swung, freeze, params.freeze_cap);
+    freeze = CreditFreeze(swung, freeze, params.FreezeCap(clocks.mask));
     played.damage += landed;
     played.damage_by_attack[pick] += landed;
     played.seconds += swung.swing_seconds;

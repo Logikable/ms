@@ -114,6 +114,9 @@ struct PassiveTotals {
   std::vector<SwingProc> procs;
   // What a Freeze Stack is worth, and how many the character holds.
   FreezeStacks freeze;
+  // Stacks a buff adds to that cap while it stands. Held apart until
+  // FoldFreezeStacks, which only deepens a pile the character already has.
+  int freeze_cap_bonus = 0;
   // Pick Pocket's chance and Meso Explosion's damage, which live on two
   // different skills and are worth nothing apart -- totalled here and paired
   // once the fold is done.
@@ -239,6 +242,13 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.def_per_combo_orb +=
       base.def_per_combo_orb() + per.def_per_combo_orb() * (level - 1);
   totals.ap_stat_pct += base.ap_stat_pct() + per.ap_stat_pct() * (level - 1);
+  // Read here rather than beside the cap itself, so that a BUFF granting
+  // either lands them: a buff folds in through this door alone.
+  totals.freeze_cap_bonus += base.freeze_stack_cap_bonus() +
+                             per.freeze_stack_cap_bonus() * (level - 1);
+  totals.freeze.matt_per_stack +=
+      base.magic_attack_per_freeze_stack() +
+      per.magic_attack_per_freeze_stack() * (level - 1);
   // The shortest wait rather than the sum: two pacts are not one long one,
   // and what a character wants to know is how soon the next one comes.
   double revive = base.revive_cooldown_seconds() +
@@ -435,6 +445,18 @@ void FoldFinalAttackBoosts(PassiveTotals& totals) {
   }
 }
 
+// Settles the pile. A cap raised by a buff is Freezing Crush's pile grown
+// deeper, so the bonus pays only where there is a pile: a character who never
+// learned the mechanism holds no stacks for Glacial Fury to deepen or to pay
+// for.
+void FoldFreezeStacks(PassiveTotals& totals) {
+  if (totals.freeze.cap <= 0) {
+    totals.freeze = FreezeStacks{};
+    return;
+  }
+  totals.freeze.cap += totals.freeze_cap_bonus;
+}
+
 void FoldComboOrbs(PassiveTotals& totals) {
   totals.attack += totals.attack_per_combo_orb * totals.combo_orbs;
   totals.boss_pct += totals.boss_pct_per_combo_orb * totals.combo_orbs;
@@ -575,6 +597,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   }
   FoldMesoExplosion(totals);
   FoldFinalAttackBoosts(totals);
+  FoldFreezeStacks(totals);
   FoldComboOrbs(totals);
   return totals;
 }

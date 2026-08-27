@@ -2771,6 +2771,45 @@ TEST(CombatSimTest, AHeldStackLiftsTheIceSwingItCameFrom) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.935, 1e-9);  // capped, so no more
 }
 
+// Glacial Fury's half of the pile: magic attack per held stack, and only an
+// ice swing collects it.
+TEST(CombatSimTest, GlacialFurysMagicAttackRidesTheIceSwingAlone) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/4);
+  // No lightning swing, so the pile only ever grows: what is being read is
+  // what the ice swing collects for holding it.
+  params.attacks.pop_back();
+  params.attacks[1].freeze_matt_gain = 0.25;
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);  // 10, nothing held yet
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.975, 1e-9);  // 10 x 1.5, two held
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.955, 1e-9);  // 10 x 2.0, four held
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.935, 1e-9);  // capped, so no more
+}
+
+// The pile is deeper while the buff raising it stands, and the fight reads the
+// cap for the buffs standing rather than one number for the whole encounter.
+TEST(CombatSimTest, ABuffDeepensThePile) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/2);
+  EXPECT_EQ(params.FreezeCap(0), 2);
+
+  AttackSet deeper;
+  deeper.attacks = params.attacks;
+  deeper.freeze_cap = 10;
+  params.buffed.push_back(std::move(deeper));
+  EXPECT_EQ(params.FreezeCap(1), 10);
+  // Out of range is no buffs at all, exactly as the attack tables read.
+  EXPECT_EQ(params.FreezeCap(2), 2);
+}
+
 // A boss fight is the roster it opened with: nothing refills, and an emptied
 // queue stays empty however long the fight runs on.
 TEST(CombatSimTest, NoRespawnSecondsMeansNothingComesBack) {
