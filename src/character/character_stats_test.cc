@@ -1246,6 +1246,32 @@ TEST_F(DerivedStatsTest, AWiderRingIsStillPricedByTheSkillThatNamedIt) {
   EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 20);
 }
 
+// The Hero's two: boss damage and DEF, each worth the ring times the bargain.
+TEST_F(DerivedStatsTest, BossDamageAndDefArePricedPerOrb) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 0);
+  Skill combo;
+  combo.set_name("Advanced Combo");
+  combo.set_kind(SKILL_KIND_PASSIVE);
+  combo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  combo.set_max_level(1);
+  combo.set_combo_orbs(10);
+  Skill rush;
+  rush.set_name("Boss Rush");
+  rush.set_kind(SKILL_KIND_PASSIVE);
+  rush.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  rush.set_max_level(1);
+  rush.mutable_base()->set_boss_pct_per_combo_orb(0.02);
+  rush.mutable_base()->set_def_per_combo_orb(100);
+  std::map<std::string, Skill> skills = {{"advanced_combo", combo},
+                                         {"boss_rush", rush}};
+  ASSERT_TRUE(c.LearnSkill(combo, 1));
+  ASSERT_TRUE(c.LearnSkill(rush, 1));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.boss_pct, 0.20, 1e-9);
+  EXPECT_EQ(stats.skill_stats.def(), 1000);
+}
+
 // A ring nobody hands out is no ring: the bargain is priced against nothing
 // and the character is left with the plain final damage they bought.
 TEST_F(DerivedStatsTest, PerOrbFinalDamageIsWorthNothingWithoutOrbs) {

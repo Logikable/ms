@@ -147,7 +147,7 @@ struct PassiveTotals {
   double final_dmg_pct = 0.0;
   double ied = 0.0;
   int attack_speed = 0;
-  // Combo Orbs, and the two bargains priced per orb. The count is the best any
+  // Combo Orbs, and the bargains priced per orb. The count is the best any
   // learned passive grants rather than the sum -- a character carries one ring
   // of orbs however many skills describe it -- and the bargains are folded
   // against it only once every passive has been read, because the skill
@@ -155,6 +155,8 @@ struct PassiveTotals {
   int combo_orbs = 0;
   int attack_per_combo_orb = 0;
   double final_dmg_pct_per_combo_orb = 0.0;
+  double boss_pct_per_combo_orb = 0.0;
+  int def_per_combo_orb = 0;
 };
 
 // Folds one skill's levers in at `level`, on top of whatever is already there.
@@ -232,6 +234,10 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   totals.final_dmg_pct_per_combo_orb +=
       base.final_dmg_pct_per_combo_orb() +
       per.final_dmg_pct_per_combo_orb() * (level - 1);
+  totals.boss_pct_per_combo_orb += base.boss_pct_per_combo_orb() +
+                                   per.boss_pct_per_combo_orb() * (level - 1);
+  totals.def_per_combo_orb +=
+      base.def_per_combo_orb() + per.def_per_combo_orb() * (level - 1);
   totals.ap_stat_pct += base.ap_stat_pct() + per.ap_stat_pct() * (level - 1);
   // The shortest wait rather than the sum: two pacts are not one long one,
   // and what a character wants to know is how soon the next one comes.
@@ -411,6 +417,8 @@ void FoldMesoExplosion(PassiveTotals& totals) {
 
 void FoldComboOrbs(PassiveTotals& totals) {
   totals.attack += totals.attack_per_combo_orb * totals.combo_orbs;
+  totals.boss_pct += totals.boss_pct_per_combo_orb * totals.combo_orbs;
+  totals.def += totals.def_per_combo_orb * totals.combo_orbs;
   double orbs = totals.final_dmg_pct_per_combo_orb * totals.combo_orbs;
   totals.final_dmg_pct = (1.0 + totals.final_dmg_pct) * (1.0 + orbs) - 1.0;
 }

@@ -325,6 +325,12 @@ message SkillEffect {
   int32 attack_per_combo_orb = 100;
   // The Crusader's, and the same bargain per orb as the field above.
   double final_dmg_pct_per_combo_orb = 101;
+  // The Hero's, and the same bargain again: boss damage per orb, and DEF per
+  // orb. The DEF one ships dead for the reason def_pct does -- a 4th job has
+  // passed the cap on their stats alone -- and is written per orb rather than
+  // as its product so that it says what GMS says.
+  double boss_pct_per_combo_orb = 112;
+  int32 def_per_combo_orb = 113;
   // The Magician's. Share of incoming damage that comes out of MP rather than
   // HP. Nothing tracks MP, so it lands as plain reduction alongside
   // damage_taken_pct.

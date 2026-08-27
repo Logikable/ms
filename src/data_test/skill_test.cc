@@ -916,7 +916,9 @@ TEST(SkillDataTest, EveryPerOrbBargainHasOrbsToBePaidAgainst) {
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     bool prices_orbs = skill.base().attack_per_combo_orb() > 0 ||
-                       skill.base().final_dmg_pct_per_combo_orb() > 0.0;
+                       skill.base().final_dmg_pct_per_combo_orb() > 0.0 ||
+                       skill.base().boss_pct_per_combo_orb() > 0.0 ||
+                       skill.base().def_per_combo_orb() > 0;
     if (!prices_orbs) {
       EXPECT_EQ(skill.combo_orbs(), 0)
           << entry.first << " hands out orbs nothing it grants is worth";
