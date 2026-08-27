@@ -320,11 +320,16 @@ TEST_F(SkillInspectPanelTest, ABoostNamesTheSkillItReachesAcrossTo) {
   SkillBoost* boost = mirage.add_boost();
   boost->set_skill_name("Wind Arrow");
   boost->mutable_effect()->set_skill_pct(0.70);
-  EXPECT_NE(RowIn(RenderAt(mirage, 1), "Boosts Wind Arrow", "+70% Damage"),
-            std::string::npos);
-  // Every lever the boost carries is named, since one row holds them all.
+  EXPECT_NE(
+      RowIn(RenderAt(mirage, 1), "Boosts Wind Arrow", "+70% Damage per Strike"),
+      std::string::npos);
+  // Every lever the boost carries is named, since one row holds them all --
+  // and the two damages are told apart, points on the skill's multiplier
+  // reading per strike where a share of the character's damage reads plain.
   boost->mutable_effect()->set_ied_pct(0.20);
-  EXPECT_NE(RenderAt(mirage, 1).find("+70% Damage, +20% Ignore DEF"),
+  boost->mutable_effect()->set_damage_pct(0.20);
+  EXPECT_NE(RenderAt(mirage, 1).find(
+                "+70% Damage per Strike, +20% Damage, +20% Ignore DEF"),
             std::string::npos);
   // Half a bargain writes no row: a name with nothing behind it.
   Skill bare = MakeIronBody();
@@ -590,7 +595,7 @@ TEST_F(SkillInspectPanelTest, StatesBothHalvesOfAnEmpoweredSwing) {
   EXPECT_NE(RowIn(rendered, "Empowered Enemies", "8"), std::string::npos);
   EXPECT_NE(RowIn(rendered, "Empowered Damage", "203% x6 = 1218%"),
             std::string::npos);
-  EXPECT_NE(RowIn(rendered, "Boosts Piercing Arrow", "+102% Damage"),
+  EXPECT_NE(RowIn(rendered, "Boosts Piercing Arrow", "+102% Damage per Strike"),
             std::string::npos);
   // Counted on the swing, which is the ordinary reading and needs no row.
   EXPECT_EQ(rendered.find("Marks"), std::string::npos);

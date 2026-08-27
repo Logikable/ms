@@ -638,11 +638,13 @@ std::string BoostText(const SkillBoost& boost, int level) {
     double (SkillEffect::*fn)() const;
   };
   const BoostLever kBoostLevers[] = {
-      {"Damage", &SkillEffect::skill_pct},
-      // Told apart from the row above because the two are different bargains:
-      // that one is points on the skill's own multiplier, this one a share of
-      // the character's damage. See SkillBoost::effect.
-      {"Total Damage", &SkillEffect::damage_pct},
+      // Points on the skill's own multiplier, which every strike of it lands
+      // -- so the row says per strike. The row below is the other bargain: a
+      // share of the character's damage that only this swing collects, which
+      // is what the stats page and GMS both call Damage. See
+      // SkillBoost::effect.
+      {"Damage per Strike", &SkillEffect::skill_pct},
+      {"Damage", &SkillEffect::damage_pct},
       {"Final Damage", &SkillEffect::final_dmg_pct},
       {"Boss Damage", &SkillEffect::boss_pct},
       {"Ignore DEF", &SkillEffect::ied_pct},
