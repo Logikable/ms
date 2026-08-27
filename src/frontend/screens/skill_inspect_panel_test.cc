@@ -476,6 +476,18 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   EXPECT_NE(
       RowIn(RenderAt(cutter, 1), "Boosts Heaven's Hammer", "-30% Cooldown"),
       std::string::npos);
+
+  // A lever handed over backwards keeps its sign. Hurricane - Split Attack
+  // buys a second arrow with a quarter off what each one lands, and a row
+  // that dropped the cut would sell it as a free strike.
+  Skill split = MakeIronBody();
+  SkillBoost* hurricane = split.add_boost();
+  hurricane->set_skill_name("Hurricane");
+  hurricane->set_lines(1);
+  hurricane->mutable_effect()->set_final_dmg_pct(-0.25);
+  EXPECT_NE(RowIn(RenderAt(split, 1), "Boosts Hurricane",
+                  "+1 Strike, -25% Final Damage"),
+            std::string::npos);
 }
 
 // A wait that never moves is stated once above the divider; one that shortens

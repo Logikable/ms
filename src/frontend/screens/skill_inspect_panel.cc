@@ -654,13 +654,17 @@ std::string BoostText(const SkillBoost& boost, int level) {
   for (const BoostLever& lever : kBoostLevers) {
     double value = (boost.effect().*lever.fn)() +
                    (boost.effect_per_level().*lever.fn)() * (level - 1);
-    if (value <= 0.0) {
+    if (value == 0.0) {
       continue;
     }
     if (!gains.empty()) {
       gains += ", ";
     }
-    gains += "+" + FormatPercent(value) + " " + lever.label;
+    // A lever can be handed out backwards -- Hurricane - Split Attack pays a
+    // second arrow for a quarter off what each one lands -- and FormatPercent
+    // writes the minus itself, so only the plus has to be put back.
+    gains +=
+        (value > 0.0 ? "+" : "") + FormatPercent(value) + " " + lever.label;
   }
   return gains;
 }

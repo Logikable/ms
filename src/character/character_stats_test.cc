@@ -690,6 +690,30 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   EXPECT_NEAR(stats.damage_pct, 0.0, 1e-9);
 }
 
+// A lever can be handed over backwards. Hurricane - Split Attack pays a second
+// arrow for a quarter off what each one lands, and the fold that combines two
+// final damage sources has to carry the minus through rather than clamp it.
+TEST_F(DerivedStatsTest, ABoostCanTakeALeverAway) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 50);
+  Skill hyper;
+  hyper.set_name("Hurricane - Split Attack");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Hurricane");
+  boost->set_lines(1);
+  boost->mutable_effect()->set_final_dmg_pct(-0.25);
+  std::map<std::string, Skill> skills = {{"hyper", hyper}};
+  ASSERT_TRUE(c.LearnSkill(hyper, 1));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  std::map<std::string, SkillBonus>::const_iterator bonus =
+      stats.skill_bonus.find("Hurricane");
+  ASSERT_NE(bonus, stats.skill_bonus.end());
+  EXPECT_NEAR(bonus->second.final_dmg_pct, -0.25, 1e-9);
+}
+
 // A boost naming a skill the character does not hold reaches nothing, and a
 // Final Attack nobody named keeps what it was written with.
 TEST_F(DerivedStatsTest, AFinalAttackKeepsItsOwnChanceWhenNobodyNamesIt) {
