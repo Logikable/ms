@@ -4,7 +4,8 @@
 # attack that set it off.
 name: "Final Attack - Opportunity"
 skill_order: 9
-description: "Increases Advanced Final Attack's activation rate."
+description:
+  "Increases the activation chance of Advanced Final Attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 hyper: true

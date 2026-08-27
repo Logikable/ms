@@ -4,7 +4,7 @@
 name: "Combo Attack - Boss Rush"
 skill_order: 6
 description:
-  "Damage increases when attacking Boss Monsters, for each Combo Orb."
+  "Damage increases when attacking Boss Monster for each combo."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 hyper: true

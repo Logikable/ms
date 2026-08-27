@@ -2,7 +2,9 @@
 # so what the ten-second wait buys is the damage rather than a slower swing.
 name: "Rising Rage"
 skill_order: 2
-description: "Suppresses your inner rage into a powerful energy sphere."
+description:
+  "Manifest the rage of the ancients to wipe out the enemy in front of "
+  "you."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_HERO
 hyper: true

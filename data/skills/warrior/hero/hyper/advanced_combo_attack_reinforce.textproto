@@ -7,7 +7,8 @@
 # source folded against one ring.
 name: "Combo Attack - Reinforce"
 skill_order: 4
-description: "Increases the Final Damage granted by each Combo Orb."
+description:
+  "Final Damage increased for each additional Combo Orb."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 hyper: true

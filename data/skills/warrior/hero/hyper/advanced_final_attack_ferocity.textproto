@@ -3,7 +3,8 @@
 # way. See the Dark Knight's Evil Eye - Hex Reinforce.
 name: "Final Attack - Ferocity"
 skill_order: 8
-description: "Permanently increases Attack Power."
+description:
+  "Increases Advanced Final Attack's Attack Power boost."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 hyper: true

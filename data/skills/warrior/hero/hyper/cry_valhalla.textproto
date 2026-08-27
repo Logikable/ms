@@ -16,9 +16,9 @@
 name: "Cry Valhalla"
 skill_order: 1
 description:
-  "Calls upon the power of the ancients to defend you. Increases Attack "
-  "Power, Critical Rate and both resistances, and sends sword strikes at the "
-  "enemies around you."
+  "Calls upon the power of the ancients to defend you. Your "
+  "Swordsmanship skills will periodically leave afterimages, which deal "
+  "additional attacks to the enemy."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 hyper: true

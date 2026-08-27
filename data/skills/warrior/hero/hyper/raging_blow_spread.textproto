@@ -1,7 +1,8 @@
 # Eight enemies to ten. Flat, as every boost of this shape is.
 name: "Raging Blow - Spread"
 skill_order: 11
-description: "Increases the number of enemies Raging Blow hits."
+description:
+  "Increases the max number of monsters hit by Raging Blow."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
 hyper: true
