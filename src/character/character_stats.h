@@ -83,6 +83,9 @@ struct SwingProc {
 struct FreezeStacks {
   double crit_dmg_per_stack = 0.0;
   double final_dmg_pct_per_stack = 0.0;
+  // Storm Magic's, which reads only whether the pile is empty: final damage on
+  // any swing made while the enemy is frozen, the same however deep it stands.
+  double final_dmg_pct_when_frozen = 0.0;
   int cap = 0;
   // Magic attack one held stack is worth to an ice swing, which is Glacial
   // Fury's. Left at 0 for a character holding the mechanism and nothing that

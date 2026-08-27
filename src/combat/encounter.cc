@@ -137,8 +137,8 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
 
 // What this swing does with the character's Freeze Stacks. An ice swing leaves
 // one per line and a lightning swing spends one per line; both take the
-// critical damage a held stack grants, since a frozen enemy is frozen whichever
-// element is hitting it.
+// critical damage a held stack grants and Storm Magic's final damage, since a
+// frozen enemy is frozen whichever element is hitting it.
 //
 // That critical damage is turned into the share it adds to the swing's MEAN
 // damage, which is the only shape the fight can multiply by. Crit rolls per
@@ -153,6 +153,7 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
   double crit = offense.crit_dmg + kBaseCritDamage;
   attack.freeze_crit_gain =
       rate * derived.freeze.crit_dmg_per_stack / (1.0 + rate * crit);
+  attack.freeze_fd_when_frozen = derived.freeze.final_dmg_pct_when_frozen;
   if (HasTag(skill, SKILL_TAG_ICE)) {
     attack.freeze_build = attack.lines;
     // Glacial Fury's magic attack, as the share of this swing one held stack

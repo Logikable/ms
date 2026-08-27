@@ -440,7 +440,9 @@ double CombatSim::BoostForStacks(const AttackOption& attack, int stacks) const {
   // Glacial Fury's magic attack is another factor again: it is attack rather
   // than damage, and lands under everything the swing already multiplies.
   double matt = 1.0 + attack.freeze_matt_gain * stacks;
-  return crit * spent * matt;
+  // Storm Magic reads only that the pile stands, so it does not climb with it.
+  double frozen = 1.0 + attack.freeze_fd_when_frozen;
+  return crit * spent * matt * frozen;
 }
 
 double CombatSim::FreezeBoost(const AttackOption& attack) const {

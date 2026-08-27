@@ -405,6 +405,12 @@ message SkillEffect {
   // holds no stacks to pay for.
   int32 freeze_stack_cap_bonus = 114;
   int32 magic_attack_per_freeze_stack = 115;
+  // Storm Magic's. Final damage on every swing made while the enemy is frozen,
+  // which is what holding any Freeze Stack at all means here -- GMS asks only
+  // whether the enemy is under one of a list of conditions, and freezing is the
+  // one this game has. So it does not climb with the pile the way the levers
+  // above do: one stack lights it and five light it no brighter.
+  double final_dmg_pct_when_frozen = 116;
 }
 
 // A second attack the same skill makes, on its own clock, beside the swing it

@@ -357,7 +357,8 @@ double FreezeBoost(const AttackOption& attack, int stacks) {
   double spent =
       attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
   return (1.0 + attack.freeze_crit_gain * stacks) * spent *
-         (1.0 + attack.freeze_matt_gain * stacks);
+         (1.0 + attack.freeze_matt_gain * stacks) *
+         (1.0 + attack.freeze_fd_when_frozen);
 }
 
 double FreezeCredit(const std::vector<AttackOption>& attacks,

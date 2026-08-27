@@ -900,17 +900,18 @@ TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
   }
 }
 
-// What a Freeze Stack is worth grants nothing without a pile to hold one, an
-// ice swing to build it and a lightning swing to spend it. The pile need not
-// be on the same skill -- Frost Clutch betters Freezing Crush's stack without
-// naming one -- but all four must reach the same character.
+// What the pile is worth grants nothing without a pile to hold, an ice swing
+// to build it and a lightning swing to spend it. The pile need not be on the
+// same skill -- Frost Clutch betters Freezing Crush's stack and Storm Magic
+// reads only that one stands -- but all four must reach the same character.
 TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
   std::map<std::string, Skill> skills = LoadSkills();
   std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     if (skill.base().crit_dmg_per_freeze_stack() <= 0.0 &&
-        skill.base().final_dmg_pct_per_freeze_stack() <= 0.0) {
+        skill.base().final_dmg_pct_per_freeze_stack() <= 0.0 &&
+        skill.base().final_dmg_pct_when_frozen() <= 0.0) {
       continue;
     }
     bool pile = false;
@@ -932,7 +933,7 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
         }
       }
     }
-    EXPECT_TRUE(pile) << entry.first << " prices a stack of no pile";
+    EXPECT_TRUE(pile) << entry.first << " is worth a pile that cannot be held";
     EXPECT_TRUE(ice) << entry.first << " has no ice swing to build the pile";
     EXPECT_TRUE(lightning) << entry.first
                            << " has no lightning swing to spend the pile";

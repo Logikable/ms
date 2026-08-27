@@ -234,6 +234,10 @@ struct AttackOption {
   // ICE swing collects. 0 for every other swing and for a character without
   // the buff up.
   double freeze_matt_gain = 0.0;
+  // Storm Magic's final damage, taken whole on any swing made while the pile
+  // stands rather than climbing with it -- what GMS asks is only whether the
+  // enemy is frozen. 0 for every character but an I/L magician.
+  double freeze_fd_when_frozen = 0.0;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
   // own. Puncture's wound is the case it exists for: what ticks is the wound,

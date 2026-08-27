@@ -78,6 +78,8 @@ const PercentLever kPercentLevers[] = {
      " per Freeze Stack"},
     {"Final Damage", &SkillEffect::final_dmg_pct_per_freeze_stack, kPlus,
      " per Freeze Stack"},
+    {"Final Damage", &SkillEffect::final_dmg_pct_when_frozen, kPlus,
+     " on Frozen enemies"},
     {"Critical Rate", &SkillEffect::crit_rate, kPlus, ""},
     {"Critical Damage", &SkillEffect::crit_dmg, kPlus, ""},
     {"Mastery", &SkillEffect::mastery, kBare, ""},
