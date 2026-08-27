@@ -1,7 +1,7 @@
 # 20% boss damage against the full ring, summed with what the character's gear
 # and passives already pay -- boss damage is a share of the same damage
 # wherever it comes from.
-name: "Combo Attack - Boss Rush"
+name: "Advanced Combo Attack - Boss Rush"
 skill_order: 6
 description:
   "Damage increases when attacking Boss Monster for each combo."

@@ -239,6 +239,12 @@ TEST(SkillDataTest, EverySwingsNameFitsTheBossFightPanel) {
 // The character panel's widest column is chosen for the longest name the game
 // ships, so a longer one arriving has to move that number rather than sit cut
 // on every terminal -- this is where it says so.
+//
+// A Hyper Skill is the exception. GMS names one for the skill it strengthens
+// and then for what it does -- "Advanced Final Attack - Opportunity" -- and
+// there is no shortening of that which is still GMS's name, so the row slides
+// the name under the cursor instead. What it may not do is sit cut down to
+// something another skill also cuts down to.
 TEST(SkillDataTest, EverySkillNameFitsTheWidestCharacterPanel) {
   std::map<std::string, Skill> skills = LoadSkills();
   // The level column is measured over a whole book, so the widest level in
@@ -253,9 +259,22 @@ TEST(SkillDataTest, EverySkillNameFitsTheWidestCharacterPanel) {
   // the case a long name has to fit.
   int name_width =
       CharacterPanel::SkillNameWidth(level_width, kLeftColumnMax - 2 - 1);
+  // Keyed by the cut name and holding the whole one, so the branches that
+  // share a display name -- one Physical Training, one Advanced Final Attack
+  // -- are one row rather than a collision.
+  std::map<std::string, std::string> cut_to;
   for (const std::pair<const std::string, Skill>& entry : skills) {
-    EXPECT_LE(TextColumns(entry.second.name()), name_width)
-        << entry.first << " is wider than the panel ever gets";
+    const std::string& name = entry.second.name();
+    if (!entry.second.hyper()) {
+      EXPECT_LE(TextColumns(name), name_width)
+          << entry.first << " is wider than the panel ever gets";
+    }
+    std::string cut = name.substr(0, name_width);
+    std::pair<std::map<std::string, std::string>::iterator, bool> seen =
+        cut_to.emplace(cut, name);
+    EXPECT_TRUE(seen.second || seen.first->second == name)
+        << entry.first << " and \"" << seen.first->second
+        << "\" both cut down to \"" << cut << "\"";
   }
 }
 

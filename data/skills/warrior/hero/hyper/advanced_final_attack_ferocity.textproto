@@ -1,7 +1,7 @@
 # The lever lands on the character rather than on Advanced Final Attack, which
 # is a passive and has nothing to boost: 20 more attack is the same 20 either
 # way. See the Dark Knight's Evil Eye - Hex Reinforce.
-name: "Final Attack - Ferocity"
+name: "Advanced Final Attack - Ferocity"
 skill_order: 8
 description:
   "Increases Advanced Final Attack's Attack Power boost."

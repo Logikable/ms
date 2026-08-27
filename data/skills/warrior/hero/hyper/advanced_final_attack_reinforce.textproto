@@ -1,6 +1,3 @@
-# Named "Final Attack" for the family, for the reason Combo Attack - Reinforce
-# gives. The description says which of the two it reaches.
-#
 # GMS writes it "Damage: +10%", which is the %Damage stat rather than points on
 # the Final Attack's own multiplier -- so it sums with what the character
 # already pays and only the extra hits collect it.
@@ -8,7 +5,7 @@
 # Aimed at Advanced Final Attack by name even though that is a passive, which
 # a boost normally cannot reach. What it strengthens is the extra hit rather
 # than a swing; see SkillBoost::effect.
-name: "Final Attack - Reinforce"
+name: "Advanced Final Attack - Reinforce"
 skill_order: 7
 description:
   "Increases the damage of Advanced Final Attack."

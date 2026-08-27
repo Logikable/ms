@@ -667,7 +667,7 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   CharacterInstance c = MakeCharacter(rng_, 140, 50);
   Skill final_attack = FinalAttack();
   Skill hyper;
-  hyper.set_name("Final Attack - Opportunity");
+  hyper.set_name("Advanced Final Attack - Opportunity");
   hyper.set_kind(SKILL_KIND_PASSIVE);
   hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
   hyper.set_max_level(1);

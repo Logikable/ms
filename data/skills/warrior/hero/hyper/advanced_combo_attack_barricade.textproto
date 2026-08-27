@@ -6,7 +6,7 @@
 # Which is also worth nothing, deliberately: DEF stops paying at a share of the
 # attacking monster's own attack, and a Hero has passed that cap on their stats
 # alone. See SkillEffect.def_pct, dead by the same design.
-name: "Combo Attack - Barricade"
+name: "Advanced Combo Attack - Barricade"
 skill_order: 5
 description:
   "DEF increased for each additional Combo Orb."

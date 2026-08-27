@@ -2,7 +2,7 @@
 # The one lever a boost carries that never reaches a swing -- what it raises is
 # how often the extra hit lands, which belongs to the source rather than to the
 # attack that set it off.
-name: "Final Attack - Opportunity"
+name: "Advanced Final Attack - Opportunity"
 skill_order: 9
 description:
   "Increases the activation chance of Advanced Final Attack."

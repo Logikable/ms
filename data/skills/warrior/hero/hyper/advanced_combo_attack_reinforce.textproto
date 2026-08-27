@@ -1,11 +1,7 @@
-# Named for the family rather than for the skill, as every hyper here is: GMS
-# writes "Advanced Combo Attack - Reinforce", which is three columns wider than
-# the skills panel ever gets. The Dark Knight's page shortens the same way.
-#
 # The ring is ten orbs at master level, so this is 20% final damage -- and it
 # meets Advanced Combo's own the way two per-orb bargains always do, as one
 # source folded against one ring.
-name: "Combo Attack - Reinforce"
+name: "Advanced Combo Attack - Reinforce"
 skill_order: 4
 description:
   "Final Damage increased for each additional Combo Orb."
