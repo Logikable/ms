@@ -7,8 +7,8 @@
 name: "Dark Thirst"
 skill_order: 1
 description:
-  "Awaken the thirst of darkness for a time, increasing Attack and restoring "
-  "HP with every attack."
+  "Channels your inner vampire to increase Attack Power and sap life from "
+  "enemies."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

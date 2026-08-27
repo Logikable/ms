@@ -2,7 +2,7 @@
 # book, which is what a ten-second wait buys.
 name: "Nightshade Explosion"
 skill_order: 2
-description: "Gather the power of darkness and detonate it around you."
+description: "Release your inner power to lay waste to nearby enemies."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

@@ -3,7 +3,7 @@
 # skill's own multiplier.
 name: "Gungnir's Descent - Reinforce"
 skill_order: 10
-description: "Increases the damage of Gungnir's Descent."
+description: "Increases Gungnir's Descent's damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

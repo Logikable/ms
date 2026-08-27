@@ -4,7 +4,7 @@
 # level.
 name: "Final Pact - Reduce Cooldown"
 skill_order: 8
-description: "Reduces the time you must wait between one revival and the next."
+description: "Reduces the cooldown for reusing Final Pact."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

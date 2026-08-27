@@ -3,7 +3,9 @@
 # own the way two sources of final damage always meet, by multiplying.
 name: "Final Pact - Damage"
 skill_order: 7
-description: "Increases the Final Damage that Final Pact grants."
+description:
+  "Increases passive final damage of Final Pact. Stacks with existing final "
+  "damage bonuses."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

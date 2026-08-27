@@ -6,7 +6,7 @@
 # weapon carries any -- so there is nothing for this to raise.
 name: "Evil Eye - Hex Reinforce"
 skill_order: 5
-description: "Increases the Attack that Hex of the Evil Eye grants."
+description: "Increases Hex of the Evil Eye's Attack Power boost."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

@@ -3,7 +3,7 @@
 # than 50%.
 name: "Gungnir's Descent - Guardbreak"
 skill_order: 11
-description: "Gungnir's Descent ignores more of the enemy's defense."
+description: "Increases Ignore Defense for Gungnir's Descent."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

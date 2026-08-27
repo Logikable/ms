@@ -11,8 +11,8 @@
 name: "Epic Adventure"
 skill_order: 3
 description:
-  "Recall the adventures you have shared, increasing the damage of every "
-  "Explorer in your party for a time."
+  "Call upon the bravery deep within to increase damage output. Applies to "
+  "any Explorer class in the party."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

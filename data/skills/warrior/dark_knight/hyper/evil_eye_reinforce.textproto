@@ -9,7 +9,9 @@
 # until something does.
 name: "Evil Eye - Reinforce"
 skill_order: 4
-description: "Increases the damage of every attack your Evil Eye makes."
+description:
+  "Increases damage for Evil Eye of Domination, Evil Eye Shock, Revenge of "
+  "the Evil Eye, and Radiant Evil."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

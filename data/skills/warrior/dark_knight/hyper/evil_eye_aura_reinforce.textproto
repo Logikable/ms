@@ -4,9 +4,7 @@
 # two pulses here, and what the flat one adds at this level is nothing.
 name: "Evil Eye - Aura Reinforce"
 skill_order: 6
-description:
-  "Your Evil Eye's aura restores a share of your Max HP instead of a fixed "
-  "amount."
+description: "Increases the amount healed by the Evil Eye."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true

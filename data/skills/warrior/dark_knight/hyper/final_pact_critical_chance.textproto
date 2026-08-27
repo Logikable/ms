@@ -2,7 +2,7 @@
 # already, so the 20% lands here and adds to what they have.
 name: "Final Pact - Critical Chance"
 skill_order: 9
-description: "Increases the Critical Rate that Final Pact grants."
+description: "Increases Critical Rate bonus from Final Pact's passive effect."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 hyper: true
