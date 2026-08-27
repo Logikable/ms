@@ -208,8 +208,13 @@ constexpr int kItemNameMax = 38;
 // the slot, info, scroll and star cells after it, separators included.
 constexpr int kItemListFixedWidth = 56;
 
+// The blank column a list keeps between its last cell and the panel's border.
+// Only on the right: the column inside the left border is the cursor's, which
+// is clearance of its own.
+constexpr int kItemListGutter = 1;
+
 // The name column an item list gets inside `width` columns -- whatever the
-// cells after it leave, held between the two numbers above.
+// cells after it and the gutter leave, held between the two numbers above.
 int ItemNameWidthFor(int width);
 
 // The name cell of a list row: `name` cut to `name_width` columns, sliding

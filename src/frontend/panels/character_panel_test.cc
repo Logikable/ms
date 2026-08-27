@@ -262,6 +262,21 @@ int RowEnd(const ftxui::Screen& screen, int y) {
   return -1;
 }
 
+// A panel rendered onto a screen its own width, so its border lands where
+// the main layout would put it rather than at the edge of the test screen.
+ftxui::Screen PanelScreen(const CharacterPanel& panel, int width) {
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
+                                               ftxui::Dimension::Fixed(30));
+  ftxui::Element card = panel.Render();
+  ftxui::Render(screen, card);
+  return screen;
+}
+
+// The same, for the row `needle` is on.
+int RowEndOf(const ftxui::Screen& screen, const std::string& needle) {
+  return RowEnd(screen, FindCell(screen, needle).second);
+}
+
 bool OnScreen(ftxui::Component comp, const std::string& needle) {
   return FindCell(RenderToScreen(comp), needle).first >= 0;
 }
@@ -945,51 +960,41 @@ TEST_F(CharacterPanelTest, AWideColumnHoldsTheWholeName) {
 }
 
 // The Stats tab does not spread with the panel -- a value chasing the border
-// would leave its own label at the other end of the row -- so on a wide panel
-// the block sits in the middle instead of against the left border.
-TEST_F(CharacterPanelTest, TheStatsBlockIsCentredOnAWidePanel) {
+// would leave its own label at the other end of the row -- so the room a wide
+// panel brings goes in front of the block, which stays against the panel's
+// right gutter.
+TEST_F(CharacterPanelTest, TheStatsBlockKeepsTheRightGutter) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   CharacterPanel narrow(c, account_, panel_focus_, SkillCatalog());
   CharacterPanel wide(c, account_, panel_focus_, SkillCatalog());
   wide.SetWidth(kLeftColumnMax);
 
-  ftxui::Element narrow_card = narrow.Render();
-  ftxui::Element wide_card = wide.Render();
-  ftxui::Screen narrow_screen = ftxui::Screen::Create(
-      ftxui::Dimension::Fixed(80), ftxui::Dimension::Fixed(30));
-  ftxui::Render(narrow_screen, narrow_card);
-  ftxui::Screen wide_screen = ftxui::Screen::Create(
-      ftxui::Dimension::Fixed(80), ftxui::Dimension::Fixed(30));
-  ftxui::Render(wide_screen, wide_card);
-
-  // Half the room the wider panel brought goes to each side of the block.
-  int slack = (kLeftColumnMax - kLeftColumnMin) / 2;
-  EXPECT_EQ(FindCell(wide_screen, "HP:").first,
-            FindCell(narrow_screen, "HP:").first + slack);
-  EXPECT_EQ(FindCell(wide_screen, "[+]").first,
-            FindCell(narrow_screen, "[+]").first + slack);
+  int slack = kLeftColumnMax - kLeftColumnMin;
+  EXPECT_EQ(FindCell(PanelScreen(wide, kLeftColumnMax), "HP:").first,
+            FindCell(PanelScreen(narrow, kLeftColumnMin), "HP:").first + slack)
+      << "the labels move over with the block";
+  EXPECT_EQ(RowEndOf(PanelScreen(wide, kLeftColumnMax), "[+]"),
+            kLeftColumnMax - 3)
+      << "and what the rows right-align keeps the gutter inside the border";
 }
 
-// The stat block is one block: what the extra stats right-align ends in the
-// same column as the [+] of the rows above them, on any panel width.
-TEST_F(CharacterPanelTest, TheExtraStatsLineUpWithThePlusColumn) {
+// The stat block is one block, and the panel is one panel: what the extra
+// stats right-align ends in the same column as the [+] of the rows above
+// them, and as the [+] of the Skills tab beside it.
+TEST_F(CharacterPanelTest, TheRightHandColumnsAllEndTogether) {
   CharacterInstance c = MakeWarrior(rng_, /*sp=*/3);
   for (int width : {kLeftColumnMin, kLeftColumnMax}) {
     CharacterPanel panel(c, account_, panel_focus_, SkillCatalog());
     panel.SetWidth(width);
-    // A screen the panel's own width, so its border lands where the layout
-    // would put it rather than at the edge of the test screen.
-    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
-                                                 ftxui::Dimension::Fixed(30));
-    ftxui::Element card = panel.Render();
-    ftxui::Render(screen, card);
+    ftxui::Screen stats = PanelScreen(panel, width);
+    EXPECT_EQ(RowEndOf(stats, "[+]"), RowEndOf(stats, "Attack Speed"))
+        << "the stat rows end apart at width " << width;
 
-    int plus_row = FindCell(screen, "[+]").second;
-    int extra_row = FindCell(screen, "Attack Speed").second;
-    ASSERT_GE(plus_row, 0) << "at width " << width;
-    ASSERT_GE(extra_row, 0) << "at width " << width;
-    EXPECT_EQ(RowEnd(screen, plus_row), RowEnd(screen, extra_row))
-        << "the two columns end apart at width " << width;
+    ftxui::Component comp = panel.MakeComponent([](StatField) {});
+    comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+    ftxui::Screen skills = PanelScreen(panel, width);
+    EXPECT_EQ(RowEndOf(skills, "[+]"), RowEndOf(stats, "[+]"))
+        << "the two tabs end apart at width " << width;
   }
 }
 

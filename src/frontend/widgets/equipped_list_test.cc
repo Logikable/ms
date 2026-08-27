@@ -123,12 +123,14 @@ TEST_F(EquippedListTest, AWideNameColumnHoldsTheWholeName) {
       kItemNameMax - kItemNameWidth);
 }
 
-// The right column's minimum width in panel_widths.h is this header plus its
-// border, so a column added here has to move that number rather than quietly
-// run off the edge of a narrow terminal.
+// The right column's minimum width in panel_widths.h is this header, the
+// gutter inside its right border and the border itself, so a column added
+// here has to move that number rather than quietly run off the edge of a
+// narrow terminal.
 TEST_F(EquippedListTest, TheHeadersFitTheRightColumnMinimum) {
-  EXPECT_EQ(TextColumns(EquippedHeader()) + 2, kRightColumnMin);
-  EXPECT_LE(TextColumns(kSymbolHeader) + 2, kRightColumnMin);
+  EXPECT_EQ(TextColumns(EquippedHeader()) + kItemListGutter + 2,
+            kRightColumnMin);
+  EXPECT_LE(TextColumns(kSymbolHeader) + kItemListGutter + 2, kRightColumnMin);
 }
 
 }  // namespace

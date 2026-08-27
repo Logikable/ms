@@ -14,6 +14,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/character/progression.h"
+#include "src/frontend/panel_widths.h"
 #include "src/frontend/types.h"
 #include "src/frontend/widgets/colors.h"
 #include "src/frontend/widgets/panel_test_base.h"
@@ -107,6 +108,29 @@ std::string LineWith(const std::string& rendered, const std::string& needle) {
   begin = begin == std::string::npos ? 0 : begin + 1;
   size_t end = rendered.find('\n', at);
   return rendered.substr(begin, end - begin);
+}
+
+// On the narrowest panel the list fills its width exactly, so the columns
+// have to be measured to leave a blank one inside the right border. Nothing
+// is kept inside the left one: that column is the cursor's.
+TEST_F(EquippedPanelTest, TheListKeepsAGutterInsideTheRightBorder) {
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  panel.SetWidth(kRightColumnMin);
+  ftxui::Component comp = panel.MakeComponent([]() {});
+  ftxui::Screen screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(kRightColumnMin), ftxui::Dimension::Fixed(10));
+  ftxui::Element card = comp->Render();
+  ftxui::Render(screen, card);
+
+  // The header row and the row under the rule. The rule itself spans the
+  // panel, as every rule in the game does.
+  for (int y : {1, 3}) {
+    const std::string& cell = screen.PixelAt(kRightColumnMin - 2, y).character;
+    EXPECT_TRUE(cell.empty() || cell == " ")
+        << "row " << y << " runs into the border";
+  }
 }
 
 TEST_F(EquippedPanelTest, ShowsEmptyWhenNothingEquipped) {

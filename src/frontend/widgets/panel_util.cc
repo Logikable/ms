@@ -663,7 +663,8 @@ std::string StatFieldName(StatField field) {
 }
 
 int ItemNameWidthFor(int width) {
-  return std::clamp(width - kItemListFixedWidth, kItemNameWidth, kItemNameMax);
+  return std::clamp(width - kItemListGutter - kItemListFixedWidth,
+                    kItemNameWidth, kItemNameMax);
 }
 
 std::string ItemNameCell(const std::string& name,

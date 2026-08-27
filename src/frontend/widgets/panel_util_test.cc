@@ -258,11 +258,10 @@ TEST(FormatItemEntryTest, AWiderColumnHoldsMoreOfTheName) {
 // The column follows the panel's width between the two ends of its range,
 // and stops at both.
 TEST(ItemNameWidthForTest, GrowsWithThePanelAndStopsAtBothEnds) {
-  EXPECT_EQ(ItemNameWidthFor(kItemListFixedWidth + kItemNameWidth),
-            kItemNameWidth);
+  int narrowest = kItemListFixedWidth + kItemNameWidth + kItemListGutter;
+  EXPECT_EQ(ItemNameWidthFor(narrowest), kItemNameWidth);
   EXPECT_EQ(ItemNameWidthFor(10), kItemNameWidth) << "never below its own";
-  EXPECT_EQ(ItemNameWidthFor(kItemListFixedWidth + kItemNameWidth + 5),
-            kItemNameWidth + 5);
+  EXPECT_EQ(ItemNameWidthFor(narrowest + 5), kItemNameWidth + 5);
   EXPECT_EQ(ItemNameWidthFor(500), kItemNameMax)
       << "and never past the longest name there is";
 }

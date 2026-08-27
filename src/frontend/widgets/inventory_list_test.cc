@@ -134,8 +134,10 @@ TEST_F(InventoryListTest, AWideRowStillReddensTheCellThatShutsIt) {
 TEST_F(InventoryListTest, TheHeadersFitTheRightColumnMinimum) {
   ftxui::Element equips = EquipHeader();
   ftxui::Element stacks = StackHeader();
-  EXPECT_LE(ftxui::Dimension::Fit(equips).dimx + 2, kRightColumnMin);
-  EXPECT_LE(ftxui::Dimension::Fit(stacks).dimx + 2, kRightColumnMin);
+  EXPECT_LE(ftxui::Dimension::Fit(equips).dimx + kItemListGutter + 2,
+            kRightColumnMin);
+  EXPECT_LE(ftxui::Dimension::Fit(stacks).dimx + kItemListGutter + 2,
+            kRightColumnMin);
 }
 
 }  // namespace

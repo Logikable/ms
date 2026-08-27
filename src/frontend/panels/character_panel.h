@@ -136,10 +136,11 @@ class CharacterPanel {
   int ContentWidth() const {
     return width_ - 2;
   }
-  // One row of the Stats tab, centred in the panel at the tab's own width.
-  // The tab does not spread with the terminal -- a value chasing the border
-  // would leave its label at the other end of the row -- so on a wide panel
-  // the block sits in the middle rather than against the left border.
+  // One row of the Stats tab, at the tab's own width and against the panel's
+  // right gutter. The tab does not spread with the terminal -- a value
+  // chasing the border would leave its label at the other end of the row --
+  // so the room a wide panel brings goes in front of the block, and what the
+  // rows right-align stays in the Skills tab's [+] column.
   ftxui::Element StatsAligned(ftxui::Element row) const;
 
   // The panel's tabs, in bar order. Advance is only on the bar while an

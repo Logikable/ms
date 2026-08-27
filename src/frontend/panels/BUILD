@@ -70,6 +70,7 @@ cc_test(
     deps = [
         ":equipped_panel",
         "//src/character:progression",
+        "//src/frontend:panel_widths",
         "//src/frontend/widgets:colors",
         "//src/frontend/widgets:panel_test_base",
         "//src/protos:character_proto_cc",
