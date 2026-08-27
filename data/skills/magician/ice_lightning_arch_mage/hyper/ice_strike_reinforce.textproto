@@ -1,0 +1,16 @@
+# GMS hangs these three on Teleport Mastery, which this game does not have.
+# They land on Ice Strike instead, which is as dead: a 4th job I/L swings Chain
+# Lightning or Frozen Orb, and twenty points of damage on a 3rd job spell does
+# not change that. The trio ships knowingly worthless, as GMS's own does.
+name: "Ice Strike - Reinforce"
+skill_order: 4
+description: "Increases Ice Strike damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+hyper: true
+required_level: 140
+max_level: 1
+boost {
+  skill_name: "Ice Strike"
+  effect { damage_pct: 0.20 }
+}

@@ -1,0 +1,40 @@
+# The first swing in the game that is HELD: an orb that zaps eight enemies
+# every 150ms for as long as the key is down, then bursts. Twelve pulses is a
+# full two seconds; 960ms is the shortest it can be let go after, which five
+# pulses and the burst fit inside.
+#
+# It picks its eight when the hold opens and never again, so the fight holds it
+# only as long as the pulses still have somewhere to land -- against a boss
+# that is the whole two seconds, and on a map it is the floor. See Channel.
+#
+# Lightning, so it spends the pile an ice swing left and hits harder for every
+# stack it went in holding. GMS's line about attack reflection is dropped with
+# the rest of what this game has no notion of.
+name: "Lightning Orb"
+skill_order: 2
+description:
+  "Creates a large, unstable sphere of electricity to continuously zap "
+  "enemies."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_LIGHTNING
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+hyper: true
+required_level: 160
+max_level: 1
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 960
+max_enemies: 8
+lines: 15
+cooldown_seconds: 60.0
+base { skill_pct: 1.35 }
+channel {
+  pulse_interval_ms: 150
+  max_pulses: 12
+  finish_delay_ms: 200
+  damage_taken_pct: 0.50
+  finish {
+    label: "Final Attack"
+    lines: 15
+    base { skill_pct: 7.02 }
+  }
+}

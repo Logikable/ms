@@ -1,0 +1,26 @@
+# Twenty seconds of a deeper pile, once a minute. Both halves are Freezing
+# Crush's rather than this skill's: the cap it raises is that skill's, and the
+# magic attack it pays is collected by ice swings alone, one helping per stack
+# held. A character who never learned Freezing Crush gets neither.
+#
+# GMS states the cap raise as "increase max Freeze Stacks: 8", which takes the
+# I/L's five to thirteen -- and thirteen is the number Frozen Lightning's
+# "reduces Freeze Stacks by 10" was always written against.
+name: "Glacial Fury"
+skill_order: 1
+description:
+  "Harnesses the extreme cold to greatly enhance your ice's Magic ATT."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+hyper: true
+required_level: 140
+max_level: 1
+base_delay_ms: 120
+cooldown_seconds: 60.0
+buff {
+  duration_seconds: 20.0
+  base {
+    freeze_stack_cap_bonus: 8
+    magic_attack_per_freeze_stack: 5
+  }
+}

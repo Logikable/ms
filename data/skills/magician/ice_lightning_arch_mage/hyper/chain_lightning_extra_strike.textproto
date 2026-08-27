@@ -1,0 +1,12 @@
+name: "Chain Lightning - Extra Strike"
+skill_order: 9
+description: "Increases Chain Lightning's number of attacks."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_ARCH_MAGE
+hyper: true
+required_level: 180
+max_level: 1
+boost {
+  skill_name: "Chain Lightning"
+  lines: 1
+}
