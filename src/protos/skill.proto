@@ -732,12 +732,12 @@ message SkillBoost {
   // but Speed Mirage II's wants. Where two of them name one skill the faster
   // clock stands, since neither is a quantity that can be summed.
   int32 attacks_per_cast = 5;
-  // Levers the named skill alone carries, on top of its own. Six are read --
-  // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate and final_dmg_pct --
-  // and each meets the target's own the way two sources of it always meet:
-  // damage and boss damage sum, ignored defence combines in reverse, final
-  // damage multiplies. A lever outside those six is silently dropped, which
-  // //src/data_test:skill_test refuses.
+  // Levers the named skill alone carries, on top of its own. Seven are read --
+  // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate, final_dmg_pct and
+  // final_attack_chance -- and each meets the target's own the way two sources
+  // of it always meet: damage and boss damage sum, ignored defence combines in
+  // reverse, final damage multiplies. A lever outside those seven is silently
+  // dropped, which //src/data_test:skill_test refuses.
   //
   // The two damages are not the same bargain. skill_pct is percentage POINTS
   // on the target's own multiplier, worth its value once per line; damage_pct
@@ -750,6 +750,11 @@ message SkillBoost {
   // before the damage chain knows what it is hitting. They ride the SWING --
   // a boost aimed at a passive grants nothing, so a lever meant for the
   // character belongs in the granting skill's own `base`.
+  //
+  // The exception is a passive carrying a Final Attack, which has something to
+  // strengthen without ever swinging: final_attack_chance and damage_pct are
+  // folded onto that extra hit instead. The Hero's Advanced Final Attack
+  // hypers are what it exists for -- see FinalAttackSource.
   //
   // Read at the granting skill's learned level, as `base` and `per_level` are:
   // see effect_per_level.

@@ -1064,9 +1064,9 @@ TEST(SkillDataTest, EveryEmpoweredTargetIsHoldable) {
 // The levers a SkillBoost::effect is read for. Anything else written there is
 // data nothing will ever apply -- see SkillBoost::effect.
 bool BoostEffectIsSupported(const SkillEffect& effect, std::string& unread) {
-  static const std::set<std::string> kRead = {"skill_pct", "damage_pct",
-                                              "boss_pct",  "ied_pct",
-                                              "crit_rate", "final_dmg_pct"};
+  static const std::set<std::string> kRead = {
+      "skill_pct", "damage_pct",    "boss_pct",           "ied_pct",
+      "crit_rate", "final_dmg_pct", "final_attack_chance"};
   std::vector<const google::protobuf::FieldDescriptor*> set;
   effect.GetReflection()->ListFields(effect, &set);
   for (const google::protobuf::FieldDescriptor* field : set) {

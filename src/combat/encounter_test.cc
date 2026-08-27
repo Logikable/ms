@@ -498,6 +498,56 @@ TEST(ComputeCombatParamsTest, ASwingCanShakeFewerMesosLoose) {
   EXPECT_NEAR(swing.final_attack_rolls[0].chance, 0.10, 1e-9);
 }
 
+// A Reinforce aimed at the passive a Final Attack belongs to lands on the extra
+// hits and nowhere else -- the swing that set them off is worth what it was.
+TEST(ComputeCombatParamsTest, AFinalAttackReinforceLandsOnTheExtraHitsAlone) {
+  Skill final_attack;
+  final_attack.set_name("Advanced Final Attack");
+  final_attack.set_kind(SKILL_KIND_PASSIVE);
+  final_attack.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  final_attack.set_max_level(30);
+  final_attack.mutable_base()->set_final_attack_chance(0.60);
+  final_attack.mutable_base()->set_final_attack_pct(1.70);
+  Skill hyper;
+  hyper.set_name("Advanced Final Attack - Reinforce");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Advanced Final Attack");
+  boost->mutable_effect()->set_damage_pct(0.10);
+
+  Mob snail = MakeMob("Snail", 15);
+  std::map<std::string, Skill> book = {{"advanced_final_attack", final_attack}};
+  GameState bare({}, {}, {}, {{"snail", snail}}, {{"field", TwoSnailMap()}},
+                 book);
+  bare.current_map = "field";
+  EquipSword(bare);
+  GrantFirstJobSp(bare, 30);
+  ASSERT_TRUE(bare.character.LearnSkill(final_attack, 30));
+
+  book["hyper"] = hyper;
+  GameState boosted({}, {}, {}, {{"snail", snail}}, {{"field", TwoSnailMap()}},
+                    book);
+  boosted.current_map = "field";
+  EquipSword(boosted);
+  GrantFirstJobSp(boosted, 31);
+  ASSERT_TRUE(boosted.character.LearnSkill(final_attack, 30));
+  ASSERT_TRUE(boosted.character.LearnSkill(hyper, 1));
+
+  CombatParams bare_params = ComputeCombatParams(bare);
+  CombatParams paid_params = ComputeCombatParams(boosted);
+  const AttackOption& plain = bare_params.attacks[0];
+  const AttackOption& paid = paid_params.attacks[0];
+  ASSERT_FALSE(plain.final_attack_damage.empty());
+  ASSERT_FALSE(paid.final_attack_damage.empty());
+  EXPECT_GT(paid.final_attack_damage[0], plain.final_attack_damage[0]);
+  EXPECT_NEAR(paid.damage_per_hit[0], plain.damage_per_hit[0], 1e-9);
+  // The chance is untouched by a Reinforce: only Opportunity moves that.
+  ASSERT_EQ(paid.final_attack_rolls.size(), 1u);
+  EXPECT_NEAR(paid.final_attack_rolls[0].chance, 0.60, 1e-9);
+}
+
 // Blood Money brands the coins rather than the Shadower: the throw hits a boss
 // harder and every swing that knocked it loose is worth exactly what it was.
 TEST(ComputeCombatParamsTest, ABrandedMesoHitsABossHarder) {

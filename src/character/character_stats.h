@@ -43,6 +43,13 @@ struct FinalAttackSource {
   // Boss damage this source alone carries, on top of the character's. Only a
   // thrown meso has any: see SkillEffect.boosted_boss_pct.
   double boss_pct = 0.0;
+  // Plain % damage only these extra hits collect, summed into the share the
+  // character already pays -- a boost aimed at the skill that sets the Final
+  // Attack off, exactly as boss_pct above is. See SkillBoost::effect.
+  double damage_bonus_pct = 0.0;
+  // The skill that sets this off, so a boost naming that skill can find it.
+  // Empty for a source no skill owns -- a thrown meso's.
+  std::string skill_name;
   // Whether the whole swing rolls this ONCE and lands it on a single enemy.
   // Blizzard's passive alone; every other source follows the swing onto every
   // enemy it reached. Never set with per_line -- one counts enemies down to

@@ -660,6 +660,59 @@ TEST_F(DerivedStatsTest, FinalAttackKeepsItsChanceAndItsDamageApart) {
   EXPECT_EQ(stats.final_attacks[0].lines, 3);
 }
 
+// A boost aimed at a passive reaches nothing it swings, because it swings
+// nothing -- but a passive carrying a Final Attack has that extra hit to
+// strengthen, and the Hero's two hypers aim at exactly it.
+TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 50);
+  Skill final_attack = FinalAttack();
+  Skill hyper;
+  hyper.set_name("Final Attack - Opportunity");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Final Attack");
+  boost->mutable_effect()->set_final_attack_chance(0.15);
+  boost->mutable_effect()->set_damage_pct(0.10);
+  std::map<std::string, Skill> skills = {{"final_attack", final_attack},
+                                         {"hyper", hyper}};
+  ASSERT_TRUE(c.LearnSkill(final_attack, 20));
+  ASSERT_TRUE(c.LearnSkill(hyper, 1));
+
+  // 40% walks to 55%, and the extra hits alone collect the 10% damage. The
+  // multiplier is untouched: what the boost grants is not the skill's own.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.final_attacks.size(), 1u);
+  EXPECT_NEAR(stats.final_attacks[0].chance, 0.55, 1e-9);
+  EXPECT_NEAR(stats.final_attacks[0].damage_bonus_pct, 0.10, 1e-9);
+  EXPECT_NEAR(stats.final_attacks[0].damage_pct, 1.60, 1e-9);
+  EXPECT_NEAR(stats.damage_pct, 0.0, 1e-9);
+}
+
+// A boost naming a skill the character does not hold reaches nothing, and a
+// Final Attack nobody named keeps what it was written with.
+TEST_F(DerivedStatsTest, AFinalAttackKeepsItsOwnChanceWhenNobodyNamesIt) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 50);
+  Skill final_attack = FinalAttack();
+  Skill hyper;
+  hyper.set_name("Aimed Elsewhere");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Some Other Skill");
+  boost->mutable_effect()->set_final_attack_chance(0.15);
+  std::map<std::string, Skill> skills = {{"final_attack", final_attack},
+                                         {"hyper", hyper}};
+  ASSERT_TRUE(c.LearnSkill(final_attack, 20));
+  ASSERT_TRUE(c.LearnSkill(hyper, 1));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.final_attacks.size(), 1u);
+  EXPECT_NEAR(stats.final_attacks[0].chance, 0.40, 1e-9);
+}
+
 // A burn on a PASSIVE follows the character onto every swing; one on the
 // attack that leaves it stays with that attack, where the swing is priced.
 TEST_F(DerivedStatsTest, OnlyAPassivesBurnFollowsTheCharacter) {

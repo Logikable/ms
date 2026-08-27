@@ -639,6 +639,7 @@ std::string BoostText(const SkillBoost& boost, int level) {
       {"Boss Damage", &SkillEffect::boss_pct},
       {"Ignore DEF", &SkillEffect::ied_pct},
       {"Critical Rate", &SkillEffect::crit_rate},
+      {"Final Attack Rate", &SkillEffect::final_attack_chance},
   };
   for (const BoostLever& lever : kBoostLevers) {
     double value = (boost.effect().*lever.fn)() +

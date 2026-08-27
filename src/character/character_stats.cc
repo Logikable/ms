@@ -283,6 +283,7 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& base,
       1, base.final_attack_lines() + per.final_attack_lines() * (level - 1));
   source.required_tag = skill.follows_skill_tag();
   source.single_enemy = skill.final_attack_single_enemy();
+  source.skill_name = skill.name();
   totals.final_attacks.push_back(source);
 }
 
@@ -355,6 +356,8 @@ void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
         into.ied, base.ied_pct() + per.ied_pct() * (level - 1));
     double fd = base.final_dmg_pct() + per.final_dmg_pct() * (level - 1);
     into.final_dmg_pct = (1.0 + into.final_dmg_pct) * (1.0 + fd) - 1.0;
+    into.final_attack_chance +=
+        base.final_attack_chance() + per.final_attack_chance() * (level - 1);
   }
 }
 
@@ -413,6 +416,23 @@ void FoldMesoExplosion(PassiveTotals& totals) {
     totals.meso_boss_pct = boost->second.boss_pct;
   }
   totals.meso_hit_pct *= totals.meso_lines;
+}
+
+// Hands each Final Attack what the book aimed at the skill that sets it off.
+// Folded here rather than where the source is built, because the skill
+// granting the boost may be read after the skill carrying the Final Attack --
+// and a boost aimed at a passive reaches nothing else: what it strengthens is
+// the extra hit, not a swing. See SkillBoost::effect.
+void FoldFinalAttackBoosts(PassiveTotals& totals) {
+  for (FinalAttackSource& source : totals.final_attacks) {
+    std::map<std::string, SkillBonus>::const_iterator boost =
+        totals.skill_bonus.find(source.skill_name);
+    if (source.skill_name.empty() || boost == totals.skill_bonus.end()) {
+      continue;
+    }
+    source.chance += boost->second.final_attack_chance;
+    source.damage_bonus_pct += boost->second.damage_pct;
+  }
 }
 
 void FoldComboOrbs(PassiveTotals& totals) {
@@ -554,6 +574,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
               grant.level, totals);
   }
   FoldMesoExplosion(totals);
+  FoldFinalAttackBoosts(totals);
   FoldComboOrbs(totals);
   return totals;
 }

@@ -179,6 +179,12 @@ struct SkillBonus {
   double crit_rate = 0.0;
   // Final damage, which multiplies into the target's own.
   double final_dmg_pct = 0.0;
+  // Chance added to the named skill's Final Attack, for a boost aimed at a
+  // passive that carries one. The only lever here that never reaches a swing:
+  // what it strengthens is the extra hit the target sets off, so it is folded
+  // onto that source rather than read where the swing is built. See
+  // FinalAttackSource and SkillBoost::effect.
+  double final_attack_chance = 0.0;
 };
 
 // What a character's learned passives add to every swing, whichever attack
