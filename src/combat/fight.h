@@ -290,15 +290,17 @@ class CombatSim {
   // chances it rolled. Returned rather than paid here because a strike knows
   // nothing about the pool -- see Proc.
   double RollProcs(const AttackOption& attack, int hit);
-  // What the Freeze Stacks the character is holding multiply `attack` by: the
-  // critical damage every stack grants, and the final damage a lightning swing
-  // takes for the ones it is about to spend. 1.0 for everyone holding none.
+  // What a pile `stacks` deep multiplies `attack` by: the critical damage
+  // every stack grants, and the final damage a lightning swing takes for the
+  // ones it is about to spend. 1.0 for a pile of nothing.
+  double BoostForStacks(const AttackOption& attack, int stacks) const;
+  // The same for the pile the character is holding right now.
   double FreezeBoost(const AttackOption& attack) const;
-  // What the stacks `attack` would LEAVE are worth: the final damage they will
-  // hand the best lightning swing on offer. Priced into the rate the way a side
-  // strike's damage is, because a chooser reading only this swing would never
-  // build anything -- an ice swing is worth less than the lightning one it
-  // makes room for, right up until the pile is spent.
+  // What the stacks `attack` would LEAVE are worth: everything a deeper pile
+  // buys the best swing on offer. Priced into the rate the way a side strike's
+  // damage is, because a chooser reading only this swing would never build
+  // anything -- an ice swing is worth less than the lightning one it makes
+  // room for, right up until the pile is spent.
   double FreezeCredit(const CombatParams& params,
                       const AttackOption& attack) const;
   // Moves the pile on for a landed attack: an ice one leaves a stack per line,

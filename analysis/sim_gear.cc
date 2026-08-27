@@ -347,10 +347,9 @@ int SwingToLay(const CombatParams& params, const BuffClocks& c,
   return -1;
 }
 
-// What the Freeze Stacks held multiply a swing by, and what the stacks a swing
-// would LEAVE are worth to the one that will spend them. Both mirror
-// CombatSim's -- see FreezeBoost and FreezeCredit for why the credit is needed
-// at all.
+// What the Freeze Stacks held multiply a swing by, and what a deeper pile
+// would be worth to the swing that comes next. Both mirror CombatSim's -- see
+// FreezeBoost and FreezeCredit for why the credit is needed at all.
 double FreezeBoost(const AttackOption& attack, int stacks) {
   if (stacks <= 0) {
     return 1.0;
@@ -370,13 +369,14 @@ double FreezeCredit(const std::vector<AttackOption>& attacks,
   }
   double best = 0.0;
   for (const AttackOption& other : attacks) {
-    if (!other.freeze_spends || other.swing_seconds <= 0.0) {
+    if (other.swing_seconds <= 0.0) {
       continue;
     }
-    best =
-        std::max(best, CrowdDamage(other, enemies) * other.freeze_fd_per_stack);
+    double gain =
+        FreezeBoost(other, stacks + room) - FreezeBoost(other, stacks);
+    best = std::max(best, CrowdDamage(other, enemies) * gain);
   }
-  return best * room;
+  return best;
 }
 
 // Moves the pile on for a landed attack, as CombatSim::CreditFreeze does.

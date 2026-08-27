@@ -424,21 +424,27 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   return recovered;
 }
 
-double CombatSim::FreezeBoost(const AttackOption& attack) const {
-  if (freeze_stacks_ <= 0) {
+// What a pile that deep multiplies this swing by. Taken as a stack count
+// rather than off the character, so the chooser can ask what a DEEPER pile
+// would be worth -- see FreezeCredit.
+double CombatSim::BoostForStacks(const AttackOption& attack, int stacks) const {
+  if (stacks <= 0) {
     return 1.0;
   }
   // The two multiply rather than sum: critical damage is folded into the swing
   // and final damage is the last thing applied to it, which is where every
   // other pair of the two meets.
-  double crit = 1.0 + attack.freeze_crit_gain * freeze_stacks_;
-  double spent = attack.freeze_spends
-                     ? 1.0 + attack.freeze_fd_per_stack * freeze_stacks_
-                     : 1.0;
+  double crit = 1.0 + attack.freeze_crit_gain * stacks;
+  double spent =
+      attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
   // Glacial Fury's magic attack is another factor again: it is attack rather
   // than damage, and lands under everything the swing already multiplies.
-  double matt = 1.0 + attack.freeze_matt_gain * freeze_stacks_;
+  double matt = 1.0 + attack.freeze_matt_gain * stacks;
   return crit * spent * matt;
+}
+
+double CombatSim::FreezeBoost(const AttackOption& attack) const {
+  return BoostForStacks(attack, freeze_stacks_);
 }
 
 double CombatSim::PulseDamage(const AttackOption& attack, int type) const {
@@ -527,17 +533,24 @@ double CombatSim::FreezeCredit(const CombatParams& params,
   if (room <= 0) {
     return 0.0;
   }
-  // What one more stack would be worth to the swing that will spend it. The
-  // best of them, since that is the one the chooser will reach for once the
-  // pile is deep enough.
+  // What the deeper pile is worth to the swing that comes next -- the whole of
+  // what a stack buys, not only the final damage a lightning swing spends it
+  // for. The best swing on offer, since that is the one the chooser will reach
+  // for once the stacks are down, whichever element it carries.
+  //
+  // One swing of lookahead, which is as far as a greedy chooser sees. A deep
+  // pile pays out over several swings and this credits it once.
   double best = 0.0;
+  int deeper = freeze_stacks_ + room;
   for (const AttackOption& other : Attacks(params)) {
-    if (!other.freeze_spends || other.swing_seconds <= 0.0) {
+    if (other.swing_seconds <= 0.0) {
       continue;
     }
-    best = std::max(best, SwingDamage(other) * other.freeze_fd_per_stack);
+    double gain =
+        BoostForStacks(other, deeper) - BoostForStacks(other, freeze_stacks_);
+    best = std::max(best, SwingDamage(other) * gain);
   }
-  return best * room;
+  return best;
 }
 
 void CombatSim::CreditFreeze(const CombatParams& params,
