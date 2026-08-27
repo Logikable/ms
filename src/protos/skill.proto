@@ -405,6 +405,12 @@ message SkillEffect {
   // holds no stacks to pay for.
   int32 freeze_stack_cap_bonus = 114;
   int32 magic_attack_per_freeze_stack = 115;
+  // Shatter's. Enemy defence ignored for every Freeze Stack the character is
+  // holding, on any swing they make -- a frozen enemy is frozen whichever
+  // element is hitting it. Combines with the rest of what they ignore the way
+  // two sources always do, and is worth nothing against a monster whose defence
+  // was already cancelled.
+  double ied_pct_per_freeze_stack = 117;
   // Storm Magic's. Final damage on every swing made while the enemy is frozen,
   // which is what holding any Freeze Stack at all means here -- GMS asks only
   // whether the enemy is under one of a list of conditions, and freezing is the

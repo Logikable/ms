@@ -334,6 +334,10 @@ void AddFreezeStacks(const Skill& skill, int level, PassiveTotals& totals) {
       std::max(totals.freeze.final_dmg_pct_when_frozen,
                base.final_dmg_pct_when_frozen() +
                    per.final_dmg_pct_when_frozen() * (level - 1));
+  totals.freeze.ied_pct_per_stack =
+      std::max(totals.freeze.ied_pct_per_stack,
+               base.ied_pct_per_freeze_stack() +
+                   per.ied_pct_per_freeze_stack() * (level - 1));
 }
 
 // Notes Meso Explosion down. Recorded rather than folded: Meso Mastery's

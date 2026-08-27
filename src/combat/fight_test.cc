@@ -2864,6 +2864,59 @@ TEST(CombatSimTest, GlacialFurysMagicAttackRidesTheIceSwingAlone) {
   EXPECT_NEAR(sim.target_hp_fraction(), 0.935, 1e-9);  // capped, so no more
 }
 
+// Storm Magic's half: final damage while the pile stands, taken whole however
+// deep it is rather than climbing with it.
+TEST(CombatSimTest, StormMagicStandsOnAnyStackHoweverDeep) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 0.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/4);
+  // No lightning swing, so nothing ever spends what the ice leaves.
+  params.attacks.pop_back();
+  params.attacks[1].freeze_fd_when_frozen = 0.5;
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.99, 1e-9);  // 10, nothing held yet
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.975, 1e-9);  // 10 x 1.5, two held
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.96, 1e-9);  // the same half at four
+  sim.Advance(params, 1.0);
+  EXPECT_NEAR(sim.target_hp_fraction(), 0.945, 1e-9);  // and no more at the cap
+}
+
+// The share of one mob's HP left, by name -- the queue is shuffled as it fills,
+// so the roster's order says nothing about which monster is which.
+double LeftOn(const CombatSim& sim, const std::string& name) {
+  for (const MobStatus& mob : sim.roster()) {
+    if (mob.name == name) {
+      return mob.hp_fraction;
+    }
+  }
+  return -1.0;
+}
+
+// Shatter's half: what a held stack ignores of the enemy's defence, priced per
+// mob type -- against a monster carrying none it buys nothing at all.
+TEST(CombatSimTest, ShattersDefenceRideIsPricedPerMobType) {
+  Mob armoured = MakeMob("Armoured", 1000);
+  Mob bare = MakeMob("Bare", 1000);
+  CombatParams params = MakeParams(
+      1.0, 1000.0, {MakeType(&armoured, 0.0, 1), MakeType(&bare, 0.0, 1)});
+  GiveFreezeStacks(params, /*cap=*/4);
+  params.attacks.pop_back();  // no lightning swing, so the pile only grows
+  AttackOption& ice = params.attacks[1];
+  ice.max_enemies = 2;
+  ice.damage_per_hit = {10.0, 10.0};
+  ice.freeze_ied_gain = {0.25, 0.0};
+
+  CombatSim sim;
+  sim.Advance(params, 1.0);  // 10 apiece, nothing held yet
+  sim.Advance(params, 1.0);  // two held: 15 on the armoured one, 10 on the bare
+  EXPECT_NEAR(LeftOn(sim, "Armoured"), 0.975, 1e-9);
+  EXPECT_NEAR(LeftOn(sim, "Bare"), 0.98, 1e-9);
+}
+
 // The pile is deeper while the buff raising it stands, and the fight reads the
 // cap for the buffs standing rather than one number for the whole encounter.
 TEST(CombatSimTest, ABuffDeepensThePile) {

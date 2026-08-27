@@ -530,6 +530,14 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   return damage * level_mult * offense.arcane_pct;
 }
 
+double DefenseShare(const Mob& mob, double ied) {
+  double cut = mob.pdr() / kPercentToFraction * (1.0 - ied);
+  if (cut <= 0.0 || cut >= 1.0) {
+    return 0.0;
+  }
+  return cut / (1.0 - cut);
+}
+
 double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
   double attack = mob.attack();
   double def = defense.def;

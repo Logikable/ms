@@ -257,7 +257,7 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     // An ice swing is also paid for the pile it leaves, or the chooser would
     // take the harder lightning swing every time and the pile would never
     // exist -- see FreezeCredit.
-    double rate = (SwingDamage(attack) * FreezeBoost(attack) +
+    double rate = (SwingDamage(attack) * FreezeBoost(attack, FrontType()) +
                    FreezeCredit(params, attack)) /
                   SwingSecondsAgainst(attack);
     if (rate > best_rate) {
@@ -334,9 +334,10 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // behind slide into the window next time.
   int hit = std::min(std::max(1, attack.max_enemies),
                      static_cast<int>(queue_.size()));
-  // Read before anything lands and before the pile moves, so the swing is paid
-  // for the stacks it went in holding.
-  double freeze = FreezeBoost(attack);
+  // The pile does not move until the swing is over -- CreditFreeze runs after
+  // Strike -- so what a stack is worth can be read enemy by enemy below, which
+  // is what Shatter's share of the defence needs.
+  //
   // Picked before anything lands, so the opening hit chooses by the HP the
   // mobs went into the swing with rather than what the spread left them on.
   std::vector<int> lead = LeadTargets(attack, hit);
@@ -358,6 +359,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
+    double freeze = FreezeBoost(attack, queue_[j].type);
     double damage =
         held > 0
             ? ChannelDamage(attack, queue_[j].type, held, LandingAt(j, freeze))
@@ -365,6 +367,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     Hurt(queue_[j], damage * freeze);
   }
   for (int j : lead) {
+    double freeze = FreezeBoost(attack, queue_[j].type);
     double damage = attack.lead_damage[queue_[j].type] *
                     RollFactor(attack.lead_rolls, rng_, LineSink());
     RecordRolls(LandingAt(j, freeze),
@@ -375,6 +378,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // in expectation each of them takes it.
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
+      double freeze = FreezeBoost(attack, queue_[j].type);
       Hurt(queue_[j], RolledFinalAttack(attack.final_attack_rolls,
                                         attack.final_attack_damage,
                                         queue_[j].type, LandingAt(j, freeze)) *
@@ -385,6 +389,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // swing reached. The first in the queue is as good as any: nothing here has
   // a position, so no enemy is nearer than another.
   if (hit > 0 && !attack.single_final_attack_damage.empty()) {
+    double freeze = FreezeBoost(attack, queue_[0].type);
     Hurt(queue_[0], RolledFinalAttack(attack.single_final_attack_rolls,
                                       attack.single_final_attack_damage,
                                       queue_[0].type, LandingAt(0, freeze)) *
@@ -410,7 +415,7 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   if (hit <= 0) {
     return recovered;
   }
-  double boost = FreezeBoost(attack);
+  double boost = FreezeBoost(attack, queue_[0].type);
   for (const ProcRoll& proc : attack.procs) {
     std::bernoulli_distribution fires(proc.chance);
     if (!fires(rng_)) {
@@ -424,10 +429,11 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   return recovered;
 }
 
-// What a pile that deep multiplies this swing by. Taken as a stack count
-// rather than off the character, so the chooser can ask what a DEEPER pile
-// would be worth -- see FreezeCredit.
-double CombatSim::BoostForStacks(const AttackOption& attack, int stacks) const {
+// What a pile that deep multiplies this swing by against a mob of `type`.
+// Taken as a stack count rather than off the character, so the chooser can ask
+// what a DEEPER pile would be worth -- see FreezeCredit.
+double CombatSim::BoostForStacks(const AttackOption& attack, int stacks,
+                                 int type) const {
   if (stacks <= 0) {
     return 1.0;
   }
@@ -442,11 +448,23 @@ double CombatSim::BoostForStacks(const AttackOption& attack, int stacks) const {
   double matt = 1.0 + attack.freeze_matt_gain * stacks;
   // Storm Magic reads only that the pile stands, so it does not climb with it.
   double frozen = 1.0 + attack.freeze_fd_when_frozen;
-  return crit * spent * matt * frozen;
+  // Shatter's is the one factor that differs mob by mob: what ignoring a
+  // little more defence buys is that monster's own.
+  double shattered = type < static_cast<int>(attack.freeze_ied_gain.size())
+                         ? 1.0 + attack.freeze_ied_gain[type] * stacks
+                         : 1.0;
+  return crit * spent * matt * frozen * shattered;
 }
 
-double CombatSim::FreezeBoost(const AttackOption& attack) const {
-  return BoostForStacks(attack, freeze_stacks_);
+double CombatSim::FreezeBoost(const AttackOption& attack, int type) const {
+  return BoostForStacks(attack, freeze_stacks_, type);
+}
+
+// The type at the front of the queue, which is the one a reader with no
+// particular enemy in mind takes -- nothing here has a position, so no monster
+// is nearer than another.
+int CombatSim::FrontType() const {
+  return queue_.empty() ? 0 : queue_.front().type;
 }
 
 double CombatSim::PulseDamage(const AttackOption& attack, int type) const {
@@ -475,10 +493,10 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
   }
   // What the strike at the end will land anyway. The hold only has to bring
   // them within its reach: pulses past that fall on something already dead.
-  double freeze = FreezeBoost(attack);
   int wanted = hold.min_pulses;
   for (int j = 0; j < hit && j < static_cast<int>(queue_.size()); ++j) {
     int type = queue_[j].type;
+    double freeze = FreezeBoost(attack, type);
     double pulse = PulseDamage(attack, type) * freeze;
     if (pulse <= 0.0) {
       continue;
@@ -548,8 +566,8 @@ double CombatSim::FreezeCredit(const CombatParams& params,
     if (other.swing_seconds <= 0.0) {
       continue;
     }
-    double gain =
-        BoostForStacks(other, deeper) - BoostForStacks(other, freeze_stacks_);
+    double gain = BoostForStacks(other, deeper, FrontType()) -
+                  BoostForStacks(other, freeze_stacks_, FrontType());
     best = std::max(best, SwingDamage(other) * gain);
   }
   return best;

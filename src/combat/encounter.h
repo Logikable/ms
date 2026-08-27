@@ -238,6 +238,12 @@ struct AttackOption {
   // stands rather than climbing with it -- what GMS asks is only whether the
   // enemy is frozen. 0 for every character but an I/L magician.
   double freeze_fd_when_frozen = 0.0;
+  // Shatter's, as the share one held stack adds to this swing against each mob
+  // type -- parallel to damage_per_hit, and per type because what ignoring a
+  // little more defence is worth is that mob's own. Empty for a character
+  // whose stacks ignore none, and worth nothing where the defence is already
+  // cancelled or was never there.
+  std::vector<double> freeze_ied_gain;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
   // own. Puncture's wound is the case it exists for: what ticks is the wound,

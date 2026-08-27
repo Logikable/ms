@@ -911,7 +911,8 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
     const Skill& skill = entry.second;
     if (skill.base().crit_dmg_per_freeze_stack() <= 0.0 &&
         skill.base().final_dmg_pct_per_freeze_stack() <= 0.0 &&
-        skill.base().final_dmg_pct_when_frozen() <= 0.0) {
+        skill.base().final_dmg_pct_when_frozen() <= 0.0 &&
+        skill.base().ied_pct_per_freeze_stack() <= 0.0) {
       continue;
     }
     bool pile = false;

@@ -245,6 +245,16 @@ OffenseStats OffenseStatsFor(Job job, int level,
 // rate, no RNG). The GMS damage chain; mob PDR and boss flag come from the Mob.
 double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob);
 
+// What ignoring one more point of `mob`'s defence is worth to a character who
+// already ignores `ied` of it, as a share of the damage they were dealing.
+// Its defence leaves (1 - c) of the swing; ignoring a further e of that leaves
+// (1 - c(1 - e)), so the swing gains e * c/(1 - c) and this returns the factor.
+//
+// 0 against a monster carrying no defence, and against one whose defence the
+// character has already cancelled outright -- neither has anything left to
+// ignore. See SkillEffect.ied_pct_per_freeze_stack, the one lever that asks.
+double DefenseShare(const Mob& mob, double ied);
+
 // One number for "how hard this character hits", for comparing characters
 // rather than predicting a swing: the damage chain with everything that
 // depends on the target, the skill or the moment stripped out. Build the stats

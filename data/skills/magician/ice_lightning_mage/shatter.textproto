@@ -1,12 +1,15 @@
-# GMS pays this out on frozen enemies only, at 2 points of DEF a stack over
-# four levels. Nothing here freezes, so it is simply always on: half a point
-# of enemy DEF ignored per level, ending at 10 rather than GMS's 8. The two
-# points over are what the twenty levels are spread across.
+# GMS pays 2% of the enemy's defence a Freeze Stack, on frozen enemies only,
+# over four levels of a chance that reaches certainty at the top. The chance is
+# dropped, as every rolled certainty here is; what is left is GMS's own 2% a
+# stack, walked evenly over the twenty levels this book pays for. A full pile
+# of five ignores the 10% GMS's does.
 name: "Shatter"
 skill_order: 4
-description: "When attacking, ignores a portion of the enemy's defenses."
+description:
+  "When attacking Frozen enemies, ignores a portion of their defenses for "
+  "each stack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 20
-base { ied_pct: 0.005 }
-per_level { ied_pct: 0.005 }
+base { ied_pct_per_freeze_stack: 0.001 }
+per_level { ied_pct_per_freeze_stack: 0.001 }

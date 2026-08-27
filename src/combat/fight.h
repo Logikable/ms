@@ -290,12 +290,17 @@ class CombatSim {
   // chances it rolled. Returned rather than paid here because a strike knows
   // nothing about the pool -- see Proc.
   double RollProcs(const AttackOption& attack, int hit);
-  // What a pile `stacks` deep multiplies `attack` by: the critical damage
-  // every stack grants, and the final damage a lightning swing takes for the
-  // ones it is about to spend. 1.0 for a pile of nothing.
-  double BoostForStacks(const AttackOption& attack, int stacks) const;
+  // What a pile `stacks` deep multiplies `attack` by against a mob of `type`:
+  // the critical damage every stack grants, the final damage a lightning swing
+  // takes for the ones it is about to spend, Storm Magic's standing and the
+  // defence Shatter ignores -- the last of which is why the type is asked for.
+  // 1.0 for a pile of nothing.
+  double BoostForStacks(const AttackOption& attack, int stacks, int type) const;
   // The same for the pile the character is holding right now.
-  double FreezeBoost(const AttackOption& attack) const;
+  double FreezeBoost(const AttackOption& attack, int type) const;
+  // The mob type at the front of the queue, for a reader with no particular
+  // enemy in mind. 0 with nothing standing.
+  int FrontType() const;
   // What the stacks `attack` would LEAVE are worth: everything a deeper pile
   // buys the best swing on offer. Priced into the rate the way a side strike's
   // damage is, because a chooser reading only this swing would never build

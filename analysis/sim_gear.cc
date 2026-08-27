@@ -356,9 +356,14 @@ double FreezeBoost(const AttackOption& attack, int stacks) {
   }
   double spent =
       attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
+  // The one mob sim_gear fights is the first type, which is what stands in for
+  // the queue everywhere else here.
+  double shattered = attack.freeze_ied_gain.empty()
+                         ? 1.0
+                         : 1.0 + attack.freeze_ied_gain.front() * stacks;
   return (1.0 + attack.freeze_crit_gain * stacks) * spent *
          (1.0 + attack.freeze_matt_gain * stacks) *
-         (1.0 + attack.freeze_fd_when_frozen);
+         (1.0 + attack.freeze_fd_when_frozen) * shattered;
 }
 
 double FreezeCredit(const std::vector<AttackOption>& attacks,

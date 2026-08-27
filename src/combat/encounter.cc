@@ -145,7 +145,9 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
 // line and its bonus is normalised away, so a bigger crit_dmg in the rolls
 // would change how the swing varies and not what it averages.
 void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
-                     const OffenseStats& offense, AttackOption& attack) {
+                     const OffenseStats& offense,
+                     const std::vector<CombatType>& types,
+                     AttackOption& attack) {
   if (derived.freeze.cap <= 0 || skill == nullptr) {
     return;
   }
@@ -154,6 +156,12 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
   attack.freeze_crit_gain =
       rate * derived.freeze.crit_dmg_per_stack / (1.0 + rate * crit);
   attack.freeze_fd_when_frozen = derived.freeze.final_dmg_pct_when_frozen;
+  if (derived.freeze.ied_pct_per_stack > 0.0) {
+    for (const CombatType& type : types) {
+      attack.freeze_ied_gain.push_back(DefenseShare(*type.mob, offense.ied) *
+                                       derived.freeze.ied_pct_per_stack);
+    }
+  }
   if (HasTag(skill, SKILL_TAG_ICE)) {
     attack.freeze_build = attack.lines;
     // Glacial Fury's magic attack, as the share of this swing one held stack
@@ -287,7 +295,7 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   for (const SwingProc& proc : derived.procs) {
     attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});
   }
-  AddFreezeStacks(skill, derived, offense, attack);
+  AddFreezeStacks(skill, derived, offense, types, attack);
   // Some swings open with a harder hit on a single enemy before spreading --
   // GMS's "strikes one, then detonates in place". Same character, same weapon,
   // the skill's other multiplier: only the target count differs, and that is
