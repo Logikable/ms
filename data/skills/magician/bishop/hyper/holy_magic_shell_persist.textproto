@@ -1,0 +1,15 @@
+# Five seconds onto the shell and nothing onto the wait below it, which is the
+# same bargain Buff Duration strikes. The two meet: this lands first, and the
+# share is taken of the whole.
+name: "Holy Magic Shell - Persist"
+skill_order: 5
+description: "Increases the duration of Holy Magic Shell."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Holy Magic Shell"
+  buff_duration_seconds: 5.0
+}

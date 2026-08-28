@@ -1,0 +1,15 @@
+# The party's, as GMS pays it, less the halving for standing away from the
+# caster. It moves how often a kill drops anything at all rather than what a
+# drop is worth -- see SkillEffect.item_drop_pct.
+name: "Holy Symbol - Item Drop"
+skill_order: 9
+description:
+  "Increases the drop rate of you and your party members when using Holy "
+  "Symbol."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+hyper: true
+required_level: 180
+max_level: 1
+base { item_drop_pct: 0.30 }
+ally_base { item_drop_pct: 0.30 }

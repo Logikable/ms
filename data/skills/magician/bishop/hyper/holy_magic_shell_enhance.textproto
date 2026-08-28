@@ -1,0 +1,17 @@
+# GMS deepens what the shell takes off the attacks it cannot block -- the ones
+# costing a share of the target's Max HP. A boss's hit stands in for those
+# here, so this is five points onto the tenth the shell already takes off one.
+name: "Holy Magic Shell - Enhance"
+skill_order: 6
+description:
+  "Increases Holy Magic Shell's damage reduction rate against attacks that "
+  "deal damage in proportion to Max HP."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+hyper: true
+required_level: 180
+max_level: 1
+boost {
+  skill_name: "Holy Magic Shell"
+  shield_boss_damage_taken_pct: 0.05
+}

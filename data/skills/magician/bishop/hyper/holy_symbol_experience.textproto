@@ -1,0 +1,12 @@
+# GMS pays this one to the caster alone, where Holy Symbol itself pays the
+# party. So it is a plain grant rather than a boost: what it adds lands in the
+# same total the skill it is named for pays into, and the two simply add.
+name: "Holy Symbol - Experience"
+skill_order: 7
+description: "Increases your EXP earned when using Holy Symbol."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+hyper: true
+required_level: 140
+max_level: 1
+base { exp_pct: 0.20 }

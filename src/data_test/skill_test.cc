@@ -167,6 +167,12 @@ bool SpendsASwing(const Skill& skill) {
 // buff's cast costs them the time even though it takes no swing -- see
 // BuffOption::cast_seconds -- so it has to say how long it is.
 bool HasACastAnimation(const Skill& skill) {
+  // A toggle is a switch rather than a cast: the fight never spends a swing on
+  // it, and what it grants stands whether it was just thrown or thrown an hour
+  // ago. See Skill.toggle.
+  if (skill.toggle()) {
+    return false;
+  }
   return skill.kind() == SKILL_KIND_ATTACK || skill.kind() == SKILL_KIND_ACTIVE;
 }
 
@@ -701,7 +707,9 @@ TEST(SkillDataTest, AnOpeningHitStatesBothOfItsHalves) {
 // skill, and this says none is written.
 TEST(SkillDataTest, EveryCastDoesSomethingWithTheSwingItTakes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
-    if (entry.second.kind() != SKILL_KIND_ACTIVE) {
+    // A toggle spends no swing at all -- what it does is stand switched on, so
+    // its levers are read where a passive's are.
+    if (entry.second.kind() != SKILL_KIND_ACTIVE || entry.second.toggle()) {
       continue;
     }
     EXPECT_TRUE(entry.second.base().heal_pct() > 0.0 ||
@@ -1248,12 +1256,13 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
     for (const SkillBoost& boost : entry.second.boost()) {
       EXPECT_FALSE(boost.skill_name().empty())
           << entry.first << " grants strikes to nobody";
-      EXPECT_TRUE(boost.lines() > 0 || boost.extra_hit_lines() > 0 ||
-                  boost.max_enemies() > 0 ||
-                  boost.max_enemies_per_level() > 0.0 ||
-                  boost.attacks_per_cast() > 0 || boost.cooldown_pct() > 0.0 ||
-                  boost.dot_skill_pct() != 0.0 ||
-                  boost.dot_duration_seconds() != 0.0 || boost.has_effect())
+      EXPECT_TRUE(
+          boost.lines() > 0 || boost.extra_hit_lines() > 0 ||
+          boost.max_enemies() > 0 || boost.max_enemies_per_level() > 0.0 ||
+          boost.attacks_per_cast() > 0 || boost.cooldown_pct() > 0.0 ||
+          boost.dot_skill_pct() != 0.0 || boost.dot_duration_seconds() != 0.0 ||
+          boost.buff_duration_seconds() != 0.0 || boost.shield_hits() != 0.0 ||
+          boost.shield_boss_damage_taken_pct() != 0.0 || boost.has_effect())
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
       // A share of a wait, so a whole one would leave the skill with no wait
@@ -1478,6 +1487,12 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
 const char* const kPartySkills[] = {
     "Absolute Zero Aura",
     "Advanced Blessing",
+    // Three of the Bishop's hypers, which reach the party the way the skill
+    // they are named for does: GMS strengthens the buff rather than the
+    // caster, so what it adds reaches whoever the buff reaches.
+    "Advanced Blessing - Boss Rush",
+    "Advanced Blessing - Extra Point",
+    "Advanced Blessing - Ferocity",
     "Angel Ray",
     "Bless",
     "Blessed Ensemble",
@@ -1487,6 +1502,9 @@ const char* const kPartySkills[] = {
     "Holy Fountain",
     "Holy Magic Shell",
     "Holy Symbol",
+    // The same again, and the fourth Holy Symbol hyper -- Experience -- is
+    // absent because GMS pays that one to the caster alone.
+    "Holy Symbol - Item Drop",
     "Holy Water",
     "Meditation",
     "Parashock Guard",

@@ -1,0 +1,14 @@
+# GMS's own ten points of boss damage, to the party as well as the caster.
+# Ships dead like every other source of it: no mob in the game sets `boss`.
+name: "Advanced Blessing - Boss Rush"
+skill_order: 11
+description:
+  "Increases the damage you and your party members deal to Boss Monsters upon "
+  "use of Advanced Blessing."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+hyper: true
+required_level: 165
+max_level: 1
+base { boss_pct: 0.10 }
+ally_base { boss_pct: 0.10 }

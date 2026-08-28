@@ -1,0 +1,27 @@
+# The switch, and the first skill in the game the player uses rather than
+# holds. While it is on, the Bishop's four Benevolence skills stand as their
+# Vengeance forms -- see the vengeance folder, and Skill.toggle.
+#
+# What it grants is not gated on the switch: GMS marks it "[Passive Effects]",
+# which is permanent once the skill is learned. The switch trades the party's
+# fountains and the Bishop's own Heal for four attacks, which is choice enough.
+#
+# GMS also cuts 10% off the enemy's elemental resistance, which nothing here
+# has. Its half-second cooldown is the gap between two presses of the switch
+# and means nothing to a fight.
+name: "Righteously Indignant"
+skill_order: 1
+description:
+  "Fuel your body with the fury of an avenging angel. Converts Benevolence "
+  "skills to Vengeance skills."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+hyper: true
+required_level: 140
+max_level: 1
+toggle: true
+base {
+  magic_attack: 50
+  final_dmg_pct: 0.30
+  ied_pct: 0.20
+}

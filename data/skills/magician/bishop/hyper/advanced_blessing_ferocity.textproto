@@ -1,0 +1,22 @@
+# Twenty onto both halves of what Advanced Blessing pays, for the Bishop and
+# everybody beside them. A plain grant rather than a boost, for the reason
+# Holy Symbol - Experience is one: the skill it is named for is a permanent
+# passive, so what this adds lands in the same total.
+name: "Advanced Blessing - Ferocity"
+skill_order: 10
+description:
+  "Increases the Attack Power and Magic ATT Advanced Blessing grants you and "
+  "your party members."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+hyper: true
+required_level: 150
+max_level: 1
+base {
+  attack: 20
+  magic_attack: 20
+}
+ally_base {
+  attack: 20
+  magic_attack: 20
+}

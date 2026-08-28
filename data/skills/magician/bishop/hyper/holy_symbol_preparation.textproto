@@ -1,0 +1,22 @@
+# GMS states it twice -- ten points while Holy Symbol stands and ten more for
+# good -- and this is the pair as one grant. Self only: GMS halves the standing
+# half for a party member away from the caster, which needs a position nothing
+# here has.
+#
+# Ships dead, as every resistance in the game does: nothing inflicts a status
+# or an element. The stats page shows it so the player can see what the point
+# bought.
+name: "Holy Symbol - Preparation"
+skill_order: 8
+description:
+  "Increases resistance to status ailments and all elements from using Holy "
+  "Symbol."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+hyper: true
+required_level: 165
+max_level: 1
+base {
+  status_resistance: 20
+  elemental_resistance: 0.20
+}
