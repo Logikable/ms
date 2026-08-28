@@ -1,0 +1,12 @@
+name: "Mist Eruption - Reinforce"
+skill_order: 10
+description: "Increases the damage of Mist Eruption."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Mist Eruption"
+  effect { damage_pct: 0.10 }
+}

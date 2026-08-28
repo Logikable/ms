@@ -1,0 +1,28 @@
+# GMS's toggle: 100 MP a second to stand in a ring of fire that bursts every
+# three seconds, and everything it touches burns for half a minute. Nothing
+# here spends MP, so what is left is the burst on its own clock -- which is
+# what the skill is anyway, since a player keeps it on.
+#
+# GMS excludes it from Ignite by name. That falls out here for free: a skill
+# on a clock of its own is not the character's swing, so no Final Attack ever
+# follows it.
+name: "Inferno Aura"
+skill_order: 1
+description:
+  "Channel fire chakras to burst into flame, damaging nearby enemies."
+kind: SKILL_KIND_AUTO_ATTACK
+tags: SKILL_TAG_FIRE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+hyper: true
+required_level: 140
+max_level: 1
+max_enemies: 10
+lines: 2
+cast_interval_seconds: 3.0
+base { skill_pct: 4.00 }
+dot {
+  interval_seconds: 1.0
+  duration_seconds: 30.0
+  lines: 1
+  base { skill_pct: 5.00 }
+}

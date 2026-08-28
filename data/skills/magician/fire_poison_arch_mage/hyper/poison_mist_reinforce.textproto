@@ -1,0 +1,16 @@
+# GMS's "Damage: +20%", read as it is everywhere else on this page: a share of
+# the character's damage that only Poison Mist collects. It reaches the mark
+# the mist leaves as well as the cast that lays it -- a burn is priced off the
+# swing's own stat line -- which is what Cripple below adds points to.
+name: "Poison Mist - Reinforce"
+skill_order: 4
+description: "Increases Poison Mist damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+hyper: true
+required_level: 140
+max_level: 1
+boost {
+  skill_name: "Poison Mist"
+  effect { damage_pct: 0.20 }
+}

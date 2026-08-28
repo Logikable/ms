@@ -1,0 +1,16 @@
+# GMS's flat six seconds. Its mist burns for six, so the hyper doubles it;
+# here the mist is a burn of twenty-one seconds already, so six is worth less
+# -- the ladders parted when the fog became a mark. GMS's own number stands
+# rather than one invented to keep the share.
+name: "Poison Mist - Aftermath"
+skill_order: 5
+description: "Increases the duration of Poison Mist's damage over time."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Poison Mist"
+  dot_duration_seconds: 6.0
+}

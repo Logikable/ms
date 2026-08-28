@@ -1,0 +1,15 @@
+# Half the wait, so ten seconds becomes five. GMS also shortens it by two more
+# whenever the cast sets off five mists at once; nothing here places a mist, so
+# the count cannot vary and that half has nothing to count.
+name: "Mist Eruption - Cooldown Cutter"
+skill_order: 12
+description: "Reduces Mist Eruption's cooldown."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+hyper: true
+required_level: 190
+max_level: 1
+boost {
+  skill_name: "Mist Eruption"
+  cooldown_pct: 0.50
+}

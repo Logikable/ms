@@ -1,0 +1,12 @@
+name: "Flame Sweep - Extra Strike"
+skill_order: 9
+description: "Increases Flame Sweep's number of attacks."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+hyper: true
+required_level: 180
+max_level: 1
+boost {
+  skill_name: "Flame Sweep"
+  lines: 1
+}

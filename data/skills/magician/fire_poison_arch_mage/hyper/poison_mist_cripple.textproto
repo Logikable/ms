@@ -1,0 +1,15 @@
+# Points on the tick rather than a share of the damage: GMS's client adds 20 to
+# the mist's own dot figure, the way its Extra Strike adds one to an attack
+# count. 240% a second becomes 260%, and 320% beside Mist Eruption's sixty.
+name: "Poison Mist - Cripple"
+skill_order: 6
+description: "Increases Poison Mist's damage over time."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+hyper: true
+required_level: 180
+max_level: 1
+boost {
+  skill_name: "Poison Mist"
+  dot_skill_pct: 0.20
+}

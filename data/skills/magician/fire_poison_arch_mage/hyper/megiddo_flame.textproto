@@ -1,0 +1,42 @@
+# GMS throws three blue flames, each splitting once as it lands, up to eleven
+# in all. Every flame burns ONE enemy for 380% four times and leaves it burning
+# for half a minute; a flame landing on an enemy another already reached keeps
+# 45% of its final damage. All GMS's own numbers.
+#
+# Scatter is what carries that -- see Skill.scatter. It matters most where the
+# skill does: against a lone boss all eleven flames land on it, worth five and
+# a half swings, where an ordinary eleven-enemy reading would land one.
+#
+# GMS sends the flames at bosses first, highest HP first. The fight spends the
+# leftover flames on the healthiest, which is the same rule read through a game
+# whose queue holds no bosses.
+#
+# The delay is ours: GMS states none, and 660ms is what every other cast in
+# this book takes.
+name: "Megiddo Flame"
+skill_order: 2
+description:
+  "Fires a blue flame that burns the enemy to the very soul. After burning an "
+  "enemy, the blue flame spreads to a set number of additional targets."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_FIRE
+job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
+hyper: true
+required_level: 160
+max_level: 1
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 660
+max_enemies: 11
+lines: 4
+cooldown_seconds: 50.0
+base { skill_pct: 3.80 }
+scatter {
+  hits: 11
+  repeat_final_dmg_pct: -0.55
+}
+dot {
+  interval_seconds: 1.0
+  duration_seconds: 30.0
+  lines: 1
+  base { skill_pct: 7.00 }
+}
