@@ -33,9 +33,10 @@ enum SkillTag {
   // A fire spell. Ignite reads it: the fire mage's Final Attack follows their
   // fire spells and nothing else, so the attacks say which of them burn.
   SKILL_TAG_FIRE = 2;
-  // The Cleric's Benevolence group -- the healing half of their kit. Nothing
-  // reads it yet: what turns a Benevolence skill into its Vengeance form is a
-  // Hyper Skill, which is far above this game's cap.
+  // The Cleric's Benevolence group -- the healing half of their kit -- and the
+  // Vengeance forms Righteously Indignant puts in its place. Both are marks
+  // rather than rules: which form stands is settled by name, through
+  // Skill.replaces_skill_name.
   SKILL_TAG_BENEVOLENCE = 3;
   // The Hero line's Swordsmanship group -- Brandish and Intrepid Slash, the
   // two swings GMS marks with it. Nothing reads it yet: what reads it in GMS
@@ -46,6 +47,7 @@ enum SkillTag {
   // spends them, so the attacks say which of the two they are.
   SKILL_TAG_ICE = 5;
   SKILL_TAG_LIGHTNING = 6;
+  SKILL_TAG_VENGEANCE = 7;
 }
 
 // A skill's per-level contribution to the character's stats. Only the levers we
@@ -892,6 +894,28 @@ message SkillBoost {
   // Read at the granting skill's level, and never a share: GMS states seconds.
   double dot_duration_seconds = 13;
   double dot_duration_seconds_per_level = 14;
+  // Seconds added to how long the named skill's BUFF stands. Apart from the
+  // pair above for the same reason that pair is apart from `effect`: a buff
+  // states its own clock, and lengthening it is not a lever it grants. Holy
+  // Magic Shell - Persist is what it exists for -- GMS writes it
+  // "Duration: +5 sec".
+  //
+  // Buff Duration then lengthens the whole, the boost having landed first: a
+  // share added to the buff's own duration is added to this too, since what
+  // stands over the character is one buff of one length.
+  double buff_duration_seconds = 15;
+  // Hits added to the shell the named skill's buff stands as, and the share it
+  // takes off a hit it cannot block. Holy Magic Shell - Extra Guard and
+  // - Enhance, which are the only two things in the game that could want
+  // either.
+  //
+  // Both are read at the granting skill's level and land before the shell is
+  // built, so one shell is one count of blocks however many hypers deepened
+  // it. The share meets the buff's own by summing, unlike the reductions it
+  // then multiplies with: the two are one skill's statement of what a boss's
+  // hit costs under its shell.
+  double shield_hits = 16;
+  double shield_boss_damage_taken_pct = 17;
   // Levers the named skill alone carries, on top of its own. Seven are read --
   // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate, final_dmg_pct and
   // final_attack_chance -- and each meets the target's own the way two sources
@@ -1204,6 +1228,32 @@ message Skill {
   // The level the skill unlocks at. 0 is every skill whose advancement is the
   // whole gate, which is all of them but a hyper.
   int32 required_level = 47;
+
+  // Whether the player switches this skill on and off, rather than simply
+  // holding it. Righteously Indignant is what it exists for: a button that
+  // puts the Bishop's Vengeance forms in the place of their Benevolence
+  // skills for as long as it is down. The switch is the character's -- see
+  // Character.active_skill -- so it survives a save and travels with them.
+  //
+  // What the toggle itself grants is NOT gated on the switch. GMS marks such a
+  // grant "[Passive Effects]", which is permanent once the skill is learned,
+  // and the fold already reads a grant off an active skill for that reason.
+  // What the switch decides is only which form of each named skill stands.
+  bool toggle = 50;
+  // The skill this one stands in the place of while `toggle_skill_name` is
+  // switched on, by display name. The two are one row in the book: this form
+  // takes the other's place on its page, at its skill_order, and is learned to
+  // whatever level the player bought the other to.
+  //
+  // So a form costs no SP of its own, has no place in its book's numbering,
+  // and pays nothing into what that book's levels are held to. It must name a
+  // skill of its own advancement, or the page it replaces a row on is not the
+  // page it is listed with.
+  string replaces_skill_name = 51;
+  // The toggle that raises this form, by display name. While it is switched
+  // off the form grants nothing and offers nothing; while it is on, the skill
+  // above stops instead. See DormantSkillNames.
+  string toggle_skill_name = 52;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and

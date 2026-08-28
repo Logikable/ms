@@ -617,10 +617,22 @@ std::string NormalMonsterText(const Skill& skill, int level) {
                    SkillLinesAt(skill, level));
 }
 
-// What one skill hands another that is not damage, at `level`: strikes on
-// every swing, enemies on its reach, a shorter wait, a faster clock, or
-// several. "" when it grants none of them.
-std::string BoostText(const SkillBoost& boost, int level) {
+// One clause onto the list, comma-separated. A boost granting several has to
+// name each of them, and a bare "+1 Strike" beside a bare "+5s" would say
+// neither.
+void AppendGain(const std::string& text, std::string& gains) {
+  if (text.empty()) {
+    return;
+  }
+  if (!gains.empty()) {
+    gains += ", ";
+  }
+  gains += text;
+}
+
+// What a boost adds to the shape of the swing it names: strikes, reach, the
+// wait, the clock.
+std::string StructureBoostText(const SkillBoost& boost, int level) {
   // Read exactly as the line ladder is, so the level a skill widens at is the
   // level its data names.
   constexpr double kEnemyEpsilon = 1e-9;
@@ -633,62 +645,80 @@ std::string BoostText(const SkillBoost& boost, int level) {
   // the swing lands beside itself is priced on its own, so a row saying only
   // "+1 Strike" would be read as the swing's.
   if (boost.extra_hit_lines() > 0) {
-    if (!gains.empty()) {
-      gains += ", ";
-    }
-    gains += "+" + std::to_string(boost.extra_hit_lines()) +
-             (boost.extra_hit_lines() == 1 ? " Strike" : " Strikes") +
-             " to its extra hits";
+    AppendGain("+" + std::to_string(boost.extra_hit_lines()) +
+                   (boost.extra_hit_lines() == 1 ? " Strike" : " Strikes") +
+                   " to its extra hits",
+               gains);
   }
   int enemies =
       boost.max_enemies() +
       static_cast<int>(std::floor(boost.max_enemies_per_level() * (level - 1) +
                                   kEnemyEpsilon));
   if (enemies > 0) {
-    if (!gains.empty()) {
-      gains += ", ";
-    }
-    gains +=
-        "+" + std::to_string(enemies) + (enemies == 1 ? " Enemy" : " Enemies");
+    AppendGain(
+        "+" + std::to_string(enemies) + (enemies == 1 ? " Enemy" : " Enemies"),
+        gains);
   }
   // The share off the wait, as GMS writes it -- the seconds it comes to are
   // on the target's own page, which states its whole ladder.
   if (boost.cooldown_pct() > 0.0) {
-    if (!gains.empty()) {
-      gains += ", ";
-    }
-    gains += "-" + FormatPercent(boost.cooldown_pct()) + " Cooldown";
+    AppendGain("-" + FormatPercent(boost.cooldown_pct()) + " Cooldown", gains);
   }
   // The new clock rather than the change to it: what replaces cannot be read
   // as a delta, and the target's own page states the same figure the same way.
   if (boost.attacks_per_cast() > 0) {
-    if (!gains.empty()) {
-      gains += ", ";
-    }
-    gains += "every " + std::to_string(boost.attacks_per_cast()) + " attacks";
+    AppendGain("every " + std::to_string(boost.attacks_per_cast()) + " attacks",
+               gains);
   }
-  // Apart from the table below because it is not one of the seven: what it
-  // lifts is the mark the skill leaves, so the row has to say tick.
+  return gains;
+}
+
+// What a boost adds to the mark the named skill leaves, and to the buff it
+// stands as. Both are apart from the lever table below for the same reason:
+// neither is the swing, and each states a clock of its own.
+std::string MarkBoostText(const SkillBoost& boost, int level) {
+  std::string gains;
   double dot_pct =
       boost.dot_skill_pct() + boost.dot_skill_pct_per_level() * (level - 1);
   if (dot_pct != 0.0) {
-    if (!gains.empty()) {
-      gains += ", ";
-    }
-    gains += (dot_pct > 0.0 ? "+" : "") + FormatPercent(dot_pct) +
-             " DoT Damage per Tick";
+    AppendGain((dot_pct > 0.0 ? "+" : "") + FormatPercent(dot_pct) +
+                   " DoT Damage per Tick",
+               gains);
   }
   // Seconds rather than a share, which is how GMS states it and the only way
   // the row could be read: the target's page states the whole ladder.
   double dot_seconds = boost.dot_duration_seconds() +
                        boost.dot_duration_seconds_per_level() * (level - 1);
   if (dot_seconds != 0.0) {
-    if (!gains.empty()) {
-      gains += ", ";
-    }
-    gains += (dot_seconds > 0.0 ? "+" : "") + FormatNumber(dot_seconds) +
-             "s DoT Duration";
+    AppendGain((dot_seconds > 0.0 ? "+" : "") + FormatNumber(dot_seconds) +
+                   "s DoT Duration",
+               gains);
   }
+  if (boost.buff_duration_seconds() != 0.0) {
+    AppendGain((boost.buff_duration_seconds() > 0.0 ? "+" : "") +
+                   FormatNumber(boost.buff_duration_seconds()) + "s Duration",
+               gains);
+  }
+  if (boost.shield_hits() != 0.0) {
+    AppendGain((boost.shield_hits() > 0.0 ? "+" : "") +
+                   FormatNumber(boost.shield_hits()) + " Blocked Attacks",
+               gains);
+  }
+  if (boost.shield_boss_damage_taken_pct() != 0.0) {
+    AppendGain((boost.shield_boss_damage_taken_pct() > 0.0 ? "+" : "") +
+                   FormatPercent(boost.shield_boss_damage_taken_pct()) +
+                   " Boss Damage Reduction",
+               gains);
+  }
+  return gains;
+}
+
+// What one skill hands another that is not damage, at `level`: strikes on
+// every swing, enemies on its reach, a shorter wait, a longer buff, the levers
+// it alone carries, or several. "" when it grants none of them.
+std::string BoostText(const SkillBoost& boost, int level) {
+  std::string gains = StructureBoostText(boost, level);
+  AppendGain(MarkBoostText(boost, level), gains);
   // The levers the boost hands that skill alone, named because a sentence
   // granting two of them cannot leave either unsaid. In the order the effect
   // rows above use.
@@ -716,14 +746,12 @@ std::string BoostText(const SkillBoost& boost, int level) {
     if (value == 0.0) {
       continue;
     }
-    if (!gains.empty()) {
-      gains += ", ";
-    }
     // A lever can be handed out backwards -- Hurricane - Split Attack pays a
     // second arrow for a quarter off what each one lands -- and FormatPercent
     // writes the minus itself, so only the plus has to be put back.
-    gains +=
-        (value > 0.0 ? "+" : "") + FormatPercent(value) + " " + lever.label;
+    AppendGain(
+        (value > 0.0 ? "+" : "") + FormatPercent(value) + " " + lever.label,
+        gains);
   }
   return gains;
 }

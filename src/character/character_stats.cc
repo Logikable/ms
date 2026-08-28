@@ -529,7 +529,7 @@ std::vector<AllyGrant> PartyGrants(const CharacterInstance& character,
   std::set<std::string> superseded;
   for (const CharacterInstance& ally : allies) {
     int bonus = BonusSkillLevels(ally, skills);
-    std::set<std::string> theirs = SupersededSkillNames(ally, skills, bonus);
+    std::set<std::string> theirs = DormantSkillNames(ally, skills, bonus);
     for (const std::pair<const std::string, Skill>& entry : skills) {
       const Skill& skill = entry.second;
       // An Advanced X states the whole of the X it replaces, its party half
@@ -575,7 +575,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   EquipType weapon = character.weapon_type();
   int bonus = BonusSkillLevels(character, skills, allies);
   std::set<std::string> superseded =
-      SupersededSkillNames(character, skills, bonus);
+      DormantSkillNames(character, skills, bonus);
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // An Advanced X states the whole of the X it replaces rather than a delta,
@@ -764,7 +764,7 @@ int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
   return LevelWithBonus(skill, character.skill_level(skill), bonus);
 }
 
-std::set<std::string> SupersededSkillNames(
+std::set<std::string> DormantSkillNames(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, int bonus) {
   std::set<std::string> names;
@@ -775,6 +775,17 @@ std::set<std::string> SupersededSkillNames(
     if (!skill.supersedes_skill_name().empty() &&
         GrantsAnything(character, skill, bonus)) {
       names.insert(skill.supersedes_skill_name());
+    }
+    if (skill.replaces_skill_name().empty()) {
+      continue;
+    }
+    // One row of the book shows one of the two forms, and the switch says
+    // which. A character who never learned the toggle has it off, so every
+    // form in the catalog sleeps for them.
+    if (character.SkillToggledOn(skill.toggle_skill_name())) {
+      names.insert(skill.replaces_skill_name());
+    } else {
+      names.insert(skill.name());
     }
   }
   return names;
@@ -791,13 +802,18 @@ std::vector<const Skill*> BuffSkillsFor(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills) {
   std::vector<const Skill*> buffs;
+  std::set<std::string> dormant =
+      DormantSkillNames(character, skills, BonusSkillLevels(character, skills));
   for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // The same three gates every passive passes: whose book it is, whether the
-    // gear it demands is in hand, and whether it is learned at all.
+    // gear it demands is in hand, and whether it is learned at all -- plus the
+    // one a buff shares with a swing, since a skill the book is not showing
+    // has no buff to raise either.
     if (!GrantsBuff(skill) ||
         !character.HasAdvancement(skill.job_advancement()) ||
-        !SkillGearMet(character, skill) || character.skill_level(skill) <= 0) {
+        !SkillGearMet(character, skill) || character.skill_level(skill) <= 0 ||
+        dormant.count(skill.name()) > 0) {
       continue;
     }
     buffs.push_back(&skill);

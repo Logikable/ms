@@ -237,6 +237,12 @@ message Character {
   // a boss from daily to weekly takes effect on the clears already banked.
   repeated BossClear boss_clears = 17;
 
+  // Toggle skills the player currently has switched on, by display name --
+  // Righteously Indignant and nothing else so far. A skill absent here is
+  // switched off, so a character who never learned one carries an empty list.
+  // See Skill.toggle.
+  repeated string active_skill = 19;
+
   // Tabs opened and gold trails walked, which the account keeps as of format
   // version 2: what the player has been shown once is shown to all of their
   // characters. See Account.seen_keys.

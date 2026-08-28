@@ -762,6 +762,79 @@ TEST_F(LearnSkillTest, AHyperSkillBelongsToItsOwnJob) {
   EXPECT_FALSE(paladin.LearnSkill(MakeHyperSkill()));
 }
 
+// --- Toggle skills ---
+
+// The Bishop's, and the four forms it raises are keyed off its display name.
+Skill MakeToggleSkill() {
+  Skill skill;
+  skill.set_name("Righteously Indignant");
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_BISHOP);
+  skill.set_max_level(1);
+  skill.set_hyper(true);
+  skill.set_required_level(140);
+  skill.set_toggle(true);
+  return skill;
+}
+
+// The form that stands in Heal's place while the toggle above is on.
+Skill MakeVengeanceForm() {
+  Skill skill;
+  skill.set_name("Angelic Wrath");
+  skill.set_kind(SKILL_KIND_ATTACK);
+  skill.set_job_advancement(JOB_ADVANCEMENT_CLERIC);
+  skill.set_max_level(10);
+  skill.set_replaces_skill_name("Heal");
+  skill.set_toggle_skill_name("Righteously Indignant");
+  return skill;
+}
+
+CharacterInstance MakeBishop(std::mt19937& rng, int hyper_sp) {
+  Character proto;
+  proto.set_level(140);
+  proto.set_job(JOB_BISHOP);
+  proto.set_job_stage(4);
+  proto.set_hyper_sp(hyper_sp);
+  return CharacterInstance(rng, std::move(proto));
+}
+
+class ToggleSkillTest : public CharacterTest {};
+
+TEST_F(ToggleSkillTest, SwitchesOnAndBackOff) {
+  CharacterInstance c = MakeBishop(rng_, /*hyper_sp=*/1);
+  ASSERT_TRUE(c.LearnSkill(MakeToggleSkill()));
+  EXPECT_FALSE(c.SkillToggledOn("Righteously Indignant"))
+      << "learning it does not switch it on";
+  EXPECT_TRUE(c.ToggleSkill(MakeToggleSkill()));
+  EXPECT_TRUE(c.SkillToggledOn("Righteously Indignant"));
+  EXPECT_FALSE(c.ToggleSkill(MakeToggleSkill()));
+  EXPECT_FALSE(c.SkillToggledOn("Righteously Indignant"));
+}
+
+TEST_F(ToggleSkillTest, RefusesWhatWasNeverBoughtOrIsNoToggle) {
+  CharacterInstance c = MakeBishop(rng_, /*hyper_sp=*/1);
+  EXPECT_FALSE(c.ToggleSkill(MakeToggleSkill()));
+  EXPECT_FALSE(c.SkillToggledOn("Righteously Indignant"));
+  Skill plain = MakeToggleSkill();
+  plain.set_toggle(false);
+  ASSERT_TRUE(c.LearnSkill(plain));
+  EXPECT_FALSE(c.ToggleSkill(plain));
+  EXPECT_FALSE(c.SkillToggledOn("Righteously Indignant"));
+}
+
+// One row of the book, one ladder: the form reads the level the player bought
+// the skill it stands in for to, and can never be bought itself.
+TEST_F(ToggleSkillTest, AFormReadsTheLevelOfWhatItReplaces) {
+  CharacterInstance c =
+      MakeCharacterWithSp(rng_, /*stage=*/2, /*sp=*/10, JOB_CLERIC);
+  Skill heal = MakeSkill("Heal", JOB_ADVANCEMENT_CLERIC, 10);
+  ASSERT_TRUE(c.LearnSkill(heal, 4));
+  EXPECT_EQ(c.skill_level(MakeVengeanceForm()), 4);
+  EXPECT_FALSE(c.LearnSkill(MakeVengeanceForm()));
+  EXPECT_EQ(c.skill_level(heal), 4) << "and it spent nothing doing so";
+  EXPECT_EQ(c.sp(2), 6);
+}
+
 // --- ResetStatsForJob ---
 
 // The stats a level-10 Beginner carries, straight from the starting proto.

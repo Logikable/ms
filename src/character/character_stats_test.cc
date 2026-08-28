@@ -2526,6 +2526,70 @@ TEST_F(DerivedStatsTest, AnAllyHandsOutOnlyWhatTheirOwnBookLeftStanding) {
       << "the Advanced Blessing alone, not both";
 }
 
+// --- Toggle skills ---
+
+// The switch, and the form it raises in Bless's place. Both are written onto
+// the Swordman's book so one character can hold the pair.
+Skill Toggle() {
+  Skill skill;
+  skill.set_name("Righteously Indignant");
+  skill.set_kind(SKILL_KIND_ACTIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(1);
+  skill.set_toggle(true);
+  skill.mutable_base()->set_magic_attack(50);
+  return skill;
+}
+
+Skill VengeanceForm() {
+  Skill skill = Bless();
+  skill.set_name("Angelic Wrath");
+  skill.set_replaces_skill_name("Bless");
+  skill.set_toggle_skill_name("Righteously Indignant");
+  skill.mutable_base()->set_attack(100);
+  skill.clear_per_level();
+  skill.clear_ally_base();
+  skill.clear_ally_per_level();
+  return skill;
+}
+
+class ToggleTest : public DerivedStatsTest {};
+
+TEST_F(ToggleTest, TheSwitchDecidesWhichFormPays) {
+  std::map<std::string, Skill> skills = {
+      {"bless", Bless()}, {"toggle", Toggle()}, {"form", VengeanceForm()}};
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(c.LearnSkill(Bless(), 10));
+  ASSERT_TRUE(c.LearnSkill(Toggle()));
+
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 15)
+      << "switched off, the Benevolence skill is the one standing";
+  ASSERT_TRUE(c.ToggleSkill(Toggle()));
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 100)
+      << "and switched on, only the form";
+}
+
+// The grant on the switch itself is not gated on it: GMS marks such a grant
+// "[Passive Effects]", which is permanent once the skill is learned.
+TEST_F(ToggleTest, WhatTheSwitchItselfGrantsIsPermanent) {
+  std::map<std::string, Skill> skills = {{"toggle", Toggle()}};
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(c.LearnSkill(Toggle()));
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.magic_attack(), 50);
+  ASSERT_TRUE(c.ToggleSkill(Toggle()));
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.magic_attack(), 50);
+}
+
+// A character who never bought the switch has it off, so every form in the
+// catalog sleeps for them -- and the ally half of one never reaches a party.
+TEST_F(ToggleTest, AFormSleepsForWhoeverLacksTheSwitch) {
+  std::map<std::string, Skill> skills = {{"bless", Bless()},
+                                         {"form", VengeanceForm()}};
+  CharacterInstance c = MakeCharacter(rng_, 100, 0);
+  ASSERT_TRUE(c.LearnSkill(Bless(), 10));
+  EXPECT_EQ(DerivedStatsFor(c, skills).skill_stats.attack(), 15);
+}
+
 // Blessed Ensemble is not a buff: it pays for the company kept, so two allies
 // holding it both pay.
 TEST_F(DerivedStatsTest, AStackingGrantPaysOncePerAlly) {

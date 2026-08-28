@@ -1227,8 +1227,38 @@ bool CharacterInstance::MeetsSkillRequirement(const Skill& skill) const {
   return level >= required.level();
 }
 
+bool CharacterInstance::SkillToggledOn(const std::string& name) const {
+  for (const std::string& active : character_.active_skill()) {
+    if (active == name) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool CharacterInstance::ToggleSkill(const Skill& skill) {
+  if (!skill.toggle() || skill_level(skill) <= 0) {
+    return false;
+  }
+  google::protobuf::RepeatedPtrField<std::string>& active =
+      *character_.mutable_active_skill();
+  for (int i = 0; i < active.size(); ++i) {
+    if (active.Get(i) == skill.name()) {
+      active.DeleteSubrange(i, 1);
+      return false;
+    }
+  }
+  active.Add(std::string(skill.name()));
+  return true;
+}
+
 bool CharacterInstance::LearnSkill(const Skill& skill, int amount) {
   if (amount <= 0) {
+    return false;
+  }
+  // A Vengeance form is bought by buying the skill it stands in for. Its own
+  // name holds no level at all, so a point spent here would vanish.
+  if (!skill.replaces_skill_name().empty()) {
     return false;
   }
   if (!HasAdvancement(skill.job_advancement())) {

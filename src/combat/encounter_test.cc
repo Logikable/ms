@@ -1389,6 +1389,126 @@ TEST(ComputeCombatParamsTest, AShellReachesTheCasterAndThePartyAlike) {
   EXPECT_NEAR(params.buffs[0].heal_fraction, 0.31, 1e-9);
 }
 
+// Holy Magic Shell's three hypers: seconds onto the buff's clock, hits onto
+// its shell, and a share onto what its shell takes off a boss's hit. Read off
+// the CASTER's book, so a party member's hypers deepen the shell they raise
+// and not the one raised over them.
+TEST(ComputeCombatParamsTest, ABoostDeepensTheShellItNames) {
+  Skill shell;
+  shell.set_name("Holy Magic Shell");
+  shell.set_kind(SKILL_KIND_ACTIVE);
+  shell.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  shell.set_max_level(20);
+  shell.set_cooldown_seconds(90.0);
+  Buff* buff = shell.mutable_buff();
+  buff->set_duration_seconds(10.25);
+  buff->set_duration_seconds_per_level(0.25);
+  buff->mutable_ally_base()->set_heal_pct(0.31);
+  buff->mutable_shield()->set_hits(5.5);
+  buff->mutable_shield()->set_hits_per_level(0.5);
+  buff->mutable_shield()->set_boss_damage_taken_pct(0.10);
+
+  Skill hyper;
+  hyper.set_name("Holy Magic Shell - Extra Guard");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Holy Magic Shell");
+  boost->set_shield_hits(2.0);
+  boost->set_buff_duration_seconds(5.0);
+  boost->set_shield_boss_damage_taken_pct(0.05);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"holy_magic_shell", shell}, {"extra_guard", hyper}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 21);
+  ASSERT_TRUE(state.character.LearnSkill(shell, 20));
+
+  CombatParams before = ComputeCombatParams(state);
+  ASSERT_EQ(before.buffs.size(), 1u);
+  EXPECT_EQ(before.buffs[0].shield_hits, 15);
+  // Game-scaled, as every duration here is: 15 seconds at this level's pace.
+  EXPECT_NEAR(before.buffs[0].duration_seconds, 45.0, 1e-9);
+
+  ASSERT_TRUE(state.character.LearnSkill(hyper, 1));
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_EQ(params.buffs[0].shield_hits, 17);
+  EXPECT_NEAR(params.buffs[0].duration_seconds, 60.0, 1e-9);
+  EXPECT_DOUBLE_EQ(params.buffs[0].boss_damage_taken_pct, 0.15);
+
+  // The same shell raised by somebody else, whose book holds no hyper: what
+  // reaches this character is the shell their caster actually stands up.
+  std::mt19937 rng(1);
+  Character ally = state.character.proto();
+  ally.mutable_skill_levels()->erase("Holy Magic Shell - Extra Guard");
+  CharacterInstance bare(rng, ally);
+  std::vector<CharacterInstance> party;
+  party.push_back(std::move(bare));
+  GameState other({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"holy_magic_shell", shell}, {"extra_guard", hyper}});
+  other.current_map = "field";
+  EquipSword(other);
+  other.party = std::move(party);
+  CombatParams from_ally = ComputeCombatParams(other);
+  ASSERT_EQ(from_ally.ally_buffs.size(), 1u);
+  EXPECT_EQ(from_ally.ally_buffs[0].shield_hits, 15);
+}
+
+// A Vengeance form and the Benevolence skill it stands in for are one row of
+// the book: the switch decides which of the two the fight is offered.
+TEST(ComputeCombatParamsTest, AToggleSwapsWhichFormIsSwung) {
+  Skill heal;
+  heal.set_name("Heal");
+  heal.set_kind(SKILL_KIND_ACTIVE);
+  heal.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  heal.set_max_level(10);
+  heal.mutable_base()->set_heal_pct(0.10);
+  heal.mutable_per_level()->set_heal_pct(0.10);
+
+  Skill wrath;
+  wrath.set_name("Angelic Wrath");
+  wrath.set_kind(SKILL_KIND_ATTACK);
+  wrath.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  wrath.set_max_level(10);
+  wrath.set_max_enemies(6);
+  wrath.set_lines(5);
+  wrath.set_replaces_skill_name("Heal");
+  wrath.set_toggle_skill_name("Righteously Indignant");
+  wrath.mutable_base()->set_skill_pct(2.60);
+
+  Skill toggle;
+  toggle.set_name("Righteously Indignant");
+  toggle.set_kind(SKILL_KIND_ACTIVE);
+  toggle.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  toggle.set_max_level(1);
+  toggle.set_toggle(true);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"heal", heal}, {"wrath", wrath}, {"toggle", toggle}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 11);
+  ASSERT_TRUE(state.character.LearnSkill(heal, 10));
+  ASSERT_TRUE(state.character.LearnSkill(toggle, 1));
+
+  CombatParams off = ComputeCombatParams(state);
+  ASSERT_EQ(off.attacks.size(), 2u);
+  EXPECT_EQ(off.attacks[1].name, "Heal");
+
+  ASSERT_TRUE(state.character.ToggleSkill(toggle));
+  CombatParams on = ComputeCombatParams(state);
+  ASSERT_EQ(on.attacks.size(), 2u);
+  EXPECT_EQ(on.attacks[1].name, "Angelic Wrath")
+      << "and it swings at the level Heal was bought to";
+  EXPECT_GT(on.attacks[1].damage_per_hit[0], 0.0);
+}
+
 // Smokescreen's shape: an ally's buff stands over this character on the
 // caster's clock, at the caster's level, and never touches a damage table --
 // all it can hand over is a share off what a hit costs.

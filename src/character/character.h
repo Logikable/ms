@@ -350,11 +350,25 @@ class CharacterInstance {
                          : sp(StageForAdvancement(skill.job_advancement()));
   }
   // The character's learned level in `skill` (0 = unlearned).
+  //
+  // A Vengeance form is learned to whatever its Benevolence skill was bought
+  // to: it is the same row of the same book, so it reads that skill's level
+  // rather than one of its own. See Skill.replaces_skill_name.
   int skill_level(const Skill& skill) const {
-    return character_.skill_levels().contains(skill.name())
-               ? character_.skill_levels().at(skill.name())
+    const std::string& key = skill.replaces_skill_name().empty()
+                                 ? skill.name()
+                                 : skill.replaces_skill_name();
+    return character_.skill_levels().contains(key)
+               ? character_.skill_levels().at(key)
                : 0;
   }
+  // Whether the player has `name` switched on. False for a skill that is not
+  // a toggle, which never appears in the list. See Skill.toggle.
+  bool SkillToggledOn(const std::string& name) const;
+  // Switches `skill` on if it is off and off if it is on, and says which it
+  // now is. Refuses a skill that is not a toggle or is not learned, leaving it
+  // off: nothing the player has not bought can be switched on.
+  bool ToggleSkill(const Skill& skill);
   // Whether `advancement` is one this character has actually taken. Every
   // first job's skills draw on the same stage-1 SP pool, so the stage alone
   // does not say whose book a skill is from -- without this a Swordman could

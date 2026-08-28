@@ -604,26 +604,33 @@ struct SkillBoosts {
   // What is LEFT of the wait, so two cuts combine in reverse the way two
   // sources of ignored defence do. 1.0 is a skill nothing hurries.
   double cooldown_left = 1.0;
+  // What the book adds to the BUFF the named skill stands as: seconds on its
+  // clock, hits on its shell, and the share that shell takes off a hit it
+  // cannot block. Holy Magic Shell's three hypers and nothing else.
+  double buff_duration_seconds = 0.0;
+  double shield_hits = 0.0;
+  double shield_boss_damage_taken_pct = 0.0;
 };
 
 // Every such grant in the character's book, summed and keyed by the skill it
 // names. Gathered once: the granting skill may be listed after the skill it
 // strengthens, and every attack has to be built with the whole of it already
 // in.
-std::map<std::string, SkillBoosts> BoostsByTarget(const GameState& state,
-                                                  int bonus) {
+std::map<std::string, SkillBoosts> BoostsByTarget(
+    const CharacterInstance& character,
+    const std::map<std::string, Skill>& skills, int bonus) {
   // The nudge SkillLinesAt takes, for the same reason: a rate written as a
   // decimal lands a hair under the level it is meant to buy.
   constexpr double kEnemyEpsilon = 1e-9;
   std::map<std::string, SkillBoosts> by_target;
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+  for (const std::pair<const std::string, Skill>& entry : skills) {
     const Skill& skill = entry.second;
     // Learned levels are keyed by display name and the warrior branches share
     // several, so only the character's own book grants anything.
-    if (!state.character.HasAdvancement(skill.job_advancement())) {
+    if (!character.HasAdvancement(skill.job_advancement())) {
       continue;
     }
-    int learned = EffectiveSkillLevel(state.character, skill, bonus);
+    int learned = EffectiveSkillLevel(character, skill, bonus);
     if (learned <= 0) {
       continue;
     }
@@ -645,6 +652,10 @@ std::map<std::string, SkillBoosts> BoostsByTarget(const GameState& state,
         into.extra_hit_lines += boost.extra_hit_lines();
         into.max_enemies += enemies;
         into.cooldown_left *= 1.0 - boost.cooldown_pct();
+        into.buff_duration_seconds += boost.buff_duration_seconds();
+        into.shield_hits += boost.shield_hits();
+        into.shield_boss_damage_taken_pct +=
+            boost.shield_boss_damage_taken_pct();
         // The clock replaces rather than sums, so the faster of two stands.
         if (boost.attacks_per_cast() > 0 &&
             (into.attacks_per_cast == 0 ||
@@ -780,7 +791,8 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
                        int attack_speed, double speed_factor,
                        const std::vector<CombatType>& types, AttackSet& set) {
   int bonus = BonusSkillLevels(state.character, state.skills);
-  std::map<std::string, SkillBoosts> boosts = BoostsByTarget(state, bonus);
+  std::map<std::string, SkillBoosts> boosts =
+      BoostsByTarget(state.character, state.skills, bonus);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = EffectiveSkillLevel(state.character, skill, bonus);
@@ -826,9 +838,10 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   set.attacks.push_back(AttackFor(proto, total_stats, weapon_type, nullptr, 0,
                                   types, derived, attack_speed, speed_factor));
   int bonus = BonusSkillLevels(state.character, state.skills);
-  std::map<std::string, SkillBoosts> boosts = BoostsByTarget(state, bonus);
+  std::map<std::string, SkillBoosts> boosts =
+      BoostsByTarget(state.character, state.skills, bonus);
   std::set<std::string> superseded =
-      SupersededSkillNames(state.character, state.skills, bonus);
+      DormantSkillNames(state.character, state.skills, bonus);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = EffectiveSkillLevel(state.character, skill, bonus);
@@ -988,25 +1001,43 @@ int PartyHolders(const CharacterInstance& character,
   return holders;
 }
 
+// What one buff's clock and shell come to once the book has had its say: the
+// seconds a hyper adds land before Buff Duration takes its share, one buff
+// being one length however many sources wrote it.
+BuffOption BuffClockFor(const Buff& buff, int level, const SkillBoosts& boost,
+                        double buff_duration_pct, double speed_factor) {
+  BuffOption option;
+  // Buff Duration lengthens the buff and not the wait below it, which is why
+  // a percentage that grants nothing on its own is worth having.
+  option.duration_seconds = (buff.duration_seconds() +
+                             buff.duration_seconds_per_level() * (level - 1) +
+                             boost.buff_duration_seconds) *
+                            (1.0 + buff_duration_pct) * speed_factor;
+  if (buff.has_shield()) {
+    option.shield_hits = ShieldHitsAt(buff.shield(), level) + boost.shield_hits;
+    option.boss_damage_taken_pct = buff.shield().boss_damage_taken_pct() +
+                                   boost.shield_boss_damage_taken_pct;
+  }
+  return option;
+}
+
 // What the fight needs to run each buff's clock, at the level it is learned.
 // The levers are not here: those are folded into the tables below.
-void AddBuffs(const CharacterInstance& character,
-              const std::map<std::string, Skill>& skills,
-              absl::Span<const CharacterInstance> party,
+void AddBuffs(const GameState& state,
               const std::vector<const Skill*>& buff_skills, double speed_factor,
               double buff_duration_pct, CombatParams& params) {
+  const CharacterInstance& character = state.character;
+  const std::map<std::string, Skill>& skills = state.skills;
+  absl::Span<const CharacterInstance> party = absl::MakeConstSpan(state.party);
   int bonus = BonusSkillLevels(character, skills);
+  std::map<std::string, SkillBoosts> boosts =
+      BoostsByTarget(character, skills, bonus);
   for (const Skill* skill : buff_skills) {
     int level = EffectiveSkillLevel(character, *skill, bonus);
     const Buff& buff = skill->buff();
-    BuffOption option;
+    BuffOption option = BuffClockFor(buff, level, boosts[skill->name()],
+                                     buff_duration_pct, speed_factor);
     option.name = skill->name();
-    // Buff Duration lengthens the buff and not the wait below it, which is why
-    // a percentage that grants nothing on its own is worth having.
-    option.duration_seconds =
-        (buff.duration_seconds() +
-         buff.duration_seconds_per_level() * (level - 1)) *
-        (1.0 + buff_duration_pct) * speed_factor;
     option.cooldown_seconds = CooldownAt(*skill, level) * speed_factor;
     // A party takes turns raising a shared buff, so it comes round on this
     // character as often as the party between them can cast it. Their own wait
@@ -1024,8 +1055,6 @@ void AddBuffs(const CharacterInstance& character,
     option.charge_lines = buff.charge_lines();
     option.heal_fraction =
         buff.base().heal_pct() + buff.per_level().heal_pct() * (level - 1);
-    option.shield_hits = ShieldHitsAt(buff.shield(), level);
-    option.boss_damage_taken_pct = buff.shield().boss_damage_taken_pct();
     // What raising it costs. A buff a swing lays is paid for by that swing, so
     // it is charged nothing here -- see BuffOption::cast_seconds.
     option.cast_seconds = skill->base_delay_ms() / 1000.0 * speed_factor;
@@ -1052,15 +1081,17 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
   for (const AllyGrant& grant : AllyBuffsFor(
            state.character, state.skills, absl::MakeConstSpan(state.party))) {
     const Buff& buff = grant.skill->buff();
-    BuffOption option;
-    option.name = grant.skill->name();
-    // The CASTER's Buff Duration, not the reader's: one cast stands the same
-    // length over everybody under it. See BuffDurationPctFor.
+    // The CASTER's book throughout, not the reader's: one cast stands the same
+    // length and blocks the same hits over everybody under it. See
+    // BuffDurationPctFor.
     double buff_duration_pct = BuffDurationPctFor(*grant.caster, state.skills);
-    option.duration_seconds =
-        (buff.duration_seconds() +
-         buff.duration_seconds_per_level() * (grant.level - 1)) *
-        (1.0 + buff_duration_pct) * speed_factor;
+    std::map<std::string, SkillBoosts> boosts =
+        BoostsByTarget(*grant.caster, state.skills,
+                       BonusSkillLevels(*grant.caster, state.skills));
+    BuffOption option =
+        BuffClockFor(buff, grant.level, boosts[grant.skill->name()],
+                     buff_duration_pct, speed_factor);
+    option.name = grant.skill->name();
     option.cooldown_seconds =
         CooldownAt(*grant.skill, grant.level) * speed_factor;
     option.damage_taken_pct =
@@ -1068,10 +1099,6 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
         buff.ally_per_level().damage_taken_pct() * (grant.level - 1);
     option.heal_fraction = buff.ally_base().heal_pct() +
                            buff.ally_per_level().heal_pct() * (grant.level - 1);
-    // One shell over the whole party, so what an ally raises shelters this
-    // character with the same count of blocks their caster gets.
-    option.shield_hits = ShieldHitsAt(buff.shield(), grant.level);
-    option.boss_damage_taken_pct = buff.shield().boss_damage_taken_pct();
     params.ally_buffs.push_back(std::move(option));
   }
 }
@@ -1218,8 +1245,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   if (static_cast<int>(buff_skills.size()) > kMaxBuffWindows) {
     buff_skills.resize(kMaxBuffWindows);
   }
-  AddBuffs(state.character, state.skills, absl::MakeConstSpan(state.party),
-           buff_skills, speed_factor, derived.buff_duration_pct, params);
+  AddBuffs(state, buff_skills, speed_factor, derived.buff_duration_pct, params);
   AddAllyBuffs(state, speed_factor, params);
   AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
   TagBuffGatedPulses(buff_skills, params);

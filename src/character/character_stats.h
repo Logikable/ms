@@ -287,10 +287,16 @@ int EffectiveSkillLevel(const CharacterInstance& character, const Skill& skill,
 SkillEffect WithoutSwingLevers(const SkillEffect& effect);
 SkillEffect SwingLeversOf(const SkillEffect& effect);
 
-// The skills this character's book has replaced, by display name. A superseded
-// skill keeps its level and its page and stops paying -- both its levers and,
-// where it is an attack, the swing it offered. See Skill.supersedes_skill_name.
-std::set<std::string> SupersededSkillNames(
+// The skills in this character's book that are not paying, by display name. A
+// dormant skill keeps its level and its page and stops granting -- both its
+// levers and, where it is an attack, the swing it offered.
+//
+// Two things put one to sleep. A skill that supersedes another states the
+// whole of what it replaced, so both paying would pay twice
+// (Skill.supersedes_skill_name); and a Vengeance form and the Benevolence
+// skill it stands in for are one row of the book, so whichever the toggle is
+// not showing lies dormant (Skill.replaces_skill_name).
+std::set<std::string> DormantSkillNames(
     const CharacterInstance& character,
     const std::map<std::string, Skill>& skills, int bonus);
 
