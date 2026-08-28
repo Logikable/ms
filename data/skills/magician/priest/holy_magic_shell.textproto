@@ -1,15 +1,34 @@
-# GMS's 30+x% of the pool, and GMS's ninety-second cooldown. The shield half is
-# dropped: nothing here counts blocked hits.
+# GMS's shell: a set number of hits blocked outright, and a heal on the cast
+# that reaches the party with it. The 90-second wait is GMS's own.
 #
-# Cast in place of a swing, and only when badly hurt -- which the Priest may
-# never be. It is insurance rather than a rotation.
+# The blocks climb 5 to 15 over the book, which is faster than a level at a
+# time -- hence the fractional step, floored where it is read.
+#
+# GMS exempts attacks costing a share of the target's Max HP and blunts them
+# instead. Nothing here deals damage that way, so a boss's hit is what stands
+# in for one: never blocked, and 10% cheaper while the shell is up.
 name: "Holy Magic Shell"
 skill_order: 2
-description: "Restores a percentage of your HP."
+description:
+  "Create a shield that blocks a set number of attacks on you and your party "
+  "members, and restores a percentage of everyone's HP. Attacks that deal "
+  "damage in proportion to Max HP are not blocked, and deal reduced damage "
+  "instead."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_PRIEST
 max_level: 20
-base_delay_ms: 720
+base_delay_ms: 120
 cooldown_seconds: 90.0
-base { heal_pct: 0.31 }
-per_level { heal_pct: 0.01 }
+buff {
+  duration_seconds: 10.25
+  duration_seconds_per_level: 0.25
+  base { heal_pct: 0.31 }
+  per_level { heal_pct: 0.01 }
+  ally_base { heal_pct: 0.31 }
+  ally_per_level { heal_pct: 0.01 }
+  shield {
+    hits: 5.5
+    hits_per_level: 0.5
+    boss_damage_taken_pct: 0.10
+  }
+}

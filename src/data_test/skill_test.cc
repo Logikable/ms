@@ -1470,11 +1470,11 @@ TEST(SkillDataTest, EveryFourthJobMasteryClimbsTheSameLadder) {
 // data keeps its ally half only if somebody notices, and the wiki is the only
 // thing that says it ever had one.
 //
-// The three GMS party skills NOT here are casts -- Heal and Holy Magic Shell
-// are raised on somebody, and Angel Ray's healing rides each hit -- and
-// nothing carries a caster's actions to an ally's fight yet. Dispel is out for
-// a duller reason: what it cures is a display-only lever, so an ally half of
-// it would grant a row and nothing else.
+// The two GMS party skills NOT here are casts -- Heal is raised on somebody,
+// and Angel Ray's healing rides each hit -- and nothing carries a caster's
+// actions to an ally's fight yet. Dispel is out for a duller reason: what it
+// cures is a display-only lever, so an ally half of it would grant a row and
+// nothing else.
 const char* const kPartySkills[] = {
     "Absolute Zero Aura",
     "Advanced Blessing",
@@ -1485,6 +1485,7 @@ const char* const kPartySkills[] = {
     "Combat Orders",
     "Hex of the Evil Eye",
     "Holy Fountain",
+    "Holy Magic Shell",
     "Holy Symbol",
     "Holy Water",
     "Meditation",
