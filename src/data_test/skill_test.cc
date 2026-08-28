@@ -311,8 +311,9 @@ TEST(SkillDataTest, EveryBookCostsExactlyWhatItsLevelsPayOut) {
   std::map<int, int> cost_by_advancement;
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     // A Hyper Skill is bought from a pool of its own -- see the page's own
-    // test below.
-    if (entry.second.hyper()) {
+    // test below. A Vengeance form is bought by buying the skill it stands in
+    // for, so it is that skill's ladder either way.
+    if (entry.second.hyper() || !entry.second.replaces_skill_name().empty()) {
       continue;
     }
     cost_by_advancement[entry.second.job_advancement()] +=
@@ -390,6 +391,11 @@ TEST(SkillDataTest, EveryBookIsNumberedOneThroughItsSize) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     int order = entry.second.skill_order();
     EXPECT_GT(order, 0) << entry.first << " has no place in its book";
+    // A Vengeance form takes the row of the skill it stands in for rather than
+    // one of its own -- the test below holds it to that number.
+    if (!entry.second.replaces_skill_name().empty()) {
+      continue;
+    }
     std::pair<std::map<int, std::string>::iterator, bool> added =
         by_advancement[{entry.second.job_advancement(), entry.second.hyper()}]
             .insert({order, entry.first});
@@ -407,6 +413,71 @@ TEST(SkillDataTest, EveryBookIsNumberedOneThroughItsSize) {
       ++expected;
     }
   }
+}
+
+// A Vengeance form and the skill it stands in for are one row of one book:
+// the same page, the same place on it, and the same ladder. Anything else and
+// the swap would move the row, or leave the form at a level nobody bought.
+TEST(SkillDataTest, EveryFormStandsInAnotherSkillsRow) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  int checked = 0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.replaces_skill_name().empty()) {
+      EXPECT_TRUE(skill.toggle_skill_name().empty())
+          << entry.first << " names a switch and no skill to swap";
+      continue;
+    }
+    ++checked;
+    const Skill* replaced = nullptr;
+    const Skill* toggle = nullptr;
+    for (const std::pair<const std::string, Skill>& other : skills) {
+      if (other.second.name() == skill.replaces_skill_name()) {
+        replaced = &other.second;
+      }
+      if (other.second.name() == skill.toggle_skill_name()) {
+        toggle = &other.second;
+      }
+    }
+    ASSERT_NE(replaced, nullptr)
+        << entry.first << " stands in for \"" << skill.replaces_skill_name()
+        << "\", which no book holds";
+    ASSERT_NE(toggle, nullptr)
+        << entry.first << " waits on \"" << skill.toggle_skill_name()
+        << "\", which no book holds";
+    EXPECT_TRUE(toggle->toggle())
+        << entry.first << " waits on " << skill.toggle_skill_name()
+        << ", which is not a switch";
+    EXPECT_EQ(skill.job_advancement(), replaced->job_advancement())
+        << entry.first << " is listed on a page it never replaces a row on";
+    EXPECT_EQ(skill.skill_order(), replaced->skill_order()) << entry.first;
+    EXPECT_EQ(skill.max_level(), replaced->max_level())
+        << entry.first << " climbs a ladder the skill it replaces does not";
+    EXPECT_FALSE(skill.hyper())
+        << entry.first << " is bought by buying another skill, not with a "
+        << "Hyper point";
+  }
+  EXPECT_EQ(checked, 4) << "the Bishop's four, and nothing else so far";
+}
+
+// A switch is worth pressing only if something answers it.
+TEST(SkillDataTest, EverySwitchRaisesSomething) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  int checked = 0;
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    if (!entry.second.toggle()) {
+      continue;
+    }
+    ++checked;
+    int raised = 0;
+    for (const std::pair<const std::string, Skill>& other : skills) {
+      if (other.second.toggle_skill_name() == entry.second.name()) {
+        ++raised;
+      }
+    }
+    EXPECT_GT(raised, 0) << entry.first << " switches nothing on";
+  }
+  EXPECT_EQ(checked, 1) << "Righteously Indignant, and nothing else so far";
 }
 
 // The Hyper page is a whole page or no page: a job with some of its twelve

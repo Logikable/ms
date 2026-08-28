@@ -1,0 +1,23 @@
+# Dispel's Vengeance form, and the one the swap pays for outright: the skill it
+# replaces cures conditions nothing in this game inflicts. GMS's 170+6x over
+# ten levels, four feathers every three seconds.
+#
+# GMS sets them off by striking an enemy, on a three-second cooldown of their
+# own. Here they simply fall on that clock: a Bishop with a swing to make is
+# always striking something, so the two come to the same thing.
+name: "Triumph Feather"
+skill_order: 4
+description:
+  "Harness the power of the Angel of Victory. Angel feathers appear and seek "
+  "out and attack nearby enemies."
+kind: SKILL_KIND_AUTO_ATTACK
+tags: SKILL_TAG_VENGEANCE
+job_advancement: JOB_ADVANCEMENT_PRIEST
+max_level: 10
+replaces_skill_name: "Dispel"
+toggle_skill_name: "Righteously Indignant"
+max_enemies: 4
+lines: 4
+cast_interval_seconds: 3.0
+base { skill_pct: 1.76 }
+per_level { skill_pct: 0.06 }

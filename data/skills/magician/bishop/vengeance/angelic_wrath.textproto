@@ -1,0 +1,25 @@
+# What Heal becomes while Righteously Indignant is switched on: the Cleric's
+# emergency heal traded for a six-enemy swing. It sits in Heal's row of the
+# Cleric's book and is learned to whatever level Heal was bought to, so it
+# costs nothing of its own -- see Skill.replaces_skill_name.
+#
+# GMS climbs 250+5x over twenty levels; ten here, ending exactly where GMS
+# ends. The defence it strips off what it hits is dropped: nothing here holds
+# a condition on a monster.
+name: "Angelic Wrath"
+skill_order: 3
+description:
+  "Calls down an avenging angel to strike the enemy. Enemies struck will be "
+  "weakened."
+kind: SKILL_KIND_ATTACK
+tags: SKILL_TAG_VENGEANCE
+job_advancement: JOB_ADVANCEMENT_CLERIC
+max_level: 10
+replaces_skill_name: "Heal"
+toggle_skill_name: "Righteously Indignant"
+required_equip_type: EQUIP_TYPE_STAFF
+base_delay_ms: 660
+max_enemies: 6
+lines: 5
+base { skill_pct: 2.60 }
+per_level { skill_pct: 0.10 }

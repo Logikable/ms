@@ -1,0 +1,23 @@
+# Holy Fountain's Vengeance form: the fountain the party drank from now stands
+# there striking instead. GMS's 140+4x over ten levels, and the two seconds
+# between eruptions is the client's own attackDelay.
+#
+# Its duration is dropped, as every laid summon's is here: nothing stops the
+# Bishop putting it back down, so what it comes to is the rate. See
+# SKILL_KIND_AUTO_ATTACK.
+name: "Fountain of Vengeance"
+skill_order: 3
+description:
+  "Summon a divine talisman of vengeance that punishes nearby enemies. The "
+  "talisman erupts with light at regular intervals, damaging the enemy."
+kind: SKILL_KIND_AUTO_ATTACK
+tags: SKILL_TAG_VENGEANCE
+job_advancement: JOB_ADVANCEMENT_PRIEST
+max_level: 10
+replaces_skill_name: "Holy Fountain"
+toggle_skill_name: "Righteously Indignant"
+max_enemies: 8
+lines: 5
+cast_interval_seconds: 2.0
+base { skill_pct: 1.44 }
+per_level { skill_pct: 0.04 }

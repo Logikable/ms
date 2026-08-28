@@ -1,0 +1,21 @@
+# Holy Water's Vengeance form: the chalice the party drank from, drunk by the
+# Bishop instead. Ten seconds of final damage on a two-minute wait, which is
+# GMS's own -- and the only skill in the book whose ten levels buy nothing,
+# exactly as GMS writes it. It is levelled by levelling Holy Water regardless.
+name: "Blood of the Divine"
+skill_order: 4
+description:
+  "Enhance your power by conjuring a spell with your own hallowed blood."
+kind: SKILL_KIND_ACTIVE
+tags: SKILL_TAG_VENGEANCE
+job_advancement: JOB_ADVANCEMENT_BISHOP
+max_level: 10
+exceeds_master_level: true
+replaces_skill_name: "Holy Water"
+toggle_skill_name: "Righteously Indignant"
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 10.0
+  base { final_dmg_pct: 0.08 }
+}
