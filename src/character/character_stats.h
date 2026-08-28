@@ -43,6 +43,10 @@ struct FinalAttackSource {
   // Boss damage this source alone carries, on top of the character's. Only a
   // thrown meso has any: see SkillEffect.boosted_boss_pct.
   double boss_pct = 0.0;
+  // Ignored defence only these extra hits carry, meeting the character's the
+  // way two sources of it always do. A thrown meso's alone -- Meso Explosion -
+  // Guardbreak brands the coins, the Shadower's own swing being another skill.
+  double ied = 0.0;
   // Plain % damage only these extra hits collect, summed into the share the
   // character already pays -- a boost aimed at the skill that sets the Final
   // Attack off, exactly as boss_pct above is. Points on damage_pct above are

@@ -391,10 +391,11 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // What this swing keeps of the character's chance to shake a coin loose.
   // Cruel Stab alone gives any of it up -- see SkillEffect.meso_drop_cut.
   double meso_kept = 1.0;
-  // What the character's own boss damage and plain damage are, before a source
-  // adds to either.
+  // What the character's own boss damage, plain damage and ignored defence are,
+  // before a source adds to any of them.
   double carried_boss_pct = follow.boss_pct;
   double carried_damage_pct = follow.damage_pct;
+  double carried_ied = follow.ied;
   if (skill != nullptr) {
     meso_kept -= skill->base().meso_drop_cut() +
                  skill->per_level().meso_drop_cut() * (level - 1);
@@ -416,6 +417,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     // the passive the Final Attack belongs to.
     follow.boss_pct = carried_boss_pct + source.boss_pct;
     follow.damage_pct = carried_damage_pct + source.damage_bonus_pct;
+    // Ignored defence meets the character's rather than adding to it, the way
+    // two sources of it always do -- Meso Explosion - Guardbreak.
+    follow.ied = CombineIgnoredDefense(carried_ied, source.ied);
     roll.count = source.per_line ? swing_lines : 1;
     follow.skill_pct = source.damage_pct;
     // Its own strikes, not the swing's: a Night Lord's mark throws three stars

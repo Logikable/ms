@@ -127,9 +127,12 @@ struct PassiveTotals {
   // Per line until FoldMesoExplosion multiplies the count in.
   double meso_hit_pct = 0.0;
   int meso_lines = 1;
-  // Boss damage a thrown meso carries, once FoldMesoExplosion has cashed in
-  // what the skills naming Meso Explosion granted it.
+  // Boss damage, plain damage and ignored defence a thrown meso carries, once
+  // FoldMesoExplosion has cashed in what the skills naming Meso Explosion
+  // granted it.
   double meso_boss_pct = 0.0;
+  double meso_damage_pct = 0.0;
+  double meso_ied = 0.0;
   std::string meso_skill;
   double meso_pct = 0.0;
   double item_drop_pct = 0.0;
@@ -444,13 +447,10 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   }
 }
 
-// Cashes in the per-orb bargains against the ring of orbs the character
-// carries. The orbs are taken as full: a fight paid out in expected damage has
-// nowhere to put a counter, and GMS builds them up over 40% of the swings.
-// The final damage lands as ONE source however many skills priced it, which is
-// what "total applied between combo orbs" means.
 // Turns what one line of a thrown meso is worth into what one whole meso is,
-// now that Meso Mastery's points are certain to be in.
+// now that Meso Mastery's points are certain to be in. Meso Explosion is not a
+// swing, so everything the book aims at it by name is cashed in here rather
+// than in OffenseStatsFor.
 void FoldMesoExplosion(PassiveTotals& totals) {
   if (totals.meso_hit_pct <= 0.0) {
     return;
@@ -460,6 +460,8 @@ void FoldMesoExplosion(PassiveTotals& totals) {
   if (boost != totals.skill_bonus.end()) {
     totals.meso_hit_pct += boost->second.skill_pct;
     totals.meso_boss_pct = boost->second.boss_pct;
+    totals.meso_damage_pct = boost->second.damage_pct;
+    totals.meso_ied = boost->second.ied;
   }
   totals.meso_hit_pct *= totals.meso_lines;
 }
@@ -959,6 +961,8 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
     meso.chance = passives.meso_drop_chance;
     meso.damage_pct = passives.meso_hit_pct;
     meso.boss_pct = passives.meso_boss_pct;
+    meso.damage_bonus_pct = passives.meso_damage_pct;
+    meso.ied = passives.meso_ied;
     meso.per_line = true;
     stats.final_attacks.push_back(meso);
   }

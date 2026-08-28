@@ -741,6 +741,66 @@ TEST(ComputeCombatParamsTest, ABrandedMesoHitsABossHarder) {
   EXPECT_NEAR(paid.damage_per_hit[0], plain.damage_per_hit[0], 1e-9);
 }
 
+// Meso Explosion's hypers brand the coins too: plain damage and ignored
+// defence aimed at a skill that is thrown rather than swung reach the throw
+// alone, and the swing that shook it loose is worth exactly what it was.
+TEST(ComputeCombatParamsTest,
+     ABoostedMesoCarriesItsOwnDamageAndIgnoredDefense) {
+  Skill pocket;
+  pocket.set_name("Pick Pocket");
+  pocket.set_kind(SKILL_KIND_PASSIVE);
+  pocket.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  pocket.set_max_level(10);
+  pocket.mutable_base()->set_meso_drop_chance(0.30);
+  Skill explosion;
+  explosion.set_name("Meso Explosion");
+  explosion.set_kind(SKILL_KIND_PASSIVE);
+  explosion.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  explosion.set_max_level(20);
+  explosion.mutable_base()->set_meso_hit_pct(1.00);
+  Skill hyper;
+  hyper.set_name("Meso Explosion - Reinforce");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Meso Explosion");
+  boost->mutable_effect()->set_damage_pct(0.20);
+  boost->mutable_effect()->set_ied_pct(1.00);
+
+  Mob armoured = MakeArmouredMob("Snail", 15, 100);
+  std::map<std::string, Skill> book = {{"pick_pocket", pocket},
+                                       {"meso_explosion", explosion}};
+  GameState bare({}, {}, {}, {{"snail", armoured}}, {{"field", TwoSnailMap()}},
+                 book);
+  bare.current_map = "field";
+  EquipSword(bare);
+  GrantFirstJobSp(bare, 4);
+  ASSERT_TRUE(bare.character.LearnSkill(pocket, 1));
+  ASSERT_TRUE(bare.character.LearnSkill(explosion, 1));
+
+  book["meso_explosion_reinforce"] = hyper;
+  GameState boosted({}, {}, {}, {{"snail", armoured}},
+                    {{"field", TwoSnailMap()}}, book);
+  boosted.current_map = "field";
+  EquipSword(boosted);
+  GrantFirstJobSp(boosted, 5);
+  ASSERT_TRUE(boosted.character.LearnSkill(pocket, 1));
+  ASSERT_TRUE(boosted.character.LearnSkill(explosion, 1));
+  ASSERT_TRUE(boosted.character.LearnSkill(hyper, 1));
+
+  CombatParams bare_params = ComputeCombatParams(bare);
+  CombatParams boosted_params = ComputeCombatParams(boosted);
+  ASSERT_EQ(bare_params.attacks.size(), 1u);
+  const AttackOption& plain = bare_params.attacks[0];
+  const AttackOption& paid = boosted_params.attacks[0];
+  ASSERT_FALSE(plain.final_attack_damage.empty());
+  ASSERT_FALSE(paid.final_attack_damage.empty());
+  // Both levers land, and neither reaches the swing.
+  EXPECT_GT(paid.final_attack_damage[0], plain.final_attack_damage[0] * 1.20);
+  EXPECT_NEAR(paid.damage_per_hit[0], plain.damage_per_hit[0], 1e-9);
+}
+
 // Nothing but a skill saying so gives a swing an opening hit.
 TEST(ComputeCombatParamsTest, AnOrdinarySwingCarriesNoOpeningHit) {
   Skill slash;
