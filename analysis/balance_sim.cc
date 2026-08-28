@@ -66,6 +66,11 @@ ABSL_FLAG(std::string, maps, "",
           "Comma-separated map keys to sweep, one row each, in the order "
           "given. Empty sweeps every hunting ground, which is what the table "
           "is for -- name one when one map is the question.");
+ABSL_FLAG(int, kills, 0,
+          "Report the seconds it took to reach this many kills, rather than "
+          "the kills a whole run came to. What it answers is how long a map "
+          "takes to clear -- name the map's own spawn count. 0 is the "
+          "body-count table this sim is otherwise.");
 
 namespace ms {
 namespace {
@@ -113,10 +118,12 @@ struct Outcome {
   // a map they clear comfortably reads near 1, one they only just hold reads
   // near 0.
   double low_water = 1.0;
+  // Seconds to the --kills'th kill, or -1 where the run never reached it.
+  double kills_seconds = -1.0;
 };
 
 Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
-             const std::string& map, double seconds) {
+             const std::string& map, double seconds, int target_kills) {
   GameState state = NewState(catalogs, kSimSeed);
   GrowTo(state, level, path);
   // Geared before the fight rather than during it: nothing here changes the
@@ -146,6 +153,13 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
     for (int64_t killed : sim.kills_this_step()) {
       outcome.kills += killed;
     }
+    // The step the count came due on, which is as fine as this sim measures
+    // anything. Recorded once: a roster that keeps topping up would otherwise
+    // overwrite it with the second helping of the same number.
+    if (target_kills > 0 && outcome.kills_seconds < 0.0 &&
+        outcome.kills >= target_kills) {
+      outcome.kills_seconds = t + kStepSeconds;
+    }
     if (sim.died_this_step()) {
       outcome.death_seconds = t;
       return outcome;
@@ -158,6 +172,7 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
 }
 
 void Run(double seconds, Job branch) {
+  int target_kills = absl::GetFlag(FLAGS_kills);
   Catalogs catalogs = LoadCatalogs();
   std::vector<Job> path = PathTo(branch);
   std::vector<std::string> maps = SweptMaps(catalogs);
@@ -175,14 +190,31 @@ void Run(double seconds, Job branch) {
   int columns = static_cast<int>(levels.size());
   std::vector<std::string> cells(rows * columns);
   ParallelFor(rows * columns, [&](int i) {
-    Outcome outcome =
-        Farm(catalogs, levels[i % columns], path, maps[i / columns], seconds);
+    Outcome outcome = Farm(catalogs, levels[i % columns], path,
+                           maps[i / columns], seconds, target_kills);
     char cell[32];
-    if (outcome.death_seconds >= 0.0) {
+    // The count is the question where one was named, so a run that reached it
+    // reports the time whether or not the character went on to die -- dying
+    // half an hour later is a different fact from failing to clear the map.
+    if (target_kills > 0 && outcome.kills_seconds >= 0.0) {
+      if (outcome.death_seconds >= 0.0) {
+        std::snprintf(cell, sizeof(cell), "%.1fs died %.0fs",
+                      outcome.kills_seconds, outcome.death_seconds);
+      } else {
+        std::snprintf(cell, sizeof(cell), "%.1fs/%.0f%%", outcome.kills_seconds,
+                      100.0 * outcome.low_water);
+      }
+    } else if (outcome.death_seconds >= 0.0) {
       // Died: how long it took, and what they took with them.
       std::snprintf(cell, sizeof(cell), "died %.0fs/%lld",
                     outcome.death_seconds,
                     static_cast<long long>(outcome.kills));
+    } else if (target_kills > 0) {
+      // Short of the count with the window run out, which is a map the
+      // character holds and cannot clear.
+      std::snprintf(cell, sizeof(cell), "%lld only/%.0f%%",
+                    static_cast<long long>(outcome.kills),
+                    100.0 * outcome.low_water);
     } else {
       // Survived: the body count, and how close it got.
       std::snprintf(cell, sizeof(cell), "%lld/%.0f%%",
@@ -200,6 +232,13 @@ void Run(double seconds, Job branch) {
       std::printf("  %13s", cells[row * columns + column].c_str());
     }
     std::printf("\n");
+  }
+  if (target_kills > 0) {
+    std::printf(
+        "\nReached %d kills: seconds it took / lowest HP the run reached.  "
+        "Died: how long they lasted / how many they got first.\n",
+        target_kills);
+    return;
   }
   std::printf(
       "\nSurvived: kills / lowest HP the run reached.  Died: how long they "
