@@ -1,0 +1,18 @@
+# The bossing half of the pair Reinforce opens: the same two swings and the
+# same mark, against a boss alone. Sums with what the character's gear already
+# pays, both being shares of the same damage.
+name: "Snipe - Boss Rush"
+skill_order: 12
+description:
+  "Increases boss damage of Snipe, Empowered Snipe, and of Snipe's additional "
+  "hits."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+hyper: true
+required_level: 190
+max_level: 1
+boost {
+  skill_name: "Snipe"
+  reaches_empowered_form: true
+  effect { boss_pct: 0.10 }
+}

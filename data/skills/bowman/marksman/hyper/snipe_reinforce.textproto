@@ -1,0 +1,18 @@
+# A share of the character's damage that only this swing collects, which is
+# what GMS's "Damage: +20%" is. The mark takes it with the shot: both are
+# priced from the same offense.
+name: "Snipe - Reinforce"
+skill_order: 11
+description:
+  "Increases damage of Snipe, Empowered Snipe, and of Snipe's additional "
+  "hits."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Snipe"
+  reaches_empowered_form: true
+  effect { damage_pct: 0.20 }
+}

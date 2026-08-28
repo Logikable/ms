@@ -1,0 +1,18 @@
+# 660ms is the animation's own, from the frame data. Nine strikes across twelve
+# enemies every fifteen seconds, and the only wide swing the book has: Piercing
+# Arrow II reaches eight and Snipe one.
+name: "High Speed Shot"
+skill_order: 2
+description:
+  "Fires off a focused shot that pierces all enemies within range."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+hyper: true
+required_level: 160
+max_level: 1
+required_equip_type: EQUIP_TYPE_CROSSBOW
+base_delay_ms: 660
+cooldown_seconds: 15.0
+max_enemies: 12
+lines: 9
+base { skill_pct: 4.50 }

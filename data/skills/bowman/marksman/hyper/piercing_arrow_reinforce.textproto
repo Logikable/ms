@@ -1,0 +1,30 @@
+# GMS names five swings: both arrows and both empowered forms, and the
+# fragment. Two boosts cover the lot -- the damage is a share of the
+# character's that only this swing collects, and the swing's opening hit and
+# its explosion are priced from the same offense, so the fragment gains with
+# the arrow that threw it.
+#
+# Piercing Arrow itself is superseded by Piercing Arrow II long before a
+# Marksman reaches 140, so what it names it can no longer swing. Written
+# because GMS writes it, and because the day the arrow is swung again this
+# hyper should be paying.
+name: "Piercing Arrow - Reinforce"
+skill_order: 7
+description:
+  "Increases damage of Piercing Arrow, Piercing Arrow II, Arrow Fragments, "
+  "Empowered Piercing Arrow, and Empowered Piercing Arrow II."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+hyper: true
+required_level: 140
+max_level: 1
+boost {
+  skill_name: "Piercing Arrow"
+  reaches_empowered_form: true
+  effect { damage_pct: 0.20 }
+}
+boost {
+  skill_name: "Piercing Arrow II"
+  reaches_empowered_form: true
+  effect { damage_pct: 0.20 }
+}

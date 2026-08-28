@@ -1,0 +1,25 @@
+# 120ms rather than the 960ms animation: a buff is raised from a skill
+# sequence, which paces every skill in it alike.
+#
+# Four levers for forty seconds on a wait three times as long, which is the
+# widest buff either archer gets -- the Bow Master's Concentration buys two.
+name: "Bullseye Shot"
+skill_order: 1
+description:
+  "Hone in on the enemy's weak spot for a devastating shot."
+kind: SKILL_KIND_ACTIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+hyper: true
+required_level: 140
+max_level: 1
+base_delay_ms: 120
+cooldown_seconds: 120.0
+buff {
+  duration_seconds: 40.0
+  base {
+    damage_pct: 0.20
+    crit_rate: 0.20
+    crit_dmg: 0.10
+    ied_pct: 0.20
+  }
+}

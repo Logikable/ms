@@ -1,0 +1,14 @@
+# The Bow Master's, to the number and for the same reasons -- see that file:
+# GMS's Sharp Eyes - Persist buys the buff thirty more seconds, Sharp Eyes is
+# folded in here as permanent, and the skill is renamed for the DEF it hands
+# out instead. Which is worth nothing, deliberately.
+name: "Sharp Eyes - Bulwark"
+skill_order: 4
+description:
+  "Grants Sharp Eyes a bonus to DEF."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+hyper: true
+required_level: 140
+max_level: 1
+base { def: 1000 }

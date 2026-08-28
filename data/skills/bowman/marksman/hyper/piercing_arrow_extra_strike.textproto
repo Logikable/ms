@@ -1,0 +1,28 @@
+# One strike for the arrow and one for what it throws off: five lines to six,
+# and the fragment's four to five. The empowered form gains both the same way
+# -- six to seven, and its explosion's ten to eleven.
+#
+# Only the Crossbowman's arrow gains nothing beside itself: the fragment is
+# Piercing Arrow II's mechanic, and GMS names it only there.
+name: "Piercing Arrow - Extra Strike"
+skill_order: 9
+description:
+  "Increases the number of attacks of Piercing Arrow, Piercing Arrow II, "
+  "Arrow Fragments, Empowered Piercing Arrow, and Empowered Piercing Arrow "
+  "II."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_MARKSMAN
+hyper: true
+required_level: 180
+max_level: 1
+boost {
+  skill_name: "Piercing Arrow"
+  lines: 1
+  reaches_empowered_form: true
+}
+boost {
+  skill_name: "Piercing Arrow II"
+  lines: 1
+  extra_hit_lines: 1
+  reaches_empowered_form: true
+}
