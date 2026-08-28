@@ -1189,6 +1189,31 @@ bool HasEmpoweredForm(const std::map<std::string, Skill>& skills,
   return false;
 }
 
+// Whether `name` lands anything beside its own lines: an opening hit, an extra
+// hit, or either of them in an empowered form of it.
+bool LandsASecondHit(const std::map<std::string, Skill>& skills,
+                     const std::string& name) {
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    if (skill.name() == name &&
+        (skill.base().lead_pct() > 0.0 || skill.extra_hit_size() > 0)) {
+      return true;
+    }
+    for (const EmpoweredForm& form : skill.empowered_form()) {
+      std::string target = form.skill_name();
+      if (target.empty()) {
+        target = skill.boosts_skill_name().empty() ? skill.name()
+                                                   : skill.boosts_skill_name();
+      }
+      if (target == name &&
+          (form.base().lead_pct() > 0.0 || form.extra_hit_size() > 0)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // A boost has to name a skill the same character can hold, and hand it
 // something: strikes, reach, a clock, or a lever that skill alone carries.
 TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
@@ -1198,7 +1223,8 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
     for (const SkillBoost& boost : entry.second.boost()) {
       EXPECT_FALSE(boost.skill_name().empty())
           << entry.first << " grants strikes to nobody";
-      EXPECT_TRUE(boost.lines() > 0 || boost.max_enemies() > 0 ||
+      EXPECT_TRUE(boost.lines() > 0 || boost.extra_hit_lines() > 0 ||
+                  boost.max_enemies() > 0 ||
                   boost.max_enemies_per_level() > 0.0 ||
                   boost.attacks_per_cast() > 0 || boost.cooldown_pct() > 0.0 ||
                   boost.has_effect())
@@ -1224,6 +1250,14 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           SameCharacterCanHold(skills, entry.second, boost.skill_name()))
           << entry.first << " grants strikes to \"" << boost.skill_name()
           << "\", which no character holding it can learn";
+      // A strike for hits the named skill does not land is a strike nobody
+      // takes. Its form's count, since a form lands its parent's second hits
+      // as often as its own -- Snipe's mark is the empowered shot's.
+      if (boost.extra_hit_lines() > 0) {
+        EXPECT_TRUE(LandsASecondHit(skills, boost.skill_name()))
+            << entry.first << " adds a strike to " << boost.skill_name()
+            << "'s second hits, which it does not land";
+      }
       // Following a skill into a form it does not have reaches nothing.
       if (boost.reaches_empowered_form()) {
         EXPECT_TRUE(HasEmpoweredForm(skills, boost.skill_name()))

@@ -617,6 +617,17 @@ std::string BoostText(const SkillBoost& boost, int level) {
     gains = "+" + std::to_string(boost.lines()) +
             (boost.lines() == 1 ? " Strike" : " Strikes");
   }
+  // Told apart from the line above because they are different strikes: what
+  // the swing lands beside itself is priced on its own, so a row saying only
+  // "+1 Strike" would be read as the swing's.
+  if (boost.extra_hit_lines() > 0) {
+    if (!gains.empty()) {
+      gains += ", ";
+    }
+    gains += "+" + std::to_string(boost.extra_hit_lines()) +
+             (boost.extra_hit_lines() == 1 ? " Strike" : " Strikes") +
+             " to its extra hits";
+  }
   int enemies =
       boost.max_enemies() +
       static_cast<int>(std::floor(boost.max_enemies_per_level() * (level - 1) +
@@ -697,7 +708,13 @@ std::string LeadText(const Skill& skill, int level) {
     damage +=
         " x" + std::to_string(lines) + " = " + FormatPercent(per_hit * lines);
   }
-  return damage + " (one enemy)";
+  // How many of the swing's enemies it lands on: one for the opening hit every
+  // rogue swings, more for an arrow's fragment, which bounces onto several.
+  int enemies = std::max(1, skill.lead_enemies());
+  if (enemies == 1) {
+    return damage + " (one enemy)";
+  }
+  return damage + " (" + std::to_string(enemies) + " enemies)";
 }
 
 // The plain lever rows of one effect, at `level`. `suffix` goes after every

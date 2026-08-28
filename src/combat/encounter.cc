@@ -577,6 +577,9 @@ void AddAutoModes(const Character& proto, const EquipStats& equipped,
 // wait between its casts.
 struct SkillBoosts {
   int lines = 0;
+  // Strikes on each of its second hits rather than on the swing itself -- the
+  // opening hit and every extra hit, which are priced apart from its lines.
+  int extra_hit_lines = 0;
   int max_enemies = 0;
   int attacks_per_cast = 0;
   // What is LEFT of the wait, so two cuts combine in reverse the way two
@@ -620,6 +623,7 @@ std::map<std::string, SkillBoosts> BoostsByTarget(const GameState& state,
       for (const std::string& name : names) {
         SkillBoosts& into = by_target[name];
         into.lines += boost.lines();
+        into.extra_hit_lines += boost.extra_hit_lines();
         into.max_enemies += enemies;
         into.cooldown_left *= 1.0 - boost.cooldown_pct();
         // The clock replaces rather than sums, so the faster of two stands.
@@ -637,7 +641,8 @@ std::map<std::string, SkillBoosts> BoostsByTarget(const GameState& state,
 // `skill` with whatever the book grants it folded in, or `skill` itself when
 // nothing does. The line ladder is cashed in at `level` on the way, so the
 // strike granted lands on top of the ones the skill bought for itself rather
-// than being climbed past a second time.
+// than being climbed past a second time. An empowered form is handed here
+// under its own name, so what it lands beside itself gains with it.
 const Skill& Boosted(const Skill& skill, int level,
                      const std::map<std::string, SkillBoosts>& boosts,
                      Skill& scratch) {
@@ -651,6 +656,17 @@ const Skill& Boosted(const Skill& skill, int level,
   scratch.clear_lines_per_level();
   scratch.set_max_enemies(std::max(1, skill.max_enemies()) +
                           it->second.max_enemies);
+  // The hits landed beside the swing, each gaining its own strike: the opening
+  // hit only where there is one, since lead_lines says nothing without it.
+  if (it->second.extra_hit_lines > 0) {
+    if (skill.base().lead_pct() > 0.0) {
+      scratch.set_lead_lines(std::max(1, skill.lead_lines()) +
+                             it->second.extra_hit_lines);
+    }
+    for (SwingHit& hit : *scratch.mutable_extra_hit()) {
+      hit.set_lines(std::max(1, hit.lines()) + it->second.extra_hit_lines);
+    }
+  }
   if (it->second.attacks_per_cast > 0) {
     scratch.set_attacks_per_cast(it->second.attacks_per_cast);
   }

@@ -2093,6 +2093,84 @@ TEST(ComputeCombatParamsTest, OneSkillCanEmpowerTwoDifferentSwings) {
                    (10.0 * 3.0 / 9.0) * upgraded_snipe.damage_per_hit[0]);
 }
 
+// The Marksman's Extra Strike hypers: a strike for what the swing lands beside
+// itself -- the arrow's fragment, and the mark the empowered shot spends --
+// rather than for the swing's own lines.
+TEST(ComputeCombatParamsTest, ABoostAddsAStrikeToASwingsSecondHits) {
+  Skill piercing;
+  piercing.set_name("Piercing Arrow II");
+  piercing.set_kind(SKILL_KIND_ATTACK);
+  piercing.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  piercing.set_max_level(30);
+  piercing.set_max_enemies(8);
+  piercing.set_lines(5);
+  piercing.set_lead_lines(4);
+  piercing.set_lead_enemies(2);
+  piercing.mutable_base()->set_skill_pct(1.00);
+  piercing.mutable_base()->set_lead_pct(2.00);
+
+  Skill greater;
+  greater.set_name("Greater Empowered Arrows");
+  greater.set_kind(SKILL_KIND_PASSIVE);
+  greater.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  greater.set_max_level(20);
+  EmpoweredForm* form = greater.add_empowered_form();
+  form->set_skill_name("Piercing Arrow II");
+  form->set_casts_per_trigger(4);
+  form->set_max_enemies(10);
+  form->set_lines(6);
+  form->mutable_base()->set_skill_pct(2.00);
+  SwingHit* burst = form->add_extra_hit();
+  burst->set_label("Fragment");
+  burst->set_lines(10);
+  burst->mutable_base()->set_skill_pct(2.00);
+
+  Skill extra;
+  extra.set_name("Piercing Arrow - Extra Strike");
+  extra.set_kind(SKILL_KIND_PASSIVE);
+  extra.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  extra.set_max_level(1);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"piercing_arrow_ii", piercing},
+                   {"greater_empowered_arrows", greater},
+                   {"piercing_arrow_extra_strike", extra}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(piercing, 1));
+  ASSERT_TRUE(state.character.LearnSkill(greater, 1));
+  ASSERT_TRUE(state.character.LearnSkill(extra, 1));
+
+  CombatParams plain = ComputeCombatParams(state);
+  const AttackOption* before = FindAttack(plain, "Piercing Arrow II");
+  ASSERT_NE(before, nullptr);
+  ASSERT_NE(before->empowered, nullptr);
+  double lead = before->lead_damage[0];
+  double swing = before->damage_per_hit[0];
+  double form_swing = before->empowered->damage_per_hit[0];
+
+  SkillBoost* boost = state.skills["piercing_arrow_extra_strike"].add_boost();
+  boost->set_skill_name("Piercing Arrow II");
+  boost->set_lines(1);
+  boost->set_extra_hit_lines(1);
+  boost->set_reaches_empowered_form(true);
+  CombatParams boosted = ComputeCombatParams(state);
+  const AttackOption* after = FindAttack(boosted, "Piercing Arrow II");
+  ASSERT_NE(after, nullptr);
+  ASSERT_NE(after->empowered, nullptr);
+  // Five lines to six, and the fragment's four to five.
+  EXPECT_NEAR(after->damage_per_hit[0], swing * 6.0 / 5.0, 1e-9);
+  EXPECT_NEAR(after->lead_damage[0], lead * 5.0 / 4.0, 1e-9);
+  EXPECT_EQ(after->lead_enemies, 2);
+  // The form gains both: six lines to seven, and its explosion's ten to
+  // eleven. Its damage is the two summed, so they are checked together.
+  EXPECT_NEAR(after->empowered->damage_per_hit[0],
+              form_swing * (7.0 * 2.0 + 11.0 * 2.0) / (6.0 * 2.0 + 10.0 * 2.0),
+              1e-9);
+}
+
 // A hyper naming a swing reaches the empowered version of it where it says so,
 // and stops at the ordinary one where it does not.
 TEST(ComputeCombatParamsTest, ABoostReachesTheFormOnlyWhenItSaysSo) {

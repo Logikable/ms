@@ -282,6 +282,10 @@ TEST_F(SkillInspectPanelTest, AMultiStrikeOpeningHitTotalsItself) {
   skill.mutable_base()->set_lead_pct(1.0);
   skill.set_lead_lines(3);
   EXPECT_NE(RenderAt(skill, 1).find("100% x3 = 300%"), std::string::npos);
+  // Piercing Arrow II's fragment bounces onto two of the enemies the arrow
+  // went through, so the row that says which enemy has to count them.
+  skill.set_lead_enemies(2);
+  EXPECT_NE(RenderAt(skill, 1).find("(2 enemies)"), std::string::npos);
 }
 
 // A clock the weapon can hurry is not one the page can state: an ordinary
@@ -487,6 +491,17 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
   hurricane->mutable_effect()->set_final_dmg_pct(-0.25);
   EXPECT_NE(RowIn(RenderAt(split, 1), "Boosts Hurricane",
                   "+1 Strike, -25% Final Damage"),
+            std::string::npos);
+
+  // A strike for the hits a swing lands beside itself is a different strike
+  // from one for its lines, so the row says which it bought.
+  Skill fragment = MakeIronBody();
+  SkillBoost* arrow = fragment.add_boost();
+  arrow->set_skill_name("Piercing Arrow II");
+  arrow->set_lines(1);
+  arrow->set_extra_hit_lines(1);
+  EXPECT_NE(RowIn(RenderAt(fragment, 1), "Boosts Piercing Arrow II",
+                  "+1 Strike, +1 Strike to its extra hits"),
             std::string::npos);
 }
 

@@ -801,6 +801,16 @@ message SkillBoost {
   // Combines in reverse, as ignored defence does: what two cuts leave is the
   // product of what each leaves, so no pile of them ever reaches nothing.
   double cooldown_pct = 8;
+  // Strikes added to each SECOND hit the named skill lands -- its opening hit
+  // and every extra hit, in its empowered form as well as its ordinary one.
+  // Flat, as `lines` above is. The Marksman's two Extra Strike hypers are what
+  // it exists for: GMS adds their attack to the arrow's fragment and to the
+  // mark Snipe leaves, both of which are hits beside the swing rather than
+  // lines of it.
+  //
+  // Apart from `lines` because the two are different strikes: a swing whose
+  // second hit is priced on its own does not gain one by gaining a line.
+  int32 extra_hit_lines = 9;
   // Whether this boost follows the named skill into its empowered form, which
   // is a swing of its own and takes none of what its parent hands the ordinary
   // version by default -- see EmpoweredForm.
