@@ -481,6 +481,18 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
       RowIn(RenderAt(cutter, 1), "Boosts Heaven's Hammer", "-30% Cooldown"),
       std::string::npos);
 
+  // Points on the mark a skill leaves read as the tick they lift, so the row
+  // is never mistaken for the strike that lays it.
+  Skill eruption = MakeIronBody();
+  eruption.set_max_level(20);
+  SkillBoost* fog = eruption.add_boost();
+  fog->set_skill_name("Poison Mist");
+  fog->set_dot_skill_pct(0.315);
+  fog->set_dot_skill_pct_per_level(0.015);
+  EXPECT_NE(RowIn(RenderAt(eruption, 20), "Boosts Poison Mist",
+                  "+60% DoT Damage per Tick"),
+            std::string::npos);
+
   // A lever handed over backwards keeps its sign. Hurricane - Split Attack
   // buys a second arrow with a quarter off what each one lands, and a row
   // that dropped the cut would sell it as a free strike.

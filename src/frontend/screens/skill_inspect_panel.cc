@@ -655,6 +655,17 @@ std::string BoostText(const SkillBoost& boost, int level) {
     }
     gains += "every " + std::to_string(boost.attacks_per_cast()) + " attacks";
   }
+  // Apart from the table below because it is not one of the seven: what it
+  // lifts is the mark the skill leaves, so the row has to say tick.
+  double dot_pct =
+      boost.dot_skill_pct() + boost.dot_skill_pct_per_level() * (level - 1);
+  if (dot_pct != 0.0) {
+    if (!gains.empty()) {
+      gains += ", ";
+    }
+    gains += (dot_pct > 0.0 ? "+" : "") + FormatPercent(dot_pct) +
+             " DoT Damage per Tick";
+  }
   // The levers the boost hands that skill alone, named because a sentence
   // granting two of them cannot leave either unsaid. In the order the effect
   // rows above use.

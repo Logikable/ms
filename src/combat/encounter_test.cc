@@ -1617,6 +1617,103 @@ TEST(ComputeCombatParamsTest, APassivesBurnRidesEverySwing) {
   EXPECT_GT(swing.dots[1].damage[0], swing.dots[0].damage[0]);
 }
 
+// Mist Eruption's half: a boost that lifts the mark a skill leaves rather than
+// the strike that leaves it. The burn already takes what a boost hands the
+// swing, through the stat line it is priced off -- only the multiplier is its
+// own, so only that lever has to be aimed at it.
+TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
+  Skill venom;
+  venom.set_name("Venom");
+  venom.set_kind(SKILL_KIND_PASSIVE);
+  venom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  venom.set_max_level(10);
+  Dot* poison = venom.mutable_dot();
+  poison->set_interval_seconds(1.0);
+  poison->set_duration_seconds(6.0);
+  poison->mutable_base()->set_skill_pct(0.54);
+
+  Skill mist;
+  mist.set_name("Poison Mist");
+  mist.set_kind(SKILL_KIND_ATTACK);
+  mist.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  mist.set_max_level(20);
+  mist.set_base_delay_ms(660);
+  mist.set_max_enemies(6);
+  mist.mutable_base()->set_skill_pct(0.50);
+  Dot* fog = mist.mutable_dot();
+  fog->set_interval_seconds(1.0);
+  fog->set_duration_seconds(9.6);
+  fog->set_lines(1);
+  fog->mutable_base()->set_skill_pct(2.40);
+
+  // A second burn, so a boost naming one cannot be read as lifting them all.
+  Skill haze;
+  haze.set_name("Flame Haze");
+  haze.set_kind(SKILL_KIND_ATTACK);
+  haze.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  haze.set_max_level(20);
+  haze.set_base_delay_ms(660);
+  haze.mutable_base()->set_skill_pct(1.60);
+  *haze.mutable_dot() = *fog;
+
+  Skill eruption;
+  eruption.set_name("Mist Eruption");
+  eruption.set_kind(SKILL_KIND_PASSIVE);
+  eruption.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  eruption.set_max_level(20);
+  SkillBoost* boost = eruption.add_boost();
+  boost->set_skill_name("Poison Mist");
+  boost->set_dot_skill_pct(0.315);
+  boost->set_dot_skill_pct_per_level(0.015);
+
+  Mob snail = MakeMob("Snail", 15);
+  std::map<std::string, Skill> book = {
+      {"venom", venom}, {"poison_mist", mist}, {"flame_haze", haze}};
+  GameState bare({}, {}, {}, {{"snail", snail}}, {{"field", TwoSnailMap()}},
+                 book);
+  bare.current_map = "field";
+  EquipSword(bare);
+  GrantFirstJobSp(bare, 22);
+  ASSERT_TRUE(bare.character.LearnSkill(venom, 10));
+  ASSERT_TRUE(bare.character.LearnSkill(mist, 1));
+  ASSERT_TRUE(bare.character.LearnSkill(haze, 1));
+
+  book["mist_eruption"] = eruption;
+  GameState lifted({}, {}, {}, {{"snail", snail}}, {{"field", TwoSnailMap()}},
+                   book);
+  lifted.current_map = "field";
+  EquipSword(lifted);
+  GrantFirstJobSp(lifted, 42);
+  ASSERT_TRUE(lifted.character.LearnSkill(venom, 10));
+  ASSERT_TRUE(lifted.character.LearnSkill(mist, 1));
+  ASSERT_TRUE(lifted.character.LearnSkill(haze, 1));
+  ASSERT_TRUE(lifted.character.LearnSkill(eruption, 20));
+
+  CombatParams plain = ComputeCombatParams(bare);
+  CombatParams paid = ComputeCombatParams(lifted);
+  const AttackOption* bare_mist = FindAttack(plain, "Poison Mist");
+  const AttackOption* paid_mist = FindAttack(paid, "Poison Mist");
+  ASSERT_NE(bare_mist, nullptr);
+  ASSERT_NE(paid_mist, nullptr);
+  // The character's poison first, the skill's own burn after it.
+  ASSERT_EQ(bare_mist->dots.size(), 2u);
+  ASSERT_EQ(paid_mist->dots.size(), 2u);
+  // 240% + 60 points at Mist Eruption 20, which is a quarter more per tick.
+  EXPECT_NEAR(paid_mist->dots[1].damage[0] / bare_mist->dots[1].damage[0],
+              3.00 / 2.40, 1e-6);
+  // The strike that lays the mist is untouched: the lever names the mark.
+  EXPECT_NEAR(paid_mist->damage_per_hit[0], bare_mist->damage_per_hit[0], 1e-9);
+  // So is the poison on the claw, which is the character's and not the
+  // skill's, and so is the other skill's burn.
+  EXPECT_NEAR(paid_mist->dots[0].damage[0], bare_mist->dots[0].damage[0], 1e-9);
+  const AttackOption* bare_haze = FindAttack(plain, "Flame Haze");
+  const AttackOption* paid_haze = FindAttack(paid, "Flame Haze");
+  ASSERT_NE(bare_haze, nullptr);
+  ASSERT_NE(paid_haze, nullptr);
+  ASSERT_EQ(paid_haze->dots.size(), 2u);
+  EXPECT_NEAR(paid_haze->dots[1].damage[0], bare_haze->dots[1].damage[0], 1e-9);
+}
+
 // Showdown's shuriken: a second attack the swing sets off, with its own reach,
 // its own strikes and a wait of its own. Nothing rides it -- it is not the
 // character's swing -- and a skill on its own clock never carries one.

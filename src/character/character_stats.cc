@@ -372,6 +372,10 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   into.final_dmg_pct = (1.0 + into.final_dmg_pct) * (1.0 + fd) - 1.0;
   into.final_attack_chance +=
       base.final_attack_chance() + per.final_attack_chance() * (level - 1);
+  // Its own field rather than one of the seven, because it is aimed at the
+  // mark the skill leaves rather than the swing -- see SkillBoost.
+  into.dot_skill_pct +=
+      boost.dot_skill_pct() + boost.dot_skill_pct_per_level() * (level - 1);
 }
 
 // Notes down what `skill` hands other skills by name. Kept out of AddEffect,

@@ -819,6 +819,19 @@ message SkillBoost {
   // Piercing Arrow II and both empowered forms, so it is set here; Empowered
   // Arrows states its form's damage whole, so it is not.
   bool reaches_empowered_form = 10;
+  // Percentage points on the named skill's BURN tick, worth their value once
+  // per tick line -- exactly what effect.skill_pct below is to its swing.
+  //
+  // Apart from that lever because the burn is not the swing. A mark keeps the
+  // swing's ignored defence, boss damage and final damage -- BurnFor starts
+  // from its stat line, so what a boost hands the swing already reaches the
+  // burn -- but it states its own multiplier, so a boost aimed at the tick
+  // has to say so. Mist Eruption is what this exists for: GMS raises Poison
+  // Mist's continuous damage for good.
+  //
+  // Read at the granting skill's level, as everything here is.
+  double dot_skill_pct = 11;
+  double dot_skill_pct_per_level = 12;
   // Levers the named skill alone carries, on top of its own. Seven are read --
   // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate, final_dmg_pct and
   // final_attack_chance -- and each meets the target's own the way two sources

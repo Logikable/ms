@@ -1227,7 +1227,7 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
                   boost.max_enemies() > 0 ||
                   boost.max_enemies_per_level() > 0.0 ||
                   boost.attacks_per_cast() > 0 || boost.cooldown_pct() > 0.0 ||
-                  boost.has_effect())
+                  boost.dot_skill_pct() != 0.0 || boost.has_effect())
           << entry.first << " names " << boost.skill_name()
           << " and hands it nothing";
       // A share of a wait, so a whole one would leave the skill with no wait
@@ -1238,6 +1238,9 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
       // A per-level step with no level-1 value behind it is half a lever.
       EXPECT_FALSE(boost.has_effect_per_level() && !boost.has_effect())
           << entry.first << " climbs a lever it never grants";
+      EXPECT_FALSE(boost.dot_skill_pct_per_level() != 0.0 &&
+                   boost.dot_skill_pct() == 0.0)
+          << entry.first << " climbs a burn it never lifts";
       std::string unread;
       EXPECT_TRUE(BoostEffectIsSupported(boost.effect(), unread))
           << entry.first << " boosts " << boost.skill_name() << " with "
@@ -1279,6 +1282,12 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           EXPECT_GT(target.second.cooldown_seconds(), 0.0)
               << entry.first << " shortens " << target.first
               << "'s wait, which it does not have";
+        }
+        // Points on a tick nothing burns for are points nobody takes.
+        if (boost.dot_skill_pct() != 0.0) {
+          EXPECT_GT(target.second.dot().interval_seconds(), 0.0)
+              << entry.first << " lifts " << target.first
+              << "'s burn, which it does not leave";
         }
       }
     }

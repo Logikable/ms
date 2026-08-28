@@ -99,15 +99,19 @@ void StripMesoDrops(DerivedStats& derived) {
 // What one burn is worth against every mob type on the map, priced off the
 // stat line the swing that lights it was priced off. Its own multiplier and
 // its own strikes: a burn is not the swing, it is what the swing left behind.
+//
+// `bonus_skill_pct` is what the rest of the book hands this burn by name. The
+// other levers a boost grants are already in `offense` and ride in with it --
+// only the multiplier is overwritten here, so only it has to be handed over.
 DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
                        const std::vector<CombatType>& types,
-                       double speed_factor) {
+                       double speed_factor, double bonus_skill_pct) {
   // A stack ladder walked in thirds or sixths lands a hair under the whole
   // number it climbs to, and a burn that stacks 2.9999 times stacks twice.
   constexpr double kStackEpsilon = 1e-9;
   OffenseStats burn = offense;
-  burn.skill_pct =
-      dot.base().skill_pct() + dot.per_level().skill_pct() * (level - 1);
+  burn.skill_pct = dot.base().skill_pct() +
+                   dot.per_level().skill_pct() * (level - 1) + bonus_skill_pct;
   burn.normal_skill_pct = dot.base().normal_skill_pct() +
                           dot.per_level().normal_skill_pct() * (level - 1);
   burn.lines = std::max(1, dot.lines());
@@ -358,14 +362,23 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // writes one poison to one slot. They are priced off the bare stat line for
   // the same reason a Final Attack is -- the poison is on the claw, not in the
   // skill, and takes neither its multiplier nor its ignored defence.
+  //
+  // A boost names a skill, and the poison on a claw is the character's rather
+  // than any skill's, so the carried ones are handed nothing.
   for (const CharacterDot& carried : derived.dots) {
     attack.dots.push_back(
-        BurnFor(carried.dot, follow, carried.level, types, speed_factor));
+        BurnFor(carried.dot, follow, carried.level, types, speed_factor, 0.0));
     attack.dots.back().carried = true;
   }
   if (skill != nullptr && skill->dot().interval_seconds() > 0.0) {
+    // By the name being swung rather than the parent's, so a form that ever
+    // states a burn of its own reads what was filed under its own name.
+    std::map<std::string, SkillBonus>::const_iterator boost =
+        derived.skill_bonus.find(skill->name());
+    double bonus =
+        boost != derived.skill_bonus.end() ? boost->second.dot_skill_pct : 0.0;
     attack.dots.push_back(
-        BurnFor(skill->dot(), offense, level, types, speed_factor));
+        BurnFor(skill->dot(), offense, level, types, speed_factor, bonus));
   }
   attack.final_attack_damage.assign(types.size(), 0.0);
   attack.single_final_attack_damage.assign(types.size(), 0.0);

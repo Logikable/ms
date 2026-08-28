@@ -1589,13 +1589,21 @@ TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
   Skill first = SpeedMirage();
   Skill second = SpeedMirage();
   second.set_name("Silhouette Mirage");
+  // The lever aimed at the mark the skill leaves sums the same way, and
+  // climbs with the granting skill's level as the one above it does.
+  for (Skill* skill : {&first, &second}) {
+    skill->mutable_boost(0)->set_dot_skill_pct(0.11);
+    skill->mutable_boost(0)->set_dot_skill_pct_per_level(0.01);
+  }
   std::map<std::string, Skill> skills = {{"speed_mirage", first},
                                          {"silhouette", second}};
   ASSERT_TRUE(c.LearnSkill(first, 20));
   ASSERT_TRUE(c.LearnSkill(second, 20));
 
-  EXPECT_NEAR(DerivedStatsFor(c, skills).skill_bonus.at("Wind Arrow").skill_pct,
-              1.40, 1e-9);
+  const SkillBonus& bonus =
+      DerivedStatsFor(c, skills).skill_bonus.at("Wind Arrow");
+  EXPECT_NEAR(bonus.skill_pct, 1.40, 1e-9);
+  EXPECT_NEAR(bonus.dot_skill_pct, 0.60, 1e-9);
 }
 
 TEST_F(DerivedStatsTest, IgnoredDefenceClimbsWithItsLevel) {
