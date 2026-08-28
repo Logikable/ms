@@ -1990,6 +1990,78 @@ TEST(CombatSimTest, TheOpeningHitCountsTowardChoosingTheSwing) {
   EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 55.0 / 100000.0, 1e-9);
 }
 
+// Throws the swing as `hits` scattered strikes, a repeat keeping `kept` of one.
+void AddScatter(CombatParams& params, int hits, double kept) {
+  params.attacks[0].scatter_hits = hits;
+  params.attacks[0].scatter_repeat_kept = kept;
+}
+
+// Five strikes over three enemies: every one of them takes a whole strike
+// before any takes a second, and the two spare strikes go to the healthiest --
+// GMS's "the flames go for the boss first", read through what this game has.
+TEST(CombatSimTest, AScatteredSwingSpreadsBeforeItDoublesUp) {
+  Mob snail = MakeMob("Snail", 100);
+  Mob boar = MakeMob("Boar", 1000);
+  Mob ogre = MakeMob("Ogre", 10000);
+  CombatSim sim;
+  CombatParams params =
+      MakeParams(1.0, 1000.0,
+                 {MakeType(&snail, 10.0, 1), MakeType(&boar, 10.0, 1),
+                  MakeType(&ogre, 10.0, 1)},
+                 /*reach=*/3);
+  AddScatter(params, /*hits=*/5, /*kept=*/0.45);
+
+  sim.Advance(params, 1.0);
+  const EngagedGroup* snails = FindGroup(sim.engaged_groups(), "Snail");
+  const EngagedGroup* boars = FindGroup(sim.engaged_groups(), "Boar");
+  const EngagedGroup* ogres = FindGroup(sim.engaged_groups(), "Ogre");
+  ASSERT_NE(snails, nullptr);
+  ASSERT_NE(boars, nullptr);
+  ASSERT_NE(ogres, nullptr);
+  // The ogre and the boar take two strikes apiece, the second worth 45% of the
+  // first; the snail takes the one nobody doubled up on.
+  EXPECT_NEAR(ogres->hp_fraction, 1.0 - 14.5 / 10000.0, 1e-9);
+  EXPECT_NEAR(boars->hp_fraction, 1.0 - 14.5 / 1000.0, 1e-9);
+  EXPECT_NEAR(snails->hp_fraction, 1.0 - 10.0 / 100.0, 1e-9);
+}
+
+// With nothing to spread to, every strike lands on the one enemy there is --
+// which is the whole of what the skill is for, and what a plain reading of it
+// as an N-enemy swing would throw away. The rate has to say so too, or the
+// fight would never reach for it.
+TEST(CombatSimTest, AScatteredSwingLandsEveryStrikeOnALoneEnemy) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 1)},
+                                   /*reach=*/5);
+  AddScatter(params, /*hits=*/5, /*kept=*/0.45);
+  params.attacks.push_back(
+      MakeSkill("Plain", /*damage=*/20.0, /*cooldown=*/0.0));
+
+  // 10 + four repeats at 4.5 is 28, against Plain's 20.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.attack_name(), "Attack");
+  EXPECT_NEAR(sim.target_hp_fraction(), 1.0 - 28.0 / 100000.0, 1e-9);
+}
+
+// A swing reaching further than it has strikes to throw touches only as many
+// enemies as it threw. The burns and the freeze follow, all three being read
+// off the one count.
+TEST(CombatSimTest, AScatteredSwingReachesNoFurtherThanItsStrikes) {
+  Mob snail = MakeMob("Snail", 1000);
+  CombatSim sim;
+  CombatParams params = MakeParams(1.0, 1000.0, {MakeType(&snail, 10.0, 4)},
+                                   /*reach=*/4);
+  AddScatter(params, /*hits=*/2, /*kept=*/0.45);
+
+  sim.Advance(params, 1.0);
+  // Two of the four snails took a strike apiece; the other two took nothing at
+  // all, so the group has lost 20 of its 4000 rather than 40.
+  const EngagedGroup* snails = FindGroup(sim.engaged_groups(), "Snail");
+  ASSERT_NE(snails, nullptr);
+  EXPECT_NEAR(snails->hp_fraction, 1.0 - 20.0 / 4000.0, 1e-9);
+}
+
 // Puts a healing cast beside the swing, worth `fraction` of the pool. It
 // carries damage the fight must never land: what makes a cast harmless is the
 // fight declining to strike with it, not the encounter having zeroed it.

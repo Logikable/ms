@@ -465,6 +465,18 @@ std::vector<Row> ReachRows(const Skill& skill) {
     }
     rows.push_back(EffectRow("Enemies Hit", reach));
   }
+  // A swing thrown as scattered strikes says so on its own row: the reach above
+  // is how far it can spread before it starts doubling up, and the cut is what
+  // doubling up costs.
+  if (skill.scatter().hits() > 0) {
+    std::string text = std::to_string(skill.scatter().hits()) + " strikes";
+    if (skill.scatter().repeat_final_dmg_pct() != 0.0) {
+      text += ", repeats at " +
+              FormatPercent(skill.scatter().repeat_final_dmg_pct()) +
+              " Final Damage";
+    }
+    rows.push_back(EffectRow("Scattered", text));
+  }
   // Each own-clock half states its own reach beside the swing's. Revenge of the
   // Evil Eye is why: its auras land 20 strikes on 3 enemies where the volley
   // fired with them reaches 10, and the damage rows alone would read as one

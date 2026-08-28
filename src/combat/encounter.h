@@ -170,6 +170,14 @@ struct AttackOption {
   // What the opening hit varies by. Its own, because it lands on its own line
   // count rather than the swing's.
   SwingRolls lead_rolls;
+  // Strikes this swing scatters over the enemies it reached, spreading before
+  // it doubles up. 0 for a swing that lands on each of them once, which is all
+  // of them but Megiddo Flame -- see Skill::scatter.
+  int scatter_hits = 0;
+  // What a strike keeps when it lands on an enemy an earlier strike of the
+  // same cast already reached (0.45 == GMS's "Final Damage -55%"). Read only
+  // where scatter_hits is set.
+  double scatter_repeat_kept = 1.0;
   // Expected Final Attack damage per target type, landing on every mob the
   // swing reached: it rolls separately for each of them. Empty for a character
   // with no Final Attack, for a swing none of theirs follows, and for the

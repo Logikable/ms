@@ -380,6 +380,8 @@ class CombatSim {
   // enemy an arrow meets first is arbitrary and drawing it keeps the gain from
   // always falling on the same end of the queue. Empty for every other swing,
   // whose order cannot be seen.
+  int Reached(const AttackOption& attack) const;
+  std::vector<double> ScatterShares(const AttackOption& attack, int hit) const;
   std::vector<int> PierceOrder(const AttackOption& attack, int hit);
   // Indices into the queue of the mobs `attack`'s opening hit picks, empty when
   // it has none. The healthiest of the `hit` mobs the swing reaches, as many of

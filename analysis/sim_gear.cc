@@ -197,6 +197,9 @@ double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
     return 0.0;
   }
   int hit = std::min(std::max(1, attack.max_enemies), std::max(1, enemies));
+  if (attack.scatter_hits > 0) {
+    hit = std::min(hit, attack.scatter_hits);
+  }
   double per = attack.damage_per_hit[0];
   // A swing that gains as it travels: the k'th enemy takes (1 + gain)^k, so
   // what the whole swing lands is the geometric sum rather than hit times one.
@@ -205,6 +208,13 @@ double CrowdDamage(const AttackOption& attack, int enemies, bool charge_burns) {
           ? per * (std::pow(1.0 + attack.pierce_gain_pct, hit) - 1.0) /
                 attack.pierce_gain_pct
           : per * hit;
+  // A scattered swing spreads before it doubles up, so what it lands is a whole
+  // strike on each enemy it reached and what the repeat cut leaves of the rest.
+  // No queue here to pick the healthiest from, and none is needed: the total is
+  // the same whoever the leftovers fall on.
+  if (attack.scatter_hits > hit) {
+    damage += per * (attack.scatter_hits - hit) * attack.scatter_repeat_kept;
+  }
   if (!attack.lead_damage.empty()) {
     damage +=
         attack.lead_damage[0] * std::min(std::max(1, attack.lead_enemies), hit);

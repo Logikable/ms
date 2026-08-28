@@ -662,6 +662,29 @@ message SwingHit {
 // emptied its targets goes on zapping the space where they stood, so the fight
 // lets go the moment another pulse would buy nothing -- which is the whole
 // reason the hold has a length to decide at all.
+// A swing thrown as single-target strikes scattered over the enemies in reach,
+// rather than one strike landing on all of them. It spreads before it doubles
+// up, so it is the enemy count that decides how hard any one of them is hit.
+//
+// Megiddo Flame is what it exists for: GMS throws eleven blue flames, each
+// burning one enemy, and a flame landing on an enemy another already reached
+// keeps less of its damage. Against a lone boss all eleven land on it, which
+// is the whole point of the skill -- read as an ordinary eleven-enemy swing it
+// would be worth a fifth of what GMS pays there.
+message Scatter {
+  // Strikes the cast throws. Each is the skill's own swing landed on one
+  // enemy: same multiplier, same lines, same everything but the target count.
+  int32 hits = 1;
+  // Final damage a strike keeps when it lands on an enemy an earlier strike of
+  // the same cast already reached -- GMS's "Final Damage decreases by 55% for
+  // subsequent flames", so -0.55. Flat rather than compounding: the third
+  // strike on one enemy is worth exactly what the second was.
+  //
+  // Read the way every other final damage here is, so 0 is a repeat strike
+  // worth as much as the first.
+  double repeat_final_dmg_pct = 2;
+}
+
 message Channel {
   int32 pulse_interval_ms = 1;
   // Pulses a full hold is worth. The hold runs no longer than these take.
@@ -1112,6 +1135,8 @@ message Skill {
   Proc proc = 41;
   // The hold this swing is, if it is one. Only Lightning Orb -- see Channel.
   Channel channel = 48;
+  // How this swing scatters, if it does. Only Megiddo Flame -- see Scatter.
+  Scatter scatter = 49;
 
   // What every OTHER member of the party gets out of this skill, read at the
   // caster's level exactly as `base` and `per_level` are. Empty for a skill

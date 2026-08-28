@@ -537,6 +537,31 @@ TEST(SkillDataTest, EveryHeldSwingSaysHowItPulsesAndWhatItEndsOn) {
   }
 }
 
+// A scattered swing has to be a swing, throw strikes, and reach no further than
+// it has strikes to throw -- an enemy no strike lands on is one the swing was
+// never going to touch, so a reach past the count is the file misstating what
+// the skill does.
+TEST(SkillDataTest, EveryScatteredSwingReachesNoFurtherThanItsStrikes) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    const Skill& skill = entry.second;
+    if (!skill.has_scatter()) {
+      continue;
+    }
+    EXPECT_EQ(skill.kind(), SKILL_KIND_ATTACK)
+        << entry.first << " scatters strikes but is not a swing";
+    EXPECT_GT(skill.scatter().hits(), 1)
+        << entry.first << " scatters a single strike, which is every swing";
+    EXPECT_LE(std::max(1, skill.max_enemies()), skill.scatter().hits())
+        << entry.first << " reaches further than it has strikes to throw";
+    // A cut of the whole would make a repeat worth nothing, and more than the
+    // whole would have it healing the monster.
+    EXPECT_GT(skill.scatter().repeat_final_dmg_pct(), -1.0)
+        << entry.first << " takes the whole of a repeat strike away";
+    EXPECT_LE(skill.scatter().repeat_final_dmg_pct(), 0.0)
+        << entry.first << " pays a repeat strike more than the first";
+  }
+}
+
 // A timed buff is worth nothing without the two halves that make it one: a
 // stretch it stands for, and a wait for the next one. A buff with no wait
 // would simply be a passive written the hard way.

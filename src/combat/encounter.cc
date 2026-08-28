@@ -301,6 +301,11 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   if (skill != nullptr) {
     attack.pierce_gain_pct = skill->pierce_gain_pct();
     attack.lines = SkillLinesAt(*skill, level);
+    // A scattered swing is the same swing throughout -- what differs is how
+    // many of it land where, which is the fight's business rather than the
+    // damage chain's, exactly as the opening hit's target count is.
+    attack.scatter_hits = skill->scatter().hits();
+    attack.scatter_repeat_kept = 1.0 + skill->scatter().repeat_final_dmg_pct();
   }
   for (const SwingProc& proc : derived.procs) {
     attack.procs.push_back({proc.chance, proc.damage_pct, proc.hp_recover_pct});

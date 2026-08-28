@@ -62,6 +62,47 @@ void CombatSim::TopUp(const CombatParams& params) {
   std::shuffle(queue_.begin() + first_new, queue_.end(), rng_);
 }
 
+// How many of the queue one swing of `attack` lands on. A scattered swing is
+// held to the strikes it throws as well as to its reach: eleven flames cannot
+// burn a twelfth enemy, and one that took no strike takes no mark either.
+int CombatSim::Reached(const AttackOption& attack) const {
+  int hit = std::min(std::max(1, attack.max_enemies),
+                     static_cast<int>(queue_.size()));
+  if (attack.scatter_hits > 0) {
+    hit = std::min(hit, attack.scatter_hits);
+  }
+  return hit;
+}
+
+// What each of the `hit` enemies takes of one scattered swing, indexed by their
+// place in the queue. The strikes spread before they double up, so on eleven
+// enemies every one of them takes a whole flame and on a lone boss all eleven
+// land -- the second and every later one worth what the -55% leaves it.
+//
+// The leftovers go to the healthiest, which is GMS's rule read through what
+// this game has: the flames go for the boss first, and a boss is the monster
+// with the HP.
+std::vector<double> CombatSim::ScatterShares(const AttackOption& attack,
+                                             int hit) const {
+  if (attack.scatter_hits <= 0 || hit <= 0) {
+    return {};
+  }
+  std::vector<int> healthiest(hit);
+  for (int j = 0; j < hit; ++j) {
+    healthiest[j] = j;
+  }
+  std::sort(healthiest.begin(), healthiest.end(),
+            [this](int a, int b) { return queue_[a].hp > queue_[b].hp; });
+  std::vector<double> shares(hit, 0.0);
+  int each = attack.scatter_hits / hit;
+  int spare = attack.scatter_hits % hit;
+  for (int rank = 0; rank < hit; ++rank) {
+    int strikes = each + (rank < spare ? 1 : 0);
+    shares[healthiest[rank]] = 1.0 + (strikes - 1) * attack.scatter_repeat_kept;
+  }
+  return shares;
+}
+
 std::vector<int> CombatSim::PierceOrder(const AttackOption& attack, int hit) {
   if (attack.pierce_gain_pct <= 0.0 || hit <= 1) {
     return {};
@@ -102,11 +143,13 @@ double CombatSim::StrikeDamage(const AttackOption& attack, int hit) const {
   // pulses that will land on nothing.
   int pulses = ChannelPulses(attack, hit);
   double dropped = pulses > 0 ? attack.channel.pulses - pulses : 0;
+  std::vector<double> shares = ScatterShares(attack, hit);
   for (int j = 0; j < hit; ++j) {
     int type = queue_[j].type;
     if (type < static_cast<int>(attack.damage_per_hit.size())) {
       total +=
-          attack.damage_per_hit[type] - dropped * PulseDamage(attack, type);
+          (attack.damage_per_hit[type] - dropped * PulseDamage(attack, type)) *
+          (shares.empty() ? 1.0 : shares[j]);
     }
   }
   total *= PierceMean(attack.pierce_gain_pct, hit);
@@ -197,8 +240,7 @@ double CombatSim::SideStrikeDamage(const AttackOption& attack) const {
 }
 
 double CombatSim::SwingDamage(const AttackOption& attack) const {
-  int hit = std::min(std::max(1, attack.max_enemies),
-                     static_cast<int>(queue_.size()));
+  int hit = Reached(attack);
   double total = StrikeDamage(attack, hit) + BurnDamage(attack, hit);
   // The side strike is held aside rather than added, because it rides the
   // swing whichever form that swing took -- the averaging below is between the
@@ -333,8 +375,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // One strike hits the front mobs at once; each takes its own type's damage.
   // Overkill on any of them is wasted. Dead mobs leave the queue and the ones
   // behind slide into the window next time.
-  int hit = std::min(std::max(1, attack.max_enemies),
-                     static_cast<int>(queue_.size()));
+  int hit = Reached(attack);
   // The pile does not move until the swing is over -- CreditFreeze runs after
   // Strike -- so what a stack is worth can be read enemy by enemy below, which
   // is what Shatter's share of the defence needs.
@@ -347,6 +388,9 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // hits the queue as it stands, which is the same thing for damage that does
   // not escalate.
   std::vector<int> order = PierceOrder(attack, hit);
+  // Picked with the opening hit's targets and for the same reason: what the
+  // flames doubled up on is decided by the HP the monsters went in with.
+  std::vector<double> shares = ScatterShares(attack, hit);
   // Before anything lands, so every way this swing reaches one monster files
   // its lines under the one event -- the strike, the opening hit and whatever
   // follows them are one landing to the player watching.
@@ -361,11 +405,13 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
     double freeze = FreezeBoost(attack, queue_[j]);
+    double share = shares.empty() ? 1.0 : shares[j];
     double damage =
         held > 0
             ? ChannelDamage(attack, queue_[j].type, held, LandingAt(j, freeze))
-            : DamageToMob(attack, j, LandingAt(j, gain * freeze)) * gain;
-    Hurt(queue_[j], damage * freeze);
+            : DamageToMob(attack, j, LandingAt(j, gain * freeze * share)) *
+                  gain;
+    Hurt(queue_[j], damage * freeze * share);
   }
   for (int j : lead) {
     double freeze = FreezeBoost(attack, queue_[j]);
@@ -525,8 +571,7 @@ double CombatSim::SwingSecondsAgainst(const AttackOption& attack) const {
   if (attack.channel.pulses <= 0) {
     return attack.swing_seconds;
   }
-  int hit = std::min(std::max(1, attack.max_enemies),
-                     static_cast<int>(queue_.size()));
+  int hit = Reached(attack);
   return HoldSeconds(attack.channel, ChannelPulses(attack, hit));
 }
 
@@ -610,8 +655,7 @@ double CombatSim::FrozenCredit(const CombatParams& params,
   // anything: freeze past that will have been laid down a second time.
   double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
   double lays = std::min(attack.freeze_seconds, cadence);
-  int hit = std::min(std::max(1, attack.max_enemies),
-                     static_cast<int>(queue_.size()));
+  int hit = Reached(attack);
   double credit = 0.0;
   for (int j = 0; j < hit; ++j) {
     double gained = lays - std::min(queue_[j].frozen_left_seconds, cadence);

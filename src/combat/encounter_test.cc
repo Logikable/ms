@@ -1724,6 +1724,39 @@ TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
               bare_mist->dots[0].duration_seconds, 1e-9);
 }
 
+// Megiddo Flame's shape: the swing is thrown as scattered strikes, and what
+// the fight reads is the count and the cut a repeat takes. The damage chain
+// knows nothing about it -- every strike is the same swing.
+TEST(ComputeCombatParamsTest, AScatteredSwingCarriesItsStrikesAndItsCut) {
+  Skill megiddo;
+  megiddo.set_name("Megiddo Flame");
+  megiddo.set_kind(SKILL_KIND_ATTACK);
+  megiddo.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  megiddo.set_max_level(1);
+  megiddo.set_base_delay_ms(660);
+  megiddo.set_max_enemies(11);
+  megiddo.set_lines(4);
+  megiddo.mutable_base()->set_skill_pct(3.80);
+  megiddo.mutable_scatter()->set_hits(11);
+  megiddo.mutable_scatter()->set_repeat_final_dmg_pct(-0.55);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"megiddo", megiddo}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(megiddo, 1));
+
+  const AttackOption* swing =
+      FindAttack(ComputeCombatParams(state), "Megiddo Flame");
+  ASSERT_NE(swing, nullptr);
+  EXPECT_EQ(swing->scatter_hits, 11);
+  EXPECT_NEAR(swing->scatter_repeat_kept, 0.45, 1e-9);
+  // One strike's damage, not eleven: what the count buys is landings, and the
+  // fight is what spends them.
+  EXPECT_EQ(swing->lines, 4);
+}
+
 // Showdown's shuriken: a second attack the swing sets off, with its own reach,
 // its own strikes and a wait of its own. Nothing rides it -- it is not the
 // character's swing -- and a skill on its own clock never carries one.
