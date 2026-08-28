@@ -10,7 +10,7 @@
 # The 4th job skills GMS lets this carry past their master level are far above
 # this game's cap, so here it stops at the master level every time.
 name: "Combat Orders"
-skill_order: 3
+skill_order: 4
 description:
   "Grants bonus skill levels to the skills of all party members, including "
   "yourself. 4th job skills that have already "

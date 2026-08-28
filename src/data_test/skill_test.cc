@@ -665,6 +665,14 @@ TEST(SkillDataTest, EveryBuffStandsForAWhileAndWaitsForTheNextOne) {
     }
     EXPECT_GT(skill.cooldown_seconds(), 0.0)
         << entry.first << "'s buff would never be waited for";
+    // A SHELL is ended by the blows it swallows rather than by its clock, so
+    // its stated duration is a ceiling it rarely reaches. What keeps it from
+    // being permanent is the count -- Divine Shield stands for ninety seconds
+    // and ten blows, and the blows are gone long before the clock is.
+    if (skill.buff().shield().hits() > 0.0 ||
+        skill.buff().shield().hits_per_level() > 0.0) {
+      continue;
+    }
     EXPECT_GT(skill.cooldown_seconds(), skill.buff().duration_seconds())
         << entry.first << "'s buff is up for longer than it waits, so it is a "
         << "passive rather than a buff";
@@ -718,7 +726,11 @@ TEST(SkillDataTest, NoSkillNamesBothClocks) {
     }
     EXPECT_EQ(entry.second.cast_interval_seconds(), 0.0)
         << entry.first << " both recharges and fires on its own clock";
-    EXPECT_NE(entry.second.kind(), SKILL_KIND_PASSIVE)
+    // A passive that raises a buff is the one exception: Divine Shield goes up
+    // when the character is struck rather than when they press anything, so
+    // the wait is the buff's and there is nothing to press.
+    EXPECT_TRUE(entry.second.kind() != SKILL_KIND_PASSIVE ||
+                entry.second.has_buff())
         << entry.first << " is never used, so it never recharges";
   }
 }

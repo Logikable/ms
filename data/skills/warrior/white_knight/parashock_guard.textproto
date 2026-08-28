@@ -1,21 +1,26 @@
 # GMS shields the party and leaves the caster out of it: the allies take
-# 10+x% less, and the caster is paid 2x attack for holding the guard up. Both
-# halves are here, and both need somebody to shield -- a White Knight standing
-# alone is granted nothing. See Skill.requires_party.
+# 10+x% less and guard 10+x% of what reaches them, and the caster is paid 2x
+# attack for holding the guard up. Both halves need somebody to shield -- a
+# White Knight standing alone is granted nothing. See Skill.requires_party.
 #
-# Twenty levels rather than GMS's ten, a point apiece on both ladders, ending
-# on GMS's own pair. Only the level-1 values move: GMS's tenth level is this
-# one's twentieth, and the rungs below it are new.
+# A guard cancels the whole hit rather than shaving a share off it, which is
+# what dodge_chance is. GMS's own ten levels, exact at every one of them.
 name: "Parashock Guard"
-skill_order: 4
+skill_order: 5
 description:
-  "Reduces the damage nearby party members receive. Increases your Attack "
-  "Power."
+  "Reduces the damage nearby party members receive and gives them a chance to "
+  "guard. Increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
-max_level: 20
+max_level: 10
 requires_party: true
-base { attack: 1 }
-per_level { attack: 1 }
-ally_base { damage_taken_pct: 0.01 }
-ally_per_level { damage_taken_pct: 0.01 }
+base { attack: 2 }
+per_level { attack: 2 }
+ally_base {
+  damage_taken_pct: 0.11
+  dodge_chance: 0.11
+}
+ally_per_level {
+  damage_taken_pct: 0.01
+  dodge_chance: 0.01
+}

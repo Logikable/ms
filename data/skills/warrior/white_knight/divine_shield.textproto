@@ -1,21 +1,33 @@
 # GMS raises the shield on a chance when struck, for ninety seconds and ten
-# blows, and leaves the attack behind afterwards. Here it is permanent, which
-# is what the user asked for and what a fight paid in expected damage can hold.
+# blows, and cannot raise it again for thirty from the moment it went up. All
+# of that is here now that Buff.shield exists: the shell cancels whole hits
+# and falls the moment its count runs out, clock or no clock.
 #
-# Twenty levels rather than GMS's ten, both ladders ending where GMS's do.
+# The chance it goes up at all is dropped -- certain at master level, and a
+# buff either stands or does not. The attack it grants is permanent, as GMS
+# says it is: it survives the shell it came up with.
+#
+# GMS's damage reduction is paid "only for attacks that inflict damage at a
+# certain ratio of the max HP". Nothing here deals damage that way, so a boss
+# stands in for one -- the same reading Holy Magic Shell takes.
+#
+# GMS's own ten levels, exact at every one of them.
 name: "Divine Shield"
-skill_order: 7
+skill_order: 8
 description:
-  "Generates a shield that increases your Attack Power and decreases the "
-  "damage you take."
+  "When struck, generates a shield that blocks a number of blows and "
+  "permanently increases your Attack Power."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_WHITE_KNIGHT
-max_level: 20
-base {
-  attack: 1
-  damage_taken_pct: 0.06
+max_level: 10
+base { attack: 2 }
+per_level { attack: 2 }
+buff {
+  duration_seconds: 90.0
+  shield {
+    hits: 1.0
+    hits_per_level: 1.0
+    boss_damage_taken_pct: 0.07
+  }
 }
-per_level {
-  attack: 1
-  damage_taken_pct: 0.01
-}
+cooldown_seconds: 30.0

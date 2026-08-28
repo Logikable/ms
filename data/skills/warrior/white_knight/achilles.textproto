@@ -2,7 +2,7 @@
 # 30%. It multiplies with every other reduction the character carries rather
 # than summing -- see AddEffect.
 name: "Achilles"
-skill_order: 6
+skill_order: 7
 description:
   "Permanently increases your defensive abilities so you take less damage "
   "from enemies."
