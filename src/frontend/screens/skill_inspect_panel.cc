@@ -83,6 +83,7 @@ const PercentLever kPercentLevers[] = {
     {"Final Damage", &SkillEffect::final_dmg_pct_when_scarred, kPlus,
      " on Scarred enemies"},
     {"Scar Chance", &SkillEffect::scar_chance, kPlus, " per hit"},
+    {"Damage", &SkillEffect::max_hp_damage_pct, kPlus, " of Max HP per line"},
     {"Ignore DEF", &SkillEffect::ied_pct_per_freeze_stack, kPlus,
      " per Freeze Stack"},
     {"Critical Rate", &SkillEffect::crit_rate, kPlus, ""},

@@ -307,6 +307,17 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   for (const CombatType& type : types) {
     attack.damage_per_hit.push_back(ExpectedAttackDamage(offense, *type.mob));
   }
+  // Damage off the character's own pool, which lands after the chain rather
+  // than through it: added once the multipliers are already in, so none of
+  // them reaches it. Every line pays it, as GMS pays it per attack.
+  if (skill != nullptr) {
+    double pool = (skill->base().max_hp_damage_pct() +
+                   skill->per_level().max_hp_damage_pct() * (level - 1)) *
+                  derived.max_hp * SkillLinesAt(*skill, level);
+    for (double& damage : attack.damage_per_hit) {
+      damage += pool;
+    }
+  }
   attack.groups.push_back({attack.damage_per_hit, RollsFor(offense)});
   if (skill != nullptr) {
     attack.pierce_gain_pct = skill->pierce_gain_pct();

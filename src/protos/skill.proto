@@ -449,6 +449,15 @@ message SkillEffect {
   // monster -- the same bargain that field makes, and it weakens the mob
   // before its hit is rolled.
   double enemy_attack_pct_when_scarred = 121;
+  // Gungnir's Descent's. Flat damage EACH LINE adds, as a share of the
+  // character's own Max HP (1.10 == 110% of the pool). It lands after the
+  // damage chain and nothing multiplies it -- not the critical roll, not the
+  // mastery, not the final damage, and not the defence it ignores -- so what
+  // it is worth shrinks as a character's damage outgrows their pool.
+  //
+  // GMS words it "Damage increases by {50+2x}% of Max HP for every attack",
+  // and the client gives the skill twelve of them.
+  double max_hp_damage_pct = 122;
   // Storm Magic's. Final damage on every swing made while the enemy is frozen,
   // which is what holding any Freeze Stack at all means here -- GMS asks only
   // whether the enemy is under one of a list of conditions, and freezing is the

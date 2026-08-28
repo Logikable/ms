@@ -1,13 +1,15 @@
-# GMS also scales this with the character's Max HP -- "damage increases by
-# 50+2L% of Max HP for every attack" -- which is dropped. Nothing else in the
-# game pays out on the HP pool, and a lever that made a bigger pool a damage
-# stat would quietly rewrite what every hat and every level-up is worth.
+# GMS's own 50 + 2L% of the caster's Max HP, added to each of the twelve
+# lines. It lands after the damage chain -- nothing multiplies it -- so it
+# is worth a great deal to a Dark Knight whose damage is still small and
+# very little to one whose pool has stopped keeping up with it.
 #
 # 660ms is the animation's own, from the frame data: the same as Dark Impale,
 # which is what leaves the two attacks to be told apart by their reach.
 name: "Gungnir's Descent"
 skill_order: 1
-description: "Throw a mythical spear to deal fatal damage."
+description:
+  "Throw a mythical spear to deal fatal damage. You deal higher damage with "
+  "greater Max HP."
 kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_DARK_KNIGHT
 max_level: 30
@@ -20,8 +22,10 @@ lines: 12
 base {
   skill_pct: 1.96
   ied_pct: 0.01
+  max_hp_damage_pct: 0.52
 }
 per_level {
   skill_pct: 0.01
   ied_pct: 0.01
+  max_hp_damage_pct: 0.02
 }

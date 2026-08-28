@@ -1057,6 +1057,18 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
   }
 }
 
+// Damage off the character's pool is a SWING's, added line by line. A passive
+// has no lines to add it to and would grant nothing at all.
+TEST(SkillDataTest, OnlyASwingPaysOutOfThePool) {
+  for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
+    if (entry.second.base().max_hp_damage_pct() <= 0.0) {
+      continue;
+    }
+    EXPECT_EQ(entry.second.kind(), SKILL_KIND_ATTACK)
+        << entry.first << " pays out of the pool without being swung";
+  }
+}
+
 // A scar is worth nothing to a book that leaves none, and a scar left with no
 // clock on it is never carried at all. Both halves have to reach one
 // character, and they need not sit on one skill: Chance Attack reads the scar
