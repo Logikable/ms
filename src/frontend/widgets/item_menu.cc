@@ -1,6 +1,7 @@
 #include "src/frontend/widgets/item_menu.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
@@ -101,6 +102,17 @@ void ItemMenu::Disable(int index) {
          disabled_[selected_]) {
     selected_++;
   }
+}
+
+int ItemMenu::Width() const {
+  std::size_t widest = 0;
+  for (int i = 0; i < static_cast<int>(options_.size()); ++i) {
+    if (!hidden_[i]) {
+      widest = std::max(widest, options_[i].size());
+    }
+  }
+  // The cursor prefix, the space after the entry, and the border either side.
+  return static_cast<int>(widest) + 5;
 }
 
 int ItemMenu::selected() const {

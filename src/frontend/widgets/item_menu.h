@@ -51,6 +51,10 @@ class ItemMenu {
   // the far end of the trail that starts on the level-up card -- see
   // progression.h.
   void Highlight(int index);
+  // The columns the rendered box takes, borders included. What a caller
+  // anchoring the menu needs to keep it inside the panel it belongs to. Read
+  // after Hide(): a hidden entry is not one the box has to be wide enough for.
+  int Width() const;
   int selected() const;
 
  private:

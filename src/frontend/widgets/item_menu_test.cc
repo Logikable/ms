@@ -34,6 +34,23 @@ class ItemMenuTest : public testing::Test {
     return ftxui::Color::Default;
   }
 
+  // The columns the menu's box actually covers when drawn at the origin,
+  // counted off its top border.
+  static int DrawnWidth(const ItemMenu& menu) {
+    ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(40),
+                                                 ftxui::Dimension::Fixed(10));
+    ftxui::Render(screen, menu.Render(0, 0));
+    int width = 0;
+    for (int x = 0; x < screen.dimx(); ++x) {
+      const std::string& cell = screen.PixelAt(x, 0).character;
+      if (cell.empty() || cell == " ") {
+        break;
+      }
+      ++width;
+    }
+    return width;
+  }
+
   ItemMenu menu_{{"One", "Two", "Three"}};
 };
 
@@ -151,6 +168,15 @@ TEST_F(ItemMenuTest, ResetClearsTheHighlight) {
   menu_.Highlight(1);
   menu_.Reset();
   EXPECT_NE(LabelColor(menu_, "Two"), kYellow);
+}
+
+// What an anchor holding the menu inside a panel measures against, so it has
+// to be the box that is drawn -- and a hidden entry is not one it makes room
+// for.
+TEST_F(ItemMenuTest, WidthIsTheBoxThatIsDrawn) {
+  EXPECT_EQ(menu_.Width(), DrawnWidth(menu_));
+  menu_.Hide(2);
+  EXPECT_EQ(menu_.Width(), DrawnWidth(menu_));
 }
 
 }  // namespace

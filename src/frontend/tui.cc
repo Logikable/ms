@@ -746,10 +746,16 @@ ftxui::Element Tui::RenderMain() {
     // about is the one thing it must not cover. What it covers instead is the
     // level column, exactly as the bag's menu covers an item's stats.
     constexpr int kSkillMenuCol = 38;
+    // Held inside the character panel, whose column narrows with the terminal:
+    // at the anchor a small terminal drew the menu out past the panel and over
+    // the bag beside it. A narrow panel takes a name's tail instead.
+    const ItemMenu& menu = controller_.skill_menu();
+    int menu_col =
+        std::max(0, std::min(kSkillMenuCol, widths.left - menu.Width()));
     return ftxui::dbox(
         {layout,
-         Floating(controller_.skill_menu().Render(
-             std::max(0, char_panel_.skill_cursor_row() - 1), kSkillMenuCol))});
+         Floating(menu.Render(std::max(0, char_panel_.skill_cursor_row() - 1),
+                              menu_col))});
   }
   if (controller_.screen() == kJobMenu) {
     // Anchored to the job row the same way the bag's menu is anchored to an
