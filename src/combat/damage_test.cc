@@ -1171,6 +1171,38 @@ TEST_F(DamageTakenTest, DodgingAndReductionBothLand) {
                    78.625 / 2.0 * 0.70);
 }
 
+// The barrier weakens the monster rather than the hit, so what it saves is
+// worth more the more armour the character is wearing: 40 DEF cancels the same
+// 40 points off a smaller attack.
+TEST_F(DamageTakenTest, TheBarrierWeakensTheMonsterBeforeTheFormula) {
+  DefenseStats defense = Naked();
+  defense.enemy_attack_pct = 0.30;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)),
+                   78.625 * 0.70);
+  defense.def = 40;
+  // A 70-attack monster against 40 DEF: (19.5 + 30) / 2 * 0.85, where the
+  // unweakened pair came to 44.625.
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)), 21.0375);
+}
+
+TEST_F(DamageTakenTest, TheBarrierPassesABossOnlyWhenItIsOpened) {
+  Mob boss = Attacker(100, 10);
+  boss.set_boss(true);
+  DefenseStats defense = Naked();
+  defense.enemy_attack_pct = 0.30;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, boss), 78.625);
+  defense.enemy_attack_reaches_boss = true;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, boss), 78.625 * 0.70);
+}
+
+// Stripping a monster of the whole of its attack still leaves the hit GMS
+// insists on.
+TEST_F(DamageTakenTest, TheBarrierNeverMakesACharacterUntouchable) {
+  DefenseStats defense = Naked();
+  defense.enemy_attack_pct = 1.0;
+  EXPECT_DOUBLE_EQ(ExpectedDamageTaken(defense, Attacker(100, 10)), 1.0);
+}
+
 TEST_F(DamageTakenTest, DodgingCutsPastTheOneDamageFloor) {
   DefenseStats defense = Naked();
   defense.level = 30;

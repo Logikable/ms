@@ -156,6 +156,23 @@ message SkillEffect {
   // has no notion of: a skill granting a share of THAT grants nothing here.
   // Two rolls meet as rolls do, so no pile of them ever reaches certainty.
   double dodge_chance = 22;
+  // Share taken off the ATTACK of whatever is hitting the character (0.30 ==
+  // 30% less). Not reduction: it weakens the monster before its hit is rolled,
+  // so the character's DEF cancels a larger share of what is left -- which is
+  // the whole difference between a barrier and armour.
+  //
+  // Summed across its sources, GMS stating each as points on the same number,
+  // and floored at nothing: no pile of barriers ever makes a monster harmless.
+  //
+  // Ordinary monsters alone, unless something grants the field below. GMS
+  // weakens what walks into the barrier and a boss walks into nothing.
+  double enemy_attack_pct = 50;
+  // Whether the share above reaches a BOSS as well. Set by a skill of its own
+  // rather than paired with the lever, because that is how GMS sells it: the
+  // Night Lord's Frailty Curse - Boss Rush lifts the barrier the rest of their
+  // book already raised. One skill granting it opens the whole of what the
+  // character has.
+  bool enemy_attack_reaches_boss = 51;
   // Share of the monster's DEF this character's attacks ignore (0.25 == 25%).
   // Combines in reverse: what two sources leave the monster is the product of
   // what each leaves it, so 30% and 40% ignore 58% between them and no pile of

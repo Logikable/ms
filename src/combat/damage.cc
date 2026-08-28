@@ -550,6 +550,13 @@ double DefenseShare(const Mob& mob, double ied) {
 
 double ExpectedDamageTaken(const DefenseStats& defense, const Mob& mob) {
   double attack = mob.attack();
+  // The barrier weakens the monster itself, so it lands before the DEF formula
+  // rather than on the damage the formula comes to -- what the character's
+  // armour then cancels is a share of a smaller attack. Ordinary monsters
+  // alone, unless the book opened it onto bosses.
+  if (!mob.boss() || defense.enemy_attack_reaches_boss) {
+    attack *= std::max(0.0, 1.0 - defense.enemy_attack_pct);
+  }
   double def = defense.def;
   double effectiveness = DefEffectiveness(defense.level, mob.level());
   double max_hit =

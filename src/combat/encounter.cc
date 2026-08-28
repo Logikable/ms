@@ -1197,6 +1197,8 @@ DefenseStats DefenseFor(const GameState& state, const DerivedStats& derived) {
   defense.def = derived.def;
   defense.damage_taken_pct = derived.damage_taken_pct;
   defense.dodge_chance = derived.dodge_chance;
+  defense.enemy_attack_pct = derived.enemy_attack_pct;
+  defense.enemy_attack_reaches_boss = derived.enemy_attack_reaches_boss;
   defense.arcane_taken = derived.arcane_taken_factor;
   return defense;
 }

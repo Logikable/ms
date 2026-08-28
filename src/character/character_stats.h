@@ -127,6 +127,13 @@ struct DerivedStats {
   // sources by multiplying what gets through -- two 50% dodges leave a quarter
   // of the hits landing, not none of them.
   double dodge_chance = 0.0;
+  // Share taken off the attack of whatever is hitting the character (0.30 ==
+  // 30% less), summed across its sources and held at one. Weakens the monster
+  // before its hit is rolled, so armour then cancels a larger share of what is
+  // left. See SkillEffect::enemy_attack_pct.
+  double enemy_attack_pct = 0.0;
+  // Whether that barrier stands against a boss as well as an ordinary monster.
+  bool enemy_attack_reaches_boss = false;
   // Share of a hit taken that goes straight back into whatever landed it
   // (1.20 == 120% of what the character actually lost). Summed, since two
   // reflections both fire.

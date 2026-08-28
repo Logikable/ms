@@ -1,13 +1,23 @@
-# GMS's is a barrier that weakens what walks into it, with the boss damage as
-# its passive half. Nothing here can be weakened, so the passive half is the
-# whole skill -- 1% a level over 20, where GMS pays 5+ceil(x/2)% over 30.
+# GMS's barrier weakens what walks into it and pays boss damage as its passive
+# half; here both halves are permanent. The attack penalty is GMS's own x%
+# over 30 levels, read off this book's 20 -- 11% at level 1 to 30% at the
+# master level. The DEF penalty beside it goes: no swing here reads a
+# monster's DEF as a number it could take from. Boss damage is 1% a level over
+# 20, where GMS pays 5+ceil(x/2)% over 30.
 name: "Frailty Curse"
 skill_order: 5
 description:
-  "Summons a barrier around you. Allows you to deal more damage to bosses."
+  "Summons a barrier around you. Decreases the Attack Power of enemies that "
+  "step into the barrier. Also allows you to deal more damage to bosses."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
 max_level: 20
 exceeds_master_level: true
-base { boss_pct: 0.01 }
-per_level { boss_pct: 0.01 }
+base {
+  boss_pct: 0.01
+  enemy_attack_pct: 0.11
+}
+per_level {
+  boss_pct: 0.01
+  enemy_attack_pct: 0.01
+}

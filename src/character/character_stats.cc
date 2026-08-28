@@ -95,6 +95,9 @@ struct PassiveTotals {
   int magic_attack = 0;
   double damage_taken_pct = 0.0;
   double dodge_chance = 0.0;
+  // The barrier, and whether it stands against a boss too.
+  double enemy_attack_pct = 0.0;
+  bool enemy_attack_reaches_boss = false;
   double damage_reflect_pct = 0.0;
   double crit_rate = 0.0;
   double crit_dmg = 0.0;
@@ -197,6 +200,12 @@ void AddEffect(const SkillEffect& base, const SkillEffect& per, int level,
   // leave standing is the product of what each leaves standing.
   double dodge = base.dodge_chance() + per.dodge_chance() * (level - 1);
   totals.dodge_chance = 1.0 - (1.0 - totals.dodge_chance) * (1.0 - dodge);
+  // The barrier sums rather than combining, unlike the two above: what it takes
+  // off is the monster's own attack, and GMS states every source of it as
+  // points on that one number.
+  totals.enemy_attack_pct +=
+      base.enemy_attack_pct() + per.enemy_attack_pct() * (level - 1);
+  totals.enemy_attack_reaches_boss |= base.enemy_attack_reaches_boss();
   totals.damage_reflect_pct +=
       base.damage_reflect_pct() + per.damage_reflect_pct() * (level - 1);
   totals.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
@@ -882,6 +891,10 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
                           passives.def_factor - 1.0);
   stats.damage_taken_pct = passives.damage_taken_pct;
   stats.dodge_chance = passives.dodge_chance;
+  // Floored at nothing rather than clamped to a share: a monster stripped of
+  // the whole of its attack still lands the 1 damage GMS insists on.
+  stats.enemy_attack_pct = std::min(1.0, passives.enemy_attack_pct);
+  stats.enemy_attack_reaches_boss = passives.enemy_attack_reaches_boss;
   stats.damage_reflect_pct = passives.damage_reflect_pct;
   stats.crit_rate = passives.crit_rate;
   stats.crit_dmg = passives.crit_dmg;

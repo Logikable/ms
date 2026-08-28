@@ -3135,6 +3135,31 @@ TEST(ComputeCombatParamsTest, TheCharactersDefenseReducesWhatMobsDo) {
             ComputeCombatParams(bare).types[0].damage_to_player);
 }
 
+// The barrier reaches the fight down the same wire armour does.
+TEST(ComputeCombatParamsTest, ABarrierWeakensWhatMobsSwingWith) {
+  Skill curse;
+  curse.set_name("Frailty Curse");
+  curse.set_kind(SKILL_KIND_PASSIVE);
+  curse.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  curse.set_max_level(20);
+  curse.mutable_base()->set_enemy_attack_pct(0.30);
+
+  GameState bare({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                 {{"field", TwoSnailMap()}}, {{"frailty_curse", curse}});
+  bare.current_map = "field";
+  EquipSword(bare);
+
+  GameState cursed({}, {}, {}, {{"snail", MakeAttacker("Snail", 15, 200, 1)}},
+                   {{"field", TwoSnailMap()}}, {{"frailty_curse", curse}});
+  cursed.current_map = "field";
+  EquipSword(cursed);
+  GrantFirstJobSp(cursed, 1);
+  ASSERT_TRUE(cursed.character.LearnSkill(curse, 1));
+
+  EXPECT_LT(ComputeCombatParams(cursed).types[0].damage_to_player,
+            ComputeCombatParams(bare).types[0].damage_to_player);
+}
+
 // A map inside Arcane River, which asks for Arcane Force before it will let
 // the character fight properly.
 MapData ArcaneMap(int required) {

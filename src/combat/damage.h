@@ -298,6 +298,12 @@ struct DefenseStats {
   // to the same thing over enough hits, and enough hits is all this function
   // ever reports -- see DerivedStats::dodge_chance.
   double dodge_chance = 0.0;
+  // Share taken off the monster's own attack before the formula runs (0.30 ==
+  // 30% less), and whether it stands against a boss too. Apart from the
+  // reduction above because it lands somewhere else entirely: a weakened
+  // monster is one whose attack the character's DEF cancels more of.
+  double enemy_attack_pct = 0.0;
+  bool enemy_attack_reaches_boss = false;
   // What the map's Arcane Force requirement does to the monster's hit: 1
   // outside Arcane River, up to 2.8 against a map the character has no force
   // for, and 0 against one they have half again over -- which the damage floor

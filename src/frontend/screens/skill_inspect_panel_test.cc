@@ -823,6 +823,28 @@ TEST_F(SkillInspectPanelTest, StatesWhatDispelCures) {
   EXPECT_EQ(RenderAt(MakeLuckySeven(), 1).find("Cures"), std::string::npos);
 }
 
+// The barrier's two halves: a share off the monster's attack that climbs with
+// the level, and the switch a second skill throws to reach bosses with it.
+TEST_F(SkillInspectPanelTest, StatesTheBarrierAndWhoWalksIntoIt) {
+  Skill curse = MakeIronBody();
+  curse.clear_base();
+  curse.clear_per_level();
+  curse.mutable_base()->set_enemy_attack_pct(0.11);
+  curse.mutable_per_level()->set_enemy_attack_pct(0.01);
+
+  EXPECT_NE(RowIn(RenderAt(curse, 1), "Enemy ATT", "-11%"), std::string::npos);
+  EXPECT_NE(RowIn(RenderAt(curse, 20), "Enemy ATT", "-30%"), std::string::npos);
+
+  Skill rush = MakeIronBody();
+  rush.clear_base();
+  rush.clear_per_level();
+  rush.mutable_base()->set_enemy_attack_reaches_boss(true);
+  std::string rendered = RenderAt(rush, 1);
+  EXPECT_NE(RowIn(rendered, "Enemy ATT", "Also Reduced on Bosses"),
+            std::string::npos);
+  EXPECT_EQ(rendered.find("no effect"), std::string::npos);
+}
+
 // Creeping Toxin upgrades its own attack, so there is no name to print -- and
 // its form carries a normal-monster reading of its own beside the damage.
 TEST_F(SkillInspectPanelTest, StatesAFormThatUpgradesItsOwnSkill) {

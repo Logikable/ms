@@ -559,6 +559,57 @@ TEST_F(DerivedStatsTest, TwoDodgesLeaveTheProductStanding) {
   EXPECT_NEAR(stats.dodge_chance, 1.0 - 0.70 * 0.70, 1e-9);
 }
 
+// Frailty Curse's shape: 11% off the monster's attack at level 1, climbing a
+// point a level.
+Skill Barrier() {
+  Skill skill;
+  skill.set_name("Frailty Curse");
+  skill.set_kind(SKILL_KIND_PASSIVE);
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(20);
+  skill.mutable_base()->set_enemy_attack_pct(0.11);
+  skill.mutable_per_level()->set_enemy_attack_pct(0.01);
+  return skill;
+}
+
+TEST_F(DerivedStatsTest, TwoBarriersSumAndStopAtBossesWithoutOneToOpenThem) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill curse = Barrier();
+  Skill enhance = Barrier();
+  enhance.set_name("Frailty Curse - Enhance");
+  enhance.set_max_level(1);
+  enhance.mutable_base()->set_enemy_attack_pct(0.10);
+  enhance.clear_per_level();
+  std::map<std::string, Skill> skills = {{"frailty_curse", curse},
+                                         {"frailty_curse_enhance", enhance}};
+  ASSERT_TRUE(c.LearnSkill(curse, 20));
+  ASSERT_TRUE(c.LearnSkill(enhance, 1));
+
+  // Points on one number, so they sum where reduction and dodging combine.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.enemy_attack_pct, 0.40, 1e-9);
+  EXPECT_FALSE(stats.enemy_attack_reaches_boss);
+}
+
+TEST_F(DerivedStatsTest, OneSkillOpensTheWholeBarrierOntoBosses) {
+  CharacterInstance c = MakeCharacter(rng_, 15, 100);
+  Skill curse = Barrier();
+  Skill rush = Barrier();
+  rush.set_name("Frailty Curse - Boss Rush");
+  rush.set_max_level(1);
+  rush.clear_base();
+  rush.clear_per_level();
+  rush.mutable_base()->set_enemy_attack_reaches_boss(true);
+  std::map<std::string, Skill> skills = {{"frailty_curse", curse},
+                                         {"frailty_curse_boss_rush", rush}};
+  ASSERT_TRUE(c.LearnSkill(curse, 20));
+  ASSERT_TRUE(c.LearnSkill(rush, 1));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_NEAR(stats.enemy_attack_pct, 0.30, 1e-9);
+  EXPECT_TRUE(stats.enemy_attack_reaches_boss);
+}
+
 TEST_F(DerivedStatsTest, PerLevelHpScalesWithTheCharactersLevel) {
   CharacterInstance c = MakeCharacter(rng_, 15, 50);
   Skill mastery = WarriorMastery();

@@ -87,6 +87,10 @@ const PercentLever kPercentLevers[] = {
     {"Mastery", &SkillEffect::mastery, kBare, ""},
     {"Damage Taken", &SkillEffect::damage_taken_pct, kMinus, ""},
     {"Dodge Chance", &SkillEffect::dodge_chance, kPlus, ""},
+    // What the barrier takes off whatever is hitting the character. A price
+    // paid by the monster, so it reads as a subtraction the way the row above
+    // it does.
+    {"Enemy ATT", &SkillEffect::enemy_attack_pct, kMinus, ""},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare, ""},
     {"Reflected", &SkillEffect::damage_reflect_pct, kBare, ""},
     // Maple Warrior's, and the only row charged against what the player spent
@@ -946,6 +950,11 @@ std::vector<Row> OwnEffectRows(const Skill& skill, int level) {
   // because it is the same at every level: the points buy nothing more.
   if (skill.base().cures_conditions()) {
     rows.push_back(EffectRow("Cures", "All Conditions"));
+  }
+  // The barrier opened onto bosses. Flat for the same reason Dispel's row is:
+  // the switch is thrown once and no level throws it further.
+  if (skill.base().enemy_attack_reaches_boss()) {
+    rows.push_back(EffectRow("Enemy ATT", "Also Reduced on Bosses"));
   }
   // Straight under the damage it is the other reading of, so the two totals
   // stand one over the other.
