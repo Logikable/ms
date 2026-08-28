@@ -1,6 +1,11 @@
-# GMS casts a fog that lasts a few seconds and ticks 120+6x% inside it. Here
-# the fog is simply always up, so the tick is the whole skill and the opening
-# hit is dropped with the duration.
+# GMS casts a fog that lasts a few seconds and ticks 120+6x% inside it, over a
+# 190+4x% hit as it lands.
+#
+# The duration is ours. GMS's fog outlives its cast by a few seconds and can be
+# re-laid over itself; here a mark rides the monster, so the fog becomes a burn
+# that is simply relit. Nine and a half seconds up to twenty-one, which is long
+# enough that the chooser walks away and comes back rather than spending every
+# swing on it.
 #
 # Six enemies against the pool's ten: GMS caps neither, and what separates them
 # is that one is a fog you stand in and the other spreads down the platform.
@@ -9,10 +14,19 @@ skill_order: 2
 description:
   "Creates a poisonous fog around you, dealing poison damage to all enemies "
   "nearby on its own."
-kind: SKILL_KIND_AUTO_ATTACK
+kind: SKILL_KIND_ATTACK
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_MAGE
 max_level: 20
+required_equip_type: EQUIP_TYPE_STAFF
 max_enemies: 6
-cast_interval_seconds: 1.0
-base { skill_pct: 1.26 }
-per_level { skill_pct: 0.06 }
+base_delay_ms: 660
+base { skill_pct: 1.94 }
+per_level { skill_pct: 0.04 }
+dot {
+  interval_seconds: 1.0
+  duration_seconds: 9.6
+  duration_seconds_per_level: 0.6
+  lines: 1
+  base { skill_pct: 1.26 }
+  per_level { skill_pct: 0.06 }
+}

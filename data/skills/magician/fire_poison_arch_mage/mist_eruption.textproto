@@ -7,8 +7,9 @@
 # skill keeps the figure its own pair of explosions earns. It rides this swing
 # alone, the way an attack's ignored defence does.
 #
-# The passive raises Poison Mist for good, which is an empowered form that
-# takes the place of EVERY pulse rather than every fourth.
+# The passive raises Poison Mist for good. What it lifts is the mist itself --
+# the mark the cast leaves rather than the cast -- so it is points on the tick:
+# 240% a second becomes 300% with this maxed.
 name: "Mist Eruption"
 skill_order: 2
 description:
@@ -34,11 +35,8 @@ base {
   final_dmg_pct: 0.20
 }
 per_level { skill_pct: 0.015 }
-boosts_skill_name: "Poison Mist"
-empowered_form {
+boost {
   skill_name: "Poison Mist"
-  casts_per_trigger: 1
-  lines: 1
-  base { skill_pct: 2.715 }
-  per_level { skill_pct: 0.015 }
+  dot_skill_pct: 0.315
+  dot_skill_pct_per_level: 0.015
 }
