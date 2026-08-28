@@ -250,6 +250,15 @@ class CombatSim {
     // touched, which is every monster in the game facing anyone else. What
     // being frozen is worth is the character's -- see BoostForStacks.
     double frozen_left_seconds = 0.0;
+    // The scar Scarring Sword leaves: how long it stands, and the odds it is
+    // there at all. A chance kept as odds rather than rolled, because every
+    // other chance in this fight is paid as an expectation -- so a monster
+    // half-likely to be scarred takes half of what a scar is worth.
+    //
+    // Both are 0 for every monster nobody has scarred, which is every monster
+    // in the game facing anyone but the Crusader's line.
+    double scarred_left_seconds = 0.0;
+    double scar_odds = 0.0;
   };
 
   // Opens the landing about to happen: gives every one of the front `hit` mobs
@@ -309,6 +318,19 @@ class CombatSim {
                         bool frozen) const;
   // The same against a monster in the queue, read as it stands right now.
   double FreezeBoost(const AttackOption& attack, const QueuedMob& mob) const;
+  // What the scar on this monster multiplies the swing by. A monster already
+  // scarred pays the whole of Chance Attack's final damage; a fresh one pays
+  // the share of the swing's lines that land after the scar is left, since the
+  // line that leaves it collects nothing.
+  double ScarBoost(const AttackOption& attack, const QueuedMob& mob) const;
+  // Both states in one factor: every reader of either wants both.
+  double StateBoost(const AttackOption& attack, const QueuedMob& mob) const;
+  // Leaves this swing's scar on every one of the front `hit` mobs, after the
+  // strike as the burns and the freeze are. Odds rather than a flag: n lines
+  // at `scar_chance` apiece leave one with probability 1 - (1 - chance)^n.
+  void ApplyScar(const AttackOption& attack, int hit);
+  // Counts every scar down, and clears the odds with the clock.
+  void RunScar(double dt);
   // Leaves this swing's freeze on every one of the front `hit` mobs. After the
   // strike, as the burns are, so the swing itself is paid for the state the
   // monsters went into it with.

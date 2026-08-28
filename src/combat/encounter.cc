@@ -281,6 +281,16 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     // exactly as far as it stretches the summon clock relaying it, so what a
     // freeze covers is the same span of the fight it covers in GMS.
     attack.freeze_seconds = skill->freeze_seconds() * speed_factor;
+    // Chance Attack's damage against a scarred monster, which rides anything
+    // that lands on one -- a summon's pulse included.
+    attack.scar_fd = derived.scar.final_dmg_pct;
+    // The scar the character's own swings leave. Game-scaled like every other
+    // clock in the fight, and left off anything on a clock of its own -- GMS
+    // scars with the sword being swung.
+    if (skill->kind() == SKILL_KIND_ATTACK) {
+      attack.scar_chance = derived.scar.chance;
+      attack.scar_seconds = derived.scar.seconds * speed_factor;
+    }
     attack.heal_fraction =
         skill->base().heal_pct() + skill->per_level().heal_pct() * (level - 1);
     // An ATTACK's recovery is its own swing's, exactly as its ignored defence
@@ -486,7 +496,14 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
 // its hits costs them. Types the mob catalog does not know are skipped.
 void AddTypes(const GameState& state,
               const google::protobuf::RepeatedPtrField<Spawn>& spawns,
-              const DefenseStats& defense, CombatParams& params) {
+              const DefenseStats& defense, double scar_enemy_attack_pct,
+              CombatParams& params) {
+  // A scarred monster is one whose attack the character has already cut
+  // further, so it is the same defence against a weaker mob. Barriers sum, as
+  // they always do.
+  DefenseStats scarred = defense;
+  scarred.enemy_attack_pct =
+      std::min(1.0, scarred.enemy_attack_pct + scar_enemy_attack_pct);
   for (const Spawn& spawn : spawns) {
     std::map<std::string, Mob>::const_iterator mob_it =
         state.mobs.find(spawn.mob());
@@ -498,6 +515,7 @@ void AddTypes(const GameState& state,
     type.simultaneous = SpawnCount(spawn);
     type.spots.assign(spawn.spots().begin(), spawn.spots().end());
     type.damage_to_player = ExpectedDamageTaken(defense, *type.mob);
+    type.damage_to_player_scarred = ExpectedDamageTaken(scarred, *type.mob);
     params.types.push_back(std::move(type));
   }
 }
@@ -1306,7 +1324,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
   params.respawn_seconds = kRespawnIntervalSeconds * speed_factor;
   params.hit_seconds = kMobHitIntervalSeconds * speed_factor;
   AddPacing(state, derived, speed_factor, params);
-  AddTypes(state, map_it->second.spawns(), DefenseFor(state, derived), params);
+  AddTypes(state, map_it->second.spawns(), DefenseFor(state, derived),
+           derived.scar.enemy_attack_pct, params);
   if (params.types.empty()) {
     return params;
   }
@@ -1336,7 +1355,7 @@ CombatParams ComputeBossParams(const GameState& state,
   // Both intervals stay at 0 -- nothing respawns, and nothing hits back yet.
   AddPacing(state, derived, 1.0, params);
   AddTypes(state, difficulty.phases(phase).spawns(), DefenseFor(state, derived),
-           params);
+           derived.scar.enemy_attack_pct, params);
   if (params.types.empty()) {
     return params;
   }

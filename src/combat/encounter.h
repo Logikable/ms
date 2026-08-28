@@ -38,6 +38,9 @@ struct CombatType {
   // their DEF. Held per type rather than per mob because every member of a
   // type hits alike.
   double damage_to_player = 0.0;
+  // The same once this mob is SCARRED, which weakens its attack further. Equal
+  // to the line above for every character who scars nothing.
+  double damage_to_player_scarred = 0.0;
 };
 
 // One block of lines inside a swing, and what makes it vary. A swing is one of
@@ -259,6 +262,17 @@ struct AttackOption {
   // whose stacks ignore none, and worth nothing where the defence is already
   // cancelled or was never there.
   std::vector<double> freeze_ied_gain;
+  // The scar this swing leaves and what it collects from one already there:
+  // each line has `scar_chance` of scarring the mob it lands on for
+  // `scar_seconds`, and every line landed on a scarred mob takes `scar_fd` of
+  // final damage. All three are 0 for every character but a Crusader's line.
+  //
+  // The chance and the seconds are the character's own swings' alone -- a
+  // summon's pulse and a Final Attack scar nothing -- where the final damage
+  // rides anything that lands on a scarred monster.
+  double scar_chance = 0.0;
+  double scar_seconds = 0.0;
+  double scar_fd = 0.0;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
   // own. Puncture's wound is the case it exists for: what ticks is the wound,

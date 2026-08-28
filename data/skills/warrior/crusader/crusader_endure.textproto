@@ -6,7 +6,7 @@
 # so this grants nothing today. Written out in full anyway -- the figures
 # belong with the skill, and the stats page shows both rows.
 name: "Endure"
-skill_order: 6
+skill_order: 7
 description:
   "Enhances your Abnormal Status Resistance and Elemental Resistance."
 kind: SKILL_KIND_PASSIVE

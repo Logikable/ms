@@ -430,6 +430,25 @@ message SkillEffect {
   // two sources always do, and is worth nothing against a monster whose defence
   // was already cancelled.
   double ied_pct_per_freeze_stack = 117;
+  // Scarring Sword's. Chance ONE LINE of a swing leaves the enemy it lands on
+  // SCARRED, and how long the scar stands. GMS calls it piercing the enemy;
+  // the word is taken from the skill instead, since a pierce here is already
+  // what an arrow does to a row of monsters.
+  //
+  // A scar is the second status this game tracks, after a freeze, and it
+  // rides the monster the same way -- see QueuedMob::scarred_left_seconds.
+  // Only the character's own swings leave one.
+  double scar_chance = 118;
+  double scar_seconds = 119;
+  // Chance Attack's. Final damage on every line landed on a scarred monster.
+  // Binary, as final_dmg_pct_when_frozen is: a scar is a scar, and a second
+  // one over it says nothing.
+  double final_dmg_pct_when_scarred = 120;
+  // Scarring Sword's other half. Share off the ATTACK of a monster that is
+  // scarred, on top of whatever enemy_attack_pct already takes off every
+  // monster -- the same bargain that field makes, and it weakens the mob
+  // before its hit is rolled.
+  double enemy_attack_pct_when_scarred = 121;
   // Storm Magic's. Final damage on every swing made while the enemy is frozen,
   // which is what holding any Freeze Stack at all means here -- GMS asks only
   // whether the enemy is under one of a list of conditions, and freezing is the

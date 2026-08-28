@@ -117,6 +117,8 @@ struct PassiveTotals {
   std::vector<SwingProc> procs;
   // What a Freeze Stack is worth, and how many the character holds.
   FreezeStacks freeze;
+  // What their swings scar, and what a scar is worth.
+  Scar scar;
   // Stacks a buff adds to that cap while it stands. Held apart until
   // FoldFreezeStacks, which only deepens a pile the character already has.
   int freeze_cap_bonus = 0;
@@ -353,6 +355,25 @@ void AddFreezeStacks(const Skill& skill, int level, PassiveTotals& totals) {
                    per.ied_pct_per_freeze_stack() * (level - 1));
 }
 
+// Folds the scar in. Two sources would leave the better of each standing
+// rather than summing, exactly as the freeze does: a deeper scar is one scar,
+// and a second skill restating it says nothing new.
+void AddScar(const Skill& skill, int level, PassiveTotals& totals) {
+  const SkillEffect& base = skill.base();
+  const SkillEffect& per = skill.per_level();
+  auto best = [&](double b, double p) { return b + p * (level - 1); };
+  totals.scar.chance =
+      std::max(totals.scar.chance, best(base.scar_chance(), per.scar_chance()));
+  totals.scar.seconds = std::max(totals.scar.seconds,
+                                 best(base.scar_seconds(), per.scar_seconds()));
+  totals.scar.final_dmg_pct = std::max(totals.scar.final_dmg_pct,
+                                       best(base.final_dmg_pct_when_scarred(),
+                                            per.final_dmg_pct_when_scarred()));
+  totals.scar.enemy_attack_pct = std::max(
+      totals.scar.enemy_attack_pct, best(base.enemy_attack_pct_when_scarred(),
+                                         per.enemy_attack_pct_when_scarred()));
+}
+
 // Notes Meso Explosion down. Recorded rather than folded: Meso Mastery's
 // points land on each of its lines, the two skills fold in catalog order, and
 // so the pair cannot be settled until every passive is in. See
@@ -425,6 +446,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   AddFinalAttack(skill, skill.base(), skill.per_level(), level, totals);
   AddProc(skill, level, totals);
   AddFreezeStacks(skill, level, totals);
+  AddScar(skill, level, totals);
   // A burn on a PASSIVE belongs to the character rather than to one swing: the
   // poison stays on the claw, so everything the claw hits takes it. One on an
   // attack is that swing's own, and one on a summon is its pulses' -- both are
@@ -495,6 +517,15 @@ void FoldFinalAttackBoosts(PassiveTotals& totals) {
 // deeper, so the bonus pays only where there is a pile: a character who never
 // learned the mechanism holds no stacks for Glacial Fury to deepen or to pay
 // for.
+// Settles the scar. Nothing to leave one with means nothing to read one for:
+// a character carrying Chance Attack and no Scarring Sword is holding half a
+// mechanism, and half of it is worth nothing at all.
+void FoldScar(PassiveTotals& totals) {
+  if (totals.scar.chance <= 0.0 || totals.scar.seconds <= 0.0) {
+    totals.scar = Scar{};
+  }
+}
+
 void FoldFreezeStacks(PassiveTotals& totals) {
   if (totals.freeze.cap <= 0) {
     totals.freeze = FreezeStacks{};
@@ -644,6 +675,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   FoldMesoExplosion(totals);
   FoldFinalAttackBoosts(totals);
   FoldFreezeStacks(totals);
+  FoldScar(totals);
   FoldComboOrbs(totals);
   return totals;
 }
@@ -952,6 +984,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.dots = passives.dots;
   stats.procs = passives.procs;
   stats.freeze = passives.freeze;
+  stats.scar = passives.scar;
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one

@@ -106,6 +106,20 @@ struct FreezeStacks {
   int matt_per_stack = 0;
 };
 
+// What a SCAR is worth to the character who leaves it: how often their swings
+// leave one and how long it stands, then the two things being scarred is read
+// for. A character whose book grants none of this leaves none.
+struct Scar {
+  // Chance one LINE of a swing scars the enemy it landed on.
+  double chance = 0.0;
+  double seconds = 0.0;
+  // Chance Attack's final damage against a scarred monster, and the share
+  // Scarring Sword takes off that monster's attack on top of the barrier the
+  // character already carries.
+  double final_dmg_pct = 0.0;
+  double enemy_attack_pct = 0.0;
+};
+
 // One fountain's pour: the share of the HP pool it puts back, and how far
 // apart its pulses fall. Held per skill rather than summed, because two
 // pouring on different clocks cannot share one.
@@ -221,6 +235,8 @@ struct DerivedStats {
   std::vector<SwingProc> procs;
   // What a Freeze Stack buys them, and how many they hold.
   FreezeStacks freeze;
+  // What their swings leave behind on a monster, and what it is worth.
+  Scar scar;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;

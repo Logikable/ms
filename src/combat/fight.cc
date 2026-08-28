@@ -300,7 +300,7 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     // lays, or the chooser would take the harder lightning swing every time
     // and neither would ever exist -- see FreezeCredit and FrozenCredit.
     double rate =
-        (SwingDamage(attack) * FreezeBoost(attack, FrontMob()) +
+        (SwingDamage(attack) * StateBoost(attack, FrontMob()) +
          FreezeCredit(params, attack) + FrozenCredit(params, attack)) /
         SwingSecondsAgainst(attack);
     if (rate > best_rate) {
@@ -404,7 +404,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     int j = order.empty() ? step : order[step];
     double gain =
         order.empty() ? 1.0 : std::pow(1.0 + attack.pierce_gain_pct, step);
-    double freeze = FreezeBoost(attack, queue_[j]);
+    double freeze = StateBoost(attack, queue_[j]);
     double share = shares.empty() ? 1.0 : shares[j];
     double damage =
         held > 0
@@ -414,7 +414,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
     Hurt(queue_[j], damage * freeze * share);
   }
   for (int j : lead) {
-    double freeze = FreezeBoost(attack, queue_[j]);
+    double freeze = StateBoost(attack, queue_[j]);
     double damage = attack.lead_damage[queue_[j].type] *
                     RollFactor(attack.lead_rolls, rng_, LineSink());
     RecordRolls(LandingAt(j, freeze),
@@ -425,7 +425,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // in expectation each of them takes it.
   if (!attack.final_attack_damage.empty()) {
     for (int j = 0; j < hit; ++j) {
-      double freeze = FreezeBoost(attack, queue_[j]);
+      double freeze = StateBoost(attack, queue_[j]);
       Hurt(queue_[j], RolledFinalAttack(attack.final_attack_rolls,
                                         attack.final_attack_damage,
                                         queue_[j].type, LandingAt(j, freeze)) *
@@ -436,7 +436,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // swing reached. The first in the queue is as good as any: nothing here has
   // a position, so no enemy is nearer than another.
   if (hit > 0 && !attack.single_final_attack_damage.empty()) {
-    double freeze = FreezeBoost(attack, queue_[0]);
+    double freeze = StateBoost(attack, queue_[0]);
     Hurt(queue_[0], RolledFinalAttack(attack.single_final_attack_rolls,
                                       attack.single_final_attack_damage,
                                       queue_[0].type, LandingAt(0, freeze)) *
@@ -447,6 +447,7 @@ double CombatSim::Strike(const AttackOption& attack, DamageSource source,
   // still the ones the mark is written to.
   ApplyDots(attack, hit);
   ApplyFreeze(attack, hit);
+  ApplyScar(attack, hit);
   Reap();
   return recovered;
 }
@@ -463,7 +464,7 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
   if (hit <= 0) {
     return recovered;
   }
-  double boost = FreezeBoost(attack, queue_[0]);
+  double boost = StateBoost(attack, queue_[0]);
   for (const ProcRoll& proc : attack.procs) {
     std::bernoulli_distribution fires(proc.chance);
     if (!fires(rng_)) {
@@ -516,6 +517,34 @@ double CombatSim::FreezeBoost(const AttackOption& attack,
                         mob.frozen_left_seconds > 0.0);
 }
 
+// A scar is left by a LINE, so a swing that lands four of them scars partway
+// through itself: the line that cuts collects nothing and the ones after it
+// collect everything. What share of the swing that is, is the odds the scar
+// was already there as each line landed, averaged over the lines -- which
+// comes to 1 - (1 - odds) * (1 - (1 - chance)^n) / (chance * n).
+//
+// A monster carrying the scar already pays the whole of it, which is what the
+// odds standing at 1 says.
+double CombatSim::ScarBoost(const AttackOption& attack,
+                            const QueuedMob& mob) const {
+  if (attack.scar_fd <= 0.0) {
+    return 1.0;
+  }
+  double chance = attack.scar_chance;
+  double share = mob.scar_odds;
+  if (chance > 0.0) {
+    int lines = std::max(1, attack.lines);
+    double unscarred = std::pow(1.0 - chance, static_cast<double>(lines));
+    share = 1.0 - (1.0 - share) * (1.0 - unscarred) / (chance * lines);
+  }
+  return 1.0 + attack.scar_fd * share;
+}
+
+double CombatSim::StateBoost(const AttackOption& attack,
+                             const QueuedMob& mob) const {
+  return FreezeBoost(attack, mob) * ScarBoost(attack, mob);
+}
+
 // The monster a reader with no particular enemy in mind takes -- nothing here
 // has a position, so none is nearer than another. A bare one where nothing is
 // standing, which reads as an unfrozen mob of the first type.
@@ -553,7 +582,7 @@ int CombatSim::ChannelPulses(const AttackOption& attack, int hit) const {
   int wanted = hold.min_pulses;
   for (int j = 0; j < hit && j < static_cast<int>(queue_.size()); ++j) {
     int type = queue_[j].type;
-    double freeze = FreezeBoost(attack, queue_[j]);
+    double freeze = StateBoost(attack, queue_[j]);
     double pulse = PulseDamage(attack, type) * freeze;
     if (pulse <= 0.0) {
       continue;
@@ -808,6 +837,30 @@ void CombatSim::ApplyFreeze(const AttackOption& attack, int hit) {
 void CombatSim::RunFreeze(double dt) {
   for (QueuedMob& mob : queue_) {
     mob.frozen_left_seconds = std::max(0.0, mob.frozen_left_seconds - dt);
+  }
+}
+
+void CombatSim::ApplyScar(const AttackOption& attack, int hit) {
+  if (attack.scar_chance <= 0.0 || attack.scar_seconds <= 0.0) {
+    return;
+  }
+  double unscarred =
+      std::pow(1.0 - attack.scar_chance, std::max(1, attack.lines));
+  for (int j = 0; j < hit; ++j) {
+    // The odds a scar stands are the odds one was already there or this swing
+    // left one; the clock starts again either way, as the freeze's does.
+    queue_[j].scar_odds = 1.0 - (1.0 - queue_[j].scar_odds) * unscarred;
+    queue_[j].scarred_left_seconds =
+        std::max(queue_[j].scarred_left_seconds, attack.scar_seconds);
+  }
+}
+
+void CombatSim::RunScar(double dt) {
+  for (QueuedMob& mob : queue_) {
+    mob.scarred_left_seconds = std::max(0.0, mob.scarred_left_seconds - dt);
+    if (mob.scarred_left_seconds <= 0.0) {
+      mob.scar_odds = 0.0;
+    }
   }
 }
 
@@ -1123,7 +1176,12 @@ void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
   if (BlockHit(params)) {
     return;  // cancelled whole: nothing to lose, and nothing to reflect
   }
-  double taken = params.types[queue_.front().type].damage_to_player *
+  // A scarred monster swings weaker, and the scar is odds rather than a flag
+  // -- so what it lands is the two damages weighed by how likely the scar is.
+  const CombatType& type = params.types[queue_.front().type];
+  double odds = queue_.front().scar_odds;
+  double taken = (type.damage_to_player * (1.0 - odds) +
+                  type.damage_to_player_scarred * odds) *
                  BuffDamageTakenFactor(params);
   player_hp_ = std::max(0.0, player_hp_ - taken);
   died_this_step_ = player_hp_ <= 0.0 && !Revive(params);
@@ -1609,6 +1667,7 @@ void CombatSim::Advance(const CombatParams& params, double elapsed_seconds) {
   // the ice this step is one this step's swing must see out of it.
   RunDots(dt);
   RunFreeze(dt);
+  RunScar(dt);
   RunCooldowns(params, dt);
   RunSwing(params, dt);
 

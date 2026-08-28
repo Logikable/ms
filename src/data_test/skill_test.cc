@@ -1045,6 +1045,38 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
   }
 }
 
+// A scar is worth nothing to a book that leaves none, and a scar left with no
+// clock on it is never carried at all. Both halves have to reach one
+// character, and they need not sit on one skill: Chance Attack reads the scar
+// Scarring Sword leaves.
+TEST(SkillDataTest, AScarIsBothLeftAndRead) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const SkillEffect& base = entry.second.base();
+    if (base.scar_chance() > 0.0) {
+      EXPECT_GT(base.scar_seconds(), 0.0)
+          << entry.first << " scars for no time at all";
+    }
+    if (base.final_dmg_pct_when_scarred() <= 0.0 &&
+        base.enemy_attack_pct_when_scarred() <= 0.0) {
+      continue;
+    }
+    bool scars = false;
+    for (Job job : jobs) {
+      std::set<JobAdvancement> books = BooksFor(job);
+      if (books.count(entry.second.job_advancement()) == 0) {
+        continue;
+      }
+      for (const std::pair<const std::string, Skill>& other : skills) {
+        scars = scars || (books.count(other.second.job_advancement()) > 0 &&
+                          other.second.base().scar_chance() > 0.0);
+      }
+    }
+    EXPECT_TRUE(scars) << entry.first << " reads a scar nothing leaves";
+  }
+}
+
 // Freezing is an ice swing's alone. A lightning swing spends the ice rather
 // than making it, and a passive lands on nobody to freeze.
 TEST(SkillDataTest, OnlyAnIceSwingFreezes) {

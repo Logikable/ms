@@ -80,6 +80,9 @@ const PercentLever kPercentLevers[] = {
      " per Freeze Stack"},
     {"Final Damage", &SkillEffect::final_dmg_pct_when_frozen, kPlus,
      " on Frozen enemies"},
+    {"Final Damage", &SkillEffect::final_dmg_pct_when_scarred, kPlus,
+     " on Scarred enemies"},
+    {"Scar Chance", &SkillEffect::scar_chance, kPlus, " per hit"},
     {"Ignore DEF", &SkillEffect::ied_pct_per_freeze_stack, kPlus,
      " per Freeze Stack"},
     {"Critical Rate", &SkillEffect::crit_rate, kPlus, ""},
@@ -91,6 +94,8 @@ const PercentLever kPercentLevers[] = {
     // paid by the monster, so it reads as a subtraction the way the row above
     // it does.
     {"Enemy ATT", &SkillEffect::enemy_attack_pct, kMinus, ""},
+    {"Enemy ATT", &SkillEffect::enemy_attack_pct_when_scarred, kMinus,
+     " while Scarred"},
     {"Damage to MP", &SkillEffect::damage_to_mp_pct, kBare, ""},
     {"Reflected", &SkillEffect::damage_reflect_pct, kBare, ""},
     // Maple Warrior's, and the only row charged against what the player spent
