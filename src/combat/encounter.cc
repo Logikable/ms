@@ -1024,6 +1024,8 @@ void AddBuffs(const CharacterInstance& character,
     option.charge_lines = buff.charge_lines();
     option.heal_fraction =
         buff.base().heal_pct() + buff.per_level().heal_pct() * (level - 1);
+    option.shield_hits = ShieldHitsAt(buff.shield(), level);
+    option.boss_damage_taken_pct = buff.shield().boss_damage_taken_pct();
     // What raising it costs. A buff a swing lays is paid for by that swing, so
     // it is charged nothing here -- see BuffOption::cast_seconds.
     option.cast_seconds = skill->base_delay_ms() / 1000.0 * speed_factor;
@@ -1064,6 +1066,12 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
     option.damage_taken_pct =
         buff.ally_base().damage_taken_pct() +
         buff.ally_per_level().damage_taken_pct() * (grant.level - 1);
+    option.heal_fraction = buff.ally_base().heal_pct() +
+                           buff.ally_per_level().heal_pct() * (grant.level - 1);
+    // One shell over the whole party, so what an ally raises shelters this
+    // character with the same count of blocks their caster gets.
+    option.shield_hits = ShieldHitsAt(buff.shield(), grant.level);
+    option.boss_damage_taken_pct = buff.shield().boss_damage_taken_pct();
     params.ally_buffs.push_back(std::move(option));
   }
 }

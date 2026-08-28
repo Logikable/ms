@@ -164,6 +164,13 @@ int ComboOrbsAt(const Skill& skill, int level);
 // and a wait that shortens as the skill is taught has to shorten in both.
 double CooldownAt(const Skill& skill, int level);
 
+// Hits `shield` cancels at `level`: its `hits` plus what `hits_per_level` has
+// bought since level 1, floored. 0 for a buff that is not a shell.
+//
+// Here for the reason SkillLinesAt is: the fight and the skill page both ask,
+// and a shell that thickens as the skill is taught has to thicken in both.
+int ShieldHitsAt(const Shield& shield, int level);
+
 // What one skill in the character's book hands ONE other skill by name, summed
 // across every skill granting it. Only the swing being priced reads its own
 // entry, so none of this follows the character onto their next attack --

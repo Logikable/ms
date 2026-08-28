@@ -1042,10 +1042,16 @@ void CombatSim::RespawnBeat(const CombatParams& params, double dt) {
 // The buffs standing are the ones the step opened with: a smokescreen dropped
 // after the blow landed does not take that blow back. See Advance.
 double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
+  // A shell blocks whole hits, so what it takes off a hit is only ever the
+  // share it hands a boss instead -- see BlockHit.
+  bool boss = !queue_.empty() && params.types[queue_.front().type].mob->boss();
   double factor = 1.0;
   for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
     if ((buff_mask_ & (1 << i)) != 0) {
       factor *= 1.0 - params.buffs[i].damage_taken_pct;
+      if (boss && buff_blocks_left_[i] > 0) {
+        factor *= 1.0 - params.buffs[i].boss_damage_taken_pct;
+      }
     }
   }
   // A party's buff is one more reduction and multiplies like the rest: a
@@ -1053,6 +1059,9 @@ double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
   for (int i = 0; i < static_cast<int>(ally_buff_left_.size()); ++i) {
     if (ally_buff_left_[i] > 0.0) {
       factor *= 1.0 - params.ally_buffs[i].damage_taken_pct;
+      if (boss && ally_buff_blocks_left_[i] > 0) {
+        factor *= 1.0 - params.ally_buffs[i].boss_damage_taken_pct;
+      }
     }
   }
   // The shelter a HOLD is, which lasts exactly as long as the hold: the swing
@@ -1062,6 +1071,39 @@ double CombatSim::BuffDamageTakenFactor(const CombatParams& params) const {
     factor *= 1.0 - options[aimed_].channel.damage_taken_pct;
   }
   return std::max(0.0, factor);
+}
+
+// A hit a shell swallows whole. Only one shell pays for it however many are
+// standing: two would spend two blocks on one hit and the player would be no
+// better off for it.
+//
+// A boss's hit is never blocked -- GMS exempts the attacks that cost a share
+// of the pool, and `Mob.boss` is what says which those are here. What a shell
+// does about one of those is take its share off, in BuffDamageTakenFactor.
+bool CombatSim::BlockHit(const CombatParams& params) {
+  if (queue_.empty() || params.types[queue_.front().type].mob->boss()) {
+    return false;
+  }
+  for (int i = 0; i < static_cast<int>(params.buffs.size()); ++i) {
+    if ((buff_mask_ & (1 << i)) == 0 || buff_blocks_left_[i] <= 0) {
+      continue;
+    }
+    if (--buff_blocks_left_[i] == 0) {
+      buff_left_[i] = 0.0;  // spent: the shell falls, clock or no clock
+      buff_mask_ &= ~(1 << i);
+    }
+    return true;
+  }
+  for (int i = 0; i < static_cast<int>(ally_buff_left_.size()); ++i) {
+    if (ally_buff_left_[i] <= 0.0 || ally_buff_blocks_left_[i] <= 0) {
+      continue;
+    }
+    if (--ally_buff_blocks_left_[i] == 0) {
+      ally_buff_left_[i] = 0.0;
+    }
+    return true;
+  }
+  return false;
 }
 
 void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
@@ -1078,6 +1120,9 @@ void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
     return;
   }
   hit_phase_ -= params.hit_seconds;
+  if (BlockHit(params)) {
+    return;  // cancelled whole: nothing to lose, and nothing to reflect
+  }
   double taken = params.types[queue_.front().type].damage_to_player *
                  BuffDamageTakenFactor(params);
   player_hp_ = std::max(0.0, player_hp_ - taken);
@@ -1130,10 +1175,33 @@ const std::vector<AttackOption>& CombatSim::TriggeredAttacks(
   return params.TriggeredAttacks(buff_mask_);
 }
 
+// Whether a shell is worth raising now. It is the one buff held back rather
+// than raised the moment it comes round, because it is a heal and a shelter
+// at once and the two want opposite timing: the heal is wasted on a full pool,
+// and a shelter raised after the blow has landed shelters nothing.
+//
+// On a map the blows are small and steady, so it waits for the pool to be low
+// enough to be worth filling -- the same line a cast heal is chosen on. On a
+// boss one blow is the whole fight, so it goes up as soon as it comes round.
+//
+// Every other buff is raised on its clock as it always has been: one granting
+// damage is worth having up whatever the pool is at.
+bool CombatSim::ShieldWanted(const CombatParams& params,
+                             const BuffOption& buff) const {
+  if (buff.shield_hits <= 0) {
+    return true;
+  }
+  if (!queue_.empty() && params.types[queue_.front().type].mob->boss()) {
+    return true;
+  }
+  return player_hp_ < kHealBelowFraction * params.max_player_hp;
+}
+
 void CombatSim::RunBuffs(const CombatParams& params, double dt) {
   int count = static_cast<int>(params.buffs.size());
   buff_left_.resize(count, 0.0);
   buff_cooldown_left_.resize(count, 0.0);
+  buff_blocks_left_.resize(count, 0);
   // Seeded with each buff's full count rather than with nothing, or one
   // charged by hits would go up before a single hit had landed.
   if (static_cast<int>(buff_charge_left_.size()) != count) {
@@ -1158,10 +1226,12 @@ void CombatSim::RunBuffs(const CombatParams& params, double dt) {
     bool ready = buff.charge_lines > 0 ? buff_charge_left_[i] <= 0.0
                                        : buff_cooldown_left_[i] <= 0.0;
     if (buff.laid_by_attack < 0 && buff_left_[i] <= 0.0 && ready &&
-        !queue_.empty() && buff.duration_seconds > 0.0) {
+        !queue_.empty() && buff.duration_seconds > 0.0 &&
+        ShieldWanted(params, buff)) {
       buff_left_[i] = buff.duration_seconds;
       buff_cooldown_left_[i] = buff.cooldown_seconds;
       buff_charge_left_[i] = buff.charge_lines;
+      buff_blocks_left_[i] = buff.shield_hits;
       // Raising it costs the character its animation, taken off the swing they
       // were charging: a buff is cast instead of attacking, not alongside it.
       attack_phase_ -= buff.cast_seconds;
@@ -1179,6 +1249,7 @@ void CombatSim::RunAllyBuffs(const CombatParams& params, double dt) {
   int count = static_cast<int>(params.ally_buffs.size());
   ally_buff_left_.resize(count, 0.0);
   ally_buff_cooldown_left_.resize(count, 0.0);
+  ally_buff_blocks_left_.resize(count, 0);
   for (int i = 0; i < count; ++i) {
     const BuffOption& buff = params.ally_buffs[i];
     ally_buff_left_[i] = std::max(0.0, ally_buff_left_[i] - dt);
@@ -1189,9 +1260,16 @@ void CombatSim::RunAllyBuffs(const CombatParams& params, double dt) {
     // casts is not modelled -- they are in the same fight, so they raise it
     // when it is worth raising.
     if (ally_buff_left_[i] <= 0.0 && ally_buff_cooldown_left_[i] <= 0.0 &&
-        !queue_.empty() && buff.duration_seconds > 0.0) {
+        !queue_.empty() && buff.duration_seconds > 0.0 &&
+        ShieldWanted(params, buff)) {
       ally_buff_left_[i] = buff.duration_seconds;
       ally_buff_cooldown_left_[i] = buff.cooldown_seconds;
+      ally_buff_blocks_left_[i] = buff.shield_hits;
+      // An ally's cast reaches this character too: what it puts back is a
+      // share of THEIR pool, the caster's own being no business of this fight.
+      player_hp_ =
+          std::min(static_cast<double>(params.max_player_hp),
+                   player_hp_ + buff.heal_fraction * params.max_player_hp);
     }
   }
 }

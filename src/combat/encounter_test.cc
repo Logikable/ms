@@ -1339,6 +1339,56 @@ TEST(ComputeCombatParamsTest, APartySharedBuffComesRoundOncePerHolder) {
                    60.0 * factor);
 }
 
+// Holy Magic Shell's shape: one shell over the caster and the party alike, so
+// both halves of the buff carry the same count of blocks -- read at whichever
+// level the character holding it learned.
+TEST(ComputeCombatParamsTest, AShellReachesTheCasterAndThePartyAlike) {
+  Skill shell;
+  shell.set_name("Holy Magic Shell");
+  shell.set_kind(SKILL_KIND_ACTIVE);
+  shell.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  shell.set_max_level(20);
+  shell.set_base_delay_ms(120);
+  shell.set_cooldown_seconds(90.0);
+  Buff* buff = shell.mutable_buff();
+  buff->set_duration_seconds(10.25);
+  buff->set_duration_seconds_per_level(0.25);
+  buff->mutable_base()->set_heal_pct(0.31);
+  buff->mutable_ally_base()->set_heal_pct(0.31);
+  buff->mutable_shield()->set_hits(5.5);
+  buff->mutable_shield()->set_hits_per_level(0.5);
+  buff->mutable_shield()->set_boss_damage_taken_pct(0.10);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"holy_magic_shell", shell}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 20);
+
+  // A Priest in the party and none in the mirror: the shell reaches this
+  // character as a window of somebody else's, at that somebody's level.
+  std::mt19937 rng(1);
+  Character ally = state.character.proto();
+  (*ally.mutable_skill_levels())["Holy Magic Shell"] = 10;
+  state.party.emplace_back(rng, ally);
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.ally_buffs.size(), 1u);
+  EXPECT_EQ(params.ally_buffs[0].shield_hits, 10);
+  EXPECT_DOUBLE_EQ(params.ally_buffs[0].boss_damage_taken_pct, 0.10);
+  EXPECT_NEAR(params.ally_buffs[0].heal_fraction, 0.31, 1e-9);
+
+  // Learning it themselves puts the shell on their own clock instead: a
+  // party grant never doubles up on somebody already holding the skill.
+  ASSERT_TRUE(state.character.LearnSkill(shell, 20));
+  params = ComputeCombatParams(state);
+  EXPECT_TRUE(params.ally_buffs.empty());
+  ASSERT_EQ(params.buffs.size(), 1u);
+  EXPECT_EQ(params.buffs[0].shield_hits, 15);
+  EXPECT_DOUBLE_EQ(params.buffs[0].boss_damage_taken_pct, 0.10);
+  EXPECT_NEAR(params.buffs[0].heal_fraction, 0.31, 1e-9);
+}
+
 // Smokescreen's shape: an ally's buff stands over this character on the
 // caster's clock, at the caster's level, and never touches a damage table --
 // all it can hand over is a share off what a hit costs.

@@ -314,6 +314,13 @@ struct BuffOption {
   double damage_taken_pct = 0.0;
   // Share of the pool the cast puts back at once (1.00 == all of it).
   double heal_fraction = 0.0;
+  // Hits this buff cancels outright while it stands, after which it falls
+  // whatever is left of its clock. 0 for a buff that is not a shell, which is
+  // every one but Holy Magic Shell. See Shield.
+  int shield_hits = 0;
+  // Share off a hit the shell cannot block -- a boss's -- taken instead of
+  // blocking it. Read only where shield_hits is set.
+  double boss_damage_taken_pct = 0.0;
   // Seconds raising this costs the character: the animation is time they are
   // not swinging in, taken off the swing they were charging. 0 for a buff with
   // no cast of its own -- one a swing lays, and one a passive charges by

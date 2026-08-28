@@ -504,6 +504,30 @@ message BuffPulse {
 // a multiplier applied to a damage number after the fact.
 //
 // Read at the same learned level as the skill carrying it.
+// A shell that stands over a character and cancels whole hits, rather than
+// taking a share off each of them. Holy Magic Shell is what it exists for:
+// GMS blocks a set number of attacks outright and leaves the shell standing
+// until either the count or the clock runs out.
+//
+// GMS exempts attacks that cost a share of the target's Max HP -- almost
+// everything a boss throws -- and blunts them instead. Nothing here deals
+// damage as a share of the pool, so `Mob.boss` is what says which hits those
+// are: a boss's hit is never blocked and costs
+// `boss_damage_taken_pct` less, and every other hit is blocked whole.
+//
+// Read at the same learned level as the skill carrying it.
+message Shield {
+  // Hits one raising cancels before the shell falls. A double for the reason
+  // Dot.max_stacks is one: GMS climbs it faster than a level at a time, and
+  // only a fractional step floored where it is read can walk that ladder.
+  double hits = 1;
+  double hits_per_level = 2;
+  // Share of a hit the shell cannot block that it takes off instead (0.10 ==
+  // a tenth of it). Multiplies with every other reduction standing, as they
+  // all do.
+  double boss_damage_taken_pct = 3;
+}
+
 message Buff {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -547,6 +571,11 @@ message Buff {
   // 120-second wait folded in as a passive would pay four times over.
   SkillEffect ally_base = 9;
   SkillEffect ally_per_level = 10;
+  // The shell this buff stands as, over the caster and the party alike -- one
+  // cast, one shell, and everyone under it gets their own count of blocks.
+  // Unset for every buff that only grants levers, which is all of them but
+  // Holy Magic Shell.
+  Shield shield = 11;
 }
 
 // A chance a swing has to land harder on one of the enemies it reached, and

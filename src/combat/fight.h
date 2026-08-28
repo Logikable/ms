@@ -470,6 +470,13 @@ class CombatSim {
   void TakeMobHit(const CombatParams& params, double dt);
   // What is left of a hit once the buffs standing have taken their share.
   double BuffDamageTakenFactor(const CombatParams& params) const;
+  // Spends one block off whatever shell is standing, if any is, and drops that
+  // shell when its last block goes. True when the hit was cancelled whole.
+  bool BlockHit(const CombatParams& params);
+  // Whether a shell is worth raising right now: on a boss, the moment it
+  // comes round; on a map, only once the pool is low enough for its heal to
+  // land. True for every buff that is not a shell. See RunBuffs.
+  bool ShieldWanted(const CombatParams& params, const BuffOption& buff) const;
   // Whether a passive brings the player back from the hit that just emptied
   // them. Asked only of a player who has hit 0: true when they hold such a
   // skill and its wait has run out, in which case the pool is full again by
@@ -559,6 +566,10 @@ class CombatSim {
   // the pair above. Held at its full count for every buff on a clock, which
   // never reads it.
   std::vector<double> buff_charge_left_;
+  // Hits each shell still has in it, parallel to the pair above. Set when the
+  // buff goes up and spent a hit at a time; a shell emptied falls at once,
+  // whatever is left of its clock. 0 for every buff that is not a shell.
+  std::vector<int> buff_blocks_left_;
   // Which buffs are standing, as the bitmask CombatParams indexes its damage
   // tables by. Worked out once a step, at the top.
   int buff_mask_ = 0;
@@ -567,6 +578,7 @@ class CombatSim {
   // so what is standing is read straight off the seconds left.
   std::vector<double> ally_buff_left_;
   std::vector<double> ally_buff_cooldown_left_;
+  std::vector<int> ally_buff_blocks_left_;
   // Seconds left before a passive will revive the player again. Counts down
   // wherever the character is, since what it measures is the pact rather than
   // the fight, and stays at 0 for everyone who holds no such skill.

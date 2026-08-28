@@ -308,6 +308,11 @@ double CooldownAt(const Skill& skill, int level) {
   return std::max(0.0, wait);
 }
 
+int ShieldHitsAt(const Shield& shield, int level) {
+  double hits = shield.hits() + shield.hits_per_level() * (level - 1);
+  return static_cast<int>(std::max(0.0, std::floor(hits)));
+}
+
 double WeaponConstant(Job job, EquipType weapon) {
   for (const JobWeaponConstantRow& row : kJobWeaponConstants) {
     if (row.job == job && row.weapon == weapon) {

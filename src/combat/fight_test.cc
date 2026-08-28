@@ -2492,6 +2492,125 @@ TEST(CombatSimTest, APartysBuffMultipliesWithTheCharactersOwn) {
   EXPECT_EQ(sim.player_hp(), 75);  // a quarter of the hit, not none of it
 }
 
+// Holy Magic Shell's shape: a buff that cancels whole hits rather than taking
+// a share off each of them, and heals the pool it is raised on.
+void GiveShield(CombatParams& params, int hits, double boss_soften,
+                double heal = 0.0) {
+  BuffOption buff;
+  buff.name = "Holy Magic Shell";
+  buff.duration_seconds = 100.0;
+  buff.cooldown_seconds = 1000.0;
+  buff.shield_hits = hits;
+  buff.boss_damage_taken_pct = boss_soften;
+  buff.heal_fraction = heal;
+  params.buffs.push_back(std::move(buff));
+  AttackSet set;
+  set.attacks = params.attacks;
+  set.auto_attacks = params.auto_attacks;
+  set.triggered_attacks = params.triggered_attacks;
+  params.buffed.push_back(std::move(set));
+}
+
+// The shell waits for the pool to be worth filling, swallows its count of
+// hits whole, and falls the moment the last of them is spent -- with its
+// clock nowhere near run out.
+TEST(CombatSimTest, AShellBlocksWholeHitsUntilItsCountRunsOut) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/40.0);
+  GiveShield(params, /*hits=*/2, /*boss_soften=*/0.5);
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 60);  // full pool: nothing worth raising it for
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 20);  // low enough, so it goes up behind the blow
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 20);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 20);  // the second block, and the shell falls
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 0);
+  EXPECT_TRUE(sim.died_this_step());
+}
+
+// A boss's hit is the one a shell cannot swallow: it costs its share less and
+// spends no block, so the shell is still whole however many land.
+TEST(CombatSimTest, AShellBluntsABossHitInsteadOfBlockingIt) {
+  Mob zakum = MakeMob("Zakum", 1e9);
+  zakum.set_boss(true);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&zakum, 1.0, 1)});
+  GivePlayerHp(params, 1000, /*interval=*/1.0, /*damage=*/40.0);
+  GiveShield(params, /*hits=*/2, /*boss_soften=*/0.5);
+
+  // Raised on the first step rather than held for a low pool: against a boss
+  // one blow is the whole fight, so it goes up the moment it comes round.
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 960);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 940);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 920);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 900);  // still blunting: no block was ever spent
+}
+
+// One shell over the whole party: an ally's cast heals this character and
+// blocks their hits, on the caster's clock and costing them no swing.
+TEST(CombatSimTest, APartysShellHealsAndBlocksForEverybodyUnderIt) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/40.0);
+  BuffOption ally;
+  ally.name = "Holy Magic Shell";
+  ally.duration_seconds = 100.0;
+  ally.cooldown_seconds = 1000.0;
+  ally.shield_hits = 2;
+  ally.heal_fraction = 0.5;
+  params.ally_buffs.push_back(std::move(ally));
+
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 60);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 70);  // the blow lands, then the heal answers it
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 70);
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 70);  // the second block, and the shell falls
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 30);
+}
+
+// Two shells are not one shell twice over: a hit spends a block off one of
+// them, so the party's and the character's own last twice as long between
+// them rather than being burned two at a time.
+TEST(CombatSimTest, OneHitSpendsOneBlockHoweverManyShellsStand) {
+  Mob snail = MakeMob("Snail", 1e9);
+  CombatSim sim;
+  CombatParams params = MakeParams(10.0, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 100, /*interval=*/1.0, /*damage=*/40.0);
+  GiveShield(params, /*hits=*/1, /*boss_soften=*/0.0);
+  BuffOption ally;
+  ally.name = "Holy Magic Shell";
+  ally.duration_seconds = 100.0;
+  ally.cooldown_seconds = 1000.0;
+  ally.shield_hits = 1;
+  params.ally_buffs.push_back(std::move(ally));
+
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 60);
+  sim.Advance(params, 1.0);
+  ASSERT_EQ(sim.player_hp(), 20);  // both go up behind this blow
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 20);  // the character's own block pays for it
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 20);  // and the party's for the next
+  sim.Advance(params, 1.0);
+  EXPECT_EQ(sim.player_hp(), 0);
+}
+
 // Puncture's shape: a weaker swing that leaves a wound, and a harder one the
 // fight would otherwise never put down. The buff is laid by the weak swing
 // rather than raised on a wait, and while it stands every swing hits `factor`

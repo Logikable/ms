@@ -1700,6 +1700,50 @@ TEST_F(SkillInspectPanelTest, WhatThePartyGetsIsHeadedApart) {
   EXPECT_EQ(RenderAt(MakeIronBody(), 10).find("Your Party"), std::string::npos);
 }
 
+// Holy Magic Shell stands over the caster and the party as one shell, so both
+// halves of the card state what it blocks -- and the boss row is named for
+// what it covers, since a player reading it wants to know which hits the
+// shell cannot swallow.
+TEST_F(SkillInspectPanelTest, AShellStatesWhatItBlocksForBothHalves) {
+  Skill shell = MakeIronBody();
+  shell.set_name("Holy Magic Shell");
+  shell.clear_base();
+  shell.clear_per_level();
+  shell.set_kind(SKILL_KIND_ACTIVE);
+  Buff* buff = shell.mutable_buff();
+  buff->set_duration_seconds(10.25);
+  buff->set_duration_seconds_per_level(0.25);
+  buff->mutable_base()->set_heal_pct(0.31);
+  buff->mutable_per_level()->set_heal_pct(0.01);
+  buff->mutable_ally_base()->set_heal_pct(0.31);
+  buff->mutable_ally_per_level()->set_heal_pct(0.01);
+  buff->mutable_shield()->set_hits(5.5);
+  buff->mutable_shield()->set_hits_per_level(0.5);
+  buff->mutable_shield()->set_boss_damage_taken_pct(0.10);
+
+  std::string rendered = RenderAt(shell, 20);
+  EXPECT_NE(RowIn(rendered, "Blocks", "15 attacks"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Damage Taken (Boss)", "-10%"), std::string::npos);
+  EXPECT_NE(RowIn(rendered, "Heal on Cast", "+50% HP"), std::string::npos);
+
+  // Both halves say it, and the party's is under the buff's own heading.
+  std::vector<std::string> lines = Lines(rendered);
+  int party = -1;
+  std::vector<int> blocks;
+  for (int i = 0; i < static_cast<int>(lines.size()); ++i) {
+    if (party < 0 && lines[i].find("Your Party") != std::string::npos) {
+      party = i;
+    }
+    if (lines[i].find("Blocks") != std::string::npos) {
+      blocks.push_back(i);
+    }
+  }
+  ASSERT_GT(party, 0);
+  ASSERT_GE(blocks.size(), 2u);
+  EXPECT_LT(blocks.front(), party);
+  EXPECT_GT(blocks.back(), party);
+}
+
 // Smokescreen's party half lapses with the buff, so it is read under the
 // buff's own heading rather than at the foot of the card, where it would look
 // like something the party keeps.

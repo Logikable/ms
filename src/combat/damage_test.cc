@@ -579,6 +579,22 @@ TEST(OffenseStatsForTest, WornAndLearnedIedMeetInReverse) {
 // hits a boss 30% harder, and GMS means both only while that skill is the one
 // landing. The character's own share is already in, so the swing's meets it
 // the way a second source does.
+// Holy Magic Shell thickens from 5 blocks to 15 over its twenty levels, which
+// is faster than a level at a time -- so the count is carried as a fraction
+// and floored where it is read.
+TEST(ShieldHitsAtTest, AShellThickensAsTheSkillIsTaught) {
+  Shield shell;
+  shell.set_hits(5.5);
+  shell.set_hits_per_level(0.5);
+  EXPECT_EQ(ShieldHitsAt(shell, 1), 5);
+  EXPECT_EQ(ShieldHitsAt(shell, 2), 6);
+  EXPECT_EQ(ShieldHitsAt(shell, 10), 10);
+  EXPECT_EQ(ShieldHitsAt(shell, 20), 15);
+
+  // A buff that is not a shell blocks nothing at any level.
+  EXPECT_EQ(ShieldHitsAt(Shield(), 20), 0);
+}
+
 // Heaven's Hammer comes back sooner the further it is taught: 29 seconds down
 // to 15 over its thirty levels, which is GMS's 30 - floor(L/2) walked as a
 // line. The step is negative and the pair never falls below nothing.

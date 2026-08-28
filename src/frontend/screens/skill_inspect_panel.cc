@@ -1131,6 +1131,25 @@ Row SectionRow(const std::string& label, ftxui::Color color) {
   return TextRow(ftxui::text(" " + label) | ftxui::color(color));
 }
 
+// The shell a buff stands as: the hits it swallows whole, and what it does
+// about the ones it cannot. Empty for every buff that is not one.
+std::vector<Row> ShieldRows(const Shield& shield, int level) {
+  std::vector<Row> rows;
+  int hits = ShieldHitsAt(shield, level);
+  if (hits <= 0) {
+    return rows;
+  }
+  rows.push_back(EffectRow("Blocks", std::to_string(hits) + " attacks"));
+  if (shield.boss_damage_taken_pct() > 0.0) {
+    // Named for what it covers rather than for what it is: a player reading
+    // this wants to know it is the boss hits the shell cannot swallow.
+    rows.push_back(
+        EffectRow("Damage Taken (Boss)",
+                  "-" + FormatPercent(shield.boss_damage_taken_pct())));
+  }
+  return rows;
+}
+
 // What a timed buff grants, headed by how long it stands. The wait for the
 // next one is the skill's own Cooldown row, above. No row here says "while
 // up" -- the heading says it once for all of them.
@@ -1167,6 +1186,9 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   base.clear_heal_pct();
   per.clear_heal_pct();
   for (Row& row : LeverRows(base, per, level, "")) {
+    rows.push_back(std::move(row));
+  }
+  for (Row& row : ShieldRows(buff.shield(), level)) {
     rows.push_back(std::move(row));
   }
   // What the buff bleeds. A pulse borrowing the swing's reach says its damage
@@ -1206,11 +1228,25 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   // What everybody else in the party gets while it stands, in the colour the
   // party screens are drawn in. Under the buff's own heading rather than at
   // the foot of the card, because these lapse with it. See Buff.ally_base.
-  std::vector<Row> ally =
-      LeverRows(buff.ally_base(), buff.ally_per_level(), level, "");
-  if (!ally.empty()) {
+  SkillEffect ally_base = buff.ally_base();
+  SkillEffect ally_per = buff.ally_per_level();
+  double ally_heal = ally_base.heal_pct() + ally_per.heal_pct() * (level - 1);
+  ally_base.clear_heal_pct();
+  ally_per.clear_heal_pct();
+  std::vector<Row> ally = LeverRows(ally_base, ally_per, level, "");
+  // The shell stands over the party as one, so what it blocks is stated for
+  // them exactly as it is for the caster.
+  std::vector<Row> ally_shield = ShieldRows(buff.shield(), level);
+  if (ally_heal > 0.0 || !ally.empty() || !ally_shield.empty()) {
     rows.push_back(SectionRow("Your Party", kTheme));
+    if (ally_heal > 0.0) {
+      rows.push_back(
+          EffectRow("Heal on Cast", "+" + FormatPercent(ally_heal) + " HP"));
+    }
     for (Row& row : ally) {
+      rows.push_back(std::move(row));
+    }
+    for (Row& row : ally_shield) {
       rows.push_back(std::move(row));
     }
   }
