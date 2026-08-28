@@ -19,6 +19,8 @@
 #include "absl/flags/parse.h"
 #include "absl/log/log.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "analysis/parallel.h"
 #include "analysis/sim_format.h"
 #include "analysis/sim_gear.h"
@@ -53,6 +55,17 @@ ABSL_FLAG(std::string, levels, "10,20,40,60,80,100,110,120,130,140",
           "it when the table is wider than the terminal. Starts at 10 because "
           "a level 1 has no job to sweep and ParseLevels refuses it, and ends "
           "at the cap, in tens through the band the Frozen tier is worn in.");
+ABSL_FLAG(bool, drops, false,
+          "Also wear the armour, accessories and symbol that drop rather than "
+          "sell. Off by default, which is the shopped slots alone -- what this "
+          "table was calibrated against. On is what a player is standing in, "
+          "and is the only honest reading past level 140, where the map's own "
+          "level is close enough to the character's that armour decides "
+          "whether they hold it at all.");
+ABSL_FLAG(std::string, maps, "",
+          "Comma-separated map keys to sweep, one row each, in the order "
+          "given. Empty sweeps every hunting ground, which is what the table "
+          "is for -- name one when one map is the question.");
 
 namespace ms {
 namespace {
@@ -70,6 +83,25 @@ constexpr double kStepSeconds = 0.05;
 // re-parsing per row would let a bad flag fail halfway through a table.
 std::vector<int> SweptLevels() {
   return ParseLevels(absl::GetFlag(FLAGS_levels), "--levels");
+}
+
+// The rows, from --maps, or every hunting ground when it is empty. A key the
+// catalog does not hold is fatal: a sweep quietly missing the map it was
+// pointed at would read as a map nobody can clear.
+std::vector<std::string> SweptMaps(const Catalogs& catalogs) {
+  std::string spec = absl::GetFlag(FLAGS_maps);
+  if (spec.empty()) {
+    return HuntingGrounds(catalogs);
+  }
+  std::vector<std::string> maps;
+  for (absl::string_view key : absl::StrSplit(spec, ',', absl::SkipEmpty())) {
+    std::string name(absl::StripAsciiWhitespace(key));
+    if (catalogs.maps.find(name) == catalogs.maps.end()) {
+      LOG(FATAL) << "--maps names no such map '" << name << "'";
+    }
+    maps.push_back(name);
+  }
+  return maps;
 }
 
 // What one (level, map) pairing came to.
@@ -92,6 +124,9 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
   // they have. Without a purse -- this table asks whether a build can hold a
   // map, and what it could afford is no part of that answer.
   Outfit(state, /*budget=*/false);
+  if (absl::GetFlag(FLAGS_drops)) {
+    OutfitDrops(state);
+  }
   state.current_map = map;
 
   Outcome outcome;
@@ -125,7 +160,7 @@ Outcome Farm(const Catalogs& catalogs, int level, const std::vector<Job>& path,
 void Run(double seconds, Job branch) {
   Catalogs catalogs = LoadCatalogs();
   std::vector<Job> path = PathTo(branch);
-  std::vector<std::string> maps = HuntingGrounds(catalogs);
+  std::vector<std::string> maps = SweptMaps(catalogs);
 
   std::vector<int> levels = SweptLevels();
   std::printf("%-28s %5s", "map", "mobLv");
