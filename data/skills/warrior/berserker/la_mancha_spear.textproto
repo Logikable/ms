@@ -1,5 +1,5 @@
-# Reach cut from GMS's 10 to 4. Its hitbox is 390x215 -- one storey of a map,
-# holding 4 monsters side by side -- so 10 is a cap GMS never fills and this
+# Reach cut from GMS's 10 to 5. Its hitbox is 390x215 -- one storey of a map,
+# holding 5 monsters side by side -- so 10 is a cap GMS never fills and this
 # fight would hit every time. See Skill.max_enemies.
 #
 # 810ms is the animation's own, from the frame data: a beat slower than the
@@ -13,7 +13,7 @@ max_level: 20
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM
 base_delay_ms: 810
-max_enemies: 4
+max_enemies: 5
 lines: 4
 base { skill_pct: 1.47 }
 per_level { skill_pct: 0.02 }

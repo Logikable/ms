@@ -1,5 +1,5 @@
-# Reach cut from GMS's 8 to 4. Its hitbox is 415x200 -- one storey of a map,
-# holding 4 monsters side by side -- so 8 is a cap GMS never fills and this
+# Reach cut from GMS's 8 to 5. Its hitbox is 415x200 -- one storey of a map,
+# holding 5 monsters side by side -- so 8 is a cap GMS never fills and this
 # fight would hit every time. See Skill.max_enemies.
 #
 # GMS silences what it hits and charges the hammer with an element. Neither is
@@ -19,7 +19,7 @@ required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_ONE_HANDED_BLUNT
 required_equip_type: EQUIP_TYPE_TWO_HANDED_BLUNT
 base_delay_ms: 660
-max_enemies: 4
+max_enemies: 5
 lines: 4
 tags: SKILL_TAG_HOLY_POWER
 base { skill_pct: 2.53 }

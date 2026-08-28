@@ -1079,9 +1079,9 @@ message Skill {
   // and whose cap is generous. So a cap GMS could not realistically fill is
   // cut to what its own hitbox holds:
   //
-  //     reach = floor(box width / 90) * (1 + floor(box height / 250))
+  //     reach = floor(box width / 70) * (1 + floor(box height / 250))
   //
-  // 90 pixels is about one monster's footprint and 250 is about one storey of
+  // 70 pixels is about one monster's footprint and 250 is about one storey of
   // a map, so the two factors are "how many stand side by side" and "how many
   // platforms the swing covers". The cut is a floor under GMS's own number,
   // never a lift: a box that holds more than the cap leaves the cap standing.

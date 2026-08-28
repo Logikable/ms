@@ -1,5 +1,5 @@
-# Reach cut from GMS's 8 to 4. Its hitbox is 360x190 -- one storey of a map,
-# holding 4 monsters side by side -- so 8 is a cap GMS never fills and this
+# Reach cut from GMS's 8 to 5. Its hitbox is 360x190 -- one storey of a map,
+# holding 5 monsters side by side -- so 8 is a cap GMS never fills and this
 # fight would hit every time. See Skill.max_enemies.
 #
 # GMS pulls and stuns everything it hits. Neither is modelled -- the fight has
@@ -14,7 +14,7 @@ max_level: 20
 required_equip_type: EQUIP_TYPE_SPEAR
 required_equip_type: EQUIP_TYPE_POLEARM
 base_delay_ms: 780
-max_enemies: 4
+max_enemies: 5
 lines: 4
 base { skill_pct: 0.67 }
 per_level { skill_pct: 0.02 }
