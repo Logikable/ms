@@ -1594,6 +1594,7 @@ TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
   for (Skill* skill : {&first, &second}) {
     skill->mutable_boost(0)->set_dot_skill_pct(0.11);
     skill->mutable_boost(0)->set_dot_skill_pct_per_level(0.01);
+    skill->mutable_boost(0)->set_dot_duration_seconds(2.0);
   }
   std::map<std::string, Skill> skills = {{"speed_mirage", first},
                                          {"silhouette", second}};
@@ -1604,6 +1605,7 @@ TEST_F(DerivedStatsTest, TwoBoostsOnOneSkillSum) {
       DerivedStatsFor(c, skills).skill_bonus.at("Wind Arrow");
   EXPECT_NEAR(bonus.skill_pct, 1.40, 1e-9);
   EXPECT_NEAR(bonus.dot_skill_pct, 0.60, 1e-9);
+  EXPECT_NEAR(bonus.dot_duration_seconds, 4.0, 1e-9);
 }
 
 TEST_F(DerivedStatsTest, IgnoredDefenceClimbsWithItsLevel) {

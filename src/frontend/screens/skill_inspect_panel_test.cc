@@ -493,6 +493,16 @@ TEST_F(SkillInspectPanelTest, StatesTheStrikesAndReachItHandsAnotherSkill) {
                   "+60% DoT Damage per Tick"),
             std::string::npos);
 
+  // The burn's clock reads in seconds, which is the only way it could: GMS
+  // states them, and the ladder they land on is the named skill's own.
+  Skill aftermath = MakeIronBody();
+  SkillBoost* longer = aftermath.add_boost();
+  longer->set_skill_name("Poison Mist");
+  longer->set_dot_duration_seconds(6.0);
+  EXPECT_NE(
+      RowIn(RenderAt(aftermath, 1), "Boosts Poison Mist", "+6s DoT Duration"),
+      std::string::npos);
+
   // A lever handed over backwards keeps its sign. Hurricane - Split Attack
   // buys a second arrow with a quarter off what each one lands, and a row
   // that dropped the cut would sell it as a free strike.

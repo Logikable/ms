@@ -376,6 +376,9 @@ void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
   // mark the skill leaves rather than the swing -- see SkillBoost.
   into.dot_skill_pct +=
       boost.dot_skill_pct() + boost.dot_skill_pct_per_level() * (level - 1);
+  into.dot_duration_seconds +=
+      boost.dot_duration_seconds() +
+      boost.dot_duration_seconds_per_level() * (level - 1);
 }
 
 // Notes down what `skill` hands other skills by name. Kept out of AddEffect,

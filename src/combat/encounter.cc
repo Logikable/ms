@@ -100,18 +100,20 @@ void StripMesoDrops(DerivedStats& derived) {
 // stat line the swing that lights it was priced off. Its own multiplier and
 // its own strikes: a burn is not the swing, it is what the swing left behind.
 //
-// `bonus_skill_pct` is what the rest of the book hands this burn by name. The
-// other levers a boost grants are already in `offense` and ride in with it --
-// only the multiplier is overwritten here, so only it has to be handed over.
+// `boost` is what the rest of the book hands this burn by name, or nullptr for
+// a burn no boost can reach. The levers it grants the swing are already in
+// `offense` and ride in with it -- only the multiplier and the clock are the
+// burn's own, so only those two are read here.
 DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
                        const std::vector<CombatType>& types,
-                       double speed_factor, double bonus_skill_pct) {
+                       double speed_factor, const SkillBonus* boost) {
   // A stack ladder walked in thirds or sixths lands a hair under the whole
   // number it climbs to, and a burn that stacks 2.9999 times stacks twice.
   constexpr double kStackEpsilon = 1e-9;
   OffenseStats burn = offense;
   burn.skill_pct = dot.base().skill_pct() +
-                   dot.per_level().skill_pct() * (level - 1) + bonus_skill_pct;
+                   dot.per_level().skill_pct() * (level - 1) +
+                   (boost != nullptr ? boost->dot_skill_pct : 0.0);
   burn.normal_skill_pct = dot.base().normal_skill_pct() +
                           dot.per_level().normal_skill_pct() * (level - 1);
   burn.lines = std::max(1, dot.lines());
@@ -125,8 +127,8 @@ DotApplication BurnFor(const Dot& dot, const OffenseStats& offense, int level,
   application.rolls = RollsFor(burn);
   application.interval_seconds = dot.interval_seconds() * speed_factor;
   application.duration_seconds =
-      (dot.duration_seconds() +
-       dot.duration_seconds_per_level() * (level - 1)) *
+      (dot.duration_seconds() + dot.duration_seconds_per_level() * (level - 1) +
+       (boost != nullptr ? boost->dot_duration_seconds : 0.0)) *
       speed_factor;
   double chance = dot.chance() + dot.chance_per_level() * (level - 1);
   // Nothing said is certainty, which is what a burn a swing simply leaves
@@ -366,8 +368,8 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // A boost names a skill, and the poison on a claw is the character's rather
   // than any skill's, so the carried ones are handed nothing.
   for (const CharacterDot& carried : derived.dots) {
-    attack.dots.push_back(
-        BurnFor(carried.dot, follow, carried.level, types, speed_factor, 0.0));
+    attack.dots.push_back(BurnFor(carried.dot, follow, carried.level, types,
+                                  speed_factor, nullptr));
     attack.dots.back().carried = true;
   }
   if (skill != nullptr && skill->dot().interval_seconds() > 0.0) {
@@ -375,10 +377,9 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     // states a burn of its own reads what was filed under its own name.
     std::map<std::string, SkillBonus>::const_iterator boost =
         derived.skill_bonus.find(skill->name());
-    double bonus =
-        boost != derived.skill_bonus.end() ? boost->second.dot_skill_pct : 0.0;
     attack.dots.push_back(
-        BurnFor(skill->dot(), offense, level, types, speed_factor, bonus));
+        BurnFor(skill->dot(), offense, level, types, speed_factor,
+                boost != derived.skill_bonus.end() ? &boost->second : nullptr));
   }
   attack.final_attack_damage.assign(types.size(), 0.0);
   attack.single_final_attack_damage.assign(types.size(), 0.0);

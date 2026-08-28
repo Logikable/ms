@@ -666,6 +666,17 @@ std::string BoostText(const SkillBoost& boost, int level) {
     gains += (dot_pct > 0.0 ? "+" : "") + FormatPercent(dot_pct) +
              " DoT Damage per Tick";
   }
+  // Seconds rather than a share, which is how GMS states it and the only way
+  // the row could be read: the target's page states the whole ladder.
+  double dot_seconds = boost.dot_duration_seconds() +
+                       boost.dot_duration_seconds_per_level() * (level - 1);
+  if (dot_seconds != 0.0) {
+    if (!gains.empty()) {
+      gains += ", ";
+    }
+    gains += (dot_seconds > 0.0 ? "+" : "") + FormatNumber(dot_seconds) +
+             "s DoT Duration";
+  }
   // The levers the boost hands that skill alone, named because a sentence
   // granting two of them cannot leave either unsaid. In the order the effect
   // rows above use.

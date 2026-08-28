@@ -195,6 +195,9 @@ struct SkillBonus {
   // stat line it is priced off, but states its own multiplier, so this one is
   // added where BurnFor writes it. See SkillBoost::dot_skill_pct.
   double dot_skill_pct = 0.0;
+  // Seconds added to the named skill's burn, for the same reason as above: the
+  // burn's clock is its own. See SkillBoost::dot_duration_seconds.
+  double dot_duration_seconds = 0.0;
 };
 
 // What a character's learned passives add to every swing, whichever attack

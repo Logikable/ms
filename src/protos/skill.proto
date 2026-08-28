@@ -832,6 +832,14 @@ message SkillBoost {
   // Read at the granting skill's level, as everything here is.
   double dot_skill_pct = 11;
   double dot_skill_pct_per_level = 12;
+  // Seconds added to how long the named skill's burn lasts. Apart from
+  // effect{} for the same reason the pair above is: the mark is not the swing,
+  // and it states its own clock. Poison Mist - Aftermath is what it exists for
+  // -- GMS writes it "Bonus 6 seconds of additional damage".
+  //
+  // Read at the granting skill's level, and never a share: GMS states seconds.
+  double dot_duration_seconds = 13;
+  double dot_duration_seconds_per_level = 14;
   // Levers the named skill alone carries, on top of its own. Seven are read --
   // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate, final_dmg_pct and
   // final_attack_chance -- and each meets the target's own the way two sources

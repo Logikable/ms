@@ -1665,6 +1665,8 @@ TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
   boost->set_skill_name("Poison Mist");
   boost->set_dot_skill_pct(0.315);
   boost->set_dot_skill_pct_per_level(0.015);
+  // The burn's other half, which is its clock. Poison Mist - Aftermath's.
+  boost->set_dot_duration_seconds(6.0);
 
   Mob snail = MakeMob("Snail", 15);
   std::map<std::string, Skill> book = {
@@ -1701,6 +1703,10 @@ TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
   // 240% + 60 points at Mist Eruption 20, which is a quarter more per tick.
   EXPECT_NEAR(paid_mist->dots[1].damage[0] / bare_mist->dots[1].damage[0],
               3.00 / 2.40, 1e-6);
+  // And six seconds longer, on top of the 9.6 the mist states.
+  EXPECT_NEAR(
+      paid_mist->dots[1].duration_seconds / bare_mist->dots[1].duration_seconds,
+      15.6 / 9.6, 1e-6);
   // The strike that lays the mist is untouched: the lever names the mark.
   EXPECT_NEAR(paid_mist->damage_per_hit[0], bare_mist->damage_per_hit[0], 1e-9);
   // So is the poison on the claw, which is the character's and not the
@@ -1712,6 +1718,10 @@ TEST(ComputeCombatParamsTest, ABoostCanLiftTheNamedSkillsBurn) {
   ASSERT_NE(paid_haze, nullptr);
   ASSERT_EQ(paid_haze->dots.size(), 2u);
   EXPECT_NEAR(paid_haze->dots[1].damage[0], bare_haze->dots[1].damage[0], 1e-9);
+  EXPECT_NEAR(paid_haze->dots[1].duration_seconds,
+              bare_haze->dots[1].duration_seconds, 1e-9);
+  EXPECT_NEAR(paid_mist->dots[0].duration_seconds,
+              bare_mist->dots[0].duration_seconds, 1e-9);
 }
 
 // Showdown's shuriken: a second attack the swing sets off, with its own reach,
