@@ -69,14 +69,14 @@ class CharacterPanel {
   // What Enter does, by where it lands: on_allocate on a stat's [+] with AP to
   // spend, on_learn on a skill's [+] with SP, on_advance on a job (which
   // should confirm first -- the panel does not advance anything itself), and
-  // on_inspect on a skill's name, and on_all_stats on the View All Stats row
+  // on_menu on a skill's name, and on_all_stats on the View All Stats row
   // below them. Only the last two are never gated: a maxed skill with no SP
   // behind it is still worth reading about, and so are the stats.
   ftxui::Component MakeComponent(
       std::function<void(StatField)> on_allocate,
       std::function<void(const Skill&)> on_learn = {},
       std::function<void(Job)> on_advance = {},
-      std::function<void(const Skill&)> on_inspect = {},
+      std::function<void(const Skill&)> on_menu = {},
       std::function<void()> on_all_stats = {});
 
   // Records the active tab as opened, which is what puts its gold out. Called
@@ -84,6 +84,13 @@ class CharacterPanel {
   // the panel -- a tab already open under the cursor has been seen just as
   // surely as one stepped onto.
   void MarkActiveTabSeen();
+
+  // The screen row the selected skill was last drawn on, for anchoring the
+  // skill menu beside it. Read from the render for the same reason the job
+  // row below is.
+  int skill_cursor_row() const {
+    return skill_cursor_box_.y_min;
+  }
 
   // The screen row the selected job was last drawn on, for anchoring the job
   // menu beside it. Read from the render rather than worked out from the rows
@@ -182,7 +189,7 @@ class CharacterPanel {
   bool ShowsCombatStats() const;
   bool OnSkillsTabEvent(const ftxui::Event& event,
                         const std::function<void(const Skill&)>& on_learn,
-                        const std::function<void(const Skill&)>& on_inspect);
+                        const std::function<void(const Skill&)>& on_menu);
   bool OnAdvanceTabEvent(const ftxui::Event& event,
                          const std::function<void(Job)>& on_advance);
 
@@ -312,6 +319,7 @@ class CharacterPanel {
   TextField username_field_{kMaxUsernameLength};
   // Written by ftxui::reflect on the selected job row each render.
   mutable ftxui::Box job_cursor_box_;
+  mutable ftxui::Box skill_cursor_box_;
 };
 
 }  // namespace ms

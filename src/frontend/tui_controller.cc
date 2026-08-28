@@ -107,6 +107,25 @@ void TuiController::OpenSkillLearn(const Skill& skill) {
   screen_ = kSkillLearn;
 }
 
+void TuiController::OpenSkillMenu(const Skill& skill) {
+  skill_menu_skill_ = skill;
+  skill_menu_ =
+      ItemMenu({"Inspect",
+                state_.character.SkillToggledOn(skill.name()) ? "Deactivate"
+                                                              : "Activate",
+                "Close"});
+  skill_menu_.Reset();
+  if (!skill.toggle()) {
+    // Hidden rather than dim: every other skill in the book is one there is
+    // nothing to switch about, and a greyed row on all of them would advertise
+    // something that is not coming.
+    skill_menu_.Hide(kSkillMenuToggle);
+  } else if (state_.character.skill_level(skill) <= 0) {
+    skill_menu_.Disable(kSkillMenuToggle);
+  }
+  screen_ = kSkillMenu;
+}
+
 void TuiController::OpenSkillInspect(const Skill& skill) {
   skill_inspect_ = skill;
   skill_inspect_panel_.ResetScroll();
@@ -282,6 +301,8 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnApAllocEvent(event);
     case kSkillLearn:
       return OnSkillLearnEvent(event);
+    case kSkillMenu:
+      return OnSkillMenuEvent(event);
     // Both are screens with nothing to do but read them, so they close the
     // same way.
     case kSkillInspect:
@@ -553,6 +574,39 @@ bool TuiController::OnSkillLearnEvent(ftxui::Event event) {
     screen_ = kMain;
   } else if (sp_selector_.TakeCancelled()) {
     screen_ = kMain;
+  }
+  return true;
+}
+
+bool TuiController::OnSkillMenuEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    skill_menu_.Up();
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    skill_menu_.Down();
+    return true;
+  }
+  if (IsBack(event)) {
+    screen_ = kMain;
+    return true;
+  }
+  if (!IsForward(event)) {
+    return true;  // The menu is modal: nothing behind it hears a key.
+  }
+  switch (skill_menu_.selected()) {
+    case kSkillMenuInspect:
+      OpenSkillInspect(skill_menu_skill_);
+      break;
+    case kSkillMenuToggle:
+      // The switch is thrown and the menu closes: what it changed is the book
+      // behind it, which the player wants to see.
+      state_.character.ToggleSkill(skill_menu_skill_);
+      screen_ = kMain;
+      break;
+    default:
+      screen_ = kMain;
+      break;
   }
   return true;
 }

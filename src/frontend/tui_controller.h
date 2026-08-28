@@ -94,6 +94,10 @@ class TuiController {
   // up to the most points `skill` can still take (its stage SP, capped at how
   // far it is below max level).
   void OpenSkillLearn(const Skill& skill);
+  // Open the menu Enter on a skill's name raises: read it, switch it on or
+  // off, or walk away. The middle entry is offered only by a toggle skill, and
+  // is dim until the player has bought it.
+  void OpenSkillMenu(const Skill& skill);
   // Open the skill's inspect screen. Copies the skill, as the learn dialog
   // does, so nothing downstream depends on the catalog outliving the screen.
   void OpenSkillInspect(const Skill& skill);
@@ -160,6 +164,15 @@ class TuiController {
   }
   const AmountSelector& sp_selector() const {
     return sp_selector_;
+  }
+
+  // The skill menu, for the overlay Tui floats beside the skill's row, and the
+  // skill it was opened on.
+  const ItemMenu& skill_menu() const {
+    return skill_menu_;
+  }
+  const Skill& skill_menu_skill() const {
+    return skill_menu_skill_;
   }
 
   // The skill being inspected while in kSkillInspect, the level the character
@@ -333,6 +346,7 @@ class TuiController {
   bool OnScrollResultEvent(ftxui::Event event);
   bool OnApAllocEvent(ftxui::Event event);
   bool OnSkillLearnEvent(ftxui::Event event);
+  bool OnSkillMenuEvent(ftxui::Event event);
   bool OnSkillInspectEvent(ftxui::Event event);
   bool OnJobMenuEvent(ftxui::Event event);
   bool OnJobInspectEvent(ftxui::Event event);
@@ -482,6 +496,10 @@ class TuiController {
   Skill skill_learn_;
   AmountSelector sp_selector_;
   Skill skill_inspect_;
+  // Rebuilt on every open: the middle entry is a verb that reads Activate or
+  // Deactivate by which way the switch is currently thrown.
+  Skill skill_menu_skill_;
+  ItemMenu skill_menu_{{"Inspect", "Activate", "Close"}};
   Job job_advance_ = JOB_UNSPECIFIED;
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
   SymbolLevelPanel symbol_level_panel_;

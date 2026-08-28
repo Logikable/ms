@@ -18,6 +18,9 @@ enum Screen : int {
   kScrollResult,
   kApAlloc,
   kSkillLearn,
+  // Enter on a skill in the Character panel's Skills tab: read it, switch it
+  // on or off where it is a toggle, or walk away.
+  kSkillMenu,
   kSkillInspect,
   // Every stat on one screen, from the Character panel's last stats row.
   kAllStats,
@@ -158,6 +161,13 @@ enum PartyMenuItem : int {
   kPartyMenuKick = 1,
   kPartyMenuPromote = 2,
   kPartyMenuClose = 3,
+};
+// The skill menu's entries. The middle one is a toggle skill's alone -- for
+// every other skill it is hidden, there being nothing to switch.
+enum SkillMenuItem : int {
+  kSkillMenuInspect = 0,
+  kSkillMenuToggle = 1,
+  kSkillMenuClose = 2,
 };
 enum JobMenuItem : int {
   kJobMenuInspect = 0,

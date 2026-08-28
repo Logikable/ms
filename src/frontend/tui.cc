@@ -158,7 +158,7 @@ void Tui::BuildComponents() {
       [this](StatField field) { controller_.OpenApAllocate(field); },
       [this](const Skill& skill) { controller_.OpenSkillLearn(skill); },
       [this](Job job) { controller_.OpenJobMenu(job); },
-      [this](const Skill& skill) { controller_.OpenSkillInspect(skill); },
+      [this](const Skill& skill) { controller_.OpenSkillMenu(skill); },
       [this]() { controller_.OpenAllStats(); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
@@ -740,6 +740,16 @@ ftxui::Element Tui::RenderMain() {
       MainLayout(widths, char_panel_.Render(), combat_component_->Render(),
                  std::move(equipped), std::move(inventory), std::move(corner),
                  RenderExpBar());
+  if (controller_.screen() == kSkillMenu) {
+    // Anchored to the skill row the same way the job menu is anchored to a
+    // job, and clear of the names to its left -- which skill the menu is about
+    // is the one thing it must not cover.
+    constexpr int kSkillMenuCol = 22;
+    return ftxui::dbox(
+        {layout,
+         Floating(controller_.skill_menu().Render(
+             std::max(0, char_panel_.skill_cursor_row() - 1), kSkillMenuCol))});
+  }
   if (controller_.screen() == kJobMenu) {
     // Anchored to the job row the same way the bag's menu is anchored to an
     // item, and one row above it so the highlighted entry lands beside the job

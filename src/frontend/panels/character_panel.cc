@@ -510,9 +510,11 @@ std::vector<const Skill*> CharacterPanel::SkillsForPage(int page) const {
   // unreached or undefined advancement has none. The Hyper page hangs off the
   // advancement the character is at now, which is the book its skills upgrade.
   int stage = IsHyperPage(page) ? character_.proto().job_stage() : page + 1;
+  std::set<std::string> toggles_on(character_.proto().active_skill().begin(),
+                                   character_.proto().active_skill().end());
   return SkillsForAdvancement(
       skills_, AdvancementForJobStage(character_.proto().job(), stage),
-      IsHyperPage(page));
+      IsHyperPage(page), toggles_on);
 }
 
 bool CharacterPanel::SkillLocked(const Skill& skill) const {
@@ -580,7 +582,7 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
   } else if (maxed || !has_sp || locked) {
     plus = plus | ftxui::dim;
   }
-  return ftxui::hbox({
+  ftxui::Element row = ftxui::hbox({
       ftxui::text(" "),
       tag_text,
       name,
@@ -590,6 +592,10 @@ ftxui::Element CharacterPanel::RenderSkillRow(const Skill& skill, int index,
       plus,
       ftxui::text(" "),
   });
+  if (selected) {
+    row = std::move(row) | ftxui::reflect(skill_cursor_box_);
+  }
+  return row;
 }
 
 int CharacterPanel::SkillRowsShown(int total) const {
@@ -833,7 +839,7 @@ bool CharacterPanel::ShowsCombatStats() const {
 bool CharacterPanel::OnSkillsTabEvent(
     const ftxui::Event& event,
     const std::function<void(const Skill&)>& on_learn,
-    const std::function<void(const Skill&)>& on_inspect) {
+    const std::function<void(const Skill&)>& on_menu) {
   if (zone_ == kZoneAdvTabs) {
     // Advancement bar: Left/Right switch stages; Up returns to the outer tabs
     // and Down descends to the skills, or back to the outer tabs when this
@@ -883,8 +889,8 @@ bool CharacterPanel::OnSkillsTabEvent(
     if (skill_col_ == kColName) {
       // Never gated: a maxed skill with no SP behind it still has a
       // description and a level table worth reading.
-      if (on_inspect) {
-        on_inspect(skill);
+      if (on_menu) {
+        on_menu(skill);
       }
       return true;
     }
@@ -902,14 +908,14 @@ ftxui::Component CharacterPanel::MakeComponent(
     std::function<void(StatField)> on_allocate,
     std::function<void(const Skill&)> on_learn,
     std::function<void(Job)> on_advance,
-    std::function<void(const Skill&)> on_inspect,
+    std::function<void(const Skill&)> on_menu,
     std::function<void()> on_all_stats) {
   // Renderer(bool) overload is Focusable(), unlike Renderer() -- required so
   // Container::Tab's Focused() check passes when panel_focus_ == kCharPanel.
   ftxui::Component renderer =
       ftxui::Renderer([this](bool /*focused*/) { return Render(); });
   return ftxui::CatchEvent(
-      renderer, [this, on_allocate, on_learn, on_advance, on_inspect,
+      renderer, [this, on_allocate, on_learn, on_advance, on_menu,
                  on_all_stats](ftxui::Event event) {
         if (panel_focus_ != kCharPanel) {
           return false;
@@ -935,7 +941,7 @@ ftxui::Component CharacterPanel::MakeComponent(
         if (ActiveTab() == kTabAdvance) {
           return OnAdvanceTabEvent(event, on_advance);
         }
-        return OnSkillsTabEvent(event, on_learn, on_inspect);
+        return OnSkillsTabEvent(event, on_learn, on_menu);
       });
 }
 

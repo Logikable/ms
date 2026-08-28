@@ -635,6 +635,72 @@ TEST_F(TuiControllerTest, ConfirmLearnsTheChosenPoints) {
   EXPECT_EQ(controller_->screen(), kMain);
 }
 
+// --- Skill menu ---
+
+// The Bishop's toggle, on the Swordman's book so the fixture's character can
+// hold it.
+Skill RighteouslyIndignant() {
+  Skill skill;
+  skill.set_name("Righteously Indignant");
+  skill.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  skill.set_max_level(1);
+  skill.set_toggle(true);
+  return skill;
+}
+
+TEST_F(TuiControllerTest, EnterOnASkillOpensItsMenuOnInspect) {
+  controller_->OpenSkillMenu(SlashBlast());
+  EXPECT_EQ(controller_->screen(), kSkillMenu);
+  EXPECT_EQ(controller_->skill_menu_skill().name(), "Slash Blast");
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kSkillInspect);
+  EXPECT_EQ(controller_->skill_inspect_skill().name(), "Slash Blast");
+}
+
+// Nothing to switch on an ordinary skill, so Down off Inspect lands on Close
+// rather than on a row that does nothing.
+TEST_F(TuiControllerTest, AnOrdinarySkillIsOfferedNoSwitch) {
+  controller_->OpenSkillMenu(SlashBlast());
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(controller_->skill_menu().selected(), kSkillMenuClose);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
+TEST_F(TuiControllerTest, TheSwitchThrowsAndTheMenuCloses) {
+  Skill toggle = RighteouslyIndignant();
+  ASSERT_TRUE(state_->character.LearnSkill(toggle, 1));
+  controller_->OpenSkillMenu(toggle);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  ASSERT_EQ(controller_->skill_menu().selected(), kSkillMenuToggle);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_TRUE(state_->character.SkillToggledOn("Righteously Indignant"));
+
+  // And the verb reads the other way round the second time.
+  controller_->OpenSkillMenu(toggle);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_FALSE(state_->character.SkillToggledOn("Righteously Indignant"));
+}
+
+// A toggle nobody has bought still lists its switch -- greyed, because its
+// absence would be the surprise -- and the cursor steps past it.
+TEST_F(TuiControllerTest, AnUnboughtToggleCannotBeSwitchedOn) {
+  controller_->OpenSkillMenu(RighteouslyIndignant());
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  EXPECT_EQ(controller_->skill_menu().selected(), kSkillMenuClose);
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kMain);
+  EXPECT_FALSE(state_->character.SkillToggledOn("Righteously Indignant"));
+}
+
+TEST_F(TuiControllerTest, EscapeLeavesTheSkillMenu) {
+  controller_->OpenSkillMenu(SlashBlast());
+  controller_->OnEvent(ftxui::Event::Escape);
+  EXPECT_EQ(controller_->screen(), kMain);
+}
+
 // --- Skill inspect ---
 
 TEST_F(TuiControllerTest, OpenSkillInspectSetsScreenToSkillInspect) {

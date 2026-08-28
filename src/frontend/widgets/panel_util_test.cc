@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -12,6 +14,7 @@
 #include "ftxui/dom/node.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "src/frontend/widgets/colors.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -1185,6 +1188,46 @@ TEST(WrapBalancedTest, AWordTooLongKeepsItsOwnLine) {
   EXPECT_EQ(WrapBalanced("Supercalifragilistic sword", 10, 0),
             (std::vector<std::string>{"Supercalifragilistic", "sword"}));
   EXPECT_EQ(WrapBalanced("", 10, 0), (std::vector<std::string>{""}));
+}
+
+// --- SkillsForAdvancement ---
+
+Skill PageSkill(const std::string& name, int order) {
+  Skill skill;
+  skill.set_name(name);
+  skill.set_job_advancement(JOB_ADVANCEMENT_CLERIC);
+  skill.set_max_level(10);
+  skill.set_skill_order(order);
+  return skill;
+}
+
+std::vector<std::string> NamesOf(const std::vector<const Skill*>& page) {
+  std::vector<std::string> names;
+  for (const Skill* skill : page) {
+    names.push_back(skill->name());
+  }
+  return names;
+}
+
+// A Vengeance form takes the row of the skill it replaces -- the same place in
+// the book -- and only while its switch is on. Off, it is not on the page at
+// all.
+TEST(SkillsForAdvancementTest, TheSwitchDecidesWhichFormIsListed) {
+  Skill form = PageSkill("Angelic Wrath", 2);
+  form.set_replaces_skill_name("Heal");
+  form.set_toggle_skill_name("Righteously Indignant");
+  std::map<std::string, Skill> catalog = {
+      {"bless", PageSkill("Bless", 1)},
+      {"heal", PageSkill("Heal", 2)},
+      {"holy_arrow", PageSkill("Holy Arrow", 3)},
+      {"angelic_wrath", form}};
+
+  EXPECT_EQ(NamesOf(SkillsForAdvancement(catalog, JOB_ADVANCEMENT_CLERIC)),
+            (std::vector<std::string>{"Bless", "Heal", "Holy Arrow"}));
+  EXPECT_EQ(
+      NamesOf(SkillsForAdvancement(catalog, JOB_ADVANCEMENT_CLERIC,
+                                   /*hyper=*/false, {"Righteously Indignant"})),
+      (std::vector<std::string>{"Bless", "Angelic Wrath", "Holy Arrow"}));
 }
 
 TEST(FormatEquipSetTest, NamesEverySet) {

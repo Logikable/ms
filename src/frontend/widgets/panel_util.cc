@@ -393,16 +393,37 @@ std::string FormatWeaponList(const std::vector<EquipType>& types) {
   return result;
 }
 
+// The Vengeance forms standing right now, keyed by the skill each takes the
+// place of. A form whose toggle is switched off is not here, and so is not on
+// the page at all.
+std::map<std::string, const Skill*> FormsShowing(
+    const std::map<std::string, Skill>& catalog,
+    const std::set<std::string>& toggles_on) {
+  std::map<std::string, const Skill*> showing;
+  for (const std::pair<const std::string, Skill>& entry : catalog) {
+    const Skill& skill = entry.second;
+    if (!skill.replaces_skill_name().empty() &&
+        toggles_on.count(skill.toggle_skill_name()) > 0) {
+      showing[skill.replaces_skill_name()] = &skill;
+    }
+  }
+  return showing;
+}
+
 std::vector<const Skill*> SkillsForAdvancement(
     const std::map<std::string, Skill>& catalog, JobAdvancement advancement,
-    bool hyper) {
+    bool hyper, const std::set<std::string>& toggles_on) {
   std::vector<const Skill*> result;
   if (advancement == JOB_ADVANCEMENT_UNSPECIFIED) {
     return result;
   }
   for (const std::pair<const std::string, Skill>& entry : catalog) {
+    // A form takes its parent's row below rather than a row of its own: it
+    // carries that skill's skill_order, so listing both would be two skills
+    // at one place in the book.
     if (entry.second.job_advancement() == advancement &&
-        entry.second.hyper() == hyper) {
+        entry.second.hyper() == hyper &&
+        entry.second.replaces_skill_name().empty()) {
       result.push_back(&entry.second);
     }
   }
@@ -419,6 +440,15 @@ std::vector<const Skill*> SkillsForAdvancement(
   std::set<std::string> emitted;
   for (const Skill* skill : result) {
     EmitAfterRequirement(*skill, by_name, emitted, ordered);
+  }
+  std::map<std::string, const Skill*> showing =
+      FormsShowing(catalog, toggles_on);
+  for (const Skill*& skill : ordered) {
+    std::map<std::string, const Skill*>::const_iterator form =
+        showing.find(skill->name());
+    if (form != showing.end()) {
+      skill = form->second;
+    }
   }
   return ordered;
 }

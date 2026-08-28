@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -169,11 +170,18 @@ KindTag TagFor(const Skill& skill);
 // Skills that name the same advancement. They are two lists rather than one,
 // so skill_order is distinct within the PAIR.
 //
+// `toggles_on` is the display names of the toggle skills the reader has
+// switched on -- Character.active_skill. A Vengeance form whose toggle is
+// among them stands in the row of the Benevolence skill it replaces; every
+// other form is left out entirely, the two being one row of the book. An
+// empty set is the book as it is written, which is what a page with no reader
+// wants.
+//
 // The pointers are into `catalog`, which has to outlive them. Empty for an
 // unspecified advancement, so a caller may pass one straight through.
 std::vector<const Skill*> SkillsForAdvancement(
     const std::map<std::string, Skill>& catalog, JobAdvancement advancement,
-    bool hyper = false);
+    bool hyper = false, const std::set<std::string>& toggles_on = {});
 
 // The name of an attack-speed stage, "Slower" through "Fastest 3", or "" for
 // an unspecified one. The stage number is the proto enum's own value, so a
