@@ -2920,6 +2920,43 @@ TEST(ComputeCombatParamsTest, OnlyOwnSwingsCarryFinalAttack) {
   EXPECT_TRUE(params.auto_attacks[0].final_attack_damage.empty());
 }
 
+// The poison a passive keeps on the claw is lit by the character swinging it.
+// A summon firing on its own clock carries no claw, so its pulses leave no
+// mark -- the same rule that strips the shadow and the mesos off it.
+TEST(ComputeCombatParamsTest, OnlyOwnSwingsCarryTheClawsPoison) {
+  Skill evil_eye;
+  evil_eye.set_name("Evil Eye Shock");
+  evil_eye.set_kind(SKILL_KIND_AUTO_ATTACK);
+  evil_eye.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  evil_eye.set_max_level(10);
+  evil_eye.set_cast_interval_seconds(12.0);
+  evil_eye.mutable_base()->set_skill_pct(1.23);
+  Skill venom;
+  venom.set_name("Venom");
+  venom.set_kind(SKILL_KIND_PASSIVE);
+  venom.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  venom.set_max_level(10);
+  Dot* poison = venom.mutable_dot();
+  poison->set_interval_seconds(1.0);
+  poison->set_duration_seconds(8.0);
+  poison->mutable_base()->set_skill_pct(1.15);
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"evil_eye_shock", evil_eye}, {"venom", venom}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(evil_eye, 1));
+  ASSERT_TRUE(state.character.LearnSkill(venom, 1));
+
+  CombatParams params = ComputeCombatParams(state);
+  ASSERT_EQ(params.attacks.size(), 1u);
+  ASSERT_EQ(params.auto_attacks.size(), 1u);
+  ASSERT_EQ(params.attacks[0].dots.size(), 1u);
+  EXPECT_TRUE(params.attacks[0].dots[0].carried);
+  EXPECT_TRUE(params.auto_attacks[0].dots.empty());
+}
+
 // A Final Attack that names a tag follows only the swings carrying it. The
 // bare poke carries none, so it never sets one off.
 TEST(ComputeCombatParamsTest, ATaggedFinalAttackFollowsOnlyThatTagsSwings) {
