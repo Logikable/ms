@@ -7,10 +7,12 @@
 #include <string>
 #include <vector>
 
+#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/progression.h"
 #include "src/item/item.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
@@ -668,6 +670,29 @@ TEST(GrantLevelRewardsTest, NothingBelowTwoHundred) {
   GameState state(SymbolCatalog(), {}, {}, {}, {});
   GrantLevelRewards(state, 1, 199);
   EXPECT_EQ(state.character.inventory().size(), 0);
+}
+
+// The workbench puts the symbol on rather than carrying it: a symbol in the
+// bag is worth no Arcane Force, and the cap is where the maps start asking.
+TEST(GameStateTest, TheWorkbenchAtTheCapWearsItsSymbol) {
+  std::map<std::string, EquipPrototype> equips = BowCatalog();
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       SymbolCatalog()) {
+    equips[entry.first] = entry.second;
+  }
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_BOW_MASTER;
+  test.level = kTrialLevelCap;
+  GameState state(equips, {}, {}, {}, {}, BookFor(JOB_BOW_MASTER),
+                  GameMode::kTest, test);
+
+  EXPECT_EQ(
+      state.character.equipped().count(EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY),
+      1u);
+  for (int i = 0; i < state.character.inventory().size(); ++i) {
+    EXPECT_FALSE(IsArcaneSymbol(state.character.inventory()[i].prototype()))
+        << "row " << i << " is still carrying a symbol";
+  }
 }
 
 }  // namespace

@@ -11,11 +11,13 @@
 #include <string>
 #include <utility>
 
+#include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/job_name.h"
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
+#include "src/item/inventory.h"
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -295,6 +297,20 @@ constexpr int kSpendEveryStage = 0;
 constexpr int kArcaneRiverLevel = 200;
 constexpr char kStarterSymbol[] = "symbol_vanishing_journey";
 
+// Puts on the Arcane Symbol the climb past 200 handed over. Worn rather than
+// carried: a symbol in the bag is worth no Arcane Force, and a workbench at
+// the cap is standing on the maps that ask for it.
+void WearStarterSymbol(GameState& state) {
+  const InventoryInstance& bag = state.character.inventory();
+  for (int i = 0; i < bag.size(); ++i) {
+    const EquipInstance* item = bag.equip_instance(i);
+    if (item != nullptr && IsArcaneSymbol(item->prototype())) {
+      state.character.Equip(i);
+      return;
+    }
+  }
+}
+
 // Climbs to `level` the way a player gets there, taking each advancement in
 // `path` as it is offered. Thirty hours of grinding, handed over.
 //
@@ -357,6 +373,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
     WearAll(state, FrozenArmour(), equips);
     WearAll(state, BossAccessories(), equips);
   }
+  WearStarterSymbol(state);
 }
 
 // A player starts armed and with nothing else: the Sword is worn rather than
