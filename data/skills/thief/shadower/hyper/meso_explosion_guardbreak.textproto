@@ -1,0 +1,14 @@
+# The coins alone ignore it. A Shadower's own swing is another skill and takes
+# nothing from this, which is what brands the meso rather than the thrower.
+name: "Meso Explosion - Guardbreak"
+skill_order: 2
+description: "Increases Enemy DEF Ignored for Meso Explosion."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Meso Explosion"
+  effect { ied_pct: 0.10 }
+}

@@ -1,0 +1,14 @@
+# A seventh stab. Pick Pocket rolls per line, so the extra strike shakes coins
+# loose as well -- at the half rate Cruel Stab alone pays.
+name: "Cruel Stab - Extra Strike"
+skill_order: 6
+description: "Increases the number of attacks for Cruel Stab."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+hyper: true
+required_level: 180
+max_level: 1
+boost {
+  skill_name: "Cruel Stab"
+  lines: 1
+}

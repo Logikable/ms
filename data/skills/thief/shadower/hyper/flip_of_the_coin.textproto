@@ -1,0 +1,18 @@
+# GMS made this a plain passive in v267: the coin is flipped once and the
+# blessing is permanent, so there is nothing left to cast. Both figures are
+# GMS's own, and they are the largest single grant on any hyper page -- a
+# quarter of the Shadower's critical rate arrives here.
+name: "Flip of the Coin"
+skill_order: 10
+description:
+  "Flips a lucky coin to conjure up a random blessing, permanently increasing "
+  "Critical Rate and Damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+hyper: true
+required_level: 140
+max_level: 1
+base {
+  crit_rate: 0.25
+  damage_pct: 0.24
+}

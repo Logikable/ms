@@ -1,0 +1,15 @@
+# GMS's own twenty points. The coins are thrown rather than swung, so what a
+# boost aimed at Meso Explosion is worth is cashed in where the throw is priced
+# -- see FoldMesoExplosion.
+name: "Meso Explosion - Reinforce"
+skill_order: 1
+description: "Increases Meso Explosion's damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+hyper: true
+required_level: 140
+max_level: 1
+boost {
+  skill_name: "Meso Explosion"
+  effect { damage_pct: 0.20 }
+}

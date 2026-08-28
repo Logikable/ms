@@ -1,0 +1,14 @@
+# GMS's own twenty points, and they reach the finishing blow: both presses are
+# one swing here, so what is aimed at the name covers all twelve strikes.
+name: "Assassinate - Reinforce"
+skill_order: 7
+description: "Increases Assassinate damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Assassinate"
+  effect { damage_pct: 0.20 }
+}

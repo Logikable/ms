@@ -1,0 +1,15 @@
+# Ten points of ignored defence on the swing alone; it meets the character's
+# own the way two sources of it always do.
+name: "Assassinate - Guardbreak"
+skill_order: 9
+description:
+  "Increases Enemy DEF Ignored amount for Assassinate."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_SHADOWER
+hyper: true
+required_level: 190
+max_level: 1
+boost {
+  skill_name: "Assassinate"
+  effect { ied_pct: 0.10 }
+}
