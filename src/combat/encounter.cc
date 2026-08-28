@@ -1135,6 +1135,10 @@ void AddAllyBuffs(const GameState& state, double speed_factor,
     option.name = grant.skill->name();
     option.cooldown_seconds =
         CooldownAt(*grant.skill, grant.level) * speed_factor;
+    // A shell that is not the party's shelters its caster and nobody else.
+    if (!buff.shield().party()) {
+      option.shield_hits = 0.0;
+    }
     option.damage_taken_pct =
         buff.ally_base().damage_taken_pct() +
         buff.ally_per_level().damage_taken_pct() * (grant.level - 1);

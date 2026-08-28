@@ -1739,6 +1739,7 @@ TEST_F(SkillInspectPanelTest, AShellStatesWhatItBlocksForBothHalves) {
   buff->mutable_per_level()->set_heal_pct(0.01);
   buff->mutable_ally_base()->set_heal_pct(0.31);
   buff->mutable_ally_per_level()->set_heal_pct(0.01);
+  buff->mutable_shield()->set_party(true);
   buff->mutable_shield()->set_hits(5.5);
   buff->mutable_shield()->set_hits_per_level(0.5);
   buff->mutable_shield()->set_boss_damage_taken_pct(0.10);

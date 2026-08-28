@@ -1277,9 +1277,12 @@ std::vector<Row> BuffRows(const Skill& skill, int level) {
   ally_base.clear_heal_pct();
   ally_per.clear_heal_pct();
   std::vector<Row> ally = LeverRows(ally_base, ally_per, level, "");
-  // The shell stands over the party as one, so what it blocks is stated for
-  // them exactly as it is for the caster.
-  std::vector<Row> ally_shield = ShieldRows(buff.shield(), level);
+  // A party shell stands over everybody as one, so what it blocks is stated
+  // for them exactly as it is for the caster. One that is not says nothing
+  // here -- see Shield.party.
+  std::vector<Row> ally_shield = buff.shield().party()
+                                     ? ShieldRows(buff.shield(), level)
+                                     : std::vector<Row>();
   if (ally_heal > 0.0 || !ally.empty() || !ally_shield.empty()) {
     rows.push_back(SectionRow("Your Party", kTheme));
     if (ally_heal > 0.0) {

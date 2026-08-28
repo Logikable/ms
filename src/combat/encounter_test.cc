@@ -1415,6 +1415,7 @@ TEST(ComputeCombatParamsTest, AShellReachesTheCasterAndThePartyAlike) {
   buff->set_duration_seconds_per_level(0.25);
   buff->mutable_base()->set_heal_pct(0.31);
   buff->mutable_ally_base()->set_heal_pct(0.31);
+  buff->mutable_shield()->set_party(true);
   buff->mutable_shield()->set_hits(5.5);
   buff->mutable_shield()->set_hits_per_level(0.5);
   buff->mutable_shield()->set_boss_damage_taken_pct(0.10);
@@ -1437,6 +1438,17 @@ TEST(ComputeCombatParamsTest, AShellReachesTheCasterAndThePartyAlike) {
   EXPECT_EQ(params.ally_buffs[0].shield_hits, 10);
   EXPECT_DOUBLE_EQ(params.ally_buffs[0].boss_damage_taken_pct, 0.10);
   EXPECT_NEAR(params.ally_buffs[0].heal_fraction, 0.31, 1e-9);
+
+  // A shell that is not the party's shelters its caster and nobody else --
+  // Divine Shield is the White Knight's own skin. See Shield.party.
+  shell.mutable_buff()->mutable_shield()->set_party(false);
+  state.skills["holy_magic_shell"] = shell;
+  params = ComputeCombatParams(state);
+  ASSERT_EQ(params.ally_buffs.size(), 1u);
+  EXPECT_EQ(params.ally_buffs[0].shield_hits, 0);
+  shell.mutable_buff()->mutable_shield()->set_party(true);
+  state.skills["holy_magic_shell"] = shell;
+  params = ComputeCombatParams(state);
 
   // Learning it themselves puts the shell on their own clock instead: a
   // party grant never doubles up on somebody already holding the skill.
@@ -1464,6 +1476,7 @@ TEST(ComputeCombatParamsTest, ABoostDeepensTheShellItNames) {
   buff->set_duration_seconds(10.25);
   buff->set_duration_seconds_per_level(0.25);
   buff->mutable_ally_base()->set_heal_pct(0.31);
+  buff->mutable_shield()->set_party(true);
   buff->mutable_shield()->set_hits(5.5);
   buff->mutable_shield()->set_hits_per_level(0.5);
   buff->mutable_shield()->set_boss_damage_taken_pct(0.10);

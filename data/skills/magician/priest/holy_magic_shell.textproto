@@ -27,6 +27,7 @@ buff {
   ally_base { heal_pct: 0.31 }
   ally_per_level { heal_pct: 0.01 }
   shield {
+    party: true
     hits: 5.5
     hits_per_level: 0.5
     boss_damage_taken_pct: 0.10

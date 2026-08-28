@@ -573,6 +573,10 @@ message Shield {
   // a tenth of it). Multiplies with every other reduction standing, as they
   // all do.
   double boss_damage_taken_pct = 3;
+  // Whether one raising covers the whole party or the caster alone. Holy Magic
+  // Shell is GMS's party shell; Divine Shield is the White Knight's own skin
+  // and shelters nobody else, so it leaves this unset.
+  bool party = 4;
 }
 
 message Buff {
