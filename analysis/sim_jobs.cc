@@ -182,6 +182,13 @@ void GrowTo(GameState& state, int level, const std::vector<Job>& path,
     for (const std::pair<const std::string, Skill>& entry : state.skills) {
       while (character.LearnSkill(entry.second)) {
       }
+      // A switch bought is a switch thrown: what Righteously Indignant is for
+      // is standing on, and a book spent to the last point would not have
+      // bought it otherwise.
+      if (entry.second.toggle() &&
+          !character.SkillToggledOn(entry.second.name())) {
+        character.ToggleSkill(entry.second);
+      }
     }
   }
 }

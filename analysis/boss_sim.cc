@@ -150,8 +150,8 @@ int Buy(GameState& state, const Skill& skill,
 // points of a 200-point book, so which of them get spent is most of what the
 // character hits for -- and a player choosing them reads the fight in front of
 // them, which is what this does.
-void SpendSp(GameState& state, const std::string& boss_key,
-             const BossDifficulty& difficulty, int phase) {
+void SpendBook(GameState& state, const std::string& boss_key,
+               const BossDifficulty& difficulty, int phase) {
   std::map<std::string, const Skill*> named = ByName(state);
   double held = Rate(state, boss_key, difficulty, phase);
   while (true) {
@@ -185,6 +185,36 @@ void SpendSp(GameState& state, const std::string& boss_key,
     Buy(state, *best, named, best_levels);
     held = best_rate;
   }
+}
+
+// The book spent both ways round: every switch off, and every switch thrown
+// first. A switch costs no points and so is never one of the purchases above,
+// but it changes what the points are WORTH -- with Righteously Indignant
+// thrown, the levels in Heal are a six-enemy swing rather than a heal, and a
+// chooser that never threw it would never buy them.
+void SpendSp(GameState& state, const std::string& boss_key,
+             const BossDifficulty& difficulty, int phase) {
+  Character start = state.character.ToProto();
+  SpendBook(state, boss_key, difficulty, phase);
+  double off_rate = Rate(state, boss_key, difficulty, phase);
+  Character off_book = state.character.ToProto();
+
+  state.character.RestoreFrom(start, state.equips, state.items);
+  std::map<std::string, const Skill*> named = ByName(state);
+  bool thrown = false;
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    if (!entry.second.toggle() || Buy(state, entry.second, named, 1) <= 0) {
+      continue;
+    }
+    thrown = state.character.ToggleSkill(entry.second) || thrown;
+  }
+  if (thrown) {
+    SpendBook(state, boss_key, difficulty, phase);
+    if (Rate(state, boss_key, difficulty, phase) > off_rate) {
+      return;
+    }
+  }
+  state.character.RestoreFrom(off_book, state.equips, state.items);
 }
 
 // What one branch came to against the fight.

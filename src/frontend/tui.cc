@@ -742,9 +742,10 @@ ftxui::Element Tui::RenderMain() {
                  RenderExpBar());
   if (controller_.screen() == kSkillMenu) {
     // Anchored to the skill row the same way the job menu is anchored to a
-    // job, and clear of the names to its left -- which skill the menu is about
-    // is the one thing it must not cover.
-    constexpr int kSkillMenuCol = 22;
+    // job, and past the widest a name is ever drawn -- which skill the menu is
+    // about is the one thing it must not cover. What it covers instead is the
+    // level column, exactly as the bag's menu covers an item's stats.
+    constexpr int kSkillMenuCol = 38;
     return ftxui::dbox(
         {layout,
          Floating(controller_.skill_menu().Render(
