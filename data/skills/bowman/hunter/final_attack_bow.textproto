@@ -1,12 +1,18 @@
 # The warriors' Final Attack under another name and the same numbers: chance
 # is 2*L%, damage a single hit of (100 + 5*floor(L/2))%. The even step below
 # ends a hair under the top of the staircase and is never more than 2.5% out.
+#
+# The extra hit lands on ONE of the enemies the swing reached, not on each
+# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
+# and its readout names the target it picks -- "attacks the boss with the
+# highest HP first".
 name: "Final Attack: Bow"
 skill_order: 6
 description:
   "Chance to deal an additional hit after landing a direct attack skill."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HUNTER
+final_attack_single_enemy: true
 max_level: 20
 required_equip_type: EQUIP_TYPE_BOW
 required_skill {

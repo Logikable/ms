@@ -1,11 +1,17 @@
 # Two hits of 60+x% apiece, told apart rather than folded: each rolls its own
 # crit and its own mastery. See SkillEffect::final_attack_lines.
+#
+# The extra hit lands on ONE of the enemies the swing reached, not on each
+# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
+# and its readout names the target it picks -- "attacks the boss with the
+# highest HP first".
 name: "Final Attack"
 skill_order: 5
 description:
   "Chance to deal an additional hit after landing a direct attack skill."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_PAGE
+final_attack_single_enemy: true
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

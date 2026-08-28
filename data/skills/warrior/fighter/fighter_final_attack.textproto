@@ -1,11 +1,17 @@
 # Chance is 2*L%; damage is a single hit of (100 + 5*floor(L/2))%, a staircase
 # base + per_level*(L-1) cannot climb. The even step below ends a hair under
 # the top of it and is never more than 2.5% out on the way.
+#
+# The extra hit lands on ONE of the enemies the swing reached, not on each
+# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
+# and its readout names the target it picks -- "attacks the boss with the
+# highest HP first".
 name: "Final Attack"
 skill_order: 7
 description: "Chance to deliver an additional hit after a direct attack skill."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIGHTER
+final_attack_single_enemy: true
 max_level: 20
 required_equip_type: EQUIP_TYPE_ONE_HANDED_SWORD
 required_equip_type: EQUIP_TYPE_TWO_HANDED_SWORD

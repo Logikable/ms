@@ -1,5 +1,10 @@
 # The same staircase as every other Final Attack: chance 2*L%, damage a single
 # hit of (100 + 5*floor(L/2))%, taken on the even step below.
+#
+# The extra hit lands on ONE of the enemies the swing reached, not on each
+# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
+# and its readout names the target it picks -- "attacks the boss with the
+# highest HP first".
 name: "Final Attack: Crossbow"
 skill_order: 5
 description:
@@ -7,6 +12,7 @@ description:
   "hits."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_CROSSBOWMAN
+final_attack_single_enemy: true
 max_level: 20
 required_equip_type: EQUIP_TYPE_CROSSBOW
 required_skill {

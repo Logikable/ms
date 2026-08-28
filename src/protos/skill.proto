@@ -1192,10 +1192,11 @@ message Skill {
   // The same field either way, because the fight does the same thing with it.
   int32 lead_enemies = 38;
   // Whether this skill's Final Attack strikes ONE of the enemies the swing
-  // reached rather than each of them. Blizzard's passive is what it exists for
-  // -- GMS says "a chance to strike a single enemy" where every other Final
-  // Attack in the game follows the swing onto all of them, and read the
-  // ordinary way it would pay six times over on a six-enemy swing.
+  // reached rather than each of them. Every Final Attack GMS ships is this
+  // shape: the client gives none of them a mobCount or a hitbox, and their
+  // readouts name the target they pick -- "attacks the boss with the highest
+  // HP first". Read the other way a Final Attack pays once per mob in front
+  // of the player, which on a six-enemy swing is six times over.
   //
   // The roll happens once for the whole swing, not once per enemy, so a wide
   // swing is worth no more of it than a narrow one.

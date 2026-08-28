@@ -5,6 +5,11 @@
 #
 # The weapons it demands are the Fighter's, so the pair lapse together: a Hero
 # holding something neither will fire off keeps neither.
+#
+# The extra hit lands on ONE of the enemies the swing reached, not on each
+# of them: GMS's Final Attack carries no mobCount and no hitbox of its own,
+# and its readout names the target it picks -- "attacks the boss with the
+# highest HP first".
 name: "Advanced Final Attack"
 skill_order: 6
 description:
@@ -12,6 +17,7 @@ description:
   "damage of Final Attack."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_HERO
+final_attack_single_enemy: true
 max_level: 30
 exceeds_master_level: true
 supersedes_skill_name: "Final Attack"
