@@ -1072,6 +1072,24 @@ message Skill {
 
   // How many enemies one swing of this attack hits (attack skills). Unset/0 is
   // treated as 1 (single target); the bare poke is likewise 1.
+  //
+  // GMS's `mobCount` is a CAP, reached only when that many monsters happen to
+  // stand inside the attack's hitbox. This fight has no positions, so a swing
+  // always hits its cap -- which quietly overpays a skill whose box is small
+  // and whose cap is generous. So a cap GMS could not realistically fill is
+  // cut to what its own hitbox holds:
+  //
+  //     reach = floor(box width / 90) * (1 + floor(box height / 250))
+  //
+  // 90 pixels is about one monster's footprint and 250 is about one storey of
+  // a map, so the two factors are "how many stand side by side" and "how many
+  // platforms the swing covers". The cut is a floor under GMS's own number,
+  // never a lift: a box that holds more than the cap leaves the cap standing.
+  // Boxes are `lt`/`rb` in the client's Skill.wz; a projectile carries none
+  // and keeps its cap.
+  //
+  // Applied to the warrior branch on 2026-08-28. A file whose reach was cut
+  // says so at the top.
   int32 max_enemies = 14;
   // How many times one swing strikes each enemy it reaches. Damage is
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.

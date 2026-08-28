@@ -1,14 +1,14 @@
 # GMS caps this at 30. Scaled to 20 levels landing on exactly GMS's level-30
-# figures -- 70% mastery, 400 DEF, 40% critical rate, 20% critical damage, 30%
+# figures -- 70% mastery, 400 DEF, 40% critical rate, 22% critical damage, 30%
 # ignored defence and 35% final damage -- so the book totals 200. The levels
 # are coarser, the skill is no stronger.
 #
-# The critical damage is one line rather than three: GMS pays 15% flat and 5%
-# more for the weapon in hand, and every weapon this skill works with was owed
-# that 5%. Folded into the base, so the ladder still climbs by half a point a
-# level and still lands on 20%. What is left of the weapon bonuses is the
-# blunt weapon's ignored defence, which is the only one that ever said
-# anything about the weapon.
+# The critical damage is one line rather than three: GMS pays 7 + floor(L/3),
+# which is 17% at its master, and 5% more for the weapon in hand -- and every
+# weapon this skill works with was owed that 5%. Folded into the base, so the
+# ladder climbs half a point a level and lands on 22%. What is left of the
+# weapon bonuses is the blunt weapon's ignored defence, which is the only one
+# that ever said anything about the weapon.
 #
 # The final damage is GMS's own (5+x at 30), which is the number to watch when
 # the line is measured against the Dark Knight's Final Pact.
