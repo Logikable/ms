@@ -1168,6 +1168,27 @@ bool BoostEffectIsSupported(const SkillEffect& effect, std::string& unread) {
   return true;
 }
 
+// Whether any skill in the catalog upgrades `name` with an empowered form --
+// the form may be granted by a skill of its own, so the target's own page
+// never says so.
+bool HasEmpoweredForm(const std::map<std::string, Skill>& skills,
+                      const std::string& name) {
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    for (const EmpoweredForm& form : skill.empowered_form()) {
+      std::string target = form.skill_name();
+      if (target.empty()) {
+        target = skill.boosts_skill_name().empty() ? skill.name()
+                                                   : skill.boosts_skill_name();
+      }
+      if (target == name) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // A boost has to name a skill the same character can hold, and hand it
 // something: strikes, reach, a clock, or a lever that skill alone carries.
 TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
@@ -1203,6 +1224,12 @@ TEST(SkillDataTest, EverySkillBoostNamesAHoldableSkill) {
           SameCharacterCanHold(skills, entry.second, boost.skill_name()))
           << entry.first << " grants strikes to \"" << boost.skill_name()
           << "\", which no character holding it can learn";
+      // Following a skill into a form it does not have reaches nothing.
+      if (boost.reaches_empowered_form()) {
+        EXPECT_TRUE(HasEmpoweredForm(skills, boost.skill_name()))
+            << entry.first << " follows " << boost.skill_name()
+            << " into an empowered form, which nothing gives it";
+      }
       // A clock handed to a skill that is not on one is a clock nothing reads,
       // and so is a share off a wait the named skill does not have.
       for (const std::pair<const std::string, Skill>& target : skills) {

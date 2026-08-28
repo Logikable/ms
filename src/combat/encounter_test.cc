@@ -56,6 +56,17 @@ MapData TwoSnailMap() {
   return map;
 }
 
+// The swing named, or null where the character has no such attack.
+const AttackOption* FindAttack(const CombatParams& params,
+                               const std::string& name) {
+  for (const AttackOption& attack : params.attacks) {
+    if (attack.name == name) {
+      return &attack;
+    }
+  }
+  return nullptr;
+}
+
 void EquipSwordAt(GameState& state, AttackSpeed speed) {
   EquipPrototype sword;
   sword.set_name("Sword");
@@ -2080,6 +2091,75 @@ TEST(ComputeCombatParamsTest, OneSkillCanEmpowerTwoDifferentSwings) {
                    2.4 * upgraded_arrow.damage_per_hit[0]);
   EXPECT_DOUBLE_EQ(upgraded_snipe.empowered->damage_per_hit[0],
                    (10.0 * 3.0 / 9.0) * upgraded_snipe.damage_per_hit[0]);
+}
+
+// A hyper naming a swing reaches the empowered version of it where it says so,
+// and stops at the ordinary one where it does not.
+TEST(ComputeCombatParamsTest, ABoostReachesTheFormOnlyWhenItSaysSo) {
+  Skill piercing;
+  piercing.set_name("Piercing Arrow II");
+  piercing.set_kind(SKILL_KIND_ATTACK);
+  piercing.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  piercing.set_max_level(30);
+  piercing.set_max_enemies(8);
+  piercing.set_lines(5);
+  piercing.mutable_base()->set_skill_pct(1.00);
+
+  Skill greater;
+  greater.set_name("Greater Empowered Arrows");
+  greater.set_kind(SKILL_KIND_PASSIVE);
+  greater.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  greater.set_max_level(20);
+  EmpoweredForm* form = greater.add_empowered_form();
+  form->set_skill_name("Piercing Arrow II");
+  form->set_casts_per_trigger(4);
+  form->set_max_enemies(10);
+  form->set_lines(6);
+  form->mutable_base()->set_skill_pct(2.00);
+
+  Skill spread;
+  spread.set_name("Piercing Arrow - Spread");
+  spread.set_kind(SKILL_KIND_PASSIVE);
+  spread.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  spread.set_max_level(1);
+  SkillBoost* boost = spread.add_boost();
+  boost->set_skill_name("Piercing Arrow II");
+  boost->set_max_enemies(2);
+  boost->mutable_effect()->set_damage_pct(0.20);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"piercing_arrow_ii", piercing},
+                   {"greater_empowered_arrows", greater},
+                   {"piercing_arrow_spread", spread}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 3);
+  ASSERT_TRUE(state.character.LearnSkill(piercing, 1));
+  ASSERT_TRUE(state.character.LearnSkill(greater, 1));
+  ASSERT_TRUE(state.character.LearnSkill(spread, 1));
+
+  // Stopping at the ordinary swing: the form keeps its own reach and its own
+  // damage, which is the bargain every empowered form struck before hypers.
+  CombatParams stops = ComputeCombatParams(state);
+  const AttackOption* arrow = FindAttack(stops, "Piercing Arrow II");
+  ASSERT_NE(arrow, nullptr);
+  ASSERT_NE(arrow->empowered, nullptr);
+  EXPECT_EQ(arrow->max_enemies, 10);
+  EXPECT_EQ(arrow->empowered->max_enemies, 10);
+  double plain_form = arrow->empowered->damage_per_hit[0];
+
+  state.skills["piercing_arrow_spread"]
+      .mutable_boost(0)
+      ->set_reaches_empowered_form(true);
+  CombatParams follows = ComputeCombatParams(state);
+  arrow = FindAttack(follows, "Piercing Arrow II");
+  ASSERT_NE(arrow, nullptr);
+  ASSERT_NE(arrow->empowered, nullptr);
+  EXPECT_EQ(arrow->max_enemies, 10);
+  EXPECT_EQ(arrow->empowered->max_enemies, 12);
+  // The 20% the boost pays only the skill it names, now collected twice.
+  EXPECT_NEAR(arrow->empowered->damage_per_hit[0], plain_form * 1.2, 1e-9);
 }
 
 // A swing that always crits states so on itself, and says nothing about the

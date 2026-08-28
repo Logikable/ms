@@ -801,6 +801,14 @@ message SkillBoost {
   // Combines in reverse, as ignored defence does: what two cuts leave is the
   // product of what each leaves, so no pile of them ever reaches nothing.
   double cooldown_pct = 8;
+  // Whether this boost follows the named skill into its empowered form, which
+  // is a swing of its own and takes none of what its parent hands the ordinary
+  // version by default -- see EmpoweredForm.
+  //
+  // GMS settles it per hyper. Piercing Arrow - Reinforce names Piercing Arrow,
+  // Piercing Arrow II and both empowered forms, so it is set here; Empowered
+  // Arrows states its form's damage whole, so it is not.
+  bool reaches_empowered_form = 10;
   // Levers the named skill alone carries, on top of its own. Seven are read --
   // skill_pct, damage_pct, boss_pct, ied_pct, crit_rate, final_dmg_pct and
   // final_attack_chance -- and each meets the target's own the way two sources

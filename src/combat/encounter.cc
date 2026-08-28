@@ -606,18 +606,28 @@ std::map<std::string, SkillBoosts> BoostsByTarget(const GameState& state,
       continue;
     }
     for (const SkillBoost& boost : skill.boost()) {
-      SkillBoosts& into = by_target[boost.skill_name()];
-      into.lines += boost.lines();
-      into.max_enemies +=
+      int enemies =
           boost.max_enemies() +
           static_cast<int>(std::floor(
               boost.max_enemies_per_level() * (learned - 1) + kEnemyEpsilon));
-      into.cooldown_left *= 1.0 - boost.cooldown_pct();
-      // The clock replaces rather than sums, so the faster of two stands.
-      if (boost.attacks_per_cast() > 0 &&
-          (into.attacks_per_cast == 0 ||
-           boost.attacks_per_cast() < into.attacks_per_cast)) {
-        into.attacks_per_cast = boost.attacks_per_cast();
+      // The skill's own entry, and the empowered form's where the boost
+      // follows it there -- the form swings under a name of its own, so this
+      // is where the two part company.
+      std::vector<std::string> names(1, boost.skill_name());
+      if (boost.reaches_empowered_form()) {
+        names.push_back(EmpoweredSkillName(boost.skill_name()));
+      }
+      for (const std::string& name : names) {
+        SkillBoosts& into = by_target[name];
+        into.lines += boost.lines();
+        into.max_enemies += enemies;
+        into.cooldown_left *= 1.0 - boost.cooldown_pct();
+        // The clock replaces rather than sums, so the faster of two stands.
+        if (boost.attacks_per_cast() > 0 &&
+            (into.attacks_per_cast == 0 ||
+             boost.attacks_per_cast() < into.attacks_per_cast)) {
+          into.attacks_per_cast = boost.attacks_per_cast();
+        }
       }
     }
   }
@@ -658,11 +668,12 @@ const Skill& Boosted(const Skill& skill, int level,
 // A skill's empowered form, as a skill in its own right, so the same damage
 // chain builds it. It takes a name of its own -- unlike an own-clock half,
 // this really is a different swing, and it must not pick up the permanent
-// bonus its parent hands the ordinary version.
+// bonus its parent hands the ordinary version. What a boost hands it on
+// purpose is filed under this name -- see SkillBoost::reaches_empowered_form.
 Skill EmpoweredSkill(const Skill& skill, const EmpoweredForm& upgrade,
                      const std::string& target, SkillKind kind, int reach) {
   Skill form;
-  form.set_name("Empowered " + target);
+  form.set_name(EmpoweredSkillName(target));
   // The kind of the attack it stands in for, not of the skill granting it --
   // the grant is often a passive, and what stands in for a pulse is a pulse.
   form.set_kind(kind);
@@ -690,6 +701,7 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
                          const DerivedStats& derived, int attack_speed,
                          double speed_factor,
                          const std::vector<CombatType>& types, SkillKind kind,
+                         const std::map<std::string, SkillBoosts>& boosts,
                          std::vector<AttackOption>& into) {
   // The form may name its own target, which is what a skill carrying two of
   // them does. Failing that it takes the one skill this one strengthens, and
@@ -706,8 +718,12 @@ void AttachEmpoweredForm(const GameState& state, const EquipStats& equipped,
     }
     Skill form =
         EmpoweredSkill(skill, upgrade, attack.name, kind, attack.max_enemies);
+    // What the book grants the form under its own name, which is what a boost
+    // following the skill into it was filed under.
+    Skill boosted;
+    const Skill& swung = Boosted(form, learned, boosts, boosted);
     std::shared_ptr<AttackOption> swing = std::make_shared<AttackOption>(
-        AttackFor(state.character.proto(), equipped, weapon_type, &form,
+        AttackFor(state.character.proto(), equipped, weapon_type, &swung,
                   learned, types, derived, attack_speed, speed_factor));
     swing->swing_seconds = attack.swing_seconds;
     // Final Attack follows the character's swing, and a summon's pulse is not
@@ -729,6 +745,7 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
                        int attack_speed, double speed_factor,
                        const std::vector<CombatType>& types, AttackSet& set) {
   int bonus = BonusSkillLevels(state.character, state.skills);
+  std::map<std::string, SkillBoosts> boosts = BoostsByTarget(state, bonus);
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     const Skill& skill = entry.second;
     int learned = EffectiveSkillLevel(state.character, skill, bonus);
@@ -746,10 +763,10 @@ void AddEmpoweredForms(const GameState& state, const EquipStats& equipped,
       }
       AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,
                           derived, attack_speed, speed_factor, types,
-                          SKILL_KIND_ATTACK, set.attacks);
+                          SKILL_KIND_ATTACK, boosts, set.attacks);
       AttachEmpoweredForm(state, equipped, weapon_type, skill, upgrade, learned,
                           off_clock, attack_speed, speed_factor, types,
-                          SKILL_KIND_AUTO_ATTACK, set.auto_attacks);
+                          SKILL_KIND_AUTO_ATTACK, boosts, set.auto_attacks);
     }
   }
 }

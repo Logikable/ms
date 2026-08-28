@@ -142,6 +142,12 @@ bool DealsDamage(SkillKind kind);
 // a skill whose lines climb has to climb everywhere at once.
 int SkillLinesAt(const Skill& skill, int level);
 
+// What a skill's empowered form calls itself: the target's display name behind
+// "Empowered ". The form is a swing of its own and is keyed by this name
+// wherever a boost is looked up, so the fight and the fold have to spell it
+// the same way -- see EmpoweredForm and SkillBoost::reaches_empowered_form.
+std::string EmpoweredSkillName(const std::string& target);
+
 // How many Combo Orbs `skill` surrounds the character with at `level`: its
 // `combo_orbs`, plus whole orbs its `combo_orbs_per_level` has bought since
 // level 1. 0 for the skills that hand out none, which is most of them.

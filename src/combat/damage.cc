@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <string>
 
 #include "src/combat/constants.h"
 #include "src/protos/character.pb.h"
@@ -281,6 +282,10 @@ int SkillLinesAt(const Skill& skill, int level) {
   }
   return lines + static_cast<int>(std::floor(
                      skill.lines_per_level() * (level - 1) + kLineEpsilon));
+}
+
+std::string EmpoweredSkillName(const std::string& target) {
+  return "Empowered " + target;
 }
 
 int ComboOrbsAt(const Skill& skill, int level) {

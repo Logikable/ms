@@ -355,25 +355,38 @@ void AddMesoExplosion(const Skill& skill, int level, PassiveTotals& totals) {
   totals.meso_lines = SkillLinesAt(skill, level);
 }
 
+// One boost's levers, summed into the entry of whichever skill is collecting
+// them -- each meeting what is already there the way two sources of it always
+// meet.
+void AddSkillBonus(const SkillBoost& boost, int level, SkillBonus& into) {
+  const SkillEffect& base = boost.effect();
+  const SkillEffect& per = boost.effect_per_level();
+  into.skill_pct += base.skill_pct() + per.skill_pct() * (level - 1);
+  into.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
+  into.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
+  into.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
+  // The two that do not sum, for the reason they never do.
+  into.ied = CombineIgnoredDefense(
+      into.ied, base.ied_pct() + per.ied_pct() * (level - 1));
+  double fd = base.final_dmg_pct() + per.final_dmg_pct() * (level - 1);
+  into.final_dmg_pct = (1.0 + into.final_dmg_pct) * (1.0 + fd) - 1.0;
+  into.final_attack_chance +=
+      base.final_attack_chance() + per.final_attack_chance() * (level - 1);
+}
+
 // Notes down what `skill` hands other skills by name. Kept out of AddEffect,
 // which is handed levers with no skill behind them: which skill is
 // strengthened is written on the boost, not on the lever.
 void AddSkillBonuses(const Skill& skill, int level, PassiveTotals& totals) {
   for (const SkillBoost& boost : skill.boost()) {
-    const SkillEffect& base = boost.effect();
-    const SkillEffect& per = boost.effect_per_level();
-    SkillBonus& into = totals.skill_bonus[boost.skill_name()];
-    into.skill_pct += base.skill_pct() + per.skill_pct() * (level - 1);
-    into.damage_pct += base.damage_pct() + per.damage_pct() * (level - 1);
-    into.boss_pct += base.boss_pct() + per.boss_pct() * (level - 1);
-    into.crit_rate += base.crit_rate() + per.crit_rate() * (level - 1);
-    // The two that do not sum, for the reason they never do.
-    into.ied = CombineIgnoredDefense(
-        into.ied, base.ied_pct() + per.ied_pct() * (level - 1));
-    double fd = base.final_dmg_pct() + per.final_dmg_pct() * (level - 1);
-    into.final_dmg_pct = (1.0 + into.final_dmg_pct) * (1.0 + fd) - 1.0;
-    into.final_attack_chance +=
-        base.final_attack_chance() + per.final_attack_chance() * (level - 1);
+    AddSkillBonus(boost, level, totals.skill_bonus[boost.skill_name()]);
+    // A boost that follows the skill into its empowered form is filed under
+    // the form's name too: the form is a swing of its own, and the fight looks
+    // its entry up by the name it swings under.
+    if (boost.reaches_empowered_form()) {
+      AddSkillBonus(boost, level,
+                    totals.skill_bonus[EmpoweredSkillName(boost.skill_name())]);
+    }
   }
 }
 
