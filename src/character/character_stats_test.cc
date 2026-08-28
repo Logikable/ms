@@ -800,6 +800,40 @@ TEST_F(DerivedStatsTest, ABoostReachesTheFinalAttackOfThePassiveItNames) {
   EXPECT_NEAR(stats.damage_pct, 0.0, 1e-9);
 }
 
+// The other damage a boost can hand a Final Attack: points on the strike's own
+// multiplier, which is GMS's "Night Lord's Mark Damage: +100% points".
+TEST_F(DerivedStatsTest, ABoostCanLiftAFinalAttacksOwnMultiplier) {
+  CharacterInstance c = MakeCharacter(rng_, 140, 50);
+  Skill final_attack = FinalAttack();
+  Skill hyper;
+  hyper.set_name("Death Star");
+  hyper.set_kind(SKILL_KIND_PASSIVE);
+  hyper.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  hyper.set_max_level(1);
+  SkillBoost* boost = hyper.add_boost();
+  boost->set_skill_name("Final Attack");
+  boost->mutable_effect()->set_skill_pct(1.00);
+  std::map<std::string, Skill> skills = {{"final_attack", final_attack},
+                                         {"hyper", hyper}};
+  ASSERT_TRUE(c.LearnSkill(final_attack, 20));
+  ASSERT_TRUE(c.LearnSkill(hyper, 1));
+
+  // 160% becomes 260%, and every strike of the hit lands the whole of it.
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  ASSERT_EQ(stats.final_attacks.size(), 1u);
+  EXPECT_NEAR(stats.final_attacks[0].damage_pct, 2.60, 1e-9);
+  EXPECT_NEAR(stats.final_attacks[0].damage_bonus_pct, 0.0, 1e-9);
+
+  // Blizzard's shape: a swing carrying a Final Attack of its own. The same
+  // points land on the swing, so the strike must not take them a second time.
+  Skill swung = final_attack;
+  swung.set_kind(SKILL_KIND_ATTACK);
+  swung.mutable_base()->set_skill_pct(2.00);
+  skills["final_attack"] = swung;
+  EXPECT_NEAR(DerivedStatsFor(c, skills).final_attacks[0].damage_pct, 1.60,
+              1e-9);
+}
+
 // A lever can be handed over backwards. Hurricane - Split Attack pays a second
 // arrow for a quarter off what each one lands, and the fold that combines two
 // final damage sources has to carry the minus through rather than clamp it.

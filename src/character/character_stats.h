@@ -45,11 +45,17 @@ struct FinalAttackSource {
   double boss_pct = 0.0;
   // Plain % damage only these extra hits collect, summed into the share the
   // character already pays -- a boost aimed at the skill that sets the Final
-  // Attack off, exactly as boss_pct above is. See SkillBoost::effect.
+  // Attack off, exactly as boss_pct above is. Points on damage_pct above are
+  // the other half of that bargain, and land there rather than here. See
+  // SkillBoost::effect.
   double damage_bonus_pct = 0.0;
   // The skill that sets this off, so a boost naming that skill can find it.
   // Empty for a source no skill owns -- a thrown meso's.
   std::string skill_name;
+  // Whether that skill is one the character swings. A boost's points on a
+  // multiplier land on the SWING where there is one, so only a passive's
+  // strike collects them here -- otherwise one grant would be read twice.
+  bool owner_swings = false;
   // Whether the whole swing rolls this ONCE and lands it on a single enemy.
   // Blizzard's passive alone; every other source follows the swing onto every
   // enemy it reached. Never set with per_line -- one counts enemies down to

@@ -178,6 +178,8 @@ int ShieldHitsAt(const Shield& shield, int level);
 struct SkillBonus {
   // Damage per line, added to the target's own skill_pct exactly as GMS states
   // it: percentage POINTS on the named skill, worth their value once per line.
+  // Aimed at a passive that carries a Final Attack, it lands on that strike's
+  // multiplier instead -- see FinalAttackSource::damage_pct.
   double skill_pct = 0.0;
   // Plain % damage this swing alone collects, summed into the share the
   // character's gear and passives already pay. The other damage a boost can

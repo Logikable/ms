@@ -1974,6 +1974,55 @@ TEST(ComputeCombatParamsTest, ASwingCanSetOffAStrikeOnAWaitOfItsOwn) {
   EXPECT_EQ(params.attacks[0].side, nullptr);
 }
 
+// GMS's Showdown - Reinforce lifts the talisman and says in so many words that
+// the shuriken is left out of it. Anything the book aims at the skill by name
+// stops at the swing.
+TEST(ComputeCombatParamsTest, ABoostStopsAtTheStrikeTheSwingSetsOff) {
+  Skill showdown;
+  showdown.set_name("Showdown");
+  showdown.set_kind(SKILL_KIND_ATTACK);
+  showdown.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  showdown.set_max_level(30);
+  showdown.set_base_delay_ms(780);
+  showdown.set_max_enemies(6);
+  showdown.set_lines(2);
+  showdown.mutable_base()->set_skill_pct(3.73);
+  SideStrike* side = showdown.mutable_side_strike();
+  side->set_label("Shuriken");
+  side->set_max_enemies(6);
+  side->set_lines(6);
+  side->set_cooldown_seconds(5.0);
+  side->mutable_base()->set_skill_pct(0.09);
+
+  Skill reinforce;
+  reinforce.set_name("Showdown - Reinforce");
+  reinforce.set_kind(SKILL_KIND_PASSIVE);
+  reinforce.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  reinforce.set_max_level(1);
+  SkillBoost* boost = reinforce.add_boost();
+  boost->set_skill_name("Showdown");
+  boost->mutable_effect()->set_damage_pct(0.20);
+
+  GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}},
+                  {{"showdown", showdown}, {"reinforce", reinforce}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 2);
+  ASSERT_TRUE(state.character.LearnSkill(showdown, 1));
+
+  CombatParams before = ComputeCombatParams(state);
+  ASSERT_TRUE(state.character.LearnSkill(reinforce, 1));
+  CombatParams after = ComputeCombatParams(state);
+
+  ASSERT_NE(before.attacks[1].side, nullptr);
+  ASSERT_NE(after.attacks[1].side, nullptr);
+  EXPECT_NEAR(after.attacks[1].damage_per_hit[0],
+              before.attacks[1].damage_per_hit[0] * 1.20, 1e-6);
+  EXPECT_DOUBLE_EQ(after.attacks[1].side->damage_per_hit[0],
+                   before.attacks[1].side->damage_per_hit[0]);
+}
+
 // Puncture's shape: the buff hangs off an ATTACK, so it is laid by that swing
 // rather than raised on a wait of its own. The fight needs to know which swing
 // lays it, and that has to be the swing's index in the attack list.

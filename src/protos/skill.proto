@@ -756,7 +756,10 @@ message Channel {
 // more of them; what a swing is worth counts it at the rate it can sustain.
 //
 // It reaches its own enemies and lands its own strikes, and it is not the
-// character's swing: no Final Attack follows it and no burn rides it.
+// character's swing: no Final Attack follows it, no burn rides it, and nothing
+// the book aimed at the skill BY NAME reaches it -- GMS's Showdown - Reinforce
+// and - Spread both say in so many words that they leave the shuriken alone.
+// What the skill itself states is still the strike's, the two being one skill.
 message SideStrike {
   SkillEffect base = 1;
   SkillEffect per_level = 2;
@@ -953,9 +956,11 @@ message SkillBoost {
   // character belongs in the granting skill's own `base`.
   //
   // The exception is a passive carrying a Final Attack, which has something to
-  // strengthen without ever swinging: final_attack_chance and damage_pct are
-  // folded onto that extra hit instead. The Hero's Advanced Final Attack
-  // hypers are what it exists for -- see FinalAttackSource.
+  // strengthen without ever swinging: final_attack_chance, damage_pct and
+  // skill_pct are folded onto that extra hit instead -- the last as points on
+  // the strike's own multiplier, which is what GMS's "Night Lord's Mark
+  // Damage: +100% points" is. The Hero's Advanced Final Attack hypers and the
+  // Night Lord's Death Star are what it exists for -- see FinalAttackSource.
   //
   // Read at the granting skill's learned level, as `base` and `per_level` are:
   // see effect_per_level.

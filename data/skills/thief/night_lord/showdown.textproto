@@ -6,7 +6,9 @@
 #
 # The shuriken is a side strike rather than a summon on purpose: it has to go
 # out with this swing and no other, or a Night Lord holding Quad Star at a boss
-# would be firing it the whole time.
+# would be firing it the whole time. Its six enemies are stated rather than
+# taken from the swing, because GMS's Showdown - Spread widens the talisman and
+# leaves the shuriken at six.
 name: "Showdown"
 skill_order: 2
 description:
@@ -31,6 +33,7 @@ per_level {
 }
 side_strike {
   label: "Shuriken"
+  max_enemies: 6
   lines: 6
   cooldown_seconds: 5.0
   base {

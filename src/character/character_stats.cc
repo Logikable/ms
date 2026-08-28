@@ -303,6 +303,7 @@ void AddFinalAttack(const Skill& skill, const SkillEffect& base,
   source.required_tag = skill.follows_skill_tag();
   source.single_enemy = skill.final_attack_single_enemy();
   source.skill_name = skill.name();
+  source.owner_swings = DealsDamage(skill.kind());
   totals.final_attacks.push_back(source);
 }
 
@@ -477,6 +478,14 @@ void FoldFinalAttackBoosts(PassiveTotals& totals) {
     }
     source.chance += boost->second.final_attack_chance;
     source.damage_bonus_pct += boost->second.damage_pct;
+    // Points on the strike's own multiplier, which is what GMS's "Night Lord's
+    // Mark Damage: +100% points" is -- the other damage a boost can hand a
+    // Final Attack, and the one every star of it lands. Only where the skill
+    // carrying it does not swing: the same points already land on a swing of
+    // that name, and no grant is read twice.
+    if (!source.owner_swings) {
+      source.damage_pct += boost->second.skill_pct;
+    }
   }
 }
 

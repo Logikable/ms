@@ -449,7 +449,15 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
   // ordinary monster. It is not the character's swing, so nothing rides it.
   if (skill != nullptr && skill->has_side_strike()) {
     const SideStrike& side = skill->side_strike();
-    OffenseStats stats = offense;
+    // Off the character's own stat line rather than the swing's, because what
+    // the book aimed at this skill by NAME belongs to the swing: GMS's
+    // Showdown - Reinforce says in so many words that it leaves the shuriken
+    // alone. Everything else the skill states is still its own.
+    PassiveOffense unaimed = PassiveOffenseFor(derived);
+    unaimed.skill_bonus.erase(skill->name());
+    OffenseStats stats =
+        OffenseStatsFor(proto.job(), proto.level(), proto.allocated_stats(),
+                        equipped, weapon, skill, level, unaimed);
     stats.skill_pct =
         side.base().skill_pct() + side.per_level().skill_pct() * (level - 1);
     stats.normal_skill_pct = side.base().normal_skill_pct() +
