@@ -377,6 +377,36 @@ double FreezeBoost(const AttackOption& attack, int stacks, bool frozen) {
          shattered;
 }
 
+// What the scar on the group multiplies a swing by, mirroring
+// CombatSim::ScarBoost: a swing scars partway through itself, so a group not
+// scarred already collects only the share of the lines landing after the cut.
+double ScarBoost(const AttackOption& attack, double odds) {
+  if (attack.scar_fd <= 0.0) {
+    return 1.0;
+  }
+  double share = odds;
+  if (attack.scar_chance > 0.0) {
+    int lines = std::max(1, attack.lines);
+    double unscarred =
+        std::pow(1.0 - attack.scar_chance, static_cast<double>(lines));
+    share =
+        1.0 - (1.0 - share) * (1.0 - unscarred) / (attack.scar_chance * lines);
+  }
+  return 1.0 + attack.scar_fd * share;
+}
+
+// The odds a scar stands after this swing, as CombatSim::ApplyScar folds them.
+// No credit goes with it: every swing the character makes scars alike, so
+// there is no choice between them to price.
+double CreditScar(const AttackOption& attack, double odds) {
+  if (attack.scar_chance <= 0.0 || attack.scar_seconds <= 0.0) {
+    return odds;
+  }
+  return 1.0 - (1.0 - odds) *
+                   std::pow(1.0 - attack.scar_chance,
+                            static_cast<double>(std::max(1, attack.lines)));
+}
+
 // What the freeze `attack` would leave is worth over the seconds before it
 // could come round again -- CombatSim::FrozenCredit, over the one clock that
 // stands here for the whole group, exactly as a burn's does.
@@ -569,7 +599,8 @@ double RunOwnClockIce(double step, std::vector<OwnClockIce>& sources,
 // none is. A cast is not among them: it deals no damage.
 int BestSwing(const std::vector<AttackOption>& attacks,
               const std::vector<double>& cooldown, int enemies, int stacks,
-              int cap, const std::vector<Burn>& held, double frozen_left) {
+              int cap, const std::vector<Burn>& held, double frozen_left,
+              double scar_odds) {
   int pick = -1;
   double best_rate = -1.0;
   for (int i = 0; i < static_cast<int>(attacks.size()); ++i) {
@@ -581,7 +612,8 @@ int BestSwing(const std::vector<AttackOption>& attacks,
     bool frozen = frozen_left > 0.0;
     double rate =
         (CrowdDamage(attack, enemies, false) *
-             FreezeBoost(attack, stacks, frozen) +
+             FreezeBoost(attack, stacks, frozen) *
+             ScarBoost(attack, scar_odds) +
          BurnCredit(attack, enemies, held) +
          FreezeCredit(attacks, attack, stacks, cap, enemies, frozen) +
          FrozenCredit(attacks, attack, stacks, enemies, frozen_left)) /
@@ -609,6 +641,9 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
   // One clock for the whole group, as the burns have: the ice a swing lays
   // falls on everything it reached.
   double frozen_left = 0.0;
+  // The odds the group carries a scar, as one number for all of them -- the
+  // same simplification the freeze clock above makes.
+  double scar_odds = 0.0;
   double phase = 0.0;
   int pick = -1;  // the swing being wound up, held until it lands
   for (double elapsed = 0.0; elapsed < horizon; elapsed += kStep) {
@@ -624,7 +659,8 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
       pick = SwingToLay(params, clocks, cooldown);
       if (pick < 0) {
         pick = BestSwing(params.Attacks(clocks.mask), cooldown, enemies, freeze,
-                         params.FreezeCap(clocks.mask), burning, frozen_left);
+                         params.FreezeCap(clocks.mask), burning, frozen_left,
+                         scar_odds);
       }
     }
     if (pick < 0) {
@@ -646,8 +682,10 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     // Burn out: the clocks land its ticks as they fall due, which is the whole
     // point of keeping them.
     double landed = CrowdDamage(swung, enemies, false) *
-                    FreezeBoost(swung, freeze, frozen_left > 0.0);
+                    FreezeBoost(swung, freeze, frozen_left > 0.0) *
+                    ScarBoost(swung, scar_odds);
     LightBurns(swung, enemies, pick, burning);
+    scar_odds = CreditScar(swung, scar_odds);
     frozen_left = std::max(frozen_left, swung.freeze_seconds);
     freeze = CreditFreeze(swung, freeze, params.FreezeCap(clocks.mask));
     played.damage += landed;
