@@ -20,6 +20,7 @@
 #include "src/protos/item.pb.h"
 #include "src/protos/keybinds.pb.h"
 #include "src/protos/save.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -143,6 +144,35 @@ TEST_F(SaveTest, WritesAndReadsBackACharacter) {
   EXPECT_EQ(loaded->character.BossClearedAt("zakum", "Normal"), 1755000000);
   EXPECT_EQ(loaded->character.BossClearedAt("zakum", "Chaos"), 0);
   EXPECT_EQ(loaded->current_map, "lith");
+}
+
+// A toggle is a standing choice about how the character fights, not a thing
+// about the session it was flicked in, so it comes back switched on.
+TEST_F(SaveTest, WritesAndReadsBackASwitchedOnToggle) {
+  Skill toggle;
+  toggle.set_name("Righteously Indignant");
+  toggle.set_kind(SKILL_KIND_ACTIVE);
+  toggle.set_job_advancement(JOB_ADVANCEMENT_BISHOP);
+  toggle.set_max_level(1);
+  toggle.set_hyper(true);
+  toggle.set_required_level(140);
+  toggle.set_toggle(true);
+  std::map<std::string, Skill> skills{{"righteously_indignant", toggle}};
+
+  std::unique_ptr<GameState> saved = MakeState(skills);
+  Character bishop;
+  bishop.set_level(140);
+  bishop.set_job(JOB_BISHOP);
+  bishop.set_job_stage(4);
+  bishop.set_hyper_sp(1);
+  saved->character.RestoreFrom(bishop, saved->equips, saved->items);
+  ASSERT_TRUE(saved->character.LearnSkill(toggle));
+  ASSERT_TRUE(saved->character.ToggleSkill(toggle));
+  ASSERT_TRUE(SaveGameToFile(*saved, path_));
+
+  std::unique_ptr<GameState> loaded = MakeState(skills);
+  ASSERT_EQ(LoadGameFromFile(*loaded, path_).status, LoadStatus::kLoaded);
+  EXPECT_TRUE(loaded->character.SkillToggledOn("Righteously Indignant"));
 }
 
 TEST_F(SaveTest, WritesAndReadsBackTheUsername) {

@@ -153,6 +153,7 @@ cc_test(
         "//src/protos:item_proto_cc",
         "//src/protos:keybinds_proto_cc",
         "//src/protos:save_proto_cc",
+        "//src/protos:skill_proto_cc",
         "@googletest//:gtest_main",
     ],
 )
