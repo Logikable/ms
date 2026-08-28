@@ -1,0 +1,25 @@
+# GMS's own figures: +50 attack, and a bleed on everything the Night Lord hits
+# for 2000% a second over three seconds. A passive rather than the 90-second
+# buff GMS sells, at the user's request -- the coating is on the stars, so
+# everything the stars reach takes it.
+#
+# The burn is certain and lands one helping, so a second swing writes the mark
+# again rather than piling one on: what it is worth is 2000% a second for as
+# long as the Night Lord keeps swinging.
+name: "Bleed Dart"
+skill_order: 1
+description:
+  "Coats your stars with a deadly poison that causes bleeding, increasing "
+  "Attack Power and inflicting continuous damage on enemies."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+hyper: true
+required_level: 140
+max_level: 1
+base { attack: 50 }
+dot {
+  interval_seconds: 1.0
+  duration_seconds: 3.0
+  lines: 1
+  base { skill_pct: 20.0 }
+}

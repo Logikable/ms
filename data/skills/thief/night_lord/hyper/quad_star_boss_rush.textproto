@@ -1,0 +1,15 @@
+# GMS's own twenty points, and they ride the swing rather than the character:
+# Quad Star is the Night Lord's boss swing and hands nothing to Showdown.
+name: "Quad Star - Boss Rush"
+skill_order: 11
+description:
+  "Damage increases when attacking Boss Monsters with Quad Star."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+hyper: true
+required_level: 165
+max_level: 1
+boost {
+  skill_name: "Quad Star"
+  effect { boss_pct: 0.20 }
+}

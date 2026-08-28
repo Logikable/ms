@@ -1,0 +1,14 @@
+# GMS's third Frailty Curse hyper deepens the Speed penalty, which this game
+# has no ground to model. Renamed for DEF instead, the way both archers'
+# Sharp Eyes - Bulwark was -- and worth as little, deliberately: DEF stops
+# paying at a share of the attacking monster's attack, and a 4th job has passed
+# that cap on their stats alone.
+name: "Frailty Curse - Bulwark"
+skill_order: 8
+description: "Grants Frailty Curse a bonus to DEF."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+hyper: true
+required_level: 165
+max_level: 1
+base { def: 500 }

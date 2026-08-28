@@ -1,0 +1,14 @@
+# A share of the character's damage that only this swing collects, which is
+# what GMS's "Damage: +20%" is -- the same bargain Showdown - Reinforce makes.
+name: "Quad Star - Reinforce"
+skill_order: 10
+description: "Increases Quad Star damage."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Quad Star"
+  effect { damage_pct: 0.20 }
+}

@@ -1,0 +1,12 @@
+# The switch that lets the barrier weaken a boss. It opens the whole of what
+# the character has taken off an enemy's attack, this skill's neighbour
+# included -- see SkillEffect.enemy_attack_reaches_boss.
+name: "Frailty Curse - Boss Rush"
+skill_order: 9
+description: "Bosses are affected by Frailty Curse."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+hyper: true
+required_level: 180
+max_level: 1
+base { enemy_attack_reaches_boss: true }

@@ -1,0 +1,15 @@
+# A fifth star. The shadow copies whatever the swing turned out to be, so it
+# throws five too -- the mirror is set from the line count after the boost has
+# been folded in.
+name: "Quad Star - Extra Strike"
+skill_order: 12
+description: "Increases Number of Attacks for Quad Star."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+hyper: true
+required_level: 190
+max_level: 1
+boost {
+  skill_name: "Quad Star"
+  lines: 1
+}

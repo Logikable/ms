@@ -1,0 +1,16 @@
+# Two more enemies for the talisman and none for the shuriken, which states its
+# own six -- see showdown.textproto.
+name: "Showdown - Spread"
+skill_order: 5
+description:
+  "Increases the max number of enemies hit by Showdown. Doesn't apply to the "
+  "shadow shuriken created with Showdown."
+kind: SKILL_KIND_PASSIVE
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+hyper: true
+required_level: 150
+max_level: 1
+boost {
+  skill_name: "Showdown"
+  max_enemies: 2
+}

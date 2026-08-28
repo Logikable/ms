@@ -1,0 +1,23 @@
+# GMS's own figures: 358% seven times on eight enemies, once every 14 seconds,
+# and a hundred points onto what Night Lord's Mark throws for -- GMS states the
+# second half as "[Passive Effect - Night Lord's Mark Damage: +100% points]",
+# which is points on the strike's own multiplier rather than a share of the
+# character's damage. 660ms is what every other throw in this book takes.
+name: "Death Star"
+skill_order: 2
+description: "Summons 4 shurikens that combine into one giant shuriken."
+kind: SKILL_KIND_ATTACK
+job_advancement: JOB_ADVANCEMENT_NIGHT_LORD
+hyper: true
+required_level: 160
+max_level: 1
+required_equip_type: EQUIP_TYPE_CLAW
+base_delay_ms: 660
+max_enemies: 8
+lines: 7
+cooldown_seconds: 14.0
+base { skill_pct: 3.58 }
+boost {
+  skill_name: "Night Lord's Mark"
+  effect { skill_pct: 1.00 }
+}
