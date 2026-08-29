@@ -1,6 +1,6 @@
-# The archer's opening attack: three arrows to each of five enemies, so 366% a
-# target at level 1 rising to 480% at 20. Far stronger than the warrior's Slash
-# Blast, which is the point -- an archer's whole damage comes from one skill.
+# One arrow to each of five enemies. GMS's "Arrows Fired: 3" is the AMMO a
+# swing spends -- the client's bulletConsume -- and the skill states no attack
+# count at all, unlike Wind Arrow, which states three.
 name: "Arrow Blow"
 skill_order: 1
 description: "Shoot consecutive arrows at multiple enemies."
@@ -11,6 +11,5 @@ required_equip_type: EQUIP_TYPE_BOW
 required_equip_type: EQUIP_TYPE_CROSSBOW
 base_delay_ms: 750
 max_enemies: 5
-lines: 3
 base { skill_pct: 1.22 }
 per_level { skill_pct: 0.02 }
