@@ -271,6 +271,46 @@ TEST(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   EXPECT_EQ(normal.drops(1).per_kill(), 1.0);
 }
 
+// The biggest fight in the game and the only one whose first phase is most of
+// it: the five statues are 5.55B of the 7.65B. Pinned for the reason Zakum's
+// and Magnus's numbers are -- the shape of a fight is a design decision.
+TEST(BossDataTest, NormalPinkBeanIsFiveStatuesThenTheBean) {
+  std::map<std::string, Boss> bosses = LoadBosses();
+  std::map<std::string, Mob> mobs = LoadMobs();
+  ASSERT_GT(bosses.count("pink_bean"), 0u);
+  const BossDifficulty& normal = bosses.at("pink_bean").difficulties(0);
+  EXPECT_EQ(normal.name(), "Normal");
+  EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(normal.time_limit_seconds(), 600);
+  EXPECT_EQ(normal.unlock_level(), 170);
+  EXPECT_EQ(normal.meso(), 7022500);
+  // The statues' 3,300,000 and the bean's 6,290,000, paid as one flat number.
+  EXPECT_EQ(normal.exp(), 9590000);
+  ASSERT_EQ(normal.phases_size(), 2);
+  ASSERT_EQ(normal.phases(0).spawns_size(), 5);
+  ASSERT_EQ(normal.phases(1).spawns_size(), 1);
+  EXPECT_EQ(normal.phases(1).spawns(0).mob(), "pink_bean");
+
+  int64_t statues = 0;
+  for (const Spawn& spawn : normal.phases(0).spawns()) {
+    const Mob& statue = mobs.at(spawn.mob());
+    EXPECT_EQ(SpawnCount(spawn), 1) << spawn.mob();
+    EXPECT_EQ(statue.level(), 180) << spawn.mob();
+    EXPECT_EQ(statue.pdr(), 60) << spawn.mob();
+    statues += statue.max_hp();
+  }
+  EXPECT_EQ(statues, 5550000000LL);
+  const Mob& bean = mobs.at("pink_bean");
+  EXPECT_EQ(bean.level(), 180);
+  EXPECT_EQ(bean.max_hp(), 2100000000LL);
+  EXPECT_EQ(bean.pdr(), 70);
+
+  ASSERT_EQ(normal.drops_size(), 3);
+  EXPECT_EQ(normal.drops(0).equip(), "black_bean_mark");
+  EXPECT_EQ(normal.drops(1).equip(), "golden_clover_belt");
+  EXPECT_EQ(normal.drops(2).equip(), "pink_holy_cup");
+}
+
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
 // top of another one.
 TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
@@ -332,14 +372,15 @@ TEST(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 // How much room each fight gives the player is a design decision, so the
 // count per phase is pinned: five among Zakum's arms and five under his body,
 // six around each of Horntail's heads and six around the dragon, five on
-// Hilla's floor and five on Magnus's. Every difficulty of a boss is laid out
-// alike, and every phase holds more than a full party, so a party of three
-// always has somewhere left to walk.
+// Hilla's floor, five on Magnus's, and five in each half of Pink Bean's room.
+// Every difficulty of a boss is laid out alike, and every phase holds more than
+// a full party, so a party of three always has somewhere left to walk.
 TEST(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
   std::map<std::string, std::vector<int>> expected = {{"zakum", {5, 5}},
                                                       {"hilla", {5}},
                                                       {"horntail", {6, 6, 6}},
-                                                      {"magnus", {5}}};
+                                                      {"magnus", {5}},
+                                                      {"pink_bean", {5, 5}}};
   std::map<std::string, Boss> bosses = LoadBosses();
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses.count(want.first), 0u) << want.first;

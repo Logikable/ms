@@ -1,0 +1,7 @@
+name: "Ariel"
+level: 180
+attack: 21700
+max_hp: 1580000000
+exp: 0
+pdr: 60
+boss: true

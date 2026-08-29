@@ -1,0 +1,7 @@
+name: "Pink Bean"
+level: 180
+attack: 23100
+max_hp: 2100000000
+exp: 0
+pdr: 70
+boss: true

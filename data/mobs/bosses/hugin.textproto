@@ -1,0 +1,7 @@
+name: "Hugin"
+level: 180
+attack: 19900
+max_hp: 1185000000
+exp: 0
+pdr: 60
+boss: true

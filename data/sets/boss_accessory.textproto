@@ -1,8 +1,7 @@
 name: EQUIP_SET_NAME_BOSS_ACCESSORY
-# Nine slots in GMS: two eye accessories and two earrings among them, plus a
-# ring, a pendant, a belt, a shoulderpad and a pocket. Eight of them have an
-# item here, so every tier but the last pays -- the belt arrives with the boss
-# that drops it.
+# Nine slots, all of them filled since Pink Bean, so every tier pays. The eye
+# and the pocket name two items apiece: Pink Bean drops an alternate for each
+# of the two slots earlier bosses filled, and either one fills the slot.
 complete_pieces: 9
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -10,11 +9,17 @@ members {
 }
 members {
   slot: EQUIP_SLOT_EYE_ACCESSORY
-  items { name: "Aquatic Letter Eye Accessory" }
+  items {
+    name: "Aquatic Letter Eye Accessory"
+    name: "Black Bean Mark"
+  }
 }
 members {
   slot: EQUIP_SLOT_POCKET
-  items { name: "Stone of Eternal Life" }
+  items {
+    name: "Stone of Eternal Life"
+    name: "Pink Holy Cup"
+  }
 }
 members {
   slot: EQUIP_SLOT_RING
@@ -31,6 +36,10 @@ members {
 members {
   slot: EQUIP_SLOT_SHOULDER
   items { name: "Royal Black Metal Shoulder" }
+}
+members {
+  slot: EQUIP_SLOT_BELT
+  items { name: "Golden Clover Belt" }
 }
 members {
   slot: EQUIP_SLOT_BADGE

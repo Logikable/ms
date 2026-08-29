@@ -1,0 +1,18 @@
+name: "Golden Clover Belt"
+required_level: 140
+base_stats {
+  str: 15
+  dex: 15
+  int: 15
+  luk: 15
+  attack: 1
+  magic_attack: 1
+  max_hp: 150
+  max_mp: 150
+  def: 150
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_BELT
+upgrade_slots: 3
+# Dropped by Pink Bean, never stocked, at the price the mark beside it fetches.
+sell_price: 2000000

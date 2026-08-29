@@ -1,0 +1,7 @@
+name: "Rex the Wise"
+level: 180
+attack: 17500
+max_hp: 800000000
+exp: 0
+pdr: 60
+boss: true

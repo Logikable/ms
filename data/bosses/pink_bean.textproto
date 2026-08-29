@@ -1,0 +1,58 @@
+name: "Pink Bean"
+difficulties {
+  name: "Normal"
+  # The five statues, spread evenly across the arena. Ariel stands a row under
+  # the ceiling and the other four a row over the floor, which is the arch his
+  # room is built as: the statue worth three of the others is the one out of
+  # reach.
+  phases {
+    spawns { mob: "solomon_the_wise" spots { x: 0 y: 3 } }
+    spawns { mob: "hugin" spots { x: 2 y: 3 } }
+    spawns { mob: "ariel" spots { x: 4 y: 1 } }
+    spawns { mob: "munin" spots { x: 6 y: 3 } }
+    spawns { mob: "rex_the_wise" spots { x: 8 y: 3 } }
+    # The floor under the statues, and a ledge at each end level with them.
+    player_spots { x: 4 y: 4 }
+    player_spots { x: 0 y: 4 }
+    player_spots { x: 8 y: 4 }
+    player_spots { x: 0 y: 2 }
+    player_spots { x: 8 y: 2 }
+    arena_width: 9
+    arena_height: 5
+  }
+  # The bean himself, alone in the middle of the same room, low over the floor.
+  phases {
+    spawns { mob: "pink_bean" spots { x: 4 y: 3 } }
+    player_spots { x: 4 y: 4 }
+    player_spots { x: 0 y: 4 }
+    player_spots { x: 8 y: 4 }
+    player_spots { x: 2 y: 4 }
+    player_spots { x: 6 y: 4 }
+    arena_width: 9
+    arena_height: 5
+  }
+  reset: RESET_PERIOD_DAILY
+  # What Horntail and Magnus allow. The statues are 73% of the fight and the
+  # gate is ten levels over them, so the clock is on the room rather than on
+  # the bean.
+  time_limit_seconds: 600
+  unlock_level: 170
+  # Five Intense Power Crystals at what his level fetches, as every boss's
+  # meso is.
+  meso: 7022500
+  # Paid for the clear, flat and untouched by any EXP bonus, as the other four
+  # are. The five statues are worth 3,300,000 of it and the bean 6,290,000.
+  exp: 9590000
+  drops {
+    equip: "black_bean_mark"
+    per_kill: 1.0
+  }
+  drops {
+    equip: "golden_clover_belt"
+    per_kill: 1.0
+  }
+  drops {
+    equip: "pink_holy_cup"
+    per_kill: 1.0
+  }
+}

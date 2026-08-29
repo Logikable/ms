@@ -1,0 +1,8 @@
+name: "Solomon the Wise"
+level: 180
+attack: 16500
+max_hp: 800000000
+# The clear pays the EXP, not the six bodies: see the boss file.
+exp: 0
+pdr: 60
+boss: true

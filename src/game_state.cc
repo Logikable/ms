@@ -282,14 +282,21 @@ std::vector<std::string> FrozenArmour() {
 // pocket slots. A boss drop is a long way to walk for a screen, so the
 // workbench starts in it -- and the crystal asks for level 110, which a 3rd
 // job standing at 100 carries rather than wears.
+//
+// Two slots hold a pair, Pink Bean's alternate for the eye and the pocket
+// after the piece it supersedes: worn in this order, a 3rd job at 100 keeps
+// the older one and a 4th at the cap swaps to the newer.
 std::vector<std::string> BossAccessories() {
   return {"aquatic_letter_eye_accessory",
+          "black_bean_mark",
           "condensed_power_crystal",
           "stone_of_eternal_life",
+          "pink_holy_cup",
           "silver_blossom_ring",
           "horntail_necklace",
           "dea_sidus_earring",
           "royal_black_metal_shoulder",
+          "golden_clover_belt",
           "crystal_ventus_badge"};
 }
 

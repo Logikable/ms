@@ -1,0 +1,17 @@
+name: "Black Bean Mark"
+required_level: 135
+base_stats {
+  str: 7
+  dex: 7
+  int: 7
+  luk: 7
+  attack: 1
+  magic_attack: 1
+  def: 120
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_EYE_ACCESSORY
+upgrade_slots: 5
+# Dropped by Pink Bean, never stocked, at the top of the ladder his accessories
+# sit on: Zakum 500k, Hilla 750k, Horntail 1M, Magnus 1.5M.
+sell_price: 2000000

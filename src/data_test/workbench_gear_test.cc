@@ -189,11 +189,11 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
   }
 }
 
-// Zakum's two accessories fill the slots nothing else in the catalog does, and
-// a boss drop is a long walk for a tester. The eye piece asks for level 100
-// and the crystal for 110, so a 3rd job standing at 100 wears the one and
-// carries the other.
-TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatZakumDrops) {
+// The boss accessories fill the slots nothing else in the catalog does, and a
+// boss drop is a long walk for a tester. Their levels decide who wears what:
+// Zakum's eye piece asks for 100 and his crystal for 110, so a 3rd job
+// standing at 100 wears the one and carries the other.
+TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   GameState second = Workbench(JOB_ADVANCEMENT_BANDIT);
   EXPECT_EQ(second.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 0u);
   EXPECT_EQ(second.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 0u);
@@ -202,9 +202,24 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatZakumDrops) {
   EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 1u);
   EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 0u);
 
+  // At the cap it wears all nine slots the Boss Accessory Set spans, and the
+  // two Pink Bean supersedes are the ones he drops rather than the originals.
   GameState fourth = Workbench(JOB_ADVANCEMENT_DARK_KNIGHT);
-  EXPECT_EQ(fourth.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 1u);
-  EXPECT_EQ(fourth.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 1u);
+  const std::map<EquipSlot, EquipInstance>& worn = fourth.character.equipped();
+  const std::map<EquipSlot, std::string> kExpected = {
+      {EQUIP_SLOT_EYE_ACCESSORY, "Black Bean Mark"},
+      {EQUIP_SLOT_FACE_ACCESSORY, "Condensed Power Crystal"},
+      {EQUIP_SLOT_POCKET, "Pink Holy Cup"},
+      {EQUIP_SLOT_RING, "Silver Blossom Ring"},
+      {EQUIP_SLOT_PENDANT, "Horntail Necklace"},
+      {EQUIP_SLOT_EARRINGS, "Dea Sidus Earring"},
+      {EQUIP_SLOT_SHOULDER, "Royal Black Metal Shoulder"},
+      {EQUIP_SLOT_BELT, "Golden Clover Belt"},
+      {EQUIP_SLOT_BADGE, "Crystal Ventus Badge"}};
+  for (const std::pair<const EquipSlot, std::string>& want : kExpected) {
+    ASSERT_EQ(worn.count(want.first), 1u) << EquipSlot_Name(want.first);
+    EXPECT_EQ(worn.at(want.first).prototype().name(), want.second);
+  }
 }
 
 // The level the gear is checked against, so a change to the advancement levels
