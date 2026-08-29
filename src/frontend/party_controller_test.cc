@@ -164,6 +164,11 @@ class PartyControllerTest : public ::testing::Test {
 
   // Ticks every client until `ready`, so both ends of a party keep moving.
   // `seconds` is what each tick is worth to a fight on screen.
+  //
+  // One more tick once it holds: a connection fills its snapshot on its own
+  // thread, so a condition read straight off one can come true after the tick
+  // that would have handed it to the panels. Without the extra pass a screen
+  // is a message behind what the test has just proved arrived.
   bool WaitFor(const std::vector<Client*>& clients,
                const std::function<bool()>& ready, double seconds = 0.0) {
     std::chrono::steady_clock::time_point deadline =
@@ -173,6 +178,9 @@ class PartyControllerTest : public ::testing::Test {
         client->Tick(seconds);
       }
       if (ready()) {
+        for (Client* client : clients) {
+          client->Tick(seconds);
+        }
         return true;
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -258,8 +266,11 @@ TEST_F(PartyControllerTest, TheLeaderKicksAMember) {
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
                       [&]() { return !guest->party_panel.in_party(); }));
 
-  // The one removed is told so, wherever they were standing.
-  EXPECT_TRUE(guest->controller->party_notice_prompt().open());
+  // The one removed is told so, wherever they were standing. The notice is a
+  // message of its own, so it can land a tick behind the party it is about.
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    return guest->controller->party_notice_prompt().open();
+  }));
   EXPECT_FALSE(guest->controller->party_notice().empty());
   EXPECT_FALSE(guest->controller->party_notice_is_refusal());
 }
@@ -303,7 +314,9 @@ TEST_F(PartyControllerTest, TheLeaderHandsThePartyOn) {
   ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
                       [&]() { return guest->party_panel.is_leader(); }));
   EXPECT_FALSE(leader->party_panel.is_leader());
-  EXPECT_TRUE(guest->controller->party_notice_prompt().open());
+  EXPECT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    return guest->controller->party_notice_prompt().open();
+  }));
 }
 
 TEST_F(PartyControllerTest, TheLeaderLeavesAndThePartyGoesOn) {
@@ -321,9 +334,10 @@ TEST_F(PartyControllerTest, TheLeaderLeavesAndThePartyGoesOn) {
   leader->controller->OnEvent(ftxui::Event::ArrowLeft);
   leader->controller->OnEvent(ftxui::Event::Return);
 
-  ASSERT_TRUE(WaitFor({leader.get(), guest.get()},
-                      [&]() { return guest->party_panel.is_leader(); }));
-  EXPECT_FALSE(leader->party_panel.in_party());
+  // Each end hears about it in a message of its own.
+  ASSERT_TRUE(WaitFor({leader.get(), guest.get()}, [&]() {
+    return guest->party_panel.is_leader() && !leader->party_panel.in_party();
+  }));
 }
 
 TEST_F(PartyControllerTest, ANoticeTakesKeysWhereverThePlayerIs) {
@@ -528,9 +542,15 @@ TEST_F(PartyControllerTest, ThePartyIsSeatedForTheFightAndNoLonger) {
   leader->controller->OpenMenuEntry(MenuEntry::kBoss);
   leader->controller->OnEvent(ftxui::Event::Return);
   leader->controller->OnEvent(ftxui::Event::Return);
+  // Both ends: the fight opens each screen off its own message, and each one
+  // seats its party as it does.
   ASSERT_TRUE(WaitFor(
       {leader.get(), guest.get()},
-      [&]() { return guest->controller->screen() == kBossFight; }, 0.02));
+      [&]() {
+        return guest->controller->screen() == kBossFight &&
+               leader->controller->screen() == kBossFight;
+      },
+      0.02));
 
   // Everybody but themselves, rebuilt from the sheets they sent.
   ASSERT_EQ(guest->state->party.size(), 1u);
@@ -565,7 +585,11 @@ TEST_F(PartyControllerTest, OneWalkingOutLeavesTheFightToTheOther) {
   leader->controller->OnEvent(ftxui::Event::Return);
   ASSERT_TRUE(WaitFor(
       {leader.get(), guest.get()},
-      [&]() { return guest->controller->screen() == kBossFight; }, 0.02));
+      [&]() {
+        return guest->controller->screen() == kBossFight &&
+               leader->controller->screen() == kBossFight;
+      },
+      0.02));
 
   // Escape raises the question, and the prompt opens on Cancel.
   guest->controller->OnEvent(ftxui::Event::Escape);
