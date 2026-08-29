@@ -15,8 +15,9 @@ difficulties {
     arena_height: 4
   }
   reset: RESET_PERIOD_DAILY
-  # Half again what Horntail allows, for a body twice his size.
-  time_limit_seconds: 900
+  # What Horntail allows. He is twice the body, but the gate is thirty levels
+  # over him and every branch clears him inside half of it.
+  time_limit_seconds: 600
   unlock_level: 160
   # Five Intense Power Crystals at what his level fetches, as Zakum's, Hilla's
   # and Horntail's meso is.

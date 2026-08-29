@@ -253,7 +253,7 @@ TEST(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   const BossDifficulty& normal = bosses.at("magnus").difficulties(0);
   EXPECT_EQ(normal.name(), "Normal");
   EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
-  EXPECT_EQ(normal.time_limit_seconds(), 900);
+  EXPECT_EQ(normal.time_limit_seconds(), 600);
   EXPECT_EQ(normal.unlock_level(), 160);
   EXPECT_EQ(normal.meso(), 12960000);
   EXPECT_EQ(normal.exp(), 5300000);
