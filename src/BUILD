@@ -250,6 +250,7 @@ cc_test(
         "//src/character:exp_table",
         "//src/character:progression",
         "//src/item",
+        "//src/item:equip_instance",
         "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",

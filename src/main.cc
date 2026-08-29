@@ -47,8 +47,8 @@ ABSL_FLAG(int32_t, level, 0,
           "taken at, and never above the trial's ceiling.");
 ABSL_FLAG(std::string, equips, "clean",
           "Workbench only (--mode=test): what state the character's gear "
-          "arrives in. 'clean' as it drops, 'scroll' with every upgrade slot "
-          "passed, or 'sf' with that and every star.");
+          "arrives in. 'clean' as it drops, 'scroll' fully hammered with "
+          "every upgrade slot passed, or 'sf' with that and every star.");
 ABSL_FLAG(std::string, server, ms::DefaultServerAddress(),
           "Where the multiplayer server is, as host:port. Empty plays alone, "
           "which is what a build made without multiplayer does whatever this "

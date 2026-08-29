@@ -11,6 +11,7 @@
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/progression.h"
+#include "src/item/equip_instance.h"
 #include "src/item/item.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -277,15 +278,16 @@ TEST(GameStateTest, EquipsCleanLeavesTheGearAsItDrops) {
   EXPECT_EQ(WornWeapon(state).stars(), 0);
 }
 
-// Every slot passed, with the trace that pays the most -- and no stars, which
-// are the other flag's business.
-TEST(GameStateTest, EquipsScrollPassesEverySlotWithTheBiggestTrace) {
+// Both hammers in and every slot passed, with the trace that pays the most --
+// and no stars, which are the other flag's business.
+TEST(GameStateTest, EquipsScrollHammersThenPassesEverySlot) {
   GameState state = MakeEquipsState(TestEquips::kScrolled);
   const Equip& worn = WornWeapon(state);
+  EXPECT_EQ(worn.hammers(), kMaxHammers);
   EXPECT_EQ(worn.remaining_upgrade_slots(), 0);
-  EXPECT_EQ(worn.scroll_successes(), 7);
-  EXPECT_EQ(worn.scroll_stats().attack(), 35);
-  EXPECT_EQ(worn.scroll_stats().str(), 21);
+  EXPECT_EQ(worn.scroll_successes(), 9);
+  EXPECT_EQ(worn.scroll_stats().attack(), 45);
+  EXPECT_EQ(worn.scroll_stats().str(), 27);
   EXPECT_EQ(worn.stars(), 0);
 }
 
@@ -293,7 +295,8 @@ TEST(GameStateTest, EquipsScrollPassesEverySlotWithTheBiggestTrace) {
 TEST(GameStateTest, EquipsSfStarsTheGearToItsCap) {
   GameState state = MakeEquipsState(TestEquips::kStarForced);
   const Equip& worn = WornWeapon(state);
-  EXPECT_EQ(worn.scroll_successes(), 7);
+  EXPECT_EQ(worn.hammers(), kMaxHammers);
+  EXPECT_EQ(worn.scroll_successes(), 9);
   EXPECT_EQ(worn.stars(), EquipTabItem::MaxStarsForLevel(30));
 }
 
@@ -307,8 +310,23 @@ TEST(GameStateTest, EquipsLeaveAnItemThatRefusesThePathAlone) {
   test.equips = TestEquips::kStarForced;
   GameState state(catalog, WarriorWeaponTraces(), {}, {}, {}, {},
                   GameMode::kTest, test);
-  EXPECT_EQ(WornWeapon(state).scroll_successes(), 7);
+  EXPECT_EQ(WornWeapon(state).scroll_successes(), 9);
   EXPECT_EQ(WornWeapon(state).stars(), 0);
+}
+
+// A piece with no scroll shelf takes no hammer either: the hammer widens a
+// shelf, and there is none to widen.
+TEST(GameStateTest, EquipsLeaveAPieceWithNoShelfUnhammered) {
+  std::map<std::string, EquipPrototype> catalog = GladiusCatalog();
+  catalog["gladius"].set_upgrade_slots(0);
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_SWORDMAN;
+  test.equips = TestEquips::kStarForced;
+  GameState state(catalog, WarriorWeaponTraces(), {}, {}, {}, {},
+                  GameMode::kTest, test);
+  EXPECT_EQ(WornWeapon(state).hammers(), 0);
+  EXPECT_EQ(WornWeapon(state).scroll_successes(), 0);
+  EXPECT_EQ(WornWeapon(state).stars(), EquipTabItem::MaxStarsForLevel(30));
 }
 
 // --- the --job workbench ---

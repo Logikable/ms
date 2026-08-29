@@ -51,8 +51,8 @@ enum class GameMode {
 enum class TestEquips {
   // As it drops, slots unspent.
   kClean,
-  // Every upgrade slot passed, with the trace that raises what the job fights
-  // with.
+  // Both hammers driven in and every upgrade slot passed, with the trace that
+  // raises what the job fights with.
   kScrolled,
   // That, and starred to the item's cap.
   kStarForced,

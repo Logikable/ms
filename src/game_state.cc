@@ -206,7 +206,8 @@ const Scroll* BestScrollFor(const GameState& state,
 }
 
 // The state a piece of the workbench's gear arrives in: as it drops, with
-// every upgrade slot passed, or that and starred to the item's own cap.
+// every hammer driven in and every upgrade slot passed, or that and starred
+// to the item's own cap.
 //
 // Written straight into the state rather than rolled through Scroll() and
 // StarForce(): the tester asked for the finished item, not for the odds.
@@ -219,10 +220,13 @@ Equip UpgradedState(const GameState& state, const EquipPrototype& proto,
     return built;
   }
   const Scroll* scroll = BestScrollFor(state, proto);
-  if (scroll != nullptr && Supports(proto, UPGRADE_SCROLL)) {
-    std::vector<EquipStats> passes(proto.upgrade_slots(), scroll->stats());
+  if (scroll != nullptr && TakesUpgradeSlots(proto)) {
+    // Hammers first: the wider shelf is what gets scrolled.
+    built.set_hammers(kMaxHammers);
+    int slots = TotalUpgradeSlots(proto, built);
+    std::vector<EquipStats> passes(slots, scroll->stats());
     *built.mutable_scroll_stats() = SumEquipStats(passes);
-    built.set_scroll_successes(proto.upgrade_slots());
+    built.set_scroll_successes(slots);
     built.set_remaining_upgrade_slots(0);
   }
   // Stars go on an item with nothing left to scroll, which is the rule the
