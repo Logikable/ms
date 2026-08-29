@@ -291,5 +291,82 @@ TEST_F(ScrollDataTest, AllStatsPaysLessPerStatThanASingleStatScroll) {
   }
 }
 
+// The glove shelf pays attack, not the stat the armour shelf pays, and the
+// one rung that pays defense instead is GMS's tier 1 100%. A file that paid a
+// stat here would be an armour scroll that wandered onto the wrong shelf.
+TEST_F(ScrollDataTest, EveryGloveScrollPaysAttackOrDefense) {
+  int seen = 0;
+  for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
+    const Scroll& scroll = entry.second;
+    if (scroll.target() != SCROLL_TARGET_GLOVES) {
+      continue;
+    }
+    ++seen;
+    const EquipStats& stats = scroll.stats();
+    EXPECT_EQ(stats.str() + stats.dex() + stats.int_() + stats.luk(), 0)
+        << entry.first << " pays a stat, which a glove scroll never does";
+    EXPECT_EQ(stats.max_hp(), 0) << entry.first;
+    if (scroll.scroll_type() == SCROLL_TYPE_DEF) {
+      EXPECT_EQ(scroll.tier(), SCROLL_TIER_1) << entry.first;
+      EXPECT_EQ(scroll.success_rate(), 100) << entry.first;
+      EXPECT_GT(stats.def(), 0) << entry.first;
+      continue;
+    }
+    EXPECT_EQ(stats.def(), 0) << entry.first;
+    EXPECT_GT(stats.attack() + stats.magic_attack(), 0) << entry.first;
+  }
+  EXPECT_GT(seen, 0);
+}
+
+// A heart pays the attack its wearer's job swings with and nothing else.
+TEST_F(ScrollDataTest, EveryHeartScrollPaysOnlyAttack) {
+  int seen = 0;
+  for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
+    const Scroll& scroll = entry.second;
+    if (scroll.target() != SCROLL_TARGET_HEART) {
+      continue;
+    }
+    ++seen;
+    const EquipStats& stats = scroll.stats();
+    EXPECT_EQ(stats.str() + stats.dex() + stats.int_() + stats.luk(), 0)
+        << entry.first;
+    EXPECT_EQ(stats.max_hp(), 0) << entry.first;
+    EXPECT_EQ(stats.def(), 0) << entry.first;
+    EXPECT_GT(stats.attack() + stats.magic_attack(), 0) << entry.first;
+  }
+  EXPECT_GT(seen, 0);
+}
+
+// Both shelves come in the two kinds of attack, and a magician has to find
+// one wherever a warrior does. GMS sells no 15% on either.
+TEST_F(ScrollDataTest, TheAttackShelvesCoverBothKindsAtEveryRate) {
+  const ScrollTarget kShelves[] = {SCROLL_TARGET_GLOVES, SCROLL_TARGET_HEART};
+  const ScrollTier kTiers[] = {SCROLL_TIER_1, SCROLL_TIER_2, SCROLL_TIER_3};
+  for (ScrollTarget shelf : kShelves) {
+    for (ScrollTier tier : kTiers) {
+      for (int rate : {100, 70, 30}) {
+        std::set<ScrollType> found;
+        for (const std::pair<const std::string, Scroll>& entry : scrolls_) {
+          const Scroll& s = entry.second;
+          if (s.target() == shelf && s.tier() == tier &&
+              s.success_rate() == rate) {
+            found.insert(s.scroll_type());
+          }
+        }
+        // The one gap: GMS pays a glove defense at tier 1, 100%, where every
+        // other rung on both shelves pays attack.
+        if (shelf == SCROLL_TARGET_GLOVES && tier == SCROLL_TIER_1 &&
+            rate == 100) {
+          EXPECT_EQ(found, std::set<ScrollType>{SCROLL_TYPE_DEF});
+          continue;
+        }
+        EXPECT_EQ(found,
+                  (std::set<ScrollType>{SCROLL_TYPE_ATT, SCROLL_TYPE_MATT}))
+            << "shelf " << shelf << " tier " << tier << " at " << rate << "%";
+      }
+    }
+  }
+}
+
 }  // namespace
 }  // namespace ms

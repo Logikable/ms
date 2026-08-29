@@ -1,0 +1,13 @@
+name: "30% ATT"
+success_rate: 30
+tier: SCROLL_TIER_2
+stats {
+  attack: 5
+}
+applicable_job_categories: EQUIP_JOB_CATEGORY_WARRIOR
+applicable_job_categories: EQUIP_JOB_CATEGORY_BOWMAN
+applicable_job_categories: EQUIP_JOB_CATEGORY_THIEF
+applicable_job_categories: EQUIP_JOB_CATEGORY_PIRATE
+applicable_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+scroll_type: SCROLL_TYPE_ATT
+target: SCROLL_TARGET_HEART
