@@ -1101,19 +1101,15 @@ TEST(SkillDataTest, AScarIsBothLeftAndRead) {
   }
 }
 
-// Freezing is an ice swing's alone. A lightning swing spends the ice rather
-// than making it, and a passive lands on nobody to freeze.
-TEST(SkillDataTest, OnlyAnIceSwingFreezes) {
+// A freeze lands on what a swing reached, so a passive that touches nobody
+// cannot leave one. Being ICE is NOT required: the tag marks a swing that
+// feeds the I/L's Freeze Stacks, and Frostprey freezes as a bird instead.
+TEST(SkillDataTest, OnlyASwingFreezes) {
   for (const std::pair<const std::string, Skill>& entry : LoadSkills()) {
     const Skill& skill = entry.second;
     if (skill.freeze_seconds() <= 0.0) {
       continue;
     }
-    bool ice = false;
-    for (int i = 0; i < skill.tags_size(); ++i) {
-      ice = ice || skill.tags(i) == SKILL_TAG_ICE;
-    }
-    EXPECT_TRUE(ice) << entry.first << " freezes without being ice";
     EXPECT_TRUE(DealsDamage(skill.kind()))
         << entry.first << " freezes what it never attacks";
   }

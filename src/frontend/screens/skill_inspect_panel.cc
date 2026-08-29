@@ -544,17 +544,21 @@ std::vector<Row> EmpoweredRows(const Skill& skill) {
 // in this game reads yet.
 // The element row, and the freeze riding it. How LONG the ice holds is not
 // printed for the reason no other clock is -- the pacing band stretches it --
-// but which ice swings freeze at all is a real difference between them, and
-// the one Frozen Orb is on the wrong side of.
+// but which swings freeze at all is a real difference between them, and the
+// one Frozen Orb is on the wrong side of. Frostprey freezes and carries no
+// element, so the freeze takes a row of its own when nothing tags the skill.
 std::vector<Row> ElementRows(const Skill& skill) {
+  bool freezes = skill.freeze_seconds() > 0.0;
   for (int i = 0; i < skill.tags_size(); ++i) {
     if (skill.tags(i) == SKILL_TAG_ICE) {
-      return {EffectRow("Element",
-                        skill.freeze_seconds() > 0.0 ? "Ice, Freezes" : "Ice")};
+      return {EffectRow("Element", freezes ? "Ice, Freezes" : "Ice")};
     }
     if (skill.tags(i) == SKILL_TAG_LIGHTNING) {
       return {EffectRow("Element", "Lightning")};
     }
+  }
+  if (freezes) {
+    return {EffectRow("Freezes", "What it hits")};
   }
   return {};
 }

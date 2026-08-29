@@ -1,6 +1,9 @@
 # Phoenix's twin: GMS gives both summons 210+18*L% damage, four enemies and a
 # permanent 3*L% DEF, and the Korean DPM calculator holds both at delay=1710.
-# The freeze is dropped, as Phoenix's stun was.
+#
+# What it has and Phoenix does not is the freeze -- 1 + floor(L/5) seconds in
+# GMS, 3 at master. Skill.freeze_seconds carries no ladder, so it holds the
+# master figure. Phoenix's stun stays out; nothing here is stunned.
 name: "Frostprey"
 skill_order: 2
 description: "Summons a Frostprey that attacks on its own. Also increases DEF."
@@ -8,6 +11,7 @@ kind: SKILL_KIND_AUTO_ATTACK
 job_advancement: JOB_ADVANCEMENT_SNIPER
 max_level: 10
 max_enemies: 4
+freeze_seconds: 3.0
 cast_interval_seconds: 1.71
 base { skill_pct: 2.28 def_pct: 0.03 }
 per_level { skill_pct: 0.18 def_pct: 0.03 }
