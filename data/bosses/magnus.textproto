@@ -33,6 +33,10 @@ difficulties {
     equip: "royal_black_metal_shoulder"
     per_kill: 1.0
   }
+  drops {
+    item: "magnuss_soul_shard"
+    per_kill: 1.0
+  }
 }
 # Written down, not built: the same lone fight at the numbers GMS gives Hard.
 # Only the HP is stated, because nothing else is decided.

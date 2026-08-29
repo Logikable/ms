@@ -214,6 +214,37 @@ TEST(BossDataTest, EveryDropNamesAnItem) {
   EXPECT_GT(drops, 0) << "no boss in the catalog drops anything";
 }
 
+// Every built fight pays a shard of the soul it took, and the naming is what
+// the boss screen prints: a fight whose shard is missing or misnamed drops
+// nothing a player can tell apart from another boss's.
+TEST(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
+  std::map<std::string, ItemPrototype> items = LoadItems();
+  int fights = 0;
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (difficulty.coming_soon()) {
+        continue;
+      }
+      ++fights;
+      std::vector<std::string> shards;
+      for (const MobDrop& drop : difficulty.drops()) {
+        if (!drop.has_equip() &&
+            drop.item().find("soul_shard") != std::string::npos) {
+          shards.push_back(drop.item());
+        }
+      }
+      std::string where = entry.first + " " + difficulty.name();
+      ASSERT_EQ(shards.size(), 1u)
+          << where << " drops no soul shard of its own";
+      EXPECT_EQ(items.at(shards[0]).name(),
+                entry.second.name() + "'s Soul Shard")
+          << where;
+      EXPECT_EQ(items.at(shards[0]).category(), ITEM_CATEGORY_ETC) << where;
+    }
+  }
+  EXPECT_EQ(fights, 5) << "Zakum, Hilla, Horntail, Magnus and Pink Bean";
+}
+
 // Zakum is the first boss and the one the screen was built against, so his
 // numbers are pinned: the shape of the fight is a design decision, not data
 // that should drift.
@@ -264,11 +295,13 @@ TEST(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
   EXPECT_EQ(magnus.level(), 130);
   EXPECT_EQ(magnus.max_hp(), 6000000000LL);
   EXPECT_EQ(magnus.pdr(), 50);
-  ASSERT_EQ(normal.drops_size(), 2);
+  ASSERT_EQ(normal.drops_size(), 3);
   EXPECT_EQ(normal.drops(0).equip(), "crystal_ventus_badge");
   EXPECT_EQ(normal.drops(0).per_kill(), 1.0);
   EXPECT_EQ(normal.drops(1).equip(), "royal_black_metal_shoulder");
   EXPECT_EQ(normal.drops(1).per_kill(), 1.0);
+  EXPECT_EQ(normal.drops(2).item(), "magnuss_soul_shard");
+  EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
 // The biggest fight in the game and the only one whose first phase is most of
@@ -305,10 +338,11 @@ TEST(BossDataTest, NormalPinkBeanIsFiveStatuesThenTheBean) {
   EXPECT_EQ(bean.max_hp(), 2100000000LL);
   EXPECT_EQ(bean.pdr(), 70);
 
-  ASSERT_EQ(normal.drops_size(), 3);
+  ASSERT_EQ(normal.drops_size(), 4);
   EXPECT_EQ(normal.drops(0).equip(), "black_bean_mark");
   EXPECT_EQ(normal.drops(1).equip(), "golden_clover_belt");
   EXPECT_EQ(normal.drops(2).equip(), "pink_holy_cup");
+  EXPECT_EQ(normal.drops(3).item(), "pink_beans_soul_shard");
 }
 
 // Where the parts stand is data, and two of them in one cell is a bar drawn on

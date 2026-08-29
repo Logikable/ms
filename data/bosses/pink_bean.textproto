@@ -58,4 +58,8 @@ difficulties {
     equip: "pink_holy_cup"
     per_kill: 1.0
   }
+  drops {
+    item: "pink_beans_soul_shard"
+    per_kill: 1.0
+  }
 }
