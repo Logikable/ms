@@ -1140,11 +1140,30 @@ TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_SHOULDER), "Shoulder");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_POCKET), "Pocket");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_EARRINGS), "Earrings");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_GLOVES), "Gloves");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_SHOES), "Shoes");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_BADGE), "Badge");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_EMBLEM), "Emblem");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_MEDAL), "Medal");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_HEART), "Heart");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
   // A ring is a ring in all four of its slots: this is what an item is, not
   // where it is worn.
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_RING_4), "Ring");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_PENDANT_2), "Pendant");
+}
+
+// A slot added without a name here shows the player a blank column, which is
+// how the last one nearly shipped.
+TEST(FormatSlotTest, NoSlotIsLeftUnnamedOrTooWide) {
+  for (int i = 1; i <= EquipSlot_MAX; ++i) {
+    if (!EquipSlot_IsValid(i)) {
+      continue;
+    }
+    EquipSlot slot = static_cast<EquipSlot>(i);
+    EXPECT_FALSE(FormatSlot(slot).empty()) << EquipSlot_Name(slot);
+    EXPECT_LE(FormatWornSlot(slot).size(), 10u) << EquipSlot_Name(slot);
+  }
 }
 
 // A worn row says which of a family's slots it is, and leaves every slot with

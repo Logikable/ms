@@ -17,8 +17,8 @@
 
 namespace ms {
 
-// GMS prices these four separately. The game has armor and weapons; the other
-// two columns are carried because the table was copied whole.
+// GMS prices these four separately, and a heart bills from the accessory
+// column: its shelf is its own, its price is not.
 enum class TraceCategory { kArmor, kGloves, kWeapon, kAccessory };
 
 // Traces one scroll costs for an item of this required level. `success_rate`

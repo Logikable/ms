@@ -44,10 +44,18 @@ enum ScrollTarget {
   // Any item. What a clean slate is: it restores a slot on whatever holds one.
   SCROLL_TARGET_UNSPECIFIED = 0;
   SCROLL_TARGET_WEAPON = 1;
+  // Everything worn on the body but the gloves, the shoulderpad included.
   SCROLL_TARGET_ARMOUR = 2;
-  // The face and eye accessories. GMS sells them their own traces, at their
-  // own prices; none are written here yet, so nothing is offered for one.
+  // The accessories, at their own prices: the face and eye pieces, the
+  // earrings, the rings, the pendants and the belt.
   SCROLL_TARGET_ACCESSORY = 3;
+  // Gloves, which GMS scrolls on a shelf of their own that pays attack where
+  // the armour shelf pays a stat.
+  SCROLL_TARGET_GLOVES = 4;
+  // Hearts, whose shelf pays the attack the wearer's job swings with and
+  // nothing else. Priced as an accessory, which is the column GMS bills it
+  // from.
+  SCROLL_TARGET_HEART = 5;
 }
 
 // One Scroll represents a single, fully-specified scroll option,

@@ -140,6 +140,20 @@ enum EquipSlot {
   EQUIP_SLOT_RING_3 = 23;
   EQUIP_SLOT_RING_4 = 24;
   EQUIP_SLOT_PENDANT_2 = 25;
+
+  // The rest of the worn body. Gloves and shoes are armour a player buys and
+  // scrolls; neither is in GMS's Category A, so their stars raise no Max HP,
+  // and gloves are scrolled on a shelf of their own that pays attack.
+  EQUIP_SLOT_GLOVES = 26;
+  EQUIP_SLOT_SHOES = 27;
+  // The three trophies: worn for what they say a character has done, and
+  // GMS lets no scroll near any of them.
+  EQUIP_SLOT_BADGE = 28;
+  EQUIP_SLOT_EMBLEM = 29;
+  EQUIP_SLOT_MEDAL = 30;
+  // Scrolled on its own shelf, which pays the attack the wearer's job swings
+  // with. Nothing is worn here yet.
+  EQUIP_SLOT_HEART = 31;
 }
 
 // A way an item can be made stronger after it drops. Listed on a prototype

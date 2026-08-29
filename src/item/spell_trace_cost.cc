@@ -91,7 +91,11 @@ TraceCategory CategoryFor(ScrollTarget target) {
     case SCROLL_TARGET_WEAPON:
       return TraceCategory::kWeapon;
     case SCROLL_TARGET_ACCESSORY:
+    // GMS's cost table has no heart column; the shelf bills as an accessory.
+    case SCROLL_TARGET_HEART:
       return TraceCategory::kAccessory;
+    case SCROLL_TARGET_GLOVES:
+      return TraceCategory::kGloves;
     case SCROLL_TARGET_UNSPECIFIED:
       break;
   }

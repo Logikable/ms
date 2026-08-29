@@ -534,6 +534,18 @@ std::string FormatSlot(EquipSlot slot) {
       return "Pocket";
     case EQUIP_SLOT_EARRINGS:
       return "Earrings";
+    case EQUIP_SLOT_GLOVES:
+      return "Gloves";
+    case EQUIP_SLOT_SHOES:
+      return "Shoes";
+    case EQUIP_SLOT_BADGE:
+      return "Badge";
+    case EQUIP_SLOT_EMBLEM:
+      return "Emblem";
+    case EQUIP_SLOT_MEDAL:
+      return "Medal";
+    case EQUIP_SLOT_HEART:
+      return "Heart";
     // All six read alike: the item's own name is what says which area it is
     // from, and the slot column has ten columns to say the rest.
     case EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY:

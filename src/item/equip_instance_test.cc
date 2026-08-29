@@ -284,10 +284,13 @@ TEST_F(EquipInstanceTest, CategoryAArmourGainsMaxHpButNoMp) {
 }
 
 // And the accessories are not on that list, however many stars go into them.
+// Gloves and shoes are not either, however much they look like the armour
+// above: GMS's Category A leaves both out.
 TEST_F(EquipInstanceTest, AnAccessoryGainsNoMaxHp) {
   Equip state;
   state.set_stars(10);
-  for (EquipSlot slot : {EQUIP_SLOT_EYE_ACCESSORY, EQUIP_SLOT_EARRINGS}) {
+  for (EquipSlot slot : {EQUIP_SLOT_EYE_ACCESSORY, EQUIP_SLOT_EARRINGS,
+                         EQUIP_SLOT_GLOVES, EQUIP_SLOT_SHOES}) {
     EquipInstance item(MakeArmour(slot, 100), state);
     EquipStats gains = item.StarForceStatGains();
     EXPECT_EQ(gains.max_hp(), 0) << EquipSlot_Name(slot);
@@ -490,6 +493,28 @@ TEST_F(EquipInstanceTest, RecoveryStarsBelowMinReturnsZero) {
   EXPECT_EQ(EquipInstance::RecoveryStars(0), 0);
 }
 
+// What a glove is paid instead of Max HP: a flat point of attack on seven of
+// the first fifteen stars, and only on the attack it already shows.
+TEST_F(EquipInstanceTest, AGloveGainsAttackFromItsStars) {
+  EquipPrototype glove = MakeArmour(EQUIP_SLOT_GLOVES);
+  glove.mutable_base_stats()->set_attack(3);
+  Equip state;
+  state.set_stars(5);
+  EXPECT_EQ(EquipInstance(glove, state).StarForceStatGains().attack(), 1);
+  state.set_stars(15);
+  EquipInstance full(glove, state);
+  EXPECT_EQ(full.StarForceStatGains().attack(), 7);
+  EXPECT_EQ(full.StarForceStatGains().magic_attack(), 0)
+      << "the glove shows no magic attack to climb";
+  EXPECT_EQ(full.StarForceStatGains().max_hp(), 0);
+
+  // The shoes beside them are paid neither, so a star gives them nothing an
+  // accessory would not get.
+  EquipPrototype shoes = MakeArmour(EQUIP_SLOT_SHOES);
+  shoes.mutable_base_stats()->set_attack(3);
+  EXPECT_EQ(EquipInstance(shoes, state).StarForceStatGains().attack(), 0);
+}
+
 TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_PRIMARY_WEAPON), SCROLL_TARGET_WEAPON);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_HAT), SCROLL_TARGET_ARMOUR);
@@ -507,6 +532,14 @@ TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_BELT), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_EARRINGS), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_POCKET), SCROLL_TARGET_UNSPECIFIED);
+  // Shoes scroll as armour, gloves and hearts on shelves of their own, and
+  // the three trophies take no scroll at all.
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_SHOES), SCROLL_TARGET_ARMOUR);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_GLOVES), SCROLL_TARGET_GLOVES);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_HEART), SCROLL_TARGET_HEART);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_BADGE), SCROLL_TARGET_UNSPECIFIED);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_EMBLEM), SCROLL_TARGET_UNSPECIFIED);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_MEDAL), SCROLL_TARGET_UNSPECIFIED);
 }
 
 }  // namespace

@@ -24,6 +24,13 @@ constexpr int kMaxHpDeltas[15] = {
     5, 5, 5, 10, 10, 15, 15, 20, 20, 25, 25, 25, 25, 25, 25,
 };
 
+// The attempts in 1-15★ on which a glove gains a point of attack, GMS's
+// answer to the Max HP it is not paid. Index i = the gain for i★→(i+1)★.
+constexpr bool kGloveAttackStars[15] = {
+    false, false, false, false, true, false, true, false,
+    true,  false, true,  false, true, true,  true,
+};
+
 // The share of what the item already carries that one star adds to a scaled
 // stat. Attack climbs by a fiftieth, defense by a twentieth.
 constexpr int kAttackPercent = 2;
@@ -169,6 +176,17 @@ bool RaisesMaxHp(EquipSlot slot) {
     case EQUIP_SLOT_FACE_ACCESSORY:
     case EQUIP_SLOT_EYE_ACCESSORY:
     case EQUIP_SLOT_POCKET:
+    // GMS's list names neither, however much they look like the armour it
+    // does name. A glove's stars pay attack instead; see
+    // kGloveAttackStars.
+    case EQUIP_SLOT_GLOVES:
+    case EQUIP_SLOT_SHOES:
+    // The trophies take no star at all, and a heart's are not Category A
+    // either: what its stars pay is attack.
+    case EQUIP_SLOT_BADGE:
+    case EQUIP_SLOT_EMBLEM:
+    case EQUIP_SLOT_MEDAL:
+    case EQUIP_SLOT_HEART:
     // GMS's list names the ring, the pendant, the belt and the shoulderpad
     // among the accessories, and stops there.
     case EQUIP_SLOT_EARRINGS:
@@ -240,6 +258,17 @@ void AddLowStar(int index, StarForceRun* run) {
   if (!run->is_weapon) {
     gains.set_def(gains.def() +
                   ScaledGain(run->shown_def, gains.def(), kDefensePercent));
+    // A flat point rather than a share: the glove is the one piece of armour
+    // whose attack climbs this far down the ladder, and only the attack it
+    // already shows.
+    if (run->slot == EQUIP_SLOT_GLOVES && kGloveAttackStars[index]) {
+      if (run->shown_att > 0) {
+        gains.set_attack(gains.attack() + 1);
+      }
+      if (run->shown_matt > 0) {
+        gains.set_magic_attack(gains.magic_attack() + 1);
+      }
+    }
     return;
   }
   // The weapon is the only thing whose stars raise Max MP, and the only thing

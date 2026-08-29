@@ -79,10 +79,21 @@ ScrollTarget TargetForSlot(EquipSlot slot) {
     case EQUIP_SLOT_BELT:
     case EQUIP_SLOT_EARRINGS:
       return SCROLL_TARGET_ACCESSORY;
+    // Shoes are armour; gloves are the one piece of it GMS scrolls apart.
+    case EQUIP_SLOT_SHOES:
+      return SCROLL_TARGET_ARMOUR;
+    case EQUIP_SLOT_GLOVES:
+      return SCROLL_TARGET_GLOVES;
+    case EQUIP_SLOT_HEART:
+      return SCROLL_TARGET_HEART;
     case EQUIP_SLOT_UNSPECIFIED:
     case EQUIP_SLOT_PROJECTILE:
     case EQUIP_SLOT_SECONDARY:
     case EQUIP_SLOT_POCKET:
+    // The trophies. GMS lets no scroll near any of them.
+    case EQUIP_SLOT_BADGE:
+    case EQUIP_SLOT_EMBLEM:
+    case EQUIP_SLOT_MEDAL:
     case EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY:
     case EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND:
     case EQUIP_SLOT_SYMBOL_LACHELEIN:
