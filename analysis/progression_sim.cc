@@ -173,17 +173,37 @@ void LearnTheRest(GameState& state) {
 // taken again at every level of every climb.
 constexpr double kBookSeconds = 10.0;
 
+// Seconds in a day, which is what a daily reset waits out. The game is idle,
+// so a day of playtime is a day.
+constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
+
+// The fights open to `level`, by boss key and difficulty, lowest unlock
+// first. Only the difficulties the game has actually built: one marked coming
+// soon is a shell with nothing in it but HP.
+std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
+                                                        int level) {
+  std::vector<std::pair<int, std::pair<std::string, int>>> open;
+  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
+    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
+      const BossDifficulty& difficulty = entry.second.difficulties(i);
+      if (difficulty.coming_soon() || difficulty.unlock_level() > level) {
+        continue;
+      }
+      open.push_back({difficulty.unlock_level(), {entry.first, i}});
+    }
+  }
+  std::sort(open.begin(), open.end());
+  std::vector<std::pair<std::string, int>> fights;
+  for (const std::pair<int, std::pair<std::string, int>>& entry : open) {
+    fights.push_back(entry.second);
+  }
+  return fights;
+}
+
 // What the character takes off the map they are standing on, a second: their
 // swings against the crowd it holds, plus anything of theirs on a clock of its
 // own.
-//
-// The book is ranked against a crowd rather than a lone mob because that is
-// what the climb spends its life on, and the two disagree: a build chosen
-// against one enemy never buys the swing that clears twelve. It is also what
-// makes the boss table below worth reading -- it reports whether a character
-// who built for farming can beat the fight, which is the character a player
-// walks in with.
-double MapRate(GameState& state) {
+double CrowdRate(GameState& state) {
   CombatParams params = ComputeCombatParams(state);
   if (!params.active || params.types.empty()) {
     return 0.0;
@@ -196,6 +216,75 @@ double MapRate(GameState& state) {
   Sequence played = PlaySwings(params, kBookSeconds, enemies);
   double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
   return rate + OffClockRate(params, played, 1.0, enemies);
+}
+
+// The fight the book is aimed at: the stiffest one open to them, or the next
+// one to open before any are. A player spends points on the boss they are
+// about to meet rather than on the one they beat last month.
+bool BookTarget(const GameState& state, std::pair<std::string, int>* fight) {
+  int level = state.character.proto().level();
+  std::vector<std::pair<std::string, int>> open = UnlockedBosses(state, level);
+  if (!open.empty()) {
+    *fight = open.back();
+    return true;
+  }
+  int soonest = 0;
+  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
+    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
+      const BossDifficulty& difficulty = entry.second.difficulties(i);
+      if (difficulty.coming_soon() || difficulty.unlock_level() <= level) {
+        continue;
+      }
+      if (soonest == 0 || difficulty.unlock_level() < soonest) {
+        soonest = difficulty.unlock_level();
+        *fight = {entry.first, i};
+      }
+    }
+  }
+  return soonest > 0;
+}
+
+// What the character takes off that fight a second. One enemy standing behind
+// its own defence, which is a different question from the crowd above: the
+// swing that clears twelve is rarely the one that kills the one that matters.
+double BossRate(GameState& state) {
+  std::pair<std::string, int> fight;
+  if (!BookTarget(state, &fight)) {
+    return 0.0;
+  }
+  const BossDifficulty& difficulty =
+      state.bosses[fight.first].difficulties(fight.second);
+  int phase = BossObjectivePhase(state.mobs, difficulty);
+  CombatParams params =
+      ComputeBossParams(state, fight.first, difficulty, phase);
+  if (!params.active) {
+    return 0.0;
+  }
+  Sequence played = PlaySwings(params, kBookSeconds);
+  double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
+  return rate + OffClockRate(params, played, 1.0);
+}
+
+// The book ranked on both at once, weighted alike. A climb clears crowds and a
+// boss is one enemy, and a book that answers only one of them is not a build
+// anybody plays: ranked on the map alone the Hero reaches Hilla holding
+// nothing that kills her.
+//
+// The geometric mean because it needs no weight chosen for it, and because it
+// scores a build that cannot do one of the two at nothing at all, which is the
+// whole point of asking for both. Either leg stands in alone when the other
+// has nothing to measure -- before the first fight exists, and on the walk
+// home where there is no map.
+double BookRate(GameState& state) {
+  double crowd = CrowdRate(state);
+  double boss = BossRate(state);
+  if (crowd <= 0.0) {
+    return boss;
+  }
+  if (boss <= 0.0) {
+    return crowd;
+  }
+  return std::sqrt(crowd * boss);
 }
 
 // Follows the purse and adds up each direction on its own. The balance is no
@@ -391,7 +480,7 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // hands can swing -- and the weapon is settled on what the branch is for,
   // which is the only thing that keeps the two from talking each other into a
   // corner. See SettledWeaponType.
-  SpendBookWithToggles(state, MapRate);
+  SpendBookWithToggles(state, BookRate);
   LearnTheRest(state);
   // After the weapon, because a scroll on last tier's weapon is meso that
   // buys nothing: the next one displaces it slots and stars and all.
@@ -558,33 +647,6 @@ void NoteMilestones(const GameState& state, int level, double seconds,
     climb.milestone_frozen[i] = frozen;
     climb.milestone_boss_set[i] = PiecesWorn(state, "boss_accessory");
   }
-}
-
-// Seconds in a day, which is what a daily reset waits out. The game is idle,
-// so a day of playtime is a day.
-constexpr double kDaySeconds = 24.0 * 60.0 * 60.0;
-
-// The fights open to `level`, by boss key and difficulty, lowest unlock
-// first. Only the difficulties the game has actually built: one marked coming
-// soon is a shell with nothing in it but HP.
-std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
-                                                        int level) {
-  std::vector<std::pair<int, std::pair<std::string, int>>> open;
-  for (const std::pair<const std::string, Boss>& entry : state.bosses) {
-    for (int i = 0; i < entry.second.difficulties_size(); ++i) {
-      const BossDifficulty& difficulty = entry.second.difficulties(i);
-      if (difficulty.coming_soon() || difficulty.unlock_level() > level) {
-        continue;
-      }
-      open.push_back({difficulty.unlock_level(), {entry.first, i}});
-    }
-  }
-  std::sort(open.begin(), open.end());
-  std::vector<std::pair<std::string, int>> fights;
-  for (const std::pair<int, std::pair<std::string, int>>& entry : open) {
-    fights.push_back(entry.second);
-  }
-  return fights;
 }
 
 // Fights one boss once and reports what it took off the clock. A run that
