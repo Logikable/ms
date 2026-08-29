@@ -517,7 +517,7 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
 
 // Reading is all there is to do here, so either of Confirm and Cancel leaves.
 // The arrows move whichever card holds them, and Tab hands them to the set
-// card beside it when there is one with something to scroll.
+// card beside it and back, whenever there is one.
 bool TuiController::OnInspectEvent(ftxui::Event event) {
   if (event == ftxui::Event::ArrowUp) {
     inspect_panel_.ScrollBy(-1);
@@ -542,9 +542,7 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
   // The item card takes the arrows in turn with the scroll list. Held back
   // while a dialog is up: the keys are its own until it closes.
   if (!busy && IsSwitchPanel(event)) {
-    if (right_card_focused_ || inspect_panel_.ItemOverflows()) {
-      right_card_focused_ = !right_card_focused_;
-    }
+    right_card_focused_ = !right_card_focused_;
     return true;
   }
   if (!busy && right_card_focused_ &&
@@ -841,11 +839,7 @@ bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
   // which card the arrows scroll; the recovered item's is where the reader
   // starts.
   if (!busy && IsSwitchPanel(event)) {
-    const InspectPanel& target =
-        right_card_focused_ ? trace_inspect_panel_ : inspect_panel_;
-    if (target.ItemOverflows()) {
-      right_card_focused_ = !right_card_focused_;
-    }
+    right_card_focused_ = !right_card_focused_;
     return true;
   }
   if (!busy &&

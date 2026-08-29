@@ -770,8 +770,24 @@ TEST_F(InspectPanelTest, ResetPutsBothCardsBackAtTheTop) {
   EXPECT_NE(RenderWide(panel).find("Frozen Set"), std::string::npos);
 }
 
-// Focus should never land where the arrows would do nothing.
-TEST_F(InspectPanelTest, TabSkipsACardWithNothingToScroll) {
+// Two cards make a ring of two: the switch key comes back to the card it
+// started on rather than stopping on the far one.
+TEST_F(InspectPanelTest, TabCyclesBackToTheItemCard) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  InspectPanel panel = TallPanel(c_, 18);
+  panel.SetItem(&hat);
+  RenderWide(panel);
+
+  ASSERT_TRUE(panel.SwapCard());
+  ASSERT_EQ(panel.focused_card(), InspectPanel::kSetCard);
+  EXPECT_TRUE(panel.SwapCard());
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
+}
+
+// A card that fits is still a stop: leaving it out would strand the arrows on
+// the other one.
+TEST_F(InspectPanelTest, TabReachesACardWithNothingToScroll) {
   EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
   EquipInstance hat(proto);
   c_.UseEquipSets(FrozenSet());
@@ -780,8 +796,8 @@ TEST_F(InspectPanelTest, TabSkipsACardWithNothingToScroll) {
   panel.SetMaxRows(34);
   panel.SetItem(&hat);
   RenderWide(panel);
-  EXPECT_FALSE(panel.SwapCard()) << "the whole set fits";
-  EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
+  EXPECT_TRUE(panel.SwapCard()) << "the whole set fits, and is still a stop";
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kSetCard);
 }
 
 TEST_F(InspectPanelTest, NoTabWithoutASetCard) {
@@ -794,20 +810,6 @@ TEST_F(InspectPanelTest, NoTabWithoutASetCard) {
   RenderWide(panel);
   EXPECT_FALSE(panel.HasSetCard());
   EXPECT_FALSE(panel.SwapCard());
-}
-
-// The screens that put the card beside a panel of their own ask this before
-// handing it the arrows.
-TEST_F(InspectPanelTest, SaysWhetherTheItemCardOverflows) {
-  EquipInstance sword(sword_);
-  InspectPanel panel;
-  panel.SetItem(&sword);
-  panel.SetMaxRows(34);
-  panel.RenderItemOnly();
-  EXPECT_FALSE(panel.ItemOverflows());
-  panel.SetMaxRows(5);
-  panel.RenderItemOnly();
-  EXPECT_TRUE(panel.ItemOverflows());
 }
 
 // --- Arcane Symbols ---

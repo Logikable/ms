@@ -1040,8 +1040,9 @@ TEST_F(TuiControllerTest, TabOnTheScrollScreenMovesToTheCard) {
   EXPECT_FALSE(controller_->right_card_focused());
 }
 
-// Focus should never land where the arrows would do nothing.
-TEST_F(TuiControllerTest, TabOnTheScrollScreenSkipsACardThatFits) {
+// A card with room to spare is still a stop, and Shift+Tab walks the same
+// ring of two the other way.
+TEST_F(TuiControllerTest, ShiftTabOnTheScrollScreenCyclesThroughACardThatFits) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   state_->character.Equip(0);
   RenderEquipPanel();
@@ -1055,7 +1056,9 @@ TEST_F(TuiControllerTest, TabOnTheScrollScreenSkipsACardThatFits) {
   inspect_panel_.SetMaxRows(40);
   inspect_panel_.RenderItemOnly();
 
-  controller_->OnEvent(ftxui::Event::Tab);
+  controller_->OnEvent(ftxui::Event::TabReverse);
+  EXPECT_TRUE(controller_->right_card_focused());
+  controller_->OnEvent(ftxui::Event::TabReverse);
   EXPECT_FALSE(controller_->right_card_focused());
 }
 
@@ -1914,19 +1917,10 @@ TEST_F(TuiControllerTest, TabOnTheRecoverScreenMovesBetweenTheCards) {
   ASSERT_EQ(controller_->screen(), kTraceRecover);
   EXPECT_FALSE(controller_->right_card_focused());
 
-  // Both cut short enough to scroll, and drawn once so they know. Tui does
-  // this each frame; nothing renders in a controller test.
-  inspect_panel_.SetItem(&state_->character.inventory()[1]);
-  inspect_panel_.SetMaxRows(4);
-  inspect_panel_.RenderItemOnly();
-  trace_inspect_panel_.SetItem(&state_->character.inventory()[0]);
-  trace_inspect_panel_.SetMaxRows(4);
-  trace_inspect_panel_.RenderItemOnly();
-
   controller_->OnEvent(ftxui::Event::Tab);
   EXPECT_TRUE(controller_->right_card_focused());
   controller_->OnEvent(ftxui::Event::Tab);
-  EXPECT_FALSE(controller_->right_card_focused());
+  EXPECT_FALSE(controller_->right_card_focused()) << "and back round";
   EXPECT_EQ(controller_->screen(), kTraceRecover) << "Tab does not leave";
 }
 

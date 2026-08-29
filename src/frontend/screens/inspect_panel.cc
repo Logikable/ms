@@ -238,11 +238,7 @@ bool InspectPanel::SwapCard() {
   if (!HasSetCard()) {
     return false;
   }
-  bool to_set = focus_ == kItemCard;
-  if (!(to_set ? set_card_ : item_card_).Overflows()) {
-    return false;
-  }
-  focus_ = to_set ? kSetCard : kItemCard;
+  focus_ = focus_ == kItemCard ? kSetCard : kItemCard;
   return true;
 }
 
@@ -254,10 +250,6 @@ void InspectPanel::Reset() {
 
 bool InspectPanel::HasSetCard() const {
   return SetOfItem() != nullptr;
-}
-
-bool InspectPanel::ItemOverflows() const {
-  return item_card_.Overflows();
 }
 
 ftxui::Element InspectPanel::RenderItemOnly(bool focused) const {

@@ -56,9 +56,9 @@ class InspectPanel {
   // Moves the focused card's view. There is no cursor on either card, so a
   // key moves the page itself; see ScrollCard.
   void ScrollBy(int delta);
-  // Hands the arrows to the other card. Refused, and false, when there is no
-  // second card or when it has nothing to scroll: focus should never land
-  // where the arrows would do nothing.
+  // Hands the arrows to the other card, and back again on the next call: two
+  // cards make a ring of two, so either direction of the switch key is the
+  // same step. Refused, and false, when there is no second card.
   bool SwapCard();
   // Both cards back to the top, with the item card holding the arrows. Call
   // when the screen opens.
@@ -69,10 +69,6 @@ class InspectPanel {
   Card focused_card() const {
     return focus_;
   }
-  // True while the item card has more rows than it can draw. For a screen
-  // that shares the arrows between this card and a panel of its own.
-  bool ItemOverflows() const;
-
   ftxui::Element Render() const;
   // The item's card alone, with no set card beside it. What a screen that
   // already has a panel of its own next to the item asks for: three windows
