@@ -1089,11 +1089,15 @@ message Skill {
   // a map, so the two factors are "how many stand side by side" and "how many
   // platforms the swing covers". The cut is a floor under GMS's own number,
   // never a lift: a box that holds more than the cap leaves the cap standing.
-  // Boxes are `lt`/`rb` in the client's Skill.wz; a projectile carries none
-  // and keeps its cap.
   //
-  // Applied to the warrior branch on 2026-08-28. A file whose reach was cut
-  // says so at the top.
+  // Boxes are `lt`/`rb` in the client's Skill.wz. **The rule reads a box that
+  // STANDS somewhere**, which is what makes it a footprint. A projectile
+  // carries no box at all and keeps its cap, and so does one whose box travels
+  // with it -- Arrow Blaster's 120x120 is one arrow's burst, aimed and swept
+  // down a platform, not a patch of ground the swing covers.
+  //
+  // Applied to the warrior and bowman branches on 2026-08-28. A file whose
+  // reach was cut says so at the top.
   int32 max_enemies = 14;
   // How many times one swing strikes each enemy it reaches. Damage is
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.

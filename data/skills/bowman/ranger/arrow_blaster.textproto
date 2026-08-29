@@ -1,6 +1,7 @@
-# Reach cut from GMS's 4 to 1. Its hitbox is 120x120 -- one arrow's burst, not
-# a sweep -- so 4 is a cap only a heap standing inside it would fill. The
-# turret fires the same arrow and is cut with it. See Skill.max_enemies.
+# GMS's 4 stands. Its 120x120 hitbox is one arrow's burst and it TRAVELS: the
+# shot is aimed, so the box sweeps a platform rather than covering a patch of
+# ground. The reach rule reads a box that stands somewhere -- see
+# Skill.max_enemies.
 #
 # Two attacks out of one skill: the volley the player holds the key for, and
 # the turret they leave behind firing by itself. One row in the book and one SP
@@ -20,14 +21,14 @@ max_level: 20
 required_equip_type: EQUIP_TYPE_BOW
 base_delay_ms: 120
 fixed_delay: true
-max_enemies: 1
+max_enemies: 4
 hits_per_attack_count: 7
 base { skill_pct: 1.24 }
 per_level { skill_pct: 0.03 }
 auto_mode {
   label: "Turret"
   cast_interval_seconds: 0.21
-  max_enemies: 1
+  max_enemies: 4
   base { skill_pct: 0.66 }
   per_level { skill_pct: 0.01 }
 }
