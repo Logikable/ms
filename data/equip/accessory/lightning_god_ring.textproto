@@ -1,0 +1,20 @@
+name: "Lightning God Ring"
+required_level: 100
+base_stats {
+  str: 12
+  dex: 12
+  int: 12
+  luk: 12
+  # GMS summons the Lightning God while the ring is worn, for 16 attack over a
+  # duration. Nothing here summons anything, so the buff is the ring's own
+  # stat and never lapses.
+  attack: 16
+  magic_attack: 16
+  max_hp: 150
+  max_mp: 150
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_RING
+upgrade_slots: 1
+shop_price: 2500000
+sell_price: 250000

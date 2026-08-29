@@ -18,6 +18,7 @@
 #include "src/character/exp_table.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/proto_loader.h"
 #include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
@@ -77,25 +78,29 @@ class WorkbenchGearTest : public ::testing::Test {
                      GameMode::kTest, TestOptions{advancement});
   }
 
-  // The highest required level the catalog offers on `worn`'s own ladder among
-  // the items this character could put on -- CanEquip asks about their level
-  // and their job together, which is the same question the shop asks.
+  // The required levels the catalog offers on `worn`'s own ladder among the
+  // items this character could put on, highest first -- CanEquip asks about
+  // their level and their job together, which is the same question the shop
+  // asks.
   //
-  // A ladder is a slot and a type together. The type alone would put a
+  // A ladder is a slot family and a type together. The type alone would put a
   // Fighter's swords and axes on one, which is the choice the workbench makes;
   // the slot alone would put all four pieces of armour on one, and armour
-  // names no type at all.
-  int BestTier(const CharacterInstance& character, const EquipPrototype& worn) {
-    int best = 0;
+  // names no type at all. The family rather than the slot, because a character
+  // wears four rings and the four are one ladder, not four.
+  std::vector<int> TiersOnLadder(const CharacterInstance& character,
+                                 const EquipPrototype& worn) {
+    std::vector<int> levels;
     for (const std::pair<const std::string, EquipPrototype>& entry : equips_) {
       const EquipPrototype& proto = entry.second;
-      if (proto.equip_slot() == worn.equip_slot() &&
+      if (BaseSlot(proto.equip_slot()) == BaseSlot(worn.equip_slot()) &&
           proto.equip_type() == worn.equip_type() &&
           character.CanEquip(proto)) {
-        best = std::max(best, proto.required_level());
+        levels.push_back(proto.required_level());
       }
     }
-    return best;
+    std::sort(levels.rbegin(), levels.rend());
+    return levels;
   }
 
   std::unique_ptr<Runfiles> runfiles_;
@@ -111,6 +116,11 @@ class WorkbenchGearTest : public ::testing::Test {
 // with the best of each thing they carry that their level can wear. Anything
 // less and the tester is looking at a weaker character than the game has --
 // which is exactly what a stale entry in the switch produces.
+//
+// Asked a ladder at a time rather than an item at a time, because a family of
+// slots holds several at once: a character wearing three of the four rings the
+// catalog offers should be wearing the best three, and only one of those can
+// be the best one.
 TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);
@@ -118,13 +128,30 @@ TEST_F(WorkbenchGearTest, EveryJobWearsTheTopTierItsLevelReaches) {
     SCOPED_TRACE(JobAdvancement_Name(advancement));
     EXPECT_TRUE(character.equipped().count(EQUIP_SLOT_PRIMARY_WEAPON))
         << "nothing in hand at all";
+    // The levels worn on each ladder, keyed by the family and type that name
+    // it, so the rings meet each other and nothing else.
+    std::map<std::pair<EquipSlot, EquipType>, std::vector<int>> worn_levels;
+    std::map<std::pair<EquipSlot, EquipType>, const EquipPrototype*> example;
     for (const std::pair<const EquipSlot, EquipInstance>& worn :
          character.equipped()) {
       const EquipPrototype& proto = worn.second.prototype();
-      EXPECT_EQ(proto.required_level(), BestTier(character, proto))
-          << worn.second.name() << " is not the best "
-          << EquipSlot_Name(proto.equip_slot()) << " a level "
-          << character.proto().level() << " can wear";
+      std::pair<EquipSlot, EquipType> ladder{BaseSlot(proto.equip_slot()),
+                                             proto.equip_type()};
+      worn_levels[ladder].push_back(proto.required_level());
+      example[ladder] = &proto;
+    }
+    for (std::pair<const std::pair<EquipSlot, EquipType>, std::vector<int>>&
+             entry : worn_levels) {
+      std::vector<int>& worn = entry.second;
+      std::sort(worn.rbegin(), worn.rend());
+      std::vector<int> offered =
+          TiersOnLadder(character, *example[entry.first]);
+      ASSERT_GE(offered.size(), worn.size())
+          << "wearing more than the ladder offers";
+      offered.resize(worn.size());
+      EXPECT_EQ(worn, offered)
+          << "the " << EquipSlot_Name(entry.first.first) << " a level "
+          << character.proto().level() << " wears is not the best on offer";
     }
   }
 }

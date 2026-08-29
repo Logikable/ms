@@ -288,6 +288,15 @@ std::vector<std::string> BossAccessories() {
           "dea_sidus_earring"};
 }
 
+// What the shop's own Equips shelf fills the same slots with. Handed over
+// rather than bought, like everything else here: the workbench is a character
+// who already went shopping. The Meister Ring asks for 140, which a 3rd job
+// carries rather than wears.
+std::vector<std::string> ShopAccessories() {
+  return {"lightning_god_ring", "meister_ring", "gold_maple_leaf_emblem",
+          "master_adventurer"};
+}
+
 // Passed as `unspent_stage` to spend every point the climb earns.
 constexpr int kSpendEveryStage = 0;
 
@@ -372,6 +381,7 @@ void GrowToJob(GameState& state, JobAdvancement advancement, int level,
   if (stage >= 3) {
     WearAll(state, FrozenArmour(), equips);
     WearAll(state, BossAccessories(), equips);
+    WearAll(state, ShopAccessories(), equips);
   }
   WearStarterSymbol(state);
 }

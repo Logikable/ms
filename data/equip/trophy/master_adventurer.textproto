@@ -1,0 +1,21 @@
+name: "Master Adventurer"
+required_level: 100
+base_stats {
+  str: 2
+  dex: 2
+  int: 2
+  luk: 2
+  max_hp: 200
+  max_mp: 200
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_MEDAL
+# GMS hands this to an Explorer for reaching level 100, and every job here is
+# one. Stocked for nothing rather than granted, so a character already past
+# 100 can still walk up and collect it.
+shop_price: 0
+# A trophy takes neither path in GMS, and carries no slots to scroll into
+# either -- the refusal is the declaration rather than the slot count.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+sell_price: 0

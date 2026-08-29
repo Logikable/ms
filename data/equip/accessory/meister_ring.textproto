@@ -1,0 +1,20 @@
+name: "Meister Ring"
+required_level: 140
+base_stats {
+  str: 5
+  dex: 5
+  int: 5
+  luk: 5
+  attack: 1
+  magic_attack: 1
+  max_hp: 200
+  max_mp: 200
+  def: 150
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_RING
+upgrade_slots: 1
+# Crafted in GMS, at a profession nothing here has. Sold instead, at the price
+# of the crafting: the dearest thing on the shelf by four times over.
+shop_price: 10000000
+sell_price: 1000000

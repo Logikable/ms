@@ -355,6 +355,28 @@ TEST(EquipDataTest, EveryWeaponTypeHasAFrozenTier) {
   }
 }
 
+// The trophies. GMS lets no scroll and no star near any of them, so the refusal
+// belongs to every item in those three slots rather than to the two written so
+// far -- a badge added later that quietly took stars would read as a mistake
+// nowhere.
+TEST(EquipDataTest, NoTrophyTakesAnUpgrade) {
+  int seen = 0;
+  for (const std::pair<const std::string, EquipPrototype>& entry :
+       LoadEquips()) {
+    const EquipPrototype& proto = entry.second;
+    if (proto.equip_slot() != EQUIP_SLOT_BADGE &&
+        proto.equip_slot() != EQUIP_SLOT_EMBLEM &&
+        proto.equip_slot() != EQUIP_SLOT_MEDAL) {
+      continue;
+    }
+    ++seen;
+    EXPECT_FALSE(Supports(proto, UPGRADE_SCROLL)) << entry.first;
+    EXPECT_FALSE(Supports(proto, UPGRADE_STAR_FORCE)) << entry.first;
+    EXPECT_EQ(proto.upgrade_slots(), 0) << entry.first;
+  }
+  EXPECT_GT(seen, 0) << "no trophies in the catalog to check";
+}
+
 // A price is only a price if something answers it. An item naming a token that
 // no data file defines would sit on the shelf at a cost nobody can pay, and the
 // loader would say nothing.
