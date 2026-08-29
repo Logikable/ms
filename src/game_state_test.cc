@@ -23,10 +23,6 @@
 namespace ms {
 namespace {
 
-GameState MakeState() {
-  return GameState({}, {}, {}, {}, {});
-}
-
 // A catalog holding the equip both modes hand out, plus one more that only
 // the workbench asks for -- so the seeding has something to find, and test
 // mode has something left in the bag once it is wearing the first.
@@ -312,6 +308,61 @@ TEST(GameStateTest, EquipsLeaveAnItemThatRefusesThePathAlone) {
                   GameMode::kTest, test);
   EXPECT_EQ(WornWeapon(state).scroll_successes(), 9);
   EXPECT_EQ(WornWeapon(state).stars(), 0);
+}
+
+// Gloves take no stat trace at all, so the workbench falls back to the attack
+// one -- and a scrolled shelf is what lets the stars go on.
+TEST(GameStateTest, EquipsScrollGlovesWithTheAttackTrace) {
+  // Hung on the key WorkbenchGearFor names, which is what decides what a
+  // swordman is handed -- the prototype behind it is the catalog's to choose.
+  EquipPrototype gloves;
+  gloves.set_name("Gauntlets");
+  gloves.set_equip_slot(EQUIP_SLOT_GLOVES);
+  gloves.set_required_level(30);
+  gloves.add_equip_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  gloves.set_upgrade_slots(5);
+  std::map<std::string, EquipPrototype> catalog{{"gladius", gloves}};
+  std::map<std::string, Scroll> scrolls = WarriorWeaponTraces();
+  Scroll att;
+  att.set_name("30% ATT");
+  att.set_scroll_type(SCROLL_TYPE_ATT);
+  att.set_target(SCROLL_TARGET_GLOVES);
+  att.set_tier(SCROLL_TIER_1);
+  att.set_success_rate(30);
+  att.mutable_stats()->set_attack(3);
+  att.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  scrolls["gloves_att_30"] = att;
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_SWORDMAN;
+  test.equips = TestEquips::kStarForced;
+  GameState state(catalog, scrolls, {}, {}, {}, {}, GameMode::kTest, test);
+  const Equip& worn =
+      state.character.equipped().at(EQUIP_SLOT_GLOVES).equip_state();
+  EXPECT_EQ(worn.hammers(), kMaxHammers);
+  EXPECT_EQ(worn.scroll_successes(), 7);
+  EXPECT_EQ(worn.scroll_stats().attack(), 21);
+  EXPECT_EQ(worn.stars(), EquipTabItem::MaxStarsForLevel(30));
+}
+
+// The stat trace wins where both are written: a weapon takes STR, not the ATT
+// the fallback would reach for.
+TEST(GameStateTest, EquipsPreferTheStatTraceOverTheAttackOne) {
+  std::map<std::string, Scroll> scrolls = WarriorWeaponTraces();
+  Scroll att;
+  att.set_name("30% ATT");
+  att.set_scroll_type(SCROLL_TYPE_ATT);
+  att.set_target(SCROLL_TARGET_WEAPON);
+  att.set_tier(SCROLL_TIER_1);
+  att.set_success_rate(30);
+  att.mutable_stats()->set_attack(9);
+  att.add_applicable_job_categories(EQUIP_JOB_CATEGORY_WARRIOR);
+  scrolls["weapon_att_30"] = att;
+  TestOptions test;
+  test.job = JOB_ADVANCEMENT_SWORDMAN;
+  test.equips = TestEquips::kScrolled;
+  GameState state(GladiusCatalog(), scrolls, {}, {}, {}, {}, GameMode::kTest,
+                  test);
+  EXPECT_EQ(WornWeapon(state).scroll_stats().str(), 27);
 }
 
 // A piece with no scroll shelf takes no hammer either: the hammer widens a

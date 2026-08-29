@@ -156,15 +156,45 @@ std::vector<std::string> WorkbenchGearFor(Job job) {
   }
 }
 
+// The best trace of one type for `proto`, at the longest odds it is written
+// at. The odds cost nothing here -- every slot passes -- so the biggest is the
+// one to take. Null when nothing of that type is written for the item.
+const Scroll* BestScrollOfType(const GameState& state,
+                               const EquipPrototype& proto, ScrollTarget target,
+                               ScrollType type) {
+  std::set<int> item_categories(proto.equip_job_categories().begin(),
+                                proto.equip_job_categories().end());
+  const Scroll* best = nullptr;
+  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
+    const Scroll& scroll = entry.second;
+    if (scroll.scroll_type() != type || scroll.target() != target ||
+        scroll.tier() != TierForLevel(proto.required_level())) {
+      continue;
+    }
+    bool fits = false;
+    for (int category : scroll.applicable_job_categories()) {
+      fits = fits || item_categories.count(category) > 0;
+    }
+    if (fits &&
+        (best == nullptr || scroll.success_rate() < best->success_rate())) {
+      best = &scroll;
+    }
+  }
+  return best;
+}
+
 // The spell trace the workbench scrolls `proto` with: the one that raises the
-// stat this character fights with, at the longest odds it is written at. The
-// odds cost nothing here -- every slot passes -- so the biggest is the one to
-// take. Returns nullptr for an item nothing is written for, ammunition and
-// off-hands among them.
+// stat this character fights with, or, where a slot takes no stat trace at
+// all, the one that raises the attack they swing with. Gloves and hearts are
+// the second case -- nothing but ATT and M.ATT is written for either, so
+// asking only for the stat left them unscrolled and, with a slot still open,
+// unstarred. Returns nullptr for an item nothing is written for, ammunition
+// and off-hands among them.
 const Scroll* BestScrollFor(const GameState& state,
                             const EquipPrototype& proto) {
+  StatField primary = PrimaryStatField(state.character.proto().job());
   ScrollType wanted = SCROLL_TYPE_UNSPECIFIED;
-  switch (PrimaryStatField(state.character.proto().job())) {
+  switch (primary) {
     case STAT_FIELD_STR:
       wanted = SCROLL_TYPE_STR;
       break;
@@ -184,25 +214,13 @@ const Scroll* BestScrollFor(const GameState& state,
   if (target == SCROLL_TARGET_UNSPECIFIED) {
     return nullptr;
   }
-  std::set<int> item_categories(proto.equip_job_categories().begin(),
-                                proto.equip_job_categories().end());
-  const Scroll* best = nullptr;
-  for (const std::pair<const std::string, Scroll>& entry : state.scrolls) {
-    const Scroll& scroll = entry.second;
-    if (scroll.scroll_type() != wanted || scroll.target() != target ||
-        scroll.tier() != TierForLevel(proto.required_level())) {
-      continue;
-    }
-    bool fits = false;
-    for (int category : scroll.applicable_job_categories()) {
-      fits = fits || item_categories.count(category) > 0;
-    }
-    if (fits &&
-        (best == nullptr || scroll.success_rate() < best->success_rate())) {
-      best = &scroll;
-    }
+  const Scroll* best = BestScrollOfType(state, proto, target, wanted);
+  if (best != nullptr) {
+    return best;
   }
-  return best;
+  ScrollType attack =
+      primary == STAT_FIELD_INT ? SCROLL_TYPE_MATT : SCROLL_TYPE_ATT;
+  return BestScrollOfType(state, proto, target, attack);
 }
 
 // The state a piece of the workbench's gear arrives in: as it drops, with
