@@ -55,7 +55,9 @@ class ScrollPanel {
   // calls SetFilter. Returns false (and does not update the filter) if no
   // scrolls match. Remembers the item's name for the confirmation window.
   bool SetFilterForPrototype(const EquipPrototype& proto);
-  ftxui::Element Render();
+  // `focused` lights the title. The list shares the arrows with the item card
+  // beside it, and the one holding them says so.
+  ftxui::Element Render(bool focused);
   ftxui::Element RenderResult(const ScrollResult& r) const;
   // Handles navigation (Up/Down) and confirm-bar interaction. Returns false
   // only for navigation events so the caller can update the scroll position.
@@ -144,6 +146,9 @@ class ScrollPanel {
   // reads Pin or Unpin depending on the row it was opened on.
   ItemMenu menu_{{"Scroll", "Pin", "Close"}};
   bool menu_open_ = false;
+  // What Render was last told, for the window built inside the component's
+  // own renderer.
+  bool focused_ = true;
   bool scroll_chosen_ = false;
   bool pin_toggled_ = false;
   // Owned here because only the panel knows when the selection moved.

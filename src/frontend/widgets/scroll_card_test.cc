@@ -132,7 +132,8 @@ TEST(ScrollCardTest, ReclampsWhenTheBudgetGrows) {
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
 }
 
-// A rule reaches both borders, the bar's column included.
+// A rule reaches both borders, the bar's column included, and keeps reaching
+// them when something stretches the card past its own width.
 TEST(ScrollCardTest, DrawsSeparatorsTheWholeWidth) {
   ScrollCard card;
   card.SetMaxRows(20);
@@ -143,6 +144,29 @@ TEST(ScrollCardTest, DrawsSeparatorsTheWholeWidth) {
   ASSERT_EQ(lines.size(), 5u);
   // Border, eight columns of rule, the bar's column, border.
   EXPECT_EQ(lines[2], "├─────────┤");
+}
+
+// The scroll screen hands the card a flex box wider than it asked for. The
+// rule has to follow the border out, and the bar has to stay against it.
+TEST(ScrollCardTest, StretchesTheRuleAndTheBarToAWiderBox) {
+  ScrollCard card;
+  card.SetMaxRows(6);
+  std::vector<CardRow> rows = NumberedRows(9);
+  rows[1] = RuleRow(ftxui::separator());
+  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(20),
+                                               ftxui::Dimension::Fixed(6));
+  ftxui::Render(screen, card.Render(" T ", std::move(rows), 8) | ftxui::flex);
+  std::vector<std::string> lines;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    std::string line;
+    for (int x = 0; x < screen.dimx(); ++x) {
+      line += screen.PixelAt(x, y).character;
+    }
+    lines.push_back(line);
+  }
+  EXPECT_EQ(lines[2], "├──────────────────┤") << "the rule reaches both";
+  EXPECT_EQ(screen.PixelAt(19, 1).character, "│");
+  EXPECT_EQ(screen.PixelAt(18, 1).character, "┃") << "the bar, on the border";
 }
 
 TEST(ScrollCardTest, MeasuresTheRowsWhenGivenNoWidth) {

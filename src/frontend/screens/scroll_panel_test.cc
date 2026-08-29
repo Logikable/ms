@@ -46,14 +46,14 @@ class ScrollPanelTest : public PanelTest {
   static std::string Render(ScrollPanel& panel) {
     ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
                                                  ftxui::Dimension::Fixed(10));
-    ftxui::Render(screen, panel.Render());
+    ftxui::Render(screen, panel.Render(/*focused=*/true));
     return screen.ToString();
   }
 
   // How tall the panel asks to be, which is what says whether a window is
   // stacked below the list or floating over it.
   static int FitHeight(ScrollPanel& panel) {
-    ftxui::Element element = panel.Render();
+    ftxui::Element element = panel.Render(/*focused=*/true);
     return ftxui::Screen::Create(ftxui::Dimension::Fit(element),
                                  ftxui::Dimension::Fit(element))
         .dimy();
@@ -367,10 +367,10 @@ TEST_F(ScrollPanelTest, UnpinningPutsTheScrollBack) {
 TEST_F(ScrollPanelTest, ARowsCostGoesRedWhenItCannotBePaid) {
   panel_.SetFilter({&scrolls_["AAA Scroll"]}, kSwordLevel,
                    SCROLL_TARGET_WEAPON);
-  EXPECT_EQ(LabelColor(panel_.Render(), "34"), kRed);
+  EXPECT_EQ(LabelColor(panel_.Render(/*focused=*/true), "34"), kRed);
 
   GiveTraces(kAaaCost);
-  EXPECT_NE(LabelColor(panel_.Render(), "34"), kRed);
+  EXPECT_NE(LabelColor(panel_.Render(/*focused=*/true), "34"), kRed);
 }
 
 // The change this screen exists to show: one scroll, two prices, because the
@@ -606,10 +606,10 @@ TEST_F(ScrollPanelTest, TheCostGoesRedWhenTheTracesFallShort) {
                    SCROLL_TARGET_WEAPON);
   GiveTraces(5);
   OpenConfirmThroughTheMenu(&panel_);
-  EXPECT_EQ(LabelColor(panel_.Render(), "Cost 34"), kRed);
+  EXPECT_EQ(LabelColor(panel_.Render(/*focused=*/true), "Cost 34"), kRed);
 
   GiveTraces(100);
-  EXPECT_NE(LabelColor(panel_.Render(), "Cost 34"), kRed);
+  EXPECT_NE(LabelColor(panel_.Render(/*focused=*/true), "Cost 34"), kRed);
 }
 
 // The window names the item as well as the scroll, which is the whole reason
@@ -639,6 +639,23 @@ TEST_F(ScrollPanelTest, TheResultWindowGoesGoldOnSuccess) {
 
   r.outcome = kScrollFail;
   EXPECT_EQ(BorderColor(panel_.RenderResult(r)), kTheme);
+}
+
+// The list shares the arrows with the item card beside it, and the one
+// holding them lights its title.
+TEST_F(ScrollPanelTest, LightsItsTitleOnlyWhileItHoldsTheArrows) {
+  ftxui::Element lit = panel_.Render(/*focused=*/true);
+  ftxui::Element dark = panel_.Render(/*focused=*/false);
+  lit->ComputeRequirement();
+  dark->ComputeRequirement();
+  ftxui::Screen lit_screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(90),
+                                                   ftxui::Dimension::Fixed(20));
+  ftxui::Screen dark_screen = ftxui::Screen::Create(
+      ftxui::Dimension::Fixed(90), ftxui::Dimension::Fixed(20));
+  ftxui::Render(lit_screen, lit);
+  ftxui::Render(dark_screen, dark);
+  EXPECT_TRUE(lit_screen.PixelAt(3, 0).inverted);
+  EXPECT_FALSE(dark_screen.PixelAt(3, 0).inverted);
 }
 
 }  // namespace

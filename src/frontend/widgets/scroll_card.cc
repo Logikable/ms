@@ -63,10 +63,10 @@ ftxui::Element ScrollCard::Render(const std::string& title,
   std::vector<ftxui::Element> lines;
   for (int i = 0; i < visible_; ++i) {
     CardRow& row = rows[offset_ + i];
+    // Left to stretch: a rule sized to the rows stops short of the border the
+    // moment something widens the card, and reads as a notch.
     if (row.separator) {
-      lines.push_back(
-          std::move(row.element) |
-          ftxui::size(ftxui::WIDTH, ftxui::EQUAL, bar ? width + 1 : width));
+      lines.push_back(std::move(row.element));
       continue;
     }
     ftxui::Element line =
@@ -79,8 +79,11 @@ ftxui::Element ScrollCard::Render(const std::string& title,
     // a bar is only drawn when there is something off screen to point at.
     ftxui::Element cell =
         cells.empty() ? ftxui::text(" ") : std::move(cells[i]);
+    // The filler takes nothing when the card is at its own width, and holds
+    // the bar against the right border when something has stretched it.
     lines.push_back(ftxui::hbox({
         std::move(line),
+        ftxui::filler(),
         std::move(cell) | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 1),
     }));
   }

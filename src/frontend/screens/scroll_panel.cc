@@ -222,8 +222,8 @@ void ScrollPanel::ResetComponent() {
         ftxui::text(PinCellFor(state.index)),
     });
   };
-  // Wrapped so the list is a ring: this screen is the list and nothing else,
-  // so Up off the top row has nowhere to go but the bottom one.
+  // Wrapped so the list is a ring: nothing above or below it on this screen
+  // takes the arrows, so Up off the top row has nowhere to go but the bottom.
   ftxui::Component menu =
       WrappingList(ftxui::Menu(&entries_, &selected_, opt), selected_,
                    [this]() { return static_cast<int>(entries_.size()); });
@@ -252,7 +252,7 @@ void ScrollPanel::ResetComponent() {
     // read against, and up there it never scrolls away with the list.
     ftxui::Element main =
         ThemedWindow(" Scrolls — " + FormatWithCommas(TracesOwned()) + " 📜 ",
-                     ftxui::vbox(std::move(rows)));
+                     ftxui::vbox(std::move(rows)), focused_);
     if (confirm_.open()) {
       // Over the list rather than under it: the question is about the row the
       // cursor is on, and a window that pushed the list around while asking
@@ -273,7 +273,8 @@ void ScrollPanel::ResetComponent() {
   });
 }
 
-ftxui::Element ScrollPanel::Render() {
+ftxui::Element ScrollPanel::Render(bool focused) {
+  focused_ = focused;
   return component_->Render();
 }
 

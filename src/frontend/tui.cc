@@ -573,7 +573,8 @@ ftxui::Element Tui::RenderInspect() {
 ftxui::Element Tui::RenderScroll() {
   inspect_panel_.SetItem(controller_.scroll_item());
   inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
-  ftxui::Element scroll_view = scroll_panel_.Render();
+  ftxui::Element scroll_view =
+      scroll_panel_.Render(!controller_.right_card_focused());
   if (controller_.screen() == kScrollResult) {
     ftxui::Element dialog =
         scroll_panel_.RenderResult(controller_.scroll_result());
