@@ -10,7 +10,9 @@
  *
  * A piece of a set gets a second card beside the first, listing the whole set
  * and what each of its tiers pays. Either card scrolls when it outgrows the
- * terminal; Tab hands the arrows to the other one.
+ * terminal; Tab hands the arrows to the other one. Only one section of each
+ * card moves -- the stats on the item, the tiers on the set -- and what names
+ * either card stays where it is. See ScrollCard.
  *
  * One panel rather than two because it is one screen to the player, reached
  * the same way from either list, and two would be free to drift apart.
@@ -81,26 +83,28 @@ class InspectPanel {
  private:
   // The body for each kind. All three are framed by the same card, so the
   // screens cannot drift apart in their framing.
-  std::vector<CardRow> EquipRows() const;
+  CardRows EquipRows() const;
   ftxui::Element RenderStackable() const;
   // An Arcane Symbol's card. Its own body rather than the equip one: what a
   // symbol grants comes from its level and the wearer's job, so none of the
   // rows an equip carries has anything to say about it.
-  std::vector<CardRow> SymbolRows() const;
-  // The equip body in parts. The rows an item cannot fold are built first and
-  // measured; the two that can -- the star bar and the job categories -- are
-  // then folded onto two lines each if leaving them on one is what would make
-  // the panel wide. `fixed` is the width the rest of the card already needs.
+  CardRows SymbolRows() const;
+  // The equip body in parts, head to foot. The rows an item cannot fold are
+  // built first and measured; the two that can -- the star bar and the job
+  // categories -- are then folded onto two lines each if leaving them on one
+  // is what would make the panel wide. `fixed` is the width the rest of the
+  // card already needs.
   std::vector<CardRow> HeadRows() const;
-  std::vector<CardRow> FactRows() const;
   std::vector<CardRow> JobRows(int fixed) const;
   std::vector<CardRow> StarRows(int fixed) const;
+  std::vector<CardRow> StatRows() const;
+  std::vector<CardRow> SlotRows() const;
   // The set the inspected item is a piece of, or nullptr for an item that
   // belongs to none -- which is every item but a handful.
   const EquipSet* SetOfItem() const;
   // The card beside the item: what the set is made of, and what each tier
   // pays. Tiers the worn pieces do not reach are dimmed.
-  std::vector<CardRow> SetRows(const EquipSet& set) const;
+  CardRows SetRows(const EquipSet& set) const;
 
   // `count` job categories from `from`, as one row: dimmed for the ones this
   // item is not for, and every one of them listed either way.

@@ -271,19 +271,22 @@ ftxui::Element InspectPanel::RenderItemOnly(bool focused) const {
   if (item_ == nullptr) {
     return ThemedWindow(" Inspect ", EmptyState("no item"), focused);
   }
-  std::vector<CardRow> rows =
+  CardRows rows =
       IsArcaneSymbol(item_->prototype()) ? SymbolRows() : EquipRows();
   return item_card_.Render(" Inspect ", std::move(rows), /*content_width=*/0,
                            focused);
 }
 
-std::vector<CardRow> InspectPanel::SymbolRows() const {
+CardRows InspectPanel::SymbolRows() const {
   const Equip& state = item_->equip_state();
   int level = SymbolLevel(state);
   int needed = SymbolExpToNextLevel(level);
-  std::vector<CardRow> rows = {
+  CardRows card;
+  card.head = {
       TextRow(CenteredRow(item_->name())),
       RuleRow(ThemedSeparator()),
+  };
+  std::vector<CardRow> rows = {
       TextRow(SymbolRow("Level", std::to_string(level))),
       TextRow(SymbolRow("EXP", needed == 0
                                    ? "MAX"
@@ -303,7 +306,8 @@ std::vector<CardRow> InspectPanel::SymbolRows() const {
   }
   rows.push_back(
       TextRow(SymbolRow("AF", "+" + std::to_string(SymbolArcaneForce(level)))));
-  return rows;
+  card.body = std::move(rows);
+  return card;
 }
 
 ftxui::Element InspectPanel::Render() const {
@@ -345,9 +349,13 @@ const EquipSet* InspectPanel::SetOfItem() const {
   return nullptr;
 }
 
-std::vector<CardRow> InspectPanel::SetRows(const EquipSet& set) const {
+CardRows InspectPanel::SetRows(const EquipSet& set) const {
   int worn = character_->PiecesWornOf(set);
-  std::vector<CardRow> rows;
+  // The set's name and what it is made of are held at the head: the tiers
+  // below read as what those pieces would pay, so they are the part that
+  // scrolls and the pieces stay beside them.
+  CardRows card;
+  std::vector<CardRow>& rows = card.head;
   rows.push_back(TextRow(CenteredRow(FormatEquipSet(set.name()))));
   rows.push_back(RuleRow(ThemedSeparator()));
   for (const EquipSetMember& member : set.members()) {
@@ -389,12 +397,12 @@ std::vector<CardRow> InspectPanel::SetRows(const EquipSet& set) const {
       if (worn < tier.pieces()) {
         row = row | ftxui::dim;
       }
-      rows.push_back(TextRow(std::move(row)));
+      card.body.push_back(TextRow(std::move(row)));
       // Only the first line of a tier is labelled; the rest hang under it.
       label.clear();
     }
   }
-  return rows;
+  return card;
 }
 
 // A stack has no stats, no stars and no slots. Its name and what it is for is
@@ -435,14 +443,13 @@ std::vector<CardRow> InspectPanel::HeadRows() const {
   };
 }
 
-// Everything below the job categories: what kind of item it is, what it
-// grants, and what it has spent.
-std::vector<CardRow> InspectPanel::FactRows() const {
+// What the item grants: its kind, its speed and its stats. The scrolling part
+// of the card, since it is the part that outgrows a short terminal.
+std::vector<CardRow> InspectPanel::StatRows() const {
   const EquipPrototype& proto = item_->prototype();
   const Equip& item_state = item_->equip_state();
 
   std::vector<CardRow> rows;
-  rows.push_back(RuleRow(ThemedSeparator()));
   if (proto.equip_type() != EQUIP_TYPE_UNSPECIFIED) {
     rows.push_back(TextRow(
         ftxui::text(" Type: " + FormatEquipType(proto.equip_type()) + " ")));
@@ -468,37 +475,52 @@ std::vector<CardRow> InspectPanel::FactRows() const {
   if (!any_stat) {
     rows.push_back(TextRow(EmptyState("no stats")));
   }
-
-  int slots = TotalUpgradeSlots(proto, item_state);
-  if (slots > 0) {
-    int pass = item_state.scroll_successes();
-    int left = item_state.remaining_upgrade_slots();
-    int restore = slots - pass - left;
-    rows.push_back(RuleRow(ThemedSeparator()));
-    std::string scroll_label =
-        pass == 1 ? " Successful Scroll " : " Successful Scrolls ";
-    std::string restore_label = restore == 1 ? " Restore) " : " Restores) ";
-    rows.push_back(
-        TextRow(ftxui::text(" " + std::to_string(pass) + scroll_label)));
-    rows.push_back(
-        TextRow(ftxui::text(" (" + std::to_string(left) + " Left, " +
-                            std::to_string(restore) + restore_label)));
-  }
   return rows;
 }
 
-std::vector<CardRow> InspectPanel::EquipRows() const {
+// What the item has spent, held at the foot of the card: an item's upgrade
+// history belongs with the item rather than at the end of a list the reader
+// has to scroll to. Empty for an item that takes no scrolls at all.
+std::vector<CardRow> InspectPanel::SlotRows() const {
+  const EquipPrototype& proto = item_->prototype();
+  const Equip& item_state = item_->equip_state();
+  int slots = TotalUpgradeSlots(proto, item_state);
+  if (slots <= 0) {
+    return {};
+  }
+  int pass = item_state.scroll_successes();
+  int left = item_state.remaining_upgrade_slots();
+  int restore = slots - pass - left;
+  std::string scroll_label =
+      pass == 1 ? " Successful Scroll " : " Successful Scrolls ";
+  std::string restore_label = restore == 1 ? " Restore) " : " Restores) ";
+  return {
+      RuleRow(ThemedSeparator()),
+      TextRow(ftxui::text(" " + std::to_string(pass) + scroll_label)),
+      TextRow(ftxui::text(" (" + std::to_string(left) + " Left, " +
+                          std::to_string(restore) + restore_label)),
+  };
+}
+
+CardRows InspectPanel::EquipRows() const {
   std::vector<CardRow> head = HeadRows();
-  std::vector<CardRow> facts = FactRows();
+  std::vector<CardRow> stats = StatRows();
+  std::vector<CardRow> slots = SlotRows();
   // What the item has to say sets the width; the two rows that can be folded
   // are measured against it rather than the other way round.
-  int fixed = std::max(NaturalWidth(head), NaturalWidth(facts));
+  int fixed =
+      std::max({NaturalWidth(head), NaturalWidth(stats), NaturalWidth(slots)});
 
   std::vector<CardRow> jobs = JobRows(fixed);
-  std::vector<CardRow> rows = StarRows(std::max(fixed, NaturalWidth(jobs)));
-  Append(rows, head);
-  Append(rows, jobs);
-  Append(rows, facts);
+  CardRows rows;
+  // What names the item stays on screen, and so does what it has spent; the
+  // stats between them are what moves.
+  rows.head = StarRows(std::max(fixed, NaturalWidth(jobs)));
+  Append(rows.head, head);
+  Append(rows.head, jobs);
+  rows.head.push_back(RuleRow(ThemedSeparator()));
+  rows.body = std::move(stats);
+  rows.foot = std::move(slots);
   return rows;
 }
 

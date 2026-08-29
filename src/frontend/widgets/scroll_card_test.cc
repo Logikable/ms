@@ -29,8 +29,15 @@ int CardWidth(const ScrollCard& card, std::vector<CardRow> rows,
   return element->requirement().min_x;
 }
 
+// A card of one section, which is what most of these tests are.
+CardRows Body(std::vector<CardRow> rows) {
+  CardRows card;
+  card.body = std::move(rows);
+  return card;
+}
+
 // The card drawn onto a screen of its own, one string per line.
-std::vector<std::string> Draw(const ScrollCard& card, std::vector<CardRow> rows,
+std::vector<std::string> Draw(const ScrollCard& card, CardRows rows,
                               int content_width) {
   ftxui::Element element = card.Render(" T ", std::move(rows), content_width);
   element->ComputeRequirement();
@@ -63,7 +70,7 @@ bool HasBar(const std::vector<std::string>& lines) {
 
 TEST(ScrollCardTest, DrawsEveryRowWithNoBudget) {
   ScrollCard card;
-  std::vector<std::string> lines = Draw(card, NumberedRows(4), 8);
+  std::vector<std::string> lines = Draw(card, Body(NumberedRows(4)), 8);
   ASSERT_EQ(lines.size(), 6u) << "four rows and two borders";
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
   EXPECT_NE(lines[4].find("row3"), std::string::npos);
@@ -75,7 +82,7 @@ TEST(ScrollCardTest, DrawsEveryRowWithNoBudget) {
 TEST(ScrollCardTest, CutsToTheBudgetAndDrawsABar) {
   ScrollCard card;
   card.SetMaxRows(6);
-  std::vector<std::string> lines = Draw(card, NumberedRows(10), 8);
+  std::vector<std::string> lines = Draw(card, Body(NumberedRows(10)), 8);
   ASSERT_EQ(lines.size(), 6u);
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
   EXPECT_NE(lines[4].find("row3"), std::string::npos);
@@ -92,30 +99,30 @@ TEST(ScrollCardTest, ReservesTheBarColumnWhateverFits) {
   scrolls.SetMaxRows(6);
   EXPECT_EQ(CardWidth(fits, NumberedRows(4), 8),
             CardWidth(scrolls, NumberedRows(10), 8));
-  EXPECT_FALSE(HasBar(Draw(fits, NumberedRows(4), 8)))
+  EXPECT_FALSE(HasBar(Draw(fits, Body(NumberedRows(4)), 8)))
       << "nothing off screen, so no bar drawn";
 }
 
 TEST(ScrollCardTest, ScrollsAndHoldsToBothEnds) {
   ScrollCard card;
   card.SetMaxRows(6);
-  Draw(card, NumberedRows(10), 8);  // Teaches it what it is showing.
+  Draw(card, Body(NumberedRows(10)), 8);  // Teaches it what it is showing.
 
   card.ScrollBy(2);
-  std::vector<std::string> lines = Draw(card, NumberedRows(10), 8);
+  std::vector<std::string> lines = Draw(card, Body(NumberedRows(10)), 8);
   EXPECT_NE(lines[1].find("row2"), std::string::npos);
 
   card.ScrollBy(-9);
-  lines = Draw(card, NumberedRows(10), 8);
+  lines = Draw(card, Body(NumberedRows(10)), 8);
   EXPECT_NE(lines[1].find("row0"), std::string::npos) << "held at the head";
 
   card.ScrollBy(99);
-  lines = Draw(card, NumberedRows(10), 8);
+  lines = Draw(card, Body(NumberedRows(10)), 8);
   EXPECT_NE(lines[1].find("row6"), std::string::npos) << "held at the foot";
   EXPECT_NE(lines[4].find("row9"), std::string::npos);
 
   card.Reset();
-  lines = Draw(card, NumberedRows(10), 8);
+  lines = Draw(card, Body(NumberedRows(10)), 8);
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
 }
 
@@ -124,10 +131,10 @@ TEST(ScrollCardTest, ScrollsAndHoldsToBothEnds) {
 TEST(ScrollCardTest, ReclampsWhenTheBudgetGrows) {
   ScrollCard card;
   card.SetMaxRows(6);
-  Draw(card, NumberedRows(10), 8);
+  Draw(card, Body(NumberedRows(10)), 8);
   card.ScrollBy(99);
   card.SetMaxRows(12);
-  std::vector<std::string> lines = Draw(card, NumberedRows(10), 8);
+  std::vector<std::string> lines = Draw(card, Body(NumberedRows(10)), 8);
   ASSERT_EQ(lines.size(), 12u);
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
 }
@@ -140,7 +147,7 @@ TEST(ScrollCardTest, DrawsSeparatorsTheWholeWidth) {
   std::vector<CardRow> rows = NumberedRows(1);
   rows.push_back(RuleRow(ftxui::separator()));
   rows.push_back(TextRow(ftxui::text("tail")));
-  std::vector<std::string> lines = Draw(card, std::move(rows), 8);
+  std::vector<std::string> lines = Draw(card, Body(std::move(rows)), 8);
   ASSERT_EQ(lines.size(), 5u);
   // Border, eight columns of rule, the bar's column, border.
   EXPECT_EQ(lines[2], "├─────────┤");
@@ -178,10 +185,59 @@ TEST(ScrollCardTest, MeasuresTheRowsWhenGivenNoWidth) {
   EXPECT_EQ(CardWidth(card, std::move(rows), 0), 19) << "the row and a border";
 }
 
+// Head and foot are drawn whole and the body scrolls between them, so a rule
+// never crosses the bar and what names the card stays on screen.
+TEST(ScrollCardTest, HoldsTheHeadAndTheFootAndScrollsBetweenThem) {
+  ScrollCard card;
+  card.SetMaxRows(8);
+  CardRows rows;
+  rows.head = {TextRow(ftxui::text("head")), RuleRow(ftxui::separator())};
+  rows.body = NumberedRows(10);
+  rows.foot = {RuleRow(ftxui::separator()), TextRow(ftxui::text("foot"))};
+
+  std::vector<std::string> lines = Draw(card, rows, 8);
+  ASSERT_EQ(lines.size(), 8u) << "head, rule, two body rows, rule, foot";
+  EXPECT_NE(lines[1].find("head"), std::string::npos);
+  EXPECT_NE(lines[3].find("row0"), std::string::npos);
+  EXPECT_NE(lines[4].find("row1"), std::string::npos);
+  EXPECT_NE(lines[6].find("foot"), std::string::npos);
+  EXPECT_TRUE(card.Overflows()) << "the body has more than it can draw";
+  // The bar runs beside the body alone.
+  EXPECT_FALSE(HasBar({lines[1]}));
+  EXPECT_TRUE(HasBar({lines[3], lines[4]}));
+  EXPECT_FALSE(HasBar({lines[6]}));
+
+  card.ScrollBy(3);
+  lines = Draw(card, rows, 8);
+  EXPECT_NE(lines[1].find("head"), std::string::npos) << "the head is held";
+  EXPECT_NE(lines[3].find("row3"), std::string::npos) << "the body moved";
+  EXPECT_NE(lines[6].find("foot"), std::string::npos) << "the foot is held";
+}
+
+// A card too short to hold its fixed rows and a line between them scrolls
+// entire: a head with its top cut off says less than a card that moves.
+TEST(ScrollCardTest, ScrollsEntireWhenTheFixedRowsDoNotFit) {
+  ScrollCard card;
+  card.SetMaxRows(4);
+  CardRows rows;
+  rows.head = {TextRow(ftxui::text("head"))};
+  rows.body = NumberedRows(3);
+  rows.foot = {TextRow(ftxui::text("foot"))};
+
+  std::vector<std::string> lines = Draw(card, rows, 8);
+  ASSERT_EQ(lines.size(), 4u);
+  EXPECT_NE(lines[1].find("head"), std::string::npos);
+  EXPECT_NE(lines[2].find("row0"), std::string::npos);
+
+  card.ScrollBy(2);
+  lines = Draw(card, rows, 8);
+  EXPECT_NE(lines[1].find("row1"), std::string::npos) << "the head moved too";
+}
+
 TEST(ScrollCardTest, AtLeastOneRowHoweverSmallTheBudget) {
   ScrollCard card;
   card.SetMaxRows(2);
-  std::vector<std::string> lines = Draw(card, NumberedRows(10), 8);
+  std::vector<std::string> lines = Draw(card, Body(NumberedRows(10)), 8);
   ASSERT_EQ(lines.size(), 3u);
   EXPECT_NE(lines[1].find("row0"), std::string::npos);
 }

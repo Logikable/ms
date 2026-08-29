@@ -704,21 +704,55 @@ InspectPanel TallPanel(CharacterInstance& character, int rows) {
   return panel;
 }
 
+// Only the tiers move: the set's name and the pieces it is made of are what
+// the tiers are read against, so they stay where they are.
 TEST_F(InspectPanelTest, ScrollsTheSetCardWithoutMovingTheItemCard) {
   EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
   EquipInstance hat(proto);
-  InspectPanel panel = TallPanel(c_, 12);
+  InspectPanel panel = TallPanel(c_, 18);
   panel.SetItem(&hat);
-  ASSERT_NE(RenderWide(panel).find("Frozen Set"), std::string::npos);
+  ASSERT_NE(RenderWide(panel).find("3 Set Effect"), std::string::npos);
 
   ASSERT_TRUE(panel.SwapCard());
   EXPECT_EQ(panel.focused_card(), InspectPanel::kSetCard);
   panel.ScrollBy(3);
   std::string rendered = RenderWide(panel);
-  EXPECT_EQ(rendered.find("Frozen Set"), std::string::npos)
-      << "the set card's head has scrolled away";
-  EXPECT_NE(rendered.find("Frozen Hat"), std::string::npos)
-      << "the item card has not moved";
+  EXPECT_EQ(rendered.find("3 Set Effect"), std::string::npos)
+      << "the tiers have moved";
+  EXPECT_NE(rendered.find("Frozen Set"), std::string::npos)
+      << "the head has not";
+  EXPECT_NE(rendered.find("Req Lev"), std::string::npos)
+      << "and neither has the item card";
+}
+
+// The stats are the only part of the item card that moves.
+TEST_F(InspectPanelTest, ScrollsTheItemCardBetweenItsHeadAndItsFoot) {
+  sword_.set_equip_type(EQUIP_TYPE_ONE_HANDED_SWORD);
+  sword_.set_upgrade_slots(7);
+  EquipStats* stats = sword_.mutable_base_stats();
+  stats->set_str(5);
+  stats->set_dex(5);
+  stats->set_int_(5);
+  stats->set_luk(5);
+  stats->set_max_hp(5);
+  stats->set_max_mp(5);
+  stats->set_attack(5);
+  Equip state;
+  state.set_equip_name("Sword");
+  state.set_remaining_upgrade_slots(7);
+  EquipInstance sword(sword_, state);
+  InspectPanel panel;
+  // Room for the head, the foot and two lines of stats between them.
+  panel.SetMaxRows(14);
+  panel.SetItem(&sword);
+  ASSERT_NE(RenderWide(panel).find("Type:"), std::string::npos);
+
+  panel.ScrollBy(2);
+  std::string rendered = RenderWide(panel);
+  EXPECT_EQ(rendered.find("Type:"), std::string::npos) << "the stats moved";
+  EXPECT_NE(rendered.find("Req Lev"), std::string::npos) << "the head did not";
+  EXPECT_NE(rendered.find("Successful Scroll"), std::string::npos)
+      << "and neither did the foot";
 }
 
 TEST_F(InspectPanelTest, ResetPutsBothCardsBackAtTheTop) {
