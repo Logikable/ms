@@ -1,5 +1,8 @@
-# GMS: 140+2x% seven times on 8 enemies, and everything it touches burns for
-# 120+4x% a second for five seconds. Both ladders are GMS's own.
+# GMS: 140+2x% seven times, and everything it touches burns for 120+4x% a
+# second for five seconds. Both ladders are GMS's own.
+#
+# Seven enemies against GMS's eight: the sweep is 495 pixels wide and one
+# storey tall, which holds seven abreast. See Skill.max_enemies.
 #
 # The burn is the first effect over time the game keeps. Every earlier one was
 # dropped, because a map mob dies inside a swing and a few seconds of ticking
@@ -16,7 +19,7 @@ max_level: 30
 required_equip_type: EQUIP_TYPE_STAFF
 exceeds_master_level: true
 base_delay_ms: 660
-max_enemies: 8
+max_enemies: 7
 lines: 7
 base { skill_pct: 1.42 }
 per_level { skill_pct: 0.02 }

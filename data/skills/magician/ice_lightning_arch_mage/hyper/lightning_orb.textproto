@@ -1,10 +1,13 @@
-# The first swing in the game that is HELD: an orb that zaps eight enemies
-# every 150ms for as long as the key is down, then bursts. Twelve pulses is a
-# full two seconds; 960ms is the shortest it can be let go after, which five
+# The first swing in the game that is HELD: an orb that zaps everything around
+# it every 150ms for as long as the key is down, then bursts. Twelve pulses is
+# a full two seconds; 960ms is the shortest it can be let go after, which five
 # pulses and the burst fit inside.
 #
-# It picks its eight when the hold opens and never again, so the fight holds it
-# only as long as the pulses still have somewhere to land -- against a boss
+# Fourteen enemies against GMS's fifteen, off a 500x400 sphere -- seven abreast
+# over two storeys. See Skill.max_enemies.
+#
+# It picks its fourteen when the hold opens and never again, so the fight holds
+# it only as long as the pulses still have somewhere to land -- against a boss
 # that is the whole two seconds, and on a map it is the floor. See Channel.
 #
 # Lightning, so it spends the pile an ice swing left and hits harder for every
@@ -23,7 +26,7 @@ required_level: 160
 max_level: 1
 required_equip_type: EQUIP_TYPE_STAFF
 base_delay_ms: 960
-max_enemies: 8
+max_enemies: 14
 lines: 15
 cooldown_seconds: 60.0
 base { skill_pct: 1.35 }
