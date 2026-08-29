@@ -98,11 +98,12 @@ enum EquipSlot {
   EQUIP_SLOT_FACE_ACCESSORY = 8;
   EQUIP_SLOT_EYE_ACCESSORY = 9;
 
-  // Nothing is worn in any of these yet. They are here because star force
-  // treats the ring, the pendant, the belt and the shoulderpad as armour a
-  // character's Max HP climbs with, and that rule is easier to write once
-  // against the whole list than to remember on the day each slot is filled.
-  // The ring and the pendant arrive with Horntail.
+  // The accessories star force treats as armour a character's Max HP climbs
+  // with -- see RaisesMaxHp in src/item/item.h. Nothing is worn in the belt or
+  // the shoulderpad yet; the ring and the pendant arrived with Horntail.
+  //
+  // These two are also the first of the four ring slots and the first of the
+  // two pendant slots. The rest are at the bottom of this list.
   EQUIP_SLOT_RING = 10;
   EQUIP_SLOT_PENDANT = 11;
   EQUIP_SLOT_BELT = 12;
@@ -127,6 +128,18 @@ enum EquipSlot {
   EQUIP_SLOT_SYMBOL_ARCANA = 19;
   EQUIP_SLOT_SYMBOL_MORASS = 20;
   EQUIP_SLOT_SYMBOL_ESFERA = 21;
+
+  // A character wears four rings and two pendants, and any ring fits any of
+  // the four -- so an item names EQUIP_SLOT_RING above and is worn in the
+  // first of these that is free; see SlotFamily in src/item/item.h. The rule
+  // that keeps them apart is that no family holds the same item twice.
+  //
+  // Numbered here rather than beside the first ring because a save names a
+  // worn item by this number: a slot can be added but never moved.
+  EQUIP_SLOT_RING_2 = 22;
+  EQUIP_SLOT_RING_3 = 23;
+  EQUIP_SLOT_RING_4 = 24;
+  EQUIP_SLOT_PENDANT_2 = 25;
 }
 
 // A way an item can be made stronger after it drops. Listed on a prototype

@@ -13,6 +13,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "src/item/equip_stats.h"
 #include "src/protos/equip.pb.h"
@@ -30,6 +31,18 @@ constexpr char kSpellTraceName[] = "Spell Trace";
 // that supports scrolling may still have no slots left, and one that supports
 // star force may already be at max stars.
 bool Supports(const EquipPrototype& proto, Upgrade upgrade);
+
+// The slots an item of this family may be worn in, in the order they fill.
+// Pass any slot of the family: a ring answers with its four, a pendant with
+// its two, and everything else with the one slot it is.
+//
+// A prototype names the first of its family -- EQUIP_SLOT_RING for every ring
+// -- so the family is what turns what an item says it is into where it goes.
+std::vector<EquipSlot> SlotFamily(EquipSlot slot);
+// The slot a prototype of this family names, which is the first of them.
+EquipSlot BaseSlot(EquipSlot slot);
+// Where `slot` sits within its family, counting from zero.
+int SlotIndex(EquipSlot slot);
 
 // The catalog entry with this display name, or nullptr. Catalogs are keyed by
 // data-file stem, so anything holding only a name -- a save, the shop's

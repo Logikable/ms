@@ -79,8 +79,9 @@ std::vector<InventoryRowState> BuildEquipRows(
         i == selected ? elapsed : std::chrono::steady_clock::duration::zero();
     row.name_bytes =
         static_cast<int>(ItemNameCell(item.name(), slide, name_width).size());
-    row.label = FormatItemEntry(item.name(), proto.equip_slot(), info, proto,
-                                item.equip_state(), slide, name_width);
+    row.label =
+        FormatItemEntry(item.name(), FormatSlot(proto.equip_slot()), info,
+                        proto, item.equip_state(), slide, name_width);
     row.is_trace = character.inventory().equip_instance(i) == nullptr;
     row.level_ok = character.MeetsLevel(proto);
     row.job_ok = character.MeetsJob(proto);

@@ -207,8 +207,7 @@ TEST(TagForTest, EveryKindGetsAFourColumnTag) {
 // --- FormatItemEntry ---
 
 TEST(FormatItemEntryTest, ContainsNameSlotInfoAndUpgrades) {
-  std::string entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12);
+  std::string entry = FormatItemEntry("Sword", "Weapon", "+7 ATT", 3, 7, 12);
   EXPECT_NE(entry.find("Sword"), std::string::npos);
   EXPECT_NE(entry.find("Weapon"), std::string::npos);
   EXPECT_NE(entry.find("+7 ATT"), std::string::npos);
@@ -218,10 +217,9 @@ TEST(FormatItemEntryTest, ContainsNameSlotInfoAndUpgrades) {
 
 // Short and long info strings put the upgrade columns at the same offset.
 TEST(FormatItemEntryTest, InfoColumnPaddedForAlignment) {
-  std::string short_entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "A", 3, 7, 12);
-  std::string long_entry = FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON,
-                                           "A longer info", 3, 7, 12);
+  std::string short_entry = FormatItemEntry("Sword", "Weapon", "A", 3, 7, 12);
+  std::string long_entry =
+      FormatItemEntry("Sword", "Weapon", "A longer info", 3, 7, 12);
   EXPECT_EQ(short_entry.find("12\u2605"), long_entry.find("12\u2605"));
 }
 
@@ -231,13 +229,11 @@ TEST(FormatItemEntryTest, InfoColumnPaddedForAlignment) {
 // the wiring is what is being pinned.
 TEST(FormatItemEntryTest, ALongNameIsCutAndThenSlides) {
   const char* kWordy = "Fafnir Mistilteinn Trace Of Old";  // 31 columns
-  std::string still =
-      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12);
+  std::string still = FormatItemEntry(kWordy, "Weapon", "+7 ATT", 3, 7, 12);
   EXPECT_EQ(still.substr(0, kItemNameWidth), "Fafnir Mistilteinn Trace O");
 
-  std::string slid =
-      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12,
-                      kMarqueePause + kMarqueeStep);
+  std::string slid = FormatItemEntry(kWordy, "Weapon", "+7 ATT", 3, 7, 12,
+                                     kMarqueePause + kMarqueeStep);
   EXPECT_EQ(slid.substr(0, kItemNameWidth), "fnir Mistilteinn Trace Of ");
   // The columns after the name do not move with it.
   EXPECT_EQ(still.substr(kItemNameWidth), slid.substr(kItemNameWidth));
@@ -247,10 +243,9 @@ TEST(FormatItemEntryTest, ALongNameIsCutAndThenSlides) {
 // and a wider name column is all a wider row is.
 TEST(FormatItemEntryTest, AWiderColumnHoldsMoreOfTheName) {
   const char* kWordy = "Fafnir Mistilteinn Trace Of Old";  // 31 columns
-  std::string narrow =
-      FormatItemEntry(kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12);
+  std::string narrow = FormatItemEntry(kWordy, "Weapon", "+7 ATT", 3, 7, 12);
   std::string wide = FormatItemEntry(
-      kWordy, EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12,
+      kWordy, "Weapon", "+7 ATT", 3, 7, 12,
       std::chrono::steady_clock::duration::zero(), kItemNameMax);
   EXPECT_EQ(wide.substr(0, kItemNameMax),
             "Fafnir Mistilteinn Trace Of Old       ");
@@ -272,16 +267,14 @@ TEST(ItemNameWidthForTest, GrowsWithThePanelAndStopsAtBothEnds) {
 // A name that fits is padded to the column and never moves, so a list of them
 // stays a list rather than shuffling under the cursor.
 TEST(FormatItemEntryTest, AShortNameNeverMoves) {
-  std::string still =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "+7 ATT", 3, 7, 12);
-  std::string later = FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON,
-                                      "+7 ATT", 3, 7, 12, kMarqueePause * 10);
+  std::string still = FormatItemEntry("Sword", "Weapon", "+7 ATT", 3, 7, 12);
+  std::string later = FormatItemEntry("Sword", "Weapon", "+7 ATT", 3, 7, 12,
+                                      kMarqueePause * 10);
   EXPECT_EQ(still, later);
 }
 
 TEST(FormatItemEntryTest, AnUpgradeTheItemRefusesShowsDash) {
-  std::string entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", -1, 0, -1);
+  std::string entry = FormatItemEntry("Sword", "Weapon", "info", -1, 0, -1);
   EXPECT_NE(entry.find("-"), std::string::npos);
   EXPECT_EQ(entry.find("+"), std::string::npos);
   EXPECT_EQ(entry.find("\u2605"), std::string::npos);
@@ -296,15 +289,13 @@ TEST(FormatItemEntryTest, ReadsBothUpgradesOffTheItem) {
   state.set_scroll_successes(3);
   state.set_remaining_upgrade_slots(2);
   state.set_stars(12);
-  std::string entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", proto, state);
+  std::string entry = FormatItemEntry("Sword", "Weapon", "info", proto, state);
   EXPECT_NE(entry.find("+3/7"), std::string::npos);
   EXPECT_NE(entry.find("12\u2605"), std::string::npos);
 
   proto.set_upgrade_slots(0);
   proto.add_unsupported_upgrades(UPGRADE_STAR_FORCE);
-  entry =
-      FormatItemEntry("Sword", EQUIP_SLOT_PRIMARY_WEAPON, "info", proto, state);
+  entry = FormatItemEntry("Sword", "Weapon", "info", proto, state);
   EXPECT_EQ(entry.find("+"), std::string::npos);
   EXPECT_EQ(entry.find("\u2605"), std::string::npos);
 }
@@ -1150,6 +1141,23 @@ TEST(FormatSlotTest, NamesEverySlot) {
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_POCKET), "Pocket");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_EARRINGS), "Earrings");
   EXPECT_EQ(FormatSlot(EQUIP_SLOT_UNSPECIFIED), "");
+  // A ring is a ring in all four of its slots: this is what an item is, not
+  // where it is worn.
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_RING_4), "Ring");
+  EXPECT_EQ(FormatSlot(EQUIP_SLOT_PENDANT_2), "Pendant");
+}
+
+// A worn row says which of a family's slots it is, and leaves every slot with
+// only one alone -- a character wears one hat, and "Hat 1" says nothing.
+TEST(FormatWornSlotTest, NumbersOnlyTheSlotsWithSiblings) {
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_RING), "Ring 1");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_RING_4), "Ring 4");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_PENDANT), "Pendant 1");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_PENDANT_2), "Pendant 2");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_HAT), "Hat");
+  EXPECT_EQ(FormatWornSlot(EQUIP_SLOT_UNSPECIFIED), "");
+  // The longest of them still fits the column the row gives a slot.
+  EXPECT_LE(FormatWornSlot(EQUIP_SLOT_PENDANT_2).size(), 10u);
 }
 
 // The whole point of balancing: a name that has to break should break near the

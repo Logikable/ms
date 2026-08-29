@@ -516,9 +516,15 @@ std::string FormatSlot(EquipSlot slot) {
       return "Face";
     case EQUIP_SLOT_EYE_ACCESSORY:
       return "Eye";
+    // The family, not the slot: this is what a ring in the bag and a ring
+    // named by a set are. Which of the four one is worn in is FormatWornSlot.
     case EQUIP_SLOT_RING:
+    case EQUIP_SLOT_RING_2:
+    case EQUIP_SLOT_RING_3:
+    case EQUIP_SLOT_RING_4:
       return "Ring";
     case EQUIP_SLOT_PENDANT:
+    case EQUIP_SLOT_PENDANT_2:
       return "Pendant";
     case EQUIP_SLOT_BELT:
       return "Belt";
@@ -540,6 +546,14 @@ std::string FormatSlot(EquipSlot slot) {
     default:
       return "";
   }
+}
+
+std::string FormatWornSlot(EquipSlot slot) {
+  std::string name = FormatSlot(slot);
+  if (SlotFamily(slot).size() == 1 || name.empty()) {
+    return name;
+  }
+  return name + " " + std::to_string(SlotIndex(slot) + 1);
 }
 
 std::string AttackSpeedName(AttackSpeed speed) {
@@ -703,7 +717,8 @@ std::string ItemNameCell(const std::string& name,
   return ScrollingWindow(name, name_width, elapsed);
 }
 
-std::string FormatItemEntry(const std::string& name, EquipSlot slot,
+std::string FormatItemEntry(const std::string& name,
+                            const std::string& slot_label,
                             const std::string& info, int scroll_pass,
                             int scroll_slots, int stars,
                             std::chrono::steady_clock::duration elapsed,
@@ -716,12 +731,12 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
                                   std::to_string(scroll_slots);
   std::string star_force = stars < 0 ? "-" : std::to_string(stars) + "\u2605";
   return ItemNameCell(name, elapsed, name_width) + "  " +
-         PadRight(FormatSlot(slot), kSlotWidth) + "  " +
-         PadRight(info, kInfoWidth) + "  " + PadRight(scrolls, kScrollWidth) +
-         "  " + star_force;
+         PadRight(slot_label, kSlotWidth) + "  " + PadRight(info, kInfoWidth) +
+         "  " + PadRight(scrolls, kScrollWidth) + "  " + star_force;
 }
 
-std::string FormatItemEntry(const std::string& name, EquipSlot slot,
+std::string FormatItemEntry(const std::string& name,
+                            const std::string& slot_label,
                             const std::string& info,
                             const EquipPrototype& proto, const Equip& state,
                             std::chrono::steady_clock::duration elapsed,
@@ -730,8 +745,8 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
   // like a ledger standing ready to be spent.
   int pass = proto.upgrade_slots() > 0 ? state.scroll_successes() : -1;
   int stars = Supports(proto, UPGRADE_STAR_FORCE) ? state.stars() : -1;
-  return FormatItemEntry(name, slot, info, pass, proto.upgrade_slots(), stars,
-                         elapsed, name_width);
+  return FormatItemEntry(name, slot_label, info, pass, proto.upgrade_slots(),
+                         stars, elapsed, name_width);
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,

@@ -16,6 +16,7 @@
 #include "src/item/equip_instance.h"
 #include "src/item/equip_stats.h"
 #include "src/item/inventory.h"
+#include "src/item/item.h"
 #include "src/item/projectile.h"
 #include "src/item/star_force_cost.h"
 #include "src/protos/character.pb.h"
@@ -1819,12 +1820,38 @@ std::vector<const EquipTrace*> CharacterInstance::traces() const {
   return inventory_.traces();
 }
 
+EquipSlot CharacterInstance::SlotToFill(const EquipPrototype& proto) const {
+  if (proto.equip_slot() == EQUIP_SLOT_UNSPECIFIED) {
+    return EQUIP_SLOT_UNSPECIFIED;
+  }
+  std::vector<EquipSlot> family = SlotFamily(proto.equip_slot());
+  if (family.size() == 1) {
+    return family.front();
+  }
+  for (EquipSlot slot : family) {
+    std::map<EquipSlot, EquipInstance>::const_iterator it =
+        equipped_.find(slot);
+    if (it != equipped_.end() &&
+        it->second.prototype().name() == proto.name()) {
+      return EQUIP_SLOT_UNSPECIFIED;
+    }
+  }
+  for (EquipSlot slot : family) {
+    if (equipped_.count(slot) == 0) {
+      return slot;
+    }
+  }
+  // Every one of them is worn. The first goes back to the bag, which is the
+  // slot a player who wants a different one gone can empty for themselves.
+  return family.front();
+}
+
 bool CharacterInstance::Equip(int inventory_index) {
   EquipInstance* raw = inventory_.equip_instance(inventory_index);
   if (raw == nullptr) {
     return false;
   }
-  EquipSlot slot = raw->prototype().equip_slot();
+  EquipSlot slot = SlotToFill(raw->prototype());
   if (slot == EQUIP_SLOT_UNSPECIFIED) {
     return false;
   }

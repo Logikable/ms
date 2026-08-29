@@ -1,5 +1,8 @@
 #include "src/item/item.h"
 
+#include <algorithm>
+#include <vector>
+
 #include "src/item/equip_stats.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -152,7 +155,11 @@ bool RaisesMaxHp(EquipSlot slot) {
     case EQUIP_SLOT_BOTTOM:
     case EQUIP_SLOT_CAPE:
     case EQUIP_SLOT_RING:
+    case EQUIP_SLOT_RING_2:
+    case EQUIP_SLOT_RING_3:
+    case EQUIP_SLOT_RING_4:
     case EQUIP_SLOT_PENDANT:
+    case EQUIP_SLOT_PENDANT_2:
     case EQUIP_SLOT_BELT:
     case EQUIP_SLOT_SHOULDER:
       return true;
@@ -285,6 +292,29 @@ const Proto* FindByName(const std::map<std::string, Proto>& catalog,
 }
 
 }  // namespace
+
+std::vector<EquipSlot> SlotFamily(EquipSlot slot) {
+  static const std::vector<EquipSlot> kRings = {
+      EQUIP_SLOT_RING, EQUIP_SLOT_RING_2, EQUIP_SLOT_RING_3, EQUIP_SLOT_RING_4};
+  static const std::vector<EquipSlot> kPendants = {EQUIP_SLOT_PENDANT,
+                                                   EQUIP_SLOT_PENDANT_2};
+  for (const std::vector<EquipSlot>* family : {&kRings, &kPendants}) {
+    if (std::find(family->begin(), family->end(), slot) != family->end()) {
+      return *family;
+    }
+  }
+  return {slot};
+}
+
+EquipSlot BaseSlot(EquipSlot slot) {
+  return SlotFamily(slot).front();
+}
+
+int SlotIndex(EquipSlot slot) {
+  std::vector<EquipSlot> family = SlotFamily(slot);
+  return static_cast<int>(std::find(family.begin(), family.end(), slot) -
+                          family.begin());
+}
 
 bool Supports(const EquipPrototype& proto, Upgrade upgrade) {
   for (int i = 0; i < proto.unsupported_upgrades_size(); ++i) {

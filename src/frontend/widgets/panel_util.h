@@ -126,9 +126,15 @@ std::string FormatMeso(int64_t meso);
 // No-op if val <= 0.
 void AppendStat(std::string& out, int val, const std::string& label);
 
-// Returns the display name for an equip slot (e.g. "Weapon"). Returns ""
+// Returns the display name for an equip slot (e.g. "Weapon"). A ring reads
+// "Ring" whichever of the four slots it names, because this is the question a
+// bag row and a set's piece list ask: what kind of thing is this. Returns ""
 // for slot types not yet implemented.
 std::string FormatSlot(EquipSlot slot);
+
+// The same name, saying which slot of its family this is: "Ring 3",
+// "Pendant 2". For a list of what is worn, where four rings are four rows.
+std::string FormatWornSlot(EquipSlot slot);
 
 // Returns the display name for a weapon type (e.g. "Claw"). Returns "" for
 // types not yet implemented.
@@ -235,15 +241,18 @@ std::string ItemNameCell(const std::string& name,
                              std::chrono::steady_clock::duration::zero(),
                          int name_width = kItemNameWidth);
 
-// Formats a single item list entry: name (`name_width` cols), slot (10 cols),
-// info (padded to 20 cols), scrolls as "+pass/slots", and star force level.
+// Formats a single item list entry: name (`name_width` cols), `slot_label`
+// (10 cols), info (padded to 20 cols), scrolls as "+pass/slots", and star
+// force level. The label is passed rather than the slot because a bag row and
+// a worn row name the same slot differently -- FormatSlot and FormatWornSlot.
 // Pass -1 for either upgrade to render "-" (use for an item that refuses
 // it).
 //
 // `elapsed` is how long this row has been the selected one, which is what
 // slides a name too long for the column. Zero -- the default, and what every
 // unselected row passes -- shows the head of the name and holds it there.
-std::string FormatItemEntry(const std::string& name, EquipSlot slot,
+std::string FormatItemEntry(const std::string& name,
+                            const std::string& slot_label,
                             const std::string& info, int scroll_pass,
                             int scroll_slots, int stars,
                             std::chrono::steady_clock::duration elapsed =
@@ -253,7 +262,8 @@ std::string FormatItemEntry(const std::string& name, EquipSlot slot,
 // The same row, with both upgrades read off the item itself. Every list that
 // draws equipment uses this one, so no two of them can disagree about what an
 // item that takes neither shows.
-std::string FormatItemEntry(const std::string& name, EquipSlot slot,
+std::string FormatItemEntry(const std::string& name,
+                            const std::string& slot_label,
                             const std::string& info,
                             const EquipPrototype& proto, const Equip& state,
                             std::chrono::steady_clock::duration elapsed =

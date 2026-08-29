@@ -1842,6 +1842,114 @@ TEST_F(EquipTest, DisplacedItemTakesVacatedPosition) {
   EXPECT_EQ(c_.inventory()[1].prototype().name(), "Bow");
 }
 
+// A ring names one slot and is worn in the first of four that is free, so a
+// character puts on four different rings without displacing any of them.
+TEST_F(EquipTest, FourRingsWearAtOnce) {
+  const char* kNames[] = {"Ring A", "Ring B", "Ring C", "Ring D"};
+  for (const char* name : kNames) {
+    EquipPrototype ring;
+    ring.set_name(name);
+    ring.set_equip_slot(EQUIP_SLOT_RING);
+    ring.mutable_base_stats()->set_str(10);
+    c_.PickUp(std::make_unique<EquipInstance>(ring));
+    ASSERT_TRUE(c_.Equip(0)) << name;
+  }
+  EXPECT_EQ(c_.equipped().size(), 4);
+  EXPECT_EQ(c_.equip_stats().str(), 40) << "every ring counts";
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING).prototype().name(), "Ring A");
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING_4).prototype().name(), "Ring D");
+}
+
+// Two pendant slots, filled the same way and no more than that: the fourth
+// pendant has nowhere new to go.
+TEST_F(EquipTest, TwoPendantsWearAtOnce) {
+  EquipPrototype first;
+  first.set_name("Pendant A");
+  first.set_equip_slot(EQUIP_SLOT_PENDANT);
+  EquipPrototype second = first;
+  second.set_name("Pendant B");
+  c_.PickUp(std::make_unique<EquipInstance>(first));
+  c_.PickUp(std::make_unique<EquipInstance>(second));
+  ASSERT_TRUE(c_.Equip(0));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PENDANT).prototype().name(),
+            "Pendant A");
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_PENDANT_2).prototype().name(),
+            "Pendant B");
+}
+
+// GMS's rule: the four rings are four different rings. The second copy is
+// refused rather than worn beside the first, and CanEquip keeps saying yes --
+// the character can wear the item, they are simply already wearing it.
+TEST_F(EquipTest, TheSameRingIsNotWornTwice) {
+  c_.AdvanceJob(JOB_BEGINNER);
+  EquipPrototype ring;
+  ring.set_name("Silver Blossom Ring");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.PickUp(std::make_unique<EquipInstance>(ring));
+  c_.PickUp(std::make_unique<EquipInstance>(ring));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_FALSE(c_.Equip(0));
+  EXPECT_EQ(c_.SlotToFill(ring), EQUIP_SLOT_UNSPECIFIED);
+  EXPECT_TRUE(c_.CanEquip(ring));
+  EXPECT_EQ(c_.equipped().size(), 1);
+  EXPECT_EQ(c_.inventory().size(), 1) << "the second copy stays in the bag";
+}
+
+// A one-slot family is exempt: putting a second hat on is the swap it looks
+// like, and the first goes back to the position the second left.
+TEST_F(EquipTest, TheSameHatStillSwaps) {
+  EquipPrototype hat;
+  hat.set_name("Frozen Hat");
+  hat.set_equip_slot(EQUIP_SLOT_HAT);
+  c_.PickUp(std::make_unique<EquipInstance>(hat));
+  c_.PickUp(std::make_unique<EquipInstance>(hat));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.equipped().size(), 1);
+  EXPECT_EQ(c_.inventory().size(), 1);
+}
+
+// Every ring slot full, and a fifth ring goes on: the first one comes off,
+// into the position the new one leaves.
+TEST_F(EquipTest, AFifthRingDisplacesTheFirst) {
+  for (int i = 0; i < 5; ++i) {
+    EquipPrototype ring;
+    ring.set_name("Ring " + std::to_string(i));
+    ring.set_equip_slot(EQUIP_SLOT_RING);
+    c_.PickUp(std::make_unique<EquipInstance>(ring));
+  }
+  for (int i = 0; i < 5; ++i) {
+    ASSERT_TRUE(c_.Equip(0)) << "ring " << i;
+  }
+  EXPECT_EQ(c_.equipped().size(), 4);
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING).prototype().name(), "Ring 4");
+  EXPECT_EQ(c_.equipped().at(EQUIP_SLOT_RING_2).prototype().name(), "Ring 1");
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory()[0].prototype().name(), "Ring 0");
+}
+
+// Each of the four is its own slot to take off, scroll and star force, so a
+// ring in the third is reached without touching the other three.
+TEST_F(EquipTest, EachRingSlotIsUnequippedOnItsOwn) {
+  for (int i = 0; i < 3; ++i) {
+    EquipPrototype ring;
+    ring.set_name("Ring " + std::to_string(i));
+    ring.set_equip_slot(EQUIP_SLOT_RING);
+    c_.PickUp(std::make_unique<EquipInstance>(ring));
+    ASSERT_TRUE(c_.Equip(0));
+  }
+  EXPECT_TRUE(c_.Unequip(EQUIP_SLOT_RING_3));
+  EXPECT_EQ(c_.equipped().size(), 2);
+  EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_RING_3), 0u);
+  EXPECT_FALSE(c_.Unequip(EQUIP_SLOT_RING_4)) << "nothing was ever in it";
+  // The freed slot is the one the next ring fills, ahead of the empty fourth.
+  c_.PickUp(std::make_unique<EquipInstance>(c_.inventory()[0].prototype()));
+  ASSERT_TRUE(c_.Equip(0));
+  EXPECT_EQ(c_.equipped().count(EQUIP_SLOT_RING_3), 1u);
+}
+
 TEST_F(EquipTest, RefusesAnEmptyIndexOrAnItemWithNoSlot) {
   EXPECT_FALSE(c_.Equip(0));  // nothing in the bag
   EquipPrototype proto;

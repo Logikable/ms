@@ -1422,6 +1422,31 @@ TEST_F(SpareSymbolTest, EquipAndCombineTradePlaces) {
   EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuCombine), 0);
 }
 
+// A second copy of a ring already worn has nowhere to go -- the four slots
+// hold four different rings -- so Equip is greyed the way a level too low
+// greys it. A ring the character is not wearing is offered as usual.
+TEST_F(InventoryPanelTest, ASecondCopyOfAWornRingCannotBeEquipped) {
+  EquipPrototype ring;
+  ring.set_name("Silver Blossom Ring");
+  ring.set_equip_slot(EQUIP_SLOT_RING);
+  ring.add_equip_job_categories(EQUIP_JOB_CATEGORY_UNIVERSAL);
+  c_.PickUp(std::make_unique<EquipInstance>(ring));
+  c_.PickUp(std::make_unique<EquipInstance>(ring));
+
+  InventoryPanel spare(c_, account_, panel_focus_);
+  spare.MakeComponent([]() {});
+  spare.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(spare.menu());
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
+
+  ASSERT_TRUE(c_.Equip(0));
+  InventoryPanel worn(c_, account_, panel_focus_);
+  worn.MakeComponent([]() {});
+  worn.OpenMenu();
+  reachable = ReachableMenuEntries(worn.menu());
+  EXPECT_EQ(std::count(reachable.begin(), reachable.end(), kMenuAction), 0);
+}
+
 // Neither upgrade path touches a symbol, so neither is on its menu at all.
 TEST_F(SpareSymbolTest, ASpareOffersNoScrollOrStarForce) {
   CharacterInstance c = Traveller();

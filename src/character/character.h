@@ -175,7 +175,9 @@ class CharacterInstance {
   // past skill.max_level().
   bool LearnSkill(const Skill& skill, int amount = 1);
   // Returns true if the character meets the level and job requirements to
-  // equip the item described by `proto`.
+  // equip the item described by `proto`. Asked of the catalog as much as of
+  // the bag, so it says nothing about whether a slot is free for it -- that
+  // is SlotToFill.
   bool CanEquip(const EquipPrototype& proto) const;
   // Returns true if the character's level meets proto's required level.
   bool MeetsLevel(const EquipPrototype& proto) const;
@@ -274,11 +276,20 @@ class CharacterInstance {
   // checked in one go and the bag's room up front, so a purchase the character
   // cannot finish never takes the meso for the part of it that would fit.
   bool Buy(const ItemPrototype& proto, int count);
-  // Moves the item at `inventory_index` into the slot indicated by its
-  // EquipPrototype. If the slot was occupied, the displaced item is appended
-  // to inventory. Returns false if `inventory_index` is out of range or the
-  // prototype's equip_slot is unspecified.
+  // Moves the item at `inventory_index` into the slot SlotToFill picks for it.
+  // If that slot was occupied, the displaced item takes the position the
+  // equipped one leaves. Returns false if `inventory_index` is out of range or
+  // the item has nowhere to go.
   bool Equip(int inventory_index);
+  // The slot this item would be worn in: the first free slot of its family,
+  // the first of them once they are all full, and EQUIP_SLOT_UNSPECIFIED when
+  // the item cannot be worn at all.
+  //
+  // Nowhere to go means one of two things. An item that names no slot is not
+  // equipment. A family that already holds this same item is GMS's rule that
+  // no two of the four rings are the same ring -- a one-slot family is exempt,
+  // because putting a second copy of a hat on is the swap it looks like.
+  EquipSlot SlotToFill(const EquipPrototype& proto) const;
   // Moves the item in `slot` to inventory. Returns false if `slot` is
   // unspecified or unoccupied.
   bool Unequip(EquipSlot slot);

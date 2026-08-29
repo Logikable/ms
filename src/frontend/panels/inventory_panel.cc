@@ -320,7 +320,11 @@ void InventoryPanel::OpenEquipMenu() {
     return;
   }
   menu_.Hide(kMenuCombine);
-  if (!character_.CanEquip(eq->prototype())) {
+  // Nowhere to go is as good a reason to grey Equip as a level too low: a
+  // fifth ring has four slots to choose from, but not if one of them is
+  // already wearing this same ring.
+  if (!character_.CanEquip(eq->prototype()) ||
+      character_.SlotToFill(eq->prototype()) == EQUIP_SLOT_UNSPECIFIED) {
     menu_.Disable(kMenuAction);
   }
   if (!Supports(eq->prototype(), UPGRADE_SCROLL)) {

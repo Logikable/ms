@@ -1,5 +1,8 @@
 #include "src/item/item.h"
 
+#include <algorithm>
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
@@ -100,6 +103,45 @@ TEST_F(StackableItemTest, MaxStackTakesTheItemsOrItsCategorys) {
   EXPECT_EQ(StackableItem(use, 1).max_stack(), 9999);
 
   EXPECT_EQ(StackableItem(ItemPrototype(), 1).max_stack(), 1);
+}
+
+// A ring answers with its four slots wherever it is asked from, and every
+// other slot with the one it is. The order is the order they fill.
+TEST(SlotFamilyTest, RingsAndPendantsAnswerWithTheirWholeFamily) {
+  const std::vector<EquipSlot> kRings = {EQUIP_SLOT_RING, EQUIP_SLOT_RING_2,
+                                         EQUIP_SLOT_RING_3, EQUIP_SLOT_RING_4};
+  EXPECT_EQ(SlotFamily(EQUIP_SLOT_RING), kRings);
+  EXPECT_EQ(SlotFamily(EQUIP_SLOT_RING_3), kRings) << "asked from anywhere";
+  EXPECT_EQ(SlotFamily(EQUIP_SLOT_PENDANT),
+            (std::vector<EquipSlot>{EQUIP_SLOT_PENDANT, EQUIP_SLOT_PENDANT_2}));
+  EXPECT_EQ(SlotFamily(EQUIP_SLOT_HAT),
+            (std::vector<EquipSlot>{EQUIP_SLOT_HAT}));
+}
+
+// The base is what a prototype names, and the index is where in the family a
+// worn slot sits -- together they are the whole of what a family is for.
+TEST(SlotFamilyTest, TheBaseIsWhatAPrototypeNames) {
+  EXPECT_EQ(BaseSlot(EQUIP_SLOT_RING_4), EQUIP_SLOT_RING);
+  EXPECT_EQ(BaseSlot(EQUIP_SLOT_PENDANT_2), EQUIP_SLOT_PENDANT);
+  EXPECT_EQ(BaseSlot(EQUIP_SLOT_HAT), EQUIP_SLOT_HAT);
+  EXPECT_EQ(SlotIndex(EQUIP_SLOT_RING), 0);
+  EXPECT_EQ(SlotIndex(EQUIP_SLOT_RING_4), 3);
+  EXPECT_EQ(SlotIndex(EQUIP_SLOT_PENDANT_2), 1);
+  EXPECT_EQ(SlotIndex(EQUIP_SLOT_HAT), 0);
+}
+
+// No slot belongs to two families, and none of them is left out of its own.
+TEST(SlotFamilyTest, EverySlotIsInExactlyOneFamily) {
+  for (int i = 1; i <= EquipSlot_MAX; ++i) {
+    EquipSlot slot = static_cast<EquipSlot>(i);
+    if (!EquipSlot_IsValid(i)) {
+      continue;
+    }
+    std::vector<EquipSlot> family = SlotFamily(slot);
+    EXPECT_EQ(std::count(family.begin(), family.end(), slot), 1)
+        << EquipSlot_Name(slot);
+    EXPECT_EQ(SlotFamily(BaseSlot(slot)), family) << EquipSlot_Name(slot);
+  }
 }
 
 }  // namespace

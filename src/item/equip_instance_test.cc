@@ -272,9 +272,10 @@ TEST_F(EquipInstanceTest, AWeaponGainsMaxHpAndMaxMp) {
 TEST_F(EquipInstanceTest, CategoryAArmourGainsMaxHpButNoMp) {
   Equip state;
   state.set_stars(4);
-  for (EquipSlot slot : {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM,
-                         EQUIP_SLOT_CAPE, EQUIP_SLOT_RING, EQUIP_SLOT_PENDANT,
-                         EQUIP_SLOT_BELT, EQUIP_SLOT_SHOULDER}) {
+  for (EquipSlot slot :
+       {EQUIP_SLOT_HAT, EQUIP_SLOT_TOP, EQUIP_SLOT_BOTTOM, EQUIP_SLOT_CAPE,
+        EQUIP_SLOT_RING, EQUIP_SLOT_RING_4, EQUIP_SLOT_PENDANT,
+        EQUIP_SLOT_PENDANT_2, EQUIP_SLOT_BELT, EQUIP_SLOT_SHOULDER}) {
     EquipInstance item(MakeArmour(slot), state);
     EquipStats gains = item.StarForceStatGains();
     EXPECT_EQ(gains.max_hp(), 25) << EquipSlot_Name(slot);
@@ -500,7 +501,9 @@ TEST_F(EquipInstanceTest, EverySlotNamesTheScrollsItTakes) {
   // rather than the accessory ones it is worn beside, as it does in GMS.
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_SHOULDER), SCROLL_TARGET_ARMOUR);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_RING), SCROLL_TARGET_ACCESSORY);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_RING_4), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_PENDANT), SCROLL_TARGET_ACCESSORY);
+  EXPECT_EQ(TargetForSlot(EQUIP_SLOT_PENDANT_2), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_BELT), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_EARRINGS), SCROLL_TARGET_ACCESSORY);
   EXPECT_EQ(TargetForSlot(EQUIP_SLOT_POCKET), SCROLL_TARGET_UNSPECIFIED);

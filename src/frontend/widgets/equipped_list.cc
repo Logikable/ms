@@ -1,5 +1,6 @@
 #include "src/frontend/widgets/equipped_list.h"
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -8,6 +9,7 @@
 #include "src/frontend/widgets/marquee.h"
 #include "src/frontend/widgets/panel_util.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 
 namespace ms {
 namespace {
@@ -65,6 +67,14 @@ std::string SymbolExpCell(const Equip& state) {
   return std::to_string(state.symbol_exp()) + "/" + std::to_string(needed);
 }
 
+// Where a slot sits in the list. The worn map is keyed by slot number, and the
+// slots a family gained are numbered at the bottom of the enum so that a save
+// could keep naming the first -- so the four rings would trail the list rather
+// than stand together. Reading the family off the slot puts them back.
+int SlotOrder(EquipSlot slot) {
+  return BaseSlot(slot) * 10 + SlotIndex(slot);
+}
+
 }  // namespace
 
 std::string EquippedHeader(int name_width) {
@@ -84,26 +94,33 @@ const char kSymbolHeader[] =
 std::vector<EquippedRow> EquippedRows(
     const CharacterInstance& character, int selected,
     std::chrono::steady_clock::duration elapsed, int name_width) {
-  std::vector<EquippedRow> rows;
+  std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, EquipInstance>& kv :
        character.equipped()) {
-    const EquipInstance& item = kv.second;
-    if (IsArcaneSymbol(item.prototype())) {
-      continue;
+    if (!IsArcaneSymbol(kv.second.prototype())) {
+      slots.push_back(kv.first);
     }
+  }
+  std::sort(slots.begin(), slots.end(), [](EquipSlot a, EquipSlot b) {
+    return SlotOrder(a) < SlotOrder(b);
+  });
+  std::vector<EquippedRow> rows;
+  for (EquipSlot slot : slots) {
+    const EquipInstance& item = character.equipped().at(slot);
     // Only the selected row's name slides; the rest sit at their heads.
     std::chrono::steady_clock::duration slide =
         static_cast<int>(rows.size()) == selected
             ? elapsed
             : std::chrono::steady_clock::duration::zero();
     EquippedRow row;
-    row.slot = kv.first;
+    row.slot = slot;
     row.inactive = !character.AttackCounts(item.prototype());
     row.name_bytes = static_cast<int>(
         ItemNameCell(item.prototype().name(), slide, name_width).size());
-    row.text = FormatItemEntry(
-        item.prototype().name(), kv.first, RowInfo(character, item.stats()),
-        item.prototype(), item.equip_state(), slide, name_width);
+    row.text =
+        FormatItemEntry(item.prototype().name(), FormatWornSlot(slot),
+                        RowInfo(character, item.stats()), item.prototype(),
+                        item.equip_state(), slide, name_width);
     rows.push_back(std::move(row));
   }
   return rows;

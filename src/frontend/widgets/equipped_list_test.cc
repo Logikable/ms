@@ -123,6 +123,44 @@ TEST_F(EquippedListTest, AWideNameColumnHoldsTheWholeName) {
       kItemNameMax - kItemNameWidth);
 }
 
+// Four rings are four rows, each naming its own slot -- and they stand
+// together between the eye accessory and the belt, though the slots the last
+// three of them use are numbered at the bottom of the enum.
+TEST_F(EquippedListTest, TheRingsStandTogetherAndNameTheirSlots) {
+  Character proto;
+  proto.set_level(60);
+  proto.set_job(JOB_FIGHTER);
+  proto.set_job_stage(2);
+  CharacterInstance c(rng_, std::move(proto));
+  // Put the rings on first, so the order below is the list's own doing.
+  for (const char* name : {"Ring A", "Ring B", "Ring C"}) {
+    EquipPrototype ring;
+    ring.set_name(name);
+    ring.set_equip_slot(EQUIP_SLOT_RING);
+    c.PickUp(std::make_unique<EquipInstance>(ring));
+    ASSERT_TRUE(c.Equip(0));
+  }
+  EquipPrototype belt;
+  belt.set_name("Test Belt");
+  belt.set_equip_slot(EQUIP_SLOT_BELT);
+  c.PickUp(std::make_unique<EquipInstance>(belt));
+  ASSERT_TRUE(c.Equip(0));
+  c.PickUp(
+      std::make_unique<EquipInstance>(Weapon(EQUIP_TYPE_ONE_HANDED_SWORD)));
+  ASSERT_TRUE(c.Equip(0));
+
+  std::vector<EquippedRow> rows =
+      EquippedRows(c, -1, std::chrono::steady_clock::duration::zero());
+  ASSERT_EQ(rows.size(), 5u);
+  EXPECT_EQ(rows[0].slot, EQUIP_SLOT_PRIMARY_WEAPON);
+  EXPECT_EQ(rows[1].slot, EQUIP_SLOT_RING);
+  EXPECT_EQ(rows[2].slot, EQUIP_SLOT_RING_2);
+  EXPECT_EQ(rows[3].slot, EQUIP_SLOT_RING_3);
+  EXPECT_EQ(rows[4].slot, EQUIP_SLOT_BELT) << "the belt comes after all four";
+  EXPECT_NE(rows[1].text.find("Ring 1"), std::string::npos) << rows[1].text;
+  EXPECT_NE(rows[3].text.find("Ring 3"), std::string::npos) << rows[3].text;
+}
+
 // The right column's minimum width in panel_widths.h is this header, the
 // gutter inside its right border and the border itself, so a column added
 // here has to move that number rather than quietly run off the edge of a
