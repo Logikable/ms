@@ -1117,8 +1117,8 @@ message Skill {
   //     Ignite's wall of fire is 80x40 and Creeping Toxin's pool 200x200, both
   //     with twenty of that box laid down.
   //
-  // Applied to the warrior, bowman and magician branches on 2026-08-28. A file
-  // whose reach was cut says so at the top.
+  // Applied to every branch on 2026-08-28. A file whose reach was cut says so
+  // at the top.
   int32 max_enemies = 14;
   // How many times one swing strikes each enemy it reaches. Damage is
   // skill_pct per line, so a 90% 2-line skill deals 180% to every target.

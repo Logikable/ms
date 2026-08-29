@@ -3,6 +3,9 @@
 # Shuriken Burst's detonation.
 #
 # The Bandit's only attack, so it carries no cooldown.
+#
+# Four enemies against GMS's six: 340x175 is one storey, and four stand across
+# it. See Skill.max_enemies.
 name: "Savage Blow"
 skill_order: 1
 description: "Deal very quick consecutive attacks to the enemy in front."
@@ -11,7 +14,7 @@ job_advancement: JOB_ADVANCEMENT_BANDIT
 max_level: 20
 required_equip_type: EQUIP_TYPE_DAGGER
 base_delay_ms: 780
-max_enemies: 6
+max_enemies: 4
 lines: 3
 base { skill_pct: 1.53 }
 per_level { skill_pct: 0.03 }

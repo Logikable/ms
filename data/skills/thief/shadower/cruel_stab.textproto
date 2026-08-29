@@ -3,6 +3,9 @@
 # damage walks evenly to GMS's 24% and is the character's for good -- GMS
 # writes it under "[Passive Effects]", so it follows a Shadower onto
 # Assassinate.
+#
+# Six enemies against GMS's eight: 480x245 is one storey and holds six abreast.
+# See Skill.max_enemies.
 name: "Cruel Stab"
 skill_order: 2
 description:
@@ -14,7 +17,7 @@ max_level: 30
 required_equip_type: EQUIP_TYPE_DAGGER
 exceeds_master_level: true
 base_delay_ms: 660
-max_enemies: 8
+max_enemies: 6
 lines: 6
 base {
   skill_pct: 1.92

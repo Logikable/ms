@@ -6,6 +6,9 @@
 # "7 lucky throwing stars" is the skill's own boast, not a count of anything:
 # GMS throws three and always has. Kept as the wiki words it, because the name
 # is built on the seven.
+#
+# Four enemies against GMS's five, off a 310x150 box -- the same cut Double
+# Stab takes, for the same reason. See Skill.max_enemies.
 name: "Lucky Seven"
 skill_order: 2
 description: "Throw lucky throwing stars to attack enemies in front."
@@ -14,7 +17,7 @@ job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20
 base_delay_ms: 690
 lines: 3
-max_enemies: 5
+max_enemies: 4
 required_equip_type: EQUIP_TYPE_CLAW
 base {
   skill_pct: 0.72

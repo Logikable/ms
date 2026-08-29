@@ -5,6 +5,9 @@
 #
 # So the two are one skill here: Midnight Carnival's four lines carrying Phase
 # Dash's total. 750ms is Midnight Carnival's own, from the frame data.
+#
+# Five enemies against GMS's eight: 360x210 is one storey and holds five
+# abreast. Phase Dash's own 380x125 gives the same five. See Skill.max_enemies.
 name: "Midnight Carnival"
 skill_order: 1
 description: "Overwhelm enemies with supersonic slashes."
@@ -13,7 +16,7 @@ job_advancement: JOB_ADVANCEMENT_CHIEF_BANDIT
 max_level: 20
 required_equip_type: EQUIP_TYPE_DAGGER
 base_delay_ms: 750
-max_enemies: 8
+max_enemies: 5
 lines: 4
 base { skill_pct: 1.72 }
 per_level { skill_pct: 0.02 }

@@ -1,5 +1,8 @@
 # GMS's own figures: 200+3x% four times over 20 levels, on eight enemies.
 # 800ms is the animation's own, from the frame data.
+#
+# Five enemies against GMS's eight: 380x240 is one storey and holds five
+# abreast. See Skill.max_enemies.
 name: "Shuriken Challenge"
 skill_order: 2
 description: "Summon a large shadow-powered shuriken to annihilate enemies."
@@ -8,7 +11,7 @@ job_advancement: JOB_ADVANCEMENT_HERMIT
 max_level: 20
 required_equip_type: EQUIP_TYPE_CLAW
 base_delay_ms: 800
-max_enemies: 8
+max_enemies: 5
 lines: 4
 base { skill_pct: 2.03 }
 per_level { skill_pct: 0.03 }

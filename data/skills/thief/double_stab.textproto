@@ -3,6 +3,9 @@
 # top, which is the rule every skill here follows. It ends level with Lucky
 # Seven, which is why the dagger it demands matters: the two are the same 330%
 # over the same 5 targets, and only the weapon tells them apart.
+#
+# Four enemies against GMS's five: the box is 330x175, one storey tall, and
+# four stand across it. See Skill.max_enemies.
 name: "Double Stab"
 skill_order: 1
 description: "Quickly stab a nearby enemy."
@@ -11,7 +14,7 @@ job_advancement: JOB_ADVANCEMENT_ROGUE
 max_level: 20
 base_delay_ms: 690
 lines: 2
-max_enemies: 5
+max_enemies: 4
 required_equip_type: EQUIP_TYPE_DAGGER
 base {
   skill_pct: 0.89
