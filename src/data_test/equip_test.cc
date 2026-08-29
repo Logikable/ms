@@ -472,24 +472,24 @@ TEST(EquipDataTest, EverySetMemberIsAnItemThatExists) {
           << entry.first << " has a member in an unnamed slot";
       EXPECT_TRUE(slots.insert(member.slot()).second)
           << entry.first << " fills " << FormatSlot(member.slot()) << " twice";
-      // One item or a family of them, never both and never neither: the
-      // inspect screen prints one column from whichever it is, and a member
-      // that is both would count a family toward the tiers.
-      EXPECT_NE(member.name().empty(), member.family().empty())
-          << entry.first << " has a member that is not one item or one family";
-      if (member.name().empty()) {
-        continue;
-      }
-      ++checked;
-      bool found = false;
-      for (const std::pair<const std::string, EquipPrototype>& equip : equips) {
-        if (equip.second.name() == member.name()) {
-          found = true;
-          break;
+      // Items or a family of them, never both and never neither: the inspect
+      // screen prints one column from whichever it is, and a member that is
+      // both would count a family toward the tiers.
+      EXPECT_NE(member.items().name().empty(), member.family().empty())
+          << entry.first << " has a member that is not items or one family";
+      for (const std::string& fills : member.items().name()) {
+        ++checked;
+        bool found = false;
+        for (const std::pair<const std::string, EquipPrototype>& equip :
+             equips) {
+          if (equip.second.name() == fills) {
+            found = true;
+            break;
+          }
         }
+        EXPECT_TRUE(found) << entry.first << " counts \"" << fills
+                           << "\", which no equip file defines";
       }
-      EXPECT_TRUE(found) << entry.first << " counts \"" << member.name()
-                         << "\", which no equip file defines";
     }
   }
   EXPECT_GT(checked, 0) << "no sets in the catalog to check";

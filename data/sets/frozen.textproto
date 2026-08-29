@@ -4,27 +4,27 @@ complete_pieces: 8
 # in rather than the order they drop in.
 members {
   slot: EQUIP_SLOT_HAT
-  name: "Frozen Hat"
+  items { name: "Frozen Hat" }
 }
 members {
   slot: EQUIP_SLOT_TOP
-  name: "Frozen Top"
+  items { name: "Frozen Top" }
 }
 members {
   slot: EQUIP_SLOT_BOTTOM
-  name: "Frozen Bottom"
+  items { name: "Frozen Bottom" }
 }
 members {
   slot: EQUIP_SLOT_SHOES
-  name: "Frozen Boots"
+  items { name: "Frozen Boots" }
 }
 members {
   slot: EQUIP_SLOT_GLOVES
-  name: "Frozen Gloves"
+  items { name: "Frozen Gloves" }
 }
 members {
   slot: EQUIP_SLOT_CAPE
-  name: "Frozen Cape"
+  items { name: "Frozen Cape" }
 }
 # Named as families rather than by name: a weapon here belongs to one class,
 # so there is one per class rather than one item. Both shelves are bought with

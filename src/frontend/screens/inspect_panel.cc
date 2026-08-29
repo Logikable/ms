@@ -290,8 +290,10 @@ const EquipSet* InspectPanel::SetOfItem() const {
   for (const std::pair<const std::string, EquipSet>& entry :
        character_->equip_sets()) {
     for (const EquipSetMember& member : entry.second.members()) {
-      if (member.has_name() && member.name() == name) {
-        return &entry.second;
+      for (const std::string& fills : member.items().name()) {
+        if (fills == name) {
+          return &entry.second;
+        }
       }
       if (!family.empty() && member.family() == family) {
         return &entry.second;
@@ -307,24 +309,30 @@ ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
   rows.push_back(CenteredRow(FormatEquipSet(set.name())));
   rows.push_back(ThemedSeparator());
   for (const EquipSetMember& member : set.members()) {
+    std::string on = character_->WornOfMember(member);
     // A family slot names what fills it once something does, and asks for one
     // while it is empty -- a weapon belongs to a class, so the set cannot name
     // it outright.
-    std::string worn_of_family = character_->WornOfFamily(member.family());
-    bool on = member.has_family() ? !worn_of_family.empty()
-                                  : character_->IsWearing(member.name());
-    std::string fills = member.name();
-    if (fills.empty()) {
-      fills = on ? worn_of_family : "Choose 1 " + member.family();
+    std::vector<std::string> fills;
+    if (member.has_family()) {
+      fills.push_back(on.empty() ? "Choose 1 " + member.family() : on);
+    } else {
+      fills.assign(member.items().name().begin(), member.items().name().end());
     }
-    ftxui::Element row = ftxui::text(
-        " " + PadRight(FormatSlot(member.slot()), kSetSlotWidth) + fills);
-    // Dimmed unless it is on the character right now -- the same question the
-    // tiers below are asking, one piece at a time.
-    if (!on) {
-      row = row | ftxui::dim;
+    // A slot filled by any of several alternates lists them all, the later
+    // ones hanging under the slot they share as a tier's later lines do.
+    std::string slot = FormatSlot(member.slot());
+    for (const std::string& fill : fills) {
+      ftxui::Element row =
+          ftxui::text(" " + PadRight(slot, kSetSlotWidth) + fill);
+      // Dimmed unless it is on the character right now -- the same question
+      // the tiers below are asking, one piece at a time.
+      if (fill != on) {
+        row = row | ftxui::dim;
+      }
+      rows.push_back(row);
+      slot.clear();
     }
-    rows.push_back(row);
   }
   rows.push_back(ThemedSeparator());
   for (const EquipSetTier& tier : set.tiers()) {

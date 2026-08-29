@@ -24,15 +24,21 @@ message EquipSetTier {
   SkillEffect effect = 2;
 }
 
+// The pieces that fill one slot of a set, by display name -- the way a save
+// names what it holds, because the character carries prototypes rather than
+// the catalog keys they were loaded under. More than one where a later boss
+// drops an alternate for the same slot; wearing any of them fills it.
+message EquipSetItems {
+  repeated string name = 1;
+}
+
 // One slot of a set and what fills it.
 message EquipSetMember {
   EquipSlot slot = 1;
+  reserved 2;  // the single `string name` the items below grew out of
   oneof fills {
-    // The piece, by display name -- the way a save names what it holds,
-    // because the character carries prototypes rather than the catalog keys
-    // they were loaded under.
-    string name = 2;
-    // What fills the slot when no single item does: a set's weapon belongs to
+    EquipSetItems items = 4;
+    // What fills the slot when no written item does: a set's weapon belongs to
     // one class, so there is one per class rather than one item. The inspect
     // screen reads it as "Choose 1 <family>", and counts toward nothing until
     // the items are written.

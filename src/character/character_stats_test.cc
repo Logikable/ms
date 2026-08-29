@@ -252,7 +252,7 @@ std::map<std::string, EquipSet> FrozenSet() {
   for (int i = 0; i < 4; ++i) {
     EquipSetMember* member = set.add_members();
     member->set_slot(kSlots[i]);
-    member->set_name(std::string("Frozen ") + kPieces[i]);
+    member->mutable_items()->add_name(std::string("Frozen ") + kPieces[i]);
   }
   EquipSetTier* three = set.add_tiers();
   three->set_pieces(3);
@@ -359,6 +359,28 @@ TEST_F(DerivedStatsTest, AFamilyPieceFillsTheSlotTheSetNamesIt) {
   c.PickUp(std::make_unique<EquipInstance>(frozen));
   c.Equip(c.inventory().size() - 1);
   EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 25) << "5, 9 and 11";
+}
+
+// A slot a boss later drops an alternate for names both, and either fills it.
+// Never twice over: they share a slot, so only one can be on at a time.
+TEST_F(DerivedStatsTest, AnAlternateFillsTheSlotItShares) {
+  std::map<std::string, EquipSet> sets = FrozenSet();
+  sets.at("frozen").mutable_members(2)->mutable_items()->add_name(
+      "Frozen Tiara");
+  CharacterInstance c = MakeCharacter(rng_, 15, 1000);
+  c.UseEquipSets(sets);
+  WearFrozen(c, 2);
+
+  EquipPrototype tiara;
+  tiara.set_name("Frozen Tiara");
+  tiara.set_equip_slot(EQUIP_SLOT_HAT);
+  c.PickUp(std::make_unique<EquipInstance>(tiara));
+  c.Equip(c.inventory().size() - 1);
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 5)
+      << "the alternate fills the hat slot the set names by two items";
+
+  c.Unequip(EQUIP_SLOT_HAT);
+  EXPECT_EQ(DerivedStatsFor(c, {}).skill_stats.attack(), 0);
 }
 
 // Gear outside the set is gear outside the set, however much of it is worn.

@@ -6,35 +6,35 @@ name: EQUIP_SET_NAME_BOSS_ACCESSORY
 complete_pieces: 9
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
-  name: "Condensed Power Crystal"
+  items { name: "Condensed Power Crystal" }
 }
 members {
   slot: EQUIP_SLOT_EYE_ACCESSORY
-  name: "Aquatic Letter Eye Accessory"
+  items { name: "Aquatic Letter Eye Accessory" }
 }
 members {
   slot: EQUIP_SLOT_POCKET
-  name: "Stone of Eternal Life"
+  items { name: "Stone of Eternal Life" }
 }
 members {
   slot: EQUIP_SLOT_RING
-  name: "Silver Blossom Ring"
+  items { name: "Silver Blossom Ring" }
 }
 members {
   slot: EQUIP_SLOT_PENDANT
-  name: "Horntail Necklace"
+  items { name: "Horntail Necklace" }
 }
 members {
   slot: EQUIP_SLOT_EARRINGS
-  name: "Dea Sidus Earring"
+  items { name: "Dea Sidus Earring" }
 }
 members {
   slot: EQUIP_SLOT_SHOULDER
-  name: "Royal Black Metal Shoulder"
+  items { name: "Royal Black Metal Shoulder" }
 }
 members {
   slot: EQUIP_SLOT_BADGE
-  name: "Crystal Ventus Badge"
+  items { name: "Crystal Ventus Badge" }
 }
 tiers {
   pieces: 3

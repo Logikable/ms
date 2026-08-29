@@ -1338,14 +1338,25 @@ std::string CharacterInstance::WornOfFamily(const std::string& family) const {
   return "";
 }
 
+std::string CharacterInstance::WornOfMember(
+    const EquipSetMember& member) const {
+  // A member names either the items that fill its slot or the family any of
+  // several fill. Either way one slot answers with at most one piece.
+  if (member.has_family()) {
+    return WornOfFamily(member.family());
+  }
+  for (const std::string& name : member.items().name()) {
+    if (IsWearing(name)) {
+      return name;
+    }
+  }
+  return "";
+}
+
 int CharacterInstance::PiecesWornOf(const EquipSet& set) const {
   int worn = 0;
   for (const EquipSetMember& member : set.members()) {
-    // A member names either the one item that fills it or the family any of
-    // several items fill. Both count the same once one is on.
-    bool on = member.has_family() ? !WornOfFamily(member.family()).empty()
-                                  : IsWearing(member.name());
-    if (on) {
+    if (!WornOfMember(member).empty()) {
       ++worn;
     }
   }

@@ -427,7 +427,7 @@ std::map<std::string, EquipSet> FrozenSet() {
   for (int i = 0; i < 4; ++i) {
     EquipSetMember* member = set.add_members();
     member->set_slot(kSlots[i]);
-    member->set_name(kNames[i]);
+    member->mutable_items()->add_name(kNames[i]);
   }
   EquipSetMember* weapon = set.add_members();
   weapon->set_slot(EQUIP_SLOT_PRIMARY_WEAPON);
