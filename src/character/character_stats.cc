@@ -119,6 +119,7 @@ struct PassiveTotals {
   FreezeStacks freeze;
   // What their swings scar, and what a scar is worth.
   Scar scar;
+  EnemyCondition condition;
   // Stacks a buff adds to that cap while it stands. Held apart until
   // FoldFreezeStacks, which only deepens a pile the character already has.
   int freeze_cap_bonus = 0;
@@ -345,10 +346,6 @@ void AddFreezeStacks(const Skill& skill, int level, PassiveTotals& totals) {
       std::max(totals.freeze.final_dmg_pct_per_stack,
                base.final_dmg_pct_per_freeze_stack() +
                    per.final_dmg_pct_per_freeze_stack() * (level - 1));
-  totals.freeze.final_dmg_pct_when_frozen =
-      std::max(totals.freeze.final_dmg_pct_when_frozen,
-               base.final_dmg_pct_when_frozen() +
-                   per.final_dmg_pct_when_frozen() * (level - 1));
   totals.freeze.ied_pct_per_stack =
       std::max(totals.freeze.ied_pct_per_stack,
                base.ied_pct_per_freeze_stack() +
@@ -372,6 +369,24 @@ void AddScar(const Skill& skill, int level, PassiveTotals& totals) {
   totals.scar.enemy_attack_pct = std::max(
       totals.scar.enemy_attack_pct, best(base.enemy_attack_pct_when_scarred(),
                                          per.enemy_attack_pct_when_scarred()));
+}
+
+// Folds in what the enemy's own condition is worth. The better of each stands
+// rather than the sum, as the scar and the freeze do: an afflicted monster is
+// afflicted, and Fervent Drain raising Elemental Drain's rate is one rate.
+void AddEnemyCondition(const Skill& skill, int level, PassiveTotals& totals) {
+  const SkillEffect& base = skill.base();
+  const SkillEffect& per = skill.per_level();
+  auto best = [&](double b, double p) { return b + p * (level - 1); };
+  totals.condition.final_dmg_pct_when_afflicted =
+      std::max(totals.condition.final_dmg_pct_when_afflicted,
+               best(base.final_dmg_pct_when_afflicted(),
+                    per.final_dmg_pct_when_afflicted()));
+  totals.condition.final_dmg_pct_per_dot =
+      std::max(totals.condition.final_dmg_pct_per_dot,
+               best(base.final_dmg_pct_per_dot(), per.final_dmg_pct_per_dot()));
+  totals.condition.dot_count_cap =
+      std::max(totals.condition.dot_count_cap, skill.dot_count_cap());
 }
 
 // Notes Meso Explosion down. Recorded rather than folded: Meso Mastery's
@@ -447,6 +462,7 @@ void AddPassive(const Skill& skill, int level, EquipType weapon,
   AddProc(skill, level, totals);
   AddFreezeStacks(skill, level, totals);
   AddScar(skill, level, totals);
+  AddEnemyCondition(skill, level, totals);
   // A burn on a PASSIVE belongs to the character rather than to one swing: the
   // poison stays on the claw, so everything the claw hits takes it. One on an
   // attack is that swing's own, and one on a summon is its pulses' -- both are
@@ -513,10 +529,6 @@ void FoldFinalAttackBoosts(PassiveTotals& totals) {
   }
 }
 
-// Settles the pile. A cap raised by a buff is Freezing Crush's pile grown
-// deeper, so the bonus pays only where there is a pile: a character who never
-// learned the mechanism holds no stacks for Glacial Fury to deepen or to pay
-// for.
 // Settles the scar. Nothing to leave one with means nothing to read one for:
 // a character carrying Chance Attack and no Scarring Sword is holding half a
 // mechanism, and half of it is worth nothing at all.
@@ -526,6 +538,18 @@ void FoldScar(PassiveTotals& totals) {
   }
 }
 
+// Settles the drain, on the same rule: a rate per burn with nothing counting
+// them pays for nothing.
+void FoldEnemyCondition(PassiveTotals& totals) {
+  if (totals.condition.dot_count_cap <= 0) {
+    totals.condition.final_dmg_pct_per_dot = 0.0;
+  }
+}
+
+// Settles the pile. A cap raised by a buff is Freezing Crush's pile grown
+// deeper, so the bonus pays only where there is a pile: a character who never
+// learned the mechanism holds no stacks for Glacial Fury to deepen or to pay
+// for.
 void FoldFreezeStacks(PassiveTotals& totals) {
   if (totals.freeze.cap <= 0) {
     totals.freeze = FreezeStacks{};
@@ -676,6 +700,7 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   FoldFinalAttackBoosts(totals);
   FoldFreezeStacks(totals);
   FoldScar(totals);
+  FoldEnemyCondition(totals);
   FoldComboOrbs(totals);
   return totals;
 }
@@ -987,6 +1012,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.procs = passives.procs;
   stats.freeze = passives.freeze;
   stats.scar = passives.scar;
+  stats.condition = passives.condition;
   // Pick Pocket and Meso Explosion, worth nothing apart: a meso falls out of
   // an enemy and is thrown straight back at them. It rides the swing exactly
   // as a Final Attack does, except that the roll is per line -- so it is one

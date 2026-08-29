@@ -93,9 +93,6 @@ struct SwingProc {
 struct FreezeStacks {
   double crit_dmg_per_stack = 0.0;
   double final_dmg_pct_per_stack = 0.0;
-  // Storm Magic's, which reads only whether the pile is empty: final damage on
-  // any swing made while the enemy is frozen, the same however deep it stands.
-  double final_dmg_pct_when_frozen = 0.0;
   // Shatter's: enemy defence one held stack lets any swing ignore.
   double ied_pct_per_stack = 0.0;
   int cap = 0;
@@ -104,6 +101,24 @@ struct FreezeStacks {
   // pays for it, and folded away entirely for one holding no cap at all --
   // there are no stacks to be paid for.
   int matt_per_stack = 0;
+};
+
+// What the ENEMY's condition is worth to the character reading it. Two
+// readings, and both are the whole group's business rather than one skill's:
+// whether a monster is afflicted at all, and how many burns stand on the
+// monsters in front of the character.
+//
+// A character whose book grants neither leaves both at 0, which is everyone
+// but an I/L and an F/P magician.
+struct EnemyCondition {
+  // Storm Magic's and Burning Magic's: final damage on every line landed on a
+  // monster under any status the game keeps -- frozen or burning. Binary.
+  double final_dmg_pct_when_afflicted = 0.0;
+  // Elemental Drain's and Fervent Drain's: final damage for each burn alight
+  // on the group, counted up to `dot_count_cap` of them. A cap of 0 says the
+  // character counts none.
+  double final_dmg_pct_per_dot = 0.0;
+  int dot_count_cap = 0;
 };
 
 // What a SCAR is worth to the character who leaves it: how often their swings
@@ -237,6 +252,8 @@ struct DerivedStats {
   FreezeStacks freeze;
   // What their swings leave behind on a monster, and what it is worth.
   Scar scar;
+  // What the condition the enemy is already in is worth to them.
+  EnemyCondition condition;
   // Faster-swing stages added on top of the weapon's own attack speed. Feeds
   // the swing interval, not the per-hit damage -- see ComputeCombatParams.
   int attack_speed_bonus = 0;

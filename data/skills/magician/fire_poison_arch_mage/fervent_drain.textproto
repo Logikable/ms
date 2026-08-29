@@ -1,5 +1,15 @@
-# GMS words it as lifting Elemental Drain, the 2nd job passive of the same
-# name. It lands in the same place either way: more Final Damage, always on.
+# GMS raises Elemental Drain's rate TO 5% a burn over the same count of five,
+# so a full count is worth 25% rather than 15%. It supersedes rather than adds:
+# one rate, the better of the two, exactly as Advanced Blessing supersedes
+# Bless.
+#
+# What that makes it is a bossing passive, which is what GMS calls it: on a map
+# the count is at its cap whatever the character does, and on a boss it is
+# however many burns the rotation is keeping on the one enemy.
+#
+# It opens just above the 3% a maxed Elemental Drain pays and climbs to GMS's
+# 5%, the shape every superseding skill here takes -- Advanced Blessing starts
+# where Bless left off for the same reason.
 #
 # It does not pass its master level. GMS masters this at 1 and does not mark it
 # for Combat Orders, so there is no level above the top for a grant to reach.
@@ -9,5 +19,7 @@ description: "Increases the effect of Elemental Drain."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_ARCH_MAGE
 max_level: 10
-base { final_dmg_pct: 0.005 }
-per_level { final_dmg_pct: 0.005 }
+supersedes_skill_name: "Elemental Drain"
+dot_count_cap: 5
+base { final_dmg_pct_per_dot: 0.032 }
+per_level { final_dmg_pct_per_dot: 0.002 }

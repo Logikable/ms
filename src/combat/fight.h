@@ -323,6 +323,25 @@ class CombatSim {
   // the share of the swing's lines that land after the scar is left, since the
   // line that leaves it collects nothing.
   double ScarBoost(const AttackOption& attack, const QueuedMob& mob) const;
+  // Whether the monster is under any status the fight keeps on it -- the ice
+  // a swing left, or a burn.
+  bool Afflicted(const QueuedMob& mob) const;
+  // What the enemy's own condition adds: whether this one is afflicted, and
+  // how many burns stand on the group.
+  double ConditionBoost(const AttackOption& attack, const QueuedMob& mob) const;
+  // The same, with the affliction and the count answered rather than read off
+  // the queue, so a credit can ask what afflicting one more would be worth.
+  double ConditionBoostFor(const AttackOption& attack, bool afflicted,
+                           int alight) const;
+  // Burns standing across the group, which is what the drains count.
+  int BurnsAlight() const;
+  double BurnLeftOn(const QueuedMob& mob, int slot) const;
+  double BurningRate(const CombatParams& params, const QueuedMob& mob,
+                     int alight) const;
+  // What lighting this swing's burns is worth to the swings after it, beside
+  // what BurnCredit already pays for their ticks.
+  double BurnStateCredit(const CombatParams& params,
+                         const AttackOption& attack) const;
   // Both states in one factor: every reader of either wants both.
   double StateBoost(const AttackOption& attack, const QueuedMob& mob) const;
   // Leaves this swing's scar on every one of the front `hit` mobs, after the
@@ -347,7 +366,7 @@ class CombatSim {
                       const AttackOption& attack) const;
   // What one second of one frozen monster of `type` is worth: what the best
   // swing on offer gains against it per second by its being frozen.
-  double FrozenRate(const CombatParams& params, int type) const;
+  double FrozenRate(const CombatParams& params, const QueuedMob& mob) const;
   // The mob at the front of the queue, for a reader with no particular enemy
   // in mind. A bare unfrozen mob of type 0 with nothing standing.
   const QueuedMob& FrontMob() const;

@@ -1,10 +1,11 @@
 # GMS pays this out only against enemies under damage over time, freezing,
-# stun, darkness or paralysis. Freezing is the one this game has, so the
-# character collects it while they are holding Freeze Stacks and not otherwise
-# -- see Freezing Crush. GMS's 10+x% ladder is kept whole: 11% up to 20%.
+# stun, darkness or paralysis. Two of the five are kept on a monster here, and
+# the I/L's ice is one of them -- so this collects on anything the book has
+# frozen. GMS's 10+x% ladder is kept whole: 11% up to 20%.
 #
-# The condition is binary, as GMS's is. One stack lights it and five light it
-# no brighter; what climbs with the pile is Freezing Crush's own pair.
+# The condition is binary, as GMS's is: a monster is afflicted or it is not,
+# and a second status over the first says nothing. What climbs with the pile is
+# Freezing Crush's own pair.
 name: "Storm Magic"
 skill_order: 7
 description:
@@ -12,5 +13,5 @@ description:
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_ICE_LIGHTNING_MAGE
 max_level: 10
-base { final_dmg_pct_when_frozen: 0.11 }
-per_level { final_dmg_pct_when_frozen: 0.01 }
+base { final_dmg_pct_when_afflicted: 0.11 }
+per_level { final_dmg_pct_when_afflicted: 0.01 }

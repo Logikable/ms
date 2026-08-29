@@ -361,9 +361,8 @@ int SwingToLay(const CombatParams& params, const BuffClocks& c,
 // would be worth to the swing that comes next. Both mirror CombatSim's -- see
 // FreezeBoost and FreezeCredit for why the credit is needed at all.
 double FreezeBoost(const AttackOption& attack, int stacks, bool frozen) {
-  double storm = frozen ? 1.0 + attack.freeze_fd_when_frozen : 1.0;
   if (stacks <= 0) {
-    return storm;
+    return 1.0;
   }
   double spent =
       attack.freeze_spends ? 1.0 + attack.freeze_fd_per_stack * stacks : 1.0;
@@ -373,8 +372,7 @@ double FreezeBoost(const AttackOption& attack, int stacks, bool frozen) {
                          ? 1.0 + attack.freeze_ied_gain.front() * stacks
                          : 1.0;
   double crit = frozen ? 1.0 + attack.freeze_crit_gain * stacks : 1.0;
-  return crit * spent * (1.0 + attack.freeze_matt_gain * stacks) * storm *
-         shattered;
+  return crit * spent * (1.0 + attack.freeze_matt_gain * stacks) * shattered;
 }
 
 // What the scar on the group multiplies a swing by, mirroring
@@ -407,12 +405,27 @@ double CreditScar(const AttackOption& attack, double odds) {
                             static_cast<double>(std::max(1, attack.lines)));
 }
 
+// What the state the enemies are already in multiplies a swing by, mirroring
+// CombatSim::ConditionBoost. Whether the group is afflicted at all -- frozen
+// or burning -- and how many burns stand across it, which here is the enemies
+// each alight slot was laid on. The Burn declaration below is why this takes
+// the count already worked out rather than the clocks.
+double ConditionBoost(const AttackOption& attack, bool afflicted, int alight) {
+  double boost = afflicted ? 1.0 + attack.fd_when_afflicted : 1.0;
+  if (attack.fd_per_dot <= 0.0 || attack.dot_count_cap <= 0) {
+    return boost;
+  }
+  return boost *
+         (1.0 + attack.fd_per_dot * std::min(alight, attack.dot_count_cap));
+}
+
 // What the freeze `attack` would leave is worth over the seconds before it
 // could come round again -- CombatSim::FrozenCredit, over the one clock that
 // stands here for the whole group, exactly as a burn's does.
 double FrozenCredit(const std::vector<AttackOption>& attacks,
                     const AttackOption& attack, int stacks, int enemies,
-                    double frozen_left) {
+                    double frozen_left, int alight) {
+  bool afflicted = frozen_left > 0.0 || alight > 0;
   if (attack.freeze_seconds <= 0.0) {
     return 0.0;
   }
@@ -427,8 +440,12 @@ double FrozenCredit(const std::vector<AttackOption>& attacks,
     if (other.swing_seconds <= 0.0) {
       continue;
     }
+    // Freezing moves the affliction gate as well as the pile, so the pair is
+    // priced together -- see CombatSim::FrozenRate.
     double gain =
-        FreezeBoost(other, stacks, true) - FreezeBoost(other, stacks, false);
+        FreezeBoost(other, stacks, true) * ConditionBoost(other, true, alight) -
+        FreezeBoost(other, stacks, false) *
+            ConditionBoost(other, afflicted, alight);
     best = std::max(best,
                     CrowdDamage(other, enemies) * gain / other.swing_seconds);
   }
@@ -437,7 +454,8 @@ double FrozenCredit(const std::vector<AttackOption>& attacks,
 
 double FreezeCredit(const std::vector<AttackOption>& attacks,
                     const AttackOption& attack, int stacks, int cap,
-                    int enemies, bool frozen) {
+                    int enemies, bool frozen, int alight) {
+  bool afflicted = frozen || alight > 0;
   int room = std::min(attack.freeze_build, cap - stacks);
   if (room <= 0) {
     return 0.0;
@@ -447,8 +465,9 @@ double FreezeCredit(const std::vector<AttackOption>& attacks,
     if (other.swing_seconds <= 0.0) {
       continue;
     }
-    double gain = FreezeBoost(other, stacks + room, frozen) -
-                  FreezeBoost(other, stacks, frozen);
+    double gain = (FreezeBoost(other, stacks + room, frozen) -
+                   FreezeBoost(other, stacks, frozen)) *
+                  ConditionBoost(other, afflicted, alight);
     best = std::max(best, CrowdDamage(other, enemies) * gain);
   }
   return best;
@@ -479,6 +498,9 @@ struct Burn {
   double damage = 0.0;  // one helping, one tick, over every enemy reached
   double interval = 0.0;
   int lit_by = -1;  // swing that last relit it, so its ticks are credited home
+  // Enemies it was laid on, which is what the drains count: sim_gear keeps one
+  // clock for the group, so the slot stands for this many burning monsters.
+  int reached = 0;
 };
 
 // A clock per burn slot the character can leave, whichever swing leaves it.
@@ -490,6 +512,17 @@ std::vector<Burn> BurnSlots(const CombatParams& params) {
     }
   }
   return std::vector<Burn>(std::max(0, slots));
+}
+
+// Burns alight across the group, and whether anything is afflicted at all.
+int BurnsAlight(const std::vector<Burn>& held) {
+  int alight = 0;
+  for (const Burn& on : held) {
+    if (on.left > 0.0 && on.stacks > 0.0) {
+      alight += on.reached;
+    }
+  }
+  return alight;
 }
 
 // What relighting the burns `attack` carries is worth over the seconds before
@@ -517,6 +550,45 @@ double BurnCredit(const AttackOption& attack, int enemies,
   return total;
 }
 
+// What lighting this swing's burns is worth to everything swung AFTER it --
+// the gate it opens and the count it deepens, neither of which BurnCredit pays
+// for. The mirror of CombatSim::BurnStateCredit.
+double BurnStateCredit(const std::vector<AttackOption>& attacks,
+                       const AttackOption& attack, int enemies,
+                       const std::vector<Burn>& held, bool afflicted) {
+  if (attack.dots.empty()) {
+    return 0.0;
+  }
+  int hit = std::min(std::max(1, attack.max_enemies), std::max(1, enemies));
+  double cadence = std::max(
+      {attack.swing_seconds, attack.cooldown_seconds, attack.interval_seconds});
+  int alight = BurnsAlight(held);
+  double gained = 0.0;
+  for (const DotApplication& burn : attack.dots) {
+    if (burn.slot < 0 || burn.slot >= static_cast<int>(held.size()) ||
+        burn.interval_seconds <= 0.0) {
+      continue;
+    }
+    double lit = std::min(burn.duration_seconds, cadence);
+    gained +=
+        burn.chance * hit * (lit - std::min(held[burn.slot].left, cadence));
+  }
+  if (gained <= 0.0) {
+    return 0.0;
+  }
+  double best = 0.0;
+  for (const AttackOption& other : attacks) {
+    if (other.swing_seconds <= 0.0) {
+      continue;
+    }
+    double gain = ConditionBoost(other, true, alight + hit) -
+                  ConditionBoost(other, afflicted, alight);
+    best = std::max(best,
+                    CrowdDamage(other, enemies) * gain / other.swing_seconds);
+  }
+  return best * gained / std::max(1, hit);
+}
+
 // Puts every burn the landed swing carries on the group, in expectation: one
 // that takes hold half the time adds half a helping and carries the clock half
 // the way to a full duration.
@@ -535,6 +607,7 @@ void LightBurns(const AttackOption& attack, int enemies, int swung,
     on.damage = burn.damage[0] * hit;
     on.interval = burn.interval_seconds;
     on.lit_by = swung;
+    on.reached = hit;
   }
 }
 
@@ -610,13 +683,16 @@ int BestSwing(const std::vector<AttackOption>& attacks,
       continue;
     }
     bool frozen = frozen_left > 0.0;
+    int alight = BurnsAlight(held);
     double rate =
         (CrowdDamage(attack, enemies, false) *
              FreezeBoost(attack, stacks, frozen) *
-             ScarBoost(attack, scar_odds) +
+             ScarBoost(attack, scar_odds) *
+             ConditionBoost(attack, frozen || alight > 0, alight) +
          BurnCredit(attack, enemies, held) +
-         FreezeCredit(attacks, attack, stacks, cap, enemies, frozen) +
-         FrozenCredit(attacks, attack, stacks, enemies, frozen_left)) /
+         BurnStateCredit(attacks, attack, enemies, held, frozen || alight > 0) +
+         FreezeCredit(attacks, attack, stacks, cap, enemies, frozen, alight) +
+         FrozenCredit(attacks, attack, stacks, enemies, frozen_left, alight)) /
         attack.swing_seconds;
     if (rate > best_rate) {
       best_rate = rate;
@@ -681,9 +757,12 @@ Sequence PlaySwings(const CombatParams& params, double horizon, int enemies) {
     // in holding.
     // Burn out: the clocks land its ticks as they fall due, which is the whole
     // point of keeping them.
-    double landed = CrowdDamage(swung, enemies, false) *
-                    FreezeBoost(swung, freeze, frozen_left > 0.0) *
-                    ScarBoost(swung, scar_odds);
+    int alight = BurnsAlight(burning);
+    double landed =
+        CrowdDamage(swung, enemies, false) *
+        FreezeBoost(swung, freeze, frozen_left > 0.0) *
+        ScarBoost(swung, scar_odds) *
+        ConditionBoost(swung, frozen_left > 0.0 || alight > 0, alight);
     LightBurns(swung, enemies, pick, burning);
     scar_odds = CreditScar(swung, scar_odds);
     frozen_left = std::max(frozen_left, swung.freeze_seconds);

@@ -1018,8 +1018,8 @@ TEST(SkillDataTest, AWeaponDemandCoversBothHands) {
 
 // What the pile is worth grants nothing without a pile to hold, an ice swing
 // to build it and a lightning swing to spend it. The pile need not be on the
-// same skill -- Frost Clutch betters Freezing Crush's stack and Storm Magic
-// reads only that one stands -- but all four must reach the same character.
+// same skill -- Frost Clutch betters Freezing Crush's stack -- but all four
+// must reach the same character.
 TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
   std::map<std::string, Skill> skills = LoadSkills();
   std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
@@ -1027,7 +1027,6 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
     const Skill& skill = entry.second;
     if (skill.base().crit_dmg_per_freeze_stack() <= 0.0 &&
         skill.base().final_dmg_pct_per_freeze_stack() <= 0.0 &&
-        skill.base().final_dmg_pct_when_frozen() <= 0.0 &&
         skill.base().ied_pct_per_freeze_stack() <= 0.0) {
       continue;
     }
@@ -1054,6 +1053,45 @@ TEST(SkillDataTest, FreezeStacksHaveBothHalvesAndBothElements) {
     EXPECT_TRUE(ice) << entry.first << " has no ice swing to build the pile";
     EXPECT_TRUE(lightning) << entry.first
                            << " has no lightning swing to spend the pile";
+  }
+}
+
+// Whether the enemy's condition is worth anything to a book depends on that
+// book being able to put them in one. Two statuses count -- the ice a swing
+// leaves and a burn -- and either will do, so Storm Magic asks its book for
+// the freeze and Burning Magic asks its own for the burn.
+TEST(SkillDataTest, AConditionIsBothInflictedAndRead) {
+  std::map<std::string, Skill> skills = LoadSkills();
+  std::vector<Job> jobs = EveryValueOf<Job>(Job_descriptor());
+  auto afflicts = [](const Skill& skill) {
+    return skill.freeze_seconds() > 0.0 || skill.has_dot();
+  };
+  for (const std::pair<const std::string, Skill>& entry : skills) {
+    const Skill& skill = entry.second;
+    bool counts = skill.base().final_dmg_pct_per_dot() > 0.0;
+    if (skill.base().final_dmg_pct_when_afflicted() <= 0.0 && !counts) {
+      continue;
+    }
+    bool inflicted = false;
+    bool counted = false;
+    for (Job job : jobs) {
+      std::set<JobAdvancement> books = BooksFor(job);
+      if (books.count(skill.job_advancement()) == 0) {
+        continue;
+      }
+      for (const std::pair<const std::string, Skill>& other : skills) {
+        if (books.count(other.second.job_advancement()) == 0) {
+          continue;
+        }
+        inflicted = inflicted || afflicts(other.second);
+        counted = counted || other.second.dot_count_cap() > 0;
+      }
+    }
+    EXPECT_TRUE(inflicted) << entry.first
+                           << " reads a condition its book cannot inflict";
+    if (counts) {
+      EXPECT_TRUE(counted) << entry.first << " pays per burn with no count";
+    }
   }
 }
 

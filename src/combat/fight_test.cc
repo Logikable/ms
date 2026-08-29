@@ -245,6 +245,51 @@ TEST(CombatSimTest, APileWithRoomIsStillWorthTopping) {
   EXPECT_GT(taken[1], taken[0] * 1.5);
 }
 
+// A burn afflicts as surely as the ice does: GMS names the same five
+// conditions on Storm Magic and on Burning Magic, and the F/P's half of them
+// is the burn. Nothing is frozen here and the gate still pays.
+TEST(CombatSimTest, ABurnAfflictsTheMonsterTheIceWouldHave) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 100.0, 1)});
+  params.dot_count = 1;
+  params.attacks[0].fd_when_afflicted = 0.5;
+
+  CombatSim cold;
+  cold.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(cold.damage_this_step(), 100.0);  // nothing on it yet
+
+  params.attacks[0].dots.push_back(MakeBurn(0.0, 1.0, 10.0));
+  CombatSim lit;
+  lit.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(lit.damage_this_step(), 100.0);  // the swing that lights it
+  lit.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(lit.damage_this_step(), 150.0);  // and every one after
+}
+
+// Elemental Drain counts the burns standing on the GROUP, not the one being
+// hit: eight monsters carrying one apiece are eight. The count is capped, and
+// a rate with no cap behind it buys nothing.
+TEST(CombatSimTest, TheDrainCountsEveryBurningMonsterUpToItsCap) {
+  Mob mob = MakeMob("Snail", 1000000);
+  CombatParams params = MakeParams(1.0, 1e9, {MakeType(&mob, 100.0, 8)}, 8);
+  params.dot_count = 1;
+  params.attacks[0].dots.push_back(MakeBurn(0.0, 1.0, 10.0));
+  params.attacks[0].fd_per_dot = 0.1;
+
+  CombatSim uncounted;
+  uncounted.Advance(params, 1.0);
+  uncounted.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(uncounted.damage_this_step(), 800.0) << "no cap, no count";
+
+  params.attacks[0].dot_count_cap = 3;
+  CombatSim capped;
+  capped.Advance(params, 1.0);
+  EXPECT_DOUBLE_EQ(capped.damage_this_step(), 800.0);  // lights them
+  capped.Advance(params, 1.0);
+  // Eight alight, three of them counted: 8 x 100 x 1.3.
+  EXPECT_DOUBLE_EQ(capped.damage_this_step(), 1040.0);
+}
+
 // A burn ticks on its own clock for as long as it was lit for, and then stops
 // -- it is not a second attack that runs forever.
 TEST(CombatSimTest, ABurnTicksForItsDurationAndNoLonger) {
@@ -3096,7 +3141,7 @@ TEST(CombatSimTest, StormMagicStandsOnAnyStackHoweverDeep) {
   GiveFreezeStacks(params, /*cap=*/4);
   // No lightning swing, so nothing ever spends what the ice leaves.
   params.attacks.pop_back();
-  params.attacks[1].freeze_fd_when_frozen = 0.5;
+  params.attacks[1].fd_when_afflicted = 0.5;
 
   CombatSim sim;
   sim.Advance(params, 1.0);
@@ -3149,7 +3194,7 @@ TEST(CombatSimTest, AStackIsWorthNothingOnAMonsterNothingFroze) {
   GiveFreezeStacks(params, /*cap=*/4);
   params.attacks.pop_back();  // no lightning swing, so the pile only grows
   params.attacks[1].freeze_crit_gain = 0.25;
-  params.attacks[1].freeze_fd_when_frozen = 0.5;
+  params.attacks[1].fd_when_afflicted = 0.5;
   params.attacks[1].freeze_seconds = 0.0;  // it makes stacks and no ice
 
   CombatSim sim;
@@ -3171,8 +3216,8 @@ TEST(CombatSimTest, TheIceOutlastsTheSwingThatLaidIt) {
   params.attacks.pop_back();  // no lightning swing to spend the pile
   params.attacks[1].freeze_seconds = 2.5;
   params.attacks[1].cooldown_seconds = 100.0;  // one cast, then the poke
-  params.attacks[0].freeze_fd_when_frozen = 1.0;
-  params.attacks[1].freeze_fd_when_frozen = 1.0;
+  params.attacks[0].fd_when_afflicted = 1.0;
+  params.attacks[1].fd_when_afflicted = 1.0;
 
   CombatSim sim;
   sim.Advance(params, 1.0);

@@ -299,10 +299,10 @@ int CombatSim::BestAttack(const CombatParams& params) const {
     // An ice swing is also paid for the pile it leaves and for the freeze it
     // lays, or the chooser would take the harder lightning swing every time
     // and neither would ever exist -- see FreezeCredit and FrozenCredit.
-    double rate =
-        (SwingDamage(attack) * StateBoost(attack, FrontMob()) +
-         FreezeCredit(params, attack) + FrozenCredit(params, attack)) /
-        SwingSecondsAgainst(attack);
+    double rate = (SwingDamage(attack) * StateBoost(attack, FrontMob()) +
+                   FreezeCredit(params, attack) + FrozenCredit(params, attack) +
+                   BurnStateCredit(params, attack)) /
+                  SwingSecondsAgainst(attack);
     if (rate > best_rate) {
       best_rate = rate;
       best = i;
@@ -484,11 +484,8 @@ double CombatSim::RollProcs(const AttackOption& attack, int hit) {
 // FROZEN enemy would be worth -- see FreezeCredit and FrozenCredit.
 double CombatSim::BoostForStacks(const AttackOption& attack, int stacks,
                                  int type, bool frozen) const {
-  // Storm Magic asks only that the enemy be frozen, so it stands over an empty
-  // pile -- it is the one factor here that is not priced per stack.
-  double storm = frozen ? 1.0 + attack.freeze_fd_when_frozen : 1.0;
   if (stacks <= 0) {
-    return storm;
+    return 1.0;
   }
   // The two multiply rather than sum: critical damage is folded into the swing
   // and final damage is the last thing applied to it, which is where every
@@ -508,7 +505,23 @@ double CombatSim::BoostForStacks(const AttackOption& attack, int stacks,
       frozen && type < static_cast<int>(attack.freeze_ied_gain.size())
           ? 1.0 + attack.freeze_ied_gain[type] * stacks
           : 1.0;
-  return crit * spent * matt * storm * shattered;
+  return crit * spent * matt * shattered;
+}
+
+// Whether the monster is under any status the fight keeps on it. Two are: the
+// ice a swing left and a burn. GMS asks for a list of five, and the other
+// three are inflicted by nothing here -- when one of them arrives it joins the
+// test and no lever moves. See SkillEffect::final_dmg_pct_when_afflicted.
+bool CombatSim::Afflicted(const QueuedMob& mob) const {
+  if (mob.frozen_left_seconds > 0.0) {
+    return true;
+  }
+  for (const MobDot& burn : mob.dots) {
+    if (burn.left_seconds > 0.0 && burn.stacks > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 double CombatSim::FreezeBoost(const AttackOption& attack,
@@ -540,9 +553,53 @@ double CombatSim::ScarBoost(const AttackOption& attack,
   return 1.0 + attack.scar_fd * share;
 }
 
+// What the state the enemies are already in multiplies this swing by. Two
+// readings, and they answer different questions: whether THIS monster is
+// afflicted, and how many burns stand on the WHOLE group.
+//
+// The count is the group's because that is what GMS means by "within a certain
+// range" -- eight monsters carrying one burn each are eight, and one boss
+// carrying four is four. So it is worth its cap on a map and only what the
+// rotation keeps alight on a boss, which is where GMS means it to be read.
+//
+// No credit goes with either. A swing that lights a burn already earns the
+// burn, and the drains ride the F/P's DoT swings, which the chooser was
+// picking anyway -- unlike the freeze, which nothing but the ice would ever
+// have bought. See FrozenCredit.
+// Burns standing across the whole group, which is what the drains count: a
+// monster carrying two of them is two, and eight carrying one apiece are
+// eight.
+int CombatSim::BurnsAlight() const {
+  int alight = 0;
+  for (const QueuedMob& mob : queue_) {
+    for (const MobDot& burn : mob.dots) {
+      if (burn.left_seconds > 0.0 && burn.stacks > 0) {
+        ++alight;
+      }
+    }
+  }
+  return alight;
+}
+
+double CombatSim::ConditionBoostFor(const AttackOption& attack, bool afflicted,
+                                    int alight) const {
+  double gate = afflicted ? 1.0 + attack.fd_when_afflicted : 1.0;
+  if (attack.fd_per_dot <= 0.0 || attack.dot_count_cap <= 0) {
+    return gate;
+  }
+  return gate *
+         (1.0 + attack.fd_per_dot * std::min(alight, attack.dot_count_cap));
+}
+
+double CombatSim::ConditionBoost(const AttackOption& attack,
+                                 const QueuedMob& mob) const {
+  return ConditionBoostFor(attack, Afflicted(mob), BurnsAlight());
+}
+
 double CombatSim::StateBoost(const AttackOption& attack,
                              const QueuedMob& mob) const {
-  return FreezeBoost(attack, mob) * ScarBoost(attack, mob);
+  return FreezeBoost(attack, mob) * ScarBoost(attack, mob) *
+         ConditionBoost(attack, mob);
 }
 
 // The monster a reader with no particular enemy in mind takes -- nothing here
@@ -653,24 +710,35 @@ double CombatSim::FreezeCredit(const CombatParams& params,
     }
     const QueuedMob& front = FrontMob();
     bool frozen = front.frozen_left_seconds > 0.0;
-    double gain = BoostForStacks(other, deeper, front.type, frozen) -
-                  BoostForStacks(other, freeze_stacks_, front.type, frozen);
+    double gain = (BoostForStacks(other, deeper, front.type, frozen) -
+                   BoostForStacks(other, freeze_stacks_, front.type, frozen)) *
+                  ConditionBoost(other, front);
     best = std::max(best, SwingDamage(other) * gain);
   }
   return best;
 }
 
-double CombatSim::FrozenRate(const CombatParams& params, int type) const {
+// Freezing moves two things at once: the pile's own factors, which only pay on
+// a frozen monster, and the affliction gate. The credit has to ask for the
+// pair -- priced on the pile alone, an ice swing looks worth nothing at all to
+// a character whose only reader is Storm Magic, and the chooser never casts
+// it.
+double CombatSim::FrozenRate(const CombatParams& params,
+                             const QueuedMob& mob) const {
   double best = 0.0;
+  bool afflicted = Afflicted(mob);
+  int alight = BurnsAlight();
   for (const AttackOption& other : Attacks(params)) {
     if (other.swing_seconds <= 0.0 ||
-        type >= static_cast<int>(other.damage_per_hit.size())) {
+        mob.type >= static_cast<int>(other.damage_per_hit.size())) {
       continue;
     }
-    double gain = BoostForStacks(other, freeze_stacks_, type, true) -
-                  BoostForStacks(other, freeze_stacks_, type, false);
-    best =
-        std::max(best, other.damage_per_hit[type] * gain / other.swing_seconds);
+    double gain = BoostForStacks(other, freeze_stacks_, mob.type, true) *
+                      ConditionBoostFor(other, true, alight) -
+                  BoostForStacks(other, freeze_stacks_, mob.type, false) *
+                      ConditionBoostFor(other, afflicted, alight);
+    best = std::max(
+        best, other.damage_per_hit[mob.type] * gain / other.swing_seconds);
   }
   return best;
 }
@@ -689,7 +757,65 @@ double CombatSim::FrozenCredit(const CombatParams& params,
   for (int j = 0; j < hit; ++j) {
     double gained = lays - std::min(queue_[j].frozen_left_seconds, cadence);
     if (gained > 0.0) {
-      credit += gained * FrozenRate(params, queue_[j].type);
+      credit += gained * FrozenRate(params, queue_[j]);
+    }
+  }
+  return credit;
+}
+
+// Seconds the burn in `slot` still has on this monster, 0 for one carrying
+// none.
+double CombatSim::BurnLeftOn(const QueuedMob& mob, int slot) const {
+  if (slot < 0 || slot >= static_cast<int>(mob.dots.size())) {
+    return 0.0;
+  }
+  return mob.dots[slot].stacks > 0 ? mob.dots[slot].left_seconds : 0.0;
+}
+
+// What one more burning monster is worth per second to whatever is swung next,
+// through the gate and through the count. The mirror of FrozenRate.
+double CombatSim::BurningRate(const CombatParams& params, const QueuedMob& mob,
+                              int alight) const {
+  double best = 0.0;
+  bool afflicted = Afflicted(mob);
+  for (const AttackOption& other : Attacks(params)) {
+    if (other.swing_seconds <= 0.0 ||
+        mob.type >= static_cast<int>(other.damage_per_hit.size())) {
+      continue;
+    }
+    double gain = ConditionBoostFor(other, true, alight + 1) -
+                  ConditionBoostFor(other, afflicted, alight);
+    best = std::max(
+        best, other.damage_per_hit[mob.type] * gain / other.swing_seconds);
+  }
+  return best;
+}
+
+// What lighting this swing's burns is worth to everything swung AFTER it. A
+// burn afflicts the monster it lands on and deepens the count the drains read,
+// and neither is paid for by the burn's own ticks -- BurnCredit prices those
+// alone. The mirror of FrozenCredit, and needed for the same reason: Ignite
+// makes Explosion the F/P Mage's best swing and Explosion burns nothing, so a
+// chooser blind to this never lays the mist that turns the drains on.
+double CombatSim::BurnStateCredit(const CombatParams& params,
+                                  const AttackOption& attack) const {
+  if (attack.dots.empty()) {
+    return 0.0;
+  }
+  double cadence = std::max(attack.swing_seconds, attack.cooldown_seconds);
+  int hit = Reached(attack);
+  int alight = BurnsAlight();
+  double credit = 0.0;
+  for (int j = 0; j < hit; ++j) {
+    for (const DotApplication& burn : attack.dots) {
+      if (burn.interval_seconds <= 0.0) {
+        continue;
+      }
+      double gained = std::min(burn.duration_seconds, cadence) -
+                      std::min(BurnLeftOn(queue_[j], burn.slot), cadence);
+      if (gained > 0.0) {
+        credit += gained * burn.chance * BurningRate(params, queue_[j], alight);
+      }
     }
   }
   return credit;

@@ -245,10 +245,6 @@ struct AttackOption {
   // ICE swing collects. 0 for every other swing and for a character without
   // the buff up.
   double freeze_matt_gain = 0.0;
-  // Storm Magic's final damage, taken whole on any swing made while the pile
-  // stands rather than climbing with it -- what GMS asks is only whether the
-  // enemy is frozen. 0 for every character but an I/L magician.
-  double freeze_fd_when_frozen = 0.0;
   // Game-scaled seconds this swing leaves the enemies it reached frozen. 0 for
   // every swing
   // that freezes nothing, which is all of them but the I/L's ice -- and not
@@ -273,6 +269,16 @@ struct AttackOption {
   double scar_chance = 0.0;
   double scar_seconds = 0.0;
   double scar_fd = 0.0;
+  // What the condition the enemy is ALREADY in adds to this swing. The first
+  // is Storm Magic's and Burning Magic's, taken whole on a monster under any
+  // status the fight keeps -- frozen or burning -- and nothing extra for a
+  // second one over the first. The rest are Elemental Drain's: final damage
+  // for each burn alight on the group, counted up to `dot_count_cap`.
+  //
+  // All three are 0 for every character but an I/L and an F/P magician.
+  double fd_when_afflicted = 0.0;
+  double fd_per_dot = 0.0;
+  int dot_count_cap = 0;
   // Which of the character's buffs has to be standing for this to fire at all,
   // as an index into CombatParams::buffs, or -1 for a clock that runs on its
   // own. Puncture's wound is the case it exists for: what ticks is the wound,

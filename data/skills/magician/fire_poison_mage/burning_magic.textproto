@@ -1,11 +1,17 @@
-# GMS pays this out only against enemies already burning, poisoned or stunned,
-# and stretches the burn besides. Nothing here suffers any of that and nothing
-# tracks a duration, so what is left is GMS's 5+x% final damage, flat.
+# GMS names the same five conditions Storm Magic does, and pays 5+x% against
+# an enemy under any of them. The F/P has the other of the two this game keeps:
+# a burn. So it collects on whatever Poison Breath, Poison Mist, Flame Sweep or
+# Ifrit has left alight -- which is nearly everything the class fights, and is
+# meant to be.
+#
+# GMS's other half is dropped: it lengthens every burn by 50+5x%, and a burn
+# already outlasts the swing that relights it, so nothing here would change.
 name: "Burning Magic"
 skill_order: 7
-description: "Permanently increases your Final Damage."
+description:
+  "Increases your Final Damage against enemies taking continuous damage."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_MAGE
 max_level: 10
-base { final_dmg_pct: 0.06 }
-per_level { final_dmg_pct: 0.01 }
+base { final_dmg_pct_when_afflicted: 0.06 }
+per_level { final_dmg_pct_when_afflicted: 0.01 }

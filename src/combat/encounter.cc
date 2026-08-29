@@ -161,7 +161,6 @@ void AddFreezeStacks(const Skill* skill, const DerivedStats& derived,
   double crit = offense.crit_dmg + kBaseCritDamage;
   attack.freeze_crit_gain =
       rate * derived.freeze.crit_dmg_per_stack / (1.0 + rate * crit);
-  attack.freeze_fd_when_frozen = derived.freeze.final_dmg_pct_when_frozen;
   if (derived.freeze.ied_pct_per_stack > 0.0) {
     for (const CombatType& type : types) {
       attack.freeze_ied_gain.push_back(DefenseShare(*type.mob, offense.ied) *
@@ -284,6 +283,12 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     // Chance Attack's damage against a scarred monster, which rides anything
     // that lands on one -- a summon's pulse included.
     attack.scar_fd = derived.scar.final_dmg_pct;
+    // What the enemy's own condition is worth, on the same terms: a monster
+    // that is frozen or burning is in that state whatever is hitting it, so a
+    // summon's pulse reads it too.
+    attack.fd_when_afflicted = derived.condition.final_dmg_pct_when_afflicted;
+    attack.fd_per_dot = derived.condition.final_dmg_pct_per_dot;
+    attack.dot_count_cap = derived.condition.dot_count_cap;
     // The scar the character's own swings leave. Game-scaled like every other
     // clock in the fight, and left off anything on a clock of its own -- GMS
     // scars with the sword being swung.

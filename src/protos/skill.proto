@@ -122,6 +122,17 @@ message SkillEffect {
   // On an ATTACK this rides that swing alone rather than following the
   // character, exactly as ied_pct and boss_pct do -- see WithoutSwingLevers.
   double final_dmg_pct = 17;
+  // Final damage on every line landed on an AFFLICTED enemy -- one under any
+  // status this game keeps on a monster. Two are: the ice a swing leaves (see
+  // Skill.freeze_seconds) and a burn (see Dot). GMS asks for "Damage Over
+  // Time, Freeze, Stun, Darkness, or Paralysis" and Storm Magic and Burning
+  // Magic name the identical five, so this is one condition rather than a list
+  // each skill picks from -- a status the game learns to inflict later joins
+  // it here and nothing else moves.
+  //
+  // Binary, as final_dmg_pct_when_scarred is: an enemy is afflicted or it is
+  // not, and a second status over the first says nothing.
+  double final_dmg_pct_when_afflicted = 52;
 
   // Final Attack: a chance for the character's swing to be followed by one
   // extra hit on each enemy that swing reached, worth final_attack_pct of a
@@ -458,12 +469,16 @@ message SkillEffect {
   // GMS words it "Damage increases by {50+2x}% of Max HP for every attack",
   // and the client gives the skill twelve of them.
   double max_hp_damage_pct = 122;
-  // Storm Magic's. Final damage on every swing made while the enemy is frozen,
-  // which is what holding any Freeze Stack at all means here -- GMS asks only
-  // whether the enemy is under one of a list of conditions, and freezing is the
-  // one this game has. So it does not climb with the pile the way the levers
-  // above do: one stack lights it and five light it no brighter.
-  double final_dmg_pct_when_frozen = 116;
+  // The F/P Magician's. Final damage for EACH burn alight on the enemies in
+  // front of the character, up to Skill.dot_count_cap of them -- GMS's
+  // Elemental Drain pays 3% apiece and Fervent Drain raises the rate to 5%,
+  // both over a count of five.
+  //
+  // A count over the group rather than per enemy, which is what GMS means by
+  // "within a certain range": eight monsters each carrying one burn are eight,
+  // and one boss carrying four burns is four. So it is worth its cap on a map
+  // and only what the rotation keeps alight on a boss.
+  double final_dmg_pct_per_dot = 123;
 }
 
 // A second attack the same skill makes, on its own clock, beside the swing it
@@ -1366,4 +1381,10 @@ message Skill {
   // what a held stack is worth is on the same skill -- see
   // SkillEffect::crit_dmg_per_freeze_stack.
   int32 freeze_stack_cap = 102;
+  // The F/P Magician's. Burns counted for SkillEffect::final_dmg_pct_per_dot,
+  // and so whether they are counted at all: 0 says the mechanism is not
+  // learned. The largest cap wins rather than the sum, as the Combo Orb ring
+  // above does, so Fervent Drain raises Elemental Drain's rate without
+  // replacing the count they share.
+  int32 dot_count_cap = 103;
 }

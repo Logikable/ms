@@ -1,12 +1,21 @@
-# GMS reads the damage-over-time effects on nearby enemies and pays final
-# damage for each of them. Burns are real here now, but nothing reports how
-# many are alight on what a swing can reach, so what is left is the final
-# damage, held permanently.
+# GMS counts the damage-over-time effects the character's own skills have
+# alight on the enemies in front of them and pays 3% final damage apiece, up to
+# five of them. The burns are real now, and the fight can count them, so it is
+# the count rather than the flat 15% it used to be.
+#
+# A count over the GROUP, which is what "within a certain range" means: eight
+# monsters carrying one burn each are eight. So it stands at its cap on a map
+# and pays only what the rotation keeps alight on a boss -- and at 2nd job,
+# where Poison Breath is the only thing that burns, hardly at all. GMS says so
+# in as many words.
 name: "Elemental Drain"
 skill_order: 2
-description: "Permanently increases your Final Damage."
+description:
+  "Increases your Final Damage for each continuous damage effect your skills "
+  "have on nearby enemies."
 kind: SKILL_KIND_PASSIVE
 job_advancement: JOB_ADVANCEMENT_FIRE_POISON_WIZARD
 max_level: 10
-base { final_dmg_pct: 0.015 }
-per_level { final_dmg_pct: 0.015 }
+dot_count_cap: 5
+base { final_dmg_pct_per_dot: 0.003 }
+per_level { final_dmg_pct_per_dot: 0.003 }
