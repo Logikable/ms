@@ -48,6 +48,7 @@ struct GearSpend {
   int64_t meso = 0;
   int slots_filled = 0;
   int stars_gained = 0;
+  int hammers_driven = 0;
 };
 
 // Spends a purse on gear, remembering which scroll each item wants: the
@@ -69,6 +70,10 @@ class GearShopper {
     EquipSlot slot = EQUIP_SLOT_UNSPECIFIED;
     // A star when set, one of the item's upgrade slots when not.
     bool star = false;
+    // A golden hammer: the slot it opens and the scroll that fills it, priced
+    // and valued as one thing. On its own a hammer is worth nothing -- what
+    // the purse is buying is the scroll it makes room for.
+    bool hammer = false;
     // The scroll an upgrade slot would be filled with; null for a star.
     const Scroll* scroll = nullptr;
     // Meso this is expected to take, the attempts that land nothing included.

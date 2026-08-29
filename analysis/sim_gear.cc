@@ -14,6 +14,7 @@
 #include "src/combat/encounter.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
+#include "src/item/item.h"
 #include "src/item/projectile.h"
 #include "src/item/shop.h"
 #include "src/protos/character.pb.h"
@@ -989,14 +990,24 @@ std::vector<const Scroll*> ScrollsFor(const GameState& state,
   return taken;
 }
 
-// `proto` as a player who kept at it would leave it: every slot spent on
-// `scroll` and every star up to `star_cap` landed. A null scroll leaves the
-// slots unspent, which is what an item taking none gets.
-Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll,
-                int star_cap) {
+// The golden hammers a character at `level` could have driven in. None below
+// the gate: a ceiling is what the player could reach, not what the item could
+// hold.
+int HammersAt(int level) {
+  return level >= UnlockLevel(Feature::kHammer) ? kMaxHammers : 0;
+}
+
+// `proto` as a player who kept at it would leave it: `hammers` driven in,
+// every slot spent on `scroll` and every star up to `star_cap` landed. A null
+// scroll leaves the slots unspent, which is what an item taking none gets.
+Equip AtCeiling(const EquipPrototype& proto, const Scroll* scroll, int star_cap,
+                int hammers) {
   Equip state;
   state.set_equip_name(proto.name());
-  int slots = proto.upgrade_slots();
+  if (TakesUpgradeSlots(proto)) {
+    state.set_hammers(hammers);
+  }
+  int slots = TotalUpgradeSlots(proto, state);
   if (scroll == nullptr) {
     state.set_remaining_upgrade_slots(slots);
   } else {
@@ -1060,7 +1071,8 @@ const Scroll* BestScrollForSlot(GameState& state, EquipSlot slot,
   double best_rate = -1.0;
   for (const Scroll* candidate : candidates) {
     if (!WearMade(state.character, proto,
-                  AtCeiling(proto, candidate, kMaxStarForce))) {
+                  AtCeiling(proto, candidate, kMaxStarForce,
+                            HammersAt(state.character.proto().level())))) {
       continue;
     }
     double rate = MeasureRate(state);
@@ -1154,11 +1166,12 @@ void FullyUpgrade(GameState& state, int star_cap) {
   // predecessor in the bag -- a sim that upgrades at every level would fill
   // the bag with them. Restoring from the proto is the only eraser there is.
   Character before = state.character.ToProto();
+  int hammers = HammersAt(state.character.proto().level());
   for (const std::pair<const EquipSlot, EquipPrototype>& entry : worn) {
     const Scroll* scroll =
         BestScrollForSlot(state, entry.first, /*success_rate=*/0);
     (*before.mutable_equipped())[entry.first] =
-        AtCeiling(entry.second, scroll, star_cap);
+        AtCeiling(entry.second, scroll, star_cap, hammers);
   }
   state.character.RestoreFrom(before, state.equips, state.items);
   CloseTryout(state, farming);

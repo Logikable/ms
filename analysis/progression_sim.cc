@@ -596,6 +596,7 @@ struct Climb {
   int endgame_pieces = 0;
   int endgame_scrolled = 0;
   int endgame_stars_worn = 0;
+  int endgame_hammers = 0;
   std::string money_map;
   // The level each Frozen piece first dropped at, or 0 for one that never
   // did. The rates are set so that all four arrive before the level cap --
@@ -882,6 +883,7 @@ struct GearReached {
   int pieces = 0;
   int scrolled = 0;
   int stars = 0;
+  int hammers = 0;
 };
 
 GearReached ReachedOnGear(const GameState& state) {
@@ -898,6 +900,7 @@ GearReached ReachedOnGear(const GameState& state) {
     }
     ++reached.pieces;
     reached.stars += item.stars();
+    reached.hammers += item.equip_state().hammers();
     if (item.equip_state().remaining_upgrade_slots() == 0) {
       ++reached.scrolled;
     }
@@ -1147,6 +1150,7 @@ void FarmAtCap(Session& run) {
   run.climb.endgame_pieces = reached.pieces;
   run.climb.endgame_scrolled = reached.scrolled;
   run.climb.endgame_stars_worn = reached.stars;
+  run.climb.endgame_hammers = reached.hammers;
 }
 
 Climb Play(const Catalogs& catalogs, Job branch,
@@ -1475,13 +1479,16 @@ void PrintTargets(const std::vector<Job>& branches,
       char spent[16];
       FormatShort(static_cast<double>(typical.endgame_spent), spent,
                   sizeof(spent));
-      std::printf("  %-46s %-12s %d of %d pieces scrolled out, %.1f* mean\n",
-                  "  spent on gear", spent, typical.endgame_scrolled,
-                  typical.endgame_pieces,
-                  typical.endgame_pieces == 0
-                      ? 0.0
-                      : static_cast<double>(typical.endgame_stars_worn) /
-                            typical.endgame_pieces);
+      std::printf(
+          "  %-46s %-12s %d of %d pieces scrolled out, %.1f* mean, %d "
+          "hammers\n",
+          "  spent on gear", spent, typical.endgame_scrolled,
+          typical.endgame_pieces,
+          typical.endgame_pieces == 0
+              ? 0.0
+              : static_cast<double>(typical.endgame_stars_worn) /
+                    typical.endgame_pieces,
+          typical.endgame_hammers);
       std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
     }
   }

@@ -21,6 +21,7 @@
  *
  * Scratch analysis tool, not part of the game.
  */
+#include <algorithm>
 #include <cstdio>
 #include <map>
 #include <string>
@@ -58,11 +59,9 @@ ABSL_FLAG(int, slots, 7,
           "hammer is assumed.");
 ABSL_FLAG(std::string, fifteen_equip, "fafnir_mistilteinn",
           "Data file stem of the weapon scrolled at 15%.");
-ABSL_FLAG(int, hammers, 2,
-          "Extra slots golden hammers would add to the 15% weapon. NOTE: "
-          "hammers are not implemented, and the clean slate cap in "
-          "equip_instance.cc counts the prototype's slots, so a hammer slot "
-          "could not be bought back yet.");
+ABSL_FLAG(int, hammers, ms::kMaxHammers,
+          "Golden hammers driven into the 15% weapon. Each adds an upgrade "
+          "slot and its own price to the bill.");
 ABSL_FLAG(int, etc_stops_at, 200,
           "First level at which mobs stop dropping Etc items. GMS's Arcane "
           "River drops nothing from 200. Past the table to disable.");
@@ -209,11 +208,14 @@ void PrintFullFill(const ms::MesoCurve& curve, const std::vector<int>& levels,
       "cost\n");
 }
 
-void PrintFifteenRow(const char* label, int slots, int price,
-                     double slate_rate) {
+// `hammers` is what the row's extra slots were bought with; their price joins
+// the scrolls', since the two together are what the shelf really costs.
+void PrintFifteenRow(const char* label, int slots, int price, double slate_rate,
+                     int hammers = 0) {
   double scrolls = slots / 0.15;
   double slates = slots * (1.0 / 0.15 - 1.0) / slate_rate;
-  double scroll_meso = scrolls * price * TraceMeso();
+  double scroll_meso = scrolls * price * TraceMeso() +
+                       static_cast<double>(hammers) * ms::kGoldenHammerCost;
   char a[32];
   ms::FormatShort(scroll_meso, a, sizeof(a));
   printf("%14s %6d %10.1f %14s %10.1f\n", label, slots, scrolls, a, slates);
@@ -227,10 +229,10 @@ void PrintFifteen(const ms::MesoCurve& curve, const ms::EquipPrototype& equip,
   printf("%14s %6s %10s %14s %10s\n", "", "slots", "scrolls", "scroll meso",
          "slates");
   PrintFifteenRow("no hammer", equip.upgrade_slots(), price, slate_rate);
-  int hammers = absl::GetFlag(FLAGS_hammers);
+  int hammers = std::min(absl::GetFlag(FLAGS_hammers), ms::kMaxHammers);
   if (hammers > 0) {
     PrintFifteenRow("with hammers", equip.upgrade_slots() + hammers, price,
-                    slate_rate);
+                    slate_rate, hammers);
   }
   char text[32];
   ms::FormatShort(curve.Earned(equip.required_level(), 210), text,

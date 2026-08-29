@@ -10,6 +10,7 @@
 #include "analysis/sim_gear.h"
 #include "analysis/star_force_curve.h"
 #include "src/character/character_stats.h"
+#include "src/character/progression.h"
 #include "src/combat/damage.h"
 #include "src/game_state.h"
 #include "src/item/equip_instance.h"
@@ -127,6 +128,10 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
   DerivedStats derived;
   EquipStats worn = WornAndGranted(state, derived);
   int power = PowerWith(state, derived, worn);
+  // The hammer's own gate. The shopper buys what a player at this level could,
+  // so below it there is nothing to offer.
+  bool hammers_open =
+      state.character.proto().level() >= UnlockLevel(Feature::kHammer);
   std::vector<EquipSlot> slots;
   for (const std::pair<const EquipSlot, EquipInstance>& entry :
        state.character.equipped()) {
@@ -143,21 +148,38 @@ std::vector<GearShopper::Candidate> GearShopper::Offers(GameState& state) {
     int stars = item->stars();
     int open_slots = item->equip_state().remaining_upgrade_slots();
     bool can_star = item->CanStarForce();
-    if (open_slots > 0 && trace != nullptr) {
+    bool can_hammer = item->CanHammer() && hammers_open;
+    if ((open_slots > 0 || can_hammer) && trace != nullptr) {
       const Scroll* scroll = ScrollFor(state, slot);
       if (scroll != nullptr) {
-        Candidate offer;
-        offer.slot = slot;
-        offer.scroll = scroll;
-        offer.cost = static_cast<int64_t>(TraceCost(*scroll, level)) *
-                     trace->shop_price();
+        int64_t scroll_cost = static_cast<int64_t>(TraceCost(*scroll, level)) *
+                              trace->shop_price();
         // What the slot is worth is what it lands times how often it lands: a
         // scroll that fails has still spent the slot, and on a piece nothing
         // sells that slot does not come back.
-        offer.gain =
+        int scroll_gain =
             (PowerWith(state, derived, Plus(worn, scroll->stats())) - power) *
             plan_.scroll_rate / 100;
-        offers.push_back(offer);
+        if (open_slots > 0) {
+          Candidate offer;
+          offer.slot = slot;
+          offer.scroll = scroll;
+          offer.cost = scroll_cost;
+          offer.gain = scroll_gain;
+          offers.push_back(offer);
+        } else if (can_hammer) {
+          // Only where there is no open slot already: a hammer opens one more
+          // of what the item still has, so it is the wrong thing to buy while
+          // the last one is unspent. Priced with the scroll that fills it,
+          // since a hammer alone lands nothing.
+          Candidate offer;
+          offer.slot = slot;
+          offer.hammer = true;
+          offer.scroll = scroll;
+          offer.cost = kGoldenHammerCost + scroll_cost;
+          offer.gain = scroll_gain;
+          offers.push_back(offer);
+        }
       }
     }
     // A star waits for the slots: GMS refuses one while an upgrade slot is
@@ -209,6 +231,15 @@ bool GearShopper::BuyBest(GameState& state, GearSpend& spend) {
   }
   if (best == nullptr) {
     return false;
+  }
+  if (best->hammer) {
+    EquipSlot slot = best->slot;
+    if (!state.character.HammerEquipped(slot)) {
+      return false;  // the purse or the item refused it
+    }
+    spend.meso += kGoldenHammerCost;
+    ++spend.hammers_driven;
+    return true;
   }
   if (!best->star) {
     const ItemPrototype* trace = TraceItem(state);
