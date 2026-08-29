@@ -577,6 +577,11 @@ std::vector<Row> InvariantRows(const Skill& skill) {
     rows.push_back(EffectRow(
         "Freeze Stacks", "Up to " + std::to_string(skill.freeze_stack_cap())));
   }
+  // The same, for the burns the drains count: the cap never climbs either.
+  if (skill.dot_count_cap() > 0) {
+    rows.push_back(EffectRow("Burns Counted",
+                             "Up to " + std::to_string(skill.dot_count_cap())));
+  }
   // A ring that never grows is stated once here. One that does is a thing a
   // point buys, so it reads at the level instead -- the same split the
   // cooldown takes, and for the same reason.
