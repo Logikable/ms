@@ -1415,6 +1415,136 @@ TEST_F(TuiControllerTest, BagScrollWithNoSlotsShowsThatOutcome) {
   EXPECT_EQ(controller_->scroll_result().outcome, kScrollNoSlots);
 }
 
+// --- the Golden Hammer ---
+
+// The whole trip: the entry opens the question, the answer takes the price,
+// and the slot it buys is there afterwards.
+TEST_F(TuiControllerTest, HammerBuysASlotOffTheEquipMenu) {
+  LevelTo(UnlockLevel(Feature::kHammer));
+  state_->character.AddMeso(kGoldenHammerCost);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Hammer
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kHammer);
+
+  controller_->OnEvent(ftxui::Event::Return);  // [Confirm]
+  EXPECT_EQ(controller_->screen(), kMain);
+  const EquipInstance& worn =
+      state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+  EXPECT_EQ(worn.equip_state().hammers(), 1);
+  EXPECT_EQ(worn.equip_state().remaining_upgrade_slots(),
+            sword_.upgrade_slots() + 1);
+  EXPECT_EQ(state_->character.meso(), 0);
+}
+
+// A purse that cannot cover it gets a red price and a greyed button, and the
+// dialog holds rather than closing as though something happened.
+TEST_F(TuiControllerTest, AnUnaffordableHammerChangesNothing) {
+  LevelTo(UnlockLevel(Feature::kHammer));
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kHammer);
+  EXPECT_FALSE(controller_->hammer_panel().affordable());
+
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kHammer) << "it closed on a refusal";
+  EXPECT_EQ(state_->character.equipped()
+                .at(EQUIP_SLOT_PRIMARY_WEAPON)
+                .equip_state()
+                .hammers(),
+            0);
+}
+
+// The third press on one item. The entry stands rather than vanishing, and
+// says why nothing happened.
+TEST_F(TuiControllerTest, AFullyHammeredItemSaysSo) {
+  LevelTo(UnlockLevel(Feature::kHammer));
+  state_->character.AddMeso(9 * kGoldenHammerCost);
+  Equip state;
+  state.set_equip_name(sword_.name());
+  state.set_remaining_upgrade_slots(sword_.upgrade_slots());
+  state.set_hammers(kMaxHammers);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_, state));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(controller_->screen(), kHammerNotice);
+  ASSERT_EQ(controller_->notice_lines().size(), 1u);
+  EXPECT_EQ(controller_->notice_lines()[0], "This item is fully Hammered.");
+  EXPECT_TRUE(controller_->notice_is_refusal()) << "it is drawn in red";
+  EXPECT_EQ(state_->character.meso(), 9 * kGoldenHammerCost);
+
+  // And it leaves the player where they pressed, on the item's menu.
+  controller_->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(controller_->screen(), kItemMenu);
+}
+
+// The bag's copy of the same trip, which is the other half of ItemRef.
+TEST_F(TuiControllerTest, HammerBuysASlotOffTheBagMenu) {
+  LevelTo(UnlockLevel(Feature::kHammer));
+  state_->character.AddMeso(kGoldenHammerCost);
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+
+  controller_->OpenInventoryMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Hammer
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kHammer);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_EQ(state_->character.inventory()[0].equip_state().hammers(), 1);
+}
+
+// A hammer opens a slot, and stars wait for an item with nothing left to
+// scroll. So the entry the player was using goes dim until they spend it.
+TEST_F(TuiControllerTest, AHammerHoldsTheStarsUntilItsSlotIsSpent) {
+  LevelTo(UnlockLevel(Feature::kHammer));
+  state_->character.AddMeso(kGoldenHammerCost);
+  // Every slot spent, so the stars are open: PickUpScrolledSword's weapon has
+  // no slots at all, which is a weapon with no shelf for a hammer to widen.
+  Equip spent;
+  spent.set_equip_name(sword_.name());
+  spent.set_scroll_successes(sword_.upgrade_slots());
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_, spent));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  const EquipInstance& worn =
+      state_->character.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+  ASSERT_TRUE(worn.CanStarForce());
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::Return);
+
+  EXPECT_FALSE(state_->character.equipped()
+                   .at(EQUIP_SLOT_PRIMARY_WEAPON)
+                   .CanStarForce());
+}
+
 // --- Star Force via equip panel ---
 
 TEST_F(TuiControllerTest, StarForceActionGoesToStarForce) {

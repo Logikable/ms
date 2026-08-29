@@ -123,8 +123,8 @@ InventoryPanel::InventoryPanel(CharacterInstance& character,
     : character_(character),
       account_(account),
       panel_focus_(panel_focus),
-      menu_({"Equip", "Inspect", "Combine", "Scroll", "Star Force", "Recover",
-             "Sell", "Multi-Sell", "Close"}),
+      menu_({"Equip", "Inspect", "Combine", "Scroll", "Hammer", "Star Force",
+             "Recover", "Sell", "Multi-Sell", "Close"}),
       sell_menu_({"Inspect", "Use", "Sell", "Multi-Sell", "Close"}) {
 }
 
@@ -267,6 +267,7 @@ void InventoryPanel::OpenStackMenu() {
 // is ever worn, so a second copy has nowhere to go but into the first.
 void InventoryPanel::OpenSymbolMenu(const EquipInstance& symbol) {
   menu_.Hide(kMenuScroll);
+  menu_.Hide(kMenuHammer);
   menu_.Hide(kMenuStarForce);
   if (character_.equipped().count(symbol.prototype().equip_slot()) > 0) {
     menu_.Hide(kMenuAction);
@@ -286,6 +287,9 @@ void InventoryPanel::OpenEquipMenu() {
   // disabled below is what this item cannot do.
   if (!Unlocked(Feature::kScrolling, character_, account_)) {
     menu_.Hide(kMenuScroll);
+  }
+  if (!Unlocked(Feature::kHammer, character_, account_)) {
+    menu_.Hide(kMenuHammer);
   }
   if (!Unlocked(Feature::kStarForce, character_, account_)) {
     menu_.Hide(kMenuStarForce);
@@ -311,6 +315,7 @@ void InventoryPanel::OpenEquipMenu() {
     menu_.Disable(kMenuAction);
     menu_.Hide(kMenuCombine);
     menu_.Hide(kMenuScroll);
+    menu_.Hide(kMenuHammer);
     menu_.Hide(kMenuStarForce);
     return;
   }
@@ -330,6 +335,11 @@ void InventoryPanel::OpenEquipMenu() {
   if (!Supports(eq->prototype(), UPGRADE_SCROLL)) {
     menu_.Hide(kMenuScroll);
   }
+  // A hammer widens a shelf; it cannot build one. On a piece with no slots to
+  // begin with there is nothing for it to do, so it is not on the menu.
+  if (!TakesUpgradeSlots(eq->prototype())) {
+    menu_.Hide(kMenuHammer);
+  }
   if (!Supports(eq->prototype(), UPGRADE_STAR_FORCE)) {
     menu_.Hide(kMenuStarForce);
   } else if (!eq->CanStarForce()) {
@@ -342,6 +352,9 @@ void InventoryPanel::OpenEquipMenu() {
   // entries as they finally stand.
   if (LeadToAction(Feature::kScrolling, character_, account_)) {
     menu_.Highlight(kMenuScroll);
+  }
+  if (LeadToAction(Feature::kHammer, character_, account_)) {
+    menu_.Highlight(kMenuHammer);
   }
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kMenuStarForce);
@@ -419,6 +432,10 @@ Screen InventoryPanel::OnMenuEvent(ftxui::Event event,
               character_.inventory()[selected_].prototype())) {
         return kScrollSelect;
       }
+    }
+    if (menu_.selected() == kMenuHammer) {
+      FollowedToAction(Feature::kHammer, account_);
+      return kHammer;
     }
     if (menu_.selected() == kMenuStarForce) {
       FollowedToAction(Feature::kStarForce, account_);

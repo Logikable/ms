@@ -402,11 +402,10 @@ ftxui::Element Tui::BossConfirmDialog() {
       controller_.boss_prompt().Render());
 }
 
-ftxui::Element Tui::BossNoticeDialog() {
-  // A notice rather than a question: the fight cannot be taken, and the only
-  // thing to press says so. Red when the player is the reason -- nothing to
-  // swing with -- and theme blue when it is only the reset. A refusal is a
-  // dead end, so its button closes rather than continuing.
+ftxui::Element Tui::NoticeDialog() {
+  // Red when the player is the reason -- nothing to swing with, an item that
+  // will take no more hammers -- and theme blue when it is only a clock. A
+  // refusal is a dead end, so its button closes rather than continuing.
   bool refused = controller_.notice_is_refusal();
   ftxui::Elements rows;
   for (const std::string& line : controller_.notice_lines()) {
@@ -438,7 +437,7 @@ ftxui::Element Tui::BossFightOverlay() {
     case kBossAbort:
       return BossAbortDialog();
     case kBossNotice:
-      return BossNoticeDialog();
+      return NoticeDialog();
     case kBossClear:
       return BossClearPanel(controller_.boss_clear_title(),
                             controller_.boss_clear_reward(),
@@ -608,6 +607,10 @@ ftxui::Element Tui::RenderScreen() {
       return OverMain(controller_.symbol_level_panel().Render());
     case kSymbolCombine:
       return OverMain(controller_.symbol_combine_panel().Render());
+    case kHammer:
+      return OverMain(controller_.hammer_panel().Render());
+    case kHammerNotice:
+      return OverMain(NoticeDialog());
     // The dialog is the panel's own, so the screen it belongs to is one state.
     case kMultiSell:
       return RenderMultiSell();
@@ -651,7 +654,7 @@ ftxui::Element Tui::RenderScreen() {
       }
       return ftxui::dbox({
           ftxui::center(boss_select_panel_.Render()),
-          ftxui::center(BossNoticeDialog() | ftxui::clear_under),
+          ftxui::center(NoticeDialog() | ftxui::clear_under),
       });
     // kShopMenu draws the same thing: the menu is anchored to a row of the
     // list, so the panel puts it up itself.

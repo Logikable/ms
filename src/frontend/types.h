@@ -31,6 +31,10 @@ enum Screen : int {
   kJobAdvance,
   kStarForce,
   kStarForceResult,
+  // Hammer on the item menu: the question, and the notice an item that will
+  // take no more hammers answers with.
+  kHammer,
+  kHammerNotice,
   kTraceRecover,
   kTraceRecoverResult,
   kSell,
@@ -117,12 +121,13 @@ enum MenuItem : int {
   // is empty, and is fed to what is already worn once it is not.
   kMenuCombine = 2,
   kMenuScroll = 3,
-  kMenuStarForce = 4,
-  kMenuRecover = 5,
+  kMenuHammer = 4,
+  kMenuStarForce = 5,
+  kMenuRecover = 6,
   // The two that part with the item, above Close. Neither sits where the
   // cursor lands: they are the entries on this menu there is no undoing.
-  kMenuSell = 6,
-  kMenuMultiSell = 7,
+  kMenuSell = 7,
+  kMenuMultiSell = 8,
 };
 // Entries of the worn-gear context menu, on Enter in the Equipped panel's Gear
 // tab. Shorter than the bag's: nothing worn is sold or combined, and only a
@@ -130,9 +135,12 @@ enum MenuItem : int {
 enum GearMenuItem : int {
   kGearMenuUnequip = 0,
   kGearMenuInspect = 1,
+  // The three upgrades in the order a piece goes through them: scrolls fill
+  // the shelf, a hammer widens it, and the stars wait for it to be full.
   kGearMenuScroll = 2,
-  kGearMenuStarForce = 3,
-  kGearMenuClose = 4,
+  kGearMenuHammer = 3,
+  kGearMenuStarForce = 4,
+  kGearMenuClose = 5,
 };
 // Entries of the Arcane Symbol context menu, on Enter in the Symbols tab. The
 // first two share their places with the item menu's, so the two branches that

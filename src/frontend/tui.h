@@ -102,8 +102,10 @@ class Tui {
   ftxui::Element PartyNoticeDialog();
   // "Fight Normal Zakum?", floated over the boss screen.
   ftxui::Element BossConfirmDialog();
+  // A notice rather than a question: the thing cannot be done, and the only
+  // button says so. Every screen that raises one draws this.
+  ftxui::Element NoticeDialog();
   // "Stop fighting Zakum?", floated over the fight.
-  ftxui::Element BossNoticeDialog();
   ftxui::Element BossAbortDialog();
   // The fight screen, or the fight list if there is no fight.
   ftxui::Element RenderBossFight();

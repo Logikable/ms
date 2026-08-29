@@ -694,6 +694,35 @@ TEST_F(InventoryPanelTest, StarForceGreysWhileSlotsRemain) {
       << "greyed, not gone";
 }
 
+// The bag's copy of the equipped panel's rule: the entry stands between the
+// other two upgrades, and only on a piece there is a shelf to widen on.
+TEST_F(InventoryPanelTest, TheHammerSitsBetweenTheOtherTwoUpgrades) {
+  LevelTo(UnlockLevel(Feature::kHammer));
+  EquipPrototype proto = sword_;
+  proto.set_upgrade_slots(1);
+  c_.PickUp(std::make_unique<EquipInstance>(proto));
+  InventoryPanel panel(c_, account_, panel_focus_);
+  panel.OpenMenu();
+  std::vector<int> reachable = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(reachable.begin(), reachable.end(), kMenuHammer), 0);
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_LT(rendered.find("Scroll"), rendered.find("Hammer"));
+  EXPECT_LT(rendered.find("Hammer"), rendered.find("Star Force"));
+}
+
+// A piece a hammer can do nothing to keeps no row, the way Scroll is hidden on
+// an item that refuses scrolls outright.
+TEST_F(InventoryPanelTest, NoHammerEntryWithoutASlotToWiden) {
+  LevelTo(UnlockLevel(Feature::kHammer));
+  EquipPrototype slotless = sword_;
+  slotless.set_upgrade_slots(0);
+  c_.PickUp(std::make_unique<EquipInstance>(slotless));
+  InventoryPanel panel(c_, account_, panel_focus_);
+  panel.OpenMenu();
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Hammer"),
+            std::string::npos);
+}
+
 // --- the gold trail to a new upgrade ---
 
 // The far end of the trail that starts on the level-up card: the entry the

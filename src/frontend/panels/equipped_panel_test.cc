@@ -807,6 +807,44 @@ TEST_F(EquippedPanelTest, ScrollAndStarForceArriveOnTime) {
       std::count(star_force.begin(), star_force.end(), kGearMenuStarForce), 0);
 }
 
+// The hammer's own gate, and the piece it has nothing to do to. It sits
+// between the other two upgrades: scrolls fill the shelf, a hammer widens it.
+TEST_F(EquippedPanelTest, TheHammerArrivesLastAndOnlyOnAPieceWithSlots) {
+  sword_.set_upgrade_slots(1);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  EquippedPanel panel(c_, account_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+
+  LevelTo(UnlockLevel(Feature::kStarForce));
+  panel.OpenMenu();
+  std::vector<int> before = ReachableMenuEntries(panel.menu());
+  EXPECT_EQ(std::count(before.begin(), before.end(), kGearMenuHammer), 0);
+
+  LevelTo(UnlockLevel(Feature::kHammer));
+  panel.OpenMenu();
+  std::vector<int> after = ReachableMenuEntries(panel.menu());
+  EXPECT_NE(std::count(after.begin(), after.end(), kGearMenuHammer), 0);
+  std::string rendered = RenderElement(panel.menu().Render(0, 0));
+  EXPECT_LT(rendered.find("Scroll"), rendered.find("Hammer"));
+  EXPECT_LT(rendered.find("Hammer"), rendered.find("Star Force"));
+}
+
+// A piece a hammer can do nothing to keeps no row: the entry is hidden the way
+// Scroll is on an item that refuses scrolls outright.
+TEST_F(EquippedPanelTest, NoHammerEntryWithoutASlotToWiden) {
+  sword_.set_upgrade_slots(0);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  c_.Equip(0);
+  LevelTo(UnlockLevel(Feature::kHammer));
+  EquippedPanel panel(c_, account_, panel_focus_);
+  RenderComponent(panel.MakeComponent([]() {}));
+  panel.OpenMenu();
+
+  EXPECT_EQ(RenderElement(panel.menu().Render(0, 0)).find("Hammer"),
+            std::string::npos);
+}
+
 // Every item that takes stars at all carries the entry, greyed until its
 // slots are spent. Hidden, it would have made the order a secret: a player
 // scrolling a weapon would never see what scrolling it is for.

@@ -318,6 +318,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnStarForceEvent(event);
     case kStarForceResult:
       return OnStarForceResultEvent(event);
+    case kHammer:
+      return OnHammerEvent(event);
+    case kHammerNotice:
+      return OnHammerNoticeEvent(event);
     case kTraceRecover:
       return OnTraceRecoverEvent(event);
     case kTraceRecoverResult:
@@ -427,6 +431,20 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   if (next == kStarForce) {
     star_force_ref_ = SelectedItem();
     star_force_panel_.ResetConfirm();
+  }
+  if (next == kHammer) {
+    hammer_ref_ = SelectedItem();
+    const EquipInstance* item = hammer_ref_.GetInstance(state_.character);
+    if (item == nullptr || !item->CanHammer()) {
+      // The entry stands on a piece that has taken both of its hammers, and
+      // says so when pressed: a row that vanished at the second one would
+      // read as the feature going away.
+      OpenNotice(kHammerNotice, {"This item is fully Hammered."},
+                 /*refusal=*/true);
+      next = kHammerNotice;
+    } else {
+      hammer_panel_.Reset(state_.character.meso());
+    }
   }
   if (next == kTraceRecover) {
     trace_index_ = inventory_panel_.selected();
@@ -732,6 +750,27 @@ bool TuiController::OnStarForceEvent(ftxui::Event event) {
     int stars_after = stars_before + (outcome == kStarForceSuccess ? 1 : 0);
     star_force_result_ = {outcome, equip_name, stars_before, stars_after};
     OpenNotice(kStarForceResult);
+  }
+  return true;
+}
+
+bool TuiController::OnHammerEvent(ftxui::Event event) {
+  ConfirmChoice choice = hammer_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    HammerItem(state_.character, hammer_ref_);
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnHammerNoticeEvent(ftxui::Event event) {
+  if (notice_prompt_.OnEvent(event)) {
+    // Back to the menu it was pressed on, the way a scroll with nowhere to go
+    // goes back to the scroll list: nothing happened, so nothing was left.
+    screen_ = kItemMenu;
   }
   return true;
 }

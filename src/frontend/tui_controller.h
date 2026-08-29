@@ -25,6 +25,7 @@
 #include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
+#include "src/frontend/screens/hammer_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -207,6 +208,10 @@ class TuiController {
   const SymbolCombinePanel& symbol_combine_panel() const {
     return symbol_combine_panel_;
   }
+  // The golden hammer's question, owned for the same reason.
+  const HammerPanel& hammer_panel() const {
+    return hammer_panel_;
+  }
 
   // The prompt on the quit dialog, for the same reason.
   const ConfirmPrompt& quit_prompt() const {
@@ -354,6 +359,8 @@ class TuiController {
   bool OnQuitEvent(ftxui::Event event);
   bool OnStarForceEvent(ftxui::Event event);
   bool OnStarForceResultEvent(ftxui::Event event);
+  bool OnHammerEvent(ftxui::Event event);
+  bool OnHammerNoticeEvent(ftxui::Event event);
   bool OnTraceRecoverEvent(ftxui::Event event);
   bool OnTraceRecoverResultEvent(ftxui::Event event);
   bool OnSellEvent(ftxui::Event event);
@@ -484,6 +491,7 @@ class TuiController {
   ItemRef scroll_ref_;
   ItemRef inspect_ref_;
   ItemRef star_force_ref_;
+  ItemRef hammer_ref_;
   // Recovery is a bag-only affair: a trace cannot be worn.
   int trace_index_ = 0;
   ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
@@ -504,6 +512,7 @@ class TuiController {
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
   SymbolLevelPanel symbol_level_panel_;
   SymbolCombinePanel symbol_combine_panel_;
+  HammerPanel hammer_panel_;
   // The worn symbol the two symbol dialogs are asking about. Held so the
   // answer acts on what was asked, whatever the cursor did in the meantime.
   EquipSlot symbol_slot_ = EQUIP_SLOT_UNSPECIFIED;

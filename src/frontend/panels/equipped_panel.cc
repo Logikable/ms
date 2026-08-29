@@ -31,7 +31,7 @@ EquippedPanel::EquippedPanel(CharacterInstance& character,
     : character_(character),
       account_(account),
       panel_focus_(panel_focus),
-      menu_({"Unequip", "Inspect", "Scroll", "Star Force", "Close"}),
+      menu_({"Unequip", "Inspect", "Scroll", "Hammer", "Star Force", "Close"}),
       symbol_menu_({"Unequip", "Inspect", "Level Up", "Close"}) {
 }
 
@@ -134,17 +134,25 @@ void EquippedPanel::OpenMenu() {
   if (!Unlocked(Feature::kScrolling, character_, account_)) {
     menu_.Hide(kGearMenuScroll);
   }
+  if (!Unlocked(Feature::kHammer, character_, account_)) {
+    menu_.Hide(kGearMenuHammer);
+  }
   if (!Unlocked(Feature::kStarForce, character_, account_)) {
     menu_.Hide(kGearMenuStarForce);
   }
   EquipSlot slot = selected_slot();
   if (slot != EQUIP_SLOT_UNSPECIFIED) {
     const EquipInstance& item = character_.equipped().at(slot);
-    // Both ask the prototype: an upgrade the item refuses outright is worth no
-    // row, and everything else keeps one. So a weapon and a piece of armour
-    // carry the same two entries however far along either of them is.
+    // All three ask the prototype: an upgrade the item refuses outright is
+    // worth no row, and everything else keeps one. So a weapon and a piece of
+    // armour carry the same entries however far along either of them is.
     if (!Supports(item.prototype(), UPGRADE_SCROLL)) {
       menu_.Hide(kGearMenuScroll);
+    }
+    // A hammer widens a shelf; it cannot build one. On a piece with no slots
+    // to begin with there is nothing for it to do, so it is not on the menu.
+    if (!TakesUpgradeSlots(item.prototype())) {
+      menu_.Hide(kGearMenuHammer);
     }
     if (!Supports(item.prototype(), UPGRADE_STAR_FORCE)) {
       menu_.Hide(kGearMenuStarForce);
@@ -159,6 +167,9 @@ void EquippedPanel::OpenMenu() {
   // entries as they finally stand.
   if (LeadToAction(Feature::kScrolling, character_, account_)) {
     menu_.Highlight(kGearMenuScroll);
+  }
+  if (LeadToAction(Feature::kHammer, character_, account_)) {
+    menu_.Highlight(kGearMenuHammer);
   }
   if (LeadToAction(Feature::kStarForce, character_, account_)) {
     menu_.Highlight(kGearMenuStarForce);
@@ -202,6 +213,10 @@ Screen EquippedPanel::OnMenuEvent(ftxui::Event event,
             character_.equipped().at(selected_slot()).prototype())) {
       return kScrollSelect;
     }
+  }
+  if (open.selected() == kGearMenuHammer) {
+    FollowedToAction(Feature::kHammer, account_);
+    return kHammer;
   }
   if (open.selected() == kGearMenuStarForce) {
     FollowedToAction(Feature::kStarForce, account_);
