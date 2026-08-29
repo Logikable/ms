@@ -14,13 +14,18 @@
  *   - the best weapon they can hold and pay for, bought the level it comes
  *     within reach, with the type of it measured rather than assumed;
  *   - what is left of the purse spent on scrolls and stars, the weapon first;
- *   - and the map that pays the most EXP a second of the ones they live on,
- *     re-chosen at every level.
+ *   - and the map that pays the most EXP a second of the ones they live on.
  *
  * That last one is measured, not guessed: each candidate map is played out for
  * a few respawn beats with the character exactly as they stand, and a map that
- * kills them is not a candidate. It makes this an attentive player's clock --
- * a floor on how long the climb takes rather than an average of it.
+ * kills them is not a candidate.
+ *
+ * None of it happens on levelling up, though, because none of it is the
+ * character's doing -- it is the player's, and the player is not always there.
+ * They open the game a handful of times a day, in bursts rather than on a
+ * clock, and less often as the climb slows; see LooksPerDay. The character
+ * farms the whole time either way. `--attention=0` puts the player at every
+ * level instead, which is the floor this sim used to report.
  *
  * Two sections, each on its own flag.
  *
@@ -49,6 +54,7 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <random>
 #include <set>
 #include <string>
 #include <utility>
@@ -131,6 +137,11 @@ ABSL_FLAG(bool, dailies, true,
           "Run each unlocked boss once a day, on the climb and after it. A "
           "run that misses the limit pays nothing and still costs the whole "
           "of it, which is what trying too early spends.");
+ABSL_FLAG(double, attention, 1.0,
+          "Scales how often the player opens the game. 1 is the table in "
+          "LooksPerDay; a larger number is a more attentive player, and 0 "
+          "puts them there at every level, which is what this sim used to "
+          "assume.");
 ABSL_FLAG(int, runs, 1,
           "Climbs per branch, each on its own seed. Drops are rolled, so one "
           "climb says almost nothing about whether a set completes.");
@@ -683,6 +694,69 @@ double RunDailies(GameState& state, int level, Climb& climb) {
   return spent;
 }
 
+// How often the player opens the game, and when.
+//
+// Not a metronome. A day is a handful of SESSIONS -- a look before work, a
+// long gap, an evening spent checking every half hour -- and both the number
+// of looks and where they fall thin out as the climb slows. An hour between
+// looks at Lv30 is a level and a half; at Lv150 it is nothing.
+//
+// The character farms throughout either way. This decides only when the PLAYER
+// is there to sell what dropped, spend the purse, move map, take the
+// advancement and walk up to a boss.
+constexpr double kLookGap = 30.0 * 60.0;  // between looks inside one session
+
+// Looks a day, by level, interpolated between. A new character is watched;
+// one grinding out the last forty levels is checked morning and evening.
+struct LookAnchor {
+  int level;
+  double per_day;
+};
+constexpr LookAnchor kAttention[] = {{1, 48.0},  {30, 24.0}, {60, 12.0},
+                                     {100, 5.0}, {150, 2.0}, {200, 2.0}};
+constexpr int kNumAttention = sizeof(kAttention) / sizeof(kAttention[0]);
+
+double LooksPerDay(int level) {
+  double scale = absl::GetFlag(FLAGS_attention);
+  if (kAttention[0].level >= level) {
+    return kAttention[0].per_day * scale;
+  }
+  for (int i = 1; i < kNumAttention; ++i) {
+    if (level > kAttention[i].level) {
+      continue;
+    }
+    const LookAnchor& lo = kAttention[i - 1];
+    const LookAnchor& hi = kAttention[i];
+    double t = static_cast<double>(level - lo.level) / (hi.level - lo.level);
+    return (lo.per_day + t * (hi.per_day - lo.per_day)) * scale;
+  }
+  return kAttention[kNumAttention - 1].per_day * scale;
+}
+
+// When they next open it. One look starts the day and the rest come together
+// in an evening, half an hour apart -- twelve looks is not one every two
+// hours, it is one at breakfast and eleven after work.
+//
+// `left` counts what is still owed to the evening, so a run is a burst
+// followed by a gap rather than an even spread.
+double NextLook(double now, int level, int* left, std::mt19937& rng) {
+  if (*left > 0) {
+    --*left;
+    return now + kLookGap;
+  }
+  double looks = std::max(1.0, LooksPerDay(level));
+  *left = static_cast<int>(looks) - 1;
+  // Whatever the evening does not take, jittered so two runs of a branch do
+  // not open the game at the same moment all climb.
+  double burst = *left * kLookGap;
+  double gap = std::max(kLookGap, kDaySeconds / looks * (looks - *left));
+  if (burst + gap > kDaySeconds) {
+    gap = std::max(kLookGap, kDaySeconds - burst);
+  }
+  std::uniform_real_distribution<double> jitter(0.75, 1.25);
+  return now + gap * jitter(rng);
+}
+
 // Everything one run of one branch carries while it is played. Held together
 // because the two halves -- the climb and the days after it -- differ only in
 // what they are farming for and when they stop.
@@ -699,6 +773,11 @@ struct Session {
   // Playtime so far, and when the next reset falls due.
   double seconds = 0.0;
   double next_daily = kDaySeconds;
+  // When the player next opens the game, and how many looks the evening still
+  // owes. Seeded off the run so two climbs of a branch differ.
+  double next_look = 0.0;
+  int looks_left = 0;
+  std::mt19937 rng;
   // Fights already taken on, by boss key. A player walks up to a boss the day
   // it opens rather than waiting for the reset to come round, and the reset is
   // a day wide -- a climb crosses twenty levels inside one, so waiting for it
@@ -793,6 +872,8 @@ void ClimbToCap(Session& run) {
   double give_up = absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
          run.purse, run.shopper);
+  run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
+                           &run.looks_left, run.rng);
 
   int level = run.state.character.proto().level();
   double level_began = 0.0;
@@ -814,23 +895,40 @@ void ClimbToCap(Session& run) {
       PickMap(run.state, run.maps, run.beats, run.step);
       params = ComputeCombatParams(run.state);
     }
-    if (run.state.character.proto().level() == level) {
-      continue;
+    int reached = run.state.character.proto().level();
+    bool levelled = reached != level;
+    bool watching = absl::GetFlag(FLAGS_attention) <= 0.0;
+    bool looked = false;
+    if (watching ? levelled : run.seconds >= run.next_look) {
+      if (!watching) {
+        run.next_look =
+            NextLook(run.seconds, reached, &run.looks_left, run.rng);
+      }
+      Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
+             run.purse, run.shopper);
+      // After retooling, so the fight is taken on in the gear this look
+      // bought rather than in what the last one left.
+      TryNewUnlocks(run, reached);
+      looked = true;
     }
-    stint.seconds = run.seconds - level_began;
-    run.climb.stints.push_back(stint);
-    level_began = run.seconds;
-    level = run.state.character.proto().level();
-    NoteFrozenDrops(run.state, level, run.climb);
-    Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-           run.purse, run.shopper);
-    // After retooling, so the fight is taken on in the gear the new level
-    // opened rather than in what the last one left.
-    TryNewUnlocks(run, level);
-    NoteMilestones(run.state, level, run.seconds, run.purse, run.climb);
-    params = ComputeCombatParams(run.state);
-    stint = {level, 0.0, run.state.current_map,
-             HeldWeaponName(run.state.character)};
+    if (levelled) {
+      stint.seconds = run.seconds - level_began;
+      run.climb.stints.push_back(stint);
+      level_began = run.seconds;
+      level = reached;
+      NoteFrozenDrops(run.state, level, run.climb);
+      NoteMilestones(run.state, level, run.seconds, run.purse, run.climb);
+      stint = {level, 0.0, run.state.current_map,
+               HeldWeaponName(run.state.character)};
+      // The character got stronger whether or not anybody was watching, and
+      // the fight is built off what they are.
+      looked = true;
+    }
+    if (looked) {
+      params = ComputeCombatParams(run.state);
+      stint.map = run.state.current_map;
+      stint.weapon = HeldWeaponName(run.state.character);
+    }
   }
 }
 
@@ -903,6 +1001,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
                  climb};
   run.step = absl::GetFlag(FLAGS_step);
   run.beats = absl::GetFlag(FLAGS_probe_beats);
+  run.rng.seed(seed);
   ClimbToCap(run);
   if (absl::GetFlag(FLAGS_endgame) &&
       state.character.proto().level() >= kTrialLevelCap) {
