@@ -1,8 +1,9 @@
 # GMS's own figures: 365+8x% twice on six enemies, and a dark shuriken that
 # attacks six times for 9+3*floor(x/6)% once every five seconds, hitting an
 # ordinary monster for 200% more. The provocation goes -- nothing here can be
-# taunted -- but what the provoked enemies pay stays, as a permanent grant of
-# ceil(x/6)% EXP walked as a line.
+# taunted -- but what the provoked enemies pay stays: GMS's ceil(x/6)% covers
+# EXP and Item Drop Rate alike, and both are granted permanently, walked as a
+# line.
 #
 # The shuriken is a side strike rather than a summon on purpose: it has to go
 # out with this swing and no other, or a Night Lord holding Quad Star at a boss
@@ -31,10 +32,12 @@ lines: 2
 base {
   skill_pct: 3.73
   exp_pct: 0.0065
+  item_drop_pct: 0.0065
 }
 per_level {
   skill_pct: 0.08
   exp_pct: 0.0015
+  item_drop_pct: 0.0015
 }
 side_strike {
   label: "Shuriken"
