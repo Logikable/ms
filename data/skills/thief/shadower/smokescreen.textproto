@@ -1,16 +1,17 @@
-# GMS pays 2*ceil(x/3)% critical damage and ceil(x/3)% off what a hit costs
-# over 30 levels, for 30 seconds against a 120-second wait. Ten levels here at
-# 2% and 1% apiece, which lands on both of GMS's master figures.
+# GMS pays 2*ceil(x/3)% critical damage over 30 levels, for 30 seconds against a
+# 120-second wait. Ten levels here at 2% apiece, which lands on GMS's own 20%.
 #
-# GMS shelters the whole party under it outright. Immunity is not a lever this
-# game has, so the party is handed the Shadower's own reduction instead: 1% a
-# level to 10%, the same ladder, standing over them for the same 30 seconds.
+# GMS shelters the whole party under it outright -- nobody standing in it takes
+# damage at all -- and a share off a hit IS how this game says that: the whole
+# of it, for the thirty seconds the smoke stands. GMS's other half, ceil(x/3)%
+# off damage taken in proportion to Max HP, is dropped: nothing here scales a
+# hit off the player's pool.
 name: "Smokescreen"
 skill_order: 6
 description:
-  "Drop a Smokescreen near you, blinding your enemies so you take less "
-  "damage. Your party is sheltered under it too. In addition, enemies "
-  "inside the Smokescreen will take more critical damage."
+  "Drop a Smokescreen near you. All party members within Smokescreen range "
+  "will take no damage for the duration. In addition, enemies inside the "
+  "Smokescreen will take more critical damage."
 kind: SKILL_KIND_ACTIVE
 job_advancement: JOB_ADVANCEMENT_SHADOWER
 max_level: 10
@@ -21,19 +22,11 @@ buff {
   duration_seconds: 30.0
   base {
     crit_dmg: 0.02
-    damage_taken_pct: 0.01
+    damage_taken_pct: 1.00
   }
-  per_level {
-    crit_dmg: 0.02
-    damage_taken_pct: 0.01
-  }
-  # What everyone else standing in it gets: the Shadower's own share off a hit,
-  # and nothing of the critical damage -- that is paid by the enemies inside,
-  # and they are inside it for whoever swings at them.
-  ally_base {
-    damage_taken_pct: 0.01
-  }
-  ally_per_level {
-    damage_taken_pct: 0.01
-  }
+  per_level { crit_dmg: 0.02 }
+  # What everyone else standing in it gets: the same shelter, and nothing of the
+  # critical damage -- that is paid by the enemies inside, and they are inside
+  # it for whoever swings at them.
+  ally_base { damage_taken_pct: 1.00 }
 }
