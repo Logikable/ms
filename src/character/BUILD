@@ -46,6 +46,23 @@ cc_test(
 )
 
 cc_library(
+    name = "hyper_stats",
+    srcs = ["hyper_stats.cc"],
+    hdrs = ["hyper_stats.h"],
+    deps = ["//src/protos:character_proto_cc"],
+)
+
+cc_test(
+    name = "hyper_stats_test",
+    srcs = ["hyper_stats_test.cc"],
+    deps = [
+        ":hyper_stats",
+        "//src/protos:character_proto_cc",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "job_name",
     srcs = ["job_name.cc"],
     hdrs = ["job_name.h"],

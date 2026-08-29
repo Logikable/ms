@@ -135,6 +135,46 @@ enum StatField {
   STAT_FIELD_MP = 6;
 }
 
+// One Hyper Stat a player can put points into, in the order the Hyper tab
+// lists them. Job-independent: every character is offered the same fifteen.
+enum HyperStatField {
+  HYPER_STAT_FIELD_UNSPECIFIED = 0;
+  HYPER_STAT_FIELD_STR = 1;
+  HYPER_STAT_FIELD_DEX = 2;
+  HYPER_STAT_FIELD_INT = 3;
+  HYPER_STAT_FIELD_LUK = 4;
+  HYPER_STAT_FIELD_MAX_HP = 5;
+  HYPER_STAT_FIELD_MAX_MP = 6;
+  HYPER_STAT_FIELD_CRIT_RATE = 7;
+  HYPER_STAT_FIELD_CRIT_DAMAGE = 8;
+  HYPER_STAT_FIELD_IED = 9;
+  HYPER_STAT_FIELD_DAMAGE = 10;
+  HYPER_STAT_FIELD_BOSS_DAMAGE = 11;
+  HYPER_STAT_FIELD_NORMAL_DAMAGE = 12;
+  HYPER_STAT_FIELD_ATTACK = 13;
+  HYPER_STAT_FIELD_EXP = 14;
+  // Only worth anything to a character wearing an Arcane Symbol, so the game
+  // holds it shut until level 200 -- see HyperStatUnlocked.
+  HYPER_STAT_FIELD_ARCANE_FORCE = 15;
+}
+
+// One allocation of Hyper Stat points: the level each stat is raised to,
+// keyed by HyperStatField (stored as int32, proto3 map limitation). An absent
+// or zero entry is a stat with nothing spent on it. What the allocation cost
+// is not stored -- it is the cost table summed over these levels, so the pool
+// and the spending cannot drift apart.
+message HyperStatPreset {
+  map<int32, int32> levels = 1;
+}
+
+// The two allocations a character keeps. Named fields rather than a repeated
+// one because there are exactly two, and the game picks between them by what
+// the player is doing: farming a map or fighting a boss.
+message HyperStats {
+  HyperStatPreset farming = 1;
+  HyperStatPreset bossing = 2;
+}
+
 // A character's own stat amounts, before equipment or skills. STR/DEX/INT/LUK
 // come from AP alone; hp and mp also collect what each level-up grants for the
 // job held at the time. Equipment and skill bonuses are summed separately --
@@ -242,6 +282,11 @@ message Character {
   // switched off, so a character who never learned one carries an empty list.
   // See Skill.toggle.
   repeated string active_skill = 19;
+
+  // The two Hyper Stat allocations, spent from a pool that opens at level 140.
+  // Both are the player's to fill; which one is in play is decided by the
+  // activity -- see HyperPreset.
+  HyperStats hyper_stats = 20;
 
   // Tabs opened and gold trails walked, which the account keeps as of format
   // version 2: what the player has been shown once is shown to all of their
