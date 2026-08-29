@@ -148,5 +148,28 @@ TEST_F(ItemRefTest, StarForceItemReachesTheBagItem) {
   EXPECT_GE(c_.inventory()[0].stars(), before);
 }
 
+// Both halves again, over one call: the worn copy takes the hammer and the
+// bag copy is untouched, and then the other way round.
+TEST_F(ItemRefTest, HammerItemResolvesEitherHalf) {
+  EquipPrototype upgradeable = sword_;
+  upgradeable.set_upgrade_slots(1);
+
+  CharacterInstance warrior = MakeWarrior();
+  warrior.AddMeso(4 * kGoldenHammerCost);
+  warrior.PickUp(std::make_unique<EquipInstance>(upgradeable));
+  warrior.Equip(0);
+  warrior.PickUp(std::make_unique<EquipInstance>(upgradeable));
+
+  EXPECT_TRUE(
+      HammerItem(warrior, ItemRef::Equipped(EQUIP_SLOT_PRIMARY_WEAPON)));
+  EXPECT_EQ(
+      warrior.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON).equip_state().hammers(),
+      1);
+  EXPECT_EQ(warrior.inventory()[0].equip_state().hammers(), 0);
+
+  EXPECT_TRUE(HammerItem(warrior, ItemRef::InBag(0)));
+  EXPECT_EQ(warrior.inventory()[0].equip_state().hammers(), 1);
+}
+
 }  // namespace
 }  // namespace ms

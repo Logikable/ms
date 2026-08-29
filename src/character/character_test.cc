@@ -2111,6 +2111,47 @@ TEST_F(StarForcePriceTest, AnAttemptItCannotAffordNeverHappens) {
   EXPECT_EQ(c.inventory()[0].stars(), 0) << "a refused attempt still rolled";
 }
 
+// --- Golden Hammer ---
+
+class HammerTest : public CharacterEquipFixture {};
+
+TEST_F(HammerTest, AHammerBuysASlotWhereverTheItemIs) {
+  c_.AddMeso(3 * kGoldenHammerCost);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  ASSERT_TRUE(c_.HammerInventory(0));
+  EXPECT_EQ(c_.inventory()[0].equip_state().hammers(), 1);
+  EXPECT_EQ(c_.inventory()[0].equip_state().remaining_upgrade_slots(), 8);
+  EXPECT_EQ(c_.meso(), 2 * kGoldenHammerCost);
+
+  ASSERT_TRUE(c_.Equip(0));
+  ASSERT_TRUE(c_.HammerEquipped(EQUIP_SLOT_PRIMARY_WEAPON));
+  const EquipInstance& worn = c_.equipped().at(EQUIP_SLOT_PRIMARY_WEAPON);
+  EXPECT_EQ(worn.equip_state().hammers(), 2);
+  EXPECT_EQ(worn.equip_state().remaining_upgrade_slots(), 9);
+  EXPECT_EQ(c_.meso(), kGoldenHammerCost);
+}
+
+TEST_F(HammerTest, AHammerThatWillNotGoInIsNotCharged) {
+  c_.AddMeso(9 * kGoldenHammerCost);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  ASSERT_TRUE(c_.HammerInventory(0));
+  ASSERT_TRUE(c_.HammerInventory(0));
+  int64_t spent = c_.meso();
+
+  EXPECT_FALSE(c_.HammerInventory(0)) << "a third hammer";
+  EXPECT_FALSE(c_.HammerInventory(4)) << "nothing at that index";
+  EXPECT_FALSE(c_.HammerEquipped(EQUIP_SLOT_HAT)) << "an empty slot";
+  EXPECT_EQ(c_.meso(), spent);
+}
+
+TEST_F(HammerTest, APurseThatCannotCoverItBuysNothing) {
+  c_.AddMeso(kGoldenHammerCost - 1);
+  c_.PickUp(std::make_unique<EquipInstance>(sword_));
+  EXPECT_FALSE(c_.HammerInventory(0));
+  EXPECT_EQ(c_.meso(), kGoldenHammerCost - 1);
+  EXPECT_EQ(c_.inventory()[0].equip_state().hammers(), 0);
+}
+
 // --- StarForce traces ---
 
 class StarForceTraceTest : public CharacterTest {

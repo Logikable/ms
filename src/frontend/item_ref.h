@@ -1,6 +1,6 @@
 /* ItemRef names where an item the player picked lives: worn in an equip slot,
  * or sitting at an index in the bag. Every modal the game opens on an item --
- * inspect, scroll, star force -- opens on one of these.
+ * inspect, scroll, star force, hammer -- opens on one of these.
  *
  * It exists so "is this item worn or in the bag?" is asked once, when the
  * player picks the item, instead of again at every place that needs the item
@@ -58,6 +58,10 @@ ScrollOutcome ScrollItem(CharacterInstance& character, ItemRef ref,
 // Star forces the item `ref` names. Same split as ScrollItem: a worn item that
 // gets destroyed moves to the bag as a trace, a bag item is replaced in place.
 StarForceOutcome StarForceItem(CharacterInstance& character, ItemRef ref);
+
+// Drives a golden hammer into the item `ref` names, and says whether one went
+// in. Same split again, for the same reason: a worn item's totals are rebuilt.
+bool HammerItem(CharacterInstance& character, ItemRef ref);
 
 }  // namespace ms
 

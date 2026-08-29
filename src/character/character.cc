@@ -1972,6 +1972,33 @@ StarForceOutcome CharacterInstance::StarForceInventory(int index) {
   return outcome;
 }
 
+// Takes a hammer's price, or leaves the purse alone and says no. Asked of the
+// item as well: a hammer that will not go in is not charged for.
+bool CharacterInstance::PayForHammer(const EquipInstance& item) {
+  if (!item.CanHammer() || kGoldenHammerCost > character_.meso()) {
+    return false;
+  }
+  character_.set_meso(character_.meso() - kGoldenHammerCost);
+  return true;
+}
+
+bool CharacterInstance::HammerEquipped(EquipSlot slot) {
+  std::map<EquipSlot, EquipInstance>::iterator it = equipped_.find(slot);
+  if (it == equipped_.end() || !PayForHammer(it->second) ||
+      !it->second.Hammer()) {
+    return false;
+  }
+  // Nothing a hammer opens is worn yet, but the worn totals are rebuilt after
+  // every change to a worn item, and one exception is how they drift.
+  RecomputeEquipStats();
+  return true;
+}
+
+bool CharacterInstance::HammerInventory(int index) {
+  EquipInstance* item = inventory_.equip_instance(index);
+  return item != nullptr && PayForHammer(*item) && item->Hammer();
+}
+
 int CharacterInstance::RecoverTrace(int trace_index, int base_item_index) {
   int recovery_stars =
       EquipInstance::RecoveryStars(inventory_[trace_index].stars());

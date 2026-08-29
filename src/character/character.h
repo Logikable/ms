@@ -310,6 +310,13 @@ class CharacterInstance {
   // Applies a star force attempt to the inventory item at `index`. On
   // kStarForceDestroy, removes the item from inventory. Priced as above.
   StarForceOutcome StarForceInventory(int index);
+  // Drives a golden hammer into the item in `slot` / at `index`: one more
+  // upgrade slot for kGoldenHammerCost. Returns false, spending nothing, when
+  // the slot is empty, the item will take no more hammers, or the purse will
+  // not cover it.
+  bool HammerEquipped(EquipSlot slot);
+  bool HammerInventory(int index);
+
   // Recovers the EquipTrace at `trace_index` using the EquipInstance at
   // `base_item_index` as the replacement body. Both items are removed from
   // inventory and replaced with a new EquipInstance carrying the trace's scroll
@@ -505,6 +512,7 @@ class CharacterInstance {
   // Spends one star force attempt's price, or returns false and spends
   // nothing. Both StarForce entry points call it before they roll.
   bool PayForStarForce(const EquipInstance& item);
+  bool PayForHammer(const EquipInstance& item);
   // Puts a sale on the buy-back shelf, newest first, and drops the oldest row
   // once the shelf is full.
   void RecordSale(BuyBackEntry entry);

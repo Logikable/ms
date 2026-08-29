@@ -55,4 +55,11 @@ StarForceOutcome StarForceItem(CharacterInstance& character, ItemRef ref) {
   return character.StarForceInventory(ref.index());
 }
 
+bool HammerItem(CharacterInstance& character, ItemRef ref) {
+  if (ref.equipped()) {
+    return character.HammerEquipped(ref.slot());
+  }
+  return character.HammerInventory(ref.index());
+}
+
 }  // namespace ms
