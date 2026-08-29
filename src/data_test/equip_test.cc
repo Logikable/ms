@@ -555,6 +555,53 @@ TEST(EquipDataTest, TheBossAccessorySetAddsUpToItsWikiTotals) {
   EXPECT_DOUBLE_EQ(set->tiers(3).effect().boss_pct(), 0.10);
 }
 
+// The Frozen set's own totals, pinned the same way and for the same reason:
+// the data states what each tier ADDS, and the number a player sees is the
+// running sum. Six tiers over eight pieces, so a typo in the middle of it is
+// invisible in the file and loud here.
+TEST(EquipDataTest, TheFrozenSetAddsUpToItsAgreedTotals) {
+  const EquipSet* set = nullptr;
+  std::map<std::string, EquipSet> sets = LoadSets();
+  for (const std::pair<const std::string, EquipSet>& entry : sets) {
+    if (entry.second.name() == EQUIP_SET_NAME_FROZEN) {
+      set = &entry.second;
+    }
+  }
+  ASSERT_NE(set, nullptr);
+  ASSERT_EQ(set->complete_pieces(), 8);
+  ASSERT_EQ(set->tiers_size(), 6);
+  const int kStat[] = {5, 5, 12, 12, 21, 21};
+  const int kAttack[] = {3, 8, 15, 24, 35, 48};
+  const double kPool[] = {0.0, 0.05, 0.05, 0.15, 0.15, 0.30};
+  const double kDamage[] = {0.0, 0.0, 0.03, 0.03, 0.09, 0.09};
+  int stat = 0;
+  int attack = 0;
+  double pool = 0.0;
+  double damage = 0.0;
+  for (int i = 0; i < set->tiers_size(); ++i) {
+    const SkillEffect& effect = set->tiers(i).effect();
+    EXPECT_EQ(set->tiers(i).pieces(), i + 3);
+    stat += effect.str();
+    attack += effect.attack();
+    pool += effect.max_hp_pct();
+    damage += effect.damage_pct();
+    EXPECT_EQ(stat, kStat[i]) << "at " << set->tiers(i).pieces() << " pieces";
+    EXPECT_EQ(attack, kAttack[i]) << "at " << set->tiers(i).pieces();
+    EXPECT_DOUBLE_EQ(pool, kPool[i]) << "at " << set->tiers(i).pieces();
+    EXPECT_DOUBLE_EQ(damage, kDamage[i]) << "at " << set->tiers(i).pieces();
+    // All four stats climb together, magic attack shadows attack, and MP
+    // shadows HP.
+    EXPECT_EQ(effect.dex(), effect.str());
+    EXPECT_EQ(effect.int_(), effect.str());
+    EXPECT_EQ(effect.luk(), effect.str());
+    EXPECT_EQ(effect.magic_attack(), effect.attack());
+    EXPECT_DOUBLE_EQ(effect.max_mp_pct(), effect.max_hp_pct());
+  }
+  // The two levers that arrive once each, at the end of the two halves.
+  EXPECT_DOUBLE_EQ(set->tiers(3).effect().ied_pct(), 0.30);
+  EXPECT_DOUBLE_EQ(set->tiers(5).effect().boss_pct(), 0.20);
+}
+
 // The levers the inspect screen's set card writes a row for. A tier that pulls
 // one outside this list pays the player a bonus nothing tells them about, so
 // the card and this list move together -- see InspectPanel::EffectLines.

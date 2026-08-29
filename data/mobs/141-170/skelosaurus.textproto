@@ -8,4 +8,6 @@ pdr: 10
 drops { item: "old_neck_bone" per_kill: 0.4 }
 drops { item: "frozen_weapon_token" per_kill: 0.0001 }
 drops { item: "frozen_secondary_token" per_kill: 0.0001 }
+drops { equip: "frozen_gloves" per_kill: 0.00025 }
+drops { equip: "frozen_boots" per_kill: 0.00025 }
 description: "A group of skeletons that belong to the dragon family. Looking at the cane that they hold in one hand, they are suspected to have been a group of old veteran dragons."

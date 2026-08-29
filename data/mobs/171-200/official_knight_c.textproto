@@ -5,4 +5,6 @@ max_hp: 5328000
 exp: 22238
 pdr: 10
 drops { item: "knight_bandana" per_kill: 0.4 }
+drops { equip: "frozen_gloves" per_kill: 0.0001 }
+drops { equip: "frozen_boots" per_kill: 0.0001 }
 description: "The future Cygnus Knights who attacked Henesys alongside the Fallen Cygnus. They look nothing like the Thunder Breakers of the present day."

@@ -7,4 +7,6 @@ max_hp: 4624800
 exp: 19716
 pdr: 10
 drops { item: "mutant_pork" per_kill: 0.4 }
+drops { equip: "frozen_gloves" per_kill: 0.0001 }
+drops { equip: "frozen_boots" per_kill: 0.0001 }
 description: "This monster dwells near the ruins of Future Henesys. The Black Mage's influence has twisted both its form and demeanor. As a result of that, it now walks on two legs."

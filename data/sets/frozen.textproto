@@ -1,5 +1,5 @@
 name: EQUIP_SET_NAME_FROZEN
-complete_pieces: 6
+complete_pieces: 8
 # In the order the inspect screen lists them, which is the order they are worn
 # in rather than the order they drop in.
 members {
@@ -13,6 +13,14 @@ members {
 members {
   slot: EQUIP_SLOT_BOTTOM
   name: "Frozen Bottom"
+}
+members {
+  slot: EQUIP_SLOT_SHOES
+  name: "Frozen Boots"
+}
+members {
+  slot: EQUIP_SLOT_GLOVES
+  name: "Frozen Gloves"
 }
 members {
   slot: EQUIP_SLOT_CAPE
@@ -32,40 +40,64 @@ members {
 tiers {
   pieces: 3
   effect {
-    str: 7
-    dex: 7
-    int: 7
-    luk: 7
-    attack: 5
-    magic_attack: 5
+    str: 5
+    dex: 5
+    int: 5
+    luk: 5
+    attack: 3
+    magic_attack: 3
   }
 }
 tiers {
   pieces: 4
   effect {
-    max_hp_pct: 0.20
-    max_mp_pct: 0.20
-    attack: 9
-    magic_attack: 9
+    max_hp_pct: 0.05
+    max_mp_pct: 0.05
+    attack: 5
+    magic_attack: 5
   }
 }
 tiers {
   pieces: 5
   effect {
-    str: 8
-    dex: 8
-    int: 8
-    luk: 8
-    attack: 11
-    magic_attack: 11
-    damage_pct: 0.09
+    str: 7
+    dex: 7
+    int: 7
+    luk: 7
+    attack: 7
+    magic_attack: 7
+    damage_pct: 0.03
   }
 }
 tiers {
   pieces: 6
   effect {
-    attack: 15
-    magic_attack: 15
+    max_hp_pct: 0.10
+    max_mp_pct: 0.10
+    attack: 9
+    magic_attack: 9
     ied_pct: 0.30
+  }
+}
+tiers {
+  pieces: 7
+  effect {
+    str: 9
+    dex: 9
+    int: 9
+    luk: 9
+    attack: 11
+    magic_attack: 11
+    damage_pct: 0.06
+  }
+}
+tiers {
+  pieces: 8
+  effect {
+    max_hp_pct: 0.15
+    max_mp_pct: 0.15
+    attack: 13
+    magic_attack: 13
+    boss_pct: 0.20
   }
 }

@@ -171,9 +171,10 @@ TEST_F(WorkbenchGearTest, EveryJobPastTheFirstWearsAnOffHand) {
 }
 
 // The Frozen set drops rather than sells, so the workbench is the only place
-// the whole of it is ever seen. A 3rd job at 100 reaches all four armour
-// pieces and keeps its meso weapon and off-hand; a 4th job at the cap adds the
-// two the token shelf sells, for six. Below that, none.
+// the whole of it is ever seen. A 3rd job at 100 reaches the four armour
+// pieces inside its level and keeps its meso weapon and off-hand; a 4th job at
+// the cap adds the two the token shelf sells and the two that ask for 140, for
+// all eight. Below that, none.
 TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
   for (JobAdvancement advancement : EveryAdvancement()) {
     GameState state = Workbench(advancement);
@@ -184,7 +185,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsTheFrozenSet) {
       frozen += IsFrozen(worn.second.prototype()) ? 1 : 0;
     }
     int stage = StageForAdvancement(advancement);
-    EXPECT_EQ(frozen, stage < 3 ? 0 : (stage == 3 ? 4 : 6));
+    EXPECT_EQ(frozen, stage < 3 ? 0 : (stage == 3 ? 4 : 8));
   }
 }
 

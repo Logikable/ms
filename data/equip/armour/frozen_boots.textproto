@@ -1,0 +1,17 @@
+name: "Frozen Boots"
+required_level: 140
+base_stats {
+  str: 19
+  dex: 19
+  int: 19
+  luk: 19
+  attack: 1
+  magic_attack: 1
+  def: 278
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_SHOES
+upgrade_slots: 7
+# Dropped, never stocked, so no shop price sets this. In step with the Frozen
+# weapons rather than with the armour below it: this is the tier above them.
+sell_price: 1000000

@@ -118,6 +118,7 @@ TEST(MapDataTest, EveryMobInAPiecesReachDropsIt) {
       {"frozen_top", 70},           {"frozen_bottom", 80},
       {"frozen_hat", 90},           {"frozen_cape", 100},
       {"frozen_weapon_token", 120}, {"frozen_secondary_token", 120},
+      {"frozen_gloves", 140},       {"frozen_boots", 140},
   };
   constexpr int kBand = 20;
   constexpr double kInBand = 0.00025;

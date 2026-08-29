@@ -271,8 +271,11 @@ void WearAll(GameState& state, const std::vector<std::string>& names,
 }
 
 // The only armour there is. Universal, so it fits whoever the workbench is.
+// The gloves and the boots ask for level 140, which a 3rd job standing at 100
+// carries rather than wears.
 std::vector<std::string> FrozenArmour() {
-  return {"frozen_hat", "frozen_top", "frozen_bottom", "frozen_cape"};
+  return {"frozen_hat",  "frozen_top",    "frozen_bottom",
+          "frozen_cape", "frozen_gloves", "frozen_boots"};
 }
 
 // What the bosses pay, which is the only thing that fills the accessory and
