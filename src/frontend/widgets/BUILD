@@ -65,6 +65,27 @@ cc_library(
 )
 
 cc_library(
+    name = "scroll_card",
+    srcs = ["scroll_card.cc"],
+    hdrs = ["scroll_card.h"],
+    deps = [
+        ":panel_util",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_test(
+    name = "scroll_card_test",
+    srcs = ["scroll_card_test.cc"],
+    deps = [
+        ":scroll_card",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "inventory_list",
     srcs = ["inventory_list.cc"],
     hdrs = ["inventory_list.h"],
