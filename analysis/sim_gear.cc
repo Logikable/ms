@@ -16,11 +16,13 @@
 #include "src/item/equip_instance.h"
 #include "src/item/projectile.h"
 #include "src/item/shop.h"
+#include "src/protos/character.pb.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/item.pb.h"
 #include "src/protos/map.pb.h"
 #include "src/protos/mob.pb.h"
 #include "src/protos/scroll.pb.h"
+#include "src/protos/skill.pb.h"
 
 namespace ms {
 namespace {
@@ -1252,14 +1254,27 @@ void OutfitDrops(GameState& state, const std::set<std::string>& skip) {
   }
 }
 
-void Outfit(GameState& state, bool budget) {
+EquipType SettledWeaponType(GameState& state, bool budget) {
+  Character before = state.character.ToProto();
+  for (const std::pair<const std::string, Skill>& entry : state.skills) {
+    while (state.character.LearnSkill(entry.second)) {
+    }
+  }
+  EquipType type = MeasureBestType(state, budget);
+  state.character.RestoreFrom(before, state.equips, state.items);
+  return type;
+}
+
+void Outfit(GameState& state, bool budget, EquipType settled) {
   // Nothing is for sale before the shop opens, so there is nothing to choose
   // between and nothing to climb -- the character keeps what the game gave
   // them, as a player that early does.
   if (!Unlocked(Feature::kShop, state.character, state.account)) {
     return;
   }
-  EquipType type = MeasureBestType(state, budget);
+  EquipType type = settled == EQUIP_TYPE_UNSPECIFIED
+                       ? MeasureBestType(state, budget)
+                       : settled;
   if (type == EQUIP_TYPE_UNSPECIFIED) {
     return;
   }

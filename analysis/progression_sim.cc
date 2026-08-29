@@ -8,7 +8,8 @@
  * The one thing the engine cannot supply is what the player does between
  * fights, so the sweep plays them:
  *
- *   - every AP on the job's primary stat, every SP on whatever it will buy;
+ *   - every AP on the job's primary stat, and every SP into whichever
+ *     skill measures best on the map they are farming;
  *   - the whole Etc tab sold at each level;
  *   - the best weapon they can hold and pay for, bought the level it comes
  *     within reach, with the type of it measured rather than assumed;
@@ -64,6 +65,7 @@
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
+#include "analysis/skill_plan.h"
 #include "src/character/character.h"
 #include "src/character/exp_table.h"
 #include "src/character/job_advancement.h"
@@ -155,11 +157,45 @@ void SpendPoints(CharacterInstance& character) {
   }
 }
 
-void LearnEverything(GameState& state) {
+// Whatever the ranking would not spend. A point the greedy declines is one it
+// could not measure a gain for -- a utility skill, or one whose worth is in
+// staying alive rather than in the damage table -- and leaving it in the pool
+// is the one thing worse than spending it in the catalog's order.
+void LearnTheRest(GameState& state) {
   for (const std::pair<const std::string, Skill>& entry : state.skills) {
     while (state.character.LearnSkill(entry.second)) {
     }
   }
+}
+
+// How long the book's ranking is played out for. Shorter than the run a weapon
+// is measured over: a ranking has only to settle an order, and this one is
+// taken again at every level of every climb.
+constexpr double kBookSeconds = 10.0;
+
+// What the character takes off the map they are standing on, a second: their
+// swings against the crowd it holds, plus anything of theirs on a clock of its
+// own.
+//
+// The book is ranked against a crowd rather than a lone mob because that is
+// what the climb spends its life on, and the two disagree: a build chosen
+// against one enemy never buys the swing that clears twelve. It is also what
+// makes the boss table below worth reading -- it reports whether a character
+// who built for farming can beat the fight, which is the character a player
+// walks in with.
+double MapRate(GameState& state) {
+  CombatParams params = ComputeCombatParams(state);
+  if (!params.active || params.types.empty()) {
+    return 0.0;
+  }
+  int enemies = 0;
+  for (const CombatType& type : params.types) {
+    enemies += type.simultaneous;
+  }
+  enemies = std::max(1, enemies);
+  Sequence played = PlaySwings(params, kBookSeconds, enemies);
+  double rate = played.seconds > 0.0 ? played.damage / played.seconds : 0.0;
+  return rate + OffClockRate(params, played, 1.0, enemies);
 }
 
 // Follows the purse and adds up each direction on its own. The balance is no
@@ -345,13 +381,18 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
     }
   }
   SpendPoints(state.character);
-  LearnEverything(state);
   SellDrops(state.character);
   purse.Note(state.character);
   // What fell goes on before what is bought, so the weapon measurement is
   // taken with the rest of the outfit already in place.
   WearBestFromBag(state.character);
-  Outfit(state, /*budget=*/true);
+  Outfit(state, /*budget=*/true, SettledWeaponType(state, /*budget=*/true));
+  // The book after the weapon, since a point is worth what the thing in their
+  // hands can swing -- and the weapon is settled on what the branch is for,
+  // which is the only thing that keeps the two from talking each other into a
+  // corner. See SettledWeaponType.
+  SpendBookWithToggles(state, MapRate);
+  LearnTheRest(state);
   // After the weapon, because a scroll on last tier's weapon is meso that
   // buys nothing: the next one displaces it slots and stars and all.
   shopper.Spend(state);

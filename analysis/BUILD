@@ -169,6 +169,7 @@ sim_binary(
         ":sim_gear",
         ":sim_jobs",
         ":sim_world",
+        ":skill_plan",
         "//src:embedded_data",
         "//src:game_state",
         "//src:proto_loader",
@@ -231,11 +232,13 @@ cc_library(
         "//src/item:equip_instance",
         "//src/item:projectile",
         "//src/item:shop",
+        "//src/protos:character_proto_cc",
         "//src/protos:equip_proto_cc",
         "//src/protos:item_proto_cc",
         "//src/protos:map_proto_cc",
         "//src/protos:mob_proto_cc",
         "//src/protos:scroll_proto_cc",
+        "//src/protos:skill_proto_cc",
     ],
 )
 

@@ -97,7 +97,21 @@ bool EquipByName(CharacterInstance& character, const std::string& name);
 // `budget` weighs the price against the purse: a sim measuring the climb wants
 // it, since affording the weapon is part of what it measures; one asking
 // whether a build can hold a map does not.
-void Outfit(GameState& state, bool budget);
+void Outfit(GameState& state, bool budget,
+            EquipType settled = EQUIP_TYPE_UNSPECIFIED);
+
+// The weapon type the character would settle on with their whole book behind
+// them. Measured on a copy, so it leaves them exactly as it found them.
+//
+// The weapon and the book are each worth what the other is: a weapon is worth
+// what the skills gated to it can do, and those skills are worth nothing
+// without one that can swing them. One of the two has to be settled first, and
+// a book spent point by point cannot do it -- every point goes to what the
+// weapon in hand can already swing, so a Paladin who happens to pick up a
+// polearm never buys Blast, and never measures a mace as worth holding. This
+// asks what the branch is FOR instead, which is what a player knows before
+// they spend anything.
+EquipType SettledWeaponType(GameState& state, bool budget);
 
 // Outfit with the choice already made: the top rung of `type` the character
 // can hold, what it draws from, their branch's off-hand, and the accessories
