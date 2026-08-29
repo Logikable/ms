@@ -67,12 +67,64 @@ std::string SymbolExpCell(const Equip& state) {
   return std::to_string(state.symbol_exp()) + "/" + std::to_string(needed);
 }
 
-// Where a slot sits in the list. The worn map is keyed by slot number, and the
-// slots a family gained are numbered at the bottom of the enum so that a save
-// could keep naming the first -- so the four rings would trail the list rather
-// than stand together. Reading the family off the slot puts them back.
+// The order the equipment window lists what is worn, top to bottom: down the
+// body, then the accessories, then what is carried rather than worn.
+//
+// A table rather than the enum's own order, because a slot number is what a
+// save names a worn item by and so can never move -- the rings and the second
+// pendant are numbered at the bottom of the enum, and would trail the list
+// instead of standing with their families.
+//
+// Only the head of each family is named. The symbols are here so that every
+// slot has a place; they are listed on a tab of their own, which sorts itself.
+constexpr EquipSlot kSlotOrder[] = {
+    EQUIP_SLOT_PRIMARY_WEAPON,
+    EQUIP_SLOT_HAT,
+    EQUIP_SLOT_TOP,
+    EQUIP_SLOT_BOTTOM,
+    EQUIP_SLOT_SHOES,
+    EQUIP_SLOT_GLOVES,
+    EQUIP_SLOT_CAPE,
+    EQUIP_SLOT_SHOULDER,
+    EQUIP_SLOT_BELT,
+    EQUIP_SLOT_FACE_ACCESSORY,
+    EQUIP_SLOT_EYE_ACCESSORY,
+    EQUIP_SLOT_EARRINGS,
+    EQUIP_SLOT_PENDANT,
+    EQUIP_SLOT_RING,
+    EQUIP_SLOT_EMBLEM,
+    EQUIP_SLOT_BADGE,
+    EQUIP_SLOT_MEDAL,
+    EQUIP_SLOT_POCKET,
+    EQUIP_SLOT_PROJECTILE,
+    EQUIP_SLOT_SECONDARY,
+    EQUIP_SLOT_HEART,
+    EQUIP_SLOT_SYMBOL_VANISHING_JOURNEY,
+    EQUIP_SLOT_SYMBOL_CHU_CHU_ISLAND,
+    EQUIP_SLOT_SYMBOL_LACHELEIN,
+    EQUIP_SLOT_SYMBOL_ARCANA,
+    EQUIP_SLOT_SYMBOL_MORASS,
+    EQUIP_SLOT_SYMBOL_ESFERA,
+};
+
+// Every slot but UNSPECIFIED and the four a family gained. A slot added
+// without a place in the list would sort to the bottom unnoticed.
+static_assert(EquipSlot_ARRAYSIZE ==
+                  static_cast<int>(sizeof(kSlotOrder) / sizeof(kSlotOrder[0])) +
+                      5,
+              "a new slot needs a place in kSlotOrder");
+
+// Where a slot sits in the list: its family's place, then its own place
+// within the family, so the four rings stand together in the order they fill.
 int SlotOrder(EquipSlot slot) {
-  return BaseSlot(slot) * 10 + SlotIndex(slot);
+  EquipSlot base = BaseSlot(slot);
+  int size = static_cast<int>(sizeof(kSlotOrder) / sizeof(kSlotOrder[0]));
+  for (int i = 0; i < size; ++i) {
+    if (kSlotOrder[i] == base) {
+      return i * 10 + SlotIndex(slot);
+    }
+  }
+  return size * 10;
 }
 
 }  // namespace

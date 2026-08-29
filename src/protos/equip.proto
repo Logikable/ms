@@ -68,6 +68,11 @@ enum EquipType {
 
 // The equipment window slot this item occupies when worn. Determines where the
 // item appears on the character and enforces one-item-per-slot.
+//
+// These numbers are what a save names a worn item by, so a slot can be added
+// but never moved -- they are the order the slots arrived in, not an order
+// anybody reads. The order the equipment window lists them in is kSlotOrder,
+// in src/frontend/widgets/equipped_list.cc.
 enum EquipSlot {
   EQUIP_SLOT_UNSPECIFIED = 0;
   EQUIP_SLOT_PRIMARY_WEAPON = 1;
@@ -80,9 +85,7 @@ enum EquipSlot {
   // Shield Mastery waits on; see Skill.requires_secondary.
   EQUIP_SLOT_SECONDARY = 3;
 
-  // Armour. Numbered after the hands because the Equipped panel lists what is
-  // worn in this enum's order, and the two rows a player already reads should
-  // not move to make room.
+  // Armour.
   //
   // Top and bottom are separate slots and always will be. An overall covers
   // both for one item's worth of scrolling and star forcing, which is a
@@ -91,10 +94,7 @@ enum EquipSlot {
   EQUIP_SLOT_TOP = 5;
   EQUIP_SLOT_BOTTOM = 6;
   EQUIP_SLOT_CAPE = 7;
-  // The accessories, worn on the face rather than over the body. They come
-  // after the cape because these numbers are what a save names a worn item by,
-  // so the slots that shipped first cannot move to make room -- which is why
-  // the Equipped panel lists them below the armour rather than beside the hat.
+  // The accessories, worn on the face rather than over the body.
   EQUIP_SLOT_FACE_ACCESSORY = 8;
   EQUIP_SLOT_EYE_ACCESSORY = 9;
 
@@ -111,9 +111,9 @@ enum EquipSlot {
   // Worn rather than carried, and the one slot with no level on it at all:
   // what goes here is a boss reward a character keeps from the day it drops.
   EQUIP_SLOT_POCKET = 14;
-  // Last rather than beside the other accessories, for the same reason the
-  // accessories sit below the armour: a save names a worn item by this number,
-  // so a slot can be added but never moved. Horntail's earring fills it.
+  // Last of the slots that shipped first: a save names a worn item by this
+  // number, so it arrived here rather than beside the other accessories.
+  // Horntail's earring fills it.
   EQUIP_SLOT_EARRINGS = 15;
 
   // One slot per Arcane River area, because a character wears one symbol from
@@ -134,8 +134,8 @@ enum EquipSlot {
   // first of these that is free; see SlotFamily in src/item/item.h. The rule
   // that keeps them apart is that no family holds the same item twice.
   //
-  // Numbered here rather than beside the first ring because a save names a
-  // worn item by this number: a slot can be added but never moved.
+  // Numbered here rather than beside the first ring for the same reason:
+  // a slot can be added but never moved.
   EQUIP_SLOT_RING_2 = 22;
   EQUIP_SLOT_RING_3 = 23;
   EQUIP_SLOT_RING_4 = 24;

@@ -566,26 +566,28 @@ TEST_F(EquippedPanelTest, CursorRowMovesDownWithTheCursor) {
 
 // --- scrolling a panel with more gear than room ---
 
-// A character wearing one item in every slot, each named after its slot so a
-// row can be told from the rows around it.
+// A character wearing nine items, named Gear1 to Gear9 for the rows they make
+// -- the slots are listed in the order the window lists them, so a test can
+// say which row it means.
 CharacterInstance MakeFullyGeared(std::mt19937& rng) {
   const EquipSlot kSlots[] = {
       EQUIP_SLOT_PRIMARY_WEAPON,
-      EQUIP_SLOT_PROJECTILE,
-      EQUIP_SLOT_SECONDARY,
       EQUIP_SLOT_HAT,
       EQUIP_SLOT_TOP,
       EQUIP_SLOT_BOTTOM,
       EQUIP_SLOT_CAPE,
       EQUIP_SLOT_FACE_ACCESSORY,
       EQUIP_SLOT_EYE_ACCESSORY,
+      EQUIP_SLOT_PROJECTILE,
+      EQUIP_SLOT_SECONDARY,
   };
   Character proto;
   proto.set_job(JOB_SWORDMAN);
   CharacterInstance geared(rng, std::move(proto));
+  int row = 0;
   for (EquipSlot slot : kSlots) {
     EquipPrototype item;
-    item.set_name("Gear" + std::to_string(static_cast<int>(slot)));
+    item.set_name("Gear" + std::to_string(++row));
     item.set_equip_slot(slot);
     geared.PickUp(std::make_unique<EquipInstance>(item));
     geared.Equip(0);
