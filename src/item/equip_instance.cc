@@ -124,12 +124,9 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
     return kScrollNoSlots;
   }
   if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
-    // TODO: golden hammers will not work against this. The cap counts the
-    // prototype's slots, so a hammer slot added to the instance cannot be
-    // bought back once it fails -- the cap has to come from the instance's own
-    // total once hammers exist. //analysis:economy_sim prices the job
-    // assuming they do.
-    int cap = prototype_.upgrade_slots() - state_.scroll_successes();
+    // Against the item's own shelf, hammers included: a slot a hammer opened
+    // is a slot a clean slate buys back.
+    int cap = TotalUpgradeSlots(prototype_, state_) - state_.scroll_successes();
     if (state_.remaining_upgrade_slots() >= cap) {
       return kScrollNoSlots;
     }
@@ -148,6 +145,15 @@ ScrollOutcome EquipInstance::Scroll(const ms::Scroll& scroll,
   const EquipStats scroll_sources[] = {state_.scroll_stats(), scroll.stats()};
   *state_.mutable_scroll_stats() = SumEquipStats(scroll_sources);
   return kScrollSuccess;
+}
+
+bool EquipInstance::Hammer() {
+  if (!CanHammer()) {
+    return false;
+  }
+  state_.set_hammers(state_.hammers() + 1);
+  state_.set_remaining_upgrade_slots(state_.remaining_upgrade_slots() + 1);
+  return true;
 }
 
 StarForceOutcome EquipInstance::StarForce(std::mt19937& rng) {

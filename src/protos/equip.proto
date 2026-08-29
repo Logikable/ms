@@ -282,4 +282,8 @@ message Equip {
   // Duplicates absorbed toward the next level. Survives a level-up: what is
   // left over after the ladder's price is paid carries into the next rung.
   int32 symbol_exp = 8;
+  // Golden hammers driven into this piece, each one an upgrade slot on top of
+  // the prototype's. Capped at kMaxHammers. The total the item holds is
+  // TotalUpgradeSlots, not upgrade_slots -- see src/item/item.h.
+  int32 hammers = 9;
 }

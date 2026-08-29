@@ -11,6 +11,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/arcane_force.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
 #include "src/protos/item.pb.h"
@@ -427,10 +428,11 @@ std::vector<ftxui::Element> InspectPanel::FactRows() const {
     rows.push_back(EmptyState("no stats"));
   }
 
-  if (proto.upgrade_slots() > 0) {
+  int slots = TotalUpgradeSlots(proto, item_state);
+  if (slots > 0) {
     int pass = item_state.scroll_successes();
     int left = item_state.remaining_upgrade_slots();
-    int restore = proto.upgrade_slots() - pass - left;
+    int restore = slots - pass - left;
     rows.push_back(ThemedSeparator());
     std::string scroll_label =
         pass == 1 ? " Successful Scroll " : " Successful Scrolls ";

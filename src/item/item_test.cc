@@ -107,6 +107,29 @@ TEST_F(StackableItemTest, MaxStackTakesTheItemsOrItsCategorys) {
 
 // A ring answers with its four slots wherever it is asked from, and every
 // other slot with the one it is. The order is the order they fill.
+TEST(UpgradeSlotsTest, AShelfIsSlotsPlusHammers) {
+  EquipPrototype proto;
+  proto.set_upgrade_slots(7);
+  Equip state;
+  EXPECT_EQ(TotalUpgradeSlots(proto, state), 7);
+  state.set_hammers(2);
+  EXPECT_EQ(TotalUpgradeSlots(proto, state), 9);
+}
+
+TEST(UpgradeSlotsTest, AShelfNeedsScrollsAndSlots) {
+  EquipPrototype proto;
+  proto.set_upgrade_slots(7);
+  EXPECT_TRUE(TakesUpgradeSlots(proto));
+
+  EquipPrototype slotless = proto;
+  slotless.set_upgrade_slots(0);
+  EXPECT_FALSE(TakesUpgradeSlots(slotless));
+
+  EquipPrototype refuses = proto;
+  refuses.add_unsupported_upgrades(UPGRADE_SCROLL);
+  EXPECT_FALSE(TakesUpgradeSlots(refuses));
+}
+
 TEST(SlotFamilyTest, RingsAndPendantsAnswerWithTheirWholeFamily) {
   const std::vector<EquipSlot> kRings = {EQUIP_SLOT_RING, EQUIP_SLOT_RING_2,
                                          EQUIP_SLOT_RING_3, EQUIP_SLOT_RING_4};

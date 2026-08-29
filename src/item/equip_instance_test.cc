@@ -105,6 +105,81 @@ TEST_F(EquipInstanceTest, SeededRngProducesBothOutcomes) {
   EXPECT_LT(successes, 20);
 }
 
+// --- Golden Hammer ---
+
+TEST_F(EquipInstanceTest, HammerOpensASlot) {
+  EquipPrototype proto = MakeEquip(1);
+  EquipInstance item(proto);
+  ASSERT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
+  EXPECT_TRUE(item.Hammer());
+  EXPECT_EQ(item.equip_state().hammers(), 1);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 1);
+  EXPECT_EQ(TotalUpgradeSlots(proto, item.equip_state()), 2);
+  // The new slot scrolls like any other, and what it lands stacks.
+  EXPECT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
+  EXPECT_EQ(item.stats().attack(), 4);
+}
+
+TEST_F(EquipInstanceTest, HammerStopsAtTwo) {
+  EquipInstance item(MakeEquip(1));
+  EXPECT_TRUE(item.Hammer());
+  EXPECT_TRUE(item.Hammer());
+  EXPECT_FALSE(item.CanHammer());
+  EXPECT_FALSE(item.Hammer());
+  EXPECT_EQ(item.equip_state().hammers(), kMaxHammers);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 3);
+}
+
+TEST_F(EquipInstanceTest, HammerNeedsAShelfToWiden) {
+  EquipInstance no_slots(MakeEquip(0));
+  EXPECT_FALSE(no_slots.CanHammer());
+  EXPECT_FALSE(no_slots.Hammer());
+
+  EquipPrototype refuses = MakeEquip(3);
+  refuses.add_unsupported_upgrades(UPGRADE_SCROLL);
+  EquipInstance item(refuses);
+  EXPECT_FALSE(item.CanHammer());
+  EXPECT_FALSE(item.Hammer());
+}
+
+TEST_F(EquipInstanceTest, HammerAfterStarsKeepsThemAndHoldsTheNextOne) {
+  EquipInstance item(MakeEquip(1));
+  ASSERT_EQ(item.Scroll(MakeScroll(100, 2), rng_), kScrollSuccess);
+  StarForceOutcome outcome = kStarForceFail;
+  for (int i = 0; i < 100 && outcome != kStarForceSuccess; ++i) {
+    outcome = item.StarForce(rng_);
+  }
+  ASSERT_EQ(item.stars(), 1);
+
+  ASSERT_TRUE(item.Hammer());
+  EXPECT_EQ(item.stars(), 1);  // the stars it has are not touched
+  EXPECT_FALSE(item.CanStarForce());
+  EXPECT_EQ(item.StarForce(rng_), kStarForceFail);
+  EXPECT_EQ(item.stars(), 1);
+
+  // Spending the hammer's slot -- landing it or not -- opens the way again.
+  ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
+  EXPECT_TRUE(item.CanStarForce());
+}
+
+TEST_F(EquipInstanceTest, CleanSlateBuysBackAHammerSlot) {
+  ms::Scroll slate;
+  slate.set_success_rate(100);
+  slate.set_scroll_category(SCROLL_CATEGORY_CLEAN_SLATE);
+
+  EquipInstance item(MakeEquip(1));
+  ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
+  ASSERT_TRUE(item.Hammer());
+  ASSERT_EQ(item.Scroll(MakeScroll(0, 2), rng_), kScrollFail);
+  ASSERT_EQ(item.equip_state().remaining_upgrade_slots(), 0);
+
+  // Both failures come back: the cap counts the hammer's slot as the item's.
+  EXPECT_EQ(item.Scroll(slate, rng_), kScrollSuccess);
+  EXPECT_EQ(item.Scroll(slate, rng_), kScrollSuccess);
+  EXPECT_EQ(item.equip_state().remaining_upgrade_slots(), 2);
+  EXPECT_EQ(item.Scroll(slate, rng_), kScrollNoSlots);
+}
+
 // --- Star Force ---
 
 TEST_F(EquipInstanceTest, StarForceSuccessIncrementsStars) {

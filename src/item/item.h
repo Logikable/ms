@@ -32,6 +32,17 @@ constexpr char kSpellTraceName[] = "Spell Trace";
 // star force may already be at max stars.
 bool Supports(const EquipPrototype& proto, Upgrade upgrade);
 
+// Whether `proto` has upgrade slots at all: it takes scrolls, and it drops
+// carrying somewhere to put one. The question a golden hammer asks -- a hammer
+// widens a shelf that exists, and cannot build one.
+bool TakesUpgradeSlots(const EquipPrototype& proto);
+
+// How many upgrade slots this drop holds: the prototype's, plus one for every
+// golden hammer driven into it. Ask this rather than upgrade_slots wherever
+// the number stands for the item's whole shelf -- what a clean slate may buy
+// back, what a list writes after the slash.
+int TotalUpgradeSlots(const EquipPrototype& proto, const Equip& state);
+
 // The slots an item of this family may be worn in, in the order they fill.
 // Pass any slot of the family: a ring answers with its four, a pendant with
 // its two, and everything else with the one slot it is.

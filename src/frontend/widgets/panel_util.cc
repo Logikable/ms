@@ -755,10 +755,11 @@ std::string FormatItemEntry(const std::string& name,
                             int name_width) {
   // An upgrade the item refuses outright reads "-": a zero there would look
   // like a ledger standing ready to be spent.
-  int pass = proto.upgrade_slots() > 0 ? state.scroll_successes() : -1;
+  int slots = TotalUpgradeSlots(proto, state);
+  int pass = slots > 0 ? state.scroll_successes() : -1;
   int stars = Supports(proto, UPGRADE_STAR_FORCE) ? state.stars() : -1;
-  return FormatItemEntry(name, slot_label, info, pass, proto.upgrade_slots(),
-                         stars, elapsed, name_width);
+  return FormatItemEntry(name, slot_label, info, pass, slots, stars, elapsed,
+                         name_width);
 }
 
 ftxui::Element ProgressBar(float frac, ftxui::Color fill,

@@ -354,6 +354,14 @@ bool Supports(const EquipPrototype& proto, Upgrade upgrade) {
   return true;
 }
 
+bool TakesUpgradeSlots(const EquipPrototype& proto) {
+  return Supports(proto, UPGRADE_SCROLL) && proto.upgrade_slots() > 0;
+}
+
+int TotalUpgradeSlots(const EquipPrototype& proto, const Equip& state) {
+  return proto.upgrade_slots() + state.hammers();
+}
+
 void StackableItem::add_count(int delta) {
   count_ += delta;
 }

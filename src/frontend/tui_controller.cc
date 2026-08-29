@@ -514,8 +514,8 @@ bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
     int remaining = item->equip_state().remaining_upgrade_slots();
     bool no_slots;
     if (scroll.scroll_category() == SCROLL_CATEGORY_CLEAN_SLATE) {
-      int slots = item->prototype().upgrade_slots();
-      int cap = slots - item->equip_state().scroll_successes();
+      int cap = TotalUpgradeSlots(item->prototype(), item->equip_state()) -
+                item->equip_state().scroll_successes();
       no_slots = remaining >= cap;
     } else {
       no_slots = remaining == 0;
