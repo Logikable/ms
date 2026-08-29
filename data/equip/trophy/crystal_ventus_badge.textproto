@@ -1,0 +1,18 @@
+name: "Crystal Ventus Badge"
+required_level: 130
+base_stats {
+  str: 10
+  dex: 10
+  int: 10
+  luk: 10
+  attack: 5
+  magic_attack: 5
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_BADGE
+# A trophy takes neither path in GMS. See the emblem beside it.
+unsupported_upgrades: UPGRADE_SCROLL
+unsupported_upgrades: UPGRADE_STAR_FORCE
+# Dropped by Magnus, never stocked. Half again what Horntail's pieces fetch:
+# his is the longer fight and the later gate.
+sell_price: 1500000

@@ -288,7 +288,9 @@ std::vector<std::string> BossAccessories() {
           "stone_of_eternal_life",
           "silver_blossom_ring",
           "horntail_necklace",
-          "dea_sidus_earring"};
+          "dea_sidus_earring",
+          "royal_black_metal_shoulder",
+          "crystal_ventus_badge"};
 }
 
 // What the shop's own Equips shelf fills the same slots with. Handed over

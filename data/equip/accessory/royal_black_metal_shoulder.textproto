@@ -1,0 +1,16 @@
+name: "Royal Black Metal Shoulder"
+required_level: 120
+base_stats {
+  str: 10
+  dex: 10
+  int: 10
+  luk: 10
+  attack: 6
+  magic_attack: 6
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_SHOULDER
+upgrade_slots: 1
+# Dropped by Magnus, never stocked, at the price the badge beside it fetches.
+sell_price: 1500000

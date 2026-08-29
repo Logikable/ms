@@ -1,8 +1,8 @@
 name: EQUIP_SET_NAME_BOSS_ACCESSORY
 # Nine slots in GMS: two eye accessories and two earrings among them, plus a
-# ring, a pendant, a belt, a shoulderpad and a pocket. Six of them have an item
-# here, so the first two tiers pay -- the rest arrive with the bosses that drop
-# them.
+# ring, a pendant, a belt, a shoulderpad and a pocket. Eight of them have an
+# item here, so every tier but the last pays -- the belt arrives with the boss
+# that drops it.
 complete_pieces: 9
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -27,6 +27,14 @@ members {
 members {
   slot: EQUIP_SLOT_EARRINGS
   name: "Dea Sidus Earring"
+}
+members {
+  slot: EQUIP_SLOT_SHOULDER
+  name: "Royal Black Metal Shoulder"
+}
+members {
+  slot: EQUIP_SLOT_BADGE
+  name: "Crystal Ventus Badge"
 }
 tiers {
   pieces: 3

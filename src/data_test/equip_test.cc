@@ -634,14 +634,17 @@ TEST(EquipDataTest, EverySetTierLeverHasARowOnTheInspectScreen) {
 
 // The accessories are boss rewards, and a boss is fought by everybody. One
 // written for a branch would be a piece of the set that a whole class can
-// never wear, and the set has no second route to that slot.
+// never wear, and the set has no second route to that slot. The shoulderpad
+// counts here too: GMS scrolls it with the armour, but it drops from a boss
+// and belongs to the same set.
 TEST(EquipDataTest, AccessoriesAreUniversalAndUpgradeable) {
   int seen = 0;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
     if (proto.equip_slot() != EQUIP_SLOT_FACE_ACCESSORY &&
-        proto.equip_slot() != EQUIP_SLOT_EYE_ACCESSORY) {
+        proto.equip_slot() != EQUIP_SLOT_EYE_ACCESSORY &&
+        proto.equip_slot() != EQUIP_SLOT_SHOULDER) {
       continue;
     }
     ++seen;
