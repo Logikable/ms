@@ -7,6 +7,9 @@
 # skill keeps the figure its own pair of explosions earns. It rides this swing
 # alone, the way an attack's ignored defence does.
 #
+# The defence it ignores climbs with the skill, as GMS's 10+x% does, and ends
+# where GMS ends.
+#
 # The passive raises Poison Mist for good. What it lifts is the mist itself --
 # the mark the cast leaves rather than the cast -- so it is points on the tick:
 # 240% a second becomes 300% with this maxed.
@@ -31,10 +34,13 @@ lines: 20
 cooldown_seconds: 10.0
 base {
   skill_pct: 0.965
-  ied_pct: 0.40
+  ied_pct: 0.115
   final_dmg_pct: 0.20
 }
-per_level { skill_pct: 0.015 }
+per_level {
+  skill_pct: 0.015
+  ied_pct: 0.015
+}
 boost {
   skill_name: "Poison Mist"
   dot_skill_pct: 0.315

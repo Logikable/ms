@@ -1,7 +1,12 @@
 # GMS leaves a wall of fire standing for a few seconds, striking on its own
-# clock. Nothing here lives on the ground, so it is what the wall is worth:
-# a Final Attack behind the fire spell that lit it, on GMS's own figures --
-# a (10+4x)% chance of three hits of (30+x)%, each rolling for itself.
+# clock. Nothing here lives on the ground, so it is what the WHOLE wall is
+# worth: a Final Attack behind the fire spell that lit it, at GMS's own
+# (10+4x)% chance of (30+x)% a hit.
+#
+# Twelve hits, not three. The client's three are one burst of the wall, which
+# fires every 1.5 seconds (`subTime`) for the 4+floor(x/4) it stands -- four
+# bursts once the duration passes five seconds, three below it. Folding the
+# wall into the roll is what charges it to the swing that lit it.
 #
 # follows_skill_tag is what keeps it off Poison Breath, which is the whole
 # point of the skill.
@@ -17,7 +22,7 @@ follows_skill_tag: SKILL_TAG_FIRE
 base {
   final_attack_chance: 0.14
   final_attack_pct: 0.31
-  final_attack_lines: 3
+  final_attack_lines: 12
 }
 per_level {
   final_attack_chance: 0.04
