@@ -816,6 +816,10 @@ message SideStrike {
   int32 max_enemies = 4;
   int32 lines = 5;
   double cooldown_seconds = 6;
+  // Read exactly as Skill.scatter is, and for the same reason: Showdown throws
+  // six shurikens that each hunt down ONE enemy, so what the cast is worth
+  // depends on how many there are to spread over.
+  Scatter scatter = 7;
 }
 
 // A stronger version of a skill's attack, landed in place of every Nth

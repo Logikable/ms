@@ -9,6 +9,11 @@
 # would be firing it the whole time. Its six enemies are stated rather than
 # taken from the swing, because GMS's Showdown - Spread widens the talisman and
 # leaves the shuriken at six.
+#
+# Six of them go out, and each hunts ONE enemy down -- `mobCount` is 1 in the
+# client. So it scatters: against six monsters they take one apiece, and
+# against a lone boss all six land on it, the second and every later one
+# keeping half of itself. GMS states that cut in so many words.
 name: "Showdown"
 skill_order: 2
 description:
@@ -41,4 +46,8 @@ side_strike {
     normal_skill_pct: 2.00
   }
   per_level { skill_pct: 0.005 }
+  scatter {
+    hits: 6
+    repeat_final_dmg_pct: -0.50
+  }
 }

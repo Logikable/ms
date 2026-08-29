@@ -1101,6 +1101,18 @@ std::vector<Row> SwingRiderRows(const Skill& skill, int level) {
       rows.push_back(EffectRow(side.label() + " Normal",
                                SwingText(per_hit + normal, side.lines())));
     }
+    // A side strike scatters on its own row for the same reason the swing's
+    // does, and under its own name: the reach above is how far it spreads.
+    if (side.scatter().hits() > 0) {
+      std::string scattered =
+          std::to_string(side.scatter().hits()) + " strikes";
+      if (side.scatter().repeat_final_dmg_pct() != 0.0) {
+        scattered += ", repeats at " +
+                     FormatPercent(side.scatter().repeat_final_dmg_pct()) +
+                     " Final Damage";
+      }
+      rows.push_back(EffectRow(side.label() + " Scattered", scattered));
+    }
   }
   return rows;
 }

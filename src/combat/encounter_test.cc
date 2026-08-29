@@ -2001,8 +2001,9 @@ TEST(ComputeCombatParamsTest, AScatteredSwingCarriesItsStrikesAndItsCut) {
 }
 
 // Showdown's shuriken: a second attack the swing sets off, with its own reach,
-// its own strikes and a wait of its own. Nothing rides it -- it is not the
-// character's swing -- and a skill on its own clock never carries one.
+// its own strikes, its own scatter and a wait of its own. Nothing rides it --
+// it is not the character's swing -- and a skill on its own clock never
+// carries one.
 TEST(ComputeCombatParamsTest, ASwingCanSetOffAStrikeOnAWaitOfItsOwn) {
   Skill showdown;
   showdown.set_name("Showdown");
@@ -2019,6 +2020,8 @@ TEST(ComputeCombatParamsTest, ASwingCanSetOffAStrikeOnAWaitOfItsOwn) {
   side->set_cooldown_seconds(5.0);
   side->mutable_base()->set_skill_pct(0.09);
   side->mutable_base()->set_normal_skill_pct(2.00);
+  side->mutable_scatter()->set_hits(6);
+  side->mutable_scatter()->set_repeat_final_dmg_pct(-0.50);
 
   GameState state({}, {}, {}, {{"snail", MakeMob("Snail", 15)}},
                   {{"field", TwoSnailMap()}}, {{"showdown", showdown}});
@@ -2036,6 +2039,10 @@ TEST(ComputeCombatParamsTest, ASwingCanSetOffAStrikeOnAWaitOfItsOwn) {
   // Said nothing about its reach, so it goes as wide as the swing that lit it.
   EXPECT_EQ(swing.side->max_enemies, 6);
   EXPECT_DOUBLE_EQ(swing.side->cooldown_seconds, 5.0 * factor);
+  // Six shurikens, each hunting one enemy: they spread before they double up,
+  // and a second one on the same enemy keeps half of itself.
+  EXPECT_EQ(swing.side->scatter_hits, 6);
+  EXPECT_NEAR(swing.side->scatter_repeat_kept, 0.50, 1e-9);
   // Six lines of 209% against the swing's two of 373%: the strike is priced on
   // its own multiplier, and no mob here is a boss so it takes the whole of the
   // bonus against an ordinary monster.

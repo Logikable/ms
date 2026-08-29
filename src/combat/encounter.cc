@@ -499,6 +499,8 @@ AttackOption AttackFor(const Character& proto, const EquipStats& equipped,
     strike.max_enemies =
         side.max_enemies() > 0 ? side.max_enemies() : attack.max_enemies;
     strike.cooldown_seconds = side.cooldown_seconds() * speed_factor;
+    strike.scatter_hits = side.scatter().hits();
+    strike.scatter_repeat_kept = 1.0 + side.scatter().repeat_final_dmg_pct();
     for (const CombatType& type : types) {
       strike.damage_per_hit.push_back(ExpectedAttackDamage(stats, *type.mob));
     }
