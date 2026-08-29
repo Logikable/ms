@@ -85,8 +85,9 @@ std::string HeldWeaponName(const CharacterInstance& character);
 bool EquipByName(CharacterInstance& character, const std::string& name);
 
 // Buys and wears the best gear the character can hold: the weapon, the
-// ammunition it draws from, and their branch's off-hand. Both shelves are
-// shopped, the Frozen tier included.
+// ammunition it draws from, their branch's off-hand, and the rings, emblem and
+// medal on the shop's equipment shelf. Both shelves are shopped, the Frozen
+// tier included.
 //
 // Which weapon comes out of a measurement rather than a list -- the top rung
 // of every ladder they can hold is swung at a mob of their own level, and the
@@ -99,14 +100,17 @@ bool EquipByName(CharacterInstance& character, const std::string& name);
 void Outfit(GameState& state, bool budget);
 
 // Outfit with the choice already made: the top rung of `type` the character
-// can hold, what it draws from, and their branch's off-hand. For a sim that
-// settles the weapon elsewhere -- measuring it needs a book, and a book is
-// not always bought by the time the weapon has to be in hand.
+// can hold, what it draws from, their branch's off-hand, and the accessories
+// the shop sells beside it. For a sim that settles the weapon elsewhere --
+// measuring it needs a book, and a book is not always bought by the time the
+// weapon has to be in hand.
 void OutfitWeapon(GameState& state, EquipType type);
 
-// Wears the best of every slot the shop does not stock: the armour, the
-// accessories and the pocket, which in this game drop rather than sell. What
-// a player who had cleared everything would be standing in.
+// Wears the best of every slot the shop does not stock: the armour, the boss
+// accessories and the pocket, which in this game drop rather than sell. What a
+// player who had cleared everything would be standing in. A family of slots
+// takes as many distinct pieces as it holds, so a character wearing rings
+// wears four of them.
 //
 // `skip` names catalog keys to leave off, for a sim asking whether a fight can
 // be won without what only that fight pays -- a boss cannot be beaten in its
