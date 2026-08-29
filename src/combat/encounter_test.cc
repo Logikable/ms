@@ -3457,6 +3457,38 @@ TEST(ComputeBossParamsTest, RunsRealTimeWithNoRespawnAndNoIncomingHits) {
   EXPECT_GT(params.attacks.front().damage_per_hit[0], 0.0);
 }
 
+// A boss stands its parts a room apart, so a swing reaches half as many of
+// them. Rounded up, so nothing loses the part it was aimed at, and only in a
+// boss fight -- the same skill sweeps a whole map's worth on the field.
+TEST(ComputeBossParamsTest, ASwingReachesHalfAsManyPartsOfABoss) {
+  Skill slash;
+  slash.set_name("Slash Blast");
+  slash.set_kind(SKILL_KIND_ATTACK);
+  slash.set_job_advancement(JOB_ADVANCEMENT_SWORDMAN);
+  slash.set_max_level(20);
+  slash.set_max_enemies(5);
+  slash.mutable_base()->set_skill_pct(1.83);
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)},
+                   {"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}}, {{"slash_blast", slash}});
+  state.current_map = "field";
+  EquipSword(state);
+  GrantFirstJobSp(state, 1);
+  ASSERT_TRUE(state.character.LearnSkill(slash, 1));
+
+  CombatParams mapped = ComputeCombatParams(state);
+  ASSERT_EQ(mapped.attacks.size(), 2u);
+  EXPECT_EQ(mapped.attacks[1].max_enemies, 5);
+
+  BossDifficulty normal = NormalTwoPhase();
+  CombatParams boss = ComputeBossParams(state, "zakum", normal, 0);
+  ASSERT_EQ(boss.attacks.size(), 2u);
+  EXPECT_EQ(boss.attacks[1].max_enemies, 3) << "five rounds up to three";
+  EXPECT_EQ(boss.attacks[0].max_enemies, 1) << "the poke still reaches one";
+}
+
 TEST(ComputeBossParamsTest, EveryPhaseIsItsOwnEncounter) {
   GameState state({}, {}, {},
                   {{"arm", MakeMob("Zakum's Arm", 700000)},

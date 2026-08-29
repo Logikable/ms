@@ -1305,6 +1305,30 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   TagBuffGatedPulses(buff_skills, params);
 }
 
+// Halves how far one swing reaches, rounding up. A boss stands its parts a
+// room apart -- Zakum's arms down two columns, the dragon around his own
+// wings, Pink Bean's statues across the whole arena -- so a sweep that gathers
+// eight monsters off a map is not gathering eight of those. Rounded up, so a
+// skill still reaches the part it was aimed at.
+void HalveReach(std::vector<AttackOption>& attacks) {
+  for (AttackOption& attack : attacks) {
+    attack.max_enemies = (std::max(1, attack.max_enemies) + 1) / 2;
+  }
+}
+
+// Every list a swing can be picked from, the buffed windows included: a table
+// built for one combination of buffs reaches as far as the unbuffed one does.
+void HalveBossReach(CombatParams& params) {
+  HalveReach(params.attacks);
+  HalveReach(params.auto_attacks);
+  HalveReach(params.triggered_attacks);
+  for (AttackSet& set : params.buffed) {
+    HalveReach(set.attacks);
+    HalveReach(set.auto_attacks);
+    HalveReach(set.triggered_attacks);
+  }
+}
+
 }  // namespace
 
 const EquipPrototype* EquippedWeapon(const GameState& state) {
@@ -1382,6 +1406,7 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
   AddAttacks(state, derived, *weapon, 1.0, params);
+  HalveBossReach(params);
   // The boss screen draws every line as a number, which the map does not.
   params.record_damage_lines = true;
   params.active = true;
