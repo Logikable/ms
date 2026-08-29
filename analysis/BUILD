@@ -25,7 +25,10 @@ cc_library(
     hdrs = ["gear_plan.h"],
     deps = [
         ":sim_gear",
+        ":star_force_curve",
         "//src:game_state",
+        "//src/character:character_stats",
+        "//src/combat:damage",
         "//src/item",
         "//src/item:equip_instance",
         "//src/item:spell_trace_cost",

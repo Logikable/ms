@@ -48,6 +48,7 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -111,10 +112,10 @@ ABSL_FLAG(bool, all_branches, false,
 ABSL_FLAG(bool, playtime, true, "Print how long the climb takes.");
 ABSL_FLAG(bool, ledger, true,
           "Print what the climb spent and what it is wearing at the cap.");
-ABSL_FLAG(int, star_target, 15,
-          "Stars each piece is taken to, held down to its own maximum. 15 is "
-          "the last star an attempt cannot destroy the item at, which is "
-          "where a player wearing pieces one boss drops stops.");
+ABSL_FLAG(int, star_ceiling, ms::kMaxStarForce,
+          "A star the shopper will not go past whatever its arithmetic says. "
+          "Here so one run can be pinned against another: the shopper decides "
+          "where to stop by price, and stops well short of this.");
 ABSL_FLAG(int, scroll_rate, 100,
           "Success rate of the scrolls bought, as a whole percent. A lower "
           "rate pays more per slot it lands and wastes the rest, which on a "
@@ -423,11 +424,12 @@ struct Climb {
   // How many the set holds in all, which endgame_frozen is read against.
   int frozen_set_size = 0;
   int endgame_boss_set = 0;
-  // Pieces worn that take upgrades at all, and how many of them are finished:
-  // every slot spent and the stars up to the plan's target or the item's own
-  // ceiling, whichever is lower.
+  // Pieces worn that take an upgrade at all, how many of them have every slot
+  // spent, and the stars over all of them -- where the shopper stopped, since
+  // nothing told it where to.
   int endgame_pieces = 0;
-  int endgame_finished = 0;
+  int endgame_scrolled = 0;
+  int endgame_stars_worn = 0;
   std::string money_map;
   // The level each Frozen piece first dropped at, or 0 for one that never
   // did. The rates are set so that all four arrive before the level cap --
@@ -544,33 +546,36 @@ std::vector<std::pair<std::string, int>> UnlockedBosses(const GameState& state,
   return fights;
 }
 
-// Runs every open fight once and reports what they took off the clock. A run
-// that misses the limit pays nothing and still costs the whole of it.
+// Fights one boss once and reports what it took off the clock. A run that
+// misses the limit pays nothing and still costs the whole of it.
+double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
+                 int level, Climb& climb) {
+  const BossDifficulty& difficulty =
+      state.bosses[fight.first].difficulties(fight.second);
+  BossLog& log = climb.bosses[fight.first];
+  if (log.attempts == 0) {
+    log.name = state.bosses[fight.first].name();
+    log.unlock_level = difficulty.unlock_level();
+    log.first_attempt_level = level;
+  }
+  ++log.attempts;
+  BossOutcome outcome = FightBoss(state, fight.first, fight.second);
+  if (!outcome.won) {
+    return difficulty.time_limit_seconds();
+  }
+  ++log.clears;
+  if (log.first_clear_level == 0) {
+    log.first_clear_level = level;
+  }
+  return outcome.seconds;
+}
+
+// Runs every open fight once.
 double RunDailies(GameState& state, int level, Climb& climb) {
   double spent = 0.0;
   for (const std::pair<std::string, int>& fight :
        UnlockedBosses(state, level)) {
-    const BossDifficulty& difficulty =
-        state.bosses[fight.first].difficulties(fight.second);
-    BossLog& log = climb.bosses[fight.first];
-    if (log.attempts == 0) {
-      log.name = state.bosses[fight.first].name();
-      log.unlock_level = difficulty.unlock_level();
-      log.first_attempt_level = level;
-    }
-    ++log.attempts;
-    BossOutcome outcome = FightBoss(state, fight.first, fight.second);
-    if (outcome.won) {
-      ++log.clears;
-      spent += outcome.seconds;
-      if (log.first_clear_level == 0) {
-        log.first_clear_level = level;
-      }
-    } else {
-      spent += state.bosses[fight.first]
-                   .difficulties(fight.second)
-                   .time_limit_seconds();
-    }
+    spent += FightOnce(state, fight, level, climb);
   }
   return spent;
 }
@@ -591,49 +596,91 @@ struct Session {
   // Playtime so far, and when the next reset falls due.
   double seconds = 0.0;
   double next_daily = kDaySeconds;
+  // Fights already taken on, by boss key. A player walks up to a boss the day
+  // it opens rather than waiting for the reset to come round, and the reset is
+  // a day wide -- a climb crosses twenty levels inside one, so waiting for it
+  // is what made every first attempt land far above the unlock level.
+  std::set<std::string> tried;
 };
 
-// How many worn pieces take upgrades, and how many of them are finished at
-// `target`: every slot spent, and the stars up to that or the item's own
-// ceiling, whichever is lower.
-std::pair<int, int> PiecesFinished(const GameState& state, int target) {
+// What the upgradeable half of what is worn came to: how many pieces take an
+// upgrade at all, how many have every slot spent, and the stars over all of
+// them. Reported rather than held against a target, because the shopper has
+// none -- where it stopped is the answer, not the question.
+struct GearReached {
   int pieces = 0;
-  int finished = 0;
+  int scrolled = 0;
+  int stars = 0;
+};
+
+GearReached ReachedOnGear(const GameState& state) {
+  GearReached reached;
   for (const std::pair<const EquipSlot, EquipInstance>& entry :
        state.character.equipped()) {
     const EquipInstance& item = entry.second;
-    // max_stars() is the level's ceiling and says nothing about whether the
-    // item takes stars at all, so ask before believing it.
-    int stars = Supports(item.prototype(), UPGRADE_STAR_FORCE)
-                    ? std::min(target, item.max_stars())
-                    : 0;
+    bool takes_star =
+        Supports(item.prototype(), UPGRADE_STAR_FORCE) && item.max_stars() > 0;
     bool takes_scroll = Supports(item.prototype(), UPGRADE_SCROLL) &&
                         item.prototype().upgrade_slots() > 0;
-    if (!takes_scroll && stars == 0) {
+    if (!takes_scroll && !takes_star) {
       continue;  // an off-hand or a pocket, which takes neither
     }
-    ++pieces;
-    if (item.equip_state().remaining_upgrade_slots() == 0 &&
-        item.stars() >= stars) {
-      ++finished;
+    ++reached.pieces;
+    reached.stars += item.stars();
+    if (item.equip_state().remaining_upgrade_slots() == 0) {
+      ++reached.scrolled;
     }
   }
-  return {pieces, finished};
+  return reached;
 }
 
 // Runs the dailies if one is due, and puts what they dropped on. Returns
 // whether anything happened, since the fight parameters have to be rebuilt
 // when it did.
+// What a fight leaves behind: the drops worn, and the purse spent on them.
+void AfterFighting(Session& run) {
+  WearBestFromBag(run.state.character);
+  run.purse.Note(run.state.character);
+  run.shopper.Spend(run.state);
+  run.purse.Note(run.state.character);
+}
+
 bool MaybeDailies(Session& run, int level) {
   if (!absl::GetFlag(FLAGS_dailies) || run.seconds < run.next_daily) {
     return false;
   }
   run.next_daily += kDaySeconds;
+  for (const std::pair<std::string, int>& fight :
+       UnlockedBosses(run.state, level)) {
+    run.tried.insert(fight.first);
+  }
   run.seconds += RunDailies(run.state, level, run.climb);
-  WearBestFromBag(run.state.character);
-  run.purse.Note(run.state.character);
-  run.shopper.Spend(run.state);
-  run.purse.Note(run.state.character);
+  AfterFighting(run);
+  return true;
+}
+
+// Takes on any fight that has opened since the last look, the day it opens.
+// Separate from the dailies because the reset is a day wide and a climb
+// crosses twenty levels inside one: waiting for it is what made every branch's
+// first attempt land far above the level the fight unlocked at, which is the
+// question this sim is asked.
+bool TryNewUnlocks(Session& run, int level) {
+  if (!absl::GetFlag(FLAGS_dailies)) {
+    return false;
+  }
+  double spent = 0.0;
+  for (const std::pair<std::string, int>& fight :
+       UnlockedBosses(run.state, level)) {
+    if (!run.tried.insert(fight.first).second) {
+      continue;
+    }
+    spent += FightOnce(run.state, fight, level, run.climb);
+  }
+  if (spent <= 0.0) {
+    return false;
+  }
+  run.seconds += spent;
+  AfterFighting(run);
   return true;
 }
 
@@ -674,6 +721,9 @@ void ClimbToCap(Session& run) {
     NoteFrozenDrops(run.state, level, run.climb);
     Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
            run.purse, run.shopper);
+    // After retooling, so the fight is taken on in the gear the new level
+    // opened rather than in what the last one left.
+    TryNewUnlocks(run, level);
     NoteMilestones(run.state, level, run.seconds, run.purse, run.climb);
     params = ComputeCombatParams(run.state);
     stint = {level, 0.0, run.state.current_map,
@@ -726,10 +776,10 @@ void FarmAtCap(Session& run) {
   run.climb.endgame_frozen = PiecesWorn(run.state, "frozen");
   run.climb.frozen_set_size = SetSize(run.state, "frozen");
   run.climb.endgame_boss_set = PiecesWorn(run.state, "boss_accessory");
-  std::pair<int, int> finished =
-      PiecesFinished(run.state, absl::GetFlag(FLAGS_star_target));
-  run.climb.endgame_pieces = finished.first;
-  run.climb.endgame_finished = finished.second;
+  GearReached reached = ReachedOnGear(run.state);
+  run.climb.endgame_pieces = reached.pieces;
+  run.climb.endgame_scrolled = reached.scrolled;
+  run.climb.endgame_stars_worn = reached.stars;
 }
 
 Climb Play(const Catalogs& catalogs, Job branch,
@@ -743,7 +793,7 @@ Climb Play(const Catalogs& catalogs, Job branch,
     climb.milestone_seconds[i] = -1.0;
   }
   GearPlan plan;
-  plan.star_target = absl::GetFlag(FLAGS_star_target);
+  plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
 
   Session run = {state, maps, PathTo(branch), 0, Purse(), GearShopper(plan),
@@ -995,7 +1045,6 @@ void PrintTarget(const std::string& label, int met, int total,
 // against the targets rather than left in the tables to be read off.
 void PrintTargets(const std::vector<Job>& branches,
                   const std::vector<std::vector<Climb>>& runs) {
-  int star_target = absl::GetFlag(FLAGS_star_target);
   std::printf(
       "\nWhat each branch reached, over every run of it. The last column is "
       "the typical run --\nthe one whose climb to the cap took the middling "
@@ -1057,9 +1106,13 @@ void PrintTargets(const std::vector<Job>& branches,
       char spent[16];
       FormatShort(static_cast<double>(typical.endgame_spent), spent,
                   sizeof(spent));
-      std::printf("  %-46s %-12s %d of %d pieces finished at %d*\n",
-                  "  spent on gear", spent, typical.endgame_finished,
-                  typical.endgame_pieces, star_target);
+      std::printf("  %-46s %-12s %d of %d pieces scrolled out, %.1f* mean\n",
+                  "  spent on gear", spent, typical.endgame_scrolled,
+                  typical.endgame_pieces,
+                  typical.endgame_pieces == 0
+                      ? 0.0
+                      : static_cast<double>(typical.endgame_stars_worn) /
+                            typical.endgame_pieces);
       std::printf("  %-46s %s\n", "  farmed", typical.money_map.c_str());
     }
   }
