@@ -1173,6 +1173,12 @@ void CombatSim::TakeMobHit(const CombatParams& params, double dt) {
     return;
   }
   hit_phase_ -= params.hit_seconds;
+  // A frozen monster is stopped where it stands and never gets its swing off.
+  // The clock runs on regardless, so a long freeze eats several beats instead
+  // of banking them for the thaw.
+  if (queue_.front().frozen_left_seconds > 0.0) {
+    return;
+  }
   if (BlockHit(params)) {
     return;  // cancelled whole: nothing to lose, and nothing to reflect
   }

@@ -1327,6 +1327,16 @@ message Skill {
   // off the form grants nothing and offers nothing; while it is on, the skill
   // above stops instead. See DormantSkillNames.
   string toggle_skill_name = 52;
+  // How long this swing leaves what it reached FROZEN -- a status that lives on
+  // the monster, not the character. A frozen monster is stopped where it
+  // stands, so it lands no hit on the player for as long as the ice holds, and
+  // it is what Storm Magic, Shatter and Freezing Crush's critical damage all
+  // ask about. GMS states the seconds per skill: Cold Beam and Ice Strike both
+  // freeze for 8, Frostprey for 3.
+  //
+  // Not every ice swing freezes: GMS's Frozen Orb slows what it touches and
+  // freezes nothing, so this is stated rather than read off the element.
+  double freeze_seconds = 53;
   // --- From here down, one job line apiece. See the message comment. ---
   // The Fighter's. How many Combo Orbs this skill surrounds the character with
   // at level 1, and the rate that ring grows -- read exactly as `lines` and
@@ -1346,13 +1356,4 @@ message Skill {
   // what a held stack is worth is on the same skill -- see
   // SkillEffect::crit_dmg_per_freeze_stack.
   int32 freeze_stack_cap = 102;
-  // The I/L Magician's other half, and the one that lives on the ENEMY: how
-  // long this swing leaves what it reached frozen. GMS states it per skill --
-  // Cold Beam and Ice Strike both freeze for 8 seconds -- and being frozen is
-  // what Storm Magic, Shatter and Freezing Crush's critical damage all ask
-  // about, where the pile above only says how MUCH they are worth.
-  //
-  // Not every ice swing freezes: GMS's Frozen Orb slows what it touches and
-  // freezes nothing, so this is stated rather than read off the element.
-  double freeze_seconds = 103;
 }

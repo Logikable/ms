@@ -1232,6 +1232,34 @@ TEST(CombatSimTest, TheEngagedMobHitsBackOnItsOwnClock) {
   EXPECT_EQ(sim.player_hp(), 80);
 }
 
+// A frozen monster is stopped where it stands, so the beats that fall while
+// the ice holds land nothing on the player. Frostprey is what buys this for a
+// character with no ice swing of their own.
+TEST(CombatSimTest, AFrozenMobLandsNoHit) {
+  Mob snail = MakeMob("Snail", 100000);
+  CombatParams params = MakeParams(0.5, 1000.0, {MakeType(&snail, 1.0, 1)});
+  GivePlayerHp(params, 1000, /*interval=*/1.0, /*damage=*/10.0);
+
+  CombatSim thawed;
+  for (int i = 0; i < 50; ++i) {
+    thawed.Advance(params, 0.1);
+  }
+  EXPECT_LT(thawed.player_hp(), 1000);
+
+  params.attacks[0].freeze_seconds = 2.0;  // relaid by every swing
+  CombatSim frozen;
+  for (int i = 0; i < 50; ++i) {
+    frozen.Advance(params, 0.1);
+  }
+  EXPECT_EQ(frozen.player_hp(), 1000);
+
+  params.attacks[0].freeze_seconds = 0.0;  // the ice runs out and is not relaid
+  for (int i = 0; i < 40; ++i) {
+    frozen.Advance(params, 0.1);
+  }
+  EXPECT_LT(frozen.player_hp(), 1000);
+}
+
 // Holy Fountain: healing on a clock of its own, costing no swing and asking
 // for no hit. It runs against the damage coming in rather than instead of it,
 // and it arrives in pulses -- nothing until the interval is up, then the whole
