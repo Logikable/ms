@@ -38,6 +38,7 @@
 #include "analysis/sim_gear.h"
 #include "analysis/sim_jobs.h"
 #include "analysis/sim_world.h"
+#include "analysis/skill_plan.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
 #include "src/combat/encounter.h"
@@ -103,120 +104,6 @@ double Rate(const GameState& state, const std::string& boss_key,
   return rate + OffClockRate(params, played, 1.0, std::max(1, enemies));
 }
 
-// The catalog by the name a skill requirement calls it: the display name,
-// which is not the key the catalog is filed under.
-std::map<std::string, const Skill*> ByName(const GameState& state) {
-  std::map<std::string, const Skill*> named;
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    named[entry.second.name()] = &entry.second;
-  }
-  return named;
-}
-
-// Raises `skill` by `levels`, buying whatever it demands first. Returns the
-// points that went in, which is more than the levels asked for when the skill
-// stands behind a requirement nothing has paid for yet, and fewer when the SP
-// runs out. The caller restores the character afterwards, so a plan that
-// cannot be finished costs nothing.
-int Buy(GameState& state, const Skill& skill,
-        const std::map<std::string, const Skill*>& named, int levels,
-        int depth = 0) {
-  int spent = 0;
-  if (depth < 4 && skill.has_required_skill() &&
-      !state.character.MeetsSkillRequirement(skill)) {
-    std::map<std::string, const Skill*>::const_iterator req =
-        named.find(skill.required_skill().skill_name());
-    if (req == named.end()) {
-      return 0;
-    }
-    while (!state.character.MeetsSkillRequirement(skill)) {
-      int step = Buy(state, *req->second, named, 1, depth + 1);
-      if (step == 0) {
-        return spent;
-      }
-      spent += step;
-    }
-  }
-  for (int i = 0; i < levels && state.character.LearnSkill(skill); ++i) {
-    ++spent;
-  }
-  return spent;
-}
-
-// Spends the pool where it measures best against the fight: a point at a time,
-// into whichever skill lifts the rate most per point it costs.
-//
-// The catalog's own order is no allocation at all. A 4th job at 130 holds 150
-// points of a 200-point book, so which of them get spent is most of what the
-// character hits for -- and a player choosing them reads the fight in front of
-// them, which is what this does.
-void SpendBook(GameState& state, const std::string& boss_key,
-               const BossDifficulty& difficulty, int phase) {
-  std::map<std::string, const Skill*> named = ByName(state);
-  double held = Rate(state, boss_key, difficulty, phase);
-  while (true) {
-    Character before = state.character.ToProto();
-    const Skill* best = nullptr;
-    int best_levels = 0;
-    double best_score = 0.0;
-    double best_rate = held;
-    for (const std::pair<const std::string, Skill>& entry : state.skills) {
-      // One level, and the whole skill. A skill meant to replace the one
-      // being swung is worth nothing at its first level and everything at its
-      // last, and a chooser offered only the first would never buy it.
-      for (int levels : {1, entry.second.max_level()}) {
-        int points = Buy(state, entry.second, named, levels);
-        if (points > 0) {
-          double rate = Rate(state, boss_key, difficulty, phase);
-          double score = (rate - held) / points;
-          if (score > best_score) {
-            best_score = score;
-            best_rate = rate;
-            best_levels = levels;
-            best = &entry.second;
-          }
-        }
-        state.character.RestoreFrom(before, state.equips, state.items);
-      }
-    }
-    if (best == nullptr) {
-      return;
-    }
-    Buy(state, *best, named, best_levels);
-    held = best_rate;
-  }
-}
-
-// The book spent both ways round: every switch off, and every switch thrown
-// first. A switch costs no points and so is never one of the purchases above,
-// but it changes what the points are WORTH -- with Righteously Indignant
-// thrown, the levels in Heal are a six-enemy swing rather than a heal, and a
-// chooser that never threw it would never buy them.
-void SpendSp(GameState& state, const std::string& boss_key,
-             const BossDifficulty& difficulty, int phase) {
-  Character start = state.character.ToProto();
-  SpendBook(state, boss_key, difficulty, phase);
-  double off_rate = Rate(state, boss_key, difficulty, phase);
-  Character off_book = state.character.ToProto();
-
-  state.character.RestoreFrom(start, state.equips, state.items);
-  std::map<std::string, const Skill*> named = ByName(state);
-  bool thrown = false;
-  for (const std::pair<const std::string, Skill>& entry : state.skills) {
-    if (!entry.second.toggle() || Buy(state, entry.second, named, 1) <= 0) {
-      continue;
-    }
-    thrown = state.character.ToggleSkill(entry.second) || thrown;
-  }
-  if (thrown) {
-    SpendBook(state, boss_key, difficulty, phase);
-    if (Rate(state, boss_key, difficulty, phase) > off_rate) {
-      return;
-    }
-  }
-  state.character.RestoreFrom(off_book, state.equips, state.items);
-}
-
 // What one branch came to against the fight.
 struct Result {
   std::string weapon;
@@ -278,7 +165,9 @@ Result Fight(const Catalogs& catalogs, int level, Job branch,
   OutfitDrops(state, BossOwnDrops(*difficulty));
   FullyUpgrade(state);
   int phase = BossObjectivePhase(catalogs.mobs, *difficulty);
-  SpendSp(state, boss_key, *difficulty, phase);
+  SpendBookWithToggles(state, [&](GameState& s) {
+    return Rate(s, boss_key, *difficulty, phase);
+  });
   // Again, now that the book is spent: which trace an item wants is measured
   // on a swing, and the swing has changed under it.
   FullyUpgrade(state);
