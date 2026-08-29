@@ -143,7 +143,7 @@ TEST(BossDataTest, AComingSoonDifficultyStatesOnlyItsPhases) {
     }
   }
   EXPECT_EQ(coming_soon, 4)
-      << "Chaos Zakum, Chaos Horntail, Hard Hilla and Normal Magnus";
+      << "Chaos Zakum, Chaos Horntail, Hard Hilla and Hard Magnus";
 }
 
 // The fights the screen advertises but cannot yet run, at the HP GMS gives
@@ -161,7 +161,7 @@ TEST(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
       {"zakum", "Chaos", {84000000000LL, 84000000000LL}},
       {"hilla", "Hard", {16800000000LL}},
       {"horntail", "Chaos", {3300000000LL, 3300000000LL, 20000000000LL}},
-      {"magnus", "Normal", {6000000000LL}},
+      {"magnus", "Hard", {120000000000LL}},
   };
   for (const Expectation& want : kExpected) {
     ASSERT_GT(bosses.count(want.boss), 0u) << want.boss;
@@ -243,6 +243,34 @@ TEST(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
 
+// The last boss the game opens, and the first whose gate is thirty levels
+// above the body behind it: he is fought at 160 and is level 130. Pinned for
+// the reason Zakum's numbers are -- the shape of a fight is a design decision.
+TEST(BossDataTest, NormalMagnusIsOneBodyBehindALateGate) {
+  std::map<std::string, Boss> bosses = LoadBosses();
+  std::map<std::string, Mob> mobs = LoadMobs();
+  ASSERT_GT(bosses.count("magnus"), 0u);
+  const BossDifficulty& normal = bosses.at("magnus").difficulties(0);
+  EXPECT_EQ(normal.name(), "Normal");
+  EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(normal.time_limit_seconds(), 900);
+  EXPECT_EQ(normal.unlock_level(), 160);
+  EXPECT_EQ(normal.meso(), 12960000);
+  EXPECT_EQ(normal.exp(), 5300000);
+  ASSERT_EQ(normal.phases_size(), 1);
+  ASSERT_EQ(normal.phases(0).spawns_size(), 1);
+  EXPECT_EQ(SpawnCount(normal.phases(0).spawns(0)), 1);
+  const Mob& magnus = mobs.at("magnus");
+  EXPECT_EQ(magnus.level(), 130);
+  EXPECT_EQ(magnus.max_hp(), 6000000000LL);
+  EXPECT_EQ(magnus.pdr(), 50);
+  ASSERT_EQ(normal.drops_size(), 2);
+  EXPECT_EQ(normal.drops(0).equip(), "crystal_ventus_badge");
+  EXPECT_EQ(normal.drops(0).per_kill(), 1.0);
+  EXPECT_EQ(normal.drops(1).equip(), "royal_black_metal_shoulder");
+  EXPECT_EQ(normal.drops(1).per_kill(), 1.0);
+}
+
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
 // top of another one.
 TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
@@ -304,12 +332,14 @@ TEST(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 // How much room each fight gives the player is a design decision, so the
 // count per phase is pinned: five among Zakum's arms and five under his body,
 // six around each of Horntail's heads and six around the dragon, five on
-// Hilla's floor. Every difficulty of a boss is laid out alike, and every phase
-// holds more than a full party, so a party of three always has somewhere left
-// to walk.
+// Hilla's floor and five on Magnus's. Every difficulty of a boss is laid out
+// alike, and every phase holds more than a full party, so a party of three
+// always has somewhere left to walk.
 TEST(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
-  std::map<std::string, std::vector<int>> expected = {
-      {"zakum", {5, 5}}, {"hilla", {5}}, {"horntail", {6, 6, 6}}};
+  std::map<std::string, std::vector<int>> expected = {{"zakum", {5, 5}},
+                                                      {"hilla", {5}},
+                                                      {"horntail", {6, 6, 6}},
+                                                      {"magnus", {5}}};
   std::map<std::string, Boss> bosses = LoadBosses();
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses.count(want.first), 0u) << want.first;
