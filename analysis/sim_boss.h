@@ -24,6 +24,12 @@ struct BossOutcome {
   bool won = false;
   // Seconds the clear took, 0 for a run that never finished.
   double seconds = 0.0;
+  // What was still standing when the clock ran out, over what the fight
+  // opened with. 0 for a clear. Phases the run never reached count whole, so a
+  // build that died on the first of three reads 1.0 rather than the fraction
+  // of the one it could see -- how CLOSE a loss was is the question, and a
+  // near miss is worth another go where a rout is not.
+  double left = 0.0;
 };
 
 // Fights `difficulty_index` of `boss_key` to the end and reports it, paying

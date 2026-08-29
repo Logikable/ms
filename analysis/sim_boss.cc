@@ -56,7 +56,10 @@ BossOutcome FightBoss(GameState& state, const std::string& boss_key,
   outcome.won = run.won();
   if (outcome.won) {
     outcome.seconds = clock - run.seconds_left();
+    return outcome;
   }
+  int phases = std::max(1, run.phase_count());
+  outcome.left = (phases - run.phase() + run.phase_hp_fraction()) / phases;
   return outcome;
 }
 

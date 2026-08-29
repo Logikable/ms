@@ -663,7 +663,7 @@ void NoteMilestones(const GameState& state, int level, double seconds,
 // Fights one boss once and reports what it took off the clock. A run that
 // misses the limit pays nothing and still costs the whole of it.
 double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
-                 int level, Climb& climb) {
+                 int level, Climb& climb, BossOutcome* result) {
   const BossDifficulty& difficulty =
       state.bosses[fight.first].difficulties(fight.second);
   BossLog& log = climb.bosses[fight.first];
@@ -674,6 +674,7 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
   }
   ++log.attempts;
   BossOutcome outcome = FightBoss(state, fight.first, fight.second);
+  *result = outcome;
   if (!outcome.won) {
     return difficulty.time_limit_seconds();
   }
@@ -682,16 +683,6 @@ double FightOnce(GameState& state, const std::pair<std::string, int>& fight,
     log.first_clear_level = level;
   }
   return outcome.seconds;
-}
-
-// Runs every open fight once.
-double RunDailies(GameState& state, int level, Climb& climb) {
-  double spent = 0.0;
-  for (const std::pair<std::string, int>& fight :
-       UnlockedBosses(state, level)) {
-    spent += FightOnce(state, fight, level, climb);
-  }
-  return spent;
 }
 
 // How often the player opens the game, and when.
@@ -706,8 +697,8 @@ double RunDailies(GameState& state, int level, Climb& climb) {
 // advancement and walk up to a boss.
 constexpr double kLookGap = 30.0 * 60.0;  // between looks inside one session
 
-// Looks a day, by level, interpolated between. A new character is watched;
-// one grinding out the last forty levels is checked morning and evening.
+// Looks a day, by level, interpolated between. A new character is watched; one
+// grinding out the last forty levels is checked morning and evening.
 struct LookAnchor {
   int level;
   double per_day;
@@ -734,10 +725,10 @@ double LooksPerDay(int level) {
 }
 
 // When they next open it. One look starts the day and the rest come together
-// in an evening, half an hour apart -- twelve looks is not one every two
+// in an evening, half an hour apart -- twelve looks a day is not one every two
 // hours, it is one at breakfast and eleven after work.
 //
-// `left` counts what is still owed to the evening, so a run is a burst
+// `left` counts what the evening still owes, so a run of looks is a burst
 // followed by a gap rather than an even spread.
 double NextLook(double now, int level, int* left, std::mt19937& rng) {
   if (*left > 0) {
@@ -746,16 +737,25 @@ double NextLook(double now, int level, int* left, std::mt19937& rng) {
   }
   double looks = std::max(1.0, LooksPerDay(level));
   *left = static_cast<int>(looks) - 1;
-  // Whatever the evening does not take, jittered so two runs of a branch do
-  // not open the game at the same moment all climb.
   double burst = *left * kLookGap;
   double gap = std::max(kLookGap, kDaySeconds / looks * (looks - *left));
   if (burst + gap > kDaySeconds) {
     gap = std::max(kLookGap, kDaySeconds - burst);
   }
+  // Jittered so two runs of a branch do not open the game at the same moment
+  // all climb.
   std::uniform_real_distribution<double> jitter(0.75, 1.25);
   return now + gap * jitter(rng);
 }
+
+// Where one fight stands with the player: whether today's clear is banked,
+// and what they are waiting on before the next attempt.
+struct FightState {
+  bool attempted = false;
+  bool cleared_today = false;
+  double retry_at = 0.0;
+  int power_at_last_try = 0;
+};
 
 // Everything one run of one branch carries while it is played. Held together
 // because the two halves -- the climb and the days after it -- differ only in
@@ -778,11 +778,8 @@ struct Session {
   double next_look = 0.0;
   int looks_left = 0;
   std::mt19937 rng;
-  // Fights already taken on, by boss key. A player walks up to a boss the day
-  // it opens rather than waiting for the reset to come round, and the reset is
-  // a day wide -- a climb crosses twenty levels inside one, so waiting for it
-  // is what made every first attempt land far above the unlock level.
-  std::set<std::string> tried;
+  // Where each fight stands with them, by boss key.
+  std::map<std::string, FightState> fights;
 };
 
 // What the upgradeable half of what is worn came to: how many pieces take an
@@ -827,36 +824,81 @@ void AfterFighting(Session& run) {
   run.purse.Note(run.state.character);
 }
 
-bool MaybeDailies(Session& run, int level) {
-  if (!absl::GetFlag(FLAGS_dailies) || run.seconds < run.next_daily) {
-    return false;
-  }
-  run.next_daily += kDaySeconds;
-  for (const std::pair<std::string, int>& fight :
-       UnlockedBosses(run.state, level)) {
-    run.tried.insert(fight.first);
-  }
-  run.seconds += RunDailies(run.state, level, run.climb);
-  AfterFighting(run);
-  return true;
+// How much of a fight has to be left standing before its loser gives up on
+// the day. A near miss is another twenty seconds of damage away, so they stay
+// and go again; a rout waits for something to change.
+constexpr double kNearMiss = 0.25;
+// How long they wait before that second go, and how much stronger they have to
+// have got for a loss to be worth revisiting without one.
+constexpr double kRetrySeconds = 30.0 * 60.0;
+constexpr double kRetryPowerGain = 1.05;
+
+int PowerNow(const GameState& state) {
+  const Character& proto = state.character.proto();
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills);
+  return CombatPower(OffenseStatsFor(
+      proto.job(), proto.level(), proto.allocated_stats(),
+      TotalEquipStats(state.character, derived), state.character.weapon_type(),
+      /*attack_skill=*/nullptr, /*attack_level=*/0,
+      PassiveOffenseFor(derived)));
 }
 
-// Takes on any fight that has opened since the last look, the day it opens.
-// Separate from the dailies because the reset is a day wide and a climb
-// crosses twenty levels inside one: waiting for it is what made every branch's
-// first attempt land far above the level the fight unlocked at, which is the
-// question this sim is asked.
-bool TryNewUnlocks(Session& run, int level) {
+// Whether this fight is worth walking up to now. It is on the day it opens,
+// and after that only once the loss has something new behind it: a level, a
+// fifth again the damage, or the twenty minutes it takes to believe the last
+// one was bad luck.
+bool WorthATry(const Session& run, const FightState& fight, bool levelled,
+               int power) {
+  if (fight.cleared_today) {
+    return false;
+  }
+  if (!fight.attempted) {
+    return true;
+  }
+  return levelled || run.seconds >= fight.retry_at ||
+         power >= fight.power_at_last_try * kRetryPowerGain;
+}
+
+// Takes on every fight that is open and worth a try, and puts what they
+// dropped on. Returns whether any of them was fought.
+//
+// A loss costs the clock and nothing else: the day is spent by BEATING a
+// boss, not by walking into it, so a player who misses goes again rather than
+// waiting for the reset. That is what a player does, and waiting for the reset
+// is what used to put every first clear far above the level the fight opened
+// at.
+bool TakeOnBosses(Session& run, int level, bool levelled) {
   if (!absl::GetFlag(FLAGS_dailies)) {
     return false;
   }
+  if (run.seconds >= run.next_daily) {
+    run.next_daily += kDaySeconds;
+    for (std::pair<const std::string, FightState>& entry : run.fights) {
+      entry.second.cleared_today = false;
+    }
+  }
+  int power = PowerNow(run.state);
   double spent = 0.0;
-  for (const std::pair<std::string, int>& fight :
+  for (const std::pair<std::string, int>& open :
        UnlockedBosses(run.state, level)) {
-    if (!run.tried.insert(fight.first).second) {
+    FightState& fight = run.fights[open.first];
+    if (!WorthATry(run, fight, levelled, power)) {
       continue;
     }
-    spent += FightOnce(run.state, fight, level, run.climb);
+    fight.attempted = true;
+    fight.power_at_last_try = power;
+    BossOutcome outcome;
+    spent += FightOnce(run.state, open, level, run.climb, &outcome);
+    if (outcome.won) {
+      fight.cleared_today = true;
+      continue;
+    }
+    fight.retry_at = run.seconds + spent + kRetrySeconds;
+    // A near miss keeps them at the keyboard, so the next look comes forward
+    // to meet it rather than waiting for the evening.
+    if (outcome.left <= kNearMiss) {
+      run.next_look = std::min(run.next_look, fight.retry_at);
+    }
   }
   if (spent <= 0.0) {
     return false;
@@ -889,7 +931,7 @@ void ClimbToCap(Session& run) {
     NoteTokenChances(params, sim, run.climb);
     run.purse.Note(run.state.character);
     run.seconds += run.step;
-    if (MaybeDailies(run, level) || sim.died_this_step()) {
+    if (sim.died_this_step()) {
       // Dying sends them home, where there is nothing to fight, and a fight
       // fought elsewhere leaves the map behind unchosen either way.
       PickMap(run.state, run.maps, run.beats, run.step);
@@ -906,9 +948,6 @@ void ClimbToCap(Session& run) {
       }
       Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
              run.purse, run.shopper);
-      // After retooling, so the fight is taken on in the gear this look
-      // bought rather than in what the last one left.
-      TryNewUnlocks(run, reached);
       looked = true;
     }
     if (levelled) {
@@ -923,6 +962,11 @@ void ClimbToCap(Session& run) {
       // The character got stronger whether or not anybody was watching, and
       // the fight is built off what they are.
       looked = true;
+    }
+    // After retooling, so a fight is taken on in the gear this look bought
+    // rather than in what the last one left.
+    if (looked && TakeOnBosses(run, reached, levelled)) {
+      PickMap(run.state, run.maps, run.beats, run.step);
     }
     if (looked) {
       params = ComputeCombatParams(run.state);
@@ -954,7 +998,7 @@ void FarmAtCap(Session& run) {
     AdvanceCombat(run.state, sim, params, run.step);
     run.purse.Note(run.state.character);
     run.seconds += run.step;
-    bool fought = MaybeDailies(run, level);
+    bool fought = TakeOnBosses(run, level, /*levelled=*/false);
     if (run.seconds >= next_retool) {
       next_retool += kDaySeconds / 24.0;
       WearBestFromBag(run.state.character);
