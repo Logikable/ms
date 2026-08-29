@@ -36,6 +36,9 @@ difficulties {
   # gate is ten levels over them, so the clock is on the room rather than on
   # the bean.
   time_limit_seconds: 600
+  # The first gate that opens before the fight is comfortable: at 170 the
+  # Shadower misses the clock, and the Paladin and the Bow Master make it with
+  # seconds to spare. Ten levels later all ten branches clear inside 7:20.
   unlock_level: 170
   # Five Intense Power Crystals at what his level fetches, as every boss's
   # meso is.
