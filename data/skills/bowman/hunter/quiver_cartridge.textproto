@@ -5,10 +5,14 @@
 #
 # GMS gates the arrowheads on a later skill and lets you swap between them.
 # There is nothing to swap here, so what is left is the one arrowhead, levelled.
+#
+# The arrow "pursues the enemy" and states no mobCount, so it lands on ONE of
+# the enemies the swing reached -- the same shape as Final Attack.
 name: "Quiver Cartridge"
 skill_order: 2
 description: "Uses a special arrowhead."
 kind: SKILL_KIND_PASSIVE
+final_attack_single_enemy: true
 job_advancement: JOB_ADVANCEMENT_HUNTER
 max_level: 10
 base {
