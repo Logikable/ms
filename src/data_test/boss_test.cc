@@ -236,9 +236,9 @@ TEST(BossDataTest, NormalZakumIsEightArmsThenTheBody) {
   EXPECT_EQ(normal.meso(), 3062500);
   ASSERT_EQ(normal.drops_size(), 3);
   EXPECT_EQ(normal.drops(0).equip(), "aquatic_letter_eye_accessory");
-  EXPECT_EQ(normal.drops(0).per_kill(), 0.5);
+  EXPECT_EQ(normal.drops(0).per_kill(), 1.0);
   EXPECT_EQ(normal.drops(1).equip(), "condensed_power_crystal");
-  EXPECT_EQ(normal.drops(1).per_kill(), 0.5);
+  EXPECT_EQ(normal.drops(1).per_kill(), 1.0);
   EXPECT_EQ(normal.drops(2).item(), "zakums_soul_shard");
   EXPECT_EQ(normal.drops(2).per_kill(), 1.0);
 }
