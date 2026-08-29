@@ -192,6 +192,18 @@ int PiecesWorn(const GameState& state, const std::string& key) {
   return state.character.PiecesWornOf(it->second);
 }
 
+// How many pieces that set holds once every one of them is written, which is
+// what a count of what is worn is read against. Asked of the set rather than
+// written here, so a piece added to it tomorrow is counted rather than
+// overflowing a number nobody moved.
+int SetSize(const GameState& state, const std::string& key) {
+  std::map<std::string, EquipSet>::const_iterator it =
+      state.character.equip_sets().find(key);
+  return it == state.character.equip_sets().end()
+             ? 0
+             : it->second.complete_pieces();
+}
+
 // The weapon's stars, and the upgrade slots still open in it. -1 apiece for
 // bare hands, which reads as a row with nothing in it rather than as zero.
 std::pair<int, int> WeaponUpgrades(const GameState& state) {
@@ -370,9 +382,10 @@ struct Stint {
 // The Frozen Set's pieces, in the order they become wearable, and the two
 // tokens the last two pieces are bought with. Named rather than derived so the
 // table reads the same however the catalog is walked.
-const char* const kFrozenPieces[] = {"Frozen Top", "Frozen Bottom",
-                                     "Frozen Hat", "Frozen Cape"};
-constexpr int kNumFrozenPieces = 4;
+const char* const kFrozenPieces[] = {"Frozen Top",    "Frozen Bottom",
+                                     "Frozen Hat",    "Frozen Cape",
+                                     "Frozen Gloves", "Frozen Boots"};
+constexpr int kNumFrozenPieces = 6;
 const char* const kFrozenTokens[] = {"Frozen Weapon Token",
                                      "Frozen Secondary Token"};
 // The same two by catalog key, which is how a mob's drop list names them.
@@ -407,6 +420,8 @@ struct Climb {
   int64_t endgame_spent = 0;
   int endgame_stars = 0;
   int endgame_frozen = 0;
+  // How many the set holds in all, which endgame_frozen is read against.
+  int frozen_set_size = 0;
   int endgame_boss_set = 0;
   // Pieces worn that take upgrades at all, and how many of them are finished:
   // every slot spent and the stars up to the plan's target or the item's own
@@ -485,7 +500,7 @@ void NoteMilestones(const GameState& state, int level, double seconds,
   if (climb.ten_star_level == 0 && weapon.first >= 10) {
     climb.ten_star_level = level;
   }
-  if (climb.frozen_set_level == 0 && frozen >= 6) {
+  if (climb.frozen_set_level == 0 && frozen >= SetSize(state, "frozen")) {
     climb.frozen_set_level = level;
   }
   for (int i = 0; i < kNumMilestones; ++i) {
@@ -709,6 +724,7 @@ void FarmAtCap(Session& run) {
   run.climb.endgame_spent = run.purse.spent - spent_at_cap;
   run.climb.endgame_stars = weapon.first;
   run.climb.endgame_frozen = PiecesWorn(run.state, "frozen");
+  run.climb.frozen_set_size = SetSize(run.state, "frozen");
   run.climb.endgame_boss_set = PiecesWorn(run.state, "boss_accessory");
   std::pair<int, int> finished =
       PiecesFinished(run.state, absl::GetFlag(FLAGS_star_target));
@@ -1004,7 +1020,7 @@ void PrintTargets(const std::vector<Job>& branches,
         "Frozen Set complete by the cap", frozen, total,
         typical.frozen_set_level == 0
             ? std::to_string(typical.milestone_frozen[kNumMilestones - 1]) +
-                  " of 6"
+                  " of " + std::to_string(typical.frozen_set_size)
             : "Lv" + std::to_string(typical.frozen_set_level));
 
     // A boss beaten on the day it opened is the question; one beaten later is
@@ -1033,10 +1049,11 @@ void PrintTargets(const std::vector<Job>& branches,
       FormatShort(static_cast<double>(typical.endgame_earned), earned,
                   sizeof(earned));
       std::printf(
-          "  %-46s %-12s %d* weapon, %d of 6 Frozen, %d Boss acc.\n",
+          "  %-46s %-12s %d* weapon, %d of %d Frozen, %d Boss acc.\n",
           ("after " + Clock(typical.endgame_seconds) + " at the cap").c_str(),
           (std::string(earned) + " earned").c_str(), typical.endgame_stars,
-          typical.endgame_frozen, typical.endgame_boss_set);
+          typical.endgame_frozen, typical.frozen_set_size,
+          typical.endgame_boss_set);
       char spent[16];
       FormatShort(static_cast<double>(typical.endgame_spent), spent,
                   sizeof(spent));
