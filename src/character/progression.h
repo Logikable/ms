@@ -35,6 +35,10 @@ enum class Feature {
   kUnequip,
   kScrolling,
   kStarForce,
+  // The golden hammer, which widens a piece's scroll shelf. Last of the three
+  // upgrades and the highest gated: it is worth its price only on gear a
+  // player means to keep.
+  kHammer,
   // Recovery is not here: it needs a trace, and a trace only exists after an
   // item exploded, which no level reaches on its own. The item is the gate.
   // Tabs. Skills is the one gate that is not level alone -- see Unlocked.

@@ -75,9 +75,11 @@ TEST_F(ProgressionTest, TheStatBlockReportsTheAdvancementLevel) {
 // feature through UnlockLevel rather than against a copy of the table, so
 // moving a gate does not need this test touched.
 TEST_F(ProgressionTest, AFeatureOpensOnTheLevelItNames) {
-  const Feature kLevelGated[] = {Feature::kEquipped,  Feature::kBag,
-                                 Feature::kUnequip,   Feature::kShop,
-                                 Feature::kScrolling, Feature::kStarForce};
+  const Feature kLevelGated[] = {
+      Feature::kEquipped, Feature::kBag,       Feature::kUnequip,
+      Feature::kShop,     Feature::kScrolling, Feature::kStarForce,
+      Feature::kHammer,
+  };
   for (Feature feature : kLevelGated) {
     int level = UnlockLevel(feature);
     SCOPED_TRACE(FeatureName(feature));
@@ -98,6 +100,7 @@ TEST_F(ProgressionTest, ScrollingWaitsForTheEarlyGameToBeOver) {
 TEST_F(ProgressionTest, EveryUpgradeFallsInsideTheCap) {
   EXPECT_LE(UnlockLevel(Feature::kScrolling), kTrialLevelCap);
   EXPECT_LE(UnlockLevel(Feature::kStarForce), kTrialLevelCap);
+  EXPECT_LE(UnlockLevel(Feature::kHammer), kTrialLevelCap);
 }
 
 // --- what the account opens ---
@@ -118,6 +121,8 @@ TEST_F(ProgressionTest, ASecondCharacterStartsWithTheAccountsUnlocks) {
     SCOPED_TRACE(FeatureName(feature));
     EXPECT_TRUE(Unlocked(feature, fresh, account_));
   }
+  EXPECT_FALSE(Unlocked(Feature::kHammer, fresh, account_))
+      << "an account that stopped at 140 never reached the hammer";
 }
 
 // The one gate the account cannot answer for: the skills tab needs a job,
@@ -191,8 +196,9 @@ TEST_F(ProgressionTest, GroundTheAccountHasCoveredAnnouncesNothing) {
       UpgradesUnlockedBetween(level - 1, level, /*account_level=*/140).empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/50).size(),
-      1u)
-      << "star force is still ahead of an account that stopped at 50";
+      2u)
+      << "star force and the hammer are ahead of an account that stopped "
+         "at 50";
 }
 
 // Panels and tabs go gold on their own when they arrive; only the item-menu
@@ -203,15 +209,15 @@ TEST_F(ProgressionTest, OnlyTheItemMenuUpgradesAreAnnounced) {
                   .empty());
   EXPECT_EQ(
       UpgradesUnlockedBetween(1, kTrialLevelCap, /*account_level=*/0).size(),
-      2u)
-      << "scrolling and star force, in the order they arrive";
+      3u)
+      << "scrolling, star force and the hammer, in the order they arrive";
 }
 
 TEST_F(ProgressionTest, EveryFeatureHasAName) {
   const Feature kAll[] = {
       Feature::kEquipped,  Feature::kBag,       Feature::kUnequip,
-      Feature::kScrolling, Feature::kStarForce, Feature::kSkills,
-      Feature::kShop,
+      Feature::kScrolling, Feature::kStarForce, Feature::kHammer,
+      Feature::kSkills,    Feature::kShop,
   };
   for (Feature feature : kAll) {
     EXPECT_FALSE(FeatureName(feature).empty());
@@ -275,6 +281,19 @@ TEST_F(ProgressionTest, AnUnwalkedFirstStepOutlastsTheNextUpgrade) {
   EXPECT_FALSE(LeadToWeapon(c, account_));
   EXPECT_TRUE(LeadToAction(Feature::kStarForce, c, account_))
       << "opening the menu is not pressing the entry";
+}
+
+// The last of the three, and the last trail. It comes after star force and
+// lights the entry alone, for the same reason star force does.
+TEST_F(ProgressionTest, TheHammerIsTheThirdUpgradeAndLightsItsEntry) {
+  EXPECT_GT(UnlockLevel(Feature::kHammer), UnlockLevel(Feature::kStarForce));
+
+  CharacterInstance c = MakeCharacter(UnlockLevel(Feature::kHammer));
+  FollowedToWeapon(c, account_);
+  EXPECT_TRUE(LeadToAction(Feature::kHammer, c, account_));
+  EXPECT_FALSE(LeadToWeapon(c, account_)) << "the hammer lit the weapon";
+  FollowedToAction(Feature::kHammer, account_);
+  EXPECT_FALSE(LeadToAction(Feature::kHammer, c, account_));
 }
 
 // Only the upgrades have one. A tab that lights itself gold when it arrives is

@@ -45,6 +45,10 @@ constexpr Unlock kUnlocks[] = {
     // take 15, and now that an attempt is priced, opening the screen earlier
     // only offers the player a bill for a star that is barely worth having.
     {Feature::kStarForce, 120},
+    // Past the level cap of the trial, and well past the gear a player scrolls
+    // on the way there: a hammer is 10 million meso for one slot, which is
+    // only worth paying on a piece they mean to keep.
+    {Feature::kHammer, 150},
     // Arcane River opens at 200, and it opens with a symbol handed over -- so
     // the tab arrives with something to put in it.
     {Feature::kSymbols, 200},
@@ -77,6 +81,7 @@ constexpr StageUnlock kStageUnlocks[] = {
 constexpr Feature kUpgrades[] = {
     Feature::kScrolling,
     Feature::kStarForce,
+    Feature::kHammer,
 };
 
 // The upgrades with a gold trail, and the slug their latch keys are built
@@ -96,6 +101,7 @@ struct Led {
 constexpr Led kLedUpgrades[] = {
     {Feature::kScrolling, "scrolling", true},
     {Feature::kStarForce, "star_force", false},
+    {Feature::kHammer, "hammer", false},
 };
 
 std::string WeaponLeadKey(const char* slug) {
@@ -172,6 +178,8 @@ std::string FeatureName(Feature feature) {
       return "Scrolling";
     case Feature::kStarForce:
       return "Star Force";
+    case Feature::kHammer:
+      return "the Golden Hammer";
     case Feature::kSkills:
       return "Skills";
     case Feature::kShop:
