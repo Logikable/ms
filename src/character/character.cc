@@ -1759,7 +1759,9 @@ bool CharacterInstance::UseStackable(ItemCategory category, int index) {
 }
 
 bool CharacterInstance::Buy(const EquipPrototype& proto, int count) {
-  if (count <= 0 || proto.shop_price() <= 0) {
+  // Presence, not size: the shop stocks one item for nothing, and a price of
+  // zero is what it charges rather than a refusal to sell.
+  if (count <= 0 || !proto.has_shop_price()) {
     return false;
   }
   // Priced in one go rather than a copy at a time, so a purchase the character

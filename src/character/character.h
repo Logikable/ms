@@ -263,6 +263,9 @@ class CharacterInstance {
   // changes nothing if `count` is not positive, the item is not for sale, or
   // the character cannot pay for every copy. Each copy is a fresh item, so
   // buying two puts two separate rows in the bag.
+  //
+  // An item priced at zero is for sale and costs nothing. Not naming a price
+  // at all is what puts an item outside the shop.
   bool Buy(const EquipPrototype& proto, int count);
   // Buys `count` copies of `proto` with the token it names, spending
   // `count * token_price` of them out of the Etc tab. The caller resolves

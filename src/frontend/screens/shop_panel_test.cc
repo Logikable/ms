@@ -37,6 +37,14 @@ EquipPrototype MakeItem(const std::string& name, int level, int price,
   return e;
 }
 
+// An item the shop does not stock: it names no price at all, which is not the
+// same as naming zero -- the shop hands one item over for nothing.
+EquipPrototype MakeUnpricedItem(
+    const std::string& name, int level,
+    EquipJobCategory job = EQUIP_JOB_CATEGORY_UNIVERSAL,
+    EquipType type = EQUIP_TYPE_ONE_HANDED_SWORD,
+    EquipSlot slot = EQUIP_SLOT_PRIMARY_WEAPON);
+
 // The same item, on the token shelf instead: it names a token rather than a
 // price, which is what puts it there.
 EquipPrototype MakeTokenItem(
@@ -44,9 +52,17 @@ EquipPrototype MakeTokenItem(
     EquipJobCategory job = EQUIP_JOB_CATEGORY_UNIVERSAL,
     EquipType type = EQUIP_TYPE_ONE_HANDED_SWORD,
     EquipSlot slot = EQUIP_SLOT_PRIMARY_WEAPON) {
-  EquipPrototype e = MakeItem(name, level, /*price=*/0, job, type, slot);
+  EquipPrototype e = MakeUnpricedItem(name, level, job, type, slot);
   e.set_token_item(token);
   e.set_token_price(count);
+  return e;
+}
+
+EquipPrototype MakeUnpricedItem(const std::string& name, int level,
+                                EquipJobCategory job, EquipType type,
+                                EquipSlot slot) {
+  EquipPrototype e = MakeItem(name, level, /*price=*/0, job, type, slot);
+  e.clear_shop_price();
   return e;
 }
 
@@ -301,7 +317,7 @@ class ShopPanelTest : public testing::Test {
                 EQUIP_TYPE_MEDALLION, EQUIP_SLOT_SECONDARY)},
       {"rosary", MakeItem("Holy Rosary", 30, 10000, EQUIP_JOB_CATEGORY_WARRIOR,
                           EQUIP_TYPE_ROSARY, EQUIP_SLOT_SECONDARY)},
-      {"heirloom", MakeItem("Heirloom", 10, 0)},
+      {"heirloom", MakeUnpricedItem("Heirloom", 10)},
       // The token shelves: one weapon and one off-hand nothing but a token
       // buys.
       {"frozen_sword", MakeTokenItem("Frozen Sword", 120, "weapon_token",
@@ -916,20 +932,20 @@ TEST_F(ShopPanelTest, AnEmptyShopSaysSo) {
   EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
 }
 
-// --- the Secondaries tab ---
+// --- the Equips tab ---
 
 // The bar reads left to right in the order a player meets the shelves: the
-// weapon first, then the hand beside it, and the consumables last.
-TEST_F(ShopPanelTest, TheBarReadsWeaponSecondaryEtc) {
+// weapon first, then the rest of what is worn, and the consumables last.
+TEST_F(ShopPanelTest, TheBarReadsWeaponEquipsEtc) {
   CharacterInstance c = MakeCharacter(100000);
   ShopPanel panel(c, equips_, items_);
   std::string rendered = Render(panel);
   size_t weapon = rendered.find("Weapon");
-  size_t secondary = rendered.find("Secondary");
+  size_t equips = rendered.find("Equips");
   size_t etc = rendered.find("Etc");
-  ASSERT_NE(secondary, std::string::npos);
-  EXPECT_LT(weapon, secondary);
-  EXPECT_LT(secondary, etc);
+  ASSERT_NE(equips, std::string::npos);
+  EXPECT_LT(weapon, equips);
+  EXPECT_LT(equips, etc);
 }
 
 // The meso counter is drawn over the same row as the chips. A third chip took
@@ -943,10 +959,10 @@ TEST_F(ShopPanelTest, TheMesoCounterDoesNotCoverATab) {
   EXPECT_NE(rendered.find("1,000,000,000"), std::string::npos);
 }
 
-TEST_F(ShopPanelTest, TheSecondaryShelfHoldsTheBranchsOwnOffHand) {
+TEST_F(ShopPanelTest, TheEquipShelfHoldsTheBranchsOwnOffHand) {
   CharacterInstance c = MakeCharacter(100000, 30, JOB_FIGHTER, /*stage=*/2);
   ShopPanel panel(c, equips_, items_);
-  OpenShelf(panel, kShopSecondaryTab);
+  OpenShelf(panel, kShopEquipsTab);
   std::string rendered = Render(panel);
   EXPECT_NE(rendered.find("Powers Medallion"), std::string::npos);
   EXPECT_EQ(rendered.find("Holy Rosary"), std::string::npos)
@@ -958,13 +974,49 @@ TEST_F(ShopPanelTest, TheSecondaryShelfHoldsTheBranchsOwnOffHand) {
 }
 
 // An off-hand belongs to one branch of one job, and a 1st job is not in a
-// branch yet -- so there is nothing on the shelf to buy or to want.
-TEST_F(ShopPanelTest, TheSecondaryShelfIsEmptyBeforeTheSecondJob) {
+// branch yet -- so there is nothing on the shelf to buy or to want. The
+// accessories that fit anybody are not in this test's catalog.
+TEST_F(ShopPanelTest, TheEquipShelfHasNoOffHandBeforeTheSecondJob) {
   CharacterInstance c = MakeCharacter(100000, 30, JOB_SWORDMAN);
   ShopPanel panel(c, equips_, items_);
-  OpenShelf(panel, kShopSecondaryTab);
+  OpenShelf(panel, kShopEquipsTab);
   EXPECT_NE(Render(panel).find("(empty)"), std::string::npos);
   EXPECT_EQ(panel.selected_item(), nullptr);
+}
+
+// The shelf carries everything worn that is not swung, so a ring stands beside
+// the off-hands. Nothing about a ring turns on which kind of ring it is, so it
+// has no equip type -- and the type column then reads the slot, which is what
+// the bag shows for the same item.
+TEST_F(ShopPanelTest, TheEquipShelfCarriesAccessoriesAndNamesTheirSlot) {
+  std::map<std::string, EquipPrototype> equips{
+      {"ring", MakeItem("Signet Ring", 30, 7000, EQUIP_JOB_CATEGORY_UNIVERSAL,
+                        EQUIP_TYPE_UNSPECIFIED, EQUIP_SLOT_RING)},
+  };
+  CharacterInstance c = MakeCharacter(100000, 30, JOB_FIGHTER, /*stage=*/2);
+  ShopPanel panel(c, equips, items_);
+  OpenShelf(panel, kShopEquipsTab);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Signet Ring"), std::string::npos);
+  EXPECT_NE(rendered.find("Ring"), std::string::npos);
+  ASSERT_NE(panel.selected_item(), nullptr);
+  EXPECT_EQ(panel.selected_item()->name(), "Signet Ring");
+}
+
+// A price of zero is a price: the shelf lists the item and the cost column says
+// what it costs, rather than the row being left off as an unstocked one is.
+TEST_F(ShopPanelTest, AFreeItemIsOnTheShelfAtZero) {
+  std::map<std::string, EquipPrototype> equips{
+      {"medal",
+       MakeItem("Master Adventurer", 100, 0, EQUIP_JOB_CATEGORY_UNIVERSAL,
+                EQUIP_TYPE_UNSPECIFIED, EQUIP_SLOT_MEDAL)},
+  };
+  CharacterInstance c = MakeCharacter(100000, 30, JOB_FIGHTER, /*stage=*/2);
+  ShopPanel panel(c, equips, items_);
+  OpenShelf(panel, kShopEquipsTab);
+  std::string rendered = Render(panel);
+  EXPECT_NE(rendered.find("Master Adventurer"), std::string::npos);
+  EXPECT_NE(rendered.find("🪙 0"), std::string::npos);
 }
 
 // --- the Etc tab ---
@@ -1044,7 +1096,7 @@ TEST_F(ShopPanelTest, EachTokenTabAsksInItsOwnToken) {
   EXPECT_EQ(panel.selected_token()->name(), "Weapon Token");
 
   ShopPanel other(c, equips_, items_);
-  OpenTokenShelf(other, kShopSecondaryTab);
+  OpenTokenShelf(other, kShopEquipsTab);
   ASSERT_NE(other.selected_item(), nullptr);
   EXPECT_EQ(other.selected_item()->name(), "Frozen Medal");
   ASSERT_NE(other.selected_token(), nullptr);

@@ -232,10 +232,14 @@ message EquipPrototype {
   // all. Read it per item, never per equip_type: two throwing stars are not
   // obliged to agree with each other.
   repeated Upgrade unsupported_upgrades = 9;
-  // What the shop charges for one of these, in meso. Zero means the shop does
-  // not stock it, so an item joins the shop by naming its price and nothing
-  // keeps a second list in step with this one.
-  int32 shop_price = 10;
+  // What the shop charges for one of these, in meso. An item joins the shop by
+  // naming a price here, so there is no second list to keep in step with this
+  // one.
+  //
+  // Optional because zero is a price rather than a refusal: the Master
+  // Adventurer medal is handed out free to anyone who walks up to the counter,
+  // and an item that says nothing at all is the one the shop does not stock.
+  optional int32 shop_price = 10;
   // What the shop pays for one of these, in meso. A tenth of shop_price
   // throughout, which is the rate GMS itself buys equipment back at.
   //

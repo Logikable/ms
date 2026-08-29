@@ -13,24 +13,40 @@ namespace ms {
 
 namespace {
 
-// What the shop asks for one of these, on the shelf `payment` names. Zero
-// means it is not on that shelf at all.
+// What the shop asks for one of these, on the shelf `payment` names.
 int PriceOf(const EquipPrototype& proto, Payment payment) {
   return payment == kPaidInMeso ? proto.shop_price() : proto.token_price();
 }
 
-// The stocked equips worn in any of `slots`, in the order the shop list reads:
-// the tier a player can reach now first, one kind of item together within
-// that, and the cheaper of two of a kind ahead of the dearer. Name last, so the
-// order never depends on how the catalog happens to be keyed.
-std::vector<std::string> StockForSlots(
+// Whether the item is on that shelf at all. A meso price is asked for by
+// presence, because zero is a price there -- the Master Adventurer medal is
+// free to anyone who asks for it. A token price is asked for by size: nothing
+// is bought with no tokens.
+bool Stocked(const EquipPrototype& proto, Payment payment) {
+  return payment == kPaidInMeso ? proto.has_shop_price()
+                                : proto.token_price() > 0;
+}
+
+// Whether a weapon shelf holds this slot. The other shelf holds everything
+// else that is worn, so the two are one question asked both ways round and
+// nothing can fall between them.
+bool IsWeaponSlot(EquipSlot slot) {
+  // Projectiles sit on the weapon shelf rather than one of their own: they are
+  // what a claw or a bow swings, and a tab holding two items is not a tab.
+  return slot == EQUIP_SLOT_PRIMARY_WEAPON || slot == EQUIP_SLOT_PROJECTILE;
+}
+
+// The stocked equips whose slot `on_shelf` claims, in the order the shop list
+// reads: the tier a player can reach now first, one kind of item together
+// within that, and the cheaper of two of a kind ahead of the dearer. Name
+// last, so the order never depends on how the catalog happens to be keyed.
+std::vector<std::string> StockForShelf(
     const std::map<std::string, EquipPrototype>& equips,
-    const std::vector<EquipSlot>& slots, Payment payment) {
+    bool (*on_shelf)(EquipSlot), Payment payment) {
   std::vector<std::string> keys;
   for (const std::pair<const std::string, EquipPrototype>& entry : equips) {
-    if (PriceOf(entry.second, payment) <= 0 ||
-        std::find(slots.begin(), slots.end(), entry.second.equip_slot()) ==
-            slots.end()) {
+    if (!Stocked(entry.second, payment) ||
+        !on_shelf(entry.second.equip_slot())) {
       continue;
     }
     keys.push_back(entry.first);
@@ -57,15 +73,13 @@ std::vector<std::string> StockForSlots(
 
 std::vector<std::string> ShopWeaponStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment) {
-  // Projectiles sit in this list rather than one of their own: they are what a
-  // claw or a bow swings, and a tab holding two items is not a tab.
-  return StockForSlots(
-      equips, {EQUIP_SLOT_PRIMARY_WEAPON, EQUIP_SLOT_PROJECTILE}, payment);
+  return StockForShelf(equips, IsWeaponSlot, payment);
 }
 
-std::vector<std::string> ShopSecondaryStock(
+std::vector<std::string> ShopEquipStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment) {
-  return StockForSlots(equips, {EQUIP_SLOT_SECONDARY}, payment);
+  return StockForShelf(
+      equips, [](EquipSlot slot) { return !IsWeaponSlot(slot); }, payment);
 }
 
 std::vector<std::string> ShopEtcStock(

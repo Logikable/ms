@@ -3,7 +3,7 @@
  * the catalog. So there is no second list to fall out of step with the first,
  * and no way to stock an item without saying what it costs.
  *
- * A weapon shelf and an off-hand shelf are each stocked twice over -- once for
+ * A weapon shelf and an equipment shelf are each stocked twice over -- once for
  * meso and once for tokens -- because an item names one price or the other and
  * never both.
  */
@@ -30,10 +30,14 @@ enum Payment { kPaidInMeso, kPaidInTokens };
 std::vector<std::string> ShopWeaponStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment);
 
-// Catalog keys of the off-hands the shop sells, in the same order. Class
-// filtering is left to the caller, as it is for the weapons -- this says what
-// is on the shelf, not who may buy it.
-std::vector<std::string> ShopSecondaryStock(
+// Catalog keys of everything else the shop sells, in the same order: the
+// off-hands, and the rings, emblems and medals worn beside them. Everything a
+// character wears that is not a weapon and not what one throws, which is what
+// leaves the two shelves with nothing in common and nothing between them.
+//
+// Class filtering is left to the caller, as it is for the weapons -- this says
+// what is on the shelf, not who may buy it.
+std::vector<std::string> ShopEquipStock(
     const std::map<std::string, EquipPrototype>& equips, Payment payment);
 
 // Catalog keys of the stackables the shop sells, cheapest first and then by

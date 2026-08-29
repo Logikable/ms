@@ -1337,6 +1337,20 @@ TEST_F(BuyTest, WillNotSellWhatTheShopDoesNotStock) {
   EXPECT_EQ(c_.inventory().size(), 0);
 }
 
+// Naming zero is not the same as naming nothing: the shop hands the Master
+// Adventurer medal over for free, and a purchase that costs nothing still goes
+// through.
+TEST_F(BuyTest, SellsAFreeItemForNothing) {
+  EquipPrototype medal;
+  medal.set_name("Master Adventurer");
+  medal.set_equip_slot(EQUIP_SLOT_MEDAL);
+  medal.set_shop_price(0);
+  EXPECT_TRUE(c_.Buy(medal, 1));
+  EXPECT_EQ(c_.meso(), 11000);
+  ASSERT_EQ(c_.inventory().size(), 1);
+  EXPECT_EQ(c_.inventory()[0].name(), "Master Adventurer");
+}
+
 TEST_F(BuyTest, NonPositiveCountIsNoOp) {
   EXPECT_FALSE(c_.Buy(sword_, 0));
   EXPECT_FALSE(c_.Buy(sword_, -2));

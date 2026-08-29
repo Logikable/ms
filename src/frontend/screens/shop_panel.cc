@@ -22,13 +22,13 @@ namespace {
 
 // Column widths. Name and level match the bag's equip tab, so the two lists
 // line up and the same item reads the same way in both. The type column takes
-// the longest name a weapon has ("Two-Handed Sword"), and the cost column a
-// seven-figure price and its coin -- room the current catalog is nowhere near,
-// so a dearer tier costs no layout.
+// the longest name a weapon has ("Two-Handed Sword"). The cost column holds the
+// dearest thing on the shelf, the Meister Ring's eight figures and its coin,
+// with nothing to spare: a wider price would slide the whole window.
 constexpr int kNameWidth = 26;
 constexpr int kTypeWidth = 16;
 constexpr int kLevelWidth = 7;
-constexpr int kCostWidth = 12;
+constexpr int kCostWidth = 13;
 
 // Stock rows on screen at once. Deep enough to hold most of a warrior's list --
 // the longest any class has -- and short enough that the window still clears
@@ -110,6 +110,14 @@ ftxui::Element BuyBackColumnHeader() {
                      CoinCell("Cost"));
 }
 
+// What the type column says about one item. An accessory has no equip type --
+// nothing about a ring turns on which kind of ring it is -- so it falls back to
+// the slot, which is the column the bag shows for the same item.
+std::string TypeCell(const EquipPrototype& proto) {
+  std::string type = FormatEquipType(proto.equip_type());
+  return type.empty() ? FormatSlot(proto.equip_slot()) : type;
+}
+
 // The level cell, e.g. "Lv30  ". An item with no level requirement reads as
 // level 1 rather than as a blank, matching the bag.
 std::string LevelCell(const EquipPrototype& proto) {
@@ -156,8 +164,8 @@ void ShopPanel::Restock() {
     return;
   }
   Payment payment = pay_ == kShopTokenTab ? kPaidInTokens : kPaidInMeso;
-  std::vector<std::string> shelf = tab_ == kShopSecondaryTab
-                                       ? ShopSecondaryStock(equips_, payment)
+  std::vector<std::string> shelf = tab_ == kShopEquipsTab
+                                       ? ShopEquipStock(equips_, payment)
                                        : ShopWeaponStock(equips_, payment);
   for (const std::string& key : shelf) {
     if (character_.MeetsJob(equips_.at(key))) {
@@ -199,7 +207,7 @@ void ShopPanel::StepPayTab(int direction) {
 }
 
 bool ShopPanel::HasPayRow() const {
-  return tab_ == kShopWeaponTab || tab_ == kShopSecondaryTab;
+  return tab_ == kShopWeaponTab || tab_ == kShopEquipsTab;
 }
 
 void ShopPanel::MoveCursor(int delta) {
@@ -354,8 +362,8 @@ const ItemPrototype* ShopPanel::TabToken() const {
   // The unfiltered shelf, so the tab still knows what it deals in while the
   // class filter has left the player nothing to look at.
   std::vector<std::string> shelf =
-      tab_ == kShopSecondaryTab ? ShopSecondaryStock(equips_, kPaidInTokens)
-                                : ShopWeaponStock(equips_, kPaidInTokens);
+      tab_ == kShopEquipsTab ? ShopEquipStock(equips_, kPaidInTokens)
+                             : ShopWeaponStock(equips_, kPaidInTokens);
   for (const std::string& key : shelf) {
     std::map<std::string, ItemPrototype>::const_iterator it =
         items_.find(equips_.at(key).token_item());
@@ -371,7 +379,7 @@ ftxui::Element ShopPanel::RenderTabBar() const {
   // which is how the player tells the arrow keys are on the bar.
   bool focused = zone_ == kZoneTabs;
   const std::vector<TabSpec> kTabs = {
-      {"Weapon"}, {"Secondary"}, {"Etc"}, {"Buy-Back"}};
+      {"Weapon"}, {"Equips"}, {"Etc"}, {"Buy-Back"}};
   std::vector<ftxui::Element> chips;
   // No width limit: four fixed labels, and the shop's rows are far wider.
   chips.push_back(TabBar(kTabs, tab_, focused, /*width=*/0));
@@ -448,9 +456,7 @@ ftxui::Element ShopPanel::RenderEquipRow(
                   // The type scrolls too: "Arrow for Crossbow" is wider than
                   // the column, and a cut type reads as a different item. Only
                   // here -- every other column in the game is written to fit.
-                  ScrollingWindow(FormatEquipType(proto.equip_type()),
-                                  kTypeWidth, elapsed) +
-                  "  "),
+                  ScrollingWindow(TypeCell(proto), kTypeWidth, elapsed) + "  "),
       std::move(level),
       std::move(cost),
       ftxui::text(" "),

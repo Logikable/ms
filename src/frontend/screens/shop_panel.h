@@ -7,18 +7,20 @@
  * left out because they could never use it, not because they cannot use it yet
  * -- a level too high still shows, in red, as something to save toward.
  *
- * Four tabs: Weapon, Secondary for the off-hands, Etc for the stackables, and
- * the player's own buy-back shelf. They are different lists rather than more
- * rows of one, which is what a tab is for. The ends of the bar are walls, as in
- * the bag; Left and Right step along it while the cursor is on it.
+ * Four tabs: Weapon, Equips for everything else that is worn, Etc for the
+ * stackables, and the player's own buy-back shelf. They are different lists
+ * rather than more rows of one, which is what a tab is for. The ends of the bar
+ * are walls, as in the bag; Left and Right step along it while the cursor is on
+ * it.
  *
  * Under the first two sits a second row -- Meso and Token -- because the same
  * shelf is stocked twice over: what meso buys, and what the tokens a mob drops
  * buy. The row is drawn under every tab, blank where there is nothing to
  * choose, so the window keeps one height.
  *
- * The Secondary shelf is empty until the 2nd advancement: an off-hand belongs
- * to one branch of one job, and a 1st job is not yet in a branch.
+ * The off-hands on the Equips shelf are hidden until the 2nd advancement: one
+ * belongs to a branch of one job, and a 1st job is not yet in a branch. The
+ * accessories beside them fit anybody, so the shelf is never empty.
  *
  * The panel is a view: it moves its own cursor but never spends anything. The
  * controller reads selected_item() when the player presses Enter.
@@ -45,7 +47,7 @@ namespace ms {
 // Tabs of the shop, in display order.
 enum ShopTab : int {
   kShopWeaponTab = 0,
-  kShopSecondaryTab = 1,
+  kShopEquipsTab = 1,
   kShopEtcTab = 2,
   // The player's own last 32 sales, bought back at what they paid out. Last
   // because it is the only shelf the shop did not stock itself.
@@ -54,7 +56,7 @@ enum ShopTab : int {
 };
 
 // The second row of tabs, which says what the shelf above it is paid for. Only
-// the weapon and off-hand tabs have one: the Etc shelf and the buy-back shelf
+// the weapon and equipment tabs have one: the Etc shelf and the buy-back shelf
 // deal in meso alone.
 enum ShopPayTab : int {
   kShopMesoTab = 0,

@@ -249,9 +249,9 @@ TEST(EquipDataTest, EverySecondJobHasEveryTier) {
     JobAdvancement owner = AdvancementForSecondary(proto.equip_type());
     ASSERT_NE(owner, JOB_ADVANCEMENT_UNSPECIFIED)
         << entry.first << " is an off-hand nobody can hold";
-    ASSERT_GT(proto.shop_price() + proto.token_price(), 0)
+    ASSERT_TRUE(proto.has_shop_price() || proto.token_price() > 0)
         << entry.first << " is an off-hand nothing buys";
-    if (proto.shop_price() > 0) {
+    if (proto.has_shop_price()) {
       meso[owner].push_back(proto.required_level());
     } else {
       token[owner].push_back(proto.required_level());
@@ -276,7 +276,7 @@ std::map<EquipType, std::vector<int>> WeaponLadders() {
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
     if (proto.equip_slot() != EQUIP_SLOT_PRIMARY_WEAPON ||
-        proto.shop_price() <= 0) {
+        !proto.has_shop_price()) {
       continue;
     }
     ladders[proto.equip_type()].push_back(proto.required_level());
@@ -377,7 +377,7 @@ TEST(EquipDataTest, EveryTokenPriceNamesATokenThatExists) {
     EXPECT_FALSE(it->second.currency_mark().empty())
         << proto.token_item() << " pays for " << entry.first
         << " without a mark to draw in the cost column";
-    EXPECT_EQ(proto.shop_price(), 0)
+    EXPECT_FALSE(proto.has_shop_price())
         << entry.first << " is on both shelves at once";
   }
   EXPECT_GT(seen, 0) << "nothing in the catalog is bought with a token";
@@ -391,7 +391,7 @@ TEST(EquipDataTest, ATierHasOnePrice) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.shop_price() <= 0) {
+    if (!proto.has_shop_price()) {
       continue;
     }
     std::pair<EquipSlot, int> tier{proto.equip_slot(), proto.required_level()};
@@ -414,7 +414,7 @@ TEST(EquipDataTest, StockedEquipsSellForATenthOfTheirPrice) {
   for (const std::pair<const std::string, EquipPrototype>& entry :
        LoadEquips()) {
     const EquipPrototype& proto = entry.second;
-    if (proto.shop_price() <= 0) {
+    if (!proto.has_shop_price()) {
       // Not stocked, so there is no price to take a share of and the item
       // names its own. Most of them name nothing and sell for nothing -- that
       // is how a starter sword leaves the bag -- but a dropped piece is worth

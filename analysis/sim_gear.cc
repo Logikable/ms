@@ -74,9 +74,20 @@ std::vector<std::string> WeaponShelf(const GameState& state) {
                      ShopWeaponStock(state.equips, kPaidInTokens));
 }
 
+// The off-hands alone. The shop's equipment shelf also carries the rings and
+// the emblem, which fill slots of their own and are not what a branch re-arms
+// its hand with.
 std::vector<std::string> SecondaryShelf(const GameState& state) {
-  return BothShelves(ShopSecondaryStock(state.equips, kPaidInMeso),
-                     ShopSecondaryStock(state.equips, kPaidInTokens));
+  std::vector<std::string> keys =
+      BothShelves(ShopEquipStock(state.equips, kPaidInMeso),
+                  ShopEquipStock(state.equips, kPaidInTokens));
+  keys.erase(std::remove_if(keys.begin(), keys.end(),
+                            [&state](const std::string& key) {
+                              return state.equips.at(key).equip_slot() !=
+                                     EQUIP_SLOT_SECONDARY;
+                            }),
+             keys.end());
+  return keys;
 }
 
 // The token `proto` is priced in, or null for one the shop takes meso for.
