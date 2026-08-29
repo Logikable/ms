@@ -63,3 +63,35 @@ difficulties {
     per_kill: 1.0
   }
 }
+# Written down, not built: the same five statues and the same bean, at the
+# numbers GMS gives Chaos. Only the HP is stated, because nothing else is
+# decided.
+difficulties {
+  name: "Chaos"
+  phases {
+    spawns { mob: "chaos_solomon_the_wise" spots { x: 0 y: 3 } }
+    spawns { mob: "chaos_hugin" spots { x: 2 y: 3 } }
+    spawns { mob: "chaos_ariel" spots { x: 4 y: 1 } }
+    spawns { mob: "chaos_munin" spots { x: 6 y: 3 } }
+    spawns { mob: "chaos_rex_the_wise" spots { x: 8 y: 3 } }
+    # The floor under the statues, and a ledge at each end level with them.
+    player_spots { x: 4 y: 4 }
+    player_spots { x: 0 y: 4 }
+    player_spots { x: 8 y: 4 }
+    player_spots { x: 0 y: 2 }
+    player_spots { x: 8 y: 2 }
+    arena_width: 9
+    arena_height: 5
+  }
+  phases {
+    spawns { mob: "chaos_pink_bean" spots { x: 4 y: 3 } }
+    player_spots { x: 4 y: 4 }
+    player_spots { x: 0 y: 4 }
+    player_spots { x: 8 y: 4 }
+    player_spots { x: 2 y: 4 }
+    player_spots { x: 6 y: 4 }
+    arena_width: 9
+    arena_height: 5
+  }
+  coming_soon: true
+}

@@ -142,8 +142,8 @@ TEST(BossDataTest, AComingSoonDifficultyStatesOnlyItsPhases) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(coming_soon, 4)
-      << "Chaos Zakum, Chaos Horntail, Hard Hilla and Hard Magnus";
+  EXPECT_EQ(coming_soon, 5) << "Chaos Zakum, Chaos Horntail, Chaos Pink Bean, "
+                               "Hard Hilla and Hard Magnus";
 }
 
 // The fights the screen advertises but cannot yet run, at the HP GMS gives
@@ -162,6 +162,7 @@ TEST(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
       {"hilla", "Hard", {16800000000LL}},
       {"horntail", "Chaos", {3300000000LL, 3300000000LL, 20000000000LL}},
       {"magnus", "Hard", {120000000000LL}},
+      {"pink_bean", "Chaos", {130200000000LL, 69300000000LL}},
   };
   for (const Expectation& want : kExpected) {
     ASSERT_GT(bosses.count(want.boss), 0u) << want.boss;

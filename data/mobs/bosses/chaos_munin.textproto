@@ -1,0 +1,9 @@
+# A part of a fight that is not built yet: the boss screen reads its HP and
+# nothing else. See data/bosses.
+name: "Chaos Munin"
+level: 190
+attack: 36700
+max_hp: 25200000000
+exp: 0
+pdr: 100
+boss: true
