@@ -20,6 +20,7 @@
 #include "src/frontend/panels/menu_panel.h"
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
+#include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
 #include "src/frontend/screens/mob_inspect_panel.h"
 #include "src/frontend/screens/multi_sell_panel.h"
@@ -208,12 +209,12 @@ class TuiControllerTest : public testing::Test {
     keybinds_panel_ = std::make_unique<KeybindsPanel>(*keys_);
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
-        *mob_inspect_panel_, *boss_select_panel_, party_select_panel_,
-        *party_inspect_panel_, *shop_panel_, *buy_panel_, *job_inspect_panel_,
-        skill_inspect_panel_, *menu_panel_, *keybinds_panel_, analysis_, *keys_,
-        panel_focus_);
+        inspect_panel_, trace_inspect_panel_, *star_force_panel_,
+        *trace_recover_panel_, *sell_panel_, *sell_equip_panel_,
+        *multi_sell_panel_, *map_select_panel_, *mob_inspect_panel_,
+        *boss_select_panel_, party_select_panel_, *party_inspect_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
 
     // Build the equip component so RenderEquipPanel() can populate slots_.
     equip_component_ = equip_panel_->MakeComponent([]() {});
@@ -342,12 +343,12 @@ class TuiControllerTest : public testing::Test {
     party_inspect_panel_ = std::make_unique<PartyInspectPanel>(*state_);
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
-        *mob_inspect_panel_, *boss_select_panel_, party_select_panel_,
-        *party_inspect_panel_, *shop_panel_, *buy_panel_, *job_inspect_panel_,
-        skill_inspect_panel_, *menu_panel_, *keybinds_panel_, analysis_, *keys_,
-        panel_focus_);
+        inspect_panel_, trace_inspect_panel_, *star_force_panel_,
+        *trace_recover_panel_, *sell_panel_, *sell_equip_panel_,
+        *multi_sell_panel_, *map_select_panel_, *mob_inspect_panel_,
+        *boss_select_panel_, party_select_panel_, *party_inspect_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
   }
 
   // Adds a map on the second level band, so paging has somewhere to go. The
@@ -456,12 +457,12 @@ class TuiControllerTest : public testing::Test {
         std::make_unique<ScrollPanel>(state_->character, state_->scrolls);
     controller_ = std::make_unique<TuiController>(
         *state_, *char_panel_, *equip_panel_, *inventory_panel_, *scroll_panel_,
-        *star_force_panel_, *trace_recover_panel_, *sell_panel_,
-        *sell_equip_panel_, *multi_sell_panel_, *map_select_panel_,
-        *mob_inspect_panel_, *boss_select_panel_, party_select_panel_,
-        *party_inspect_panel_, *shop_panel_, *buy_panel_, *job_inspect_panel_,
-        skill_inspect_panel_, *menu_panel_, *keybinds_panel_, analysis_, *keys_,
-        panel_focus_);
+        inspect_panel_, trace_inspect_panel_, *star_force_panel_,
+        *trace_recover_panel_, *sell_panel_, *sell_equip_panel_,
+        *multi_sell_panel_, *map_select_panel_, *mob_inspect_panel_,
+        *boss_select_panel_, party_select_panel_, *party_inspect_panel_,
+        *shop_panel_, *buy_panel_, *job_inspect_panel_, skill_inspect_panel_,
+        *menu_panel_, *keybinds_panel_, analysis_, *keys_, panel_focus_);
   }
 
   int panel_focus_ = kEquipPanel;
@@ -500,6 +501,8 @@ class TuiControllerTest : public testing::Test {
   std::unique_ptr<BuyPanel> buy_panel_;
   std::unique_ptr<JobInspectPanel> job_inspect_panel_;
   SkillInspectPanel skill_inspect_panel_;
+  InspectPanel inspect_panel_;
+  InspectPanel trace_inspect_panel_;
   BattleAnalysis analysis_;
   std::unique_ptr<MenuPanel> menu_panel_;
   std::unique_ptr<KeyMap> keys_;
@@ -965,6 +968,95 @@ TEST_F(TuiControllerTest, EscapeInInspectGoesToMain) {
   controller_->OnEvent(ftxui::Event::Escape);
 
   EXPECT_EQ(controller_->screen(), kMain);
+}
+
+// The arrows read the card rather than closing it. Only Confirm and Cancel
+// leave, which is what the screen has always promised.
+TEST_F(TuiControllerTest, ArrowsInInspectScrollRatherThanLeave) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  controller_->OnEvent(ftxui::Event::ArrowDown);
+  controller_->OnEvent(ftxui::Event::ArrowUp);
+  controller_->OnEvent(ftxui::Event::Tab);
+
+  EXPECT_EQ(controller_->screen(), kInspect);
+}
+
+// A screen opens with the left half holding the arrows, whatever the last one
+// was left reading.
+TEST_F(TuiControllerTest, AnInspectScreenOpensOnItsLeftHalf) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  GiveTraces(100);
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::Return);
+  inspect_panel_.SetItem(controller_->scroll_item());
+  inspect_panel_.SetMaxRows(4);
+  inspect_panel_.RenderItemOnly();
+  controller_->OnEvent(ftxui::Event::Tab);
+  ASSERT_TRUE(controller_->right_card_focused());
+
+  controller_->OnEvent(ftxui::Event::Escape);     // back to the item menu
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kInspect);
+  EXPECT_FALSE(controller_->right_card_focused());
+}
+
+// The scroll list keeps the arrows until Tab hands them over, and hands them
+// back the same way.
+TEST_F(TuiControllerTest, TabOnTheScrollScreenMovesToTheCard) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  GiveTraces(100);
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kScrollSelect);
+  ASSERT_FALSE(controller_->right_card_focused());
+
+  // Cut short enough that the card has something to scroll, and drawn once so
+  // it knows. Tui does this each frame; nothing renders in a controller test.
+  inspect_panel_.SetItem(controller_->scroll_item());
+  inspect_panel_.SetMaxRows(4);
+  inspect_panel_.RenderItemOnly();
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_TRUE(controller_->right_card_focused());
+  EXPECT_EQ(controller_->screen(), kScrollSelect);
+
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_FALSE(controller_->right_card_focused());
+}
+
+// Focus should never land where the arrows would do nothing.
+TEST_F(TuiControllerTest, TabOnTheScrollScreenSkipsACardThatFits) {
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  state_->character.Equip(0);
+  RenderEquipPanel();
+  GiveTraces(100);
+
+  controller_->OpenEquipMenu();
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Inspect
+  controller_->OnEvent(ftxui::Event::ArrowDown);  // Scroll
+  controller_->OnEvent(ftxui::Event::Return);
+  inspect_panel_.SetItem(controller_->scroll_item());
+  inspect_panel_.SetMaxRows(40);
+  inspect_panel_.RenderItemOnly();
+
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_FALSE(controller_->right_card_focused());
 }
 
 // --- Unequip ---
@@ -1803,6 +1895,41 @@ TEST_F(TuiControllerTest, RecoveringATraceEndsOnAResultThatCloses) {
   EXPECT_FALSE(controller_->notice_prompt().open());
 }
 
+// Two cards and a chip row: Tab picks which card the arrows scroll, and the
+// chips keep Left and Right.
+TEST_F(TuiControllerTest, TabOnTheRecoverScreenMovesBetweenTheCards) {
+  Equip destroyed;
+  destroyed.set_equip_name(sword_.name());
+  destroyed.set_scroll_successes(2);
+  state_->character.PickUp(std::make_unique<EquipTrace>(sword_, destroyed));
+  state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
+  panel_focus_ = kInventoryPanel;
+
+  controller_->OpenInventoryMenu();
+  for (int i = 0; i < 8 && inventory_panel_->menu().selected() != kMenuRecover;
+       ++i) {
+    controller_->OnEvent(ftxui::Event::ArrowDown);
+  }
+  controller_->OnEvent(ftxui::Event::Return);
+  ASSERT_EQ(controller_->screen(), kTraceRecover);
+  EXPECT_FALSE(controller_->right_card_focused());
+
+  // Both cut short enough to scroll, and drawn once so they know. Tui does
+  // this each frame; nothing renders in a controller test.
+  inspect_panel_.SetItem(&state_->character.inventory()[1]);
+  inspect_panel_.SetMaxRows(4);
+  inspect_panel_.RenderItemOnly();
+  trace_inspect_panel_.SetItem(&state_->character.inventory()[0]);
+  trace_inspect_panel_.SetMaxRows(4);
+  trace_inspect_panel_.RenderItemOnly();
+
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_TRUE(controller_->right_card_focused());
+  controller_->OnEvent(ftxui::Event::Tab);
+  EXPECT_FALSE(controller_->right_card_focused());
+  EXPECT_EQ(controller_->screen(), kTraceRecover) << "Tab does not leave";
+}
+
 TEST_F(TuiControllerTest, BagSellOpensTheSellDialog) {
   state_->character.PickUp(std::make_unique<EquipInstance>(sword_));
   panel_focus_ = kInventoryPanel;
@@ -2485,15 +2612,17 @@ TEST_F(TuiControllerTest, TheRightHandPanelsArriveWithTheirLevels) {
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
+  InspectPanel item_card;
+  InspectPanel trace_card;
   int focus = kCharPanel;
   BattleAnalysis analysis;
   MenuPanel menu(fresh, analysis, focus);
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
-  TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, multi_sell, maps, mobs, bosses, party,
-                           party_inspect, shop, buy, jobs, skill_card, menu,
-                           keybinds, analysis, keys, focus);
+  TuiController controller(
+      fresh, chars, equip, bag, scroll, item_card, trace_card, star, trace,
+      sell, sell_equip, multi_sell, maps, mobs, bosses, party, party_inspect,
+      shop, buy, jobs, skill_card, menu, keybinds, analysis, keys, focus);
 
   EXPECT_TRUE(controller.PanelVisible(kCharPanel));
   EXPECT_TRUE(controller.PanelVisible(kCombatPanel));
@@ -2542,15 +2671,17 @@ TEST_F(TuiControllerTest, TabSkipsThePanelsThatAreNotThereYet) {
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
+  InspectPanel item_card;
+  InspectPanel trace_card;
   int focus = kCharPanel;
   BattleAnalysis analysis;
   MenuPanel menu(fresh, analysis, focus);
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
-  TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, multi_sell, maps, mobs, bosses, party,
-                           party_inspect, shop, buy, jobs, skill_card, menu,
-                           keybinds, analysis, keys, focus);
+  TuiController controller(
+      fresh, chars, equip, bag, scroll, item_card, trace_card, star, trace,
+      sell, sell_equip, multi_sell, maps, mobs, bosses, party, party_inspect,
+      shop, buy, jobs, skill_card, menu, keybinds, analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Tab);
   EXPECT_EQ(focus, kCombatPanel) << "past both locked panels";
@@ -2582,15 +2713,17 @@ TEST_F(TuiControllerTest, ShiftTabSkipsThePanelsThatAreNotThereYet) {
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
+  InspectPanel item_card;
+  InspectPanel trace_card;
   int focus = kCharPanel;
   BattleAnalysis analysis;
   MenuPanel menu(fresh, analysis, focus);
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
-  TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, multi_sell, maps, mobs, bosses, party,
-                           party_inspect, shop, buy, jobs, skill_card, menu,
-                           keybinds, analysis, keys, focus);
+  TuiController controller(
+      fresh, chars, equip, bag, scroll, item_card, trace_card, star, trace,
+      sell, sell_equip, multi_sell, maps, mobs, bosses, party, party_inspect,
+      shop, buy, jobs, skill_card, menu, keybinds, analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::TabReverse);
   EXPECT_EQ(focus, kCombatPanel) << "back past both locked panels";
@@ -2622,15 +2755,17 @@ TEST_F(TuiControllerTest, FocusLeavesAPanelThatIsNotOnScreen) {
   BuyPanel buy;
   JobInspectPanel jobs(fresh.skills);
   SkillInspectPanel skill_card;
+  InspectPanel item_card;
+  InspectPanel trace_card;
   int focus = kEquipPanel;  // where the game starts
   BattleAnalysis analysis;
   MenuPanel menu(fresh, analysis, focus);
   KeyMap keys(fresh.account.mutable_keybinds());
   KeybindsPanel keybinds(keys);
-  TuiController controller(fresh, chars, equip, bag, scroll, star, trace, sell,
-                           sell_equip, multi_sell, maps, mobs, bosses, party,
-                           party_inspect, shop, buy, jobs, skill_card, menu,
-                           keybinds, analysis, keys, focus);
+  TuiController controller(
+      fresh, chars, equip, bag, scroll, item_card, trace_card, star, trace,
+      sell, sell_equip, multi_sell, maps, mobs, bosses, party, party_inspect,
+      shop, buy, jobs, skill_card, menu, keybinds, analysis, keys, focus);
 
   controller.OnEvent(ftxui::Event::Custom);  // any key at all
   EXPECT_TRUE(controller.PanelVisible(focus));

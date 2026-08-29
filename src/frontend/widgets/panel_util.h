@@ -34,6 +34,13 @@ inline bool IsForward(const ftxui::Event& e) {
   return e == ftxui::Event::Return;
 }
 
+// True for either half of the "switch panel" key. It moves the arrows between
+// the panels of the main view, and between the two halves of a screen that
+// puts an inspect card beside something else.
+inline bool IsSwitchPanel(const ftxui::Event& e) {
+  return e == ftxui::Event::Tab || e == ftxui::Event::TabReverse;
+}
+
 // Wraps `child` so it always reports itself focusable, forwarding rendering
 // and events untouched.
 //

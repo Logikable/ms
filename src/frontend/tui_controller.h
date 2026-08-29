@@ -26,6 +26,7 @@
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/hammer_panel.h"
+#include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
 #include "src/frontend/screens/map_select_panel.h"
@@ -72,6 +73,7 @@ class TuiController {
   TuiController(
       GameState& state, CharacterPanel& char_panel, EquippedPanel& equip_panel,
       InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
+      InspectPanel& inspect_panel, InspectPanel& trace_inspect_panel,
       StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
       SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
       MultiSellPanel& multi_sell_panel, MapSelectPanel& map_select_panel,
@@ -291,6 +293,13 @@ class TuiController {
     return quit_requested_;
   }
 
+  // On a screen that puts an inspect card beside something else, which of the
+  // two the arrows reach. Tab moves between them, and the one holding them
+  // lights its title.
+  bool right_card_focused() const {
+    return right_card_focused_;
+  }
+
   // Returns true if the event was consumed.
   bool OnEvent(ftxui::Event event);
 
@@ -439,6 +448,9 @@ class TuiController {
   bool OnShopEvent(ftxui::Event event);
   bool OnShopMenuEvent(ftxui::Event event);
   bool OnShopInspectEvent(ftxui::Event event);
+  // Puts every inspect card back at its top, with the left half of the screen
+  // holding the arrows. Called as each such screen opens.
+  void OpenInspectCards();
   bool OnShopBuyEvent(ftxui::Event event);
   // Seeds the buy dialog for a row of the buy-back shelf, which is priced and
   // bounded by the sale rather than by what the shop stocks.
@@ -454,6 +466,10 @@ class TuiController {
   EquippedPanel& equip_panel_;
   InventoryPanel& inventory_panel_;
   ScrollPanel& scroll_panel_;
+  // The item card, and the recovered-item card beside it on kTraceRecover.
+  // Held so the arrows can scroll whichever of them the player is reading.
+  InspectPanel& inspect_panel_;
+  InspectPanel& trace_inspect_panel_;
   StarForcePanel& star_force_panel_;
   TraceRecoverPanel& trace_recover_panel_;
   SellPanel& sell_panel_;
@@ -494,6 +510,9 @@ class TuiController {
   ItemRef hammer_ref_;
   // Recovery is a bag-only affair: a trace cannot be worn.
   int trace_index_ = 0;
+  // See right_card_focused(). False on every screen that opens, so the arrows
+  // start on the list or the card the player came in reading.
+  bool right_card_focused_ = false;
   ItemCategory sell_category_ = ITEM_CATEGORY_UNSPECIFIED;
   int sell_index_ = 0;
   // The bag row the equip sale is open on. Bag-only, like recovery: an item

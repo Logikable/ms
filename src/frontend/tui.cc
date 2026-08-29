@@ -134,12 +134,13 @@ Tui::Tui(GameState& state, std::string save_path, std::string server)
       multi_sell_panel_(state.character),
       shop_panel_(state.character, state.equips, state.items),
       controller_(state, char_panel_, equip_panel_, inventory_panel_,
-                  scroll_panel_, star_force_panel_, trace_recover_panel_,
-                  sell_panel_, sell_equip_panel_, multi_sell_panel_,
-                  map_select_panel_, mob_inspect_panel_, boss_select_panel_,
-                  party_select_panel_, party_inspect_panel_, shop_panel_,
-                  buy_panel_, job_inspect_panel_, skill_inspect_panel_,
-                  menu_panel_, keybinds_panel_, analysis_, keys_, panel_focus_,
+                  scroll_panel_, inspect_panel_, trace_inspect_panel_,
+                  star_force_panel_, trace_recover_panel_, sell_panel_,
+                  sell_equip_panel_, multi_sell_panel_, map_select_panel_,
+                  mob_inspect_panel_, boss_select_panel_, party_select_panel_,
+                  party_inspect_panel_, shop_panel_, buy_panel_,
+                  job_inspect_panel_, skill_inspect_panel_, menu_panel_,
+                  keybinds_panel_, analysis_, keys_, panel_focus_,
                   multiplayer_.get()) {
   // Both inspect panels read the character, not just the item: a piece of a
   // set is described beside the set it belongs to, and which of its tiers are
@@ -493,6 +494,7 @@ ftxui::Element Tui::RenderBuyBackInspect(const BuyBackEntry& entry) {
 }
 
 ftxui::Element Tui::RenderShopInspect() {
+  inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   // A buy-back row is an item the player owned, so what it inspects is that
   // item -- stars, scrolls and all -- and not a fresh one off the shelf.
   const BuyBackEntry* entry = shop_panel_.selected_buy_back();
@@ -539,12 +541,19 @@ ftxui::Element Tui::RenderTraceRecover() {
   int base_idx = trace_recover_panel_.selected_index();
   inspect_panel_.SetItem(base_idx >= 0 ? &state_.character.inventory()[base_idx]
                                        : nullptr);
+  int rows = ftxui::Terminal::Size().dimy;
+  trace_inspect_panel_.SetMaxRows(rows);
+  // The right card shares its column with the chip row above it and the
+  // confirm bar below, so it gets what those two leave.
+  inspect_panel_.SetMaxRows(rows - kRecoverTabRows -
+                            ConfirmPrompt::kWindowHeight);
+  bool right = controller_.right_card_focused();
   ftxui::Element right_col = ftxui::vbox({
       trace_recover_panel_.RenderTabs(),
-      inspect_panel_.RenderItemOnly(),
+      inspect_panel_.RenderItemOnly(right),
       trace_recover_panel_.RenderBelow(),
   });
-  return ftxui::hbox({trace_inspect_panel_.RenderItemOnly() | ftxui::flex,
+  return ftxui::hbox({trace_inspect_panel_.RenderItemOnly(!right) | ftxui::flex,
                       std::move(right_col) | ftxui::flex});
 }
 
@@ -557,11 +566,13 @@ ftxui::Element Tui::RenderInspect() {
   } else {
     inspect_panel_.SetItem(controller_.inspect_item());
   }
+  inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   return Standalone(inspect_panel_.Render());
 }
 
 ftxui::Element Tui::RenderScroll() {
   inspect_panel_.SetItem(controller_.scroll_item());
+  inspect_panel_.SetMaxRows(ftxui::Terminal::Size().dimy);
   ftxui::Element scroll_view = scroll_panel_.Render();
   if (controller_.screen() == kScrollResult) {
     ftxui::Element dialog =
@@ -569,8 +580,10 @@ ftxui::Element Tui::RenderScroll() {
     scroll_view =
         ftxui::dbox({scroll_view, ftxui::center(dialog | ftxui::clear_under)});
   }
-  return ftxui::hbox({scroll_view | ftxui::flex,
-                      inspect_panel_.RenderItemOnly() | ftxui::flex});
+  return ftxui::hbox(
+      {scroll_view | ftxui::flex,
+       inspect_panel_.RenderItemOnly(controller_.right_card_focused()) |
+           ftxui::flex});
 }
 
 ftxui::Element Tui::RenderMultiSell() {

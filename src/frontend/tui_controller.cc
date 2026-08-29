@@ -38,6 +38,7 @@ namespace ms {
 TuiController::TuiController(
     GameState& state, CharacterPanel& char_panel, EquippedPanel& equip_panel,
     InventoryPanel& inventory_panel, ScrollPanel& scroll_panel,
+    InspectPanel& inspect_panel, InspectPanel& trace_inspect_panel,
     StarForcePanel& star_force_panel, TraceRecoverPanel& trace_recover_panel,
     SellPanel& sell_panel, SellEquipPanel& sell_equip_panel,
     MultiSellPanel& multi_sell_panel, MapSelectPanel& map_select_panel,
@@ -53,6 +54,8 @@ TuiController::TuiController(
       equip_panel_(equip_panel),
       inventory_panel_(inventory_panel),
       scroll_panel_(scroll_panel),
+      inspect_panel_(inspect_panel),
+      trace_inspect_panel_(trace_inspect_panel),
       star_force_panel_(star_force_panel),
       trace_recover_panel_(trace_recover_panel),
       sell_panel_(sell_panel),
@@ -77,6 +80,13 @@ TuiController::TuiController(
     party_fight_ =
         std::make_unique<PartyFightAuthority>(multiplayer_->client());
   }
+}
+
+// Every screen that shows an inspect card opens it at the top, with the left
+// half of the screen holding the arrows.
+void TuiController::OpenInspectCards() {
+  inspect_panel_.Reset();
+  right_card_focused_ = false;
 }
 
 void TuiController::OpenEquipMenu() {
@@ -252,7 +262,7 @@ bool TuiController::OnMainViewEvent(ftxui::Event event) {
     screen_ = kQuit;
     return true;
   }
-  if (event != ftxui::Event::Tab && event != ftxui::Event::TabReverse) {
+  if (!IsSwitchPanel(event)) {
     return false;
   }
   // Round the panels until the next one actually on screen. The character
@@ -425,8 +435,12 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   if (next == kInspect) {
     inspect_ref_ = SelectedItem();
   }
+  if (next == kInspect || next == kItemInspect) {
+    OpenInspectCards();
+  }
   if (next == kScrollSelect) {
     scroll_ref_ = SelectedItem();
+    OpenInspectCards();
   }
   if (next == kStarForce) {
     star_force_ref_ = SelectedItem();
@@ -447,6 +461,8 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
     }
   }
   if (next == kTraceRecover) {
+    trace_inspect_panel_.Reset();
+    OpenInspectCards();
     trace_index_ = inventory_panel_.selected();
     trace_recover_panel_.SetTrace(&state_.character.inventory()[trace_index_]);
   }
@@ -499,7 +515,22 @@ bool TuiController::OnItemMenuEvent(ftxui::Event event) {
   return true;
 }
 
+// Reading is all there is to do here, so either of Confirm and Cancel leaves.
+// The arrows move whichever card holds them, and Tab hands them to the set
+// card beside it when there is one with something to scroll.
 bool TuiController::OnInspectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    inspect_panel_.ScrollBy(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    inspect_panel_.ScrollBy(1);
+    return true;
+  }
+  if (IsSwitchPanel(event)) {
+    inspect_panel_.SwapCard();
+    return true;
+  }
   if (IsBack(event) || IsForward(event)) {
     screen_ = kMain;
   }
@@ -507,6 +538,20 @@ bool TuiController::OnInspectEvent(ftxui::Event event) {
 }
 
 bool TuiController::OnScrollSelectEvent(ftxui::Event event) {
+  bool busy = scroll_panel_.IsConfirming() || scroll_panel_.IsMenuOpen();
+  // The item card takes the arrows in turn with the scroll list. Held back
+  // while a dialog is up: the keys are its own until it closes.
+  if (!busy && IsSwitchPanel(event)) {
+    if (right_card_focused_ || inspect_panel_.ItemOverflows()) {
+      right_card_focused_ = !right_card_focused_;
+    }
+    return true;
+  }
+  if (!busy && right_card_focused_ &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    inspect_panel_.ScrollBy(event == ftxui::Event::ArrowUp ? -1 : 1);
+    return true;
+  }
   if (IsBack(event) && !scroll_panel_.IsConfirming() &&
       !scroll_panel_.IsMenuOpen()) {
     if (panel_focus_ == kEquipPanel) {
@@ -791,6 +836,28 @@ const EquipTabItem* TuiController::trace_recover_item() const {
 }
 
 bool TuiController::OnTraceRecoverEvent(ftxui::Event event) {
+  bool busy = trace_recover_panel_.IsConfirming();
+  // Two cards, and the chips between them answer to Left and Right. Tab picks
+  // which card the arrows scroll; the recovered item's is where the reader
+  // starts.
+  if (!busy && IsSwitchPanel(event)) {
+    const InspectPanel& target =
+        right_card_focused_ ? trace_inspect_panel_ : inspect_panel_;
+    if (target.ItemOverflows()) {
+      right_card_focused_ = !right_card_focused_;
+    }
+    return true;
+  }
+  if (!busy &&
+      (event == ftxui::Event::ArrowUp || event == ftxui::Event::ArrowDown)) {
+    int delta = event == ftxui::Event::ArrowUp ? -1 : 1;
+    if (right_card_focused_) {
+      inspect_panel_.ScrollBy(delta);
+    } else {
+      trace_inspect_panel_.ScrollBy(delta);
+    }
+    return true;
+  }
   if (IsBack(event) && !trace_recover_panel_.IsConfirming()) {
     screen_ = kItemMenu;
     return true;
@@ -1624,11 +1691,26 @@ bool TuiController::OnShopMenuEvent(ftxui::Event event) {
                        state_.character.CountStackable(*stackable));
     }
   }
+  if (next == kShopInspect) {
+    OpenInspectCards();
+  }
   screen_ = next;
   return true;
 }
 
 bool TuiController::OnShopInspectEvent(ftxui::Event event) {
+  if (event == ftxui::Event::ArrowUp) {
+    inspect_panel_.ScrollBy(-1);
+    return true;
+  }
+  if (event == ftxui::Event::ArrowDown) {
+    inspect_panel_.ScrollBy(1);
+    return true;
+  }
+  if (IsSwitchPanel(event)) {
+    inspect_panel_.SwapCard();
+    return true;
+  }
   if (IsBack(event) || IsForward(event)) {
     // Back to the shop rather than the bag: inspecting is how a player decides
     // whether to buy, so the list is where they were going next either way.

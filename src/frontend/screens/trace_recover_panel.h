@@ -19,6 +19,10 @@
 
 namespace ms {
 
+// The rows RenderTabs draws: the chip row, and the rule under it. What the
+// screen subtracts before telling the card beside them how tall it may be.
+inline constexpr int kRecoverTabRows = 2;
+
 class TraceRecoverPanel {
  public:
   explicit TraceRecoverPanel(const CharacterInstance& character);

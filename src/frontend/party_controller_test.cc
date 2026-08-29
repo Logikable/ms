@@ -93,11 +93,12 @@ struct Client {
     keybinds_panel = std::make_unique<KeybindsPanel>(*keys);
     controller = std::make_unique<TuiController>(
         *state, *char_panel, *equip_panel, *inventory_panel, *scroll_panel,
-        star_force_panel, *trace_recover_panel, sell_panel, sell_equip_panel,
-        *multi_sell_panel, *map_select_panel, *mob_inspect_panel,
-        *boss_select_panel, party_panel, *party_inspect_panel, *shop_panel,
-        buy_panel, *job_inspect_panel, skill_inspect_panel, *menu_panel,
-        *keybinds_panel, analysis, *keys, focus, &session);
+        inspect_panel, trace_inspect_panel, star_force_panel,
+        *trace_recover_panel, sell_panel, sell_equip_panel, *multi_sell_panel,
+        *map_select_panel, *mob_inspect_panel, *boss_select_panel, party_panel,
+        *party_inspect_panel, *shop_panel, buy_panel, *job_inspect_panel,
+        skill_inspect_panel, *menu_panel, *keybinds_panel, analysis, *keys,
+        focus, &session);
   }
 
   // One turn of the game's loop: the connection, then the screen, then
@@ -125,6 +126,8 @@ struct Client {
   SellEquipPanel sell_equip_panel;
   BuyPanel buy_panel;
   SkillInspectPanel skill_inspect_panel;
+  InspectPanel inspect_panel;
+  InspectPanel trace_inspect_panel;
   std::unique_ptr<CharacterPanel> char_panel;
   std::unique_ptr<EquippedPanel> equip_panel;
   std::unique_ptr<InventoryPanel> inventory_panel;
