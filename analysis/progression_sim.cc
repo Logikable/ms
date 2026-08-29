@@ -1,9 +1,14 @@
 /* What a character reaches by the level cap: how long the climb takes, what it
  * paid them, and what they are standing in when they get there.
  *
- * The real engine, run forward: the same AdvanceCombat the frontend ticks,
- * paid out at the same rate, so what it reports is playtime rather than an
- * estimate of it.
+ * The real engine, but jumped rather than ticked. Nothing that decides what a
+ * character earns moves between two steps of the same level on the same map,
+ * so the map is played out for a few respawn beats to measure its rate and the
+ * whole stretch to the next thing that DOES move -- the level they are about
+ * to make, or the moment the player next opens the game -- is handed to
+ * AwardCombatRewards in one go. Every kill in it is still rolled for drops
+ * exactly as a step would have rolled it; what is given up is the HP drift
+ * inside a stretch, on a map PickMap has already watched them survive.
  *
  * The one thing the engine cannot supply is what the player does between
  * fights, so the sweep plays them:
@@ -461,17 +466,31 @@ void PickMoneyMap(GameState& state, const std::vector<std::string>& candidates,
   PickMapFor(state, candidates, beats, step, /*for_meso=*/true);
 }
 
+// What the last scout settled on, and the level it was asked at.
+struct WeaponScout {
+  EquipType settled = EQUIP_TYPE_UNSPECIFIED;
+  int settled_at = 0;
+};
+
 // Everything the player does on levelling up, in the order that makes each
 // step pay for the next: the advancement first, then the points it hands over,
 // then the drops turned into meso, then the weapon that meso buys, and only
 // then the choice of where to take it.
+// How many levels a settled weapon type is trusted for. The scout is the
+// single most expensive thing a look does -- ten ladders, each swung for a
+// simulated minute -- and the answer is a branch's whole identity: a Paladin
+// does not stop being a Paladin between Lv61 and Lv65. It is re-asked at every
+// advancement regardless, which is where it actually moves.
+constexpr int kScoutEveryLevels = 5;
+
 void Retool(GameState& state, const std::vector<Job>& path, int* taken,
             const std::vector<std::string>& maps, int beats, double step,
-            Purse& purse, GearShopper& shopper) {
+            Purse& purse, GearShopper& shopper, WeaponScout& scout) {
   if (state.character.CanAdvanceJob() &&
       *taken < static_cast<int>(path.size())) {
     Job job = path[(*taken)++];
     PerformJobAdvancement(state, job);
+    scout.settled = EQUIP_TYPE_UNSPECIFIED;
     for (const std::string& key : StarterEquipsFor(job)) {
       std::map<std::string, EquipPrototype>::const_iterator it =
           state.equips.find(key);
@@ -486,7 +505,13 @@ void Retool(GameState& state, const std::vector<Job>& path, int* taken,
   // What fell goes on before what is bought, so the weapon measurement is
   // taken with the rest of the outfit already in place.
   WearBestFromBag(state.character);
-  Outfit(state, /*budget=*/true, SettledWeaponType(state, /*budget=*/true));
+  int level = state.character.proto().level();
+  if (scout.settled == EQUIP_TYPE_UNSPECIFIED ||
+      level - scout.settled_at >= kScoutEveryLevels) {
+    scout.settled = SettledWeaponType(state, /*budget=*/true);
+    scout.settled_at = level;
+  }
+  Outfit(state, /*budget=*/true, scout.settled);
   // The book after the weapon, since a point is worth what the thing in their
   // hands can swing -- and the weapon is settled on what the branch is for,
   // which is the only thing that keeps the two from talking each other into a
@@ -589,9 +614,8 @@ struct Climb {
 };
 
 // Counts this step's kills against the tokens they were a chance at.
-void NoteTokenChances(const CombatParams& params, const CombatSim& sim,
-                      Climb& climb) {
-  const std::vector<int64_t>& kills = sim.kills_this_step();
+void NoteTokenChances(const CombatParams& params,
+                      const std::vector<int64_t>& kills, Climb& climb) {
   for (std::size_t i = 0; i < params.types.size(); ++i) {
     if (kills[i] <= 0) {
       continue;
@@ -606,6 +630,73 @@ void NoteTokenChances(const CombatParams& params, const CombatSim& sim,
       }
     }
   }
+}
+
+// What the encounter in front of them pays a second, and what it kills.
+struct Yield {
+  std::vector<double> kills_per_second;  // parallel to CombatParams::types
+  double exp_per_second = 0.0;
+  bool died = false;
+};
+
+// Plays the current encounter out for a few respawn beats and banks none of
+// it, then reports the rate it settled at.
+//
+// Nothing that decides that rate moves between two steps of the same level on
+// the same map -- not the gear, not the book, not the roster -- so the rate
+// holds until one of those does. That is what lets the climb be JUMPED rather
+// than stepped: measure once, then hand the kills of a whole stretch to
+// AwardCombatRewards in one go, which rolls each of them for drops exactly as
+// a step would have.
+//
+// What it gives up is the drift inside a stretch: the character's HP wanders
+// over an evening and this cannot see them die of it. The map they are on is
+// one PickMap watched them survive, so it is a small thing to give up for
+// sixty times the speed.
+Yield MeasureYield(GameState& state, const CombatParams& params, int beats,
+                   double step) {
+  Yield yield;
+  yield.kills_per_second.assign(params.types.size(), 0.0);
+  if (!params.active || params.types.empty()) {
+    yield.died = true;
+    return yield;
+  }
+  double horizon = std::max(step, beats * params.respawn_seconds);
+  std::vector<int64_t> total(params.types.size(), 0);
+  double exp = 0.0;
+  CombatSim sim;
+  for (double elapsed = 0.0; elapsed < horizon; elapsed += step) {
+    sim.Advance(params, step);
+    const std::vector<int64_t>& kills = sim.kills_this_step();
+    for (std::size_t i = 0; i < params.types.size(); ++i) {
+      total[i] += kills[i];
+      exp += kills[i] * params.types[i].mob->exp();
+    }
+    if (sim.died_this_step()) {
+      yield.died = true;
+      return yield;
+    }
+  }
+  for (std::size_t i = 0; i < params.types.size(); ++i) {
+    yield.kills_per_second[i] = total[i] / horizon;
+  }
+  yield.exp_per_second = exp * (1.0 + params.exp_pct) / horizon;
+  return yield;
+}
+
+// The kills a stretch of `seconds` comes to. `carry` holds the fractions left
+// over from the last stretch, so a mob killed once every two minutes is still
+// killed thirty times an hour rather than rounded away at every jump.
+std::vector<int64_t> KillsOver(const Yield& yield, double seconds,
+                               std::vector<double>* carry) {
+  carry->resize(yield.kills_per_second.size(), 0.0);
+  std::vector<int64_t> kills(yield.kills_per_second.size(), 0);
+  for (std::size_t i = 0; i < kills.size(); ++i) {
+    double want = yield.kills_per_second[i] * seconds + (*carry)[i];
+    kills[i] = static_cast<int64_t>(want);
+    (*carry)[i] = want - kills[i];
+  }
+  return kills;
 }
 
 // Notes any Frozen piece or token picked up since the last look. Called before
@@ -767,6 +858,7 @@ struct Session {
   int taken = 0;
   Purse purse;
   GearShopper shopper;
+  WeaponScout scout;
   Climb& climb;
   double step = 0.5;
   int beats = 4;
@@ -913,7 +1005,7 @@ bool TakeOnBosses(Session& run, int level, bool levelled) {
 void ClimbToCap(Session& run) {
   double give_up = absl::GetFlag(FLAGS_give_up_hours) * 3600.0;
   Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-         run.purse, run.shopper);
+         run.purse, run.shopper, run.scout);
   run.next_look = NextLook(run.seconds, run.state.character.proto().level(),
                            &run.looks_left, run.rng);
 
@@ -921,22 +1013,37 @@ void ClimbToCap(Session& run) {
   double level_began = 0.0;
   Stint stint = {level, 0.0, run.state.current_map,
                  HeldWeaponName(run.state.character)};
-  CombatSim sim;
-  // Built once and reused until something changes it. Nothing in a fight moves
-  // between two steps of the same level on the same map, and rebuilding it
-  // every step is where this sim used to spend almost all of its time.
   CombatParams params = ComputeCombatParams(run.state);
+  std::vector<double> carry;
   while (level < kTrialLevelCap && run.seconds < give_up) {
-    AdvanceCombat(run.state, sim, params, run.step);
-    NoteTokenChances(params, sim, run.climb);
-    run.purse.Note(run.state.character);
-    run.seconds += run.step;
-    if (sim.died_this_step()) {
-      // Dying sends them home, where there is nothing to fight, and a fight
-      // fought elsewhere leaves the map behind unchosen either way.
+    Yield yield = MeasureYield(run.state, params, run.beats, run.step);
+    if (yield.died || yield.exp_per_second <= 0.0) {
+      // Nowhere they can stand, or nothing to be earned standing there. Ask
+      // for a map again and, if there is still none, let the give-up clock
+      // have it rather than spinning.
       PickMap(run.state, run.maps, run.beats, run.step);
-      params = ComputeCombatParams(run.state);
+      CombatParams again = ComputeCombatParams(run.state);
+      if (again.encounter == params.encounter) {
+        run.seconds = give_up;
+        break;
+      }
+      params = again;
+      continue;
     }
+    // The next thing that changes anything: the level they are about to make,
+    // or the moment the player next opens it. Nothing else moves in between.
+    const Character& proto = run.state.character.proto();
+    double to_level =
+        (ExpToNextLevel(level) - proto.exp()) / yield.exp_per_second;
+    double horizon = std::min(std::max(to_level, run.step),
+                              std::max(run.next_look - run.seconds, run.step));
+    horizon = std::min(horizon, give_up - run.seconds);
+    std::vector<int64_t> kills = KillsOver(yield, horizon, &carry);
+    AwardCombatRewards(run.state, params, kills);
+    NoteTokenChances(params, kills, run.climb);
+    run.purse.Note(run.state.character);
+    run.seconds += horizon;
+
     int reached = run.state.character.proto().level();
     bool levelled = reached != level;
     bool watching = absl::GetFlag(FLAGS_attention) <= 0.0;
@@ -947,7 +1054,7 @@ void ClimbToCap(Session& run) {
             NextLook(run.seconds, reached, &run.looks_left, run.rng);
       }
       Retool(run.state, run.path, &run.taken, run.maps, run.beats, run.step,
-             run.purse, run.shopper);
+             run.purse, run.shopper, run.scout);
       looked = true;
     }
     if (levelled) {
@@ -988,16 +1095,31 @@ void FarmAtCap(Session& run) {
 
   PickMoneyMap(run.state, run.maps, run.beats, run.step);
   run.climb.money_map = run.state.current_map;
-  CombatSim sim;
   CombatParams params = ComputeCombatParams(run.state);
   // Retooled on the clock rather than on levelling up, since nothing levels
   // any more: often enough that a star bought is felt, rarely enough that the
   // measurement behind it is not the whole cost of the section.
   double next_retool = run.seconds + kDaySeconds / 24.0;
+  std::vector<double> carry;
   while (run.seconds < horizon) {
-    AdvanceCombat(run.state, sim, params, run.step);
+    Yield yield = MeasureYield(run.state, params, run.beats, run.step);
+    if (yield.died) {
+      PickMoneyMap(run.state, run.maps, run.beats, run.step);
+      CombatParams again = ComputeCombatParams(run.state);
+      if (again.encounter == params.encounter) {
+        break;  // nowhere left they can stand
+      }
+      params = again;
+      continue;
+    }
+    // Jumped the same way the climb is, but to the retool rather than to a
+    // level: nothing levels here, so the clock is the only thing that moves.
+    double jump = std::min(next_retool, horizon) - run.seconds;
+    jump = std::max(jump, run.step);
+    std::vector<int64_t> kills = KillsOver(yield, jump, &carry);
+    AwardCombatRewards(run.state, params, kills);
     run.purse.Note(run.state.character);
-    run.seconds += run.step;
+    run.seconds += jump;
     bool fought = TakeOnBosses(run, level, /*levelled=*/false);
     if (run.seconds >= next_retool) {
       next_retool += kDaySeconds / 24.0;
@@ -1009,7 +1131,7 @@ void FarmAtCap(Session& run) {
       run.climb.money_map = run.state.current_map;
       fought = true;
     }
-    if (fought || sim.died_this_step()) {
+    if (fought) {
       params = ComputeCombatParams(run.state);
     }
   }
@@ -1041,8 +1163,9 @@ Climb Play(const Catalogs& catalogs, Job branch,
   plan.star_ceiling = absl::GetFlag(FLAGS_star_ceiling);
   plan.scroll_rate = absl::GetFlag(FLAGS_scroll_rate);
 
-  Session run = {state, maps, PathTo(branch), 0, Purse(), GearShopper(plan),
-                 climb};
+  Session run = {
+      state,         maps, PathTo(branch), 0, Purse(), GearShopper(plan),
+      WeaponScout(), climb};
   run.step = absl::GetFlag(FLAGS_step);
   run.beats = absl::GetFlag(FLAGS_probe_beats);
   run.rng.seed(seed);

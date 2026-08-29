@@ -17,7 +17,12 @@ namespace {
 
 // The step the fight is walked in: the frame the game draws at, so a swing
 // lands on the same tick it would land on in front of a player.
-constexpr double kStepSeconds = 1.0 / 60.0;
+// The step the fight is played at. Coarser than the sixty frames a second the
+// screen runs, because a sim takes a fight thousands of times: a swing's own
+// delay is most of a second, so twenty steps of it still lands every one where
+// it falls. Measured drift against 1/60 is at most two seconds on a two-minute
+// kill.
+constexpr double kStepSeconds = 1.0 / 20.0;
 
 // What a phase is holding, over every monster standing in it.
 int64_t PhaseHp(const std::map<std::string, Mob>& mobs,
