@@ -74,13 +74,16 @@ std::vector<std::string> WeaponShelf(const GameState& state) {
                      ShopWeaponStock(state.equips, kPaidInTokens));
 }
 
-// The off-hands alone. The shop's equipment shelf also carries the rings and
-// the emblem, which fill slots of their own and are not what a branch re-arms
-// its hand with.
+std::vector<std::string> EquipShelf(const GameState& state) {
+  return BothShelves(ShopEquipStock(state.equips, kPaidInMeso),
+                     ShopEquipStock(state.equips, kPaidInTokens));
+}
+
+// The off-hands alone. The shelf also carries the rings, the emblem and the
+// medal, which fill slots of their own and are not what a branch re-arms its
+// hand with.
 std::vector<std::string> SecondaryShelf(const GameState& state) {
-  std::vector<std::string> keys =
-      BothShelves(ShopEquipStock(state.equips, kPaidInMeso),
-                  ShopEquipStock(state.equips, kPaidInTokens));
+  std::vector<std::string> keys = EquipShelf(state);
   keys.erase(std::remove_if(keys.begin(), keys.end(),
                             [&state](const std::string& key) {
                               return state.equips.at(key).equip_slot() !=
@@ -1135,11 +1138,41 @@ bool ReachedSymbolArea(const CharacterInstance& character,
          character.proto().level() >= proto.arcane_symbol().area_level();
 }
 
-// True for a slot the shop stocks and Outfit already climbed. Everything else
-// is a drop, and there is one ladder per slot rather than a choice of ladders.
-bool ShoppedSlot(EquipSlot slot) {
+// True for something Outfit already shopped for. Two questions rather than
+// one: the three slots it climbs a ladder in, and any item that names a price,
+// since the shop's equipment shelf reaches slots the drops reach too -- a ring
+// is bought and the Frozen gloves fall. Asking only the slot would hand a
+// bought ring over free; asking only the price would hand over the Fafnir,
+// which is priced at nothing because nothing sells it.
+bool Shopped(const EquipPrototype& proto) {
+  EquipSlot slot = proto.equip_slot();
   return slot == EQUIP_SLOT_PRIMARY_WEAPON || slot == EQUIP_SLOT_SECONDARY ||
-         slot == EQUIP_SLOT_PROJECTILE;
+         slot == EQUIP_SLOT_PROJECTILE || proto.has_shop_price() ||
+         proto.token_price() > 0;
+}
+
+// Wears the best of `candidates` in every slot of one family, highest tier
+// first and the name breaking a tie so a run repeats. A list rather than one
+// item because a character wears four rings, and "the best ring" is then four
+// answers -- SlotToFill refuses a second copy of one, so the four differ.
+void WearBestOfFamily(CharacterInstance& character, EquipSlot family,
+                      std::vector<const EquipPrototype*> candidates) {
+  std::sort(candidates.begin(), candidates.end(),
+            [](const EquipPrototype* a, const EquipPrototype* b) {
+              if (a->required_level() != b->required_level()) {
+                return a->required_level() > b->required_level();
+              }
+              return a->name() < b->name();
+            });
+  int room = static_cast<int>(SlotFamily(family).size());
+  for (const EquipPrototype* proto : candidates) {
+    if (room <= 0) {
+      break;
+    }
+    if (character.IsWearing(proto->name()) || WearCopy(character, *proto)) {
+      --room;
+    }
+  }
 }
 
 void WearBestFromBag(CharacterInstance& character) {
@@ -1151,7 +1184,7 @@ void WearBestFromBag(CharacterInstance& character) {
     const InventoryInstance& bag = character.inventory();
     for (int i = 0; i < bag.size(); ++i) {
       const EquipPrototype& proto = bag[i].prototype();
-      if (bag[i].is_trace() || ShoppedSlot(proto.equip_slot()) ||
+      if (bag[i].is_trace() || Shopped(proto) ||
           !ReachedSymbolArea(character, proto) || !character.CanEquip(proto)) {
         continue;
       }
@@ -1170,25 +1203,47 @@ void WearBestFromBag(CharacterInstance& character) {
 }
 
 void OutfitDrops(GameState& state, const std::set<std::string>& skip) {
-  std::map<EquipSlot, const EquipPrototype*> best;
+  std::map<EquipSlot, std::vector<const EquipPrototype*>> by_family;
   for (const std::pair<const std::string, EquipPrototype>& entry :
        state.equips) {
     const EquipPrototype& proto = entry.second;
-    if (ShoppedSlot(proto.equip_slot()) || skip.count(entry.first) > 0 ||
+    if (Shopped(proto) || skip.count(entry.first) > 0 ||
         !ReachedSymbolArea(state.character, proto) ||
         !state.character.CanEquip(proto)) {
       continue;
     }
-    std::map<EquipSlot, const EquipPrototype*>::iterator held =
-        best.find(proto.equip_slot());
-    if (held == best.end()) {
-      best[proto.equip_slot()] = &proto;
-    } else if (proto.required_level() > held->second->required_level()) {
-      held->second = &proto;
-    }
+    by_family[BaseSlot(proto.equip_slot())].push_back(&proto);
   }
-  for (const std::pair<const EquipSlot, const EquipPrototype*>& entry : best) {
-    WearCopy(state.character, *entry.second);
+  for (std::pair<const EquipSlot, std::vector<const EquipPrototype*>>& entry :
+       by_family) {
+    WearBestOfFamily(state.character, entry.first, entry.second);
+  }
+}
+
+// The rest of the shop's equipment shelf: the rings, the emblem and the medal.
+// Nothing is measured, for the reason the off-hand is not -- they carry plain
+// stats, so a higher tier is simply more -- and a family takes as many as it
+// holds rather than one.
+void BuyAccessories(GameState& state, bool budget) {
+  std::map<EquipSlot, std::vector<const EquipPrototype*>> by_family;
+  for (const std::string& key : EquipShelf(state)) {
+    const EquipPrototype& proto = state.equips.at(key);
+    if (proto.equip_slot() == EQUIP_SLOT_SECONDARY ||
+        !state.character.MeetsLevel(proto) ||
+        !state.character.MeetsJob(proto)) {
+      continue;
+    }
+    if (state.character.IsWearing(proto.name())) {
+      continue;  // bought on an earlier pass; a climb outfits at every level
+    }
+    if (budget && (!CanPayFor(state, proto) || !BuyOne(state, proto))) {
+      continue;
+    }
+    by_family[BaseSlot(proto.equip_slot())].push_back(&proto);
+  }
+  for (std::pair<const EquipSlot, std::vector<const EquipPrototype*>>& entry :
+       by_family) {
+    WearBestOfFamily(state.character, entry.first, entry.second);
   }
 }
 
@@ -1208,18 +1263,16 @@ void Outfit(GameState& state, bool budget) {
   if (ammo != EQUIP_TYPE_UNSPECIFIED) {
     ClimbLadder(state, ammo, budget);
   }
-  // Last, because it is the smallest of the three and the purse is spent in
-  // the order that matters.
+  // After the weapon, because the purse is spent in the order that matters:
+  // a ring is worth less than the thing it is swung beside.
   const EquipPrototype* off_hand = BestSecondary(state, budget);
-  if (off_hand == nullptr ||
-      off_hand->required_level() <=
-          HeldTier(state.character, EQUIP_SLOT_SECONDARY)) {
-    return;
+  if (off_hand != nullptr &&
+      off_hand->required_level() >
+          HeldTier(state.character, EQUIP_SLOT_SECONDARY) &&
+      (!budget || BuyOne(state, *off_hand))) {
+    WearCopy(state.character, *off_hand);
   }
-  if (budget && !BuyOne(state, *off_hand)) {
-    return;
-  }
-  WearCopy(state.character, *off_hand);
+  BuyAccessories(state, budget);
 }
 
 }  // namespace ms
