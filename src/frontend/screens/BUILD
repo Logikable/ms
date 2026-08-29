@@ -63,6 +63,7 @@ cc_library(
         "//src/character",
         "//src/character:arcane_force",
         "//src/frontend/widgets:panel_util",
+        "//src/frontend/widgets:scroll_card",
         "//src/item",
         "//src/protos:equip_proto_cc",
         "//src/protos:equip_set_proto_cc",

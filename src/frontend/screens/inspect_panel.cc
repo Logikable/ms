@@ -11,6 +11,7 @@
 #include "ftxui/dom/elements.hpp"
 #include "src/character/arcane_force.h"
 #include "src/frontend/widgets/panel_util.h"
+#include "src/frontend/widgets/scroll_card.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -26,10 +27,11 @@ namespace {
 // from its columns.
 constexpr int kStackableWidth = 44;
 
-// The set card. One width whatever the set holds, for the same reason the
-// stackable body has one: the card sits beside the item, and a card that
-// resized would walk the item panel across the screen.
-constexpr int kSetWidth = 47;
+// The set card's rows. One width whatever the set holds, for the same reason
+// the stackable body has one: the card sits beside the item, and a card that
+// resized would walk the item panel across the screen. The borders and the
+// scroll bar's column are three more.
+constexpr int kSetContentWidth = 45;
 constexpr int kSetSlotWidth = 11;
 constexpr int kSetTierWidth = 15;
 
@@ -65,16 +67,7 @@ ftxui::Element SymbolRow(const std::string& label, const std::string& value) {
   return ftxui::text(" " + PadRight(label, kSymbolLabelWidth) + value + " ");
 }
 
-// The columns `rows` would take if nothing squeezed them. What the panel asks
-// before deciding whether folding a row would buy it anything.
-int NaturalWidth(const std::vector<ftxui::Element>& rows) {
-  ftxui::Element box = ftxui::vbox(rows);
-  box->ComputeRequirement();
-  return box->requirement().min_x;
-}
-
-void Append(std::vector<ftxui::Element>& rows,
-            const std::vector<ftxui::Element>& more) {
+void Append(std::vector<CardRow>& rows, const std::vector<CardRow>& more) {
   rows.insert(rows.end(), more.begin(), more.end());
 }
 
@@ -228,31 +221,74 @@ void InspectPanel::UseCharacter(const CharacterInstance& character) {
   character_ = &character;
 }
 
-ftxui::Element InspectPanel::RenderItemOnly() const {
+void InspectPanel::SetMaxRows(int rows) {
+  item_card_.SetMaxRows(rows);
+  set_card_.SetMaxRows(rows);
+}
+
+void InspectPanel::ScrollBy(int delta) {
+  if (focus_ == kSetCard) {
+    set_card_.ScrollBy(delta);
+    return;
+  }
+  item_card_.ScrollBy(delta);
+}
+
+bool InspectPanel::SwapCard() {
+  if (!HasSetCard()) {
+    return false;
+  }
+  bool to_set = focus_ == kItemCard;
+  if (!(to_set ? set_card_ : item_card_).Overflows()) {
+    return false;
+  }
+  focus_ = to_set ? kSetCard : kItemCard;
+  return true;
+}
+
+void InspectPanel::Reset() {
+  item_card_.Reset();
+  set_card_.Reset();
+  focus_ = kItemCard;
+}
+
+bool InspectPanel::HasSetCard() const {
+  return SetOfItem() != nullptr;
+}
+
+bool InspectPanel::ItemOverflows() const {
+  return item_card_.Overflows();
+}
+
+ftxui::Element InspectPanel::RenderItemOnly(bool focused) const {
+  // The stackable body is a paragraph, which wraps to as many lines as it
+  // needs and so cannot be sliced into a scrolling window. It is two lines at
+  // its longest, and never outgrows a terminal.
   if (stackable_ != nullptr) {
-    return ThemedWindow(" Inspect ", RenderStackable()) |
+    return ThemedWindow(" Inspect ", RenderStackable(), focused) |
            ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kStackableWidth);
   }
   if (item_ == nullptr) {
-    return ThemedWindow(" Inspect ", EmptyState("no item"));
+    return ThemedWindow(" Inspect ", EmptyState("no item"), focused);
   }
-  if (IsArcaneSymbol(item_->prototype())) {
-    return ThemedWindow(" Inspect ", RenderSymbol());
-  }
-  return ThemedWindow(" Inspect ", RenderEquip());
+  std::vector<CardRow> rows =
+      IsArcaneSymbol(item_->prototype()) ? SymbolRows() : EquipRows();
+  return item_card_.Render(" Inspect ", std::move(rows), /*content_width=*/0,
+                           focused);
 }
 
-ftxui::Element InspectPanel::RenderSymbol() const {
+std::vector<CardRow> InspectPanel::SymbolRows() const {
   const Equip& state = item_->equip_state();
   int level = SymbolLevel(state);
   int needed = SymbolExpToNextLevel(level);
-  std::vector<ftxui::Element> rows = {
-      CenteredRow(item_->name()),
-      ThemedSeparator(),
-      SymbolRow("Level", std::to_string(level)),
-      SymbolRow("EXP", needed == 0 ? "MAX"
+  std::vector<CardRow> rows = {
+      TextRow(CenteredRow(item_->name())),
+      RuleRow(ThemedSeparator()),
+      TextRow(SymbolRow("Level", std::to_string(level))),
+      TextRow(SymbolRow("EXP", needed == 0
+                                   ? "MAX"
                                    : std::to_string(state.symbol_exp()) +
-                                         " / " + std::to_string(needed)),
+                                         " / " + std::to_string(needed))),
   };
   // The stat a symbol grants is the wearer's own, so a card with nobody behind
   // it shows the force alone rather than guessing at a job.
@@ -260,23 +296,28 @@ ftxui::Element InspectPanel::RenderSymbol() const {
     StatField primary = PrimaryStatField(character_->proto().job());
     const DisplayStat* stat = DisplayStatFor(primary);
     if (stat != nullptr) {
-      rows.push_back(SymbolRow(
-          stat->label,
-          "+" + std::to_string(stat->GetFrom(SymbolStatsFor(primary, level)))));
+      rows.push_back(TextRow(
+          SymbolRow(stat->label, "+" + std::to_string(stat->GetFrom(
+                                           SymbolStatsFor(primary, level))))));
     }
   }
   rows.push_back(
-      SymbolRow("AF", "+" + std::to_string(SymbolArcaneForce(level))));
-  return ftxui::vbox(std::move(rows));
+      TextRow(SymbolRow("AF", "+" + std::to_string(SymbolArcaneForce(level)))));
+  return rows;
 }
 
 ftxui::Element InspectPanel::Render() const {
-  ftxui::Element window = RenderItemOnly();
   const EquipSet* set = SetOfItem();
+  // A card lights its title only when there is a second one to tell it from:
+  // on a screen with one card the arrows have nowhere else to go.
   if (set == nullptr) {
-    return window;
+    return RenderItemOnly();
   }
-  return ftxui::hbox({std::move(window), RenderSetEffect(*set)});
+  return ftxui::hbox({
+      RenderItemOnly(focus_ == kItemCard),
+      set_card_.Render(" Set Effect ", SetRows(*set), kSetContentWidth,
+                       focus_ == kSetCard),
+  });
 }
 
 const EquipSet* InspectPanel::SetOfItem() const {
@@ -304,11 +345,11 @@ const EquipSet* InspectPanel::SetOfItem() const {
   return nullptr;
 }
 
-ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
+std::vector<CardRow> InspectPanel::SetRows(const EquipSet& set) const {
   int worn = character_->PiecesWornOf(set);
-  std::vector<ftxui::Element> rows;
-  rows.push_back(CenteredRow(FormatEquipSet(set.name())));
-  rows.push_back(ThemedSeparator());
+  std::vector<CardRow> rows;
+  rows.push_back(TextRow(CenteredRow(FormatEquipSet(set.name()))));
+  rows.push_back(RuleRow(ThemedSeparator()));
   for (const EquipSetMember& member : set.members()) {
     std::string on = character_->WornOfMember(member);
     // A family slot names what fills it once something does, and asks for one
@@ -331,11 +372,11 @@ ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
       if (fill != on) {
         row = row | ftxui::dim;
       }
-      rows.push_back(row);
+      rows.push_back(TextRow(std::move(row)));
       slot.clear();
     }
   }
-  rows.push_back(ThemedSeparator());
+  rows.push_back(RuleRow(ThemedSeparator()));
   for (const EquipSetTier& tier : set.tiers()) {
     std::string label = std::to_string(tier.pieces()) + " Set Effect";
     for (const std::string& line : EffectLines(tier.effect())) {
@@ -348,13 +389,12 @@ ftxui::Element InspectPanel::RenderSetEffect(const EquipSet& set) const {
       if (worn < tier.pieces()) {
         row = row | ftxui::dim;
       }
-      rows.push_back(row);
+      rows.push_back(TextRow(std::move(row)));
       // Only the first line of a tier is labelled; the rest hang under it.
       label.clear();
     }
   }
-  return ThemedWindow(" Set Effect ", ftxui::vbox(std::move(rows))) |
-         ftxui::size(ftxui::WIDTH, ftxui::EQUAL, kSetWidth);
+  return rows;
 }
 
 // A stack has no stats, no stars and no slots. Its name and what it is for is
@@ -383,32 +423,33 @@ ftxui::Element InspectPanel::RenderStackable() const {
 
 // The rows above the job categories: the item's name and the level it asks
 // for.
-std::vector<ftxui::Element> InspectPanel::HeadRows() const {
+std::vector<CardRow> InspectPanel::HeadRows() const {
   int level = item_->prototype().required_level();
   return {
-      CenteredRow(item_->name()),
-      ThemedSeparator(),
+      TextRow(CenteredRow(item_->name())),
+      RuleRow(ThemedSeparator()),
       // Trailing space on each text row keeps the right border one column
       // clear.
-      ftxui::text(" Req Lev: " + std::to_string(level > 0 ? level : 1) + " "),
+      TextRow(ftxui::text(" Req Lev: " + std::to_string(level > 0 ? level : 1) +
+                          " ")),
   };
 }
 
 // Everything below the job categories: what kind of item it is, what it
 // grants, and what it has spent.
-std::vector<ftxui::Element> InspectPanel::FactRows() const {
+std::vector<CardRow> InspectPanel::FactRows() const {
   const EquipPrototype& proto = item_->prototype();
   const Equip& item_state = item_->equip_state();
 
-  std::vector<ftxui::Element> rows;
-  rows.push_back(ThemedSeparator());
+  std::vector<CardRow> rows;
+  rows.push_back(RuleRow(ThemedSeparator()));
   if (proto.equip_type() != EQUIP_TYPE_UNSPECIFIED) {
-    rows.push_back(
-        ftxui::text(" Type: " + FormatEquipType(proto.equip_type()) + " "));
+    rows.push_back(TextRow(
+        ftxui::text(" Type: " + FormatEquipType(proto.equip_type()) + " ")));
   }
   if (proto.attack_speed() != ATTACK_SPEED_UNSPECIFIED) {
-    rows.push_back(ftxui::text(
-        " Attack Speed: " + FormatAttackSpeed(proto.attack_speed()) + " "));
+    rows.push_back(TextRow(ftxui::text(
+        " Attack Speed: " + FormatAttackSpeed(proto.attack_speed()) + " ")));
   }
 
   const EquipStats& base = proto.base_stats();
@@ -421,11 +462,11 @@ std::vector<ftxui::Element> InspectPanel::FactRows() const {
     if (row == nullptr) {
       continue;
     }
-    rows.push_back(row);
+    rows.push_back(TextRow(std::move(row)));
     any_stat = true;
   }
   if (!any_stat) {
-    rows.push_back(EmptyState("no stats"));
+    rows.push_back(TextRow(EmptyState("no stats")));
   }
 
   int slots = TotalUpgradeSlots(proto, item_state);
@@ -433,52 +474,53 @@ std::vector<ftxui::Element> InspectPanel::FactRows() const {
     int pass = item_state.scroll_successes();
     int left = item_state.remaining_upgrade_slots();
     int restore = slots - pass - left;
-    rows.push_back(ThemedSeparator());
+    rows.push_back(RuleRow(ThemedSeparator()));
     std::string scroll_label =
         pass == 1 ? " Successful Scroll " : " Successful Scrolls ";
     std::string restore_label = restore == 1 ? " Restore) " : " Restores) ";
-    rows.push_back(ftxui::text(" " + std::to_string(pass) + scroll_label));
-    rows.push_back(ftxui::text(" (" + std::to_string(left) + " Left, " +
-                               std::to_string(restore) + restore_label));
+    rows.push_back(
+        TextRow(ftxui::text(" " + std::to_string(pass) + scroll_label)));
+    rows.push_back(
+        TextRow(ftxui::text(" (" + std::to_string(left) + " Left, " +
+                            std::to_string(restore) + restore_label)));
   }
   return rows;
 }
 
-ftxui::Element InspectPanel::RenderEquip() const {
-  std::vector<ftxui::Element> head = HeadRows();
-  std::vector<ftxui::Element> facts = FactRows();
+std::vector<CardRow> InspectPanel::EquipRows() const {
+  std::vector<CardRow> head = HeadRows();
+  std::vector<CardRow> facts = FactRows();
   // What the item has to say sets the width; the two rows that can be folded
   // are measured against it rather than the other way round.
   int fixed = std::max(NaturalWidth(head), NaturalWidth(facts));
 
-  std::vector<ftxui::Element> jobs = JobRows(fixed);
-  std::vector<ftxui::Element> rows =
-      StarRows(std::max(fixed, NaturalWidth(jobs)));
+  std::vector<CardRow> jobs = JobRows(fixed);
+  std::vector<CardRow> rows = StarRows(std::max(fixed, NaturalWidth(jobs)));
   Append(rows, head);
   Append(rows, jobs);
   Append(rows, facts);
-  return ftxui::vbox(std::move(rows));
+  return rows;
 }
 
 // The six job categories, on one row or folded onto two. Folded whenever the
 // one-row form would be what makes the panel wide: the categories are the same
 // six on every item, so a card describing a narrow item should not be 55
 // columns across to list them.
-std::vector<ftxui::Element> InspectPanel::JobRows(int fixed) const {
+std::vector<CardRow> InspectPanel::JobRows(int fixed) const {
   const EquipPrototype& proto = item_->prototype();
   ftxui::Element one_row = JobRow(proto, 0, kJobCategoryCount);
   if (NaturalWidth({one_row}) <= fixed) {
-    return {one_row};
+    return {TextRow(one_row)};
   }
   int half = kJobCategoryCount / 2;
-  return {CenteredRow(JobRow(proto, 0, half)),
-          CenteredRow(JobRow(proto, half, kJobCategoryCount - half))};
+  return {TextRow(CenteredRow(JobRow(proto, 0, half))),
+          TextRow(CenteredRow(JobRow(proto, half, kJobCategoryCount - half)))};
 }
 
 // The star bar, on one row or folded onto two. An item that refuses star force
 // gets no bar at all: a row of empty stars reads as a bar waiting to be
 // filled, which is the opposite of the truth.
-std::vector<ftxui::Element> InspectPanel::StarRows(int fixed) const {
+std::vector<CardRow> InspectPanel::StarRows(int fixed) const {
   const EquipPrototype& proto = item_->prototype();
   if (!Supports(proto, UPGRADE_STAR_FORCE)) {
     return {};
@@ -487,12 +529,13 @@ std::vector<ftxui::Element> InspectPanel::StarRows(int fixed) const {
   int max_stars = item_->max_stars();
   ftxui::Element one_row = CenteredRow(StarBar(stars, 0, max_stars));
   if (max_stars <= kStarsPerRow || NaturalWidth({one_row}) <= fixed) {
-    return {one_row};
+    return {TextRow(one_row)};
   }
   // A row of fifteen with the excess centred under it, which is how a 30-star
   // bar reads as two ranks rather than one long line.
-  return {CenteredRow(StarBar(stars, 0, kStarsPerRow)),
-          CenteredRow(StarBar(stars, kStarsPerRow, max_stars - kStarsPerRow))};
+  return {TextRow(CenteredRow(StarBar(stars, 0, kStarsPerRow))),
+          TextRow(CenteredRow(
+              StarBar(stars, kStarsPerRow, max_stars - kStarsPerRow)))};
 }
 
 ftxui::Element InspectPanel::StarBar(int stars, int from, int count) {

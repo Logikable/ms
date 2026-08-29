@@ -9,7 +9,8 @@
  * saying what it is, so that is what it gets.
  *
  * A piece of a set gets a second card beside the first, listing the whole set
- * and what each of its tiers pays.
+ * and what each of its tiers pays. Either card scrolls when it outgrows the
+ * terminal; Tab hands the arrows to the other one.
  *
  * One panel rather than two because it is one screen to the player, reached
  * the same way from either list, and two would be free to drift apart.
@@ -23,6 +24,7 @@
 
 #include "ftxui/dom/elements.hpp"
 #include "src/character/character.h"
+#include "src/frontend/widgets/scroll_card.h"
 #include "src/item/item.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/equip_set.pb.h"
@@ -32,6 +34,9 @@ namespace ms {
 
 class InspectPanel {
  public:
+  // Which of the two cards the arrows are reaching.
+  enum Card { kItemCard, kSetCard };
+
   // Points the panel at an item to describe. The two overloads are exclusive:
   // setting one forgets the other, so the panel always describes exactly the
   // item the cursor was last on.
@@ -41,35 +46,61 @@ class InspectPanel {
   // Left unset, an item is described on its own and no set card appears --
   // which is what a test with no sets in play wants.
   void UseCharacter(const CharacterInstance& character);
+  // The rows either card may take, borders included. Past this it scrolls.
+  // Zero, the default, is no limit -- what a test wants, and what a card with
+  // room to spare gets. Not read from the terminal here, for the reason
+  // CharacterPanel gives: tests draw the panel at whatever size they choose.
+  void SetMaxRows(int rows);
+  // Moves the focused card's view. There is no cursor on either card, so a
+  // key moves the page itself; see ScrollCard.
+  void ScrollBy(int delta);
+  // Hands the arrows to the other card. Refused, and false, when there is no
+  // second card or when it has nothing to scroll: focus should never land
+  // where the arrows would do nothing.
+  bool SwapCard();
+  // Both cards back to the top, with the item card holding the arrows. Call
+  // when the screen opens.
+  void Reset();
+  // True while the inspected item belongs to a set, which is what a screen
+  // asks before offering Tab at all.
+  bool HasSetCard() const;
+  Card focused_card() const {
+    return focus_;
+  }
+  // True while the item card has more rows than it can draw. For a screen
+  // that shares the arrows between this card and a panel of its own.
+  bool ItemOverflows() const;
+
   ftxui::Element Render() const;
   // The item's card alone, with no set card beside it. What a screen that
   // already has a panel of its own next to the item asks for: three windows
-  // in a row leaves none of them the width they need.
-  ftxui::Element RenderItemOnly() const;
+  // in a row leaves none of them the width they need. `focused` lights the
+  // title, for a screen where the card takes turns holding the arrows.
+  ftxui::Element RenderItemOnly(bool focused = false) const;
 
  private:
-  // The body for each kind. Both are wrapped in the same window by Render, so
-  // the two screens cannot drift apart in their framing.
-  ftxui::Element RenderEquip() const;
+  // The body for each kind. All three are framed by the same card, so the
+  // screens cannot drift apart in their framing.
+  std::vector<CardRow> EquipRows() const;
   ftxui::Element RenderStackable() const;
   // An Arcane Symbol's card. Its own body rather than the equip one: what a
   // symbol grants comes from its level and the wearer's job, so none of the
   // rows an equip carries has anything to say about it.
-  ftxui::Element RenderSymbol() const;
+  std::vector<CardRow> SymbolRows() const;
   // The equip body in parts. The rows an item cannot fold are built first and
   // measured; the two that can -- the star bar and the job categories -- are
   // then folded onto two lines each if leaving them on one is what would make
   // the panel wide. `fixed` is the width the rest of the card already needs.
-  std::vector<ftxui::Element> HeadRows() const;
-  std::vector<ftxui::Element> FactRows() const;
-  std::vector<ftxui::Element> JobRows(int fixed) const;
-  std::vector<ftxui::Element> StarRows(int fixed) const;
+  std::vector<CardRow> HeadRows() const;
+  std::vector<CardRow> FactRows() const;
+  std::vector<CardRow> JobRows(int fixed) const;
+  std::vector<CardRow> StarRows(int fixed) const;
   // The set the inspected item is a piece of, or nullptr for an item that
   // belongs to none -- which is every item but a handful.
   const EquipSet* SetOfItem() const;
   // The card beside the item: what the set is made of, and what each tier
   // pays. Tiers the worn pieces do not reach are dimmed.
-  ftxui::Element RenderSetEffect(const EquipSet& set) const;
+  std::vector<CardRow> SetRows(const EquipSet& set) const;
 
   // `count` job categories from `from`, as one row: dimmed for the ones this
   // item is not for, and every one of them listed either way.
@@ -88,6 +119,9 @@ class InspectPanel {
   const EquipTabItem* item_ = nullptr;
   const ItemPrototype* stackable_ = nullptr;
   const CharacterInstance* character_ = nullptr;
+  ScrollCard item_card_;
+  ScrollCard set_card_;
+  Card focus_ = kItemCard;
 };
 
 }  // namespace ms

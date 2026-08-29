@@ -680,6 +680,102 @@ TEST_F(InspectPanelTest, TheCardIsOneWidthWhateverTheSetHolds) {
   EXPECT_EQ(NaturalWidth(panel), wide);
 }
 
+// --- scrolling ---
+
+// A set with enough tiers written to outgrow any terminal, so the card has
+// something to scroll.
+std::map<std::string, EquipSet> TallSet() {
+  std::map<std::string, EquipSet> sets = FrozenSet();
+  EquipSet& set = sets["frozen"];
+  for (int i = 5; i < 40; ++i) {
+    EquipSetTier* tier = set.add_tiers();
+    tier->set_pieces(i);
+    tier->mutable_effect()->set_str(i);
+  }
+  return sets;
+}
+
+// A panel on a Frozen Hat with a set card beside it, both cut to `rows`.
+InspectPanel TallPanel(CharacterInstance& character, int rows) {
+  character.UseEquipSets(TallSet());
+  InspectPanel panel;
+  panel.UseCharacter(character);
+  panel.SetMaxRows(rows);
+  return panel;
+}
+
+TEST_F(InspectPanelTest, ScrollsTheSetCardWithoutMovingTheItemCard) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  InspectPanel panel = TallPanel(c_, 12);
+  panel.SetItem(&hat);
+  ASSERT_NE(RenderWide(panel).find("Frozen Set"), std::string::npos);
+
+  ASSERT_TRUE(panel.SwapCard());
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kSetCard);
+  panel.ScrollBy(3);
+  std::string rendered = RenderWide(panel);
+  EXPECT_EQ(rendered.find("Frozen Set"), std::string::npos)
+      << "the set card's head has scrolled away";
+  EXPECT_NE(rendered.find("Frozen Hat"), std::string::npos)
+      << "the item card has not moved";
+}
+
+TEST_F(InspectPanelTest, ResetPutsBothCardsBackAtTheTop) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  InspectPanel panel = TallPanel(c_, 12);
+  panel.SetItem(&hat);
+  RenderWide(panel);
+  ASSERT_TRUE(panel.SwapCard());
+  panel.ScrollBy(5);
+  RenderWide(panel);
+
+  panel.Reset();
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
+  EXPECT_NE(RenderWide(panel).find("Frozen Set"), std::string::npos);
+}
+
+// Focus should never land where the arrows would do nothing.
+TEST_F(InspectPanelTest, TabSkipsACardWithNothingToScroll) {
+  EquipPrototype proto = FrozenPiece("Frozen Hat", EQUIP_SLOT_HAT);
+  EquipInstance hat(proto);
+  c_.UseEquipSets(FrozenSet());
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetMaxRows(34);
+  panel.SetItem(&hat);
+  RenderWide(panel);
+  EXPECT_FALSE(panel.SwapCard()) << "the whole set fits";
+  EXPECT_EQ(panel.focused_card(), InspectPanel::kItemCard);
+}
+
+TEST_F(InspectPanelTest, NoTabWithoutASetCard) {
+  EquipInstance sword(sword_);
+  c_.UseEquipSets(FrozenSet());
+  InspectPanel panel;
+  panel.UseCharacter(c_);
+  panel.SetMaxRows(6);
+  panel.SetItem(&sword);
+  RenderWide(panel);
+  EXPECT_FALSE(panel.HasSetCard());
+  EXPECT_FALSE(panel.SwapCard());
+}
+
+// The screens that put the card beside a panel of their own ask this before
+// handing it the arrows.
+TEST_F(InspectPanelTest, SaysWhetherTheItemCardOverflows) {
+  EquipInstance sword(sword_);
+  InspectPanel panel;
+  panel.SetItem(&sword);
+  panel.SetMaxRows(34);
+  panel.RenderItemOnly();
+  EXPECT_FALSE(panel.ItemOverflows());
+  panel.SetMaxRows(5);
+  panel.RenderItemOnly();
+  EXPECT_TRUE(panel.ItemOverflows());
+}
+
 // --- Arcane Symbols ---
 
 EquipPrototype SymbolProto() {
