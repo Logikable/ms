@@ -81,7 +81,7 @@ const PercentLever kPercentLevers[] = {
     {"Final Damage", &SkillEffect::final_dmg_pct_when_afflicted, kPlus,
      " on Frozen or Burning enemies"},
     {"Final Damage", &SkillEffect::final_dmg_pct_per_dot, kPlus,
-     " per burning enemy"},
+     " per burn nearby"},
     {"Final Damage", &SkillEffect::final_dmg_pct_when_scarred, kPlus,
      " on Scarred enemies"},
     {"Scar Chance", &SkillEffect::scar_chance, kPlus, " per hit"},
