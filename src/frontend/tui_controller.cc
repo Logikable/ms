@@ -158,6 +158,31 @@ void TuiController::OpenAllStats() {
   screen_ = kAllStats;
 }
 
+void TuiController::OpenHyperAllocate(HyperStatField field,
+                                      HyperPreset preset) {
+  hyper_field_ = field;
+  hyper_preset_ = preset;
+  int level = state_.character.hyper_stat_level(field, preset);
+  hyper_stat_level_panel_.Reset(
+      HyperStatName(field), level, HyperStatLevelCost(level + 1),
+      state_.character.hyper_stat_points_left(preset));
+  screen_ = kHyperAlloc;
+}
+
+void TuiController::OpenHyperReset(HyperPreset preset) {
+  hyper_preset_ = preset;
+  // Opens on Cancel: the points come back, but the allocation they were spent
+  // on does not, and it is fourteen rows of work.
+  hyper_reset_prompt_.Open(/*cancel_selected=*/true);
+  screen_ = kHyperReset;
+}
+
+std::string TuiController::hyper_reset_question() const {
+  return std::string("Reset ") +
+         (hyper_preset_ == HyperPreset::kBossing ? "Boss" : "Farm") +
+         " Hyper Stats?";
+}
+
 void TuiController::OpenJobMenu(Job job) {
   job_advance_ = job;
   job_menu_.Reset();
@@ -342,6 +367,10 @@ bool TuiController::OnEvent(ftxui::Event event) {
       return OnSellEquipEvent(event);
     case kSymbolLevel:
       return OnSymbolLevelEvent(event);
+    case kHyperAlloc:
+      return OnHyperAllocateEvent(event);
+    case kHyperReset:
+      return OnHyperResetEvent(event);
     case kSymbolCombine:
       return OnSymbolCombineEvent(event);
     case kMultiSell:
@@ -1813,6 +1842,30 @@ bool TuiController::OnSymbolLevelEvent(ftxui::Event event) {
   }
   if (choice == ConfirmChoice::kConfirmed) {
     state_.character.LevelUpSymbol(symbol_slot_);
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnHyperAllocateEvent(ftxui::Event event) {
+  ConfirmChoice choice = hyper_stat_level_panel_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    state_.character.AllocateHyperStat(hyper_field_, hyper_preset_);
+  }
+  screen_ = kMain;
+  return true;
+}
+
+bool TuiController::OnHyperResetEvent(ftxui::Event event) {
+  ConfirmChoice choice = hyper_reset_prompt_.OnEvent(event);
+  if (choice == ConfirmChoice::kPending) {
+    return true;
+  }
+  if (choice == ConfirmChoice::kConfirmed) {
+    state_.character.ResetHyperStats(hyper_preset_);
   }
   screen_ = kMain;
   return true;

@@ -1286,5 +1286,27 @@ TEST(DialogWindowTest, TheAccentColoursTheRuleAndTheBorder) {
   EXPECT_EQ(screen.PixelAt(5, 2).foreground_color, kRed);
 }
 
+// The Hyper tab's worth column: flat for a flat stat, a percent sign for a
+// percentage, and EXP's half-point step written out.
+TEST(HyperStatTextTest, WritesWhatALevelIsWorth) {
+  EXPECT_EQ(HyperStatBonusText(HYPER_STAT_FIELD_STR, 3), "+90");
+  EXPECT_EQ(HyperStatBonusText(HYPER_STAT_FIELD_ATTACK, 4), "+12");
+  EXPECT_EQ(HyperStatBonusText(HYPER_STAT_FIELD_CRIT_DAMAGE, 7), "+7%");
+  EXPECT_EQ(HyperStatBonusText(HYPER_STAT_FIELD_EXP, 1), "+0.5%");
+  EXPECT_EQ(HyperStatBonusText(HYPER_STAT_FIELD_EXP, 4), "+2%");
+  // An untouched row still says which kind of stat it is.
+  EXPECT_EQ(HyperStatBonusText(HYPER_STAT_FIELD_BOSS_DAMAGE, 0), "+0%");
+  EXPECT_EQ(HyperStatBonusText(HYPER_STAT_FIELD_LUK, 0), "+0");
+}
+
+// Every stat in the order is named, and the order holds all of them.
+TEST(HyperStatTextTest, NamesEveryStatInTheOrder) {
+  EXPECT_EQ(kNumHyperStats, 14);
+  for (int i = 0; i < kNumHyperStats; ++i) {
+    EXPECT_FALSE(HyperStatName(kHyperStatOrder[i]).empty()) << i;
+  }
+  EXPECT_EQ(HyperStatName(HYPER_STAT_FIELD_UNSPECIFIED), "");
+}
+
 }  // namespace
 }  // namespace ms

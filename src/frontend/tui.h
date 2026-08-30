@@ -89,6 +89,8 @@ class Tui {
   ftxui::Element SkillLearnDialog();
   ftxui::Element JobAdvanceDialog();
   ftxui::Element QuitDialog();
+  // "Reset Farm Hyper Stats?" -- the free way back to nothing spent.
+  ftxui::Element HyperResetDialog();
   // The box a menu entry raised, standing on the corner menu it opened from.
   ftxui::Element RenderMenuBox();
   // The party screen, with its member menu or its question over it.

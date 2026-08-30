@@ -24,6 +24,10 @@ enum Screen : int {
   kSkillInspect,
   // Every stat on one screen, from the Character panel's last stats row.
   kAllStats,
+  // The Hyper tab's two questions: one rung of one stat, and the free reset
+  // that takes a whole allocation back.
+  kHyperAlloc,
+  kHyperReset,
   // Enter on a job in the Character panel's Advance tab: read it, take it, or
   // walk away. The screen it leads to reads the job's book without taking it.
   kJobMenu,

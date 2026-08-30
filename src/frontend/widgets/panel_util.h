@@ -352,6 +352,10 @@ ftxui::Element EmptyState(const std::string& what, int gutter = 1);
 // would go gold again for every player.
 inline constexpr char kShopTabKey[] = "shop";
 
+// And the Hyper tab's, which goes gold the level it arrives and stays that
+// way until the player opens it.
+inline constexpr char kHyperTabKey[] = "hyper";
+
 // The advancement tab's key for `stage` (1 = 1st job). One key per stage
 // rather than one for the tab: the tab arrives again at every advancement
 // threshold, and having seen the first is not having seen the second.

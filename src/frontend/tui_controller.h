@@ -26,6 +26,7 @@
 #include "src/frontend/screens/boss_select_panel.h"
 #include "src/frontend/screens/buy_panel.h"
 #include "src/frontend/screens/hammer_panel.h"
+#include "src/frontend/screens/hyper_stat_level_panel.h"
 #include "src/frontend/screens/inspect_panel.h"
 #include "src/frontend/screens/job_inspect_panel.h"
 #include "src/frontend/screens/keybinds_panel.h"
@@ -106,6 +107,18 @@ class TuiController {
   void OpenSkillInspect(const Skill& skill);
   // Every stat the character has, on a screen of its own.
   void OpenAllStats();
+  // The Hyper tab's two questions. `preset` is the allocation the panel's
+  // Farm/Boss row is on, since the panel is what knows that.
+  void OpenHyperAllocate(HyperStatField field, HyperPreset preset);
+  void OpenHyperReset(HyperPreset preset);
+  const HyperStatLevelPanel& hyper_stat_level_panel() const {
+    return hyper_stat_level_panel_;
+  }
+  const ConfirmPrompt& hyper_reset_prompt() const {
+    return hyper_reset_prompt_;
+  }
+  // What the reset dialog asks, which names the allocation being emptied.
+  std::string hyper_reset_question() const;
   // Float the job's context menu over the main view: read the job, take it, or
   // walk away. Enter in the Advance tab lands here rather than on the
   // confirmation -- what a job is should be readable before it is chosen.
@@ -375,6 +388,8 @@ class TuiController {
   bool OnSellEvent(ftxui::Event event);
   bool OnSellEquipEvent(ftxui::Event event);
   bool OnSymbolLevelEvent(ftxui::Event event);
+  bool OnHyperAllocateEvent(ftxui::Event event);
+  bool OnHyperResetEvent(ftxui::Event event);
   bool OnSymbolCombineEvent(ftxui::Event event);
   bool OnMultiSellEvent(ftxui::Event event);
   bool OnMapSelectEvent(ftxui::Event event);
@@ -530,6 +545,12 @@ class TuiController {
   Job job_advance_ = JOB_UNSPECIFIED;
   ItemMenu job_menu_{{"Inspect", "Advance", "Close"}};
   SymbolLevelPanel symbol_level_panel_;
+  HyperStatLevelPanel hyper_stat_level_panel_;
+  ConfirmPrompt hyper_reset_prompt_;
+  // What the open Hyper Stat question is about. Held rather than read back off
+  // the panel, so the answer lands on the stat the question named.
+  HyperStatField hyper_field_ = HYPER_STAT_FIELD_UNSPECIFIED;
+  HyperPreset hyper_preset_ = HyperPreset::kFarming;
   SymbolCombinePanel symbol_combine_panel_;
   HammerPanel hammer_panel_;
   // The worn symbol the two symbol dialogs are asking about. Held so the

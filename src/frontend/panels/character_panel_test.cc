@@ -178,11 +178,26 @@ std::string StatValue(ftxui::Element element, const std::string& label) {
   return "";
 }
 
-ftxui::Screen RenderToScreen(ftxui::Component comp) {
+// `rows` is the screen's height, which a panel taller than that is cut to:
+// the Hyper tab's fourteen stats put it past the twenty most of these want.
+ftxui::Screen RenderToScreen(ftxui::Component comp, int rows = 20) {
   ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(80),
-                                               ftxui::Dimension::Fixed(20));
+                                               ftxui::Dimension::Fixed(rows));
   ftxui::Render(screen, comp->Render());
   return screen;
+}
+
+// A rendered screen as plain characters, one per column, a newline a row.
+std::string TextOf(const ftxui::Screen& screen) {
+  std::string out;
+  for (int y = 0; y < screen.dimy(); ++y) {
+    for (int x = 0; x < screen.dimx(); ++x) {
+      const std::string& cell = screen.PixelAt(x, y).character;
+      out += cell.empty() ? " " : cell;
+    }
+    out += '\n';
+  }
+  return out;
 }
 
 // Where `needle` starts on `screen`, or {-1, -1} if it is not there. Walks
@@ -241,8 +256,8 @@ std::string InversionMask(ftxui::Component comp, const std::string& needle) {
 
 // The dim flag of the cell under the first character of `needle`. Dimming is
 // how a row says it cannot be spent on.
-bool IsDim(ftxui::Component comp, const std::string& needle) {
-  ftxui::Screen screen = RenderToScreen(comp);
+bool IsDim(ftxui::Component comp, const std::string& needle, int rows = 20) {
+  ftxui::Screen screen = RenderToScreen(comp, rows);
   std::pair<int, int> at = FindCell(screen, needle);
   return at.first >= 0 && screen.PixelAt(at.first, at.second).dim;
 }
@@ -2297,6 +2312,133 @@ TEST_F(CharacterPanelTest, TheFarmBossRowIsAStopBetweenTheTabsAndTheStats) {
   comp->OnEvent(ftxui::Event::ArrowDown);  // -> STR
   comp->OnEvent(ftxui::Event::Return);
   EXPECT_EQ(allocated, STAT_FIELD_STR);
+}
+
+// --- the Hyper tab ---
+
+// Walks the cursor from the outer tab bar onto the Hyper tab and down into
+// its stat rows. Stats -> Skills -> Hyper is two steps right, and a 4th job
+// with nothing pending has no Advance tab past it.
+ftxui::Component OnHyperRows(CharacterPanel& panel) {
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);  // Stats -> Skills
+  comp->OnEvent(ftxui::Event::ArrowRight);  // -> Hyper
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the Farm/Boss row
+  comp->OnEvent(ftxui::Event::ArrowDown);   // -> the first stat row
+  return comp;
+}
+
+TEST_F(CharacterPanelTest, TheHyperTabArrivesWithTheStatsAndIsGoldUntilRead) {
+  CharacterInstance early = MakeWarrior(rng_, /*sp=*/0);
+  CharacterPanel before(early, account_, panel_focus_);
+  EXPECT_EQ(RenderElement(before.Render()).find("Hyper"), std::string::npos);
+
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Hyper"), kYellow);
+
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = panel.MakeComponent([](StatField) {});
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  panel_focus_ = kInventoryPanel;
+  EXPECT_EQ(LabelColor(panel.Render(), "Hyper"), kTheme);
+  EXPECT_TRUE(account_.Seen(kHyperTabKey));
+}
+
+// Every stat, what it is worth at the level it is on, and the points left.
+TEST_F(CharacterPanelTest, TheHyperTabListsTheStatsAndTheSparePoints) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  std::string rendered = TextOf(RenderToScreen(OnHyperRows(panel), 32));
+  for (int i = 0; i < kNumHyperStats; ++i) {
+    EXPECT_NE(rendered.find(HyperStatName(kHyperStatOrder[i])),
+              std::string::npos)
+        << HyperStatName(kHyperStatOrder[i]);
+  }
+  // Level 140 pays three points, and this character has spent one on STR.
+  EXPECT_NE(rendered.find("2 Points"), std::string::npos);
+  EXPECT_NE(rendered.find("+30"), std::string::npos) << "STR at level 1";
+  EXPECT_NE(rendered.find("[Reset]"), std::string::npos);
+}
+
+// The [+] is the door, and it closes on a stat the level holds shut.
+TEST_F(CharacterPanelTest, ArcaneForceIsHeldShutUntilItsOwnLevel) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = OnHyperRows(panel);
+  HyperStatField raised = HYPER_STAT_FIELD_UNSPECIFIED;
+  ftxui::Component with_callback =
+      panel.MakeComponent([](StatField) {}, {}, {}, {}, {},
+                          [&](HyperStatField field) { raised = field; });
+  // Down to the last row, which is Arcane Force.
+  for (int i = 1; i < kNumHyperStats; ++i) {
+    with_callback->OnEvent(ftxui::Event::ArrowDown);
+  }
+  with_callback->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(raised, HYPER_STAT_FIELD_UNSPECIFIED)
+      << "Arcane Force below level 200 has no [+] to press";
+  EXPECT_TRUE(IsDim(comp, "Arcane Force", /*rows=*/32));
+}
+
+// A stat the points do reach asks the question rather than spending straight
+// away -- the panel spends nothing itself.
+TEST_F(CharacterPanelTest, TheHyperPlusAsksAboutTheStatUnderIt) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  HyperStatField raised = HYPER_STAT_FIELD_UNSPECIFIED;
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, {}, {}, {}, {},
+                          [&](HyperStatField field) { raised = field; });
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  comp->OnEvent(ftxui::Event::ArrowDown);
+  comp->OnEvent(ftxui::Event::ArrowDown);  // STR -> DEX
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_EQ(raised, HYPER_STAT_FIELD_DEX);
+  EXPECT_EQ(c.hyper_stat_level(HYPER_STAT_FIELD_DEX), 0)
+      << "the panel asks; the controller spends";
+}
+
+// The last stop in the ring, under a rule of its own.
+TEST_F(CharacterPanelTest, ResetIsTheStopBelowTheStats) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  bool reset = false;
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp =
+      panel.MakeComponent([](StatField) {}, {}, {}, {}, {},
+                          [](HyperStatField) {}, [&]() { reset = true; });
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  comp->OnEvent(ftxui::Event::ArrowRight);
+  // Up off the name row -- the top of the ring -- comes out at the bottom of
+  // it, which is [Reset].
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::ArrowUp);
+  comp->OnEvent(ftxui::Event::Return);
+  EXPECT_TRUE(reset);
+}
+
+// The rule and the button are never what a short terminal gives up.
+TEST_F(CharacterPanelTest, TheHyperTabKeepsItsResetAtEveryBudget) {
+  CharacterInstance c = MakeHyperHero(rng_);
+  CharacterPanel panel(c, account_, panel_focus_);
+  panel_focus_ = kCharPanel;
+  ftxui::Component comp = OnHyperRows(panel);
+  int natural = PanelHeight(panel.Render());
+  for (int budget = 12; budget <= natural + 2; ++budget) {
+    panel.SetMaxRows(budget);
+    EXPECT_EQ(PanelHeight(panel.Render()), std::min(budget, natural))
+        << "at a budget of " << budget;
+    EXPECT_NE(TextOf(RenderToScreen(comp, 32)).find("[Reset]"),
+              std::string::npos)
+        << "at a budget of " << budget;
+  }
 }
 
 }  // namespace

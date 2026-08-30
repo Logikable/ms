@@ -165,7 +165,11 @@ void Tui::BuildComponents() {
         // showing, so one Enter never changes the numbers.
         all_stats_panel_.SetPreset(char_panel_.hyper_preset());
         controller_.OpenAllStats();
-      });
+      },
+      [this](HyperStatField field) {
+        controller_.OpenHyperAllocate(field, char_panel_.hyper_preset());
+      },
+      [this]() { controller_.OpenHyperReset(char_panel_.hyper_preset()); });
   combat_component_ =
       combat_panel_.MakeComponent([this]() { controller_.OpenMapSelect(); });
   menu_component_ = menu_panel_.MakeComponent(
@@ -338,6 +342,12 @@ ftxui::Element Tui::JobAdvanceDialog() {
           CenteredRow("This action is irreversible."),
       },
       controller_.job_advance_prompt().Render());
+}
+
+ftxui::Element Tui::HyperResetDialog() {
+  // Titleless, like the quit dialog: the question is the whole dialog.
+  return DialogWindow("", {CenteredRow(controller_.hyper_reset_question())},
+                      controller_.hyper_reset_prompt().Render());
 }
 
 ftxui::Element Tui::QuitDialog() {
@@ -701,6 +711,10 @@ ftxui::Element Tui::RenderScreen() {
           controller_.trace_recovery_result()));
     case kAllStats:
       return Standalone(all_stats_panel_.Render());
+    case kHyperAlloc:
+      return OverMain(controller_.hyper_stat_level_panel().Render());
+    case kHyperReset:
+      return OverMain(HyperResetDialog());
     case kJobInspect:
       return RenderJobInspect();
     case kSkillInspect:
