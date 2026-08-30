@@ -244,7 +244,8 @@ TEST(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).category(), ITEM_CATEGORY_ETC) << where;
     }
   }
-  EXPECT_EQ(fights, 5) << "Zakum, Hilla, Horntail, Magnus and Pink Bean";
+  EXPECT_EQ(fights, 6)
+      << "Zakum, Hilla, Horntail, Magnus, Pink Bean and Arkarium";
 }
 
 // Zakum is the first boss and the one the screen was built against, so his
@@ -347,6 +348,33 @@ TEST(BossDataTest, NormalPinkBeanIsFiveStatuesThenTheBean) {
   EXPECT_EQ(normal.drops(3).item(), "pink_beans_soul_shard");
 }
 
+// The last fight the game opens and the biggest single body in it: 12.6B
+// behind 90% PDR, on the ten-minute clock Horntail set. Pinned for the reason
+// Zakum's and Magnus's numbers are -- the shape of a fight is a design
+// decision, not data that should drift.
+TEST(BossDataTest, NormalArkariumIsOneBodyBehindNinetyPdr) {
+  std::map<std::string, Boss> bosses = LoadBosses();
+  std::map<std::string, Mob> mobs = LoadMobs();
+  ASSERT_GT(bosses.count("arkarium"), 0u);
+  const BossDifficulty& normal = bosses.at("arkarium").difficulties(0);
+  EXPECT_EQ(normal.name(), "Normal");
+  EXPECT_EQ(normal.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(normal.time_limit_seconds(), 600);
+  EXPECT_EQ(normal.unlock_level(), 180);
+  EXPECT_EQ(normal.meso(), 12602500);
+  EXPECT_EQ(normal.exp(), 50000000);
+  ASSERT_EQ(normal.phases_size(), 1);
+  ASSERT_EQ(normal.phases(0).spawns_size(), 1);
+  EXPECT_EQ(SpawnCount(normal.phases(0).spawns(0)), 1);
+  const Mob& arkarium = mobs.at("arkarium");
+  EXPECT_EQ(arkarium.level(), 170);
+  EXPECT_EQ(arkarium.max_hp(), 12600000000LL);
+  EXPECT_EQ(arkarium.pdr(), 90);
+  ASSERT_EQ(normal.drops_size(), 2);
+  EXPECT_EQ(normal.drops(0).equip(), "dominator_pendant");
+  EXPECT_EQ(normal.drops(1).item(), "arkariums_soul_shard");
+}
+
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
 // top of another one.
 TEST(BossDataTest, EveryPartStandsSomewhereOfItsOwn) {
@@ -412,11 +440,9 @@ TEST(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 // laid out alike, and every phase holds more than a full party, so a party of
 // three always has somewhere left to walk.
 TEST(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
-  std::map<std::string, std::vector<int>> expected = {{"zakum", {7, 5}},
-                                                      {"hilla", {5}},
-                                                      {"horntail", {6, 6, 6}},
-                                                      {"magnus", {5}},
-                                                      {"pink_bean", {5, 5}}};
+  std::map<std::string, std::vector<int>> expected = {
+      {"zakum", {7, 5}}, {"hilla", {5}},        {"horntail", {6, 6, 6}},
+      {"magnus", {5}},   {"pink_bean", {5, 5}}, {"arkarium", {5}}};
   std::map<std::string, Boss> bosses = LoadBosses();
   for (const std::pair<const std::string, std::vector<int>>& want : expected) {
     ASSERT_GT(bosses.count(want.first), 0u) << want.first;

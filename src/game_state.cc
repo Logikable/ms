@@ -317,6 +317,7 @@ std::vector<std::string> BossAccessories() {
           "pink_holy_cup",
           "silver_blossom_ring",
           "horntail_necklace",
+          "dominator_pendant",
           "dea_sidus_earring",
           "royal_black_metal_shoulder",
           "golden_clover_belt",

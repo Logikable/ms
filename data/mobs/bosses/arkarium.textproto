@@ -1,0 +1,7 @@
+name: "Arkarium"
+level: 170
+attack: 30000
+max_hp: 12600000000
+exp: 0
+pdr: 90
+boss: true

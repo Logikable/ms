@@ -1,0 +1,20 @@
+name: "Dominator Pendant"
+required_level: 140
+# GMS gives it MaxHP and MaxMP +10% on top of this. There is no percentage
+# field on an equip, so the flat half of it is what a player gets.
+base_stats {
+  str: 20
+  dex: 20
+  int: 20
+  luk: 20
+  attack: 3
+  magic_attack: 3
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_PENDANT
+upgrade_slots: 5
+# Dropped by Arkarium, never stocked, one rung over Pink Bean's on the ladder
+# his accessories sit on: Zakum 500k, Hilla 750k, Horntail 1M, Magnus 1.5M,
+# Pink Bean 2M.
+sell_price: 2500000

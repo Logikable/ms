@@ -1,7 +1,7 @@
 name: EQUIP_SET_NAME_BOSS_ACCESSORY
-# Nine slots, all of them filled since Pink Bean, so every tier pays. The eye
-# and the pocket name two items apiece: Pink Bean drops an alternate for each
-# of the two slots earlier bosses filled, and either one fills the slot.
+# Nine slots, all of them filled since Pink Bean, so every tier pays. Some of
+# them name two items apiece: a later boss drops an alternate for a slot an
+# earlier one already filled, and either piece fills the slot.
 complete_pieces: 9
 members {
   slot: EQUIP_SLOT_FACE_ACCESSORY
@@ -27,7 +27,10 @@ members {
 }
 members {
   slot: EQUIP_SLOT_PENDANT
-  items { name: "Horntail Necklace" }
+  items {
+    name: "Horntail Necklace"
+    name: "Dominator Pendant"
+  }
 }
 members {
   slot: EQUIP_SLOT_EARRINGS

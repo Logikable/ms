@@ -202,8 +202,10 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
   EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_EYE_ACCESSORY), 1u);
   EXPECT_EQ(third.character.equipped().count(EQUIP_SLOT_FACE_ACCESSORY), 0u);
 
-  // At the cap it wears all nine slots the Boss Accessory Set spans, and the
-  // two Pink Bean supersedes are the ones he drops rather than the originals.
+  // At the cap it wears all nine slots the Boss Accessory Set spans, and where
+  // a later boss drops an alternate for a slot an earlier one filled, the
+  // later piece is the one worn. The second pendant slot takes the one the
+  // first does not.
   GameState fourth = Workbench(JOB_ADVANCEMENT_DARK_KNIGHT);
   const std::map<EquipSlot, EquipInstance>& worn = fourth.character.equipped();
   const std::map<EquipSlot, std::string> kExpected = {
@@ -212,6 +214,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
       {EQUIP_SLOT_POCKET, "Pink Holy Cup"},
       {EQUIP_SLOT_RING, "Silver Blossom Ring"},
       {EQUIP_SLOT_PENDANT, "Horntail Necklace"},
+      {EQUIP_SLOT_PENDANT_2, "Dominator Pendant"},
       {EQUIP_SLOT_EARRINGS, "Dea Sidus Earring"},
       {EQUIP_SLOT_SHOULDER, "Royal Black Metal Shoulder"},
       {EQUIP_SLOT_BELT, "Golden Clover Belt"},

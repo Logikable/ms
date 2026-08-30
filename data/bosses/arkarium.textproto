@@ -1,0 +1,36 @@
+name: "Arkarium"
+difficulties {
+  name: "Normal"
+  # One body alone in the middle of his arena, as Hilla and Magnus are.
+  phases {
+    spawns { mob: "arkarium" spots { x: 4 y: 4 } }
+    # The floor under the boss, walked end to end.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
+  }
+  reset: RESET_PERIOD_DAILY
+  # What Horntail, Magnus and Pink Bean allow. He is nearly twice the bean and
+  # stands behind 90% PDR, so the clock is the fight rather than a formality.
+  time_limit_seconds: 600
+  unlock_level: 180
+  # Five Intense Power Crystals at what his level fetches, as every boss's
+  # meso is.
+  meso: 12602500
+  # Paid for the clear, flat and untouched by any EXP bonus, as the other five
+  # are. Five times what Pink Bean pays, which is the gap GMS puts between the
+  # two.
+  exp: 50000000
+  drops {
+    equip: "dominator_pendant"
+    per_kill: 1.0
+  }
+  drops {
+    item: "arkariums_soul_shard"
+    per_kill: 1.0
+  }
+}
