@@ -1203,6 +1203,11 @@ bool CharacterInstance::AllocateStat(StatField field, int amount) {
   return true;
 }
 
+int CharacterInstance::arcane_force(HyperPreset preset) const {
+  return arcane_force_ + static_cast<int>(hyper_stat_bonus(
+                             HYPER_STAT_FIELD_ARCANE_FORCE, preset));
+}
+
 int CharacterInstance::hyper_stat_points() const {
   return TotalHyperStatPoints(character_.level());
 }

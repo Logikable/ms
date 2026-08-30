@@ -93,6 +93,18 @@ TEST_F(OffenseTest, BossPctAppliesOnlyToBosses) {
                    kBaseline * kEqualLevel * kBaseCrit);
 }
 
+// The character's own share against everything that is not a boss. It joins
+// the same sum plain %damage is in, which is what tells it from the swing's
+// normal_skill_pct below.
+TEST_F(OffenseTest, NormalPctAppliesToEverythingButABoss) {
+  OffenseStats s = Baseline();
+  s.normal_pct = 0.50;
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob()),
+                   kBaseline * 1.5 * kEqualLevel * kBaseCrit);
+  EXPECT_DOUBLE_EQ(ExpectedAttackDamage(s, MakeMob(0, true)),
+                   kBaseline * 0.5 * kEqualLevel * kBaseCrit);
+}
+
 // The mirror of boss_pct, and pointedly not in the same place: it joins the
 // swing's own percentage, so it is worth its value once per LINE. Three lines
 // of 100% carrying 50% land 450%, where 50% of plain damage would land 350%.

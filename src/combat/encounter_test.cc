@@ -6,6 +6,7 @@
 #include <string>
 
 #include "src/character/character_stats.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
@@ -3455,6 +3456,32 @@ TEST(ComputeBossParamsTest, RunsRealTimeWithNoRespawnAndNoIncomingHits) {
   EXPECT_DOUBLE_EQ(mapped.attacks.front().swing_seconds,
                    params.attacks.front().swing_seconds * speed);
   EXPECT_GT(params.attacks.front().damage_per_hit[0], 0.0);
+}
+
+// Which Hyper Stat allocation is in play is decided by the activity: a boss
+// fight reads the bossing one, a map the farming one.
+TEST(ComputeBossParamsTest, TheFightPicksTheAllocationForTheActivity) {
+  GameState state({}, {}, {},
+                  {{"arm", MakeMob("Zakum's Arm", 700000)},
+                   {"body", MakeMob("Zakum", 7000000)},
+                   {"snail", MakeMob("Snail", 15)}},
+                  {{"field", TwoSnailMap()}});
+  state.current_map = "field";
+  Character grown = state.character.ToProto();
+  grown.set_level(200);
+  state.character.RestoreFrom(grown, state.equips, state.items);
+  EquipSword(state);
+  ASSERT_TRUE(state.character.AllocateHyperStat(HYPER_STAT_FIELD_ATTACK,
+                                                HyperPreset::kBossing, 10));
+
+  BossDifficulty normal = NormalTwoPhase();
+  CombatParams boss = ComputeBossParams(state, "zakum", normal, 0);
+  CombatParams mapped = ComputeCombatParams(state);
+  ASSERT_TRUE(boss.active);
+  ASSERT_TRUE(mapped.active);
+  EXPECT_GT(boss.attacks.front().damage_per_hit[0],
+            mapped.attacks.front().damage_per_hit[0])
+      << "30 attack the farming allocation never bought";
 }
 
 // A boss stands its parts a room apart, so a swing reaches half as many of

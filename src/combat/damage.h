@@ -41,6 +41,10 @@ struct OffenseStats {
   double mirror_pct = 0.0;
   double damage_pct = 0.0;  // additive %dmg, as fraction
   double boss_pct = 0.0;    // additive boss %dmg; applies only vs bosses
+  // The mirror of boss_pct: additive %dmg against anything that is NOT a
+  // boss. The character's own, unlike normal_skill_pct below, so it meets
+  // damage_pct in the same sum boss damage does.
+  double normal_pct = 0.0;
   // Added to skill_pct against anything that is not a boss, so it is worth its
   // value once per line. Comes from the attack being swung rather than from
   // the character, unlike boss_pct -- see SkillEffect::normal_skill_pct.
@@ -234,6 +238,9 @@ struct PassiveOffense {
   // it. Meets the gear's own by summing too -- both are shares of the same
   // damage, unlike ied.
   double boss_pct = 0.0;
+  // The same against everything that is not a boss. Only a Hyper Stat grants
+  // it; no gear carries one.
+  double normal_pct = 0.0;
   // Share of the monster's DEF the passives ignore, already combined across
   // them. Meets the gear's share in reverse, the same way they combined.
   double ied = 0.0;

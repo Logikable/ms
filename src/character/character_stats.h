@@ -14,6 +14,7 @@
 
 #include "absl/types/span.h"
 #include "src/character/character.h"
+#include "src/character/hyper_stats.h"
 #include "src/combat/damage.h"
 #include "src/protos/equip.pb.h"
 #include "src/protos/skill.pb.h"
@@ -229,6 +230,9 @@ struct DerivedStats {
   // again with the equipment's own -- see OffenseStatsFor. Nothing in the game
   // is a boss yet, so nothing reads it.
   double boss_pct = 0.0;
+  // The same against every monster that is not a boss. Only a Hyper Stat
+  // grants it.
+  double normal_pct = 0.0;
   // Share of the monster's DEF the character's attacks ignore, combined in
   // reverse across the passives granting it. Gear grants it too, and the two
   // meet the same way -- see OffenseStatsFor.
@@ -406,10 +410,14 @@ std::vector<AllyGrant> AllyBuffsFor(const CharacterInstance& character,
 //
 // Empty is a character playing alone, which is every character outside a
 // party fight.
+//
+// `preset` is the Hyper Stat allocation to read. Farming unless the caller is
+// a boss fight or a screen showing the other one.
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
                              absl::Span<const Skill* const> buffs_up = {},
-                             absl::Span<const CharacterInstance> allies = {});
+                             absl::Span<const CharacterInstance> allies = {},
+                             HyperPreset preset = HyperPreset::kFarming);
 
 // The offensive half of the derived stats, in the shape combat/damage.h asks
 // for them. One place to keep in step with DerivedStats, rather than every

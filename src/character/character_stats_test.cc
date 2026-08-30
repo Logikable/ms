@@ -2290,6 +2290,89 @@ TEST_F(DerivedStatsTest, MapleWarriorRoundsEachStatDown) {
   EXPECT_EQ(stats.skill_stats.luk(), 0);
 }
 
+// --- Hyper Stats ---
+
+// A character at the level cap, with the whole pool to spend.
+CharacterInstance HyperStatCharacter(std::mt19937& rng) {
+  Character proto;
+  proto.set_level(200);
+  proto.set_job(JOB_SWORDMAN);
+  proto.set_job_stage(1);
+  proto.mutable_allocated_stats()->set_str(1000);
+  proto.mutable_allocated_stats()->set_hp(10000);
+  (*proto.mutable_sp_by_stage())[1] = 100;
+  return CharacterInstance(rng, std::move(proto));
+}
+
+TEST_F(DerivedStatsTest, HyperStatsReachEveryLeverTheyName) {
+  CharacterInstance c = HyperStatCharacter(rng_);
+  const HyperPreset farming = HyperPreset::kFarming;
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_STR, farming, 10));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_MAX_HP, farming, 5));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_CRIT_RATE, farming, 5));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ATTACK, farming, 3));
+
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_EQ(stats.skill_stats.str(), 300);
+  EXPECT_EQ(stats.skill_stats.attack(), 9);
+  EXPECT_EQ(stats.skill_stats.magic_attack(), 9)
+      << "one stat pays both attacks";
+  EXPECT_DOUBLE_EQ(stats.crit_rate, 0.05);
+  EXPECT_EQ(stats.max_hp, 11000) << "+10% over a 10,000 pool";
+}
+
+TEST_F(DerivedStatsTest, HyperDamageLeversSplitBossFromNormal) {
+  CharacterInstance c = HyperStatCharacter(rng_);
+  const HyperPreset farming = HyperPreset::kFarming;
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_DAMAGE, farming, 5));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE, farming, 5));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_NORMAL_DAMAGE, farming, 5));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_IED, farming, 5));
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_EXP, farming, 5));
+
+  DerivedStats stats = DerivedStatsFor(c, {});
+  EXPECT_DOUBLE_EQ(stats.damage_pct, 0.15);
+  EXPECT_DOUBLE_EQ(stats.boss_pct, 0.15);
+  EXPECT_DOUBLE_EQ(stats.normal_pct, 0.15);
+  EXPECT_DOUBLE_EQ(stats.ied, 0.15);
+  EXPECT_DOUBLE_EQ(stats.exp_pct, 0.025);
+}
+
+// The four stats are final stat: Maple Warrior takes its share of the
+// allocation and nothing else, so the Hyper Stat's 300 is not lifted by it.
+TEST_F(DerivedStatsTest, MapleWarriorLeavesTheHyperStatAlone) {
+  CharacterInstance c = HyperStatCharacter(rng_);
+  Skill mw = MapleWarrior();
+  std::map<std::string, Skill> skills = {{"maple_warrior", mw}};
+  ASSERT_TRUE(c.LearnSkill(mw, 30));
+  ASSERT_TRUE(
+      c.AllocateHyperStat(HYPER_STAT_FIELD_STR, HyperPreset::kFarming, 10));
+
+  DerivedStats stats = DerivedStatsFor(c, skills);
+  EXPECT_EQ(stats.skill_stats.str(), 150 + 300);
+}
+
+// The allocation read is the one the caller asks for.
+TEST_F(DerivedStatsTest, TheBossingAllocationIsReadOnlyWhenAskedFor) {
+  CharacterInstance c = HyperStatCharacter(rng_);
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_BOSS_DAMAGE,
+                                  HyperPreset::kBossing, 10));
+
+  EXPECT_DOUBLE_EQ(DerivedStatsFor(c, {}).boss_pct, 0.0);
+  EXPECT_DOUBLE_EQ(
+      DerivedStatsFor(c, {}, {}, {}, HyperPreset::kBossing).boss_pct, 0.35);
+}
+
+// Arcane Force from the Hyper Stat meets what the symbols carry.
+TEST_F(DerivedStatsTest, HyperArcaneForceAddsToTheSymbols) {
+  CharacterInstance c = HyperStatCharacter(rng_);
+  EXPECT_EQ(c.arcane_force(), 0);
+  ASSERT_TRUE(c.AllocateHyperStat(HYPER_STAT_FIELD_ARCANE_FORCE,
+                                  HyperPreset::kFarming, 10));
+  EXPECT_EQ(c.arcane_force(), 50);
+  EXPECT_EQ(c.arcane_force(HyperPreset::kBossing), 0);
+}
+
 // --- Final Pact ---
 
 // Final Pact's shape: a wait between revivals that SHORTENS as the skill is

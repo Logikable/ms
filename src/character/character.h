@@ -486,12 +486,11 @@ class CharacterInstance {
   // and takes nothing unless the slot holds a symbol that has taken its
   // duplicates and the purse covers the price.
   bool LevelUpSymbol(EquipSlot slot);
-  // Arcane Force the worn Arcane Symbols come to. What every Arcane River map
-  // measures the character against -- see ArcaneFactorsFor. Zero for anyone
-  // wearing none, which is everyone below level 200.
-  int arcane_force() const {
-    return arcane_force_;
-  }
+  // Arcane Force the character carries: what the worn Arcane Symbols come to,
+  // plus what the Hyper Stat adds. What every Arcane River map measures them
+  // against -- see ArcaneFactorsFor. Zero for anyone wearing no symbol and
+  // holding no points there, which is everyone below level 200.
+  int arcane_force(HyperPreset preset = HyperPreset::kFarming) const;
   // Whether an item of this type contributes its attack, given what is
   // equipped right now. Throwing stars arm a claw and nothing else; every
   // other item always counts. equip_stats() applies this itself -- it is

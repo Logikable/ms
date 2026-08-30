@@ -433,6 +433,7 @@ OffenseStats OffenseStatsFor(Job job, int level,
       SwingsOnMagic(job) ? equipped.magic_attack() : equipped.attack();
   offense.boss_pct =
       equipped.boss_damage() / kPercentToFraction + passives.boss_pct;
+  offense.normal_pct = passives.normal_pct;
   offense.mirror_pct = passives.mirror_line_pct;
   offense.ied = CombineIgnoredDefense(
       equipped.ignore_enemy_defense() / kPercentToFraction, passives.ied);
@@ -526,7 +527,8 @@ double ExpectedAttackDamage(const OffenseStats& offense, const Mob& mob) {
   double lines = offense.lines + offense.mirror_lines * offense.mirror_pct;
   damage *=
       lines * (offense.skill_pct + (is_boss ? 0.0 : offense.normal_skill_pct));
-  damage *= 1.0 + offense.damage_pct + (is_boss ? offense.boss_pct : 0.0);
+  damage *= 1.0 + offense.damage_pct +
+            (is_boss ? offense.boss_pct : offense.normal_pct);
   damage *= 1.0 + CritFactor(offense);
   damage *= 1.0 + offense.final_dmg_pct;
   damage *= 1.0 - mob_pdr * (1.0 - offense.ied);
@@ -584,7 +586,7 @@ int CombatPower(const OffenseStats& offense) {
   double stat_value = 4.0 * offense.primary + offense.secondary;
   double power = stat_value * offense.attack / 100.0 * offense.weapon_constant;
   power *= (1.0 + offense.mastery) / 2.0;
-  power *= 1.0 + offense.damage_pct + offense.boss_pct;
+  power *= 1.0 + offense.damage_pct + offense.boss_pct + offense.normal_pct;
   // Lines are stripped out of this number, so the shadow's share of one has to
   // be put back by hand -- it is a fact about the character, not the swing.
   power *= 1.0 + offense.mirror_pct;

@@ -95,6 +95,7 @@ cc_library(
     hdrs = ["character_stats.h"],
     deps = [
         ":character",
+        ":hyper_stats",
         "//src/combat:damage",
         "//src/item:equip_stats",
         "//src/protos:character_proto_cc",
@@ -177,6 +178,7 @@ cc_test(
     deps = [
         ":character",
         ":character_stats",
+        ":hyper_stats",
         "//src:proto_loader",
         "//src/item:equip_instance",
         "//src/protos:character_proto_cc",

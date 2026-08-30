@@ -12,6 +12,7 @@
 #include "src/character/arcane_force.h"
 #include "src/character/character.h"
 #include "src/character/character_stats.h"
+#include "src/character/hyper_stats.h"
 #include "src/character/progression.h"
 #include "src/combat/constants.h"
 #include "src/combat/damage.h"
@@ -1187,7 +1188,7 @@ void TagBuffGatedPulses(const std::vector<const Skill*>& buff_skills,
 void AddBuffedSets(const GameState& state,
                    const std::vector<const Skill*>& buff_skills,
                    const EquipPrototype& weapon, double speed_factor,
-                   CombatParams& params) {
+                   HyperPreset preset, CombatParams& params) {
   int count = static_cast<int>(buff_skills.size());
   for (int mask = 1; mask < (1 << count); ++mask) {
     std::vector<const Skill*> up;
@@ -1196,8 +1197,9 @@ void AddBuffedSets(const GameState& state,
         up.push_back(buff_skills[i]);
       }
     }
-    DerivedStats derived = DerivedStatsFor(
-        state.character, state.skills, absl::MakeConstSpan(up), state.party);
+    DerivedStats derived =
+        DerivedStatsFor(state.character, state.skills, absl::MakeConstSpan(up),
+                        state.party, preset);
     params.buffed.push_back(
         BuildAttackSet(state, derived, weapon, speed_factor, params.types));
   }
@@ -1287,7 +1289,7 @@ void AddPacing(const GameState& state, const DerivedStats& derived,
 // hit itself; see BuffOption.damage_taken_pct.
 void AddAttacks(const GameState& state, const DerivedStats& derived,
                 const EquipPrototype& weapon, double speed_factor,
-                CombatParams& params) {
+                HyperPreset preset, CombatParams& params) {
   AttackSet base =
       BuildAttackSet(state, derived, weapon, speed_factor, params.types);
   params.attacks = std::move(base.attacks);
@@ -1301,7 +1303,7 @@ void AddAttacks(const GameState& state, const DerivedStats& derived,
   }
   AddBuffs(state, buff_skills, speed_factor, derived.buff_duration_pct, params);
   AddAllyBuffs(state, speed_factor, params);
-  AddBuffedSets(state, buff_skills, weapon, speed_factor, params);
+  AddBuffedSets(state, buff_skills, weapon, speed_factor, preset, params);
   TagBuffGatedPulses(buff_skills, params);
 }
 
@@ -1375,7 +1377,8 @@ CombatParams ComputeCombatParams(const GameState& state) {
   if (params.types.empty()) {
     return params;
   }
-  AddAttacks(state, derived, *weapon, speed_factor, params);
+  AddAttacks(state, derived, *weapon, speed_factor, HyperPreset::kFarming,
+             params);
   params.active = true;
   return params;
 }
@@ -1393,8 +1396,9 @@ CombatParams ComputeBossParams(const GameState& state,
     return params;
   }
 
-  DerivedStats derived =
-      DerivedStatsFor(state.character, state.skills, {}, state.party);
+  // A boss fight is what the bossing allocation is for.
+  DerivedStats derived = DerivedStatsFor(state.character, state.skills, {},
+                                         state.party, HyperPreset::kBossing);
   // A boss fight runs in real time whatever the character's level: the pacing
   // band stretches an idle map out so it can be left alone, and a fight the
   // player is sitting and watching wants neither the stretch nor a beat.
@@ -1405,7 +1409,7 @@ CombatParams ComputeBossParams(const GameState& state,
   if (params.types.empty()) {
     return params;
   }
-  AddAttacks(state, derived, *weapon, 1.0, params);
+  AddAttacks(state, derived, *weapon, 1.0, HyperPreset::kBossing, params);
   HalveBossReach(params);
   // The boss screen draws every line as a number, which the map does not.
   params.record_damage_lines = true;

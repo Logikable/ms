@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "absl/types/span.h"
+#include "src/character/hyper_stats.h"
 #include "src/combat/damage.h"
 #include "src/item/equip_stats.h"
 #include "src/protos/character.pb.h"
@@ -20,6 +21,9 @@ namespace {
 
 // Slack for the floor below, far smaller than any percentage a skill grants.
 constexpr double kPercentEpsilon = 1e-9;
+
+// Hyper Stats are stated in whole percents, as a worn item's levers are.
+constexpr double kPercentToFraction = 100.0;
 
 // DEF every character carries for their primary stats, before anything is
 // worn: 1.5 for each point of STR and 0.4 for each point of DEX and of LUK.
@@ -154,6 +158,8 @@ struct PassiveTotals {
   std::map<std::string, SkillBonus> skill_bonus;
   double damage_pct = 0.0;
   double boss_pct = 0.0;
+  // Only Hyper Stats grant this one, so no skill lever feeds it.
+  double normal_pct = 0.0;
   double mirror_line_pct = 0.0;
   int bonus_attack_lines = 0;
   double final_dmg_pct = 0.0;
@@ -705,6 +711,64 @@ PassiveTotals LearnedPassives(const CharacterInstance& character,
   return totals;
 }
 
+// What the character's Hyper Stats add, on top of everything their book
+// granted. The four stats land here rather than in the allocation because
+// GMS calls them final stat: nothing takes a percentage of them, which is
+// exactly what a passive's flat grant already gets.
+//
+// Percentages arrive as whole percents and are divided here, the way a worn
+// item's are. Arcane Force is not among them -- it is not a stat the damage
+// chain reads, and CharacterInstance::arcane_force answers for it.
+void AddHyperStats(const CharacterInstance& character, HyperPreset preset,
+                   PassiveTotals& totals) {
+  static_assert(HyperStatField_ARRAYSIZE == 16,
+                "a new Hyper Stat needs somewhere to land");
+  if (character.proto().level() < kHyperStatUnlockLevel) {
+    return;
+  }
+  totals.str += static_cast<int>(
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_STR, preset));
+  totals.dex += static_cast<int>(
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_DEX, preset));
+  totals.int_ += static_cast<int>(
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_INT, preset));
+  totals.luk += static_cast<int>(
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_LUK, preset));
+  totals.max_hp_pct +=
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_MAX_HP, preset) /
+      kPercentToFraction;
+  totals.max_mp_pct +=
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_MAX_MP, preset) /
+      kPercentToFraction;
+  totals.crit_rate +=
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_RATE, preset) /
+      kPercentToFraction;
+  totals.crit_dmg +=
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_DAMAGE, preset) /
+      kPercentToFraction;
+  // Ignored defence meets what the book already ignores in reverse, the way
+  // two sources of it always meet.
+  totals.ied = CombineIgnoredDefense(
+      totals.ied, character.hyper_stat_bonus(HYPER_STAT_FIELD_IED, preset) /
+                      kPercentToFraction);
+  totals.damage_pct +=
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_DAMAGE, preset) /
+      kPercentToFraction;
+  totals.boss_pct +=
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_BOSS_DAMAGE, preset) /
+      kPercentToFraction;
+  totals.normal_pct +=
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_NORMAL_DAMAGE, preset) /
+      kPercentToFraction;
+  // One stat pays both, so a magician and a warrior read the same row.
+  int attack = static_cast<int>(
+      character.hyper_stat_bonus(HYPER_STAT_FIELD_ATTACK, preset));
+  totals.attack += attack;
+  totals.magic_attack += attack;
+  totals.exp_pct += character.hyper_stat_bonus(HYPER_STAT_FIELD_EXP, preset) /
+                    kPercentToFraction;
+}
+
 // Cashes Maple Warrior in against the AP the character has spent. It grants
 // what a ring grants, so it lands in the same pile the passives' flat stats
 // do -- and it is read here rather than in AddEffect because a skill's levers
@@ -921,12 +985,16 @@ std::vector<AllyGrant> AllyBuffsFor(
 DerivedStats DerivedStatsFor(const CharacterInstance& character,
                              const std::map<std::string, Skill>& skills,
                              absl::Span<const Skill* const> buffs_up,
-                             absl::Span<const CharacterInstance> allies) {
+                             absl::Span<const CharacterInstance> allies,
+                             HyperPreset preset) {
   const Character& proto = character.proto();
   const AllocatedStats& allocated = proto.allocated_stats();
   const EquipStats& equipped = character.equip_stats();
   PassiveTotals passives = LearnedPassives(character, skills, buffs_up, allies);
   FoldApStats(allocated, passives);
+  // After the fold, never before it: a Hyper Stat is final stat, and Maple
+  // Warrior takes its share of the allocation alone.
+  AddHyperStats(character, preset, passives);
 
   DerivedStats stats;
   stats.max_hp =
@@ -996,6 +1064,7 @@ DerivedStats DerivedStatsFor(const CharacterInstance& character,
   stats.elemental_resistance = passives.elemental_resistance;
   stats.damage_pct = passives.damage_pct;
   stats.boss_pct = passives.boss_pct;
+  stats.normal_pct = passives.normal_pct;
   stats.meso_pct = passives.meso_pct;
   // The worn share is whole percents and the granted share a fraction. They
   // meet by summing, the way boss damage does in OffenseStatsFor.
@@ -1040,6 +1109,7 @@ PassiveOffense PassiveOffenseFor(const DerivedStats& derived) {
   passives.mastery = derived.mastery;
   passives.damage_pct = derived.damage_pct;
   passives.boss_pct = derived.boss_pct;
+  passives.normal_pct = derived.normal_pct;
   passives.mirror_line_pct = derived.mirror_line_pct;
   passives.bonus_attack_lines = derived.bonus_attack_lines;
   passives.final_dmg_pct = derived.final_dmg_pct;
