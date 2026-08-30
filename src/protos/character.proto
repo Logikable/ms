@@ -136,15 +136,18 @@ enum StatField {
 }
 
 // One Hyper Stat a player can put points into, in the order the Hyper tab
-// lists them. Job-independent: every character is offered the same fifteen.
+// lists them. Job-independent: every character is offered the same fourteen.
 enum HyperStatField {
+  // 6 was Max MP, which GMS offers and this game does not: no fight here is
+  // decided by a mage running dry.
+  reserved 6;
+
   HYPER_STAT_FIELD_UNSPECIFIED = 0;
   HYPER_STAT_FIELD_STR = 1;
   HYPER_STAT_FIELD_DEX = 2;
   HYPER_STAT_FIELD_INT = 3;
   HYPER_STAT_FIELD_LUK = 4;
   HYPER_STAT_FIELD_MAX_HP = 5;
-  HYPER_STAT_FIELD_MAX_MP = 6;
   HYPER_STAT_FIELD_CRIT_RATE = 7;
   HYPER_STAT_FIELD_CRIT_DAMAGE = 8;
   HYPER_STAT_FIELD_IED = 9;

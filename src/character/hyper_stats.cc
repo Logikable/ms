@@ -110,7 +110,6 @@ double HyperStatBonus(HyperStatField field, int level) {
     case HYPER_STAT_FIELD_LUK:
       return 30.0 * at;
     case HYPER_STAT_FIELD_MAX_HP:
-    case HYPER_STAT_FIELD_MAX_MP:
       return 2.0 * at;
     // Critical Rate and the two damage ladders take a second helping of every
     // level past the fifth, which is GMS's log5 term.

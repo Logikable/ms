@@ -737,9 +737,6 @@ void AddHyperStats(const CharacterInstance& character, HyperPreset preset,
   totals.max_hp_pct +=
       character.hyper_stat_bonus(HYPER_STAT_FIELD_MAX_HP, preset) /
       kPercentToFraction;
-  totals.max_mp_pct +=
-      character.hyper_stat_bonus(HYPER_STAT_FIELD_MAX_MP, preset) /
-      kPercentToFraction;
   totals.crit_rate +=
       character.hyper_stat_bonus(HYPER_STAT_FIELD_CRIT_RATE, preset) /
       kPercentToFraction;

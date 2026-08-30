@@ -1,7 +1,7 @@
 /* Hyper Stats: the points a character earns past level 140, what a level of
  * one costs, and what it is worth.
  *
- * Fifteen stats, the same fifteen for every job. Points are earned per level
+ * Fourteen stats, the same fourteen for every job. Points are earned per level
  * from 140 and spent on any of them; a stat's cost climbs with its own level,
  * so the cost belongs to the level rather than to the stat. Nothing is
  * banked: what a character has to spend is the points their level has paid
