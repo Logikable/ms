@@ -15,4 +15,4 @@ equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_BELT
 upgrade_slots: 3
 # Dropped by Pink Bean, never stocked, at the price the mark beside it fetches.
-sell_price: 2000000
+sell_price: 2500000

@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -245,41 +246,49 @@ TEST(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
                           "difficulties of Hilla and of Horntail";
 }
 
-// Every accessory a boss drops sells for one price, and that price is a
-// function of the earliest gate it drops behind: 500k at Zakum's 110 up to 3M
-// at the 190 two fights share. The ladder was written down in fifteen files
-// and enforced nowhere, so a new boss's drop could quietly sell for a rung it
-// does not stand on.
-TEST(BossDataTest, ABossAccessorySellsAtItsEarliestGatesRung) {
-  const std::map<int, int64_t> kRung = {
-      {110, 500000},  {130, 750000},  {150, 1000000}, {160, 1500000},
-      {170, 2000000}, {180, 2500000}, {190, 3000000}};
-  // The earliest gate each dropped equip stands behind. Two fights drop the
-  // ring and the earring, and it is the first of them that prices it.
-  std::map<std::string, int> earliest;
+// What a boss's accessory sells for is a judgement about the piece, not about
+// the gate it drops behind: the Horntail Necklace goes for a fifth of the ring
+// beside it, and Arkarium's pendant for four times the earring at its own gate.
+// So the prices are pinned one by one here, and every dropped piece has to
+// appear -- a new boss's drop cannot ship unpriced.
+TEST(BossDataTest, BossAccessoriesSellForTheirPinnedPrices) {
+  const std::map<std::string, int64_t> kPrice = {
+      {"aquatic_letter_eye_accessory", 500000},
+      {"black_bean_mark", 2500000},
+      {"chaos_horntail_necklace", 10000000},
+      {"condensed_power_crystal", 500000},
+      {"crystal_ventus_badge", 2500000},
+      {"dea_sidus_earring", 1500000},
+      {"dominator_pendant", 10000000},
+      {"golden_clover_belt", 2500000},
+      {"horntail_necklace", 500000},
+      {"pink_holy_cup", 2500000},
+      {"royal_black_metal_shoulder", 2500000},
+      {"silver_blossom_ring", 1500000},
+      {"stone_of_eternal_life", 2000000},
+      {"will_o_the_wisps", 3000000}};
+  std::set<std::string> dropped;
   for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
     for (const BossDifficulty& difficulty : entry.second.difficulties()) {
       if (difficulty.coming_soon()) {
         continue;
       }
       for (const MobDrop& drop : difficulty.drops()) {
-        if (!drop.has_equip()) {
-          continue;
-        }
-        std::map<std::string, int>::iterator it = earliest.find(drop.equip());
-        if (it == earliest.end() || difficulty.unlock_level() < it->second) {
-          earliest[drop.equip()] = difficulty.unlock_level();
+        if (drop.has_equip()) {
+          dropped.insert(drop.equip());
         }
       }
     }
   }
-  ASSERT_FALSE(earliest.empty());
   std::map<std::string, EquipPrototype> equips = LoadEquips();
-  for (const std::pair<const std::string, int>& dropped : earliest) {
-    ASSERT_GT(kRung.count(dropped.second), 0u)
-        << dropped.first << " drops behind an ungated rung";
-    EXPECT_EQ(equips.at(dropped.first).sell_price(), kRung.at(dropped.second))
-        << dropped.first << " sells off the rung its gate puts it on";
+  for (const std::string& equip : dropped) {
+    ASSERT_GT(kPrice.count(equip), 0u) << equip << " drops unpriced";
+    EXPECT_EQ(equips.at(equip).sell_price(), kPrice.at(equip))
+        << equip << " sells off its pinned price";
+  }
+  for (const std::pair<const std::string, int64_t>& priced : kPrice) {
+    EXPECT_GT(dropped.count(priced.first), 0u)
+        << priced.first << " is priced here but no boss drops it";
   }
 }
 

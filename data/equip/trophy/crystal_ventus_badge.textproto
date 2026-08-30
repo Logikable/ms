@@ -15,4 +15,4 @@ unsupported_upgrades: UPGRADE_SCROLL
 unsupported_upgrades: UPGRADE_STAR_FORCE
 # Dropped by Magnus, never stocked. Half again what Horntail's pieces fetch:
 # his is the longer fight and the later gate.
-sell_price: 1500000
+sell_price: 2500000
