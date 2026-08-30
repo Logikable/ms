@@ -14,7 +14,7 @@ base_stats {
 equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
 equip_slot: EQUIP_SLOT_PENDANT
 upgrade_slots: 5
-# Dropped by Arkarium, never stocked, one rung over Pink Bean's on the ladder
-# his accessories sit on: Zakum 500k, Hilla 750k, Horntail 1M, Magnus 1.5M,
-# Pink Bean 2M.
+# Dropped by Arkarium, never stocked, at the rung his 180 gate puts it on.
+# A boss accessory is priced by the earliest gate that drops it: 110 500k,
+# 130 750k, 150 1M, 160 1.5M, 170 2M, 180 2.5M, 190 3M.
 sell_price: 2500000

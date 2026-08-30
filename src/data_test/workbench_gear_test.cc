@@ -213,7 +213,7 @@ TEST_F(WorkbenchGearTest, TheThirdJobUpWearsWhatTheBossesDrop) {
       {EQUIP_SLOT_FACE_ACCESSORY, "Condensed Power Crystal"},
       {EQUIP_SLOT_POCKET, "Pink Holy Cup"},
       {EQUIP_SLOT_RING, "Silver Blossom Ring"},
-      {EQUIP_SLOT_PENDANT, "Horntail Necklace"},
+      {EQUIP_SLOT_PENDANT, "Chaos Horntail Necklace"},
       {EQUIP_SLOT_PENDANT_2, "Dominator Pendant"},
       {EQUIP_SLOT_EARRINGS, "Will o' the Wisps"},
       {EQUIP_SLOT_SHOULDER, "Royal Black Metal Shoulder"},

@@ -245,6 +245,44 @@ TEST(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
                           "difficulties of Hilla and of Horntail";
 }
 
+// Every accessory a boss drops sells for one price, and that price is a
+// function of the earliest gate it drops behind: 500k at Zakum's 110 up to 3M
+// at the 190 two fights share. The ladder was written down in fifteen files
+// and enforced nowhere, so a new boss's drop could quietly sell for a rung it
+// does not stand on.
+TEST(BossDataTest, ABossAccessorySellsAtItsEarliestGatesRung) {
+  const std::map<int, int64_t> kRung = {
+      {110, 500000},  {130, 750000},  {150, 1000000}, {160, 1500000},
+      {170, 2000000}, {180, 2500000}, {190, 3000000}};
+  // The earliest gate each dropped equip stands behind. Two fights drop the
+  // ring and the earring, and it is the first of them that prices it.
+  std::map<std::string, int> earliest;
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      if (difficulty.coming_soon()) {
+        continue;
+      }
+      for (const MobDrop& drop : difficulty.drops()) {
+        if (!drop.has_equip()) {
+          continue;
+        }
+        std::map<std::string, int>::iterator it = earliest.find(drop.equip());
+        if (it == earliest.end() || difficulty.unlock_level() < it->second) {
+          earliest[drop.equip()] = difficulty.unlock_level();
+        }
+      }
+    }
+  }
+  ASSERT_FALSE(earliest.empty());
+  std::map<std::string, EquipPrototype> equips = LoadEquips();
+  for (const std::pair<const std::string, int>& dropped : earliest) {
+    ASSERT_GT(kRung.count(dropped.second), 0u)
+        << dropped.first << " drops behind an ungated rung";
+    EXPECT_EQ(equips.at(dropped.first).sell_price(), kRung.at(dropped.second))
+        << dropped.first << " sells off the rung its gate puts it on";
+  }
+}
+
 // Zakum is the first boss and the one the screen was built against, so his
 // numbers are pinned: the shape of the fight is a design decision, not data
 // that should drift.

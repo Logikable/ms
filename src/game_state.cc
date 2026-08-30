@@ -316,7 +316,7 @@ std::vector<std::string> BossAccessories() {
           "stone_of_eternal_life",
           "pink_holy_cup",
           "silver_blossom_ring",
-          "horntail_necklace",
+          "chaos_horntail_necklace",
           "dominator_pendant",
           "dea_sidus_earring",
           "will_o_the_wisps",
