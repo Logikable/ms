@@ -32,10 +32,10 @@ difficulties {
     per_kill: 1.0
   }
 }
-# Written down, not built: the same lone fight at the numbers GMS gives Hard.
-# Only the HP is stated, because nothing else is decided.
 difficulties {
   name: "Hard"
+  # The same lone fight at the numbers GMS gives Hard, and the only body in the
+  # game standing behind 100% PDR.
   phases {
     spawns { mob: "hard_hilla" spots { x: 4 y: 4 } }
     # The floor under the boss, walked end to end.
@@ -47,5 +47,23 @@ difficulties {
     arena_width: 9
     arena_height: 6
   }
-  coming_soon: true
+  reset: RESET_PERIOD_DAILY
+  # Twice what Normal allows, as every fight past the level-160 gate has.
+  time_limit_seconds: 600
+  unlock_level: 190
+  # Five Intense Power Crystals at what her level fetches, as every boss's
+  # meso is.
+  meso: 56250000
+  # Paid for the clear, flat and untouched by any EXP bonus.
+  exp: 20400000
+  drops {
+    equip: "will_o_the_wisps"
+    per_kill: 1.0
+  }
+  # The same shard Normal drops: a soul belongs to the boss, not to the rung
+  # the player took her at.
+  drops {
+    item: "hillas_soul_shard"
+    per_kill: 1.0
+  }
 }

@@ -1,0 +1,19 @@
+name: "Will o' the Wisps"
+required_level: 130
+base_stats {
+  str: 7
+  dex: 7
+  int: 7
+  luk: 7
+  attack: 2
+  magic_attack: 2
+  max_hp: 100
+  max_mp: 100
+  def: 100
+}
+equip_job_categories: EQUIP_JOB_CATEGORY_UNIVERSAL
+equip_slot: EQUIP_SLOT_EARRINGS
+upgrade_slots: 5
+# Dropped by Hard Hilla, never stocked, at the top of the ladder a boss
+# accessory sits on: hers is the latest gate in the game.
+sell_price: 3000000

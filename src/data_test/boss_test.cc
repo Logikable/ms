@@ -143,8 +143,8 @@ TEST(BossDataTest, AComingSoonDifficultyStatesOnlyItsPhases) {
       EXPECT_EQ(difficulty.drops_size(), 0) << where;
     }
   }
-  EXPECT_EQ(coming_soon, 5) << "Chaos Zakum, Chaos Horntail, Chaos Pink Bean, "
-                               "Hard Hilla and Hard Magnus";
+  EXPECT_EQ(coming_soon, 4)
+      << "Chaos Zakum, Chaos Horntail, Chaos Pink Bean and Hard Magnus";
 }
 
 // The fights the screen advertises but cannot yet run, at the HP GMS gives
@@ -160,7 +160,6 @@ TEST(BossDataTest, TheUnbuiltFightsCarryTheirGmsHp) {
   };
   const std::vector<Expectation> kExpected = {
       {"zakum", "Chaos", {84000000000LL, 84000000000LL}},
-      {"hilla", "Hard", {16800000000LL}},
       {"horntail", "Chaos", {3300000000LL, 3300000000LL, 20000000000LL}},
       {"magnus", "Hard", {120000000000LL}},
       {"pink_bean", "Chaos", {130200000000LL, 69300000000LL}},
@@ -244,8 +243,8 @@ TEST(BossDataTest, EveryBuiltFightDropsItsOwnSoulShard) {
       EXPECT_EQ(items.at(shards[0]).category(), ITEM_CATEGORY_ETC) << where;
     }
   }
-  EXPECT_EQ(fights, 6)
-      << "Zakum, Hilla, Horntail, Magnus, Pink Bean and Arkarium";
+  EXPECT_EQ(fights, 7) << "Zakum, Horntail, Magnus, Pink Bean, Arkarium and "
+                          "both difficulties of Hilla";
 }
 
 // Zakum is the first boss and the one the screen was built against, so his
@@ -373,6 +372,31 @@ TEST(BossDataTest, NormalArkariumIsOneBodyBehindNinetyPdr) {
   ASSERT_EQ(normal.drops_size(), 2);
   EXPECT_EQ(normal.drops(0).equip(), "dominator_pendant");
   EXPECT_EQ(normal.drops(1).item(), "arkariums_soul_shard");
+}
+
+// The only fight in the game with a second difficulty built, and the only body
+// behind 100% PDR. Pinned for the reason Zakum's numbers are.
+TEST(BossDataTest, HardHillaIsTheSameFightBehindALaterGate) {
+  std::map<std::string, Boss> bosses = LoadBosses();
+  std::map<std::string, Mob> mobs = LoadMobs();
+  ASSERT_GT(bosses.count("hilla"), 0u);
+  ASSERT_EQ(bosses.at("hilla").difficulties_size(), 2);
+  const BossDifficulty& hard = bosses.at("hilla").difficulties(1);
+  EXPECT_EQ(hard.name(), "Hard");
+  EXPECT_FALSE(hard.coming_soon());
+  EXPECT_EQ(hard.reset(), RESET_PERIOD_DAILY);
+  EXPECT_EQ(hard.time_limit_seconds(), 600);
+  EXPECT_EQ(hard.unlock_level(), 190);
+  EXPECT_EQ(hard.meso(), 56250000);
+  EXPECT_EQ(hard.exp(), 20400000);
+  const Mob& silver = mobs.at("hard_hilla");
+  EXPECT_EQ(silver.level(), 190);
+  EXPECT_EQ(silver.max_hp(), 16800000000LL);
+  EXPECT_EQ(silver.pdr(), 100);
+  ASSERT_EQ(hard.drops_size(), 2);
+  EXPECT_EQ(hard.drops(0).equip(), "will_o_the_wisps");
+  // The same shard Normal drops: a soul belongs to the boss, not the rung.
+  EXPECT_EQ(hard.drops(1).item(), "hillas_soul_shard");
 }
 
 // Where the parts stand is data, and two of them in one cell is a bar drawn on
