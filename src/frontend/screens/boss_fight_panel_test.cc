@@ -156,9 +156,11 @@ std::vector<std::string> RowsOf(const ftxui::Screen& screen) {
   return rows;
 }
 
-std::vector<std::string> Rows(const BossRun& run, int width = 120) {
-  ftxui::Screen screen = ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
-                                               ftxui::Dimension::Fixed(30));
+std::vector<std::string> Rows(const BossRun& run,
+                              int width = kMinTerminalColumns) {
+  ftxui::Screen screen =
+      ftxui::Screen::Create(ftxui::Dimension::Fixed(width),
+                            ftxui::Dimension::Fixed(kMinTerminalRows));
   ftxui::Render(screen, BossFightPanel(run));
   return RowsOf(screen);
 }
@@ -898,6 +900,82 @@ TEST(BossFightPanelTest, TheColumnOverAMonsterStaysTheSwings) {
     }
   }
   EXPECT_GT(summons_drawn, 0) << "the summon was drawn somewhere";
+}
+
+// A phase on the shipped grid with the player standing wherever `spots` says
+// and one monster out of the way, for a test that reads the layout itself.
+Boss GridBoss(const std::vector<std::pair<int, int>>& spots) {
+  Boss boss;
+  boss.set_name("Zakum");
+  BossDifficulty* normal = boss.add_difficulties();
+  normal->set_name("Normal");
+  normal->set_reset(RESET_PERIOD_DAILY);
+  normal->set_time_limit_seconds(300);
+  BossPhase* phase = normal->add_phases();
+  Spawn* arm = phase->add_spawns();
+  arm->set_mob("arm");
+  ArenaSpot* at = arm->add_spots();
+  at->set_x(kArenaColumns - 1);
+  at->set_y(0);
+  AddSpots(phase, spots);
+  phase->set_arena_width(kArenaColumns);
+  phase->set_arena_height(kArenaRows);
+  return boss;
+}
+
+// Where every empty spot's marker was drawn, as (row, column). The marker is
+// multi-byte, so RowsOf leaves it as "# # #".
+std::vector<std::pair<int, int>> EmptySpotsIn(
+    const std::vector<std::string>& rows) {
+  std::vector<std::pair<int, int>> found;
+  for (int y = 0; y < static_cast<int>(rows.size()); ++y) {
+    std::size_t at = 0;
+    while ((at = rows[y].find("# # #", at)) != std::string::npos) {
+      found.push_back({y, static_cast<int>(at)});
+      at += 5;
+    }
+  }
+  return found;
+}
+
+// The grid every arena stands on, measured against the smallest terminal the
+// game is laid out for. One column or one row more than kArenaColumns and
+// kArenaRows allow is drawn off the screen or on top of its neighbour, and
+// neither shows up in a data file -- so the grid is pinned here, where it can
+// be seen, rather than trusted where it is written.
+TEST(BossFightPanelTest, TheGridFitsTheSmallestTerminal) {
+  // Two rows of border and the bar itself: what every panel in the arena
+  // takes, whatever is standing in it.
+  constexpr int kPanelRows = 2 + kPlayerBarRows;
+  std::unique_ptr<GameState> state = MakeState(1000000000, 1);
+  // A full row of the grid and a full column of it, on alternate cells across
+  // and every cell down, which is the most any fight asks of either.
+  std::vector<std::pair<int, int>> spots;
+  for (int x = 0; x < kArenaColumns; x += 2) {
+    spots.push_back({x, kArenaRows - 1});
+  }
+  for (int y = 0; y + 1 < kArenaRows; ++y) {
+    spots.push_back({0, y});
+  }
+  Boss boss = GridBoss(spots);
+  BossRun run("zakum", boss, 0);
+  run.Advance(*state, kBossCountdownSeconds);
+
+  // The player stands on the first spot and is drawn as their own panel, so
+  // every other spot is an empty one and all of them are on the screen.
+  std::vector<std::pair<int, int>> drawn = EmptySpotsIn(Rows(run));
+  ASSERT_EQ(drawn.size(), spots.size() - 1);
+  for (std::size_t i = 1; i < drawn.size(); ++i) {
+    const std::pair<int, int>& a = drawn[i - 1];
+    const std::pair<int, int>& b = drawn[i];
+    if (a.first == b.first) {
+      EXPECT_GE(b.second - a.second, kBossPanelWidth)
+          << "two panels overlap on screen row " << a.first;
+    } else {
+      EXPECT_GE(b.first - a.first, kPanelRows)
+          << "two arena rows overlap at screen row " << b.first;
+    }
+  }
 }
 
 }  // namespace

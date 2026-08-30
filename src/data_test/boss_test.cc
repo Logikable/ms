@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/frontend/screens/boss_fight_panel.h"
 #include "src/proto_loader.h"
 #include "src/protos/boss.pb.h"
 #include "src/protos/equip.pb.h"
@@ -405,13 +406,13 @@ TEST(BossDataTest, EveryPhaseStandsThePlayerInsideItsArena) {
 }
 
 // How much room each fight gives the player is a design decision, so the
-// count per phase is pinned: five among Zakum's arms and five under his body,
-// six around each of Horntail's heads and six around the dragon, five on
-// Hilla's floor, five on Magnus's, and five in each half of Pink Bean's room.
-// Every difficulty of a boss is laid out alike, and every phase holds more than
-// a full party, so a party of three always has somewhere left to walk.
+// count per phase is pinned: five on the floor of every fight, plus the two
+// ledges over the ends of Zakum's first phase, and six around each of
+// Horntail's heads and six around the dragon. Every difficulty of a boss is
+// laid out alike, and every phase holds more than a full party, so a party of
+// three always has somewhere left to walk.
 TEST(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
-  std::map<std::string, std::vector<int>> expected = {{"zakum", {5, 5}},
+  std::map<std::string, std::vector<int>> expected = {{"zakum", {7, 5}},
                                                       {"hilla", {5}},
                                                       {"horntail", {6, 6, 6}},
                                                       {"magnus", {5}},
@@ -430,6 +431,24 @@ TEST(BossDataTest, EveryFightOffersTheSpotsItWasDesignedWith) {
       }
     }
   }
+}
+
+// One grid for every fight in the game, so a room is the same shape whichever
+// boss is standing in it -- and, more to the point, so no arena outgrows the
+// smallest terminal the game is laid out for. See kArenaColumns.
+TEST(BossDataTest, EveryArenaStandsOnTheOneGrid) {
+  int phases = 0;
+  for (const std::pair<const std::string, Boss>& entry : LoadBosses()) {
+    for (const BossDifficulty& difficulty : entry.second.difficulties()) {
+      for (const BossPhase& phase : difficulty.phases()) {
+        ++phases;
+        std::string where = entry.first + " " + difficulty.name();
+        EXPECT_EQ(phase.arena_width(), kArenaColumns) << where;
+        EXPECT_EQ(phase.arena_height(), kArenaRows) << where;
+      }
+    }
+  }
+  EXPECT_GT(phases, 0);
 }
 
 }  // namespace

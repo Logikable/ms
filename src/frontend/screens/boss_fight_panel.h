@@ -38,6 +38,22 @@ inline constexpr int kPlayerBarRows = 2;
 // gives both to every bar in it, so the arena's rows stay square.
 inline constexpr int kMaxMobBarRows = 2;
 
+// The smallest terminal the game is laid out for. Every arena fits inside it,
+// so a fight never draws a bar off the edge of somebody's screen.
+inline constexpr int kMinTerminalColumns = 120;
+inline constexpr int kMinTerminalRows = 30;
+
+// The grid every fight stands on -- one shape for all of them, so a player
+// walking into a new boss already knows where the room's corners are.
+//
+// What the smallest terminal holds is seven panels across a row and six rows
+// of them; the arena spends the rest on the fight's HP bar and the clock.
+// Nine columns rather than the thirteen that would fit, because things stand
+// on alternate cells: five spots to a row leaves a damage stack the width it
+// needs beside a bar.
+inline constexpr int kArenaColumns = 9;
+inline constexpr int kArenaRows = 6;
+
 // Seconds as mm:ss, rounded up so the clock reads 0:00 only when the time is
 // actually gone.
 std::string FightClock(double seconds_left);

@@ -1,35 +1,34 @@
 name: "Pink Bean"
 difficulties {
   name: "Normal"
-  # The five statues, spread evenly across the arena. Ariel stands a row under
-  # the ceiling and the other four a row over the floor, which is the arch his
-  # room is built as: the statue worth three of the others is the one out of
-  # reach.
+  # The five statues, spread evenly across the arena. Ariel stands a row over
+  # the other four, which is the arch his room is built as: the statue worth
+  # three of the others is the one out of reach.
   phases {
     spawns { mob: "solomon_the_wise" spots { x: 0 y: 3 } }
     spawns { mob: "hugin" spots { x: 2 y: 3 } }
-    spawns { mob: "ariel" spots { x: 4 y: 1 } }
+    spawns { mob: "ariel" spots { x: 4 y: 2 } }
     spawns { mob: "munin" spots { x: 6 y: 3 } }
     spawns { mob: "rex_the_wise" spots { x: 8 y: 3 } }
-    # The floor under the statues, and a ledge at each end level with them.
-    player_spots { x: 4 y: 4 }
-    player_spots { x: 0 y: 4 }
-    player_spots { x: 8 y: 4 }
-    player_spots { x: 0 y: 2 }
-    player_spots { x: 8 y: 2 }
+    # The floor under the statues, walked end to end.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
     arena_width: 9
-    arena_height: 5
+    arena_height: 6
   }
   # The bean himself, alone in the middle of the same room, low over the floor.
   phases {
-    spawns { mob: "pink_bean" spots { x: 4 y: 3 } }
-    player_spots { x: 4 y: 4 }
-    player_spots { x: 0 y: 4 }
-    player_spots { x: 8 y: 4 }
-    player_spots { x: 2 y: 4 }
-    player_spots { x: 6 y: 4 }
+    spawns { mob: "pink_bean" spots { x: 4 y: 4 } }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
     arena_width: 9
-    arena_height: 5
+    arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
   # What Horntail and Magnus allow. The statues are 73% of the fight and the
@@ -71,27 +70,27 @@ difficulties {
   phases {
     spawns { mob: "chaos_solomon_the_wise" spots { x: 0 y: 3 } }
     spawns { mob: "chaos_hugin" spots { x: 2 y: 3 } }
-    spawns { mob: "chaos_ariel" spots { x: 4 y: 1 } }
+    spawns { mob: "chaos_ariel" spots { x: 4 y: 2 } }
     spawns { mob: "chaos_munin" spots { x: 6 y: 3 } }
     spawns { mob: "chaos_rex_the_wise" spots { x: 8 y: 3 } }
-    # The floor under the statues, and a ledge at each end level with them.
-    player_spots { x: 4 y: 4 }
-    player_spots { x: 0 y: 4 }
-    player_spots { x: 8 y: 4 }
-    player_spots { x: 0 y: 2 }
-    player_spots { x: 8 y: 2 }
+    # The floor under the statues, walked end to end.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
     arena_width: 9
-    arena_height: 5
+    arena_height: 6
   }
   phases {
-    spawns { mob: "chaos_pink_bean" spots { x: 4 y: 3 } }
-    player_spots { x: 4 y: 4 }
-    player_spots { x: 0 y: 4 }
-    player_spots { x: 8 y: 4 }
-    player_spots { x: 2 y: 4 }
-    player_spots { x: 6 y: 4 }
+    spawns { mob: "chaos_pink_bean" spots { x: 4 y: 4 } }
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
     arena_width: 9
-    arena_height: 5
+    arena_height: 6
   }
   coming_soon: true
 }

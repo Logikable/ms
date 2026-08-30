@@ -4,15 +4,15 @@ difficulties {
   # One phase, one monster: she stands alone in the middle of the arena with
   # the player under her, and there is nothing else to kill.
   phases {
-    spawns { mob: "hilla" spots { x: 3 y: 1 } }
-    # The floor she stands over, walked end to end.
-    player_spots { x: 3 y: 2 }
-    player_spots { x: 0 y: 2 }
-    player_spots { x: 6 y: 2 }
-    player_spots { x: 1 y: 2 }
-    player_spots { x: 5 y: 2 }
-    arena_width: 7
-    arena_height: 4
+    spawns { mob: "hilla" spots { x: 4 y: 4 } }
+    # The floor under the boss, walked end to end.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
   }
   reset: RESET_PERIOD_DAILY
   time_limit_seconds: 300
@@ -37,15 +37,15 @@ difficulties {
 difficulties {
   name: "Hard"
   phases {
-    spawns { mob: "hard_hilla" spots { x: 3 y: 1 } }
-    # The floor she stands over, walked end to end.
-    player_spots { x: 3 y: 2 }
-    player_spots { x: 0 y: 2 }
-    player_spots { x: 6 y: 2 }
-    player_spots { x: 1 y: 2 }
-    player_spots { x: 5 y: 2 }
-    arena_width: 7
-    arena_height: 4
+    spawns { mob: "hard_hilla" spots { x: 4 y: 4 } }
+    # The floor under the boss, walked end to end.
+    player_spots { x: 4 y: 5 }
+    player_spots { x: 0 y: 5 }
+    player_spots { x: 8 y: 5 }
+    player_spots { x: 2 y: 5 }
+    player_spots { x: 6 y: 5 }
+    arena_width: 9
+    arena_height: 6
   }
   coming_soon: true
 }
