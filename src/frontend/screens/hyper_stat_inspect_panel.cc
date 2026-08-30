@@ -19,6 +19,10 @@ namespace {
 constexpr int kEffectIndent = 3;
 constexpr int kLabelGap = 2;
 constexpr int kCardChrome = 2;  // the two border columns
+// The blank column the widest value keeps between itself and the right
+// border, matching the one the indent leaves on the left. A card measured
+// from its own text has no slack of its own, so it has to be asked for.
+constexpr int kRightGutter = 1;
 
 // The widest name in the roster and the widest value any stat reaches, which
 // together fix the width of every card. Measured rather than written down: a
@@ -67,7 +71,8 @@ void AppendLevelBlock(HyperStatField field, int level, int content,
 }  // namespace
 
 int HyperStatInspectPanel::Columns() {
-  return kCardChrome + kEffectIndent + LabelWidth() + kLabelGap + ValueWidth();
+  return kCardChrome + kEffectIndent + LabelWidth() + kLabelGap + ValueWidth() +
+         kRightGutter;
 }
 
 void HyperStatInspectPanel::SetStat(HyperStatField field, int level,

@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <vector>
 
 #include "ftxui/dom/elements.hpp"
 #include "src/frontend/widgets/panel_test_base.h"
@@ -76,6 +77,20 @@ TEST_F(HyperStatInspectPanelTest, EveryCardAsksForTheSameNarrowWidth) {
   // And wide enough to seat the longest name in the roster whole.
   EXPECT_NE(RenderAt(HYPER_STAT_FIELD_CRIT_DAMAGE, 5).find("Critical Damage"),
             std::string::npos);
+}
+
+// A card that measures its own width has to ask for the margin: without it
+// the widest value is welded to the right border while the indent leaves a
+// gutter on the left.
+TEST_F(HyperStatInspectPanelTest, EveryRowKeepsAColumnClearOfBothBorders) {
+  for (int level : {0, 5, 10}) {
+    HyperStatInspectPanel panel;
+    // The widest value in the roster, which is the row that sets the width.
+    panel.SetStat(HYPER_STAT_FIELD_STR, level, 10);
+    std::vector<std::string> touching = RowsTouchingABorder(panel.Render());
+    EXPECT_TRUE(touching.empty())
+        << "level " << level << ": " << (touching.empty() ? "" : touching[0]);
+  }
 }
 
 TEST_F(HyperStatInspectPanelTest, NoStatRendersAPlaceholder) {
